@@ -1,8 +1,10 @@
-const { distance, random_position } = require('./spatial.js');
+const { distance, random_position, normalize_direction } = require('./spatial.js');
 
-const a = {"position": [0,0]}
-const b = {"position": [1,1]}
+const a = {"position": [0,0], "direction": [1,1]}
+const b = {"position": [1,1], "direction": [1,3]}
 const c = {"position": [1,6]}
+
+const topology = {"x_bounds": [0,20], "y_bounds": [0,20]};
 
 test('manhattan distance tests', () => {
     expect(distance(a, b, "manhattan")).toBe(2)
@@ -28,7 +30,16 @@ test('chebyshev distance tests', () => {
 test('random position', () => {
     expect(
         random_position(
-            {"x_bounds": [0,20], "y_bounds": [0,20]}
+            topology
         )[0]
     ).toBeLessThanOrEqual(20)
+})
+
+test('normalize direction of [1,1]', () => {
+    
+    expect(normalize_direction(a)).toEqual([0.7071067811865475,0.7071067811865475])
+})
+
+test('normalize direction of [1,3]', () => {
+    expect(normalize_direction(b)).toEqual([0.31622776601683794,0.9486832980505138])
 })

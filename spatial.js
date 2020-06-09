@@ -21,7 +21,16 @@ function distance(a, b, distance = "manhattan") {
   return dFuncs[distance](a.position, b.position);
 }
 
-function normalize_direction(a, units) {}
+function normalize_direction(a) {
+    /** Returns the unit vector of the direction of an agent*/
+    if (!a.direction) {
+        throw new Error("agent must have direction");
+    }
+    const direction = a.direction
+    const magnitude = Math.sqrt(
+        direction.reduce((acc, val) => acc + val ** 2, 0));
+    return direction.map(v => v / magnitude);
+}
 
 function random_position(topology) {
   return [
@@ -36,4 +45,4 @@ function random_position(topology) {
   ];
 }
 
-module.exports = { distance, random_position };
+module.exports = { distance, random_position, normalize_direction };
