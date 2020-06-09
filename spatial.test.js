@@ -1,4 +1,4 @@
-const distance = require('./spatial.js');
+const { distance, random_position } = require('./spatial.js');
 
 const a = {"position": [0,0]}
 const b = {"position": [1,1]}
@@ -23,4 +23,12 @@ test('euclidean distance squared tests', () => {
 test('chebyshev distance tests', () => {
     expect(distance(a, b, "chebyshev")).toBe(1)
     expect(distance(a, c, "chebyshev")).toBe(6)
+})
+
+test('random position', () => {
+    expect(
+        random_position(
+            {"x_bounds": [0,20], "y_bounds": [0,20]}
+        )[0]
+    ).toBeLessThanOrEqual(20)
 })
