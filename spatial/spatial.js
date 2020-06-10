@@ -32,7 +32,20 @@ function normalize_direction(a) {
     return direction.map(v => v / magnitude);
 }
 
-function random_position(topology) {
+function random_position(topology, z_plane = false) {
+  let z_pos = 0
+  if (z_plane) {
+    if (!topology.z_bounds) {
+      throw new Error("topology z_bounds needed if z_plane flag set to true");
+    }
+    z_pos = Math.floor(
+      Math.random() * (topology.z_bounds[1] - topology.z_bounds[0]) +
+        topology.z_bounds[0]
+    )
+  }
+  if (!topology.x_bounds || !topology.y_bounds) {
+    throw new Error("topology missing x_bounds or y_bounds");
+  }
   return [
     Math.floor(
       Math.random() * (topology.x_bounds[1] - topology.x_bounds[0]) +
@@ -42,6 +55,7 @@ function random_position(topology) {
       Math.random() * (topology.y_bounds[1] - topology.y_bounds[0]) +
         topology.y_bounds[0]
     ),
+    z_pos
   ];
 }
 

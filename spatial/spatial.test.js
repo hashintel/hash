@@ -5,7 +5,7 @@ const b = {"position": [1,1,0], "direction": [1,3]}
 const c = {"position": [1,6,0]}
 const d = {"position": [1,6,2]}
 
-const topology = {"x_bounds": [0,20], "y_bounds": [0,20]};
+const topology = {"x_bounds": [0,20], "y_bounds": [0,20], "z_bounds": [0, 20]};
 
 test('manhattan distance tests', () => {
     expect(distance(a, b, "manhattan")).toBe(2)
@@ -36,6 +36,11 @@ test('random position', () => {
     expect(
         random_position(
             topology
+        )[2]
+    ).toBe(0),
+    expect(
+        random_position(
+            topology, true
         )[0]
     ).toBeLessThanOrEqual(20)
 })
