@@ -28,7 +28,7 @@ function in_radius(a, neighbors, radius = 1) {
   y_bounds = [a.position[1] + radius, a.position[1] - radius];
   z_bounds = [a.position[2] + radius, a.position[2] - radius];
 
-  in_rad = []
+  in_rad = [];
   neighbors.forEach((neighbor) => {
     if (
       neighbor.position[0] <= x_bounds[0] &&
@@ -51,7 +51,7 @@ function in_front(a, neighbors) {
     throw new Error("agent must have position");
   }
 
-  n_front = []
+  n_front = [];
   neighbors.forEach((neighbor) => {
     if (
       neighbor.position[0] >= a.position[0] &&
@@ -72,7 +72,7 @@ function behind(a, neighbors) {
     throw new Error("agent must have position");
   }
 
-  n_behind = []
+  n_behind = [];
   neighbors.forEach((neighbor) => {
     if (
       neighbor.position[0] <= a.position[0] &&
@@ -87,4 +87,72 @@ function behind(a, neighbors) {
   return n_behind;
 }
 
-module.exports = { on_position, in_radius, in_front, behind }
+function above(a, neighbors) {
+  /** Searches and returns all neighbors with positions above the agent */
+  if (!a.position) {
+    throw new Error("agent must have position");
+  }
+
+  n_above = [];
+  neighbors.forEach((neighbor) => {
+    if (neighbor.position[2] > a.position[2]) {
+      n_above.push(neighbor);
+    }
+  })
+
+  return n_above;
+}
+
+function below(a, neighbors) {
+  /** Searches and returns all neighbors with positions below the agent */
+  if (!a.position) {
+    throw new Error("agent must have position");
+  }
+
+  n_below = [];
+  neighbors.forEach((neighbor) => {
+    if (neighbor.position[2] < a.position[2]) {
+      n_below.push(neighbor);
+    }
+  })
+
+  return n_below;
+}
+
+function right(a, neighbors) {
+  /** Searches and returns all neighbors with positions
+  *   to the right of the agent
+  */
+  if (!a.position) {
+    throw new Error("agent must have position");
+  }
+
+  n_right = [];
+  neighbors.forEach((neighbor) => {
+    if(neighbor.position[0] > a.position[0]) {
+      n_right.push(neighbor);
+    }
+  })
+
+  return n_right;
+}
+
+function left(a, neighbors) {
+  /** Searches and returns all neighbors with positions
+  *   to the left of the agent
+  */
+  if (!a.position) {
+    throw new Error("agent must have position");
+  }
+
+  n_left = [];
+  neighbors.forEach((neighbor) => {
+    if(neighbor.position[0] < a.position[0]) {
+      n_left.push(neighbor);
+    }
+  })
+
+  return n_left;
+}
+
+module.exports = { on_position, in_radius, in_front, behind, above, below, right, left }
