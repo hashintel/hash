@@ -46,7 +46,7 @@ function in_radius(a, neighbors, radius = 1) {
 }
 
 function in_front(a, neighbors) {
-  /** Searches and returns all neighbors whose position is in front of an agent*/
+  /** Searches and returns all neighbors whose position are in front of an agent. */
   if (!a.position) {
     throw new Error("agent must have position");
   }
@@ -56,8 +56,8 @@ function in_front(a, neighbors) {
     if (
       neighbor.position[0] >= a.position[0] &&
       neighbor.position[1] >= a.position[1] &&
-      neighbor.position[0] !== a.position[0] &&
-      neighbor.position[1] !== a.position[1]
+      (neighbor.position[0] !== a.position[0] ||
+      neighbor.position[1] !== a.position[1])
     ) {
       n_front.push(neighbor);
     }
@@ -66,4 +66,25 @@ function in_front(a, neighbors) {
   return n_front;
 }
 
-module.exports = { on_position, in_radius, in_front }
+function behind(a, neighbors) {
+  /** Searches and returns all neighbors whose positions are behind the agent. */
+  if (!a.position) {
+    throw new Error("agent must have position");
+  }
+
+  n_behind = []
+  neighbors.forEach((neighbor) => {
+    if (
+      neighbor.position[0] <= a.position[0] &&
+      neighbor.position[1] <= a.position[1] &&
+      (neighbor.position[0] !== a.position[0] ||
+      neighbor.position[1] !== a.position[1])
+    ) {
+      n_behind.push(neighbor);
+    }
+  })
+
+  return n_behind;
+}
+
+module.exports = { on_position, in_radius, in_front, behind }
