@@ -1,4 +1,4 @@
-const { on_position, in_radius, in_front, behind, above, below, right, left } = require('./neighbors.js');
+const { on_position, in_radius, front, behind, above, below, right, left } = require('./neighbors.js');
 
 const a = {"position": [1,1,0]};
 const b = {"position": [1,2,0]};
@@ -20,11 +20,11 @@ test('find neighbors within a radius of 2', () => {
 })
 
 test('find neighbors in front of [3,2]', () => {
-  expect(in_front(f, [a, b, c, e, g, h, i, j])).toEqual([{"position": [6,7,-1]}, {"position": [6,9,0]}, {"position": [4,9,0]}])
+  expect(front(f, [a, b, c, e, g, h, i, j])).toEqual([{"position": [6,7,-1]}, {"position": [6,9,0]}, {"position": [4,9,0]}])
 })
 
 test('find neighbors located behind [3,2]', () => {
-  expect(behind(f, [a, b, c, d, e, g, h, i, j])).toEqual([{"position": [1,1,0]},{"position": [1,2,0]}, {"position": [-1,1,0]}, {"position": [1,1,0]}, {"position": [1,1,1]}])
+  expect(behind(f, [a, b, c, d, e, g, h, i, j])).toEqual([{"position": [1,1,0]}, {"position": [-1,1,0]}, {"position": [1,1,0]}, {"position": [1,1,1]}])
 })
 
 test('find neighbors located above [3,2,0]', () => {
