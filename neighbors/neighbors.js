@@ -3,146 +3,84 @@ function on_position(a, neighbors) {
   if (!a.position) {
     throw new Error("agent must have position");
   }
-  on_pos = [];
-  neighbors.forEach((neighbor) => {
-    if (
-      a.position[0] === neighbor.position[0] &&
-      a.position[1] === neighbor.position[1] &&
-      a.position[2] === neighbor.position[2]
-    ) {
-      on_pos.push(neighbor);
+  on_pos = neighbors.filter((neighbor) => {
+    for (let ind = 0; ind < a.position.length; ind++) {
+      if (a.position[ind] !== neighbor.position[ind]) {
+        return false;
+      }
     }
-  })
+    return true;
+  });
 
   return on_pos;
 }
 
-function in_radius(a, neighbors, radius = 1) {
+function in_radius(a, neighbors, max_radius = 1, min_radius = 0, z_axis = false) {
   /** Returns all neighbors within a certain vision radius of an agent.
-  *   Defaults vision radius to 1
+  *   Defaults vision max_radius to 1, min_radius to 0
+  *   Default is 2D (z_axis set to false), set z_axis to true for 3D positions
   */
   if (!a.position) {
     throw new Error("agent must have position");
   }
-  x_bounds = [a.position[0] + radius, a.position[0] - radius];
-  y_bounds = [a.position[1] + radius, a.position[1] - radius];
-  z_bounds = [a.position[2] + radius, a.position[2] - radius];
 
-  in_rad = [];
-  neighbors.forEach((neighbor) => {
-    if (
-      neighbor.position[0] <= x_bounds[0] &&
-      neighbor.position[0] >= x_bounds[1] &&
-      neighbor.position[1] <= y_bounds[0] &&
-      neighbor.position[1] >= y_bounds[1] &&
-      neighbor.position[2] <= z_bounds[0] &&
-      neighbor.position[2] >= z_bounds[1]
-    ) {
-      in_rad.push(neighbor);
+  in_rad = neighbors.filter((neighbor) => {
+    for (let ind = 0; ind < a.direction.length - 1 * !z_axis; ind++){
+      max = [a.position[ind] + max_radius, a.position[ind] - max_radius];
+      min = [a.position[ind] + min_radius, a.position[ind] - min_radius];
+      if (
+        !((neighbor.position[ind] <= max[0] &&
+          neighbor.position[ind] >= min[0]) ||
+          (neighbor.position[ind] >= max[1] &&
+          neighbor.position[ind] <= min[1]))
+      ){
+        return false;
+      }
     }
-  })
+
+    return true;
+  });
 
   return in_rad;
 }
 
 function front(a, neighbors) {
-  /** Searches and returns all neighbors whose position are in front of an agent. */
-  if (!a.position) {
-    throw new Error("agent must have position");
+  /** Searches and returns all neighbors whose positions are in front of an agent. */
+  if (!a.direction) {
+    throw new Error("agent must have direction");
   }
-
-  n_front = [];
-  neighbors.forEach((neighbor) => {
-    if (neighbor.position[1] > a.position[1]) {
-      n_front.push(neighbor);
+  n_front = neighbors.filter((neighbor) => {
+    for (let ind = 0; ind < a.direction.length; ind++) {
+      if ((a.direction[ind] > 0 && neighbor.position[ind] < a.position[ind])
+        || (a.direction[ind] < 0 && neighbor.position[ind] > a.position[ind])
+      ) {
+        return false;
+      }
     }
-  })
+    return true;
+  });
 
   return n_front;
 }
 
 function behind(a, neighbors) {
   /** Searches and returns all neighbors whose positions are behind the agent. */
-  if (!a.position) {
-    throw new Error("agent must have position");
+  if (!a.direction) {
+    throw new Error("agent must have direction");
   }
 
-  n_behind = [];
-  neighbors.forEach((neighbor) => {
-    if (neighbor.position[1] < a.position[1]) {
-      n_behind.push(neighbor);
+  n_behind = neighbors.filter((neighbor) => {
+    for (let ind = 0; ind < a.direction.length; ind++) {
+      if ((a.direction[ind] > 0 && neighbor.position[ind] > a.position[ind])
+        || (a.direction[ind] < 0 && neighbor.position[ind] < a.position[ind])
+      ) {
+        return false;
+      }
     }
-  })
+    return true;
+  });
 
   return n_behind;
 }
 
-function above(a, neighbors) {
-  /** Searches and returns all neighbors with positions above the agent */
-  if (!a.position) {
-    throw new Error("agent must have position");
-  }
-
-  n_above = [];
-  neighbors.forEach((neighbor) => {
-    if (neighbor.position[2] > a.position[2]) {
-      n_above.push(neighbor);
-    }
-  })
-
-  return n_above;
-}
-
-function below(a, neighbors) {
-  /** Searches and returns all neighbors with positions below the agent */
-  if (!a.position) {
-    throw new Error("agent must have position");
-  }
-
-  n_below = [];
-  neighbors.forEach((neighbor) => {
-    if (neighbor.position[2] < a.position[2]) {
-      n_below.push(neighbor);
-    }
-  })
-
-  return n_below;
-}
-
-function right(a, neighbors) {
-  /** Searches and returns all neighbors with positions
-  *   to the right of the agent
-  */
-  if (!a.position) {
-    throw new Error("agent must have position");
-  }
-
-  n_right = [];
-  neighbors.forEach((neighbor) => {
-    if(neighbor.position[0] > a.position[0]) {
-      n_right.push(neighbor);
-    }
-  })
-
-  return n_right;
-}
-
-function left(a, neighbors) {
-  /** Searches and returns all neighbors with positions
-  *   to the left of the agent
-  */
-  if (!a.position) {
-    throw new Error("agent must have position");
-  }
-
-  n_left = [];
-  neighbors.forEach((neighbor) => {
-    if(neighbor.position[0] < a.position[0]) {
-      n_left.push(neighbor);
-    }
-  })
-
-  return n_left;
-}
-
-module.exports = { on_position, in_radius, front, behind, above, below, right, left }
+module.exports = { on_position, in_radius, front, behind }
