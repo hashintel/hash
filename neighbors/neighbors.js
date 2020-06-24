@@ -25,7 +25,7 @@ function in_radius(a, neighbors, max_radius = 1, min_radius = 0, z_axis = false)
   }
 
   in_rad = neighbors.filter((neighbor) => {
-    for (let ind = 0; ind < a.direction.length - 1 * !z_axis; ind++){
+    for (let ind = 0; ind < a.position.length - 1 * !z_axis; ind++){
       max = [a.position[ind] + max_radius, a.position[ind] - max_radius];
       min = [a.position[ind] + min_radius, a.position[ind] - min_radius];
       if (
@@ -50,13 +50,14 @@ function front(a, neighbors) {
     throw new Error("agent must have direction");
   }
   n_front = neighbors.filter((neighbor) => {
-    for (let ind = 0; ind < a.direction.length; ind++) {
-      if ((a.direction[ind] > 0 && neighbor.position[ind] < a.position[ind])
-        || (a.direction[ind] < 0 && neighbor.position[ind] > a.position[ind])
-      ) {
-        return false;
-      }
-    }
+    dx = neighbor.position[0] - a.position[0];
+    dy = neighbor.position[1] - a.position[1];
+    dz = neighbor.position[2] - a.position[2];
+
+    const D = a.direction[0]*(dx) + a.direction[1]*(dy) + a.direction[2]*(dz);
+
+    if (D <= 0) { return false; }
+
     return true;
   });
 
@@ -68,15 +69,15 @@ function behind(a, neighbors) {
   if (!a.direction) {
     throw new Error("agent must have direction");
   }
-
   n_behind = neighbors.filter((neighbor) => {
-    for (let ind = 0; ind < a.direction.length; ind++) {
-      if ((a.direction[ind] > 0 && neighbor.position[ind] > a.position[ind])
-        || (a.direction[ind] < 0 && neighbor.position[ind] < a.position[ind])
-      ) {
-        return false;
-      }
-    }
+    dx = neighbor.position[0] - a.position[0];
+    dy = neighbor.position[1] - a.position[1];
+    dz = neighbor.position[2] - a.position[2];
+
+    const D = a.direction[0]*(dx) + a.direction[1]*(dy) + a.direction[2]*(dz);
+
+    if (D >= 0) { return false; }
+
     return true;
   });
 
