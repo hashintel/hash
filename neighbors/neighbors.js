@@ -49,7 +49,7 @@ function front(a, neighbors, colinear = false) {
   *   Default is set to planer calculations and will return all neighbors located
   *   in front of the plane created by the agent's direction
   *
-  *   Linear - If set to true, will return all neighbors on the same line as agent a.
+  *   Colinear - If set to true, will return all neighbors on the same line as agent a.
   */
   if (!a.direction) {
     throw new Error("agent must have direction");
@@ -86,7 +86,7 @@ function front(a, neighbors, colinear = false) {
       }
 
       return true;
-    } else
+    }
 
     // Planer calculations
     dx = neighbor.position[0] - a.position[0];
@@ -144,7 +144,7 @@ function behind(a, neighbors, colinear = false) {
       }
 
       return true;
-    } else
+    }
 
     // Planer calculations
     dx = neighbor.position[0] - a.position[0];
