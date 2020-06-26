@@ -119,15 +119,16 @@ function behind(a, neighbors, colinear = false) {
         return n + (val === 1);
       }, 0);
 
+      dx = neighbor.position[0] - a.position[0];
+      dy = neighbor.position[1] - a.position[1];
+      dz = neighbor.position[2] - a.position[2];
+
       xt = a.direction[0] !== 0 ? (neighbor.position[0] - a.position[0]) / a.direction[0] : 0;
       yt = a.direction[1] !== 0 ? (neighbor.position[1] - a.position[1]) / a.direction[1] : 0;
       zt = a.direction[2] !== 0 ? (neighbor.position[2] - a.position[2]) / a.direction[2] : 0;
 
       // Only one direction set - only that axis value can change
       if (count === 1) {
-        dx = neighbor.position[0] - a.position[0];
-        dy = neighbor.position[1] - a.position[1];
-        dz = neighbor.position[2] - a.position[2];
         return (xt < 0 && dy === 0 && dz ===0) || (yt < 0 && dx === 0 && dz === 0) || (zt < 0 && dx === 0 && dy === 0);
       }
       // Two directions set
