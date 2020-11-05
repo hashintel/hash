@@ -1,4 +1,7 @@
-[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
+<p align="center">
+  <img width=“865” height=“288” src="https://cdn-us1.hash.ai/assets/github-readme-header@2x.png”>
+  [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
+</p>
 
 # hEngine
 [HASH Engine](https://hash.ai/platform/engine) is the open-source simulation engine at the heart of [HASH](https://hash.ai/). We have not yet released the open-source version of the engine; it will be made available under the AGPL v3 license.
