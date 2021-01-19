@@ -2,7 +2,7 @@
   <img src="https://github.com/hashintel/engine/blob/master/static/img/github-readme-header@2x.png">
 </p>
 <div align="center">
- <a href="https://github.com/hashintel/engine/blob/master/LICENSE"><img src="https://img.shields.io/badge/License-AGPL%20v3-blue.svg" alt="AGPL v3 License" /></a>
+ <a href="https://github.com/hashintel/engine/blob/master/LICENSE"><img src="https://github.com/hashintel/engine/blob/master/static/img/license-badge.svg" alt="Server Side Public License" /></a>
  <a href="https://hash.ai/slack"><img src="https://github.com/hashintel/engine/blob/master/static/img/slack-badge.svg" alt="Join HASH on Slack" /></a>
 </div>
 
