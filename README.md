@@ -4,7 +4,11 @@
 <div align="center">
  <a href="https://github.com/hashintel/engine/blob/master/LICENSE"><img src="https://github.com/hashintel/engine/blob/master/static/img/license-badge.svg" alt="Server Side Public License" /></a>
  <a href="https://hash.ai/slack"><img src="https://github.com/hashintel/engine/blob/master/static/img/slack-badge.svg" alt="Join HASH on Slack" /></a>
+<a href="https://app.fossa.com/projects/git%2Bgithub.com%2Fhashintel%2Fengine?ref=badge_shield" alt="FOSSA Status"><img src="https://app.fossa.com/api/projects/git%2Bgithub.com%2Fhashintel%2Fengine.svg?type=shield"/></a>
 </div>
+
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fhashintel%2Fengine.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fhashintel%2Fengine?ref=badge_large)
 
 # hEngine
 [HASH Engine](https://hash.ai/platform/engine?utm_medium=organic&utm_source=github_readme) (or **hEngine**) is the open-source simulation engine at the heart of [HASH](https://hash.ai/?utm_medium=organic&utm_source=github_readme). We have not yet released the open-source version of the engine; it will be made available under the AGPL v3 license.
