@@ -7,10 +7,10 @@
 </div>
 
 # hEngine
-[HASH Engine](https://hash.ai/platform/engine?utm_medium=organic&utm_source=github_readme) (or **hEngine**) is the open-source simulation engine at the heart of [HASH](https://hash.ai/?utm_medium=organic&utm_source=github_readme). We have not yet released the open-source version of the engine; it will be made available under the AGPL v3 license.
+[HASH Engine](https://hash.ai/platform/engine?utm_medium=organic&utm_source=github_readme) (or **hEngine**) is the simulation engine at the heart of [HASH](https://hash.ai/?utm_medium=organic&utm_source=github_readme). We have not yet released the codebase, but intend to under the terms of the Server-Side Public License (based on GPLv3, and created by MongoDB).
 
 ## Issue Tracking
-We use [GitHub Issues](https://github.com/hashintel/engine/issues?utm_medium=organic&utm_source=github_readme) to help prioritize and track bugs and feature requests for HASH. This includes the open source [**hEngine**](https://hash.ai/platform/engine?utm_medium=organic&utm_source=github_readme), our [**hCore**](https://hash.ai/platform/core?utm_medium=organic&utm_source=github_readme) IDE, and the [**hIndex**](https://hash.ai/platform/index?utm_medium=organic&utm_source=github_readme). Please submit any issues you encounter.
+We use [GitHub Issues](https://github.com/hashintel/engine/issues?utm_medium=organic&utm_source=github_readme) to help prioritize and track bugs and feature requests for HASH. This includes the open source [**hEngine**](https://hash.ai/platform/engine?utm_medium=organic&utm_source=github_readme), our [**hCore**](https://hash.ai/platform/core?utm_medium=organic&utm_source=github_readme) IDE, and the [**hIndex**](https://hash.ai/platform/index?utm_medium=organic&utm_source=github_readme). You can also report issues and get support on our public [Slack](https://hash.ai/slack?utm_medium=organic&utm_source=github_readme). Please submit any issues you encounter.
 
 ## Documentation
 Our [docs](https://docs.hash.ai/?utm_medium=organic&utm_source=github_readme) contain beginner guides and in-depth tutorials for **hCore** today. These will be extended to cover hEngine upon its public release.
