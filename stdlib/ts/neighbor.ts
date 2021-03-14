@@ -1,72 +1,69 @@
 /** Neighbor Functions */
 import { PotentialAgent } from "./agent";
 
+const posError = new Error("agent must have a position");
+const dirError = new Error("agent must have a direction");
+
 /**
  * Returns all neighbors that share an agent's position
- * @param agentA
- * @param neighbors - context.neighbors() array or array of agents
+ * @param agent
+ * @param neighbors - context.neighbors() array, or an array of agents
  * */
 export function neighborsOnPosition(
-  agentA: PotentialAgent,
+  agent: PotentialAgent,
   neighbors: PotentialAgent[]
 ) {
   return neighbors.filter((neighbor) => {
-    const aPos: number[] | undefined =
-      agentA.position || (agentA.get ? agentA.get("position") : undefined);
-    const nPos: number[] | undefined =
-      neighbor.position ||
-      (neighbor.get ? neighbor.get("position") : undefined);
+    const aPos = agent.position;
+    const nPos = neighbor.position;
 
     if (!aPos || !nPos) {
-      throw new Error("agents must have position");
+      throw posError;
     }
 
-    for (let ind = 0; ind < aPos.length; ind++) {
-      if (aPos[ind] !== nPos[ind]) {
+    for (let i = 0; i < aPos.length; i++) {
+      if (aPos[i] !== nPos[i]) {
         return false;
       }
     }
+
     return true;
   });
 }
 
 /**
  * Returns all neighbors within a certain vision radius of an agent.
- * Defaults vision max_radius to 1, min_radius to 0
- * Default is 2D (z_axis set to false), set z_axis to true for 3D positions
- * @param agentA
- * @param neighbors - context.neighbors() array or array of agents
+ * Default is 2D (`z_axis` set to false). Set `z_axis` to true for 3D positions.
+ * @param agent
+ * @param neighbors - context.neighbors() array, or an array of agents
  * @param max_radius - defaults to 1
  * @param min_radius - defaults to 0
  * @param z_axis - defaults to false
  */
 export function neighborsInRadius(
-  agentA: PotentialAgent,
+  agent: PotentialAgent,
   neighbors: PotentialAgent[],
   max_radius = 1,
   min_radius = 0,
   z_axis = false
 ) {
   return neighbors.filter((neighbor) => {
-    const aPos: number[] | undefined =
-      agentA.position || (agentA.get ? agentA.get("position") : undefined);
-    const nPos: number[] | undefined =
-      neighbor.position ||
-      (neighbor.get ? neighbor.get("position") : undefined);
+    const aPos = agent.position;
+    const nPos = neighbor.position;
 
     if (!aPos || !nPos) {
-      throw new Error("agents must have position");
+      throw posError;
     }
 
     const notZ: number = z_axis ? 0 : 1;
 
-    for (let ind = 0; ind < aPos.length - 1 * notZ; ind++) {
-      const max = [aPos[ind] + max_radius, aPos[ind] - max_radius];
-      const min = [aPos[ind] + min_radius, aPos[ind] - min_radius];
+    for (let i = 0; i < aPos.length - 1 * notZ; i++) {
+      const max = [aPos[i] + max_radius, aPos[i] - max_radius];
+      const min = [aPos[i] + min_radius, aPos[i] - min_radius];
       if (
         !(
-          (nPos[ind] <= max[0] && nPos[ind] >= min[0]) ||
-          (nPos[ind] >= max[1] && nPos[ind] <= min[1])
+          (nPos[i] <= max[0] && nPos[i] >= min[0]) ||
+          (nPos[i] >= max[1] && nPos[i] <= min[1])
         )
       ) {
         return false;
@@ -81,31 +78,25 @@ export function neighborsInRadius(
  * Searches and returns all neighbors whose positions are in front of an agent.
  * Default is set to planar calculations and will return all neighbors located
  * in front of the plane created by the agent's direction
- *
- * Colinear - If set to true, will return all neighbors on the same line as agent a.
- * @param agentA
+ * @param agent
  * @param neighbors - context.neighbors() array or array of agents
- * @param colinear - defaults to false
+ * @param colinear - If set to true, will return all agents on the same line as the agent.
  */
 export function neighborsInFront(
-  agentA: PotentialAgent,
+  agent: PotentialAgent,
   neighbors: PotentialAgent[],
   colinear = false
 ) {
   return neighbors.filter((neighbor) => {
-    const aPos: number[] | undefined =
-      agentA.position || (agentA.get ? agentA.get("position") : undefined);
-    const aDir: number[] | undefined =
-      agentA.direction || (agentA.get ? agentA.get("direction") : undefined);
-    const nPos: number[] | undefined =
-      neighbor.position ||
-      (neighbor.get ? neighbor.get("position") : undefined);
+    const aPos = agent.position;
+    const aDir = agent.direction;
+    const nPos = neighbor.position;
 
     if (!aPos || !nPos) {
-      throw new Error("agents must have position");
+      throw posError;
     }
     if (!aDir) {
-      throw new Error("agents must have direction");
+      throw dirError;
     }
 
     if (colinear) {
@@ -161,31 +152,26 @@ export function neighborsInFront(
  * Searches and returns all neighbors whose positions are behind an agent.
  * Default is set to planar calculations and will return all neighbors located
  * behind the plane created by the agent's direction
- *
- * Colinear - If set to true, will return all neighbors on the same line as agent a.
- * @param agentA
+ * @param agent
  * @param neighbors - context.neighbors() array or array of agents
- * @param colinear - defaults to false
+ * @param colinear - If set to true, will return all neighbors on the same line as the
+ * agent a. Defaults to false
  */
 export function neighborsBehind(
-  agentA: PotentialAgent,
+  agent: PotentialAgent,
   neighbors: PotentialAgent[],
   colinear = false
 ) {
   return neighbors.filter((neighbor) => {
-    const aPos: number[] | undefined =
-      agentA.position || (agentA.get ? agentA.get("position") : undefined);
-    const aDir: number[] | undefined =
-      agentA.direction || (agentA.get ? agentA.get("direction") : undefined);
-    const nPos: number[] | undefined =
-      neighbor.position ||
-      (neighbor.get ? neighbor.get("position") : undefined);
+    const aPos = agent.position;
+    const aDir = agent.direction;
+    const nPos = neighbor.position;
 
     if (!aPos || !nPos) {
-      throw new Error("agents must have position");
+      throw posError;
     }
     if (!aDir) {
-      throw new Error("agents must have direction");
+      throw dirError;
     }
 
     if (colinear) {

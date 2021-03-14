@@ -7,8 +7,6 @@ export type PotentialAgent = {
 };
 
 /**
- * Generate a valid uuid-v4 address to create a new with
- *
- * @param asStr Output the uuid as a string, if false, will output raw Uuid type
+ * Generate a valid UUID-V4 address to create a new agent with.
  */
 export const generateAgentID = () => uuid();

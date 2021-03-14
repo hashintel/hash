@@ -1,6 +1,8 @@
 /** Spatial Functions */
 import { PotentialAgent } from "./agent";
 
+const posError = new Error("agent must have a position");
+
 export type Distance =
   "euclidean" |
   "manhattan" |
@@ -50,13 +52,11 @@ export function distanceBetween(
       ),
   };
 
-  const aPos: number[] | undefined =
-    agentA.position || (agentA.get ? agentA.get("position") : undefined);
-  const bPos: number[] | undefined =
-    agentB.position || (agentB.get ? agentB.get("position") : undefined);
+  const aPos = agentA.position;
+  const bPos = agentB.position;
 
   if (!aPos || !bPos) {
-    throw new Error("agents must have position");
+    throw posError;
   }
   if (!dFuncs[distance]) {
     throw new Error("distance must be one of 'euclidean', 'manhattan', 'euclidean_sq' or 'chebyshev'");
@@ -66,8 +66,8 @@ export function distanceBetween(
 }
 
 /**
- * Returns the unit vector of the direction of an agent
- * @param a agent type
+ * Normalizes a vector to have unit length.
+ * @param vec an array of numbers.
  */
 export function normalizeVector(vec: number[]) {
   const magnitude = Math.sqrt(
@@ -76,43 +76,35 @@ export function normalizeVector(vec: number[]) {
   return vec.map((v) => v / magnitude);
 }
 
+export interface Topology {
+    x_bounds: number[];
+    y_bounds: number[];
+    z_bounds?: number[];
+}
+
 /**
- * * Returns a position array of x,y,z is set to true
+ * Returns a position array of x,y,z is set to true
  * @param topology the Context.globals().topology object
  * @param z_plane defaults to false
  */
-export function randomPosition(
-  topology: {
-    z_bounds: number[] | undefined;
-    x_bounds: number[] | undefined;
-    y_bounds: number[] | undefined;
-  },
-  z_plane = false
-) {
-  const { floor, random } = Math;
+export function randomPosition(topology: Topology, z_plane = false) {
+  const randRange = (a: number, b: number) => Math.floor(Math.random() * (b - a) + a);
 
   let z_pos = 0;
   if (z_plane) {
     if (!topology.z_bounds) {
       throw new Error("topology z_bounds needed if z_plane flag set to true");
     }
-    z_pos = floor(
-      random() * (topology.z_bounds[1] - topology.z_bounds[0]) +
-        topology.z_bounds[0]
-    );
+    z_pos = randRange(topology.z_bounds[0], topology.z_bounds[1]);
   }
+
   if (!topology.x_bounds || !topology.y_bounds) {
     throw new Error("topology missing x_bounds or y_bounds");
   }
+
   return [
-    floor(
-      random() * (topology.x_bounds[1] - topology.x_bounds[0]) +
-        topology.x_bounds[0]
-    ),
-    floor(
-      random() * (topology.y_bounds[1] - topology.y_bounds[0]) +
-        topology.y_bounds[0]
-    ),
+    randRange(topology.x_bounds[0], topology.x_bounds[1]),
+    randRange(topology.y_bounds[0], topology.y_bounds[1]),
     z_pos,
   ];
 }

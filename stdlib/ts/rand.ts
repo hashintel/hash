@@ -1,4 +1,4 @@
-/** PRNG */
+/** Pseudo-random number generation. */
 // @ts-ignore
 import { jStat } from "jstat";
 
@@ -51,7 +51,7 @@ export function setSeed(s: string) {
 }
 
 /**
- * Returns a random number betweeon 0 and 1
+ * Returns a random number between 0 and 1
  */
 export function random() {
   return rng._random_fn();
