@@ -31,5 +31,8 @@ module.exports = {
         "no-unused-expressions": "off"
       }
     }
+  ],
+  ignorePatterns: [
+    "**/dist"
   ]
 }

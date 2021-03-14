@@ -5,7 +5,8 @@
   "main": "index.ts",
   "scripts": {
     "test": "jest",
-    "build": "tsc -b stdlib/ts"
+    "build": "tsc -b stdlib/ts",
+    "lint": "eslint stdlib/ts/*.ts"
   },
   "repository": {
     "type": "git",
