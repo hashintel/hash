@@ -98,22 +98,29 @@ export function random() {
 
 /** Spatial Functions */
 
+export type Distance =
+  "euclidean" |
+  "manhattan" |
+  "euclidean_sq" |
+  "chebyshev";
+
 /**
  * Returns the specified distance between two agents.
  *  distance is one of the four distance functions supported by HASH,
- *  defaults to manhattan distance.
- * @param a
- * @param b
+ *  defaults to euclidean distance.
+ * @param agentA
+ * @param agentB
  * @param distance
  */
 export function distanceBetween(
   agentA: PotentialAgent,
   agentB: PotentialAgent,
-  distance = "euclidean"
+  distance: Distance = "euclidean"
 ) {
-  interface IdFuncs {
-    [index: string]: (a_pos: number[], b_pos: number[]) => number;
-  }
+  type IdFuncs = {
+    // eslint-disable-next-line no-unused-vars
+    [index in Distance]: (a_pos: number[], b_pos: number[]) => number;
+  };
 
   const { abs, pow, max, sqrt } = Math;
 
@@ -148,6 +155,10 @@ export function distanceBetween(
   if (!aPos || !bPos) {
     throw new Error("agents must have position");
   }
+  if (!dFuncs[distance]) {
+    throw new Error("distance must be one of 'euclidean', 'manhattan', 'euclidean_sq' or 'chebyshev'");
+  }
+
   return dFuncs[distance](aPos, bPos);
 }
 
