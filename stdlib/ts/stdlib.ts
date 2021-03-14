@@ -5,7 +5,7 @@
  * ```
  * let { incr } = hash_stdlib;
  *
- * (state, context) => {
+ * const behavior = (state, context) => {
  *   let a = 0;
  *   let b = incr(a);
  *   console.log(b);
@@ -50,7 +50,7 @@ function sfc32(a: number, b: number, c: number, d: number) {
     b >>>= 0;
     c >>>= 0;
     d >>>= 0;
-    var t = (a + b) | 0;
+    let t = (a + b) | 0;
     a = b ^ (b >>> 9);
     b = (c + (c << 3)) | 0;
     c = (c << 21) | (c >>> 11);
@@ -61,14 +61,17 @@ function sfc32(a: number, b: number, c: number, d: number) {
   };
 }
 
-export var rng = {
+export const rng = {
   _random_fn: Math.random,
 };
 
 function xmur3(str: string) {
-  for (var i = 0, h = 1779033703 ^ str.length; i < str.length; i++)
-    (h = Math.imul(h ^ str.charCodeAt(i), 3432918353)),
-      (h = (h << 13) | (h >>> 19));
+  let h = 1779033703 ^ str.length
+  for (let i = 0; i < str.length; i++) {
+    h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+    h = (h << 13) | (h >>> 19);
+  }
+
   return function () {
     h = Math.imul(h ^ (h >>> 16), 2246822507);
     h = Math.imul(h ^ (h >>> 13), 3266489909);
@@ -329,25 +332,18 @@ export function neighborsInFront(
           (yt > 0 && dx === 0 && dz === 0) ||
           (zt > 0 && dx === 0 && dy === 0)
         );
-      }
-      // Two directions set
-      else if (count === 2) {
+      } else if (count === 2) { // Two directions set
         return (
           (xt === yt && xt > 0 && dz === 0) ||
           (yt === zt && yt > 0 && dx === 0) ||
           (xt === zt && xt > 0 && dy === 0)
         );
-      }
-      // Three directions set
-      else if (count === 3) {
+      } else if (count === 3) { // Three directions set
         return xt === yt && yt === zt && xt > 0;
       }
-      // Else direction is [0,0,0] or an unsupported direction array
-      else {
-        return false;
-      }
 
-      return true;
+      // Else direction is [0,0,0] or an unsupported direction array
+      return false;
     }
 
     // Planar calculations
@@ -416,25 +412,18 @@ export function neighborsBehind(
           (yt < 0 && dx === 0 && dz === 0) ||
           (zt < 0 && dx === 0 && dy === 0)
         );
-      }
-      // Two directions set
-      else if (count === 2) {
+      } else if (count === 2) { // Two directions set
         return (
           (xt === yt && xt < 0 && dz === 0) ||
           (yt === zt && yt < 0 && dx === 0) ||
           (xt === zt && xt < 0 && dy === 0)
         );
-      }
-      // Three directions set
-      else if (count === 3) {
+      } else if (count === 3) { // Three directions set
         return xt === yt && yt === zt && xt < 0;
       }
-      // Else direction is [0,0,0] or an unsupported direction array
-      else {
-        return false;
-      }
 
-      return true;
+      // Else direction is [0,0,0] or an unsupported direction array
+      return false;
     }
 
     // Planar calculations
