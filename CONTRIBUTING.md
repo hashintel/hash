@@ -1,21 +1,28 @@
 # Contributing
 
-When contributing to this repository, please first discuss the change you wish to make via [issue](https://github.com/hashintel/stdlib/issues), or the
-the [HASH community forum](https://community.hash.ai/) before making a change. 
+🎉 First off, thanks for taking the time to contribute! 🎉
 
-Please note we have established a set of [community guidelines](https://hash.ai/legal/community). Please follow these in all your interactions with the project.
+Please note we have established a set of [community guidelines](https://hash.ai/legal/community). Please follow these in your interactions with the project.
+
+We have a [Slack](https://hashpublic.slack.com) and a [community forum](https://community.hash.ai/) where you can ask questions about contributing and the community can chime in with helpful advice. If you'd like to make a significant change or re-architecture, please first discuss the change or create an [issue](https://github.com/hashintel/stdlib/issues) to get feedback.
+
+## What belongs in the HASH Standard Library
+
+The HASH standard library is a collection of helper functions for building simulations. Standard library functions should be:
+- General Purpose - both in the use case they are solving for and in their interface.
+- Performant - if it's in the standard library it will be used in lots of simulations, and should be designed to be fast and memory efficient.
+- Pure functions - While there can be exceptions, the expectation is a standard library function should not store any state nor cause sideeffects. 
+
+When in doubt, [ask](https://hashpublic.slack.com)!
 
 ## Pull Request Process
 
 1. Before opening a Pull Request, you must sign HASH's Contributor License Agreement available at [hash.ai/legal/cla](https://hash.ai/legal/cla).
-2. Once you've signed the CLA and finalized your PR, please ensure any install or build dependencies are removed before the end of the layer when doing a 
+2. Once you've signed the CLA and finalized your PR, please ensure any install or build dependencies are removed before doing a 
    build.
-2. Update the README.md with details of changes to the interface, this includes new environment 
-   variables, exposed ports, useful file locations and container parameters.
-3. Increase the version numbers in any examples files and the README.md to the new version that this
-   Pull Request would represent. The versioning scheme we use is [SemVer](http://semver.org/).
-4. You may merge the Pull Request in once you have the sign-off of two other developers, or if you 
-   do not have permission to do that, you may request the second reviewer to merge it for you.
+3. After submitting your PR, it'll be reviewed by a HASH standard library maintener. After you have the approval of a maintener, you may merge the pull request.
+
+All PRs should include tests.
 
 ## Code of Conduct
 
