@@ -6,7 +6,7 @@ Contains functions for the HASH stdlib
 ### TypeScript standard library
 
 We use TypeScript to build the standard library available to Javascript behaviors in HASH.
-To contribute, please install [npm](https://www.npmjs.com/get-npm).
+To contribute, please install [npm](https://www.npmjs.com/get-npm), and run `npm install` at the base directory of this repo to get set up.
 
 Some useful commands:
 ```
