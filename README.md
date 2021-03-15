@@ -13,7 +13,7 @@ Some useful commands:
 # Build the standard library
 npm run build
 
-# Run the tests
+# Run the tests (you may need to install jest globally: npm install -g jest)
 npm run test
 ```
 
