@@ -4,24 +4,40 @@
   "description": "HASH stdlib",
   "main": "index.ts",
   "scripts": {
-    "test": ""
+    "test": "jest",
+    "build": "tsc -b stdlib/ts",
+    "lint": "eslint stdlib/ts/*.ts"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/hashintel/stdlib.git"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "HASH",
+  "license": "Apache 2.0",
   "bugs": {
     "url": "https://github.com/hashintel/stdlib/issues"
   },
   "homepage": "https://github.com/hashintel/stdlib#readme",
   "dependencies": {
-    "jest": "^26.6.3",
-    "jstat": "^1.9.4",
-    "uuid": "^8.3.2"
+    "jstat": "1.9.4",
+    "uuid": "8.3.2"
   },
   "devDependencies": {
-    "@types/jest": "^26.0.20"
-  }
+    "@types/jest": "26.0.20",
+    "@types/uuid": "8.3.0",
+    "@typescript-eslint/eslint-plugin": "4.17.0",
+    "@typescript-eslint/parser": "4.17.0",
+    "eslint": "7.22.0",
+    "eslint-config-standard": "16.0.2",
+    "eslint-plugin-import": "2.22.1",
+    "eslint-plugin-jest": "24.3.1",
+    "eslint-plugin-node": "11.1.0",
+    "eslint-plugin-promise": "4.3.1",
+    "jest": "26.6.3",
+    "ts-jest": "26.5.3",
+    "typescript": "4.2.3"
+  },
+  "workspaces": [
+    "stdlib/ts"
+  ]
 }
