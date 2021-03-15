@@ -1,11 +1,12 @@
-# stdlib
-Contains functions for the HASH stdlib
+# HASH Standard Library
+[HASH](https://hash.ai) is a platform for building and running simulations, and the [standard library](https://docs.hash.ai/core/libraries) contains helper functions for simulations.
+
+Within the [HASH IDE](https://core.hash.ai) you can call a HASH standard library function with `hash_stdlib.[function name]`.
+
+For instance, to get the distance between two agents, you can call `hash_stdlib.distanceBetween(agentA, agentB`.
 
 ## Developing
 
-### TypeScript standard library
-
-We use TypeScript to build the standard library available to Javascript behaviors in HASH.
 To contribute, please install [npm](https://www.npmjs.com/get-npm), and run `npm install` at the base directory of this repo to get set up.
 
 Some useful commands:
@@ -23,3 +24,8 @@ Alternatively, you can run ESLint from your terminal:
 ```
 npm run lint
 ```
+
+The repo is split between [JavaScript functions](https://github.com/hashintel/stdlib/tree/master/stdlib/ts) - written in typescript - and [Python functions](https://github.com/hashintel/stdlib/tree/master/stdlib/py).
+
+## Discussion
+Discuss the HASH and the standard library on our [forum](https://community.hash.ai/) or our [slack](http://hashpublic.slack.com/).
