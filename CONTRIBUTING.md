@@ -11,7 +11,7 @@ We have a [Slack](https://hashpublic.slack.com) and a [community forum](https://
 The HASH standard library is a collection of helper functions for building simulations. Standard library functions should be:
 - General Purpose - both in the use case they are solving for and in their interface.
 - Performant - if it's in the standard library it will be used in lots of simulations, and should be designed to be fast and memory efficient.
-- Pure functions - While there can be exceptions, the expectation is a standard library function should not store any state nor cause sideeffects. 
+- Pure functions - While there can be exceptions, the expectation is a standard library function should not store any state nor cause side effects. 
 
 When in doubt, [ask](https://hashpublic.slack.com)!
 
