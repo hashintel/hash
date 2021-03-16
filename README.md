@@ -1,9 +1,7 @@
 # HASH Standard Library
 [HASH](https://hash.ai) is a platform for building and running simulations, and the [standard library](https://docs.hash.ai/core/libraries) contains helper functions for simulations.
 
-Within the [HASH IDE](https://core.hash.ai) you can call a HASH standard library function with `hash_stdlib.[function name]`.
-
-For instance, to get the distance between two agents, you can call `hash_stdlib.distanceBetween(agentA, agentB`.
+The standard library is available by default within [HASH Core](https://core.hash.ai), the HASH IDE. You can call a HASH standard library function from within a [behavior file](https://docs.hash.ai/core/behaviors) with `hash_stdlib.[function name]`. For instance, to get the distance between two agents, use `hash_stdlib.distanceBetween(agentA, agentB)`.
 
 ## Developing
 
