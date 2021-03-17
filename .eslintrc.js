@@ -19,7 +19,7 @@ module.exports = {
   ],
   rules: {
     quotes: [1, "double", "avoid-escape"],
-    semi: 0,
+    semi: [1, "always"],
     "space-before-function-paren": 0,
     "comma-dangle": 0,
     camelcase: 0,
@@ -35,4 +35,4 @@ module.exports = {
   ignorePatterns: [
     "**/dist"
   ]
-}
+};
