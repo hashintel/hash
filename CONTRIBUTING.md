@@ -22,7 +22,9 @@ When in doubt, [ask](https://hashpublic.slack.com)!
    build.
 3. After submitting your PR, it'll be reviewed by a HASH standard library maintainer. After you have the approval of a maintainer, you may merge the pull request.
 
-All PRs should include tests.
+## Contribution requirements
+1. All PRs should include tests.
+2. You may contribute functions in either Python or TypeScript, or both.
 
 ## Code of Conduct
 
