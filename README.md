@@ -18,14 +18,12 @@ npm run build
 npm run test
 ```
 
-We use ESLint to help find errors and enforce code style. Your editor or IDE likely
-has an ESLint plugin which will show these errors and warnings automatically.
-Alternatively, you can run ESLint from your terminal:
+We use ESLint to help find errors and enforce code style. Your editor or IDE likely has an ESLint plugin which will show these errors and warnings automatically. Alternatively, you can run ESLint from your terminal:
 ```
 npm run lint
 ```
 
-The repo is split between [JavaScript functions](https://github.com/hashintel/stdlib/tree/master/stdlib/ts) - written in typescript - and [Python functions](https://github.com/hashintel/stdlib/tree/master/stdlib/py).
+The repo is split between [JavaScript functions](https://github.com/hashintel/stdlib/tree/master/stdlib/ts) - written in TypeScript - and [Python functions](https://github.com/hashintel/stdlib/tree/master/stdlib/py).
 
 ## Discussion
-Discuss the HASH and the standard library on our [forum](https://community.hash.ai/) or our [slack](http://hashpublic.slack.com/).
+You can get support with or discuss HASH and the HASH stdlib on our [community forum](https://community.hash.ai/) or [Slack group](https://hash.ai/slack).
