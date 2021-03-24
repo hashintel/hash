@@ -3,7 +3,7 @@
 
 The HASH Standard Library (or **stdlib**) is available by default within HASH's browser-based IDE, [hCore](https://hash.ai/platform/core).
 
-You can call HASH stdlib functions from within [behaviors](https://docs.hash.ai/core/behaviors) using `hash_stdlib.[function name]`. For instance, to get the distance between two agents, use `hash_stdlib.distanceBetween(agentA, agentB)`.
+You can call HASH stdlib functions from within [behaviors](https://docs.hash.ai/core/behaviors) using `hstd.[function name]`. For example, to get the distance between two agents in JavaScript, use `hstd.distanceBetween(agentA, agentB)`.
 
 ## Developing
 
