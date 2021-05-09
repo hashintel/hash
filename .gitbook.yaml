@@ -1,8 +1,5 @@
-root: ./resources/docs/simulations/
+root: ./resources/docs/simulation/
 
 structure:  
     readme: README.md  
     summary: SUMMARY.md
-    
-redirects:  
-    previous/page: new-folder/page.md
