@@ -10,3 +10,7 @@ which specifies its licensing information.
 
 * Within the `/packages/engine` folder, source code in a given file is
   licensed under the Server Side Public License, unless otherwise noted.
+
+Written content, illustrations and graphics published under the `resources`
+folder within this repository are made available under the [Creative Commons
+Attribution-ShareAlike 4.0 International](.resources/docs/simulation/LICENSE.md) license.
