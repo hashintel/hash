@@ -3,6 +3,7 @@ import { v4 as uuid } from "uuid";
 export type PotentialAgent = {
   position?: number[];
   direction?: number[];
+  agent_name?: string;
   get?: (a: string) => any;
 };
 
