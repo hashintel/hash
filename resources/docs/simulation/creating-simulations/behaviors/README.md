@@ -45,6 +45,6 @@ def behavior(state, context):
 {% endtabs %}
 
 {% hint style="info" %}
-Agents can use behaviors to create new agents by sending a message to the special `hash` agent. This is covered more in-depth in [Messages](../../agent-messages/built-in-message-handlers/#creating-agents-via-messages).
+Agents can use behaviors to create new agents by sending a message to the special `hash` agent. This is covered more in-depth in [Messages](../agent-messages/built-in-message-handlers.md#creating-agents-via-messages).
 {% endhint %}
 
