@@ -7,7 +7,7 @@ It's worth emphasizing that you don't **need** to use the visual interface - HAS
 ![Process Chart View](../../.gitbook/assets/image%20%2852%29.png)
 
 {% hint style="info" %}
-If you can't see the process chart view, click `View > Process Chart` 
+If you can't see the process chart view, click `View > Process Chart`
 {% endhint %}
 
 The process chart is available as a view on the left-hand half of the screen. You can drag elements from the dock on the left hand side of the view and connect them together.
@@ -20,7 +20,7 @@ Clicking on a block will bring up the parameters for the block. You can customiz
 
 ![](../../.gitbook/assets/kapture-2021-03-29-at-20.01.01.gif)
 
-You can click the gear icon next to the Add to Model button to set resource parameters for the process model as a whole. Several blocks, like Seize, Release, and Service, use and release 'resources'. For instance, you can imagine if you have a process model of a pizza baking process, there might be a limited number of ovens. That's a resource that could be defined on the model. 
+You can click the gear icon next to the Add to Model button to set resource parameters for the process model as a whole. Several blocks, like Seize, Release, and Service, use and release 'resources'. For instance, you can imagine if you have a process model of a pizza baking process, there might be a limited number of ovens. That's a resource that could be defined on the model.
 
 ![Pizza Process with four ovens available](../../.gitbook/assets/image%20%2854%29.png)
 
@@ -37,6 +37,4 @@ If you want to make a change to the model, you can select the process model you 
 ![Updating a process model](../../.gitbook/assets/updating_processes.gif)
 
 If you have multiple process models in your simulation, you can set the name of the model by clicking the gear icon.
-
-
 

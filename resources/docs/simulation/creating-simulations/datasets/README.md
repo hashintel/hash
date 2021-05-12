@@ -25,7 +25,7 @@ There are also third-party datasets published in hIndex you can add to your proj
 {% endhint %}
 
 {% hint style="success" %}
-**Let us know which integrations you'd like to see natively supported by completing our** [**data connectors survey**](https://sohostrategy.typeform.com/to/WROAmyhH)**.** 
+**Let us know which integrations you'd like to see natively supported by completing our** [**data connectors survey**](https://sohostrategy.typeform.com/to/WROAmyhH)**.**
 {% endhint %}
 
 ## Using data in projects

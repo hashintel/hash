@@ -23,7 +23,7 @@ This process happens in private: given the same inbox, starting [**state**](../.
 ## Benefits of the Actor Model
 
 1. **Predictability**: how each agent behaves can easily be reasoned about from the messages it starts each time step with. You do not have to worry about race conditions, side effects, or locking access to resources while others attempt to access them. The agent can process its complete inbox for a time step in private, deciding what to do based on all the messages it has received.
-2. **Scalability**:  ****the actor model allows us to have millions of agents running on dozens of servers, enabling much bigger simulations than other approaches which need to have agents communicate in the middle of a time step. HASH has been designed from the ground up to enable you to model entire countries without having to worry about the underlying infrastructure.
+2. **Scalability**:  _\*\*_the actor model allows us to have millions of agents running on dozens of servers, enabling much bigger simulations than other approaches which need to have agents communicate in the middle of a time step. HASH has been designed from the ground up to enable you to model entire countries without having to worry about the underlying infrastructure.
 
 > “The big idea is 'messaging' … The key in making great and growable systems is much more to design how its modules communicate rather than what their internal properties and behaviors should be.”  
 > **Alan Kay**
@@ -78,7 +78,7 @@ To streamline this, consider:
 * for more complex scenarios, using a mediating or manager agent which receives information from multiple agents, and can determine the best match in a single step. 
 
 {% hint style="info" %}
-We are introducing a new feature to eliminate the need for manager agents and multiple back-and-forth messages to resolve conflicts.  [**Contact us**](https://hash.ai/contact) if you want to be one of the first to try this feature.
+We are introducing a new feature to eliminate the need for manager agents and multiple back-and-forth messages to resolve conflicts. [**Contact us**](https://hash.ai/contact) if you want to be one of the first to try this feature.
 {% endhint %}
 
 See [**Managing Resource Access**](managing-resource-access.md) for more.

@@ -10,14 +10,14 @@ When finding the neighbors of agents in a simulation, HASH depends on a few impo
 {
     "topology": {
         "distance_function": "chebyshev"
-        
+
         "search_radius": 10
     },
     ...
 }
 ```
 
-### Options
+## Options
 
 | Function Name | Behavior |
 | :--- | :--- |
@@ -28,7 +28,7 @@ When finding the neighbors of agents in a simulation, HASH depends on a few impo
 | `euclidean_squared` | Same as euclidean, but the final square root is not taken. This is useful when for high-performance distance calculations when only order matters. [Wikipedia](https://en.wikipedia.org/wiki/Euclidean_distance#Squared_Euclidean_distance) |
 
 {% hint style="info" %}
-The default distance function is `conway` - make sure to change it depending on your use case! 
+The default distance function is `conway` - make sure to change it depending on your use case!
 {% endhint %}
 
 Currently, HASH doesn't support multiple distance functions in a single simulation.

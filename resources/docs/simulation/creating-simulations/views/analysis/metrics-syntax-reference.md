@@ -44,7 +44,7 @@ Operations must have an `"op"` field which designates their type. Some operation
       <td style="text-align:left">
         <p><code>&quot;field&quot;</code>  <code>&quot;comparison&quot;</code>
         </p>
-        <p><code>&quot;value&quot;</code> 
+        <p><code>&quot;value&quot;</code>
         </p>
       </td>
       <td style="text-align:left">Filter the current output with the given <em>comparison</em> and <em>value</em> on

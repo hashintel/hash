@@ -4,7 +4,7 @@ description: Visualizing network connections between agents in the 3D viewer
 
 # Networks
 
-Networks are often found in multi-agent models, and the ability to visualize them can add an additional level of clarity to your model. Edges will automatically be drawn in the 3D Viewer based on the `network_neighbor_ids` field on agents. This field must contain an array composed of the `agent_id`s of other agents in the simulation. Edges will be automatically drawn to the corresponding agents, and updated every time step. 
+Networks are often found in multi-agent models, and the ability to visualize them can add an additional level of clarity to your model. Edges will automatically be drawn in the 3D Viewer based on the `network_neighbor_ids` field on agents. This field must contain an array composed of the `agent_id`s of other agents in the simulation. Edges will be automatically drawn to the corresponding agents, and updated every time step.
 
 ![Edges drawn between agents](../../../.gitbook/assets/image%20%2865%29.png)
 
@@ -16,7 +16,7 @@ You can take this a step further and use the[ Networks Library](https://hash.ai/
 
 ## Edges as Agents
 
- You can also create and visualize networks by creating agents which represent a "link" or "edge" that connects two other agents. By giving this representative agent a **direction** and a **scale** that makes it thin and long, lines can be drawn between interacting agents.
+You can also create and visualize networks by creating agents which represent a "link" or "edge" that connects two other agents. By giving this representative agent a **direction** and a **scale** that makes it thin and long, lines can be drawn between interacting agents.
 
 In this example, bills are being processed and passed around to different employees \(represented by the green agents. Links highlight when a bill is passed along them.
 

@@ -37,7 +37,7 @@ For example, this `values` experiment will run seven experiments, setting a diff
 {% endtab %}
 {% endtabs %}
 
-To run an experiment, click the "Experiment Runner" button in the runner controls, denoted with a beaker icon. The option "Sweep Values" will be available in the selector. 
+To run an experiment, click the "Experiment Runner" button in the runner controls, denoted with a beaker icon. The option "Sweep Values" will be available in the selector.
 
 ![Sweep values demonstration](../../.gitbook/assets/image%20%2816%29.png)
 

@@ -25,7 +25,7 @@ const behavior = (state, context) => {
   // Function to determine cost --> Business price * distance from Business
   const calculate_cost = (position, price) => {
     const state_position = state.position;
-    
+
     return price + Math.sqrt(Math.pow((state_position[0] - position[0]), 2) + Math.pow((state_position[1] - position[1]), 2));
   }
 }
@@ -38,10 +38,10 @@ Next, we are going to collect and store all the messages sent by the Business ag
 ```javascript
 const collect_business_data = (messages) => {
   let shops = {};
-  
+
   messages.filter((message) => message.type === "business_movement").forEach((message) => {
     const agent_id = message.from;
- 
+
     if (agent_id in shops) {
       shops[agent_id].data.push([message.data.position, message.data.price, message.data.rgb]);
     } else {
@@ -50,12 +50,12 @@ const collect_business_data = (messages) => {
       }
     }
   });
- 
+
   return shops;
 }
 ```
 
-Now that all the Business data is stored successfully, we need to iterate through each key \(or Business\) and determine which `position` and `item_price` combination yields the lowest cost for the individual Business as well as the overall. 
+Now that all the Business data is stored successfully, we need to iterate through each key \(or Business\) and determine which `position` and `item_price` combination yields the lowest cost for the individual Business as well as the overall.
 
 Define a `find_min()` function like the one below.
 
@@ -68,7 +68,7 @@ Define a `find_min()` function like the one below.
      price: 0,
      rgb: null
    };
- 
+
    Object.keys(businesses).forEach((shop) => {
      let individual_min = {
        cost: null,
@@ -77,13 +77,13 @@ Define a `find_min()` function like the one below.
        price: 0,
        rgb: null
      }
- 
+
      // Find min cost for each business
      businesses[shop].data.forEach((business_change) => {
        const position = business_change[0]
        const price = business_change[1]
        const rgb = business_change[2]
- 
+
        const cost = calculate_cost(position, price)
      })
    })
@@ -95,7 +95,7 @@ Define a `find_min()` function like the one below.
 * **Individual\_min →** store the data for the business position/price combination that yields the lowest cost across for each individual business
 {% endhint %}
 
-Let’s add the cost comparisons for both the individual Business and overall. Place the following code right below your cost calculation \(within the`businesses[shop].data.forEach() call`\). 
+Let’s add the cost comparisons for both the individual Business and overall. Place the following code right below your cost calculation \(within the`businesses[shop].data.forEach() call`\).
 
 ```javascript
 // Check min for individual business
@@ -164,7 +164,7 @@ state.addMessage(individual_min.agent_id, "customer_cost", {
 });
 ```
 
-All that’s left to do now for **`customer.js`** is to update the agent’s color to the `overall_min`’s color. This signifies that the Customer decided it would want to purchase from that particular business. Set the agent’s color after the closing of the object key iterator \(on line 89\).  
+All that’s left to do now for **`customer.js`** is to update the agent’s color to the `overall_min`’s color. This signifies that the Customer decided it would want to purchase from that particular business. Set the agent’s color after the closing of the object key iterator \(on line 89\).
 
 ```javascript
 // Only update color if min cost was determined during this time step
@@ -192,7 +192,7 @@ To see **customer.js** in full, navigate to bottom of this section or click on �
 
 Reset and run!
 
-If you followed all the steps above, run the simulation a couple times and you should see the customer agents change color based on their decision after a couple time steps. 
+If you followed all the steps above, run the simulation a couple times and you should see the customer agents change color based on their decision after a couple time steps.
 
 ![](../../.gitbook/assets/lc_p2_customers.gif)
 
@@ -205,13 +205,13 @@ const behavior = (state, context) => {
    const state_position = state.position;
    return price + Math.sqrt(Math.pow((state_position[0] - position[0]), 2) + Math.pow((state_position[1] - position[1]), 2))
  }
- 
+
  const collect_business_data = (messages) => {
    let shops = {};
    messages.filter((message) => message.type === "business_movement")
      .forEach((message) => {
        const agent_id = message.from;
- 
+
        if (agent_id in shops) {
          shops[agent_id].data.push([message.data.position, message.data.price, message.data.rgb]);
        } else {
@@ -220,10 +220,10 @@ const behavior = (state, context) => {
          }
        }
      });
- 
+
    return shops;
  }
- 
+
  // Update properties of 'type' object (individual_min or overall_min)
  const update_min = (type, cost, id, position, price, rgb) => {
    type.cost = cost
@@ -232,7 +232,7 @@ const behavior = (state, context) => {
    type.price = price
    type.rgb = rgb
  }
- 
+
  const find_min = (businesses) => {
    let overall_min = {
      cost: null,
@@ -241,7 +241,7 @@ const behavior = (state, context) => {
      price: 0,
      rgb: null
    };
- 
+
    Object.keys(businesses).forEach((shop) => {
      let individual_min = {
        cost: null,
@@ -250,15 +250,15 @@ const behavior = (state, context) => {
        price: 0,
        rgb: null
      }
- 
+
      // Find min cost for each business
      businesses[shop].data.forEach((business_change) => {
        const position = business_change[0]
        const price = business_change[1]
        const rgb = business_change[2]
- 
+
        const cost = calculate_cost(position, price)
- 
+
        // Check min for individual business
        if (cost < individual_min.cost || individual_min.cost === null) {
          update_min(individual_min, cost, shop, position, price, rgb)
@@ -267,7 +267,7 @@ const behavior = (state, context) => {
            update_min(individual_min, cost, shop, position, price, rgb)
          }
        }
- 
+
        // Check min for all business
        if (cost < overall_min.cost || overall_min.cost === null) {
          update_min(overall_min, cost, shop, position, price, rgb)
@@ -278,20 +278,20 @@ const behavior = (state, context) => {
          }
        }
      })
-     
+
      state.addMessage(individual_min.agent_id, "customer_cost", {
          cost: individual_min.cost,
          position: individual_min.position,
          price: individual_min.price
        });
    })
- 
+
    // Only update color if min cost was determined during this time step
    if (overall_min.rgb !== null) {
      state.rgb = overall_min.rgb;
    }
  }
- 
+
  const businesses = collect_business_data(context.messages());
  find_min(businesses);
 }
@@ -299,7 +299,7 @@ const behavior = (state, context) => {
 {% endtab %}
 
 {% tab title="init.json" %}
-```
+```text
 [
  {
    "behaviors": [
@@ -341,7 +341,6 @@ const behavior = (state, context) => {
    ]
  }
 ]
-
 ```
 {% endtab %}
 
@@ -355,7 +354,7 @@ const behavior = (state, context) => {
      rgb: state.rgb
    });
  }
- 
+
  const price_messaging = (agent_id, position) => {
    const item_price = state.item_price;
    send_message(agent_id, position, item_price);
@@ -364,7 +363,7 @@ const behavior = (state, context) => {
      send_message(agent_id, position, item_price - 1);
    }
  }
- 
+
  const query_customers = (neighbors, state_position) => {
    const possible_movement = [[-1, 0], [0, 0], [1, 0], [0, -1], [0, 1]];
    neighbors.filter((neighbor) => neighbor.behaviors.includes("customer.js"))
@@ -375,13 +374,12 @@ const behavior = (state, context) => {
        })
      })
  }
- 
- 
+
+
  if (state.counter === 0) {
    query_customers(context.neighbors(), state.position);
  }
 }
-
 ```
 {% endtab %}
 {% endtabs %}

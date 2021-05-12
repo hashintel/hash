@@ -12,7 +12,7 @@ With the process chart, you can:
 * In one click, add it to your HASH simulation. It will automatically interpret the model and add the correct behaviors and parameters.
 * Run the simulation and explore the results to find the best process model and the optimal parameters.
 
-Additionally, you can use the [Process Modeling Library](https://hash.ai/@hash/process) behaviors directly to build a process model. Because it's all still powered with HASH, you can customize and extend any part of it. Combine it with other models, add data, modify a behavior - it's all there for you to fit to your own use cases. 
+Additionally, you can use the [Process Modeling Library](https://hash.ai/@hash/process) behaviors directly to build a process model. Because it's all still powered with HASH, you can customize and extend any part of it. Combine it with other models, add data, modify a behavior - it's all there for you to fit to your own use cases.
 
 Building process models allows you to answer questions about your real world systems. They can help you improve resource allocation, reduce cycle-time, and identify other optimizations that can be made to your organization or system. They're especially effective when used with [Experiments](../../creating-simulations/experiments/) to explore multiple scenarios and configurations.
 
@@ -28,6 +28,4 @@ Example simulation built with the process model library:
 
 * [Billing Department simulation](https://core.hash.ai/@hash/billing-department-process/stable)
 * [Call Center simulation](https://core.hash.ai/@hash/interconnected-call-center-single-agent/stable)
-
-
 

@@ -12,25 +12,25 @@ Returns an array of agents at random positions within the bounds defined in `top
 const init = (context) => {
   // You can define the topology object here or in globals.json
   const topology = context.globals().topology;
-  
+
   // Define agents without a position, since the scatter() function
   // will assign random positions
   const template = {
     "behaviors": ["move.js"],
     "color": "green"
   }
-  
+
   // You can also pass a function instead of an object. This allows your agents
   // to initialize certain properties stochastically
   const templateFunction = () => ({
     "behaviors": ["move.js"],
     "color": Math.random() > 0.5 ? "green" : "blue"
   })
-  
+
   // Generate the randomly scattered agents
   const agents = hstd.init.scatter(100, topology, template);
   const agentsFromFunction = hstd.init.scatter(100, topology, templateFunction);
-  
+
   return agents;
 }
 ```
@@ -58,7 +58,7 @@ const init = (context) => {
     "position": [2, 10, 0],
     "color": "green"
   }
-  
+
   // You can also pass a function instead of an object. This allows your agents
   // to initialize certain properties stochastically
   const templateFunction = () => ({
@@ -66,11 +66,11 @@ const init = (context) => {
     "position": [2, 10, 0],
     "color": Math.random() > 0.5 ? "green" : "blue"
   })
-  
+
   // Generate the randomly scattered agents
   const agents = hstd.init.stack(100, template);
   const agentsFromFunction = hstd.init.stack(100, templateFunction);
-  
+
   return agents;
 }
 ```
@@ -85,25 +85,25 @@ Returns an array of agents occupying every integer location within the bounds de
 const init = (context) => {
   // You can define the topology object here or in globals.json
   const topology = context.globals().topology;
-  
+
   // Define agents without a position, since the grid() function
   // will assign positions
   const template = {
     "behaviors": ["move.js"],
     "color": "green"
   }
-  
+
   // You can also pass a function instead of an object. This allows your agents
   // to initialize certain properties stochastically
   const templateFunction = () => ({
     "behaviors": ["move.js"],
     "color": Math.random() > 0.5 ? "green" : "blue"
   })
-  
+
   // Generate the grid of agents
   const agents = hstd.init.grid(topology, template);
   const agentsFromFunction = hstd.init.grid(topology, templateFunction);
-  
+
   return agents;
 }
 ```
@@ -129,7 +129,7 @@ Returns an array of agents based on a specified `layout` and set of `templates`.
 ```javascript
 const init = (context) => {
     const layout = context.data()["/layout_data.csv"];
-    
+
     // Note that templates don't have position, since that is assigned
     // based on the layout file
     const templates = {
@@ -146,10 +146,10 @@ const init = (context) => {
           "color": "black"
         }
     };
-    
+
     // Optional position offset
     const offset = [5, 5, 0];
-    
+
     const agents = hstd.init.createLayout(layout, templates, offset);
     return agents;
 }
@@ -157,7 +157,7 @@ const init = (context) => {
 {% endtab %}
 
 {% tab title="layout\_data.csv" %}
-```
+```text
 w,,,,,
 w,,f,,,
 w,,,,,

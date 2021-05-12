@@ -8,7 +8,7 @@ When you create a simulation, you can select whether it is a public or private p
 
 ![Update a project to change its visibility](../../.gitbook/assets/image%20%2820%29.png)
 
- At the bottom of the Update form, click the bolded text to switch visibility.
+At the bottom of the Update form, click the bolded text to switch visibility.
 
 ![Switching between public and private](../../.gitbook/assets/image%20%2818%29.png)
 
@@ -24,7 +24,7 @@ When your simulations or behaviors reach certain levels of functionality, you ca
 
 ![Creating a release](../../.gitbook/assets/image%20%2822%29.png)
 
-Creating a release will allow you to add a description and categorize your project. As you make improvements, fix bugs, or add features to your simulation, creating a release will allow you to increment the version number and describe changes you've made. 
+Creating a release will allow you to add a description and categorize your project. As you make improvements, fix bugs, or add features to your simulation, creating a release will allow you to increment the version number and describe changes you've made.
 
 ![Incrementing a release](../../.gitbook/assets/image%20%2819%29.png)
 

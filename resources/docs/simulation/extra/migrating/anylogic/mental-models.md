@@ -50,5 +50,3 @@ Consider creating a flowchart to represent at a high level what is happening in 
 2. Create analysis charts that communicate the key metrics.
 3. Test with the target population size of agents
 
-
-

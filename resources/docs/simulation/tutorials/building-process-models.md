@@ -4,7 +4,7 @@ description: Using the HASH process chart interface to build a ticketing queue s
 
 # Building Process Models
 
-Business processes are the cornerstone of every company's operations. Defined and repeatable plans for satisfying business objectives differentiate a focused, efficient machine from a disorganized mess. However, given the complexity and scale of modern businesses, it can be hard to create and optimize business processes - even simple processes are often hard to reason about or effectively optimize. 
+Business processes are the cornerstone of every company's operations. Defined and repeatable plans for satisfying business objectives differentiate a focused, efficient machine from a disorganized mess. However, given the complexity and scale of modern businesses, it can be hard to create and optimize business processes - even simple processes are often hard to reason about or effectively optimize.
 
 Simulation aided process design can dramatically improve results and get you answers fast.
 
@@ -12,13 +12,11 @@ Simulation aided process design can dramatically improve results and get you ans
 
 The process chart visual interface makes it incredibly easy to create a powerful process model, no coding expertise required.
 
-{% embed url="https://www.youtube.com/watch?v=1XHZREmn9TA" %}
+{% embed url="https://www.youtube.com/watch?v=1XHZREmn9TA" caption="" %}
 
 This video tutorial will walk you through using the process model visual interface to build a ticketing queue simulation.
 
 {% hint style="info" %}
 See [Designing with Process Models](../concepts/designing-with-process-models/) for more on using process models and a complete overview of the features of the process library.
 {% endhint %}
-
-
 

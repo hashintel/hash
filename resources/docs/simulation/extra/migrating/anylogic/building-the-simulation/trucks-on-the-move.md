@@ -1,8 +1,8 @@
 # Trucks on the Move
 
-A few more agents will allow us to bring the oil all the way to its final location, the **Retailer**. 
+A few more agents will allow us to bring the oil all the way to its final location, the **Retailer**.
 
-### Retailer
+## Retailer
 
 Our **Retailer** will need to consume oil based on some demand by consumers, and order more fuel from a **Distributor** when it's getting low.
 
@@ -11,7 +11,7 @@ Our **Retailer** will need to consume oil based on some demand by consumers, and
 const behavior = (state, context) => {
   const { mean_gas_demand, seconds_per_step, reorder_level } = context.globals();
   const demand_rate = (0.5 + Math.random()) * mean_gas_demand * seconds_per_step;
-  
+
   let oil = state.get("oil");
 
   if (oil - demand_rate > 0) {
@@ -36,9 +36,9 @@ const behavior = (state, context) => {
 When `order_quantity` is set, two other custom behaviors we've written will trigger:
 
 * `choose_order_from.js` - finds the nearest **Distributor** to order from
-*  `order.js` -  places the order by sending a message
+* `order.js` -  places the order by sending a message
 
-### Distributor
+## Distributor
 
 The **Distributor** now needs to respond to the order request, either by creating a fuel **Truck** to deliver oil or by responding with an out of stock message.
 
@@ -73,7 +73,7 @@ for (order of orders) {
 
 When we first write the code to create the truck, we might not know exactly what behaviors and properties it will have. We'll have to fully define the behaviors of the fuel **Truck**, and jump back to `deliver.js` to update the code here.
 
-### Truck
+## Truck
 
 We'll need to write one custom behavior for this agent, which will have to request a route from its current location to its destination, deliver its oil, and then reverse its route. Take a look at the [Navigating with Mapbox](../../../../creating-simulations/agent-messages/built-in-message-handlers.md#navigation-with-mapbox) section of the docs for an example of generating a real-world route. We'll use the published Follow Route behavior to move the Truck around our simulation.
 

@@ -4,7 +4,7 @@ Let’s apply this mental model to the [Oil Supply Chain](https://hash.ai/@hash/
 
 We start by cataloguing the agents. In AnyLogic you can double click on any of the agents to see the relevant functions, properties, state charts, etc.
 
-### Agents
+## Agents
 
 **FuelTruck**
 
@@ -111,7 +111,7 @@ Tankers deliver oil from ‘outside the sim’ \(they actually generate it\) to 
 {% endtab %}
 {% endtabs %}
 
-If you’ve been following along you’ll notice we left off one agent - Pipelines. Pipelines act as a flow regulator, decreasing quantity in one agent and delivering it to another. In our simulation we're going to use [messages](../../../creating-simulations/agent-messages/) to accomplish a similar thing. Messaging is a key primitive operation provided by HASH, and as you’ll see we use it throughout the simulation. 
+If you’ve been following along you’ll notice we left off one agent - Pipelines. Pipelines act as a flow regulator, decreasing quantity in one agent and delivering it to another. In our simulation we're going to use [messages](../../../creating-simulations/agent-messages/) to accomplish a similar thing. Messaging is a key primitive operation provided by HASH, and as you’ll see we use it throughout the simulation.
 
 Since we can represent the behavior of Pipelines completely through messages, we'll effectively combine it with the Storage agents to reduce the number of agents in the simulation, and the complexity of interactions. But more on that later.
 

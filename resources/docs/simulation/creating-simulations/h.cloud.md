@@ -53,7 +53,7 @@ Let's take a look at two examples:
 
 ### hCloud Distributed Compute
 
-hCloud runs experiment runs in a parallelized fashion by default on HASH **Free**, **Base**, and **Pro**  accounts. In practice this means the memory available to your simulation varies from 4-192GB, depending on your account limits.
+hCloud runs experiment runs in a parallelized fashion by default on HASH **Free**, **Base**, and **Pro** accounts. In practice this means the memory available to your simulation varies from 4-192GB, depending on your account limits.
 
 {% hint style="success" %}
 If you're interested in running larger-scale simulations, or want to distribute a single run across multiple instances, [contact us](https://hash.ai/contact) to learn more about upgrading to a paid version of HASH.

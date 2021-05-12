@@ -37,7 +37,7 @@ The [Globals](../../creating-simulations/configuration/) section describes how a
 ```
 {% endcode %}
 
-2. Replace the property on the process model with the global parameter.
+1. Replace the property on the process model with the global parameter.
 
 {% code title="create\_process.js" %}
 ```javascript
@@ -45,7 +45,7 @@ The [Globals](../../creating-simulations/configuration/) section describes how a
 ```
 {% endcode %}
 
-3. Create an experiment and use the parameter as the field for the experiment
+1. Create an experiment and use the parameter as the field for the experiment
 
 ![Experiment model](https://lh5.googleusercontent.com/9fJKOO9RlHGjnmFrS4gX2mAWDjXLHlHLTTbfYbFIxBsJ_PWIToyh9N-s0kRCSJU_jWi3sQ1v1bQISW774tbTqy_C7apNVzbr3lEJFxhJndlzWnYlXdWzrAqq2rQOssuLLdw4hP3j)
 
@@ -53,5 +53,5 @@ Now when we run the experiment, we can see how varying the number of service age
 
 ![](https://lh5.googleusercontent.com/EOBydAKWL0GoGZQAZMqFj_weIFdVjdLVtcPX1Q3mtftPQiOfQoPPVk0hc3lS4j1mVp_T2A-ByLBYk9yWlmzMm74sjcALRnyfhLAX-taDlfrpbmcwWsbEs3fTnKg4E1_f6_1fLF4X)
 
-After adding metrics and charts, we can see what happens to the queue in the experiment. Provided the number of agents stays above 1, the queue will remain flat. 
+After adding metrics and charts, we can see what happens to the queue in the experiment. Provided the number of agents stays above 1, the queue will remain flat.
 

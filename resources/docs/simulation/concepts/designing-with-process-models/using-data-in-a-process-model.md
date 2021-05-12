@@ -8,7 +8,7 @@ You can use your real world business data to power your process model and create
 For more on using data in HASH, see [Datasets](../../creating-simulations/datasets/)
 {% endhint %}
 
-HASH supports CSV and JSON datasets. Upload your dataset by clicking the 'new dataset' option in the editor \(_in the top left of the screen, over the file picker\)_\) _o_r by finding/reusing an existing dataset from the HASH index and adding it to the simulation.
+HASH supports CSV and JSON datasets. Upload your dataset by clicking the 'new dataset' option in the editor \(_in the top left of the screen, over the file picker\)_\) \_o\_r by finding/reusing an existing dataset from the HASH index and adding it to the simulation.
 
 The dataset is stored in the 'data/' folder, and the data will be available in the simulation through context.data\(\)
 
@@ -18,7 +18,6 @@ The dataset is stored in the 'data/' folder, and the data will be available in t
 const behavior = (state, context) => {
  let cs = context.data()["CustomerServiceEmployeesSheet1.csv"]
 };
-
 ```
 {% endtab %}
 
@@ -32,7 +31,7 @@ def behavior(state, context):
 
 ## Customizing Parameters
 
-With the data loaded in the simulation we can use it to power the process model.  There are many different ways to use data + process models, but the most common are:
+With the data loaded in the simulation we can use it to power the process model. There are many different ways to use data + process models, but the most common are:
 
 * Set the properties of the process model. For example, if a pizza delivery service model has a certain number of drivers available to deliver pizzas, they could use a dataset to set that number.
 * Create distributions for modeling uncertainty. Now, if the pizza delivery service wants to estimate the number of orders they'll get in a day, they could take a dataset that captures last weeks orders of pizzas, choose a distribution that accurately models the data, and then use that to simulate new orders. 
@@ -130,9 +129,9 @@ This is a good start, but to make the model more realistic we can add a dataset 
  let max = tickets.reduce((max, t) => t.count > max ? t.count : max, data[0].count);
  //Get the mode of the array and average with min and max to find the peak
  let peak = (min + max + mode(tickets)) / 3;
- 
+
  //in the process parameters ...
- 
+
  "process_parameters": {
       "start": {
         "template": {},
@@ -147,7 +146,6 @@ This is a good start, but to make the model more realistic we can add a dataset 
       },
       "solved_tickets": {}
     }
- 
 ```
 {% endcode %}
 

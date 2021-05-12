@@ -20,7 +20,7 @@ HASH allows you to visualize agents with various geometric shapes. Any of the fo
 
 HASH also allows you to use 3D mesh models. Use any of these keyword strings in an agent's `shape` field. You can use the agent's `scale` and `direction` property to visualize the agent to your taste.
 
-#### Buildings and Structures
+### Buildings and Structures
 
 * house
 * factory
@@ -34,7 +34,7 @@ HASH also allows you to use 3D mesh models. Use any of these keyword strings in 
 * radar
 * windturbine
 
-#### Vehicles
+### Vehicles
 
 * boat
 * train-tracks
@@ -47,7 +47,7 @@ HASH also allows you to use 3D mesh models. Use any of these keyword strings in 
 * satellite
 * missile
 
-#### Animals
+### Animals
 
 * ant
 * crane
@@ -59,7 +59,7 @@ HASH also allows you to use 3D mesh models. Use any of these keyword strings in 
 * dolphin
 * fish
 
-#### Nature
+### Nature
 
 * palm-tree
 * elm-tree

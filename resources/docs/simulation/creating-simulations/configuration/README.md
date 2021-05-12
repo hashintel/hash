@@ -4,10 +4,9 @@ description: Globals are variables which are accessible to all agents in a simul
 
 # Globals
 
-  
 Global variables are defined in the `globals.json` file present within every simulation. These variables are immutable while the simulation is running and are accessible to all agents simultaneously.‌
 
-Globals are typically used to specify environmental variables \(e.g. [topology](topology/)\) or macro assumptions \([simulation parameters](basic-properties.md)\) that define the state of the world. 
+Globals are typically used to specify environmental variables \(e.g. [topology](topology/)\) or macro assumptions \([simulation parameters](basic-properties.md)\) that define the state of the world.
 
 Accessing these global variables is as simple as using the `context.globals()` function in any agent behavior.
 

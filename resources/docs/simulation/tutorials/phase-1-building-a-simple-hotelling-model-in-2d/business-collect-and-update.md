@@ -5,15 +5,15 @@ The final step for this simulation is for the Businesses to collect the Customer
 ```javascript
  const collect_customer_data = (messages) => {
    let position_dictionary = {};
- 
+
    messages.filter((message) => message.type === "customer_cost")
      .map((message) => {
        const position = JSON.stringify(message.data.position);
        const profit = JSON.parse(message.data.cost);
        const price = message.data.price;
- 
+
        const position_price = JSON.stringify(position + price)
- 
+
        if (position_price in position_dictionary) {
          position_dictionary[position_price].profit += profit
        } else {
@@ -35,7 +35,7 @@ Now all that remains is to iterate through the dictionary, find the key \(positi
    let largest_profit = 0;
    let new_position = state.position;
    let new_price = state.item_price;
- 
+
    // Determine position with largest profit
    Object.keys(position_dictionary).forEach((position_price) => {
      if (position_dictionary[position_price].profit > largest_profit) {
@@ -44,13 +44,13 @@ Now all that remains is to iterate through the dictionary, find the key \(positi
        new_price = position_dictionary[position_price].price;
      }
    })
- 
+
    // Update business
    state.position = new_position
    state.item_price = new_price;
 ```
 
-Finally, call the collect\_customer\_data\(\) function with context.messages\(\). 
+Finally, call the collect\_customer\_data\(\) function with context.messages\(\).
 
 ```javascript
 if (state.counter === 0) {
@@ -79,7 +79,7 @@ const behavior = (state, context) => {
      rgb: state.rgb
    });
  }
- 
+
  const price_messaging = (agent_id, position) => {
    const item_price = state.item_price;
    send_message(agent_id, position, item_price);
@@ -88,7 +88,7 @@ const behavior = (state, context) => {
      send_message(agent_id, position, item_price - 1);
    }
  }
- 
+
  const query_customers = (neighbors, state_position) => {
    const possible_movement = [[-1, 0], [0, 0], [1, 0], [0, -1], [0, 1]];
    neighbors.filter((neighbor) => neighbor.behaviors.includes("customer.js"))
@@ -99,18 +99,18 @@ const behavior = (state, context) => {
        })
      })
  }
- 
+
  const collect_customer_data = (messages) => {
    let position_dictionary = {};
- 
+
    messages.filter((message) => message.type === "customer_cost")
      .map((message) => {
        const position = JSON.stringify(message.data.position);
        const profit = JSON.parse(message.data.cost);
        const price = message.data.price;
- 
+
        const position_price = JSON.stringify(position + price)
- 
+
        if (position_price in position_dictionary) {
          position_dictionary[position_price].profit += profit
        } else {
@@ -121,13 +121,13 @@ const behavior = (state, context) => {
          }
        }
      })
- 
+
    // console.log(state.position, position_dictionary);
-  
+
    let largest_profit = 0;
    let new_position = state.position;
    let new_price = state.item_price;
- 
+
    // Determine position with largest profit
    Object.keys(position_dictionary).forEach((position_price) => {
      if (position_dictionary[position_price].profit > largest_profit) {
@@ -136,19 +136,18 @@ const behavior = (state, context) => {
        new_price = position_dictionary[position_price].price;
      }
    })
- 
+
    // Update business
    state.position = new_position;
    state.item_price = new_price;
  }
- 
+
  if (state.counter === 0) {
    query_customers(context.neighbors(), state.position);
  } else if (state.counter === 2) {
    collect_customer_data(context.messages());
  }
 }
-
 ```
 {% endtab %}
 {% endtabs %}

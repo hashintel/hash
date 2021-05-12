@@ -2,7 +2,7 @@
 
 AnyLogic is a 20+ year old desktop application that lets programmers write object-oriented Java to create simulations. AnyLogic also has limited support for visual programming, allowing non-programmers to create basic simulations.
 
-In contrast to HASH, AnyLogic simulations cannot be distributed across multiple machines, although individual simulation runs may still be parallelized. 
+In contrast to HASH, AnyLogic simulations cannot be distributed across multiple machines, although individual simulation runs may still be parallelized.
 
 In this article we’ll discuss:
 
@@ -11,6 +11,4 @@ In this article we’ll discuss:
 * Step-by-step how to convert an example simulation.
 
 The example simulation we selected is the [Oil Supply Chain simulation](https://drive.google.com/file/d/192MY6ftxnaaeF-5YaM0Ok8BZItIzBrUb/view?usp=sharing), a neat model that demonstrates a transportation and supply chain network for delivering oil. [The finished HASH simulation is here](https://hash.ai/@hash/oil-supply-chain).
-
-
 

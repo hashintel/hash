@@ -34,7 +34,7 @@ Now use the experiment wizard to create a new experiment and fill in the options
 You can save without running or save and run immediately in hCloud.
 
 {% hint style="warning" %}
-To run a simulation in hCloud, you must first set the [Behavior Keys](../behaviors/behavior-keys.md) of your simulations behaviors.
+To run a simulation in hCloud, you must first set the [Behavior Keys](../behaviors/behavior-keys/) of your simulations behaviors.
 {% endhint %}
 
 While the optimization experiment is running, individual runs will populate the experiment queue in the activity sidebar. Hover over a run to see the metrics value and the parameters for that particular run.
@@ -44,6 +44,4 @@ While the optimization experiment is running, individual runs will populate the 
 When the optimization run completes, the best run - the run where the parameters maximized or minimized the metric - will be highlighted.
 
 ![](../../.gitbook/assets/image%20%2861%29.png)
-
-
 

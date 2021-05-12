@@ -10,7 +10,7 @@ You can think of it like a flowchart - objects start at the source, travel throu
 
 When designing your own process models, your primary task is to factor the real world process into discrete steps, and then match those steps to blocks in the process library \(or build your own!\)
 
-### Elements
+## Elements
 
 With the HASH process library, we provide ready made behaviors for implementing process models. Each corresponds with a common element of process models.
 
@@ -43,7 +43,7 @@ const behavior = (state, context) => {
  // Get the queue of the next process block
  let next_process_ind = state.behaviorIndex() + 1;
  const behaviors = state.behaviors;
- 
+
  while (next_process_ind < behaviors.length) {
    if (behaviors[next_process_ind].includes("@hash/process")
        || context.globals().process_behaviors.includes(behaviors[next_process_ind])) {
@@ -52,7 +52,7 @@ const behavior = (state, context) => {
      next_process_ind += 1;
    }
  }
- 
+
  const next_process = state.process_labels[next_process_ind];
  let queue = state[next_process + "_queue"];
   // Run custom logic with the queue
@@ -62,9 +62,6 @@ const behavior = (state, context) => {
  // Reassign to the process queue
  state[next_process + "_queue"] = queue;
 };
-
 ```
 {% endcode %}
-
-
 

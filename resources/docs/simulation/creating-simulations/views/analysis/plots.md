@@ -8,13 +8,13 @@ Plots allow you to learn more about your simulation. For instance:
 * What emergent phenomena are appearing? 
 * How do stochasticity and the initial conditions affect the simulation run?
 
-We currently support five different types of Plots. Their syntax and intended usage are described below. 
+We currently support five different types of Plots. Their syntax and intended usage are described below.
 
 ## How can I create Plots?
 
 There are two ways to create Plots. You can either use our Create new plot wizard or alternatively, you can edit the analysis.json file directly.
 
-#### Using the Create new Plot wizard
+### Using the Create new Plot wizard
 
 ![](../../../.gitbook/assets/animation.gif)
 
@@ -24,7 +24,7 @@ There are two ways to create Plots. You can either use our Create new plot wizar
 4. Fill in the rest of the required information
 5. Click "Create new plot"
 
-#### Modifying the analysis.json file
+### Modifying the analysis.json file
 
 ![](../../../.gitbook/assets/screenshot-2021-03-12-at-12.35.23.png)
 
@@ -43,13 +43,13 @@ There are two ways to create Plots. You can either use our Create new plot wizar
 
 ![](../../../.gitbook/assets/screenshot-2021-03-11-at-14.55.35.png)
 
-**Area** plots are used to depict a time-series relationship. They allow you to visualize the sum value of metrics, which is harder to discern with a standard line plot. 
+**Area** plots are used to depict a time-series relationship. They allow you to visualize the sum value of metrics, which is harder to discern with a standard line plot.
 
 ## Box
 
 ![](../../../.gitbook/assets/screenshot-2021-03-11-at-17.37.32.png)
 
- **Box** plots are a way of displaying the distribution of data based on five different summaries:
+**Box** plots are a way of displaying the distribution of data based on five different summaries:
 
 * Minimum
 * First quartile \(Q1\)
@@ -69,7 +69,7 @@ It can also tell you if your data is symmetrical, how it is grouped, and if and 
 
 ![](../../../.gitbook/assets/screenshot-2021-03-11-at-15.05.21.png)
 
-**Scatter** plots primary uses are to observe and show relationships between two numeric variables. It helps you to detect trends in the data. 
+**Scatter** plots primary uses are to observe and show relationships between two numeric variables. It helps you to detect trends in the data.
 
 ## Extra tips
 

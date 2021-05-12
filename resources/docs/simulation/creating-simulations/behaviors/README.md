@@ -18,7 +18,7 @@ Behaviors allow agents to exhibit _agency_ in the simulation. An agent can have 
 Behaviors are pure functions in the form of: `(current_state, context) => { // update state }`
 
 {% hint style="warning" %}
-To run your simulation [with hCloud](../h.cloud.md), you'll need to [define Behavior Keys](behavior-keys.md) for each behavior in your simulation.
+To run your simulation [with hCloud](../h.cloud.md), you'll need to [define Behavior Keys](behavior-keys/) for each behavior in your simulation.
 {% endhint %}
 
 The exact semantics vary by programming language, but in spirit every behavior is a pure function which receives a given agent's state, the world context visible to that agent, and produces its next state.

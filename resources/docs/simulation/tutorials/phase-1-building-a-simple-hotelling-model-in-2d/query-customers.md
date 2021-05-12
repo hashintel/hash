@@ -1,6 +1,6 @@
 # Query Customers
 
-Businesses will perform two actions in this model: query customers and collect customer responses to update their position and item price. 
+Businesses will perform two actions in this model: query customers and collect customer responses to update their position and item price.
 
 {% hint style="info" %}
 Query customers → Businesses will send their neighbors every possible position and item\_price change combination.
@@ -38,10 +38,10 @@ The next step is to create the **`price_messaging()`** function. This function w
 ```javascript
 const price_messaging = (agent_id, position) => {
   const item_price = state.item_price;
-  
+
   send_message(agent_id, position, item_price);
   send_message(agent_id, position, item_price + 1);
-  
+
   if (item_price > 1) {
     send_message(agent_id, position, item_price - 1);
   }
@@ -78,12 +78,11 @@ Since Business agents are sending around 100 \(neighbors\) x 6 \(positions\) x 3
 
 1. Add the HASH shared behavior **Counter** \(shortname: @hash/counter/counter.rs\) to your simulation and add the counter behavior to your business agents BEFORE your behavior **`business.js`**. \(You want the counter to increment before **`business.js`** is called\)
 2. In **`init.json`** give your Business agents three more variables:
+3. counter: 0
+4. counter\_reset\_at: 2
+5. counter\_reset\_to: 0
 
-* counter: 0
-* counter\_reset\_at: 2
-* counter\_reset\_to: 0
-
-    ****3. In the **`business.js`** behavior, wrap the `query_customers()` call in the following if statement:
+   **\*\*3. In the** `business.js`\*\* behavior, wrap the `query_customers()` call in the following if statement:
 {% endhint %}
 
 ```javascript
@@ -93,7 +92,7 @@ if (state.counter === 0) {
 ```
 
 {% hint style="danger" %}
-The behavior **Counter** adds a counter variable to every business agent that will automatically increment at each time step. This ensures that query\_customers\(\) is only called every 3 time steps. 
+The behavior **Counter** adds a counter variable to every business agent that will automatically increment at each time step. This ensures that query\_customers\(\) is only called every 3 time steps.
 {% endhint %}
 
 {% tabs %}
@@ -107,7 +106,7 @@ const behavior = (state, context) => {
      rgb: state.rgb
    });
  }
- 
+
  const price_messaging = (agent_id, position) => {
    const item_price = state.item_price;
    send_message(agent_id, position, item_price);
@@ -116,7 +115,7 @@ const behavior = (state, context) => {
      send_message(agent_id, position, item_price - 1);
    }
  }
- 
+
  const query_customers = (neighbors, state_position) => {
    const possible_movement = [[-1, 0], [0, 0], [1, 0], [0, -1], [0, 1]];
    neighbors.filter((n) => n.behaviors.includes("customer.js"))
@@ -127,12 +126,11 @@ const behavior = (state, context) => {
        })
      })
  }
- 
+
  if (state.counter === 0) {
      query_customers(context.neighbors(), state.position);
  }
 }
-
 ```
 {% endtab %}
 {% endtabs %}

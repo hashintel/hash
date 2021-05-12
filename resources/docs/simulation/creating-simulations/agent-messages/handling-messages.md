@@ -37,9 +37,9 @@ const behavior = (state, context) => {
     for (const message in context.messages()) {
         ...
     }
-    
+
     // OR
-    
+
     context.messages().forEach(m => {
         ...
     })

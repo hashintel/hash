@@ -59,7 +59,7 @@ const init = (context) => {
       "data": context.data()["/somedataset"][1]
     }
   ];
-  
+
   return agents;
 }
 ```
@@ -78,9 +78,8 @@ def init(context):
       "data": context.data()["/somedataset"][1]
     }
   ]
-  
-  return agents
 
+  return agents
 ```
 {% endtab %}
 {% endtabs %}
@@ -180,7 +179,7 @@ const init = (context) => {
       "behaviors": ["grow.js"],
       "color": "yellow"
     };
-    
+
     const agents =  hstd.init.grid(topology, template);
     return agents;
 }
@@ -214,7 +213,7 @@ Next, `Create Scatters` distributes the "rabbits" across the environment. Each o
 
 Now we want to make a few adjustments to the agents we've generated which requires a bit more logic. Luckily for us, HASH behaviors are composable. `Create Grids` and `Create Scatters` have created "agent" objects in our creator and filled them. We access those agents by using the "template\_name" as a key:
 
-![](../../.gitbook/assets/image%20%2831%29%20%282%29%20%282%29%20%282%29%20%282%29%20%282%29%20%282%29.png)
+![](../../.gitbook/assets/image%20%2831%29%20%282%29%20%282%29%20%282%29%20%282%29%20%282%29%20%282%29%20%282%29.png)
 
 Here we've randomly assigned the color of our "ground" agents, and given each of the "rabbits" a random starting amount of energy.
 

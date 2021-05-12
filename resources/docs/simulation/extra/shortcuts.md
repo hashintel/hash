@@ -36,8 +36,6 @@
 | Add multi-cursor above | `Ctrl` + `Alt` + `Shift` + `Up` | `Command` + `Option` + `Shift` + `Up` |
 | Move multi-cursor from current line to the line below | `Ctrl` + `Alt` + `Shift` + `Down` | `Command` + `Option` + `Shift` + `Down` |
 
-
-
 ## Outside the editor
 
 | Command | Windows | Mac |

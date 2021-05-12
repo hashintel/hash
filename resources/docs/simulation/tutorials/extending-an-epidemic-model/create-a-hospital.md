@@ -93,7 +93,7 @@ Open up the `init.json` file. It should look like:
 {% endtab %}
 {% endtabs %}
 
-`init.json` defines the 'initial state' of the simulation. In this case we're using some 'creator' utility behaviors, attached to a setup agent, who plays no role in our experiments beyond helping get our world set up correctly. 
+`init.json` defines the 'initial state' of the simulation. In this case we're using some 'creator' utility behaviors, attached to a setup agent, who plays no role in our experiments beyond helping get our world set up correctly.
 
 {% hint style="info" %}
 See [Initializing Agents](../../creating-simulations/anatomy-of-an-agent/initial-state.md) for more on init.json and creator agents.

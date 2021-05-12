@@ -4,7 +4,7 @@ Managing shared resource access is a common software design challenge. For insta
 
 This approach avoids common state management bugs that crop up in other paradigms, but to the uninitiated can complicate planning access to shared resources. For instance, if two agents, _\(A\)_ and _\(B\)_, in time step 1 want something from a third agent _\(C\)_, they might both message the request to the third agent. Since agents execute in parallel, they will both send their message on the time step 1, and two messages will arrive to _C_**.**
 
-Agent _C_ _\*\*_now needs to determine which agent should receive the resources, sending a message to the winning agent and a message to the losing agent.
+Agent _C_ \_\*\*\_now needs to determine which agent should receive the resources, sending a message to the winning agent and a message to the losing agent.
 
 An example of this type of pattern is in [Sugarscape](https://hash.ai/@hash/sugarscape), in which agents search for and collect “sugar”. When an agent moves to a patch of sugar it sends a message to the patch, requesting sugar \(line 31 in `sugar_agent.js`\).
 

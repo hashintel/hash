@@ -6,9 +6,5 @@ To help users with existing simulations built for different products, we've crea
 
 In this section we’ll share tips and techniques for converting your simulation models, walk you through some example conversions, and compare and contrast different simulation software approaches.
 
-At the end you'll understand how to move your simulation infrastructure to HASH and leverage the power of HASH’s modern simulation engine to build scalable simulations in JavaScript, Python, or Rust. 
-
-
-
-
+At the end you'll understand how to move your simulation infrastructure to HASH and leverage the power of HASH’s modern simulation engine to build scalable simulations in JavaScript, Python, or Rust.
 

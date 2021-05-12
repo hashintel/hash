@@ -15,7 +15,5 @@ We run Python3 in the browser through [Pyodide](https://github.com/iodide-projec
 | [scikit-learn](https://scikit-learn.org/0.20/) | 0.20.1 | Machine Learning |
 | [NumPy](https://docs.scipy.org/doc/numpy-1.15.4/reference/) | 1.15.4 | Base library for scientific computing in Python |
 | [SciPy](https://docs.scipy.org/doc/scipy-0.17.1/reference/) | 0.17.1 | Optimization, linear algebra, and statistics |
-| [uncertainties](https://pythonhosted.org/uncertainties/index.html) | 3.1.2 | Numbers with uncertainties  |
-
-
+| [uncertainties](https://pythonhosted.org/uncertainties/index.html) | 3.1.2 | Numbers with uncertainties |
 

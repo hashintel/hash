@@ -232,7 +232,7 @@ Exit blocks can also be used to send arbitrary messages to other agents, or even
 
 _@hash/process/enter.js_
 
-This behavior allows any agent, including other process models, to insert a new object into a process model. The Enter block will then send any new agents to the next block in the behavior array. 
+This behavior allows any agent, including other process models, to insert a new object into a process model. The Enter block will then send any new agents to the next block in the behavior array.
 
 An agent can do so by sending a message with the following fields:
 

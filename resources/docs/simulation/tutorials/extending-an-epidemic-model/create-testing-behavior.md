@@ -29,7 +29,7 @@ def check_hospital():
 
 You can add this function within the behavior function or above it.
 
-If the person agent runs the`check_hospital` function,  it will send a message to the agent named  Hospital, with metadata of type test and a data packet that contains the boolean variable `test_sick`.
+If the person agent runs the`check_hospital` function, it will send a message to the agent named Hospital, with metadata of type test and a data packet that contains the boolean variable `test_sick`.
 
 But we don't want our Person agent to be spamming the Hospital with requests to be tested - we only want to send it when the Person suspects that they are sick. We can add a property called `time_to_symptoms` in `globals.json`. That’s how long it takes for a person to start showing symptoms:
 
@@ -53,7 +53,7 @@ function behavior(state, context) {
        test_sick: true
     })
   }
- 
+
 
   if (state.infected && state.infection_length >= time_to_symptoms) {
     check_hospital();
@@ -73,7 +73,7 @@ def behavior(state, context):
     state.add_message("Hospital", "test", {
        'test_sick': True
     })
- 
+
 
   if state['infected'] and state.infection_length >= time_to_symptoms:
     check_hospital()
@@ -202,9 +202,9 @@ for msg in msgs:
 {% endtab %}
 {% endtabs %}
 
-Now that our agent knows it’s sick, what should we do? When you’re sick, you should stay home and rest. So should our Person agents. 
+Now that our agent knows it’s sick, what should we do? When you’re sick, you should stay home and rest. So should our Person agents.
 
-The `daily_movement` behavior contains our agent's  movement logic. Importantly, we can have a Person go to a new destination by setting `state.set("destination", state.get("new_destination"))` so long as the `new_destination` is one that it has a "location for". Select the `create_people` behavior. You can see we assign each Person agent a grocery or office as their go-to grocery or office, and we store the position as a property on the Person:
+The `daily_movement` behavior contains our agent's movement logic. Importantly, we can have a Person go to a new destination by setting `state.set("destination", state.get("new_destination"))` so long as the `new_destination` is one that it has a "location for". Select the `create_people` behavior. You can see we assign each Person agent a grocery or office as their go-to grocery or office, and we store the position as a property on the Person:
 
 {% tabs %}
 {% tab title="JavaScript" %}
@@ -319,20 +319,20 @@ Now our full `check_infected` behavior looks like this:
 ```javascript
 function behavior(state, context) {
   const { time_to_symptoms } = context.globals();
- 
+
   function check_hospital(){
      state.addMessage("Hospital", "test",{
          test_sick: true,
      });
    }
- 
+
   let msgs = context.messages().filter(msg => msg.type === "test_result");
    msgs.forEach(msg => {
      if (msg.data.sick) {
         state.destination = "home"; 
      }
    })
-   
+
   if (state.infected && state.infection_length === time_to_symptoms) {
      check_hospital();
    }
@@ -349,19 +349,19 @@ def behavior(state, context):
     state.add_message("Hospital", "test", {
       'test_sick': True
     })
-  
+
   msgs = list(filter(lambda m: m['type'] == 'test_result', context.messages()))
   for msg in msgs:
     if msg['data']['sick']:
       state['destination'] = state['home']
-   
+
   if state['infected'] and state['infection_length'] >= time_to_symptoms:
     check_hospital()
 ```
 {% endtab %}
 {% endtabs %}
 
-Run the simulation - our people are now being socially conscious and going back home when they’re sick. Hooray for well-being! 
+Run the simulation - our people are now being socially conscious and going back home when they’re sick. Hooray for well-being!
 
 {% hint style="success" %}
 **Extension:** try accounting for false negatives. Just like in real life tests are sometimes less than 100% accurate. Introduce the possibility that the hospital sends back a false negative and change the response behavior.
