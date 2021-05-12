@@ -11,7 +11,7 @@ From the behavior key panel you can define the field the behavior will need to a
 Any custom fields your behavior is getting from state, or setting in state, should have an entry in your behavior keys. For example, if your behavior calls `state.cost = 300`, you should have a behavior key called `cost` with type `number`. You do not need to create entries for special fields which HASH defines - see 'Built-in Fields' below.
 
 {% hint style="info" %}
-If you type in the name of a behavior key that already exists in your simulation, the type will automatically be populated based on the existing key's type.
+If you type in the name of a behavior key that already exists in your simulation, the type will **automatically** be populated based on the existing key's type.
 {% endhint %}
 
 {% embed url="https://youtu.be/oBrDX6JDCN8" caption="" %}
