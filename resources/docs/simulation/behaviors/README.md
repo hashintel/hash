@@ -45,6 +45,6 @@ def behavior(state, context):
 {% endtabs %}
 
 {% hint style="info" %}
-Agents can use behaviors to create new agents by sending a message to the special `hash` agent. This is covered more in-depth in [Messages](https://github.com/hashintel/docs/tree/880ab0868b42068260fd076f8070cbf498ff1c54/agent-messages/built-in-message-handlers/README.md#creating-agents-via-messages).
+Agents can use behaviors to create new agents by sending a message to the special `hash` agent. This is covered more in-depth in [Messages](../agent-messages/built-in-message-handlers/#creating-agents-via-messages).
 {% endhint %}
 
