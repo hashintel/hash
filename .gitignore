@@ -62,3 +62,13 @@ typings/
 
 # next.js build output
 .next
+
+# build files
+**/dist
+
+# vscode config
+.vscode
+
+# Python compiled files and package metadata
+**/__pycache__
+**/*.egg-info
