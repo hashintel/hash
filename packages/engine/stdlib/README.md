@@ -7,13 +7,11 @@ You can call HASH stdlib functions from within [behaviors](https://docs.hash.ai/
 
 ## Developing
 
-The repo is split between [JavaScript functions](https://github.com/hashintel/stdlib/tree/master/stdlib/ts) — written in TypeScript — and [Python functions](https://github.com/hashintel/stdlib/tree/master/stdlib/py).
+The repo is split between [JavaScript functions](https://github.com/hashintel/hash/tree/master/packages/engine/stdlib/stdlib/ts) — written in TypeScript — and [Python functions](https://github.com/hashintel/hash/tree/master/packages/engine/stdlib/stdlib/py).
 
 ### JavaScript
 
-To contribute to the JavaScript standard library, please install 
-[npm](https://www.npmjs.com/get-npm), and run `npm install` at the base directory of 
-this repo to get set up.
+To contribute to the JavaScript standard library, please install [npm](https://www.npmjs.com/get-npm), and run `npm install` at the base directory of this repo to get set up.
 
 Some useful commands:
 ```
