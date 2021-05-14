@@ -5,19 +5,19 @@
   "main": "index.ts",
   "scripts": {
     "test": "jest",
-    "build": "tsc -b stdlib/ts",
-    "lint": "eslint stdlib/ts/*.ts"
+    "build": "tsc -b src/ts",
+    "lint": "eslint src/ts/*.ts"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hashintel/stdlib.git"
+    "url": "git+https://github.com/hashintel/hash.git"
   },
   "author": "HASH",
   "license": "Apache 2.0",
   "bugs": {
-    "url": "https://github.com/hashintel/stdlib/issues"
+    "url": "https://github.com/hashintel/hash/issues"
   },
-  "homepage": "https://github.com/hashintel/stdlib#readme",
+  "homepage": "https://github.com/hashintel/hash/tree/master/packages/engine/stdlib",
   "dependencies": {
     "jstat": "1.9.4",
     "uuid": "8.3.2"
@@ -38,6 +38,6 @@
     "typescript": "4.2.3"
   },
   "workspaces": [
-    "stdlib/ts"
+    "src/ts"
   ]
 }
