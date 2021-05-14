@@ -1,6 +1,6 @@
 module.exports = {
   roots: [
-    "stdlib/ts"
+    "src/ts"
   ],
   testMatch: [
     "**/__tests__/**/*.+(ts|tsx|js)",
@@ -10,6 +10,6 @@ module.exports = {
     "^.+\\.(ts|tsx)$": "ts-jest"
   },
   testPathIgnorePatterns: [
-    "stdlib/ts/dist",
+    "src/ts/dist",
   ]
 }
