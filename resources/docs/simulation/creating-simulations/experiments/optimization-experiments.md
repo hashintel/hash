@@ -24,14 +24,30 @@ For example, in [Sugarscape](https://staging.hash.ai/@hash/sugarscape/stable), y
 
 Now use the experiment wizard to create a new experiment and fill in the options:
 
+![](../../.gitbook/assets/image%20%2860%29%20%281%29.png)
+
 * Select `optimization` as the type.
 * Use the metric name you previously defined as the metric.
 * Decide whether to `maximize` or `minimize` the objective.
-* Select the fields \([globals](../configuration/)\) that will be varied.
+* Select the fields \([globals](../configuration/)\) that will be varied and define their constraints.
 
-![](../../.gitbook/assets/image%20%2860%29%20%281%29.png)
+### Specifying Constraints
 
-You can save without running or save and run immediately in hCloud.
+For each field being varied, you must specify the valid values \(constraints\) for the optimization experiment. You can specify discrete values with a comma separated list, with or without spaces:
+
+* `true, false`
+* `1,2,3`
+* `"one", "two"`
+
+You can also specify ranges of values using `-` for fields which accept `numbers`.
+
+* `1-3`
+* `-3-0`
+* `-10 - -3`
+
+### Running an Optimization
+
+You can choose to automatically run your experiment in hCloud directly from the experiment wizard, or run it from the Experiments menu.
 
 {% hint style="warning" %}
 To run a simulation in hCloud, you must first set the [Behavior Keys](../behaviors/behavior-keys/) of your simulations behaviors.
