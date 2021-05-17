@@ -47,7 +47,7 @@ You can also specify ranges of values using `-` for fields which accept `numbers
 
 ### Running an Optimization
 
-You can choose to automatically run your experiment in hCloud directly from the experiment wizard, or run it from the Experiments menu.
+You can choose to run your experiment in hCloud directly upon creating it, or save your experiment to be run later from the **Experiments** dropdown in the menubar.
 
 {% hint style="warning" %}
 To run a simulation in hCloud, you must first set the [Behavior Keys](../behaviors/behavior-keys/) of your simulations behaviors.
