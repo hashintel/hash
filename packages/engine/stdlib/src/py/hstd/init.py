@@ -3,6 +3,7 @@ Initialization utility functions.
 """
 import math
 import random
+from copy import deepcopy
 from dataclasses import dataclass
 from typing import Optional, List, Union, Callable, Mapping
 
@@ -20,10 +21,10 @@ class Topology:
 
 
 def create_agent(template: AgentTemplate) -> AgentState:
-    if type(AgentTemplate) is AgentFunction:
+    if callable(template):
         return template()
     else:
-        return template
+        return deepcopy(template)
 
 
 def scatter(count: int, topology: Topology, template: AgentTemplate) -> List[AgentState]:
@@ -35,11 +36,11 @@ def scatter(count: int, topology: Topology, template: AgentTemplate) -> List[Age
     height = y_bounds[1] - y_bounds[0]
 
     def assign_random_position() -> AgentState:
-        x = random.uniform(width) + x_bounds[0]
-        y = random.uniform(height) + y_bounds[0]
+        x = random.uniform(0, width) + x_bounds[0]
+        y = random.uniform(0, height) + y_bounds[0]
 
         agent = create_agent(template)
-        agent["position"] = [x, y]
+        agent['position'] = [x, y]
 
         return agent
 

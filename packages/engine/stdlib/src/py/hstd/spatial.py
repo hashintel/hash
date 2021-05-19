@@ -13,7 +13,7 @@ from .agent import AgentState, AgentFieldError
 class Topology:
     x_bounds: List[float]
     y_bounds: List[float]
-    z_bounds: Optional[List[float]]
+    z_bounds: Optional[List[float]] = 0
 
 
 def manhattan_distance(p1: List[float], p2: List[float]) -> float:
