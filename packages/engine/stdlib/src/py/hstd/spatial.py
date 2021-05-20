@@ -16,29 +16,29 @@ class Topology:
     z_bounds: Optional[List[float]] = 0
 
 
-def manhattan_distance(p1: List[float], p2: List[float]) -> float:
+def manhattan_distance(p1: List[float], p2: List[float], z_axis: bool = True) -> float:
     dx = abs(p1[0] - p2[0])
     dy = abs(p1[1] - p2[1])
     dz = abs(p1[2] - p2[2])
-    return dx + dy + dz
+    return dx + dy + (dz if z_axis else 0)
 
 
-def euclidean_squared_distance(p1: List[float], p2: List[float]) -> float:
+def euclidean_squared_distance(p1: List[float], p2: List[float], z_axis: bool = True) -> float:
     dx = p1[0] - p2[0]
     dy = p1[1] - p2[1]
     dz = p1[2] - p2[2]
-    return dx * dx + dy * dy + dz * dz
+    return dx * dx + dy * dy + (dz * dz if z_axis else 0)
 
 
-def euclidean_distance(p1: List[float], p2: List[float]) -> float:
-    return math.sqrt(euclidean_squared_distance(p1, p2))
+def euclidean_distance(p1: List[float], p2: List[float], z_axis: bool = True) -> float:
+    return math.sqrt(euclidean_squared_distance(p1, p2, z_axis))
 
 
-def chebyshev_distance(p1: List[float], p2: List[float]) -> float:
+def chebyshev_distance(p1: List[float], p2: List[float], z_axis: bool = True) -> float:
     dx = abs(p1[0] - p2[0])
     dy = abs(p1[1] - p2[1])
     dz = abs(p1[2] - p2[2])
-    return max(dx, dy, dz)
+    return max(dx, dy, (dz if z_axis else 0))
 
 
 def distance_between(a: AgentState, b: AgentState, distance="euclidean") -> Optional[float]:
