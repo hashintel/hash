@@ -2,7 +2,6 @@ import {
   neighborsBehind, neighborsInFront, neighborsInRadius, neighborsOnPosition
 } from "./neighbor";
 
-import { chebyshev_distance } from "./spatial";
 
 /** Neighbor Function tests */
 const na = { position: [1, 1, 0], direction: [1, 0, 0] };
