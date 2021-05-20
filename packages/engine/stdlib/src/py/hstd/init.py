@@ -40,7 +40,7 @@ def scatter(count: int, topology: Topology, template: AgentTemplate) -> List[Age
         y = random.uniform(0, height) + y_bounds[0]
 
         agent = create_agent(template)
-        agent['position'] = [x, y]
+        agent["position"] = [x, y]
 
         return agent
 

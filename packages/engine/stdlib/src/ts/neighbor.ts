@@ -53,18 +53,18 @@ export function neighborsInRadius(
   if (!aPos) { throw posError; }
 
   const dFunc: { [key in Distance]: Function } = {
-    "manhattan": manhattan_distance,
-    "euclidean": euclidean_distance,
-    "euclidean_sq": euclidean_squared_distance,
-    "chebyshev": chebyshev_distance,
+    manhattan: manhattan_distance,
+    euclidean: euclidean_distance,
+    euclidean_sq: euclidean_squared_distance,
+    chebyshev: chebyshev_distance,
   };
 
   return neighbors.filter((neighbor) => {
     const nPos = neighbor.position;
     if (!nPos) { return false; }
 
-    const d = dFunc[distanceFunction](nPos, aPos, z_axis)
-    return (d <= max_radius) && (d >= min_radius)
+    const d = dFunc[distanceFunction](nPos, aPos, z_axis);
+    return (d <= max_radius) && (d >= min_radius);
   });
 }
 

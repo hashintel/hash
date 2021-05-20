@@ -2,7 +2,7 @@ import {
   neighborsBehind, neighborsInFront, neighborsInRadius, neighborsOnPosition
 } from "./neighbor";
 
-import { chebyshev_distance } from "./spatial"
+import { chebyshev_distance } from "./spatial";
 
 /** Neighbor Function tests */
 const na = { position: [1, 1, 0], direction: [1, 0, 0] };
@@ -27,7 +27,7 @@ test("find neighbors with same position", () => {
 });
 
 test("find neighbors within a radius of 3", () => {
-  expect(neighborsInRadius(ng, [na, nb, nc, nd, ne, nf, nh, ni], 3, 0, 'chebyshev')).toEqual([
+  expect(neighborsInRadius(ng, [na, nb, nc, nd, ne, nf, nh, ni], 3, 0, "chebyshev")).toEqual([
     { position: [6, 9, 0] },
     { position: [4, 9, 0] },
   ]);
@@ -39,7 +39,7 @@ test("find neighbors within a max radius of 4 and min radius of 3", () => {
   ).toEqual([ni]);
 
   expect(
-    neighborsInRadius(ng, [na, nb, nc, nd, nf, nh, ni, nj], 7, 3.5, 'euclidean', true)
+    neighborsInRadius(ng, [na, nb, nc, nd, nf, nh, ni, nj], 7, 3.5, "euclidean", true)
   ).toEqual([nb, nf, ni, nj]);
 });
 

@@ -8,7 +8,7 @@ export type Distance =
   "manhattan" |
   "euclidean_sq" |
   "chebyshev";
-  
+
 const { abs, pow, max, sqrt } = Math;
 
 export function manhattan_distance(a_pos: number[], b_pos: number[], z_axis: boolean = true) {

@@ -2,6 +2,7 @@ import pytest
 
 from .rand import set_seed, random
 
+
 def test_random():
     n = random()
     nn = random()
