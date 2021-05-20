@@ -36,3 +36,9 @@ Agents can be represented a huge variety of ways in HASH's 3D viewer, out of the
 
 It's possible to hide agents from the viewer. Simply, set "hidden" to true on the agent state.
 
+## Change the Background
+
+The 3D stage and grid color can be changed and set by clicking on the gear icon in the top right.
+
+![](../../.gitbook/assets/image%20%2868%29.png)
+
