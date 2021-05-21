@@ -2,7 +2,6 @@
 Neighbor utility functions.
 """
 from typing import List
-from functools import reduce
 
 from .spatial import distance_between
 from .agent import AgentFieldError, AgentState
@@ -13,7 +12,7 @@ def neighbors_on_position(agent: AgentState, neighbors: List[AgentState]) -> Lis
     Returns all `neighbors` whose position is identical to the `agent`.
     """
     if agent.position is None:
-        AgentFieldError(agent.agent_id, "position", "cannot be None")
+        raise AgentFieldError(agent.agent_id, "position", "cannot be None")
 
     return [n for n in neighbors if n.position == agent.position]
 
