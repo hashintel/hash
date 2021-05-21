@@ -2,7 +2,6 @@ import {
   neighborsBehind, neighborsInFront, neighborsInRadius, neighborsOnPosition
 } from "./neighbor";
 
-
 /** Neighbor Function tests */
 const na = { position: [1, 1, 0], direction: [1, 0, 0] };
 const nb = { position: [1, 2, 0], direction: [1, 1, 0] };

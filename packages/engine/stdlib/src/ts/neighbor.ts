@@ -1,6 +1,6 @@
 /** Neighbor Functions */
 import { PotentialAgent } from "./agent";
-import { manhattan_distance, euclidean_distance, euclidean_squared_distance, chebyshev_distance, Distance } from "./spatial";
+import { Distance, distanceBetween } from "./spatial";
 
 const posError = new Error("agent must have a position");
 const dirError = new Error("agent must have a direction");
@@ -39,6 +39,7 @@ export function neighborsOnPosition(
  * @param neighbors - context.neighbors() array, or an array of agents
  * @param max_radius - defaults to 1
  * @param min_radius - defaults to 0
+ * @param distanceFunction - defaults to "euclidean"
  * @param z_axis - defaults to false
  */
 export function neighborsInRadius(
@@ -52,18 +53,11 @@ export function neighborsInRadius(
   const aPos = agent.position;
   if (!aPos) { throw posError; }
 
-  const dFunc: { [key in Distance]: Function } = {
-    manhattan: manhattan_distance,
-    euclidean: euclidean_distance,
-    euclidean_sq: euclidean_squared_distance,
-    chebyshev: chebyshev_distance,
-  };
-
   return neighbors.filter((neighbor) => {
     const nPos = neighbor.position;
     if (!nPos) { return false; }
 
-    const d = dFunc[distanceFunction](nPos, aPos, z_axis);
+    const d = distanceBetween(neighbor, agent, distanceFunction, z_axis);
     return (d <= max_radius) && (d >= min_radius);
   });
 }

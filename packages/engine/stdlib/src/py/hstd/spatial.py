@@ -3,17 +3,10 @@ Spatial utility functions.
 """
 import math
 import random
-from dataclasses import dataclass
 from typing import Optional, List
 
 from .agent import AgentState, AgentFieldError
-
-
-@dataclass
-class Topology:
-    x_bounds: List[float]
-    y_bounds: List[float]
-    z_bounds: Optional[List[float]] = [0, 0]
+from .context import Topology
 
 
 def manhattan_distance(p1: List[float], p2: List[float], z_axis: bool = True) -> float:
@@ -41,7 +34,9 @@ def chebyshev_distance(p1: List[float], p2: List[float], z_axis: bool = True) ->
     return max(dx, dy, (dz if z_axis else 0))
 
 
-def distance_between(a: AgentState, b: AgentState, distance="euclidean") -> Optional[float]:
+def distance_between(
+    a: AgentState, b: AgentState, distance="euclidean", z_axis=True
+) -> Optional[float]:
     """
     Returns the specified distance between two agents. The parameter `distance` must be one
     of 'euclidean', 'euclidean_sq', 'manhattan' or 'chebyshev'.
@@ -52,13 +47,13 @@ def distance_between(a: AgentState, b: AgentState, distance="euclidean") -> Opti
         raise AgentFieldError(b.agent_id, "position", "cannot be None")
 
     if distance == "euclidean":
-        return euclidean_distance(a.position, b.position)
+        return euclidean_distance(a.position, b.position, z_axis)
     elif distance == "euclidean_sq":
-        return euclidean_squared_distance(a.position, b.position)
+        return euclidean_squared_distance(a.position, b.position, z_axis)
     elif distance == "manhattan":
-        return manhattan_distance(a.position, b.position)
+        return manhattan_distance(a.position, b.position, z_axis)
     elif distance == "chebyshev":
-        return chebyshev_distance(a.position, b.position)
+        return chebyshev_distance(a.position, b.position, z_axis)
 
     raise ValueError(
         "distance must be one of 'euclidean', 'euclidean_sq', 'manhattan' or 'chebyshev'"

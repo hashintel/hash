@@ -50,31 +50,28 @@ export function chebyshev_distance(a_pos: number[], b_pos: number[], z_axis: boo
 export function distanceBetween(
   agentA: PotentialAgent,
   agentB: PotentialAgent,
-  distance: Distance = "euclidean"
+  distance: Distance = "euclidean",
+  zAxis: boolean = true
 ) {
-  type IdFuncs = {
-    // eslint-disable-next-line no-unused-vars
-    [index in Distance]: (a_pos: number[], b_pos: number[]) => number;
-  };
-
-  const dFuncs: IdFuncs = {
-    manhattan: manhattan_distance,
-    euclidean: euclidean_distance,
-    euclidean_sq: euclidean_squared_distance,
-    chebyshev: chebyshev_distance,
-  };
-
   const aPos = agentA.position;
   const bPos = agentB.position;
 
   if (!aPos || !bPos) {
     throw posError;
   }
-  if (!dFuncs[distance]) {
-    throw new Error("distance must be one of 'euclidean', 'manhattan', 'euclidean_sq' or 'chebyshev'");
-  }
 
-  return dFuncs[distance](aPos, bPos);
+  switch (distance) {
+    case "manhattan":
+      return manhattan_distance(aPos, bPos, zAxis);
+    case "euclidean":
+      return euclidean_distance(aPos, bPos, zAxis);
+    case "euclidean_sq":
+      return euclidean_squared_distance(aPos, bPos, zAxis);
+    case "chebyshev":
+      return chebyshev_distance(aPos, bPos, zAxis);
+    default:
+      throw new Error("distance must be one of 'euclidean', 'manhattan', 'euclidean_sq' or 'chebyshev'");
+  }
 }
 
 /**

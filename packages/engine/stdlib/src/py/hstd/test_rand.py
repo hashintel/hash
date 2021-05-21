@@ -1,3 +1,4 @@
+# type: ignore
 import pytest
 
 from .rand import set_seed, random

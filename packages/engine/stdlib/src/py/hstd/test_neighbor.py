@@ -1,5 +1,3 @@
-import pytest
-
 from .agent import AgentState
 from .neighbor import (
     neighbors_on_position,
