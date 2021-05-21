@@ -1,6 +1,6 @@
 # Init
 
-When using `init.js` to initialize your simulation, these standard library functions can help you easily initialize agents in predefined patterns.
+When using `init.js` or `init.py` to initialize your simulation, these standard library functions can help you easily initialize agents in predefined patterns.
 
 ## scatter\(count, topology, template\)
 
