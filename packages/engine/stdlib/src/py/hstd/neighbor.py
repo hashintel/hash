@@ -12,7 +12,7 @@ def neighbors_on_position(agent: AgentState, neighbors: List[AgentState]) -> Lis
     """
     Returns all `neighbors` whose position is identical to the `agent`.
     """
-    if not agent["position"]:
+    if agent.position is None:
         AgentFieldError(agent.agent_id, "position", "cannot be None")
 
     return [n for n in neighbors if n.position == agent.position]
@@ -39,11 +39,11 @@ def neighbors_in_radius(
         z_axis: include z-axis in distance calculations
     """
 
-    if not agent["position"]:
+    if agent.position is None:
         raise AgentFieldError(agent.agent_id, "position", "cannot be None")
 
     def in_radius(neighbor: AgentState) -> bool:
-        if not neighbor["position"]:
+        if neighbor.position is None:
             return False
 
         d = distance_between(neighbor, agent, distance_function, z_axis)
@@ -102,9 +102,9 @@ def neighbors_in_front(
     check that the neighbor lies along the agent's direction vector.
     """
 
-    if not agent["position"]:
+    if agent.position is None:
         raise AgentFieldError(agent.agent_id, "position", "cannot be None")
-    if not agent["direction"]:
+    if agent.direction is None:
         raise AgentFieldError(agent.agent_id, "direction", "cannot be None")
 
     if colinear:
@@ -121,9 +121,9 @@ def neighbors_behind(
     check that the neighbor lies along the agent's direction vector.
     """
 
-    if not agent["position"]:
+    if agent.position is None:
         raise AgentFieldError(agent.agent_id, "position", "cannot be None")
-    if not agent["direction"]:
+    if agent.direction is None:
         raise AgentFieldError(agent.agent_id, "direction", "cannot be None")
 
     if colinear:

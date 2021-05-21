@@ -9,6 +9,7 @@ from typing import Dict, List, Union, Callable, Mapping
 from .agent import AgentState
 from .context import Topology
 
+# AgentTemplate can be an AgentState, or function which returns an AgentState
 AgentFunction = Callable[[], AgentState]
 AgentTemplate = Union[AgentState, AgentFunction]
 
