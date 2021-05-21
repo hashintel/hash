@@ -1,3 +1,4 @@
+# type: ignore
 import pytest
 
 from .agent import AgentState
@@ -36,8 +37,10 @@ def test_chebyshev_distance_between_tests():
 
 
 def test_normalize_direction():
-    assert normalize_vector(a.direction) == [0.7071067811865475, 0.7071067811865475]
-    assert normalize_vector(b.direction) == [0.31622776601683794, 0.9486832980505138]
+    if a.direction:
+        assert normalize_vector(a.direction) == [0.7071067811865475, 0.7071067811865475]
+    if b.direction:
+        assert normalize_vector(b.direction) == [0.31622776601683794, 0.9486832980505138]
 
 
 def test_random_position():

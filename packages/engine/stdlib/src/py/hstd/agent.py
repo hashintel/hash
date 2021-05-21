@@ -13,8 +13,15 @@ def generate_agent_id():
 @dataclass
 class AgentState:
     agent_id: str = field(default_factory=generate_agent_id)
+    agent_name: Optional[str] = None
     position: Optional[List[float]] = None
     direction: Optional[List[float]] = None
+
+    def __setitem__(self, key, value):
+        setattr(self, key, value)
+
+    def __getitem__(self, key):
+        return getattr(self, key)
 
 
 class AgentFieldError(Exception):

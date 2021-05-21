@@ -9,6 +9,36 @@ export type Distance =
   "euclidean_sq" |
   "chebyshev";
 
+const { abs, pow, max, sqrt } = Math;
+
+export function manhattan_distance(a_pos: number[], b_pos: number[], z_axis: boolean = true) {
+  const dx = abs(a_pos[0] - b_pos[0]);
+  const dy = abs(a_pos[1] - b_pos[1]);
+  const dz = abs(a_pos[2] - b_pos[2]);
+
+  return dx + dy + (z_axis ? dz : 0);
+}
+
+export function euclidean_squared_distance(a_pos: number[], b_pos: number[], z_axis: boolean = true) {
+  const dx = pow(a_pos[0] - b_pos[0], 2);
+  const dy = pow(a_pos[1] - b_pos[1], 2);
+  const dz = pow(a_pos[2] - b_pos[2], 2);
+
+  return dx + dy + (z_axis ? dz : 0);
+}
+
+export function euclidean_distance(a_pos: number[], b_pos: number[], z_axis: boolean = true) {
+  return sqrt(euclidean_squared_distance(a_pos, b_pos, z_axis));
+}
+
+export function chebyshev_distance(a_pos: number[], b_pos: number[], z_axis: boolean = true) {
+  const dx = abs(a_pos[0] - b_pos[0]);
+  const dy = abs(a_pos[1] - b_pos[1]);
+  const dz = abs(a_pos[2] - b_pos[2]);
+
+  return max(dx, dy, (z_axis ? dz : 0));
+}
+
 /**
  * Returns the specified distance between two agents.
  *  distance is one of the four distance functions supported by HASH,
@@ -20,49 +50,28 @@ export type Distance =
 export function distanceBetween(
   agentA: PotentialAgent,
   agentB: PotentialAgent,
-  distance: Distance = "euclidean"
+  distance: Distance = "euclidean",
+  zAxis: boolean = true
 ) {
-  type IdFuncs = {
-    // eslint-disable-next-line no-unused-vars
-    [index in Distance]: (a_pos: number[], b_pos: number[]) => number;
-  };
-
-  const { abs, pow, max, sqrt } = Math;
-
-  const dFuncs: IdFuncs = {
-    manhattan: (a_pos: number[], b_pos: number[]) =>
-      abs(a_pos[0] - b_pos[0]) +
-      abs(a_pos[1] - b_pos[1]) +
-      abs(a_pos[2] - b_pos[2]),
-    euclidean: (a_pos: number[], b_pos: number[]) =>
-      sqrt(
-        pow(a_pos[0] - b_pos[0], 2) +
-          pow(a_pos[1] - b_pos[1], 2) +
-          pow(a_pos[2] - b_pos[2], 2)
-      ),
-    euclidean_sq: (a_pos: number[], b_pos: number[]) =>
-      pow(a_pos[0] - b_pos[0], 2) +
-      pow(a_pos[1] - b_pos[1], 2) +
-      pow(a_pos[2] - b_pos[2], 2),
-    chebyshev: (a_pos: number[], b_pos: number[]) =>
-      max(
-        abs(a_pos[0] - b_pos[0]),
-        abs(a_pos[1] - b_pos[1]),
-        abs(a_pos[2] - b_pos[2])
-      ),
-  };
-
   const aPos = agentA.position;
   const bPos = agentB.position;
 
   if (!aPos || !bPos) {
     throw posError;
   }
-  if (!dFuncs[distance]) {
-    throw new Error("distance must be one of 'euclidean', 'manhattan', 'euclidean_sq' or 'chebyshev'");
-  }
 
-  return dFuncs[distance](aPos, bPos);
+  switch (distance) {
+    case "manhattan":
+      return manhattan_distance(aPos, bPos, zAxis);
+    case "euclidean":
+      return euclidean_distance(aPos, bPos, zAxis);
+    case "euclidean_sq":
+      return euclidean_squared_distance(aPos, bPos, zAxis);
+    case "chebyshev":
+      return chebyshev_distance(aPos, bPos, zAxis);
+    default:
+      throw new Error("distance must be one of 'euclidean', 'manhattan', 'euclidean_sq' or 'chebyshev'");
+  }
 }
 
 /**

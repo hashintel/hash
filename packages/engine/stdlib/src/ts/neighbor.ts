@@ -1,5 +1,6 @@
 /** Neighbor Functions */
 import { PotentialAgent } from "./agent";
+import { Distance, distanceBetween } from "./spatial";
 
 const posError = new Error("agent must have a position");
 const dirError = new Error("agent must have a direction");
@@ -38,39 +39,26 @@ export function neighborsOnPosition(
  * @param neighbors - context.neighbors() array, or an array of agents
  * @param max_radius - defaults to 1
  * @param min_radius - defaults to 0
+ * @param distanceFunction - defaults to "euclidean"
  * @param z_axis - defaults to false
  */
 export function neighborsInRadius(
   agent: PotentialAgent,
   neighbors: PotentialAgent[],
-  max_radius = 1,
-  min_radius = 0,
-  z_axis = false
+  max_radius: number = 1,
+  min_radius: number = 0,
+  distanceFunction: Distance = "euclidean",
+  z_axis: boolean = false
 ) {
+  const aPos = agent.position;
+  if (!aPos) { throw posError; }
+
   return neighbors.filter((neighbor) => {
-    const aPos = agent.position;
     const nPos = neighbor.position;
+    if (!nPos) { return false; }
 
-    if (!aPos || !nPos) {
-      throw posError;
-    }
-
-    const notZ: number = z_axis ? 0 : 1;
-
-    for (let i = 0; i < aPos.length - 1 * notZ; i++) {
-      const max = [aPos[i] + max_radius, aPos[i] - max_radius];
-      const min = [aPos[i] + min_radius, aPos[i] - min_radius];
-      if (
-        !(
-          (nPos[i] <= max[0] && nPos[i] >= min[0]) ||
-          (nPos[i] >= max[1] && nPos[i] <= min[1])
-        )
-      ) {
-        return false;
-      }
-    }
-
-    return true;
+    const d = distanceBetween(neighbor, agent, distanceFunction, z_axis);
+    return (d <= max_radius) && (d >= min_radius);
   });
 }
 
@@ -85,7 +73,7 @@ export function neighborsInRadius(
 export function neighborsInFront(
   agent: PotentialAgent,
   neighbors: PotentialAgent[],
-  colinear = false
+  colinear: boolean = false
 ) {
   return neighbors.filter((neighbor) => {
     const aPos = agent.position;

@@ -25,7 +25,7 @@ test("find neighbors with same position", () => {
 });
 
 test("find neighbors within a radius of 3", () => {
-  expect(neighborsInRadius(ng, [na, nb, nc, nd, ne, nf, nh, ni], 3)).toEqual([
+  expect(neighborsInRadius(ng, [na, nb, nc, nd, ne, nf, nh, ni], 3, 0, "chebyshev")).toEqual([
     { position: [6, 9, 0] },
     { position: [4, 9, 0] },
   ]);
@@ -33,12 +33,12 @@ test("find neighbors within a radius of 3", () => {
 
 test("find neighbors within a max radius of 4 and min radius of 3", () => {
   expect(
-    neighborsInRadius(ng, [na, nb, nc, nd, nf, nh, ni, nj], 4, 3)
-  ).toEqual([{ position: [3, 2, 0] }, { position: [3, 2, 2] }]);
+    neighborsInRadius(ng, [na, nb, nc, nd, nf, nh, ni, nj], 4, 3.5)
+  ).toEqual([ni]);
 
   expect(
-    neighborsInRadius(ng, [na, nb, nc, nd, nf, nh, ni, nj], 4, 3, true)
-  ).toEqual([{ position: [3, 2, 2] }]);
+    neighborsInRadius(ng, [na, nb, nc, nd, nf, nh, ni, nj], 7, 3.5, "euclidean", true)
+  ).toEqual([nb, nf, ni, nj]);
 });
 
 test("find neighbors in front of agent tests", () => {
