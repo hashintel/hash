@@ -6,6 +6,8 @@ HASH provides a set of useful functions to help simplify simulation construction
 
 You can contribute to the HASH standard library by submitting pull requests to our [open source repo](https://github.com/hashintel/hash/tree/master/packages/engine/stdlib).
 
+{% embed url="https://youtu.be/0pABnjlWjPY" caption="Using HASH Standard Library Functions" %}
+
 ### Types of functions in the HASH Standard Library
 
 The HASH Standard Library contains the following types of functions:
