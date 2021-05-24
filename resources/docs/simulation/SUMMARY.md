@@ -83,6 +83,7 @@
 
 * [Hello, HASH!](tutorials/hello-hash.md)
 * [Building Process Models](tutorials/building-process-models.md)
+* [Create a Simulation Dashboard](tutorials/create-a-simulation-dashboard.md)
 * [Extending an Epidemic Model](tutorials/extending-an-epidemic-model/README.md)
   * [Add heterogeneity](tutorials/extending-an-epidemic-model/add-heterogeneity.md)
   * [Create a Hospital](tutorials/extending-an-epidemic-model/create-a-hospital.md)
