@@ -232,7 +232,7 @@ window.addEventListener("message", eventHandler)
 ```
 {% endcode %}
 
-Now we've got all the pieces in place, we just need to start requesting the data from HASH. We're going to add a simple polling function to get the data - for simplicity we'll use `setTimeout()`, but there are a lot of different ways to poll a website.
+Now we've got all the pieces in place, we just need to start requesting the data from HASH. We're going to add a simple polling function to get the data - for simplicity we'll use `setTimeout()`.
 
 {% code title="index.html" %}
 ```markup
@@ -247,10 +247,11 @@ function redrawHeatMap() {
 function poll() { 
   getState(); 
   redrawHeatMap();
-  setTimeout(poll, 5000);
+  //poll every second
+  setTimeout(poll, 1000);
 }
   
-setTimeout(poll, 5000);
+setTimeout(poll, 1000);
 </script>
 ```
 {% endcode %}
