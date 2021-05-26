@@ -42,6 +42,7 @@ const init = (context) => {
   "topology": {
     "x_bounds": [0, 20],
     "y_bounds": [-10, 15]
+  }
 }
 ```
 {% endtab %}
@@ -115,6 +116,7 @@ const init = (context) => {
   "topology": {
     "x_bounds": [0, 20],
     "y_bounds": [-10, 15]
+  }
 }
 ```
 {% endtab %}
