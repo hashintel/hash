@@ -2,12 +2,8 @@ import { gql } from "apollo-server-express";
 
 export const blockTypedef = gql`
   type Block {
-    entity: ID!
+    entity: Entity!
     entityType: String!
-    component: ID!
-  }
-
-  type RichEditorBlock {
-    contents: JSONObject!
+    componentId: ID!
   }
 `;

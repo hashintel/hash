@@ -3,6 +3,7 @@ import { gql } from "apollo-server-express";
 import { blockTypedef } from "./block.typedef";
 import { entityTypedef } from "./entity.typedef";
 import { pageTypedef } from "./page.typedef";
+import { textTypedef } from "./text.typedef";
 import { userTypedef } from "./user.typedef";
 
 const baseSchema = gql`
@@ -31,5 +32,6 @@ export const schema = [
   blockTypedef,
   entityTypedef,
   pageTypedef,
+  textTypedef,
   userTypedef,
 ];

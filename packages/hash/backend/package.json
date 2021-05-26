@@ -4,7 +4,6 @@
   "private": true,
   "version": "0.1.0",
   "description": "API and data store for HASH.dev",
-
   "repository": {
     "url": "https://github.com/hashintel/dev/packages/hash/backend",
     "directory": "packages/hash/backend"
@@ -34,6 +33,7 @@
   "devDependencies": {
     "@graphql-codegen/cli": "1.21.4",
     "@graphql-codegen/typescript": "1.22.0",
+    "@graphql-codegen/typescript-resolvers": "1.19.2",
     "@typescript-eslint/eslint-plugin": "4.25.0",
     "@typescript-eslint/parser": "4.25.0",
     "eslint": "7.27.0",

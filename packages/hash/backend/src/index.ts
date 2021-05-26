@@ -6,10 +6,13 @@ import { createApolloServer } from "./graphql/createApolloServer";
 
 // Configure the Express server
 const app = express();
-const PORT = process.env.PORT ?? 5000;
+const PORT = process.env.PORT ?? 5001;
 
 // Set sensible default security headers: https://www.npmjs.com/package/helmet
-app.use(helmet());
+// Temporarily disable contentSecurityPolicy for the GraphQL playground
+// Longer-term we can set rules which allow only the playground to load
+// Potentially only in development mode
+app.use(helmet({ contentSecurityPolicy: false }));
 
 // Parse request body as JSON - allow higher than the default 100kb limit
 app.use(json({ limit: "16mb" }));
