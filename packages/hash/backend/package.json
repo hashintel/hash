@@ -14,7 +14,7 @@
     "build": "echo 'Compiling Typescript' && tsc",
     "start": "export NODE_ENV=production && node dist/index.js",
     "lint": "eslint . --ext .ts",
-    "codegen": "graphql-codegen --config codegen.yml",
+    "codegen": "graphql-codegen --config codegen.yml # backend",
     "fmt": "find ./src/*.ts ./src/**/*.ts ./src/**/**/*.ts ./src/**/**/**/*.ts | xargs prettier --write",
     "ts-node": "node --max-old-space-size=2048 node_modules/.bin/ts-node --files --project tsconfig.json"
   },
@@ -22,6 +22,7 @@
     "codegen"
   ],
   "dependencies": {
+    "@graphql-codegen/introspection": "1.18.2",
     "apollo-server-express": "2.24.1",
     "body-parser": "1.19.0",
     "express": "4.17.1",

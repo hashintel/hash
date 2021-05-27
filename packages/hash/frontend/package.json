@@ -7,14 +7,21 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "codegen": "graphql-codegen --config codegen.yml # frontend"
   },
   "dependencies": {
+    "@apollo/client": "3.3.19",
+    "graphql": "15.5.0",
     "next": "10.2.3",
     "react": "17.0.2",
     "react-dom": "17.0.2"
   },
   "devDependencies": {
+    "@graphql-codegen/cli": "1.21.5",
+    "@graphql-codegen/fragment-matcher": "2.0.1",
+    "@graphql-codegen/typescript": "1.22.1",
+    "@graphql-codegen/typescript-operations": "1.18.0",
     "@types/react": "17.0.7"
   }
 }

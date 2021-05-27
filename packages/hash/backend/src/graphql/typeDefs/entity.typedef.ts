@@ -1,45 +1,86 @@
 import { gql } from "apollo-server-express";
 
-export const ROOT_ENTITY_FIELDS = `
-  id: ID!
-  """The fixed id for a namespace"""
-  namespaceId: ID!
-  """The namespace slug / account name (may change)"""
-  namespace: String!
-
-  createdAt: Date!
-  createdBy: User!
-  updatedAt: Date!
-  visibility: Visibility!
-
-  """The type of entity"""
-  type: String!
-`;
-
 export const entityTypedef = gql`  
   interface Entity {
-    # These fields are not interpolated because the code generator
-    # doesn't handle interpolation as the only entry in a definition
+    # These fields are repeated everywhere they're used because
+    # (a) GQL requires it - https://github.com/graphql/graphql-spec/issues/533
+    # (b) string interpolation breaks the code generator's introspection
+    # 
+    # Could maybe use a custom schema loader to parse it ourselves:
+    # https://www.graphql-code-generator.com/docs/getting-started/schema-field#custom-schema-loader
+    #
+    # For now, _COPY ANY CHANGES_ from here to any type that 'implements Entity'
+    """
+    The id of the entity
+    """
     id: ID!
-    """The fixed id for a namespace"""
+    """
+    The FIXED id for a namespace
+    """
     namespaceId: ID!
-    """The namespace slug / account name (may change)"""
+    """
+    The CHANGEABLE name/slug of the namespace (e.g. username). 
+    """
     namespace: String!
-
+    """
+    The date the entity was created
+    """
     createdAt: Date!
+    """
+    The user who created the entity
+    """
     createdBy: User!
+    """
+    The date the entity was last updated
+    """
     updatedAt: Date!
+    """
+    The visibility level of the entity
+    """
     visibility: Visibility!
-
-    """The type of entity"""
+    """
+    The type of entity
+    """
     type: String!
   }
 
   type UnknownEntity implements Entity {
     properties: JSONObject!
-    
-    # Interpolation can't be the first entry for syntax highlighting to work
-    ${ROOT_ENTITY_FIELDS}
+
+    # ENTITY INTERFACE FIELDS BEGIN #
+    """
+    The id of the entity
+    """
+    id: ID!
+    """
+    The FIXED id for a namespace
+    """
+    namespaceId: ID!
+    """
+    The CHANGEABLE name/slug of the namespace (e.g. username). 
+    """
+    namespace: String!
+    """
+    The date the entity was created
+    """
+    createdAt: Date!
+    """
+    The user who created the entity
+    """
+    createdBy: User!
+    """
+    The date the entity was last updated
+    """
+    updatedAt: Date!
+    """
+    The visibility level of the entity
+    """
+    visibility: Visibility!
+    """
+    The type of entity
+    """
+    type: String!
+    # ENTITY INTERFACE FIELDS END #
   }
 
   enum Visibility {
@@ -72,6 +113,39 @@ export const entityTypedef = gql`
     """
     properties: JSONObject!
 
-    ${ROOT_ENTITY_FIELDS}
+    # ENTITY INTERFACE FIELDS BEGIN #
+    """
+    The id of the entity
+    """
+    id: ID!
+    """
+    The FIXED id for a namespace
+    """
+    namespaceId: ID!
+    """
+    The CHANGEABLE name/slug of the namespace (e.g. username). 
+    """
+    namespace: String!
+    """
+    The date the entity was created
+    """
+    createdAt: Date!
+    """
+    The user who created the entity
+    """
+    createdBy: User!
+    """
+    The date the entity was last updated
+    """
+    updatedAt: Date!
+    """
+    The visibility level of the entity
+    """
+    visibility: Visibility!
+    """
+    The type of entity
+    """
+    type: String!
+    # ENTITY INTERFACE FIELDS END #
   }
 `;
