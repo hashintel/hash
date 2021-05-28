@@ -3,7 +3,7 @@
 Block component starter kit. When built with `yarn build`:
 - Bundles the component without React
 - Generates a JSON schema for AppProps (dist/schema.json), representing the interface with the block
-- Resulting `main.js` can be loaded into an embedding application at runtime using https://github.com/Paciolan/remote-component - although this appears to depend on defining files in the embedding application, so we need to build a different solution
+- Resulting `main.js` can be loaded into an embedding application at runtime using https://github.com/Paciolan/remote-component - although this appears to depend on defining files in the embedding application, so we need to build a different solution.
 
 Adapted from https://github.com/Paciolan/remote-component-starter
 
