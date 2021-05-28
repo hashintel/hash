@@ -11,6 +11,8 @@
     "serve:hash-backend": "yarn ws:hash-backend dev",
 
     "ws:hash-frontend": "yarn workspace @hashintel/hash-frontend",
-    "serve:hash-frontend": "yarn ws:hash-frontend dev"
+    "serve:hash-frontend": "yarn ws:hash-frontend dev",
+
+    "new:block": "node packages/hash/blocks/create-block"
   }
 }

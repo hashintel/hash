@@ -1,16 +1,17 @@
 {
   "name": "@hashintel/block-template",
   "version": "0.1.0",
-  "description": "Block Component Template - adapted from @paciolan/remote-component-starter",
+  "description": "Block Component template",
   "private": true,
   "browser": "dist/main.js",
   "author": "hashintel",
   "license": "MIT",
   "scripts": {
-    "build": "npm run clean && cross-env NODE_ENV=production webpack --mode production",
-    "build:dev": "npm run clean && cross-env NODE_ENV=development webpack --mode development",
+    "build": "yarn clean && cross-env NODE_ENV=production webpack --mode production && yarn schema",
+    "build:dev": "yarn clean && cross-env NODE_ENV=development webpack --mode development",
+    "schema": "typescript-json-schema tsconfig.json AppProps --required true --out dist/block-schema.json",
     "webpack-dev-server": "cross-env NODE_ENV=development webpack-dev-server -d --port 9090 --config webpack-dev-server.config.js --open",
-    "start": "concurrently -n webpack,webpack-dev-server -c green,cyan \"npm run build:dev -- --watch --verbose\" \"npm run webpack-dev-server\"",
+    "start": "concurrently -n webpack,webpack-dev-server -c green,cyan \"yarn build:dev -- --watch --verbose\" \"yarn webpack-dev-server\"",
     "clean": "rimraf dist"
   },
   "dependencies": {
@@ -35,6 +36,7 @@
     "react-dom": "^16.14.0",
     "regenerator-runtime": "^0.13.7",
     "rimraf": "^3.0.2",
+    "typescript-json-schema": "0.50.1",
     "webpack": "^4.44.2",
     "webpack-assets-manifest": "^3.1.1",
     "webpack-bundle-analyzer": "^3.9.0",

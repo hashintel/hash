@@ -22,17 +22,16 @@
     "codegen"
   ],
   "dependencies": {
-    "@graphql-codegen/introspection": "1.18.2",
     "apollo-server-express": "2.24.1",
     "body-parser": "1.19.0",
     "express": "4.17.1",
     "graphql": "15.5.0",
     "graphql-type-json": "0.3.2",
-    "helmet": "4.6.0",
-    "typescript-json-schema": "0.50.0"
+    "helmet": "4.6.0"
   },
   "devDependencies": {
     "@graphql-codegen/cli": "1.21.4",
+    "@graphql-codegen/introspection": "1.18.2",
     "@graphql-codegen/typescript": "1.22.0",
     "@graphql-codegen/typescript-resolvers": "1.19.2",
     "@typescript-eslint/eslint-plugin": "4.25.0",
