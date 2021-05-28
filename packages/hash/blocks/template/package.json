@@ -11,8 +11,7 @@
     "build:dev": "npm run clean && cross-env NODE_ENV=development webpack --mode development",
     "webpack-dev-server": "cross-env NODE_ENV=development webpack-dev-server -d --port 9090 --config webpack-dev-server.config.js --open",
     "start": "concurrently -n webpack,webpack-dev-server -c green,cyan \"npm run build:dev -- --watch --verbose\" \"npm run webpack-dev-server\"",
-    "clean": "rimraf dist",
-    "lint": "eslint ."
+    "clean": "rimraf dist"
   },
   "dependencies": {
     "react": "^16.14.0"
@@ -24,17 +23,14 @@
     "@babel/plugin-transform-runtime": "^7.12.10",
     "@babel/preset-env": "^7.12.10",
     "@babel/preset-react": "^7.12.10",
+    "@babel/preset-typescript": "7.13.0",
     "@babel/runtime": "^7.12.5",
     "@paciolan/remote-component": "^2.10.2",
-    "babel-eslint": "^10.1.0",
     "babel-loader": "^8.2.2",
-    "babel-plugin-transform-react-remove-prop-types": "^0.4.24",
     "concurrently": "^5.3.0",
     "core-js": "^2.6.12",
     "cross-env": "^7.0.3",
-    "git-cz": "^4.7.6",
     "html-webpack-plugin": "^4.5.0",
-    "husky": "^4.3.6",
     "prettier": "^2.2.1",
     "react-dom": "^16.14.0",
     "regenerator-runtime": "^0.13.7",

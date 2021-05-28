@@ -31,6 +31,14 @@ module.exports = {
   resolve: {
     alias: {
       "remote-component.config.js": path.resolve("./remote-component.config.js")
-    }
+    },
+    extensions: [
+      ".ts", // Add typescript support
+      ".tsx", // Add typescript + react support
+      ".js", // Preserving webpack default
+      ".jsx", // Preserving webpack default
+      ".json", // Preserving webpack default
+      ".css", // Preserving webpack default
+    ],
   }
 };

@@ -22,7 +22,7 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /\.m?js$/,
+        test: /\.(t|j)sx?$/,
         exclude: /(node_modules|bower_components)/,
         use: {
           loader: "babel-loader"
@@ -33,6 +33,14 @@ module.exports = {
   resolve: {
     alias: {
       "remote-component.config.js": path.resolve("./remote-component.config.js")
-    }
+    },
+    extensions: [
+      ".ts", // Add typescript support
+      ".tsx", // Add typescript + react support
+      ".js", // Preserving webpack default
+      ".jsx", // Preserving webpack default
+      ".json", // Preserving webpack default
+      ".css", // Preserving webpack default
+    ],
   }
 };

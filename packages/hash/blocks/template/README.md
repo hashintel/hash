@@ -1,7 +1,5 @@
 # Block Component Starter Kit
 
-![Starter Kit](https://raw.githubusercontent.com/Paciolan/remote-component-starter/master/media/icon-small.png)
-
 Adapted from https://github.com/Paciolan/remote-component-starter
 
 ## Getting Started
@@ -75,18 +73,14 @@ const url =
 
 ## External Dependencies
 
-The Remote Component is self contained with all of it's dependencies bundled with webpack. Any dependencies that will be provided by the app should be marked as `external` in the `webpack.config.js`.
+The Block Component is self contained with all of its dependencies bundled with webpack. Any dependencies that will be provided by the embedding app should be marked as `external` in the `webpack.config.js`.
 
-In this example, `react` and `prop-types` are added to `externals`. They will not be included in the bundle. The web application is expected to provide these dependencies.
+In this example, `react` is added to `externals`. They will not be included in the bundle. The embedding application is expected to provide these dependencies.
 
 ```javascript
 module.exports = {
-  output: {
-    libraryTarget: "commonjs"
-  },
   externals: {
     react: "react",
-    "prop-types": "prop-types"
   }
 };
 ```

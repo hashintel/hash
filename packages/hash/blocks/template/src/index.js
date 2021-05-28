@@ -1,5 +1,5 @@
 /**
- * Entrypoint of the Remote Component.
+ * Entrypoint of the Block Component.
  */
 import { App } from "./App";
 
