@@ -2,7 +2,7 @@
 
 hCore provides a messaging protocol API for embedded instances of hCore. You can use the messaging API to edit and set a simulation files and to read the state of a simulation.
 
-All messages are based around the web protocol API for messaging between iframes. 
+All hCore messages use the [postMessage technique for messaging between iFrames](https://developer.mozilla.org/en-US/docs/Web/API/Window/postMessage). 
 
 ```javascript
 //example
