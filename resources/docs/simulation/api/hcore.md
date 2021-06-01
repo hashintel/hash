@@ -1,4 +1,4 @@
-# hCore
+# hCore Message API
 
 hCore provides a messaging protocol API for embedded instances of hCore. You can use the messaging API to edit and set a simulation files and to read the state of a simulation.
 

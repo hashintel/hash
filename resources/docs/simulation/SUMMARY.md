@@ -100,7 +100,7 @@
 
 ## API
 
-* [hCore](api/hcore.md)
+* [hCore Message API](api/hcore.md)
 * [Register for Access](api/register-for-access.md)
 
 ## Extra
