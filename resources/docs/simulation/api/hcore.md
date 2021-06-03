@@ -1,6 +1,6 @@
 # hCore Message API
 
-hCore provides a messaging protocol API for embedded instances of hCore. You can use the messaging API to edit and set a simulation files and to read the state of a simulation. We'd love your [feedback](https://hash.ai/contact) on this feature.
+hCore provides a messaging API for embedded instances of hCore. You can use the messaging API to edit and set a simulation files and to read the state of a simulation. We'd love your [feedback](https://hash.ai/contact) on this feature.
 
 {% hint style="info" %}
 See the hCore Messaging API in action in the [Create a Simulation Dashboard tutorial](../tutorials/create-a-simulation-dashboard.md).
