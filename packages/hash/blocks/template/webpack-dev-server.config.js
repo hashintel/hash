@@ -1,5 +1,4 @@
 const HtmlWebpackPlugin = require("html-webpack-plugin");
-const path = require("path");
 const webpack = require("webpack");
 const config = require("./webpack.config");
 
@@ -29,9 +28,6 @@ module.exports = {
     }
   },
   resolve: {
-    alias: {
-      "remote-component.config.js": path.resolve("./remote-component.config.js")
-    },
     extensions: [
       ".ts", // Add typescript support
       ".tsx", // Add typescript + react support

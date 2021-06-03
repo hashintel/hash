@@ -7,12 +7,8 @@
 const webpack = require("webpack");
 const WebpackAssetsManifest = require("webpack-assets-manifest");
 const { BundleAnalyzerPlugin } = require("webpack-bundle-analyzer");
-const remoteComponentConfig = require("./remote-component.config").resolve;
 
-const externals = Object.keys(remoteComponentConfig).reduce(
-  (obj, key) => ({ ...obj, [key]: key }),
-  {}
-);
+const { StatsPlugin } = require("./webpack-block-meta-plugin");
 
 module.exports = {
   plugins: [
@@ -24,17 +20,18 @@ module.exports = {
       openAnalyzer: false,
       reportFilename: "webpack-bundle-analyzer-report.html"
     }),
-    new WebpackAssetsManifest()
+    new WebpackAssetsManifest(),
+    new StatsPlugin(),
   ],
   entry: {
-    main: "./src/index.js"
+    main: "./src/index.ts"
   },
   output: {
-    libraryTarget: "commonjs"
+    libraryTarget: "commonjs",
+    filename: "main.[contenthash].js"
   },
   externals: {
-    ...externals,
-    "remote-component.config.js": "remote-component.config.js"
+    react: "react"
   },
   module: {
     rules: [

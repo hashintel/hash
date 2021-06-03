@@ -1,31 +1,48 @@
+
+
 # Block Component Starter Kit
 
-Block component starter kit. When built with `yarn build`:
-- Bundles the component without React
-- Generates a JSON schema for AppProps (dist/schema.json), representing the interface with the block
-- Resulting `main.js` can be loaded into an embedding application at runtime using https://github.com/Paciolan/remote-component - although this appears to depend on defining files in the embedding application, so we need to build a different solution.
+Block component starter kit. This template adapted (quite heavily now) from https://github.com/Paciolan/remote-component-starter
 
-Adapted from https://github.com/Paciolan/remote-component-starter
-
-## TODO
-
-- Upgrade dependencies
-- Further strip away unnecessary config
-- Figure out how to build a version of https://github.com/Paciolan/remote-component that doesn't need the embedding application to define anything. How that library works:
-  - it depends on building the `requires` to pass to [this remote module loader](https://github.com/Paciolan/remote-module-loader/blob/master/src/lib/loadRemoteModule.ts)
-  - Requires is built in the wrapping library [here](https://github.com/Paciolan/remote-component/blob/master/src/components/RemoteComponent.ts)
-  - The `remote-component.config.js` file here in the block component repo is what needs to be translated into the embedding application - is this only necessary to get the dependencies installed in the embedder? Or is it important for loading the component? If the latter, we need a way of serving this file alongside the bundle, for injecting dependencies at runtime. If it's only to do with specitying what dependencies must exist, we can leave that to embedding applications - e.g. specify this component requires React.
-
-## Getting Started
+## Step one: copy this template
 
 Run:
 - `yarn new:block <name>` from the root folder of this repo (the `dev` repo)
-- `node create-block <name>` from the `blocks` folder
 
 The template will be copied into `blocks/<name>` and its `package.json` updated with:
 - `name` = `<name>`
 - `author` = your git name, or omitted if unknown
 - `description` = "`<name>` block component`
+
+## Step two: write and build a component
+
+Write a React component starting in `App.tsx`. When done, run `yarn build`:
+- Bundles the component, without React, into a single source file
+- Generates a JSON schema from the `AppProps` type representing the data interface with the block
+- Generates a `metadata.json` file which:
+  - points to the `schema` and `source` files
+  - brings in metadata from `package.json`, such as the block name and description
+  - lists the `externals` - libraries the block expects the host app to provide (React, unless modified)
+- Once uploaded to a remote folder, embedding applications can access `metadata.json` to load a block and its schema.
+
+N.B.
+- The JSON schema generation assumes `AppProps` is the name of the type for the entry component's properties. If you change this name, update the `schema` script in `package.json`
+
+
+## External Dependencies
+
+The Block Component is self contained with all of its dependencies bundled with webpack. Any dependencies that will be provided by the embedding app should be marked as `externals` in the `webpack.config.js`, added to `devDependencies` in package.json so they're available during development, and in `peerDependencies` if the component is to be made available as a library for importing via npm.
+
+In this example, `react` is added to `externals` in `webpack.config.js`. It will not be included in the bundle. The version in the embedding application must at least provide the functionality that the block expects the library to have, or else there will be obvious difficulties. **TODO**: Add external library expected versions to `metadata.json`
+
+```javascript
+module.exports = {
+  externals: {
+    react: "react",
+  }
+};
+```
+
 
 ## Files
 
@@ -34,20 +51,6 @@ There are a few important files, one set is used for the bundle, another set for
 - `src/index.js` - Entrypoint of the Block Component. The component needs to be the `default` export.
 - `src/webpack-dev-server.js` - Entrypoint for `webpack-dev-server`. This is only used for development and will not be included in the final bundle.
 - `src/index.html` - HTML for `webpack-dev-server`. This is only used for development and will not be included in the final bundle.
-
-## Building
-
-The bundle will be output to the `dist/main.js`.
-
-```bash
-npm run build
-```
-
-Create a development build for easier debugging.
-
-```bash
-npm run build:dev
-```
 
 ## Debugging
 
@@ -61,16 +64,6 @@ Now (using VSCODE), go to the Debug tab, select "Launch Chrome" and start the de
 
 You should now be able to set breakpoints and step through the code.
 
-## External Dependencies
+## TODO
 
-The Block Component is self contained with all of its dependencies bundled with webpack. Any dependencies that will be provided by the embedding app should be marked as `external` in the `webpack.config.js`.
-
-In this example, `react` is added to `externals`. They will not be included in the bundle. The embedding application is expected to provide these dependencies.
-
-```javascript
-module.exports = {
-  externals: {
-    react: "react",
-  }
-};
-```
+- Upgrade dependencies to latest

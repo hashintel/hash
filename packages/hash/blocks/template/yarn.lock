@@ -990,18 +990,6 @@
     readdirp "^2.2.1"
     upath "^1.1.1"
 
-"@paciolan/remote-component@^2.10.2":
-  version "2.11.0"
-  resolved "https://registry.yarnpkg.com/@paciolan/remote-component/-/remote-component-2.11.0.tgz#fc3c2a45fcba21e98d66ceaf894144906bcb4fed"
-  integrity sha512-ujQxfJa0Cp0q+uCiTFpscYD7q14f2rVuUl934HgVXBW/CBChfzLwZGYjtF59IAsbwVGMpgpUlMdD0B26p/hxTg==
-  dependencies:
-    "@paciolan/remote-module-loader" "^2.6.0"
-
-"@paciolan/remote-module-loader@^2.6.0":
-  version "2.6.2"
-  resolved "https://registry.yarnpkg.com/@paciolan/remote-module-loader/-/remote-module-loader-2.6.2.tgz#27177a73810ab78d1cbc4ed8ba7f0389af80d5ef"
-  integrity sha512-A49c4kX70zNpjFNuLwa53+xMlGf1W/DXMqBFR1JOMGTIpfZ6KJLpfonRG+2eA1c3CFZNvn+j99QWFEd6lgKSMA==
-
 "@types/glob@^7.1.1":
   version "7.1.3"
   resolved "https://registry.yarnpkg.com/@types/glob/-/glob-7.1.3.tgz#e6ba80f36b7daad2c685acd9266382e68985c183"
