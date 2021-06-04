@@ -13,7 +13,9 @@
   "dependencies": {
     "@apollo/client": "3.3.19",
     "graphql": "15.5.0",
+    "jsonschema": "1.4.0",
     "next": "10.2.3",
+    "prismjs": "1.23.0",
     "react": "17.0.2",
     "react-dom": "17.0.2"
   },
@@ -22,6 +24,9 @@
     "@graphql-codegen/fragment-matcher": "2.0.1",
     "@graphql-codegen/typescript": "1.22.1",
     "@graphql-codegen/typescript-operations": "1.18.0",
-    "@types/react": "17.0.7"
+    "@types/prismjs": "1.16.5",
+    "@types/react": "17.0.7",
+    "babel-plugin-prismjs": "2.0.1",
+    "sass": "1.34.1"
   }
 }

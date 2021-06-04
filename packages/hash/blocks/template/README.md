@@ -16,7 +16,11 @@ The template will be copied into `blocks/<name>` and its `package.json` updated 
 
 ## Step two: write and build a component
 
-Write a React component starting in `App.tsx`. When done, run `yarn build`:
+**All commands assume you're in your new block's folder.**
+
+Write a React component starting in `App.tsx`. Test it during development with `yarn start`.
+
+When done, run `yarn build`:
 - Bundles the component, without React, into a single source file
 - Generates a JSON schema from the `AppProps` type representing the data interface with the block
 - Generates a `metadata.json` file which:
@@ -28,6 +32,13 @@ Write a React component starting in `App.tsx`. When done, run `yarn build`:
 N.B.
 - The JSON schema generation assumes `AppProps` is the name of the type for the entry component's properties. If you change this name, update the `schema` script in `package.json`
 
+## Step three: test your bundled block
+
+1. Run `yarn serve`. Your block dist is now available at http://localhost:5000
+
+2. At the root folder of this repo, run `yarn serve:hash-frontend`.
+
+3. Visit http://localhost:3000/playground and enter http://localhost:5000 as the URL
 
 ## External Dependencies
 

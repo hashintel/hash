@@ -4,7 +4,7 @@
  */
 import React from "react";
 import ReactDOM from "react-dom";
-import Component from "./index.js";
+import Component from "./index.ts";
 
 const node = document.getElementById("app");
 

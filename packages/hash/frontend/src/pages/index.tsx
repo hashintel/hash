@@ -4,7 +4,10 @@ export default function Home() {
   return (
     <div>
       <div>Hello, world!</div>
-      <Link href="/blockTest">Test</Link>
+      <br /><br />
+      <Link href="/playground">
+        <a>Click here to visit the block playground</a>
+      </Link>
     </div>
   );
 }

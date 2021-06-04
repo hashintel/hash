@@ -49,7 +49,10 @@ export const loadRemoteModule = memoize((url) =>
       const func = new Function("require", "module", "exports", source);
       func(requires, module, exports);
 
-      /** @todo check it's actually a component */
+      /**
+       * @todo check it's actually a React component
+       * we can use a different rendering strategy for other component types
+       * */
       return module.exports as Record<string, UnknownComponent>;
     })
 );
@@ -62,8 +65,8 @@ type UseRemoteBlockHook = {
 
 type UseRemoteComponentState = {
   loading: boolean;
-  err?: Error;
-  component?: UnknownComponent;
+  err?: Error | undefined;
+  component?: UnknownComponent | undefined;
 };
 
 /**
@@ -115,7 +118,12 @@ export const RemoteBlock: VoidFunctionComponent<RemoteBlockProps> = ({
   }
 
   if (err || !Component) {
-    return <div>Unknown Error: {(err || "UNKNOWN").toString()}</div>;
+    return (
+      <div>
+        URL must point to a folder containing metadata.json
+      </div>
+    );
+    // return <div>Unknown Error: {(err || "UNKNOWN").toString()}</div>;
   }
 
   return <Component {...props} />;

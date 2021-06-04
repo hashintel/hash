@@ -1,8 +1,9 @@
+import { AppProps } from "next/dist/next-server/lib/router/router";
 import { ApolloProvider } from "@apollo/client/react";
 import { createApolloClient } from "../graphql/createApolloClient";
 
-import "../../styles/globals.css";
-import { AppProps } from "next/dist/next-server/lib/router/router";
+import "../../styles/prism.css";
+import "../../styles/globals.scss";
 
 const apolloClient = createApolloClient();
 
