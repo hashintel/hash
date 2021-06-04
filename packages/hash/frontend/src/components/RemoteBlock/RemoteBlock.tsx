@@ -118,12 +118,7 @@ export const RemoteBlock: VoidFunctionComponent<RemoteBlockProps> = ({
   }
 
   if (err || !Component) {
-    return (
-      <div>
-        URL must point to a folder containing metadata.json
-      </div>
-    );
-    // return <div>Unknown Error: {(err || "UNKNOWN").toString()}</div>;
+    return <div>Unknown Error: {(err || "UNKNOWN").toString()}</div>;
   }
 
   return <Component {...props} />;
