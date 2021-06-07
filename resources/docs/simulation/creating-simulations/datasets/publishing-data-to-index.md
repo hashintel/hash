@@ -1,4 +1,4 @@
-# Publishing Datasets
+# Publishing Datasets to Index
 
 You can share your datasets with others by publishing them to hIndex.
 
@@ -10,9 +10,9 @@ To upload a dataset, first visit your projects page - hash.ai/@\[your\_username\
 
 Add a name and project path, and choose the visibility and the user or org to publish the dataset under. Private datasets are only displayed to you \(and other members of your organization if you've published under that\) while public are visible to all HASH users.
 
-## Publish Datasets
+## Edit Datasets
 
-To publish a Dataset, visit your projects page, select the data you want to publish, and click Edit Project.
+To edit a Dataset, visit your projects page, select the data you want to publish, and click Edit Project.
 
 From the Edit Project modal add descriptions, keywords, and schemas to your data.
 

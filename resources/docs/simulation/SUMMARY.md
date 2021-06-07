@@ -31,7 +31,7 @@
     * [Wrapping Presets and Flags](creating-simulations/configuration/topology/wrapping-presets-and-flags.md)
     * [Distance Functions](creating-simulations/configuration/topology/distance-functions.md)
 * [Datasets](creating-simulations/datasets/README.md)
-  * [Publishing Datasets](creating-simulations/datasets/publishing-data-to-index.md)
+  * [Publishing Datasets to Index](creating-simulations/datasets/publishing-data-to-index.md)
 * [Simulation Outputs](creating-simulations/views/README.md)
   * [3D](creating-simulations/views/3d-viewer.md)
   * [Analysis](creating-simulations/views/analysis/README.md)
