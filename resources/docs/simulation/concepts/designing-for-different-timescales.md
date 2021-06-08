@@ -4,15 +4,14 @@ description: Building complex multi-timescale simulations
 
 # Managing Timescales
 
-When designing a simulation, you'll often start at a high level of abstraction and then, during the creation process, zoom in and add more fine grained details to the world. For instance if you're building a simulation of a city, you might start by designing people agents to travel to an office building on the eighth time-step, and then return home eight time-steps later, under the assumption that each time-step is something like an hour.
+When designing a simulation, you'll often start at a high level of abstraction and then, during the creation process, zoom in and add more fine grained details to the world. For instance if you're building a simulation of a city, you might start by designing people agents to travel to an office building on the eighth time-step, and then return home eight time-steps later, under the assumption that each time-step is something like an hour. Should you decide to add more detail to a simulation - for example, agents eating breakfast at quarter past the hour - you could run into difficulty in moving all of the agents to the new, shorter timescale.
 
 Expressing multiple timescales in a simulation is a difficult problem that exists across platforms and frameworks. Often you're forced to break your representation of time and just ignore the different timescales.
 
 There are a couple of different ways you can solve this problem in HASH. Common approaches are:
 
-* Add discrete event features.
+* Add discrete event features  to signal when agents should pause to allow for different computation times
 * Add delays to normalize the actions across timescales.
-* Use a "ManagerAgent" to signal when agents should pause to allow for different computation times
 
 {% hint style="info" %}
 We are also going to introduce in-built ways of handling a global timescale - enabling the duration or trigger points of behaviors to be specified in line with calendar-time schedules.
@@ -48,8 +47,6 @@ In essence the time manager is specifying which agents run on any given time-ste
 A simple and straightforward approach is to "slow down" the simulation. In our example above, a time-step would now be 15 mins, and the agent would leave for work either on the first or second time-step, depending on whether they take a shower. They then leave work to return home on the 32nd time-step.
 
 This has the advantage of being a straightforward, simple way of increasing the resolution of a simulation. The downside is it's inefficient - it's only in the first two steps of the simulation that we need the increased granularity. The additional 24 time-steps aren't really needed.
-
-### \*\*\*\*
 
 {% hint style="warning" %}
 Timescale management is a particularly common issue for new HASH users because [we utilize an actor model where there is "information lag" ](design-considerations/#actor-model)- a roundtrip message will take, at minimum, three time-steps.
