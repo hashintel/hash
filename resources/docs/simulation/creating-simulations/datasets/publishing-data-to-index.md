@@ -6,7 +6,7 @@ You can share your datasets with others by publishing them to hIndex.
 
 To upload a dataset, first visit your projects page - hash.ai/@\[your\_username\] - and select new Dataset.
 
-![](../../.gitbook/assets/kapture-2021-06-06-at-21.00.44%20%283%29.gif)
+![](../../.gitbook/assets/kapture-2021-06-06-at-21.00.44%20%283%29%20%283%29.gif)
 
 Add a name and project path, and choose the visibility and the user or org to publish the dataset under. Private datasets are only displayed to you \(and other members of your organization if you've published under that\) while public are visible to all HASH users.
 
