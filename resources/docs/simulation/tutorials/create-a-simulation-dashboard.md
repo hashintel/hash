@@ -12,9 +12,9 @@ In this tutorial we'll embed an example simulation into a webpage and add button
 
 Moving data into and out of a simulation is as simple as passing messages between a simulation and the host application \(pro tip: everything in HASH is about [message passing](https://docs.hash.ai/core/creating-simulations/agent-messages)\).
 
-In this case, you're passing messages between the webpage and the iFrame - the messages will be carried over the [postMessage](https://developer.mozilla.org/en-US/docs/Web/API/Window/postMessage) channel.
+In this case, you are passing messages between the webpage and the iFrame - the messages will be carried over the [postMessage](https://developer.mozilla.org/en-US/docs/Web/API/Window/postMessage) channel.
 
-There are two types of messages we'll send:
+There are three types of messages we'll send:
 
 * updateFile: changes a file in the simulation
   * id: &lt;uuid&gt;
@@ -24,8 +24,15 @@ There are two types of messages we'll send:
 * requestState: gets the output state from a simulation
   * id: &lt;uuid&gt;
   * type: "sendState"
+* resetAndRun: resets the embedded simulation and reruns it
+  * id: &lt;uuid&gt;
+  * type: "resetAndRun"
 
-_There's a third message, initialize, that will cause hCore to send updates to the webpage for every file changed, but we're not going to use that._
+_There's a fourth, initialize, that will cause hCore to send updates to the webpage for every file changed, but we're not going to use that._
+
+{% hint style="info" %}
+[Read the hCore Messaging API docs for more information](../api/hcore.md)
+{% endhint %}
 
 Both types of messages contain an id and message type. For the ID, we recommend using a UUID. In the example we've included a sample function for generating UUIDs in JavaScript.
 
@@ -123,17 +130,27 @@ When the user clicks scenario 1, we want the globals file to have the data of th
 
 We'll write the `setGlobals()` function that will post a message to the iframe telling the simulation to update `globals.json` with the value of the corresponding scenario.
 
+Additionally, we'll have it `resetAndRun` the simulation, so that when you click a button the simulation starts running with the new parameters.
+
 {% code title="script.js" %}
 ```javascript
-function setGlobals(ind) {
+function setGlobals(ind){
     document.getElementById("sim").contentWindow.postMessage(
-        {
-            "id": generateUUID(),
-            "type": "updateFile",
-            "file": "globals.json",
-            //pass JSON data as a string and HASH will encode it on receipt      
-            "contents": JSON.stringify(scenarios[ind]), 
-        }, "*");
+      {
+        "id": generateUUID(),
+        "type": "updateFile",
+        "file": "globals.json",
+        "contents": JSON.stringify(scenarios[ind]),
+      },
+      "*"
+    );
+    document.getElementById("sim").contentWindow.postMessage(
+      {
+        "id": generateUUID(),
+        "type": "resetAndRun",
+      },
+      "*"
+    );
 }
 ```
 {% endcode %}
