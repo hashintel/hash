@@ -122,4 +122,5 @@
 * [Performance](extra/performance.md)
 * [System Requirements](extra/specs-requirements.md)
 * [Shortcuts](extra/shortcuts.md)
+* [Troubleshooting](extra/troubleshooting.md)
 
