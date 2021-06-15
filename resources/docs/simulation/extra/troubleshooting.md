@@ -8,7 +8,7 @@ This page is to help with issues where hCore fails to load, or crashes, with a s
 
 ![](../.gitbook/assets/screenshot-2021-06-15-at-10.24.37.png)
 
-If you're looking for help with debugging simulation logic, head over to [debugging](troubleshooting-1/).
+If you're looking for help with debugging simulation logic, head over to [debugging](troubleshooting-2/).
 
 ### What to try if you encounter a crash
 
