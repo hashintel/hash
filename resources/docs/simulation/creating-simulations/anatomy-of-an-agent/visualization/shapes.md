@@ -8,6 +8,7 @@ HASH allows you to visualize agents with various geometric shapes. Any of the fo
 * cone
 * cylinder
 * dodecahedron
+* flatplane
 * icosahedron
 * octahedron
 * sphere
