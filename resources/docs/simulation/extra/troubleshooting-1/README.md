@@ -4,7 +4,12 @@ description: Debugging simulation logic and application crashes
 
 # Troubleshooting & Debugging
 
-## Debugging
+There are two types of errors you may encounter when using hCore: 
+
+* **errors in simulation logic**: a red message when running a simulation.
+* **errors at the application level:** a crash which requires a refresh or other browser action.
+
+## Debugging simulation errors
 
 {% embed url="https://youtu.be/lqEZk0Xp51U" caption="Debugging tutorial" %}
 
