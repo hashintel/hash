@@ -30,7 +30,7 @@ An agent's color can be set by either setting the "color" field on the agent wit
 
 ## Shape
 
-Agents can be represented a huge variety of ways in HASH's 3D viewer, out of the box. Read more about [agent shapes](https://docs.hash.ai/core/anatomy-of-an-agent/visualization/shapes).
+Agents can be represented a huge variety of ways in HASH's 3D viewer, out of the box. Read more about [agent shapes](../anatomy-of-an-agent/visualization/shapes.md).
 
 ## Hiding Agents
 
