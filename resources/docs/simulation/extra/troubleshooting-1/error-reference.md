@@ -1,10 +1,10 @@
 ---
-description: Errors and what they mean
+description: Errors you may encounter and how to fix them
 ---
 
-# Error Reference & Debugging
+# Error reference
 
-{% embed url="https://youtu.be/lqEZk0Xp51U" caption="Debugging tutorial" %}
+You may see a red error message pop up when running a simulation - here's some of the most common, and how to fix them.
 
 <table>
   <thead>
@@ -26,13 +26,13 @@ description: Errors and what they mean
     <tr>
       <td style="text-align:left">ERROR running simulation: <code>[error]</code> did not match any variant
         of untagged enum OutboundMessage</td>
-      <td style="text-align:left">All <a href="../creating-simulations/agent-messages/">messages</a> must
+      <td style="text-align:left">All <a href="../../creating-simulations/agent-messages/">messages</a> must
         have a <code>to</code> and <code>type</code> field this error indicates the
         type is missing.</td>
     </tr>
     <tr>
       <td style="text-align:left">D is not a function.</td>
-      <td style="text-align:left">Check <a href="../creating-simulations/views/analysis/">analysis</a>.json
+      <td style="text-align:left">Check <a href="../../creating-simulations/views/analysis/">analysis</a>.json
         - this can indicate you referenced an output that doesn&apos;t exist or
         used an incorrect operation.</td>
     </tr>
@@ -47,12 +47,4 @@ description: Errors and what they mean
 </table>
 
 We're expanding this list with more errors, explanations, and fixes. If you encounter an error that is unclear, [let us know](https://hashpublic.slack.com/archives/C0151PYN1T4).
-
-## Debugging
-
-A few tips for debugging errors:
-
-* You can use `console.log()` in JavaScript behaviors or `print()` in Python behaviors to output the value of a variable or an expression to the developer console \(**Ctrl+Shift+J** on Windows, or **Cmd+Option+J** on Mac\).
-* The Raw Output panel displays the full state of your simulation, which can be useful for figuring out what's going on. Keep in mind though it generates it for the last completed time-step - if your simulation has an error in the middle of a time-step the Raw Output panel will only show you the state that you entered the time-step with.
-* Often it's easiest to debug simulations with the bare minimum number of agents, to make it easier to track what's going on. Try reducing the number you create to simplify.
 

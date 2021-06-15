@@ -1,18 +1,27 @@
 ---
-description: Recovering from crashes
+description: Debugging simulation logic and application crashes
 ---
 
-# Troubleshooting
+# Troubleshooting & Debugging
 
-This page is to help with issues where hCore fails to load, or crashes, with a screen that looks like this:
+## Debugging
 
-![](../.gitbook/assets/screenshot-2021-06-15-at-10.24.37.png)
+{% embed url="https://youtu.be/lqEZk0Xp51U" caption="Debugging tutorial" %}
 
-If you're looking for help with debugging simulation logic, head over to [debugging](troubleshooting-1/).
+A few tips for debugging simulation errors:
 
-### What to try if you encounter a crash
+* You can use `console.log()` in JavaScript behaviors or `print()` in Python behaviors to output the value of a variable or an expression to the developer console \(**Ctrl+Shift+J** on Windows, or **Cmd+Option+J** on Mac\).
+* The Raw Output panel displays the full state of your simulation, which can be useful for figuring out what's going on. Keep in mind though it generates it for the last completed time-step - if your simulation has an error in the middle of a time-step the Raw Output panel will only show you the state that you entered the time-step with.
+* Often it's easiest to debug simulations with the bare minimum number of agents, to make it easier to track what's going on. Try reducing the number you create to simplify.
+* Please see the [error reference](error-reference.md) for an explanation of specific errors.
 
-We hope you never see hCore crash. But if you do, there are a few things you can try.
+## Troubleshooting crashes
+
+Despite out best efforts, sometimes hCore crashes with a screen that looks like this:
+
+![](../../.gitbook/assets/screenshot-2021-06-15-at-10.24.37.png)
+
+We hope you never see hCore crash. But if you do, there are a few things you can try:
 
 1. **Refresh the page**  This will usually do the trick. 
 2. **Clear your browser cache \(saved data\)** Sometimes the files or configuration details that hCore depends on get into a weird state and need to be reset. You can read how to do this on [Chrome](https://support.google.com/accounts/answer/32050), [Firefox](https://support.mozilla.org/en-US/kb/how-clear-firefox-cache), [Edge](https://support.microsoft.com/en-us/microsoft-edge/view-and-delete-browser-history-in-microsoft-edge-00cf7943-a9e1-975a-a33d-ac10ce454ca4). Note that this can also clear saved passwords and other data, so check any settings in the process carefully.  You can also **try opening a private/incognito window first** - if it works there, clearing your browser cache is likely to make it work in a regular window. 
