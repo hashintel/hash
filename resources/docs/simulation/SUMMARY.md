@@ -117,11 +117,10 @@
       * [Trucks on the Move](extra/migrating/anylogic/building-the-simulation/trucks-on-the-move.md)
       * [Full Initialization](extra/migrating/anylogic/building-the-simulation/full-initialization.md)
       * [Improving our Visualization](extra/migrating/anylogic/building-the-simulation/improving-our-visualization.md)
-* [Troubleshooting & Debugging](extra/troubleshooting-2/README.md)
-  * [Error reference](extra/troubleshooting-2/error-reference.md)
+* [Troubleshooting & Debugging](extra/troubleshooting/README.md)
+  * [Error reference](extra/troubleshooting/error-reference.md)
 * [Determinism](extra/determinism.md)
 * [Performance](extra/performance.md)
 * [System Requirements](extra/specs-requirements.md)
 * [Shortcuts](extra/shortcuts.md)
-* [Troubleshooting](extra/troubleshooting.md)
 
