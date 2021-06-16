@@ -820,15 +820,17 @@ const plugins = [
     })
 ];
 
-const state = EditorState.create({
-    doc,
-    plugins: plugins
-});
+const editorStateConfig = { plugins, schema };
 
 /**
  * @param node {HTMLElement}
+ * @param content {any}
  */
-export const renderPM = node => {
+export const renderPM = (node, content) => {
+
+    const docContent = { type: "doc", content };
+    const state = EditorState.fromJSON(editorStateConfig, { doc: docContent, selection: { anchor: 2, head: 2, type: "text" } });
+
     return new EditorView(node, {
         state,
         nodeViews: {

@@ -5,12 +5,12 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import Component from "./index.ts";
-
+import content from "./content.json";
 const node = document.getElementById("app");
 
 const App = () => (
   <>
-    <Component />
+    <Component content={content} />
   </>
 );
 
