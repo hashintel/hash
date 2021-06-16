@@ -97,7 +97,11 @@ This section on hydrating agents' properties with external data is coming soon.
 
 ### Using data to calibrate models
 
-{% hint style="info" %}
-This section on backtesting and calibration is coming soon.
+Datasets can be used to calibrate a model to find the parameters that best match the real world. Upload a dataset and create an optimization experiment that reduces the error between a run and the dataset - the HASH optimization engine will automatically identify the parameters that reduce the error the most.
+
+{% hint style="success" %}
+Read more and see an example in the [Complex Metrics](../experiments/optimization-experiments/complex-metrics.md#validating-and-calibrating) section on Validation and Calibration.
 {% endhint %}
+
+
 
