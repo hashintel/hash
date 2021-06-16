@@ -31,7 +31,8 @@ module.exports = {
     filename: "main.[contenthash].js"
   },
   externals: {
-    react: "react"
+    react: "react",
+    "react-dom": "react-dom"
   },
   module: {
     rules: [
@@ -41,6 +42,10 @@ module.exports = {
         use: {
           loader: "babel-loader"
         }
+      },
+      {
+        test: /\.css$/i,
+        use: ["style-loader", "css-loader"]
       }
     ]
   },

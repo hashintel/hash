@@ -10,7 +10,7 @@ const node = document.getElementById("app");
 
 const App = () => (
   <>
-    <Component name="World" />
+    <Component />
   </>
 );
 
