@@ -1,0 +1,13 @@
+version: "3.9"
+services:
+    hash-pg:
+        build:
+            context: ./postgres
+            dockerfile: Dockerfile
+        ports:
+            - 5432:5432
+        environment:
+            - POSTGRES_USER=postgres
+            - POSTGRES_PASSWORD=postgres
+        volumes:
+            - ./postgres/pgdata:/var/lib/postgresql/data
