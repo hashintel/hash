@@ -1,5 +1,5 @@
 interface MemoizableFetchFunction<T> {
-  (url: string, signal?: AbortSignal): T;
+  (url: string, signal?: AbortSignal): Promise<T>;
 }
 
 /**
@@ -10,10 +10,11 @@ export function memoizeFetchFunction<T>(
 ): MemoizableFetchFunction<T> {
   const cache: Record<string, any> = {};
 
-  return (url, signal) => {
+  return async (url, signal) => {
 
     if (cache[url] == null) {
-      cache[url] = fetchFunction(url, signal);
+      const result = await fetchFunction(url, signal);
+      cache[url] = result;
     }
 
     return cache[url];

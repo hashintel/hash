@@ -54,7 +54,8 @@ const BlockPlayground = () => {
         setMetadata(metadata);
         fetch(metadata.schema)
           .then((resp) => resp.json())
-          .then(setSchema);
+          .then(setSchema)
+          .catch(() => {});
       })
       .catch((err) => {
         setError(
