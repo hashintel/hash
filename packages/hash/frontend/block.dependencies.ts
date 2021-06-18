@@ -1,6 +1,6 @@
 /**  
  * Dependencies to be made available to external blocks must be referenced here */
-module.exports = {
+export const blockDependencies: Record<string, any> = {
   react: require("react"),
   "react-dom": require("react-dom"),
 };
