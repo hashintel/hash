@@ -79,6 +79,7 @@
   * [Custom Behaviors](concepts/designing-with-process-models/custom-behaviors.md)
 * [Material Handling](concepts/designing-with-the-material-handling-libraries.md)
 * [System Dynamics](concepts/designing-with-system-dynamics-models.md)
+* [Physics](concepts/physics.md)
 
 ## Tutorials
 
