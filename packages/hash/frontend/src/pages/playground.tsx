@@ -31,10 +31,14 @@ const BlockPlayground = () => {
   const [_error, setError] = useState("");
   const [inputData, setInputData] = useState(`{\n  "key": "value"\n}`);
   const [blockProps, setBlockProps] = useState({});
-  const [inputErrors, setInputErrors] = useState<{ validJson: boolean; matchesSchema: boolean; schemaErrors: string[]}>({
+  const [inputErrors, setInputErrors] = useState<{
+    validJson: boolean;
+    matchesSchema: boolean;
+    schemaErrors: string[];
+  }>({
     validJson: false,
     matchesSchema: false,
-    schemaErrors: []
+    schemaErrors: [],
   });
   const [metadata, setMetadata] = useState<BlockMetaJson>({});
   const [schema, setSchema] =
@@ -75,30 +79,33 @@ const BlockPlayground = () => {
       if (schema) {
         errors = validator.validate(parsedInput, schema).errors;
       }
-      if (!schema || errors?.length) {
+      if (errors?.length) {
         setInputErrors({
           validJson: true,
           matchesSchema: false,
-          schemaErrors: errors.map(err => err.message)
+          schemaErrors: errors.map((err) => err.message),
         });
         return;
       }
       setInputErrors({
         validJson: true,
         matchesSchema: true,
-        schemaErrors: []
+        schemaErrors: [],
       });
       setBlockProps(parsedInput);
     } catch (err) {
+      let matchesSchema = false;
+      if (!schema || Object.keys(schema).length === 0) {
+        matchesSchema = true;
+      }
       setInputErrors({
         validJson: false,
-        matchesSchema: false,
-        schemaErrors: []
+        matchesSchema,
+        schemaErrors: [],
       });
     }
-  }, [inputData]);
+  }, [inputData, schema]);
 
-  console.log(inputErrors.schemaErrors)
   return (
     <div className={styles.PlaygroundWrapper}>
       <div className={`${styles.PlaygroundSection} ${styles.UrlEntry}`}>
@@ -132,7 +139,9 @@ const BlockPlayground = () => {
                 <PassOrFail pass={inputErrors.matchesSchema} />
               </div>
               <div className={styles.ValidationError}>
-                {inputErrors.schemaErrors.map(err => <div>{err}</div>)}
+                {inputErrors.schemaErrors.map((err) => (
+                  <div key={err}>{err}</div>
+                ))}
               </div>
             </div>
           </div>
@@ -148,12 +157,12 @@ const BlockPlayground = () => {
         <div className={styles.RenderedBlock}>
           <label>Rendered block {metadata?.name && `- ${metadata.name}`}</label>
           <div>
-            {!schema ? (
-              "No valid block metadata loaded"
+            {!metadata.source ? (
+              "No block source loaded"
             ) : !inputErrors.matchesSchema ? (
               "Input does not match schema"
             ) : (
-              <RemoteBlock url={metadata?.source ?? ""} {...blockProps} />
+              <RemoteBlock url={metadata.source ?? ""} {...blockProps} />
             )}
           </div>
         </div>
