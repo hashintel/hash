@@ -1,10 +1,8 @@
 import { gql } from "apollo-server-express";
 
-export const userTypedef = gql`
-  type User {
+export const orgTypedef = gql`
+  type Org {
     id: ID!
-    email: String!
     shortname: String!
-    type: String!
   }
 `;

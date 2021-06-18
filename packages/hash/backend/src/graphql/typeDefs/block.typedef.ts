@@ -4,6 +4,9 @@ export const blockTypedef = gql`
   type Block {
     entity: Entity!
     entityType: String!
+    namespace: String!
+    namespaceId: String!
     componentId: ID!
+    type: String!
   }
 `;
