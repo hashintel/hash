@@ -58,7 +58,7 @@ export const pages = (() => {
           {
             componentId: "headerblock1",
             entityType: "Text",
-            entityId: "text6",
+            entityId: "text5",
             namespaceId: "6",
             type: "Block"
           },
