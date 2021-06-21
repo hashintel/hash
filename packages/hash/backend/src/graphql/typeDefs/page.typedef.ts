@@ -14,7 +14,7 @@ export const pageTypedef = gql`
     """
     namespaceId: ID!
     """
-    The CHANGEABLE name/slug of the namespace (e.g. username). 
+    The CHANGEABLE name/slug of the namespace (e.g. username).
     """
     namespace: String!
     """
@@ -48,10 +48,48 @@ export const pageTypedef = gql`
   }
 
   extend type Query {
+    """
+    Return a page by its id
+    """
     page(id: ID!): Page!
+
+    """
+    Return a list of pages belonging to a namespace
+    """
+    namespacePages(namespaceId: ID, namespace: String): [Page!]!
+  }
+
+  input PageCreationData {
+    # need to figure out contents input shape
+    # each item in contents could potentially one of:
+    # - data to create a new block
+    # - references by id to existing blocks
+    # - references by id to existing block with an update
+    # just make it JSON for now for testing purposes
+    contents: [JSONObject!]!
+    title: String!
+    summary: String
+  }
+
+  input PageUpdateData {
+    # need to figure out contents input shape
+    # each item in contents could potentially one of:
+    # - data to create a new block
+    # - references by id to existing blocks
+    # - references by id to existing block with an update
+    # just make it JSON for now for testing purposes
+    contents: [JSONObject!]
+    title: String
+    summary: String
   }
 
   extend type Mutation {
-    updatePage(id: ID!): Page!
+    createPage(
+      namespaceId: ID
+      namespace: String
+      data: PageCreationData!
+    ): Page!
+
+    updatePage(id: ID!, data: PageUpdateData!): Page!
   }
 `;
