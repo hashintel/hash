@@ -2,7 +2,7 @@
 
 ## HASH Standard Library
 
-HASH provides a set of useful functions to help simplify simulation construction through a standard library, `hstd`. The Python language environment [also provides access to](https://docs.hash.ai/core/libraries/python-packages) a wide array of scientific Python packages_._
+HASH provides a set of useful functions to help simplify simulation construction through a standard library, `hstd`. The Python language environment [also provides access to a wide array of scientific Python packages](python-packages.md)_._
 
 You can contribute to the HASH standard library by submitting pull requests to our [open source repo](https://github.com/hashintel/hash/tree/master/packages/engine/stdlib).
 
