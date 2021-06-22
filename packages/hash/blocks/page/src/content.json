@@ -1,33 +1,9 @@
 [
   {
-    "type": "block",
-    "content": [
-      {
-        "type": "heading",
-        "content": [{ "type": "text", "text": "Your first document" }]
-      }
-    ]
-  },
-  {
-    "type": "block",
-    "content": [
-      {
-        "type": "paragraph",
-        "content": [
-          { "type": "text", "text": "A line of text in the first paragraph." }
-        ]
-      }
-    ]
-  },
-  {
-    "type": "block",
-    "content": [
-      {
-        "type": "paragraph",
-        "content": [
-          { "type": "text", "text": "A line of text in the second paragraph." }
-        ]
-      }
-    ]
+    "componentId": "http://localhost:5000",
+    "entityId": "pageTitle123",
+    "entity": {
+      "children": [{ "type": "text", "text": "Your first document" }]
+    }
   }
 ]

@@ -10,7 +10,7 @@ const node = document.getElementById("app");
 
 const App = () => (
   <>
-    <Component content={content} />
+    <Component contents={content} />
   </>
 );
 
