@@ -1,13 +1,13 @@
 import React, {
+  RefCallback,
   useLayoutEffect,
   useRef,
   VoidFunctionComponent,
-  forwardRef,
 } from "react";
 import { render } from "react-dom";
 // @todo what to do about providing this
 import { defineBlock } from "./utils";
-import { plugins, baseSchemaConfig, renderPM } from "./sandbox";
+import { baseSchemaConfig, renderPM } from "./sandbox";
 import { Schema } from "prosemirror-model";
 
 type Block = {
@@ -33,23 +33,32 @@ interface NodeViewConstructor {
   new (node: any, view: any, getPos: any): NodeView;
 }
 
-const Header = forwardRef<
-  HTMLHeadingElement,
-  {
-    color?: string;
-    level?: number;
-    text: string;
-  }
->(({ color, level = 1, text }, ref) => {
+const Header: VoidFunctionComponent<{
+  color?: string;
+  level?: number;
+  editableRef?: RefCallback<HTMLElement>;
+  text: string;
+  onChange: (nextText: string) => void;
+}> = ({ color, level = 1, editableRef, text, onChange }) => {
   // @todo set type here properly
   const Header = `h${level}` as any;
 
   return (
-    <Header style={{ fontFamily: "Arial", color: color ?? "black" }} ref={ref}>
-      {text}
-    </Header>
+    <div>
+      <Header
+        style={{ fontFamily: "Arial", color: color ?? "black" }}
+        ref={editableRef}
+      >
+        {text}
+      </Header>
+      <input
+        type="text"
+        value={text}
+        onChange={(evt) => onChange(evt.target.value)}
+      />
+    </div>
   );
-});
+};
 
 const createNodeView = (
   name: string,
@@ -60,7 +69,7 @@ const createNodeView = (
     contentDOM: HTMLElement | undefined = undefined;
 
     // @todo type node
-    constructor(node: any) {
+    constructor(node: any, public view: any, public getPos: () => number) {
       this.update(node);
     }
 
@@ -70,10 +79,19 @@ const createNodeView = (
           console.log(node);
           render(
             <Header
-              ref={(node) => {
+              editableRef={(node) => {
                 this.contentDOM = node || undefined;
               }}
-              text={node.content.content[0].text}
+              text={node.content.content?.[0]?.text ?? ""}
+              onChange={(nextText) => {
+                const tr = this.view.state.tr;
+                tr.replaceWith(
+                  this.getPos() + 1,
+                  node.nodeSize,
+                  nextText ? this.view.state.schema.text(nextText) : []
+                );
+                this.view.dispatch(tr);
+              }}
             />,
             // <RemoteBlock url={componentId} {...node.attrs.props} />,
             this.dom
@@ -96,6 +114,17 @@ const createNodeView = (
         evt.preventDefault();
       }
 
+      return true;
+    }
+
+    ignoreMutation(evt: any) {
+      if (
+        !evt.target ||
+        evt.target === this.contentDOM ||
+        this.contentDOM?.contains(evt.target)
+      ) {
+        return false;
+      }
       return true;
     }
   };
