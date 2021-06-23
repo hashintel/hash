@@ -1,11 +1,18 @@
-import React, { useLayoutEffect, useRef, VoidFunctionComponent } from "react";
+import React, {
+  useLayoutEffect,
+  useRef,
+  VoidFunctionComponent,
+  forwardRef,
+} from "react";
 import { render } from "react-dom";
 // @todo what to do about providing this
 import { defineBlock } from "./utils";
+import { plugins, baseSchemaConfig, renderPM } from "./sandbox";
+import { Schema } from "prosemirror-model";
 
 type Block = {
   entityId: string;
-  entity: object;
+  entity: Record<any, any>;
   componentId: string;
 };
 
@@ -23,8 +30,26 @@ interface NodeView {
 }
 
 interface NodeViewConstructor {
-  new (node: any): NodeView;
+  new (node: any, view: any, getPos: any): NodeView;
 }
+
+const Header = forwardRef<
+  HTMLHeadingElement,
+  {
+    color?: string;
+    level?: number;
+    text: string;
+  }
+>(({ color, level = 1, text }, ref) => {
+  // @todo set type here properly
+  const Header = `h${level}` as any;
+
+  return (
+    <Header style={{ fontFamily: "Arial", color: color ?? "black" }} ref={ref}>
+      {text}
+    </Header>
+  );
+});
 
 const createNodeView = (
   name: string,
@@ -32,6 +57,7 @@ const createNodeView = (
 ): NodeViewConstructor => {
   const nodeView = class implements NodeView {
     dom: HTMLDivElement = document.createElement("div");
+    contentDOM: HTMLElement | undefined = undefined;
 
     // @todo type node
     constructor(node: any) {
@@ -40,11 +66,15 @@ const createNodeView = (
 
     update(node: any) {
       if (node) {
-        if (node.type.name === node) {
+        if (node.type.name === name) {
+          console.log(node);
           render(
-            <pre>
-              {JSON.stringify({ componentId, node: node.toJSON() }, null, "\t")}
-            </pre>,
+            <Header
+              ref={(node) => {
+                this.contentDOM = node || undefined;
+              }}
+              text={node.content.content[0].text}
+            />,
             // <RemoteBlock url={componentId} {...node.attrs.props} />,
             this.dom
           );
@@ -80,18 +110,19 @@ export const App: VoidFunctionComponent<AppProps> = ({ contents }) => {
 
   // @todo needs to respond to changes to contents
   useLayoutEffect(() => {
-    const nodeViews = contents.reduce<Record<string, NodeViewConstructor>>(
-      (nodeViews, block) => {
-        const name = componentIdToName(block.componentId);
+    const nodeViews = contents.reduce<
+      Record<string, (node: any, view: any, getPos: any) => NodeView>
+    >((nodeViews, block) => {
+      const name = componentIdToName(block.componentId);
 
-        if (!nodeViews[name]) {
-          nodeViews[name] = createNodeView(name, block.componentId);
-        }
+      if (!nodeViews[name]) {
+        const NodeViewClass = createNodeView(name, block.componentId);
+        nodeViews[name] = (node, view, getPos) =>
+          new NodeViewClass(node, view, getPos);
+      }
 
-        return nodeViews;
-      },
-      {}
-    );
+      return nodeViews;
+    }, {});
 
     // @todo type this
     const blocks = contents.reduce<Record<string, any>>((blocks, block) => {
@@ -100,22 +131,52 @@ export const App: VoidFunctionComponent<AppProps> = ({ contents }) => {
       if (!blocks[name]) {
         blocks[name] = defineBlock({
           attrs: { props: { default: {} } },
+          // @todo infer this somehow
+          content: "text*",
+          marks: "",
         });
       }
 
       return blocks;
     }, {});
 
-    console.log(nodeViews, blocks);
+    const schema = new Schema({
+      ...baseSchemaConfig,
+      nodes: {
+        ...baseSchemaConfig.nodes,
+        ...blocks,
+      },
+    });
 
-    // const node = root.current;
-    // if (node) {
-    //   renderPM(node);
-    //
-    //   return () => {
-    //     node.innerHTML = "";
-    //   };
-    // }
+    const mappedContents = contents.map((block) => {
+      const { children, ...props } = block.entity;
+
+      return schema.node("block", {}, [
+        schema.node(
+          componentIdToName(block.componentId),
+          { props },
+          children.map((child: any) => {
+            if (child.type === "text") {
+              return schema.text(child.text);
+            }
+
+            // @todo recursive nodes
+            throw new Error("unrecognised child");
+          })
+        ),
+      ]);
+    });
+
+    const doc = schema.node("doc", null, mappedContents);
+
+    const node = root.current;
+    if (node) {
+      renderPM(node, doc, { nodeViews });
+
+      return () => {
+        node.innerHTML = "";
+      };
+    }
   }, []);
 
   return <div id="root" ref={root} />;

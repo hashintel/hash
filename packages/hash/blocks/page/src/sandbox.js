@@ -505,7 +505,7 @@ class BlockView {
   }
 }
 
-const schema = new Schema({
+export const baseSchemaConfig = {
   nodes: {
     doc: {
       content: "(block|blockItem)+",
@@ -536,18 +536,18 @@ const schema = new Schema({
       marks: "_",
     }),
     text: {},
-    async: {
-      group: "blockItem",
-      attrs: {
-        asyncNodeType: { default: "" },
-        asyncNodeProps: { default: {} },
-      },
-    },
-    heading: defineBlock({
-      content: "text*",
-      toDOM: () => ["h3", 0],
-      marks: "",
-    }),
+    // async: {
+    //   group: "blockItem",
+    //   attrs: {
+    //     asyncNodeType: { default: "" },
+    //     asyncNodeProps: { default: {} },
+    //   },
+    // },
+    // heading: defineBlock({
+    //   content: "text*",
+    //   toDOM: () => ["h3", 0],
+    //   marks: "",
+    // }),
   },
   marks: {
     strong: {
@@ -560,23 +560,24 @@ const schema = new Schema({
       toDOM: () => ["u", 0],
     },
   },
-});
+};
+const schema = new Schema(baseSchemaConfig);
 
-const doc = schema.node("doc", null, [
-  schema.node("block", {}, [
-    schema.node("heading", {}, schema.text("Your first document")),
-  ]),
-  schema.node("block", {}, [
-    schema.node("paragraph", {}, [
-      schema.text("A line of text in the first paragraph.", []),
-    ]),
-  ]),
-  schema.node("block", {}, [
-    schema.node("paragraph", {}, [
-      schema.text("A line of text in the second paragraph."),
-    ]),
-  ]),
-]);
+// const doc = schema.node("doc", null, [
+//   schema.node("block", {}, [
+//     schema.node("heading", {}, schema.text("Your first document")),
+//   ]),
+//   schema.node("block", {}, [
+//     schema.node("paragraph", {}, [
+//       schema.text("A line of text in the first paragraph.", []),
+//     ]),
+//   ]),
+//   schema.node("block", {}, [
+//     schema.node("paragraph", {}, [
+//       schema.text("A line of text in the second paragraph."),
+//     ]),
+//   ]),
+// ]);
 
 // @todo ensure we remove undo item if command fails
 const wrapCommand = (command) => (state, dispatch, view) => {
@@ -622,7 +623,7 @@ const wrapCommand = (command) => (state, dispatch, view) => {
   return retVal;
 };
 
-const plugins = [
+export const plugins = [
   historyPlugin,
   keymap({ "Mod-z": chainCommands(undo, undoInputRule), "Mod-y": redo }),
   keymap({
@@ -820,21 +821,22 @@ const editorStateConfig = { plugins, schema };
 /**
  * @param node {HTMLElement}
  * @param content {any}
- * @param renderBlock {Function}
+ * @param viewProps {any}
  */
-export const renderPM = (node, content) => {
-  const docContent = { type: "doc", content };
-  const state = EditorState.fromJSON(editorStateConfig, {
-    doc: docContent,
-    selection: { anchor: 2, head: 2, type: "text" },
-  });
+export const renderPM = (node, content, viewProps) => {
+  // const docContent = { type: "doc", content };
+  // const state = EditorState.fromJSON(editorStateConfig, {
+  //   doc: docContent,
+  //   selection: { anchor: 2, head: 2, type: "text" },
+  // });
+
+  const state = EditorState.create({ doc: content, plugins });
 
   return new EditorView(node, {
     state,
+    ...viewProps,
     nodeViews: {
-      async(node, view, getPos) {
-        return new AsyncView(node, view, getPos);
-      },
+      ...viewProps.nodeViews,
       block(node, view, getPos) {
         return new BlockView(node, view, getPos);
       },
