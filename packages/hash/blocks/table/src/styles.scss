@@ -1,0 +1,32 @@
+table {
+  border-collapse: collapse;
+  table-layout: auto;
+
+  --input-width: 90px;
+}
+
+td {
+  padding: 4px;
+
+  input {
+    padding: 4px 8px;
+    width: var(--input-width);
+  }
+
+  span {
+    padding: 4px 6px;
+  }
+}
+
+td, th {
+  border-left: 1px solid black;
+  border-right: 1px solid black;
+}
+
+tr:last-child {
+  border-bottom: 1px solid black;
+}
+
+thead tr {
+  border-top: 1px solid black;
+}

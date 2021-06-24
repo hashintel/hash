@@ -12,6 +12,7 @@ if (!name) {
 }
 
 (async () => {
+  console.log("Copying required files...");
   await exec(`cp -R ${__dirname}/template ${__dirname}/${name}`);
 
   const packageJsonPath = `${__dirname}/${name}/package.json`;
@@ -20,13 +21,18 @@ if (!name) {
   packageJson.name = name;
   packageJson.description = `${name} block component`;
 
+  console.log("Writing metadata...");
   exec("git config --get user.name")
     .then(({ stdout }) => (packageJson.author = stdout.trim()))
     .catch(() => delete packageJson.author)
-    .finally(() =>
+    .finally(() => {
       fs.writeFileSync(
         packageJsonPath,
         JSON.stringify(packageJson, undefined, 2)
-      )
-    );
+      );
+      console.log(
+        `Your ${name} block is ready to code in the 'blocks/${name}' folder.`
+      );
+      process.exit();
+    });
 })();
