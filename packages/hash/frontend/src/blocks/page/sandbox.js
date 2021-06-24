@@ -23,7 +23,7 @@ import { undoInputRule } from "prosemirror-inputrules";
 import { dropCursor } from "prosemirror-dropcursor";
 import { liftTarget, Mapping } from "prosemirror-transform";
 
-import "./style.css";
+import "./style.module.css";
 
 import "prosemirror-view/style/prosemirror.css";
 import { defineBlock } from "./utils";

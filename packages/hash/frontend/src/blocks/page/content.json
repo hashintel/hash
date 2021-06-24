@@ -1,6 +1,6 @@
 [
   {
-    "componentId": "http://localhost:5000",
+    "componentId": "http://localhost:5000/main.f462b4b5ff8dfb1cce04.js",
     "entityId": "pageTitle123",
     "entity": {
       "children": [{ "type": "text", "text": "Your first document" }]

@@ -1,5 +1,6 @@
 import React, {
   RefCallback,
+  useEffect,
   useLayoutEffect,
   useRef,
   VoidFunctionComponent,
@@ -9,6 +10,7 @@ import { render } from "react-dom";
 import { defineBlock } from "./utils";
 import { baseSchemaConfig, renderPM } from "./sandbox";
 import { Schema } from "prosemirror-model";
+import { RemoteBlock } from "../../components/RemoteBlock/RemoteBlock";
 
 type Block = {
   entityId: string;
@@ -16,7 +18,7 @@ type Block = {
   componentId: string;
 };
 
-type AppProps = {
+type PageBlockProps = {
   contents: Block[];
 };
 
@@ -77,25 +79,37 @@ const createNodeView = (
       if (node) {
         if (node.type.name === name) {
           console.log(node);
+
           render(
-            <Header
-              editableRef={(node) => {
+            <RemoteBlock
+              url={componentId}
+              {...node.attrs.props}
+              editableRef={(node: HTMLElement) => {
                 this.contentDOM = node || undefined;
               }}
-              text={node.content.content?.[0]?.text ?? ""}
-              onChange={(nextText) => {
-                const tr = this.view.state.tr;
-                tr.replaceWith(
-                  this.getPos() + 1,
-                  node.nodeSize,
-                  nextText ? this.view.state.schema.text(nextText) : []
-                );
-                this.view.dispatch(tr);
-              }}
             />,
-            // <RemoteBlock url={componentId} {...node.attrs.props} />,
             this.dom
           );
+
+          // render(
+          //   <Header
+          //     editableRef={(node) => {
+          //       this.contentDOM = node || undefined;
+          //     }}
+          //     text={node.content.content?.[0]?.text ?? ""}
+          //     onChange={(nextText) => {
+          //       const tr = this.view.state.tr;
+          //       tr.replaceWith(
+          //         this.getPos() + 1,
+          //         node.nodeSize,
+          //         nextText ? this.view.state.schema.text(nextText) : []
+          //       );
+          //       this.view.dispatch(tr);
+          //     }}
+          //   />,
+          //   // <RemoteBlock url={componentId} {...node.attrs.props} />,
+          //   this.dom
+          // );
 
           return true;
         }
@@ -134,11 +148,13 @@ const createNodeView = (
   return nodeView;
 };
 
-export const App: VoidFunctionComponent<AppProps> = ({ contents }) => {
+export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
+  contents,
+}) => {
   const root = useRef<HTMLDivElement>(null);
 
   // @todo needs to respond to changes to contents
-  useLayoutEffect(() => {
+  useEffect(() => {
     const nodeViews = contents.reduce<
       Record<string, (node: any, view: any, getPos: any) => NodeView>
     >((nodeViews, block) => {
