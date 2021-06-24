@@ -22,6 +22,7 @@ import { Schema } from "prosemirror-model";
 import { undoInputRule } from "prosemirror-inputrules";
 import { dropCursor } from "prosemirror-dropcursor";
 import { liftTarget, Mapping } from "prosemirror-transform";
+import applyDevTools from "prosemirror-dev-tools";
 
 import "./style.module.css";
 
@@ -831,8 +832,7 @@ export const renderPM = (node, content, viewProps) => {
   // });
 
   const state = EditorState.create({ doc: content, plugins });
-
-  return new EditorView(node, {
+  const view = new EditorView(node, {
     state,
     ...viewProps,
     nodeViews: {
@@ -842,4 +842,8 @@ export const renderPM = (node, content, viewProps) => {
       },
     },
   });
+
+  applyDevTools(view);
+
+  return view;
 };

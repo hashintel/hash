@@ -11,7 +11,8 @@ export const App: VoidFunctionComponent<AppProps> = ({
   level = 1,
   editableRef,
 }) => {
-  const Header = `h${level}` as keyof JSX.IntrinsicElements;
+  // @todo set type correctly
+  const Header = `h${level}` as any;
 
   return (
     <Header

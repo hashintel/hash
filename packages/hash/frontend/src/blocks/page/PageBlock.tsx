@@ -85,7 +85,9 @@ const createNodeView = (
               url={componentId}
               {...node.attrs.props}
               editableRef={(node: HTMLElement) => {
+                console.log(node);
                 this.contentDOM = node || undefined;
+                this.view.dispatch(this.view.state.tr);
               }}
             />,
             this.dom
