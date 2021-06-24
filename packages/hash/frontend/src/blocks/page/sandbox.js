@@ -24,7 +24,7 @@ import { dropCursor } from "prosemirror-dropcursor";
 import { liftTarget, Mapping } from "prosemirror-transform";
 import applyDevTools from "prosemirror-dev-tools";
 
-import "./style.module.css";
+import styles from "./style.module.css";
 
 import "prosemirror-view/style/prosemirror.css";
 import { defineBlock } from "./utils";
@@ -286,14 +286,10 @@ class BlockView {
     this.view = view;
 
     this.dom = document.createElement("div");
-    this.dom.style.cssText = `
-      display: flex;
-      align-items: center;
-    `;
-    this.dom.classList.add("Block");
+    this.dom.classList.add(styles.Block);
 
     this.selectContainer = document.createElement("div");
-    this.selectContainer.classList.add("Block__UI");
+    this.selectContainer.classList.add(styles.Block__UI);
 
     this.dom.appendChild(this.selectContainer);
     this.allowDragging = false;
@@ -392,16 +388,16 @@ class BlockView {
     container.contentEditable = false;
 
     if (this.dragging) {
-      this.dom.classList.add("Block--dragging");
+      this.dom.classList.add(styles.BlockDragging);
     } else {
-      this.dom.classList.remove("Block--dragging");
+      this.dom.classList.remove(styles.BlockDragging);
     }
 
     // @todo need to find a better way of calling into React without including it in the bundle
     render(
       <>
         <div
-          className="Block__Handle"
+          className={styles.Block__Handle}
           ref={(handle) => {
             this.handle = handle;
           }}
@@ -410,7 +406,7 @@ class BlockView {
             this.dragging = true;
             const tr = this.view.state.tr;
 
-            this.dom.classList.add("Block--dragging");
+            this.dom.classList.add(styles.BlockDragging);
 
             tr.setSelection(
               NodeSelection.create(this.view.state.doc, this.getPos())
@@ -767,7 +763,7 @@ export const plugins = [
       };
 
       const mousedown = (evt) => {
-        if (evt.target.classList.contains("Block__Handle")) {
+        if (evt.target.classList.contains(styles.Block__Handle)) {
           // dragging = true;
           update(editorView);
         }
@@ -842,6 +838,8 @@ export const renderPM = (node, content, viewProps) => {
       },
     },
   });
+
+  view.dom.classList.add(styles.ProseMirror);
 
   applyDevTools(view);
 
