@@ -11,6 +11,7 @@ import { defineBlock } from "./utils";
 import { baseSchemaConfig, renderPM } from "./sandbox";
 import { Schema } from "prosemirror-model";
 import { RemoteBlock } from "../../components/RemoteBlock/RemoteBlock";
+import { util } from "prismjs";
 
 type Block = {
   entityId: string;
@@ -68,29 +69,37 @@ const createNodeView = (
 ): NodeViewConstructor => {
   const nodeView = class implements NodeView {
     dom: HTMLDivElement = document.createElement("div");
-    contentDOM: HTMLElement | undefined = undefined;
+    contentDOM = document.createElement("div");
+    target = document.createElement("div");
 
-    // @todo type node
+    // @todo types
     constructor(node: any, public view: any, public getPos: () => number) {
+      this.dom.setAttribute("data-dom", "true");
+      this.contentDOM.setAttribute("data-contentDOM", "true");
+      this.target.setAttribute("data-target", "true");
+
+      this.dom.appendChild(this.contentDOM);
+      this.contentDOM.style.display = "none";
+      this.dom.appendChild(this.target);
+
       this.update(node);
     }
 
     update(node: any) {
       if (node) {
         if (node.type.name === name) {
-          console.log(node);
-
           render(
             <RemoteBlock
               url={componentId}
               {...node.attrs.props}
               editableRef={(node: HTMLElement) => {
-                console.log(node);
-                this.contentDOM = node || undefined;
-                this.view.dispatch(this.view.state.tr);
+                if (node && !node.contains(this.contentDOM)) {
+                  node.appendChild(this.contentDOM);
+                  this.contentDOM.style.display = "";
+                }
               }}
             />,
-            this.dom
+            this.target
           );
 
           // render(
@@ -134,14 +143,11 @@ const createNodeView = (
     }
 
     ignoreMutation(evt: any) {
-      if (
+      return !(
         !evt.target ||
-        evt.target === this.contentDOM ||
-        this.contentDOM?.contains(evt.target)
-      ) {
-        return false;
-      }
-      return true;
+        (evt.target !== this.contentDOM &&
+          this.contentDOM?.contains(evt.target))
+      );
     }
   };
 
