@@ -1,20 +1,21 @@
 import React, {
   Fragment,
   ReactNode,
-  RefCallback,
   useCallback,
   useEffect,
   useRef,
   useState,
   VoidFunctionComponent,
 } from "react";
-import { createPortal, render, unmountComponentAtNode } from "react-dom";
-import uuid from "uuid/v4";
-// @todo what to do about providing this
+import { createPortal } from "react-dom";
+import { v4 as uuid } from "uuid";
+import { NodeSpec, Schema } from "prosemirror-model";
+import { EditorProps, NodeView } from "prosemirror-view";
+
 import { defineBlock } from "./utils";
-import { baseSchemaConfig, renderPM } from "./sandbox";
-import { Schema } from "prosemirror-model";
+import { renderPM } from "./sandbox";
 import { RemoteBlock } from "../../components/RemoteBlock/RemoteBlock";
+import { baseSchemaConfig } from "./config";
 
 /**
  * @todo this API could possibly be simpler
@@ -43,14 +44,6 @@ const componentIdToName = (componentId: string) => {
   return stripped.slice(0, 1).toUpperCase() + stripped.slice(1);
 };
 
-interface NodeView {
-  update(node: any): void;
-}
-
-interface NodeViewConstructor {
-  new (node: any, view: any, getPos: any): NodeView;
-}
-
 export const addBlockMetadata = async (
   block: Omit<Block, "componentMetadata">
 ): Promise<Block> => {
@@ -61,31 +54,11 @@ export const addBlockMetadata = async (
   return { ...block, componentMetadata: metadata };
 };
 
-const Header: VoidFunctionComponent<{
-  color?: string;
-  level?: number;
-  editableRef?: RefCallback<HTMLElement>;
-  text: string;
-  onChange: (nextText: string) => void;
-}> = ({ color, level = 1, editableRef, text, onChange }) => {
-  // @todo set type here properly
-  const Header = `h${level}` as any;
-
-  return (
-    <div>
-      <Header
-        style={{ fontFamily: "Arial", color: color ?? "black" }}
-        ref={editableRef}
-      >
-        {text}
-      </Header>
-      <input
-        type="text"
-        value={text}
-        onChange={(evt) => onChange(evt.target.value)}
-      />
-    </div>
-  );
+type NodeViewConstructorArgs = Parameters<
+  NonNullable<EditorProps["nodeViews"]>[string]
+>;
+type NodeViewConstructor = {
+  new (...args: NodeViewConstructorArgs): NodeView;
 };
 
 const createNodeView = (
@@ -94,13 +67,18 @@ const createNodeView = (
   componentUrl: string,
   replacePortal: ReplacePortals
 ): NodeViewConstructor => {
-  const nodeView = class implements NodeView {
+  const nodeView = class BlockWrapper implements NodeView {
     dom: HTMLDivElement = document.createElement("div");
     contentDOM = document.createElement("div");
-    target = document.createElement("div");
+
+    private target = document.createElement("div");
 
     // @todo types
-    constructor(node: any, public view: any, public getPos: () => number) {
+    constructor(
+      node: NodeViewConstructorArgs[0],
+      public view: NodeViewConstructorArgs[1],
+      public getPos: NodeViewConstructorArgs[2]
+    ) {
       this.dom.setAttribute("data-dom", "true");
       this.contentDOM.setAttribute("data-contentDOM", "true");
       this.target.setAttribute("data-target", "true");
@@ -129,40 +107,6 @@ const createNodeView = (
               }}
             />
           );
-
-          // render(
-          //   <RemoteBlock
-          //     url={componentUrl}
-          //     {...node.attrs.props}
-          //     editableRef={(node: HTMLElement) => {
-          //       if (node && !node.contains(this.contentDOM)) {
-          //         node.appendChild(this.contentDOM);
-          //         this.contentDOM.style.display = "";
-          //       }
-          //     }}
-          //   />,
-          //   this.target
-          // );
-
-          // render(
-          //   <Header
-          //     editableRef={(node) => {
-          //       this.contentDOM = node || undefined;
-          //     }}
-          //     text={node.content.content?.[0]?.text ?? ""}
-          //     onChange={(nextText) => {
-          //       const tr = this.view.state.tr;
-          //       tr.replaceWith(
-          //         this.getPos() + 1,
-          //         node.nodeSize,
-          //         nextText ? this.view.state.schema.text(nextText) : []
-          //       );
-          //       this.view.dispatch(tr);
-          //     }}
-          //   />,
-          //   // <RemoteBlock url={componentId} {...node.attrs.props} />,
-          //   this.dom
-          // );
 
           return true;
         }
@@ -250,7 +194,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   // @todo needs to respond to changes to contents
   useEffect(() => {
     const nodeViews = contents.reduce<
-      Record<string, (node: any, view: any, getPos: any) => NodeView>
+      Record<string, (...args: NodeViewConstructorArgs) => NodeView>
     >((nodeViews, block) => {
       const name = componentIdToName(block.componentId);
 
@@ -261,31 +205,34 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
           `${block.componentId}/${block.componentMetadata.source}`,
           replacePortal
         );
-        nodeViews[name] = (node, view, getPos) =>
-          new NodeViewClass(node, view, getPos);
+        nodeViews[name] = (node, view, getPos, decorations) =>
+          new NodeViewClass(node, view, getPos, decorations);
       }
 
       return nodeViews;
     }, {});
 
     // @todo type this
-    const blocks = contents.reduce<Record<string, any>>((blocks, block) => {
-      const name = componentIdToName(block.componentId);
+    const blocks = contents.reduce<Record<string, NodeSpec>>(
+      (blocks, block) => {
+        const name = componentIdToName(block.componentId);
 
-      if (!blocks[name]) {
-        blocks[name] = defineBlock({
-          attrs: {
-            props: { default: {} },
-            meta: { default: block.componentMetadata },
-          },
-          // @todo infer this somehow
-          content: "text*",
-          marks: "",
-        });
-      }
+        if (!blocks[name]) {
+          blocks[name] = defineBlock({
+            attrs: {
+              props: { default: {} },
+              meta: { default: block.componentMetadata },
+            },
+            // @todo infer this somehow
+            content: "text*",
+            marks: "",
+          });
+        }
 
-      return blocks;
-    }, {});
+        return blocks;
+      },
+      {}
+    );
 
     const schema = new Schema({
       ...baseSchemaConfig,
@@ -314,7 +261,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       ]);
     });
 
-    const doc = schema.node("doc", null, mappedContents);
+    const doc = schema.node("doc", {}, mappedContents);
 
     const node = root.current;
 

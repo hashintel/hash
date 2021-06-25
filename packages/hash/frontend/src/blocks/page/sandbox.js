@@ -22,7 +22,7 @@ import { Schema } from "prosemirror-model";
 import { undoInputRule } from "prosemirror-inputrules";
 import { dropCursor } from "prosemirror-dropcursor";
 import { liftTarget, Mapping } from "prosemirror-transform";
-import applyDevTools from "prosemirror-dev-tools";
+import { baseSchemaConfig } from "./config";
 
 import styles from "./style.module.css";
 
@@ -512,62 +512,6 @@ class BlockView {
   }
 }
 
-export const baseSchemaConfig = {
-  nodes: {
-    doc: {
-      content: "(block|blockItem)+",
-    },
-    // @todo not sure i want this block to appear in the HTML
-    // @todo fix copy & paste
-    block: {
-      content: "blockItem",
-      // defining: true
-      // selectable: false,
-      toDOM: (node) => {
-        return [
-          "div",
-          {
-            "data-hash-type": "block",
-          },
-        ];
-      },
-      parseDOM: [
-        {
-          tag: 'div[data-hash-type="block"]',
-        },
-      ],
-    },
-    paragraph: defineBlock({
-      content: "text*",
-      toDOM: () => ["p", 0],
-      marks: "_",
-    }),
-    text: {},
-    // async: {
-    //   group: "blockItem",
-    //   attrs: {
-    //     asyncNodeType: { default: "" },
-    //     asyncNodeProps: { default: {} },
-    //   },
-    // },
-    // heading: defineBlock({
-    //   content: "text*",
-    //   toDOM: () => ["h3", 0],
-    //   marks: "",
-    // }),
-  },
-  marks: {
-    strong: {
-      toDOM: () => ["strong", 0],
-    },
-    em: {
-      toDOM: () => ["em", 0],
-    },
-    underlined: {
-      toDOM: () => ["u", 0],
-    },
-  },
-};
 const schema = new Schema(baseSchemaConfig);
 
 // const doc = schema.node("doc", null, [
