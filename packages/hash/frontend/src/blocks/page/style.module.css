@@ -46,7 +46,7 @@
     cursor: pointer;
 }
 
-.Block > :last-child {
+.Block__Content {
     flex: 1;
     height: 100%;
 }

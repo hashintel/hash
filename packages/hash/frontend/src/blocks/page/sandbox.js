@@ -299,6 +299,7 @@ class BlockView {
 
     this.contentDOM = document.createElement("div");
     this.dom.appendChild(this.contentDOM);
+    this.contentDOM.classList.add(styles.Block__Content);
 
     this.update(node);
   }
