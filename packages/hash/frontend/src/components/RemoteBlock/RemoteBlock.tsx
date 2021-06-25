@@ -2,6 +2,7 @@ import React, { VoidFunctionComponent } from "react";
 
 import { useRemoteBlock } from "./useRemoteBlock";
 import { HtmlBlock } from "../HtmlBlock/HtmlBlock";
+import { useBlockProtocolUpdate } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdate";
 
 type RemoteBlockProps = {
   url: string;
@@ -15,6 +16,7 @@ export const RemoteBlock: VoidFunctionComponent<RemoteBlockProps> = ({
   ...props
 }) => {
   const [loading, err, Component] = useRemoteBlock(url);
+  const { update } = useBlockProtocolUpdate();
 
   if (loading) {
     return <div>Loading...</div>;
@@ -25,8 +27,8 @@ export const RemoteBlock: VoidFunctionComponent<RemoteBlockProps> = ({
   }
 
   if (typeof Component === "string") {
-    return <HtmlBlock html={Component} />;
+    return <HtmlBlock html={Component} {...props} />;
   }
 
-  return <Component {...props} />;
+  return <Component update={update} {...props} />;
 };

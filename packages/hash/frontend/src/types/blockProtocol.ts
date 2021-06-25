@@ -1,21 +1,6 @@
-export type JSONValue =
-  | null
-  | boolean
-  | number
-  | string
-  | JSONValue[]
-  | { [key: string]: JSONValue };
-
-export interface JSONObject {
-  [key: string]: JSONValue;
-}
-export interface JSONArray extends Array<JSONValue> {}
-
-export type JSON = JSONObject | JSONArray;
-
 export type BlockProtocolUpdatePayload<T> = {
   entityType: string;
-  entityId: number | string;
+  entityId: string;
   data: T;
 };
 

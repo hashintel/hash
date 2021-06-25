@@ -1,7 +1,7 @@
 import { Definition, DefinitionOrBoolean } from "typescript-json-schema";
 
 export const getSchemaPropertyDefinition = (
-  schema: Definition,
+  schema: Definition = {},
   property: string
 ): Definition | null | undefined => {
   const keys = property.split(".");

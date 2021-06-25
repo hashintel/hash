@@ -1,5 +1,10 @@
-import { TableColumn } from "../App";
+import { Column } from "react-table";
+
 import { isRecord } from "./identifyEntity";
+
+type TableColumn = Column<Record<string, any>> & {
+  columns?: TableColumn[];
+};
 
 export const makeColumns = (
   data: Record<string, any>,

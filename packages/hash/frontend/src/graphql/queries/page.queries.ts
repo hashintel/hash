@@ -1,16 +1,16 @@
 import { gql } from "@apollo/client";
 
-export const getPageQuery = gql`
-  query getPage($pageId: ID!) {
-    page(id: $pageId) {
+const pageFieldsFragment = gql`
+  fragment PageFields on Page {
+    __typename
+    id
+    properties {
       __typename
-      id
-      properties {
-        __typename
-        archived
-        summary
-        title
-        contents {
+      archived
+      summary
+      title
+      contents {
+        properties {
           componentId
           entityType
           entity {
@@ -32,4 +32,39 @@ export const getPageQuery = gql`
       }
     }
   }
+`;
+
+export const getPageQuery = gql`
+  query getPage($pageId: ID!) {
+    page(id: $pageId) {
+      ...PageFields
+    }
+  }
+  ${pageFieldsFragment}
+`;
+
+export const createPage = gql`
+  mutation createPage(
+    $namespaceId: ID
+    $namespace: String
+    $properties: PageCreationData!
+  ) {
+    createPage(
+      namespaceId: $namespaceId
+      namespace: $namespace
+      properties: $properties
+    ) {
+      ...PageFields
+    }
+  }
+  ${pageFieldsFragment}
+`;
+
+export const updatePage = gql`
+  mutation updatePage($id: ID!, $properties: PageUpdateData!) {
+    updatePage(id: $id, properties: $properties) {
+      ...PageFields
+    }
+  }
+  ${pageFieldsFragment}
 `;

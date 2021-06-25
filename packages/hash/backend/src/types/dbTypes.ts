@@ -1,5 +1,6 @@
 import {
   Block,
+  BlockProperties,
   Org,
   Page,
   UnknownEntity,
@@ -12,8 +13,9 @@ import {
 
 export type DbEntity = DbBlock | DbPage | DbUnknownEntity | DbUser | DbOrg;
 
-export type DbBlock = Omit<Block, "entity" | "namespace"> & {
-  entityId: string;
+export type DbBlock = Omit<Block, "createdBy" | "entity" | "namespace" | "properties"> & {
+  createdById: string;
+  properties: Omit<BlockProperties, "entity">;
 };
 
 export type DbPage = Omit<
@@ -27,10 +29,11 @@ export type DbPage = Omit<
 
 export type DbUnknownEntity = Omit<
   UnknownEntity,
-  "namespace" | "createdBy" | "type"
+  "namespace" | "createdBy" | "type" | "__typename"
 > & {
   createdById: string;
   type: string;
+  __typename?: string;
 };
 
 export type DbUser = Omit<User, "type"> & { type: "User" };

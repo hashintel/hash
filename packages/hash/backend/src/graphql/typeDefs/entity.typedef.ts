@@ -1,11 +1,11 @@
 import { gql } from "apollo-server-express";
 
-export const entityTypedef = gql`  
+export const entityTypedef = gql`
   interface Entity {
     # These fields are repeated everywhere they're used because
     # (a) GQL requires it - https://github.com/graphql/graphql-spec/issues/533
     # (b) string interpolation breaks the code generator's introspection
-    # 
+    #
     # Could maybe use a custom schema loader to parse it ourselves:
     # https://www.graphql-code-generator.com/docs/getting-started/schema-field#custom-schema-loader
     #
@@ -19,7 +19,7 @@ export const entityTypedef = gql`
     """
     namespaceId: ID!
     """
-    The CHANGEABLE name/slug of the namespace (e.g. username). 
+    The CHANGEABLE name/slug of the namespace (e.g. username).
     """
     namespace: String!
     """
@@ -57,7 +57,7 @@ export const entityTypedef = gql`
     """
     namespaceId: ID!
     """
-    The CHANGEABLE name/slug of the namespace (e.g. username). 
+    The CHANGEABLE name/slug of the namespace (e.g. username).
     """
     namespace: String!
     """
@@ -90,13 +90,60 @@ export const entityTypedef = gql`
 
   extend type Query {
     entity(id: ID!): Entity!
+
+    """
+    Aggregate an entity
+    """
+    aggregateEntity(
+      type: String!
+      operation: AggregateOperationInput
+    ): AggregationResponse!
+  }
+
+  input AggregateOperationInput {
+    filter: FilterOperationInput
+    perPage: Int = 10
+    page: Int = 1
+    sort: String = updatedAt
+  }
+
+  input FilterOperationInput {
+    field: String!
+    value: String!
+  }
+
+  type AggregateOperation {
+    filter: FilterOperation
+    perPage: Int!
+    page: Int!
+    sort: String!
+  }
+
+  type FilterOperation {
+    field: String!
+    value: String!
+  }
+
+  type AggregationResponse {
+    operation: AggregateOperation
+    results: [Entity!]!
   }
 
   extend type Mutation {
     """
+    Create an entity
+    """
+    createEntity(
+      namespace: String
+      namespaceId: ID
+      properties: JSONObject!
+      type: String!
+    ): Entity!
+
+    """
     Update an entity
     """
-    updateEntity(id: ID!): Entity!
+    updateEntity(id: ID!, properties: JSONObject!): Entity!
   }
 
   """
@@ -123,7 +170,7 @@ export const entityTypedef = gql`
     """
     namespaceId: ID!
     """
-    The CHANGEABLE name/slug of the namespace (e.g. username). 
+    The CHANGEABLE name/slug of the namespace (e.g. username).
     """
     namespace: String!
     """

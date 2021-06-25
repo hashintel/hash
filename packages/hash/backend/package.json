@@ -12,15 +12,13 @@
   "scripts": {
     "dev": "export NODE_ENV=development && nodemon -r dotenv/config src/index.ts dotenv_config_path=.env.local",
     "build": "echo 'Compiling Typescript' && tsc",
+    "postinstall": "yarn codegen",
     "start": "export NODE_ENV=production && node dist/index.js",
     "lint": "eslint . --ext .ts",
     "codegen": "graphql-codegen --config codegen.yml # backend",
     "fmt": "find ./src/*.ts ./src/**/*.ts ./src/**/**/*.ts ./src/**/**/**/*.ts | xargs prettier --write",
     "ts-node": "node --max-old-space-size=2048 node_modules/.bin/ts-node --files --project tsconfig.json"
   },
-  "post-install": [
-    "codegen"
-  ],
   "dependencies": {
     "apollo-server-express": "2.24.1",
     "body-parser": "1.19.0",

@@ -1,18 +1,14 @@
-import React, { VoidFunctionComponent } from "react";
-import { Column, TableOptions, useTable } from "react-table";
+import React, { useMemo, VoidFunctionComponent } from "react";
+import {  TableOptions, useTable } from "react-table";
 import { EditableCell } from "./components/EditableCell";
+import { makeColumns } from "./lib/columns";
 import { getSchemaPropertyDefinition } from "./lib/getSchemaProperty";
 import { identityEntityAndProperty } from "./lib/identifyEntity";
 
 import "./styles.scss";
 import { BlockProtocolUpdateFn, JSONObject } from "./types/blockProtocol";
 
-export type TableColumn = Column<Record<string, any>> & {
-  columns?: TableColumn[];
-};
-
 type AppProps = {
-  columns: TableColumn[];
   data: Record<string, any>[];
   initialState?: TableOptions<{}>["initialState"];
   schemas?: Record<string, JSONObject>;
@@ -20,12 +16,13 @@ type AppProps = {
 };
 
 export const App: VoidFunctionComponent<AppProps> = ({
-  columns,
   data,
   initialState,
   schemas,
   update,
 }) => {
+  const columns = useMemo(() => makeColumns(data[0]), [data[0]]);
+
   const { getTableProps, getTableBodyProps, headerGroups, rows, prepareRow } =
     useTable({
       columns,
