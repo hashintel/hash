@@ -15,8 +15,8 @@ export type Block = {
   entityId: string;
   entity: Record<any, any>;
   componentId: string;
-  componentManifest: {
-    "main.js": string;
+  componentMetadata: {
+    source: string;
   };
 };
 
@@ -37,14 +37,14 @@ interface NodeViewConstructor {
   new (node: any, view: any, getPos: any): NodeView;
 }
 
-export const addBlockManifest = async (
-  block: Omit<Block, "componentManifest">
-) => {
-  const manifest = await (
-    await fetch(`${block.componentId}/manifest.json`)
+export const addBlockMetadata = async (
+  block: Omit<Block, "componentMetadata">
+): Promise<Block> => {
+  const metadata = await (
+    await fetch(`${block.componentId}/metadata.json`)
   ).json();
 
-  return { ...block, componentManifest: manifest };
+  return { ...block, componentMetadata: metadata };
 };
 
 const Header: VoidFunctionComponent<{
@@ -184,7 +184,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
         const NodeViewClass = createNodeView(
           name,
           block.componentId,
-          `${block.componentId}/${block.componentManifest["main.js"]}`
+          `${block.componentId}/${block.componentMetadata.source}`
         );
         nodeViews[name] = (node, view, getPos) =>
           new NodeViewClass(node, view, getPos);
