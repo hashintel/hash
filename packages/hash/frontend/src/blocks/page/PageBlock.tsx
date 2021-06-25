@@ -1,7 +1,6 @@
 import React, {
   RefCallback,
   useEffect,
-  useLayoutEffect,
   useRef,
   VoidFunctionComponent,
 } from "react";
@@ -11,12 +10,14 @@ import { defineBlock } from "./utils";
 import { baseSchemaConfig, renderPM } from "./sandbox";
 import { Schema } from "prosemirror-model";
 import { RemoteBlock } from "../../components/RemoteBlock/RemoteBlock";
-import { util } from "prismjs";
 
-type Block = {
+export type Block = {
   entityId: string;
   entity: Record<any, any>;
   componentId: string;
+  componentManifest: {
+    "main.js": string;
+  };
 };
 
 type PageBlockProps = {
@@ -35,6 +36,16 @@ interface NodeView {
 interface NodeViewConstructor {
   new (node: any, view: any, getPos: any): NodeView;
 }
+
+export const addBlockManifest = async (
+  block: Omit<Block, "componentManifest">
+) => {
+  const manifest = await (
+    await fetch(`${block.componentId}/manifest.json`)
+  ).json();
+
+  return { ...block, componentManifest: manifest };
+};
 
 const Header: VoidFunctionComponent<{
   color?: string;
@@ -65,7 +76,8 @@ const Header: VoidFunctionComponent<{
 
 const createNodeView = (
   name: string,
-  componentId: string
+  componentId: string,
+  componentUrl: string
 ): NodeViewConstructor => {
   const nodeView = class implements NodeView {
     dom: HTMLDivElement = document.createElement("div");
@@ -90,7 +102,7 @@ const createNodeView = (
         if (node.type.name === name) {
           render(
             <RemoteBlock
-              url={componentId}
+              url={componentUrl}
               {...node.attrs.props}
               editableRef={(node: HTMLElement) => {
                 if (node && !node.contains(this.contentDOM)) {
@@ -169,7 +181,11 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       const name = componentIdToName(block.componentId);
 
       if (!nodeViews[name]) {
-        const NodeViewClass = createNodeView(name, block.componentId);
+        const NodeViewClass = createNodeView(
+          name,
+          block.componentId,
+          `${block.componentId}/${block.componentManifest["main.js"]}`
+        );
         nodeViews[name] = (node, view, getPos) =>
           new NodeViewClass(node, view, getPos);
       }
