@@ -1,15 +1,29 @@
 import React, {
+  Fragment,
+  ReactNode,
   RefCallback,
+  useCallback,
   useEffect,
   useRef,
+  useState,
   VoidFunctionComponent,
 } from "react";
-import { render } from "react-dom";
+import { createPortal, render, unmountComponentAtNode } from "react-dom";
+import uuid from "uuid/v4";
 // @todo what to do about providing this
 import { defineBlock } from "./utils";
 import { baseSchemaConfig, renderPM } from "./sandbox";
 import { Schema } from "prosemirror-model";
 import { RemoteBlock } from "../../components/RemoteBlock/RemoteBlock";
+
+/**
+ * @todo this API could possibly be simpler
+ */
+type ReplacePortals = (
+  existingNode: HTMLElement | null,
+  nextNode: HTMLElement | null,
+  reactNode: ReactNode | null
+) => void;
 
 export type Block = {
   entityId: string;
@@ -77,7 +91,8 @@ const Header: VoidFunctionComponent<{
 const createNodeView = (
   name: string,
   componentId: string,
-  componentUrl: string
+  componentUrl: string,
+  replacePortal: ReplacePortals
 ): NodeViewConstructor => {
   const nodeView = class implements NodeView {
     dom: HTMLDivElement = document.createElement("div");
@@ -100,7 +115,9 @@ const createNodeView = (
     update(node: any) {
       if (node) {
         if (node.type.name === name) {
-          render(
+          replacePortal(
+            this.target,
+            this.target,
             <RemoteBlock
               url={componentUrl}
               {...node.attrs.props}
@@ -110,9 +127,22 @@ const createNodeView = (
                   this.contentDOM.style.display = "";
                 }
               }}
-            />,
-            this.target
+            />
           );
+
+          // render(
+          //   <RemoteBlock
+          //     url={componentUrl}
+          //     {...node.attrs.props}
+          //     editableRef={(node: HTMLElement) => {
+          //       if (node && !node.contains(this.contentDOM)) {
+          //         node.appendChild(this.contentDOM);
+          //         this.contentDOM.style.display = "";
+          //       }
+          //     }}
+          //   />,
+          //   this.target
+          // );
 
           // render(
           //   <Header
@@ -143,6 +173,7 @@ const createNodeView = (
 
     destroy() {
       this.dom.remove();
+      replacePortal(this.target, null, null);
     }
 
     // @todo type this
@@ -168,10 +199,53 @@ const createNodeView = (
   return nodeView;
 };
 
+type PortalSet = Map<HTMLElement, { key: string; reactNode: ReactNode }>;
+
 export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   contents,
 }) => {
   const root = useRef<HTMLDivElement>(null);
+  const [portals, setPortals] = useState<PortalSet>(new Map());
+
+  const portalQueue = useRef<((set: PortalSet) => void)[]>([]);
+  const portalQueueTimeout =
+    useRef<ReturnType<typeof setImmediate> | null>(null);
+
+  const replacePortal = useCallback<ReplacePortals>(
+    (existingNode, nextNode, reactNode) => {
+      if (portalQueueTimeout.current !== null) {
+        clearImmediate(portalQueueTimeout.current);
+      }
+
+      portalQueue.current.push((nextPortals) => {
+        if (existingNode && existingNode !== nextNode) {
+          nextPortals.delete(existingNode);
+        }
+
+        if (nextNode && reactNode) {
+          const key = nextPortals.get(nextNode)?.key ?? uuid();
+
+          nextPortals.set(nextNode, { key, reactNode });
+        }
+      });
+
+      portalQueueTimeout.current = setImmediate(() => {
+        const queue = portalQueue.current;
+        portalQueue.current = [];
+
+        setPortals((portals) => {
+          const nextPortals = new Map(portals);
+
+          for (const cb of queue) {
+            cb(nextPortals);
+          }
+
+          return nextPortals;
+        });
+      });
+    },
+    []
+  );
 
   // @todo needs to respond to changes to contents
   useEffect(() => {
@@ -184,7 +258,8 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
         const NodeViewClass = createNodeView(
           name,
           block.componentId,
-          `${block.componentId}/${block.componentMetadata.source}`
+          `${block.componentId}/${block.componentMetadata.source}`,
+          replacePortal
         );
         nodeViews[name] = (node, view, getPos) =>
           new NodeViewClass(node, view, getPos);
@@ -199,7 +274,10 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
 
       if (!blocks[name]) {
         blocks[name] = defineBlock({
-          attrs: { props: { default: {} } },
+          attrs: {
+            props: { default: {} },
+            meta: { default: block.componentMetadata },
+          },
           // @todo infer this somehow
           content: "text*",
           marks: "",
@@ -223,7 +301,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       return schema.node("block", {}, [
         schema.node(
           componentIdToName(block.componentId),
-          { props },
+          { props, meta: block.componentMetadata },
           children.map((child: any) => {
             if (child.type === "text") {
               return schema.text(child.text);
@@ -239,6 +317,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     const doc = schema.node("doc", null, mappedContents);
 
     const node = root.current;
+
     if (node) {
       renderPM(node, doc, { nodeViews });
 
@@ -248,5 +327,12 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     }
   }, []);
 
-  return <div id="root" ref={root} />;
+  return (
+    <>
+      <div id="root" ref={root} />
+      {Array.from(portals.entries()).map(([target, { key, reactNode }]) => (
+        <Fragment key={key}>{createPortal(reactNode, target)}</Fragment>
+      ))}
+    </>
+  );
 };

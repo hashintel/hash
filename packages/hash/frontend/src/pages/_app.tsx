@@ -1,3 +1,6 @@
+// @todo have webpack polyfill this
+require("setimmediate");
+
 import { AppProps } from "next/dist/next-server/lib/router/router";
 import { ApolloProvider } from "@apollo/client/react";
 import { createApolloClient } from "../graphql/createApolloClient";

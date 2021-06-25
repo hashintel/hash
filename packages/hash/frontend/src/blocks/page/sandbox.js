@@ -395,6 +395,7 @@ class BlockView {
     }
 
     // @todo need to find a better way of calling into React without including it in the bundle
+    // @todo use a portal for this
     render(
       <>
         <div
@@ -475,18 +476,26 @@ class BlockView {
           <option disabled value="change">
             Change type
           </option>
-          {["heading", "paragraph", "image"]
-            // .filter((type) => type !== node.type.name)
-            .map((type) => (
+          {/**
+           @todo this list needs to be generated dynamically
+           */}
+          {["header", "paragraph", "image"].map((type) => {
+            const exists = Object.values(view.state.schema.nodes).some(
+              (node) => {
+                return (node.defaultAttrs.meta?.name ?? node.name) === type;
+              }
+            );
+            return (
               <option
                 value={type}
                 key={type}
-                disabled={type === node.type.name}
+                disabled={type === (node.attrs.meta?.name ?? node.type.name)}
               >
                 {type}
-                {view.state.schema.nodes[type] ? "" : "*"}
+                {exists ? "" : "*"}
               </option>
-            ))}
+            );
+          })}
         </select>
       </>,
       container
@@ -842,7 +851,8 @@ export const renderPM = (node, content, viewProps) => {
 
   view.dom.classList.add(styles.ProseMirror);
 
-  applyDevTools(view);
+  // @todo figure out how to use dev tools without it breaking fast refresh
+  // applyDevTools(view);
 
   return view;
 };
