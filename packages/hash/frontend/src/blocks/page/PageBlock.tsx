@@ -11,6 +11,7 @@ import { createPortal } from "react-dom";
 import { v4 as uuid } from "uuid";
 import { NodeSpec, Schema } from "prosemirror-model";
 import { EditorProps, NodeView } from "prosemirror-view";
+import { Schema as JSONSchema } from "jsonschema";
 
 import { defineBlock } from "./utils";
 import { renderPM } from "./sandbox";
@@ -26,6 +27,7 @@ type ReplacePortals = (
   reactNode: ReactNode | null
 ) => void;
 
+// @todo this type properly exists already somewhere
 export type Block = {
   entityId: string;
   entity: Record<any, any>;
@@ -33,6 +35,7 @@ export type Block = {
   componentMetadata: {
     source: string;
   };
+  componentSchema: JSONSchema;
 };
 
 type PageBlockProps = {
@@ -45,13 +48,17 @@ const componentIdToName = (componentId: string) => {
 };
 
 export const addBlockMetadata = async (
-  block: Omit<Block, "componentMetadata">
+  block: Omit<Block, "componentMetadata" | "componentSchema">
 ): Promise<Block> => {
   const metadata = await (
     await fetch(`${block.componentId}/metadata.json`)
   ).json();
 
-  return { ...block, componentMetadata: metadata };
+  const schema = await (
+    await fetch(`${block.componentId}/${metadata.schema}`)
+  ).json();
+
+  return { ...block, componentMetadata: metadata, componentSchema: schema };
 };
 
 type NodeViewConstructorArgs = Parameters<
@@ -63,13 +70,15 @@ type NodeViewConstructor = {
 
 const createNodeView = (
   name: string,
-  componentId: string,
-  componentUrl: string,
+  block: Block,
+  url: string,
   replacePortal: ReplacePortals
 ): NodeViewConstructor => {
+  const editable = block.componentSchema.properties?.["editableRef"];
+
   const nodeView = class BlockWrapper implements NodeView {
     dom: HTMLDivElement = document.createElement("div");
-    contentDOM = document.createElement("div");
+    contentDOM: HTMLElement | undefined = undefined;
 
     private target = document.createElement("div");
 
@@ -80,11 +89,16 @@ const createNodeView = (
       public getPos: NodeViewConstructorArgs[2]
     ) {
       this.dom.setAttribute("data-dom", "true");
-      this.contentDOM.setAttribute("data-contentDOM", "true");
+
+      if (editable) {
+        this.contentDOM = document.createElement("div");
+        this.contentDOM.setAttribute("data-contentDOM", "true");
+        this.contentDOM.style.display = "none";
+        this.dom.appendChild(this.contentDOM);
+      }
+
       this.target.setAttribute("data-target", "true");
 
-      this.dom.appendChild(this.contentDOM);
-      this.contentDOM.style.display = "none";
       this.dom.appendChild(this.target);
 
       this.update(node);
@@ -97,14 +111,22 @@ const createNodeView = (
             this.target,
             this.target,
             <RemoteBlock
-              url={componentUrl}
+              url={url}
               {...node.attrs.props}
-              editableRef={(node: HTMLElement) => {
-                if (node && !node.contains(this.contentDOM)) {
-                  node.appendChild(this.contentDOM);
-                  this.contentDOM.style.display = "";
-                }
-              }}
+              {...(editable
+                ? {
+                    editableRef: (node: HTMLElement) => {
+                      if (
+                        this.contentDOM &&
+                        node &&
+                        !node.contains(this.contentDOM)
+                      ) {
+                        node.appendChild(this.contentDOM);
+                        this.contentDOM.style.display = "";
+                      }
+                    },
+                  }
+                : {})}
             />
           );
 
@@ -201,7 +223,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       if (!nodeViews[name]) {
         const NodeViewClass = createNodeView(
           name,
-          block.componentId,
+          block,
           `${block.componentId}/${block.componentMetadata.source}`,
           replacePortal
         );
@@ -223,9 +245,13 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
               props: { default: {} },
               meta: { default: block.componentMetadata },
             },
-            // @todo infer this somehow
-            content: "text*",
-            marks: "",
+            ...(block.componentSchema.properties?.["editableRef"]
+              ? {
+                  // @todo infer this somehow
+                  content: "text*",
+                  marks: "",
+                }
+              : {}),
           });
         }
 
@@ -249,14 +275,14 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
         schema.node(
           componentIdToName(block.componentId),
           { props, meta: block.componentMetadata },
-          children.map((child: any) => {
+          children?.map((child: any) => {
             if (child.type === "text") {
               return schema.text(child.text);
             }
 
             // @todo recursive nodes
             throw new Error("unrecognised child");
-          })
+          }) ?? []
         ),
       ]);
     });

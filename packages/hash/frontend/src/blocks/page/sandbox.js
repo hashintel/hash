@@ -26,7 +26,6 @@ import { baseSchemaConfig } from "./config";
 import styles from "./style.module.css";
 
 import "prosemirror-view/style/prosemirror.css";
-import { defineBlock } from "./utils";
 
 // @todo maybe don't need this to be abstracted
 const selectNode = (tr, pos, newNode) => {
@@ -70,59 +69,6 @@ function defineNewNodeView(view, name, spec, nodeView) {
   });
 }
 
-class ImageView {
-  constructor(node) {
-    this.dom = document.createElement("div");
-
-    const img = document.createElement("img");
-    this.img = img;
-    this.dom.appendChild(img);
-
-    this.update(node);
-  }
-
-  update(node) {
-    if (node) {
-      if (node.type.name === "image") {
-        this.img.src = node.attrs.src;
-
-        if (node.attrs.width != null) {
-          this.img.width = `${node.attrs.width}px`;
-        }
-
-        if (node.attrs.height != null) {
-          this.img.height = `${node.attrs.height}px`;
-        }
-
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  destroy() {
-    this.dom.remove();
-  }
-
-  stopEvent(evt) {
-    if (evt.type === "dragstart") {
-      evt.preventDefault();
-    }
-
-    return true;
-  }
-
-  // stopEvent(e) {
-  //   return (
-  //     (e.type === "mousedown" &&
-  //       e.target !== this.dom &&
-  //       !this.dom.contains(e.target)) ||
-  //     !/drag/.test(e.type)
-  //   );
-  // }
-}
-
 const ASYNC_DELAY = 1_000;
 
 const fetchNodeType = (nodeType, signal) =>
@@ -137,42 +83,6 @@ const fetchNodeType = (nodeType, signal) =>
     }
 
     switch (nodeType) {
-      case "image":
-        return {
-          nodeView: ImageView,
-          spec: defineBlock({
-            attrs: {
-              src: { default: "https://via.placeholder.com/350x150" },
-              width: { default: null },
-              height: { default: null },
-            },
-            marks: "",
-            toDOM: (node) => {
-              return [
-                "img",
-                {
-                  src: node.attrs.src,
-                  width: node.attrs.width,
-                  height: node.attrs.height,
-                },
-              ];
-            },
-            parseDOM: [
-              {
-                tag: "img",
-                getAttrs(dom) {
-                  const res = {
-                    src: dom.getAttribute("src"),
-                    width: dom.offsetWidth,
-                    height: dom.offsetHeight,
-                  };
-                  return res;
-                },
-              },
-            ],
-          }),
-        };
-
       default:
         throw new Error("Cannot resolve node type " + nodeType);
     }

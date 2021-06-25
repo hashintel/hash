@@ -5,5 +5,10 @@
     "entity": {
       "children": [{ "type": "text", "text": "Your first document" }]
     }
+  },
+  {
+    "componentId": "http://localhost:62511",
+    "entityId": "pageImage",
+    "entity": {}
   }
 ]
