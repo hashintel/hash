@@ -266,7 +266,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     const node = root.current;
 
     if (node) {
-      renderPM(node, doc, { nodeViews });
+      renderPM(node, doc, { nodeViews }, replacePortal);
 
       return () => {
         node.innerHTML = "";

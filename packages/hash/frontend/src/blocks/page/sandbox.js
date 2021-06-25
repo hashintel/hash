@@ -6,7 +6,6 @@
  */
 
 import React from "react";
-import { render } from "react-dom";
 
 import {
   EditorState,
@@ -281,9 +280,10 @@ class AsyncView {
 }
 
 class BlockView {
-  constructor(node, view, getPos) {
+  constructor(node, view, getPos, replacePortal) {
     this.getPos = getPos;
     this.view = view;
+    this.replacePortal = replacePortal;
 
     this.dom = document.createElement("div");
     this.dom.classList.add(styles.Block);
@@ -357,14 +357,13 @@ class BlockView {
   }
 
   ignoreMutation(record) {
-    if (
-      record.type === "attributes" &&
-      record.attributeName === "class" &&
-      record.target === this.dom
-    ) {
-      return true;
-    }
-    return false;
+    return (
+      (record.type === "attributes" &&
+        record.attributeName === "class" &&
+        record.target === this.dom) ||
+      record.target === this.selectContainer ||
+      this.selectContainer.contains(record.target)
+    );
   }
 
   update(blockNode) {
@@ -396,7 +395,9 @@ class BlockView {
 
     // @todo need to find a better way of calling into React without including it in the bundle
     // @todo use a portal for this
-    render(
+    this.replacePortal(
+      container,
+      container,
       <>
         <div
           className={styles.Block__Handle}
@@ -497,8 +498,7 @@ class BlockView {
             );
           })}
         </select>
-      </>,
-      container
+      </>
     );
 
     return true;
@@ -507,6 +507,7 @@ class BlockView {
   }
 
   destroy() {
+    this.replacePortal(this.selectContainer, null, null);
     this.dom.remove();
     document.removeEventListener("dragend", this.dragEnd);
   }
@@ -773,8 +774,9 @@ const editorStateConfig = { plugins, schema };
  * @param node {HTMLElement}
  * @param content {any}
  * @param viewProps {any}
+ * @param replacePortal {Function}
  */
-export const renderPM = (node, content, viewProps) => {
+export const renderPM = (node, content, viewProps, replacePortal) => {
   // const docContent = { type: "doc", content };
   // const state = EditorState.fromJSON(editorStateConfig, {
   //   doc: docContent,
@@ -788,7 +790,7 @@ export const renderPM = (node, content, viewProps) => {
     nodeViews: {
       ...viewProps.nodeViews,
       block(node, view, getPos) {
-        return new BlockView(node, view, getPos);
+        return new BlockView(node, view, getPos, replacePortal);
       },
     },
   });
