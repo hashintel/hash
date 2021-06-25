@@ -10,7 +10,7 @@
   },
   "main": "src/index.ts",
   "scripts": {
-    "dev": "export NODE_ENV=development && nodemon",
+    "dev": "export NODE_ENV=development && nodemon -r dotenv/config src/index.ts dotenv_config_path=.env.local",
     "build": "echo 'Compiling Typescript' && tsc",
     "start": "export NODE_ENV=production && node dist/index.js",
     "lint": "eslint . --ext .ts",
@@ -27,7 +27,8 @@
     "express": "4.17.1",
     "graphql": "15.5.0",
     "graphql-type-json": "0.3.2",
-    "helmet": "4.6.0"
+    "helmet": "4.6.0",
+    "pg": "8.6.0"
   },
   "devDependencies": {
     "@graphql-codegen/cli": "1.21.4",
@@ -36,8 +37,10 @@
     "@graphql-codegen/typescript-resolvers": "1.19.2",
     "@typescript-eslint/eslint-plugin": "4.25.0",
     "@typescript-eslint/parser": "4.25.0",
+    "@types/pg": "8.6.0",
     "eslint": "7.27.0",
     "eslint-config-prettier": "8.3.0",
+    "dotenv": "10.0.0",
     "nodemon": "2.0.7",
     "prettier": "2.3.0",
     "ts-node": "10.0.0",
