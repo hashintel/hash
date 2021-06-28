@@ -9,12 +9,12 @@ import React, {
 } from "react";
 import { createPortal } from "react-dom";
 import { v4 as uuid } from "uuid";
-import { NodeSpec, Schema } from "prosemirror-model";
+import { Schema } from "prosemirror-model";
 import { EditorProps, NodeView } from "prosemirror-view";
 import { Schema as JSONSchema } from "jsonschema";
 
 import { defineBlock } from "./utils";
-import { renderPM } from "./sandbox";
+import { createState, defineNewNodeView, renderPM } from "./sandbox";
 import { RemoteBlock } from "../../components/RemoteBlock/RemoteBlock";
 import { baseSchemaConfig } from "./config";
 
@@ -213,60 +213,62 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     []
   );
 
+  useEffect(() => {
+    return () => {
+      if (portalQueueTimeout.current !== null) {
+        clearImmediate(portalQueueTimeout.current);
+      }
+    };
+  }, []);
+
   // @todo needs to respond to changes to contents
   useEffect(() => {
-    const nodeViews = contents.reduce<
-      Record<string, (...args: NodeViewConstructorArgs) => NodeView>
-    >((nodeViews, block) => {
-      const name = componentIdToName(block.componentId);
+    const schema = new Schema(baseSchemaConfig);
 
-      if (!nodeViews[name]) {
-        const NodeViewClass = createNodeView(
-          name,
-          block,
-          `${block.componentId}/${block.componentMetadata.source}`,
-          replacePortal
-        );
-        nodeViews[name] = (node, view, getPos, decorations) =>
-          new NodeViewClass(node, view, getPos, decorations);
-      }
-
-      return nodeViews;
-    }, {});
-
-    // @todo type this
-    const blocks = contents.reduce<Record<string, NodeSpec>>(
-      (blocks, block) => {
-        const name = componentIdToName(block.componentId);
-
-        if (!blocks[name]) {
-          blocks[name] = defineBlock({
-            attrs: {
-              props: { default: {} },
-              meta: { default: block.componentMetadata },
-            },
-            ...(block.componentSchema.properties?.["editableRef"]
-              ? {
-                  // @todo infer this somehow
-                  content: "text*",
-                  marks: "",
-                }
-              : {}),
-          });
-        }
-
-        return blocks;
-      },
-      {}
+    const view = renderPM(
+      root.current!,
+      // @todo come up with an easier way to create a blank state to start with
+      schema.node("doc", {}, [
+        schema.node("block", {}, [schema.node("paragraph", {}, [])]),
+      ]),
+      { nodeViews: {} },
+      replacePortal
     );
 
-    const schema = new Schema({
-      ...baseSchemaConfig,
-      nodes: {
-        ...baseSchemaConfig.nodes,
-        ...blocks,
-      },
-    });
+    for (const block of contents) {
+      const name = componentIdToName(block.componentId);
+
+      if (schema.nodes[name]) {
+        continue;
+      }
+      const NodeViewClass = createNodeView(
+        name,
+        block,
+        `${block.componentId}/${block.componentMetadata.source}`,
+        replacePortal
+      );
+      const spec = defineBlock({
+        attrs: {
+          props: { default: {} },
+          meta: { default: block.componentMetadata },
+        },
+        ...(block.componentSchema.properties?.["editableRef"]
+          ? {
+              // @todo infer this somehow
+              content: "text*",
+              marks: "",
+            }
+          : {}),
+      });
+
+      defineNewNodeView(
+        view,
+        name,
+        spec,
+        (node: any, view: any, getPos: any, decorations: any) =>
+          new NodeViewClass(node, view, getPos, decorations)
+      );
+    }
 
     const mappedContents = contents.map((block) => {
       const { children, ...props } = block.entity;
@@ -287,17 +289,15 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       ]);
     });
 
-    const doc = schema.node("doc", {}, mappedContents);
+    view.setProps({
+      state: createState(schema.node("doc", {}, mappedContents)),
+    });
 
-    const node = root.current;
+    const node = root.current!;
 
-    if (node) {
-      renderPM(node, doc, { nodeViews }, replacePortal);
-
-      return () => {
-        node.innerHTML = "";
-      };
-    }
+    return () => {
+      node.innerHTML = "";
+    };
   }, []);
 
   return (

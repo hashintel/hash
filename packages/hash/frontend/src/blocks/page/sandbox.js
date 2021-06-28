@@ -39,7 +39,7 @@ const selectNode = (tr, pos, newNode) => {
 const historyPlugin = history();
 const infiniteGroupHistoryPlugin = history({ newGroupDelay: Infinity });
 
-function defineNewNodeView(view, name, spec, nodeView) {
+export function defineNewNodeView(view, name, spec, nodeViewConstructor) {
   const existingSchema = view.state.schema;
   const existingSchemaSpec = existingSchema.spec;
 
@@ -64,7 +64,7 @@ function defineNewNodeView(view, name, spec, nodeView) {
   view.setProps({
     nodeViews: {
       ...view.nodeViews,
-      [name]: (node, view, getPos) => new nodeView(node, view, getPos),
+      [name]: nodeViewConstructor,
     },
   });
 }
@@ -138,7 +138,12 @@ class AsyncView {
             node.attrs.asyncNodeType,
             this.controller.signal
           ).then(({ spec, nodeView }) => {
-            defineNewNodeView(view, node.attrs.asyncNodeType, spec, nodeView);
+            defineNewNodeView(
+              view,
+              node.attrs.asyncNodeType,
+              spec,
+              (node, view, getPos) => new nodeView(node, view, getPos)
+            );
 
             return Promise.reject("skip");
           });
@@ -678,7 +683,8 @@ export const plugins = [
   }),
 ];
 
-const editorStateConfig = { plugins, schema };
+export const createState = (content) =>
+  EditorState.create({ doc: content, plugins });
 
 /**
  * @param node {HTMLElement}
@@ -693,9 +699,8 @@ export const renderPM = (node, content, viewProps, replacePortal) => {
   //   selection: { anchor: 2, head: 2, type: "text" },
   // });
 
-  const state = EditorState.create({ doc: content, plugins });
   const view = new EditorView(node, {
-    state,
+    state: createState(content),
     ...viewProps,
     nodeViews: {
       ...viewProps.nodeViews,
