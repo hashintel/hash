@@ -1,3 +1,0 @@
-# Local postgres data
-postgres/pgdata/*
-!postgres/pgdata/.keep
