@@ -31,13 +31,15 @@ export const baseSchemaConfig = {
       marks: "_",
     }),
     text: {},
-    // async: {
-    //   group: "blockItem",
-    //   attrs: {
-    //     asyncNodeType: { default: "" },
-    //     asyncNodeProps: { default: {} },
-    //   },
-    // },
+    async: {
+      group: "blockItem",
+      attrs: {
+        asyncNodeId: { default: null },
+        asyncNodeDisplayName: { default: null },
+        asyncNodeProps: { default: {} },
+        asyncNodeUrl: { default: null },
+      },
+    },
     // heading: defineBlock({
     //   content: "text*",
     //   toDOM: () => ["h3", 0],

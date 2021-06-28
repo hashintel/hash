@@ -1,14 +1,1 @@
-[
-  {
-    "componentId": "http://localhost:5000",
-    "entityId": "pageTitle123",
-    "entity": {
-      "children": [{ "type": "text", "text": "Your first document" }]
-    }
-  },
-  {
-    "componentId": "http://localhost:60546",
-    "entityId": "pageImage",
-    "entity": {}
-  }
-]
+null

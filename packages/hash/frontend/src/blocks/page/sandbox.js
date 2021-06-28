@@ -26,6 +26,8 @@ import { baseSchemaConfig } from "./config";
 import styles from "./style.module.css";
 
 import "prosemirror-view/style/prosemirror.css";
+import { componentIdToName, createNodeView, fetchBlockMeta } from "./tsUtils";
+import { defineBlock } from "./utils";
 
 // @todo maybe don't need this to be abstracted
 const selectNode = (tr, pos, newNode) => {
@@ -39,12 +41,21 @@ const selectNode = (tr, pos, newNode) => {
 const historyPlugin = history();
 const infiniteGroupHistoryPlugin = history({ newGroupDelay: Infinity });
 
-export function defineNewNodeView(view, name, spec, nodeViewConstructor) {
+const nameToIdMap = new Map();
+
+export function defineNewNodeView(
+  view,
+  displayName,
+  id,
+  spec,
+  nodeViewConstructor
+) {
+  nameToIdMap.set(displayName, id);
   const existingSchema = view.state.schema;
   const existingSchemaSpec = existingSchema.spec;
 
   // @todo fix marks
-  existingSchemaSpec.nodes.content.push(name, spec);
+  existingSchemaSpec.nodes.content.push(id, spec);
 
   new (class extends Schema {
     get nodes() {
@@ -64,37 +75,19 @@ export function defineNewNodeView(view, name, spec, nodeViewConstructor) {
   view.setProps({
     nodeViews: {
       ...view.nodeViews,
-      [name]: nodeViewConstructor,
+      [id]: nodeViewConstructor,
     },
   });
 }
 
-const ASYNC_DELAY = 1_000;
-
-const fetchNodeType = (nodeType, signal) =>
-  new Promise((resolve) => {
-    setTimeout(resolve, ASYNC_DELAY);
-  }).then(() => {
-    if (signal && signal.aborted) {
-      // @todo check this
-      const err = new Error("AbortError");
-      err.name = "AbortError";
-      throw err;
-    }
-
-    switch (nodeType) {
-      default:
-        throw new Error("Cannot resolve node type " + nodeType);
-    }
-  });
-
 class AsyncView {
-  constructor(node, view, getPos) {
+  constructor(node, view, getPos, replacePortal) {
     this.dom = document.createElement("div");
     this.contentDOM = document.createElement("span");
     this.dom.appendChild(this.contentDOM);
     this.view = view;
     this.getPos = getPos;
+    this.replacePortal = replacePortal;
     this.update(node);
   }
 
@@ -133,23 +126,81 @@ class AsyncView {
         const existingSchema = view.state.schema;
         const existingSchemaSpec = existingSchema.spec;
 
-        if (existingSchemaSpec.nodes.find(node.attrs.asyncNodeType) === -1) {
-          return fetchNodeType(
-            node.attrs.asyncNodeType,
-            this.controller.signal
-          ).then(({ spec, nodeView }) => {
-            defineNewNodeView(
-              view,
-              node.attrs.asyncNodeType,
-              spec,
-              (node, view, getPos) => new nodeView(node, view, getPos)
-            );
+        const id =
+          node.attrs.asyncNodeId ??
+          (node.attrs.asyncNodeUrl
+            ? componentIdToName(node.attrs.asyncNodeUrl)
+            : null);
 
-            return Promise.reject("skip");
-          });
+        if (!id || existingSchemaSpec.nodes.find(id) === -1) {
+          if (node.attrs.asyncNodeUrl) {
+            return fetchBlockMeta(
+              node.attrs.asyncNodeUrl,
+              this.controller.signal
+            )
+              .then(({ componentMetadata, componentSchema }) => {
+                // @todo reduce duplication
+                const NodeViewClass = createNodeView(
+                  id,
+                  componentSchema,
+                  `${componentMetadata.url}/${componentMetadata.source}`,
+                  this.replacePortal
+                );
+
+                defineNewNodeView(
+                  view,
+                  componentMetadata.name,
+                  id,
+                  defineBlock({
+                    attrs: {
+                      props: { default: {} },
+                      meta: { default: componentMetadata },
+                    },
+                    ...(componentSchema.properties?.["editableRef"]
+                      ? {
+                          // @todo infer this somehow
+                          content: "text*",
+                          marks: "",
+                        }
+                      : {}),
+                  }),
+                  (node, view, getPos, decorations) => {
+                    return new NodeViewClass(node, view, getPos, decorations);
+                  }
+                );
+
+                return id;
+              })
+              .catch((err) => {
+                console.error("bang", err);
+                throw err;
+              });
+          } else {
+            // @todo remove the node in this instance
+            throw new Error("Invalid async node");
+          }
+        } else {
+          return id;
         }
+
+        // if (node.attrs.asyncNodeId && existingSchemaSpec.nodes.find(node.attrs.asyncNodeId) === -1) {
+        //   return fetchNodeType(
+        //     node.attrs.asyncNodeId,
+        //     this.controller.signal
+        //   ).then(({ spec, nodeView }) => {
+        //     defineNewNodeView(
+        //       view,
+        //       node.attrs.asyncNodeDisplayName,
+        //       node.attrs.asyncNodeId,
+        //       spec,
+        //       (node, view, getPos) => new nodeView(node, view, getPos)
+        //     );
+        //
+        //     return Promise.reject("skip");
+        //   });
+        // }
       })
-      .then(() => {
+      .then((id) => {
         if (this.controller.signal.aborted) {
           return;
         }
@@ -157,9 +208,7 @@ class AsyncView {
         const pos = this.getPos();
         const tr = view.state.tr;
 
-        const newNode = view.state.schema.nodes[
-          node.attrs.asyncNodeType
-        ].create(
+        const newNode = view.state.schema.nodes[id].create(
           node.attrs.asyncNodeProps.attrs,
           node.attrs.asyncNodeProps.children,
           node.attrs.asyncNodeProps.marks
@@ -345,6 +394,21 @@ class BlockView {
           value="change"
           onChange={(evt) => {
             const convertType = evt.target.value;
+            const componentId = nameToIdMap.get(convertType) ?? convertType;
+
+            let url = null;
+
+            if (convertType === "new") {
+              url = prompt("Component URL");
+
+              if (!url) {
+                evt.target.value = "change";
+                return;
+              }
+            } else {
+              url = view.state.schema.nodes[componentId].defaultAttrs.meta?.url;
+            }
+
             view.updateState(
               view.state.reconfigure({
                 plugins: plugins.map((plugin) => {
@@ -366,7 +430,14 @@ class BlockView {
               : "";
 
             const newNode = state.schema.nodes.async.create({
-              asyncNodeType: convertType,
+              // @todo rename these props
+              ...(convertType === "new"
+                ? {}
+                : {
+                    asyncNodeId: nameToIdMap.get(convertType) ?? convertType,
+                    asyncNodeDisplayName: convertType,
+                  }),
+              asyncNodeUrl: url,
               asyncNodeProps: {
                 attrs: {},
                 children: text ? [state.schema.text(text)] : [],
@@ -392,26 +463,35 @@ class BlockView {
           <option disabled value="change">
             Change type
           </option>
-          {/**
-           @todo this list needs to be generated dynamically
-           */}
-          {["header", "paragraph", "image"].map((type) => {
-            const exists = Object.values(view.state.schema.nodes).some(
-              (node) => {
-                return (node.defaultAttrs.meta?.name ?? node.name) === type;
-              }
-            );
-            return (
-              <option
-                value={type}
-                key={type}
-                disabled={type === (node.attrs.meta?.name ?? node.type.name)}
-              >
-                {type}
-                {exists ? "" : "*"}
-              </option>
-            );
-          })}
+          {Object.entries(view.state.schema.nodes)
+            .filter(
+              // @todo filter by blockItem
+              ([key]) =>
+                key !== "block" &&
+                key !== "async" &&
+                key !== "doc" &&
+                key !== "text"
+            )
+            .map(([, value]) => value.defaultAttrs?.meta?.name ?? value.name)
+            .map((type) => {
+              // @todo remove this
+              const exists = Object.values(view.state.schema.nodes).some(
+                (node) => {
+                  return (node.defaultAttrs.meta?.name ?? node.name) === type;
+                }
+              );
+              return (
+                <option
+                  value={type}
+                  key={type}
+                  disabled={type === (node.attrs.meta?.name ?? node.type.name)}
+                >
+                  {type}
+                  {exists ? "" : "*"}
+                </option>
+              );
+            })}
+          <option value="new">New block type</option>
         </select>
       </>
     );
@@ -699,11 +779,15 @@ export const renderPM = (node, content, viewProps, replacePortal) => {
   //   selection: { anchor: 2, head: 2, type: "text" },
   // });
 
+  const state = createState(content);
+
   const view = new EditorView(node, {
-    state: createState(content),
-    ...viewProps,
+    state: state,
     nodeViews: {
       ...viewProps.nodeViews,
+      async(node, view, getPos) {
+        return new AsyncView(node, view, getPos, replacePortal);
+      },
       block(node, view, getPos) {
         return new BlockView(node, view, getPos, replacePortal);
       },
