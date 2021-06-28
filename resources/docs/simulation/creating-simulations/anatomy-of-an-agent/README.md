@@ -8,7 +8,7 @@ As the name suggests, **agents** lie at the heart of _agent_-_based_ modeling. A
 
 {% embed url="https://youtu.be/PTW6R-PrT38" caption="Anatomy of an Agent" %}
 
-Every agent has a name and a unique identifier. As a simulation creator, you can set and change the `agent_name` and you can set the `agent_id`before the agent is initialized, but you can't change the agent\_id after the simulation has started. 
+Every agent has a name and a unique identifier. As a simulation creator, you can set and change the `agent_name` and you can set the `agent_id`before the agent is initialized, but you can't change the agent\_id after the simulation has started.
 
 {% hint style="info" %}
 The HASH Engine by default will set the `agent_id`, so don't worry about setting it manually unless you have a particular need for an agent's id [value in the sim logic](../libraries/hash/agent.md#generateagentid).
