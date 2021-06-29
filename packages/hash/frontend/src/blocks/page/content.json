@@ -5,5 +5,12 @@
     "entity": {
       "children": [{ "type": "text", "text": "Your first document" }]
     }
+  },
+  {
+    "componentId": "http://localhost:5000",
+    "entityId": "pageTitle124",
+    "entity": {
+      "children": [{ "type": "text", "text": "Your second header" }]
+    }
   }
 ]

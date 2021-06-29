@@ -80,6 +80,8 @@ export function defineNewNodeView(
   });
 }
 
+const AsyncBlockCache = new Map();
+
 class AsyncView {
   constructor(node, view, getPos, replacePortal) {
     this.dom = document.createElement("div");
@@ -126,55 +128,67 @@ class AsyncView {
         const existingSchema = view.state.schema;
         const existingSchemaSpec = existingSchema.spec;
 
+        const componentUrl = node.attrs.asyncNodeUrl;
+
         const id =
           node.attrs.asyncNodeId ??
-          (node.attrs.asyncNodeUrl
-            ? componentIdToName(node.attrs.asyncNodeUrl)
-            : null);
+          (componentUrl ? componentIdToName(componentUrl) : null);
 
         if (!id || existingSchemaSpec.nodes.find(id) === -1) {
-          if (node.attrs.asyncNodeUrl) {
-            return fetchBlockMeta(
-              node.attrs.asyncNodeUrl,
-              this.controller.signal
-            )
-              .then(({ componentMetadata, componentSchema }) => {
-                // @todo reduce duplication
-                const NodeViewClass = createNodeView(
-                  id,
-                  componentSchema,
-                  `${componentMetadata.url}/${componentMetadata.source}`,
-                  this.replacePortal
-                );
+          if (componentUrl) {
+            if (!AsyncBlockCache.has(componentUrl)) {
+              const promise = fetchBlockMeta(
+                componentUrl,
+                this.controller.signal
+              )
+                .then(({ componentMetadata, componentSchema }) => {
+                  // @todo reduce duplication
+                  const NodeViewClass = createNodeView(
+                    id,
+                    componentSchema,
+                    `${componentMetadata.url}/${componentMetadata.source}`,
+                    this.replacePortal
+                  );
 
-                defineNewNodeView(
-                  view,
-                  componentMetadata.name,
-                  id,
-                  defineBlock({
-                    attrs: {
-                      props: { default: {} },
-                      meta: { default: componentMetadata },
-                    },
-                    ...(componentSchema.properties?.["editableRef"]
-                      ? {
-                          // @todo infer this somehow
-                          content: "text*",
-                          marks: "",
-                        }
-                      : {}),
-                  }),
-                  (node, view, getPos, decorations) => {
-                    return new NodeViewClass(node, view, getPos, decorations);
-                  }
-                );
+                  defineNewNodeView(
+                    view,
+                    componentMetadata.name,
+                    id,
+                    defineBlock({
+                      attrs: {
+                        props: { default: {} },
+                        meta: { default: componentMetadata },
+                      },
+                      ...(componentSchema.properties?.["editableRef"]
+                        ? {
+                            // @todo infer this somehow
+                            content: "text*",
+                            marks: "",
+                          }
+                        : {}),
+                    }),
+                    (node, view, getPos, decorations) => {
+                      return new NodeViewClass(node, view, getPos, decorations);
+                    }
+                  );
 
-                return id;
-              })
-              .catch((err) => {
-                console.error("bang", err);
-                throw err;
+                  return id;
+                })
+                .catch((err) => {
+                  console.error("bang", err);
+                  throw err;
+                });
+
+              this.controller.signal.addEventListener("abort", () => {
+                if (AsyncBlockCache.get(componentUrl) === promise) {
+                  AsyncBlockCache.delete(componentUrl);
+                }
               });
+
+              AsyncBlockCache.set(componentUrl, promise);
+            }
+
+            return AsyncBlockCache.get(componentUrl);
           } else {
             // @todo remove the node in this instance
             throw new Error("Invalid async node");

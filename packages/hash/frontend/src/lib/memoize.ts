@@ -8,15 +8,20 @@ interface MemoizableFetchFunction<T> {
 export function memoizeFetchFunction<T>(
   fetchFunction: MemoizableFetchFunction<T>
 ): MemoizableFetchFunction<T> {
-  const cache: Record<string, any> = {};
+  const cache: Record<string, Promise<any>> = {};
 
   return async (url, signal) => {
-
     if (cache[url] == null) {
-      const result = await fetchFunction(url, signal);
-      cache[url] = result;
+      const promise = fetchFunction(url, signal);
+      signal?.addEventListener("abort", () => {
+        if (cache[url] === promise) {
+          delete cache[url];
+        }
+      });
+
+      cache[url] = promise;
     }
 
-    return cache[url];
+    return await cache[url];
   };
 }
