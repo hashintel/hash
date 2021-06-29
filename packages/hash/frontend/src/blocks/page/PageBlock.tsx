@@ -10,20 +10,9 @@ import React, {
 import { createPortal } from "react-dom";
 import { v4 as uuid } from "uuid";
 import { Schema } from "prosemirror-model";
-import {
-  defineNewBlock,
-  defineNewNode,
-  defineNewProsemirrorNode,
-  renderPM,
-} from "./sandbox";
+import { defineNewBlock, renderPM } from "./sandbox";
 import { baseSchemaConfig } from "./config";
-import {
-  Block,
-  BlockMeta,
-  componentIdToName,
-  fetchBlockMeta,
-  ReplacePortals,
-} from "./tsUtils";
+import { Block, BlockMeta, componentIdToName, ReplacePortals } from "./tsUtils";
 
 type PageBlockProps = {
   contents: Block[];
@@ -125,7 +114,8 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
         }) ?? []
       ),
       { nodeViews: {} },
-      replacePortal
+      replacePortal,
+      []
     );
 
     for (const [url, meta] of Array.from(blocksMeta.entries())) {

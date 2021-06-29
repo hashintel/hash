@@ -271,7 +271,9 @@ class AsyncView {
 
         view.updateState(
           view.state.reconfigure({
-            plugins: plugins,
+            plugins: view.state.plugins.map((plugin) =>
+              plugin === infiniteGroupHistoryPlugin ? historyPlugin : plugin
+            ),
           })
         );
 
@@ -462,7 +464,7 @@ class BlockView {
 
             view.updateState(
               view.state.reconfigure({
-                plugins: plugins.map((plugin) => {
+                plugins: view.state.plugins.map((plugin) => {
                   return plugin === historyPlugin
                     ? infiniteGroupHistoryPlugin
                     : plugin;
@@ -621,7 +623,7 @@ const wrapCommand = (command) => (state, dispatch, view) => {
   return retVal;
 };
 
-export const plugins = [
+const plugins = [
   historyPlugin,
   keymap({ "Mod-z": chainCommands(undo, undoInputRule), "Mod-y": redo }),
   keymap({
@@ -818,23 +820,31 @@ export const plugins = [
   }),
 ];
 
-export const createState = (content) =>
-  EditorState.create({ doc: content, plugins });
-
 /**
  * @param node {HTMLElement}
  * @param content {any}
  * @param viewProps {any}
  * @param replacePortal {Function}
+ * @param additionalPlugins {Plugin[]}
+ * @todo remove this function
  */
-export const renderPM = (node, content, viewProps, replacePortal) => {
+export const renderPM = (
+  node,
+  content,
+  viewProps,
+  replacePortal,
+  additionalPlugins
+) => {
   // const docContent = { type: "doc", content };
   // const state = EditorState.fromJSON(editorStateConfig, {
   //   doc: docContent,
   //   selection: { anchor: 2, head: 2, type: "text" },
   // });
 
-  const state = createState(content);
+  const state = EditorState.create({
+    doc: content,
+    plugins: [...plugins, ...additionalPlugins],
+  });
 
   const view = new EditorView(node, {
     state: state,
