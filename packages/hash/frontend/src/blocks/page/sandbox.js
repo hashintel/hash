@@ -217,7 +217,7 @@ class AsyncView {
         tr.replaceRangeWith(pos, pos + node.nodeSize, newNode);
 
         if (node.attrs.autofocus) {
-          selectNode(tr, pos + 2, newNode);
+          selectNode(tr, pos, newNode);
         } else {
           document.body.focus();
         }
