@@ -12,10 +12,16 @@ import { v4 as uuid } from "uuid";
 import { Schema } from "prosemirror-model";
 import { defineNewBlock, renderPM } from "./sandbox";
 import { baseSchemaConfig } from "./config";
-import { Block, BlockMeta, componentIdToName, ReplacePortals } from "./tsUtils";
+import {
+  Block,
+  BlockMeta,
+  BlockWithoutMeta,
+  componentIdToName,
+  ReplacePortals,
+} from "./tsUtils";
 
 type PageBlockProps = {
-  contents: Block[];
+  contents: (Block | BlockWithoutMeta)[];
   blocksMeta: Map<string, BlockMeta>;
 };
 
@@ -92,11 +98,9 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
             {
               autofocus: false,
               asyncNodeUrl: block.componentId,
-              asyncNodeDisplayName: block.componentMetadata.name,
               asyncNodeProps: {
                 attrs: {
                   props,
-                  meta: block.componentMetadata,
                 },
                 children:
                   children?.map((child: any) => {

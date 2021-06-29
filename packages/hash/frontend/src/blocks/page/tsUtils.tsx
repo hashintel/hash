@@ -80,8 +80,12 @@ export const fetchBlockMeta = async (
   return result;
 };
 
+export type BlockWithoutMeta = Omit<
+  Block,
+  "componentMetadata" | "componentSchema"
+>;
 export const addBlockMetadata = async (
-  block: Omit<Block, "componentMetadata" | "componentSchema">
+  block: BlockWithoutMeta
 ): Promise<Block> => {
   return {
     ...block,

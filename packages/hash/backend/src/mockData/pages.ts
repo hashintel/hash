@@ -16,7 +16,7 @@ export const pages = (() => {
           {
             id: "b1",
             properties: {
-              componentId: "headerblock1",
+              componentId: "http://localhost:5000",
               entityType: "Text",
               entityId: "text1",
             },
@@ -28,7 +28,7 @@ export const pages = (() => {
           },
           {
             properties: {
-              componentId: "paragraphblock1",
+              componentId: "https://block.blockprotocol.org/paragraph",
               entityType: "Text",
               entityId: "text2",
             },
@@ -41,7 +41,7 @@ export const pages = (() => {
           },
           {
             properties: {
-              componentId: "paragraphblock1",
+              componentId: "https://block.blockprotocol.org/paragraph",
               entityType: "Text",
               entityId: "text3",
             },
@@ -52,19 +52,19 @@ export const pages = (() => {
             type: "Block",
             visibility: Visibility.Public,
           },
-          {
-            properties: {
-              componentId: "tableblock",
-              entityType: "Table",
-              entityId: "t1",
-            },
-            id: "b4",
-            ...randomTimes(),
-            createdById: "2",
-            namespaceId: "2",
-            type: "Block",
-            visibility: Visibility.Public,
-          },
+          // {
+          //   properties: {
+          //     componentId: "tableblock",
+          //     entityType: "Table",
+          //     entityId: "t1",
+          //   },
+          //   id: "b4",
+          //   ...randomTimes(),
+          //   createdById: "2",
+          //   namespaceId: "2",
+          //   type: "Block",
+          //   visibility: Visibility.Public,
+          // },
         ],
         title: "Ciaran's 1st page",
       },
@@ -80,7 +80,7 @@ export const pages = (() => {
         contents: [
           {
             properties: {
-              componentId: "headerblock1",
+              componentId: "http://localhost:5000",
               entityType: "Text",
               entityId: "text5",
             },
@@ -93,7 +93,7 @@ export const pages = (() => {
           },
           {
             properties: {
-              componentId: "paragraphblock1",
+              componentId: "https://block.blockprotocol.org/paragraph",
               entityType: "Text",
               entityId: "text2",
             },
@@ -106,7 +106,7 @@ export const pages = (() => {
           },
           {
             properties: {
-              componentId: "paragraphblock1",
+              componentId: "https://block.blockprotocol.org/paragraph",
               entityType: "Text",
               entityId: "text3",
             },
@@ -119,7 +119,7 @@ export const pages = (() => {
           },
           {
             properties: {
-              componentId: "paragraphblock1",
+              componentId: "https://block.blockprotocol.org/paragraph",
               entityType: "Text",
               entityId: "text4",
             },
