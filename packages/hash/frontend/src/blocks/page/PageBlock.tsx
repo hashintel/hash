@@ -138,10 +138,6 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       );
     }
 
-    // fetchBlockMeta();
-
-    // defineNewBlock();
-
     window.view = view;
 
     const node = root.current!;

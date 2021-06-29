@@ -44,7 +44,6 @@ const infiniteGroupHistoryPlugin = history({ newGroupDelay: Infinity });
 const nameToIdMap = new Map();
 
 export function defineNewNode(existingSchema, displayName, id, spec) {
-  console.log(spec);
   const existingSchemaSpec = existingSchema.spec;
 
   nameToIdMap.set(displayName, id);
@@ -89,7 +88,7 @@ export function defineNewBlock(
   replacePortals
 ) {
   if (componentMetadata.type === "prosemirror") {
-    defineNewProsemirrorNode(view.state.schema, componentMetadata);
+    defineNewProsemirrorNode(view.state.schema, componentMetadata, id);
   } else {
     // @todo reduce duplication
     const NodeViewClass = createNodeView(
@@ -724,12 +723,14 @@ export const plugins = [
             .content.content.map((node) =>
               node.type.name === "block" ? node.firstChild : node
             )
-            .every(
-              (node) =>
+            .every((node) => {
+              return (
                 node.content.size === 0 ||
                 // @todo fix this check by checking for the marks a node supports
-                node.type.name !== "paragraph"
-            ) ||
+                node.type.name !==
+                  componentIdToName("https://block.blockprotocol.org/paragraph")
+              );
+            }) ||
           state.selection.empty
         ) {
           dom.style.opacity = "0";
