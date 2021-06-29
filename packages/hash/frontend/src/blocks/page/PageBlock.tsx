@@ -10,16 +10,9 @@ import React, {
 import { createPortal } from "react-dom";
 import { v4 as uuid } from "uuid";
 import { Schema } from "prosemirror-model";
-
-import { defineBlock } from "./utils";
-import { createState, defineNewNodeView, renderPM } from "./sandbox";
+import { renderPM } from "./sandbox";
 import { baseSchemaConfig } from "./config";
-import {
-  Block,
-  componentIdToName,
-  createNodeView,
-  ReplacePortals,
-} from "./tsUtils";
+import { Block, ReplacePortals } from "./tsUtils";
 
 type PageBlockProps = {
   contents: Block[] | null;

@@ -25,11 +25,6 @@ export const baseSchemaConfig = {
         },
       ],
     },
-    paragraph: defineBlock({
-      content: "text*",
-      toDOM: () => ["p", 0] as const,
-      marks: "_",
-    }),
     text: {},
     async: {
       group: "blockItem",

@@ -10,9 +10,16 @@ export type Block = {
   componentId: string;
   componentMetadata: {
     name: string;
-    source: string;
+    source?: string;
     url: string;
-  };
+  } & (
+    | { type?: undefined }
+    | {
+        type: "prosemirror";
+        // @todo type this
+        spec: any;
+      }
+  );
   componentSchema: JSONSchema;
 };
 
@@ -20,10 +27,31 @@ type BlockMeta = Pick<Block, "componentMetadata" | "componentSchema">;
 
 export const blockCache = new Map<string, BlockMeta>();
 
+export const builtInBlocks: Record<string, BlockMeta> = {
+  // @todo maybe this should be a nodeview too
+  "https://block.blockprotocol.org/paragraph": {
+    componentSchema: {},
+    componentMetadata: {
+      url: "https://block.blockprotocol.org/paragraph",
+      name: "paragraph",
+      type: "prosemirror",
+      spec: {
+        content: "text*",
+        domTag: "p",
+        marks: "_",
+      },
+    },
+  },
+};
+
 export const fetchBlockMeta = async (
   url: string,
   signal?: AbortSignal
 ): Promise<BlockMeta> => {
+  if (builtInBlocks[url]) {
+    return builtInBlocks[url];
+  }
+
   if (blockCache.has(url)) {
     return blockCache.get(url)!;
   }

@@ -43,16 +43,11 @@ const infiniteGroupHistoryPlugin = history({ newGroupDelay: Infinity });
 
 const nameToIdMap = new Map();
 
-export function defineNewNodeView(
-  view,
-  displayName,
-  id,
-  spec,
-  nodeViewConstructor
-) {
-  nameToIdMap.set(displayName, id);
+export function defineNewNode(view, displayName, id, spec) {
   const existingSchema = view.state.schema;
   const existingSchemaSpec = existingSchema.spec;
+
+  nameToIdMap.set(displayName, id);
 
   // @todo fix marks
   existingSchemaSpec.nodes.content.push(id, spec);
@@ -71,6 +66,16 @@ export function defineNewNodeView(
       }
     }
   })(existingSchemaSpec);
+}
+
+export function defineNewNodeView(
+  view,
+  displayName,
+  id,
+  spec,
+  nodeViewConstructor
+) {
+  defineNewNode(view, displayName, id, spec);
 
   view.setProps({
     nodeViews: {
@@ -142,35 +147,56 @@ class AsyncView {
                 this.controller.signal
               )
                 .then(({ componentMetadata, componentSchema }) => {
-                  // @todo reduce duplication
-                  const NodeViewClass = createNodeView(
-                    id,
-                    componentSchema,
-                    `${componentMetadata.url}/${componentMetadata.source}`,
-                    this.replacePortal
-                  );
-
-                  defineNewNodeView(
-                    view,
-                    componentMetadata.name,
-                    id,
-                    defineBlock({
+                  const blockAttrs = {
+                    props: { default: {} },
+                    meta: { default: componentMetadata },
+                  };
+                  if (componentMetadata.type === "prosemirror") {
+                    const { domTag, ...specTemplate } = componentMetadata.spec;
+                    const spec = defineBlock({
+                      ...specTemplate,
+                      toDOM: () => [domTag, 0],
+                    });
+                    defineNewNode(view, componentMetadata.name, id, {
+                      ...spec,
                       attrs: {
-                        props: { default: {} },
-                        meta: { default: componentMetadata },
+                        ...spec.attrs,
+                        ...blockAttrs,
                       },
-                      ...(componentSchema.properties?.["editableRef"]
-                        ? {
-                            // @todo infer this somehow
-                            content: "text*",
-                            marks: "",
-                          }
-                        : {}),
-                    }),
-                    (node, view, getPos, decorations) => {
-                      return new NodeViewClass(node, view, getPos, decorations);
-                    }
-                  );
+                    });
+                  } else {
+                    // @todo reduce duplication
+                    const NodeViewClass = createNodeView(
+                      id,
+                      componentSchema,
+                      `${componentMetadata.url}/${componentMetadata.source}`,
+                      this.replacePortal
+                    );
+
+                    defineNewNodeView(
+                      view,
+                      componentMetadata.name,
+                      id,
+                      defineBlock({
+                        attrs: blockAttrs,
+                        ...(componentSchema.properties?.["editableRef"]
+                          ? {
+                              // @todo infer this somehow
+                              content: "text*",
+                              marks: "",
+                            }
+                          : {}),
+                      }),
+                      (node, view, getPos, decorations) => {
+                        return new NodeViewClass(
+                          node,
+                          view,
+                          getPos,
+                          decorations
+                        );
+                      }
+                    );
+                  }
 
                   return id;
                 })

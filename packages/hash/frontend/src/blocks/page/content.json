@@ -1,16 +1,9 @@
 [
   {
-    "componentId": "http://localhost:5000",
-    "entityId": "pageTitle123",
+    "componentId": "https://block.blockprotocol.org/paragraph",
+    "entityId": "pageFirstPara",
     "entity": {
       "children": [{ "type": "text", "text": "Your first document" }]
-    }
-  },
-  {
-    "componentId": "http://localhost:5000",
-    "entityId": "pageTitle124",
-    "entity": {
-      "children": [{ "type": "text", "text": "Your second header" }]
     }
   }
 ]
