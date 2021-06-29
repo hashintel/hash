@@ -216,7 +216,11 @@ class AsyncView {
 
         tr.replaceRangeWith(pos, pos + node.nodeSize, newNode);
 
-        selectNode(tr, pos, newNode);
+        if (node.attrs.autofocus) {
+          selectNode(tr, pos + 2, newNode);
+        } else {
+          document.body.focus();
+        }
 
         view.dispatch(tr);
 
@@ -226,7 +230,9 @@ class AsyncView {
           })
         );
 
-        view.focus();
+        if (node.attrs.autofocus) {
+          view.focus();
+        }
       })
       .catch((err) => {
         if (err !== "skip" && err.name !== "AbortError") {

@@ -16,10 +16,18 @@ export type Block = {
   componentSchema: JSONSchema;
 };
 
+type BlockMeta = Pick<Block, "componentMetadata" | "componentSchema">;
+
+export const blockCache = new Map<string, BlockMeta>();
+
 export const fetchBlockMeta = async (
   url: string,
   signal?: AbortSignal
-): Promise<Pick<Block, "componentMetadata" | "componentSchema">> => {
+): Promise<BlockMeta> => {
+  if (blockCache.has(url)) {
+    return blockCache.get(url)!;
+  }
+
   const metadata = await (
     await fetch(`${url}/metadata.json`, { signal })
   ).json();
@@ -28,13 +36,18 @@ export const fetchBlockMeta = async (
     await fetch(`${url}/${metadata.schema}`, { signal })
   ).json();
 
-  return {
+  const result: BlockMeta = {
     componentMetadata: {
       ...metadata,
       url: url,
     },
     componentSchema: schema,
   };
+  if (typeof window !== "undefined") {
+    blockCache.set(url, result);
+  }
+
+  return result;
 };
 
 export const addBlockMetadata = async (

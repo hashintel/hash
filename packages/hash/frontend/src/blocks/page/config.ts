@@ -34,10 +34,12 @@ export const baseSchemaConfig = {
     async: {
       group: "blockItem",
       attrs: {
+        // @todo rename these props
         asyncNodeId: { default: null },
         asyncNodeDisplayName: { default: null },
         asyncNodeProps: { default: {} },
         asyncNodeUrl: { default: null },
+        autofocus: { default: true },
       },
     },
     // heading: defineBlock({

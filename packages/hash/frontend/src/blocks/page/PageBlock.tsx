@@ -87,74 +87,41 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
 
     const view = renderPM(
       root.current!,
-      // @todo come up with an easier way to create a blank state to start with
-      schema.node("doc", {}, [
-        schema.node("block", {}, [schema.node("paragraph", {}, [])]),
-      ]),
+      schema.node(
+        "doc",
+        {},
+        contents?.map((block) => {
+          const { children, ...props } = block.entity;
+
+          return schema.node(
+            "async",
+            {
+              autofocus: false,
+              asyncNodeUrl: block.componentId,
+              asyncNodeDisplayName: block.componentMetadata.name,
+              asyncNodeProps: {
+                attrs: {
+                  props,
+                  meta: block.componentMetadata,
+                },
+                children:
+                  children?.map((child: any) => {
+                    if (child.type === "text") {
+                      return schema.text(child.text);
+                    }
+
+                    // @todo recursive nodes
+                    throw new Error("unrecognised child");
+                  }) ?? [],
+              },
+            },
+            []
+          );
+        }) ?? []
+      ),
       { nodeViews: {} },
       replacePortal
     );
-
-    if (contents) {
-      for (const block of contents) {
-        const name = componentIdToName(block.componentId);
-
-        if (schema.nodes[name]) {
-          continue;
-        }
-        const NodeViewClass = createNodeView(
-          name,
-          block.componentSchema,
-          `${block.componentId}/${block.componentMetadata.source}`,
-          replacePortal
-        );
-        const spec = defineBlock({
-          attrs: {
-            props: { default: {} },
-            meta: { default: block.componentMetadata },
-          },
-          ...(block.componentSchema.properties?.["editableRef"]
-            ? {
-                // @todo infer this somehow
-                content: "text*",
-                marks: "",
-              }
-            : {}),
-        });
-
-        defineNewNodeView(
-          view,
-          block.componentMetadata.name,
-          name,
-          spec,
-          (node: any, view: any, getPos: any, decorations: any) =>
-            new NodeViewClass(node, view, getPos, decorations)
-        );
-      }
-
-      const mappedContents = contents.map((block) => {
-        const { children, ...props } = block.entity;
-
-        return schema.node("block", {}, [
-          schema.node(
-            componentIdToName(block.componentId),
-            { props, meta: block.componentMetadata },
-            children?.map((child: any) => {
-              if (child.type === "text") {
-                return schema.text(child.text);
-              }
-
-              // @todo recursive nodes
-              throw new Error("unrecognised child");
-            }) ?? []
-          ),
-        ]);
-      });
-
-      view.setProps({
-        state: createState(schema.node("doc", {}, mappedContents)),
-      });
-    }
 
     window.view = view;
 
