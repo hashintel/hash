@@ -32,6 +32,7 @@ export type DbUnknownEntity = Omit<
   "namespace" | "createdBy" | "type" | "__typename"
 > & {
   createdById: string;
+  namespace?: string;
   type: string;
   __typename?: string;
 };

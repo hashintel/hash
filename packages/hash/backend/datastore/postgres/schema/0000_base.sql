@@ -1,13 +1,13 @@
 create table if not exists entity_types (
     id         integer primary key,
-    name       text not null,
-    created_at timestamp with time zone not null
+    name       text not null unique,
+    created_at timestamp with time zone not null default now()
 );
 
 create table if not exists link_types (
     id         integer primary key,
-    name       text not null,
-    created_at timestamp with time zone not null
+    name       text not null unique,
+    created_at timestamp with time zone not null default now()
 );
 
 create table shards (
