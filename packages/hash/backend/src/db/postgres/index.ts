@@ -1,4 +1,6 @@
 import { Pool } from "pg";
+import { DataSource } from "apollo-datasource";
+import { Uuid4 } from "id128";
 
 import { DBAdapter } from "../adapter";
 
@@ -18,10 +20,11 @@ const parsePort = (s: string) => {
   throw new Error("PG_PORT must be a positive number");
 };
 
-export class PostgresAdapter implements DBAdapter {
+export class PostgresAdapter extends DataSource implements DBAdapter {
   pool: Pool;
 
   constructor() {
+    super();
     this.pool = new Pool({
       user: getRequiredEnv("HASH_PG_USER"),
       host: getRequiredEnv("HASH_PG_HOST"),
@@ -29,6 +32,18 @@ export class PostgresAdapter implements DBAdapter {
       database: getRequiredEnv("HASH_PG_DATABASE"),
       password: getRequiredEnv("HASH_PG_PASSWORD"),
     });
+  }
+
+  async createEntity(params: {
+    namespaceId: Uuid4;
+    type: string;
+    properties: any;
+  }) {
+    await this.pool.query(`
+      insert into shards (shard_id) value ($1)
+      on conflict do nothing`,
+      [params.namespaceId.toCanonical()]
+    );
   }
 
   // Execute a query. This is exposed only temporarily. The actual database adapter will
