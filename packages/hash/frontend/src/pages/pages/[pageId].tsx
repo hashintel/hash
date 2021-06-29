@@ -59,7 +59,6 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
     const mappedContents = contents.map((content): BlockWithoutMeta => {
       const { componentId, entity } = content.properties;
 
-      // @todo non-text props
       // @todo multiple text children
       const props =
         entity.__typename === "Text"
@@ -78,6 +77,8 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
                 },
               ],
             }
+          : entity.__typename === "UnknownEntity"
+          ? entity.unknownProperties
           : {};
 
       return { componentId, entityId: entity.id, entity: props };
