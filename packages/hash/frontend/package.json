@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "postinstall": "yarn codegen",
     "start": "next start",
     "codegen": "graphql-codegen --config codegen.yml # frontend"
   },

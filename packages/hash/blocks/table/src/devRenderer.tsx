@@ -7,7 +7,6 @@ import ReactDOM from "react-dom";
 
 import Component from "./index";
 import { schemas } from "./schemas";
-import { makeColumns } from "./lib/columns";
 import {
   entities as initialData,
   Location,
@@ -62,11 +61,8 @@ const node = document.getElementById("app");
 const App = () => {
   const [data, updateData] = useMockData();
 
-  const columns = useMemo(() => makeColumns(data[0]), []);
-
   return (
     <Component
-      columns={columns}
       data={data}
       initialState={initialState}
       schemas={schemas}

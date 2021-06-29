@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { loadRemoteBlock } from "./loadRemoteBlock";
 
-export type UnknownComponent = (...props: unknown[]) => JSX.Element;
+export type UnknownComponent = (...props: any[]) => JSX.Element;
 
 type UseRemoteBlockHook = {
   (url: string): [

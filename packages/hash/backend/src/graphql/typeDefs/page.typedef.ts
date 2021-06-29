@@ -87,9 +87,9 @@ export const pageTypedef = gql`
     createPage(
       namespaceId: ID
       namespace: String
-      data: PageCreationData!
+      properties: PageCreationData!
     ): Page!
 
-    updatePage(id: ID!, data: PageUpdateData!): Page!
+    updatePage(id: ID!, properties: PageUpdateData!): Page!
   }
 `;

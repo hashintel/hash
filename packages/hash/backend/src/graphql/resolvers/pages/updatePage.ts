@@ -9,7 +9,7 @@ export const updatePage: Resolver<
   {},
   {},
   MutationUpdatePageArgs
-> = async (_, { id, data }) => {
+> = async (_, { id, properties }) => {
   const page = entities.find(
     (entity) => entity.type === "Page" && entity.id === id
   ) as DbPage;
@@ -19,14 +19,14 @@ export const updatePage: Resolver<
   }
 
   page.updatedAt = new Date();
-  if (data.title) {
-    page.properties.title = data.title;
+  if (properties.title) {
+    page.properties.title = properties.title;
   }
-  if (data.contents) {
-    page.properties.contents = data.contents;
+  if (properties.contents) {
+    page.properties.contents = properties.contents;
   }
-  if (data.summary) {
-    page.properties.summary = data.summary;
+  if (properties.summary) {
+    page.properties.summary = properties.summary;
   }
 
   return page;
