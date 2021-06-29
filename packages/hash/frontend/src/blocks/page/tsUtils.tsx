@@ -1,7 +1,9 @@
 import { Schema as JSONSchema } from "jsonschema";
 import React, { ReactNode } from "react";
-import { EditorProps, NodeView } from "prosemirror-view";
+import { EditorProps, EditorView, NodeView } from "prosemirror-view";
 import { RemoteBlock } from "../../components/RemoteBlock/RemoteBlock";
+import { defineBlock } from "./utils";
+import { defineNewNode, defineNewNodeView } from "./sandbox";
 
 // @todo this type properly exists already somewhere
 export type Block = {
@@ -23,7 +25,7 @@ export type Block = {
   componentSchema: JSONSchema;
 };
 
-type BlockMeta = Pick<Block, "componentMetadata" | "componentSchema">;
+export type BlockMeta = Pick<Block, "componentMetadata" | "componentSchema">;
 
 export const blockCache = new Map<string, BlockMeta>();
 

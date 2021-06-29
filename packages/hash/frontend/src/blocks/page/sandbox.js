@@ -43,8 +43,8 @@ const infiniteGroupHistoryPlugin = history({ newGroupDelay: Infinity });
 
 const nameToIdMap = new Map();
 
-export function defineNewNode(view, displayName, id, spec) {
-  const existingSchema = view.state.schema;
+export function defineNewNode(existingSchema, displayName, id, spec) {
+  console.log(spec);
   const existingSchemaSpec = existingSchema.spec;
 
   nameToIdMap.set(displayName, id);
@@ -68,6 +68,56 @@ export function defineNewNode(view, displayName, id, spec) {
   })(existingSchemaSpec);
 }
 
+export function defineNewProsemirrorNode(schema, componentMetadata, id) {
+  const { domTag, ...specTemplate } = componentMetadata.spec;
+  defineNewNode(
+    schema,
+    componentMetadata.name,
+    id,
+    defineBlock(componentMetadata, {
+      ...specTemplate,
+      toDOM: () => [domTag, 0],
+    })
+  );
+}
+
+export function defineNewBlock(
+  componentMetadata,
+  componentSchema,
+  view,
+  id,
+  replacePortals
+) {
+  if (componentMetadata.type === "prosemirror") {
+    defineNewProsemirrorNode(view.state.schema, componentMetadata);
+  } else {
+    // @todo reduce duplication
+    const NodeViewClass = createNodeView(
+      id,
+      componentSchema,
+      `${componentMetadata.url}/${componentMetadata.source}`,
+      replacePortals
+    );
+
+    defineNewNodeView(
+      view,
+      componentMetadata.name,
+      id,
+      defineBlock(componentMetadata, {
+        ...(componentSchema.properties?.["editableRef"]
+          ? {
+              content: "text*",
+              marks: "",
+            }
+          : {}),
+      }),
+      (node, view, getPos, decorations) => {
+        return new NodeViewClass(node, view, getPos, decorations);
+      }
+    );
+  }
+}
+
 export function defineNewNodeView(
   view,
   displayName,
@@ -75,7 +125,7 @@ export function defineNewNodeView(
   spec,
   nodeViewConstructor
 ) {
-  defineNewNode(view, displayName, id, spec);
+  defineNewNode(view.state.schema, displayName, id, spec);
 
   view.setProps({
     nodeViews: {
@@ -147,57 +197,13 @@ class AsyncView {
                 this.controller.signal
               )
                 .then(({ componentMetadata, componentSchema }) => {
-                  const blockAttrs = {
-                    props: { default: {} },
-                    meta: { default: componentMetadata },
-                  };
-                  if (componentMetadata.type === "prosemirror") {
-                    const { domTag, ...specTemplate } = componentMetadata.spec;
-                    const spec = defineBlock({
-                      ...specTemplate,
-                      toDOM: () => [domTag, 0],
-                    });
-                    defineNewNode(view, componentMetadata.name, id, {
-                      ...spec,
-                      attrs: {
-                        ...spec.attrs,
-                        ...blockAttrs,
-                      },
-                    });
-                  } else {
-                    // @todo reduce duplication
-                    const NodeViewClass = createNodeView(
-                      id,
-                      componentSchema,
-                      `${componentMetadata.url}/${componentMetadata.source}`,
-                      this.replacePortal
-                    );
-
-                    defineNewNodeView(
-                      view,
-                      componentMetadata.name,
-                      id,
-                      defineBlock({
-                        attrs: blockAttrs,
-                        ...(componentSchema.properties?.["editableRef"]
-                          ? {
-                              // @todo infer this somehow
-                              content: "text*",
-                              marks: "",
-                            }
-                          : {}),
-                      }),
-                      (node, view, getPos, decorations) => {
-                        return new NodeViewClass(
-                          node,
-                          view,
-                          getPos,
-                          decorations
-                        );
-                      }
-                    );
-                  }
-
+                  defineNewBlock(
+                    componentMetadata,
+                    componentSchema,
+                    view,
+                    id,
+                    this.replacePortal
+                  );
                   return id;
                 })
                 .catch((err) => {
@@ -720,7 +726,9 @@ export const plugins = [
             )
             .every(
               (node) =>
-                node.content.size === 0 || node.type.name !== "paragraph"
+                node.content.size === 0 ||
+                // @todo fix this check by checking for the marks a node supports
+                node.type.name !== "paragraph"
             ) ||
           state.selection.empty
         ) {

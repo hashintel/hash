@@ -10,18 +10,31 @@ import React, {
 import { createPortal } from "react-dom";
 import { v4 as uuid } from "uuid";
 import { Schema } from "prosemirror-model";
-import { renderPM } from "./sandbox";
+import {
+  defineNewBlock,
+  defineNewNode,
+  defineNewProsemirrorNode,
+  renderPM,
+} from "./sandbox";
 import { baseSchemaConfig } from "./config";
-import { Block, ReplacePortals } from "./tsUtils";
+import {
+  Block,
+  BlockMeta,
+  componentIdToName,
+  fetchBlockMeta,
+  ReplacePortals,
+} from "./tsUtils";
 
 type PageBlockProps = {
-  contents: Block[] | null;
+  contents: Block[];
+  blocksMeta: Map<string, BlockMeta>;
 };
 
 type PortalSet = Map<HTMLElement, { key: string; reactNode: ReactNode }>;
 
 export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   contents,
+  blocksMeta,
 }) => {
   const root = useRef<HTMLDivElement>(null);
   const [portals, setPortals] = useState<PortalSet>(new Map());
@@ -114,6 +127,20 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       { nodeViews: {} },
       replacePortal
     );
+
+    for (const [url, meta] of Array.from(blocksMeta.entries())) {
+      defineNewBlock(
+        meta.componentMetadata,
+        meta.componentSchema,
+        view,
+        componentIdToName(url),
+        replacePortal
+      );
+    }
+
+    // fetchBlockMeta();
+
+    // defineNewBlock();
 
     window.view = view;
 

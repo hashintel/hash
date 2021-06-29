@@ -1,31 +1,50 @@
 import React, { useEffect, VFC } from "react";
 import { GetStaticProps } from "next";
 import { PageBlock } from "../blocks/page/PageBlock";
-import contentsWithoutMetadata from "../blocks/page/content.json";
-import { addBlockMetadata, Block, blockCache } from "../blocks/page/tsUtils";
+import {
+  content as contentsWithoutMetadata,
+  preloadedBlocksUrls,
+} from "../blocks/page/content.json";
+import {
+  addBlockMetadata,
+  Block,
+  blockCache,
+  BlockMeta,
+  fetchBlockMeta,
+} from "../blocks/page/tsUtils";
 
 export const getStaticProps: GetStaticProps = async (context) => {
-  const contents = await Promise.all(
-    contentsWithoutMetadata?.map(addBlockMetadata) ?? null
+  const preloadedBlockMeta = await Promise.all(
+    preloadedBlocksUrls?.map((url) => fetchBlockMeta(url)) ?? []
   );
 
-  return { props: { contents } };
+  const contents = await Promise.all(
+    contentsWithoutMetadata?.map(addBlockMetadata) ?? []
+  );
+
+  return { props: { contents, preloadedBlockMeta } };
 };
 
-const PagePlayground: VFC<{ contents: Block[] | null }> = ({ contents }) => {
+const PagePlayground: VFC<{
+  contents: Block[];
+  preloadedBlockMeta: BlockMeta[];
+}> = ({ contents, preloadedBlockMeta }) => {
   useEffect(() => {
-    if (contents) {
-      for (const {
-        componentId,
+    for (const { componentMetadata, componentSchema } of contents) {
+      blockCache.set(componentMetadata.url, {
         componentMetadata,
         componentSchema,
-      } of contents) {
-        blockCache.set(componentId, { componentMetadata, componentSchema });
-      }
+      });
     }
   }, [contents]);
 
-  return <PageBlock contents={contents} />;
+  const preloadedBlocks = new Map(
+    preloadedBlockMeta.map(
+      (node) => [node.componentMetadata.url, node] as const
+    )
+  );
+
+  return <PageBlock contents={contents} blocksMeta={preloadedBlocks} />;
 };
 
 export default PagePlayground;

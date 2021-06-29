@@ -1,9 +1,12 @@
-[
-  {
-    "componentId": "https://block.blockprotocol.org/paragraph",
-    "entityId": "pageFirstPara",
-    "entity": {
-      "children": [{ "type": "text", "text": "Your first document" }]
+{
+  "content": [
+    {
+      "componentId": "http://localhost:5000",
+      "entityId": "header",
+      "entity": {
+        "children": [{ "type": "text", "text": "Your first document" }]
+      }
     }
-  }
-]
+  ],
+  "preloadedBlocksUrls": ["https://block.blockprotocol.org/paragraph"]
+}
