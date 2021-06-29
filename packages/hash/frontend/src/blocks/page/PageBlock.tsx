@@ -74,7 +74,6 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     };
   }, []);
 
-  // @todo needs to respond to changes to contents
   useEffect(() => {
     const schema = new Schema(baseSchemaConfig);
 
@@ -123,7 +122,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     return () => {
       node.innerHTML = "";
     };
-  }, []);
+  }, [contents]);
 
   return (
     <>
