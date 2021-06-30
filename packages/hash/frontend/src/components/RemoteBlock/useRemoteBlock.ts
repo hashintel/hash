@@ -15,25 +15,41 @@ type UseRemoteComponentState = {
   loading: boolean;
   err?: Error | undefined;
   component?: UnknownComponent | string | undefined;
+  url: string | null;
 };
+
+const remoteModuleCache: Record<string, UseRemoteComponentState> = {};
 
 /**
  * @see https://github.com/Paciolan/remote-component/blob/master/src/hooks/useRemoteComponent.ts
  */
 export const useRemoteBlock: UseRemoteBlockHook = (url) => {
-  const [{ loading, err, component }, setState] =
-    useState<UseRemoteComponentState>({
-      loading: true,
-      err: undefined,
-      component: undefined,
-    });
+  const [{ loading, err, component, url: loadedUrl }, setState] =
+    useState<UseRemoteComponentState>(
+      remoteModuleCache[url] ?? {
+        loading: true,
+        err: undefined,
+        component: undefined,
+        url: null,
+      }
+    );
 
   useEffect(() => {
+    if (!loading && !err) {
+      remoteModuleCache[url] = { loading, err, component, url };
+    }
+  });
+
+  useEffect(() => {
+    if (url === loadedUrl && !loading && !err) {
+      return;
+    }
+
     let update = setState;
     const controller = new AbortController();
     const signal = controller.signal;
 
-    update({ loading: true, err: undefined, component: undefined });
+    update({ loading: true, err: undefined, component: undefined, url: null });
 
     loadRemoteBlock(url, signal)
       .then((module) =>
@@ -41,9 +57,12 @@ export const useRemoteBlock: UseRemoteBlockHook = (url) => {
           loading: false,
           err: undefined,
           component: typeof module === "string" ? module : module.default,
+          url,
         })
       )
-      .catch((err) => update({ loading: false, err, component: undefined }));
+      .catch((err) =>
+        update({ loading: false, err, component: undefined, url: null })
+      );
 
     return () => {
       controller.abort();
@@ -51,7 +70,7 @@ export const useRemoteBlock: UseRemoteBlockHook = (url) => {
       // invalidate update function for stale closures
       update = () => {};
     };
-  }, [url]);
+  }, [url, loadedUrl]);
 
   return [loading, err, component];
 };
