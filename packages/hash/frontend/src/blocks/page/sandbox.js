@@ -641,10 +641,112 @@ const plugins = [
     "Mod-i": toggleMark(schema.marks.em),
     "Ctrl-u": toggleMark(schema.marks.underlined),
   }),
+  dropCursor(),
   new Plugin({
+    appendTransaction(transactions, __, newState) {
+      if (!transactions.some((tr) => tr.getMeta("commandWrapped"))) {
+        let tr = newState.tr;
+        let mapping = new Mapping();
+        let stepCount = tr.steps.length;
+
+        newState.doc.descendants((node, pos) => {
+          if (node.type.name !== "block") {
+            const newSteps = tr.steps.slice(stepCount);
+            stepCount = tr.steps.length;
+            for (const newStep of newSteps) {
+              const map = newStep.getMap();
+              mapping.appendMap(map);
+            }
+            const $from = tr.doc.resolve(mapping.map(pos));
+            const $to = tr.doc.resolve(mapping.map(pos + node.nodeSize));
+            const range = $from.blockRange($to);
+            tr.wrap(range, [{ type: newState.schema.nodes.block }]);
+          }
+          return false;
+        });
+
+        return tr;
+      }
+    },
+  }),
+];
+
+/**
+ * @param node {HTMLElement}
+ * @param content {any}
+ * @param viewProps {any}
+ * @param replacePortal {Function}
+ * @param additionalPlugins {Plugin[]}
+ *
+ * @todo remove this function
+ */
+export const renderPM = (
+  node,
+  content,
+  viewProps,
+  replacePortal,
+  additionalPlugins
+) => {
+  // const docContent = { type: "doc", content };
+  // const state = EditorState.fromJSON(editorStateConfig, {
+  //   doc: docContent,
+  //   selection: { anchor: 2, head: 2, type: "text" },
+  // });
+
+  let timeout;
+
+  const formatPlugin = new Plugin({
+    state: {
+      init(_, view) {
+        return { focused: view.focused };
+      },
+      apply(tr, oldValue) {
+        const formatBlur = tr.getMeta("format-blur");
+        const formatFocus = tr.getMeta("format-focus");
+
+        if (typeof formatBlur !== "undefined") {
+          return { focused: false };
+        }
+
+        if (typeof formatFocus !== "undefined") {
+          return { focused: true };
+        }
+
+        return oldValue;
+      },
+    },
+    props: {
+      handleDOMEvents: {
+        blur(view) {
+          clearTimeout(timeout);
+          timeout = setTimeout(() => {
+            view.dispatch(view.state.tr.setMeta("format-blur", true));
+          }, 200);
+          return false;
+        },
+        focus(view) {
+          clearTimeout(timeout);
+          view.dispatch(view.state.tr.setMeta("format-focus", true));
+          return false;
+        },
+      },
+    },
+
     view(editorView) {
+      console.log(this);
       const dom = document.createElement("div");
-      document.body.appendChild(dom);
+
+      replacePortal(
+        document.body,
+        document.body,
+        <div
+          ref={(node) => {
+            if (node) {
+              node.appendChild(dom);
+            }
+          }}
+        />
+      );
 
       const updateFns = [];
 
@@ -704,17 +806,9 @@ const plugins = [
 
         let state = view.state;
 
-        if (
-          !dragging &&
-          lastState &&
-          lastState.doc.eq(state.doc) &&
-          lastState.selection.eq(state.selection)
-        )
-          return;
-
         // @todo better check for this
         if (
-          !view.focused ||
+          !formatPlugin.getState(view.state).focused ||
           dragging ||
           state.selection instanceof NodeSelection ||
           // !(state.selection instanceof TextSelection) ||
@@ -738,6 +832,14 @@ const plugins = [
           dom.style.left = "-10000px";
           return;
         }
+
+        if (
+          !dragging &&
+          lastState &&
+          lastState.doc.eq(state.doc) &&
+          lastState.selection.eq(state.selection)
+        )
+          return;
 
         let { from, to } = state.selection;
 
@@ -780,69 +882,17 @@ const plugins = [
 
       return {
         destroy() {
-          dom.remove();
+          replacePortal(document.body, null, null);
           document.removeEventListener("dragstart", dragstart);
           document.removeEventListener("dragend", dragend);
         },
         update,
       };
     },
-  }),
-  dropCursor(),
-  new Plugin({
-    appendTransaction(transactions, __, newState) {
-      if (!transactions.some((tr) => tr.getMeta("commandWrapped"))) {
-        let tr = newState.tr;
-        let mapping = new Mapping();
-        let stepCount = tr.steps.length;
-
-        newState.doc.descendants((node, pos) => {
-          if (node.type.name !== "block") {
-            const newSteps = tr.steps.slice(stepCount);
-            stepCount = tr.steps.length;
-            for (const newStep of newSteps) {
-              const map = newStep.getMap();
-              mapping.appendMap(map);
-            }
-            const $from = tr.doc.resolve(mapping.map(pos));
-            const $to = tr.doc.resolve(mapping.map(pos + node.nodeSize));
-            const range = $from.blockRange($to);
-            tr.wrap(range, [{ type: newState.schema.nodes.block }]);
-          }
-          return false;
-        });
-
-        return tr;
-      }
-    },
-  }),
-];
-
-/**
- * @param node {HTMLElement}
- * @param content {any}
- * @param viewProps {any}
- * @param replacePortal {Function}
- * @param additionalPlugins {Plugin[]}
- *
- * @todo remove this function
- */
-export const renderPM = (
-  node,
-  content,
-  viewProps,
-  replacePortal,
-  additionalPlugins
-) => {
-  // const docContent = { type: "doc", content };
-  // const state = EditorState.fromJSON(editorStateConfig, {
-  //   doc: docContent,
-  //   selection: { anchor: 2, head: 2, type: "text" },
-  // });
-
+  });
   const state = EditorState.create({
     doc: content,
-    plugins: [...plugins, ...additionalPlugins],
+    plugins: [...plugins, formatPlugin, ...additionalPlugins],
   });
 
   const view = new EditorView(node, {

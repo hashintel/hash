@@ -10,7 +10,7 @@ const contextRequire = require.context(
   /blockPaths(\.sample)?\.json$/
 );
 
-const blockPaths = contextRequire(
+export const blockPaths = contextRequire(
   contextRequire.keys().includes("./blockPaths.json")
     ? "./blockPaths.json"
     : "./blockPaths.sample.json"

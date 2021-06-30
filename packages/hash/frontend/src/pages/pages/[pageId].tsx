@@ -98,7 +98,12 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
         </header>
 
         <main>
-          <PageBlock contents={mappedContents} blocksMeta={preloadedBlocks} />
+          <PageBlock
+            pageId={pageId}
+            namespaceId={data.page.namespaceId}
+            contents={mappedContents}
+            blocksMeta={preloadedBlocks}
+          />
         </main>
       </>
     );

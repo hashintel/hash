@@ -4,6 +4,7 @@ const pageFieldsFragment = gql`
   fragment PageFields on Page {
     __typename
     id
+    namespaceId
     properties {
       __typename
       archived
