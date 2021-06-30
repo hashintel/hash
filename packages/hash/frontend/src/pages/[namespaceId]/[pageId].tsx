@@ -68,6 +68,7 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
       const props =
         entity.__typename === "Text"
           ? {
+              childEntityId: entity.id,
               children: entity.textProperties.texts.map((text) => ({
                 type: "text",
                 text: text.text,
@@ -103,7 +104,12 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
           </header>
 
           <main>
-            <PageBlock contents={mappedContents} blocksMeta={preloadedBlocks} />
+            <PageBlock
+              pageId={pageId}
+              namespaceId={data.page.namespaceId}
+              contents={mappedContents}
+              blocksMeta={preloadedBlocks}
+            />
           </main>
         </div>
       </div>
