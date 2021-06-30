@@ -2,7 +2,7 @@ import express from "express";
 import { json } from "body-parser";
 import helmet from "helmet";
 
-import { PostgresAdapter } from "./db";
+// import { PostgresAdapter } from "./db";
 import { createApolloServer } from "./graphql/createApolloServer";
 
 // Configure the Express server

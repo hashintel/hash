@@ -188,7 +188,61 @@ class AsyncView {
 
     this.dom.appendChild(this.spinner);
 
-    this.controller = new AbortController();
+    const controller = (this.controller = new AbortController());
+
+    const definePromise = (async () => {
+      // await Promise.resolve();
+
+      const existingSchema = view.state.schema;
+      const existingSchemaSpec = existingSchema.spec;
+
+      const componentUrl = node.attrs.asyncNodeUrl;
+
+      const id =
+        node.attrs.asyncNodeId ??
+        (componentUrl ? componentIdToName(componentUrl) : null);
+
+      if (!id || existingSchemaSpec.nodes.find(id) === -1) {
+        if (componentUrl) {
+          if (!AsyncBlockCache.has(componentUrl)) {
+            const promise = fetchBlockMeta(componentUrl, controller.signal)
+              .then(({ componentMetadata, componentSchema }) => {
+                if (!id || existingSchemaSpec.nodes.find(id) === -1) {
+                  console.log("defining");
+                  defineNewBlock(
+                    componentMetadata,
+                    componentSchema,
+                    view,
+                    id,
+                    this.replacePortal
+                  );
+                }
+              })
+              .catch((err) => {
+                if (AsyncBlockCache.get(componentUrl) === promise) {
+                  AsyncBlockCache.delete(componentUrl);
+                }
+
+                console.error("bang", err);
+                throw err;
+              });
+
+            controller.signal.addEventListener("abort", () => {
+              if (AsyncBlockCache.get(componentUrl) === promise) {
+                AsyncBlockCache.delete(componentUrl);
+              }
+            });
+
+            AsyncBlockCache.set(componentUrl, promise);
+          }
+
+          await AsyncBlockCache.get(componentUrl);
+        } else {
+          // @todo remove the node in this instance
+          throw new Error("Invalid async node");
+        }
+      }
+    })();
 
     Promise.resolve()
       .then(() => {
@@ -201,50 +255,11 @@ class AsyncView {
           node.attrs.asyncNodeId ??
           (componentUrl ? componentIdToName(componentUrl) : null);
 
-        if (!id || existingSchemaSpec.nodes.find(id) === -1) {
-          if (componentUrl) {
-            if (!AsyncBlockCache.has(componentUrl)) {
-              const promise = fetchBlockMeta(
-                componentUrl,
-                this.controller.signal
-              )
-                .then(({ componentMetadata, componentSchema }) => {
-                  defineNewBlock(
-                    componentMetadata,
-                    componentSchema,
-                    view,
-                    id,
-                    this.replacePortal
-                  );
-                  return id;
-                })
-                .catch((err) => {
-                  console.error("bang", err);
-                  throw err;
-                });
-
-              this.controller.signal.addEventListener("abort", () => {
-                if (AsyncBlockCache.get(componentUrl) === promise) {
-                  AsyncBlockCache.delete(componentUrl);
-                }
-              });
-
-              AsyncBlockCache.set(componentUrl, promise);
-            }
-
-            return AsyncBlockCache.get(componentUrl);
-          } else {
-            // @todo remove the node in this instance
-            throw new Error("Invalid async node");
-          }
-        } else {
-          return id;
-        }
-
+        return definePromise.then(() => id);
         // if (node.attrs.asyncNodeId && existingSchemaSpec.nodes.find(node.attrs.asyncNodeId) === -1) {
         //   return fetchNodeType(
         //     node.attrs.asyncNodeId,
-        //     this.controller.signal
+        //     controller.signal
         //   ).then(({ spec, nodeView }) => {
         //     defineNewNodeView(
         //       view,
@@ -259,7 +274,8 @@ class AsyncView {
         // }
       })
       .then((id) => {
-        if (this.controller.signal.aborted) {
+        console.log({ id }, controller.signal);
+        if (controller.signal.aborted) {
           return;
         }
 
@@ -670,7 +686,7 @@ const plugins = [
         let stepCount = tr.steps.length;
 
         newState.doc.descendants((node, pos) => {
-          if (node.type.name !== "block") {
+          if (node.type.name !== "block" && node.type.name !== "async") {
             const newSteps = tr.steps.slice(stepCount);
             stepCount = tr.steps.length;
             for (const newStep of newSteps) {

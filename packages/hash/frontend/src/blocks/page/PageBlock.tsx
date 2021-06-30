@@ -382,7 +382,10 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
 
     const node = root.current!;
 
+    window.view = view;
+
     return () => {
+      delete window.view;
       delete (window as any).triggerSave;
       node.innerHTML = "";
     };
