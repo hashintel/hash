@@ -48,12 +48,25 @@ export function defineNewNode(existingSchema, displayName, id, spec) {
 
   nameToIdMap.set(displayName, id);
 
-  // @todo fix marks
   existingSchemaSpec.nodes.content.push(id, spec);
 
+  // @todo make mark fix work properly
   new (class extends Schema {
     get nodes() {
       return existingSchema.nodes;
+    }
+
+    get marks() {
+      return existingSchema.marks;
+    }
+
+    set marks(newMarks) {
+      for (const [key, value] of Object.entries(newMarks)) {
+        if (!this.marks[key]) {
+          value.schema = existingSchema;
+          this.marks[key] = value;
+        }
+      }
     }
 
     set nodes(newNodes) {
@@ -733,7 +746,6 @@ export const renderPM = (
     },
 
     view(editorView) {
-      console.log(this);
       const dom = document.createElement("div");
 
       replacePortal(
@@ -750,8 +762,7 @@ export const renderPM = (
 
       const updateFns = [];
 
-      const button = (mark, text) => {
-        const cmd = toggleMark(mark);
+      const button = (name, text) => {
         const button = document.createElement("button");
 
         button.innerText = text;
@@ -762,21 +773,25 @@ export const renderPM = (
           const marks = new Set();
           editorView.state.selection.content().content.descendants((node) => {
             for (const mark of node.marks) {
-              marks.add(mark.type);
+              marks.add(mark.type.name);
             }
 
             return true;
           });
 
-          const active = marks.has(mark);
+          const active = marks.has(name);
 
-          button.style.backgroundColor = active ? "#eee" : "white";
+          button.style.backgroundColor = active ? "blue" : "white";
         };
 
         button.addEventListener("click", (evt) => {
           evt.preventDefault();
           editorView.focus();
-          cmd(editorView.state, editorView.dispatch, editorView);
+          toggleMark(editorView.state.schema.marks[name])(
+            editorView.state,
+            editorView.dispatch,
+            editorView
+          );
           update();
         });
 
@@ -796,10 +811,9 @@ export const renderPM = (
         border-radius: 4px;
         transition: opacity 0.75s;
       `;
-
-      button(schema.marks.strong, "B");
-      button(schema.marks.em, "I");
-      button(schema.marks.underlined, "U");
+      button("strong", "B");
+      button("em", "I");
+      button("underlined", "U");
 
       const update = (view, lastState) => {
         const dragging = !!editorView.dragging;
