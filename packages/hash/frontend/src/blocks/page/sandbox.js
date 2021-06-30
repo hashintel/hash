@@ -48,12 +48,25 @@ export function defineNewNode(existingSchema, displayName, id, spec) {
 
   nameToIdMap.set(displayName, id);
 
-  // @todo fix marks
   existingSchemaSpec.nodes.content.push(id, spec);
 
+  // @todo make mark fix work properly
   new (class extends Schema {
     get nodes() {
       return existingSchema.nodes;
+    }
+
+    get marks() {
+      return existingSchema.marks;
+    }
+
+    set marks(newMarks) {
+      for (const [key, value] of Object.entries(newMarks)) {
+        if (!this.marks[key]) {
+          value.schema = existingSchema;
+          this.marks[key] = value;
+        }
+      }
     }
 
     set nodes(newNodes) {
@@ -262,7 +275,7 @@ class AsyncView {
         tr.replaceRangeWith(pos, pos + node.nodeSize, newNode);
 
         if (node.attrs.autofocus) {
-          selectNode(tr, pos, newNode);
+          // selectNode(tr, pos, newNode);
         } else {
           document.body.focus();
         }
@@ -278,7 +291,9 @@ class AsyncView {
         );
 
         if (node.attrs.autofocus) {
-          view.focus();
+          window.triggerSave?.();
+          document.body.focus();
+          // view.focus();
         }
       })
       .catch((err) => {
@@ -492,7 +507,10 @@ class BlockView {
                   }),
               asyncNodeUrl: url,
               asyncNodeProps: {
-                attrs: {},
+                attrs: {
+                  entityId: text ? node.attrs.entityId : null,
+                  childEntityId: text ? node.attrs.childEntityId : null,
+                },
                 children: text ? [state.schema.text(text)] : [],
                 marks: null,
               },
@@ -510,7 +528,9 @@ class BlockView {
             tr.setSelection(selection);
 
             view.dispatch(tr);
-            view.focus();
+            // @todo renable this
+            document.body.focus();
+            // view.focus();
           }}
         >
           <option disabled value="change">
@@ -533,12 +553,12 @@ class BlockView {
                   return (node.defaultAttrs.meta?.name ?? node.name) === type;
                 }
               );
+              let current = type === (node.attrs.meta?.name ?? node.type.name);
+              if (type === "table" && !current) {
+                return null;
+              }
               return (
-                <option
-                  value={type}
-                  key={type}
-                  disabled={type === (node.attrs.meta?.name ?? node.type.name)}
-                >
+                <option value={type} key={type} disabled={current}>
                   {type}
                   {exists ? "" : "*"}
                 </option>
@@ -641,153 +661,6 @@ const plugins = [
     "Mod-i": toggleMark(schema.marks.em),
     "Ctrl-u": toggleMark(schema.marks.underlined),
   }),
-  new Plugin({
-    view(editorView) {
-      const dom = document.createElement("div");
-      document.body.appendChild(dom);
-
-      const updateFns = [];
-
-      const button = (mark, text) => {
-        const cmd = toggleMark(mark);
-        const button = document.createElement("button");
-
-        button.innerText = text;
-        dom.appendChild(button);
-
-        const update = () => {
-          // @todo no idea if this is the best way to get a list of marks in a selection
-          const marks = new Set();
-          editorView.state.selection.content().content.descendants((node) => {
-            for (const mark of node.marks) {
-              marks.add(mark.type);
-            }
-
-            return true;
-          });
-
-          const active = marks.has(mark);
-
-          button.style.backgroundColor = active ? "#eee" : "white";
-        };
-
-        button.addEventListener("click", (evt) => {
-          evt.preventDefault();
-          editorView.focus();
-          cmd(editorView.state, editorView.dispatch, editorView);
-          update();
-        });
-
-        update();
-        updateFns.push(update);
-      };
-
-      dom.style.cssText = `
-        padding: 8px 7px 6px;
-        position: absolute;
-        z-index: 1;
-        top: -10000;
-        left: -10000;
-        margin-top: -6px;
-        opacity: 0;
-        background-color: #222;
-        border-radius: 4px;
-        transition: opacity 0.75s;
-      `;
-
-      button(schema.marks.strong, "B");
-      button(schema.marks.em, "I");
-      button(schema.marks.underlined, "U");
-
-      const update = (view, lastState) => {
-        const dragging = !!editorView.dragging;
-
-        let state = view.state;
-
-        if (
-          !dragging &&
-          lastState &&
-          lastState.doc.eq(state.doc) &&
-          lastState.selection.eq(state.selection)
-        )
-          return;
-
-        // @todo better check for this
-        if (
-          !view.focused ||
-          dragging ||
-          state.selection instanceof NodeSelection ||
-          // !(state.selection instanceof TextSelection) ||
-          state.selection
-            .content()
-            .content.content.map((node) =>
-              node.type.name === "block" ? node.firstChild : node
-            )
-            .every((node) => {
-              return (
-                node.content.size === 0 ||
-                // @todo fix this check by checking for the marks a node supports
-                node.type.name !==
-                  componentIdToName("https://block.blockprotocol.org/paragraph")
-              );
-            }) ||
-          state.selection.empty
-        ) {
-          dom.style.opacity = "0";
-          dom.style.top = "-10000px";
-          dom.style.left = "-10000px";
-          return;
-        }
-
-        let { from, to } = state.selection;
-
-        let start = view.coordsAtPos(from),
-          end = view.coordsAtPos(to);
-
-        dom.style.opacity = "1";
-        dom.style.top = `${start.top - dom.offsetHeight}px`;
-        dom.style.left = `${
-          start.left - dom.offsetWidth / 2 + (end.right - start.left) / 2
-        }px`;
-
-        for (const fn of updateFns) {
-          fn();
-        }
-      };
-
-      update(editorView);
-
-      const dragstart = () => {
-        // dragging = true;
-        update(editorView);
-      };
-
-      const dragend = () => {
-        // dragging = false;
-        update(editorView);
-      };
-
-      // const mousedown = (evt) => {
-      //   if (evt.target.classList.contains(styles.Block__Handle)) {
-      //     // dragging = true;
-      //     update(editorView);
-      //   }
-      // };
-
-      document.addEventListener("dragstart", dragstart);
-      // document.addEventListener("mousedown", mousedown);
-      document.addEventListener("dragend", dragend);
-
-      return {
-        destroy() {
-          dom.remove();
-          document.removeEventListener("dragstart", dragstart);
-          document.removeEventListener("dragend", dragend);
-        },
-        update,
-      };
-    },
-  }),
   dropCursor(),
   new Plugin({
     appendTransaction(transactions, __, newState) {
@@ -840,9 +713,207 @@ export const renderPM = (
   //   selection: { anchor: 2, head: 2, type: "text" },
   // });
 
+  let timeout;
+
+  const formatPlugin = new Plugin({
+    state: {
+      init(_, view) {
+        return { focused: view.focused };
+      },
+      apply(tr, oldValue) {
+        const formatBlur = tr.getMeta("format-blur");
+        const formatFocus = tr.getMeta("format-focus");
+
+        if (typeof formatBlur !== "undefined") {
+          return { focused: false };
+        }
+
+        if (typeof formatFocus !== "undefined") {
+          return { focused: true };
+        }
+
+        return oldValue;
+      },
+    },
+    props: {
+      handleDOMEvents: {
+        blur(view) {
+          clearTimeout(timeout);
+          timeout = setTimeout(() => {
+            view.dispatch(view.state.tr.setMeta("format-blur", true));
+          }, 200);
+          return false;
+        },
+        focus(view) {
+          clearTimeout(timeout);
+          view.dispatch(view.state.tr.setMeta("format-focus", true));
+          return false;
+        },
+      },
+    },
+
+    view(editorView) {
+      const dom = document.createElement("div");
+
+      replacePortal(
+        document.body,
+        document.body,
+        <div
+          ref={(node) => {
+            if (node) {
+              node.appendChild(dom);
+            }
+          }}
+        />
+      );
+
+      const updateFns = [];
+
+      const button = (name, text) => {
+        const button = document.createElement("button");
+
+        button.innerText = text;
+        dom.appendChild(button);
+
+        const update = () => {
+          // @todo no idea if this is the best way to get a list of marks in a selection
+          const marks = new Set();
+          editorView.state.selection.content().content.descendants((node) => {
+            for (const mark of node.marks) {
+              marks.add(mark.type.name);
+            }
+
+            return true;
+          });
+
+          const active = marks.has(name);
+
+          button.style.backgroundColor = active ? "blue" : "white";
+        };
+
+        button.addEventListener("click", (evt) => {
+          evt.preventDefault();
+          editorView.focus();
+          toggleMark(editorView.state.schema.marks[name])(
+            editorView.state,
+            editorView.dispatch,
+            editorView
+          );
+          update();
+        });
+
+        update();
+        updateFns.push(update);
+      };
+
+      dom.style.cssText = `
+        padding: 8px 7px 6px;
+        position: absolute;
+        z-index: 1;
+        top: -10000;
+        left: -10000;
+        margin-top: -6px;
+        opacity: 0;
+        background-color: #222;
+        border-radius: 4px;
+        transition: opacity 0.75s;
+      `;
+      button("strong", "B");
+      button("em", "I");
+      button("underlined", "U");
+
+      const update = (view, lastState) => {
+        const dragging = !!editorView.dragging;
+
+        let state = view.state;
+
+        // @todo better check for this
+        if (
+          !formatPlugin.getState(view.state).focused ||
+          dragging ||
+          state.selection instanceof NodeSelection ||
+          // !(state.selection instanceof TextSelection) ||
+          state.selection
+            .content()
+            .content.content.map((node) =>
+              node.type.name === "block" ? node.firstChild : node
+            )
+            .every((node) => {
+              return (
+                node.content.size === 0 ||
+                // @todo fix this check by checking for the marks a node supports
+                node.type.name !==
+                  componentIdToName("https://block.blockprotocol.org/paragraph")
+              );
+            }) ||
+          state.selection.empty
+        ) {
+          dom.style.opacity = "0";
+          dom.style.top = "-10000px";
+          dom.style.left = "-10000px";
+          return;
+        }
+
+        if (
+          !dragging &&
+          lastState &&
+          lastState.doc.eq(state.doc) &&
+          lastState.selection.eq(state.selection)
+        )
+          return;
+
+        let { from, to } = state.selection;
+
+        let start = view.coordsAtPos(from),
+          end = view.coordsAtPos(to);
+
+        dom.style.opacity = "1";
+        dom.style.top = `${start.top - dom.offsetHeight}px`;
+        dom.style.left = `${
+          start.left - dom.offsetWidth / 2 + (end.right - start.left) / 2
+        }px`;
+
+        for (const fn of updateFns) {
+          fn();
+        }
+      };
+
+      update(editorView);
+
+      const dragstart = () => {
+        // dragging = true;
+        update(editorView);
+      };
+
+      const dragend = () => {
+        // dragging = false;
+        update(editorView);
+      };
+
+      // const mousedown = (evt) => {
+      //   if (evt.target.classList.contains(styles.Block__Handle)) {
+      //     // dragging = true;
+      //     update(editorView);
+      //   }
+      // };
+
+      document.addEventListener("dragstart", dragstart);
+      // document.addEventListener("mousedown", mousedown);
+      document.addEventListener("dragend", dragend);
+
+      return {
+        destroy() {
+          replacePortal(document.body, null, null);
+          document.removeEventListener("dragstart", dragstart);
+          document.removeEventListener("dragend", dragend);
+        },
+        update,
+      };
+    },
+  });
   const state = EditorState.create({
     doc: content,
-    plugins: [...plugins, ...additionalPlugins],
+    plugins: [...plugins, formatPlugin, ...additionalPlugins],
   });
 
   const view = new EditorView(node, {

@@ -25,7 +25,7 @@ export type BlockProtocolCreateFn = {
 };
 
 export type BlockProtocolUpdateFn = {
-  <T>(actions: BlockProtocolUpdatePayload<T>[]): void;
+  <T>(actions: BlockProtocolUpdatePayload<T>[]): Promise<void>;
 };
 
 export type BlockProtocolAggregateFn = {
