@@ -18,15 +18,15 @@ export const createUser: Resolver<
   const entity = await dataSources.db.createEntity({
     namespaceId: id,
     id,
-    createdById: id,  // Users "create" themselves
+    createdById: id, // Users "create" themselves
     type: "User",
     properties: { email, shortname },
   });
 
   const user: DbUser = {
-      ...entity,
-      type: "User",
-      visibility: Visibility.Public, // TODO
+    ...entity,
+    type: "User",
+    visibility: Visibility.Public, // TODO
   };
 
   return user;

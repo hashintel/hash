@@ -26,7 +26,10 @@ export const aggregateEntity: Resolver<
   // TODO: this returns an array of all entities of the given type in the namespace.
   // We should perform the sorting & filtering in the database for better performance.
   // For pagination, using a database cursor may be an option.
-  const entities = await dataSources.db.getEntitiesByType({ namespaceId, type });
+  const entities = await dataSources.db.getEntitiesByType({
+    namespaceId,
+    type,
+  });
 
   const dbEntities = entities
     .filter((entity) => entity.type === type)

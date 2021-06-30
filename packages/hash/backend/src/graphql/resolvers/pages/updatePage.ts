@@ -11,10 +11,16 @@ export const updatePage: Resolver<
   MutationUpdatePageArgs
 > = async (_, { namespaceId, id, properties }, { dataSources }) => {
   const entity = await dataSources.db.updateEntity({
-    namespaceId, id, properties, type: "Page",
+    namespaceId,
+    id,
+    properties,
+    type: "Page",
   });
   if (!entity) {
-    throw new ApolloError(`Could not find page with id ${id} in namesapce ${namespaceId}`, "NOT_FOUND");
+    throw new ApolloError(
+      `Could not find page with id ${id} in namesapce ${namespaceId}`,
+      "NOT_FOUND"
+    );
   }
   return entity as DbPage;
 };

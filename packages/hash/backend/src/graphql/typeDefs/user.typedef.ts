@@ -42,9 +42,6 @@ export const userTypedef = gql`
   }
 
   extend type Mutation {
-    createUser(
-      email: String!
-      shortname: String!
-    ): User!
+    createUser(email: String!, shortname: String!): User!
   }
 `;

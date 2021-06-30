@@ -5,7 +5,7 @@ export const namespaces: (DbUser | DbOrg)[] = [
     email: "aj@hash.ai",
     shortname: "akash",
     id: "1",
-    type: "User"
+    type: "User",
   },
   {
     email: "c@hash.ai",
@@ -17,23 +17,23 @@ export const namespaces: (DbUser | DbOrg)[] = [
     email: "d@hash.ai",
     shortname: "d",
     id: "3",
-    type: "User"
+    type: "User",
   },
   {
     email: "ef@hash.ai",
     shortname: "eadan",
     id: "4",
-    type: "User"
+    type: "User",
   },
   {
     email: "nh@hash.ai",
     shortname: "nate",
     id: "5",
-    type: "User"
+    type: "User",
   },
   {
     shortname: "hash",
     id: "6",
-    type: "Org"
-  }
+    type: "Org",
+  },
 ];

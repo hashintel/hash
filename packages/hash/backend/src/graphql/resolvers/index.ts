@@ -7,9 +7,7 @@ import {
   entityFields,
   updateEntity,
 } from "./entity";
-import {
-  blockFields
-} from "./block";
+import { blockFields } from "./block";
 import { createPage, namespacePages, page, updatePage } from "./pages";
 import { createUser } from "./shared/createUser";
 import { createOrg } from "./shared/createOrg";

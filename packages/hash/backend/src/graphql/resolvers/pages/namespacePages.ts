@@ -8,6 +8,9 @@ export const namespacePages: Resolver<
   GraphQLContext,
   QueryNamespacePagesArgs
 > = async (_, { namespaceId }, { dataSources }) => {
-  const pages = await dataSources.db.getEntitiesByType({ namespaceId, type: "Page"});
+  const pages = await dataSources.db.getEntitiesByType({
+    namespaceId,
+    type: "Page",
+  });
   return pages as DbPage[];
 };

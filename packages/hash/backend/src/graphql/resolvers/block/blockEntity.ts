@@ -10,12 +10,14 @@ export const blockEntity: Resolver<
   GraphQLContext,
   {}
 > = async ({ namespaceId, id, type }, {}, { dataSources }) => {
-  const entity = await dataSources.db.getEntity({namespaceId, id});
+  const entity = await dataSources.db.getEntity({ namespaceId, id });
   if (!entity) {
     throw new ApolloError(`Entity id ${id} not found`, "NOT_FOUND");
   }
   if (entity.type !== type) {
-    throw new ApolloError(`Expected entity ID ${id} to be type "${type}" not "${entity.type}"`);
+    throw new ApolloError(
+      `Expected entity ID ${id} to be type "${type}" not "${entity.type}"`
+    );
   }
 
   return entity as DbUnknownEntity;

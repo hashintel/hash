@@ -24,9 +24,9 @@ export const createOrg: Resolver<
   });
 
   const org: DbOrg = {
-      ...entity,
-      type: "Org",
-      visibility: Visibility.Public, // TODO
+    ...entity,
+    type: "Org",
+    visibility: Visibility.Public, // TODO
   };
 
   return org;

@@ -19,7 +19,6 @@ const parsePort = (s: string) => {
   throw new Error("PG_PORT must be a positive number");
 };
 
-
 export class PostgresAdapter extends DataSource implements DBAdapter {
   private pool: Pool;
 
@@ -60,14 +59,20 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   }
 
   /** Get the row ID of an entity type. */
-  private async getEntityTypeId(client: PoolClient, name: string): Promise<number | null> {
+  private async getEntityTypeId(
+    client: PoolClient,
+    name: string
+  ): Promise<number | null> {
     const q = "select id from entity_types where name = $1";
     const res = await client.query(q, [name]);
     return res.rowCount === 0 ? null : res.rows[0]["id"];
   }
 
   /** Create an entity type and return its row ID. */
-  private async createEntityType(client: PoolClient, name: string): Promise<number> {
+  private async createEntityType(
+    client: PoolClient,
+    name: string
+  ): Promise<number> {
     const q = "insert into entity_types (name) values ($1) returning id";
     const res = await client.query(q, [name]);
     return res.rows[0]["id"];
@@ -75,11 +80,11 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
 
   /** Create a new entity. */
   async createEntity(params: {
-    namespaceId: string,
-    id?: string,
-    createdById: string,
-    type: string,
-    properties: any,
+    namespaceId: string;
+    id?: string;
+    createdById: string;
+    type: string;
+    properties: any;
   }): Promise<Entity> {
     // TODO: create ID generation function
     const id = params.id ?? genEntityId();
@@ -87,21 +92,32 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
 
     await this.tx(async (client) => {
       // Create the shard if it does not already exist
-      await client.query(`
+      await client.query(
+        `
         insert into shards (shard_id) values ($1) on conflict (shard_id) do nothing`,
         [params.namespaceId]
       );
 
       // TODO: creating the entity type here if it doesn't exist. Do we want this?
-      const entityTypeId = await this.getEntityTypeId(client, params.type) ??
-        await this.createEntityType(client, params.type);
+      const entityTypeId =
+        (await this.getEntityTypeId(client, params.type)) ??
+        (await this.createEntityType(client, params.type));
 
-      await client.query(`
+      await client.query(
+        `
         insert into entities (
           shard_id, id, type, properties, created_by, created_at, updated_at
         )
         values ($1, $2, $3, $4, $5, $6, $7)`,
-        [params.namespaceId, id, entityTypeId, params.properties, params.createdById, now, now]
+        [
+          params.namespaceId,
+          id,
+          entityTypeId,
+          params.properties,
+          params.createdById,
+          now,
+          now,
+        ]
       );
     });
 
@@ -118,7 +134,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
 
   private async _getEntity(
     client: PoolClient,
-    params: {namespaceId: string, id: string}
+    params: { namespaceId: string; id: string }
   ): Promise<Entity | undefined> {
     const q = `
       select
@@ -146,25 +162,29 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       type: e["type"],
       properties: e["properties"],
       createdAt: e["created_at"],
-      updatedAt: e["updated_at"]
+      updatedAt: e["updated_at"],
     };
 
     return entity;
   }
 
   /** Get an entity by ID in a given namespace. */
-  async getEntity(
-    params: {namespaceId: string, id: string}
-  ): Promise<Entity | undefined> {
-    return await this.q(client => this._getEntity(client, params));
+  async getEntity(params: {
+    namespaceId: string;
+    id: string;
+  }): Promise<Entity | undefined> {
+    return await this.q((client) => this._getEntity(client, params));
   }
 
   /** Update an entity's properties. If the "type" parameter is provided, the function
    * checks that it matches the entity's type.
-  */
-  async updateEntity(
-    params: {namespaceId: string, id: string, type?: string, properties: any}
-  ): Promise<Entity | undefined> {
+   */
+  async updateEntity(params: {
+    namespaceId: string;
+    id: string;
+    type?: string;
+    properties: any;
+  }): Promise<Entity | undefined> {
     const namespaceId = params.namespaceId;
     const id = params.id;
 
@@ -189,22 +209,29 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
         res = await client.query(q, [params.properties, namespaceId, id]);
       } else {
         q += ` and type = $4`;
-        res = await client.query(q, [params.properties, namespaceId, id, typeId]);
+        res = await client.query(q, [
+          params.properties,
+          namespaceId,
+          id,
+          typeId,
+        ]);
       }
 
       if (res.rowCount === 0) {
         return undefined;
       } else if (res.rowCount > 1) {
-        throw new Error(`expected 1 row to be updated but received ${res.rowCount}`);
+        throw new Error(
+          `expected 1 row to be updated but received ${res.rowCount}`
+        );
       }
 
-      return await this._getEntity(client, {namespaceId, id});
+      return await this._getEntity(client, { namespaceId, id });
     });
   }
 
   async getEntitiesByType(params: {
-    namespaceId: string,
-    type: string,
+    namespaceId: string;
+    type: string;
   }): Promise<Entity[]> {
     const q = `
       select
@@ -218,7 +245,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     `;
     const res = await this.pool.query(q, [params.namespaceId, params.type]);
 
-    return res.rows.map(r => ({
+    return res.rows.map((r) => ({
       namespaceId: r["shard_id"],
       id: r["id"],
       createdById: r["created_by"],
@@ -238,9 +265,8 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
         entities as e
         join entity_types as t on e.type = t.id
       where
-        e.shard_id = e.id`,
-    );
-    return res.rows.map(r => ({
+        e.shard_id = e.id`);
+    return res.rows.map((r) => ({
       namespaceId: r["shard_id"],
       id: r["id"],
       createdById: r["created_by"],

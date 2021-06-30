@@ -1,4 +1,3 @@
-
 import {
   Block,
   BlockProperties,
@@ -18,10 +17,7 @@ export type DbBlock = Omit<Block, "properties"> & {
   properties: Omit<BlockProperties, "entity">;
 };
 
-export type DbPage = Omit<
-  Page,
-  "properties" | "type"
-> & {
+export type DbPage = Omit<Page, "properties" | "type"> & {
   properties: Omit<Page["properties"], "contents"> & { contents: DbBlock[] };
   type: "Page";
 };
@@ -30,10 +26,7 @@ export type DbUser = Omit<User, "type"> & { type: "User" };
 
 export type DbOrg = Omit<Org, "type"> & { type: "Org" };
 
-export type DbUnknownEntity = Omit<
-  UnknownEntity,
-  "type" | "__typename"
-> & {
+export type DbUnknownEntity = Omit<UnknownEntity, "type" | "__typename"> & {
   createdById: string;
   type: string;
   __typename?: string;

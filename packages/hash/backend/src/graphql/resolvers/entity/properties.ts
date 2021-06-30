@@ -42,7 +42,9 @@ type LinkedDataDefinition = {
 
 // Recursively resolve any __linkedData fields in arbitrary entities
 const resolveLinkedData = async (
-  ctx: GraphQLContext, namespaceId: string, object: Record<string, any>
+  ctx: GraphQLContext,
+  namespaceId: string,
+  object: Record<string, any>
 ) => {
   if (!isRecord(object.properties)) {
     return;
@@ -63,16 +65,21 @@ const resolveLinkedData = async (
 
     if (entityId) {
       // Fetch a single entity and resolve any linked data in it
-      const entity = await ctx.dataSources.db.getEntity({namespaceId, id: entityId});
+      const entity = await ctx.dataSources.db.getEntity({
+        namespaceId,
+        id: entityId,
+      });
       if (!entity) {
-        throw new Error(`entity ${entityId} in namespace ${namespaceId} not found`);
+        throw new Error(
+          `entity ${entityId} in namespace ${namespaceId} not found`
+        );
       }
-      const e: DbUnknownEntity =  {
+      const e: DbUnknownEntity = {
         ...entity,
         __typename: entityType,
         visibility: Visibility.Public, // TODO
       };
-      object.properties[key] = e ;
+      object.properties[key] = e;
       await resolveLinkedData(ctx, entity.namespaceId, object.properties[key]);
     } else if (aggregate) {
       // Fetch an array of entities
@@ -97,7 +104,7 @@ export const properties: Resolver<
   UnknownEntity["properties"],
   DbUnknownEntity,
   GraphQLContext
-> = async (entity, _,  ctx) => {
+> = async (entity, _, ctx) => {
   await resolveLinkedData(ctx, entity.namespaceId, entity);
   return entity.properties;
 };

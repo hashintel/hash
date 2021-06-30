@@ -12,7 +12,6 @@ export const createPage: Resolver<
   GraphQLContext,
   MutationCreatePageArgs
 > = async (_, { namespaceId, createdById, properties }, { dataSources }) => {
-
   const entity = await dataSources.db.createEntity({
     namespaceId,
     createdById,
