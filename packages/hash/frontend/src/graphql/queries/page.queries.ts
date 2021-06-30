@@ -73,3 +73,24 @@ export const updatePage = gql`
   }
   ${pageFieldsFragment}
 `;
+
+export const insertBlockIntoPage = gql`
+  mutation insertBlockIntoPage(
+    $componentId: ID!
+    $entityType: String!
+    $entityProperties: JSONObject!
+    $position: Int!
+    $pageId: ID!
+  ) {
+    insertBlockIntoPage(
+      componentId: $componentId
+      entityType: $entityType
+      entityProperties: $entityProperties
+      position: $position
+      pageId: $pageId
+    ) {
+      ...PageFields
+    }
+  }
+  ${pageFieldsFragment}
+`;

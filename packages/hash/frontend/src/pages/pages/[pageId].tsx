@@ -65,6 +65,7 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
       const props =
         entity.__typename === "Text"
           ? {
+              childEntityId: entity.id,
               children: entity.textProperties.texts.map((text) => ({
                 type: "text",
                 text: text.text,

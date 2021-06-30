@@ -11,7 +11,6 @@ export function memoizeFetchFunction<T>(
   const cache: Record<string, Promise<any>> = {};
 
   return async (url, signal) => {
-    console.log(cache, url);
     if (cache[url] == null) {
       let fulfilled = false;
       const promise = fetchFunction(url, signal);
