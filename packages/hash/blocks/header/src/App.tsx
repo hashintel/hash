@@ -16,7 +16,7 @@ export const App: VoidFunctionComponent<AppProps> = ({
 
   return (
     <Header
-      style={{ fontFamily: "Arial", color: color ?? "black" }}
+      style={{ fontFamily: "Arial", color: color ?? "black", marginBottom: 0 }}
       ref={editableRef}
     />
   );

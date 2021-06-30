@@ -133,7 +133,7 @@ export const pages = (() => {
             entityId: "b4"
           }
         ],
-        title: "Ciaran's 1st page",
+        title: "My awesome page",
       },
       visibility: Visibility.Public,
     },
