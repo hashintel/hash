@@ -14,7 +14,7 @@ export const textTypedef = gql`
     """
     namespaceId: ID!
     """
-    The CHANGEABLE name/slug of the namespace (e.g. username). 
+    The CHANGEABLE name/slug of the namespace (e.g. username).
     """
     namespace: String!
     """
@@ -41,6 +41,10 @@ export const textTypedef = gql`
   }
 
   type TextProperites {
+    texts: [TextPropertiesText!]!
+  }
+
+  type TextPropertiesText {
     text: String!
     bold: Boolean
     underline: Boolean

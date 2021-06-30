@@ -1,16 +1,29 @@
 # HASH.dev backend
 
-## To run in development mode
+## Developing with Docker Compose
 
-`yarn install && yarn dev`
-
-Environment variables are required for connecting to the database. Create
-the file `./.env.local` with the following:
-
+We use Docker to package the Postgres database and the API, and the
+ `docker-compose.yml` may be used to run these together. The config
+requires a volume named `hash-dev-pg` to be present to persist the database
+state. Create this by running:
 ```
-HASH_PG_HOST="localhost"
-HASH_PG_PORT="5432"
-HASH_PG_USER="postgres"
-HASH_PG_PASSWORD="postgres"
-HASH_PG_DATABASE="postgres"
+docker volume create hash-dev-pg
+```
+
+Start the database and API:
+```
+docker compose up
+```
+
+The API is avaible at `localhost:5001`. You may also connect to the database
+from localhost using any Postgres-compatible database client. For example,
+here's how to connect using `psql`:
+```
+psql -h localhost -p 5432 -U postgres -d postgres
+```
+The password is "postgres".
+
+If you want to start the database afresh, just delete and recreate the volume:
+```
+docker-compose rm -f && docker volume rm hash-dev-pg && docker volume create hash-dev-pg
 ```

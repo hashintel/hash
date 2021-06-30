@@ -1,21 +1,23 @@
-import React, { VoidFunctionComponent } from "react";
+import React, { RefCallback, VoidFunctionComponent } from "react";
 
 type AppProps = {
   color?: string;
   level?: number;
-  text: string;
+  editableRef?: RefCallback<HTMLElement>;
 };
 
 export const App: VoidFunctionComponent<AppProps> = ({
   color,
   level = 1,
-  text,
+  editableRef,
 }) => {
-  const Header = `h${level}` as keyof JSX.IntrinsicElements;
+  // @todo set type correctly
+  const Header = `h${level}` as any;
 
   return (
-    <Header style={{ fontFamily: "Arial", color: color ?? "black" }}>
-      {text}
-    </Header>
+    <Header
+      style={{ fontFamily: "Arial", color: color ?? "black" }}
+      ref={editableRef}
+    />
   );
 };

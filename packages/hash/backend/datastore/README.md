@@ -3,24 +3,11 @@
 This package stores the configuration for the HASH.dev datastore. For now, it
 only contains a config for a local development Postgres running on Docker.
 
+## Postgres Schema
 
-## Local development
-
-Create an empty directory `./postgres/pgdata` which will be mounted as a Docker
-volume. The database state will be persisted between Docker runs here. To get
-a fresh database, just delete this directory.
+The Postgres schema definitions are stored in [`./postgres/schema`](./postgres/schema).
+We will have automated migration scripts, but for now, you can execute
+the single schema file manually using `psql`, for example:
 ```
-mkdir ./postgres/pgdata
+\i datastore/postgres/schema/0000_base.sql
 ```
-
-Run the datastore:
-```
-docker-compose up
-```
-
-The default user, password and database are all set to "postgres". You can 
-connect to the database using, for example, `psql`:
-```
-psql -h localhost -p 5432 -U postgres -d postgres
-```
-

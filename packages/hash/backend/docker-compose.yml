@@ -1,0 +1,36 @@
+version: "3.9"
+services:
+    hash-dev-pg:
+        build:
+            context: ./datastore/postgres
+            dockerfile: Dockerfile
+        ports:
+            - 5432:5432
+        environment:
+            - PGDATA=/pgdata
+            - POSTGRES_USER=postgres
+            - POSTGRES_PASSWORD=postgres
+        volumes:
+            - hash-dev-pg:/pgdata
+    hash-dev-api:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        depends_on:
+            - hash-dev-pg
+        ports:
+            - 5001:5001
+        environment:
+            - HASH_PG_HOST=hash-dev-pg
+            - HASH_PG_USER=postgres
+            - HASH_PG_PORT=5432
+            - HASH_PG_DATABASE=postgres
+            - HASH_PG_PASSWORD=postgres
+        # Wait until the database is running before starting the API
+        command: bash -c 'while !</dev/tcp/hash-dev-pg/5432; do sleep 1; done; yarn codegen && yarn dev'
+        volumes:
+            - ./src:/app/src
+volumes:
+    # Make sure you have created this volume: docker volume create hash-dev-pg
+    hash-dev-pg:
+        external: true
