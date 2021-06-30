@@ -28,7 +28,7 @@ export const NamespacePageList: VoidFunctionComponent<NamespacePageListProps> =
       <div>
         {data?.namespacePages.map((page) => {
           if (page.id === currentPageId) {
-            return <div>{page.properties.title}</div>;
+            return <div key={page.id}>{page.properties.title}</div>;
           }
           return (
             <Link href={`/${namespaceId}/${page.id}`} key={page.id}>

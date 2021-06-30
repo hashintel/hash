@@ -3,6 +3,7 @@ import React, {
   ReactNode,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   VoidFunctionComponent,
@@ -91,7 +92,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     return () => {
       if (saveTimer.current !== null) {
         clearTimeout(saveTimer.current);
@@ -103,7 +104,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     };
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const schema = new Schema(baseSchemaConfig);
 
     (window as any).triggerSave = () => {
