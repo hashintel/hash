@@ -8,10 +8,12 @@ import {
   entityFields,
   updateEntity,
 } from "./entity";
-import { 
+import {
   blockFields
 } from "./block";
 import { createPage, namespacePages, page, updatePage } from "./pages";
+import { createUser } from "./shared/createUser";
+import { createOrg } from "./shared/createOrg";
 import { namespaces } from "./namespace/namespaces";
 
 import { DbOrg, DbUser } from "../../types/dbTypes";
@@ -32,6 +34,8 @@ export const resolvers = {
     updatePage,
     createEntity,
     updateEntity,
+    createUser,
+    createOrg,
   },
 
   Block: {

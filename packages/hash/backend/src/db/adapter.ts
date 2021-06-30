@@ -1,4 +1,8 @@
 import { DataSource } from "apollo-datasource";
+import { Uuid4 } from "id128";
+
+/** Generate a new entity ID. */
+export const genEntityId = () => Uuid4.generate().toCanonical().toLowerCase();
 
 export type Entity = {
   namespaceId: string,
@@ -16,9 +20,10 @@ export type Entity = {
  */
 export interface DBAdapter extends DataSource {
 
-  /** Create a new entity. */
+  /** Create a new entity. If "id" is not provided it will be automatically generated. */
   createEntity(params: {
     namespaceId: string,
+    id?: string,
     createdById: string,
     type: string,
     properties: any
@@ -27,10 +32,13 @@ export interface DBAdapter extends DataSource {
   /** Get an entity by ID in a given namespace. */
   getEntity(params: { namespaceId: string, id: string }): Promise<Entity | undefined>
 
-  /** Update an entity's properties. */
+  /** Update an entity's properties. If the parameter "type" is provided, the function
+   * checks that the entity's type matches before updating.
+   */
   updateEntity(params: {
     namespaceId: string,
     id: string,
+    type?: string,
     properties: any
   }): Promise<Entity | undefined>
 

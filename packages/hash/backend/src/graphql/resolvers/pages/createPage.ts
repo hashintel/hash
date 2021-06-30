@@ -22,13 +22,8 @@ export const createPage: Resolver<
   });
 
   const page: DbPage = {
-    id: entity.id,
-    namespaceId: entity.namespaceId,
-    properties: entity.properties,
-    createdById: entity.createdById,
+    ...entity,
     type: "Page",
-    updatedAt: entity.updatedAt,
-    createdAt: entity.createdAt,
     visibility: Visibility.Public, // TODO
   };
 

@@ -51,12 +51,12 @@ export const pageTypedef = gql`
     """
     Return a page by its id
     """
-    page(id: ID!): Page!
+    page(namespaceId: ID!, id: ID!): Page!
 
     """
     Return a list of pages belonging to a namespace
     """
-    namespacePages(namespaceId: ID, namespace: String): [Page!]!
+    namespacePages(namespaceId: ID!): [Page!]!
   }
 
   input PageCreationData {
@@ -90,6 +90,6 @@ export const pageTypedef = gql`
       properties: PageCreationData!
     ): Page!
 
-    updatePage(id: ID!, properties: PageUpdateData!): Page!
+    updatePage(namespaceId: ID!, id: ID!, properties: PageUpdateData!): Page!
   }
 `;

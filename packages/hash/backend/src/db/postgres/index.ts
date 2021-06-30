@@ -1,8 +1,7 @@
 import { Pool, PoolClient } from "pg";
 import { DataSource } from "apollo-datasource";
-import { Uuid4 } from "id128";
 
-import { DBAdapter, Entity } from "../adapter";
+import { DBAdapter, Entity, genEntityId } from "../adapter";
 
 /** Get a required environment variable. Throws an error if it's not set. */
 const getRequiredEnv = (name: string) => {
@@ -77,42 +76,38 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   /** Create a new entity. */
   async createEntity(params: {
     namespaceId: string,
+    id?: string,
     createdById: string,
     type: string,
     properties: any,
   }): Promise<Entity> {
-    // TODO: the shard should be created somewhere else. Required for the FK
-    await this.pool.query(`
-      insert into shards (shard_id) values ($1)
-      on conflict (shard_id) do nothing`,
-      [params.namespaceId]
-    );
-
     // TODO: create ID generation function
-    const id = Uuid4.generate().toCanonical().toLowerCase();
+    const id = params.id ?? genEntityId();
     const now = new Date();
 
     await this.tx(async (client) => {
-      // TODO: check that createdById corresponds to an entity which already exists.
+      // Create the shard if it does not already exist
+      await client.query(`
+        insert into shards (shard_id) values ($1) on conflict (shard_id) do nothing`,
+        [params.namespaceId]
+      );
 
       // TODO: creating the entity type here if it doesn't exist. Do we want this?
       const entityTypeId = await this.getEntityTypeId(client, params.type) ??
         await this.createEntityType(client, params.type);
 
-      const q = `
+      await client.query(`
         insert into entities (
           shard_id, id, type, properties, created_by, created_at, updated_at
         )
-        values ($1, $2, $3, $4, $5, $6, $7)
-      `;
-      await client.query(q,
+        values ($1, $2, $3, $4, $5, $6, $7)`,
         [params.namespaceId, id, entityTypeId, params.properties, params.createdById, now, now]
       );
     });
 
     return {
       namespaceId: params.namespaceId,
-      id,
+      id: id,
       createdById: params.createdById,
       type: params.type,
       properties: params.properties,
@@ -164,22 +159,38 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return await this.q(client => this._getEntity(client, params));
   }
 
-  /** Update an entity's properties. */
+  /** Update an entity's properties. If the "type" parameter is provided, the function
+   * checks that it matches the entity's type.
+  */
   async updateEntity(
-    params: {namespaceId: string, id: string, properties: any}
+    params: {namespaceId: string, id: string, type?: string, properties: any}
   ): Promise<Entity | undefined> {
     const namespaceId = params.namespaceId;
     const id = params.id;
 
     return await this.tx(async (client) => {
-      const q = `
+      let typeId;
+      if (params.type) {
+        typeId = await this.getEntityTypeId(client, params.type);
+        if (!typeId) {
+          // TODO: should be an error that the caller can catch
+          throw new Error(`entity type "${params.type}" does not exist`);
+        }
+      }
+
+      let q = `
         update entities set
-          properties = $3,
+          properties = $1,
           updated_at = now()
         where
-          shard_id = $1 and id = $2
-      `;
-      const res = await client.query(q, [namespaceId, id, params.properties]);
+          shard_id = $2 and id = $3`;
+      let res;
+      if (!typeId) {
+        res = await client.query(q, [params.properties, namespaceId, id]);
+      } else {
+        q += ` and type = $4`;
+        res = await client.query(q, [params.properties, namespaceId, id, typeId]);
+      }
 
       if (res.rowCount === 0) {
         return undefined;

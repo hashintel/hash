@@ -6,16 +6,16 @@ export const isNamespace = (
 ): entity is DbUser | DbOrg =>
   "type" in entity && (entity.type === "User" || entity.type === "Org");
 
-export const entityNamespaceName = (
-  object: Exclude<DbEntity, DbOrg | DbUser>
-) => {
-  if (!object.namespaceId) {
-    throw new Error(
-      "Could not determine namespace - object does not have a namespaceid"
-    );
-  }
-  return namespaceNameFromNamespaceId(object.namespaceId);
-};
+// export const entityNamespaceName = (
+//   object: Exclude<DbEntity, DbOrg | DbUser>
+// ) => {
+//   if (!object.namespaceId) {
+//     throw new Error(
+//       "Could not determine namespace - object does not have a namespaceid"
+//     );
+//   }
+//   return namespaceNameFromNamespaceId(object.namespaceId);
+// };
 
 export const namespaceEntityFromNamespaceId = (namespaceId: string) => {
   const entity = entities.find((entity) => entity.id === namespaceId);

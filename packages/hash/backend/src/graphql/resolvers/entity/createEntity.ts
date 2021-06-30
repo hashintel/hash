@@ -45,7 +45,5 @@ export const createEntity: Resolver<
   // TODO: remove this when all resolvers have DB implementations
   entities.push(entity);
 
-  console.log(entity);
-
   return entity;
 };
