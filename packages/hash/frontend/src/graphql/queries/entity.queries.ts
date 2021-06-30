@@ -2,14 +2,12 @@ import gql from "graphql-tag";
 
 export const createEntity = gql`
   mutation createEntity(
-    $namespace: String
-    $namespaceId: ID
+    $namespaceId: ID!
     $createdById: ID!
     $properties: JSONObject!
     $type: String!
   ) {
     createEntity(
-      namespace: $namespace
       namespaceId: $namespaceId
       createdById: $createdById
       properties: $properties
@@ -20,7 +18,6 @@ export const createEntity = gql`
       createdById
       createdAt
       updatedAt
-      namespace
       namespaceId
       ... on UnknownEntity {
         properties

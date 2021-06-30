@@ -10,28 +10,13 @@ export const entity: Resolver<
   GraphQLContext,
   QueryEntityArgs
 > = async (_, { namespaceId, id }, { dataSources }) => {
-  // const dbEntity = (await entities.find((entity) => entity.id === id)) as
-  //   | DbUnknownEntity
-  //   | undefined;
-
-  // if (!dbEntity) {
-  //   throw new ApolloError(`Entity id ${id} not found`, "NOT_FOUND");
-  // }
-
   const e = await dataSources.db.getEntity({namespaceId, id});
   if (!e) {
     throw new ApolloError(`Entidy id ${id} not found in namespace ${namespaceId}`);
   }
 
   const entity: DbUnknownEntity = {
-    id: e.id,
-    namespaceId: e.namespaceId,
-    namespace: "TODO",
-    properties: e.properties,
-    createdById: e.createdById,
-    type: e.type,
-    createdAt: e.createdAt,
-    updatedAt: e.updatedAt,
+    ...e,
     visibility: Visibility.Public, // TODO: should be a param?
   };
 

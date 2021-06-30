@@ -19,10 +19,6 @@ export const entityTypedef = gql`
     """
     namespaceId: ID!
     """
-    The CHANGEABLE name/slug of the namespace (e.g. username).
-    """
-    namespace: String!
-    """
     The date the entity was created
     """
     createdAt: Date!
@@ -56,10 +52,6 @@ export const entityTypedef = gql`
     The FIXED id for a namespace
     """
     namespaceId: ID!
-    """
-    The CHANGEABLE name/slug of the namespace (e.g. username).
-    """
-    namespace: String!
     """
     The date the entity was created
     """
@@ -135,8 +127,7 @@ export const entityTypedef = gql`
     Create an entity
     """
     createEntity(
-      namespace: String
-      namespaceId: ID
+      namespaceId: ID!
       createdById: ID!
       properties: JSONObject!
       type: String!
@@ -171,10 +162,6 @@ export const entityTypedef = gql`
     The FIXED id for a namespace
     """
     namespaceId: ID!
-    """
-    The CHANGEABLE name/slug of the namespace (e.g. username).
-    """
-    namespace: String!
     """
     The date the entity was created
     """

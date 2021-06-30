@@ -1,4 +1,3 @@
-import { entities } from "../../../mockData/entities";
 import { DbPage } from "../../../types/dbTypes";
 import {
   MutationCreatePageArgs,
@@ -26,8 +25,6 @@ export const createPage: Resolver<
     type: "Page",
     visibility: Visibility.Public, // TODO
   };
-
-  entities.push(page);  // TODO: remove
 
   return page;
 };

@@ -35,8 +35,8 @@ const pageFieldsFragment = gql`
 `;
 
 export const getPageQuery = gql`
-  query getPage($pageId: ID!) {
-    page(id: $pageId) {
+  query getPage($namespaceId: ID!, $pageId: ID!) {
+    page(namespaceId: $namespaceId, id: $pageId) {
       ...PageFields
     }
   }
@@ -61,8 +61,8 @@ export const createPage = gql`
 `;
 
 export const updatePage = gql`
-  mutation updatePage($id: ID!, $properties: PageUpdateData!) {
-    updatePage(id: $id, properties: $properties) {
+  mutation updatePage($namespaceId: ID!, $id: ID!, $properties: PageUpdateData!) {
+    updatePage(namespaceId: $namespaceId, id: $id, properties: $properties) {
       ...PageFields
     }
   }

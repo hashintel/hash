@@ -10,28 +10,13 @@ export const updateEntity: Resolver<
   GraphQLContext,
   MutationUpdateEntityArgs
 > = async (_, { namespaceId, id, properties }, { dataSources }) => {
-  // const entity = entities.find((entity) => entity.id === id) as DbUnknownEntity;
-
-  // if (!entity) {
-  //   throw new ApolloError(`Could not find entity with id ${id}`, "NOT_FOUND");
-  // }
-
-  // entity.properties = properties.properties ?? properties;
-
   const e = await dataSources.db.updateEntity({namespaceId, id, properties});
   if (!e) {
     throw new ApolloError(`Could not find entity with id ${id} in namespace ${namespaceId}`, "NOT_FOUND");
   }
 
   const entity: DbUnknownEntity = {
-    id: e.id,
-    namespaceId: e.namespaceId,
-    namespace: "TODO",
-    properties: e.properties,
-    createdById: e.createdById,
-    type: e.type,
-    createdAt: e.createdAt,
-    updatedAt: e.updatedAt,
+    ...e,
     visibility: Visibility.Public, // TODO: should be a param?
   };
 

@@ -206,7 +206,6 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     namespaceId: string,
     type: string,
   }): Promise<Entity[]> {
-    // TODO: !!DANGER!! string-interpolation for SQL queries not recommended
     const q = `
       select
         e.shard_id, e.id, t.name as type, e.properties, e.created_by, e.created_at,
@@ -217,9 +216,31 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       where
         e.shard_id = $1 and t.name = $2
     `;
-    const res = this.pool.query(q, [params.namespaceId, params.type]);
+    const res = await this.pool.query(q, [params.namespaceId, params.type]);
 
-    return (await res).rows.map(r => ({
+    return res.rows.map(r => ({
+      namespaceId: r["shard_id"],
+      id: r["id"],
+      createdById: r["created_by"],
+      type: r["type"],
+      properties: r["properties"],
+      createdAt: r["created_at"],
+      updatedAt: r["updated_at"],
+    }));
+  }
+
+  async getNamespaceEntities(): Promise<Entity[]> {
+    const res = await this.pool.query(`
+      select
+        e.shard_id, e.id, t.name as type, e.properties, e.created_by, e.created_at,
+        e.updated_at
+      from
+        entities as e
+        join entity_types as t on e.type = t.id
+      where
+        e.shard_id = e.id`,
+    );
+    return res.rows.map(r => ({
       namespaceId: r["shard_id"],
       id: r["id"],
       createdById: r["created_by"],

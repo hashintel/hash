@@ -27,7 +27,7 @@ export interface DBAdapter extends DataSource {
     createdById: string,
     type: string,
     properties: any
-  }): Promise<Entity>
+  }): Promise<Entity>;
 
   /** Get an entity by ID in a given namespace. */
   getEntity(params: { namespaceId: string, id: string }): Promise<Entity | undefined>
@@ -40,12 +40,17 @@ export interface DBAdapter extends DataSource {
     id: string,
     type?: string,
     properties: any
-  }): Promise<Entity | undefined>
+  }): Promise<Entity | undefined>;
 
   /** Get all entities of a given type. */
   getEntitiesByType(params: {
     namespaceId: string,
     type: string,
-  }): Promise<Entity[]>
+  }): Promise<Entity[]>;
+
+  /** Get all namespace entities in the database, that is, those entities where the
+   * namespace ID equals the entity ID
+  */
+  getNamespaceEntities(): Promise<Entity[]>;
 
 }
