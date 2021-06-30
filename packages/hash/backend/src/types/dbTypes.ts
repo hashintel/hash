@@ -13,7 +13,10 @@ import {
 
 export type DbEntity = DbBlock | DbPage | DbUnknownEntity | DbUser | DbOrg;
 
-export type DbBlock = Omit<Block, "createdBy" | "entity" | "namespace" | "properties"> & {
+export type DbBlock = Omit<
+  Block,
+  "createdBy" | "entity" | "namespace" | "properties"
+> & {
   createdById: string;
   properties: Omit<BlockProperties, "entity">;
 };
@@ -22,7 +25,9 @@ export type DbPage = Omit<
   Page,
   "properties" | "namespace" | "createdBy" | "type"
 > & {
-  properties: Omit<Page["properties"], "contents"> & { contents: DbBlock[] };
+  properties: Omit<Page["properties"], "contents"> & {
+    contents: { entityId: string }[];
+  };
   createdById: string;
   type: "Page";
 };
