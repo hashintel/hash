@@ -1,9 +1,20 @@
 import { Schema as JSONSchema } from "jsonschema";
 import React, { ReactNode } from "react";
-import { EditorProps, EditorView, NodeView } from "prosemirror-view";
+import { EditorProps, NodeView } from "prosemirror-view";
 import { RemoteBlock } from "../../components/RemoteBlock/RemoteBlock";
-import { defineBlock } from "./utils";
-import { defineNewNode, defineNewNodeView } from "./sandbox";
+
+// @ts-ignore
+const contextRequire = require.context(
+  "../../../",
+  false,
+  /blockPaths(\.sample)?\.json$/
+);
+
+const blockPaths = contextRequire(
+  contextRequire.keys().includes("./blockPaths.json")
+    ? "./blockPaths.json"
+    : "./blockPaths.sample.json"
+);
 
 // @todo this type properly exists already somewhere
 export type Block = {
@@ -50,31 +61,32 @@ export const fetchBlockMeta = async (
   url: string,
   signal?: AbortSignal
 ): Promise<BlockMeta> => {
-  if (builtInBlocks[url]) {
-    return builtInBlocks[url];
+  const mappedUrl = blockPaths[url] ?? url;
+  if (builtInBlocks[mappedUrl]) {
+    return builtInBlocks[mappedUrl];
   }
 
-  if (blockCache.has(url)) {
-    return blockCache.get(url)!;
+  if (blockCache.has(mappedUrl)) {
+    return blockCache.get(mappedUrl)!;
   }
 
   const metadata = await (
-    await fetch(`${url}/metadata.json`, { signal })
+    await fetch(`${mappedUrl}/metadata.json`, { signal })
   ).json();
 
   const schema = await (
-    await fetch(`${url}/${metadata.schema}`, { signal })
+    await fetch(`${mappedUrl}/${metadata.schema}`, { signal })
   ).json();
 
   const result: BlockMeta = {
     componentMetadata: {
       ...metadata,
-      url: url,
+      url: mappedUrl,
     },
     componentSchema: schema,
   };
   if (typeof window !== "undefined") {
-    blockCache.set(url, result);
+    blockCache.set(mappedUrl, result);
   }
 
   return result;

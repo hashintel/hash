@@ -101,6 +101,9 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
               asyncNodeProps: {
                 attrs: {
                   props,
+                  entityId: block.entityId,
+                  // @todo set this properly
+                  childEntityId: children?.[0]?.entityId ?? null,
                 },
                 children:
                   children?.map((child: any) => {
@@ -119,7 +122,44 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       ),
       { nodeViews: {} },
       replacePortal,
-      []
+      [
+        // new Plugin({
+        //   props: {
+        //     handleDOMEvents: {
+        //       blur(view, evt) {
+        //         console.log(
+        //           view.state
+        //             .toJSON()
+        //             .doc.content.filter((block) => block.type === "block")
+        //             .flatMap((block) =>
+        //               block.content.map((node) => {
+        //                 const nodeType = view.state.schema.nodes[node.type];
+        //                 const meta = nodeType.defaultAttrs.meta;
+        //
+        //                 const componentId = meta.url;
+        //
+        //                 console.log(node);
+        //
+        //                 return {
+        //                   id: node.attrs.entityId,
+        //                   properties: {
+        //                     componentId,
+        //                     entityType: node.attrs.childEntityId
+        //                       ? "Text"
+        //                       : "UnknownEntity",
+        //                     entity: node.attrs.childEntityId ? {} : null,
+        //                   },
+        //                 };
+        //               })
+        //             )
+        //         );
+        //
+        //         return false;
+        //       },
+        //     },
+        //   },
+        // }),
+      ]
     );
 
     for (const [url, meta] of Array.from(blocksMeta.entries())) {
@@ -131,8 +171,6 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
         replacePortal
       );
     }
-
-    window.view = view;
 
     const node = root.current!;
 

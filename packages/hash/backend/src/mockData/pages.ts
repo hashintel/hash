@@ -16,7 +16,7 @@ export const pages = (() => {
           {
             id: "b1",
             properties: {
-              componentId: "http://localhost:5000",
+              componentId: "https://block.blockprotocol.org/header",
               entityType: "Text",
               entityId: "text1",
             },
@@ -54,7 +54,7 @@ export const pages = (() => {
           },
           {
             properties: {
-              componentId: "http://localhost:51965",
+              componentId: "https://block.blockprotocol.org/table",
               entityType: "Table",
               entityId: "t1",
             },
@@ -80,7 +80,7 @@ export const pages = (() => {
         contents: [
           {
             properties: {
-              componentId: "http://localhost:5000",
+              componentId: "https://block.blockprotocol.org/header",
               entityType: "Text",
               entityId: "text5",
             },

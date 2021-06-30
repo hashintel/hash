@@ -10,6 +10,7 @@ const pageFieldsFragment = gql`
       summary
       title
       contents {
+        id
         properties {
           componentId
           entityType

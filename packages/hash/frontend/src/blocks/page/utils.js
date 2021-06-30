@@ -6,5 +6,7 @@ export const defineBlock = (meta, attrs) => ({
     ...(attrs.attrs ?? {}),
     props: { default: {} },
     meta: { default: meta },
+    entityId: { default: "" },
+    childEntityId: { default: null },
   },
 });

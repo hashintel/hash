@@ -14,7 +14,8 @@ import {
   BlockWithoutMeta,
   fetchBlockMeta,
 } from "../../blocks/page/tsUtils";
-import { preloadedBlocksUrls } from "../../blocks/page/content.json";
+
+const preloadedBlocksUrls = ["https://block.blockprotocol.org/paragraph"];
 
 export const getStaticPaths: GetStaticPaths<{ slug: string }> = async () => {
   return {
@@ -56,6 +57,7 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
 
     const { title, contents } = data.page.properties;
 
+    // @todo this mapping should probably be done in PageBlock
     const mappedContents = contents.map((content): BlockWithoutMeta => {
       const { componentId, entity } = content.properties;
 
@@ -67,6 +69,7 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
                 {
                   type: "text",
                   text: entity.textProperties.text,
+                  entityId: entity.id,
                   marks: [
                     ["strong", entity.textProperties.bold],
                     ["underlined", entity.textProperties.underline],
@@ -81,7 +84,7 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
           ? entity.unknownProperties
           : {};
 
-      return { componentId, entityId: entity.id, entity: props };
+      return { componentId, entityId: content.id, entity: props };
     });
 
     const preloadedBlocks = new Map(

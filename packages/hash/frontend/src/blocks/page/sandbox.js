@@ -699,8 +699,6 @@ const plugins = [
       button(schema.marks.em, "I");
       button(schema.marks.underlined, "U");
 
-      let dragging = false;
-
       const update = (view, lastState) => {
         const dragging = !!editorView.dragging;
 
@@ -769,12 +767,12 @@ const plugins = [
         update(editorView);
       };
 
-      const mousedown = (evt) => {
-        if (evt.target.classList.contains(styles.Block__Handle)) {
-          // dragging = true;
-          update(editorView);
-        }
-      };
+      // const mousedown = (evt) => {
+      //   if (evt.target.classList.contains(styles.Block__Handle)) {
+      //     // dragging = true;
+      //     update(editorView);
+      //   }
+      // };
 
       document.addEventListener("dragstart", dragstart);
       // document.addEventListener("mousedown", mousedown);
@@ -826,6 +824,7 @@ const plugins = [
  * @param viewProps {any}
  * @param replacePortal {Function}
  * @param additionalPlugins {Plugin[]}
+ *
  * @todo remove this function
  */
 export const renderPM = (
