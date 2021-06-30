@@ -508,7 +508,7 @@ class BlockView {
               asyncNodeUrl: url,
               asyncNodeProps: {
                 attrs: {
-                  entityId: node.attrs.entityId,
+                  entityId: text ? node.attrs.entityId : null,
                   childEntityId: text ? node.attrs.childEntityId : null,
                 },
                 children: text ? [state.schema.text(text)] : [],
@@ -553,12 +553,12 @@ class BlockView {
                   return (node.defaultAttrs.meta?.name ?? node.name) === type;
                 }
               );
+              let current = type === (node.attrs.meta?.name ?? node.type.name);
+              if (type === "table" && !current) {
+                return null;
+              }
               return (
-                <option
-                  value={type}
-                  key={type}
-                  disabled={type === (node.attrs.meta?.name ?? node.type.name)}
-                >
+                <option value={type} key={type} disabled={current}>
                   {type}
                   {exists ? "" : "*"}
                 </option>

@@ -211,6 +211,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
                 const contentText = contentNode.entity.children[idx];
 
                 return (
+                  !contentText ||
                   text.text !== contentText.text ||
                   text.bold !== contentText.marks?.includes("strong") ||
                   text.underline !==
@@ -279,9 +280,8 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
             ...updatedEntities
               .filter(
                 (entity) =>
-                  (entity.type !== "Block" ||
-                    (entity.properties.entityType === "Text" &&
-                      entity.properties.entityId)) &&
+                  (entity.properties.entityType !== "Text" ||
+                    entity.properties.entityId) &&
                   entity.id
               )
               .map(
