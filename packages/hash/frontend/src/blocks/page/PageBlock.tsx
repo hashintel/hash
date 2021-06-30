@@ -108,7 +108,10 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
                 children:
                   children?.map((child: any) => {
                     if (child.type === "text") {
-                      return schema.text(child.text);
+                      return schema.text(
+                        child.text,
+                        child.marks.map((mark: string) => schema.mark(mark))
+                      );
                     }
 
                     // @todo recursive nodes

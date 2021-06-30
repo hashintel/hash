@@ -65,20 +65,18 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
       const props =
         entity.__typename === "Text"
           ? {
-              children: [
-                {
-                  type: "text",
-                  text: entity.textProperties.text,
-                  entityId: entity.id,
-                  marks: [
-                    ["strong", entity.textProperties.bold],
-                    ["underlined", entity.textProperties.underline],
-                    ["em", entity.textProperties.italics],
-                  ]
-                    .filter(([, include]) => include)
-                    .map(([mark]) => mark),
-                },
-              ],
+              children: entity.textProperties.texts.map((text) => ({
+                type: "text",
+                text: text.text,
+                entityId: entity.id,
+                marks: [
+                  ["strong", text.bold],
+                  ["underlined", text.underline],
+                  ["em", text.italics],
+                ]
+                  .filter(([, include]) => include)
+                  .map(([mark]) => mark),
+              })),
             }
           : entity.__typename === "UnknownEntity"
           ? entity.unknownProperties

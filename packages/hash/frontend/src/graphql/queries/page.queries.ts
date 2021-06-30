@@ -22,10 +22,12 @@ const pageFieldsFragment = gql`
             }
             ... on Text {
               textProperties: properties {
-                text
-                bold
-                underline
-                italics
+                texts {
+                  text
+                  bold
+                  underline
+                  italics
+                }
               }
             }
           }
