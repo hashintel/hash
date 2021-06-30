@@ -33,6 +33,7 @@ export const updateEntity = gql`
     updateEntity(namespaceId: $namespaceId, id: $id, properties: $properties) {
       __typename
       id
+      type
       updatedAt
       ... on UnknownEntity {
         properties
@@ -48,6 +49,7 @@ export const aggregateEntity = gql`
       results {
         __typename
         id
+        type
         ... on UnknownEntity {
           properties
         }

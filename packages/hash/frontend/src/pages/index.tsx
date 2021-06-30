@@ -19,7 +19,7 @@ export default function Home() {
         <h2>Namespaces in this instance</h2>
         <ul>
           {data?.namespaces.map((namespace) => (
-            <li>
+            <li key={namespace.id}>
               <Link href={`/namespace/${namespace.id}`}>
                 <a>{namespace.shortname}</a>
               </Link>

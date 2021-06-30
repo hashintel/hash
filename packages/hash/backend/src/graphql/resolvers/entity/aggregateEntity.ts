@@ -18,7 +18,7 @@ export const aggregateEntity: Resolver<
 > = async (_, { namespaceId, operation, type }, { dataSources }) => {
   const page = operation?.page || 1;
   const perPage = operation?.perPage || 10;
-  const sort = operation?.sort || "updatedAt";
+  const sort = operation?.sort?.field || "updatedAt";
 
   const startIndex = (page ?? 1) - 1;
   const endIndex = startIndex + (perPage ?? 10);

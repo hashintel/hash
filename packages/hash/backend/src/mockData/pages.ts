@@ -16,7 +16,7 @@ export const pages = (() => {
           {
             id: "b1",
             properties: {
-              componentId: "headerblock1",
+              componentId: "https://block.blockprotocol.org/header",
               entityType: "Text",
               entityId: "text1",
             },
@@ -28,7 +28,7 @@ export const pages = (() => {
           },
           {
             properties: {
-              componentId: "paragraphblock1",
+              componentId: "https://block.blockprotocol.org/paragraph",
               entityType: "Text",
               entityId: "text2",
             },
@@ -41,7 +41,7 @@ export const pages = (() => {
           },
           {
             properties: {
-              componentId: "paragraphblock1",
+              componentId: "https://block.blockprotocol.org/paragraph",
               entityType: "Text",
               entityId: "text3",
             },
@@ -54,7 +54,7 @@ export const pages = (() => {
           },
           {
             properties: {
-              componentId: "tableblock",
+              componentId: "https://block.blockprotocol.org/table",
               entityType: "Table",
               entityId: "t1",
             },
@@ -80,7 +80,7 @@ export const pages = (() => {
         contents: [
           {
             properties: {
-              componentId: "headerblock1",
+              componentId: "https://block.blockprotocol.org/header",
               entityType: "Text",
               entityId: "text5",
             },
@@ -93,7 +93,7 @@ export const pages = (() => {
           },
           {
             properties: {
-              componentId: "paragraphblock1",
+              componentId: "https://block.blockprotocol.org/paragraph",
               entityType: "Text",
               entityId: "text2",
             },
@@ -106,7 +106,7 @@ export const pages = (() => {
           },
           {
             properties: {
-              componentId: "paragraphblock1",
+              componentId: "https://block.blockprotocol.org/paragraph",
               entityType: "Text",
               entityId: "text3",
             },
@@ -119,7 +119,7 @@ export const pages = (() => {
           },
           {
             properties: {
-              componentId: "paragraphblock1",
+              componentId: "https://block.blockprotocol.org/paragraph",
               entityType: "Text",
               entityId: "text4",
             },

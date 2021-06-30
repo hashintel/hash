@@ -1,0 +1,52 @@
+.ProseMirror {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+
+    padding: 10px 30px;
+    box-sizing: border-box;
+    width: 100%;
+}
+
+.ProseMirror:focus {
+    outline: none;
+}
+
+.ProseMirror > * {
+    flex: 1;
+}
+
+.Block {
+    display: flex;
+    align-items: center;
+    word-break: break-all;
+}
+
+/**
+@todo look at using  https://medium.com/trabe/using-bem-conventions-in-css-modules-leveraging-custom-webpack-loaders-fd985f72bcb2
+ */
+.Block--dragging {
+    /* opacity: 0; */
+    outline: none !important;
+}
+
+.Block__UI {
+    user-select: none;
+    flex: 0 1 auto;
+    margin-right: 5px;
+    display: flex;
+    align-items: center;
+}
+
+.Block__Handle {
+    height: 15px;
+    width: 15px;
+    border-radius: 50%;
+    background: black;
+    margin-right: 5px;
+    cursor: pointer;
+}
+
+.Block__Content {
+    flex: 1;
+    height: 100%;
+}

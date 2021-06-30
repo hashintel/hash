@@ -25,9 +25,6 @@ const HASH: DbUnknownEntity = {
         entityId: "place1",
       },
     },
-    website: {
-      url: "https://hash.ai",
-    },
   },
   id: "c1",
   type: "Company",
@@ -136,10 +133,28 @@ const tableData: DbUnknownEntity = {
     initialState: {
       hiddenColumns: [
         "id",
-        "employerId",
-        "employer.locationId",
-        "employer.id",
-        "employer.location.id",
+        "__typename",
+        "createdById",
+        "namespaceId",
+        "createdAt",
+        "updatedAt",
+        "visibility",
+        "properties.employer.__typename",
+        "properties.employer.createdAt",
+        "properties.employer.createdById",
+        "properties.employer.id",
+        "properties.employer.namespaceId",
+        "properties.employer.type",
+        "properties.employer.updatedAt",
+        "properties.employer.visibility",
+        "properties.employer.properties.location.__typename",
+        "properties.employer.properties.location.createdAt",
+        "properties.employer.properties.location.createdById",
+        "properties.employer.properties.location.id",
+        "properties.employer.properties.location.namespaceId",
+        "properties.employer.properties.location.type",
+        "properties.employer.properties.location.updatedAt",
+        "properties.employer.properties.location.visibility"
       ],
     },
     data: {
@@ -147,7 +162,9 @@ const tableData: DbUnknownEntity = {
         entityType: "Person",
         aggregate: {
           perPage: 5,
-          sort: "createdAt",
+          sort: {
+            field: "createdAt",
+          },
         },
       },
     },

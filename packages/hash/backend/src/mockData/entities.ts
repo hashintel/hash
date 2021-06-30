@@ -17,8 +17,7 @@ export const entities: (DbUnknownEntity | DbPage | DbUser | DbOrg)[] = (() => {
       createdById: "2",
       ...randomTimes(),
       properties: {
-        text: "Ciaran's Header Text",
-        bold: true,
+        texts: [{ text: "Ciaran's Header Text", bold: true }],
       },
       visibility: Visibility.Public,
     },
@@ -29,7 +28,17 @@ export const entities: (DbUnknownEntity | DbPage | DbUser | DbOrg)[] = (() => {
       createdById: "2",
       ...randomTimes(),
       properties: {
-        text: "A paragraph of regular text",
+        texts: [
+          { text: "A paragraph of regular text " },
+          { text: "with", bold: true },
+          { text: " " },
+          { text: "some", italics: true },
+          { text: " " },
+          { text: "formatting", underline: true },
+          { text: " " },
+          { text: "included", bold: true, italics: true, underline: true },
+          { text: "." },
+        ],
       },
       visibility: Visibility.Public,
     },
@@ -40,8 +49,7 @@ export const entities: (DbUnknownEntity | DbPage | DbUser | DbOrg)[] = (() => {
       createdById: "2",
       ...randomTimes(),
       properties: {
-        text: "A paragraph of italic text",
-        italic: true,
+        texts: [{ text: "A paragraph of italic text", italics: true }],
       },
       visibility: Visibility.Public,
     },
@@ -52,8 +60,7 @@ export const entities: (DbUnknownEntity | DbPage | DbUser | DbOrg)[] = (() => {
       createdById: "2",
       ...randomTimes(),
       properties: {
-        text: "A paragraph of underline text",
-        underline: true,
+        texts: [{ text: "A paragraph of underline text", underline: true }],
       },
       visibility: Visibility.Public,
     },
@@ -64,8 +71,7 @@ export const entities: (DbUnknownEntity | DbPage | DbUser | DbOrg)[] = (() => {
       createdById: "2",
       ...randomTimes(),
       properties: {
-        text: "HASH's Header Text",
-        bold: true,
+        texts: [{ text: "HASH's Header Text", bold: true }],
       },
       visibility: Visibility.Public,
     },
