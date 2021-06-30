@@ -236,8 +236,6 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
         return blocks;
       });
 
-      console.log({ updatedEntities });
-
       const pageBlocks = existingBlocks.map((node) => {
         return {
           entityId: node.entityId,
@@ -246,8 +244,8 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       });
 
       const blockIdsChange =
-        JSON.stringify(contents.map((content) => content.entityId).sort()) !==
-        JSON.stringify(mappedBlocks.map((block) => block.entityId).sort());
+        JSON.stringify(contents.map((content) => content.entityId)) !==
+        JSON.stringify(mappedBlocks.map((block) => block.entityId));
 
       newBlocks
         .reduce(
