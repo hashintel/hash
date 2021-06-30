@@ -3,3 +3,9 @@ export { namespacePages } from "./namespacePages";
 export { insertBlockIntoPage } from "./insertBlockIntoPage";
 export { page } from "./page";
 export { updatePage } from "./updatePage";
+
+import { contents } from "./contents";
+
+export const pageFields = {
+  contents,
+};
