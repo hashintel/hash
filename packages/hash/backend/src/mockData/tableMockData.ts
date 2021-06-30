@@ -19,12 +19,6 @@ const HASH: DbUnknownEntity = {
   properties: {
     name: "HASH",
     url: "https://hash.ai",
-    location: {
-      __linkedData: {
-        entityType: "Location",
-        entityId: "place1",
-      },
-    },
   },
   id: "c1",
   type: "Company",
@@ -40,6 +34,7 @@ const people: DbUnknownEntity[] = [
     type: "Person",
     properties: {
       email: "aj@hash.ai",
+      name: "Akash Joshi",
       employer: {
         __linkedData: {
           entityType: "Company",
@@ -55,6 +50,7 @@ const people: DbUnknownEntity[] = [
   {
     properties: {
       email: "c@hash.ai",
+      name: "Ciaran Morinan",
       employer: {
         __linkedData: {
           entityType: "Company",
@@ -72,6 +68,7 @@ const people: DbUnknownEntity[] = [
   {
     properties: {
       email: "d@hash.ai",
+      name: "David Wilkinson",
       employer: {
         __linkedData: {
           entityType: "Company",
@@ -89,6 +86,7 @@ const people: DbUnknownEntity[] = [
   {
     properties: {
       email: "ef@hash.ai",
+      name: "Eadan Fahey",
       employer: {
         __linkedData: {
           entityType: "Company",
@@ -106,6 +104,7 @@ const people: DbUnknownEntity[] = [
   {
     properties: {
       email: "nh@hash.ai",
+      name: "Nate Higgins",
       employer: {
         __linkedData: {
           entityType: "Company",

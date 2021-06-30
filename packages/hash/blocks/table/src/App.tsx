@@ -9,7 +9,7 @@ import { BlockProtocolProps } from "./types/blockProtocol";
 import "./styles.scss";
 
 type AppProps = {
-  data: Record<string, any>[];
+  data?: Record<string, any>[];
   initialState?: TableOptions<{}>["initialState"];
 };
 
@@ -19,7 +19,8 @@ export const App: VoidFunctionComponent<AppProps & BlockProtocolProps> = ({
   schemas,
   update
 }) => {
-  const columns = useMemo(() => makeColumns(data[0]), [data[0]]);
+  data = data ?? [];
+  const columns = useMemo(() => makeColumns(data?.[0] ?? {}), [data[0]]);
 
   const { getTableProps, getTableBodyProps, headerGroups, rows, prepareRow } =
     useTable({

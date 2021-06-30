@@ -109,6 +109,32 @@ export const pages = (() => {
       type: "Block",
       visibility: Visibility.Public,
     },
+    {
+      properties: {
+        componentId: "https://block.blockprotocol.org/person",
+        entityType: "Person",
+        entityId: "p2",
+      },
+      id: "b9",
+      ...randomTimes(),
+      createdById: "2",
+      namespaceId: "6",
+      type: "Block",
+      visibility: Visibility.Public,
+    },
+    {
+      properties: {
+        componentId: "https://block.blockprotocol.org/header",
+        entityType: "Header",
+        entityId: "header1",
+      },
+      id: "b10",
+      ...randomTimes(),
+      createdById: "2",
+      namespaceId: "6",
+      type: "Block",
+      visibility: Visibility.Public,
+    },
   ];
 
   const pageData: DbPage[] = [
@@ -124,10 +150,16 @@ export const pages = (() => {
             entityId: "b1"
           },
           {
+            entityId: "b9"
+          },
+          {
             entityId: "b2"
           },
           {
             entityId: "b3"
+          },
+          {
+            entityId: "b10"
           },
           {
             entityId: "b4"
