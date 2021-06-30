@@ -1,0 +1,29 @@
+.PageSidebar {
+  height: 100%;
+  background: #F9FAFC;
+  width: 280px;
+  padding: 60px 40px;
+}
+
+.PageSidebar__Section {
+  margin-bottom: 40px;
+}
+
+.PageSidebar__Section__Header {
+  h2 {
+    font-size: 1.2rem;
+    font-weight: 600;
+  }
+}
+
+.NamespaceSelect {
+  padding: 8px 15px;
+  border: 1px solid lightgray;
+  width: 120px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.NamespacePageList {
+
+}

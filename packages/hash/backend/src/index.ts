@@ -10,7 +10,7 @@ const app = express();
 const PORT = process.env.PORT ?? 5001;
 
 // Connect to the database
-const db = new PostgresAdapter();
+// const db = new PostgresAdapter();
 
 // Set sensible default security headers: https://www.npmjs.com/package/helmet
 // Temporarily disable contentSecurityPolicy for the GraphQL playground
@@ -25,10 +25,10 @@ const apolloServer = createApolloServer();
 
 app.get("/", (_, res) => res.send("Hello World"));
 
-app.post("/db-test", async (_, res) => {
-  const rows = await db.query("SELECT 1;");
-  res.send(rows);
-});
+// app.post("/db-test", async (_, res) => {
+//   const rows = await db.query("SELECT 1;");
+//   res.send(rows);
+// });
 
 // Ensure the GraphQL server has started before starting the HTTP server
 apolloServer.start().then(() => {

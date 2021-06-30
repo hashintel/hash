@@ -514,7 +514,7 @@ class BlockView {
           }}
         >
           <option disabled value="change">
-            Change type
+            Type
           </option>
           {Object.entries(view.state.schema.nodes)
             .filter(
@@ -544,7 +544,7 @@ class BlockView {
                 </option>
               );
             })}
-          <option value="new">New block type</option>
+          <option value="new">New type</option>
         </select>
       </>
     );
