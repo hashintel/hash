@@ -1,8 +1,14 @@
 table {
   border-collapse: collapse;
   table-layout: auto;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 14px;
 
-  --input-width: 90px;
+  --input-width: 120px;
+}
+
+th {
+  padding: 8px;
 }
 
 td {
@@ -18,15 +24,16 @@ td {
   }
 }
 
-td, th {
+td, thead tr:last-child th, thead tr:nth-last-child(2) th {
   border-left: 1px solid black;
   border-right: 1px solid black;
 }
 
-tr:last-child {
+thead tr:nth-child(2) {
+  border-top: 1px solid black;
   border-bottom: 1px solid black;
 }
 
-thead tr {
-  border-top: 1px solid black;
+tr:last-child {
+  border-bottom: 1px solid black;
 }

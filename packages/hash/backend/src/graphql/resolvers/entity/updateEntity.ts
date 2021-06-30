@@ -17,6 +17,5 @@ export const updateEntity: Resolver<
   }
 
   entity.properties = properties.properties ?? properties;
-
   return entity;
 };

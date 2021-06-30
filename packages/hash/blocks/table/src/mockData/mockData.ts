@@ -19,9 +19,6 @@ export interface Company {
   id: string;
   name: string;
   url: string;
-  website: {
-    url: string;
-  };
   locationId: string;
   location?: Location;
   type: "Company";
@@ -38,9 +35,6 @@ const HASH: Company = {
   name: "HASH",
   url: "https://hash.ai",
   locationId: "place1",
-  website: {
-    url: "https://hash.ai",
-  },
   id: "c1",
   type: "Company",
 };

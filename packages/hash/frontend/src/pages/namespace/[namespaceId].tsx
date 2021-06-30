@@ -29,7 +29,7 @@ export const NamespaceHome: VoidFunctionComponent = () => {
       </header>
       <ul>
         {data?.namespacePages.map((page) => (
-          <li>
+          <li key={page.id}>
             <Link href={`/pages/${page.id}`}>
               <a>{page.properties.title}</a>
             </Link>

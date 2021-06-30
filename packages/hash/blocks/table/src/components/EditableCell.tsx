@@ -68,5 +68,16 @@ export const EditableCell: VoidFunctionComponent<EditableCellProps> = ({
     setValue(initialValue);
   }, [initialValue]);
 
-  return <input value={value} onChange={onChange} onBlur={onBlur} />;
+  return (
+    <input
+      value={value}
+      onChange={onChange}
+      onBlur={onBlur}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          onBlur();
+        }
+      }}
+    />
+  );
 };
