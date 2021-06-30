@@ -5,12 +5,15 @@ export const getNamespaces = gql`
     namespaces {
       __typename
       ... on User {
-        id
-        shortname
+  			properties {
+          shortname,
+          email,
+        }
       }
       ... on Org {
-        id
-        shortname
+  			properties {
+          shortname
+        }
       }
     }
   }
