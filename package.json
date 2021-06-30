@@ -1,22 +1,18 @@
 {
   "private": true,
   "description": "HASH monorepo",
-
   "workspaces": [
     "packages/hash/backend",
-    "packages/hash/frontend"
+    "packages/hash/frontend",
+    "packages/hash/blocks/page"
   ],
   "scripts": {
     "ws:hash-backend": "yarn workspace @hashintel/hash-backend",
     "serve:hash-backend": "yarn ws:hash-backend dev",
-
     "ws:hash-frontend": "yarn workspace @hashintel/hash-frontend",
     "serve:hash-frontend": "yarn ws:hash-frontend dev",
-
     "codegen": "yarn ws:hash-backend codegen && yarn ws:hash-frontend codegen",
-
     "postinstall": "yarn codegen",
-
     "new:block": "node packages/hash/blocks/create-block"
   }
 }

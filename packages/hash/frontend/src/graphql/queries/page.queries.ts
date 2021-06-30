@@ -10,6 +10,7 @@ const pageFieldsFragment = gql`
       summary
       title
       contents {
+        id
         properties {
           componentId
           entityType
@@ -21,10 +22,12 @@ const pageFieldsFragment = gql`
             }
             ... on Text {
               textProperties: properties {
-                text
-                bold
-                underline
-                italics
+                texts {
+                  text
+                  bold
+                  underline
+                  italics
+                }
               }
             }
           }
