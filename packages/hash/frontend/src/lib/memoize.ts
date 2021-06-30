@@ -11,10 +11,23 @@ export function memoizeFetchFunction<T>(
   const cache: Record<string, Promise<any>> = {};
 
   return async (url, signal) => {
+    console.log(cache, url);
     if (cache[url] == null) {
+      let fulfilled = false;
       const promise = fetchFunction(url, signal);
-      signal?.addEventListener("abort", () => {
+
+      promise.then(() => {
+        fulfilled = true;
+      });
+
+      promise.catch(() => {
         if (cache[url] === promise) {
+          delete cache[url];
+        }
+      });
+
+      signal?.addEventListener("abort", () => {
+        if (cache[url] === promise && !fulfilled) {
           delete cache[url];
         }
       });
