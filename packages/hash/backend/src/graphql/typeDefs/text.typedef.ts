@@ -14,7 +14,7 @@ export const textTypedef = gql`
     """
     namespaceId: ID!
     """
-    The CHANGEABLE name/slug of the namespace (e.g. username). 
+    The CHANGEABLE name/slug of the namespace (e.g. username).
     """
     namespace: String!
     """
@@ -24,7 +24,7 @@ export const textTypedef = gql`
     """
     The user who created the entity
     """
-    createdBy: User!
+    createdById: ID!
     """
     The date the entity was last updated
     """

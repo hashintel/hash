@@ -1,5 +1,4 @@
 import { UserInputError } from "apollo-server-express";
-import { Uuid4 } from "id128";
 
 import { entities } from "../../../mockData/entities";
 import { DbUnknownEntity } from "../../../types/dbTypes";
@@ -17,7 +16,7 @@ export const createEntity: Resolver<
   {},
   GraphQLContext,
   MutationCreateEntityArgs
-> = async (_, { namespace, namespaceId, properties, type }, { dataSources }) => {
+> = async (_, { namespace, namespaceId, createdById, properties, type }, { dataSources }) => {
   if (!namespace && !namespaceId) {
     throw new UserInputError(
       "One of namespace or namespaceId must be provided"
@@ -27,29 +26,26 @@ export const createEntity: Resolver<
     namespaceId = await namespaceIdFromNamespaceName(namespace!);
   }
 
-  const now = new Date();
-  const entityID = Uuid4.generate().toCanonical();
-
-  const entity: DbUnknownEntity = {
-    id: entityID,
-    namespaceId,
-    properties: properties,
-    namespace: namespace ?? undefined,
-    createdById: "1",
-    type,
-    updatedAt: now,
-    createdAt: now,
-    visibility: Visibility.Public,
-  };
-
-  entities.push(entity);
-
-  await dataSources.db.createEntity({
-    namespaceId: Uuid4.fromCanonical(namespaceId),
-    type: type,
-    properties: properties,
+  const e = await dataSources.db.createEntity({
+    namespaceId, createdById, type, properties
   });
 
+  const entity: DbUnknownEntity = {
+    id: e.id,
+    namespaceId: e.namespaceId,
+    namespace: "TODO",
+    properties: e.properties,
+    createdById: e.createdById,
+    type: e.type,
+    createdAt: e.createdAt,
+    updatedAt: e.updatedAt,
+    visibility: Visibility.Public, // TODO: should be a param?
+  };
+
+  // TODO: remove this when all resolvers have DB implementations
+  entities.push(entity);
+
+  console.log(entity);
 
   return entity;
 };

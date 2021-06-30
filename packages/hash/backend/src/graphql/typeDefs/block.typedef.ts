@@ -24,7 +24,7 @@ export const blockTypedef = gql`
     """
     The user who created the entity
     """
-    createdBy: User!
+    createdById: ID!
     """
     The date the entity was last updated
     """

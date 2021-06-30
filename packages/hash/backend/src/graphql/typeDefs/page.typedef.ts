@@ -24,7 +24,7 @@ export const pageTypedef = gql`
     """
     The user who created the entity
     """
-    createdBy: User!
+    createdById: ID!
     """
     The date the entity was last updated
     """
@@ -85,8 +85,8 @@ export const pageTypedef = gql`
 
   extend type Mutation {
     createPage(
-      namespaceId: ID
-      namespace: String
+      namespaceId: ID!
+      createdById: ID!
       properties: PageCreationData!
     ): Page!
 

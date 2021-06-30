@@ -4,17 +4,20 @@ export const createEntity = gql`
   mutation createEntity(
     $namespace: String
     $namespaceId: ID
+    $createdById: ID!
     $properties: JSONObject!
     $type: String!
   ) {
     createEntity(
       namespace: $namespace
       namespaceId: $namespaceId
+      createdById: $createdById
       properties: $properties
       type: $type
     ) {
       __typename
       id
+      createdById
       createdAt
       updatedAt
       namespace
@@ -29,8 +32,8 @@ export const createEntity = gql`
 `;
 
 export const updateEntity = gql`
-  mutation updateEntity($id: ID!, $properties: JSONObject!) {
-    updateEntity(id: $id, properties: $properties) {
+  mutation updateEntity($namespaceId: ID!, $id: ID!, $properties: JSONObject!) {
+    updateEntity(namespaceId: $namespaceId, id: $id, properties: $properties) {
       __typename
       id
       updatedAt
@@ -42,8 +45,8 @@ export const updateEntity = gql`
 `;
 
 export const aggregateEntity = gql`
-  query aggregateEntity($type: String!, $operation: AggregateOperationInput) {
-    aggregateEntity(type: $type, operation: $operation) {
+  query aggregateEntity($namespaceId: ID!, $type: String!, $operation: AggregateOperationInput) {
+    aggregateEntity(namespaceId: $namespaceId, type: $type, operation: $operation) {
       __typename
       results {
         __typename

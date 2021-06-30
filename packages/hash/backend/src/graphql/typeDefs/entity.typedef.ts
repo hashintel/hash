@@ -29,7 +29,7 @@ export const entityTypedef = gql`
     """
     The user who created the entity
     """
-    createdBy: User!
+    createdById: ID!
     """
     The date the entity was last updated
     """
@@ -67,7 +67,7 @@ export const entityTypedef = gql`
     """
     The user who created the entity
     """
-    createdBy: User!
+    createdById: ID!
     """
     The date the entity was last updated
     """
@@ -89,12 +89,13 @@ export const entityTypedef = gql`
   }
 
   extend type Query {
-    entity(id: ID!): Entity!
+    entity(namespaceId: ID!, id: ID!): UnknownEntity!
 
     """
     Aggregate an entity
     """
     aggregateEntity(
+      namespaceId: ID!
       type: String!
       operation: AggregateOperationInput
     ): AggregationResponse!
@@ -136,6 +137,7 @@ export const entityTypedef = gql`
     createEntity(
       namespace: String
       namespaceId: ID
+      createdById: ID!
       properties: JSONObject!
       type: String!
     ): Entity!
@@ -143,7 +145,7 @@ export const entityTypedef = gql`
     """
     Update an entity
     """
-    updateEntity(id: ID!, properties: JSONObject!): Entity!
+    updateEntity(namespaceId: ID!, id: ID!, properties: JSONObject!): Entity!
   }
 
   """
@@ -180,7 +182,7 @@ export const entityTypedef = gql`
     """
     The user who created the entity
     """
-    createdBy: User!
+    createdById: ID!
     """
     The date the entity was last updated
     """
