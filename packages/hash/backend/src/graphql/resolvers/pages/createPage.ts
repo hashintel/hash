@@ -11,10 +11,10 @@ export const createPage: Resolver<
   {},
   GraphQLContext,
   MutationCreatePageArgs
-> = async (_, { namespaceId, createdById, properties }, { dataSources }) => {
+> = async (_, { namespaceId, properties }, { dataSources }) => {
   const entity = await dataSources.db.createEntity({
     namespaceId,
-    createdById,
+    createdById: "", // TODO
     type: "Page",
     properties: properties,
   });

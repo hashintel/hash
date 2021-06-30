@@ -50,7 +50,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     }
   }
 
-  private async q<T>(f: (client: PoolClient) => Promise<T>): Promise<T> {
+  private async use<T>(f: (client: PoolClient) => Promise<T>): Promise<T> {
     const client = await this.pool.connect();
     try {
       return await f(client);
@@ -174,7 +174,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     namespaceId: string;
     id: string;
   }): Promise<Entity | undefined> {
-    return await this.q((client) => this._getEntity(client, params));
+    return await this.use((client) => this._getEntity(client, params));
   }
 
   /** Update an entity's properties. If the "type" parameter is provided, the function

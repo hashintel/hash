@@ -13,12 +13,12 @@ export const createEntity: Resolver<
   MutationCreateEntityArgs
 > = async (
   _,
-  { namespaceId, createdById, properties, type },
+  { namespaceId, properties, type },
   { dataSources }
 ) => {
   const e = await dataSources.db.createEntity({
     namespaceId,
-    createdById,
+    createdById: "", // TODO
     type,
     properties,
   });
