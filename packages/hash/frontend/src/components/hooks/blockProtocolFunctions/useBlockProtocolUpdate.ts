@@ -35,15 +35,17 @@ export const useBlockProtocolUpdate = (): {
       onCompleted,
     });
 
-  const update: BlockProtocolUpdateFn = useCallback((actions) => {
-    for (const action of actions) {
-      (action.entityType === "Page" ? updatePageFn : updateEntityFn)({
-        variables: {
-          id: action.entityId,
-          properties: action.data,
-        },
-      });
-    }
+  const update: BlockProtocolUpdateFn = useCallback(async (actions) => {
+    await Promise.all(
+      actions.map(async (action) => {
+        await (action.entityType === "Page" ? updatePageFn : updateEntityFn)({
+          variables: {
+            id: action.entityId,
+            properties: action.data,
+          },
+        });
+      })
+    );
   }, []);
 
   const updateLoading = updateEntityLoading || updatePageLoading;

@@ -275,7 +275,7 @@ class AsyncView {
         tr.replaceRangeWith(pos, pos + node.nodeSize, newNode);
 
         if (node.attrs.autofocus) {
-          selectNode(tr, pos, newNode);
+          // selectNode(tr, pos, newNode);
         } else {
           document.body.focus();
         }
@@ -291,7 +291,8 @@ class AsyncView {
         );
 
         if (node.attrs.autofocus) {
-          view.focus();
+          window.triggerSave?.();
+          // view.focus();
         }
       })
       .catch((err) => {
@@ -495,7 +496,7 @@ class BlockView {
                   .join("")
               : "";
 
-            const newNode = state.schema.nodes.async.create({
+            let newVar = {
               // @todo rename these props
               ...(convertType === "new"
                 ? {}
@@ -505,25 +506,33 @@ class BlockView {
                   }),
               asyncNodeUrl: url,
               asyncNodeProps: {
-                attrs: {},
+                attrs: {
+                  entityId: node.attrs.entityId,
+                  childEntityId: text ? node.attrs.childEntityId : null,
+                },
                 children: text ? [state.schema.text(text)] : [],
                 marks: null,
               },
-            });
+            };
+            console.log(newVar);
+            const newNode = state.schema.nodes.async.create(newVar);
 
             const pos = getPos();
 
             tr.replaceRangeWith(pos + 1, pos + 1 + node.nodeSize, newNode);
 
-            const selection = NodeSelection.create(
-              tr.doc,
-              tr.mapping.map(getPos())
-            );
-
-            tr.setSelection(selection);
+            // @todo renable this
+            // const selection = NodeSelection.create(
+            //   tr.doc,
+            //   tr.mapping.map(getPos())
+            // );
+            //
+            // tr.setSelection(selection);
 
             view.dispatch(tr);
-            view.focus();
+            // @todo renable this
+            document.body.focus();
+            // view.focus();
           }}
         >
           <option disabled value="change">

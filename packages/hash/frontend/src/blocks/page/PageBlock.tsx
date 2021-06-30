@@ -45,10 +45,11 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   pageId,
   namespaceId,
 }) => {
+  const [willSave, setWillSave] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const [portals, setPortals] = useState<PortalSet>(new Map());
-  const { insert } = useBlockProtocolInsertIntoPage();
-  const { update } = useBlockProtocolUpdate();
+  const { insert, insertLoading } = useBlockProtocolInsertIntoPage();
+  const { update, updateLoading } = useBlockProtocolUpdate();
 
   const portalQueue = useRef<((set: PortalSet) => void)[]>([]);
   const portalQueueTimeout =
@@ -105,151 +106,186 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   }, []);
 
   useEffect(() => {
+    setWillSave(false);
+
     const schema = new Schema(baseSchemaConfig);
+
+    (window as any).triggerSave = () => {
+      const blocks = view.state
+        .toJSON()
+        .doc.content.filter((block: any) => block.type === "block")
+        .flatMap((block: any) => block.content) as any[];
+
+      const seenEntityIds = new Set<string>();
+
+      const mappedBlocks = blocks.map((node: any, position) => {
+        const nodeType = view.state.schema.nodes[node.type];
+        const meta = nodeType.defaultAttrs.meta;
+
+        const componentId = invertedBlockPaths[meta.url] ?? meta.url;
+
+        let entity;
+        if (schema.nodes[node.type].isTextblock) {
+          entity = {
+            type: "Text",
+            id: node.attrs.childEntityId,
+            properties: {
+              texts:
+                node.content
+                  ?.filter((child: any) => child.type === "text")
+                  .map((child: any) => ({
+                    text: child.text,
+                    bold:
+                      child.marks?.some(
+                        (mark: any) => mark.type === "strong"
+                      ) ?? false,
+                    italics:
+                      child.marks?.some((mark: any) => mark.type === "em") ??
+                      false,
+                    underline:
+                      child.marks?.some(
+                        (mark: any) => mark.type === "underlined"
+                      ) ?? false,
+                  })) ?? [],
+            },
+          };
+        } else {
+          const { childEntityId, ...props } = node.attrs;
+          entity = {
+            type: "UnknownEntity",
+            id: childEntityId,
+            properties: props,
+          };
+        }
+
+        let block = {
+          entityId: node.attrs.entityId,
+          type: "Block",
+          position,
+          properties: {
+            componentId,
+            entity,
+          },
+        };
+
+        if (seenEntityIds.has(block.entityId)) {
+          block.entityId = null;
+          entity.id = null;
+        }
+
+        seenEntityIds.add(block.entityId);
+
+        return block;
+      });
+
+      const newBlocks = mappedBlocks.filter(
+        (block) =>
+          !contents.some((content) => content.entityId === block.entityId)
+      );
+
+      const existingBlocks = mappedBlocks.filter((block) =>
+        contents.some((content) => content.entityId === block.entityId)
+      );
+
+      const updatedEntities = existingBlocks
+        .map((block) => block.properties.entity)
+        .concat(
+          existingBlocks.map((block) => ({
+            type: "Block",
+            id: block.entityId,
+            properties: {
+              componentId: block.properties.componentId,
+              entityType: block.properties.entity.type,
+              entityId: block.properties.entity.id,
+            },
+          }))
+        );
+
+      const pageBlocks = existingBlocks.map((node) => {
+        return {
+          entityId: node.entityId,
+          type: "Block",
+        };
+      });
+
+      const blockIdsChange =
+        JSON.stringify(contents.map((content) => content.entityId).sort()) !==
+        JSON.stringify(mappedBlocks.map((block) => block.entityId).sort());
+
+      console.log(updatedEntities);
+
+      newBlocks
+        .reduce(
+          (promise, newBlock) =>
+            promise
+              .catch(() => {})
+              .then(() =>
+                insert({
+                  pageId,
+                  entityType: newBlock.properties.entity.type,
+                  position: newBlock.position,
+                  componentId: newBlock.properties.componentId,
+                  entityProperties: newBlock.properties.entity.properties,
+                })
+              ),
+          update([
+            {
+              entityType: "Page",
+              entityId: pageId,
+              data: {
+                contents: pageBlocks,
+              },
+            },
+          ])
+        )
+        .then(() => {
+          return update([
+            ...updatedEntities
+              .filter(
+                (entity) =>
+                  (entity.type !== "Block" ||
+                    (entity.properties.entityType === "Text" &&
+                      entity.properties.entityId)) &&
+                  entity.id
+              )
+              .map(
+                (entity): BlockProtocolUpdatePayload<any> => ({
+                  entityId: entity.id,
+                  entityType: entity.type,
+                  data: entity.properties,
+                })
+              ),
+            // {
+            //   entityType: "Page",
+            //   entityId: pageId,
+            //   data: {
+            //     contents: pageBlocks,
+            //   },
+            // },
+          ]);
+        });
+    };
 
     const savePlugin = new Plugin({
         props: {
           handleDOMEvents: {
             focus() {
+              setWillSave(false);
               if (saveTimer.current) {
                 clearTimeout(saveTimer.current);
                 saveTimer.current = null;
               }
               return false;
             },
-            blur: function (view) {
+            blur: function () {
               if (saveTimer.current) {
                 clearTimeout(saveTimer.current);
                 saveTimer.current = null;
               }
 
-              saveTimer.current = setTimeout(() => {
-                const blocks = view.state
-                  .toJSON()
-                  .doc.content.filter((block: any) => block.type === "block")
-                  .flatMap((block: any) => block.content) as any[];
+              setWillSave(true);
 
-                const mappedBlocks = blocks.map((node: any, position) => {
-                  const nodeType = view.state.schema.nodes[node.type];
-                  const meta = nodeType.defaultAttrs.meta;
-
-                  const componentId = invertedBlockPaths[meta.url] ?? meta.url;
-
-                  let entity;
-                  if (schema.nodes[node.type].isTextblock) {
-                    entity = {
-                      type: "Text",
-                      id: node.attrs.childEntityId,
-                      properties: {
-                        texts:
-                          node.content
-                            ?.filter((child: any) => child.type === "text")
-                            .map((child: any) => ({
-                              text: child.text,
-                              bold:
-                                child.marks?.some(
-                                  (mark: any) => mark.type === "strong"
-                                ) ?? false,
-                              italics:
-                                child.marks?.some(
-                                  (mark: any) => mark.type === "em"
-                                ) ?? false,
-                              underline:
-                                child.marks?.some(
-                                  (mark: any) => mark.type === "underlined"
-                                ) ?? false,
-                            })) ?? [],
-                      },
-                    };
-                  } else {
-                    const { childEntityId, ...props } = node.attrs;
-                    entity = {
-                      type: "UnknownEntity",
-                      id: childEntityId,
-                      properties: props,
-                    };
-                  }
-
-                  return {
-                    entityId: node.attrs.entityId,
-                    type: "Block",
-                    position,
-                    properties: {
-                      componentId,
-                      entity,
-                    },
-                  };
-                });
-
-                const newBlocks = mappedBlocks.filter(
-                  (block) =>
-                    !contents.some(
-                      (content) => content.entityId === block.entityId
-                    )
-                );
-
-                const existingBlocks = mappedBlocks.filter((block) =>
-                  contents.some(
-                    (content) => content.entityId === block.entityId
-                  )
-                );
-
-                const updatedEntities = existingBlocks.map(
-                  (block) => block.properties.entity
-                );
-
-                newBlocks
-                  .reduce(
-                    (promise, newBlock) =>
-                      promise
-                        .catch(() => {})
-                        .then(() =>
-                          insert({
-                            pageId,
-                            entityType: newBlock.properties.entity.type,
-                            position: newBlock.position,
-                            componentId: newBlock.properties.componentId,
-                            entityProperties:
-                              newBlock.properties.entity.properties,
-                          })
-                        ),
-                    Promise.resolve()
-                  )
-                  .then(() => {
-                    //
-                    // // const pageBlocks = blocks.map((node) => {
-                    // //   // const nodeType = view.state.schema.nodes[node.type];
-                    // //   // const meta = nodeType.defaultAttrs.meta;
-                    // //   //
-                    // //   // const componentId = invertedBlockPaths[meta.url] ?? meta.url;
-                    // //
-                    // //   return {
-                    // //     entityId: node.attrs.entityId,
-                    // //     type: "Block",
-                    // //   };
-                    // // });
-                    //
-                    return update([
-                      ...updatedEntities
-                        // We're only responsible for updating contents of text entities
-                        .filter((entity) => entity.type === "Text")
-                        .map(
-                          (entity): BlockProtocolUpdatePayload<any> => ({
-                            entityId: entity.id,
-                            entityType: entity.type,
-                            data: entity.properties,
-                          })
-                        ),
-                      // {
-                      //   entityType: "Page",
-                      //   entityId: pageId,
-                      //   data: {
-                      //     contents: pageBlocks,
-                      //   },
-                      // },
-                    ]);
-                  });
-              }, 500);
+              saveTimer.current = setTimeout((window as any).triggerSave, 500);
 
               return false;
             },
@@ -313,13 +349,23 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     const node = root.current!;
 
     return () => {
+      delete (window as any).triggerSave;
       node.innerHTML = "";
     };
   }, [contents]);
 
   return (
     <>
-      <div id="root" ref={root} />
+      <div
+        id="root"
+        ref={root}
+        style={
+          insertLoading || updateLoading || willSave
+            ? { opacity: 0.5, pointerEvents: "none" }
+            : {}
+        }
+        // disabled={insertLoading || updateLoading || willSave}
+      />
       {Array.from(portals.entries()).map(([target, { key, reactNode }]) => (
         <Fragment key={key}>{createPortal(reactNode, target)}</Fragment>
       ))}
