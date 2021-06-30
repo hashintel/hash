@@ -8,10 +8,14 @@ import {
   entityFields,
   updateEntity,
 } from "./entity";
-import { 
-  blockFields
-} from "./block";
-import { createPage, namespacePages, page, updatePage } from "./pages";
+import { blockFields } from "./block";
+import {
+  createPage,
+  insertBlockIntoPage,
+  namespacePages,
+  page,
+  updatePage,
+} from "./pages";
 import { namespaces } from "./namespace/namespaces";
 
 import { DbOrg, DbUser } from "../../types/dbTypes";
@@ -28,10 +32,11 @@ export const resolvers = {
   },
 
   Mutation: {
-    createPage,
-    updatePage,
     createEntity,
+    createPage,
+    insertBlockIntoPage,
     updateEntity,
+    updatePage,
   },
 
   Block: {

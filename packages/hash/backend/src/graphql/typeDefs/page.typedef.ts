@@ -91,5 +91,29 @@ export const pageTypedef = gql`
     ): Page!
 
     updatePage(id: ID!, properties: PageUpdateData!): Page!
+
+    """
+    Insert a block into a given page. 
+    EITHER:
+    - entityId (for rendering an existing entity) OR
+    - entityProperties and entityType (for creating a new entity)
+    must be provided.
+    """
+    insertBlockIntoPage(
+      componentId: ID!
+      entityId: ID
+      entityProperties: JSONObject
+      entityType: String
+      """
+      The namespaceId for the block and entity. 
+      Defaults to the page's namespaceId.
+      """
+      namespaceId: ID
+      pageId: ID!
+      """
+      The position of the block in the page contents, starting at 0
+      """
+      position: Int!
+    ): Page!
   }
 `;
