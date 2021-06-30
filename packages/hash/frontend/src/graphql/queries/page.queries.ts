@@ -16,6 +16,7 @@ const pageFieldsFragment = gql`
           entity {
             __typename
             id
+            type
             ... on UnknownEntity {
               unknownProperties: properties
             }

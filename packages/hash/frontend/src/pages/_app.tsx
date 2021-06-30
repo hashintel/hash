@@ -5,7 +5,7 @@ import { createApolloClient } from "../graphql/createApolloClient";
 import "../../styles/prism.css";
 import "../../styles/globals.scss";
 
-const apolloClient = createApolloClient();
+export const apolloClient = createApolloClient();
 
 function MyApp({ Component, pageProps }: AppProps) {
   return (

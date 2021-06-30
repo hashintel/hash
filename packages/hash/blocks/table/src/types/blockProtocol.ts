@@ -27,7 +27,10 @@ export type BlockProtocolCreatePayload<T> = {
 export type BlockProtocolAggregateOperation = {
   page?: number;
   perPage?: number;
-  sort?: string;
+  sort?: {
+    field: string;
+    desc?: boolean;
+  }
 };
 
 export type BlockProtocolAggregatePayload = {
@@ -45,4 +48,21 @@ export type BlockProtocolUpdateFn = {
 
 export type BlockProtocolAggregateFn = {
   (action: BlockProtocolAggregatePayload): void;
+};
+
+/**
+ * Block Protocol-specified properties,
+ * which the embedding application should provide.
+ */
+ export type BlockProtocolProps = {
+  aggregate?: BlockProtocolCreateFn;
+  aggregateLoading?: boolean;
+  aggregateError?: Error;
+  create?: BlockProtocolCreateFn;
+  createLoading?: boolean;
+  createError?: Error;
+  schemas?: Record<string, JSONObject>;
+  update?: BlockProtocolUpdateFn;
+  updateLoading?: boolean;
+  updateError?: Error;
 };

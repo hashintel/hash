@@ -104,7 +104,12 @@ export const entityTypedef = gql`
     filter: FilterOperationInput
     perPage: Int = 10
     page: Int = 1
-    sort: String = updatedAt
+    sort: SortOperationInput
+  }
+
+  input SortOperationInput {
+    field: String!
+    desc: Boolean = false
   }
 
   input FilterOperationInput {
@@ -117,6 +122,11 @@ export const entityTypedef = gql`
     perPage: Int!
     page: Int!
     sort: String!
+  }
+
+  type SortOperation {
+    field: String!
+    desc: Boolean
   }
 
   type FilterOperation {

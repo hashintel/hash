@@ -4,22 +4,20 @@ import { EditableCell } from "./components/EditableCell";
 import { makeColumns } from "./lib/columns";
 import { getSchemaPropertyDefinition } from "./lib/getSchemaProperty";
 import { identityEntityAndProperty } from "./lib/identifyEntity";
+import { BlockProtocolProps } from "./types/blockProtocol";
 
 import "./styles.scss";
-import { BlockProtocolUpdateFn, JSONObject } from "./types/blockProtocol";
 
 type AppProps = {
   data: Record<string, any>[];
   initialState?: TableOptions<{}>["initialState"];
-  schemas?: Record<string, JSONObject>;
-  update?: BlockProtocolUpdateFn;
 };
 
-export const App: VoidFunctionComponent<AppProps> = ({
+export const App: VoidFunctionComponent<AppProps & BlockProtocolProps> = ({
   data,
   initialState,
   schemas,
-  update,
+  update
 }) => {
   const columns = useMemo(() => makeColumns(data[0]), [data[0]]);
 
@@ -33,8 +31,7 @@ export const App: VoidFunctionComponent<AppProps> = ({
       },
       updateData: update,
     });
-
-  // Render the UI for your table
+    
   return (
     <table {...getTableProps()}>
       <thead>
