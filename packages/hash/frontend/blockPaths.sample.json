@@ -1,5 +1,6 @@
 {
   "https://block.blockprotocol.org/header": "http://localhost:5000",
+  "https://block.blockprotocol.org/htmlPara": "http://localhost:5005",
   "https://block.blockprotocol.org/image": "http://localhost:62677",
   "https://block.blockprotocol.org/table": "http://localhost:62678"
 }

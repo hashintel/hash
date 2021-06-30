@@ -16,7 +16,7 @@
     "dev": "yarn start",
     "start": "concurrently -n webpack,webpack-dev-server -c green,cyan \"yarn build:dev -- --watch --verbose\" \"yarn webpack-dev-server\"",
     "clean": "rimraf dist",
-    "serve": "serve -C dist"
+    "serve": "serve -C -l 62678 dist"
   },
   "peerDependencies": {
     "react": "^16.14.0"

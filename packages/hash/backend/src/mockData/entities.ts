@@ -17,7 +17,7 @@ export const entities: (DbUnknownEntity | DbPage | DbUser | DbOrg)[] = (() => {
       createdById: "2",
       ...randomTimes(),
       properties: {
-        texts: [{ text: "Ciaran's Header Text", bold: true }],
+        texts: [{ text: "Important header", bold: true }],
       },
       visibility: Visibility.Public,
     },
