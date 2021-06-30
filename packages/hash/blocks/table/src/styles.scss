@@ -25,15 +25,15 @@ td {
 }
 
 td, thead tr:last-child th, thead tr:nth-last-child(2) th {
-  border-left: 1px solid black;
-  border-right: 1px solid black;
+  border-left: 1px solid lightgrey;
+  border-right: 1px solid lightgrey;
 }
 
-thead tr:nth-child(2) {
-  border-top: 1px solid black;
-  border-bottom: 1px solid black;
+thead tr:nth-child(odd) {
+  display: none;
 }
 
 tr:last-child {
-  border-bottom: 1px solid black;
+  border-bottom: 1px solid lightgrey;
+  border-top: 1px solid lightgrey;
 }
