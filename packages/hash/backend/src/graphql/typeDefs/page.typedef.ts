@@ -47,12 +47,12 @@ export const pageTypedef = gql`
     """
     Return a page by its id
     """
-    page(namespaceId: ID!, id: ID!): Page!
+    page(id: ID!): Page!
 
     """
     Return a list of pages belonging to a namespace
     """
-    namespacePages(namespaceId: ID!): [Page!]!
+    namespacePages(namespaceId: ID, namespace: String): [Page!]!
   }
 
   input PageCreationData {
@@ -81,11 +81,35 @@ export const pageTypedef = gql`
 
   extend type Mutation {
     createPage(
-      namespaceId: ID!
-      createdById: ID!
+      namespaceId: ID
+      namespace: String
       properties: PageCreationData!
     ): Page!
 
-    updatePage(namespaceId: ID!, id: ID!, properties: PageUpdateData!): Page!
+    updatePage(id: ID!, properties: PageUpdateData!): Page!
+
+    """
+    Insert a block into a given page.
+    EITHER:
+    - entityId (for rendering an existing entity) OR
+    - entityProperties and entityType (for creating a new entity)
+    must be provided.
+    """
+    insertBlockIntoPage(
+      componentId: ID!
+      entityId: ID
+      entityProperties: JSONObject
+      entityType: String
+      """
+      The namespaceId for the block and entity.
+      Defaults to the page's namespaceId.
+      """
+      namespaceId: ID
+      pageId: ID!
+      """
+      The position of the block in the page contents, starting at 0
+      """
+      position: Int!
+    ): Page!
   }
 `;
