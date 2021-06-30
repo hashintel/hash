@@ -292,6 +292,7 @@ class AsyncView {
 
         if (node.attrs.autofocus) {
           window.triggerSave?.();
+          document.body.focus();
           // view.focus();
         }
       })
@@ -496,7 +497,7 @@ class BlockView {
                   .join("")
               : "";
 
-            let newVar = {
+            const newNode = state.schema.nodes.async.create({
               // @todo rename these props
               ...(convertType === "new"
                 ? {}
@@ -513,21 +514,18 @@ class BlockView {
                 children: text ? [state.schema.text(text)] : [],
                 marks: null,
               },
-            };
-            console.log(newVar);
-            const newNode = state.schema.nodes.async.create(newVar);
+            });
 
             const pos = getPos();
 
             tr.replaceRangeWith(pos + 1, pos + 1 + node.nodeSize, newNode);
 
-            // @todo renable this
-            // const selection = NodeSelection.create(
-            //   tr.doc,
-            //   tr.mapping.map(getPos())
-            // );
-            //
-            // tr.setSelection(selection);
+            const selection = NodeSelection.create(
+              tr.doc,
+              tr.mapping.map(getPos())
+            );
+
+            tr.setSelection(selection);
 
             view.dispatch(tr);
             // @todo renable this

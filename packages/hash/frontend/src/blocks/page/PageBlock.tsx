@@ -43,9 +43,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   contents,
   blocksMeta,
   pageId,
-  namespaceId,
 }) => {
-  const [willSave, setWillSave] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const [portals, setPortals] = useState<PortalSet>(new Map());
   const { insert, insertLoading } = useBlockProtocolInsertIntoPage();
@@ -106,8 +104,6 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   }, []);
 
   useEffect(() => {
-    setWillSave(false);
-
     const schema = new Schema(baseSchemaConfig);
 
     (window as any).triggerSave = () => {
@@ -187,19 +183,59 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
         contents.some((content) => content.entityId === block.entityId)
       );
 
-      const updatedEntities = existingBlocks
-        .map((block) => block.properties.entity)
-        .concat(
-          existingBlocks.map((block) => ({
-            type: "Block",
-            id: block.entityId,
-            properties: {
-              componentId: block.properties.componentId,
-              entityType: block.properties.entity.type,
-              entityId: block.properties.entity.id,
-            },
-          }))
-        );
+      const updatedEntities = existingBlocks.flatMap((node) => {
+        const block = {
+          type: "Block",
+          id: node.entityId,
+          properties: {
+            componentId: node.properties.componentId,
+            entityType: node.properties.entity.type,
+            entityId: node.properties.entity.id,
+          },
+        };
+
+        const contentNode = contents.find((c) => c.entityId === block.id);
+
+        let blocks = [];
+
+        if (block.properties.componentId !== contentNode?.componentId) {
+          blocks.push(block);
+        }
+
+        if (node.properties.entity.type === "Text") {
+          if (
+            !contentNode ||
+            contentNode.entity.childEntityId !== node.properties.entity.id ||
+            (node.properties.entity.properties.texts as any[]).some(
+              (text: any, idx: number) => {
+                const contentText = contentNode.entity.children[idx];
+
+                return (
+                  text.text !== contentText.text ||
+                  text.bold !== contentText.marks?.includes("strong") ||
+                  text.underline !==
+                    contentText.marks?.includes("underlined") ||
+                  text.italics !== contentText.marks?.includes("em")
+                );
+              }
+            )
+          ) {
+            blocks.push(node.properties.entity);
+          }
+        }
+
+        //
+        // blocks.push(entity);
+
+        // if (
+        //   entity.type !== "Text" ||
+        //   JSON.stringify(entity.properties.textProperties.texts) ===
+        //     JSON.stringify(contentNode.entity.textPro)
+        // )
+        return blocks;
+      });
+
+      console.log({ updatedEntities });
 
       const pageBlocks = existingBlocks.map((node) => {
         return {
@@ -211,8 +247,6 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       const blockIdsChange =
         JSON.stringify(contents.map((content) => content.entityId).sort()) !==
         JSON.stringify(mappedBlocks.map((block) => block.entityId).sort());
-
-      console.log(updatedEntities);
 
       newBlocks
         .reduce(
@@ -228,15 +262,17 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
                   entityProperties: newBlock.properties.entity.properties,
                 })
               ),
-          update([
-            {
-              entityType: "Page",
-              entityId: pageId,
-              data: {
-                contents: pageBlocks,
-              },
-            },
-          ])
+          blockIdsChange
+            ? update([
+                {
+                  entityType: "Page",
+                  entityId: pageId,
+                  data: {
+                    contents: pageBlocks,
+                  },
+                },
+              ])
+            : Promise.resolve()
         )
         .then(() => {
           return update([
@@ -255,13 +291,6 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
                   data: entity.properties,
                 })
               ),
-            // {
-            //   entityType: "Page",
-            //   entityId: pageId,
-            //   data: {
-            //     contents: pageBlocks,
-            //   },
-            // },
           ]);
         });
     };
@@ -269,8 +298,16 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     const savePlugin = new Plugin({
         props: {
           handleDOMEvents: {
+            keydown(view, evt) {
+              if (evt.key === "s" && evt.metaKey) {
+                evt.preventDefault();
+                (window as any).triggerSave?.();
+
+                return true;
+              }
+              return false;
+            },
             focus() {
-              setWillSave(false);
               if (saveTimer.current) {
                 clearTimeout(saveTimer.current);
                 saveTimer.current = null;
@@ -282,8 +319,6 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
                 clearTimeout(saveTimer.current);
                 saveTimer.current = null;
               }
-
-              setWillSave(true);
 
               saveTimer.current = setTimeout((window as any).triggerSave, 500);
 
@@ -360,7 +395,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
         id="root"
         ref={root}
         style={
-          insertLoading || updateLoading || willSave
+          insertLoading || updateLoading
             ? { opacity: 0.5, pointerEvents: "none" }
             : {}
         }
