@@ -1,8 +1,4 @@
 import { DataSource } from "apollo-datasource";
-import { Uuid4 } from "id128";
-
-/** Generate a new entity ID. */
-export const genEntityId = () => Uuid4.generate().toCanonical().toLowerCase();
 
 export type Entity = {
   namespaceId: string;

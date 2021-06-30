@@ -1,4 +1,4 @@
-import { genEntityId } from "src/db/adapter";
+import { genEntityId } from "../../../util";
 import { DbUser } from "../../../types/dbTypes";
 import {
   MutationCreateUserArgs,

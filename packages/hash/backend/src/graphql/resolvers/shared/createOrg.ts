@@ -1,4 +1,4 @@
-import { genEntityId } from "src/db/adapter";
+import { genEntityId } from "../../../util";
 import { DbOrg } from "../../../types/dbTypes";
 import {
   MutationCreateOrgArgs,

@@ -1,7 +1,8 @@
 import { Pool, PoolClient } from "pg";
 import { DataSource } from "apollo-datasource";
 
-import { DBAdapter, Entity, genEntityId } from "../adapter";
+import { DBAdapter, Entity } from "../adapter";
+import { genEntityId } from "../../util";
 
 /** Get a required environment variable. Throws an error if it's not set. */
 const getRequiredEnv = (name: string) => {
