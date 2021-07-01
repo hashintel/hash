@@ -1,3 +1,4 @@
+import { genEntityId } from "../../../util";
 import { DbPage } from "../../../types/dbTypes";
 import {
   MutationCreatePageArgs,
@@ -14,7 +15,7 @@ export const createPage: Resolver<
 > = async (_, { namespaceId, properties }, { dataSources }) => {
   const entity = await dataSources.db.createEntity({
     namespaceId,
-    createdById: "", // TODO
+    createdById: genEntityId(), // TODO
     type: "Page",
     properties: properties,
   });
