@@ -19,6 +19,8 @@ import {
   updatePage,
 } from "./pages";
 import { namespaces } from "./namespace/namespaces";
+import { createUser } from "./shared/createUser";
+import { createOrg } from "./shared/createOrg";
 
 import { DbOrg, DbUser } from "../../types/dbTypes";
 
@@ -39,6 +41,8 @@ export const resolvers = {
     insertBlockIntoPage,
     updateEntity,
     updatePage,
+    createUser,
+    createOrg,
   },
 
   JSONObject: GraphQLJSON,

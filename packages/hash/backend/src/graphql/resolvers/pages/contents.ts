@@ -11,8 +11,8 @@ export const contents: Resolver<
   // TODO: make a getEntities DB query which can retrieve multiple in the same
   // transaction.
   const entities = await Promise.all(
-    contents.map(({namespaceId, entityId}) => {
-      return dataSources.db.getEntity({namespaceId, id: entityId});
+    contents.map(async ({namespaceId, entityId}) => {
+      return await dataSources.db.getEntity({namespaceId, id: entityId});
     })
   );
 

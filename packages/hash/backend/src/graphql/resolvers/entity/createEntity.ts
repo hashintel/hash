@@ -1,3 +1,4 @@
+import { genEntityId } from "../../../util";
 import { DbUnknownEntity } from "../../../types/dbTypes";
 import {
   MutationCreateEntityArgs,
@@ -18,7 +19,7 @@ export const createEntity: Resolver<
 ) => {
   const e = await dataSources.db.createEntity({
     namespaceId,
-    createdById: "", // TODO
+    createdById: genEntityId(), // TODO
     type,
     properties,
   });

@@ -14,7 +14,6 @@ export const createUser: Resolver<
   MutationCreateUserArgs
 > = async (_, { email, shortname }, { dataSources }) => {
   const id = genEntityId();
-
   // TODO: should check for uniqueness of email
 
   const entity = await dataSources.db.createEntity({
