@@ -72,6 +72,7 @@ export const updatePage = gql`
 
 export const insertBlockIntoPage = gql`
   mutation insertBlockIntoPage(
+    $namespaceId: ID!
     $componentId: ID!
     $entityType: String!
     $entityProperties: JSONObject!
@@ -79,6 +80,7 @@ export const insertBlockIntoPage = gql`
     $pageId: ID!
   ) {
     insertBlockIntoPage(
+      namespaceId: $namespaceId
       componentId: $componentId
       entityType: $entityType
       entityProperties: $entityProperties

@@ -19,7 +19,10 @@ export type DbBlock = Omit<Block, "properties"> & {
 
 export type DbPage = Omit<Page, "properties" | "type"> & {
   properties: Omit<Page["properties"], "contents"> & {
-    contents: { entityId: string }[];
+    contents: {
+      namespaceId: string;
+      entityId: string
+    }[];
   };
   type: "Page";
 };

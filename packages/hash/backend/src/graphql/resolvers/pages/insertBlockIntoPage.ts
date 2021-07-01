@@ -59,7 +59,7 @@ export const insertBlockIntoPage: Resolver<
     entityId: entity.id,
   };
 
-  const newBlock = dataSources.db.createEntity({
+  const newBlock = await dataSources.db.createEntity({
     namespaceId,
     type: entity.type,
     createdById: "", // TODO
