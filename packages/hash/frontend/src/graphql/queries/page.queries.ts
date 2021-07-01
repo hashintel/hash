@@ -49,16 +49,8 @@ export const getPageQuery = gql`
 `;
 
 export const createPage = gql`
-  mutation createPage(
-    $namespaceId: ID!
-    $createdById: ID!
-    $properties: PageCreationData!
-  ) {
-    createPage(
-      namespaceId: $namespaceId
-      createdById: $createdById
-      properties: $properties
-    ) {
+  mutation createPage($namespaceId: ID!, $properties: PageCreationData!) {
+    createPage(namespaceId: $namespaceId, properties: $properties) {
       ...PageFields
     }
   }
@@ -66,7 +58,11 @@ export const createPage = gql`
 `;
 
 export const updatePage = gql`
-  mutation updatePage($namespaceId: ID!, $id: ID!, $properties: PageUpdateData!) {
+  mutation updatePage(
+    $namespaceId: ID!
+    $id: ID!
+    $properties: PageUpdateData!
+  ) {
     updatePage(namespaceId: $namespaceId, id: $id, properties: $properties) {
       ...PageFields
     }

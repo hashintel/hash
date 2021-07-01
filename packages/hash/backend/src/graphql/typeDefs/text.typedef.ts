@@ -37,6 +37,10 @@ export const textTypedef = gql`
   }
 
   type TextProperites {
+    texts: [TextPropertiesText!]!
+  }
+
+  type TextPropertiesText {
     text: String!
     bold: Boolean
     underline: Boolean
