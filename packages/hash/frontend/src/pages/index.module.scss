@@ -1,7 +1,20 @@
-.Main {
-  padding: 0 30px;
+.MainWrapper {
+  display: flex;
+}
 
-  li {
-    padding: 5px 0;
+.MainContent {
+  padding: 60px 80px;
+  line-height: 140%;
+  font-weight: 300;
+  font-size: 17px;
+
+  h1, h2 {
+    margin-bottom: 40px;
+    line-height: 150%;
+    margin-top: 0;
+  }
+
+  p {
+    margin-bottom: 20px;
   }
 }

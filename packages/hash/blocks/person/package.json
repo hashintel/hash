@@ -1,7 +1,7 @@
 {
-  "name": "table",
+  "name": "person",
   "version": "0.1.0",
-  "description": "table block component",
+  "description": "person block component",
   "private": true,
   "browser": "dist/main.js",
   "author": "Ciaran Morinan",
@@ -11,12 +11,10 @@
     "build": "yarn clean && cross-env NODE_ENV=production webpack --mode production && yarn schema",
     "build:dev": "yarn clean && cross-env NODE_ENV=development webpack --mode development",
     "schema": "typescript-json-schema tsconfig.json AppProps --required true --out dist/block-schema.json",
-    "type-schema": "node schemaGenerator",
     "webpack-dev-server": "cross-env NODE_ENV=development webpack-dev-server -d --port 9090 --config webpack-dev-server.config.js --open",
-    "dev": "yarn start",
     "start": "concurrently -n webpack,webpack-dev-server -c green,cyan \"yarn build:dev -- --watch --verbose\" \"yarn webpack-dev-server\"",
     "clean": "rimraf dist",
-    "serve": "serve -C -l 62678 dist"
+    "serve": "serve -C -l 9000 dist"
   },
   "peerDependencies": {
     "react": "^16.14.0"
@@ -30,31 +28,22 @@
     "@babel/preset-react": "^7.12.10",
     "@babel/preset-typescript": "7.13.0",
     "@babel/runtime": "^7.12.5",
-    "@types/react-dom": "17.0.8",
-    "@types/react-table": "7.7.1",
     "babel-loader": "^8.2.2",
     "concurrently": "^5.3.0",
     "core-js": "^2.6.12",
     "cross-env": "^7.0.3",
-    "css-loader": "5.2.6",
     "html-webpack-plugin": "^4.5.0",
     "prettier": "^2.2.1",
     "react": "^16.14.0",
     "react-dom": "^16.14.0",
     "regenerator-runtime": "^0.13.7",
     "rimraf": "^3.0.2",
-    "sass": "1.35.1",
-    "sass-loader": "^10",
     "serve": "11.3.2",
-    "style-loader": "2.0.0",
     "typescript-json-schema": "0.50.1",
     "webpack": "^4.44.2",
     "webpack-assets-manifest": "^3.1.1",
     "webpack-bundle-analyzer": "^3.9.0",
     "webpack-cli": "^3.3.12",
     "webpack-dev-server": "^3.11.0"
-  },
-  "dependencies": {
-    "react-table": "7.7.0"
   }
 }

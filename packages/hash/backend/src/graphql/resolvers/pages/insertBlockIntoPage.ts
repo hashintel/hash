@@ -72,7 +72,7 @@ export const insertBlockIntoPage: Resolver<
 
   page.properties.contents = [
     ...page.properties.contents.slice(0, position),
-    newBlock,
+    { entityId: newBlock.id },
     ...page.properties.contents.slice(position),
   ];
   const updatedPage = await dataSources.db.updateEntity({ ...page });

@@ -14,6 +14,9 @@ import {
   BlockWithoutMeta,
   fetchBlockMeta,
 } from "../../blocks/page/tsUtils";
+import { PageSidebar } from "../../components/layout/PageSidebar/PageSidebar";
+
+import styles from "../index.module.scss";
 
 const preloadedBlocksUrls = ["https://block.blockprotocol.org/paragraph"];
 
@@ -65,6 +68,7 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
       const props =
         entity.__typename === "Text"
           ? {
+              childEntityId: entity.id,
               children: entity.textProperties.texts.map((text) => ({
                 type: "text",
                 text: text.text,
@@ -92,15 +96,23 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
     );
 
     return (
-      <>
-        <header>
-          <h1>{title}</h1>
-        </header>
+      <div className={styles.MainWrapper}>
+        <PageSidebar />
+        <div className={styles.MainContent}>
+          <header>
+            <h1>{title}</h1>
+          </header>
 
-        <main>
-          <PageBlock contents={mappedContents} blocksMeta={preloadedBlocks} />
-        </main>
-      </>
+          <main>
+            <PageBlock
+              pageId={pageId}
+              namespaceId={data.page.namespaceId}
+              contents={mappedContents}
+              blocksMeta={preloadedBlocks}
+            />
+          </main>
+        </div>
+      </div>
     );
   };
 

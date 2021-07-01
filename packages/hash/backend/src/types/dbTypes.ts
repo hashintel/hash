@@ -18,7 +18,9 @@ export type DbBlock = Omit<Block, "properties"> & {
 };
 
 export type DbPage = Omit<Page, "properties" | "type"> & {
-  properties: Omit<Page["properties"], "contents"> & { contents: DbBlock[] };
+  properties: Omit<Page["properties"], "contents"> & {
+    contents: { entityId: string }[];
+  };
   type: "Page";
 };
 
@@ -31,7 +33,3 @@ export type DbUnknownEntity = Omit<UnknownEntity, "type" | "__typename"> & {
   type: string;
   __typename?: string;
 };
-
-// export type DbUser = Omit<User, "type"> & { type: "User" };
-
-// export type DbOrg = Omit<Org, "type"> & { type: "Org" };

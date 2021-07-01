@@ -20,14 +20,12 @@
     "ts-node": "node --max-old-space-size=2048 node_modules/.bin/ts-node --files --project tsconfig.json"
   },
   "dependencies": {
-    "apollo-datasource": "0.9.0",
     "apollo-server-express": "2.24.1",
     "body-parser": "1.19.0",
     "express": "4.17.1",
     "graphql": "15.5.0",
     "graphql-type-json": "0.3.2",
     "helmet": "4.6.0",
-    "id128": "1.6.6",
     "pg": "8.6.0"
   },
   "devDependencies": {
@@ -35,6 +33,7 @@
     "@graphql-codegen/introspection": "1.18.2",
     "@graphql-codegen/typescript": "1.22.0",
     "@graphql-codegen/typescript-resolvers": "1.19.2",
+    "@types/graphql-type-json": "0.3.2",
     "@types/pg": "8.6.0",
     "@typescript-eslint/eslint-plugin": "4.25.0",
     "@typescript-eslint/parser": "4.25.0",

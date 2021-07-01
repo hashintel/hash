@@ -1,5 +1,5 @@
 {
   "scripts": {
-    "serve": "serve -C"
+    "serve": "serve -C -l 5005"
   }
 }

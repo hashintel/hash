@@ -13,6 +13,21 @@
     "serve:hash-frontend": "yarn ws:hash-frontend dev",
     "codegen": "yarn ws:hash-backend codegen && yarn ws:hash-frontend codegen",
     "postinstall": "yarn codegen",
-    "new:block": "node packages/hash/blocks/create-block"
+    "new:block": "node packages/hash/blocks/create-block",
+    "install:demo": "yarn install && concurrently \"yarn install:header\" \"yarn install:table\" \"yarn install:image\" \"yarn install:person\"",
+    "install:header": "cd packages/hash/blocks/header && yarn install && yarn build",
+    "install:person": "cd packages/hash/blocks/person && yarn install && yarn build",
+    "install:table": "cd packages/hash/blocks/table && yarn install && yarn build",
+    "install:image": "cd packages/hash/blocks/image && yarn install && yarn build",
+    "serve:header": "cd packages/hash/blocks/header && yarn serve",
+    "serve:person": "cd packages/hash/blocks/person && yarn serve",
+    "serve:htmlPara": "cd packages/hash/blocks/htmlPara && yarn serve",
+    "serve:table": "cd packages/hash/blocks/table && yarn serve",
+    "serve:image": "cd packages/hash/blocks/image && yarn serve",
+    "demo": "concurrently \"yarn serve:hash-backend\" \"yarn serve:table\" \"yarn serve:htmlPara\" \"yarn serve:image\" \"yarn serve:header\"  \"yarn serve:person\"  \"yarn serve:hash-frontend\""
+  },
+  "devDependencies": {
+    "concurrently": "6.2.0",
+    "serve": "12.0.0"
   }
 }
