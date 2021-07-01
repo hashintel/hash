@@ -17,10 +17,7 @@ export const NamespaceHome: VoidFunctionComponent = () => {
           <h1>Welcome to account #{namespaceId}</h1>
         </header>
         <p>
-          Please select a page from the list.
-        </p>
-        <p>
-          Or create a new page - <em>coming soon!</em>
+          Please select a page from the list, or create a new page.
         </p>
       </main>
     </div>

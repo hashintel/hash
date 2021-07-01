@@ -1,3 +1,5 @@
+
+
 .PageSidebar {
   min-height: 100vh;
   background: #F9FAFC;
@@ -25,5 +27,23 @@
 }
 
 .NamespacePageList {
+  div {
+    &:not(:last-child) {
+      margin-bottom: 15px;
+    }
+  }
 
+  a {
+    font-weight: 300;
+  }
+  
+  div {
+    font-weight: 500;
+    color: $bright-blue;
+    border-bottom: 3px solid transparent;
+  }
+
+  button {
+    margin-top: 15px;
+  }
 }

@@ -50,13 +50,11 @@ export const getPageQuery = gql`
 
 export const createPage = gql`
   mutation createPage(
-    $namespaceId: ID
-    $namespace: String
+    $namespaceId: ID!
     $properties: PageCreationData!
   ) {
     createPage(
       namespaceId: $namespaceId
-      namespace: $namespace
       properties: $properties
     ) {
       ...PageFields
