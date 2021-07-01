@@ -77,6 +77,7 @@ export const insertBlockIntoPage = gql`
     $entityProperties: JSONObject!
     $position: Int!
     $pageId: ID!
+    $namespaceId: ID!
   ) {
     insertBlockIntoPage(
       componentId: $componentId
@@ -84,6 +85,7 @@ export const insertBlockIntoPage = gql`
       entityProperties: $entityProperties
       position: $position
       pageId: $pageId
+      namespaceId: $namespaceId
     ) {
       ...PageFields
     }
