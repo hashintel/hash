@@ -21,7 +21,7 @@ export default function Home() {
           {data?.namespaces.map((namespace) => (
             <li key={namespace.id}>
               <Link href={`/namespace/${namespace.id}`}>
-                <a>{namespace.shortname}</a>
+                <a>{namespace.properties.shortname}</a>
               </Link>
             </li>
           ))}
