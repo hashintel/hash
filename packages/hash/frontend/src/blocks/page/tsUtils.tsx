@@ -38,7 +38,7 @@ export type Block = {
 
 export type BlockMeta = Pick<Block, "componentMetadata" | "componentSchema">;
 
-export const blockCache = new Map<string, BlockMeta>();
+export const blockCache = new Map<string, Promise<BlockMeta>>();
 
 export const builtInBlocks: Record<string, BlockMeta> = {
   // @todo maybe this should be a nodeview too
@@ -57,6 +57,7 @@ export const builtInBlocks: Record<string, BlockMeta> = {
   },
 };
 
+// @todo deal with errors
 export const fetchBlockMeta = async (
   url: string,
   signal?: AbortSignal
@@ -70,26 +71,31 @@ export const fetchBlockMeta = async (
     return blockCache.get(mappedUrl)!;
   }
 
-  const metadata = await (
-    await fetch(`${mappedUrl}/metadata.json`, { signal })
-  ).json();
+  const promise = (async () => {
+    const metadata = await (
+      await fetch(`${mappedUrl}/metadata.json`, { signal })
+    ).json();
 
-  const schema = await (
-    await fetch(`${mappedUrl}/${metadata.schema}`, { signal })
-  ).json();
+    const schema = await (
+      await fetch(`${mappedUrl}/${metadata.schema}`, { signal })
+    ).json();
 
-  const result: BlockMeta = {
-    componentMetadata: {
-      ...metadata,
-      url: mappedUrl,
-    },
-    componentSchema: schema,
-  };
+    const result: BlockMeta = {
+      componentMetadata: {
+        ...metadata,
+        url: mappedUrl,
+      },
+      componentSchema: schema,
+    };
+
+    return result;
+  })();
+
   if (typeof window !== "undefined") {
-    blockCache.set(mappedUrl, result);
+    blockCache.set(mappedUrl, promise);
   }
 
-  return result;
+  return await promise;
 };
 
 export type BlockWithoutMeta = Omit<
