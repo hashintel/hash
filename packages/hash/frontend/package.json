@@ -9,7 +9,8 @@
     "build": "next build",
     "postinstall": "yarn codegen",
     "start": "next start",
-    "codegen": "graphql-codegen --config codegen.yml # frontend"
+    "codegen": "graphql-codegen --config codegen.yml # frontend",
+    "mock-data": "node --loader ts-node/esm src/mockData/index.ts"
   },
   "dependencies": {
     "@apollo/client": "3.3.19",
