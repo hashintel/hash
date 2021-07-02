@@ -4,7 +4,8 @@
   "workspaces": [
     "packages/hash/backend",
     "packages/hash/frontend",
-    "packages/hash/blocks/page"
+    "packages/hash/blocks/page",
+    "packages/hash/integration"
   ],
   "scripts": {
     "ws:hash-backend": "yarn workspace @hashintel/hash-backend",

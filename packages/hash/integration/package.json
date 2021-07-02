@@ -1,0 +1,40 @@
+{
+  "name": "@hashintel/hash-integration",
+  "license": "GPL-3.0",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Integration tests for HASH.dev",
+  "repository": {
+    "url": "https://github.com/hashintel/dev/packages/hash/integration",
+    "directory": "packages/hash/integration"
+  },
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "echo 'Compiling Typescript' && tsc",
+    "postinstall": "yarn codegen",
+    "lint": "eslint . --ext .ts",
+    "codegen": "graphql-codegen --config codegen.yml # backend",
+    "fmt": "find ./src/*.ts ./src/**/*.ts ./src/**/**/*.ts ./src/**/**/**/*.ts | xargs prettier --write",
+    "ts-node": "node --max-old-space-size=2048 node_modules/.bin/ts-node --files --project tsconfig.json"
+  },
+  "dependencies": {
+    "graphql": "15.5.0",
+    "graphql-request": "3.4.0",
+    "graphql-type-json": "0.3.2"
+  },
+  "devDependencies": {
+    "@graphql-codegen/cli": "1.21.4",
+    "@graphql-codegen/introspection": "1.18.2",
+    "@graphql-codegen/typescript": "1.22.0",
+    "@graphql-codegen/typescript-graphql-request": "3.2.4",
+    "@graphql-codegen/typescript-resolvers": "1.19.2",
+    "@types/graphql-type-json": "0.3.2",
+    "@typescript-eslint/eslint-plugin": "4.25.0",
+    "@typescript-eslint/parser": "4.25.0",
+    "eslint": "7.27.0",
+    "eslint-config-prettier": "8.3.0",
+    "prettier": "2.3.0",
+    "ts-node": "10.0.0",
+    "typescript": "4.2.4"
+  }
+}

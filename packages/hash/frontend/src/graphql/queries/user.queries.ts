@@ -17,6 +17,10 @@ export const createUser = gql`
       namespaceId
       type
       visibility
+      properties {
+        shortname
+        email
+      }
     }
   }
 `;

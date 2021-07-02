@@ -15,6 +15,9 @@ export const createOrg = gql`
       namespaceId
       type
       visibility
+      properties {
+        shortname
+      }
     }
   }
 `;
