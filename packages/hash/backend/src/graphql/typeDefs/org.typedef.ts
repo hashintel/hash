@@ -41,6 +41,6 @@ export const orgTypedef = gql`
   }
 
   extend type Mutation {
-    createOrg(createdById: String!, shortname: String!): Org!
+    createOrg(shortname: String!): Org!
   }
 `;

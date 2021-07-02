@@ -12,13 +12,13 @@ export const createOrg: Resolver<
   {},
   GraphQLContext,
   MutationCreateOrgArgs
-> = async (_, { createdById, shortname }, { dataSources }) => {
+> = async (_, { shortname }, { dataSources }) => {
   const id = genEntityId();
 
   const entity = await dataSources.db.createEntity({
     namespaceId: id,
     id,
-    createdById,
+    createdById: genEntityId(), // TODO
     type: "Org",
     properties: { shortname },
   });
