@@ -9,7 +9,7 @@
     "build": "next build",
     "postinstall": "yarn codegen",
     "start": "next start",
-    "codegen": "graphql-codegen --config codegen.yml # frontend",
+    "codegen": "graphql-codegen --config codegen.yml # frontend"
   },
   "dependencies": {
     "@apollo/client": "3.3.19",
