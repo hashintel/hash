@@ -83,10 +83,15 @@ const resolveLinkedData = async (
       await resolveLinkedData(ctx, entity.namespaceId, object.properties[key]);
     } else if (aggregate) {
       // Fetch an array of entities
-      const { results } = (await (aggregateEntity as any)(null, {
-        type: entityType,
-        operation: aggregate,
-      })) as AggregationResponse;
+      const { results } = (await (aggregateEntity as any)(
+        null,
+        {
+          namespaceId,
+          type: entityType,
+          operation: aggregate,
+        },
+        ctx,
+      )) as AggregationResponse;
 
       object.properties[key] = results;
       // Resolve linked data for each entity in the array
