@@ -8,6 +8,7 @@ import {
 import { DbUnknownEntity } from "../../../types/dbTypes";
 import { aggregateEntity } from "./aggregateEntity";
 import { GraphQLContext } from "../../context";
+import { GraphQLResolveInfo } from "graphql";
 
 export const isRecord = (thing: unknown): thing is Record<string, any> => {
   if (typeof thing !== "object") {
@@ -44,7 +45,8 @@ type LinkedDataDefinition = {
 const resolveLinkedData = async (
   ctx: GraphQLContext,
   namespaceId: string,
-  object: Record<string, any>
+  object: Record<string, any>,
+  info: GraphQLResolveInfo,
 ) => {
   if (!isRecord(object.properties)) {
     return;
@@ -80,17 +82,18 @@ const resolveLinkedData = async (
         visibility: Visibility.Public, // TODO
       };
       object.properties[key] = e;
-      await resolveLinkedData(ctx, entity.namespaceId, object.properties[key]);
+      await resolveLinkedData(ctx, entity.namespaceId, object.properties[key], info);
     } else if (aggregate) {
       // Fetch an array of entities
-      const { results } = (await (aggregateEntity as any)(
-        null,
+      const { results } = (await aggregateEntity(
+        {},
         {
           namespaceId,
           type: entityType,
           operation: aggregate,
         },
         ctx,
+        info,
       )) as AggregationResponse;
 
       object.properties[key] = results;
@@ -98,7 +101,7 @@ const resolveLinkedData = async (
       await Promise.all(
         object.properties[key].map((entity: DbUnknownEntity) => {
           (entity as any).__typename = entityType;
-          return resolveLinkedData(ctx, entity.namespaceId, entity);
+          return resolveLinkedData(ctx, entity.namespaceId, entity, info);
         })
       );
     }
@@ -109,7 +112,7 @@ export const properties: Resolver<
   UnknownEntity["properties"],
   DbUnknownEntity,
   GraphQLContext
-> = async (entity, _, ctx) => {
-  await resolveLinkedData(ctx, entity.namespaceId, entity);
+> = async (entity, _, ctx, info) => {
+  await resolveLinkedData(ctx, entity.namespaceId, entity, info);
   return entity.properties;
 };
