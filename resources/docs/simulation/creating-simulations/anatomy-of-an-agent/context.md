@@ -42,6 +42,8 @@ def behavior(state, context):
 An agent can read the state of its neighbors, but agents cannot directly modify another agent's state. However, agents may communicate by [sending messages](../agent-messages/sending-messages.md) to each other.
 {% endhint %}
 
+Neighbors are calculated at the beginning of every time step, for every agent that has a `search_radius` value. For best performance, only assign a `search_radius` to an agent that needs to call context.neighbors\(\).
+
 ## Messages
 
 The `context.messages()` method returns a collection of messages received by the agent in this step of the simulation. For more details see [Handling Messages](../agent-messages/handling-messages.md).
