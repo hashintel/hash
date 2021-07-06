@@ -26,6 +26,7 @@
     "graphql": "15.5.0",
     "graphql-type-json": "0.3.2",
     "helmet": "4.6.0",
+    "id128": "1.6.6",
     "pg": "8.6.0"
   },
   "devDependencies": {
