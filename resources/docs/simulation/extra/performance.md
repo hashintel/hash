@@ -26,7 +26,9 @@ In the future we'll be bringing support for much larger datasets to both the cli
 
 Each agent runs its array of behaviors every time step - if a behavior is performing very complex calculations, it can slow down the simulation as a whole.
 
-The most common expensive behavior we see is calling `context.neighbors()` with a large search radius. `context.neighbors()` returns the agents neighbors, which involves searching over the simulation state. This can be expensive when many agents are using it and it's searching over a lot of the simulation. Often you can use messages to communicate between agents and request information instead of relying on retrieving many neighbors. Alternatively you might consider creating a manager agent that calls `context.neighbors()` and stores the results which other agents can retrieve by messaging the manager agent.
+The most common expensive behavior we see is using many agents with large `"search_radius"`. If an agent has a [search radius](../creating-simulations/anatomy-of-an-agent/context.md#neighbors), the HASH engine will calculate the neighbors for the agent, which is how`context.neighbors()` will return the agents neighbors. Calculating neighbors involves searching over the simulation state, which can be expensive when many agents are calling neighbors. 
+
+Often you can use messages to communicate between agents and request information instead of relying on retrieving many neighbors. Alternatively you might consider creating a manager agent that has a search radius which calls `context.neighbors()` and stores the results which other agents can retrieve by messaging the manager agent.
 
 Other common reasons for slowdown are not specific to HASH's Engine, but are general performance problems, such as running O\(n^2\) algorithms over large datasets. After you've created the initial design of your simulation, consider going back through and finding ways to make the behaviors more efficient.
 
