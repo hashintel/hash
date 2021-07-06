@@ -50,15 +50,6 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     }
   }
 
-  private async use<T>(f: (client: PoolClient) => Promise<T>): Promise<T> {
-    const client = await this.pool.connect();
-    try {
-      return await f(client);
-    } finally {
-      client.release();
-    }
-  }
-
   /** Get the row ID of an entity type. */
   private async getEntityTypeId(
     client: PoolClient,
@@ -87,7 +78,6 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     type: string;
     properties: any;
   }): Promise<Entity> {
-    // TODO: create ID generation function
     const id = params.id ?? genEntityId();
     const now = new Date();
 
@@ -174,7 +164,12 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     namespaceId: string;
     id: string;
   }): Promise<Entity | undefined> {
-    return await this.use((client) => this._getEntity(client, params));
+    const client = await this.pool.connect();
+    try {
+      return await this._getEntity(client, params);
+    } finally {
+      client.release();
+    }
   }
 
   /** Update an entity's properties. If the "type" parameter is provided, the function
@@ -230,6 +225,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     });
   }
 
+  /** Get all entities of a given type. */
   async getEntitiesByType(params: {
     namespaceId: string;
     type: string;
@@ -257,6 +253,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     }));
   }
 
+  /** Get all namespace entities. */
   async getNamespaceEntities(): Promise<Entity[]> {
     const res = await this.pool.query(`
       select
@@ -278,9 +275,4 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     }));
   }
 
-  // Execute a query. This is exposed only temporarily. The actual database adapter will
-  // export product-specific functions behind an interface (e.g. createUser ...)
-  query = (text: string, params?: any) => {
-    return this.pool.query(text, params);
-  };
 }
