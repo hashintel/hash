@@ -14,7 +14,7 @@
     "codegen": "yarn ws:hash-backend codegen && yarn ws:hash-frontend codegen",
     "postinstall": "yarn codegen",
     "new:block": "node packages/hash/blocks/create-block",
-    "install:demo": "yarn install && concurrently \"yarn install:header\" \"yarn install:table\" \"yarn install:image\" \"yarn install:person\"",
+    "install:demo": "yarn install && yarn install:header && yarn install:table && yarn install:image && yarn install:person",
     "install:header": "cd packages/hash/blocks/header && yarn install && yarn build",
     "install:person": "cd packages/hash/blocks/person && yarn install && yarn build",
     "install:table": "cd packages/hash/blocks/table && yarn install && yarn build",
