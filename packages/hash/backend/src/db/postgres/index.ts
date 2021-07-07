@@ -55,8 +55,10 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     client: PoolClient,
     name: string
   ): Promise<number | null> {
-    const q = "select id from entity_types where name = $1";
-    const res = await client.query(q, [name]);
+    const res = await client.query(
+      "select id from entity_types where name = $1",
+      [name]
+    );
     return res.rowCount === 0 ? null : res.rows[0]["id"];
   }
 
@@ -65,9 +67,14 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     client: PoolClient,
     name: string
   ): Promise<number> {
-    const q = "insert into entity_types (name) values ($1) returning id";
-    const res = await client.query(q, [name]);
-    return res.rows[0]["id"];
+    // The "on conflict do nothing" clause is required here because multiple transactions
+    // may try to insert at the same time causing a conflict on the UNIQUE constraint on
+    // entity_types name column.
+    await client.query(
+      "insert into entity_types (name) values ($1) on conflict do nothing",
+      [name]
+    );
+    return (await this.getEntityTypeId(client, name))!;
   }
 
   /** Create a new entity. */
