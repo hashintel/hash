@@ -40,12 +40,15 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
     const { query } = useRouter();
 
     const pageId = query.pageId as string;
+    const namespaceId = query.namespaceId as string;
+
+    console.log({ namespaceId });
 
     const { data, error, loading } = useQuery<
       GetPageQuery,
       GetPageQueryVariables
     >(getPageQuery, {
-      variables: { pageId },
+      variables: { pageId, namespaceId },
     });
 
     if (loading) {
