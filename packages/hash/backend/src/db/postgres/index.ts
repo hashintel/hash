@@ -281,5 +281,4 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       updatedAt: r["updated_at"],
     }));
   }
-
 }

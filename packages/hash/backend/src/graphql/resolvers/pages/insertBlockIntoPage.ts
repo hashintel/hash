@@ -28,15 +28,18 @@ export const insertBlockIntoPage: Resolver<
 ) => {
   // TODO: everything here should be inside a transaction
 
-  const page = await dataSources.db.getEntity({namespaceId, id: pageId});
+  const page = await dataSources.db.getEntity({ namespaceId, id: pageId });
   if (!page) {
-    throw new ApolloError(`Could not find page with pageId ${pageId}`, "NOT_FOUND");
+    throw new ApolloError(
+      `Could not find page with pageId ${pageId}`,
+      "NOT_FOUND"
+    );
   }
 
   let entity;
   if (entityId) {
     // Update
-    entity = await dataSources.db.getEntity({namespaceId, id: entityId});
+    entity = await dataSources.db.getEntity({ namespaceId, id: entityId });
     if (!entity) {
       throw new ApolloError(`entity ${entityId} not found`, "NOT_FOUND");
     }
@@ -46,7 +49,7 @@ export const insertBlockIntoPage: Resolver<
       namespaceId,
       createdById: genEntityId(), // TODO
       type: entityType,
-      properties: entityProperties
+      properties: entityProperties,
     });
   } else {
     throw new Error(
@@ -64,7 +67,7 @@ export const insertBlockIntoPage: Resolver<
     namespaceId,
     type: entity.type,
     createdById: genEntityId(), // TODO
-    properties: blockProperties
+    properties: blockProperties,
   });
 
   if (position > page.properties.contents.length) {

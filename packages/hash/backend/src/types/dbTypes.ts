@@ -21,7 +21,7 @@ export type DbPage = Omit<Page, "properties" | "type"> & {
   properties: Omit<Page["properties"], "contents"> & {
     contents: {
       namespaceId: string;
-      entityId: string
+      entityId: string;
     }[];
   };
   type: "Page";

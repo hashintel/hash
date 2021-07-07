@@ -57,7 +57,7 @@ export const resolvers = {
   },
 
   PageProperties: {
-    contents: pageFields.contents
+    contents: pageFields.contents,
   },
 
   UnknownEntity: {

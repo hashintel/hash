@@ -11,15 +11,18 @@ export const contents: Resolver<
   // TODO: make a getEntities DB query which can retrieve multiple in the same
   // transaction.
   const entities = await Promise.all(
-    contents.map(async ({namespaceId, entityId}) => {
-      return await dataSources.db.getEntity({namespaceId, id: entityId});
+    contents.map(async ({ namespaceId, entityId }) => {
+      return await dataSources.db.getEntity({ namespaceId, id: entityId });
     })
   );
 
   entities.forEach((entity, i) => {
     if (!entity) {
       const { namespaceId, entityId } = contents[i];
-      throw new ApolloError(`entity ${entityId} not found in namespace ${namespaceId}`, "NOT_FOUND");
+      throw new ApolloError(
+        `entity ${entityId} not found in namespace ${namespaceId}`,
+        "NOT_FOUND"
+      );
     }
   });
 

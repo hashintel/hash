@@ -46,7 +46,7 @@ const resolveLinkedData = async (
   ctx: GraphQLContext,
   namespaceId: string,
   object: Record<string, any>,
-  info: GraphQLResolveInfo,
+  info: GraphQLResolveInfo
 ) => {
   if (!isRecord(object.properties)) {
     return;
@@ -82,7 +82,12 @@ const resolveLinkedData = async (
         visibility: Visibility.Public, // TODO
       };
       object.properties[key] = e;
-      await resolveLinkedData(ctx, entity.namespaceId, object.properties[key], info);
+      await resolveLinkedData(
+        ctx,
+        entity.namespaceId,
+        object.properties[key],
+        info
+      );
     } else if (aggregate) {
       // Fetch an array of entities
       const { results } = (await aggregateEntity(
@@ -93,7 +98,7 @@ const resolveLinkedData = async (
           operation: aggregate,
         },
         ctx,
-        info,
+        info
       )) as AggregationResponse;
 
       object.properties[key] = results;

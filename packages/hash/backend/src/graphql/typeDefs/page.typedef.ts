@@ -80,10 +80,7 @@ export const pageTypedef = gql`
   }
 
   extend type Mutation {
-    createPage(
-      namespaceId: ID!
-      properties: PageCreationData!
-    ): Page!
+    createPage(namespaceId: ID!, properties: PageCreationData!): Page!
 
     updatePage(namespaceId: ID!, id: ID!, properties: PageUpdateData!): Page!
 
