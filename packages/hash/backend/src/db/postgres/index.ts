@@ -92,7 +92,8 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       // Create the shard if it does not already exist
       await client.query(
         `
-        insert into shards (shard_id) values ($1) on conflict (shard_id) do nothing`,
+        insert into shards (shard_id) values ($1)
+        on conflict (shard_id) do nothing`,
         [params.namespaceId]
       );
 
@@ -133,7 +134,8 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     client: PoolClient,
     params: { namespaceId: string; id: string }
   ): Promise<Entity | undefined> {
-    const q = `
+    const res = await client.query(
+      `
       select
         e.shard_id, e.id, t.name as type, e.properties, e.created_by, e.created_at,
         e.updated_at
@@ -141,9 +143,9 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
         entities as e
         join entity_types as t on e.type = t.id
       where
-        e.shard_id = $1 and e.id = $2
-    `;
-    const res = await client.query(q, [params.namespaceId, params.id]);
+        e.shard_id = $1 and e.id = $2`,
+      [params.namespaceId, params.id]
+    );
 
     if (res.rowCount === 0) {
       return undefined;
@@ -201,11 +203,12 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       }
 
       let q = `
-        update entities set
-          properties = $1,
-          updated_at = now()
+        update entities
+          set properties = $1, updated_at = now()
         where
-          shard_id = $2 and id = $3`;
+          shard_id = $2 and id = $3
+      `;
+
       let res;
       if (!typeId) {
         res = await client.query(q, [params.properties, namespaceId, id]);
@@ -234,17 +237,17 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     namespaceId: string;
     type: string;
   }): Promise<Entity[]> {
-    const q = `
-      select
+    const res = await this.pool.query(
+      `select
         e.shard_id, e.id, t.name as type, e.properties, e.created_by, e.created_at,
         e.updated_at
       from
         entities as e
         join entity_types as t on e.type = t.id
       where
-        e.shard_id = $1 and t.name = $2
-    `;
-    const res = await this.pool.query(q, [params.namespaceId, params.type]);
+        e.shard_id = $1 and t.name = $2`,
+      [params.namespaceId, params.type]
+    );
 
     return res.rows.map((r) => ({
       namespaceId: r["shard_id"],
