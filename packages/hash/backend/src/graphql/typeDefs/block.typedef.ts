@@ -38,6 +38,7 @@ export const blockTypedef = gql`
 
   type BlockProperties {
     entityId: ID!
+    namespaceId: ID!
     entity: Entity!
     entityType: String!
     componentId: ID!
