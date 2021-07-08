@@ -25,7 +25,7 @@ export const NamespaceSelect: VoidFunctionComponent<NamespaceSelectProps> = ({
     >
       {data?.namespaces.map((namespace) => (
         <option key={namespace.id} value={namespace.id}>
-          {namespace.shortname}
+          {namespace.properties.shortname}
         </option>
       ))}
     </select>
