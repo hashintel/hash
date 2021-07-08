@@ -12,12 +12,14 @@ const pageFieldsFragment = gql`
       title
       contents {
         id
+        namespaceId
         properties {
           componentId
           entityType
           entity {
             __typename
             id
+            namespaceId
             type
             ... on UnknownEntity {
               unknownProperties: properties

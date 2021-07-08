@@ -44,6 +44,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   contents,
   blocksMeta,
   pageId,
+  namespaceId,
 }) => {
   const root = useRef<HTMLDivElement>(null);
   const [portals, setPortals] = useState<PortalSet>(new Map());
@@ -123,9 +124,11 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
 
         let entity;
         if (schema.nodes[node.type].isTextblock) {
+          console.log(node.attrs);
           entity = {
             type: "Text",
             id: node.attrs.childEntityId,
+            namespaceId: node.attrs.childEntityNamespaceId,
             properties: {
               texts:
                 node.content
@@ -147,16 +150,19 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
             },
           };
         } else {
-          const { childEntityId, ...props } = node.attrs;
+          const { childEntityId, childEntityNamespaceId, ...props } =
+            node.attrs;
           entity = {
             type: "UnknownEntity",
             id: childEntityId,
+            namespaceId: childEntityNamespaceId,
             properties: props,
           };
         }
 
         let block = {
           entityId: node.attrs.entityId,
+          namespaceId: node.attrs.namespaceId,
           type: "Block",
           position,
           properties: {
@@ -188,10 +194,12 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
         const block = {
           type: "Block",
           id: node.entityId,
+          namespaceId: node.namespaceId,
           properties: {
             componentId: node.properties.componentId,
             entityType: node.properties.entity.type,
             entityId: node.properties.entity.id,
+            namespaceId: node.properties.entity.namespaceId,
           },
         };
 
@@ -267,6 +275,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
                 {
                   entityType: "Page",
                   entityId: pageId,
+                  namespaceId,
                   data: {
                     contents: pageBlocks,
                   },
@@ -288,6 +297,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
                   entityId: entity.id,
                   entityType: entity.type,
                   data: entity.properties,
+                  namespaceId: entity.namespaceId,
                 })
               ),
           ]);
@@ -332,7 +342,14 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
           "doc",
           {},
           contents?.map((block) => {
-            const { children, childEntityId = null, ...props } = block.entity;
+            const {
+              children,
+              childEntityId = null,
+              childEntityNamespaceId = null,
+              ...props
+            } = block.entity;
+
+            console.log(block.entity);
 
             return schema.node(
               "async",
@@ -343,7 +360,9 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
                   attrs: {
                     props,
                     entityId: block.entityId,
+                    namespaceId: block.namespaceId,
                     childEntityId,
+                    childEntityNamespaceId,
                   },
                   children:
                     children?.map((child: any) => {

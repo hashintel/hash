@@ -42,8 +42,6 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
     const pageId = query.pageId as string;
     const namespaceId = query.namespaceId as string;
 
-    console.log({ namespaceId });
-
     const { data, error, loading } = useQuery<
       GetPageQuery,
       GetPageQueryVariables
@@ -72,10 +70,12 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
         entity.__typename === "Text"
           ? {
               childEntityId: entity.id,
+              childEntityNamespaceId: entity.namespaceId,
               children: entity.textProperties.texts.map((text) => ({
                 type: "text",
                 text: text.text,
                 entityId: entity.id,
+                namespaceId: entity.namespaceId,
                 marks: [
                   ["strong", text.bold],
                   ["underlined", text.underline],
@@ -89,7 +89,12 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
           ? entity.unknownProperties
           : {};
 
-      return { componentId, entityId: content.id, entity: props };
+      return {
+        componentId,
+        entityId: content.id,
+        entity: props,
+        namespaceId: content.namespaceId,
+      };
     });
 
     const preloadedBlocks = new Map(
@@ -97,6 +102,8 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
         (node) => [node.componentMetadata.url, node] as const
       )
     );
+
+    console.log({ mappedContents });
 
     return (
       <div className={styles.MainWrapper}>

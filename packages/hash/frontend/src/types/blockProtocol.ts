@@ -1,6 +1,7 @@
 export type BlockProtocolUpdatePayload<T> = {
   entityType: string;
   entityId: string;
+  namespaceId: string;
   data: T;
 };
 
