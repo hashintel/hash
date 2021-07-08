@@ -3,6 +3,7 @@ import { DataSource } from "apollo-datasource";
 
 import { DBAdapter, Entity } from "../adapter";
 import { genEntityId } from "../../util";
+import { gatherLinks } from "./util";
 
 /** Get a required environment variable. Throws an error if it's not set. */
 const getRequiredEnv = (name: string) => {
@@ -77,6 +78,56 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return (await this.getEntityTypeId(client, name))!;
   }
 
+  private async createOutgoingLink(
+    client: PoolClient,
+    params: {
+      namespaceId: string;
+      entityId: string;
+      childNamespaceId: string;
+      childId: string;
+    }
+  ) {
+    await client.query(
+      `insert into outgoing_links (shard_id, entity_id, child_shard_id, child_id)
+      values ($1, $2, $3, $4)`,
+      [
+        params.namespaceId,
+        params.entityId,
+        params.childNamespaceId,
+        params.childId,
+      ]
+    );
+  }
+
+  private async createIncomingLink(
+    client: PoolClient,
+    params: {
+      namespaceId: string;
+      entityId: string;
+      parentNamespaceId: string;
+      parentId: string;
+    }
+  ) {
+    await client.query(
+      `insert into incoming_links (shard_id, entity_id, parent_shard_id, parent_id)
+      values ($1, $2, $3, $4)`,
+      [
+        params.namespaceId,
+        params.entityId,
+        params.parentNamespaceId,
+        params.parentId,
+      ]
+    );
+  }
+
+  private async getEntityNamespace(client: PoolClient, entityId: string) {
+    const res = await client.query(
+      "select shard_id from entity_shard where entity_id = $1",
+      [entityId]
+    );
+    return res.rowCount === 0 ? null : (res.rows[0]["shard_id"] as string);
+  }
+
   /** Create a new entity. */
   async createEntity(params: {
     namespaceId: string;
@@ -88,8 +139,9 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     const id = params.id ?? genEntityId();
     const now = new Date();
 
-    await this.tx(async (client) => {
+    const entity = await this.tx(async (client) => {
       // Create the shard if it does not already exist
+      // TODO: this should be performed in a "createNamespace" function, or similar.
       await client.query(
         `
         insert into shards (shard_id) values ($1)
@@ -102,6 +154,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
         (await this.getEntityTypeId(client, params.type)) ??
         (await this.createEntityType(client, params.type));
 
+      // Insert the entity
       await client.query(
         `insert into entities (
           shard_id, id, type, properties, created_by, created_at, updated_at
@@ -117,17 +170,52 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
           now,
         ]
       );
+
+      const entity: Entity = {
+        namespaceId: params.namespaceId,
+        id: id,
+        createdById: params.createdById,
+        type: params.type,
+        properties: params.properties,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      // Make a reference to this entity's shard in the `entity_shard` lookup table
+      await client.query(
+        "insert into entity_shard (entity_id, shard_id) values ($1, $2)",
+        [entity.id, entity.namespaceId]
+      );
+
+      // Gather the links this entity makes and insert incoming and outgoing references:
+      const linkedEntityIds = gatherLinks(entity);
+      await Promise.all(
+        linkedEntityIds.map(async (dstId) => {
+          const namespaceId = await this.getEntityNamespace(client, dstId);
+          if (!namespaceId) {
+            throw new Error(`namespace ID not found for entity ${dstId}`);
+          }
+          await Promise.all([
+            this.createOutgoingLink(client, {
+              namespaceId: entity.namespaceId,
+              entityId: entity.id,
+              childNamespaceId: namespaceId,
+              childId: dstId,
+            }),
+            this.createIncomingLink(client, {
+              namespaceId,
+              entityId: dstId,
+              parentNamespaceId: entity.namespaceId,
+              parentId: entity.id,
+            })
+          ]);
+        })
+      );
+
+      return entity;
     });
 
-    return {
-      namespaceId: params.namespaceId,
-      id: id,
-      createdById: params.createdById,
-      type: params.type,
-      properties: params.properties,
-      createdAt: now,
-      updatedAt: now,
-    };
+    return entity;
   }
 
   private async _getEntity(
