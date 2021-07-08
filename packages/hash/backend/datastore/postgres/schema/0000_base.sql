@@ -35,7 +35,7 @@ create table if not exists entity_shard (
 );
 
 create table if not exists outgoing_links (
-    shard_id       uuid not null references shards (shard_id),
+    shard_id       uuid not null,
     entity_id      uuid not null,
     child_shard_id uuid not null,
     child_id       uuid not null,
@@ -43,11 +43,11 @@ create table if not exists outgoing_links (
     foreign key (shard_id, entity_id) references entities (shard_id, id),
     foreign key (child_shard_id, child_id) references entities (shard_id, id),
 
-    primary key (shard_id, entity_id)
+    primary key (shard_id, entity_id, child_id)
 );
 
 create table if not exists incoming_links (
-    shard_id        uuid not null references shards (shard_id),
+    shard_id        uuid not null,
     entity_id       uuid not null,
     parent_shard_id uuid not null,
     parent_id       uuid not null,
@@ -55,7 +55,7 @@ create table if not exists incoming_links (
     foreign key (shard_id, entity_id) references entities (shard_id, id),
     foreign key (parent_shard_id, parent_id) references entities (shard_id, id),
 
-    primary key (shard_id, entity_id)
+    primary key (shard_id, entity_id, parent_id)
 );
 
 
