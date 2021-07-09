@@ -14,11 +14,24 @@ create table if not exists entities (
     id         uuid not null,
     type       integer not null references entity_types (id),
     properties jsonb not null,
+    history_id uuid,
     created_by uuid not null,
     created_at timestamp with time zone not null,
     updated_at timestamp with time zone not null,
 
     primary key(shard_id, id)
+);
+
+
+create table if not exists entity_history (
+    shard_id   uuid not null,
+    history_id uuid not null,
+    entity_id  uuid not null,
+    created_at timestamp with time zone not null,
+
+    foreign key (shard_id, entity_id) references entities (shard_id, id),
+
+    primary key(shard_id, history_id)
 );
 
 

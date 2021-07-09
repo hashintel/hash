@@ -6,6 +6,7 @@ export type Entity = {
   createdById: string;
   type: string;
   properties: any;
+  history?: string;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -14,12 +15,16 @@ export type Entity = {
  * Generic interface to the database.
  */
 export interface DBAdapter extends DataSource {
-  /** Create a new entity. If "id" is not provided it will be automatically generated. */
+  /**
+   * Create a new entity. If "id" is not provided it will be automatically generated. To
+   * create a versioned entity, set the optional parameter "versioned" to `true`.
+   * */
   createEntity(params: {
     namespaceId: string;
     id?: string;
     createdById: string;
     type: string;
+    versioned?: boolean;
     properties: any;
   }): Promise<Entity>;
 
