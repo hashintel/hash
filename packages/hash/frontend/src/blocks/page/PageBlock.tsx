@@ -2,7 +2,6 @@ import React, {
   Fragment,
   ReactNode,
   useCallback,
-  useEffect,
   useLayoutEffect,
   useRef,
   useState,
@@ -162,7 +161,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
 
         let block = {
           entityId: node.attrs.entityId,
-          namespaceId: node.attrs.namespaceId,
+          namespaceId: node.attrs.namespaceId ?? namespaceId,
           type: "Block",
           position,
           properties: {
@@ -248,6 +247,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       const pageBlocks = existingBlocks.map((node) => {
         return {
           entityId: node.entityId,
+          namespaceId: node.namespaceId,
           type: "Block",
         };
       });
@@ -261,15 +261,17 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
           (promise, newBlock) =>
             promise
               .catch(() => {})
-              .then(() =>
+              .then(() => {
+                // @todo this should take the user id of whoever creates it
                 insert({
                   pageId,
                   entityType: newBlock.properties.entity.type,
                   position: newBlock.position,
                   componentId: newBlock.properties.componentId,
                   entityProperties: newBlock.properties.entity.properties,
-                })
-              ),
+                  namespaceId: namespaceId,
+                });
+              }),
           blockIdsChange
             ? update([
                 {

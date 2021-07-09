@@ -23,7 +23,9 @@ export const useBlockProtocolCreate = (): {
       createFn({
         variables: {
           properties: action.data,
-          type: action.entityType
+          type: action.entityType,
+          namespaceId: action.pageNamespaceId,
+          createdById: action.userId,
         },
       });
     }
