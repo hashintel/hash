@@ -123,7 +123,6 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
 
         let entity;
         if (schema.nodes[node.type].isTextblock) {
-          console.log(node.attrs);
           entity = {
             type: "Text",
             id: node.attrs.childEntityId,
@@ -350,8 +349,6 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
               childEntityNamespaceId = null,
               ...props
             } = block.entity;
-
-            console.log(block.entity);
 
             return schema.node(
               "async",

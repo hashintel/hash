@@ -103,8 +103,6 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
       )
     );
 
-    console.log({ mappedContents });
-
     return (
       <div className={styles.MainWrapper}>
         <PageSidebar />
