@@ -441,7 +441,7 @@ enum Visibility {
         {
           properties: {
             componentId: "https://block.blockprotocol.org/header",
-            entityType: "Header",
+            entityType: "Text",
             entityId: results.get("header1")?.createEntity.id,
             namespaceId: results.get("header1")?.createEntity.namespaceId,
           },
