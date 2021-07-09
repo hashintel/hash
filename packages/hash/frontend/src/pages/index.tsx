@@ -15,7 +15,7 @@ import {
 import styles from "./index.module.scss";
 import { createApolloClient } from "../graphql/createApolloClient";
 
-export const getServerSideProps: GetServerSideProps = async (context) => {
+export const getServerSideProps: GetServerSideProps = async () => {
   const client = createApolloClient();
 
   const result = await client.query<GetNamespacesQuery>({
@@ -54,12 +54,13 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       return {
         redirect: {
           destination: firstPage,
+          permanent: false,
         },
       };
     }
   }
 
-  return {};
+  return { props: {} };
 };
 
 export default function Home() {
