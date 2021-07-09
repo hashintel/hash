@@ -21,7 +21,9 @@ export const gatherLinks = (entity: Entity): string[] => {
 
   // Page entities are another special case
   if (entity.type === "Page") {
-    return entity.properties.contents.map((c: { entityId: string; }) => c.entityId as string);
+    return entity.properties.contents.map(
+      (c: { entityId: string }) => c.entityId as string
+    );
   }
 
   if (!isObject(entity.properties)) {

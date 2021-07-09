@@ -143,8 +143,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       // Create the shard if it does not already exist
       // TODO: this should be performed in a "createNamespace" function, or similar.
       await client.query(
-        `
-        insert into shards (shard_id) values ($1)
+        `insert into shards (shard_id) values ($1)
         on conflict (shard_id) do nothing`,
         [params.namespaceId]
       );
@@ -207,7 +206,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
               entityId: dstId,
               parentNamespaceId: entity.namespaceId,
               parentId: entity.id,
-            })
+            }),
           ]);
         })
       );
@@ -223,8 +222,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     params: { namespaceId: string; id: string }
   ): Promise<Entity | undefined> {
     const res = await client.query(
-      `
-      select
+      `select
         e.shard_id, e.id, t.name as type, e.properties, e.created_by, e.created_at,
         e.updated_at
       from
