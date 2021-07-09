@@ -128,12 +128,70 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return res.rowCount === 0 ? null : (res.rows[0]["shard_id"] as string);
   }
 
-  /** Create a new entity. */
+  /** Insert a history entity corresponding to a new versioned entity. */
+  private async insertHistoryEntity(
+    client: PoolClient,
+    params: {
+      namespaceId: string;
+      historyId: string;
+      entityId: string;
+      entityCreatedAt: Date;
+    }
+  ) {
+    client.query(
+      `insert into entity_history (shard_id, history_id, entity_id, created_at)
+      values ($1, $2, $3, $4)`,
+      [
+        params.namespaceId,
+        params.historyId,
+        params.entityId,
+        params.entityCreatedAt,
+      ]
+    );
+  }
+
+  /** Insert a row into the entities table. */
+  private async insertEntity(
+    client: PoolClient,
+    params: {
+      namespaceId: string;
+      id: string;
+      typeId: number;
+      properties: any;
+      historyId?: string;
+      createdById: string;
+      createdAt: Date;
+      updatedAt: Date;
+    }
+  ) {
+    await client.query(
+      `insert into entities (
+          shard_id, id, type, properties, history_id, created_by, created_at, updated_at
+        )
+        values ($1, $2, $3, $4, $5, $6, $7)`,
+      [
+        params.namespaceId,
+        params.id,
+        params.typeId,
+        params.properties,
+        params.historyId,
+        params.createdById,
+        params.createdAt,
+        params.updatedAt,
+      ]
+    );
+  }
+
+  /**
+   * Create a new entity. If "id" is not provided it will be automatically generated. To
+   * create a versioned entity, set the optional parameter "versioned" to `true`.
+   * */
   async createEntity(params: {
     namespaceId: string;
     id?: string;
     createdById: string;
     type: string;
+    versioned?: boolean;
     properties: any;
   }): Promise<Entity> {
     const id = params.id ?? genEntityId();
@@ -153,22 +211,26 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
         (await this.getEntityTypeId(client, params.type)) ??
         (await this.createEntityType(client, params.type));
 
-      // Insert the entity
-      await client.query(
-        `insert into entities (
-          shard_id, id, type, properties, created_by, created_at, updated_at
-        )
-        values ($1, $2, $3, $4, $5, $6, $7)`,
-        [
-          params.namespaceId,
-          id,
-          entityTypeId,
-          params.properties,
-          params.createdById,
-          now,
-          now,
-        ]
-      );
+      const historyId = params.versioned ? genEntityId() : undefined;
+
+      await this.insertEntity(client, {
+        ...params,
+        id,
+        typeId: entityTypeId,
+        historyId,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      // If the entity is versioned, insert a corresponding history entity
+      if (historyId) {
+        await this.insertHistoryEntity(client, {
+          namespaceId: params.namespaceId,
+          historyId,
+          entityId: id,
+          entityCreatedAt: now,
+        });
+      }
 
       const entity: Entity = {
         namespaceId: params.namespaceId,
@@ -266,8 +328,79 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     }
   }
 
+  private async updateVersionedEntity(
+    client: PoolClient,
+    params: {
+      entity: Entity;
+      newProperties: any;
+    }
+  ) {
+    if (!params.entity.history) {
+      throw new Error("cannot create new version of non-versioned entity"); // TODO: better error
+    }
+
+    const typeId = await this.getEntityTypeId(client, params.entity.type);
+    if (!typeId) {
+      throw new Error("type not found"); // TODO: better error
+    }
+
+    const now = new Date();
+    const newEntityVersion: Entity = {
+      ...params.entity,
+      id: genEntityId(),
+      properties: params.newProperties,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    // TODO: if we defer the FK between entity_history and entities table, these two
+    // queries may be performed concurrently.
+    await this.insertEntity(client, { ...newEntityVersion, typeId });
+    await this.insertHistoryEntity(client, {
+      namespaceId: newEntityVersion.namespaceId,
+      historyId: newEntityVersion.history!,
+      entityId: newEntityVersion.id,
+      entityCreatedAt: newEntityVersion.createdAt,
+    });
+
+    return newEntityVersion;
+  }
+
+  private async updateNonVersionedEntity(
+    client: PoolClient,
+    params: {
+      entity: Entity;
+      newProperties: any;
+    }
+  ) {
+    if (params.entity.history) {
+      throw new Error("cannot in-place update a versioned entity"); // TODO: better error
+    }
+
+    const typeId = await this.getEntityTypeId(client, params.entity.type);
+    if (!typeId) {
+      throw new Error("type not found"); // TODO: better error
+    }
+
+    const now = new Date();
+    const res = await client.query(
+      `update entities set properties = $1, updated_at = $2
+      where shard_id = $3 and entity_id = $4`,
+      [params.newProperties, now, params.entity.namespaceId, params.entity.id]
+    );
+
+    if (res.rowCount === 0) {
+      throw new Error(`expected 1 row to be updated not ${res.rowCount}`);
+    }
+    return {
+      ...params.entity,
+      properties: params.newProperties,
+      updatedAt: now,
+    } as Entity;
+  }
+
   /** Update an entity's properties. If the "type" parameter is provided, the function
-   * checks that it matches the entity's type.
+   * checks that it matches the entity's type. Returns
    */
   async updateEntity(params: {
     namespaceId: string;
@@ -275,46 +408,26 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     type?: string;
     properties: any;
   }): Promise<Entity | undefined> {
-    const namespaceId = params.namespaceId;
-    const id = params.id;
-
     return await this.tx(async (client) => {
-      let typeId;
-      if (params.type) {
-        typeId = await this.getEntityTypeId(client, params.type);
-        if (!typeId) {
-          // TODO: should be an error that the caller can catch
-          throw new Error(`entity type "${params.type}" does not exist`);
-        }
-      }
-
-      let q = `
-        update entities
-          set properties = $1, updated_at = now()
-        where
-          shard_id = $2 and id = $3
-      `;
-
-      let res;
-      if (!typeId) {
-        res = await client.query(q, [params.properties, namespaceId, id]);
-      } else {
-        q += ` and type = $4`;
-        res = await client.query(q, [
-          params.properties,
-          namespaceId,
-          id,
-          typeId,
-        ]);
-      }
-
-      if (res.rowCount === 0) {
+      const entity = await this._getEntity(client, params);
+      if (!entity) {
         return undefined;
-      } else if (res.rowCount > 1) {
-        throw new Error(`expected 1 row to be updated not ${res.rowCount}`);
       }
 
-      return await this._getEntity(client, { namespaceId, id });
+      if (params.type && params.type !== entity.type) {
+        throw new Error("types don't match"); // TODO: better error
+      }
+
+      if (entity.history) {
+        return await this.updateVersionedEntity(client, {
+          entity,
+          newProperties: params.properties,
+        });
+      }
+      return await this.updateNonVersionedEntity(client, {
+        entity,
+        newProperties: params.properties,
+      });
     });
   }
 
