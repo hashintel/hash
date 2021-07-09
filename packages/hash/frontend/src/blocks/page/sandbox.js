@@ -7,12 +7,7 @@
 
 import React from "react";
 
-import {
-  EditorState,
-  NodeSelection,
-  Plugin,
-  TextSelection,
-} from "prosemirror-state";
+import { EditorState, NodeSelection, Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { baseKeymap, chainCommands, toggleMark } from "prosemirror-commands";
 import { keymap } from "prosemirror-keymap";
@@ -30,13 +25,13 @@ import { componentIdToName, createNodeView, fetchBlockMeta } from "./tsUtils";
 import { defineBlock } from "./utils";
 
 // @todo maybe don't need this to be abstracted
-const selectNode = (tr, pos, newNode) => {
-  tr.setSelection(
-    newNode.isTextblock
-      ? TextSelection.create(tr.doc, tr.mapping.map(pos) + newNode.nodeSize - 1)
-      : NodeSelection.create(tr.doc, tr.mapping.map(pos - 1))
-  );
-};
+// const selectNode = (tr, pos, newNode) => {
+//   tr.setSelection(
+//     newNode.isTextblock
+//       ? TextSelection.create(tr.doc, tr.mapping.map(pos) + newNode.nodeSize - 1)
+//       : NodeSelection.create(tr.doc, tr.mapping.map(pos - 1))
+//   );
+// };
 
 const historyPlugin = history();
 const infiniteGroupHistoryPlugin = history({ newGroupDelay: Infinity });
