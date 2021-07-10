@@ -4,7 +4,7 @@
 
 Please note we have established a set of [community guidelines](https://hash.ai/legal/community). Please follow these in your interactions with the project.
 
-We have a [Slack](https://hashpublic.slack.com) and a [community forum](https://community.hash.ai/) where you can ask questions about contributing, and where the community can chime in with helpful advice. If you'd like to make a significant change or re-architecture, please first discuss the change there (or create an [issue](https://github.com/hashintel/hash/issues)) to get feedback.
+We have a [Discord server](https://hash.ai/discord) and a [community forum](https://community.hash.ai/) where you can ask questions about contributing, and where the community can chime in with helpful advice. If you'd like to make a significant change or re-architecture, please first discuss the change there (or create an [issue](https://github.com/hashintel/hash/issues)) to get feedback.
 
 ## What belongs in the HASH Standard Library
 
@@ -13,7 +13,7 @@ The HASH standard library is a collection of helper functions for building simul
 - Performant - if it's in the standard library it will be used in lots of simulations, and should be designed to be fast and memory efficient.
 - Pure functions - While there can be exceptions, the expectation is a standard library function should not store any state nor cause side effects. 
 
-When in doubt, [ask](https://hashpublic.slack.com)!
+When in doubt, [ask](https://hash.ai/discord)!
 
 ## Pull Request Process
 
