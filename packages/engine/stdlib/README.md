@@ -51,4 +51,4 @@ mypy ./src/py
 
 
 ## Discussion
-You can get support with or discuss HASH and the HASH stdlib on our [community forum](https://community.hash.ai/) or [Slack group](https://hash.ai/slack).
+You can get support with or discuss HASH and the HASH stdlib on our [community forum](https://community.hash.ai/) or [Discord server](https://hash.ai/discord).
