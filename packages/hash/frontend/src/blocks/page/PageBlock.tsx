@@ -9,7 +9,7 @@ import {
   BlockMeta,
   blockPaths,
   BlockWithoutMeta,
-  componentIdToName,
+  componentUrlToProsemirrorId,
 } from "./tsUtils";
 import { useBlockProtocolUpdate } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdate";
 import { BlockProtocolUpdatePayload } from "../../types/blockProtocol";
@@ -285,7 +285,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
             /**
              * Not entirely sure what I was going for with this filter
              *
-             * @todo figure this oiut
+             * @todo figure this out
              */
             ...updatedEntities
               .filter(
@@ -363,23 +363,35 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     };
   }, []);
 
+  /**
+   * This effect is responsible for ensuring all the preloaded blocks (currently just paragraph) are defined in
+   * prosemirror
+   */
   useLayoutEffect(() => {
     if (!prosemirrorSetup.current) {
       return;
     }
 
     const { view } = prosemirrorSetup.current;
+
+    // @todo filter out already defined blocks
     for (const [url, meta] of Array.from(blocksMeta.entries())) {
       defineNewBlock(
         meta.componentMetadata,
         meta.componentSchema,
         view,
-        componentIdToName(url),
+        componentUrlToProsemirrorId(url),
         replacePortal
       );
     }
   }, [blocksMeta]);
 
+  /**
+   * Whenever contents are updated, we want to sync them to the prosemirror document, which is an async operation as it
+   * may involved defining new node types (and fetching the metadata for them). Contents change whenever we save (as we
+   * replace our already loaded contents with another request for the contents, which ensures that blocks referencing
+   * the same entity are all updated, and that empty IDs are properly filled (i.e, when creating a new block)
+   */
   useLayoutEffect(() => {
     if (!prosemirrorSetup.current) {
       return;
@@ -400,7 +412,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
               ...props
             } = block.entity;
 
-          const id = componentIdToName(block.componentId);
+          const id = componentUrlToProsemirrorId(block.componentId);
 
           return await defineRemoteBlock(
             view,
@@ -430,6 +442,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
         }) ?? []
       );
 
+      // This creations a transaction to replace the entire content of the document
       tr.replaceWith(0, view.state.doc.content.size, newNodes);
       view.dispatch(tr);
     })();

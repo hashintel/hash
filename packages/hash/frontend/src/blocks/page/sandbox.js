@@ -21,7 +21,11 @@ import { baseSchemaConfig } from "./config";
 import styles from "./style.module.css";
 
 import "prosemirror-view/style/prosemirror.css";
-import { componentIdToName, createNodeView, fetchBlockMeta } from "./tsUtils";
+import {
+  componentUrlToProsemirrorId,
+  createNodeView,
+  fetchBlockMeta,
+} from "./tsUtils";
 import { defineBlock } from "./utils";
 
 // @todo maybe don't need this to be abstracted
@@ -33,11 +37,29 @@ import { defineBlock } from "./utils";
 //   );
 // };
 
+/**
+ * We setup two versions of the history plugin, because we occasionally temporarily want to ensure that all updates made
+ * between two points are absorbed into a single history item. We need a more sophisticated way of manipulating history
+ * items though.
+ *
+ * @todo deal with this
+ */
 const historyPlugin = history();
 const infiniteGroupHistoryPlugin = history({ newGroupDelay: Infinity });
 
+/**
+ * This will store a map between node display names (i.e, "header") and their component URLs. This is useful for the
+ * select block type dropdown, but it's not ideal or really even necessary to have a global store of this.
+ *
+ * @todo remove this
+ */
 const nameToIdMap = new Map();
 
+/**
+ * This utilises getters to trick prosemirror into mutating itself in order to modify a schema with a new node type.
+ * This is likely to be quite brittle, and we need to ensure this continues to work between updates to Prosemirror. We
+ * could also consider asking them to make adding a new node type officially supported.
+ */
 export function defineNewNode(existingSchema, displayName, id, spec) {
   const existingSchemaSpec = existingSchema.spec;
 
@@ -75,6 +97,11 @@ export function defineNewNode(existingSchema, displayName, id, spec) {
   })(existingSchemaSpec);
 }
 
+/**
+ * This is used specifically for nodes that are special cased – i.e, paragraph.
+ *
+ * @todo remove this
+ */
 export function defineNewProsemirrorNode(schema, componentMetadata, id) {
   const { domTag, ...specTemplate } = componentMetadata.spec;
   defineNewNode(
@@ -88,6 +115,10 @@ export function defineNewProsemirrorNode(schema, componentMetadata, id) {
   );
 }
 
+/**
+ * This is used to define a new block type inside prosemiror when you have already fetched all the necessary metadata.
+ * It'll define a new node type in the schema, and create a node view wrapper for you too.
+ */
 export function defineNewBlock(
   componentMetadata,
   componentSchema,
@@ -106,40 +137,30 @@ export function defineNewBlock(
       replacePortals
     );
 
-    defineNewNodeView(
-      view,
-      componentMetadata.name,
-      id,
-      defineBlock(componentMetadata, {
-        ...(componentSchema.properties?.["editableRef"]
-          ? {
-              content: "text*",
-              marks: "",
-            }
-          : {}),
-      }),
-      (node, view, getPos, decorations) => {
-        return new NodeViewClass(node, view, getPos, decorations);
-      }
-    );
+    const spec = defineBlock(componentMetadata, {
+      /**
+       * Currently we detect whether a block takes editable text by detecting if it has an editableRef prop in its
+       * schema – we need a more sophisticated way for block authors to communicate this to us
+       */
+      ...(componentSchema.properties?.["editableRef"]
+        ? {
+            content: "text*",
+            marks: "",
+          }
+        : {}),
+    });
+
+    defineNewNode(view.state.schema, displayName, id, spec);
+
+    view.setProps({
+      nodeViews: {
+        ...view.nodeViews,
+        [id]: (node, view, getPos, decorations) => {
+          return new NodeViewClass(node, view, getPos, decorations);
+        },
+      },
+    });
   }
-}
-
-export function defineNewNodeView(
-  view,
-  displayName,
-  id,
-  spec,
-  nodeViewConstructor
-) {
-  defineNewNode(view.state.schema, displayName, id, spec);
-
-  view.setProps({
-    nodeViews: {
-      ...view.nodeViews,
-      [id]: nodeViewConstructor,
-    },
-  });
 }
 
 let AsyncBlockCache = new Map();
@@ -246,7 +267,7 @@ class AsyncView {
 
     const id =
       node.attrs.asyncNodeId ??
-      (componentUrl ? componentIdToName(componentUrl) : null);
+      (componentUrl ? componentUrlToProsemirrorId(componentUrl) : null);
 
     defineRemoteBlock(
       view,
@@ -841,7 +862,9 @@ export const renderPM = (
                 node.content.size === 0 ||
                 // @todo fix this check by checking for the marks a node supports
                 node.type.name !==
-                  componentIdToName("https://block.blockprotocol.org/paragraph")
+                  componentUrlToProsemirrorId(
+                    "https://block.blockprotocol.org/paragraph"
+                  )
               );
             }) ||
           state.selection.empty

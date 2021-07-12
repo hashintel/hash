@@ -20,6 +20,7 @@ import styles from "../index.module.scss";
 
 const preloadedBlocksUrls = ["https://block.blockprotocol.org/paragraph"];
 
+// Apparently defining this is necessary in order to get server rendered props?
 export const getStaticPaths: GetStaticPaths<{ slug: string }> = async () => {
   return {
     paths: [], //indicates that no page needs be created at build time
