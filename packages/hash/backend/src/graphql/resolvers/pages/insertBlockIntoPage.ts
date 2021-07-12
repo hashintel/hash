@@ -61,6 +61,7 @@ export const insertBlockIntoPage: Resolver<
     componentId,
     entityType: entity.type,
     entityId: entity.id,
+    namespaceId: entity.namespaceId,
   };
 
   const newBlock = await dataSources.db.createEntity({
@@ -76,7 +77,11 @@ export const insertBlockIntoPage: Resolver<
 
   page.properties.contents = [
     ...page.properties.contents.slice(0, position),
-    { entityId: newBlock.id },
+    {
+      type: "Block",
+      entityId: newBlock.id,
+      namespaceId: newBlock.namespaceId,
+    },
     ...page.properties.contents.slice(position),
   ];
   const updatedPage = await dataSources.db.updateEntity({ ...page });

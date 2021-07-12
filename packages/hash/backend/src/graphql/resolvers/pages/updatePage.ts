@@ -10,12 +10,20 @@ export const updatePage: Resolver<
   GraphQLContext,
   MutationUpdatePageArgs
 > = async (_, { namespaceId, id, properties }, { dataSources }) => {
+  // TODO: we should have the getEntity and updateEntity here in the same database
+  // transaction.
+  const existingEntity = await dataSources.db.getEntity({ namespaceId, id });
+
   const entity = await dataSources.db.updateEntity({
     namespaceId,
     id,
-    properties,
+    properties: {
+      ...(existingEntity?.properties ?? {}),
+      ...properties,
+    },
     type: "Page",
   });
+
   if (!entity) {
     throw new ApolloError(
       `Could not find page with id ${id} in namesapce ${namespaceId}`,

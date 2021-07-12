@@ -25,7 +25,8 @@
     "serve:htmlPara": "cd packages/hash/blocks/htmlPara && yarn serve",
     "serve:table": "cd packages/hash/blocks/table && yarn serve",
     "serve:image": "cd packages/hash/blocks/image && yarn serve",
-    "demo": "concurrently \"yarn serve:hash-backend\" \"yarn serve:table\" \"yarn serve:htmlPara\" \"yarn serve:image\" \"yarn serve:header\"  \"yarn serve:person\"  \"yarn serve:hash-frontend\""
+    "demo": "concurrently \"yarn serve:hash-backend\" \"yarn demo-sans-backend\"",
+    "demo-sans-backend": "concurrently \"yarn serve:table\" \"yarn serve:htmlPara\" \"yarn serve:image\" \"yarn serve:header\"  \"yarn serve:person\"  \"yarn serve:hash-frontend\""
   },
   "devDependencies": {
     "concurrently": "6.2.0",
