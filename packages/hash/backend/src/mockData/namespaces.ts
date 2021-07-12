@@ -32,6 +32,12 @@ export const namespaces: (DbUser | DbOrg)[] = [
     type: "User"
   },
   {
+    email: "mr@hash.ai",
+    shortname: "marius",
+    id: "7",
+    type: "User"
+  },
+  {
     shortname: "hash",
     id: "6",
     type: "Org"

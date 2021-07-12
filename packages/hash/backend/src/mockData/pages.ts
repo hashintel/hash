@@ -135,6 +135,19 @@ export const pages = (() => {
       type: "Block",
       visibility: Visibility.Public,
     },
+    {
+      properties: {
+        componentId: "https://block.blockprotocol.org/divider",
+        entityType: "Divider",
+        entityId: "divider1",
+      },
+      id: "b20",
+      ...randomTimes(),
+      createdById: "7",
+      namespaceId: "6",
+      type: "Block",
+      visibility: Visibility.Public,
+    },
   ];
 
   const pageData: DbPage[] = [
@@ -154,6 +167,9 @@ export const pages = (() => {
           },
           {
             entityId: "b2"
+          },
+          {
+            entityId: "b20"
           },
           {
             entityId: "b3"

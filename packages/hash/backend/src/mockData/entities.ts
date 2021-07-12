@@ -86,6 +86,15 @@ export const entities: (DbUnknownEntity | DbPage | DbUser | DbOrg)[] = (() => {
       },
       visibility: Visibility.Public,
     },
+    {
+      id: "divider1",
+      type: "Divider",
+      namespaceId: "6",
+      createdById: "7",
+      ...randomTimes(),
+      properties: {},
+      visibility: Visibility.Public,
+    },
   ];
 
   return entityData;
