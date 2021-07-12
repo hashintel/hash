@@ -12,12 +12,14 @@ const pageFieldsFragment = gql`
       title
       contents {
         id
+        namespaceId
         properties {
           componentId
           entityType
           entity {
             __typename
             id
+            namespaceId
             type
             ... on UnknownEntity {
               unknownProperties: properties
@@ -40,8 +42,8 @@ const pageFieldsFragment = gql`
 `;
 
 export const getPageQuery = gql`
-  query getPage($pageId: ID!) {
-    page(id: $pageId) {
+  query getPage($namespaceId: ID!, $pageId: ID!) {
+    page(namespaceId: $namespaceId, id: $pageId) {
       ...PageFields
     }
   }
@@ -49,14 +51,8 @@ export const getPageQuery = gql`
 `;
 
 export const createPage = gql`
-  mutation createPage(
-    $namespaceId: ID!
-    $properties: PageCreationData!
-  ) {
-    createPage(
-      namespaceId: $namespaceId
-      properties: $properties
-    ) {
+  mutation createPage($namespaceId: ID!, $properties: PageCreationData!) {
+    createPage(namespaceId: $namespaceId, properties: $properties) {
       ...PageFields
     }
   }
@@ -64,8 +60,12 @@ export const createPage = gql`
 `;
 
 export const updatePage = gql`
-  mutation updatePage($id: ID!, $properties: PageUpdateData!) {
-    updatePage(id: $id, properties: $properties) {
+  mutation updatePage(
+    $namespaceId: ID!
+    $id: ID!
+    $properties: PageUpdateData!
+  ) {
+    updatePage(namespaceId: $namespaceId, id: $id, properties: $properties) {
       ...PageFields
     }
   }
@@ -74,6 +74,7 @@ export const updatePage = gql`
 
 export const insertBlockIntoPage = gql`
   mutation insertBlockIntoPage(
+    $namespaceId: ID!
     $componentId: ID!
     $entityType: String!
     $entityProperties: JSONObject!
@@ -81,6 +82,7 @@ export const insertBlockIntoPage = gql`
     $pageId: ID!
   ) {
     insertBlockIntoPage(
+      namespaceId: $namespaceId
       componentId: $componentId
       entityType: $entityType
       entityProperties: $entityProperties

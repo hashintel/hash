@@ -59,6 +59,8 @@ export const EditableCell: VoidFunctionComponent<EditableCellProps> = ({
         data: newEntity,
         entityId: objectToUpdate.id,
         entityType: objectToUpdate.type,
+        // @todo shouldn't need this – hash.dev should know it
+        namespaceId: objectToUpdate.namespaceId,
       },
     ]);
   };

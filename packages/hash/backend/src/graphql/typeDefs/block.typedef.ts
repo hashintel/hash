@@ -14,17 +14,13 @@ export const blockTypedef = gql`
     """
     namespaceId: ID!
     """
-    The CHANGEABLE name/slug of the namespace (e.g. username).
-    """
-    namespace: String!
-    """
     The date the entity was created
     """
     createdAt: Date!
     """
     The user who created the entity
     """
-    createdBy: User!
+    createdById: ID!
     """
     The date the entity was last updated
     """
@@ -42,6 +38,7 @@ export const blockTypedef = gql`
 
   type BlockProperties {
     entityId: ID!
+    namespaceId: ID!
     entity: Entity!
     entityType: String!
     componentId: ID!

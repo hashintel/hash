@@ -16,6 +16,8 @@ export type JSON = JSONObject | JSONArray;
 export type BlockProtocolUpdatePayload<T> = {
   entityType: string;
   entityId: number | string;
+  // @todo hash.dev should fill this in for blocks
+  namespaceId: number | string;
   data: T;
 };
 
@@ -30,7 +32,7 @@ export type BlockProtocolAggregateOperation = {
   sort?: {
     field: string;
     desc?: boolean;
-  }
+  };
 };
 
 export type BlockProtocolAggregatePayload = {
@@ -54,7 +56,7 @@ export type BlockProtocolAggregateFn = {
  * Block Protocol-specified properties,
  * which the embedding application should provide.
  */
- export type BlockProtocolProps = {
+export type BlockProtocolProps = {
   aggregate?: BlockProtocolCreateFn;
   aggregateLoading?: boolean;
   aggregateError?: Error;

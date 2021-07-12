@@ -1,23 +1,30 @@
 export type BlockProtocolUpdatePayload<T> = {
   entityType: string;
   entityId: string;
+  namespaceId: string;
   data: T;
 };
 
 export type BlockProtocolCreatePayload<T> = {
   entityType: string;
   data: T;
+  pageNamespaceId: string;
+  userId: string;
 };
 
 export type BlockProtocolAggregateOperation = {
   page?: number;
   perPage?: number;
-  sort?: string;
+  sort?: {
+    field: string;
+    desc?: boolean | undefined;
+  };
 };
 
 export type BlockProtocolAggregatePayload = {
   entityType: string;
   operation: BlockProtocolAggregateOperation;
+  namespaceId: string;
 };
 
 export type BlockProtocolCreateFn = {
