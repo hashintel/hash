@@ -152,6 +152,7 @@ export function defineNewBlock(
 
     defineNewNode(view.state.schema, displayName, id, spec);
 
+    // Add the node view definition to the view – ensures our block code is called for every instance of the block
     view.setProps({
       nodeViews: {
         ...view.nodeViews,
@@ -166,7 +167,12 @@ export function defineNewBlock(
 let AsyncBlockCache = new Map();
 let AsyncBlockCacheView = null;
 
-// @todo support taking a signal
+/**
+ * Defining a new type of block in prosemirror, without necessarily having requested the block metadata yet. Designed to
+ * be cached so doesn't need to request the block multiple times
+ *
+ * @todo support taking a signal
+ */
 export const defineRemoteBlock = async (
   view,
   componentUrl,
@@ -176,16 +182,25 @@ export const defineRemoteBlock = async (
   children,
   marks
 ) => {
+  /**
+   * Clear the cache if the cache was setup on a different prosemirror view. Probably won't happen but with fast
+   * refresh and global variables, got to be sure
+   */
   if (AsyncBlockCacheView && AsyncBlockCacheView !== view) {
     AsyncBlockCache = new Map();
   }
   AsyncBlockCacheView = view;
+
   const existingSchema = view.state.schema;
   const existingSchemaSpec = existingSchema.spec;
 
+  // If the block has not already been defined, we need to fetch the metadata & define it
   if (!id || existingSchemaSpec.nodes.find(id) === -1) {
+    /**
+     * The cache is designed to store promises, not resolved values, in order to ensure multiple requests for the same
+     * block in rapid succession don't cause multiple web requests
+     */
     if (!AsyncBlockCache.has(componentUrl)) {
-      // let resolved = false;
       const promise = fetchBlockMeta(componentUrl)
         .then(({ componentMetadata, componentSchema }) => {
           if (!id || existingSchemaSpec.nodes.find(id) === -1) {
@@ -197,9 +212,9 @@ export const defineRemoteBlock = async (
               replacePortal
             );
           }
-          // resolved = true;
         })
         .catch((err) => {
+          // We don't want failed requests to prevent future requests to the block being successful
           if (AsyncBlockCache.get(componentUrl) === promise) {
             AsyncBlockCache.delete(componentUrl);
           }
@@ -208,18 +223,17 @@ export const defineRemoteBlock = async (
           throw err;
         });
 
-      // signal.addEventListener("abort", () => {
-      //   if (AsyncBlockCache.get(componentUrl) === promise && !resolved) {
-      //     AsyncBlockCache.delete(componentUrl);
-      //   }
-      // });
-
       AsyncBlockCache.set(componentUrl, promise);
     }
 
+    /**
+     * Wait for the cached request to finish (and therefore the block to have been defined). In theory we'd want a retry
+     * mechanism here
+     */
     await AsyncBlockCache.get(componentUrl);
   }
 
+  // Create a new instance of the newly defined prosemirror node
   return view.state.schema.nodes[id].create(attrs, children, marks);
 };
 

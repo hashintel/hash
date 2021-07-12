@@ -3,6 +3,8 @@ import React, { ReactNode } from "react";
 import { EditorProps, NodeView } from "prosemirror-view";
 import { RemoteBlock } from "../../components/RemoteBlock/RemoteBlock";
 
+// @todo document this file
+
 // @ts-ignore
 const contextRequire = require.context(
   "../../../",
