@@ -1,4 +1,4 @@
-export {};
+export { };
 import { GraphQLClient } from "graphql-request";
 import { createOrgs, createUsers } from "./namespaces";
 import { createEntity } from "./graphql/queries/entity.queries";
@@ -41,11 +41,11 @@ enum Visibility {
     });
   };
 
-  const user = users.find((u) => (u.properties.shortname = "ciaran"));
+  const user = users.find((u) => (u.properties.shortname === "ciaran"));
   if (!user) {
     throw new Error("user not found");
   }
-  const org = orgs.find((org) => (org.properties.shortname = "hash"));
+  const org = orgs.find((org) => (org.properties.shortname === "hash"));
   if (!org) {
     throw new Error("org not found");
   }
@@ -235,7 +235,7 @@ enum Visibility {
         },
       ],
       [
-        "p4",
+        "p5",
         {
           properties: {
             email: "nh@hash.ai",
