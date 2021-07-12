@@ -43,8 +43,16 @@ export const updateEntity = gql`
 `;
 
 export const aggregateEntity = gql`
-  query aggregateEntity($namespaceId: ID!, $type: String!, $operation: AggregateOperationInput) {
-    aggregateEntity(namespaceId: $namespaceId, type: $type, operation: $operation) {
+  query aggregateEntity(
+    $namespaceId: ID!
+    $type: String!
+    $operation: AggregateOperationInput
+  ) {
+    aggregateEntity(
+      namespaceId: $namespaceId
+      type: $type
+      operation: $operation
+    ) {
       __typename
       results {
         __typename

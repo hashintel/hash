@@ -3,19 +3,19 @@ import { gql } from "@apollo/client";
 export const getNamespaces = gql`
   query getNamespaces {
     namespaces {
-      __typename,
-  		... on Entity {
-        id,
+      __typename
+      ... on Entity {
+        id
         namespaceId
       }
       ... on User {
-  			properties {
-          shortname,
-          email,
+        properties {
+          shortname
+          email
         }
       }
       ... on Org {
-  			properties {
+        properties {
           shortname
         }
       }
