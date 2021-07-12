@@ -24,14 +24,6 @@ export const updateEntity: Resolver<
   // Temporary hack - need to figure out how clients side property updates properly. How do they update things on the root entity, e.g. type?
   const propertiesToUpdate = properties.properties ?? properties;
 
-  // Temporary hack to make sure property updates don't overwrite linkedData
-  // with the resolved entity
-  for (const key of Object.keys(propertiesToUpdate)) {
-    if (entity.properties[key as keyof DbUnknownEntity]?.__linkedData) {
-      delete propertiesToUpdate[key];
-    }
-  }
-
   entity.properties = propertiesToUpdate;
 
   const updatedEntity = await dataSources.db.updateEntity({
