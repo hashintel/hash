@@ -49,14 +49,23 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     currentContents.current = contents;
   });
 
+  /**
+   * This effect runs once and just sets up the prosemirror instance. It is not responsible for setting the contents of
+   * the prosemirror document
+   */
   useLayoutEffect(() => {
     const node = root.current!;
     const schema = new Schema(baseSchemaConfig);
 
     /**
-     * Setting this function to global state as a shortcut to call it from deep within prosemirror
+     * Setting this function to global state as a shortcut to call it from deep within prosemirror.
      *
      * @todo come up with a better solution for this
+     *
+     * Note that this save handler only handles saving for things that prosemirror controls – i.e, the contents of
+     * prosemirror text nodes / the order of / the creation of / ther deletion of blocks (noting that changing block
+     * type is a deletion & a creation at once). Saves can be handled directly by the blocks implementation using the
+     * update callbacks
      */
     (window as any).triggerSave = () => {
       /**
@@ -69,8 +78,6 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
         .toJSON()
         .doc.content.filter((block: any) => block.type === "block")
         .flatMap((block: any) => block.content) as any[];
-
-      const seenEntityIds = new Set<string>();
 
       const mappedBlocks = blocks.map((node: any, position) => {
         const nodeType = view.state.schema.nodes[node.type];
@@ -115,7 +122,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
           };
         }
 
-        const block = {
+        return {
           entityId: node.attrs.entityId,
           namespaceId: node.attrs.namespaceId ?? namespaceId,
           type: "Block",
@@ -125,26 +132,27 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
             entity,
           },
         };
-
-        if (seenEntityIds.has(block.entityId)) {
-          block.entityId = null;
-          entity.id = null;
-        }
-
-        seenEntityIds.add(block.entityId);
-
-        return block;
       });
 
+      /**
+       * Once we have a list of blocks, we need to divide the list of blocks into new ones and
+       * updated ones, as they require different queries to handle
+       */
+      const existingBlockIds = contents.map((block) => block.entityId);
       const newBlocks = mappedBlocks.filter(
-        (block) =>
-          !contents.some((content) => content.entityId === block.entityId)
+        (block) => !existingBlockIds.includes(block.entityId)
       );
 
       const existingBlocks = mappedBlocks.filter((block) =>
-        contents.some((content) => content.entityId === block.entityId)
+        existingBlockIds.includes(block.entityId)
       );
 
+      const seenEntityIds = new Set<string>();
+
+      /**
+       * An updated block also contains an updated entity, so we need to create a list of
+       * entities that we need to post updates to via GraphQL
+       */
       const updatedEntities = existingBlocks.flatMap((node) => {
         const block = {
           type: "Block",
@@ -158,7 +166,9 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
           },
         };
 
-        const contentNode = contents.find((c) => c.entityId === block.id);
+        const contentNode = contents.find(
+          (existingBlock) => existingBlock.entityId === block.id
+        );
 
         const blocks = [];
 
@@ -170,10 +180,16 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
           if (
             !contentNode ||
             contentNode.entity.childEntityId !== node.properties.entity.id ||
+            node.properties.entity.properties.texts !==
+              contentNode.entity.children.length ||
             (node.properties.entity.properties.texts as any[]).some(
               (text: any, idx: number) => {
                 const contentText = contentNode.entity.children[idx];
 
+                /**
+                 * Really crude way of working out if any properties we care about have changed – we need a better way
+                 * of working out which text entities need an update
+                 */
                 return (
                   !contentText ||
                   text.text !== contentText.text ||
@@ -189,29 +205,42 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
           }
         }
 
-        //
-        // blocks.push(entity);
+        /**
+         * Currently when the same block exists on the page in multiple locations, we prioritise the content of the
+         * first one that has changed when it comes to working out if an un update is required. We need a better way of
+         * handling this (i.e, take the *last* one that changed, and also more immediately sync updates between changed
+         * blocks to prevent work being lost)
+         *
+         * @todo improve this
+         */
+        return blocks.filter((block) => {
+          if (seenEntityIds.has(block.id)) {
+            return false;
+          }
 
-        // if (
-        //   entity.type !== "Text" ||
-        //   JSON.stringify(entity.properties.textProperties.texts) ===
-        //     JSON.stringify(contentNode.entity.textPro)
-        // )
-        return blocks;
+          seenEntityIds.add(block.id);
+
+          return true;
+        });
       });
 
-      const pageBlocks = existingBlocks.map((node) => {
-        return {
-          entityId: node.entityId,
-          namespaceId: node.namespaceId,
-          type: "Block",
-        };
-      });
-
+      /**
+       * This is a real crude way of working out if order of blocks (or if blocks have been added/removed) have changed
+       * within a page, in order to work out if an update operation is needed on this list
+       *
+       * @todo come up with something better
+       */
       const blockIdsChange =
         JSON.stringify(contents.map((content) => content.entityId)) !==
         JSON.stringify(mappedBlocks.map((block) => block.entityId));
 
+      /**
+       * Building a promise here that updates the page block with the list of block ids it contains (if necessary, i.e,
+       * when you delete or re-order blocks, and then calls insert for each new block, before updating blocks that need
+       * to be updated. Ideally we would handle all of this in one query
+       *
+       * @todo improve this
+       */
       newBlocks
         .reduce(
           (promise, newBlock) =>
@@ -229,20 +258,35 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
                 });
               }),
           blockIdsChange
-            ? update([
+            ? /**
+               * There's a bug here where when we add a new block, we think we need to update the page entity but
+               * that is handled by the insert block operation, so this update here is a noop
+               *
+               * @todo fix this
+               */
+              update([
                 {
                   entityType: "Page",
                   entityId: pageId,
                   namespaceId,
                   data: {
-                    contents: pageBlocks,
+                    contents: existingBlocks.map((node) => ({
+                      entityId: node.entityId,
+                      namespaceId: node.namespaceId,
+                      type: "Block",
+                    })),
                   },
                 },
               ])
             : Promise.resolve()
         )
-        .then(() => {
-          return update([
+        .then(() =>
+          update([
+            /**
+             * Not entirely sure what I was going for with this filter
+             *
+             * @todo figure this oiut
+             */
             ...updatedEntities
               .filter(
                 (entity) =>
@@ -258,14 +302,23 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
                   namespaceId: entity.namespaceId,
                 })
               ),
-          ]);
-        });
+          ])
+        );
     };
 
+    /**
+     * We want to apply saves when Prosemirror loses focus (or is triggered manually with cmd+s). However, interacting
+     * with the format tooltip momentarily loses focus, so we want to wait a moment and cancel that save if focus is
+     * regained quickly. The reason we only want to save when losing focus is because the process of taking the response
+     * from a save and updating the prosemirror tree with new contents can mess with the cursor position.
+     *
+     * @todo make saves more frequent & seamless
+     */
     const savePlugin = new Plugin({
       props: {
         handleDOMEvents: {
           keydown(view, evt) {
+            // Manual save for cmd+s
             if (evt.key === "s" && evt.metaKey) {
               evt.preventDefault();
               (window as any).triggerSave?.();
@@ -275,10 +328,12 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
             return false;
           },
           focus() {
+            // Cancel the in-progress save
             clearCallback();
             return false;
           },
           blur: function () {
+            // Trigger a cancellable save on blur
             deferCallback(() => (window as any).triggerSave());
 
             return false;
@@ -287,6 +342,10 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       },
     });
 
+    /**
+     * Lets see up prosemirror with an empty document, as another effect will set its contents. Unfortunately all
+     * prosemirror documents have to contain at least one child, so lets insert a special "blank" placeholder child
+     */
     const view = renderPM(
       node,
       schema.node("doc", {}, [schema.node("blank")]),

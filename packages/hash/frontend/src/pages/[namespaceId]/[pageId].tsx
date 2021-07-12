@@ -90,6 +90,8 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
                 text: text.text,
                 entityId: entity.id,
                 namespaceId: entity.namespaceId,
+
+                // This maps the boolean properties on the entity into an array of mark names
                 marks: [
                   ["strong", text.bold],
                   ["underlined", text.underline],
