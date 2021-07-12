@@ -56,15 +56,7 @@ export const pageTypedef = gql`
   }
 
   input PageCreationData {
-    # need to figure out contents input shape
-    # each item in contents could potentially one of:
-    # - data to create a new block
-    # - references by id to existing blocks
-    # - references by id to existing block with an update
-    # just make it JSON for now for testing purposes
-    contents: [JSONObject!]!
     title: String!
-    summary: String
   }
 
   input PageUpdateData {

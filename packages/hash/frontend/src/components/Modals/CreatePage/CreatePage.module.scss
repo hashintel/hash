@@ -1,0 +1,26 @@
+.CreatePage {
+
+  > * {
+    display: block;
+  }
+
+  h2 {
+    margin-top: 0;
+    margin-bottom: 40px;
+  }
+
+  label {
+    font-weight: 600;
+    margin-bottom: 8px;
+    font-size: 17px;
+  }
+
+  input {
+    padding: 12px 20px;
+    border-radius: 4px;
+    font-size: 16px;
+    margin-bottom: 30px;
+    width: 100%;
+  }
+  
+}

@@ -147,7 +147,65 @@ export function defineNewNodeView(
   });
 }
 
-const AsyncBlockCache = new Map();
+let AsyncBlockCache = new Map();
+let AsyncBlockCacheView = null;
+
+// @todo support taking a signal
+export const defineRemoteBlock = async (
+  view,
+  componentUrl,
+  id,
+  replacePortal,
+  attrs,
+  children,
+  marks
+) => {
+  if (AsyncBlockCacheView && AsyncBlockCacheView !== view) {
+    AsyncBlockCache = new Map();
+  }
+  AsyncBlockCacheView = view;
+  const existingSchema = view.state.schema;
+  const existingSchemaSpec = existingSchema.spec;
+
+  if (!id || existingSchemaSpec.nodes.find(id) === -1) {
+    if (!AsyncBlockCache.has(componentUrl)) {
+      // let resolved = false;
+      const promise = fetchBlockMeta(componentUrl)
+        .then(({ componentMetadata, componentSchema }) => {
+          if (!id || existingSchemaSpec.nodes.find(id) === -1) {
+            defineNewBlock(
+              componentMetadata,
+              componentSchema,
+              view,
+              id,
+              replacePortal
+            );
+          }
+          // resolved = true;
+        })
+        .catch((err) => {
+          if (AsyncBlockCache.get(componentUrl) === promise) {
+            AsyncBlockCache.delete(componentUrl);
+          }
+
+          console.error("bang", err);
+          throw err;
+        });
+
+      // signal.addEventListener("abort", () => {
+      //   if (AsyncBlockCache.get(componentUrl) === promise && !resolved) {
+      //     AsyncBlockCache.delete(componentUrl);
+      //   }
+      // });
+
+      AsyncBlockCache.set(componentUrl, promise);
+    }
+
+    await AsyncBlockCache.get(componentUrl);
+  }
+
+  return view.state.schema.nodes[id].create(attrs, children, marks);
+};
 
 class AsyncView {
   constructor(node, view, getPos, replacePortal) {
@@ -188,89 +246,29 @@ class AsyncView {
 
     this.dom.appendChild(this.spinner);
 
-    this.controller = new AbortController();
+    const controller = (this.controller = new AbortController());
+    const componentUrl = node.attrs.asyncNodeUrl;
 
-    Promise.resolve()
-      .then(() => {
-        const existingSchema = view.state.schema;
-        const existingSchemaSpec = existingSchema.spec;
+    const id =
+      node.attrs.asyncNodeId ??
+      (componentUrl ? componentIdToName(componentUrl) : null);
 
-        const componentUrl = node.attrs.asyncNodeUrl;
-
-        const id =
-          node.attrs.asyncNodeId ??
-          (componentUrl ? componentIdToName(componentUrl) : null);
-
-        if (!id || existingSchemaSpec.nodes.find(id) === -1) {
-          if (componentUrl) {
-            if (!AsyncBlockCache.has(componentUrl)) {
-              const promise = fetchBlockMeta(
-                componentUrl,
-                this.controller.signal
-              )
-                .then(({ componentMetadata, componentSchema }) => {
-                  defineNewBlock(
-                    componentMetadata,
-                    componentSchema,
-                    view,
-                    id,
-                    this.replacePortal
-                  );
-                  return id;
-                })
-                .catch((err) => {
-                  console.error("bang", err);
-                  throw err;
-                });
-
-              this.controller.signal.addEventListener("abort", () => {
-                if (AsyncBlockCache.get(componentUrl) === promise) {
-                  AsyncBlockCache.delete(componentUrl);
-                }
-              });
-
-              AsyncBlockCache.set(componentUrl, promise);
-            }
-
-            return AsyncBlockCache.get(componentUrl);
-          } else {
-            // @todo remove the node in this instance
-            throw new Error("Invalid async node");
-          }
-        } else {
-          return id;
-        }
-
-        // if (node.attrs.asyncNodeId && existingSchemaSpec.nodes.find(node.attrs.asyncNodeId) === -1) {
-        //   return fetchNodeType(
-        //     node.attrs.asyncNodeId,
-        //     this.controller.signal
-        //   ).then(({ spec, nodeView }) => {
-        //     defineNewNodeView(
-        //       view,
-        //       node.attrs.asyncNodeDisplayName,
-        //       node.attrs.asyncNodeId,
-        //       spec,
-        //       (node, view, getPos) => new nodeView(node, view, getPos)
-        //     );
-        //
-        //     return Promise.reject("skip");
-        //   });
-        // }
-      })
-      .then((id) => {
-        if (this.controller.signal.aborted) {
+    defineRemoteBlock(
+      view,
+      componentUrl,
+      id,
+      this.replacePortal,
+      node.attrs.asyncNodeProps.attrs,
+      node.attrs.asyncNodeProps.children,
+      node.attrs.asyncNodeProps.marks
+    )
+      .then((newNode) => {
+        if (controller.signal.aborted) {
           return;
         }
 
         const pos = this.getPos();
         const tr = view.state.tr;
-
-        const newNode = view.state.schema.nodes[id].create(
-          node.attrs.asyncNodeProps.attrs,
-          node.attrs.asyncNodeProps.children,
-          node.attrs.asyncNodeProps.marks
-        );
 
         tr.replaceRangeWith(pos, pos + node.nodeSize, newNode);
 
@@ -543,7 +541,8 @@ class BlockView {
                 key !== "block" &&
                 key !== "async" &&
                 key !== "doc" &&
-                key !== "text"
+                key !== "text" &&
+                key !== "blank"
             )
             .map(([, value]) => value.defaultAttrs?.meta?.name ?? value.name)
             .map((type) => {
@@ -670,7 +669,11 @@ const plugins = [
         let stepCount = tr.steps.length;
 
         newState.doc.descendants((node, pos) => {
-          if (node.type.name !== "block") {
+          if (
+            node.type.name !== "block" &&
+            node.type.name !== "async" &&
+            node.type.name !== "blank"
+          ) {
             const newSteps = tr.steps.slice(stepCount);
             stepCount = tr.steps.length;
             for (const newStep of newSteps) {
