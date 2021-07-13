@@ -1,22 +1,25 @@
 {
   "parser": "@typescript-eslint/parser",
-  "env": {
-    "node": true
-  },
-  "extends": [
-    "plugin:@typescript-eslint/base",
-    "prettier"
-  ],
+  "plugins": ["@typescript-eslint"],
+  "extends": ["plugin:@typescript-eslint/base", "prettier"],
   "rules": {
-    "semi": "warn",
+    "eqeqeq": ["error", "always", { "null": "ignore" }],
+    "id-length": [
+      "error",
+      {
+        "min": 2,
+        "exceptions": ["_", "x", "y", "z", "a", "b"],
+        "properties": "never"
+      }
+    ],
     "no-unused-vars": "off",
     "@typescript-eslint/no-unused-vars": [
       "error",
       { "argsIgnorePattern": "^_+", "varsIgnorePattern": "^_+" }
     ],
+    "no-unused-expressions": "error",
     "prefer-const": "warn",
     "prefer-arrow-callback": "warn",
-    "eqeqeq": ["error", "always", { "null": "ignore" }]
-  },
-  "plugins": ["@typescript-eslint"]
+    "semi": "warn"
+  }
 }

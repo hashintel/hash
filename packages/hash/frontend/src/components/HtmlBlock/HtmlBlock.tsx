@@ -17,10 +17,9 @@ export const HtmlBlock: VoidFunctionComponent<HtmlBlockProps> = ({
     }
 
     const docFragment = document.createRange().createContextualFragment(html);
-    
+
     divRef.current.innerHTML = "";
     divRef.current.appendChild(docFragment);
-
   }, []);
 
   return <div ref={divRef} {...props} />;

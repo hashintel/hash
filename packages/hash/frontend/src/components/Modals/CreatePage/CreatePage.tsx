@@ -29,9 +29,7 @@ export const CreatePage: VoidFunctionComponent<CreatePageProps> = ({
   return (
     <Modal show={show} close={close}>
       <form className={styles.CreatePage} onSubmit={createPage}>
-        <h2>
-          Don't be afraid of a blank page...
-        </h2>
+        <h2>Don't be afraid of a blank page...</h2>
 
         <label>Title</label>
         <input
@@ -45,7 +43,6 @@ export const CreatePage: VoidFunctionComponent<CreatePageProps> = ({
         <button className="button big" type="submit">
           Create
         </button>
-
       </form>
     </Modal>
   );

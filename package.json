@@ -30,6 +30,7 @@
     "demo": "concurrently \"yarn serve:hash-backend\" \"yarn demo-sans-backend\"",
     "demo-sans-backend": "concurrently \"yarn serve:table\" \"yarn serve:htmlPara\" \"yarn serve:image\" \"yarn serve:header\"  \"yarn serve:person\"  \"yarn serve:hash-frontend\"",
     "fmt-check:hash-backend": "yarn ws:hash-backend fmt-check",
+    "fmt-check:hash-frontend": "yarn ws:hash-frontend fmt-check",
     "fmt-check:hash-integration": "yarn ws:hash-integration fmt-check",
     "fmt-check": "yarn all --parallel fmt-check:*"
   },

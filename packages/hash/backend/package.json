@@ -14,7 +14,6 @@
     "build": "echo 'Compiling Typescript' && tsc",
     "postinstall": "yarn codegen",
     "start": "export NODE_ENV=production && node dist/index.js",
-    "lint": "eslint . --ext .ts",
     "codegen": "graphql-codegen --config codegen.yml # backend",
     "fmt": "find ./src/*.ts ./src/**/*.ts ./src/**/**/*.ts ./src/**/**/**/*.ts | xargs prettier --write",
     "fmt-check": "prettier  \"src/**/*.{ts,tsx,js,jsx,css,scss}\" --check || exit 1; eslint --quiet \"{scripts,src}/**/*.{ts,tsx,js}\"",

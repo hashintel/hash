@@ -6,7 +6,7 @@ export const baseSchemaConfig = {
       content: "((block|blockItem)+)|blank",
     },
     blank: {
-      toDOM: () => ["div", 0] as const
+      toDOM: () => ["div", 0] as const,
     },
     // @todo not sure i want this block to appear in the HTML
     // @todo fix copy & paste
