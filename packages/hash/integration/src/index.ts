@@ -75,6 +75,15 @@ enum Visibility {
         },
       ],
       [
+        "divider1",
+        {
+          type: "Divider",
+          namespaceId: user.namespaceId,
+          createdById: user.id,
+          properties: {},
+        },
+      ],
+      [
         "text2",
         {
           type: "Text",
@@ -140,6 +149,18 @@ enum Visibility {
           properties: {
             country: "UK",
             name: "London",
+          },
+          namespaceId: user.namespaceId,
+          createdById: user.id,
+        },
+      ],
+      [
+        "place2",
+        {
+          type: "Location",
+          properties: {
+            country: "FR",
+            name: "Nantes",
           },
           namespaceId: user.namespaceId,
           createdById: user.id,
@@ -240,6 +261,24 @@ enum Visibility {
           properties: {
             email: "nh@hash.ai",
             name: "Nate Higgins",
+            employer: {
+              __linkedData: {
+                entityType: "Company",
+                entityId: results.get("c1")?.createEntity.id,
+              },
+            },
+          },
+          type: "Person",
+          namespaceId: user.namespaceId,
+          createdById: user.id,
+        },
+      ],
+      [
+        "p6",
+        {
+          properties: {
+            email: "mr@hash.ai",
+            name: "Marius Runge",
             employer: {
               __linkedData: {
                 entityType: "Company",
@@ -450,6 +489,20 @@ enum Visibility {
           type: "Block",
         },
       ],
+      [
+        "b11",
+        {
+          properties: {
+            componentId: "https://block.blockprotocol.org/divider",
+            entityType: "Divider",
+            entityId: results.get("divider1")?.createEntity.id,
+            namespaceId: results.get("divider1")?.createEntity.namespaceId,
+          },
+          createdById: user.id,
+          namespaceId: org.id,
+          type: "Block",
+        },
+      ],
     ])
   );
 
@@ -470,6 +523,10 @@ enum Visibility {
               {
                 entityId: results.get("b9")?.createEntity.id,
                 namespaceId: results.get("b9")?.createEntity.namespaceId,
+              },
+              {
+                entityId: results.get("b11")?.createEntity.id,
+                namespaceId: results.get("b11")?.createEntity.namespaceId,
               },
               {
                 entityId: results.get("b2")?.createEntity.id,
