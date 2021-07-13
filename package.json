@@ -8,7 +8,9 @@
     "packages/hash/integration"
   ],
   "scripts": {
+    "all": "npx npm-run-all",
     "ws:hash-backend": "yarn workspace @hashintel/hash-backend",
+    "ws:hash-integration": "yarn workspace @hashintel/hash-integration",
     "serve:hash-backend": "yarn ws:hash-backend dev",
     "ws:hash-frontend": "yarn workspace @hashintel/hash-frontend",
     "serve:hash-frontend": "yarn ws:hash-frontend dev",
@@ -26,10 +28,14 @@
     "serve:table": "cd packages/hash/blocks/table && yarn serve",
     "serve:image": "cd packages/hash/blocks/image && yarn serve",
     "demo": "concurrently \"yarn serve:hash-backend\" \"yarn demo-sans-backend\"",
-    "demo-sans-backend": "concurrently \"yarn serve:table\" \"yarn serve:htmlPara\" \"yarn serve:image\" \"yarn serve:header\"  \"yarn serve:person\"  \"yarn serve:hash-frontend\""
+    "demo-sans-backend": "concurrently \"yarn serve:table\" \"yarn serve:htmlPara\" \"yarn serve:image\" \"yarn serve:header\"  \"yarn serve:person\"  \"yarn serve:hash-frontend\"",
+    "fmt-check:hash-backend": "yarn ws:hash-backend fmt-check",
+    "fmt-check:hash-integration": "yarn ws:hash-integration fmt-check",
+    "fmt-check": "yarn all --parallel fmt-check:*"
   },
   "devDependencies": {
     "concurrently": "6.2.0",
+    "npm-run-all": "4.1.5",
     "serve": "12.0.0"
   }
 }
