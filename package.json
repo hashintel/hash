@@ -29,12 +29,13 @@
     "serve:table": "cd packages/hash/blocks/table && yarn serve",
     "serve:image": "cd packages/hash/blocks/image && yarn serve",
     "serve:divider": "cd packages/hash/blocks/divider && yarn serve",
-    "demo": "concurrently \"yarn serve:hash-backend\" \"yarn demo-sans-backend\"",
     "demo-sans-backend": "concurrently \"yarn serve:table\" \"yarn serve:htmlPara\" \"yarn serve:image\" \"yarn serve:header\"  \"yarn serve:person\" \"yarn serve:divider\" \"yarn serve:hash-frontend\"",
+    "demo": "docker volume create hash-dev-pg && docker-compose -f packages/hash/backend/docker-compose.yml up -d && sleep 5 && yarn refresh-pg && yarn demo-sans-backend",
     "fmt-check:hash-backend": "yarn ws:hash-backend fmt-check",
     "fmt-check:hash-frontend": "yarn ws:hash-frontend fmt-check",
     "fmt-check:hash-integration": "yarn ws:hash-integration fmt-check",
-    "fmt-check": "yarn all --parallel fmt-check:*"
+    "fmt-check": "yarn all --parallel fmt-check:*",
+    "refresh-pg": "cd packages/hash/backend && yarn refresh-pg && cd ../integration && yarn mock-data"
   },
   "devDependencies": {
     "concurrently": "6.2.0",
