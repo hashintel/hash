@@ -28,6 +28,10 @@ type PageBlockProps = {
   namespaceId: string;
 };
 
+/**
+ * The naming of this as a "Block" is… interesting, considering it doesn't really work like a Block. It would be cool
+ * to somehow detach the process of rendering child blocks from this and have a renderer, but it seems tricky to do that
+ */
 export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   contents,
   blocksMeta,
@@ -406,11 +410,11 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       const newNodes = await Promise.all(
         contents?.map(async (block) => {
           const {
-              children,
-              childEntityId = null,
-              childEntityNamespaceId = null,
-              ...props
-            } = block.entity;
+            children,
+            childEntityId = null,
+            childEntityNamespaceId = null,
+            ...props
+          } = block.entity;
 
           const id = componentUrlToProsemirrorId(block.componentId);
 
@@ -423,8 +427,8 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
               props,
               entityId: block.entityId,
               namespaceId: block.namespaceId,
-                    childEntityId,
-                    childEntityNamespaceId,
+              childEntityId,
+              childEntityNamespaceId,
             },
             children?.map((child: any) => {
               if (child.type === "text") {

@@ -28,6 +28,8 @@ import {
 } from "./tsUtils";
 import { defineBlock } from "./utils";
 
+console.log(styles);
+
 // @todo maybe don't need this to be abstracted
 // const selectNode = (tr, pos, newNode) => {
 //   tr.setSelection(
@@ -150,7 +152,7 @@ export function defineNewBlock(
         : {}),
     });
 
-    defineNewNode(view.state.schema, displayName, id, spec);
+    defineNewNode(view.state.schema, componentMetadata.name, id, spec);
 
     // Add the node view definition to the view – ensures our block code is called for every instance of the block
     view.setProps({
@@ -237,6 +239,12 @@ export const defineRemoteBlock = async (
   return view.state.schema.nodes[id].create(attrs, children, marks);
 };
 
+/**
+ * You can think of this more as a "Switcher" view – when you change node type using the select type dropdown, the node
+ * is first switched to a node of type Async, which ensures the desired node type exists in the schema before searching.
+ * This is because the select dropdown used to contain (and will again in the future) contain node types that have not
+ * yet actually had their metadata fetched & imported into the schema, so this node does it for us.
+ */
 class AsyncView {
   constructor(node, view, getPos, replacePortal) {
     this.dom = document.createElement("div");
@@ -249,7 +257,7 @@ class AsyncView {
   }
 
   destroy() {
-    this.controller.abort();
+    this.controller?.abort();
     this.dom.remove();
   }
 
@@ -297,6 +305,12 @@ class AsyncView {
           return;
         }
 
+        /**
+         * The code below used to ensure the cursor was positioned within the new node, depending on its type, but
+         * because we now want to trigger saves when we change node type, and because triggering saves can mess up the
+         * cursor position, we're currently not re-focusing the editor view.
+         */
+
         const pos = this.getPos();
         const tr = view.state.tr;
 
@@ -310,6 +324,11 @@ class AsyncView {
 
         view.dispatch(tr);
 
+        /**
+         * Ensures we start tracking history properly again
+         *
+         * @todo remove the need for this
+         */
         view.updateState(
           view.state.reconfigure({
             plugins: view.state.plugins.map((plugin) =>
@@ -325,8 +344,12 @@ class AsyncView {
         }
       })
       .catch((err) => {
-        if (err !== "skip" && err.name !== "AbortError") {
+        if (err.name !== "AbortError") {
           console.error(err);
+          /**
+           * This was causing infinite loops. I don't know why. I think ProseMirror was detecting the mutations and
+           * causing us problems
+           */
           // this.spinner.innerText = "Failed: " + err.toString();
         }
       });
@@ -334,11 +357,20 @@ class AsyncView {
     return true;
   }
 
+  /**
+   * Attempting to prevent PM being weird when we mutate our own contents. Doesn't always work
+   *
+   * @todo look into this
+   */
   ignoreMutation() {
     return true;
   }
 }
 
+/**
+ * This is the node view that wraps every one of our blocks in order to inject custom UI like the <select> to change
+ * type and the drag handles
+ */
 class BlockView {
   constructor(node, view, getPos, replacePortal) {
     this.getPos = getPos;
