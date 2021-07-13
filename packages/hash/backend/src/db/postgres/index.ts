@@ -400,7 +400,8 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   }
 
   /** Update an entity's properties. If the "type" parameter is provided, the function
-   * checks that it matches the entity's type. Returns
+   * checks that it matches the entity's type. Returns `undefined` if the entity does
+   * not exist in the given namespace.
    */
   async updateEntity(params: {
     namespaceId: string;
