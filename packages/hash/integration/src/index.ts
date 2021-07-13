@@ -1,4 +1,4 @@
-export { };
+export {};
 import { GraphQLClient } from "graphql-request";
 import { createOrgs, createUsers } from "./namespaces";
 import { createEntity } from "./graphql/queries/entity.queries";
@@ -32,7 +32,8 @@ enum Visibility {
     const names = Array.from(items.keys());
     const mutations = await Promise.all(
       Array.from(items.values()).map(
-        async (val) => await client.request<CreateEntityMutation>(createEntity, val)
+        async (val) =>
+          await client.request<CreateEntityMutation>(createEntity, val)
       )
     );
     mutations.forEach((res, i) => {

@@ -1,8 +1,8 @@
 import { Entity } from "../adapter";
 
-const isObject = (v: any) => typeof v === "object" && v !== null;
+const isObject = (val: any) => typeof val === "object" && val !== null;
 
-const isObjectOrArray = (v: any) => Array.isArray(v) || isObject(v);
+const isObjectOrArray = (val: any) => Array.isArray(val) || isObject(val);
 
 /**
  * Recursively traverse the properties of an entity, gathering the IDs of all entities
@@ -22,7 +22,7 @@ export const gatherLinks = (entity: Entity): string[] => {
   // Page entities are another special case
   if (entity.type === "Page") {
     return entity.properties.contents.map(
-      (c: { entityId: string }) => c.entityId as string
+      (item: { entityId: string }) => item.entityId as string
     );
   }
 

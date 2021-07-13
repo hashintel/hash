@@ -13,7 +13,7 @@ export const createEntity: Resolver<
   GraphQLContext,
   MutationCreateEntityArgs
 > = async (_, { namespaceId, properties, type }, { dataSources }) => {
-  const e = await dataSources.db.createEntity({
+  const dbEntity = await dataSources.db.createEntity({
     namespaceId,
     createdById: genEntityId(), // TODO
     type,
@@ -21,7 +21,7 @@ export const createEntity: Resolver<
   });
 
   const entity: DbUnknownEntity = {
-    ...e,
+    ...dbEntity,
     visibility: Visibility.Public, // TODO: should be a param?,
   };
 

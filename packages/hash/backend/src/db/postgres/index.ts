@@ -14,9 +14,9 @@ const getRequiredEnv = (name: string) => {
   return value;
 };
 
-const parsePort = (s: string) => {
-  if (/^\d+$/.test(s)) {
-    return parseInt(s);
+const parsePort = (str: string) => {
+  if (/^\d+$/.test(str)) {
+    return parseInt(str);
   }
   throw new Error("PG_PORT must be a positive number");
 };
@@ -36,16 +36,16 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   }
 
   /** Execute a function inside a transaction. */
-  private async tx<T>(f: (client: PoolClient) => Promise<T>): Promise<T> {
+  private async tx<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {
     const client = await this.pool.connect();
     try {
       await client.query("BEGIN");
-      const res = await f(client);
+      const res = await fn(client);
       await client.query("COMMIT");
       return res;
-    } catch (e) {
+    } catch (err) {
       await client.query("ROLLBACK");
-      throw e;
+      throw err;
     } finally {
       client.release();
     }
@@ -301,15 +301,15 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       throw new Error(`expected 1 row but received ${res.rowCount}`);
     }
 
-    const e = res.rows[0];
+    const row = res.rows[0];
     const entity: Entity = {
-      namespaceId: e["shard_id"],
-      id: e["id"],
-      createdById: e["created_by"],
-      type: e["type"],
-      properties: e["properties"],
-      createdAt: e["created_at"],
-      updatedAt: e["updated_at"],
+      namespaceId: row["shard_id"],
+      id: row["id"],
+      createdById: row["created_by"],
+      type: row["type"],
+      properties: row["properties"],
+      createdAt: row["created_at"],
+      updatedAt: row["updated_at"],
     };
 
     return entity;
@@ -448,14 +448,14 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       [params.namespaceId, params.type]
     );
 
-    return res.rows.map((r) => ({
-      namespaceId: r["shard_id"],
-      id: r["id"],
-      createdById: r["created_by"],
-      type: r["type"],
-      properties: r["properties"],
-      createdAt: r["created_at"],
-      updatedAt: r["updated_at"],
+    return res.rows.map((row) => ({
+      namespaceId: row["shard_id"],
+      id: row["id"],
+      createdById: row["created_by"],
+      type: row["type"],
+      properties: row["properties"],
+      createdAt: row["created_at"],
+      updatedAt: row["updated_at"],
     }));
   }
 
@@ -471,14 +471,14 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       where
         e.shard_id = e.id`
     );
-    return res.rows.map((r) => ({
-      namespaceId: r["shard_id"],
-      id: r["id"],
-      createdById: r["created_by"],
-      type: r["type"],
-      properties: r["properties"],
-      createdAt: r["created_at"],
-      updatedAt: r["updated_at"],
+    return res.rows.map((row) => ({
+      namespaceId: row["shard_id"],
+      id: row["id"],
+      createdById: row["created_by"],
+      type: row["type"],
+      properties: row["properties"],
+      createdAt: row["created_at"],
+      updatedAt: row["updated_at"],
     }));
   }
 }
