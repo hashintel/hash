@@ -184,7 +184,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
           if (
             !contentNode ||
             contentNode.entity.childEntityId !== node.properties.entity.id ||
-            node.properties.entity.properties.texts !==
+            node.properties.entity.properties.texts.length !==
               contentNode.entity.children.length ||
             (node.properties.entity.properties.texts as any[]).some(
               (text: any, idx: number) => {
