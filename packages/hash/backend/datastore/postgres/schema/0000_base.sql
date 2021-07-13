@@ -1,16 +1,14 @@
 create table if not exists entity_types (
-    id         integer primary key,
-    name       text not null,
-    created_at timestamp with time zone not null
+    id         serial primary key,
+    name       text not null unique
 );
 
 create table if not exists link_types (
-    id         integer primary key,
-    name       text not null,
-    created_at timestamp with time zone not null
+    id         serial primary key,
+    name       text not null unique
 );
 
-create table shards (
+create table if not exists shards (
     shard_id uuid primary key
 );
 
@@ -19,7 +17,9 @@ create table if not exists entities (
     id         uuid not null,
     type       integer not null references entity_types (id),
     properties jsonb not null,
+    created_by uuid not null,
     created_at timestamp with time zone not null,
+    updated_at timestamp with time zone not null,
 
     primary key(shard_id, id)
 );
@@ -31,6 +31,7 @@ create table if not exists links (
     type       integer not null references link_types (id),
     properties jsonb,
     created_at timestamp with time zone not null,
+    updated_at timestamp with time zone not null,
 
     foreign key (shard_id, src_id) references entities (shard_id, id),
     foreign key (shard_id, dst_id) references entities (shard_id, id),

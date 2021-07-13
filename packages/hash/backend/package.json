@@ -17,6 +17,7 @@
     "lint": "eslint . --ext .ts",
     "codegen": "graphql-codegen --config codegen.yml # backend",
     "fmt": "find ./src/*.ts ./src/**/*.ts ./src/**/**/*.ts ./src/**/**/**/*.ts | xargs prettier --write",
+    "fmt-check": "prettier  \"src/**/*.{ts,tsx,js,jsx,css,scss}\" --check || exit 1; eslint --quiet \"{scripts,src}/**/*.{ts,tsx,js}\"",
     "ts-node": "node --max-old-space-size=2048 node_modules/.bin/ts-node --files --project tsconfig.json"
   },
   "dependencies": {
@@ -26,6 +27,7 @@
     "graphql": "15.5.0",
     "graphql-type-json": "0.3.2",
     "helmet": "4.6.0",
+    "id128": "1.6.6",
     "pg": "8.6.0"
   },
   "devDependencies": {

@@ -44,6 +44,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   contents,
   blocksMeta,
   pageId,
+  namespaceId,
 }) => {
   const root = useRef<HTMLDivElement>(null);
   const [portals, setPortals] = useState<PortalSet>(new Map());
@@ -137,6 +138,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
           entity = {
             type: "Text",
             id: node.attrs.childEntityId,
+            namespaceId: node.attrs.childEntityNamespaceId,
             properties: {
               texts:
                 node.content
@@ -158,16 +160,19 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
             },
           };
         } else {
-          const { childEntityId, ...props } = node.attrs;
+          const { childEntityId, childEntityNamespaceId, ...props } =
+            node.attrs;
           entity = {
             type: "UnknownEntity",
             id: childEntityId,
+            namespaceId: childEntityNamespaceId,
             properties: props,
           };
         }
 
         let block = {
           entityId: node.attrs.entityId,
+          namespaceId: node.attrs.namespaceId ?? namespaceId,
           type: "Block",
           position,
           properties: {
@@ -199,10 +204,12 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
         const block = {
           type: "Block",
           id: node.entityId,
+          namespaceId: node.namespaceId,
           properties: {
             componentId: node.properties.componentId,
             entityType: node.properties.entity.type,
             entityId: node.properties.entity.id,
+            namespaceId: node.properties.entity.namespaceId,
           },
         };
 
@@ -251,6 +258,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       const pageBlocks = existingBlocks.map((node) => {
         return {
           entityId: node.entityId,
+          namespaceId: node.namespaceId,
           type: "Block",
         };
       });
@@ -264,20 +272,23 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
           (promise, newBlock) =>
             promise
               .catch(() => {})
-              .then(() =>
+              .then(() => {
+                // @todo this should take the user id of whoever creates it
                 insert({
                   pageId,
                   entityType: newBlock.properties.entity.type,
                   position: newBlock.position,
                   componentId: newBlock.properties.componentId,
                   entityProperties: newBlock.properties.entity.properties,
-                })
-              ),
+                  namespaceId: namespaceId,
+                });
+              }),
           blockIdsChange
             ? update([
                 {
                   entityType: "Page",
                   entityId: pageId,
+                  namespaceId,
                   data: {
                     contents: pageBlocks,
                   },
@@ -299,6 +310,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
                   entityId: entity.id,
                   entityType: entity.type,
                   data: entity.properties,
+                  namespaceId: entity.namespaceId,
                 })
               ),
           ]);
@@ -385,7 +397,12 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
 
       let newNodes = await Promise.all(
         contents?.map(async (block) => {
-          const { children, childEntityId = null, ...props } = block.entity;
+          const {
+              children,
+              childEntityId = null,
+              childEntityNamespaceId = null,
+              ...props
+            } = block.entity;
 
           const id = componentIdToName(block.componentId);
 
@@ -397,7 +414,9 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
             {
               props,
               entityId: block.entityId,
-              childEntityId,
+              namespaceId: block.namespaceId,
+                    childEntityId,
+                    childEntityNamespaceId,
             },
             children?.map((child: any) => {
               if (child.type === "text") {

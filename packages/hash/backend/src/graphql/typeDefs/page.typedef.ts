@@ -14,17 +14,13 @@ export const pageTypedef = gql`
     """
     namespaceId: ID!
     """
-    The CHANGEABLE name/slug of the namespace (e.g. username).
-    """
-    namespace: String!
-    """
     The date the entity was created
     """
     createdAt: Date!
     """
     The user who created the entity
     """
-    createdBy: User!
+    createdById: ID!
     """
     The date the entity was last updated
     """
@@ -51,12 +47,12 @@ export const pageTypedef = gql`
     """
     Return a page by its id
     """
-    page(id: ID!): Page!
+    page(namespaceId: ID!, id: ID!): Page!
 
     """
     Return a list of pages belonging to a namespace
     """
-    namespacePages(namespaceId: ID, namespace: String): [Page!]!
+    namespacePages(namespaceId: ID!): [Page!]!
   }
 
   input PageCreationData {
@@ -76,15 +72,12 @@ export const pageTypedef = gql`
   }
 
   extend type Mutation {
-    createPage(
-      namespaceId: ID!
-      properties: PageCreationData!
-    ): Page!
+    createPage(namespaceId: ID!, properties: PageCreationData!): Page!
 
-    updatePage(id: ID!, properties: PageUpdateData!): Page!
+    updatePage(namespaceId: ID!, id: ID!, properties: PageUpdateData!): Page!
 
     """
-    Insert a block into a given page. 
+    Insert a block into a given page.
     EITHER:
     - entityId (for rendering an existing entity) OR
     - entityProperties and entityType (for creating a new entity)
@@ -96,10 +89,10 @@ export const pageTypedef = gql`
       entityProperties: JSONObject
       entityType: String
       """
-      The namespaceId for the block and entity. 
+      The namespaceId for the block and entity.
       Defaults to the page's namespaceId.
       """
-      namespaceId: ID
+      namespaceId: ID!
       pageId: ID!
       """
       The position of the block in the page contents, starting at 0

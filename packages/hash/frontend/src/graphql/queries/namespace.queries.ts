@@ -4,13 +4,20 @@ export const getNamespaces = gql`
   query getNamespaces {
     namespaces {
       __typename
-      ... on User {
+      ... on Entity {
         id
-        shortname
+        namespaceId
+      }
+      ... on User {
+        properties {
+          shortname
+          email
+        }
       }
       ... on Org {
-        id
-        shortname
+        properties {
+          shortname
+        }
       }
     }
   }

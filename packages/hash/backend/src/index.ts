@@ -10,7 +10,7 @@ const app = express();
 const PORT = process.env.PORT ?? 5001;
 
 // Connect to the database
-// const db = new PostgresAdapter();
+const db = new PostgresAdapter();
 
 // Set sensible default security headers: https://www.npmjs.com/package/helmet
 // Temporarily disable contentSecurityPolicy for the GraphQL playground
@@ -21,7 +21,7 @@ app.use(helmet({ contentSecurityPolicy: false }));
 // Parse request body as JSON - allow higher than the default 100kb limit
 app.use(json({ limit: "16mb" }));
 
-const apolloServer = createApolloServer();
+const apolloServer = createApolloServer(db);
 
 app.get("/", (_, res) => res.send("Hello World"));
 

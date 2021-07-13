@@ -23,6 +23,7 @@ export const useBlockProtocolAggregate = (): {
       variables: {
         operation: action.operation,
         type: action.entityType,
+        namespaceId: action.namespaceId,
       },
     });
   }, []);
