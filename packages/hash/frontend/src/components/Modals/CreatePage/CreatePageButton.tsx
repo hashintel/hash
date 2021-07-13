@@ -6,21 +6,22 @@ type CreatePageButtonProps = {
   namespaceId: string;
 };
 
-export const CreatePageButton: VoidFunctionComponent<CreatePageButtonProps> =
-  ({ namespaceId }) => {
-    const [showCreatePage, setShowCreatePage] = useState(false);
+export const CreatePageButton: VoidFunctionComponent<CreatePageButtonProps> = ({
+  namespaceId,
+}) => {
+  const [showCreatePage, setShowCreatePage] = useState(false);
 
-    return (
-      <>
-        <CreatePage
-          close={() => setShowCreatePage(false)}
-          namespaceId={namespaceId}
-          show={showCreatePage}
-        />
+  return (
+    <>
+      <CreatePage
+        close={() => setShowCreatePage(false)}
+        namespaceId={namespaceId}
+        show={showCreatePage}
+      />
 
-        <button className="button" onClick={() => setShowCreatePage(true)}>
-          Create page
-        </button>
-      </>
-    );
-  };
+      <button className="button" onClick={() => setShowCreatePage(true)}>
+        Create page
+      </button>
+    </>
+  );
+};

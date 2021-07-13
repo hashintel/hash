@@ -10,8 +10,7 @@ export const PageSidebar: VoidFunctionComponent = () => {
   const router = useRouter();
   const { namespaceId, pageId } = router.query as Record<string, string>;
 
-  const goToNamespace = (namespaceId: string) =>
-    router.push(`/${namespaceId}`);
+  const goToNamespace = (namespaceId: string) => router.push(`/${namespaceId}`);
 
   return (
     <nav className={styles.PageSidebar}>
