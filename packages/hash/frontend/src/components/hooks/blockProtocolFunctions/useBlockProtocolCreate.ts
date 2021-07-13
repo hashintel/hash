@@ -24,11 +24,8 @@ export const useBlockProtocolCreate = (): {
         variables: {
           properties: action.data,
           type: action.entityType,
-<<<<<<< HEAD
           namespaceId: action.pageNamespaceId,
           createdById: action.userId,
-=======
->>>>>>> c905656 (style: add frontend-specific eslint config, fmt and fmt-check commands. fmt frontend files)
         },
       });
     }
