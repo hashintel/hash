@@ -6,8 +6,14 @@ only contains a config for a local development Postgres running on Docker.
 ## Postgres Schema
 
 The Postgres schema definitions are stored in [`./postgres/schema`](./postgres/schema).
-We will have automated migration scripts, but for now, you can execute
-the single schema file manually using `psql`, for example:
+
+To create the database schema, run:
 ```
-\i datastore/postgres/schema/0000_base.sql
+yarn migration
 ```
+
+To completely refresh the database (including removing all data), run:
+```
+yarn refresh
+```
+This command is valid only when the database is running on localhost.

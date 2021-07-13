@@ -6,4 +6,5 @@ Mock data may be inserted by running:
 ```
 yarn mock-data
 ```
-Ensure that the API and database are running.
+Ensure that the API and database are running (see the backend
+[README](../backend/README.md) for details).

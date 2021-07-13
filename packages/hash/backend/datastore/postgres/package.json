@@ -1,0 +1,16 @@
+{
+  "name": "@hashintel/hash-postgres",
+  "version": "0.1.0",
+  "description": "Postgres migration script",
+  "main": "migration.js",
+  "repository": "github.com/hashintel/dev/packages/hash/backend/datastore/postgres",
+  "license": "GPL-3.0",
+  "type": "commonjs",
+  "scripts": {
+    "migration": "node migration.js",
+    "refresh": "node migration.js refresh"
+  },
+  "dependencies": {
+    "node-postgres": "0.6.2"
+  }
+}
