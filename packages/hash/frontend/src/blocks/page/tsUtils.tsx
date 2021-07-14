@@ -140,6 +140,9 @@ type NodeViewConstructor = {
   new (...args: NodeViewConstructorArgs): NodeView;
 };
 
+/**
+ * This creates a node view which integrates between React and prosemirror for each block
+ */
 export const createNodeView = (
   name: string,
   componentSchema: Block["componentSchema"],
@@ -232,6 +235,7 @@ export const createNodeView = (
     }
   };
 
+  // Attempt to improve debugging by giving the node view class a dynamic name
   Object.defineProperty(nodeView, "name", { value: `${name}View` });
 
   return nodeView;

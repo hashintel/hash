@@ -1,19 +1,16 @@
-import { defineBlock } from "./utils";
-
 export const baseSchemaConfig = {
   nodes: {
     doc: {
       content: "((block|blockItem)+)|blank",
     },
     blank: {
-      toDOM: () => ["div", 0] as const
+      toDOM: () => ["div", 0] as const,
     },
-    // @todo not sure i want this block to appear in the HTML
-    // @todo fix copy & paste
     block: {
       content: "blockItem",
-      // defining: true
-      // selectable: false,
+      /**
+       * These properties are necessary for copy and paste (which is necessary for drag and drop)
+       */
       toDOM: () => {
         return [
           "div",
@@ -40,11 +37,6 @@ export const baseSchemaConfig = {
         autofocus: { default: true },
       },
     },
-    // heading: defineBlock({
-    //   content: "text*",
-    //   toDOM: () => ["h3", 0],
-    //   marks: "",
-    // }),
   },
   marks: {
     strong: {
