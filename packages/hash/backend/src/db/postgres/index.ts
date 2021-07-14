@@ -401,10 +401,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   }
 
   /** Get the IDs of all entities which refrence a given entity. */
-  private async getEntityParentIDs(
-    client: PoolClient,
-    entity: Entity,
-  ) {
+  private async getEntityParentIDs(client: PoolClient, entity: Entity) {
     const res = await client.query(
       `select parent_shard_id, parent_id from incoming_links
       where shard_id = $1 and entity_id = $2`,
@@ -448,17 +445,21 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       // TODO: there's redundant _getEntity fetching here. Could refactor the function
       // signature to take the old state of the entity.
       const parentRefs = await this.getEntityParentIDs(client, updatedEntity);
-      const parents = await Promise.all(parentRefs.map(async (ref) => {
-        const parent = await this._getEntity(client, ref);
-        if (!parent) {
-          throw entityNotFoundError(ref);
-        }
-        return parent;
-      }));
-      const updatedParents = await Promise.all(parents.map(async (parent) => {
-        replaceLink(parent, { old: entity.id, new: updatedEntity.id });
-        return await this._updateEntity(client, { ...parent });
-      }));
+      const parents = await Promise.all(
+        parentRefs.map(async (ref) => {
+          const parent = await this._getEntity(client, ref);
+          if (!parent) {
+            throw entityNotFoundError(ref);
+          }
+          return parent;
+        })
+      );
+      const updatedParents = await Promise.all(
+        parents.map(async (parent) => {
+          replaceLink(parent, { old: entity.id, new: updatedEntity.id });
+          return await this._updateEntity(client, { ...parent });
+        })
+      );
 
       return [updatedEntity].concat(updatedParents.flat());
     }
