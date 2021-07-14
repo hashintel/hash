@@ -1,7 +1,15 @@
 # HASH.dev
 
 ## Start the backend
-`yarn serve:hashai-backend`
+
+```
+yarn serve:hash-backend
+```
+
+On first run, or if you want to refresh the database with mock data, run:
+```
+yarn refresh-pg
+```
 
 ## Start the frontend
 `yarn serve:hashai-frontend`
