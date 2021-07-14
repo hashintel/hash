@@ -47,11 +47,6 @@ export const resolvers = {
 
   JSONObject: GraphQLJSON,
 
-  // TODO: uncomment
-  // Block: {
-  //   namespace: entityNamespaceName,
-  // },
-
   BlockProperties: {
     entity: blockFields.entity,
   },

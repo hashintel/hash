@@ -32,7 +32,8 @@ enum Visibility {
     const names = Array.from(items.keys());
     const mutations = await Promise.all(
       Array.from(items.values()).map(
-        async (v) => await client.request<CreateEntityMutation>(createEntity, v)
+        async (val) =>
+          await client.request<CreateEntityMutation>(createEntity, val)
       )
     );
     mutations.forEach((res, i) => {
@@ -41,7 +42,7 @@ enum Visibility {
     });
   };
 
-  const user = users.find((u) => u.properties.shortname === "ciaran");
+  const user = users.find((user) => user.properties.shortname === "ciaran");
   if (!user) {
     throw new Error("user not found");
   }

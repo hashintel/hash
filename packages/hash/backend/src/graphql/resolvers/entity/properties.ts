@@ -76,12 +76,12 @@ const resolveLinkedData = async (
           `entity ${entityId} in namespace ${namespaceId} not found`
         );
       }
-      const e: DbUnknownEntity = {
+      const dbEntity: DbUnknownEntity = {
         ...entity,
         __typename: entityType,
         visibility: Visibility.Public, // TODO
       };
-      object.properties[key] = e;
+      object.properties[key] = dbEntity;
       await resolveLinkedData(
         ctx,
         entity.namespaceId,

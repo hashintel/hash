@@ -26,65 +26,67 @@ export const insertBlockIntoPage: Resolver<
   },
   { dataSources }
 ) => {
-  // TODO: everything here should be inside a transaction
+    // TODO: everything here should be inside a transaction
 
-  const page = await dataSources.db.getEntity({ namespaceId, id: pageId });
-  if (!page) {
-    throw new ApolloError(
-      `Could not find page with pageId ${pageId}`,
-      "NOT_FOUND"
-    );
-  }
-
-  let entity;
-  if (entityId) {
-    // Update
-    entity = await dataSources.db.getEntity({ namespaceId, id: entityId });
-    if (!entity) {
-      throw new ApolloError(`entity ${entityId} not found`, "NOT_FOUND");
+    const page = await dataSources.db.getEntity({ namespaceId, id: pageId });
+    if (!page) {
+      throw new ApolloError(
+        `Could not find page with pageId ${pageId}`,
+        "NOT_FOUND"
+      );
     }
-  } else if (entityProperties && entityType) {
-    // Create new entity
-    entity = await dataSources.db.createEntity({
+
+    let entity;
+    if (entityId) {
+      // Update
+      entity = await dataSources.db.getEntity({ namespaceId, id: entityId });
+      if (!entity) {
+        throw new ApolloError(`entity ${entityId} not found`, "NOT_FOUND");
+      }
+    } else if (entityProperties && entityType) {
+      // Create new entity
+      entity = await dataSources.db.createEntity({
+        namespaceId,
+        createdById: genEntityId(), // TODO
+        type: entityType,
+        properties: entityProperties,
+      });
+    } else {
+      throw new Error(
+        `One of entityId OR entityProperties and entityType must be provided`
+      );
+    }
+
+    const blockProperties = {
+      componentId,
+      entityType: entity.type,
+      entityId: entity.id,
+      namespaceId: entity.namespaceId,
+    };
+
+    const newBlock = await dataSources.db.createEntity({
       namespaceId,
+      type: entity.type,
       createdById: genEntityId(), // TODO
-      type: entityType,
-      properties: entityProperties,
+      properties: blockProperties,
     });
-  } else {
-    throw new Error(
-      `One of entityId OR entityProperties and entityType must be provided`
-    );
-  }
 
-  const blockProperties = {
-    componentId,
-    entityType: entity.type,
-    entityId: entity.id,
-    namespaceId: entity.namespaceId,
+    if (position > page.properties.contents.length) {
+      position = page.properties.contents.length;
+    }
+
+    page.properties.contents = [
+      ...page.properties.contents.slice(0, position),
+      {
+        type: "Block",
+        entityId: newBlock.id,
+        namespaceId: newBlock.namespaceId,
+      },
+      ...page.properties.contents.slice(position),
+    ];
+    const updatedEntities = await dataSources.db.updateEntity({ ...page });
+
+    // TODO: for now, all entities are non-versioned, so the list array only have a single
+    // element. Return when versioned entities are implemented at the API layer.
+    return updatedEntities[0] as DbPage;
   };
-
-  const newBlock = await dataSources.db.createEntity({
-    namespaceId,
-    type: entity.type,
-    createdById: genEntityId(), // TODO
-    properties: blockProperties,
-  });
-
-  if (position > page.properties.contents.length) {
-    position = page.properties.contents.length;
-  }
-
-  page.properties.contents = [
-    ...page.properties.contents.slice(0, position),
-    {
-      type: "Block",
-      entityId: newBlock.id,
-      namespaceId: newBlock.namespaceId,
-    },
-    ...page.properties.contents.slice(position),
-  ];
-  const updatedPage = await dataSources.db.updateEntity({ ...page });
-
-  return updatedPage as DbPage;
-};

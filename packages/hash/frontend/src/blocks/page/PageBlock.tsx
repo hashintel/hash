@@ -398,11 +398,11 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       let newNodes = await Promise.all(
         contents?.map(async (block) => {
           const {
-              children,
-              childEntityId = null,
-              childEntityNamespaceId = null,
-              ...props
-            } = block.entity;
+            children,
+            childEntityId = null,
+            childEntityNamespaceId = null,
+            ...props
+          } = block.entity;
 
           const id = componentIdToName(block.componentId);
 
@@ -415,8 +415,8 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
               props,
               entityId: block.entityId,
               namespaceId: block.namespaceId,
-                    childEntityId,
-                    childEntityNamespaceId,
+              childEntityId,
+              childEntityNamespaceId,
             },
             children?.map((child: any) => {
               if (child.type === "text") {

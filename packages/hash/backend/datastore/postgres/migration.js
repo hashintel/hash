@@ -32,16 +32,16 @@ const main = async () => {
 
   const pool = new pg.Pool(cfg);
 
-  const tx = async (f) => {
+  const tx = async (fn) => {
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
-      const res = await f(client);
+      const res = await fn(client);
       await client.query("COMMIT");
       return res;
-    } catch (e) {
+    } catch (err) {
       await client.query("ROLLBACK");
-      throw e;
+      throw err;
     } finally {
       client.release();
     }

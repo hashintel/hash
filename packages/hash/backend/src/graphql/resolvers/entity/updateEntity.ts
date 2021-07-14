@@ -26,17 +26,14 @@ export const updateEntity: Resolver<
 
   entity.properties = propertiesToUpdate;
 
-  const updatedEntity = await dataSources.db.updateEntity({
+  // TODO: catch error and check if it's a not found
+  const updatedEntities = await dataSources.db.updateEntity({
     namespaceId,
     id,
     properties: propertiesToUpdate,
   });
-  if (!updatedEntity) {
-    throw new ApolloError(
-      `Entity ${id} does not exist in namespace ${namespaceId}`,
-      "NOT_FOUND"
-    );
-  }
 
-  return updatedEntity as DbUnknownEntity;
+  // TODO: for now, all entities are non-versioned, so the list array only have a single
+  // element. Return when versioned entities are implemented at the API layer.
+  return updatedEntities[0] as DbUnknownEntity;
 };
