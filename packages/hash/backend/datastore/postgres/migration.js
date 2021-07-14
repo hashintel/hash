@@ -14,11 +14,11 @@ const fs = require("fs");
 
 const main = async () => {
   const cfg = {
-    host: process.env.HASH_PG_HOST ?? "localhost",
-    user: process.env.HASH_PG_USER ?? "postgres",
+    host: process.env.HASH_PG_HOST || "localhost",
+    user: process.env.HASH_PG_USER || "postgres",
     port: process.env.HASH_PG_PORT ? parseInt(process.env.HASH_PG_PORT) : 5432,
-    database: process.env.HASH_PG_DATABASE ?? "postgres",
-    password: process.env.HASH_PG_PASSWORD ?? "postgres",
+    database: process.env.HASH_PG_DATABASE || "postgres",
+    password: process.env.HASH_PG_PASSWORD || "postgres",
   };
 
   let refresh = false;
