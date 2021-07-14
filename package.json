@@ -36,7 +36,7 @@
     "fmt-check:hash-frontend": "yarn ws:hash-frontend fmt-check",
     "fmt-check:hash-integration": "yarn ws:hash-integration fmt-check",
     "fmt-check": "yarn all --parallel fmt-check:*",
-    "refresh-pg": "cd packages/hash/backend && yarn refresh-pg && cd ../integration && yarn mock-data"
+    "refresh-pg": "cd packages/hash/backend && yarn clear-pg && cd ../integration && yarn mock-data"
   },
   "devDependencies": {
     "concurrently": "6.2.0",
