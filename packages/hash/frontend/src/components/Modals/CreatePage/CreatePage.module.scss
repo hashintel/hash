@@ -4,8 +4,9 @@
   }
 
   h2 {
-    margin-top: 0;
-    margin-bottom: 40px;
+    font-size: 26px;
+    font-weight: 600;
+    margin-bottom: 30px;
   }
 
   label {
@@ -17,6 +18,7 @@
   input {
     padding: 12px 20px;
     border-radius: 4px;
+    border: 1px solid lightgray;
     font-size: 16px;
     margin-bottom: 30px;
     width: 100%;
