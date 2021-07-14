@@ -13,7 +13,7 @@
     "dev": "export NODE_ENV=development && nodemon src/index.ts",
     "build": "echo 'Compiling Typescript' && tsc",
     "postinstall": "yarn codegen",
-    "rebuild:docker": "docker compose build --no-cache",
+    "rebuild:docker": "docker-compose build --no-cache",
     "start:docker": "docker-compose -f docker-compose.yml up",
     "start": "export NODE_ENV=production && node dist/index.js",
     "codegen": "graphql-codegen --config codegen.yml # backend",
