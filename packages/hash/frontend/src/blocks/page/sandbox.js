@@ -28,8 +28,6 @@ import {
 } from "./tsUtils";
 import { defineBlock } from "./utils";
 
-console.log(styles);
-
 // @todo maybe don't need this to be abstracted
 // const selectNode = (tr, pos, newNode) => {
 //   tr.setSelection(
