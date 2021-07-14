@@ -1,10 +1,22 @@
 # HASH.dev
 
 ## Start the backend
-`yarn serve:hashai-backend`
 
-## Start the frontend
-`yarn serve:hashai-frontend`
+```
+yarn serve:hash-backend
+```
+
+On first run, or if you want to reset the database to the initial mock data, 
+after starting the backend run:
+```
+yarn seed-db
+```
+
+## Install the frontend and required remote blocks
+`yarn install:demo`
+
+## Start the frontend and required blocks
+`yarn demo-sans-backend`
 
 ## Create a new block bundle from template
 1. `yarn new:block <name>`

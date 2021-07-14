@@ -1,5 +1,6 @@
 import { ReactNode, VoidFunctionComponent } from "react";
 import { Dialog } from "@headlessui/react";
+import { tw } from "twind";
 
 type ModalProps = {
   children: ReactNode;
@@ -14,12 +15,14 @@ export const Modal: VoidFunctionComponent<ModalProps> = ({
 }) => {
   return (
     <Dialog
-      className="fixed z-10 inset-0 overflow-y-auto flex h-screen justify-center items-center"
+      className={tw`fixed z-10 inset-0 overflow-y-auto flex h-screen justify-center items-center`}
       open={show}
       onClose={close}
     >
-      <Dialog.Overlay className="fixed inset-0 bg-black opacity-80" />
-      <div className="inline-block w-full max-w-lg p-12 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-xl">
+      <Dialog.Overlay className={tw`fixed inset-0 bg-black opacity-80`} />
+      <div
+        className={tw`inline-block w-full max-w-lg p-12 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-xl`}
+      >
         {children}
       </div>
     </Dialog>
