@@ -53,3 +53,58 @@ export const gatherLinks = (entity: Entity): string[] => {
 
   return linkedEntityIds;
 };
+
+/** Mutate an entitiy's properties **in-place** by replacing all linked data from
+ * one entity ID to another entity ID.
+*/
+export const replaceLink = (entity: Entity, replace: { old: string, new: string }) => {
+  // Need to do special cases for now like in `gatherLinks` above.
+
+  if (entity.type === "Block") {
+    if (entity.properties.entityId === replace.old) {
+      entity.properties.entityId = replace.new;
+    }
+    return;
+  }
+
+  if (entity.type === "Page") {
+    for (let i = 0; i < entity.properties.contents.length; i++) {
+      const item = entity.properties.contents[i];
+      if (item.entityId === replace.old) {
+        item.entityId = replace.new;
+      }
+    }
+    return;
+  }
+
+  if (!isObject(entity.properties)) {
+    throw new Error(
+      `entity ${entity.id} has invalid type for field "properties"`
+    );
+  }
+
+  // TODO: there's some duplication here with `gatherLinks`. Consider refactoring
+  // the search into a separate function.
+  const stack: any[] = Object.values(entity.properties).filter(isObjectOrArray);
+  while (stack.length > 0) {
+    const item = stack.pop();
+
+    if (Array.isArray(item)) {
+      stack.push(...item.filter(isObjectOrArray));
+      continue;
+    }
+
+    const entityId = item.__linkedData?.entityId;
+    if (entityId) {
+      if (entityId === replace.old) {
+        item.__linkedData.entityId = replace.new;
+      }
+    } else {
+      stack.push(...Object.values(item).filter(isObjectOrArray));
+    }
+  }
+};
+
+export const entityNotFoundError = (ref: { namespaceId: string, id: string }) => {
+  return new Error(`entity ${ref.id} not found in namespace ${ref.namespaceId}`);
+};

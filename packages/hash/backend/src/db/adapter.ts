@@ -42,7 +42,7 @@ export interface DBAdapter extends DataSource {
     id: string;
     type?: string;
     properties: any;
-  }): Promise<Entity | undefined>;
+  }): Promise<Entity[]>;
 
   /** Get all entities of a given type. */
   getEntitiesByType(params: {

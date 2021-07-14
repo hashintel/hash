@@ -3,7 +3,7 @@ import { DataSource } from "apollo-datasource";
 
 import { DBAdapter, Entity } from "../adapter";
 import { genEntityId } from "../../util";
-import { gatherLinks } from "./util";
+import { gatherLinks, entityNotFoundError, replaceLink } from "./util";
 
 /** Get a required environment variable. Throws an error if it's not set. */
 const getRequiredEnv = (name: string) => {
@@ -168,7 +168,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       `insert into entities (
           shard_id, id, type, properties, history_id, created_by, created_at, updated_at
         )
-        values ($1, $2, $3, $4, $5, $6, $7)`,
+        values ($1, $2, $3, $4, $5, $6, $7, $8)`,
       [
         params.namespaceId,
         params.id,
@@ -283,6 +283,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     client: PoolClient,
     params: { namespaceId: string; id: string }
   ): Promise<Entity | undefined> {
+    console.log("_getEntity params = ", params);
     const res = await client.query(
       `select
         e.shard_id, e.id, t.name as type, e.properties, e.created_by, e.created_at,
@@ -385,7 +386,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     const now = new Date();
     const res = await client.query(
       `update entities set properties = $1, updated_at = $2
-      where shard_id = $3 and entity_id = $4`,
+      where shard_id = $3 and id = $4`,
       [params.newProperties, now, params.entity.namespaceId, params.entity.id]
     );
 
@@ -399,6 +400,76 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     } as Entity;
   }
 
+  /** Get the IDs of all entities which refrence a given entity. */
+  private async getEntityParentIDs(
+    client: PoolClient,
+    entity: Entity,
+  ) {
+    const res = await client.query(
+      `select parent_shard_id, parent_id from incoming_links
+      where shard_id = $1 and entity_id = $2`,
+      [entity.namespaceId, entity.id]
+    );
+    if (res.rowCount === 0) {
+      return [];
+    }
+    return res.rows.map((row) => ({
+      namespaceId: row["parent_shard_id"] as string,
+      id: row["parent_id"] as string,
+    }));
+  }
+
+  private async _updateEntity(
+    client: PoolClient,
+    params: {
+      namespaceId: string;
+      id: string;
+      type?: string;
+      properties: any;
+    }
+  ): Promise<Entity[]> {
+    const entity = await this._getEntity(client, params);
+    if (!entity) {
+      throw entityNotFoundError({ ...params });
+    }
+
+    if (params.type && params.type !== entity.type) {
+      throw new Error("types don't match"); // TODO: better error
+    }
+
+    if (entity.history) {
+      const updatedEntity = await this.updateVersionedEntity(client, {
+        entity,
+        newProperties: params.properties,
+      });
+
+      // Updating a versioned entity creates a new entity with a new ID. We need to
+      // update all entities which reference this entity with this ID.
+      // TODO: there's redundant _getEntity fetching here. Could refactor the function
+      // signature to take the old state of the entity.
+      const parentRefs = await this.getEntityParentIDs(client, updatedEntity);
+      const parents = await Promise.all(parentRefs.map(async (ref) => {
+        const parent = await this._getEntity(client, ref);
+        if (!parent) {
+          throw entityNotFoundError(ref);
+        }
+        return parent;
+      }));
+      const updatedParents = await Promise.all(parents.map(async (parent) => {
+        replaceLink(parent, { old: entity.id, new: updatedEntity.id });
+        return await this._updateEntity(client, { ...parent });
+      }));
+
+      return [updatedEntity].concat(updatedParents.flat());
+    }
+
+    const updatedEntity = await this.updateNonVersionedEntity(client, {
+      entity,
+      newProperties: params.properties,
+    });
+    return [updatedEntity];
+  }
+
   /** Update an entity's properties. If the "type" parameter is provided, the function
    * checks that it matches the entity's type. Returns `undefined` if the entity does
    * not exist in the given namespace.
@@ -408,27 +479,9 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     id: string;
     type?: string;
     properties: any;
-  }): Promise<Entity | undefined> {
+  }): Promise<Entity[]> {
     return await this.tx(async (client) => {
-      const entity = await this._getEntity(client, params);
-      if (!entity) {
-        return undefined;
-      }
-
-      if (params.type && params.type !== entity.type) {
-        throw new Error("types don't match"); // TODO: better error
-      }
-
-      if (entity.history) {
-        return await this.updateVersionedEntity(client, {
-          entity,
-          newProperties: params.properties,
-        });
-      }
-      return await this.updateNonVersionedEntity(client, {
-        entity,
-        newProperties: params.properties,
-      });
+      return await this._updateEntity(client, params);
     });
   }
 
