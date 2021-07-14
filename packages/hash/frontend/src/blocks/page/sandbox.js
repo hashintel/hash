@@ -28,15 +28,6 @@ import {
 } from "./tsUtils";
 import { defineBlock } from "./utils";
 
-// @todo maybe don't need this to be abstracted
-// const selectNode = (tr, pos, newNode) => {
-//   tr.setSelection(
-//     newNode.isTextblock
-//       ? TextSelection.create(tr.doc, tr.mapping.map(pos) + newNode.nodeSize - 1)
-//       : NodeSelection.create(tr.doc, tr.mapping.map(pos - 1))
-//   );
-// };
-
 /**
  * We setup two versions of the history plugin, because we occasionally temporarily want to ensure that all updates made
  * between two points are absorbed into a single history item. We need a more sophisticated way of manipulating history
@@ -321,7 +312,7 @@ class AsyncView {
         tr.replaceRangeWith(pos, pos + node.nodeSize, newNode);
 
         if (node.attrs.autofocus) {
-          // selectNode(tr, pos, newNode);
+          // @todo trigger a node selection
         } else {
           document.body.focus();
         }
