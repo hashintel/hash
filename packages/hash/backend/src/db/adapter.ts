@@ -6,9 +6,15 @@ export type Entity = {
   createdById: string;
   type: string;
   properties: any;
+  metadata: EntityMeta;
   history?: string;
   createdAt: Date;
   updatedAt: Date;
+};
+
+export type EntityMeta = {
+  metadataId: string;
+  extra: any;
 };
 
 /**
@@ -54,4 +60,11 @@ export interface DBAdapter extends DataSource {
    * namespace ID equals the entity ID
    */
   getNamespaceEntities(): Promise<Entity[]>;
+
+  /** Update the metadata which may be associated with one or more entities. */
+  updateEntityMetadata(params: {
+    namespaceId: string;
+    metadataId: string;
+    extra: any;
+  }): Promise<EntityMeta>;
 }
