@@ -108,11 +108,6 @@ export const replaceLink = (
   }
 };
 
-export const entityNotFoundError = (ref: {
-  namespaceId: string;
-  id: string;
-}) => {
-  return new Error(
-    `entity ${ref.id} not found in namespace ${ref.namespaceId}`
-  );
+export const entityNotFoundError = (ref: { accountId: string; id: string }) => {
+  return new Error(`entity ${ref.id} not found in account ${ref.accountId}`);
 };

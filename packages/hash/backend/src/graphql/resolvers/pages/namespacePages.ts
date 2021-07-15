@@ -13,11 +13,12 @@ export const namespacePages: Resolver<
   QueryNamespacePagesArgs
 > = async (_, { namespaceId }, { dataSources }) => {
   const pages = await dataSources.db.getEntitiesByType({
-    namespaceId,
+    accountId: namespaceId,
     type: "Page",
   });
   return pages.map((page) => ({
     ...page,
+    namespaceId: page.accountId,
     visibility: Visibility.Public, // TODO: get from entity metadata
   })) as DbPage[];
 };
