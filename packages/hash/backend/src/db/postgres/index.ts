@@ -249,23 +249,13 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
         updatedAt: now,
       });
 
-      // If the entity is versioned, insert a corresponding history entity
-      if (historyId) {
-        await this.insertHistoryEntity(client, {
-          namespaceId: params.namespaceId,
-          historyId,
-          entityId: id,
-          entityCreatedAt: now,
-        });
-      }
-
       const entity: Entity = {
         namespaceId: params.namespaceId,
-        id: id,
+        id,
         createdById: params.createdById,
         type: params.type,
         properties: params.properties,
-        history: historyId,
+        historyId,
         metadata,
         createdAt: now,
         updatedAt: now,
@@ -313,7 +303,6 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     client: PoolClient,
     params: { namespaceId: string; id: string }
   ): Promise<Entity | undefined> {
-    console.log("_getEntity params = ", params);
     const res = await client.query(
       `select
         e.shard_id, e.id, t.name as type, e.properties, e.created_by, e.created_at,
@@ -342,7 +331,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       createdById: row["created_by"],
       type: row["type"],
       properties: row["properties"],
-      history: row["history_id"],
+      historyId: row["history_id"],
       metadata: {
         metadataId: row["metadata_id"],
         extra: row["extra"],
@@ -374,7 +363,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       newProperties: any;
     }
   ) {
-    if (!params.entity.history) {
+    if (!params.entity.historyId) {
       throw new Error("cannot create new version of non-versioned entity"); // TODO: better error
     }
 
@@ -401,7 +390,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     });
     await this.insertHistoryEntity(client, {
       namespaceId: newEntityVersion.namespaceId,
-      historyId: newEntityVersion.history!,
+      historyId: newEntityVersion.historyId!,
       entityId: newEntityVersion.id,
       entityCreatedAt: newEntityVersion.createdAt,
     });
@@ -416,7 +405,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       newProperties: any;
     }
   ) {
-    if (params.entity.history) {
+    if (params.entity.historyId) {
       throw new Error("cannot in-place update a versioned entity"); // TODO: better error
     }
 
@@ -476,7 +465,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       throw new Error("types don't match"); // TODO: better error
     }
 
-    if (entity.history) {
+    if (entity.historyId) {
       const updatedEntity = await this.updateVersionedEntity(client, {
         entity,
         newProperties: params.properties,
@@ -536,7 +525,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     const res = await this.pool.query(
       `select
         e.shard_id, e.id, t.name as type, e.properties, e.created_by, e.created_at,
-        e.updated_at, e.metadata_id, meta.extra
+        e.updated_at, e.metadata_id, e.history_id, meta.extra
       from
         entities as e
         join entity_types as t on e.type = t.id
@@ -554,6 +543,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       createdById: row["created_by"],
       type: row["type"],
       properties: row["properties"],
+      historyId: row["history_id"],
       metadata: {
         metadataId: row["metadata_id"],
         extra: row["extra"],
@@ -584,6 +574,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       createdById: row["created_by"],
       type: row["type"],
       properties: row["properties"],
+      historyId: row["history_id"],
       metadata: {
         metadataId: row["metadata_id"],
         extra: row["extra"],

@@ -7,7 +7,7 @@ export type Entity = {
   type: string;
   properties: any;
   metadata: EntityMeta;
-  history?: string;
+  historyId: string | undefined;
   createdAt: Date;
   updatedAt: Date;
 };
