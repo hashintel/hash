@@ -24,7 +24,7 @@ create table if not exists entity_metadata (
 
 create table if not exists entities (
     account_id  uuid not null references accounts (account_id),
-    id          uuid not null,
+    entity_id   uuid not null,
     type        integer not null references entity_types (id),
     properties  jsonb not null,
     history_id  uuid,
@@ -35,17 +35,17 @@ create table if not exists entities (
 
     foreign key (account_id, metadata_id) references entity_metadata (account_id, metadata_id),
 
-    primary key(account_id, id)
+    primary key(account_id, entity_id)
 );
 create index if not exists entities_history on entities (account_id, history_id);
 
 
-/** For entity ID : shard ID lookups */
+/** For entity ID : account ID lookups */
 create table if not exists entity_shard (
     entity_id  uuid not null primary key,
     account_id uuid not null,
 
-    foreign key (account_id, entity_id) references entities (account_id, id)
+    foreign key (account_id, entity_id) references entities (account_id, entity_id)
 );
 
 
@@ -56,8 +56,8 @@ create table if not exists outgoing_links (
     child_account_id uuid not null,
     child_id         uuid not null,
 
-    foreign key (account_id, entity_id) references entities (account_id, id),
-    foreign key (child_account_id, child_id) references entities (account_id, id),
+    foreign key (account_id, entity_id) references entities (account_id, entity_id),
+    foreign key (child_account_id, child_id) references entities (account_id, entity_id),
 
     primary key (account_id, entity_id, child_id)
 );
@@ -70,8 +70,8 @@ create table if not exists incoming_links (
     parent_account_id uuid not null,
     parent_id         uuid not null,
 
-    foreign key (account_id, entity_id) references entities (account_id, id),
-    foreign key (parent_account_id, parent_id) references entities (account_id, id),
+    foreign key (account_id, entity_id) references entities (account_id, entity_id),
+    foreign key (parent_account_id, parent_id) references entities (account_id, entity_id),
 
     primary key (account_id, entity_id, parent_id)
 );

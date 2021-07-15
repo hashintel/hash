@@ -167,7 +167,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   ) {
     await client.query(
       `insert into entities (
-          account_id, id, type, properties, history_id, metadata_id, created_by,
+          account_id, entity_id, type, properties, history_id, metadata_id, created_by,
           created_at, updated_at
         )
         values ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
@@ -305,8 +305,8 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   ): Promise<Entity | undefined> {
     const res = await client.query(
       `select
-        e.account_id, e.id, t.name as type, e.properties, e.created_by, e.created_at,
-        e.updated_at, e.history_id, e.metadata_id, meta.extra
+        e.account_id, e.entity_id, t.name as type, e.properties, e.created_by,
+        e.created_at, e.updated_at, e.history_id, e.metadata_id, meta.extra
       from
         entities as e
         join entity_types as t on e.type = t.id
@@ -314,7 +314,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
           e.account_id = meta.account_id and  -- required for sharding
           e.metadata_id = meta.metadata_id
       where
-        e.account_id = $1 and e.id = $2`,
+        e.account_id = $1 and e.entity_id = $2`,
       [params.accountId, params.id]
     );
 
@@ -327,7 +327,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     const row = res.rows[0];
     const entity: Entity = {
       accountId: row["account_id"],
-      id: row["id"],
+      id: row["entity_id"],
       createdById: row["created_by"],
       type: row["type"],
       properties: row["properties"],
@@ -417,7 +417,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     const now = new Date();
     const res = await client.query(
       `update entities set properties = $1, updated_at = $2
-      where account_id = $3 and id = $4`,
+      where account_id = $3 and entity_id = $4`,
       [params.newProperties, now, params.entity.accountId, params.entity.id]
     );
 
@@ -524,8 +524,8 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   }): Promise<Entity[]> {
     const res = await this.pool.query(
       `select
-        e.account_id, e.id, t.name as type, e.properties, e.created_by, e.created_at,
-        e.updated_at, e.metadata_id, e.history_id, meta.extra
+        e.account_id, e.entity_id, t.name as type, e.properties, e.created_by,
+        e.created_at, e.updated_at, e.metadata_id, e.history_id, meta.extra
       from
         entities as e
         join entity_types as t on e.type = t.id
@@ -539,7 +539,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
 
     return res.rows.map((row) => ({
       accountId: row["account_id"],
-      id: row["id"],
+      id: row["entity_id"],
       createdById: row["created_by"],
       type: row["type"],
       properties: row["properties"],
@@ -557,8 +557,8 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   async getNamespaceEntities(): Promise<Entity[]> {
     const res = await this.pool.query(
       `select
-        e.account_id, e.id, t.name as type, e.properties, e.created_by, e.created_at,
-        e.updated_at, e.metadata_id, meta.extra
+        e.account_id, e.entity_id, t.name as type, e.properties, e.created_by,
+        e.created_at, e.updated_at, e.metadata_id, meta.extra
       from
         entities as e
         join entity_types as t on e.type = t.id
@@ -566,11 +566,11 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
           meta.account_id = e.account_id  -- required for sharding
           and meta.metadata_id = e.metadata_id
       where
-        e.account_id = e.id`
+        e.account_id = e.entity_id`
     );
     return res.rows.map((row) => ({
       accountId: row["account_id"],
-      id: row["id"],
+      id: row["entity_id"],
       createdById: row["created_by"],
       type: row["type"],
       properties: row["properties"],
