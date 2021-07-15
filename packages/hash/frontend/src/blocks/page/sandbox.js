@@ -678,7 +678,7 @@ const rewrapCommand = (idGenerator) => (newState, dispatch) => {
       node.type.name !== "async" &&
       node.type.name !== "blank"
     ) {
-      const newSteps = tr.steps.slice(stepCount);
+      let newSteps = tr.steps.slice(stepCount);
       stepCount = tr.steps.length;
       for (const newStep of newSteps) {
         const map = newStep.getMap();
@@ -687,15 +687,30 @@ const rewrapCommand = (idGenerator) => (newState, dispatch) => {
       const $from = tr.doc.resolve(mapping.map(pos));
       const $to = tr.doc.resolve(mapping.map(pos + node.nodeSize));
       const range = $from.blockRange($to);
+      let generatedId = idGenerator?.(pos, pos + node.nodeSize) ?? uuid();
       tr.wrap(range, [
         {
           type: newState.schema.nodes.block,
           attrs: {
-            prosemirrorBlockId:
-              idGenerator?.(pos, pos + node.nodeSize) ?? uuid(),
+            prosemirrorBlockId: generatedId,
           },
         },
       ]);
+
+      newSteps = tr.steps.slice(stepCount);
+      stepCount = tr.steps.length;
+      for (const newStep of newSteps) {
+        const map = newStep.getMap();
+        mapping.appendMap(map);
+      }
+
+      if (!generatedId) {
+        // @todo probably want to reset namespaceId too?
+        tr.setNodeMarkup(mapping.map(pos), undefined, {
+          entityId: null,
+          childEntityId: null,
+        });
+      }
     }
     return false;
   });
@@ -791,11 +806,10 @@ const wrapCommand = (command) => (state, dispatch, view) => {
   tr.setMeta("commandWrapped", false);
 
   rewrapCommand((start, end) => {
-    const mappedId = mappedIds.find(
-      (id) => id.startMapped === start && id.endMapped === end
-    );
+    // @todo is not matching end fine?
+    const mappedId = mappedIds.find((id) => id.startMapped === start);
 
-    return mappedId?.attrs?.prosemirrorBlockId ?? uuid();
+    return mappedId?.attrs?.prosemirrorBlockId ?? "";
   })(nextState2, (nextTr) => {
     for (const step of nextTr.steps) {
       tr.step(step);
@@ -837,13 +851,6 @@ const plugins = [
   new Plugin({
     appendTransaction(transactions, __, newState) {
       if (!transactions.some((tr) => tr.getMeta("commandWrapped"))) {
-        for (const tr of transactions) {
-          const ids = tr.getMeta("idsToPosition");
-          if (ids) {
-            console.log(ids.map((id) => [id]));
-          }
-        }
-
         let tr;
 
         rewrapCommand()(newState, (dispatchedTr) => {

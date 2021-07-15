@@ -70,6 +70,8 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
      * prosemirror text nodes / the order of / the creation of / ther deletion of blocks (noting that changing block
      * type is a deletion & a creation at once). Saves can be handled directly by the blocks implementation using the
      * update callbacks
+     *
+     * @todo something in this code is breaking when creating multiple new nodes at once
      */
     (window as any).triggerSave = () => {
       /**
@@ -404,8 +406,9 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     const { view, schema } = prosemirrorSetup.current;
 
     // @todo support cancelling this
-    (async () => {
-      const { tr } = view.state;
+    let triggerSave = async (): Promise<void> => {
+      let state = view.state;
+      const { tr } = state;
 
       const newNodes = await Promise.all(
         contents?.map(async (block) => {
@@ -446,10 +449,21 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
         }) ?? []
       );
 
+      /**
+       * The view's state may have changed, making our current transaction invalid – so lets start again.
+       *
+       * @todo probably better way of dealing with this
+       */
+      if (view.state !== state) {
+        return triggerSave();
+      }
+
       // This creations a transaction to replace the entire content of the document
-      tr.replaceWith(0, view.state.doc.content.size, newNodes);
+      tr.replaceWith(0, state.doc.content.size, newNodes);
       view.dispatch(tr);
-    })();
+    };
+
+    triggerSave();
   }, [contents]);
 
   return (
