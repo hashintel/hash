@@ -1,7 +1,7 @@
 import { Pool, PoolClient } from "pg";
 import { DataSource } from "apollo-datasource";
 
-import { DBAdapter, Entity } from "../adapter";
+import { DBAdapter, Entity, EntityMeta } from "../adapter";
 import { genEntityId } from "../../util";
 import { gatherLinks, entityNotFoundError, replaceLink } from "./util";
 
@@ -159,6 +159,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       typeId: number;
       properties: any;
       historyId?: string;
+      metadataId: string;
       createdById: string;
       createdAt: Date;
       updatedAt: Date;
@@ -166,20 +167,37 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   ) {
     await client.query(
       `insert into entities (
-          shard_id, id, type, properties, history_id, created_by, created_at, updated_at
+          shard_id, id, type, properties, history_id, metadata_id, created_by,
+          created_at, updated_at
         )
-        values ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        values ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
       [
         params.namespaceId,
         params.id,
         params.typeId,
         params.properties,
         params.historyId,
+        params.metadataId,
         params.createdById,
         params.createdAt,
         params.updatedAt,
       ]
     );
+  }
+
+  private async insertEntityMetadata(
+    client: PoolClient,
+    params: {
+      namespaceId: string;
+      metadataId: string;
+      extra: any;
+    }
+  ): Promise<EntityMeta> {
+    await client.query(
+      "insert into entity_metadata (shard_id, metadata_id, extra) values ($1, $2, $3)",
+      [params.namespaceId, params.metadataId, params.extra]
+    );
+    return { ...params } as EntityMeta;
   }
 
   /**
@@ -212,12 +230,21 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
         (await this.createEntityType(client, params.type));
 
       const historyId = params.versioned ? genEntityId() : undefined;
+      const metadataId = genEntityId();
+
+      // TODO: defer FK and run concurrently with insertEntity
+      const metadata = await this.insertEntityMetadata(client, {
+        namespaceId: params.namespaceId,
+        metadataId,
+        extra: {}, // TODO: decide what to put in here
+      });
 
       await this.insertEntity(client, {
         ...params,
         id,
         typeId: entityTypeId,
         historyId,
+        metadataId,
         createdAt: now,
         updatedAt: now,
       });
@@ -238,11 +265,14 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
         createdById: params.createdById,
         type: params.type,
         properties: params.properties,
+        history: historyId,
+        metadata,
         createdAt: now,
         updatedAt: now,
       };
 
       // Make a reference to this entity's shard in the `entity_shard` lookup table
+      // TODO: defer FK constraint and run concurrently with insertEntity
       await client.query(
         "insert into entity_shard (entity_id, shard_id) values ($1, $2)",
         [entity.id, entity.namespaceId]
@@ -287,10 +317,13 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     const res = await client.query(
       `select
         e.shard_id, e.id, t.name as type, e.properties, e.created_by, e.created_at,
-        e.updated_at
+        e.updated_at, e.history_id, e.metadata_id, meta.extra
       from
         entities as e
         join entity_types as t on e.type = t.id
+        join entity_metadata as meta on
+          e.shard_id = meta.shard_id and  -- required for sharding
+          e.metadata_id = meta.metadata_id
       where
         e.shard_id = $1 and e.id = $2`,
       [params.namespaceId, params.id]
@@ -309,6 +342,11 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       createdById: row["created_by"],
       type: row["type"],
       properties: row["properties"],
+      history: row["history_id"],
+      metadata: {
+        metadataId: row["metadata_id"],
+        extra: row["extra"],
+      },
       createdAt: row["created_at"],
       updatedAt: row["updated_at"],
     };
@@ -356,7 +394,11 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
 
     // TODO: if we defer the FK between entity_history and entities table, these two
     // queries may be performed concurrently.
-    await this.insertEntity(client, { ...newEntityVersion, typeId });
+    await this.insertEntity(client, {
+      ...newEntityVersion,
+      typeId,
+      metadataId: newEntityVersion.metadata.metadataId,
+    });
     await this.insertHistoryEntity(client, {
       namespaceId: newEntityVersion.namespaceId,
       historyId: newEntityVersion.history!,
@@ -494,10 +536,13 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     const res = await this.pool.query(
       `select
         e.shard_id, e.id, t.name as type, e.properties, e.created_by, e.created_at,
-        e.updated_at
+        e.updated_at, e.metadata_id, meta.extra
       from
         entities as e
         join entity_types as t on e.type = t.id
+        join entity_metadata as meta on
+          meta.shard_id = e.shard_id  -- required for sharding
+          and meta.metadata_id = e.metadata_id
       where
         e.shard_id = $1 and t.name = $2`,
       [params.namespaceId, params.type]
@@ -509,6 +554,10 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       createdById: row["created_by"],
       type: row["type"],
       properties: row["properties"],
+      metadata: {
+        metadataId: row["metadata_id"],
+        extra: row["extra"],
+      },
       createdAt: row["created_at"],
       updatedAt: row["updated_at"],
     }));
@@ -519,10 +568,13 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     const res = await this.pool.query(
       `select
         e.shard_id, e.id, t.name as type, e.properties, e.created_by, e.created_at,
-        e.updated_at
+        e.updated_at, e.metadata_id, meta.extra
       from
         entities as e
         join entity_types as t on e.type = t.id
+        join entity_metadata as meta on
+          meta.shard_id = e.shard_id  -- required for sharding
+          and meta.metadata_id = e.metadata_id
       where
         e.shard_id = e.id`
     );
@@ -532,8 +584,27 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       createdById: row["created_by"],
       type: row["type"],
       properties: row["properties"],
+      metadata: {
+        metadataId: row["metadata_id"],
+        extra: row["extra"],
+      },
       createdAt: row["created_at"],
       updatedAt: row["updated_at"],
     }));
+  }
+
+  async updateEntityMetadata(params: {
+    namespaceId: string;
+    metadataId: string;
+    extra: any;
+  }): Promise<EntityMeta> {
+    const res = await this.pool.query(
+      `update entity_metadata set extra = $1 where shard_id = $2 and metadata_id = $3`,
+      [params.extra, params.namespaceId, params.metadataId]
+    );
+    if (res.rowCount !== 1) {
+      throw new Error("internal error"); // TODO: better erorr message
+    }
+    return { ...params };
   }
 }
