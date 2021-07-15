@@ -24,6 +24,12 @@ export const baseSchemaConfig = {
           tag: 'div[data-hash-type="block"]',
         },
       ],
+      attrs: {
+        /**
+         * Using this to detect when prosemirror has duplicated a node – this must be unique, unlike other ids
+         */
+        prosemirrorBlockId: { default: null },
+      },
     },
     text: {},
     async: {

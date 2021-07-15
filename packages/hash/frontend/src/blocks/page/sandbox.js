@@ -16,6 +16,7 @@ import { Schema } from "prosemirror-model";
 import { undoInputRule } from "prosemirror-inputrules";
 import { dropCursor } from "prosemirror-dropcursor";
 import { liftTarget, Mapping } from "prosemirror-transform";
+import { v4 as uuid } from "uuid";
 import { baseSchemaConfig } from "./config";
 
 import styles from "./style.module.css";
@@ -665,6 +666,45 @@ class BlockView {
 
 const schema = new Schema(baseSchemaConfig);
 
+const rewrapCommand = (idGenerator) => (newState, dispatch) => {
+  const tr = newState.tr;
+
+  const mapping = new Mapping();
+  let stepCount = tr.steps.length;
+
+  newState.doc.descendants((node, pos) => {
+    if (
+      node.type.name !== "block" &&
+      node.type.name !== "async" &&
+      node.type.name !== "blank"
+    ) {
+      const newSteps = tr.steps.slice(stepCount);
+      stepCount = tr.steps.length;
+      for (const newStep of newSteps) {
+        const map = newStep.getMap();
+        mapping.appendMap(map);
+      }
+      const $from = tr.doc.resolve(mapping.map(pos));
+      const $to = tr.doc.resolve(mapping.map(pos + node.nodeSize));
+      const range = $from.blockRange($to);
+      tr.wrap(range, [
+        {
+          type: newState.schema.nodes.block,
+          attrs: {
+            prosemirrorBlockId:
+              idGenerator?.(pos, pos + node.nodeSize) ?? uuid(),
+          },
+        },
+      ]);
+    }
+    return false;
+  });
+
+  dispatch?.(tr);
+
+  return true;
+};
+
 /**
  * This wraps a prosemirror command to unwrap relevant nodes out of their containing block node in order to ensure
  * prosemirror logic that expects text block nodes to be at the top level works as intended. Rewrapping after the
@@ -680,6 +720,8 @@ const wrapCommand = (command) => (state, dispatch, view) => {
 
   const tr = state.tr;
 
+  const idsToPosition = [];
+
   /**
    * First we apply changes to the transaction to unwrap every block
    */
@@ -689,11 +731,19 @@ const wrapCommand = (command) => (state, dispatch, view) => {
     }
 
     if (node.firstChild.isTextblock) {
-      const $from = tr.doc.resolve(tr.mapping.map(pos + 1));
-      const $to = tr.doc.resolve(tr.mapping.map(pos + node.nodeSize - 1));
+      let start = pos + 1;
+      const $from = tr.doc.resolve(tr.mapping.map(start));
+      let end = pos + node.nodeSize - 1;
+      const $to = tr.doc.resolve(tr.mapping.map(end));
       const range = $from.blockRange($to);
       const target = liftTarget(range);
       tr.lift(range, target);
+
+      idsToPosition.push({
+        attrs: node.attrs,
+        start,
+        end,
+      });
     }
 
     return false;
@@ -723,6 +773,30 @@ const wrapCommand = (command) => (state, dispatch, view) => {
    * @todo is this sufficient to merge transactions?
    */
   const retVal = command(nextState, (nextTr) => {
+    for (const step of nextTr.steps) {
+      tr.step(step);
+    }
+  });
+
+  let mappedIds = idsToPosition.map((obj) => ({
+    ...obj,
+    startMapped: tr.mapping.map(obj.start),
+    endMapped: tr.mapping.map(obj.end),
+  }));
+
+  tr.setMeta("idsToPosition", mappedIds);
+
+  tr.setMeta("commandWrapped", true);
+  const nextState2 = state.apply(tr);
+  tr.setMeta("commandWrapped", false);
+
+  rewrapCommand((start, end) => {
+    const mappedId = mappedIds.find(
+      (id) => id.startMapped === start && id.endMapped === end
+    );
+
+    return mappedId?.attrs?.prosemirrorBlockId ?? uuid();
+  })(nextState2, (nextTr) => {
     for (const step of nextTr.steps) {
       tr.step(step);
     }
@@ -763,28 +837,17 @@ const plugins = [
   new Plugin({
     appendTransaction(transactions, __, newState) {
       if (!transactions.some((tr) => tr.getMeta("commandWrapped"))) {
-        const tr = newState.tr;
-        const mapping = new Mapping();
-        let stepCount = tr.steps.length;
-
-        newState.doc.descendants((node, pos) => {
-          if (
-            node.type.name !== "block" &&
-            node.type.name !== "async" &&
-            node.type.name !== "blank"
-          ) {
-            const newSteps = tr.steps.slice(stepCount);
-            stepCount = tr.steps.length;
-            for (const newStep of newSteps) {
-              const map = newStep.getMap();
-              mapping.appendMap(map);
-            }
-            const $from = tr.doc.resolve(mapping.map(pos));
-            const $to = tr.doc.resolve(mapping.map(pos + node.nodeSize));
-            const range = $from.blockRange($to);
-            tr.wrap(range, [{ type: newState.schema.nodes.block }]);
+        for (const tr of transactions) {
+          const ids = tr.getMeta("idsToPosition");
+          if (ids) {
+            console.log(ids.map((id) => [id]));
           }
-          return false;
+        }
+
+        let tr;
+
+        rewrapCommand()(newState, (dispatchedTr) => {
+          tr = dispatchedTr;
         });
 
         return tr;
