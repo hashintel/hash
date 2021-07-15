@@ -16,13 +16,13 @@ export const updatePage: Resolver<
   // transaction.
   const existingEntity = await dataSources.db.getEntity({
     accountId: namespaceId,
-    id,
+    entityId: id,
   });
 
   // TODO: catch error and check if it's a not found
   const updatedEntities = await dataSources.db.updateEntity({
     accountId: namespaceId,
-    id,
+    entityId: id,
     properties: {
       ...(existingEntity?.properties ?? {}),
       ...properties,
@@ -34,6 +34,7 @@ export const updatePage: Resolver<
   // element. Return when versioned entities are implemented at the API layer.
   return {
     ...updatedEntities[0],
+    id: updatedEntities[0].entityId,
     namespaceId: updatedEntities[0].accountId,
     visibility: Visibility.Public, // TODO: get from entity metadata
   } as DbPage;

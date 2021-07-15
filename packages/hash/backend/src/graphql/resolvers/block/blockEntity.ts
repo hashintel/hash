@@ -12,7 +12,7 @@ export const blockEntity: Resolver<
 > = async ({ namespaceId, entityId, entityType }, {}, { dataSources }) => {
   const entity = await dataSources.db.getEntity({
     accountId: namespaceId,
-    id: entityId,
+    entityId: entityId,
   });
   if (!entity) {
     throw new ApolloError(`Entity id ${entityId} not found`, "NOT_FOUND");
@@ -25,6 +25,7 @@ export const blockEntity: Resolver<
 
   return {
     ...entity,
+    id: entity.entityId,
     namespaceId: entity.accountId,
     visibility: Visibility.Public, // TODO: get from entity metadata
   };

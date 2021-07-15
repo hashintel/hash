@@ -31,7 +31,7 @@ export const insertBlockIntoPage: Resolver<
 
   const page = await dataSources.db.getEntity({
     accountId: namespaceId,
-    id: pageId,
+    entityId: pageId,
   });
   if (!page) {
     throw new ApolloError(
@@ -45,7 +45,7 @@ export const insertBlockIntoPage: Resolver<
     // Update
     entity = await dataSources.db.getEntity({
       accountId: namespaceId,
-      id: entityId,
+      entityId: entityId,
     });
     if (!entity) {
       throw new ApolloError(`entity ${entityId} not found`, "NOT_FOUND");
@@ -67,7 +67,7 @@ export const insertBlockIntoPage: Resolver<
   const blockProperties = {
     componentId,
     entityType: entity.type,
-    entityId: entity.id,
+    entityId: entity.entityId,
     namespaceId: entity.accountId,
   };
 
@@ -86,7 +86,7 @@ export const insertBlockIntoPage: Resolver<
     ...page.properties.contents.slice(0, position),
     {
       type: "Block",
-      entityId: newBlock.id,
+      entityId: newBlock.entityId,
       namespaceId: newBlock.accountId,
     },
     ...page.properties.contents.slice(position),
@@ -97,6 +97,7 @@ export const insertBlockIntoPage: Resolver<
   // element. Return when versioned entities are implemented at the API layer.
   return {
     ...updatedEntities[0],
+    id: updatedEntities[0].entityId,
     namespaceId: updatedEntities[0].accountId,
     visibility: Visibility.Public, // TODO: get from entity metadata
   } as DbPage;

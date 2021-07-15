@@ -2,7 +2,7 @@ import { DataSource } from "apollo-datasource";
 
 export type Entity = {
   accountId: string;
-  id: string;
+  entityId: string;
   createdById: string;
   type: string;
   properties: any;
@@ -27,7 +27,7 @@ export interface DBAdapter extends DataSource {
    * */
   createEntity(params: {
     accountId: string;
-    id?: string;
+    entityId?: string;
     createdById: string;
     type: string;
     versioned?: boolean;
@@ -37,7 +37,7 @@ export interface DBAdapter extends DataSource {
   /** Get an entity by ID in a given namespace. */
   getEntity(params: {
     accountId: string;
-    id: string;
+    entityId: string;
   }): Promise<Entity | undefined>;
 
   /** Update an entity's properties. If the parameter "type" is provided, the function
@@ -45,7 +45,7 @@ export interface DBAdapter extends DataSource {
    */
   updateEntity(params: {
     accountId: string;
-    id: string;
+    entityId: string;
     type?: string;
     properties: any;
   }): Promise<Entity[]>;

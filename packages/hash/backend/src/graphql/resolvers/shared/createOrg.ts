@@ -17,7 +17,7 @@ export const createOrg: Resolver<
 
   const entity = await dataSources.db.createEntity({
     accountId: id,
-    id,
+    entityId: id,
     createdById: genEntityId(), // TODO
     type: "Org",
     properties: { shortname },
@@ -25,6 +25,7 @@ export const createOrg: Resolver<
 
   const org: DbOrg = {
     ...entity,
+    id: entity.entityId,
     namespaceId: entity.accountId,
     type: "Org",
     visibility: Visibility.Public, // TODO

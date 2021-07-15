@@ -22,6 +22,7 @@ export const createEntity: Resolver<
 
   const entity: DbUnknownEntity = {
     ...dbEntity,
+    id: dbEntity.entityId,
     namespaceId: dbEntity.accountId,
     visibility: Visibility.Public, // TODO: should be a param?,
   };

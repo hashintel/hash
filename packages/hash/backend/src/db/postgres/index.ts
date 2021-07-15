@@ -90,12 +90,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     await client.query(
       `insert into outgoing_links (account_id, entity_id, child_account_id, child_id)
       values ($1, $2, $3, $4)`,
-      [
-        params.accountId,
-        params.entityId,
-        params.childAccountId,
-        params.childId,
-      ]
+      [params.accountId, params.entityId, params.childAccountId, params.childId]
     );
   }
 
@@ -155,7 +150,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     client: PoolClient,
     params: {
       accountId: string;
-      id: string;
+      entityId: string;
       typeId: number;
       properties: any;
       historyId?: string;
@@ -173,7 +168,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
         values ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
       [
         params.accountId,
-        params.id,
+        params.entityId,
         params.typeId,
         params.properties,
         params.historyId,
@@ -201,18 +196,18 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   }
 
   /**
-   * Create a new entity. If "id" is not provided it will be automatically generated. To
-   * create a versioned entity, set the optional parameter "versioned" to `true`.
+   * Create a new entity. If entityId is not provided it will be automatically generated.
+   * To create a versioned entity, set the optional parameter "versioned" to `true`.
    * */
   async createEntity(params: {
     accountId: string;
-    id?: string;
+    entityId?: string;
     createdById: string;
     type: string;
     versioned?: boolean;
     properties: any;
   }): Promise<Entity> {
-    const id = params.id ?? genEntityId();
+    const entityId = params.entityId ?? genEntityId();
     const now = new Date();
 
     const entity = await this.tx(async (client) => {
@@ -241,7 +236,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
 
       await this.insertEntity(client, {
         ...params,
-        id,
+        entityId: entityId,
         typeId: entityTypeId,
         historyId,
         metadataId,
@@ -251,7 +246,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
 
       const entity: Entity = {
         accountId: params.accountId,
-        id,
+        entityId: entityId,
         createdById: params.createdById,
         type: params.type,
         properties: params.properties,
@@ -265,7 +260,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       // TODO: defer FK constraint and run concurrently with insertEntity
       await client.query(
         "insert into entity_shard (entity_id, account_id) values ($1, $2)",
-        [entity.id, entity.accountId]
+        [entity.entityId, entity.accountId]
       );
 
       // Gather the links this entity makes and insert incoming and outgoing references:
@@ -279,7 +274,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
           await Promise.all([
             this.createOutgoingLink(client, {
               accountId: entity.accountId,
-              entityId: entity.id,
+              entityId: entity.entityId,
               childAccountId: accountId,
               childId: dstId,
             }),
@@ -287,7 +282,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
               accountId: accountId,
               entityId: dstId,
               parentAccountId: entity.accountId,
-              parentId: entity.id,
+              parentId: entity.entityId,
             }),
           ]);
         })
@@ -301,7 +296,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
 
   private async _getEntity(
     client: PoolClient,
-    params: { accountId: string; id: string }
+    params: { accountId: string; entityId: string }
   ): Promise<Entity | undefined> {
     const res = await client.query(
       `select
@@ -315,7 +310,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
           e.metadata_id = meta.metadata_id
       where
         e.account_id = $1 and e.entity_id = $2`,
-      [params.accountId, params.id]
+      [params.accountId, params.entityId]
     );
 
     if (res.rowCount === 0) {
@@ -327,7 +322,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     const row = res.rows[0];
     const entity: Entity = {
       accountId: row["account_id"],
-      id: row["entity_id"],
+      entityId: row["entity_id"],
       createdById: row["created_by"],
       type: row["type"],
       properties: row["properties"],
@@ -346,7 +341,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   /** Get an entity by ID in a given namespace. */
   async getEntity(params: {
     accountId: string;
-    id: string;
+    entityId: string;
   }): Promise<Entity | undefined> {
     const client = await this.pool.connect();
     try {
@@ -375,7 +370,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     const now = new Date();
     const newEntityVersion: Entity = {
       ...params.entity,
-      id: genEntityId(),
+      entityId: genEntityId(),
       properties: params.newProperties,
       createdAt: now,
       updatedAt: now,
@@ -391,7 +386,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     await this.insertHistoryEntity(client, {
       accountId: newEntityVersion.accountId,
       historyId: newEntityVersion.historyId!,
-      entityId: newEntityVersion.id,
+      entityId: newEntityVersion.entityId,
       entityCreatedAt: newEntityVersion.createdAt,
     });
 
@@ -418,7 +413,12 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     const res = await client.query(
       `update entities set properties = $1, updated_at = $2
       where account_id = $3 and entity_id = $4`,
-      [params.newProperties, now, params.entity.accountId, params.entity.id]
+      [
+        params.newProperties,
+        now,
+        params.entity.accountId,
+        params.entity.entityId,
+      ]
     );
 
     if (res.rowCount === 0) {
@@ -436,14 +436,14 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     const res = await client.query(
       `select parent_account_id, parent_id from incoming_links
       where account_id = $1 and entity_id = $2`,
-      [entity.accountId, entity.id]
+      [entity.accountId, entity.entityId]
     );
     if (res.rowCount === 0) {
       return [];
     }
     return res.rows.map((row) => ({
       accountId: row["parent_account_id"] as string,
-      id: row["parent_id"] as string,
+      entityId: row["parent_id"] as string,
     }));
   }
 
@@ -451,7 +451,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     client: PoolClient,
     params: {
       accountId: string;
-      id: string;
+      entityId: string;
       type?: string;
       properties: any;
     }
@@ -487,7 +487,10 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       );
       const updatedParents = await Promise.all(
         parents.map(async (parent) => {
-          replaceLink(parent, { old: entity.id, new: updatedEntity.id });
+          replaceLink(parent, {
+            old: entity.entityId,
+            new: updatedEntity.entityId,
+          });
           return await this._updateEntity(client, parent);
         })
       );
@@ -508,7 +511,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
    */
   async updateEntity(params: {
     accountId: string;
-    id: string;
+    entityId: string;
     type?: string;
     properties: any;
   }): Promise<Entity[]> {
@@ -539,7 +542,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
 
     return res.rows.map((row) => ({
       accountId: row["account_id"],
-      id: row["entity_id"],
+      entityId: row["entity_id"],
       createdById: row["created_by"],
       type: row["type"],
       properties: row["properties"],
@@ -570,7 +573,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     );
     return res.rows.map((row) => ({
       accountId: row["account_id"],
-      id: row["entity_id"],
+      entityId: row["entity_id"],
       createdById: row["created_by"],
       type: row["type"],
       properties: row["properties"],

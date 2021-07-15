@@ -40,6 +40,7 @@ export const aggregateEntity: Resolver<
     )
     .map((entity) => ({
       ...entity,
+      id: entity.entityId,
       namespaceId: entity.accountId,
       visibility: Visibility.Public,
     })) as DbUnknownEntity[];

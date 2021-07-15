@@ -18,6 +18,7 @@ export const namespacePages: Resolver<
   });
   return pages.map((page) => ({
     ...page,
+    id: page.entityId,
     namespaceId: page.accountId,
     visibility: Visibility.Public, // TODO: get from entity metadata
   })) as DbPage[];

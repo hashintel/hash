@@ -16,7 +16,7 @@ export const entity: Resolver<
 > = async (_, { namespaceId, id }, { dataSources }) => {
   const dbEntity = await dataSources.db.getEntity({
     accountId: namespaceId,
-    id,
+    entityId: id,
   });
   if (!dbEntity) {
     throw new ApolloError(
@@ -26,6 +26,7 @@ export const entity: Resolver<
 
   const entity: DbUnknownEntity = {
     ...dbEntity,
+    id: dbEntity.entityId,
     namespaceId: dbEntity.accountId,
     visibility: Visibility.Public, // TODO: should be a param?
   };

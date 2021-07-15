@@ -14,7 +14,7 @@ export const contents: Resolver<
     contents.map(async ({ namespaceId, entityId }) => {
       return await dataSources.db.getEntity({
         accountId: namespaceId,
-        id: entityId,
+        entityId: entityId,
       });
     })
   );
@@ -29,9 +29,12 @@ export const contents: Resolver<
     }
   });
 
-  return entities.map((entity) => ({
+  const res = entities.map((entity) => ({
     ...entity,
+    id: entity!.entityId,
     namespaceId: entity!.accountId,
     visibility: Visibility.Public, // TODO: get from entity metadata
   })) as DbBlock[];
+
+  return res;
 };

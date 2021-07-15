@@ -18,7 +18,7 @@ export const createUser: Resolver<
 
   const entity = await dataSources.db.createEntity({
     accountId: id,
-    id,
+    entityId: id,
     createdById: id, // Users "create" themselves
     type: "User",
     properties: { email, shortname },
@@ -26,6 +26,7 @@ export const createUser: Resolver<
 
   const user: DbUser = {
     ...entity,
+    id: entity.entityId,
     namespaceId: entity.accountId,
     type: "User",
     visibility: Visibility.Public, // TODO

@@ -12,6 +12,7 @@ export const namespaces: Resolver<
   return entities.map((entity) => {
     return {
       ...entity,
+      id: entity.entityId,
       namespaceId: entity.accountId,
       visibility: Visibility.Public, // TODO: get from entity metadata
     } as DbUser | DbOrg;

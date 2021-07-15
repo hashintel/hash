@@ -28,7 +28,7 @@ export const gatherLinks = (entity: Entity): string[] => {
 
   if (!isObject(entity.properties)) {
     throw new Error(
-      `entity ${entity.id} has invalid type for field "properties"`
+      `entity ${entity.entityId} has invalid type for field "properties"`
     );
   }
 
@@ -82,7 +82,7 @@ export const replaceLink = (
 
   if (!isObject(entity.properties)) {
     throw new Error(
-      `entity ${entity.id} has invalid type for field "properties"`
+      `entity ${entity.entityId} has invalid type for field "properties"`
     );
   }
 
@@ -108,6 +108,11 @@ export const replaceLink = (
   }
 };
 
-export const entityNotFoundError = (ref: { accountId: string; id: string }) => {
-  return new Error(`entity ${ref.id} not found in account ${ref.accountId}`);
+export const entityNotFoundError = (ref: {
+  accountId: string;
+  entityId: string;
+}) => {
+  return new Error(
+    `entity ${ref.entityId} not found in account ${ref.accountId}`
+  );
 };

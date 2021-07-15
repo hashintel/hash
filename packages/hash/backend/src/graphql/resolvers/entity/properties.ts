@@ -69,7 +69,7 @@ const resolveLinkedData = async (
       // Fetch a single entity and resolve any linked data in it
       const entity = await ctx.dataSources.db.getEntity({
         accountId: accountId,
-        id: entityId,
+        entityId: entityId,
       });
       if (!entity) {
         throw new Error(
@@ -78,6 +78,7 @@ const resolveLinkedData = async (
       }
       const dbEntity: DbUnknownEntity = {
         ...entity,
+        id: entity.entityId,
         namespaceId: entity.accountId,
         __typename: entityType,
         visibility: Visibility.Public, // TODO

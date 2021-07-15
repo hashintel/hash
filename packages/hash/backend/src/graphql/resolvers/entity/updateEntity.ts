@@ -17,7 +17,10 @@ export const updateEntity: Resolver<
   // TODO: doing a select & update for now. See if just update is possible, if not,
   // need to use a transaction
 
-  const entity = await dataSources.db.getEntity({ accountId: namespaceId, id });
+  const entity = await dataSources.db.getEntity({
+    accountId: namespaceId,
+    entityId: id,
+  });
   if (!entity) {
     throw new ApolloError(
       `Entity ${id} does not exist in namespace ${namespaceId}`,
@@ -33,7 +36,7 @@ export const updateEntity: Resolver<
   // TODO: catch error and check if it's a not found
   const updatedEntities = await dataSources.db.updateEntity({
     accountId: namespaceId,
-    id,
+    entityId: id,
     properties: propertiesToUpdate,
   });
 
@@ -41,6 +44,7 @@ export const updateEntity: Resolver<
   // element. Return when versioned entities are implemented at the API layer.
   return {
     ...updatedEntities[0],
+    id: updatedEntities[0].entityId,
     namespaceId: updatedEntities[0].accountId,
     visibility: Visibility.Public, // TODO: get from entity metadata
   } as DbUnknownEntity;
