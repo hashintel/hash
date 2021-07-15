@@ -590,6 +590,10 @@ class BlockView {
                 attrs: {
                   entityId: text ? node.attrs.entityId : null,
                   childEntityId: text ? node.attrs.childEntityId : null,
+                  namespaceId: node.attrs.namespaceId,
+                  childEntityNamespaceId: text
+                    ? node.attrs.childEntityNamespaceId
+                    : null,
                 },
                 children: text ? [state.schema.text(text)] : [],
                 marks: null,
