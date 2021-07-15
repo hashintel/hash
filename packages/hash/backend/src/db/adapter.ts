@@ -1,8 +1,8 @@
 import { DataSource } from "apollo-datasource";
 
 export type Entity = {
-  namespaceId: string;
-  id: string;
+  accountId: string;
+  entityId: string;
   createdById: string;
   type: string;
   properties: any;
@@ -26,8 +26,8 @@ export interface DBAdapter extends DataSource {
    * create a versioned entity, set the optional parameter "versioned" to `true`.
    * */
   createEntity(params: {
-    namespaceId: string;
-    id?: string;
+    accountId: string;
+    entityId?: string;
     createdById: string;
     type: string;
     versioned?: boolean;
@@ -36,23 +36,23 @@ export interface DBAdapter extends DataSource {
 
   /** Get an entity by ID in a given namespace. */
   getEntity(params: {
-    namespaceId: string;
-    id: string;
+    accountId: string;
+    entityId: string;
   }): Promise<Entity | undefined>;
 
   /** Update an entity's properties. If the parameter "type" is provided, the function
    * checks that the entity's type matches before updating.
    */
   updateEntity(params: {
-    namespaceId: string;
-    id: string;
+    accountId: string;
+    entityId: string;
     type?: string;
     properties: any;
   }): Promise<Entity[]>;
 
   /** Get all entities of a given type. */
   getEntitiesByType(params: {
-    namespaceId: string;
+    accountId: string;
     type: string;
   }): Promise<Entity[]>;
 
@@ -63,7 +63,7 @@ export interface DBAdapter extends DataSource {
 
   /** Update the metadata which may be associated with one or more entities. */
   updateEntityMetadata(params: {
-    namespaceId: string;
+    accountId: string;
     metadataId: string;
     extra: any;
   }): Promise<EntityMeta>;

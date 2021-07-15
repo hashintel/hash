@@ -17,8 +17,8 @@ export const createUser: Resolver<
   // TODO: should check for uniqueness of email
 
   const entity = await dataSources.db.createEntity({
-    namespaceId: id,
-    id,
+    accountId: id,
+    entityId: id,
     createdById: id, // Users "create" themselves
     type: "User",
     properties: { email, shortname },
@@ -26,6 +26,8 @@ export const createUser: Resolver<
 
   const user: DbUser = {
     ...entity,
+    id: entity.entityId,
+    namespaceId: entity.accountId,
     type: "User",
     visibility: Visibility.Public, // TODO
   };

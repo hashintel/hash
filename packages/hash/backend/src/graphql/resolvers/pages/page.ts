@@ -10,7 +10,10 @@ export const page: Resolver<
   GraphQLContext,
   QueryPageArgs
 > = async (_, { namespaceId, id }, { dataSources }) => {
-  const entity = await dataSources.db.getEntity({ namespaceId, id });
+  const entity = await dataSources.db.getEntity({
+    accountId: namespaceId,
+    entityId: id,
+  });
   if (!entity) {
     throw new ApolloError(`Page id ${id} not found`, "NOT_FOUND");
   }
@@ -19,5 +22,10 @@ export const page: Resolver<
   }
 
   // TODO: get visibility from entity metadata
-  return { ...entity, visibility: Visibility.Public } as DbPage;
+  return {
+    ...entity,
+    id: entity.entityId,
+    namespaceId: entity.accountId,
+    visibility: Visibility.Public,
+  } as DbPage;
 };
