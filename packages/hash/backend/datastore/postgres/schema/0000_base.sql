@@ -4,7 +4,7 @@ create table if not exists entity_types (
 );
 
 
-create table if not exists shards (
+create table if not exists accounts (
     account_id uuid primary key
 );
 
@@ -23,7 +23,7 @@ create table if not exists entity_metadata (
 
 
 create table if not exists entities (
-    account_id  uuid not null references shards (account_id),
+    account_id  uuid not null references accounts (account_id),
     id          uuid not null,
     type        integer not null references entity_types (id),
     properties  jsonb not null,

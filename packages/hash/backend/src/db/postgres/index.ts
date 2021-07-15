@@ -219,7 +219,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       // Create the shard if it does not already exist
       // TODO: this should be performed in a "createNamespace" function, or similar.
       await client.query(
-        `insert into shards (account_id) values ($1)
+        `insert into accounts (account_id) values ($1)
         on conflict (account_id) do nothing`,
         [params.namespaceId]
       );
