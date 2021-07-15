@@ -41,7 +41,7 @@ create index if not exists entities_history on entities (account_id, history_id)
 
 
 /** For entity ID : account ID lookups */
-create table if not exists entity_shard (
+create table if not exists entity_account (
     entity_id  uuid not null primary key,
     account_id uuid not null,
 

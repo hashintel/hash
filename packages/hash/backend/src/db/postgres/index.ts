@@ -117,7 +117,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
 
   private async getEntityNamespace(client: PoolClient, entityId: string) {
     const res = await client.query(
-      "select account_id from entity_shard where entity_id = $1",
+      "select account_id from entity_account where entity_id = $1",
       [entityId]
     );
     return res.rowCount === 0 ? null : (res.rows[0]["account_id"] as string);
@@ -256,10 +256,10 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
         updatedAt: now,
       };
 
-      // Make a reference to this entity's shard in the `entity_shard` lookup table
+      // Make a reference to this entity's shard in the `entity_account` lookup table
       // TODO: defer FK constraint and run concurrently with insertEntity
       await client.query(
-        "insert into entity_shard (entity_id, account_id) values ($1, $2)",
+        "insert into entity_account (entity_id, account_id) values ($1, $2)",
         [entity.entityId, entity.accountId]
       );
 
