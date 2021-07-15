@@ -9,17 +9,15 @@ export const blockEntity: Resolver<
   DbBlockProperties,
   GraphQLContext,
   {}
-> = async ({ namespaceId, entityId, entityType }, {}, { dataSources }) => {
+> = async ({ namespaceId, entityId }, {}, { dataSources }) => {
   const entity = await dataSources.db.getEntity({
     accountId: namespaceId,
     entityId: entityId,
   });
   if (!entity) {
-    throw new ApolloError(`Entity id ${entityId} not found`, "NOT_FOUND");
-  }
-  if (entity.type !== entityType) {
     throw new ApolloError(
-      `Expected entity ID ${entityId} to be of type "${entityType}" not "${entity.type}"`
+      `Entity id ${entityId} not found in account ${namespaceId}`,
+      "NOT_FOUND"
     );
   }
 
