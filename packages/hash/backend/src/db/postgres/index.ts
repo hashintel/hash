@@ -421,7 +421,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       ]
     );
 
-    if (res.rowCount === 0) {
+    if (res.rowCount !== 1) {
       throw new Error(`expected 1 row to be updated not ${res.rowCount}`);
     }
     return {
