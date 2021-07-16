@@ -52,6 +52,18 @@ const resolveLinkedData = async (
     return;
   }
   for (const [key, value] of Object.entries(object.properties)) {
+    if (Array.isArray(value)) {
+      await Promise.all(
+        value
+          .flat(Infinity)
+          .filter(isRecord)
+          .map(
+            async (obj) => await resolveLinkedData(ctx, accountId, obj, info)
+          )
+      );
+      continue;
+    }
+
     // We're only interested in properties which link to other data
     if (!isRecord(value) || !value.__linkedData) {
       continue;
