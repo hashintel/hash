@@ -103,14 +103,6 @@ export type BlockWithoutMeta = Omit<
   Block,
   "componentMetadata" | "componentSchema"
 >;
-export const addBlockMetadata = async (
-  block: BlockWithoutMeta
-): Promise<Block> => {
-  return {
-    ...block,
-    ...(await fetchBlockMeta(block.componentId)),
-  };
-};
 
 export const componentIdToName = (componentId: string) => {
   const stripped = componentId.replace(/[^a-zA-Z0-9]/g, "");
