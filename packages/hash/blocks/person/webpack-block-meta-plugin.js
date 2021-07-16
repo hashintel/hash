@@ -14,7 +14,8 @@ const {
 class StatsPlugin {
   apply(compiler) {
     compiler.hooks.done.tap(this.constructor.name, (stats) => {
-      const { externals } = require('./webpack-main.config');
+      const { externals } = require("./webpack-main.config");
+      const variants = require("./variants.json");
 
       const blockMetadata = {
         name,
@@ -23,7 +24,8 @@ class StatsPlugin {
         author,
         license,
         externals,
-        schema: "block-schema.json"
+        schema: "block-schema.json",
+        variants,
       };
 
       const main = Object.keys(stats.compilation.assets).find((name) =>

@@ -65,6 +65,8 @@ There are a few important files, one set is used for the bundle, another set for
 
 - `src/index.js` - Entrypoint of the Block Component. The component needs to be the `default` export.
 - `src/webpack-dev-server.js` - Entrypoint for `webpack-dev-server`. This is only used for development and will not be included in the final bundle.
+- `variants.json` - Defines named presets of block properties to be presented as
+  separate or at least related block-types to the end-user.
 - `src/index.html` - HTML for `webpack-dev-server`. This is only used for development and will not be included in the final bundle.
 
 ## Debugging

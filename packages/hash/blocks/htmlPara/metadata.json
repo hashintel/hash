@@ -8,5 +8,13 @@
     "react": "react"
   },
   "schema": "block-schema.json",
-  "source": "index.html"
+  "source": "index.html",
+  "variants": [
+    {
+      "name": "inherit",
+      "description": "inherit",
+      "icon": "inherit",
+      "properties": {}
+    }
+  ]
 }
