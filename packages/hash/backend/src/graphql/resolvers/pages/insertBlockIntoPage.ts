@@ -29,7 +29,10 @@ export const insertBlockIntoPage: Resolver<
 ) => {
   // TODO: everything here should be inside a transaction
 
-  const page = await dataSources.db.getEntity({ namespaceId, id: pageId });
+  const page = await dataSources.db.getEntity({
+    accountId: namespaceId,
+    entityId: pageId,
+  });
   if (!page) {
     throw new ApolloError(
       `Could not find page with pageId ${pageId}`,
@@ -40,14 +43,17 @@ export const insertBlockIntoPage: Resolver<
   let entity;
   if (entityId) {
     // Update
-    entity = await dataSources.db.getEntity({ namespaceId, id: entityId });
+    entity = await dataSources.db.getEntity({
+      accountId: namespaceId,
+      entityId: entityId,
+    });
     if (!entity) {
       throw new ApolloError(`entity ${entityId} not found`, "NOT_FOUND");
     }
   } else if (entityProperties && entityType) {
     // Create new entity
     entity = await dataSources.db.createEntity({
-      namespaceId,
+      accountId: namespaceId,
       createdById: genEntityId(), // TODO
       type: entityType,
       properties: entityProperties,
@@ -61,12 +67,12 @@ export const insertBlockIntoPage: Resolver<
   const blockProperties = {
     componentId,
     entityType: entity.type,
-    entityId: entity.id,
-    namespaceId: entity.namespaceId,
+    entityId: entity.entityId,
+    namespaceId: entity.accountId,
   };
 
   const newBlock = await dataSources.db.createEntity({
-    namespaceId,
+    accountId: namespaceId,
     type: entity.type,
     createdById: genEntityId(), // TODO
     properties: blockProperties,
@@ -80,8 +86,8 @@ export const insertBlockIntoPage: Resolver<
     ...page.properties.contents.slice(0, position),
     {
       type: "Block",
-      entityId: newBlock.id,
-      namespaceId: newBlock.namespaceId,
+      entityId: newBlock.entityId,
+      namespaceId: newBlock.accountId,
     },
     ...page.properties.contents.slice(position),
   ];
@@ -91,6 +97,8 @@ export const insertBlockIntoPage: Resolver<
   // element. Return when versioned entities are implemented at the API layer.
   return {
     ...updatedEntities[0],
+    id: updatedEntities[0].entityId,
+    namespaceId: updatedEntities[0].accountId,
     visibility: Visibility.Public, // TODO: get from entity metadata
   } as DbPage;
 };

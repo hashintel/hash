@@ -76,40 +76,35 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   private async createOutgoingLink(
     client: PoolClient,
     params: {
-      namespaceId: string;
+      accountId: string;
       entityId: string;
-      childNamespaceId: string;
+      childAccountId: string;
       childId: string;
     }
   ) {
     await client.query(
-      `insert into outgoing_links (shard_id, entity_id, child_shard_id, child_id)
+      `insert into outgoing_links (account_id, entity_id, child_account_id, child_id)
       values ($1, $2, $3, $4)`,
-      [
-        params.namespaceId,
-        params.entityId,
-        params.childNamespaceId,
-        params.childId,
-      ]
+      [params.accountId, params.entityId, params.childAccountId, params.childId]
     );
   }
 
   private async createIncomingLink(
     client: PoolClient,
     params: {
-      namespaceId: string;
+      accountId: string;
       entityId: string;
-      parentNamespaceId: string;
+      parentAccountId: string;
       parentId: string;
     }
   ) {
     await client.query(
-      `insert into incoming_links (shard_id, entity_id, parent_shard_id, parent_id)
+      `insert into incoming_links (account_id, entity_id, parent_account_id, parent_id)
       values ($1, $2, $3, $4)`,
       [
-        params.namespaceId,
+        params.accountId,
         params.entityId,
-        params.parentNamespaceId,
+        params.parentAccountId,
         params.parentId,
       ]
     );
@@ -117,27 +112,27 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
 
   private async getEntityNamespace(client: PoolClient, entityId: string) {
     const res = await client.query(
-      "select shard_id from entity_shard where entity_id = $1",
+      "select account_id from entity_account where entity_id = $1",
       [entityId]
     );
-    return res.rowCount === 0 ? null : (res.rows[0]["shard_id"] as string);
+    return res.rowCount === 0 ? null : (res.rows[0]["account_id"] as string);
   }
 
   /** Insert a history entity corresponding to a new versioned entity. */
   private async insertHistoryEntity(
     client: PoolClient,
     params: {
-      namespaceId: string;
+      accountId: string;
       historyId: string;
       entityId: string;
       entityCreatedAt: Date;
     }
   ) {
     client.query(
-      `insert into entity_history (shard_id, history_id, entity_id, created_at)
+      `insert into entity_history (account_id, history_id, entity_id, created_at)
       values ($1, $2, $3, $4)`,
       [
-        params.namespaceId,
+        params.accountId,
         params.historyId,
         params.entityId,
         params.entityCreatedAt,
@@ -149,8 +144,8 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   private async insertEntity(
     client: PoolClient,
     params: {
-      namespaceId: string;
-      id: string;
+      accountId: string;
+      entityId: string;
       typeId: number;
       properties: any;
       historyId?: string;
@@ -162,13 +157,13 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   ) {
     await client.query(
       `insert into entities (
-          shard_id, id, type, properties, history_id, metadata_id, created_by,
+          account_id, entity_id, type, properties, history_id, metadata_id, created_by,
           created_at, updated_at
         )
         values ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
       [
-        params.namespaceId,
-        params.id,
+        params.accountId,
+        params.entityId,
         params.typeId,
         params.properties,
         params.historyId,
@@ -183,40 +178,40 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   private async insertEntityMetadata(
     client: PoolClient,
     params: {
-      namespaceId: string;
+      accountId: string;
       metadataId: string;
       extra: any;
     }
   ): Promise<EntityMeta> {
     await client.query(
-      "insert into entity_metadata (shard_id, metadata_id, extra) values ($1, $2, $3)",
-      [params.namespaceId, params.metadataId, params.extra]
+      "insert into entity_metadata (account_id, metadata_id, extra) values ($1, $2, $3)",
+      [params.accountId, params.metadataId, params.extra]
     );
-    return { ...params } as EntityMeta;
+    return params as EntityMeta;
   }
 
   /**
-   * Create a new entity. If "id" is not provided it will be automatically generated. To
-   * create a versioned entity, set the optional parameter "versioned" to `true`.
+   * Create a new entity. If entityId is not provided it will be automatically generated.
+   * To create a versioned entity, set the optional parameter "versioned" to `true`.
    * */
   async createEntity(params: {
-    namespaceId: string;
-    id?: string;
+    accountId: string;
+    entityId?: string;
     createdById: string;
     type: string;
     versioned?: boolean;
     properties: any;
   }): Promise<Entity> {
-    const id = params.id ?? genEntityId();
+    const entityId = params.entityId ?? genEntityId();
     const now = new Date();
 
     const entity = await this.tx(async (client) => {
       // Create the shard if it does not already exist
       // TODO: this should be performed in a "createNamespace" function, or similar.
       await client.query(
-        `insert into shards (shard_id) values ($1)
-        on conflict (shard_id) do nothing`,
-        [params.namespaceId]
+        `insert into accounts (account_id) values ($1)
+        on conflict (account_id) do nothing`,
+        [params.accountId]
       );
 
       // TODO: creating the entity type here if it doesn't exist. Do we want this?
@@ -229,14 +224,14 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
 
       // TODO: defer FK and run concurrently with insertEntity
       const metadata = await this.insertEntityMetadata(client, {
-        namespaceId: params.namespaceId,
+        accountId: params.accountId,
         metadataId,
         extra: {}, // TODO: decide what to put in here
       });
 
       await this.insertEntity(client, {
         ...params,
-        id,
+        entityId: entityId,
         typeId: entityTypeId,
         historyId,
         metadataId,
@@ -244,55 +239,45 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
         updatedAt: now,
       });
 
-      // If the entity is versioned, insert a corresponding history entity
-      if (historyId) {
-        await this.insertHistoryEntity(client, {
-          namespaceId: params.namespaceId,
-          historyId,
-          entityId: id,
-          entityCreatedAt: now,
-        });
-      }
-
       const entity: Entity = {
-        namespaceId: params.namespaceId,
-        id: id,
+        accountId: params.accountId,
+        entityId: entityId,
         createdById: params.createdById,
         type: params.type,
         properties: params.properties,
-        history: historyId,
+        historyId,
         metadata,
         createdAt: now,
         updatedAt: now,
       };
 
-      // Make a reference to this entity's shard in the `entity_shard` lookup table
+      // Make a reference to this entity's shard in the `entity_account` lookup table
       // TODO: defer FK constraint and run concurrently with insertEntity
       await client.query(
-        "insert into entity_shard (entity_id, shard_id) values ($1, $2)",
-        [entity.id, entity.namespaceId]
+        "insert into entity_account (entity_id, account_id) values ($1, $2)",
+        [entity.entityId, entity.accountId]
       );
 
       // Gather the links this entity makes and insert incoming and outgoing references:
       const linkedEntityIds = gatherLinks(entity);
       await Promise.all(
         linkedEntityIds.map(async (dstId) => {
-          const namespaceId = await this.getEntityNamespace(client, dstId);
-          if (!namespaceId) {
+          const accountId = await this.getEntityNamespace(client, dstId);
+          if (!accountId) {
             throw new Error(`namespace ID not found for entity ${dstId}`);
           }
           await Promise.all([
             this.createOutgoingLink(client, {
-              namespaceId: entity.namespaceId,
-              entityId: entity.id,
-              childNamespaceId: namespaceId,
+              accountId: entity.accountId,
+              entityId: entity.entityId,
+              childAccountId: accountId,
               childId: dstId,
             }),
             this.createIncomingLink(client, {
-              namespaceId,
+              accountId: accountId,
               entityId: dstId,
-              parentNamespaceId: entity.namespaceId,
-              parentId: entity.id,
+              parentAccountId: entity.accountId,
+              parentId: entity.entityId,
             }),
           ]);
         })
@@ -306,22 +291,21 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
 
   private async _getEntity(
     client: PoolClient,
-    params: { namespaceId: string; id: string }
+    params: { accountId: string; entityId: string }
   ): Promise<Entity | undefined> {
-    console.log("_getEntity params = ", params);
     const res = await client.query(
       `select
-        e.shard_id, e.id, t.name as type, e.properties, e.created_by, e.created_at,
-        e.updated_at, e.history_id, e.metadata_id, meta.extra
+        e.account_id, e.entity_id, t.name as type, e.properties, e.created_by,
+        e.created_at, e.updated_at, e.history_id, e.metadata_id, meta.extra
       from
         entities as e
         join entity_types as t on e.type = t.id
         join entity_metadata as meta on
-          e.shard_id = meta.shard_id and  -- required for sharding
+          e.account_id = meta.account_id and  -- required for sharding
           e.metadata_id = meta.metadata_id
       where
-        e.shard_id = $1 and e.id = $2`,
-      [params.namespaceId, params.id]
+        e.account_id = $1 and e.entity_id = $2`,
+      [params.accountId, params.entityId]
     );
 
     if (res.rowCount === 0) {
@@ -332,12 +316,12 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
 
     const row = res.rows[0];
     const entity: Entity = {
-      namespaceId: row["shard_id"],
-      id: row["id"],
+      accountId: row["account_id"],
+      entityId: row["entity_id"],
       createdById: row["created_by"],
       type: row["type"],
       properties: row["properties"],
-      history: row["history_id"],
+      historyId: row["history_id"],
       metadata: {
         metadataId: row["metadata_id"],
         extra: row["extra"],
@@ -351,8 +335,8 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
 
   /** Get an entity by ID in a given namespace. */
   async getEntity(params: {
-    namespaceId: string;
-    id: string;
+    accountId: string;
+    entityId: string;
   }): Promise<Entity | undefined> {
     const client = await this.pool.connect();
     try {
@@ -369,7 +353,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       newProperties: any;
     }
   ) {
-    if (!params.entity.history) {
+    if (!params.entity.historyId) {
       throw new Error("cannot create new version of non-versioned entity"); // TODO: better error
     }
 
@@ -381,7 +365,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     const now = new Date();
     const newEntityVersion: Entity = {
       ...params.entity,
-      id: genEntityId(),
+      entityId: genEntityId(),
       properties: params.newProperties,
       createdAt: now,
       updatedAt: now,
@@ -395,9 +379,9 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       metadataId: newEntityVersion.metadata.metadataId,
     });
     await this.insertHistoryEntity(client, {
-      namespaceId: newEntityVersion.namespaceId,
-      historyId: newEntityVersion.history!,
-      entityId: newEntityVersion.id,
+      accountId: newEntityVersion.accountId,
+      historyId: newEntityVersion.historyId!,
+      entityId: newEntityVersion.entityId,
       entityCreatedAt: newEntityVersion.createdAt,
     });
 
@@ -411,7 +395,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       newProperties: any;
     }
   ) {
-    if (params.entity.history) {
+    if (params.entity.historyId) {
       throw new Error("cannot in-place update a versioned entity"); // TODO: better error
     }
 
@@ -423,8 +407,13 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     const now = new Date();
     const res = await client.query(
       `update entities set properties = $1, updated_at = $2
-      where shard_id = $3 and id = $4`,
-      [params.newProperties, now, params.entity.namespaceId, params.entity.id]
+      where account_id = $3 and entity_id = $4`,
+      [
+        params.newProperties,
+        now,
+        params.entity.accountId,
+        params.entity.entityId,
+      ]
     );
 
     if (res.rowCount === 0) {
@@ -440,38 +429,38 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   /** Get the IDs of all entities which refrence a given entity. */
   private async getEntityParentIDs(client: PoolClient, entity: Entity) {
     const res = await client.query(
-      `select parent_shard_id, parent_id from incoming_links
-      where shard_id = $1 and entity_id = $2`,
-      [entity.namespaceId, entity.id]
+      `select parent_account_id, parent_id from incoming_links
+      where account_id = $1 and entity_id = $2`,
+      [entity.accountId, entity.entityId]
     );
     if (res.rowCount === 0) {
       return [];
     }
     return res.rows.map((row) => ({
-      namespaceId: row["parent_shard_id"] as string,
-      id: row["parent_id"] as string,
+      accountId: row["parent_account_id"] as string,
+      entityId: row["parent_id"] as string,
     }));
   }
 
   private async _updateEntity(
     client: PoolClient,
     params: {
-      namespaceId: string;
-      id: string;
+      accountId: string;
+      entityId: string;
       type?: string;
       properties: any;
     }
   ): Promise<Entity[]> {
     const entity = await this._getEntity(client, params);
     if (!entity) {
-      throw entityNotFoundError({ ...params });
+      throw entityNotFoundError(params);
     }
 
     if (params.type && params.type !== entity.type) {
       throw new Error("types don't match"); // TODO: better error
     }
 
-    if (entity.history) {
+    if (entity.historyId) {
       const updatedEntity = await this.updateVersionedEntity(client, {
         entity,
         newProperties: params.properties,
@@ -493,8 +482,11 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       );
       const updatedParents = await Promise.all(
         parents.map(async (parent) => {
-          replaceLink(parent, { old: entity.id, new: updatedEntity.id });
-          return await this._updateEntity(client, { ...parent });
+          replaceLink(parent, {
+            old: entity.entityId,
+            new: updatedEntity.entityId,
+          });
+          return await this._updateEntity(client, parent);
         })
       );
 
@@ -513,8 +505,8 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
    * not exist in the given namespace.
    */
   async updateEntity(params: {
-    namespaceId: string;
-    id: string;
+    accountId: string;
+    entityId: string;
     type?: string;
     properties: any;
   }): Promise<Entity[]> {
@@ -525,30 +517,31 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
 
   /** Get all entities of a given type. */
   async getEntitiesByType(params: {
-    namespaceId: string;
+    accountId: string;
     type: string;
   }): Promise<Entity[]> {
     const res = await this.pool.query(
       `select
-        e.shard_id, e.id, t.name as type, e.properties, e.created_by, e.created_at,
-        e.updated_at, e.metadata_id, meta.extra
+        e.account_id, e.entity_id, t.name as type, e.properties, e.created_by,
+        e.created_at, e.updated_at, e.metadata_id, e.history_id, meta.extra
       from
         entities as e
         join entity_types as t on e.type = t.id
         join entity_metadata as meta on
-          meta.shard_id = e.shard_id  -- required for sharding
+          meta.account_id = e.account_id  -- required for sharding
           and meta.metadata_id = e.metadata_id
       where
-        e.shard_id = $1 and t.name = $2`,
-      [params.namespaceId, params.type]
+        e.account_id = $1 and t.name = $2`,
+      [params.accountId, params.type]
     );
 
     return res.rows.map((row) => ({
-      namespaceId: row["shard_id"],
-      id: row["id"],
+      accountId: row["account_id"],
+      entityId: row["entity_id"],
       createdById: row["created_by"],
       type: row["type"],
       properties: row["properties"],
+      historyId: row["history_id"],
       metadata: {
         metadataId: row["metadata_id"],
         extra: row["extra"],
@@ -562,23 +555,24 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   async getNamespaceEntities(): Promise<Entity[]> {
     const res = await this.pool.query(
       `select
-        e.shard_id, e.id, t.name as type, e.properties, e.created_by, e.created_at,
-        e.updated_at, e.metadata_id, meta.extra
+        e.account_id, e.entity_id, t.name as type, e.properties, e.created_by,
+        e.created_at, e.updated_at, e.metadata_id, meta.extra
       from
         entities as e
         join entity_types as t on e.type = t.id
         join entity_metadata as meta on
-          meta.shard_id = e.shard_id  -- required for sharding
+          meta.account_id = e.account_id  -- required for sharding
           and meta.metadata_id = e.metadata_id
       where
-        e.shard_id = e.id`
+        e.account_id = e.entity_id`
     );
     return res.rows.map((row) => ({
-      namespaceId: row["shard_id"],
-      id: row["id"],
+      accountId: row["account_id"],
+      entityId: row["entity_id"],
       createdById: row["created_by"],
       type: row["type"],
       properties: row["properties"],
+      historyId: row["history_id"],
       metadata: {
         metadataId: row["metadata_id"],
         extra: row["extra"],
@@ -589,17 +583,17 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   }
 
   async updateEntityMetadata(params: {
-    namespaceId: string;
+    accountId: string;
     metadataId: string;
     extra: any;
   }): Promise<EntityMeta> {
     const res = await this.pool.query(
-      `update entity_metadata set extra = $1 where shard_id = $2 and metadata_id = $3`,
-      [params.extra, params.namespaceId, params.metadataId]
+      `update entity_metadata set extra = $1 where account_id = $2 and metadata_id = $3`,
+      [params.extra, params.accountId, params.metadataId]
     );
     if (res.rowCount !== 1) {
       throw new Error("internal error"); // TODO: better erorr message
     }
-    return { ...params };
+    return params;
   }
 }

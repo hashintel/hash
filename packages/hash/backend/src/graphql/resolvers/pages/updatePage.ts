@@ -14,12 +14,15 @@ export const updatePage: Resolver<
 > = async (_, { namespaceId, id, properties }, { dataSources }) => {
   // TODO: we should have the getEntity and updateEntity here in the same database
   // transaction.
-  const existingEntity = await dataSources.db.getEntity({ namespaceId, id });
+  const existingEntity = await dataSources.db.getEntity({
+    accountId: namespaceId,
+    entityId: id,
+  });
 
   // TODO: catch error and check if it's a not found
   const updatedEntities = await dataSources.db.updateEntity({
-    namespaceId,
-    id,
+    accountId: namespaceId,
+    entityId: id,
     properties: {
       ...(existingEntity?.properties ?? {}),
       ...properties,
@@ -31,6 +34,8 @@ export const updatePage: Resolver<
   // element. Return when versioned entities are implemented at the API layer.
   return {
     ...updatedEntities[0],
+    id: updatedEntities[0].entityId,
+    namespaceId: updatedEntities[0].accountId,
     visibility: Visibility.Public, // TODO: get from entity metadata
   } as DbPage;
 };

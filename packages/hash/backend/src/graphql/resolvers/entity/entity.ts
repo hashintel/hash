@@ -14,7 +14,10 @@ export const entity: Resolver<
   GraphQLContext,
   QueryEntityArgs
 > = async (_, { namespaceId, id }, { dataSources }) => {
-  const dbEntity = await dataSources.db.getEntity({ namespaceId, id });
+  const dbEntity = await dataSources.db.getEntity({
+    accountId: namespaceId,
+    entityId: id,
+  });
   if (!dbEntity) {
     throw new ApolloError(
       `Entidy id ${id} not found in namespace ${namespaceId}`
@@ -23,6 +26,8 @@ export const entity: Resolver<
 
   const entity: DbUnknownEntity = {
     ...dbEntity,
+    id: dbEntity.entityId,
+    namespaceId: dbEntity.accountId,
     visibility: Visibility.Public, // TODO: should be a param?
   };
 
