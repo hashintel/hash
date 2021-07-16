@@ -7,6 +7,7 @@ import { orgTypedef } from "./org.typedef";
 import { pageTypedef } from "./page.typedef";
 import { textTypedef } from "./text.typedef";
 import { userTypedef } from "./user.typedef";
+import { embedTypeDef } from "./embed.typedef";
 
 const baseSchema = gql`
   scalar Date
@@ -38,4 +39,5 @@ export const schema = [
   pageTypedef,
   textTypedef,
   userTypedef,
+  embedTypeDef,
 ];

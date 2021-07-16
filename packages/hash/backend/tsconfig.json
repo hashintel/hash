@@ -3,7 +3,7 @@
     "baseUrl": "./",
     "outDir": "./dist",
     "lib": [
-      "es2020"
+      "es2020", "ES2019"
     ],
     "module": "commonjs",
     "target": "es2020",
@@ -11,6 +11,7 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "strict": true,
+    "resolveJsonModule": true
   },
   "include": [
     "src"

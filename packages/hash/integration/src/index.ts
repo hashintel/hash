@@ -1,7 +1,8 @@
 export {};
 import { GraphQLClient } from "graphql-request";
 import { createOrgs, createUsers } from "./namespaces";
-import { createEntity } from "./graphql/queries/entity.queries";
+import { createEntity } from "../../frontend/src/graphql/queries/entity.queries";
+
 import {
   CreateEntityMutationVariables,
   CreateEntityMutation,

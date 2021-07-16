@@ -30,6 +30,8 @@
     "graphql-type-json": "0.3.2",
     "helmet": "4.6.0",
     "id128": "1.6.6",
+    "node-fetch": "^2.6.1",
+    "oembed-providers": "https://github.com/iamcal/oembed",
     "pg": "8.6.0"
   },
   "devDependencies": {
@@ -38,6 +40,7 @@
     "@graphql-codegen/typescript": "1.22.0",
     "@graphql-codegen/typescript-resolvers": "1.19.2",
     "@types/graphql-type-json": "0.3.2",
+    "@types/node-fetch": "^2.5.10",
     "@types/pg": "8.6.0",
     "@typescript-eslint/eslint-plugin": "4.25.0",
     "@typescript-eslint/parser": "4.25.0",

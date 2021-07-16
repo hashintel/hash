@@ -21,6 +21,7 @@ import {
 import { namespaces } from "./namespace/namespaces";
 import { createUser } from "./shared/createUser";
 import { createOrg } from "./shared/createOrg";
+import { embedCode } from "./embed";
 
 import { DbOrg, DbUser } from "../../types/dbTypes";
 
@@ -33,6 +34,7 @@ export const resolvers = {
     namespacePages,
     namespaces,
     page,
+    embedCode
   },
 
   Mutation: {
