@@ -4,15 +4,7 @@ import { DataSource } from "apollo-datasource";
 import { DBAdapter, Entity, EntityMeta } from "../adapter";
 import { genEntityId } from "../../util";
 import { gatherLinks, entityNotFoundError, replaceLink } from "./util";
-
-/** Get a required environment variable. Throws an error if it's not set. */
-const getRequiredEnv = (name: string) => {
-  const value = process.env[name];
-  if (value === undefined) {
-    throw new Error(`Environment variable ${name} is not set`);
-  }
-  return value;
-};
+import { getRequiredEnv } from "../../util";
 
 const parsePort = (str: string) => {
   if (/^\d+$/.test(str)) {
@@ -21,18 +13,21 @@ const parsePort = (str: string) => {
   throw new Error("PG_PORT must be a positive number");
 };
 
+export const createPool = () =>
+  new Pool({
+    user: getRequiredEnv("HASH_PG_USER"),
+    host: getRequiredEnv("HASH_PG_HOST"),
+    port: parsePort(getRequiredEnv("HASH_PG_PORT")),
+    database: getRequiredEnv("HASH_PG_DATABASE"),
+    password: getRequiredEnv("HASH_PG_PASSWORD"),
+  });
+
 export class PostgresAdapter extends DataSource implements DBAdapter {
   private pool: Pool;
 
   constructor() {
     super();
-    this.pool = new Pool({
-      user: getRequiredEnv("HASH_PG_USER"),
-      host: getRequiredEnv("HASH_PG_HOST"),
-      port: parsePort(getRequiredEnv("HASH_PG_PORT")),
-      database: getRequiredEnv("HASH_PG_DATABASE"),
-      password: getRequiredEnv("HASH_PG_PASSWORD"),
-    });
+    this.pool = createPool();
   }
 
   /** Execute a function inside a transaction. */
