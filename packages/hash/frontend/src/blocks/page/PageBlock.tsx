@@ -108,18 +108,11 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   const prosemirrorSetup =
     useRef<null | { view: EditorView; schema: Schema }>(null);
 
-  const currentContents = useRef(contents);
-  useLayoutEffect(() => {
-    currentContents.current = contents;
-  });
-
   useLayoutEffect(() => {
     const node = root.current!;
     const schema = new Schema(baseSchemaConfig);
 
     (window as any).triggerSave = () => {
-      const contents = currentContents.current;
-
       const blocks = view.state
         .toJSON()
         .doc.content.filter((block: any) => block.type === "block")
