@@ -54,11 +54,8 @@ export const builtInBlocks: Record<string, BlockMeta> = {
   },
 };
 
-// @todo deal with errors
-export const fetchBlockMeta = async (
-  url: string,
-  signal?: AbortSignal
-): Promise<BlockMeta> => {
+// @todo deal with errors, loading, abort etc.
+export const fetchBlockMeta = async (url: string): Promise<BlockMeta> => {
   const mappedUrl = blockPaths[url] ?? url;
   if (builtInBlocks[mappedUrl]) {
     return builtInBlocks[mappedUrl];
@@ -69,11 +66,11 @@ export const fetchBlockMeta = async (
   }
 
   const metadata: BlockMetadata = await (
-    await fetch(`${mappedUrl}/metadata.json`, { signal })
+    await fetch(`${mappedUrl}/metadata.json`)
   ).json();
 
   const schema: JSONSchema = await (
-    await fetch(`${mappedUrl}/${metadata.schema}`, { signal })
+    await fetch(`${mappedUrl}/${metadata.schema}`)
   ).json();
 
   const result: BlockMeta = {
