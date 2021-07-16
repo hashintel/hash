@@ -70,8 +70,6 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
      * prosemirror text nodes / the order of / the creation of / ther deletion of blocks (noting that changing block
      * type is a deletion & a creation at once). Saves can be handled directly by the blocks implementation using the
      * update callbacks
-     *
-     * @todo something in this code is breaking when creating multiple new nodes at once
      */
     (window as any).triggerSave = () => {
       /**

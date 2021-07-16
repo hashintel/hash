@@ -705,10 +705,11 @@ const rewrapCommand = (idGenerator) => (newState, dispatch) => {
       }
 
       if (!generatedId) {
-        // @todo probably want to reset namespaceId too?
         tr.setNodeMarkup(mapping.map(pos), undefined, {
           entityId: null,
           childEntityId: null,
+          namespaceId: null,
+          childEntityNamespaceId: null,
         });
       }
     }
@@ -735,7 +736,7 @@ const wrapCommand = (command) => (state, dispatch, view) => {
 
   const tr = state.tr;
 
-  const idsToPosition = [];
+  const unwrappedBlocks = [];
 
   /**
    * First we apply changes to the transaction to unwrap every block
@@ -754,11 +755,7 @@ const wrapCommand = (command) => (state, dispatch, view) => {
       const target = liftTarget(range);
       tr.lift(range, target);
 
-      idsToPosition.push({
-        attrs: node.attrs,
-        start,
-        end,
-      });
+      unwrappedBlocks.push([start, node.attrs.prosemirrorBlockId]);
     }
 
     return false;
@@ -793,23 +790,18 @@ const wrapCommand = (command) => (state, dispatch, view) => {
     }
   });
 
-  let mappedIds = idsToPosition.map((obj) => ({
-    ...obj,
-    startMapped: tr.mapping.map(obj.start),
-    endMapped: tr.mapping.map(obj.end),
-  }));
-
-  tr.setMeta("idsToPosition", mappedIds);
+  const positionToBlockId = new Map(
+    unwrappedBlocks.map(([loc, id]) => [tr.mapping.map(loc), id])
+  );
 
   tr.setMeta("commandWrapped", true);
   const nextState2 = state.apply(tr);
   tr.setMeta("commandWrapped", false);
 
-  rewrapCommand((start, end) => {
-    // @todo is not matching end fine?
-    const mappedId = mappedIds.find((id) => id.startMapped === start);
+  rewrapCommand((start) => {
+    const mappedId = positionToBlockId.get(start);
 
-    return mappedId?.attrs?.prosemirrorBlockId ?? "";
+    return mappedId ?? "";
   })(nextState2, (nextTr) => {
     for (const step of nextTr.steps) {
       tr.step(step);
