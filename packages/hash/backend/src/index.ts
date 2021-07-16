@@ -25,10 +25,6 @@ const apolloServer = createApolloServer(db);
 
 app.get("/", (_, res) => res.send("Hello World"));
 
-// app.post("/db-test", async (_, res) => {
-//   const rows = await db.query("SELECT 1;");
-//   res.send(rows);
-// });
 
 // Ensure the GraphQL server has started before starting the HTTP server
 apolloServer.start().then(() => {
