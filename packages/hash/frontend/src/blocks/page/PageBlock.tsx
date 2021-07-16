@@ -404,7 +404,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     const { view, schema } = prosemirrorSetup.current;
 
     // @todo support cancelling this
-    let triggerSave = async (): Promise<void> => {
+    let triggerContentUpdate = async (): Promise<void> => {
       let state = view.state;
       const { tr } = state;
 
@@ -453,7 +453,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
        * @todo probably better way of dealing with this
        */
       if (view.state !== state) {
-        return triggerSave();
+        return triggerContentUpdate();
       }
 
       // This creations a transaction to replace the entire content of the document
@@ -461,7 +461,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       view.dispatch(tr);
     };
 
-    triggerSave();
+    triggerContentUpdate();
   }, [contents]);
 
   return (
