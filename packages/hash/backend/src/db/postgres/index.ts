@@ -432,7 +432,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   }
 
   /** Get the IDs of all entities which refrence a given entity. */
-  private async getEntityParentIDs(client: PoolClient, entity: Entity) {
+  private async getEntityParentIds(client: PoolClient, entity: Entity) {
     const res = await client.query(
       `select parent_account_id, parent_id from incoming_links
       where account_id = $1 and entity_id = $2`,
@@ -475,7 +475,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       // update all entities which reference this entity with this ID.
       // TODO: there's redundant _getEntity fetching here. Could refactor the function
       // signature to take the old state of the entity.
-      const parentRefs = await this.getEntityParentIDs(client, updatedEntity);
+      const parentRefs = await this.getEntityParentIds(client, updatedEntity);
       const parents = await Promise.all(
         parentRefs.map(async (ref) => {
           const parent = await this._getEntity(client, ref);
