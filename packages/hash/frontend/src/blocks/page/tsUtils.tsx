@@ -35,7 +35,7 @@ export type Block = {
 
 export type BlockMeta = Pick<Block, "componentMetadata" | "componentSchema">;
 
-export const blockCache = new Map<string, Promise<BlockMeta>>();
+const blockCache = new Map<string, BlockMeta>();
 
 export const builtInBlocks: Record<string, BlockMeta> = {
   // @todo maybe this should be a nodeview too
@@ -68,31 +68,27 @@ export const fetchBlockMeta = async (
     return blockCache.get(mappedUrl)!;
   }
 
-  const promise = (async () => {
-    const metadata = await (
-      await fetch(`${mappedUrl}/metadata.json`, { signal })
-    ).json();
+  const metadata: BlockMetadata = await (
+    await fetch(`${mappedUrl}/metadata.json`, { signal })
+  ).json();
 
-    const schema = await (
-      await fetch(`${mappedUrl}/${metadata.schema}`, { signal })
-    ).json();
+  const schema: JSONSchema = await (
+    await fetch(`${mappedUrl}/${metadata.schema}`, { signal })
+  ).json();
 
-    const result: BlockMeta = {
-      componentMetadata: {
-        ...metadata,
-        url: mappedUrl,
-      },
-      componentSchema: schema,
-    };
-
-    return result;
-  })();
+  const result: BlockMeta = {
+    componentMetadata: {
+      ...metadata,
+      url: mappedUrl,
+    },
+    componentSchema: schema,
+  };
 
   if (typeof window !== "undefined") {
-    blockCache.set(mappedUrl, promise);
+    blockCache.set(mappedUrl, result);
   }
 
-  return await promise;
+  return result;
 };
 
 export type BlockWithoutMeta = Omit<
