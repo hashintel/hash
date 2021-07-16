@@ -16,7 +16,10 @@ const nanoid = customAlphabet(
 // Configure the logger
 const logger = winston.createLogger({
   level: "info",
-  format: winston.format.json(),
+  format: winston.format.combine(
+    winston.format.json(),
+    winston.format.timestamp()
+  ),
   defaultMeta: { service: "api" },
 });
 
@@ -63,6 +66,8 @@ app.use((req, res, next) => {
     ip: req.ip,
     path: req.path,
     message: "request",
+    userAgent: req.headers["user-agent"],
+    graphqlClient: req.headers["apollographql-client-name"],
   });
   next();
 });

@@ -5,7 +5,6 @@ import { schema } from "./typeDefs";
 import { resolvers } from "./resolvers";
 import { DBAdapter } from "../db";
 
-
 export const createApolloServer = (db: DBAdapter, logger: Logger) => {
   return new ApolloServer({
     typeDefs: schema,
@@ -14,7 +13,7 @@ export const createApolloServer = (db: DBAdapter, logger: Logger) => {
       db: db,
     }),
     context: (ctx) => ({
-      logger: logger.child({ requestId: ctx.res.get("x-hash-request-id") })
+      logger: logger.child({ requestId: ctx.res.get("x-hash-request-id") }),
     }),
     plugins: [
       {
@@ -28,10 +27,10 @@ export const createApolloServer = (db: DBAdapter, logger: Logger) => {
               } else {
                 ctx.logger.info(msg);
               }
-            }
+            },
           };
-        }
-      }
-    ]
+        },
+      },
+    ],
   });
 };
