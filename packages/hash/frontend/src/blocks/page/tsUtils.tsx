@@ -2,6 +2,7 @@ import { Schema as JSONSchema } from "jsonschema";
 import React, { ReactNode } from "react";
 import { EditorProps, NodeView } from "prosemirror-view";
 import { RemoteBlock } from "../../components/RemoteBlock/RemoteBlock";
+import { BlockMetadata } from "..";
 
 // @ts-ignore
 const contextRequire = require.context(
@@ -16,17 +17,12 @@ export const blockPaths = contextRequire(
     : "./blockPaths.sample.json"
 );
 
-// @todo this type properly exists already somewhere
 export type Block = {
   entityId: string;
   namespaceId: string;
   entity: Record<any, any>;
   componentId: string;
-  componentMetadata: {
-    name: string;
-    source?: string;
-    url: string;
-  } & (
+  componentMetadata: BlockMetadata & { url: string } & (
     | { type?: undefined }
     | {
         type: "prosemirror";
