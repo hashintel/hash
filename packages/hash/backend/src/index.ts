@@ -2,6 +2,7 @@ import express from "express";
 import { json } from "body-parser";
 import helmet from "helmet";
 import { customAlphabet } from "nanoid";
+import winston from "winston";
 
 import { PostgresAdapter } from "./db";
 import { createApolloServer } from "./graphql/createApolloServer";
@@ -11,6 +12,28 @@ const nanoid = customAlphabet(
   "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
   14
 );
+
+// Configure the logger
+const logger = winston.createLogger({
+  level: "info",
+  format: winston.format.json(),
+  defaultMeta: { service: "api" },
+});
+
+if (process.env.NODE_ENV === "development") {
+  logger.add(
+    new winston.transports.Console({
+      format: winston.format.combine(
+        winston.format.colorize(),
+        winston.format.simple()
+      ),
+    })
+  );
+} else {
+  // TODO: add production logging transport here
+  // Datadog: https://github.com/winstonjs/winston/blob/master/docs/transports.md#datadog-transport
+}
+
 // Configure the Express server
 const app = express();
 const PORT = process.env.PORT ?? 5001;
@@ -34,6 +57,13 @@ app.get("/", (_, res) => res.send("Hello World"));
 app.use((req, res, next) => {
   const requestId = nanoid();
   res.set("x-hash-request-id", requestId);
+  logger.info({
+    requestId,
+    method: req.method,
+    ip: req.ip,
+    path: req.path,
+    message: "request",
+  });
   next();
 });
 
@@ -41,5 +71,5 @@ app.use((req, res, next) => {
 apolloServer.start().then(() => {
   apolloServer.applyMiddleware({ app });
 
-  app.listen(PORT, () => console.log(`Listening on port ${PORT}`));
+  app.listen(PORT, () => logger.info(`Listening on port ${PORT}`));
 });
