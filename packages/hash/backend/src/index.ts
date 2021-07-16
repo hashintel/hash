@@ -50,7 +50,7 @@ app.use(helmet({ contentSecurityPolicy: false }));
 // Parse request body as JSON - allow higher than the default 100kb limit
 app.use(json({ limit: "16mb" }));
 
-const apolloServer = createApolloServer(db);
+const apolloServer = createApolloServer(db, logger);
 
 app.get("/", (_, res) => res.send("Hello World"));
 
