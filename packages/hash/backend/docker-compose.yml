@@ -26,6 +26,7 @@ services:
             - HASH_PG_PORT=5432
             - HASH_PG_DATABASE=postgres
             - HASH_PG_PASSWORD=postgres
+            - SESSION_SECRET=secret
         # Wait until the database is running before starting the API
         command: bash -c 'while !</dev/tcp/hash-dev-pg/5432; do sleep 1; done; yarn codegen && yarn dev'
         volumes:
