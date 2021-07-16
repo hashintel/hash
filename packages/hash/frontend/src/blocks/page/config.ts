@@ -24,7 +24,6 @@ export const baseSchemaConfig = {
           tag: 'div[data-hash-type="block"]',
         },
       ],
-      attrs: {},
     },
     text: {},
     async: {
