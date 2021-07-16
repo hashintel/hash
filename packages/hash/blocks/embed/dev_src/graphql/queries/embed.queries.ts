@@ -10,6 +10,7 @@ export const getEmbedCode = gql`
       type: $type
     ) {
       html
+      providerName
     }
   }
 `;

@@ -14,19 +14,7 @@ type AppProps = {
 };
 
 function DisplayEmbed({ embedCode }: { embedCode: string }) {
-  useEffect(() => {
-    console.log(embedCode);
-    setTimeout(() => {
-      const embedNode = document.createElement(embedCode);
-      document.querySelector("#iframeparent")!.appendChild(embedNode);
-    }, 100);
-  }, [embedCode]);
-
-  return (
-    <div id="iframeparent">
-      <div dangerouslySetInnerHTML={{ __html: embedCode }} />{" "}
-    </div>
-  );
+  return <div dangerouslySetInnerHTML={{ __html: embedCode }} />;
 }
 
 export const App: VoidFunctionComponent<AppProps & BlockProtocolProps> = ({
@@ -44,16 +32,7 @@ export const App: VoidFunctionComponent<AppProps & BlockProtocolProps> = ({
     event.preventDefault();
 
     if (inputText.trim()) {
-      const embedResponse = await getEmbedBlock(inputText, embedType);
-      console.log(embedResponse);
-
-      // fetch(`https://www.youtube.com/oembed?url=${inputText}`)
-      //   .then((response) => response.json())
-      //   .then((data: OembedResponse) => {
-      //     setEmbedCode(data.html);
-      //     setDisplayState("display_embed");
-      //     console.log(data);
-      //   });
+      await getEmbedBlock(inputText, embedType);
     }
   };
 
