@@ -666,7 +666,7 @@ class BlockView {
 
 const schema = new Schema(baseSchemaConfig);
 
-const rewrapCommand = (idGenerator) => (newState, dispatch) => {
+const rewrapCommand = (blockExisted) => (newState, dispatch) => {
   const tr = newState.tr;
 
   const mapping = new Mapping();
@@ -687,15 +687,8 @@ const rewrapCommand = (idGenerator) => (newState, dispatch) => {
       const $from = tr.doc.resolve(mapping.map(pos));
       const $to = tr.doc.resolve(mapping.map(pos + node.nodeSize));
       const range = $from.blockRange($to);
-      let generatedId = idGenerator?.(pos, pos + node.nodeSize) ?? uuid();
-      tr.wrap(range, [
-        {
-          type: newState.schema.nodes.block,
-          attrs: {
-            prosemirrorBlockId: generatedId,
-          },
-        },
-      ]);
+      const didBlockExist = blockExisted?.(pos) ?? true;
+      tr.wrap(range, [{ type: newState.schema.nodes.block }]);
 
       newSteps = tr.steps.slice(stepCount);
       stepCount = tr.steps.length;
@@ -704,7 +697,7 @@ const rewrapCommand = (idGenerator) => (newState, dispatch) => {
         mapping.appendMap(map);
       }
 
-      if (!generatedId) {
+      if (!didBlockExist) {
         tr.setNodeMarkup(mapping.map(pos), undefined, {
           entityId: null,
           childEntityId: null,
@@ -736,7 +729,7 @@ const wrapCommand = (command) => (state, dispatch, view) => {
 
   const tr = state.tr;
 
-  const unwrappedBlocks = [];
+  const blockLocations = [];
 
   /**
    * First we apply changes to the transaction to unwrap every block
@@ -755,7 +748,7 @@ const wrapCommand = (command) => (state, dispatch, view) => {
       const target = liftTarget(range);
       tr.lift(range, target);
 
-      unwrappedBlocks.push([start, node.attrs.prosemirrorBlockId]);
+      blockLocations.push(start);
     }
 
     return false;
@@ -790,23 +783,20 @@ const wrapCommand = (command) => (state, dispatch, view) => {
     }
   });
 
-  const positionToBlockId = new Map(
-    unwrappedBlocks.map(([loc, id]) => [tr.mapping.map(loc), id])
-  );
+  const mappedBlockLocations = blockLocations.map((loc) => tr.mapping.map(loc));
 
   tr.setMeta("commandWrapped", true);
   const nextState2 = state.apply(tr);
   tr.setMeta("commandWrapped", false);
 
-  rewrapCommand((start) => {
-    const mappedId = positionToBlockId.get(start);
-
-    return mappedId ?? "";
-  })(nextState2, (nextTr) => {
-    for (const step of nextTr.steps) {
-      tr.step(step);
+  rewrapCommand((start) => mappedBlockLocations.includes(start))(
+    nextState2,
+    (nextTr) => {
+      for (const step of nextTr.steps) {
+        tr.step(step);
+      }
     }
-  });
+  );
 
   dispatch(tr);
 
