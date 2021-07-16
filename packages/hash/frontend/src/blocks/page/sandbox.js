@@ -16,7 +16,6 @@ import { Schema } from "prosemirror-model";
 import { undoInputRule } from "prosemirror-inputrules";
 import { dropCursor } from "prosemirror-dropcursor";
 import { liftTarget, Mapping } from "prosemirror-transform";
-import { v4 as uuid } from "uuid";
 import { baseSchemaConfig } from "./config";
 
 import styles from "./style.module.css";
