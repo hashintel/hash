@@ -1,10 +1,16 @@
 import express from "express";
 import { json } from "body-parser";
 import helmet from "helmet";
+import { customAlphabet } from "nanoid";
 
 import { PostgresAdapter } from "./db";
 import { createApolloServer } from "./graphql/createApolloServer";
 
+// Request ID generator
+const nanoid = customAlphabet(
+  "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
+  14
+);
 // Configure the Express server
 const app = express();
 const PORT = process.env.PORT ?? 5001;
@@ -25,6 +31,11 @@ const apolloServer = createApolloServer(db);
 
 app.get("/", (_, res) => res.send("Hello World"));
 
+app.use((req, res, next) => {
+  const requestId = nanoid();
+  res.set("x-hash-request-id", requestId);
+  next();
+});
 
 // Ensure the GraphQL server has started before starting the HTTP server
 apolloServer.start().then(() => {
