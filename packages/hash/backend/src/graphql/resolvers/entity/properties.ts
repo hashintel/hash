@@ -85,13 +85,13 @@ const resolveLinkedData = async (
       });
       if (!entity) {
         throw new Error(
-          `entity ${entityId} in namespace ${accountId} not found`
+          `entity ${entityId} in account ${accountId} not found`
         );
       }
       const dbEntity: DbUnknownEntity = {
         ...entity,
         id: entity.entityId,
-        namespaceId: entity.accountId,
+        accountId: entity.accountId,
         __typename: entityType,
         visibility: Visibility.Public, // TODO
       };
@@ -107,7 +107,7 @@ const resolveLinkedData = async (
       const { results } = (await aggregateEntity(
         {},
         {
-          namespaceId: accountId,
+          accountId: accountId,
           type: entityType,
           operation: aggregate,
         },
@@ -120,7 +120,7 @@ const resolveLinkedData = async (
       await Promise.all(
         object.properties[key].map((entity: DbUnknownEntity) => {
           (entity as any).__typename = entityType;
-          return resolveLinkedData(ctx, entity.namespaceId, entity, info);
+          return resolveLinkedData(ctx, entity.accountId, entity, info);
         })
       );
     }
@@ -132,6 +132,6 @@ export const properties: Resolver<
   DbUnknownEntity,
   GraphQLContext
 > = async (entity, _, ctx, info) => {
-  await resolveLinkedData(ctx, entity.namespaceId, entity, info);
+  await resolveLinkedData(ctx, entity.accountId, entity, info);
   return entity.properties;
 };

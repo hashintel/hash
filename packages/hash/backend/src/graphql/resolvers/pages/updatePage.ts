@@ -11,17 +11,17 @@ export const updatePage: Resolver<
   {},
   GraphQLContext,
   MutationUpdatePageArgs
-> = async (_, { namespaceId, id, properties }, { dataSources }) => {
+> = async (_, { accountId, id, properties }, { dataSources }) => {
   // TODO: we should have the getEntity and updateEntity here in the same database
   // transaction.
   const existingEntity = await dataSources.db.getEntity({
-    accountId: namespaceId,
+    accountId: accountId,
     entityId: id,
   });
 
   // TODO: catch error and check if it's a not found
   const updatedEntities = await dataSources.db.updateEntity({
-    accountId: namespaceId,
+    accountId: accountId,
     entityId: id,
     properties: {
       ...(existingEntity?.properties ?? {}),
@@ -35,7 +35,7 @@ export const updatePage: Resolver<
   return {
     ...updatedEntities[0],
     id: updatedEntities[0].entityId,
-    namespaceId: updatedEntities[0].accountId,
+    accountId: updatedEntities[0].accountId,
     visibility: Visibility.Public, // TODO: get from entity metadata
   } as DbPage;
 };

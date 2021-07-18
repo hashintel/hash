@@ -17,7 +17,7 @@ export type BlockProtocolUpdatePayload<T> = {
   entityType: string;
   entityId: number | string;
   // @todo hash.dev should fill this in for blocks
-  namespaceId: number | string;
+  accountId: number | string;
   data: T;
 };
 

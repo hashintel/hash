@@ -11,9 +11,9 @@ export const contents: Resolver<
   // TODO: make a getEntities DB query which can retrieve multiple in the same
   // transaction.
   const entities = await Promise.all(
-    contents.map(async ({ namespaceId, entityId }) => {
+    contents.map(async ({ accountId, entityId }) => {
       return await dataSources.db.getEntity({
-        accountId: namespaceId,
+        accountId: accountId,
         entityId: entityId,
       });
     })
@@ -21,9 +21,9 @@ export const contents: Resolver<
 
   entities.forEach((entity, i) => {
     if (!entity) {
-      const { namespaceId, entityId } = contents[i];
+      const { accountId, entityId } = contents[i];
       throw new ApolloError(
-        `entity ${entityId} not found in namespace ${namespaceId}`,
+        `entity ${entityId} not found in account ${accountId}`,
         "NOT_FOUND"
       );
     }
@@ -32,7 +32,7 @@ export const contents: Resolver<
   const res = entities.map((entity) => ({
     ...entity,
     id: entity!.entityId,
-    namespaceId: entity!.accountId,
+    accountId: entity!.accountId,
     visibility: Visibility.Public, // TODO: get from entity metadata
   })) as DbBlock[];
 

@@ -10,9 +10,9 @@ export const blockTypedef = gql`
     """
     id: ID!
     """
-    The FIXED id for a namespace
+    The FIXED id for a account
     """
-    namespaceId: ID!
+    accountId: ID!
     """
     The date the entity was created
     """
@@ -38,7 +38,7 @@ export const blockTypedef = gql`
 
   type BlockProperties {
     entityId: ID!
-    namespaceId: ID!
+    accountId: ID!
     entity: Entity!
     entityType: String!
     componentId: ID!

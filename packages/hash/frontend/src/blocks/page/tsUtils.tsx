@@ -19,7 +19,7 @@ export const blockPaths = contextRequire(
 // @todo this type properly exists already somewhere
 export type Block = {
   entityId: string;
-  namespaceId: string;
+  accountId: string;
   entity: Record<any, any>;
   componentId: string;
   componentMetadata: {

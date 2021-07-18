@@ -13,21 +13,21 @@ export const entity: Resolver<
   {},
   GraphQLContext,
   QueryEntityArgs
-> = async (_, { namespaceId, id }, { dataSources }) => {
+> = async (_, { accountId, id }, { dataSources }) => {
   const dbEntity = await dataSources.db.getEntity({
-    accountId: namespaceId,
+    accountId: accountId,
     entityId: id,
   });
   if (!dbEntity) {
     throw new ApolloError(
-      `Entidy id ${id} not found in namespace ${namespaceId}`
+      `Entidy id ${id} not found in account ${accountId}`
     );
   }
 
   const entity: DbUnknownEntity = {
     ...dbEntity,
     id: dbEntity.entityId,
-    namespaceId: dbEntity.accountId,
+    accountId: dbEntity.accountId,
     visibility: Visibility.Public, // TODO: should be a param?
   };
 

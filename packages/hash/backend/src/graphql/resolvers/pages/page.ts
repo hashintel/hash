@@ -9,9 +9,9 @@ export const page: Resolver<
   {},
   GraphQLContext,
   QueryPageArgs
-> = async (_, { namespaceId, id }, { dataSources }) => {
+> = async (_, { accountId, id }, { dataSources }) => {
   const entity = await dataSources.db.getEntity({
-    accountId: namespaceId,
+    accountId: accountId,
     entityId: id,
   });
   if (!entity) {
@@ -25,7 +25,7 @@ export const page: Resolver<
   return {
     ...entity,
     id: entity.entityId,
-    namespaceId: entity.accountId,
+    accountId: entity.accountId,
     visibility: Visibility.Public,
   } as DbPage;
 };
