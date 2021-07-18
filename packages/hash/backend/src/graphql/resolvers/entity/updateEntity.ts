@@ -18,7 +18,7 @@ export const updateEntity: Resolver<
   // need to use a transaction
 
   const entity = await dataSources.db.getEntity({
-    accountId: accountId,
+    accountId,
     entityId: id,
   });
   if (!entity) {
@@ -35,7 +35,7 @@ export const updateEntity: Resolver<
 
   // TODO: catch error and check if it's a not found
   const updatedEntities = await dataSources.db.updateEntity({
-    accountId: accountId,
+    accountId,
     entityId: id,
     properties: propertiesToUpdate,
   });

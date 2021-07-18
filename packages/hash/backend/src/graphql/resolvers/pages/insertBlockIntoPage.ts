@@ -30,7 +30,7 @@ export const insertBlockIntoPage: Resolver<
   // TODO: everything here should be inside a transaction
 
   const page = await dataSources.db.getEntity({
-    accountId: accountId,
+    accountId,
     entityId: pageId,
   });
   if (!page) {
@@ -44,7 +44,7 @@ export const insertBlockIntoPage: Resolver<
   if (entityId) {
     // Update
     entity = await dataSources.db.getEntity({
-      accountId: accountId,
+      accountId,
       entityId: entityId,
     });
     if (!entity) {
@@ -53,7 +53,7 @@ export const insertBlockIntoPage: Resolver<
   } else if (entityProperties && entityType) {
     // Create new entity
     entity = await dataSources.db.createEntity({
-      accountId: accountId,
+      accountId,
       createdById: genEntityId(), // TODO
       type: entityType,
       properties: entityProperties,
@@ -72,7 +72,7 @@ export const insertBlockIntoPage: Resolver<
   };
 
   const newBlock = await dataSources.db.createEntity({
-    accountId: accountId,
+    accountId,
     type: entity.type,
     createdById: genEntityId(), // TODO
     properties: blockProperties,

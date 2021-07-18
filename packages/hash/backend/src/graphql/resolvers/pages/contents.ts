@@ -13,7 +13,7 @@ export const contents: Resolver<
   const entities = await Promise.all(
     contents.map(async ({ accountId, entityId }) => {
       return await dataSources.db.getEntity({
-        accountId: accountId,
+        accountId,
         entityId: entityId,
       });
     })

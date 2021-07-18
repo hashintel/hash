@@ -11,8 +11,8 @@ export const blockEntity: Resolver<
   {}
 > = async ({ accountId, entityId }, {}, { dataSources }) => {
   const entity = await dataSources.db.getEntity({
-    accountId: accountId,
-    entityId: entityId,
+    accountId,
+    entityId,
   });
   if (!entity) {
     throw new ApolloError(

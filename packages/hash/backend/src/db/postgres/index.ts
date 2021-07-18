@@ -279,7 +279,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
               childId: dstId,
             }),
             this.createIncomingLink(client, {
-              accountId: accountId,
+              accountId,
               entityId: dstId,
               parentAccountId: entity.accountId,
               parentId: entity.entityId,

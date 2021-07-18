@@ -15,13 +15,11 @@ export const entity: Resolver<
   QueryEntityArgs
 > = async (_, { accountId, id }, { dataSources }) => {
   const dbEntity = await dataSources.db.getEntity({
-    accountId: accountId,
+    accountId,
     entityId: id,
   });
   if (!dbEntity) {
-    throw new ApolloError(
-      `Entidy id ${id} not found in account ${accountId}`
-    );
+    throw new ApolloError(`Entidy id ${id} not found in account ${accountId}`);
   }
 
   const entity: DbUnknownEntity = {

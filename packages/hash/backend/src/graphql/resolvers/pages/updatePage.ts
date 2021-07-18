@@ -15,13 +15,13 @@ export const updatePage: Resolver<
   // TODO: we should have the getEntity and updateEntity here in the same database
   // transaction.
   const existingEntity = await dataSources.db.getEntity({
-    accountId: accountId,
+    accountId,
     entityId: id,
   });
 
   // TODO: catch error and check if it's a not found
   const updatedEntities = await dataSources.db.updateEntity({
-    accountId: accountId,
+    accountId,
     entityId: id,
     properties: {
       ...(existingEntity?.properties ?? {}),

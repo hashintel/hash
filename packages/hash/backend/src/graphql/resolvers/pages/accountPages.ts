@@ -13,7 +13,7 @@ export const accountPages: Resolver<
   QueryAccountPagesArgs
 > = async (_, { accountId }, { dataSources }) => {
   const pages = await dataSources.db.getEntitiesByType({
-    accountId: accountId,
+    accountId,
     type: "Page",
   });
   return pages.map((page) => ({

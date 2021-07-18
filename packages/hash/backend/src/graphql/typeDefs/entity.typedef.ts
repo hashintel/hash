@@ -15,7 +15,7 @@ export const entityTypedef = gql`
     """
     id: ID!
     """
-    The FIXED id for a account
+    The FIXED id for an account
     """
     accountId: ID!
     """
@@ -49,7 +49,7 @@ export const entityTypedef = gql`
     """
     id: ID!
     """
-    The FIXED id for a account
+    The FIXED id for an account
     """
     accountId: ID!
     """
@@ -169,7 +169,7 @@ export const entityTypedef = gql`
     """
     id: ID!
     """
-    The FIXED id for a account
+    The FIXED id for an account
     """
     accountId: ID!
     """

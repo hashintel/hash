@@ -11,7 +11,7 @@ export const page: Resolver<
   QueryPageArgs
 > = async (_, { accountId, id }, { dataSources }) => {
   const entity = await dataSources.db.getEntity({
-    accountId: accountId,
+    accountId,
     entityId: id,
   });
   if (!entity) {

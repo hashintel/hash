@@ -14,7 +14,7 @@ export const createEntity: Resolver<
   MutationCreateEntityArgs
 > = async (_, { accountId, properties, type }, { dataSources }) => {
   const dbEntity = await dataSources.db.createEntity({
-    accountId: accountId,
+    accountId,
     createdById: genEntityId(), // TODO
     type,
     properties,

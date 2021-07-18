@@ -10,7 +10,7 @@ export const pageTypedef = gql`
     """
     id: ID!
     """
-    The FIXED id for a account
+    The FIXED id for an account
     """
     accountId: ID!
     """
@@ -50,7 +50,7 @@ export const pageTypedef = gql`
     page(accountId: ID!, id: ID!): Page!
 
     """
-    Return a list of pages belonging to a account
+    Return a list of pages belonging to an account
     """
     accountPages(accountId: ID!): [Page!]!
   }

@@ -27,7 +27,7 @@ export const aggregateEntity: Resolver<
   // We should perform the sorting & filtering in the database for better performance.
   // For pagination, using a database cursor may be an option.
   const entities = await dataSources.db.getEntitiesByType({
-    accountId: accountId,
+    accountId,
     type,
   });
 

@@ -10,7 +10,7 @@ export const textTypedef = gql`
     """
     id: ID!
     """
-    The FIXED id for a account
+    The FIXED id for an account
     """
     accountId: ID!
     """
