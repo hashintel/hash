@@ -4,7 +4,7 @@ const pageFieldsFragment = gql`
   fragment PageFields on Page {
     __typename
     id
-    namespaceId
+    accountId
     properties {
       __typename
       archived
@@ -12,14 +12,14 @@ const pageFieldsFragment = gql`
       title
       contents {
         id
-        namespaceId
+        accountId
         properties {
           componentId
           entityType
           entity {
             __typename
             id
-            namespaceId
+            accountId
             type
             ... on UnknownEntity {
               unknownProperties: properties
@@ -42,8 +42,8 @@ const pageFieldsFragment = gql`
 `;
 
 export const getPageQuery = gql`
-  query getPage($namespaceId: ID!, $pageId: ID!) {
-    page(namespaceId: $namespaceId, id: $pageId) {
+  query getPage($accountId: ID!, $pageId: ID!) {
+    page(accountId: $accountId, id: $pageId) {
       ...PageFields
     }
   }
@@ -51,8 +51,8 @@ export const getPageQuery = gql`
 `;
 
 export const createPage = gql`
-  mutation createPage($namespaceId: ID!, $properties: PageCreationData!) {
-    createPage(namespaceId: $namespaceId, properties: $properties) {
+  mutation createPage($accountId: ID!, $properties: PageCreationData!) {
+    createPage(accountId: $accountId, properties: $properties) {
       ...PageFields
     }
   }
@@ -61,11 +61,11 @@ export const createPage = gql`
 
 export const updatePage = gql`
   mutation updatePage(
-    $namespaceId: ID!
+    $accountId: ID!
     $id: ID!
     $properties: PageUpdateData!
   ) {
-    updatePage(namespaceId: $namespaceId, id: $id, properties: $properties) {
+    updatePage(accountId: $accountId, id: $id, properties: $properties) {
       ...PageFields
     }
   }
@@ -74,7 +74,7 @@ export const updatePage = gql`
 
 export const insertBlockIntoPage = gql`
   mutation insertBlockIntoPage(
-    $namespaceId: ID!
+    $accountId: ID!
     $componentId: ID!
     $entityType: String!
     $entityProperties: JSONObject!
@@ -82,7 +82,7 @@ export const insertBlockIntoPage = gql`
     $pageId: ID!
   ) {
     insertBlockIntoPage(
-      namespaceId: $namespaceId
+      accountId: $accountId
       componentId: $componentId
       entityType: $entityType
       entityProperties: $entityProperties

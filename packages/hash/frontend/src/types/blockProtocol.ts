@@ -1,14 +1,14 @@
 export type BlockProtocolUpdatePayload<T> = {
   entityType: string;
   entityId: string;
-  namespaceId: string;
+  accountId: string;
   data: T;
 };
 
 export type BlockProtocolCreatePayload<T> = {
   entityType: string;
   data: T;
-  pageNamespaceId: string;
+  pageAccountId: string;
   userId: string;
 };
 
@@ -24,7 +24,7 @@ export type BlockProtocolAggregateOperation = {
 export type BlockProtocolAggregatePayload = {
   entityType: string;
   operation: BlockProtocolAggregateOperation;
-  namespaceId: string;
+  accountId: string;
 };
 
 export type BlockProtocolCreateFn = {

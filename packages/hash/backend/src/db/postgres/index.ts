@@ -115,7 +115,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     );
   }
 
-  private async getEntityNamespace(client: PoolClient, entityId: string) {
+  private async getEntityAccount(client: PoolClient, entityId: string) {
     const res = await client.query(
       "select account_id from entity_account where entity_id = $1",
       [entityId]
@@ -212,7 +212,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
 
     const entity = await this.tx(async (client) => {
       // Create the shard if it does not already exist
-      // TODO: this should be performed in a "createNamespace" function, or similar.
+      // TODO: this should be performed in a "createAccount" function, or similar.
       await client.query(
         `insert into accounts (account_id) values ($1)
         on conflict (account_id) do nothing`,
@@ -267,9 +267,9 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       const linkedEntityIds = gatherLinks(entity);
       await Promise.all(
         linkedEntityIds.map(async (dstId) => {
-          const accountId = await this.getEntityNamespace(client, dstId);
+          const accountId = await this.getEntityAccount(client, dstId);
           if (!accountId) {
-            throw new Error(`namespace ID not found for entity ${dstId}`);
+            throw new Error(`accountId not found for entity ${dstId}`);
           }
           await Promise.all([
             this.createOutgoingLink(client, {
@@ -279,7 +279,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
               childId: dstId,
             }),
             this.createIncomingLink(client, {
-              accountId: accountId,
+              accountId,
               entityId: dstId,
               parentAccountId: entity.accountId,
               parentId: entity.entityId,
@@ -338,7 +338,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return entity;
   }
 
-  /** Get an entity by ID in a given namespace. */
+  /** Get an entity by ID in a given account. */
   async getEntity(params: {
     accountId: string;
     entityId: string;
@@ -507,7 +507,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
 
   /** Update an entity's properties. If the "type" parameter is provided, the function
    * checks that it matches the entity's type. Returns `undefined` if the entity does
-   * not exist in the given namespace.
+   * not exist in the given account.
    */
   async updateEntity(params: {
     accountId: string;
@@ -556,8 +556,8 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     }));
   }
 
-  /** Get all namespace entities. */
-  async getNamespaceEntities(): Promise<Entity[]> {
+  /** Get all account entities. */
+  async getAccountEntities(): Promise<Entity[]> {
     const res = await this.pool.query(
       `select
         e.account_id, e.entity_id, t.name as type, e.properties, e.created_by,

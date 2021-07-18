@@ -6,13 +6,13 @@ import styles from "./CreatePage.module.scss";
 
 type CreatePageProps = {
   close: () => void;
-  namespaceId: string;
+  accountId: string;
   show: boolean;
 };
 
 export const CreatePage: VoidFunctionComponent<CreatePageProps> = ({
   close,
-  namespaceId,
+  accountId,
   show,
 }) => {
   const [title, setTitle] = useState("");
@@ -22,7 +22,7 @@ export const CreatePage: VoidFunctionComponent<CreatePageProps> = ({
   const createPage = (event: FormEvent) => {
     event.preventDefault();
     create({
-      variables: { namespaceId, properties: { title } },
+      variables: { accountId, properties: { title } },
     });
   };
 

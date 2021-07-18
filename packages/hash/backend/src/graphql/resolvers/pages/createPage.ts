@@ -9,14 +9,14 @@ export const createPage: Resolver<
   {},
   GraphQLContext,
   MutationCreatePageArgs
-> = async (_, { namespaceId, properties }, { dataSources }, info) => {
+> = async (_, { accountId, properties }, { dataSources }, info) => {
   const createdById = genEntityId(); // TODO
 
   // Convenience wrapper
   const _createEntity = async (type: string, properties: any) => {
     return await createEntity(
       {},
-      { namespaceId, createdById, type, properties },
+      { accountId, createdById, type, properties },
       { dataSources },
       info
     );
@@ -30,7 +30,7 @@ export const createPage: Resolver<
     componentId: "https://block.blockprotocol.org/header",
     entityType: "Header",
     entityId: newHeaderEntity.id,
-    namespaceId,
+    accountId,
   } as DbBlockProperties);
 
   const newParaEntity = await _createEntity("Text", { texts: [] });
@@ -39,7 +39,7 @@ export const createPage: Resolver<
     componentId: "https://block.blockprotocol.org/paragraph",
     entityType: "Text",
     entityId: newParaEntity.id,
-    namespaceId,
+    accountId,
   } as DbBlockProperties);
 
   const page = await _createEntity("Page", {
@@ -47,11 +47,11 @@ export const createPage: Resolver<
     contents: [
       {
         entityId: newHeaderBlock.id,
-        namespaceId,
+        accountId,
       },
       {
         entityId: newParaBlock.id,
-        namespaceId,
+        accountId,
       },
     ],
   });

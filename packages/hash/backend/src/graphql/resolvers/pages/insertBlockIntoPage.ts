@@ -21,7 +21,7 @@ export const insertBlockIntoPage: Resolver<
     entityId,
     entityProperties,
     entityType,
-    namespaceId,
+    accountId,
     pageId,
     position,
   },
@@ -30,7 +30,7 @@ export const insertBlockIntoPage: Resolver<
   // TODO: everything here should be inside a transaction
 
   const page = await dataSources.db.getEntity({
-    accountId: namespaceId,
+    accountId,
     entityId: pageId,
   });
   if (!page) {
@@ -44,7 +44,7 @@ export const insertBlockIntoPage: Resolver<
   if (entityId) {
     // Update
     entity = await dataSources.db.getEntity({
-      accountId: namespaceId,
+      accountId,
       entityId: entityId,
     });
     if (!entity) {
@@ -53,7 +53,7 @@ export const insertBlockIntoPage: Resolver<
   } else if (entityProperties && entityType) {
     // Create new entity
     entity = await dataSources.db.createEntity({
-      accountId: namespaceId,
+      accountId,
       createdById: genEntityId(), // TODO
       type: entityType,
       properties: entityProperties,
@@ -68,11 +68,11 @@ export const insertBlockIntoPage: Resolver<
     componentId,
     entityType: entity.type,
     entityId: entity.entityId,
-    namespaceId: entity.accountId,
+    accountId: entity.accountId,
   };
 
   const newBlock = await dataSources.db.createEntity({
-    accountId: namespaceId,
+    accountId,
     type: entity.type,
     createdById: genEntityId(), // TODO
     properties: blockProperties,
@@ -87,7 +87,7 @@ export const insertBlockIntoPage: Resolver<
     {
       type: "Block",
       entityId: newBlock.entityId,
-      namespaceId: newBlock.accountId,
+      accountId: newBlock.accountId,
     },
     ...page.properties.contents.slice(position),
   ];
@@ -98,7 +98,7 @@ export const insertBlockIntoPage: Resolver<
   return {
     ...updatedEntities[0],
     id: updatedEntities[0].entityId,
-    namespaceId: updatedEntities[0].accountId,
+    accountId: updatedEntities[0].accountId,
     visibility: Visibility.Public, // TODO: get from entity metadata
   } as DbPage;
 };

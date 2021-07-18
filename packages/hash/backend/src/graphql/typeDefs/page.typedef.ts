@@ -10,9 +10,9 @@ export const pageTypedef = gql`
     """
     id: ID!
     """
-    The FIXED id for a namespace
+    The FIXED id for an account
     """
-    namespaceId: ID!
+    accountId: ID!
     """
     The date the entity was created
     """
@@ -47,12 +47,12 @@ export const pageTypedef = gql`
     """
     Return a page by its id
     """
-    page(namespaceId: ID!, id: ID!): Page!
+    page(accountId: ID!, id: ID!): Page!
 
     """
-    Return a list of pages belonging to a namespace
+    Return a list of pages belonging to an account
     """
-    namespacePages(namespaceId: ID!): [Page!]!
+    accountPages(accountId: ID!): [Page!]!
   }
 
   input PageCreationData {
@@ -72,9 +72,9 @@ export const pageTypedef = gql`
   }
 
   extend type Mutation {
-    createPage(namespaceId: ID!, properties: PageCreationData!): Page!
+    createPage(accountId: ID!, properties: PageCreationData!): Page!
 
-    updatePage(namespaceId: ID!, id: ID!, properties: PageUpdateData!): Page!
+    updatePage(accountId: ID!, id: ID!, properties: PageUpdateData!): Page!
 
     """
     Insert a block into a given page.
@@ -89,10 +89,10 @@ export const pageTypedef = gql`
       entityProperties: JSONObject
       entityType: String
       """
-      The namespaceId for the block and entity.
-      Defaults to the page's namespaceId.
+      The accountId for the block and entity.
+      Defaults to the page's accountId.
       """
-      namespaceId: ID!
+      accountId: ID!
       pageId: ID!
       """
       The position of the block in the page contents, starting at 0

@@ -34,7 +34,7 @@ export interface DBAdapter extends DataSource {
     properties: any;
   }): Promise<Entity>;
 
-  /** Get an entity by ID in a given namespace. */
+  /** Get an entity by ID in a given account. */
   getEntity(params: {
     accountId: string;
     entityId: string;
@@ -56,10 +56,9 @@ export interface DBAdapter extends DataSource {
     type: string;
   }): Promise<Entity[]>;
 
-  /** Get all namespace entities in the database, that is, those entities where the
-   * namespace ID equals the entity ID
+  /** Get all entities in the database belonging to a specific account
    */
-  getNamespaceEntities(): Promise<Entity[]>;
+  getAccountEntities(): Promise<Entity[]>;
 
   /** Update the metadata which may be associated with one or more entities. */
   updateEntityMetadata(params: {

@@ -13,17 +13,17 @@ export const updateEntity: Resolver<
   {},
   GraphQLContext,
   MutationUpdateEntityArgs
-> = async (_, { namespaceId, id, properties }, { dataSources }) => {
+> = async (_, { accountId, id, properties }, { dataSources }) => {
   // TODO: doing a select & update for now. See if just update is possible, if not,
   // need to use a transaction
 
   const entity = await dataSources.db.getEntity({
-    accountId: namespaceId,
+    accountId,
     entityId: id,
   });
   if (!entity) {
     throw new ApolloError(
-      `Entity ${id} does not exist in namespace ${namespaceId}`,
+      `Entity ${id} does not exist in account ${accountId}`,
       "NOT_FOUND"
     );
   }
@@ -35,7 +35,7 @@ export const updateEntity: Resolver<
 
   // TODO: catch error and check if it's a not found
   const updatedEntities = await dataSources.db.updateEntity({
-    accountId: namespaceId,
+    accountId,
     entityId: id,
     properties: propertiesToUpdate,
   });
@@ -45,7 +45,7 @@ export const updateEntity: Resolver<
   return {
     ...updatedEntities[0],
     id: updatedEntities[0].entityId,
-    namespaceId: updatedEntities[0].accountId,
+    accountId: updatedEntities[0].accountId,
     visibility: Visibility.Public, // TODO: get from entity metadata
   } as DbUnknownEntity;
 };

@@ -3,11 +3,11 @@ import { useState, VoidFunctionComponent } from "react";
 import { CreatePage } from "../../Modals/CreatePage/CreatePage";
 
 type CreatePageButtonProps = {
-  namespaceId: string;
+  accountId: string;
 };
 
 export const CreatePageButton: VoidFunctionComponent<CreatePageButtonProps> = ({
-  namespaceId,
+  accountId,
 }) => {
   const [showCreatePage, setShowCreatePage] = useState(false);
 
@@ -15,7 +15,7 @@ export const CreatePageButton: VoidFunctionComponent<CreatePageButtonProps> = ({
     <>
       <CreatePage
         close={() => setShowCreatePage(false)}
-        namespaceId={namespaceId}
+        accountId={accountId}
         show={showCreatePage}
       />
 
