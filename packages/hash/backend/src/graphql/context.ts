@@ -15,3 +15,7 @@ export interface GraphQLContext {
   logger: Logger;
   user?: User;
 }
+
+export interface LoggedInGraphQLContext extends GraphQLContext {
+  user: User;
+}

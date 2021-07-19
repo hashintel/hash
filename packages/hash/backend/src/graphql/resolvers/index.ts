@@ -25,8 +25,22 @@ import { sendLoginCode } from "./auth/sendLoginCode";
 import { loginWithLoginCode } from "./auth/loginWithLoginCode";
 
 import { DbOrg, DbUser } from "../../types/dbTypes";
+import { GraphQLContext } from "../context";
+import { ForbiddenError } from "apollo-server-express";
+import { logout } from "./auth/logout";
 
 const KNOWN_ENTITIES = ["Page", "Text", "User"];
+
+const loggedIn = (next: any) => (
+  obj: any,
+  args: any,
+  context: GraphQLContext,
+  info: any
+) => {
+  if (!context.user) throw new ForbiddenError(`You must be logged in to perform this action.`);
+
+  return next(obj, args, context, info);
+};
 
 export const resolvers = {
   Query: {
@@ -47,6 +61,7 @@ export const resolvers = {
     createOrg,
     sendLoginCode,
     loginWithLoginCode,
+    logout: loggedIn(logout),
   },
 
   JSONObject: GraphQLJSON,
