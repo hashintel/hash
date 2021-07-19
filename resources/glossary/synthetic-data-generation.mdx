@@ -1,0 +1,12 @@
+title: Synthetic Data Generation
+description: Generating data that mimics real data for use in machine learning.
+slug: synthetic-data-generation
+tags: ["Artificial Intelligence"]
+---
+
+Synthetic data generation is the practice of creating a model to generate data that reflects a real world system. Synthetic data can be a cheap and practical way to generate large datasets, and simulations are one of the best ways to generate synthetic data.
+By creating a simulation that models the real world, the results of the simulation can be used in place of directly observed data. This has numerous applications:
+
+- Training ML/RL Models: Most modern ML applications are data hungry; they require large datasets for training and prediction. It's not always feasible to use real data, either because it's too expensive, the data is too noisy, or you're building something new for which robust data sets don't exist. For example synthetic data is frequently used to train self-driving cars, where realistic simulations create synthetic environments to train the models.
+- Privacy: Real world datasets can contain identifying information that is hard if not impossible to anonymize. Generating synthetic data from a model removes the risk of compromising information, since none of the data will come from real people. 
+- Counterfactuals: Given a real world system, you might want to generate data about alternatives to the real world system (counterfactuals) to train predictive models for contingencies. For instance, when monitoring cloud infrastructure, what would happen if a server goes down - what would the data signal patterns look like? Actually bringing down a server and recording the data might be prohibitively expensive, but creating a digital twin of your cloud infrastructure and simulating outages can create robust datasets.
