@@ -66,6 +66,7 @@ export const resolvers = {
       }
       return "UnknownEntity";
     },
+    history: entityFields.history,
   },
 
   Account: {

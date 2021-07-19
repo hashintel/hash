@@ -1,7 +1,7 @@
 import { Pool, PoolClient } from "pg";
 import { DataSource } from "apollo-datasource";
 
-import { DBAdapter, Entity, EntityMeta } from "../adapter";
+import { DBAdapter, Entity, EntityMeta, EntityVersion } from "../adapter";
 import { genEntityId } from "../../util";
 import { gatherLinks, entityNotFoundError, replaceLink } from "./util";
 
@@ -625,5 +625,26 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     });
 
     return updated;
+  }
+
+  async getEntityHistory(params: {
+    accountId: string;
+    historyId: string;
+  }): Promise<EntityVersion[] | undefined> {
+    const res = await this.pool.query(
+      `select entity_id, created_by, created_at from entities
+      where account_id = $1 and history_id = $2
+      order by created_at
+      `,
+      [params.accountId, params.historyId]
+    );
+    if (res.rowCount === 0) {
+      return undefined;
+    }
+    return res.rows.map((row) => ({
+      entityId: row["entity_id"],
+      createdAt: row["created_at"],
+      createdById: row["createdById"],
+    }));
   }
 }
