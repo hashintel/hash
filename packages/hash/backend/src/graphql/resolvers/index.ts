@@ -21,13 +21,13 @@ import {
 import { accounts } from "./account/accounts";
 import { createUser } from "./shared/createUser";
 import { createOrg } from "./shared/createOrg";
-import { sendLoginCode } from "./auth/sendLoginCode";
-import { loginWithLoginCode } from "./auth/loginWithLoginCode";
+import { sendLoginCode } from "./user/sendLoginCode";
+import { loginWithLoginCode } from "./user/loginWithLoginCode";
 
 import { DbOrg, DbUser } from "../../types/dbTypes";
 import { GraphQLContext } from "../context";
 import { ForbiddenError } from "apollo-server-express";
-import { logout } from "./auth/logout";
+import { logout } from "./user/logout";
 
 const KNOWN_ENTITIES = ["Page", "Text", "User"];
 
