@@ -1,4 +1,4 @@
-import { genEntityId } from "../../../util";
+import { genId } from "../../../util";
 import { DbUnknownEntity } from "../../../types/dbTypes";
 import {
   MutationCreateEntityArgs,
@@ -15,7 +15,7 @@ export const createEntity: Resolver<
 > = async (_, { accountId, properties, type }, { dataSources }) => {
   const dbEntity = await dataSources.db.createEntity({
     accountId,
-    createdById: genEntityId(), // TODO
+    createdById: genId(), // TODO
     type,
     properties,
   });

@@ -1,6 +1,6 @@
 import { ApolloError } from "apollo-server-express";
 
-import { genEntityId } from "../../../util";
+import { genId } from "../../../util";
 import { DbPage } from "../../../types/dbTypes";
 import {
   MutationInsertBlockIntoPageArgs,
@@ -54,7 +54,7 @@ export const insertBlockIntoPage: Resolver<
     // Create new entity
     entity = await dataSources.db.createEntity({
       accountId,
-      createdById: genEntityId(), // TODO
+      createdById: genId(), // TODO
       type: entityType,
       properties: entityProperties,
     });
@@ -74,7 +74,7 @@ export const insertBlockIntoPage: Resolver<
   const newBlock = await dataSources.db.createEntity({
     accountId,
     type: entity.type,
-    createdById: genEntityId(), // TODO
+    createdById: genId(), // TODO
     properties: blockProperties,
   });
 

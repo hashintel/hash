@@ -1,4 +1,4 @@
-import { genEntityId } from "../../../util";
+import { genId } from "../../../util";
 import { DbOrg } from "../../../types/dbTypes";
 import {
   MutationCreateOrgArgs,
@@ -13,12 +13,12 @@ export const createOrg: Resolver<
   GraphQLContext,
   MutationCreateOrgArgs
 > = async (_, { shortname }, { dataSources }) => {
-  const id = genEntityId();
+  const id = genId();
 
   const entity = await dataSources.db.createEntity({
     accountId: id,
     entityId: id,
-    createdById: genEntityId(), // TODO
+    createdById: genId(), // TODO
     type: "Org",
     properties: { shortname },
   });

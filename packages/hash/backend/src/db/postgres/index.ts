@@ -2,7 +2,7 @@ import { Pool, PoolClient } from "pg";
 import { DataSource } from "apollo-datasource";
 
 import { DBAdapter, Entity, EntityMeta, LoginCode } from "../adapter";
-import { genEntityId } from "../../util";
+import { genId } from "../../util";
 import {
   gatherLinks,
   entityNotFoundError,
@@ -208,7 +208,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     versioned?: boolean;
     properties: any;
   }): Promise<Entity> {
-    const entityId = params.entityId ?? genEntityId();
+    const entityId = params.entityId ?? genId();
     const now = new Date();
 
     const entity = await this.tx(async (client) => {
@@ -225,8 +225,8 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
         (await this.getEntityTypeId(client, params.type)) ??
         (await this.createEntityType(client, params.type));
 
-      const historyId = params.versioned ? genEntityId() : undefined;
-      const metadataId = genEntityId();
+      const historyId = params.versioned ? genId() : undefined;
+      const metadataId = genId();
 
       // TODO: defer FK and run concurrently with insertEntity
       const metadata = await this.insertEntityMetadata(client, {
@@ -355,7 +355,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     const now = new Date();
     const newEntityVersion: Entity = {
       ...params.entity,
-      entityId: genEntityId(),
+      entityId: genId(),
       properties: params.newProperties,
       createdAt: now,
       updatedAt: now,
@@ -647,60 +647,85 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   private insertLoginCode = (
     client: PoolClient,
     params: {
-      accountId: string;
-      userEntityId: string;
+      loginId: string;
+      userId: string;
       code: string;
       createdAt: Date;
     }
-  ) =>
-    client.query(
-      `
+  ): Promise<void> =>
+    client
+      .query(
+        `
         insert into login_codes (
-          account_id, user_entity_id, login_code, created_at
+          login_id, user_id, login_code, created_at
         )
-        values ($1, $2, $3, $4)`,
-      [params.accountId, params.userEntityId, params.code, params.createdAt]
-    );
+        values ($1, $2, $3, $4)
+      `,
+        [params.loginId, params.userId, params.code, params.createdAt]
+      )
+      .then();
 
   async createLoginCode(params: {
-    accountId: string;
-    userEntityId: string;
+    userId: string;
     code: string;
   }): Promise<LoginCode> {
+    const id = genId();
     const createdAt = new Date();
 
     return this.tx((client) =>
-      this.insertLoginCode(client, { ...params, createdAt })
-    ).then(() => ({ ...params, numberOfAttempts: 0, createdAt }));
+      this.insertLoginCode(client, { ...params, loginId: id, createdAt })
+    ).then(() => ({
+      id,
+      ...params,
+      numberOfAttempts: 0,
+      createdAt,
+    }));
   }
 
-  getValidLoginCodes = (params: {
-    accountId: string;
-    userEntityId: string;
-  }): Promise<LoginCode[]> =>
+  getLoginCode = (params: {
+    loginId: string;
+    userId: string;
+  }): Promise<LoginCode | null> =>
     this.pool
       .query(
         `
       select
-        account_id, user_entity_id, login_code, number_of_attempts, created_at
+        login_id, user_id, login_code, number_of_attempts, created_at
       from
         login_codes
       where
-          account_id = $1
+          login_id = $1
         and
-          user_entity_id = $2
-        and
-          created_at >= (NOW() - INTERVAL '1 hour')
+          user_id = $2
       `,
-        [params.accountId, params.userEntityId]
+        [params.loginId, params.userId]
       )
-      .then(({ rows }) =>
-        rows.map((row) => ({
-          accountId: row["account_id"],
-          userEntityId: row["user_entity_id"],
-          code: row["login_code"],
-          numberOfAttempts: row["number_of_attempts"],
-          createdAt: row["created_at"],
-        }))
-      );
+      .then(({ rows }) => {
+        if (rows.length === 0) return null;
+        if (rows.length > 1)
+          throw new Error(
+            `Critical: multiple login codes with login_id '${params.loginId}' and user_id ${params.userId} found in datastore`
+          );
+        return {
+          id: rows[0]["login_id"],
+          userId: rows[0]["user_id"],
+          code: rows[0]["login_code"],
+          numberOfAttempts: rows[0]["number_of_attempts"],
+          createdAt: rows[0]["created_at"],
+        };
+      });
+
+  incrementLoginCodeAttempts = (params: {
+    loginCode: LoginCode;
+  }): Promise<void> =>
+    this.pool
+      .query(
+        `
+          update login_codes
+          set number_of_attempts = number_of_attempts + 1
+          where login_id = $1 and user_id = $2
+        `,
+        [params.loginCode.id, params.loginCode.userId]
+      )
+      .then();
 }

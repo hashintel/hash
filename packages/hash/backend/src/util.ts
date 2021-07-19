@@ -1,7 +1,7 @@
 import { Uuid4 } from "id128";
 
-/** Generate a new entity ID. */
-export const genEntityId = () => Uuid4.generate().toCanonical().toLowerCase();
+/** Generate a new ID. */
+export const genId = () => Uuid4.generate().toCanonical().toLowerCase();
 
 /** Get a required environment variable. Throws an error if it's not set. */
 export const getRequiredEnv = (name: string) => {

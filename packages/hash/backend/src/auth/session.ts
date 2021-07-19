@@ -38,7 +38,7 @@ export const setupSession = (app: Express) => {
       cookie: {
         maxAge: COOKIE_MAX_AGE,
         httpOnly: true,
-        sameSite: 'strict',
+        sameSite: "strict",
       },
       resave: false,
       saveUninitialized: false,
