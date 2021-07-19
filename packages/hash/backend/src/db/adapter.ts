@@ -17,6 +17,14 @@ export type EntityMeta = {
   extra: any;
 };
 
+export type LoginCode = {
+  accountId: string;
+  userEntityId: string;
+  loginCode: string;
+  numberOfAttempts: number;
+  createdAt: Date;
+};
+
 /**
  * Generic interface to the database.
  */
@@ -67,4 +75,17 @@ export interface DBAdapter extends DataSource {
     metadataId: string;
     extra: any;
   }): Promise<EntityMeta>;
+
+  /** Create a login code */
+  createLoginCode(params: {
+    accountId: string;
+    userEntityId: string;
+    loginCode: string;
+  }): Promise<LoginCode>;
+
+  /** Get all login codes associated with user */
+  getLoginCodes(params: {
+    accountId: string;
+    userEntityId: string;
+  }): Promise<LoginCode[]>;
 }

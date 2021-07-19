@@ -1,7 +1,7 @@
 import { Pool, PoolClient } from "pg";
 import { DataSource } from "apollo-datasource";
 
-import { DBAdapter, Entity, EntityMeta } from "../adapter";
+import { DBAdapter, Entity, EntityMeta, LoginCode } from "../adapter";
 import { genEntityId } from "../../util";
 import { gatherLinks, entityNotFoundError, replaceLink } from "./util";
 import { getRequiredEnv } from "../../util";
@@ -595,5 +595,68 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       throw new Error("internal error"); // TODO: better erorr message
     }
     return params;
+  }
+
+  /** Insert a row into the entities table. */
+  private insertLoginCode = (
+    client: PoolClient,
+    params: {
+      accountId: string;
+      userEntityId: string;
+      loginCode: string;
+      createdAt: Date;
+    }
+  ) =>
+    client.query(
+      `
+        insert into login_codes (
+          account_id, user_entity_id, login_code, created_at
+        )
+        values ($1, $2, $3, $4)`,
+      [
+        params.accountId,
+        params.userEntityId,
+        params.loginCode,
+        params.createdAt,
+      ]
+    );
+
+  async createLoginCode(params: {
+    accountId: string;
+    userEntityId: string;
+    loginCode: string;
+  }): Promise<LoginCode> {
+    const createdAt = new Date();
+
+    return this.tx((client) =>
+      this.insertLoginCode(client, { ...params, createdAt })
+    ).then(() => ({ ...params, numberOfAttempts: 0, createdAt }));
+  }
+
+  async getLoginCodes(params: {
+    accountId: string;
+    userEntityId: string;
+  }): Promise<LoginCode[]> {
+    const res = await this.pool.query(
+      `
+      select
+        account_id, user_entity_id, login_code, number_of_attempts, created_at
+      from
+        login_codes
+      where
+          account_id = $1
+        and
+          user_entity_id = $2
+      `,
+      [params.accountId, params.userEntityId]
+    );
+
+    return res.rows.map((row) => ({
+      accountId: row["account_id"],
+      userEntityId: row["user_entity_id"],
+      loginCode: row["login_code"],
+      numberOfAttempts: row["number_of_attempts"],
+      createdAt: row["created_at"],
+    }));
   }
 }
