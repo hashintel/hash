@@ -32,15 +32,12 @@ import { me } from "./user/me";
 
 const KNOWN_ENTITIES = ["Page", "Text", "User"];
 
-const loggedIn = (next: any) => (
-  obj: any,
-  args: any,
-  ctx: GraphQLContext,
-  info: any
-) => {
-  if (!ctx.user) throw new ForbiddenError("You must be logged in to perform this action.");
-  return next(obj, args, ctx, info);
-};
+const loggedIn =
+  (next: any) => (obj: any, args: any, ctx: GraphQLContext, info: any) => {
+    if (!ctx.user)
+      throw new ForbiddenError("You must be logged in to perform this action.");
+    return next(obj, args, ctx, info);
+  };
 
 export const resolvers = {
   Query: {
