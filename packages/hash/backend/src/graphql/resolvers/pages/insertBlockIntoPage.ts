@@ -29,10 +29,7 @@ export const insertBlockIntoPage: Resolver<
 ) => {
   // TODO: everything here should be inside a transaction
 
-  const page = await dataSources.db.getEntity({
-    accountId,
-    entityId: pageId,
-  });
+  const page = await dataSources.db.getEntity({ accountId, entityId: pageId });
   if (!page) {
     throw new ApolloError(
       `Could not find page with pageId ${pageId}`,
@@ -43,10 +40,7 @@ export const insertBlockIntoPage: Resolver<
   let entity;
   if (entityId) {
     // Update
-    entity = await dataSources.db.getEntity({
-      accountId,
-      entityId: entityId,
-    });
+    entity = await dataSources.db.getEntity({ accountId, entityId });
     if (!entity) {
       throw new ApolloError(`entity ${entityId} not found`, "NOT_FOUND");
     }
@@ -91,7 +85,7 @@ export const insertBlockIntoPage: Resolver<
     },
     ...page.properties.contents.slice(position),
   ];
-  const updatedEntities = await dataSources.db.updateEntity({ ...page });
+  const updatedEntities = await dataSources.db.updateEntity(page);
 
   // TODO: for now, all entities are non-versioned, so the list array only have a single
   // element. Return when versioned entities are implemented at the API layer.
