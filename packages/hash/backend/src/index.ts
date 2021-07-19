@@ -6,6 +6,7 @@ import winston from "winston";
 
 import { PostgresAdapter } from "./db";
 import { createApolloServer } from "./graphql/createApolloServer";
+import setupAuth from "./auth";
 
 // Request ID generator
 const nanoid = customAlphabet(
@@ -52,6 +53,9 @@ app.use(helmet({ contentSecurityPolicy: false }));
 
 // Parse request body as JSON - allow higher than the default 100kb limit
 app.use(json({ limit: "16mb" }));
+
+// Set up authentication related middeware and routes
+setupAuth(app, db);
 
 const apolloServer = createApolloServer(db, logger);
 
