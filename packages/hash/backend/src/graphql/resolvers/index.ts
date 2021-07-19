@@ -22,6 +22,7 @@ import { accounts } from "./account/accounts";
 import { createUser } from "./shared/createUser";
 import { createOrg } from "./shared/createOrg";
 import { sendLoginCode } from "./auth/sendLoginCode";
+import { loginWithLoginCode } from "./auth/loginWithLoginCode";
 
 import { DbOrg, DbUser } from "../../types/dbTypes";
 
@@ -45,6 +46,7 @@ export const resolvers = {
     createUser,
     createOrg,
     sendLoginCode,
+    loginWithLoginCode,
   },
 
   JSONObject: GraphQLJSON,
