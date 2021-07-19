@@ -141,6 +141,7 @@ export const entityTypedef = gql`
       createdById: ID!
       properties: JSONObject!
       type: String!
+      versioned: Boolean! = false
     ): Entity!
 
     """
