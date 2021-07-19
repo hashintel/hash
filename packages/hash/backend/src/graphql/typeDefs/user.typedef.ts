@@ -41,7 +41,17 @@ export const userTypedef = gql`
     shortname: String!
   }
 
+  input UserIdentifier {
+    email: String
+    shortname: String
+  }
+
+  enum SendLoginCodeResponse {
+    SENT_LOGIN_CODE
+  }
+
   extend type Mutation {
     createUser(email: String!, shortname: String!): User!
+    sendLoginCode(userIdentifier: UserIdentifier!): SendLoginCodeResponse!
   }
 `;

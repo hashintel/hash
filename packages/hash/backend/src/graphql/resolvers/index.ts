@@ -21,6 +21,7 @@ import {
 import { accounts } from "./account/accounts";
 import { createUser } from "./shared/createUser";
 import { createOrg } from "./shared/createOrg";
+import { sendLoginCode } from "./auth/sendLoginCode";
 
 import { DbOrg, DbUser } from "../../types/dbTypes";
 
@@ -43,6 +44,7 @@ export const resolvers = {
     updatePage,
     createUser,
     createOrg,
+    sendLoginCode,
   },
 
   JSONObject: GraphQLJSON,
