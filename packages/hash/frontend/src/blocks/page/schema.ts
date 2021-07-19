@@ -1,4 +1,6 @@
-export const baseSchemaConfig = {
+import { Schema } from "prosemirror-model";
+
+export const schema = new Schema({
   nodes: {
     doc: {
       content: "((block|blockItem)+)|blank",
@@ -49,4 +51,4 @@ export const baseSchemaConfig = {
       toDOM: () => ["u", 0] as const,
     },
   },
-};
+});
