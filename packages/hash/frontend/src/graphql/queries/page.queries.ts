@@ -60,11 +60,7 @@ export const createPage = gql`
 `;
 
 export const updatePage = gql`
-  mutation updatePage(
-    $accountId: ID!
-    $id: ID!
-    $properties: PageUpdateData!
-  ) {
+  mutation updatePage($accountId: ID!, $id: ID!, $properties: PageUpdateData!) {
     updatePage(accountId: $accountId, id: $id, properties: $properties) {
       ...PageFields
     }
