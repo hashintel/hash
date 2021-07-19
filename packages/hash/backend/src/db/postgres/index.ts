@@ -123,28 +123,6 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return res.rowCount === 0 ? null : (res.rows[0]["account_id"] as string);
   }
 
-  /** Insert a history entity corresponding to a new versioned entity. */
-  private async insertHistoryEntity(
-    client: PoolClient,
-    params: {
-      accountId: string;
-      historyId: string;
-      entityId: string;
-      entityCreatedAt: Date;
-    }
-  ) {
-    client.query(
-      `insert into entity_history (account_id, history_id, entity_id, created_at)
-      values ($1, $2, $3, $4)`,
-      [
-        params.accountId,
-        params.historyId,
-        params.entityId,
-        params.entityCreatedAt,
-      ]
-    );
-  }
-
   /** Insert a row into the entities table. */
   private async insertEntity(
     client: PoolClient,
@@ -302,7 +280,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     lock: boolean = false
   ): Promise<Entity | undefined> {
     const res = await client.query(
-      `select 
+      `select
         e.account_id, e.entity_id, t.name as type, e.properties, e.created_by,
         e.created_at, e.updated_at, e.history_id, e.metadata_id, meta.extra
       from
@@ -386,12 +364,6 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       ...newEntityVersion,
       typeId,
       metadataId: newEntityVersion.metadata.metadataId,
-    });
-    await this.insertHistoryEntity(client, {
-      accountId: newEntityVersion.accountId,
-      historyId: newEntityVersion.historyId!,
-      entityId: newEntityVersion.entityId,
-      entityCreatedAt: newEntityVersion.createdAt,
     });
 
     return newEntityVersion;
