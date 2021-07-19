@@ -1,7 +1,7 @@
 import { Validator } from "jsonschema";
 import Prism from "prismjs";
 import { useEffect, useState, VoidFunctionComponent } from "react";
-import { BlockMetadata, BlockProps } from "../blocks";
+import { BlockMetadata, BlockProps } from "../types/blockProtocol";
 import { RemoteBlock } from "../components/RemoteBlock/RemoteBlock";
 import styles from "./playground.module.scss";
 
