@@ -1765,6 +1765,13 @@
     "@types/scheduler" "*"
     csstype "^3.0.2"
 
+"@types/rword@3.0.0":
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/@types/rword/-/rword-3.0.0.tgz#f8b44d0800c8932f6211c0ee1adf416ea5939e04"
+  integrity sha512-JNyCIzRak7ipkdXVY4WNeKey3XVMIIol/5w1lerK/1xONaa7xX+Te3EXJ5DEHshPKZwzWqB5PH4CI2QP6tByXg==
+  dependencies:
+    rword "*"
+
 "@types/scheduler@*":
   version "0.16.1"
   resolved "https://registry.yarnpkg.com/@types/scheduler/-/scheduler-0.16.1.tgz#18845205e86ff0038517aab7a18a62a6b9f71275"
@@ -7104,6 +7111,11 @@ run-parallel@^1.1.9:
   integrity sha512-5l4VyZR86LZ/lDxZTR6jqL8AFE2S0IFLMP26AbjsLVADxHdhB/c0GUsH+y39UfCi3dzz8OlQuPmnaJOMoDHQBA==
   dependencies:
     queue-microtask "^1.2.2"
+
+rword@*, rword@3.2.0:
+  version "3.2.0"
+  resolved "https://registry.yarnpkg.com/rword/-/rword-3.2.0.tgz#7939afd3353b17f508cb6d0c3938c7da7f86eca2"
+  integrity sha512-xiILth3F87txuixWxRo0YYVzuE14UlPZM3l9xaBLNT5BbSwoNDalna6RUKEgbAUbpCFjlLAzYf0DL/7TiVifIQ==
 
 rxjs@^6.3.3, rxjs@^6.6.0, rxjs@^6.6.3:
   version "6.6.7"
