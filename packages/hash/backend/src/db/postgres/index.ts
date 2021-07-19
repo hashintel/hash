@@ -561,6 +561,33 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return params;
   }
 
+  getUserById = (params: { id: string }) =>
+    this.pool
+      .query(
+        `select
+      e.account_id, e.entity_id, t.name as type, e.properties, e.created_by,
+      e.created_at, e.updated_at, e.metadata_id, e.history_id, meta.extra
+    from
+      entities as e
+      join entity_types as t on e.type = t.id
+      join entity_metadata as meta on
+        meta.account_id = e.account_id  -- required for sharding
+        and meta.metadata_id = e.metadata_id
+    where
+        t.name = 'User'
+      and
+        e.entity_id = $1`,
+        [params.id]
+      )
+      .then(({ rows }) => {
+        if (rows.length === 0) return null;
+        if (rows.length > 1)
+          throw new Error(
+            `Critical: multiple users with id '${params.id}' found in datastore`
+          );
+        return mapPGRowToDbUser(rows[0]);
+      });
+
   getUserByEmail = (params: { email: string }) =>
     this.pool
       .query(
@@ -622,7 +649,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     params: {
       accountId: string;
       userEntityId: string;
-      loginCode: string;
+      code: string;
       createdAt: Date;
     }
   ) =>
@@ -632,18 +659,13 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
           account_id, user_entity_id, login_code, created_at
         )
         values ($1, $2, $3, $4)`,
-      [
-        params.accountId,
-        params.userEntityId,
-        params.loginCode,
-        params.createdAt,
-      ]
+      [params.accountId, params.userEntityId, params.code, params.createdAt]
     );
 
   async createLoginCode(params: {
     accountId: string;
     userEntityId: string;
-    loginCode: string;
+    code: string;
   }): Promise<LoginCode> {
     const createdAt = new Date();
 
@@ -652,7 +674,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     ).then(() => ({ ...params, numberOfAttempts: 0, createdAt }));
   }
 
-  getLoginCodes = (params: {
+  getValidLoginCodes = (params: {
     accountId: string;
     userEntityId: string;
   }): Promise<LoginCode[]> =>
@@ -667,6 +689,8 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
           account_id = $1
         and
           user_entity_id = $2
+        and
+          created_at >= (NOW() - INTERVAL '1 hour')
       `,
         [params.accountId, params.userEntityId]
       )
@@ -674,7 +698,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
         rows.map((row) => ({
           accountId: row["account_id"],
           userEntityId: row["user_entity_id"],
-          loginCode: row["login_code"],
+          code: row["login_code"],
           numberOfAttempts: row["number_of_attempts"],
           createdAt: row["created_at"],
         }))

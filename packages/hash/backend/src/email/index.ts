@@ -7,6 +7,6 @@ export const sendLoginCodeToUser = async (
 ): Promise<void> => {
   // TODO: send the login code to the user's inbox
   console.log(
-    `Sending login '${loginCode.loginCode}' code to '${user.properties.email}'`
+    `Sending login '${loginCode.code}' code to '${user.properties.email}'`
   );
 };

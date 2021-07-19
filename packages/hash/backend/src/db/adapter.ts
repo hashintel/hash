@@ -21,7 +21,7 @@ export type EntityMeta = {
 export type LoginCode = {
   accountId: string;
   userEntityId: string;
-  loginCode: string;
+  code: string;
   numberOfAttempts: number;
   createdAt: Date;
 };
@@ -59,6 +59,9 @@ export interface DBAdapter extends DataSource {
     properties: any;
   }): Promise<Entity[]>;
 
+  /** Get the user by their id. */
+  getUserById(params: { id: string }): Promise<DbUser | null>;
+
   /** Get the user by their email address. */
   getUserByEmail(params: { email: string }): Promise<DbUser | null>;
 
@@ -86,11 +89,11 @@ export interface DBAdapter extends DataSource {
   createLoginCode(params: {
     accountId: string;
     userEntityId: string;
-    loginCode: string;
+    code: string;
   }): Promise<LoginCode>;
 
-  /** Get all login codes associated with user */
-  getLoginCodes(params: {
+  /** Get all valid login codes associated with user */
+  getValidLoginCodes(params: {
     accountId: string;
     userEntityId: string;
   }): Promise<LoginCode[]>;

@@ -41,7 +41,7 @@ export const sendLoginCode: Resolver<
   const loginCode = await dataSources.db.createLoginCode({
     accountId: user.accountId,
     userEntityId: user.id,
-    loginCode: GraphQLPasswordlessStrategy.generateLoginCode(),
+    code: GraphQLPasswordlessStrategy.generateLoginCode(),
   });
 
   return sendLoginCodeToUser(loginCode, user).then(

@@ -9,7 +9,7 @@ export const createPage: Resolver<
   {},
   GraphQLContext,
   MutationCreatePageArgs
-> = async (_, { accountId, properties }, { dataSources }, info) => {
+> = async (_, { accountId, properties }, ctx, info) => {
   const createdById = genEntityId(); // TODO
 
   // Convenience wrapper
@@ -17,7 +17,7 @@ export const createPage: Resolver<
     return await createEntity(
       {},
       { accountId, createdById, type, properties },
-      { dataSources },
+      ctx,
       info
     );
   };
