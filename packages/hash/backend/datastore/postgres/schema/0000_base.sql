@@ -35,7 +35,7 @@ create table if not exists entities (
 
     foreign key (account_id, metadata_id) references entity_metadata (account_id, metadata_id),
 
-    primary key(account_id, entity_id)
+    primary key (account_id, entity_id)
 );
 create index if not exists entities_history on entities (account_id, history_id);
 
@@ -76,11 +76,24 @@ create table if not exists incoming_links (
     primary key (account_id, entity_id, parent_id)
 );
 
+/** Stores login codes used for passwordless authentication */
+create table if not exists login_codes (
+    account_id         uuid not null,
+    user_entity_id     uuid not null,
+    login_code         varchar not null,
+    number_of_attempts integer not null default 0,
+    created_at         timestamp with time zone not null,
+
+    foreign key (account_id, user_entity_id) references entities (account_id, entity_id),
+
+    primary key (user_entity_id, login_code)
+);
+
 /** node_modules/connect-pg-simple/table.sql */
 CREATE TABLE "session" (
-  "sid" varchar NOT NULL COLLATE "default",
-	"sess" json NOT NULL,
-	"expire" timestamp(6) NOT NULL
+    sid    varchar NOT NULL COLLATE "default",
+	sess   json NOT NULL,
+	expire timestamp(6) NOT NULL
 )
 WITH (OIDS=FALSE);
 
