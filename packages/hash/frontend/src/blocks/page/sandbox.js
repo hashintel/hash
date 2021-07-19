@@ -590,9 +590,9 @@ class BlockView {
                 attrs: {
                   entityId: text ? node.attrs.entityId : null,
                   childEntityId: text ? node.attrs.childEntityId : null,
-                  namespaceId: node.attrs.namespaceId,
-                  childEntityNamespaceId: text
-                    ? node.attrs.childEntityNamespaceId
+                  accountId: node.attrs.accountId,
+                  childEntityAccountId: text
+                    ? node.attrs.childEntityAccountId
                     : null,
                 },
                 children: text ? [state.schema.text(text)] : [],
@@ -700,8 +700,8 @@ const rewrapCommand = (blockExisted) => (newState, dispatch) => {
         tr.setNodeMarkup(mapping.map(pos), undefined, {
           entityId: null,
           childEntityId: null,
-          namespaceId: null,
-          childEntityNamespaceId: null,
+          accountId: null,
+          childEntityAccountId: null,
         });
       }
     }
