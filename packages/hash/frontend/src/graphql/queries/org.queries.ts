@@ -8,7 +8,7 @@ export const createOrg = gql`
       createdById
       createdAt
       updatedAt
-      namespaceId
+      accountId
       type
       visibility
       properties {

@@ -26,7 +26,7 @@ export const createOrg: Resolver<
   const org: DbOrg = {
     ...entity,
     id: entity.entityId,
-    namespaceId: entity.accountId,
+    accountId: entity.accountId,
     type: "Org",
     visibility: Visibility.Public, // TODO
   };

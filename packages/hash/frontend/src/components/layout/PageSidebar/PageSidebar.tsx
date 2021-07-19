@@ -1,29 +1,29 @@
 import { VoidFunctionComponent } from "react";
 
 import { useRouter } from "next/router";
-import { NamespaceSelect } from "./NamespaceSelect";
-import { NamespacePageList } from "./NamespacePageList";
+import { AccountSelect } from "./AccountSelect";
+import { AccountPageList } from "./AccountPageList";
 
 import styles from "./PageSidebar.module.scss";
 
 export const PageSidebar: VoidFunctionComponent = () => {
   const router = useRouter();
-  const { namespaceId, pageId } = router.query as Record<string, string>;
+  const { accountId, pageId } = router.query as Record<string, string>;
 
-  const goToNamespace = (namespaceId: string) => router.push(`/${namespaceId}`);
+  const goToAccount = (accountId: string) => router.push(`/${accountId}`);
 
   return (
     <nav className={styles.PageSidebar}>
       <div className={styles.PageSidebar__Section}>
         <header className={styles.PageSidebar__Section__Header}>
           <h2>Account</h2>
-          <NamespaceSelect onChange={goToNamespace} value={namespaceId} />
+          <AccountSelect onChange={goToAccount} value={accountId} />
         </header>
       </div>
       <div className={styles.PageSidebar__Section}>
         <header className={styles.PageSidebar__Section__Header}>
           <h2>Pages</h2>
-          <NamespacePageList currentPageId={pageId} namespaceId={namespaceId} />
+          <AccountPageList currentPageId={pageId} accountId={accountId} />
         </header>
       </div>
     </nav>

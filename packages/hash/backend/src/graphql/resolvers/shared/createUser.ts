@@ -27,7 +27,7 @@ export const createUser: Resolver<
   const user: DbUser = {
     ...entity,
     id: entity.entityId,
-    namespaceId: entity.accountId,
+    accountId: entity.accountId,
     type: "User",
     visibility: Visibility.Public, // TODO
   };
