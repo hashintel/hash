@@ -63,6 +63,10 @@ export const userTypedef = gql`
     SUCCESS
   }
 
+  extend type Query {
+    me: User!
+  }
+
   extend type Mutation {
     createUser(email: String!, shortname: String!): User!
     sendLoginCode(userIdentifier: UserIdentifier!): LoginCodeMetadata!

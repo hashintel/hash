@@ -28,18 +28,19 @@ import { DbOrg, DbUser } from "../../types/dbTypes";
 import { GraphQLContext } from "../context";
 import { ForbiddenError } from "apollo-server-express";
 import { logout } from "./user/logout";
+import { me } from "./user/me";
 
 const KNOWN_ENTITIES = ["Page", "Text", "User"];
 
 const loggedIn = (next: any) => (
   obj: any,
   args: any,
-  context: GraphQLContext,
+  ctx: GraphQLContext,
   info: any
 ) => {
-  if (!context.user) throw new ForbiddenError(`You must be logged in to perform this action.`);
-
-  return next(obj, args, context, info);
+  if (!ctx.user) throw new ForbiddenError("You must be logged in to perform this action.");
+  console.log(ctx.user)
+  return next(obj, args, ctx, info);
 };
 
 export const resolvers = {
@@ -49,6 +50,7 @@ export const resolvers = {
     aggregateEntity,
     entity,
     page,
+    me: loggedIn(me),
   },
 
   Mutation: {
