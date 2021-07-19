@@ -27,16 +27,6 @@ export const insertBlockIntoPage: Resolver<
   },
   { dataSources }
 ) => {
-  // TODO: everything here should be inside a transaction
-
-  const page = await dataSources.db.getEntity({ accountId, entityId: pageId });
-  if (!page) {
-    throw new ApolloError(
-      `Could not find page with pageId ${pageId}`,
-      "NOT_FOUND"
-    );
-  }
-
   let entity;
   if (entityId) {
     // Update
@@ -72,20 +62,29 @@ export const insertBlockIntoPage: Resolver<
     properties: blockProperties,
   });
 
-  if (position > page.properties.contents.length) {
-    position = page.properties.contents.length;
-  }
+  // Get and update the page. We need to perform this within the same
+  // transaction to prevent conflicts.
+  const updatedEntities = await dataSources.db.getAndUpdateEntity({
+    accountId,
+    entityId: pageId,
+    handler: (page) => {
+      if (position > page.properties.contents.length) {
+        position = page.properties.contents.length;
+      }
 
-  page.properties.contents = [
-    ...page.properties.contents.slice(0, position),
-    {
-      type: "Block",
-      entityId: newBlock.entityId,
-      accountId: newBlock.accountId,
+      page.properties.contents = [
+        ...page.properties.contents.slice(0, position),
+        {
+          type: "Block",
+          entityId: newBlock.entityId,
+          accountId: newBlock.accountId,
+        },
+        ...page.properties.contents.slice(position),
+      ];
+
+      return page;
     },
-    ...page.properties.contents.slice(position),
-  ];
-  const updatedEntities = await dataSources.db.updateEntity(page);
+  });
 
   // TODO: for now, all entities are non-versioned, so the list array only have a single
   // element. Return when versioned entities are implemented at the API layer.
