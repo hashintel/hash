@@ -44,7 +44,7 @@ type LinkedDataDefinition = {
 // Recursively resolve any __linkedData fields in arbitrary entities
 const resolveLinkedData = async (
   ctx: GraphQLContext,
-  namespaceId: string,
+  accountId: string,
   object: Record<string, any>,
   info: GraphQLResolveInfo
 ) => {
@@ -68,23 +68,25 @@ const resolveLinkedData = async (
     if (entityId) {
       // Fetch a single entity and resolve any linked data in it
       const entity = await ctx.dataSources.db.getEntity({
-        namespaceId,
-        id: entityId,
+        accountId: accountId,
+        entityId: entityId,
       });
       if (!entity) {
         throw new Error(
-          `entity ${entityId} in namespace ${namespaceId} not found`
+          `entity ${entityId} in namespace ${accountId} not found`
         );
       }
       const dbEntity: DbUnknownEntity = {
         ...entity,
+        id: entity.entityId,
+        namespaceId: entity.accountId,
         __typename: entityType,
         visibility: Visibility.Public, // TODO
       };
       object.properties[key] = dbEntity;
       await resolveLinkedData(
         ctx,
-        entity.namespaceId,
+        entity.accountId,
         object.properties[key],
         info
       );
@@ -93,7 +95,7 @@ const resolveLinkedData = async (
       const { results } = (await aggregateEntity(
         {},
         {
-          namespaceId,
+          namespaceId: accountId,
           type: entityType,
           operation: aggregate,
         },

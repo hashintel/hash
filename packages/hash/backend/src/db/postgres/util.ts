@@ -28,7 +28,7 @@ export const gatherLinks = (entity: Entity): string[] => {
 
   if (!isObject(entity.properties)) {
     throw new Error(
-      `entity ${entity.id} has invalid type for field "properties"`
+      `entity ${entity.entityId} has invalid type for field "properties"`
     );
   }
 
@@ -56,8 +56,11 @@ export const gatherLinks = (entity: Entity): string[] => {
 
 /** Mutate an entitiy's properties **in-place** by replacing all linked data from
  * one entity ID to another entity ID.
-*/
-export const replaceLink = (entity: Entity, replace: { old: string, new: string }) => {
+ */
+export const replaceLink = (
+  entity: Entity,
+  replace: { old: string; new: string }
+) => {
   // Need to do special cases for now like in `gatherLinks` above.
 
   if (entity.type === "Block") {
@@ -79,7 +82,7 @@ export const replaceLink = (entity: Entity, replace: { old: string, new: string 
 
   if (!isObject(entity.properties)) {
     throw new Error(
-      `entity ${entity.id} has invalid type for field "properties"`
+      `entity ${entity.entityId} has invalid type for field "properties"`
     );
   }
 
@@ -105,6 +108,11 @@ export const replaceLink = (entity: Entity, replace: { old: string, new: string 
   }
 };
 
-export const entityNotFoundError = (ref: { namespaceId: string, id: string }) => {
-  return new Error(`entity ${ref.id} not found in namespace ${ref.namespaceId}`);
+export const entityNotFoundError = (ref: {
+  accountId: string;
+  entityId: string;
+}) => {
+  return new Error(
+    `entity ${ref.entityId} not found in account ${ref.accountId}`
+  );
 };
