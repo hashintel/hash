@@ -48,11 +48,7 @@ export const aggregateEntity = gql`
     $type: String!
     $operation: AggregateOperationInput
   ) {
-    aggregateEntity(
-      accountId: $accountId
-      type: $type
-      operation: $operation
-    ) {
+    aggregateEntity(accountId: $accountId, type: $type, operation: $operation) {
       __typename
       results {
         __typename

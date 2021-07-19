@@ -66,4 +66,16 @@ export interface DBAdapter extends DataSource {
     metadataId: string;
     extra: any;
   }): Promise<EntityMeta>;
+
+  /**
+   * getAndUpdateEntity may be used to retrieve and update an entity within
+   * the same transaction. It accepts a handler function which, given the
+   * current state of the entity, should return an updated state. Returns
+   * the state of all updated entities.
+   * */
+  getAndUpdateEntity(params: {
+    accountId: string;
+    entityId: string;
+    handler: (entity: Entity) => Entity;
+  }): Promise<Entity[]>;
 }
