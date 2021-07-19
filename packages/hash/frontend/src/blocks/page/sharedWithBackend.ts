@@ -332,30 +332,16 @@ const invertedBlockPaths = Object.fromEntries(
   Object.entries(blockPaths).map(([key, value]) => [value, key])
 );
 
-const cachedPropertiesByEntity: Record<string, Record<any, any>> = (() => {
-  const cachedPropertiesByEntity =
-    JSON.parse(
-      typeof localStorage !== "undefined"
-        ? localStorage.getItem("cachedPropertiesByEntity") ?? "{}"
-        : "{}"
-    ) ?? {};
-
-  if (typeof localStorage !== "undefined") {
-    setInterval(() => {
-      localStorage.setItem(
-        "cachedPropertiesByEntity",
-        JSON.stringify(cachedPropertiesByEntity)
-      );
-    }, 500);
-  }
-
-  return cachedPropertiesByEntity;
-})();
-
+export const cachedPropertiesByEntity: Record<string, Record<any, any>> = {};
 const cachedPropertiesByPosition: Record<string, Record<any, any>> = {};
 
 /**
  * @todo only need doc
+ *
+ * There's a bug here where when we add a new block, we think we need to update the page entity but
+ * that is handled by the insert block operation, so this update here is a noop
+ *
+ * @todo fix this
  */
 export const calculateSavePayloads = (
   accountId: string,

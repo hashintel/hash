@@ -18,6 +18,7 @@ import {
   Block,
   BlockMeta,
   BlockWithoutMeta,
+  cachedPropertiesByEntity,
   calculateSavePayloads,
   componentUrlToProsemirrorId,
   createBlockUpdateTransaction,
@@ -32,6 +33,24 @@ type PageBlockProps = {
   accountId: string;
   metadataId: string;
 };
+
+if (typeof localStorage !== "undefined") {
+  const localStorageCachedPropertiesByEntity =
+    JSON.parse(
+      typeof localStorage !== "undefined"
+        ? localStorage.getItem("cachedPropertiesByEntity") ?? "{}"
+        : "{}"
+    ) ?? {};
+
+  Object.assign(cachedPropertiesByEntity, localStorageCachedPropertiesByEntity);
+
+  setInterval(() => {
+    localStorage.setItem(
+      "cachedPropertiesByEntity",
+      JSON.stringify(cachedPropertiesByEntity)
+    );
+  }, 500);
+}
 
 /**
  * The naming of this as a "Block" is… interesting, considering it doesn't really work like a Block. It would be cool
@@ -139,25 +158,10 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
                 (promise, insertPayload) =>
                   promise.catch(() => {}).then(() => insert(insertPayload)),
                 pageUpdatedPayload
-                  ? /**
-                     * There's a bug here where when we add a new block, we think we need to update the page entity but
-                     * that is handled by the insert block operation, so this update here is a noop
-                     *
-                     * @todo fix this
-                     */
-                    update([pageUpdatedPayload])
+                  ? update([pageUpdatedPayload])
                   : Promise.resolve()
               )
-              .then(() =>
-                update(
-                  /**
-                   * Not entirely sure what I was going for with this filter
-                   *
-                   * @todo figure this out
-                   */
-                  updatedEntitiesPayload
-                )
-              )
+              .then(() => update(updatedEntitiesPayload))
               .catch(() => {})
               // @todo remove this timeout
               .then(() => {
@@ -230,7 +234,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       replacePortal,
       [savePlugin, createFormatPlugin(replacePortal)],
       accountId,
-      pageId
+      metadataId
     );
 
     prosemirrorSetup.current = { schema, view };

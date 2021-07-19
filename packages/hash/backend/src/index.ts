@@ -4,11 +4,13 @@ import helmet from "helmet";
 import { customAlphabet } from "nanoid";
 import winston from "winston";
 import { StatsD } from "hot-shots";
+import { createServer, RequestListener } from "http";
 
 import { PostgresAdapter, setupCronJobs } from "./db";
 import { createApolloServer } from "./graphql/createApolloServer";
 import setupAuth from "./auth";
 import { getRequiredEnv } from "./util";
+import { handleCollabRequest } from "./collab/server";
 
 // TODO: account for production domain
 export const FRONTEND_DOMAIN = getRequiredEnv("FRONTEND_DOMAIN");
@@ -113,9 +115,15 @@ apolloServer
       cors: { credentials: true, origin: FRONTEND_URL },
     });
 
-    const server = app.listen(PORT, () =>
-      logger.info(`Listening on port ${PORT}`)
-    );
+    const requestWrapper: RequestListener = (req, res) => {
+      if (!handleCollabRequest(req, res)) {
+        return app(req, res);
+      }
+    };
+
+    const server = createServer(requestWrapper).listen(PORT, () => {
+      logger.info(`Listening on port ${PORT}`);
+    });
 
     // Gracefully shutdown on receiving a termination signal.
     let receivedTerminationSignal = false;

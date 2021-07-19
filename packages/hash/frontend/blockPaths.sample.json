@@ -1,9 +1,9 @@
 {
-  "https://block.blockprotocol.org/header": "http://localhost:5000",
-  "https://block.blockprotocol.org/htmlPara": "http://localhost:5005",
-  "https://block.blockprotocol.org/person": "http://localhost:9000",
-  "https://block.blockprotocol.org/image": "http://localhost:62677",
-  "https://block.blockprotocol.org/table": "http://localhost:62678",
-  "https://block.blockprotocol.org/divider": "http://localhost:62679",
-  "https://block.blockprotocol.org/embed": "http://localhost:62680"
+  "https://block.blockprotocol.org/header": "http://host.docker.internal:5000",
+  "https://block.blockprotocol.org/htmlPara": "http://host.docker.internal:5005",
+  "https://block.blockprotocol.org/person": "http://host.docker.internal:9000",
+  "https://block.blockprotocol.org/image": "http://host.docker.internal:62677",
+  "https://block.blockprotocol.org/table": "http://host.docker.internal:62678",
+  "https://block.blockprotocol.org/divider": "http://host.docker.internal:62679",
+  "https://block.blockprotocol.org/embed": "http://host.docker.internal:62680"
 }

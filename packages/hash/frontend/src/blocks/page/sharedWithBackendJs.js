@@ -171,14 +171,12 @@ export const defineRemoteBlock = async (
     AsyncBlockCacheView = viewConfig.view;
   }
 
-  const existingSchemaSpec = schema.spec;
-
   // If the block has not already been defined, we need to fetch the metadata & define it
-  if (!id || existingSchemaSpec.nodes.find(id) === -1) {
+  if (!id || !schema.nodes[id]) {
     if (!AsyncBlockCache.has(componentUrl)) {
       const promise = fetchBlockMeta(componentUrl)
         .then(({ componentMetadata, componentSchema }) => {
-          if (!id || existingSchemaSpec.nodes.find(id) === -1) {
+          if (!id || !schema.nodes[id]) {
             defineNewBlock(
               schema,
               componentMetadata,
