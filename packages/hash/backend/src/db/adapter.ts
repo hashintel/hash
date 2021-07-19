@@ -1,4 +1,5 @@
 import { DataSource } from "apollo-datasource";
+import { DbUser } from "src/types/dbTypes";
 
 export type Entity = {
   accountId: string;
@@ -57,6 +58,12 @@ export interface DBAdapter extends DataSource {
     type?: string;
     properties: any;
   }): Promise<Entity[]>;
+
+  /** Get the user by their email address. */
+  getUserByEmail(params: { email: string }): Promise<DbUser | null>;
+
+  /** Get the user by their shortname. */
+  getUserByShortname(params: { shortname: string }): Promise<DbUser | null>;
 
   /** Get all entities of a given type. */
   getEntitiesByType(params: {

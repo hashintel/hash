@@ -3,7 +3,13 @@ import { DataSource } from "apollo-datasource";
 
 import { DBAdapter, Entity, EntityMeta, LoginCode } from "../adapter";
 import { genEntityId } from "../../util";
-import { gatherLinks, entityNotFoundError, replaceLink } from "./util";
+import {
+  gatherLinks,
+  entityNotFoundError,
+  replaceLink,
+  mapPGRowToEntity,
+  mapPGRowToDbUser,
+} from "./util";
 import { getRequiredEnv } from "../../util";
 
 const parsePort = (str: string) => {
@@ -314,23 +320,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       throw new Error(`expected 1 row but received ${res.rowCount}`);
     }
 
-    const row = res.rows[0];
-    const entity: Entity = {
-      accountId: row["account_id"],
-      entityId: row["entity_id"],
-      createdById: row["created_by"],
-      type: row["type"],
-      properties: row["properties"],
-      historyId: row["history_id"],
-      metadata: {
-        metadataId: row["metadata_id"],
-        extra: row["extra"],
-      },
-      createdAt: row["created_at"],
-      updatedAt: row["updated_at"],
-    };
-
-    return entity;
+    return mapPGRowToEntity(res.rows[0]);
   }
 
   /** Get an entity by ID in a given account. */
@@ -535,20 +525,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       [params.accountId, params.type]
     );
 
-    return res.rows.map((row) => ({
-      accountId: row["account_id"],
-      entityId: row["entity_id"],
-      createdById: row["created_by"],
-      type: row["type"],
-      properties: row["properties"],
-      historyId: row["history_id"],
-      metadata: {
-        metadataId: row["metadata_id"],
-        extra: row["extra"],
-      },
-      createdAt: row["created_at"],
-      updatedAt: row["updated_at"],
-    }));
+    return res.rows.map(mapPGRowToEntity);
   }
 
   /** Get all account entities. */
@@ -566,20 +543,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       where
         e.account_id = e.entity_id`
     );
-    return res.rows.map((row) => ({
-      accountId: row["account_id"],
-      entityId: row["entity_id"],
-      createdById: row["created_by"],
-      type: row["type"],
-      properties: row["properties"],
-      historyId: row["history_id"],
-      metadata: {
-        metadataId: row["metadata_id"],
-        extra: row["extra"],
-      },
-      createdAt: row["created_at"],
-      updatedAt: row["updated_at"],
-    }));
+    return res.rows.map(mapPGRowToEntity);
   }
 
   async updateEntityMetadata(params: {
@@ -596,6 +560,61 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     }
     return params;
   }
+
+  getUserByEmail = (params: { email: string }) =>
+    this.pool
+      .query(
+        `select
+      e.account_id, e.entity_id, t.name as type, e.properties, e.created_by,
+      e.created_at, e.updated_at, e.metadata_id, e.history_id, meta.extra
+    from
+      entities as e
+      join entity_types as t on e.type = t.id
+      join entity_metadata as meta on
+        meta.account_id = e.account_id  -- required for sharding
+        and meta.metadata_id = e.metadata_id
+    where
+        t.name = 'User'
+      and
+        e.properties ->> 'email' = $1`,
+        [params.email]
+      )
+      .then(({ rows }) => {
+        if (rows.length === 0) return null;
+        if (rows.length > 1)
+          throw new Error(
+            `Critical: multiple users with email '${params.email}' found in datastore`
+          );
+        return mapPGRowToDbUser(rows[0]);
+      });
+
+  getUserByShortname = (params: { shortname: string }) =>
+    this.pool
+      .query(
+        `select
+        e.account_id, e.entity_id, t.name as type, e.properties, e.created_by,
+        e.created_at, e.updated_at, e.metadata_id, e.history_id, meta.extra
+      from
+        entities as e
+        join entity_types as t on e.type = t.id
+        join entity_metadata as meta on
+          meta.account_id = e.account_id  -- required for sharding
+          and meta.metadata_id = e.metadata_id
+      where
+          t.name = 'User'
+        and
+          e.properties ->> 'shortname' = $1`,
+        [params.shortname]
+      )
+      .then(({ rows }) => {
+        if (rows.length === 0) return null;
+        if (rows.length > 1)
+          throw new Error(
+            `Critical: multiple users with shortname '${params.shortname}' found in datastore`
+          );
+
+        return mapPGRowToDbUser(rows[0]);
+      });
 
   /** Insert a row into the entities table. */
   private insertLoginCode = (
@@ -633,12 +652,13 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     ).then(() => ({ ...params, numberOfAttempts: 0, createdAt }));
   }
 
-  async getLoginCodes(params: {
+  getLoginCodes = (params: {
     accountId: string;
     userEntityId: string;
-  }): Promise<LoginCode[]> {
-    const res = await this.pool.query(
-      `
+  }): Promise<LoginCode[]> =>
+    this.pool
+      .query(
+        `
       select
         account_id, user_entity_id, login_code, number_of_attempts, created_at
       from
@@ -648,15 +668,15 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
         and
           user_entity_id = $2
       `,
-      [params.accountId, params.userEntityId]
-    );
-
-    return res.rows.map((row) => ({
-      accountId: row["account_id"],
-      userEntityId: row["user_entity_id"],
-      loginCode: row["login_code"],
-      numberOfAttempts: row["number_of_attempts"],
-      createdAt: row["created_at"],
-    }));
-  }
+        [params.accountId, params.userEntityId]
+      )
+      .then(({ rows }) =>
+        rows.map((row) => ({
+          accountId: row["account_id"],
+          userEntityId: row["user_entity_id"],
+          loginCode: row["login_code"],
+          numberOfAttempts: row["number_of_attempts"],
+          createdAt: row["created_at"],
+        }))
+      );
 }
