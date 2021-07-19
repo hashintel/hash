@@ -116,8 +116,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
             },
           };
         } else {
-          const { childEntityId, childEntityAccountId, ...props } =
-            node.attrs;
+          const { childEntityId, childEntityAccountId, ...props } = node.attrs;
           entity = {
             type: "UnknownEntity",
             id: childEntityId,
@@ -425,7 +424,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
             id,
             replacePortal,
             {
-              props,
+              properties: props,
               entityId: block.entityId,
               accountId: block.accountId,
               childEntityId,
