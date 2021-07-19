@@ -73,7 +73,7 @@ export const insertBlockIntoPage: Resolver<
 
   const newBlock = await dataSources.db.createEntity({
     accountId,
-    type: entity.type,
+    type: "Block",
     createdById: genEntityId(), // TODO
     properties: blockProperties,
   });
