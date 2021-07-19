@@ -39,7 +39,6 @@ const loggedIn = (next: any) => (
   info: any
 ) => {
   if (!ctx.user) throw new ForbiddenError("You must be logged in to perform this action.");
-  console.log(ctx.user)
   return next(obj, args, ctx, info);
 };
 
