@@ -27,23 +27,54 @@ function AppComponent() {
 
   const { url, type } = blockState;
 
-  const { data, error, loading } = useQuery<
-    GetEmbedCodeQuery,
-    GetEmbedCodeQueryVariables
-  >(getEmbedCode, {
-    variables: { url, type },
-  });
+  const [data, setData] = useState<GetEmbedCodeQuery | undefined>(undefined);
+  const [error, setError] =
+    useState<{ message: string } | undefined>(undefined);
 
-  console.log(url, type, data);
+  // const { data, error, loading } = useQuery<
+  //   GetEmbedCodeQuery,
+  //   GetEmbedCodeQueryVariables
+  // >(getEmbedCode, {
+  //   variables: { url, type },
+  // });
+
+  // console.log(url, type, data);
 
   function getEmbedBlock(url: string, type?: ProviderNames) {
     setBlockState({ url, type });
+
+    fetch("http://localhost:5001/graphql", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        // 'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: JSON.stringify({
+        operationName: "getEmbedCode",
+        variables: { url, type },
+        query:
+          "query getEmbedCode($url: String!, $type: String) {\n  embedCode(url: $url, type: $type) {\n    html\n    providerName\n    __typename\n  }\n}\n",
+      }),
+    })
+      .then((response) => response.json())
+      .then((responseData) => {
+        if (responseData.errors) {
+          setError(responseData.errors[0]);
+        }
+
+        setData(responseData.data);
+      });
   }
+
+  console.log(data, data?.embedCode.html);
 
   return (
     <>
-    Hey THere!!
-      <Component getEmbedBlock={getEmbedBlock} html={data?.embedCode.html} />
+      <Component
+        getEmbedBlock={getEmbedBlock}
+        html={data?.embedCode.html}
+        errorString={error?.message}
+      />
     </>
   );
 }

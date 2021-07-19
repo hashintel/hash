@@ -1,11 +1,13 @@
 import React, { useEffect, useState, VoidFunctionComponent } from "react";
 
 import { BlockProtocolProps } from "./types/blockProtocol";
-
 import { ProviderNames } from "./types/embedTypes";
+import { HtmlBlock } from "./HtmlBlock";
 
 type AppProps = {
-  displayName?: string;
+  placeholderText?: string;
+  buttonText?: string;
+  bottomText?: string;
   embedType?: ProviderNames;
   getEmbedBlock: (url: string, type?: ProviderNames) => void;
   html?: string;
@@ -13,31 +15,48 @@ type AppProps = {
   errorString?: string;
 };
 
-function DisplayEmbed({ embedCode }: { embedCode: string }) {
-  return <div dangerouslySetInnerHTML={{ __html: embedCode }} />;
-}
-
 export const App: VoidFunctionComponent<AppProps & BlockProtocolProps> = ({
-  displayName,
+  placeholderText,
+  buttonText,
+  bottomText,
   embedType,
   getEmbedBlock,
+  errorString,
   html,
 }) => {
   const [displayState, setDisplayState] =
     useState<"display_input" | "display_embed">("display_input");
 
   const [inputText, setTextInput] = useState("");
+  const [edit, setEdit] = useState(false);
+
+  useEffect(() => {
+    if (errorString?.trim()) {
+      alert(errorString);
+    }
+  }, [errorString]);
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (inputText.trim()) {
       await getEmbedBlock(inputText, embedType);
+      setEdit(false);
     }
   };
 
-  if (html) {
-    return <DisplayEmbed embedCode={html} />;
+  if (html && !edit) {
+    return (
+      <div style={{ display: "flex" }}>
+        <HtmlBlock html={html} />
+        <button
+          onClick={() => setEdit(true)}
+          style={{ marginLeft: 8, height: "max-content" }}
+        >
+          Edit
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -52,11 +71,14 @@ export const App: VoidFunctionComponent<AppProps & BlockProtocolProps> = ({
           }}
           onChange={(event) => setTextInput(event.target.value)}
           type="url"
-          placeholder={`Enter ${displayName ? `${displayName} ` : ``}URL`}
+          placeholder={placeholderText ? placeholderText : `Enter URL`}
         />
       </div>
       <div style={{ marginTop: 8 }}>
-        <button type="submit">Embed Link</button>
+        <button type="submit">{buttonText ? buttonText : `Embed Link`}</button>
+      </div>
+      <div style={{ marginTop: 8, color: "rgb(139, 139, 139)" }}>
+        {bottomText ? bottomText : "Works with any Oembed supporting link"}
       </div>
     </form>
   );
