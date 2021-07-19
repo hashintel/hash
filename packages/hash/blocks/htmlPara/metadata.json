@@ -11,9 +11,9 @@
   "source": "index.html",
   "variants": [
     {
-      "name": "inherit",
-      "description": "inherit",
-      "icon": "inherit",
+      "name": "htmlPara",
+      "description": "Basic HTML para block component",
+      "icon": "path/to/icon.svg",
       "properties": {}
     }
   ]
