@@ -94,6 +94,17 @@ export interface DBAdapter extends DataSource {
     loginId: string;
   }): Promise<LoginCode | null>;
 
-  /** Incrememnt the number of login attempts by 1 */
+  /** Increment the number of login attempts by 1 */
   incrementLoginCodeAttempts(params: { loginCode: LoginCode }): Promise<void>;
+  /**
+   * getAndUpdateEntity may be used to retrieve and update an entity within
+   * the same transaction. It accepts a handler function which, given the
+   * current state of the entity, should return an updated state. Returns
+   * the state of all updated entities.
+   * */
+  getAndUpdateEntity(params: {
+    accountId: string;
+    entityId: string;
+    handler: (entity: Entity) => Entity;
+  }): Promise<Entity[]>;
 }

@@ -295,12 +295,15 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return entity;
   }
 
+  /** Get an entity. The optional argument `lock` may be set to `true` to lock
+   *  the entity for selects or updates until the transaction completes.*/
   private async _getEntity(
     client: PoolClient,
-    params: { accountId: string; entityId: string }
+    params: { accountId: string; entityId: string },
+    lock: boolean = false
   ): Promise<Entity | undefined> {
     const res = await client.query(
-      `select
+      `select 
         e.account_id, e.entity_id, t.name as type, e.properties, e.created_by,
         e.created_at, e.updated_at, e.history_id, e.metadata_id, meta.extra
       from
@@ -310,7 +313,8 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
           e.account_id = meta.account_id and  -- required for sharding
           e.metadata_id = meta.metadata_id
       where
-        e.account_id = $1 and e.entity_id = $2`,
+        e.account_id = $1 and e.entity_id = $2
+      ${lock ? "for update" : ""}`,
       [params.accountId, params.entityId]
     );
 
@@ -728,4 +732,24 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
         [params.loginCode.id, params.loginCode.userId]
       )
       .then();
+  async getAndUpdateEntity(params: {
+    accountId: string;
+    entityId: string;
+    handler: (entity: Entity) => Entity;
+  }): Promise<Entity[]> {
+    const updated = await this.tx(async (client) => {
+      const entity = await this._getEntity(client, params, true);
+      if (!entity) {
+        throw entityNotFoundError(params);
+      }
+      const updated = params.handler(entity);
+      return await this._updateEntity(client, {
+        accountId: params.accountId,
+        entityId: params.entityId,
+        properties: updated.properties,
+      });
+    });
+
+    return updated;
+  }
 }
