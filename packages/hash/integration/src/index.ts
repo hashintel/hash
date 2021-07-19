@@ -305,31 +305,7 @@ enum Visibility {
           createdById: user.id,
           properties: {
             initialState: {
-              hiddenColumns: [
-                "id",
-                "__typename",
-                "createdById",
-                "accountId",
-                "createdAt",
-                "updatedAt",
-                "visibility",
-                "properties.employer.__typename",
-                "properties.employer.createdAt",
-                "properties.employer.createdById",
-                "properties.employer.id",
-                "properties.employer.accountId",
-                "properties.employer.type",
-                "properties.employer.updatedAt",
-                "properties.employer.visibility",
-                "properties.employer.properties.location.__typename",
-                "properties.employer.properties.location.createdAt",
-                "properties.employer.properties.location.createdById",
-                "properties.employer.properties.location.id",
-                "properties.employer.properties.location.accountId",
-                "properties.employer.properties.location.type",
-                "properties.employer.properties.location.updatedAt",
-                "properties.employer.properties.location.visibility",
-              ],
+              hiddenColumns: [],
             },
             data: {
               __linkedData: {

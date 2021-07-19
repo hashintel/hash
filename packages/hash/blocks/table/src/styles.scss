@@ -29,11 +29,7 @@ td, thead tr:last-child th, thead tr:nth-last-child(2) th {
   border-right: 1px solid lightgrey;
 }
 
-thead tr:nth-child(odd) {
-  display: none;
-}
-
-tr:last-child {
+tr {
   border-bottom: 1px solid lightgrey;
   border-top: 1px solid lightgrey;
 }
