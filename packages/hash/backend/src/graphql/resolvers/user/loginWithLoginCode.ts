@@ -25,7 +25,16 @@ export const loginWithLoginCode: Resolver<
       "NOT_FOUND"
     );
 
-  const user = await dataSources.db
+  // If the login code's maximum number of attempts has been exceeded
+  if (loginCode.numberOfAttempts >= LOGIN_CODE_MAX_ATTEMPTS)
+    return LoginWithLoginCodeResponse.MaxAttempts;
+  // If the login code has expired
+  if (loginCode.createdAt.getTime() < new Date().getTime() - LOGIN_CODE_MAX_AGE)
+    return LoginWithLoginCodeResponse.Expired;
+
+  // Otherwise, let's check if the provided code matches the login code
+  if (loginCode.code === args.loginCode) {
+    const user = await dataSources.db
     .getUserById({ id: loginCode.userId })
     .then((user) => {
       if (!user)
@@ -36,15 +45,6 @@ export const loginWithLoginCode: Resolver<
       return user;
     });
 
-  // If the login code's maximum number of attempts has been exceeded
-  if (loginCode.numberOfAttempts >= LOGIN_CODE_MAX_ATTEMPTS)
-    return LoginWithLoginCodeResponse.MaxAttempts;
-  // If the login code has expired
-  if (loginCode.createdAt.getTime() < new Date().getTime() - LOGIN_CODE_MAX_AGE)
-    return LoginWithLoginCodeResponse.Expired;
-
-  // Otherwise, let's check if the provided code matches the login code
-  if (loginCode.code === args.loginCode) {
     passport.login(user, {});
     return LoginWithLoginCodeResponse.Success;
   }
