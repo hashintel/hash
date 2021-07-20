@@ -14,11 +14,11 @@ type AppProps = {
   buttonText?: string;
   bottomText?: string;
   embedType?: ProviderNames;
-  getEmbedBlock: (url: string, type?: ProviderNames) => void;
-  html?: string;
-  loading: boolean;
-  errorString?: string;
-  resetData: () => void;
+  getEmbedBlock: (
+    url: string,
+    type?: ProviderNames
+  ) => Promise<{ html: string; error?: string }>;
+  initialHtml?: string;
   entityType: string;
   entityId: string;
   updateBlockData: BlockProtocolUpdateFn;
@@ -30,10 +30,7 @@ export const App: VoidFunctionComponent<AppProps & BlockProtocolProps> = ({
   bottomText,
   embedType,
   getEmbedBlock,
-  errorString,
-  html,
-  resetData,
-  loading,
+  initialHtml,
   entityType,
   entityId,
   updateBlockData,
@@ -42,11 +39,18 @@ export const App: VoidFunctionComponent<AppProps & BlockProtocolProps> = ({
   const [edit, setEdit] = useState(false);
   const [displayAlert, setDisplayAlert] = useState(false);
 
+  const [html, setHtml] = useState(initialHtml);
+  console.log({ html });
+  const [loading, setLoading] = useState(false);
+  const [errorString, setErrorString] = useState("");
+
+  const resetData = () => setHtml(undefined);
+
   useEffect(() => {
-    if (html) {
-      updateBlockData([{ entityId, entityType, data: { html } }]);
+    if (initialHtml?.trim()) {
+      setHtml(initialHtml);
     }
-  }, [html]);
+  }, [initialHtml]);
 
   useEffect(() => {
     if (errorString?.trim()) {
@@ -58,7 +62,25 @@ export const App: VoidFunctionComponent<AppProps & BlockProtocolProps> = ({
     event.preventDefault();
 
     if (inputText.trim()) {
-      await getEmbedBlock(inputText, embedType);
+      setLoading(true);
+
+      await getEmbedBlock(inputText, embedType).then((responseData) => {
+        setLoading(false);
+
+        const { html, error } = responseData;
+        console.log({ responseData });
+
+        if (error?.trim()) {
+          setHtml(undefined);
+          return setErrorString(error);
+        }
+        if (html?.trim()) {
+          updateBlockData([
+            { entityId, entityType, data: { initialHtml: html } },
+          ]);
+          setHtml(html);
+        }
+      });
       setEdit(false);
     }
   };
@@ -67,11 +89,10 @@ export const App: VoidFunctionComponent<AppProps & BlockProtocolProps> = ({
     return (
       <div className={tw`flex justify-center text-center w-full`}>
         <div
-          style={{
-            //  paddingBottom: 20
-            resize: "both",
-            overflow: "auto",
-          }}
+        // style={{
+        //   resize: "both",
+        //   overflow: "auto",
+        // }}
         >
           <HtmlBlock html={html} />
         </div>

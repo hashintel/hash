@@ -21,25 +21,14 @@ const node = document.getElementById("app");
 const apolloClient = createApolloClient();
 
 function AppComponent() {
-  const [blockState, setBlockState] = useState<{
-    url: string;
-    type?: ProviderNames;
-  }>({ url: "", type: undefined });
-
-  const [data, setData] = useState<GetEmbedCodeQuery | undefined>(undefined);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] =
-    useState<{ message: string } | undefined>(undefined);
-
-  function getEmbedBlock(url: string, type?: ProviderNames) {
-    setBlockState({ url, type });
-
-    setLoading(true);
-    fetch("http://localhost:5001/graphql", {
+  async function getEmbedBlock(
+    url: string,
+    type?: ProviderNames
+  ): Promise<{ html: string; error?: string }> {
+    return fetch("http://localhost:5001/graphql", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        // 'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: JSON.stringify({
         operationName: "getEmbedCode",
@@ -49,16 +38,10 @@ function AppComponent() {
       }),
     })
       .then((response) => response.json())
-      .then((responseData) => {
-        setLoading(false);
-
-        if (responseData.errors) {
-          setData(undefined);
-          return setError(responseData.errors[0]);
-        }
-
-        setData(responseData.data);
-      });
+      .then((responseData) => ({
+        html: responseData.data?.embedCode.html,
+        error: responseData?.errors?.[0]?.message,
+      }));
   }
 
   const updateBlockData: BlockProtocolUpdateFn = (actions) => {
@@ -71,17 +54,14 @@ function AppComponent() {
         entityType={"uuid-1234-type"}
         entityId={"uuid-1234-id"}
         getEmbedBlock={getEmbedBlock}
-        html={
-          data?.embedCode.html
+        initialHtml={
+          undefined
 
           // `<iframe src="https://www.youtube.com/embed/dlKBmzQbiyU?feature=oembed" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen="" width="200" height="113" frameborder="0"></iframe>`
 
           //           `<blockquote class="twitter-tweet"><p lang="en" dir="ltr">Yep! So tricky to decide whether it’s a bad idea or people don’t “trust” you yet in the ecosystem.<br><br>Most signups have been from the demo but I have a few just from talking about it on here and the forum.</p>&mdash; Archie Edwards (@archiethedev) <a href="https://twitter.com/archiethedev/status/1415981800577544195?ref_src=twsrc%5Etfw">July 16, 2021</a></blockquote>
           // <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>`
         }
-        errorString={error?.message}
-        resetData={() => setData(undefined)}
-        loading={loading}
         updateBlockData={updateBlockData}
       />
     </div>
