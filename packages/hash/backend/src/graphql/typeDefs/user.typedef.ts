@@ -43,7 +43,7 @@ export const userTypedef = gql`
 
   type LoginCodeMetadata {
     id: ID!
-    userId: ID!
+    userId: String!
     createdAt: Date!
   }
 
