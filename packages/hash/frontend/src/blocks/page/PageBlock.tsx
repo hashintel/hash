@@ -3,7 +3,6 @@ import { Schema } from "prosemirror-model";
 import { Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { defineNewBlock, defineRemoteBlock, renderPM } from "./sandbox";
-import { baseSchemaConfig } from "./config";
 import {
   Block,
   BlockMeta,
@@ -16,6 +15,7 @@ import { BlockProtocolUpdatePayload } from "../../types/blockProtocol";
 import { useBlockProtocolInsertIntoPage } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolInsertIntoPage";
 import { usePortals } from "./usePortals";
 import { useDeferredCallback } from "./useDeferredCallback";
+import { schema } from "./schema";
 
 const invertedBlockPaths = Object.fromEntries(
   Object.entries(blockPaths).map(([key, value]) => [value, key])
@@ -59,7 +59,6 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
    */
   useLayoutEffect(() => {
     const node = root.current!;
-    const schema = new Schema(baseSchemaConfig);
 
     /**
      * Setting this function to global state as a shortcut to call it from deep within prosemirror.
