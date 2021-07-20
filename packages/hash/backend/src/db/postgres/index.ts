@@ -115,7 +115,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     );
   }
 
-  private async getEntityNamespace(client: PoolClient, entityId: string) {
+  private async getEntityAccount(client: PoolClient, entityId: string) {
     const res = await client.query(
       "select account_id from entity_account where entity_id = $1",
       [entityId]
@@ -212,7 +212,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
 
     const entity = await this.tx(async (client) => {
       // Create the shard if it does not already exist
-      // TODO: this should be performed in a "createNamespace" function, or similar.
+      // TODO: this should be performed in a "createAccount" function, or similar.
       await client.query(
         `insert into accounts (account_id) values ($1)
         on conflict (account_id) do nothing`,
@@ -267,9 +267,9 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       const linkedEntityIds = gatherLinks(entity);
       await Promise.all(
         linkedEntityIds.map(async (dstId) => {
-          const accountId = await this.getEntityNamespace(client, dstId);
+          const accountId = await this.getEntityAccount(client, dstId);
           if (!accountId) {
-            throw new Error(`namespace ID not found for entity ${dstId}`);
+            throw new Error(`accountId not found for entity ${dstId}`);
           }
           await Promise.all([
             this.createOutgoingLink(client, {
@@ -279,7 +279,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
               childId: dstId,
             }),
             this.createIncomingLink(client, {
-              accountId: accountId,
+              accountId,
               entityId: dstId,
               parentAccountId: entity.accountId,
               parentId: entity.entityId,
@@ -294,12 +294,15 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return entity;
   }
 
+  /** Get an entity. The optional argument `lock` may be set to `true` to lock
+   *  the entity for selects or updates until the transaction completes.*/
   private async _getEntity(
     client: PoolClient,
-    params: { accountId: string; entityId: string }
+    params: { accountId: string; entityId: string },
+    lock: boolean = false
   ): Promise<Entity | undefined> {
     const res = await client.query(
-      `select
+      `select 
         e.account_id, e.entity_id, t.name as type, e.properties, e.created_by,
         e.created_at, e.updated_at, e.history_id, e.metadata_id, meta.extra
       from
@@ -309,7 +312,8 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
           e.account_id = meta.account_id and  -- required for sharding
           e.metadata_id = meta.metadata_id
       where
-        e.account_id = $1 and e.entity_id = $2`,
+        e.account_id = $1 and e.entity_id = $2
+      ${lock ? "for update" : ""}`,
       [params.accountId, params.entityId]
     );
 
@@ -338,7 +342,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return entity;
   }
 
-  /** Get an entity by ID in a given namespace. */
+  /** Get an entity by ID in a given account. */
   async getEntity(params: {
     accountId: string;
     entityId: string;
@@ -421,7 +425,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       ]
     );
 
-    if (res.rowCount === 0) {
+    if (res.rowCount !== 1) {
       throw new Error(`expected 1 row to be updated not ${res.rowCount}`);
     }
     return {
@@ -432,7 +436,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   }
 
   /** Get the IDs of all entities which refrence a given entity. */
-  private async getEntityParentIDs(client: PoolClient, entity: Entity) {
+  private async getEntityParentIds(client: PoolClient, entity: Entity) {
     const res = await client.query(
       `select parent_account_id, parent_id from incoming_links
       where account_id = $1 and entity_id = $2`,
@@ -475,7 +479,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       // update all entities which reference this entity with this ID.
       // TODO: there's redundant _getEntity fetching here. Could refactor the function
       // signature to take the old state of the entity.
-      const parentRefs = await this.getEntityParentIDs(client, updatedEntity);
+      const parentRefs = await this.getEntityParentIds(client, updatedEntity);
       const parents = await Promise.all(
         parentRefs.map(async (ref) => {
           const parent = await this._getEntity(client, ref);
@@ -507,7 +511,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
 
   /** Update an entity's properties. If the "type" parameter is provided, the function
    * checks that it matches the entity's type. Returns `undefined` if the entity does
-   * not exist in the given namespace.
+   * not exist in the given account.
    */
   async updateEntity(params: {
     accountId: string;
@@ -556,8 +560,8 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     }));
   }
 
-  /** Get all namespace entities. */
-  async getNamespaceEntities(): Promise<Entity[]> {
+  /** Get all account entities. */
+  async getAccountEntities(): Promise<Entity[]> {
     const res = await this.pool.query(
       `select
         e.account_id, e.entity_id, t.name as type, e.properties, e.created_by,
@@ -600,5 +604,26 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       throw new Error("internal error"); // TODO: better erorr message
     }
     return params;
+  }
+
+  async getAndUpdateEntity(params: {
+    accountId: string;
+    entityId: string;
+    handler: (entity: Entity) => Entity;
+  }): Promise<Entity[]> {
+    const updated = await this.tx(async (client) => {
+      const entity = await this._getEntity(client, params, true);
+      if (!entity) {
+        throw entityNotFoundError(params);
+      }
+      const updated = params.handler(entity);
+      return await this._updateEntity(client, {
+        accountId: params.accountId,
+        entityId: params.entityId,
+        properties: updated.properties,
+      });
+    });
+
+    return updated;
   }
 }

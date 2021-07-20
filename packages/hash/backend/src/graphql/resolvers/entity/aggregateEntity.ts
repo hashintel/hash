@@ -15,7 +15,7 @@ export const aggregateEntity: Resolver<
   {},
   GraphQLContext,
   QueryAggregateEntityArgs
-> = async (_, { namespaceId, operation, type }, { dataSources }) => {
+> = async (_, { accountId, operation, type }, { dataSources }) => {
   const page = operation?.page || 1;
   const perPage = operation?.perPage || 10;
   const sort = operation?.sort?.field || "updatedAt";
@@ -23,11 +23,11 @@ export const aggregateEntity: Resolver<
   const startIndex = (page ?? 1) - 1;
   const endIndex = startIndex + (perPage ?? 10);
 
-  // TODO: this returns an array of all entities of the given type in the namespace.
+  // TODO: this returns an array of all entities of the given type in the account.
   // We should perform the sorting & filtering in the database for better performance.
   // For pagination, using a database cursor may be an option.
   const entities = await dataSources.db.getEntitiesByType({
-    accountId: namespaceId,
+    accountId,
     type,
   });
 
@@ -41,7 +41,7 @@ export const aggregateEntity: Resolver<
     .map((entity) => ({
       ...entity,
       id: entity.entityId,
-      namespaceId: entity.accountId,
+      accountId: entity.accountId,
       visibility: Visibility.Public,
     })) as DbUnknownEntity[];
 

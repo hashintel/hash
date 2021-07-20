@@ -2,13 +2,13 @@ import gql from "graphql-tag";
 
 export const createEntity = gql`
   mutation createEntity(
-    $namespaceId: ID!
+    $accountId: ID!
     $createdById: ID!
     $properties: JSONObject!
     $type: String!
   ) {
     createEntity(
-      namespaceId: $namespaceId
+      accountId: $accountId
       createdById: $createdById
       properties: $properties
       type: $type
@@ -18,7 +18,7 @@ export const createEntity = gql`
       createdById
       createdAt
       updatedAt
-      namespaceId
+      accountId
       ... on UnknownEntity {
         properties
       }
@@ -29,8 +29,8 @@ export const createEntity = gql`
 `;
 
 export const updateEntity = gql`
-  mutation updateEntity($namespaceId: ID!, $id: ID!, $properties: JSONObject!) {
-    updateEntity(namespaceId: $namespaceId, id: $id, properties: $properties) {
+  mutation updateEntity($accountId: ID!, $id: ID!, $properties: JSONObject!) {
+    updateEntity(accountId: $accountId, id: $id, properties: $properties) {
       __typename
       id
       type
@@ -44,15 +44,11 @@ export const updateEntity = gql`
 
 export const aggregateEntity = gql`
   query aggregateEntity(
-    $namespaceId: ID!
+    $accountId: ID!
     $type: String!
     $operation: AggregateOperationInput
   ) {
-    aggregateEntity(
-      namespaceId: $namespaceId
-      type: $type
-      operation: $operation
-    ) {
+    aggregateEntity(accountId: $accountId, type: $type, operation: $operation) {
       __typename
       results {
         __typename

@@ -21,39 +21,23 @@ export const insertBlockIntoPage: Resolver<
     entityId,
     entityProperties,
     entityType,
-    namespaceId,
+    accountId,
     pageId,
     position,
   },
   { dataSources }
 ) => {
-  // TODO: everything here should be inside a transaction
-
-  const page = await dataSources.db.getEntity({
-    accountId: namespaceId,
-    entityId: pageId,
-  });
-  if (!page) {
-    throw new ApolloError(
-      `Could not find page with pageId ${pageId}`,
-      "NOT_FOUND"
-    );
-  }
-
   let entity;
   if (entityId) {
     // Update
-    entity = await dataSources.db.getEntity({
-      accountId: namespaceId,
-      entityId: entityId,
-    });
+    entity = await dataSources.db.getEntity({ accountId, entityId });
     if (!entity) {
       throw new ApolloError(`entity ${entityId} not found`, "NOT_FOUND");
     }
   } else if (entityProperties && entityType) {
     // Create new entity
     entity = await dataSources.db.createEntity({
-      accountId: namespaceId,
+      accountId,
       createdById: genEntityId(), // TODO
       type: entityType,
       properties: entityProperties,
@@ -68,37 +52,46 @@ export const insertBlockIntoPage: Resolver<
     componentId,
     entityType: entity.type,
     entityId: entity.entityId,
-    namespaceId: entity.accountId,
+    accountId: entity.accountId,
   };
 
   const newBlock = await dataSources.db.createEntity({
-    accountId: namespaceId,
-    type: entity.type,
+    accountId,
+    type: "Block",
     createdById: genEntityId(), // TODO
     properties: blockProperties,
   });
 
-  if (position > page.properties.contents.length) {
-    position = page.properties.contents.length;
-  }
+  // Get and update the page. We need to perform this within the same
+  // transaction to prevent conflicts.
+  const updatedEntities = await dataSources.db.getAndUpdateEntity({
+    accountId,
+    entityId: pageId,
+    handler: (page) => {
+      if (position > page.properties.contents.length) {
+        position = page.properties.contents.length;
+      }
 
-  page.properties.contents = [
-    ...page.properties.contents.slice(0, position),
-    {
-      type: "Block",
-      entityId: newBlock.entityId,
-      namespaceId: newBlock.accountId,
+      page.properties.contents = [
+        ...page.properties.contents.slice(0, position),
+        {
+          type: "Block",
+          entityId: newBlock.entityId,
+          accountId: newBlock.accountId,
+        },
+        ...page.properties.contents.slice(position),
+      ];
+
+      return page;
     },
-    ...page.properties.contents.slice(position),
-  ];
-  const updatedEntities = await dataSources.db.updateEntity({ ...page });
+  });
 
   // TODO: for now, all entities are non-versioned, so the list array only have a single
   // element. Return when versioned entities are implemented at the API layer.
   return {
     ...updatedEntities[0],
     id: updatedEntities[0].entityId,
-    namespaceId: updatedEntities[0].accountId,
+    accountId: updatedEntities[0].accountId,
     visibility: Visibility.Public, // TODO: get from entity metadata
   } as DbPage;
 };

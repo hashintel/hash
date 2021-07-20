@@ -47,13 +47,13 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
     const { query } = useRouter();
 
     const pageId = query.pageId as string;
-    const namespaceId = query.namespaceId as string;
+    const accountId = query.accountId as string;
 
     const { data, error, loading } = useQuery<
       GetPageQuery,
       GetPageQueryVariables
     >(getPageQuery, {
-      variables: { pageId, namespaceId },
+      variables: { pageId, accountId },
     });
 
     if (loading) {
@@ -84,13 +84,13 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
                * These are here to help reconstruct the database objects from the prosemirror document.
                */
               childEntityId: entity.id,
-              childEntityNamespaceId: entity.namespaceId,
+              childEntityAccountId: entity.accountId,
 
               children: entity.textProperties.texts.map((text) => ({
                 type: "text",
                 text: text.text,
                 entityId: entity.id,
-                namespaceId: entity.namespaceId,
+                accountId: entity.accountId,
 
                 // This maps the boolean properties on the entity into an array of mark names
                 marks: [
@@ -110,7 +110,7 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
         componentId,
         entityId: content.id,
         entity: props,
-        namespaceId: content.namespaceId,
+        accountId: content.accountId,
       };
     });
 
@@ -140,7 +140,7 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
           <main>
             <PageBlock
               pageId={pageId}
-              namespaceId={data.page.namespaceId}
+              accountId={data.page.accountId}
               contents={mappedContents}
               blocksMeta={preloadedBlocks}
             />

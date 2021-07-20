@@ -590,6 +590,10 @@ class BlockView {
                 attrs: {
                   entityId: text ? node.attrs.entityId : null,
                   childEntityId: text ? node.attrs.childEntityId : null,
+                  accountId: node.attrs.accountId,
+                  childEntityAccountId: text
+                    ? node.attrs.childEntityAccountId
+                    : null,
                 },
                 children: text ? [state.schema.text(text)] : [],
                 marks: null,
@@ -661,6 +665,54 @@ class BlockView {
 
 const schema = new Schema(baseSchemaConfig);
 
+const rewrapCommand = (blockExisted) => (newState, dispatch) => {
+  const tr = newState.tr;
+
+  const mapping = new Mapping();
+  let stepCount = tr.steps.length;
+
+  newState.doc.descendants((node, pos) => {
+    if (
+      node.type.name !== "block" &&
+      node.type.name !== "async" &&
+      node.type.name !== "blank"
+    ) {
+      let newSteps = tr.steps.slice(stepCount);
+      stepCount = tr.steps.length;
+      for (const newStep of newSteps) {
+        const map = newStep.getMap();
+        mapping.appendMap(map);
+      }
+      const $from = tr.doc.resolve(mapping.map(pos));
+      const $to = tr.doc.resolve(mapping.map(pos + node.nodeSize));
+      const range = $from.blockRange($to);
+      const didBlockExist = blockExisted?.(pos) ?? true;
+      tr.wrap(range, [{ type: newState.schema.nodes.block }]);
+
+      newSteps = tr.steps.slice(stepCount);
+      stepCount = tr.steps.length;
+      for (const newStep of newSteps) {
+        const map = newStep.getMap();
+        mapping.appendMap(map);
+      }
+
+      if (!didBlockExist) {
+        tr.setNodeMarkup(mapping.map(pos), undefined, {
+          entityId: null,
+          childEntityId: null,
+          accountId: null,
+          childEntityAccountId: null,
+        });
+      }
+    }
+    return false;
+  });
+
+  dispatch?.(tr);
+
+  return true;
+};
+
 /**
  * This wraps a prosemirror command to unwrap relevant nodes out of their containing block node in order to ensure
  * prosemirror logic that expects text block nodes to be at the top level works as intended. Rewrapping after the
@@ -676,6 +728,8 @@ const wrapCommand = (command) => (state, dispatch, view) => {
 
   const tr = state.tr;
 
+  const blockLocations = [];
+
   /**
    * First we apply changes to the transaction to unwrap every block
    */
@@ -685,11 +739,15 @@ const wrapCommand = (command) => (state, dispatch, view) => {
     }
 
     if (node.firstChild.isTextblock) {
-      const $from = tr.doc.resolve(tr.mapping.map(pos + 1));
-      const $to = tr.doc.resolve(tr.mapping.map(pos + node.nodeSize - 1));
+      let start = pos + 1;
+      const $from = tr.doc.resolve(tr.mapping.map(start));
+      let end = pos + node.nodeSize - 1;
+      const $to = tr.doc.resolve(tr.mapping.map(end));
       const range = $from.blockRange($to);
       const target = liftTarget(range);
       tr.lift(range, target);
+
+      blockLocations.push(start);
     }
 
     return false;
@@ -723,6 +781,21 @@ const wrapCommand = (command) => (state, dispatch, view) => {
       tr.step(step);
     }
   });
+
+  const mappedBlockLocations = blockLocations.map((loc) => tr.mapping.map(loc));
+
+  tr.setMeta("commandWrapped", true);
+  const nextState2 = state.apply(tr);
+  tr.setMeta("commandWrapped", false);
+
+  rewrapCommand((start) => mappedBlockLocations.includes(start))(
+    nextState2,
+    (nextTr) => {
+      for (const step of nextTr.steps) {
+        tr.step(step);
+      }
+    }
+  );
 
   dispatch(tr);
 
@@ -759,28 +832,10 @@ const plugins = [
   new Plugin({
     appendTransaction(transactions, __, newState) {
       if (!transactions.some((tr) => tr.getMeta("commandWrapped"))) {
-        const tr = newState.tr;
-        const mapping = new Mapping();
-        let stepCount = tr.steps.length;
+        let tr;
 
-        newState.doc.descendants((node, pos) => {
-          if (
-            node.type.name !== "block" &&
-            node.type.name !== "async" &&
-            node.type.name !== "blank"
-          ) {
-            const newSteps = tr.steps.slice(stepCount);
-            stepCount = tr.steps.length;
-            for (const newStep of newSteps) {
-              const map = newStep.getMap();
-              mapping.appendMap(map);
-            }
-            const $from = tr.doc.resolve(mapping.map(pos));
-            const $to = tr.doc.resolve(mapping.map(pos + node.nodeSize));
-            const range = $from.blockRange($to);
-            tr.wrap(range, [{ type: newState.schema.nodes.block }]);
-          }
-          return false;
+        rewrapCommand()(newState, (dispatchedTr) => {
+          tr = dispatchedTr;
         });
 
         return tr;

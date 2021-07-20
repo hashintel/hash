@@ -52,6 +52,18 @@ const resolveLinkedData = async (
     return;
   }
   for (const [key, value] of Object.entries(object.properties)) {
+    if (Array.isArray(value)) {
+      await Promise.all(
+        value
+          .flat(Infinity)
+          .filter(isRecord)
+          .map(
+            async (obj) => await resolveLinkedData(ctx, accountId, obj, info)
+          )
+      );
+      continue;
+    }
+
     // We're only interested in properties which link to other data
     if (!isRecord(value) || !value.__linkedData) {
       continue;
@@ -68,18 +80,16 @@ const resolveLinkedData = async (
     if (entityId) {
       // Fetch a single entity and resolve any linked data in it
       const entity = await ctx.dataSources.db.getEntity({
-        accountId: accountId,
+        accountId,
         entityId: entityId,
       });
       if (!entity) {
-        throw new Error(
-          `entity ${entityId} in namespace ${accountId} not found`
-        );
+        throw new Error(`entity ${entityId} in account ${accountId} not found`);
       }
       const dbEntity: DbUnknownEntity = {
         ...entity,
         id: entity.entityId,
-        namespaceId: entity.accountId,
+        accountId: entity.accountId,
         __typename: entityType,
         visibility: Visibility.Public, // TODO
       };
@@ -95,7 +105,7 @@ const resolveLinkedData = async (
       const { results } = (await aggregateEntity(
         {},
         {
-          namespaceId: accountId,
+          accountId,
           type: entityType,
           operation: aggregate,
         },
@@ -108,7 +118,7 @@ const resolveLinkedData = async (
       await Promise.all(
         object.properties[key].map((entity: DbUnknownEntity) => {
           (entity as any).__typename = entityType;
-          return resolveLinkedData(ctx, entity.namespaceId, entity, info);
+          return resolveLinkedData(ctx, entity.accountId, entity, info);
         })
       );
     }
@@ -120,6 +130,6 @@ export const properties: Resolver<
   DbUnknownEntity,
   GraphQLContext
 > = async (entity, _, ctx, info) => {
-  await resolveLinkedData(ctx, entity.namespaceId, entity, info);
+  await resolveLinkedData(ctx, entity.accountId, entity, info);
   return entity.properties;
 };

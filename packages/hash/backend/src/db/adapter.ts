@@ -34,7 +34,7 @@ export interface DBAdapter extends DataSource {
     properties: any;
   }): Promise<Entity>;
 
-  /** Get an entity by ID in a given namespace. */
+  /** Get an entity by ID in a given account. */
   getEntity(params: {
     accountId: string;
     entityId: string;
@@ -56,10 +56,9 @@ export interface DBAdapter extends DataSource {
     type: string;
   }): Promise<Entity[]>;
 
-  /** Get all namespace entities in the database, that is, those entities where the
-   * namespace ID equals the entity ID
+  /** Get all entities in the database belonging to a specific account
    */
-  getNamespaceEntities(): Promise<Entity[]>;
+  getAccountEntities(): Promise<Entity[]>;
 
   /** Update the metadata which may be associated with one or more entities. */
   updateEntityMetadata(params: {
@@ -67,4 +66,16 @@ export interface DBAdapter extends DataSource {
     metadataId: string;
     extra: any;
   }): Promise<EntityMeta>;
+
+  /**
+   * getAndUpdateEntity may be used to retrieve and update an entity within
+   * the same transaction. It accepts a handler function which, given the
+   * current state of the entity, should return an updated state. Returns
+   * the state of all updated entities.
+   * */
+  getAndUpdateEntity(params: {
+    accountId: string;
+    entityId: string;
+    handler: (entity: Entity) => Entity;
+  }): Promise<Entity[]>;
 }

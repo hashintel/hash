@@ -1,12 +1,12 @@
 import { gql } from "@apollo/client";
 
-export const getNamespaces = gql`
-  query getNamespaces {
-    namespaces {
+export const getAccounts = gql`
+  query getAccounts {
+    accounts {
       __typename
       ... on Entity {
         id
-        namespaceId
+        accountId
       }
       ... on User {
         properties {
@@ -23,9 +23,9 @@ export const getNamespaces = gql`
   }
 `;
 
-export const getNamespacePages = gql`
-  query getNamespacePages($namespaceId: ID!) {
-    namespacePages(namespaceId: $namespaceId) {
+export const getAccountPages = gql`
+  query getAccountPages($accountId: ID!) {
+    accountPages(accountId: $accountId) {
       id
       properties {
         title

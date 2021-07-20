@@ -24,7 +24,7 @@ export const useBlockProtocolCreate = (): {
         variables: {
           properties: action.data,
           type: action.entityType,
-          namespaceId: action.pageNamespaceId,
+          accountId: action.pageAccountId,
           createdById: action.userId,
         },
       });

@@ -42,7 +42,7 @@ export const useBlockProtocolUpdate = (): {
           variables: {
             id: action.entityId,
             properties: action.data,
-            namespaceId: action.namespaceId,
+            accountId: action.accountId,
           },
         });
       })

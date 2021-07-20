@@ -25,7 +25,7 @@ type PageBlockProps = {
   contents: (Block | BlockWithoutMeta)[];
   blocksMeta: Map<string, BlockMeta>;
   pageId: string;
-  namespaceId: string;
+  accountId: string;
 };
 
 /**
@@ -36,7 +36,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   contents,
   blocksMeta,
   pageId,
-  namespaceId,
+  accountId,
 }) => {
   const root = useRef<HTMLDivElement>(null);
   const { insert } = useBlockProtocolInsertIntoPage();
@@ -94,7 +94,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
           entity = {
             type: "Text",
             id: node.attrs.childEntityId,
-            namespaceId: node.attrs.childEntityNamespaceId,
+            accountId: node.attrs.childEntityAccountId,
             properties: {
               texts:
                 node.content
@@ -116,19 +116,19 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
             },
           };
         } else {
-          const { childEntityId, childEntityNamespaceId, ...props } =
+          const { childEntityId, childEntityAccountId, ...props } =
             node.attrs;
           entity = {
             type: "UnknownEntity",
             id: childEntityId,
-            namespaceId: childEntityNamespaceId,
+            accountId: childEntityAccountId,
             properties: props,
           };
         }
 
         return {
           entityId: node.attrs.entityId,
-          namespaceId: node.attrs.namespaceId ?? namespaceId,
+          accountId: node.attrs.accountId ?? accountId,
           type: "Block",
           position,
           properties: {
@@ -161,12 +161,12 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
         const block = {
           type: "Block",
           id: node.entityId,
-          namespaceId: node.namespaceId,
+          accountId: node.accountId,
           properties: {
             componentId: node.properties.componentId,
             entityType: node.properties.entity.type,
             entityId: node.properties.entity.id,
-            namespaceId: node.properties.entity.namespaceId,
+            accountId: node.properties.entity.accountId,
           },
         };
 
@@ -258,7 +258,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
                   position: newBlock.position,
                   componentId: newBlock.properties.componentId,
                   entityProperties: newBlock.properties.entity.properties,
-                  namespaceId: namespaceId,
+                  accountId,
                 });
               }),
           blockIdsChange
@@ -272,11 +272,11 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
                 {
                   entityType: "Page",
                   entityId: pageId,
-                  namespaceId,
+                  accountId,
                   data: {
                     contents: existingBlocks.map((node) => ({
                       entityId: node.entityId,
-                      namespaceId: node.namespaceId,
+                      accountId: node.accountId,
                       type: "Block",
                     })),
                   },
@@ -303,7 +303,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
                   entityId: entity.id,
                   entityType: entity.type,
                   data: entity.properties,
-                  namespaceId: entity.namespaceId,
+                  accountId: entity.accountId,
                 })
               ),
           ])
@@ -404,15 +404,16 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     const { view, schema } = prosemirrorSetup.current;
 
     // @todo support cancelling this
-    (async () => {
-      const { tr } = view.state;
+    let triggerContentUpdate = async (): Promise<void> => {
+      let state = view.state;
+      const { tr } = state;
 
       const newNodes = await Promise.all(
         contents?.map(async (block) => {
           const {
             children,
             childEntityId = null,
-            childEntityNamespaceId = null,
+            childEntityAccountId = null,
             ...props
           } = block.entity;
 
@@ -426,9 +427,9 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
             {
               props,
               entityId: block.entityId,
-              namespaceId: block.namespaceId,
+              accountId: block.accountId,
               childEntityId,
-              childEntityNamespaceId,
+              childEntityAccountId,
             },
             children?.map((child: any) => {
               if (child.type === "text") {
@@ -446,10 +447,21 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
         }) ?? []
       );
 
+      /**
+       * The view's state may have changed, making our current transaction invalid – so lets start again.
+       *
+       * @todo probably better way of dealing with this
+       */
+      if (view.state !== state) {
+        return triggerContentUpdate();
+      }
+
       // This creations a transaction to replace the entire content of the document
-      tr.replaceWith(0, view.state.doc.content.size, newNodes);
+      tr.replaceWith(0, state.doc.content.size, newNodes);
       view.dispatch(tr);
-    })();
+    };
+
+    triggerContentUpdate();
   }, [contents]);
 
   return (

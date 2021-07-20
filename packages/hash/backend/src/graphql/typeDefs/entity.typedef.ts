@@ -15,9 +15,9 @@ export const entityTypedef = gql`
     """
     id: ID!
     """
-    The FIXED id for a namespace
+    The FIXED id for an account
     """
-    namespaceId: ID!
+    accountId: ID!
     """
     The date the entity was created
     """
@@ -49,9 +49,9 @@ export const entityTypedef = gql`
     """
     id: ID!
     """
-    The FIXED id for a namespace
+    The FIXED id for an account
     """
-    namespaceId: ID!
+    accountId: ID!
     """
     The date the entity was created
     """
@@ -81,13 +81,13 @@ export const entityTypedef = gql`
   }
 
   extend type Query {
-    entity(namespaceId: ID!, id: ID!): UnknownEntity!
+    entity(accountId: ID!, id: ID!): UnknownEntity!
 
     """
     Aggregate an entity
     """
     aggregateEntity(
-      namespaceId: ID!
+      accountId: ID!
       type: String!
       operation: AggregateOperationInput
     ): AggregationResponse!
@@ -137,7 +137,7 @@ export const entityTypedef = gql`
     Create an entity
     """
     createEntity(
-      namespaceId: ID!
+      accountId: ID!
       createdById: ID!
       properties: JSONObject!
       type: String!
@@ -146,7 +146,7 @@ export const entityTypedef = gql`
     """
     Update an entity
     """
-    updateEntity(namespaceId: ID!, id: ID!, properties: JSONObject!): Entity!
+    updateEntity(accountId: ID!, id: ID!, properties: JSONObject!): Entity!
   }
 
   """
@@ -169,9 +169,9 @@ export const entityTypedef = gql`
     """
     id: ID!
     """
-    The FIXED id for a namespace
+    The FIXED id for an account
     """
-    namespaceId: ID!
+    accountId: ID!
     """
     The date the entity was created
     """
