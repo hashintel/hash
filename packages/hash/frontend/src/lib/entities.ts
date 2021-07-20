@@ -87,6 +87,10 @@ export const cloneEntityTreeWithPropertiesMovedUp = (
       !property.properties ||
       !isParsedJsonObject(property.properties)
     ) {
+      // This is a non-entity object - it might have entities deeper in its tree
+      propertiesToCheck.push(
+        ...Object.values(property).filter(isParsedJsonObjectOrArray)
+      );
       continue;
     }
 
