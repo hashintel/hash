@@ -4,7 +4,6 @@ import {
   LOGIN_CODE_MAX_AGE,
   LOGIN_CODE_MAX_ATTEMPTS,
 } from "../../../auth/passport/PasswordlessStrategy";
-import { DbUser } from "../../../types/dbTypes";
 import {
   MutationLoginWithLoginCodeArgs,
   Resolver,
