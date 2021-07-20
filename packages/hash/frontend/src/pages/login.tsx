@@ -1,7 +1,8 @@
 import { useMutation } from "@apollo/client";
 import { NextPage } from "next";
 import { useRouter } from "next/router";
-import { useState } from "react";
+import { ParsedUrlQueryInput } from "querystring";
+import { useEffect, useState } from "react";
 import {
   LoginCodeMetadata,
   LoginWithLoginCodeResponse,
@@ -13,6 +14,19 @@ import {
   sendLoginCode as sendLoginCodeMutation,
   loginWithLoginCode as loginWithLoginCodeMutation,
 } from "../graphql/queries/user.queries";
+
+type ParsedLoginQuery = {
+  loginId: string;
+  loginCode: string;
+};
+
+const tbdIsParsedLoginQuery = (
+  tbd: ParsedUrlQueryInput
+): tbd is ParsedLoginQuery =>
+  tbd.loginId !== undefined &&
+  typeof tbd.loginId === "string" &&
+  tbd.loginCode !== undefined &&
+  typeof tbd.loginCode === "string";
 
 const LoginPage: NextPage = () => {
   const router = useRouter();
@@ -49,6 +63,15 @@ const LoginPage: NextPage = () => {
       }
     );
 
+  useEffect(() => {
+    const { query } = router;
+
+    if (tbdIsParsedLoginQuery(query)) {
+      const { loginId, loginCode } = query;
+      loginWithLoginCode({ variables: { loginId, loginCode } });
+    }
+  }, [router, loginWithLoginCode]);
+
   const reset = () => {
     setEmailOrShortname("");
     setLoginCode("");
@@ -65,6 +88,7 @@ const LoginPage: NextPage = () => {
       <label>
         Email or Shortname
         <input
+          type="text"
           value={emailOrShortname}
           onChange={({ target }) => setEmailOrShortname(target.value)}
           placeholder="Enter your email or shortname to continue"
@@ -77,6 +101,7 @@ const LoginPage: NextPage = () => {
           <label>
             Login Code
             <input
+              type="text"
               value={loginCode}
               onChange={({ target }) => setLoginCode(target.value)}
               placeholder="Paste your login code"
@@ -90,7 +115,6 @@ const LoginPage: NextPage = () => {
               loginWithLoginCode({
                 variables: {
                   loginId: loginCodeMetadata.id,
-                  userId: loginCodeMetadata.userId,
                   loginCode,
                 },
               })

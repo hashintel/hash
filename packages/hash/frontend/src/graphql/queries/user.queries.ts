@@ -23,22 +23,13 @@ export const sendLoginCode = gql`
   mutation sendLoginCode($emailOrShortname: String!) {
     sendLoginCode(emailOrShortname: $emailOrShortname) {
       id
-      userId
       createdAt
     }
   }
 `;
 
 export const loginWithLoginCode = gql`
-  mutation loginWithLoginCode(
-    $userId: ID!
-    $loginId: ID!
-    $loginCode: String!
-  ) {
-    loginWithLoginCode(
-      userId: $userId
-      loginId: $loginId
-      loginCode: $loginCode
-    )
+  mutation loginWithLoginCode($loginId: ID!, $loginCode: String!) {
+    loginWithLoginCode(loginId: $loginId, loginCode: $loginCode)
   }
 `;
