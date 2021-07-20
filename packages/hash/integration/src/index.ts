@@ -138,6 +138,15 @@ enum Visibility {
           },
         },
       ],
+      [
+        "embed1",
+        {
+          type: "Embed",
+          accountId: org.id,
+          createdById: user.id,
+          properties: {},
+        },
+      ],
     ])
   );
 
@@ -182,6 +191,7 @@ enum Visibility {
     ])
   );
 
+  // People Entities
   await createEntities(
     new Map([
       [
@@ -348,6 +358,7 @@ enum Visibility {
     ])
   );
 
+  // Block Entities
   await createEntities(
     new Map([
       [
@@ -504,9 +515,24 @@ enum Visibility {
           type: "Block",
         },
       ],
+      [
+        "b12",
+        {
+          type: "Block",
+          accountId: org.id,
+          createdById: user.id,
+          properties: {
+            componentId: "https://block.blockprotocol.org/embed",
+            entityType: "Embed",
+            entityId: results.get("embed1")?.createEntity.id,
+            accountId: results.get("divider1")?.createEntity.accountId,
+          },
+        },
+      ],
     ])
   );
 
+  // Page Entities
   await createEntities(
     new Map([
       [
@@ -544,6 +570,10 @@ enum Visibility {
               {
                 entityId: results.get("b4")?.createEntity.id,
                 accountId: results.get("b4")?.createEntity.accountId,
+              },
+              {
+                entityId: results.get("b12")?.createEntity.id,
+                accountId: results.get("b12")?.createEntity.accountId,
               },
             ],
             title: "My awesome page",
