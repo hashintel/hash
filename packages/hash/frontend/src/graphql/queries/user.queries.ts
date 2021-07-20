@@ -1,4 +1,4 @@
-import { gql } from "apollo-server-express";
+import { gql } from "@apollo/client";
 
 export const createUser = gql`
   mutation createUser($email: String!, $shortname: String!) {
@@ -16,5 +16,29 @@ export const createUser = gql`
         email
       }
     }
+  }
+`;
+
+export const sendLoginCode = gql`
+  mutation sendLoginCode($emailOrShortname: String!) {
+    sendLoginCode(emailOrShortname: $emailOrShortname) {
+      id
+      userId
+      createdAt
+    }
+  }
+`;
+
+export const loginWithLoginCode = gql`
+  mutation loginWithLoginCode(
+    $userId: ID!
+    $loginId: ID!
+    $loginCode: String!
+  ) {
+    loginWithLoginCode(
+      userId: $userId
+      loginId: $loginId
+      loginCode: $loginCode
+    )
   }
 `;

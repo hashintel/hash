@@ -116,8 +116,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
             },
           };
         } else {
-          const { childEntityId, childEntityAccountId, ...props } =
-            node.attrs;
+          const { childEntityId, childEntityAccountId, ...props } = node.attrs;
           entity = {
             type: "UnknownEntity",
             id: childEntityId,
