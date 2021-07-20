@@ -19,29 +19,24 @@ export const loginWithLoginCode: Resolver<
   MutationLoginWithLoginCodeArgs
 > = async (
   _,
-  { userIdentifier, loginId, ...args },
+  { emailOrShortname, loginId, ...args },
   { dataSources, passport }
 ) => {
-  const { email, shortname } = userIdentifier;
-
-  let user: DbUser | null;
-
-  if (email) {
-    user = await dataSources.db.getUserByEmail({ email });
-  } else if (shortname) {
-    user = await dataSources.db.getUserByShortname({ shortname });
-  } else {
-    throw new ApolloError(
-      "An email or shortname must be provided to receive a login code"
-    );
-  }
-
-  if (!user)
-    throw new ApolloError(
-      `User with ${email ? "email" : "shortname"} '${
-        email || shortname
-      }' does not exist`,
-      "NOT_FOUND"
+  const user = await dataSources.db
+    .getUserByEmail({ email: emailOrShortname })
+    .then(
+      (user) =>
+        user ||
+        dataSources.db
+          .getUserByShortname({ shortname: emailOrShortname })
+          .then((user) => {
+            if (!user)
+              throw new ApolloError(
+                `A user with the email or shortname '${emailOrShortname}' could not be found.`,
+                "NOT_FOUND"
+              );
+            return user;
+          })
     );
 
   const loginCode = await dataSources.db.getLoginCode({

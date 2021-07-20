@@ -41,11 +41,6 @@ export const userTypedef = gql`
     shortname: String!
   }
 
-  input UserIdentifier {
-    email: String
-    shortname: String
-  }
-
   type LoginCodeMetadata {
     id: ID!
     createdAt: Date!
@@ -69,9 +64,9 @@ export const userTypedef = gql`
 
   extend type Mutation {
     createUser(email: String!, shortname: String!): User!
-    sendLoginCode(userIdentifier: UserIdentifier!): LoginCodeMetadata!
+    sendLoginCode(emailOrShortname: String!): LoginCodeMetadata!
     loginWithLoginCode(
-      userIdentifier: UserIdentifier!
+      emailOrShortname: String!
       loginId: ID!
       loginCode: String!
     ): LoginWithLoginCodeResponse!
