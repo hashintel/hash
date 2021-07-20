@@ -23,7 +23,8 @@ const LoginPage: NextPage = () => {
   const [loginCodeMetadata, setLoginCodeMetadata] =
     useState<LoginCodeMetadata | undefined>();
 
-  const [loginWithLoginCodeResponse, setLoginWithLoginCodeResponse] = useState<LoginWithLoginCodeResponse | undefined>()
+  const [loginWithLoginCodeResponse, setLoginWithLoginCodeResponse] =
+    useState<LoginWithLoginCodeResponse | undefined>();
 
   const [
     sendLoginCode,
@@ -37,18 +38,16 @@ const LoginPage: NextPage = () => {
     }
   );
 
-  const [
-    loginWithLoginCode,
-    { loading: loginWithLoginCodeLoading },
-  ] = useMutation<Mutation, MutationLoginWithLoginCodeArgs>(
-    loginWithLoginCodeMutation,
-    {
-      onCompleted: (data) => {
-        if (data.loginWithLoginCode === "SUCCESS") router.push("/");
-        setLoginWithLoginCodeResponse(data.loginWithLoginCode)
-      },
-    }
-  );
+  const [loginWithLoginCode, { loading: loginWithLoginCodeLoading }] =
+    useMutation<Mutation, MutationLoginWithLoginCodeArgs>(
+      loginWithLoginCodeMutation,
+      {
+        onCompleted: (data) => {
+          if (data.loginWithLoginCode === "SUCCESS") router.push("/");
+          setLoginWithLoginCodeResponse(data.loginWithLoginCode);
+        },
+      }
+    );
 
   const reset = () => {
     setEmailOrShortname("");
