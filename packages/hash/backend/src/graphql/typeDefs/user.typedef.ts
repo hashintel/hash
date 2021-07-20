@@ -43,7 +43,6 @@ export const userTypedef = gql`
 
   type LoginCodeMetadata {
     id: ID!
-    userId: String!
     createdAt: Date!
   }
 
@@ -52,7 +51,6 @@ export const userTypedef = gql`
     EXPIRED
     MAX_ATTEMPTS
     INCORRECT
-    NOT_FOUND
   }
 
   enum LogoutResponse {
@@ -67,7 +65,6 @@ export const userTypedef = gql`
     createUser(email: String!, shortname: String!): User!
     sendLoginCode(emailOrShortname: String!): LoginCodeMetadata!
     loginWithLoginCode(
-      userId: ID!
       loginId: ID!
       loginCode: String!
     ): LoginWithLoginCodeResponse!

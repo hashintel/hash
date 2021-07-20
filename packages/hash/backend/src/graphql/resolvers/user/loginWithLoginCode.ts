@@ -16,23 +16,26 @@ export const loginWithLoginCode: Resolver<
   {},
   GraphQLContext,
   MutationLoginWithLoginCodeArgs
-> = async (_, { userId, loginId, ...args }, { dataSources, passport }) => {
-  const user = await dataSources.db.getUserById({ id: userId }).then((user) => {
-    if (!user)
-      throw new ApolloError(
-        `A user with the id '${userId}' could not be found.`,
-        "NOT_FOUND"
-      );
-    return user;
-  });
+> = async (_, { loginId, ...args }, { dataSources, passport }) => {
+  const loginCode = await dataSources.db.getLoginCode({ loginId });
 
-  const loginCode = await dataSources.db.getLoginCode({
-    userId: user.id,
-    loginId,
-  });
+  if (!loginCode)
+    throw new ApolloError(
+      `A login code with login id '${loginId}' could not be found.`,
+      "NOT_FOUND"
+    );
 
-  // If a login code with the provided userId and loginId is not found
-  if (!loginCode) return LoginWithLoginCodeResponse.NotFound;
+  const user = await dataSources.db
+    .getUserById({ id: loginCode.userId })
+    .then((user) => {
+      if (!user)
+        throw new ApolloError(
+          `A user with the id '${loginCode.userId}' could not be found.`,
+          "NOT_FOUND"
+        );
+      return user;
+    });
+
   // If the login code's maximum number of attempts has been exceeded
   if (loginCode.numberOfAttempts >= LOGIN_CODE_MAX_ATTEMPTS)
     return LoginWithLoginCodeResponse.MaxAttempts;

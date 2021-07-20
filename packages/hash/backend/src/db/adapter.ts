@@ -89,10 +89,7 @@ export interface DBAdapter extends DataSource {
   createLoginCode(params: { userId: string; code: string }): Promise<LoginCode>;
 
   /** Get a login code (it may be invalid!) */
-  getLoginCode(params: {
-    userId: string;
-    loginId: string;
-  }): Promise<LoginCode | null>;
+  getLoginCode(params: { loginId: string }): Promise<LoginCode | null>;
 
   /** Increment the number of login attempts by 1 */
   incrementLoginCodeAttempts(params: { loginCode: LoginCode }): Promise<void>;

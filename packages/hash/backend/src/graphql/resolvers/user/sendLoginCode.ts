@@ -39,7 +39,6 @@ export const sendLoginCode: Resolver<
 
   return sendLoginCodeToUser(loginCode, user).then(() => ({
     id: loginCode.id,
-    userId: user.id,
     createdAt: loginCode.createdAt,
   }));
 };

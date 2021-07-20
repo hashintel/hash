@@ -686,29 +686,21 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     }));
   }
 
-  getLoginCode = (params: {
-    loginId: string;
-    userId: string;
-  }): Promise<LoginCode | null> =>
+  getLoginCode = (params: { loginId: string }): Promise<LoginCode | null> =>
     this.pool
       .query(
         `
-      select
-        login_id, user_id, login_code, number_of_attempts, created_at
-      from
-        login_codes
-      where
-          login_id = $1
-        and
-          user_id = $2
-      `,
-        [params.loginId, params.userId]
+          select login_id, user_id, login_code, number_of_attempts, created_at
+          from login_codes
+          where login_id = $1
+        `,
+        [params.loginId]
       )
       .then(({ rows }) => {
         if (rows.length === 0) return null;
         if (rows.length > 1)
           throw new Error(
-            `Critical: multiple login codes with login_id '${params.loginId}' and user_id ${params.userId} found in datastore`
+            `Critical: multiple login codes with login_id '${params.loginId}' found in datastore`
           );
         return {
           id: rows[0]["login_id"],
