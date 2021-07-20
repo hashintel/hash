@@ -43,6 +43,7 @@ export const userTypedef = gql`
 
   type LoginCodeMetadata {
     id: ID!
+    userId: ID!
     createdAt: Date!
   }
 
@@ -66,7 +67,7 @@ export const userTypedef = gql`
     createUser(email: String!, shortname: String!): User!
     sendLoginCode(emailOrShortname: String!): LoginCodeMetadata!
     loginWithLoginCode(
-      emailOrShortname: String!
+      userId: ID!
       loginId: ID!
       loginCode: String!
     ): LoginWithLoginCodeResponse!

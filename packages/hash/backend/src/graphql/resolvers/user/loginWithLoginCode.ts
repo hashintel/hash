@@ -16,27 +16,15 @@ export const loginWithLoginCode: Resolver<
   {},
   GraphQLContext,
   MutationLoginWithLoginCodeArgs
-> = async (
-  _,
-  { emailOrShortname, loginId, ...args },
-  { dataSources, passport }
-) => {
-  const user = await dataSources.db
-    .getUserByEmail({ email: emailOrShortname })
-    .then(
-      (user) =>
-        user ||
-        dataSources.db
-          .getUserByShortname({ shortname: emailOrShortname })
-          .then((user) => {
-            if (!user)
-              throw new ApolloError(
-                `A user with the email or shortname '${emailOrShortname}' could not be found.`,
-                "NOT_FOUND"
-              );
-            return user;
-          })
-    );
+> = async (_, { userId, loginId, ...args }, { dataSources, passport }) => {
+  const user = await dataSources.db.getUserById({ id: userId }).then((user) => {
+    if (!user)
+      throw new ApolloError(
+        `A user with the id '${userId}' could not be found.`,
+        "NOT_FOUND"
+      );
+    return user;
+  });
 
   const loginCode = await dataSources.db.getLoginCode({
     userId: user.id,
