@@ -44,7 +44,7 @@ type LinkedDataDefinition = {
 // Recursively resolve any __linkedData fields in arbitrary entities
 const resolveLinkedData = async (
   ctx: GraphQLContext,
-  namespaceId: string,
+  accountId: string,
   object: Record<string, any>,
   info: GraphQLResolveInfo
 ) => {
@@ -52,6 +52,18 @@ const resolveLinkedData = async (
     return;
   }
   for (const [key, value] of Object.entries(object.properties)) {
+    if (Array.isArray(value)) {
+      await Promise.all(
+        value
+          .flat(Infinity)
+          .filter(isRecord)
+          .map(
+            async (obj) => await resolveLinkedData(ctx, accountId, obj, info)
+          )
+      );
+      continue;
+    }
+
     // We're only interested in properties which link to other data
     if (!isRecord(value) || !value.__linkedData) {
       continue;
@@ -68,23 +80,23 @@ const resolveLinkedData = async (
     if (entityId) {
       // Fetch a single entity and resolve any linked data in it
       const entity = await ctx.dataSources.db.getEntity({
-        namespaceId,
-        id: entityId,
+        accountId,
+        entityId: entityId,
       });
       if (!entity) {
-        throw new Error(
-          `entity ${entityId} in namespace ${namespaceId} not found`
-        );
+        throw new Error(`entity ${entityId} in account ${accountId} not found`);
       }
-      const e: DbUnknownEntity = {
+      const dbEntity: DbUnknownEntity = {
         ...entity,
+        id: entity.entityId,
+        accountId: entity.accountId,
         __typename: entityType,
         visibility: Visibility.Public, // TODO
       };
-      object.properties[key] = e;
+      object.properties[key] = dbEntity;
       await resolveLinkedData(
         ctx,
-        entity.namespaceId,
+        entity.accountId,
         object.properties[key],
         info
       );
@@ -93,7 +105,7 @@ const resolveLinkedData = async (
       const { results } = (await aggregateEntity(
         {},
         {
-          namespaceId,
+          accountId,
           type: entityType,
           operation: aggregate,
         },
@@ -106,7 +118,7 @@ const resolveLinkedData = async (
       await Promise.all(
         object.properties[key].map((entity: DbUnknownEntity) => {
           (entity as any).__typename = entityType;
-          return resolveLinkedData(ctx, entity.namespaceId, entity, info);
+          return resolveLinkedData(ctx, entity.accountId, entity, info);
         })
       );
     }
@@ -118,6 +130,6 @@ export const properties: Resolver<
   DbUnknownEntity,
   GraphQLContext
 > = async (entity, _, ctx, info) => {
-  await resolveLinkedData(ctx, entity.namespaceId, entity, info);
+  await resolveLinkedData(ctx, entity.accountId, entity, info);
   return entity.properties;
 };

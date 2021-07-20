@@ -12,16 +12,18 @@ export const createEntity: Resolver<
   {},
   GraphQLContext,
   MutationCreateEntityArgs
-> = async (_, { namespaceId, properties, type }, { dataSources }) => {
-  const e = await dataSources.db.createEntity({
-    namespaceId,
+> = async (_, { accountId, properties, type }, { dataSources }) => {
+  const dbEntity = await dataSources.db.createEntity({
+    accountId,
     createdById: genEntityId(), // TODO
     type,
     properties,
   });
 
   const entity: DbUnknownEntity = {
-    ...e,
+    ...dbEntity,
+    id: dbEntity.entityId,
+    accountId: dbEntity.accountId,
     visibility: Visibility.Public, // TODO: should be a param?,
   };
 

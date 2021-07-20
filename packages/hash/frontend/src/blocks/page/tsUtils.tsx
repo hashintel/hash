@@ -19,7 +19,7 @@ export const blockPaths = contextRequire(
 
 export type Block = {
   entityId: string;
-  namespaceId: string;
+  accountId: string;
   entity: Record<any, any>;
   componentId: string;
   componentMetadata: BlockMetadata & { url: string } & (
@@ -93,10 +93,17 @@ export type BlockWithoutMeta = Omit<
   "componentMetadata" | "componentSchema"
 >;
 
-export const componentIdToName = (componentId: string) => {
+/**
+ * For some reason, I wanted to strip special characters from component URLs when generating their prosemirror node id,
+ * which in hindsight seems unnecessary
+ *
+ * @todo remove this
+ */
+export const componentUrlToProsemirrorId = (componentId: string) => {
   const stripped = componentId.replace(/[^a-zA-Z0-9]/g, "");
   return stripped.slice(0, 1).toUpperCase() + stripped.slice(1);
 };
+
 /**
  * @todo this API could possibly be simpler
  */
@@ -112,6 +119,9 @@ type NodeViewConstructor = {
   new (...args: NodeViewConstructorArgs): NodeView;
 };
 
+/**
+ * This creates a node view which integrates between React and prosemirror for each block
+ */
 export const createNodeView = (
   name: string,
   componentSchema: Block["componentSchema"],
@@ -204,6 +214,7 @@ export const createNodeView = (
     }
   };
 
+  // Attempt to improve debugging by giving the node view class a dynamic name
   Object.defineProperty(nodeView, "name", { value: `${name}View` });
 
   return nodeView;

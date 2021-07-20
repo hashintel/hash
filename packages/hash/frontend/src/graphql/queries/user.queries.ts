@@ -8,7 +8,7 @@ export const createUser = gql`
       createdById
       createdAt
       updatedAt
-      namespaceId
+      accountId
       type
       visibility
       properties {

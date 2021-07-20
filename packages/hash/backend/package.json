@@ -13,6 +13,8 @@
     "dev": "export NODE_ENV=development && nodemon src/index.ts",
     "build": "echo 'Compiling Typescript' && tsc",
     "postinstall": "yarn codegen",
+    "rebuild:docker": "docker-compose build --no-cache",
+    "start:docker": "docker-compose -f docker-compose.yml up",
     "start": "export NODE_ENV=production && node dist/index.js",
     "codegen": "graphql-codegen --config codegen.yml # backend",
     "fmt": "prettier  \"./**/*.{ts,tsx,js,jsx,css,scss}\" --write",
@@ -28,7 +30,9 @@
     "graphql-type-json": "0.3.2",
     "helmet": "4.6.0",
     "id128": "1.6.6",
-    "pg": "8.6.0"
+    "nanoid": "3.1.23",
+    "pg": "8.6.0",
+    "winston": "3.3.3"
   },
   "devDependencies": {
     "@graphql-codegen/cli": "1.21.4",

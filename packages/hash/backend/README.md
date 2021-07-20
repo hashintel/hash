@@ -12,10 +12,19 @@ docker volume create hash-dev-pg
 
 Start the database and API:
 ```
-docker compose up
+yarn start:docker
 ```
 
-The API is avaible at `localhost:5001`. You may also connect to the database
+The API is avaible at `localhost:5001`. 
+
+If you add a dependency to the API, you may need to rebuild the container with
+```
+yarn rebuild:backend
+```
+
+The API can be seeded with mock data by running `yarn mock-data` in `../integration`
+
+You may also connect to the database
 from localhost using any Postgres-compatible database client. For example,
 here's how to connect using `psql`:
 ```
@@ -25,5 +34,5 @@ The password is "postgres".
 
 If you want to start the database afresh, just delete and recreate the volume:
 ```
-docker-compose rm -f && docker volume rm hash-dev-pg && docker volume create hash-dev-pg
+yarn clear-pg
 ```

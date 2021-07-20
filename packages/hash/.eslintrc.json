@@ -1,21 +1,43 @@
 {
   "parser": "@typescript-eslint/parser",
-  "plugins": ["@typescript-eslint"],
-  "extends": ["plugin:@typescript-eslint/base", "prettier"],
+  "plugins": [
+    "@typescript-eslint"
+  ],
+  "extends": [
+    "plugin:@typescript-eslint/base",
+    "prettier"
+  ],
   "rules": {
-    "eqeqeq": ["error", "always", { "null": "ignore" }],
+    "eqeqeq": [
+      "error",
+      "always",
+      {
+        "null": "ignore"
+      }
+    ],
     "id-length": [
       "error",
       {
         "min": 2,
-        "exceptions": ["_", "x", "y", "z", "a", "b"],
+        "exceptions": [
+          "_",
+          "x",
+          "y",
+          "z",
+          "a",
+          "b",
+          "i"
+        ],
         "properties": "never"
       }
     ],
     "no-unused-vars": "off",
     "@typescript-eslint/no-unused-vars": [
       "error",
-      { "argsIgnorePattern": "^_+", "varsIgnorePattern": "^_+" }
+      {
+        "argsIgnorePattern": "^_+",
+        "varsIgnorePattern": "^_+"
+      }
     ],
     "no-unused-expressions": "error",
     "prefer-const": "warn",

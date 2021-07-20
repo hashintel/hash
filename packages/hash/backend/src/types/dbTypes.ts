@@ -22,7 +22,7 @@ export type DbBlockProperties = Omit<BlockProperties, "entity">;
 export type DbPage = Omit<Page, "properties" | "type"> & {
   properties: Omit<Page["properties"], "contents"> & {
     contents: {
-      namespaceId: string;
+      accountId: string;
       entityId: string;
     }[];
   };
@@ -37,4 +37,5 @@ export type DbUnknownEntity = Omit<UnknownEntity, "type" | "__typename"> & {
   createdById: string;
   type: string;
   __typename?: string;
+  metadata: any; // TODO: type as JSON object
 };

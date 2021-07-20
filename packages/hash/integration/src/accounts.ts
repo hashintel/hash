@@ -43,7 +43,7 @@ export const createUsers = async (client: GraphQLClient) => {
     )
   );
 
-  return userResults.map((u) => u.createUser);
+  return userResults.map((user) => user.createUser);
 };
 
 export const createOrgs = async (client: GraphQLClient) => {

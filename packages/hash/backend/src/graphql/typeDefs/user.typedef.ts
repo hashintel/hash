@@ -10,9 +10,9 @@ export const userTypedef = gql`
     """
     id: ID!
     """
-    The FIXED id for a namespace
+    The FIXED id for an account
     """
-    namespaceId: ID!
+    accountId: ID!
     """
     The date the entity was created
     """
