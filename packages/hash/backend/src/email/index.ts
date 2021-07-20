@@ -33,6 +33,8 @@ export const sendLoginCodeToUser = async (
 ): Promise<void> => {
   const loginLink = `http://${FRONTEND_DOMAIN}/login?loginId=${encodeURIComponent(
     loginCode.id
+  )}&userId=${encodeURIComponent(
+    loginCode.userId
   )}&loginCode=${encodeURIComponent(loginCode.code)}`;
 
   sendMail({
