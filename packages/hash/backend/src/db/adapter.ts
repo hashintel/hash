@@ -6,6 +6,7 @@ export type Entity = {
   createdById: string;
   type: string;
   properties: any;
+  metadataId: string;
   metadata: EntityMeta;
   historyId: string | undefined;
   createdAt: Date;
@@ -40,10 +41,20 @@ export interface DBAdapter extends DataSource {
     properties: any;
   }): Promise<Entity>;
 
-  /** Get an entity by ID in a given account. */
+  /** Get an entity by ID in a given account.*/
   getEntity(params: {
     accountId: string;
     entityId: string;
+  }): Promise<Entity | undefined>;
+
+  /**
+   * Get the latest version of an entity.
+   * @todo: this function can be combined with getEntity after the metadata_id &
+   * history_id merge.
+   * */
+  getLatestEntityVersion(params: {
+    accountId: string;
+    metadataId: string;
   }): Promise<Entity | undefined>;
 
   /** Update an entity's properties. If the parameter "type" is provided, the function

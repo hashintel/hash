@@ -229,6 +229,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
         type: params.type,
         properties: params.properties,
         historyId,
+        metadataId,
         metadata,
         createdAt: now,
         updatedAt: now,
@@ -313,6 +314,58 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
         metadataId: row["metadata_id"],
         extra: row["extra"],
       },
+      metadataId: row["metadata_id"],
+      createdAt: row["created_at"],
+      updatedAt: row["updated_at"],
+    };
+
+    return entity;
+  }
+
+  async getLatestEntityVersion(params: {
+    accountId: string;
+    metadataId: string;
+  }) {
+    const res = await this.pool.query(
+      `with all_matches as (
+        select
+          e.account_id, e.entity_id, t.name as type, e.properties, e.created_by,
+          e.created_at, e.updated_at, e.history_id, e.metadata_id, meta.extra
+        from
+          entities as e
+          join entity_types as t on e.type = t.id
+          join entity_metadata as meta on
+            e.account_id = meta.account_id and  -- required for sharding
+            e.metadata_id = meta.metadata_id
+        where
+          e.account_id = $1 and e.metadata_id = $2
+      )
+      select distinct on (metadata_id)
+        *
+      from all_matches
+      order by metadata_id, updated_at desc`,
+      [params.accountId, params.metadataId]
+    );
+
+    if (res.rowCount === 0) {
+      return undefined;
+    } else if (res.rowCount > 1) {
+      throw new Error(`expected 1 row but received ${res.rowCount}`);
+    }
+
+    const row = res.rows[0];
+    const entity: Entity = {
+      accountId: row["account_id"],
+      entityId: row["entity_id"],
+      createdById: row["created_by"],
+      type: row["type"],
+      properties: row["properties"],
+      historyId: row["history_id"],
+      metadata: {
+        metadataId: row["metadata_id"],
+        extra: row["extra"],
+      },
+      metadataId: row["metadata_id"],
       createdAt: row["created_at"],
       updatedAt: row["updated_at"],
     };
@@ -544,6 +597,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
         metadataId: row["metadata_id"],
         extra: row["extra"],
       },
+      metadataId: row["metadata_id"],
       createdAt: row["created_at"],
       updatedAt: row["updated_at"],
     }));
@@ -575,6 +629,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
         metadataId: row["metadata_id"],
         extra: row["extra"],
       },
+      metadataId: row["metadata_id"],
       createdAt: row["created_at"],
       updatedAt: row["updated_at"],
     }));
