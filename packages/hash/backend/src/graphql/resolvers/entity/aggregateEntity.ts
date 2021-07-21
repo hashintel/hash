@@ -30,6 +30,7 @@ export const aggregateEntity: Resolver<
   const entities = await dataSources.db.getEntitiesByType({
     accountId,
     type,
+    latestOnly: true,
   });
 
   const dbEntities = entities
