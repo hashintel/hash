@@ -57,6 +57,9 @@ app.use(json({ limit: "16mb" }));
 // Set up authentication related middeware and routes
 setupAuth(app, db);
 
+// Set up cron jobs
+setupCronJobs(db, logger);
+
 const apolloServer = createApolloServer(db, logger);
 
 app.get("/", (_, res) => res.send("Hello World"));
@@ -81,8 +84,6 @@ app.use((req, res, next) => {
 // Ensure the GraphQL server has started before starting the HTTP server
 apolloServer.start().then(() => {
   apolloServer.applyMiddleware({ app });
-
-  setupCronJobs(db, logger);
 
   app.listen(PORT, () => logger.info(`Listening on port ${PORT}`));
 });
