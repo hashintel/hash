@@ -3,9 +3,9 @@ import { Logger } from "winston";
 import { DBAdapter } from "./adapter";
 
 export const setupCronJobs = (db: DBAdapter, logger: Logger) => {
-  // Once a day (at midnight) prune expired login codes from the datastore
+  // Once a day (at 5am) prune expired login codes from the datastore
   new CronJob(
-    "0 0 5 * * *", // 5am
+    "0 0 5 * * *",
     () =>
       db
         .pruneLoginCodes()
