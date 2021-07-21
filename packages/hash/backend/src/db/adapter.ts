@@ -95,7 +95,7 @@ export interface DBAdapter extends DataSource {
   incrementLoginCodeAttempts(params: { loginCode: LoginCode }): Promise<void>;
 
   /** Prunes login codes from the database after 1 day of creation */
-  pruneLoginCodes(): Promise<void>;
+  pruneLoginCodes(): Promise<number>;
 
   /**
    * getAndUpdateEntity may be used to retrieve and update an entity within

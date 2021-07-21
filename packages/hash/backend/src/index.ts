@@ -80,7 +80,7 @@ app.use((req, res, next) => {
 apolloServer.start().then(() => {
   apolloServer.applyMiddleware({ app });
 
-  setupCronJobs(db);
+  setupCronJobs(db, logger);
 
   app.listen(PORT, () => logger.info(`Listening on port ${PORT}`));
 });

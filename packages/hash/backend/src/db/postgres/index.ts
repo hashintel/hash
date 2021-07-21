@@ -725,15 +725,20 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       )
       .then();
 
-  pruneLoginCodes = (): Promise<void> =>
+  pruneLoginCodes = (): Promise<number> =>
     this.pool
       .query(
         `
-          delete from login_codes
-          where created_at < (now() - interval '1 day')
+          with deleted as 
+          (
+            delete from login_codes
+            where created_at < (now() - interval '1 day')
+            returning *
+          )
+          select count(*) from deleted
         `
       )
-      .then();
+      .then(({ rows }) => parseInt(rows[0]["count"]));
 
   async getAndUpdateEntity(params: {
     accountId: string;
