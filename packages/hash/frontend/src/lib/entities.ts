@@ -69,6 +69,8 @@ export const cloneEntityTreeWithPropertiesMovedUp = (
     preserveExtraMetadata
   );
 
+  console.log({ clonedTree });
+
   const propertiesToCheck = Object.values(clonedTree).filter(
     isParsedJsonObjectOrArray
   );

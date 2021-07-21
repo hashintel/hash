@@ -4,6 +4,7 @@ import { useRemoteBlock } from "./useRemoteBlock";
 import { HtmlBlock } from "../HtmlBlock/HtmlBlock";
 import { useBlockProtocolUpdate } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdate";
 import { cloneEntityTreeWithPropertiesMovedUp } from "../../lib/entities";
+import { fetchEmbedCode } from "./fetchEmbedCode";
 
 type RemoteBlockProps = {
   url: string;
@@ -19,9 +20,11 @@ export const RemoteBlock: VoidFunctionComponent<
   const { update } = useBlockProtocolUpdate();
 
   const flattenedProperties = useMemo(
-    () => cloneEntityTreeWithPropertiesMovedUp(props),
+    () => cloneEntityTreeWithPropertiesMovedUp(props, true),
     [props]
   );
+
+  console.log({ flattenedProperties });
 
   if (loading) {
     return <div>Loading...</div>;
@@ -38,6 +41,7 @@ export const RemoteBlock: VoidFunctionComponent<
   return (
     <Component
       update={update}
+      getEmbedBlock={fetchEmbedCode}
       {...flattenedProperties}
       editableRef={props.editableRef}
     />
