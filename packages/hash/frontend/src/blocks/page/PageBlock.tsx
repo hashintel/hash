@@ -423,7 +423,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
             id,
             replacePortal,
             {
-              props,
+              properties: props,
               entityId: block.entityId,
               accountId: block.accountId,
               childEntityId,

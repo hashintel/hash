@@ -26,6 +26,12 @@ export type LoginCode = {
   createdAt: Date;
 };
 
+export type EntityVersion = {
+  entityId: string;
+  createdAt: Date;
+  createdById: string;
+};
+
 /**
  * Generic interface to the database.
  */
@@ -108,4 +114,13 @@ export interface DBAdapter extends DataSource {
     entityId: string;
     handler: (entity: Entity) => Entity;
   }): Promise<Entity[]>;
+
+  /**
+   * getEntityHistory returns the sorted version timeline of an entity given its
+   * `historyId`. Returns `undefined` if the entity is non versioned.
+   * */
+  getEntityHistory(params: {
+    accountId: string;
+    historyId: string;
+  }): Promise<EntityVersion[] | undefined>;
 }

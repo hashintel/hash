@@ -33,6 +33,14 @@ export const userTypedef = gql`
     The type of entity
     """
     type: String!
+    """
+
+    """
+    historyId: ID
+    """
+    The version timeline of the entity. Null if this is an non-versioned entity.
+    """
+    history: [EntityVersion!]
     # ENTITY INTERFACE FIELDS END #
   }
 
