@@ -500,11 +500,13 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   async getEntitiesByType(params: {
     accountId: string;
     type: string;
+    latestOnly: boolean;
   }): Promise<Entity[]> {
-    const res = await this.pool.query(
-      `select
+    const allMatchesQ = `
+      select
         e.account_id, e.entity_id, t.name as type, e.properties, e.created_by,
-        e.created_at, e.updated_at, e.metadata_id, e.history_id, meta.extra
+        e.created_at, e.updated_at, e.metadata_id, e.history_id, meta.extra,
+        coalesce(e.history_id, e.entity_id) as grp_col
       from
         entities as e
         join entity_types as t on e.type = t.id
@@ -512,7 +514,22 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
           meta.account_id = e.account_id  -- required for sharding
           and meta.metadata_id = e.metadata_id
       where
-        e.account_id = $1 and t.name = $2`,
+        e.account_id = $1 and t.name = $2`;
+
+    // Extracts the latest version of each entity from the allMatchesQ query.
+    // Non-versioned entities have a null history_id, so we use the entity_id in this
+    // case for the grouping column grp_col.
+    const latestMatchesQ = `
+      with all_matches as (${allMatchesQ})
+      select distinct on (grp_col)
+        *
+      from
+        all_matches
+      order by grp_col, updated_at desc
+    `;
+
+    const res = await this.pool.query(
+      params.latestOnly ? latestMatchesQ : allMatchesQ,
       [params.accountId, params.type]
     );
 
