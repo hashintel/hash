@@ -1,7 +1,13 @@
 import { Pool, PoolClient } from "pg";
 import { DataSource } from "apollo-datasource";
 
-import { DBAdapter, Entity, EntityMeta, LoginCode, EntityVersion } from "../adapter";
+import {
+  DBAdapter,
+  Entity,
+  EntityMeta,
+  LoginCode,
+  EntityVersion,
+} from "../adapter";
 import { genId } from "../../util";
 import {
   gatherLinks,

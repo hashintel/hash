@@ -4,6 +4,7 @@ import { LoginCode } from "src/db/adapter";
 import { DbUser } from "src/types/dbTypes";
 import awsSesTransporter from "./transporters/awsSes";
 
+// TODO: support configurable domains
 export const sendMail = ({
   from = "HASH <support@hash.ai>",
   to,
