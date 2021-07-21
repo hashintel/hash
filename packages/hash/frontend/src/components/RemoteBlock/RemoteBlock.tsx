@@ -1,9 +1,9 @@
-import React, { VoidFunctionComponent } from "react";
+import React, { useMemo, VoidFunctionComponent } from "react";
 
 import { useRemoteBlock } from "./useRemoteBlock";
 import { HtmlBlock } from "../HtmlBlock/HtmlBlock";
 import { useBlockProtocolUpdate } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdate";
-import { fetchEmbedCode } from "./fetchEmbedCode";
+import { cloneEntityTreeWithPropertiesMovedUp } from "../../lib/entities";
 
 type RemoteBlockProps = {
   url: string;
@@ -12,12 +12,16 @@ type RemoteBlockProps = {
 /**
  * @see https://github.com/Paciolan/remote-component/blob/2b2cfbb5b6006117c56f3aa7daa2292d3823bb83/src/createRemoteComponent.tsx
  */
-export const RemoteBlock: VoidFunctionComponent<RemoteBlockProps> = ({
-  url,
-  ...props
-}) => {
+export const RemoteBlock: VoidFunctionComponent<
+  RemoteBlockProps & Record<string, any>
+> = ({ url, ...props }) => {
   const [loading, err, Component] = useRemoteBlock(url);
   const { update } = useBlockProtocolUpdate();
+
+  const flattenedProperties = useMemo(
+    () => cloneEntityTreeWithPropertiesMovedUp(props),
+    [props]
+  );
 
   if (loading) {
     return <div>Loading...</div>;
@@ -28,18 +32,14 @@ export const RemoteBlock: VoidFunctionComponent<RemoteBlockProps> = ({
   }
 
   if (typeof Component === "string") {
-    return <HtmlBlock html={Component} {...props} />;
+    return <HtmlBlock html={Component} {...flattenedProperties} />;
   }
-
-  console.log({ props });
 
   return (
     <Component
-      // entityId={"f5544378-439d-4b38-a91c-1f126b8c2534"}
-      accountId={"f5544378-439d-4b38-a91c-1f126b8c2534"}
       update={update}
-      getEmbedBlock={fetchEmbedCode}
-      {...props}
+      {...flattenedProperties}
+      editableRef={props.editableRef}
     />
   );
 };

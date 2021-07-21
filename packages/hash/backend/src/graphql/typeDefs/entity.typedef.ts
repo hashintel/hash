@@ -38,6 +38,14 @@ export const entityTypedef = gql`
     The type of entity
     """
     type: String!
+    """
+    The ID of the entity's version timeline. Null if this is a non-versioned entity.
+    """
+    historyId: ID
+    """
+    The version timeline of the entity. Null if this is an non-versioned entity.
+    """
+    history: [EntityVersion!]
   }
 
   type UnknownEntity implements Entity {
@@ -72,12 +80,31 @@ export const entityTypedef = gql`
     The type of entity
     """
     type: String!
+    """
+    The ID of the entity's version timeline. Null if this is a non-versioned entity.
+    """
+    historyId: ID
+    """
+    The version timeline of the entity. Null if this is an non-versioned entity.
+    """
+    history: [EntityVersion!]
     # ENTITY INTERFACE FIELDS END #
   }
 
   enum Visibility {
     PRIVATE
     PUBLIC
+  }
+
+  type EntityVersion {
+    """
+    The entity ID of this version
+    """
+    entityId: ID!
+    """
+    The time this version was created.
+    """
+    createdAt: Date!
   }
 
   extend type Query {
@@ -141,6 +168,7 @@ export const entityTypedef = gql`
       createdById: ID!
       properties: JSONObject!
       type: String!
+      versioned: Boolean! = false
     ): Entity!
 
     """
@@ -192,6 +220,14 @@ export const entityTypedef = gql`
     The type of entity
     """
     type: String!
+    """
+    The ID of the entity's version timeline. Null if this is a non-versioned entity.
+    """
+    historyId: ID
+    """
+    The version timeline of the entity. Null if this is an non-versioned entity.
+    """
+    history: [EntityVersion!]
     # ENTITY INTERFACE FIELDS END #
   }
 `;

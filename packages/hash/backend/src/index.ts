@@ -60,15 +60,17 @@ app.get("/", (_, res) => res.send("Hello World"));
 app.use((req, res, next) => {
   const requestId = nanoid();
   res.set("x-hash-request-id", requestId);
-  logger.info({
-    requestId,
-    method: req.method,
-    ip: req.ip,
-    path: req.path,
-    message: "request",
-    userAgent: req.headers["user-agent"],
-    graphqlClient: req.headers["apollographql-client-name"],
-  });
+  if (process.env.NODE_ENV !== "development") {
+    logger.info({
+      requestId,
+      method: req.method,
+      ip: req.ip,
+      path: req.path,
+      message: "request",
+      userAgent: req.headers["user-agent"],
+      graphqlClient: req.headers["apollographql-client-name"],
+    });
+  }
   next();
 });
 

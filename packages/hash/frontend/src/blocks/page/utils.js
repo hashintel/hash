@@ -4,7 +4,7 @@ export const defineBlock = (meta, attrs) => ({
   group: "blockItem",
   attrs: {
     ...(attrs.attrs ?? {}),
-    props: { default: {} },
+    properties: { default: {} },
     meta: { default: meta },
     entityId: { default: "" },
     accountId: { default: "" },
