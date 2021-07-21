@@ -56,10 +56,15 @@ export interface DBAdapter extends DataSource {
     properties: any;
   }): Promise<Entity[]>;
 
-  /** Get all entities of a given type. */
+  /**
+   * Get all entities of a given type. If `latestOnly` is set to true, then only the
+   * latest version of each entity is returned. This parameter is ignored for non-versioned
+   * entities.
+   * */
   getEntitiesByType(params: {
     accountId: string;
     type: string;
+    latestOnly: boolean;
   }): Promise<Entity[]>;
 
   /** Get all entities in the database belonging to a specific account
