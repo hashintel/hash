@@ -35,15 +35,15 @@ export const loginWithLoginCode: Resolver<
   // Otherwise, let's check if the provided code matches the login code
   if (loginCode.code === args.loginCode) {
     const user = await dataSources.db
-    .getUserById({ id: loginCode.userId })
-    .then((user) => {
-      if (!user)
-        throw new ApolloError(
-          `A user with the id '${loginCode.userId}' could not be found.`,
-          "NOT_FOUND"
-        );
-      return user;
-    });
+      .getUserById({ id: loginCode.userId })
+      .then((user) => {
+        if (!user)
+          throw new ApolloError(
+            `A user with the id '${loginCode.userId}' could not be found.`,
+            "NOT_FOUND"
+          );
+        return user;
+      });
 
     passport.login(user, {});
     return LoginWithLoginCodeResponse.Success;

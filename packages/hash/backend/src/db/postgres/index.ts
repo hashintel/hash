@@ -724,6 +724,17 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
         [params.loginCode.id, params.loginCode.userId]
       )
       .then();
+
+  pruneLoginCodes = (): Promise<void> =>
+    this.pool
+      .query(
+        `
+          delete from login_codes
+          where created_at < (now() - interval '1 day')
+        `
+      )
+      .then();
+
   async getAndUpdateEntity(params: {
     accountId: string;
     entityId: string;
