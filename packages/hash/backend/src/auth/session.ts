@@ -6,8 +6,8 @@ import { urlencoded } from "body-parser";
 import { getRequiredEnv } from "../util";
 import { createPool } from "../db/postgres";
 
-// cookie maximum age (30 days)
-const COOKIE_MAX_AGE = 1000 * 60 * 60 * 24 * 30;
+// cookie maximum age (365 days)
+const COOKIE_MAX_AGE = 1000 * 60 * 60 * 24 * 365;
 
 type AdditionalSessionData = {
   userAgent?: string;
