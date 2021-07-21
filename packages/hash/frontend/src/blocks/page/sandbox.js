@@ -17,6 +17,7 @@ import { undoInputRule } from "prosemirror-inputrules";
 import { dropCursor } from "prosemirror-dropcursor";
 import { liftTarget, Mapping } from "prosemirror-transform";
 import { baseSchemaConfig } from "./config";
+import { BlockMetaContext } from "../blockMeta";
 
 import styles from "./style.module.css";
 
@@ -155,6 +156,7 @@ export function defineNewBlock(
   }
 }
 
+/** @deprecated duplicates react context "blockMeta" */
 let AsyncBlockCache = new Map();
 let AsyncBlockCacheView = null;
 
@@ -618,36 +620,24 @@ class BlockView {
           <option disabled value="change">
             Type
           </option>
+          <BlockMetaContext.Consumer>
+            {(blocksMeta) =>
+              Array.from(blocksMeta).map(([url, blockMetadata]) => {
+                const currentBlocktype = node.attrs.meta?.name ?? node.type.name;
+                const optionBlocktype = blockMetadata.componentMetadata.name;
 
-          {
-            /**
-             * We shouldn't be relying on the list of currently defined nodes for the list of block types here, as we
-             * may want to convert to a block not yet currenty including in the document
-             */
-            Object.entries(view.state.schema.nodes)
-              .filter(
-                // @todo filter by whether a node is within the blockItem group
-                ([key]) =>
-                  key !== "block" &&
-                  key !== "async" &&
-                  key !== "doc" &&
-                  key !== "text" &&
-                  key !== "blank"
-              )
-              .map(([, value]) => value.defaultAttrs?.meta?.name ?? value.name)
-              .map((type) => {
-                const current =
-                  type === (node.attrs.meta?.name ?? node.type.name);
-                if (type === "table" && !current) {
-                  return null;
-                }
                 return (
-                  <option value={type} key={type} disabled={current}>
-                    {type}
+                  <option
+                    key={url}
+                    value={optionBlocktype}
+                    disabled={optionBlocktype === currentBlocktype}
+                  >
+                    {optionBlocktype}
                   </option>
                 );
               })
-          }
+            }
+          </BlockMetaContext.Consumer>
           <option value="new">New type</option>
         </select>
       </>

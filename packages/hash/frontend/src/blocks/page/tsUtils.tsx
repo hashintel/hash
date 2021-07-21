@@ -35,6 +35,7 @@ export type Block = {
 
 export type BlockMeta = Pick<Block, "componentMetadata" | "componentSchema">;
 
+/** @deprecated in favor of react context "blockMeta" */
 export const blockCache = new Map<string, Promise<BlockMeta>>();
 
 export const builtInBlocks: Record<string, BlockMeta> = {
@@ -50,6 +51,13 @@ export const builtInBlocks: Record<string, BlockMeta> = {
         domTag: "p",
         marks: "_",
       },
+      // @todo add missing metadata to the paragraph's default variant
+      variants: [{
+        name: "paragraph",
+        description: "",
+        icon: "path/to/icon/svg",
+        properties: {}
+      }]
     },
   },
 };

@@ -16,6 +16,7 @@ import { BlockProtocolUpdatePayload } from "../../types/blockProtocol";
 import { useBlockProtocolInsertIntoPage } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolInsertIntoPage";
 import { usePortals } from "./usePortals";
 import { useDeferredCallback } from "./useDeferredCallback";
+import { BlockMetaContext } from "../blockMeta";
 
 const invertedBlockPaths = Object.fromEntries(
   Object.entries(blockPaths).map(([key, value]) => [value, key])
@@ -465,9 +466,9 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   }, [contents]);
 
   return (
-    <>
+    <BlockMetaContext.Provider value={blocksMeta}>
       <div id="root" ref={root} />
       {portals}
-    </>
+    </BlockMetaContext.Provider>
   );
 };
