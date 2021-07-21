@@ -49,6 +49,15 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     useRef<null | { view: EditorView; schema: Schema }>(null);
 
   /**
+   * smart hack: provide a live reference to "contents" for all other effects
+   * that cannot list "contents" as a dependency for reasons.
+   */
+  const currentContents = useRef(contents);
+  useLayoutEffect(() => {
+    currentContents.current = contents;
+  }, [contents]);
+
+  /**
    * This effect runs once and just sets up the prosemirror instance. It is not responsible for setting the contents of
    * the prosemirror document
    */
@@ -67,6 +76,8 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
      * update callbacks
      */
     (window as any).triggerSave = () => {
+      const contents = currentContents.current;
+
       const blocks = view.state
         .toJSON()
         .doc.content.filter((block: any) => block.type === "block")
