@@ -189,10 +189,6 @@ export const defineRemoteBlock = async (
 
   // If the block has not already been defined, we need to fetch the metadata & define it
   if (!id || existingSchemaSpec.nodes.find(id) === -1) {
-    /**
-     * The cache is designed to store promises, not resolved values, in order to ensure multiple requests for the same
-     * block in rapid succession don't cause multiple web requests
-     */
     if (!AsyncBlockCache.has(componentUrl)) {
       const promise = fetchBlockMeta(componentUrl)
         .then(({ componentMetadata, componentSchema }) => {

@@ -35,7 +35,12 @@ export type Block = {
 
 export type BlockMeta = Pick<Block, "componentMetadata" | "componentSchema">;
 
-/** @deprecated in favor of react context "blockMeta" */
+/**
+ * The cache is designed to store promises, not resolved values, in order to ensure multiple requests for the same
+ * block in rapid succession don't cause multiple web requests
+ * 
+ * @deprecated in favor of react context "blockMeta" (which is not the final solution either)
+ */
 export const blockCache = new Map<string, Promise<BlockMeta>>();
 
 export const builtInBlocks: Record<string, BlockMeta> = {
