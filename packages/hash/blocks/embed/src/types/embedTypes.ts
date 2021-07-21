@@ -97,6 +97,7 @@ export type ProviderNames =
   | "Grain"
   | "GT Channel"
   | "Gyazo"
+  | "HASH"
   | "hearthis.at"
   | "hihaho"
   | "HippoVideo"

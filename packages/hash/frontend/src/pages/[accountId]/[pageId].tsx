@@ -103,7 +103,10 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
               })),
             }
           : entity.__typename === "UnknownEntity"
-          ? entity.unknownProperties
+          ? {
+              childEntityId: entity.id,
+              ...entity.unknownProperties,
+            }
           : {};
 
       return {

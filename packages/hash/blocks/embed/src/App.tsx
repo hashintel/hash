@@ -6,6 +6,7 @@ import { BlockProtocolProps } from "./types/blockProtocol";
 
 import { ProviderNames } from "./types/embedTypes";
 import { HtmlBlock } from "./HtmlBlock";
+import { getFormCopy } from "./utils";
 
 type AppProps = {
   placeholderText?: string;
@@ -17,8 +18,8 @@ type AppProps = {
     type?: ProviderNames
   ) => Promise<{ html: string; error?: string }>;
   initialHtml?: string;
-  entityId: string;
-  entityType?: string;
+  childEntityId: string;
+  entityType?: ProviderNames;
   accountId: string;
 };
 
@@ -28,17 +29,18 @@ export const App: VoidFunctionComponent<AppProps & BlockProtocolProps> = (
   console.log(props);
 
   const {
-    placeholderText,
-    buttonText,
-    bottomText,
     embedType,
     getEmbedBlock,
     initialHtml,
-    entityId,
+    childEntityId,
     entityType,
     update,
     accountId,
   } = props;
+
+  const copyObject = getFormCopy(entityType);
+
+  const { bottomText, buttonText, placeholderText } = copyObject;
 
   const [inputText, setTextInput] = useState("");
   const [edit, setEdit] = useState(false);
@@ -89,10 +91,10 @@ export const App: VoidFunctionComponent<AppProps & BlockProtocolProps> = (
           } = {
             accountId,
             data: { initialHtml: html },
-            entityId: entityId,
+            entityId: childEntityId,
           };
 
-          console.log(entityId, entityType);
+          console.log(childEntityId, entityType);
 
           if (entityType) {
             updateAction.entityType = entityType;
@@ -180,7 +182,7 @@ export const App: VoidFunctionComponent<AppProps & BlockProtocolProps> = (
               className={tw`px-1.5 py-1 rounded-sm border-2 border-gray-200 bg-gray-50 focus:outline-none focus:ring focus:border-blue-300 w-full`}
               onChange={(event) => setTextInput(event.target.value)}
               type="url"
-              placeholder={placeholderText ? placeholderText : `Enter URL`}
+              placeholder={placeholderText}
             />
           </div>
           <div className={tw`mt-4`}>
@@ -210,14 +212,10 @@ export const App: VoidFunctionComponent<AppProps & BlockProtocolProps> = (
                   ></path>
                 </svg>
               )}
-              {buttonText ? buttonText : `Embed Link`}
+              {buttonText}
             </button>
           </div>
-          <div className={tw`text-sm text-gray-400 mt-4`}>
-            {bottomText
-              ? bottomText
-              : "Works with most Oembed supporting links"}
-          </div>
+          <div className={tw`text-sm text-gray-400 mt-4`}>{bottomText}</div>
         </form>
       </div>
     </>

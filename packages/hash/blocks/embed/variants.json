@@ -1,0 +1,34 @@
+[
+  {
+    "name": "Twitter",
+    "description": "Embed Tweet",
+    "icon": "path/to/icon.svg",
+    "properties": {
+      "entityType": "Twitter"
+    }
+  },
+  {
+    "name": "YouTube",
+    "description": "Embed YouTube Video",
+    "icon": "path/to/icon.svg",
+    "properties": {
+      "entityType": "YouTube"
+    }
+  },
+  {
+    "name": "Spotify",
+    "description": "Embed Spotify Song",
+    "icon": "path/to/icon.svg",
+    "properties": {
+      "entityType": "Spotify"
+    }
+  },
+  {
+    "name": "HASH",
+    "description": "Embed Simulation",
+    "icon": "path/to/icon.svg",
+    "properties": {
+      "entityType": "HASH"
+    }
+  }
+]
