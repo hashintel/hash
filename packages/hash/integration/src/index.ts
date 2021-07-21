@@ -518,15 +518,15 @@ enum Visibility {
       [
         "b12",
         {
-          type: "Block",
-          accountId: org.id,
-          createdById: user.id,
           properties: {
             componentId: "https://block.blockprotocol.org/embed",
             entityType: "Embed",
             entityId: results.get("embed1")?.createEntity.id,
-            accountId: results.get("divider1")?.createEntity.accountId,
+            accountId: results.get("embed1")?.createEntity.accountId,
           },
+          createdById: user.id,
+          accountId: org.id,
+          type: "Block",
         },
       ],
     ])

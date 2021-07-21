@@ -2,10 +2,8 @@ import React, { useEffect, useState, VoidFunctionComponent } from "react";
 
 import { tw } from "twind";
 
-import {
-  BlockProtocolProps,
-  BlockProtocolUpdateFn,
-} from "./types/blockProtocol";
+import { BlockProtocolProps } from "./types/blockProtocol";
+
 import { ProviderNames } from "./types/embedTypes";
 import { HtmlBlock } from "./HtmlBlock";
 
@@ -19,28 +17,35 @@ type AppProps = {
     type?: ProviderNames
   ) => Promise<{ html: string; error?: string }>;
   initialHtml?: string;
-  entityType: string;
   entityId: string;
-  updateBlockData: BlockProtocolUpdateFn;
+  entityType?: string;
+  accountId: string;
 };
 
-export const App: VoidFunctionComponent<AppProps & BlockProtocolProps> = ({
-  placeholderText,
-  buttonText,
-  bottomText,
-  embedType,
-  getEmbedBlock,
-  initialHtml,
-  entityType,
-  entityId,
-  updateBlockData,
-}) => {
+export const App: VoidFunctionComponent<AppProps & BlockProtocolProps> = (
+  props
+) => {
+  console.log(props);
+
+  const {
+    placeholderText,
+    buttonText,
+    bottomText,
+    embedType,
+    getEmbedBlock,
+    initialHtml,
+    entityId,
+    entityType,
+    update,
+    accountId,
+  } = props;
+
   const [inputText, setTextInput] = useState("");
   const [edit, setEdit] = useState(false);
   const [displayAlert, setDisplayAlert] = useState(false);
 
   const [html, setHtml] = useState(initialHtml);
-  console.log({ html });
+
   const [loading, setLoading] = useState(false);
   const [errorString, setErrorString] = useState("");
 
@@ -68,16 +73,32 @@ export const App: VoidFunctionComponent<AppProps & BlockProtocolProps> = ({
         setLoading(false);
 
         const { html, error } = responseData;
-        console.log({ responseData });
 
         if (error?.trim()) {
           setHtml(undefined);
           return setErrorString(error);
         }
-        if (html?.trim()) {
-          updateBlockData([
-            { entityId, entityType, data: { initialHtml: html } },
-          ]);
+        if (html?.trim() && update) {
+          const updateAction: {
+            accountId: string;
+            data: {
+              initialHtml: string;
+            };
+            entityId?: string;
+            entityType?: string;
+          } = {
+            accountId,
+            data: { initialHtml: html },
+            entityId: entityId,
+          };
+
+          console.log(entityId, entityType);
+
+          if (entityType) {
+            updateAction.entityType = entityType;
+          }
+
+          update([updateAction]);
           setHtml(html);
         }
       });
@@ -88,12 +109,7 @@ export const App: VoidFunctionComponent<AppProps & BlockProtocolProps> = ({
   if (html && !edit) {
     return (
       <div className={tw`flex justify-center text-center w-full`}>
-        <div
-        // style={{
-        //   resize: "both",
-        //   overflow: "auto",
-        // }}
-        >
+        <div>
           <HtmlBlock html={html} />
         </div>
         <button
@@ -117,8 +133,8 @@ export const App: VoidFunctionComponent<AppProps & BlockProtocolProps> = ({
             xmlns="http://www.w3.org/2000/svg"
           >
             <path
-              fill-rule="evenodd"
-              clip-rule="evenodd"
+              fillRule="evenodd"
+              clipRule="evenodd"
               d="M18.5302 7.22194C18.8234 7.51444 18.8234 7.98919 18.5302 8.28244L17.1562 9.65644L14.3437 6.84394L15.7177 5.46994C16.0109 5.17669 16.4857 5.17669 16.7782 5.46994L18.5302 7.22194ZM5.24991 18.7502V15.9377L13.5487 7.63894L16.3612 10.4514L8.06241 18.7502H5.24991Z"
               fill="rgba(107, 114, 128)"
             />
@@ -185,7 +201,7 @@ export const App: VoidFunctionComponent<AppProps & BlockProtocolProps> = ({
                     cy="12"
                     r="10"
                     stroke="currentColor"
-                    stroke-width="4"
+                    strokeWidth="4"
                   ></circle>
                   <path
                     className={tw`opacity-75`}

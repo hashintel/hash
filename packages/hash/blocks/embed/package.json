@@ -1,5 +1,5 @@
 {
-  "name": "@hashintel/embed-block",
+  "name": "embed",
   "version": "0.1.0",
   "description": "Block Component template",
   "private": true,

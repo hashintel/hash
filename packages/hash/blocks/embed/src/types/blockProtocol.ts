@@ -1,7 +1,8 @@
 export type BlockProtocolUpdatePayload<T> = {
-  entityType: string;
-  entityId: number | string;
+  entityType?: string;
+  entityId?: number | string;
   data: T;
+  accountId: string;
 };
 
 export type BlockProtocolCreatePayload<T> = {
@@ -15,7 +16,7 @@ export type BlockProtocolAggregateOperation = {
   sort?: {
     field: string;
     desc?: boolean;
-  }
+  };
 };
 
 export type BlockProtocolAggregatePayload = {

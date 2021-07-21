@@ -3,6 +3,7 @@ import React, { VoidFunctionComponent } from "react";
 import { useRemoteBlock } from "./useRemoteBlock";
 import { HtmlBlock } from "../HtmlBlock/HtmlBlock";
 import { useBlockProtocolUpdate } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdate";
+import { fetchEmbedCode } from "./fetchEmbedCode";
 
 type RemoteBlockProps = {
   url: string;
@@ -30,5 +31,15 @@ export const RemoteBlock: VoidFunctionComponent<RemoteBlockProps> = ({
     return <HtmlBlock html={Component} {...props} />;
   }
 
-  return <Component update={update} {...props} />;
+  console.log({ props });
+
+  return (
+    <Component
+      // entityId={"f5544378-439d-4b38-a91c-1f126b8c2534"}
+      accountId={"f5544378-439d-4b38-a91c-1f126b8c2534"}
+      update={update}
+      getEmbedBlock={fetchEmbedCode}
+      {...props}
+    />
+  );
 };
