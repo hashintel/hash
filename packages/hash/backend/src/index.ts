@@ -4,7 +4,7 @@ import helmet from "helmet";
 import { customAlphabet } from "nanoid";
 import winston from "winston";
 
-import { PostgresAdapter } from "./db";
+import { PostgresAdapter, setupCronJobs } from "./db";
 import { createApolloServer } from "./graphql/createApolloServer";
 import setupAuth from "./auth";
 
@@ -79,6 +79,8 @@ app.use((req, res, next) => {
 // Ensure the GraphQL server has started before starting the HTTP server
 apolloServer.start().then(() => {
   apolloServer.applyMiddleware({ app });
+
+  setupCronJobs(db);
 
   app.listen(PORT, () => logger.info(`Listening on port ${PORT}`));
 });
