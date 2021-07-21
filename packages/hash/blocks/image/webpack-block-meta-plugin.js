@@ -1,4 +1,7 @@
 const fs = require("fs");
+const { promisify } = require("util");
+const writeFile = promisify(fs.writeFile);
+const beautify = (obj) => JSON.stringify(obj, null, 2);
 
 const {
   name,
@@ -11,10 +14,27 @@ const {
   // dependencies,
 } = require("./package.json");
 
+const { externals } = require("./webpack-main.config");
+
+const defaultVariant = {
+  name,
+  description,
+  icon: "path/to/icon.svg", // @todo: introduce icons to blocks
+  properties: {},
+};
+
+const variants = (
+  fs.existsSync("./variants.json") ? require("./variants.json") : []
+).map((variant) => Object.assign({}, defaultVariant, variant));
+
+if (!variants.length) variants.push(defaultVariant);
+
 class StatsPlugin {
   apply(compiler) {
     compiler.hooks.done.tap(this.constructor.name, (stats) => {
-      const { externals } = require('./webpack-main.config');
+      const main = Object.keys(stats.compilation.assets).find((name) =>
+        name.startsWith("main")
+      );
 
       const blockMetadata = {
         name,
@@ -23,27 +43,12 @@ class StatsPlugin {
         author,
         license,
         externals,
-        schema: "block-schema.json"
+        schema: "block-schema.json",
+        source: main,
+        variants,
       };
 
-      const main = Object.keys(stats.compilation.assets).find((name) =>
-        name.includes("main")
-      );
-      blockMetadata.source = main;
-      return new Promise((resolve, reject) => {
-        fs.writeFile(
-          "dist/metadata.json",
-          JSON.stringify(blockMetadata, undefined, 2),
-          "utf8",
-          (error) => {
-            if (error) {
-              reject(error);
-              return;
-            }
-            resolve();
-          }
-        );
-      });
+      return writeFile("dist/metadata.json", beautify(blockMetadata), "utf8");
     });
   }
 }

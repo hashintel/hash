@@ -8,5 +8,13 @@
     "react": "react"
   },
   "schema": "block-schema.json",
-  "source": "index.html"
+  "source": "index.html",
+  "variants": [
+    {
+      "name": "htmlPara",
+      "description": "Basic HTML para block component",
+      "icon": "path/to/icon.svg",
+      "properties": {}
+    }
+  ]
 }

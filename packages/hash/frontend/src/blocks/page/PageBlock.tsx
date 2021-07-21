@@ -48,10 +48,14 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   const prosemirrorSetup =
     useRef<null | { view: EditorView; schema: Schema }>(null);
 
+  /**
+   * smart hack: provide a live reference to "contents" for all other effects
+   * that cannot list "contents" as a dependency for reasons.
+   */
   const currentContents = useRef(contents);
   useLayoutEffect(() => {
     currentContents.current = contents;
-  });
+  }, [contents]);
 
   /**
    * This effect runs once and just sets up the prosemirror instance. It is not responsible for setting the contents of
@@ -71,10 +75,6 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
      * update callbacks
      */
     (window as any).triggerSave = () => {
-      /**
-       * In order to save, we first need to map the current prosemirror document back to something that looks more like
-       * the contents we were passed
-       */
       const contents = currentContents.current;
 
       const blocks = view.state
