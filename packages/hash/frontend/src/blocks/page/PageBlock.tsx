@@ -34,6 +34,24 @@ type PageBlockProps = {
   accountId: string;
 };
 
+const cachedPropertiesByEntity: Record<string, Record<any, any>> =
+  JSON.parse(
+    typeof localStorage !== "undefined"
+      ? localStorage.getItem("cachedPropertiesByEntity") ?? "{}"
+      : "{}"
+  ) ?? {};
+
+const cachedPropertiesByPosition: Record<string, Record<any, any>> = {};
+
+if (typeof localStorage !== "undefined") {
+  setInterval(() => {
+    localStorage.setItem(
+      "cachedPropertiesByEntity",
+      JSON.stringify(cachedPropertiesByEntity)
+    );
+  }, 500);
+}
+
 /**
  * The naming of this as a "Block" is… interesting, considering it doesn't really work like a Block. It would be cool
  * to somehow detach the process of rendering child blocks from this and have a renderer, but it seems tricky to do that
@@ -77,7 +95,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       const { tr } = state;
 
       const newNodes = await Promise.all(
-        contents?.map(async (block) => {
+        contents?.map(async (block, index) => {
           const {
             children,
             childEntityId = null,
@@ -87,6 +105,12 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
 
           const id = componentUrlToProsemirrorId(block.componentId);
 
+          if (cachedPropertiesByPosition[index]) {
+            cachedPropertiesByEntity[block.entityId] =
+              cachedPropertiesByPosition[index];
+            delete cachedPropertiesByPosition[index];
+          }
+
           // @todo pass signal through somehow
           return await defineRemoteBlock(
             view,
@@ -94,7 +118,10 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
             id,
             replacePortal,
             {
-              properties: props,
+              properties: {
+                ...(props ?? {}),
+                ...(cachedPropertiesByEntity[block.entityId] ?? {}),
+              },
               entityId: block.entityId,
               accountId: block.accountId,
               childEntityId,
@@ -169,6 +196,13 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
           const mappedBlocks = blocks.map((node: any, position) => {
             const nodeType = view.state.schema.nodes[node.type];
             const meta = nodeType.defaultAttrs.meta;
+
+            if (node.attrs.entityId) {
+              cachedPropertiesByEntity[node.attrs.entityId] =
+                node.attrs.properties;
+            } else {
+              cachedPropertiesByPosition[position] = node.attrs.properties;
+            }
 
             const componentId = invertedBlockPaths[meta.url] ?? meta.url;
 
