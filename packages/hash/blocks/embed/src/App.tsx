@@ -149,7 +149,7 @@ export const App: VoidFunctionComponent<AppProps & BlockProtocolProps> = (
           role="alert"
         >
           <strong className={tw`font-bold`}>Error</strong>
-          <span className={tw`block sm:inline ml-2`}>{errorString}</span>
+          <span className={tw`block sm:inline ml-2 mr-2`}>{errorString}</span>
           <span
             onClick={() => setDisplayAlert(false)}
             className={tw`absolute top-0 bottom-0 right-0 px-4 py-3`}
