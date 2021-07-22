@@ -1,4 +1,9 @@
-import React, { useLayoutEffect, useRef, VoidFunctionComponent } from "react";
+import React, {
+  useCallback,
+  useLayoutEffect,
+  useRef,
+  VoidFunctionComponent,
+} from "react";
 import { Schema } from "prosemirror-model";
 import { Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
@@ -58,6 +63,79 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     currentContents.current = contents;
   }, [contents]);
 
+  const updateContents = useCallback(
+    async (signal?: AbortSignal): Promise<void> => {
+      const contents = currentContents.current;
+      const setup = prosemirrorSetup.current;
+      if (!setup) {
+        return;
+      }
+
+      const { view, schema } = setup;
+
+      const state = view.state;
+      const { tr } = state;
+
+      const newNodes = await Promise.all(
+        contents?.map(async (block) => {
+          const {
+            children,
+            childEntityId = null,
+            childEntityAccountId = null,
+            ...props
+          } = block.entity;
+
+          const id = componentUrlToProsemirrorId(block.componentId);
+
+          // @todo pass signal through somehow
+          return await defineRemoteBlock(
+            view,
+            block.componentId,
+            id,
+            replacePortal,
+            {
+              properties: props,
+              entityId: block.entityId,
+              accountId: block.accountId,
+              childEntityId,
+              childEntityAccountId,
+            },
+            children?.map((child: any) => {
+              if (child.type === "text") {
+                return schema.text(
+                  child.text,
+                  child.marks.map((mark: string) => schema.mark(mark))
+                );
+              }
+
+              // @todo recursive nodes
+              throw new Error("unrecognised child");
+            }) ?? [],
+            undefined
+          );
+        }) ?? []
+      );
+
+      if (signal?.aborted) {
+        return;
+      }
+
+      /**
+       * The view's state may have changed, making our current transaction invalid – so lets start again.
+       *
+       * @todo probably better way of dealing with this
+       */
+      if (view.state !== state || prosemirrorSetup.current !== setup) {
+        return updateContents(signal);
+      }
+
+      // This creations a transaction to replace the entire content of the document
+      tr.replaceWith(0, state.doc.content.size, newNodes);
+      view.dispatch(tr);
+    },
+    [replacePortal]
+  );
+
   /**
    * This effect runs once and just sets up the prosemirror instance. It is not responsible for setting the contents of
    * the prosemirror document
@@ -76,238 +154,260 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
      * type is a deletion & a creation at once). Saves can be handled directly by the blocks implementation using the
      * update callbacks
      */
+    let saveQueue = Promise.resolve();
     (window as any).triggerSave = () => {
-      const contents = currentContents.current;
+      saveQueue = saveQueue
+        .catch(() => {})
+        .then(() => {
+          const contents = currentContents.current;
 
-      const blocks = view.state
-        .toJSON()
-        .doc.content.filter((block: any) => block.type === "block")
-        .flatMap((block: any) => block.content) as any[];
+          const blocks = view.state
+            .toJSON()
+            .doc.content.filter((block: any) => block.type === "block")
+            .flatMap((block: any) => block.content) as any[];
 
-      const mappedBlocks = blocks.map((node: any, position) => {
-        const nodeType = view.state.schema.nodes[node.type];
-        const meta = nodeType.defaultAttrs.meta;
+          const mappedBlocks = blocks.map((node: any, position) => {
+            const nodeType = view.state.schema.nodes[node.type];
+            const meta = nodeType.defaultAttrs.meta;
 
-        const componentId = invertedBlockPaths[meta.url] ?? meta.url;
+            const componentId = invertedBlockPaths[meta.url] ?? meta.url;
 
-        let entity;
-        if (schema.nodes[node.type].isTextblock) {
-          entity = {
-            type: "Text",
-            id: node.attrs.childEntityId,
-            accountId: node.attrs.childEntityAccountId,
-            properties: {
-              texts:
-                node.content
-                  ?.filter((child: any) => child.type === "text")
-                  .map((child: any) => ({
-                    text: child.text,
-                    bold:
-                      child.marks?.some(
-                        (mark: any) => mark.type === "strong"
-                      ) ?? false,
-                    italics:
-                      child.marks?.some((mark: any) => mark.type === "em") ??
-                      false,
-                    underline:
-                      child.marks?.some(
-                        (mark: any) => mark.type === "underlined"
-                      ) ?? false,
-                  })) ?? [],
-            },
-          };
-        } else {
-          const { childEntityId, childEntityAccountId, ...props } = node.attrs;
-          entity = {
-            type: "UnknownEntity",
-            id: childEntityId,
-            accountId: childEntityAccountId,
-            properties: props,
-          };
-        }
-
-        return {
-          entityId: node.attrs.entityId,
-          accountId: node.attrs.accountId ?? accountId,
-          type: "Block",
-          position,
-          properties: {
-            componentId,
-            entity,
-          },
-        };
-      });
-
-      /**
-       * Once we have a list of blocks, we need to divide the list of blocks into new ones and
-       * updated ones, as they require different queries to handle
-       */
-      const existingBlockIds = contents.map((block) => block.entityId);
-      const newBlocks = mappedBlocks.filter(
-        (block) => !existingBlockIds.includes(block.entityId)
-      );
-
-      const existingBlocks = mappedBlocks.filter((block) =>
-        existingBlockIds.includes(block.entityId)
-      );
-
-      const seenEntityIds = new Set<string>();
-
-      /**
-       * An updated block also contains an updated entity, so we need to create a list of
-       * entities that we need to post updates to via GraphQL
-       */
-      const updatedEntities = existingBlocks.flatMap((node) => {
-        const block = {
-          type: "Block",
-          id: node.entityId,
-          accountId: node.accountId,
-          properties: {
-            componentId: node.properties.componentId,
-            entityType: node.properties.entity.type,
-            entityId: node.properties.entity.id,
-            accountId: node.properties.entity.accountId,
-          },
-        };
-
-        const contentNode = contents.find(
-          (existingBlock) => existingBlock.entityId === block.id
-        );
-
-        const blocks = [];
-
-        if (block.properties.componentId !== contentNode?.componentId) {
-          blocks.push(block);
-        }
-
-        if (node.properties.entity.type === "Text") {
-          if (
-            !contentNode ||
-            contentNode.entity.childEntityId !== node.properties.entity.id ||
-            node.properties.entity.properties.texts.length !==
-              contentNode.entity.children.length ||
-            (node.properties.entity.properties.texts as any[]).some(
-              (text: any, idx: number) => {
-                const contentText = contentNode.entity.children[idx];
-
-                /**
-                 * Really crude way of working out if any properties we care about have changed – we need a better way
-                 * of working out which text entities need an update
-                 */
-                return (
-                  !contentText ||
-                  text.text !== contentText.text ||
-                  text.bold !== contentText.marks?.includes("strong") ||
-                  text.underline !==
-                    contentText.marks?.includes("underlined") ||
-                  text.italics !== contentText.marks?.includes("em")
-                );
-              }
-            )
-          ) {
-            blocks.push(node.properties.entity);
-          }
-        }
-
-        /**
-         * Currently when the same block exists on the page in multiple locations, we prioritise the content of the
-         * first one that has changed when it comes to working out if an un update is required. We need a better way of
-         * handling this (i.e, take the *last* one that changed, and also more immediately sync updates between changed
-         * blocks to prevent work being lost)
-         *
-         * @todo improve this
-         */
-        return blocks.filter((block) => {
-          if (seenEntityIds.has(block.id)) {
-            return false;
-          }
-
-          seenEntityIds.add(block.id);
-
-          return true;
-        });
-      });
-
-      /**
-       * This is a real crude way of working out if order of blocks (or if blocks have been added/removed) have changed
-       * within a page, in order to work out if an update operation is needed on this list
-       *
-       * @todo come up with something better
-       */
-      const blockIdsChange =
-        JSON.stringify(contents.map((content) => content.entityId)) !==
-        JSON.stringify(mappedBlocks.map((block) => block.entityId));
-
-      /**
-       * Building a promise here that updates the page block with the list of block ids it contains (if necessary, i.e,
-       * when you delete or re-order blocks, and then calls insert for each new block, before updating blocks that need
-       * to be updated. Ideally we would handle all of this in one query
-       *
-       * @todo improve this
-       */
-      newBlocks
-        .reduce(
-          (promise, newBlock) =>
-            promise
-              .catch(() => {})
-              .then(() => {
-                // @todo this should take the user id of whoever creates it
-                insert({
-                  pageId,
-                  entityType: newBlock.properties.entity.type,
-                  position: newBlock.position,
-                  componentId: newBlock.properties.componentId,
-                  entityProperties: newBlock.properties.entity.properties,
-                  accountId,
-                });
-              }),
-          blockIdsChange
-            ? /**
-               * There's a bug here where when we add a new block, we think we need to update the page entity but
-               * that is handled by the insert block operation, so this update here is a noop
-               *
-               * @todo fix this
-               */
-              update([
-                {
-                  entityType: "Page",
-                  entityId: pageId,
-                  accountId,
-                  data: {
-                    contents: existingBlocks.map((node) => ({
-                      entityId: node.entityId,
-                      accountId: node.accountId,
-                      type: "Block",
-                    })),
-                  },
+            let entity;
+            if (schema.nodes[node.type].isTextblock) {
+              entity = {
+                type: "Text",
+                id: node.attrs.childEntityId,
+                accountId: node.attrs.childEntityAccountId,
+                properties: {
+                  texts:
+                    node.content
+                      ?.filter((child: any) => child.type === "text")
+                      .map((child: any) => ({
+                        text: child.text,
+                        bold:
+                          child.marks?.some(
+                            (mark: any) => mark.type === "strong"
+                          ) ?? false,
+                        italics:
+                          child.marks?.some(
+                            (mark: any) => mark.type === "em"
+                          ) ?? false,
+                        underline:
+                          child.marks?.some(
+                            (mark: any) => mark.type === "underlined"
+                          ) ?? false,
+                      })) ?? [],
                 },
-              ])
-            : Promise.resolve()
-        )
-        .then(() =>
-          update([
+              };
+            } else {
+              const { childEntityId, childEntityAccountId, ...props } =
+                node.attrs;
+              entity = {
+                type: "UnknownEntity",
+                id: childEntityId,
+                accountId: childEntityAccountId,
+                properties: props,
+              };
+            }
+
+            return {
+              entityId: node.attrs.entityId,
+              accountId: node.attrs.accountId ?? accountId,
+              type: "Block",
+              position,
+              properties: {
+                componentId,
+                entity,
+              },
+            };
+          });
+
+          /**
+           * Once we have a list of blocks, we need to divide the list of blocks into new ones and
+           * updated ones, as they require different queries to handle
+           */
+          const existingBlockIds = contents.map((block) => block.entityId);
+          const newBlocks = mappedBlocks.filter(
+            (block) => !existingBlockIds.includes(block.entityId)
+          );
+
+          const existingBlocks = mappedBlocks.filter((block) =>
+            existingBlockIds.includes(block.entityId)
+          );
+
+          const seenEntityIds = new Set<string>();
+
+          /**
+           * An updated block also contains an updated entity, so we need to create a list of
+           * entities that we need to post updates to via GraphQL
+           */
+          const updatedEntities = existingBlocks.flatMap((node) => {
+            const block = {
+              type: "Block",
+              id: node.entityId,
+              accountId: node.accountId,
+              properties: {
+                componentId: node.properties.componentId,
+                entityType: node.properties.entity.type,
+                entityId: node.properties.entity.id,
+                accountId: node.properties.entity.accountId,
+              },
+            };
+
+            const contentNode = contents.find(
+              (existingBlock) => existingBlock.entityId === block.id
+            );
+
+            const blocks = [];
+
+            if (block.properties.componentId !== contentNode?.componentId) {
+              blocks.push(block);
+            }
+
+            if (node.properties.entity.type === "Text") {
+              if (
+                !contentNode ||
+                contentNode.entity.childEntityId !==
+                  node.properties.entity.id ||
+                node.properties.entity.properties.texts.length !==
+                  contentNode.entity.children.length ||
+                (node.properties.entity.properties.texts as any[]).some(
+                  (text: any, idx: number) => {
+                    const contentText = contentNode.entity.children[idx];
+
+                    /**
+                     * Really crude way of working out if any properties we care about have changed – we need a better way
+                     * of working out which text entities need an update
+                     */
+                    return (
+                      !contentText ||
+                      text.text !== contentText.text ||
+                      text.bold !== contentText.marks?.includes("strong") ||
+                      text.underline !==
+                        contentText.marks?.includes("underlined") ||
+                      text.italics !== contentText.marks?.includes("em")
+                    );
+                  }
+                )
+              ) {
+                blocks.push(node.properties.entity);
+              }
+            }
+
             /**
-             * Not entirely sure what I was going for with this filter
+             * Currently when the same block exists on the page in multiple locations, we prioritise the content of the
+             * first one that has changed when it comes to working out if an un update is required. We need a better way of
+             * handling this (i.e, take the *last* one that changed, and also more immediately sync updates between changed
+             * blocks to prevent work being lost)
              *
-             * @todo figure this out
+             * @todo improve this
              */
-            ...updatedEntities
-              .filter(
-                (entity) =>
-                  (entity.properties.entityType !== "Text" ||
-                    entity.properties.entityId) &&
-                  entity.id
+            return blocks.filter((block) => {
+              if (seenEntityIds.has(block.id)) {
+                return false;
+              }
+
+              seenEntityIds.add(block.id);
+
+              return true;
+            });
+          });
+
+          /**
+           * This is a real crude way of working out if order of blocks (or if blocks have been added/removed) have changed
+           * within a page, in order to work out if an update operation is needed on this list
+           *
+           * @todo come up with something better
+           */
+          const blockIdsChange =
+            JSON.stringify(contents.map((content) => content.entityId)) !==
+            JSON.stringify(mappedBlocks.map((block) => block.entityId));
+
+          /**
+           * Building a promise here that updates the page block with the list of block ids it contains (if necessary, i.e,
+           * when you delete or re-order blocks, and then calls insert for each new block, before updating blocks that need
+           * to be updated. Ideally we would handle all of this in one query
+           *
+           * @todo improve this
+           */
+          return (
+            newBlocks
+              .reduce(
+                (promise, newBlock) =>
+                  promise
+                    .catch(() => {})
+                    .then(() =>
+                      // @todo this should take the user id of whoever creates it
+                      insert({
+                        pageId,
+                        entityType: newBlock.properties.entity.type,
+                        position: newBlock.position,
+                        componentId: newBlock.properties.componentId,
+                        entityProperties: newBlock.properties.entity.properties,
+                        accountId,
+                      })
+                    ),
+                blockIdsChange
+                  ? /**
+                     * There's a bug here where when we add a new block, we think we need to update the page entity but
+                     * that is handled by the insert block operation, so this update here is a noop
+                     *
+                     * @todo fix this
+                     */
+                    update([
+                      {
+                        entityType: "Page",
+                        entityId: pageId,
+                        accountId,
+                        data: {
+                          contents: existingBlocks.map((node) => ({
+                            entityId: node.entityId,
+                            accountId: node.accountId,
+                            type: "Block",
+                          })),
+                        },
+                      },
+                    ])
+                  : Promise.resolve()
               )
-              .map(
-                (entity): BlockProtocolUpdatePayload<any> => ({
-                  entityId: entity.id,
-                  entityType: entity.type,
-                  data: entity.properties,
-                  accountId: entity.accountId,
-                })
-              ),
-          ])
-        );
+              .then(() =>
+                update([
+                  /**
+                   * Not entirely sure what I was going for with this filter
+                   *
+                   * @todo figure this out
+                   */
+                  ...updatedEntities
+                    .filter(
+                      (entity) =>
+                        (entity.properties.entityType !== "Text" ||
+                          entity.properties.entityId) &&
+                        entity.id
+                    )
+                    .map(
+                      (entity): BlockProtocolUpdatePayload<any> => ({
+                        entityId: entity.id,
+                        entityType: entity.type,
+                        data: entity.properties,
+                        accountId: entity.accountId,
+                      })
+                    ),
+                ])
+              )
+              .catch(() => {})
+              // @todo remove this timeout
+              .then(() => {
+                return new Promise<void>((resolve) => {
+                  setTimeout(() => {
+                    resolve();
+                  }, 250);
+                });
+              })
+              .then(() => {
+                return updateContents();
+              })
+          );
+        });
     };
 
     /**
@@ -405,83 +505,14 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
    * the same entity are all updated, and that empty IDs are properly filled (i.e, when creating a new block)
    */
   useLayoutEffect(() => {
-    const triggerContentUpdate = async (signal: AbortSignal): Promise<void> => {
-      const setup = prosemirrorSetup.current;
-      if (!setup) {
-        return;
-      }
-
-      const { view, schema } = setup;
-
-      const state = view.state;
-      const { tr } = state;
-
-      const newNodes = await Promise.all(
-        contents?.map(async (block) => {
-          const {
-            children,
-            childEntityId = null,
-            childEntityAccountId = null,
-            ...props
-          } = block.entity;
-
-          const id = componentUrlToProsemirrorId(block.componentId);
-
-          // @todo pass signal through somehow
-          return await defineRemoteBlock(
-            view,
-            block.componentId,
-            id,
-            replacePortal,
-            {
-              properties: props,
-              entityId: block.entityId,
-              accountId: block.accountId,
-              childEntityId,
-              childEntityAccountId,
-            },
-            children?.map((child: any) => {
-              if (child.type === "text") {
-                return schema.text(
-                  child.text,
-                  child.marks.map((mark: string) => schema.mark(mark))
-                );
-              }
-
-              // @todo recursive nodes
-              throw new Error("unrecognised child");
-            }) ?? [],
-            undefined
-          );
-        }) ?? []
-      );
-
-      if (signal.aborted) {
-        return;
-      }
-
-      /**
-       * The view's state may have changed, making our current transaction invalid – so lets start again.
-       *
-       * @todo probably better way of dealing with this
-       */
-      if (view.state !== state || prosemirrorSetup.current !== setup) {
-        return triggerContentUpdate(signal);
-      }
-
-      // This creations a transaction to replace the entire content of the document
-      tr.replaceWith(0, state.doc.content.size, newNodes);
-      view.dispatch(tr);
-    };
-
     const controller = new AbortController();
 
-    triggerContentUpdate(controller.signal);
+    updateContents(controller.signal);
 
     return () => {
       controller.abort();
     };
-  }, [contents, replacePortal]);
+  }, [replacePortal, updateContents]);
 
   return (
     <BlockMetaContext.Provider value={blocksMeta}>
