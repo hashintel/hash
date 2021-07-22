@@ -492,10 +492,10 @@ const BlockSelect = forwardRef(({ view, getPos, node }, ref) => {
       <option disabled value="change">
         Type
       </option>
-      {choices.map(({ name, description, blockType }, i) => (
+      {choices.map(({ name, description, blockType }, index) => (
         <option
-          key={i}
-          value={i}
+          key={index}
+          value={index}
           title={description}
           disabled={
             blockType === selectedBlockType && name === selectedBlockVariant
