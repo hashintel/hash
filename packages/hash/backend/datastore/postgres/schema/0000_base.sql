@@ -88,14 +88,17 @@ create table if not exists login_codes (
     foreign key (account_id, user_id) references entities (account_id, entity_id)
 );
 
-/** node_modules/connect-pg-simple/table.sql */
-CREATE TABLE "session" (
-    sid    varchar NOT NULL COLLATE "default",
-	sess   json NOT NULL,
-	expire timestamp(6) NOT NULL
-)
-WITH (OIDS=FALSE);
+/**
+  `connect-db-simple` express session store (based on `node_modules/connect-pg-simple/table.sql`)
 
-ALTER TABLE "session" ADD CONSTRAINT "session_pkey" PRIMARY KEY ("sid") NOT DEFERRABLE INITIALLY IMMEDIATE;
+  Note: column names cannot be modified, the table name can be modified but must also be passed
+  to `connect-db-simple` as a parameter in `src/auth/session.ts`
+*/
+create table if not exists "session" (
+    sid    text primary key,
+	sess   jsonb not null,
+	expire timestamp with time zone not null
+);
 
-CREATE INDEX "IDX_session_expire" ON "session" ("expire");
+
+create index "IDX_session_expire" on "session" ("expire");
