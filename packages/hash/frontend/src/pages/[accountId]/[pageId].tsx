@@ -1,4 +1,4 @@
-import { VoidFunctionComponent } from "react";
+import { useMemo, VoidFunctionComponent } from "react";
 
 import { useRouter } from "next/router";
 import { useQuery } from "@apollo/client";
@@ -64,6 +64,25 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
       variables: { pageId, accountId },
     });
 
+    /**
+     * This is to ensure that certain blocks are always contained within the "select type" dropdown even if the document
+     * does not yet contain those blocks. This is important for paragraphs especially, as the first text block in the
+     * schema is what prosemirror defaults to when creating a new paragraph. We need to change it so the order of blocks
+     * in the dropdown is not determinned by the order in the prosemirror schema, and also so that items can be in that
+     * dropdown without having be loaded into the schema.
+     *
+     * @todo this doesn't need to be a map.
+     */
+    const preloadedBlocks = useMemo(
+      () =>
+        new Map(
+          preloadedBlockMeta.map(
+            (node) => [node.componentMetadata.url, node] as const
+          )
+        ),
+      [preloadedBlockMeta]
+    );
+
     if (loading) {
       return <h1>Loading...</h1>;
     }
@@ -124,21 +143,6 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
         accountId: content.accountId,
       };
     });
-
-    /**
-     * This is to ensure that certain blocks are always contained within the "select type" dropdown even if the document
-     * does not yet contain those blocks. This is important for paragraphs especially, as the first text block in the
-     * schema is what prosemirror defaults to when creating a new paragraph. We need to change it so the order of blocks
-     * in the dropdown is not determinned by the order in the prosemirror schema, and also so that items can be in that
-     * dropdown without having be loaded into the schema.
-     *
-     * @todo this doesn't need to be a map.
-     */
-    const preloadedBlocks = new Map(
-      preloadedBlockMeta.map(
-        (node) => [node.componentMetadata.url, node] as const
-      )
-    );
 
     return (
       <div className={styles.MainWrapper}>
