@@ -16,7 +16,7 @@ import { useBlockProtocolInsertIntoPage } from "../../components/hooks/blockProt
 import { usePortals } from "./usePortals";
 import { useDeferredCallback } from "./useDeferredCallback";
 import { BlockMetaContext } from "../blockMeta";
-import { schema } from "./schema";
+import { createSchema } from "./schema";
 
 const invertedBlockPaths = Object.fromEntries(
   Object.entries(blockPaths).map(([key, value]) => [value, key])
@@ -63,6 +63,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
    * the prosemirror document
    */
   useLayoutEffect(() => {
+    const schema = createSchema();
     const node = root.current!;
 
     /**
@@ -364,7 +365,15 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       node.innerHTML = "";
       prosemirrorSetup.current = null;
     };
-  }, []);
+  }, [
+    accountId,
+    clearCallback,
+    deferCallback,
+    insert,
+    pageId,
+    replacePortal,
+    update,
+  ]);
 
   /**
    * This effect is responsible for ensuring all the preloaded blocks (currently just paragraph) are defined in
@@ -387,7 +396,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
         replacePortal
       );
     }
-  }, [blocksMeta]);
+  }, [blocksMeta, replacePortal]);
 
   /**
    * Whenever contents are updated, we want to sync them to the prosemirror document, which is an async operation as it
@@ -396,15 +405,15 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
    * the same entity are all updated, and that empty IDs are properly filled (i.e, when creating a new block)
    */
   useLayoutEffect(() => {
-    if (!prosemirrorSetup.current) {
-      return;
-    }
+    const triggerContentUpdate = async (signal: AbortSignal): Promise<void> => {
+      const setup = prosemirrorSetup.current;
+      if (!setup) {
+        return;
+      }
 
-    const { view, schema } = prosemirrorSetup.current;
+      const { view, schema } = setup;
 
-    // @todo support cancelling this
-    let triggerContentUpdate = async (): Promise<void> => {
-      let state = view.state;
+      const state = view.state;
       const { tr } = state;
 
       const newNodes = await Promise.all(
@@ -418,6 +427,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
 
           const id = componentUrlToProsemirrorId(block.componentId);
 
+          // @todo pass signal through somehow
           return await defineRemoteBlock(
             view,
             block.componentId,
@@ -451,8 +461,12 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
        *
        * @todo probably better way of dealing with this
        */
-      if (view.state !== state) {
-        return triggerContentUpdate();
+      if (
+        signal.aborted ||
+        view.state !== state ||
+        prosemirrorSetup.current !== setup
+      ) {
+        return triggerContentUpdate(signal);
       }
 
       // This creations a transaction to replace the entire content of the document
@@ -460,8 +474,14 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       view.dispatch(tr);
     };
 
-    triggerContentUpdate();
-  }, [contents]);
+    const controller = new AbortController();
+
+    triggerContentUpdate(controller.signal);
+
+    return () => {
+      controller.abort();
+    };
+  }, [contents, replacePortal]);
 
   return (
     <BlockMetaContext.Provider value={blocksMeta}>
