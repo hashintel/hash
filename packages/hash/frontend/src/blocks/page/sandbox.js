@@ -359,9 +359,10 @@ class AsyncView {
   }
 }
 
-/** @deprecated used to deep compare two values as part of a hack */
+/** @deprecated naively deep-compare two values as part of a hack */
 function deepeq(a, b) {
-  return typeof a === "object" && a != null
+  const isObject = any => typeof any === "object" && any !== null;
+  return isObject(a) && isObject(b)
     ? Object.keys(a).every((key) => deepeq(a[key], b[key]))
     : a === b;
 }
