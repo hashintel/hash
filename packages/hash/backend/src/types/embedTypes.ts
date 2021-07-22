@@ -1,5 +1,3 @@
-export type EmbedOptions = "yt" | "twitter";
-
 export type OembedResponse = {
   title: string;
   author_name: string;
