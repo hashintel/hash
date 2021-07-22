@@ -138,6 +138,24 @@ enum Visibility {
           },
         },
       ],
+      [
+        "embed1",
+        {
+          type: "Embed",
+          accountId: org.id,
+          createdById: user.id,
+          properties: {},
+        },
+      ],
+      [
+        "embed2",
+        {
+          type: "Embed",
+          accountId: org.id,
+          createdById: user.id,
+          properties: {},
+        },
+      ],
     ])
   );
 
@@ -182,6 +200,7 @@ enum Visibility {
     ])
   );
 
+  // People Entities
   await createEntities(
     new Map([
       [
@@ -305,31 +324,7 @@ enum Visibility {
           createdById: user.id,
           properties: {
             initialState: {
-              hiddenColumns: [
-                "id",
-                "__typename",
-                "createdById",
-                "accountId",
-                "createdAt",
-                "updatedAt",
-                "visibility",
-                "properties.employer.__typename",
-                "properties.employer.createdAt",
-                "properties.employer.createdById",
-                "properties.employer.id",
-                "properties.employer.accountId",
-                "properties.employer.type",
-                "properties.employer.updatedAt",
-                "properties.employer.visibility",
-                "properties.employer.properties.location.__typename",
-                "properties.employer.properties.location.createdAt",
-                "properties.employer.properties.location.createdById",
-                "properties.employer.properties.location.id",
-                "properties.employer.properties.location.accountId",
-                "properties.employer.properties.location.type",
-                "properties.employer.properties.location.updatedAt",
-                "properties.employer.properties.location.visibility",
-              ],
+              hiddenColumns: [],
             },
             data: {
               __linkedData: {
@@ -348,6 +343,7 @@ enum Visibility {
     ])
   );
 
+  // Block Entities
   await createEntities(
     new Map([
       [
@@ -504,9 +500,38 @@ enum Visibility {
           type: "Block",
         },
       ],
+      [
+        "b12",
+        {
+          properties: {
+            componentId: "https://block.blockprotocol.org/embed",
+            entityType: "Embed",
+            entityId: results.get("embed1")?.createEntity.id,
+            accountId: results.get("embed1")?.createEntity.accountId,
+          },
+          createdById: user.id,
+          accountId: org.id,
+          type: "Block",
+        },
+      ],
+      [
+        "b13",
+        {
+          properties: {
+            componentId: "https://block.blockprotocol.org/embed",
+            entityType: "Embed",
+            entityId: results.get("embed2")?.createEntity.id,
+            accountId: results.get("embed2")?.createEntity.accountId,
+          },
+          createdById: user.id,
+          accountId: org.id,
+          type: "Block",
+        },
+      ],
     ])
   );
 
+  // Page Entities
   await createEntities(
     new Map([
       [
@@ -545,6 +570,10 @@ enum Visibility {
                 entityId: results.get("b4")?.createEntity.id,
                 accountId: results.get("b4")?.createEntity.accountId,
               },
+              {
+                entityId: results.get("b12")?.createEntity.id,
+                accountId: results.get("b12")?.createEntity.accountId,
+              },
             ],
             title: "My awesome page",
           },
@@ -574,6 +603,10 @@ enum Visibility {
               {
                 entityId: results.get("b8")?.createEntity.id,
                 accountId: results.get("b8")?.createEntity.accountId,
+              },
+              {
+                entityId: results.get("b13")?.createEntity.id,
+                accountId: results.get("b13")?.createEntity.accountId,
               },
             ],
             title: "HASH's 1st page",

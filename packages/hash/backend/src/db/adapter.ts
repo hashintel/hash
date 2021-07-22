@@ -6,6 +6,7 @@ export type Entity = {
   createdById: string;
   type: string;
   properties: any;
+  metadataId: string;
   metadata: EntityMeta;
   historyId: string | undefined;
   createdAt: Date;
@@ -15,6 +16,12 @@ export type Entity = {
 export type EntityMeta = {
   metadataId: string;
   extra: any;
+};
+
+export type EntityVersion = {
+  entityId: string;
+  createdAt: Date;
+  createdById: string;
 };
 
 /**
@@ -34,10 +41,20 @@ export interface DBAdapter extends DataSource {
     properties: any;
   }): Promise<Entity>;
 
-  /** Get an entity by ID in a given account. */
+  /** Get an entity by ID in a given account.*/
   getEntity(params: {
     accountId: string;
     entityId: string;
+  }): Promise<Entity | undefined>;
+
+  /**
+   * Get the latest version of an entity.
+   * @todo: this function can be combined with getEntity after the metadata_id &
+   * history_id merge.
+   * */
+  getLatestEntityVersion(params: {
+    accountId: string;
+    metadataId: string;
   }): Promise<Entity | undefined>;
 
   /** Update an entity's properties. If the parameter "type" is provided, the function
@@ -50,10 +67,15 @@ export interface DBAdapter extends DataSource {
     properties: any;
   }): Promise<Entity[]>;
 
-  /** Get all entities of a given type. */
+  /**
+   * Get all entities of a given type. If `latestOnly` is set to true, then only the
+   * latest version of each entity is returned. This parameter is ignored for non-versioned
+   * entities.
+   * */
   getEntitiesByType(params: {
     accountId: string;
     type: string;
+    latestOnly: boolean;
   }): Promise<Entity[]>;
 
   /** Get all entities in the database belonging to a specific account
@@ -66,4 +88,25 @@ export interface DBAdapter extends DataSource {
     metadataId: string;
     extra: any;
   }): Promise<EntityMeta>;
+
+  /**
+   * getAndUpdateEntity may be used to retrieve and update an entity within
+   * the same transaction. It accepts a handler function which, given the
+   * current state of the entity, should return an updated state. Returns
+   * the state of all updated entities.
+   * */
+  getAndUpdateEntity(params: {
+    accountId: string;
+    entityId: string;
+    handler: (entity: Entity) => Entity;
+  }): Promise<Entity[]>;
+
+  /**
+   * getEntityHistory returns the sorted version timeline of an entity given its
+   * `historyId`. Returns `undefined` if the entity is non versioned.
+   * */
+  getEntityHistory(params: {
+    accountId: string;
+    historyId: string;
+  }): Promise<EntityVersion[] | undefined>;
 }

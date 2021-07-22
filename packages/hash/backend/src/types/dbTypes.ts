@@ -37,5 +37,6 @@ export type DbUnknownEntity = Omit<UnknownEntity, "type" | "__typename"> & {
   createdById: string;
   type: string;
   __typename?: string;
+  metadataId: string;
   metadata: any; // TODO: type as JSON object
 };

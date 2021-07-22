@@ -3,7 +3,6 @@ import { Schema } from "prosemirror-model";
 import { Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { defineNewBlock, defineRemoteBlock, renderPM } from "./sandbox";
-import { baseSchemaConfig } from "./config";
 import {
   Block,
   BlockMeta,
@@ -17,6 +16,7 @@ import { useBlockProtocolInsertIntoPage } from "../../components/hooks/blockProt
 import { usePortals } from "./usePortals";
 import { useDeferredCallback } from "./useDeferredCallback";
 import { BlockMetaContext } from "../blockMeta";
+import { schema } from "./schema";
 
 const invertedBlockPaths = Object.fromEntries(
   Object.entries(blockPaths).map(([key, value]) => [value, key])
@@ -64,7 +64,6 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
    */
   useLayoutEffect(() => {
     const node = root.current!;
-    const schema = new Schema(baseSchemaConfig);
 
     /**
      * Setting this function to global state as a shortcut to call it from deep within prosemirror.
@@ -117,8 +116,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
             },
           };
         } else {
-          const { childEntityId, childEntityAccountId, ...props } =
-            node.attrs;
+          const { childEntityId, childEntityAccountId, ...props } = node.attrs;
           entity = {
             type: "UnknownEntity",
             id: childEntityId,
@@ -426,7 +424,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
             id,
             replacePortal,
             {
-              props,
+              properties: props,
               entityId: block.entityId,
               accountId: block.accountId,
               childEntityId,

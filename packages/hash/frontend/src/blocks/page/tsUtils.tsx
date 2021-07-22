@@ -183,7 +183,7 @@ export const createNodeView = (
             this.target,
             <RemoteBlock
               url={url}
-              {...node.attrs.props}
+              {...node.attrs}
               {...(editable
                 ? {
                     editableRef: (node: HTMLElement) => {

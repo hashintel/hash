@@ -6,12 +6,14 @@ export const createEntity = gql`
     $createdById: ID!
     $properties: JSONObject!
     $type: String!
+    $versioned: Boolean! = false
   ) {
     createEntity(
       accountId: $accountId
       createdById: $createdById
       properties: $properties
       type: $type
+      versioned: $versioned
     ) {
       __typename
       id
@@ -48,11 +50,7 @@ export const aggregateEntity = gql`
     $type: String!
     $operation: AggregateOperationInput
   ) {
-    aggregateEntity(
-      accountId: $accountId
-      type: $type
-      operation: $operation
-    ) {
+    aggregateEntity(accountId: $accountId, type: $type, operation: $operation) {
       __typename
       results {
         __typename

@@ -21,6 +21,7 @@ import {
 import { accounts } from "./account/accounts";
 import { createUser } from "./shared/createUser";
 import { createOrg } from "./shared/createOrg";
+import { embedCode } from "./embed";
 
 import { DbOrg, DbUser } from "../../types/dbTypes";
 
@@ -33,6 +34,7 @@ export const resolvers = {
     aggregateEntity,
     entity,
     page,
+    embedCode
   },
 
   Mutation: {
@@ -66,6 +68,7 @@ export const resolvers = {
       }
       return "UnknownEntity";
     },
+    history: entityFields.history,
   },
 
   Account: {

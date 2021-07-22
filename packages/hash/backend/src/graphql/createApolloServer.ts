@@ -21,6 +21,10 @@ export const createApolloServer = (db: DBAdapter, logger: Logger) => {
           ctx.logger = ctx.context.logger as Logger;
           return {
             willSendResponse: async (ctx) => {
+              if (ctx.operationName === "IntrospectionQuery") {
+                // Ignore introspection queries from graphiql
+                return;
+              }
               const msg = { message: "graphql", operation: ctx.operationName };
               if (ctx.errors) {
                 ctx.logger.error({ ...msg, errors: ctx.errors });

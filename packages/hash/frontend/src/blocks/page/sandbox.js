@@ -16,7 +16,6 @@ import { Schema } from "prosemirror-model";
 import { undoInputRule } from "prosemirror-inputrules";
 import { dropCursor } from "prosemirror-dropcursor";
 import { liftTarget, Mapping } from "prosemirror-transform";
-import { baseSchemaConfig } from "./config";
 import { useBlockMeta } from "../blockMeta";
 
 import styles from "./style.module.css";
@@ -684,8 +683,6 @@ class BlockView {
   }
 }
 
-const schema = new Schema(baseSchemaConfig);
-
 const rewrapCommand = (blockExisted) => (newState, dispatch) => {
   const tr = newState.tr;
 
@@ -839,11 +836,6 @@ const plugins = [
     ),
     // @todo better way of working out that this command doesn't need wrapping
     "Mod-a": baseKeymap["Mod-a"],
-  }),
-  keymap({
-    "Mod-b": toggleMark(schema.marks.strong),
-    "Mod-i": toggleMark(schema.marks.em),
-    "Ctrl-u": toggleMark(schema.marks.underlined),
   }),
   // This enables an indicator to appear when drag and dropping blocks
   dropCursor(),
@@ -1087,9 +1079,21 @@ export const renderPM = (
       };
     },
   });
+
+  const formatTooltipPlugin = keymap({
+    "Mod-b": toggleMark(content.type.schema.marks.strong),
+    "Mod-i": toggleMark(content.type.schema.marks.em),
+    "Ctrl-u": toggleMark(content.type.schema.marks.underlined),
+  });
+
   const state = EditorState.create({
     doc: content,
-    plugins: [...plugins, formatPlugin, ...additionalPlugins],
+    plugins: [
+      ...plugins,
+      formatPlugin,
+      formatTooltipPlugin,
+      ...additionalPlugins,
+    ],
   });
 
   const view = new EditorView(node, {

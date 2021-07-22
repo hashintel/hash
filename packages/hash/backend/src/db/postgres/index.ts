@@ -1,7 +1,7 @@
 import { Pool, PoolClient } from "pg";
 import { DataSource } from "apollo-datasource";
 
-import { DBAdapter, Entity, EntityMeta } from "../adapter";
+import { DBAdapter, Entity, EntityMeta, EntityVersion } from "../adapter";
 import { genEntityId } from "../../util";
 import { gatherLinks, entityNotFoundError, replaceLink } from "./util";
 
@@ -123,28 +123,6 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return res.rowCount === 0 ? null : (res.rows[0]["account_id"] as string);
   }
 
-  /** Insert a history entity corresponding to a new versioned entity. */
-  private async insertHistoryEntity(
-    client: PoolClient,
-    params: {
-      accountId: string;
-      historyId: string;
-      entityId: string;
-      entityCreatedAt: Date;
-    }
-  ) {
-    client.query(
-      `insert into entity_history (account_id, history_id, entity_id, created_at)
-      values ($1, $2, $3, $4)`,
-      [
-        params.accountId,
-        params.historyId,
-        params.entityId,
-        params.entityCreatedAt,
-      ]
-    );
-  }
-
   /** Insert a row into the entities table. */
   private async insertEntity(
     client: PoolClient,
@@ -251,6 +229,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
         type: params.type,
         properties: params.properties,
         historyId,
+        metadataId,
         metadata,
         createdAt: now,
         updatedAt: now,
@@ -294,9 +273,12 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return entity;
   }
 
+  /** Get an entity. The optional argument `lock` may be set to `true` to lock
+   *  the entity for selects or updates until the transaction completes.*/
   private async _getEntity(
     client: PoolClient,
-    params: { accountId: string; entityId: string }
+    params: { accountId: string; entityId: string },
+    lock: boolean = false
   ): Promise<Entity | undefined> {
     const res = await client.query(
       `select
@@ -309,7 +291,8 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
           e.account_id = meta.account_id and  -- required for sharding
           e.metadata_id = meta.metadata_id
       where
-        e.account_id = $1 and e.entity_id = $2`,
+        e.account_id = $1 and e.entity_id = $2
+      ${lock ? "for update" : ""}`,
       [params.accountId, params.entityId]
     );
 
@@ -331,6 +314,58 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
         metadataId: row["metadata_id"],
         extra: row["extra"],
       },
+      metadataId: row["metadata_id"],
+      createdAt: row["created_at"],
+      updatedAt: row["updated_at"],
+    };
+
+    return entity;
+  }
+
+  async getLatestEntityVersion(params: {
+    accountId: string;
+    metadataId: string;
+  }) {
+    const res = await this.pool.query(
+      `with all_matches as (
+        select
+          e.account_id, e.entity_id, t.name as type, e.properties, e.created_by,
+          e.created_at, e.updated_at, e.history_id, e.metadata_id, meta.extra
+        from
+          entities as e
+          join entity_types as t on e.type = t.id
+          join entity_metadata as meta on
+            e.account_id = meta.account_id and  -- required for sharding
+            e.metadata_id = meta.metadata_id
+        where
+          e.account_id = $1 and e.metadata_id = $2
+      )
+      select distinct on (metadata_id)
+        *
+      from all_matches
+      order by metadata_id, updated_at desc`,
+      [params.accountId, params.metadataId]
+    );
+
+    if (res.rowCount === 0) {
+      return undefined;
+    } else if (res.rowCount > 1) {
+      throw new Error(`expected 1 row but received ${res.rowCount}`);
+    }
+
+    const row = res.rows[0];
+    const entity: Entity = {
+      accountId: row["account_id"],
+      entityId: row["entity_id"],
+      createdById: row["created_by"],
+      type: row["type"],
+      properties: row["properties"],
+      historyId: row["history_id"],
+      metadata: {
+        metadataId: row["metadata_id"],
+        extra: row["extra"],
+      },
+      metadataId: row["metadata_id"],
       createdAt: row["created_at"],
       updatedAt: row["updated_at"],
     };
@@ -382,12 +417,6 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       ...newEntityVersion,
       typeId,
       metadataId: newEntityVersion.metadata.metadataId,
-    });
-    await this.insertHistoryEntity(client, {
-      accountId: newEntityVersion.accountId,
-      historyId: newEntityVersion.historyId!,
-      entityId: newEntityVersion.entityId,
-      entityCreatedAt: newEntityVersion.createdAt,
     });
 
     return newEntityVersion;
@@ -524,11 +553,13 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   async getEntitiesByType(params: {
     accountId: string;
     type: string;
+    latestOnly: boolean;
   }): Promise<Entity[]> {
-    const res = await this.pool.query(
-      `select
+    const allMatchesQ = `
+      select
         e.account_id, e.entity_id, t.name as type, e.properties, e.created_by,
-        e.created_at, e.updated_at, e.metadata_id, e.history_id, meta.extra
+        e.created_at, e.updated_at, e.metadata_id, e.history_id, meta.extra,
+        coalesce(e.history_id, e.entity_id) as grp_col
       from
         entities as e
         join entity_types as t on e.type = t.id
@@ -536,7 +567,22 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
           meta.account_id = e.account_id  -- required for sharding
           and meta.metadata_id = e.metadata_id
       where
-        e.account_id = $1 and t.name = $2`,
+        e.account_id = $1 and t.name = $2`;
+
+    // Extracts the latest version of each entity from the allMatchesQ query.
+    // Non-versioned entities have a null history_id, so we use the entity_id in this
+    // case for the grouping column grp_col.
+    const latestMatchesQ = `
+      with all_matches as (${allMatchesQ})
+      select distinct on (grp_col)
+        *
+      from
+        all_matches
+      order by grp_col, updated_at desc
+    `;
+
+    const res = await this.pool.query(
+      params.latestOnly ? latestMatchesQ : allMatchesQ,
       [params.accountId, params.type]
     );
 
@@ -551,6 +597,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
         metadataId: row["metadata_id"],
         extra: row["extra"],
       },
+      metadataId: row["metadata_id"],
       createdAt: row["created_at"],
       updatedAt: row["updated_at"],
     }));
@@ -582,6 +629,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
         metadataId: row["metadata_id"],
         extra: row["extra"],
       },
+      metadataId: row["metadata_id"],
       createdAt: row["created_at"],
       updatedAt: row["updated_at"],
     }));
@@ -600,5 +648,47 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       throw new Error("internal error"); // TODO: better erorr message
     }
     return params;
+  }
+
+  async getAndUpdateEntity(params: {
+    accountId: string;
+    entityId: string;
+    handler: (entity: Entity) => Entity;
+  }): Promise<Entity[]> {
+    const updated = await this.tx(async (client) => {
+      const entity = await this._getEntity(client, params, true);
+      if (!entity) {
+        throw entityNotFoundError(params);
+      }
+      const updated = params.handler(entity);
+      return await this._updateEntity(client, {
+        accountId: params.accountId,
+        entityId: params.entityId,
+        properties: updated.properties,
+      });
+    });
+
+    return updated;
+  }
+
+  async getEntityHistory(params: {
+    accountId: string;
+    historyId: string;
+  }): Promise<EntityVersion[] | undefined> {
+    const res = await this.pool.query(
+      `select entity_id, created_by, created_at from entities
+      where account_id = $1 and history_id = $2
+      order by created_at
+      `,
+      [params.accountId, params.historyId]
+    );
+    if (res.rowCount === 0) {
+      return undefined;
+    }
+    return res.rows.map((row) => ({
+      entityId: row["entity_id"],
+      createdAt: row["created_at"],
+      createdById: row["createdById"],
+    }));
   }
 }
