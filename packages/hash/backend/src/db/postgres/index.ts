@@ -630,6 +630,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     client: PoolClient,
     params: {
       loginId: string;
+      accountId: string;
       userId: string;
       code: string;
       createdAt: Date;
@@ -639,15 +640,22 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       .query(
         `
         insert into login_codes (
-          login_id, user_id, login_code, created_at
+          login_id, account_id, user_id, login_code, created_at
         )
-        values ($1, $2, $3, $4)
+        values ($1, $2, $3, $4, $5)
       `,
-        [params.loginId, params.userId, params.code, params.createdAt]
+        [
+          params.loginId,
+          params.accountId,
+          params.userId,
+          params.code,
+          params.createdAt,
+        ]
       )
       .then();
 
   async createLoginCode(params: {
+    accountId: string;
     userId: string;
     code: string;
   }): Promise<LoginCode> {

@@ -92,7 +92,11 @@ export interface DBAdapter extends DataSource {
   }): Promise<EntityMeta>;
 
   /** Create a login code */
-  createLoginCode(params: { userId: string; code: string }): Promise<LoginCode>;
+  createLoginCode(params: {
+    accountId: string;
+    userId: string;
+    code: string;
+  }): Promise<LoginCode>;
 
   /** Get a login code (it may be invalid!) */
   getLoginCode(params: { loginId: string }): Promise<LoginCode | null>;

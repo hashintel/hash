@@ -78,11 +78,14 @@ create table if not exists incoming_links (
 
 /** Stores login codes used for passwordless authentication */
 create table if not exists login_codes (
-    login_id           uuid primary key,
+    login_id           uuid not null,
+    account_id         uuid not null,
     user_id            uuid not null,
-    login_code         varchar not null,
+    login_code         text not null,
     number_of_attempts integer not null default 0,
-    created_at         timestamp with time zone not null
+    created_at         timestamp with time zone not null,
+
+    foreign key (account_id, user_id) references entities (account_id, entity_id)
 );
 
 /** node_modules/connect-pg-simple/table.sql */

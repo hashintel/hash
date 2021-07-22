@@ -38,6 +38,7 @@ export const sendLoginCode: Resolver<
         });
 
   const loginCode = await dataSources.db.createLoginCode({
+    accountId: user.accountId,
     userId: user.id,
     code: GraphQLPasswordlessStrategy.generateLoginCode(),
   });
