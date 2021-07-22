@@ -445,7 +445,7 @@ class BlockView {
     const { getPos, view } = this;
 
     const node = blockNode.child(0);
-
+    const nodeName = node.attrs.meta?.name ?? node.type.name;
     const container = this.selectContainer;
 
     /**
@@ -618,20 +618,18 @@ class BlockView {
           </option>
           <BlockMetaContext.Consumer>
             {(blocksMeta) =>
-              Array.from(blocksMeta).map(([url, blockMetadata]) => {
-                const currentBlocktype = node.attrs.meta?.name ?? node.type.name;
-                const optionBlocktype = blockMetadata.componentMetadata.name;
-
-                return (
+              Array.from(blocksMeta.values())
+                .flatMap((meta) => meta.componentMetadata.variants)
+                .map(({ name, description }) => (
                   <option
-                    key={url}
-                    value={optionBlocktype}
-                    disabled={optionBlocktype === currentBlocktype}
+                    title={description}
+                    key={name}
+                    value={name}
+                    disabled={name === nodeName}
                   >
-                    {optionBlocktype}
+                    {name}
                   </option>
-                );
-              })
+                ))
             }
           </BlockMetaContext.Consumer>
           <option value="new">New type</option>
