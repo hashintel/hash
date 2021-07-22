@@ -1,4 +1,4 @@
-import { useMutation } from "@apollo/client";
+import { ApolloError, useMutation } from "@apollo/client";
 import { NextPage } from "next";
 import { useRouter } from "next/router";
 import { ParsedUrlQueryInput } from "querystring";
@@ -6,7 +6,6 @@ import { useEffect, useState } from "react";
 import { tw } from "twind";
 import {
   LoginCodeMetadata,
-  LoginWithLoginCodeResponse,
   Mutation,
   MutationLoginWithLoginCodeArgs,
   SendLoginCodeMutationVariables,
@@ -38,9 +37,6 @@ const LoginPage: NextPage = () => {
   const [loginCodeMetadata, setLoginCodeMetadata] =
     useState<LoginCodeMetadata | undefined>();
 
-  const [loginWithLoginCodeResponse, setLoginWithLoginCodeResponse] =
-    useState<LoginWithLoginCodeResponse | undefined>();
-
   const [
     sendLoginCode,
     { loading: sendLoginCodeLoading, error: sendLoginCodeError },
@@ -57,10 +53,22 @@ const LoginPage: NextPage = () => {
     useMutation<Mutation, MutationLoginWithLoginCodeArgs>(
       loginWithLoginCodeMutation,
       {
-        onCompleted: (data) => {
-          // if (data.loginWithLoginCode === "SUCCESS") router.push("/");
-          setLoginWithLoginCodeResponse(data.loginWithLoginCode);
+        onCompleted: ({ loginWithLoginCode }) => {
+          const user = loginWithLoginCode;
+          console.log(user);
         },
+        onError: ({ graphQLErrors }) =>
+          graphQLErrors.forEach(({ extensions }) => {
+            const { code } = extensions as { code?: string };
+            // @todo: account for possible error conditions
+            if (code === "LOGIN_CODE_NOT_FOUND") {
+            } else if (code === "MAX_ATTEMPTS") {
+            } else if (code === "EXPIRED") {
+            } else if (code === "INCORRECT") {
+            } else {
+              throw new ApolloError({ graphQLErrors });
+            }
+          }),
       }
     );
 
@@ -77,7 +85,6 @@ const LoginPage: NextPage = () => {
     setEmailOrShortname("");
     setLoginCode("");
     setLoginCodeMetadata(undefined);
-    setLoginWithLoginCodeResponse(undefined);
   };
 
   const emailOrShortnameIsValid = emailOrShortname !== "";
@@ -144,7 +151,6 @@ const LoginPage: NextPage = () => {
                 Login
               </button>
             </div>
-            {loginWithLoginCodeResponse && <p>{loginWithLoginCodeResponse}</p>}
           </>
         ) : (
           <>

@@ -10,7 +10,7 @@ import setupAuth from "./auth";
 import { getRequiredEnv } from "./util";
 
 // TODO: account for production domain
-export const FRONTEND_DOMAIN = getRequiredEnv('FRONTEND_DOMAIN');
+export const FRONTEND_DOMAIN = getRequiredEnv("FRONTEND_DOMAIN");
 export const FRONTEND_URL = `http://${FRONTEND_DOMAIN}`;
 
 // Request ID generator

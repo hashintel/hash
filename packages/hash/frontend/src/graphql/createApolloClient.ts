@@ -8,5 +8,5 @@ export const createApolloClient = () =>
     cache: new InMemoryCache({
       possibleTypes: possibleTypes.possibleTypes,
     }),
-    credentials: 'include',
+    credentials: "include",
   });

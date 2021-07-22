@@ -54,13 +54,6 @@ export const userTypedef = gql`
     createdAt: Date!
   }
 
-  enum LoginWithLoginCodeResponse {
-    SUCCESS
-    EXPIRED
-    MAX_ATTEMPTS
-    INCORRECT
-  }
-
   enum LogoutResponse {
     SUCCESS
   }
@@ -72,10 +65,7 @@ export const userTypedef = gql`
   extend type Mutation {
     createUser(email: String!, shortname: String!): User!
     sendLoginCode(emailOrShortname: String!): LoginCodeMetadata!
-    loginWithLoginCode(
-      loginId: ID!
-      loginCode: String!
-    ): LoginWithLoginCodeResponse!
+    loginWithLoginCode(loginId: ID!, loginCode: String!): User!
     logout: LogoutResponse!
   }
 `;

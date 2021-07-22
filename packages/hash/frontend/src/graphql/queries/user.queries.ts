@@ -30,6 +30,19 @@ export const sendLoginCode = gql`
 
 export const loginWithLoginCode = gql`
   mutation loginWithLoginCode($loginId: ID!, $loginCode: String!) {
-    loginWithLoginCode(loginId: $loginId, loginCode: $loginCode)
+    loginWithLoginCode(loginId: $loginId, loginCode: $loginCode) {
+      __typename
+      id
+      createdById
+      createdAt
+      updatedAt
+      accountId
+      type
+      visibility
+      properties {
+        shortname
+        email
+      }
+    }
   }
 `;
