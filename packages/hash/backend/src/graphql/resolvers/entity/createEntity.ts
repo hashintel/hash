@@ -13,6 +13,8 @@ export const createEntity: Resolver<
   GraphQLContext,
   MutationCreateEntityArgs
 > = async (_, { accountId, properties, type, versioned }, { dataSources }) => {
+  versioned = versioned ?? true;
+
   const dbEntity = await dataSources.db.createEntity({
     accountId,
     createdById: genId(), // TODO

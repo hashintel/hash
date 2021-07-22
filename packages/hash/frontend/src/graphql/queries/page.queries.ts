@@ -5,6 +5,13 @@ const pageFieldsFragment = gql`
     __typename
     id
     accountId
+    createdAt
+    metadataId
+    historyId
+    history {
+      createdAt
+      entityId
+    }
     properties {
       __typename
       archived
@@ -42,8 +49,8 @@ const pageFieldsFragment = gql`
 `;
 
 export const getPageQuery = gql`
-  query getPage($accountId: ID!, $pageId: ID!) {
-    page(accountId: $accountId, id: $pageId) {
+  query getPage($accountId: ID!, $metadataId: ID, $versionId: ID) {
+    page(accountId: $accountId, metadataId: $metadataId, id: $versionId) {
       ...PageFields
     }
   }

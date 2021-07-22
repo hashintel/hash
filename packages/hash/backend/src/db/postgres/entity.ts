@@ -190,7 +190,7 @@ export const getEntityHistory = async (
     where
       account_id = ${params.accountId}
       and metadata_id = ${params.metadataId}
-    order by created_at
+    order by created_at desc
   `);
   return rows.map((row) => ({
     entityId: row["entity_id"] as string,

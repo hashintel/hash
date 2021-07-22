@@ -16,7 +16,7 @@ export const createPage: Resolver<
   const _createEntity = async (type: string, properties: any) => {
     return await createEntity(
       {},
-      { accountId, createdById, type, properties },
+      { accountId, createdById, type, properties, versioned: true },
       ctx,
       info
     );
