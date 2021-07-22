@@ -101,4 +101,4 @@ create table if not exists "session" (
 );
 
 
-create index "IDX_session_expire" on "session" ("expire");
+create index if not exists session_expire on session (expire);
