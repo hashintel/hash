@@ -10,7 +10,7 @@ import {
 
 import oEmbedData from "oembed-providers/providers.json";
 
-oEmbedData.push({
+oEmbedData.unshift({
   provider_name: "HASH",
   provider_url: "https://hash.ai",
   endpoints: [
