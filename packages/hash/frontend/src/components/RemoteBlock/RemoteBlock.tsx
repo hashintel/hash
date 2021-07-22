@@ -24,8 +24,6 @@ export const RemoteBlock: VoidFunctionComponent<
     [props]
   );
 
-  console.log({ flattenedProperties });
-
   if (loading) {
     return <div>Loading...</div>;
   }
