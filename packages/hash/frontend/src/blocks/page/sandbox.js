@@ -360,6 +360,13 @@ class AsyncView {
   }
 }
 
+/** @deprecated used to deep compare two values as part of a hack */
+function deepeq(a, b) {
+  return typeof a === "object" && a != null
+    ? Object.keys(a).every((key) => deepeq(a[key], b[key]))
+    : a === b;
+}
+
 /**
  * block-type select field co-dependent of BlockView class.
  */
@@ -372,6 +379,15 @@ function BlockSelect({ ref, view, getPos, node }) {
       blockType: blockMeta.componentMetadata.name,
     }))
   );
+
+  const selectedBlockType = node.attrs.meta?.name ?? node.type.name;
+
+  /** @todo add block variant to node attrs and remove this hack */
+  const selectedBlockVariant = (
+    node.attrs.meta?.variants.find((variant) =>
+      deepeq(variant.properties, node.attrs.props)
+    ) ?? node.attrs.meta?.variants[0]
+  )?.name;
 
   return (
     <select
@@ -476,8 +492,15 @@ function BlockSelect({ ref, view, getPos, node }) {
       <option disabled value="change">
         Type
       </option>
-      {choices.map(({ name, description }, i) => (
-        <option key={i} value={i} title={description} disabled={false}>
+      {choices.map(({ name, description, blockType }, i) => (
+        <option
+          key={i}
+          value={i}
+          title={description}
+          disabled={
+            blockType === selectedBlockType && name === selectedBlockVariant
+          }
+        >
           {name}
         </option>
       ))}
@@ -571,7 +594,7 @@ class BlockView {
     const { getPos, view } = this;
 
     const node = blockNode.child(0);
-    const selectedName = node.attrs.meta?.name ?? node.type.name;
+
     const container = this.selectContainer;
 
     /**
@@ -644,7 +667,6 @@ class BlockView {
           view={view}
           getPos={getPos}
           node={node}
-          selectedName={selectedName}
           ref={(selectDom) => {
             this.selectDom = selectDom;
           }}
