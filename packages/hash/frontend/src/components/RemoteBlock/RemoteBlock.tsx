@@ -5,6 +5,7 @@ import { HtmlBlock } from "../HtmlBlock/HtmlBlock";
 import { useBlockProtocolUpdate } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdate";
 import { cloneEntityTreeWithPropertiesMovedUp } from "../../lib/entities";
 import { fetchEmbedCode } from "./fetchEmbedCode";
+import { BlockProtocolUpdatePayload } from "../../types/blockProtocol";
 
 type RemoteBlockProps = {
   url: string;
@@ -20,7 +21,7 @@ export const RemoteBlock: VoidFunctionComponent<
   const { update } = useBlockProtocolUpdate();
 
   const flattenedProperties = useMemo(
-    () => cloneEntityTreeWithPropertiesMovedUp(props, true),
+    () => cloneEntityTreeWithPropertiesMovedUp(props),
     [props]
   );
 
@@ -36,12 +37,31 @@ export const RemoteBlock: VoidFunctionComponent<
     return <HtmlBlock html={Component} {...flattenedProperties} />;
   }
 
+  /**
+   * Temporary hack to provide the accountId for blocks.
+   * Assumes that the accountId of the block entity will be the same as 
+   * all entities it is rendering / in its tree. Unsafe assumption.
+   * @todo Replace with a proper mapping of entities to accountIds.
+   */
+  const updateWithAccountId = (
+    updateData: BlockProtocolUpdatePayload<any>[]
+  ) => {
+    update([
+      {
+        ...updateData[0],
+        accountId: props.accountId,
+      },
+    ]);
+  };
+
   return (
     <Component
-      update={update}
-      getEmbedBlock={fetchEmbedCode}
+      /** @todo have this passed in to RemoteBlock as entityId, not childEntityId */
       {...flattenedProperties}
+      update={updateWithAccountId}
+      getEmbedBlock={fetchEmbedCode}
       editableRef={props.editableRef}
+      entityId={props.childEntityId}
     />
   );
 };

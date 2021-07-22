@@ -15,8 +15,8 @@ type AppProps = {
     type?: ProviderNames
   ) => Promise<{ html: string; error?: string }>;
   initialHtml?: string;
-  childEntityId: string;
-  entityType?: ProviderNames;
+  entityId: string;
+  entityType?: string;
   accountId: string;
 };
 
@@ -27,13 +27,12 @@ export const App: VoidFunctionComponent<AppProps & BlockProtocolProps> = (
     embedType,
     getEmbedBlock,
     initialHtml,
-    childEntityId,
+    entityId,
     entityType,
     update,
-    accountId,
   } = props;
 
-  const copyObject = getFormCopy(entityType);
+  const copyObject = getFormCopy(embedType);
 
   const { bottomText, buttonText, placeholderText } = copyObject;
 
@@ -80,16 +79,14 @@ export const App: VoidFunctionComponent<AppProps & BlockProtocolProps> = (
       }
       if (html?.trim() && update) {
         const updateAction: {
-          accountId: string;
           data: {
             initialHtml: string;
           };
           entityId?: string;
           entityType?: string;
         } = {
-          accountId,
           data: { initialHtml: html },
-          entityId: childEntityId,
+          entityId,
         };
 
         if (entityType) {

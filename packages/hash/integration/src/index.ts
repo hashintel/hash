@@ -324,7 +324,12 @@ enum Visibility {
           createdById: user.id,
           properties: {
             initialState: {
-              hiddenColumns: [],
+              hiddenColumns: [
+                "id",
+                "entityId",
+                "employer.entityId",
+                "employer.id",
+              ],
             },
             data: {
               __linkedData: {

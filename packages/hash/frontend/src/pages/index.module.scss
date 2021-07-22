@@ -9,14 +9,25 @@
   font-size: 17px;
   overflow-x: hidden;
 
+  h1 {
+    font-size: 2rem;
+    font-weight: 600;
+  }
+
+  h2 {
+    font-size: 1.6rem;
+    font-weight: 600;
+  }
+
+  h3 {
+    font-size: 1.3rem;
+    font-weight: 600;
+  }
+
   h1,
   h2 {
     margin-bottom: 40px;
     line-height: 150%;
     margin-top: 0;
-  }
-
-  p {
-    margin-bottom: 20px;
   }
 }
