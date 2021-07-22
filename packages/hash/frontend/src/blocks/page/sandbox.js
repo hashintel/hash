@@ -360,11 +360,11 @@ class AsyncView {
 }
 
 /** @deprecated naively deep-compare two values as part of a hack */
-function deepeq(a, b) {
+function isSubsetOf(subset, superset) {
   const isObject = (any) => typeof any === "object" && any !== null;
-  return isObject(a) && isObject(b)
-    ? Object.keys(a).every((key) => deepeq(a[key], b[key]))
-    : a === b;
+  return isObject(subset) && isObject(superset)
+    ? Object.keys(subset).every((key) => isSubsetOf(subset[key], superset[key]))
+    : subset === superset;
 }
 
 /**
@@ -385,7 +385,7 @@ const BlockSelect = forwardRef(({ view, getPos, node }, ref) => {
   /** @todo add block variant to node attrs and remove this hack */
   const selectedBlockVariant = (
     node.attrs.meta?.variants.find((variant) =>
-      deepeq(variant.properties, node.attrs.props)
+      isSubsetOf(variant.properties, node.attrs.properties)
     ) ?? node.attrs.meta?.variants[0]
   )?.name;
 
@@ -461,7 +461,7 @@ const BlockSelect = forwardRef(({ view, getPos, node }, ref) => {
           asyncNodeUrl: componentUrl,
           asyncNodeProps: {
             attrs: {
-              props: variant.properties,
+              properties: variant.properties,
               entityId: text ? node.attrs.entityId : null,
               childEntityId: text ? node.attrs.childEntityId : null,
               accountId: node.attrs.accountId,
