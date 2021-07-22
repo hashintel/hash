@@ -6,16 +6,11 @@ import React from "react";
 import ReactDOM from "react-dom";
 import Component from "./index";
 
-import { ApolloProvider } from "@apollo/client";
-
 import { ProviderNames } from "./types/embedTypes";
-import { createApolloClient } from "../dev_src/graphql/createApolloClient";
 
 import { BlockProtocolUpdateFn } from "./types/blockProtocol";
 
 const node = document.getElementById("app");
-
-const apolloClient = createApolloClient();
 
 function AppComponent() {
   async function getEmbedBlock(
@@ -62,9 +57,7 @@ function AppComponent() {
 const App = () => {
   return (
     <>
-      <ApolloProvider client={apolloClient}>
-        <AppComponent />
-      </ApolloProvider>
+      <AppComponent />
     </>
   );
 };

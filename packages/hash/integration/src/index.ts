@@ -147,6 +147,15 @@ enum Visibility {
           properties: {},
         },
       ],
+      [
+        "embed2",
+        {
+          type: "Embed",
+          accountId: org.id,
+          createdById: user.id,
+          properties: {},
+        },
+      ],
     ])
   );
 
@@ -505,6 +514,20 @@ enum Visibility {
           type: "Block",
         },
       ],
+      [
+        "b13",
+        {
+          properties: {
+            componentId: "https://block.blockprotocol.org/embed",
+            entityType: "Embed",
+            entityId: results.get("embed2")?.createEntity.id,
+            accountId: results.get("embed2")?.createEntity.accountId,
+          },
+          createdById: user.id,
+          accountId: org.id,
+          type: "Block",
+        },
+      ],
     ])
   );
 
@@ -580,6 +603,10 @@ enum Visibility {
               {
                 entityId: results.get("b8")?.createEntity.id,
                 accountId: results.get("b8")?.createEntity.accountId,
+              },
+              {
+                entityId: results.get("b13")?.createEntity.id,
+                accountId: results.get("b13")?.createEntity.accountId,
               },
             ],
             title: "HASH's 1st page",

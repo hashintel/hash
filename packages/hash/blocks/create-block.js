@@ -13,7 +13,7 @@ if (!name) {
 
 (async () => {
   console.log("Copying required files...");
-  await exec(`cp -R ${__dirname}/template ${__dirname}/${name}`).catch(console.error);
+  await exec(`cp -R ${__dirname}/template ${__dirname}/${name}`);
 
   const packageJsonPath = `${__dirname}/${name}/package.json`;
   const packageJson = require(packageJsonPath);

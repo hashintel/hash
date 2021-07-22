@@ -40,6 +40,6 @@ export function getFormCopy(entityType?: ProviderNames): {
   return {
     placeholderText: "Enter URL",
     buttonText: "Embed Link",
-    bottomText: "Works with most Oembed supporting links",
+    bottomText: "Paste in a link to your embeddable content",
   };
 }

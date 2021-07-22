@@ -2,9 +2,7 @@
   "compilerOptions": {
     "baseUrl": "./",
     "outDir": "./dist",
-    "lib": [
-      "es2020", "ES2019"
-    ],
+    "lib": ["es2020"],
     "module": "commonjs",
     "target": "es2020",
     "esModuleInterop": true,
@@ -13,7 +11,5 @@
     "strict": true,
     "resolveJsonModule": true
   },
-  "include": [
-    "src"
-  ]
+  "include": ["src"]
 }

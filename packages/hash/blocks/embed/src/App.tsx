@@ -9,9 +9,6 @@ import { HtmlBlock } from "./HtmlBlock";
 import { getFormCopy } from "./utils";
 
 type AppProps = {
-  placeholderText?: string;
-  buttonText?: string;
-  bottomText?: string;
   embedType?: ProviderNames;
   getEmbedBlock: (
     url: string,
@@ -26,8 +23,6 @@ type AppProps = {
 export const App: VoidFunctionComponent<AppProps & BlockProtocolProps> = (
   props
 ) => {
-  console.log(props);
-
   const {
     embedType,
     getEmbedBlock,
@@ -68,44 +63,44 @@ export const App: VoidFunctionComponent<AppProps & BlockProtocolProps> = (
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (inputText.trim()) {
-      setLoading(true);
-
-      await getEmbedBlock(inputText, embedType).then((responseData) => {
-        setLoading(false);
-
-        const { html, error } = responseData;
-
-        if (error?.trim()) {
-          setHtml(undefined);
-          return setErrorString(error);
-        }
-        if (html?.trim() && update) {
-          const updateAction: {
-            accountId: string;
-            data: {
-              initialHtml: string;
-            };
-            entityId?: string;
-            entityType?: string;
-          } = {
-            accountId,
-            data: { initialHtml: html },
-            entityId: childEntityId,
-          };
-
-          console.log(childEntityId, entityType);
-
-          if (entityType) {
-            updateAction.entityType = entityType;
-          }
-
-          update([updateAction]);
-          setHtml(html);
-        }
-      });
-      setEdit(false);
+    if (!inputText.trim()) {
+      return;
     }
+
+    setLoading(true);
+
+    await getEmbedBlock(inputText, embedType).then((responseData) => {
+      setLoading(false);
+
+      const { html, error } = responseData;
+
+      if (error?.trim()) {
+        setHtml(undefined);
+        return setErrorString(error);
+      }
+      if (html?.trim() && update) {
+        const updateAction: {
+          accountId: string;
+          data: {
+            initialHtml: string;
+          };
+          entityId?: string;
+          entityType?: string;
+        } = {
+          accountId,
+          data: { initialHtml: html },
+          entityId: childEntityId,
+        };
+
+        if (entityType) {
+          updateAction.entityType = entityType;
+        }
+
+        update([updateAction]);
+        setHtml(html);
+      }
+    });
+    setEdit(false);
   };
 
   if (html && !edit) {
