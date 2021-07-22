@@ -383,7 +383,6 @@ function BlockSelect({ ref, view, getPos, node }) {
          * carried out by AsyncView's update function
          */
         const { blockType, ...variant } = choices[evt.target.value];
-        console.log("variant properties", variant.properties); // @todo wip
         const componentDisplayName = blockType;
         const componentId =
           displayNameToId.get(componentDisplayName) ?? componentDisplayName;
@@ -446,7 +445,7 @@ function BlockSelect({ ref, view, getPos, node }) {
           asyncNodeUrl: componentUrl,
           asyncNodeProps: {
             attrs: {
-              // ...variant.properties, // @todo pass thru
+              props: variant.properties,
               entityId: text ? node.attrs.entityId : null,
               childEntityId: text ? node.attrs.childEntityId : null,
               accountId: node.attrs.accountId,
