@@ -23,7 +23,10 @@ import styles from "../index.module.scss";
  * preload all configured blocks for now. in the future these will be loaded
  * progressively from the block catalogue.
  */
-const preloadedBlocksUrls = Object.keys(blockPaths);
+const preloadedBlocksUrls = [
+  "https://block.blockprotocol.org/paragraph",
+  ...Object.keys(blockPaths),
+];
 
 // Apparently defining this is necessary in order to get server rendered props?
 export const getStaticPaths: GetStaticPaths<{ slug: string }> = async () => {
