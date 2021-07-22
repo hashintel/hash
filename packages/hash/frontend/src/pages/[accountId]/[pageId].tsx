@@ -10,6 +10,7 @@ import {
 import { PageBlock } from "../../blocks/page/PageBlock";
 import { GetStaticPaths, GetStaticProps } from "next";
 import {
+  blockPaths,
   BlockMeta,
   BlockWithoutMeta,
   fetchBlockMeta,
@@ -18,7 +19,14 @@ import { PageSidebar } from "../../components/layout/PageSidebar/PageSidebar";
 
 import styles from "../index.module.scss";
 
-const preloadedBlocksUrls = ["https://block.blockprotocol.org/paragraph"];
+/**
+ * preload all configured blocks for now. in the future these will be loaded
+ * progressively from the block catalogue.
+ */
+const preloadedBlocksUrls = [
+  "https://block.blockprotocol.org/paragraph",
+  ...Object.keys(blockPaths),
+];
 
 // Apparently defining this is necessary in order to get server rendered props?
 export const getStaticPaths: GetStaticPaths<{ slug: string }> = async () => {
