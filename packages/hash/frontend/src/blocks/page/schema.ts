@@ -43,7 +43,7 @@ export const createSchema = () =>
     },
     marks: {
       strong: {
-        toDOM: () => ["strong", 0] as const,
+        toDOM: () => ["strong", { style: "font-weight:bold;" }, 0] as const,
       },
       em: {
         toDOM: () => ["em", 0] as const,
