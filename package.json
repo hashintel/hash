@@ -17,7 +17,6 @@
     "ws:hash-backend": "yarn workspace @hashintel/hash-backend",
     "ws:hash-integration": "yarn workspace @hashintel/hash-integration",
     "ws:hash-frontend": "yarn workspace @hashintel/hash-frontend",
-    "ws:hash-embed": "yarn workspace @hashintel/embed-block",
     "// 03": "",
     "// ---------------Install & serve ---------------": "",
     "// 04": "",
