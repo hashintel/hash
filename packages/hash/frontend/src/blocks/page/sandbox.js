@@ -5,7 +5,7 @@
  * @todo remove this file
  */
 
-import React from "react";
+import React, { forwardRef } from "react";
 
 import { EditorState, NodeSelection, Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
@@ -361,7 +361,7 @@ class AsyncView {
 
 /** @deprecated naively deep-compare two values as part of a hack */
 function deepeq(a, b) {
-  const isObject = any => typeof any === "object" && any !== null;
+  const isObject = (any) => typeof any === "object" && any !== null;
   return isObject(a) && isObject(b)
     ? Object.keys(a).every((key) => deepeq(a[key], b[key]))
     : a === b;
@@ -370,7 +370,7 @@ function deepeq(a, b) {
 /**
  * block-type select field co-dependent of BlockView class.
  */
-function BlockSelect({ ref, view, getPos, node }) {
+const BlockSelect = forwardRef(({ view, getPos, node }, ref) => {
   const blocksMeta = useBlockMeta();
 
   const choices = Array.from(blocksMeta.values()).flatMap((blockMeta) =>
@@ -507,7 +507,7 @@ function BlockSelect({ ref, view, getPos, node }) {
       <option value="new">New type</option>
     </select>
   );
-}
+});
 
 /**
  * This is the node view that wraps every one of our blocks in order to inject custom UI like the <select> to change
