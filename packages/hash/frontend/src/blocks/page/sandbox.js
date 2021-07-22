@@ -477,13 +477,8 @@ function BlockSelect({ ref, view, getPos, node }) {
       <option disabled value="change">
         Type
       </option>
-      {choices.map(({ name, description }, i) =>(
-        <option
-          key={i}
-          value={i}
-          title={description}
-          disabled={false}
-        >
+      {choices.map(({ name, description }, i) => (
+        <option key={i} value={i} title={description} disabled={false}>
           {name}
         </option>
       ))}
