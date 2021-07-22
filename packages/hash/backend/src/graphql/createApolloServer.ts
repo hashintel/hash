@@ -1,4 +1,4 @@
-import { ApolloServer } from "apollo-server-express";
+import { ApolloServer, defaultPlaygroundOptions } from "apollo-server-express";
 import { Logger } from "winston";
 
 import { schema } from "./typeDefs";
@@ -39,5 +39,12 @@ export const createApolloServer = (db: DBAdapter, logger: Logger) => {
         },
       },
     ],
+    playground: {
+      ...defaultPlaygroundOptions,
+      settings: {
+        ...defaultPlaygroundOptions.settings,
+        "request.credentials": "include",
+      },
+    },
   });
 };
