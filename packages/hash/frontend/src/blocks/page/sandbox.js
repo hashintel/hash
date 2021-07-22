@@ -963,7 +963,11 @@ export const renderPM = (
 
           const active = marks.has(name);
 
-          button.style.backgroundColor = active ? "blue" : "white";
+          button.style.backgroundColor = active ? "#2482ff" : "white";
+          button.style.color = active ? "white" : "black";
+          button.style.padding = "4px 0";
+          button.style.width = "25px";
+          button.style.border = "1px solid lightgrey";
         };
 
         button.addEventListener("click", (evt) => {
