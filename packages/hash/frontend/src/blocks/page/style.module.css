@@ -57,5 +57,6 @@
 .Block__Content {
   flex: 1;
   height: 100%;
+  max-width: 1200px;
   overflow-x: auto;
 }
