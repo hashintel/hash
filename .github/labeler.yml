@@ -1,0 +1,15 @@
+frontend:
+  - packages/hash/frontend/*
+  - packages/hash/frontend/**/*
+
+backend:
+  - packages/hash/backend/*
+  - packages/hash/backend/**/*
+
+blocks:
+  - packages/hash/blocks/*
+  - packages/hash/blocks/**/*
+
+
+
+
