@@ -3,6 +3,7 @@ import { NextPage } from "next";
 import { useRouter } from "next/router";
 import { ParsedUrlQueryInput } from "querystring";
 import { useEffect, useState } from "react";
+import { tw } from "twind";
 import {
   LoginCodeMetadata,
   LoginWithLoginCodeResponse,
@@ -57,7 +58,7 @@ const LoginPage: NextPage = () => {
       loginWithLoginCodeMutation,
       {
         onCompleted: (data) => {
-          if (data.loginWithLoginCode === "SUCCESS") router.push("/");
+          // if (data.loginWithLoginCode === "SUCCESS") router.push("/");
           setLoginWithLoginCodeResponse(data.loginWithLoginCode);
         },
       }
@@ -84,58 +85,81 @@ const LoginPage: NextPage = () => {
   const loginCodeIsValid = loginCode !== "";
 
   return (
-    <>
-      <label>
-        Email or Shortname
-        <input
-          type="text"
-          value={emailOrShortname}
-          onChange={({ target }) => setEmailOrShortname(target.value)}
-          placeholder="Enter your email or shortname to continue"
-          disabled={loginCodeMetadata !== undefined}
-        />
-      </label>
-      {loginCodeMetadata ? (
-        <>
-          <p>Please check your inbox for a temporary login code</p>
-          <label>
-            Login Code
-            <input
-              type="text"
-              value={loginCode}
-              onChange={({ target }) => setLoginCode(target.value)}
-              placeholder="Paste your login code"
-              disabled={loginWithLoginCodeLoading}
-            />
-          </label>
-          <button onClick={reset}>Cancel</button>
-          <button
-            disabled={loginWithLoginCodeLoading || !loginCodeIsValid}
-            onClick={() =>
-              loginWithLoginCode({
-                variables: {
-                  loginId: loginCodeMetadata.id,
-                  loginCode,
-                },
-              })
-            }
-          >
-            Login
-          </button>
-          {loginWithLoginCodeResponse && <p>{loginWithLoginCodeResponse}</p>}
-        </>
-      ) : (
-        <>
-          <button
-            disabled={sendLoginCodeLoading || !emailOrShortnameIsValid}
-            onClick={() => sendLoginCode({ variables: { emailOrShortname } })}
-          >
-            Submit
-          </button>
-          {sendLoginCodeError && <p>{sendLoginCodeError.message}</p>}
-        </>
+    <div
+      className={tw(
+        "container mx-auto px-4 h-full",
+        "flex flex-col items-center justify-center"
       )}
-    </>
+    >
+      <div
+        className={tw(
+          "flex flex-col",
+          "bg-white space-y-3 p-3 rounded-lg shadow-lg border"
+        )}
+      >
+        <label className={tw`block text-gray-700 text-sm font-bold mb-2`}>
+          Email or Shortname
+          <input
+            className={tw`shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline`}
+            type="text"
+            value={emailOrShortname}
+            onChange={({ target }) => setEmailOrShortname(target.value)}
+            placeholder="Enter your email or shortname to continue"
+            disabled={loginCodeMetadata !== undefined}
+          />
+        </label>
+        {loginCodeMetadata ? (
+          <>
+            <p>Please check your inbox for a temporary login code</p>
+            <label className={tw`block text-gray-700 text-sm font-bold mb-2`}>
+              Login Code
+              <input
+                className={tw`shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline`}
+                type="text"
+                value={loginCode}
+                onChange={({ target }) => setLoginCode(target.value)}
+                placeholder="Paste your login code"
+                disabled={loginWithLoginCodeLoading}
+              />
+            </label>
+            <div className={tw`flex justify-between`}>
+              <button
+                className={tw`flex-grow mr-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 px-4 rounded`}
+                onClick={reset}
+              >
+                Cancel
+              </button>
+              <button
+                className={tw`flex-grow ml-1 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded`}
+                disabled={loginWithLoginCodeLoading || !loginCodeIsValid}
+                onClick={() =>
+                  loginWithLoginCode({
+                    variables: {
+                      loginId: loginCodeMetadata.id,
+                      loginCode,
+                    },
+                  })
+                }
+              >
+                Login
+              </button>
+            </div>
+            {loginWithLoginCodeResponse && <p>{loginWithLoginCodeResponse}</p>}
+          </>
+        ) : (
+          <>
+            <button
+              className={tw`bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded`}
+              disabled={sendLoginCodeLoading || !emailOrShortnameIsValid}
+              onClick={() => sendLoginCode({ variables: { emailOrShortname } })}
+            >
+              Submit
+            </button>
+            {sendLoginCodeError && <p>{sendLoginCodeError.message}</p>}
+          </>
+        )}
+      </div>
+    </div>
   );
 };
 
