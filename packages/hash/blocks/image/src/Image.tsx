@@ -1,4 +1,4 @@
-import React, { useState, VoidFunctionComponent } from "react";
+import React, { useEffect, useState, VoidFunctionComponent } from "react";
 
 import { tw } from "twind";
 
@@ -7,10 +7,20 @@ type AppProps = {
   width?: number;
   height?: number;
   initialSrc?: string;
+  uploadImage?: () => string;
 };
+
+function uuidv4() {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+    var r = (Math.random() * 16) | 0,
+      v = c == "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
 
 export const Image: VoidFunctionComponent<AppProps> = ({
   initialSrc,
+  uploadImage,
   ...props
 }) => {
   const [src, setSrc] = useState(initialSrc);
@@ -18,6 +28,12 @@ export const Image: VoidFunctionComponent<AppProps> = ({
   const [loading, setLoading] = useState(false);
   const [displayAlert, setDisplayAlert] = useState(false);
   const [errorString, setErrorString] = useState("");
+  const [edit, setEdit] = useState(false);
+  const [randomId, setRandomId] = useState("");
+
+  useEffect(() => {
+    setRandomId(`image-input-${uuidv4()}`);
+  }, []);
 
   const copyObject = {
     placeholderText: "Enter Image URL",
@@ -27,15 +43,64 @@ export const Image: VoidFunctionComponent<AppProps> = ({
 
   const { bottomText, buttonText, placeholderText } = copyObject;
 
-  if (src?.trim()) {
-    return <img {...props} src={src} alt="Image block" />;
-  }
-
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    
+    if (inputText?.trim()) {
+      setSrc(inputText);
+    }
   };
+
+  const onFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { files } = e.target;
+
+    if (files?.[0]) {
+      const reader = new FileReader();
+
+      reader.onload = function (e) {
+        setSrc( e.target.result);
+
+
+      };
+
+      reader.readAsDataURL(input.files[0]);
+      console.log(files[0]);
+    }
+  };
+
+  if (src?.trim()) {
+    return (
+      <div className={tw`flex justify-center text-center w-full`}>
+        <div>
+          <img {...props} src={src} alt="Image block" />
+        </div>
+        <button
+          // Tailwind doesn't have this as a class
+          // https://github.com/tailwindlabs/tailwindcss/issues/1042#issuecomment-781271382
+          style={{ height: "max-content" }}
+          onClick={() => {
+            setEdit(true);
+          }}
+          className={tw`ml-2 bg-gray-100 p-1.5 border-1 border-gray-300 rounded-sm`}
+        >
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              fillRule="evenodd"
+              clipRule="evenodd"
+              d="M18.5302 7.22194C18.8234 7.51444 18.8234 7.98919 18.5302 8.28244L17.1562 9.65644L14.3437 6.84394L15.7177 5.46994C16.0109 5.17669 16.4857 5.17669 16.7782 5.46994L18.5302 7.22194ZM5.24991 18.7502V15.9377L13.5487 7.63894L16.3612 10.4514L8.06241 18.7502H5.24991Z"
+              fill="rgba(107, 114, 128)"
+            />
+          </svg>
+        </button>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -75,10 +140,22 @@ export const Image: VoidFunctionComponent<AppProps> = ({
               placeholder={placeholderText}
             />
           </div>
-          <div
-            className={tw`my-4 bg-gray-50 border-2 border-dashed border-gray-200 py-4 text-sm text-gray-400`}
-          >
-            Choose a File. <br /> (Or Drop it Here)
+          <div>
+            <label htmlFor={randomId}>
+              <div
+                className={tw`my-4 bg-gray-50 border-2 border-dashed border-gray-200 py-4 text-sm text-gray-400 cursor-pointer`}
+              >
+                Choose a File. <br /> (or Drop it Here)
+              </div>
+            </label>
+
+            <input
+              id={randomId}
+              className={tw`hidden`}
+              type="file"
+              accept="image/*"
+              onChange={onFileSelect}
+            />
           </div>
           <div className={tw`mt-4`}>
             <button
