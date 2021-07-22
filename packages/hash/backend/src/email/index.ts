@@ -3,6 +3,7 @@ import { convert } from "html-to-text";
 import { LoginCode } from "src/db/adapter";
 import { DbUser } from "src/types/dbTypes";
 import awsSesTransporter from "./transporters/awsSes";
+import { FRONTEND_DOMAIN } from "../index";
 
 // TODO: support configurable domains
 export const sendMail = ({
@@ -24,9 +25,6 @@ export const sendMail = ({
       html,
     })
     .catch((err) => console.log("Error sending mail: ", err));
-
-// TODO: account for production domain
-const FRONTEND_DOMAIN = "localhost:3000";
 
 export const sendLoginCodeToUser = async (
   loginCode: LoginCode,
