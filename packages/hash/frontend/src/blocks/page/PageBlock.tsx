@@ -456,16 +456,16 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
         }) ?? []
       );
 
+      if (signal.aborted) {
+        return;
+      }
+
       /**
        * The view's state may have changed, making our current transaction invalid – so lets start again.
        *
        * @todo probably better way of dealing with this
        */
-      if (
-        signal.aborted ||
-        view.state !== state ||
-        prosemirrorSetup.current !== setup
-      ) {
+      if (view.state !== state || prosemirrorSetup.current !== setup) {
         return triggerContentUpdate(signal);
       }
 
