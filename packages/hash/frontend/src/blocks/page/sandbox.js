@@ -117,6 +117,10 @@ export function defineNewBlock(
   id,
   replacePortals
 ) {
+  if (view.state.schema.nodes[id]) {
+    return;
+  }
+
   if (componentMetadata.type === "prosemirror") {
     defineNewProsemirrorNode(view.state.schema, componentMetadata, id);
   } else {
