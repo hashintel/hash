@@ -27,6 +27,7 @@ services:
             - HASH_PG_DATABASE=postgres
             - HASH_PG_PASSWORD=postgres
             - SESSION_SECRET=secret
+            - FRONTEND_DOMAIN=localhost:3000
             - AWS_REGION=${AWS_REGION}
             - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
             - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
