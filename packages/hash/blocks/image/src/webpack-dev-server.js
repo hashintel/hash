@@ -9,9 +9,9 @@ import Component from "./index.ts";
 const node = document.getElementById("app");
 
 const App = () => (
-  <>
-    <Component name="World" />
-  </>
+  <div style={{ marginTop: 20 }}>
+    <Component />
+  </div>
 );
 
 ReactDOM.render(<App />, node);
