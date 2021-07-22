@@ -8,7 +8,7 @@ export const embedTypeDef = gql`
 
   extend type Query {
     """
-    accepts url and returns embeddable html for it and the provider name
+    Accepts a url and returns embeddable html for it, and the provider name
     """
     embedCode(
       """
