@@ -5,8 +5,14 @@ import { customAlphabet } from "nanoid";
 import winston from "winston";
 import { StatsD } from "hot-shots";
 
-import { PostgresAdapter } from "./db";
+import { PostgresAdapter, setupCronJobs } from "./db";
 import { createApolloServer } from "./graphql/createApolloServer";
+import setupAuth from "./auth";
+import { getRequiredEnv } from "./util";
+
+// TODO: account for production domain
+export const FRONTEND_DOMAIN = getRequiredEnv("FRONTEND_DOMAIN");
+export const FRONTEND_URL = `http://${FRONTEND_DOMAIN}`;
 
 // Request ID generator
 const nanoid = customAlphabet(
@@ -67,6 +73,12 @@ app.use(helmet({ contentSecurityPolicy: false }));
 // Parse request body as JSON - allow higher than the default 100kb limit
 app.use(json({ limit: "16mb" }));
 
+// Set up authentication related middeware and routes
+setupAuth(app, db);
+
+// Set up cron jobs
+setupCronJobs(db, logger);
+
 const apolloServer = createApolloServer(db, logger);
 
 app.get("/", (_, res) => res.send("Hello World"));
@@ -90,7 +102,10 @@ app.use((req, res, next) => {
 
 // Ensure the GraphQL server has started before starting the HTTP server
 apolloServer.start().then(() => {
-  apolloServer.applyMiddleware({ app });
+  apolloServer.applyMiddleware({
+    app,
+    cors: { credentials: true, origin: FRONTEND_URL },
+  });
 
   const server = app.listen(PORT, () =>
     logger.info(`Listening on port ${PORT}`)

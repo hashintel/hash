@@ -2,18 +2,22 @@ import { Pool, PoolClient } from "pg";
 import { DataSource } from "apollo-datasource";
 import { StatsD } from "hot-shots";
 
-import { DBAdapter, Entity, EntityMeta, EntityVersion } from "../adapter";
-import { genEntityId } from "../../util";
-import { gatherLinks, entityNotFoundError, replaceLink } from "./util";
-
-/** Get a required environment variable. Throws an error if it's not set. */
-const getRequiredEnv = (name: string) => {
-  const value = process.env[name];
-  if (value === undefined) {
-    throw new Error(`Environment variable ${name} is not set`);
-  }
-  return value;
-};
+import {
+  DBAdapter,
+  Entity,
+  EntityMeta,
+  LoginCode,
+  EntityVersion,
+} from "../adapter";
+import { genId } from "../../util";
+import {
+  gatherLinks,
+  entityNotFoundError,
+  replaceLink,
+  mapPGRowToEntity,
+  mapPGRowToDbUser,
+} from "./util";
+import { getRequiredEnv } from "../../util";
 
 const parsePort = (str: string) => {
   if (/^\d+$/.test(str)) {
@@ -22,19 +26,22 @@ const parsePort = (str: string) => {
   throw new Error("PG_PORT must be a positive number");
 };
 
+export const createPool = () =>
+  new Pool({
+    user: getRequiredEnv("HASH_PG_USER"),
+    host: getRequiredEnv("HASH_PG_HOST"),
+    port: parsePort(getRequiredEnv("HASH_PG_PORT")),
+    database: getRequiredEnv("HASH_PG_DATABASE"),
+    password: getRequiredEnv("HASH_PG_PASSWORD"),
+  });
+
 export class PostgresAdapter extends DataSource implements DBAdapter {
   private pool: Pool;
   private statsdInterval: NodeJS.Timeout;
 
   constructor(statsd?: StatsD) {
     super();
-    this.pool = new Pool({
-      user: getRequiredEnv("HASH_PG_USER"),
-      host: getRequiredEnv("HASH_PG_HOST"),
-      port: parsePort(getRequiredEnv("HASH_PG_PORT")),
-      database: getRequiredEnv("HASH_PG_DATABASE"),
-      password: getRequiredEnv("HASH_PG_PASSWORD"),
-    });
+    this.pool = createPool();
 
     this.statsdInterval = setInterval(() => {
       statsd?.gauge("pool_waiting_count", this.pool.waitingCount);
@@ -198,7 +205,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     versioned?: boolean;
     properties: any;
   }): Promise<Entity> {
-    const entityId = params.entityId ?? genEntityId();
+    const entityId = params.entityId ?? genId();
     const now = new Date();
 
     const entity = await this.tx(async (client) => {
@@ -215,8 +222,8 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
         (await this.getEntityTypeId(client, params.type)) ??
         (await this.createEntityType(client, params.type));
 
-      const historyId = params.versioned ? genEntityId() : undefined;
-      const metadataId = genEntityId();
+      const historyId = params.versioned ? genId() : undefined;
+      const metadataId = genId();
 
       // TODO: defer FK and run concurrently with insertEntity
       const metadata = await this.insertEntityMetadata(client, {
@@ -315,24 +322,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       throw new Error(`expected 1 row but received ${res.rowCount}`);
     }
 
-    const row = res.rows[0];
-    const entity: Entity = {
-      accountId: row["account_id"],
-      entityId: row["entity_id"],
-      createdById: row["created_by"],
-      type: row["type"],
-      properties: row["properties"],
-      historyId: row["history_id"],
-      metadata: {
-        metadataId: row["metadata_id"],
-        extra: row["extra"],
-      },
-      metadataId: row["metadata_id"],
-      createdAt: row["created_at"],
-      updatedAt: row["updated_at"],
-    };
-
-    return entity;
+    return mapPGRowToEntity(res.rows[0]);
   }
 
   async getLatestEntityVersion(params: {
@@ -418,7 +408,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     const now = new Date();
     const newEntityVersion: Entity = {
       ...params.entity,
-      entityId: genEntityId(),
+      entityId: genId(),
       properties: params.newProperties,
       createdAt: now,
       updatedAt: now,
@@ -599,21 +589,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       [params.accountId, params.type]
     );
 
-    return res.rows.map((row) => ({
-      accountId: row["account_id"],
-      entityId: row["entity_id"],
-      createdById: row["created_by"],
-      type: row["type"],
-      properties: row["properties"],
-      historyId: row["history_id"],
-      metadata: {
-        metadataId: row["metadata_id"],
-        extra: row["extra"],
-      },
-      metadataId: row["metadata_id"],
-      createdAt: row["created_at"],
-      updatedAt: row["updated_at"],
-    }));
+    return res.rows.map(mapPGRowToEntity);
   }
 
   /** Get all account entities. */
@@ -631,21 +607,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       where
         e.account_id = e.entity_id`
     );
-    return res.rows.map((row) => ({
-      accountId: row["account_id"],
-      entityId: row["entity_id"],
-      createdById: row["created_by"],
-      type: row["type"],
-      properties: row["properties"],
-      historyId: row["history_id"],
-      metadata: {
-        metadataId: row["metadata_id"],
-        extra: row["extra"],
-      },
-      metadataId: row["metadata_id"],
-      createdAt: row["created_at"],
-      updatedAt: row["updated_at"],
-    }));
+    return res.rows.map(mapPGRowToEntity);
   }
 
   async updateEntityMetadata(params: {
@@ -662,6 +624,189 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     }
     return params;
   }
+
+  getUserById = (params: { id: string }) =>
+    this.pool
+      .query(
+        `select
+      e.account_id, e.entity_id, t.name as type, e.properties, e.created_by,
+      e.created_at, e.updated_at, e.metadata_id, e.history_id, meta.extra
+    from
+      entities as e
+      join entity_types as t on e.type = t.id
+      join entity_metadata as meta on
+        meta.account_id = e.account_id  -- required for sharding
+        and meta.metadata_id = e.metadata_id
+    where
+        t.name = 'User'
+      and
+        e.entity_id = $1`,
+        [params.id]
+      )
+      .then(({ rows }) => {
+        if (rows.length === 0) return null;
+        if (rows.length > 1)
+          throw new Error(
+            `Critical: multiple users with id '${params.id}' found in datastore`
+          );
+        return mapPGRowToDbUser(rows[0]);
+      });
+
+  getUserByEmail = (params: { email: string }) =>
+    this.pool
+      .query(
+        `select
+      e.account_id, e.entity_id, t.name as type, e.properties, e.created_by,
+      e.created_at, e.updated_at, e.metadata_id, e.history_id, meta.extra
+    from
+      entities as e
+      join entity_types as t on e.type = t.id
+      join entity_metadata as meta on
+        meta.account_id = e.account_id  -- required for sharding
+        and meta.metadata_id = e.metadata_id
+    where
+        t.name = 'User'
+      and
+        e.properties ->> 'email' = $1`,
+        [params.email]
+      )
+      .then(({ rows }) => {
+        if (rows.length === 0) return null;
+        if (rows.length > 1)
+          throw new Error(
+            `Critical: multiple users with email '${params.email}' found in datastore`
+          );
+        return mapPGRowToDbUser(rows[0]);
+      });
+
+  getUserByShortname = (params: { shortname: string }) =>
+    this.pool
+      .query(
+        `select
+        e.account_id, e.entity_id, t.name as type, e.properties, e.created_by,
+        e.created_at, e.updated_at, e.metadata_id, e.history_id, meta.extra
+      from
+        entities as e
+        join entity_types as t on e.type = t.id
+        join entity_metadata as meta on
+          meta.account_id = e.account_id  -- required for sharding
+          and meta.metadata_id = e.metadata_id
+      where
+          t.name = 'User'
+        and
+          e.properties ->> 'shortname' = $1`,
+        [params.shortname]
+      )
+      .then(({ rows }) => {
+        if (rows.length === 0) return null;
+        if (rows.length > 1)
+          throw new Error(
+            `Critical: multiple users with shortname '${params.shortname}' found in datastore`
+          );
+
+        return mapPGRowToDbUser(rows[0]);
+      });
+
+  /** Insert a row into the entities table. */
+  private insertLoginCode = (
+    client: PoolClient,
+    params: {
+      loginId: string;
+      accountId: string;
+      userId: string;
+      code: string;
+      createdAt: Date;
+    }
+  ): Promise<void> =>
+    client
+      .query(
+        `
+        insert into login_codes (
+          login_id, account_id, user_id, login_code, created_at
+        )
+        values ($1, $2, $3, $4, $5)
+      `,
+        [
+          params.loginId,
+          params.accountId,
+          params.userId,
+          params.code,
+          params.createdAt,
+        ]
+      )
+      .then();
+
+  async createLoginCode(params: {
+    accountId: string;
+    userId: string;
+    code: string;
+  }): Promise<LoginCode> {
+    const id = genId();
+    const createdAt = new Date();
+
+    return this.tx((client) =>
+      this.insertLoginCode(client, { ...params, loginId: id, createdAt })
+    ).then(() => ({
+      id,
+      ...params,
+      numberOfAttempts: 0,
+      createdAt,
+    }));
+  }
+
+  getLoginCode = (params: { loginId: string }): Promise<LoginCode | null> =>
+    this.pool
+      .query(
+        `
+          select login_id, user_id, login_code, number_of_attempts, created_at
+          from login_codes
+          where login_id = $1
+        `,
+        [params.loginId]
+      )
+      .then(({ rows }) => {
+        if (rows.length === 0) return null;
+        if (rows.length > 1)
+          throw new Error(
+            `Critical: multiple login codes with login_id '${params.loginId}' found in datastore`
+          );
+        return {
+          id: rows[0]["login_id"],
+          userId: rows[0]["user_id"],
+          code: rows[0]["login_code"],
+          numberOfAttempts: rows[0]["number_of_attempts"],
+          createdAt: rows[0]["created_at"],
+        };
+      });
+
+  incrementLoginCodeAttempts = (params: {
+    loginCode: LoginCode;
+  }): Promise<void> =>
+    this.pool
+      .query(
+        `
+          update login_codes
+          set number_of_attempts = number_of_attempts + 1
+          where login_id = $1 and user_id = $2
+        `,
+        [params.loginCode.id, params.loginCode.userId]
+      )
+      .then();
+
+  pruneLoginCodes = (): Promise<number> =>
+    this.pool
+      .query(
+        `
+          with deleted as 
+          (
+            delete from login_codes
+            where created_at < (now() - interval '1 day')
+            returning *
+          )
+          select count(*) from deleted
+        `
+      )
+      .then(({ rows }) => parseInt(rows[0]["count"]));
 
   async getAndUpdateEntity(params: {
     accountId: string;

@@ -16,30 +16,32 @@ type AccountPageListProps = {
   currentPageId: string;
 };
 
-export const AccountPageList: VoidFunctionComponent<AccountPageListProps> =
-  ({ currentPageId, accountId }) => {
-    const { data } = useQuery<
-      GetAccountPagesQuery,
-      GetAccountPagesQueryVariables
-    >(getAccountPages, {
-      variables: { accountId },
-    });
+export const AccountPageList: VoidFunctionComponent<AccountPageListProps> = ({
+  currentPageId,
+  accountId,
+}) => {
+  const { data } = useQuery<
+    GetAccountPagesQuery,
+    GetAccountPagesQueryVariables
+  >(getAccountPages, {
+    variables: { accountId },
+  });
 
-    return (
-      <div className={styles.AccountPageList}>
-        {data?.accountPages.map((page) => {
-          if (page.id === currentPageId) {
-            return <div key={page.id}>{page.properties.title}</div>;
-          }
-          return (
-            <div key={page.id}>
-              <Link href={`/${accountId}/${page.id}`}>
-                <a>{page.properties.title}</a>
-              </Link>
-            </div>
-          );
-        })}
-        <CreatePageButton accountId={accountId} />
-      </div>
-    );
-  };
+  return (
+    <div className={styles.AccountPageList}>
+      {data?.accountPages.map((page) => {
+        if (page.id === currentPageId) {
+          return <div key={page.id}>{page.properties.title}</div>;
+        }
+        return (
+          <div key={page.id}>
+            <Link href={`/${accountId}/${page.id}`}>
+              <a>{page.properties.title}</a>
+            </Link>
+          </div>
+        );
+      })}
+      <CreatePageButton accountId={accountId} />
+    </div>
+  );
+};

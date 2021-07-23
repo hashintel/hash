@@ -1,4 +1,5 @@
 import { DataSource } from "apollo-datasource";
+import { DbUser } from "src/types/dbTypes";
 
 export type Entity = {
   accountId: string;
@@ -16,6 +17,14 @@ export type Entity = {
 export type EntityMeta = {
   metadataId: string;
   extra: any;
+};
+
+export type LoginCode = {
+  id: string;
+  code: string;
+  userId: string;
+  numberOfAttempts: number;
+  createdAt: Date;
 };
 
 export type EntityVersion = {
@@ -67,6 +76,15 @@ export interface DBAdapter extends DataSource {
     properties: any;
   }): Promise<Entity[]>;
 
+  /** Get the user by their id. */
+  getUserById(params: { id: string }): Promise<DbUser | null>;
+
+  /** Get the user by their email address. */
+  getUserByEmail(params: { email: string }): Promise<DbUser | null>;
+
+  /** Get the user by their shortname. */
+  getUserByShortname(params: { shortname: string }): Promise<DbUser | null>;
+
   /**
    * Get all entities of a given type. If `latestOnly` is set to true, then only the
    * latest version of each entity is returned. This parameter is ignored for non-versioned
@@ -88,6 +106,22 @@ export interface DBAdapter extends DataSource {
     metadataId: string;
     extra: any;
   }): Promise<EntityMeta>;
+
+  /** Create a login code */
+  createLoginCode(params: {
+    accountId: string;
+    userId: string;
+    code: string;
+  }): Promise<LoginCode>;
+
+  /** Get a login code (it may be invalid!) */
+  getLoginCode(params: { loginId: string }): Promise<LoginCode | null>;
+
+  /** Increment the number of login attempts by 1 */
+  incrementLoginCodeAttempts(params: { loginCode: LoginCode }): Promise<void>;
+
+  /** Prunes login codes from the database after 1 day of creation */
+  pruneLoginCodes(): Promise<number>;
 
   /**
    * getAndUpdateEntity may be used to retrieve and update an entity within
