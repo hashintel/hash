@@ -34,7 +34,7 @@ export const resolvers = {
     aggregateEntity,
     entity,
     page,
-    embedCode
+    embedCode,
   },
 
   Mutation: {
