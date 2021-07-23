@@ -39,7 +39,7 @@ export const RemoteBlock: VoidFunctionComponent<
 
   /**
    * Temporary hack to provide the accountId for blocks.
-   * Assumes that the accountId of the block entity will be the same as 
+   * Assumes that the accountId of the block entity will be the same as
    * all entities it is rendering / in its tree. Unsafe assumption.
    * @todo Replace with a proper mapping of entities to accountIds.
    */

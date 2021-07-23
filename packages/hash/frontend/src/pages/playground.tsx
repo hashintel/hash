@@ -25,8 +25,9 @@ const BlockPlayground = () => {
     schemaErrors: [],
   });
   const [metadata, setMetadata] = useState<BlockMetadata>({});
-  const [schema, setSchema] =
-    useState<Record<string, any> | undefined>(undefined);
+  const [schema, setSchema] = useState<Record<string, any> | undefined>(
+    undefined
+  );
 
   const fetchUrl = (folderUrl: string) => {
     setError("");
@@ -141,7 +142,9 @@ const BlockPlayground = () => {
           <div className="language-json">
             <label>Block variants</label>
             <pre>
-              <code>{JSON.stringify(metadata.variants ?? [], undefined, 2)}</code>
+              <code>
+                {JSON.stringify(metadata.variants ?? [], undefined, 2)}
+              </code>
             </pre>
           </div>
         </div>

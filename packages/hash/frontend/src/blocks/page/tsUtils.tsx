@@ -23,13 +23,13 @@ export type Block = {
   entity: Record<any, any>;
   componentId: string;
   componentMetadata: BlockMetadata & { url: string } & (
-    | { type?: undefined }
-    | {
-        type: "prosemirror";
-        // @todo type this
-        spec: any;
-      }
-  );
+      | { type?: undefined }
+      | {
+          type: "prosemirror";
+          // @todo type this
+          spec: any;
+        }
+    );
   componentSchema: JSONSchema;
 };
 
@@ -38,7 +38,7 @@ export type BlockMeta = Pick<Block, "componentMetadata" | "componentSchema">;
 /**
  * The cache is designed to store promises, not resolved values, in order to ensure multiple requests for the same
  * block in rapid succession don't cause multiple web requests
- * 
+ *
  * @deprecated in favor of react context "blockMeta" (which is not the final solution either)
  */
 export const blockCache = new Map<string, Promise<BlockMeta>>();
@@ -57,12 +57,14 @@ export const builtInBlocks: Record<string, BlockMeta> = {
         marks: "_",
       },
       // @todo add missing metadata to the paragraph's default variant
-      variants: [{
-        name: "paragraph",
-        description: "",
-        icon: "path/to/icon/svg",
-        properties: {}
-      }]
+      variants: [
+        {
+          name: "paragraph",
+          description: "",
+          icon: "path/to/icon/svg",
+          properties: {},
+        },
+      ],
     },
   },
 };
@@ -79,9 +81,7 @@ export const fetchBlockMeta = async (url: string): Promise<BlockMeta> => {
   }
 
   const promise = (async () => {
-    const metadata = await (
-      await fetch(`${mappedUrl}/metadata.json`)
-    ).json();
+    const metadata = await (await fetch(`${mappedUrl}/metadata.json`)).json();
 
     const schema = await (
       await fetch(`${mappedUrl}/${metadata.schema}`)

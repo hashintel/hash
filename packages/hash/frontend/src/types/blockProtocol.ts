@@ -1,4 +1,3 @@
-
 export type BlockProps = object;
 
 type BlockVariant = {

@@ -25,8 +25,9 @@ export const usePortals = () => {
   const [portals, setPortals] = useState<PortalSet>(new Map());
 
   const portalQueue = useRef<((set: PortalSet) => void)[]>([]);
-  const portalQueueTimeout =
-    useRef<ReturnType<typeof setImmediate> | null>(null);
+  const portalQueueTimeout = useRef<ReturnType<typeof setImmediate> | null>(
+    null
+  );
 
   /**
    * Call this to render a piece of JSX to a given DOM node, or to move it from a previous DOM node to a new one.
