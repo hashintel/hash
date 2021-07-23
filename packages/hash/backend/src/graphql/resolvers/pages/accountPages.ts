@@ -15,6 +15,7 @@ export const accountPages: Resolver<
   const pages = await dataSources.db.getEntitiesByType({
     accountId,
     type: "Page",
+    latestOnly: true,
   });
   return pages.map((page) => ({
     ...page,

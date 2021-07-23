@@ -23,6 +23,7 @@ import { createUser } from "./shared/createUser";
 import { createOrg } from "./shared/createOrg";
 import { sendLoginCode } from "./user/sendLoginCode";
 import { loginWithLoginCode } from "./user/loginWithLoginCode";
+import { embedCode } from "./embed";
 
 import { DbOrg, DbUser } from "../../types/dbTypes";
 import { GraphQLContext } from "../context";
@@ -47,6 +48,7 @@ export const resolvers = {
     entity,
     page,
     me: loggedIn(me),
+    embedCode,
   },
 
   Mutation: {

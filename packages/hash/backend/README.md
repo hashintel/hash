@@ -15,7 +15,7 @@ Start the database and API:
 yarn start:docker
 ```
 
-The API is avaible at `localhost:5001`. 
+The API is avaible at `localhost:5001`.
 
 If you add a dependency to the API, you may need to rebuild the container with
 ```
@@ -36,3 +36,14 @@ If you want to start the database afresh, just delete and recreate the volume:
 ```
 yarn clear-pg
 ```
+
+## Metrics
+
+The API may output StatsD metrics to a location set by the `STATSD_HOST` and
+`STATSD_PORT` environment variables. Metrics are not reported to the console
+and require an external service to which they may be sent to. For development
+purposes, this package includes a bare-bones StatsD server running on Docker
+which just outputs metrics to the console.
+The config for this server is located in [./statsd](./statsd). This server is
+not enabled by default so as not to clutter the console output. To enable
+it, run `yarn start:docker-with-statsd`.

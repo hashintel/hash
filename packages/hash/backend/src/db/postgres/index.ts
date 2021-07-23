@@ -1,5 +1,6 @@
 import { Pool, PoolClient } from "pg";
 import { DataSource } from "apollo-datasource";
+import { StatsD } from "hot-shots";
 
 import {
   DBAdapter,
@@ -36,10 +37,22 @@ export const createPool = () =>
 
 export class PostgresAdapter extends DataSource implements DBAdapter {
   private pool: Pool;
+  private statsdInterval: NodeJS.Timeout;
 
-  constructor() {
+  constructor(statsd?: StatsD) {
     super();
     this.pool = createPool();
+
+    this.statsdInterval = setInterval(() => {
+      statsd?.gauge("pool_waiting_count", this.pool.waitingCount);
+      statsd?.gauge("pool_idle_count", this.pool.idleCount);
+    }, 5000);
+  }
+
+  /** Close all connections to the database. */
+  close() {
+    clearInterval(this.statsdInterval);
+    return this.pool.end();
   }
 
   /** Execute a function inside a transaction. */
@@ -236,6 +249,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
         type: params.type,
         properties: params.properties,
         historyId,
+        metadataId,
         metadata,
         createdAt: now,
         updatedAt: now,
@@ -309,6 +323,57 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     }
 
     return mapPGRowToEntity(res.rows[0]);
+  }
+
+  async getLatestEntityVersion(params: {
+    accountId: string;
+    metadataId: string;
+  }) {
+    const res = await this.pool.query(
+      `with all_matches as (
+        select
+          e.account_id, e.entity_id, t.name as type, e.properties, e.created_by,
+          e.created_at, e.updated_at, e.history_id, e.metadata_id, meta.extra
+        from
+          entities as e
+          join entity_types as t on e.type = t.id
+          join entity_metadata as meta on
+            e.account_id = meta.account_id and  -- required for sharding
+            e.metadata_id = meta.metadata_id
+        where
+          e.account_id = $1 and e.metadata_id = $2
+      )
+      select distinct on (metadata_id)
+        *
+      from all_matches
+      order by metadata_id, updated_at desc`,
+      [params.accountId, params.metadataId]
+    );
+
+    if (res.rowCount === 0) {
+      return undefined;
+    } else if (res.rowCount > 1) {
+      throw new Error(`expected 1 row but received ${res.rowCount}`);
+    }
+
+    const row = res.rows[0];
+    const entity: Entity = {
+      accountId: row["account_id"],
+      entityId: row["entity_id"],
+      createdById: row["created_by"],
+      type: row["type"],
+      properties: row["properties"],
+      historyId: row["history_id"],
+      metadata: {
+        metadataId: row["metadata_id"],
+        extra: row["extra"],
+      },
+      metadataId: row["metadata_id"],
+      createdAt: row["created_at"],
+      updatedAt: row["updated_at"],
+    };
+
+    return entity;
   }
 
   /** Get an entity by ID in a given account. */
@@ -491,11 +556,13 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   async getEntitiesByType(params: {
     accountId: string;
     type: string;
+    latestOnly: boolean;
   }): Promise<Entity[]> {
-    const res = await this.pool.query(
-      `select
+    const allMatchesQ = `
+      select
         e.account_id, e.entity_id, t.name as type, e.properties, e.created_by,
-        e.created_at, e.updated_at, e.metadata_id, e.history_id, meta.extra
+        e.created_at, e.updated_at, e.metadata_id, e.history_id, meta.extra,
+        coalesce(e.history_id, e.entity_id) as grp_col
       from
         entities as e
         join entity_types as t on e.type = t.id
@@ -503,7 +570,22 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
           meta.account_id = e.account_id  -- required for sharding
           and meta.metadata_id = e.metadata_id
       where
-        e.account_id = $1 and t.name = $2`,
+        e.account_id = $1 and t.name = $2`;
+
+    // Extracts the latest version of each entity from the allMatchesQ query.
+    // Non-versioned entities have a null history_id, so we use the entity_id in this
+    // case for the grouping column grp_col.
+    const latestMatchesQ = `
+      with all_matches as (${allMatchesQ})
+      select distinct on (grp_col)
+        *
+      from
+        all_matches
+      order by grp_col, updated_at desc
+    `;
+
+    const res = await this.pool.query(
+      params.latestOnly ? latestMatchesQ : allMatchesQ,
       [params.accountId, params.type]
     );
 

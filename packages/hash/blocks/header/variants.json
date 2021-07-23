@@ -1,0 +1,26 @@
+[
+  {
+    "name": "h1",
+    "description": "first level headline",
+    "icon": "path/to/icon.svg",
+    "properties": {
+      "level": 1
+    }
+  },
+  {
+    "name": "h2",
+    "description": "second level headline",
+    "icon": "path/to/icon.svg",
+    "properties": {
+      "level": 2
+    }
+  },
+  {
+    "name": "h3",
+    "description": "third level headline",
+    "icon": "path/to/icon.svg",
+    "properties": {
+      "level": 3
+    }
+  }
+]

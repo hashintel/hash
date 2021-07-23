@@ -1,27 +1,11 @@
-import { useEffect, useState, VoidFunctionComponent } from "react";
-import Prism from "prismjs";
 import { Validator } from "jsonschema";
-
+import Prism from "prismjs";
+import { useEffect, useState, VoidFunctionComponent } from "react";
+import { BlockMetadata, BlockProps } from "../types/blockProtocol";
 import { RemoteBlock } from "../components/RemoteBlock/RemoteBlock";
-
 import styles from "./playground.module.scss";
 
 const validator = new Validator();
-
-/**
- * @todo type all as unknown and check properly
- * we can't rely on people defining the JSON correctly
- */
-type BlockMetaJson = {
-  source?: string;
-  schema?: string;
-  name?: string;
-  version?: string;
-  description?: string;
-  author?: string;
-  license?: string;
-  externals?: Record<string, string>;
-};
 
 const PassOrFail: VoidFunctionComponent<{ pass: boolean }> = ({ pass }) => (
   <img src={pass ? "/green-check.png" : "/red-cross.png"} />
@@ -30,7 +14,7 @@ const PassOrFail: VoidFunctionComponent<{ pass: boolean }> = ({ pass }) => (
 const BlockPlayground = () => {
   const [_error, setError] = useState("");
   const [inputData, setInputData] = useState(`{\n  "key": "value"\n}`);
-  const [blockProps, setBlockProps] = useState({});
+  const [blockProps, setBlockProps] = useState<BlockProps>({});
   const [inputErrors, setInputErrors] = useState<{
     validJson: boolean;
     matchesSchema: boolean;
@@ -40,7 +24,7 @@ const BlockPlayground = () => {
     matchesSchema: false,
     schemaErrors: [],
   });
-  const [metadata, setMetadata] = useState<BlockMetaJson>({});
+  const [metadata, setMetadata] = useState<BlockMetadata>({});
   const [schema, setSchema] =
     useState<Record<string, any> | undefined>(undefined);
 
@@ -151,6 +135,13 @@ const BlockPlayground = () => {
             <label>Block interface schema</label>
             <pre>
               <code>{JSON.stringify(schema, undefined, 2)}</code>
+            </pre>
+          </div>
+
+          <div className="language-json">
+            <label>Block variants</label>
+            <pre>
+              <code>{JSON.stringify(metadata.variants ?? [], undefined, 2)}</code>
             </pre>
           </div>
         </div>

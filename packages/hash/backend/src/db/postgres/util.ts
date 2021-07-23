@@ -131,6 +131,7 @@ export const mapPGRowToEntity = (row: any): Entity => ({
     metadataId: row["metadata_id"],
     extra: row["extra"],
   },
+  metadataId: row["metadata_id"],
   createdAt: row["created_at"],
   updatedAt: row["updated_at"],
 });

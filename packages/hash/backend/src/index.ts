@@ -3,6 +3,7 @@ import { json } from "body-parser";
 import helmet from "helmet";
 import { customAlphabet } from "nanoid";
 import winston from "winston";
+import { StatsD } from "hot-shots";
 
 import { PostgresAdapter, setupCronJobs } from "./db";
 import { createApolloServer } from "./graphql/createApolloServer";
@@ -43,12 +44,25 @@ if (process.env.NODE_ENV === "development") {
   // Datadog: https://github.com/winstonjs/winston/blob/master/docs/transports.md#datadog-transport
 }
 
+// Configure the StatsD client for reporting metrics
+let statsd: StatsD | undefined;
+try {
+  if (parseInt(process.env.STATSD_ENABLED || "0") === 1) {
+    statsd = new StatsD({
+      port: parseInt(process.env.STATSD_PORT || "8125"), // 8125 is default StatsD port
+      host: process.env.STATSD_HOST,
+    });
+  }
+} catch (err) {
+  logger.warn(`Could not start StatsD client: {e}`);
+}
+
 // Configure the Express server
 const app = express();
 const PORT = process.env.PORT ?? 5001;
 
 // Connect to the database
-const db = new PostgresAdapter();
+const db = new PostgresAdapter(statsd);
 
 // Set sensible default security headers: https://www.npmjs.com/package/helmet
 // Temporarily disable contentSecurityPolicy for the GraphQL playground
@@ -93,5 +107,33 @@ apolloServer.start().then(() => {
     cors: { credentials: true, origin: FRONTEND_URL },
   });
 
-  app.listen(PORT, () => logger.info(`Listening on port ${PORT}`));
+  const server = app.listen(PORT, () =>
+    logger.info(`Listening on port ${PORT}`)
+  );
+
+  // Gracefully shutdown on receiving a termination signal.
+  let receivedTerminationSignal = false;
+  const shutdown = (signal: string) => {
+    if (receivedTerminationSignal) {
+      return;
+    }
+    receivedTerminationSignal = true;
+
+    logger.info(`${signal} signal received: Closing Express server`);
+    server.close(() => {
+      logger.info("Express server closed");
+    });
+
+    logger.info("Closing database connection pool");
+    db.close()
+      .then(() => logger.info("Database connection pool closed"))
+      .catch((err) => logger.error(err));
+
+    if (statsd) {
+      logger.info("Closing the StatsD client");
+      statsd.close(() => logger.info("StatsD client closed"));
+    }
+  };
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGINT", () => shutdown("SIGINT"));
 });

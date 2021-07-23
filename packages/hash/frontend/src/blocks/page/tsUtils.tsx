@@ -2,6 +2,7 @@ import { Schema as JSONSchema } from "jsonschema";
 import React, { ReactNode } from "react";
 import { EditorProps, NodeView } from "prosemirror-view";
 import { RemoteBlock } from "../../components/RemoteBlock/RemoteBlock";
+import { BlockMetadata } from "../../types/blockProtocol";
 
 // @ts-ignore
 const contextRequire = require.context(
@@ -16,17 +17,12 @@ export const blockPaths = contextRequire(
     : "./blockPaths.sample.json"
 );
 
-// @todo this type properly exists already somewhere
 export type Block = {
   entityId: string;
   accountId: string;
   entity: Record<any, any>;
   componentId: string;
-  componentMetadata: {
-    name: string;
-    source?: string;
-    url: string;
-  } & (
+  componentMetadata: BlockMetadata & { url: string } & (
     | { type?: undefined }
     | {
         type: "prosemirror";
@@ -39,6 +35,12 @@ export type Block = {
 
 export type BlockMeta = Pick<Block, "componentMetadata" | "componentSchema">;
 
+/**
+ * The cache is designed to store promises, not resolved values, in order to ensure multiple requests for the same
+ * block in rapid succession don't cause multiple web requests
+ * 
+ * @deprecated in favor of react context "blockMeta" (which is not the final solution either)
+ */
 export const blockCache = new Map<string, Promise<BlockMeta>>();
 
 export const builtInBlocks: Record<string, BlockMeta> = {
@@ -54,15 +56,19 @@ export const builtInBlocks: Record<string, BlockMeta> = {
         domTag: "p",
         marks: "_",
       },
+      // @todo add missing metadata to the paragraph's default variant
+      variants: [{
+        name: "paragraph",
+        description: "",
+        icon: "path/to/icon/svg",
+        properties: {}
+      }]
     },
   },
 };
 
-// @todo deal with errors
-export const fetchBlockMeta = async (
-  url: string,
-  signal?: AbortSignal
-): Promise<BlockMeta> => {
+// @todo deal with errors, loading, abort etc.
+export const fetchBlockMeta = async (url: string): Promise<BlockMeta> => {
   const mappedUrl = blockPaths[url] ?? url;
   if (builtInBlocks[mappedUrl]) {
     return builtInBlocks[mappedUrl];
@@ -74,11 +80,11 @@ export const fetchBlockMeta = async (
 
   const promise = (async () => {
     const metadata = await (
-      await fetch(`${mappedUrl}/metadata.json`, { signal })
+      await fetch(`${mappedUrl}/metadata.json`)
     ).json();
 
     const schema = await (
-      await fetch(`${mappedUrl}/${metadata.schema}`, { signal })
+      await fetch(`${mappedUrl}/${metadata.schema}`)
     ).json();
 
     const result: BlockMeta = {
@@ -103,14 +109,6 @@ export type BlockWithoutMeta = Omit<
   Block,
   "componentMetadata" | "componentSchema"
 >;
-export const addBlockMetadata = async (
-  block: BlockWithoutMeta
-): Promise<Block> => {
-  return {
-    ...block,
-    ...(await fetchBlockMeta(block.componentId)),
-  };
-};
 
 /**
  * For some reason, I wanted to strip special characters from component URLs when generating their prosemirror node id,

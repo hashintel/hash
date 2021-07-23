@@ -7,6 +7,7 @@ export type Entity = {
   createdById: string;
   type: string;
   properties: any;
+  metadataId: string;
   metadata: EntityMeta;
   historyId: string | undefined;
   createdAt: Date;
@@ -49,10 +50,20 @@ export interface DBAdapter extends DataSource {
     properties: any;
   }): Promise<Entity>;
 
-  /** Get an entity by ID in a given account. */
+  /** Get an entity by ID in a given account.*/
   getEntity(params: {
     accountId: string;
     entityId: string;
+  }): Promise<Entity | undefined>;
+
+  /**
+   * Get the latest version of an entity.
+   * @todo: this function can be combined with getEntity after the metadata_id &
+   * history_id merge.
+   * */
+  getLatestEntityVersion(params: {
+    accountId: string;
+    metadataId: string;
   }): Promise<Entity | undefined>;
 
   /** Update an entity's properties. If the parameter "type" is provided, the function
@@ -74,10 +85,15 @@ export interface DBAdapter extends DataSource {
   /** Get the user by their shortname. */
   getUserByShortname(params: { shortname: string }): Promise<DbUser | null>;
 
-  /** Get all entities of a given type. */
+  /**
+   * Get all entities of a given type. If `latestOnly` is set to true, then only the
+   * latest version of each entity is returned. This parameter is ignored for non-versioned
+   * entities.
+   * */
   getEntitiesByType(params: {
     accountId: string;
     type: string;
+    latestOnly: boolean;
   }): Promise<Entity[]>;
 
   /** Get all entities in the database belonging to a specific account

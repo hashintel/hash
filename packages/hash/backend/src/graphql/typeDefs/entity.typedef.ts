@@ -46,6 +46,10 @@ export const entityTypedef = gql`
     The version timeline of the entity. Null if this is an non-versioned entity.
     """
     history: [EntityVersion!]
+    """
+    The metadata ID of the entity. This is shared across all versions of the same entity.
+    """
+    metadataId: ID!
   }
 
   type UnknownEntity implements Entity {
@@ -88,6 +92,10 @@ export const entityTypedef = gql`
     The version timeline of the entity. Null if this is an non-versioned entity.
     """
     history: [EntityVersion!]
+    """
+    The metadata ID of the entity. This is shared across all versions of the same entity.
+    """
+    metadataId: ID!
     # ENTITY INTERFACE FIELDS END #
   }
 
@@ -108,7 +116,7 @@ export const entityTypedef = gql`
   }
 
   extend type Query {
-    entity(accountId: ID!, id: ID!): UnknownEntity!
+    entity(accountId: ID!, id: ID, metadataId: ID): UnknownEntity!
 
     """
     Aggregate an entity
@@ -228,6 +236,10 @@ export const entityTypedef = gql`
     The version timeline of the entity. Null if this is an non-versioned entity.
     """
     history: [EntityVersion!]
+    """
+    The metadata ID of the entity. This is shared across all versions of the same entity.
+    """
+    metadataId: ID!
     # ENTITY INTERFACE FIELDS END #
   }
 `;
