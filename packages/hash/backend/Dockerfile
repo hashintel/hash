@@ -4,5 +4,8 @@ WORKDIR /app
 
 COPY . .
 
-RUN yarn install \
+RUN apt-get update \
+    && apt-get install wait-for-it \
+    && chmod +x start.sh \
+    && yarn install \
     && yarn codegen
