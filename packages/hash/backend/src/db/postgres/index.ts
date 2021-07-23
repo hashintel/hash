@@ -35,6 +35,11 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     });
   }
 
+  /** Close all connections to the database. */
+  close() {
+    return this.pool.end();
+  }
+
   /** Execute a function inside a transaction. */
   private async tx<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {
     const client = await this.pool.connect();

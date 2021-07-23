@@ -78,5 +78,26 @@ app.use((req, res, next) => {
 apolloServer.start().then(() => {
   apolloServer.applyMiddleware({ app });
 
-  app.listen(PORT, () => logger.info(`Listening on port ${PORT}`));
+  const server = app.listen(PORT, () =>
+    logger.info(`Listening on port ${PORT}`)
+  );
+
+  // Gracefully shutdown on receiving a termination signal.
+  let receivedTerminationSignal = false;
+  const shutdown = (signal: string) => {
+    if (receivedTerminationSignal) {
+      return;
+    }
+    receivedTerminationSignal = true;
+    logger.info(`${signal} signal received: Closing Express server`);
+    server.close(() => {
+      logger.info("Express server closed");
+    });
+    logger.info("Closing database connection pool");
+    db.close()
+      .then(() => logger.info("Database connection pool closed"))
+      .catch((err) => logger.error(err));
+  };
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGINT", () => shutdown("SIGINT"));
 });
