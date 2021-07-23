@@ -1,5 +1,6 @@
 import { Pool, PoolClient } from "pg";
 import { DataSource } from "apollo-datasource";
+import { StatsD } from "hot-shots";
 
 import { DBAdapter, Entity, EntityMeta, EntityVersion } from "../adapter";
 import { genEntityId } from "../../util";
@@ -23,8 +24,9 @@ const parsePort = (str: string) => {
 
 export class PostgresAdapter extends DataSource implements DBAdapter {
   private pool: Pool;
+  private statsdInterval: NodeJS.Timeout;
 
-  constructor() {
+  constructor(statsd?: StatsD) {
     super();
     this.pool = new Pool({
       user: getRequiredEnv("HASH_PG_USER"),
@@ -33,10 +35,16 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       database: getRequiredEnv("HASH_PG_DATABASE"),
       password: getRequiredEnv("HASH_PG_PASSWORD"),
     });
+
+    this.statsdInterval = setInterval(() => {
+      statsd?.gauge("pool_waiting_count", this.pool.waitingCount);
+      statsd?.gauge("pool_idle_count", this.pool.idleCount);
+    }, 5000);
   }
 
   /** Close all connections to the database. */
   close() {
+    clearInterval(this.statsdInterval);
     return this.pool.end();
   }
 
