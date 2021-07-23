@@ -15,6 +15,7 @@
     "postinstall": "yarn codegen",
     "rebuild:docker": "docker-compose build --no-cache",
     "start:docker": "docker-compose -f docker-compose.yml up",
+    "start:docker-with-statsd": "docker-compose -f docker-compose.yml -f docker-compose-statsd-override.yml up",
     "start": "export NODE_ENV=production && node dist/index.js",
     "codegen": "graphql-codegen --config codegen.yml # backend",
     "fmt": "prettier  \"./**/*.{ts,tsx,js,jsx,css,scss}\" --write",
