@@ -5,7 +5,7 @@ import { HtmlBlock } from "../HtmlBlock/HtmlBlock";
 import { useBlockProtocolUpdate } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdate";
 import { cloneEntityTreeWithPropertiesMovedUp } from "../../lib/entities";
 import { fetchEmbedCode } from "./fetchEmbedCode";
-import { BlockProtocolUpdatePayload } from "../../types/blockProtocol";
+import { BlockProtocolUpdatePayload } from "@hashintel/block-protocol";
 
 type RemoteBlockProps = {
   url: string;

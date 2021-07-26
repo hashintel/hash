@@ -17,6 +17,9 @@
     "serve": "serve -C -l 62680 dist",
     "codegen": "graphql-codegen --config codegen.yml # embed-block"
   },
+  "dependencies": {
+    "@hashintel/block-protocol": "0.1.0"
+  },
   "peerDependencies": {
     "react": "^16.14.0"
   },

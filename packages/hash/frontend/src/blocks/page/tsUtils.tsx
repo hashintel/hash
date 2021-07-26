@@ -2,7 +2,7 @@ import { Schema as JSONSchema } from "jsonschema";
 import React, { ReactNode } from "react";
 import { EditorProps, NodeView } from "prosemirror-view";
 import { RemoteBlock } from "../../components/RemoteBlock/RemoteBlock";
-import { BlockMetadata } from "../../types/blockProtocol";
+import { BlockMetadata } from "@hashintel/block-protocol";
 
 // @ts-ignore
 const contextRequire = require.context(

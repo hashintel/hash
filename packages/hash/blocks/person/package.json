@@ -16,6 +16,9 @@
     "clean": "rimraf dist",
     "serve": "serve -C -l 9000 dist"
   },
+  "dependencies": {
+    "@hashintel/block-protocol": "0.1.0"
+  },
   "peerDependencies": {
     "react": "^16.14.0"
   },

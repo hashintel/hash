@@ -2,7 +2,7 @@ import React, { useEffect, useState, VoidFunctionComponent } from "react";
 
 import { tw } from "twind";
 
-import { BlockProtocolProps } from "./types/blockProtocol";
+import { BlockProtocolProps } from "@hashintel/block-protocol";
 
 import { ProviderNames } from "./types/embedTypes";
 import { HtmlBlock } from "./HtmlBlock";

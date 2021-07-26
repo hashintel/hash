@@ -1,11 +1,13 @@
 import React, { VoidFunctionComponent } from "react";
 
+import { BlockProtocolProps } from "@hashintel/block-protocol";
+
 type AppProps = {
   name?: string;
   email?: string;
 };
 
-export const App: VoidFunctionComponent<AppProps> = ({
+export const App: VoidFunctionComponent<AppProps & BlockProtocolProps> = ({
   name,
   email,
 }) => {

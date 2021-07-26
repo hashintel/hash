@@ -13,7 +13,7 @@ import {
   Company,
   initialState,
 } from "./mockData/mockData";
-import { BlockProtocolUpdateFn } from "./types/blockProtocol";
+import { BlockProtocolUpdateFn } from "@hashintel/block-protocol";
 
 const useMockData = (): [any, BlockProtocolUpdateFn] => {
   const [data, setData] = useState(initialData);
