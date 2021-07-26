@@ -46,7 +46,15 @@ const App = () => {
 
   return (
     <div style={{ marginTop: 20 }}>
-      <Component entityId={"entity-asdasd"} height={500} uploadImage={uploadImage} />
+      <Component
+        initialSrc={
+          "https://www.google.com/logos/doodles/2021/doodle-champion-island-games-july-26-6753651837109017-s.png"
+        }
+        initialCaption={"ASDASDASDSAD"}
+        entityId={"entity-asdasd"}
+        height={500}
+        uploadImage={uploadImage}
+      />
     </div>
   );
 };

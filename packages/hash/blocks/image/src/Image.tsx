@@ -7,6 +7,7 @@ type AppProps = {
   width?: number;
   height?: number;
   initialSrc?: string;
+  initialCaption?: string;
   uploadImage: ({ file, imgURL }: { file?: File; imgURL?: string }) => Promise<{
     src?: string;
     error?: string;
@@ -23,16 +24,25 @@ function uuidv4() {
   });
 }
 
-export const Image: VoidFunctionComponent<AppProps & BlockProtocolProps> = ({
-  initialSrc,
-  uploadImage,
-  entityId,
-  entityType,
-  update,
-  ...props
-}) => {
-  const [src, setSrc] = useState(initialSrc);
+export const Image: VoidFunctionComponent<AppProps & BlockProtocolProps> = (
+  props
+) => {
+  const {
+    initialSrc,
+    initialCaption,
+    uploadImage,
+    entityId,
+    entityType,
+    update,
+    height,
+  } = props;
+
+  const [src, setSrc] = useState(initialSrc ?? "");
+
+  console.log({ props, src });
+
   const [inputText, setInputText] = useState("");
+  const [captionText, setCaptionText] = useState(initialCaption ?? "");
   const [loading, setLoading] = useState(false);
   const [displayAlert, setDisplayAlert] = useState(false);
   const [errorString, setErrorString] = useState("");
@@ -56,6 +66,33 @@ export const Image: VoidFunctionComponent<AppProps & BlockProtocolProps> = ({
     setDisplayAlert(true);
   }
 
+  function updateData(src: string | undefined) {
+    if (src?.trim()) {
+      if (update) {
+        const updateAction: {
+          data: {
+            initialSrc: string;
+          };
+          entityId?: string;
+          entityType?: string;
+        } = {
+          data: { initialSrc: src },
+          entityId,
+        };
+
+        if (entityType) {
+          updateAction.entityType = entityType;
+        }
+
+        console.log({ updateAction });
+
+        update([updateAction]);
+      }
+
+      setSrc(src);
+    }
+  }
+
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
@@ -72,28 +109,7 @@ export const Image: VoidFunctionComponent<AppProps & BlockProtocolProps> = ({
           return displayError(error);
         }
 
-        if (src?.trim()) {
-          if (update) {
-            const updateAction: {
-              data: {
-                initialSrc: string;
-              };
-              entityId?: string;
-              entityType?: string;
-            } = {
-              data: { initialSrc: src },
-              entityId,
-            };
-
-            if (entityType) {
-              updateAction.entityType = entityType;
-            }
-
-            update([updateAction]);
-          }
-
-          setSrc(src);
-        }
+        updateData(src);
       });
     } else {
       displayError("Please enter a valid image URL or select a file below");
@@ -104,27 +120,12 @@ export const Image: VoidFunctionComponent<AppProps & BlockProtocolProps> = ({
     const { files } = e.target;
 
     if (files?.[0]) {
-      const reader = new FileReader();
-
-      reader.onload = function (e) {
-        if (e.target?.result) {
-          setSrc(e.target.result.toString());
-        } else {
-          setErrorString("Couldn't read your file");
-          setDisplayAlert(true);
-        }
-      };
-
-      reader.readAsDataURL(files?.[0]);
-
       uploadImage({ file: files[0] }).then(({ src, error }) => {
         if (error?.trim()) {
           return displayError(error);
         }
 
-        if (src?.trim()) {
-          setSrc(src);
-        }
+        updateData(src);
       });
     }
   };
@@ -132,14 +133,51 @@ export const Image: VoidFunctionComponent<AppProps & BlockProtocolProps> = ({
   const resetComponent = () => {
     setDisplayAlert(false);
     setInputText("");
+    setCaptionText("");
     setSrc("");
   };
 
   if (src?.trim()) {
     return (
       <div className={tw`flex justify-center text-center w-full`}>
-        <div>
-          <img {...props} src={src} alt="Image block" />
+        <div className={tw`flex flex-col`}>
+          <img
+            {...props}
+            style={{ height: height ? height : undefined }}
+            src={src}
+            alt="Image block"
+          />
+
+          <input
+            placeholder="Add a caption"
+            className={tw`focus:outline-none text-center mt-3`}
+            type="text"
+            value={captionText}
+            onChange={(e) => setCaptionText(e.target.value)}
+            onBlur={() => {
+              if (update) {
+                const updateAction: {
+                  data: {
+                    initialSrc: string;
+                    initialCaption: string;
+                  };
+                  entityId?: string;
+                  entityType?: string;
+                } = {
+                  data: { initialSrc: src, initialCaption: captionText },
+                  entityId,
+                };
+
+                if (entityType) {
+                  updateAction.entityType = entityType;
+                }
+
+                console.log({ updateAction });
+
+                update([updateAction]);
+              }
+            }}
+          />
         </div>
         <button
           // Tailwind doesn't have this as a class
@@ -207,7 +245,7 @@ export const Image: VoidFunctionComponent<AppProps & BlockProtocolProps> = ({
 
           var dT = e.dataTransfer;
           var files = dT.files;
-          console.log(files);
+
           if (files && files.length) {
             // we set our input's 'files' property
 
@@ -217,7 +255,7 @@ export const Image: VoidFunctionComponent<AppProps & BlockProtocolProps> = ({
                   return displayError(error);
                 }
 
-                setSrc(src);
+                updateData(src);
               });
             }
           }
