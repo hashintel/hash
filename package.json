@@ -5,6 +5,7 @@
     "packages/hash/backend",
     "packages/hash/backend/datastore",
     "packages/hash/frontend",
+    "packages/hash/block-protocol",
     "packages/hash/blocks/page",
     "packages/hash/blocks/embed",
     "packages/hash/integration"
