@@ -119,8 +119,8 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
             replacePortal,
             {
               properties: {
-                ...(props ?? {}),
                 ...(cachedPropertiesByEntity[block.entityId] ?? {}),
+                ...(props ?? {}),
               },
               entityId: block.entityId,
               accountId: block.accountId,
