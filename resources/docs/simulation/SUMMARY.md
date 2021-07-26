@@ -80,6 +80,7 @@
 * [Material Handling](concepts/designing-with-the-material-handling-libraries.md)
 * [System Dynamics](concepts/designing-with-system-dynamics-models.md)
 * [Physics](concepts/physics.md)
+* [Verification and Validation](concepts/verification-and-validation.md)
 
 ## Tutorials
 
