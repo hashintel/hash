@@ -6,6 +6,7 @@ import { useBlockProtocolUpdate } from "../hooks/blockProtocolFunctions/useBlock
 import { cloneEntityTreeWithPropertiesMovedUp } from "../../lib/entities";
 import { fetchEmbedCode } from "./fetchEmbedCode";
 import { BlockProtocolUpdatePayload } from "../../types/blockProtocol";
+import { uploadImage } from "./uploadImage";
 
 type RemoteBlockProps = {
   url: string;
@@ -39,7 +40,7 @@ export const RemoteBlock: VoidFunctionComponent<
 
   /**
    * Temporary hack to provide the accountId for blocks.
-   * Assumes that the accountId of the block entity will be the same as 
+   * Assumes that the accountId of the block entity will be the same as
    * all entities it is rendering / in its tree. Unsafe assumption.
    * @todo Replace with a proper mapping of entities to accountIds.
    */
@@ -54,6 +55,8 @@ export const RemoteBlock: VoidFunctionComponent<
     ]);
   };
 
+  console.log({ flattenedProperties }, { props });
+
   return (
     <Component
       /** @todo have this passed in to RemoteBlock as entityId, not childEntityId */
@@ -62,6 +65,8 @@ export const RemoteBlock: VoidFunctionComponent<
       getEmbedBlock={fetchEmbedCode}
       editableRef={props.editableRef}
       entityId={props.childEntityId}
+      height={500}
+      uploadImage={uploadImage}
     />
   );
 };
