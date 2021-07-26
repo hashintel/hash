@@ -7,14 +7,15 @@ Before putting a simulation into production it's important to confirm its trustw
 
 ## Verification
 
-Verification is ensuring that what you've built is what you expected to build.
+Verification is the practice of ensuring that the simulation you've built is what you expected to build.
 
-Like in traditional software engineering, you can use unit tests and integration tests to ensure that a simulation follows the stated requirements of a project.
+Like in traditional software engineering, you can use unit tests and integration tests to ensure that a simulation follows the stated requirements of a project. You can provide a specific state to an agent and check that it changes in the way you expect it to.
 
 While there are a lot of ways to add unit tests to a simulation, a straightforward approach is to create a behavior attached to an agent that will run comparisons at specific time steps. For instance, in the example below, a behavior would run a test case on the first time step and tenth time step, asserting that properties stored on the agent's state are the expected values.
 
 {% tabs %}
 {% tab title="JavaScript" %}
+{% code title="test\_behavior.js" %}
 ```javascript
 function testCaseOne(state) {
   if (state.test_case_one == state.actual_value) {
@@ -42,11 +43,12 @@ const behavior = (state, context) => {
       break;
   }
 }
-  
 ```
+{% endcode %}
 {% endtab %}
 
 {% tab title="Python" %}
+{% code title="test\_behavior.py" %}
 ```python
 def test_case_one():
   if state.test_case_one == state.actual_value:
@@ -67,6 +69,7 @@ def behavior(state, context):
     test_case_two(state)
 
 ```
+{% endcode %}
 {% endtab %}
 {% endtabs %}
 
