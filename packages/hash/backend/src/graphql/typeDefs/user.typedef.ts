@@ -53,7 +53,23 @@ export const userTypedef = gql`
     shortname: String!
   }
 
+  type LoginCodeMetadata {
+    id: ID!
+    createdAt: Date!
+  }
+
+  enum LogoutResponse {
+    SUCCESS
+  }
+
+  extend type Query {
+    me: User!
+  }
+
   extend type Mutation {
     createUser(email: String!, shortname: String!): User!
+    sendLoginCode(emailOrShortname: String!): LoginCodeMetadata!
+    loginWithLoginCode(loginId: ID!, loginCode: String!): User!
+    logout: LogoutResponse!
   }
 `;

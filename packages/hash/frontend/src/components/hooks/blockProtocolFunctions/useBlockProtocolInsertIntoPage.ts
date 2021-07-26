@@ -26,11 +26,13 @@ export const useBlockProtocolInsertIntoPage = (): {
     InsertBlockIntoPageMutationVariables
   >(insertBlockIntoPage, { onCompleted });
 
-  const update: InsertIntoPageFn = useCallback((variables) => {
-    insertFn({
-      variables,
-    });
-  }, []);
+  const update: InsertIntoPageFn = useCallback(
+    (variables) =>
+      insertFn({
+        variables,
+      }),
+    [insertFn]
+  );
 
   return {
     insert: update,

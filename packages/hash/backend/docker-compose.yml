@@ -26,10 +26,16 @@ services:
             - HASH_PG_PORT=5432
             - HASH_PG_DATABASE=postgres
             - HASH_PG_PASSWORD=postgres
+            - SESSION_SECRET=secret
+            - FRONTEND_DOMAIN=localhost:3000
+            - AWS_REGION=${AWS_REGION}
+            - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+            - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
         # Wait until the database is running before starting the API
-        command: bash -c 'while !</dev/tcp/hash-dev-pg/5432; do sleep 1; done; yarn codegen && yarn dev'
+        command: ["wait-for-it", "-h", "hash-dev-pg", "-p", "5432", "-s", "-t", "30", "--", "./start.sh"]
         volumes:
             - ./src:/app/src
+        stop_signal: SIGINT
 volumes:
     # Make sure you have created this volume: docker volume create hash-dev-pg
     hash-dev-pg:

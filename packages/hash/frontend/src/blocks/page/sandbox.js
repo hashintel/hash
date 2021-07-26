@@ -5,7 +5,7 @@
  * @todo remove this file
  */
 
-import React from "react";
+import React, { forwardRef } from "react";
 
 import { EditorState, NodeSelection, Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
@@ -16,6 +16,7 @@ import { Schema } from "prosemirror-model";
 import { undoInputRule } from "prosemirror-inputrules";
 import { dropCursor } from "prosemirror-dropcursor";
 import { liftTarget, Mapping } from "prosemirror-transform";
+import { useBlockMeta } from "../blockMeta";
 
 import styles from "./style.module.css";
 
@@ -116,6 +117,10 @@ export function defineNewBlock(
   id,
   replacePortals
 ) {
+  if (view.state.schema.nodes[id]) {
+    return;
+  }
+
   if (componentMetadata.type === "prosemirror") {
     defineNewProsemirrorNode(view.state.schema, componentMetadata, id);
   } else {
@@ -154,6 +159,7 @@ export function defineNewBlock(
   }
 }
 
+/** @deprecated duplicates react context "blockMeta" */
 let AsyncBlockCache = new Map();
 let AsyncBlockCacheView = null;
 
@@ -186,10 +192,6 @@ export const defineRemoteBlock = async (
 
   // If the block has not already been defined, we need to fetch the metadata & define it
   if (!id || existingSchemaSpec.nodes.find(id) === -1) {
-    /**
-     * The cache is designed to store promises, not resolved values, in order to ensure multiple requests for the same
-     * block in rapid succession don't cause multiple web requests
-     */
     if (!AsyncBlockCache.has(componentUrl)) {
       const promise = fetchBlockMeta(componentUrl)
         .then(({ componentMetadata, componentSchema }) => {
@@ -361,6 +363,156 @@ class AsyncView {
   }
 }
 
+/** @deprecated naively deep-compare two values as part of a hack */
+function isSubsetOf(subset, superset) {
+  const isObject = (any) => typeof any === "object" && any !== null;
+  return isObject(subset) && isObject(superset)
+    ? Object.keys(subset).every((key) => isSubsetOf(subset[key], superset[key]))
+    : subset === superset;
+}
+
+/**
+ * block-type select field co-dependent of BlockView class.
+ */
+const BlockSelect = forwardRef(({ view, getPos, node }, ref) => {
+  const blocksMeta = useBlockMeta();
+
+  const choices = Array.from(blocksMeta.values()).flatMap((blockMeta) =>
+    blockMeta.componentMetadata.variants.map((variant) => ({
+      ...variant,
+      blockType: blockMeta.componentMetadata.name,
+    }))
+  );
+
+  const selectedBlockType = node.attrs.meta?.name ?? node.type.name;
+
+  /** @todo add block variant to node attrs and remove this hack */
+  const selectedBlockVariant = (
+    node.attrs.meta?.variants.find((variant) =>
+      isSubsetOf(variant.properties, node.attrs.properties)
+    ) ?? node.attrs.meta?.variants[0]
+  )?.name;
+
+  return (
+    <select
+      ref={ref}
+      value="change"
+      onChange={(evt) => {
+        /**
+         * This begins the two part process of converting from one block type to another – the second half is
+         * carried out by AsyncView's update function
+         */
+        const { blockType, ...variant } = choices[evt.target.value];
+        const componentDisplayName = blockType;
+        const componentId =
+          displayNameToId.get(componentDisplayName) ?? componentDisplayName;
+
+        let componentUrl = null;
+
+        if (componentDisplayName === "new") {
+          componentUrl = prompt("Component URL");
+
+          if (!componentUrl) {
+            evt.target.value = "change";
+            return;
+          }
+        } else {
+          componentUrl =
+            view.state.schema.nodes[componentId].defaultAttrs.meta?.url;
+        }
+
+        // Ensure that any changes to the document made are kept within a single undo item
+        view.updateState(
+          view.state.reconfigure({
+            plugins: view.state.plugins.map((plugin) =>
+              plugin === historyPlugin ? infiniteGroupHistoryPlugin : plugin
+            ),
+          })
+        );
+
+        const state = view.state;
+        const tr = state.tr;
+
+        /**
+         * When switching between blocks where both contain text, we want to persist that text, but we need to pull
+         * it out the format its stored in here and make use of it
+         *
+         * @todo we should try to find the Text entity in the original response from the DB, and use that, instead
+         *       of this, where we lose formatting
+         */
+        const text = node.isTextblock
+          ? node.content.content
+              .filter((node) => node.type.name === "text")
+              .map((node) => node.text)
+              .join("")
+          : "";
+
+        const newNode = state.schema.nodes.async.create({
+          /**
+           * The properties set up below are to ensure a) that async view knows what kind of node to load & create
+           * and b) that we are able to map back to the GraphQL format.
+           *
+           * @todo make some of this unnecessary
+           */
+          ...(componentDisplayName === "new"
+            ? {}
+            : {
+                asyncNodeId:
+                  displayNameToId.get(componentDisplayName) ??
+                  componentDisplayName,
+                asyncNodeDisplayName: componentDisplayName,
+              }),
+          asyncNodeUrl: componentUrl,
+          asyncNodeProps: {
+            attrs: {
+              properties: variant.properties,
+              entityId: text ? node.attrs.entityId : null,
+              childEntityId: text ? node.attrs.childEntityId : null,
+              accountId: node.attrs.accountId,
+              childEntityAccountId: text
+                ? node.attrs.childEntityAccountId
+                : null,
+            },
+            children: text ? [state.schema.text(text)] : [],
+            marks: null,
+          },
+        });
+
+        const pos = getPos();
+
+        /**
+         * @todo figure out why this is pos + 1
+         */
+        tr.replaceRangeWith(pos + 1, pos + 1 + node.nodeSize, newNode);
+
+        const selection = NodeSelection.create(tr.doc, tr.mapping.map(pos));
+
+        tr.setSelection(selection);
+
+        view.dispatch(tr);
+        view.focus();
+      }}
+    >
+      <option disabled value="change">
+        Type
+      </option>
+      {choices.map(({ name, description, blockType }, index) => (
+        <option
+          key={index}
+          value={index}
+          title={description}
+          disabled={
+            blockType === selectedBlockType && name === selectedBlockVariant
+          }
+        >
+          {name}
+        </option>
+      ))}
+      <option value="new">New type</option>
+    </select>
+  );
+});
+
 /**
  * This is the node view that wraps every one of our blocks in order to inject custom UI like the <select> to change
  * type and the drag handles
@@ -515,140 +667,14 @@ class BlockView {
             this.dragEnd();
           }}
         />
-        <select
+        <BlockSelect
+          view={view}
+          getPos={getPos}
+          node={node}
           ref={(selectDom) => {
             this.selectDom = selectDom;
           }}
-          value="change"
-          onChange={(evt) => {
-            /**
-             * This begins the two part process of converting from one block type to another – the second half is
-             * carried out by AsyncView's update function
-             */
-            const componentDisplayName = evt.target.value;
-            const componentId =
-              displayNameToId.get(componentDisplayName) ?? componentDisplayName;
-
-            let componentUrl = null;
-
-            if (componentDisplayName === "new") {
-              componentUrl = prompt("Component URL");
-
-              if (!componentUrl) {
-                evt.target.value = "change";
-                return;
-              }
-            } else {
-              componentUrl =
-                view.state.schema.nodes[componentId].defaultAttrs.meta?.url;
-            }
-
-            // Ensure that any changes to the document made are kept within a single undo item
-            view.updateState(
-              view.state.reconfigure({
-                plugins: view.state.plugins.map((plugin) =>
-                  plugin === historyPlugin ? infiniteGroupHistoryPlugin : plugin
-                ),
-              })
-            );
-
-            const state = view.state;
-            const tr = state.tr;
-
-            /**
-             * When switching between blocks where both contain text, we want to persist that text, but we need to pull
-             * it out the format its stored in here and make use of it
-             *
-             * @todo we should try to find the Text entity in the original response from the DB, and use that, instead
-             *       of this, where we lose formatting
-             */
-            const text = node.isTextblock
-              ? node.content.content
-                  .filter((node) => node.type.name === "text")
-                  .map((node) => node.text)
-                  .join("")
-              : "";
-
-            const newNode = state.schema.nodes.async.create({
-              /**
-               * The properties set up below are to ensure a) that async view knows what kind of node to load & create
-               * and b) that we are able to map back to the GraphQL format.
-               *
-               * @todo make some of this unnecessary
-               */
-              ...(componentDisplayName === "new"
-                ? {}
-                : {
-                    asyncNodeId:
-                      displayNameToId.get(componentDisplayName) ??
-                      componentDisplayName,
-                    asyncNodeDisplayName: componentDisplayName,
-                  }),
-              asyncNodeUrl: componentUrl,
-              asyncNodeProps: {
-                attrs: {
-                  entityId: text ? node.attrs.entityId : null,
-                  childEntityId: text ? node.attrs.childEntityId : null,
-                  accountId: node.attrs.accountId,
-                  childEntityAccountId: text
-                    ? node.attrs.childEntityAccountId
-                    : null,
-                },
-                children: text ? [state.schema.text(text)] : [],
-                marks: null,
-              },
-            });
-
-            const pos = getPos();
-
-            /**
-             * @todo figure out why this is pos + 1
-             */
-            tr.replaceRangeWith(pos + 1, pos + 1 + node.nodeSize, newNode);
-
-            const selection = NodeSelection.create(tr.doc, tr.mapping.map(pos));
-
-            tr.setSelection(selection);
-
-            view.dispatch(tr);
-            view.focus();
-          }}
-        >
-          <option disabled value="change">
-            Type
-          </option>
-
-          {
-            /**
-             * We shouldn't be relying on the list of currently defined nodes for the list of block types here, as we
-             * may want to convert to a block not yet currenty including in the document
-             */
-            Object.entries(view.state.schema.nodes)
-              .filter(
-                // @todo filter by whether a node is within the blockItem group
-                ([key]) =>
-                  key !== "block" &&
-                  key !== "async" &&
-                  key !== "doc" &&
-                  key !== "text" &&
-                  key !== "blank"
-              )
-              .map(([, value]) => value.defaultAttrs?.meta?.name ?? value.name)
-              .map((type) => {
-                const current =
-                  type === (node.attrs.meta?.name ?? node.type.name);
-                if (type === "table" && !current) {
-                  return null;
-                }
-                return (
-                  <option value={type} key={type} disabled={current}>
-                    {type}
-                  </option>
-                );
-              })
-          }
-          <option value="new">New type</option>
-        </select>
+        />
       </>
     );
 
@@ -937,7 +963,11 @@ export const renderPM = (
 
           const active = marks.has(name);
 
-          button.style.backgroundColor = active ? "blue" : "white";
+          button.style.backgroundColor = active ? "#2482ff" : "white";
+          button.style.color = active ? "white" : "black";
+          button.style.padding = "4px 0";
+          button.style.width = "25px";
+          button.style.border = "1px solid lightgrey";
         };
 
         button.addEventListener("click", (evt) => {

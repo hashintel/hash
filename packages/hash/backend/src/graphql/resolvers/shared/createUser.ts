@@ -1,4 +1,4 @@
-import { genEntityId } from "../../../util";
+import { genId } from "../../../util";
 import { DbUser } from "../../../types/dbTypes";
 import {
   MutationCreateUserArgs,
@@ -13,7 +13,7 @@ export const createUser: Resolver<
   GraphQLContext,
   MutationCreateUserArgs
 > = async (_, { email, shortname }, { dataSources }) => {
-  const id = genEntityId();
+  const id = genId();
   // TODO: should check for uniqueness of email
 
   const entity = await dataSources.db.createEntity({

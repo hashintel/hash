@@ -35,7 +35,7 @@ create table if not exists entities (
 
     foreign key (account_id, metadata_id) references entity_metadata (account_id, metadata_id),
 
-    primary key(account_id, entity_id)
+    primary key (account_id, entity_id)
 );
 create index if not exists entities_history on entities (account_id, history_id);
 
@@ -75,3 +75,30 @@ create table if not exists incoming_links (
 
     primary key (account_id, entity_id, parent_id)
 );
+
+/** Stores login codes used for passwordless authentication */
+create table if not exists login_codes (
+    login_id           uuid not null,
+    account_id         uuid not null,
+    user_id            uuid not null,
+    login_code         text not null,
+    number_of_attempts integer not null default 0,
+    created_at         timestamp with time zone not null,
+
+    foreign key (account_id, user_id) references entities (account_id, entity_id)
+);
+
+/**
+  `connect-db-simple` express session store (based on `node_modules/connect-pg-simple/table.sql`)
+
+  Note: column names cannot be modified, the table name can be modified but must also be passed
+  to `connect-db-simple` as a parameter in `src/auth/session.ts`
+*/
+create table if not exists "session" (
+    sid    text primary key,
+	sess   jsonb not null,
+	expire timestamp with time zone not null
+);
+
+
+create index if not exists session_expire on session (expire);

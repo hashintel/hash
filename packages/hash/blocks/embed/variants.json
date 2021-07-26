@@ -1,0 +1,39 @@
+[
+  {
+    "name": "Embed",
+    "description": "Embed Content",
+    "icon": "path/to/icon.svg"
+  },
+  {
+    "name": "Twitter",
+    "description": "Embed Tweet",
+    "icon": "path/to/icon.svg",
+    "properties": {
+      "embedType": "Twitter"
+    }
+  },
+  {
+    "name": "YouTube",
+    "description": "Embed YouTube Video",
+    "icon": "path/to/icon.svg",
+    "properties": {
+      "embedType": "YouTube"
+    }
+  },
+  {
+    "name": "Spotify",
+    "description": "Embed Spotify Song",
+    "icon": "path/to/icon.svg",
+    "properties": {
+      "embedType": "Spotify"
+    }
+  },
+  {
+    "name": "HASH",
+    "description": "Embed Simulation",
+    "icon": "path/to/icon.svg",
+    "properties": {
+      "embedType": "HASH"
+    }
+  }
+]
