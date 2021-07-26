@@ -77,23 +77,27 @@ export const App: VoidFunctionComponent<AppProps & BlockProtocolProps> = (
         setHtml(undefined);
         return setErrorString(error);
       }
-      if (html?.trim() && update) {
-        const updateAction: {
-          data: {
-            initialHtml: string;
-          };
-          entityId?: string;
-          entityType?: string;
-        } = {
-          data: { initialHtml: html },
-          entityId,
-        };
 
-        if (entityType) {
-          updateAction.entityType = entityType;
+      if (html?.trim()) {
+        if (update) {
+          const updateAction: {
+            data: {
+              initialHtml: string;
+            };
+            entityId?: string;
+            entityType?: string;
+          } = {
+            data: { initialHtml: html },
+            entityId,
+          };
+
+          if (entityType) {
+            updateAction.entityType = entityType;
+          }
+
+          update([updateAction]);
         }
 
-        update([updateAction]);
         setHtml(html);
       }
     });

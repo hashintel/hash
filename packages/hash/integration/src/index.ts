@@ -156,6 +156,24 @@ enum Visibility {
           properties: {},
         },
       ],
+      [
+        "img1",
+        {
+          type: "Image",
+          accountId: org.id,
+          createdById: user.id,
+          properties: {},
+        },
+      ],
+      [
+        "img2",
+        {
+          type: "Image",
+          accountId: org.id,
+          createdById: user.id,
+          properties: {},
+        },
+      ],
     ])
   );
 
@@ -533,6 +551,34 @@ enum Visibility {
           type: "Block",
         },
       ],
+      [
+        "b14",
+        {
+          properties: {
+            componentId: "https://block.blockprotocol.org/image",
+            entityType: "Image",
+            entityId: results.get("img1")?.createEntity.id,
+            accountId: results.get("img1")?.createEntity.accountId,
+          },
+          createdById: user.id,
+          accountId: org.id,
+          type: "Block",
+        },
+      ],
+      [
+        "b15",
+        {
+          properties: {
+            componentId: "https://block.blockprotocol.org/image",
+            entityType: "Image",
+            entityId: results.get("img2")?.createEntity.id,
+            accountId: results.get("img2")?.createEntity.accountId,
+          },
+          createdById: user.id,
+          accountId: org.id,
+          type: "Block",
+        },
+      ],
     ])
   );
 
@@ -579,6 +625,10 @@ enum Visibility {
                 entityId: results.get("b12")?.createEntity.id,
                 accountId: results.get("b12")?.createEntity.accountId,
               },
+              {
+                entityId: results.get("b14")?.createEntity.id,
+                accountId: results.get("b14")?.createEntity.accountId,
+              },
             ],
             title: "My awesome page",
           },
@@ -612,6 +662,10 @@ enum Visibility {
               {
                 entityId: results.get("b13")?.createEntity.id,
                 accountId: results.get("b13")?.createEntity.accountId,
+              },
+              {
+                entityId: results.get("b15")?.createEntity.id,
+                accountId: results.get("b15")?.createEntity.accountId,
               },
             ],
             title: "HASH's 1st page",

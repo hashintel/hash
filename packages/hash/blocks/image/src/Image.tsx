@@ -1,13 +1,18 @@
 import React, { useEffect, useState, VoidFunctionComponent } from "react";
 
 import { tw } from "twind";
+import { BlockProtocolProps } from "./types/blockProtocol";
 
-// @todo make calling it AppProps not necessary
 type AppProps = {
   width?: number;
   height?: number;
   initialSrc?: string;
-  uploadImage?: () => string;
+  uploadImage: ({ file, imgURL }: { file?: File; imgURL?: string }) => Promise<{
+    src?: string;
+    error?: string;
+  }>;
+  entityId: string;
+  entityType?: string;
 };
 
 function uuidv4() {
@@ -18,9 +23,12 @@ function uuidv4() {
   });
 }
 
-export const Image: VoidFunctionComponent<AppProps> = ({
+export const Image: VoidFunctionComponent<AppProps & BlockProtocolProps> = ({
   initialSrc,
   uploadImage,
+  entityId,
+  entityType,
+  update,
   ...props
 }) => {
   const [src, setSrc] = useState(initialSrc);
@@ -28,7 +36,7 @@ export const Image: VoidFunctionComponent<AppProps> = ({
   const [loading, setLoading] = useState(false);
   const [displayAlert, setDisplayAlert] = useState(false);
   const [errorString, setErrorString] = useState("");
-  const [edit, setEdit] = useState(false);
+
   const [randomId, setRandomId] = useState("");
 
   useEffect(() => {
@@ -43,11 +51,52 @@ export const Image: VoidFunctionComponent<AppProps> = ({
 
   const { bottomText, buttonText, placeholderText } = copyObject;
 
+  function displayError(errorString: string) {
+    setErrorString(errorString);
+    setDisplayAlert(true);
+  }
+
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
+    if (loading) {
+      return;
+    }
+
     if (inputText?.trim()) {
-      setSrc(inputText);
+      setLoading(true);
+      uploadImage({ imgURL: inputText }).then(({ src, error }) => {
+        setLoading(false);
+
+        if (error?.trim()) {
+          return displayError(error);
+        }
+
+        if (src?.trim()) {
+          if (update) {
+            const updateAction: {
+              data: {
+                initialSrc: string;
+              };
+              entityId?: string;
+              entityType?: string;
+            } = {
+              data: { initialSrc: src },
+              entityId,
+            };
+
+            if (entityType) {
+              updateAction.entityType = entityType;
+            }
+
+            update([updateAction]);
+          }
+
+          setSrc(src);
+        }
+      });
+    } else {
+      displayError("Please enter a valid image URL or select a file below");
     }
   };
 
@@ -58,14 +107,32 @@ export const Image: VoidFunctionComponent<AppProps> = ({
       const reader = new FileReader();
 
       reader.onload = function (e) {
-        setSrc( e.target.result);
-
-
+        if (e.target?.result) {
+          setSrc(e.target.result.toString());
+        } else {
+          setErrorString("Couldn't read your file");
+          setDisplayAlert(true);
+        }
       };
 
-      reader.readAsDataURL(input.files[0]);
-      console.log(files[0]);
+      reader.readAsDataURL(files?.[0]);
+
+      uploadImage({ file: files[0] }).then(({ src, error }) => {
+        if (error?.trim()) {
+          return displayError(error);
+        }
+
+        if (src?.trim()) {
+          setSrc(src);
+        }
+      });
     }
+  };
+
+  const resetComponent = () => {
+    setDisplayAlert(false);
+    setInputText("");
+    setSrc("");
   };
 
   if (src?.trim()) {
@@ -79,7 +146,7 @@ export const Image: VoidFunctionComponent<AppProps> = ({
           // https://github.com/tailwindlabs/tailwindcss/issues/1042#issuecomment-781271382
           style={{ height: "max-content" }}
           onClick={() => {
-            setEdit(true);
+            resetComponent();
           }}
           className={tw`ml-2 bg-gray-100 p-1.5 border-1 border-gray-300 rounded-sm`}
         >
@@ -110,7 +177,7 @@ export const Image: VoidFunctionComponent<AppProps> = ({
           role="alert"
         >
           <strong className={tw`font-bold`}>Error</strong>
-          <span className={tw`block sm:inline ml-2`}>{errorString}</span>
+          <span className={tw`block sm:inline ml-2 mr-2`}>{errorString}</span>
           <span
             onClick={() => setDisplayAlert(false)}
             className={tw`absolute top-0 bottom-0 right-0 px-4 py-3`}
@@ -130,6 +197,31 @@ export const Image: VoidFunctionComponent<AppProps> = ({
 
       <div
         className={tw`max-w-md mx-auto bg-white rounded-sm shadow-md overflow-hidden text-center p-4 border-2 border-gray-200`}
+        onDragOver={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+
+          var dT = e.dataTransfer;
+          var files = dT.files;
+          console.log(files);
+          if (files && files.length) {
+            // we set our input's 'files' property
+
+            if (files[0].type.search("image") > -1) {
+              uploadImage({ file: files[0] }).then(({ src, error }) => {
+                if (error?.trim()) {
+                  return displayError(error);
+                }
+
+                setSrc(src);
+              });
+            }
+          }
+        }}
       >
         <form className={tw`mb-0`} onSubmit={onSubmit}>
           <div>
