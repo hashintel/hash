@@ -65,7 +65,8 @@ export const RemoteBlock: VoidFunctionComponent<
       getEmbedBlock={fetchEmbedCode}
       editableRef={props.editableRef}
       entityId={props.childEntityId}
-      height={500}
+      maxHeight={500}
+      maxWidth={500}
       uploadImage={uploadImage}
     />
   );

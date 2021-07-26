@@ -6,6 +6,8 @@ import { BlockProtocolProps } from "./types/blockProtocol";
 type AppProps = {
   width?: number;
   height?: number;
+  maxHeight?: number;
+  maxWidth?: number;
   initialSrc?: string;
   initialCaption?: string;
   uploadImage: ({ file, imgURL }: { file?: File; imgURL?: string }) => Promise<{
@@ -34,7 +36,10 @@ export const Image: VoidFunctionComponent<AppProps & BlockProtocolProps> = (
     entityId,
     entityType,
     update,
+    width,
     height,
+    maxHeight,
+    maxWidth,
   } = props;
 
   const [src, setSrc] = useState(initialSrc ?? "");
@@ -143,7 +148,12 @@ export const Image: VoidFunctionComponent<AppProps & BlockProtocolProps> = (
         <div className={tw`flex flex-col`}>
           <img
             {...props}
-            style={{ height: height ? height : undefined }}
+            style={{
+              width: width ?? undefined,
+              height: height ?? undefined,
+              maxWidth: maxWidth ?? undefined,
+              maxHeight: maxHeight ?? undefined,
+            }}
             src={src}
             alt="Image block"
           />
