@@ -43,9 +43,6 @@ export const Image: VoidFunctionComponent<AppProps & BlockProtocolProps> = (
   } = props;
 
   const [src, setSrc] = useState(initialSrc ?? "");
-
-  console.log({ props, src });
-
   const [inputText, setInputText] = useState("");
   const [captionText, setCaptionText] = useState(initialCaption ?? "");
   const [loading, setLoading] = useState(false);
@@ -88,8 +85,6 @@ export const Image: VoidFunctionComponent<AppProps & BlockProtocolProps> = (
         if (entityType) {
           updateAction.entityType = entityType;
         }
-
-        console.log({ updateAction });
 
         update([updateAction]);
       }
@@ -181,8 +176,6 @@ export const Image: VoidFunctionComponent<AppProps & BlockProtocolProps> = (
                 if (entityType) {
                   updateAction.entityType = entityType;
                 }
-
-                console.log({ updateAction });
 
                 update([updateAction]);
               }

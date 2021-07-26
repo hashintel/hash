@@ -55,8 +55,6 @@ export const RemoteBlock: VoidFunctionComponent<
     ]);
   };
 
-  console.log({ flattenedProperties }, { props });
-
   return (
     <Component
       /** @todo have this passed in to RemoteBlock as entityId, not childEntityId */
