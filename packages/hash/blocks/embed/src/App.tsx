@@ -1,8 +1,8 @@
-import React, { useEffect, useState, VoidFunctionComponent } from "react";
+import React, { useEffect, useState } from "react";
 
 import { tw } from "twind";
 
-import { BlockProtocolProps } from "@hashintel/block-protocol";
+import { BlockComponent } from "@hashintel/block-protocol/react";
 
 import { ProviderNames } from "./types/embedTypes";
 import { HtmlBlock } from "./HtmlBlock";
@@ -20,7 +20,7 @@ type AppProps = {
   accountId: string;
 };
 
-export const App: VoidFunctionComponent<AppProps & BlockProtocolProps> = (
+export const App: BlockComponent<AppProps> = (
   props
 ) => {
   const {
