@@ -1,6 +1,6 @@
 import { useMutation } from "@apollo/client";
 
-import { BlockProtocolUpdateFn } from "../../../types/blockProtocol";
+import { BlockProtocolUpdateFn } from "@hashintel/block-protocol";
 import { updateEntity } from "../../../graphql/queries/entity.queries";
 import { useCallback } from "react";
 import {

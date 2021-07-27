@@ -1,15 +1,5 @@
-export type JSONValue =
-  | null
-  | boolean
-  | number
-  | string
-  | JSONValue[]
-  | { [key: string]: JSONValue };
 
-export interface JSONObject {
-  [key: string]: JSONValue;
-}
-export interface JSONArray extends Array<JSONValue> {}
+import { JSONValue, JSONObject, JSONArray } from "@hashintel/block-protocol";
 
 export const isParsedJsonObject = (val: JSONValue): val is JSONObject =>
   typeof val === "object" && val !== null;

@@ -5,8 +5,14 @@
     "packages/hash/backend",
     "packages/hash/backend/datastore",
     "packages/hash/frontend",
+    "packages/hash/block-protocol",
     "packages/hash/blocks/page",
+    "packages/hash/blocks/divider",
     "packages/hash/blocks/embed",
+    "packages/hash/blocks/header",
+    "packages/hash/blocks/image",
+    "packages/hash/blocks/person",
+    "packages/hash/blocks/table",
     "packages/hash/integration"
   ],
   "scripts": {

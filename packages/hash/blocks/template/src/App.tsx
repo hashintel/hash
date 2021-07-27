@@ -1,6 +1,6 @@
 import React, { VoidFunctionComponent } from "react";
 
-import { BlockProtocolProps } from "./types/blockProtocol";
+import { BlockProtocolProps } from "@hashintel/block-protocol";
 
 type AppProps = {
   name: string;

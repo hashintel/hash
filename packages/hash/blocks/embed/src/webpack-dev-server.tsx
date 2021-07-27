@@ -8,7 +8,7 @@ import Component from "./index";
 
 import { ProviderNames } from "./types/embedTypes";
 
-import { BlockProtocolUpdateFn } from "./types/blockProtocol";
+import { BlockProtocolUpdateFn } from "@hashintel/block-protocol";
 
 const node = document.getElementById("app");
 
@@ -36,7 +36,7 @@ function AppComponent() {
       }));
   }
 
-  const updateBlockData: BlockProtocolUpdateFn = () => {
+  const updateBlockData: BlockProtocolUpdateFn = async () => {
     // do something with the data
   };
 

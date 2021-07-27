@@ -4,7 +4,7 @@ import { EditableCell } from "./components/EditableCell";
 import { makeColumns } from "./lib/columns";
 import { getSchemaPropertyDefinition } from "./lib/getSchemaProperty";
 import { identityEntityAndProperty } from "./lib/identifyEntity";
-import { BlockProtocolProps } from "./types/blockProtocol";
+import { BlockProtocolProps } from "@hashintel/block-protocol";
 
 import "./styles.scss";
 
