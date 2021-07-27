@@ -36,7 +36,7 @@ function AppComponent() {
       }));
   }
 
-  const updateBlockData: BlockProtocolUpdateFn = () => {
+  const updateBlockData: BlockProtocolUpdateFn = async () => {
     // do something with the data
   };
 

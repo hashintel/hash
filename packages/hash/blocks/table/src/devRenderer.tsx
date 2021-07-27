@@ -18,7 +18,7 @@ import { BlockProtocolUpdateFn } from "@hashintel/block-protocol";
 const useMockData = (): [any, BlockProtocolUpdateFn] => {
   const [data, setData] = useState(initialData);
 
-  const updateData: BlockProtocolUpdateFn = (actions) => {
+  const updateData: BlockProtocolUpdateFn = async (actions) => {
     setData((data) => {
       const newData = data.map((entity) => {
         const affectingAction = actions.find(
