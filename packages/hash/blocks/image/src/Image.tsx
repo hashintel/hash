@@ -1,6 +1,6 @@
-import React, { VoidFunctionComponent } from "react";
+import React from "react";
 
-import { BlockProtocolProps } from "@hashintel/block-protocol";
+import { BlockComponent } from "@hashintel/block-protocol/react";
 
 // @todo make calling it AppProps not necessary
 type AppProps = {
@@ -9,7 +9,7 @@ type AppProps = {
   src?: string;
 };
 
-export const Image: VoidFunctionComponent<AppProps & BlockProtocolProps> = ({
+export const Image: BlockComponent<AppProps> = ({
   src = "https://via.placeholder.com/350x150",
   ...props
 }) => <img {...props} src={src} alt="Image block" />;

@@ -1,10 +1,10 @@
-import React, { useMemo, VoidFunctionComponent } from "react";
+import React, { useMemo } from "react";
 import {  TableOptions, useTable } from "react-table";
 import { EditableCell } from "./components/EditableCell";
 import { makeColumns } from "./lib/columns";
 import { getSchemaPropertyDefinition } from "./lib/getSchemaProperty";
 import { identityEntityAndProperty } from "./lib/identifyEntity";
-import { BlockProtocolProps } from "@hashintel/block-protocol";
+import { BlockComponent } from "@hashintel/block-protocol/react";
 
 import "./styles.scss";
 
@@ -13,7 +13,7 @@ type AppProps = {
   initialState?: TableOptions<{}>["initialState"];
 };
 
-export const App: VoidFunctionComponent<AppProps & BlockProtocolProps> = ({
+export const App: BlockComponent<AppProps> = ({
   data,
   initialState,
   schemas,
