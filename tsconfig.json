@@ -1,0 +1,6 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/hash/block-protocol/tsconfig.ref.json" }
+  ]
+}
