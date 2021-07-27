@@ -11,8 +11,6 @@ You can use HASH to build detailed, agent based simulations of [factory floors](
 ## Getting Started
 
 <Hint style="success">
-
-** title **  
   
 As a new user, the best way to learn HASH is to [read up on the basics of agent-based modeling](https://docs.hash.ai/core/creating-simulations/agent-based-modeling-basics-1) and [agents](https://docs.hash.ai/core/creating-simulations/anatomy-of-an-agent), and try your hand at the [Tutorials](https://docs.hash.ai/core/tutorials/). You can also browse [our own models](https://hash.ai/models?sort=popularity&query=%40hash) to find simulations with interesting dynamics you can tinker with and adapt for your own models.
   
