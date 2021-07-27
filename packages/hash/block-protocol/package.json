@@ -15,7 +15,8 @@
   "scripts": {
     "fmt": "prettier --write './src/**/*.ts'",
     "lint": "eslint ./src --ext .ts",
-    "build": "tsc"
+    "build": "tsc",
+    "prepare": "yarn build"
   },
   "dependencies": {
     "@typescript-eslint/eslint-plugin": "4.25.0",
