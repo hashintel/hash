@@ -14,8 +14,9 @@ The entity_metadata table stores metadata which is shared across all versions of
 entity.
 */
 create table if not exists entity_metadata (
-    account_id    uuid not null,
+    account_id  uuid not null,
     metadata_id uuid not null,
+    versioned   boolean not null,
     extra       jsonb,
 
     primary key (account_id, metadata_id)
@@ -27,7 +28,6 @@ create table if not exists entities (
     entity_id   uuid not null,
     type        integer not null references entity_types (id),
     properties  jsonb not null,
-    history_id  uuid,
     metadata_id uuid not null,
     created_by  uuid not null,
     created_at  timestamp with time zone not null,
@@ -37,7 +37,7 @@ create table if not exists entities (
 
     primary key (account_id, entity_id)
 );
-create index if not exists entities_history on entities (account_id, history_id);
+create index if not exists entities_metadata on entities (account_id, metadata_id);
 
 
 /** For entity ID : account ID lookups */

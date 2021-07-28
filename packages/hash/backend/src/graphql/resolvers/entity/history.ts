@@ -7,12 +7,12 @@ export const history: Resolver<
   DbUnknownEntity,
   GraphQLContext
 > = async (entity, _, { dataSources }) => {
-  if (!entity.historyId) {
+  if (!entity.metadataId) {
     return undefined;
   }
   const versions = await dataSources.db.getEntityHistory({
     accountId: entity.accountId,
-    historyId: entity.historyId,
+    metadataId: entity.metadataId,
   });
 
   return versions?.map((ver) => ({

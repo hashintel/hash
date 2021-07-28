@@ -21,6 +21,7 @@ export const createOrg: Resolver<
     createdById: genId(), // TODO
     type: "Org",
     properties: { shortname },
+    versioned: false, // @todo: should orgs be versioned?
   });
 
   const org: DbOrg = {

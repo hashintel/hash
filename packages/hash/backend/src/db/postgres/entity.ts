@@ -10,9 +10,9 @@ export const mapPGRowToEntity = (row: QueryResultRowType): Entity => ({
   createdById: row["created_by"] as string,
   type: row["type"] as string,
   properties: row["properties"],
-  historyId: row["history_id"] as string,
   metadata: {
     metadataId: row["metadata_id"] as string,
+    versioned: row["versioned"] as boolean,
     extra: row["extra"],
   },
   metadataId: row["metadata_id"] as string,
@@ -23,8 +23,7 @@ export const mapPGRowToEntity = (row: QueryResultRowType): Entity => ({
 export const selectEntities = sql`
   select
     e.account_id, e.entity_id, t.name as type, e.properties, e.created_by,
-    e.created_at, e.updated_at, e.history_id, e.metadata_id, meta.extra,
-    coalesce(e.history_id, e.entity_id) as grp_col
+    e.created_at, e.updated_at, e.metadata_id, meta.extra, meta.versioned
   from
     entities as e
     join entity_types as t on e.type = t.id
@@ -104,15 +103,13 @@ export const getEntitiesByTypeLatest = async (
   conn: Connection,
   params: { accountId: string; type: string }
 ): Promise<Entity[]> => {
-  const query = sql`
+  const rows = await conn.any(sql`
     with all_matches as (
       ${selectEntitiesByType(params)}
     )
-    select distinct on (grp_col) * from all_matches
-    order by grp_col, updated_at desc
-  `;
-  console.log(query);
-  const rows = await conn.any(query);
+    select distinct on (metadata_id) * from all_matches
+    order by metadata_id, updated_at desc
+  `);
   return rows.map(mapPGRowToEntity);
 };
 
@@ -141,7 +138,6 @@ export const insertEntity = async (
     entityId: string;
     typeId: number;
     properties: any;
-    historyId?: string;
     metadataId: string;
     createdById: string;
     createdAt: Date;
@@ -150,14 +146,14 @@ export const insertEntity = async (
 ): Promise<void> => {
   await conn.query(sql`
     insert into entities (
-      account_id, entity_id, type, properties, history_id, metadata_id, created_by,
+      account_id, entity_id, type, properties, metadata_id, created_by,
       created_at, updated_at
     )
     values (
       ${params.accountId}, ${params.entityId}, ${params.typeId},
-      ${sql.json(params.properties)}, ${params.historyId || null},
-      ${params.metadataId}, ${params.createdById},
-      ${params.createdAt.toISOString()}, ${params.updatedAt.toISOString()})
+      ${sql.json(params.properties)}, ${params.metadataId},
+      ${params.createdById}, ${params.createdAt.toISOString()},
+      ${params.updatedAt.toISOString()})
   `);
 };
 
@@ -184,13 +180,16 @@ export const getEntityHistory = async (
   conn: Connection,
   params: {
     accountId: string;
-    historyId: string;
+    metadataId: string;
   }
 ): Promise<EntityVersion[]> => {
   const rows = await conn.any(sql`
-    select entity_id, created_by, created_at
+    select
+      entity_id, created_by, created_at
     from entities
-    where account_id = ${params.accountId} and history_id = ${params.historyId}
+    where
+      account_id = ${params.accountId}
+      and metadata_id = ${params.metadataId}
     order by created_at
   `);
   return rows.map((row) => ({

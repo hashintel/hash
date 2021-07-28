@@ -41,6 +41,7 @@ export const insertBlockIntoPage: Resolver<
       createdById: genId(), // TODO
       type: entityType,
       properties: entityProperties,
+      versioned: false, // @todo: should be a parameter
     });
   } else {
     throw new Error(
@@ -60,6 +61,7 @@ export const insertBlockIntoPage: Resolver<
     type: "Block",
     createdById: genId(), // TODO
     properties: blockProperties,
+    versioned: false, // @todo: set to true when versioning is enabled on the frontend
   });
 
   // Get and update the page. We need to perform this within the same

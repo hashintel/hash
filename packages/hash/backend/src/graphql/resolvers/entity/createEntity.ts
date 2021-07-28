@@ -18,7 +18,7 @@ export const createEntity: Resolver<
     createdById: genId(), // TODO
     type,
     properties,
-    versioned,
+    versioned: versioned || false,
   });
 
   const entity: DbUnknownEntity = {
