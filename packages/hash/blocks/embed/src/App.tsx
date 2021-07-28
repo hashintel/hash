@@ -20,9 +20,7 @@ type AppProps = {
   accountId: string;
 };
 
-export const App: BlockComponent<AppProps> = (
-  props
-) => {
+export const App: BlockComponent<AppProps> = (props) => {
   const {
     embedType,
     getEmbedBlock,
