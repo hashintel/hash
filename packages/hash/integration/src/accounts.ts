@@ -38,7 +38,7 @@ export const createUsers = async (client: GraphQLClient) => {
     {
       email: "bw@hash.ai",
       shortname: "ben",
-    }
+    },
   ];
 
   const userResults = await Promise.all(
