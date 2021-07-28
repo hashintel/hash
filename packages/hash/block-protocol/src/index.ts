@@ -72,7 +72,7 @@ export type JSONValue =
   | JSONValue[]
   | JSONObject;
 
-export type JSONObject = { [key: string]: JSONValue }
+export type JSONObject = { [key: string]: JSONValue };
 
 export interface JSONArray extends Array<JSONValue> {}
 
