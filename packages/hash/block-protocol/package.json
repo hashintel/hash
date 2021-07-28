@@ -2,7 +2,7 @@
   "name": "@hashintel/block-protocol",
   "license": "SSPL-1.0",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "block-protocol",
   "exports": {
     "./*": "./dist/*"
@@ -17,8 +17,7 @@
   "scripts": {
     "fmt": "prettier --write './src/**/*.ts'",
     "lint": "eslint ./src --ext .ts",
-    "build": "tsc",
-    "prepare": "yarn build"
+    "postinstall": "tsc"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "4.25.0",
