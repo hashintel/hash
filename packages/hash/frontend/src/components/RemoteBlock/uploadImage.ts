@@ -17,7 +17,7 @@ export const uploadImage = async ({
     return new Promise((resolve) => {
       const reader = new FileReader();
 
-      reader.onload = function (e) {
+      reader.onload = (e) => {
         if (e.target?.result) {
           resolve({ src: e.target.result.toString() });
         } else {

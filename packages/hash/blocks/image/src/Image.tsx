@@ -1,7 +1,16 @@
 import React, { useEffect, useState, VoidFunctionComponent } from "react";
-
+import { v4 as uuid } from "uuid";
 import { tw } from "twind";
+
 import { BlockProtocolProps } from "./types/blockProtocol";
+import { unstable_batchedUpdates } from "react-dom";
+import Loader from "./svgs/Loader";
+import Cross from "./svgs/Cross";
+
+type uploadImageParamsType = {
+  file?: File;
+  imgURL?: string;
+};
 
 type AppProps = {
   width?: number;
@@ -10,21 +19,13 @@ type AppProps = {
   maxWidth?: number;
   initialSrc?: string;
   initialCaption?: string;
-  uploadImage: ({ file, imgURL }: { file?: File; imgURL?: string }) => Promise<{
+  uploadImage: (uploadImageParams: uploadImageParamsType) => Promise<{
     src?: string;
     error?: string;
   }>;
   entityId: string;
   entityType?: string;
 };
-
-function uuidv4() {
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
-    var r = (Math.random() * 16) | 0,
-      v = c == "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
 
 export const Image: VoidFunctionComponent<AppProps & BlockProtocolProps> = (
   props
@@ -42,17 +43,31 @@ export const Image: VoidFunctionComponent<AppProps & BlockProtocolProps> = (
     maxWidth,
   } = props;
 
-  const [src, setSrc] = useState(initialSrc ?? "");
+  const [stateObject, setStateObject] = useState<{
+    src: string;
+    loading: boolean;
+    errorString: string | null;
+  }>({
+    src: initialSrc ?? "",
+    loading: false,
+    errorString: null,
+  });
+
+  const { errorString, loading, src } = stateObject;
+
+  const [isMounted, setIsMounted] = useState(true);
+
   const [inputText, setInputText] = useState("");
   const [captionText, setCaptionText] = useState(initialCaption ?? "");
-  const [loading, setLoading] = useState(false);
-  const [displayAlert, setDisplayAlert] = useState(false);
-  const [errorString, setErrorString] = useState("");
 
-  const [randomId, setRandomId] = useState("");
+  const [randomId] = useState(() => `image-input-${uuid()}`);
 
   useEffect(() => {
-    setRandomId(`image-input-${uuidv4()}`);
+    setIsMounted(true);
+
+    return () => {
+      setIsMounted(false);
+    };
   }, []);
 
   const copyObject = {
@@ -64,8 +79,7 @@ export const Image: VoidFunctionComponent<AppProps & BlockProtocolProps> = (
   const { bottomText, buttonText, placeholderText } = copyObject;
 
   function displayError(errorString: string) {
-    setErrorString(errorString);
-    setDisplayAlert(true);
+    setStateObject({ ...stateObject, errorString });
   }
 
   function updateData(src: string | undefined) {
@@ -74,11 +88,12 @@ export const Image: VoidFunctionComponent<AppProps & BlockProtocolProps> = (
         const updateAction: {
           data: {
             initialSrc: string;
+            initialCaption: string;
           };
           entityId?: string;
           entityType?: string;
         } = {
-          data: { initialSrc: src },
+          data: { initialSrc: src, initialCaption: captionText },
           entityId,
         };
 
@@ -89,7 +104,7 @@ export const Image: VoidFunctionComponent<AppProps & BlockProtocolProps> = (
         update([updateAction]);
       }
 
-      setSrc(src);
+      setStateObject({ ...stateObject, src });
     }
   }
 
@@ -101,15 +116,18 @@ export const Image: VoidFunctionComponent<AppProps & BlockProtocolProps> = (
     }
 
     if (inputText?.trim()) {
-      setLoading(true);
+      setStateObject({ ...stateObject, loading: true });
+
       uploadImage({ imgURL: inputText }).then(({ src, error }) => {
-        setLoading(false);
+        if (isMounted) {
+          setStateObject({ ...stateObject, loading: false });
 
-        if (error?.trim()) {
-          return displayError(error);
+          if (error?.trim()) {
+            return displayError(error);
+          }
+
+          updateData(src);
         }
-
-        updateData(src);
       });
     } else {
       displayError("Please enter a valid image URL or select a file below");
@@ -121,20 +139,28 @@ export const Image: VoidFunctionComponent<AppProps & BlockProtocolProps> = (
 
     if (files?.[0]) {
       uploadImage({ file: files[0] }).then(({ src, error }) => {
-        if (error?.trim()) {
-          return displayError(error);
-        }
+        if (isMounted) {
+          if (error?.trim()) {
+            return displayError(error);
+          }
 
-        updateData(src);
+          updateData(src);
+        }
       });
     }
   };
 
   const resetComponent = () => {
-    setDisplayAlert(false);
-    setInputText("");
-    setCaptionText("");
-    setSrc("");
+    unstable_batchedUpdates(() => {
+      setStateObject({
+        loading: false,
+        errorString: null,
+        src: "",
+      });
+
+      setInputText("");
+      setCaptionText("");
+    });
   };
 
   if (src?.trim()) {
@@ -142,7 +168,6 @@ export const Image: VoidFunctionComponent<AppProps & BlockProtocolProps> = (
       <div className={tw`flex justify-center text-center w-full`}>
         <div className={tw`flex flex-col`}>
           <img
-            {...props}
             style={{
               width: width ?? undefined,
               height: height ?? undefined,
@@ -161,23 +186,7 @@ export const Image: VoidFunctionComponent<AppProps & BlockProtocolProps> = (
             onChange={(e) => setCaptionText(e.target.value)}
             onBlur={() => {
               if (update) {
-                const updateAction: {
-                  data: {
-                    initialSrc: string;
-                    initialCaption: string;
-                  };
-                  entityId?: string;
-                  entityType?: string;
-                } = {
-                  data: { initialSrc: src, initialCaption: captionText },
-                  entityId,
-                };
-
-                if (entityType) {
-                  updateAction.entityType = entityType;
-                }
-
-                update([updateAction]);
+                updateData(src);
               }
             }}
           />
@@ -191,20 +200,7 @@ export const Image: VoidFunctionComponent<AppProps & BlockProtocolProps> = (
           }}
           className={tw`ml-2 bg-gray-100 p-1.5 border-1 border-gray-300 rounded-sm`}
         >
-          <svg
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              fillRule="evenodd"
-              clipRule="evenodd"
-              d="M18.5302 7.22194C18.8234 7.51444 18.8234 7.98919 18.5302 8.28244L17.1562 9.65644L14.3437 6.84394L15.7177 5.46994C16.0109 5.17669 16.4857 5.17669 16.7782 5.46994L18.5302 7.22194ZM5.24991 18.7502V15.9377L13.5487 7.63894L16.3612 10.4514L8.06241 18.7502H5.24991Z"
-              fill="rgba(107, 114, 128)"
-            />
-          </svg>
+          <Cross />
         </button>
       </div>
     );
@@ -212,7 +208,7 @@ export const Image: VoidFunctionComponent<AppProps & BlockProtocolProps> = (
 
   return (
     <>
-      {displayAlert && (
+      {errorString && (
         <div
           className={tw`max-w-md mx-auto mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative`}
           role="alert"
@@ -220,7 +216,9 @@ export const Image: VoidFunctionComponent<AppProps & BlockProtocolProps> = (
           <strong className={tw`font-bold`}>Error</strong>
           <span className={tw`block sm:inline ml-2 mr-2`}>{errorString}</span>
           <span
-            onClick={() => setDisplayAlert(false)}
+            onClick={() =>
+              setStateObject({ ...stateObject, errorString: null })
+            }
             className={tw`absolute top-0 bottom-0 right-0 px-4 py-3`}
           >
             <svg
@@ -246,19 +244,21 @@ export const Image: VoidFunctionComponent<AppProps & BlockProtocolProps> = (
           e.preventDefault();
           e.stopPropagation();
 
-          var dT = e.dataTransfer;
-          var files = dT.files;
+          const dT = e.dataTransfer;
+          const files = dT.files;
 
           if (files && files.length) {
             // we set our input's 'files' property
 
             if (files[0].type.search("image") > -1) {
               uploadImage({ file: files[0] }).then(({ src, error }) => {
-                if (error?.trim()) {
-                  return displayError(error);
-                }
+                if (isMounted) {
+                  if (error?.trim()) {
+                    return displayError(error);
+                  }
 
-                updateData(src);
+                  updateData(src);
+                }
               });
             }
           }
@@ -295,28 +295,7 @@ export const Image: VoidFunctionComponent<AppProps & BlockProtocolProps> = (
               className={tw`bg-blue-400 rounded-sm hover:bg-blue-500 focus:bg-blue-600 py-1 text-white w-full flex items-center justify-center`}
               type="submit"
             >
-              {loading && (
-                <svg
-                  className={tw`animate-spin h-4 text-white mr-2`}
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className={tw`opacity-25`}
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className={tw`opacity-75`}
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-              )}
+              {loading && <Loader />}
               {buttonText}
             </button>
           </div>
