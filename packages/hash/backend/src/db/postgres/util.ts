@@ -111,8 +111,10 @@ export const replaceLink = (
 export const entityNotFoundError = (ref: {
   accountId: string;
   entityId: string;
+  type?: string;
 }) => {
+  const type = ref.type ? ref.type + " " : "";
   return new Error(
-    `entity ${ref.entityId} not found in account ${ref.accountId}`
+    `${type}entity ${ref.entityId} not found in account ${ref.accountId}`
   );
 };

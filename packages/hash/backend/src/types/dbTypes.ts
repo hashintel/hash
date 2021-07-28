@@ -14,18 +14,20 @@ import {
 export type DbEntity = DbBlock | DbPage | DbUnknownEntity | DbUser | DbOrg;
 
 export type DbBlock = Omit<Block, "properties"> & {
-  properties: Omit<BlockProperties, "entity">;
+  properties: DbBlockProperties;
 };
 
 export type DbBlockProperties = Omit<BlockProperties, "entity">;
 
+export type DbPageProperties = Omit<Page["properties"], "contents"> & {
+  contents: {
+    accountId: string;
+    entityId: string;
+  }[];
+};
+
 export type DbPage = Omit<Page, "properties" | "type"> & {
-  properties: Omit<Page["properties"], "contents"> & {
-    contents: {
-      accountId: string;
-      entityId: string;
-    }[];
-  };
+  properties: DbPageProperties;
   type: "Page";
 };
 

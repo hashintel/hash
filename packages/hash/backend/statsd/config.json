@@ -1,6 +1,4 @@
 {
-  "backends": [
-    "./backends/console"
-  ],
+  "backends": ["./backends/console"],
   "port": 8125
 }

@@ -24,7 +24,9 @@ td {
   }
 }
 
-td, thead tr:last-child th, thead tr:nth-last-child(2) th {
+td,
+thead tr:last-child th,
+thead tr:nth-last-child(2) th {
   border-left: 1px solid lightgrey;
   border-right: 1px solid lightgrey;
 }

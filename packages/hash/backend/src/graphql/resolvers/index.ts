@@ -13,6 +13,7 @@ import { blockFields } from "./block";
 import {
   createPage,
   insertBlockIntoPage,
+  insertBlocksIntoPage,
   accountPages,
   page,
   pageFields,
@@ -55,6 +56,7 @@ export const resolvers = {
     createEntity,
     createPage,
     insertBlockIntoPage,
+    insertBlocksIntoPage,
     updateEntity,
     updatePage,
     createUser,

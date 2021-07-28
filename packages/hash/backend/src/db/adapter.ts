@@ -33,10 +33,17 @@ export type EntityVersion = {
   createdById: string;
 };
 
+export interface DBAdapter extends DataSource, DBClient {
+  /** Initiate a new database transaction. All `DBAdapter` methods called within
+   * the provided callback `fn` are executed within the same transaction.
+   * */
+  transaction<T>(fn: (client: DBClient) => Promise<T>): Promise<T>;
+}
+
 /**
  * Generic interface to the database.
  */
-export interface DBAdapter extends DataSource {
+export interface DBClient {
   /**
    * Create a new entity. If "id" is not provided it will be automatically generated. To
    * create a versioned entity, set the optional parameter "versioned" to `true`.

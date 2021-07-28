@@ -12,7 +12,6 @@
   "scripts": {
     "dev": "export NODE_ENV=development && nodemon src/index.ts",
     "build": "echo 'Compiling Typescript' && tsc",
-    "postinstall": "yarn codegen",
     "rebuild:docker": "docker-compose build --no-cache",
     "start:docker": "docker-compose -f docker-compose.yml up",
     "start:docker-with-statsd": "docker-compose -f docker-compose.yml -f docker-compose-statsd-override.yml up",

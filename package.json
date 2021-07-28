@@ -30,7 +30,6 @@
     "serve:hash-frontend": "yarn ws:hash-frontend dev",
     "serve:hash-backend": "yarn ws:hash-backend start:docker",
     "codegen": "yarn ws:hash-backend codegen && yarn ws:hash-frontend codegen",
-    "postinstall": "yarn codegen",
     "rebuild:backend": "yarn ws:hash-backend rebuild:docker",
     "new:block": "node packages/hash/blocks/create-block",
     "// 05": "",

@@ -7,10 +7,7 @@ type AppProps = {
   email?: string;
 };
 
-export const App: BlockComponent<AppProps> = ({
-  name,
-  email,
-}) => {
+export const App: BlockComponent<AppProps> = ({ name, email }) => {
   return (
     <div
       style={{

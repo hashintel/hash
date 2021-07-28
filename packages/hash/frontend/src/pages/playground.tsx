@@ -141,7 +141,9 @@ const BlockPlayground = () => {
           <div className="language-json">
             <label>Block variants</label>
             <pre>
-              <code>{JSON.stringify(metadata.variants ?? [], undefined, 2)}</code>
+              <code>
+                {JSON.stringify(metadata.variants ?? [], undefined, 2)}
+              </code>
             </pre>
           </div>
         </div>
