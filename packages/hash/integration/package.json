@@ -11,7 +11,6 @@
   "main": "src/index.ts",
   "scripts": {
     "build": "echo 'Compiling Typescript' && tsc",
-    "postinstall": "yarn codegen",
     "lint": "eslint . --ext .ts",
     "codegen": "graphql-codegen --config codegen.yml # backend",
     "fmt": "find ./src/*.ts ./src/**/*.ts ./src/**/**/*.ts ./src/**/**/**/*.ts | xargs prettier --write",

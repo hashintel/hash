@@ -7,5 +7,4 @@ COPY . .
 RUN apt-get update \
     && apt-get install wait-for-it \
     && chmod +x start.sh \
-    && yarn install \
-    && yarn codegen
+    && yarn install
