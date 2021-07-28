@@ -7,6 +7,7 @@ import { PostgresClient } from "./client";
 import { getRequiredEnv } from "../../util";
 import {
   DBAdapter,
+  DBClient,
   Entity,
   EntityMeta,
   LoginCode,
@@ -46,10 +47,10 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return await this.pool.end();
   }
 
-  private async query<T>(fn: (adapter: DBAdapter) => Promise<T>): Promise<T> {
-    return await this.pool.connect(async (client) => {
-      const adapter = new PostgresClient(client);
-      return await fn(adapter);
+  private async query<T>(fn: (client: DBClient) => Promise<T>): Promise<T> {
+    return await this.pool.connect(async (conn) => {
+      const client = new PostgresClient(conn);
+      return await fn(client);
     });
   }
 
@@ -59,10 +60,10 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   async transaction<T>(
     fn: (adapter: PostgresClient) => Promise<T>
   ): Promise<T> {
-    return await this.pool.connect(async (client) => {
-      return await client.transaction(async (tx) => {
-        const adapter = new PostgresClient(tx);
-        return await fn(adapter);
+    return await this.pool.connect(async (conn) => {
+      return await conn.transaction(async (tx) => {
+        const client = new PostgresClient(tx);
+        return await fn(client);
       });
     });
   }

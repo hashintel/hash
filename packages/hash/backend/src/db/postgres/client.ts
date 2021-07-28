@@ -1,5 +1,5 @@
 import {
-  DBAdapter,
+  DBClient,
   Entity,
   EntityMeta,
   LoginCode,
@@ -38,7 +38,7 @@ import {
   pruneLoginCodes,
 } from "./login";
 
-export class PostgresClient implements DBAdapter {
+export class PostgresClient implements DBClient {
   private conn: Connection;
 
   constructor(conn: Connection) {
