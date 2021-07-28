@@ -27,7 +27,7 @@ type AppProps = {
   entityType?: string;
 };
 
-export const Image = (props: BlockComponent<AppProps>) => {
+export const Image: BlockComponent<AppProps> = (props) => {
   const {
     initialSrc,
     initialCaption,
@@ -86,7 +86,7 @@ export const Image = (props: BlockComponent<AppProps>) => {
             initialSrc: string;
             initialCaption: string;
           };
-          entityId?: string;
+          entityId: string;
           entityType?: string;
         } = {
           data: { initialSrc: src, initialCaption: captionText },
@@ -212,7 +212,9 @@ export const Image = (props: BlockComponent<AppProps>) => {
           role="alert"
         >
           <strong className={tw`font-bold`}>Error</strong>
-          <span className={tw`block sm:inline ml-2 mr-2`}>{stateObject.errorString}</span>
+          <span className={tw`block sm:inline ml-2 mr-2`}>
+            {stateObject.errorString}
+          </span>
           <span
             onClick={() =>
               setStateObject({ ...stateObject, errorString: null })
