@@ -6,7 +6,7 @@ import React, {
 } from "react";
 import { Column, Row } from "react-table";
 import { identityEntityAndProperty } from "../lib/identifyEntity";
-import { BlockProtocolUpdateFn } from "../types/blockProtocol";
+import { BlockProtocolUpdateFn } from "@hashintel/block-protocol";
 
 type EditableCellProps = {
   value: string;

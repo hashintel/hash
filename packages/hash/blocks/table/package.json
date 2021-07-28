@@ -18,6 +18,10 @@
     "clean": "rimraf dist",
     "serve": "serve -C -l 62678 dist"
   },
+  "dependencies": {
+    "@hashintel/block-protocol": "0.1.0",
+    "react-table": "7.7.0"
+  },
   "peerDependencies": {
     "react": "^16.14.0"
   },
@@ -53,8 +57,5 @@
     "webpack-bundle-analyzer": "^3.9.0",
     "webpack-cli": "^3.3.12",
     "webpack-dev-server": "^3.11.0"
-  },
-  "dependencies": {
-    "react-table": "7.7.0"
   }
 }

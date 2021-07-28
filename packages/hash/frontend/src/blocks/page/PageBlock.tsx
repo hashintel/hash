@@ -16,7 +16,7 @@ import {
   componentUrlToProsemirrorId,
 } from "./tsUtils";
 import { useBlockProtocolUpdate } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdate";
-import { BlockProtocolUpdatePayload } from "../../types/blockProtocol";
+import { BlockProtocolUpdatePayload } from "@hashintel/block-protocol";
 import { useBlockProtocolInsertIntoPage } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolInsertIntoPage";
 import { usePortals } from "./usePortals";
 import { useDeferredCallback } from "./useDeferredCallback";

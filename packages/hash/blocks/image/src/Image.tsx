@@ -1,8 +1,8 @@
-import React, { useEffect, useState, VoidFunctionComponent } from "react";
+import React, { useEffect, useState } from "react";
 import { v4 as uuid } from "uuid";
 import { tw } from "twind";
+import { BlockComponent } from "@hashintel/block-protocol/react";
 
-import { BlockProtocolProps } from "./types/blockProtocol";
 import { unstable_batchedUpdates } from "react-dom";
 import Loader from "./svgs/Loader";
 import Cross from "./svgs/Cross";
@@ -27,9 +27,7 @@ type AppProps = {
   entityType?: string;
 };
 
-export const Image: VoidFunctionComponent<AppProps & BlockProtocolProps> = (
-  props
-) => {
+export const Image = (props: BlockComponent<AppProps>) => {
   const {
     initialSrc,
     initialCaption,
@@ -52,8 +50,6 @@ export const Image: VoidFunctionComponent<AppProps & BlockProtocolProps> = (
     loading: false,
     errorString: null,
   });
-
-  const { errorString, loading, src } = stateObject;
 
   const [isMounted, setIsMounted] = useState(true);
 
@@ -109,6 +105,8 @@ export const Image: VoidFunctionComponent<AppProps & BlockProtocolProps> = (
   }
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const { loading } = stateObject;
+
     e.preventDefault();
 
     if (loading) {
@@ -163,7 +161,7 @@ export const Image: VoidFunctionComponent<AppProps & BlockProtocolProps> = (
     });
   };
 
-  if (src?.trim()) {
+  if (stateObject.src?.trim()) {
     return (
       <div className={tw`flex justify-center text-center w-full`}>
         <div className={tw`flex flex-col`}>
@@ -174,7 +172,7 @@ export const Image: VoidFunctionComponent<AppProps & BlockProtocolProps> = (
               maxWidth: maxWidth ?? undefined,
               maxHeight: maxHeight ?? undefined,
             }}
-            src={src}
+            src={stateObject.src}
             alt="Image block"
           />
 
@@ -186,7 +184,7 @@ export const Image: VoidFunctionComponent<AppProps & BlockProtocolProps> = (
             onChange={(e) => setCaptionText(e.target.value)}
             onBlur={() => {
               if (update) {
-                updateData(src);
+                updateData(stateObject.src);
               }
             }}
           />
@@ -208,13 +206,13 @@ export const Image: VoidFunctionComponent<AppProps & BlockProtocolProps> = (
 
   return (
     <>
-      {errorString && (
+      {stateObject.errorString && (
         <div
           className={tw`max-w-md mx-auto mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative`}
           role="alert"
         >
           <strong className={tw`font-bold`}>Error</strong>
-          <span className={tw`block sm:inline ml-2 mr-2`}>{errorString}</span>
+          <span className={tw`block sm:inline ml-2 mr-2`}>{stateObject.errorString}</span>
           <span
             onClick={() =>
               setStateObject({ ...stateObject, errorString: null })
@@ -295,7 +293,7 @@ export const Image: VoidFunctionComponent<AppProps & BlockProtocolProps> = (
               className={tw`bg-blue-400 rounded-sm hover:bg-blue-500 focus:bg-blue-600 py-1 text-white w-full flex items-center justify-center`}
               type="submit"
             >
-              {loading && <Loader />}
+              {stateObject.loading && <Loader />}
               {buttonText}
             </button>
           </div>

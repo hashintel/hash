@@ -2,9 +2,25 @@ import { Express, Request } from "express";
 import expressSession from "express-session";
 import pgSessionStore from "connect-pg-simple";
 import { urlencoded } from "body-parser";
+import { Pool } from "pg";
 
 import { getRequiredEnv } from "../util";
-import { createPool } from "../db/postgres";
+
+const createPool = () => {
+  const user = getRequiredEnv("HASH_PG_USER");
+  const host = getRequiredEnv("HASH_PG_HOST");
+  const port = getRequiredEnv("HASH_PG_PORT");
+  const database = getRequiredEnv("HASH_PG_DATABASE");
+  const password = getRequiredEnv("HASH_PG_PASSWORD");
+
+  return new Pool({
+    user,
+    host,
+    port: parseInt(port),
+    database,
+    password,
+  });
+};
 
 // cookie maximum age (365 days)
 const COOKIE_MAX_AGE = 1000 * 60 * 60 * 24 * 365;

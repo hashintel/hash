@@ -1,4 +1,6 @@
-import React, { RefCallback, VoidFunctionComponent } from "react";
+import React, { RefCallback } from "react";
+
+import { BlockComponent } from "@hashintel/block-protocol/react";
 
 type AppProps = {
   color?: string;
@@ -6,7 +8,7 @@ type AppProps = {
   editableRef?: RefCallback<HTMLElement>;
 };
 
-export const App: VoidFunctionComponent<AppProps> = ({
+export const App: BlockComponent<AppProps> = ({
   color,
   level = 1,
   editableRef,

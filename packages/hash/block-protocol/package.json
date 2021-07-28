@@ -1,0 +1,30 @@
+{
+  "name": "@hashintel/block-protocol",
+  "license": "SSPL-1.0",
+  "private": true,
+  "version": "0.1.0",
+  "description": "block-protocol",
+  "exports": {
+    "./*": "./dist/*"
+  },
+  "typesVersions": {
+    "*": {
+      "*": ["dist/*"]
+    }
+  },
+  "scripts": {
+    "fmt": "prettier --write './src/**/*.ts'",
+    "lint": "eslint ./src --ext .ts",
+    "build": "tsc",
+    "prepare": "yarn build"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "4.25.0",
+    "@typescript-eslint/parser": "4.25.0",
+    "eslint": "7.27.0",
+    "eslint-config-prettier": "8.3.0",
+    "react": "^16.14.0",
+    "prettier": "2.3.0",
+    "typescript": "4.2.4"
+  }
+}

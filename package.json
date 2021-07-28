@@ -5,8 +5,14 @@
     "packages/hash/backend",
     "packages/hash/backend/datastore",
     "packages/hash/frontend",
+    "packages/hash/block-protocol",
     "packages/hash/blocks/page",
+    "packages/hash/blocks/divider",
     "packages/hash/blocks/embed",
+    "packages/hash/blocks/header",
+    "packages/hash/blocks/image",
+    "packages/hash/blocks/person",
+    "packages/hash/blocks/table",
     "packages/hash/integration"
   ],
   "scripts": {
@@ -30,7 +36,7 @@
     "// 05": "",
     "// --------------- Blocks & Demo ---------------": "",
     "// 06": "",
-    "install:demo": "yarn install && yarn install:header && yarn install:table && yarn install:image && yarn install:person && yarn install:divider && yarn install:embed",
+    "install:demo": "yarn install && yarn all --parallel install:header install:table install:image install:person install:divider install:embed",
     "install:header": "cd packages/hash/blocks/header && yarn install && yarn build",
     "install:person": "cd packages/hash/blocks/person && yarn install && yarn build",
     "install:table": "cd packages/hash/blocks/table && yarn install && yarn build",
