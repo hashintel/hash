@@ -24,9 +24,9 @@ export type BlockMetadata = {
 };
 
 export type BlockProtocolUpdatePayload<T> = {
-  entityType: string;
+  entityType?: string;
   entityId: string;
-  accountId: string;
+  accountId?: string;
   data: T;
 };
 

@@ -80,7 +80,7 @@ export const App: BlockComponent<AppProps> = (props) => {
           data: {
             initialHtml: string;
           };
-          entityId?: string;
+          entityId: string;
           entityType?: string;
         } = {
           data: { initialHtml: html },
