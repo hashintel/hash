@@ -4,4 +4,4 @@ import { BlockComponent } from "@hashintel/block-protocol/react";
 
 type AppProps = {};
 
-export const App: BlockComponent<AppProps> = () => <hr/>;
+export const App: BlockComponent<AppProps> = () => <hr />;

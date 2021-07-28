@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import {  TableOptions, useTable } from "react-table";
+import { TableOptions, useTable } from "react-table";
 import { EditableCell } from "./components/EditableCell";
 import { makeColumns } from "./lib/columns";
 import { getSchemaPropertyDefinition } from "./lib/getSchemaProperty";
@@ -17,7 +17,7 @@ export const App: BlockComponent<AppProps> = ({
   data,
   initialState,
   schemas,
-  update
+  update,
 }) => {
   data = data ?? [];
   const columns = useMemo(() => makeColumns(data?.[0] ?? {}), [data[0]]);
@@ -32,7 +32,7 @@ export const App: BlockComponent<AppProps> = ({
       },
       updateData: update,
     });
-    
+
   return (
     <table {...getTableProps()}>
       <thead>
