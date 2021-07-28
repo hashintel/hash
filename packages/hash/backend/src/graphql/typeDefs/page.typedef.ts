@@ -83,6 +83,13 @@ export const pageTypedef = gql`
     summary: String
   }
 
+  input InsertBlocksData {
+    componentId: ID!
+    entityProperties: JSONObject!
+    entityType: String!
+    accountId: ID!
+  }
+
   extend type Mutation {
     createPage(accountId: ID!, properties: PageCreationData!): Page!
 
@@ -110,6 +117,21 @@ export const pageTypedef = gql`
       The position of the block in the page contents, starting at 0
       """
       position: Int!
+    ): Page!
+
+    insertBlocksIntoPage(
+      accountId: ID!
+      pageId: ID!
+      """
+      The blocks to insert.
+      """
+      blocks: [InsertBlocksData!]!
+
+      """
+      The ID of the block in the page after which the new blocks should be inserted.
+      If null, the blocks will be inserted at the start of the page.
+      """
+      previousBlockId: ID
     ): Page!
   }
 `;
