@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { v4 as uuid } from "uuid";
 import { tw } from "twind";
 import { BlockComponent } from "@hashintel/block-protocol/react";
@@ -6,8 +6,9 @@ import { BlockComponent } from "@hashintel/block-protocol/react";
 import { unstable_batchedUpdates } from "react-dom";
 import Loader from "./svgs/Loader";
 import Cross from "./svgs/Cross";
+import { BlockProtocolUpdatePayload } from "@hashintel/block-protocol";
 
-type uploadImageParamsType = {
+type UploadImageParamsType = {
   file?: File;
   imgURL?: string;
 };
@@ -19,7 +20,7 @@ type AppProps = {
   maxWidth?: number;
   initialSrc?: string;
   initialCaption?: string;
-  uploadImage: (uploadImageParams: uploadImageParamsType) => Promise<{
+  uploadImage: (uploadImageParams: UploadImageParamsType) => Promise<{
     src?: string;
     error?: string;
   }>;
@@ -51,7 +52,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
     errorString: null,
   });
 
-  const [isMounted, setIsMounted] = useState(true);
+  const isMounted = useRef(true);
 
   const [inputText, setInputText] = useState("");
   const [captionText, setCaptionText] = useState(initialCaption ?? "");
@@ -59,10 +60,10 @@ export const Image: BlockComponent<AppProps> = (props) => {
   const [randomId] = useState(() => `image-input-${uuid()}`);
 
   useEffect(() => {
-    setIsMounted(true);
+    isMounted.current = true;
 
     return () => {
-      setIsMounted(false);
+      isMounted.current = false;
     };
   }, []);
 
@@ -81,14 +82,10 @@ export const Image: BlockComponent<AppProps> = (props) => {
   function updateData(src: string | undefined) {
     if (src?.trim()) {
       if (update) {
-        const updateAction: {
-          data: {
-            initialSrc: string;
-            initialCaption: string;
-          };
-          entityId: string;
-          entityType?: string;
-        } = {
+        const updateAction: BlockProtocolUpdatePayload<{
+          initialSrc: string;
+          initialCaption: string;
+        }> = {
           data: { initialSrc: src, initialCaption: captionText },
           entityId,
         };
@@ -117,7 +114,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
       setStateObject({ ...stateObject, loading: true });
 
       uploadImage({ imgURL: inputText }).then(({ src, error }) => {
-        if (isMounted) {
+        if (isMounted.current) {
           setStateObject({ ...stateObject, loading: false });
 
           if (error?.trim()) {
@@ -137,7 +134,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
 
     if (files?.[0]) {
       uploadImage({ file: files[0] }).then(({ src, error }) => {
-        if (isMounted) {
+        if (isMounted.current) {
           if (error?.trim()) {
             return displayError(error);
           }
@@ -252,7 +249,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
 
             if (files[0].type.search("image") > -1) {
               uploadImage({ file: files[0] }).then(({ src, error }) => {
-                if (isMounted) {
+                if (isMounted.current) {
                   if (error?.trim()) {
                     return displayError(error);
                   }
