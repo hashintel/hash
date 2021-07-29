@@ -20,15 +20,6 @@ export const insertEntityAccount = async (
     values (${params.entityId}, ${params.accountId})`);
 };
 
-export const getEntityAccount = async (
-  conn: Connection,
-  entityId: string
-): Promise<string | null> => {
-  const row = await conn.maybeOne(sql`
-    select account_id from entity_account where entity_id = ${entityId}`);
-  return row ? (row["account_id"] as string) : null;
-};
-
 /** Get the account ID of multiple entities. Returns a map from entity ID to account ID. */
 export const getEntityAccountIdMany = async (
   conn: Connection,
