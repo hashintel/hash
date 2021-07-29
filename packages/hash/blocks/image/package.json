@@ -48,6 +48,6 @@
   },
   "dependencies": {
     "twind": "0.16.16",
-    "@hashintel/block-protocol": "0.1.0"
+    "@hashintel/block-protocol": "*"
   }
 }

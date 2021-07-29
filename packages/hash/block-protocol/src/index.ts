@@ -24,9 +24,9 @@ export type BlockMetadata = {
 };
 
 export type BlockProtocolUpdatePayload<T> = {
-  entityType: string;
+  entityType?: string;
   entityId: string;
-  accountId: string;
+  accountId?: string;
   data: T;
 };
 
@@ -72,7 +72,7 @@ export type JSONValue =
   | JSONValue[]
   | JSONObject;
 
-export type JSONObject = { [key: string]: JSONValue }
+export type JSONObject = { [key: string]: JSONValue };
 
 export interface JSONArray extends Array<JSONValue> {}
 

@@ -17,7 +17,7 @@
     "serve": "serve -C -l 9000 dist"
   },
   "dependencies": {
-    "@hashintel/block-protocol": "0.1.0"
+    "@hashintel/block-protocol": "*"
   },
   "peerDependencies": {
     "react": "17.0.2"
