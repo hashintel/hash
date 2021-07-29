@@ -22,6 +22,7 @@ export const createUser: Resolver<
     createdById: id, // Users "create" themselves
     type: "User",
     properties: { email, shortname },
+    versioned: false, // @todo: should user's be versioned?
   });
 
   const user: DbUser = {

@@ -9,13 +9,13 @@ export type Entity = {
   properties: any;
   metadataId: string;
   metadata: EntityMeta;
-  historyId: string | undefined;
   createdAt: Date;
   updatedAt: Date;
 };
 
 export type EntityMeta = {
   metadataId: string;
+  versioned: boolean;
   extra: any;
 };
 
@@ -53,7 +53,7 @@ export interface DBClient {
     entityId?: string;
     createdById: string;
     type: string;
-    versioned?: boolean;
+    versioned: boolean;
     properties: any;
   }): Promise<Entity>;
 
@@ -144,10 +144,10 @@ export interface DBClient {
 
   /**
    * getEntityHistory returns the sorted version timeline of an entity given its
-   * `historyId`. Returns `undefined` if the entity is non versioned.
+   * `metadataId`.
    * */
   getEntityHistory(params: {
     accountId: string;
-    historyId: string;
-  }): Promise<EntityVersion[] | undefined>;
+    metadataId: string;
+  }): Promise<EntityVersion[]>;
 }

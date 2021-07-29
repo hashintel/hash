@@ -47,10 +47,10 @@ export class PostgresClient implements DBClient {
 
   async createEntity(params: {
     accountId: string;
-    entityId?: string | undefined;
+    entityId?: string;
     createdById: string;
     type: string;
-    versioned?: boolean | undefined;
+    versioned: boolean;
     properties: any;
   }): Promise<Entity> {
     return await this.conn.transaction(async (conn) => {
@@ -63,15 +63,16 @@ export class PostgresClient implements DBClient {
         (await getEntityTypeId(conn, params.type)) ??
         (await createEntityType(conn, params.type));
 
+      // @todo: if entityId is provided, check that it's a UUID
       const entityId = params.entityId ?? genId();
       const now = new Date();
-      const historyId = params.versioned ? genId() : undefined;
       const metadataId = genId();
 
       // TODO: defer FK and run concurrently with insertEntity
       const metadata = await insertEntityMetadata(conn, {
         accountId: params.accountId,
         metadataId,
+        versioned: params.versioned,
         extra: {}, // TODO: decide what to put in here
       });
 
@@ -79,7 +80,6 @@ export class PostgresClient implements DBClient {
         ...params,
         entityId: entityId,
         typeId: entityTypeId,
-        historyId,
         metadataId,
         createdAt: now,
         updatedAt: now,
@@ -91,7 +91,6 @@ export class PostgresClient implements DBClient {
         createdById: params.createdById,
         type: params.type,
         properties: params.properties,
-        historyId,
         metadataId,
         metadata,
         createdAt: now,
@@ -153,7 +152,7 @@ export class PostgresClient implements DBClient {
     entity: Entity;
     newProperties: any;
   }) {
-    if (!params.entity.historyId) {
+    if (!params.entity.metadata.versioned) {
       throw new Error("cannot create new version of non-versioned entity"); // TODO: better error
     }
 
@@ -171,8 +170,6 @@ export class PostgresClient implements DBClient {
       updatedAt: now,
     };
 
-    // TODO: if we defer the FK between entity_history and entities table, these two
-    // queries may be performed concurrently.
     await insertEntity(this.conn, {
       ...newEntityVersion,
       typeId,
@@ -186,7 +183,7 @@ export class PostgresClient implements DBClient {
     entity: Entity;
     newProperties: any;
   }): Promise<Entity> {
-    if (params.entity.historyId) {
+    if (params.entity.metadata.versioned) {
       throw new Error("cannot in-place update a versioned entity"); // TODO: better error
     }
 
@@ -225,7 +222,7 @@ export class PostgresClient implements DBClient {
       throw new Error("types don't match"); // TODO: better error
     }
 
-    if (entity.historyId) {
+    if (entity.metadata.versioned) {
       const updatedEntity = await this.updateVersionedEntity({
         entity,
         newProperties: params.properties,
@@ -256,13 +253,13 @@ export class PostgresClient implements DBClient {
       );
 
       return [updatedEntity].concat(updatedParents.flat());
+    } else {
+      const updatedEntity = await this.updateNonVersionedEntity({
+        entity,
+        newProperties: params.properties,
+      });
+      return [updatedEntity];
     }
-
-    const updatedEntity = await this.updateNonVersionedEntity({
-      entity,
-      newProperties: params.properties,
-    });
-    return [updatedEntity];
   }
 
   async getUserById(params: { id: string }) {
@@ -346,8 +343,8 @@ export class PostgresClient implements DBClient {
 
   async getEntityHistory(params: {
     accountId: string;
-    historyId: string;
-  }): Promise<EntityVersion[] | undefined> {
+    metadataId: string;
+  }): Promise<EntityVersion[]> {
     return await getEntityHistory(this.conn, params);
   }
 }
