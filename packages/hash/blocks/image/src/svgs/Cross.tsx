@@ -1,20 +1,16 @@
 import React from "react";
+import { tw } from "twind";
 
 export default function Cross() {
   return (
     <svg
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
+      className={tw`fill-current h-6 w-6 text-red-500`}
+      role="button"
       xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 20 20"
     >
-      <path
-        fillRule="evenodd"
-        clipRule="evenodd"
-        d="M18.5302 7.22194C18.8234 7.51444 18.8234 7.98919 18.5302 8.28244L17.1562 9.65644L14.3437 6.84394L15.7177 5.46994C16.0109 5.17669 16.4857 5.17669 16.7782 5.46994L18.5302 7.22194ZM5.24991 18.7502V15.9377L13.5487 7.63894L16.3612 10.4514L8.06241 18.7502H5.24991Z"
-        fill="rgba(107, 114, 128)"
-      />
+      <title>Close</title>
+      <path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z" />
     </svg>
   );
 }
