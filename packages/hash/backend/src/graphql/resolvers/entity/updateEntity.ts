@@ -14,38 +14,31 @@ export const updateEntity: Resolver<
   GraphQLContext,
   MutationUpdateEntityArgs
 > = async (_, { accountId, id, properties }, { dataSources }) => {
-  // TODO: doing a select & update for now. See if just update is possible, if not,
-  // need to use a transaction
+  return await dataSources.db.transaction(async (client) => {
+    const entity = await client.getEntity({ accountId, entityId: id }, true);
+    if (!entity) {
+      const msg = `entity ${id} not found in account ${accountId}`;
+      throw new ApolloError(msg, "NOT_FOUND");
+    }
 
-  const entity = await dataSources.db.getEntity({
-    accountId,
-    entityId: id,
+    // Temporary hack - need to figure out how clients side property updates properly.
+    // How do they update things on the root entity, e.g. type?
+    const propertiesToUpdate = properties.properties ?? properties;
+    entity.properties = propertiesToUpdate;
+
+    const updatedEntities = await client.updateEntity({
+      accountId,
+      entityId: id,
+      properties: propertiesToUpdate,
+    });
+
+    // TODO: for now, all entities are non-versioned, so the array only has a single
+    // element. Return when versioned entities are implemented at the API layer.
+    return {
+      ...updatedEntities[0],
+      id: updatedEntities[0].entityId,
+      accountId: updatedEntities[0].accountId,
+      visibility: Visibility.Public, // TODO: get from entity metadata
+    };
   });
-  if (!entity) {
-    throw new ApolloError(
-      `Entity ${id} does not exist in account ${accountId}`,
-      "NOT_FOUND"
-    );
-  }
-
-  // Temporary hack - need to figure out how clients side property updates properly. How do they update things on the root entity, e.g. type?
-  const propertiesToUpdate = properties.properties ?? properties;
-
-  entity.properties = propertiesToUpdate;
-
-  // TODO: catch error and check if it's a not found
-  const updatedEntities = await dataSources.db.updateEntity({
-    accountId,
-    entityId: id,
-    properties: propertiesToUpdate,
-  });
-
-  // TODO: for now, all entities are non-versioned, so the list array only have a single
-  // element. Return when versioned entities are implemented at the API layer.
-  return {
-    ...updatedEntities[0],
-    id: updatedEntities[0].entityId,
-    accountId: updatedEntities[0].accountId,
-    visibility: Visibility.Public, // TODO: get from entity metadata
-  } as DbUnknownEntity;
 };
