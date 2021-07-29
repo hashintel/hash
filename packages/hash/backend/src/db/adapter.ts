@@ -150,4 +150,12 @@ export interface DBClient {
     accountId: string;
     metadataId: string;
   }): Promise<EntityVersion[]>;
+
+  /** Get multiple entities by their account ID and entity ID. */
+  getEntities(
+    entities: {
+      accountId: string;
+      entityId: string;
+    }[]
+  ): Promise<Entity[]>;
 }

@@ -198,3 +198,41 @@ export const getEntityHistory = async (
     createdById: row["created_by"] as string,
   }));
 };
+
+const getEntitiesInAccount = async (
+  conn: Connection,
+  params: { accountId: string; entityIds: string[] }
+) => {
+  const rows = await conn.any(sql`
+    select * from (${selectEntities}) as entities
+    where
+      account_id = ${params.accountId}
+      and entity_id = any(${sql.array(params.entityIds, "uuid")})
+  `);
+  return rows.map(mapPGRowToEntity);
+};
+
+/** Get multiple entities in a single query. */
+export const getEntities = async (
+  conn: Connection,
+  ids: { entityId: string; accountId: string }[]
+) => {
+  // Need to group by account ID to use the index
+  const idsByAccount = new Map<string, string[]>();
+  for (const { entityId, accountId } of ids) {
+    if (idsByAccount.has(accountId)) {
+      idsByAccount.get(accountId)?.push(entityId);
+    } else {
+      idsByAccount.set(accountId, [entityId]);
+    }
+  }
+
+  return (
+    await Promise.all(
+      Array.from(idsByAccount.entries()).map(
+        async ([accountId, entityIds]) =>
+          await getEntitiesInAccount(conn, { accountId, entityIds })
+      )
+    )
+  ).flat();
+};

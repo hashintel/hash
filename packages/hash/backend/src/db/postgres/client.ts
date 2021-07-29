@@ -24,6 +24,7 @@ import {
   getEntitiesByTypeLatest,
   getAccountEntities,
   getEntityHistory,
+  getEntities,
 } from "./entity";
 import {
   getEntityParentIds,
@@ -358,5 +359,14 @@ export class PostgresClient implements DBClient {
     metadataId: string;
   }): Promise<EntityVersion[]> {
     return await getEntityHistory(this.conn, params);
+  }
+
+  async getEntities(
+    entities: {
+      accountId: string;
+      entityId: string;
+    }[]
+  ): Promise<Entity[]> {
+    return await getEntities(this.conn, entities);
   }
 }
