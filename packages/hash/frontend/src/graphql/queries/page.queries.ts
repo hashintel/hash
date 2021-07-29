@@ -7,7 +7,6 @@ const pageFieldsFragment = gql`
     accountId
     createdAt
     metadataId
-    historyId
     history {
       createdAt
       entityId
