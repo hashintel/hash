@@ -12,30 +12,27 @@ export const updatePage: Resolver<
   GraphQLContext,
   MutationUpdatePageArgs
 > = async (_, { accountId, id, properties }, { dataSources }) => {
-  // TODO: we should have the getEntity and updateEntity here in the same database
-  // transaction.
-  const existingEntity = await dataSources.db.getEntity({
-    accountId,
-    entityId: id,
-  });
+  return await dataSources.db.transaction(async (client) => {
+    const entity = await client.getEntity({ accountId, entityId: id }, true);
 
-  // TODO: catch error and check if it's a not found
-  const updatedEntities = await dataSources.db.updateEntity({
-    accountId,
-    entityId: id,
-    properties: {
-      ...(existingEntity?.properties ?? {}),
-      ...properties,
-    },
-    type: "Page",
-  });
+    const updatedEntities = await client.updateEntity({
+      accountId,
+      entityId: id,
+      properties: {
+        ...(entity?.properties ?? {}),
+        ...properties,
+      },
+      type: "Page",
+    });
 
-  // TODO: for now, all entities are non-versioned, so the list array only have a single
-  // element. Return when versioned entities are implemented at the API layer.
-  return {
-    ...updatedEntities[0],
-    id: updatedEntities[0].entityId,
-    accountId: updatedEntities[0].accountId,
-    visibility: Visibility.Public, // TODO: get from entity metadata
-  } as DbPage;
+    // @todo: for now, all entities are non-versioned, so the array only has a single
+    // element. Return when versioned entities are implemented at the API layer.
+    return {
+      ...updatedEntities[0],
+      type: "Page",
+      id: updatedEntities[0].entityId,
+      accountId: updatedEntities[0].accountId,
+      visibility: Visibility.Public, // @todo: get from entity metadata
+    };
+  });
 };
