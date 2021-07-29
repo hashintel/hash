@@ -57,11 +57,16 @@ export interface DBClient {
     properties: any;
   }): Promise<Entity>;
 
-  /** Get an entity by ID in a given account.*/
-  getEntity(params: {
-    accountId: string;
-    entityId: string;
-  }): Promise<Entity | undefined>;
+  /** Get an entity by ID in a given account. If `lock` is set to `true`, then no
+   * other client may access the entity until the current transaction has ended.
+   */
+  getEntity(
+    params: {
+      accountId: string;
+      entityId: string;
+    },
+    lock?: boolean
+  ): Promise<Entity | undefined>;
 
   /**
    * Get the latest version of an entity.
