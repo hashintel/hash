@@ -1,12 +1,7 @@
 {
   "parser": "@typescript-eslint/parser",
-  "plugins": [
-    "@typescript-eslint"
-  ],
-  "extends": [
-    "plugin:@typescript-eslint/base",
-    "prettier"
-  ],
+  "plugins": ["@typescript-eslint"],
+  "extends": ["plugin:@typescript-eslint/base", "prettier"],
   "rules": {
     "eqeqeq": [
       "error",
@@ -19,15 +14,7 @@
       "error",
       {
         "min": 2,
-        "exceptions": [
-          "_",
-          "x",
-          "y",
-          "z",
-          "a",
-          "b",
-          "i"
-        ],
+        "exceptions": ["_", "x", "y", "z", "a", "b", "i"],
         "properties": "never"
       }
     ],
