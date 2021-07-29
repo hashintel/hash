@@ -8,16 +8,7 @@ export const contents: Resolver<
   DbPage["properties"],
   GraphQLContext
 > = async ({ contents }, _, { dataSources }) => {
-  // TODO: make a getEntities DB query which can retrieve multiple in the same
-  // transaction.
-  const entities = await Promise.all(
-    contents.map(async ({ accountId, entityId }) => {
-      return await dataSources.db.getEntity({
-        accountId,
-        entityId: entityId,
-      });
-    })
-  );
+  const entities = await dataSources.db.getEntities(contents);
 
   entities.forEach((entity, i) => {
     if (!entity) {
