@@ -1,1 +1,3 @@
-simulation: Simulation
+---
+urls:
+- simulation: Simulation
