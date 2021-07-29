@@ -33,7 +33,7 @@ create table if not exists entities (
     created_at  timestamp with time zone not null,
     updated_at  timestamp with time zone not null,
 
-    foreign key (account_id, metadata_id) references entity_metadata (account_id, metadata_id),
+    foreign key (account_id, metadata_id) references entity_metadata (account_id, metadata_id) deferrable,
 
     primary key (account_id, entity_id)
 );
@@ -45,7 +45,7 @@ create table if not exists entity_account (
     entity_id  uuid not null primary key,
     account_id uuid not null,
 
-    foreign key (account_id, entity_id) references entities (account_id, entity_id)
+    foreign key (account_id, entity_id) references entities (account_id, entity_id) deferrable
 );
 
 

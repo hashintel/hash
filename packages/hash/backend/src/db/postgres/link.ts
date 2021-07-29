@@ -3,39 +3,47 @@ import { Entity } from "../adapter";
 
 import { sql } from "slonik";
 
-export const insertOutgoingLink = async (
-  client: Connection,
-  params: {
+/** Insert multiple rows into the outgoing_links table. */
+export const insertOutgoingLinks = async (
+  conn: Connection,
+  links: {
     accountId: string;
     entityId: string;
     childAccountId: string;
     childId: string;
-  }
+  }[]
 ) => {
-  await client.query(sql`
+  const rows = links.map((link) => [
+    link.accountId,
+    link.entityId,
+    link.childAccountId,
+    link.childId,
+  ]);
+  await conn.query(sql`
     insert into outgoing_links (account_id, entity_id, child_account_id, child_id)
-    values (
-      ${params.accountId}, ${params.entityId}, ${params.childAccountId},
-      ${params.childId}
-    )
+    select * from ${sql.unnest(rows, ["uuid", "uuid", "uuid", "uuid"])}
   `);
 };
 
-export const insertIncomingLink = async (
-  client: Connection,
-  params: {
+/** Insert multiple rows into the incoming_links table. */
+export const insertIncomingLinks = async (
+  conn: Connection,
+  links: {
     accountId: string;
     entityId: string;
     parentAccountId: string;
     parentId: string;
-  }
+  }[]
 ) => {
-  await client.query(sql`
+  const rows = links.map((link) => [
+    link.accountId,
+    link.entityId,
+    link.parentAccountId,
+    link.parentId,
+  ]);
+  await conn.query(sql`
     insert into incoming_links (account_id, entity_id, parent_account_id, parent_id)
-    values (
-      ${params.accountId}, ${params.entityId}, ${params.parentAccountId},
-      ${params.parentId}
-    )
+    select * from ${sql.unnest(rows, ["uuid", "uuid", "uuid", "uuid"])}
   `);
 };
 
