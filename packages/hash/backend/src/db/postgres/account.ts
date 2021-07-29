@@ -28,3 +28,21 @@ export const getEntityAccount = async (
     select account_id from entity_account where entity_id = ${entityId}`);
   return row ? (row["account_id"] as string) : null;
 };
+
+/** Get the account ID of multiple entities. Returns a map from entity ID to account ID. */
+export const getEntityAccountIdMany = async (
+  conn: Connection,
+  entityIds: Set<string>
+): Promise<Map<string, string>> => {
+  const rows = await conn.any(sql`
+    select entity_id, account_id from entity_account
+    where entity_id = any(${sql.array(Array.from(entityIds), "uuid")})
+  `);
+
+  const result = new Map<string, string>();
+  for (const row of rows) {
+    result.set(row["entity_id"] as string, row["account_id"] as string);
+  }
+
+  return result;
+};

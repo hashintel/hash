@@ -11,7 +11,7 @@ import { Connection } from "./types";
 import {
   insertAccount,
   insertEntityAccount,
-  getEntityAccount,
+  getEntityAccountIdMany,
 } from "./account";
 import { getEntityTypeId, createEntityType } from "./entitytypes";
 import { insertEntityMetadata, updateEntityMetadata } from "./metadata";
@@ -26,9 +26,9 @@ import {
   getEntityHistory,
 } from "./entity";
 import {
-  insertIncomingLink,
-  insertOutgoingLink,
   getEntityParentIds,
+  insertIncomingLinks,
+  insertOutgoingLinks,
 } from "./link";
 import { getUserById, getUserByEmail, getUserByShortname } from "./user";
 import {
@@ -37,6 +37,8 @@ import {
   incrementLoginCodeAttempts,
   pruneLoginCodes,
 } from "./login";
+
+import { sql } from "slonik";
 
 export class PostgresClient implements DBClient {
   private conn: Connection;
@@ -67,24 +69,6 @@ export class PostgresClient implements DBClient {
       const entityId = params.entityId ?? genId();
       const now = new Date();
       const metadataId = genId();
-
-      // TODO: defer FK and run concurrently with insertEntity
-      const metadata = await insertEntityMetadata(conn, {
-        accountId: params.accountId,
-        metadataId,
-        versioned: params.versioned,
-        extra: {}, // TODO: decide what to put in here
-      });
-
-      await insertEntity(conn, {
-        ...params,
-        entityId: entityId,
-        typeId: entityTypeId,
-        metadataId,
-        createdAt: now,
-        updatedAt: now,
-      });
-
       const entity: Entity = {
         accountId: params.accountId,
         entityId: entityId,
@@ -92,40 +76,68 @@ export class PostgresClient implements DBClient {
         type: params.type,
         properties: params.properties,
         metadataId,
-        metadata,
+        metadata: {
+          metadataId,
+          versioned: params.versioned,
+          extra: {}, // @todo: decide what to put in here
+        },
         createdAt: now,
         updatedAt: now,
       };
 
-      // Make a reference to this entity's account in the `entity_account` lookup table
-      // TODO: defer FK constraint and run concurrently with insertEntity
-      await insertEntityAccount(conn, entity);
+      // Defer FKs until end of transaction so we can insert concurrently
+      conn.query(sql`
+        set constraints
+          entities_account_id_metadata_id_fkey,
+          entity_account_account_id_entity_id_fkey
+        deferred
+      `);
 
-      // Gather the links this entity makes and insert incoming and outgoing references:
-      // TODO: could combine inserts below into fewer queries.
-      const linkedEntityIds = gatherLinks(entity);
-      await Promise.all(
-        linkedEntityIds.map(async (dstId) => {
-          const accountId = await getEntityAccount(conn, dstId);
-          if (!accountId) {
-            throw new Error(`accountId not found for entity ${dstId}`);
-          }
-          await Promise.all([
-            insertOutgoingLink(conn, {
-              accountId: entity.accountId,
-              entityId: entity.entityId,
-              childAccountId: accountId,
-              childId: dstId,
-            }),
-            insertIncomingLink(conn, {
-              accountId,
-              entityId: dstId,
-              parentAccountId: entity.accountId,
-              parentId: entity.entityId,
-            }),
-          ]);
-        })
-      );
+      const linkedEntityIdsSet = new Set(gatherLinks(entity));
+      const linkedEntityIds = [...linkedEntityIdsSet];
+
+      const [accIdMap, ..._] = await Promise.all([
+        getEntityAccountIdMany(conn, linkedEntityIdsSet),
+
+        insertEntityMetadata(conn, {
+          accountId: entity.accountId,
+          ...entity.metadata,
+        }),
+
+        insertEntity(conn, { ...entity, typeId: entityTypeId }),
+
+        // Make a reference to this entity's account in the `entity_account` lookup table
+        insertEntityAccount(conn, entity),
+      ]);
+
+      const missing = linkedEntityIds.filter((id) => !accIdMap.has(id));
+      if (missing.length !== 0) {
+        throw new Error(
+          `entity ${entity.entityId} references missing entities ${missing}`
+        );
+      }
+
+      await Promise.all([
+        insertOutgoingLinks(
+          conn,
+          linkedEntityIds.map((id) => ({
+            accountId: entity.accountId,
+            entityId: entity.entityId,
+            childAccountId: accIdMap.get(id)!,
+            childId: id,
+          }))
+        ),
+
+        insertIncomingLinks(
+          conn,
+          linkedEntityIds.map((id) => ({
+            accountId: accIdMap.get(id)!,
+            entityId: id,
+            parentAccountId: entity.accountId,
+            parentId: entity.entityId,
+          }))
+        ),
+      ]);
 
       return entity;
     });

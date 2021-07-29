@@ -21,6 +21,28 @@ export const insertOutgoingLink = async (
   `);
 };
 
+/** Insert multiple rows into the outgoing_links table. */
+export const insertOutgoingLinks = async (
+  conn: Connection,
+  links: {
+    accountId: string;
+    entityId: string;
+    childAccountId: string;
+    childId: string;
+  }[]
+) => {
+  const rows = links.map((link) => [
+    link.accountId,
+    link.entityId,
+    link.childAccountId,
+    link.childId,
+  ]);
+  await conn.query(sql`
+    insert into outgoing_links (account_id, entity_id, child_account_id, child_id)
+    select * from ${sql.unnest(rows, ["uuid", "uuid", "uuid", "uuid"])}
+  `);
+};
+
 export const insertIncomingLink = async (
   client: Connection,
   params: {
@@ -36,6 +58,28 @@ export const insertIncomingLink = async (
       ${params.accountId}, ${params.entityId}, ${params.parentAccountId},
       ${params.parentId}
     )
+  `);
+};
+
+/** Insert multiple rows into the incoming_links table. */
+export const insertIncomingLinks = async (
+  conn: Connection,
+  links: {
+    accountId: string;
+    entityId: string;
+    parentAccountId: string;
+    parentId: string;
+  }[]
+) => {
+  const rows = links.map((link) => [
+    link.accountId,
+    link.entityId,
+    link.parentAccountId,
+    link.parentId,
+  ]);
+  await conn.query(sql`
+    insert into incoming_links (account_id, entity_id, parent_account_id, parent_id)
+    select * from ${sql.unnest(rows, ["uuid", "uuid", "uuid", "uuid"])}
   `);
 };
 
