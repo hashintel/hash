@@ -23,7 +23,7 @@ export const PageSidebar: VoidFunctionComponent = () => {
       <div className={styles.PageSidebar__Section}>
         <header className={styles.PageSidebar__Section__Header}>
           <h2>Pages</h2>
-          <AccountPageList currentPageId={pageId} accountId={accountId} />
+          <AccountPageList currentPageMetaId={pageId} accountId={accountId} />
         </header>
       </div>
     </nav>
