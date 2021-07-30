@@ -109,6 +109,7 @@ export const pageTypedef = gql`
       """
       accountId: ID!
       pageId: ID!
+      versioned: Boolean! = false
       """
       The position of the block in the page contents, starting at 0
       """

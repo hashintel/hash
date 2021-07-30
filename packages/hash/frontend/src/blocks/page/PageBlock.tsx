@@ -378,6 +378,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
                         componentId: newBlock.properties.componentId,
                         entityProperties: newBlock.properties.entity.properties,
                         accountId,
+                        versioned: true,
                       })
                     ),
                 blockIdsChange

@@ -82,6 +82,7 @@ export const insertBlockIntoPage = gql`
     $entityProperties: JSONObject!
     $position: Int!
     $pageId: ID!
+    $versioned: Boolean! = true
   ) {
     insertBlockIntoPage(
       accountId: $accountId
@@ -90,6 +91,7 @@ export const insertBlockIntoPage = gql`
       entityProperties: $entityProperties
       position: $position
       pageId: $pageId
+      versioned: $versioned
     ) {
       ...PageFields
     }
