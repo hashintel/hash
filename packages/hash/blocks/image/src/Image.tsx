@@ -108,7 +108,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
     }
 
     if (inputText?.trim()) {
-      setStateObject({ ...stateObject, loading: true });
+      setStateObject(stateObject => ({ ...stateObject, loading: true }));
 
       uploadImage({ imgURL: inputText }).then(({ src, error }) => {
         if (isMounted.current) {
