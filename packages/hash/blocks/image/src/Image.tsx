@@ -112,7 +112,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
 
       uploadImage({ imgURL: inputText }).then(({ src, error }) => {
         if (isMounted.current) {
-          setStateObject({ ...stateObject, loading: false });
+          setStateObject(stateObject => ({ ...stateObject, loading: false }));
 
           if (error?.trim()) {
             return displayError(error);
