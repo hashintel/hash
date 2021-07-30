@@ -18,6 +18,7 @@ export const createApolloServer = (db: DBAdapter, logger: Logger) => {
       passport: buildPassportGraphQLMethods(ctx),
       logger: logger.child({ requestId: ctx.res.get("x-hash-request-id") }),
     }),
+    debug: true, // required for stack traces to be captured
     plugins: [
       {
         requestDidStart: (ctx) => {
@@ -30,7 +31,8 @@ export const createApolloServer = (db: DBAdapter, logger: Logger) => {
               }
               const msg = { message: "graphql", operation: ctx.operationName };
               if (ctx.errors) {
-                ctx.logger.error({ ...msg, errors: ctx.errors });
+                const stack = ctx.errors.map((err) => err.stack);
+                ctx.logger.error({ ...msg, errors: ctx.errors, stack });
               } else {
                 ctx.logger.info(msg);
               }
