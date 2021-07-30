@@ -80,7 +80,7 @@ setupAuth(app, db);
 // Set up cron jobs
 setupCronJobs(db, logger);
 
-const apolloServer = createApolloServer(db, logger);
+const apolloServer = createApolloServer(db, logger, statsd);
 
 app.get("/", (_, res) => res.send("Hello World"));
 
