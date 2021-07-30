@@ -163,14 +163,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     [replacePortal]
   );
 
-  /**
-   * This effect runs once and just sets up the prosemirror instance. It is not responsible for setting the contents of
-   * the prosemirror document
-   */
   useLayoutEffect(() => {
-    const schema = createSchema();
-    const node = root.current!;
-
     /**
      * Setting this function to global state as a shortcut to call it from deep within prosemirror.
      *
@@ -186,6 +179,10 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       saveQueue = saveQueue
         .catch(() => {})
         .then(() => {
+          if (!prosemirrorSetup.current) {
+            return;
+          }
+          const { view, schema } = prosemirrorSetup.current;
           const contents = currentContents.current;
 
           const blocks = view.state
@@ -443,6 +440,15 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
           );
         });
     };
+  }, [accountId, insert, pageId, update, updateContents]);
+
+  /**
+   * This effect runs once and just sets up the prosemirror instance. It is not responsible for setting the contents of
+   * the prosemirror document
+   */
+  useLayoutEffect(() => {
+    const schema = createSchema();
+    const node = root.current!;
 
     /**
      * We want to apply saves when Prosemirror loses focus (or is triggered manually with cmd+s). However, interacting
@@ -499,15 +505,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       node.innerHTML = "";
       prosemirrorSetup.current = null;
     };
-  }, [
-    accountId,
-    clearCallback,
-    deferCallback,
-    insert,
-    pageId,
-    replacePortal,
-    update,
-  ]);
+  }, [clearCallback, deferCallback, replacePortal]);
 
   /**
    * This effect is responsible for ensuring all the preloaded blocks (currently just paragraph) are defined in
