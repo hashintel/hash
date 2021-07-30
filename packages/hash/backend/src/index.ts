@@ -63,7 +63,7 @@ const app = express();
 const PORT = process.env.PORT ?? 5001;
 
 // Connect to the database
-const db = new PostgresAdapter(statsd);
+const db = new PostgresAdapter(logger, statsd);
 
 // Set sensible default security headers: https://www.npmjs.com/package/helmet
 // Temporarily disable contentSecurityPolicy for the GraphQL playground
