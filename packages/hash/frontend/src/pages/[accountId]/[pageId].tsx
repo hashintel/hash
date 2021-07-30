@@ -158,16 +158,16 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
               </div>
               <div>
                 <label>Version</label>
-      <div>
-                <VersionDropdown
-                  value={data.page.createdAt}
-                  versions={data.page.history ?? []}
-                  onChange={(versionId) => {
-                    router.push(
-                      `/${accountId}/${metadataId}?version=${versionId}`
-                    );
-                  }}
-                />
+                <div>
+                  <VersionDropdown
+                    value={data.page.createdAt}
+                    versions={data.page.history ?? []}
+                    onChange={(versionId) => {
+                      router.push(
+                        `/${accountId}/${metadataId}?version=${versionId}`
+                      );
+                    }}
+                  />
                 </div>
               </div>
             </div>
@@ -179,6 +179,7 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
               accountId={data.page.accountId}
               contents={mappedContents}
               blocksMeta={preloadedBlocks}
+              metadataId={data.page.metadataId}
             />
           </main>
         </div>

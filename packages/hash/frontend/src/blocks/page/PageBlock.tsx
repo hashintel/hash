@@ -32,6 +32,7 @@ type PageBlockProps = {
   blocksMeta: Map<string, BlockMeta>;
   pageId: string;
   accountId: string;
+  metadataId: string;
 };
 
 const cachedPropertiesByEntity: Record<string, Record<any, any>> =
@@ -61,6 +62,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   blocksMeta,
   pageId,
   accountId,
+  metadataId,
 }) => {
   const root = useRef<HTMLDivElement>(null);
   const { insert } = useBlockProtocolInsertIntoPage();
@@ -535,6 +537,9 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
    * may involved defining new node types (and fetching the metadata for them). Contents change whenever we save (as we
    * replace our already loaded contents with another request for the contents, which ensures that blocks referencing
    * the same entity are all updated, and that empty IDs are properly filled (i.e, when creating a new block)
+   *
+   * @todo fix when getPage queries are triggered rather than relying on a hook that doesn't actually update from
+   *       contents (because of the laddering problem)
    */
   useLayoutEffect(() => {
     const controller = new AbortController();
@@ -544,7 +549,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     return () => {
       controller.abort();
     };
-  }, [replacePortal, updateContents]);
+  }, [replacePortal, updateContents, metadataId]);
 
   return (
     <BlockMetaContext.Provider value={blocksMeta}>
