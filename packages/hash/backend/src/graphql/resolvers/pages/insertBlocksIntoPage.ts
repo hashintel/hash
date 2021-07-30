@@ -33,7 +33,7 @@ export const insertBlocksIntoPage: Resolver<
           createdById: genId(), // @todo
           type: block.entityType,
           properties: block.entityProperties,
-          versioned: false, // @todo: this should be a property of the type
+          versioned: true, // @todo: this should be a property of the type
         });
 
         // Create the block
@@ -47,7 +47,7 @@ export const insertBlocksIntoPage: Resolver<
           accountId: block.accountId,
           createdById: genId(), // @todo
           type: "Block",
-          versioned: false, // @todo: set to true when versioning is done on frontend
+          versioned: true,
           properties: blockProperties,
         });
         return {

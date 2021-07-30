@@ -24,7 +24,6 @@ export const insertBlockIntoPage: Resolver<
     accountId,
     pageId,
     position,
-    versioned = false,
   },
   { dataSources }
 ) => {
@@ -42,7 +41,7 @@ export const insertBlockIntoPage: Resolver<
       createdById: genId(), // TODO
       type: entityType,
       properties: entityProperties,
-      versioned,
+      versioned: true,
     });
   } else {
     throw new Error(
@@ -62,7 +61,7 @@ export const insertBlockIntoPage: Resolver<
     type: "Block",
     createdById: genId(), // TODO
     properties: blockProperties,
-    versioned,
+    versioned: true,
   });
 
   // Get and update the page. We need to perform this within the same
