@@ -56,8 +56,8 @@ create table if not exists outgoing_links (
     child_account_id uuid not null,
     child_id         uuid not null,
 
-    foreign key (account_id, entity_id) references entities (account_id, entity_id),
-    foreign key (child_account_id, child_id) references entities (account_id, entity_id),
+    foreign key (account_id, entity_id) references entities (account_id, entity_id) deferrable,
+    foreign key (child_account_id, child_id) references entities (account_id, entity_id) deferrable,
 
     primary key (account_id, entity_id, child_id)
 );
@@ -70,8 +70,8 @@ create table if not exists incoming_links (
     parent_account_id uuid not null,
     parent_id         uuid not null,
 
-    foreign key (account_id, entity_id) references entities (account_id, entity_id),
-    foreign key (parent_account_id, parent_id) references entities (account_id, entity_id),
+    foreign key (account_id, entity_id) references entities (account_id, entity_id) deferrable,
+    foreign key (parent_account_id, parent_id) references entities (account_id, entity_id) deferrable,
 
     primary key (account_id, entity_id, parent_id)
 );

@@ -3,7 +3,7 @@ import { Entity } from "../adapter";
 
 import { sql } from "slonik";
 
-/** Insert multiple rows into the outgoing_links table. */
+/** Insert multiple rows into the outgoing_links table. This function is idempotent. */
 export const insertOutgoingLinks = async (
   conn: Connection,
   links: {
@@ -22,10 +22,11 @@ export const insertOutgoingLinks = async (
   await conn.query(sql`
     insert into outgoing_links (account_id, entity_id, child_account_id, child_id)
     select * from ${sql.unnest(rows, ["uuid", "uuid", "uuid", "uuid"])}
+    on conflict do nothing
   `);
 };
 
-/** Insert multiple rows into the incoming_links table. */
+/** Insert multiple rows into the incoming_links table. This function is idempotent. */
 export const insertIncomingLinks = async (
   conn: Connection,
   links: {
@@ -44,6 +45,7 @@ export const insertIncomingLinks = async (
   await conn.query(sql`
     insert into incoming_links (account_id, entity_id, parent_account_id, parent_id)
     select * from ${sql.unnest(rows, ["uuid", "uuid", "uuid", "uuid"])}
+    on conflict do nothing
   `);
 };
 
