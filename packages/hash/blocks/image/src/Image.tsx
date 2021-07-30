@@ -211,7 +211,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
           </span>
           <span
             onClick={() =>
-              setStateObject({ ...stateObject, errorString: null })
+              setStateObject(stateObject => ({ ...stateObject, errorString: null }))
             }
             className={tw`absolute top-0 bottom-0 right-0 px-4 py-3`}
           >
