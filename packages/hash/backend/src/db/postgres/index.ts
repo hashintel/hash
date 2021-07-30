@@ -1,6 +1,7 @@
 import { DataSource } from "apollo-datasource";
 import { StatsD } from "hot-shots";
 import { createPool, DatabasePoolType } from "slonik";
+import { Logger } from "winston";
 import { DbUser } from "src/types/dbTypes";
 
 import { PostgresClient } from "./client";
@@ -14,23 +15,41 @@ import {
   EntityVersion,
 } from "../adapter";
 
-export const createConnPool = () => {
+export const createConnPool = (logger: Logger) => {
   const user = getRequiredEnv("HASH_PG_USER");
   const host = getRequiredEnv("HASH_PG_HOST");
   const port = getRequiredEnv("HASH_PG_PORT");
   const database = getRequiredEnv("HASH_PG_DATABASE");
   const password = getRequiredEnv("HASH_PG_PASSWORD");
   const connStr = `postgresql://${user}:${password}@${host}:${port}/${database}`;
-  return createPool(connStr);
+
+  return createPool(connStr, {
+    captureStackTrace: true,
+    maximumPoolSize: 10, // @todo: needs tuning for production
+    interceptors: [
+      {
+        queryExecutionError: (ctx, _query, error, _notices) => {
+          logger.error({
+            message: "sql_query_error",
+            queryId: ctx.queryId,
+            query: ctx.originalQuery.sql,
+            errorMessage: `${error.name}: ${error.message}`,
+            stackTrace: ctx.stackTrace,
+          });
+          return null;
+        },
+      },
+    ],
+  });
 };
 
 export class PostgresAdapter extends DataSource implements DBAdapter {
   private statsdInterval: NodeJS.Timeout;
   private pool: DatabasePoolType;
 
-  constructor(statsd?: StatsD) {
+  constructor(logger: Logger, statsd?: StatsD) {
     super();
-    this.pool = createConnPool();
+    this.pool = createConnPool(logger);
     this.statsdInterval = setInterval(() => {
       const state = this.pool.getPoolState();
       statsd?.gauge("pool_waiting_count", state.waitingClientCount);
