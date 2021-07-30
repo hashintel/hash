@@ -94,7 +94,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
         update([updateAction]);
       }
 
-      setStateObject({ ...stateObject, src });
+      setStateObject(stateObject => ({ ...stateObject, src }));
     }
   }
 
