@@ -1,6 +1,10 @@
 import { performance } from "perf_hooks";
 
-import { ApolloServer, defaultPlaygroundOptions } from "apollo-server-express";
+import {
+  ApolloServer,
+  defaultPlaygroundOptions,
+  makeExecutableSchema,
+} from "apollo-server-express";
 import { Logger } from "winston";
 import { StatsD } from "hot-shots";
 
@@ -15,9 +19,15 @@ export const createApolloServer = (
   logger: Logger,
   statsd?: StatsD
 ) => {
-  return new ApolloServer({
+  // go via makeExecutableSchema to set inheritResolversFromInterfaces
+  const combinedSchema = makeExecutableSchema({
     typeDefs: schema,
     resolvers,
+    inheritResolversFromInterfaces: true,
+  });
+
+  return new ApolloServer({
+    schema: combinedSchema,
     dataSources: () => ({ db }),
     context: (ctx): Omit<GraphQLContext, "dataSources"> => ({
       ...ctx,

@@ -33,7 +33,10 @@ enum Visibility {
     const mutations = await Promise.all(
       Array.from(items.values()).map(
         async (val) =>
-          await client.request<CreateEntityMutation>(createEntity, val)
+          await client.request<CreateEntityMutation>(createEntity, {
+            ...val,
+            versioned: val.versioned ?? true,
+          })
       )
     );
     mutations.forEach((res, i) => {

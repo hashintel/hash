@@ -5,6 +5,12 @@ const pageFieldsFragment = gql`
     __typename
     id
     accountId
+    createdAt
+    metadataId
+    history {
+      createdAt
+      entityId
+    }
     properties {
       __typename
       archived
@@ -42,8 +48,8 @@ const pageFieldsFragment = gql`
 `;
 
 export const getPageQuery = gql`
-  query getPage($accountId: ID!, $pageId: ID!) {
-    page(accountId: $accountId, id: $pageId) {
+  query getPage($accountId: ID!, $metadataId: ID, $versionId: ID) {
+    page(accountId: $accountId, metadataId: $metadataId, id: $versionId) {
       ...PageFields
     }
   }
@@ -76,6 +82,7 @@ export const insertBlockIntoPage = gql`
     $entityProperties: JSONObject!
     $position: Int!
     $pageId: ID!
+    $versioned: Boolean! = true
   ) {
     insertBlockIntoPage(
       accountId: $accountId
@@ -84,6 +91,7 @@ export const insertBlockIntoPage = gql`
       entityProperties: $entityProperties
       position: $position
       pageId: $pageId
+      versioned: $versioned
     ) {
       ...PageFields
     }

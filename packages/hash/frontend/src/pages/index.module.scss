@@ -31,3 +31,24 @@
     margin-top: 0;
   }
 }
+
+.PageHeader {
+  display: flex;
+
+  > :first-child {
+    margin-right: 120px;
+  }
+
+  label {
+    display: block;
+    font-weight: 600;
+    font-size: 15px;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+  }
+
+  h1 {
+    font-size: 24px;
+    font-weight: 500;
+  }
+}
