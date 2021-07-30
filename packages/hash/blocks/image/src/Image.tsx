@@ -73,7 +73,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
   }, []);
 
   function displayError(errorString: string) {
-    setStateObject({ ...stateObject, errorString });
+    setStateObject(stateObject => ({ ...stateObject, errorString }));
   }
 
   function updateData(src: string | undefined) {
