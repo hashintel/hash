@@ -225,6 +225,7 @@ export class PostgresClient implements DBClient {
     entityId: string;
     type?: string | undefined;
     properties: any;
+    child?: { accountId: string; entityId: string };
   }): Promise<Entity[]> {
     const entity = await getEntity(this.conn, params);
     if (!entity) {
@@ -240,6 +241,17 @@ export class PostgresClient implements DBClient {
         entity,
         newProperties: params.properties,
       });
+
+      if (params.child) {
+        insertIncomingLinks(this.conn, [
+          {
+            ...params.child,
+            parentAccountId: updatedEntity.accountId,
+            parentId: updatedEntity.entityId,
+          },
+        ]);
+      }
+      // @todo: handle inserting into outgoing_links
 
       // Updating a versioned entity creates a new entity with a new ID. We need to
       // update all entities which reference this entity with this ID.
@@ -261,7 +273,13 @@ export class PostgresClient implements DBClient {
             old: entity.entityId,
             new: updatedEntity.entityId,
           });
-          return await this.updateEntity(parent);
+          return await this.updateEntity({
+            ...parent,
+            child: {
+              entityId: updatedEntity.entityId,
+              accountId: updatedEntity.accountId,
+            },
+          });
         })
       );
 
@@ -271,6 +289,16 @@ export class PostgresClient implements DBClient {
         entity,
         newProperties: params.properties,
       });
+      if (params.child) {
+        insertIncomingLinks(this.conn, [
+          {
+            ...params.child,
+            parentAccountId: updatedEntity.accountId,
+            parentId: updatedEntity.entityId,
+          },
+        ]);
+        // @todo: handle inserting into outgoing_links
+      }
       return [updatedEntity];
     }
   }
