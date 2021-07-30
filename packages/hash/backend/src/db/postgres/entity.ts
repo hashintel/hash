@@ -216,7 +216,7 @@ const getEntitiesInAccount = async (
 export const getEntities = async (
   conn: Connection,
   ids: { entityId: string; accountId: string }[]
-) => {
+): Promise<Entity[]> => {
   // Need to group by account ID to use the index
   const idsByAccount = new Map<string, string[]>();
   for (const { entityId, accountId } of ids) {
@@ -227,7 +227,7 @@ export const getEntities = async (
     }
   }
 
-  return (
+  const entities = (
     await Promise.all(
       Array.from(idsByAccount.entries()).map(
         async ([accountId, entityIds]) =>
@@ -235,4 +235,9 @@ export const getEntities = async (
       )
     )
   ).flat();
+
+  // Need to sort the result from the DB to be in the same order as `ids`
+  const entityMap = new Map<string, Entity>();
+  entities.forEach((entity) => entityMap.set(entity.entityId, entity));
+  return ids.map(({ entityId }) => entityMap.get(entityId)!);
 };
