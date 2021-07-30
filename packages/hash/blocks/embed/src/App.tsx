@@ -7,6 +7,7 @@ import { BlockComponent } from "@hashintel/block-protocol/react";
 import { ProviderNames } from "./types/embedTypes";
 import { HtmlBlock } from "./HtmlBlock";
 import { getFormCopy } from "./utils";
+import { BlockProtocolUpdatePayload } from "@hashintel/block-protocol";
 
 type AppProps = {
   embedType?: ProviderNames;
@@ -75,23 +76,23 @@ export const App: BlockComponent<AppProps> = (props) => {
         setHtml(undefined);
         return setErrorString(error);
       }
-      if (html?.trim() && update) {
-        const updateAction: {
-          data: {
-            initialHtml: string;
-          };
-          entityId: string;
-          entityType?: string;
-        } = {
-          data: { initialHtml: html },
-          entityId,
-        };
 
-        if (entityType) {
-          updateAction.entityType = entityType;
+      if (html?.trim()) {
+        if (update) {
+          const updateAction: BlockProtocolUpdatePayload<{
+            initialHtml: string;
+          }> = {
+            data: { initialHtml: html },
+            entityId,
+          };
+
+          if (entityType) {
+            updateAction.entityType = entityType;
+          }
+
+          update([updateAction]);
         }
 
-        update([updateAction]);
         setHtml(html);
       }
     });

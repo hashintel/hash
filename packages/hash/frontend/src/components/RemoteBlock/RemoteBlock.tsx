@@ -1,11 +1,13 @@
 import React, { useMemo, VoidFunctionComponent } from "react";
+import { BlockProtocolUpdatePayload } from "@hashintel/block-protocol";
 
 import { useRemoteBlock } from "./useRemoteBlock";
 import { HtmlBlock } from "../HtmlBlock/HtmlBlock";
 import { useBlockProtocolUpdate } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdate";
 import { cloneEntityTreeWithPropertiesMovedUp } from "../../lib/entities";
 import { fetchEmbedCode } from "./fetchEmbedCode";
-import { BlockProtocolUpdatePayload } from "@hashintel/block-protocol";
+import { uploadImage } from "./uploadImage";
+
 
 type RemoteBlockProps = {
   url: string;
@@ -62,6 +64,9 @@ export const RemoteBlock: VoidFunctionComponent<
       getEmbedBlock={fetchEmbedCode}
       editableRef={props.editableRef}
       entityId={props.childEntityId}
+      maxHeight={500}
+      maxWidth={500}
+      uploadImage={uploadImage}
     />
   );
 };
