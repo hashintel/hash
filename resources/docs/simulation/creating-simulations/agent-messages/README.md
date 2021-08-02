@@ -10,6 +10,7 @@ Agents can create a message to send to either another agent or the simulation en
 
 <Tabs>
 <Tab title="JavaScript" >
+    
 ```javascript
 const behavior = (state, context) => {
     state.messages.push({
@@ -21,9 +22,11 @@ const behavior = (state, context) => {
     });
 }
 ```
+    
 </Tab>
 
 <Tab title="Python" >
+    
 ```python
 def behavior(state, context):  
   state['messages'].append({
@@ -34,6 +37,7 @@ def behavior(state, context):
     }
   })
 ```
+    
 </Tab>
 </Tabs>
 
