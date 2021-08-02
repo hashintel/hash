@@ -246,7 +246,7 @@ export class PostgresClient implements DBClient {
     await Promise.all([
       updateEntityProperties(conn, updatedEntity),
 
-      this.createLinks(conn, updatedEntity)
+      this.createLinks(conn, updatedEntity),
     ]);
 
     return {
@@ -273,7 +273,7 @@ export class PostgresClient implements DBClient {
     }
 
     if (entity.metadata.versioned) {
-      const updatedEntity = await this.updateVersionedEntity({
+      const updatedEntity = await this.updateVersionedEntity(this.conn, {
         entity,
         newProperties: params.properties,
       });
