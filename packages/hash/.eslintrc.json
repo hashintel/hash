@@ -1,4 +1,5 @@
 {
+  "root": true, // tell eslint to not look any further up the dir tree
   "parser": "@typescript-eslint/parser",
   "plugins": ["@typescript-eslint"],
   "extends": ["plugin:@typescript-eslint/base", "prettier"],
