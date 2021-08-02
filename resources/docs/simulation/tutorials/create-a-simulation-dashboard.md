@@ -44,7 +44,7 @@ For our dashboard, we're going to embed the [Wildfires simulation](https://core.
 
 All HASH simulations are embeddable as iFrames. You can add an iFrame as a block in the `<body>` of the website. We'll add an `id` property to the iFrame with the value "sim" to make it easier to reference.
 
-{% code title="index.html" %}
+{% code title="index.html" >
 ```markup
 <body>
     <div class="simulation">
@@ -54,7 +54,7 @@ All HASH simulations are embeddable as iFrames. You can add an iFrame as a block
     </div>
 </body>
 ```
-{% endcode %}
+{% endcode >
 
 ## Add Buttons
 
@@ -62,12 +62,12 @@ Like a lot of dashboards, a key feature to implement is letting users set parame
 
 So we'll add buttons:
 
-{% code title="index.html" %}
+{% code title="index.html" >
 ```markup
 <button id="scenario_one" onclick="setGlobals('one')">Scenario 1</button> 
 <button id="scenario_two" onclick="setGlobals('two')">Scenario 2</button>
 ```
-{% endcode %}
+{% endcode >
 
 Each button will be associated with a function, `setGlobals()`, that will trigger the **globals.json** file to update.
 
@@ -75,7 +75,7 @@ Next, let's define the different scenarios. We'll explore combinations of parame
 
 We'll do this in a new file called `script.js`.
 
-{% code title="script.js" %}
+{% code title="script.js" >
 ```javascript
 const scenarios = {
     "one": {
@@ -124,7 +124,7 @@ const scenarios = {
     }
 }
 ```
-{% endcode %}
+{% endcode >
 
 When the user clicks scenario 1, we want the globals file to have the data of the value of the dictionary "one". And when the user clicks scenario 2, the data from two. 
 
@@ -132,7 +132,7 @@ We'll write the `setGlobals()` function that will post a message to the iframe t
 
 Additionally, we'll have it `resetAndRun` the simulation, so that when you click a button the simulation starts running with the new parameters.
 
-{% code title="script.js" %}
+{% code title="script.js" >
 ```javascript
 function setGlobals(ind){
     document.getElementById("sim").contentWindow.postMessage(
@@ -153,7 +153,7 @@ function setGlobals(ind){
     );
 }
 ```
-{% endcode %}
+{% endcode >
 
 <Hint style="info">
 [generateUUID\(\)](https://replit.com/@BenGoldhaber1/DamagedCircularDimension#script.js:1:17) is a helper function we've added to create UUIDs to pass in the function call. Feel free to use whatever UUID generating library you'd like.
@@ -171,7 +171,7 @@ There are a lot of potential applications for reading the state of a simulation.
 
 We'll create a function that will request the state of the simulation.
 
-{% code title="script.js" %}
+{% code title="script.js" >
 ```javascript
 function getState(){    
   document.getElementById("sim").contentWindow.postMessage(
@@ -180,13 +180,13 @@ function getState(){
   "*");
 }
 ```
-{% endcode %}
+{% endcode >
 
 This will return an object with the current state of the simulation, including the state on all the previous timesteps.
 
 However, we've only only added the send message function. We also need a function that will handle the returned state data. For that, we can use an [event handler](https://developer.mozilla.org/en-US/docs/Web/Events/Event_handlers).
 
-{% code title="script.js" %}
+{% code title="script.js" >
 ```javascript
 function eventHandler(event) {  
   if (event.data.type == 'state') {    
@@ -196,11 +196,11 @@ function eventHandler(event) {
 
 window.addEventListener("message", eventHandler);
 ```
-{% endcode %}
+{% endcode >
 
 We'll want to store the state data in a variable that we can then provide to a visualization library. We just want the final step, so we'll save that on a global variable called stepsData.
 
-{% code title="script.js" %}
+{% code title="script.js" >
 ```javascript
 var stateData = []
 
@@ -212,13 +212,13 @@ function eventHandler(event) {
 
 window.addEventListener("message", eventHandler)
 ```
-{% endcode %}
+{% endcode >
 
 We can now parse the steps and add a custom visualization to the dashboard. Using the [simple-heatmap.js](https://github.com/mourner/simpleheat) library, we can attach a visualization to a canvas element. Download the simpleheat.js file and add it to your project.
 
 To use the library, and many others like it, the key is to filter the state data to only the elements we want. Let's write a helper function that filters for agents that are on fire and store their \[x,y\] position.
 
-{% code title="script.js" %}
+{% code title="script.js" >
 ```javascript
 function parseFire(state) {
   return state.map(p => {
@@ -230,13 +230,13 @@ function parseFire(state) {
   }
 )
 ```
-{% endcode %}
+{% endcode >
 
 We're checking if an agent is yellow, which would indicate they're on fire; if so we assign them a color value of 0.5, otherwise 0. We also transform the positions to better visualize the positions on the graph.
 
 So now our full eventHandler will look like this:
 
-{% code title="script.js" %}
+{% code title="script.js" >
 ```javascript
 function eventHandler(event) {  
   if (event.data.type == 'state') {
@@ -247,11 +247,11 @@ function eventHandler(event) {
 
 window.addEventListener("message", eventHandler)
 ```
-{% endcode %}
+{% endcode >
 
 Now we've got all the pieces in place, we just need to start requesting the data from HASH. We're going to add a simple polling function to get the data - for simplicity we'll use `setTimeout()`.
 
-{% code title="index.html" %}
+{% code title="index.html" >
 ```markup
 <script>
 var heat = simpleheat("canvas");
@@ -271,7 +271,7 @@ function poll() {
 setTimeout(poll, 1000);
 </script>
 ```
-{% endcode %}
+{% endcode >
 
 ## Running the Dashboard
 

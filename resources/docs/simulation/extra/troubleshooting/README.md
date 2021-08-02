@@ -11,7 +11,7 @@ There are two types of errors you may encounter when using hCore:
 
 ## Debugging simulation errors
 
-{% embed url="https://youtu.be/lqEZk0Xp51U" caption="Debugging tutorial" %}
+{% embed url="https://youtu.be/lqEZk0Xp51U" caption="Debugging tutorial" >
 
 A few tips for debugging simulation errors:
 

@@ -3,7 +3,7 @@
 After opening up a new simulation in HASH, navigate to globals.json. First, we are going to set up the [**Topology**](https://docs.hash.ai/core/configuration/topology), or the environment, of the model.
 
 <Tabs>
-{% tab title="globals.json" %}
+<Tab title="globals.json" >
 ```javascript
 {
   "topology": {

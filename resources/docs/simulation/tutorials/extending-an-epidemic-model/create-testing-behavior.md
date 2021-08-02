@@ -4,7 +4,7 @@ To start let**'**s create a message from the Person agent that contains the basi
 
 <Tabs>
 <Tab title="JavaScript" >
-{% code title="check\_infected.js" %}
+{% code title="check\_infected.js" >
 ```javascript
 function check_hospital(state) {
    state.addMessage("Hospital", "test", {
@@ -12,18 +12,18 @@ function check_hospital(state) {
    })
  }
 ```
-{% endcode %}
+{% endcode >
 </Tab>
 
 <Tab title="Python" >
-{% code title="check\_infected.py" %}
+{% code title="check\_infected.py" >
 ```python
 def check_hospital():
    state.add_message("Hospital", "test", {
       'test_sick': True
    })
 ```
-{% endcode %}
+{% endcode >
 </Tab>
 </Tabs>
 
@@ -33,17 +33,17 @@ If the person agent runs the`check_hospital` function, it will send a message to
 
 But we don't want our Person agent to be spamming the Hospital with requests to be tested - we only want to send it when the Person suspects that they are sick. We can add a property called `time_to_symptoms` in `globals.json`. That’s how long it takes for a person to start showing symptoms:
 
-{% code title="globals.json" %}
+{% code title="globals.json" >
 ```javascript
  "time_to_symptoms" : 5,
 ```
-{% endcode %}
+{% endcode >
 
 We'll create a local variable to store the global global variable at the top of the `check_infected` behavior file, and add logic so it only sends a message after "symptoms" have developed:
 
 <Tabs>
 <Tab title="JavaScript" >
-{% code title="check\_infected.js" %}
+{% code title="check\_infected.js" >
 ```javascript
 function behavior(state, context) {
   const { time_to_symptoms } = context.globals();
@@ -60,11 +60,11 @@ function behavior(state, context) {
   }
 }
 ```
-{% endcode %}
+{% endcode >
 </Tab>
 
 <Tab title="Python" >
-{% code title="check\_infected.py" %}
+{% code title="check\_infected.py" >
 ```python
 def behavior(state, context):
   time_to_symptoms = context.globals()['time_to_symptoms']
@@ -78,7 +78,7 @@ def behavior(state, context):
   if state['infected'] and state.infection_length >= time_to_symptoms:
     check_hospital()
 ```
-{% endcode %}
+{% endcode >
 </Tab>
 </Tabs>
 
@@ -88,22 +88,22 @@ On the receiving end we need to add a message handler for the hospital. Create a
 
 <Tabs>
 <Tab title="JavaScript" >
-{% code title="test\_for\_virus.js" %}
+{% code title="test\_for\_virus.js" >
 ```javascript
 function behavior(state, context) {
     const test_messages = context.messages().filter(m => m.type === "test");
 }
 ```
-{% endcode %}
+{% endcode >
 </Tab>
 
 <Tab title="Python" >
-{% code title="test\_for\_virus.py" %}
+{% code title="test\_for\_virus.py" >
 ```python
 def behavior(state, context):
     test_messages = list(filter(lambda m: m['type'] == 'test', context.messages()))
 ```
-{% endcode %}
+{% endcode >
 </Tab>
 </Tabs>
 
@@ -151,7 +151,7 @@ Let's check all of the messages and respond to each person, letting them know th
 
 <Tabs>
 <Tab title="JavaScript" >
-{% code title="test\_for\_virus.js" %}
+{% code title="test\_for\_virus.js" >
 ```javascript
  test_messages.forEach(m => state.addMessage(
    m.from,
@@ -161,18 +161,18 @@ Let's check all of the messages and respond to each person, letting them know th
    }
  ))
 ```
-{% endcode %}
+{% endcode >
 </Tab>
 
 <Tab title="Python" >
-{% code title="test\_for\_virus.py" %}
+{% code title="test\_for\_virus.py" >
 ```python
 for msg in test_messages:
   state.add_message(msg['from'], 'test_result', {
      'sick': True,
   })
 ```
-{% endcode %}
+{% endcode >
 </Tab>
 </Tabs>
 

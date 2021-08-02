@@ -8,7 +8,7 @@ See the [experiments section](../../creating-simulations/experiments/) for more 
 
 To run an experiment, you'll want to first identify the parameter of the process you want to explore. For example, in a model with a service block:
 
-{% code title="Snippet of a process model" %}
+{% code title="Snippet of a process model" >
 ```javascript
   "support_resources_solving_stuff": {
        "time": 2,
@@ -17,7 +17,7 @@ To run an experiment, you'll want to first identify the parameter of the process
      },
    "service_agents": 6
 ```
-{% endcode %}
+{% endcode >
 
 In this model we could run experiments with the `“service_agents”` property and see how it responds to different numbers of agents.
 
@@ -29,21 +29,21 @@ The [Globals](../../creating-simulations/configuration/) section describes how a
 
 1. Add a property to globals.json.
 
-{% code title="globals.json" %}
+{% code title="globals.json" >
 ```javascript
 {
  "num_service_agents": 6
 }
 ```
-{% endcode %}
+{% endcode >
 
 2. Replace the property on the process model with the global parameter.
 
-{% code title="create\_process\_from\_chart.js" %}
+{% code title="create\_process\_from\_chart.js" >
 ```javascript
 "service_agents": Math.floor(context.globals().num_service_agents),
 ```
-{% endcode %}
+{% endcode >
 
 3. Create an experiment and use the parameter as the field for the experiment
 

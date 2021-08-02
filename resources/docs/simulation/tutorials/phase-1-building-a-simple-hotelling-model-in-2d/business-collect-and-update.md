@@ -69,7 +69,7 @@ You should see your Business agents start to move around to try and find the bes
 ![](../../.gitbook/assets/lc_p1.gif)
 
 <Tabs>
-{% tab title="business.js" %}
+<Tab title="business.js" >
 ```javascript
 const behavior = (state, context) => {
  const send_message = (agent_id, position, price) => {

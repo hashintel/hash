@@ -16,5 +16,5 @@ While the simulation is running you may be able to glean insight from visually o
 
 These are the kinds of questions you can answer with HASH's analysis capabilities. It allows you to define Metrics, and then use them to create Plots.
 
-{% embed url="https://youtu.be/1ILw6dEbWoE" caption="" %}
+{% embed url="https://youtu.be/1ILw6dEbWoE" caption="" >
 

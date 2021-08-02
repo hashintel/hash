@@ -9,17 +9,17 @@ We start by cataloguing the agents. In AnyLogic you can double click on any of t
 **FuelTruck**
 
 <Tabs>
-{% tab title="Purpose" %}
+<Tab title="Purpose" >
 Fuel Trucks transport oil from refineries and storage agents to retailer agents.
 </Tab>
 
-{% tab title="Properties" %}
+<Tab title="Properties" >
 * retailer: The location of a RetailerAgent to deliver to
 * capacity: The amount of oil a fuel truck can store
 * loadingRate: How long it takes to load oil from a storage unit into the truck
 </Tab>
 
-{% tab title="Behaviors" %}
+<Tab title="Behaviors" >
 * A fuel truck should respond to demand from retailers by picking up oil.
 * A fuel truck should load oil at a loadingRate from a refinery/storage location
 * A fuel truck should deposit it at a given retailer
@@ -29,16 +29,16 @@ Fuel Trucks transport oil from refineries and storage agents to retailer agents.
 **Refinery**
 
 <Tabs>
-{% tab title="Purpose" %}
+<Tab title="Purpose" >
 Refinery Agents take unprocessed oil and refine it into oil that can be delivered to storage units / retailers
 </Tab>
 
-{% tab title="Properties" %}
+<Tab title="Properties" >
 * capacity: amount of oil a refinery agent can store
 * refiningRate: speed that unrefined oil is refined
 </Tab>
 
-{% tab title="Behaviors" %}
+<Tab title="Behaviors" >
 * A refinery agent should accept and store crude oil
 * A refinery agent should 'process' the crude oil, turning it into refined oil
 * A refinery agent should load oil into fuel trucks or storage units
@@ -48,17 +48,17 @@ Refinery Agents take unprocessed oil and refine it into oil that can be delivere
 **Retailer**
 
 <Tabs>
-{% tab title="Purpose" %}
+<Tab title="Purpose" >
 Retailers represent customer demand for oil and request and receive oil from fuel agents.
 </Tab>
 
-{% tab title="Properties" %}
+<Tab title="Properties" >
 * capacity: amount of oil a retailer can store
 * reorderLevel: the level of current capacity vs. max at which retailer orders fuel
 * meanOrder: mean order size of fuel
 </Tab>
 
-{% tab title="Behaviors" %}
+<Tab title="Behaviors" >
 * Retailers should place orders w/ fuel trucks to be resupplied
 * Retailers should accept oil from fuel trucks
 * Retailers should decrease their current stock over time.
@@ -68,17 +68,17 @@ Retailers represent customer demand for oil and request and receive oil from fue
 **Storage**
 
 <Tabs>
-{% tab title="Purpose" %}
+<Tab title="Purpose" >
 Storage agents hold unrefined and refined oil.
 </Tab>
 
-{% tab title="Properties" %}
+<Tab title="Properties" >
 * capacity:  amount of oil a storage agent can store
 * terminal: boolean value for whether a storage agent is a terminal destination \(at which point the oil leaves the simulation\)
 * type: type of storage agent \(ports, storage, distributors\)
 </Tab>
 
-{% tab title="Behaviors" %}
+<Tab title="Behaviors" >
 * A storage agent should respond to refinery agents, tankers, fuel truck agents and send oil or accept oil
 * A storage agent should send x amount of oil to an agent, where x is the loadingRate/unloadingRate of the agent
 </Tab>
@@ -95,16 +95,16 @@ All of these share lots of features, so we’ll be able to make use of HASH’s 
 **Tanker**
 
 <Tabs>
-{% tab title="Purpose" %}
+<Tab title="Purpose" >
 Tankers deliver oil from ‘outside the sim’ \(they actually generate it\) to storage units
 </Tab>
 
-{% tab title="Properties" %}
+<Tab title="Properties" >
 * capacity:  amount of oil a tanker agent can store
 * unloadRate: the speed tankers can deliver oil
 </Tab>
 
-{% tab title="Behaviors" %}
+<Tab title="Behaviors" >
 * Tankers should move to storage agents to deliver oil
 * Tankers should unload oil into storage agents
 * Tankers should fill their oil to capacity if at a specific position

@@ -23,7 +23,7 @@ All hCore messages use the [postMessage technique for messaging between iFrames]
 
 Update the contents of a simulation file to the contents defined in the message payload.
 
-{% code title="updateFile message example" %}
+{% code title="updateFile message example" >
 ```javascript
 {
   "id": "1625b2ce-441f-4b42-8d44-80ec3bae2495",
@@ -33,25 +33,25 @@ Update the contents of a simulation file to the contents defined in the message 
   "contents": JSON.stringify({"foo": 1})
  }
 ```
-{% endcode %}
+{% endcode >
 
 ## sendState
 
 Request the current state of the simulation. Will return a message with `type: "state"` and the full state as a dictionary under `contents`, where the key is the time step and the value an array of agent objects.
 
 <Tabs>
-{% tab title="Message" %}
-{% code title="sendState message example" %}
+<Tab title="Message" >
+{% code title="sendState message example" >
 ```javascript
 {
  "id": "1625b2ce-441f-4b42-8d44-80ec3bae2495",
  "type": "sendState"
 }
 ```
-{% endcode %}
+{% endcode >
 </Tab>
 
-{% tab title="Response" %}
+<Tab title="Response" >
 ```
 { type: 'state',
   contents: 
@@ -77,15 +77,15 @@ Request the current state of the simulation. Will return a message with `type: "
 Request that HASH send a message every time a file changes. If you send this to a framed hCore, it will send a message with `type: "files"` and `content: file[]` every time changes are made to a source file.
 
 <Tabs>
-{% tab title="Message" %}
-{% code title="initialize message example" %}
+<Tab title="Message" >
+{% code title="initialize message example" >
 ```javascript
 {
  "id": "1625b2ce-441f-4b42-8d44-80ec3bae2495",
  "type": "initialize"
 }
 ```
-{% endcode %}
+{% endcode >
 </Tab>
 </Tabs>
 
@@ -94,15 +94,15 @@ Request that HASH send a message every time a file changes. If you send this to 
 Trigger hCore to reset the simulation, generate a new simulation run, and start it playing.
 
 <Tabs>
-{% tab title="Message" %}
-{% code title="resetAndRun message example" %}
+<Tab title="Message" >
+{% code title="resetAndRun message example" >
 ```javascript
 {
  "id": "1625b2ce-441f-4b42-8d44-80ec3bae2495",
  "type": "resetAndRun"
 }
 ```
-{% endcode %}
+{% endcode >
 </Tab>
 </Tabs>
 

@@ -23,7 +23,7 @@ Experiments can be created with the Experiments Wizard, or by manually defining 
 For example, this `values` experiment will run seven experiments, setting a different value of \[0..6\] in the radius field in each one.
 
 <Tabs>
-{% tab title="experiments.json" %}
+<Tab title="experiments.json" >
 ```javascript
 {
     "Sweep values": {
@@ -65,7 +65,7 @@ You can run experiments locally or in [hCloud](../h.cloud.md)
 
 For more information on specific syntax, read more about [Experiment Types](experiment-types.md).
 
-{% embed url="https://youtu.be/tLcrXQxN70c" %}
+{% embed url="https://youtu.be/tLcrXQxN70c" >
 
 
 

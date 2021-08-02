@@ -25,11 +25,11 @@ def behavior(state, context):
 
 You can see an example use of this method in the Wildfires simulation. When a tree burns down, or begins to regrow, it cycles through three behaviors: `tree.js`, `fire.js` and `ember.js`.
 
-{% embed url="https://core.hash.ai/@hash/wildfires-regrowth/stable" caption="The Wildfires simulation" %}
+{% embed url="https://core.hash.ai/@hash/wildfires-regrowth/stable" caption="The Wildfires simulation" >
 
 The switching is accomplished by indexing into the agent's behavior array using `state.behaviorIndex()` and assigning the next behavior.
 
-{% code title="fire.js" %}
+{% code title="fire.js" >
 ```javascript
 function behavior(state, context) {
 
@@ -41,5 +41,5 @@ function behavior(state, context) {
   state.height = 3;
 };
 ```
-{% endcode %}
+{% endcode >
 

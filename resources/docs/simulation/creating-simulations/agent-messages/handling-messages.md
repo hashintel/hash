@@ -55,7 +55,7 @@ def behavior(state, context):
 ```
 </Tab>
 
-{% tab title="Rust" %}
+<Tab title="Rust" >
 ```rust
 fn (state: AgentState, context: &Context) -> AgentState {
     context.messages()

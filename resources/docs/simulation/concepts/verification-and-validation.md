@@ -15,7 +15,7 @@ While there are a lot of ways to add unit tests to a simulation, a straightforwa
 
 <Tabs>
 <Tab title="JavaScript" >
-{% code title="test\_behavior.js" %}
+{% code title="test\_behavior.js" >
 ```javascript
 function testCaseOne(state) {
   if (state.test_case_one == state.actual_value) {
@@ -44,11 +44,11 @@ const behavior = (state, context) => {
   }
 }
 ```
-{% endcode %}
+{% endcode >
 </Tab>
 
 <Tab title="Python" >
-{% code title="test\_behavior.py" %}
+{% code title="test\_behavior.py" >
 ```python
 def test_case_one():
   if state.test_case_one == state.actual_value:
@@ -69,7 +69,7 @@ def behavior(state, context):
     test_case_two(state)
 
 ```
-{% endcode %}
+{% endcode >
 </Tab>
 </Tabs>
 
@@ -79,7 +79,7 @@ While verification will ensure that the simulation meets the desired specificati
 
 A common way to validate a simulation is by comparing the results of a simulation run against external data. You can use HASH's dataset features to add data and visualize it against a simulation run. For example, in the [Multi-Stage Cell Replication simulation](https://core.hash.ai/@hash/multi-stage-cell-replication/1.0.0), the validate.js behavior takes an external dataset and saves the values for a given time step to a value on state to then be visualized as a metric.
 
-{% code title="validate.js" %}
+{% code title="validate.js" >
 ```javascript
   const data = context.data()[context.globals().dataset][state.counter];
   const [red_data, yellow_data, green_data] = [parseFloat(data[1]), parseFloat(data[2]), parseFloat(data[3])]
@@ -90,7 +90,7 @@ A common way to validate a simulation is by comparing the results of a simulatio
 
   state.cells_data = red_data + yellow_data + green_data;
 ```
-{% endcode %}
+{% endcode >
 
 ![A simulation that would not pass a validation test](../.gitbook/assets/image%20%2875%29.png)
 

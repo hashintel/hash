@@ -20,7 +20,7 @@ In `init.json` you'll explicitly define all your agents as JSON blobs in an arra
 
 You can create whatever field names you need on your agents, but be aware of setting incorrect value types on protected fields we mentioned previously.
 
-{% code title="init.json" %}
+{% code title="init.json" >
 ```text
 [
     {"position": [0,0],
@@ -29,7 +29,7 @@ You can create whatever field names you need on your agents, but be aware of set
      "behaviors": ["foo.js"]},     
 ]
 ```
-{% endcode %}
+{% endcode >
 
 When you make a change to the file, you'll need to reset your simulation to see updated agents appear in the 3D Viewer.
 

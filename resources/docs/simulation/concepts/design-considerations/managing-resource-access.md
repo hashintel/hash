@@ -8,15 +8,15 @@ Agent _C_ \_\*\*\_now needs to determine which agent should receive the resource
 
 An example of this type of pattern is in [Sugarscape](https://hash.ai/@hash/sugarscape), in which agents search for and collect “sugar”. When an agent moves to a patch of sugar it sends a message to the patch, requesting sugar \(line 31 in `sugar_agent.js`\).
 
-{% code title="sugar\_agent.js" %}
+{% code title="sugar\_agent.js" >
 ```javascript
 state.addMessage(bestPatch.agent_id, "request", {});
 ```
-{% endcode %}
+{% endcode >
 
 The patch then sends sugar to only one of the agents who made a request \(lines 15-24 in `sugar_patch.js`\). This prevents multiple agents from “grabbing” the limited resource .
 
-{% code title=" sugar\_patch.js" %}
+{% code title=" sugar\_patch.js" >
 ```javascript
 if (requests.length) {
     // Send all sugar to randomly selected agent
@@ -29,11 +29,11 @@ if (requests.length) {
     sugar = 0;
 }
 ```
-{% endcode %}
+{% endcode >
 
 <Tabs>
 <Tab title="JavaScript" >
-{% code title=" sugar\_patch.js" %}
+{% code title=" sugar\_patch.js" >
 ```javascript
 if (requests.length) {
     // Send all sugar to randomly selected agent
@@ -46,7 +46,7 @@ if (requests.length) {
     sugar = 0;
 }
 ```
-{% endcode %}
+{% endcode >
 </Tab>
 </Tabs>
 

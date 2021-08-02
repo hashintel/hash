@@ -10,7 +10,7 @@ In the AnyLogic model, the agents are initialized from a database. When the simu
 
 In HASH, we provide similar functionality through the [HASH Index](https://hash.ai/platform/index) \(hIndex\). The hIndex is a place you can find existing data or upload your own \(privately or publicly\). In this case, we’ve created an [example dataset](https://hash.ai/@hash/ex) for the simulation that contains a network representation of the system. Now in the simulation we can upload the dataset and, in a create function, spin up agents with those properties.
 
-{% code title="initialize.py" %}
+{% code title="initialize.py" >
 ```python
 pipelines = context.data()['@hash/ex/oil_pipelines.json']
 G = nx.node_link_graph(pipelines)
@@ -27,7 +27,7 @@ for loc in pipelines['nodes']:
     elif loc['type'] == 'retailer'
         # Create Retailers
 ```
-{% endcode %}
+{% endcode >
 
 Our creator function will parse the dataset and assign the necessary properties and behaviors to every agent. An upcoming version of HASH will include a click-through wizard that will do this on your behalf.
 
@@ -35,7 +35,7 @@ Our creator function will parse the dataset and assign the necessary properties 
 
 We'll use another dataset to determine the demand **Retailers** experience. The U.S Energy Information Administration has a database that includes historical gasoline supply. We'll import [that dataset](https://hash.ai/@useia/petrol-and-liquids) and write a behavior to process the data, and allow our `initialize.js` file to use it in assigning the `avg_demand` for **Retailers**
 
-{% code title="process\_data.js" %}
+{% code title="process\_data.js" >
 ```javascript
 const behavior = (state, context) => {
   const data = context.data()["@useia/petrol-and-liquids/week-supply-gas.csv"];
@@ -67,5 +67,5 @@ const behavior = (state, context) => {
   state.set("yearly_supply", yearly_supply);
 };
 ```
-{% endcode %}
+{% endcode >
 

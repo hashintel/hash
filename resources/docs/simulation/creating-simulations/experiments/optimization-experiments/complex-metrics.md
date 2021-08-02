@@ -29,7 +29,7 @@ This agent must have a search radius that allows it to see all other agents in t
 
 #### 3. Create a new behavior which calculates this metric
 
-{% code title="calculate\_metric.js" %}
+{% code title="calculate\_metric.js" >
 ```javascript
 const behavior = () => {
     // Gather data
@@ -47,7 +47,7 @@ const behavior = () => {
 
 }
 ```
-{% endcode %}
+{% endcode >
 
 <Hint style="info">
 Metric weights can also be captured as global parameters for easy modification
@@ -71,7 +71,7 @@ Let's set up a slightly different complex metric:
 
 #### 3. Create a new behavior for gathering and comparing simulation data
 
-{% code title="gather\_data.js" %}
+{% code title="gather\_data.js" >
 ```javascript
 const behavior = () => {
     // Gather data from agents
@@ -86,7 +86,7 @@ const behavior = () => {
     state.cumulative_error_metric += state.error_metric;
 }
 ```
-{% endcode %}
+{% endcode >
 
 <Hint style="info">
 Sum of squares is the typical method for calculating the error between a sample datapoint and "predicted" or modeled datapoint: _Error =  Sum of \(agent\_avg - data\_avg\)^2_

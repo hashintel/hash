@@ -19,7 +19,7 @@ $$
 Create the function `calculate_cost()` in **`customer.js`**.
 
 <Tabs>
-{% tab title="customer.js" %}
+<Tab title="customer.js" >
 ```javascript
 const behavior = (state, context) => {
   // Function to determine cost --> Business price * distance from Business
@@ -186,7 +186,7 @@ The **`customer.js`** behavior is finally complete!
 To see **customer.js** in full, navigate to bottom of this section or click on ‘**Phase 1** **Final Code**’ in the sidebar.
 </Hint>
 
-{% hint style="danger" %}
+{% hint style="danger" >
 
 </Hint>
 
@@ -197,7 +197,7 @@ If you followed all the steps above, run the simulation a couple times and you s
 ![](../../.gitbook/assets/lc_p2_customers.gif)
 
 <Tabs>
-{% tab title="customer.js" %}
+<Tab title="customer.js" >
 ```javascript
 const behavior = (state, context) => {
  // Function to determine cost --> business price + distance from business
@@ -298,7 +298,7 @@ const behavior = (state, context) => {
 ```
 </Tab>
 
-{% tab title="init.json" %}
+<Tab title="init.json" >
 ```text
 [
  {
@@ -344,7 +344,7 @@ const behavior = (state, context) => {
 ```
 </Tab>
 
-{% tab title="business.js" %}
+<Tab title="business.js" >
 ```javascript
 const behavior = (state, context) => {
  const send_message = (agent_id, position, price) => {

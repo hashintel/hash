@@ -30,7 +30,7 @@ These blocks are published behaviors that you use in the `behaviors` array just 
 
 Additionally, you can add your custom blocks to [perform custom logic](custom-behaviors.md). Create a new behavior, or fork the custom behavior, and add in your own code.
 
-{% code title="@hash/process/custom\_process\_template.js" %}
+{% code title="@hash/process/custom\_process\_template.js" >
 ```javascript
 // Forked custom_process_template.js to add a behavior
 // that will increment a property on the object called count by 1.
@@ -63,5 +63,5 @@ const behavior = (state, context) => {
  state[next_process + "_queue"] = queue;
 };
 ```
-{% endcode %}
+{% endcode >
 

@@ -31,7 +31,7 @@ Sink blocks will record all the waits an object experienced, as well as the tota
 Each Service, Seize, or Release block in your process model has an associated resource property specified in its parameters. 
 
 <Tabs>
-{% tab title="Service Block" %}
+<Tab title="Service Block" >
 ```javascript
 "bake_pizza": {
   "resource": "oven_spots",
@@ -42,7 +42,7 @@ Each Service, Seize, or Release block in your process model has an associated re
 ```
 </Tab>
 
-{% tab title="Seize Block" %}
+<Tab title="Seize Block" >
 ```javascript
 "prep_spot": {
   "resource": "spots",
@@ -51,7 +51,7 @@ Each Service, Seize, or Release block in your process model has an associated re
 ```
 </Tab>
 
-{% tab title="Release Block" %}
+<Tab title="Release Block" >
 ```javascript
 "peel_pizza": {
   "resource": "spots",

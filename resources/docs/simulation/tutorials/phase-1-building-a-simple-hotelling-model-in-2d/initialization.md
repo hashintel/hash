@@ -15,7 +15,7 @@ Customers begin evenly distributed in a grid across the environment. Thanks to H
 * **`@hash/create-agents/create_agents.js`**- creates the Customers in the model environment.
 * **`@hash/remove-self/remove_self.js`** - removes the creator agent from the simulation after all agents have been initialized.
 
-{% code title="init.json" %}
+{% code title="init.json" >
 ```javascript
 [
   {
@@ -42,7 +42,7 @@ Customers begin evenly distributed in a grid across the environment. Thanks to H
   }
 ]
 ```
-{% endcode %}
+{% endcode >
 
 Before we can successfully initialize the Customers defined under `grid_templates`, we need to create the `customer.js` behavior. Don’t worry about writing the behavior at the moment, we only need to create the file. Select the new file icon above the Files Sidebar in the top left and create customer.js.
 
@@ -60,7 +60,7 @@ Now to create Business agents:
    1. **`@hash/create-scatters/create_scatters.js`**
    2. **`update_businesses.js`**
 
-{% code title="init.json" %}
+{% code title="init.json" >
 ```javascript
 [
   {
@@ -100,7 +100,7 @@ Now to create Business agents:
   }
 ]
 ```
-{% endcode %}
+{% endcode >
 
 If you run your simulation now you should see two green agents placed randomly within the grid.
 
@@ -111,7 +111,7 @@ Since our agent creator is first defined in `init.json`, which can't run JavaScr
 We’re going to update the rgb value of each Business to a random color in `update_businesses.js`.
 
 <Tabs>
-{% tab title="update\_businesses.js" %}
+<Tab title="update\_businesses.js" >
 ```javascript
 const behavior = (state, context) => {
   for (b of state.agents["businesses"]) {

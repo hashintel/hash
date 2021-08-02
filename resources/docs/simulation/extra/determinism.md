@@ -54,7 +54,7 @@ const num_new_agents = poisson.sample(10);
 </Tab>
 </Tabs>
 
-{% embed url="https://hash.ai/@hash/determinism" caption="An example simulation demonstrating Determinism" %}
+{% embed url="https://hash.ai/@hash/determinism" caption="An example simulation demonstrating Determinism" >
 
 HASH standard library functions for distributions and random number generation are currently only available in JavaScript; [Python supports setting a seed natively](https://docs.python.org/3/library/random.html) and, if creating a Python simulation, you should consider using `random.seed()` and/or [numpy](../creating-simulations/libraries/python-packages.md).
 

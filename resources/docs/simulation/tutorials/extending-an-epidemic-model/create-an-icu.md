@@ -9,11 +9,11 @@ Let’s breakdown what we’ll need to modify in our existing model:
 
 On your Hospital initialization \(in `init.json`\), add a value for `icu_beds`. This will represent the number of Intensive Care Unit beds that a hospital has.
 
-{% code title="init.json" %}
+{% code title="init.json" >
 ```javascript
  "icu_beds": 10,
 ```
-{% endcode %}
+{% endcode >
 
 In `init.json` , expand the hospital agent by adding a value for `icu_capacity`.
 
@@ -84,7 +84,7 @@ Open the `test_for_virus` behavior and, in our message parsing loop, add control
 
 <Tabs>
 <Tab title="JavaScript" >
-{% code title="test\_for\_virus.js" %}
+{% code title="test\_for\_virus.js" >
 ```javascript
 test_messages.forEach(m => {
 
@@ -97,11 +97,11 @@ test_messages.forEach(m => {
     //existing code    
 })
 ```
-{% endcode %}
+{% endcode >
 </Tab>
 
 <Tab title="Python" >
-{% code title="test\_for\_virus.py" %}
+{% code title="test\_for\_virus.py" >
 ```python
 for msg in test_messages:
     # ...
@@ -112,7 +112,7 @@ for msg in test_messages:
         state['icu_beds'] = state['icu_beds'] - 1;
         icu_or_home = True
 ```
-{% endcode %}
+{% endcode >
 </Tab>
 </Tabs>
 
@@ -120,7 +120,7 @@ Let’s add a flag that the person has a case severe enough that they will stay 
 
 <Tabs>
 <Tab title="JavaScript" >
-{% code title="test\_for\_virus.js" %}
+{% code title="test\_for\_virus.js" >
 ```javascript
 test_messages.forEach(m => {
     // ... 
@@ -137,11 +137,11 @@ test_messages.forEach(m => {
     })
 })
 ```
-{% endcode %}
+{% endcode >
 </Tab>
 
 <Tab title="Python" >
-{% code title="test\_for\_virus.py" %}
+{% code title="test\_for\_virus.py" >
 ```python
 for msg in test_messages:
     # ...
@@ -157,7 +157,7 @@ for msg in test_messages:
         'icu_or_home': icu_or_home
     })
 ```
-{% endcode %}
+{% endcode >
 </Tab>
 </Tabs>
 
@@ -165,7 +165,7 @@ Let’s return to our person agent. They’ve just received a message from the h
 
 <Tabs>
 <Tab title="JavaScript" >
-{% code title="check\_infected.js" %}
+{% code title="check\_infected.js" >
 ```javascript
 //A person checks for messages from the hospital telling them their test results
 let msgs = context.messages().filter(msg => msg.type === "test_result");
@@ -181,11 +181,11 @@ let msgs = context.messages().filter(msg => msg.type === "test_result");
   }
   )
 ```
-{% endcode %}
+{% endcode >
 </Tab>
 
 <Tab title="Python" >
-{% code title="check\_infected.py" %}
+{% code title="check\_infected.py" >
 ```python
 # A person checks for messages from the hospital telling them their test results
 msgs = list(filter(lambda m: m['type'] == 'test_result', context.messages()))
@@ -197,7 +197,7 @@ for msg in msgs:
   elif msg['data']['sick']:
     state['destination'] = state['home']
 ```
-{% endcode %}
+{% endcode >
 </Tab>
 </Tabs>
 
@@ -207,24 +207,24 @@ We'll need to make a change to the `daily_movement` file as well, to prevent the
 
 <Tabs>
 <Tab title="JavaScript" >
-{% code title="daily\_movement.js" %}
+{% code title="daily\_movement.js" >
 ```javascript
 // Line 53
 if (state.social_distancing || state.icu) {
   return;
 }
 ```
-{% endcode %}
+{% endcode >
 </Tab>
 
 <Tab title="Python" >
-{% code title="daily\_movement.py" %}
+{% code title="daily\_movement.py" >
 ```python
 # Line 53
 if state['social_distancing'] or state['icu']:
   return
 ```
-{% endcode %}
+{% endcode >
 </Tab>
 </Tabs>
 
@@ -239,7 +239,7 @@ The `infection` behavior handles the logic for infection state:
 
 <Tabs>
 <Tab title="JavaScript" >
-{% code title="infection.js" %}
+{% code title="infection.js" >
 ```javascript
 // Line 87
 if (state.infection_duration === 0) {
@@ -248,11 +248,11 @@ if (state.infection_duration === 0) {
     //TODO: notify the hospital the person has recovered
 }
 ```
-{% endcode %}
+{% endcode >
 </Tab>
 
 <Tab title="Python" >
-{% code title="infection.py" %}
+{% code title="infection.py" >
 ```python
 # Line 74
 if state['infection_duration'] == 0:
@@ -261,7 +261,7 @@ if state['infection_duration'] == 0:
   state['color'] = 'green'
   # TODO: notify the hospital the person has recovered
 ```
-{% endcode %}
+{% endcode >
 </Tab>
 </Tabs>
 
@@ -314,17 +314,17 @@ Finally, let's handle the message logic on the Hospitals side in the "test\_for\
 
 <Tabs>
 <Tab title="JavaScript" >
-{% code title="test\_for\_virus.js" %}
+{% code title="test\_for\_virus.js" >
 ```javascript
  const recovered_messages = context.messages().filter(m => m.type === "recovered");
  //Frees up a bed for each (recovered,severe) case
  recovered_messages.forEach(m => state.icu_beds += 1);
 ```
-{% endcode %}
+{% endcode >
 </Tab>
 
 <Tab title="Python" >
-{% code title="test\_for\_virus.py" %}
+{% code title="test\_for\_virus.py" >
 ```python
 recovered_messages = list(filter(lambda m: m['type'] == 'recovered', context.messages()))
 
@@ -332,7 +332,7 @@ recovered_messages = list(filter(lambda m: m['type'] == 'recovered', context.mes
 for msg in recovered_messages:
     state['icu_beds'] += 1
 ```
-{% endcode %}
+{% endcode >
 </Tab>
 </Tabs>
 
