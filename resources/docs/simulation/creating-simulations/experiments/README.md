@@ -24,6 +24,7 @@ For example, this `values` experiment will run seven experiments, setting a diff
 
 <Tabs>
 <Tab title="experiments.json" >
+
 ```javascript
 {
     "Sweep values": {
@@ -34,7 +35,8 @@ For example, this `values` experiment will run seven experiments, setting a diff
     }
 }
 ```
-</Tab>
+
+</Tab >
 </Tabs>
 
 To run an experiment, click the "Experiment Runner" button in the runner controls, denoted with a beaker icon. The option "Sweep Values" will be available in the selector.
@@ -66,6 +68,5 @@ You can run experiments locally or in [hCloud](../h.cloud.md)
 For more information on specific syntax, read more about [Experiment Types](experiment-types.md).
 
 <Embed type="youtube" url="https://youtu.be/tLcrXQxN70c" />
-
 
 
