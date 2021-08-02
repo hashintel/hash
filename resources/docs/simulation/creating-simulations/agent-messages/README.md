@@ -57,22 +57,22 @@ You can use the helper function state.addMessage\(to&lt;String&gt;, type&lt;Stri
 
 <Tabs>
 <Tab title="JavaScript" >
-    
+
 ```javascript
 const behavior = (state, context) => {
     state.addMessage("foo", "bar", {msg: "hello"});
 }
 ```
-    
+
 </Tab >
 
 <Tab title="Python" >
-    
+
 ```python
 def behavior(state, context):
   state.add_message("foo", "bar", {msg: "hello"})
 ```
-    
+
 </Tab>
 </Tabs>
 
