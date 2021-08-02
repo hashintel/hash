@@ -2,8 +2,8 @@
 
 Open up the `init.json` file. It should look like:
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
 {% code title="init.json" %}
 ```javascript
 [
@@ -44,9 +44,9 @@ Open up the `init.json` file. It should look like:
 ]
 ```
 {% endcode %}
-{% endtab %}
+</Tab>
 
-{% tab title="Python" %}
+<Tab title="Python" >
 {% code title="init.json" %}
 ```javascript
 [
@@ -90,14 +90,14 @@ Open up the `init.json` file. It should look like:
 ]
 ```
 {% endcode %}
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 `init.json` defines the 'initial state' of the simulation. In this case we're using some 'creator' utility behaviors, attached to a setup agent, who plays no role in our experiments beyond helping get our world set up correctly.
 
-{% hint style="info" %}
+<Hint style="info">
 See [Initializing Agents](../../creating-simulations/anatomy-of-an-agent/initial-state.md) for more on init.json and creator agents.
-{% endhint %}
+</Hint>
 
 This setup agent has four behaviors attached to it which will help populate our world. In order:
 
@@ -125,8 +125,8 @@ Or, we can follow the creator pattern and add it as a "stack" \(as it's at a spe
 
 ![It&apos;s easy to find powerful behaviors in the hIndex to add to your models \(or share your own!\) ](../../.gitbook/assets/screen-shot-2020-04-02-at-9.48.14-pm.png)
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
 {% code title="init.json" %}
 ```javascript
 [
@@ -154,9 +154,9 @@ Or, we can follow the creator pattern and add it as a "stack" \(as it's at a spe
 ]
 ```
 {% endcode %}
-{% endtab %}
+</Tab>
 
-{% tab title="Python" %}
+<Tab title="Python" >
 {% code title="init.json" %}
 ```javascript
 [
@@ -184,8 +184,8 @@ Or, we can follow the creator pattern and add it as a "stack" \(as it's at a spe
 ]
 ```
 {% endcode %}
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 You can set the position, color, and height as whatever you’d like.
 

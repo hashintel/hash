@@ -17,9 +17,9 @@ Behaviors allow agents to exhibit _agency_ in the simulation. An agent can have 
 
 Behaviors are pure functions in the form of: `(current_state, context) => { // update state }`
 
-{% hint style="warning" %}
+<Hint style="warning">
 To run your simulation [with hCloud](../h.cloud.md), you'll need to [define Behavior Keys](behavior-keys/) for each behavior in your simulation.
-{% endhint %}
+</Hint>
 
 The exact semantics vary by programming language, but in spirit every behavior is a pure function which receives a given agent's state, the world context visible to that agent, and produces its next state.
 
@@ -27,24 +27,24 @@ The exact semantics vary by programming language, but in spirit every behavior i
 
 Most behaviors output a single state with the same `agent_id` as they received. For example, the following behavior code causes an agent to move along the x-axis:
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
 ```javascript
 const behavior = (state, context) => {
     state.position[0] += 1;
 }
 ```
-{% endtab %}
+</Tab>
 
-{% tab title="Python" %}
+<Tab title="Python" >
 ```python
 def behavior(state, context):
     state["position"][0] += 1
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
-{% hint style="info" %}
+<Hint style="info">
 Agents can use behaviors to create new agents by sending a message to the special `hash` agent. This is covered more in-depth in [Messages](../agent-messages/built-in-message-handlers.md#creating-agents-via-messages).
-{% endhint %}
+</Hint>
 

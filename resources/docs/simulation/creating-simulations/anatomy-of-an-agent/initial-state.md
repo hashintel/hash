@@ -47,8 +47,8 @@ When you do, any defined agents will be added as objects in an array named `agen
 
 Now you can write JavaScript or Python in the file and use it to set agent properties.
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
 ```javascript
 const init = (context) => {
   let agents = [
@@ -63,9 +63,9 @@ const init = (context) => {
   return agents;
 }
 ```
-{% endtab %}
+</Tab>
 
-{% tab title="Python" %}
+<Tab title="Python" >
 ```python
 import random
 
@@ -81,17 +81,17 @@ def init(context):
 
   return agents
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
-{% hint style="warning" %}
+<Hint style="warning">
 **init.js** and **init.py** must return an array of objects
-{% endhint %}
+</Hint>
 
 To programmatically create agents, you can add loops and similar logic to append agents to the array.
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
 ```javascript
 const init = (context) => {
   let agents = [];
@@ -103,20 +103,20 @@ const init = (context) => {
   return agents;
 }
 ```
-{% endtab %}
+</Tab>
 
-{% tab title="Python" %}
+<Tab title="Python" >
 ```python
 def init(context):
     return [{ "position": [i,i] } for i in range(0,100)]
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 Within an `init.js` or `init.py` file you have access to the [context](context.md) of the simulation, where you can access the data and global variables attached to the simulation. You can use them to seed values in your initialization.
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
 ```javascript
 /**
  * @param {InitContext} initialization context
@@ -139,9 +139,9 @@ const init = (context) => {
   return agents;
 }
 ```
-{% endtab %}
+</Tab>
 
-{% tab title="Python" %}
+<Tab title="Python" >
 ```python
 import statistics
 import random
@@ -163,12 +163,12 @@ def init(context):
 
   return agents
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
-{% hint style="info" %}
+<Hint style="info">
 The `context` object in the **init** file is slightly different from the context available during a simulation run. Neighbors and messages won't be available as they don't exist before a simulation starts.
-{% endhint %}
+</Hint>
 
 You can also make use of functions in HASH's standard library to generate agents in predefined patterns.
 
@@ -189,9 +189,9 @@ You can learn more about all the **init** functions in the standard library [in 
 
 ## Creator Agents
 
-{% hint style="info" %}
+<Hint style="info">
 If you want to jump right into code you can take a look at our [Initialization Demo ](https://hash.ai/@hash/initialization-demo)which demos creator agents.
-{% endhint %}
+</Hint>
 
 With "creator" agents you can create agents that create other agents. For example, by accessing published behaviors, we can very easily generate common agent placements. These behaviors can be found in the lower left corner; search for and then click on them to add them to your simulation:
 
@@ -219,31 +219,31 @@ Here we've randomly assigned the color of our "ground" agents, and given each of
 
 Our creator then runs two more published behaviors. `Create Agents (@hash/create-agents/create_agents.js)` sends messages to the engine to generate every agent in the "agents" object, and `Remove Self (@hash/remove-self/remove_self.js)` gets rid of the "creator" agent, since it's finished all it needs to do. Again, these behaviors can be found in the lower left sidebar.
 
-{% hint style="info" %}
+<Hint style="info">
 You can create new agents during your simulation by sending a message to the reserved hash keyword.
-{% endhint %}
+</Hint>
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
 ```javascript
 state.addMessage("hash", "create_agent", {
     ...agent_details
  })
 ```
-{% endtab %}
+</Tab>
 
-{% tab title="Python" %}
+<Tab title="Python" >
 ```python
 state.add_message("hash", "create_agent", {
     ...agent_details
  })
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 If you'd like to explore another simple example that uses these published behaviors, take a look at the [Wildfires](https://hash.ai/@hash/wildfires-regrowth) or [Rock, Paper, Scissors](https://core.hash.ai/@hash/rock-paper-scissors/stable) simulations.
 
-{% hint style="info" %}
+<Hint style="info">
 If you ever feel like you might be "reinventing the wheel," check out [hIndex](https://hash.ai/search?contentType=Behavior&sort=relevance&query=create&page=1). There you'll find hundreds of pre-made, ready-to-use simulation components.
-{% endhint %}
+</Hint>
 

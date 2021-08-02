@@ -49,9 +49,9 @@ const behavior = () => {
 ```
 {% endcode %}
 
-{% hint style="info" %}
+<Hint style="info">
 Metric weights can also be captured as global parameters for easy modification
-{% endhint %}
+</Hint>
 
 #### 4. Create a new Analysis metric that collects the `state.metric` field on your agent
 
@@ -88,9 +88,9 @@ const behavior = () => {
 ```
 {% endcode %}
 
-{% hint style="info" %}
+<Hint style="info">
 Sum of squares is the typical method for calculating the error between a sample datapoint and "predicted" or modeled datapoint: _Error =  Sum of \(agent\_avg - data\_avg\)^2_
-{% endhint %}
+</Hint>
 
 #### 4. Now create a metric to capture the calculated error:
 

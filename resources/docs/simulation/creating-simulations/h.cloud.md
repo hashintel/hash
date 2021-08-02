@@ -4,15 +4,15 @@ description: Run simulations on our hCloud infrastructure
 
 # Cloud Compute
 
-{% hint style="success" %}
+<Hint style="success">
 **10 hours of free hCloud compute time is provided to every user each month.**  
 There are no limitations or caps on your ability to simulate things locally in-browser.
-{% endhint %}
+</Hint>
 
-{% hint style="info" %}
+<Hint style="info">
 **You must have created at least one** [**experiment**](https://docs.hash.ai/core/experiments) **in order to run a model on hCloud.**  
 Single-run simulations are not supported on hCloud at this time. Please ensure you have at least one experiment defined in your `experiment.json` file before proceeding.
-{% endhint %}
+</Hint>
 
 Simulations within **hCore** can be run in one of two ways: locally inside your browser, or at scale on our **hCloud** compute platform.
 
@@ -24,9 +24,9 @@ Simulations within **hCore** can be run in one of two ways: locally inside your 
 
 Exact in-browser limits will depend on the amount of processing power and RAM available to the browser tab running hCore. The prime constraint is often the power of the local machine's underlying hardware.
 
-{% hint style="warning" %}
+<Hint style="warning">
 Devices with ARM processors will typically run in-browser hCore simulations faster than their Intel and AMD counterparts.
-{% endhint %}
+</Hint>
 
 ## How To Use hCloud
 
@@ -36,9 +36,9 @@ Toggle your execution environment from local to hCloud by first clicking on the 
 
 In the background, your browser will establish a connection to our servers which once established will let you run experiments in the cloud in the same way as if you were running them locally.
 
-{% hint style="info" %}
+<Hint style="info">
 **Connecting to hCloud does not count against your account's allowance of free compute minutes.** Only time spent running simulations or experiments contributes towards your cap, or results in billing thereafter. Generally, therefore, it makes sense to leave hCloud enabled.
-{% endhint %}
+</Hint>
 
 ### hCloud Compute Minutes
 
@@ -55,11 +55,11 @@ Let's take a look at two examples:
 
 hCloud runs experiment runs in a parallelized fashion by default on HASH **Free**, **Base**, and **Pro** accounts. In practice this means the memory available to your simulation varies from 4-192GB, depending on your account limits.
 
-{% hint style="success" %}
+<Hint style="success">
 If you're interested in running larger-scale simulations, or want to distribute a single run across multiple instances, [contact us](https://hash.ai/contact) to learn more about upgrading to a paid version of HASH.
-{% endhint %}
+</Hint>
 
-{% hint style="info" %}
+<Hint style="info">
 **HASH Enterprise** is required to run "unbounded" models, and distribute single runs across multiple instances in hCloud. [Contact us](https://hash.ai/contact) to register an interest.
-{% endhint %}
+</Hint>
 

@@ -2,20 +2,20 @@
 
 Businesses will perform two actions in this model: query customers and collect customer responses to update their position and item price.
 
-{% hint style="info" %}
+<Hint style="info">
 Query customers → Businesses will send their neighbors every possible position and item\_price change combination.
 
 * Position changes: `[ [-1, 0], [0, 0], [1, 0], [0, -1], [0, 1] ]`
 * Item\_price changes: `item_price + 1, item_price, item_price - 1`
 
 Collect customer responses → Businesses will collect and store all the customer responses to determine the position and item\_price combination with the largest profit
-{% endhint %}
+</Hint>
 
 This action can be split into three separate functions within business.js: _send\_message_, _price\_messaging_, _movement\_messaging_.
 
 Let’s start with sending the message. **`send_message()`** will add messages to state.messages with a neighbor agent\_id, position, item\_price, and rgb. Add this function to business.js.
 
-{% tabs %}
+<Tabs>
 {% tab title="business.js" %}
 ```javascript
 const send_message = (agent_id, position, price) => {
@@ -26,12 +26,12 @@ const send_message = (agent_id, position, price) => {
   });
 }
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
-{% hint style="info" %}
+<Hint style="info">
 `rgb` is sent so we can visually see which business a customer chooses to shop at
-{% endhint %}
+</Hint>
 
 The next step is to create the **`price_messaging()`** function. This function will receive the neighbor's agent\_id and position change, iterate through the possible item\_price values, and call send\_message to notify all possible neighbors.
 
@@ -83,7 +83,7 @@ Since Business agents are sending around 100 \(neighbors\) x 6 \(positions\) x 3
 5. counter\_reset\_to: 0
 
    **\*\*3. In the** `business.js`\*\* behavior, wrap the `query_customers()` call in the following if statement:
-{% endhint %}
+</Hint>
 
 ```javascript
 if (state.counter === 0) {
@@ -93,9 +93,9 @@ if (state.counter === 0) {
 
 {% hint style="danger" %}
 The behavior **Counter** adds a counter variable to every business agent that will automatically increment at each time step. This ensures that query\_customers\(\) is only called every 3 time steps.
-{% endhint %}
+</Hint>
 
-{% tabs %}
+<Tabs>
 {% tab title="business.js" %}
 ```javascript
 const behavior = (state, context) => {
@@ -132,6 +132,6 @@ const behavior = (state, context) => {
  }
 }
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 

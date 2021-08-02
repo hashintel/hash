@@ -22,13 +22,13 @@ For complex data types - lists, fixed sized lists, and structs, **you must click
 
 ![Click the tree icon on the right to assign the next level of data types](../../../.gitbook/assets/screen-shot-2020-11-24-at-5.36.17-pm.png)
 
-{% hint style="info" %}
+<Hint style="info">
 Dynamically populated structs should be assigned the `any` type.
-{% endhint %}
+</Hint>
 
 Data type fields must be the same across behaviors. For instance if field **foo** in behavior A has type: number, field **foo** \(assuming its the same field\) in behavior B must have type: number.
 
-{% hint style="warning" %}
+<Hint style="warning">
 Once you define a field's behavior key, your simulation will return an error if you attempt to assign a value of the incorrect type \(unless it is an `any` type\).
-{% endhint %}
+</Hint>
 

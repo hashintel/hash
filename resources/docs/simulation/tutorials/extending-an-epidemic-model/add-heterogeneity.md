@@ -6,8 +6,8 @@ These different values can allow our agents to all behave in slightly different 
 
 In our Getting Started model \([Python](https://hash.ai/@hash/getting-started-base-python) or [Javascript](https://hash.ai/@hash/getting-started-base)\), we'll start by providing our agents with an 'at\_risk' property. Different people agents will have different chances of having a severe response to getting sick. In the "create\_people" behavior, new agents are defined in the `person` variable. In that block of code, add a line for the property "at\_risk":
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
 ```javascript
 // line 26
 agents["people"].push({
@@ -15,9 +15,9 @@ agents["people"].push({
     at_risk: Math.random() < 0.5 ? true : false
 }
 ```
-{% endtab %}
+</Tab>
 
-{% tab title="Python" %}
+<Tab title="Python" >
 ```python
 # line 18
 person = {
@@ -25,13 +25,13 @@ person = {
     'at_risk': True if random() < 0.5 else False
 }
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 In the "infection" behavior, when a **Person** agent gets infected, let's add logic to determine the severity of the infection:
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
 {% code title="infection.js" %}
 ```javascript
 // line 81
@@ -42,9 +42,9 @@ if ((state.severity === "moderate") && (Math.random() < severe_chance)) {
 }
 ```
 {% endcode %}
-{% endtab %}
+</Tab>
 
-{% tab title="Python" %}
+<Tab title="Python" >
 {% code title="infection.py" %}
 ```python
 # line 69
@@ -54,8 +54,8 @@ if (state["severity"] == 'moderate') and (random() < severe_chance):
     state["severity"] = 'severe'
 ```
 {% endcode %}
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 When we instantiate a Person currently, they'll have a 50% chance of being at\_risk from the virus, and if they're infected, they'll have a different likelihoods of getting a severe infection. These likelihoods are defined in the "globals.json" file.
 
@@ -72,8 +72,8 @@ Of course during different scenarios and experiments we might want to vary the l
 
 And in the "create\_people" behavior, we substitute that value for the hardcoded one:
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
 ```javascript
 // line 26
 agents["people"].push({
@@ -81,9 +81,9 @@ agents["people"].push({
     at_risk: Math.random() < context.globals().at_risk_percent ? true : false,
 }
 ```
-{% endtab %}
+</Tab>
 
-{% tab title="Python" %}
+<Tab title="Python" >
 ```python
 # line 18
 person = {
@@ -91,6 +91,6 @@ person = {
     'at_risk': True if random() < context.globals()['at_risk_percent'] else False
 }
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 

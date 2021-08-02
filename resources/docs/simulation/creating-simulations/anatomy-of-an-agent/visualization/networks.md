@@ -8,9 +8,9 @@ Networks are often found in multi-agent models, and the ability to visualize the
 
 ![Edges drawn between agents](../../../.gitbook/assets/image%20%2865%29.png)
 
-{% hint style="info" %}
+<Hint style="info">
 Network drawing can be toggled by accessing the menu in the top right of the 3D Viewer.
-{% endhint %}
+</Hint>
 
 You can take this a step further and use the[ Networks Library](https://hash.ai/@hash/networks) to provide agents easy access to their network neighbors.
 

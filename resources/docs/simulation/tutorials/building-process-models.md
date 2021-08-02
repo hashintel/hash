@@ -16,7 +16,7 @@ The process chart visual interface makes it incredibly easy to create a powerful
 
 This video tutorial will walk you through using the process model visual interface to build a ticketing queue simulation.
 
-{% hint style="info" %}
+<Hint style="info">
 See [Designing with Process Models](../concepts/designing-with-process-models/) for more on using process models and a complete overview of the features of the process library.
-{% endhint %}
+</Hint>
 

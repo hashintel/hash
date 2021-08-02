@@ -6,9 +6,9 @@ It's worth emphasizing that you don't **need** to use the visual interface - HAS
 
 ![Process Chart View](../../.gitbook/assets/image%20%2852%29.png)
 
-{% hint style="info" %}
+<Hint style="info">
 If you can't see the process chart view, click `View > Process Chart`
-{% endhint %}
+</Hint>
 
 The process chart is available as a view on the left-hand half of the screen. You can drag elements from the dock on the left hand side of the view and connect them together.
 

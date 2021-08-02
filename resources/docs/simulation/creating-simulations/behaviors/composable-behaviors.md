@@ -30,7 +30,7 @@ Whether you're exploring [auction dynamics](https://hash.ai/@hash/english-auctio
 
 When publishing components such as behaviors and datasets we encourage you to match these to the types of [Things](https://hash.ai/schemas/Thing) to which they might relate. This type of "schema-mapping" enables you in the future \(or other modelers unfamiliar with your work\) to quickly identify components as relevant to particular types of actions or agents, dramatically speeding up the process of future model creation.
 
-{% hint style="info" %}
+<Hint style="info">
 **Things** are types in a schema that -- in the context of behaviors -- may represent actions which agents take, or types of agents themselves \(e.g. individuals, households, or companies\).
-{% endhint %}
+</Hint>
 

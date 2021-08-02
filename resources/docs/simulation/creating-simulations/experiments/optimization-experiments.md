@@ -6,17 +6,17 @@ description: How to use HASH to optimize your simulation's parameters
 
 Often, when running an experiment, you don't necessarily want to see every simulation's outcomes, you want to find the best ones, the parameters that **optimize** a desired metric. With HASH's optimization engine, you can automatically generate simulations and find the set of parameters that will maximize or minimize a metric.
 
-{% hint style="info" %}
+<Hint style="info">
 Optimization experiments can only be run on [hCloud](../h.cloud.md)
-{% endhint %}
+</Hint>
 
 ## Creating Optimization Experiments
 
 To create an optimization experiment, first create the metric that represents the value you want to optimize.
 
-{% hint style="info" %}
+<Hint style="info">
 [Read more on defining metrics](../views/analysis/metrics.md).
-{% endhint %}
+</Hint>
 
 For example, in [Sugarscape](https://staging.hash.ai/@hash/sugarscape/stable), you might be interested in what parameters will optimize the average sugar of cells. In that case you can use the existing metric:
 
@@ -49,9 +49,9 @@ You can also specify ranges of values using `-` for fields which accept `numbers
 
 You can choose to run your experiment in hCloud directly upon creating it, or save your experiment to be run later from the **Experiments** dropdown in the menubar.
 
-{% hint style="warning" %}
+<Hint style="warning">
 To run a simulation in hCloud, you must first set the [Behavior Keys](../behaviors/behavior-keys/) of your simulations behaviors.
-{% endhint %}
+</Hint>
 
 While the optimization experiment is running, individual runs will populate the experiment queue in the activity sidebar. Hover over a run to see the metrics value and the parameters for that particular run.
 

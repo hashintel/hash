@@ -30,7 +30,7 @@ Sink blocks will record all the waits an object experienced, as well as the tota
 
 Each Service, Seize, or Release block in your process model has an associated resource property specified in its parameters. 
 
-{% tabs %}
+<Tabs>
 {% tab title="Service Block" %}
 ```javascript
 "bake_pizza": {
@@ -40,7 +40,7 @@ Each Service, Seize, or Release block in your process model has an associated re
   "max_resources": 5
 }
 ```
-{% endtab %}
+</Tab>
 
 {% tab title="Seize Block" %}
 ```javascript
@@ -49,7 +49,7 @@ Each Service, Seize, or Release block in your process model has an associated re
   "track_wait": true
  }
 ```
-{% endtab %}
+</Tab>
 
 {% tab title="Release Block" %}
 ```javascript
@@ -58,8 +58,8 @@ Each Service, Seize, or Release block in your process model has an associated re
   "max_resources": 8
 }
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 If you'd like to have easy access to data about the usage of each of these resources, you can add the `@hash/process/resource_data.js` behavior to your agent. This behavior calculates the proportion of resources currently in use, and stores the data in the process\_data field.
 

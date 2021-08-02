@@ -68,7 +68,7 @@ You should see your Business agents start to move around to try and find the bes
 
 ![](../../.gitbook/assets/lc_p1.gif)
 
-{% tabs %}
+<Tabs>
 {% tab title="business.js" %}
 ```javascript
 const behavior = (state, context) => {
@@ -149,6 +149,6 @@ const behavior = (state, context) => {
  }
 }
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 

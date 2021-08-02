@@ -22,9 +22,9 @@ With the HASH process library, we provide ready made behaviors for implementing 
 * Select Output: Routes an object to a specific behavior depending on the state of the output or a conditional check.
 * Sink: Accepts objects and removes them from the process model.
 
-{% hint style="info" %}
+<Hint style="info">
 The full list of process blocks and their parameters are listed in [Process Blocks](process-blocks.md).
-{% endhint %}
+</Hint>
 
 These blocks are published behaviors that you use in the `behaviors` array just like any others, and they execute in sequence. **Objects** are passed through the different blocks, representing a product on an assembly line, a bill being processed, etc. Each blocks in the `behaviors` array has a queue linked to it, where those objects are temporarily stored.
 

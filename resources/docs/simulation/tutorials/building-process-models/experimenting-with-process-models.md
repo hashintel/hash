@@ -2,9 +2,9 @@
 
 You can use experiments to explore different potential scenarios with a process model. For example, if you want to understand how a process will run when it has half the people working on it, or double the people, you can automatically generate and compare simulation runs with those parameters.
 
-{% hint style="info" %}
+<Hint style="info">
 See the [experiments section](../../creating-simulations/experiments/) for more on experiments in HASH in general.
-{% endhint %}
+</Hint>
 
 To run an experiment, you'll want to first identify the parameter of the process you want to explore. For example, in a model with a service block:
 
@@ -23,9 +23,9 @@ In this model we could run experiments with the `“service_agents”` property 
 
 To do that, we'll set `"service_agents"` as a global parameter.
 
-{% hint style="info" %}
+<Hint style="info">
 The [Globals](../../creating-simulations/configuration/) section describes how and why to use globals.
-{% endhint %}
+</Hint>
 
 1. Add a property to globals.json.
 

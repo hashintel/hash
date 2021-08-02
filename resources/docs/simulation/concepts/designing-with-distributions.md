@@ -11,8 +11,8 @@ Initializing agent properties using different types of distributions is a common
 * We've sampled a triangular distribution to determine its altitude.
 * We've sampled a normal distribution to determine its speed.
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
 ```javascript
 function behavior(state, context) {
   const { poisson, uniform, triangular, normal } = hstd.stats;
@@ -33,9 +33,9 @@ function behavior(state, context) {
   }
 };
 ```
-{% endtab %}
+</Tab>
 
-{% tab title="Python" %}
+<Tab title="Python" >
 ```python
 from numpy.random import poisson, uniform, triangular, normal
 
@@ -54,8 +54,8 @@ def behavior(state, context):
       "speed": normal(25, 10), # mean, standard deviation
     })
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 You can find an example of these distribution methods being used in the Consumer Credit simulation. The _create\_client.js_ behavior uses three of the above methods to initialize heterogeneous agents.
 
@@ -71,7 +71,7 @@ You can find a working example of this in the Alcoholism Intervention model. The
 
 By implementing more advanced methods, you can create empirical distributions with linear or polynomial interpolation. We encourage you to share whatever you create!
 
-{% hint style="info" %}
+<Hint style="info">
 You can ensure deterministic runs by using HASH standard library functions and [setting the seed of the random number generators](../extra/determinism.md) with `hstd.setSeed("[string]")`
-{% endhint %}
+</Hint>
 

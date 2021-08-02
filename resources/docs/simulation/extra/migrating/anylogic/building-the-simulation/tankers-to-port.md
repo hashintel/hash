@@ -31,9 +31,9 @@ state.set("lng_lat", new_coords(ll, dest));
 
 On this agent, and many others in the sim, we'll use a published behavior, [Lng\_Lat to Position](https://hash.ai/@hash/ll-to-pos/overview), to translate its latitude and longitude into a 3D position.
 
-{% hint style="warning" %}
+<Hint style="warning">
 To use a shared behavior like Lng\_Lat To Position, [you'll need to import it into your simulation](../../../../creating-simulations/behaviors/composable-behaviors.md#importing-a-behavior).
-{% endhint %}
+</Hint>
 
 Note that we need to also set some properties in the **globals.json** file to use the behavior.
 

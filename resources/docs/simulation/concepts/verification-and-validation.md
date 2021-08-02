@@ -13,8 +13,8 @@ Like in traditional software engineering, you can use unit tests and integration
 
 While there are a lot of ways to add unit tests to a simulation, a straightforward approach is to create a behavior attached to an agent that will run comparisons at specific time steps. For instance, in the example below, a behavior would run a test case on the first time step and tenth time step, asserting that properties stored on the agent's state are the expected values.
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
 {% code title="test\_behavior.js" %}
 ```javascript
 function testCaseOne(state) {
@@ -45,9 +45,9 @@ const behavior = (state, context) => {
 }
 ```
 {% endcode %}
-{% endtab %}
+</Tab>
 
-{% tab title="Python" %}
+<Tab title="Python" >
 {% code title="test\_behavior.py" %}
 ```python
 def test_case_one():
@@ -70,8 +70,8 @@ def behavior(state, context):
 
 ```
 {% endcode %}
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 ## Validation
 

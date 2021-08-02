@@ -6,7 +6,7 @@ When using `init.js` or `init.py` to initialize your simulation, these standard 
 
 Returns an array of agents at random positions within the bounds defined in `topology`. Agents are generated as copies of the `template` if you pass an object, or as the return value if you pass a function.
 
-{% tabs %}
+<Tabs>
 {% tab title="init.js" %}
 ```javascript
 const init = (context) => {
@@ -34,7 +34,7 @@ const init = (context) => {
   return agents;
 }
 ```
-{% endtab %}
+</Tab>
 
 {% tab title="globals.json" %}
 ```javascript
@@ -45,8 +45,8 @@ const init = (context) => {
   }
 }
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 ## stack\(count, template\)
 
@@ -80,7 +80,7 @@ const init = (context) => {
 
 Returns an array of agents occupying every integer location within the bounds defined in `topology`. Agents are generated as copies of the `template` if you pass an object, or as the return value if you pass a function.
 
-{% tabs %}
+<Tabs>
 {% tab title="init.js" %}
 ```javascript
 const init = (context) => {
@@ -108,7 +108,7 @@ const init = (context) => {
   return agents;
 }
 ```
-{% endtab %}
+</Tab>
 
 {% tab title="globals.json" %}
 ```javascript
@@ -119,14 +119,14 @@ const init = (context) => {
   }
 }
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 ## createLayout\(layout, templates, offset\)
 
 Returns an array of agents based on a specified `layout` and set of `templates`. The `layout` file must be a csv mapping agent types to initial positions. The `templates` allow the function to determine the definition of each agent type. You can optionally specify a position `offset`.
 
-{% tabs %}
+<Tabs>
 {% tab title="init.js" %}
 ```javascript
 const init = (context) => {
@@ -156,7 +156,7 @@ const init = (context) => {
     return agents;
 }
 ```
-{% endtab %}
+</Tab>
 
 {% tab title="layout\_data.csv" %}
 ```text
@@ -167,6 +167,6 @@ w,w,w,c,w,w
 w,,,,,
 w,,f,,,
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 

@@ -12,8 +12,8 @@ Python and Javascript init files provide access to the simulation globals and da
 
 Both Javascript and Python init files must contain a function called `init` which returns a list of agents. The `init` function takes a single argument called `context` which provides access to the simulation `globals` and `data`.
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
 ```javascript
 /**
  * @param {InitContext} initialization context
@@ -36,9 +36,9 @@ const init = (context) => {
   return agents;
 }
 ```
-{% endtab %}
+</Tab>
 
-{% tab title="Python" %}
+<Tab title="Python" >
 ```python
 import statistics
 import random
@@ -60,6 +60,6 @@ def init(context):
 
   return agents
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 

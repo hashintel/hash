@@ -28,9 +28,9 @@ For example, consider a [Billing Department](https://core.hash.ai/@hash/billing-
 
 ![](https://lh4.googleusercontent.com/W6wazlGHPZVxkEuWCl8DIkw66P44qrgvMbIAUs0VfgGwiY-taiU1PgVnr5dhkeBTc-kpCzm5Xhajs7-VMhGsOaG6CcKhbQ6uQMXH-z-hCxf6zRtmEqeIel3_JyHRVjIxgObDla47)
 
-{% hint style="info" %}
+<Hint style="info">
 [Learn how to build a process model simulation using a visual interface.](../../tutorials/building-process-models/using-the-process-model-builder.md)
-{% endhint %}
+</Hint>
 
 Once we've represented the department as a process model and generated a simulation, we can use the Analysis view to inspect the process models to identify bottlenecks based on resource utilization or through times. There are four different resources in use in model: senior\_billers, account\_billers, billing\_clerks, and printers. Visualizing the average utilization of these resources will allow us to determine which, if any, are responsible for any bottlenecks:
 
@@ -80,17 +80,17 @@ Then, when you run the experiment, you can click through the plots and view the 
 
 ![Through time with 11 senior billers](../../.gitbook/assets/2b2e1b70-0249-4f90-a22e-8e033001d780-464-00036392cac553ab.png)
 
-{% hint style="info" %}
+<Hint style="info">
 See Analyzing Process Models for more on graphing process models, and Collaboration to learn how to share a process model simulation with your team.
-{% endhint %}
+</Hint>
 
 ## Alleviate the system constraints
 
 Alleviating the constraints means investing in them until they are no longer the constraints. We can track the performance of our improvements by using real world data to inform the parameters we set on a process model. As more resources are added, or as the process changes, we can update the simulation to see over time whether the constraint has been broken.
 
-{% hint style="info" %}
+<Hint style="info">
 Read about [Adding Data to a Process Model](../../tutorials/building-process-models/using-data-in-a-process-model.md) for how to use
-{% endhint %}
+</Hint>
 
 In the example, we can take it and update the parameters as new data about the process arrives. When new data arrives or the process changes, we can create a new release that provides an updated view on the reality of the process.
 

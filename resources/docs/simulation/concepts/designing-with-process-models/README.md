@@ -16,13 +16,13 @@ Additionally, you can use the [Process Modeling Library](https://hash.ai/@hash/p
 
 Building process models allows you to answer questions about your real world systems. They can help you improve resource allocation, reduce cycle-time, and identify other optimizations that can be made to your organization or system. They're especially effective when used with [Experiments](../../creating-simulations/experiments/) to explore multiple scenarios and configurations.
 
-{% hint style="info" %}
+<Hint style="info">
 The [Building Process Models](../../tutorials/building-process-models.md) tutorial walks through using the visual interface to build a simple ticket queue simulation.
-{% endhint %}
+</Hint>
 
-{% hint style="success" %}
+<Hint style="success">
 For a framework for applying process models, check out [Simulating Constraints: A Framework for Process Optimization](https://hash.ai/blog/process-optimization-simulation-framework).
-{% endhint %}
+</Hint>
 
 Example simulation built with the process model library:
 

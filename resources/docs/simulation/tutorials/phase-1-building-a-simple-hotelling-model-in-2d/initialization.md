@@ -104,13 +104,13 @@ Now to create Business agents:
 
 If you run your simulation now you should see two green agents placed randomly within the grid.
 
-{% hint style="info" %}
+<Hint style="info">
 Since our agent creator is first defined in `init.json`, which can't run JavaScript, any agent fields that need to be calculated or generated needs to be updated in a separate behavior file \(i.e. update\_behavior.js\).
-{% endhint %}
+</Hint>
 
 We’re going to update the rgb value of each Business to a random color in `update_businesses.js`.
 
-{% tabs %}
+<Tabs>
 {% tab title="update\_businesses.js" %}
 ```javascript
 const behavior = (state, context) => {
@@ -119,8 +119,8 @@ const behavior = (state, context) => {
   }
 }
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 Both agents are now initialized with a random color! Time to move onto building out the `business.js` and `customer.js` behaviors. First let's look at the `business.js` file.
 

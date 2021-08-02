@@ -8,8 +8,8 @@ Agents send messages by adding them to `state.messages`, and they receive them b
 
 Agents can create a message to send to either another agent or the simulation engine itself. Here, we send a message to an agent with the name of `schelling`:
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
 ```javascript
 const behavior = (state, context) => {
     state.messages.push({
@@ -21,9 +21,9 @@ const behavior = (state, context) => {
     });
 }
 ```
-{% endtab %}
+</Tab>
 
-{% tab title="Python" %}
+<Tab title="Python" >
 ```python
 def behavior(state, context):  
   state['messages'].append({
@@ -34,12 +34,12 @@ def behavior(state, context):
     }
   })
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
-{% hint style="info" %}
+<Hint style="info">
 If you want to jump right into code you can take a look at our [Message Passing Colors ](https://hash.ai/@hash/message-passing-colors)simulation, which demos message passing among many agents.
-{% endhint %}
+</Hint>
 
 You'll notice that each message is comprised of three fields: "to", "type", and "data."
 
@@ -47,26 +47,26 @@ You'll notice that each message is comprised of three fields: "to", "type", and 
 * `type`: the type of message being sent for the message handler to select the right course of action
 * `data`: any data you want to send along with the message
 
-{% hint style="info" %}
+<Hint style="info">
 You can use the helper function state.addMessage\(to&lt;String&gt;, type&lt;String&gt;, data&lt;Dict&gt;\) to add messages directly to the state messages field.
-{% endhint %}
+</Hint>
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
 ```javascript
 const behavior = (state, context) => {
     state.addMessage("foo", "bar", {msg: "hello"});
 }
 ```
-{% endtab %}
+</Tab>
 
-{% tab title="Python" %}
+<Tab title="Python" >
 ```python
 def behavior(state, context):
   state.add_message("foo", "bar", {msg: "hello"})
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 Messages are produced during a step, but are not delivered and processed until the next step.
 

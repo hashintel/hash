@@ -6,9 +6,9 @@ It's worth emphasizing that you don't **need** to use the visual interface — H
 
 ![Process Chart View](../../.gitbook/assets/image%20%2849%29.png)
 
-{% hint style="info" %}
+<Hint style="info">
 If you can't see the process chart view, click `View > Process Chart` 
-{% endhint %}
+</Hint>
 
 The process chart is available as a view on the right-hand half of the screen. You can drag elements from the dock on the left-hand side of the view and connect them together.
 
@@ -30,7 +30,7 @@ Now you can run your simulation. The process model will execute based on the log
 
 If you want to make a change to the model, you can modify the diagram and click 'Add to Model'. This will replace the previous behavior with a new behavior containing new process model logic.
 
-{% hint style="warning" %}
+<Hint style="warning">
 Currently the process model chart view only persists while on the IDE. If you refresh or navigate to a different page and then return, the process chart will return to its starting of a single starting node. If you added the process agent to the model, the process agent **will** exist, it just won't be visualized on the process chart. Future updates to the visual interface will include persistence. 
-{% endhint %}
+</Hint>
 

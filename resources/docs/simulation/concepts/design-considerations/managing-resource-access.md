@@ -31,8 +31,8 @@ if (requests.length) {
 ```
 {% endcode %}
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
 {% code title=" sugar\_patch.js" %}
 ```javascript
 if (requests.length) {
@@ -47,18 +47,18 @@ if (requests.length) {
 }
 ```
 {% endcode %}
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
-{% hint style="info" %}
+<Hint style="info">
 Build checks for multiple of the same type requests into message handlers, to account for multiple agents requesting the same resource on a time step.
-{% endhint %}
+</Hint>
 
 Another problem that can arise is managing timescales. In the example above it will take two timesteps before agents _A_ and _B_ know which will have access to the resource from agent _C_, and since one of the agents didn't get access, that agent needs to spend more time either waiting \(and pinging the agent\) or going to alternative resources providers. This can be tedious if, for instance, you're trying to match _N_ agents to _N_ resource providers, and each agent is independently messaging providers, in the worst case every agent will message the same provider, _N-1_ will be rejected and then all message the same next provider, etc. A costly and lengthy operation.
 
-{% hint style="info" %}
+<Hint style="info">
 We discuss similar situations in [Designing for Different Timescales](../designing-for-different-timescales.md).
-{% endhint %}
+</Hint>
 
 The best solution here is often to leverage manager agents to help resolve these conflicts. A manager agent acts as a matcher, receiving requests from every requesting agent and every provider, before looping through to match requests with providers, and messaging each the `agent_id` of their counterpart.
 

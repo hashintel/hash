@@ -21,8 +21,8 @@ If, for example, we wanted to cap the height of all trees in a [forest simulatio
 
 The associated tree growth behavior would follow:
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
 ```javascript
 function behavior(state, context) {
     if (state.height + growth <= context.globals()["maxTreeHeight"]) {
@@ -30,16 +30,16 @@ function behavior(state, context) {
     }
 }
 ```
-{% endtab %}
+</Tab>
 
-{% tab title="Python" %}
+<Tab title="Python" >
 ```python
 def behavior(state, context):   
     if state['height'] + growth <= context.globals()['maxTreeHeight']):
         growtree()
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 ## Visual Globals
 
@@ -47,9 +47,9 @@ Parameters defined in `globals.json` can be viewed and modified either in code-f
 
 ![Toggle between edit and input of globals](../../.gitbook/assets/kapture-2020-12-09-at-11.52.28.gif)
 
-{% hint style="info" %}
+<Hint style="info">
 By default a non-signed in viewer of a simulation will see and interact with the visual globals view.
-{% endhint %}
+</Hint>
 
 The type of field input for a simulation parameter can be varied by adding a "schema" property to globals. Currently you can use schemas to specify these types of interfaces be displayed in the _visual globals_ interface:
 

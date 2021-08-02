@@ -17,9 +17,9 @@ Value sweeping runs a simulation for each of the specified `values`. The `field`
 }
 ```
 
-{% hint style="info" %}
+<Hint style="info">
 Value sweeping is particularly is useful for multi-parameter sweeps and categorical sampling.
-{% endhint %}
+</Hint>
 
 ## Fixed Sample Sweep \(linspace\)
 
@@ -119,9 +119,9 @@ In order to discover interaction effects in your model, you'll have to perform s
 
 ## Optimization
 
-{% hint style="info" %}
+<Hint style="info">
 Optimization experiments allow you to identify the best combination of parameters for minimizing or maximizing desired metrics.
-{% endhint %}
+</Hint>
 
 Read more about [Optimization Experiments](optimization-experiments/) in the next section of the docs.
 

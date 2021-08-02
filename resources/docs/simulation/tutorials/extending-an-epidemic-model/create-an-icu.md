@@ -17,8 +17,8 @@ On your Hospital initialization \(in `init.json`\), add a value for `icu_beds`. 
 
 In `init.json` , expand the hospital agent by adding a value for `icu_capacity`.
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
 ```javascript
 {
   "agent_name": "Hospital",
@@ -30,9 +30,9 @@ In `init.json` , expand the hospital agent by adding a value for `icu_capacity`.
   "type": "hospital"
 }
 ```
-{% endtab %}
+</Tab>
 
-{% tab title="Python" %}
+<Tab title="Python" >
 ```javascript
 {
   "agent_name": "Hospital",
@@ -44,8 +44,8 @@ In `init.json` , expand the hospital agent by adding a value for `icu_capacity`.
   "type": "hospital"
 }
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 _Note: Your init.json might look different if you used `create_stacks or create_scatters` - the same basic approach should apply._
 
@@ -57,8 +57,8 @@ Open the `check_infected` file. A person agent is sending a request to the hospi
 
 In this case, let's include a key-value pair in the message data packet for `at_risk` in the "check\_infected" behavior:
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
 ```javascript
 function check_hospital(){
    state.addMessage("Hospital", "test", {
@@ -67,9 +67,9 @@ function check_hospital(){
     })
  }
 ```
-{% endtab %}
+</Tab>
 
-{% tab title="Python" %}
+<Tab title="Python" >
 ```python
 def check_hospital():
    state.add_message("Hospital", "test", {
@@ -77,13 +77,13 @@ def check_hospital():
        'at_risk': state['at_risk']
     })
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 Open the `test_for_virus` behavior and, in our message parsing loop, add control-flow logic to differentiate the risky cases from the non-risky cases. When a person is seriously ill, they get a bed in the hospital, so long as there’s a bed to give:
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
 {% code title="test\_for\_virus.js" %}
 ```javascript
 test_messages.forEach(m => {
@@ -98,9 +98,9 @@ test_messages.forEach(m => {
 })
 ```
 {% endcode %}
-{% endtab %}
+</Tab>
 
-{% tab title="Python" %}
+<Tab title="Python" >
 {% code title="test\_for\_virus.py" %}
 ```python
 for msg in test_messages:
@@ -113,13 +113,13 @@ for msg in test_messages:
         icu_or_home = True
 ```
 {% endcode %}
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 Let’s add a flag that the person has a case severe enough that they will stay in the hospital; this is how we’ll let the person know they either need to stay at the hospital or they can rest up at home. Modify the message sent to include that variable:
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
 {% code title="test\_for\_virus.js" %}
 ```javascript
 test_messages.forEach(m => {
@@ -138,9 +138,9 @@ test_messages.forEach(m => {
 })
 ```
 {% endcode %}
-{% endtab %}
+</Tab>
 
-{% tab title="Python" %}
+<Tab title="Python" >
 {% code title="test\_for\_virus.py" %}
 ```python
 for msg in test_messages:
@@ -158,13 +158,13 @@ for msg in test_messages:
     })
 ```
 {% endcode %}
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 Let’s return to our person agent. They’ve just received a message from the hospital telling them if they're sick and if they should go home or come to the hospital. We already have the mild case handled - they go home. We need to modify the logic for the severe case:
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
 {% code title="check\_infected.js" %}
 ```javascript
 //A person checks for messages from the hospital telling them their test results
@@ -182,9 +182,9 @@ let msgs = context.messages().filter(msg => msg.type === "test_result");
   )
 ```
 {% endcode %}
-{% endtab %}
+</Tab>
 
-{% tab title="Python" %}
+<Tab title="Python" >
 {% code title="check\_infected.py" %}
 ```python
 # A person checks for messages from the hospital telling them their test results
@@ -198,15 +198,15 @@ for msg in msgs:
     state['destination'] = state['home']
 ```
 {% endcode %}
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 With this change if a person finds out they have a severe case, their destination is set as the hospital.
 
 We'll need to make a change to the `daily_movement` file as well, to prevent the agent from moving away once they've arrived at the icu until they're better.
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
 {% code title="daily\_movement.js" %}
 ```javascript
 // Line 53
@@ -215,9 +215,9 @@ if (state.social_distancing || state.icu) {
 }
 ```
 {% endcode %}
-{% endtab %}
+</Tab>
 
-{% tab title="Python" %}
+<Tab title="Python" >
 {% code title="daily\_movement.py" %}
 ```python
 # Line 53
@@ -225,8 +225,8 @@ if state['social_distancing'] or state['icu']:
   return
 ```
 {% endcode %}
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 When they recover, we want agents to signal to the hospital that they’re leaving and that there’s a free ICU bed available. And then, of course, we want agents to actually leave!
 
@@ -237,8 +237,8 @@ We need to add:
 
 The `infection` behavior handles the logic for infection state:
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
 {% code title="infection.js" %}
 ```javascript
 // Line 87
@@ -249,9 +249,9 @@ if (state.infection_duration === 0) {
 }
 ```
 {% endcode %}
-{% endtab %}
+</Tab>
 
-{% tab title="Python" %}
+<Tab title="Python" >
 {% code title="infection.py" %}
 ```python
 # Line 74
@@ -262,17 +262,17 @@ if state['infection_duration'] == 0:
   # TODO: notify the hospital the person has recovered
 ```
 {% endcode %}
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 This is another opportunity to use message passing. We'll create a message to send to the Hospital telling them that the person has recovered.
 
-{% hint style="info" %}
+<Hint style="info">
 A key paradigm for HASH is message passing. HASH is based on the [actor model](https://en.wikipedia.org/wiki/Actor_model), and message passing between agents is how agents interact w/ one another.
-{% endhint %}
+</Hint>
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
 ```javascript
 // Line 87
 if (state.infection_duration === 0) {
@@ -289,9 +289,9 @@ if (state.infection_duration === 0) {
     }
 }
 ```
-{% endtab %}
+</Tab>
 
-{% tab title="Python" %}
+<Tab title="Python" >
 ```python
 # Line 74
 if state.infection_duration == 0:
@@ -307,13 +307,13 @@ if state.infection_duration == 0:
     state['destination'] = state['home']
     state['out'] = True
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 Finally, let's handle the message logic on the Hospitals side in the "test\_for\_virus" behavior at the top of the behavior:
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
 {% code title="test\_for\_virus.js" %}
 ```javascript
  const recovered_messages = context.messages().filter(m => m.type === "recovered");
@@ -321,9 +321,9 @@ Finally, let's handle the message logic on the Hospitals side in the "test\_for\
  recovered_messages.forEach(m => state.icu_beds += 1);
 ```
 {% endcode %}
-{% endtab %}
+</Tab>
 
-{% tab title="Python" %}
+<Tab title="Python" >
 {% code title="test\_for\_virus.py" %}
 ```python
 recovered_messages = list(filter(lambda m: m['type'] == 'recovered', context.messages()))
@@ -333,8 +333,8 @@ for msg in recovered_messages:
     state['icu_beds'] += 1
 ```
 {% endcode %}
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 Congratulations! You've added a hospital and some basic behaviors to your simulation. You should now be starting to see how adding agents and behaviors can quickly create models that mirror the real world.
 

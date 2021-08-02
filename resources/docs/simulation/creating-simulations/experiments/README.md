@@ -22,7 +22,7 @@ Experiments can be created with the Experiments Wizard, or by manually defining 
 
 For example, this `values` experiment will run seven experiments, setting a different value of \[0..6\] in the radius field in each one.
 
-{% tabs %}
+<Tabs>
 {% tab title="experiments.json" %}
 ```javascript
 {
@@ -34,16 +34,16 @@ For example, this `values` experiment will run seven experiments, setting a diff
     }
 }
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 To run an experiment, click the "Experiment Runner" button in the runner controls, denoted with a beaker icon. The option "Sweep Values" will be available in the selector.
 
 ![Sweep values demonstration](../../.gitbook/assets/image%20%2816%29.png)
 
-{% hint style="success" %}
+<Hint style="success">
 If you want to run an experiment from another user's published simulation - for instance an example simulation - first save a copy to your drive and then click the experiment runner.
-{% endhint %}
+</Hint>
 
 Running this experiment will generate 7 new simulations, each with a slightly different globals.json. If we run the simulation, we can see exactly which parameters get changed in the sidebar:
 
@@ -59,9 +59,9 @@ const behavior = (state, context) => {
 
 Now, any behaviors that rely on the "radius" parameter from `globals.json` will use the corresponding value.
 
-{% hint style="info" %}
+<Hint style="info">
 You can run experiments locally or in [hCloud](../h.cloud.md)
-{% endhint %}
+</Hint>
 
 For more information on specific syntax, read more about [Experiment Types](experiment-types.md).
 

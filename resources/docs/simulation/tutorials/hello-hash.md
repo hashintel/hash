@@ -27,9 +27,9 @@ We'll begin by adding two agents into the array, and give them names.
 ]
 ```
 
-{% hint style="info" %}
+<Hint style="info">
 `agent_name` is a [reserved keyword on agents](https://docs.hash.ai/core/anatomy-of-an-agent) - you can reference and send messages through `agent_name`
-{% endhint %}
+</Hint>
 
 Beneath the workspace's right-hand view-pane, you'll find the simulation control buttons. Click the **Reset** button \(circular arrow\) and then select the [Raw Output](../creating-simulations/views/raw-data.md#raw-output) tab in the viewer. Congratulations! You've given life to Alice and Bob.
 
@@ -54,12 +54,12 @@ When you've finished adding positions to your agents, reset the simulation. You 
 
 Alice and Bob aren't very interesting right now. Let's teach them some manners. We can give the agents [behaviors](https://docs.hash.ai/core/behaviors) that enable them to act and respond to each other. In **init.json** let's add some file names into each of the behavior arrays.
 
-{% hint style="info" %}
+<Hint style="info">
 You can build Python behaviors instead of JavaScript behaviors if you prefer. Just make sure to name your files with a ".py" ending.
-{% endhint %}
+</Hint>
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
 ```javascript
 [
   { 
@@ -74,9 +74,9 @@ You can build Python behaviors instead of JavaScript behaviors if you prefer. Ju
   }
 ]
 ```
-{% endtab %}
+</Tab>
 
-{% tab title="Python" %}
+<Tab title="Python" >
 ```javascript
 [
   { 
@@ -91,8 +91,8 @@ You can build Python behaviors instead of JavaScript behaviors if you prefer. Ju
   }
 ]
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 We can then create the corresponding behavior files by clicking the **New File** button at the top of the left hand files sidebar. Create two new files, `hello_alice.js` and`hello_bob.js`
 
@@ -110,8 +110,8 @@ A message has three parts:
 
 Since we're only sending a message to one agent, Alice, we can use her `agent_name` in the `to` field. Let's call this type of message a "greeting", and add a friendly greeting in the data payload.
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
 ```javascript
 const behavior = (state, context) => {
   state.addMessage(
@@ -125,9 +125,9 @@ const behavior = (state, context) => {
 ```
 
 **hello\_alice.js**
-{% endtab %}
+</Tab>
 
-{% tab title="Python" %}
+<Tab title="Python" >
 ```python
 def behavior(state, context):
   state.add_message(
@@ -140,12 +140,12 @@ def behavior(state, context):
 ```
 
 **hello\_alice.py**
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
-{% hint style="info" %}
+<Hint style="info">
 [_state.addMessage is a helper function_](../creating-simulations/agent-messages/) _for pushing_ [_messages_](../creating-simulations/agent-messages/) _to the outgoing messages array._
-{% endhint %}
+</Hint>
 
 Now click **Run Simulation**.
 
@@ -157,8 +157,8 @@ In our **hello\_bob** function, we want Alice to handle messages she receives. W
 
 Let's find all of the messages that are greetings:
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
 ```javascript
 const behavior = (state, context) => {
   const greetings = context.messages().filter(msg => msg.type === "greeting");
@@ -170,9 +170,9 @@ const behavior = (state, context) => {
 ```
 
 **hello\_bob.js**
-{% endtab %}
+</Tab>
 
-{% tab title="Python" %}
+<Tab title="Python" >
 ```python
 def behavior(state, context):
     greetings = list(filter(lambda m: m['type'] == "greeting", context.messages()))
@@ -182,13 +182,13 @@ def behavior(state, context):
 ```
 
 **hello\_bob.py**
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 Adding visual indicators of state changes is an easy way to communicate what's happening in your simulation. We're going to change Alice's color when receiving a greeting:
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
 ```javascript
 const behavior = (state, context) => {
   const greetings = context.messages().filter(msg => msg.type === "greeting");
@@ -199,9 +199,9 @@ const behavior = (state, context) => {
 ```
 
 **hello\_bob.js**
-{% endtab %}
+</Tab>
 
-{% tab title="Python" %}
+<Tab title="Python" >
 ```python
 def behavior(state, context):
     greetings = list(filter(lambda m: m['type'] == "greeting", context.messages()))
@@ -211,15 +211,15 @@ def behavior(state, context):
 ```
 
 **hello\_bob.py**
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 Now **reset** your simulation and **run** it. On the second time step you should notice that Alice's agent changes color to blue. Neat!
 
 To respond to Bob's greeting, we can send a message back addressed to the first message sender, with an appropriate response.
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
 ```javascript
 const behavior = (state, context) => {
   const greetings = context.messages().filter(msg => msg.type === "greeting");
@@ -238,9 +238,9 @@ const behavior = (state, context) => {
 ```
 
 **hello\_bob.js**
-{% endtab %}
+</Tab>
 
-{% tab title="Python" %}
+<Tab title="Python" >
 ```python
 def behavior(state, context):
     greetings = list(filter(lambda m: m['type'] == "greeting", context.messages()))
@@ -255,15 +255,15 @@ def behavior(state, context):
 ```
 
 **hello\_bob.py**
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 Here we're iterating through filtered messages and pushing a new message to Alice's message array, addressed to whichever agent sent the message, 'greeting' them back.
 
 Over in **hello\_alice**, we can add a similar message handler for Bob, too.
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
 ```javascript
 const behavior = (state, context) => {
   const greetings = context.messages().filter(msg => msg.type === "greeting");
@@ -281,9 +281,9 @@ const behavior = (state, context) => {
 ```
 
 **hello\_alice.js**
-{% endtab %}
+</Tab>
 
-{% tab title="Python" %}
+<Tab title="Python" >
 ```python
 def behavior(state, context):
     greetings = list(filter(lambda m: m['type'] == "greeting", context.messages()))
@@ -301,47 +301,47 @@ def behavior(state, context):
 ```
 
 **hello\_alice.py**
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 **Reset** and **run** your simulation once again. Alice and Bob turn blue and red, respectively, after they receive the others greeting.
 
 It's a little boring to just have them stay red and blue throughout the rest of the simulation. We can help visualize better what's going on in the simulation by having both agents flip colors whenever they receive a new message. The logic we want is:
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
 ```javascript
     state.color = state.color === "blue" ? "green" : "blue"
 ```
-{% endtab %}
+</Tab>
 
-{% tab title="Python" %}
+<Tab title="Python" >
 ```python
     state['color'] = 'blue' if state['color'] == 'green' else 'blue'
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 or:
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
 ```javascript
     state.color = state.color === "purple" ? "red" : "purple"
 ```
-{% endtab %}
+</Tab>
 
-{% tab title="Python" %}
+<Tab title="Python" >
 ```python
     state['color'] = 'purple' if state['color'] == 'red' else 'red'
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 We can refactor our code slightly to implement this.
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
 ```javascript
 const behavior = (state, context) => {
   const greetings = context.messages().filter(msg => msg.type === "greeting");
@@ -362,9 +362,9 @@ const behavior = (state, context) => {
 ```
 
 **hello\_alice.js**
-{% endtab %}
+</Tab>
 
-{% tab title="Python" %}
+<Tab title="Python" >
 ```python
 def behavior(state, context):
     greetings = list(filter(lambda m: m['type'] == "greeting", context.messages()))
@@ -382,11 +382,11 @@ def behavior(state, context):
 ```
 
 **hello\_alice.py**
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
 ```javascript
 const behavior = (state, context) => {
   const greetings = context.messages().filter(msg => msg.type === "greeting");
@@ -405,9 +405,9 @@ const behavior = (state, context) => {
 ```
 
 **hello\_bob.py**
-{% endtab %}
+</Tab>
 
-{% tab title="Python" %}
+<Tab title="Python" >
 ```python
 def behavior(state, context):
     greetings = list(filter(lambda m: m['type'] == "greeting", context.messages()))
@@ -422,8 +422,8 @@ def behavior(state, context):
 ```
 
 **hello\_bob.py**
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 ![Hello HASH!](../.gitbook/assets/blocks_flipping.gif)
 
@@ -431,8 +431,8 @@ Finally, since Alice clearly would like some socially-responsible distance from 
 
 ![](../.gitbook/assets/movement.gif)
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
 ```javascript
 [ 
   { 
@@ -447,9 +447,9 @@ Finally, since Alice clearly would like some socially-responsible distance from 
   }
 ]
 ```
-{% endtab %}
+</Tab>
 
-{% tab title="Python" %}
+<Tab title="Python" >
 ```javascript
 [
   {
@@ -464,8 +464,8 @@ Finally, since Alice clearly would like some socially-responsible distance from 
   }
 ]
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 To prevent our agents from straying too far, we can set [bounds](https://docs.hash.ai/core/configuration/topology/bounds-and-wrapping) on their environment in the `globals.json` file as follows:
 

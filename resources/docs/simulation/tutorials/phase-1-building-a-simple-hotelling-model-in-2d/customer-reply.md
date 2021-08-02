@@ -18,7 +18,7 @@ $$
 
 Create the function `calculate_cost()` in **`customer.js`**.
 
-{% tabs %}
+<Tabs>
 {% tab title="customer.js" %}
 ```javascript
 const behavior = (state, context) => {
@@ -30,8 +30,8 @@ const behavior = (state, context) => {
   }
 }
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 Next, we are going to collect and store all the messages sent by the Business agents into a dictionary. This will make for easy access and iteration when we compare. Place this code underneath `calculate_cost()`.
 
@@ -90,10 +90,10 @@ Define a `find_min()` function like the one below.
  }
 ```
 
-{% hint style="info" %}
+<Hint style="info">
 * **overall\_min →** store the data for the business position/price combination that yields the lowest cost across all businesses
 * **Individual\_min →** store the data for the business position/price combination that yields the lowest cost across for each individual business
-{% endhint %}
+</Hint>
 
 Let’s add the cost comparisons for both the individual Business and overall. Place the following code right below your cost calculation \(within the`businesses[shop].data.forEach() call`\).
 
@@ -182,13 +182,13 @@ find_min(businesses);
 
 The **`customer.js`** behavior is finally complete!
 
-{% hint style="success" %}
+<Hint style="success">
 To see **customer.js** in full, navigate to bottom of this section or click on ‘**Phase 1** **Final Code**’ in the sidebar.
-{% endhint %}
+</Hint>
 
 {% hint style="danger" %}
 
-{% endhint %}
+</Hint>
 
 Reset and run!
 
@@ -196,7 +196,7 @@ If you followed all the steps above, run the simulation a couple times and you s
 
 ![](../../.gitbook/assets/lc_p2_customers.gif)
 
-{% tabs %}
+<Tabs>
 {% tab title="customer.js" %}
 ```javascript
 const behavior = (state, context) => {
@@ -296,7 +296,7 @@ const behavior = (state, context) => {
  find_min(businesses);
 }
 ```
-{% endtab %}
+</Tab>
 
 {% tab title="init.json" %}
 ```text
@@ -342,7 +342,7 @@ const behavior = (state, context) => {
  }
 ]
 ```
-{% endtab %}
+</Tab>
 
 {% tab title="business.js" %}
 ```javascript
@@ -381,6 +381,6 @@ const behavior = (state, context) => {
  }
 }
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 

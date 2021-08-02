@@ -15,9 +15,9 @@ Your agent only needs to run two behaviors to execute a system dynamics model:
 * `@hash/sd/calc_rates.js` - determines and assigns all flow rates for the current time step
 * `@hash/sd/step.js` - runs the model one step forward using the current flow rates and stock values
 
-{% hint style="info" %}
+<Hint style="info">
 Make sure that your agent's `behaviors` array always contains the two behaviors in that order.
-{% endhint %}
+</Hint>
 
 ### Properties
 
@@ -48,9 +48,9 @@ The final step is to define the rates in your model. Each rate will have 3 or 4 
 * `from` - the stock from which this rate is flowing. This stock will decrease at the rate.
 * `to` - the stock to which this rate is flowing. This stock will increase at the rate.
 
-{% hint style="info" %}
+<Hint style="info">
 Some rates will only have one of "to" or "from" if they are coming from a sink, or going to a source.
-{% endhint %}
+</Hint>
 
 ```javascript
 "sd_definition": {

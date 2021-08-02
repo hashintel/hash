@@ -4,7 +4,7 @@
 
 **Vertical histogram**
 
-{% tabs %}
+<Tabs>
 {% tab title="Code" %}
 ```javascript
 {
@@ -15,16 +15,16 @@
   "position": {"x": "0%", "y": "0%"}
 }
 ```
-{% endtab %}
+</Tab>
 
 {% tab title="Modal configuration" %}
 ![](../../../.gitbook/assets/screenshot-2021-03-11-at-18.27.36.png)
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 **Horizontal histogram**
 
-{% tabs %}
+<Tabs>
 {% tab title="Code" %}
 ```javascript
 {
@@ -35,16 +35,16 @@
   "position": {"x": "0%", "y": "0%"}
 }
 ```
-{% endtab %}
+</Tab>
 
 {% tab title="Modal configuration" %}
 ![](../../../.gitbook/assets/screenshot-2021-03-11-at-18.30.43.png)
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 **Two histograms on the same plot**
 
-{% tabs %}
+<Tabs>
 {% tab title="Code" %}
 ```javascript
 {
@@ -55,16 +55,16 @@
   "position": {"x": "0%", "y": "0%"}
 }
 ```
-{% endtab %}
+</Tab>
 
 {% tab title="Modal configuration" %}
 ![](../../../.gitbook/assets/screenshot-2021-03-11-at-18.36.34.png)
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 **Two horizontal histograms on the same plot**
 
-{% tabs %}
+<Tabs>
 {% tab title="Code" %}
 ```javascript
 {
@@ -78,18 +78,18 @@
   "position": {"x": "0%", "y": "150%"}
 }
 ```
-{% endtab %}
+</Tab>
 
 {% tab title="Modal configuration" %}
 ![](../../../.gitbook/assets/screenshot-2021-03-11-at-18.37.23.png)
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 ## Area
 
 **Multiple metrics**
 
-{% tabs %}
+<Tabs>
 {% tab title="Code" %}
 ```javascript
 {
@@ -106,18 +106,18 @@
   "position": {"x": "0%", "y": "0%"}
 }
 ```
-{% endtab %}
+</Tab>
 
 {% tab title="Modal configuration" %}
 ![](../../../.gitbook/assets/screenshot-2021-03-11-at-17.53.05.png)
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 ## Box
 
 **Two box plots example**
 
-{% tabs %}
+<Tabs>
 {% tab title="Code" %}
 ```javascript
 {
@@ -140,18 +140,18 @@
     ]
 }
 ```
-{% endtab %}
+</Tab>
 
 {% tab title="Modal configuration" %}
 ![](../../../.gitbook/assets/screenshot-2021-03-11-at-18.25.23.png)
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 ## Line
 
 **Two time-series in the same plot**
 
-{% tabs %}
+<Tabs>
 {% tab title="Code" %}
 ```javascript
 {
@@ -174,18 +174,18 @@
     }]
 }
 ```
-{% endtab %}
+</Tab>
 
 {% tab title="Modal configuration" %}
 ![](../../../.gitbook/assets/screenshot-2021-03-11-at-15.27.25.png)
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 ## Scatter
 
 ### **Two time-series in the same plot**
 
-{% tabs %}
+<Tabs>
 {% tab title="Code" %}
 ```javascript
 {
@@ -208,10 +208,10 @@
     }]
 }
 ```
-{% endtab %}
+</Tab>
 
 {% tab title="Modal configuration" %}
 ![](../../../.gitbook/assets/screenshot-2021-03-11-at-15.15.03.png)
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 

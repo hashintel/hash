@@ -20,13 +20,13 @@ Once uploaded the dataset will be listed in your simulation's file list.
 
 There are also third-party datasets published in hIndex you can add to your project, by searching in the "Add to Simulation" interface in the bottom-left hand corner of hCore.
 
-{% hint style="info" %}
+<Hint style="info">
 **Coming soon:** data syncing from remote sources is currently only achievable through [hEngine](https://hash.ai/platform/engine), but remains on our roadmap for [hCore](https://hash.ai/platform/core).
-{% endhint %}
+</Hint>
 
-{% hint style="success" %}
+<Hint style="success">
 **Let us know which integrations you'd like to see natively supported by completing our** [**data connectors survey**](https://sohostrategy.typeform.com/to/WROAmyhH)**.**
-{% endhint %}
+</Hint>
 
 ## Using data in projects
 
@@ -50,9 +50,9 @@ To access a dataset, use its path on `context.data()`- you can find its path by 
 context.data()["dataset-path.csv")
 ```
 
-{% hint style="info" %}
+<Hint style="info">
 **Coming soon:** we will be streamlining this process shortly, providing more optionality around parsing treatment, and expanding support for the types of datasets ingestible by HASH.
-{% endhint %}
+</Hint>
 
 If you wish to explore the universe of data available in HASH outside of hCore, you can do so directly [within hIndex](https://hash.ai/data?sort=popularity). As with behaviors, we encourage you to tag data in hIndex with the type of '[Thing](https://hash.ai/schemas/Thing)' it represents. This ensures that the data can subsequently be easily discovered and reused.
 
@@ -91,17 +91,17 @@ Now the simulation has a collection of agents with unique positions derived from
 
 ### Using data to enrich agents
 
-{% hint style="info" %}
+<Hint style="info">
 This section on hydrating agents' properties with external data is coming soon.
-{% endhint %}
+</Hint>
 
 ### Using data to calibrate models
 
 Datasets can be used to calibrate a model to find the parameters that best match the real world. Upload a dataset and create an optimization experiment that reduces the error between a run and the dataset - the HASH optimization engine will automatically identify the parameters that reduce the error the most.
 
-{% hint style="success" %}
+<Hint style="success">
 Read more and see an example in the [Complex Metrics section on Validating and Calibrating.](../experiments/optimization-experiments/complex-metrics.md#validating-and-calibrating)
-{% endhint %}
+</Hint>
 
 
 

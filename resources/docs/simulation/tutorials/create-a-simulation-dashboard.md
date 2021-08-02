@@ -30,9 +30,9 @@ There are three types of messages we'll send:
 
 _There's a fourth, initialize, that will cause hCore to send updates to the webpage for every file changed, but we're not going to use that._
 
-{% hint style="info" %}
+<Hint style="info">
 [Read the hCore Messaging API docs for more information](../api/hcore.md)
-{% endhint %}
+</Hint>
 
 Both types of messages contain an id and message type. For the ID, we recommend using a UUID. In the example we've included a sample function for generating UUIDs in JavaScript.
 
@@ -155,15 +155,15 @@ function setGlobals(ind){
 ```
 {% endcode %}
 
-{% hint style="info" %}
+<Hint style="info">
 [generateUUID\(\)](https://replit.com/@BenGoldhaber1/DamagedCircularDimension#script.js:1:17) is a helper function we've added to create UUIDs to pass in the function call. Feel free to use whatever UUID generating library you'd like.
-{% endhint %}
+</Hint>
 
 Now try clicking the scenario 1 button, and then scroll down to the corresponding lightning and regrowth parameters \(if you're following along in repl.it click the play button at the top first to reload the generated webpage with the changes we've made\). You'll see that it's been updated to match the value of the first scenario.
 
-{% hint style="info" %}
+<Hint style="info">
 If you refresh the webpage, the globals file will return to the starting condition. For any embedded simulation that's view only, the changes only persist for the current session.
-{% endhint %}
+</Hint>
 
 ## Reading State
 

@@ -2,7 +2,7 @@
 
 Check out the model \(Local Competition Phase 1\) in [hIndex](https://hash.ai/@hash/local-competition-phase-1)
 
-{% tabs %}
+<Tabs>
 {% tab title="init.json" %}
 ```text
 [
@@ -47,7 +47,7 @@ Check out the model \(Local Competition Phase 1\) in [hIndex](https://hash.ai/@h
  }
 ]
 ```
-{% endtab %}
+</Tab>
 
 {% tab title="globals.json" %}
 ```text
@@ -65,7 +65,7 @@ Check out the model \(Local Competition Phase 1\) in [hIndex](https://hash.ai/@h
  }
 }
 ```
-{% endtab %}
+</Tab>
 
 {% tab title="update\_businesses.js" %}
 ```javascript
@@ -75,7 +75,7 @@ const behavior = (state, context) => {
  })
 }
 ```
-{% endtab %}
+</Tab>
 
 {% tab title="business.js" %}
 ```javascript
@@ -155,7 +155,7 @@ const behavior = (state, context) => {
  }
 }
 ```
-{% endtab %}
+</Tab>
 
 {% tab title="customer.js" %}
 ```javascript
@@ -256,6 +256,6 @@ const behavior = (state, context) => {
  find_min(businesses);
 }
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 

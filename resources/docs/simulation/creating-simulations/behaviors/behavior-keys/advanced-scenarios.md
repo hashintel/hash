@@ -9,17 +9,17 @@ If a behavior uses state fields which already have keys defined in other behavio
 
 ![](../../../.gitbook/assets/screenshot-2021-02-11-at-15.20.15.png)
 
-{% hint style="warning" %}
+<Hint style="warning">
 You'll also need to check the box if your behavior uses a _**variable**_ to dynamically access state, e.g. `state[field_name]`
-{% endhint %}
+</Hint>
 
 ## How do I use built-in fields?
 
 You can find a full list of the built-in fields [here](../../anatomy-of-an-agent/state.md#reserved-fields). You do not need to define these in your behavior keys.
 
-{% hint style="info" %}
+<Hint style="info">
 Field Names at the top level of your keys cannot match built-in fields \(e.g. `agent_id`, `position`\) and cannot start with double-underscore \(e.g. `__age`\), which are reserved for engine specific information. Fields below the top level \(i.e. as a child of a top-level field\) may match those names.
-{% endhint %}
+</Hint>
 
 ## What if I want to rename a key in multiple files?
 

@@ -6,9 +6,9 @@ Certain HASH features rely on cutting-edge technology that may not be supported 
 
 ### Browser Compatibility
 
-{% hint style="info" %}
+<Hint style="info">
 **JavaScript** and **Python** behaviors can be authored via the in-browser IDE at this time. Support for Rust behavior authoring in hCore is [coming soon](https://hash.ai/roadmap) - at present only hIndex-listed Rust behaviors are available for import within simulations.
-{% endhint %}
+</Hint>
 
 | Environment execution ability | Chrome | Firefox | Safari |
 | :--- | :--- | :--- | :--- |
@@ -19,9 +19,9 @@ Certain HASH features rely on cutting-edge technology that may not be supported 
 | Cloud Python Behaviors | ✔ | ✔ | ✔ |
 | Cloud Rust Behaviors | ✔ | ✔ | ✔ |
 
-{% hint style="success" %}
+<Hint style="success">
 **Simulations can be run on** [**HASH Cloud**](../creating-simulations/h.cloud.md) **with results streamed back to any browser.** For example, Safari users running Python simulations can execute Python simulations in hCloud.
-{% endhint %}
+</Hint>
 
 ### Hardware Requirements
 

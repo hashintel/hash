@@ -13,9 +13,9 @@ There are a couple of different ways you can solve this problem in HASH. Common 
 * Add discrete event features  to signal when agents should pause to allow for different computation times
 * Add delays to normalize the actions across timescales.
 
-{% hint style="info" %}
+<Hint style="info">
 We are also going to introduce in-built ways of handling a global timescale - enabling the duration or trigger points of behaviors to be specified in line with calendar-time schedules.
-{% endhint %}
+</Hint>
 
 ## Discrete Event Simulations
 
@@ -48,7 +48,7 @@ A simple and straightforward approach is to "slow down" the simulation. In our e
 
 This has the advantage of being a straightforward, simple way of increasing the resolution of a simulation. The downside is it's inefficient - it's only in the first two steps of the simulation that we need the increased granularity. The additional 24 time-steps aren't really needed.
 
-{% hint style="warning" %}
+<Hint style="warning">
 Timescale management is a particularly common issue for new HASH users because [we utilize an actor model where there is "information lag" ](design-considerations/#actor-model)- a roundtrip message will take, at minimum, three time-steps.
-{% endhint %}
+</Hint>
 
