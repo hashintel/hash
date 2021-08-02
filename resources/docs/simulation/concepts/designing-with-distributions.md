@@ -13,6 +13,7 @@ Initializing agent properties using different types of distributions is a common
 
 <Tabs>
 <Tab title="JavaScript" >
+  
 ```javascript
 function behavior(state, context) {
   const { poisson, uniform, triangular, normal } = hstd.stats;
@@ -33,9 +34,11 @@ function behavior(state, context) {
   }
 };
 ```
+                                     
 </Tab>
 
 <Tab title="Python" >
+  
 ```python
 from numpy.random import poisson, uniform, triangular, normal
 
@@ -54,12 +57,13 @@ def behavior(state, context):
       "speed": normal(25, 10), # mean, standard deviation
     })
 ```
+  
 </Tab>
 </Tabs>
 
 You can find an example of these distribution methods being used in the Consumer Credit simulation. The _create\_client.js_ behavior uses three of the above methods to initialize heterogeneous agents.
 
-<Embed url="https://hash.ai/@hash/consumer-credit" caption="" >
+<Embed url="https://hash.ai/@hash/consumer-credit" caption="" />
 
 ### Empirical Distributions
 
@@ -67,7 +71,7 @@ If you are creating simulations from data consisting of observations, as opposed
 
 You can find a working example of this in the Alcoholism Intervention model. The _births\_intervention.py_ and _births\_control.py_ behaviors both make use of this python method in concert with a dataset.
 
-<Embed url="https://hash.ai/@hash/alcohol-use-dynamics-empirical-distributions" caption="" >
+<Embed url="https://hash.ai/@hash/alcohol-use-dynamics-empirical-distributions" caption="" />
 
 By implementing more advanced methods, you can create empirical distributions with linear or polynomial interpolation. We encourage you to share whatever you create!
 
