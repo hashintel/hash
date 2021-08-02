@@ -29,26 +29,25 @@ Most behaviors output a single state with the same `agent_id` as they received. 
 
 <Tabs>
 <Tab title="JavaScript" >
-    
+
 ```javascript
 const behavior = (state, context) => {
     state.position[0] += 1;
 }
 ```
-    
-</Tab>
+
+</Tab >
 
 <Tab title="Python" >
-    
+
 ```python
 def behavior(state, context):
     state["position"][0] += 1
 ```
-    
+
 </Tab>
 </Tabs>
 
 <Hint style="info">
 Agents can use behaviors to create new agents by sending a message to the special `hash` agent. This is covered more in-depth in [Messages](../agent-messages/built-in-message-handlers.md#creating-agents-via-messages).
 </Hint>
-
