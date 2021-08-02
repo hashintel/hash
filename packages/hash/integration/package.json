@@ -16,12 +16,14 @@
     "fmt": "find ./src/*.ts ./src/**/*.ts ./src/**/**/*.ts ./src/**/**/**/*.ts | xargs prettier --write",
     "ts-node": "node --max-old-space-size=2048 node_modules/.bin/ts-node --files --project tsconfig.json",
     "mock-data": "yarn codegen && ts-node src/mockData/index.ts",
-    "fmt-check": "prettier  \"src/**/*.{ts,tsx,js,jsx,css,scss}\" --check || exit 1; eslint --quiet \"{scripts,src}/**/*.{ts,tsx,js}\""
+    "fmt-check": "prettier  \"src/**/*.{ts,tsx,js,jsx,css,scss,json}\" --check || exit 1; eslint --quiet \"{scripts,src}/**/*.{ts,tsx,js,json}\"",
+    "test": "jest"
   },
   "dependencies": {
     "graphql": "15.5.0",
     "graphql-request": "3.4.0",
-    "graphql-type-json": "0.3.2"
+    "graphql-type-json": "0.3.2",
+    "pg": "8.7.1"
   },
   "devDependencies": {
     "@graphql-codegen/cli": "1.21.4",
