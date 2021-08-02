@@ -13,7 +13,7 @@ Initializing agent properties using different types of distributions is a common
 
 <Tabs>
 <Tab title="JavaScript" >
-  
+
 ```javascript
 function behavior(state, context) {
   const { poisson, uniform, triangular, normal } = hstd.stats;
@@ -34,11 +34,11 @@ function behavior(state, context) {
   }
 };
 ```
-                                     
-</Tab>
+
+</Tab >
 
 <Tab title="Python" >
-  
+
 ```python
 from numpy.random import poisson, uniform, triangular, normal
 
@@ -57,13 +57,14 @@ def behavior(state, context):
       "speed": normal(25, 10), # mean, standard deviation
     })
 ```
-  
+
 </Tab>
 </Tabs>
 
+
 You can find an example of these distribution methods being used in the Consumer Credit simulation. The _create\_client.js_ behavior uses three of the above methods to initialize heterogeneous agents.
 
-<Embed url="https://hash.ai/@hash/consumer-credit" caption="" />
+<Embed type="hash" url="https://hash.ai/@hash/consumer-credit" caption="" />
 
 ### Empirical Distributions
 
