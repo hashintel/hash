@@ -45,7 +45,11 @@ Naming your agent is entirely optional. The simplest possible agent is simply `{
 An individual agent has a [state](state.md) and a [context](context.md).
 
 ![An Agent](../../.gitbook/assets/image%20%2814%29.png)
+    
+<figcaption>An Agent</figcaption>
 
 When we define the [initial conditions](initial-state.md) of a simulation, we're defining the initial agents that will be present in the first timestep of the simulation, each of which will have its own state and context.
 
 ![Three agents, ready to simulate.](../../.gitbook/assets/image%20%2813%29.png)
+    
+<figcaption>Three agents, ready to simulate.</figcaption>
