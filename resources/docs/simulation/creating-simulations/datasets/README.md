@@ -56,7 +56,7 @@ context.data()["dataset-path.csv")
 
 If you wish to explore the universe of data available in HASH outside of hCore, you can do so directly [within hIndex](https://hash.ai/data?sort=popularity). As with behaviors, we encourage you to tag data in hIndex with the type of '[Thing](https://hash.ai/schemas/Thing)' it represents. This ensures that the data can subsequently be easily discovered and reused.
 
-### **Using data to initialize agents**
+### Using data to initialize agents
 
 Initializing agents is one of the most common uses of data in HASH. In the [city infection model](https://core.hash.ai/@hash/city-infection-model/stable) you can see an example of using data to create agents with heterogenous values.
 
