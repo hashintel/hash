@@ -65,7 +65,7 @@ You can run experiments locally or in [hCloud](../h.cloud.md)
 
 For more information on specific syntax, read more about [Experiment Types](experiment-types.md).
 
-<Embed type="youtube" url="https://youtu.be/tLcrXQxN70c" >
+<Embed type="youtube" url="https://youtu.be/tLcrXQxN70c" />
 
 
 
