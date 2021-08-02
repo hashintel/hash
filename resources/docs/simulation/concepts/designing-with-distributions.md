@@ -59,7 +59,7 @@ def behavior(state, context):
 
 You can find an example of these distribution methods being used in the Consumer Credit simulation. The _create\_client.js_ behavior uses three of the above methods to initialize heterogeneous agents.
 
-{% embed url="https://hash.ai/@hash/consumer-credit" caption="" >
+<Embed url="https://hash.ai/@hash/consumer-credit" caption="" >
 
 ### Empirical Distributions
 
@@ -67,7 +67,7 @@ If you are creating simulations from data consisting of observations, as opposed
 
 You can find a working example of this in the Alcoholism Intervention model. The _births\_intervention.py_ and _births\_control.py_ behaviors both make use of this python method in concert with a dataset.
 
-{% embed url="https://hash.ai/@hash/alcohol-use-dynamics-empirical-distributions" caption="" >
+<Embed url="https://hash.ai/@hash/alcohol-use-dynamics-empirical-distributions" caption="" >
 
 By implementing more advanced methods, you can create empirical distributions with linear or polynomial interpolation. We encourage you to share whatever you create!
 
