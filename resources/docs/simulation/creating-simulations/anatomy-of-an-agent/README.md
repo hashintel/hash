@@ -6,33 +6,35 @@ description: The beating hearts of agent-based models
 
 As the name suggests, **agents** lie at the heart of _agent_-_based_ modeling. Agents are made up of State, Behaviors, and Context.
 
-{% embed url="https://youtu.be/PTW6R-PrT38" caption="Anatomy of an Agent" %}
+<Embed url="https://youtu.be/PTW6R-PrT38" caption="Anatomy of an Agent" type="youtube" />
 
 Every agent has a name and a unique identifier. As a simulation creator, you can set and change the `agent_name` and you can set the `agent_id`before the agent is initialized, but you can't change the agent\_id after the simulation has started.
 
-{% hint style="info" %}
-The HASH Engine by default will set the `agent_id`, so don't worry about setting it manually unless you have a particular need for an agent's id [value in the sim logic](../libraries/hash/agent.md#generateagentid).
-{% endhint %}
+<Hint style="info">
 
-{% tabs %}
-{% tab title="JavaScript" %}
+The HASH Engine by default will set the `agent_id`, so don't worry about setting it manually unless you have a particular need for an agent's id [value in the sim logic](../libraries/hash/agent.md#generateagentid).
+
+</Hint>
+
+<Tabs>
+<Tab title="JavaScript" >
 ```javascript
 const agent = {
     agent_id: <uuid v4>, // Set on_create by the hEngine
     agent_name: <string>
 }
 ```
-{% endtab %}
+    </Tab >
 
-{% tab title="Python" %}
+<Tab title="Python" >
 ```python
 agent = {
     agent_id = <uuid v4> #Set on_create by the hEngine
     agent_name = <string>
 }
 ```
-{% endtab %}
-{% endtabs %}
+    </Tab>
+    </Tabs>
 
 Naming your agent is entirely optional. The simplest possible agent is simply `{}` \(although it won't do much of anything!\)
 
