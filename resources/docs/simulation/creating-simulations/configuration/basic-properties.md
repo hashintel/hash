@@ -23,6 +23,7 @@ The associated tree growth behavior would follow:
 
 <Tabs>
 <Tab title="JavaScript" >
+
 ```javascript
 function behavior(state, context) {
     if (state.height + growth <= context.globals()["maxTreeHeight"]) {
@@ -33,6 +34,7 @@ function behavior(state, context) {
 </Tab>
 
 <Tab title="Python" >
+
 ```python
 def behavior(state, context):   
     if state['height'] + growth <= context.globals()['maxTreeHeight']):
@@ -58,8 +60,11 @@ The type of field input for a simulation parameter can be varied by adding a "sc
 
 ### Color Picker
 
-{% code title="globals.json" >
+** globals.json **
+
+
 ```javascript
+
   {
     "<property_name>": "#ff0000",
 
@@ -73,7 +78,6 @@ The type of field input for a simulation parameter can be varied by adding a "sc
     }
   }
 ```
-{% endcode >
 
 ![A color selector in the visual globals pane](../../.gitbook/assets/screen-shot-2020-12-09-at-12.06.10-pm.png)
 
