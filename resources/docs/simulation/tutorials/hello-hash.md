@@ -60,6 +60,7 @@ You can build Python behaviors instead of JavaScript behaviors if you prefer. Ju
 
 <Tabs>
 <Tab title="JavaScript" >
+
 ```javascript
 [
   { 
@@ -74,10 +75,12 @@ You can build Python behaviors instead of JavaScript behaviors if you prefer. Ju
   }
 ]
 ```
+
 </Tab>
 
 <Tab title="Python" >
-```javascript
+
+```python
 [
   { 
     "agent_name": "Alice", 
@@ -91,6 +94,7 @@ You can build Python behaviors instead of JavaScript behaviors if you prefer. Ju
   }
 ]
 ```
+
 </Tab>
 </Tabs>
 
@@ -112,7 +116,9 @@ Since we're only sending a message to one agent, Alice, we can use her `agent_na
 
 <Tabs>
 <Tab title="JavaScript" >
+
 ```javascript
+// hello_alice.js
 const behavior = (state, context) => {
   state.addMessage(
       "Alice",
@@ -124,11 +130,13 @@ const behavior = (state, context) => {
 }
 ```
 
-**hello\_alice.js**
 </Tab>
 
 <Tab title="Python" >
+
 ```python
+# hello_alice.py
+
 def behavior(state, context):
   state.add_message(
       "Alice",
@@ -139,7 +147,6 @@ def behavior(state, context):
   )
 ```
 
-**hello\_alice.py**
 </Tab>
 </Tabs>
 
@@ -159,7 +166,10 @@ Let's find all of the messages that are greetings:
 
 <Tabs>
 <Tab title="JavaScript" >
+
 ```javascript
+// hello_bob.js
+
 const behavior = (state, context) => {
   const greetings = context.messages().filter(msg => msg.type === "greeting");
 
@@ -169,11 +179,12 @@ const behavior = (state, context) => {
 }
 ```
 
-**hello\_bob.js**
 </Tab>
 
 <Tab title="Python" >
+
 ```python
+# hello_bob.py
 def behavior(state, context):
     greetings = list(filter(lambda m: m['type'] == "greeting", context.messages()))
 
@@ -181,7 +192,6 @@ def behavior(state, context):
         # do something
 ```
 
-**hello\_bob.py**
 </Tab>
 </Tabs>
 
@@ -189,7 +199,10 @@ Adding visual indicators of state changes is an easy way to communicate what's h
 
 <Tabs>
 <Tab title="JavaScript" >
+
 ```javascript
+// hello_bob.js
+
 const behavior = (state, context) => {
   const greetings = context.messages().filter(msg => msg.type === "greeting");
   if (greetings.length > 0) {
@@ -198,11 +211,13 @@ const behavior = (state, context) => {
 }
 ```
 
-**hello\_bob.js**
 </Tab>
 
 <Tab title="Python" >
+
 ```python
+# hello_bob.py
+ 
 def behavior(state, context):
     greetings = list(filter(lambda m: m['type'] == "greeting", context.messages()))
 
@@ -210,7 +225,6 @@ def behavior(state, context):
         state["color"] = "blue"
 ```
 
-**hello\_bob.py**
 </Tab>
 </Tabs>
 
@@ -220,7 +234,10 @@ To respond to Bob's greeting, we can send a message back addressed to the first 
 
 <Tabs>
 <Tab title="JavaScript" >
+
 ```javascript
+// hello_bob.js
+
 const behavior = (state, context) => {
   const greetings = context.messages().filter(msg => msg.type === "greeting");
   if (greetings.length > 0) {
@@ -237,11 +254,14 @@ const behavior = (state, context) => {
 }
 ```
 
-**hello\_bob.js**
+
 </Tab>
 
 <Tab title="Python" >
+
 ```python
+# hello_bob.py
+
 def behavior(state, context):
     greetings = list(filter(lambda m: m['type'] == "greeting", context.messages()))
 
@@ -254,7 +274,6 @@ def behavior(state, context):
             })
 ```
 
-**hello\_bob.py**
 </Tab>
 </Tabs>
 
@@ -264,7 +283,10 @@ Over in **hello\_alice**, we can add a similar message handler for Bob, too.
 
 <Tabs>
 <Tab title="JavaScript" >
+
 ```javascript
+// hello_alice.js
+
 const behavior = (state, context) => {
   const greetings = context.messages().filter(msg => msg.type === "greeting");
   if (greetings.length > 0) {
@@ -280,11 +302,13 @@ const behavior = (state, context) => {
 }
 ```
 
-**hello\_alice.js**
 </Tab>
 
 <Tab title="Python" >
+
 ```python
+# hello_alice.py
+
 def behavior(state, context):
     greetings = list(filter(lambda m: m['type'] == "greeting", context.messages()))
 
@@ -300,7 +324,6 @@ def behavior(state, context):
   )
 ```
 
-**hello\_alice.py**
 </Tab>
 </Tabs>
 
@@ -310,15 +333,18 @@ It's a little boring to just have them stay red and blue throughout the rest of 
 
 <Tabs>
 <Tab title="JavaScript" >
+
 ```javascript
     state.color = state.color === "blue" ? "green" : "blue"
 ```
 </Tab>
 
 <Tab title="Python" >
+
 ```python
     state['color'] = 'blue' if state['color'] == 'green' else 'blue'
 ```
+
 </Tab>
 </Tabs>
 
@@ -326,15 +352,19 @@ or:
 
 <Tabs>
 <Tab title="JavaScript" >
+
 ```javascript
     state.color = state.color === "purple" ? "red" : "purple"
 ```
+
 </Tab>
 
 <Tab title="Python" >
+
 ```python
     state['color'] = 'purple' if state['color'] == 'red' else 'red'
 ```
+
 </Tab>
 </Tabs>
 
@@ -342,7 +372,10 @@ We can refactor our code slightly to implement this.
 
 <Tabs>
 <Tab title="JavaScript" >
+
 ```javascript
+// hello_alice.js
+
 const behavior = (state, context) => {
   const greetings = context.messages().filter(msg => msg.type === "greeting");
 
@@ -361,11 +394,13 @@ const behavior = (state, context) => {
 }
 ```
 
-**hello\_alice.js**
 </Tab>
 
 <Tab title="Python" >
+
 ```python
+# hello_alice.py
+
 def behavior(state, context):
     greetings = list(filter(lambda m: m['type'] == "greeting", context.messages()))
 
@@ -381,13 +416,15 @@ def behavior(state, context):
   )
 ```
 
-**hello\_alice.py**
 </Tab>
 </Tabs>
 
 <Tabs>
 <Tab title="JavaScript" >
+
 ```javascript
+// hello_bob.js
+
 const behavior = (state, context) => {
   const greetings = context.messages().filter(msg => msg.type === "greeting");
   if (greetings.length > 0) {
@@ -404,11 +441,14 @@ const behavior = (state, context) => {
 }
 ```
 
-**hello\_bob.py**
+
 </Tab>
 
 <Tab title="Python" >
+
 ```python
+# hello_bob.py
+
 def behavior(state, context):
     greetings = list(filter(lambda m: m['type'] == "greeting", context.messages()))
 
@@ -421,7 +461,6 @@ def behavior(state, context):
             })
 ```
 
-**hello\_bob.py**
 </Tab>
 </Tabs>
 
@@ -433,6 +472,7 @@ Finally, since Alice clearly would like some socially-responsible distance from 
 
 <Tabs>
 <Tab title="JavaScript" >
+
 ```javascript
 [ 
   { 
@@ -447,10 +487,12 @@ Finally, since Alice clearly would like some socially-responsible distance from 
   }
 ]
 ```
+
 </Tab>
 
 <Tab title="Python" >
-```javascript
+
+```python
 [
   {
     "agent_name": "Alice",
@@ -464,6 +506,7 @@ Finally, since Alice clearly would like some socially-responsible distance from 
   }
 ]
 ```
+
 </Tab>
 </Tabs>
 
