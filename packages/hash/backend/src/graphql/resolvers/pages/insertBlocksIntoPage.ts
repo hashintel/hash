@@ -19,11 +19,11 @@ export const insertBlocksIntoPage: Resolver<
   GraphQLContext,
   MutationInsertBlocksIntoPageArgs
 > = async (
-  {},
+  _,
   { accountId, pageId, blocks, previousBlockId },
   { dataSources }
 ) => {
-  return dataSources.db.transaction(async (client) => {
+  return await dataSources.db.transaction(async (client): Promise<DbPage> => {
     // Create the blocks
     const newBlocks: DbBlock[] = await Promise.all(
       blocks.map(async (block) => {
@@ -77,8 +77,9 @@ export const insertBlocksIntoPage: Resolver<
       pos,
       0,
       ...newBlocks.map((blk) => ({
-        accountId: blk.properties.accountId,
-        entityId: blk.properties.entityId,
+        type: "Block",
+        accountId: blk.accountId,
+        entityId: blk.id,
       }))
     );
 
@@ -91,12 +92,17 @@ export const insertBlocksIntoPage: Resolver<
 
     // @todo: for now, all entities are non-versioned, so the array only has a single
     // element. Return when versioned entities are implemented at the API layer.
+    const entity = updatedEntities[0];
     return {
-      ...updatedEntities[0],
       type: "Page",
-      id: updatedEntities[0].entityId,
-      accountId: updatedEntities[0].accountId,
+      id: entity.entityId,
+      accountId: entity.accountId,
+      createdById: entity.createdById,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+      metadataId: entity.metadataId,
       visibility: Visibility.Public, // @todo: get from entity metadata
+      properties: entity.properties as DbPageProperties,
     };
   });
 };
