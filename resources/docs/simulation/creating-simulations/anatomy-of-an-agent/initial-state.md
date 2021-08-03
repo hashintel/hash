@@ -9,7 +9,7 @@ All HASH simulations begin life in the `init` file found in the root of a HASH p
 There are three ways to populate the initial state of a simulation. You can:
 
 1. Define the individual agents in `init.json`
-2. Programatically generate the initial agents in an `init.js` or `init.py` file. 
+2. Programatically generate the initial agents in an `init.js` or `init.py` file.
 3. Define "creator" agents in `init.json` with behaviors that will generate agents, using published behaviors, or your own.
 
 ## Init.json
@@ -20,16 +20,16 @@ In `init.json` you'll explicitly define all your agents as JSON blobs in an arra
 
 You can create whatever field names you need on your agents, but be aware of setting incorrect value types on protected fields we mentioned previously.
 
-{% code title="init.json" >
+** init.json **
+
 ```text
 [
     {"position": [0,0],
      "behaviors": ["foo.js"]},
     {"position": [0,0],
-     "behaviors": ["foo.js"]},     
+     "behaviors": ["foo.js"]},
 ]
 ```
-{% endcode >
 
 When you make a change to the file, you'll need to reset your simulation to see updated agents appear in the 3D Viewer.
 
@@ -49,23 +49,26 @@ Now you can write JavaScript or Python in the file and use it to set agent prope
 
 <Tabs>
 <Tab title="JavaScript" >
+
 ```javascript
 const init = (context) => {
   let agents = [
     {
-      "position": [0,0],
-      "behaviors": ["custom.js"],
-      "foo": Math.random(),
-      "data": context.data()["/somedataset"][1]
-    }
+      position: [0, 0],
+      behaviors: ["custom.js"],
+      foo: Math.random(),
+      data: context.data()["/somedataset"][1],
+    },
   ];
 
   return agents;
-}
+};
 ```
+
 </Tab>
 
 <Tab title="Python" >
+
 ```python
 import random
 
@@ -81,6 +84,7 @@ def init(context):
 
   return agents
 ```
+
 </Tab>
 </Tabs>
 
@@ -92,24 +96,28 @@ To programmatically create agents, you can add loops and similar logic to append
 
 <Tabs>
 <Tab title="JavaScript" >
+
 ```javascript
 const init = (context) => {
   let agents = [];
   for (let i = 0; i < 100; i++) {
     agents.push({
-      "position": [i,i]
-    })
+      position: [i, i],
+    });
   }
   return agents;
-}
+};
 ```
+
 </Tab>
 
 <Tab title="Python" >
+
 ```python
 def init(context):
     return [{ "position": [i,i] } for i in range(0,100)]
 ```
+
 </Tab>
 </Tabs>
 
@@ -117,6 +125,7 @@ Within an `init.js` or `init.py` file you have access to the [context](context.m
 
 <Tabs>
 <Tab title="JavaScript" >
+
 ```javascript
 /**
  * @param {InitContext} initialization context
@@ -131,17 +140,19 @@ const init = (context) => {
   let agents = [];
   for (let i = 0; i < globals["num_agents"]; i++) {
     agents.push({
-      "behaviors": ["add_one.js"],
-      "age": Math.floor(hstd.stats.normal.sample(avg_age, std_age)),
+      behaviors: ["add_one.js"],
+      age: Math.floor(hstd.stats.normal.sample(avg_age, std_age)),
     });
   }
 
   return agents;
-}
+};
 ```
+
 </Tab>
 
 <Tab title="Python" >
+
 ```python
 import statistics
 import random
@@ -163,6 +174,7 @@ def init(context):
 
   return agents
 ```
+
 </Tab>
 </Tabs>
 
@@ -174,15 +186,15 @@ You can also make use of functions in HASH's standard library to generate agents
 
 ```javascript
 const init = (context) => {
-    const topology = context.globals().topology
-    const template = {
-      "behaviors": ["grow.js"],
-      "color": "yellow"
-    };
+  const topology = context.globals().topology;
+  const template = {
+    behaviors: ["grow.js"],
+    color: "yellow",
+  };
 
-    const agents =  hstd.init.grid(topology, template);
-    return agents;
-}
+  const agents = hstd.init.grid(topology, template);
+  return agents;
+};
 ```
 
 You can learn more about all the **init** functions in the standard library [in this section of the docs](../libraries/hash/init.md).
@@ -195,9 +207,9 @@ If you want to jump right into code you can take a look at our [Initialization D
 
 With "creator" agents you can create agents that create other agents. For example, by accessing published behaviors, we can very easily generate common agent placements. These behaviors can be found in the lower left corner; search for and then click on them to add them to your simulation:
 
-* `Create Grids (@hash/create-grids/create_grids.js)`:  copy an agent to every unit within the [topology](https://docs.hash.ai/core/creating-simulations/configuration/topology) bounds
-* `Create Scatters (@hash/create-scatters/create_scatters.js)`: copy an agent to random locations within the [topology](https://docs.hash.ai/core/creating-simulations/configuration/topology) bounds 
-* `Create Stacks (@hash/create-stacks/create_stacks.js)`: copy an agent multiple times to the same location
+- `Create Grids (@hash/create-grids/create_grids.js)`: copy an agent to every unit within the [topology](https://docs.hash.ai/core/creating-simulations/configuration/topology) bounds
+- `Create Scatters (@hash/create-scatters/create_scatters.js)`: copy an agent to random locations within the [topology](https://docs.hash.ai/core/creating-simulations/configuration/topology) bounds
+- `Create Stacks (@hash/create-stacks/create_stacks.js)`: copy an agent multiple times to the same location
 
 Take a look at how we can use published behaviors in the following example, where \[rabbits forage for food and reproduce\]\([https://hash.ai/@hash/rabbits-grass-weeds](https://hash.ai/@hash/rabbits-grass-weeds), while grass and weeds grow around them:
 
@@ -205,13 +217,13 @@ Take a look at how we can use published behaviors in the following example, wher
 
 There's a singly agent that has a set of behaviors that will reference the "templates" we attached as properties on the creator agent.
 
-`Create Grids` looks at the agent templates in the "grid\_templates" array, in this case the "ground". We're copying it to fill the space defined in the bounds of our "topology" field in`globals.json`:
+`Create Grids` looks at the agent templates in the "grid_templates" array, in this case the "ground". We're copying it to fill the space defined in the bounds of our "topology" field in`globals.json`:
 
 ![](../../.gitbook/assets/screen-shot-2020-05-30-at-5.45.24-pm.png)
 
 Next, `Create Scatters` distributes the "rabbits" across the environment. Each one is placed in a random location within the bounds specified in the `topology`.
 
-Now we want to make a few adjustments to the agents we've generated which requires a bit more logic. Luckily for us, HASH behaviors are composable. `Create Grids` and `Create Scatters` have created "agent" objects in our creator and filled them. We access those agents by using the "template\_name" as a key:
+Now we want to make a few adjustments to the agents we've generated which requires a bit more logic. Luckily for us, HASH behaviors are composable. `Create Grids` and `Create Scatters` have created "agent" objects in our creator and filled them. We access those agents by using the "template_name" as a key:
 
 ![](../../.gitbook/assets/image%20%2831%29%20%282%29%20%282%29%20%282%29%20%282%29%20%282%29%20%282%29%20%282%29%20%283%29%20%283%29%20%281%29.png)
 
@@ -225,25 +237,30 @@ You can create new agents during your simulation by sending a message to the res
 
 <Tabs>
 <Tab title="JavaScript" >
+
 ```javascript
 state.addMessage("hash", "create_agent", {
-    ...agent_details
- })
+  ...agent_details,
+});
 ```
+
 </Tab>
 
 <Tab title="Python" >
+
 ```python
 state.add_message("hash", "create_agent", {
     ...agent_details
  })
 ```
+
 </Tab>
 </Tabs>
 
 If you'd like to explore another simple example that uses these published behaviors, take a look at the [Wildfires](https://hash.ai/@hash/wildfires-regrowth) or [Rock, Paper, Scissors](https://core.hash.ai/@hash/rock-paper-scissors/stable) simulations.
 
 <Hint style="info">
-If you ever feel like you might be "reinventing the wheel," check out [hIndex](https://hash.ai/search?contentType=Behavior&sort=relevance&query=create&page=1). There you'll find hundreds of pre-made, ready-to-use simulation components.
-</Hint>
 
+If you ever feel like you might be "reinventing the wheel," check out [hIndex](https://hash.ai/search?contentType=Behavior&sort=relevance&query=create&page=1). There you'll find hundreds of pre-made, ready-to-use simulation components.
+
+</Hint>
