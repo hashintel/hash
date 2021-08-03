@@ -1,23 +1,15 @@
 {
+  "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
-    // io
-    "rootDir": "./src/",
+    // specifics
+    "baseUrl": "./",
     "outDir": "./dist/",
-
-    // module spec
-    "target": "es2020",
-    "lib": ["es2020"],
-    "module": "commonjs",
-    "esModuleInterop": true,
-    "resolveJsonModule": true,
-
-    // enable generation of .d.ts(.map) files
     "declaration": true,
     "declarationMap": true, // enables importers to jump to source
 
-    // misc
-    "strict": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
-  }
+    // overrides
+    "lib": ["es2020"],
+    "target": "es2020",
+  },
+  "include": ["./src/"]
 }
