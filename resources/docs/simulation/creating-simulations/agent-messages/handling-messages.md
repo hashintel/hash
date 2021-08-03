@@ -33,6 +33,7 @@ Handling the messages here would be pretty simple - just iterating through the m
 <Tabs>
 <Tab title="JavaScript" >
 
+
 ```javascript
 const behavior = (state, context) => {
     for (const message in context.messages()) {
@@ -49,6 +50,7 @@ const behavior = (state, context) => {
 </Tab>
 
 <Tab title="Python" >
+
 
 ```python
 def behavior(state, context):
@@ -72,6 +74,7 @@ fn (state: AgentState, context: &Context) -> AgentState {
 <Tabs>
 <Tab title="JavaScript" >
 
+
 ```javascript
 const behavior = (state, context) => {
     for (const message of context.messages()) {
@@ -88,6 +91,7 @@ const behavior = (state, context) => {
 </Tab>
 
 <Tab title="Python" >
+
 
 ```python
 def behavior(state, context):

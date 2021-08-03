@@ -23,6 +23,7 @@ Agents send messages by adding JSON objects to their `messages` array. The objec
 <Tabs>
 <Tab title="JavaScript" >
 
+
 ```javascript
 const behavior = (state, context) => {
     state.messages.push({
@@ -35,6 +36,7 @@ const behavior = (state, context) => {
 </Tab>
 
 <Tab title="Python" >
+
 
 ```python
 def behavior:
@@ -54,6 +56,7 @@ We provide helper functions on the state object for adding messages. state.addMe
 <Tabs>
 <Tab title="JavaScript" >
 
+
 ```javascript
 const behavior = (state, context) => {
     state.addMessage("people", "greeting", {"msg": "hello"})
@@ -62,6 +65,7 @@ const behavior = (state, context) => {
 </Tab>
 
 <Tab title="Python" >
+
 
 ```python
 def behavior:

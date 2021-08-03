@@ -14,6 +14,7 @@ Initializing agent properties using different types of distributions is a common
 <Tabs>
 <Tab title="JavaScript" >
 
+
 ```javascript
 function behavior(state, context) {
   const { poisson, uniform, triangular, normal } = hstd.stats;
@@ -38,6 +39,7 @@ function behavior(state, context) {
 </Tab >
 
 <Tab title="Python" >
+
 
 ```python
 from numpy.random import poisson, uniform, triangular, normal

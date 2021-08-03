@@ -20,6 +20,7 @@ The dataset is stored in the 'data/' folder, and the data will be available in t
 
 <Tabs>
 <Tab title="JavaScript" >
+
 ```javascript
 const behavior = (state, context) => {
  let cs = context.data()["CustomerServiceEmployeesSheet1.csv"]
@@ -29,6 +30,7 @@ const behavior = (state, context) => {
 </Tab>
 
 <Tab title="Python" >
+
 ```python
 def behavior(state, context):
   cs = context.data()["CustomerServiceEmployeesSheet1.csv"]

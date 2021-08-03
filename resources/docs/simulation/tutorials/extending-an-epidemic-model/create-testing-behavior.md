@@ -4,6 +4,7 @@ To start let**'**s create a message from the Person agent that contains the basi
 
 <Tabs>
 <Tab title="JavaScript" >
+
 {% code title="check\_infected.js" >
 ```javascript
 function check_hospital(state) {
@@ -16,6 +17,7 @@ function check_hospital(state) {
 </Tab>
 
 <Tab title="Python" >
+
 {% code title="check\_infected.py" >
 ```python
 def check_hospital():
@@ -43,6 +45,7 @@ We'll create a local variable to store the global global variable at the top of 
 
 <Tabs>
 <Tab title="JavaScript" >
+
 {% code title="check\_infected.js" >
 ```javascript
 function behavior(state, context) {
@@ -64,6 +67,7 @@ function behavior(state, context) {
 </Tab>
 
 <Tab title="Python" >
+
 {% code title="check\_infected.py" >
 ```python
 def behavior(state, context):
@@ -88,6 +92,7 @@ On the receiving end we need to add a message handler for the hospital. Create a
 
 <Tabs>
 <Tab title="JavaScript" >
+
 {% code title="test\_for\_virus.js" >
 ```javascript
 function behavior(state, context) {
@@ -98,6 +103,7 @@ function behavior(state, context) {
 </Tab>
 
 <Tab title="Python" >
+
 {% code title="test\_for\_virus.py" >
 ```python
 def behavior(state, context):
@@ -115,6 +121,7 @@ Make sure to attach it to the Hospital. Since we know we'll always want the beha
 
 <Tabs>
 <Tab title="JavaScript" >
+
 ```javascript
 {
     "template_name": "hospitals",
@@ -130,6 +137,7 @@ Make sure to attach it to the Hospital. Since we know we'll always want the beha
 </Tab>
 
 <Tab title="Python" >
+
 ```javascript
 {
     "template_name": "hospitals",
@@ -151,6 +159,7 @@ Let's check all of the messages and respond to each person, letting them know th
 
 <Tabs>
 <Tab title="JavaScript" >
+
 {% code title="test\_for\_virus.js" >
 ```javascript
  test_messages.forEach(m => state.addMessage(
@@ -165,6 +174,7 @@ Let's check all of the messages and respond to each person, letting them know th
 </Tab>
 
 <Tab title="Python" >
+
 {% code title="test\_for\_virus.py" >
 ```python
 for msg in test_messages:
@@ -180,6 +190,7 @@ Back in `check_infected` , we similarly want to check for any messages about our
 
 <Tabs>
 <Tab title="JavaScript" >
+
 ```javascript
 let msgs = context.messages().filter(msg => msg.type === "test_result");
 msgs.forEach(msg => {
@@ -192,6 +203,7 @@ msgs.forEach(msg => {
 </Tab>
 
 <Tab title="Python" >
+
 ```python
 msgs = list(filter(lambda m: m['type'] == 'test_result', context.messages()))
 for msg in msgs:
@@ -208,6 +220,7 @@ The `daily_movement` behavior contains our agent's movement logic. Importantly, 
 
 <Tabs>
 <Tab title="JavaScript" >
+
 ```javascript
 // Line 20
 const grocery = random_choice(agents["groceries"]).position;
@@ -227,6 +240,7 @@ const template = state.people_template;
 </Tab>
 
 <Tab title="Python" >
+
 ```python
 # Line 14
 grocery = choice(agents['groceries'])['position']
@@ -247,6 +261,7 @@ We're going to need to add the hospital as a potential destination as well:
 
 <Tabs>
 <Tab title="JavaScript" >
+
 ```javascript
 // Line 20
 const grocery = random_choice(agents["groceries"]).position;
@@ -268,6 +283,7 @@ const template = state.people_template;
 </Tab>
 
 <Tab title="Python" >
+
 ```python
 # Line 14
 grocery = choice(agents['groceries'])['position']
@@ -292,6 +308,7 @@ For now though in `check_infected`, you can set the destination as home.
 
 <Tabs>
 <Tab title="JavaScript" >
+
 ```javascript
 let msgs = context.messages().filter(msg => msg.type === "test_result");
  msgs.forEach(msg => {
@@ -303,6 +320,7 @@ let msgs = context.messages().filter(msg => msg.type === "test_result");
 </Tab>
 
 <Tab title="Python" >
+
 ```python
 msgs = list(filter(lambda m: m['type'] == 'test_result', context.messages()))
 for msg in msgs:
@@ -316,6 +334,7 @@ Now our full `check_infected` behavior looks like this:
 
 <Tabs>
 <Tab title="JavaScript" >
+
 ```javascript
 function behavior(state, context) {
   const { time_to_symptoms } = context.globals();
@@ -341,6 +360,7 @@ function behavior(state, context) {
 </Tab>
 
 <Tab title="Python" >
+
 ```python
 def behavior(state, context):
   time_to_symptoms = context.globals()['time_to_symptoms']

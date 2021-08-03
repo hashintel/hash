@@ -16,6 +16,7 @@ While there are a lot of ways to add unit tests to a simulation, a straightforwa
 <Tabs>
 <Tab title="JavaScript" >
 
+
 ```javascript
 // test_behavior.js
 function testCaseOne(state) {
@@ -49,6 +50,7 @@ const behavior = (state, context) => {
 </Tab>
 
 <Tab title="Python" >
+
 
 ```python
 # test_behavior.py

@@ -24,6 +24,7 @@ The associated tree growth behavior would follow:
 <Tabs>
 <Tab title="JavaScript" >
 
+
 ```javascript
 function behavior(state, context) {
     if (state.height + growth <= context.globals()["maxTreeHeight"]) {
@@ -34,6 +35,7 @@ function behavior(state, context) {
 </Tab>
 
 <Tab title="Python" >
+
 
 ```python
 def behavior(state, context):   

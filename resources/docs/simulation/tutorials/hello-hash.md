@@ -61,6 +61,7 @@ You can build Python behaviors instead of JavaScript behaviors if you prefer. Ju
 <Tabs>
 <Tab title="JavaScript" >
 
+
 ```javascript
 [
   { 
@@ -79,6 +80,7 @@ You can build Python behaviors instead of JavaScript behaviors if you prefer. Ju
 </Tab>
 
 <Tab title="Python" >
+
 
 ```python
 [
@@ -117,6 +119,7 @@ Since we're only sending a message to one agent, Alice, we can use her `agent_na
 <Tabs>
 <Tab title="JavaScript" >
 
+
 ```javascript
 // hello_alice.js
 const behavior = (state, context) => {
@@ -133,6 +136,7 @@ const behavior = (state, context) => {
 </Tab>
 
 <Tab title="Python" >
+
 
 ```python
 # hello_alice.py
@@ -167,6 +171,7 @@ Let's find all of the messages that are greetings:
 <Tabs>
 <Tab title="JavaScript" >
 
+
 ```javascript
 // hello_bob.js
 
@@ -182,6 +187,7 @@ const behavior = (state, context) => {
 </Tab>
 
 <Tab title="Python" >
+
 
 ```python
 # hello_bob.py
@@ -200,6 +206,7 @@ Adding visual indicators of state changes is an easy way to communicate what's h
 <Tabs>
 <Tab title="JavaScript" >
 
+
 ```javascript
 // hello_bob.js
 
@@ -214,6 +221,7 @@ const behavior = (state, context) => {
 </Tab>
 
 <Tab title="Python" >
+
 
 ```python
 # hello_bob.py
@@ -234,6 +242,7 @@ To respond to Bob's greeting, we can send a message back addressed to the first 
 
 <Tabs>
 <Tab title="JavaScript" >
+
 
 ```javascript
 // hello_bob.js
@@ -258,6 +267,7 @@ const behavior = (state, context) => {
 </Tab>
 
 <Tab title="Python" >
+
 
 ```python
 # hello_bob.py
@@ -284,6 +294,7 @@ Over in **hello\_alice**, we can add a similar message handler for Bob, too.
 <Tabs>
 <Tab title="JavaScript" >
 
+
 ```javascript
 // hello_alice.js
 
@@ -305,6 +316,7 @@ const behavior = (state, context) => {
 </Tab>
 
 <Tab title="Python" >
+
 
 ```python
 # hello_alice.py
@@ -334,12 +346,14 @@ It's a little boring to just have them stay red and blue throughout the rest of 
 <Tabs>
 <Tab title="JavaScript" >
 
+
 ```javascript
     state.color = state.color === "blue" ? "green" : "blue"
 ```
 </Tab>
 
 <Tab title="Python" >
+
 
 ```python
     state['color'] = 'blue' if state['color'] == 'green' else 'blue'
@@ -353,6 +367,7 @@ or:
 <Tabs>
 <Tab title="JavaScript" >
 
+
 ```javascript
     state.color = state.color === "purple" ? "red" : "purple"
 ```
@@ -360,6 +375,7 @@ or:
 </Tab>
 
 <Tab title="Python" >
+
 
 ```python
     state['color'] = 'purple' if state['color'] == 'red' else 'red'
@@ -372,6 +388,7 @@ We can refactor our code slightly to implement this.
 
 <Tabs>
 <Tab title="JavaScript" >
+
 
 ```javascript
 // hello_alice.js
@@ -398,6 +415,7 @@ const behavior = (state, context) => {
 
 <Tab title="Python" >
 
+
 ```python
 # hello_alice.py
 
@@ -422,6 +440,7 @@ def behavior(state, context):
 <Tabs>
 <Tab title="JavaScript" >
 
+
 ```javascript
 // hello_bob.js
 
@@ -445,6 +464,7 @@ const behavior = (state, context) => {
 </Tab>
 
 <Tab title="Python" >
+
 
 ```python
 # hello_bob.py
@@ -473,6 +493,7 @@ Finally, since Alice clearly would like some socially-responsible distance from 
 <Tabs>
 <Tab title="JavaScript" >
 
+
 ```javascript
 [ 
   { 
@@ -491,6 +512,7 @@ Finally, since Alice clearly would like some socially-responsible distance from 
 </Tab>
 
 <Tab title="Python" >
+
 
 ```python
 [

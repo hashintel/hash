@@ -19,6 +19,7 @@ The `context.neighbors()` method returns a collection of the agent's neighbors. 
 <Tabs>
 <Tab title="JavaScript" >
 
+
 ```javascript
 const behavior = (state, context) => {
     for (neighbor of context.neighbors()) {
@@ -31,6 +32,7 @@ const behavior = (state, context) => {
 </Tab>
 
 <Tab title="Python" >
+
 ```python
 def behavior(state, context):
     for neighbor in context.neighbors():
@@ -65,6 +67,7 @@ The `context.step()` method returns the current step number of the simulation. S
 <Tabs>
 <Tab title="JavaScript" >
 
+
 ```javascript
 const behavior = (state, context) => {
     console.log("The current step is", context.step())
@@ -74,6 +77,7 @@ const behavior = (state, context) => {
 </Tab>
 
 <Tab title="Python" >
+
 ```python
 def behavior(state, context):
     print("The current step is", context.step())

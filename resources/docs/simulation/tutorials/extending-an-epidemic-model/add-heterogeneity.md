@@ -8,6 +8,7 @@ In our Getting Started model \([Python](https://hash.ai/@hash/getting-started-ba
 
 <Tabs>
 <Tab title="JavaScript" >
+
 ```javascript
 // line 26
 agents["people"].push({
@@ -18,6 +19,7 @@ agents["people"].push({
 </Tab>
 
 <Tab title="Python" >
+
 ```python
 # line 18
 person = {
@@ -32,6 +34,7 @@ In the "infection" behavior, when a **Person** agent gets infected, let's add lo
 
 <Tabs>
 <Tab title="JavaScript" >
+
 {% code title="infection.js" >
 ```javascript
 // line 81
@@ -45,6 +48,7 @@ if ((state.severity === "moderate") && (Math.random() < severe_chance)) {
 </Tab>
 
 <Tab title="Python" >
+
 {% code title="infection.py" >
 ```python
 # line 69
@@ -74,6 +78,7 @@ And in the "create\_people" behavior, we substitute that value for the hardcoded
 
 <Tabs>
 <Tab title="JavaScript" >
+
 ```javascript
 // line 26
 agents["people"].push({
@@ -84,6 +89,7 @@ agents["people"].push({
 </Tab>
 
 <Tab title="Python" >
+
 ```python
 # line 18
 person = {

@@ -16,6 +16,7 @@ Often you'll create simulations with probabilities, where an agent takes an acti
 
 <Tabs>
 <Tab title="JavaScript" >
+
 ```javascript
 state.foo = hstd.random() > 0.5 ? true : false
 ```
@@ -26,6 +27,7 @@ or by using one of the [Statistic libraries](../creating-simulations/libraries/#
 
 <Tabs>
 <Tab title="JavaScript" >
+
 
 ```javascript
   const { poisson, uniform, triangular, normal } = hstd.stats;
@@ -43,6 +45,7 @@ To ensure the same numbers are generated every execution run, you can **set the 
 
 <Tabs>
 <Tab title="JavaScript" >
+
 
 ```javascript
 if (state.timestep == 1) {

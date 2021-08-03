@@ -15,6 +15,7 @@ There are four distinct agents in the model. Three are locations - homes, grocer
 <Tabs>
 <Tab title="JavaScript" >
 
+
 ```javascript
  //init.json lines 9-35
  //...
@@ -50,6 +51,7 @@ There are four distinct agents in the model. Three are locations - homes, grocer
 </Tab>
 
 <Tab title="Python" >
+
 
 ```javascript
  //init.json lines 9-35

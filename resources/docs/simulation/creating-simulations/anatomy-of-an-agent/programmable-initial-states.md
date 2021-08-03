@@ -14,6 +14,7 @@ Both Javascript and Python init files must contain a function called `init` whic
 
 <Tabs>
 <Tab title="JavaScript" >
+
 ```javascript
 /**
  * @param {InitContext} initialization context
@@ -39,6 +40,7 @@ const init = (context) => {
 </Tab>
 
 <Tab title="Python" >
+
 ```python
 import statistics
 import random

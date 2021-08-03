@@ -19,6 +19,7 @@ In `init.json` , expand the hospital agent by adding a value for `icu_capacity`.
 
 <Tabs>
 <Tab title="JavaScript" >
+
 ```javascript
 {
   "agent_name": "Hospital",
@@ -33,6 +34,7 @@ In `init.json` , expand the hospital agent by adding a value for `icu_capacity`.
 </Tab>
 
 <Tab title="Python" >
+
 ```javascript
 {
   "agent_name": "Hospital",
@@ -59,6 +61,7 @@ In this case, let's include a key-value pair in the message data packet for `at_
 
 <Tabs>
 <Tab title="JavaScript" >
+
 ```javascript
 function check_hospital(){
    state.addMessage("Hospital", "test", {
@@ -70,6 +73,7 @@ function check_hospital(){
 </Tab>
 
 <Tab title="Python" >
+
 ```python
 def check_hospital():
    state.add_message("Hospital", "test", {
@@ -84,6 +88,7 @@ Open the `test_for_virus` behavior and, in our message parsing loop, add control
 
 <Tabs>
 <Tab title="JavaScript" >
+
 {% code title="test\_for\_virus.js" >
 ```javascript
 test_messages.forEach(m => {
@@ -101,6 +106,7 @@ test_messages.forEach(m => {
 </Tab>
 
 <Tab title="Python" >
+
 {% code title="test\_for\_virus.py" >
 ```python
 for msg in test_messages:
@@ -120,6 +126,7 @@ Let’s add a flag that the person has a case severe enough that they will stay 
 
 <Tabs>
 <Tab title="JavaScript" >
+
 {% code title="test\_for\_virus.js" >
 ```javascript
 test_messages.forEach(m => {
@@ -141,6 +148,7 @@ test_messages.forEach(m => {
 </Tab>
 
 <Tab title="Python" >
+
 {% code title="test\_for\_virus.py" >
 ```python
 for msg in test_messages:
@@ -165,6 +173,7 @@ Let’s return to our person agent. They’ve just received a message from the h
 
 <Tabs>
 <Tab title="JavaScript" >
+
 {% code title="check\_infected.js" >
 ```javascript
 //A person checks for messages from the hospital telling them their test results
@@ -185,6 +194,7 @@ let msgs = context.messages().filter(msg => msg.type === "test_result");
 </Tab>
 
 <Tab title="Python" >
+
 {% code title="check\_infected.py" >
 ```python
 # A person checks for messages from the hospital telling them their test results
@@ -207,6 +217,7 @@ We'll need to make a change to the `daily_movement` file as well, to prevent the
 
 <Tabs>
 <Tab title="JavaScript" >
+
 {% code title="daily\_movement.js" >
 ```javascript
 // Line 53
@@ -218,6 +229,7 @@ if (state.social_distancing || state.icu) {
 </Tab>
 
 <Tab title="Python" >
+
 {% code title="daily\_movement.py" >
 ```python
 # Line 53
@@ -239,6 +251,7 @@ The `infection` behavior handles the logic for infection state:
 
 <Tabs>
 <Tab title="JavaScript" >
+
 {% code title="infection.js" >
 ```javascript
 // Line 87
@@ -252,6 +265,7 @@ if (state.infection_duration === 0) {
 </Tab>
 
 <Tab title="Python" >
+
 {% code title="infection.py" >
 ```python
 # Line 74
@@ -273,6 +287,7 @@ A key paradigm for HASH is message passing. HASH is based on the [actor model](h
 
 <Tabs>
 <Tab title="JavaScript" >
+
 ```javascript
 // Line 87
 if (state.infection_duration === 0) {
@@ -292,6 +307,7 @@ if (state.infection_duration === 0) {
 </Tab>
 
 <Tab title="Python" >
+
 ```python
 # Line 74
 if state.infection_duration == 0:
@@ -314,6 +330,7 @@ Finally, let's handle the message logic on the Hospitals side in the "test\_for\
 
 <Tabs>
 <Tab title="JavaScript" >
+
 {% code title="test\_for\_virus.js" >
 ```javascript
  const recovered_messages = context.messages().filter(m => m.type === "recovered");
@@ -324,6 +341,7 @@ Finally, let's handle the message logic on the Hospitals side in the "test\_for\
 </Tab>
 
 <Tab title="Python" >
+
 {% code title="test\_for\_virus.py" >
 ```python
 recovered_messages = list(filter(lambda m: m['type'] == 'recovered', context.messages()))

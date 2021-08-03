@@ -4,6 +4,7 @@ Open up the `init.json` file. It should look like:
 
 <Tabs>
 <Tab title="JavaScript" >
+
 {% code title="init.json" >
 ```javascript
 [
@@ -47,6 +48,7 @@ Open up the `init.json` file. It should look like:
 </Tab>
 
 <Tab title="Python" >
+
 {% code title="init.json" >
 ```javascript
 [
@@ -127,6 +129,7 @@ Or, we can follow the creator pattern and add it as a "stack" \(as it's at a spe
 
 <Tabs>
 <Tab title="JavaScript" >
+
 {% code title="init.json" >
 ```javascript
 [
@@ -157,6 +160,7 @@ Or, we can follow the creator pattern and add it as a "stack" \(as it's at a spe
 </Tab>
 
 <Tab title="Python" >
+
 {% code title="init.json" >
 ```javascript
 [

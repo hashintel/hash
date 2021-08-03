@@ -5,6 +5,7 @@ Sometimes behaviors may need to know which behaviors executed before it, and whi
 <Tabs>
 <Tab title="JavaScript" >
 
+
 ```javascript
 const behavior = (state, context) => {
     const index = state.behaviorIndex();
@@ -15,6 +16,7 @@ const behavior = (state, context) => {
 </Tab>
 
 <Tab title="Python" >
+
 
 ```python
 def behavior(state, context):
