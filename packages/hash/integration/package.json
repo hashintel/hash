@@ -10,13 +10,12 @@
   },
   "main": "src/index.ts",
   "scripts": {
+    "lint": "prettier --check './src/**/*'; eslint --ext .ts ./src/",
     "build": "echo 'Compiling Typescript' && tsc",
-    "lint": "eslint . --ext .ts",
     "codegen": "graphql-codegen --config codegen.yml # backend",
     "fmt": "find ./src/*.ts ./src/**/*.ts ./src/**/**/*.ts ./src/**/**/**/*.ts | xargs prettier --write",
     "ts-node": "node --max-old-space-size=2048 node_modules/.bin/ts-node --files --project tsconfig.json",
     "mock-data": "yarn codegen && ts-node src/mockData/index.ts",
-    "fmt-check": "prettier  \"src/**/*.{ts,tsx,js,jsx,css,scss,json}\" --check || exit 1; eslint --quiet \"{scripts,src}/**/*.{ts,tsx,js,json}\"",
     "test": "jest"
   },
   "dependencies": {

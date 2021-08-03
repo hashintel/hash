@@ -52,15 +52,8 @@
     "demo-sans-backend": "concurrently \"yarn serve:table\" \"yarn serve:htmlPara\" \"yarn serve:image\" \"yarn serve:header\"  \"yarn serve:person\" \"yarn serve:divider\" \"yarn serve:hash-frontend\" \"yarn serve:embed\"",
     "demo": "docker volume create hash-dev-pg && docker-compose -f packages/hash/backend/docker-compose.yml up -d && sleep 5 && yarn refresh-pg && yarn demo-sans-backend",
     "// 07": "",
-    "// ---------------Formatting ---------------": "",
-    "// 08": "",
-    "fmt-check:hash-backend": "yarn ws:hash-backend fmt-check",
-    "fmt-check:hash-frontend": "yarn ws:hash-frontend fmt-check",
-    "fmt-check:hash-integration": "yarn ws:hash-integration fmt-check",
-    "fmt-check": "yarn all --parallel fmt-check:*",
-    "// 09": "",
     "// ---------------Linting/Typechecking------": "",
-    "// 10": "",
+    "// 08": "",
     "lint": "yarn workspaces run lint"
 
   },

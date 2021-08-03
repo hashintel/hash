@@ -1,5 +1,6 @@
 {
   "scripts": {
+    "lint": "echo n/a",
     "serve": "serve -C -l 5005"
   }
 }

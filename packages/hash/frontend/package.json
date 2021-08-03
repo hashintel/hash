@@ -5,6 +5,7 @@
   "version": "0.1.0",
   "description": "Frontend for HASH.dev",
   "scripts": {
+    "lint": "prettier --check './src/**/*'; eslint --ext .js,.ts,.tsx ./src/",
     "dev": "next dev",
     "build": "next build",
     "fmt": "prettier \"src/**/*.{ts,tsx,js,jsx,css,scss}\" --write",
