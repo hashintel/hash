@@ -14,7 +14,7 @@ Any custom fields your behavior is getting from state, or setting in state, shou
 If you type in the name of a behavior key that already exists in your simulation, the type will **automatically** be populated based on the existing key's type.
 </Hint>
 
-<Embed type="youtube" url="https://youtu.be/oBrDX6JDCN8" caption="" >
+<Embed type="youtube" url="https://youtu.be/oBrDX6JDCN8" caption="" />
 
 <Hint style="warning">
 Behavior Keys are **optional** for in-browser simulation runs, but are **required** for cloud runs.
