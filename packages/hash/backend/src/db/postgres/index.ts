@@ -115,6 +115,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   updateEntity(params: {
     accountId: string;
     entityId: string;
+    metadataId: string;
     type?: string | undefined;
     properties: any;
   }): Promise<Entity[]> {
