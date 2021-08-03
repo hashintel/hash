@@ -148,4 +148,3 @@ state.get will deep copy a value from the field into the local scope of the beha
 <Hint style="info">
 You might see state.get and state.set used frequently in older simulations or tutorials - these methods used to be the primary means of getting and setting state properties, but have largely been **deprecated** in favor of`state.field_name` and `state['field_name'].`
 </Hint>
-
