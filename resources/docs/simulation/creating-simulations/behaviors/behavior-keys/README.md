@@ -17,6 +17,7 @@ If you type in the name of a behavior key that already exists in your simulation
 <Embed type="youtube" url="https://youtu.be/oBrDX6JDCN8" caption="" />
 
 <Hint style="warning">
+  
 Behavior Keys are **optional** for in-browser simulation runs, but are **required** for cloud runs.
+  
 </Hint>
-
