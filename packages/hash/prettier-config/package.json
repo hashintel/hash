@@ -1,0 +1,12 @@
+{
+  "name": "@hashintel/prettier-config",
+  "license": "Apache-2.0",
+  "private": true,
+  "version": "0.1.0",
+  "main": "index.js",
+  "description": "hash's prettier config",
+  "scripts": {
+    "format": "echo n/a",
+    "lint": "echo n/a"
+  }
+}

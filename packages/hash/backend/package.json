@@ -9,6 +9,7 @@
     "directory": "packages/hash/backend"
   },
   "main": "src/index.ts",
+  "prettier": "@hashintel/prettier-config",
   "scripts": {
     "dev": "export NODE_ENV=development && nodemon src/index.ts",
     "build": "echo 'Compiling Typescript' && tsc",
@@ -17,6 +18,7 @@
     "start:docker-with-statsd": "docker-compose -f docker-compose.yml -f docker-compose-statsd-override.yml up",
     "start": "export NODE_ENV=production && node dist/index.js",
     "codegen": "graphql-codegen --config codegen.yml # backend",
+    "format": "prettier --write './src/**/*'",
     "lint": "prettier --check './src/**/*'; eslint --ext .ts ./src/",
     "ts-node": "node --max-old-space-size=2048 node_modules/.bin/ts-node --files --project tsconfig.json",
     "clear-pg": "cd datastore/postgres && yarn refresh"
@@ -46,6 +48,7 @@
     "winston": "3.3.3"
   },
   "devDependencies": {
+    "@hashintel/prettier-config": "*",
     "@graphql-codegen/cli": "1.21.4",
     "@graphql-codegen/introspection": "1.18.2",
     "@graphql-codegen/typescript": "1.22.0",

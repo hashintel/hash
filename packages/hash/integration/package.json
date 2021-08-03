@@ -9,11 +9,12 @@
     "directory": "packages/hash/integration"
   },
   "main": "src/index.ts",
+  "prettier": "@hashintel/prettier-config",
   "scripts": {
+    "format": "prettier --write './src/**/*'",
     "lint": "prettier --check './src/**/*'; eslint --ext .ts ./src/",
     "build": "echo 'Compiling Typescript' && tsc",
     "codegen": "graphql-codegen --config codegen.yml # backend",
-    "fmt": "find ./src/*.ts ./src/**/*.ts ./src/**/**/*.ts ./src/**/**/**/*.ts | xargs prettier --write",
     "ts-node": "node --max-old-space-size=2048 node_modules/.bin/ts-node --files --project tsconfig.json",
     "mock-data": "yarn codegen && ts-node src/mockData/index.ts",
     "test": "jest"
@@ -25,6 +26,7 @@
     "pg": "8.7.1"
   },
   "devDependencies": {
+    "@hashintel/prettier-config": "*",
     "@graphql-codegen/cli": "1.21.4",
     "@graphql-codegen/introspection": "1.18.2",
     "@graphql-codegen/typescript": "1.22.0",

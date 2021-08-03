@@ -8,6 +8,7 @@
   "license": "MIT",
   "main": "src/index.ts",
   "scripts": {
+    "format": "echo n/a",
     "lint": "echo n/a",
     "build": "yarn clean && cross-env NODE_ENV=production webpack --mode production && yarn schema",
     "build:dev": "yarn clean && cross-env NODE_ENV=development webpack --mode development",
