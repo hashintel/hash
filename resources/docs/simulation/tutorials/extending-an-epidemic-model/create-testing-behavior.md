@@ -5,8 +5,9 @@ To start let**'**s create a message from the Person agent that contains the basi
 <Tabs>
 <Tab title="JavaScript" >
 
-{% code title="check\_infected.js" >
 ```javascript
+// check_infected.js
+
 function check_hospital(state) {
    state.addMessage("Hospital", "test", {
       test_sick: true
@@ -18,8 +19,9 @@ function check_hospital(state) {
 
 <Tab title="Python" >
 
-{% code title="check\_infected.py" >
 ```python
+# check_infected.py
+
 def check_hospital():
    state.add_message("Hospital", "test", {
       'test_sick': True
@@ -35,7 +37,8 @@ If the person agent runs the`check_hospital` function, it will send a message to
 
 But we don't want our Person agent to be spamming the Hospital with requests to be tested - we only want to send it when the Person suspects that they are sick. We can add a property called `time_to_symptoms` in `globals.json`. That’s how long it takes for a person to start showing symptoms:
 
-{% code title="globals.json" >
+** globals.json **
+
 ```javascript
  "time_to_symptoms" : 5,
 ```
@@ -46,8 +49,9 @@ We'll create a local variable to store the global global variable at the top of 
 <Tabs>
 <Tab title="JavaScript" >
 
-{% code title="check\_infected.js" >
 ```javascript
+// check_infected.js
+
 function behavior(state, context) {
   const { time_to_symptoms } = context.globals();
 
@@ -68,8 +72,9 @@ function behavior(state, context) {
 
 <Tab title="Python" >
 
-{% code title="check\_infected.py" >
 ```python
+# check_infected.py
+
 def behavior(state, context):
   time_to_symptoms = context.globals()['time_to_symptoms']
 
@@ -93,8 +98,9 @@ On the receiving end we need to add a message handler for the hospital. Create a
 <Tabs>
 <Tab title="JavaScript" >
 
-{% code title="test\_for\_virus.js" >
 ```javascript
+// test_for_virus.js
+
 function behavior(state, context) {
     const test_messages = context.messages().filter(m => m.type === "test");
 }
@@ -104,8 +110,9 @@ function behavior(state, context) {
 
 <Tab title="Python" >
 
-{% code title="test\_for\_virus.py" >
 ```python
+# test_for_virus.py
+
 def behavior(state, context):
     test_messages = list(filter(lambda m: m['type'] == 'test', context.messages()))
 ```
@@ -160,8 +167,9 @@ Let's check all of the messages and respond to each person, letting them know th
 <Tabs>
 <Tab title="JavaScript" >
 
-{% code title="test\_for\_virus.js" >
 ```javascript
+// test_for_virus.js
+
  test_messages.forEach(m => state.addMessage(
    m.from,
    "test_result",
@@ -175,8 +183,9 @@ Let's check all of the messages and respond to each person, letting them know th
 
 <Tab title="Python" >
 
-{% code title="test\_for\_virus.py" >
 ```python
+# test_for_virus.py
+
 for msg in test_messages:
   state.add_message(msg['from'], 'test_result', {
      'sick': True,
