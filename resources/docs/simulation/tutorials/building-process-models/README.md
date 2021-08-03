@@ -43,4 +43,3 @@ We'd love to know what you build. Contact us via [the website](https://hash.ai/c
 <Hint style="info">
 Given that HASH is a general platform for simulations, specific simulation 'tools' can be built on top of it. Just like with modern computers, HASH can be the OS for quickly creating domain specific applications. [Using the HASH API you can create your own interfaces.](../../creating-simulations/views/api-1.md)
 </Hint>
-
