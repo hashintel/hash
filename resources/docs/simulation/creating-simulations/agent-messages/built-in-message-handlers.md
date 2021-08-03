@@ -18,6 +18,7 @@ Any agent can remove any other agent with a special message sent directly to `ha
 
 <Tabs>
 <Tab title="JavaScript" >
+
 ```javascript
 const behavior = (state, context) => {
     state.addMessage("hash", "remove_agent", { agent_id: "Bill" });
@@ -26,6 +27,7 @@ const behavior = (state, context) => {
 </Tab>
 
 <Tab title="Python" >
+
 ```python
 def behavior(state, context):
     state.add_message("HASH", "remove_agent", { "agent_id": "Bill"})
@@ -43,6 +45,7 @@ Here, anything in the data field will be used to create the new agent. The `newb
 
 <Tabs>
 <Tab title="JavaScript" >
+
 ```javascript
 const behavior = (state, context) => {
     state.addMessage("hash", "create_agent", {
@@ -54,6 +57,7 @@ const behavior = (state, context) => {
 </Tab>
 
 <Tab title="Python" >
+
 ```python
 def behavior(state, context):
     state.add_message("HASH", "create_agent", {
@@ -80,6 +84,7 @@ You can then create the message by providing starting and ending coordinates, as
 
 <Tabs>
 <Tab title="JavaScript" >
+
 ```javascript
 const behavior = (state, context) => {
     // Longitude and Latitude coordinates
@@ -98,6 +103,7 @@ const behavior = (state, context) => {
 </Tab>
 
 <Tab title="Python" >
+
 ```python
 def behavior(state, context):
     # Longitude and Latitude coordinates
