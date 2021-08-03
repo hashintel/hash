@@ -27,7 +27,7 @@ The source behavior is the entry point to a process model. It can generate objec
     // instead of the subsequent one in the behaviors array 
     "next_block": string 
 }
-```
+
 
 ## Sink
 
@@ -51,7 +51,7 @@ The sink behavior is generally the endpoint of a process model. It disposes of o
     // Record the average in `state.process_data.avg_wait_times.<block_name>`
     "record_wait_times": boolean
 }
-```
+
 
 ## Delay
 
@@ -77,7 +77,7 @@ The delay behavior causes objects in the process model to wait a certain amount 
     // instead of the subsequent one in the behaviors array 
     "next_block": string 
 }
-```
+
 
 ## Seize
 
@@ -101,7 +101,7 @@ The name of the resource being seized should match that of a resource recovered 
     // instead of the subsequent one in the behaviors array 
     "next_block": string 
 }
-```
+
 
 ## Release
 
@@ -122,7 +122,7 @@ The name of the resource being seized **must** match that of a resource reserved
     // instead of the subsequent one in the behaviors array 
     "next_block": string 
 }
-```
+
 
 ## Service
 
@@ -154,7 +154,7 @@ The service behavior seizes resources, delays the object, and then releases the 
     // instead of the subsequent one in the behaviors array.
     "next_block": string 
 }
-```
+
 
 ## Select Output
 
@@ -195,7 +195,7 @@ On the final block of the "true" path, specify the first block where the two pat
     // Remove the field checked in "condition_field"
     "remove_condition_field": boolean
 }
-```
+
 
 ## Exit
 
@@ -226,7 +226,7 @@ Exit blocks can also be used to send arbitrary messages to other agents, or even
     "next_block": string
 
 }
-```
+
 
 ## Enter
 
@@ -249,7 +249,7 @@ An agent can do so by sending a message with the following fields:
     "next_block": string
 
 }
-```
+
 
 ## Time Measure Start
 
@@ -265,7 +265,7 @@ This behavior records the time an object reached it, to enable calculating the e
     // instead of the subsequent one in the behaviors array.
     "next_block": string 
 }
-```
+
 
 ## Time Measure End
 
@@ -284,7 +284,7 @@ The process label of this behavior must match that of its corresponding Time Mea
     // instead of the subsequent one in the behaviors array.
     "next_block": string 
 }
-```
+
 
 ## Resource Data
 

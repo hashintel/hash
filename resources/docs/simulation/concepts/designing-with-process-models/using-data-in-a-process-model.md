@@ -118,7 +118,7 @@ Now we can take a [dataset defining different customer service employees](https:
     //added a line for the cs_employees resource
   "cs_employees": context.data()["ExampleCustomerServiceEmployeesSheet1.csv"].length
 }
-```
+
 
 This is a good start, but to make the model more realistic we can add a dataset representing ticket volumes over the past five days. I'll take the mean and standard deviation of the data, and set a triangular distribution for the number of tickets to generate every time step.
 
@@ -149,7 +149,7 @@ This is a good start, but to make the model more realistic we can add a dataset 
       },
       "solved_tickets": {}
     }
-```
+
 
 Now when we we run the simulation, we have a good estimate of what my customer service process will look like using real world data.
 

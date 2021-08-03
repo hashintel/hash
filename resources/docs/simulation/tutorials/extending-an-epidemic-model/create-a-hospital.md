@@ -44,7 +44,7 @@ Open up the `init.json` file. It should look like:
   }
 ]
 ```
-{% endcode >
+
 </Tab>
 
 <Tab title="Python" >
@@ -91,7 +91,7 @@ Open up the `init.json` file. It should look like:
   }
 ]
 ```
-{% endcode >
+
 </Tab>
 </Tabs>
 
@@ -156,7 +156,7 @@ Or, we can follow the creator pattern and add it as a "stack" \(as it's at a spe
   }
 ]
 ```
-{% endcode >
+
 </Tab>
 
 <Tab title="Python" >
@@ -187,7 +187,7 @@ Or, we can follow the creator pattern and add it as a "stack" \(as it's at a spe
   }
 ]
 ```
-{% endcode >
+
 </Tab>
 </Tabs>
 

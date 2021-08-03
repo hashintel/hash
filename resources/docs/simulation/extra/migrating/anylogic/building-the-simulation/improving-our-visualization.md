@@ -20,7 +20,7 @@ We'll start by defining outputs that track metrics of interest, like the total q
   }
 ]
 ```
-{% endcode >
+
 
 ![Plots for the Oil Supply Chain model](../../../../.gitbook/assets/image%20%2827%29.png)
 

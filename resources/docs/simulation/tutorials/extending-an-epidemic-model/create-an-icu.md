@@ -13,7 +13,7 @@ On your Hospital initialization \(in `init.json`\), add a value for `icu_beds`. 
 ```javascript
  "icu_beds": 10,
 ```
-{% endcode >
+
 
 In `init.json` , expand the hospital agent by adding a value for `icu_capacity`.
 
@@ -102,7 +102,7 @@ test_messages.forEach(m => {
     //existing code    
 })
 ```
-{% endcode >
+
 </Tab>
 
 <Tab title="Python" >
@@ -118,7 +118,7 @@ for msg in test_messages:
         state['icu_beds'] = state['icu_beds'] - 1;
         icu_or_home = True
 ```
-{% endcode >
+
 </Tab>
 </Tabs>
 
@@ -144,7 +144,7 @@ test_messages.forEach(m => {
     })
 })
 ```
-{% endcode >
+
 </Tab>
 
 <Tab title="Python" >
@@ -165,7 +165,7 @@ for msg in test_messages:
         'icu_or_home': icu_or_home
     })
 ```
-{% endcode >
+
 </Tab>
 </Tabs>
 
@@ -190,7 +190,7 @@ let msgs = context.messages().filter(msg => msg.type === "test_result");
   }
   )
 ```
-{% endcode >
+
 </Tab>
 
 <Tab title="Python" >
@@ -207,7 +207,7 @@ for msg in msgs:
   elif msg['data']['sick']:
     state['destination'] = state['home']
 ```
-{% endcode >
+
 </Tab>
 </Tabs>
 
@@ -225,7 +225,7 @@ if (state.social_distancing || state.icu) {
   return;
 }
 ```
-{% endcode >
+
 </Tab>
 
 <Tab title="Python" >
@@ -236,7 +236,7 @@ if (state.social_distancing || state.icu) {
 if state['social_distancing'] or state['icu']:
   return
 ```
-{% endcode >
+
 </Tab>
 </Tabs>
 
@@ -261,7 +261,7 @@ if (state.infection_duration === 0) {
     //TODO: notify the hospital the person has recovered
 }
 ```
-{% endcode >
+
 </Tab>
 
 <Tab title="Python" >
@@ -275,7 +275,7 @@ if state['infection_duration'] == 0:
   state['color'] = 'green'
   # TODO: notify the hospital the person has recovered
 ```
-{% endcode >
+
 </Tab>
 </Tabs>
 
@@ -337,7 +337,7 @@ Finally, let's handle the message logic on the Hospitals side in the "test\_for\
  //Frees up a bed for each (recovered,severe) case
  recovered_messages.forEach(m => state.icu_beds += 1);
 ```
-{% endcode >
+
 </Tab>
 
 <Tab title="Python" >
@@ -350,7 +350,7 @@ recovered_messages = list(filter(lambda m: m['type'] == 'recovered', context.mes
 for msg in recovered_messages:
     state['icu_beds'] += 1
 ```
-{% endcode >
+
 </Tab>
 </Tabs>
 

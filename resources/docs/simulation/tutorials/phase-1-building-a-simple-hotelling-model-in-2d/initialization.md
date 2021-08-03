@@ -42,7 +42,7 @@ Customers begin evenly distributed in a grid across the environment. Thanks to H
   }
 ]
 ```
-{% endcode >
+
 
 Before we can successfully initialize the Customers defined under `grid_templates`, we need to create the `customer.js` behavior. Don’t worry about writing the behavior at the moment, we only need to create the file. Select the new file icon above the Files Sidebar in the top left and create customer.js.
 
@@ -100,7 +100,7 @@ Now to create Business agents:
   }
 ]
 ```
-{% endcode >
+
 
 If you run your simulation now you should see two green agents placed randomly within the grid.
 

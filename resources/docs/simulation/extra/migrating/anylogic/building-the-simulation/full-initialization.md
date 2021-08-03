@@ -27,7 +27,7 @@ for loc in pipelines['nodes']:
     elif loc['type'] == 'retailer'
         # Create Retailers
 ```
-{% endcode >
+
 
 Our creator function will parse the dataset and assign the necessary properties and behaviors to every agent. An upcoming version of HASH will include a click-through wizard that will do this on your behalf.
 
@@ -67,5 +67,5 @@ const behavior = (state, context) => {
   state.set("yearly_supply", yearly_supply);
 };
 ```
-{% endcode >
+
 

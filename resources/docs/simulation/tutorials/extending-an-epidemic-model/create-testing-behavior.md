@@ -13,7 +13,7 @@ function check_hospital(state) {
    })
  }
 ```
-{% endcode >
+
 </Tab>
 
 <Tab title="Python" >
@@ -25,7 +25,7 @@ def check_hospital():
       'test_sick': True
    })
 ```
-{% endcode >
+
 </Tab>
 </Tabs>
 
@@ -39,7 +39,7 @@ But we don't want our Person agent to be spamming the Hospital with requests to 
 ```javascript
  "time_to_symptoms" : 5,
 ```
-{% endcode >
+
 
 We'll create a local variable to store the global global variable at the top of the `check_infected` behavior file, and add logic so it only sends a message after "symptoms" have developed:
 
@@ -63,7 +63,7 @@ function behavior(state, context) {
   }
 }
 ```
-{% endcode >
+
 </Tab>
 
 <Tab title="Python" >
@@ -82,7 +82,7 @@ def behavior(state, context):
   if state['infected'] and state.infection_length >= time_to_symptoms:
     check_hospital()
 ```
-{% endcode >
+
 </Tab>
 </Tabs>
 
@@ -99,7 +99,7 @@ function behavior(state, context) {
     const test_messages = context.messages().filter(m => m.type === "test");
 }
 ```
-{% endcode >
+
 </Tab>
 
 <Tab title="Python" >
@@ -109,7 +109,7 @@ function behavior(state, context) {
 def behavior(state, context):
     test_messages = list(filter(lambda m: m['type'] == 'test', context.messages()))
 ```
-{% endcode >
+
 </Tab>
 </Tabs>
 
@@ -170,7 +170,7 @@ Let's check all of the messages and respond to each person, letting them know th
    }
  ))
 ```
-{% endcode >
+
 </Tab>
 
 <Tab title="Python" >
@@ -182,7 +182,7 @@ for msg in test_messages:
      'sick': True,
   })
 ```
-{% endcode >
+
 </Tab>
 </Tabs>
 

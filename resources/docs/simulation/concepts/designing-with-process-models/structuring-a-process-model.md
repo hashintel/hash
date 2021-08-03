@@ -40,7 +40,7 @@ This behavior provides the agent with a field that allows the other process beha
     ],
     ...
 }
-```
+
 
 ### Process Labels
 
@@ -64,7 +64,7 @@ The agent must also contain an array of labels for each process behavior. The la
     ],
     ...
 }
-```
+
 
 ### Resources
 

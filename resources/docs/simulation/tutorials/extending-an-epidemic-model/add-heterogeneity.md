@@ -72,7 +72,7 @@ Of course during different scenarios and experiments we might want to vary the l
 
 "at_risk_percent": 0.05
 }
-```
+
 
 
 And in the "create\_people" behavior, we substitute that value for the hardcoded one:

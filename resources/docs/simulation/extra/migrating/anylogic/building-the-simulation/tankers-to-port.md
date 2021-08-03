@@ -27,7 +27,7 @@ const dest = state.get("destination");
 // Move to destination
 state.set("lng_lat", new_coords(ll, dest));
 ```
-{% endcode >
+
 
 On this agent, and many others in the sim, we'll use a published behavior, [Lng\_Lat to Position](https://hash.ai/@hash/ll-to-pos/overview), to translate its latitude and longitude into a 3D position.
 
@@ -45,7 +45,7 @@ Note that we need to also set some properties in the **globals.json** file to us
   "seconds_per_step": 60
 }
 ```
-{% endcode >
+
 
 In the finished sim, the tanker.js file behavior also detects whether the agent has reached its destination to begin unloading. You'll also need to logic to `initialize.py` in order to create the **Tanker.**
 
@@ -78,7 +78,7 @@ def behavior(state, context):
 
     state.set('messages', messages)
 ```
-{% endcode >
+
 
 Now let’s create a port that the **Tanker** unloads to.
 
@@ -133,7 +133,7 @@ def behavior(state, context):
 
     state.set('messages', messages)
 ```
-{% endcode >
+
 
 The final addition to the tanker.js behavior is logic to detect when we're finished unloading and then set a `returning` property to indicate we should return to the loading location. Test it, and make sure that all the behaviors are working properly! Now let’s build the **Refinery** that connects to our **Port**.
 

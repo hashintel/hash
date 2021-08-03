@@ -17,7 +17,7 @@ To run an experiment, you'll want to first identify the parameter of the process
      },
    "service_agents": 6
 ```
-{% endcode >
+
 
 In this model we could run experiments with the `“service_agents”` property and see how it responds to different numbers of agents.
 
@@ -35,7 +35,7 @@ The [Globals](../../creating-simulations/configuration/) section describes how a
  "num_service_agents": 6
 }
 ```
-{% endcode >
+
 
 2. Replace the property on the process model with the global parameter.
 
@@ -43,7 +43,7 @@ The [Globals](../../creating-simulations/configuration/) section describes how a
 ```javascript
 "service_agents": Math.floor(context.globals().num_service_agents),
 ```
-{% endcode >
+
 
 3. Create an experiment and use the parameter as the field for the experiment
 

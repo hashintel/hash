@@ -47,7 +47,7 @@ const behavior = () => {
 
 }
 ```
-{% endcode >
+
 
 <Hint style="info">
 Metric weights can also be captured as global parameters for easy modification
@@ -86,7 +86,7 @@ const behavior = () => {
     state.cumulative_error_metric += state.error_metric;
 }
 ```
-{% endcode >
+
 
 <Hint style="info">
 Sum of squares is the typical method for calculating the error between a sample datapoint and "predicted" or modeled datapoint: _Error =  Sum of \(agent\_avg - data\_avg\)^2_

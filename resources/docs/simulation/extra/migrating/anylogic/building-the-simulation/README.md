@@ -16,7 +16,7 @@ To initialize our simulation, we'll define a **Creator** agent in our [initial s
     }
 ]
 ```
-{% endcode >
+
 
 We'll import the `Remove Self` published behavior using the lower left sidebar, and create the initialize.js behavior in our simulation files sidebar \(top left\).
 
