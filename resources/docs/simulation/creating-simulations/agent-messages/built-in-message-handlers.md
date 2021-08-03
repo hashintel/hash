@@ -171,4 +171,3 @@ For further information about the Mapbox API and error messages, see the [offici
 
 * [Citi Bike Visualization](https://hash.ai/@hash/citi-bike-visualization)
 * [Product Delivery](https://hash.ai/@hash/product-delivery)
-
