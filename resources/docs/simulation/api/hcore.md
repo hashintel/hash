@@ -3,7 +3,9 @@
 hCore provides a messaging API for embedded instances of hCore. You can use the messaging API to edit and set a simulation files and to read the state of a simulation. We'd love your [feedback](https://hash.ai/contact) on this feature.
 
 <Hint style="info">
+
 See the hCore Messaging API in action in the [Create a Simulation Dashboard tutorial](../tutorials/create-a-simulation-dashboard.md).
+
 </Hint>
 
 All hCore messages use the [postMessage technique for messaging between iFrames](https://developer.mozilla.org/en-US/docs/Web/API/Window/postMessage).  In order to send a message, create a webpage which loads hCore in an iframe, and then send a message to that iframe.
@@ -32,17 +34,17 @@ Update the contents of a simulation file to the contents defined in the message 
   "file": "globals.json",
   //stringify the contents and HASH will auto decode.
   "contents": JSON.stringify({"foo": 1})
- }
+}
 ```
-
 
 ## sendState
 
 Request the current state of the simulation. Will return a message with `type: "state"` and the full state as a dictionary under `contents`, where the key is the time step and the value an array of agent objects.
 
 <Tabs>
+
 <Tab title="Message" >
-  
+
 ```javascript
 // sendState message example
   
@@ -55,7 +57,7 @@ Request the current state of the simulation. Will return a message with `type: "
 </Tab>
 
 <Tab title="Response" >
-  
+
 ```
 { type: 'state',
   contents: 
@@ -71,9 +73,9 @@ Request the current state of the simulation. Will return a message with `type: "
      presenting: false,
      scrubbedStep: null,
      owedSteps: 0 } 
- }
+}
 ```
-  
+
 </Tab>
 </Tabs>
 
@@ -82,8 +84,10 @@ Request the current state of the simulation. Will return a message with `type: "
 Request that HASH send a message every time a file changes. If you send this to a framed hCore, it will send a message with `type: "files"` and `content: file[]` every time changes are made to a source file.
 
 <Tabs>
+
 <Tab title="Message" >
   
+
 ```javascript
 // initialize message example
   
@@ -94,6 +98,7 @@ Request that HASH send a message every time a file changes. If you send this to 
 ```
 
 </Tab>
+
 </Tabs>
 
 ## resetAndRun
@@ -101,7 +106,9 @@ Request that HASH send a message every time a file changes. If you send this to 
 Trigger hCore to reset the simulation, generate a new simulation run, and start it playing.
 
 <Tabs>
+
 <Tab title="Message" >
+
 
 ```javascript
 // resetAndRun message example
@@ -113,9 +120,6 @@ Trigger hCore to reset the simulation, generate a new simulation run, and start 
 ```
 
 </Tab>
+
 </Tabs>
-
-
-
-
 
