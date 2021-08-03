@@ -98,3 +98,22 @@ export const insertBlockIntoPage = gql`
   }
   ${pageFieldsFragment}
 `;
+
+export const insertBlocksIntoPage = gql`
+  mutation insertBlocksIntoPage(
+    $accountId: ID!
+    $pageId: ID!
+    $blocks: [InsertBlocksData!]!
+    $previousBlockId: ID
+  ) {
+    insertBlocksIntoPage(
+      accountId: $accountId
+      pageId: $pageId
+      blocks: $blocks
+      previousBlockId: $previousBlockId
+    ) {
+      ...PageFields
+    }
+  }
+  ${pageFieldsFragment}
+`;
