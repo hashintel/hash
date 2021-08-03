@@ -23,8 +23,9 @@ All hCore messages use the [postMessage technique for messaging between iFrames]
 
 Update the contents of a simulation file to the contents defined in the message payload.
 
-{% code title="updateFile message example" >
 ```javascript
+// updateFile message example
+
 {
   "id": "1625b2ce-441f-4b42-8d44-80ec3bae2495",
   "type": "updateFile",
@@ -33,7 +34,7 @@ Update the contents of a simulation file to the contents defined in the message 
   "contents": JSON.stringify({"foo": 1})
  }
 ```
-{% endcode >
+
 
 ## sendState
 
@@ -41,17 +42,20 @@ Request the current state of the simulation. Will return a message with `type: "
 
 <Tabs>
 <Tab title="Message" >
-{% code title="sendState message example" >
+  
 ```javascript
+// sendState message example
+  
 {
  "id": "1625b2ce-441f-4b42-8d44-80ec3bae2495",
  "type": "sendState"
 }
 ```
-{% endcode >
+
 </Tab>
 
 <Tab title="Response" >
+  
 ```
 { type: 'state',
   contents: 
@@ -69,6 +73,7 @@ Request the current state of the simulation. Will return a message with `type: "
      owedSteps: 0 } 
  }
 ```
+  
 </Tab>
 </Tabs>
 
@@ -78,14 +83,16 @@ Request that HASH send a message every time a file changes. If you send this to 
 
 <Tabs>
 <Tab title="Message" >
-{% code title="initialize message example" >
+  
 ```javascript
+// initialize message example
+  
 {
  "id": "1625b2ce-441f-4b42-8d44-80ec3bae2495",
  "type": "initialize"
 }
 ```
-{% endcode >
+
 </Tab>
 </Tabs>
 
@@ -95,14 +102,16 @@ Trigger hCore to reset the simulation, generate a new simulation run, and start 
 
 <Tabs>
 <Tab title="Message" >
-{% code title="resetAndRun message example" >
+
 ```javascript
+// resetAndRun message example
+  
 {
  "id": "1625b2ce-441f-4b42-8d44-80ec3bae2495",
  "type": "resetAndRun"
 }
 ```
-{% endcode >
+
 </Tab>
 </Tabs>
 
