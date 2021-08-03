@@ -264,3 +264,4 @@ If you'd like to explore another simple example that uses these published behavi
 If you ever feel like you might be "reinventing the wheel," check out [hIndex](https://hash.ai/search?contentType=Behavior&sort=relevance&query=create&page=1). There you'll find hundreds of pre-made, ready-to-use simulation components.
 
 </Hint>
+
