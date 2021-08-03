@@ -10,7 +10,7 @@ Each Library provides behaviors for a certain class of "handling" agent: conveyo
 
 Conveyors allow agents to be transported from one location to another. A conveyor system is composed of multiple Conveyor agents.
 
-<Embed url="https://hash.ai/@hash/convey" caption="" >
+<Embed url="https://hash.ai/@hash/convey" caption="" />
 
 ## Cranes
 
