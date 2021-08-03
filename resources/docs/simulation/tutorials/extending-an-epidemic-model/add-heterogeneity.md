@@ -35,8 +35,8 @@ In the "infection" behavior, when a **Person** agent gets infected, let's add lo
 <Tabs>
 <Tab title="JavaScript" >
 
-{% code title="infection.js" >
 ```javascript
+// infection.js
 // line 81
 const severe_chance = state.at_risk ? at_risk_chance_of_severe : chance_of_severe;
 
@@ -44,20 +44,20 @@ if ((state.severity === "moderate") && (Math.random() < severe_chance)) {
     state.severity = "severe";
 }
 ```
-{% endcode >
+
 </Tab>
 
 <Tab title="Python" >
 
-{% code title="infection.py" >
 ```python
+# infection.py
 # line 69
 severe_chance = g['at_risk_chance_of_severe'] if state.get('at_risk') else g['chance_of_severe']
 
 if (state["severity"] == 'moderate') and (random() < severe_chance):
     state["severity"] = 'severe'
 ```
-{% endcode >
+
 </Tab>
 </Tabs>
 
@@ -65,14 +65,15 @@ When we instantiate a Person currently, they'll have a 50% chance of being at\_r
 
 Of course during different scenarios and experiments we might want to vary the likelihood that someone will be at risk. Instead of hardcoding the likelihood, we will add a property called **at\_risk\_percent** to "globals.json". Here we set it to 5%:
 
-{% code title="globals.json" >
+** globals.json **
+
 ```javascript
 {
 
 "at_risk_percent": 0.05
 }
 ```
-{% endcode >
+
 
 And in the "create\_people" behavior, we substitute that value for the hardcoded one:
 
