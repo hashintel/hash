@@ -23,8 +23,8 @@ Notice how we use multiple custom fields to store data in the agent.
 
 The state object can be accessed as an object in JavaScript or a dictionary in Python.
 
-* `state.<field_name>` : access and edit the value of the field in JavaScript
-* `state['<field_name>']` : access and edit the field in Python
+* `state.field_name` : access and edit the value of the field in JavaScript
+* `state['field_name']` : access and edit the field in Python
 
 **Example**:
 
@@ -32,18 +32,22 @@ This behavior takes in the current state and [context](context.md) of the agent,
 
 <Tabs>
 <Tab title="JavaScript" >
+
 ```javascript
 const behavior = (state, context) => {
-    state.age += 1;
+  state.age += 1;
 }
 ```
+
 </Tab>
 
 <Tab title="Python" >
+
 ```python
 def behavior(state, context):
-    state['age'] += 1
+  state['age'] += 1
 ```
+
 </Tab>
 </Tabs>
 
@@ -121,23 +125,27 @@ Additionally, we provide helper methods for **getting** and **setting** a proper
 
 <Tabs>
 <Tab title="JavaScript" >
+
 ```javascript
 let foo = state.get("field_name")
 state.set("field_name", "value")
 ```
+
 </Tab>
 
 <Tab title="Python" >
+
 ```python
 foo = state.get("field_name")
 state.set("field_name", "value")
 ```
+
 </Tab>
 </Tabs>
 
 state.get will deep copy a value from the field into the local scope of the behavior, and set will take a value and deep copy it into the field property. There are cases where this is helpful, but it's a more computationally expensive operation to perform.
 
 <Hint style="info">
-You might see state.get and state.set used frequently in older simulations or tutorials - these methods used to be the primary means of getting and setting state properties, but have largely been **deprecated** in favor of`state.<field_name>` and `state['<field_name>'].`
+You might see state.get and state.set used frequently in older simulations or tutorials - these methods used to be the primary means of getting and setting state properties, but have largely been **deprecated** in favor of`state.field_name` and `state['field_name'].`
 </Hint>
 
