@@ -17,7 +17,7 @@ afterAll(async () => {
   await handler.close();
 });
 
-test("can create user", async () => {
+it("can create user", async () => {
   const userVars = {
     email: "alice@bigco.com",
     shortname: "alice",
@@ -29,7 +29,7 @@ test("can create user", async () => {
   expect(res.type).toEqual("User");
 });
 
-test("can create org", async () => {
+it("can create org", async () => {
   const orgVars = {
     shortname: "bigco",
   };
@@ -39,7 +39,7 @@ test("can create org", async () => {
   expect(res.type).toEqual("Org");
 });
 
-test("can create page", async () => {
+it("can create page", async () => {
   const page = await client.createPage({
     accountId: ACCOUNT_ID,
     properties: {
