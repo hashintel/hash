@@ -98,6 +98,27 @@ export const getLatestEntityVersion = async (
   return row ? mapPGRowToEntity(row) : undefined;
 };
 
+/** Get the ID of the latest version of an entity. Returns `undefined` if the entity
+ * does not exist in the given account.
+ */
+export const getLatestEntityVersionId = async (
+  conn: Connection,
+  params: {
+    accountId: string;
+    metadataId: string;
+  }
+): Promise<string | undefined> => {
+  const id = await conn.maybeOneFirst(
+    sql`
+    with all_matches as (
+      ${selectEntityAllVersions(params)}
+    )
+    select distinct on (metadata_id) entity_id from all_matches
+    order by metadata_id, updated_at desc`
+  );
+  return id ? (id as string) : undefined;
+};
+
 /** Get the latest version of all entitiies of a given type. */
 export const getEntitiesByTypeLatest = async (
   conn: Connection,
