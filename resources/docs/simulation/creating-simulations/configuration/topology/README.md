@@ -52,7 +52,6 @@ Any agents automatically found within the search radius of a given agent can be 
 <Tabs>
 <Tab title="JavaScript" >
 
-
 ```javascript
 function behavior(state, context) {
     const neighbors = context.neighbors()
@@ -71,7 +70,6 @@ function behavior(state, context) {
 </Tab>
 
 <Tab title="Python" >
-
 
 ```python
 def behavior(state, context):
