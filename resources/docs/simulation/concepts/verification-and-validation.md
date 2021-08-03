@@ -102,4 +102,3 @@ A common way to validate a simulation is by comparing the results of a simulatio
 Additionally you can use [Complex Metrics](../creating-simulations/experiments/optimization-experiments/complex-metrics.md) to score the error difference between a simulation and an external dataset, to get a more quantitative validation measure.
 
 
-
