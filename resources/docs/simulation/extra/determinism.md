@@ -26,6 +26,7 @@ or by using one of the [Statistic libraries](../creating-simulations/libraries/#
 
 <Tabs>
 <Tab title="JavaScript" >
+
 ```javascript
   const { poisson, uniform, triangular, normal } = hstd.stats;
   ...
@@ -42,6 +43,7 @@ To ensure the same numbers are generated every execution run, you can **set the 
 
 <Tabs>
 <Tab title="JavaScript" >
+
 ```javascript
 if (state.timestep == 1) {
   // If it's the first timestep, set the initial seed of the sim.
