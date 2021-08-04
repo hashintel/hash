@@ -9,7 +9,6 @@
     "directory": "packages/hash/backend"
   },
   "main": "src/index.ts",
-  "prettier": "@hashintel/prettier-config",
   "scripts": {
     "dev": "export NODE_ENV=development && nodemon src/index.ts",
     "build": "echo 'Compiling Typescript' && tsc",
@@ -48,7 +47,6 @@
     "winston": "3.3.3"
   },
   "devDependencies": {
-    "@hashintel/prettier-config": "*",
     "@graphql-codegen/cli": "1.21.4",
     "@graphql-codegen/introspection": "1.18.2",
     "@graphql-codegen/typescript": "1.22.0",
