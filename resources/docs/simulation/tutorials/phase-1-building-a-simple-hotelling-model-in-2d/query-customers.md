@@ -73,7 +73,7 @@ query_customers(context.neighbors(), state.position);
 
 Find the messages field for a Business agent and it should be filled with “business\_movement” type messages.
 
-{% hint style="danger" >
+<Hint style="danger" >
 Since Business agents are sending around 100 \(neighbors\) x 6 \(positions\) x 3 \(prices\) messages at one time, we don’t want this to occur every time step. We'll add a counter to ensure it happens at the rate we want.
 
 1. Add the HASH shared behavior **Counter** \(shortname: @hash/counter/counter.rs\) to your simulation and add the counter behavior to your business agents BEFORE your behavior **`business.js`**. \(You want the counter to increment before **`business.js`** is called\)
@@ -91,7 +91,7 @@ if (state.counter === 0) {
 }
 ```
 
-{% hint style="danger" >
+<Hint style="danger" >
 The behavior **Counter** adds a counter variable to every business agent that will automatically increment at each time step. This ensures that query\_customers\(\) is only called every 3 time steps.
 </Hint>
 

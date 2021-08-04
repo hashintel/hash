@@ -186,7 +186,7 @@ The **`customer.js`** behavior is finally complete!
 To see **customer.js** in full, navigate to bottom of this section or click on ‘**Phase 1** **Final Code**’ in the sidebar.
 </Hint>
 
-{% hint style="danger" >
+<Hint style="danger" >
 
 </Hint>
 
