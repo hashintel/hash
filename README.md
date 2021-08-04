@@ -12,7 +12,7 @@ after starting the backend run:
 yarn seed-db
 ```
 
-See the [docker/README](./docker/README) for further details.
+See the [docker/README](./docker) for further details.
 
 ## Install the frontend and required remote blocks
 `yarn install:demo`
@@ -23,6 +23,15 @@ See the [docker/README](./docker/README) for further details.
 ## Create a new block bundle from template
 1. `yarn new:block <name>`
 2. code in `packages/hash/blocks/<name>`
+
+## Tests
+
+Integration tests are located at [packages/hash/integration](./packages/hash/integration).
+To run these tests, ensure the API and database are running
+(`yarn serve:hash-backend`) and execute:
+```
+yarn test-integration
+```
 
 ## Code quality
 

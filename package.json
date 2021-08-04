@@ -56,8 +56,11 @@
     "// ---------------Linting/Formatting------": "",
     "// 08": "",
     "format": "yarn workspaces run format",
-    "lint": "yarn workspaces run lint"
-
+    "lint": "yarn workspaces run lint",
+    "// 09": "",
+    "// --------------- Tests ---------------": "",
+    "test-integration": "yarn ws:hash-integration test",
+    "// 10": ""
   },
   "devDependencies": {
     "concurrently": "6.2.0",
