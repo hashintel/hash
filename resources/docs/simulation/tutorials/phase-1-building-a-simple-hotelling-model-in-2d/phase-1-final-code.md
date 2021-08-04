@@ -4,6 +4,7 @@ Check out the model \(Local Competition Phase 1\) in [hIndex](https://hash.ai/@h
 
 <Tabs>
 <Tab title="init.json" >
+
 ```text
 [
  {
@@ -50,6 +51,7 @@ Check out the model \(Local Competition Phase 1\) in [hIndex](https://hash.ai/@h
 </Tab>
 
 <Tab title="globals.json" >
+
 ```text
 {
  "topology": {
@@ -67,7 +69,8 @@ Check out the model \(Local Competition Phase 1\) in [hIndex](https://hash.ai/@h
 ```
 </Tab>
 
-<Tab title="update\_businesses.js" >
+<Tab title="update_businesses.js" >
+
 ```javascript
 const behavior = (state, context) => {
  state.agents["businesses"].map((b) => {
@@ -78,6 +81,7 @@ const behavior = (state, context) => {
 </Tab>
 
 <Tab title="business.js" >
+
 ```javascript
 const behavior = (state, context) => {
  const send_message = (agent_id, position, price) => {
@@ -158,6 +162,7 @@ const behavior = (state, context) => {
 </Tab>
 
 <Tab title="customer.js" >
+
 ```javascript
 const behavior = (state, context) => {
  // Function to determine cost --> business price + distance from business
