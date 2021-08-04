@@ -6,5 +6,5 @@ services:
             - STATSD_HOST=hash-dev-statsd
     hash-dev-statsd:
         build:
-            context: ./statsd
-            dockerfile: Dockerfile
+            context: ../
+            dockerfile: docker/statsd/Dockerfile
