@@ -30,18 +30,28 @@ We use git hooks to enforce code quality. These hooks are located in the
 
 ## Monorepo
 In order to work w/ multiple packages in a single repository, they must adhere to some conventions.
-Each package should
-
-- have its own workspace
-- live on the `@hashintel` namespace
-- expose a `lint` script and therefor depend on npm packages (`devDependencies`)
-  - `@typescript-eslint`
-  - `eslint-config-prettier`
-
-### `yarn lint`
-Every package has to provide a `lint` script. To lint all packages, run `yarn lint`.
-If no such script can be reasonably provided, use `echo n/a` instead.
-
-### `yarn format`
-Every package has to provide a `format` script. To format all packages, run `yarn format`.
-If no such script can be reasonably provided, use `echo n/a` instead.
+The below `package.json` file outlines the minimum requirements a package has to fulfill:
+```json
+{
+  "name": "@hashintel/<package-name>",
+  "version": "0.1.0",
+  "description": "<packages description>",
+  "author": "<package-author>",
+  "license": "TBA",
+  "prettier": "@hashintel/prettier-config",
+  "scripts": {
+    // use script "echo n/a" where not applicable
+    "format": "prettier --write './src/**/*'",
+    "lint": "prettier --check './src/**/*'; eslint ./src/",
+  },
+  "devDependencies": {
+    "@hashintel/prettier-config": "*",
+    "@typescript-eslint/eslint-plugin": "4.29.0",
+    "@typescript-eslint/parser": "4.29.0",
+    "eslint": "7.32.0",
+    "eslint-config-prettier": "8.3.0",
+    "prettier": "2.3.2"
+  }
+}
+```
+The corresponding `.eslintrc.json` can be found at `packages/hash/.eslintrc.json`.
