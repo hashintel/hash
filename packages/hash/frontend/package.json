@@ -4,11 +4,12 @@
   "private": true,
   "version": "0.1.0",
   "description": "Frontend for HASH.dev",
+  "prettier": "@hashintel/prettier-config",
   "scripts": {
+    "format": "prettier --write './src/**/*'",
+    "lint": "prettier --check './src/**/*'; eslint --ext .js,.ts,.tsx ./src/",
     "dev": "next dev",
     "build": "next build",
-    "fmt": "prettier \"src/**/*.{ts,tsx,js,jsx,css,scss}\" --write",
-    "fmt-check": "prettier  \"src/**/*.{ts,tsx,js,jsx,css,scss}\" --check || exit 1; eslint --quiet \"{scripts,src}/**/*.{ts,tsx,js}\"",
     "start": "next start",
     "codegen": "graphql-codegen --config codegen.yml # frontend"
   },
@@ -43,6 +44,7 @@
     "uuid": "8.3.2"
   },
   "devDependencies": {
+    "@hashintel/prettier-config": "*",
     "@graphql-codegen/cli": "1.21.5",
     "@graphql-codegen/fragment-matcher": "2.0.1",
     "@graphql-codegen/typescript": "1.22.1",
@@ -57,10 +59,15 @@
     "@types/react": "17.0.7",
     "@types/react-dom": "17.0.8",
     "@types/uuid": "8.3.0",
+    "@typescript-eslint/eslint-plugin": "4.29.0",
+    "@typescript-eslint/parser": "4.29.0",
     "babel-plugin-inline-react-svg": "2.0.1",
     "babel-plugin-prismjs": "2.0.1",
+    "eslint": "7.32.0",
+    "eslint-config-prettier": "8.3.0",
     "eslint-plugin-react": "7.24.0",
     "eslint-plugin-react-hooks": "4.2.0",
+    "prettier": "2.3.2",
     "sass": "1.34.1"
   }
 }

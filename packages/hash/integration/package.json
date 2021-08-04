@@ -9,14 +9,14 @@
     "directory": "packages/hash/integration"
   },
   "main": "src/index.ts",
+  "prettier": "@hashintel/prettier-config",
   "scripts": {
+    "format": "prettier --write './src/**/*'",
+    "lint": "prettier --check './src/**/*'; eslint --ext .ts ./src/",
     "build": "echo 'Compiling Typescript' && tsc",
-    "lint": "eslint . --ext .ts",
     "codegen": "graphql-codegen --config codegen.yml # backend",
-    "fmt": "find ./src/*.ts ./src/**/*.ts ./src/**/**/*.ts ./src/**/**/**/*.ts | xargs prettier --write",
     "ts-node": "node --max-old-space-size=2048 node_modules/.bin/ts-node --files --project tsconfig.json",
     "mock-data": "yarn codegen && ts-node src/mockData/index.ts",
-    "fmt-check": "prettier  \"src/**/*.{ts,tsx,js,jsx,css,scss,json}\" --check || exit 1; eslint --quiet \"{scripts,src}/**/*.{ts,tsx,js,json}\"",
     "test": "jest"
   },
   "dependencies": {
@@ -26,6 +26,7 @@
     "pg": "8.7.1"
   },
   "devDependencies": {
+    "@hashintel/prettier-config": "*",
     "@graphql-codegen/cli": "1.21.4",
     "@graphql-codegen/introspection": "1.18.2",
     "@graphql-codegen/typescript": "1.22.0",
@@ -33,12 +34,12 @@
     "@graphql-codegen/typescript-resolvers": "1.19.2",
     "@types/graphql-type-json": "0.3.2",
     "@types/jest": "26.0.24",
-    "@typescript-eslint/eslint-plugin": "4.25.0",
-    "@typescript-eslint/parser": "4.25.0",
-    "eslint": "7.27.0",
+    "@typescript-eslint/eslint-plugin": "4.29.0",
+    "@typescript-eslint/parser": "4.29.0",
+    "eslint": "7.32.0",
     "eslint-config-prettier": "8.3.0",
     "jest": "27.0.6",
-    "prettier": "2.3.0",
+    "prettier": "2.3.2",
     "ts-jest": "27.0.4",
     "ts-node": "10.0.0",
     "typescript": "4.2.4"

@@ -7,7 +7,10 @@
   "author": "Nate Higgins",
   "license": "MIT",
   "main": "src/index.ts",
+  "prettier": "@hashintel/prettier-config",
   "scripts": {
+    "format": "prettier --write './src/**/*'",
+    "lint": "prettier --check './src/**/*'; eslint --ext .js,.ts,.tsx ./src/",
     "build": "yarn clean && cross-env NODE_ENV=production webpack --mode production && yarn schema",
     "build:dev": "yarn clean && cross-env NODE_ENV=development webpack --mode development",
     "schema": "typescript-json-schema tsconfig.json AppProps --required true --out dist/block-schema.json",
@@ -28,12 +31,19 @@
     "@babel/preset-react": "^7.12.10",
     "@babel/preset-typescript": "7.13.0",
     "@babel/runtime": "^7.12.5",
+    "@hashintel/prettier-config": "*",
+    "@typescript-eslint/eslint-plugin": "4.29.0",
+    "@typescript-eslint/parser": "4.29.0",
     "babel-loader": "^8.2.2",
     "concurrently": "6.2.0",
     "core-js": "^2.6.12",
     "cross-env": "^7.0.3",
+    "eslint": "7.32.0",
+    "eslint-config-prettier": "8.3.0",
+    "eslint-plugin-react": "7.24.0",
+    "eslint-plugin-react-hooks": "4.2.0",
     "html-webpack-plugin": "^4.5.0",
-    "prettier": "^2.2.1",
+    "prettier": "2.3.2",
     "react": "17.0.2",
     "react-dom": "17.0.2",
     "regenerator-runtime": "^0.13.7",
@@ -47,7 +57,7 @@
     "webpack-dev-server": "^3.11.0"
   },
   "dependencies": {
-    "twind": "0.16.16",
-    "@hashintel/block-protocol": "*"
+    "@hashintel/block-protocol": "*",
+    "twind": "0.16.16"
   }
 }

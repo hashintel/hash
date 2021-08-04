@@ -1,7 +1,11 @@
 {
+  "root": true, // this is the highest config lower ones will automatically extend
   "parser": "@typescript-eslint/parser",
   "plugins": ["@typescript-eslint"],
-  "extends": ["plugin:@typescript-eslint/base", "prettier"],
+  "extends": [
+    "plugin:@typescript-eslint/base",
+    "prettier" // mutes eslint rules conflicting w/ prettier (requires eslint-config-prettier)
+  ],
   "rules": {
     "eqeqeq": [
       "error",
