@@ -1,3 +1,3 @@
 #!/bin/bash
-yarn codegen
-yarn dev
+yarn ws:hash-backend codegen
+yarn ws:hash-backend dev

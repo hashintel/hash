@@ -1,11 +1,10 @@
 {
-  /** @todo refer to the original at repo-root and remove the below copy */
-  "extends": "./tsconfig.base.json",
+  "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
     // specifics
     "baseUrl": "./",
     "outDir": "./dist",
-    
+
     // overrides
     "lib": ["es2020"],
     "target": "es2020",

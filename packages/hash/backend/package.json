@@ -4,6 +4,7 @@
   "private": true,
   "version": "0.1.0",
   "description": "API and data store for HASH.dev",
+  "prettier": "@hashintel/prettier-config",
   "repository": {
     "url": "https://github.com/hashintel/dev/packages/hash/backend",
     "directory": "packages/hash/backend"
@@ -45,6 +46,7 @@
     "winston": "3.3.3"
   },
   "devDependencies": {
+    "@hashintel/prettier-config": "*",
     "@graphql-codegen/cli": "1.21.4",
     "@graphql-codegen/introspection": "1.18.2",
     "@graphql-codegen/typescript": "1.22.0",
