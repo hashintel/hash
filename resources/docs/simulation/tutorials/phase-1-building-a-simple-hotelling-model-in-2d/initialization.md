@@ -15,7 +15,8 @@ Customers begin evenly distributed in a grid across the environment. Thanks to H
 * **`@hash/create-agents/create_agents.js`**- creates the Customers in the model environment.
 * **`@hash/remove-self/remove_self.js`** - removes the creator agent from the simulation after all agents have been initialized.
 
-{% code title="init.json" >
+** init.json **
+
 ```javascript
 [
   {
@@ -60,7 +61,8 @@ Now to create Business agents:
    1. **`@hash/create-scatters/create_scatters.js`**
    2. **`update_businesses.js`**
 
-{% code title="init.json" >
+** init.json **
+
 ```javascript
 [
   {
@@ -112,6 +114,7 @@ We’re going to update the rgb value of each Business to a random color in `upd
 
 <Tabs>
 <Tab title="update\_businesses.js" >
+
 ```javascript
 const behavior = (state, context) => {
   for (b of state.agents["businesses"]) {
