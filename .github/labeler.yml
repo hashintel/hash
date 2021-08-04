@@ -13,3 +13,7 @@ blocks:
 integration:
   - packages/hash/integration/*
   - packages/hash/integration/**/*
+
+docker:
+  - docker/*
+  - docker/**/*

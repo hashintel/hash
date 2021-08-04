@@ -28,9 +28,10 @@
     "// 04": "",
     "seed-db": "yarn ws:hash-backend clear-pg && yarn ws:hash-integration mock-data",
     "serve:hash-frontend": "yarn ws:hash-frontend dev",
-    "serve:hash-backend": "yarn ws:hash-backend start:docker",
+    "serve:hash-backend": "docker-compose -f docker/docker-compose.yml up",
+    "serve:hash-backend-statsd": "docker-compose -f docker/docker-compose.yml -f docker/docker-compose-statsd-override.yml up",
     "codegen": "yarn ws:hash-backend codegen && yarn ws:hash-frontend codegen",
-    "rebuild:backend": "yarn ws:hash-backend rebuild:docker",
+    "rebuild:backend": "docker-compose -f docker/docker-compose.yml build",
     "new:block": "node packages/hash/blocks/create-block",
     "// 05": "",
     "// --------------- Blocks & Demo ---------------": "",
@@ -55,8 +56,11 @@
     "// ---------------Linting/Formatting------": "",
     "// 08": "",
     "format": "yarn workspaces run format",
-    "lint": "yarn workspaces run lint"
-
+    "lint": "yarn workspaces run lint",
+    "// 09": "",
+    "// --------------- Tests ---------------": "",
+    "test-integration": "yarn ws:hash-integration test",
+    "// 10": ""
   },
   "devDependencies": {
     "concurrently": "6.2.0",

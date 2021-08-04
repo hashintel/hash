@@ -1,7 +1,7 @@
 FROM postgres:13
 
-COPY postgresql.conf /etc/postgresql/postgresql.conf
-COPY ./initdb /docker-entrypoint-initdb.d
+COPY docker/postgres/postgresql.conf /etc/postgresql/postgresql.conf
+COPY docker/postgres/initdb /docker-entrypoint-initdb.d
 
 RUN apt-get update \
   && echo "local  postgres  postgres  trust" >> /var/lib/postgresql/data/pg_hba.conf \
