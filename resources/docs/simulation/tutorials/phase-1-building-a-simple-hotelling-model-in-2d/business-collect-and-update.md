@@ -70,6 +70,7 @@ You should see your Business agents start to move around to try and find the bes
 
 <Tabs>
 <Tab title="business.js" >
+
 ```javascript
 const behavior = (state, context) => {
  const send_message = (agent_id, position, price) => {
