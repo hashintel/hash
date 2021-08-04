@@ -6,11 +6,13 @@
 yarn serve:hash-backend
 ```
 
-On first run, or if you want to reset the database to the initial mock data, 
+On first run, or if you want to reset the database to the initial mock data,
 after starting the backend run:
 ```
 yarn seed-db
 ```
+
+See the [docker/README](./docker/README) for further details.
 
 ## Install the frontend and required remote blocks
 `yarn install:demo`
