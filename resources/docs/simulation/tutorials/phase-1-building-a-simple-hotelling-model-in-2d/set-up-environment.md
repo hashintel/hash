@@ -4,6 +4,7 @@ After opening up a new simulation in HASH, navigate to globals.json. First, we a
 
 <Tabs>
 <Tab title="globals.json" >
+
 ```javascript
 {
   "topology": {
