@@ -1,10 +1,12 @@
 {
+  "prettier": "@hashintel/prettier-config",
   "scripts": {
-    "format": "echo n/a",
-    "lint": "echo n/a",
+    "format": "prettier --write './src/**/*'",
+    "lint": "prettier --check './src/**/*'; eslint --ext .js,.ts,.tsx ./src/",
     "serve": "serve -C -l 5005"
   },
   "devDependencies": {
+    "@hashintel/prettier-config": "*",
     "@typescript-eslint/eslint-plugin": "4.29.0",
     "@typescript-eslint/parser": "4.29.0",
     "eslint": "7.32.0",
