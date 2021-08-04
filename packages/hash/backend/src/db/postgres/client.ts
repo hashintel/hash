@@ -19,6 +19,7 @@ import {
   insertEntity,
   getEntity,
   getLatestEntityVersion,
+  getLatestEntityVersionId,
   updateEntityProperties,
   getEntitiesByTypeAllVersions,
   getEntitiesByTypeLatest,
@@ -256,16 +257,34 @@ export class PostgresClient implements DBClient {
     };
   }
 
-  async updateEntity(params: {
-    accountId: string;
-    entityId: string;
-    type?: string | undefined;
-    properties: any;
-    child?: { accountId: string; entityId: string };
-  }): Promise<Entity[]> {
-    const entity = await getEntity(this.conn, params);
+  async updateEntity(
+    params: {
+      accountId: string;
+      entityId: string;
+      metadataId: string;
+      type?: string | undefined;
+      properties: any;
+    },
+    child?: { accountId: string; entityId: string },
+    checkLatest: boolean = true
+  ): Promise<Entity[]> {
+    const [entity, latestVersionId] = await Promise.all([
+      getEntity(this.conn, params),
+      getLatestEntityVersionId(this.conn, params),
+    ]);
+
     if (!entity) {
       throw entityNotFoundError(params);
+    }
+    if (
+      entity.metadata.versioned &&
+      checkLatest &&
+      entity.entityId !== latestVersionId
+    ) {
+      // @todo: make this error catchable by the caller (conflicted input)
+      throw new Error(
+        `cannot update versioned entity ${entity.entityId} because it does not match the latest version ${latestVersionId}`
+      );
     }
 
     if (params.type && params.type !== entity.type) {
@@ -278,10 +297,10 @@ export class PostgresClient implements DBClient {
         newProperties: params.properties,
       });
 
-      if (params.child) {
+      if (child) {
         insertIncomingLinks(this.conn, [
           {
-            ...params.child,
+            ...child,
             parentAccountId: updatedEntity.accountId,
             parentId: updatedEntity.entityId,
           },
@@ -309,13 +328,14 @@ export class PostgresClient implements DBClient {
             old: entity.entityId,
             new: updatedEntity.entityId,
           });
-          return await this.updateEntity({
-            ...parent,
-            child: {
+          return await this.updateEntity(
+            parent,
+            {
               entityId: updatedEntity.entityId,
               accountId: updatedEntity.accountId,
             },
-          });
+            false
+          );
         })
       );
 
@@ -325,10 +345,10 @@ export class PostgresClient implements DBClient {
         entity,
         newProperties: params.properties,
       });
-      if (params.child) {
+      if (child) {
         insertIncomingLinks(this.conn, [
           {
-            ...params.child,
+            ...child,
             parentAccountId: updatedEntity.accountId,
             parentId: updatedEntity.entityId,
           },
@@ -414,6 +434,7 @@ export class PostgresClient implements DBClient {
     return await this.updateEntity({
       accountId: params.accountId,
       entityId: params.entityId,
+      metadataId: entity.metadataId,
       properties: updated.properties,
     });
   }

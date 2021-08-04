@@ -55,3 +55,15 @@ The below `package.json` file outlines the minimum requirements a package has to
 }
 ```
 The corresponding `.eslintrc.json` can be found at `packages/hash/.eslintrc.json`.
+
+## Troubleshooting
+
+### npm-run-all
+When running this command you may encounter an error along the lines of
+```sh
+$ npx npm-run-all -p install:header ...
+Watching .../repos/dev and all sub-directories not excluded by your .gitignore. Will not monitor dotfiles.
+Found & ignored ./.git/logs ; is listed in .gitignore
+Found & ignored ./node_modules ; is listed in .gitignore
+```
+You will have to downgrade your npm version using `npm i -g npm@6` as described [here](https://github.com/mysticatea/npm-run-all/issues/196#issuecomment-813599087)

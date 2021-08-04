@@ -29,6 +29,7 @@ export const updateEntity: Resolver<
     const updatedEntities = await client.updateEntity({
       accountId,
       entityId: id,
+      metadataId: entity.metadataId,
       properties: propertiesToUpdate,
     });
 

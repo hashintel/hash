@@ -1,3 +1,4 @@
+import { ApolloError } from "apollo-server-express";
 import { DbPage } from "../../../types/dbTypes";
 import {
   MutationUpdatePageArgs,
@@ -14,12 +15,16 @@ export const updatePage: Resolver<
 > = async (_, { accountId, id, properties }, { dataSources }) => {
   return await dataSources.db.transaction(async (client) => {
     const entity = await client.getEntity({ accountId, entityId: id }, true);
+    if (!entity) {
+      throw new ApolloError(`page ${id} not found`, "NOT_FOUND");
+    }
 
     const updatedEntities = await client.updateEntity({
       accountId,
       entityId: id,
+      metadataId: entity.metadataId,
       properties: {
-        ...(entity?.properties ?? {}),
+        ...(entity.properties ?? {}),
         ...properties,
       },
       type: "Page",

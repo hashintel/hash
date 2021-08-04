@@ -84,6 +84,7 @@ export interface DBClient {
   updateEntity(params: {
     accountId: string;
     entityId: string;
+    metadataId: string;
     type?: string;
     properties: any;
   }): Promise<Entity[]>;
