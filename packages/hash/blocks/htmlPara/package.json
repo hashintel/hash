@@ -1,4 +1,5 @@
 {
+  "name": "@hashintel/block-html-para",
   "prettier": "@hashintel/prettier-config",
   "scripts": {
     "format": "prettier --write './src/**/*'",

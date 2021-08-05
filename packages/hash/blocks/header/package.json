@@ -1,5 +1,5 @@
 {
-  "name": "header",
+  "name": "@hashintel/block-header",
   "version": "0.1.0",
   "description": "header block component",
   "private": true,

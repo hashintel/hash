@@ -2,18 +2,19 @@
   "private": true,
   "description": "HASH monorepo",
   "workspaces": [
-    "packages/hash/prettier-config",
     "packages/hash/backend",
     "packages/hash/frontend",
+    "packages/hash/integration",
     "packages/hash/block-protocol",
+    "packages/hash/prettier-config",
+
     "packages/hash/blocks/page",
     "packages/hash/blocks/divider",
     "packages/hash/blocks/embed",
     "packages/hash/blocks/header",
     "packages/hash/blocks/image",
     "packages/hash/blocks/person",
-    "packages/hash/blocks/table",
-    "packages/hash/integration"
+    "packages/hash/blocks/table"
   ],
   "scripts": {
     "all": "npx npm-run-all",

@@ -1,5 +1,5 @@
 {
-  "name": "image",
+  "name": "@hashintel/block-image",
   "version": "0.1.0",
   "description": "image block component",
   "private": true,

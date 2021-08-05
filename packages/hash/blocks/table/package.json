@@ -1,5 +1,5 @@
 {
-  "name": "table",
+  "name": "@hashintel/block-table",
   "version": "0.1.0",
   "description": "table block component",
   "private": true,

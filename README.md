@@ -33,11 +33,11 @@ In order to work w/ multiple packages in a single repository, they must adhere t
 The below `package.json` file outlines the minimum requirements a package has to fulfill:
 ```json
 {
-  "name": "@hashintel/<package-name>",
-  "version": "0.1.0",
-  "description": "<packages description>",
+  "name": "@hashintel/hash-<name>",
+  "version": "major.minor.patch",
+  "description": "lorem ipsum",
   "author": "<package-author>",
-  "license": "TBA",
+  "license": "<package-licence>",
   "prettier": "@hashintel/prettier-config",
   "scripts": {
     // use script "echo n/a" where not applicable
