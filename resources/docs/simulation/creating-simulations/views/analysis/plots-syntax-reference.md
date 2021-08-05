@@ -6,6 +6,8 @@
 
 <Tabs>
 <Tab title="Code" >
+
+  
 ```javascript
 {
   "title": "My histogram",
@@ -17,15 +19,18 @@
 ```
 </Tab>
 
-<Tab title="Modal configuration" >
+<TextTab title="Modal configuration" >
+
 ![](../../../.gitbook/assets/screenshot-2021-03-11-at-18.27.36.png)
-</Tab>
+</TextTab>
 </Tabs>
 
 **Horizontal histogram**
 
 <Tabs>
 <Tab title="Code" >
+
+
 ```javascript
 {
   "title": "My horizontal histogram",
@@ -37,15 +42,18 @@
 ```
 </Tab>
 
-<Tab title="Modal configuration" >
+<TextTab title="Modal configuration" >
+
 ![](../../../.gitbook/assets/screenshot-2021-03-11-at-18.30.43.png)
-</Tab>
+</TextTab>
 </Tabs>
 
 **Two histograms on the same plot**
 
 <Tabs>
 <Tab title="Code" >
+
+
 ```javascript
 {
   "title": "Two histograms on the same plot",
@@ -57,15 +65,18 @@
 ```
 </Tab>
 
-<Tab title="Modal configuration" >
+<TextTab title="Modal configuration" >
+
 ![](../../../.gitbook/assets/screenshot-2021-03-11-at-18.36.34.png)
-</Tab>
+</TextTab>
 </Tabs>
 
 **Two horizontal histograms on the same plot**
 
 <Tabs>
 <Tab title="Code" >
+
+
 ```javascript
 {
   "title": "Two horizontal histograms on the same plot",
@@ -80,9 +91,10 @@
 ```
 </Tab>
 
-<Tab title="Modal configuration" >
+<TextTab title="Modal configuration" >
+
 ![](../../../.gitbook/assets/screenshot-2021-03-11-at-18.37.23.png)
-</Tab>
+</TextTab>
 </Tabs>
 
 ## Area
@@ -91,6 +103,8 @@
 
 <Tabs>
 <Tab title="Code" >
+
+
 ```javascript
 {
   "title": "Infection Progress",
@@ -108,9 +122,10 @@
 ```
 </Tab>
 
-<Tab title="Modal configuration" >
+<TextTab title="Modal configuration" >
+
 ![](../../../.gitbook/assets/screenshot-2021-03-11-at-17.53.05.png)
-</Tab>
+</TextTab>
 </Tabs>
 
 ## Box
@@ -119,6 +134,7 @@
 
 <Tabs>
 <Tab title="Code" >
+
 ```javascript
 {
     "title": "Two box plots example",
@@ -142,9 +158,10 @@
 ```
 </Tab>
 
-<Tab title="Modal configuration" >
+<TextTab title="Modal configuration" >
+
 ![](../../../.gitbook/assets/screenshot-2021-03-11-at-18.25.23.png)
-</Tab>
+</TextTab>
 </Tabs>
 
 ## Line
@@ -153,6 +170,7 @@
 
 <Tabs>
 <Tab title="Code" >
+
 ```javascript
 {
     "title": "Two timeseries example",
@@ -176,17 +194,19 @@
 ```
 </Tab>
 
-<Tab title="Modal configuration" >
+<TextTab title="Modal configuration" >
+
 ![](../../../.gitbook/assets/screenshot-2021-03-11-at-15.27.25.png)
-</Tab>
+</TextTab>
 </Tabs>
 
 ## Scatter
 
-### **Two time-series in the same plot**
+### Two time-series in the same plot
 
 <Tabs>
 <Tab title="Code" >
+
 ```javascript
 {
     "title": "Two timeseries example",
@@ -210,8 +230,9 @@
 ```
 </Tab>
 
-<Tab title="Modal configuration" >
+<TextTab title="Modal configuration" >
+
 ![](../../../.gitbook/assets/screenshot-2021-03-11-at-15.15.03.png)
-</Tab>
+</TextTab>
 </Tabs>
 
