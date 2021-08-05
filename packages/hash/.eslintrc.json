@@ -7,7 +7,7 @@
     "prettier" // mutes eslint rules conflicting w/ prettier (requires eslint-config-prettier)
   ],
   "ignorePatterns": [
-    "**/*.g.*"
+    "**/*.gen.*"
   ],
   "rules": {
     "eqeqeq": [

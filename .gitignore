@@ -79,4 +79,4 @@ build
 **/*.egg-info
 
 # generated files
-**/*.g.*
+**/*.gen.*

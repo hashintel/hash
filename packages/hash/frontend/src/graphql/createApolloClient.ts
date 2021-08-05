@@ -1,6 +1,6 @@
 import { ApolloClient, InMemoryCache } from "@apollo/client";
 
-import { possibleTypes } from "./fragmentTypes.g.json";
+import { possibleTypes } from "./fragmentTypes.gen.json";
 
 export const createApolloClient = () =>
   new ApolloClient({
