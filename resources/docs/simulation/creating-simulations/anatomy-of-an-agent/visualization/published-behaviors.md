@@ -16,7 +16,7 @@ To use these behaviors on an agent, you will need to both add it to the "behavio
 
 **Shape**
 
-* \*\*\*\*[**Discrete Shape**](https://hash.ai/@hash/display-shape-discrete)\*\*\*\*
+* [**Discrete Shape**](https://hash.ai/@hash/display-shape-discrete)
 * [**Scaling "Scale"**](https://hash.ai/@hash/display-scale-scaling)
 
 You can find a working demonstration of these behaviors in the [Published Display Behaviors ](https://hash.ai/@hash/published-display-behaviors)simulation.
