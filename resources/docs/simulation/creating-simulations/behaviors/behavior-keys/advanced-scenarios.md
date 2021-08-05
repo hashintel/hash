@@ -1,6 +1,6 @@
 # Advanced Scenarios
 
-## **How do I use a field defined in another behavior?**
+## How do I use a field defined in another behavior?
 
 If a behavior uses state fields which already have keys defined in other behaviors in your project, you have two options:
 
