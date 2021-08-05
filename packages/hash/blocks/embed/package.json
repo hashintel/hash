@@ -17,8 +17,7 @@
     "webpack-dev-server": "cross-env NODE_ENV=development webpack-dev-server -d --port 9090 --config webpack-dev-server.config.js --open",
     "start": "concurrently -n webpack,webpack-dev-server -c green,cyan \"yarn build:dev --watch --verbose\" \"yarn webpack-dev-server\"",
     "clean": "rimraf dist",
-    "serve": "serve -C -l 62680 dist",
-    "codegen": "graphql-codegen --config codegen.yml # embed-block"
+    "serve": "serve -C -l 62680 dist"
   },
   "dependencies": {
     "@hashintel/block-protocol": "*"
@@ -36,9 +35,6 @@
     "@babel/preset-react": "^7.12.10",
     "@babel/preset-typescript": "7.13.0",
     "@babel/runtime": "^7.12.5",
-    "@graphql-codegen/cli": "1.21.7",
-    "@graphql-codegen/fragment-matcher": "2.0.1",
-    "@graphql-codegen/typescript-operations": "1.18.4",
     "@hashintel/prettier-config": "*",
     "@typescript-eslint/eslint-plugin": "4.29.0",
     "@typescript-eslint/parser": "4.29.0",
