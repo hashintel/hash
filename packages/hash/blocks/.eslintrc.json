@@ -1,5 +1,8 @@
 {
   "parserOptions": {
+    // copied from upper root config because eslint fails to deep-extend it
+    "project": ["./tsconfig.json"],
+    // specifics
     "jsx": true,
     "useJSXTextNode": true
   },

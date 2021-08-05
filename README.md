@@ -65,7 +65,9 @@ The below `package.json` file outlines the minimum requirements a package has to
   }
 }
 ```
-The corresponding `.eslintrc.json` can be found at `packages/hash/.eslintrc.json`.
+The above `devDependencies` are owed to our root eslint-config at `packages/hash/.eslintrc.json`.
+That same config requires a `tsconfig.json` next to the `package.json` if `.ts(x)` files are to
+be linted.
 
 ## Troubleshooting
 

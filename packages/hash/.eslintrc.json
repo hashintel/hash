@@ -40,7 +40,7 @@
     {
       "files": ["*.ts", "*.tsx"],
       "parserOptions": {
-        "project": ["./tsconfig.json"] // resolved relative to eslint's cwd (package.json)
+        "project": ["./tsconfig.json"] // resolved relative to eslint cwd (package.json)
       }
     }
   ]
