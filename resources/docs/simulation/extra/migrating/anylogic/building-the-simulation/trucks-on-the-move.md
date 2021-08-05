@@ -6,8 +6,9 @@ A few more agents will allow us to bring the oil all the way to its final locati
 
 Our **Retailer** will need to consume oil based on some demand by consumers, and order more fuel from a **Distributor** when it's getting low.
 
-{% code title="demand.js" >
 ```javascript
+// demand.js
+
 const behavior = (state, context) => {
   const { mean_gas_demand, seconds_per_step, reorder_level } = context.globals();
   const demand_rate = (0.5 + Math.random()) * mean_gas_demand * seconds_per_step;
@@ -42,8 +43,9 @@ When `order_quantity` is set, two other custom behaviors we've written will trig
 
 The **Distributor** now needs to respond to the order request, either by creating a fuel **Truck** to deliver oil or by responding with an out of stock message.
 
-{% code title="deliver.js" >
 ```javascript
+// deliver.js
+
 for (order of orders) {
   if (order.data.quantity < stock) {
     // reduce stock
@@ -79,8 +81,8 @@ We'll need to write one custom behavior for this agent, which will have to reque
 
 We can detect when we've reached our destination in similar fashion to the **Tanker** agent, and deliver the oil using messages.
 
-{% code title="truck.js" >
 ```javascript
+// truck.js
 // Deliver and reverse route
   if (state.get("route_step") > route.length - 1) {
     if (state.get("returning") === true) {
