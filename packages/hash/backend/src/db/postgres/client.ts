@@ -123,7 +123,7 @@ export class PostgresClient implements DBClient {
       };
 
       // Defer FKs until end of transaction so we can insert concurrently
-      conn.query(sql`
+      await conn.query(sql`
         set constraints
           entities_account_id_metadata_id_fkey,
           entity_account_account_id_entity_id_fkey,
@@ -195,7 +195,7 @@ export class PostgresClient implements DBClient {
     };
 
     // Defer FKs until end of transaction so we can insert concurrently
-    conn.query(sql`
+    await conn.query(sql`
       set constraints
         entity_account_account_id_entity_id_fkey,
         outgoing_links_account_id_entity_id_fkey,
@@ -298,7 +298,7 @@ export class PostgresClient implements DBClient {
       });
 
       if (child) {
-        insertIncomingLinks(this.conn, [
+        await insertIncomingLinks(this.conn, [
           {
             ...child,
             parentAccountId: updatedEntity.accountId,
@@ -346,7 +346,7 @@ export class PostgresClient implements DBClient {
         newProperties: params.properties,
       });
       if (child) {
-        insertIncomingLinks(this.conn, [
+        await insertIncomingLinks(this.conn, [
           {
             ...child,
             parentAccountId: updatedEntity.accountId,
