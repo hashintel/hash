@@ -29,8 +29,9 @@ This agent must have a search radius that allows it to see all other agents in t
 
 #### 3. Create a new behavior which calculates this metric
 
-{% code title="calculate\_metric.js" >
 ```javascript
+// calculate_metric.js
+
 const behavior = () => {
     // Gather data
     const num_centers = context.globals().n_call_centers;
@@ -71,8 +72,9 @@ Let's set up a slightly different complex metric:
 
 #### 3. Create a new behavior for gathering and comparing simulation data
 
-{% code title="gather\_data.js" >
 ```javascript
+// gather_data.js
+
 const behavior = () => {
     // Gather data from agents
     const ns = context.neighbors().map(n => n.field);
