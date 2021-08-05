@@ -51,13 +51,13 @@ function make_edge(a, b) {
 
 Below are a few simulations which use network visualizations. Inspect the relevant code from their behaviors and add it to the models you're building:
 
-<Embed url="https://hash.ai/@hash/oil-supply-chain" caption="" >
+<Embed url="https://hash.ai/@hash/oil-supply-chain" caption="" />
 
 **"edge.js"** and **"create\_pipeline.js"** in the Oil Supply Chain.
 
 **"edge.js"** and **"create\_edges.js"** in the Billing Department.
 
-<Embed url="https://hash.ai/@hash/interconnected-call-center" caption="" >
+<Embed url="https://hash.ai/@hash/interconnected-call-center" caption="" />
 
 **"create\_links.js"** in the Interconnected Call Center.
 
