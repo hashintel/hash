@@ -162,7 +162,9 @@ HASH uses Plotly behind the scenes to render charts and graphs. As such, the pla
 
 Below are a few snippets of outputs and plots.
 
-### [Model Market](https://core.hash.ai/@hash/model-market/4.4.1)
+### Model Market
+
+[Link to Simulation](https://core.hash.ai/@hash/model-market/4.4.1)
 
 ```javascript
 {
