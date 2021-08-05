@@ -6,7 +6,7 @@ WORKDIR /app
 COPY packages/hash/backend/package.json packages/hash/backend/package.json
 COPY packages/hash/prettier-config/package.json packages/hash/prettier-config/package.json
 COPY package.json .
-COPY docker/api/start.sh .
+COPY packages/hash/docker/api/start.sh .
 
 RUN apt-get update \
     && apt-get install wait-for-it \

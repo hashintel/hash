@@ -2,8 +2,8 @@ version: "3.9"
 services:
     hash-dev-pg:
         build:
-            context: ../
-            dockerfile: docker/postgres/Dockerfile
+            context: ../../../
+            dockerfile: packages/hash/docker/postgres/Dockerfile
         ports:
             - 5432:5432
         environment:
@@ -14,8 +14,8 @@ services:
             - hash-dev-pg:/pgdata
     hash-dev-api:
         build:
-            context: ../
-            dockerfile: docker/api/Dockerfile
+            context: ../../../
+            dockerfile: packages/hash/docker/api/Dockerfile
         depends_on:
             - hash-dev-pg
         ports:
@@ -34,7 +34,7 @@ services:
         # Wait until the database is running before starting the API
         command: ["wait-for-it", "-h", "hash-dev-pg", "-p", "5432", "-s", "-t", "30", "--", "./start.sh"]
         volumes:
-            - ../packages/hash/backend/src:/app/src
+            - ../backend/src:/app/src
         stop_signal: SIGINT
 volumes:
     # Make sure you have created this volume: docker volume create hash-dev-pg

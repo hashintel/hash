@@ -1,3 +1,3 @@
 FROM statsd/statsd
 
-COPY docker/statsd/config.json config.js
+COPY packages/hash/docker/statsd/config.json config.js
