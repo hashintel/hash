@@ -8,6 +8,7 @@ yarn serve:hash-backend
 
 On first run, or if you want to reset the database to the initial mock data,
 after starting the backend run:
+
 ```
 yarn seed-db
 ```
@@ -15,12 +16,15 @@ yarn seed-db
 See the [docker/README](./docker) for further details.
 
 ## Install the frontend and required remote blocks
+
 `yarn install:demo`
 
 ## Start the frontend and required blocks
+
 `yarn demo-sans-backend`
 
 ## Create a new block bundle from template
+
 1. `yarn new:block <name>`
 2. code in `packages/hash/blocks/<name>`
 
@@ -29,6 +33,7 @@ See the [docker/README](./docker) for further details.
 Integration tests are located at [packages/hash/integration](./packages/hash/integration).
 To run these tests, ensure the API and database are running
 (`yarn serve:hash-backend`) and execute:
+
 ```
 yarn test-integration
 ```
@@ -40,8 +45,10 @@ We use git hooks to enforce code quality. These hooks are located in the
 `.git/hooks` and enable execution with `chmod u+x .git/hooks/<HOOK NAME>`.
 
 ## Monorepo
+
 In order to work w/ multiple packages in a single repository, they must adhere to some conventions.
 The below `package.json` file outlines the minimum requirements a package has to fulfill:
+
 ```json
 {
   "name": "@hashintel/<package-name>",
@@ -53,7 +60,7 @@ The below `package.json` file outlines the minimum requirements a package has to
   "scripts": {
     // use script "echo n/a" where not applicable
     "format": "prettier --write './src/**/*'",
-    "lint": "prettier --check './src/**/*'; eslint ./src/",
+    "lint": "prettier --check './src/**/*'; eslint ./src/"
   },
   "devDependencies": {
     "@hashintel/prettier-config": "*",
@@ -65,6 +72,7 @@ The below `package.json` file outlines the minimum requirements a package has to
   }
 }
 ```
+
 The above `devDependencies` are owed to our root eslint-config at `packages/hash/.eslintrc.json`.
 That same config requires a `tsconfig.json` next to the `package.json` if `.ts(x)` files are to
 be linted.
@@ -72,16 +80,27 @@ be linted.
 ## Troubleshooting
 
 ### npm-run-all
+
 When running this command you may encounter an error along the lines of
+
 ```sh
 $ npx npm-run-all -p install:header ...
 Watching .../repos/dev and all sub-directories not excluded by your .gitignore. Will not monitor dotfiles.
 Found & ignored ./.git/logs ; is listed in .gitignore
 Found & ignored ./node_modules ; is listed in .gitignore
 ```
+
 You will have to downgrade your npm version using `npm i -g npm@6` as described [here](https://github.com/mysticatea/npm-run-all/issues/196#issuecomment-813599087)
 
 ### eslint `parserOptions.project`
+
 There is a mismatch between VSCode's eslint plugin and the eslint cli tool. Specifically the option
-`parserOptions.project` is not interpreted the same way as documented [here](https://github.com/typescript-eslint/typescript-eslint/issues/251).
-If your IDE complains about a file not being "on the project" you can safely ignore it.
+`parserOptions.project` is not interpreted the same way as reported [here](https://github.com/typescript-eslint/typescript-eslint/issues/251).
+If VSCode complains about a file not being "on the project" underlining an import statement, try to
+add the following to the plugin's settings:
+
+```json
+"eslint.workingDirectories": [
+  { "directory": "packages/hash/backend", "!cwd": true }
+]
+```
