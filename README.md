@@ -51,11 +51,11 @@ The below `package.json` file outlines the minimum requirements a package has to
 
 ```json
 {
-  "name": "@hashintel/<package-name>",
-  "version": "0.1.0",
-  "description": "<packages description>",
+  "name": "@hashintel/hash-<name>",
+  "version": "major.minor.patch",
+  "description": "lorem ipsum",
   "author": "<package-author>",
-  "license": "TBA",
+  "license": "<package-licence>",
   "prettier": "@hashintel/prettier-config",
   "scripts": {
     // use script "echo n/a" where not applicable

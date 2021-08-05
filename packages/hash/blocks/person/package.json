@@ -1,5 +1,5 @@
 {
-  "name": "person",
+  "name": "@hashintel/block-person",
   "version": "0.1.0",
   "description": "person block component",
   "private": true,

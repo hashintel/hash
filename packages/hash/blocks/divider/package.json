@@ -1,5 +1,5 @@
 {
-  "name": "divider",
+  "name": "@hashintel/block-divider",
   "version": "0.1.0",
   "description": "divider block component",
   "private": true,
