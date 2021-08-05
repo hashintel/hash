@@ -50,9 +50,12 @@ export const loginWithLoginCode: Resolver<
             "USER_NOT_FOUND"
           );
         return user;
+      })
+      .catch((err) => {
+        throw err;
       });
 
-    passport.login(user, {});
+    await passport.login(user, {});
 
     return user;
   }

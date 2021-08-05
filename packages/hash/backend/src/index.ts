@@ -102,39 +102,45 @@ app.use((req, res, next) => {
 });
 
 // Ensure the GraphQL server has started before starting the HTTP server
-apolloServer.start().then(() => {
-  apolloServer.applyMiddleware({
-    app,
-    cors: { credentials: true, origin: FRONTEND_URL },
-  });
-
-  const server = app.listen(PORT, () =>
-    logger.info(`Listening on port ${PORT}`)
-  );
-
-  // Gracefully shutdown on receiving a termination signal.
-  let receivedTerminationSignal = false;
-  const shutdown = (signal: string) => {
-    if (receivedTerminationSignal) {
-      return;
-    }
-    receivedTerminationSignal = true;
-
-    logger.info(`${signal} signal received: Closing Express server`);
-    server.close(() => {
-      logger.info("Express server closed");
+apolloServer
+  .start()
+  .then(() => {
+    apolloServer.applyMiddleware({
+      app,
+      cors: { credentials: true, origin: FRONTEND_URL },
     });
 
-    logger.info("Closing database connection pool");
-    db.close()
-      .then(() => logger.info("Database connection pool closed"))
-      .catch((err) => logger.error(err));
+    const server = app.listen(PORT, () =>
+      logger.info(`Listening on port ${PORT}`)
+    );
 
-    if (statsd) {
-      logger.info("Closing the StatsD client");
-      statsd.close(() => logger.info("StatsD client closed"));
-    }
-  };
-  process.on("SIGTERM", () => shutdown("SIGTERM"));
-  process.on("SIGINT", () => shutdown("SIGINT"));
-});
+    // Gracefully shutdown on receiving a termination signal.
+    let receivedTerminationSignal = false;
+    const shutdown = (signal: string) => {
+      if (receivedTerminationSignal) {
+        return;
+      }
+      receivedTerminationSignal = true;
+
+      logger.info(`${signal} signal received: Closing Express server`);
+      server.close(() => {
+        logger.info("Express server closed");
+      });
+
+      logger.info("Closing database connection pool");
+      db.close()
+        .then(() => logger.info("Database connection pool closed"))
+        .catch((err) => logger.error(err));
+
+      if (statsd) {
+        logger.info("Closing the StatsD client");
+        statsd.close(() => logger.info("StatsD client closed"));
+      }
+    };
+    process.on("SIGTERM", () => shutdown("SIGTERM"));
+    process.on("SIGINT", () => shutdown("SIGINT"));
+  })
+  .catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
