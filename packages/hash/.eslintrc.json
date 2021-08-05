@@ -31,8 +31,17 @@
       }
     ],
     "no-unused-expressions": "error",
+    "@typescript-eslint/no-floating-promises": "error",
     "prefer-const": "warn",
     "prefer-arrow-callback": "warn",
     "semi": "warn"
-  }
+  },
+  "overrides": [
+    {
+      "files": ["*.ts", "*.tsx"],
+      "parserOptions": {
+        "project": ["./tsconfig.json"] // resolved relative to eslint cwd (package.json)
+      }
+    }
+  ]
 }
