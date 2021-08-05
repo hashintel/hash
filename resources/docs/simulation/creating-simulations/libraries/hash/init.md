@@ -8,6 +8,7 @@ Returns an array of agents at random positions within the bounds defined in `top
 
 <Tabs>
 <Tab title="init.js" >
+  
 ```javascript
 const init = (context) => {
   // You can define the topology object here or in globals.json
@@ -37,6 +38,7 @@ const init = (context) => {
 </Tab>
 
 <Tab title="globals.json" >
+  
 ```javascript
 {
   "topology": {
@@ -82,6 +84,7 @@ Returns an array of agents occupying every integer location within the bounds de
 
 <Tabs>
 <Tab title="init.js" >
+  
 ```javascript
 const init = (context) => {
   // You can define the topology object here or in globals.json
@@ -111,6 +114,7 @@ const init = (context) => {
 </Tab>
 
 <Tab title="globals.json" >
+  
 ```javascript
 {
   "topology": {
@@ -128,6 +132,7 @@ Returns an array of agents based on a specified `layout` and set of `templates`.
 
 <Tabs>
 <Tab title="init.js" >
+  
 ```javascript
 const init = (context) => {
     const layout = context.data()["/layout_data.csv"];
@@ -159,6 +164,7 @@ const init = (context) => {
 </Tab>
 
 <Tab title="layout\_data.csv" >
+  
 ```text
 w,,,,,
 w,,f,,,
