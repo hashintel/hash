@@ -80,3 +80,8 @@ Found & ignored ./.git/logs ; is listed in .gitignore
 Found & ignored ./node_modules ; is listed in .gitignore
 ```
 You will have to downgrade your npm version using `npm i -g npm@6` as described [here](https://github.com/mysticatea/npm-run-all/issues/196#issuecomment-813599087)
+
+### eslint `parserOptions.project`
+There is a mismatch between VSCode's eslint plugin and the eslint cli tool. Specifically the option
+`parserOptions.project` is not interpreted the same way as documented [here](https://github.com/typescript-eslint/typescript-eslint/issues/251).
+If your IDE complains about a file not being "on the project" you can safely ignore it.
