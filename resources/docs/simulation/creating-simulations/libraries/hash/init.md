@@ -2,7 +2,7 @@
 
 When using `init.js` or `init.py` to initialize your simulation, these standard library functions can help you easily initialize agents in predefined patterns.
 
-## scatter\(count, topology, template\)
+## scatter(count, topology, template)
 
 Returns an array of agents at random positions within the bounds defined in `topology`. Agents are generated as copies of the `template` if you pass an object, or as the return value if you pass a function.
 
@@ -50,7 +50,7 @@ const init = (context) => {
 </Tab>
 </Tabs>
 
-## stack\(count, template\)
+## stack(count, template)
 
 Returns an array of agents generated from the `template`. Agents are generated as copies of the `template` if you pass an object, or as the return value if you pass a function.
 
@@ -78,7 +78,7 @@ const init = (context) => {
 }
 ```
 
-## grid\(topology, template\)
+## grid(topology, template)
 
 Returns an array of agents occupying every integer location within the bounds defined in `topology`. Agents are generated as copies of the `template` if you pass an object, or as the return value if you pass a function.
 
@@ -126,7 +126,7 @@ const init = (context) => {
 </Tab>
 </Tabs>
 
-## createLayout\(layout, templates, offset\)
+## createLayout(layout, templates, offset)
 
 Returns an array of agents based on a specified `layout` and set of `templates`. The `layout` file must be a csv mapping agent types to initial positions. The `templates` allow the function to determine the definition of each agent type. You can optionally specify a position `offset`.
 
@@ -163,7 +163,7 @@ const init = (context) => {
 ```
 </Tab>
 
-<Tab title="layout\_data.csv" >
+<Tab title="layout_data.csv" >
   
 ```text
 w,,,,,
