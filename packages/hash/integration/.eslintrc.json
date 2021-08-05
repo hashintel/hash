@@ -1,8 +1,5 @@
 {
   "env": {
     "node": true
-  },
-  "ignorePatterns": [
-    "src/graphql/fragmentTypes.json"
-  ]
+  }
 }
