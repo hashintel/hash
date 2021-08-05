@@ -7,6 +7,10 @@
     "jsx": "preserve",
     "moduleResolution": "node",
     "noEmit": true,
+    "typeRoots": [
+      "./src/types",
+      "node_modules/@types"
+    ],
   
     // overrides
     "lib": ["dom", "dom.iterable", "esnext"],  
