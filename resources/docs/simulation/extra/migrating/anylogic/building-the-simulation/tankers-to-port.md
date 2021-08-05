@@ -6,8 +6,8 @@ We’ve identified **Tankers** as a good place to start in this simulation. Let�
 
 Our **Tanker** needs to be able to move towards its destination at a constant velocity. Movement like this can easily be accomplished by adjusting the`lng_lat` or `position` property.
 
-{% code title="tanker.js" >
 ```javascript
+// tanker.js
 /**
  * Move the tanker to its destination based on its speed.
  * Return its new lng_lat coordinates.
@@ -37,7 +37,8 @@ To use a shared behavior like Lng\_Lat To Position, [you'll need to import it in
 
 Note that we need to also set some properties in the **globals.json** file to use the behavior.
 
-{% code title="globals.json" >
+** globals.json **
+
 ```javascript
 {
   "center_ll": [0, 0],
@@ -49,8 +50,9 @@ Note that we need to also set some properties in the **globals.json** file to us
 
 In the finished sim, the tanker.js file behavior also detects whether the agent has reached its destination to begin unloading. You'll also need to logic to `initialize.py` in order to create the **Tanker.**
 
-{% code title="initialize.py" >
 ```python
+# initialize.py
+
 def behavior(state, context):
     sec_per_step = context.globals()['seconds_per_step']
 
@@ -86,8 +88,9 @@ Now let’s create a port that the **Tanker** unloads to.
 
 To give the **Port** unloading behavior, we'll make use of a published behavior in hIndex called [In Flow](https://hash.ai/@hash/in-flow). If we look at its documentation \[here\] we can see what properties we need to initialize our **Port** with. It's not enough just to add this behavior to **Port** agents, since the **Tankers** need to cooperate during the unloading process. We'll give them the complementary [Out Flow](https://hash.ai/@hash/out-flow) behavior.
 
-{% code title="initialize.py" >
 ```python
+# initialize.py
+
 def behavior(state, context):
     sec_per_step = context.globals()['seconds_per_step']
 
