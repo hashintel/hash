@@ -6,6 +6,9 @@
     "plugin:@typescript-eslint/base",
     "prettier" // mutes eslint rules conflicting w/ prettier (requires eslint-config-prettier)
   ],
+  "ignorePatterns": [
+    "**/*.gen.*"
+  ],
   "rules": {
     "eqeqeq": [
       "error",

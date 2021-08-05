@@ -31,7 +31,7 @@
     "serve:hash-frontend": "yarn ws:hash-frontend dev",
     "serve:hash-backend": "docker-compose -f packages/hash/docker/docker-compose.yml up",
     "serve:hash-backend-statsd": "docker-compose -f docker/docker-compose.yml -f docker/docker-compose-statsd-override.yml up",
-    "codegen": "yarn ws:hash-backend codegen && yarn ws:hash-frontend codegen",
+    "codegen": "yarn ws:hash-backend codegen && yarn ws:hash-frontend codegen && yarn ws:hash-integration codegen",
     "rebuild:backend": "docker-compose -f packages/hash/docker/docker-compose.yml build",
     "new:block": "node packages/hash/blocks/create-block",
     "// 05": "",
