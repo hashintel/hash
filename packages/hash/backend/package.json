@@ -20,8 +20,8 @@
     "ts-node": "node --max-old-space-size=2048 node_modules/.bin/ts-node --files --project tsconfig.json"
   },
   "dependencies": {
+    "@aws-sdk/client-ses": "3.25.0",
     "apollo-server-express": "2.24.1",
-    "aws-sdk": "2.949.0",
     "body-parser": "1.19.0",
     "connect-pg-simple": "6.2.1",
     "cron": "1.8.2",
@@ -44,21 +44,20 @@
     "winston": "3.3.3"
   },
   "devDependencies": {
-    "@hashintel/prettier-config": "*",
     "@graphql-codegen/cli": "1.21.4",
     "@graphql-codegen/introspection": "1.18.2",
     "@graphql-codegen/typescript": "1.22.0",
     "@graphql-codegen/typescript-resolvers": "1.19.2",
-    "@types/aws-sdk": "2.7.0",
+    "@hashintel/prettier-config": "*",
     "@types/connect-pg-simple": "4.2.4",
     "@types/cron": "1.7.3",
     "@types/express-session": "1.17.4",
     "@types/graphql-type-json": "0.3.2",
     "@types/html-to-text": "8.0.1",
+    "@types/node-fetch": "^2.5.10",
     "@types/nodemailer": "6.4.4",
     "@types/passport": "1.0.7",
     "@types/passport-strategy": "0.2.35",
-    "@types/node-fetch": "^2.5.10",
     "@types/pg": "8.6.0",
     "@types/rword": "3.0.0",
     "@typescript-eslint/eslint-plugin": "4.29.0",
