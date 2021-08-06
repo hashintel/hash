@@ -41,7 +41,7 @@
   },
   "overrides": [
     {
-      "files": ["*.ts", "*.tsx", "*.js"],
+      "files": ["*.ts", "*.tsx", "frontend/**/*.js"],
       "parserOptions": {
         "project": ["./tsconfig.json"] // resolved relative to eslint cwd (package.json)
       }
