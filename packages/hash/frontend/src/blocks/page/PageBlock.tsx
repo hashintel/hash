@@ -35,12 +35,11 @@ type PageBlockProps = {
   metadataId: string;
 };
 
-const cachedPropertiesByEntity: Record<string, Record<any, any>> =
-  JSON.parse(
-    typeof localStorage !== "undefined"
-      ? localStorage.getItem("cachedPropertiesByEntity") ?? "{}"
-      : "{}"
-  ) ?? {};
+const cachedPropertiesByEntity: Record<string, Record<any, any>> = JSON.parse(
+  typeof localStorage !== "undefined"
+    ? localStorage.getItem("cachedPropertiesByEntity") ?? "{}"
+    : "{}"
+) ?? {};
 
 const cachedPropertiesByPosition: Record<string, Record<any, any>> = {};
 
@@ -71,8 +70,9 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   const [portals, replacePortal] = usePortals();
   const [deferCallback, clearCallback] = useDeferredCallback();
 
-  const prosemirrorSetup =
-    useRef<null | { view: EditorView; schema: Schema }>(null);
+  const prosemirrorSetup = useRef<null | { view: EditorView; schema: Schema }>(
+    null
+  );
 
   /**
    * smart hack: provide a live reference to "contents" for all other effects

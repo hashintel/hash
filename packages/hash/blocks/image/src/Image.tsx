@@ -73,7 +73,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
   }, []);
 
   function displayError(errorString: string) {
-    setStateObject(stateObject => ({ ...stateObject, errorString }));
+    setStateObject((stateObject) => ({ ...stateObject, errorString }));
   }
 
   function updateData(src: string | undefined) {
@@ -94,7 +94,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
         update([updateAction]);
       }
 
-      setStateObject(stateObject => ({ ...stateObject, src }));
+      setStateObject((stateObject) => ({ ...stateObject, src }));
     }
   }
 
@@ -108,11 +108,11 @@ export const Image: BlockComponent<AppProps> = (props) => {
     }
 
     if (inputText?.trim()) {
-      setStateObject(stateObject => ({ ...stateObject, loading: true }));
+      setStateObject((stateObject) => ({ ...stateObject, loading: true }));
 
       uploadImage({ imgURL: inputText }).then(({ src, error }) => {
         if (isMounted.current) {
-          setStateObject(stateObject => ({ ...stateObject, loading: false }));
+          setStateObject((stateObject) => ({ ...stateObject, loading: false }));
 
           if (error?.trim()) {
             return displayError(error);
@@ -211,7 +211,10 @@ export const Image: BlockComponent<AppProps> = (props) => {
           </span>
           <span
             onClick={() =>
-              setStateObject(stateObject => ({ ...stateObject, errorString: null }))
+              setStateObject((stateObject) => ({
+                ...stateObject,
+                errorString: null,
+              }))
             }
             className={tw`absolute top-0 bottom-0 right-0 px-4 py-3`}
           >

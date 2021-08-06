@@ -8,7 +8,6 @@ import { cloneEntityTreeWithPropertiesMovedUp } from "../../lib/entities";
 import { fetchEmbedCode } from "./fetchEmbedCode";
 import { uploadImage } from "./uploadImage";
 
-
 type RemoteBlockProps = {
   url: string;
 };

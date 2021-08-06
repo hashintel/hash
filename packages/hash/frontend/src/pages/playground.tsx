@@ -25,8 +25,9 @@ const BlockPlayground = () => {
     schemaErrors: [],
   });
   const [metadata, setMetadata] = useState<BlockMetadata>({});
-  const [schema, setSchema] =
-    useState<Record<string, any> | undefined>(undefined);
+  const [schema, setSchema] = useState<Record<string, any> | undefined>(
+    undefined
+  );
 
   const fetchUrl = (folderUrl: string) => {
     setError("");

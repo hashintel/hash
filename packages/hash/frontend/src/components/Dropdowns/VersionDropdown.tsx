@@ -33,7 +33,11 @@ export const VersionDropdown: VoidFunctionComponent<VersionDropdownProps> = ({
       style={{ width: 200 }}
     >
       {versions.map((version) => (
-        <option key={version.entityId} value={version.entityId} selected={value === version.createdAt}>
+        <option
+          key={version.entityId}
+          value={version.entityId}
+          selected={value === version.createdAt}
+        >
           {formatDistance(new Date(version.createdAt), now, {
             addSuffix: true,
           })}
