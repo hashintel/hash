@@ -18,7 +18,7 @@ export const useCreatePage = () => {
     onCompleted: (data) => {
       const { createPage } = data;
       const { metadataId, accountId } = createPage;
-      router.push(`/${accountId}/${metadataId}`);
+      void router.push(`/${accountId}/${metadataId}`);
     },
     refetchQueries: ({ data }) => [
       {

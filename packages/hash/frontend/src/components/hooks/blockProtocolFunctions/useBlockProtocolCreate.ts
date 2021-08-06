@@ -18,18 +18,21 @@ export const useBlockProtocolCreate = (): {
       createEntity
     );
 
-  const create: BlockProtocolCreateFn = useCallback((actions) => {
-    for (const action of actions) {
-      createFn({
-        variables: {
-          properties: action.data,
-          type: action.entityType,
-          accountId: action.pageAccountId,
-          createdById: action.userId,
-        },
-      });
-    }
-  }, []);
+  const create: BlockProtocolCreateFn = useCallback(
+    (actions) => {
+      for (const action of actions) {
+        void createFn({
+          variables: {
+            properties: action.data,
+            type: action.entityType,
+            accountId: action.pageAccountId,
+            createdById: action.userId,
+          },
+        });
+      }
+    },
+    [createFn]
+  );
 
   return {
     create,

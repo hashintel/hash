@@ -78,7 +78,7 @@ const LoginPage: NextPage = () => {
 
     if (tbdIsParsedLoginQuery(query)) {
       const { loginId, loginCode } = query;
-      loginWithLoginCode({ variables: { loginId, loginCode } });
+      void loginWithLoginCode({ variables: { loginId, loginCode } });
     }
   }, [router, loginWithLoginCode]);
 

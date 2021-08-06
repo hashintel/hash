@@ -762,9 +762,9 @@ const wrapCommand = (command) => (state, dispatch, view) => {
     }
 
     if (node.firstChild.isTextblock) {
-      let start = pos + 1;
+      const start = pos + 1;
       const $from = tr.doc.resolve(tr.mapping.map(start));
-      let end = pos + node.nodeSize - 1;
+      const end = pos + node.nodeSize - 1;
       const $to = tr.doc.resolve(tr.mapping.map(end));
       const range = $from.blockRange($to);
       const target = liftTarget(range);
@@ -1004,7 +1004,7 @@ export const renderPM = (
       const update = (view, lastState) => {
         const dragging = !!editorView.dragging;
 
-        let state = view.state;
+        const state = view.state;
 
         /**
          * We don't always want to display a format tooltip – i.e, when the view isn't focused, when we're dragging and

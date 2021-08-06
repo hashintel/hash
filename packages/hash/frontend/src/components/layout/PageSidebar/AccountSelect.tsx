@@ -20,7 +20,7 @@ export const AccountSelect: VoidFunctionComponent<AccountSelectProps> = ({
   return (
     <select
       className={styles.AccountSelect}
-      onChange={(e) => onChange(e.target.value)}
+      onChange={(event) => onChange(event.target.value)}
       value={value}
     >
       {data?.accounts.map((account) => (

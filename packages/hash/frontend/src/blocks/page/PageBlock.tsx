@@ -545,7 +545,9 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   useLayoutEffect(() => {
     const controller = new AbortController();
 
-    updateContents(controller.signal);
+    updateContents(controller.signal).catch((err) =>
+      console.error("Could not update page contents: ", err)
+    );
 
     return () => {
       controller.abort();

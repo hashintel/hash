@@ -35,19 +35,22 @@ export const useBlockProtocolUpdate = (): {
       onCompleted,
     });
 
-  const update: BlockProtocolUpdateFn = useCallback(async (actions) => {
-    await Promise.all(
-      actions.map(async (action) => {
-        await (action.entityType === "Page" ? updatePageFn : updateEntityFn)({
-          variables: {
-            id: action.entityId,
-            properties: action.data,
-            accountId: action.accountId,
-          },
-        });
-      })
-    );
-  }, []);
+  const update: BlockProtocolUpdateFn = useCallback(
+    async (actions) => {
+      await Promise.all(
+        actions.map(async (action) => {
+          await (action.entityType === "Page" ? updatePageFn : updateEntityFn)({
+            variables: {
+              id: action.entityId,
+              properties: action.data,
+              accountId: action.accountId,
+            },
+          });
+        })
+      );
+    },
+    [updateEntityFn, updatePageFn]
+  );
 
   const updateLoading = updateEntityLoading || updatePageLoading;
   const updateError = updateEntityError ?? updatePageError;
