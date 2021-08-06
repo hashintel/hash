@@ -136,6 +136,9 @@ apolloServer
         logger.info("Closing the StatsD client");
         statsd.close(() => logger.info("StatsD client closed"));
       }
+
+      logger.info("SHUTDOWN");
+      process.exit(0);
     };
     process.on("SIGTERM", () => shutdown("SIGTERM"));
     process.on("SIGINT", () => shutdown("SIGINT"));
