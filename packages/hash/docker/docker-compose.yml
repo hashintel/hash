@@ -15,7 +15,7 @@ services:
     hash-dev-api:
         build:
             context: ../../../
-            dockerfile: packages/hash/docker/api/Dockerfile
+            dockerfile: packages/hash/docker/api/dev/Dockerfile
         depends_on:
             - hash-dev-pg
         ports:
