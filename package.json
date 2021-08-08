@@ -14,7 +14,8 @@
     "packages/hash/blocks/header",
     "packages/hash/blocks/image",
     "packages/hash/blocks/person",
-    "packages/hash/blocks/table"
+    "packages/hash/blocks/table",
+    "packages/hash/blocks/template"
   ],
   "scripts": {
     "all": "npx npm-run-all",

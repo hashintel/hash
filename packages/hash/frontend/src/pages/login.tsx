@@ -34,8 +34,9 @@ const LoginPage: NextPage = () => {
   const [emailOrShortname, setEmailOrShortname] = useState<string>("");
 
   const [loginCode, setLoginCode] = useState<string>("");
-  const [loginCodeMetadata, setLoginCodeMetadata] =
-    useState<LoginCodeMetadata | undefined>();
+  const [loginCodeMetadata, setLoginCodeMetadata] = useState<
+    LoginCodeMetadata | undefined
+  >();
 
   const [
     sendLoginCode,
@@ -77,7 +78,7 @@ const LoginPage: NextPage = () => {
 
     if (tbdIsParsedLoginQuery(query)) {
       const { loginId, loginCode } = query;
-      loginWithLoginCode({ variables: { loginId, loginCode } });
+      void loginWithLoginCode({ variables: { loginId, loginCode } });
     }
   }, [router, loginWithLoginCode]);
 

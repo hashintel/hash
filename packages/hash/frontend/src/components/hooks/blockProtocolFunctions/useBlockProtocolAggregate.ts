@@ -18,15 +18,18 @@ export const useBlockProtocolAggregate = (): {
       aggregateEntity
     );
 
-  const aggregate: BlockProtocolAggregateFn = useCallback((action) => {
-    aggregateFn({
-      variables: {
-        operation: action.operation,
-        type: action.entityType,
-        accountId: action.accountId,
-      },
-    });
-  }, []);
+  const aggregate: BlockProtocolAggregateFn = useCallback(
+    (action) => {
+      aggregateFn({
+        variables: {
+          operation: action.operation,
+          type: action.entityType,
+          accountId: action.accountId,
+        },
+      });
+    },
+    [aggregateFn]
+  );
 
   return {
     aggregate,

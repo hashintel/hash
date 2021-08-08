@@ -23,7 +23,7 @@ export const CreatePage: VoidFunctionComponent<CreatePageProps> = ({
     event.preventDefault();
     create({
       variables: { accountId, properties: { title } },
-    });
+    }).catch((err) => console.error("Could not create page: ", err));
   };
 
   return (
@@ -33,7 +33,7 @@ export const CreatePage: VoidFunctionComponent<CreatePageProps> = ({
 
         <label>Title</label>
         <input
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={(event) => setTitle(event.target.value)}
           placeholder="What is this document?"
           required
           type="text"

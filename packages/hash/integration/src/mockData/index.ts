@@ -13,7 +13,7 @@ enum Visibility {
   Public = "PUBLIC",
 }
 
-(async () => {
+void (async () => {
   const client = new GraphQLClient("http://localhost:5001/graphql");
 
   const [users, orgs] = await Promise.all([

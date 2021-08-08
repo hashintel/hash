@@ -25,8 +25,9 @@ const BlockPlayground = () => {
     schemaErrors: [],
   });
   const [metadata, setMetadata] = useState<BlockMetadata>({});
-  const [schema, setSchema] =
-    useState<Record<string, any> | undefined>(undefined);
+  const [schema, setSchema] = useState<Record<string, any> | undefined>(
+    undefined
+  );
 
   const fetchUrl = (folderUrl: string) => {
     setError("");
@@ -97,7 +98,7 @@ const BlockPlayground = () => {
         <label>URL to block folder</label>
         <input
           type="text"
-          onChange={(e) => fetchUrl(e.target.value)}
+          onChange={(event) => fetchUrl(event.target.value)}
           defaultValue="http://localhost:5000"
         />
       </div>
@@ -113,7 +114,7 @@ const BlockPlayground = () => {
             <textarea
               className="language-json"
               value={inputData}
-              onChange={(e) => setInputData(e.target.value)}
+              onChange={(event) => setInputData(event.target.value)}
             />
             <div className={styles.JsonValidation}>
               <div>

@@ -17,9 +17,9 @@ export const uploadImage = async ({
     return new Promise((resolve) => {
       const reader = new FileReader();
 
-      reader.onload = (e) => {
-        if (e.target?.result) {
-          resolve({ src: e.target.result.toString() });
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          resolve({ src: event.target.result.toString() });
         } else {
           resolve({ error: "Couldn't read your file" });
         }

@@ -163,7 +163,7 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
                     value={data.page.createdAt}
                     versions={data.page.history ?? []}
                     onChange={(versionId) => {
-                      router.push(
+                      void router.push(
                         `/${accountId}/${metadataId}?version=${versionId}`
                       );
                     }}

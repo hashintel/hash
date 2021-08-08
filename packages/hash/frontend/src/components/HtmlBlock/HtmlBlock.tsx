@@ -20,7 +20,7 @@ export const HtmlBlock: VoidFunctionComponent<HtmlBlockProps> = ({
 
     divRef.current.innerHTML = "";
     divRef.current.appendChild(docFragment);
-  }, []);
+  }, [html]);
 
   return <div ref={divRef} {...props} />;
 };

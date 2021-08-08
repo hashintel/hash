@@ -8,7 +8,6 @@ import { cloneEntityTreeWithPropertiesMovedUp } from "../../lib/entities";
 import { fetchEmbedCode } from "./fetchEmbedCode";
 import { uploadImage } from "./uploadImage";
 
-
 type RemoteBlockProps = {
   url: string;
 };
@@ -53,7 +52,7 @@ export const RemoteBlock: VoidFunctionComponent<
         ...updateData[0],
         accountId: props.accountId,
       },
-    ]);
+    ]).catch((err) => console.error("Could not update entity: ", err));
   };
 
   return (

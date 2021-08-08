@@ -8,10 +8,6 @@ import Component from "./index.ts";
 
 const node = document.getElementById("app");
 
-const App = () => (
-  <>
-    <Component />
-  </>
-);
+const App = () => <Component />;
 
 ReactDOM.render(<App />, node);

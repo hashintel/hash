@@ -56,11 +56,7 @@ function AppComponent() {
 }
 
 const App = () => {
-  return (
-    <>
-      <AppComponent />
-    </>
-  );
+  return <AppComponent />;
 };
 
 ReactDOM.render(<App />, node);
