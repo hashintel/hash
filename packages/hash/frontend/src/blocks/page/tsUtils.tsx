@@ -72,7 +72,7 @@ export const builtInBlocks: Record<string, BlockMeta> = {
   },
 };
 
-function toBlockName(packageName: string) {
+function toBlockName(packageName: string = "Unnamed") {
   return packageName.split("/").pop()!;
 }
 
@@ -81,7 +81,7 @@ function toBlockName(packageName: string) {
  */
 function toBlockConfig(options: BlockMetadata, url: string): BlockConfig {
   const defaultVariant = {
-    name: toBlockName(options.name!),
+    name: toBlockName(options.name),
     description: options.description,
     icon: "path/to/icon.svg", // @todo: introduce icons to blocks
     properties: {},
