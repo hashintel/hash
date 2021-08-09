@@ -1,7 +1,7 @@
 import nodemailer from "nodemailer";
-import SES from "aws-sdk/clients/ses";
+import { SESClient } from "@aws-sdk/client-ses";
 
 export default nodemailer.createTransport({
-  SES: new SES(),
+  SES: new SESClient({}),
   sendingRate: 10,
 });
