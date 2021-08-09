@@ -6,7 +6,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { ReplacePortals } from "./tsUtils";
+import { ReplacePortals } from "./sharedWithBackend";
 import { v4 as uuid } from "uuid";
 import { createPortal } from "react-dom";
 
