@@ -20,7 +20,7 @@ export const App: BlockComponent<AppProps> = ({
   update,
 }) => {
   data = data ?? [];
-  const columns = useMemo(() => makeColumns(data?.[0] ?? {}), [data[0]]);
+  const columns = useMemo(() => makeColumns(data?.[0] ?? {}), [data]);
 
   const { getTableProps, getTableBodyProps, headerGroups, rows, prepareRow } =
     useTable({
@@ -33,23 +33,26 @@ export const App: BlockComponent<AppProps> = ({
       updateData: update,
     });
 
+  /** @todo Fix keys in iterators below to not use the index */
   return (
     <table {...getTableProps()}>
       <thead>
-        {headerGroups.map((headerGroup) => (
-          <tr {...headerGroup.getHeaderGroupProps()}>
-            {headerGroup.headers.map((column) => (
-              <th {...column.getHeaderProps()}>{column.render("Header")}</th>
+        {headerGroups.map((headerGroup, i) => (
+          <tr {...headerGroup.getHeaderGroupProps()} key={i}>
+            {headerGroup.headers.map((column, i) => (
+              <th {...column.getHeaderProps()} key={i}>
+                {column.render("Header")}
+              </th>
             ))}
           </tr>
         ))}
       </thead>
       <tbody {...getTableBodyProps()}>
-        {rows.map((row) => {
+        {rows.map((row, i) => {
           prepareRow(row);
           return (
-            <tr {...row.getRowProps()}>
-              {row.cells.map((cell) => {
+            <tr {...row.getRowProps()} key={i}>
+              {row.cells.map((cell, i) => {
                 const { column, row } = cell;
                 const { entity, property } = identityEntityAndProperty(
                   row.original,
@@ -61,7 +64,7 @@ export const App: BlockComponent<AppProps> = ({
                 );
                 const readOnly = propertyDef?.readOnly;
                 return (
-                  <td {...cell.getCellProps()}>
+                  <td {...cell.getCellProps()} key={i}>
                     {cell.render("Cell", { readOnly })}
                   </td>
                 );

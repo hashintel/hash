@@ -23,14 +23,19 @@ export const EditableCell: VoidFunctionComponent<EditableCellProps> = ({
   readOnly,
   updateData,
 }) => {
+  const [value, setValue] = useState(initialValue);
+
+  // If the initialValue is changed external, sync it up with our state
+  useEffect(() => {
+    setValue(initialValue);
+  }, [initialValue]);
+
   if (readOnly) {
     return <span>{initialValue}</span>;
   }
 
-  const [value, setValue] = useState(initialValue);
-
-  const onChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setValue(e.target.value);
+  const onChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setValue(event.target.value);
   };
 
   const onBlur = () => {
@@ -62,21 +67,16 @@ export const EditableCell: VoidFunctionComponent<EditableCellProps> = ({
         // @todo shouldn't need this – hash.dev should know it
         accountId: objectToUpdate.accountId,
       },
-    ]);
+    ]).catch((err) => console.error("Could not update table data: ", err));
   };
-
-  // If the initialValue is changed external, sync it up with our state
-  useEffect(() => {
-    setValue(initialValue);
-  }, [initialValue]);
 
   return (
     <input
       value={value}
       onChange={onChange}
       onBlur={onBlur}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") {
+      onKeyDown={(event) => {
+        if (event.key === "Enter") {
           onBlur();
         }
       }}
