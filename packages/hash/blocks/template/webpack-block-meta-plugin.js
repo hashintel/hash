@@ -16,18 +16,9 @@ const {
 
 const { externals } = require("./webpack-main.config");
 
-const defaultVariant = {
-  name,
-  description,
-  icon: "path/to/icon.svg", // @todo: introduce icons to blocks
-  properties: {},
-};
-
-const variants = (
-  fs.existsSync("./variants.json") ? require("./variants.json") : []
-).map((variant) => Object.assign({}, defaultVariant, variant));
-
-if (!variants.length) variants.push(defaultVariant);
+const variants = fs.existsSync("./variants.json")
+  ? require("./variants.json")
+  : undefined;
 
 class StatsPlugin {
   apply(compiler) {
