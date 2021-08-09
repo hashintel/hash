@@ -1,5 +1,12 @@
 # HASH.dev
 
+## Getting started
+
+In order to run the app in its entirety, you will need to follow these steps:
+1. Start the backend (and seed the db if necessary)
+2. Install the frontend and blocks
+3. Start the frontend and blocks
+
 ## Start the backend
 
 ```
