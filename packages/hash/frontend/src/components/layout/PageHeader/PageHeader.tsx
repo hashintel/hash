@@ -4,7 +4,7 @@ import { tw } from "twind";
 
 export const PageHeader: VoidFunctionComponent = () => {
   return (
-    <header className={tw`bg-white py-4`}>
+    <header className={tw`bg-white py-4 border(b-1 gray-300)`}>
       <nav className={tw`container mx-auto flex justify-end`}>
         <Link href="/login">
           <a
