@@ -3,18 +3,28 @@
 ## Getting started
 
 In order to run the app in its entirety, you will need to follow these steps:
+
+1. Run `yarn install`
 1. Start the backend (and seed the db if necessary)
 2. Install the frontend and blocks
 3. Start the frontend and blocks
 
 ## Start the backend
+1. Have Docker running. 
+
+2. Make sure you have nothing running on port 5432 (i.e. no other postgres service).
+- You can check with `lsof -n -i:5432`
+
+3. If it's your first time, run `docker volume create hash-dev-pg` to create the storage volume.
+
+4. **To start the backend Docker container**:
 
 ```
 yarn serve:hash-backend
 ```
 
-On first run, or if you want to reset the database to the initial mock data,
-after starting the backend run:
+5. **On first run**, or if you want to reset the database to the initial mock data,
+after starting the backend, and having run `yarn install`, run:
 
 ```
 yarn seed-db
