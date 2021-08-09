@@ -8,39 +8,39 @@
         "urldata": [
           {
             "title": "Agent-Based Modeling Basics",
-            "slug": "creating-simulations/agent-based-modeling-basics-1"
+            "slug": "simulation/creating-simulations/agent-based-modeling-basics-1"
           },
           {
             "title": "Agents",
-            "slug": "creating-simulations/anatomy-of-an-agent",
+            "slug": "simulation/creating-simulations/anatomy-of-an-agent",
             "urldata": [
               {
                 "title": "State",
-                "slug": "creating-simulations/anatomy-of-an-agent/state"
+                "slug": "simulation/creating-simulations/anatomy-of-an-agent/state"
               },
               {
                 "title": "Context",
-                "slug": "creating-simulations/anatomy-of-an-agent/context"
+                "slug": "simulation/creating-simulations/anatomy-of-an-agent/context"
               },
               {
                 "title": "Initializing Agents",
-                "slug": "creating-simulations/anatomy-of-an-agent/initial-state"
+                "slug": "simulation/creating-simulations/anatomy-of-an-agent/initial-state"
               },
               {
                 "title": "Visualization",
-                "slug": "creating-simulations/anatomy-of-an-agent/visualization",
+                "slug": "simulation/creating-simulations/anatomy-of-an-agent/visualization",
                 "urldata": [
                   {
                     "title": "Published Behaviors",
-                    "slug": "creating-simulations/anatomy-of-an-agent/visualization/published-behaviors"
+                    "slug": "simulation/creating-simulations/anatomy-of-an-agent/visualization/published-behaviors"
                   },
                   {
                     "title": "Shapes",
-                    "slug": "creating-simulations/anatomy-of-an-agent/visualization/shapes"
+                    "slug": "simulation/creating-simulations/anatomy-of-an-agent/visualization/shapes"
                   },
                   {
                     "title": "Networks",
-                    "slug": "creating-simulations/anatomy-of-an-agent/visualization/networks"
+                    "slug": "simulation/creating-simulations/anatomy-of-an-agent/visualization/networks"
                   }
                 ]
               }
@@ -48,77 +48,77 @@
           },
           {
             "title": "Behaviors",
-            "slug": "creating-simulations/behaviors",
+            "slug": "simulation/creating-simulations/behaviors",
             "urldata": [
               {
                 "title": "Composable Behaviors",
-                "slug": "creating-simulations/behaviors/composable-behaviors"
+                "slug": "simulation/creating-simulations/behaviors/composable-behaviors"
               },
               {
                 "title": "Behavior Keys",
-                "slug": "creating-simulations/behaviors/behavior-keys",
+                "slug": "simulation/creating-simulations/behaviors/behavior-keys",
                 "urldata": [
                   {
                     "title": "Types",
-                    "slug": "creating-simulations/behaviors/behavior-keys/types"
+                    "slug": "simulation/creating-simulations/behaviors/behavior-keys/types"
                   },
                   {
                     "title": "Advanced Scenarios",
-                    "slug": "creating-simulations/behaviors/behavior-keys/advanced-scenarios"
+                    "slug": "simulation/creating-simulations/behaviors/behavior-keys/advanced-scenarios"
                   }
                 ]
               },
               {
                 "title": "Inheriting Behaviors",
-                "slug": "creating-simulations/behaviors/inheritance"
+                "slug": "simulation/creating-simulations/behaviors/inheritance"
               },
               {
                 "title": "Getting the Behavior Index",
-                "slug": "creating-simulations/behaviors/behavior-index"
+                "slug": "simulation/creating-simulations/behaviors/behavior-index"
               }
             ]
           },
           {
             "title": "Messages",
-            "slug": "creating-simulations/agent-messages",
+            "slug": "simulation/creating-simulations/agent-messages",
             "urldata": [
               {
                 "title": "Sending Messages",
-                "slug": "creating-simulations/agent-messages/sending-messages"
+                "slug": "simulation/creating-simulations/agent-messages/sending-messages"
               },
               {
                 "title": "Handling Messages",
-                "slug": "creating-simulations/agent-messages/handling-messages"
+                "slug": "simulation/creating-simulations/agent-messages/handling-messages"
               },
               {
                 "title": "Built-in message handlers",
-                "slug": "creating-simulations/agent-messages/built-in-message-handlers"
+                "slug": "simulation/creating-simulations/agent-messages/built-in-message-handlers"
               }
             ]
           },
           {
             "title": "Globals",
-            "slug": "creating-simulations/configuration",
+            "slug": "simulation/creating-simulations/configuration",
             "urldata": [
               {
                 "title": "Simulation Parameters",
-                "slug": "creating-simulations/configuration/basic-properties"
+                "slug": "simulation/creating-simulations/configuration/basic-properties"
               },
               {
                 "title": "Topology",
-                "slug": "creating-simulations/configuration/topology",
+                "slug": "simulation/creating-simulations/configuration/topology",
                 "urldata": [
                   {
                     "title": "Bounds and Wrapping",
-                    "slug": "creating-simulations/configuration/topology/bounds-and-wrapping"
+                    "slug": "simulation/creating-simulations/configuration/topology/bounds-and-wrapping"
                   },
                   {
                     "title": "Wrapping Presets and Flags",
-                    "slug": "creating-simulations/configuration/topology/wrapping-presets-and-flags"
+                    "slug": "simulation/creating-simulations/configuration/topology/wrapping-presets-and-flags"
                   },
                   {
                     "title": "Distance Functions",
-                    "slug": "creating-simulations/configuration/topology/distance-functions"
+                    "slug": "simulation/creating-simulations/configuration/topology/distance-functions"
                   }
                 ]
               }
@@ -126,71 +126,71 @@
           },
           {
             "title": "Datasets",
-            "slug": "creating-simulations/datasets"
+            "slug": "simulation/creating-simulations/datasets"
           },
           {
             "title": "Simulation Outputs",
-            "slug": "creating-simulations/views",
+            "slug": "simulation/creating-simulations/views",
             "urldata": [
               {
                 "title": "3D",
-                "slug": "creating-simulations/views/3d-viewer"
+                "slug": "simulation/creating-simulations/views/3d-viewer"
               },
               {
                 "title": "Analysis",
-                "slug": "creating-simulations/views/analysis",
+                "slug": "simulation/creating-simulations/views/analysis",
                 "urldata": [
                   {
                     "title": "Metrics",
-                    "slug": "creating-simulations/views/analysis/metrics"
+                    "slug": "simulation/creating-simulations/views/analysis/metrics"
                   },
                   {
                     "title": "Metrics Syntax Reference",
-                    "slug": "creating-simulations/views/analysis/metrics-syntax-reference"
+                    "slug": "simulation/creating-simulations/views/analysis/metrics-syntax-reference"
                   },
                   {
                     "title": "Plots",
-                    "slug": "creating-simulations/views/analysis/plots"
+                    "slug": "simulation/creating-simulations/views/analysis/plots"
                   },
                   {
                     "title": "Plots Syntax Reference",
-                    "slug": "creating-simulations/views/analysis/plots-syntax-reference"
+                    "slug": "simulation/creating-simulations/views/analysis/plots-syntax-reference"
                   }
                 ]
               },
               {
                 "title": "Geospatial",
-                "slug": "creating-simulations/views/geospatial-viewer"
+                "slug": "simulation/creating-simulations/views/geospatial-viewer"
               },
               {
                 "title": "Raw Data",
-                "slug": "creating-simulations/views/raw-data"
+                "slug": "simulation/creating-simulations/views/raw-data"
               },
               {
                 "title": "Activity History",
-                "slug": "creating-simulations/views/activity-history"
+                "slug": "simulation/creating-simulations/views/activity-history"
               },
               {
                 "title": "API",
-                "slug": "creating-simulations/views/api-1"
+                "slug": "simulation/creating-simulations/views/api-1"
               }
             ]
           },
           {
             "title": "Experiments",
-            "slug": "creating-simulations/experiments",
+            "slug": "simulation/creating-simulations/experiments",
             "urldata": [
               {
                 "title": "Standard Experiments",
-                "slug": "creating-simulations/experiments/experiment-types"
+                "slug": "simulation/creating-simulations/experiments/experiment-types"
               },
               {
                 "title": "Optimization Experiments",
-                "slug": "creating-simulations/experiments/optimization-experiments",
+                "slug": "simulation/creating-simulations/experiments/optimization-experiments",
                 "urldata": [
                   {
                     "title": "Complex Metrics",
-                    "slug": "creating-simulations/experiments/optimization-experiments/complex-metrics"
+                    "slug": "simulation/creating-simulations/experiments/optimization-experiments/complex-metrics"
                   }
                 ]
               }
@@ -198,63 +198,63 @@
           },
           {
             "title": "Libraries",
-            "slug": "creating-simulations/libraries",
+            "slug": "simulation/creating-simulations/libraries",
             "urldata": [
               {
                 "title": "HASH",
-                "slug": "creating-simulations/libraries/hash",
+                "slug": "simulation/creating-simulations/libraries/hash",
                 "urldata": [
                   {
                     "title": "Init",
-                    "slug": "creating-simulations/libraries/hash/init"
+                    "slug": "simulation/creating-simulations/libraries/hash/init"
                   },
                   {
                     "title": "Spatial",
-                    "slug": "creating-simulations/libraries/hash/spatial"
+                    "slug": "simulation/creating-simulations/libraries/hash/spatial"
                   },
                   {
                     "title": "Neighbors",
-                    "slug": "creating-simulations/libraries/hash/neighbors"
+                    "slug": "simulation/creating-simulations/libraries/hash/neighbors"
                   },
                   {
                     "title": "Statistics",
-                    "slug": "creating-simulations/libraries/hash/javascript-libraries"
+                    "slug": "simulation/creating-simulations/libraries/hash/javascript-libraries"
                   },
                   {
                     "title": "Random",
-                    "slug": "creating-simulations/libraries/hash/random"
+                    "slug": "simulation/creating-simulations/libraries/hash/random"
                   },
                   {
                     "title": "Agent",
-                    "slug": "creating-simulations/libraries/hash/agent"
+                    "slug": "simulation/creating-simulations/libraries/hash/agent"
                   }
                 ]
               },
               {
                 "title": "Python",
-                "slug": "creating-simulations/libraries/python-packages"
+                "slug": "simulation/creating-simulations/libraries/python-packages"
               }
             ]
           },
           {
             "title": "Cloud Compute",
-            "slug": "creating-simulations/h.cloud"
+            "slug": "simulation/creating-simulations/h.cloud"
           },
           {
             "title": "Collaboration",
-            "slug": "creating-simulations/collaboration",
+            "slug": "simulation/creating-simulations/collaboration",
             "urldata": [
               {
                 "title": "Forking and Merging",
-                "slug": "creating-simulations/collaboration/forking-and-merging"
+                "slug": "simulation/creating-simulations/collaboration/forking-and-merging"
               },
               {
                 "title": "Sharing Simulations",
-                "slug": "creating-simulations/collaboration/sharing-releasing"
+                "slug": "simulation/creating-simulations/collaboration/sharing-releasing"
               },
               {
                 "title": "Organizations",
-                "slug": "creating-simulations/collaboration/organizations"
+                "slug": "simulation/creating-simulations/collaboration/organizations"
               }
             ]
           }
@@ -265,73 +265,73 @@
         "urldata": [
           {
             "title": "Actor Model",
-            "slug": "concepts/design-considerations"
+            "slug": "simulation/concepts/design-considerations"
           },
           {
             "title": "Managing Resource Access",
-            "slug": "concepts/design-considerations/managing-resource-access"
+            "slug": "simulation/concepts/design-considerations/managing-resource-access"
           },
           {
             "title": "Managing Timescales",
-            "slug": "concepts/designing-for-different-timescales"
+            "slug": "simulation/concepts/designing-for-different-timescales"
           },
           {
             "title": "Probability Distributions",
-            "slug": "concepts/designing-with-distributions"
+            "slug": "simulation/concepts/designing-with-distributions"
           },
           {
             "title": "Process Modeling",
-            "slug": "concepts/designing-with-process-models",
+            "slug": "simulation/concepts/designing-with-process-models",
             "urldata": [
               {
                 "title": "Process Model Concepts",
-                "slug": "concepts/designing-with-process-models/process-model-concepts"
+                "slug": "simulation/concepts/designing-with-process-models/process-model-concepts"
               },
               {
                 "title": "Using the Process Model Visual Interface",
-                "slug": "concepts/designing-with-process-models/using-the-process-model-builder"
+                "slug": "simulation/concepts/designing-with-process-models/using-the-process-model-builder"
               },
               {
                 "title": "Adding Data to a Process Model",
-                "slug": "concepts/designing-with-process-models/using-data-in-a-process-model"
+                "slug": "simulation/concepts/designing-with-process-models/using-data-in-a-process-model"
               },
               {
                 "title": "Analyzing Process Models",
-                "slug": "concepts/designing-with-process-models/analyzing-process-models"
+                "slug": "simulation/concepts/designing-with-process-models/analyzing-process-models"
               },
               {
                 "title": "Experimenting with Process Models",
-                "slug": "concepts/designing-with-process-models/experimenting-with-process-models"
+                "slug": "simulation/concepts/designing-with-process-models/experimenting-with-process-models"
               },
               {
                 "title": "Structuring a Process Model",
-                "slug": "concepts/designing-with-process-models/structuring-a-process-model"
+                "slug": "simulation/concepts/designing-with-process-models/structuring-a-process-model"
               },
               {
                 "title": "Process Blocks",
-                "slug": "concepts/designing-with-process-models/process-blocks"
+                "slug": "simulation/concepts/designing-with-process-models/process-blocks"
               },
               {
                 "title": "Custom Behaviors",
-                "slug": "concepts/designing-with-process-models/custom-behaviors"
+                "slug": "simulation/concepts/designing-with-process-models/custom-behaviors"
               }
             ]
           },
           {
             "title": "Material Handling",
-            "slug": "concepts/designing-with-the-material-handling-libraries"
+            "slug": "simulation/concepts/designing-with-the-material-handling-libraries"
           },
           {
             "title": "System Dynamics",
-            "slug": "concepts/designing-with-system-dynamics-models"
+            "slug": "simulation/concepts/designing-with-system-dynamics-models"
           },
           {
             "title": "Physics",
-            "slug": "concepts/physics"
+            "slug": "simulation/concepts/physics"
           },
           {
             "title": "Verification and Validation",
-            "slug": "concepts/verification-and-validation"
+            "slug": "simulation/concepts/verification-and-validation"
           }
         ]
       },
@@ -340,69 +340,69 @@
         "urldata": [
           {
             "title": "Hello, HASH!",
-            "slug": "tutorials/hello-hash"
+            "slug": "simulation/tutorials/hello-hash"
           },
           {
             "title": "Building Process Models",
-            "slug": "tutorials/building-process-models"
+            "slug": "simulation/tutorials/building-process-models"
           },
           {
             "title": "Create a Simulation Dashboard",
-            "slug": "tutorials/create-a-simulation-dashboard"
+            "slug": "simulation/tutorials/create-a-simulation-dashboard"
           },
           {
             "title": "Extending an Epidemic Model",
-            "slug": "tutorials/extending-an-epidemic-model",
+            "slug": "simulation/tutorials/extending-an-epidemic-model",
             "urldata": [
               {
                 "title": "Add heterogeneity",
-                "slug": "tutorials/extending-an-epidemic-model/add-heterogeneity"
+                "slug": "simulation/tutorials/extending-an-epidemic-model/add-heterogeneity"
               },
               {
                 "title": "Create a Hospital",
-                "slug": "tutorials/extending-an-epidemic-model/create-a-hospital"
+                "slug": "simulation/tutorials/extending-an-epidemic-model/create-a-hospital"
               },
               {
                 "title": "Create Testing Behavior",
-                "slug": "tutorials/extending-an-epidemic-model/create-testing-behavior"
+                "slug": "simulation/tutorials/extending-an-epidemic-model/create-testing-behavior"
               },
               {
                 "title": "Create an ICU",
-                "slug": "tutorials/extending-an-epidemic-model/create-an-icu"
+                "slug": "simulation/tutorials/extending-an-epidemic-model/create-an-icu"
               }
             ]
           },
           {
             "title": "Building a Simple Hotelling Model in 2D",
-            "slug": "tutorials/phase-1-building-a-simple-hotelling-model-in-2d",
+            "slug": "simulation/tutorials/phase-1-building-a-simple-hotelling-model-in-2d",
             "urldata": [
               {
                 "title": "Environment Setup",
-                "slug": "tutorials/phase-1-building-a-simple-hotelling-model-in-2d/set-up-environment"
+                "slug": "simulation/tutorials/phase-1-building-a-simple-hotelling-model-in-2d/set-up-environment"
               },
               {
                 "title": "Agent Initialization",
-                "slug": "tutorials/phase-1-building-a-simple-hotelling-model-in-2d/initialization"
+                "slug": "simulation/tutorials/phase-1-building-a-simple-hotelling-model-in-2d/initialization"
               },
               {
                 "title": "Query Customers",
-                "slug": "tutorials/phase-1-building-a-simple-hotelling-model-in-2d/query-customers"
+                "slug": "simulation/tutorials/phase-1-building-a-simple-hotelling-model-in-2d/query-customers"
               },
               {
                 "title": "Customer Reply",
-                "slug": "tutorials/phase-1-building-a-simple-hotelling-model-in-2d/customer-reply"
+                "slug": "simulation/tutorials/phase-1-building-a-simple-hotelling-model-in-2d/customer-reply"
               },
               {
                 "title": "Business Collect and Update",
-                "slug": "tutorials/phase-1-building-a-simple-hotelling-model-in-2d/business-collect-and-update"
+                "slug": "simulation/tutorials/phase-1-building-a-simple-hotelling-model-in-2d/business-collect-and-update"
               },
               {
                 "title": "Final Code",
-                "slug": "tutorials/phase-1-building-a-simple-hotelling-model-in-2d/phase-1-final-code"
+                "slug": "simulation/tutorials/phase-1-building-a-simple-hotelling-model-in-2d/phase-1-final-code"
               },
               {
                 "title": "Extending the Model",
-                "slug": "tutorials/phase-1-building-a-simple-hotelling-model-in-2d/building-the-local-competition-model"
+                "slug": "simulation/tutorials/phase-1-building-a-simple-hotelling-model-in-2d/building-the-local-competition-model"
               }
             ]
           }
@@ -413,11 +413,11 @@
         "urldata": [
           {
             "title": "hCore Message API",
-            "slug": "api/hcore"
+            "slug": "simulation/api/hcore"
           },
           {
             "title": "Register for Access",
-            "slug": "api/register-for-access"
+            "slug": "simulation/api/register-for-access"
           }
         ]
       },
@@ -426,47 +426,47 @@
         "urldata": [
           {
             "title": "Switching to HASH",
-            "slug": "extra/migrating"
+            "slug": "simulation/extra/migrating"
           },
           {
             "title": "Migrating from AnyLogic",
-            "slug": "extra/migrating/anylogic",
+            "slug": "simulation/extra/migrating/anylogic",
             "urldata": [
               {
                 "title": "Mental Models",
-                "slug": "extra/migrating/anylogic/mental-models"
+                "slug": "simulation/extra/migrating/anylogic/mental-models"
               },
               {
                 "title": "Planning the Build",
-                "slug": "extra/migrating/anylogic/planning-the-build"
+                "slug": "simulation/extra/migrating/anylogic/planning-the-build"
               },
               {
                 "title": "Main Loop",
-                "slug": "extra/migrating/anylogic/main-loop"
+                "slug": "simulation/extra/migrating/anylogic/main-loop"
               },
               {
                 "title": "Building the Simulation",
-                "slug": "extra/migrating/anylogic/building-the-simulation",
+                "slug": "simulation/extra/migrating/anylogic/building-the-simulation",
                 "urldata": [
                   {
                     "title": "Tankers to Port",
-                    "slug": "extra/migrating/anylogic/building-the-simulation/tankers-to-port"
+                    "slug": "simulation/extra/migrating/anylogic/building-the-simulation/tankers-to-port"
                   },
                   {
                     "title": "Through the Pipeline",
-                    "slug": "extra/migrating/anylogic/building-the-simulation/through-the-pipeline"
+                    "slug": "simulation/extra/migrating/anylogic/building-the-simulation/through-the-pipeline"
                   },
                   {
                     "title": "Trucks on the Move",
-                    "slug": "extra/migrating/anylogic/building-the-simulation/trucks-on-the-move"
+                    "slug": "simulation/extra/migrating/anylogic/building-the-simulation/trucks-on-the-move"
                   },
                   {
                     "title": "Full Initialization",
-                    "slug": "extra/migrating/anylogic/building-the-simulation/full-initialization"
+                    "slug": "simulation/extra/migrating/anylogic/building-the-simulation/full-initialization"
                   },
                   {
                     "title": "Improving our Visualization",
-                    "slug": "extra/migrating/anylogic/building-the-simulation/improving-our-visualization"
+                    "slug": "simulation/extra/migrating/anylogic/building-the-simulation/improving-our-visualization"
                   }
                 ]
               }
@@ -474,29 +474,29 @@
           },
           {
             "title": "Troubleshooting & Debugging",
-            "slug": "extra/troubleshooting",
+            "slug": "simulation/extra/troubleshooting",
             "urldata": [
               {
                 "title": "Error reference",
-                "slug": "extra/troubleshooting/error-reference"
+                "slug": "simulation/extra/troubleshooting/error-reference"
               }
             ]
           },
           {
             "title": "Determinism",
-            "slug": "extra/determinism"
+            "slug": "simulation/extra/determinism"
           },
           {
             "title": "Performance",
-            "slug": "extra/performance"
+            "slug": "simulation/extra/performance"
           },
           {
             "title": "System Requirements",
-            "slug": "extra/specs-requirements"
+            "slug": "simulation/extra/specs-requirements"
           },
           {
             "title": "Shortcuts",
-            "slug": "extra/shortcuts"
+            "slug": "simulation/extra/shortcuts"
           }
         ]
       }
