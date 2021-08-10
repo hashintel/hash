@@ -67,7 +67,7 @@ export const EditableCell: VoidFunctionComponent<EditableCellProps> = ({
         // @todo shouldn't need this – hash.dev should know it
         accountId: objectToUpdate.accountId,
       },
-    ]).catch((err) => console.error("Could not update table data: ", err));
+    ])?.catch((err) => console.error("Could not update table data: ", err));
   };
 
   return (
