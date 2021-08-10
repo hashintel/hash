@@ -1,7 +1,7 @@
 export {};
 import { GraphQLClient } from "graphql-request";
 import { createOrgs, createUsers } from "./accounts";
-import { createEntity } from "../graphql/queries/entity.queries";
+import { createEntity } from "@hashintel/hash-frontend/src/graphql/queries/entity.queries";
 import {
   CreateEntityMutationVariables,
   CreateEntityMutation,
