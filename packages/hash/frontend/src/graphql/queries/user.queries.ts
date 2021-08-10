@@ -46,3 +46,19 @@ export const loginWithLoginCode = gql`
     }
   }
 `;
+
+export const meQuery = gql`
+  query me {
+    me {
+      id
+      createdById
+      accountId
+      type
+      visibility
+      properties {
+        shortname
+        email
+      }
+    }
+  }
+`;

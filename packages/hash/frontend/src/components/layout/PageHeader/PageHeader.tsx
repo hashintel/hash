@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { VoidFunctionComponent } from "react";
 import { tw } from "twind";
+import { useUser } from "../../hooks/useUser";
 
 export const PageHeader: VoidFunctionComponent = () => {
+  const [user] = useUser()
+
   return (
     <header className={tw`bg-white py-4 border(b-1 gray-300)`}>
       <nav className={tw`container mx-auto flex justify-end`}>
