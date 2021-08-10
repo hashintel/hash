@@ -75,6 +75,7 @@ query_customers(context.neighbors(), state.position);
 Find the messages field for a Business agent and it should be filled with “business\_movement” type messages.
 
 <Hint style="danger" >
+
 Since Business agents are sending around 100 \(neighbors\) x 6 \(positions\) x 3 \(prices\) messages at one time, we don’t want this to occur every time step. We'll add a counter to ensure it happens at the rate we want.
 
 1. Add the HASH shared behavior **Counter** \(shortname: @hash/counter/counter.rs\) to your simulation and add the counter behavior to your business agents BEFORE your behavior **`business.js`**. \(You want the counter to increment before **`business.js`** is called\)
@@ -83,7 +84,7 @@ Since Business agents are sending around 100 \(neighbors\) x 6 \(positions\) x 3
 4. counter\_reset\_at: 2
 5. counter\_reset\_to: 0
 
-   **\*\*3. In the** `business.js`\*\* behavior, wrap the `query_customers()` call in the following if statement:
+**\*\*3. In the** `business.js`\*\* behavior, wrap the `query_customers()` call in the following if statement:
 </Hint>
 
 ```javascript
