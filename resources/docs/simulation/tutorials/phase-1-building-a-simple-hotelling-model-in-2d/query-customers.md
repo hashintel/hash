@@ -3,6 +3,7 @@
 Businesses will perform two actions in this model: query customers and collect customer responses to update their position and item price.
 
 <Hint style="info">
+  
 Query customers → Businesses will send their neighbors every possible position and item\_price change combination.
 
 * Position changes: `[ [-1, 0], [0, 0], [1, 0], [0, -1], [0, 1] ]`
