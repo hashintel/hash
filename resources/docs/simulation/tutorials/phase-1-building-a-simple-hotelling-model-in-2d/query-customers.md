@@ -17,6 +17,7 @@ Let’s start with sending the message. **`send_message()`** will add messages t
 
 <Tabs>
 <Tab title="business.js" >
+  
 ```javascript
 const send_message = (agent_id, position, price) => {
   state.addMessage(agent_id, "business_movement", {
@@ -97,6 +98,7 @@ The behavior **Counter** adds a counter variable to every business agent that wi
 
 <Tabs>
 <Tab title="business.js" >
+  
 ```javascript
 const behavior = (state, context) => {
  const send_message = (agent_id, position, price) => {
