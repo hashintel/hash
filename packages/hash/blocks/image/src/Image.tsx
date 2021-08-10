@@ -91,17 +91,17 @@ export const Image: BlockComponent<AppProps> = (props) => {
           updateAction.entityType = entityType;
         }
 
-        update([updateAction]);
+        void update([updateAction]);
       }
 
       setStateObject((stateObject) => ({ ...stateObject, src }));
     }
   }
 
-  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     const { loading } = stateObject;
 
-    e.preventDefault();
+    event.preventDefault();
 
     if (loading) {
       return;
@@ -110,7 +110,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
     if (inputText?.trim()) {
       setStateObject((stateObject) => ({ ...stateObject, loading: true }));
 
-      uploadImage({ imgURL: inputText }).then(({ src, error }) => {
+      void uploadImage({ imgURL: inputText }).then(({ src, error }) => {
         if (isMounted.current) {
           setStateObject((stateObject) => ({ ...stateObject, loading: false }));
 
@@ -126,11 +126,11 @@ export const Image: BlockComponent<AppProps> = (props) => {
     }
   };
 
-  const onFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { files } = e.target;
+  const onFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const { files } = event.target;
 
     if (files?.[0]) {
-      uploadImage({ file: files[0] }).then(({ src, error }) => {
+      void uploadImage({ file: files[0] }).then(({ src, error }) => {
         if (isMounted.current) {
           if (error?.trim()) {
             return displayError(error);
@@ -175,7 +175,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
             className={tw`focus:outline-none text-center mt-3`}
             type="text"
             value={captionText}
-            onChange={(e) => setCaptionText(e.target.value)}
+            onChange={(event) => setCaptionText(event.target.value)}
             onBlur={() => {
               if (update) {
                 updateData(stateObject.src);
@@ -225,22 +225,22 @@ export const Image: BlockComponent<AppProps> = (props) => {
 
       <div
         className={tw`max-w-md mx-auto bg-white rounded-sm shadow-md overflow-hidden text-center p-4 border-2 border-gray-200`}
-        onDragOver={(e) => {
-          e.stopPropagation();
-          e.preventDefault();
+        onDragOver={(event) => {
+          event.stopPropagation();
+          event.preventDefault();
         }}
-        onDrop={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
+        onDrop={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
 
-          const dT = e.dataTransfer;
+          const dT = event.dataTransfer;
           const files = dT.files;
 
           if (files && files.length) {
             // we set our input's 'files' property
 
             if (files[0].type.search("image") > -1) {
-              uploadImage({ file: files[0] }).then(({ src, error }) => {
+              void uploadImage({ file: files[0] }).then(({ src, error }) => {
                 if (isMounted.current) {
                   if (error?.trim()) {
                     return displayError(error);
