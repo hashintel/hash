@@ -84,7 +84,7 @@ Since Business agents are sending around 100 \(neighbors\) x 6 \(positions\) x 3
 4. counter\_reset\_at: 2
 5. counter\_reset\_to: 0
 
-**\*\*3. In the** `business.js`\*\* behavior, wrap the `query_customers()` call in the following if statement:
+** In the `business.js` ** behavior, wrap the `query_customers()` call in the following if statement:
 </Hint>
 
 ```javascript
