@@ -34,7 +34,7 @@ services:
         # Wait until the database is running before starting the API
         command: ["wait-for-it", "-h", "hash-dev-pg", "-p", "5432", "-s", "-t", "30", "--", "./start.sh"]
         volumes:
-            - ../backend/src:/app/src
+            - ../backend/src:/app/packages/hash/backend/src
         stop_signal: SIGINT
 volumes:
     # Make sure you have created this volume: docker volume create hash-dev-pg
