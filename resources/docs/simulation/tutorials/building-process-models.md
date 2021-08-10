@@ -12,7 +12,7 @@ Simulation aided process design can dramatically improve results and get you ans
 
 The process chart visual interface makes it incredibly easy to create a powerful process model, no coding expertise required.
 
-<Embed url="https://www.youtube.com/watch?v=1XHZREmn9TA" caption="" >
+<Embed url="https://www.youtube.com/watch?v=1XHZREmn9TA" caption="" />
 
 This video tutorial will walk you through using the process model visual interface to build a ticketing queue simulation.
 
