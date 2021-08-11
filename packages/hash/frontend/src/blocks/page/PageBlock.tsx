@@ -76,7 +76,6 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
 
       const state = view.state;
 
-      // @todo restore local cache behavior
       const tr = await createBlockUpdateTransaction(state, contents, {
         view,
         replacePortal,
