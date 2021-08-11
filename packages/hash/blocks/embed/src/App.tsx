@@ -90,7 +90,7 @@ export const App: BlockComponent<AppProps> = (props) => {
             updateAction.entityType = entityType;
           }
 
-          update([updateAction]).catch((err) =>
+          update([updateAction])?.catch((err) =>
             console.log("Could not update block data", err)
           );
         }
