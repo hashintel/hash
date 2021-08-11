@@ -11,7 +11,7 @@
   "main": "src/index.ts",
   "prettier": "@hashintel/prettier-config",
   "scripts": {
-    "format": "prettier --write './src/**/*'",
+    "format": "prettier --write './src/**/*'; eslint --ext .ts  --fix ./src/",
     "lint": "prettier --check './src/**/*'; eslint --ext .ts ./src/",
     "build": "echo 'Compiling Typescript' && tsc",
     "codegen": "graphql-codegen --config codegen.yml # backend",
