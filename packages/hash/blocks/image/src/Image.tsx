@@ -15,10 +15,6 @@ type UploadImageParamsType = {
 };
 
 type AppProps = {
-  width?: number;
-  height?: number;
-  maxHeight?: number;
-  maxWidth?: number;
   initialSrc?: string;
   initialCaption?: string;
   uploadImage: (uploadImageParams: UploadImageParamsType) => Promise<{
@@ -41,10 +37,6 @@ export const Image: BlockComponent<AppProps> = (props) => {
     entityId,
     entityType,
     update,
-    width,
-    height,
-    maxHeight,
-    maxWidth,
   } = props;
 
   const [stateObject, setStateObject] = useState<{
@@ -161,10 +153,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
         <div className={tw`flex flex-col`}>
           <img
             style={{
-              width: width ?? undefined,
-              height: height ?? undefined,
-              maxWidth: maxWidth ?? undefined,
-              maxHeight: maxHeight ?? undefined,
+              maxWidth: "100%",
             }}
             src={stateObject.src}
             alt="Image block"
