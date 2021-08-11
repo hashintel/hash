@@ -12,7 +12,8 @@ import { MeQuery } from "../../graphql/apiTypes.gen";
  * [2] a boolean to check if the api call is still loading
  */
 export const useUser = (): [MeQuery["me"] | undefined, () => void, boolean] => {
-  const { data, refetch, loading } = useQuery<MeQuery["me"]>(meQuery);
+  const { data, refetch, loading } = useQuery<MeQuery>(meQuery);
+  const user = data?.me;
 
-  return [data, refetch, loading];
+  return [user, refetch, loading];
 };

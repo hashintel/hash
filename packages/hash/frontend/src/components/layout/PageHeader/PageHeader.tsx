@@ -12,7 +12,7 @@ export const PageHeader: VoidFunctionComponent = () => {
     <header className={tw`bg-white py-4 border(b-1 gray-300)`}>
       <nav className={tw`container mx-auto flex justify-end`}>
         {user ? (
-          <AccountDropdown name={user?.properties.shortname} />
+          <AccountDropdown name={user.properties.shortname} />
         ) : (
           <Link href="/login">
             <a
