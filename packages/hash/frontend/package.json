@@ -6,7 +6,7 @@
   "description": "Frontend for HASH.dev",
   "prettier": "@hashintel/prettier-config",
   "scripts": {
-    "format": "prettier --write './src/**/*'",
+    "format": "prettier --write './src/**/*'; eslint --ext .js,.ts,.tsx --fix ./src/",
     "lint": "prettier --check './src/**/*'; eslint --ext .js,.ts,.tsx ./src/",
     "dev": "next dev",
     "build": "next build",
