@@ -1,5 +1,4 @@
 import { VoidFunctionComponent } from "react";
-import Link from "next/link";
 import { tw } from "twind";
 import { Menu } from "@headlessui/react";
 
@@ -9,11 +8,13 @@ import IconDropdown from "../../Icons/IconDropdown/IconDropdown";
 type AccountDropdownProps = {
   name?: string;
   avatar?: string;
+  logout: () => void;
 };
 
 export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
   name,
   avatar,
+  logout,
 }) => {
   return (
     <Menu as="div" className={tw`relative`}>
@@ -38,13 +39,12 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
         className={tw`absolute left-0 top-0 z-0 w-full px-4 pt-10 pb-2 bg-white border-1 rounded-md flex flex-col items-end text-right`}
       >
         <Menu.Item>
-          <Link href="">
-            <a
-              className={tw`text-sm font-light border(b-1 transparent hover:gray-200) `}
-            >
-              Sign Out
-            </a>
-          </Link>
+          <button
+            onClick={logout}
+            className={tw`text-sm font-light border(b-1 transparent hover:gray-200) `}
+          >
+            Sign Out
+          </button>
         </Menu.Item>
       </Menu.Items>
     </Menu>

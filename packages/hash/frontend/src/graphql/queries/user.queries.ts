@@ -62,3 +62,9 @@ export const meQuery = gql`
     }
   }
 `;
+
+export const logout = gql`
+  mutation logout {
+    logout
+  }
+`;
