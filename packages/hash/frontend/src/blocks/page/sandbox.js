@@ -26,6 +26,7 @@ import {
 import { createNodeView } from "./tsUtils";
 import { EditorConnection } from "./collab/collab";
 import { Reporter } from "./collab/reporter";
+import { collabEnabled } from "./tsUtils";
 
 /**
  * You can think of this more as a "Switcher" view – when you change node type using the select type dropdown, the node
@@ -734,17 +735,21 @@ export const renderPM = (
         return new BlockView(node, view, getPos, replacePortal);
       },
     },
-    dispatchTransaction: (...args) => connection?.dispatchTransaction(...args),
+    dispatchTransaction: collabEnabled
+      ? (...args) => connection?.dispatchTransaction(...args)
+      : undefined,
   });
 
-  connection = new EditorConnection(
-    new Reporter(),
-    `http://localhost:5001/collab-backend/${accountId}/${pageId}`,
-    view.state.schema,
-    view,
-    replacePortal,
-    additionalPlugins
-  );
+  if (collabEnabled) {
+    connection = new EditorConnection(
+      new Reporter(),
+      `http://localhost:5001/collab-backend/${accountId}/${pageId}`,
+      view.state.schema,
+      view,
+      replacePortal,
+      additionalPlugins
+    );
+  }
 
   view.dom.classList.add(styles.ProseMirror);
 
