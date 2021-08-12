@@ -522,6 +522,11 @@ export const calculateSavePayloads = (
    * @todo improve this
    */
   const updatedEntitiesPayload = updatedEntities
+    /**
+     * Not entirely sure what I was going for with this filter
+     *
+     * @todo figure this out
+     */
     .filter(
       (entity) =>
         (entity.properties.entityType !== "Text" ||
@@ -537,6 +542,12 @@ export const calculateSavePayloads = (
       })
     );
 
+  /**
+   * This is a real crude way of working out if order of blocks (or if blocks have been added/removed) have changed
+   * within a page, in order to work out if an update operation is needed on this list
+   *
+   * @todo come up with something better
+   */
   const pageUpdatedPayload =
     JSON.stringify(savedContents.map((content) => content.entityId)) !==
     JSON.stringify(mappedBlocks.map((block) => block.entityId))
