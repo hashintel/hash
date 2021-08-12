@@ -1,15 +1,29 @@
 frontend:
   - packages/hash/frontend/*
+  - packages/hash/frontend/.*
   - packages/hash/frontend/**/*
+  - packages/hash/frontend/**/.*
 
 backend:
   - packages/hash/backend/*
+  - packages/hash/backend/.*
   - packages/hash/backend/**/*
+  - packages/hash/backend/**/.*
 
 blocks:
   - packages/hash/blocks/*
+  - packages/hash/blocks/.*
   - packages/hash/blocks/**/*
+  - packages/hash/blocks/**/.*
 
+integration:
+  - packages/hash/integration/*
+  - packages/hash/integration/.*
+  - packages/hash/integration/**/*
+  - packages/hash/integration/**/.*
 
-
-
+docker:
+  - packages/hash/docker/*
+  - packages/hash/docker/.*
+  - packages/hash/docker/**/*
+  - packages/hash/docker/**/.*

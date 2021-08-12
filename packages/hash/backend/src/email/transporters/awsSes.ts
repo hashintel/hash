@@ -1,7 +1,12 @@
 import nodemailer from "nodemailer";
-import SES from "aws-sdk/clients/ses";
+import * as aws from "@aws-sdk/client-ses";
+
+const ses = new aws.SES({
+  apiVersion: "2010-12-01",
+  region: "us-east-1",
+});
 
 export default nodemailer.createTransport({
-  SES: new SES(),
+  SES: { ses, aws },
   sendingRate: 10,
 });

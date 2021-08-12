@@ -34,11 +34,7 @@ export const orgTypedef = gql`
     """
     type: String!
     """
-    The ID of the entity's version timeline. Null if this is a non-versioned entity.
-    """
-    historyId: ID
-    """
-    The version timeline of the entity. Null if this is an non-versioned entity.
+    The version timeline of the entity.
     """
     history: [EntityVersion!]
     """

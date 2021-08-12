@@ -34,7 +34,7 @@ export const sendLoginCodeToUser = async (
     loginCode.id
   )}&loginCode=${encodeURIComponent(loginCode.code)}`;
 
-  sendMail({
+  await sendMail({
     to: user.properties.email,
     subject: "Your Temporary HASH.dev Login Code",
     html: `

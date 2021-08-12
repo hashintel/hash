@@ -6,7 +6,7 @@ export const createEntity = gql`
     $createdById: ID!
     $properties: JSONObject!
     $type: String!
-    $versioned: Boolean! = false
+    $versioned: Boolean! = true
   ) {
     createEntity(
       accountId: $accountId

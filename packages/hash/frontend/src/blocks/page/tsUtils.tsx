@@ -2,7 +2,7 @@ import { Schema as JSONSchema } from "jsonschema";
 import React, { ReactNode } from "react";
 import { EditorProps, NodeView } from "prosemirror-view";
 import { RemoteBlock } from "../../components/RemoteBlock/RemoteBlock";
-import { BlockMetadata } from "../../types/blockProtocol";
+import { BlockMetadata } from "@hashintel/block-protocol";
 
 // @ts-ignore
 const contextRequire = require.context(
@@ -17,19 +17,21 @@ export const blockPaths = contextRequire(
     : "./blockPaths.sample.json"
 );
 
+type BlockConfig = BlockMetadata & { url: string } & (
+    | { type?: undefined }
+    | {
+        type: "prosemirror";
+        // @todo type this
+        spec: any;
+      }
+  );
+
 export type Block = {
   entityId: string;
   accountId: string;
   entity: Record<any, any>;
   componentId: string;
-  componentMetadata: BlockMetadata & { url: string } & (
-      | { type?: undefined }
-      | {
-          type: "prosemirror";
-          // @todo type this
-          spec: any;
-        }
-    );
+  componentMetadata: BlockConfig;
   componentSchema: JSONSchema;
 };
 
@@ -47,6 +49,7 @@ export const builtInBlocks: Record<string, BlockMeta> = {
   // @todo maybe this should be a nodeview too
   "https://block.blockprotocol.org/paragraph": {
     componentSchema: {},
+    // should adhere to output of `toBlockConfig`
     componentMetadata: {
       url: "https://block.blockprotocol.org/paragraph",
       name: "paragraph",
@@ -69,6 +72,29 @@ export const builtInBlocks: Record<string, BlockMeta> = {
   },
 };
 
+function toBlockName(packageName: string = "Unnamed") {
+  return packageName.split("/").pop()!;
+}
+
+/**
+ * transform mere options into a useable block configuration
+ */
+function toBlockConfig(options: BlockMetadata, url: string): BlockConfig {
+  const defaultVariant = {
+    name: toBlockName(options.name),
+    description: options.description,
+    icon: "path/to/icon.svg", // @todo: introduce icons to blocks
+    properties: {},
+  };
+
+  const variants = options.variants?.map((variant) => ({
+    ...defaultVariant,
+    ...variant,
+  })) ?? [defaultVariant];
+
+  return { ...options, url, variants };
+}
+
 // @todo deal with errors, loading, abort etc.
 export const fetchBlockMeta = async (url: string): Promise<BlockMeta> => {
   const mappedUrl = blockPaths[url] ?? url;
@@ -81,17 +107,16 @@ export const fetchBlockMeta = async (url: string): Promise<BlockMeta> => {
   }
 
   const promise = (async () => {
-    const metadata = await (await fetch(`${mappedUrl}/metadata.json`)).json();
+    const metadata: BlockMetadata = await (
+      await fetch(`${mappedUrl}/metadata.json`)
+    ).json();
 
     const schema = await (
       await fetch(`${mappedUrl}/${metadata.schema}`)
     ).json();
 
     const result: BlockMeta = {
-      componentMetadata: {
-        ...metadata,
-        url: mappedUrl,
-      },
+      componentMetadata: toBlockConfig(metadata, mappedUrl),
       componentSchema: schema,
     };
 

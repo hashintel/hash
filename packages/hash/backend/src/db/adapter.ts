@@ -9,13 +9,13 @@ export type Entity = {
   properties: any;
   metadataId: string;
   metadata: EntityMeta;
-  historyId: string | undefined;
   createdAt: Date;
   updatedAt: Date;
 };
 
 export type EntityMeta = {
   metadataId: string;
+  versioned: boolean;
   extra: any;
 };
 
@@ -33,10 +33,17 @@ export type EntityVersion = {
   createdById: string;
 };
 
+export interface DBAdapter extends DataSource, DBClient {
+  /** Initiate a new database transaction. All `DBAdapter` methods called within
+   * the provided callback `fn` are executed within the same transaction.
+   * */
+  transaction<T>(fn: (client: DBClient) => Promise<T>): Promise<T>;
+}
+
 /**
  * Generic interface to the database.
  */
-export interface DBAdapter extends DataSource {
+export interface DBClient {
   /**
    * Create a new entity. If "id" is not provided it will be automatically generated. To
    * create a versioned entity, set the optional parameter "versioned" to `true`.
@@ -46,15 +53,20 @@ export interface DBAdapter extends DataSource {
     entityId?: string;
     createdById: string;
     type: string;
-    versioned?: boolean;
+    versioned: boolean;
     properties: any;
   }): Promise<Entity>;
 
-  /** Get an entity by ID in a given account.*/
-  getEntity(params: {
-    accountId: string;
-    entityId: string;
-  }): Promise<Entity | undefined>;
+  /** Get an entity by ID in a given account. If `lock` is set to `true`, then no
+   * other client may access the entity until the current transaction has ended.
+   */
+  getEntity(
+    params: {
+      accountId: string;
+      entityId: string;
+    },
+    lock?: boolean
+  ): Promise<Entity | undefined>;
 
   /**
    * Get the latest version of an entity.
@@ -72,6 +84,7 @@ export interface DBAdapter extends DataSource {
   updateEntity(params: {
     accountId: string;
     entityId: string;
+    metadataId: string;
     type?: string;
     properties: any;
   }): Promise<Entity[]>;
@@ -137,10 +150,18 @@ export interface DBAdapter extends DataSource {
 
   /**
    * getEntityHistory returns the sorted version timeline of an entity given its
-   * `historyId`. Returns `undefined` if the entity is non versioned.
+   * `metadataId`.
    * */
   getEntityHistory(params: {
     accountId: string;
-    historyId: string;
-  }): Promise<EntityVersion[] | undefined>;
+    metadataId: string;
+  }): Promise<EntityVersion[]>;
+
+  /** Get multiple entities by their account ID and entity ID. */
+  getEntities(
+    entities: {
+      accountId: string;
+      entityId: string;
+    }[]
+  ): Promise<Entity[]>;
 }

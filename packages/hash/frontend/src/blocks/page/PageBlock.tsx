@@ -16,7 +16,7 @@ import {
   componentUrlToProsemirrorId,
 } from "./tsUtils";
 import { useBlockProtocolUpdate } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdate";
-import { BlockProtocolUpdatePayload } from "../../types/blockProtocol";
+import { BlockProtocolUpdatePayload } from "@hashintel/block-protocol";
 import { useBlockProtocolInsertIntoPage } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolInsertIntoPage";
 import { usePortals } from "./usePortals";
 import { useDeferredCallback } from "./useDeferredCallback";
@@ -32,6 +32,7 @@ type PageBlockProps = {
   blocksMeta: Map<string, BlockMeta>;
   pageId: string;
   accountId: string;
+  metadataId: string;
 };
 
 const cachedPropertiesByEntity: Record<string, Record<any, any>> = JSON.parse(
@@ -60,6 +61,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   blocksMeta,
   pageId,
   accountId,
+  metadataId,
 }) => {
   const root = useRef<HTMLDivElement>(null);
   const { insert } = useBlockProtocolInsertIntoPage();
@@ -119,8 +121,8 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
             replacePortal,
             {
               properties: {
-                ...(props ?? {}),
                 ...(cachedPropertiesByEntity[block.entityId] ?? {}),
+                ...(props ?? {}),
               },
               entityId: block.entityId,
               accountId: block.accountId,
@@ -163,14 +165,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     [replacePortal]
   );
 
-  /**
-   * This effect runs once and just sets up the prosemirror instance. It is not responsible for setting the contents of
-   * the prosemirror document
-   */
   useLayoutEffect(() => {
-    const schema = createSchema();
-    const node = root.current!;
-
     /**
      * Setting this function to global state as a shortcut to call it from deep within prosemirror.
      *
@@ -186,6 +181,10 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       saveQueue = saveQueue
         .catch(() => {})
         .then(() => {
+          if (!prosemirrorSetup.current) {
+            return;
+          }
+          const { view, schema } = prosemirrorSetup.current;
           const contents = currentContents.current;
 
           const blocks = view.state
@@ -379,6 +378,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
                         componentId: newBlock.properties.componentId,
                         entityProperties: newBlock.properties.entity.properties,
                         accountId,
+                        versioned: true,
                       })
                     ),
                 blockIdsChange
@@ -443,6 +443,15 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
           );
         });
     };
+  }, [accountId, insert, pageId, update, updateContents]);
+
+  /**
+   * This effect runs once and just sets up the prosemirror instance. It is not responsible for setting the contents of
+   * the prosemirror document
+   */
+  useLayoutEffect(() => {
+    const schema = createSchema();
+    const node = root.current!;
 
     /**
      * We want to apply saves when Prosemirror loses focus (or is triggered manually with cmd+s). However, interacting
@@ -499,15 +508,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       node.innerHTML = "";
       prosemirrorSetup.current = null;
     };
-  }, [
-    accountId,
-    clearCallback,
-    deferCallback,
-    insert,
-    pageId,
-    replacePortal,
-    update,
-  ]);
+  }, [clearCallback, deferCallback, replacePortal]);
 
   /**
    * This effect is responsible for ensuring all the preloaded blocks (currently just paragraph) are defined in
@@ -537,16 +538,21 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
    * may involved defining new node types (and fetching the metadata for them). Contents change whenever we save (as we
    * replace our already loaded contents with another request for the contents, which ensures that blocks referencing
    * the same entity are all updated, and that empty IDs are properly filled (i.e, when creating a new block)
+   *
+   * @todo fix when getPage queries are triggered rather than relying on a hook that doesn't actually update from
+   *       contents (because of the laddering problem)
    */
   useLayoutEffect(() => {
     const controller = new AbortController();
 
-    updateContents(controller.signal);
+    updateContents(controller.signal).catch((err) =>
+      console.error("Could not update page contents: ", err)
+    );
 
     return () => {
       controller.abort();
     };
-  }, [replacePortal, updateContents]);
+  }, [replacePortal, updateContents, metadataId]);
 
   return (
     <BlockMetaContext.Provider value={blocksMeta}>

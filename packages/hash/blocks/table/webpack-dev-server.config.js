@@ -8,13 +8,13 @@ module.exports = {
     ...config[0].plugins,
     new HtmlWebpackPlugin({
       filename: "index.html",
-      template: "src/index.html"
+      template: "src/index.html",
     }),
     new webpack.EnvironmentPlugin({
-      "process.env.NODE_ENV": process.env.NODE_ENV
+      "process.env.NODE_ENV": process.env.NODE_ENV,
     }),
     new webpack.NamedModulesPlugin(),
-    new webpack.HotModuleReplacementPlugin()
+    new webpack.HotModuleReplacementPlugin(),
   ],
   module: config[0].module,
   devServer: {
@@ -24,8 +24,8 @@ module.exports = {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
       "Access-Control-Allow-Headers":
-        "X-Requested-With, content-type, Authorization"
-    }
+        "X-Requested-With, content-type, Authorization",
+    },
   },
   resolve: {
     extensions: [
@@ -36,5 +36,5 @@ module.exports = {
       ".json", // Preserving webpack default
       ".css", // Preserving webpack default
     ],
-  }
+  },
 };

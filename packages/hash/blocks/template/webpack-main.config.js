@@ -13,25 +13,26 @@ const { StatsPlugin } = require("./webpack-block-meta-plugin");
 module.exports = {
   plugins: [
     new webpack.EnvironmentPlugin({
-      "process.env.NODE_ENV": process.env.NODE_ENV
+      "process.env.NODE_ENV": process.env.NODE_ENV,
     }),
     new BundleAnalyzerPlugin({
       analyzerMode: "static",
       openAnalyzer: false,
-      reportFilename: "webpack-bundle-analyzer-report.html"
+      reportFilename: "webpack-bundle-analyzer-report.html",
     }),
     new WebpackAssetsManifest(),
     new StatsPlugin(),
   ],
   entry: {
-    main: "./src/index.ts"
+    main: "./src/index.ts",
   },
   output: {
     libraryTarget: "commonjs",
-    filename: "main.[contenthash].js"
+    filename: "main.[contenthash].js",
   },
   externals: {
-    react: "react"
+    react: "react",
+    "react-dom": "react-dom",
   },
   module: {
     rules: [
@@ -39,10 +40,10 @@ module.exports = {
         test: /\.(t|j)sx?$/,
         exclude: /(node_modules|bower_components)/,
         use: {
-          loader: "babel-loader"
-        }
-      }
-    ]
+          loader: "babel-loader",
+        },
+      },
+    ],
   },
   resolve: {
     extensions: [
@@ -53,5 +54,5 @@ module.exports = {
       ".json", // Preserving webpack default
       ".css", // Preserving webpack default
     ],
-  }
+  },
 };

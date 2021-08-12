@@ -15,15 +15,15 @@ export function memoizeFetchFunction<T>(
       let fulfilled = false;
       const promise = fetchFunction(url, signal);
 
-      promise.then(() => {
-        fulfilled = true;
-      });
-
-      promise.catch(() => {
-        if (cache[url] === promise) {
-          delete cache[url];
-        }
-      });
+      promise
+        .then(() => {
+          fulfilled = true;
+        })
+        .catch(() => {
+          if (cache[url] === promise) {
+            delete cache[url];
+          }
+        });
 
       signal?.addEventListener("abort", () => {
         if (cache[url] === promise && !fulfilled) {

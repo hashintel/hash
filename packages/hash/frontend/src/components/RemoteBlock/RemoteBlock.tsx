@@ -1,11 +1,12 @@
 import React, { useMemo, VoidFunctionComponent } from "react";
+import { BlockProtocolUpdatePayload } from "@hashintel/block-protocol";
 
 import { useRemoteBlock } from "./useRemoteBlock";
 import { HtmlBlock } from "../HtmlBlock/HtmlBlock";
 import { useBlockProtocolUpdate } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdate";
 import { cloneEntityTreeWithPropertiesMovedUp } from "../../lib/entities";
 import { fetchEmbedCode } from "./fetchEmbedCode";
-import { BlockProtocolUpdatePayload } from "../../types/blockProtocol";
+import { uploadImage } from "./uploadImage";
 
 type RemoteBlockProps = {
   url: string;
@@ -51,7 +52,7 @@ export const RemoteBlock: VoidFunctionComponent<
         ...updateData[0],
         accountId: props.accountId,
       },
-    ]);
+    ])?.catch((err) => console.error("Could not update entity: ", err));
   };
 
   return (
@@ -62,6 +63,9 @@ export const RemoteBlock: VoidFunctionComponent<
       getEmbedBlock={fetchEmbedCode}
       editableRef={props.editableRef}
       entityId={props.childEntityId}
+      maxHeight={500}
+      maxWidth={500}
+      uploadImage={uploadImage}
     />
   );
 };

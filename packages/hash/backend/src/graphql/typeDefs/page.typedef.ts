@@ -34,11 +34,7 @@ export const pageTypedef = gql`
     """
     type: String!
     """
-    The ID of the entity's version timeline. Null if this is a non-versioned entity.
-    """
-    historyId: ID
-    """
-    The version timeline of the entity. Null if this is an non-versioned entity.
+    The version timeline of the entity.
     """
     history: [EntityVersion!]
     """
@@ -83,6 +79,13 @@ export const pageTypedef = gql`
     summary: String
   }
 
+  input InsertBlocksData {
+    componentId: ID!
+    entityProperties: JSONObject!
+    entityType: String!
+    accountId: ID!
+  }
+
   extend type Mutation {
     createPage(accountId: ID!, properties: PageCreationData!): Page!
 
@@ -106,10 +109,26 @@ export const pageTypedef = gql`
       """
       accountId: ID!
       pageId: ID!
+      versioned: Boolean! = false
       """
       The position of the block in the page contents, starting at 0
       """
       position: Int!
+    ): Page!
+
+    insertBlocksIntoPage(
+      accountId: ID!
+      pageId: ID!
+      """
+      The blocks to insert.
+      """
+      blocks: [InsertBlocksData!]!
+
+      """
+      The ID of the block in the page after which the new blocks should be inserted.
+      If null, the blocks will be inserted at the start of the page.
+      """
+      previousBlockId: ID
     ): Page!
   }
 `;

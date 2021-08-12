@@ -9,13 +9,11 @@ import Component from "./index.ts";
 const node = document.getElementById("app");
 
 const App = () => (
-  <>
-    <Component
-      name="Ciaran Morinan"
-      employer={{ name: "HASH" }}
-      email="c@hash.ai"
-    />
-  </>
+  <Component
+    name="Ciaran Morinan"
+    employer={{ name: "HASH" }}
+    email="c@hash.ai"
+  />
 );
 
 ReactDOM.render(<App />, node);

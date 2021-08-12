@@ -1,5 +1,5 @@
 {
-  "name": "htmlPara",
+  "name": "@hashintel/block-html-para",
   "version": "0.1.0",
   "description": "Basic HTML para block component",
   "author": "Ciaran Morinan",
@@ -8,13 +8,5 @@
     "react": "react"
   },
   "schema": "block-schema.json",
-  "source": "index.html",
-  "variants": [
-    {
-      "name": "htmlPara",
-      "description": "Basic HTML para block component",
-      "icon": "path/to/icon.svg",
-      "properties": {}
-    }
-  ]
+  "source": "index.html"
 }

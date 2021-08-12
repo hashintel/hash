@@ -13,6 +13,6 @@ module.exports = {
   plugins: [],
   corePlugins: {
     // https://tailwindcss.com/docs/preflight - to sift through later
-    preflight: false
-  }
+    preflight: false,
+  },
 };

@@ -33,6 +33,7 @@ const logger = winston.createLogger({
 if (process.env.NODE_ENV === "development") {
   logger.add(
     new winston.transports.Console({
+      level: "debug",
       format: winston.format.combine(
         winston.format.colorize(),
         winston.format.simple()
@@ -62,7 +63,7 @@ const app = express();
 const PORT = process.env.PORT ?? 5001;
 
 // Connect to the database
-const db = new PostgresAdapter(statsd);
+const db = new PostgresAdapter(logger, statsd);
 
 // Set sensible default security headers: https://www.npmjs.com/package/helmet
 // Temporarily disable contentSecurityPolicy for the GraphQL playground
@@ -79,9 +80,12 @@ setupAuth(app, db);
 // Set up cron jobs
 setupCronJobs(db, logger);
 
-const apolloServer = createApolloServer(db, logger);
+const apolloServer = createApolloServer(db, logger, statsd);
 
 app.get("/", (_, res) => res.send("Hello World"));
+
+// Used by AWS Application Load Balancer (ALB) for health checks
+app.get("/health-check", (_, res) => res.status(200).send("Hello World!"));
 
 app.use((req, res, next) => {
   const requestId = nanoid();
@@ -101,39 +105,48 @@ app.use((req, res, next) => {
 });
 
 // Ensure the GraphQL server has started before starting the HTTP server
-apolloServer.start().then(() => {
-  apolloServer.applyMiddleware({
-    app,
-    cors: { credentials: true, origin: FRONTEND_URL },
-  });
-
-  const server = app.listen(PORT, () =>
-    logger.info(`Listening on port ${PORT}`)
-  );
-
-  // Gracefully shutdown on receiving a termination signal.
-  let receivedTerminationSignal = false;
-  const shutdown = (signal: string) => {
-    if (receivedTerminationSignal) {
-      return;
-    }
-    receivedTerminationSignal = true;
-
-    logger.info(`${signal} signal received: Closing Express server`);
-    server.close(() => {
-      logger.info("Express server closed");
+apolloServer
+  .start()
+  .then(() => {
+    apolloServer.applyMiddleware({
+      app,
+      cors: { credentials: true, origin: FRONTEND_URL },
     });
 
-    logger.info("Closing database connection pool");
-    db.close()
-      .then(() => logger.info("Database connection pool closed"))
-      .catch((err) => logger.error(err));
+    const server = app.listen(PORT, () =>
+      logger.info(`Listening on port ${PORT}`)
+    );
 
-    if (statsd) {
-      logger.info("Closing the StatsD client");
-      statsd.close(() => logger.info("StatsD client closed"));
-    }
-  };
-  process.on("SIGTERM", () => shutdown("SIGTERM"));
-  process.on("SIGINT", () => shutdown("SIGINT"));
-});
+    // Gracefully shutdown on receiving a termination signal.
+    let receivedTerminationSignal = false;
+    const shutdown = (signal: string) => {
+      if (receivedTerminationSignal) {
+        return;
+      }
+      receivedTerminationSignal = true;
+
+      logger.info(`${signal} signal received: Closing Express server`);
+      server.close(() => {
+        logger.info("Express server closed");
+      });
+
+      logger.info("Closing database connection pool");
+      db.close()
+        .then(() => logger.info("Database connection pool closed"))
+        .catch((err) => logger.error(err));
+
+      if (statsd) {
+        logger.info("Closing the StatsD client");
+        statsd.close(() => logger.info("StatsD client closed"));
+      }
+
+      logger.info("SHUTDOWN");
+      process.exit(0);
+    };
+    process.on("SIGTERM", () => shutdown("SIGTERM"));
+    process.on("SIGINT", () => shutdown("SIGINT"));
+  })
+  .catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
