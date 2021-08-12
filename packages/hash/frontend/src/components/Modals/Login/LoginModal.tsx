@@ -21,12 +21,14 @@ import {
 
 type LoginModalProps = {
   initialErrorMessage?: ReactNode;
+  onLoggedIn?: () => void;
 } & Omit<ModalProps, "children">;
 
 export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
   initialErrorMessage,
   show,
   close,
+  onLoggedIn,
 }) => {
   const emailOrShortnameInputRef = useRef<HTMLInputElement>(null);
   const loginCodeInputRef = useRef<HTMLInputElement>(null);
@@ -94,6 +96,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
         onCompleted: ({ loginWithLoginCode }) => {
           const user = loginWithLoginCode;
           console.log(user);
+          if (onLoggedIn) onLoggedIn();
         },
         onError: ({ graphQLErrors }) =>
           graphQLErrors.forEach(({ extensions }) => {
@@ -133,9 +136,9 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
       </h1>
       <form
         className={tw`flex mb-4`}
-        onSubmit={(e) => {
-          e.preventDefault();
-          sendLoginCode({ variables: { emailOrShortname } });
+        onSubmit={(event) => {
+          event.preventDefault();
+          void sendLoginCode({ variables: { emailOrShortname } });
         }}
       >
         <input
@@ -159,9 +162,9 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
       </form>
       {loginCodeMetadata && (
         <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            loginWithLoginCode({
+          onSubmit={(event) => {
+            event.preventDefault();
+            void loginWithLoginCode({
               variables: {
                 loginId: loginCodeMetadata.id,
                 loginCode,
