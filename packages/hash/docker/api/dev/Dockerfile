@@ -11,6 +11,7 @@ COPY packages/hash/prettier-config/package.json packages/hash/prettier-config/pa
 COPY package.json .
 COPY tsconfig.json .
 COPY tsconfig.base.json .
+COPY yarn.lock .
 COPY packages/hash/docker/api/dev/start.sh .
 
 RUN apt-get update \
