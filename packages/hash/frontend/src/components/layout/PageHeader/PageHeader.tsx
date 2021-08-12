@@ -1,3 +1,4 @@
+import { useApolloClient } from "@apollo/client";
 import { useState } from "react";
 import { VoidFunctionComponent } from "react";
 import { tw } from "twind";
@@ -8,6 +9,7 @@ import { AccountDropdown } from "./AccountDropdown";
 
 export const PageHeader: VoidFunctionComponent = () => {
   const [user, refetchUser] = useUser();
+  const apolloClient = useApolloClient();
 
   const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
 
@@ -24,7 +26,12 @@ export const PageHeader: VoidFunctionComponent = () => {
       <header className={tw`bg-white py-4 border(b-1 gray-300)`}>
         <nav className={tw`container mx-auto flex justify-end`}>
           {user ? (
-            <AccountDropdown name={user.properties.shortname} />
+            <AccountDropdown
+              name={user.properties.shortname}
+              onLoggedOut={() =>
+                apolloClient.resetStore().then(() => refetchUser())
+              }
+            />
           ) : (
             <button
               onClick={() => setShowLoginModal(true)}

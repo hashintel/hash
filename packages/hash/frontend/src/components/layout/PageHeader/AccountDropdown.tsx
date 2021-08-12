@@ -1,20 +1,31 @@
 import { VoidFunctionComponent } from "react";
-import Link from "next/link";
 import { tw } from "twind";
 import { Menu } from "@headlessui/react";
+import { useMutation } from "@apollo/client";
 
 import IconAvatar from "../../Icons/IconAvatar/IconAvatar";
 import IconDropdown from "../../Icons/IconDropdown/IconDropdown";
+import { logout as logoutMutation } from "../../../graphql/queries/user.queries";
+import { Mutation } from "../../../graphql/apiTypes.gen";
 
 type AccountDropdownProps = {
   name?: string;
   avatar?: string;
+  onLoggedOut?: () => void;
 };
 
 export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
   name,
   avatar,
+  onLoggedOut,
 }) => {
+  const [logout] = useMutation<Mutation>(logoutMutation, {
+    onCompleted: (data) => {
+      console.log("logout: ", data.logout);
+      if (onLoggedOut) onLoggedOut();
+    },
+  });
+
   return (
     <Menu as="div" className={tw`relative`}>
       <Menu.Button
@@ -38,13 +49,12 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
         className={tw`absolute left-0 top-0 z-0 w-full px-4 pt-10 pb-2 bg-white border-1 rounded-md flex flex-col items-end text-right`}
       >
         <Menu.Item>
-          <Link href="">
-            <a
-              className={tw`text-sm font-light border(b-1 transparent hover:gray-200) `}
-            >
-              Sign Out
-            </a>
-          </Link>
+          <button
+            onClick={() => logout()}
+            className={tw`text-sm font-light border(b-1 transparent hover:gray-200) `}
+          >
+            Sign Out
+          </button>
         </Menu.Item>
       </Menu.Items>
     </Menu>
