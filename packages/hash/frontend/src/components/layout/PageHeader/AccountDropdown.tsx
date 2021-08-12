@@ -20,8 +20,7 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
   onLoggedOut,
 }) => {
   const [logout] = useMutation<Mutation>(logoutMutation, {
-    onCompleted: (data) => {
-      console.log("logout: ", data.logout);
+    onCompleted: () => {
       if (onLoggedOut) onLoggedOut();
     },
   });

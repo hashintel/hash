@@ -22,6 +22,7 @@ const tbdIsParsedLoginQuery = (
   typeof tbd.loginId === "string" &&
   tbd.loginCode !== undefined &&
   typeof tbd.loginCode === "string";
+
 const LoginPage: NextPage = () => {
   const router = useRouter();
 
@@ -31,10 +32,7 @@ const LoginPage: NextPage = () => {
     Mutation,
     MutationLoginWithLoginCodeArgs
   >(loginWithLoginCodeMutation, {
-    onCompleted: ({ loginWithLoginCode }) => {
-      const user = loginWithLoginCode;
-      console.log(user);
-    },
+    onCompleted: () => router.push("/"),
     onError: ({ graphQLErrors }) =>
       graphQLErrors.forEach(({ extensions }) => {
         const { code } = extensions as { code?: string };

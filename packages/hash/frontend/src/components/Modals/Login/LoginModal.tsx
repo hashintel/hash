@@ -93,9 +93,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
     useMutation<Mutation, MutationLoginWithLoginCodeArgs>(
       loginWithLoginCodeMutation,
       {
-        onCompleted: ({ loginWithLoginCode }) => {
-          const user = loginWithLoginCode;
-          console.log(user);
+        onCompleted: () => {
           if (onLoggedIn) onLoggedIn();
         },
         onError: ({ graphQLErrors }) =>
