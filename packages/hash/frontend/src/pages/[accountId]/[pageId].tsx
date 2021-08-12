@@ -9,15 +9,15 @@ import {
 } from "../../graphql/apiTypes.gen";
 import { PageBlock } from "../../blocks/page/PageBlock";
 import { GetStaticPaths, GetStaticProps } from "next";
-import {
-  blockPaths,
-  BlockMeta,
-  BlockWithoutMeta,
-  fetchBlockMeta,
-} from "../../blocks/page/tsUtils";
 import { PageSidebar } from "../../components/layout/PageSidebar/PageSidebar";
 
 import styles from "../index.module.scss";
+import {
+  blockPaths,
+  BlockMeta,
+  fetchBlockMeta,
+  mapEntitiesToBlocks,
+} from "../../blocks/page/sharedWithBackend";
 import { VersionDropdown } from "../../components/Dropdowns/VersionDropdown";
 
 /**
@@ -103,48 +103,7 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
      *
      * @todo remove it
      */
-    const mappedContents = contents.map((content): BlockWithoutMeta => {
-      const { componentId, entity } = content.properties;
-
-      const props =
-        entity.__typename === "Text"
-          ? {
-              /**
-               * These are here to help reconstruct the database objects from the prosemirror document.
-               */
-              childEntityId: entity.id,
-              childEntityAccountId: entity.accountId,
-
-              children: entity.textProperties.texts.map((text) => ({
-                type: "text",
-                text: text.text,
-                entityId: entity.id,
-                accountId: entity.accountId,
-
-                // This maps the boolean properties on the entity into an array of mark names
-                marks: [
-                  ["strong", text.bold],
-                  ["underlined", text.underline],
-                  ["em", text.italics],
-                ]
-                  .filter(([, include]) => include)
-                  .map(([mark]) => mark),
-              })),
-            }
-          : entity.__typename === "UnknownEntity"
-          ? {
-              childEntityId: entity.id,
-              ...entity.unknownProperties,
-            }
-          : {};
-
-      return {
-        componentId,
-        entityId: content.id,
-        entity: props,
-        accountId: content.accountId,
-      };
-    });
+    const mappedContents = mapEntitiesToBlocks(contents);
 
     return (
       <div className={styles.MainWrapper}>
