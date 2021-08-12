@@ -20,7 +20,6 @@ RUN apt-get update \
 
 # Copy over the packages source now, after yarn install. This makes the build faster
 # if no changes have been made to the package.json files.
-COPY tsconfig.base.json .
 COPY packages/hash/backend packages/hash/backend
 COPY packages/hash/frontend packages/hash/frontend
 COPY packages/hash/prettier-config packages/hash/prettier-config
