@@ -52,7 +52,6 @@ const App = () => {
         }
         initialCaption={"ASDASDASDSAD"}
         entityId={"entity-asdasd"}
-        maxHeight={500}
         uploadImage={uploadImage}
       />
     </div>
