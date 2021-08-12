@@ -7,12 +7,8 @@ import { ApolloError, useMutation } from "@apollo/client";
 import {
   Mutation,
   MutationLoginWithLoginCodeArgs,
-  SendLoginCodeMutationVariables,
 } from "../graphql/apiTypes.gen";
-import {
-  sendLoginCode as sendLoginCodeMutation,
-  loginWithLoginCode as loginWithLoginCodeMutation,
-} from "../graphql/queries/user.queries";
+import { loginWithLoginCode as loginWithLoginCodeMutation } from "../graphql/queries/user.queries";
 
 type ParsedLoginQuery = {
   loginId: string;
@@ -73,6 +69,7 @@ const LoginPage: NextPage = () => {
       initialErrorMessage={initialErrorMessage}
       show={true}
       close={() => undefined}
+      onLoggedIn={() => router.push("/")}
     />
   );
 };
