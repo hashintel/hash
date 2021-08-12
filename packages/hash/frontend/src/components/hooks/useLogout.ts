@@ -10,8 +10,7 @@ export const useLogout = () => {
 
   const [logoutFn, { loading, error }] = useMutation<LogoutMutation>(logout, {
     onCompleted: () => {
-      client.cache.evict({ fieldName: "me" });
-      client.cache.gc();
+      client.resetStore();
       void router.push("/");
     },
   });

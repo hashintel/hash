@@ -11,7 +11,9 @@ export const PageHeader: VoidFunctionComponent = () => {
   const { logout } = useLogout();
 
   return (
-    <header className={tw`bg-white py-4 border(b-1 gray-300)`}>
+    <header
+      className={tw`bg-white h-16 flex items-center border(b-1 gray-300)`}
+    >
       <nav className={tw`container mx-auto flex justify-end`}>
         {user ? (
           <AccountDropdown name={user.properties.shortname} logout={logout} />
