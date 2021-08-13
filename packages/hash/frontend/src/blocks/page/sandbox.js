@@ -325,6 +325,8 @@ const BlockSelect = forwardRef(({ view, getPos, node }, ref) => {
 /**
  * This is the node view that wraps every one of our blocks in order to inject custom UI like the <select> to change
  * type and the drag handles
+ * 
+ * @implements https://prosemirror.net/docs/ref/#view.NodeView
  */
 class BlockView {
   constructor(node, view, getPos, replacePortal) {
@@ -332,6 +334,7 @@ class BlockView {
     this.view = view;
     this.replacePortal = replacePortal;
 
+    /** @implements https://prosemirror.net/docs/ref/#view.NodeView.dom */
     this.dom = document.createElement("div");
     this.dom.classList.add(styles.Block);
 
@@ -344,6 +347,7 @@ class BlockView {
 
     document.addEventListener("dragend", this.dragEnd);
 
+    /** @implements https://prosemirror.net/docs/ref/#view.NodeView.contentDOM */
     this.contentDOM = document.createElement("div");
     this.dom.appendChild(this.contentDOM);
     this.contentDOM.classList.add(styles.Block__Content);
@@ -359,7 +363,10 @@ class BlockView {
     this.update(this.node);
   };
 
-  // @todo simplify this alongside the react event handling
+  /**
+   * @todo simplify this alongside the react event handling
+   * @implements https://prosemirror.net/docs/ref/#view.NodeView.stopEvent
+   */
   stopEvent(evt) {
     if (evt.type === "dragstart" && evt.target === this.dom) {
       if (!this.allowDragging) {
@@ -386,6 +393,7 @@ class BlockView {
    * updated. Here we're instructing PM to ignore changes made by us
    *
    * @todo find a more generalised alternative
+   * @implements https://prosemirror.net/docs/ref/#view.NodeView.ignoreMutation
    */
   ignoreMutation(record) {
     return (
@@ -397,11 +405,15 @@ class BlockView {
     );
   }
 
+  /**
+   * @implements https://prosemirror.net/docs/ref/#view.NodeView.update
+   */
   update(blockNode) {
     if (blockNode.type.name !== "block") {
       return false;
     }
 
+    /** @implements https://prosemirror.net/docs/ref/#view.NodeView.node */
     this.node = blockNode;
 
     const { getPos, view } = this;
@@ -489,6 +501,9 @@ class BlockView {
     return true;
   }
 
+  /**
+   * @implements https://prosemirror.net/docs/ref/#view.NodeView.destroy
+   */
   destroy() {
     this.replacePortal(this.selectContainer, null, null);
     this.dom.remove();
