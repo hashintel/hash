@@ -53,3 +53,6 @@ export const createSchema = () =>
       },
     },
   });
+
+export const createInitialDoc = (schema: Schema) =>
+  schema.node("doc", {}, [schema.node("blank")]);

@@ -41,7 +41,7 @@ export const getServerSideProps: GetServerSideProps = async () => {
 
             const pages = result.data.accountPages;
             if (pages.length > 0) {
-              return `${account.accountId}/${pages[0].metadataId}`;
+              return `/${account.accountId}/${pages[0].metadataId}`;
             }
           }
 
