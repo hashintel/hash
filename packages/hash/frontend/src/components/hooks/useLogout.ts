@@ -10,7 +10,7 @@ export const useLogout = () => {
 
   const [logoutFn, { loading, error }] = useMutation<LogoutMutation>(logout, {
     onCompleted: () => {
-      client.resetStore();
+      void client.resetStore();
       void router.push("/");
     },
   });
