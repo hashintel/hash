@@ -400,7 +400,6 @@ class BlockView {
       (record.type === "attributes" &&
         record.attributeName === "class" &&
         record.target === this.dom) ||
-      record.target === this.selectContainer ||
       this.selectContainer.contains(record.target)
     );
   }
