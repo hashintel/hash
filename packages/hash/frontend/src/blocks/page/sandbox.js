@@ -177,7 +177,7 @@ function isSubsetOf(subset, superset) {
 /**
  * block-type select field co-dependent of BlockView class.
  */
-const BlockSelect = forwardRef(({ view, getPos, node }, ref) => {
+const BlockSelect = forwardRef(({ nodeView: { node, view, getPos }}, ref) => {
   const blocksMeta = useBlockMeta();
 
   const choices = Array.from(blocksMeta.values()).flatMap((blockMeta) =>
@@ -330,8 +330,8 @@ const BlockSelect = forwardRef(({ view, getPos, node }, ref) => {
  */
 class BlockView {
   constructor(node, view, getPos, replacePortal) {
-    this.getPos = getPos;
     this.view = view;
+    this.getPos = getPos;
     this.replacePortal = replacePortal;
 
     /** @implements https://prosemirror.net/docs/ref/#view.NodeView.dom */
@@ -415,8 +415,6 @@ class BlockView {
     /** @implements https://prosemirror.net/docs/ref/#view.NodeView.node */
     this.node = blockNode;
 
-    const { getPos, view } = this;
-
     const node = blockNode.child(0);
     const container = this.selectContainer;
 
@@ -486,14 +484,7 @@ class BlockView {
             this.dragEnd();
           }}
         />
-        <BlockSelect
-          view={view}
-          getPos={getPos}
-          node={node}
-          ref={(selectDom) => {
-            this.selectDom = selectDom;
-          }}
-        />
+        <BlockSelect nodeView={this} ref={(node) => this.selectDom = node} />
       </>
     );
 
