@@ -260,6 +260,9 @@ class BlockView {
     this.dom.appendChild(this.contentDOM);
     this.contentDOM.classList.add(styles.Block__Content);
 
+    /** used to hide node-view specific events from prosemirror */
+    this.blockSelectRef = createRef();
+
     this.update(node);
   }
 
@@ -290,7 +293,7 @@ class BlockView {
      * We don't want Prosemirror to try to handle any of these events as they're handled by React
      */
     return (
-      evt.target === this.selectDom ||
+      evt.target === this.blockSelectRef.current ||
       (evt.target === this.handle && evt.type === "mousedown")
     );
   }
@@ -417,9 +420,7 @@ class BlockView {
                 selectedIndex={selectedIndex}
                 options={options}
                 onChange={this.onBlockChange}
-                ref={(selectDom) => {
-                  this.selectDom = selectDom;
-                }}
+                ref={this.blockSelectRef}
               />
             );
           }}
