@@ -1,10 +1,6 @@
-import React, {
-  ReactNode,
-  useCallback,
-  useRef,
-  VoidFunctionComponent,
-} from "react";
+import React, { useCallback, useRef, VoidFunctionComponent } from "react";
 import { ApolloError, useMutation } from "@apollo/client";
+import { ParsedUrlQueryInput } from "querystring";
 import { useEffect, useState } from "react";
 import { tw } from "twind";
 import { Modal, ModalProps } from "../Modal";
@@ -18,18 +14,31 @@ import {
   sendLoginCode as sendLoginCodeMutation,
   loginWithLoginCode as loginWithLoginCodeMutation,
 } from "../../../graphql/queries/user.queries";
+import { useRouter } from "next/router";
+
+type ParsedLoginQuery = {
+  loginId: string;
+  loginCode: string;
+};
+
+const tbdIsParsedLoginQuery = (
+  tbd: ParsedUrlQueryInput
+): tbd is ParsedLoginQuery =>
+  tbd.loginId !== undefined &&
+  typeof tbd.loginId === "string" &&
+  tbd.loginCode !== undefined &&
+  typeof tbd.loginCode === "string";
 
 type LoginModalProps = {
-  initialErrorMessage?: ReactNode;
   onLoggedIn?: () => void;
 } & Omit<ModalProps, "children">;
 
 export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
-  initialErrorMessage,
   show,
   close,
   onLoggedIn,
 }) => {
+  const router = useRouter();
   const emailOrShortnameInputRef = useRef<HTMLInputElement>(null);
   const loginCodeInputRef = useRef<HTMLInputElement>(null);
 
@@ -40,12 +49,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
     LoginCodeMetadata | undefined
   >();
 
-  const [errorMessage, setErrorMessage] =
-    useState<React.ReactNode>(initialErrorMessage);
-
-  useEffect(() => {
-    setErrorMessage(initialErrorMessage);
-  }, [initialErrorMessage]);
+  const [errorMessage, setErrorMessage] = useState<React.ReactNode>();
 
   useEffect(() => {
     if (show && emailOrShortnameInputRef.current) {
@@ -122,6 +126,15 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
           }),
       }
     );
+
+  useEffect(() => {
+    const { pathname, query } = router;
+
+    if (pathname === "/login" && tbdIsParsedLoginQuery(query)) {
+      const { loginId, loginCode } = query;
+      void loginWithLoginCode({ variables: { loginId, loginCode } });
+    }
+  }, [router, loginWithLoginCode]);
 
   const emailOrShortnameIsValid = emailOrShortname !== "";
 
