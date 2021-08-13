@@ -356,6 +356,7 @@ const cachedPropertiesByPosition: Record<string, Record<any, any>> = {};
 export const calculateSavePayloads = (
   accountId: string,
   pageId: string,
+  metadataId: string,
   schema: Schema,
   doc: ProsemirrorNode,
   savedContents: (Block | BlockWithoutMeta)[]
@@ -567,8 +568,8 @@ export const calculateSavePayloads = (
 
   const insertPayloads = newBlocks.map((newBlock) => ({
     // @todo this should take the user id of whoever creates it
-
     pageId,
+    pageMetadataId: metadataId,
     entityType: newBlock.properties.entity.type,
     position: newBlock.position,
     componentId: newBlock.properties.componentId,
@@ -576,5 +577,6 @@ export const calculateSavePayloads = (
     accountId,
     versioned: true,
   }));
+
   return { updatedEntitiesPayload, pageUpdatedPayload, insertPayloads };
 };

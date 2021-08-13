@@ -127,6 +127,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
             calculateSavePayloads(
               accountId,
               pageId,
+              metadataId,
               state.schema,
               state.doc,
               savedContents
