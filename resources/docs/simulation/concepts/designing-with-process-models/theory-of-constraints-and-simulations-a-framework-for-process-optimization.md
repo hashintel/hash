@@ -64,7 +64,7 @@ To improve the performance at the bottleneck, you can add resources or a buffer.
 
 By adding more senior billers to the key service blocks, and keeping a larger backup buffer of senior billers in reserve, we dramatically reduce the total utilization of that resource at any one time, likely improving performing.
 
-![Senior billers utilization with 11 billers ](../../.gitbook/assets/image%20%2851%29.png)
+![Senior billers utilization with 11 billers ](https://cdn-us1.hash.ai/site/docs/image%20%2851%29.png)
 
 ## Subordinate everything else to the above decisions
 
@@ -74,11 +74,11 @@ We encourage you to use the built-in metrics, plot, and experiments with HASH to
 
 To explore the effects of different parameters, try creating an experiment to see what the optimum number of senior billers is:
 
-![Vary the number of senior billers](../../.gitbook/assets/c11907e2-adf2-48e6-85ce-c2bb3cbdc048-464-0003638bffbf8c41.png)
+![Vary the number of senior billers](https://cdn-us1.hash.ai/site/docs/c11907e2-adf2-48e6-85ce-c2bb3cbdc048-464-0003638bffbf8c41.png)
 
 Then, when you run the experiment, you can click through the plots and view the effect that different numbers of billers have on the simulation:
 
-![Through time with 11 senior billers](../../.gitbook/assets/2b2e1b70-0249-4f90-a22e-8e033001d780-464-00036392cac553ab.png)
+![Through time with 11 senior billers](https://cdn-us1.hash.ai/site/docs/2b2e1b70-0249-4f90-a22e-8e033001d780-464-00036392cac553ab.png)
 
 <Hint style="info">
 See Analyzing Process Models for more on graphing process models, and Collaboration to learn how to share a process model simulation with your team.

@@ -7,7 +7,7 @@ If a behavior uses state fields which already have keys defined in other behavio
 1. Add a key with the same name. If the name matches another behavior key defined in your simulation, it will automatically populate the correct type.
 2. Click the “This behavior uses fields defined in other behaviors” checkbox in the behavior key panel. This will allow your behavior to access fields defined in any other behavior, but comes at a slight cost in performance.
 
-![](../../../.gitbook/assets/screenshot-2021-02-11-at-15.20.15.png)
+![](https://cdn-us1.hash.ai/site/docs/screenshot-2021-02-11-at-15.20.15.png)
 
 <Hint style="warning">
 You'll also need to check the box if your behavior uses a _**variable**_ to dynamically access state, e.g. `state[field_name]`

@@ -4,7 +4,7 @@ Process models allow you to represent systems or organizations which perform seq
 
 The process chart view in the hCore editor leverages the [HASH process library](https://hash.ai/@hash/process) to make it easy to simulate business processes and operations.
 
-![](../../.gitbook/assets/image%20%2850%29.png)
+![](https://cdn-us1.hash.ai/site/docs/image%20%2850%29.png)
 
 With the process chart, you can:
 

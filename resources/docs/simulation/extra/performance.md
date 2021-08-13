@@ -52,5 +52,5 @@ MS and FPS reflect the total time from state _t_ to state _t_+1. If this is taki
 
 MB reflects the size of the simulation - each simulation run is stored locally. If a simulation has been run for tens of thousands of time steps, or if there are many agents, it might become too large for your browser.
 
-![Stats window for debugging](../.gitbook/assets/kapture-2020-12-17-at-10.26.05.gif)
+![Stats window for debugging](https://cdn-us1.hash.ai/site/docs/kapture-2020-12-17-at-10.26.05.gif)
 

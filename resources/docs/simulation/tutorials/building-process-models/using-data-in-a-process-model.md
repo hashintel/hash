@@ -63,7 +63,7 @@ This process would have three elements:
 For more on the different blocks and when to use a given block, see [Process Model Concepts](process-model-concepts.md)
 </Hint>
 
-![A simple customer service process model](../../.gitbook/assets/image%20%2848%29.png)
+![A simple customer service process model](https://cdn-us1.hash.ai/site/docs/image%20%2848%29.png)
 
 Using the Process Model Builder, we can set properties for each of the blocks and update my simulation with it. The resulting code will look like:
 

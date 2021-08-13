@@ -102,7 +102,7 @@ You can build Python behaviors instead of JavaScript behaviors if you prefer. Ju
 
 We can then create the corresponding behavior files by clicking the **New File** button at the top of the left hand files sidebar. Create two new files, `hello_alice.js` and`hello_bob.js`
 
-![To create a new behavior file click the button in the top left corner](../.gitbook/assets/image%20%2833%29.png)
+![To create a new behavior file click the button in the top left corner](https://cdn-us1.hash.ai/site/docs/image%20%2833%29.png)
 
 In **hello\_alice**, we want to send a message **from** Bob **to** Alice.
 
@@ -160,7 +160,7 @@ def behavior(state, context):
 
 Now click **Run Simulation**.
 
-![The Run Simulation is the &apos;Running Person&apos; Icon in the bottom left of the editor.](../.gitbook/assets/image%20%2831%29.png)
+![The Run Simulation is the &apos;Running Person&apos; Icon in the bottom left of the editor.](https://cdn-us1.hash.ai/site/docs/image%20%2831%29.png)
 
 You won't see anything happen in the 3D viewer, but if you click Raw Output you'll see our Bob agent now has an array of messages with one message to Alice. _**Bob is sending this same message every time step to Alice.**_
 
@@ -484,11 +484,11 @@ def behavior(state, context):
 </Tab>
 </Tabs>
 
-![Hello HASH!](../.gitbook/assets/blocks_flipping.gif)
+![Hello HASH!](https://cdn-us1.hash.ai/site/docs/blocks_flipping.gif)
 
 Finally, since Alice clearly would like some socially-responsible distance from Bob, we can add movement to the agents. I'm going to use a shared behavior `@hash/random_movement/random_movement.rs` , to cause each agent move about the environment at random. I'll import the behavior from the hIndex, and then add the file name to each agent.
 
-![](../.gitbook/assets/movement.gif)
+![](https://cdn-us1.hash.ai/site/docs/movement.gif)
 
 <Tabs>
 <Tab title="JavaScript" >
@@ -543,5 +543,5 @@ To prevent our agents from straying too far, we can set [bounds](https://docs.ha
 }
 ```
 
-![Random Movement](../.gitbook/assets/apr-17-2020-14-40-53.gif)
+![Random Movement](https://cdn-us1.hash.ai/site/docs/apr-17-2020-14-40-53.gif)
 

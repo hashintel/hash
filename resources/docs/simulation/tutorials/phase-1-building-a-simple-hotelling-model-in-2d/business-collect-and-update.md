@@ -66,7 +66,7 @@ Click Reset and Run!
 
 You should see your Business agents start to move around to try and find the best position and price to make the largest profit. Customer agents will also continue to change their color based on their purchase preferences.
 
-![](../../.gitbook/assets/lc_p1.gif)
+![](https://cdn-us1.hash.ai/site/docs/lc_p1.gif)
 
 <Tabs>
 <Tab title="business.js" >

@@ -97,9 +97,9 @@ A common way to validate a simulation is by comparing the results of a simulatio
   state.cells_data = red_data + yellow_data + green_data;
 ```
 
-![A simulation that would not pass a validation test](../.gitbook/assets/image%20%2875%29.png)
+![A simulation that would not pass a validation test](https://cdn-us1.hash.ai/site/docs/image%20%2875%29.png)
 
-![A simulation that would \(probably\) pass a validation](../.gitbook/assets/image%20%2876%29.png)
+![A simulation that would \(probably\) pass a validation](https://cdn-us1.hash.ai/site/docs/image%20%2876%29.png)
 
 Additionally you can use [Complex Metrics](../creating-simulations/experiments/optimization-experiments/complex-metrics.md) to score the error difference between a simulation and an external dataset, to get a more quantitative validation measure.
 

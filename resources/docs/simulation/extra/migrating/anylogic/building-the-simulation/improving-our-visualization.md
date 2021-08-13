@@ -23,7 +23,7 @@ We'll start by defining outputs that track metrics of interest, like the total q
 ```
 
 
-![Plots for the Oil Supply Chain model](../../../../.gitbook/assets/image%20%2827%29.png)
+![Plots for the Oil Supply Chain model](https://cdn-us1.hash.ai/site/docs/image%20%2827%29.png)
 
 ## Advanced Agent Visualizations
 

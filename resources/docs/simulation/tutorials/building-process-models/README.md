@@ -16,7 +16,7 @@ We feel that business processes are a particularly promising domain to apply mod
 
 We've released a new visual interface, built using the [HASH business process library](https://hash.ai/@hash/process), to make it easy to use HASH to simulate business processes and operations \(for more on building plugins with HASH see [the API pages](../../api/register-for-access.md)\).
 
-![](../../.gitbook/assets/image%20%2850%29.png)
+![](https://cdn-us1.hash.ai/site/docs/image%20%2850%29.png)
 
 ## Process Modeling
 

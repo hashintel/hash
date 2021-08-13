@@ -6,7 +6,7 @@ We've built all our logic to run this simulation, but we want to have more than 
 
 In the AnyLogic model, the agents are initialized from a database. When the simulation starts, all of the agent values are filled in from individual properties in the db.
 
-![](../../../../.gitbook/assets/image%20%2828%29.png)
+![](https://cdn-us1.hash.ai/site/docs/image%20%2828%29.png)
 
 In HASH, we provide similar functionality through the [HASH Index](https://hash.ai/platform/index) \(hIndex\). The hIndex is a place you can find existing data or upload your own \(privately or publicly\). In this case, we’ve created an [example dataset](https://hash.ai/@hash/ex) for the simulation that contains a network representation of the system. Now in the simulation we can upload the dataset and, in a create function, spin up agents with those properties.
 

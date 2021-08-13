@@ -23,7 +23,7 @@ To run your simulation [with hCloud](../h.cloud.md), you'll need to [define Beha
 
 The exact semantics vary by programming language, but in spirit every behavior is a pure function which receives a given agent's state, the world context visible to that agent, and produces its next state.
 
-![During a timestep an agent passes its state and context to its associated behaviors, modifying its state](../../.gitbook/assets/untitled-4-.png)
+![During a timestep an agent passes its state and context to its associated behaviors, modifying its state](https://cdn-us1.hash.ai/site/docs/untitled-4-.png)
 
 Most behaviors output a single state with the same `agent_id` as they received. For example, the following behavior code causes an agent to move along the x-axis:
 

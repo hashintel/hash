@@ -38,7 +38,7 @@ Because agents receive all the messages sent to them in the previous time step a
 * Agent B receives it and processes it in Step 2, adding a message to Agent A in response
 * Agent A receives the response and processes it in Step 3
 
-![](../../.gitbook/assets/message-exchange-diagram.svg)
+![](https://cdn-us1.hash.ai/site/docs/message-exchange-diagram.svg)
 
 Agent A will not know the result of the message it added in Step 1 until it receives the response in Step 3 \(or even later if Agent B must communicate with a third agent before responding\). Watch out for [**redundant messaging!**](./#redundant-messaging) You should also consider the [**order of behaviors**](./#sequential-behavior-execution) when processing inbox messages and queueing outbox messages.
 

@@ -49,7 +49,7 @@ Before we can successfully initialize the Customers defined under `grid_template
 
 Now click Reset and then run your simulation for two time steps with the **+1** button at the bottom of the 3D Viewer. You should see a grid of white agents!
 
-![Initial Grid of Agents](../../.gitbook/assets/screen-shot-2020-12-17-at-10.38.46-am.png)
+![Initial Grid of Agents](https://cdn-us1.hash.ai/site/docs/screen-shot-2020-12-17-at-10.38.46-am.png)
 
 ## Businesses
 

@@ -2,7 +2,7 @@
 
 Behavior Keys define the **data** **type** of the fields that a behavior accesses on an agent's state. HASH uses behavior keys to improve the runtime performance of simulations. To view the behavior keys associated with a file, click the button containing the _brain_ icon, located next to the help button, to toggle the key panel's visibility \(highlighted in green below\).
 
-![Adding behavior keys](../../../.gitbook/assets/image%20%2866%29.png)
+![Adding behavior keys](https://cdn-us1.hash.ai/site/docs/image%20%2866%29.png)
 
 From the behavior key panel you can define the field the behavior will need to access by putting in the name of the field - the same name as its field name on the agents state object - and the type of the field.
 

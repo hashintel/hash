@@ -123,7 +123,7 @@ Now that we understand how to instantiate our agents, let’s create a hospital.
 
 Or, we can follow the creator pattern and add it as a "stack" \(as it's at a specific location\). To do that we'd add `stack_templates` to our agent, as well as add the `@hash/create-stacks/create_stacks.js` behavior. Since it's a shared behavior, you can search in the index panel in the lower left for it. Double click and it will be added to your simulation.
 
-![It&apos;s easy to find powerful behaviors in the hIndex to add to your models \(or share your own!\) ](../../.gitbook/assets/screen-shot-2020-04-02-at-9.48.14-pm.png)
+![It&apos;s easy to find powerful behaviors in the hIndex to add to your models \(or share your own!\) ](https://cdn-us1.hash.ai/site/docs/screen-shot-2020-04-02-at-9.48.14-pm.png)
 
 <Tabs>
 <Tab title="JavaScript" >

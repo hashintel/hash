@@ -16,7 +16,7 @@ There are three ways to populate the initial state of a simulation. You can:
 
 In `init.json` you'll explicitly define all your agents as JSON blobs in an array. Here's what that might look like:
 
-![Defining five agents in init.json](../../.gitbook/assets/screen-shot-2020-05-30-at-5.41.03-pm.png)
+![Defining five agents in init.json](https://cdn-us1.hash.ai/site/docs/screen-shot-2020-05-30-at-5.41.03-pm.png)
 
 You can create whatever field names you need on your agents, but be aware of setting incorrect value types on protected fields we mentioned previously.
 
@@ -39,11 +39,11 @@ The default init.json approach has some limitations. Because it's compliant JSON
 
 You can transform the init.json file into a JavaScript or Python file by right clicking it and selecting "Convert to..." your desired language.
 
-![](../../.gitbook/assets/image%20%2864%29.png)
+![](https://cdn-us1.hash.ai/site/docs/image%20%2864%29.png)
 
 When you do, any defined agents will be added as objects in an array named `agents`.
 
-![](../../.gitbook/assets/image%20%2863%29.png)
+![](https://cdn-us1.hash.ai/site/docs/image%20%2863%29.png)
 
 Now you can write JavaScript or Python in the file and use it to set agent properties.
 
@@ -219,19 +219,19 @@ With "creator" agents you can create agents that create other agents. For exampl
 
 Take a look at how we can use published behaviors in the following example, where \[rabbits forage for food and reproduce\]\([https://hash.ai/@hash/rabbits-grass-weeds](https://hash.ai/@hash/rabbits-grass-weeds), while grass and weeds grow around them:
 
-![](../../.gitbook/assets/image%20%2829%29.png)
+![](https://cdn-us1.hash.ai/site/docs/image%20%2829%29.png)
 
 There's a singly agent that has a set of behaviors that will reference the "templates" we attached as properties on the creator agent.
 
 `Create Grids` looks at the agent templates in the "grid_templates" array, in this case the "ground". We're copying it to fill the space defined in the bounds of our "topology" field in`globals.json`:
 
-![](../../.gitbook/assets/screen-shot-2020-05-30-at-5.45.24-pm.png)
+![](https://cdn-us1.hash.ai/site/docs/screen-shot-2020-05-30-at-5.45.24-pm.png)
 
 Next, `Create Scatters` distributes the "rabbits" across the environment. Each one is placed in a random location within the bounds specified in the `topology`.
 
 Now we want to make a few adjustments to the agents we've generated which requires a bit more logic. Luckily for us, HASH behaviors are composable. `Create Grids` and `Create Scatters` have created "agent" objects in our creator and filled them. We access those agents by using the "template_name" as a key:
 
-![](../../.gitbook/assets/image%20%2831%29%20%282%29%20%282%29%20%282%29%20%282%29%20%282%29%20%282%29%20%282%29%20%283%29%20%283%29%20%281%29.png)
+![](https://cdn-us1.hash.ai/site/docs/image%20%2831%29%20%282%29%20%282%29%20%282%29%20%282%29%20%282%29%20%282%29%20%282%29%20%283%29%20%283%29%20%281%29.png)
 
 Here we've randomly assigned the color of our "ground" agents, and given each of the "rabbits" a random starting amount of energy.
 

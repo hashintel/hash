@@ -20,11 +20,11 @@ To create an optimization experiment, first create the metric that represents th
 
 For example, in [Sugarscape](https://staging.hash.ai/@hash/sugarscape/stable), you might be interested in what parameters will optimize the average sugar of cells. In that case you can use the existing metric:
 
-![Metric defined in Sugarscape](../../.gitbook/assets/image%20%2858%29.png)
+![Metric defined in Sugarscape](https://cdn-us1.hash.ai/site/docs/image%20%2858%29.png)
 
 Now use the experiment wizard to create a new experiment and fill in the options:
 
-![](../../.gitbook/assets/image%20%2860%29%20%281%29.png)
+![](https://cdn-us1.hash.ai/site/docs/image%20%2860%29%20%281%29.png)
 
 * Select `optimization` as the type.
 * Use the metric name you previously defined as the metric.
@@ -55,9 +55,9 @@ To run a simulation in hCloud, you must first set the [Behavior Keys](../behavio
 
 While the optimization experiment is running, individual runs will populate the experiment queue in the activity sidebar. Hover over a run to see the metrics value and the parameters for that particular run.
 
-![In-progress optimization run](../../.gitbook/assets/image%20%2860%29.png)
+![In-progress optimization run](https://cdn-us1.hash.ai/site/docs/image%20%2860%29.png)
 
 When the optimization run completes, the best run - the run where the parameters maximized or minimized the metric - will be highlighted.
 
-![](../../.gitbook/assets/image%20%2861%29.png)
+![](https://cdn-us1.hash.ai/site/docs/image%20%2861%29.png)
 

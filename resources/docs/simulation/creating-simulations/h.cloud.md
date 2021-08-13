@@ -32,7 +32,7 @@ Devices with ARM processors will typically run in-browser hCore simulations fast
 
 Toggle your execution environment from local to hCloud by first clicking on the **Experiments** button in the playbar at the bottom of the screen, and then tapping the hCloud banner at the top of the menu.
 
-![](../.gitbook/assets/screen-shot-2020-09-11-at-11.06.42-am.png)
+![](https://cdn-us1.hash.ai/site/docs/screen-shot-2020-09-11-at-11.06.42-am.png)
 
 In the background, your browser will establish a connection to our servers which once established will let you run experiments in the cloud in the same way as if you were running them locally.
 

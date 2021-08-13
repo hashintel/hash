@@ -10,17 +10,17 @@ Python and JavaScript behaviors can co-mingle and a single agent can use behavio
 
 You can share by right-clicking on a behavior you've created in the **Simulation Files** sidebar and selecting Release Behavior to Index. This will create a fork \(copy\) of the current project, and convert that fork into a Behavior project.
 
-![Publishing a behavior to hIndex](../../.gitbook/assets/screen-shot-2020-05-30-at-5.54.56-pm.png)
+![Publishing a behavior to hIndex](https://cdn-us1.hash.ai/site/docs/screen-shot-2020-05-30-at-5.54.56-pm.png)
 
 When you want to edit this behavior, create new releases, or add more behaviors to each release, you can do so in the forked project. You can find it by searching on your [Profile page](https://hash.ai/profile), or by clicking in the banner when you're looking at the shared behavior's file in any simulation.
 
-![Navigating to a shared behavior project](../../.gitbook/assets/image%20%2821%29.png)
+![Navigating to a shared behavior project](https://cdn-us1.hash.ai/site/docs/image%20%2821%29.png)
 
 ## Importing a Behavior
 
 You can import a behavior by searching in the **Add to Project** sidebar, clicking on it and pressing the **Add to Project** button.
 
-![Adding a published behavior to your model](../../.gitbook/assets/image%20%284%29.png)
+![Adding a published behavior to your model](https://cdn-us1.hash.ai/site/docs/image%20%284%29.png)
 
 ## Updating Imported Behaviors
 

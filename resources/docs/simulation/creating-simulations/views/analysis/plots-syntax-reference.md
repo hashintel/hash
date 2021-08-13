@@ -21,7 +21,7 @@
 
 <TextTab title="Modal configuration" >
 
-![](../../../.gitbook/assets/screenshot-2021-03-11-at-18.27.36.png)
+![](https://cdn-us1.hash.ai/site/docs/screenshot-2021-03-11-at-18.27.36.png)
 </TextTab>
 </Tabs>
 
@@ -44,7 +44,7 @@
 
 <TextTab title="Modal configuration" >
 
-![](../../../.gitbook/assets/screenshot-2021-03-11-at-18.30.43.png)
+![](https://cdn-us1.hash.ai/site/docs/screenshot-2021-03-11-at-18.30.43.png)
 </TextTab>
 </Tabs>
 
@@ -67,7 +67,7 @@
 
 <TextTab title="Modal configuration" >
 
-![](../../../.gitbook/assets/screenshot-2021-03-11-at-18.36.34.png)
+![](https://cdn-us1.hash.ai/site/docs/screenshot-2021-03-11-at-18.36.34.png)
 </TextTab>
 </Tabs>
 
@@ -93,7 +93,7 @@
 
 <TextTab title="Modal configuration" >
 
-![](../../../.gitbook/assets/screenshot-2021-03-11-at-18.37.23.png)
+![](https://cdn-us1.hash.ai/site/docs/screenshot-2021-03-11-at-18.37.23.png)
 </TextTab>
 </Tabs>
 
@@ -124,7 +124,7 @@
 
 <TextTab title="Modal configuration" >
 
-![](../../../.gitbook/assets/screenshot-2021-03-11-at-17.53.05.png)
+![](https://cdn-us1.hash.ai/site/docs/screenshot-2021-03-11-at-17.53.05.png)
 </TextTab>
 </Tabs>
 
@@ -160,7 +160,7 @@
 
 <TextTab title="Modal configuration" >
 
-![](../../../.gitbook/assets/screenshot-2021-03-11-at-18.25.23.png)
+![](https://cdn-us1.hash.ai/site/docs/screenshot-2021-03-11-at-18.25.23.png)
 </TextTab>
 </Tabs>
 
@@ -196,7 +196,7 @@
 
 <TextTab title="Modal configuration" >
 
-![](../../../.gitbook/assets/screenshot-2021-03-11-at-15.27.25.png)
+![](https://cdn-us1.hash.ai/site/docs/screenshot-2021-03-11-at-15.27.25.png)
 </TextTab>
 </Tabs>
 
@@ -232,7 +232,7 @@
 
 <TextTab title="Modal configuration" >
 
-![](../../../.gitbook/assets/screenshot-2021-03-11-at-15.15.03.png)
+![](https://cdn-us1.hash.ai/site/docs/screenshot-2021-03-11-at-15.15.03.png)
 </TextTab>
 </Tabs>
 

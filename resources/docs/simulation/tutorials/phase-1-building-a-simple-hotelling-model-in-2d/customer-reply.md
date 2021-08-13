@@ -203,7 +203,7 @@ Reset and run!
 
 If you followed all the steps above, run the simulation a couple times and you should see the customer agents change color based on their decision after a couple time steps.
 
-![](../../.gitbook/assets/lc_p2_customers.gif)
+![](https://cdn-us1.hash.ai/site/docs/lc_p2_customers.gif)
 
 <Tabs>
 <Tab title="customer.js" >

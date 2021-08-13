@@ -6,7 +6,7 @@ With HASH, you can take advantage of the rich web ecosystem to create complex da
 
 In this tutorial we'll embed an example simulation into a webpage and add buttons and charts to create an interactive dashboard. You can embed it in any page: to make it easy we'll create an example using a free to use code editor like [REPL.it](http://repl.it), but you could create this on your local machine or anywhere you can run JavaScript and HTML.
 
-![](../.gitbook/assets/screely-1621891128219.png)
+![](https://cdn-us1.hash.ai/site/docs/screely-1621891128219.png)
 
 ## Communicating with a HASH simulation
 
@@ -40,7 +40,7 @@ Both types of messages contain an id and message type. For the ID, we recommend 
 
 For our dashboard, we're going to embed the [Wildfires simulation](https://core.hash.ai/@hash/wildfires-regrowth/9.7.0). Open the simulation and click the share button in the top right. Click the embed tab and copy the code to the clipboard.
 
-![Click the share button and then copy the iframe code by clicking &apos;copy to clipboard&apos;](../.gitbook/assets/screely-1621889688418.png)
+![Click the share button and then copy the iframe code by clicking &apos;copy to clipboard&apos;](https://cdn-us1.hash.ai/site/docs/screely-1621889688418.png)
 
 All HASH simulations are embeddable as iFrames. You can add an iFrame as a block in the `<body>` of the website. We'll add an `id` property to the iFrame with the value "sim" to make it easier to reference.
 

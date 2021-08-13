@@ -82,6 +82,6 @@ def behavior(state, context):
 
 Messages are produced during a step, but are not delivered and processed until the next step.
 
-![Data flow for a single simulation step in HASH](../../.gitbook/assets/image%20%2824%29.png)
+![Data flow for a single simulation step in HASH](https://cdn-us1.hash.ai/site/docs/image%20%2824%29.png)
 
 

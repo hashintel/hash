@@ -8,7 +8,7 @@ Business processes are the cornerstone of every company's operations. Defined an
 
 Simulation aided process design can dramatically improve results and get you answers fast.
 
-![](../.gitbook/assets/image%20%2853%29.png)
+![](https://cdn-us1.hash.ai/site/docs/image%20%2853%29.png)
 
 The process chart visual interface makes it incredibly easy to create a powerful process model, no coding expertise required.
 

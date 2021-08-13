@@ -85,5 +85,5 @@ As a final step, set the resolution of your time step in **`globals.json`** with
 
 You now have a fully defined system dynamics model. Go ahead and create some metrics so that you can plot the values for "adults" and "children", and you should see something like this:
 
-![](../.gitbook/assets/image%20%2862%29.png)
+![](https://cdn-us1.hash.ai/site/docs/image%20%2862%29.png)
 

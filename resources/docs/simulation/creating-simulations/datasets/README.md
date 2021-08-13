@@ -14,7 +14,7 @@ Example Simulations that use datasets:
 
 To import your own datasets into HASH, click the 'Add Dataset' button above the list of files in hCore, and select a CSV or JSON dataset from your computer to upload:
 
-![Click on &apos;New Dataset&apos; to upload a dataset](../../.gitbook/assets/screenshot-2021-02-04-at-17.24.13.png)
+![Click on &apos;New Dataset&apos; to upload a dataset](https://cdn-us1.hash.ai/site/docs/screenshot-2021-02-04-at-17.24.13.png)
 
 Once uploaded the dataset will be listed in your simulation's file list.
 

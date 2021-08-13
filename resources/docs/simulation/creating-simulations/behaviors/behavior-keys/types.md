@@ -20,7 +20,7 @@ All fields are nullable \(which means they can be assigned a null value, or may 
 
 For complex data types - lists, fixed sized lists, and structs, **you must click the tree icon** to assign the data types of members of the list or struct. You can find the setting for fixed-size list length by clicking the 3 dots. 
 
-![Click the tree icon on the right to assign the next level of data types](../../../.gitbook/assets/screen-shot-2020-11-24-at-5.36.17-pm.png)
+![Click the tree icon on the right to assign the next level of data types](https://cdn-us1.hash.ai/site/docs/screen-shot-2020-11-24-at-5.36.17-pm.png)
 
 <Hint style="info">
 Dynamically populated structs should be assigned the `any` type.

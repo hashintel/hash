@@ -22,7 +22,7 @@ Process models are useful for timing complex chains of actions. Service blocks w
 
 Sink blocks will record all the waits an object experienced, as well as the total time it took it to traverse the model. To specify a timing plot, first create metrics which access the appropriate '&lt;service\_name&gt;\_wait\_time' and '&lt;sink\_name&gt;\_through\_time' , which are located in the `process_data` field on the agent. Then specify a "timeseries" plot with those metrics. Note that "wait times" are keyed to a Service block, while "through times" are keyed to a Sink.
 
-![](../../.gitbook/assets/image%20%2852%29.png)
+![](https://cdn-us1.hash.ai/site/docs/image%20%2852%29.png)
 
 ## Resource Usage
 
