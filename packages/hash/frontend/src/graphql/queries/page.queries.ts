@@ -66,8 +66,18 @@ export const createPage = gql`
 `;
 
 export const updatePage = gql`
-  mutation updatePage($accountId: ID!, $id: ID!, $properties: PageUpdateData!) {
-    updatePage(accountId: $accountId, id: $id, properties: $properties) {
+  mutation updatePage(
+    $accountId: ID!
+    $id: ID!
+    $metadataId: ID!
+    $properties: PageUpdateData!
+  ) {
+    updatePage(
+      accountId: $accountId
+      id: $id
+      metadataId: $metadataId
+      properties: $properties
+    ) {
       ...PageFields
     }
   }
@@ -82,6 +92,7 @@ export const insertBlockIntoPage = gql`
     $entityProperties: JSONObject!
     $position: Int!
     $pageId: ID!
+    $pageMetadataId: ID!
     $versioned: Boolean! = true
   ) {
     insertBlockIntoPage(
@@ -91,6 +102,7 @@ export const insertBlockIntoPage = gql`
       entityProperties: $entityProperties
       position: $position
       pageId: $pageId
+      pageMetadataId: $pageMetadataId
       versioned: $versioned
     ) {
       ...PageFields
@@ -103,12 +115,14 @@ export const insertBlocksIntoPage = gql`
   mutation insertBlocksIntoPage(
     $accountId: ID!
     $pageId: ID!
+    $pageMetadataId: ID!
     $blocks: [InsertBlocksData!]!
     $previousBlockId: ID
   ) {
     insertBlocksIntoPage(
       accountId: $accountId
       pageId: $pageId
+      pageMetadataId: $pageMetadataId
       blocks: $blocks
       previousBlockId: $previousBlockId
     ) {

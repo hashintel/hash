@@ -89,7 +89,12 @@ export const pageTypedef = gql`
   extend type Mutation {
     createPage(accountId: ID!, properties: PageCreationData!): Page!
 
-    updatePage(accountId: ID!, id: ID!, properties: PageUpdateData!): Page!
+    updatePage(
+      accountId: ID!
+      id: ID!
+      metadataId: ID!
+      properties: PageUpdateData!
+    ): Page!
 
     """
     Insert a block into a given page.
@@ -109,6 +114,7 @@ export const pageTypedef = gql`
       """
       accountId: ID!
       pageId: ID!
+      pageMetadataId: ID!
       versioned: Boolean! = false
       """
       The position of the block in the page contents, starting at 0
@@ -119,6 +125,7 @@ export const pageTypedef = gql`
     insertBlocksIntoPage(
       accountId: ID!
       pageId: ID!
+      pageMetadataId: ID!
       """
       The blocks to insert.
       """

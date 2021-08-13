@@ -56,6 +56,7 @@ describe("create and update pages", () => {
     const updatedPage = await client.insertBlocksIntoPage({
       accountId: ACCOUNT_ID,
       pageId: page.id,
+      pageMetadataId: page.metadataId,
       blocks: [
         {
           accountId: ACCOUNT_ID,
@@ -87,23 +88,28 @@ describe("create and update pages", () => {
     );
   });
 
-  it("should throw when updating non-latest version of a page", async () => {
-    expect.assertions(1);
-    await expect(
-      client.insertBlocksIntoPage({
-        accountId: ACCOUNT_ID,
-        pageId: page.id,
-        blocks: [
-          {
-            accountId: ACCOUNT_ID,
-            componentId: "https://block.blockprotocol.org/header",
-            entityType: "Text",
-            entityProperties: {
-              texts: [{ text: "This will fail" }],
-            },
-          },
-        ],
-      })
-    ).rejects.toThrow();
-  });
+  // @todo: we changed the behavior of GraphQL updates to perform the update on the
+  // latest version, even if the ID passed does not match that of the latest version.
+  // The test below expects an error on such cases. Return here when the question of
+  // optimistic vs. strict entity updates is resolved.
+  // it("should throw when updating non-latest version of a page", async () => {
+  //   expect.assertions(1);
+  //   await expect(
+  //     client.insertBlocksIntoPage({
+  //       accountId: ACCOUNT_ID,
+  //       pageId: page.id,
+  //       pageMetadataId: page.metadataId,
+  //       blocks: [
+  //         {
+  //           accountId: ACCOUNT_ID,
+  //           componentId: "https://block.blockprotocol.org/header",
+  //           entityType: "Text",
+  //           entityProperties: {
+  //             texts: [{ text: "This will fail" }],
+  //           },
+  //         },
+  //       ],
+  //     })
+  //   ).rejects.toThrow();
+  // });
 });

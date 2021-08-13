@@ -31,10 +31,21 @@ export const createEntity = gql`
 `;
 
 export const updateEntity = gql`
-  mutation updateEntity($accountId: ID!, $id: ID!, $properties: JSONObject!) {
-    updateEntity(accountId: $accountId, id: $id, properties: $properties) {
+  mutation updateEntity(
+    $accountId: ID!
+    $id: ID!
+    $metadataId: ID!
+    $properties: JSONObject!
+  ) {
+    updateEntity(
+      accountId: $accountId
+      id: $id
+      metadataId: $metadataId
+      properties: $properties
+    ) {
       __typename
       id
+      metadataId
       type
       updatedAt
       ... on UnknownEntity {
