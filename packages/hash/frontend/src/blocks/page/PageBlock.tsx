@@ -173,7 +173,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
           );
         });
     };
-  }, [accountId, insert, pageId, update, updateContents]);
+  }, [accountId, insert, metadataId, pageId, update, updateContents]);
 
   /**
    * This effect runs once and just sets up the prosemirror instance. It is not responsible for setting the contents of
@@ -240,7 +240,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       node.innerHTML = "";
       prosemirrorSetup.current = null;
     };
-  }, [clearCallback, deferCallback, replacePortal]);
+  }, [accountId, clearCallback, deferCallback, pageId, replacePortal]);
 
   /**
    * This effect is responsible for ensuring all the preloaded blocks (currently just paragraph) are defined in
