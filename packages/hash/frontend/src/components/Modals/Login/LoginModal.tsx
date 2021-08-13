@@ -1,8 +1,10 @@
 import React, { useCallback, useRef, VoidFunctionComponent } from "react";
+import { useRouter } from "next/router";
 import { ApolloError, useMutation } from "@apollo/client";
 import { ParsedUrlQueryInput } from "querystring";
 import { useEffect, useState } from "react";
 import { tw } from "twind";
+
 import { Modal, ModalProps } from "../Modal";
 import {
   LoginCodeMetadata,
@@ -14,7 +16,6 @@ import {
   sendLoginCode as sendLoginCodeMutation,
   loginWithLoginCode as loginWithLoginCodeMutation,
 } from "../../../graphql/queries/user.queries";
-import { useRouter } from "next/router";
 
 type ParsedLoginQuery = {
   loginId: string;
