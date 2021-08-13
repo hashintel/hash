@@ -345,7 +345,7 @@ class BlockView {
     this.allowDragging = false;
     this.dragging = false;
 
-    document.addEventListener("dragend", this.dragEnd);
+    document.addEventListener("dragend", this.onDragEnd);
 
     /** @implements https://prosemirror.net/docs/ref/#view.NodeView.contentDOM */
     this.contentDOM = document.createElement("div");
@@ -355,7 +355,7 @@ class BlockView {
     this.update(node);
   }
 
-  dragEnd = () => {
+  onDragEnd = () => {
     document.activeElement.blur();
 
     this.dragging = false;
@@ -480,9 +480,7 @@ class BlockView {
 
             this.update(this.node);
           }}
-          onClick={() => {
-            this.dragEnd();
-          }}
+          onClick={this.onDragEnd}
         />
         <BlockSelect nodeView={this} ref={(node) => this.selectDom = node} />
       </>
@@ -497,7 +495,7 @@ class BlockView {
   destroy() {
     this.replacePortal(this.selectContainer, null, null);
     this.dom.remove();
-    document.removeEventListener("dragend", this.dragEnd);
+    document.removeEventListener("dragend", this.onDragEnd);
   }
 }
 
