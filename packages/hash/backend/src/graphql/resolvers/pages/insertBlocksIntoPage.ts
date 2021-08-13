@@ -20,7 +20,7 @@ export const insertBlocksIntoPage: Resolver<
   MutationInsertBlocksIntoPageArgs
 > = async (
   _,
-  { accountId, pageId, blocks, previousBlockId },
+  { accountId, pageMetadataId, blocks, previousBlockId },
   { dataSources }
 ) => {
   return await dataSources.db.transaction(async (client): Promise<DbPage> => {
@@ -65,9 +65,14 @@ export const insertBlocksIntoPage: Resolver<
     );
 
     // Insert the blocks into the page
-    const page = await client.getEntity({ accountId, entityId: pageId });
+    // @todo: always get the latest version for now. This is a temporary measure.
+    // return here when strict vs. optimistic entity mutation question is resolved.
+    const page = await client.getLatestEntityVersion({
+      accountId,
+      metadataId: pageMetadataId,
+    });
     if (!page) {
-      const msg = `Page ${pageId} not found in account ${accountId}`;
+      const msg = `Page ${pageMetadataId} not found in account ${accountId}`;
       throw new ApolloError(msg, "NOT_FOUND");
     }
     const pos = previousBlockId

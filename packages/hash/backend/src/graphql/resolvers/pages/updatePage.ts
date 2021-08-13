@@ -12,16 +12,21 @@ export const updatePage: Resolver<
   {},
   GraphQLContext,
   MutationUpdatePageArgs
-> = async (_, { accountId, id, properties }, { dataSources }) => {
+> = async (_, { accountId, metadataId, properties }, { dataSources }) => {
   return await dataSources.db.transaction(async (client) => {
-    const entity = await client.getEntity({ accountId, entityId: id }, true);
+    // @todo: always get the latest version for now. This is a temporary measure.
+    // return here when strict vs. optimistic entity mutation question is resolved.
+    const entity = await client.getLatestEntityVersion({
+      accountId,
+      metadataId,
+    });
     if (!entity) {
-      throw new ApolloError(`page ${id} not found`, "NOT_FOUND");
+      throw new ApolloError(`page ${metadataId} not found`, "NOT_FOUND");
     }
 
     const updatedEntities = await client.updateEntity({
       accountId,
-      entityId: id,
+      entityId: entity.entityId,
       metadataId: entity.metadataId,
       properties: {
         ...(entity.properties ?? {}),
