@@ -1,21 +1,11 @@
 import React, { useCallback, useRef, VoidFunctionComponent } from "react";
 import { useRouter } from "next/router";
-import { ApolloError, useMutation } from "@apollo/client";
 import { ParsedUrlQueryInput } from "querystring";
 import { useEffect, useState } from "react";
 import { tw } from "twind";
 
 import { Modal, ModalProps } from "../Modal";
-import {
-  LoginCodeMetadata,
-  Mutation,
-  MutationLoginWithLoginCodeArgs,
-  SendLoginCodeMutationVariables,
-} from "../../../graphql/apiTypes.gen";
-import {
-  sendLoginCode as sendLoginCodeMutation,
-  loginWithLoginCode as loginWithLoginCodeMutation,
-} from "../../../graphql/queries/user.queries";
+import { useLogin } from "../../hooks/useLogin";
 
 type ParsedLoginQuery = {
   loginId: string;
@@ -46,11 +36,30 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
   const [emailOrShortname, setEmailOrShortname] = useState<string>("");
 
   const [loginCode, setLoginCode] = useState<string>("");
-  const [loginCodeMetadata, setLoginCodeMetadata] = useState<
-    LoginCodeMetadata | undefined
-  >();
 
-  const [errorMessage, setErrorMessage] = useState<React.ReactNode>();
+  const resetForm = useCallback(() => {
+    setEmailOrShortname("");
+    setLoginCode("");
+
+    if (emailOrShortnameInputRef.current) {
+      emailOrShortnameInputRef.current.focus();
+    }
+  }, [emailOrShortnameInputRef]);
+
+  const {
+    loginCodeMetadata,
+    loginWithLoginCode,
+    loginWithLoginCodeLoading,
+    sendLoginCode,
+    sendLoginCodeLoading,
+    errorMessage,
+  } = useLogin({
+    reset: resetForm,
+    onLoggedIn,
+    onIncorrectLoginCode: () => {
+      if (loginCodeInputRef.current) loginCodeInputRef.current.select();
+    },
+  });
 
   useEffect(() => {
     if (show && emailOrShortnameInputRef.current) {
@@ -63,70 +72,6 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
       loginCodeInputRef.current.focus();
     }
   }, [loginCodeInputRef, loginCodeMetadata]);
-
-  const [sendLoginCode, { loading: sendLoginCodeLoading }] = useMutation<
-    Mutation,
-    SendLoginCodeMutationVariables
-  >(sendLoginCodeMutation, {
-    onCompleted: (data) => {
-      setErrorMessage(undefined);
-      setLoginCodeMetadata(data?.sendLoginCode);
-    },
-    onError: ({ graphQLErrors }) =>
-      graphQLErrors.forEach(({ extensions, message }) => {
-        const { code } = extensions as { code?: string };
-
-        if (code === "NOT_FOUND") {
-          setErrorMessage(message);
-        } else {
-          throw new ApolloError({ graphQLErrors });
-        }
-      }),
-  });
-
-  const reset = useCallback(() => {
-    setEmailOrShortname("");
-    setLoginCode("");
-    setLoginCodeMetadata(undefined);
-
-    if (emailOrShortnameInputRef.current) {
-      emailOrShortnameInputRef.current.focus();
-    }
-  }, [emailOrShortnameInputRef]);
-
-  const [loginWithLoginCode, { loading: loginWithLoginCodeLoading }] =
-    useMutation<Mutation, MutationLoginWithLoginCodeArgs>(
-      loginWithLoginCodeMutation,
-      {
-        onCompleted: () => {
-          if (onLoggedIn) onLoggedIn();
-        },
-        onError: ({ graphQLErrors }) =>
-          graphQLErrors.forEach(({ extensions }) => {
-            const { code } = extensions as { code?: string };
-
-            if (code === "LOGIN_CODE_NOT_FOUND") {
-              reset();
-              setErrorMessage(
-                "An unexpected error occurred, please try again."
-              );
-            } else if (code === "MAX_ATTEMPTS") {
-              reset();
-              setErrorMessage(
-                "You have exceeded the maximum number of attempts for this login code, please try again."
-              );
-            } else if (code === "EXPIRED") {
-              reset();
-              setErrorMessage("This login code has expired, please try again.");
-            } else if (code === "INCORRECT") {
-              setErrorMessage("Incorrect, please try again.");
-              if (loginCodeInputRef.current) loginCodeInputRef.current.select();
-            } else {
-              throw new ApolloError({ graphQLErrors });
-            }
-          }),
-      }
-    );
 
   useEffect(() => {
     const { pathname, query } = router;
@@ -200,7 +145,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
             <button
               type="button"
               className={tw`flex-grow mr-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 px-4 rounded`}
-              onClick={reset}
+              onClick={resetForm}
             >
               Cancel
             </button>
