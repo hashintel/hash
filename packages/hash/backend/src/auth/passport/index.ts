@@ -1,13 +1,12 @@
 import passport, { AuthenticateOptions } from "passport";
 import { Express } from "express";
 import { ExpressContext } from "apollo-server-express";
-
-import { DBAdapter } from "../../db/adapter";
-import { Entity } from "../../db/adapter";
+import { DBAdapter } from "src/db";
+import UserModel from "src/model/user.model";
 
 declare global {
   namespace Express {
-    interface User extends Entity {}
+    interface User extends UserModel {}
   }
 }
 
@@ -21,7 +20,7 @@ export const setupPassport = (app: Express, db: DBAdapter) => {
   );
 
   passport.deserializeUser<SerializedPassportUser>(({ id }, done) =>
-    db.getUserById({ id }).then((user) => {
+    UserModel.getUserById(db)({ id }).then((user) => {
       done(null, user); // TODO: pass error instead of null when user isn't found
     })
   );

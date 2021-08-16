@@ -5,4 +5,4 @@ export const me: Resolver<User, {}, LoggedInGraphQLContext> = async (
   _,
   __,
   { user }
-) => user;
+) => user.toGQLUser();
