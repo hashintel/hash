@@ -5,8 +5,8 @@ import {
   Entity,
   EntityMeta,
   EntityType,
+  VerificationCode,
   EntityVersion,
-  LoginCode,
 } from "../adapter";
 import { entityNotFoundError, gatherLinks, replaceLink } from "./util";
 import { genId } from "../../util";
@@ -45,10 +45,10 @@ import {
 } from "./link";
 import { getUserByEmail, getUserById, getUserByShortname } from "./user";
 import {
-  getLoginCode,
-  incrementLoginCodeAttempts,
-  insertLoginCode,
-  pruneLoginCodes,
+  insertVerificationCode,
+  getVerificationCode,
+  incrementVerificationCodeAttempts,
+  pruneVerificationCodes,
 } from "./login";
 import { jsonSchema } from "../../lib/schemas/jsonSchema";
 import { SystemType } from "../../types/entityTypes";
@@ -574,29 +574,31 @@ export class PostgresClient implements DBClient {
     return await updateEntityMetadata(this.conn, params);
   }
 
-  async createLoginCode(params: {
+  async createVerificationCode(params: {
     accountId: string;
     userId: string;
     code: string;
-  }): Promise<LoginCode> {
+  }): Promise<VerificationCode> {
     const id = genId();
     const createdAt = new Date();
-    await insertLoginCode(this.conn, { ...params, loginId: id, createdAt });
+    await insertVerificationCode(this.conn, { ...params, id, createdAt });
     return { id, ...params, createdAt, numberOfAttempts: 0 };
   }
 
-  async getLoginCode(params: { loginId: string }): Promise<LoginCode | null> {
-    return await getLoginCode(this.conn, params);
+  async getVerificationCode(params: {
+    id: string;
+  }): Promise<VerificationCode | null> {
+    return await getVerificationCode(this.conn, params);
   }
 
-  async incrementLoginCodeAttempts(params: {
-    loginCode: LoginCode;
+  async incrementVerificationCodeAttempts(params: {
+    verificationCode: VerificationCode;
   }): Promise<void> {
-    return await incrementLoginCodeAttempts(this.conn, params);
+    return await incrementVerificationCodeAttempts(this.conn, params);
   }
 
-  async pruneLoginCodes(): Promise<number> {
-    return await pruneLoginCodes(this.conn);
+  async pruneVerificationCodes(): Promise<number> {
+    return await pruneVerificationCodes(this.conn);
   }
 
   // @todo: may be deprecated. Users of the adapter can now use a transction to combine

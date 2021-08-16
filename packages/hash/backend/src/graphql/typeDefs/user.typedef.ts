@@ -70,7 +70,7 @@ export const userTypedef = gql`
     shortname: String!
   }
 
-  type LoginCodeMetadata {
+  type VerificationCodeMetadata {
     id: ID!
     createdAt: Date!
   }
@@ -85,8 +85,8 @@ export const userTypedef = gql`
 
   extend type Mutation {
     createUser(email: String!, shortname: String!): User!
-    sendLoginCode(emailOrShortname: String!): LoginCodeMetadata!
-    loginWithLoginCode(loginId: ID!, loginCode: String!): User!
+    sendLoginCode(emailOrShortname: String!): VerificationCodeMetadata!
+    loginWithLoginCode(verificationId: ID!, verificationCode: String!): User!
     logout: LogoutResponse!
   }
 `;

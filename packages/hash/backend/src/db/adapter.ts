@@ -54,7 +54,7 @@ export type EntityMeta = {
   extra: any;
 };
 
-export type LoginCode = {
+export type VerificationCode = {
   id: string;
   code: string;
   userId: string;
@@ -199,21 +199,23 @@ export interface DBClient {
     extra: any;
   }): Promise<EntityMeta>;
 
-  /** Create a login code */
-  createLoginCode(params: {
+  /** Create a verification code */
+  createVerificationCode(params: {
     accountId: string;
     userId: string;
     code: string;
-  }): Promise<LoginCode>;
+  }): Promise<VerificationCode>;
 
-  /** Get a login code (it may be invalid!) */
-  getLoginCode(params: { loginId: string }): Promise<LoginCode | null>;
+  /** Get a verification code (it may be invalid!) */
+  getVerificationCode(params: { id: string }): Promise<VerificationCode | null>;
 
-  /** Increment the number of login attempts by 1 */
-  incrementLoginCodeAttempts(params: { loginCode: LoginCode }): Promise<void>;
+  /** Increment the number of verification attempts by 1 */
+  incrementVerificationCodeAttempts(params: {
+    verificationCode: VerificationCode;
+  }): Promise<void>;
 
-  /** Prunes login codes from the database after 1 day of creation */
-  pruneLoginCodes(): Promise<number>;
+  /** Prunes verification codes from the database after 1 day of creation */
+  pruneVerificationCodes(): Promise<number>;
 
   /**
    * getAndUpdateEntity may be used to retrieve and update an entity within

@@ -11,7 +11,7 @@ import {
   Entity,
   EntityMeta,
   EntityType,
-  LoginCode,
+  VerificationCode,
   EntityVersion,
 } from "../adapter";
 import { SystemType } from "../../types/entityTypes";
@@ -184,24 +184,30 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return this.query((adapter) => adapter.updateEntityMetadata(params));
   }
 
-  createLoginCode(params: {
+  createVerificationCode(params: {
     accountId: string;
     userId: string;
     code: string;
-  }): Promise<LoginCode> {
-    return this.query((adapter) => adapter.createLoginCode(params));
+  }): Promise<VerificationCode> {
+    return this.query((adapter) => adapter.createVerificationCode(params));
   }
 
-  getLoginCode(params: { loginId: string }): Promise<LoginCode | null> {
-    return this.query((adapter) => adapter.getLoginCode(params));
+  getVerificationCode(params: {
+    id: string;
+  }): Promise<VerificationCode | null> {
+    return this.query((adapter) => adapter.getVerificationCode(params));
   }
 
-  incrementLoginCodeAttempts(params: { loginCode: LoginCode }): Promise<void> {
-    return this.query((adapter) => adapter.incrementLoginCodeAttempts(params));
+  incrementVerificationCodeAttempts(params: {
+    verificationCode: VerificationCode;
+  }): Promise<void> {
+    return this.query((adapter) =>
+      adapter.incrementVerificationCodeAttempts(params)
+    );
   }
 
-  pruneLoginCodes(): Promise<number> {
-    return this.query((adapter) => adapter.pruneLoginCodes());
+  pruneVerificationCodes(): Promise<number> {
+    return this.query((adapter) => adapter.pruneVerificationCodes());
   }
 
   getAndUpdateEntity(params: {

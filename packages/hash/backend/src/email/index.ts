@@ -1,7 +1,7 @@
 import { SendMailOptions } from "nodemailer";
 import { convert } from "html-to-text";
-
-import { LoginCode } from "../db/adapter";
+import { VerificationCode } from "src/db/adapter";
+import { DbUser } from "src/types/dbTypes";
 import awsSesTransporter from "./transporters/awsSes";
 import { getRequiredEnv } from "../util";
 
@@ -29,19 +29,19 @@ export const sendMail = ({
     .catch((err) => console.log("Error sending mail: ", err));
 
 export const sendLoginCodeToUser = async (
-  loginCode: LoginCode,
-  user: { properties: { email: string } }
+  verificationCode: VerificationCode,
+  user: DbUser
 ): Promise<void> => {
-  const loginLink = `http://${FRONTEND_DOMAIN}/login?loginId=${encodeURIComponent(
-    loginCode.id
-  )}&loginCode=${encodeURIComponent(loginCode.code)}`;
+  const magicLink = `http://${FRONTEND_DOMAIN}/login?verificationId=${encodeURIComponent(
+    verificationCode.id
+  )}&verificationCode=${encodeURIComponent(verificationCode.code)}`;
 
   await sendMail({
     to: user.properties.email,
     subject: "Your Temporary HASH.dev Login Code",
     html: `
-        <p>To log in, copy and paste your login code or <a href=${loginLink}>click here</a>.</p>
-        <code>${loginCode.code}</code>
+        <p>To log in, copy and paste your login code or <a href=${magicLink}>click here</a>.</p>
+        <code>${verificationCode.code}</code>
       `,
   });
 };

@@ -111,12 +111,12 @@ create table if not exists incoming_links (
     primary key (account_id, entity_version_id, parent_version_id)
 );
 
-/** Stores login codes used for passwordless authentication */
-create table if not exists login_codes (
-    login_id           uuid not null,
+/** Stores verification codes used for passwordless authentication and email verification */
+create table if not exists verification_codes (
+    verification_id    uuid not null,
     account_id         uuid not null,
     user_id            uuid not null,
-    login_code         text not null,
+    verification_code  text not null,
     number_of_attempts integer not null default 0,
     created_at         timestamp with time zone not null,
 

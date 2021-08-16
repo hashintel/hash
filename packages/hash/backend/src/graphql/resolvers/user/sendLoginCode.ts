@@ -2,7 +2,7 @@ import { ApolloError } from "apollo-server-express";
 
 import {
   MutationSendLoginCodeArgs,
-  LoginCodeMetadata,
+  VerificationCodeMetadata,
   Resolver,
 } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
@@ -10,7 +10,7 @@ import { GraphQLPasswordlessStrategy } from "../../../auth/passport/Passwordless
 import { sendLoginCodeToUser } from "../../../email";
 
 export const sendLoginCode: Resolver<
-  Promise<LoginCodeMetadata>,
+  Promise<VerificationCodeMetadata>,
   {},
   GraphQLContext,
   MutationSendLoginCodeArgs
@@ -37,14 +37,14 @@ export const sendLoginCode: Resolver<
           return user;
         });
 
-  const loginCode = await dataSources.db.createLoginCode({
+  const verificationCode = await dataSources.db.createVerificationCode({
     accountId: user.accountId,
     userId: user.entityId,
     code: GraphQLPasswordlessStrategy.generateLoginCode(),
   });
 
-  return sendLoginCodeToUser(loginCode, user).then(() => ({
-    id: loginCode.id,
-    createdAt: loginCode.createdAt,
+  return sendLoginCodeToUser(verificationCode, user).then(() => ({
+    id: verificationCode.id,
+    createdAt: verificationCode.createdAt,
   }));
 };
