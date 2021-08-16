@@ -1,4 +1,5 @@
 import { DBAdapter } from "src/db";
+import { genId } from "src/util";
 import { UserProperties, User as GQLUser } from "../graphql/apiTypes.gen";
 import Entity, { EntityConstructorArgs } from "./entity.model";
 
@@ -26,6 +27,23 @@ class User extends Entity {
       db
         .getUserById({ id })
         .then((dbUser) => (dbUser ? new User(dbUser) : null));
+
+  static create =
+    (db: DBAdapter) =>
+    async (properties: UserProperties): Promise<User> => {
+      const id = genId();
+
+      const entity = await db.createEntity({
+        accountId: id,
+        entityId: id,
+        createdById: id, // Users "create" themselves
+        type: "User",
+        properties,
+        versioned: false, // @todo: should user's be versioned?
+      });
+
+      return new User({ id, ...entity });
+    };
 
   toGQLUser = (): GQLUser => ({
     ...this.toGQLEntity(),
