@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ApolloError, useMutation } from "@apollo/client";
 
 import {
-  LoginCodeMetadata,
+  VerificationCodeMetadata,
   LoginWithLoginCodeMutation,
   MutationLoginWithLoginCodeArgs,
   SendLoginCodeMutation,
@@ -25,12 +25,12 @@ export const useLogin = ({
   onIncorrectLoginCode,
 }: useLoginProps) => {
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
-  const [loginCodeMetadata, setLoginCodeMetadata] = useState<
-    LoginCodeMetadata | undefined
+  const [verificationCodeMetadata, setVerificationCodeMetadata] = useState<
+    VerificationCodeMetadata | undefined
   >();
 
   const reset = () => {
-    setLoginCodeMetadata(undefined);
+    setVerificationCodeMetadata(undefined);
     resetCallback();
   };
 
@@ -40,7 +40,7 @@ export const useLogin = ({
   >(sendLoginCodeMutation, {
     onCompleted: ({ sendLoginCode }) => {
       setErrorMessage(undefined);
-      setLoginCodeMetadata(sendLoginCode);
+      setVerificationCodeMetadata(sendLoginCode);
     },
     onError: ({ graphQLErrors }) =>
       graphQLErrors.forEach(({ extensions, message }) => {
@@ -91,7 +91,7 @@ export const useLogin = ({
   return {
     sendLoginCode,
     sendLoginCodeLoading,
-    loginCodeMetadata,
+    verificationCodeMetadata,
     loginWithLoginCode,
     loginWithLoginCodeLoading,
     errorMessage,

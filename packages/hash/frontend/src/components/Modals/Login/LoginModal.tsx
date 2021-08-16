@@ -8,17 +8,14 @@ import { Modal, ModalProps } from "../Modal";
 import { useLogin } from "../../hooks/useLogin";
 
 type ParsedLoginQuery = {
-  loginId: string;
-  loginCode: string;
+  verificationId: string;
+  verificationCode: string;
 };
 
 const tbdIsParsedLoginQuery = (
   tbd: ParsedUrlQueryInput
 ): tbd is ParsedLoginQuery =>
-  tbd.loginId !== undefined &&
-  typeof tbd.loginId === "string" &&
-  tbd.loginCode !== undefined &&
-  typeof tbd.loginCode === "string";
+  typeof tbd.loginId === "string" && typeof tbd.loginCode === "string";
 
 type LoginModalProps = {
   onLoggedIn?: () => void;
@@ -31,15 +28,15 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
 }) => {
   const router = useRouter();
   const emailOrShortnameInputRef = useRef<HTMLInputElement>(null);
-  const loginCodeInputRef = useRef<HTMLInputElement>(null);
+  const verificationCodeInputRef = useRef<HTMLInputElement>(null);
 
   const [emailOrShortname, setEmailOrShortname] = useState<string>("");
 
-  const [loginCode, setLoginCode] = useState<string>("");
+  const [verificationCode, setVerificationCode] = useState<string>("");
 
   const resetForm = useCallback(() => {
     setEmailOrShortname("");
-    setLoginCode("");
+    setVerificationCode("");
 
     if (emailOrShortnameInputRef.current) {
       emailOrShortnameInputRef.current.focus();
@@ -47,7 +44,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
   }, [emailOrShortnameInputRef]);
 
   const {
-    loginCodeMetadata,
+    verificationCodeMetadata,
     loginWithLoginCode,
     loginWithLoginCodeLoading,
     sendLoginCode,
@@ -57,7 +54,8 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
     reset: resetForm,
     onLoggedIn,
     onIncorrectLoginCode: () => {
-      if (loginCodeInputRef.current) loginCodeInputRef.current.select();
+      if (verificationCodeInputRef.current)
+        verificationCodeInputRef.current.select();
     },
   });
 
@@ -68,23 +66,25 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
   }, [emailOrShortnameInputRef, show]);
 
   useEffect(() => {
-    if (loginCodeMetadata && loginCodeInputRef.current) {
-      loginCodeInputRef.current.focus();
+    if (verificationCodeMetadata && verificationCodeInputRef.current) {
+      verificationCodeInputRef.current.focus();
     }
-  }, [loginCodeInputRef, loginCodeMetadata]);
+  }, [verificationCodeInputRef, verificationCodeMetadata]);
 
   useEffect(() => {
     const { pathname, query } = router;
 
     if (pathname === "/login" && tbdIsParsedLoginQuery(query)) {
-      const { loginId, loginCode } = query;
-      void loginWithLoginCode({ variables: { loginId, loginCode } });
+      const { verificationId, verificationCode } = query;
+      void loginWithLoginCode({
+        variables: { verificationId, verificationCode },
+      });
     }
   }, [router, loginWithLoginCode]);
 
   const emailOrShortnameIsValid = emailOrShortname !== "";
 
-  const loginCodeIsValid = loginCode !== "";
+  const verificationCodeIsValid = verificationCode !== "";
 
   return (
     <Modal show={show} close={close}>
@@ -105,9 +105,9 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
           value={emailOrShortname}
           onChange={({ target }) => setEmailOrShortname(target.value)}
           placeholder="Enter your email or shortname"
-          disabled={loginCodeMetadata !== undefined}
+          disabled={verificationCodeMetadata !== undefined}
         />
-        {!loginCodeMetadata && (
+        {!verificationCodeMetadata && (
           <button
             className={tw`ml-1 bg-blue-500 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-2 px-4 rounded`}
             disabled={sendLoginCodeLoading || !emailOrShortnameIsValid}
@@ -117,14 +117,14 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
           </button>
         )}
       </form>
-      {loginCodeMetadata && (
+      {verificationCodeMetadata && (
         <form
           onSubmit={(event) => {
             event.preventDefault();
             void loginWithLoginCode({
               variables: {
-                loginId: loginCodeMetadata.id,
-                loginCode,
+                verificationId: verificationCodeMetadata.id,
+                verificationCode: verificationCode,
               },
             });
           }}
@@ -133,11 +133,11 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
             Please check your inbox for a temporary login code
           </p>
           <input
-            ref={loginCodeInputRef}
+            ref={verificationCodeInputRef}
             className={tw`mb-4 shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline`}
             type="text"
-            value={loginCode}
-            onChange={({ target }) => setLoginCode(target.value)}
+            value={verificationCode}
+            onChange={({ target }) => setVerificationCode(target.value)}
             placeholder="Paste your login code"
             disabled={loginWithLoginCodeLoading}
           />
@@ -151,7 +151,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
             </button>
             <button
               className={tw`flex-grow ml-1 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded`}
-              disabled={loginWithLoginCodeLoading || !loginCodeIsValid}
+              disabled={loginWithLoginCodeLoading || !verificationCodeIsValid}
               type="submit"
             >
               Login

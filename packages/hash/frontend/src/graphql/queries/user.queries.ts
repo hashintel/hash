@@ -31,8 +31,14 @@ export const sendLoginCode = gql`
 `;
 
 export const loginWithLoginCode = gql`
-  mutation loginWithLoginCode($loginId: ID!, $loginCode: String!) {
-    loginWithLoginCode(loginId: $loginId, loginCode: $loginCode) {
+  mutation loginWithLoginCode(
+    $verificationId: ID!
+    $verificationCode: String!
+  ) {
+    loginWithLoginCode(
+      verificationId: $verificationId
+      verificationCode: $verificationCode
+    ) {
       __typename
       id
       createdById
