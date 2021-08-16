@@ -42,9 +42,9 @@ export const useBlockProtocolUpdate = (): {
         actions.map(async (action) => {
           await (action.entityType === "Page" ? updatePageFn : updateEntityFn)({
             variables: {
-              id: action.entityId,
+              metadataId: action.entityId,
               properties: action.data,
-              accountId: action.accountId,
+              accountId: action.accountId!,
             },
           });
         })

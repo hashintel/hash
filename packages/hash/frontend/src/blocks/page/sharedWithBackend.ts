@@ -290,13 +290,13 @@ export const mapEntitiesToBlocks = (
             /**
              * These are here to help reconstruct the database objects from the prosemirror document.
              */
-            childEntityId: entity.id,
+            childEntityId: entity.metadataId,
             childEntityAccountId: entity.accountId,
 
             children: entity.textProperties.texts.map((text) => ({
               type: "text",
               text: text.text,
-              entityId: entity.id,
+              entityId: entity.metadataId,
               accountId: entity.accountId,
 
               // This maps the boolean properties on the entity into an array of mark names
@@ -311,7 +311,7 @@ export const mapEntitiesToBlocks = (
           }
         : entity.__typename === "UnknownEntity"
         ? {
-            childEntityId: entity.id,
+            childEntityId: entity.metadataId,
             ...entity.unknownProperties,
           }
         : {};
@@ -554,7 +554,7 @@ export const calculateSavePayloads = (
     JSON.stringify(mappedBlocks.map((block) => block.entityId))
       ? {
           entityType: "Page",
-          entityId: pageId,
+          entityId: metadataId,
           accountId,
           data: {
             contents: existingBlocks.map((node) => ({
