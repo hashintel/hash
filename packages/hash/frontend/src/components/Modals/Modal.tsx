@@ -2,7 +2,7 @@ import { ReactNode, VoidFunctionComponent } from "react";
 import { Dialog } from "@headlessui/react";
 import { tw } from "twind";
 
-type ModalProps = {
+export type ModalProps = {
   children: ReactNode;
   close: () => void;
   show: boolean;

@@ -47,6 +47,12 @@ export const loginWithLoginCode = gql`
   }
 `;
 
+export const logout = gql`
+  mutation logout {
+    logout
+  }
+`;
+
 export const meQuery = gql`
   query me {
     me {
@@ -60,11 +66,5 @@ export const meQuery = gql`
         email
       }
     }
-  }
-`;
-
-export const logout = gql`
-  mutation logout {
-    logout
   }
 `;
