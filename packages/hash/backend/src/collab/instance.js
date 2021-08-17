@@ -1,7 +1,5 @@
 import { createApolloClient } from "@hashintel/hash-frontend/src/graphql/createApolloClient";
 
-const fetch = require("node-fetch");
-
 import { Mapping, Step, Transform } from "prosemirror-transform";
 import {
   createInitialDoc,
@@ -19,9 +17,6 @@ import {
 } from "@hashintel/hash-frontend/src/graphql/queries/page.queries";
 import { updateEntity } from "@hashintel/hash-frontend/src/graphql/queries/entity.queries";
 import { createPMState } from "@hashintel/hash-frontend/src/blocks/page/sharedWithBackendJs";
-
-// @todo remove need to do this
-globalThis.fetch = fetch;
 
 const MAX_STEP_HISTORY = 10000;
 
