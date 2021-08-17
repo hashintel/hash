@@ -275,6 +275,11 @@ async function newInstance(accountId, id) {
     await createBlockUpdateTransaction(state, blocks, null)
   );
 
+  // The instance may have been created whilst another user we were doing the above work
+  if (instances[id]) {
+    return instances[id];
+  }
+
   return (instances[id] = new Instance(
     accountId,
     id,
