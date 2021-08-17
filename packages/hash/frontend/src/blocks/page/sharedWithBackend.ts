@@ -212,6 +212,26 @@ export const replaceStateContent = (
   return tr;
 };
 
+export const transformBlockForProsemirror = (block: BlockWithoutMeta) => {
+  const {
+    children,
+    childEntityId = null,
+    childEntityAccountId = null,
+    childEntityTypeId = null,
+    ...props
+  } = block.entity;
+
+  const attrs = {
+    entityId: block.entityId,
+    accountId: block.accountId,
+    childEntityId,
+    childEntityAccountId,
+    childEntityTypeId,
+  };
+
+  return { children, props, attrs };
+};
+
 /**
  * @todo replace this with a prosemirror command
  * @todo take a signal
@@ -227,13 +247,7 @@ export const createBlockUpdateTransaction = async (
 
   const newNodes = await Promise.all(
     contents?.map(async (block, index) => {
-      const {
-        children,
-        childEntityId = null,
-        childEntityAccountId = null,
-        childEntityTypeId = null,
-        ...props
-      } = block.entity;
+      const { children, props, attrs } = transformBlockForProsemirror(block);
 
       const id = componentUrlToProsemirrorId(block.componentId);
 
@@ -254,11 +268,7 @@ export const createBlockUpdateTransaction = async (
             ...(cachedPropertiesByEntity[block.entityId] ?? {}),
             ...props,
           },
-          entityId: block.entityId,
-          accountId: block.accountId,
-          childEntityId,
-          childEntityAccountId,
-          childEntityTypeId,
+          ...attrs,
         },
         children?.map((child: any) => {
           if (child.type === "text") {

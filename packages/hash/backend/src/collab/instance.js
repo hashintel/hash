@@ -8,6 +8,7 @@ import {
 import {
   calculateSavePayloads,
   createBlockUpdateTransaction,
+  transformBlockForProsemirror,
   mapEntitiesToBlocks,
 } from "@hashintel/hash-frontend/src/blocks/page/sharedWithBackend";
 import {
@@ -102,20 +103,14 @@ class Instance {
 
           const transform = new Transform(this.doc);
           const mappedNewBlock = mapEntitiesToBlocks([newBlock])[0];
-
-          // @todo this code is duplicated
-          const { childEntityId = null, childEntityAccountId = null } =
-            mappedNewBlock.entity;
+          const { attrs } = transformBlockForProsemirror(mappedNewBlock);
 
           const blockWithAttrs = this.doc.childAfter(mapping.map(offset) + 1);
 
           // @todo use a custom step for this so we don't need to copy attrs – we may lose some
           transform.setNodeMarkup(mapping.map(offset) + 1, undefined, {
             ...blockWithAttrs.attrs,
-            accountId: mappedNewBlock.accountId,
-            entityId: mappedNewBlock.entityId,
-            childEntityId,
-            childEntityAccountId,
+            ...attrs,
           });
 
           this.addEvents(this.version, transform.steps, `${clientID}-server`);
