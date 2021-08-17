@@ -4,10 +4,15 @@
 
 In order to run the app in its entirety, you will need to follow these steps:
 
-1. Run `yarn install`
-1. Start the backend (and seed the db if necessary)
-2. Install the frontend and blocks
-3. Start the frontend and blocks
+1. Add the following entry to your `/etc/hosts` file. This is to allow the docker container to reach the blocks
+servers, which are hosted outside the container.
+   ```
+   127.0.0.1 host.docker.internal
+   ```
+3. Run `yarn install`
+4. Start the backend (and seed the db if necessary)
+5. Install the frontend and blocks
+6. Start the frontend and blocks
 
 ## Start the backend
 1. Have Docker running. 
