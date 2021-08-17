@@ -12,13 +12,79 @@ const pg = require("pg");
 const path = require("path");
 const fs = require("fs");
 
+const yargs = require("yargs");
+const prompts = require("prompts");
+
+const cliDescription = `Database schema migration runner
+
+Database credentials may be passed using the options as described below,
+or using the environment variables: HASH_PG_HOST, HASH_PG_USER, HASH_PG_PORT
+and HASH_PG_DATABASE.
+
+HASH_PG_PASSWORD, if set, will be used as the password, otherwise you
+will be prompted for the password.`
+
 const main = async () => {
+  const argv = yargs(process.argv.slice(2))
+    .usage("$0", cliDescription)
+    .version(false)
+    .option("host", {
+      description: "Postgres host",
+    })
+    .option("user", {
+      description: "Postgres user",
+    })
+    .option("database", {
+      description: "Postgres database",
+    })
+    .option("port", {
+      description: "Postgres port",
+      number: true
+    })
+    .option("yes", {
+      boolean: true,
+      description: "Do not ask for confirmation",
+    })
+    .help("help").argv
+
+  const user = argv.user || process.env.HASH_PG_USER || "postgres";
+  const host = argv.host || process.env.HASH_PG_HOST || "localhost";
+
+  let password = process.env.HASH_PG_PASSWORD;
+  if (!password && host === "localhost") {
+    password = "postgres";
+  } else {
+    const resp = await prompts([
+      {
+        type: "password",
+        name: "password",
+        message: `Password for user ${user}`,
+      }
+    ]);
+    password = resp.password;
+  }
+
+  // Force confirmation when not on localhost
+  if (host !== "localhost" && !argv.yes) {
+    const { yes } = await prompts([
+      {
+        type: "text",
+        name: "yes",
+        message: `Run schema migration on ${host}? Please type 'yes'`
+      }
+    ]);
+    if (yes !== "yes") {
+      process.stderr.write("Operation cancelled\n")
+      return;
+    }
+  }
+
   const cfg = {
-    host: process.env.HASH_PG_HOST || "localhost",
-    user: process.env.HASH_PG_USER || "postgres",
-    port: process.env.HASH_PG_PORT ? parseInt(process.env.HASH_PG_PORT) : 5432,
-    database: process.env.HASH_PG_DATABASE || "postgres",
-    password: process.env.HASH_PG_PASSWORD || "postgres",
+    host,
+    user,
+    port: argv.port ? argv.port : process.env.HASH_PG_PORT ? parseInt(process.env.HASH_PG_PORT) : 5432,
+    database: argv.database || process.env.HASH_PG_DATABASE || "postgres",
+    password: password || process.env.HASH_PG_PASSWORD || "postgres",
   };
 
   let refresh = false;
