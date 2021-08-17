@@ -13,7 +13,10 @@ import { useBlockProtocolInsertIntoPage } from "../../components/hooks/blockProt
 import { usePortals } from "./usePortals";
 import { useDeferredCallback } from "./useDeferredCallback";
 import { BlockMetaContext } from "../blockMeta";
-import { createInitialDoc, createSchema } from "./schema";
+import {
+  createInitialDoc,
+  createSchema,
+} from "@hashintel/hash-shared/src/schema";
 import {
   Block,
   BlockMeta,
@@ -22,8 +25,8 @@ import {
   calculateSavePayloads,
   componentUrlToProsemirrorId,
   createBlockUpdateTransaction,
-} from "./sharedWithBackend";
-import { defineNewBlock } from "./sharedWithBackendJs";
+} from "@hashintel/hash-shared/src/sharedWithBackend";
+import { defineNewBlock } from "@hashintel/hash-shared/src/sharedWithBackendJs";
 import { createNodeView } from "./tsUtils";
 
 type PageBlockProps = {

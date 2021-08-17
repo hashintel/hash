@@ -3,7 +3,7 @@ require("setimmediate");
 
 import { AppProps } from "next/dist/next-server/lib/router/router";
 import { ApolloProvider } from "@apollo/client/react";
-import { createApolloClient } from "../graphql/createApolloClient";
+import { createApolloClient } from "@hashintel/hash-shared/src/graphql/createApolloClient";
 import withTwindApp from "@twind/next/app";
 import { PageLayout } from "../components/layout/PageLayout/PageLayout";
 

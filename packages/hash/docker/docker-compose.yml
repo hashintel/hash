@@ -35,6 +35,7 @@ services:
         command: ["wait-for-it", "-h", "hash-dev-pg", "-p", "5432", "-s", "-t", "30", "--", "./start.sh"]
         volumes:
             - ../backend/src:/app/packages/hash/backend/src
+            - ../shared/src:/app/packages/hash/shared/src
         stop_signal: SIGINT
 volumes:
     # Make sure you have created this volume: docker volume create hash-dev-pg

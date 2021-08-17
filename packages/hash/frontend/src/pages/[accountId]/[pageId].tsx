@@ -17,7 +17,7 @@ import {
   BlockMeta,
   fetchBlockMeta,
   mapEntitiesToBlocks,
-} from "../../blocks/page/sharedWithBackend";
+} from "@hashintel/hash-shared/src/sharedWithBackend";
 import { VersionDropdown } from "../../components/Dropdowns/VersionDropdown";
 
 /**

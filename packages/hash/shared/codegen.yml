@@ -1,0 +1,6 @@
+overwrite: true
+schema: ../backend/src/graphql/typeDefs/*.ts
+generates:
+  ./src/graphql/fragmentTypes.gen.json:
+    plugins:
+      - fragment-matcher

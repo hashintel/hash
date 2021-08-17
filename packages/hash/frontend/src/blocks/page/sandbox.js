@@ -15,14 +15,14 @@ import { useBlockMeta } from "../blockMeta";
 import styles from "./style.module.css";
 
 import "prosemirror-view/style/prosemirror.css";
-import { componentUrlToProsemirrorId } from "./sharedWithBackend";
+import { componentUrlToProsemirrorId } from "@hashintel/hash-shared/src/sharedWithBackend";
 import {
   createPMState,
   createRemoteBlock,
   displayNameToId,
   historyPlugin,
   infiniteGroupHistoryPlugin,
-} from "./sharedWithBackendJs";
+} from "@hashintel/hash-shared/src/sharedWithBackendJs";
 import { createNodeView } from "./tsUtils";
 
 /**

@@ -2,6 +2,7 @@ import { ApolloClient, HttpLink, InMemoryCache } from "@apollo/client";
 
 import possibleTypes from "./fragmentTypes.gen.json";
 
+// @todo update references
 export const createApolloClient = (name?: string) => {
   const ponyfilledFetch =
     typeof (globalThis as any).fetch === "undefined"

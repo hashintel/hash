@@ -1,4 +1,7 @@
-module.exports = {
+const withTM = require("next-transpile-modules")(["@hashintel/hash-shared"]); // pass the modules you would like to see transpiled
+
+module.exports = withTM({
+  webpack5: false,
   sassOptions: {
     prependData: `
       $grey-bg: rgba(241, 243, 246, 0.3);
@@ -10,4 +13,4 @@ module.exports = {
       $bright-blue: #2482ff;
     `,
   },
-};
+});

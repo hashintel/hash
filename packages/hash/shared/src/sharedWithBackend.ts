@@ -6,13 +6,13 @@ import { createRemoteBlock, defineRemoteBlock } from "./sharedWithBackendJs";
 // @todo move this
 // @ts-ignore
 // @todo allow overwriting this again
-import blockPaths from "../../../blockPaths.sample.json";
+import blockPaths from "../blockPaths.sample.json";
 import {
   BlockMetadata,
   BlockProtocolUpdatePayload,
 } from "@hashintel/block-protocol";
 import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
-import { PageFieldsFragment, SystemTypeName } from "../../graphql/apiTypes.gen";
+import { PageFieldsFragment, SystemTypeName } from "@hashintel/hash-frontend/src/graphql/apiTypes.gen";
 
 export { blockPaths };
 
