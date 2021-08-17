@@ -176,7 +176,6 @@ export const entityTypedef = gql`
     """
     updateEntity(
       accountId: ID!
-      id: ID!
       metadataId: ID!
       properties: JSONObject!
     ): Entity!

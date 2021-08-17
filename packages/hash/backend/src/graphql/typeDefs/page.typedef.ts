@@ -91,7 +91,6 @@ export const pageTypedef = gql`
 
     updatePage(
       accountId: ID!
-      id: ID!
       metadataId: ID!
       properties: PageUpdateData!
     ): Page!

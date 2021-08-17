@@ -26,6 +26,7 @@ const pageFieldsFragment = gql`
             __typename
             id
             accountId
+            metadataId
             type
             ... on UnknownEntity {
               unknownProperties: properties
@@ -68,13 +69,11 @@ export const createPage = gql`
 export const updatePage = gql`
   mutation updatePage(
     $accountId: ID!
-    $id: ID!
     $metadataId: ID!
     $properties: PageUpdateData!
   ) {
     updatePage(
       accountId: $accountId
-      id: $id
       metadataId: $metadataId
       properties: $properties
     ) {
