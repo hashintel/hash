@@ -13,8 +13,10 @@ enum Visibility {
   Public = "PUBLIC",
 }
 
+const API_HOST = process.env.API_HOST || "localhost:5001";
+
 void (async () => {
-  const client = new GraphQLClient("http://localhost:5001/graphql");
+const client = new GraphQLClient(`http://${API_HOST}/graphql`);
 
   const [users, orgs] = await Promise.all([
     await createUsers(client),
