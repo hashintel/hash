@@ -1,0 +1,15 @@
+<svg width="546" height="829" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M76.706 592.715L.948.668h544.938V829L76.706 592.715z" fill="#FCFCFC"/>
+  <path d="M77.374 593.049L0-.001h545.939v386.834L77.374 593.049z" fill="url(#auth-background-pattern__paint0_linear)"/>
+  <path d="M77.374 593.049L0-.001h545.939v386.834L77.374 593.049z" fill="url(#auth-background-pattern__paint1_linear)"/>
+  <defs>
+    <linearGradient id="auth-background-pattern__paint0_linear" x1="126.825" y1="213.624" x2="417.646" y2="149.742" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#B5BECC"/>
+      <stop offset="1" stop-color="#fff"/>
+    </linearGradient>
+    <linearGradient id="auth-background-pattern__paint1_linear" x1="126.825" y1="213.624" x2="417.646" y2="149.742" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F1F3F6"/>
+      <stop offset="1" stop-color="#fff"/>
+    </linearGradient>
+  </defs>
+</svg>
