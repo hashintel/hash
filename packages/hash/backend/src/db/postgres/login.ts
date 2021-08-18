@@ -11,14 +11,18 @@ export const insertVerificationCode = async (
     accountId: string;
     userId: string;
     code: string;
+    emailAddress: string;
     createdAt: Date;
   }
 ): Promise<void> => {
   await conn.query(sql`
-    insert into verification_codes (verification_id, account_id, user_id, verification_code, created_at)
+    insert into verification_codes (
+      verification_id, account_id, user_id,
+      verification_code, emailAddress, created_at
+    )
     values (
       ${params.id}, ${params.accountId}, ${params.userId},
-      ${params.code}, ${params.createdAt.toISOString()}
+      ${params.code}, ${params.emailAddress}, ${params.createdAt.toISOString()}
     )
   `);
 };
@@ -28,7 +32,7 @@ export const getVerificationCode = async (
   params: { id: string }
 ): Promise<DBVerificationCode | null> => {
   const row = await conn.one(sql`
-    select verification_id, user_id, verification_code, number_of_attempts, created_at
+    select verification_id, user_id, verification_code, email_address, number_of_attempts, created_at
     from verification_codes
     where verification_id = ${params.id}
   `);
@@ -36,6 +40,7 @@ export const getVerificationCode = async (
     id: row["verification_id"] as string,
     userId: row["user_id"] as string,
     code: row["verification_code"] as string,
+    emailAddress: row["email_address"] as string,
     numberOfAttempts: row["number_of_attempts"] as number,
     createdAt: new Date(row["created_at"] as string),
   };

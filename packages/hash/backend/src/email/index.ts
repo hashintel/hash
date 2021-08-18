@@ -44,3 +44,21 @@ export const sendLoginCodeToEmailAddress = async (
       `,
   });
 };
+
+export const sendEmailVerificationCodeToEmailAddress = async (
+  verificationCode: VerificationCode,
+  email: string
+): Promise<void> => {
+  const magicLink = `http://${FRONTEND_DOMAIN}/signup?verificationId=${encodeURIComponent(
+    verificationCode.id
+  )}&verificationCode=${encodeURIComponent(verificationCode.code)}`;
+
+  await sendMail({
+    to: email,
+    subject: "Please Verify Your HASH.dev Email Address",
+    html: `
+        <p>To very your email address, copy and paste your verification code or <a href=${magicLink}>click here</a>.</p>
+        <code>${verificationCode.code}</code>
+      `,
+  });
+};

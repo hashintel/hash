@@ -36,6 +36,7 @@ export type DbUser = Omit<User, "type"> & { type: "User" };
 export type DBVerificationCode = {
   id: string;
   code: string;
+  emailAddress: string;
   userId: string;
   numberOfAttempts: number;
   createdAt: Date;

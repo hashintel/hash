@@ -579,6 +579,7 @@ export class PostgresClient implements DBClient {
     accountId: string;
     userId: string;
     code: string;
+    emailAddress: string;
   }): Promise<DBVerificationCode> {
     const id = genId();
     const createdAt = new Date();

@@ -197,6 +197,7 @@ export interface DBClient {
     accountId: string;
     userId: string;
     code: string;
+    emailAddress: string;
   }): Promise<DBVerificationCode>;
 
   /** Get a verification code (it may be invalid!) */

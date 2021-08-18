@@ -10,6 +10,7 @@ export const MAX_ATTEMPTS = 5;
 type VerificationCodeConstructorArgs = {
   id: string;
   code: string;
+  emailAddress: string;
   userId: string;
   numberOfAttempts: number;
   createdAt: Date;
@@ -18,6 +19,7 @@ type VerificationCodeConstructorArgs = {
 class VerificationCode {
   id: string;
   code: string;
+  emailAddress: string;
   userId: string;
   numberOfAttempts: number;
   createdAt: Date;
@@ -27,12 +29,14 @@ class VerificationCode {
   constructor({
     id,
     code,
+    emailAddress,
     userId,
     numberOfAttempts,
     createdAt,
   }: VerificationCodeConstructorArgs) {
     this.id = id;
     this.code = code;
+    this.emailAddress = emailAddress;
     this.userId = userId;
     this.numberOfAttempts = numberOfAttempts;
     this.createdAt = createdAt;
@@ -40,11 +44,10 @@ class VerificationCode {
 
   static create =
     (db: DBAdapter) =>
-    ({ accountId, userId }: { accountId: string; userId: string }) =>
+    (args: { accountId: string; userId: string; emailAddress: string }) =>
       db
         .createVerificationCode({
-          accountId,
-          userId,
+          ...args,
           code: VerificationCode.generateCode(),
         })
         .then((dbVerificationCode) => new VerificationCode(dbVerificationCode));

@@ -117,6 +117,7 @@ create table if not exists verification_codes (
     account_id         uuid not null,
     user_id            uuid not null,
     verification_code  text not null,
+    email_address      text not null,
     number_of_attempts integer not null default 0,
     created_at         timestamp with time zone not null,
 

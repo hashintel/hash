@@ -1,5 +1,8 @@
 import { DBAdapter } from "src/db";
-import { sendLoginCodeToEmailAddress } from "../email";
+import {
+  sendEmailVerificationCodeToEmailAddress,
+  sendLoginCodeToEmailAddress,
+} from "../email";
 import { genId } from "src/util";
 import {
   UserProperties,
@@ -78,13 +81,15 @@ class User extends Entity {
     return primaryEmail;
   };
 
+  getEmail = (emailAddress: string): Email | null =>
+    this.properties.emails.find(({ address }) => address === emailAddress) ||
+    null;
+
   sendLoginVerificationCode =
     (db: DBAdapter) => async (alternateEmailAddress?: string) => {
       // Check the supplied email address can be used for sending login codes
       if (alternateEmailAddress) {
-        const email = this.properties.emails.find(
-          ({ address }) => address === alternateEmailAddress
-        );
+        const email = this.getEmail(alternateEmailAddress);
         if (!email)
           throw new Error(
             `User with id '${this.id}' does not have an email address '${alternateEmailAddress}'`
@@ -95,14 +100,43 @@ class User extends Entity {
           );
       }
 
+      const emailAddress =
+        alternateEmailAddress || this.getPrimaryEmail().address;
+
       const verificationCode = await VerificationCode.create(db)({
         accountId: this.accountId,
         userId: this.id,
+        emailAddress,
       });
 
-      return sendLoginCodeToEmailAddress(
+      return sendLoginCodeToEmailAddress(verificationCode, emailAddress).then(
+        () => verificationCode
+      );
+    };
+
+  sendEmailVerificationCode =
+    (db: DBAdapter) => async (emailAddress: string) => {
+      const email = this.getEmail(emailAddress);
+
+      if (!email)
+        throw new Error(
+          `User with id '${this.id}' does not have an email address '${emailAddress}'`
+        );
+
+      if (email.verified)
+        throw new Error(
+          `User with id '${this.id}' has already verified the email address '${emailAddress}'`
+        );
+
+      const verificationCode = await VerificationCode.create(db)({
+        accountId: this.accountId,
+        userId: this.id,
+        emailAddress,
+      });
+
+      return sendEmailVerificationCodeToEmailAddress(
         verificationCode,
-        alternateEmailAddress || this.getPrimaryEmail().address
+        emailAddress
       ).then(() => verificationCode);
     };
 

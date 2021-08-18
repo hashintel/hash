@@ -188,6 +188,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     accountId: string;
     userId: string;
     code: string;
+    emailAddress: string;
   }): Promise<DBVerificationCode> {
     return this.query((adapter) => adapter.createVerificationCode(params));
   }
