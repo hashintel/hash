@@ -1,4 +1,4 @@
-import { VFC } from "react";
+import { useState, VFC } from "react";
 import { tw } from "twind";
 
 import { Dialog } from "@headlessui/react";
@@ -13,7 +13,58 @@ type SignupModalProps = {
   show: boolean;
 };
 
+enum Screen {
+  Intro,
+  VerifyCode,
+  AccountSetup,
+}
+
 export const SignupModal: VFC<SignupModalProps> = ({ show }) => {
+  const [activeScreen, setActiveScreen] = useState<Screen>(Screen.Intro);
+
+  const renderContent = () => {
+    switch (activeScreen) {
+      case Screen.VerifyCode:
+        return <VerifyCode goBack={goBack} navigateForward={navigateForward} />;
+
+      case Screen.AccountSetup:
+        return <AccountSetup navigateForward={navigateForward} />;
+
+      case Screen.Intro:
+      default:
+        return <Intro navigateForward={navigateForward} />;
+    }
+  };
+
+  const navigateForward = () => {
+    let newScreen;
+
+    if (activeScreen == Screen.AccountSetup) {
+      return;
+    }
+
+    switch (activeScreen) {
+      case Screen.Intro:
+        newScreen = Screen.VerifyCode;
+        break;
+
+      case Screen.VerifyCode:
+        newScreen = Screen.AccountSetup;
+        break;
+
+      default:
+        return;
+    }
+
+    setActiveScreen(newScreen);
+  };
+
+  const goBack = () => {
+    if (activeScreen == Screen.VerifyCode) {
+      setActiveScreen(Screen.Intro);
+    }
+  };
+
   return (
     <Dialog
       as="div"
@@ -23,9 +74,7 @@ export const SignupModal: VFC<SignupModalProps> = ({ show }) => {
     >
       <div className={tw`fixed flex items-center inset-0 bg-white`}>
         <div className={tw`relative z-10 w-full flex justify-center`}>
-          {/* <Intro /> */}
-          {/* <VerifyCode /> */}
-          <AccountSetup />
+          {renderContent()}
         </div>
         <div className={tw`absolute right-0 top-0 bottom-0 `}>
           <BgPattern className={tw`h-screen`} />

@@ -1,10 +1,15 @@
+import { VFC } from "react";
 import { tw } from "twind";
 
 import GithubIcon from "../../../assets/svg/github.svg";
 import GoogleIcon from "../../../assets/svg/google.svg";
 import logo from "../../../assets/images/logo.png";
 
-export const Intro = () => {
+type IntroProps = {
+    navigateForward: () => void;
+}
+
+export const Intro: VFC<IntroProps> = ({ navigateForward }) => {
   return (
     <div className={tw`flex flex-col items-center w-80`}>
       <div className={tw`mb-12 flex items-center`}>
@@ -34,6 +39,7 @@ export const Intro = () => {
       />
       <button
         className={tw`w-64 bg-white border-1 border-gray-300 rounded-lg h-11 flex items-center justify-center text-sm font-bold`}
+        onClick={navigateForward}
       >
         Continue with email
       </button>

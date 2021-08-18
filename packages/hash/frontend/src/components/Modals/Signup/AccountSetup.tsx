@@ -1,9 +1,14 @@
+import { VFC } from "react";
 import { tw } from "twind";
 
 import logo from "../../../assets/images/logo.png";
 import IconInfo from "../../Icons/IconInfo/IconInfo";
 
-export const AccountSetup = () => {
+type AccountSetupProps = {
+    navigateForward: () => void;
+}
+
+export const AccountSetup: VFC<AccountSetupProps> = ({ navigateForward }) => {
   return (
     <div className={tw`w-9/12 max-w-3xl`}>
       <img src={logo} className={tw`block h-7 mb-16`} />

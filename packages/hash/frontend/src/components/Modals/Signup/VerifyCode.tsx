@@ -1,8 +1,17 @@
+import { VFC } from "react";
 import { tw } from "twind";
 
 import logo from "../../../assets/images/logo.png";
 
-export const VerifyCode = () => {
+type VerifyCodeProps = {
+  navigateForward: () => void;
+  goBack: () => void;
+};
+
+export const VerifyCode: VFC<VerifyCodeProps> = ({
+  navigateForward,
+  goBack,
+}) => {
   return (
     <div className={tw`w-8/12 max-w-4xl`}>
       <img src={logo} className={tw`block h-7 mb-6`} />
@@ -19,18 +28,23 @@ export const VerifyCode = () => {
           </p>
           <input
             className={tw`block border-b-1 border-gray-300 w-10/12 mx-auto py-3 px-5 text-5xl text-center focus:outline-none focus:border-blue-500`}
+            onChange={() => navigateForward()}
           />
         </div>
-        <button></button>
       </div>
       <div className={tw`flex justify-between`}>
-        <button className={tw`border-b-1 border-transparent hover:border-current`}>
+        <button
+          className={tw`border-b-1 border-transparent hover:border-current`}
+          onClick={goBack}
+        >
           &larr; <span className={tw`ml-1`}>Try logging in another way</span>
         </button>
 
         <div className={tw`flex`}>
           <span className={tw`mr-1`}>No email yet?</span>
-          <button className={tw`text-blue-500 focus:text-blue-700 hover:text-blue-700 font-bold  focus:outline-none`}>
+          <button
+            className={tw`text-blue-500 focus:text-blue-700 hover:text-blue-700 font-bold  focus:outline-none`}
+          >
             Resend email
           </button>
         </div>
