@@ -1,5 +1,6 @@
 import { rword } from "rword";
 import { DBAdapter } from "src/db";
+import { VerificationCodeMetadata as GQLVerificationCodeMetadata } from "src/graphql/apiTypes.gen";
 
 // Maximum age of a valid verification code (1 hour)
 export const MAX_AGE = 1000 * 60 * 60;
@@ -63,6 +64,11 @@ class VerificationCode {
 
   incrementAttempts = (db: DBAdapter) =>
     db.incrementVerificationCodeAttempts({ id: this.id, userId: this.userId });
+
+  toGQLVerificationCodeMetadata = (): GQLVerificationCodeMetadata => ({
+    id: this.id,
+    createdAt: this.createdAt,
+  });
 }
 
 export default VerificationCode;

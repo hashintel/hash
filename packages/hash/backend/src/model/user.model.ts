@@ -78,17 +78,33 @@ class User extends Entity {
     return primaryEmail;
   };
 
-  sendLoginVerificationCode = async (db: DBAdapter) => {
-    const verificationCode = await VerificationCode.create(db)({
-      accountId: this.accountId,
-      userId: this.id,
-    });
+  sendLoginVerificationCode =
+    (db: DBAdapter) => async (alternateEmailAddress?: string) => {
+      // Check the supplied email address can be used for sending login codes
+      if (alternateEmailAddress) {
+        const email = this.properties.emails.find(
+          ({ address }) => address === alternateEmailAddress
+        );
+        if (!email)
+          throw new Error(
+            `User with id '${this.id}' does not have an email address '${alternateEmailAddress}'`
+          );
+        if (!email.verified)
+          throw new Error(
+            `User with id '${this.id}' hasn't verified the email address '${alternateEmailAddress}'`
+          );
+      }
 
-    return sendLoginCodeToEmailAddress(
-      verificationCode,
-      this.getPrimaryEmail().address
-    ).then(() => verificationCode);
-  };
+      const verificationCode = await VerificationCode.create(db)({
+        accountId: this.accountId,
+        userId: this.id,
+      });
+
+      return sendLoginCodeToEmailAddress(
+        verificationCode,
+        alternateEmailAddress || this.getPrimaryEmail().address
+      ).then(() => verificationCode);
+    };
 
   toGQLUser = (): GQLUser => ({
     ...this.toGQLEntity(),
