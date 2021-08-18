@@ -1,8 +1,8 @@
 import passport, { AuthenticateOptions } from "passport";
 import { Express } from "express";
 import { ExpressContext } from "apollo-server-express";
-import { DbUser } from "src/types/dbTypes";
-import { DBAdapter } from "src/db";
+import { DbUser } from "../../types/dbTypes";
+import { DBAdapter } from "../../db/adapter";
 
 declare global {
   namespace Express {
