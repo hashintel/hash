@@ -1,22 +1,11 @@
 import { gql } from "@apollo/client";
 
 export const createUser = gql`
-  mutation createUser($email: String!, $shortname: String!) {
-    createUser(email: $email, shortname: $shortname) {
+  mutation createUser($email: String!) {
+    createUser(email: $email) {
       __typename
       id
-      createdById
       createdAt
-      updatedAt
-      accountId
-      entityTypeId
-      entityTypeVersionId
-      entityTypeName
-      visibility
-      properties {
-        shortname
-        email
-      }
     }
   }
 `;
@@ -24,6 +13,7 @@ export const createUser = gql`
 export const sendLoginCode = gql`
   mutation sendLoginCode($emailOrShortname: String!) {
     sendLoginCode(emailOrShortname: $emailOrShortname) {
+      __typename
       id
       createdAt
     }
@@ -51,7 +41,11 @@ export const loginWithLoginCode = gql`
       visibility
       properties {
         shortname
-        email
+        emails {
+          address
+          primary
+          verified
+        }
       }
     }
   }
@@ -75,7 +69,11 @@ export const meQuery = gql`
       visibility
       properties {
         shortname
-        email
+        emails {
+          address
+          primary
+          verified
+        }
       }
     }
   }

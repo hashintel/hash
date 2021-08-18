@@ -11,7 +11,11 @@ export const getAccounts = gql`
       ... on User {
         properties {
           shortname
-          email
+          emails {
+            address
+            primary
+            verified
+          }
         }
       }
       ... on Org {
