@@ -1,6 +1,10 @@
 import { DBAdapter } from "src/db";
 import { genId } from "src/util";
-import { UserProperties, User as GQLUser } from "../graphql/apiTypes.gen";
+import {
+  UserProperties,
+  User as GQLUser,
+  Email,
+} from "../graphql/apiTypes.gen";
 import Entity, { EntityConstructorArgs } from "./entity.model";
 
 type UserConstructorArgs = {
@@ -44,6 +48,19 @@ class User extends Entity {
 
       return new User({ id, ...entity });
     };
+
+  getPrimaryEmail = (): Email => {
+    const primaryEmail = this.properties.emails.find(
+      ({ primary }) => primary === true
+    );
+
+    if (!primaryEmail)
+      throw new Error(
+        `Critical: User with id ${this.id} does not have a primary email address`
+      );
+
+    return primaryEmail;
+  };
 
   toGQLUser = (): GQLUser => ({
     ...this.toGQLEntity(),
