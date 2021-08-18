@@ -1,4 +1,4 @@
-import { PassportGraphQLMethods } from "src/auth/passport";
+import { PassportGraphQLMethods } from "../auth/passport";
 import { Logger } from "winston";
 
 import User from "../model/user.model";

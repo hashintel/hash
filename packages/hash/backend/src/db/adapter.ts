@@ -7,7 +7,7 @@ import { SystemType } from "../types/entityTypes";
  *    to revisit in light of fuller auth spec
  */
 import { Visibility } from "../graphql/apiTypes.gen";
-import { DBVerificationCode } from "src/types/dbTypes";
+import { DBVerificationCode } from "../types/dbTypes";
 
 export type Entity = {
   accountId: string;

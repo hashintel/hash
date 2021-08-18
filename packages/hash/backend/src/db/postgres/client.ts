@@ -53,7 +53,7 @@ import { jsonSchema } from "../../lib/schemas/jsonSchema";
 import { SystemType } from "../../types/entityTypes";
 import { Visibility } from "../../graphql/apiTypes.gen";
 
-import { DBVerificationCode } from "src/types/dbTypes";
+import { DBVerificationCode } from "../../types/dbTypes";
 
 export class PostgresClient implements DBClient {
   private conn: Connection;
@@ -64,7 +64,7 @@ export class PostgresClient implements DBClient {
 
   private async createLinks(conn: Connection, entity: Entity): Promise<void> {
     const linkedEntityIdsSet = new Set(gatherLinks(entity));
-    const linkedEntityIds = [...linkedEntityIdsSet];
+    const linkedEntityIds = Array.from(linkedEntityIdsSet);
     const accIdMap = await getEntityAccountIdMany(conn, linkedEntityIdsSet);
 
     const missing = linkedEntityIds.filter((id) => !accIdMap.has(id));

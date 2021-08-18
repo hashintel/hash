@@ -1,7 +1,7 @@
 import passport, { AuthenticateOptions } from "passport";
 import { Express } from "express";
 import { ExpressContext } from "apollo-server-express";
-import { DBAdapter } from "src/db";
+import { DBAdapter } from "../../db";
 import UserModel from "../../model/user.model";
 
 declare global {
