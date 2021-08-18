@@ -8,6 +8,7 @@ import {
 import { GraphQLContext } from "../../context";
 import { GraphQLPasswordlessStrategy } from "../../../auth/passport/PasswordlessStrategy";
 import { sendLoginCodeToEmailAddress } from "../../../email";
+import User from "src/model/user.model";
 
 export const sendLoginCode: Resolver<
   Promise<VerificationCodeMetadata>,
@@ -15,29 +16,29 @@ export const sendLoginCode: Resolver<
   GraphQLContext,
   MutationSendLoginCodeArgs
 > = async (_, { emailOrShortname }, { dataSources }) => {
-  const providedEmail = emailOrShortname.includes("@");
+  const hasProvidedEmail = emailOrShortname.includes("@");
 
-  const user = providedEmail
-    ? await dataSources.db
-        .getUserByEmail({ email: emailOrShortname })
-        .then((user) => {
-          if (!user)
-            throw new ApolloError(
-              `A user with the email '${emailOrShortname}' could not be found.`,
-              "NOT_FOUND"
-            );
-          return user;
-        })
-    : await dataSources.db
-        .getUserByShortname({ shortname: emailOrShortname })
-        .then((user) => {
-          if (!user)
-            throw new ApolloError(
-              `A user with the shortname '${emailOrShortname}' could not be found.`,
-              "NOT_FOUND"
-            );
-          return user;
-        });
+  const user = hasProvidedEmail
+    ? await User.getUserByEmail(dataSources.db)({
+        email: emailOrShortname,
+      }).then((user) => {
+        if (!user)
+          throw new ApolloError(
+            `A user with the email '${emailOrShortname}' could not be found.`,
+            "NOT_FOUND"
+          );
+        return user;
+      })
+    : await User.getUserByShortname(dataSources.db)({
+        shortname: emailOrShortname,
+      }).then((user) => {
+        if (!user)
+          throw new ApolloError(
+            `A user with the shortname '${emailOrShortname}' could not be found.`,
+            "NOT_FOUND"
+          );
+        return user;
+      });
 
   const verificationCode = await dataSources.db.createVerificationCode({
     accountId: user.accountId,
@@ -45,11 +46,11 @@ export const sendLoginCode: Resolver<
     code: GraphQLPasswordlessStrategy.generateLoginCode(),
   });
 
-  const verificationEmail = providedEmail
+  const verificationEmailAdress = hasProvidedEmail
     ? emailOrShortname
-    : user.properties.emails.find(({ primary }) => primary === true)!.address;
+    : user.getPrimaryEmail().address;
 
-  return sendLoginCodeToEmailAddress(verificationCode, verificationEmail).then(
+  return sendLoginCodeToEmailAddress(verificationCode, verificationEmailAdress).then(
     () => ({
       id: verificationCode.id,
       createdAt: verificationCode.createdAt,

@@ -32,6 +32,20 @@ class User extends Entity {
         .getUserById({ id })
         .then((dbUser) => (dbUser ? new User(dbUser) : null));
 
+  static getUserByEmail =
+    (db: DBAdapter) =>
+    ({ email }: { email: string }): Promise<User | null> =>
+      db
+        .getUserByEmail({ email })
+        .then((dbUser) => (dbUser ? new User(dbUser) : null));
+
+  static getUserByShortname =
+    (db: DBAdapter) =>
+    ({ shortname }: { shortname: string }): Promise<User | null> =>
+      db
+        .getUserByShortname({ shortname })
+        .then((dbUser) => (dbUser ? new User(dbUser) : null));
+
   static create =
     (db: DBAdapter) =>
     async (properties: UserProperties): Promise<User> => {
