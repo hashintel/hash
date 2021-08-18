@@ -25,7 +25,7 @@ export const selectEntities = sql`
     e.account_id, e.entity_id, t.name as type, e.properties, e.created_by,
     e.created_at, e.updated_at, e.metadata_id, meta.extra, meta.versioned
   from
-    entities as e
+    entity_versions as e
     join entity_types as t on e.type = t.id
     join entity_metadata as meta on
         e.account_id = meta.account_id and  -- required for sharding
@@ -166,7 +166,7 @@ export const insertEntity = async (
   }
 ): Promise<void> => {
   await conn.query(sql`
-    insert into entities (
+    insert into entity_versions (
       account_id, entity_id, type, properties, metadata_id, created_by,
       created_at, updated_at
     )
@@ -188,7 +188,7 @@ export const updateEntityProperties = async (
   }
 ) => {
   await conn.one(sql`
-    update entities
+    update entity_versions
       set properties = ${sql.json(params.properties)},
       updated_at = ${params.updatedAt.toISOString()}
     where
@@ -207,7 +207,7 @@ export const getEntityHistory = async (
   const rows = await conn.any(sql`
     select
       entity_id, created_by, created_at
-    from entities
+    from entity_versions
     where
       account_id = ${params.accountId}
       and metadata_id = ${params.metadataId}

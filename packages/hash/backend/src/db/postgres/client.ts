@@ -125,7 +125,7 @@ export class PostgresClient implements DBClient {
       // Defer FKs until end of transaction so we can insert concurrently
       await conn.query(sql`
         set constraints
-          entities_account_id_metadata_id_fkey,
+          entity_versions_account_id_metadata_id_fkey,
           entity_account_account_id_entity_id_fkey,
           outgoing_links_account_id_entity_id_fkey,
           outgoing_links_child_account_id_child_id_fkey,
