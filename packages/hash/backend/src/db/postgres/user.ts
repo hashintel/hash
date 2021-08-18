@@ -10,7 +10,7 @@ import { sql } from "slonik";
 /** maps a postgres row to its corresponding User object */
 export const mapPGRowToDbUser = (row: any): DbUser => ({
   ...mapPGRowToEntity(row),
-  id: row["entity_id"],
+  id: row["entity_version_id"],
   visibility: Visibility.Public, // TODO
   type: "User",
 });
@@ -20,7 +20,7 @@ export const getUserById = async (conn: Connection, params: { id: string }) => {
   const row = await conn.one(sql`
     ${selectEntities}
     where
-      t.name = 'User' and e.entity_id = ${params.id}
+      t.name = 'User' and e.entity_version_id = ${params.id}
   `);
   return mapPGRowToDbUser(row);
 };

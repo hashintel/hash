@@ -6,7 +6,7 @@ import { sql, QueryResultRowType } from "slonik";
 /** maps a postgres row to its corresponding Entity object */
 export const mapPGRowToEntity = (row: QueryResultRowType): Entity => ({
   accountId: row["account_id"] as string,
-  entityId: row["entity_id"] as string,
+  entityId: row["entity_version_id"] as string,
   createdById: row["created_by"] as string,
   type: row["type"] as string,
   properties: row["properties"],
@@ -22,7 +22,7 @@ export const mapPGRowToEntity = (row: QueryResultRowType): Entity => ({
 
 export const selectEntities = sql`
   select
-    e.account_id, e.entity_id, t.name as type, e.properties, e.created_by,
+    e.account_id, e.entity_version_id, t.name as type, e.properties, e.created_by,
     e.created_at, e.updated_at, e.metadata_id, meta.extra, meta.versioned
   from
     entity_versions as e
@@ -39,7 +39,7 @@ const selectEntityVersion = (params: {
 }) => sql`
   ${selectEntities}
   where
-    e.account_id = ${params.accountId} and e.entity_id = ${params.entityId}
+    e.account_id = ${params.accountId} and e.entity_version_id = ${params.entityId}
 `;
 
 /** Query for retrieving all versions of an entity */
@@ -113,7 +113,7 @@ export const getLatestEntityVersionId = async (
     with all_matches as (
       ${selectEntityAllVersions(params)}
     )
-    select distinct on (metadata_id) entity_id from all_matches
+    select distinct on (metadata_id) entity_version_id from all_matches
     order by metadata_id, updated_at desc`
   );
   return id ? (id as string) : undefined;
@@ -147,7 +147,7 @@ export const getEntitiesByTypeAllVersions = async (
 export const getAccountEntities = async (conn: Connection) => {
   const rows = await conn.any(sql`
     ${selectEntities}
-    where e.account_id = e.entity_id
+    where e.account_id = e.entity_version_id
   `);
   return rows.map(mapPGRowToEntity);
 };
@@ -167,7 +167,7 @@ export const insertEntity = async (
 ): Promise<void> => {
   await conn.query(sql`
     insert into entity_versions (
-      account_id, entity_id, type, properties, metadata_id, created_by,
+      account_id, entity_version_id, type, properties, metadata_id, created_by,
       created_at, updated_at
     )
     values (
@@ -192,8 +192,9 @@ export const updateEntityProperties = async (
       set properties = ${sql.json(params.properties)},
       updated_at = ${params.updatedAt.toISOString()}
     where
-      account_id = ${params.accountId} and entity_id = ${params.entityId}
-    returning entity_id
+      account_id = ${params.accountId}
+      and entity_version_id = ${params.entityId}
+    returning entity_version_id
   `);
 };
 
@@ -206,7 +207,7 @@ export const getEntityHistory = async (
 ): Promise<EntityVersion[]> => {
   const rows = await conn.any(sql`
     select
-      entity_id, created_by, created_at
+      entity_version_id, created_by, created_at
     from entity_versions
     where
       account_id = ${params.accountId}
@@ -214,7 +215,7 @@ export const getEntityHistory = async (
     order by created_at desc
   `);
   return rows.map((row) => ({
-    entityId: row["entity_id"] as string,
+    entityId: row["entity_version_id"] as string,
     createdAt: new Date(row["created_at"] as string),
     createdById: row["created_by"] as string,
   }));
@@ -228,7 +229,7 @@ const getEntitiesInAccount = async (
     select * from (${selectEntities}) as entities
     where
       account_id = ${params.accountId}
-      and entity_id = any(${sql.array(params.entityIds, "uuid")})
+      and entity_version_id = any(${sql.array(params.entityIds, "uuid")})
   `);
   return rows.map(mapPGRowToEntity);
 };

@@ -20,7 +20,9 @@ export const insertOutgoingLinks = async (
     link.childId,
   ]);
   await conn.query(sql`
-    insert into outgoing_links (account_id, entity_id, child_account_id, child_id)
+    insert into outgoing_links (
+      account_id, entity_version_id, child_account_id, child_version_id
+    )
     select * from ${sql.unnest(rows, ["uuid", "uuid", "uuid", "uuid"])}
     on conflict do nothing
   `);
@@ -43,7 +45,9 @@ export const insertIncomingLinks = async (
     link.parentId,
   ]);
   await conn.query(sql`
-    insert into incoming_links (account_id, entity_id, parent_account_id, parent_id)
+    insert into incoming_links (
+      account_id, entity_version_id, parent_account_id, parent_version_id
+    )
     select * from ${sql.unnest(rows, ["uuid", "uuid", "uuid", "uuid"])}
     on conflict do nothing
   `);
@@ -56,11 +60,11 @@ export const getEntityParentIds = async (
 ) => {
   const { accountId, entityId } = params.entity;
   const rows = await conn.any(sql`
-    select parent_account_id, parent_id from incoming_links
-    where account_id = ${accountId} and entity_id = ${entityId}`);
+    select parent_account_id, parent_version_id from incoming_links
+    where account_id = ${accountId} and entity_version_id = ${entityId}`);
 
   return rows.map((row) => ({
     accountId: row["parent_account_id"] as string,
-    entityId: row["parent_id"] as string,
+    entityId: row["parent_version_id"] as string,
   }));
 };
