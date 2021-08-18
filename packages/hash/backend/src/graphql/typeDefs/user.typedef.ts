@@ -74,11 +74,17 @@ export const userTypedef = gql`
   type UserProperties {
     emails: [Email!]!
     shortname: String
+    preferredName: String
   }
 
   type VerificationCodeMetadata {
     id: ID!
     createdAt: Date!
+  }
+
+  input UpdateUserProperties {
+    shortname: String
+    preferredName: String
   }
 
   enum LogoutResponse {
@@ -95,9 +101,16 @@ export const userTypedef = gql`
     """
     createUser(email: String!): VerificationCodeMetadata!
     """
+    Verifies a user's email address using a previously generated verification code
+    """
+    verifyEmail(verificationId: ID!, verificationCode: String!): User!
+    """
     Sends an existing user a login verification code
     """
     sendLoginCode(emailOrShortname: String!): VerificationCodeMetadata!
+    """
+    Logs a user in using a previously generated verification code
+    """
     loginWithLoginCode(verificationId: ID!, verificationCode: String!): User!
     logout: LogoutResponse!
   }

@@ -68,6 +68,19 @@ class User extends Entity {
       return new User({ id, ...entity });
     };
 
+  private updateProperties = (db: DBAdapter) => (properties: UserProperties) =>
+    db
+      .updateEntity({
+        accountId: this.accountId,
+        entityId: this.id,
+        metadataId: this.metadataId,
+        properties,
+      })
+      .then(() => {
+        this.properties = properties;
+        return this;
+      });
+
   getPrimaryEmail = (): Email => {
     const primaryEmail = this.properties.emails.find(
       ({ primary }) => primary === true
@@ -84,6 +97,14 @@ class User extends Entity {
   getEmail = (emailAddress: string): Email | null =>
     this.properties.emails.find(({ address }) => address === emailAddress) ||
     null;
+
+  verifyEmailAddress = (db: DBAdapter) => (emailAddress: string) =>
+    this.updateProperties(db)({
+      ...this.properties,
+      emails: this.properties.emails.map((email) =>
+        email.address === emailAddress ? { ...email, verified: true } : email
+      ),
+    });
 
   sendLoginVerificationCode =
     (db: DBAdapter) => async (alternateEmailAddress?: string) => {
