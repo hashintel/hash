@@ -8,7 +8,12 @@ export const contents: Resolver<
   DbPage["properties"],
   GraphQLContext
 > = async ({ contents }, _, { dataSources }) => {
-  const entities = await dataSources.db.getEntities(contents);
+  const entities = await dataSources.db.getEntities(
+    contents.map(({ accountId, entityId }) => ({
+      accountId,
+      entityVersionId: entityId,
+    }))
+  );
 
   entities.forEach((entity, i) => {
     if (!entity) {
@@ -22,7 +27,7 @@ export const contents: Resolver<
 
   const res = entities.map((entity) => ({
     ...entity,
-    id: entity!.entityId,
+    id: entity!.entityVersionId,
     accountId: entity!.accountId,
     visibility: Visibility.Public, // TODO: get from entity metadata
   })) as DbBlock[];

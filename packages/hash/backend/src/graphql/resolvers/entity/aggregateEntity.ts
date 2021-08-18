@@ -40,7 +40,7 @@ export const aggregateEntity: Resolver<
     .map(
       (entity): DbUnknownEntity => ({
         ...entity,
-        id: entity.entityId,
+        id: entity.entityVersionId,
         visibility: Visibility.Public, // TODO: get from entity metadata
       })
     );

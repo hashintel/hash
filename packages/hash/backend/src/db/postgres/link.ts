@@ -8,16 +8,16 @@ export const insertOutgoingLinks = async (
   conn: Connection,
   links: {
     accountId: string;
-    entityId: string;
+    entityVersionId: string;
     childAccountId: string;
-    childId: string;
+    childVersionId: string;
   }[]
 ) => {
   const rows = links.map((link) => [
     link.accountId,
-    link.entityId,
+    link.entityVersionId,
     link.childAccountId,
-    link.childId,
+    link.childVersionId,
   ]);
   await conn.query(sql`
     insert into outgoing_links (
@@ -33,16 +33,16 @@ export const insertIncomingLinks = async (
   conn: Connection,
   links: {
     accountId: string;
-    entityId: string;
+    entityVersionId: string;
     parentAccountId: string;
-    parentId: string;
+    parentVersionId: string;
   }[]
 ) => {
   const rows = links.map((link) => [
     link.accountId,
-    link.entityId,
+    link.entityVersionId,
     link.parentAccountId,
-    link.parentId,
+    link.parentVersionId,
   ]);
   await conn.query(sql`
     insert into incoming_links (
@@ -58,13 +58,16 @@ export const getEntityParentIds = async (
   conn: Connection,
   params: { entity: Entity }
 ) => {
-  const { accountId, entityId } = params.entity;
+  const { accountId, entityVersionId: entityVersionId } = params.entity;
   const rows = await conn.any(sql`
     select parent_account_id, parent_version_id from incoming_links
-    where account_id = ${accountId} and entity_version_id = ${entityId}`);
+    where
+      account_id = ${accountId}
+      and entity_version_id = ${entityVersionId}
+  `);
 
   return rows.map((row) => ({
     accountId: row["parent_account_id"] as string,
-    entityId: row["parent_version_id"] as string,
+    entityVersionId: row["parent_version_id"] as string,
   }));
 };

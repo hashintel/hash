@@ -3,7 +3,7 @@ import { DbUser } from "src/types/dbTypes";
 
 export type Entity = {
   accountId: string;
-  entityId: string;
+  entityVersionId: string;
   createdById: string;
   type: string;
   properties: any;
@@ -28,7 +28,7 @@ export type LoginCode = {
 };
 
 export type EntityVersion = {
-  entityId: string;
+  entityVersionId: string;
   createdAt: Date;
   createdById: string;
 };
@@ -50,7 +50,7 @@ export interface DBClient {
    * */
   createEntity(params: {
     accountId: string;
-    entityId?: string;
+    entityVersionId?: string;
     createdById: string;
     type: string;
     versioned: boolean;
@@ -63,7 +63,7 @@ export interface DBClient {
   getEntity(
     params: {
       accountId: string;
-      entityId: string;
+      entityVersionId: string;
     },
     lock?: boolean
   ): Promise<Entity | undefined>;
@@ -83,7 +83,7 @@ export interface DBClient {
    */
   updateEntity(params: {
     accountId: string;
-    entityId: string;
+    entityVersionId: string;
     metadataId: string;
     type?: string;
     properties: any;
@@ -144,7 +144,7 @@ export interface DBClient {
    * */
   getAndUpdateEntity(params: {
     accountId: string;
-    entityId: string;
+    entityVersionId: string;
     handler: (entity: Entity) => Entity;
   }): Promise<Entity[]>;
 
@@ -161,7 +161,7 @@ export interface DBClient {
   getEntities(
     entities: {
       accountId: string;
-      entityId: string;
+      entityVersionId: string;
     }[]
   ): Promise<Entity[]>;
 }

@@ -38,7 +38,7 @@ export const insertBlocksIntoPage: Resolver<
 
         // Create the block
         const blockProperties: DbBlockProperties = {
-          entityId: childEntity.entityId,
+          entityId: childEntity.entityVersionId,
           accountId: block.accountId,
           entityType: block.entityType,
           componentId: block.componentId,
@@ -51,7 +51,7 @@ export const insertBlocksIntoPage: Resolver<
           properties: blockProperties,
         });
         return {
-          id: newBlock.entityId,
+          id: newBlock.entityVersionId,
           accountId: newBlock.accountId,
           visibility: Visibility.Public, // @todo: get from entity metadata
           type: newBlock.type,
@@ -96,7 +96,7 @@ export const insertBlocksIntoPage: Resolver<
     const entity = updatedEntities[0];
     return {
       type: "Page",
-      id: entity.entityId,
+      id: entity.entityVersionId,
       accountId: entity.accountId,
       createdById: entity.createdById,
       createdAt: entity.createdAt,

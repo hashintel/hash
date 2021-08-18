@@ -16,7 +16,7 @@ export const history: Resolver<
   });
 
   return versions?.map((ver) => ({
-    entityId: ver.entityId,
+    entityId: ver.entityVersionId,
     createdAt: ver.createdAt,
   }));
 };

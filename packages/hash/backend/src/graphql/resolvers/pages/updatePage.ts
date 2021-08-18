@@ -26,7 +26,7 @@ export const updatePage: Resolver<
 
     const updatedEntities = await client.updateEntity({
       accountId,
-      entityId: entity.entityId,
+      entityVersionId: entity.entityVersionId,
       metadataId: entity.metadataId,
       properties: {
         ...(entity.properties ?? {}),
@@ -40,7 +40,7 @@ export const updatePage: Resolver<
     return {
       ...updatedEntities[0],
       type: "Page",
-      id: updatedEntities[0].entityId,
+      id: updatedEntities[0].entityVersionId,
       accountId: updatedEntities[0].accountId,
       visibility: Visibility.Public, // @todo: get from entity metadata
     };

@@ -19,7 +19,7 @@ export const accountPages: Resolver<
   });
   return pages.map((page) => ({
     ...page,
-    id: page.entityId,
+    id: page.entityVersionId,
     accountId: page.accountId,
     visibility: Visibility.Public, // TODO: get from entity metadata
   })) as DbPage[];

@@ -6,7 +6,7 @@ import { sql, QueryResultRowType } from "slonik";
 /** maps a postgres row to its corresponding Entity object */
 export const mapPGRowToEntity = (row: QueryResultRowType): Entity => ({
   accountId: row["account_id"] as string,
-  entityId: row["entity_version_id"] as string,
+  entityVersionId: row["entity_version_id"] as string,
   createdById: row["created_by"] as string,
   type: row["type"] as string,
   properties: row["properties"],
@@ -35,11 +35,12 @@ export const selectEntities = sql`
 /** Query for retrieving a specific version of an entity. */
 const selectEntityVersion = (params: {
   accountId: string;
-  entityId: string;
+  entityVersionId: string;
 }) => sql`
   ${selectEntities}
   where
-    e.account_id = ${params.accountId} and e.entity_version_id = ${params.entityId}
+    e.account_id = ${params.accountId}
+    and e.entity_version_id = ${params.entityVersionId}
 `;
 
 /** Query for retrieving all versions of an entity */
@@ -66,7 +67,7 @@ const selectEntitiesByType = (params: {
  * `undefined` if the entity does not exist in the given account.*/
 export const getEntity = async (
   conn: Connection,
-  params: { accountId: string; entityId: string },
+  params: { accountId: string; entityVersionId: string },
   lock: boolean = false
 ): Promise<Entity | undefined> => {
   const query = lock
@@ -152,11 +153,11 @@ export const getAccountEntities = async (conn: Connection) => {
   return rows.map(mapPGRowToEntity);
 };
 
-export const insertEntity = async (
+export const insertEntityVersion = async (
   conn: Connection,
   params: {
     accountId: string;
-    entityId: string;
+    entityVersionId: string;
     typeId: number;
     properties: any;
     metadataId: string;
@@ -171,18 +172,18 @@ export const insertEntity = async (
       created_at, updated_at
     )
     values (
-      ${params.accountId}, ${params.entityId}, ${params.typeId},
+      ${params.accountId}, ${params.entityVersionId}, ${params.typeId},
       ${sql.json(params.properties)}, ${params.metadataId},
       ${params.createdById}, ${params.createdAt.toISOString()},
       ${params.updatedAt.toISOString()})
   `);
 };
 
-export const updateEntityProperties = async (
+export const updateEntityVersionProperties = async (
   conn: Connection,
   params: {
     accountId: string;
-    entityId: string;
+    entityVersionId: string;
     properties: any;
     updatedAt: Date;
   }
@@ -193,7 +194,7 @@ export const updateEntityProperties = async (
       updated_at = ${params.updatedAt.toISOString()}
     where
       account_id = ${params.accountId}
-      and entity_version_id = ${params.entityId}
+      and entity_version_id = ${params.entityVersionId}
     returning entity_version_id
   `);
 };
@@ -215,7 +216,7 @@ export const getEntityHistory = async (
     order by created_at desc
   `);
   return rows.map((row) => ({
-    entityId: row["entity_version_id"] as string,
+    entityVersionId: row["entity_version_id"] as string,
     createdAt: new Date(row["created_at"] as string),
     createdById: row["created_by"] as string,
   }));
@@ -223,13 +224,13 @@ export const getEntityHistory = async (
 
 const getEntitiesInAccount = async (
   conn: Connection,
-  params: { accountId: string; entityIds: string[] }
+  params: { accountId: string; versionIds: string[] }
 ) => {
   const rows = await conn.any(sql`
     select * from (${selectEntities}) as entities
     where
       account_id = ${params.accountId}
-      and entity_version_id = any(${sql.array(params.entityIds, "uuid")})
+      and entity_version_id = any(${sql.array(params.versionIds, "uuid")})
   `);
   return rows.map(mapPGRowToEntity);
 };
@@ -237,29 +238,29 @@ const getEntitiesInAccount = async (
 /** Get multiple entities in a single query. */
 export const getEntities = async (
   conn: Connection,
-  ids: { entityId: string; accountId: string }[]
+  ids: { entityVersionId: string; accountId: string }[]
 ): Promise<Entity[]> => {
   // Need to group by account ID to use the index
   const idsByAccount = new Map<string, string[]>();
-  for (const { entityId, accountId } of ids) {
+  for (const { entityVersionId: versionId, accountId } of ids) {
     if (idsByAccount.has(accountId)) {
-      idsByAccount.get(accountId)?.push(entityId);
+      idsByAccount.get(accountId)?.push(versionId);
     } else {
-      idsByAccount.set(accountId, [entityId]);
+      idsByAccount.set(accountId, [versionId]);
     }
   }
 
   const entities = (
     await Promise.all(
       Array.from(idsByAccount.entries()).map(
-        async ([accountId, entityIds]) =>
-          await getEntitiesInAccount(conn, { accountId, entityIds })
+        async ([accountId, versionIds]) =>
+          await getEntitiesInAccount(conn, { accountId, versionIds })
       )
     )
   ).flat();
 
   // Need to sort the result from the DB to be in the same order as `ids`
   const entityMap = new Map<string, Entity>();
-  entities.forEach((entity) => entityMap.set(entity.entityId, entity));
-  return ids.map(({ entityId }) => entityMap.get(entityId)!);
+  entities.forEach((entity) => entityMap.set(entity.entityVersionId, entity));
+  return ids.map(({ entityVersionId: versionId }) => entityMap.get(versionId)!);
 };
