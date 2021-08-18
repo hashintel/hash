@@ -7,6 +7,7 @@ import { SystemType } from "../types/entityTypes";
  *    to revisit in light of fuller auth spec
  */
 import { Visibility } from "../graphql/apiTypes.gen";
+import { DBVerificationCode } from "src/types/dbTypes";
 
 export type Entity = {
   accountId: string;
@@ -52,14 +53,6 @@ export type EntityType = {
 export type EntityMeta = {
   versioned: boolean;
   extra: any;
-};
-
-export type VerificationCode = {
-  id: string;
-  code: string;
-  userId: string;
-  numberOfAttempts: number;
-  createdAt: Date;
 };
 
 export type EntityVersion = {
@@ -204,14 +197,17 @@ export interface DBClient {
     accountId: string;
     userId: string;
     code: string;
-  }): Promise<VerificationCode>;
+  }): Promise<DBVerificationCode>;
 
   /** Get a verification code (it may be invalid!) */
-  getVerificationCode(params: { id: string }): Promise<VerificationCode | null>;
+  getVerificationCode(params: {
+    id: string;
+  }): Promise<DBVerificationCode | null>;
 
   /** Increment the number of verification attempts by 1 */
   incrementVerificationCodeAttempts(params: {
-    verificationCode: VerificationCode;
+    id: string;
+    userId: string;
   }): Promise<void>;
 
   /** Prunes verification codes from the database after 1 day of creation */

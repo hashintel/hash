@@ -1,4 +1,5 @@
 import { DBAdapter } from "src/db";
+import { sendLoginCodeToEmailAddress } from "../email";
 import { genId } from "src/util";
 import {
   UserProperties,
@@ -6,6 +7,7 @@ import {
   Email,
 } from "../graphql/apiTypes.gen";
 import Entity, { EntityConstructorArgs } from "./entity.model";
+import VerificationCode from "./verificationCode.model";
 
 type UserConstructorArgs = {
   properties: UserProperties;
@@ -74,6 +76,18 @@ class User extends Entity {
       );
 
     return primaryEmail;
+  };
+
+  sendLoginVerificationCode = async (db: DBAdapter) => {
+    const verificationCode = await VerificationCode.create(db)({
+      accountId: this.accountId,
+      userId: this.id,
+    });
+
+    return sendLoginCodeToEmailAddress(
+      verificationCode,
+      this.getPrimaryEmail().address
+    ).then(() => verificationCode);
   };
 
   toGQLUser = (): GQLUser => ({

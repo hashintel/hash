@@ -1,7 +1,7 @@
 import { Connection } from "./types";
-import { VerificationCode } from "../adapter";
 
 import { sql } from "slonik";
+import { DBVerificationCode } from "../../types/dbTypes";
 
 /** Insert a row into the entities table. */
 export const insertVerificationCode = async (
@@ -26,7 +26,7 @@ export const insertVerificationCode = async (
 export const getVerificationCode = async (
   conn: Connection,
   params: { id: string }
-): Promise<VerificationCode | null> => {
+): Promise<DBVerificationCode | null> => {
   const row = await conn.one(sql`
     select verification_id, user_id, verification_code, number_of_attempts, created_at
     from verification_codes
@@ -44,14 +44,14 @@ export const getVerificationCode = async (
 export const incrementVerificationCodeAttempts = async (
   conn: Connection,
   params: {
-    verificationCode: VerificationCode;
+    id: string;
+    userId: string;
   }
 ): Promise<void> => {
-  const { id, userId } = params.verificationCode;
   await conn.query(sql`
     update verification_codes
     set number_of_attempts = number_of_attempts + 1
-    where verification_id = ${id} and user_id = ${userId}
+    where verification_id = ${params.id} and user_id = ${params.userId}
   `);
 };
 

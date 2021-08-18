@@ -1,14 +1,15 @@
 import { ApolloError } from "apollo-server-express";
 
+import User from "../../../model/user.model";
+import VerificationCode from "../../../model/verificationCode.model";
+
 import {
   MutationSendLoginCodeArgs,
   VerificationCodeMetadata,
   Resolver,
 } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
-import { GraphQLPasswordlessStrategy } from "../../../auth/passport/PasswordlessStrategy";
 import { sendLoginCodeToEmailAddress } from "../../../email";
-import User from "src/model/user.model";
 
 export const sendLoginCode: Resolver<
   Promise<VerificationCodeMetadata>,
@@ -40,20 +41,20 @@ export const sendLoginCode: Resolver<
         return user;
       });
 
-  const verificationCode = await dataSources.db.createVerificationCode({
+  const verificationCode = await VerificationCode.create(dataSources.db)({
     accountId: user.accountId,
     userId: user.entityId,
-    code: GraphQLPasswordlessStrategy.generateLoginCode(),
   });
 
   const verificationEmailAdress = hasProvidedEmail
     ? emailOrShortname
     : user.getPrimaryEmail().address;
 
-  return sendLoginCodeToEmailAddress(verificationCode, verificationEmailAdress).then(
-    () => ({
-      id: verificationCode.id,
-      createdAt: verificationCode.createdAt,
-    })
-  );
+  return sendLoginCodeToEmailAddress(
+    verificationCode,
+    verificationEmailAdress
+  ).then(() => ({
+    id: verificationCode.id,
+    createdAt: verificationCode.createdAt,
+  }));
 };

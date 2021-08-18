@@ -1,6 +1,6 @@
 import { SendMailOptions } from "nodemailer";
 import { convert } from "html-to-text";
-import { VerificationCode } from "src/db/adapter";
+import VerificationCode from "../model/verificationCode.model";
 import awsSesTransporter from "./transporters/awsSes";
 import { getRequiredEnv } from "../util";
 

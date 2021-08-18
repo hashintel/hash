@@ -5,10 +5,9 @@ import {
   Entity,
   EntityMeta,
   EntityType,
-  VerificationCode,
   EntityVersion,
 } from "../adapter";
-import { entityNotFoundError, gatherLinks, replaceLink } from "./util";
+import { gatherLinks, replaceLink, entityNotFoundError } from "./util";
 import { genId } from "../../util";
 import { Connection } from "./types";
 import {
@@ -53,6 +52,8 @@ import {
 import { jsonSchema } from "../../lib/schemas/jsonSchema";
 import { SystemType } from "../../types/entityTypes";
 import { Visibility } from "../../graphql/apiTypes.gen";
+
+import { DBVerificationCode } from "src/types/dbTypes";
 
 export class PostgresClient implements DBClient {
   private conn: Connection;
@@ -578,7 +579,7 @@ export class PostgresClient implements DBClient {
     accountId: string;
     userId: string;
     code: string;
-  }): Promise<VerificationCode> {
+  }): Promise<DBVerificationCode> {
     const id = genId();
     const createdAt = new Date();
     await insertVerificationCode(this.conn, { ...params, id, createdAt });
@@ -587,12 +588,13 @@ export class PostgresClient implements DBClient {
 
   async getVerificationCode(params: {
     id: string;
-  }): Promise<VerificationCode | null> {
+  }): Promise<DBVerificationCode | null> {
     return await getVerificationCode(this.conn, params);
   }
 
   async incrementVerificationCodeAttempts(params: {
-    verificationCode: VerificationCode;
+    id: string;
+    userId: string;
   }): Promise<void> {
     return await incrementVerificationCodeAttempts(this.conn, params);
   }

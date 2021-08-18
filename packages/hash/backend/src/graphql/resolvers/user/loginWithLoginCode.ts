@@ -2,15 +2,12 @@ import { ApolloError } from "apollo-server-express";
 
 import User from "../../../model/user.model";
 import {
-  LOGIN_CODE_MAX_AGE,
-  LOGIN_CODE_MAX_ATTEMPTS,
-} from "../../../auth/passport/PasswordlessStrategy";
-import {
   MutationLoginWithLoginCodeArgs,
   Resolver,
   User as GQLUser,
 } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
+import VerificationCode from "../../../model/verificationCode.model";
 
 export const loginWithLoginCode: Resolver<
   GQLUser,
@@ -18,7 +15,7 @@ export const loginWithLoginCode: Resolver<
   GraphQLContext,
   MutationLoginWithLoginCodeArgs
 > = async (_, { verificationId, ...args }, { dataSources, passport }) => {
-  const verificationCode = await dataSources.db.getVerificationCode({
+  const verificationCode = await VerificationCode.getById(dataSources.db)({
     id: verificationId,
   });
 
@@ -29,17 +26,14 @@ export const loginWithLoginCode: Resolver<
     );
 
   // If the login code's maximum number of attempts has been exceeded
-  if (verificationCode.numberOfAttempts >= LOGIN_CODE_MAX_ATTEMPTS)
+  if (verificationCode.hasExceededMaximumAttempts())
     throw new ApolloError(
       `The maximum number of attempts for the verification code with id '${verificationId}' has been exceeded.`,
       "MAX_ATTEMPTS"
     );
 
   // If the login code has expired
-  if (
-    verificationCode.createdAt.getTime() <
-    new Date().getTime() - LOGIN_CODE_MAX_AGE
-  )
+  if (verificationCode.hasExpired())
     throw new ApolloError(
       `The verification code with id '${verificationCode}' has expired.`,
       "EXPIRED"
@@ -67,7 +61,7 @@ export const loginWithLoginCode: Resolver<
     return user.toGQLUser();
   }
 
-  await dataSources.db.incrementVerificationCodeAttempts({ verificationCode });
+  await verificationCode.incrementAttempts(dataSources.db);
 
   throw new ApolloError(
     `The provided verification code does not match the verification code with id '${verificationId}'.`,
