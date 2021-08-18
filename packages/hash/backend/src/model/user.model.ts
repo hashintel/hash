@@ -58,7 +58,7 @@ class User extends Entity {
 
       const entity = await db.createEntity({
         accountId: id,
-        entityId: id,
+        entityVersionId: id,
         createdById: id, // Users "create" themselves
         type: "User",
         properties,
@@ -72,7 +72,7 @@ class User extends Entity {
     db
       .updateEntity({
         accountId: this.accountId,
-        entityId: this.id,
+        entityVersionId: this.id,
         metadataId: this.metadataId,
         properties,
       })

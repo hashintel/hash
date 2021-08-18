@@ -53,18 +53,18 @@ class Entity {
     (db: DBAdapter) =>
     ({
       accountId,
-      entityId,
+      entityVersionId,
     }: {
       accountId: string;
-      entityId: string;
+      entityVersionId: string;
     }): Promise<Entity | null> =>
       db
         .getEntity({
           accountId,
-          entityId,
+          entityVersionId,
         })
         .then((dbEntity) =>
-          dbEntity ? new Entity({ id: entityId, ...dbEntity }) : null
+          dbEntity ? new Entity({ id: entityVersionId, ...dbEntity }) : null
         );
 
   toGQLEntity = (): GQLEntity => ({
