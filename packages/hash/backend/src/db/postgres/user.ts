@@ -32,7 +32,14 @@ export const getUserByEmail = async (
   const row = await conn.one(sql`
     ${selectEntities}
     where
-      e.properties ->> 'email' = ${params.email} and ${matchesUserType}
+        ${matchesUserType}
+      and
+        exists (
+          select *
+          from json_array_elements(e.properties::json -> 'emails') email
+          where  email ->> 'address' = ${params.email}
+        )
+        
   `);
   return mapPGRowToEntity(row);
 };
