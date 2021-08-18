@@ -12,7 +12,7 @@ export const accounts: Resolver<
   return entities.map((entity) => {
     return {
       ...entity,
-      id: entity.entityId,
+      id: entity.entityVersionId,
       accountId: entity.accountId,
       visibility: Visibility.Public, // TODO: get from entity metadata
     } as DbUser | DbOrg;

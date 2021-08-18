@@ -14,7 +14,7 @@ export const entity: Resolver<
   if (id) {
     dbEntity = await dataSources.db.getEntity({
       accountId,
-      entityId: id,
+      entityVersionId: id,
     });
     if (!dbEntity) {
       throw new ApolloError(`Entity ${id} not found in account ${accountId}`);
@@ -37,7 +37,7 @@ export const entity: Resolver<
 
   const entity: DbUnknownEntity = {
     ...dbEntity,
-    id: dbEntity.entityId,
+    id: dbEntity.entityVersionId,
     accountId: dbEntity.accountId,
     visibility: Visibility.Public, // TODO: should be a param?
   };

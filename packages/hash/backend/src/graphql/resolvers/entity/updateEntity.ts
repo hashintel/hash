@@ -33,7 +33,7 @@ export const updateEntity: Resolver<
 
     const updatedEntities = await client.updateEntity({
       accountId,
-      entityId: entity.entityId,
+      entityVersionId: entity.entityVersionId,
       metadataId: entity.metadataId,
       properties: propertiesToUpdate,
     });
@@ -42,7 +42,7 @@ export const updateEntity: Resolver<
     // element. Return when versioned entities are implemented at the API layer.
     return {
       ...updatedEntities[0],
-      id: updatedEntities[0].entityId,
+      id: updatedEntities[0].entityVersionId,
       accountId: updatedEntities[0].accountId,
       visibility: Visibility.Public, // TODO: get from entity metadata
     };

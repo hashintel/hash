@@ -81,14 +81,14 @@ const resolveLinkedData = async (
       // Fetch a single entity and resolve any linked data in it
       const entity = await ctx.dataSources.db.getEntity({
         accountId,
-        entityId: entityId,
+        entityVersionId: entityId,
       });
       if (!entity) {
         throw new Error(`entity ${entityId} in account ${accountId} not found`);
       }
       const dbEntity: DbUnknownEntity = {
         ...entity,
-        id: entity.entityId,
+        id: entity.entityVersionId,
         accountId: entity.accountId,
         __typename: entityType,
         visibility: Visibility.Public, // TODO

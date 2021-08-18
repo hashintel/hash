@@ -31,7 +31,10 @@ export const insertBlockIntoPage: Resolver<
     let entity;
     if (entityId) {
       // Update
-      entity = await dataSources.db.getEntity({ accountId, entityId });
+      entity = await dataSources.db.getEntity({
+        accountId,
+        entityVersionId: entityId,
+      });
       if (!entity) {
         throw new ApolloError(`entity ${entityId} not found`, "NOT_FOUND");
       }
@@ -53,7 +56,7 @@ export const insertBlockIntoPage: Resolver<
     const blockProperties = {
       componentId,
       entityType: entity.type,
-      entityId: entity.entityId,
+      entityId: entity.entityVersionId,
       accountId: entity.accountId,
     };
 
@@ -85,7 +88,7 @@ export const insertBlockIntoPage: Resolver<
       ...page.properties.contents.slice(0, position),
       {
         type: "Block",
-        entityId: newBlock.entityId,
+        entityId: newBlock.entityVersionId,
         accountId: newBlock.accountId,
       },
       ...page.properties.contents.slice(position),
@@ -98,7 +101,7 @@ export const insertBlockIntoPage: Resolver<
     return {
       ...updatedEntities[0],
       type: "Page",
-      id: updatedEntities[0].entityId,
+      id: updatedEntities[0].entityVersionId,
       accountId: updatedEntities[0].accountId,
       visibility: Visibility.Public, // TODO: get from entity metadata
     };

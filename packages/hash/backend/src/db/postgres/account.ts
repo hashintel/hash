@@ -13,26 +13,30 @@ export const insertAccount = async (
 
 export const insertEntityAccount = async (
   conn: Connection,
-  params: { entityId: string; accountId: string }
+  params: { entityVersionId: string; accountId: string }
 ): Promise<void> => {
   await conn.query(sql`
-    insert into entity_account (entity_id, account_id)
-    values (${params.entityId}, ${params.accountId})`);
+    insert into entity_account (entity_version_id, account_id)
+    values (${params.entityVersionId}, ${params.accountId})`);
 };
 
 /** Get the account ID of multiple entities. Returns a map from entity ID to account ID. */
 export const getEntityAccountIdMany = async (
   conn: Connection,
-  entityIds: Set<string>
+  entityVersionIds: Set<string>
 ): Promise<Map<string, string>> => {
   const rows = await conn.any(sql`
-    select entity_id, account_id from entity_account
-    where entity_id = any(${sql.array(Array.from(entityIds), "uuid")})
+    select entity_version_id, account_id from entity_account
+    where
+      entity_version_id = any(${sql.array(
+        Array.from(entityVersionIds),
+        "uuid"
+      )})
   `);
 
   const result = new Map<string, string>();
   for (const row of rows) {
-    result.set(row["entity_id"] as string, row["account_id"] as string);
+    result.set(row["entity_version_id"] as string, row["account_id"] as string);
   }
 
   return result;

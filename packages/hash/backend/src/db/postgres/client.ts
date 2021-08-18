@@ -16,11 +16,11 @@ import {
 import { getEntityTypeId, createEntityType } from "./entitytypes";
 import { insertEntityMetadata, updateEntityMetadata } from "./metadata";
 import {
-  insertEntity,
+  insertEntityVersion,
   getEntity,
   getLatestEntityVersion,
   getLatestEntityVersionId,
-  updateEntityProperties,
+  updateEntityVersionProperties,
   getEntitiesByTypeAllVersions,
   getEntitiesByTypeLatest,
   getAccountEntities,
@@ -57,7 +57,7 @@ export class PostgresClient implements DBClient {
     const missing = linkedEntityIds.filter((id) => !accIdMap.has(id));
     if (missing.length !== 0) {
       throw new Error(
-        `entity ${entity.entityId} references missing entities ${missing}`
+        `entity ${entity.entityVersionId} references missing entities ${missing}`
       );
     }
 
@@ -66,9 +66,9 @@ export class PostgresClient implements DBClient {
         conn,
         linkedEntityIds.map((id) => ({
           accountId: entity.accountId,
-          entityId: entity.entityId,
+          entityVersionId: entity.entityVersionId,
           childAccountId: accIdMap.get(id)!,
-          childId: id,
+          childVersionId: id,
         }))
       ),
 
@@ -76,9 +76,9 @@ export class PostgresClient implements DBClient {
         conn,
         linkedEntityIds.map((id) => ({
           accountId: accIdMap.get(id)!,
-          entityId: id,
+          entityVersionId: id,
           parentAccountId: entity.accountId,
-          parentId: entity.entityId,
+          parentVersionId: entity.entityVersionId,
         }))
       ),
     ]);
@@ -86,7 +86,7 @@ export class PostgresClient implements DBClient {
 
   async createEntity(params: {
     accountId: string;
-    entityId?: string;
+    versionId?: string;
     createdById: string;
     type: string;
     versioned: boolean;
@@ -102,13 +102,13 @@ export class PostgresClient implements DBClient {
         (await getEntityTypeId(conn, params.type)) ??
         (await createEntityType(conn, params.type));
 
-      // @todo: if entityId is provided, check that it's a UUID
-      const entityId = params.entityId ?? genId();
+      // @todo: if versionId is provided, check that it's a UUID
+      const entityVersionId = params.versionId ?? genId();
       const now = new Date();
       const metadataId = genId();
       const entity: Entity = {
         accountId: params.accountId,
-        entityId: entityId,
+        entityVersionId: entityVersionId,
         createdById: params.createdById,
         type: params.type,
         properties: params.properties,
@@ -125,12 +125,12 @@ export class PostgresClient implements DBClient {
       // Defer FKs until end of transaction so we can insert concurrently
       await conn.query(sql`
         set constraints
-          entities_account_id_metadata_id_fkey,
-          entity_account_account_id_entity_id_fkey,
-          outgoing_links_account_id_entity_id_fkey,
-          outgoing_links_child_account_id_child_id_fkey,
-          incoming_links_account_id_entity_id_fkey,
-          incoming_links_parent_account_id_parent_id_fkey
+          entity_versions_account_id_entity_id_fkey,
+          entity_account_account_id_entity_version_id_fkey,
+          outgoing_links_account_id_entity_version_id_fkey,
+          outgoing_links_child_account_id_child_version_id_fkey,
+          incoming_links_account_id_entity_version_id_fkey,
+          incoming_links_parent_account_id_parent_version_id_fkey
         deferred
       `);
 
@@ -142,7 +142,7 @@ export class PostgresClient implements DBClient {
           ...entity.metadata,
         }),
 
-        insertEntity(conn, { ...entity, typeId: entityTypeId }),
+        insertEntityVersion(conn, { ...entity, typeId: entityTypeId }),
 
         // Make a reference to this entity's account in the `entity_account` lookup table
         insertEntityAccount(conn, entity),
@@ -155,7 +155,7 @@ export class PostgresClient implements DBClient {
   async getEntity(
     params: {
       accountId: string;
-      entityId: string;
+      entityVersionId: string;
     },
     lock: boolean = false
   ): Promise<Entity | undefined> {
@@ -188,7 +188,7 @@ export class PostgresClient implements DBClient {
     const now = new Date();
     const newEntityVersion: Entity = {
       ...params.entity,
-      entityId: genId(),
+      entityVersionId: genId(),
       properties: params.newProperties,
       createdAt: now,
       updatedAt: now,
@@ -197,16 +197,16 @@ export class PostgresClient implements DBClient {
     // Defer FKs until end of transaction so we can insert concurrently
     await conn.query(sql`
       set constraints
-        entity_account_account_id_entity_id_fkey,
-        outgoing_links_account_id_entity_id_fkey,
-        outgoing_links_child_account_id_child_id_fkey,
-        incoming_links_account_id_entity_id_fkey,
-        incoming_links_parent_account_id_parent_id_fkey
+        entity_account_account_id_entity_version_id_fkey,
+        outgoing_links_account_id_entity_version_id_fkey,
+        outgoing_links_child_account_id_child_version_id_fkey,
+        incoming_links_account_id_entity_version_id_fkey,
+        incoming_links_parent_account_id_parent_version_id_fkey
       deferred
     `);
 
     await Promise.all([
-      insertEntity(conn, {
+      insertEntityVersion(conn, {
         ...newEntityVersion,
         typeId,
         metadataId: newEntityVersion.metadata.metadataId,
@@ -245,7 +245,7 @@ export class PostgresClient implements DBClient {
 
     const now = new Date();
     await Promise.all([
-      updateEntityProperties(conn, updatedEntity),
+      updateEntityVersionProperties(conn, updatedEntity),
 
       this.createLinks(conn, updatedEntity),
     ]);
@@ -260,12 +260,12 @@ export class PostgresClient implements DBClient {
   async updateEntity(
     params: {
       accountId: string;
-      entityId: string;
+      entityVersionId: string;
       metadataId: string;
       type?: string | undefined;
       properties: any;
     },
-    child?: { accountId: string; entityId: string },
+    child?: { accountId: string; entityVersionId: string },
     checkLatest: boolean = true
   ): Promise<Entity[]> {
     const [entity, latestVersionId] = await Promise.all([
@@ -279,11 +279,11 @@ export class PostgresClient implements DBClient {
     if (
       entity.metadata.versioned &&
       checkLatest &&
-      entity.entityId !== latestVersionId
+      entity.entityVersionId !== latestVersionId
     ) {
       // @todo: make this error catchable by the caller (conflicted input)
       throw new Error(
-        `cannot update versioned entity ${entity.entityId} because it does not match the latest version ${latestVersionId}`
+        `cannot update versioned entity ${entity.entityVersionId} because it does not match the latest version ${latestVersionId}`
       );
     }
 
@@ -302,7 +302,7 @@ export class PostgresClient implements DBClient {
           {
             ...child,
             parentAccountId: updatedEntity.accountId,
-            parentId: updatedEntity.entityId,
+            parentVersionId: updatedEntity.entityVersionId,
           },
         ]);
       }
@@ -325,13 +325,13 @@ export class PostgresClient implements DBClient {
       const updatedParents = await Promise.all(
         parents.map(async (parent) => {
           replaceLink(parent, {
-            old: entity.entityId,
-            new: updatedEntity.entityId,
+            old: entity.entityVersionId,
+            new: updatedEntity.entityVersionId,
           });
           return await this.updateEntity(
             parent,
             {
-              entityId: updatedEntity.entityId,
+              entityVersionId: updatedEntity.entityVersionId,
               accountId: updatedEntity.accountId,
             },
             false
@@ -350,7 +350,7 @@ export class PostgresClient implements DBClient {
           {
             ...child,
             parentAccountId: updatedEntity.accountId,
-            parentId: updatedEntity.entityId,
+            parentVersionId: updatedEntity.entityVersionId,
           },
         ]);
         // @todo: handle inserting into outgoing_links
@@ -423,7 +423,7 @@ export class PostgresClient implements DBClient {
   // getEntity and updateEntity.
   async getAndUpdateEntity(params: {
     accountId: string;
-    entityId: string;
+    entityVersionId: string;
     handler: (entity: Entity) => Entity;
   }): Promise<Entity[]> {
     const entity = await this.getEntity(params, true);
@@ -433,7 +433,7 @@ export class PostgresClient implements DBClient {
     const updated = params.handler(entity);
     return await this.updateEntity({
       accountId: params.accountId,
-      entityId: params.entityId,
+      entityVersionId: params.entityVersionId,
       metadataId: entity.metadataId,
       properties: updated.properties,
     });
@@ -449,7 +449,7 @@ export class PostgresClient implements DBClient {
   async getEntities(
     entities: {
       accountId: string;
-      entityId: string;
+      entityVersionId: string;
     }[]
   ): Promise<Entity[]> {
     return await getEntities(this.conn, entities);
