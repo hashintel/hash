@@ -27,7 +27,7 @@ export const selectEntities = sql`
   from
     entity_versions as e
     join entity_types as t on e.type = t.id
-    join entity_metadata as meta on
+    join entities as meta on
         e.account_id = meta.account_id and  -- required for sharding
         e.metadata_id = meta.metadata_id
 `;

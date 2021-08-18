@@ -10,10 +10,9 @@ create table if not exists accounts (
 
 
 /**
-The entity_metadata table stores metadata which is shared across all versions of an
-entity.
+The entities table stores metadata which is shared across all versions of an entity.
 */
-create table if not exists entity_metadata (
+create table if not exists entities (
     account_id  uuid not null,
     metadata_id uuid not null,
     versioned   boolean not null,
@@ -33,7 +32,7 @@ create table if not exists entity_versions (
     created_at          timestamp with time zone not null,
     updated_at          timestamp with time zone not null,
 
-    foreign key (account_id, metadata_id) references entity_metadata (account_id, metadata_id) deferrable,
+    foreign key (account_id, metadata_id) references entities (account_id, metadata_id) deferrable,
 
     primary key (account_id, entity_version_id)
 );
