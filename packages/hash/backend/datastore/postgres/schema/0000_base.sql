@@ -14,29 +14,29 @@ The entities table stores metadata which is shared across all versions of an ent
 */
 create table if not exists entities (
     account_id  uuid not null,
-    metadata_id uuid not null,
+    entity_id   uuid not null,
     versioned   boolean not null,
     extra       jsonb,
 
-    primary key (account_id, metadata_id)
+    primary key (account_id, entity_id)
 );
 
 
 create table if not exists entity_versions (
-    account_id          uuid not null references accounts (account_id),
-    entity_version_id   uuid not null,
-    type                integer not null references entity_types (id),
-    properties          jsonb not null,
-    metadata_id         uuid not null,
-    created_by          uuid not null,
-    created_at          timestamp with time zone not null,
-    updated_at          timestamp with time zone not null,
+    account_id        uuid not null references accounts (account_id),
+    entity_version_id uuid not null,
+    type              integer not null references entity_types (id),
+    properties        jsonb not null,
+    entity_id         uuid not null,
+    created_by        uuid not null,
+    created_at        timestamp with time zone not null,
+    updated_at        timestamp with time zone not null,
 
-    foreign key (account_id, metadata_id) references entities (account_id, metadata_id) deferrable,
+    foreign key (account_id, entity_id) references entities (account_id, entity_id) deferrable,
 
     primary key (account_id, entity_version_id)
 );
-create index if not exists entities_metadata on entity_versions (account_id, metadata_id);
+create index if not exists entity_versions_entity_id on entity_versions (account_id, entity_id);
 
 
 /** For entity ID : account ID lookups */
