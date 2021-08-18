@@ -81,6 +81,31 @@ class User extends Entity {
         return this;
       });
 
+  static shortnameIsValid = (shortname: string) =>
+    // cannot be empty string
+    shortname !== "" &&
+    // cannot include whitespace
+    !shortname.match(/\s/);
+
+  static shortnameIsUnique = (db: DBAdapter) => (shortname: string) =>
+    User.getUserByShortname(db)({ shortname }).then(
+      (existingUser) => existingUser === null
+    );
+
+  updateShortname = (db: DBAdapter) => async (updatedShortname: string) =>
+    this.updateProperties(db)({
+      ...this.properties,
+      shortname: updatedShortname,
+    });
+
+  static preferredNameIsValid = (preferredName: string) => preferredName !== "";
+
+  updatePreferredName = (db: DBAdapter) => (updatedPreferredName: string) =>
+    this.updateProperties(db)({
+      ...this.properties,
+      preferredName: updatedPreferredName,
+    });
+
   getPrimaryEmail = (): Email => {
     const primaryEmail = this.properties.emails.find(
       ({ primary }) => primary === true

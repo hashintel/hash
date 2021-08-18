@@ -21,7 +21,9 @@ import {
 } from "./pages";
 import { accounts } from "./account/accounts";
 import { createUser } from "./shared/createUser";
+import { updateUser } from "./user/updateUser";
 import { createOrg } from "./shared/createOrg";
+import { verifyEmail } from "./user/verifyEmail";
 import { sendLoginCode } from "./user/sendLoginCode";
 import { loginWithLoginCode } from "./user/loginWithLoginCode";
 import { embedCode } from "./embed";
@@ -61,7 +63,9 @@ export const resolvers = {
     updateEntity,
     updatePage,
     createUser,
+    updateUser: loggedIn(updateUser),
     createOrg,
+    verifyEmail,
     sendLoginCode,
     loginWithLoginCode,
     logout: loggedIn(logout),

@@ -15,12 +15,12 @@ const matchesUserType = sql`
 
 // @todo: this function should take accountId as a parameter.
 export const getUserById = async (conn: Connection, params: { id: string }) => {
-  const row = await conn.one(sql`
+  const row = await conn.maybeOne(sql`
     ${selectEntities}
     where
       e.entity_id = ${params.id} and ${matchesUserType}
   `);
-  return mapPGRowToEntity(row);
+  return row ? mapPGRowToEntity(row) : null;
 };
 
 // @todo: this function is not optimized to take DB indexes or sharding into account. It
@@ -29,7 +29,7 @@ export const getUserByEmail = async (
   conn: Connection,
   params: { email: string }
 ) => {
-  const row = await conn.one(sql`
+  const row = await conn.maybeOne(sql`
     ${selectEntities}
     where
         ${matchesUserType}
@@ -41,7 +41,7 @@ export const getUserByEmail = async (
         )
         
   `);
-  return mapPGRowToEntity(row);
+  return row ? mapPGRowToEntity(row) : null;
 };
 
 // @todo: this function is not optimized to take DB indexes or sharding into account. It
@@ -50,10 +50,10 @@ export const getUserByShortname = async (
   conn: Connection,
   params: { shortname: string }
 ) => {
-  const row = await conn.one(sql`
+  const row = await conn.maybeOne(sql`
     ${selectEntities}
     where
       e.properties ->> 'shortname' = ${params.shortname} and ${matchesUserType}
   `);
-  return mapPGRowToEntity(row);
+  return row ? mapPGRowToEntity(row) : null;
 };

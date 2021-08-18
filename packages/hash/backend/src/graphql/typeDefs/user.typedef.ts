@@ -101,6 +101,10 @@ export const userTypedef = gql`
     """
     createUser(email: String!): VerificationCodeMetadata!
     """
+    Update a user
+    """
+    updateUser(id: ID!, properties: UpdateUserProperties!): User!
+    """
     Verifies a user's email address using a previously generated verification code
     """
     verifyEmail(verificationId: ID!, verificationCode: String!): User!
