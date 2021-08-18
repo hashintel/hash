@@ -1,3 +1,5 @@
+import { ApolloError } from "apollo-server-express";
+
 import {
   MutationCreateUserArgs,
   Resolver,
@@ -5,7 +7,6 @@ import {
 } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import User from "../../../model/user.model";
-import { ApolloError } from "apollo-server-express";
 
 export const createUser: Resolver<
   Promise<VerificationCodeMetadata>,
