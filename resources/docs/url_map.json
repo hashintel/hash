@@ -265,11 +265,13 @@
         "urldata": [
           {
             "title": "Actor Model",
-            "slug": "simulation/concepts/design-considerations"
-          },
-          {
-            "title": "Managing Resource Access",
-            "slug": "simulation/concepts/design-considerations/managing-resource-access"
+            "slug": "simulation/concepts/design-considerations",
+            "urldata": [
+              {
+                "title": "Managing Resource Access",
+                "slug": "simulation/concepts/design-considerations/managing-resource-access"
+              }
+            ]
           },
           {
             "title": "Managing Timescales",
@@ -426,47 +428,49 @@
         "urldata": [
           {
             "title": "Switching to HASH",
-            "slug": "simulation/extra/migrating"
-          },
-          {
-            "title": "Migrating from AnyLogic",
-            "slug": "simulation/extra/migrating/anylogic",
+            "slug": "simulation/extra/migrating",
             "urldata": [
               {
-                "title": "Mental Models",
-                "slug": "simulation/extra/migrating/anylogic/mental-models"
-              },
-              {
-                "title": "Planning the Build",
-                "slug": "simulation/extra/migrating/anylogic/planning-the-build"
-              },
-              {
-                "title": "Main Loop",
-                "slug": "simulation/extra/migrating/anylogic/main-loop"
-              },
-              {
-                "title": "Building the Simulation",
-                "slug": "simulation/extra/migrating/anylogic/building-the-simulation",
+                "title": "Migrating from AnyLogic",
+                "slug": "simulation/extra/migrating/anylogic",
                 "urldata": [
                   {
-                    "title": "Tankers to Port",
-                    "slug": "simulation/extra/migrating/anylogic/building-the-simulation/tankers-to-port"
+                    "title": "Mental Models",
+                    "slug": "simulation/extra/migrating/anylogic/mental-models"
                   },
                   {
-                    "title": "Through the Pipeline",
-                    "slug": "simulation/extra/migrating/anylogic/building-the-simulation/through-the-pipeline"
+                    "title": "Planning the Build",
+                    "slug": "simulation/extra/migrating/anylogic/planning-the-build"
                   },
                   {
-                    "title": "Trucks on the Move",
-                    "slug": "simulation/extra/migrating/anylogic/building-the-simulation/trucks-on-the-move"
+                    "title": "Main Loop",
+                    "slug": "simulation/extra/migrating/anylogic/main-loop"
                   },
                   {
-                    "title": "Full Initialization",
-                    "slug": "simulation/extra/migrating/anylogic/building-the-simulation/full-initialization"
-                  },
-                  {
-                    "title": "Improving our Visualization",
-                    "slug": "simulation/extra/migrating/anylogic/building-the-simulation/improving-our-visualization"
+                    "title": "Building the Simulation",
+                    "slug": "simulation/extra/migrating/anylogic/building-the-simulation",
+                    "urldata": [
+                      {
+                        "title": "Tankers to Port",
+                        "slug": "simulation/extra/migrating/anylogic/building-the-simulation/tankers-to-port"
+                      },
+                      {
+                        "title": "Through the Pipeline",
+                        "slug": "simulation/extra/migrating/anylogic/building-the-simulation/through-the-pipeline"
+                      },
+                      {
+                        "title": "Trucks on the Move",
+                        "slug": "simulation/extra/migrating/anylogic/building-the-simulation/trucks-on-the-move"
+                      },
+                      {
+                        "title": "Full Initialization",
+                        "slug": "simulation/extra/migrating/anylogic/building-the-simulation/full-initialization"
+                      },
+                      {
+                        "title": "Improving our Visualization",
+                        "slug": "simulation/extra/migrating/anylogic/building-the-simulation/improving-our-visualization"
+                      }
+                    ]
                   }
                 ]
               }
