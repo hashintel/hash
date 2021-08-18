@@ -18,7 +18,7 @@ export const insertVerificationCode = async (
   await conn.query(sql`
     insert into verification_codes (
       verification_id, account_id, user_id,
-      verification_code, emailAddress, created_at
+      verification_code, email_address, created_at
     )
     values (
       ${params.id}, ${params.accountId}, ${params.userId},
