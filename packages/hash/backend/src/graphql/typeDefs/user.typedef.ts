@@ -65,9 +65,15 @@ export const userTypedef = gql`
     # ENTITY INTERFACE FIELDS END #
   }
 
+  type Email {
+    address: String!
+    verified: Boolean!
+    primary: Boolean!
+  }
+
   type UserProperties {
-    email: String!
-    shortname: String!
+    emails: [Email!]!
+    shortname: String
   }
 
   type VerificationCodeMetadata {
@@ -84,7 +90,13 @@ export const userTypedef = gql`
   }
 
   extend type Mutation {
-    createUser(email: String!, shortname: String!): User!
+    """
+    Creates a user, and sends them an email verification code
+    """
+    createUser(email: String!): VerificationCodeMetadata!
+    """
+    Sends an existing user a login verification code
+    """
     sendLoginCode(emailOrShortname: String!): VerificationCodeMetadata!
     loginWithLoginCode(verificationId: ID!, verificationCode: String!): User!
     logout: LogoutResponse!

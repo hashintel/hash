@@ -7,7 +7,7 @@ import {
 } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { GraphQLPasswordlessStrategy } from "../../../auth/passport/PasswordlessStrategy";
-import { sendLoginCodeToUser } from "../../../email";
+import { sendLoginCodeToEmailAddress } from "../../../email";
 
 export const sendLoginCode: Resolver<
   Promise<VerificationCodeMetadata>,
@@ -15,7 +15,9 @@ export const sendLoginCode: Resolver<
   GraphQLContext,
   MutationSendLoginCodeArgs
 > = async (_, { emailOrShortname }, { dataSources }) => {
-  const user = emailOrShortname.includes("@")
+  const providedEmail = emailOrShortname.includes("@");
+
+  const user = providedEmail
     ? await dataSources.db
         .getUserByEmail({ email: emailOrShortname })
         .then((user) => {
@@ -43,8 +45,14 @@ export const sendLoginCode: Resolver<
     code: GraphQLPasswordlessStrategy.generateLoginCode(),
   });
 
-  return sendLoginCodeToUser(verificationCode, user).then(() => ({
-    id: verificationCode.id,
-    createdAt: verificationCode.createdAt,
-  }));
+  const verificationEmail = providedEmail
+    ? emailOrShortname
+    : user.properties.emails.find(({ primary }) => primary === true)!.address;
+
+  return sendLoginCodeToEmailAddress(verificationCode, verificationEmail).then(
+    () => ({
+      id: verificationCode.id,
+      createdAt: verificationCode.createdAt,
+    })
+  );
 };

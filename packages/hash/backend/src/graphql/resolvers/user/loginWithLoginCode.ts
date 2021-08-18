@@ -47,8 +47,9 @@ export const loginWithLoginCode: Resolver<
 
   // Otherwise, let's check if the provided code matches the login code
   if (verificationCode.code === args.verificationCode) {
-    const user = await User
-      .getUserById(dataSources.db)({ id: verificationCode.userId })
+    const user = await User.getUserById(dataSources.db)({
+      id: verificationCode.userId,
+    })
       .then((user) => {
         if (!user)
           throw new ApolloError(
