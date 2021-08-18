@@ -1,23 +1,34 @@
-import { genId } from "../../../util";
-import { MutationCreateUserArgs, Resolver } from "../../apiTypes.gen";
+import {
+  MutationCreateUserArgs,
+  Resolver,
+  VerificationCodeMetadata,
+} from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
-import { Entity } from "../../../db/adapter";
+import User from "../../../model/user.model";
+import { ApolloError } from "apollo-server-express";
 
 export const createUser: Resolver<
-  Promise<Entity>,
+  Promise<VerificationCodeMetadata>,
   {},
   GraphQLContext,
   MutationCreateUserArgs
-> = async (_, { email, shortname }, { dataSources }) => {
-  const id = genId();
+> = async (_, { email }, { dataSources }) => {
   // TODO: should check for uniqueness of email
 
-  return dataSources.db.createEntity({
-    accountId: id,
-    entityVersionId: id,
-    createdById: id, // Users "create" themselves
-    systemTypeName: "User",
-    properties: { email, shortname },
-    versioned: false, // @todo: should user's be versioned?
+  if (await User.getUserByEmail(dataSources.db)({ email })) {
+    throw new ApolloError(
+      `User with the email '${email}' already exists in the datastore`,
+      "ALREADY_EXISTS"
+    );
+  }
+
+  const user = await User.create(dataSources.db)({
+    emails: [{ address: email, primary: true, verified: false }],
   });
+
+  return user
+    .sendEmailVerificationCode(dataSources.db)(email)
+    .then((verificationCode) =>
+      verificationCode.toGQLVerificationCodeMetadata()
+    );
 };

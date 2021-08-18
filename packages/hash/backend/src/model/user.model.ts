@@ -1,9 +1,9 @@
-import { DBAdapter } from "src/db";
+import { DBAdapter } from "../db";
 import {
   sendEmailVerificationCodeToEmailAddress,
   sendLoginCodeToEmailAddress,
 } from "../email";
-import { genId } from "src/util";
+import { genId } from "../util";
 import {
   UserProperties,
   User as GQLUser,
