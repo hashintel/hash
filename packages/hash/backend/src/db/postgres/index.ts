@@ -2,8 +2,8 @@ import { DataSource } from "apollo-datasource";
 import { StatsD } from "hot-shots";
 import { createPool, DatabasePoolType } from "slonik";
 import { Logger } from "winston";
-import { DbUser } from "src/types/dbTypes";
 
+import { DbUser } from "../../types/dbTypes";
 import { PostgresClient } from "./client";
 import { getRequiredEnv } from "../../util";
 import {

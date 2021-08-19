@@ -1,9 +1,11 @@
 import { SendMailOptions } from "nodemailer";
 import { convert } from "html-to-text";
-import { LoginCode } from "src/db/adapter";
-import { DbUser } from "src/types/dbTypes";
+import { LoginCode } from "../db/adapter";
+import { DbUser } from "../types/dbTypes";
 import awsSesTransporter from "./transporters/awsSes";
-import { FRONTEND_DOMAIN } from "../index";
+import { getRequiredEnv } from "../util";
+
+const FRONTEND_DOMAIN = getRequiredEnv("FRONTEND_DOMAIN");
 
 // TODO: support configurable domains
 export const sendMail = ({
