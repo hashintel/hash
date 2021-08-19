@@ -1,26 +1,23 @@
 import { Step } from "prosemirror-transform";
-import { EditorState } from "prosemirror-state";
 import {
   collab,
   getVersion,
   receiveTransaction,
   sendableSteps,
 } from "prosemirror-collab";
+import { createProseMirrorState } from "@hashintel/hash-shared/src/sharedWithBackendJs";
 
-import { GET, POST } from "./http";
-import {
-  ensureDocBlocksLoaded,
-  replaceStateContent,
-} from "@hashintel/hash-shared/src/sharedWithBackend";
+import { GET, POST } from "./POST";
+import { ensureDocBlocksLoaded } from "@hashintel/hash-shared/src/sharedWithBackend";
 import { createNodeView } from "../tsUtils";
-import { createPMState } from "@hashintel/hash-shared/src/sharedWithBackendJs";
-// import { Reporter } from "./reporter";
 
-// const report = new Reporter();
+const badVersion = (err) => err.status === 400 && /invalid version/i.test(err);
 
-function badVersion(err) {
-  return err.status === 400 && /invalid version/i.test(err);
-}
+const repeat = (val, count) => {
+  const result = [];
+  for (let i = 0; i < count; i++) result.push(val);
+  return result;
+};
 
 class State {
   constructor(edit, comm) {
@@ -49,11 +46,14 @@ export class EditorConnection {
     let newEditState = null;
     switch (action.type) {
       case "loaded":
-        // info.users.textContent = userString(action.users); // FIXME ewww
-        const editState = createPMState(action.doc, this.replacePortal, [
-          ...this.additionalPlugins, // @todo set this version properly
-          collab({ version: action.version }),
-        ]);
+        const editState = createProseMirrorState(
+          action.doc,
+          this.replacePortal,
+          [
+            ...this.additionalPlugins, // @todo set this version properly
+            collab({ version: action.version }),
+          ]
+        );
         this.state = new State(editState, "poll");
         this.poll();
         break;
@@ -254,35 +254,3 @@ export class EditorConnection {
     this.view = window.view = view;
   }
 }
-
-function repeat(val, count) {
-  const result = [];
-  for (let i = 0; i < count; i++) result.push(val);
-  return result;
-}
-
-// function userString(str) {
-//   return "(" + str + " user" + (str === 1 ? "" : "s") + ")";
-// }
-
-// let connection = null;
-//
-//
-// function connectFromHash() {
-//   let isID = /^#edit-(.+)/.exec(location.hash);
-//   if (isID) {
-//     if (connection) connection.close();
-//     info.name.textContent = decodeURIComponent(isID[1]);
-//     connection = window.connection = new EditorConnection(
-//       report,
-//       "/collab-backend/docs/" + isID[1]
-//     );
-//     connection.request.then(() => connection.view.focus());
-//     return true;
-//   }
-// }
-//
-// addEventListener("hashchange", connectFromHash);
-// if (!connectFromHash()) {
-//   location.hash = "#edit-Example";
-// }

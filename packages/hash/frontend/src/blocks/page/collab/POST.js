@@ -37,15 +37,12 @@ export function req(conf) {
 }
 
 function makePlain(html) {
-  var elt = document.createElement("div");
+  const elt = document.createElement("div");
   elt.innerHTML = html;
   return elt.textContent.replace(/\n[^]*|\s+$/g, "");
 }
 
-export function GET(url) {
-  return req({ url, method: "GET" });
-}
+export const GET = (url) => req({ url, method: "GET" });
 
-export function POST(url, body, type) {
-  return req({ url, method: "POST", body, headers: { "Content-Type": type } });
-}
+export const POST = (url, body, type) =>
+  req({ url, method: "POST", body, headers: { "Content-Type": type } });
