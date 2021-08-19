@@ -19,7 +19,7 @@ import {
 import {
   getEntityType,
   getEntityTypeLatestVersion,
-  getLatestSystemType,
+  getSystemTypeLatestVersion,
   insertEntityType,
   insertEntityTypeVersion,
   selectSystemEntityTypeIds,
@@ -30,11 +30,11 @@ import {
   getAccountEntities,
   getEntities,
   getEntitiesByTypeAllVersions,
-  getEntitiesByTypeLatest,
+  getEntitiesByTypeLatestVersion,
   getEntity,
   getEntityHistory,
-  getLatestEntityVersion,
-  getLatestEntityVersionId,
+  getEntityLatestVersion,
+  getEntityLatestVersionId,
   insertEntityVersion,
   updateEntityVersionProperties,
 } from "./entity";
@@ -183,7 +183,7 @@ export class PostgresClient implements DBClient {
       }
 
       const entityType = systemTypeName
-        ? await getLatestSystemType(conn, { systemTypeName })
+        ? await getSystemTypeLatestVersion(conn, { systemTypeName })
         : entityTypeVersionId
         ? await getEntityType(conn, { entityTypeVersionId })
         : await getEntityTypeLatestVersion(conn, {
@@ -266,11 +266,11 @@ export class PostgresClient implements DBClient {
     return (await getEntity(this.conn, params, lock)) || undefined;
   }
 
-  async getLatestEntityVersion(params: {
+  async getEntityLatestVersion(params: {
     accountId: string;
     metadataId: string;
   }): Promise<Entity | undefined> {
-    return (await getLatestEntityVersion(this.conn, params)) || undefined;
+    return (await getEntityLatestVersion(this.conn, params)) || undefined;
   }
 
   private async updateVersionedEntity(
@@ -359,7 +359,7 @@ export class PostgresClient implements DBClient {
   ): Promise<Entity[]> {
     const [entity, latestVersionId] = await Promise.all([
       getEntity(this.conn, params),
-      getLatestEntityVersionId(this.conn, params),
+      getEntityLatestVersionId(this.conn, params),
     ]);
 
     if (!entity) {
@@ -544,7 +544,7 @@ export class PostgresClient implements DBClient {
     // - either 'latestOnly' or all versions of the entity -
     // across ALL versions of the system type in either case.
     return params.latestOnly
-      ? await getEntitiesByTypeLatest(this.conn, queryParams)
+      ? await getEntitiesByTypeLatestVersion(this.conn, queryParams)
       : await getEntitiesByTypeAllVersions(this.conn, queryParams);
   }
 
@@ -556,7 +556,7 @@ export class PostgresClient implements DBClient {
     latestOnly: boolean;
   }): Promise<Entity[]> {
     return params.latestOnly
-      ? await getEntitiesByTypeLatest(this.conn, params)
+      ? await getEntitiesByTypeLatestVersion(this.conn, params)
       : await getEntitiesByTypeAllVersions(this.conn, params);
   }
 

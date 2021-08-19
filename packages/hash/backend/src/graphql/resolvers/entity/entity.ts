@@ -20,7 +20,7 @@ export const entity: Resolver<
       throw new ApolloError(`Entity ${id} not found in account ${accountId}`);
     }
   } else if (metadataId) {
-    dbEntity = await dataSources.db.getLatestEntityVersion({
+    dbEntity = await dataSources.db.getEntityLatestVersion({
       accountId,
       metadataId,
     });

@@ -67,7 +67,7 @@ export const insertBlockIntoPage: Resolver<
     // Get and update the page.
     // @todo: always get the latest version for now. This is a temporary measure.
     // return here when strict vs. optimistic entity mutation question is resolved.
-    const page = await client.getLatestEntityVersion({
+    const page = await client.getEntityLatestVersion({
       accountId,
       metadataId: pageMetadataId,
     });

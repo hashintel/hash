@@ -151,7 +151,7 @@ export const getEntity = async (
 /** Get the latest version of an entity. Returns `undefined` if the entity does not
  *  exist in the given account.
  */
-export const getLatestEntityVersion = async (
+export const getEntityLatestVersion = async (
   conn: Connection,
   params: {
     accountId: string;
@@ -172,7 +172,7 @@ export const getLatestEntityVersion = async (
 /** Get the ID of the latest version of an entity. Returns `undefined` if the entity
  * does not exist in the given account.
  */
-export const getLatestEntityVersionId = async (
+export const getEntityLatestVersionId = async (
   conn: Connection,
   params: {
     accountId: string;
@@ -196,7 +196,7 @@ export const getLatestEntityVersionId = async (
  * @param params.entityTypeVersionId optionally limit to entities of a specific version of a type
  * @param params.accountId optionally limit to entities from a specific account
  */
-export const getEntitiesByTypeLatest = async (
+export const getEntitiesByTypeLatestVersion = async (
   conn: Connection,
   params: {
     entityTypeId: string;

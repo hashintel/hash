@@ -81,7 +81,7 @@ export const selectEntityTypeAllVersions = (params: {
 /**
  * Get the latest version of a system entity type by name
  */
-export const getLatestSystemType = async (
+export const getSystemTypeLatestVersion = async (
   conn: Connection,
   params: { systemTypeName: SystemType }
 ): Promise<EntityType | undefined> => {

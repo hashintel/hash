@@ -120,7 +120,7 @@ export interface DBClient {
    * @todo: this function can be combined with getEntity after the metadata_id &
    *   history_id merge.
    * */
-  getLatestEntityVersion(params: {
+  getEntityLatestVersion(params: {
     accountId: string;
     metadataId: string;
   }): Promise<Entity | undefined>;
