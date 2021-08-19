@@ -1,5 +1,11 @@
+const makePlain = (html) => {
+  const elt = document.createElement("div");
+  elt.innerHTML = html;
+  return elt.textContent.replace(/\n[^]*|\s+$/g, "");
+};
+
 // A simple wrapper for XHR.
-export function req(conf) {
+export const req = (conf) => {
   const req = new XMLHttpRequest();
   let aborted = false;
   const result = new Promise((success, failure) => {
@@ -34,13 +40,7 @@ export function req(conf) {
     }
   };
   return result;
-}
-
-function makePlain(html) {
-  const elt = document.createElement("div");
-  elt.innerHTML = html;
-  return elt.textContent.replace(/\n[^]*|\s+$/g, "");
-}
+};
 
 export const GET = (url) => req({ url, method: "GET" });
 

@@ -6,9 +6,9 @@ import {
   sendableSteps,
 } from "prosemirror-collab";
 import { createProseMirrorState } from "@hashintel/hash-shared/src/sharedWithBackendJs";
-
-import { GET, POST } from "./POST";
 import { ensureDocBlocksLoaded } from "@hashintel/hash-shared/src/sharedWithBackend";
+
+import { GET, POST } from "./http";
 import { createNodeView } from "../tsUtils";
 
 const badVersion = (err) => err.status === 400 && /invalid version/i.test(err);
