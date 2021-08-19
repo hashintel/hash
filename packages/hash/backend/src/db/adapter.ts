@@ -1,16 +1,49 @@
 import { DataSource } from "apollo-datasource";
-import { DbUser } from "src/types/dbTypes";
+
+import { SystemType } from "src/types/entityTypes";
+
+/**
+ * @todo should probably store this enum in a non-generated file somewhere
+ *    to revisit in light of fuller auth spec
+ */
+import { Visibility } from "../graphql/apiTypes.gen";
 
 export type Entity = {
   accountId: string;
-  entityVersionId: string;
   createdById: string;
-  type: string;
+  entityId: string;
+  entityVersionId: string;
+  entityType: EntityType;
+  entityTypeId: string;
+  entityTypeName: string;
+  entityTypeVersionId: string;
+  id: string; // alias for entityId
   properties: any;
   metadataId: string;
   metadata: EntityMeta;
   createdAt: Date;
   updatedAt: Date;
+  visibility: Visibility;
+};
+
+export type EntityType = {
+  metadataId: string /** @todo remove this */;
+  accountId: string;
+  createdById: string;
+  entityId: string;
+  entityVersionId: string;
+  entityType?: EntityType | undefined | null;
+  entityTypeId?: string | undefined | null;
+  entityTypeName?: "EntityType";
+  entityTypeVersionId?: string;
+  id: string; // alias for entityId
+  properties: any;
+  metadata: {
+    versioned: boolean;
+  };
+  createdAt: Date;
+  updatedAt: Date;
+  visibility: Visibility;
 };
 
 export type EntityMeta = {
@@ -45,14 +78,28 @@ export interface DBAdapter extends DataSource, DBClient {
  */
 export interface DBClient {
   /**
-   * Create a new entity. If "id" is not provided it will be automatically generated. To
+   * Create an entity type.
+   * @param params.name the type name - must be unique in the specified account
+   * @param params.schema JSON schema fields (e.g. 'properties', 'definition')
+   */
+  createEntityType(params: {
+    accountId: string;
+    createdById: string;
+    name: string;
+    schema?: Record<string, any>;
+  }): Promise<EntityType>;
+
+  /**
+   * Create a new entity. If "entityVersionId" is not provided it will be automatically generated. To
    * create a versioned entity, set the optional parameter "versioned" to `true`.
    * */
   createEntity(params: {
     accountId: string;
-    entityVersionId?: string;
     createdById: string;
-    type: string;
+    entityVersionId?: string | null | undefined;
+    entityTypeId?: string | null | undefined;
+    entityTypeVersionId?: string | null | undefined;
+    systemTypeName?: SystemType | null | undefined;
     versioned: boolean;
     properties: any;
   }): Promise<Entity>;
@@ -71,45 +118,74 @@ export interface DBClient {
   /**
    * Get the latest version of an entity.
    * @todo: this function can be combined with getEntity after the metadata_id &
-   * history_id merge.
+   *   history_id merge.
    * */
   getLatestEntityVersion(params: {
     accountId: string;
     metadataId: string;
   }): Promise<Entity | undefined>;
 
-  /** Update an entity's properties. If the parameter "type" is provided, the function
-   * checks that the entity's type matches before updating.
+  /**
+   * Update an entity type.
+   * @param params.name the type name - must be unique in the specified account
+   * @param params.schema JSON schema fields (e.g. 'properties', 'definition')
+   * */
+  updateEntityType(params: {
+    accountId: string;
+    createdById: string;
+    entityTypeId: string;
+    name?: string;
+    schema?: Record<string, any>;
+  }): Promise<EntityType>;
+
+  /**
+   * Update an entity's properties.
    */
   updateEntity(params: {
     accountId: string;
     entityVersionId: string;
     metadataId: string;
-    type?: string;
     properties: any;
   }): Promise<Entity[]>;
 
   /** Get the user by their id. */
-  getUserById(params: { id: string }): Promise<DbUser | null>;
+  getUserById(params: { id: string }): Promise<Entity | null>;
 
   /** Get the user by their email address. */
-  getUserByEmail(params: { email: string }): Promise<DbUser | null>;
+  getUserByEmail(params: { email: string }): Promise<Entity | null>;
 
   /** Get the user by their shortname. */
-  getUserByShortname(params: { shortname: string }): Promise<DbUser | null>;
+  getUserByShortname(params: { shortname: string }): Promise<Entity | null>;
 
   /**
-   * Get all entities of a given type. If `latestOnly` is set to true, then only the
-   * latest version of each entity is returned. This parameter is ignored for non-versioned
-   * entities.
+   * Get all entities of a given type
+   * @param params.accountId optionally limit results to entities in a specified account
+   * @param params.entityTypeId the fixed entityTypeId
+   * @param params.entityTypeVersionId optionally limit results to entities of a specific version of the type
+   * @param params.latestOnly optionally limit results to the latest version of each entity
+
    * */
   getEntitiesByType(params: {
-    accountId: string;
-    type: string;
+    accountId?: string;
+    entityTypeId: string;
+    entityTypeVersionId?: string;
     latestOnly: boolean;
   }): Promise<Entity[]>;
 
-  /** Get all entities in the database belonging to a specific account
+  /**
+   * Get all entities of a given system type, in an account.
+   * @param params.accountId optionally limit results to entities in a specified account
+   * @param params.latestOnly optionally limit results to the latest version of each entity
+   * @param params.systemTypeName the name of the system type
+   * */
+  getEntitiesBySystemType(params: {
+    accountId?: string;
+    latestOnly: boolean;
+    systemTypeName: SystemType;
+  }): Promise<Entity[]>;
+
+  /**
+   * Get all account type entities (User or Account).
    */
   getAccountEntities(): Promise<Entity[]>;
 

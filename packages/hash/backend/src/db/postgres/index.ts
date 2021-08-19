@@ -11,9 +11,11 @@ import {
   DBClient,
   Entity,
   EntityMeta,
+  EntityType,
   LoginCode,
   EntityVersion,
 } from "../adapter";
+import { SystemType } from "../../types/entityTypes";
 
 export const createConnPool = (logger: Logger) => {
   const user = getRequiredEnv("HASH_PG_USER");
@@ -87,11 +89,22 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     });
   }
 
+  createEntityType(params: {
+    accountId: string;
+    createdById: string;
+    name: string;
+    schema?: Record<string, any>;
+  }): Promise<EntityType> {
+    return this.query((adapter) => adapter.createEntityType(params));
+  }
+
   createEntity(params: {
     accountId: string;
-    entityVersionId?: string | undefined;
+    entityVersionId?: string | undefined | null;
+    entityTypeId?: string | undefined | null;
+    entityTypeVersionId?: string | undefined | null;
+    systemTypeName?: SystemType | undefined | null;
     createdById: string;
-    type: string;
     versioned: boolean;
     properties: any;
   }): Promise<Entity> {
@@ -112,34 +125,52 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return this.query((adapter) => adapter.getLatestEntityVersion(params));
   }
 
+  updateEntityType(params: {
+    accountId: string;
+    createdById: string;
+    entityTypeId: string;
+    name?: string;
+    schema?: Record<string, any>;
+  }): Promise<EntityType> {
+    return this.query((adapter) => adapter.updateEntityType(params));
+  }
+
   updateEntity(params: {
     accountId: string;
     entityVersionId: string;
     metadataId: string;
-    type?: string | undefined;
     properties: any;
   }): Promise<Entity[]> {
     return this.query((adapter) => adapter.updateEntity(params));
   }
 
-  getUserById(params: { id: string }): Promise<DbUser | null> {
+  getUserById(params: { id: string }): Promise<Entity | null> {
     return this.query((adapter) => adapter.getUserById(params));
   }
 
-  getUserByEmail(params: { email: string }): Promise<DbUser | null> {
+  getUserByEmail(params: { email: string }): Promise<Entity | null> {
     return this.query((adapter) => adapter.getUserByEmail(params));
   }
 
-  getUserByShortname(params: { shortname: string }): Promise<DbUser | null> {
+  getUserByShortname(params: { shortname: string }): Promise<Entity | null> {
     return this.query((adapter) => adapter.getUserByShortname(params));
   }
 
   getEntitiesByType(params: {
+    entityTypeId: string;
+    entityTypeVersionId?: string;
     accountId: string;
-    type: string;
     latestOnly: boolean;
   }): Promise<Entity[]> {
     return this.query((adapter) => adapter.getEntitiesByType(params));
+  }
+
+  getEntitiesBySystemType(params: {
+    accountId: string;
+    systemTypeName: SystemType;
+    latestOnly: boolean;
+  }): Promise<Entity[]> {
+    return this.query((adapter) => adapter.getEntitiesBySystemType(params));
   }
 
   getAccountEntities(): Promise<Entity[]> {

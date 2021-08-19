@@ -1,6 +1,9 @@
+import { sql } from "slonik";
+
 import { Connection } from "./types";
 
-import { sql } from "slonik";
+// @ts-ignore
+import { SYSTEM_ACCOUNT_NAME } from "../../lib/config";
 
 export const insertAccount = async (
   conn: Connection,
@@ -41,3 +44,13 @@ export const getEntityAccountIdMany = async (
 
   return result;
 };
+
+/**
+ * @todo cache this value instead of requiring a join each query,
+ *    it'll be unchanged once the instance is configured
+ */
+export const selectSystemAccountIds = sql`
+  select account_id from entity_versions
+  where account_id = entity_id
+    and properties->>'shortname' = ${SYSTEM_ACCOUNT_NAME}
+`;
