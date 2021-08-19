@@ -5,6 +5,7 @@ export const createOrg = gql`
     createOrg(shortname: $shortname) {
       __typename
       id
+      entityTypeName
       createdById
       createdAt
       updatedAt

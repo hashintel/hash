@@ -24,6 +24,7 @@ export const insertBlocksIntoPage: Resolver<
           accountId: block.accountId,
           createdById: genId(), // @todo
           entityTypeId: block.entityTypeId,
+          systemTypeName: block.systemTypeName,
           properties: block.entityProperties,
           versioned: true, // @todo: this should be a property of the type
         });
@@ -32,7 +33,7 @@ export const insertBlocksIntoPage: Resolver<
         const blockProperties: DbBlockProperties = {
           entityId: childEntity.entityVersionId,
           accountId: block.accountId,
-          entityTypeId: block.entityTypeId,
+          entityTypeId: childEntity.entityTypeId,
           componentId: block.componentId,
         };
         const newBlock = await client.createEntity({
@@ -66,7 +67,7 @@ export const insertBlocksIntoPage: Resolver<
       ...newBlocks.map((blk) => ({
         type: "Block",
         accountId: blk.accountId,
-        entityId: blk.id,
+        entityId: blk.entityVersionId,
       }))
     );
 

@@ -12,13 +12,13 @@ import {
   InsertBlocksIntoPageMutation,
   InsertBlocksIntoPageMutationVariables,
 } from "../graphql/apiTypes.gen";
-import { createEntity } from "../../../frontend/src/graphql/queries/entity.queries";
-import { createUser } from "../../../frontend/src/graphql/queries/user.queries";
-import { createOrg } from "../../../frontend/src/graphql/queries/org.queries";
+import { createEntity } from "../graphql/queries/entity.queries";
+import { createUser } from "../graphql/queries/user.queries";
+import { createOrg } from "../graphql/queries/org.queries";
 import {
   createPage,
   insertBlocksIntoPage,
-} from "../../../frontend/src/graphql/queries/page.queries";
+} from "../graphql/queries/page.queries";
 
 export class ApiClient {
   private client: GraphQLClient;
@@ -28,7 +28,7 @@ export class ApiClient {
   }
 
   async createEntity(vars: CreateEntityMutationVariables) {
-    return await (
+    return (
       await this.client.request<
         CreateEntityMutation,
         CreateEntityMutationVariables

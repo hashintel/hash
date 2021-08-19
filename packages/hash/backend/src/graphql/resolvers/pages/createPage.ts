@@ -39,8 +39,7 @@ export const createPage: Resolver<
 
   const newHeaderBlock = await _createEntity("Block", {
     componentId: "https://block.blockprotocol.org/header",
-    entityType: "Header",
-    entityId: newHeaderEntity.id,
+    entityId: newHeaderEntity.entityVersionId,
     accountId,
   });
 
@@ -48,8 +47,7 @@ export const createPage: Resolver<
 
   const newParaBlock = await _createEntity("Block", {
     componentId: "https://block.blockprotocol.org/paragraph",
-    entityType: "Text",
-    entityId: newParaEntity.id,
+    entityId: newParaEntity.entityVersionId,
     accountId,
   });
 
@@ -57,11 +55,11 @@ export const createPage: Resolver<
     title: properties.title,
     contents: [
       {
-        entityId: newHeaderBlock.id,
+        entityId: newHeaderBlock.entityVersionId,
         accountId,
       },
       {
-        entityId: newParaBlock.id,
+        entityId: newParaBlock.entityVersionId,
         accountId,
       },
     ],

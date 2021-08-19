@@ -7,6 +7,7 @@ export const createUser = gql`
       id
       createdById
       createdAt
+      entityTypeName
       updatedAt
       accountId
       visibility

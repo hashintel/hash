@@ -103,7 +103,8 @@ export const pageTypedef = gql`
   input InsertBlocksData {
     componentId: ID!
     entityProperties: JSONObject!
-    entityTypeId: ID!
+    entityTypeId: ID
+    systemTypeName: SystemTypeName
     accountId: ID!
   }
 
