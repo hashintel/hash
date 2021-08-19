@@ -17,7 +17,7 @@ export type Entity = {
   entityTypeId: string;
   entityTypeName: string;
   entityTypeVersionId: string;
-  id: string; // alias for entityId
+  id: string /** @todo remove this in follow-up PR */;
   properties: any;
   metadataId: string;
   metadata: EntityMeta;
@@ -32,11 +32,14 @@ export type EntityType = {
   createdById: string;
   entityId: string;
   entityVersionId: string;
-  entityType?: EntityType | undefined | null;
+  entityType?:
+    | EntityType
+    | undefined
+    | null /** @todo make these non-optional once EntityType type exists */;
   entityTypeId?: string | undefined | null;
   entityTypeName?: "EntityType";
   entityTypeVersionId?: string;
-  id: string; // alias for entityId
+  id: string /** @todo remove this in follow-up PR */;
   properties: any;
   metadata: {
     versioned: boolean;

@@ -140,14 +140,12 @@ export const getEntityTypeLatestVersion = async (
     entityTypeId: string;
   }
 ): Promise<EntityType | undefined> => {
-  const row = await conn.maybeOne(
-    sql`
+  const row = await conn.maybeOne(sql`
     with all_matches as (
       ${selectEntityTypeAllVersions(params)}
     )
     select distinct on (entity_type_id) * from all_matches
-    order by entity_type_id, updated_at desc`
-  );
+    order by entity_type_id, updated_at desc`);
   return row ? mapPGRowToEntityType(row) : undefined;
 };
 
@@ -169,8 +167,7 @@ export const insertEntityType = async (
     // The "on conflict do nothing" clause is required here because multiple transactions
     // may try to insert at the same time causing a conflict on the UNIQUE constraint on
     // entity_types name column.
-    await conn.query(
-      sql`
+    await conn.query(sql`
       insert into entity_types (
         name, account_id, entity_type_id, versioned,
         created_by, created_at, updated_at
@@ -178,8 +175,7 @@ export const insertEntityType = async (
        values (
         ${name}, ${accountId}, ${entityTypeId}, true, 
         ${createdById}, ${createdAt.toISOString()}, ${updatedAt.toISOString()}
-       ) on conflict do nothing`
-    );
+       ) on conflict do nothing`);
   } catch (err) {
     if (err instanceof UniqueIntegrityConstraintViolationError) {
       throw new Error(
@@ -240,21 +236,20 @@ export const insertEntityTypeVersion = async (
     createdAt,
     updatedAt,
   } = params;
-  await conn.query(
-    sql`
-        insert into entity_type_versions (
-          account_id, entity_type_id, entity_type_version_id, properties,
-          created_by, created_at, updated_at
-         )
-         values (
-          ${accountId}, ${entityTypeId}, ${entityTypeVersionId}, ${JSON.stringify(
-      properties
-    )}, 
-          ${createdById}, ${createdAt.toISOString()}, ${updatedAt.toISOString()}
-        )`
-  );
+  await conn.query(sql`
+    insert into entity_type_versions (
+      account_id, entity_type_id, entity_type_version_id, properties,
+      created_by, created_at, updated_at
+    )
+    values (
+      ${accountId}, ${entityTypeId}, ${entityTypeVersionId}, 
+      ${JSON.stringify(properties)}, 
+      ${createdById}, ${createdAt.toISOString()}, ${updatedAt.toISOString()}
+    )
+  `);
 };
 
+/** @todo handle non-versioned entity types */
 export const updateEntityType = async (
   conn: Connection,
   params: {

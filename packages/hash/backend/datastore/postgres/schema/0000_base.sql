@@ -4,6 +4,11 @@ create table if not exists accounts (
 
 
 create table if not exists entity_types (
+    /**
+      The entity_types table does not include account_id in its primary key, unlike others:
+        some types have to be shared access across all accounts, and for performance reasons
+        we do not want to shard the entity_types table by account_id.
+    */
     entity_type_id  uuid not null primary key,
 
     account_id      uuid not null references accounts (account_id) deferrable,
