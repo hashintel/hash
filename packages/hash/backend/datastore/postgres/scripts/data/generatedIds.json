@@ -1,0 +1,34 @@
+{
+  "orgs": {
+    "hash": {
+      "fixedId": "543ba1a2-ed99-447e-a4d8-d2c73d5b0c6e",
+      "firstVersionId": "809a81f4-9c72-4d8b-bc2f-54ce884443e1"
+    }
+  },
+  "types": {
+    "Block": {
+      "fixedId": "3c3d4aed-6b48-483f-a48b-10c0d327ef41",
+      "firstVersionId": "dca9bb26-2bbc-41c7-af42-005ed803a1e4"
+    },
+    "EntityType": {
+      "fixedId": "122165bb-6843-4417-a070-ee8027d2612c",
+      "firstVersionId": "3fa77d97-851a-4c49-a0f5-f0b2c1b81689"
+    },
+    "Org": {
+      "fixedId": "6163639e-5a47-4f05-b595-7ebe086d616d",
+      "firstVersionId": "ca0e4f70-407c-486d-95e2-7f2b3a6c21bd"
+    },
+    "Page": {
+      "fixedId": "5d8c70c2-58cd-425a-8625-9fd6d2005883",
+      "firstVersionId": "ad67c2cd-7457-4807-8b69-91b52bf9be4e"
+    },
+    "Text": {
+      "fixedId": "3a9c2ea5-4d21-4c12-8619-08c20fb3bf94",
+      "firstVersionId": "f39082ba-7c30-4890-a3f2-2658145808fe"
+    },
+    "User": {
+      "fixedId": "54001e67-eef5-4719-ad48-648d638d73c4",
+      "firstVersionId": "ed449fe2-abc4-48f0-bf43-921e7e8dfb5a"
+    }
+  }
+}
