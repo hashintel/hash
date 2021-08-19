@@ -28,6 +28,7 @@ import {
 } from "@hashintel/hash-shared/src/sharedWithBackend";
 import { defineNewBlock } from "@hashintel/hash-shared/src/sharedWithBackendJs";
 import { createNodeView } from "./tsUtils";
+import { EditorConnection } from "./collab/collab";
 
 type PageBlockProps = {
   contents: (Block | BlockWithoutMeta)[];
@@ -73,9 +74,11 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   const [portals, replacePortal] = usePortals();
   const [deferCallback, clearCallback] = useDeferredCallback();
 
-  const prosemirrorSetup = useRef<null | { view: EditorView; schema: Schema }>(
-    null
-  );
+  const prosemirrorSetup = useRef<null | {
+    view: EditorView;
+    schema: Schema;
+    connection: EditorConnection;
+  }>(null);
 
   /**
    * smart hack: provide a live reference to "contents" for all other effects
@@ -198,54 +201,56 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
      *
      * @todo make saves more frequent & seamless
      */
-    const savePlugin = new Plugin({
-      props: {
-        handleDOMEvents: {
-          keydown(view, evt) {
-            // Manual save for cmd+s
-            if (evt.key === "s" && evt.metaKey) {
-              evt.preventDefault();
-              (window as any).triggerSave?.();
-
-              return true;
-            }
-            return false;
-          },
-          focus() {
-            // Cancel the in-progress save
-            clearCallback();
-            return false;
-          },
-          blur: function () {
-            // Trigger a cancellable save on blur
-            deferCallback(() => (window as any).triggerSave());
-
-            return false;
-          },
-        },
-      },
-    });
+    // const savePlugin = new Plugin({
+    //   props: {
+    //     handleDOMEvents: {
+    //       keydown(view, evt) {
+    //         // Manual save for cmd+s
+    //         if (evt.key === "s" && evt.metaKey) {
+    //           evt.preventDefault();
+    //           (window as any).triggerSave?.();
+    //
+    //           return true;
+    //         }
+    //         return false;
+    //       },
+    //       focus() {
+    //         // Cancel the in-progress save
+    //         clearCallback();
+    //         return false;
+    //       },
+    //       blur: function () {
+    //         // Trigger a cancellable save on blur
+    //         deferCallback(() => (window as any).triggerSave());
+    //
+    //         return false;
+    //       },
+    //     },
+    //   },
+    // });
 
     /**
      * Lets see up prosemirror with an empty document, as another effect will set its contents. Unfortunately all
      * prosemirror documents have to contain at least one child, so lets insert a special "blank" placeholder child
      */
-    const { view } = renderPM(
+    const { view, connection } = renderPM(
       node,
       createInitialDoc(schema),
       { nodeViews: {} },
       replacePortal,
-      [savePlugin, createFormatPlugin(replacePortal)],
+      // [savePlugin],
+      [createFormatPlugin(replacePortal)],
       accountId,
       metadataId
     );
 
-    prosemirrorSetup.current = { schema, view };
+    prosemirrorSetup.current = { schema, view, connection };
 
     return () => {
       // @todo how does this work with portals?
       node.innerHTML = "";
       prosemirrorSetup.current = null;
+      connection.close();
     };
   }, [accountId, clearCallback, deferCallback, pageId, replacePortal]);
 
@@ -272,26 +277,26 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     }
   }, [blocksMeta, replacePortal]);
 
-  /**
-   * Whenever contents are updated, we want to sync them to the prosemirror document, which is an async operation as it
-   * may involved defining new node types (and fetching the metadata for them). Contents change whenever we save (as we
-   * replace our already loaded contents with another request for the contents, which ensures that blocks referencing
-   * the same entity are all updated, and that empty IDs are properly filled (i.e, when creating a new block)
-   *
-   * @todo fix when getPage queries are triggered rather than relying on a hook that doesn't actually update from
-   *       contents (because of the laddering problem)
-   */
-  useLayoutEffect(() => {
-    const controller = new AbortController();
-
-    updateContents(controller.signal).catch((err) =>
-      console.error("Could not update page contents: ", err)
-    );
-
-    return () => {
-      controller.abort();
-    };
-  }, [replacePortal, updateContents, metadataId]);
+  // /**
+  //  * Whenever contents are updated, we want to sync them to the prosemirror document, which is an async operation as it
+  //  * may involved defining new node types (and fetching the metadata for them). Contents change whenever we save (as we
+  //  * replace our already loaded contents with another request for the contents, which ensures that blocks referencing
+  //  * the same entity are all updated, and that empty IDs are properly filled (i.e, when creating a new block)
+  //  *
+  //  * @todo fix when getPage queries are triggered rather than relying on a hook that doesn't actually update from
+  //  *       contents (because of the laddering problem)
+  //  */
+  // useLayoutEffect(() => {
+  //   const controller = new AbortController();
+  //
+  //   updateContents(controller.signal).catch((err) =>
+  //     console.error("Could not update page contents: ", err)
+  //   );
+  //
+  //   return () => {
+  //     controller.abort();
+  //   };
+  // }, [replacePortal, updateContents, metadataId]);
 
   return (
     <BlockMetaContext.Provider value={blocksMeta}>
