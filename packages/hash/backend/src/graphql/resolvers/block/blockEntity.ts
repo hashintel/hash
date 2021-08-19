@@ -1,11 +1,12 @@
 import { ApolloError } from "apollo-server-express";
 
-import { Resolver, Visibility } from "../../apiTypes.gen";
-import { DbBlockProperties, DbUnknownEntity } from "../../../types/dbTypes";
+import { Resolver } from "../../apiTypes.gen";
+import { DbBlockProperties } from "../../../types/dbTypes";
 import { GraphQLContext } from "../../context";
+import { Entity } from "../../../db/adapter";
 
 export const blockEntity: Resolver<
-  Promise<DbUnknownEntity>,
+  Promise<Entity>,
   DbBlockProperties,
   GraphQLContext,
   {}
@@ -21,10 +22,5 @@ export const blockEntity: Resolver<
     );
   }
 
-  return {
-    ...entity,
-    id: entity.entityVersionId,
-    accountId: entity.accountId,
-    visibility: Visibility.Public, // TODO: get from entity metadata
-  };
+  return entity;
 };

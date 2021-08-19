@@ -1,16 +1,12 @@
 import { ApolloError } from "apollo-server-express";
 
 import { genId } from "../../../util";
-import { DbPage } from "../../../types/dbTypes";
-import {
-  MutationInsertBlockIntoPageArgs,
-  Resolver,
-  Visibility,
-} from "../../apiTypes.gen";
+import { MutationInsertBlockIntoPageArgs, Resolver } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
+import { Entity } from "../../../db/adapter";
 
 export const insertBlockIntoPage: Resolver<
-  Promise<DbPage>,
+  Promise<Entity>,
   {},
   GraphQLContext,
   MutationInsertBlockIntoPageArgs
@@ -20,14 +16,14 @@ export const insertBlockIntoPage: Resolver<
     componentId,
     entityId,
     entityProperties,
-    entityType,
+    entityTypeId,
     accountId,
     pageMetadataId,
     position,
   },
   { dataSources }
 ) => {
-  return await dataSources.db.transaction(async (client): Promise<DbPage> => {
+  return await dataSources.db.transaction(async (client): Promise<Entity> => {
     let entity;
     if (entityId) {
       // Update
@@ -38,12 +34,12 @@ export const insertBlockIntoPage: Resolver<
       if (!entity) {
         throw new ApolloError(`entity ${entityId} not found`, "NOT_FOUND");
       }
-    } else if (entityProperties && entityType) {
+    } else if (entityProperties && entityTypeId) {
       // Create new entity
       entity = await dataSources.db.createEntity({
         accountId,
         createdById: genId(), // TODO
-        type: entityType,
+        entityTypeId,
         properties: entityProperties,
         versioned: true,
       });
@@ -55,14 +51,14 @@ export const insertBlockIntoPage: Resolver<
 
     const blockProperties = {
       componentId,
-      entityType: entity.type,
       entityId: entity.entityVersionId,
+      entityTypeId: entity.entityTypeId,
       accountId: entity.accountId,
     };
 
     const newBlock = await dataSources.db.createEntity({
       accountId,
-      type: "Block",
+      systemTypeName: "Block",
       createdById: genId(), // TODO
       properties: blockProperties,
       versioned: true,
@@ -98,12 +94,6 @@ export const insertBlockIntoPage: Resolver<
 
     // TODO: for now, all entities are non-versioned, so the list array only have a single
     // element. Return when versioned entities are implemented at the API layer.
-    return {
-      ...updatedEntities[0],
-      type: "Page",
-      id: updatedEntities[0].entityVersionId,
-      accountId: updatedEntities[0].accountId,
-      visibility: Visibility.Public, // TODO: get from entity metadata
-    };
+    return updatedEntities[0];
   });
 };

@@ -3,7 +3,6 @@ import {
   AggregationResponse,
   Resolver,
   UnknownEntity,
-  Visibility,
 } from "../../apiTypes.gen";
 import { DbUnknownEntity } from "../../../types/dbTypes";
 import { aggregateEntity } from "./aggregateEntity";
@@ -30,14 +29,14 @@ export const isRecord = (thing: unknown): thing is Record<string, any> => {
 //   email: "c@hash.ai",
 //   employer: { <-- will be resolved to the data requested in __linkedData
 //     __linkedData: {
-//       entityType: "Company",
+//       entityTypeId: "companyType1",
 //       entityId: "c1"
 //     }
 //   }
 // },
 type LinkedDataDefinition = {
   aggregate?: AggregateOperationInput;
-  entityType?: string;
+  entityTypeId?: string;
   entityId?: string;
 };
 
@@ -69,11 +68,11 @@ const resolveLinkedData = async (
       continue;
     }
 
-    const { aggregate, entityId, entityType } =
+    const { aggregate, entityId, entityTypeId } =
       value.__linkedData as LinkedDataDefinition;
 
     // We need a type and one of an aggregation operation or id
-    if (!entityType || (!aggregate && !entityId)) {
+    if (!entityTypeId || (!aggregate && !entityId)) {
       continue;
     }
 
@@ -86,14 +85,7 @@ const resolveLinkedData = async (
       if (!entity) {
         throw new Error(`entity ${entityId} in account ${accountId} not found`);
       }
-      const dbEntity: DbUnknownEntity = {
-        ...entity,
-        id: entity.entityVersionId,
-        accountId: entity.accountId,
-        __typename: entityType,
-        visibility: Visibility.Public, // TODO
-      };
-      object.properties[key] = dbEntity;
+      object.properties[key] = entity;
       await resolveLinkedData(
         ctx,
         entity.accountId,
@@ -106,7 +98,7 @@ const resolveLinkedData = async (
         {},
         {
           accountId,
-          type: entityType,
+          entityTypeId,
           operation: aggregate,
         },
         ctx,
@@ -117,7 +109,6 @@ const resolveLinkedData = async (
       // Resolve linked data for each entity in the array
       await Promise.all(
         object.properties[key].map((entity: DbUnknownEntity) => {
-          (entity as any).__typename = entityType;
           return resolveLinkedData(ctx, entity.accountId, entity, info);
         })
       );

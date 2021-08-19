@@ -1,10 +1,11 @@
-import { Resolver, Visibility } from "../../apiTypes.gen";
-import { DbBlock, DbPage } from "../../../types/dbTypes";
+import { Resolver } from "../../apiTypes.gen";
+import { DbPage } from "../../../types/dbTypes";
 import { GraphQLContext } from "../../context";
 import { ApolloError } from "apollo-server-express";
+import { Entity } from "../../../db/adapter";
 
 export const contents: Resolver<
-  Promise<DbBlock[]>,
+  Promise<Entity[]>,
   DbPage["properties"],
   GraphQLContext
 > = async ({ contents }, _, { dataSources }) => {
@@ -25,12 +26,5 @@ export const contents: Resolver<
     }
   });
 
-  const res = entities.map((entity) => ({
-    ...entity,
-    id: entity!.entityVersionId,
-    accountId: entity!.accountId,
-    visibility: Visibility.Public, // TODO: get from entity metadata
-  })) as DbBlock[];
-
-  return res;
+  return entities;
 };

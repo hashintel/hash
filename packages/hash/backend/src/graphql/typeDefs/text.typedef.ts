@@ -6,11 +6,19 @@ export const textTypedef = gql`
 
     # ENTITY INTERFACE FIELDS BEGIN #
     """
-    The id of the entity
+    The id of the entity - alias of 'entityId'
     """
     id: ID!
     """
-    The FIXED id for an account
+    The id of the entity - alias of 'id'
+    """
+    entityId: ID!
+    """
+    The specific version if of the entity
+    """
+    entityVersionId: ID!
+    """
+    The id of the account this entity belongs to
     """
     accountId: ID!
     """
@@ -30,9 +38,22 @@ export const textTypedef = gql`
     """
     visibility: Visibility!
     """
-    The type of entity
+    The fixed id of the type this entity is of
     """
-    type: String!
+    entityTypeId: ID!
+    """
+    The id of the specific version of the type this entity is of
+    """
+    entityTypeVersionId: ID!
+    """
+    The name of the entity type this belongs to.
+    N.B. Type names are unique by account - not globally.
+    """
+    entityTypeName: String!
+    """
+    The full entityType definition
+    """
+    entityType: EntityType!
     """
     The version timeline of the entity.
     """

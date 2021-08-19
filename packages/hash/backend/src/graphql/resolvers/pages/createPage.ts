@@ -1,11 +1,16 @@
 import { genId } from "../../../util";
-import { DbBlockProperties, DbPage } from "../../../types/dbTypes";
-import { MutationCreatePageArgs, Resolver } from "../../apiTypes.gen";
+import {
+  MutationCreatePageArgs,
+  Resolver,
+  SystemTypeName,
+} from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { createEntity } from "../entity";
+import { Entity } from "../../../db/adapter";
+import { SystemType } from "../../../types/entityTypes";
 
 export const createPage: Resolver<
-  Promise<DbPage>,
+  Promise<Entity>,
   {},
   GraphQLContext,
   MutationCreatePageArgs
@@ -13,10 +18,16 @@ export const createPage: Resolver<
   const createdById = genId(); // TODO
 
   // Convenience wrapper
-  const _createEntity = async (type: string, properties: any) => {
+  const _createEntity = async (type: SystemType, properties: any) => {
     return await createEntity(
       {},
-      { accountId, createdById, type, properties, versioned: true },
+      {
+        accountId,
+        createdById,
+        systemTypeName: SystemTypeName[type],
+        properties,
+        versioned: true,
+      },
       ctx,
       info
     );
@@ -31,7 +42,7 @@ export const createPage: Resolver<
     entityType: "Header",
     entityId: newHeaderEntity.id,
     accountId,
-  } as DbBlockProperties);
+  });
 
   const newParaEntity = await _createEntity("Text", { texts: [] });
 
@@ -40,9 +51,9 @@ export const createPage: Resolver<
     entityType: "Text",
     entityId: newParaEntity.id,
     accountId,
-  } as DbBlockProperties);
+  });
 
-  const page = await _createEntity("Page", {
+  return _createEntity("Page", {
     title: properties.title,
     contents: [
       {
@@ -55,6 +66,4 @@ export const createPage: Resolver<
       },
     ],
   });
-
-  return page as DbPage;
 };

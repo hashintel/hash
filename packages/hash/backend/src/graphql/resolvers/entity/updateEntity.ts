@@ -1,15 +1,11 @@
 import { ApolloError } from "apollo-server-express";
 
-import { DbUnknownEntity } from "../../../types/dbTypes";
-import {
-  MutationUpdateEntityArgs,
-  Resolver,
-  Visibility,
-} from "../../apiTypes.gen";
+import { Entity } from "../../../db/adapter";
+import { MutationUpdateEntityArgs, Resolver } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 
 export const updateEntity: Resolver<
-  Promise<DbUnknownEntity>,
+  Promise<Entity>,
   {},
   GraphQLContext,
   MutationUpdateEntityArgs
@@ -40,11 +36,6 @@ export const updateEntity: Resolver<
 
     // TODO: for now, all entities are non-versioned, so the array only has a single
     // element. Return when versioned entities are implemented at the API layer.
-    return {
-      ...updatedEntities[0],
-      id: updatedEntities[0].entityVersionId,
-      accountId: updatedEntities[0].accountId,
-      visibility: Visibility.Public, // TODO: get from entity metadata
-    };
+    return updatedEntities[0];
   });
 };

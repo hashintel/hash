@@ -1,14 +1,10 @@
 import { ApolloError } from "apollo-server-express";
-import { DbPage } from "../../../types/dbTypes";
-import {
-  MutationUpdatePageArgs,
-  Resolver,
-  Visibility,
-} from "../../apiTypes.gen";
+import { MutationUpdatePageArgs, Resolver } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
+import { Entity } from "../../../db/adapter";
 
 export const updatePage: Resolver<
-  Promise<DbPage>,
+  Promise<Entity>,
   {},
   GraphQLContext,
   MutationUpdatePageArgs
@@ -32,17 +28,10 @@ export const updatePage: Resolver<
         ...(entity.properties ?? {}),
         ...properties,
       },
-      type: "Page",
     });
 
     // @todo: for now, all entities are non-versioned, so the array only has a single
     // element. Return when versioned entities are implemented at the API layer.
-    return {
-      ...updatedEntities[0],
-      type: "Page",
-      id: updatedEntities[0].entityVersionId,
-      accountId: updatedEntities[0].accountId,
-      visibility: Visibility.Public, // @todo: get from entity metadata
-    };
+    return updatedEntities[0];
   });
 };
