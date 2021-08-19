@@ -1,6 +1,6 @@
 import { DataSource } from "apollo-datasource";
 
-import { SystemType } from "src/types/entityTypes";
+import { SystemType } from "../types/entityTypes";
 
 /**
  * @todo should probably store this enum in a non-generated file somewhere

@@ -1,4 +1,5 @@
 import { ApolloError } from "apollo-server-express";
+import { UserInputError } from "apollo-server-errors";
 
 import { genId } from "../../../util";
 import { MutationInsertBlockIntoPageArgs, Resolver } from "../../apiTypes.gen";
@@ -17,6 +18,8 @@ export const insertBlockIntoPage: Resolver<
     entityId,
     entityProperties,
     entityTypeId,
+    entityTypeVersionId,
+    systemTypeName,
     accountId,
     pageMetadataId,
     position,
@@ -34,12 +37,19 @@ export const insertBlockIntoPage: Resolver<
       if (!entity) {
         throw new ApolloError(`entity ${entityId} not found`, "NOT_FOUND");
       }
-    } else if (entityProperties && entityTypeId) {
+    } else if (entityProperties) {
+      if (!entityTypeId && !entityTypeVersionId && !systemTypeName) {
+        throw new UserInputError(
+          "One of entityTypeId, entityTypeVersionId, or systemTypeName must be provided"
+        );
+      }
       // Create new entity
       entity = await dataSources.db.createEntity({
         accountId,
         createdById: genId(), // TODO
         entityTypeId,
+        entityTypeVersionId,
+        systemTypeName,
         properties: entityProperties,
         versioned: true,
       });

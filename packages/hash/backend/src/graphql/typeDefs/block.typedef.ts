@@ -69,7 +69,6 @@ export const blockTypedef = gql`
     entityId: ID!
     accountId: ID!
     entity: Entity!
-    entityTypeId: ID!
     componentId: ID!
   }
 `;

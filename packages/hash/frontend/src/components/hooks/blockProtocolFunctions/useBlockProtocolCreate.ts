@@ -24,7 +24,8 @@ export const useBlockProtocolCreate = (): {
         void createFn({
           variables: {
             properties: action.data,
-            type: action.entityType,
+            entityTypeId: action.entityTypeId,
+            entityTypeVersionId: action.entityTypeVersionId,
             accountId: action.pageAccountId,
             createdById: action.userId,
           },

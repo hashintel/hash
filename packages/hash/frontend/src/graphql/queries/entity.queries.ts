@@ -5,26 +5,32 @@ export const createEntity = gql`
     $accountId: ID!
     $createdById: ID!
     $properties: JSONObject!
-    $type: String!
+    $entityTypeId: ID
+    $entityTypeVersionId: ID
+    $systemTypeName: SystemTypeName
     $versioned: Boolean! = true
   ) {
     createEntity(
       accountId: $accountId
       createdById: $createdById
       properties: $properties
-      type: $type
+      entityTypeId: $entityTypeId
+      entityTypeVersionId: $entityTypeVersionId
+      systemTypeName: $systemTypeName
       versioned: $versioned
     ) {
       __typename
       id
       createdById
       createdAt
+      entityTypeId
+      entityTypeVersionId
+      entityTypeName
       updatedAt
       accountId
       ... on UnknownEntity {
         properties
       }
-      type
       visibility
     }
   }
@@ -44,7 +50,9 @@ export const updateEntity = gql`
       __typename
       id
       metadataId
-      type
+      entityTypeId
+      entityTypeVersionId
+      entityTypeName
       updatedAt
       ... on UnknownEntity {
         properties
@@ -56,15 +64,23 @@ export const updateEntity = gql`
 export const aggregateEntity = gql`
   query aggregateEntity(
     $accountId: ID!
-    $type: String!
+    $entityTypeId: ID!
+    $entityTypeVersionId: ID
     $operation: AggregateOperationInput
   ) {
-    aggregateEntity(accountId: $accountId, type: $type, operation: $operation) {
+    aggregateEntity(
+      accountId: $accountId
+      entityTypeId: $entityTypeId
+      entityTypeVersionId: $entityTypeVersionId
+      operation: $operation
+    ) {
       __typename
       results {
         __typename
         id
-        type
+        entityTypeId
+        entityTypeVersionId
+        entityTypeName
         ... on UnknownEntity {
           properties
         }

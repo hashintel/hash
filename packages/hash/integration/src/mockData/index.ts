@@ -435,7 +435,6 @@ void (async () => {
           systemTypeName: SystemTypeName.Block,
           properties: {
             componentId: "https://block.blockprotocol.org/header",
-            systemTypeName: SystemTypeName.Text,
             entityId: results.get("text1")?.createEntity.entityVersionId,
             accountId: results.get("text1")?.createEntity.accountId,
           },
@@ -448,7 +447,6 @@ void (async () => {
         {
           properties: {
             componentId: "https://block.blockprotocol.org/paragraph",
-            systemTypeName: SystemTypeName.Text,
             entityId: results.get("text2")?.createEntity.entityVersionId,
             accountId: results.get("text2")?.createEntity.accountId,
           },
@@ -462,7 +460,6 @@ void (async () => {
         {
           properties: {
             componentId: "https://block.blockprotocol.org/paragraph",
-            systemTypeName: SystemTypeName.Text,
             entityId: results.get("text3")?.createEntity.entityVersionId,
             accountId: results.get("text3")?.createEntity.accountId,
           },
@@ -476,7 +473,6 @@ void (async () => {
         {
           properties: {
             componentId: "https://block.blockprotocol.org/table",
-            entityTypeId: newTypeIds.Table,
             entityId: results.get("t1")?.createEntity.entityVersionId,
             accountId: results.get("t1")?.createEntity.accountId,
           },
@@ -490,7 +486,6 @@ void (async () => {
         {
           properties: {
             componentId: "https://block.blockprotocol.org/header",
-            systemTypeName: SystemTypeName.Text,
             entityId: results.get("text5")?.createEntity.entityVersionId,
             accountId: results.get("text5")?.createEntity.accountId,
           },
@@ -504,7 +499,6 @@ void (async () => {
         {
           properties: {
             componentId: "https://block.blockprotocol.org/paragraph",
-            systemTypeName: SystemTypeName.Text,
             entityId: results.get("text2")?.createEntity.entityVersionId,
             accountId: results.get("text2")?.createEntity.accountId,
           },
@@ -518,7 +512,6 @@ void (async () => {
         {
           properties: {
             componentId: "https://block.blockprotocol.org/paragraph",
-            systemTypeName: SystemTypeName.Text,
             entityId: results.get("text3")?.createEntity.entityVersionId,
             accountId: results.get("text3")?.createEntity.accountId,
           },
@@ -532,7 +525,6 @@ void (async () => {
         {
           properties: {
             componentId: "https://block.blockprotocol.org/paragraph",
-            systemTypeName: SystemTypeName.Text,
             entityId: results.get("text4")?.createEntity.entityVersionId,
             accountId: results.get("text4")?.createEntity.accountId,
           },
@@ -546,7 +538,6 @@ void (async () => {
         {
           properties: {
             componentId: "https://block.blockprotocol.org/person",
-            entityTypeId: newTypeIds.Person,
             entityId: results.get("p2")?.createEntity.entityVersionId,
             accountId: results.get("p2")?.createEntity.accountId,
           },
@@ -560,7 +551,6 @@ void (async () => {
         {
           properties: {
             componentId: "https://block.blockprotocol.org/header",
-            systemTypeName: SystemTypeName.Text,
             entityId: results.get("header1")?.createEntity.entityVersionId,
             accountId: results.get("header1")?.createEntity.accountId,
           },
@@ -574,7 +564,6 @@ void (async () => {
         {
           properties: {
             componentId: "https://block.blockprotocol.org/divider",
-            entityType: "Divider",
             entityId: results.get("divider1")?.createEntity.entityVersionId,
             accountId: results.get("divider1")?.createEntity.accountId,
           },
@@ -588,7 +577,6 @@ void (async () => {
         {
           properties: {
             componentId: "https://block.blockprotocol.org/embed",
-            entityTypeId: newTypeIds.Embed,
             entityId: results.get("embed1")?.createEntity.entityVersionId,
             accountId: results.get("embed1")?.createEntity.accountId,
           },
@@ -602,7 +590,6 @@ void (async () => {
         {
           properties: {
             componentId: "https://block.blockprotocol.org/embed",
-            entityTypeId: newTypeIds.Embed,
             entityId: results.get("embed2")?.createEntity.entityVersionId,
             accountId: results.get("embed2")?.createEntity.accountId,
           },
@@ -616,7 +603,6 @@ void (async () => {
         {
           properties: {
             componentId: "https://block.blockprotocol.org/image",
-            entityTypeId: newTypeIds.Image,
             entityId: results.get("img1")?.createEntity.entityVersionId,
             accountId: results.get("img1")?.createEntity.accountId,
           },
@@ -630,7 +616,6 @@ void (async () => {
         {
           properties: {
             componentId: "https://block.blockprotocol.org/image",
-            entityTypeId: newTypeIds.Image,
             entityId: results.get("img2")?.createEntity.entityVersionId,
             accountId: results.get("img2")?.createEntity.accountId,
           },

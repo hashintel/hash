@@ -16,7 +16,7 @@ export const mapPGRowToEntityType = (row: QueryResultRowType): EntityType => ({
   entityId: row["entity_type_id"] as string,
   entityVersionId: row["entity_type_version_id"] as string,
   entityTypeName: "EntityType",
-  id: row["entity_type_id"] as string,
+  id: row["entity_type_version_id"] as string,
   properties: row["properties"],
   metadata: {
     versioned: row["versioned"] as boolean,

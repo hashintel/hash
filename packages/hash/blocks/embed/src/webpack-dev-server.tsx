@@ -47,7 +47,7 @@ function AppComponent() {
         type={"uuid-1234-type"}
         id={"uuid-1234-id"}
         entityId={"uuid-1234-id"}
-        entityType="Embed"
+        entityTypeId="Embed"
         getEmbedBlock={getEmbedBlock}
         update={updateBlockData}
       />

@@ -12,7 +12,7 @@ import {
   BlockProtocolUpdatePayload,
 } from "@hashintel/block-protocol";
 import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
-import { PageFieldsFragment } from "../../graphql/apiTypes.gen";
+import { PageFieldsFragment, SystemTypeName } from "../../graphql/apiTypes.gen";
 
 export { blockPaths };
 
@@ -231,6 +231,7 @@ export const createBlockUpdateTransaction = async (
         children,
         childEntityId = null,
         childEntityAccountId = null,
+        childEntityTypeId = null,
         ...props
       } = block.entity;
 
@@ -257,6 +258,7 @@ export const createBlockUpdateTransaction = async (
           accountId: block.accountId,
           childEntityId,
           childEntityAccountId,
+          childEntityTypeId,
         },
         children?.map((child: any) => {
           if (child.type === "text") {
@@ -292,6 +294,7 @@ export const mapEntitiesToBlocks = (
              */
             childEntityId: entity.metadataId,
             childEntityAccountId: entity.accountId,
+            childEntityTypeId: entity.entityTypeId,
 
             children: entity.textProperties.texts.map((text) => ({
               type: "text",
@@ -312,6 +315,7 @@ export const mapEntitiesToBlocks = (
         : entity.__typename === "UnknownEntity"
         ? {
             childEntityId: entity.metadataId,
+            childEntityTypeId: entity.entityTypeId,
             ...entity.unknownProperties,
           }
         : {};
@@ -452,7 +456,6 @@ export const calculateSavePayloads = (
       accountId: node.accountId,
       properties: {
         componentId: node.properties.componentId,
-        entityType: node.properties.entity.type,
         entityId: node.properties.entity.id,
         accountId: node.properties.entity.accountId,
       },
@@ -530,14 +533,13 @@ export const calculateSavePayloads = (
      */
     .filter(
       (entity) =>
-        (entity.properties.entityType !== "Text" ||
+        (entity.properties.entityTypeName !== "Text" ||
           entity.properties.entityId) &&
         entity.id
     )
     .map(
       (entity): BlockProtocolUpdatePayload<any> => ({
         entityId: entity.id,
-        entityType: entity.type,
         data: entity.properties,
         accountId: entity.accountId,
       })
@@ -553,7 +555,7 @@ export const calculateSavePayloads = (
     JSON.stringify(savedContents.map((content) => content.entityId)) !==
     JSON.stringify(mappedBlocks.map((block) => block.entityId))
       ? {
-          entityType: "Page",
+          entityTypeId: "Page",
           entityId: metadataId,
           accountId,
           data: {
@@ -570,10 +572,11 @@ export const calculateSavePayloads = (
     // @todo this should take the user id of whoever creates it
     pageId,
     pageMetadataId: metadataId,
-    entityType: newBlock.properties.entity.type,
     position: newBlock.position,
     componentId: newBlock.properties.componentId,
     entityProperties: newBlock.properties.entity.properties,
+    /** @todo handle inserting non-text blocks */
+    systemTypeName: SystemTypeName.Text,
     accountId,
     versioned: true,
   }));
