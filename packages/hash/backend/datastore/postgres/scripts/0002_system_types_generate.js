@@ -24,7 +24,7 @@ for (const typeName of ["Block", "Page", "Text", "User"]) {
 ) values (
   '${type.fixedId}', '${systemAccount.fixedId}', '${typeName}', true,
   '${systemAccount.fixedId}', '${now}', '${now}'
-);
+) on conflict do nothing;
 insert into entity_type_versions (
   entity_type_id, entity_type_version_id, account_id, 
   properties, created_by, created_at, updated_at
@@ -32,7 +32,7 @@ insert into entity_type_versions (
   '${type.fixedId}', '${type.firstVersionId}', '${systemAccount.fixedId}',
   '${entityTypeJson(typeName)}', 
   '${systemAccount.fixedId}', '${now}', '${now}'
-);
+) on conflict do nothing;
 
 `;
 

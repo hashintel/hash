@@ -21,7 +21,7 @@ const systemAccountProperties = JSON.stringify({
   shortname: SYSTEM_ACCOUNT_NAME,
 });
 
-const sqlString = `insert into accounts (account_id) values('${systemAccount.fixedId}');
+const sqlString = `insert into accounts (account_id) values('${systemAccount.fixedId}') on conflict do nothing;
 
 -- create org entity type
 insert into entity_types (
@@ -30,7 +30,7 @@ insert into entity_types (
 ) values (
   '${Org.fixedId}', '${systemAccount.fixedId}', 'Org', true,
   '${systemAccount.fixedId}', '${now}', '${now}'
-);
+) on conflict do nothing;
 
 insert into entity_type_versions (
   entity_type_id, entity_type_version_id, account_id, 
@@ -39,14 +39,14 @@ insert into entity_type_versions (
   '${Org.fixedId}', '${Org.firstVersionId}', '${systemAccount.fixedId}',
   '${entityTypeJson("Org")}', 
   '${systemAccount.fixedId}', '${now}', '${now}'
-);
+) on conflict do nothing;
 
 -- create system account
 insert into entities (
   account_id, entity_id, versioned
 ) values (
   '${systemAccount.fixedId}', '${systemAccount.fixedId}', false
-);
+) on conflict do nothing;
 
 insert into entity_versions (
   account_id, entity_version_id, entity_type_version_id,
@@ -56,7 +56,7 @@ insert into entity_versions (
   '${systemAccount.fixedId}', '${systemAccount.firstVersionId}', '${Org.firstVersionId}',
   '${systemAccountProperties}', '${systemAccount.fixedId}',
   '${systemAccount.fixedId}', '${now}', '${now}'
-);`;
+) on conflict do nothing;`;
 
 const outputPath = path.join(__dirname, "../schema/0001_system_account.sql");
 fs.writeFileSync(outputPath, sqlString);
