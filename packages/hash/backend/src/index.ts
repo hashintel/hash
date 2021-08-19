@@ -84,6 +84,9 @@ const apolloServer = createApolloServer(db, logger, statsd);
 
 app.get("/", (_, res) => res.send("Hello World"));
 
+// Used by AWS Application Load Balancer (ALB) for health checks
+app.get("/health-check", (_, res) => res.status(200).send("Hello World!"));
+
 app.use((req, res, next) => {
   const requestId = nanoid();
   res.set("x-hash-request-id", requestId);
