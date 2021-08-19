@@ -109,12 +109,12 @@ const selectEntityAllVersions = (params: {
  * Select all entities of the same type,
  * @param params.entityTypeId the entity type id to return entities of
  * @param params.entityTypeVersionId optionally limit to entities of a specific version of a type
- * @param params.accountId optionally limit to entities from a specific account
+ * @param params.accountId the account to retrieve entities from
  **/
 const selectEntitiesByType = (params: {
   entityTypeId: string;
   entityTypeVersionId?: string;
-  accountId?: string;
+  accountId: string;
 }) => {
   const { entityTypeId, entityTypeVersionId, accountId } = params;
   const whereConditions = [sql`type.entity_type_id = ${entityTypeId}`];
@@ -194,14 +194,14 @@ export const getEntityLatestVersionId = async (
  * Get the latest version of all entities of a given type.
  * @param params.entityTypeId the entity type id to return entities of
  * @param params.entityTypeVersionId optionally limit to entities of a specific version of a type
- * @param params.accountId optionally limit to entities from a specific account
+ * @param params.accountId the account to retrieve entities from
  */
 export const getEntitiesByTypeLatestVersion = async (
   conn: Connection,
   params: {
     entityTypeId: string;
     entityTypeVersionId?: string;
-    accountId?: string;
+    accountId: string;
   }
 ): Promise<Entity[]> => {
   const rows = await conn.any(sql`
@@ -218,14 +218,14 @@ export const getEntitiesByTypeLatestVersion = async (
  * Get all versions of all entities of a given type.
  * @param params.entityTypeId the entity type id to return entities of
  * @param params.entityTypeVersionId optionally limit to entities of a specific version of a type
- * @param params.accountId optionally limit to entities from a specific account
+ * @param params.accountId the account to retrieve entities from
  */
 export const getEntitiesByTypeAllVersions = async (
   conn: Connection,
   params: {
     entityTypeId: string;
     entityTypeVersionId?: string;
-    accountId?: string;
+    accountId: string;
   }
 ) => {
   const rows = await conn.any(selectEntitiesByType(params));

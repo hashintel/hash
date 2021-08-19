@@ -460,11 +460,11 @@ export class PostgresClient implements DBClient {
     createdById: string;
     entityTypeId: string;
     entityTypeVersionId?: string;
-    name?: string;
-    schema?: Record<string, any>;
+    newName?: string;
+    newSchema?: Record<string, any>;
   }): Promise<EntityType> {
-    const { entityTypeId, entityTypeVersionId, name, schema } = params;
-    if (!name && !schema) {
+    const { entityTypeId, entityTypeVersionId, newName, newSchema } = params;
+    if (!newName && !newSchema) {
       throw new Error(
         "At least one of params.name or params.schema must be provided."
       );
@@ -486,10 +486,11 @@ export class PostgresClient implements DBClient {
       );
     }
 
-    const baseSchema = schema ?? latestEntityType.properties;
-    const newName = name ?? baseSchema.title;
-    const newSchema = jsonSchema(
-      newName,
+    const baseSchema = newSchema ?? latestEntityType.properties;
+    const nameToSet = newName ?? baseSchema.title;
+
+    const schemaToSet = jsonSchema(
+      nameToSet,
       latestEntityType.accountId,
       baseSchema
     );
@@ -501,8 +502,8 @@ export class PostgresClient implements DBClient {
       accountId: latestEntityType.accountId,
       entityTypeId,
       entityTypeVersionId: newVersionId,
-      name: newName,
-      properties: newSchema,
+      name: nameToSet,
+      properties: schemaToSet,
       createdById: params.createdById,
       createdAt: now,
       updatedAt: now,
@@ -510,7 +511,7 @@ export class PostgresClient implements DBClient {
 
     return {
       ...latestEntityType,
-      entityTypeName: newName,
+      entityTypeName: "EntityType",
       properties: newSchema,
       updatedAt: now,
     };
@@ -529,15 +530,15 @@ export class PostgresClient implements DBClient {
   }
 
   async getEntitiesBySystemType(params: {
-    accountId?: string;
+    accountId: string;
     systemTypeName: SystemType;
     latestOnly: boolean;
   }): Promise<Entity[]> {
-    const { entity_type_id } = await this.conn.one(
+    const { entity_type_id: entityTypeId } = await this.conn.one(
       selectSystemEntityTypeIds(params)
     );
     const queryParams = {
-      entityTypeId: entity_type_id as string,
+      entityTypeId: entityTypeId as string,
       accountId: params.accountId,
     };
     // This will get entities with the given system type
@@ -550,7 +551,7 @@ export class PostgresClient implements DBClient {
 
   /** Get all entities of a given type in a given account. */
   async getEntitiesByType(params: {
-    accountId?: string;
+    accountId: string;
     entityTypeId: string;
     entityTypeVersionId?: string;
     latestOnly: boolean;

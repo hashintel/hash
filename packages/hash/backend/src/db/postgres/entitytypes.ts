@@ -263,33 +263,10 @@ export const updateEntityType = async (
     updatedAt: Date;
   }
 ): Promise<void> => {
-  const {
-    accountId,
-    entityTypeId,
-    entityTypeVersionId,
-    name,
-    properties,
-    createdById,
-    createdAt,
-    updatedAt,
-  } = params;
-
   // We need to update the metadata record to increase the updatedAt anyway,
   // but could consider not updating the name if it hasn't changed.
   /** @todo consider refactoring to not always set name again */
-  await updateEntityTypeMetadata(conn, {
-    name,
-    entityTypeId,
-    updatedAt,
-  });
+  await updateEntityTypeMetadata(conn, params);
 
-  await insertEntityTypeVersion(conn, {
-    accountId,
-    entityTypeId,
-    entityTypeVersionId,
-    properties,
-    createdById,
-    createdAt,
-    updatedAt,
-  });
+  await insertEntityTypeVersion(conn, params);
 };

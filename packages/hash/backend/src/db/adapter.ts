@@ -137,8 +137,8 @@ export interface DBClient {
     accountId: string;
     createdById: string;
     entityTypeId: string;
-    name?: string;
-    schema?: Record<string, any>;
+    newName?: string;
+    newSchema?: Record<string, any>;
   }): Promise<EntityType>;
 
   /**
@@ -162,14 +162,14 @@ export interface DBClient {
 
   /**
    * Get all entities of a given type
-   * @param params.accountId optionally limit results to entities in a specified account
+   * @param params.accountId the account to retrieve entities from
    * @param params.entityTypeId the fixed entityTypeId
    * @param params.entityTypeVersionId optionally limit results to entities of a specific version of the type
    * @param params.latestOnly optionally limit results to the latest version of each entity
 
    * */
   getEntitiesByType(params: {
-    accountId?: string;
+    accountId: string;
     entityTypeId: string;
     entityTypeVersionId?: string;
     latestOnly: boolean;
@@ -177,12 +177,13 @@ export interface DBClient {
 
   /**
    * Get all entities of a given system type, in an account.
-   * @param params.accountId optionally limit results to entities in a specified account
+   * @todo handle this instead by sending a cached result from systemTypeId into getEntitiesByType
+   * @param params.accountId the account to retrieve entities from
    * @param params.latestOnly optionally limit results to the latest version of each entity
    * @param params.systemTypeName the name of the system type
    * */
   getEntitiesBySystemType(params: {
-    accountId?: string;
+    accountId: string;
     latestOnly: boolean;
     systemTypeName: SystemType;
   }): Promise<Entity[]>;
