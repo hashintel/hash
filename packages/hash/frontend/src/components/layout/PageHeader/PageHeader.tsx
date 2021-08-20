@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { VoidFunctionComponent } from "react";
+import { useModal } from "react-modal-hook";
 import { tw } from "twind";
 import { useLogout } from "../../hooks/useLogout";
 
@@ -11,18 +12,27 @@ export const PageHeader: VoidFunctionComponent = () => {
   const { user, refetch } = useUser();
   const { logout } = useLogout();
 
-  const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
+  const [showLoginModal, hideLoginModal] = useModal(({ in: open }) => (
+    <LoginModal
+      show={open}
+      close={hideLoginModal}
+      onLoggedIn={() => {
+        void refetch();
+        hideLoginModal();
+      }}
+    />
+  ));
 
   return (
     <>
-      <LoginModal
+      {/* <LoginModal
         show={showLoginModal}
         close={() => setShowLoginModal(false)}
         onLoggedIn={() => {
           void refetch();
           setShowLoginModal(false);
         }}
-      />
+      /> */}
       <header
         className={tw`bg-white h-16 flex items-center border(b-1 gray-300)`}
       >
@@ -31,7 +41,7 @@ export const PageHeader: VoidFunctionComponent = () => {
             <AccountDropdown name={user.properties.shortname} logout={logout} />
           ) : (
             <button
-              onClick={() => setShowLoginModal(true)}
+              onClick={showLoginModal}
               className={tw`bg(blue-500 hover:blue-700) text(white visited:white) font-bold border(none hover:none)  py-2 px-5 rounded  no-underline`}
             >
               Sign in
