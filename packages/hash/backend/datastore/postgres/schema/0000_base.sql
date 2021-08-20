@@ -136,3 +136,12 @@ create table if not exists "session" (
 );
 
 create index if not exists session_expire on session (expire);
+
+
+create schema if not exists realtime;
+
+create table if not exists realtime.ownership (
+  slot_name            text primary key,
+  slot_owner           uuid not null,
+  ownership_expires_at timestamp with time zone
+);
