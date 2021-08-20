@@ -82,8 +82,8 @@ export const cloneEntityTreeWithPropertiesMovedUp = (
     }
 
     if (
-      !property.id ||
-      !property.type ||
+      !property.entityId ||
+      !property.entityTypeId ||
       !property.properties ||
       !isParsedJsonObject(property.properties)
     ) {

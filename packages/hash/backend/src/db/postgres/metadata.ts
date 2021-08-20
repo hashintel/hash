@@ -7,7 +7,7 @@ export const insertEntityMetadata = async (
   conn: Connection,
   params: {
     accountId: string;
-    metadataId: string;
+    entityId: string;
     versioned: boolean;
     extra: any;
   }
@@ -15,7 +15,7 @@ export const insertEntityMetadata = async (
   await conn.query(sql`
     insert into entities (account_id, entity_id, versioned, extra)
     values (
-      ${params.accountId}, ${params.metadataId}, ${params.versioned},
+      ${params.accountId}, ${params.entityId}, ${params.versioned},
       ${sql.json(params.extra)}
     )
   `);
@@ -26,7 +26,7 @@ export const updateEntityMetadata = async (
   conn: Connection,
   params: {
     accountId: string;
-    metadataId: string;
+    entityId: string;
     extra: any;
   }
 ): Promise<EntityMeta> => {
@@ -34,11 +34,10 @@ export const updateEntityMetadata = async (
     update entities
     set extra = ${sql.json(params.extra)}
     where
-      account_id = ${params.accountId} and entity_id = ${params.metadataId}
+      account_id = ${params.accountId} and entity_id = ${params.entityId}
     returning *
   `);
   return {
-    metadataId: row["entity_id"] as string,
     versioned: row["versioned"] as boolean,
     extra: row["extra"],
   };

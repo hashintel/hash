@@ -216,7 +216,6 @@ export class PostgresClient implements DBClient {
         properties: params.properties,
         id: entityId,
         metadata: {
-          metadataId: entityId,
           versioned: params.versioned,
           extra: {}, // @todo: decide what to put in here
         },
@@ -242,6 +241,7 @@ export class PostgresClient implements DBClient {
 
         insertEntityMetadata(conn, {
           accountId: entity.accountId,
+          entityId: entity.entityId,
           ...entity.metadata,
         }),
 
@@ -268,7 +268,7 @@ export class PostgresClient implements DBClient {
 
   async getEntityLatestVersion(params: {
     accountId: string;
-    metadataId: string;
+    entityId: string;
   }): Promise<Entity | undefined> {
     return (await getEntityLatestVersion(this.conn, params)) || undefined;
   }
@@ -351,7 +351,7 @@ export class PostgresClient implements DBClient {
     params: {
       accountId: string;
       entityVersionId: string;
-      metadataId: string;
+      entityId: string;
       properties: any;
     },
     child?: { accountId: string; entityVersionId: string },
@@ -568,7 +568,7 @@ export class PostgresClient implements DBClient {
 
   async updateEntityMetadata(params: {
     accountId: string;
-    metadataId: string;
+    entityId: string;
     extra: any;
   }): Promise<EntityMeta> {
     return await updateEntityMetadata(this.conn, params);
@@ -614,14 +614,14 @@ export class PostgresClient implements DBClient {
     return await this.updateEntity({
       accountId: params.accountId,
       entityVersionId: params.entityVersionId,
-      metadataId: entity.metadataId,
+      entityId: entity.entityId,
       properties: updated.properties,
     });
   }
 
   async getEntityHistory(params: {
     accountId: string;
-    metadataId: string;
+    entityId: string;
   }): Promise<EntityVersion[]> {
     return await getEntityHistory(this.conn, params);
   }

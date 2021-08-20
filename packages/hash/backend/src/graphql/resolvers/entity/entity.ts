@@ -22,11 +22,11 @@ export const entity: Resolver<
   } else if (metadataId) {
     dbEntity = await dataSources.db.getEntityLatestVersion({
       accountId,
-      metadataId,
+      entityId: metadataId,
     });
     if (!dbEntity) {
       throw new ApolloError(
-        `Entity with metadataId ${metadataId} not found in account ${accountId}`
+        `Entity with entityId ${metadataId} not found in account ${accountId}`
       );
     }
   } else {

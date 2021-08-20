@@ -119,7 +119,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
 
   getEntityLatestVersion(params: {
     accountId: string;
-    metadataId: string;
+    entityId: string;
   }): Promise<Entity | undefined> {
     return this.query((adapter) => adapter.getEntityLatestVersion(params));
   }
@@ -137,7 +137,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   updateEntity(params: {
     accountId: string;
     entityVersionId: string;
-    metadataId: string;
+    entityId: string;
     properties: any;
   }): Promise<Entity[]> {
     return this.query((adapter) => adapter.updateEntity(params));
@@ -178,7 +178,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
 
   updateEntityMetadata(params: {
     accountId: string;
-    metadataId: string;
+    entityId: string;
     extra: any;
   }): Promise<EntityMeta> {
     return this.query((adapter) => adapter.updateEntityMetadata(params));
@@ -214,7 +214,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
 
   getEntityHistory(params: {
     accountId: string;
-    metadataId: string;
+    entityId: string;
   }): Promise<EntityVersion[]> {
     return this.query((adapter) => adapter.getEntityHistory(params));
   }

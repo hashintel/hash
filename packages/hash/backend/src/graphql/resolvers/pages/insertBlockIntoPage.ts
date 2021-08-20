@@ -79,7 +79,7 @@ export const insertBlockIntoPage: Resolver<
     // return here when strict vs. optimistic entity mutation question is resolved.
     const page = await client.getEntityLatestVersion({
       accountId,
-      metadataId: pageMetadataId,
+      entityId: pageMetadataId,
     });
     if (!page) {
       const msg = `Page ${pageMetadataId} not found in account ${accountId}`;

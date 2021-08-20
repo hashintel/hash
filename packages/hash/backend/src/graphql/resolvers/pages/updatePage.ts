@@ -14,7 +14,7 @@ export const updatePage: Resolver<
     // return here when strict vs. optimistic entity mutation question is resolved.
     const entity = await client.getEntityLatestVersion({
       accountId,
-      metadataId,
+      entityId: metadataId,
     });
     if (!entity) {
       throw new ApolloError(`page ${metadataId} not found`, "NOT_FOUND");
@@ -23,7 +23,7 @@ export const updatePage: Resolver<
     const updatedEntities = await client.updateEntity({
       accountId,
       entityVersionId: entity.entityVersionId,
-      metadataId: entity.metadataId,
+      entityId: entity.entityId,
       properties: {
         ...(entity.properties ?? {}),
         ...properties,
