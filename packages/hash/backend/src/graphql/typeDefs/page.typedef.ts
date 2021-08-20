@@ -6,11 +6,19 @@ export const pageTypedef = gql`
 
     # ENTITY INTERFACE FIELDS BEGIN #
     """
-    The id of the entity
+    The id of the entity - alias of 'entityId'
     """
     id: ID!
     """
-    The FIXED id for an account
+    The id of the entity - alias of 'id'
+    """
+    entityId: ID!
+    """
+    The specific version if of the entity
+    """
+    entityVersionId: ID!
+    """
+    The id of the account this entity belongs to
     """
     accountId: ID!
     """
@@ -30,9 +38,22 @@ export const pageTypedef = gql`
     """
     visibility: Visibility!
     """
-    The type of entity
+    The fixed id of the type this entity is of
     """
-    type: String!
+    entityTypeId: ID!
+    """
+    The id of the specific version of the type this entity is of
+    """
+    entityTypeVersionId: ID!
+    """
+    The name of the entity type this belongs to.
+    N.B. Type names are unique by account - not globally.
+    """
+    entityTypeName: String!
+    """
+    The full entityType definition
+    """
+    entityType: EntityType!
     """
     The version timeline of the entity.
     """
@@ -79,10 +100,20 @@ export const pageTypedef = gql`
     summary: String
   }
 
+  """
+  Data to create a block with a new entity in it.
+  As well as entityProperties, entity type info must be provided.
+  Type info must be ONE OF:
+  - entityTypeId (the latest version of this type will be assigned)
+  - entityTypeVersionId (this specific version of the type will be assigned)
+  - systemTypeName (this version will be assigned)
+  """
   input InsertBlocksData {
     componentId: ID!
     entityProperties: JSONObject!
-    entityType: String!
+    entityTypeId: ID
+    entityTypeVersionId: ID
+    systemTypeName: SystemTypeName
     accountId: ID!
   }
 
@@ -98,15 +129,22 @@ export const pageTypedef = gql`
     """
     Insert a block into a given page.
     EITHER:
-    - entityId (for rendering an existing entity) OR
-    - entityProperties and entityType (for creating a new entity)
+    - entityId (for rendering an existing entity)
+    OR
+    - entityProperties and type info for creating a new entity.
+      Type info must be ONE OF:
+        - entityTypeId (the latest version of this type will be assigned)
+        - entityTypeVersionId (this specific version of the type will be assigned)
+        - systemTypeName (this version will be assigned)
     must be provided.
     """
     insertBlockIntoPage(
       componentId: ID!
       entityId: ID
       entityProperties: JSONObject
-      entityType: String
+      entityTypeId: ID
+      entityTypeVersionId: ID
+      systemTypeName: SystemTypeName
       """
       The accountId for the block and entity.
       Defaults to the page's accountId.

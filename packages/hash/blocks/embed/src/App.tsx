@@ -17,7 +17,7 @@ type AppProps = {
   ) => Promise<{ html: string; error?: string }>;
   initialHtml?: string;
   entityId: string;
-  entityType?: string;
+  entityTypeId?: string;
   accountId: string;
 };
 
@@ -27,7 +27,7 @@ export const App: BlockComponent<AppProps> = (props) => {
     getEmbedBlock,
     initialHtml,
     entityId,
-    entityType,
+    entityTypeId,
     update,
   } = props;
 
@@ -86,8 +86,8 @@ export const App: BlockComponent<AppProps> = (props) => {
             entityId,
           };
 
-          if (entityType) {
-            updateAction.entityType = entityType;
+          if (entityTypeId) {
+            updateAction.entityTypeId = entityTypeId;
           }
 
           update([updateAction])?.catch((err) =>

@@ -21,13 +21,14 @@ const pageFieldsFragment = gql`
         accountId
         properties {
           componentId
-          entityType
           entity {
             __typename
             id
             accountId
             metadataId
-            type
+            entityTypeId
+            entityTypeVersionId
+            entityTypeName
             ... on UnknownEntity {
               unknownProperties: properties
             }
@@ -87,7 +88,9 @@ export const insertBlockIntoPage = gql`
   mutation insertBlockIntoPage(
     $accountId: ID!
     $componentId: ID!
-    $entityType: String!
+    $entityTypeId: ID
+    $entityTypeVersionId: ID
+    $systemTypeName: SystemTypeName
     $entityProperties: JSONObject!
     $position: Int!
     $pageId: ID!
@@ -97,7 +100,9 @@ export const insertBlockIntoPage = gql`
     insertBlockIntoPage(
       accountId: $accountId
       componentId: $componentId
-      entityType: $entityType
+      entityTypeId: $entityTypeId
+      entityTypeVersionId: $entityTypeVersionId
+      systemTypeName: $systemTypeName
       entityProperties: $entityProperties
       position: $position
       pageId: $pageId

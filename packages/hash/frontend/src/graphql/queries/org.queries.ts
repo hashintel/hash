@@ -9,7 +9,9 @@ export const createOrg = gql`
       createdAt
       updatedAt
       accountId
-      type
+      entityTypeId
+      entityTypeVersionId
+      entityTypeName
       visibility
       properties {
         shortname

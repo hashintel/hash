@@ -1,7 +1,7 @@
 import { SendMailOptions } from "nodemailer";
 import { convert } from "html-to-text";
+
 import { LoginCode } from "../db/adapter";
-import { DbUser } from "../types/dbTypes";
 import awsSesTransporter from "./transporters/awsSes";
 import { getRequiredEnv } from "../util";
 
@@ -30,7 +30,7 @@ export const sendMail = ({
 
 export const sendLoginCodeToUser = async (
   loginCode: LoginCode,
-  user: DbUser
+  user: { properties: { email: string } }
 ): Promise<void> => {
   const loginLink = `http://${FRONTEND_DOMAIN}/login?loginId=${encodeURIComponent(
     loginCode.id

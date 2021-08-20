@@ -26,11 +26,11 @@ import { sendLoginCode } from "./user/sendLoginCode";
 import { loginWithLoginCode } from "./user/loginWithLoginCode";
 import { embedCode } from "./embed";
 
-import { DbOrg, DbUser } from "../../types/dbTypes";
 import { GraphQLContext } from "../context";
 import { ForbiddenError } from "apollo-server-express";
 import { logout } from "./user/logout";
 import { me } from "./user/me";
+import { createEntityType } from "./entity/createEntityType";
 
 const KNOWN_ENTITIES = ["Page", "Text", "User"];
 
@@ -54,6 +54,7 @@ export const resolvers = {
 
   Mutation: {
     createEntity,
+    createEntityType,
     createPage,
     insertBlockIntoPage,
     insertBlocksIntoPage,
@@ -82,8 +83,8 @@ export const resolvers = {
 
   Entity: {
     __resolveType(entity: Entity) {
-      if (KNOWN_ENTITIES.includes(entity.type)) {
-        return entity.type;
+      if (KNOWN_ENTITIES.includes(entity.entityTypeName)) {
+        return entity.entityTypeName;
       }
       return "UnknownEntity";
     },
@@ -91,8 +92,8 @@ export const resolvers = {
   },
 
   Account: {
-    __resolveType(entity: DbUser | DbOrg) {
-      return entity.type;
+    __resolveType(entity: Entity) {
+      return entity.entityTypeName;
     },
   },
 };

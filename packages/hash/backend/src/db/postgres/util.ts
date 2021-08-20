@@ -15,12 +15,12 @@ export const gatherLinks = (entity: Entity): string[] => {
 
   // Block entities are a special case. They (currently) don't have a __linkedData field,
   // but reference the entity they wrap with an "entityId" property.
-  if (entity.type === "Block") {
+  if (entity.entityTypeName === "Block") {
     return [entity.properties.entityId as string];
   }
 
   // Page entities are another special case
-  if (entity.type === "Page") {
+  if (entity.entityTypeName === "Page") {
     return entity.properties.contents.map(
       (item: { entityId: string }) => item.entityId as string
     );
@@ -63,14 +63,14 @@ export const replaceLink = (
 ) => {
   // Need to do special cases for now like in `gatherLinks` above.
 
-  if (entity.type === "Block") {
+  if (entity.entityTypeName === "Block") {
     if (entity.properties.entityId === replace.old) {
       entity.properties.entityId = replace.new;
     }
     return;
   }
 
-  if (entity.type === "Page") {
+  if (entity.entityTypeName === "Page") {
     for (let i = 0; i < entity.properties.contents.length; i++) {
       const item = entity.properties.contents[i];
       if (item.entityId === replace.old) {

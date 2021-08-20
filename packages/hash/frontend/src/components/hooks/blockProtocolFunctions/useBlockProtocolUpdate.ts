@@ -20,8 +20,12 @@ export const useBlockProtocolUpdate = (): {
   // temporary hack to refetch page data after a mutation.
   // TODO: make caching of entities outside of GraphQL schema work
   // so that updates to those entities are reflected w/o doing this
-  const onCompleted = () => apolloClient.reFetchObservableQueries()
-    .catch((err) => console.error("Error when refetching all active queries: ", err));
+  const onCompleted = () =>
+    apolloClient
+      .reFetchObservableQueries()
+      .catch((err) =>
+        console.error("Error when refetching all active queries: ", err)
+      );
 
   const [
     updateEntityFn,
@@ -40,7 +44,9 @@ export const useBlockProtocolUpdate = (): {
     async (actions) => {
       await Promise.all(
         actions.map(async (action) => {
-          await (action.entityType === "Page" ? updatePageFn : updateEntityFn)({
+          await (action.entityTypeId === "Page"
+            ? updatePageFn
+            : updateEntityFn)({
             variables: {
               metadataId: action.entityId,
               properties: action.data,

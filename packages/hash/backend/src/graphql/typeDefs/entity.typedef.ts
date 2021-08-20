@@ -11,11 +11,19 @@ export const entityTypedef = gql`
     #
     # For now, _COPY ANY CHANGES_ from here to any type that 'implements Entity'
     """
-    The id of the entity
+    The id of the entity - alias of 'entityId'
     """
     id: ID!
     """
-    The FIXED id for an account
+    The id of the entity - alias of 'id'
+    """
+    entityId: ID!
+    """
+    The specific version if of the entity
+    """
+    entityVersionId: ID!
+    """
+    The id of the account this entity belongs to
     """
     accountId: ID!
     """
@@ -35,9 +43,22 @@ export const entityTypedef = gql`
     """
     visibility: Visibility!
     """
-    The type of entity
+    The fixed id of the type this entity is of
     """
-    type: String!
+    entityTypeId: ID!
+    """
+    The id of the specific version of the type this entity is of
+    """
+    entityTypeVersionId: ID!
+    """
+    The name of the entity type this belongs to.
+    N.B. Type names are unique by account - not globally.
+    """
+    entityTypeName: String!
+    """
+    The full entityType definition.
+    """
+    entityType: EntityType
     """
     The version timeline of the entity.
     """
@@ -53,11 +74,19 @@ export const entityTypedef = gql`
 
     # ENTITY INTERFACE FIELDS BEGIN #
     """
-    The id of the entity
+    The id of the entity - alias of 'entityId'
     """
     id: ID!
     """
-    The FIXED id for an account
+    The id of the entity - alias of 'id'
+    """
+    entityId: ID!
+    """
+    The specific version if of the entity
+    """
+    entityVersionId: ID!
+    """
+    The id of the account this entity belongs to
     """
     accountId: ID!
     """
@@ -77,9 +106,22 @@ export const entityTypedef = gql`
     """
     visibility: Visibility!
     """
-    The type of entity
+    The fixed id of the type this entity is of
     """
-    type: String!
+    entityTypeId: ID!
+    """
+    The id of the specific version of the type this entity is of
+    """
+    entityTypeVersionId: ID!
+    """
+    The name of the entity type this belongs to.
+    N.B. Type names are unique by account - not globally.
+    """
+    entityTypeName: String!
+    """
+    The full entityType definition
+    """
+    entityType: EntityType!
     """
     The version timeline of the entity.
     """
@@ -115,7 +157,8 @@ export const entityTypedef = gql`
     """
     aggregateEntity(
       accountId: ID!
-      type: String!
+      entityTypeId: ID!
+      entityTypeVersionId: ID
       operation: AggregateOperationInput
     ): AggregationResponse!
   }
@@ -167,9 +210,36 @@ export const entityTypedef = gql`
       accountId: ID!
       createdById: ID!
       properties: JSONObject!
-      type: String!
+      """
+      The id of an existing entity type to assign this entity
+      """
+      entityTypeId: ID
+      """
+      Optionally use a specific version of the entityType.
+      If not provided, the latest will be used.
+      """
+      entityTypeVersionId: ID
+      """
+      Assign a prefined type to the entity
+      """
+      systemTypeName: SystemTypeName
       versioned: Boolean! = false
     ): Entity!
+
+    """
+    Create an entity type
+    """
+    createEntityType(
+      accountId: ID!
+      """
+      The name for the type. Must be unique in the given account.
+      """
+      name: String!
+      """
+      The schema definition for the entity type, in JSON Schema.
+      """
+      schema: JSONObject!
+    ): EntityType!
 
     """
     Update an entity
@@ -181,14 +251,18 @@ export const entityTypedef = gql`
     ): Entity!
   }
 
+  enum SystemTypeName {
+    Block
+    Org
+    Page
+    Text
+    User
+  }
+
   """
   A schema describing and validating a specific type of entity
   """
   type EntityType implements Entity {
-    """
-    The name of the entity type
-    """
-    name: String!
     """
     The shape of the entity, expressed as a JSON Schema
     https://json-schema.org/
@@ -197,11 +271,19 @@ export const entityTypedef = gql`
 
     # ENTITY INTERFACE FIELDS BEGIN #
     """
-    The id of the entity
+    The id of the entity - alias of 'entityId'
     """
     id: ID!
     """
-    The FIXED id for an account
+    The id of the entity - alias of 'id'
+    """
+    entityId: ID!
+    """
+    The specific version if of the entity
+    """
+    entityVersionId: ID!
+    """
+    The id of the account this entity belongs to
     """
     accountId: ID!
     """
@@ -221,9 +303,22 @@ export const entityTypedef = gql`
     """
     visibility: Visibility!
     """
-    The type of entity
+    The fixed id of the type this entity is of
     """
-    type: String!
+    entityTypeId: ID!
+    """
+    The id of the specific version of the type this entity is of
+    """
+    entityTypeVersionId: ID!
+    """
+    The name of the entity type this belongs to.
+    N.B. Type names are unique by account - not globally.
+    """
+    entityTypeName: String!
+    """
+    The full entityType definition
+    """
+    entityType: EntityType!
     """
     The version timeline of the entity.
     """

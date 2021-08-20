@@ -1,13 +1,41 @@
-create table if not exists entity_types (
-    id         serial primary key,
-    name       text not null unique
-);
-
-
 create table if not exists accounts (
     account_id uuid primary key
 );
 
+
+create table if not exists entity_types (
+    /**
+      The entity_types table does not include account_id in its primary key, unlike others:
+        some types have to be shared access across all accounts, and for performance reasons
+        we do not want to shard the entity_types table by account_id.
+    */
+    entity_type_id  uuid not null primary key,
+
+    account_id      uuid not null references accounts (account_id) deferrable,
+    name            text not null,
+    versioned       boolean not null default true,
+    extra           jsonb,
+
+    created_by      uuid not null, -- todo add references accounts (account_id)
+    created_at      timestamp with time zone not null,
+    updated_at      timestamp with time zone not null,
+
+    unique(account_id, name)
+);
+-- select create_reference_table('entity_types')
+
+create table if not exists entity_type_versions (
+    entity_type_version_id  uuid not null primary key,
+
+    account_id              uuid not null references accounts (account_id),
+    entity_type_id          uuid not null references entity_types (entity_type_id),
+    properties              jsonb not null,
+
+    created_by              uuid not null, -- todo add: references accounts (account_id)
+    created_at              timestamp with time zone not null,
+    updated_at              timestamp with time zone not null
+);
+-- select create_reference_table('entity_type_versions')
 
 /**
 The entities table stores metadata which is shared across all versions of an entity.
@@ -23,14 +51,15 @@ create table if not exists entities (
 
 
 create table if not exists entity_versions (
-    account_id        uuid not null references accounts (account_id),
-    entity_version_id uuid not null,
-    type              integer not null references entity_types (id),
-    properties        jsonb not null,
-    entity_id         uuid not null,
-    created_by        uuid not null,
-    created_at        timestamp with time zone not null,
-    updated_at        timestamp with time zone not null,
+    account_id              uuid not null references accounts (account_id),
+    entity_version_id       uuid not null,
+    entity_id               uuid not null,
+    entity_type_version_id  uuid not null references entity_type_versions (entity_type_version_id),
+
+    properties              jsonb not null,
+    created_by              uuid not null,
+    created_at              timestamp with time zone not null,
+    updated_at              timestamp with time zone not null,
 
     foreign key (account_id, entity_id) references entities (account_id, entity_id) deferrable,
 

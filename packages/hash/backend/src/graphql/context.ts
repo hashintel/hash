@@ -13,7 +13,7 @@ export interface GraphQLContext {
   };
   passport: PassportGraphQLMethods;
   logger: Logger;
-  user?: User;
+  user?: Omit<User, "entityType">;
 }
 
 export interface LoggedInGraphQLContext extends GraphQLContext {

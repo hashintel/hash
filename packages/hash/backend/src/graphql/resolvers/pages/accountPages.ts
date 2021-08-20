@@ -1,26 +1,16 @@
-import {
-  QueryAccountPagesArgs,
-  Resolver,
-  Visibility,
-} from "../../apiTypes.gen";
-import { DbPage } from "../../../types/dbTypes";
+import { QueryAccountPagesArgs, Resolver } from "../../apiTypes.gen";
+import { Entity } from "../../../db/adapter";
 import { GraphQLContext } from "../../context";
 
 export const accountPages: Resolver<
-  Promise<DbPage[]>,
+  Promise<Entity[]>,
   {},
   GraphQLContext,
   QueryAccountPagesArgs
 > = async (_, { accountId }, { dataSources }) => {
-  const pages = await dataSources.db.getEntitiesByType({
+  return dataSources.db.getEntitiesBySystemType({
     accountId,
-    type: "Page",
+    systemTypeName: "Page",
     latestOnly: true,
   });
-  return pages.map((page) => ({
-    ...page,
-    id: page.entityVersionId,
-    accountId: page.accountId,
-    visibility: Visibility.Public, // TODO: get from entity metadata
-  })) as DbPage[];
 };

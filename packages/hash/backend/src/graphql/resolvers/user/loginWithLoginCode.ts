@@ -4,15 +4,12 @@ import {
   LOGIN_CODE_MAX_AGE,
   LOGIN_CODE_MAX_ATTEMPTS,
 } from "../../../auth/passport/PasswordlessStrategy";
-import {
-  MutationLoginWithLoginCodeArgs,
-  Resolver,
-  User,
-} from "../../apiTypes.gen";
+import { MutationLoginWithLoginCodeArgs, Resolver } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
+import { Entity } from "../../../db/adapter";
 
 export const loginWithLoginCode: Resolver<
-  User,
+  Entity,
   {},
   GraphQLContext,
   MutationLoginWithLoginCodeArgs

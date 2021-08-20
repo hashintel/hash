@@ -1,6 +1,6 @@
 import { ApiClient } from "./util";
 import { IntegrationTestsHandler } from "./setup";
-import { PageFieldsFragment } from "../graphql/apiTypes.gen";
+import { PageFieldsFragment, SystemTypeName } from "../graphql/apiTypes.gen";
 
 const ACCOUNT_ID = "00fbb02c-52ee-45bb-b0aa-39c5d44f216e";
 
@@ -27,7 +27,7 @@ it("can create user", async () => {
 
   expect(res.properties).toEqual(userVars);
   expect(res.createdAt).toEqual(res.updatedAt);
-  expect(res.type).toEqual("User");
+  expect(res.entityTypeName).toEqual("User");
 });
 
 it("can create org", async () => {
@@ -37,7 +37,7 @@ it("can create org", async () => {
   const res = await client.createOrg(orgVars);
   expect(res.properties).toEqual(orgVars);
   expect(res.createdAt).toEqual(res.updatedAt);
-  expect(res.type).toEqual("Org");
+  expect(res.entityTypeName).toEqual("Org");
 });
 
 describe("create and update pages", () => {
@@ -55,13 +55,13 @@ describe("create and update pages", () => {
   it("can update the page", async () => {
     const updatedPage = await client.insertBlocksIntoPage({
       accountId: ACCOUNT_ID,
-      pageId: page.id,
+      pageId: page.entityVersionId,
       pageMetadataId: page.metadataId,
       blocks: [
         {
           accountId: ACCOUNT_ID,
           componentId: "https://block.blockprotocol.org/header",
-          entityType: "Text",
+          systemTypeName: SystemTypeName.Text,
           entityProperties: {
             texts: [{ text: "Hello World!" }],
           },
@@ -70,11 +70,14 @@ describe("create and update pages", () => {
     });
 
     expect(updatedPage.metadataId).toEqual(page.metadataId);
-    expect(updatedPage.id).not.toEqual(page.id); // new version
+    expect(updatedPage.entityVersionId).not.toEqual(page.entityVersionId); // new version
     expect(updatedPage.history).toHaveLength(2);
     expect(updatedPage.history).toEqual([
-      { createdAt: updatedPage.createdAt, entityId: updatedPage.id },
-      { createdAt: page.createdAt, entityId: page.id },
+      {
+        createdAt: updatedPage.createdAt,
+        entityId: updatedPage.entityVersionId,
+      },
+      { createdAt: page.createdAt, entityId: page.entityVersionId },
     ]);
     expect(updatedPage.properties.title).toEqual("My first page");
 

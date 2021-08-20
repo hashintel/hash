@@ -22,7 +22,7 @@ type AppProps = {
     error?: string;
   }>;
   entityId: string;
-  entityType?: string;
+  entityTypeId?: string;
 };
 
 const placeholderText = "Enter Image URL";
@@ -35,7 +35,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
     initialCaption,
     uploadImage,
     entityId,
-    entityType,
+    entityTypeId,
     update,
   } = props;
 
@@ -79,8 +79,8 @@ export const Image: BlockComponent<AppProps> = (props) => {
           entityId,
         };
 
-        if (entityType) {
-          updateAction.entityType = entityType;
+        if (entityTypeId) {
+          updateAction.entityTypeId = entityTypeId;
         }
 
         void update([updateAction]);

@@ -2,21 +2,19 @@ import {
   QueryAggregateEntityArgs,
   Resolver,
   AggregateOperation,
-  Visibility,
 } from "../../apiTypes.gen";
-import { DbUnknownEntity } from "../../../types/dbTypes";
 import { GraphQLContext } from "../../context";
 import { Entity } from "../../../db/adapter";
 
 export const aggregateEntity: Resolver<
   Promise<{
-    results: DbUnknownEntity[];
+    results: Entity[];
     operation: AggregateOperation;
   }>,
   {},
   GraphQLContext,
   QueryAggregateEntityArgs
-> = async (_, { accountId, operation, type }, { dataSources }) => {
+> = async (_, { accountId, operation, entityTypeId }, { dataSources }) => {
   const page = operation?.page || 1;
   const perPage = operation?.perPage || 10;
   const sort = operation?.sort?.field || "updatedAt";
@@ -29,21 +27,13 @@ export const aggregateEntity: Resolver<
   // For pagination, using a database cursor may be an option.
   const entities = await dataSources.db.getEntitiesByType({
     accountId,
-    type,
+    entityTypeId,
     latestOnly: true,
   });
 
   const dbEntities = entities
-    .filter((entity) => entity.type === type)
     .slice(startIndex, endIndex)
-    .sort((a, b) => compareEntitiesByField(a, b, sort))
-    .map(
-      (entity): DbUnknownEntity => ({
-        ...entity,
-        id: entity.entityVersionId,
-        visibility: Visibility.Public, // TODO: get from entity metadata
-      })
-    );
+    .sort((a, b) => compareEntitiesByField(a, b, sort));
 
   return {
     results: dbEntities,

@@ -6,8 +6,8 @@ import {
   CreateOrgMutation,
   CreateUserMutation,
 } from "../graphql/apiTypes.gen";
-import { createUser } from "../../../frontend/src/graphql/queries/user.queries";
-import { createOrg } from "../../../frontend/src/graphql/queries/org.queries";
+import { createUser } from "../graphql/queries/user.queries";
+import { createOrg } from "../graphql/queries/org.queries";
 
 export const createUsers = async (client: GraphQLClient) => {
   const users: CreateUserMutationVariables[] = [
@@ -54,12 +54,12 @@ export const createUsers = async (client: GraphQLClient) => {
   return userResults.map((user) => user.createUser);
 };
 
+/**
+ * Create additional orgs we might want as dummy/seed data
+ * The HASH org is now created as part of migration, as it doubles up as the 'system' account.
+ */
 export const createOrgs = async (client: GraphQLClient) => {
-  const orgs: CreateOrgMutationVariables[] = [
-    {
-      shortname: "hash",
-    },
-  ];
+  const orgs: CreateOrgMutationVariables[] = [];
 
   const orgResults = await Promise.all(
     orgs.map(

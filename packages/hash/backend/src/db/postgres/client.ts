@@ -1,46 +1,58 @@
+import { sql } from "slonik";
+
 import {
   DBClient,
   Entity,
   EntityMeta,
-  LoginCode,
+  EntityType,
   EntityVersion,
+  LoginCode,
 } from "../adapter";
-import { gatherLinks, replaceLink, entityNotFoundError } from "./util";
+import { entityNotFoundError, gatherLinks, replaceLink } from "./util";
 import { genId } from "../../util";
 import { Connection } from "./types";
 import {
+  getEntityAccountIdMany,
   insertAccount,
   insertEntityAccount,
-  getEntityAccountIdMany,
 } from "./account";
-import { getEntityTypeId, createEntityType } from "./entitytypes";
+import {
+  getEntityType,
+  getEntityTypeLatestVersion,
+  getSystemTypeLatestVersion,
+  insertEntityType,
+  insertEntityTypeVersion,
+  selectSystemEntityTypeIds,
+  updateEntityType,
+} from "./entitytypes";
 import { insertEntityMetadata, updateEntityMetadata } from "./metadata";
 import {
-  insertEntityVersion,
-  getEntity,
-  getLatestEntityVersion,
-  getLatestEntityVersionId,
-  updateEntityVersionProperties,
-  getEntitiesByTypeAllVersions,
-  getEntitiesByTypeLatest,
   getAccountEntities,
-  getEntityHistory,
   getEntities,
+  getEntitiesByTypeAllVersions,
+  getEntitiesByTypeLatestVersion,
+  getEntity,
+  getEntityHistory,
+  getEntityLatestVersion,
+  getEntityLatestVersionId,
+  insertEntityVersion,
+  updateEntityVersionProperties,
 } from "./entity";
 import {
   getEntityParentIds,
   insertIncomingLinks,
   insertOutgoingLinks,
 } from "./link";
-import { getUserById, getUserByEmail, getUserByShortname } from "./user";
+import { getUserByEmail, getUserById, getUserByShortname } from "./user";
 import {
-  insertLoginCode,
   getLoginCode,
   incrementLoginCodeAttempts,
+  insertLoginCode,
   pruneLoginCodes,
 } from "./login";
-
-import { sql } from "slonik";
+import { jsonSchema } from "../../lib/schemas/jsonSchema";
+import { SystemType } from "../../types/entityTypes";
+import { Visibility } from "../../graphql/apiTypes.gen";
 
 export class PostgresClient implements DBClient {
   private conn: Connection;
@@ -84,11 +96,76 @@ export class PostgresClient implements DBClient {
     ]);
   }
 
+  /** Create an entity type definition and return its uuid. */
+  async createEntityType(params: {
+    name: string;
+    accountId: string;
+    createdById: string;
+    schema?: Record<string, any>;
+  }): Promise<EntityType> {
+    const { name, accountId, createdById, schema } = params;
+
+    return this.conn.transaction(async (conn) => {
+      // The fixed type id
+      const entityTypeId = genId();
+
+      // The id to assign this (first) version
+      const entityTypeVersionId = genId();
+
+      const now = new Date();
+      const createdAt = now;
+      const updatedAt = now;
+
+      // create the fixed record for the type
+      await insertEntityType(conn, {
+        accountId,
+        entityTypeId,
+        name,
+        createdById,
+        createdAt,
+        updatedAt,
+      });
+
+      // create the first version
+      const properties = jsonSchema(name, accountId, schema);
+      await insertEntityTypeVersion(conn, {
+        accountId,
+        entityTypeId,
+        entityTypeVersionId,
+        properties,
+        createdById,
+        createdAt,
+        updatedAt,
+      });
+
+      const entityType: EntityType = {
+        accountId,
+        entityId: entityTypeId,
+        entityVersionId: entityTypeVersionId,
+        entityTypeName: "EntityType",
+        id: entityTypeId,
+        createdById,
+        properties,
+        metadata: {
+          versioned: true,
+        },
+        metadataId: entityTypeId,
+        createdAt,
+        updatedAt,
+        visibility: Visibility.Public,
+      };
+
+      return entityType;
+    });
+  }
+
   async createEntity(params: {
     accountId: string;
-    versionId?: string;
     createdById: string;
-    type: string;
+    entityVersionId?: string | null | undefined;
+    entityTypeId?: string | null | undefined;
+    entityTypeVersionId?: string | null | undefined;
+    systemTypeName?: SystemType | null | undefined;
     versioned: boolean;
     properties: any;
   }): Promise<Entity> {
@@ -97,29 +174,55 @@ export class PostgresClient implements DBClient {
       // TODO: this should be performed in a "createAccount" function, or similar.
       await insertAccount(conn, { accountId: params.accountId });
 
-      // TODO: creating the entity type here if it doesn't exist. Do we want this?
-      const entityTypeId =
-        (await getEntityTypeId(conn, params.type)) ??
-        (await createEntityType(conn, params.type));
+      const { entityTypeId, entityTypeVersionId, systemTypeName } = params;
+
+      if (!entityTypeId && !entityTypeVersionId && !systemTypeName) {
+        throw new Error(
+          "You must provide one of entityTypeId, entityTypeVersionId, or systemTypeName."
+        );
+      }
+
+      const entityType = systemTypeName
+        ? await getSystemTypeLatestVersion(conn, { systemTypeName })
+        : entityTypeVersionId
+        ? await getEntityType(conn, { entityTypeVersionId })
+        : await getEntityTypeLatestVersion(conn, {
+            entityTypeId: entityTypeId!,
+          });
+
+      if (!entityType) {
+        throw new Error(
+          `Entity type not found with ` +
+            (entityTypeVersionId
+              ? `entityTypeVersionId ${entityTypeVersionId}.`
+              : `entityTypeId ${entityTypeId}.`)
+        );
+      }
 
       // @todo: if versionId is provided, check that it's a UUID
-      const entityVersionId = params.versionId ?? genId();
+      const entityVersionId = params.entityVersionId ?? genId();
       const now = new Date();
-      const metadataId = genId();
+      const entityId = genId();
       const entity: Entity = {
         accountId: params.accountId,
-        entityVersionId: entityVersionId,
         createdById: params.createdById,
-        type: params.type,
+        entityId,
+        entityVersionId,
+        entityType,
+        entityTypeId: entityType.entityId,
+        entityTypeVersionId: entityType.entityVersionId,
+        entityTypeName: entityType.properties.title,
+        metadataId: entityId,
         properties: params.properties,
-        metadataId,
+        id: entityId,
         metadata: {
-          metadataId,
+          metadataId: entityId,
           versioned: params.versioned,
           extra: {}, // @todo: decide what to put in here
         },
         createdAt: now,
         updatedAt: now,
+        visibility: Visibility.Public,
       };
 
       // Defer FKs until end of transaction so we can insert concurrently
@@ -142,7 +245,8 @@ export class PostgresClient implements DBClient {
           ...entity.metadata,
         }),
 
-        insertEntityVersion(conn, { ...entity, typeId: entityTypeId }),
+        /** @todo validate entity against the schema of its entityType */
+        insertEntityVersion(conn, entity),
 
         // Make a reference to this entity's account in the `entity_account` lookup table
         insertEntityAccount(conn, entity),
@@ -162,11 +266,11 @@ export class PostgresClient implements DBClient {
     return (await getEntity(this.conn, params, lock)) || undefined;
   }
 
-  async getLatestEntityVersion(params: {
+  async getEntityLatestVersion(params: {
     accountId: string;
     metadataId: string;
   }): Promise<Entity | undefined> {
-    return (await getLatestEntityVersion(this.conn, params)) || undefined;
+    return (await getEntityLatestVersion(this.conn, params)) || undefined;
   }
 
   private async updateVersionedEntity(
@@ -178,11 +282,6 @@ export class PostgresClient implements DBClient {
   ) {
     if (!params.entity.metadata.versioned) {
       throw new Error("cannot create new version of non-versioned entity"); // TODO: better error
-    }
-
-    const typeId = await getEntityTypeId(conn, params.entity.type);
-    if (!typeId) {
-      throw new Error("type not found"); // TODO: better error
     }
 
     const now = new Date();
@@ -206,11 +305,7 @@ export class PostgresClient implements DBClient {
     `);
 
     await Promise.all([
-      insertEntityVersion(conn, {
-        ...newEntityVersion,
-        typeId,
-        metadataId: newEntityVersion.metadata.metadataId,
-      }),
+      insertEntityVersion(conn, newEntityVersion),
 
       this.createLinks(conn, newEntityVersion),
 
@@ -230,11 +325,6 @@ export class PostgresClient implements DBClient {
   ): Promise<Entity> {
     if (params.entity.metadata.versioned) {
       throw new Error("cannot in-place update a versioned entity"); // TODO: better error
-    }
-
-    const typeId = await getEntityTypeId(conn, params.entity.type);
-    if (!typeId) {
-      throw new Error("type not found"); // TODO: better error
     }
 
     const updatedEntity: Entity = {
@@ -262,7 +352,6 @@ export class PostgresClient implements DBClient {
       accountId: string;
       entityVersionId: string;
       metadataId: string;
-      type?: string | undefined;
       properties: any;
     },
     child?: { accountId: string; entityVersionId: string },
@@ -270,7 +359,7 @@ export class PostgresClient implements DBClient {
   ): Promise<Entity[]> {
     const [entity, latestVersionId] = await Promise.all([
       getEntity(this.conn, params),
-      getLatestEntityVersionId(this.conn, params),
+      getEntityLatestVersionId(this.conn, params),
     ]);
 
     if (!entity) {
@@ -287,10 +376,9 @@ export class PostgresClient implements DBClient {
       );
     }
 
-    if (params.type && params.type !== entity.type) {
-      throw new Error("types don't match"); // TODO: better error
-    }
-
+    /**
+     * @todo validate new entity properties against the schema of its entityType
+     */
     if (entity.metadata.versioned) {
       const updatedEntity = await this.updateVersionedEntity(this.conn, {
         entity,
@@ -359,6 +447,76 @@ export class PostgresClient implements DBClient {
     }
   }
 
+  /**
+   * Update an entity type, either its name, schema, or both.
+   * Creates a new version of the entity type for any update.
+   * @param params.entityTypeId the fixed id of the entityType
+   * @param params.entityTypeVersionId optionally provide the version the update is based on.
+   *   the function will throw an error if this does not match the latest in the database.
+   * @param params.name update the entity type's name (must be unique in the account)
+   * @param params.schema update the entity type's schema
+   */
+  async updateEntityType(params: {
+    createdById: string;
+    entityTypeId: string;
+    entityTypeVersionId?: string;
+    newName?: string;
+    newSchema?: Record<string, any>;
+  }): Promise<EntityType> {
+    const { entityTypeId, entityTypeVersionId, newName, newSchema } = params;
+    if (!newName && !newSchema) {
+      throw new Error(
+        "At least one of params.name or params.schema must be provided."
+      );
+    }
+
+    const latestEntityType = await getEntityTypeLatestVersion(this.conn, {
+      entityTypeId,
+    });
+    if (!latestEntityType) {
+      throw new Error(`Could not find entityType with id ${entityTypeId}`);
+    }
+
+    if (
+      entityTypeVersionId &&
+      entityTypeVersionId !== latestEntityType.entityTypeVersionId
+    ) {
+      throw new Error(
+        `Provided entityTypeVersionId ${entityTypeVersionId} does not match latest: ${entityTypeVersionId}`
+      );
+    }
+
+    const baseSchema = newSchema ?? latestEntityType.properties;
+    const nameToSet = newName ?? baseSchema.title;
+
+    const schemaToSet = jsonSchema(
+      nameToSet,
+      latestEntityType.accountId,
+      baseSchema
+    );
+
+    const now = new Date();
+    const newVersionId = genId();
+
+    await updateEntityType(this.conn, {
+      accountId: latestEntityType.accountId,
+      entityTypeId,
+      entityTypeVersionId: newVersionId,
+      name: nameToSet,
+      properties: schemaToSet,
+      createdById: params.createdById,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    return {
+      ...latestEntityType,
+      entityTypeName: "EntityType",
+      properties: newSchema,
+      updatedAt: now,
+    };
+  }
+
   async getUserById(params: { id: string }) {
     return await getUserById(this.conn, params);
   }
@@ -371,17 +529,39 @@ export class PostgresClient implements DBClient {
     return await getUserByShortname(this.conn, params);
   }
 
+  async getEntitiesBySystemType(params: {
+    accountId: string;
+    systemTypeName: SystemType;
+    latestOnly: boolean;
+  }): Promise<Entity[]> {
+    const { entity_type_id: entityTypeId } = await this.conn.one(
+      selectSystemEntityTypeIds(params)
+    );
+    const queryParams = {
+      entityTypeId: entityTypeId as string,
+      accountId: params.accountId,
+    };
+    // This will get entities with the given system type
+    // - either 'latestOnly' or all versions of the entity -
+    // across ALL versions of the system type in either case.
+    return params.latestOnly
+      ? await getEntitiesByTypeLatestVersion(this.conn, queryParams)
+      : await getEntitiesByTypeAllVersions(this.conn, queryParams);
+  }
+
+  /** Get all entities of a given type in a given account. */
   async getEntitiesByType(params: {
     accountId: string;
-    type: string;
+    entityTypeId: string;
+    entityTypeVersionId?: string;
     latestOnly: boolean;
   }): Promise<Entity[]> {
     return params.latestOnly
-      ? await getEntitiesByTypeLatest(this.conn, params)
+      ? await getEntitiesByTypeLatestVersion(this.conn, params)
       : await getEntitiesByTypeAllVersions(this.conn, params);
   }
 
-  /** Get all account entities. */
+  /**  Get all account type entities (User or Org). */
   async getAccountEntities(): Promise<Entity[]> {
     return await getAccountEntities(this.conn);
   }

@@ -1,11 +1,11 @@
 import { ApolloError, UserInputError } from "apollo-server-express";
 
-import { QueryEntityArgs, Resolver, Visibility } from "../../apiTypes.gen";
-import { DbUnknownEntity } from "../../../types/dbTypes";
+import { QueryEntityArgs, Resolver } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
+import { Entity } from "../../../db/adapter";
 
 export const entity: Resolver<
-  Promise<DbUnknownEntity>,
+  Promise<Entity>,
   {},
   GraphQLContext,
   QueryEntityArgs
@@ -20,7 +20,7 @@ export const entity: Resolver<
       throw new ApolloError(`Entity ${id} not found in account ${accountId}`);
     }
   } else if (metadataId) {
-    dbEntity = await dataSources.db.getLatestEntityVersion({
+    dbEntity = await dataSources.db.getEntityLatestVersion({
       accountId,
       metadataId,
     });
@@ -35,12 +35,5 @@ export const entity: Resolver<
     );
   }
 
-  const entity: DbUnknownEntity = {
-    ...dbEntity,
-    id: dbEntity.entityVersionId,
-    accountId: dbEntity.accountId,
-    visibility: Visibility.Public, // TODO: should be a param?
-  };
-
-  return entity;
+  return dbEntity;
 };

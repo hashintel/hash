@@ -1,34 +1,36 @@
 import { genId } from "../../../util";
-import { DbUnknownEntity } from "../../../types/dbTypes";
-import {
-  MutationCreateEntityArgs,
-  Resolver,
-  Visibility,
-} from "../../apiTypes.gen";
+import { Entity } from "../../../db/adapter";
+import { MutationCreateEntityArgs, Resolver } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 
 export const createEntity: Resolver<
-  Promise<DbUnknownEntity>,
+  Promise<Entity>,
   {},
   GraphQLContext,
   MutationCreateEntityArgs
-> = async (_, { accountId, properties, type, versioned }, { dataSources }) => {
+> = async (
+  _,
+  {
+    accountId,
+    properties,
+    entityTypeId,
+    entityTypeVersionId,
+    systemTypeName,
+    versioned,
+  },
+  { dataSources }
+) => {
   versioned = versioned ?? true;
 
-  const dbEntity = await dataSources.db.createEntity({
+  /** @todo restrict creation of protected types, e.g. User, Org */
+
+  return dataSources.db.createEntity({
     accountId,
     createdById: genId(), // TODO
-    type,
+    entityTypeId,
+    entityTypeVersionId,
+    systemTypeName,
     properties,
     versioned: versioned || false,
   });
-
-  const entity: DbUnknownEntity = {
-    ...dbEntity,
-    id: dbEntity.entityVersionId,
-    accountId: dbEntity.accountId,
-    visibility: Visibility.Public, // TODO: should be a param?,
-  };
-
-  return entity;
 };

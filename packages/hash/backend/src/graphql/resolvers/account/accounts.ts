@@ -1,20 +1,12 @@
-import { Resolver, Visibility } from "../../apiTypes.gen";
-import { DbOrg, DbUser } from "../../../types/dbTypes";
+import { Resolver } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
+import { Entity } from "../../../db/adapter";
 
 export const accounts: Resolver<
-  Promise<(DbUser | DbOrg)[]>,
+  Promise<Entity[]>,
   {},
   GraphQLContext,
   {}
 > = async (_, {}, { dataSources }) => {
-  const entities = await dataSources.db.getAccountEntities();
-  return entities.map((entity) => {
-    return {
-      ...entity,
-      id: entity.entityVersionId,
-      accountId: entity.accountId,
-      visibility: Visibility.Public, // TODO: get from entity metadata
-    } as DbUser | DbOrg;
-  });
+  return dataSources.db.getAccountEntities();
 };

@@ -24,14 +24,16 @@ export type BlockMetadata = {
 };
 
 export type BlockProtocolUpdatePayload<T> = {
-  entityType?: string;
+  entityTypeId?: string;
+  entityTypeVersionId?: string;
   entityId: string;
   accountId?: string;
   data: T;
 };
 
 export type BlockProtocolCreatePayload<T> = {
-  entityType: string;
+  entityTypeId: string;
+  entityTypeVersionId?: string;
   data: T;
   pageAccountId: string;
   userId: string;
@@ -47,7 +49,8 @@ export type BlockProtocolAggregateOperation = {
 };
 
 export type BlockProtocolAggregatePayload = {
-  entityType: string;
+  entityTypeId: string;
+  entityTypeVersionId?: string;
   operation: BlockProtocolAggregateOperation;
   accountId: string;
 };
