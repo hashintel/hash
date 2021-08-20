@@ -17,7 +17,7 @@ import {
   updatePage,
 } from "@hashintel/hash-frontend/src/graphql/queries/page.queries";
 import { updateEntity } from "@hashintel/hash-frontend/src/graphql/queries/entity.queries";
-import { createPMState } from "@hashintel/hash-shared/src/sharedWithBackendJs";
+import { createProseMirrorState } from "@hashintel/hash-shared/src/sharedWithBackendJs";
 
 const MAX_STEP_HISTORY = 10000;
 
@@ -264,7 +264,11 @@ async function newInstance(accountId, id) {
   });
   const blocks = mapEntitiesToBlocks(data.page.properties.contents);
 
-  const state = createPMState(createInitialDoc(createSchema()), null, []);
+  const state = createProseMirrorState(
+    createInitialDoc(createSchema()),
+    null,
+    []
+  );
 
   const newState = state.apply(
     await createBlockUpdateTransaction(state, blocks, null)

@@ -17,7 +17,7 @@ import styles from "./style.module.css";
 import "prosemirror-view/style/prosemirror.css";
 import { componentUrlToProsemirrorId } from "@hashintel/hash-shared/src/sharedWithBackend";
 import {
-  createPMState,
+  createProseMirrorState,
   createRemoteBlock,
   displayNameToId,
   historyPlugin,
@@ -718,7 +718,11 @@ export const renderPM = (
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   pageId
 ) => {
-  const state = createPMState(content, replacePortal, additionalPlugins);
+  const state = createProseMirrorState(
+    content,
+    replacePortal,
+    additionalPlugins
+  );
 
   const view = new EditorView(node, {
     state: state,

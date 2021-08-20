@@ -400,7 +400,11 @@ const plugins = [
   }),
 ];
 
-export const createPMState = (doc, replacePortal, additionalPlugins) => {
+export const createProseMirrorState = (
+  doc,
+  replacePortal,
+  additionalPlugins
+) => {
   const formatKeymap = keymap({
     "Mod-b": toggleMark(doc.type.schema.marks.strong),
     "Mod-i": toggleMark(doc.type.schema.marks.em),
