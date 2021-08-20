@@ -27,3 +27,9 @@ docker:
   - packages/hash/docker/.*
   - packages/hash/docker/**/*
   - packages/hash/docker/**/.*
+
+realtime:
+  - packages/hash/realtime/*
+  - packages/hash/realtime/.*
+  - packages/hash/realtime/**/*
+  - packages/hash/realtime/**/.*

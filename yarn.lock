@@ -11233,10 +11233,20 @@ pg-cursor@^2.6.0:
   resolved "https://registry.yarnpkg.com/pg-cursor/-/pg-cursor-2.6.0.tgz#a85df1bd1389c75ffa443ee94073da0a1be360ba"
   integrity sha512-BFLg40CTgBJ+LX9EwqjztUYaKxpxLffMmDTmlQNMCustX/JxMTYimxRkdhZvPYZGp++/2LjuqkKtO5DVVq0FNg==
 
+pg-cursor@^2.7.1:
+  version "2.7.1"
+  resolved "https://registry.yarnpkg.com/pg-cursor/-/pg-cursor-2.7.1.tgz#0c545b70006589537232986fa06c03a799d8f22b"
+  integrity sha512-dtxtyvx4BcSammddki27KPBVA0sZ8AguLabgs7++gqaefX7dlQ5zaRlk1Gi5mvyO25aCmHFAZyNq9zYtPDwFTA==
+
 pg-int8@1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/pg-int8/-/pg-int8-1.0.1.tgz#943bd463bf5b71b4170115f80f8efc9a0c0eb78c"
   integrity sha512-WCtabS6t3c8SkpDBUlb1kjOs7l66xsGdKpIPZsg4wR+B3+u9UAum2odSsF9tnvxg80h4ZxLWMy4pRjOsFIqQpw==
+
+pg-minify@^1.6.2:
+  version "1.6.2"
+  resolved "https://registry.yarnpkg.com/pg-minify/-/pg-minify-1.6.2.tgz#055acfe862cfca3ca0a529020846b0f308d68e70"
+  integrity sha512-1KdmFGGTP6jplJoI8MfvRlfvMiyBivMRP7/ffh4a11RUFJ7kC2J0ZHlipoKiH/1hz+DVgceon9U2qbaHpPeyPg==
 
 pg-pool@^3.3.0:
   version "3.3.0"
@@ -11277,7 +11287,7 @@ pg@8.6.0, pg@^8.2.1, pg@^8.6.0:
     pg-types "^2.1.0"
     pgpass "1.x"
 
-pg@8.7.1:
+pg@8.7.1, pg@^8.7.1:
   version "8.7.1"
   resolved "https://registry.yarnpkg.com/pg/-/pg-8.7.1.tgz#9ea9d1ec225980c36f94e181d009ab9f4ce4c471"
   integrity sha512-7bdYcv7V6U3KAtWjpQJJBww0UEsWuh4yQ/EjNf2HeO/NnvKjpvhEIe/A/TleP6wtmSKnUnghs5A9jUoK6iDdkA==
@@ -12396,6 +12406,20 @@ roarr@^7.0.2:
     json-stringify-safe "^5.0.1"
     semver-compare "^1.0.0"
 
+roarr@^7.0.3:
+  version "7.0.3"
+  resolved "https://registry.yarnpkg.com/roarr/-/roarr-7.0.3.tgz#12461fda11d1aaff5d5a8c80774206019d5f2630"
+  integrity sha512-+HDl5b/Ccg3hnSNOo8M2Mk7RB7u9qo8LlNosa6FzSOMqfoTkuf0AAMJhszAZbDofa99kYiC4rd/UZlFy1/V/OA==
+  dependencies:
+    boolean "^3.0.2"
+    detect-node "^2.0.5"
+    fast-json-stringify "^2.5.2"
+    fast-printf "^1.6.4"
+    globalthis "^1.0.2"
+    is-circular "^1.0.2"
+    json-stringify-safe "^5.0.1"
+    semver-compare "^1.0.0"
+
 rope-sequence@^1.3.0:
   version "1.3.2"
   resolved "https://registry.yarnpkg.com/rope-sequence/-/rope-sequence-1.3.2.tgz#a19e02d72991ca71feb6b5f8a91154e48e3c098b"
@@ -12819,6 +12843,30 @@ slice-ansi@^4.0.0:
     ansi-styles "^4.0.0"
     astral-regex "^2.0.0"
     is-fullwidth-code-point "^3.0.0"
+
+slonik@24.0.0:
+  version "24.0.0"
+  resolved "https://registry.yarnpkg.com/slonik/-/slonik-24.0.0.tgz#87ff6cc983be34180ba81ce1c3cefa0c0c53e211"
+  integrity sha512-sV5Q5Jxu6TEO6BuT9gL8x8bhoMgP1d1RS598/QBS3mMTZmKaArY8cuYL10vrpssj5Xh9Cmy20sfJDjAJ6M8b0g==
+  dependencies:
+    concat-stream "^2.0.0"
+    es6-error "^4.1.1"
+    get-stack-trace "^2.1.1"
+    hyperid "^2.3.1"
+    is-plain-object "^5.0.0"
+    iso8601-duration "^1.3.0"
+    pg "^8.7.1"
+    pg-connection-string "^2.5.0"
+    pg-copy-streams "^5.1.1"
+    pg-copy-streams-binary "^2.0.1"
+    pg-cursor "^2.7.1"
+    pg-minify "^1.6.2"
+    postgres-array "^3.0.1"
+    postgres-interval "^3.0.0"
+    promise-deferred "^2.0.3"
+    roarr "^7.0.3"
+    serialize-error "^8.1.0"
+    through2 "^4.0.2"
 
 slonik@^23.8.4:
   version "23.8.4"
