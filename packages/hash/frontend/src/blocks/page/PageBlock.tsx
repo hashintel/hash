@@ -27,7 +27,8 @@ import {
   createBlockUpdateTransaction,
 } from "@hashintel/hash-shared/src/sharedWithBackend";
 import { defineNewBlock } from "@hashintel/hash-shared/src/sharedWithBackendJs";
-import { createNodeView } from "./tsUtils";
+import { collabEnabled, createNodeView } from "./tsUtils";
+import { EditorConnection } from "./collab/collab";
 
 type PageBlockProps = {
   contents: (Block | BlockWithoutMeta)[];
@@ -73,9 +74,11 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   const [portals, replacePortal] = usePortals();
   const [deferCallback, clearCallback] = useDeferredCallback();
 
-  const prosemirrorSetup = useRef<null | { view: EditorView; schema: Schema }>(
-    null
-  );
+  const prosemirrorSetup = useRef<null | {
+    view: EditorView;
+    schema: Schema;
+    connection: EditorConnection | null;
+  }>(null);
 
   /**
    * smart hack: provide a live reference to "contents" for all other effects
@@ -135,6 +138,10 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
      */
     let saveQueue = Promise.resolve();
     (window as any).triggerSave = () => {
+      if (collabEnabled) {
+        return;
+      }
+
       saveQueue = saveQueue
         .catch(() => {})
         .then(() => {
@@ -230,7 +237,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
      * Lets see up prosemirror with an empty document, as another effect will set its contents. Unfortunately all
      * prosemirror documents have to contain at least one child, so lets insert a special "blank" placeholder child
      */
-    const { view } = renderPM(
+    const { view, connection } = renderPM(
       node,
       createInitialDoc(schema),
       { nodeViews: {} },
@@ -240,12 +247,13 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       metadataId
     );
 
-    prosemirrorSetup.current = { schema, view };
+    prosemirrorSetup.current = { schema, view, connection };
 
     return () => {
       // @todo how does this work with portals?
       node.innerHTML = "";
       prosemirrorSetup.current = null;
+      connection?.close();
     };
   }, [accountId, clearCallback, deferCallback, pageId, replacePortal]);
 
@@ -284,9 +292,11 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   useLayoutEffect(() => {
     const controller = new AbortController();
 
-    updateContents(controller.signal).catch((err) =>
-      console.error("Could not update page contents: ", err)
-    );
+    if (!collabEnabled) {
+      updateContents(controller.signal).catch((err) =>
+        console.error("Could not update page contents: ", err)
+      );
+    }
 
     return () => {
       controller.abort();

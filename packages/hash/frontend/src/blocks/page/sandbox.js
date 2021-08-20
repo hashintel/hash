@@ -24,6 +24,9 @@ import {
   infiniteGroupHistoryPlugin,
 } from "@hashintel/hash-shared/src/sharedWithBackendJs";
 import { createNodeView } from "./tsUtils";
+import { EditorConnection } from "./collab/collab";
+import { Reporter } from "./collab/reporter";
+import { collabEnabled } from "./tsUtils";
 
 /**
  * You can think of this more as a "Switcher" view – when you change node type using the select type dropdown, the node
@@ -710,12 +713,7 @@ export const renderPM = (
   viewProps,
   replacePortal,
   additionalPlugins,
-  /**
-   * These will be necessary in a future update
-   */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   accountId,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   pageId
 ) => {
   const state = createProseMirrorState(
@@ -723,6 +721,8 @@ export const renderPM = (
     replacePortal,
     additionalPlugins
   );
+
+  let connection;
 
   const view = new EditorView(node, {
     state: state,
@@ -735,12 +735,26 @@ export const renderPM = (
         return new BlockView(node, view, getPos, replacePortal);
       },
     },
+    dispatchTransaction: collabEnabled
+      ? (...args) => connection?.dispatchTransaction(...args)
+      : undefined,
   });
+
+  if (collabEnabled) {
+    connection = new EditorConnection(
+      new Reporter(),
+      `http://localhost:5001/collab-backend/${accountId}/${pageId}`,
+      view.state.schema,
+      view,
+      replacePortal,
+      additionalPlugins
+    );
+  }
 
   view.dom.classList.add(styles.ProseMirror);
 
   // @todo figure out how to use dev tools without it breaking fast refresh
   // applyDevTools(view);
 
-  return { view };
+  return { view, connection };
 };
