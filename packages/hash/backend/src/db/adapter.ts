@@ -17,9 +17,9 @@ export type Entity = {
   entityTypeId: string;
   entityTypeName: string;
   entityTypeVersionId: string;
-  id: string /** @todo remove this in follow-up PR */;
+  id: string /** @todo remove this once no longer relied on by FE */;
+  metadataId: string /** @todo remove this once no longer relied on by FE */;
   properties: any;
-  metadataId: string;
   metadata: EntityMeta;
   createdAt: Date;
   updatedAt: Date;
@@ -50,7 +50,6 @@ export type EntityType = {
 };
 
 export type EntityMeta = {
-  metadataId: string;
   versioned: boolean;
   extra: any;
 };
@@ -125,7 +124,7 @@ export interface DBClient {
    * */
   getEntityLatestVersion(params: {
     accountId: string;
-    metadataId: string;
+    entityId: string;
   }): Promise<Entity | undefined>;
 
   /**
@@ -147,7 +146,7 @@ export interface DBClient {
   updateEntity(params: {
     accountId: string;
     entityVersionId: string;
-    metadataId: string;
+    entityId: string;
     properties: any;
   }): Promise<Entity[]>;
 
@@ -196,7 +195,7 @@ export interface DBClient {
   /** Update the metadata which may be associated with one or more entities. */
   updateEntityMetadata(params: {
     accountId: string;
-    metadataId: string;
+    entityId: string;
     extra: any;
   }): Promise<EntityMeta>;
 
@@ -230,11 +229,11 @@ export interface DBClient {
 
   /**
    * getEntityHistory returns the sorted version timeline of an entity given its
-   * `metadataId`.
+   * `entityId`.
    * */
   getEntityHistory(params: {
     accountId: string;
-    metadataId: string;
+    entityId: string;
   }): Promise<EntityVersion[]>;
 
   /** Get multiple entities by their account ID and entity ID. */

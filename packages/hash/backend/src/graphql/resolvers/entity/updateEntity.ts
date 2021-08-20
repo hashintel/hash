@@ -15,7 +15,7 @@ export const updateEntity: Resolver<
     // return here when strict vs. optimistic entity mutation question is resolved.
     const entity = await client.getEntityLatestVersion({
       accountId,
-      metadataId,
+      entityId: metadataId,
     });
     if (!entity) {
       const msg = `entity ${metadataId} not found in account ${accountId}`;
@@ -30,7 +30,7 @@ export const updateEntity: Resolver<
     const updatedEntities = await client.updateEntity({
       accountId,
       entityVersionId: entity.entityVersionId,
-      metadataId: entity.metadataId,
+      entityId: entity.entityId,
       properties: propertiesToUpdate,
     });
 

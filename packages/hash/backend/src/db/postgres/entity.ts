@@ -23,7 +23,6 @@ export const mapPGRowToEntity = (row: QueryResultRowType): Entity => {
     id: row["entity_version_id"] as string,
     properties: row["properties"],
     metadata: {
-      metadataId: row["entity_id"] as string,
       versioned: row["versioned"] as boolean,
       extra: row["extra"],
     },
@@ -98,11 +97,11 @@ const selectEntityVersion = (params: {
 /** Query for retrieving all versions of an entity */
 const selectEntityAllVersions = (params: {
   accountId: string;
-  metadataId: string;
+  entityId: string;
 }) => sql`
   ${selectEntities}
   where
-    e.account_id = ${params.accountId} and e.entity_id = ${params.metadataId}
+    e.account_id = ${params.accountId} and e.entity_id = ${params.entityId}
 `;
 
 /**
@@ -155,7 +154,7 @@ export const getEntityLatestVersion = async (
   conn: Connection,
   params: {
     accountId: string;
-    metadataId: string;
+    entityId: string;
   }
 ): Promise<Entity | undefined> => {
   const row = await conn.maybeOne(
@@ -176,7 +175,7 @@ export const getEntityLatestVersionId = async (
   conn: Connection,
   params: {
     accountId: string;
-    metadataId: string;
+    entityId: string;
   }
 ): Promise<string | undefined> => {
   const id = await conn.maybeOneFirst(
@@ -296,7 +295,7 @@ export const getEntityHistory = async (
   conn: Connection,
   params: {
     accountId: string;
-    metadataId: string;
+    entityId: string;
   }
 ): Promise<EntityVersion[]> => {
   const rows = await conn.any(sql`
@@ -305,7 +304,7 @@ export const getEntityHistory = async (
     from entity_versions
     where
       account_id = ${params.accountId}
-      and entity_id = ${params.metadataId}
+      and entity_id = ${params.entityId}
     order by created_at desc
   `);
   return rows.map((row) => ({
