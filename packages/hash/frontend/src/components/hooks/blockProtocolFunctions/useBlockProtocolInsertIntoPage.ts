@@ -19,8 +19,12 @@ export const useBlockProtocolInsertIntoPage = (): {
   // temporary hack to refetch page data after a mutation.
   // TODO: make caching of entities outside of GraphQL schema work
   // so that updates to those entities are reflected w/o doing this
-  const onCompleted = () => apolloClient.reFetchObservableQueries()
-    .catch((err) => console.error("Error when refetching all active queries: ", err));
+  const onCompleted = () =>
+    apolloClient
+      .reFetchObservableQueries()
+      .catch((err) =>
+        console.error("Error when refetching all active queries: ", err)
+      );
 
   const [insertFn, { loading, error }] = useMutation<
     InsertBlockIntoPageMutation,

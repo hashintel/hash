@@ -5,7 +5,7 @@ if (process.env.HASH_DEV_INTEGRATION_EMAIL) {
     await sendMail({
       to: process.env.HASH_DEV_INTEGRATION_EMAIL,
       subject: "HASH.dev 'can send email' integration test",
-      text: `time: ${(new Date()).toISOString()}`,
+      text: `time: ${new Date().toISOString()}`,
     });
   });
 }

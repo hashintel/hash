@@ -20,7 +20,7 @@ export const mapPGRowToEntity = (row: QueryResultRowType): Entity => {
     entityTypeName: (row["type.properties"] as any)
       ?.title /** @see https://github.com/gajus/slonik/issues/275 */,
     entityTypeVersionId: row["entity_type_version_id"] as string,
-    id: row["entity_id"] as string,
+    id: row["entity_version_id"] as string,
     properties: row["properties"],
     metadata: {
       metadataId: row["entity_id"] as string,

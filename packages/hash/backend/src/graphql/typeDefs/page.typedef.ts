@@ -100,10 +100,19 @@ export const pageTypedef = gql`
     summary: String
   }
 
+  """
+  Data to create a block with a new entity in it.
+  As well as entityProperties, entity type info must be provided.
+  Type info must be ONE OF:
+  - entityTypeId (the latest version of this type will be assigned)
+  - entityTypeVersionId (this specific version of the type will be assigned)
+  - systemTypeName (this version will be assigned)
+  """
   input InsertBlocksData {
     componentId: ID!
     entityProperties: JSONObject!
     entityTypeId: ID
+    entityTypeVersionId: ID
     systemTypeName: SystemTypeName
     accountId: ID!
   }
@@ -120,8 +129,13 @@ export const pageTypedef = gql`
     """
     Insert a block into a given page.
     EITHER:
-    - entityId (for rendering an existing entity) OR
-    - entityProperties and entityTypeId (for creating a new entity)
+    - entityId (for rendering an existing entity)
+    OR
+    - entityProperties and type info for creating a new entity.
+      Type info must be ONE OF:
+        - entityTypeId (the latest version of this type will be assigned)
+        - entityTypeVersionId (this specific version of the type will be assigned)
+        - systemTypeName (this version will be assigned)
     must be provided.
     """
     insertBlockIntoPage(
@@ -129,6 +143,8 @@ export const pageTypedef = gql`
       entityId: ID
       entityProperties: JSONObject
       entityTypeId: ID
+      entityTypeVersionId: ID
+      systemTypeName: SystemTypeName
       """
       The accountId for the block and entity.
       Defaults to the page's accountId.

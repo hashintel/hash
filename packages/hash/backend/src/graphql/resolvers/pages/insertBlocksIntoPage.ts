@@ -1,8 +1,9 @@
+import { ApolloError, UserInputError } from "apollo-server-errors";
+
 import { DbPageProperties, DbBlockProperties } from "../../../types/dbTypes";
 import { Resolver, MutationInsertBlocksIntoPageArgs } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { genId } from "../../../util";
-import { ApolloError, UserInputError } from "apollo-server-errors";
 import { Entity } from "../../../db/adapter";
 
 export const insertBlocksIntoPage: Resolver<
@@ -19,12 +20,20 @@ export const insertBlocksIntoPage: Resolver<
     // Create the blocks
     const newBlocks = await Promise.all(
       blocks.map(async (block) => {
+        const { entityTypeId, entityTypeVersionId, systemTypeName } = block;
+        if (!entityTypeId && !entityTypeVersionId && !systemTypeName) {
+          throw new UserInputError(
+            "One of entityTypeId, entityTypeVersionId, or systemTypeName must be provided"
+          );
+        }
+
         // Create the entity that the block contains
         const childEntity = await client.createEntity({
           accountId: block.accountId,
           createdById: genId(), // @todo
-          entityTypeId: block.entityTypeId,
-          systemTypeName: block.systemTypeName,
+          entityTypeId,
+          entityTypeVersionId,
+          systemTypeName,
           properties: block.entityProperties,
           versioned: true, // @todo: this should be a property of the type
         });
@@ -33,7 +42,6 @@ export const insertBlocksIntoPage: Resolver<
         const blockProperties: DbBlockProperties = {
           entityId: childEntity.entityVersionId,
           accountId: block.accountId,
-          entityTypeId: childEntity.entityTypeId,
           componentId: block.componentId,
         };
         const newBlock = await client.createEntity({

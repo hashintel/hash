@@ -23,7 +23,8 @@ export const useBlockProtocolAggregate = (): {
       aggregateFn({
         variables: {
           operation: action.operation,
-          type: action.entityType,
+          entityTypeId: action.entityTypeId,
+          entityTypeVersionId: action.entityTypeVersionId,
           accountId: action.accountId,
         },
       });

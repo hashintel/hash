@@ -9,7 +9,9 @@ export const createUser = gql`
       createdAt
       updatedAt
       accountId
-      type
+      entityTypeId
+      entityTypeVersionId
+      entityTypeName
       visibility
       properties {
         shortname
@@ -37,7 +39,9 @@ export const loginWithLoginCode = gql`
       createdAt
       updatedAt
       accountId
-      type
+      entityTypeId
+      entityTypeVersionId
+      entityTypeName
       visibility
       properties {
         shortname
@@ -59,7 +63,9 @@ export const meQuery = gql`
       id
       createdById
       accountId
-      type
+      entityTypeId
+      entityTypeVersionId
+      entityTypeName
       visibility
       properties {
         shortname
