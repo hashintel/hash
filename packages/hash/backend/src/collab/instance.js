@@ -135,7 +135,10 @@ class Instance {
         const { insertPayloads, pageUpdatedPayload, updatedEntitiesPayload } =
           calculateSavePayloads(
             this.accountId,
+            // @todo one of these should be something else
             this.id,
+            this.id,
+
             this.doc.type.schema,
             this.doc,
             this.savedContents
