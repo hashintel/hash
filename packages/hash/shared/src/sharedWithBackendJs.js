@@ -171,14 +171,12 @@ export const defineRemoteBlock = async (
     AsyncBlockCacheView = viewConfig.view;
   }
 
-  const existingSchemaSpec = schema.spec;
-
   // If the block has not already been defined, we need to fetch the metadata & define it
-  if (!id || existingSchemaSpec.nodes.find(id) === -1) {
+  if (!id || !schema.nodes[id]) {
     if (!AsyncBlockCache.has(componentUrl)) {
       const promise = fetchBlockMeta(componentUrl)
         .then(({ componentMetadata, componentSchema }) => {
-          if (!id || existingSchemaSpec.nodes.find(id) === -1) {
+          if (!id || !schema.nodes[id]) {
             defineNewBlock(
               schema,
               componentMetadata,
@@ -402,7 +400,11 @@ const plugins = [
   }),
 ];
 
-export const createPMState = (doc, replacePortal, additionalPlugins) => {
+export const createProseMirrorState = (
+  doc,
+  replacePortal,
+  additionalPlugins
+) => {
   const formatKeymap = keymap({
     "Mod-b": toggleMark(doc.type.schema.marks.strong),
     "Mod-i": toggleMark(doc.type.schema.marks.em),

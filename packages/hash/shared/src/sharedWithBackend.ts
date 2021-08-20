@@ -6,13 +6,13 @@ import { createRemoteBlock, defineRemoteBlock } from "./sharedWithBackendJs";
 // @todo move this
 // @ts-ignore
 // @todo allow overwriting this again
-import blockPaths from "../../../blockPaths.sample.json";
+import blockPaths from "../blockPaths.sample.json";
 import {
   BlockMetadata,
   BlockProtocolUpdatePayload,
 } from "@hashintel/block-protocol";
 import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
-import { PageFieldsFragment, SystemTypeName } from "../../graphql/apiTypes.gen";
+import { PageFieldsFragment, SystemTypeName } from "@hashintel/hash-frontend/src/graphql/apiTypes.gen";
 
 export { blockPaths };
 
@@ -212,6 +212,26 @@ export const replaceStateContent = (
   return tr;
 };
 
+export const transformBlockForProsemirror = (block: BlockWithoutMeta) => {
+  const {
+    children,
+    childEntityId = null,
+    childEntityAccountId = null,
+    childEntityTypeId = null,
+    ...props
+  } = block.entity;
+
+  const attrs = {
+    entityId: block.entityId,
+    accountId: block.accountId,
+    childEntityId,
+    childEntityAccountId,
+    childEntityTypeId,
+  };
+
+  return { children, props, attrs };
+};
+
 /**
  * @todo replace this with a prosemirror command
  * @todo take a signal
@@ -227,13 +247,7 @@ export const createBlockUpdateTransaction = async (
 
   const newNodes = await Promise.all(
     contents?.map(async (block, index) => {
-      const {
-        children,
-        childEntityId = null,
-        childEntityAccountId = null,
-        childEntityTypeId = null,
-        ...props
-      } = block.entity;
+      const { children, props, attrs } = transformBlockForProsemirror(block);
 
       const id = componentUrlToProsemirrorId(block.componentId);
 
@@ -254,11 +268,7 @@ export const createBlockUpdateTransaction = async (
             ...(cachedPropertiesByEntity[block.entityId] ?? {}),
             ...props,
           },
-          entityId: block.entityId,
-          accountId: block.accountId,
-          childEntityId,
-          childEntityAccountId,
-          childEntityTypeId,
+          ...attrs,
         },
         children?.map((child: any) => {
           if (child.type === "text") {
@@ -332,30 +342,16 @@ const invertedBlockPaths = Object.fromEntries(
   Object.entries(blockPaths).map(([key, value]) => [value, key])
 );
 
-const cachedPropertiesByEntity: Record<string, Record<any, any>> = (() => {
-  const cachedPropertiesByEntity =
-    JSON.parse(
-      typeof localStorage !== "undefined"
-        ? localStorage.getItem("cachedPropertiesByEntity") ?? "{}"
-        : "{}"
-    ) ?? {};
-
-  if (typeof localStorage !== "undefined") {
-    setInterval(() => {
-      localStorage.setItem(
-        "cachedPropertiesByEntity",
-        JSON.stringify(cachedPropertiesByEntity)
-      );
-    }, 500);
-  }
-
-  return cachedPropertiesByEntity;
-})();
-
+export const cachedPropertiesByEntity: Record<string, Record<any, any>> = {};
 const cachedPropertiesByPosition: Record<string, Record<any, any>> = {};
 
 /**
  * @todo only need doc
+ *
+ * There's a bug here where when we add a new block, we think we need to update the page entity but
+ * that is handled by the insert block operation, so this update here is a noop
+ *
+ * @todo fix this
  */
 export const calculateSavePayloads = (
   accountId: string,

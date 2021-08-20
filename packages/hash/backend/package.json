@@ -11,7 +11,7 @@
   },
   "main": "src/index.ts",
   "scripts": {
-    "dev": "export NODE_ENV=development && nodemon src/index.ts",
+    "dev": "export NODE_ENV=development && nodemon --config nodemon.json src/index.ts",
     "build": "echo 'Compiling Typescript' && tsc",
     "start": "export NODE_ENV=production && node dist/index.js",
     "codegen": "graphql-codegen --config codegen.yml # backend",
@@ -22,6 +22,8 @@
   },
   "dependencies": {
     "@aws-sdk/client-ses": "3.25.0",
+    "@hashintel/hash-frontend": "*",
+    "@hashintel/hash-shared": "*",
     "apollo-server-express": "2.24.1",
     "body-parser": "1.19.0",
     "connect-pg-simple": "6.2.1",
@@ -40,6 +42,8 @@
     "oembed-providers": "https://github.com/iamcal/oembed",
     "passport": "0.4.1",
     "pg": "8.6.0",
+    "prosemirror-model": "1.14.2",
+    "prosemirror-transform": "1.3.2",
     "rword": "3.2.0",
     "slonik": "^23.8.4",
     "winston": "3.3.3"
@@ -60,6 +64,8 @@
     "@types/passport": "1.0.7",
     "@types/passport-strategy": "0.2.35",
     "@types/pg": "8.6.0",
+    "@types/prosemirror-model": "1.13.1",
+    "@types/prosemirror-transform": "1.1.4",
     "@types/rword": "3.0.0",
     "@typescript-eslint/eslint-plugin": "4.29.0",
     "@typescript-eslint/parser": "4.29.0",

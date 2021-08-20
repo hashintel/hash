@@ -1,0 +1,20 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    // specifics
+    "allowJs": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "moduleResolution": "node",
+    "noEmit": true,
+    "typeRoots": [
+      "./src/types",
+      "node_modules/@types"
+    ],
+  
+    // overrides
+    "lib": ["es2020"],
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules"]
+}

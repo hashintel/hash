@@ -1,7 +1,10 @@
 import React from "react";
 import { EditorProps, NodeView } from "prosemirror-view";
 import { RemoteBlock } from "../../components/RemoteBlock/RemoteBlock";
-import { Block, ReplacePortals } from "./sharedWithBackend";
+import {
+  Block,
+  ReplacePortals,
+} from "@hashintel/hash-shared/src/sharedWithBackend";
 
 type NodeViewConstructorArgs = Parameters<
   NonNullable<EditorProps["nodeViews"]>[string]
