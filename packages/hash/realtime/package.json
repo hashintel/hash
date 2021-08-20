@@ -1,0 +1,26 @@
+{
+  "name": "@hashintel/hash-realtime",
+  "license": "GPL-3.0",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Realtime streaming update server from the HASH.dev datstore",
+  "prettier": "@hashintel/prettier-config",
+  "repository": {
+    "url": "https://github.com/hashintel/dev/packages/hash/realtime",
+    "directory": "packages/hash/realtime"
+  },
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "export NODE_ENV=development && nodemon src/index.ts",
+    "build": "echo 'Compiling Typescript' && tsc",
+    "start": "export NODE_ENV=production && node dist/index.js",
+    "format": "prettier --write './src/**/*'; eslint --ext .ts  --fix ./src/",
+    "lint": "prettier --check './src/**/*'; eslint --ext .ts ./src/",
+    "ts-node": "node --max-old-space-size=2048 node_modules/.bin/ts-node --files --project tsconfig.json"
+  },
+  "dependencies": {
+    "slonik": "24.0.0",
+    "winston": "3.3.3"
+  },
+  "devDependencies": {}
+}

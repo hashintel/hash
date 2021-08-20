@@ -8,7 +8,7 @@
     "packages/hash/block-protocol",
     "packages/hash/prettier-config",
     "packages/hash/shared",
-
+    "packages/hash/realtime",
     "packages/hash/blocks/page",
     "packages/hash/blocks/divider",
     "packages/hash/blocks/embed",
@@ -27,6 +27,7 @@
     "ws:hash-integration": "yarn workspace @hashintel/hash-integration",
     "ws:hash-frontend": "yarn workspace @hashintel/hash-frontend",
     "ws:hash-shared": "yarn workspace @hashintel/hash-shared",
+    "ws:hash-realtime": "yarn workspace @hashintel/hash-realtime",
     "// 03": "",
     "// ---------------Install & serve ---------------": "",
     "// 04": "",
