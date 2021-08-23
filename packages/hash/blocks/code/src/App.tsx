@@ -12,7 +12,7 @@ type AppProps = {
   language: LanguageType;
   content: string;
   entityId: string;
-  entityType?: string;
+  entityTypeId?: string;
   accountId: string;
 };
 
@@ -47,7 +47,7 @@ export const App: BlockComponent<AppProps> = (props) => {
     void props.update?.([
       {
         entityId: props.entityId,
-        entityType: props.entityType,
+        entityTypeId: props.entityTypeId,
         accountId: props.accountId,
         data: localData,
       },
