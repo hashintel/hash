@@ -11,6 +11,7 @@ export const createApolloClient = (name?: string) => {
 
   const httpLink = new HttpLink({
     uri: "http://localhost:5001/graphql",
+    credentials: "include",
     fetch: ponyfilledFetch,
   });
 
