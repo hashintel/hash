@@ -29,7 +29,7 @@ const App = () => {
   return (
     <div className={tw`mx-auto mt-14 max-w-3xl`}>
       <Component
-        entityType={"code"}
+        entityTypeId={"code"}
         entityId={"entity-code"}
         accountId={"account-code"}
         update={updateData}
