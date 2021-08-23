@@ -37,9 +37,9 @@ export const sendLoginCodeToEmailAddress = async (
 
   await sendMail({
     to: email,
-    subject: "Your Temporary HASH.dev Login Code",
+    subject: "Your HASH verification code",
     html: `
-        <p>To log in, copy and paste your login code or <a href=${magicLink}>click here</a>.</p>
+        <p>To log in, copy and paste your verification code or <a href=${magicLink}>click here</a>.</p>
         <code>${verificationCode.code}</code>
       `,
   });
@@ -55,9 +55,9 @@ export const sendEmailVerificationCodeToEmailAddress = async (
 
   await sendMail({
     to: email,
-    subject: "Please Verify Your HASH.dev Email Address",
+    subject: "Please verify your HASH email address",
     html: `
-        <p>To very your email address, copy and paste your verification code or <a href=${magicLink}>click here</a>.</p>
+        <p>To verify your email address, copy and paste your verification code or <a href=${magicLink}>click here</a>.</p>
         <code>${verificationCode.code}</code>
       `,
   });
