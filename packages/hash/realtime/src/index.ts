@@ -1,4 +1,5 @@
 import * as crypto from "crypto";
+import * as http from "http";
 
 import { sql } from "slonik";
 import { Logger } from "winston";
@@ -102,6 +103,28 @@ const pollChanges = async (logger: Logger, pool: ConnPool) => {
   }
 };
 
+const createHttpServer = (logger: Logger) => {
+  const server = http.createServer((req, res) => {
+    if (req.method === "GET" && req.url === "/health-check") {
+      res.setHeader("Content-Type", "application/json");
+      res.writeHead(200);
+      res.end(
+        JSON.stringify({
+          msg: "realtime server healthy",
+        })
+      );
+      return;
+    }
+    res.writeHead(404);
+    res.end("");
+  });
+
+  server.on("error", (err) => logger.error(err));
+  server.on("close", () => logger.info("HTTP server closed"));
+
+  return server;
+};
+
 const main = async () => {
   const logger = createLogger("realtime");
   logger.defaultMeta = {
@@ -109,6 +132,12 @@ const main = async () => {
     instanceId: INSTANCE_ID,
   };
   logger.info("STARTED");
+
+  // Start a HTTP server
+  const httpServer = createHttpServer(logger);
+  const port = parseInt(process.env.HASH_REALTIME_PORT || "0") || 3333;
+  httpServer.listen({ host: "::", port });
+  logger.info(`HTTP server listening on port ${port}`);
 
   const pool = createPostgresConnPool(logger, {
     user: getRequiredEnv("HASH_PG_USER", "postgres"),
@@ -158,8 +187,10 @@ const main = async () => {
     logger.info("Closing connection pool");
     await pool.end();
 
-    logger.info("SHUTDOWN");
-    process.exit(0);
+    httpServer.close((_) => {
+      logger.info("SHUTDOWN");
+      process.exit(0);
+    });
   };
   process.on("SIGTERM", async () => await shutdown("SIGTERM"));
   process.on("SIGINT", async () => await shutdown("SIGINT"));
