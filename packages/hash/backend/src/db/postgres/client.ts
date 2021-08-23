@@ -160,6 +160,12 @@ export class PostgresClient implements DBClient {
     });
   }
 
+  async getSystemTypeLatestVersion(params: {
+    systemTypeName: SystemType;
+  }): Promise<EntityType | undefined> {
+    return getSystemTypeLatestVersion(this.conn, params);
+  }
+
   async createEntity(params: {
     accountId: string;
     createdById: string;

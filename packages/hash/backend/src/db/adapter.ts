@@ -121,6 +121,13 @@ export interface DBClient {
   }): Promise<Entity | undefined>;
 
   /**
+   * Get the latest version of a system entity type.
+   * */
+  getSystemTypeLatestVersion(params: {
+    systemTypeName: SystemType;
+  }): Promise<EntityType | undefined>;
+
+  /**
    * Update an entity type.
    * @param params.name the type name - must be unique in the specified account
    * @param params.schema JSON schema fields (e.g. 'properties', 'definition')
