@@ -15,7 +15,7 @@ export const updateUser: Resolver<
   MutationUpdateUserArgs
 > = async (_, { id, properties }, { dataSources, user }) => {
   // @todo: allow HASH admins to bipass this
-  if (id !== user.id)
+  if (id !== user.entityId)
     throw new ForbiddenError("You can only update your own user properties");
 
   const { shortname, preferredName } = properties;
@@ -29,7 +29,7 @@ export const updateUser: Resolver<
   if (shortname) {
     if (user.properties.shortname === shortname && !preferredName)
       throw new ApolloError(
-        `User with id '${user.id}' already has the shortname '${shortname}'`,
+        `User with entityId '${user.entityId}' already has the shortname '${shortname}'`,
         "NO_OP"
       );
 
@@ -51,7 +51,7 @@ export const updateUser: Resolver<
   if (preferredName) {
     if (user.properties.preferredName === preferredName)
       throw new ApolloError(
-        `User with id '${user.id}' already has the preferredName '${preferredName}'`,
+        `User with entityId '${user.entityId}' already has the preferredName '${preferredName}'`,
         "NO_OP"
       );
 

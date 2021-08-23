@@ -1,15 +1,18 @@
 import { DBAdapter } from "../db";
+import { EntityType } from "../db/adapter";
 import {
   Entity as GQLEntity,
+  EntityType as GQLEntityType,
   UnknownEntity as GQLUnknownEntity,
   Visibility,
 } from "../graphql/apiTypes.gen";
 
 export type EntityConstructorArgs = {
-  id: string;
+  entityId: string;
+  entityVersionId: string;
   createdById: string;
   accountId: string;
-  type: string;
+  entityType: EntityType;
   properties: any;
   metadataId: string;
   // metadata: EntityMeta;
@@ -18,10 +21,11 @@ export type EntityConstructorArgs = {
 };
 
 class Entity {
-  id: string;
+  entityId: string;
+  entityVersionId: string;
   createdById: string;
   accountId: string;
-  type: string;
+  entityType: EntityType;
   properties: any;
   metadataId: string;
   // metadata: EntityMeta;
@@ -29,20 +33,22 @@ class Entity {
   updatedAt: Date;
 
   constructor({
-    id,
+    entityId,
+    entityVersionId,
     createdById,
     accountId,
-    type,
+    entityType,
     properties,
     metadataId,
     // metadata,
     createdAt,
     updatedAt,
   }: EntityConstructorArgs) {
-    this.id = id;
+    this.entityId = entityId;
+    this.entityVersionId = entityVersionId;
     this.createdById = createdById;
     this.accountId = accountId;
-    this.type = type;
+    this.entityType = entityType;
     this.properties = properties;
     this.metadataId = metadataId;
     this.createdAt = createdAt;
@@ -64,22 +70,33 @@ class Entity {
           entityVersionId,
         })
         .then((dbEntity) =>
-          dbEntity ? new Entity({ id: entityVersionId, ...dbEntity }) : null
+          dbEntity
+            ? new Entity(dbEntity)
+            : null
         );
 
   toGQLEntity = (): GQLEntity => ({
-    id: this.id,
+    id: this.entityId,
+    entityId: this.entityId,
+    entityVersionId: this.entityVersionId,
     createdById: this.createdById,
     accountId: this.accountId,
-    type: this.type,
+    entityTypeId: this.entityType.entityId,
+    entityTypeVersionId: this.entityType.entityVersionId,
+    /** @todo: stop casting this */
+    entityTypeName: this.entityType.entityTypeName as string,
+    /** @todo: stop casting this */
+    entityType: this.entityType as GQLEntityType,
     metadataId: this.metadataId,
     createdAt: this.createdAt,
     updatedAt: this.updatedAt,
-    visibility: Visibility.Public, // TODO: get from entity metadata
+    visibility: Visibility.Public, /** @todo: get from entity metadata */
   });
 
   toGQLUnknownEntity = (): GQLUnknownEntity => ({
     ...this.toGQLEntity(),
+    /** @todo: stop casting this */
+    entityType: this.entityType as GQLEntityType,
     properties: this.properties,
   });
 }

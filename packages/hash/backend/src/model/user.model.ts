@@ -7,28 +7,45 @@ import { genId } from "../util";
 import {
   UserProperties,
   User as GQLUser,
+  EntityType as GQLEntityType,
   Email,
 } from "../graphql/apiTypes.gen";
 import Entity, { EntityConstructorArgs } from "./entity.model";
 import VerificationCode from "./verificationCode.model";
+import { EntityType } from "../db/adapter";
 
 type UserConstructorArgs = {
   properties: UserProperties;
 } & Omit<EntityConstructorArgs, "type">;
 
 class User extends Entity {
+  // the cached User system entity type
+  static entityType?: EntityType;
+
   properties: UserProperties;
-  type: "User";
 
   constructor({ properties, ...remainingArgs }: UserConstructorArgs) {
-    super({
-      ...remainingArgs,
-      properties,
-      type: "User",
-    });
+    super({ ...remainingArgs, properties });
     this.properties = properties;
-    this.type = "User";
   }
+
+  private static fetchEntityType = async (db: DBAdapter) =>
+    db
+      .getSystemTypeLatestVersion({ systemTypeName: "User" })
+      .then((userEntityType) => {
+        if (!userEntityType)
+          throw new Error("User system entity type not found in datastore");
+
+        return userEntityType;
+      });
+
+  static getEntityType = async (db: DBAdapter): Promise<EntityType> => {
+    // fetch the User system entity type if it is not already cached
+    User.entityType = User.entityType || (await User.fetchEntityType(db));
+
+    // return the User system entity type
+    return User.entityType;
+  };
 
   static getUserById =
     (db: DBAdapter) =>
@@ -60,20 +77,20 @@ class User extends Entity {
         accountId: id,
         entityVersionId: id,
         createdById: id, // Users "create" themselves
-        type: "User",
+        entityTypeId: (await User.getEntityType(db)).entityId,
         properties,
         versioned: false, // @todo: should user's be versioned?
       });
 
-      return new User({ id, ...entity });
+      return new User(entity);
     };
 
   private updateProperties = (db: DBAdapter) => (properties: UserProperties) =>
     db
       .updateEntity({
         accountId: this.accountId,
-        entityVersionId: this.id,
-        metadataId: this.metadataId,
+        entityVersionId: this.entityVersionId,
+        entityId: this.entityId,
         properties,
       })
       .then(() => {
@@ -113,7 +130,7 @@ class User extends Entity {
 
     if (!primaryEmail)
       throw new Error(
-        `Critical: User with id ${this.id} does not have a primary email address`
+        `Critical: User with entityId ${this.entityId} does not have a primary email address`
       );
 
     return primaryEmail;
@@ -138,11 +155,11 @@ class User extends Entity {
         const email = this.getEmail(alternateEmailAddress);
         if (!email)
           throw new Error(
-            `User with id '${this.id}' does not have an email address '${alternateEmailAddress}'`
+            `User with entityId '${this.entityId}' does not have an email address '${alternateEmailAddress}'`
           );
         if (!email.verified)
           throw new Error(
-            `User with id '${this.id}' hasn't verified the email address '${alternateEmailAddress}'`
+            `User with entityId '${this.entityId}' hasn't verified the email address '${alternateEmailAddress}'`
           );
       }
 
@@ -151,7 +168,7 @@ class User extends Entity {
 
       const verificationCode = await VerificationCode.create(db)({
         accountId: this.accountId,
-        userId: this.id,
+        userId: this.entityId,
         emailAddress,
       });
 
@@ -166,17 +183,17 @@ class User extends Entity {
 
       if (!email)
         throw new Error(
-          `User with id '${this.id}' does not have an email address '${emailAddress}'`
+          `User with entityId '${this.entityId}' does not have an email address '${emailAddress}'`
         );
 
       if (email.verified)
         throw new Error(
-          `User with id '${this.id}' has already verified the email address '${emailAddress}'`
+          `User with id '${this.entityId}' has already verified the email address '${emailAddress}'`
         );
 
       const verificationCode = await VerificationCode.create(db)({
         accountId: this.accountId,
-        userId: this.id,
+        userId: this.entityId,
         emailAddress,
       });
 
@@ -188,6 +205,7 @@ class User extends Entity {
 
   toGQLUser = (): GQLUser => ({
     ...this.toGQLEntity(),
+    entityType: this.entityType as GQLEntityType,
     properties: this.properties,
   });
 }
