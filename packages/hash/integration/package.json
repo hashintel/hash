@@ -20,6 +20,7 @@
     "test": "jest"
   },
   "dependencies": {
+    "dotenv": "10.0.0",
     "graphql": "15.5.0",
     "graphql-request": "3.4.0",
     "graphql-type-json": "0.3.2",
@@ -27,12 +28,13 @@
     "@hashintel/hash-backend": "*"
   },
   "devDependencies": {
-    "@hashintel/prettier-config": "*",
     "@graphql-codegen/cli": "1.21.4",
     "@graphql-codegen/introspection": "1.18.2",
     "@graphql-codegen/typescript": "1.22.0",
     "@graphql-codegen/typescript-graphql-request": "3.2.4",
     "@graphql-codegen/typescript-resolvers": "1.19.2",
+    "@hashintel/prettier-config": "*",
+    "@types/dotenv": "8.2.0",
     "@types/graphql-type-json": "0.3.2",
     "@types/jest": "26.0.24",
     "@typescript-eslint/eslint-plugin": "4.29.0",

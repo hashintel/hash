@@ -1,57 +1,79 @@
 import { GraphQLClient } from "graphql-request";
 
+import { DBAdapter, PostgresAdapter } from "@hashintel/hash-backend/src/db";
+import User from "@hashintel/hash-backend/src/model/user.model";
 import {
-  CreateUserMutationVariables,
   CreateOrgMutationVariables,
   CreateOrgMutation,
-  CreateUserMutation,
 } from "../graphql/apiTypes.gen";
-import { createUser } from "../graphql/queries/user.queries";
 import { createOrg } from "../graphql/queries/org.queries";
 
-export const createUsers = async (client: GraphQLClient) => {
-  const users: CreateUserMutationVariables[] = [
+type CreateUserArgs = {
+  email: string;
+  shortname: string;
+  preferredName: string;
+};
+
+const createUser =
+  (db: DBAdapter) =>
+  ({ email, shortname }: CreateUserArgs) =>
+    User.create(db)({
+      emails: [{ address: email, primary: true, verified: true }],
+      shortname,
+    });
+
+// Note, the email addresses of these users will automatically be verified
+export const createUsers = async () => {
+  const users: CreateUserArgs[] = [
     {
       email: "aj@hash.ai",
       shortname: "akash",
+      preferredName: "Akash",
     },
     {
       email: "c@hash.ai",
       shortname: "ciaran",
+      preferredName: "Ciaran",
     },
     {
       email: "d@hash.ai",
       shortname: "david",
+      preferredName: "David",
     },
     {
       email: "ef@hash.ai",
       shortname: "eadan",
+      preferredName: "Eaden",
     },
     {
       email: "nh@hash.ai",
       shortname: "nate",
+      preferredName: "Nate",
     },
     {
       email: "mr@hash.ai",
       shortname: "marius",
+      preferredName: "Marius",
     },
     {
       email: "bw@hash.ai",
       shortname: "ben",
+      preferredName: "Ben",
     },
     {
       email: "vu@hash.ai",
       shortname: "valentino",
+      preferredName: "Valentino",
     },
   ];
 
-  const userResults = await Promise.all(
-    users.map(
-      async (user) => await client.request<CreateUserMutation>(createUser, user)
-    )
-  );
+  const db = new PostgresAdapter();
 
-  return userResults.map((user) => user.createUser);
+  const userResults = await Promise.all(users.map(createUser(db)));
+
+  await db.close();
+
+  return userResults.map((user) => user.toGQLUser());
 };
 
 /**

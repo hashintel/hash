@@ -16,7 +16,7 @@ import {
 } from "../adapter";
 import { SystemType } from "../../types/entityTypes";
 
-export const createConnPool = (logger: Logger) => {
+export const createConnPool = (logger?: Logger) => {
   const user = getRequiredEnv("HASH_PG_USER");
   const host = getRequiredEnv("HASH_PG_HOST");
   const port = getRequiredEnv("HASH_PG_PORT");
@@ -30,13 +30,16 @@ export const createConnPool = (logger: Logger) => {
     interceptors: [
       {
         queryExecutionError: (ctx, _query, error, _notices) => {
-          logger.error({
-            message: "sql_query_error",
-            queryId: ctx.queryId,
-            query: ctx.originalQuery.sql,
-            errorMessage: `${error.name}: ${error.message}`,
-            stackTrace: ctx.stackTrace,
-          });
+          if (logger) {
+            logger.error({
+              message: "sql_query_error",
+              queryId: ctx.queryId,
+              query: ctx.originalQuery.sql,
+              errorMessage: `${error.name}: ${error.message}`,
+              stackTrace: ctx.stackTrace,
+            });
+          }
+
           return null;
         },
       },
@@ -48,7 +51,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   private statsdInterval: NodeJS.Timeout;
   private pool: DatabasePoolType;
 
-  constructor(logger: Logger, statsd?: StatsD) {
+  constructor(logger?: Logger, statsd?: StatsD) {
     super();
     this.pool = createConnPool(logger);
     this.statsdInterval = setInterval(() => {
