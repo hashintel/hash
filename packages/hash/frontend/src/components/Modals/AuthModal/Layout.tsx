@@ -2,7 +2,7 @@ import { ReactNode, VoidFunctionComponent } from "react";
 import { Dialog } from "@headlessui/react";
 import { tw } from "twind";
 
-import bgPattern from "../../assets/images/auth-bg-pattern.png";
+import bgPattern from "../../../assets/images/auth-bg-pattern.png";
 
 export type ModalProps = {
   children: ReactNode;
@@ -10,7 +10,7 @@ export type ModalProps = {
   show: boolean;
 };
 
-export const AuthModal: VoidFunctionComponent<ModalProps> = ({
+export const Layout: VoidFunctionComponent<ModalProps> = ({
   children,
   close,
   show,
@@ -19,7 +19,7 @@ export const AuthModal: VoidFunctionComponent<ModalProps> = ({
     <Dialog
       as="div"
       open={show}
-      onClose={() => {}}
+      onClose={close}
       className={tw`fixed z-10 inset-0 overflow-y-auto`}
     >
       <div className={tw`fixed flex items-center inset-0 bg-white`}>
@@ -27,8 +27,14 @@ export const AuthModal: VoidFunctionComponent<ModalProps> = ({
           {children}
         </div>
         <div className={tw`absolute right-0 top-0 bottom-0 `}>
-            <img src={bgPattern} className={tw`h-screen`} />
+          <img src={bgPattern} className={tw`h-screen`} />
         </div>
+        <button
+          className={tw`absolute top-8 right-8 text-3xl hover:bg-black hover:bg-opacity-5 leading-none h-12 w-12 flexÏ items-center justify-center rounded-full`}
+          onClick={close}
+        >
+          &times;
+        </button>
       </div>
     </Dialog>
   );

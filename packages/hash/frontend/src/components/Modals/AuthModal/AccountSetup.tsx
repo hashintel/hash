@@ -4,11 +4,9 @@ import { tw } from "twind";
 import Logo from "../../../assets/svg/logo.svg";
 import IconInfo from "../../Icons/IconInfo/IconInfo";
 
-type AccountSetupProps = {
-    navigateForward: () => void;
-}
+type AccountSetupProps = {};
 
-export const AccountSetup: VFC<AccountSetupProps> = ({ navigateForward }) => {
+export const AccountSetup: VFC<AccountSetupProps> = () => {
   return (
     <div className={tw`w-9/12 max-w-3xl`}>
       <Logo className={tw`mb-16`} />
@@ -38,7 +36,9 @@ export const AccountSetup: VFC<AccountSetupProps> = ({ navigateForward }) => {
                   className={tw`w-64 border-1 border-gray-300 focus:outline-none focus:border-blue-500 rounded-lg h-11 py-4 pl-6 pr-5 mr-7`}
                   placeholder="example"
                 />
-                <span className={tw`absolute left-2 top-1/2 -translate-y-1/2`}>@</span>
+                <span className={tw`absolute left-2 top-1/2 -translate-y-1/2`}>
+                  @
+                </span>
               </div>
               <div
                 className={tw`max-w-sm flex-1 flex items-center border-1 border-blue-300 rounded-md px-3.5 py-3`}

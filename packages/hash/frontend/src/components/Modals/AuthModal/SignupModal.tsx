@@ -1,16 +1,14 @@
 import { useState, VFC } from "react";
-import { tw } from "twind";
 
-import { Dialog } from "@headlessui/react";
-
-import { Intro } from "./Intro";
+import { Intro } from "./SignupIntro";
 import { VerifyCode } from "./VerifyCode";
 import { AccountSetup } from "./AccountSetup";
 
-import bgPattern from "../../../assets/images/auth-bg-pattern.png";
+import { Layout } from "./Layout";
 
 type SignupModalProps = {
   show: boolean;
+  close: () => void;
 };
 
 enum Screen {
@@ -19,16 +17,24 @@ enum Screen {
   AccountSetup,
 }
 
-export const SignupModal: VFC<SignupModalProps> = ({ show }) => {
+export const SignupModal: VFC<SignupModalProps> = ({ show, close }) => {
   const [activeScreen, setActiveScreen] = useState<Screen>(Screen.Intro);
+  const [loginCode, setLoginCode] = useState("");
 
   const renderContent = () => {
     switch (activeScreen) {
       case Screen.VerifyCode:
-        return <VerifyCode goBack={goBack} navigateForward={navigateForward} />;
+        return (
+          <VerifyCode
+            goBack={goBack}
+            loginCode={loginCode}
+            setLoginCode={setLoginCode}
+            loading={false}
+          />
+        );
 
       case Screen.AccountSetup:
-        return <AccountSetup navigateForward={navigateForward} />;
+        return <AccountSetup />;
 
       case Screen.Intro:
       default:
@@ -39,7 +45,7 @@ export const SignupModal: VFC<SignupModalProps> = ({ show }) => {
   const navigateForward = () => {
     let newScreen;
 
-    if (activeScreen == Screen.AccountSetup) {
+    if (activeScreen === Screen.AccountSetup) {
       return;
     }
 
@@ -60,26 +66,14 @@ export const SignupModal: VFC<SignupModalProps> = ({ show }) => {
   };
 
   const goBack = () => {
-    if (activeScreen == Screen.VerifyCode) {
+    if (activeScreen === Screen.VerifyCode) {
       setActiveScreen(Screen.Intro);
     }
   };
 
   return (
-    <Dialog
-      as="div"
-      open={show}
-      onClose={() => {}}
-      className={tw`fixed z-10 inset-0 overflow-y-auto`}
-    >
-      <div className={tw`fixed flex items-center inset-0 bg-white`}>
-        <div className={tw`relative z-10 w-full flex justify-center`}>
-          {renderContent()}
-        </div>
-        <div className={tw`absolute right-0 top-0 bottom-0 `}>
-          <img src={bgPattern} className={tw`h-screen`} />
-        </div>
-      </div>
-    </Dialog>
+    <Layout show={show} close={close}>
+      {renderContent()}
+    </Layout>
   );
 };

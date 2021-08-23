@@ -6,8 +6,8 @@ import GoogleIcon from "../../../assets/svg/google.svg";
 import Logo from "../../../assets/svg/logo.svg";
 
 type IntroProps = {
-    navigateForward: () => void;
-}
+  navigateForward: () => void;
+};
 
 export const Intro: VFC<IntroProps> = ({ navigateForward }) => {
   return (
@@ -29,9 +29,9 @@ export const Intro: VFC<IntroProps> = ({ navigateForward }) => {
         Continue with Github
       </button>
       <div className={tw`flex items-center w-full my-4`}>
-        <div className={tw`flex-1 h-px bg-gray-200`}></div>
+        <div className={tw`flex-1 h-px bg-gray-200`} />
         <em className={tw`mx-2 text-gray-400`}>or</em>
-        <div className={tw`flex-1 h-px bg-gray-200`}></div>
+        <div className={tw`flex-1 h-px bg-gray-200`} />
       </div>
       <input
         placeholder="Enter your email address.."
