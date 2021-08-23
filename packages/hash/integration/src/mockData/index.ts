@@ -723,4 +723,6 @@ void (async () => {
   );
 
   console.log("Mock data created");
+
+  process.exit();
 })();
