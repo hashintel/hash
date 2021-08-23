@@ -18,7 +18,7 @@ export const getUserById = async (conn: Connection, params: { id: string }) => {
   const row = await conn.one(sql`
     ${selectEntities}
     where
-      e.entity_version_id = ${params.id} and ${matchesUserType}
+      e.entity_id = ${params.id} and ${matchesUserType}
   `);
   return mapPGRowToEntity(row);
 };

@@ -120,7 +120,7 @@ create table if not exists login_codes (
     number_of_attempts integer not null default 0,
     created_at         timestamp with time zone not null,
 
-    foreign key (account_id, user_id) references entity_versions (account_id, entity_version_id)
+    foreign key (account_id, user_id) references entities (account_id, entity_id)
 );
 
 /**
