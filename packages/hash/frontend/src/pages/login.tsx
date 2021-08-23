@@ -1,5 +1,5 @@
 import { NextPage } from "next";
-import { LoginModal } from "../components/Modals/Login/LoginModal";
+import { LoginModal } from "../components/Modals/Login/LoginModal1";
 import { useRouter } from "next/router";
 
 const LoginPage: NextPage = () => {

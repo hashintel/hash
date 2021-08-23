@@ -1,7 +1,6 @@
 import { VFC } from "react";
 import { tw } from "twind";
-
-import logo from "../../../assets/images/logo.png";
+import Logo from "../../../assets/svg/logo.svg";
 
 type VerifyCodeProps = {
   navigateForward: () => void;
@@ -14,7 +13,7 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
 }) => {
   return (
     <div className={tw`w-8/12 max-w-4xl`}>
-      <img src={logo} className={tw`block h-7 mb-6`} />
+      <Logo className={tw`mb-6`} />
       <div
         className={tw`h-96 mb-9 rounded-2xl bg-white shadow-xl flex justify-center items-center text-center`}
       >

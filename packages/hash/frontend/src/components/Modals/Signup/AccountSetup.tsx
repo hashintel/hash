@@ -1,7 +1,7 @@
 import { VFC } from "react";
 import { tw } from "twind";
 
-import logo from "../../../assets/images/logo.png";
+import Logo from "../../../assets/svg/logo.svg";
 import IconInfo from "../../Icons/IconInfo/IconInfo";
 
 type AccountSetupProps = {
@@ -11,7 +11,7 @@ type AccountSetupProps = {
 export const AccountSetup: VFC<AccountSetupProps> = ({ navigateForward }) => {
   return (
     <div className={tw`w-9/12 max-w-3xl`}>
-      <img src={logo} className={tw`block h-7 mb-16`} />
+      <Logo className={tw`mb-16`} />
       <div className={tw`mb-9`}>
         <h1 className={tw`text-3xl font-bold mb-4`}>
           Thanks for confirming your account

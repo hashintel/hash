@@ -6,6 +6,7 @@ import { useLogout } from "../../hooks/useLogout";
 
 import { useUser } from "../../hooks/useUser";
 import { LoginModal } from "../../Modals/Login/LoginModal";
+import { SignupModal } from "../../Modals/Signup/SignupModal";
 import { AccountDropdown } from "./AccountDropdown";
 
 export const PageHeader: VoidFunctionComponent = () => {
@@ -14,7 +15,7 @@ export const PageHeader: VoidFunctionComponent = () => {
 
   const [showLoginModal, hideLoginModal] = useModal(({ in: open }) => (
     <LoginModal
-      show={open}
+      show={true}
       close={hideLoginModal}
       onLoggedIn={() => {
         void refetch();
@@ -23,16 +24,12 @@ export const PageHeader: VoidFunctionComponent = () => {
     />
   ));
 
+  const [showSignupModal, hideSignupModal] = useModal(({}) => (
+    <SignupModal show={true} />
+  ));
+
   return (
     <>
-      {/* <LoginModal
-        show={showLoginModal}
-        close={() => setShowLoginModal(false)}
-        onLoggedIn={() => {
-          void refetch();
-          setShowLoginModal(false);
-        }}
-      /> */}
       <header
         className={tw`bg-white h-16 flex items-center border(b-1 gray-300)`}
       >
@@ -40,12 +37,20 @@ export const PageHeader: VoidFunctionComponent = () => {
           {user ? (
             <AccountDropdown name={user.properties.shortname} logout={logout} />
           ) : (
-            <button
-              onClick={showLoginModal}
-              className={tw`bg(blue-500 hover:blue-700) text(white visited:white) font-bold border(none hover:none)  py-2 px-5 rounded  no-underline`}
-            >
-              Sign in
-            </button>
+            <>
+              <button
+                onClick={showSignupModal}
+                className={tw`bg(blue-500 hover:blue-700) text(white visited:white) font-bold border(none hover:none)  py-2 px-5 rounded  no-underline mr-3`}
+              >
+                Sign up
+              </button>
+              <button
+                onClick={showLoginModal}
+                className={tw`bg(blue-500 hover:blue-700) text(white visited:white) font-bold border(none hover:none)  py-2 px-5 rounded  no-underline`}
+              >
+                Sign in
+              </button>
+            </>
           )}
         </nav>
       </header>

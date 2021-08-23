@@ -2,12 +2,12 @@ import { useState, VFC } from "react";
 import { tw } from "twind";
 
 import { Dialog } from "@headlessui/react";
-import BgPattern from "../../../assets/svg/auth-bg-pattern.svg";
 
-import logo from "../../../assets/images/logo.png";
 import { Intro } from "./Intro";
 import { VerifyCode } from "./VerifyCode";
 import { AccountSetup } from "./AccountSetup";
+
+import bgPattern from "../../../assets/images/auth-bg-pattern.png";
 
 type SignupModalProps = {
   show: boolean;
@@ -77,7 +77,7 @@ export const SignupModal: VFC<SignupModalProps> = ({ show }) => {
           {renderContent()}
         </div>
         <div className={tw`absolute right-0 top-0 bottom-0 `}>
-          <BgPattern className={tw`h-screen`} />
+          <img src={bgPattern} className={tw`h-screen`} />
         </div>
       </div>
     </Dialog>
