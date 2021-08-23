@@ -12,6 +12,8 @@ services:
             - POSTGRES_PASSWORD=postgres
         volumes:
             - hash-dev-pg:/pgdata
+            - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf
+        command: ["-c", "config_file=/etc/postgresql/postgresql.conf"]
     hash-dev-api:
         build:
             context: ../../../
