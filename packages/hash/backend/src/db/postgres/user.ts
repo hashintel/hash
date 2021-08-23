@@ -4,10 +4,13 @@ import { Connection } from "./types";
 import { mapPGRowToEntity, selectEntities } from "./entity";
 import { selectSystemEntityTypeIds } from "./entitytypes";
 
-const matchesUserType = sql` 
-  e.entity_type_id in ( ${selectSystemEntityTypeIds({
-    systemTypeName: "User",
-  })} )
+const matchesUserType = sql`
+  (
+    select entity_type_id
+    from entity_type_versions as ver
+    where ver.entity_type_version_id = e.entity_type_version_id
+    limit 1
+  ) in ( ${selectSystemEntityTypeIds({ systemTypeName: "User" })} )
 `;
 
 // @todo: this function should take accountId as a parameter.
