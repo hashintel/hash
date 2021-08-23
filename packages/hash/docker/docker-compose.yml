@@ -39,6 +39,23 @@ services:
             - ../backend/src:/app/packages/hash/backend/src
             - ../shared/src:/app/packages/hash/shared/src
         stop_signal: SIGINT
+    hash-dev-realtime:
+        build:
+            context: ../../../
+            dockerfile: packages/hash/docker/realtime/dev/Dockerfile
+        depends_on:
+            - hash-dev-pg
+        ports:
+            - 3333:3333
+        environment:
+            - HASH_PG_HOST=hash-dev-pg
+            - HASH_PG_USER=postgres
+            - HASH_PG_PORT=5432
+            - HASH_PG_DATABASE=postgres
+            - HASH_PG_PASSWORD=postgres
+            - HASH_REALTIME_PORT=3333
+        volumes:
+          - ../realtime:/app/packages/hash/realtime
 volumes:
     # Make sure you have created this volume: docker volume create hash-dev-pg
     hash-dev-pg:
