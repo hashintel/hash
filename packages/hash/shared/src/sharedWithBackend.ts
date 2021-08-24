@@ -12,7 +12,10 @@ import {
   BlockProtocolUpdatePayload,
 } from "@hashintel/block-protocol";
 import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
-import { PageFieldsFragment, SystemTypeName } from "@hashintel/hash-frontend/src/graphql/apiTypes.gen";
+import {
+  PageFieldsFragment,
+  SystemTypeName,
+} from "@hashintel/hash-frontend/src/graphql/apiTypes.gen";
 
 export { blockPaths };
 

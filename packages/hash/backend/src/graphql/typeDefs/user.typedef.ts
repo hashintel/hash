@@ -2,6 +2,9 @@ import { gql } from "apollo-server-express";
 
 export const userTypedef = gql`
   type User implements Entity {
+    # Whether the user has completed the account signup process
+    accountSignupComplete: Boolean!
+
     properties: UserProperties!
 
     # ENTITY INTERFACE FIELDS BEGIN #

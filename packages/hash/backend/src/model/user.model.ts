@@ -123,6 +123,10 @@ class User extends Entity {
       preferredName: updatedPreferredName,
     });
 
+  isAccountSignupComplete = () =>
+    this.properties.shortname !== undefined &&
+    this.properties.preferredName !== undefined;
+
   getPrimaryEmail = (): Email => {
     const primaryEmail = this.properties.emails.find(
       ({ primary }) => primary === true
@@ -206,6 +210,7 @@ class User extends Entity {
   toGQLUser = (): GQLUser => ({
     ...this.toGQLEntity(),
     entityType: this.entityType as GQLEntityType,
+    accountSignupComplete: this.isAccountSignupComplete(),
     properties: this.properties,
   });
 }

@@ -28,7 +28,7 @@ import { sendLoginCode } from "./user/sendLoginCode";
 import { loginWithLoginCode } from "./user/loginWithLoginCode";
 import { embedCode } from "./embed";
 
-import { GraphQLContext } from "../context";
+import { GraphQLContext, LoggedInGraphQLContext } from "../context";
 import { ForbiddenError } from "apollo-server-express";
 import { logout } from "./user/logout";
 import { me } from "./user/me";
@@ -42,6 +42,20 @@ const loggedIn =
       throw new ForbiddenError("You must be logged in to perform this action.");
     return next(obj, args, ctx, info);
   };
+
+const signedUp = 
+  (next: any) => (obj: any, args: any, ctx: LoggedInGraphQLContext, info: any) => {
+    if (!ctx.user.isAccountSignupComplete())
+    throw new ForbiddenError(
+      "You must complete the sign-up process to perform this action."
+    );
+    return next(obj, args, ctx, info);
+  };
+
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const loggedInAndSignedUp =
+  (next: any) => (obj: any, args: any, ctx: GraphQLContext, info: any) => loggedIn(signedUp(next))(obj, args, ctx, info);
 
 export const resolvers = {
   Query: {
@@ -63,8 +77,8 @@ export const resolvers = {
     updateEntity,
     updatePage,
     createUser,
-    updateUser: loggedIn(updateUser),
     createOrg,
+    updateUser: loggedIn(updateUser),
     verifyEmail,
     sendLoginCode,
     loginWithLoginCode,

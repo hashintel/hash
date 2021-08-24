@@ -69,11 +69,7 @@ class Entity {
           accountId,
           entityVersionId,
         })
-        .then((dbEntity) =>
-          dbEntity
-            ? new Entity(dbEntity)
-            : null
-        );
+        .then((dbEntity) => (dbEntity ? new Entity(dbEntity) : null));
 
   toGQLEntity = (): GQLEntity => ({
     id: this.entityId,
@@ -90,7 +86,7 @@ class Entity {
     metadataId: this.metadataId,
     createdAt: this.createdAt,
     updatedAt: this.updatedAt,
-    visibility: Visibility.Public, /** @todo: get from entity metadata */
+    visibility: Visibility.Public /** @todo: get from entity metadata */,
   });
 
   toGQLUnknownEntity = (): GQLUnknownEntity => ({
