@@ -4,10 +4,21 @@ import { ParsedUrlQueryInput } from "querystring";
 import { useEffect, useState } from "react";
 
 import { ModalProps } from "../Modal";
-import { useLogin } from "../../hooks/useLogin";
 import { Layout } from "./Layout";
 import { LoginIntro } from "./LoginIntro";
 import { VerifyCode } from "./VerifyCode";
+import {
+  VerificationCodeMetadata,
+  LoginWithLoginCodeMutation,
+  MutationLoginWithLoginCodeArgs,
+  SendLoginCodeMutation,
+  SendLoginCodeMutationVariables,
+} from "../../../graphql/apiTypes.gen";
+import { ApolloError, useMutation } from "@apollo/client";
+import {
+  sendLoginCode as sendLoginCodeMutation,
+  loginWithLoginCode as loginWithLoginCodeMutation,
+} from "../../../graphql/queries/user.queries";
 
 enum Screen {
   Intro,
@@ -20,49 +31,85 @@ type ParsedLoginQuery = {
   verificationCode: string;
 };
 
-const tbdIsParsedLoginQuery = (
+const isParsedLoginQuery = (
   tbd: ParsedUrlQueryInput
 ): tbd is ParsedLoginQuery =>
-  typeof tbd.loginId === "string" && typeof tbd.loginCode === "string";
+  typeof tbd.verificationId === "string" &&
+  typeof tbd.verificationCode === "string";
 
 type LoginModalProps = {
   onLoggedIn?: () => void;
 } & Omit<ModalProps, "children">;
+
+const ERROR_CODES = {
+  LOGIN_CODE_NOT_FOUND: "An unexpected error occurred, please try again.",
+  MAX_ATTEMPTS: "An unexpected error occurred, please try again.",
+  INCORRECT: "This login code has expired, please try again.",
+} as const;
 
 export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
   show,
   close,
   onLoggedIn,
 }) => {
+  // TODO: refactor to use useReducer
   const [activeScreen, setActiveScreen] = useState<Screen>(Screen.Intro);
-  const [verificationCode, setVerificationCode] = useState<string>("");
   const [loginIdentifier, setLoginIdentifier] = useState<string>("");
+  const [verificationCode, setVerificationCode] = useState<string>("");
+  const [verificationCodeMetadata, setVerificationCodeMetadata] = useState<
+    VerificationCodeMetadata | undefined
+  >();
+  const [errorMessage, setErrorMessage] = useState<string>("");
   const router = useRouter();
 
-  const resetForm = useCallback(() => {
-    // setActiveScreen(Screen.Intro);
-    // setLoginCode("");
-  }, []);
-
-  const {
-    verificationCodeMetadata,
-    loginWithLoginCode,
-    loginWithLoginCodeLoading,
-    sendLoginCode,
-    sendLoginCodeLoading,
-    errorMessage,
-  } = useLogin({
-    reset: resetForm,
-    onLoggedIn,
-    onIncorrectLoginCode: () => {},
+  const [sendLoginCodeFn, { loading: sendLoginCodeLoading }] = useMutation<
+    SendLoginCodeMutation,
+    SendLoginCodeMutationVariables
+  >(sendLoginCodeMutation, {
+    onCompleted: ({ sendLoginCode }) => {
+      setErrorMessage("");
+      setVerificationCodeMetadata(sendLoginCode);
+      setActiveScreen(Screen.VerifyCode);
+    },
+    onError: ({ graphQLErrors }) =>
+      graphQLErrors.forEach(({ extensions, message }) => {
+        const { code } = extensions as { code?: string };
+        if (code === "NOT_FOUND") {
+          setErrorMessage(message);
+        } else {
+          throw new ApolloError({ graphQLErrors });
+        }
+      }),
   });
+
+  const [loginWithLoginCode, { loading: loginWithLoginCodeLoading }] =
+    useMutation<LoginWithLoginCodeMutation, MutationLoginWithLoginCodeArgs>(
+      loginWithLoginCodeMutation,
+      {
+        onCompleted: () => {
+          if (onLoggedIn) onLoggedIn();
+        },
+        onError: ({ graphQLErrors }) =>
+          graphQLErrors.forEach(({ extensions }) => {
+            const { code } = extensions as { code?: keyof typeof ERROR_CODES };
+
+            if (code && Object.keys(ERROR_CODES).includes(code)) {
+              reset();
+              setErrorMessage(ERROR_CODES[code]);
+            } else {
+              throw new ApolloError({ graphQLErrors });
+            }
+          }),
+      }
+    );
 
   // handle magic link
   useEffect(() => {
     const { pathname, query } = router;
-    if (pathname === "/login" && tbdIsParsedLoginQuery(query)) {
+    if (pathname === "/login" && isParsedLoginQuery(query)) {
       const { verificationId, verificationCode } = query;
       setActiveScreen(Screen.VerifyCode);
+      setVerificationCode(verificationCode);
       setTimeout(() => {
         void loginWithLoginCode({
           variables: { verificationId, verificationCode },
@@ -79,11 +126,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
       identifier = `@${emailOrShortname}`;
     }
     setLoginIdentifier(identifier);
-    sendLoginCode({ variables: { emailOrShortname } })
-      .then(() => {
-        setActiveScreen(Screen.VerifyCode);
-      })
-      .catch((err) => {});
+    sendLoginCodeFn({ variables: { emailOrShortname } });
   };
 
   const login = () => {
@@ -99,6 +142,9 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
   const goBack = () => {
     if (activeScreen == Screen.VerifyCode) {
       setActiveScreen(Screen.Intro);
+      setErrorMessage("");
+      setVerificationCodeMetadata(undefined);
+      setVerificationCode("");
     }
   };
 

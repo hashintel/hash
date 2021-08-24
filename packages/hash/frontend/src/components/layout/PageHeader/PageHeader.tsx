@@ -5,7 +5,6 @@ import { useLogout } from "../../hooks/useLogout";
 
 import { useUser } from "../../hooks/useUser";
 import { LoginModal } from "../../Modals/AuthModal/LoginModal";
-// import { LoginModal } from "../../Modals/Login/LoginModal";
 import { SignupModal } from "../../Modals/AuthModal/SignupModal";
 import { AccountDropdown } from "./AccountDropdown";
 
