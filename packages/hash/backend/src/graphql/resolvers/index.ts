@@ -43,19 +43,20 @@ const loggedIn =
     return next(obj, args, ctx, info);
   };
 
-const signedUp = 
-  (next: any) => (obj: any, args: any, ctx: LoggedInGraphQLContext, info: any) => {
+const signedUp =
+  (next: any) =>
+  (obj: any, args: any, ctx: LoggedInGraphQLContext, info: any) => {
     if (!ctx.user.isAccountSignupComplete())
-    throw new ForbiddenError(
-      "You must complete the sign-up process to perform this action."
-    );
+      throw new ForbiddenError(
+        "You must complete the sign-up process to perform this action."
+      );
     return next(obj, args, ctx, info);
   };
 
-
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const loggedInAndSignedUp =
-  (next: any) => (obj: any, args: any, ctx: GraphQLContext, info: any) => loggedIn(signedUp(next))(obj, args, ctx, info);
+  (next: any) => (obj: any, args: any, ctx: GraphQLContext, info: any) =>
+    loggedIn(signedUp(next))(obj, args, ctx, info);
 
 export const resolvers = {
   Query: {

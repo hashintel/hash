@@ -1,4 +1,4 @@
-import { DBAdapter } from "../db";
+import { DBClient } from "../db";
 import { EntityType } from "../db/adapter";
 import {
   Entity as GQLEntity,
@@ -56,7 +56,7 @@ class Entity {
   }
 
   static getEntityById =
-    (db: DBAdapter) =>
+    (db: DBClient) =>
     ({
       accountId,
       entityVersionId,

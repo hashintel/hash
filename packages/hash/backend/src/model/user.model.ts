@@ -1,4 +1,5 @@
-import { DBAdapter } from "../db";
+import { DBClient } from "../db";
+import { EntityType } from "../db/adapter";
 import {
   sendEmailVerificationCodeToEmailAddress,
   sendLoginCodeToEmailAddress,
@@ -12,7 +13,6 @@ import {
 } from "../graphql/apiTypes.gen";
 import Entity, { EntityConstructorArgs } from "./entity.model";
 import VerificationCode from "./verificationCode.model";
-import { EntityType } from "../db/adapter";
 
 type UserConstructorArgs = {
   properties: UserProperties;
@@ -29,7 +29,7 @@ class User extends Entity {
     this.properties = properties;
   }
 
-  private static fetchEntityType = async (db: DBAdapter) =>
+  private static fetchEntityType = async (db: DBClient) =>
     db
       .getSystemTypeLatestVersion({ systemTypeName: "User" })
       .then((userEntityType) => {
@@ -39,7 +39,7 @@ class User extends Entity {
         return userEntityType;
       });
 
-  static getEntityType = async (db: DBAdapter): Promise<EntityType> => {
+  static getEntityType = async (db: DBClient): Promise<EntityType> => {
     // fetch the User system entity type if it is not already cached
     User.entityType = User.entityType || (await User.fetchEntityType(db));
 
@@ -48,28 +48,28 @@ class User extends Entity {
   };
 
   static getUserById =
-    (db: DBAdapter) =>
+    (db: DBClient) =>
     ({ id }: { id: string }): Promise<User | null> =>
       db
         .getUserById({ id })
         .then((dbUser) => (dbUser ? new User(dbUser) : null));
 
   static getUserByEmail =
-    (db: DBAdapter) =>
+    (db: DBClient) =>
     ({ email }: { email: string }): Promise<User | null> =>
       db
         .getUserByEmail({ email })
         .then((dbUser) => (dbUser ? new User(dbUser) : null));
 
   static getUserByShortname =
-    (db: DBAdapter) =>
+    (db: DBClient) =>
     ({ shortname }: { shortname: string }): Promise<User | null> =>
       db
         .getUserByShortname({ shortname })
         .then((dbUser) => (dbUser ? new User(dbUser) : null));
 
   static create =
-    (db: DBAdapter) =>
+    (db: DBClient) =>
     async (properties: UserProperties): Promise<User> => {
       const id = genId();
 
@@ -85,7 +85,7 @@ class User extends Entity {
       return new User(entity);
     };
 
-  private updateProperties = (db: DBAdapter) => (properties: UserProperties) =>
+  private updateProperties = (db: DBClient) => (properties: UserProperties) =>
     db
       .updateEntity({
         accountId: this.accountId,
@@ -104,12 +104,12 @@ class User extends Entity {
     // cannot include whitespace
     !shortname.match(/\s/);
 
-  static shortnameIsUnique = (db: DBAdapter) => (shortname: string) =>
+  static shortnameIsUnique = (db: DBClient) => (shortname: string) =>
     User.getUserByShortname(db)({ shortname }).then(
       (existingUser) => existingUser === null
     );
 
-  updateShortname = (db: DBAdapter) => async (updatedShortname: string) =>
+  updateShortname = (db: DBClient) => async (updatedShortname: string) =>
     this.updateProperties(db)({
       ...this.properties,
       shortname: updatedShortname,
@@ -117,7 +117,7 @@ class User extends Entity {
 
   static preferredNameIsValid = (preferredName: string) => preferredName !== "";
 
-  updatePreferredName = (db: DBAdapter) => (updatedPreferredName: string) =>
+  updatePreferredName = (db: DBClient) => (updatedPreferredName: string) =>
     this.updateProperties(db)({
       ...this.properties,
       preferredName: updatedPreferredName,
@@ -144,7 +144,7 @@ class User extends Entity {
     this.properties.emails.find(({ address }) => address === emailAddress) ||
     null;
 
-  verifyEmailAddress = (db: DBAdapter) => (emailAddress: string) =>
+  verifyEmailAddress = (db: DBClient) => (emailAddress: string) =>
     this.updateProperties(db)({
       ...this.properties,
       emails: this.properties.emails.map((email) =>
@@ -153,7 +153,7 @@ class User extends Entity {
     });
 
   sendLoginVerificationCode =
-    (db: DBAdapter) => async (alternateEmailAddress?: string) => {
+    (db: DBClient) => async (alternateEmailAddress?: string) => {
       // Check the supplied email address can be used for sending login codes
       if (alternateEmailAddress) {
         const email = this.getEmail(alternateEmailAddress);
@@ -182,7 +182,7 @@ class User extends Entity {
     };
 
   sendEmailVerificationCode =
-    (db: DBAdapter) => async (emailAddress: string) => {
+    (db: DBClient) => async (emailAddress: string) => {
       const email = this.getEmail(emailAddress);
 
       if (!email)

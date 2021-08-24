@@ -1,5 +1,5 @@
 import { rword } from "rword";
-import { DBAdapter } from "../db";
+import { DBClient } from "../db";
 import { VerificationCodeMetadata as GQLVerificationCodeMetadata } from "../graphql/apiTypes.gen";
 
 // Maximum age of a valid verification code (1 hour)
@@ -43,7 +43,7 @@ class VerificationCode {
   }
 
   static create =
-    (db: DBAdapter) =>
+    (db: DBClient) =>
     (args: { accountId: string; userId: string; emailAddress: string }) =>
       db
         .createVerificationCode({
@@ -53,7 +53,7 @@ class VerificationCode {
         .then((dbVerificationCode) => new VerificationCode(dbVerificationCode));
 
   static getById =
-    (db: DBAdapter) =>
+    (db: DBClient) =>
     ({ id }: { id: string }): Promise<VerificationCode | null> =>
       db
         .getVerificationCode({ id })
@@ -65,7 +65,7 @@ class VerificationCode {
 
   hasExpired = () => this.createdAt.getTime() < new Date().getTime() - MAX_AGE;
 
-  incrementAttempts = (db: DBAdapter) =>
+  incrementAttempts = (db: DBClient) =>
     db.incrementVerificationCodeAttempts({ id: this.id, userId: this.userId });
 
   toGQLVerificationCodeMetadata = (): GQLVerificationCodeMetadata => ({
