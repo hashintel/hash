@@ -14,7 +14,7 @@ export const updateUser: Resolver<
   LoggedInGraphQLContext,
   MutationUpdateUserArgs
 > = async (_, { id, properties }, { dataSources, user }) => {
-  // @todo: allow HASH admins to bipass this
+  // @todo: allow HASH admins to bypass this
   if (id !== user.entityId)
     throw new ForbiddenError("You can only update your own user properties");
 

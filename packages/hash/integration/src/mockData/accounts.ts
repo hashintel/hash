@@ -43,7 +43,7 @@ export const createUsers = async () => {
     {
       email: "ef@hash.ai",
       shortname: "eadan",
-      preferredName: "Eaden",
+      preferredName: "Eadan",
     },
     {
       email: "nh@hash.ai",
