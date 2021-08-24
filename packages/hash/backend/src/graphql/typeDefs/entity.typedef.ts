@@ -31,6 +31,10 @@ export const entityTypedef = gql`
     """
     createdAt: Date!
     """
+    The date this entity version was created.
+    """
+    entityVersionCreatedAt: Date!
+    """
     The user who created the entity
     """
     createdById: ID!
@@ -93,6 +97,10 @@ export const entityTypedef = gql`
     The date the entity was created
     """
     createdAt: Date!
+    """
+    The date this entity version was created.
+    """
+    entityVersionCreatedAt: Date!
     """
     The user who created the entity
     """
@@ -290,6 +298,10 @@ export const entityTypedef = gql`
     The date the entity was created
     """
     createdAt: Date!
+    """
+    The date this entity version was created.
+    """
+    entityVersionCreatedAt: Date!
     """
     The user who created the entity
     """

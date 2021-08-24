@@ -26,6 +26,10 @@ export const orgTypedef = gql`
     """
     createdAt: Date!
     """
+    The date this entity version was created.
+    """
+    entityVersionCreatedAt: Date!
+    """
     The user who created the entity
     """
     createdById: ID!
