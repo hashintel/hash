@@ -156,8 +156,8 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return this.query((adapter) => adapter.getUserById(params));
   }
 
-  getUserByEmail(params: { email: string }): Promise<Entity | null> {
-    return this.query((adapter) => adapter.getUserByEmail(params));
+  getUserByVerifiedEmail(params: { email: string }): Promise<Entity | null> {
+    return this.query((adapter) => adapter.getUserByVerifiedEmail(params));
   }
 
   getUserByShortname(params: { shortname: string }): Promise<Entity | null> {

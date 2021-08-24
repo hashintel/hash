@@ -154,7 +154,7 @@ export interface DBClient {
   getUserById(params: { id: string }): Promise<Entity | null>;
 
   /** Get the user by their email address. */
-  getUserByEmail(params: { email: string }): Promise<Entity | null>;
+  getUserByVerifiedEmail(params: { email: string }): Promise<Entity | null>;
 
   /** Get the user by their shortname. */
   getUserByShortname(params: { shortname: string }): Promise<Entity | null>;

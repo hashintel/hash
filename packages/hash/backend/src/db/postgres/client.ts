@@ -42,7 +42,11 @@ import {
   insertIncomingLinks,
   insertOutgoingLinks,
 } from "./link";
-import { getUserByEmail, getUserById, getUserByShortname } from "./user";
+import {
+  getUserByVerifiedEmail,
+  getUserById,
+  getUserByShortname,
+} from "./user";
 import {
   insertVerificationCode,
   getVerificationCode,
@@ -528,8 +532,8 @@ export class PostgresClient implements DBClient {
     return await getUserById(this.conn, params);
   }
 
-  async getUserByEmail(params: { email: string }) {
-    return await getUserByEmail(this.conn, params);
+  async getUserByVerifiedEmail(params: { email: string }) {
+    return await getUserByVerifiedEmail(this.conn, params);
   }
 
   async getUserByShortname(params: { shortname: string }) {

@@ -18,7 +18,7 @@ export const sendLoginCode: Resolver<
   const hasProvidedEmail = emailOrShortname.includes("@");
 
   const user = hasProvidedEmail
-    ? await User.getUserByEmail(dataSources.db)({
+    ? await User.getUserByVerifiedEmail(dataSources.db)({
         email: emailOrShortname,
       }).then((user) => {
         if (!user)
