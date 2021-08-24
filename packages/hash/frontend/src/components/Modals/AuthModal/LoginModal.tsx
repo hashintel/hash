@@ -39,6 +39,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
 }) => {
   const [activeScreen, setActiveScreen] = useState<Screen>(Screen.Intro);
   const [loginCode, setLoginCode] = useState<string>("");
+  const [loginIdentifier, setLoginIdentifier] = useState<string>("");
   const router = useRouter();
 
   const resetForm = useCallback(() => {
@@ -59,15 +60,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
     onIncorrectLoginCode: () => {},
   });
 
-  // TODO: ensure this and the next effect don't interfere
-  useEffect(() => {
-    if (loginCode.length > 30 && loginCodeMetadata) {
-      void loginWithLoginCode({
-        variables: { loginId: loginCodeMetadata.id, loginCode },
-      });
-    }
-  }, [loginCode, loginCodeMetadata, loginWithLoginCode]);
-
+  // handle magic link
   useEffect(() => {
     const { pathname, query } = router;
     if (pathname === "/login" && tbdIsParsedLoginQuery(query)) {
@@ -79,14 +72,32 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
     }
   }, [router, loginWithLoginCode]);
 
-  useEffect(() => {
-    if (loginCodeMetadata && activeScreen !== Screen.VerifyCode) {
-      setActiveScreen(Screen.VerifyCode);
+  const requestLoginCode = (emailOrShortname: string) => {
+    let identifier;
+    if (emailOrShortname.includes("@")) {
+      identifier = emailOrShortname;
+    } else {
+      identifier = `@${emailOrShortname}`;
     }
-  }, [loginCodeMetadata, activeScreen]);
+    setLoginIdentifier(identifier);
+    sendLoginCode({ variables: { emailOrShortname } })
+      .then(() => {
+        setActiveScreen(Screen.VerifyCode);
+      })
+      .catch((err) => {});
+  };
 
-  const requestLoginCode = (loginIdentifier: string) => {
-    void sendLoginCode({ variables: { emailOrShortname: loginIdentifier } });
+  const login = () => {
+    if (!loginCodeMetadata) return;
+    void loginWithLoginCode({
+      variables: { loginId: loginCodeMetadata.id, loginCode },
+    });
+  };
+
+  const goBack = () => {
+    if (activeScreen == Screen.VerifyCode) {
+      setActiveScreen(Screen.Intro);
+    }
   };
 
   const renderContent = () => {
@@ -94,9 +105,11 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
       case Screen.VerifyCode:
         return (
           <VerifyCode
+            loginIdentifier={loginIdentifier}
             loginCode={loginCode}
             setLoginCode={setLoginCode}
-            goBack={() => setActiveScreen(Screen.Intro)}
+            goBack={goBack}
+            handleSubmit={login}
             loading={loginWithLoginCodeLoading}
             errorMessage={errorMessage}
           />

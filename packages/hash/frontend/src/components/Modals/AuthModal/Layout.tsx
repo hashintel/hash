@@ -30,7 +30,7 @@ export const Layout: VoidFunctionComponent<ModalProps> = ({
           <img src={bgPattern} className={tw`h-screen`} />
         </div>
         <button
-          className={tw`absolute top-8 right-8 text-3xl hover:bg-black hover:bg-opacity-5 leading-none h-12 w-12 flexÏ items-center justify-center rounded-full`}
+          className={tw`absolute top-8 right-8 text-3xl hover:bg-black hover:bg-opacity-10 leading-none h-12 w-12 flexÏ items-center justify-center rounded-full`}
           onClick={close}
         >
           &times;

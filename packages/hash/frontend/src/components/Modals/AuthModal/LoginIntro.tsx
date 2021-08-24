@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { tw } from "twind";
 
 import Logo from "../../../assets/svg/logo.svg";
+import { IconHash } from "../../Icons/IconHash/IconHash";
 import IconKeyboardReturn from "../../Icons/IconKeyboardReturn/IconKeyboardReturn";
 
 const options = [
@@ -59,7 +60,7 @@ export const LoginIntro: VoidFunctionComponent<LoginIntroProps> = ({
           <form className={tw`flex mb-4 relative`} onSubmit={handleSubmit}>
             <input
               ref={inputRef}
-              className={tw`appearance-none border-b-2 w-full py-2 pl-1 pr-24 text-gray-700 leading-tight focus:outline-none focus:shadow-outline`}
+              className={tw`appearance-none border-b-2 focus:border-blue-500 w-full py-2 pl-1 pr-24 text-gray-700 leading-tight focus:outline-none focus:shadow-outline`}
               type="text"
               value={emailOrShortname}
               onChange={({ target }) => setEmailOrShortname(target.value)}
@@ -67,11 +68,16 @@ export const LoginIntro: VoidFunctionComponent<LoginIntroProps> = ({
             />
 
             <button
-              className={tw`absolute right-0 top-1/2 -translate-y-1/2  flex disabled:opacity-50 text-blue-500 font-bold py-2 px-2`}
+              className={tw`absolute right-0 top-1/2 -translate-y-1/2 flex items-center disabled:opacity-50 text-blue-500 hover:text-blue-700 font-bold py-2 px-2`}
               disabled={loading}
               type="submit"
             >
-              Submit <IconKeyboardReturn />
+              <span className={tw`mr-1`}>Submit</span>
+              {loading ? (
+                <IconHash className={tw`h-4 w-4 animate-spin`} />
+              ) : (
+                <IconKeyboardReturn />
+              )}
             </button>
           </form>
           {errorMessage && (
@@ -84,7 +90,7 @@ export const LoginIntro: VoidFunctionComponent<LoginIntroProps> = ({
           <strong>No account?</strong> No problem
         </p>
         <button
-          className={tw`bg-black bg-opacity-80 hover:bg-opacity-90 rounded-lg h-11 px-6 flex items-center text-white mb-10`}
+          className={tw`bg-black bg-opacity-70 hover:bg-opacity-90 rounded-lg h-11 px-6 flex items-center text-white mb-10`}
         >
           Create a free account
         </button>
@@ -96,7 +102,7 @@ export const LoginIntro: VoidFunctionComponent<LoginIntroProps> = ({
         <div className={tw`flex flex-wrap`}>
           {options.map(({ label }, index) => (
             <button
-              className={tw`px-5 h-11 flex items-center bg-white border-1 border-gray-300 rounded-lg text-sm font-bold mr-2.5 mb-2 `}
+              className={tw`px-5 h-11 flex items-center bg-white border-1 border-gray-300 hover:border-gray-500 rounded-lg text-sm font-bold mr-2.5 mb-2 `}
               key={index}
             >
               {label}

@@ -19,6 +19,7 @@ enum Screen {
 
 export const SignupModal: VFC<SignupModalProps> = ({ show, close }) => {
   const [activeScreen, setActiveScreen] = useState<Screen>(Screen.Intro);
+  const [loginIdentifier, setLoginIdentifier] = useState("");
   const [loginCode, setLoginCode] = useState("");
 
   const renderContent = () => {
@@ -26,6 +27,7 @@ export const SignupModal: VFC<SignupModalProps> = ({ show, close }) => {
       case Screen.VerifyCode:
         return (
           <VerifyCode
+            loginIdentifier=""
             goBack={goBack}
             loginCode={loginCode}
             setLoginCode={setLoginCode}
