@@ -30,7 +30,7 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
 
   const isInputValid = useMemo(() => {
     const units = loginCode.split("-");
-    return units.length == 4 && units?.[3].length > 0;
+    return units.length === 4 && units?.[3].length > 0;
   }, [loginCode]);
 
   const handlePaste = () => {};

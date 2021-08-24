@@ -1,4 +1,4 @@
-import React, { useCallback, VoidFunctionComponent } from "react";
+import React, { VoidFunctionComponent } from "react";
 import { useRouter } from "next/router";
 import { ParsedUrlQueryInput } from "querystring";
 import { useEffect, useState } from "react";
@@ -45,6 +45,7 @@ const ERROR_CODES = {
   LOGIN_CODE_NOT_FOUND: "An unexpected error occurred, please try again.",
   MAX_ATTEMPTS: "An unexpected error occurred, please try again.",
   INCORRECT: "This login code has expired, please try again.",
+  NOT_FOUND: "",
 } as const;
 
 export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
@@ -73,7 +74,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
     },
     onError: ({ graphQLErrors }) =>
       graphQLErrors.forEach(({ extensions, message }) => {
-        const { code } = extensions as { code?: string };
+        const { code } = extensions as { code?: keyof typeof ERROR_CODES };
         if (code === "NOT_FOUND") {
           setErrorMessage(message);
         } else {
@@ -94,7 +95,6 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
             const { code } = extensions as { code?: keyof typeof ERROR_CODES };
 
             if (code && Object.keys(ERROR_CODES).includes(code)) {
-              reset();
               setErrorMessage(ERROR_CODES[code]);
             } else {
               throw new ApolloError({ graphQLErrors });
@@ -126,7 +126,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
       identifier = `@${emailOrShortname}`;
     }
     setLoginIdentifier(identifier);
-    sendLoginCodeFn({ variables: { emailOrShortname } });
+    void sendLoginCodeFn({ variables: { emailOrShortname } });
   };
 
   const login = () => {
@@ -140,7 +140,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
   };
 
   const goBack = () => {
-    if (activeScreen == Screen.VerifyCode) {
+    if (activeScreen === Screen.VerifyCode) {
       setActiveScreen(Screen.Intro);
       setErrorMessage("");
       setVerificationCodeMetadata(undefined);
