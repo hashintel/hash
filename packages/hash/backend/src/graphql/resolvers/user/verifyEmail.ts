@@ -14,27 +14,29 @@ export const verifyEmail: Resolver<
   GraphQLContext,
   MutationVerifyEmailArgs
 > = async (_, args, { dataSources, passport, ...ctx }) =>
-  verifyVerificationCode(dataSources.db)({
-    id: args.verificationId,
-    code: args.verificationCode,
-  }).then(async ({ user, verificationCode }) => {
-    const email = user.getEmail(verificationCode.emailAddress);
+  dataSources.db.transaction((client) =>
+    verifyVerificationCode(client)({
+      id: args.verificationId,
+      code: args.verificationCode,
+    }).then(async ({ user, verificationCode }) => {
+      const email = user.getEmail(verificationCode.emailAddress);
 
-    if (!email)
-      throw new ApolloError(
-        `The user with the id '${verificationCode.userId}' did not request to verify the email address '${verificationCode.emailAddress}'.`
-      );
+      if (!email)
+        throw new ApolloError(
+          `The user with the id '${verificationCode.userId}' did not request to verify the email address '${verificationCode.emailAddress}'.`
+        );
 
-    if (email.verified)
-      throw new ApolloError(
-        `The user with the id '${verificationCode.userId}' has already verified the email address '${verificationCode.emailAddress}'.`,
-        "ALREADY_VERIFIED"
-      );
+      if (email.verified)
+        throw new ApolloError(
+          `The user with the id '${verificationCode.userId}' has already verified the email address '${verificationCode.emailAddress}'.`,
+          "ALREADY_VERIFIED"
+        );
 
-    await user.verifyEmailAddress(dataSources.db)(email.address);
+      await user.verifyEmailAddress(client)(email.address);
 
-    // If the user isn't already logged-in, log them in
-    if (!ctx.user) await passport.login(user, {});
+      // If the user isn't already logged-in, log them in
+      if (!ctx.user) await passport.login(user, {});
 
-    return user.toGQLUser();
-  });
+      return user.toGQLUser();
+    })
+  );
