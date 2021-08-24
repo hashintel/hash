@@ -61,10 +61,12 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
   useEffect(() => {
     const { pathname, query } = router;
     if (pathname === "/login" && tbdIsParsedLoginQuery(query)) {
-      const { verificationId: loginId, verificationCode: loginCode } = query;
+      const { verificationId, verificationCode } = query;
       setActiveScreen(Screen.VerifyCode);
       setTimeout(() => {
-        void loginWithLoginCode({ variables: { loginId, loginCode } });
+        void loginWithLoginCode({
+          variables: { verificationId, verificationCode },
+        });
       }, 1000);
     }
   }, [router, loginWithLoginCode]);
@@ -87,7 +89,10 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
   const login = () => {
     if (!verificationCodeMetadata) return;
     void loginWithLoginCode({
-      variables: { loginId: verificationCodeMetadata.id, loginCode: verificationCode },
+      variables: {
+        verificationId: verificationCodeMetadata.id,
+        verificationCode,
+      },
     });
   };
 
