@@ -3,6 +3,7 @@ const withImages = require("next-images");
 
 module.exports = withImages(
   withTM({
+    webpack5: false,
     sassOptions: {
       prependData: `
       $grey-bg: rgba(241, 243, 246, 0.3);
