@@ -4,10 +4,13 @@ import { Connection } from "./types";
 import { mapPGRowToEntity, selectEntities } from "./entity";
 import { selectSystemEntityTypeIds } from "./entitytypes";
 
-const matchesUserType = sql` 
-  e.entity_type_id in ( ${selectSystemEntityTypeIds({
-    systemTypeName: "User",
-  })} )
+const matchesUserType = sql`
+  (
+    select entity_type_id
+    from entity_type_versions as ver
+    where ver.entity_type_version_id = e.entity_type_version_id
+    limit 1
+  ) in ( ${selectSystemEntityTypeIds({ systemTypeName: "User" })} )
 `;
 
 // @todo: this function should take accountId as a parameter.
@@ -15,7 +18,7 @@ export const getUserById = async (conn: Connection, params: { id: string }) => {
   const row = await conn.one(sql`
     ${selectEntities}
     where
-      e.entity_version_id = ${params.id} and ${matchesUserType}
+      e.entity_id = ${params.id} and ${matchesUserType}
   `);
   return mapPGRowToEntity(row);
 };

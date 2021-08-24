@@ -17,7 +17,7 @@ type SerializedPassportUser = {
 
 export const setupPassport = (app: Express, db: DBAdapter) => {
   passport.serializeUser<SerializedPassportUser>((user, done) =>
-    done(null, { id: user.id })
+    done(null, { id: user.entityId })
   );
 
   passport.deserializeUser<SerializedPassportUser>(({ id }, done) =>
