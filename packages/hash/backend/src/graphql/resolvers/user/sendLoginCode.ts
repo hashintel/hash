@@ -14,36 +14,44 @@ export const sendLoginCode: Resolver<
   {},
   GraphQLContext,
   MutationSendLoginCodeArgs
-> = async (_, { emailOrShortname }, { dataSources }) => {
-  const hasProvidedEmail = emailOrShortname.includes("@");
+> = async (_, { emailOrShortname }, { dataSources }) =>
+  dataSources.db.transaction(async (client) => {
+    const hasProvidedEmail = emailOrShortname.includes("@");
 
-  const user = hasProvidedEmail
-    ? await User.getUserByVerifiedEmail(dataSources.db)({
-        email: emailOrShortname,
-      }).then((user) => {
-        if (!user)
-          throw new ApolloError(
-            `A user with the email '${emailOrShortname}' could not be found.`,
-            "NOT_FOUND"
-          );
-        return user;
-      })
-    : await User.getUserByShortname(dataSources.db)({
-        shortname: emailOrShortname,
-      }).then((user) => {
-        if (!user)
-          throw new ApolloError(
-            `A user with the shortname '${emailOrShortname}' could not be found.`,
-            "NOT_FOUND"
-          );
-        return user;
-      });
+    const user = hasProvidedEmail
+      ? await User.getUserByVerifiedEmail(client)({
+          email: emailOrShortname,
+        }).then((user) => {
+          /**
+           * @todo: if the email address is associated with a user but it hasn't been verified,
+           * send an email verification code to the user and return it
+           */
 
-  return user
-    .sendLoginVerificationCode(dataSources.db)(
-      hasProvidedEmail ? emailOrShortname : undefined
-    )
-    .then((verificationCode) =>
-      verificationCode.toGQLVerificationCodeMetadata()
-    );
-};
+          if (!user)
+            throw new ApolloError(
+              `A user with the email '${emailOrShortname}' could not be found.`,
+              "NOT_FOUND"
+            );
+          return user;
+        })
+      : await User.getUserByShortname(client)({
+          shortname: emailOrShortname,
+        }).then((user) => {
+          if (!user)
+            throw new ApolloError(
+              `A user with the shortname '${emailOrShortname}' could not be found.`,
+              "NOT_FOUND"
+            );
+          return user;
+        });
+
+    /** @todo: rate limit login codes sent to the user */
+
+    return user
+      .sendLoginVerificationCode(client)(
+        hasProvidedEmail ? emailOrShortname : undefined
+      )
+      .then((verificationCode) =>
+        verificationCode.toGQLVerificationCodeMetadata()
+      );
+  });
