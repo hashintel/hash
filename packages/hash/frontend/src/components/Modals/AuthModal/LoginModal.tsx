@@ -16,17 +16,14 @@ enum Screen {
 }
 
 type ParsedLoginQuery = {
-  loginId: string;
-  loginCode: string;
+  verificationId: string;
+  verificationCode: string;
 };
 
 const tbdIsParsedLoginQuery = (
   tbd: ParsedUrlQueryInput
 ): tbd is ParsedLoginQuery =>
-  tbd.loginId !== undefined &&
-  typeof tbd.loginId === "string" &&
-  tbd.loginCode !== undefined &&
-  typeof tbd.loginCode === "string";
+  typeof tbd.loginId === "string" && typeof tbd.loginCode === "string";
 
 type LoginModalProps = {
   onLoggedIn?: () => void;
@@ -38,7 +35,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
   onLoggedIn,
 }) => {
   const [activeScreen, setActiveScreen] = useState<Screen>(Screen.Intro);
-  const [loginCode, setLoginCode] = useState<string>("");
+  const [verificationCode, setVerificationCode] = useState<string>("");
   const [loginIdentifier, setLoginIdentifier] = useState<string>("");
   const router = useRouter();
 
@@ -48,7 +45,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
   }, []);
 
   const {
-    loginCodeMetadata,
+    verificationCodeMetadata,
     loginWithLoginCode,
     loginWithLoginCodeLoading,
     sendLoginCode,
@@ -64,7 +61,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
   useEffect(() => {
     const { pathname, query } = router;
     if (pathname === "/login" && tbdIsParsedLoginQuery(query)) {
-      const { loginId, loginCode } = query;
+      const { verificationId: loginId, verificationCode: loginCode } = query;
       setActiveScreen(Screen.VerifyCode);
       setTimeout(() => {
         void loginWithLoginCode({ variables: { loginId, loginCode } });
@@ -88,9 +85,9 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
   };
 
   const login = () => {
-    if (!loginCodeMetadata) return;
+    if (!verificationCodeMetadata) return;
     void loginWithLoginCode({
-      variables: { loginId: loginCodeMetadata.id, loginCode },
+      variables: { loginId: verificationCodeMetadata.id, loginCode: verificationCode },
     });
   };
 
@@ -106,8 +103,8 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
         return (
           <VerifyCode
             loginIdentifier={loginIdentifier}
-            loginCode={loginCode}
-            setLoginCode={setLoginCode}
+            loginCode={verificationCode}
+            setLoginCode={setVerificationCode}
             goBack={goBack}
             handleSubmit={login}
             loading={loginWithLoginCodeLoading}
