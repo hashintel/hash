@@ -1,12 +1,11 @@
 import { ApolloError } from "apollo-server-express";
 
-import { QueryPageArgs, Resolver } from "../../apiTypes.gen";
+import { QueryPageArgs, Resolver, UnknownEntity } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { entity } from "../entity/";
-import { Entity } from "../../../db/adapter";
 
 export const page: Resolver<
-  Promise<Entity>,
+  Promise<UnknownEntity>,
   {},
   GraphQLContext,
   QueryPageArgs
@@ -14,7 +13,7 @@ export const page: Resolver<
   const ent = await entity({}, args, ctx, info);
   if (ent.entityTypeName !== "Page") {
     throw new ApolloError(
-      `Entity ${ent.id} is type "${ent.entityTypeName}" not "Page"`
+      `Entity ${ent.entityId} is type "${ent.entityTypeName}" not "Page"`
     );
   }
 

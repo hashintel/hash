@@ -4,11 +4,13 @@ import {
   AggregateOperation,
 } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
-import { Entity } from "../../../db/adapter";
+import { Entity as DbEntity } from "../../../db/adapter";
+import { UnknownEntity } from "../../apiTypes.gen";
+import { dbEntityToGraphQLEntity } from "../../util";
 
 export const aggregateEntity: Resolver<
   Promise<{
-    results: Entity[];
+    results: UnknownEntity[];
     operation: AggregateOperation;
   }>,
   {},
@@ -33,7 +35,8 @@ export const aggregateEntity: Resolver<
 
   const dbEntities = entities
     .slice(startIndex, endIndex)
-    .sort((a, b) => compareEntitiesByField(a, b, sort));
+    .sort((a, b) => compareEntitiesByField(a, b, sort))
+    .map(dbEntityToGraphQLEntity);
 
   return {
     results: dbEntities,
@@ -47,11 +50,15 @@ export const aggregateEntity: Resolver<
 
 /** Compare entities on a given property. */
 const compareEntitiesByField = (
-  entityA: Entity,
-  entityB: Entity,
+  entityA: DbEntity,
+  entityB: DbEntity,
   property: string
 ): number => {
-  if (property === "updatedAt" || property === "createdAt") {
+  if (
+    property === "entityCreatedAt" ||
+    property === "entityVersionCreatedAt" ||
+    property === "entityVersionUpdatedAt"
+  ) {
     return entityA[property].getTime() - entityB[property].getTime();
   }
 

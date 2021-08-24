@@ -2,10 +2,11 @@ import { ApolloError, UserInputError } from "apollo-server-express";
 
 import { QueryEntityArgs, Resolver } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
-import { Entity } from "../../../db/adapter";
+import { UnknownEntity } from "../../apiTypes.gen";
+import { dbEntityToGraphQLEntity } from "../../util";
 
 export const entity: Resolver<
-  Promise<Entity>,
+  Promise<UnknownEntity>,
   {},
   GraphQLContext,
   QueryEntityArgs
@@ -35,5 +36,5 @@ export const entity: Resolver<
     );
   }
 
-  return dbEntity;
+  return dbEntityToGraphQLEntity(dbEntity);
 };

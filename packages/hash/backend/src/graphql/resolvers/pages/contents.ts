@@ -1,11 +1,12 @@
-import { Resolver } from "../../apiTypes.gen";
+import { ApolloError } from "apollo-server-express";
+
+import { Resolver, UnknownEntity } from "../../apiTypes.gen";
 import { DbPage } from "../../../types/dbTypes";
 import { GraphQLContext } from "../../context";
-import { ApolloError } from "apollo-server-express";
-import { Entity } from "../../../db/adapter";
+import { dbEntityToGraphQLEntity } from "../../util";
 
 export const contents: Resolver<
-  Promise<Entity[]>,
+  Promise<UnknownEntity[]>,
   DbPage["properties"],
   GraphQLContext
 > = async ({ contents }, _, { dataSources }) => {
@@ -26,5 +27,5 @@ export const contents: Resolver<
     }
   });
 
-  return entities;
+  return entities.map(dbEntityToGraphQLEntity);
 };

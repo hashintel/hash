@@ -1,11 +1,15 @@
 import { ApolloError } from "apollo-server-express";
 
-import { Entity } from "../../../db/adapter";
-import { MutationUpdateEntityArgs, Resolver } from "../../apiTypes.gen";
+import {
+  MutationUpdateEntityArgs,
+  Resolver,
+  UnknownEntity,
+} from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
+import { dbEntityToGraphQLEntity } from "../../util";
 
 export const updateEntity: Resolver<
-  Promise<Entity>,
+  Promise<UnknownEntity>,
   {},
   GraphQLContext,
   MutationUpdateEntityArgs
@@ -27,12 +31,14 @@ export const updateEntity: Resolver<
     const propertiesToUpdate = properties.properties ?? properties;
     entity.properties = propertiesToUpdate;
 
-    const updatedEntities = await client.updateEntity({
-      accountId,
-      entityVersionId: entity.entityVersionId,
-      entityId: entity.entityId,
-      properties: propertiesToUpdate,
-    });
+    const updatedEntities = (
+      await client.updateEntity({
+        accountId,
+        entityVersionId: entity.entityVersionId,
+        entityId: entity.entityId,
+        properties: propertiesToUpdate,
+      })
+    ).map(dbEntityToGraphQLEntity);
 
     // TODO: for now, all entities are non-versioned, so the array only has a single
     // element. Return when versioned entities are implemented at the API layer.

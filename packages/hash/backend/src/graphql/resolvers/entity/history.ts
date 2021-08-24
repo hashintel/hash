@@ -1,10 +1,9 @@
 import { Resolver, UnknownEntity } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
-import { Entity } from "../../../db/adapter";
 
 export const history: Resolver<
   Promise<UnknownEntity["history"]>,
-  Entity,
+  UnknownEntity,
   GraphQLContext
 > = async (entity, _, { dataSources }) => {
   if (!entity.entityId) {

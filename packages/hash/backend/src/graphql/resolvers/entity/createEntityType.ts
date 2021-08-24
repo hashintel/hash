@@ -1,7 +1,8 @@
 import { genId } from "../../../util";
 import { MutationCreateEntityTypeArgs, Resolver } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
-import { EntityType } from "../../../db/adapter";
+import { EntityType } from "../../apiTypes.gen";
+import { dbEntityTypeToGraphQLEntityType } from "../../util";
 
 export const createEntityType: Resolver<
   Promise<EntityType>,
@@ -9,10 +10,11 @@ export const createEntityType: Resolver<
   GraphQLContext,
   MutationCreateEntityTypeArgs
 > = async (_, { accountId, name, schema }, { dataSources }) => {
-  return dataSources.db.createEntityType({
+  const entityType = await dataSources.db.createEntityType({
     accountId,
     createdById: genId(), // TODO
     name,
     schema,
   });
+  return dbEntityTypeToGraphQLEntityType(entityType);
 };

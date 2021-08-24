@@ -1,13 +1,17 @@
 import { ApolloError, UserInputError } from "apollo-server-errors";
 
 import { DbPageProperties, DbBlockProperties } from "../../../types/dbTypes";
-import { Resolver, MutationInsertBlocksIntoPageArgs } from "../../apiTypes.gen";
+import {
+  Resolver,
+  MutationInsertBlocksIntoPageArgs,
+  UnknownEntity,
+} from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { genId } from "../../../util";
-import { Entity } from "../../../db/adapter";
+import { dbEntityToGraphQLEntity } from "../../util";
 
 export const insertBlocksIntoPage: Resolver<
-  Promise<Entity>,
+  Promise<UnknownEntity>,
   {},
   GraphQLContext,
   MutationInsertBlocksIntoPageArgs
@@ -16,7 +20,7 @@ export const insertBlocksIntoPage: Resolver<
   { accountId, pageMetadataId, blocks, previousBlockId },
   { dataSources }
 ) => {
-  return await dataSources.db.transaction(async (client): Promise<Entity> => {
+  return await dataSources.db.transaction(async (client) => {
     // Create the blocks
     const newBlocks = await Promise.all(
       blocks.map(async (block) => {
@@ -31,7 +35,7 @@ export const insertBlocksIntoPage: Resolver<
         const childEntity = await client.createEntity({
           accountId: block.accountId,
           createdById: genId(), // @todo
-          entityTypeId,
+          entityTypeId: entityTypeId ?? undefined,
           entityTypeVersionId,
           systemTypeName,
           properties: block.entityProperties,
@@ -80,7 +84,9 @@ export const insertBlocksIntoPage: Resolver<
     );
 
     // Update the page
-    const updatedEntities = await client.updateEntity(page);
+    const updatedEntities = (await client.updateEntity(page)).map(
+      dbEntityToGraphQLEntity
+    );
 
     // @todo: for now, all entities are non-versioned, so the array only has a single
     // element. Return when versioned entities are implemented at the API layer.
