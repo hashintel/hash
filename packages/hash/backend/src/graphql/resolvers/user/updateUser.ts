@@ -13,56 +13,57 @@ export const updateUser: Resolver<
   {},
   LoggedInGraphQLContext,
   MutationUpdateUserArgs
-> = async (_, { id, properties }, { dataSources, user }) => {
-  // @todo: allow HASH admins to bypass this
-  if (id !== user.entityId)
-    throw new ForbiddenError("You can only update your own user properties");
+> = async (_, { id, properties }, { dataSources, user }) =>
+  dataSources.db.transaction(async (client) => {
+    // @todo: allow HASH admins to bypass this
+    if (id !== user.entityId)
+      throw new ForbiddenError("You can only update your own user properties");
 
-  const { shortname, preferredName } = properties;
+    const { shortname, preferredName } = properties;
 
-  if (!shortname && !preferredName)
-    throw new ApolloError(
-      "An updated shortname or preferredName must be provided to update a user",
-      "NO_OP"
-    );
-
-  if (shortname) {
-    if (user.properties.shortname === shortname && !preferredName)
+    if (!shortname && !preferredName)
       throw new ApolloError(
-        `User with entityId '${user.entityId}' already has the shortname '${shortname}'`,
+        "An updated shortname or preferredName must be provided to update a user",
         "NO_OP"
       );
 
-    if (!(await User.shortnameIsUnique(dataSources.db)(shortname)))
-      throw new ApolloError(
-        `The shortname '${shortname}' is already taken`,
-        "SHORTNAME_TAKEN"
-      );
+    if (shortname) {
+      if (user.properties.shortname === shortname && !preferredName)
+        throw new ApolloError(
+          `User with entityId '${user.entityId}' already has the shortname '${shortname}'`,
+          "NO_OP"
+        );
 
-    if (!User.shortnameIsValid(shortname))
-      throw new ApolloError(
-        `The shortname '${shortname}' is invalid`,
-        "SHORTNAME_INVALID"
-      );
+      if (!(await User.shortnameIsUnique(client)(shortname)))
+        throw new ApolloError(
+          `The shortname '${shortname}' is already taken`,
+          "SHORTNAME_TAKEN"
+        );
 
-    await user.updateShortname(dataSources.db)(shortname);
-  }
+      if (!User.shortnameIsValid(shortname))
+        throw new ApolloError(
+          `The shortname '${shortname}' is invalid`,
+          "SHORTNAME_INVALID"
+        );
 
-  if (preferredName) {
-    if (user.properties.preferredName === preferredName)
-      throw new ApolloError(
-        `User with entityId '${user.entityId}' already has the preferredName '${preferredName}'`,
-        "NO_OP"
-      );
+      await user.updateShortname(client)(shortname);
+    }
 
-    if (!User.preferredNameIsValid(preferredName))
-      throw new ApolloError(
-        `The preferredName '${preferredName}' is invalid`,
-        "PREFERRED_NAME_INVALID"
-      );
+    if (preferredName) {
+      if (user.properties.preferredName === preferredName)
+        throw new ApolloError(
+          `User with entityId '${user.entityId}' already has the preferredName '${preferredName}'`,
+          "NO_OP"
+        );
 
-    await user.updatePreferredName(dataSources.db)(preferredName);
-  }
+      if (!User.preferredNameIsValid(preferredName))
+        throw new ApolloError(
+          `The preferredName '${preferredName}' is invalid`,
+          "PREFERRED_NAME_INVALID"
+        );
 
-  return user.toGQLUser();
-};
+      await user.updatePreferredName(client)(preferredName);
+    }
+
+    return user.toGQLUser();
+  });
