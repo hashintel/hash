@@ -102,10 +102,10 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
 
   createEntity(params: {
     accountId: string;
-    entityVersionId?: string | undefined | null;
-    entityTypeId?: string | undefined | null;
-    entityTypeVersionId?: string | undefined | null;
-    systemTypeName?: SystemType | undefined | null;
+    entityVersionId?: string;
+    entityTypeId?: string;
+    entityTypeVersionId?: string;
+    systemTypeName?: SystemType;
     createdById: string;
     versioned: boolean;
     properties: any;
@@ -136,7 +136,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   updateEntityType(params: {
     accountId: string;
     createdById: string;
-    entityTypeId: string;
+    entityId: string;
     newName?: string;
     newSchema?: Record<string, any>;
   }): Promise<EntityType> {

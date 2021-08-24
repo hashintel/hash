@@ -9,14 +9,18 @@ export const insertEntityMetadata = async (
     accountId: string;
     entityId: string;
     versioned: boolean;
+    entityCreatedAt: Date;
     extra: any;
   }
 ): Promise<EntityMeta> => {
   await conn.query(sql`
-    insert into entities (account_id, entity_id, versioned, extra)
+    insert into entities (
+      account_id, entity_id, versioned, extra, created_at, metadata_updated_at
+    )
     values (
       ${params.accountId}, ${params.entityId}, ${params.versioned},
-      ${sql.json(params.extra)}
+      ${sql.json(params.extra)}, ${params.entityCreatedAt.toISOString()},
+      ${params.entityCreatedAt.toISOString()}
     )
   `);
   return params;
@@ -32,7 +36,9 @@ export const updateEntityMetadata = async (
 ): Promise<EntityMeta> => {
   const row = await conn.one(sql`
     update entities
-    set extra = ${sql.json(params.extra)}
+    set
+      extra = ${sql.json(params.extra)},
+      metadata_updated_at = ${new Date().toISOString()}
     where
       account_id = ${params.accountId} and entity_id = ${params.entityId}
     returning *

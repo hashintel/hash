@@ -16,26 +16,34 @@ export const mapPGRowToEntityType = (row: QueryResultRowType): EntityType => ({
   entityId: row["entity_type_id"] as string,
   entityVersionId: row["entity_type_version_id"] as string,
   entityTypeName: "EntityType",
-  id: row["entity_type_version_id"] as string,
   properties: row["properties"],
   metadata: {
+    name: row["name"] as string,
     versioned: row["versioned"] as boolean,
   },
-  metadataId: row["entity_type_id"] as string,
   createdById: row["created_by"] as string,
-  createdAt: new Date(row["created_at"] as number),
-  updatedAt: new Date(row["updated_at"] as number),
+  entityCreatedAt: new Date(row["created_at"] as number),
+  entityVersionCreatedAt: new Date(row["version_created_at"] as number),
+  entityVersionUpdatedAt: new Date(row["version_updated_at"] as number),
   visibility: Visibility.Public /** @todo implement this */,
 });
 
 export const selectEntityTypes = sql`
   select
-    type.account_id, type.entity_type_id, type.versioned,
-    type.created_by, type.extra,
-    ver.updated_at, ver.created_at, ver.properties, ver.entity_type_version_id
+    type.account_id,
+    type.entity_type_id,
+    type.versioned,
+    type.created_by,
+    type.extra,
+    type.created_at,
+    type.name,
+    ver.created_at as version_created_at,
+    ver.updated_at as version_updated_at,
+    ver.properties,
+    ver.entity_type_version_id
   from
     entity_types as type
-    join entity_type_versions as ver on 
+    join entity_type_versions as ver on
         type.entity_type_id = ver.entity_type_id
 `;
 
@@ -47,7 +55,8 @@ export const selectSystemEntityTypes = (params: {
   systemTypeName: SystemType;
 }) => sql`
   ${selectEntityTypes}
-  where type.name = ${params.systemTypeName}
+  where
+    type.name = ${params.systemTypeName}
     and type.account_id in (${selectSystemAccountIds})
 `;
 
@@ -59,23 +68,24 @@ export const selectSystemEntityTypeIds = (params: {
   systemTypeName: SystemType;
 }) => sql`
   select entity_type_id from entity_types
-  where name = ${params.systemTypeName}
+  where
+    name = ${params.systemTypeName}
     and account_id in (${selectSystemAccountIds})
   limit 1
 `;
 
 export const selectEntityTypeVersion = (params: {
-  entityTypeVersionId: string;
+  entityVersionId: string;
 }) => sql`
   ${selectEntityTypes}
-  where ver.entity_type_version_id = ${params.entityTypeVersionId}
+  where ver.entity_type_version_id = ${params.entityVersionId}
 `;
 
 export const selectEntityTypeAllVersions = (params: {
-  entityTypeId: string;
+  entityId: string;
 }) => sql`
   ${selectEntityTypes}
-  where type.entity_type_id = ${params.entityTypeId}
+  where type.entity_type_id = ${params.entityId}
 `;
 
 /**
@@ -94,7 +104,7 @@ export const getSystemTypeLatestVersion = async (
       ${selectSystemEntityTypes(params)}
     )
     select distinct on (entity_type_id) * from all_matches
-    order by entity_type_id, created_at desc
+    order by entity_type_id, version_created_at desc
   `);
   return row ? mapPGRowToEntityType(row) : undefined;
 };
@@ -119,7 +129,7 @@ export const getAccountEntityTypes = async (
 export const getEntityType = async (
   conn: Connection,
   params: {
-    entityTypeVersionId: string;
+    entityVersionId: string;
   },
   lock: boolean = false
 ): Promise<EntityType | undefined> => {
@@ -137,7 +147,7 @@ export const getEntityType = async (
 export const getEntityTypeLatestVersion = async (
   conn: Connection,
   params: {
-    entityTypeId: string;
+    entityId: string;
   }
 ): Promise<EntityType | undefined> => {
   const row = await conn.maybeOne(sql`
@@ -145,24 +155,22 @@ export const getEntityTypeLatestVersion = async (
       ${selectEntityTypeAllVersions(params)}
     )
     select distinct on (entity_type_id) * from all_matches
-    order by entity_type_id, updated_at desc`);
+    order by entity_type_id, version_created_at desc
+  `);
   return row ? mapPGRowToEntityType(row) : undefined;
 };
 
+// @todo: `versioned` should be a parameter here
 export const insertEntityType = async (
   conn: Connection,
   params: {
     accountId: string;
-    entityTypeId: string;
+    entityId: string;
     name: string;
     createdById: string;
-    createdAt: Date;
-    updatedAt: Date;
+    entityCreatedAt: Date;
   }
 ): Promise<void> => {
-  console.log({ params });
-  const { accountId, entityTypeId, name, createdById, createdAt, updatedAt } =
-    params;
   try {
     // The "on conflict do nothing" clause is required here because multiple transactions
     // may try to insert at the same time causing a conflict on the UNIQUE constraint on
@@ -170,16 +178,20 @@ export const insertEntityType = async (
     await conn.query(sql`
       insert into entity_types (
         name, account_id, entity_type_id, versioned,
-        created_by, created_at, updated_at
-       )
-       values (
-        ${name}, ${accountId}, ${entityTypeId}, true, 
-        ${createdById}, ${createdAt.toISOString()}, ${updatedAt.toISOString()}
-       ) on conflict do nothing`);
+        created_by, created_at, metadata_updated_at
+      )
+      values (
+        ${params.name}, ${params.accountId}, ${params.entityId}, true,
+        ${params.createdById}, ${params.entityCreatedAt.toISOString()},
+        ${params.entityCreatedAt.toISOString()}
+      )
+      on conflict do nothing
+    `);
   } catch (err) {
     if (err instanceof UniqueIntegrityConstraintViolationError) {
+      const { name: entityTypeName, accountId } = params;
       throw new Error(
-        `Type name ${name} is not unique in accountId ${accountId}`
+        `Type name ${entityTypeName} is not unique in accountId ${accountId}`
       );
     }
     throw err;
@@ -192,20 +204,19 @@ export const insertEntityType = async (
  * WARNING: only updates the metadata record - take separate action
  *    to insertEntityTypeVersion with the same name.
  */
-const updateEntityTypeMetadata = async (
+export const updateEntityTypeMetadata = async (
   conn: Connection,
   params: {
-    entityTypeId: string;
+    entityId: string;
     name: string;
-    updatedAt: Date;
   }
 ): Promise<void> => {
   try {
     await conn.query(sql`
-      update entity_types 
+      update entity_types
         set name = ${params.name},
-        updated_at = ${params.updatedAt.toISOString()}
-      where entity_type_id = ${params.entityTypeId}
+        metadata_updated_at = ${new Date().toISOString()}
+      where entity_type_id = ${params.entityId}
     `);
   } catch (err) {
     if (err instanceof UniqueIntegrityConstraintViolationError) {
@@ -219,52 +230,42 @@ export const insertEntityTypeVersion = async (
   conn: Connection,
   params: {
     accountId: string;
-    entityTypeId: string;
-    entityTypeVersionId: string;
+    entityId: string;
+    entityVersionId: string;
     properties: Record<string, any>;
     createdById: string;
-    createdAt: Date;
-    updatedAt: Date;
+    entityVersionCreatedAt: Date;
+    entityVersionUpdatedAt: Date;
   }
 ): Promise<void> => {
-  const {
-    accountId,
-    entityTypeId,
-    entityTypeVersionId,
-    properties,
-    createdById,
-    createdAt,
-    updatedAt,
-  } = params;
   await conn.query(sql`
     insert into entity_type_versions (
       account_id, entity_type_id, entity_type_version_id, properties,
       created_by, created_at, updated_at
     )
     values (
-      ${accountId}, ${entityTypeId}, ${entityTypeVersionId}, 
-      ${JSON.stringify(properties)}, 
-      ${createdById}, ${createdAt.toISOString()}, ${updatedAt.toISOString()}
+      ${params.accountId}, ${params.entityId}, ${params.entityVersionId},
+      ${JSON.stringify(params.properties)}, ${params.createdById},
+      ${params.entityVersionCreatedAt.toISOString()},
+      ${params.entityVersionUpdatedAt.toISOString()}
     )
   `);
 };
 
-/** @todo handle non-versioned entity types */
-export const updateEntityType = async (
+export const updateVersionedEntityType = async (
   conn: Connection,
   params: {
     accountId: string;
-    entityTypeId: string;
-    entityTypeVersionId: string;
+    entityId: string;
+    entityVersionId: string;
     name: string;
     properties: Record<string, any>;
     createdById: string;
-    createdAt: Date;
-    updatedAt: Date;
+    entityVersionCreatedAt: Date;
+    entityVersionUpdatedAt: Date;
   }
 ): Promise<void> => {
-  // We need to update the metadata record to increase the updatedAt anyway,
-  // but could consider not updating the name if it hasn't changed.
+  // Consider not updating the name if it hasn't changed.
   /** @todo consider refactoring to not always set name again */
   await updateEntityTypeMetadata(conn, params);
 

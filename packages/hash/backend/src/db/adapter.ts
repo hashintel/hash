@@ -17,17 +17,23 @@ export type Entity = {
   entityTypeId: string;
   entityTypeName: string;
   entityTypeVersionId: string;
-  id: string /** @todo remove this once no longer relied on by FE */;
-  metadataId: string /** @todo remove this once no longer relied on by FE */;
   properties: any;
   metadata: EntityMeta;
-  createdAt: Date;
-  updatedAt: Date;
+
+  /** The time at which the first version of this entity was created. */
+  entityCreatedAt: Date;
+
+  /** The time at which this version of the entity was created. */
+  entityVersionCreatedAt: Date;
+
+  /** The time at which this entity version was updated. For versioned entities, this
+   * always matches `entityVersionCreatedAt`.*/
+  entityVersionUpdatedAt: Date;
+
   visibility: Visibility;
 };
 
 export type EntityType = {
-  metadataId: string /** @todo remove this */;
   accountId: string;
   createdById: string;
   entityId: string;
@@ -39,13 +45,22 @@ export type EntityType = {
   entityTypeId?: string | undefined | null;
   entityTypeName?: "EntityType";
   entityTypeVersionId?: string;
-  id: string /** @todo remove this in follow-up PR */;
   properties: any;
   metadata: {
+    name: string;
     versioned: boolean;
   };
-  createdAt: Date;
-  updatedAt: Date;
+
+  /** The time at which the first version of this type was created. */
+  entityCreatedAt: Date;
+
+  /** The time at which this version of the type was created. */
+  entityVersionCreatedAt: Date;
+
+  /** The time at which this type version was updated. For versioned types, this
+   * always matches `entityVersionCreatedAt`.*/
+  entityVersionUpdatedAt: Date;
+
   visibility: Visibility;
 };
 
@@ -95,14 +110,15 @@ export interface DBClient {
   }): Promise<EntityType>;
 
   /**
-   * Create a new entity. If "entityVersionId" is not provided it will be automatically generated. To
-   * create a versioned entity, set the optional parameter "versioned" to `true`.
+   * Create a new entity. If "entityVersionId" is not provided it will be automatically
+   * generated. To create a versioned entity, set the optional parameter "versioned" to
+   * `true`. One of entityTypeId, entityTypeVersionId or systemTypeName must be provided.
    * */
   createEntity(params: {
     accountId: string;
     createdById: string;
     entityVersionId?: string | null | undefined;
-    entityTypeId?: string | null | undefined;
+    entityTypeId?: string;
     entityTypeVersionId?: string | null | undefined;
     systemTypeName?: SystemType | null | undefined;
     versioned: boolean;
@@ -139,13 +155,14 @@ export interface DBClient {
 
   /**
    * Update an entity type.
-   * @param params.name the type name - must be unique in the specified account
-   * @param params.schema JSON schema fields (e.g. 'properties', 'definition')
+   * @param params.newName the type name - must be unique in the specified account
+   * @param params.newSchema JSON schema fields (e.g. 'properties', 'definition')
    * */
   updateEntityType(params: {
-    accountId: string;
+    accountId: string; // @todo: can we remove this?
     createdById: string;
-    entityTypeId: string;
+    entityId: string;
+    entityVersionId?: string;
     newName?: string;
     newSchema?: Record<string, any>;
   }): Promise<EntityType>;
