@@ -18,6 +18,7 @@ const pageFieldsFragment = gql`
       title
       contents {
         id
+        metadataId
         accountId
         properties {
           componentId

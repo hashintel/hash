@@ -215,12 +215,35 @@ export const replaceStateContent = (
   return tr;
 };
 
+export const getSpecialPropsFromEntity = (entity: Block["entity"]) => {
+  const {
+    children,
+    childEntityId = null,
+    childEntityAccountId = null,
+    childEntityTypeId = null,
+    childEntityVersionId = null,
+    ...props
+  } = entity;
+
+  return {
+    props,
+    specialProps: {
+      children,
+      childEntityId,
+      childEntityAccountId,
+      childEntityTypeId,
+      childEntityVersionId,
+    },
+  };
+};
+
 export const transformBlockForProsemirror = (block: BlockWithoutMeta) => {
   const {
     children,
     childEntityId = null,
     childEntityAccountId = null,
     childEntityTypeId = null,
+    childEntityVersionId = null,
     ...props
   } = block.entity;
 
@@ -230,6 +253,7 @@ export const transformBlockForProsemirror = (block: BlockWithoutMeta) => {
     childEntityId,
     childEntityAccountId,
     childEntityTypeId,
+    childEntityVersionId,
   };
 
   return { children, props, attrs };
@@ -306,6 +330,7 @@ export const mapEntitiesToBlocks = (
              * These are here to help reconstruct the database objects from the prosemirror document.
              */
             childEntityId: entity.metadataId,
+            childEntityVersionId: entity.id,
             childEntityAccountId: entity.accountId,
             childEntityTypeId: entity.entityTypeId,
 
@@ -313,6 +338,7 @@ export const mapEntitiesToBlocks = (
               type: "text",
               text: text.text,
               entityId: entity.metadataId,
+              versionId: entity.id,
               accountId: entity.accountId,
 
               // This maps the boolean properties on the entity into an array of mark names
@@ -329,13 +355,14 @@ export const mapEntitiesToBlocks = (
         ? {
             childEntityId: entity.metadataId,
             childEntityTypeId: entity.entityTypeId,
+            childEntityVersionId: entity.id,
             ...entity.unknownProperties,
           }
         : {};
 
     return {
       componentId,
-      entityId: content.id,
+      entityId: content.metadataId,
       entity: props,
       accountId: content.accountId,
     };
@@ -388,6 +415,7 @@ export const calculateSavePayloads = (
       entity = {
         type: "Text",
         id: node.attrs.childEntityId,
+        versionId: node.attrs.childEntityVersionId,
         accountId: node.attrs.childEntityAccountId,
         properties: {
           texts:
@@ -408,10 +436,17 @@ export const calculateSavePayloads = (
         },
       };
     } else {
-      const { childEntityId, childEntityAccountId, ...props } = node.attrs;
+      // @todo do we need to remove other props here
+      const {
+        childEntityId,
+        childEntityAccountId,
+        childEntityVersionId,
+        ...props
+      } = node.attrs;
       entity = {
         type: "UnknownEntity",
         id: childEntityId,
+        versionId: childEntityVersionId,
         accountId: childEntityAccountId,
         properties: props,
       };
@@ -455,7 +490,7 @@ export const calculateSavePayloads = (
       accountId: node.accountId,
       properties: {
         componentId: node.properties.componentId,
-        entityId: node.properties.entity.id,
+        entityId: node.properties.entity.versionId,
         accountId: node.properties.entity.accountId,
       },
     };

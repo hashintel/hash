@@ -11,5 +11,6 @@ export const defineBlock = (meta, attrs) => ({
     childEntityId: { default: null },
     childEntityAccountId: { default: null },
     childEntityTypeId: { default: null },
+    childEntityVersionId: { default: null },
   },
 });
