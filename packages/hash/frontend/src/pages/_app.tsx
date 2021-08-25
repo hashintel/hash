@@ -8,19 +8,39 @@ import withTwindApp from "@twind/next/app";
 import { PageLayout } from "../components/layout/PageLayout/PageLayout";
 import { ModalProvider } from "react-modal-hook";
 
+import { useQuery } from "@apollo/client";
+import { meQuery } from "../graphql/queries/user.queries";
+import { MeQuery, MeQueryVariables } from "../graphql/apiTypes.gen";
+
 import "../../styles/prism.css";
 import "../../styles/globals.scss";
+import UserContext from "../components/contexts/UserContext";
 
 export const apolloClient = createApolloClient();
 
 function MyApp({ Component, pageProps }: AppProps) {
+  const { data, refetch, loading } = useQuery<MeQuery, MeQueryVariables>(
+    meQuery,
+    { client: apolloClient } // has to be provided as this query operates outside ApolloProvider
+  );
+
+  const user = data?.me;
+
   return (
     <ApolloProvider client={apolloClient}>
-      <ModalProvider>
-        <PageLayout>
-          <Component {...pageProps} />
-        </PageLayout>
-      </ModalProvider>
+      <UserContext.Provider
+        value={{
+          user,
+          refetch,
+          loading,
+        }}
+      >
+        <ModalProvider>
+          <PageLayout>
+            <Component {...pageProps} />
+          </PageLayout>
+        </ModalProvider>
+      </UserContext.Provider>
     </ApolloProvider>
   );
 }
