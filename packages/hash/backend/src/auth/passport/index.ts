@@ -21,7 +21,8 @@ export const setupPassport = (app: Express, db: DBAdapter) => {
 
   passport.deserializeUser<SerializedPassportUser>(({ id }, done) =>
     UserModel.getUserById(db)({ id }).then((user) => {
-      done(null, user); // TODO: pass error instead of null when user isn't found
+      // sets the 'user' field on the Express request object
+      done(null, user); /** @todo: pass error instead of null when user isn't found */
     })
   );
 
