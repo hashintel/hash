@@ -17,7 +17,7 @@
     "webpack-dev-server": "cross-env NODE_ENV=development webpack-dev-server -d --port 9090 --config webpack-dev-server.config.js --open",
     "start": "concurrently -n webpack,webpack-dev-server -c green,cyan \"yarn build:dev -- --watch --verbose\" \"yarn webpack-dev-server\"",
     "clean": "rimraf dist",
-    "serve": "serve -C dist"
+    "serve": "serve -C -l 62681 dist"
   },
   "dependencies": {
     "@hashintel/block-protocol": "*",
