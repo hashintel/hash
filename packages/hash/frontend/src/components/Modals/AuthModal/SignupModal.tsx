@@ -1,4 +1,5 @@
-import { useState, VFC } from "react";
+import { useEffect, useState, VFC } from "react";
+import { useRouter } from "next/router";
 
 import { SignupIntro } from "./SignupIntro";
 import { VerifyCode } from "./VerifyCode";
@@ -17,6 +18,7 @@ import {
   createUser as createUserMutation,
   verifyEmail as verifyEmailMutation,
 } from "../../../graphql/queries/user.queries";
+import { AUTH_ERROR_CODES, isParsedAuthQuery } from "./utils";
 
 type SignupModalProps = {
   onSignupComplete: () => void;
@@ -41,6 +43,7 @@ export const SignupModal: VFC<SignupModalProps> = ({
   >();
   const [verificationCode, setVerificationCode] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const router = useRouter();
 
   const [createUser, { loading: createUserLoading }] = useMutation<
     CreateUserMutation,
@@ -48,15 +51,12 @@ export const SignupModal: VFC<SignupModalProps> = ({
   >(createUserMutation, {
     onCompleted: ({ createUser }) => {
       setErrorMessage("");
-      console.log("createuser ==> ", createUser);
       setVerificationCodeMetadata(createUser);
       setActiveScreen(Screen.VerifyCode);
     },
     onError: ({ graphQLErrors }) => {
       graphQLErrors.forEach(({ extensions, message }) => {
-        // console.log('code = => ', code)
-        // const { code } = extensions as { code?: keyof typeof ERROR_CODES };
-        const { code } = extensions as { code?: string };
+        const { code } = extensions as { code?: keyof typeof AUTH_ERROR_CODES };
         if (code === "ALREADY_EXISTS") {
           setErrorMessage(message);
         } else {
@@ -74,7 +74,16 @@ export const SignupModal: VFC<SignupModalProps> = ({
       setErrorMessage("");
       onSignupComplete?.();
     },
-    onError: () => {},
+    onError: ({ graphQLErrors }) => {
+      graphQLErrors.forEach(({ extensions, message }) => {
+        const { code } = extensions as { code?: keyof typeof AUTH_ERROR_CODES };
+        if (code) {
+          setErrorMessage(AUTH_ERROR_CODES[code]);
+        } else {
+          // Probably set a generic error message here
+        }
+      });
+    },
   });
 
   const requestVerificationCode = (email: string) => {
@@ -83,6 +92,26 @@ export const SignupModal: VFC<SignupModalProps> = ({
       variables: { email },
     });
   };
+
+  useEffect(() => {
+    if (!show && activeScreen != Screen.Intro) {
+      setActiveScreen(Screen.Intro);
+    }
+  }, [show]);
+
+  useEffect(() => {
+    const { pathname, query } = router;
+    if (pathname === "/signup" && isParsedAuthQuery(query)) {
+      const { verificationId, verificationCode } = query;
+      setActiveScreen(Screen.VerifyCode);
+      setVerificationCode(verificationCode);
+      setTimeout(() => {
+        void verifyEmail({
+          variables: { verificationId, verificationCode },
+        });
+      }, 1000);
+    }
+  }, [router, verifyEmail]);
 
   const handleVerifyEmail = () => {
     if (!verificationCodeMetadata) return;
@@ -122,29 +151,6 @@ export const SignupModal: VFC<SignupModalProps> = ({
           />
         );
     }
-  };
-
-  const navigateForward = () => {
-    let newScreen;
-
-    if (activeScreen === Screen.AccountSetup) {
-      return;
-    }
-
-    switch (activeScreen) {
-      case Screen.Intro:
-        newScreen = Screen.VerifyCode;
-        break;
-
-      case Screen.VerifyCode:
-        newScreen = Screen.AccountSetup;
-        break;
-
-      default:
-        return;
-    }
-
-    setActiveScreen(newScreen);
   };
 
   const goBack = () => {
