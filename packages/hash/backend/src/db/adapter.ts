@@ -157,7 +157,7 @@ export interface DBClient {
    * Get the user by their email address.
    * @param params.email the email address
    * @param params.verified whether the email address is verified or not (when undefined the email can be either)
-   * @param params.primary whether the email address is the primary email or not (when undefiend the email can be either)
+   * @param params.primary whether the email address is the primary email or not (when undefined the email can be either)
    * */
   getUserByEmail(params: {
     email: string;
