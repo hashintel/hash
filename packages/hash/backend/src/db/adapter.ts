@@ -227,6 +227,9 @@ export interface DBClient {
     userId: string;
   }): Promise<void>;
 
+  /** Delete a verification code */
+  deleteVerificationCode(params: { id: string }): Promise<void>;
+
   /** Prunes verification codes from the database after 1 day of creation */
   pruneVerificationCodes(): Promise<number>;
 
