@@ -26,7 +26,7 @@ const options = [
 ];
 
 type LoginIntroProps = {
-  requestLoginCode: (x: string) => void;
+  requestLoginCode: (emailOrShortname: string) => void;
   errorMessage?: string;
   loading: boolean;
   navigateToSignup: () => void;
@@ -51,14 +51,20 @@ export const LoginIntro: VoidFunctionComponent<LoginIntroProps> = ({
     if (typeof query.email === "string") {
       const { email, ...remainingQuery } = query;
       setEmailOrShortname(email);
-      void router.replace({ ...router, query: remainingQuery}, undefined, { shallow: true });
-    };
-    if (typeof query.shortname === "string") { 
+      void router.replace({ ...router, query: remainingQuery }, undefined, {
+        shallow: true,
+      });
+      void requestLoginCode(email);
+    }
+    if (typeof query.shortname === "string") {
       const { shortname, ...remainingQuery } = query;
       setEmailOrShortname(shortname);
-      void router.replace({ ...router, query: remainingQuery}, undefined, { shallow: true });
+      void router.replace({ ...router, query: remainingQuery }, undefined, {
+        shallow: true,
+      });
+      void requestLoginCode(shortname);
     }
-  }, [router]);
+  }, [router, requestLoginCode]);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

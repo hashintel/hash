@@ -79,7 +79,11 @@ const SignupPage: NextPage = () => {
       graphQLErrors.forEach(({ extensions, message }) => {
         const { code } = extensions as { code?: keyof typeof AUTH_ERROR_CODES };
         if (code) {
-          setErrorMessage(AUTH_ERROR_CODES[code]);
+          if (code === "ALREADY_EXISTS") {
+            void router.push({ pathname: "/login", query: { email } });
+          } else {
+            setErrorMessage(AUTH_ERROR_CODES[code]);
+          }
         } else {
           setErrorMessage(message);
         }
