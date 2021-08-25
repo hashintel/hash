@@ -215,28 +215,6 @@ export const replaceStateContent = (
   return tr;
 };
 
-export const getSpecialPropsFromEntity = (entity: Block["entity"]) => {
-  const {
-    children,
-    childEntityId = null,
-    childEntityAccountId = null,
-    childEntityTypeId = null,
-    childEntityVersionId = null,
-    ...props
-  } = entity;
-
-  return {
-    props,
-    specialProps: {
-      children,
-      childEntityId,
-      childEntityAccountId,
-      childEntityTypeId,
-      childEntityVersionId,
-    },
-  };
-};
-
 export const transformBlockForProsemirror = (block: BlockWithoutMeta) => {
   const {
     children,
