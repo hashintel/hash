@@ -41,8 +41,6 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
     return units.length >= 4 && units?.[3].length > 0;
   }, [code]);
 
-  const handlePaste = () => {};
-
   const onSubmit = (evt: React.FormEvent) => {
     evt.preventDefault();
     void handleSubmit();
@@ -73,7 +71,6 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
               onChange={(evt) => setCode(evt.target.value)}
               value={code}
               ref={inputRef}
-              onPaste={handlePaste}
             />
             <button
               className={tw`absolute right-0 top-1/2 transition-all translate-x-3/4 -translate-y-1/2 flex items-center disabled:opacity-0 disabled:pointer-events-none text-blue-500 hover:text-blue-700 font-bold py-2 px-2`}
@@ -99,36 +96,37 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
         >
           &larr; <span className={tw`ml-1`}>Try logging in another way</span>
         </button>
-        <div className={tw`flex`}>
+        <div className={tw`flex items-center`}>
           <span className={tw`mr-1`}>No email yet?</span>
           <button
-            className={tw`text-blue-500 focus:text-blue-700 hover:text-blue-700 font-bold  focus:outline-none`}
+            className={tw`text-blue-500 focus:text-blue-700 hover:text-blue-700 disabled:opacity-50 font-bold focus:outline-none flex items-center`}
             onClick={requestCode}
-            disabled={requestCodeLoading}
+            disabled={!requestCodeLoading}
           >
             <span>Resend email</span>
-            {loading && <IconHash className={tw`h-4 w-4 ml-1 animate-spin`} />}
+            {!requestCodeLoading && (
+              <IconHash className={tw`h-3 w-3 ml-1 animate-spin`} />
+            )}
           </button>
         </div>
-
-        {/* {!emailResent ? (
-          <div className={tw`flex`}>
+        {/* {emailResent ? (
+          <div className={tw`flex items-center`}>
             <span className={tw`mr-1`}>No email yet?</span>
-            <button
-              className={tw`text-blue-500 focus:text-blue-700 hover:text-blue-700 font-bold  focus:outline-none`}
-              onClick={requestCode}
-              disabled={requestCodeLoading}
-            >
-              <span>Resend email</span>
-              {loading && (
-                <IconHash className={tw`h-4 w-4 ml-1 animate-spin`} />
-              )}
-            </button>
+            <span className={tw`font-bold text-green-500`}>Email Resent</span>
           </div>
         ) : (
-          <div className={tw`flex`}>
+          <div className={tw`flex items-center`}>
             <span className={tw`mr-1`}>No email yet?</span>
-            <span className={tw`text-green-500`}>Email Resent</span>
+            <button
+              className={tw`text-blue-500 focus:text-blue-700 hover:text-blue-700 disabled:opacity-50 font-bold focus:outline-none flex items-center`}
+              onClick={requestCode}
+              disabled={!requestCodeLoading}
+            >
+              <span>Resend email</span>
+              {!requestCodeLoading && (
+                <IconHash className={tw`h-3 w-3 ml-1 animate-spin`} />
+              )}
+            </button>
           </div>
         )} */}
       </div>

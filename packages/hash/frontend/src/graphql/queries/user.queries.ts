@@ -10,6 +10,30 @@ export const createUser = gql`
   }
 `;
 
+export const updateUser = gql`
+  mutation updateUser($id: ID!, $properties: UpdateUserProperties!) {
+    updateUser(id: $id, properties: $properties) {
+      id
+      createdById
+      accountId
+      entityTypeId
+      entityTypeVersionId
+      entityTypeName
+      visibility
+      accountSignupComplete
+      properties {
+        shortname
+        preferredName
+        emails {
+          address
+          primary
+          verified
+        }
+      }
+    }
+  }
+`;
+
 export const verifyEmail = gql`
   mutation verifyEmail($verificationId: ID!, $verificationCode: String!) {
     verifyEmail(
@@ -95,8 +119,10 @@ export const meQuery = gql`
       entityTypeVersionId
       entityTypeName
       visibility
+      accountSignupComplete
       properties {
         shortname
+        preferredName
         emails {
           address
           primary
