@@ -36,7 +36,12 @@ export const verifyEmail: Resolver<
         );
 
       // Ensure the email address is not already verified and associated with another user
-      if (await User.getUserByVerifiedEmail(client)({ email: email.address }))
+      if (
+        await User.getUserByEmail(client)({
+          email: email.address,
+          verified: true,
+        })
+      )
         throw new ApolloError(
           `The email address has already been verified by another user`,
           "ALREADY_VERIFIED"

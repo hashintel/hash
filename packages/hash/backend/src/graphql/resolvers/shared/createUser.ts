@@ -16,12 +16,17 @@ export const createUser: Resolver<
 > = async (_, { email }, { dataSources }) =>
   dataSources.db.transaction(async (client) => {
     // Ensure the email address isn't already verified and associated with a user
-    if (await User.getUserByVerifiedEmail(client)({ email })) {
+    if (await User.getUserByEmail(client)({ email, verified: true })) {
       throw new ApolloError(
         `User with the email '${email}' already exists in the datastore`,
         "ALREADY_EXISTS"
       );
     }
+
+    /**
+     * @todo: Account for when the email is the primary email of an existing user, but is unverified.
+     * This would occur when a user is created and before the email is verified the user is created again.
+     */
 
     // Othwerise create a user in the datastore with the email address
     const user = await User.create(client)({

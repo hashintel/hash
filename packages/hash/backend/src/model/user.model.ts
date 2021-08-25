@@ -54,11 +54,19 @@ class User extends Entity {
         .getUserById({ id })
         .then((dbUser) => (dbUser ? new User(dbUser) : null));
 
-  static getUserByVerifiedEmail =
+  static getUserByEmail =
     (db: DBClient) =>
-    ({ email }: { email: string }): Promise<User | null> =>
+    ({
+      email,
+      verified = true,
+      primary,
+    }: {
+      email: string;
+      verified?: boolean;
+      primary?: boolean;
+    }): Promise<User | null> =>
       db
-        .getUserByVerifiedEmail({ email })
+        .getUserByEmail({ email, verified, primary })
         .then((dbUser) => (dbUser ? new User(dbUser) : null));
 
   static getUserByShortname =
