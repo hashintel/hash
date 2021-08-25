@@ -23,15 +23,19 @@ export const createUser: Resolver<
       );
     }
 
-    /**
-     * @todo: Account for when the email is the primary email of an existing user, but is unverified.
-     * This would occur when a user is created and before the email is verified the user is created again.
-     */
+    const user =
+      // Either get an existing user with this primary un-verified email address, ...
+      (await User.getUserByEmail(client)({
+        email,
+        primary: true,
+        verified: false,
+      })) ||
+      // ...or create this user
+      (await User.create(client)({
+        emails: [{ address: email, primary: true, verified: false }],
+      }));
 
-    // Othwerise create a user in the datastore with the email address
-    const user = await User.create(client)({
-      emails: [{ address: email, primary: true, verified: false }],
-    });
+    /** @todo: rate limit creation of email verification codes */
 
     return user
       .sendEmailVerificationCode(client)(email)
