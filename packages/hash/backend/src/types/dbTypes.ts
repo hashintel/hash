@@ -33,15 +33,6 @@ export type DbPage = Omit<Page, "properties" | "type"> & {
 
 export type DbUser = Omit<User, "type"> & { type: "User" };
 
-export type DBVerificationCode = {
-  id: string;
-  code: string;
-  emailAddress: string;
-  userId: string;
-  numberOfAttempts: number;
-  createdAt: Date;
-};
-
 export type DbOrg = Omit<Org, "type"> & { type: "Org" };
 
 export type DbUnknownEntity = Omit<UnknownEntity, "type" | "__typename"> & {

@@ -2,7 +2,6 @@ import { DataSource } from "apollo-datasource";
 import { StatsD } from "hot-shots";
 import { createPool, DatabasePoolType } from "slonik";
 import { Logger } from "winston";
-import { DBVerificationCode } from "../../types/dbTypes";
 
 import { PostgresClient } from "./client";
 import { getRequiredEnv } from "../../util";
@@ -13,6 +12,7 @@ import {
   EntityMeta,
   EntityType,
   EntityVersion,
+  VerificationCode,
 } from "../adapter";
 import { SystemType } from "../../types/entityTypes";
 
@@ -202,13 +202,13 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     userId: string;
     code: string;
     emailAddress: string;
-  }): Promise<DBVerificationCode> {
+  }): Promise<VerificationCode> {
     return this.query((adapter) => adapter.createVerificationCode(params));
   }
 
   getVerificationCode(params: {
     id: string;
-  }): Promise<DBVerificationCode | null> {
+  }): Promise<VerificationCode | null> {
     return this.query((adapter) => adapter.getVerificationCode(params));
   }
 

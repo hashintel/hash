@@ -1,7 +1,7 @@
 import { Connection } from "./types";
 
 import { sql } from "slonik";
-import { DBVerificationCode } from "../../types/dbTypes";
+import { VerificationCode } from "../adapter";
 
 /** Insert a row into the entities table. */
 export const insertVerificationCode = async (
@@ -30,7 +30,7 @@ export const insertVerificationCode = async (
 export const getVerificationCode = async (
   conn: Connection,
   params: { id: string }
-): Promise<DBVerificationCode | null> => {
+): Promise<VerificationCode | null> => {
   const row = await conn.one(sql`
     select verification_id, user_id, verification_code, email_address, number_of_attempts, created_at
     from verification_codes
