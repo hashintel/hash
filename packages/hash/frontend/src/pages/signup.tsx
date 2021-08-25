@@ -48,6 +48,12 @@ const SignupPage: NextPage = () => {
   const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
+    if (user && !user.accountSignupComplete && activeScreen !== Screen.AccountSetup) {
+      setActiveScreen(Screen.AccountSetup);
+    }
+  }, [activeScreen, user]);
+
+  useEffect(() => {
     // If the user is logged in, and their account sign-up is complete...
     if (user && user.accountSignupComplete) {
       // ...redirect them to the homepage
