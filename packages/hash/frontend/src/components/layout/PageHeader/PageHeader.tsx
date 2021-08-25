@@ -24,7 +24,13 @@ export const PageHeader: VoidFunctionComponent = () => {
   ));
 
   const [showSignupModal, hideSignupModal] = useModal(({}) => (
-    <SignupModal show={true} close={hideSignupModal} />
+    <SignupModal
+      show={true}
+      close={hideSignupModal}
+      onSignupComplete={() => {
+        hideSignupModal();
+      }}
+    />
   ));
 
   return (

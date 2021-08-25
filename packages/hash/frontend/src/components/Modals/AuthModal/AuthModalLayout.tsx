@@ -1,20 +1,24 @@
-import { ReactNode, VoidFunctionComponent } from "react";
+import { ReactNode, useRef, VoidFunctionComponent } from "react";
 import { Dialog } from "@headlessui/react";
 import { tw } from "twind";
 
 import bgPattern from "../../../assets/images/auth-bg-pattern.png";
 
-export type ModalProps = {
+export type AuthModalLayoutProps = {
   children: ReactNode;
   close: () => void;
   show: boolean;
+  closeIconHidden?: boolean;
 };
 
-export const Layout: VoidFunctionComponent<ModalProps> = ({
+export const AuthModalLayout: VoidFunctionComponent<AuthModalLayoutProps> = ({
   children,
   close,
   show,
+  closeIconHidden=false
 }) => {
+  const initialFocusRef = useRef<HTMLButtonElement>(null);
+  
   return (
     <Dialog
       as="div"
@@ -30,8 +34,10 @@ export const Layout: VoidFunctionComponent<ModalProps> = ({
           <img src={bgPattern} className={tw`h-screen`} />
         </div>
         <button
-          className={tw`absolute top-8 right-8 text-3xl hover:bg-black hover:bg-opacity-10 leading-none h-12 w-12 flexÏ items-center justify-center rounded-full`}
+          type="button"
+          className={tw`${closeIconHidden ? 'invisible': ''} absolute top-8 right-8 text-3xl hover:bg-black hover:bg-opacity-10 leading-none h-12 w-12 flex items-center justify-center rounded-full`}
           onClick={close}
+          ref={initialFocusRef}
         >
           &times;
         </button>

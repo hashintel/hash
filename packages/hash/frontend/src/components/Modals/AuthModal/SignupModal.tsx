@@ -4,8 +4,8 @@ import { SignupIntro } from "./SignupIntro";
 import { VerifyCode } from "./VerifyCode";
 import { AccountSetup } from "./AccountSetup";
 
-import { Layout } from "./Layout";
-import { useMutation } from "@apollo/client";
+import { AuthModalLayout, AuthModalLayoutProps } from "./AuthModalLayout";
+import { ApolloError, useMutation } from "@apollo/client";
 import {
   CreateUserMutation,
   CreateUserMutationVariables,
@@ -19,10 +19,8 @@ import {
 } from "../../../graphql/queries/user.queries";
 
 type SignupModalProps = {
-  show: boolean;
-  close: () => void;
   onSignupComplete: () => void;
-};
+} & Omit<AuthModalLayoutProps, "children">;
 
 enum Screen {
   Intro,
@@ -34,6 +32,7 @@ export const SignupModal: VFC<SignupModalProps> = ({
   show,
   close,
   onSignupComplete,
+  closeIconHidden,
 }) => {
   const [activeScreen, setActiveScreen] = useState<Screen>(Screen.Intro);
   const [email, setEmail] = useState("");
@@ -49,10 +48,22 @@ export const SignupModal: VFC<SignupModalProps> = ({
   >(createUserMutation, {
     onCompleted: ({ createUser }) => {
       setErrorMessage("");
+      console.log("createuser ==> ", createUser);
       setVerificationCodeMetadata(createUser);
       setActiveScreen(Screen.VerifyCode);
     },
-    onError: () => {},
+    onError: ({ graphQLErrors }) => {
+      graphQLErrors.forEach(({ extensions, message }) => {
+        // console.log('code = => ', code)
+        // const { code } = extensions as { code?: keyof typeof ERROR_CODES };
+        const { code } = extensions as { code?: string };
+        if (code === "ALREADY_EXISTS") {
+          setErrorMessage(message);
+        } else {
+          throw new ApolloError({ graphQLErrors });
+        }
+      });
+    },
   });
 
   const [verifyEmail, { loading: verifyEmailLoading }] = useMutation<
@@ -68,7 +79,7 @@ export const SignupModal: VFC<SignupModalProps> = ({
 
   const requestVerificationCode = (email: string) => {
     setEmail(email);
-    createUser({
+    void createUser({
       variables: { email },
     });
   };
@@ -94,6 +105,7 @@ export const SignupModal: VFC<SignupModalProps> = ({
             setCode={setVerificationCode}
             loading={verifyEmailLoading}
             handleSubmit={handleVerifyEmail}
+            errorMessage={errorMessage}
           />
         );
 
@@ -142,8 +154,12 @@ export const SignupModal: VFC<SignupModalProps> = ({
   };
 
   return (
-    <Layout show={show} close={close}>
+    <AuthModalLayout
+      show={show}
+      close={close}
+      closeIconHidden={closeIconHidden}
+    >
       {renderContent()}
-    </Layout>
+    </AuthModalLayout>
   );
 };

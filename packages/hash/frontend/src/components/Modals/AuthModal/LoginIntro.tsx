@@ -54,7 +54,6 @@ export const LoginIntro: VoidFunctionComponent<LoginIntroProps> = ({
       <div className={tw`w-5/12 max-w-xl mr-28`}>
         <Logo className={tw`mb-6`} />
         <div className={tw`py-14 px-16 mb-9 rounded-2xl bg-white shadow-xl`}>
-          {/*  */}
           <h1 className={tw`text-2xl font-black uppercase mb-10`}>
             Sign in to your account
           </h1>
@@ -62,7 +61,7 @@ export const LoginIntro: VoidFunctionComponent<LoginIntroProps> = ({
             <input
               ref={inputRef}
               className={tw`appearance-none border-b-2 focus:border-blue-500 w-full py-2 pl-1 pr-24 text-gray-700 leading-tight focus:outline-none focus:shadow-outline`}
-              type="text"
+              type="email"
               value={emailOrShortname}
               onChange={({ target }) => setEmailOrShortname(target.value)}
               placeholder="Enter your email or shortname"
@@ -97,19 +96,21 @@ export const LoginIntro: VoidFunctionComponent<LoginIntroProps> = ({
           Create a free account
         </button>
 
-        <p className={tw`mb-3.5`}>
-          If you use SSO, or have previously linked your account to a
-          third-party you can sign in with them
-        </p>
-        <div className={tw`flex flex-wrap`}>
-          {options.map(({ label }, index) => (
-            <button
-              className={tw`px-5 h-11 flex items-center bg-white border-1 border-gray-300 hover:border-gray-500 rounded-lg text-sm font-bold mr-2.5 mb-2 `}
-              key={index}
-            >
-              {label}
-            </button>
-          ))}
+        <div className={tw`invisible`}>
+          <p className={tw`mb-3.5`}>
+            If you use SSO, or have previously linked your account to a
+            third-party you can sign in with them
+          </p>
+          <div className={tw`flex flex-wrap`}>
+            {options.map(({ label }, index) => (
+              <button
+                className={tw`px-5 h-11 flex items-center bg-white border-1 border-gray-300 hover:border-gray-500 rounded-lg text-sm font-bold mr-2.5 mb-2 `}
+                key={index}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>

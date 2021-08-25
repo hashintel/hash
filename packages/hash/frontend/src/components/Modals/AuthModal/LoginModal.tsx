@@ -3,8 +3,7 @@ import { useRouter } from "next/router";
 import { ParsedUrlQueryInput } from "querystring";
 import { useEffect, useState } from "react";
 
-import { ModalProps } from "../Modal";
-import { Layout } from "./Layout";
+import { AuthModalLayout, AuthModalLayoutProps } from "./AuthModalLayout";
 import { LoginIntro } from "./LoginIntro";
 import { VerifyCode } from "./VerifyCode";
 import {
@@ -39,7 +38,7 @@ const isParsedLoginQuery = (
 
 type LoginModalProps = {
   onLoggedIn?: () => void;
-} & Omit<ModalProps, "children">;
+} & Omit<AuthModalLayoutProps, "children">;
 
 const ERROR_CODES = {
   LOGIN_CODE_NOT_FOUND: "An unexpected error occurred, please try again.",
@@ -54,9 +53,10 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
   show,
   close,
   onLoggedIn,
+  closeIconHidden,
 }) => {
   // TODO: refactor to use useReducer
-  const [activeScreen, setActiveScreen] = useState<Screen>(Screen.VerifyCode);
+  const [activeScreen, setActiveScreen] = useState<Screen>(Screen.Intro);
   const [loginIdentifier, setLoginIdentifier] = useState<string>("");
   const [verificationCode, setVerificationCode] = useState<string>("");
   const [verificationCodeMetadata, setVerificationCodeMetadata] = useState<
@@ -105,6 +105,12 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
       }
     );
 
+  useEffect(() => {
+    if (!show && activeScreen != Screen.Intro) {
+      setActiveScreen(Screen.Intro);
+    }
+  }, [show]);
+
   // handle magic link
   useEffect(() => {
     const { pathname, query } = router;
@@ -121,13 +127,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
   }, [router, loginWithLoginCode]);
 
   const requestLoginCode = (emailOrShortname: string) => {
-    let identifier;
-    if (emailOrShortname.includes("@")) {
-      identifier = emailOrShortname;
-    } else {
-      identifier = `@${emailOrShortname}`;
-    }
-    setLoginIdentifier(identifier);
+    setLoginIdentifier(emailOrShortname);
     void sendLoginCodeFn({ variables: { emailOrShortname } });
   };
 
@@ -152,6 +152,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
 
   const navigateToSignup = () => {
     router.push("/signup");
+    setTimeout(close, 500)
   };
 
   const renderContent = () => {
@@ -182,8 +183,12 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
   };
 
   return (
-    <Layout show={show} close={close}>
+    <AuthModalLayout
+      show={show}
+      close={close}
+      closeIconHidden={closeIconHidden}
+    >
       {renderContent()}
-    </Layout>
+    </AuthModalLayout>
   );
 };

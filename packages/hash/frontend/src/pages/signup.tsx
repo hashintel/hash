@@ -1,11 +1,27 @@
 import { NextPage } from "next";
-import { SignupModal } from "../components/Modals/AuthModal/SignupModal";
 import { useRouter } from "next/router";
+import { useLayoutEffect } from "react";
+import { useModal } from "react-modal-hook";
+
+import { SignupModal } from "../components/Modals/AuthModal/SignupModal";
 
 const SignupPage: NextPage = () => {
   const router = useRouter();
 
-  return <SignupModal show={true} close={() => {}} />;
+  const [showSignupModal, hideSignupModal] = useModal(() => (
+    <SignupModal
+      show={true}
+      close={hideSignupModal}
+      closeIconHidden
+      onSignupComplete={() => router.push('/')}
+    />
+  ));
+
+  useLayoutEffect(() => {
+    showSignupModal();
+  }, []);
+
+  return null;
 };
 
 export default SignupPage;

@@ -56,6 +56,7 @@ export const SignupIntro: VFC<SignupIntroProps> = ({
       <form onSubmit={onSubmit}>
         <input
           placeholder="Enter your email address.."
+          type="email"
           ref={inputRef}
           className={tw`w-64 bg-gray-100 border-1 border-gray-300 rounded-lg h-11 py-4 px-5 mb-2`}
           onChange={(evt) => setEmail(evt.target.value)}
