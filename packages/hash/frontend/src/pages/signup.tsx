@@ -35,7 +35,7 @@ enum Screen {
 }
 
 const SignupPage: NextPage = () => {
-  const { refetch } = useUser();
+  const { user, refetch } = useUser();
   const router = useRouter();
 
   const [activeScreen, setActiveScreen] = useState<Screen>(Screen.Intro);
@@ -46,6 +46,14 @@ const SignupPage: NextPage = () => {
   const [verificationCode, setVerificationCode] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    // If the user is logged in, and their account sign-up is complete...
+    if (user && user.accountSignupComplete) {
+      // ...redirect them to the homepage
+      void router.push("/");
+    }
+  }, [user, router]);
 
   const [createUser, { loading: createUserLoading }] = useMutation<
     CreateUserMutation,
