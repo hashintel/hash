@@ -1,12 +1,13 @@
-import React, { useEffect } from "react";
-import { useMemo } from "react";
+import React, { useEffect, useCallback } from "react";
 import { VFC, useRef } from "react";
 import { tw } from "twind";
 import Logo from "../../../assets/svg/logo.svg";
+import { IconHash } from "../../Icons/IconHash/IconHash";
+import IconKeyboardReturn from "../../Icons/IconKeyboardReturn/IconKeyboardReturn";
 
 type VerifyCodeProps = {
-  loginCode: string;
-  setLoginCode: (x: string) => void;
+  code: string;
+  setCode: (x: string) => void;
   goBack: () => void;
   loading: boolean;
   errorMessage?: string;
@@ -14,13 +15,16 @@ type VerifyCodeProps = {
   handleSubmit: () => void;
 };
 
+const isEmail = (email: string) => email.includes("@");
+
 export const VerifyCode: VFC<VerifyCodeProps> = ({
-  loginCode,
-  setLoginCode,
+  code,
+  setCode,
   goBack,
   errorMessage,
   loginIdentifier,
   handleSubmit,
+  loading,
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -28,10 +32,10 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
     inputRef.current?.select();
   }, []);
 
-  const isInputValid = useMemo(() => {
-    const units = loginCode.split("-");
-    return units.length === 4 && units?.[3].length > 0;
-  }, [loginCode]);
+  const isInputValid = useCallback(() => {
+    const units = code.split("-");
+    return units.length >= 4 && units?.[3].length > 0;
+  }, [code]);
 
   const handlePaste = () => {};
 
@@ -48,32 +52,38 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
       >
         <div className={tw`w-8/12`}>
           <p className={tw`font-bold`}>
-            A verification email has been sent to <span>{loginIdentifier}</span>
+            A verification email has been sent to{" "}
+            <span>{isEmail(loginIdentifier)}</span>
           </p>
           <p className={tw`mb-10`}>
             Click the link in this email or enter the verification phrase below
             to continue
           </p>
-          <form onSubmit={onSubmit}>
+          <form className={tw`relative`} onSubmit={onSubmit}>
             <input
-              className={tw`block border-b-1 border-gray-300 w-11/12 mx-auto mb-2 py-3 px-5 text-3xl text-center focus:outline-none focus:border-blue-500`}
-              onChange={(evt) => setLoginCode(evt.target.value)}
-              value={loginCode}
+              className={tw`block border-b-1 border-gray-300 w-11/12 mx-auto mb-2 py-3 pl-3 pr-3 text-3xl text-center focus:outline-none focus:border-blue-500`}
+              onChange={(evt) => setCode(evt.target.value)}
+              value={code}
               ref={inputRef}
               onPaste={handlePaste}
             />
-            {errorMessage && (
-              <span className={tw`text-red-500 text-sm`}>{errorMessage}</span>
-            )}
-
             <button
-              className={tw`w-64 h-11 mt-8 mx-auto bg-gradient-to-r from-blue-400 via-blue-500 to-pink-500 ${
-                isInputValid ? "opacity-100" : "opacity-30 pointer-events-none"
-              } rounded-lg flex items-center justify-center text-white font-bold`}
+              className={tw`absolute right-0 top-1/2 ${
+                isInputValid() ? "opacity-100" : "opacity-0 pointer-events-none"
+              } transition-all translate-x-full -translate-y-1/2 flex items-center disabled:opacity-50 text-blue-500 hover:text-blue-700 font-bold py-2 px-2`}
+              disabled={isInputValid() || loading}
             >
-              Submit
+              <span className={tw`mr-1`}>Submit</span>
+              {loading ? (
+                <IconHash className={tw`h-4 w-4 animate-spin`} />
+              ) : (
+                <IconKeyboardReturn />
+              )}
             </button>
           </form>
+          {errorMessage && (
+            <span className={tw`text-red-500 text-sm`}>{errorMessage}</span>
+          )}
         </div>
       </div>
       <div className={tw`flex justify-between`}>

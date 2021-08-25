@@ -43,7 +43,9 @@ type LoginModalProps = {
 
 const ERROR_CODES = {
   LOGIN_CODE_NOT_FOUND: "An unexpected error occurred, please try again.",
-  MAX_ATTEMPTS: "An unexpected error occurred, please try again.",
+  MAX_ATTEMPTS:
+    "You have exceeded the maximum number of attempts for this login code, please try again.",
+  EXPIRED: "This login code has expired, please try again.",
   INCORRECT: "This login code has expired, please try again.",
   NOT_FOUND: "",
 } as const;
@@ -54,7 +56,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
   onLoggedIn,
 }) => {
   // TODO: refactor to use useReducer
-  const [activeScreen, setActiveScreen] = useState<Screen>(Screen.Intro);
+  const [activeScreen, setActiveScreen] = useState<Screen>(Screen.VerifyCode);
   const [loginIdentifier, setLoginIdentifier] = useState<string>("");
   const [verificationCode, setVerificationCode] = useState<string>("");
   const [verificationCodeMetadata, setVerificationCodeMetadata] = useState<
@@ -148,14 +150,18 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
     }
   };
 
+  const navigateToSignup = () => {
+    router.push("/signup");
+  };
+
   const renderContent = () => {
     switch (activeScreen) {
       case Screen.VerifyCode:
         return (
           <VerifyCode
             loginIdentifier={loginIdentifier}
-            loginCode={verificationCode}
-            setLoginCode={setVerificationCode}
+            code={verificationCode}
+            setCode={setVerificationCode}
             goBack={goBack}
             handleSubmit={login}
             loading={loginWithLoginCodeLoading}
@@ -169,6 +175,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
             requestLoginCode={requestLoginCode}
             loading={sendLoginCodeLoading}
             errorMessage={errorMessage}
+            navigateToSignup={navigateToSignup}
           />
         );
     }

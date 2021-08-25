@@ -28,18 +28,19 @@ type LoginIntroProps = {
   requestLoginCode: (x: string) => void;
   errorMessage?: string;
   loading: boolean;
+  navigateToSignup: () => void;
 };
 
 export const LoginIntro: VoidFunctionComponent<LoginIntroProps> = ({
   requestLoginCode,
   errorMessage,
   loading,
+  navigateToSignup,
 }) => {
   const [emailOrShortname, setEmailOrShortname] = useState<string>("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    //TODO: probably use a isMounted prop for this
     inputRef.current?.select();
   }, []);
 
@@ -91,6 +92,7 @@ export const LoginIntro: VoidFunctionComponent<LoginIntroProps> = ({
         </p>
         <button
           className={tw`bg-black bg-opacity-70 hover:bg-opacity-90 rounded-lg h-11 px-6 flex items-center text-white mb-10`}
+          onClick={navigateToSignup}
         >
           Create a free account
         </button>

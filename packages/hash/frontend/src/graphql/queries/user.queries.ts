@@ -10,6 +10,34 @@ export const createUser = gql`
   }
 `;
 
+export const verifyEmail = gql`
+  mutation verifyEmail($verificationId: ID!, $verificationCode: String!) {
+    verifyEmail(
+      verificationId: $verificationId
+      verificationCode: $verificationCode
+    ) {
+      __typename
+      id
+      createdById
+      createdAt
+      updatedAt
+      accountId
+      entityTypeId
+      entityTypeVersionId
+      entityTypeName
+      visibility
+      properties {
+        shortname
+        emails {
+          address
+          primary
+          verified
+        }
+      }
+    }
+  }
+`;
+
 export const sendLoginCode = gql`
   mutation sendLoginCode($emailOrShortname: String!) {
     sendLoginCode(emailOrShortname: $emailOrShortname) {

@@ -1,14 +1,27 @@
 import { useState, VFC } from "react";
 
-import { Intro } from "./SignupIntro";
+import { SignupIntro } from "./SignupIntro";
 import { VerifyCode } from "./VerifyCode";
 import { AccountSetup } from "./AccountSetup";
 
 import { Layout } from "./Layout";
+import { useMutation } from "@apollo/client";
+import {
+  CreateUserMutation,
+  CreateUserMutationVariables,
+  VerificationCodeMetadata,
+  VerifyEmailMutation,
+  VerifyEmailMutationVariables,
+} from "../../../graphql/apiTypes.gen";
+import {
+  createUser as createUserMutation,
+  verifyEmail as verifyEmailMutation,
+} from "../../../graphql/queries/user.queries";
 
 type SignupModalProps = {
   show: boolean;
   close: () => void;
+  onSignupComplete: () => void;
 };
 
 enum Screen {
@@ -17,21 +30,70 @@ enum Screen {
   AccountSetup,
 }
 
-export const SignupModal: VFC<SignupModalProps> = ({ show, close }) => {
+export const SignupModal: VFC<SignupModalProps> = ({
+  show,
+  close,
+  onSignupComplete,
+}) => {
   const [activeScreen, setActiveScreen] = useState<Screen>(Screen.Intro);
-  // const [loginIdentifier, setLoginIdentifier] = useState("");
-  const [loginCode, setLoginCode] = useState("");
+  const [email, setEmail] = useState("");
+  const [verificationCodeMetadata, setVerificationCodeMetadata] = useState<
+    VerificationCodeMetadata | undefined
+  >();
+  const [verificationCode, setVerificationCode] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const [createUser, { loading: createUserLoading }] = useMutation<
+    CreateUserMutation,
+    CreateUserMutationVariables
+  >(createUserMutation, {
+    onCompleted: ({ createUser }) => {
+      setErrorMessage("");
+      setVerificationCodeMetadata(createUser);
+      setActiveScreen(Screen.VerifyCode);
+    },
+    onError: () => {},
+  });
+
+  const [verifyEmail, { loading: verifyEmailLoading }] = useMutation<
+    VerifyEmailMutation,
+    VerifyEmailMutationVariables
+  >(verifyEmailMutation, {
+    onCompleted: ({}) => {
+      setErrorMessage("");
+      onSignupComplete?.();
+    },
+    onError: () => {},
+  });
+
+  const requestVerificationCode = (email: string) => {
+    setEmail(email);
+    createUser({
+      variables: { email },
+    });
+  };
+
+  const handleVerifyEmail = () => {
+    if (!verificationCodeMetadata) return;
+    verifyEmail({
+      variables: {
+        verificationId: verificationCodeMetadata?.id,
+        verificationCode: verificationCode,
+      },
+    });
+  };
 
   const renderContent = () => {
     switch (activeScreen) {
       case Screen.VerifyCode:
         return (
           <VerifyCode
-            loginIdentifier=""
+            loginIdentifier={email}
             goBack={goBack}
-            loginCode={loginCode}
-            setLoginCode={setLoginCode}
-            loading={false}
+            code={verificationCode}
+            setCode={setVerificationCode}
+            loading={verifyEmailLoading}
+            handleSubmit={handleVerifyEmail}
           />
         );
 
@@ -40,7 +102,13 @@ export const SignupModal: VFC<SignupModalProps> = ({ show, close }) => {
 
       case Screen.Intro:
       default:
-        return <Intro navigateForward={navigateForward} />;
+        return (
+          <SignupIntro
+            loading={createUserLoading}
+            errorMessage={errorMessage}
+            handleSubmit={requestVerificationCode}
+          />
+        );
     }
   };
 
