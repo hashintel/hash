@@ -123,6 +123,10 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
     });
   };
 
+  const resendLoginCode = () => {
+    void requestLoginCode(loginIdentifier);
+  };
+
   const goBack = () => {
     if (activeScreen === Screen.VerifyCode) {
       setActiveScreen(Screen.Intro);
@@ -148,6 +152,8 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
             goBack={goBack}
             handleSubmit={login}
             loading={loginWithLoginCodeLoading}
+            requestCode={resendLoginCode}
+            requestCodeLoading={sendLoginCodeLoading}
             errorMessage={errorMessage}
           />
         );

@@ -57,8 +57,8 @@ export const SignupModal: VFC<SignupModalProps> = ({
     onError: ({ graphQLErrors }) => {
       graphQLErrors.forEach(({ extensions, message }) => {
         const { code } = extensions as { code?: keyof typeof AUTH_ERROR_CODES };
-        if (code === "ALREADY_EXISTS") {
-          setErrorMessage(message);
+        if (code) {
+          setErrorMessage(AUTH_ERROR_CODES[code]);
         } else {
           throw new ApolloError({ graphQLErrors });
         }
