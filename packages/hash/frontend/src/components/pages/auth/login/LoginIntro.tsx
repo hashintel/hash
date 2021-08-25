@@ -1,3 +1,4 @@
+import { useRouter } from "next/router";
 import React, { useRef, VoidFunctionComponent } from "react";
 import { useEffect, useState } from "react";
 import { tw } from "twind";
@@ -37,12 +38,27 @@ export const LoginIntro: VoidFunctionComponent<LoginIntroProps> = ({
   loading,
   navigateToSignup,
 }) => {
+  const router = useRouter();
   const [emailOrShortname, setEmailOrShortname] = useState<string>("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     inputRef.current?.select();
   }, []);
+
+  useEffect(() => {
+    const { query } = router;
+    if (typeof query.email === "string") {
+      const { email, ...remainingQuery } = query;
+      setEmailOrShortname(email);
+      void router.replace({ ...router, query: remainingQuery}, undefined, { shallow: true });
+    };
+    if (typeof query.shortname === "string") { 
+      const { shortname, ...remainingQuery } = query;
+      setEmailOrShortname(shortname);
+      void router.replace({ ...router, query: remainingQuery}, undefined, { shallow: true });
+    }
+  }, [router]);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
