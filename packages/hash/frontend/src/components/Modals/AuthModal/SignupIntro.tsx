@@ -53,7 +53,7 @@ export const SignupIntro: VFC<SignupIntroProps> = ({
         <em className={tw`mx-2 text-gray-400`}>or</em>
         <div className={tw`flex-1 h-px bg-gray-200`} />
       </div>
-      <form onSubmit={onSubmit}>
+      <form className={tw`flex flex-col w-64 items-center`} onSubmit={onSubmit}>
         <input
           placeholder="Enter your email address.."
           type="email"
@@ -61,6 +61,9 @@ export const SignupIntro: VFC<SignupIntroProps> = ({
           className={tw`w-64 bg-gray-100 border-1 border-gray-300 rounded-lg h-11 py-4 px-5 mb-2`}
           onChange={(evt) => setEmail(evt.target.value)}
         />
+        {errorMessage && (
+          <span className={tw`text-red-500 text-sm mb-4 text-center`}>{errorMessage}</span>
+        )}
         <button
           className={tw`w-64 bg-white border-1 border-gray-300 rounded-lg h-11 flex items-center justify-center text-sm font-bold`}
         >

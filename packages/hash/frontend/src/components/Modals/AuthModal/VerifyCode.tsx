@@ -52,7 +52,7 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
       >
         <div className={tw`w-8/12`}>
           <p className={tw`font-bold`}>
-            A verification email has been sent to{" "}
+            A verification code has been sent to{" "}
             <span>
               {isShortname(loginIdentifier)
                 ? "your primary email address"

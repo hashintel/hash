@@ -1,6 +1,5 @@
 import React, { VoidFunctionComponent } from "react";
 import { useRouter } from "next/router";
-import { ParsedUrlQueryInput } from "querystring";
 import { useEffect, useState } from "react";
 
 import { AuthModalLayout, AuthModalLayoutProps } from "./AuthModalLayout";
@@ -18,6 +17,7 @@ import {
   sendLoginCode as sendLoginCodeMutation,
   loginWithLoginCode as loginWithLoginCodeMutation,
 } from "../../../graphql/queries/user.queries";
+import { AUTH_ERROR_CODES, isParsedAuthQuery } from "./utils";
 
 enum Screen {
   Intro,
@@ -25,29 +25,9 @@ enum Screen {
   AccountSetup,
 }
 
-type ParsedLoginQuery = {
-  verificationId: string;
-  verificationCode: string;
-};
-
-const isParsedLoginQuery = (
-  tbd: ParsedUrlQueryInput
-): tbd is ParsedLoginQuery =>
-  typeof tbd.verificationId === "string" &&
-  typeof tbd.verificationCode === "string";
-
 type LoginModalProps = {
   onLoggedIn?: () => void;
 } & Omit<AuthModalLayoutProps, "children">;
-
-const ERROR_CODES = {
-  LOGIN_CODE_NOT_FOUND: "An unexpected error occurred, please try again.",
-  MAX_ATTEMPTS:
-    "You have exceeded the maximum number of attempts for this login code, please try again.",
-  EXPIRED: "This login code has expired, please try again.",
-  INCORRECT: "This login code has expired, please try again.",
-  NOT_FOUND: "",
-} as const;
 
 export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
   show,
@@ -76,7 +56,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
     },
     onError: ({ graphQLErrors }) =>
       graphQLErrors.forEach(({ extensions, message }) => {
-        const { code } = extensions as { code?: keyof typeof ERROR_CODES };
+        const { code } = extensions as { code?: keyof typeof AUTH_ERROR_CODES };
         if (code === "NOT_FOUND") {
           setErrorMessage(message);
         } else {
@@ -94,10 +74,12 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
         },
         onError: ({ graphQLErrors }) =>
           graphQLErrors.forEach(({ extensions }) => {
-            const { code } = extensions as { code?: keyof typeof ERROR_CODES };
+            const { code } = extensions as {
+              code?: keyof typeof AUTH_ERROR_CODES;
+            };
 
-            if (code && Object.keys(ERROR_CODES).includes(code)) {
-              setErrorMessage(ERROR_CODES[code]);
+            if (code && Object.keys(AUTH_ERROR_CODES).includes(code)) {
+              setErrorMessage(AUTH_ERROR_CODES[code]);
             } else {
               throw new ApolloError({ graphQLErrors });
             }
@@ -114,7 +96,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
   // handle magic link
   useEffect(() => {
     const { pathname, query } = router;
-    if (pathname === "/login" && isParsedLoginQuery(query)) {
+    if (pathname === "/login" && isParsedAuthQuery(query)) {
       const { verificationId, verificationCode } = query;
       setActiveScreen(Screen.VerifyCode);
       setVerificationCode(verificationCode);
@@ -152,7 +134,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
 
   const navigateToSignup = () => {
     router.push("/signup");
-    setTimeout(close, 500)
+    setTimeout(close, 500);
   };
 
   const renderContent = () => {
