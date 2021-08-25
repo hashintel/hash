@@ -91,6 +91,7 @@ export const loginWithLoginCode = gql`
       entityTypeVersionId
       entityTypeName
       visibility
+      accountSignupComplete
       properties {
         shortname
         emails {

@@ -150,6 +150,13 @@ const SignupPage: NextPage = () => {
 
   return (
     <AuthLayout>
+      {activeScreen === Screen.Intro && (
+        <SignupIntro
+          loading={createUserLoading}
+          errorMessage={errorMessage}
+          handleSubmit={requestVerificationCode}
+        />
+      )}
       {activeScreen === Screen.VerifyCode && (
         <VerifyCode
           loginIdentifier={email}
@@ -168,13 +175,6 @@ const SignupPage: NextPage = () => {
           updateUserDetails={updateUserDetails}
           loading={updateUserLoading}
           errorMessage={errorMessage}
-        />
-      )}
-      {activeScreen === Screen.Intro && (
-        <SignupIntro
-          loading={createUserLoading}
-          errorMessage={errorMessage}
-          handleSubmit={requestVerificationCode}
         />
       )}
     </AuthLayout>

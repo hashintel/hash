@@ -29,7 +29,7 @@ enum Screen {
 }
 
 type LoginModalProps = {
-  onLoggedIn?: () => void;
+  onLoggedIn?: (user: LoginWithLoginCodeMutation["loginWithLoginCode"]) => void;
 } & Omit<AuthModalLayoutProps, "children">;
 
 export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
@@ -72,8 +72,8 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
     useMutation<LoginWithLoginCodeMutation, MutationLoginWithLoginCodeArgs>(
       loginWithLoginCodeMutation,
       {
-        onCompleted: () => {
-          if (onLoggedIn) onLoggedIn();
+        onCompleted: ({ loginWithLoginCode }) => {
+          if (onLoggedIn) onLoggedIn(loginWithLoginCode);
         },
         onError: ({ graphQLErrors }) =>
           graphQLErrors.forEach(({ extensions }) => {
