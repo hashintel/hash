@@ -4,7 +4,7 @@ import User from "../../../model/user.model";
 import VerificationCode from "../../../model/verificationCode.model";
 
 export const verifyVerificationCode =
-  (db: DBClient) =>
+  (client: DBClient) =>
   async ({
     id,
     code,
@@ -12,7 +12,7 @@ export const verifyVerificationCode =
     id: string;
     code: string;
   }): Promise<{ user: User; verificationCode: VerificationCode }> => {
-    const verificationCode = await VerificationCode.getById(db)({ id });
+    const verificationCode = await VerificationCode.getById(client)({ id });
 
     if (!verificationCode)
       throw new ApolloError(
@@ -36,7 +36,7 @@ export const verifyVerificationCode =
 
     // If the provided code does not match the verification code
     if (verificationCode.code !== code) {
-      await verificationCode.incrementAttempts(db);
+      await verificationCode.incrementAttempts(client);
 
       throw new ApolloError(
         `The provided verification code does not match the verification code with id '${id}'.`,
@@ -44,10 +44,12 @@ export const verifyVerificationCode =
       );
     }
 
-    // Otherwise, the verification code is valid
+    // Otherwise, the verification code is valid and we can delete it
+    await verificationCode.delete(client);
+
     return {
       verificationCode,
-      user: await User.getUserById(db)({
+      user: await User.getUserById(client)({
         id: verificationCode.userId,
       })
         .then((user) => {

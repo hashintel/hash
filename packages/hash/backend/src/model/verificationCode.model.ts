@@ -68,6 +68,8 @@ class VerificationCode {
   incrementAttempts = (db: DBClient) =>
     db.incrementVerificationCodeAttempts({ id: this.id, userId: this.userId });
 
+  delete = (db: DBClient) => db.deleteVerificationCode({ id: this.id });
+
   toGQLVerificationCodeMetadata = (): GQLVerificationCodeMetadata => ({
     id: this.id,
     createdAt: this.createdAt,
