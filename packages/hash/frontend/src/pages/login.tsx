@@ -1,18 +1,16 @@
 import { NextPage } from "next";
 import { LoginModal } from "../components/Modals/AuthModal/LoginModal";
 import { useRouter } from "next/router";
-import { useModal } from "react-modal-hook";
-import { useLayoutEffect } from "react";
 import { useUser } from "../components/hooks/useUser";
 
 const LoginPage: NextPage = () => {
   const { refetch } = useUser();
   const router = useRouter();
 
-  const [showLoginModal, hideLoginModal] = useModal(() => (
+  return (
     <LoginModal
       show={true}
-      close={hideLoginModal}
+      close={() => undefined}
       closeIconHidden
       onLoggedIn={({ accountSignupComplete }) => {
         void refetch().then(() => {
@@ -22,13 +20,7 @@ const LoginPage: NextPage = () => {
         });
       }}
     />
-  ));
-
-  useLayoutEffect(() => {
-    showLoginModal();
-  }, [showLoginModal]);
-
-  return null;
+  );
 };
 
 export default LoginPage;
