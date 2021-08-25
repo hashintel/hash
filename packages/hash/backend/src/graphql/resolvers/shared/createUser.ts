@@ -15,8 +15,7 @@ export const createUser: Resolver<
   MutationCreateUserArgs
 > = async (_, { email }, { dataSources }) =>
   dataSources.db.transaction(async (client) => {
-    // TODO: should check for uniqueness of email
-
+    // Ensure the email address isn't already verified and associated with a user
     if (await User.getUserByVerifiedEmail(client)({ email })) {
       throw new ApolloError(
         `User with the email '${email}' already exists in the datastore`,
@@ -24,6 +23,7 @@ export const createUser: Resolver<
       );
     }
 
+    // Othwerise create a user in the datastore with the email address
     const user = await User.create(client)({
       emails: [{ address: email, primary: true, verified: false }],
     });

@@ -15,7 +15,8 @@ export const updateUser: Resolver<
   MutationUpdateUserArgs
 > = async (_, { id, properties }, { dataSources, user }) =>
   dataSources.db.transaction(async (client) => {
-    // @todo: allow HASH admins to bypass this
+    /** @todo: allow HASH admins to bypass this */
+
     if (id !== user.entityId)
       throw new ForbiddenError("You can only update your own user properties");
 
