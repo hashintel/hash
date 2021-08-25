@@ -2,9 +2,12 @@ import React, { VoidFunctionComponent } from "react";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 
-import { AuthModalLayout, AuthModalLayoutProps } from "./AuthModalLayout";
-import { LoginIntro } from "./LoginIntro";
-import { VerifyCode } from "./VerifyCode";
+import {
+  AuthModalLayout,
+  AuthModalLayoutProps,
+} from "../../Modals/AuthModal/AuthModalLayout";
+import { LoginIntro } from "../../pages/auth/login/LoginIntro";
+import { VerifyCode } from "../../pages/auth/VerifyCode";
 import {
   VerificationCodeMetadata,
   LoginWithLoginCodeMutation,
@@ -17,7 +20,7 @@ import {
   sendLoginCode as sendLoginCodeMutation,
   loginWithLoginCode as loginWithLoginCodeMutation,
 } from "../../../graphql/queries/user.queries";
-import { AUTH_ERROR_CODES, isParsedAuthQuery } from "./utils";
+import { AUTH_ERROR_CODES, isParsedAuthQuery } from "../../pages/auth/utils";
 
 enum Screen {
   Intro,

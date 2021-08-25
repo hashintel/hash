@@ -2,9 +2,9 @@ import React, { useRef, VoidFunctionComponent } from "react";
 import { useEffect, useState } from "react";
 import { tw } from "twind";
 
-import Logo from "../../../assets/svg/logo.svg";
-import { IconHash } from "../../Icons/IconHash/IconHash";
-import IconKeyboardReturn from "../../Icons/IconKeyboardReturn/IconKeyboardReturn";
+import Logo from "../../../../assets/svg/logo.svg";
+import { IconHash } from "../../../Icons/IconHash/IconHash";
+import IconKeyboardReturn from "../../../Icons/IconKeyboardReturn/IconKeyboardReturn";
 
 const options = [
   {
