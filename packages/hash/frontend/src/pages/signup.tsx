@@ -48,7 +48,12 @@ const SignupPage: NextPage = () => {
   const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (user && !user.accountSignupComplete && activeScreen !== Screen.AccountSetup) {
+    if (
+      user &&
+      !user.accountSignupComplete &&
+      activeScreen !== Screen.AccountSetup
+    ) {
+      setUserId(user.id);
       setActiveScreen(Screen.AccountSetup);
     }
   }, [activeScreen, user]);
@@ -108,7 +113,10 @@ const SignupPage: NextPage = () => {
     UpdateUserMutation,
     UpdateUserMutationVariables
   >(updateUserMutation, {
-    onCompleted: ({}) => refetch().then(() => router.push("/")),
+    onCompleted: ({}) => {
+      void refetch();
+      void router.push("/");
+    },
     onError: ({ graphQLErrors }) => {
       graphQLErrors.forEach(({ message }) => {
         // const { code } = extensions as { code?: string };
