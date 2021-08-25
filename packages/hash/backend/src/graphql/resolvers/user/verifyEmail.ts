@@ -15,11 +15,11 @@ export const verifyEmail: Resolver<
   GraphQLContext,
   MutationVerifyEmailArgs
 > = async (_, args, { dataSources, passport, ...ctx }) =>
-  dataSources.db.transaction((client) =>
-    verifyVerificationCode(client)({
-      id: args.verificationId,
-      code: args.verificationCode,
-    }).then(async ({ user, verificationCode }) => {
+  verifyVerificationCode(dataSources.db)({
+    id: args.verificationId,
+    code: args.verificationCode,
+  }).then(async ({ user, verificationCode }) =>
+    dataSources.db.transaction(async (client) => {
       const email = user.getEmail(verificationCode.emailAddress);
 
       // Ensure the email address is associated with the user

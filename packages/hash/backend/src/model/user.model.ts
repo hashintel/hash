@@ -19,7 +19,6 @@ type UserConstructorArgs = {
 } & Omit<EntityConstructorArgs, "type">;
 
 class User extends Entity {
-
   properties: UserProperties;
 
   constructor({ properties, ...remainingArgs }: UserConstructorArgs) {

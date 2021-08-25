@@ -12,12 +12,10 @@ export const loginWithLoginCode: Resolver<
   GraphQLContext,
   MutationLoginWithLoginCodeArgs
 > = async (_, args, { dataSources, passport }) =>
-  dataSources.db.transaction((client) =>
-    verifyVerificationCode(client)({
-      id: args.verificationId,
-      code: args.verificationCode,
-    }).then(async ({ user }) => {
-      await passport.login(user, {});
-      return user.toGQLUser();
-    })
-  );
+  verifyVerificationCode(dataSources.db)({
+    id: args.verificationId,
+    code: args.verificationCode,
+  }).then(async ({ user }) => {
+    await passport.login(user, {});
+    return user.toGQLUser();
+  });
