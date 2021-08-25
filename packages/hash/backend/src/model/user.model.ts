@@ -19,8 +19,6 @@ type UserConstructorArgs = {
 } & Omit<EntityConstructorArgs, "type">;
 
 class User extends Entity {
-  // the cached User system entity type
-  static entityType?: EntityType;
 
   properties: UserProperties;
 
@@ -29,7 +27,7 @@ class User extends Entity {
     this.properties = properties;
   }
 
-  private static fetchEntityType = async (db: DBClient) =>
+  static getEntityType = async (db: DBClient): Promise<EntityType> =>
     db
       .getSystemTypeLatestVersion({ systemTypeName: "User" })
       .then((userEntityType) => {
@@ -38,14 +36,6 @@ class User extends Entity {
 
         return userEntityType;
       });
-
-  static getEntityType = async (db: DBClient): Promise<EntityType> => {
-    // fetch the User system entity type if it is not already cached
-    User.entityType = User.entityType || (await User.fetchEntityType(db));
-
-    // return the User system entity type
-    return User.entityType;
-  };
 
   static getUserById =
     (db: DBClient) =>
