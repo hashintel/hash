@@ -26,8 +26,8 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
   loginIdentifier,
   handleSubmit,
   loading,
-  requestCode,
-  requestCodeLoading,
+  // requestCode,
+  // requestCodeLoading,
 }) => {
   // const [emailResent, setEmailResent] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -96,6 +96,7 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
         >
           &larr; <span className={tw`ml-1`}>Try logging in another way</span>
         </button>
+        {/* Temporarily remove resend email button
         <div className={tw`flex items-center`}>
           <span className={tw`mr-1`}>No email yet?</span>
           <button
@@ -108,7 +109,7 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
               <IconHash className={tw`h-3 w-3 ml-1 animate-spin`} />
             )}
           </button>
-        </div>
+        </div> */}
         {/* {emailResent ? (
           <div className={tw`flex items-center`}>
             <span className={tw`mr-1`}>No email yet?</span>
