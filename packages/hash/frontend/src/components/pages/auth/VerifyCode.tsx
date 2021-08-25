@@ -67,13 +67,13 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
           </p>
           <form className={tw`relative`} onSubmit={onSubmit}>
             <input
-              className={tw`block border-b-1 border-gray-300 w-11/12 mx-auto mb-2 py-3 pl-3 pr-3 text-3xl text-center focus:outline-none focus:border-blue-500`}
+              className={tw`block border-b-1 border-gray-300 w-11/12 mx-auto mb-2 py-3 pl-3 pr-20 text-2xl text-center focus:outline-none focus:border-blue-500`}
               onChange={(evt) => setCode(evt.target.value)}
               value={code}
               ref={inputRef}
             />
             <button
-              className={tw`absolute right-0 top-1/2 transition-all translate-x-3/4 -translate-y-1/2 flex items-center disabled:opacity-0 disabled:pointer-events-none text-blue-500 hover:text-blue-700 font-bold py-2 px-2`}
+              className={tw`absolute right-0 top-1/2 mr-3 transition-all -translate-y-1/2 flex items-center disabled:opacity-40 disabled:pointer-events-none text-blue-500 hover:text-blue-700 font-bold py-2 px-2`}
               disabled={!isInputValid() || loading}
             >
               <span className={tw`mr-1`}>Submit</span>
