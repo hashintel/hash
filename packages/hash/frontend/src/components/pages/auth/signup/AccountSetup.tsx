@@ -104,7 +104,7 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
               <IconSpinner className={tw`h-4 w-4 text-white animate-spin`} />
             ) : (
               <>
-                <span>Continue with email</span>
+                <span>Continue</span>
                 <span
                   className={tw`ml-2 transition-all group-hover:translate-x-1`}
                 >
