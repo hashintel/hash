@@ -28,6 +28,7 @@ export const PageHeader: VoidFunctionComponent = () => {
       show={true}
       close={hideSignupModal}
       onSignupComplete={() => {
+        void refetch();
         hideSignupModal();
       }}
     />

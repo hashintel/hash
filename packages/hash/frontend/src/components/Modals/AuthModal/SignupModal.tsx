@@ -55,10 +55,10 @@ export const SignupModal: VFC<SignupModalProps> = ({
       setActiveScreen(Screen.VerifyCode);
     },
     onError: ({ graphQLErrors }) => {
-      graphQLErrors.forEach(({ extensions, message }) => {
+      graphQLErrors.forEach(({ extensions }) => {
         const { code } = extensions as { code?: keyof typeof AUTH_ERROR_CODES };
-        if (code === "ALREADY_EXISTS") {
-          setErrorMessage(message);
+        if (code) {
+          setErrorMessage(AUTH_ERROR_CODES[code]);
         } else {
           throw new ApolloError({ graphQLErrors });
         }
@@ -75,7 +75,7 @@ export const SignupModal: VFC<SignupModalProps> = ({
       onSignupComplete?.();
     },
     onError: ({ graphQLErrors }) => {
-      graphQLErrors.forEach(({ extensions, message }) => {
+      graphQLErrors.forEach(({ extensions }) => {
         const { code } = extensions as { code?: keyof typeof AUTH_ERROR_CODES };
         if (code) {
           setErrorMessage(AUTH_ERROR_CODES[code]);
@@ -94,10 +94,10 @@ export const SignupModal: VFC<SignupModalProps> = ({
   };
 
   useEffect(() => {
-    if (!show && activeScreen != Screen.Intro) {
+    if (!show && activeScreen !== Screen.Intro) {
       setActiveScreen(Screen.Intro);
     }
-  }, [show]);
+  }, [show, activeScreen]);
 
   useEffect(() => {
     const { pathname, query } = router;
@@ -115,7 +115,7 @@ export const SignupModal: VFC<SignupModalProps> = ({
 
   const handleVerifyEmail = () => {
     if (!verificationCodeMetadata) return;
-    verifyEmail({
+    void verifyEmail({
       variables: {
         verificationId: verificationCodeMetadata?.id,
         verificationCode: verificationCode,
@@ -135,6 +135,8 @@ export const SignupModal: VFC<SignupModalProps> = ({
             loading={verifyEmailLoading}
             handleSubmit={handleVerifyEmail}
             errorMessage={errorMessage}
+            requestCodeLoading={false}
+            requestCode={() => {}}
           />
         );
 

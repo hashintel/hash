@@ -88,10 +88,10 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
     );
 
   useEffect(() => {
-    if (!show && activeScreen != Screen.Intro) {
+    if (!show && activeScreen !== Screen.Intro) {
       setActiveScreen(Screen.Intro);
     }
-  }, [show]);
+  }, [show, activeScreen]);
 
   // handle magic link
   useEffect(() => {
@@ -123,6 +123,10 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
     });
   };
 
+  const resendLoginCode = () => {
+    void requestLoginCode(loginIdentifier);
+  };
+
   const goBack = () => {
     if (activeScreen === Screen.VerifyCode) {
       setActiveScreen(Screen.Intro);
@@ -133,7 +137,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
   };
 
   const navigateToSignup = () => {
-    router.push("/signup");
+    void router.push("/signup");
     setTimeout(close, 500);
   };
 
@@ -148,6 +152,8 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
             goBack={goBack}
             handleSubmit={login}
             loading={loginWithLoginCodeLoading}
+            requestCode={resendLoginCode}
+            requestCodeLoading={sendLoginCodeLoading}
             errorMessage={errorMessage}
           />
         );

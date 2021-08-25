@@ -1,5 +1,4 @@
-import React, { useEffect, useCallback } from "react";
-import { VFC, useRef } from "react";
+import React, { VFC, useRef, useEffect, useCallback } from "react";
 import { tw } from "twind";
 import Logo from "../../../assets/svg/logo.svg";
 import { IconHash } from "../../Icons/IconHash/IconHash";
@@ -13,6 +12,8 @@ type VerifyCodeProps = {
   errorMessage?: string;
   loginIdentifier: string;
   handleSubmit: () => void;
+  requestCode: () => void;
+  requestCodeLoading: boolean;
 };
 
 const isShortname = (identifier: string) => !identifier.includes("@");
@@ -25,7 +26,10 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
   loginIdentifier,
   handleSubmit,
   loading,
+  requestCode,
+  requestCodeLoading,
 }) => {
+  // const [emailResent, setEmailResent] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -95,15 +99,38 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
         >
           &larr; <span className={tw`ml-1`}>Try logging in another way</span>
         </button>
-
         <div className={tw`flex`}>
           <span className={tw`mr-1`}>No email yet?</span>
           <button
             className={tw`text-blue-500 focus:text-blue-700 hover:text-blue-700 font-bold  focus:outline-none`}
+            onClick={requestCode}
+            disabled={requestCodeLoading}
           >
-            Resend email
+            <span>Resend email</span>
+            {loading && <IconHash className={tw`h-4 w-4 ml-1 animate-spin`} />}
           </button>
         </div>
+
+        {/* {!emailResent ? (
+          <div className={tw`flex`}>
+            <span className={tw`mr-1`}>No email yet?</span>
+            <button
+              className={tw`text-blue-500 focus:text-blue-700 hover:text-blue-700 font-bold  focus:outline-none`}
+              onClick={requestCode}
+              disabled={requestCodeLoading}
+            >
+              <span>Resend email</span>
+              {loading && (
+                <IconHash className={tw`h-4 w-4 ml-1 animate-spin`} />
+              )}
+            </button>
+          </div>
+        ) : (
+          <div className={tw`flex`}>
+            <span className={tw`mr-1`}>No email yet?</span>
+            <span className={tw`text-green-500`}>Email Resent</span>
+          </div>
+        )} */}
       </div>
     </div>
   );

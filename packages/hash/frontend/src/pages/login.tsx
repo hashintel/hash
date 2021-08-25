@@ -3,8 +3,10 @@ import { LoginModal } from "../components/Modals/AuthModal/LoginModal";
 import { useRouter } from "next/router";
 import { useModal } from "react-modal-hook";
 import { useLayoutEffect } from "react";
+import { useUser } from "../components/hooks/useUser";
 
 const LoginPage: NextPage = () => {
+  const { refetch } = useUser();
   const router = useRouter();
 
   const [showLoginModal, hideLoginModal] = useModal(() => (
@@ -12,13 +14,16 @@ const LoginPage: NextPage = () => {
       show={true}
       close={hideLoginModal}
       closeIconHidden
-      onLoggedIn={() => router.push("/")}
+      onLoggedIn={() => {
+        void refetch();
+        void router.push("/");
+      }}
     />
   ));
 
   useLayoutEffect(() => {
     showLoginModal();
-  }, []);
+  }, [showLoginModal]);
 
   return null;
 };
