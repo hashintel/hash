@@ -19,8 +19,9 @@ export const sendLoginCode: Resolver<
     const hasProvidedEmail = emailOrShortname.includes("@");
 
     const user = hasProvidedEmail
-      ? await User.getUserByVerifiedEmail(client)({
+      ? await User.getUserByEmail(client)({
           email: emailOrShortname,
+          verified: true,
         }).then((user) => {
           /**
            * @todo: if the email address is associated with a user but it hasn't been verified,

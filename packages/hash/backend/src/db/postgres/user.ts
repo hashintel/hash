@@ -25,9 +25,9 @@ export const getUserById = async (conn: Connection, params: { id: string }) => {
 
 // @todo: this function is not optimized to take DB indexes or sharding into account. It
 //    might be better to have a separate "users" table.
-export const getUserByVerifiedEmail = async (
+export const getUserByEmail = async (
   conn: Connection,
-  params: { email: string }
+  params: { email: string; verified?: boolean; primary?: boolean }
 ) => {
   const row = await conn.maybeOne(sql`
     ${selectEntities}
@@ -39,8 +39,16 @@ export const getUserByVerifiedEmail = async (
           from json_array_elements(e.properties::json -> 'emails') email
           where (
               email ->> 'address' = ${params.email}
-            and
-              (email ->> 'verified')::boolean is true
+              ${
+                params.verified !== undefined
+                  ? sql`and (email ->> 'verified')::boolean = ${params.verified}`
+                  : sql``
+              }
+              ${
+                params.primary !== undefined
+                  ? sql`and (email ->> 'primary')::boolean = ${params.primary}`
+                  : sql``
+              }
           )
         )
         
