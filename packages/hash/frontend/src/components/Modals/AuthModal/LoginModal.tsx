@@ -88,10 +88,10 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
     );
 
   useEffect(() => {
-    if (!show && activeScreen != Screen.Intro) {
+    if (!show && activeScreen !== Screen.Intro) {
       setActiveScreen(Screen.Intro);
     }
-  }, [show]);
+  }, [show, activeScreen]);
 
   // handle magic link
   useEffect(() => {
@@ -137,7 +137,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
   };
 
   const navigateToSignup = () => {
-    router.push("/signup");
+    void router.push("/signup");
     setTimeout(close, 500);
   };
 

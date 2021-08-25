@@ -15,10 +15,10 @@ export const AuthModalLayout: VoidFunctionComponent<AuthModalLayoutProps> = ({
   children,
   close,
   show,
-  closeIconHidden=false
+  closeIconHidden = false,
 }) => {
   const initialFocusRef = useRef<HTMLButtonElement>(null);
-  
+
   return (
     <Dialog
       as="div"
@@ -35,7 +35,9 @@ export const AuthModalLayout: VoidFunctionComponent<AuthModalLayoutProps> = ({
         </div>
         <button
           type="button"
-          className={tw`${closeIconHidden ? 'invisible': ''} absolute top-8 right-8 text-3xl hover:bg-black hover:bg-opacity-10 leading-none h-12 w-12 flex items-center justify-center rounded-full`}
+          className={tw`${
+            closeIconHidden ? "invisible" : ""
+          } absolute top-8 right-8 text-3xl hover:bg-black hover:bg-opacity-10 leading-none h-12 w-12 flex items-center justify-center rounded-full`}
           onClick={close}
           ref={initialFocusRef}
         >

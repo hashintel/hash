@@ -17,14 +17,14 @@ const SignupPage: NextPage = () => {
       closeIconHidden
       onSignupComplete={() => {
         void refetch();
-        router.push("/");
+        void router.push("/");
       }}
     />
   ));
 
   useLayoutEffect(() => {
     showSignupModal();
-  }, []);
+  }, [showSignupModal]);
 
   return null;
 };

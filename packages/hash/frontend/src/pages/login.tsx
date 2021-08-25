@@ -16,14 +16,14 @@ const LoginPage: NextPage = () => {
       closeIconHidden
       onLoggedIn={() => {
         void refetch();
-        router.push("/");
+        void router.push("/");
       }}
     />
   ));
 
   useLayoutEffect(() => {
     showLoginModal();
-  }, []);
+  }, [showLoginModal]);
 
   return null;
 };

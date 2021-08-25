@@ -62,7 +62,9 @@ export const SignupIntro: VFC<SignupIntroProps> = ({
           onChange={(evt) => setEmail(evt.target.value)}
         />
         {errorMessage && (
-          <span className={tw`text-red-500 text-sm mb-4 text-center`}>{errorMessage}</span>
+          <span className={tw`text-red-500 text-sm mb-4 text-center`}>
+            {errorMessage}
+          </span>
         )}
         <button
           className={tw`w-64 bg-white border-1 border-gray-300 rounded-lg h-11 flex items-center justify-center text-sm font-bold`}
