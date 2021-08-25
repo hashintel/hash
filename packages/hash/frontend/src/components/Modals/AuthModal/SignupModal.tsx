@@ -6,16 +6,19 @@ import { VerifyCode } from "./VerifyCode";
 import { AccountSetup } from "./AccountSetup";
 
 import { AuthModalLayout, AuthModalLayoutProps } from "./AuthModalLayout";
-import { ApolloError, useMutation } from "@apollo/client";
+import { useMutation } from "@apollo/client";
 import {
   CreateUserMutation,
   CreateUserMutationVariables,
+  UpdateUserMutation,
+  UpdateUserMutationVariables,
   VerificationCodeMetadata,
   VerifyEmailMutation,
   VerifyEmailMutationVariables,
 } from "../../../graphql/apiTypes.gen";
 import {
   createUser as createUserMutation,
+  updateUser as updateUserMutation,
   verifyEmail as verifyEmailMutation,
 } from "../../../graphql/queries/user.queries";
 import { AUTH_ERROR_CODES, isParsedAuthQuery } from "./utils";
@@ -43,6 +46,7 @@ export const SignupModal: VFC<SignupModalProps> = ({
   >();
   const [verificationCode, setVerificationCode] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [userId, setUserId] = useState<string | null>(null);
   const router = useRouter();
 
   const [createUser, { loading: createUserLoading }] = useMutation<
@@ -55,12 +59,12 @@ export const SignupModal: VFC<SignupModalProps> = ({
       setActiveScreen(Screen.VerifyCode);
     },
     onError: ({ graphQLErrors }) => {
-      graphQLErrors.forEach(({ extensions }) => {
+      graphQLErrors.forEach(({ extensions, message }) => {
         const { code } = extensions as { code?: keyof typeof AUTH_ERROR_CODES };
         if (code) {
           setErrorMessage(AUTH_ERROR_CODES[code]);
         } else {
-          throw new ApolloError({ graphQLErrors });
+          setErrorMessage(message);
         }
       });
     },
@@ -70,28 +74,39 @@ export const SignupModal: VFC<SignupModalProps> = ({
     VerifyEmailMutation,
     VerifyEmailMutationVariables
   >(verifyEmailMutation, {
-    onCompleted: ({}) => {
+    onCompleted: ({ verifyEmail: data }) => {
       setErrorMessage("");
-      onSignupComplete?.();
+      setUserId(data.id);
+
+      setActiveScreen(Screen.AccountSetup);
     },
     onError: ({ graphQLErrors }) => {
-      graphQLErrors.forEach(({ extensions }) => {
+      graphQLErrors.forEach(({ extensions, message }) => {
         const { code } = extensions as { code?: keyof typeof AUTH_ERROR_CODES };
         if (code) {
           setErrorMessage(AUTH_ERROR_CODES[code]);
         } else {
-          // Probably set a generic error message here
+          setErrorMessage(message);
         }
       });
     },
   });
 
-  const requestVerificationCode = (email: string) => {
-    setEmail(email);
-    void createUser({
-      variables: { email },
-    });
-  };
+  const [updateUser, { loading: updateUserLoading }] = useMutation<
+    UpdateUserMutation,
+    UpdateUserMutationVariables
+  >(updateUserMutation, {
+    onCompleted: ({}) => {
+      onSignupComplete?.();
+    },
+    onError: ({ graphQLErrors }) => {
+      graphQLErrors.forEach(({ message }) => {
+        // const { code } = extensions as { code?: string };
+
+        setErrorMessage(message);
+      });
+    },
+  });
 
   useEffect(() => {
     if (!show && activeScreen !== Screen.Intro) {
@@ -113,6 +128,13 @@ export const SignupModal: VFC<SignupModalProps> = ({
     }
   }, [router, verifyEmail]);
 
+  const requestVerificationCode = (email: string) => {
+    setEmail(email);
+    void createUser({
+      variables: { email },
+    });
+  };
+
   const handleVerifyEmail = () => {
     if (!verificationCodeMetadata) return;
     void verifyEmail({
@@ -120,6 +142,13 @@ export const SignupModal: VFC<SignupModalProps> = ({
         verificationId: verificationCodeMetadata?.id,
         verificationCode: verificationCode,
       },
+    });
+  };
+
+  const updateUserDetails = (shortname: string, preferredName: string) => {
+    if (!userId) return;
+    void updateUser({
+      variables: { id: userId, properties: { shortname, preferredName } },
     });
   };
 
@@ -141,7 +170,13 @@ export const SignupModal: VFC<SignupModalProps> = ({
         );
 
       case Screen.AccountSetup:
-        return <AccountSetup />;
+        return (
+          <AccountSetup
+            updateUserDetails={updateUserDetails}
+            loading={updateUserLoading}
+            errorMessage={errorMessage}
+          />
+        );
 
       case Screen.Intro:
       default:
