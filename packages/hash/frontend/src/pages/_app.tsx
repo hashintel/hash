@@ -9,7 +9,7 @@ import withTwindApp from "@twind/next/app";
 import { PageLayout } from "../components/layout/PageLayout/PageLayout";
 import { ModalProvider } from "react-modal-hook";
 
-import { useQuery } from "@apollo/client";
+import { ApolloError, useQuery } from "@apollo/client";
 import { meQuery } from "../graphql/queries/user.queries";
 import { MeQuery, MeQueryVariables } from "../graphql/apiTypes.gen";
 
@@ -25,7 +25,14 @@ function MyApp({ Component, pageProps }: AppProps) {
 
   const { data, refetch, loading } = useQuery<MeQuery, MeQueryVariables>(
     meQuery,
-    { client: apolloClient } // has to be provided as this query operates outside ApolloProvider
+    {
+      onError: ({ graphQLErrors }) =>
+        graphQLErrors.map((graphQLError) => {
+          if (graphQLError.extensions?.code !== "FORBIDDEN")
+            throw new ApolloError({ graphQLErrors });
+        }),
+      client: apolloClient, // has to be provided as this query operates outside ApolloProvider
+    }
   );
 
   const user = data?.me;
