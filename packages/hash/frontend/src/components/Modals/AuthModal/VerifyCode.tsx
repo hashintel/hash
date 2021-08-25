@@ -15,7 +15,7 @@ type VerifyCodeProps = {
   handleSubmit: () => void;
 };
 
-const isEmail = (email: string) => email.includes("@");
+const isShortname = (identifier: string) => !identifier.includes("@");
 
 export const VerifyCode: VFC<VerifyCodeProps> = ({
   code,
@@ -53,7 +53,11 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
         <div className={tw`w-8/12`}>
           <p className={tw`font-bold`}>
             A verification email has been sent to{" "}
-            <span>{isEmail(loginIdentifier)}</span>
+            <span>
+              {isShortname(loginIdentifier)
+                ? "your primary email address"
+                : loginIdentifier}
+            </span>
           </p>
           <p className={tw`mb-10`}>
             Click the link in this email or enter the verification phrase below
@@ -68,10 +72,8 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
               onPaste={handlePaste}
             />
             <button
-              className={tw`absolute right-0 top-1/2 ${
-                isInputValid() ? "opacity-100" : "opacity-0 pointer-events-none"
-              } transition-all translate-x-full -translate-y-1/2 flex items-center disabled:opacity-50 text-blue-500 hover:text-blue-700 font-bold py-2 px-2`}
-              disabled={isInputValid() || loading}
+              className={tw`absolute right-0 top-1/2 transition-all translate-x-3/4 -translate-y-1/2 flex items-center disabled:opacity-0 disabled:pointer-events-none text-blue-500 hover:text-blue-700 font-bold py-2 px-2`}
+              disabled={!isInputValid() || loading}
             >
               <span className={tw`mr-1`}>Submit</span>
               {loading ? (
