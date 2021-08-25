@@ -2,8 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useRef, VFC } from "react";
 import { tw } from "twind";
 
-import GithubIcon from "../../../assets/svg/github.svg";
-import GoogleIcon from "../../../assets/svg/google.svg";
+// import GithubIcon from "../../../assets/svg/github.svg";
+// import GoogleIcon from "../../../assets/svg/google.svg";
 import Logo from "../../../assets/svg/logo.svg";
 import { IconSpinner } from "../../Icons/IconSpinner/IconSpinner";
 
@@ -36,6 +36,7 @@ export const SignupIntro: VFC<SignupIntroProps> = ({
         <Logo className={tw`mr-5`} />
         <h1 className={tw`text-2xl font-bold`}>Sign up</h1>
       </div>
+      {/* Don't display until sign-up with Google and Github are supported
       <button
         className={tw`mb-2 w-64 bg-white border-1 border-gray-300 rounded-lg h-11 flex items-center justify-center text-sm font-bold`}
       >
@@ -53,6 +54,7 @@ export const SignupIntro: VFC<SignupIntroProps> = ({
         <em className={tw`mx-2 text-gray-400`}>or</em>
         <div className={tw`flex-1 h-px bg-gray-200`} />
       </div>
+      */}
       <form className={tw`flex flex-col w-64 items-center`} onSubmit={onSubmit}>
         <input
           placeholder="Enter your email address.."
