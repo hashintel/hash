@@ -1,4 +1,5 @@
 import React, { VoidFunctionComponent } from "react";
+import { unstable_batchedUpdates } from "react-dom";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 
@@ -34,9 +35,8 @@ type LoginModalProps = {
 
 export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
   show,
-  close,
+  onClose,
   onLoggedIn,
-  closeIconHidden,
 }) => {
   // TODO: refactor to use useReducer
   const [activeScreen, setActiveScreen] = useState<Screen>(Screen.Intro);
@@ -53,9 +53,11 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
     SendLoginCodeMutationVariables
   >(sendLoginCodeMutation, {
     onCompleted: ({ sendLoginCode }) => {
-      setErrorMessage("");
-      setVerificationCodeMetadata(sendLoginCode);
-      setActiveScreen(Screen.VerifyCode);
+      unstable_batchedUpdates(() => {
+        setErrorMessage("");
+        setVerificationCodeMetadata(sendLoginCode);
+        setActiveScreen(Screen.VerifyCode);
+      });
     },
     onError: ({ graphQLErrors }) =>
       graphQLErrors.forEach(({ extensions, message }) => {
@@ -90,19 +92,17 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
       }
     );
 
-  useEffect(() => {
-    if (!show && activeScreen !== Screen.Intro) {
-      setActiveScreen(Screen.Intro);
-    }
-  }, [show, activeScreen]);
-
   // handles when user clicks on the link sent to their email
   useEffect(() => {
     const { pathname, query } = router;
     if (pathname === "/login" && isParsedAuthQuery(query)) {
       const { verificationId, verificationCode } = query;
-      setActiveScreen(Screen.VerifyCode);
-      setVerificationCode(verificationCode);
+
+      unstable_batchedUpdates(() => {
+        setActiveScreen(Screen.VerifyCode);
+        setVerificationCode(verificationCode);
+      });
+
       void loginWithLoginCode({
         variables: { verificationId, verificationCode },
       });
@@ -130,16 +130,18 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
 
   const goBack = () => {
     if (activeScreen === Screen.VerifyCode) {
-      setActiveScreen(Screen.Intro);
-      setErrorMessage("");
-      setVerificationCodeMetadata(undefined);
-      setVerificationCode("");
+      unstable_batchedUpdates(() => {
+        setActiveScreen(Screen.Intro);
+        setErrorMessage("");
+        setVerificationCodeMetadata(undefined);
+        setVerificationCode("");
+      });
     }
   };
 
   const navigateToSignup = () => {
     void router.push("/signup");
-    setTimeout(close, 500);
+    setTimeout(onClose, 500);
   };
 
   const renderContent = () => {
@@ -171,12 +173,12 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
     }
   };
 
+  if (!show && activeScreen !== Screen.Intro) {
+    setActiveScreen(Screen.Intro);
+  }
+
   return (
-    <AuthModalLayout
-      show={show}
-      close={close}
-      closeIconHidden={closeIconHidden}
-    >
+    <AuthModalLayout show={show} onClose={onClose}>
       {renderContent()}
     </AuthModalLayout>
   );

@@ -5,16 +5,14 @@ import { AuthLayout } from "../../layout/PageLayout/AuthLayout";
 
 export type AuthModalLayoutProps = {
   children: ReactNode;
-  close: () => void;
+  onClose: () => void;
   show: boolean;
-  closeIconHidden?: boolean;
 };
 
 export const AuthModalLayout: VoidFunctionComponent<AuthModalLayoutProps> = ({
   children,
-  close,
+  onClose,
   show,
-  closeIconHidden = false,
 }) => (
   <Dialog
     as="div"
@@ -22,7 +20,7 @@ export const AuthModalLayout: VoidFunctionComponent<AuthModalLayoutProps> = ({
     onClose={close}
     className={tw`fixed z-10 inset-0 overflow-y-auto`}
   >
-    <AuthLayout onClose={close} closeIconHidden={closeIconHidden}>
+    <AuthLayout onClose={onClose}>
       {children}
     </AuthLayout>
   </Dialog>

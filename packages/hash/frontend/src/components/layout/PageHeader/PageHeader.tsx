@@ -15,7 +15,7 @@ export const PageHeader: VoidFunctionComponent = () => {
   const [showLoginModal, hideLoginModal] = useModal(() => (
     <LoginModal
       show={true}
-      close={hideLoginModal}
+      onClose={hideLoginModal}
       onLoggedIn={() => {
         void refetch();
         hideLoginModal();

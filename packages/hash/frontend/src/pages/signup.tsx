@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { unstable_batchedUpdates } from "react-dom";
 import { NextPage } from "next";
 import { useRouter } from "next/router";
 import { useUser } from "../components/hooks/useUser";
@@ -47,18 +48,6 @@ const SignupPage: NextPage = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const [userId, setUserId] = useState<string | null>(null);
 
-  // handles when the user is logged in but hasn't finished setting up his account
-  useEffect(() => {
-    if (
-      user &&
-      !user.accountSignupComplete &&
-      activeScreen !== Screen.AccountSetup
-    ) {
-      setUserId(user.id);
-      setActiveScreen(Screen.AccountSetup);
-    }
-  }, [activeScreen, user]);
-
   useEffect(() => {
     // If the user is logged in, and their account sign-up is complete...
     if (user && user.accountSignupComplete) {
@@ -72,9 +61,11 @@ const SignupPage: NextPage = () => {
     CreateUserMutationVariables
   >(createUserMutation, {
     onCompleted: ({ createUser }) => {
-      setErrorMessage("");
-      setVerificationCodeMetadata(createUser);
-      setActiveScreen(Screen.VerifyCode);
+      unstable_batchedUpdates(() => {
+        setErrorMessage("");
+        setVerificationCodeMetadata(createUser);
+        setActiveScreen(Screen.VerifyCode);
+      });
     },
     onError: ({ graphQLErrors }) => {
       graphQLErrors.forEach(({ extensions, message }) => {
@@ -98,10 +89,11 @@ const SignupPage: NextPage = () => {
     VerifyEmailMutationVariables
   >(verifyEmailMutation, {
     onCompleted: ({ verifyEmail: data }) => {
-      setErrorMessage("");
-      setUserId(data.id);
-
-      setActiveScreen(Screen.AccountSetup);
+      unstable_batchedUpdates(() => {
+        setErrorMessage("");
+        setUserId(data.id);
+        setActiveScreen(Screen.AccountSetup);
+      });
     },
     onError: ({ graphQLErrors }) => {
       graphQLErrors.forEach(({ extensions, message }) => {
@@ -135,8 +127,10 @@ const SignupPage: NextPage = () => {
     const { pathname, query } = router;
     if (pathname === "/signup" && isParsedAuthQuery(query)) {
       const { verificationId, verificationCode } = query;
-      setActiveScreen(Screen.VerifyCode);
-      setVerificationCode(verificationCode);
+      unstable_batchedUpdates(() => {
+        setActiveScreen(Screen.VerifyCode);
+        setVerificationCode(verificationCode);
+      })
       void verifyEmail({
         variables: { verificationId, verificationCode },
       });
@@ -172,6 +166,18 @@ const SignupPage: NextPage = () => {
       setActiveScreen(Screen.Intro);
     }
   };
+
+  // handles when the user is logged in but hasn't finished setting up his account
+  if (
+    user &&
+    !user.accountSignupComplete &&
+    activeScreen !== Screen.AccountSetup
+  ) {
+    unstable_batchedUpdates(() => {
+      setUserId(user.id);
+      setActiveScreen(Screen.AccountSetup);
+    });
+  }
 
   return (
     <AuthLayout>
