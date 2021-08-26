@@ -1,1 +1,7 @@
-[]
+[
+  {
+    "name": "code",
+    "description": "Capture a code snippet",
+    "icon": "path/to/icon.svg"
+  }
+]

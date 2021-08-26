@@ -30,8 +30,9 @@ class User extends Entity {
     db
       .getSystemTypeLatestVersion({ systemTypeName: "User" })
       .then((userEntityType) => {
-        if (!userEntityType)
+        if (!userEntityType) {
           throw new Error("User system entity type not found in datastore");
+        }
 
         return userEntityType;
       });
@@ -136,10 +137,11 @@ class User extends Entity {
       ({ primary }) => primary === true
     );
 
-    if (!primaryEmail)
+    if (!primaryEmail) {
       throw new Error(
         `Critical: User with entityId ${this.entityId} does not have a primary email address`
       );
+    }
 
     return primaryEmail;
   };
@@ -165,14 +167,16 @@ class User extends Entity {
       // Check the supplied email address can be used for sending login codes
       if (alternateEmailAddress) {
         const email = this.getEmail(alternateEmailAddress);
-        if (!email)
+        if (!email) {
           throw new Error(
             `User with entityId '${this.entityId}' does not have an email address '${alternateEmailAddress}'`
           );
-        if (!email.verified)
+        }
+        if (!email.verified) {
           throw new Error(
             `User with entityId '${this.entityId}' hasn't verified the email address '${alternateEmailAddress}'`
           );
+        }
       }
 
       const emailAddress =
@@ -193,15 +197,17 @@ class User extends Entity {
     (db: DBClient) => async (emailAddress: string) => {
       const email = this.getEmail(emailAddress);
 
-      if (!email)
+      if (!email) {
         throw new Error(
           `User with entityId '${this.entityId}' does not have an email address '${emailAddress}'`
         );
+      }
 
-      if (email.verified)
+      if (email.verified) {
         throw new Error(
           `User with id '${this.entityId}' has already verified the email address '${emailAddress}'`
         );
+      }
 
       const verificationCode = await VerificationCode.create(db)({
         accountId: this.accountId,

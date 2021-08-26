@@ -660,8 +660,9 @@ export function createFormatPlugin(replacePortal) {
           lastState &&
           lastState.doc.eq(state.doc) &&
           lastState.selection.eq(state.selection)
-        )
+        ) {
           return;
+        }
 
         const { from, to } = state.selection;
         const start = view.coordsAtPos(from);

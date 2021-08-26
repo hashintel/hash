@@ -38,18 +38,20 @@ const KNOWN_ENTITIES = ["Page", "Text", "User"];
 
 const loggedIn =
   (next: any) => (obj: any, args: any, ctx: GraphQLContext, info: any) => {
-    if (!ctx.user)
+    if (!ctx.user) {
       throw new ForbiddenError("You must be logged in to perform this action.");
+    }
     return next(obj, args, ctx, info);
   };
 
 const signedUp =
   (next: any) =>
   (obj: any, args: any, ctx: LoggedInGraphQLContext, info: any) => {
-    if (!ctx.user.isAccountSignupComplete())
+    if (!ctx.user.isAccountSignupComplete()) {
       throw new ForbiddenError(
         "You must complete the sign-up process to perform this action."
       );
+    }
     return next(obj, args, ctx, info);
   };
 
