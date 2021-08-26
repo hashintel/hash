@@ -48,10 +48,10 @@ export const verifyEmail: Resolver<
         );
 
       // Otherwise the email address can be verified with the user
-      await user.verifyEmailAddress(client)(email.address);
-
-      // If the user isn't already logged-in, log them in
-      if (!ctx.user) await passport.login(user, {});
+      await Promise.all([
+        user.verifyEmailAddress(client)(email.address),
+        ctx.user ? undefined : passport.login(user, {}),
+      ].flat<(Promise<any> | undefined)[]>());
 
       return user.toGQLUser();
     })
