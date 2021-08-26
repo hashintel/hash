@@ -33,6 +33,7 @@ type BlockConfig = BlockMetadata & { url: string } & (
 // @todo this type properly exists already somewhere
 export type Block = {
   entityId: string;
+  versionId: string;
   accountId: string;
   entity: Record<any, any>;
   componentId: string;
@@ -228,6 +229,7 @@ export const transformBlockForProsemirror = (block: BlockWithoutMeta) => {
   const attrs = {
     entityId: block.entityId,
     accountId: block.accountId,
+    versionId: block.versionId,
     childEntityId,
     childEntityAccountId,
     childEntityTypeId,
@@ -341,6 +343,7 @@ export const mapEntitiesToBlocks = (
     return {
       componentId,
       entityId: content.metadataId,
+      versionId: content.id,
       entity: props,
       accountId: content.accountId,
     };
@@ -433,6 +436,7 @@ export const calculateSavePayloads = (
     return {
       entityId: node.attrs.entityId,
       accountId: node.attrs.accountId ?? accountId,
+      versionId: node.attrs.versionId,
       type: "Block",
       position,
       properties: {
@@ -572,7 +576,7 @@ export const calculateSavePayloads = (
           accountId,
           data: {
             contents: existingBlocks.map((node) => ({
-              entityId: node.entityId,
+              entityId: node.versionId,
               accountId: node.accountId,
               type: "Block",
             })),

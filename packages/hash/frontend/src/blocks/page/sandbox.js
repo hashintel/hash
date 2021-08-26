@@ -271,6 +271,7 @@ const BlockSelect = forwardRef(({ view, getPos, node }, ref) => {
               // @todo do so many of these props need to switch on text?
               properties: variant.properties,
               entityId: text ? node.attrs.entityId : null,
+              versionId: text ? node.attrs.versionId : null,
               childEntityId: text ? node.attrs.childEntityId : null,
               accountId: node.attrs.accountId,
               childEntityAccountId: text
