@@ -130,7 +130,7 @@ const SignupPage: NextPage = () => {
       unstable_batchedUpdates(() => {
         setActiveScreen(Screen.VerifyCode);
         setVerificationCode(verificationCode);
-      })
+      });
       void verifyEmail({
         variables: { verificationId, verificationCode },
       });

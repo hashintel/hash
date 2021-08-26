@@ -5,7 +5,7 @@ import { tw } from "twind";
 
 import Logo from "../../../../assets/svg/logo.svg";
 import { IconHash } from "../../../Icons/IconHash/IconHash";
-import IconKeyboardReturn from "../../../Icons/IconKeyboardReturn/IconKeyboardReturn";
+import { IconKeyboardReturn } from "../../../Icons/IconKeyboardReturn/IconKeyboardReturn";
 
 const options = [
   {

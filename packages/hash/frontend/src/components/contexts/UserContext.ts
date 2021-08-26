@@ -8,7 +8,7 @@ type UserContextProps = {
   loading: boolean;
 };
 
-const UserContext = React.createContext<UserContextProps>({
+export const UserContext = React.createContext<UserContextProps>({
   user: undefined,
   refetch: () => {
     throw new Error("Cannot refetch user outside of UserContext Provider");
@@ -16,4 +16,3 @@ const UserContext = React.createContext<UserContextProps>({
   loading: false,
 });
 
-export default UserContext;
