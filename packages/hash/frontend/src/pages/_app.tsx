@@ -10,10 +10,6 @@ import withTwindApp from "@twind/next/app";
 import { PageLayout } from "../components/layout/PageLayout/PageLayout";
 import { ModalProvider } from "react-modal-hook";
 
-import { ApolloError, useQuery } from "@apollo/client";
-import { meQuery } from "../graphql/queries/user.queries";
-import { MeQuery, MeQueryVariables } from "../graphql/apiTypes.gen";
-
 import "../../styles/prism.css";
 import "../../styles/globals.scss";
 import { UserContext } from "../components/contexts/UserContext";
