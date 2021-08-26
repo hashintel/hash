@@ -123,8 +123,6 @@ const SignupPage: NextPage = () => {
     },
     onError: ({ graphQLErrors }) => {
       graphQLErrors.forEach(({ message }) => {
-        // const { code } = extensions as { code?: string };
-
         setErrorMessage(message);
       });
     },
@@ -136,11 +134,9 @@ const SignupPage: NextPage = () => {
       const { verificationId, verificationCode } = query;
       setActiveScreen(Screen.VerifyCode);
       setVerificationCode(verificationCode);
-      setTimeout(() => {
-        void verifyEmail({
-          variables: { verificationId, verificationCode },
-        });
-      }, 1000);
+      void verifyEmail({
+        variables: { verificationId, verificationCode },
+      });
     }
   }, [router, verifyEmail]);
 
