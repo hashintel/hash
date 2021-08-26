@@ -1,23 +1,45 @@
-import { genId } from "../../../util";
-import { MutationCreateUserArgs, Resolver } from "../../apiTypes.gen";
+import { ApolloError } from "apollo-server-express";
+
+import {
+  MutationCreateUserArgs,
+  Resolver,
+  VerificationCodeMetadata,
+} from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
-import { Entity } from "../../../db/adapter";
+import User from "../../../model/user.model";
 
 export const createUser: Resolver<
-  Promise<Entity>,
+  Promise<VerificationCodeMetadata>,
   {},
   GraphQLContext,
   MutationCreateUserArgs
-> = async (_, { email, shortname }, { dataSources }) => {
-  const id = genId();
-  // TODO: should check for uniqueness of email
+> = async (_, { email }, { dataSources }) =>
+  dataSources.db.transaction(async (client) => {
+    // Ensure the email address isn't already verified and associated with a user
+    if (await User.getUserByEmail(client)({ email, verified: true })) {
+      throw new ApolloError(
+        `User with the email '${email}' already exists in the datastore`,
+        "ALREADY_EXISTS"
+      );
+    }
 
-  return dataSources.db.createEntity({
-    accountId: id,
-    entityVersionId: id,
-    createdById: id, // Users "create" themselves
-    systemTypeName: "User",
-    properties: { email, shortname },
-    versioned: false, // @todo: should user's be versioned?
+    const user =
+      // Either get an existing user with this primary un-verified email address, ...
+      (await User.getUserByEmail(client)({
+        email,
+        primary: true,
+        verified: false,
+      })) ||
+      // ...or create this user
+      (await User.create(client)({
+        emails: [{ address: email, primary: true, verified: false }],
+      }));
+
+    /** @todo: rate limit creation of email verification codes */
+
+    return user
+      .sendEmailVerificationCode(client)(email)
+      .then((verificationCode) =>
+        verificationCode.toGQLVerificationCodeMetadata()
+      );
   });
-};

@@ -6,9 +6,9 @@ import {
   EntityMeta,
   EntityType,
   EntityVersion,
-  LoginCode,
+  VerificationCode,
 } from "../adapter";
-import { entityNotFoundError, gatherLinks, replaceLink } from "./util";
+import { gatherLinks, replaceLink, entityNotFoundError } from "./util";
 import { genId } from "../../util";
 import { Connection } from "./types";
 import {
@@ -45,10 +45,11 @@ import {
 } from "./link";
 import { getUserByEmail, getUserById, getUserByShortname } from "./user";
 import {
-  getLoginCode,
-  incrementLoginCodeAttempts,
-  insertLoginCode,
-  pruneLoginCodes,
+  insertVerificationCode,
+  getVerificationCode,
+  incrementVerificationCodeAttempts,
+  pruneVerificationCodes,
+  deleteVerificationCode,
 } from "./login";
 import { jsonSchema } from "../../lib/schemas/jsonSchema";
 import { SystemType } from "../../types/entityTypes";
@@ -63,7 +64,7 @@ export class PostgresClient implements DBClient {
 
   private async createLinks(conn: Connection, entity: Entity): Promise<void> {
     const linkedEntityIdsSet = new Set(gatherLinks(entity));
-    const linkedEntityIds = [...linkedEntityIdsSet];
+    const linkedEntityIds = Array.from(linkedEntityIdsSet);
     const accIdMap = await getEntityAccountIdMany(conn, linkedEntityIdsSet);
 
     const missing = linkedEntityIds.filter((id) => !accIdMap.has(id));
@@ -157,6 +158,12 @@ export class PostgresClient implements DBClient {
 
       return entityType;
     });
+  }
+
+  async getSystemTypeLatestVersion(params: {
+    systemTypeName: SystemType;
+  }): Promise<EntityType | undefined> {
+    return getSystemTypeLatestVersion(this.conn, params);
   }
 
   async createEntity(params: {
@@ -521,7 +528,11 @@ export class PostgresClient implements DBClient {
     return await getUserById(this.conn, params);
   }
 
-  async getUserByEmail(params: { email: string }) {
+  async getUserByEmail(params: {
+    email: string;
+    verified?: boolean;
+    primary?: boolean;
+  }) {
     return await getUserByEmail(this.conn, params);
   }
 
@@ -574,29 +585,37 @@ export class PostgresClient implements DBClient {
     return await updateEntityMetadata(this.conn, params);
   }
 
-  async createLoginCode(params: {
+  async createVerificationCode(params: {
     accountId: string;
     userId: string;
     code: string;
-  }): Promise<LoginCode> {
+    emailAddress: string;
+  }): Promise<VerificationCode> {
     const id = genId();
     const createdAt = new Date();
-    await insertLoginCode(this.conn, { ...params, loginId: id, createdAt });
+    await insertVerificationCode(this.conn, { ...params, id, createdAt });
     return { id, ...params, createdAt, numberOfAttempts: 0 };
   }
 
-  async getLoginCode(params: { loginId: string }): Promise<LoginCode | null> {
-    return await getLoginCode(this.conn, params);
+  async getVerificationCode(params: {
+    id: string;
+  }): Promise<VerificationCode | null> {
+    return await getVerificationCode(this.conn, params);
   }
 
-  async incrementLoginCodeAttempts(params: {
-    loginCode: LoginCode;
+  async incrementVerificationCodeAttempts(params: {
+    id: string;
+    userId: string;
   }): Promise<void> {
-    return await incrementLoginCodeAttempts(this.conn, params);
+    return await incrementVerificationCodeAttempts(this.conn, params);
   }
 
-  async pruneLoginCodes(): Promise<number> {
-    return await pruneLoginCodes(this.conn);
+  async deleteVerificationCode(params: { id: string }): Promise<void> {
+    return await deleteVerificationCode(this.conn, params);
+  }
+
+  async pruneVerificationCodes(): Promise<number> {
+    return await pruneVerificationCodes(this.conn);
   }
 
   // @todo: may be deprecated. Users of the adapter can now use a transction to combine

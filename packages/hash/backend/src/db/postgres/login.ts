@@ -1,64 +1,82 @@
 import { Connection } from "./types";
-import { LoginCode } from "../adapter";
 
 import { sql } from "slonik";
+import { VerificationCode } from "../adapter";
 
 /** Insert a row into the entities table. */
-export const insertLoginCode = async (
+export const insertVerificationCode = async (
   conn: Connection,
   params: {
-    loginId: string;
+    id: string;
     accountId: string;
     userId: string;
     code: string;
+    emailAddress: string;
     createdAt: Date;
   }
 ): Promise<void> => {
   await conn.query(sql`
-    insert into login_codes (login_id, account_id, user_id, login_code, created_at)
+    insert into verification_codes (
+      verification_id, account_id, user_id,
+      verification_code, email_address, created_at
+    )
     values (
-      ${params.loginId}, ${params.accountId}, ${params.userId},
-      ${params.code}, ${params.createdAt.toISOString()}
+      ${params.id}, ${params.accountId}, ${params.userId},
+      ${params.code}, ${params.emailAddress}, ${params.createdAt.toISOString()}
     )
   `);
 };
 
-export const getLoginCode = async (
+export const getVerificationCode = async (
   conn: Connection,
-  params: { loginId: string }
-): Promise<LoginCode | null> => {
+  params: { id: string }
+): Promise<VerificationCode | null> => {
   const row = await conn.one(sql`
-    select login_id, user_id, login_code, number_of_attempts, created_at
-    from login_codes
-    where login_id = ${params.loginId}
+    select verification_id, user_id, verification_code, email_address, number_of_attempts, created_at
+    from verification_codes
+    where verification_id = ${params.id}
   `);
   return {
-    id: row["login_id"] as string,
+    id: row["verification_id"] as string,
     userId: row["user_id"] as string,
-    code: row["login_code"] as string,
+    code: row["verification_code"] as string,
+    emailAddress: row["email_address"] as string,
     numberOfAttempts: row["number_of_attempts"] as number,
     createdAt: new Date(row["created_at"] as string),
   };
 };
 
-export const incrementLoginCodeAttempts = async (
+export const incrementVerificationCodeAttempts = async (
   conn: Connection,
   params: {
-    loginCode: LoginCode;
+    id: string;
+    userId: string;
   }
 ): Promise<void> => {
-  const { id, userId } = params.loginCode;
   await conn.query(sql`
-    update login_codes
+    update verification_codes
     set number_of_attempts = number_of_attempts + 1
-    where login_id = ${id} and user_id = ${userId}
+    where verification_id = ${params.id} and user_id = ${params.userId}
   `);
 };
 
-export const pruneLoginCodes = async (conn: Connection): Promise<number> => {
+export const deleteVerificationCode = async (
+  conn: Connection,
+  params: { id: string }
+): Promise<void> => {
+  await conn.one(sql`
+    delete from verification_codes
+    where verification_id = ${params.id}
+    returning *
+  `);
+};
+
+export const pruneVerificationCodes = async (
+  conn: Connection
+): Promise<number> => {
   const count = await conn.oneFirst(sql`
     with deleted as (
-      delete from login_codes
+      delete from verification_codes
       where created_at < (now() - interval '1 day')
       returning *
     )

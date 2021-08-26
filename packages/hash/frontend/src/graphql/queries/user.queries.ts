@@ -1,8 +1,45 @@
 import { gql } from "@apollo/client";
 
 export const createUser = gql`
-  mutation createUser($email: String!, $shortname: String!) {
-    createUser(email: $email, shortname: $shortname) {
+  mutation createUser($email: String!) {
+    createUser(email: $email) {
+      __typename
+      id
+      createdAt
+    }
+  }
+`;
+
+export const updateUser = gql`
+  mutation updateUser($id: ID!, $properties: UpdateUserProperties!) {
+    updateUser(id: $id, properties: $properties) {
+      id
+      createdById
+      accountId
+      entityTypeId
+      entityTypeVersionId
+      entityTypeName
+      visibility
+      accountSignupComplete
+      properties {
+        shortname
+        preferredName
+        emails {
+          address
+          primary
+          verified
+        }
+      }
+    }
+  }
+`;
+
+export const verifyEmail = gql`
+  mutation verifyEmail($verificationId: ID!, $verificationCode: String!) {
+    verifyEmail(
+      verificationId: $verificationId
+      verificationCode: $verificationCode
+    ) {
       __typename
       id
       createdById
@@ -15,7 +52,11 @@ export const createUser = gql`
       visibility
       properties {
         shortname
-        email
+        emails {
+          address
+          primary
+          verified
+        }
       }
     }
   }
@@ -24,6 +65,7 @@ export const createUser = gql`
 export const sendLoginCode = gql`
   mutation sendLoginCode($emailOrShortname: String!) {
     sendLoginCode(emailOrShortname: $emailOrShortname) {
+      __typename
       id
       createdAt
     }
@@ -31,8 +73,14 @@ export const sendLoginCode = gql`
 `;
 
 export const loginWithLoginCode = gql`
-  mutation loginWithLoginCode($loginId: ID!, $loginCode: String!) {
-    loginWithLoginCode(loginId: $loginId, loginCode: $loginCode) {
+  mutation loginWithLoginCode(
+    $verificationId: ID!
+    $verificationCode: String!
+  ) {
+    loginWithLoginCode(
+      verificationId: $verificationId
+      verificationCode: $verificationCode
+    ) {
       __typename
       id
       createdById
@@ -43,9 +91,14 @@ export const loginWithLoginCode = gql`
       entityTypeVersionId
       entityTypeName
       visibility
+      accountSignupComplete
       properties {
         shortname
-        email
+        emails {
+          address
+          primary
+          verified
+        }
       }
     }
   }
@@ -67,9 +120,15 @@ export const meQuery = gql`
       entityTypeVersionId
       entityTypeName
       visibility
+      accountSignupComplete
       properties {
         shortname
-        email
+        preferredName
+        emails {
+          address
+          primary
+          verified
+        }
       }
     }
   }

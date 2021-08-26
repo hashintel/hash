@@ -21,12 +21,14 @@ import {
 } from "./pages";
 import { accounts } from "./account/accounts";
 import { createUser } from "./shared/createUser";
+import { updateUser } from "./user/updateUser";
 import { createOrg } from "./shared/createOrg";
+import { verifyEmail } from "./user/verifyEmail";
 import { sendLoginCode } from "./user/sendLoginCode";
 import { loginWithLoginCode } from "./user/loginWithLoginCode";
 import { embedCode } from "./embed";
 
-import { GraphQLContext } from "../context";
+import { GraphQLContext, LoggedInGraphQLContext } from "../context";
 import { ForbiddenError } from "apollo-server-express";
 import { logout } from "./user/logout";
 import { me } from "./user/me";
@@ -41,6 +43,22 @@ const loggedIn =
     }
     return next(obj, args, ctx, info);
   };
+
+const signedUp =
+  (next: any) =>
+  (obj: any, args: any, ctx: LoggedInGraphQLContext, info: any) => {
+    if (!ctx.user.isAccountSignupComplete()) {
+      throw new ForbiddenError(
+        "You must complete the sign-up process to perform this action."
+      );
+    }
+    return next(obj, args, ctx, info);
+  };
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const loggedInAndSignedUp =
+  (next: any) => (obj: any, args: any, ctx: GraphQLContext, info: any) =>
+    loggedIn(signedUp(next))(obj, args, ctx, info);
 
 export const resolvers = {
   Query: {
@@ -63,6 +81,8 @@ export const resolvers = {
     updatePage,
     createUser,
     createOrg,
+    updateUser: loggedIn(updateUser),
+    verifyEmail,
     sendLoginCode,
     loginWithLoginCode,
     logout: loggedIn(logout),

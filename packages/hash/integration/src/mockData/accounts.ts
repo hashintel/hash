@@ -1,57 +1,78 @@
 import { GraphQLClient } from "graphql-request";
 
+import { PostgresAdapter } from "@hashintel/hash-backend/src/db";
+import User from "@hashintel/hash-backend/src/model/user.model";
 import {
-  CreateUserMutationVariables,
   CreateOrgMutationVariables,
   CreateOrgMutation,
-  CreateUserMutation,
 } from "../graphql/apiTypes.gen";
-import { createUser } from "../graphql/queries/user.queries";
 import { createOrg } from "../graphql/queries/org.queries";
 
-export const createUsers = async (client: GraphQLClient) => {
-  const users: CreateUserMutationVariables[] = [
+type CreateUserArgs = {
+  email: string;
+  shortname: string;
+  preferredName: string;
+};
+
+// Note, the email addresses of these users will automatically be verified
+export const createUsers = async () => {
+  const users: CreateUserArgs[] = [
     {
       email: "aj@hash.ai",
       shortname: "akash",
+      preferredName: "Akash",
     },
     {
       email: "c@hash.ai",
       shortname: "ciaran",
+      preferredName: "Ciaran",
     },
     {
       email: "d@hash.ai",
       shortname: "david",
+      preferredName: "David",
     },
     {
       email: "ef@hash.ai",
       shortname: "eadan",
+      preferredName: "Eadan",
     },
     {
       email: "nh@hash.ai",
       shortname: "nate",
+      preferredName: "Nate",
     },
     {
       email: "mr@hash.ai",
       shortname: "marius",
+      preferredName: "Marius",
     },
     {
       email: "bw@hash.ai",
       shortname: "ben",
+      preferredName: "Ben",
     },
     {
       email: "vu@hash.ai",
       shortname: "valentino",
+      preferredName: "Valentino",
     },
   ];
 
+  const db = new PostgresAdapter();
+
   const userResults = await Promise.all(
-    users.map(
-      async (user) => await client.request<CreateUserMutation>(createUser, user)
+    users.map(({ email, ...remainingProperties }) =>
+      User.create(db)({
+        emails: [{ address: email, primary: true, verified: true }],
+        ...remainingProperties,
+      })
     )
   );
 
-  return userResults.map((user) => user.createUser);
+  await db.close();
+
+  return userResults.map((user) => user.toGQLUser());
 };
 
 /**

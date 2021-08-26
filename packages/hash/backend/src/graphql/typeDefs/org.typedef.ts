@@ -66,7 +66,7 @@ export const orgTypedef = gql`
   }
 
   type OrgProperties {
-    shortname: String!
+    shortname: String
   }
 
   extend type Mutation {

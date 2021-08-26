@@ -11,12 +11,12 @@ import {
   Entity,
   EntityMeta,
   EntityType,
-  LoginCode,
   EntityVersion,
+  VerificationCode,
 } from "../adapter";
 import { SystemType } from "../../types/entityTypes";
 
-export const createConnPool = (logger: Logger) => {
+export const createConnPool = (logger?: Logger) => {
   const user = getRequiredEnv("HASH_PG_USER");
   const host = getRequiredEnv("HASH_PG_HOST");
   const port = getRequiredEnv("HASH_PG_PORT");
@@ -30,13 +30,16 @@ export const createConnPool = (logger: Logger) => {
     interceptors: [
       {
         queryExecutionError: (ctx, _query, error, _notices) => {
-          logger.error({
-            message: "sql_query_error",
-            queryId: ctx.queryId,
-            query: ctx.originalQuery.sql,
-            errorMessage: `${error.name}: ${error.message}`,
-            stackTrace: ctx.stackTrace,
-          });
+          if (logger) {
+            logger.error({
+              message: "sql_query_error",
+              queryId: ctx.queryId,
+              query: ctx.originalQuery.sql,
+              errorMessage: `${error.name}: ${error.message}`,
+              stackTrace: ctx.stackTrace,
+            });
+          }
+
           return null;
         },
       },
@@ -48,7 +51,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   private statsdInterval: NodeJS.Timeout;
   private pool: DatabasePoolType;
 
-  constructor(logger: Logger, statsd?: StatsD) {
+  constructor(logger?: Logger, statsd?: StatsD) {
     super();
     this.pool = createConnPool(logger);
     this.statsdInterval = setInterval(() => {
@@ -124,6 +127,12 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return this.query((adapter) => adapter.getEntityLatestVersion(params));
   }
 
+  getSystemTypeLatestVersion(params: {
+    systemTypeName: SystemType;
+  }): Promise<EntityType | undefined> {
+    return this.query((adapter) => adapter.getSystemTypeLatestVersion(params));
+  }
+
   updateEntityType(params: {
     accountId: string;
     createdById: string;
@@ -147,7 +156,11 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return this.query((adapter) => adapter.getUserById(params));
   }
 
-  getUserByEmail(params: { email: string }): Promise<Entity | null> {
+  getUserByEmail(params: {
+    email: string;
+    verified?: boolean;
+    primary?: boolean;
+  }): Promise<Entity | null> {
     return this.query((adapter) => adapter.getUserByEmail(params));
   }
 
@@ -184,24 +197,36 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return this.query((adapter) => adapter.updateEntityMetadata(params));
   }
 
-  createLoginCode(params: {
+  createVerificationCode(params: {
     accountId: string;
     userId: string;
     code: string;
-  }): Promise<LoginCode> {
-    return this.query((adapter) => adapter.createLoginCode(params));
+    emailAddress: string;
+  }): Promise<VerificationCode> {
+    return this.query((adapter) => adapter.createVerificationCode(params));
   }
 
-  getLoginCode(params: { loginId: string }): Promise<LoginCode | null> {
-    return this.query((adapter) => adapter.getLoginCode(params));
+  getVerificationCode(params: {
+    id: string;
+  }): Promise<VerificationCode | null> {
+    return this.query((adapter) => adapter.getVerificationCode(params));
   }
 
-  incrementLoginCodeAttempts(params: { loginCode: LoginCode }): Promise<void> {
-    return this.query((adapter) => adapter.incrementLoginCodeAttempts(params));
+  incrementVerificationCodeAttempts(params: {
+    id: string;
+    userId: string;
+  }): Promise<void> {
+    return this.query((adapter) =>
+      adapter.incrementVerificationCodeAttempts(params)
+    );
   }
 
-  pruneLoginCodes(): Promise<number> {
-    return this.query((adapter) => adapter.pruneLoginCodes());
+  deleteVerificationCode(params: { id: string }): Promise<void> {
+    return this.query((adapter) => adapter.deleteVerificationCode(params));
+  }
+
+  pruneVerificationCodes(): Promise<number> {
+    return this.query((adapter) => adapter.pruneVerificationCodes());
   }
 
   getAndUpdateEntity(params: {

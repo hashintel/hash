@@ -54,18 +54,19 @@ export type EntityMeta = {
   extra: any;
 };
 
-export type LoginCode = {
-  id: string;
-  code: string;
-  userId: string;
-  numberOfAttempts: number;
-  createdAt: Date;
-};
-
 export type EntityVersion = {
   entityVersionId: string;
   createdAt: Date;
   createdById: string;
+};
+
+export type VerificationCode = {
+  id: string;
+  code: string;
+  emailAddress: string;
+  userId: string;
+  numberOfAttempts: number;
+  createdAt: Date;
 };
 
 export interface DBAdapter extends DataSource, DBClient {
@@ -128,6 +129,13 @@ export interface DBClient {
   }): Promise<Entity | undefined>;
 
   /**
+   * Get the latest version of a system entity type.
+   * */
+  getSystemTypeLatestVersion(params: {
+    systemTypeName: SystemType;
+  }): Promise<EntityType | undefined>;
+
+  /**
    * Update an entity type.
    * @param params.name the type name - must be unique in the specified account
    * @param params.schema JSON schema fields (e.g. 'properties', 'definition')
@@ -153,8 +161,17 @@ export interface DBClient {
   /** Get the user by their id. */
   getUserById(params: { id: string }): Promise<Entity | null>;
 
-  /** Get the user by their email address. */
-  getUserByEmail(params: { email: string }): Promise<Entity | null>;
+  /**
+   * Get the user by their email address.
+   * @param params.email the email address
+   * @param params.verified whether the email address is verified or not (when undefined the email can be either)
+   * @param params.primary whether the email address is the primary email or not (when undefined the email can be either)
+   * */
+  getUserByEmail(params: {
+    email: string;
+    verified?: boolean;
+    primary?: boolean;
+  }): Promise<Entity | null>;
 
   /** Get the user by their shortname. */
   getUserByShortname(params: { shortname: string }): Promise<Entity | null>;
@@ -199,21 +216,28 @@ export interface DBClient {
     extra: any;
   }): Promise<EntityMeta>;
 
-  /** Create a login code */
-  createLoginCode(params: {
+  /** Create a verification code */
+  createVerificationCode(params: {
     accountId: string;
     userId: string;
     code: string;
-  }): Promise<LoginCode>;
+    emailAddress: string;
+  }): Promise<VerificationCode>;
 
-  /** Get a login code (it may be invalid!) */
-  getLoginCode(params: { loginId: string }): Promise<LoginCode | null>;
+  /** Get a verification code (it may be invalid!) */
+  getVerificationCode(params: { id: string }): Promise<VerificationCode | null>;
 
-  /** Increment the number of login attempts by 1 */
-  incrementLoginCodeAttempts(params: { loginCode: LoginCode }): Promise<void>;
+  /** Increment the number of verification attempts by 1 */
+  incrementVerificationCodeAttempts(params: {
+    id: string;
+    userId: string;
+  }): Promise<void>;
 
-  /** Prunes login codes from the database after 1 day of creation */
-  pruneLoginCodes(): Promise<number>;
+  /** Delete a verification code */
+  deleteVerificationCode(params: { id: string }): Promise<void>;
+
+  /** Prunes verification codes from the database after 1 day of creation */
+  pruneVerificationCodes(): Promise<number>;
 
   /**
    * getAndUpdateEntity may be used to retrieve and update an entity within

@@ -1,4 +1,5 @@
 import { GraphQLClient } from "graphql-request";
+import "../lib/loadEnv";
 import { createOrgs, createUsers } from "./accounts";
 import {
   createEntity,
@@ -28,7 +29,7 @@ void (async () => {
   const client = new GraphQLClient(`http://${API_HOST}/graphql`);
 
   const [users, _orgs] = await Promise.all([
-    await createUsers(client),
+    await createUsers(),
     await createOrgs(client),
   ]);
 
@@ -733,4 +734,6 @@ void (async () => {
   );
 
   console.log("Mock data created");
+
+  process.exit();
 })();

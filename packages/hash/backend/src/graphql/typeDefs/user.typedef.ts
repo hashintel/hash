@@ -2,6 +2,9 @@ import { gql } from "apollo-server-express";
 
 export const userTypedef = gql`
   type User implements Entity {
+    # Whether the user has completed the account sign-up process
+    accountSignupComplete: Boolean!
+
     properties: UserProperties!
 
     # ENTITY INTERFACE FIELDS BEGIN #
@@ -65,14 +68,26 @@ export const userTypedef = gql`
     # ENTITY INTERFACE FIELDS END #
   }
 
-  type UserProperties {
-    email: String!
-    shortname: String!
+  type Email {
+    address: String!
+    verified: Boolean!
+    primary: Boolean!
   }
 
-  type LoginCodeMetadata {
+  type UserProperties {
+    emails: [Email!]!
+    shortname: String
+    preferredName: String
+  }
+
+  type VerificationCodeMetadata {
     id: ID!
     createdAt: Date!
+  }
+
+  input UpdateUserProperties {
+    shortname: String
+    preferredName: String
   }
 
   enum LogoutResponse {
@@ -84,9 +99,26 @@ export const userTypedef = gql`
   }
 
   extend type Mutation {
-    createUser(email: String!, shortname: String!): User!
-    sendLoginCode(emailOrShortname: String!): LoginCodeMetadata!
-    loginWithLoginCode(loginId: ID!, loginCode: String!): User!
+    """
+    Creates a user, and sends them an email verification code
+    """
+    createUser(email: String!): VerificationCodeMetadata!
+    """
+    Update a user
+    """
+    updateUser(id: ID!, properties: UpdateUserProperties!): User!
+    """
+    Verifies a user's email address using a previously generated verification code
+    """
+    verifyEmail(verificationId: ID!, verificationCode: String!): User!
+    """
+    Sends an existing user a login verification code
+    """
+    sendLoginCode(emailOrShortname: String!): VerificationCodeMetadata!
+    """
+    Logs a user in using a previously generated verification code
+    """
+    loginWithLoginCode(verificationId: ID!, verificationCode: String!): User!
     logout: LogoutResponse!
   }
 `;

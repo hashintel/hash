@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@hashintel/hash-backend": "*",
+    "dotenv": "10.0.0",
     "graphql": "15.5.0",
     "graphql-request": "3.4.0",
     "graphql-type-json": "0.3.2",
