@@ -85,8 +85,6 @@ class VerificationCode {
         this.used = true;
       });
 
-  delete = (db: DBClient) => db.deleteVerificationCode({ id: this.id });
-
   toGQLVerificationCodeMetadata = (): GQLVerificationCodeMetadata => ({
     id: this.id,
     createdAt: this.createdAt,

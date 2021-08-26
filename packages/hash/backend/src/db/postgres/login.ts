@@ -76,17 +76,6 @@ export const setVerificationCodeToUsed = async (
   `);
 };
 
-export const deleteVerificationCode = async (
-  conn: Connection,
-  params: { id: string }
-): Promise<void> => {
-  await conn.one(sql`
-    delete from verification_codes
-    where verification_id = ${params.id}
-    returning *
-  `);
-};
-
 export const pruneVerificationCodes = async (
   conn: Connection
 ): Promise<number> => {

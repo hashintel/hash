@@ -224,10 +224,6 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return this.query((adapter) => adapter.setVerificationCodeToUsed(params));
   }
 
-  deleteVerificationCode(params: { id: string }): Promise<void> {
-    return this.query((adapter) => adapter.deleteVerificationCode(params));
-  }
-
   pruneVerificationCodes(): Promise<number> {
     return this.query((adapter) => adapter.pruneVerificationCodes());
   }
