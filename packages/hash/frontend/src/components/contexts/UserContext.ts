@@ -15,4 +15,3 @@ export const UserContext = React.createContext<UserContextProps>({
   },
   loading: false,
 });
-

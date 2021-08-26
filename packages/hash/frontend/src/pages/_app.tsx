@@ -24,7 +24,7 @@ export const apolloClient = createApolloClient();
 function MyApp({ Component, pageProps }: AppProps) {
   const router = useRouter();
 
-  const { user, refetch, loading} = useFetchUser(apolloClient)
+  const { user, refetch, loading } = useFetchUser(apolloClient);
 
   useEffect(() => {
     if (
