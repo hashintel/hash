@@ -13,16 +13,6 @@ const matchesUserType = sql`
   ) in ( ${selectSystemEntityTypeIds({ systemTypeName: "User" })} )
 `;
 
-// @todo: this function should take accountId as a parameter.
-export const getUserById = async (conn: Connection, params: { id: string }) => {
-  const row = await conn.maybeOne(sql`
-    ${selectEntities}
-    where
-      e.entity_id = ${params.id} and ${matchesUserType}
-  `);
-  return row ? mapPGRowToEntity(row) : null;
-};
-
 // @todo: this function is not optimized to take DB indexes or sharding into account. It
 //    might be better to have a separate "users" table.
 export const getUserByEmail = async (

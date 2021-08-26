@@ -39,9 +39,15 @@ class User extends Entity {
 
   static getUserById =
     (db: DBClient) =>
-    ({ id }: { id: string }): Promise<User | null> =>
+    ({
+      accountId,
+      entityId,
+    }: {
+      accountId: string;
+      entityId: string;
+    }): Promise<User | null> =>
       db
-        .getUserById({ id })
+        .getEntityLatestVersion({ accountId, entityId })
         .then((dbUser) => (dbUser ? new User(dbUser) : null));
 
   static getUserByEmail =

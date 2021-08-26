@@ -53,7 +53,8 @@ export const verifyVerificationCode =
     return {
       verificationCode,
       user: await User.getUserById(client)({
-        id: verificationCode.userId,
+        accountId: verificationCode.accountId,
+        entityId: verificationCode.userId,
       })
         .then((user) => {
           if (!user) {

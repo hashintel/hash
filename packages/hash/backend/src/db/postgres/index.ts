@@ -152,10 +152,6 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return this.query((adapter) => adapter.updateEntity(params));
   }
 
-  getUserById(params: { id: string }): Promise<Entity | null> {
-    return this.query((adapter) => adapter.getUserById(params));
-  }
-
   getUserByEmail(params: {
     email: string;
     verified?: boolean;

@@ -159,9 +159,6 @@ export interface DBClient {
     properties: any;
   }): Promise<Entity[]>;
 
-  /** Get the user by their id. */
-  getUserById(params: { id: string }): Promise<Entity | null>;
-
   /**
    * Get the user by their email address.
    * @param params.email the email address

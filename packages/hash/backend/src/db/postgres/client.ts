@@ -43,7 +43,7 @@ import {
   insertIncomingLinks,
   insertOutgoingLinks,
 } from "./link";
-import { getUserByEmail, getUserById, getUserByShortname } from "./user";
+import { getUserByEmail, getUserByShortname } from "./user";
 import {
   insertVerificationCode,
   getVerificationCode,
@@ -522,10 +522,6 @@ export class PostgresClient implements DBClient {
       properties: newSchema,
       updatedAt: now,
     };
-  }
-
-  async getUserById(params: { id: string }) {
-    return await getUserById(this.conn, params);
   }
 
   async getUserByEmail(params: {

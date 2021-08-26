@@ -11,16 +11,17 @@ declare global {
 }
 
 type SerializedPassportUser = {
-  id: string;
+  accountId: string;
+  entityId: string;
 };
 
 export const setupPassport = (app: Express, db: DBAdapter) => {
   passport.serializeUser<SerializedPassportUser>((user, done) =>
-    done(null, { id: user.entityId })
+    done(null, { accountId: user.accountId, entityId: user.entityId })
   );
 
-  passport.deserializeUser<SerializedPassportUser>(({ id }, done) =>
-    UserModel.getUserById(db)({ id }).then((user) => {
+  passport.deserializeUser<SerializedPassportUser>((serializedUser, done) =>
+    UserModel.getUserById(db)(serializedUser).then((user) => {
       // sets the 'user' field on the Express request object
       done(
         null,
