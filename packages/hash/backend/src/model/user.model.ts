@@ -106,6 +106,10 @@ class User extends Entity {
       (existingUser) => existingUser === null
     );
 
+  /**
+   * Must occur in the same db transaction as when `this.properties` was fetched
+   * to prevent overriding externally-updated properties
+   */
   updateShortname = (db: DBClient) => async (updatedShortname: string) =>
     this.updateProperties(db)({
       ...this.properties,
@@ -114,6 +118,10 @@ class User extends Entity {
 
   static preferredNameIsValid = (preferredName: string) => preferredName !== "";
 
+  /**
+   * Must occur in the same db transaction as when `this.properties` was fetched
+   * to prevent overriding externally-updated properties
+   */
   updatePreferredName = (db: DBClient) => (updatedPreferredName: string) =>
     this.updateProperties(db)({
       ...this.properties,
@@ -140,6 +148,10 @@ class User extends Entity {
     this.properties.emails.find(({ address }) => address === emailAddress) ||
     null;
 
+  /**
+   * Must occur in the same db transaction as when `this.properties` was fetched
+   * to prevent overriding externally-updated properties
+   */
   verifyEmailAddress = (db: DBClient) => (emailAddress: string) =>
     this.updateProperties(db)({
       ...this.properties,
