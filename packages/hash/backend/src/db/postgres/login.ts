@@ -93,7 +93,7 @@ export const pruneVerificationCodes = async (
   const count = await conn.oneFirst(sql`
     with deleted as (
       delete from verification_codes
-      where created_at < (now() - interval '1 day')
+      where created_at < (now() - interval '1 week')
       returning *
     )
     select count(*) from deleted
