@@ -6,6 +6,8 @@ import { VerificationCodeMetadata as GQLVerificationCodeMetadata } from "../grap
 export const MAX_AGE = 1000 * 60 * 60;
 // Maximum number of times a user is able to attempt to verify their verification code
 export const MAX_ATTEMPTS = 5;
+// Maximum age of a verification code before it can be pruned from the datastore
+export const PRUNE_AGE = 1000 * 60 * 60 * 24 * 7;
 
 type VerificationCodeConstructorArgs = {
   id: string;
