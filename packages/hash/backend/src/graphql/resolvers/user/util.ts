@@ -21,7 +21,7 @@ export const verifyVerificationCode =
       );
     }
 
-    // If the login code's maximum number of attempts has been exceeded
+    // If the verification code's maximum number of attempts has been exceeded
     if (verificationCode.hasExceededMaximumAttempts()) {
       throw new ApolloError(
         `The maximum number of attempts for the verification code with id '${id}' has been exceeded.`,
@@ -29,11 +29,19 @@ export const verifyVerificationCode =
       );
     }
 
-    // If the login code has expired
+    // If the verification code has expired
     if (verificationCode.hasExpired()) {
       throw new ApolloError(
-        `The verification code with id '${verificationCode}' has expired.`,
+        `The verification code with id '${id}' has expired.`,
         "EXPIRED"
+      );
+    }
+
+    // If the verification code has already been used
+    if (verificationCode.hasBeenUsed()) {
+      throw new ApolloError(
+        `The verification code with id '${id}' has already been used.`,
+        "ALREADY_USED"
       );
     }
 
@@ -47,8 +55,8 @@ export const verifyVerificationCode =
       );
     }
 
-    // Otherwise, the verification code is valid and we can delete it
-    await verificationCode.delete(client);
+    // Otherwise, the verification code is valid and we can use it
+    await verificationCode.setToUsed(client);
 
     return {
       verificationCode,

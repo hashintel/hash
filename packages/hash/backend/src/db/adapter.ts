@@ -232,6 +232,12 @@ export interface DBClient {
     userId: string;
   }): Promise<void>;
 
+  /** Sets the verification code to used */
+  setVerificationCodeToUsed(params: {
+    id: string;
+    userId: string;
+  }): Promise<void>;
+
   /** Delete a verification code */
   deleteVerificationCode(params: { id: string }): Promise<void>;
 

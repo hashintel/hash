@@ -72,11 +72,18 @@ class VerificationCode {
   hasExceededMaximumAttempts = () => this.numberOfAttempts >= MAX_ATTEMPTS;
 
   hasExpired = () => this.createdAt.getTime() < new Date().getTime() - MAX_AGE;
-  
+
   hasBeenUsed = () => this.used;
-  
+
   incrementAttempts = (db: DBClient) =>
     db.incrementVerificationCodeAttempts({ id: this.id, userId: this.userId });
+
+  setToUsed = (db: DBClient) =>
+    db
+      .setVerificationCodeToUsed({ id: this.id, userId: this.userId })
+      .then(() => {
+        this.used = true;
+      });
 
   delete = (db: DBClient) => db.deleteVerificationCode({ id: this.id });
 

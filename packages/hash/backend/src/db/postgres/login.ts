@@ -32,7 +32,7 @@ export const getVerificationCode = async (
   params: { id: string }
 ): Promise<VerificationCode | null> => {
   const row = await conn.one(sql`
-    select verification_id, account_id, user_id, verification_code, email_address, number_of_attempts, created_at
+    select verification_id, account_id, user_id, verification_code, email_address, number_of_attempts, used, created_at
     from verification_codes
     where verification_id = ${params.id}
   `);
@@ -58,6 +58,20 @@ export const incrementVerificationCodeAttempts = async (
   await conn.query(sql`
     update verification_codes
     set number_of_attempts = number_of_attempts + 1
+    where verification_id = ${params.id} and user_id = ${params.userId}
+  `);
+};
+
+export const setVerificationCodeToUsed = async (
+  conn: Connection,
+  params: {
+    id: string;
+    userId: string;
+  }
+): Promise<void> => {
+  await conn.query(sql`
+    update verification_codes
+    set used = true
     where verification_id = ${params.id} and user_id = ${params.userId}
   `);
 };

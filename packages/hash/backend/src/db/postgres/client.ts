@@ -50,6 +50,7 @@ import {
   incrementVerificationCodeAttempts,
   pruneVerificationCodes,
   deleteVerificationCode,
+  setVerificationCodeToUsed,
 } from "./login";
 import { jsonSchema } from "../../lib/schemas/jsonSchema";
 import { SystemType } from "../../types/entityTypes";
@@ -604,6 +605,13 @@ export class PostgresClient implements DBClient {
     userId: string;
   }): Promise<void> {
     return await incrementVerificationCodeAttempts(this.conn, params);
+  }
+
+  async setVerificationCodeToUsed(params: {
+    id: string;
+    userId: string;
+  }): Promise<void> {
+    return await setVerificationCodeToUsed(this.conn, params);
   }
 
   async deleteVerificationCode(params: { id: string }): Promise<void> {
