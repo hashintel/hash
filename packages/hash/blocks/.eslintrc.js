@@ -20,5 +20,6 @@ module.exports = {
     "react/jsx-key": "error",
     "react/jsx-no-useless-fragment": "error",
     "react/self-closing-comp": "warn",
+    curly: ["error", "multi-line"],
   },
 };

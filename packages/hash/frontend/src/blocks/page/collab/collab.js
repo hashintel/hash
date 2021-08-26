@@ -82,8 +82,9 @@ export class EditorConnection {
     if (newEditState) {
       let sendable;
       if (newEditState.doc.content.size > 40000) {
-        if (this.state.comm !== "detached")
+        if (this.state.comm !== "detached") {
           this.report.failure("Document too big. Detached.");
+        }
         this.state = new State(newEditState, "detached");
       } else if (
         (this.state.comm === "poll" || action.requestDone) &&

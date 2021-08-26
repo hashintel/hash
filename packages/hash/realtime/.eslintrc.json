@@ -1,5 +1,8 @@
 {
   "env": {
     "node": true
+  },
+  "rules": {
+    "curly": ["error", "multi-line"]
   }
 }
