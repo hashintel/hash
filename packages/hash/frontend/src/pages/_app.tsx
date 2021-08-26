@@ -17,14 +17,25 @@ import { MeQuery, MeQueryVariables } from "../graphql/apiTypes.gen";
 import "../../styles/prism.css";
 import "../../styles/globals.scss";
 import { UserContext } from "../components/contexts/UserContext";
-import { useFetchUser } from "../components/hooks/useFetchUser";
 
 export const apolloClient = createApolloClient();
 
 function MyApp({ Component, pageProps }: AppProps) {
   const router = useRouter();
 
-  const { user, refetch, loading} = useFetchUser(apolloClient)
+  const { data, refetch, loading } = useQuery<MeQuery, MeQueryVariables>(
+    meQuery,
+    {
+      onError: ({ graphQLErrors }) =>
+        graphQLErrors.map((graphQLError) => {
+          if (graphQLError.extensions?.code !== "FORBIDDEN")
+            {throw new ApolloError({ graphQLErrors });}
+        }),
+      client: apolloClient, // has to be provided as this query operates outside ApolloProvider
+    }
+  );
+
+  const user = data?.me;
 
   useEffect(() => {
     if (
