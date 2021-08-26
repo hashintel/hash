@@ -25,7 +25,7 @@ export const verifyEmail: Resolver<
       // Ensure the email address is associated with the user
       if (!email)
         throw new ApolloError(
-          `The user with the id '${verificationCode.userId}' did not request to verify the email address '${verificationCode.emailAddress}'.`
+          `The user associated with the verification code did not request to verify the email address associated with the verification code.`
         );
 
       // Ensure the email address is not already verified
