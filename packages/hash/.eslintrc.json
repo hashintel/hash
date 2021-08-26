@@ -26,7 +26,8 @@
     "no-unused-expressions": "error",
     "prefer-const": "warn",
     "prefer-arrow-callback": "warn",
-    "semi": "warn"
+    "semi": "warn",
+    "curly": ["error", "multi-line"]
   },
   "overrides": [
     {
