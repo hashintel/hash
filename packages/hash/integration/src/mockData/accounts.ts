@@ -1,6 +1,6 @@
 import { GraphQLClient } from "graphql-request";
 
-import { DBAdapter, PostgresAdapter } from "@hashintel/hash-backend/src/db";
+import { PostgresAdapter } from "@hashintel/hash-backend/src/db";
 import User from "@hashintel/hash-backend/src/model/user.model";
 import {
   CreateOrgMutationVariables,
@@ -13,14 +13,6 @@ type CreateUserArgs = {
   shortname: string;
   preferredName: string;
 };
-
-const createUser =
-  (db: DBAdapter) =>
-  ({ email, shortname }: CreateUserArgs) =>
-    User.create(db)({
-      emails: [{ address: email, primary: true, verified: true }],
-      shortname,
-    });
 
 // Note, the email addresses of these users will automatically be verified
 export const createUsers = async () => {
@@ -69,7 +61,14 @@ export const createUsers = async () => {
 
   const db = new PostgresAdapter();
 
-  const userResults = await Promise.all(users.map(createUser(db)));
+  const userResults = await Promise.all(
+    users.map(({ email, ...remainingProperties }) =>
+      User.create(db)({
+        emails: [{ address: email, primary: true, verified: true }],
+        ...remainingProperties,
+      })
+    )
+  );
 
   await db.close();
 
