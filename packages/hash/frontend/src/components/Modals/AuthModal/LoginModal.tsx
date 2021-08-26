@@ -96,7 +96,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
     }
   }, [show, activeScreen]);
 
-  // handle magic link
+  // handles when user clicks on the link sent to their email
   useEffect(() => {
     const { pathname, query } = router;
     if (pathname === "/login" && isParsedAuthQuery(query)) {

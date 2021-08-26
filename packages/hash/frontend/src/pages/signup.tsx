@@ -47,6 +47,7 @@ const SignupPage: NextPage = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const [userId, setUserId] = useState<string | null>(null);
 
+  // handles when the user is logged in but hasn't finished setting up his account
   useEffect(() => {
     if (
       user &&
@@ -79,6 +80,7 @@ const SignupPage: NextPage = () => {
       graphQLErrors.forEach(({ extensions, message }) => {
         const { code } = extensions as { code?: keyof typeof AUTH_ERROR_CODES };
         if (code) {
+          // redirect user to login if email exists
           if (code === "ALREADY_EXISTS") {
             void router.push({ pathname: "/login", query: { email } });
           } else {
@@ -128,6 +130,7 @@ const SignupPage: NextPage = () => {
     },
   });
 
+  // handles when user clicks on the link sent to their email
   useEffect(() => {
     const { pathname, query } = router;
     if (pathname === "/signup" && isParsedAuthQuery(query)) {
