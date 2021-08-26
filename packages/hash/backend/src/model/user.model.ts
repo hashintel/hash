@@ -128,8 +128,8 @@ class User extends Entity {
       preferredName: updatedPreferredName,
     });
 
-  isAccountSignupComplete = () =>
-    this.properties.shortname && this.properties.preferredName;
+  isAccountSignupComplete = (): boolean =>
+    !!this.properties.shortname && !!this.properties.preferredName;
 
   getPrimaryEmail = (): Email => {
     const primaryEmail = this.properties.emails.find(
