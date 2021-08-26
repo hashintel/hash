@@ -247,7 +247,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       metadataId
     );
 
-    prosemirrorSetup.current = { schema, view, connection };
+    prosemirrorSetup.current = { schema, view, connection: connection ?? null };
 
     return () => {
       // @todo how does this work with portals?
@@ -255,7 +255,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       prosemirrorSetup.current = null;
       connection?.close();
     };
-  }, [accountId, clearCallback, deferCallback, pageId, replacePortal]);
+  }, [accountId, clearCallback, deferCallback, metadataId, replacePortal]);
 
   /**
    * This effect is responsible for ensuring all the preloaded blocks (currently just paragraph) are defined in

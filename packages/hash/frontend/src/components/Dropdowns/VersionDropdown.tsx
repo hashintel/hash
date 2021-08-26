@@ -31,13 +31,13 @@ export const VersionDropdown: VoidFunctionComponent<VersionDropdownProps> = ({
       className={styles.AccountSelect}
       onChange={(event) => onChange(event.target.value)}
       style={{ width: 200 }}
+      value={
+        versions.find((version) => value === version.createdAt)?.entityId ??
+        null
+      }
     >
       {versions.map((version) => (
-        <option
-          key={version.entityId}
-          value={version.entityId}
-          selected={value === version.createdAt}
-        >
+        <option key={version.entityId} value={version.entityId}>
           {formatDistance(new Date(version.createdAt), now, {
             addSuffix: true,
           })}
