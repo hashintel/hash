@@ -121,8 +121,7 @@ class User extends Entity {
     });
 
   isAccountSignupComplete = () =>
-    this.properties.shortname !== undefined &&
-    this.properties.preferredName !== undefined;
+    this.properties.shortname && this.properties.preferredName;
 
   getPrimaryEmail = (): Email => {
     const primaryEmail = this.properties.emails.find(

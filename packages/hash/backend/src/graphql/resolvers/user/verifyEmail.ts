@@ -48,10 +48,12 @@ export const verifyEmail: Resolver<
         );
 
       // Otherwise the email address can be verified with the user
-      await Promise.all([
-        user.verifyEmailAddress(client)(email.address),
-        ctx.user ? undefined : passport.login(user, {}),
-      ].flat<(Promise<any> | undefined)[]>());
+      await Promise.all(
+        [
+          user.verifyEmailAddress(client)(email.address),
+          ctx.user ? undefined : passport.login(user, {}),
+        ].flat<(Promise<any> | undefined)[]>()
+      );
 
       return user.toGQLUser();
     })
