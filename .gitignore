@@ -74,6 +74,9 @@ build
 # vscode config
 .vscode
 
+# webstorm config
+.idea 
+
 # Python compiled files and package metadata
 **/__pycache__
 **/*.egg-info
