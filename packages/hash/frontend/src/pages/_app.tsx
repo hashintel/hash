@@ -3,20 +3,19 @@ require("setimmediate");
 
 import { useRouter } from "next/router";
 import { AppProps } from "next/dist/next-server/lib/router/router";
-import { ApolloProvider } from "@apollo/client/react";
+import { ApolloProvider, useQuery } from "@apollo/client/react";
 import { useEffect, useMemo } from "react";
 import { createApolloClient } from "@hashintel/hash-shared/src/graphql/createApolloClient";
 import withTwindApp from "@twind/next/app";
 import { PageLayout } from "../components/layout/PageLayout/PageLayout";
 import { ModalProvider } from "react-modal-hook";
 
-import { ApolloError, useQuery } from "@apollo/client";
-import { meQuery } from "../graphql/queries/user.queries";
-import { MeQuery, MeQueryVariables } from "../graphql/apiTypes.gen";
-
 import "../../styles/prism.css";
 import "../../styles/globals.scss";
 import { UserContext } from "../components/contexts/UserContext";
+import { meQuery } from "../graphql/queries/user.queries";
+import { MeQuery, MeQueryVariables } from "../graphql/apiTypes.gen";
+import { ApolloError } from "@apollo/client";
 
 export const apolloClient = createApolloClient();
 
@@ -28,8 +27,9 @@ function MyApp({ Component, pageProps }: AppProps) {
     {
       onError: ({ graphQLErrors }) =>
         graphQLErrors.map((graphQLError) => {
-          if (graphQLError.extensions?.code !== "FORBIDDEN")
-            {throw new ApolloError({ graphQLErrors });}
+          if (graphQLError.extensions?.code !== "FORBIDDEN") {
+            throw new ApolloError({ graphQLErrors });
+          }
         }),
       client: apolloClient, // has to be provided as this query operates outside ApolloProvider
     }
