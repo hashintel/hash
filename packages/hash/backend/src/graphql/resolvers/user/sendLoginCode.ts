@@ -19,21 +19,23 @@ export const sendLoginCode: Resolver<
     ? await dataSources.db
         .getUserByEmail({ email: emailOrShortname })
         .then((user) => {
-          if (!user)
+          if (!user) {
             throw new ApolloError(
               `A user with the email '${emailOrShortname}' could not be found.`,
               "NOT_FOUND"
             );
+          }
           return user;
         })
     : await dataSources.db
         .getUserByShortname({ shortname: emailOrShortname })
         .then((user) => {
-          if (!user)
+          if (!user) {
             throw new ApolloError(
               `A user with the shortname '${emailOrShortname}' could not be found.`,
               "NOT_FOUND"
             );
+          }
           return user;
         });
 

@@ -16,8 +16,9 @@ export const req = (conf) => {
         success(req.responseText);
       } else {
         let text = req.responseText;
-        if (text && /html/.test(req.getResponseHeader("content-type")))
+        if (text && /html/.test(req.getResponseHeader("content-type"))) {
           text = makePlain(text);
+        }
         const err = new Error(
           "Request failed: " + req.statusText + (text ? "\n\n" + text : "")
         );
@@ -28,9 +29,11 @@ export const req = (conf) => {
     req.addEventListener("error", () => {
       if (!aborted) failure(new Error("Network error"));
     });
-    if (conf.headers)
-      for (const header in conf.headers)
+    if (conf.headers) {
+      for (const header in conf.headers) {
         req.setRequestHeader(header, conf.headers[header]);
+      }
+    }
     req.send(conf.body || null);
   });
   result.abort = () => {

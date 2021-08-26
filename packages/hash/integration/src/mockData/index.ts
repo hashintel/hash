@@ -57,7 +57,7 @@ void (async () => {
     "Location",
     "Person",
     "Table",
-    "Code"
+    "Code",
   ];
   await Promise.all(
     requiredTypes.map(async (typeName) => {

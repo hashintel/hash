@@ -31,8 +31,8 @@ export class Reporter {
   }
 
   success() {
-    if (this.state === "fail" && this.setAt > Date.now() - 1000 * 10)
+    if (this.state === "fail" && this.setAt > Date.now() - 1000 * 10) {
       setTimeout(() => this.success(), 5000);
-    else this.clearState();
+    } else this.clearState();
   }
 }

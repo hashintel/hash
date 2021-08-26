@@ -79,8 +79,9 @@ export const Editor = ({
 
       if (evt.shiftKey) {
         // The previous character has to be a tab
-        if (content.substring(selectionStart - 1, selectionStart) !== "\t")
+        if (content.substring(selectionStart - 1, selectionStart) !== "\t") {
           return;
+        }
 
         newContent =
           content.substring(0, selectionStart - 1) +
