@@ -1,13 +1,11 @@
 import {
   ApolloClient,
   ApolloError,
-  NormalizedCache,
   NormalizedCacheObject,
   useQuery,
 } from "@apollo/client";
 import { meQuery } from "../../graphql/queries/user.queries";
 import { MeQuery, MeQueryVariables } from "../../graphql/apiTypes.gen";
-import React from "react";
 
 /**
  * Returns an object containing:

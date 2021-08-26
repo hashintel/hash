@@ -3,7 +3,7 @@ import { tw } from "twind";
 import { Menu } from "@headlessui/react";
 
 import IconAvatar from "../../Icons/IconAvatar/IconAvatar";
-import IconDropdown from "../../Icons/IconDropdown/IconDropdown";
+import { IconDropdown } from "../../Icons/IconDropdown/IconDropdown";
 
 type AccountDropdownProps = {
   name?: string;
