@@ -57,6 +57,7 @@ void (async () => {
     "Location",
     "Person",
     "Table",
+    "Code"
   ];
   await Promise.all(
     requiredTypes.map(async (typeName) => {
@@ -225,6 +226,16 @@ void (async () => {
         {
           type: "Image",
           entityTypeId: newTypeIds.Image,
+          accountId: hashOrg.accountId,
+          createdById: user.id,
+          properties: {},
+        },
+      ],
+      [
+        "code1",
+        {
+          type: "Code",
+          entityTypeId: newTypeIds.Code,
           accountId: hashOrg.accountId,
           createdById: user.id,
           properties: {},
