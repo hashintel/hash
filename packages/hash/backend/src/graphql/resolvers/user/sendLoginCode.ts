@@ -28,21 +28,23 @@ export const sendLoginCode: Resolver<
            * send an email verification code to the user and return it
            */
 
-          if (!user)
+          if (!user) {
             throw new ApolloError(
               `A user with the email '${emailOrShortname}' could not be found.`,
               "NOT_FOUND"
             );
+          }
           return user;
         })
       : await User.getUserByShortname(client)({
           shortname: emailOrShortname,
         }).then((user) => {
-          if (!user)
+          if (!user) {
             throw new ApolloError(
               `A user with the shortname '${emailOrShortname}' could not be found.`,
               "NOT_FOUND"
             );
+          }
           return user;
         });
 

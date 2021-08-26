@@ -47,10 +47,11 @@ const loggedIn =
 const signedUp =
   (next: any) =>
   (obj: any, args: any, ctx: LoggedInGraphQLContext, info: any) => {
-    if (!ctx.user.isAccountSignupComplete())
+    if (!ctx.user.isAccountSignupComplete()) {
       throw new ForbiddenError(
         "You must complete the sign-up process to perform this action."
       );
+    }
     return next(obj, args, ctx, info);
   };
 
