@@ -39,7 +39,7 @@ export const sendLoginCodeToEmailAddress = async (
     to: email,
     subject: "Your HASH verification code",
     html: `
-        <p>To log in, copy and paste your verification code or <a href=${magicLink}>click here</a>.</p>
+        <p>To log in, copy and paste your verification code or <a href="${magicLink}">click here</a>.</p>
         <code>${verificationCode.code}</code>
       `,
   });
@@ -57,7 +57,7 @@ export const sendEmailVerificationCodeToEmailAddress = async (
     to: email,
     subject: "Please verify your HASH email address",
     html: `
-        <p>To verify your email address, copy and paste your verification code or <a href=${magicLink}>click here</a>.</p>
+        <p>To verify your email address, copy and paste your verification code or <a href="${magicLink}">click here</a>.</p>
         <code>${verificationCode.code}</code>
       `,
   });
