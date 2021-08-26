@@ -37,21 +37,19 @@ export const getUserByEmail = async (
         exists (
           select *
           from json_array_elements(e.properties::json -> 'emails') email
-          where (
-              email ->> 'address' = ${params.email}
-              ${
-                params.verified !== undefined
-                  ? sql`and (email ->> 'verified')::boolean = ${params.verified}`
-                  : sql``
-              }
-              ${
-                params.primary !== undefined
-                  ? sql`and (email ->> 'primary')::boolean = ${params.primary}`
-                  : sql``
-              }
-          )
+          where ${sql.join(
+            [
+              sql`email ->> 'address' = ${params.email}`,
+              params.verified !== undefined
+                ? sql`(email ->> 'verified')::boolean = ${params.verified}`
+                : [],
+              params.primary !== undefined
+                ? sql`(email ->> 'primary')::boolean = ${params.primary}`
+                : [],
+            ].flat(),
+            sql` and `
+          )}
         )
-        
   `);
   return row ? mapPGRowToEntity(row) : null;
 };

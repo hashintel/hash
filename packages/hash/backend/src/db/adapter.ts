@@ -225,9 +225,7 @@ export interface DBClient {
   }): Promise<VerificationCode>;
 
   /** Get a verification code (it may be invalid!) */
-  getVerificationCode(params: {
-    id: string;
-  }): Promise<VerificationCode | null>;
+  getVerificationCode(params: { id: string }): Promise<VerificationCode | null>;
 
   /** Increment the number of verification attempts by 1 */
   incrementVerificationCodeAttempts(params: {
