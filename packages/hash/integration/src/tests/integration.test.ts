@@ -18,18 +18,6 @@ afterAll(async () => {
   await handler.close();
 });
 
-it("can create user", async () => {
-  const userVars = {
-    email: "alice@bigco.com",
-    shortname: "alice",
-  };
-  const res = await client.createUser(userVars);
-
-  expect(res.properties).toEqual(userVars);
-  expect(res.createdAt).toEqual(res.updatedAt);
-  expect(res.entityTypeName).toEqual("User");
-});
-
 it("can create org", async () => {
   const orgVars = {
     shortname: "bigco",
