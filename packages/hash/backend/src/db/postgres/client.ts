@@ -590,7 +590,7 @@ export class PostgresClient implements DBClient {
     const id = genId();
     const createdAt = new Date();
     await insertVerificationCode(this.conn, { ...params, id, createdAt });
-    return { id, ...params, createdAt, numberOfAttempts: 0 };
+    return { id, ...params, createdAt, numberOfAttempts: 0, used: false };
   }
 
   async getVerificationCode(params: {

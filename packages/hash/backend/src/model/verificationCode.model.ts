@@ -14,6 +14,7 @@ type VerificationCodeConstructorArgs = {
   accountId: string;
   userId: string;
   numberOfAttempts: number;
+  used: boolean;
   createdAt: Date;
 };
 
@@ -24,6 +25,7 @@ class VerificationCode {
   accountId: string;
   userId: string;
   numberOfAttempts: number;
+  used: boolean;
   createdAt: Date;
 
   private static generateCode = () => (rword.generate(4) as string[]).join("-");
@@ -35,6 +37,7 @@ class VerificationCode {
     accountId,
     userId,
     numberOfAttempts,
+    used,
     createdAt,
   }: VerificationCodeConstructorArgs) {
     this.id = id;
@@ -43,6 +46,7 @@ class VerificationCode {
     this.accountId = accountId;
     this.userId = userId;
     this.numberOfAttempts = numberOfAttempts;
+    this.used = used;
     this.createdAt = createdAt;
   }
 
@@ -68,7 +72,9 @@ class VerificationCode {
   hasExceededMaximumAttempts = () => this.numberOfAttempts >= MAX_ATTEMPTS;
 
   hasExpired = () => this.createdAt.getTime() < new Date().getTime() - MAX_AGE;
-
+  
+  hasBeenUsed = () => this.used;
+  
   incrementAttempts = (db: DBClient) =>
     db.incrementVerificationCodeAttempts({ id: this.id, userId: this.userId });
 

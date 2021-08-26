@@ -43,6 +43,7 @@ export const getVerificationCode = async (
     code: row["verification_code"] as string,
     emailAddress: row["email_address"] as string,
     numberOfAttempts: row["number_of_attempts"] as number,
+    used: row["used"] as boolean,
     createdAt: new Date(row["created_at"] as string),
   };
 };
