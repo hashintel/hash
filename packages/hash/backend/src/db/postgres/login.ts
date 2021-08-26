@@ -32,12 +32,13 @@ export const getVerificationCode = async (
   params: { id: string }
 ): Promise<VerificationCode | null> => {
   const row = await conn.one(sql`
-    select verification_id, user_id, verification_code, email_address, number_of_attempts, created_at
+    select verification_id, account_id, user_id, verification_code, email_address, number_of_attempts, created_at
     from verification_codes
     where verification_id = ${params.id}
   `);
   return {
     id: row["verification_id"] as string,
+    accountId: row["account_id"] as string,
     userId: row["user_id"] as string,
     code: row["verification_code"] as string,
     emailAddress: row["email_address"] as string,

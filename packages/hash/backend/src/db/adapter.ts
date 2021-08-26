@@ -64,6 +64,7 @@ export type VerificationCode = {
   id: string;
   code: string;
   emailAddress: string;
+  accountId: string;
   userId: string;
   numberOfAttempts: number;
   createdAt: Date;

@@ -11,6 +11,7 @@ type VerificationCodeConstructorArgs = {
   id: string;
   code: string;
   emailAddress: string;
+  accountId: string;
   userId: string;
   numberOfAttempts: number;
   createdAt: Date;
@@ -20,6 +21,7 @@ class VerificationCode {
   id: string;
   code: string;
   emailAddress: string;
+  accountId: string;
   userId: string;
   numberOfAttempts: number;
   createdAt: Date;
@@ -30,6 +32,7 @@ class VerificationCode {
     id,
     code,
     emailAddress,
+    accountId,
     userId,
     numberOfAttempts,
     createdAt,
@@ -37,6 +40,7 @@ class VerificationCode {
     this.id = id;
     this.code = code;
     this.emailAddress = emailAddress;
+    this.accountId = accountId;
     this.userId = userId;
     this.numberOfAttempts = numberOfAttempts;
     this.createdAt = createdAt;
