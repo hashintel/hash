@@ -103,11 +103,9 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
       const { verificationId, verificationCode } = query;
       setActiveScreen(Screen.VerifyCode);
       setVerificationCode(verificationCode);
-      setTimeout(() => {
-        void loginWithLoginCode({
-          variables: { verificationId, verificationCode },
-        });
-      }, 1000);
+      void loginWithLoginCode({
+        variables: { verificationId, verificationCode },
+      });
     }
   }, [router, loginWithLoginCode]);
 
