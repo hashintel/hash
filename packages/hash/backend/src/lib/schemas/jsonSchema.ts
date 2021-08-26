@@ -1,4 +1,12 @@
-import { JSONObject } from "@hashintel/block-protocol";
+export type JSONValue =
+  | null
+  | boolean
+  | number
+  | string
+  | JSONValue[]
+  | JSONObject;
+
+export type JSONObject = { [key: string]: JSONValue };
 
 /**
  * @todo read server name from server config or environment variable
