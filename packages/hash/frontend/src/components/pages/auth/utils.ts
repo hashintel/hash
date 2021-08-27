@@ -9,7 +9,7 @@ export const AUTH_ERROR_CODES = {
     "You have exceeded the maximum number of attempts for this login code, please try again.",
   NOT_FOUND: "An unexpected error occurred, please try again.",
   SHORTNAME_TAKEN: "The shortname is already taken",
-  ALREADY_USED: "This verification code has already been used."
+  ALREADY_USED: "This verification code has already been used.",
 } as const;
 
 type ParsedAuthQuery = {

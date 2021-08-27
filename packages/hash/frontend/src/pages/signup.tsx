@@ -144,12 +144,12 @@ const SignupPage: NextPage = () => {
     });
   };
 
-  const handleVerifyEmail = () => {
+  const handleVerifyEmail = (code?: string) => {
     if (!verificationCodeMetadata) return;
     void verifyEmail({
       variables: {
         verificationId: verificationCodeMetadata?.id,
-        verificationCode: verificationCode,
+        verificationCode: code || verificationCode,
       },
     });
   };

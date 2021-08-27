@@ -11,12 +11,20 @@ type VerifyCodeProps = {
   loading: boolean;
   errorMessage?: string;
   loginIdentifier: string;
-  handleSubmit: () => void;
+  handleSubmit: (code?: string) => void;
   requestCode: () => void;
   requestCodeLoading: boolean;
 };
 
 const isShortname = (identifier: string) => !identifier.includes("@");
+
+const parseVerificationCodeInput = (inputCode: string) =>
+  inputCode.replace(/\s/g, "");
+
+const isVerificationCodeValid = (code: string) => {
+  const units = code.split("-");
+  return units.length >= 4 && units?.[3].length > 0;
+};
 
 export const VerifyCode: VFC<VerifyCodeProps> = ({
   code,
@@ -36,10 +44,7 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
     inputRef.current?.select();
   }, []);
 
-  const isInputValid = useCallback(() => {
-    const units = code.split("-");
-    return units.length >= 4 && units?.[3].length > 0;
-  }, [code]);
+  const isInputValid = useCallback(() => isVerificationCodeValid(code), [code]);
 
   const onSubmit = (evt: React.FormEvent) => {
     evt.preventDefault();
@@ -68,7 +73,17 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
           <form className={tw`relative`} onSubmit={onSubmit}>
             <input
               className={tw`block border-b-1 border-gray-300 w-11/12 mx-auto mb-2 py-3 pl-3 pr-20 text-2xl text-center focus:outline-none focus:border-blue-500`}
-              onChange={(evt) => setCode(evt.target.value)}
+              onChange={({ target }) =>
+                setCode(parseVerificationCodeInput(target.value))
+              }
+              onPaste={({ clipboardData }) => {
+                const pastedCode = parseVerificationCodeInput(
+                  clipboardData.getData("Text")
+                );
+                if (isVerificationCodeValid(pastedCode)) {
+                  void handleSubmit(pastedCode);
+                }
+              }}
               value={code}
               ref={inputRef}
             />
@@ -76,11 +91,16 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
               className={tw`absolute right-0 top-1/2 mr-3 transition-all -translate-y-1/2 flex items-center disabled:opacity-40 disabled:pointer-events-none text-blue-500 hover:text-blue-700 font-bold py-2 px-2`}
               disabled={!isInputValid() || loading}
             >
-              <span className={tw`mr-1`}>Submit</span>
               {loading ? (
-                <IconHash className={tw`h-4 w-4 animate-spin`} />
+                <>
+                  <span className={tw`mr-1`}>Loading</span>
+                  <IconHash className={tw`h-4 w-4 animate-spin`} />
+                </>
               ) : (
-                <IconKeyboardReturn />
+                <>
+                  <span className={tw`mr-1`}>Submit</span>
+                  <IconKeyboardReturn />
+                </>
               )}
             </button>
           </form>

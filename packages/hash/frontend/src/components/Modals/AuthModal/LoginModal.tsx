@@ -114,12 +114,12 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
     void sendLoginCodeFn({ variables: { emailOrShortname } });
   };
 
-  const login = () => {
+  const login = (code?: string) => {
     if (!verificationCodeMetadata) return;
     void loginWithLoginCode({
       variables: {
         verificationId: verificationCodeMetadata.id,
-        verificationCode,
+        verificationCode: code || verificationCode,
       },
     });
   };
