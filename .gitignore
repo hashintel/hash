@@ -72,10 +72,7 @@ typings/
 build
 
 # vscode config
-.vscode
-
-# webstorm config
-.idea 
+.vscode 
 
 # Python compiled files and package metadata
 **/__pycache__
