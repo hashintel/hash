@@ -2,7 +2,7 @@ import { Connection } from "./types";
 
 import { sql } from "slonik";
 import { VerificationCode } from "../adapter";
-import { PRUNE_AGE } from "../../model/verificationCode.model";
+import { PRUNE_AGE_MS } from "../../model/verificationCode.model";
 
 /** Insert a row into the entities table. */
 export const insertVerificationCode = async (
@@ -83,7 +83,7 @@ export const pruneVerificationCodes = async (
   const count = await conn.oneFirst(sql`
     with deleted as (
       delete from verification_codes
-      where created_at < now() - (${PRUNE_AGE} * interval '1 millisecond')
+      where created_at < now() - (${PRUNE_AGE_MS} * interval '1 millisecond')
       returning *
     )
     select count(*) from deleted

@@ -3,11 +3,11 @@ import { DBClient } from "../db";
 import { VerificationCodeMetadata as GQLVerificationCodeMetadata } from "../graphql/apiTypes.gen";
 
 // Maximum age of a valid verification code (1 hour)
-export const MAX_AGE = 1000 * 60 * 60;
+export const MAX_AGE_MS = 1000 * 60 * 60;
 // Maximum number of times a user is able to attempt to verify their verification code
 export const MAX_ATTEMPTS = 5;
 // Maximum age of a verification code before it can be pruned from the datastore
-export const PRUNE_AGE = 1000 * 60 * 60 * 24 * 7;
+export const PRUNE_AGE_MS = 1000 * 60 * 60 * 24 * 7;
 
 type VerificationCodeConstructorArgs = {
   id: string;
@@ -73,7 +73,7 @@ class VerificationCode {
 
   hasExceededMaximumAttempts = () => this.numberOfAttempts >= MAX_ATTEMPTS;
 
-  hasExpired = () => this.createdAt.getTime() < new Date().getTime() - MAX_AGE;
+  hasExpired = () => this.createdAt.getTime() < new Date().getTime() - MAX_AGE_MS;
 
   hasBeenUsed = () => this.used;
 
