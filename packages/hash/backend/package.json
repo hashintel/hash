@@ -22,7 +22,6 @@
   },
   "dependencies": {
     "@aws-sdk/client-ses": "3.25.0",
-    "@hashintel/hash-frontend": "*",
     "@hashintel/hash-shared": "*",
     "apollo-server-express": "2.24.1",
     "body-parser": "1.19.0",

@@ -80,3 +80,5 @@ build
 
 # generated files
 **/*.gen.*
+
+**/*.tsbuildinfo
