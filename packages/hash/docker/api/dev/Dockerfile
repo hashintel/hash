@@ -16,7 +16,6 @@ COPY packages/hash/docker/api/dev/start.sh .
 RUN --mount=type=cache,target=/yarn-cache \
     --mount=type=cache,target=/var/cache/apt \
     --mount=type=cache,target=/var/lib/apt \
-    --mount=type=cache,target=/app/node_modules \
     apt-get update \
     && apt-get install wait-for-it \
     && chmod +x start.sh \
