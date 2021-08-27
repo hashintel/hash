@@ -268,13 +268,19 @@ const BlockSelect = forwardRef(({ view, getPos, node }, ref) => {
           asyncNodeUrl: componentUrl,
           asyncNodeProps: {
             attrs: {
+              // @todo do so many of these props need to switch on text?
               properties: variant.properties,
               entityId: text ? node.attrs.entityId : null,
+              versionId: text ? node.attrs.versionId : null,
               childEntityId: text ? node.attrs.childEntityId : null,
               accountId: node.attrs.accountId,
               childEntityAccountId: text
                 ? node.attrs.childEntityAccountId
                 : null,
+              childEntityVersionId: text
+                ? node.attrs.childEntityVersionId
+                : null,
+              childEntityTypeId: text ? node.attrs.childEntityTypeId : null,
             },
             children: text ? [state.schema.text(text)] : [],
             marks: null,

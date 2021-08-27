@@ -33,6 +33,7 @@ type BlockConfig = BlockMetadata & { url: string } & (
 // @todo this type properly exists already somewhere
 export type Block = {
   entityId: string;
+  versionId: string;
   accountId: string;
   entity: Record<any, any>;
   componentId: string;
@@ -221,15 +222,18 @@ export const transformBlockForProsemirror = (block: BlockWithoutMeta) => {
     childEntityId = null,
     childEntityAccountId = null,
     childEntityTypeId = null,
+    childEntityVersionId = null,
     ...props
   } = block.entity;
 
   const attrs = {
     entityId: block.entityId,
     accountId: block.accountId,
+    versionId: block.versionId,
     childEntityId,
     childEntityAccountId,
     childEntityTypeId,
+    childEntityVersionId,
   };
 
   return { children, props, attrs };
@@ -306,6 +310,7 @@ export const mapEntitiesToBlocks = (
              * These are here to help reconstruct the database objects from the prosemirror document.
              */
             childEntityId: entity.metadataId,
+            childEntityVersionId: entity.id,
             childEntityAccountId: entity.accountId,
             childEntityTypeId: entity.entityTypeId,
 
@@ -313,6 +318,7 @@ export const mapEntitiesToBlocks = (
               type: "text",
               text: text.text,
               entityId: entity.metadataId,
+              versionId: entity.id,
               accountId: entity.accountId,
 
               // This maps the boolean properties on the entity into an array of mark names
@@ -329,13 +335,15 @@ export const mapEntitiesToBlocks = (
         ? {
             childEntityId: entity.metadataId,
             childEntityTypeId: entity.entityTypeId,
+            childEntityVersionId: entity.id,
             ...entity.unknownProperties,
           }
         : {};
 
     return {
       componentId,
-      entityId: content.id,
+      entityId: content.metadataId,
+      versionId: content.id,
       entity: props,
       accountId: content.accountId,
     };
@@ -388,6 +396,7 @@ export const calculateSavePayloads = (
       entity = {
         type: "Text",
         id: node.attrs.childEntityId,
+        versionId: node.attrs.childEntityVersionId,
         accountId: node.attrs.childEntityAccountId,
         properties: {
           texts:
@@ -408,10 +417,17 @@ export const calculateSavePayloads = (
         },
       };
     } else {
-      const { childEntityId, childEntityAccountId, ...props } = node.attrs;
+      // @todo do we need to remove other props here
+      const {
+        childEntityId,
+        childEntityAccountId,
+        childEntityVersionId,
+        ...props
+      } = node.attrs;
       entity = {
         type: "UnknownEntity",
         id: childEntityId,
+        versionId: childEntityVersionId,
         accountId: childEntityAccountId,
         properties: props,
       };
@@ -420,6 +436,7 @@ export const calculateSavePayloads = (
     return {
       entityId: node.attrs.entityId,
       accountId: node.attrs.accountId ?? accountId,
+      versionId: node.attrs.versionId,
       type: "Block",
       position,
       properties: {
@@ -455,7 +472,7 @@ export const calculateSavePayloads = (
       accountId: node.accountId,
       properties: {
         componentId: node.properties.componentId,
-        entityId: node.properties.entity.id,
+        entityId: node.properties.entity.versionId,
         accountId: node.properties.entity.accountId,
       },
     };
@@ -559,7 +576,7 @@ export const calculateSavePayloads = (
           accountId,
           data: {
             contents: existingBlocks.map((node) => ({
-              entityId: node.entityId,
+              entityId: node.versionId,
               accountId: node.accountId,
               type: "Block",
             })),

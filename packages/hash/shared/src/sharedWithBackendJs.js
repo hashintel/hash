@@ -263,7 +263,10 @@ const rewrapCommand = (blockExisted) => (newState, dispatch) => {
           entityId: null,
           childEntityId: null,
           accountId: null,
+          versionId: null,
           childEntityAccountId: null,
+          childEntityTypeId: null,
+          childEntityVersionId: null,
         });
       }
     }
