@@ -224,8 +224,8 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return this.query((adapter) => adapter.setVerificationCodeToUsed(params));
   }
 
-  pruneVerificationCodes(): Promise<number> {
-    return this.query((adapter) => adapter.pruneVerificationCodes());
+  pruneVerificationCodes(params: { maxAgeInMs: number }): Promise<number> {
+    return this.query((adapter) => adapter.pruneVerificationCodes(params));
   }
 
   getAndUpdateEntity(params: {

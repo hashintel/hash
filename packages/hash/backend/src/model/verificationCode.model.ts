@@ -73,7 +73,8 @@ class VerificationCode {
 
   hasExceededMaximumAttempts = () => this.numberOfAttempts >= MAX_ATTEMPTS;
 
-  hasExpired = () => this.createdAt.getTime() < new Date().getTime() - MAX_AGE_MS;
+  hasExpired = () =>
+    this.createdAt.getTime() < new Date().getTime() - MAX_AGE_MS;
 
   hasBeenUsed = () => this.used;
 

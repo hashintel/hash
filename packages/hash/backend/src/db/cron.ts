@@ -1,4 +1,5 @@
 import { CronJob } from "cron";
+import { PRUNE_AGE_MS } from "../model/verificationCode.model";
 import { Logger } from "winston";
 import { DBAdapter } from "./adapter";
 
@@ -8,7 +9,7 @@ export const setupCronJobs = (db: DBAdapter, logger: Logger) => {
     "0 0 5 * * *",
     () =>
       db
-        .pruneVerificationCodes()
+        .pruneVerificationCodes({ maxAgeInMs: PRUNE_AGE_MS })
         .then((numberOfDeleted) =>
           logger.info(
             `Cron Job: pruned ${numberOfDeleted} expired verification codes from the datastore.`

@@ -238,8 +238,11 @@ export interface DBClient {
     userId: string;
   }): Promise<void>;
 
-  /** Prunes verification codes from the database after 1 day of creation */
-  pruneVerificationCodes(): Promise<number>;
+  /**
+   * Prunes verification codes from the datastore older than the maximum age
+   * @param maxAgeInMs: the maximum age of a verification code in milliseconds
+   */
+  pruneVerificationCodes(params: { maxAgeInMs: number }): Promise<number>;
 
   /**
    * getAndUpdateEntity may be used to retrieve and update an entity within

@@ -613,8 +613,10 @@ export class PostgresClient implements DBClient {
     return await setVerificationCodeToUsed(this.conn, params);
   }
 
-  async pruneVerificationCodes(): Promise<number> {
-    return await pruneVerificationCodes(this.conn);
+  async pruneVerificationCodes(params: {
+    maxAgeInMs: number;
+  }): Promise<number> {
+    return await pruneVerificationCodes(this.conn, params);
   }
 
   // @todo: may be deprecated. Users of the adapter can now use a transction to combine
