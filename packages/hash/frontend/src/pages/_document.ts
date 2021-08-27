@@ -1,6 +1,8 @@
 import withTwindDocument from "@twind/next/document";
 import Document, { DocumentContext } from "next/document";
 
+import twindConfig from "../../twind.config";
+
 class MyDocument extends Document {
   static async getInitialProps(context: DocumentContext) {
     const initialProps = await Document.getInitialProps(context);
@@ -8,4 +10,4 @@ class MyDocument extends Document {
   }
 }
 
-export default withTwindDocument(MyDocument);
+export default withTwindDocument(twindConfig, MyDocument);
