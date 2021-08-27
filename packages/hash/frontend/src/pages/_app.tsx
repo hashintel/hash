@@ -10,7 +10,7 @@ import withTwindApp from "@twind/next/app";
 import { PageLayout } from "../components/layout/PageLayout/PageLayout";
 import { ModalProvider } from "react-modal-hook";
 
-import twindConfig from '../../twind.config'
+import twindConfig from "../../twind.config";
 import "../../styles/prism.css";
 import "../../styles/globals.scss";
 import { UserContext } from "../components/contexts/UserContext";
