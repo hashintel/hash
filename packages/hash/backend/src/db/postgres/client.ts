@@ -50,7 +50,7 @@ import {
   incrementVerificationCodeAttempts,
   pruneVerificationCodes,
   setVerificationCodeToUsed,
-} from "./login";
+} from "./verificationCode";
 import { jsonSchema } from "../../lib/schemas/jsonSchema";
 import { SystemType } from "../../types/entityTypes";
 import { Visibility } from "../../graphql/apiTypes.gen";
