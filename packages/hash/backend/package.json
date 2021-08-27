@@ -12,8 +12,8 @@
   "main": "src/index.ts",
   "scripts": {
     "dev": "export NODE_ENV=development && nodemon --config nodemon.json src/index.ts",
-    "build": "echo 'Compiling Typescript' && tsc",
-    "start": "export NODE_ENV=production && node dist/index.js",
+    "build": "echo 'Compiling Typescript' && rm -rf dist && tsc -b",
+    "start": "export NODE_ENV=production && node dist/src/index.js",
     "codegen": "graphql-codegen --config codegen.yml # backend",
     "format": "prettier --write './src/**/*'; eslint --ext .ts  --fix ./src/",
     "lint": "prettier --check './src/**/*'; eslint --ext .ts ./src/",

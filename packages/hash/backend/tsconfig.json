@@ -4,11 +4,22 @@
     // specifics
     "baseUrl": "./",
     "outDir": "./dist",
-
     // overrides
-    "lib": ["es2020"],
+    "lib": [
+      "es2020"
+    ],
     "allowJs": true,
     "target": "es2020",
+    "moduleResolution": "node",
+    "composite": true,
+    "esModuleInterop": true,
   },
-  "include": ["./src"],
+  "include": [
+    "./src"
+  ],
+  "references": [
+    {
+      "path": "../shared"
+    }
+  ]
 }

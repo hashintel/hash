@@ -5,10 +5,14 @@
   "version": "0.1.0",
   "description": "Temporary catchall place for shared code",
   "prettier": "@hashintel/prettier-config",
+  "exports": {
+    "./": "./dist/"
+  },
   "scripts": {
     "format": "prettier --write './src/**/*'; eslint --ext .js,.ts,.tsx --fix ./src/",
     "lint": "prettier --check './src/**/*'; eslint --ext .js,.ts,.tsx ./src/",
-    "codegen": "graphql-codegen --config codegen.yml # shared"
+    "codegen": "graphql-codegen --config codegen.yml # shared",
+    "build": "echo 'Compiling Typescript' && rm -rf dist && tsc -b"
   },
   "dependencies": {
     "@apollo/client": "3.3.19",
