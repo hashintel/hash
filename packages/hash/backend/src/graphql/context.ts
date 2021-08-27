@@ -3,6 +3,7 @@ import { Logger } from "winston";
 
 import User from "../model/user.model";
 import { DBAdapter } from "../db";
+import EmailTransporter from "src/email/transporter";
 
 /**
  * Apollo context object with dataSources. For details see:
@@ -12,6 +13,7 @@ export interface GraphQLContext {
   dataSources: {
     db: DBAdapter;
   };
+  emailTransporter: EmailTransporter;
   passport: PassportGraphQLMethods;
   logger: Logger;
   user?: Omit<User, "entityType">;

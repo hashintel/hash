@@ -11,6 +11,7 @@ import { createApolloServer } from "./graphql/createApolloServer";
 import setupAuth from "./auth";
 import { getRequiredEnv } from "./util";
 import { handleCollabRequest } from "./collab/server";
+import AwsSesEmailTransporter from "./email/transporter/awsSes";
 
 // TODO: account for production domain
 export const FRONTEND_DOMAIN = getRequiredEnv("FRONTEND_DOMAIN");
@@ -82,7 +83,10 @@ setupAuth(app, db);
 // Set up cron jobs
 setupCronJobs(db, logger);
 
-const apolloServer = createApolloServer(db, logger, statsd);
+// Create an email transporter
+const transporter = new AwsSesEmailTransporter();
+
+const apolloServer = createApolloServer(db, transporter, logger, statsd);
 
 app.get("/", (_, res) => res.send("Hello World"));
 
