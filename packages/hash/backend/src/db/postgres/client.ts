@@ -43,14 +43,14 @@ import {
   insertIncomingLinks,
   insertOutgoingLinks,
 } from "./link";
-import { getUserByEmail, getUserById, getUserByShortname } from "./user";
+import { getUserByEmail, getUserByShortname } from "./user";
 import {
   insertVerificationCode,
   getVerificationCode,
   incrementVerificationCodeAttempts,
   pruneVerificationCodes,
-  deleteVerificationCode,
-} from "./login";
+  setVerificationCodeToUsed,
+} from "./verificationCode";
 import { jsonSchema } from "../../lib/schemas/jsonSchema";
 import { SystemType } from "../../types/entityTypes";
 import { Visibility } from "../../graphql/apiTypes.gen";
@@ -524,10 +524,6 @@ export class PostgresClient implements DBClient {
     };
   }
 
-  async getUserById(params: { id: string }) {
-    return await getUserById(this.conn, params);
-  }
-
   async getUserByEmail(params: {
     email: string;
     verified?: boolean;
@@ -594,7 +590,7 @@ export class PostgresClient implements DBClient {
     const id = genId();
     const createdAt = new Date();
     await insertVerificationCode(this.conn, { ...params, id, createdAt });
-    return { id, ...params, createdAt, numberOfAttempts: 0 };
+    return { id, ...params, createdAt, numberOfAttempts: 0, used: false };
   }
 
   async getVerificationCode(params: {
@@ -610,12 +606,17 @@ export class PostgresClient implements DBClient {
     return await incrementVerificationCodeAttempts(this.conn, params);
   }
 
-  async deleteVerificationCode(params: { id: string }): Promise<void> {
-    return await deleteVerificationCode(this.conn, params);
+  async setVerificationCodeToUsed(params: {
+    id: string;
+    userId: string;
+  }): Promise<void> {
+    return await setVerificationCodeToUsed(this.conn, params);
   }
 
-  async pruneVerificationCodes(): Promise<number> {
-    return await pruneVerificationCodes(this.conn);
+  async pruneVerificationCodes(params: {
+    maxAgeInMs: number;
+  }): Promise<number> {
+    return await pruneVerificationCodes(this.conn, params);
   }
 
   // @todo: may be deprecated. Users of the adapter can now use a transction to combine

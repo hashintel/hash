@@ -64,8 +64,10 @@ export type VerificationCode = {
   id: string;
   code: string;
   emailAddress: string;
+  accountId: string;
   userId: string;
   numberOfAttempts: number;
+  used: boolean;
   createdAt: Date;
 };
 
@@ -158,9 +160,6 @@ export interface DBClient {
     properties: any;
   }): Promise<Entity[]>;
 
-  /** Get the user by their id. */
-  getUserById(params: { id: string }): Promise<Entity | null>;
-
   /**
    * Get the user by their email address.
    * @param params.email the email address
@@ -233,11 +232,17 @@ export interface DBClient {
     userId: string;
   }): Promise<void>;
 
-  /** Delete a verification code */
-  deleteVerificationCode(params: { id: string }): Promise<void>;
+  /** Sets the verification code to used */
+  setVerificationCodeToUsed(params: {
+    id: string;
+    userId: string;
+  }): Promise<void>;
 
-  /** Prunes verification codes from the database after 1 day of creation */
-  pruneVerificationCodes(): Promise<number>;
+  /**
+   * Prunes verification codes from the datastore older than the maximum age
+   * @param maxAgeInMs: the maximum age of a verification code in milliseconds
+   */
+  pruneVerificationCodes(params: { maxAgeInMs: number }): Promise<number>;
 
   /**
    * getAndUpdateEntity may be used to retrieve and update an entity within

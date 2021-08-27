@@ -23,7 +23,7 @@ const createPool = () => {
 };
 
 // cookie maximum age (365 days)
-const COOKIE_MAX_AGE = 1000 * 60 * 60 * 24 * 365;
+const COOKIE_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 365;
 
 type AdditionalSessionData = {
   userAgent?: string;
@@ -52,7 +52,7 @@ export const setupSession = (app: Express) => {
         pruneSessionInterval: false,
       }),
       cookie: {
-        maxAge: COOKIE_MAX_AGE,
+        maxAge: COOKIE_MAX_AGE_MS,
         httpOnly: true,
         sameSite: "lax",
       },

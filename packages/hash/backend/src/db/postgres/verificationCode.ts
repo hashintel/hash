@@ -32,16 +32,18 @@ export const getVerificationCode = async (
   params: { id: string }
 ): Promise<VerificationCode | null> => {
   const row = await conn.one(sql`
-    select verification_id, user_id, verification_code, email_address, number_of_attempts, created_at
+    select verification_id, account_id, user_id, verification_code, email_address, number_of_attempts, used, created_at
     from verification_codes
     where verification_id = ${params.id}
   `);
   return {
     id: row["verification_id"] as string,
+    accountId: row["account_id"] as string,
     userId: row["user_id"] as string,
     code: row["verification_code"] as string,
     emailAddress: row["email_address"] as string,
     numberOfAttempts: row["number_of_attempts"] as number,
+    used: row["used"] as boolean,
     createdAt: new Date(row["created_at"] as string),
   };
 };
@@ -60,24 +62,30 @@ export const incrementVerificationCodeAttempts = async (
   `);
 };
 
-export const deleteVerificationCode = async (
+export const setVerificationCodeToUsed = async (
   conn: Connection,
-  params: { id: string }
+  params: {
+    id: string;
+    userId: string;
+  }
 ): Promise<void> => {
-  await conn.one(sql`
-    delete from verification_codes
-    where verification_id = ${params.id}
-    returning *
+  await conn.query(sql`
+    update verification_codes
+    set used = true
+    where verification_id = ${params.id} and user_id = ${params.userId}
   `);
 };
 
 export const pruneVerificationCodes = async (
-  conn: Connection
+  conn: Connection,
+  params: {
+    maxAgeInMs: number;
+  }
 ): Promise<number> => {
   const count = await conn.oneFirst(sql`
     with deleted as (
       delete from verification_codes
-      where created_at < (now() - interval '1 day')
+      where created_at < now() - (${params.maxAgeInMs} * interval '1 millisecond')
       returning *
     )
     select count(*) from deleted

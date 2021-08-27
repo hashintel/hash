@@ -152,10 +152,6 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return this.query((adapter) => adapter.updateEntity(params));
   }
 
-  getUserById(params: { id: string }): Promise<Entity | null> {
-    return this.query((adapter) => adapter.getUserById(params));
-  }
-
   getUserByEmail(params: {
     email: string;
     verified?: boolean;
@@ -221,12 +217,15 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     );
   }
 
-  deleteVerificationCode(params: { id: string }): Promise<void> {
-    return this.query((adapter) => adapter.deleteVerificationCode(params));
+  setVerificationCodeToUsed(params: {
+    id: string;
+    userId: string;
+  }): Promise<void> {
+    return this.query((adapter) => adapter.setVerificationCodeToUsed(params));
   }
 
-  pruneVerificationCodes(): Promise<number> {
-    return this.query((adapter) => adapter.pruneVerificationCodes());
+  pruneVerificationCodes(params: { maxAgeInMs: number }): Promise<number> {
+    return this.query((adapter) => adapter.pruneVerificationCodes(params));
   }
 
   getAndUpdateEntity(params: {
