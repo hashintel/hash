@@ -14,7 +14,7 @@ export const sendLoginCode: Resolver<
   {},
   GraphQLContext,
   MutationSendLoginCodeArgs
-> = async (_, { emailOrShortname }, { dataSources }) =>
+> = async (_, { emailOrShortname }, { dataSources, emailTransporter }) =>
   dataSources.db.transaction(async (client) => {
     const hasProvidedEmail = emailOrShortname.includes("@");
 
@@ -51,9 +51,10 @@ export const sendLoginCode: Resolver<
     /** @todo: rate limit login codes sent to the user */
 
     return user
-      .sendLoginVerificationCode(client)(
-        hasProvidedEmail ? emailOrShortname : undefined
-      )
+      .sendLoginVerificationCode(
+        client,
+        emailTransporter
+      )(hasProvidedEmail ? emailOrShortname : undefined)
       .then((verificationCode) =>
         verificationCode.toGQLVerificationCodeMetadata()
       );

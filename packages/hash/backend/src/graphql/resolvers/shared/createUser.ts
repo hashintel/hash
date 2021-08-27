@@ -13,7 +13,7 @@ export const createUser: Resolver<
   {},
   GraphQLContext,
   MutationCreateUserArgs
-> = async (_, { email }, { dataSources }) =>
+> = async (_, { email }, { dataSources, emailTransporter }) =>
   dataSources.db.transaction(async (client) => {
     // Ensure the email address isn't already verified and associated with a user
     if (await User.getUserByEmail(client)({ email, verified: true })) {
@@ -38,7 +38,10 @@ export const createUser: Resolver<
     /** @todo: rate limit creation of email verification codes */
 
     return user
-      .sendEmailVerificationCode(client)(email)
+      .sendEmailVerificationCode(
+        client,
+        emailTransporter
+      )(email)
       .then((verificationCode) =>
         verificationCode.toGQLVerificationCodeMetadata()
       );
