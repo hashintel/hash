@@ -1,5 +1,7 @@
 import { ParsedUrlQueryInput } from "querystring";
 
+export const SYNTHETIC_LOADING_TIME_MS = 700;
+
 export const AUTH_ERROR_CODES = {
   ALREADY_EXISTS: "A user with this email already exists",
   EXPIRED: "This verification code has expired, please try again.",

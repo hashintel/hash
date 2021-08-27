@@ -26,6 +26,7 @@ import {
 import {
   AUTH_ERROR_CODES,
   isParsedAuthQuery,
+  SYNTHETIC_LOADING_TIME_MS,
 } from "../components/pages/auth/utils";
 import { AuthLayout } from "../components/layout/PageLayout/AuthLayout";
 
@@ -47,6 +48,8 @@ const SignupPage: NextPage = () => {
   const [verificationCode, setVerificationCode] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [userId, setUserId] = useState<string | null>(null);
+  // synthetic loading state to be used when delaying the verifyEmail request using a timeout
+  const [syntheticLoading, setSyntheticLoading] = useState<boolean>(false);
 
   useEffect(() => {
     // If the user is logged in, and their account sign-up is complete...
@@ -93,16 +96,22 @@ const SignupPage: NextPage = () => {
         setErrorMessage("");
         setUserId(data.id);
         setActiveScreen(Screen.AccountSetup);
+        setSyntheticLoading(false);
       });
     },
     onError: ({ graphQLErrors }) => {
-      graphQLErrors.forEach(({ extensions, message }) => {
-        const { code } = extensions as { code?: keyof typeof AUTH_ERROR_CODES };
-        if (code) {
-          setErrorMessage(AUTH_ERROR_CODES[code]);
-        } else {
-          setErrorMessage(message);
-        }
+      unstable_batchedUpdates(() => {
+        setSyntheticLoading(false);
+        graphQLErrors.forEach(({ extensions, message }) => {
+          const { code } = extensions as {
+            code?: keyof typeof AUTH_ERROR_CODES;
+          };
+          if (code) {
+            setErrorMessage(AUTH_ERROR_CODES[code]);
+          } else {
+            setErrorMessage(message);
+          }
+        });
       });
     },
   });
@@ -144,14 +153,23 @@ const SignupPage: NextPage = () => {
     });
   };
 
-  const handleVerifyEmail = (code?: string) => {
+  const handleVerifyEmail = (providedCode?: string) => {
     if (!verificationCodeMetadata) return;
-    void verifyEmail({
-      variables: {
-        verificationId: verificationCodeMetadata?.id,
-        verificationCode: code || verificationCode,
-      },
-    });
+
+    const verificationId = verificationCodeMetadata.id;
+
+    if (providedCode) {
+      setSyntheticLoading(true);
+      setTimeout(
+        () =>
+          verifyEmail({
+            variables: { verificationId, verificationCode: providedCode },
+          }),
+        SYNTHETIC_LOADING_TIME_MS
+      );
+    } else {
+      void verifyEmail({ variables: { verificationId, verificationCode } });
+    }
   };
 
   const updateUserDetails = (shortname: string, preferredName: string) => {
@@ -194,7 +212,7 @@ const SignupPage: NextPage = () => {
           goBack={goBack}
           code={verificationCode}
           setCode={setVerificationCode}
-          loading={verifyEmailLoading}
+          loading={verifyEmailLoading || syntheticLoading}
           handleSubmit={handleVerifyEmail}
           errorMessage={errorMessage}
           requestCodeLoading={false}

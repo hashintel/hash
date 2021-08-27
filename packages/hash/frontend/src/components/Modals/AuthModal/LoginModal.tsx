@@ -21,7 +21,11 @@ import {
   sendLoginCode as sendLoginCodeMutation,
   loginWithLoginCode as loginWithLoginCodeMutation,
 } from "../../../graphql/queries/user.queries";
-import { AUTH_ERROR_CODES, isParsedAuthQuery } from "../../pages/auth/utils";
+import {
+  AUTH_ERROR_CODES,
+  isParsedAuthQuery,
+  SYNTHETIC_LOADING_TIME_MS,
+} from "../../pages/auth/utils";
 
 enum Screen {
   Intro,
@@ -38,6 +42,8 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
   onClose,
   onLoggedIn,
 }) => {
+  const router = useRouter();
+
   // TODO: refactor to use useReducer
   const [activeScreen, setActiveScreen] = useState<Screen>(Screen.Intro);
   const [loginIdentifier, setLoginIdentifier] = useState<string>("");
@@ -46,7 +52,8 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
     VerificationCodeMetadata | undefined
   >();
   const [errorMessage, setErrorMessage] = useState<string>("");
-  const router = useRouter();
+  // synthetic loading state to be used when delaying the loginWithLoginCode request using a timeout
+  const [syntheticLoading, setSyntheticLoading] = useState<boolean>(false);
 
   const [sendLoginCodeFn, { loading: sendLoginCodeLoading }] = useMutation<
     SendLoginCodeMutation,
@@ -75,19 +82,23 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
       loginWithLoginCodeMutation,
       {
         onCompleted: ({ loginWithLoginCode }) => {
+          setSyntheticLoading(false);
           if (onLoggedIn) onLoggedIn(loginWithLoginCode);
         },
         onError: ({ graphQLErrors }) =>
-          graphQLErrors.forEach(({ extensions }) => {
-            const { code } = extensions as {
-              code?: keyof typeof AUTH_ERROR_CODES;
-            };
+          unstable_batchedUpdates(() => {
+            setSyntheticLoading(false);
+            graphQLErrors.forEach(({ extensions }) => {
+              const { code } = extensions as {
+                code?: keyof typeof AUTH_ERROR_CODES;
+              };
 
-            if (code && Object.keys(AUTH_ERROR_CODES).includes(code)) {
-              setErrorMessage(AUTH_ERROR_CODES[code]);
-            } else {
-              throw new ApolloError({ graphQLErrors });
-            }
+              if (code && Object.keys(AUTH_ERROR_CODES).includes(code)) {
+                setErrorMessage(AUTH_ERROR_CODES[code]);
+              } else {
+                throw new ApolloError({ graphQLErrors });
+              }
+            });
           }),
       }
     );
@@ -114,14 +125,25 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
     void sendLoginCodeFn({ variables: { emailOrShortname } });
   };
 
-  const login = (code?: string) => {
+  const login = (providedCode?: string) => {
     if (!verificationCodeMetadata) return;
-    void loginWithLoginCode({
-      variables: {
-        verificationId: verificationCodeMetadata.id,
-        verificationCode: code || verificationCode,
-      },
-    });
+
+    const verificationId = verificationCodeMetadata.id;
+
+    if (providedCode) {
+      setSyntheticLoading(true);
+      setTimeout(
+        () =>
+          loginWithLoginCode({
+            variables: { verificationId, verificationCode: providedCode },
+          }),
+        SYNTHETIC_LOADING_TIME_MS
+      );
+    } else {
+      void loginWithLoginCode({
+        variables: { verificationId, verificationCode },
+      });
+    }
   };
 
   const resendLoginCode = () => {
@@ -154,7 +176,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
             setCode={setVerificationCode}
             goBack={goBack}
             handleSubmit={login}
-            loading={loginWithLoginCodeLoading}
+            loading={loginWithLoginCodeLoading || syntheticLoading}
             requestCode={resendLoginCode}
             requestCodeLoading={sendLoginCodeLoading}
             errorMessage={errorMessage}
