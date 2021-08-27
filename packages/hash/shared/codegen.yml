@@ -4,3 +4,10 @@ generates:
   ./src/graphql/fragmentTypes.gen.json:
     plugins:
       - fragment-matcher
+  ./src/graphql/apiTypes.gen.ts:
+    plugins:
+      - "typescript"
+      - "typescript-operations"
+    config:
+      skipTypename: true
+    documents: ../frontend/src/graphql/queries/*.ts

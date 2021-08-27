@@ -15,7 +15,7 @@ import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
 import {
   PageFieldsFragment,
   SystemTypeName,
-} from "@hashintel/hash-frontend/src/graphql/apiTypes.gen";
+} from "./graphql/apiTypes.gen";
 
 export { blockPaths };
 
