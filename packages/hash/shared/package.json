@@ -38,7 +38,7 @@
     "@graphql-codegen/typescript": "1.22.1",
     "@graphql-codegen/typescript-operations": "1.18.0",
     "@hashintel/prettier-config": "*",
-    "@types/node": "16.6.1",
+    "@types/node": "16.7.6",
     "@types/node-fetch": "^2.5.10",
     "@types/prosemirror-history": "1.0.3",
     "@types/prosemirror-keymap": "1.0.4",

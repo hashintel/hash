@@ -19,11 +19,11 @@
     "ts-node": "node --max-old-space-size=2048 node_modules/.bin/ts-node --files --project tsconfig.json"
   },
   "dependencies": {
-    "slonik": "24.0.0",
+    "slonik": "24.0.1",
     "winston": "3.3.3"
   },
   "devDependencies": {
-    "@types/node": "16.7.1",
+    "@types/node": "16.7.6",
     "nodemon": "2.0.12",
     "ts-node": "10.2.1",
     "typescript": "4.3.5"
