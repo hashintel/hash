@@ -1,23 +1,22 @@
-import { createApolloClient } from "@hashintel/hash-shared/src/graphql/createApolloClient";
-
+import { createApolloClient } from "@hashintel/hash-shared/graphql/createApolloClient";
 import { Mapping, Step, Transform } from "prosemirror-transform";
 import {
   createInitialDoc,
   createSchema,
-} from "@hashintel/hash-shared/src/schema";
+} from "@hashintel/hash-shared/schema";
 import {
   calculateSavePayloads,
   createBlockUpdateTransaction,
   transformBlockForProsemirror,
   mapEntitiesToBlocks,
-} from "@hashintel/hash-shared/src/sharedWithBackend";
+} from "@hashintel/hash-shared/sharedWithBackend";
 import {
   getPageQuery,
   insertBlockIntoPage,
   updatePage,
-} from "@hashintel/hash-frontend/src/graphql/queries/page.queries";
-import { updateEntity } from "@hashintel/hash-frontend/src/graphql/queries/entity.queries";
-import { createProseMirrorState } from "@hashintel/hash-shared/src/sharedWithBackendJs";
+} from "@hashintel/hash-shared/queries/page.queries";
+import { updateEntity } from "@hashintel/hash-shared/queries/entity.queries";
+import { createProseMirrorState } from "@hashintel/hash-shared/sharedWithBackendJs";
 
 const MAX_STEP_HISTORY = 10000;
 

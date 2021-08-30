@@ -2,29 +2,24 @@ FROM node:16 AS builder
 
 WORKDIR /app
 
-# Copy the package.json files first and run yarn install.
-COPY packages/hash/backend/package.json packages/hash/backend/package.json
-COPY packages/hash/frontend/package.json packages/hash/frontend/package.json
-COPY packages/hash/block-protocol/package.json packages/hash/block-protocol/package.json
+COPY packages/hash/backend packages/hash/backend
+COPY packages/hash/prettier-config packages/hash/prettier-config
+COPY packages/hash/shared packages/hash/shared
 COPY packages/hash/block-protocol packages/hash/block-protocol
-COPY packages/hash/prettier-config/package.json packages/hash/prettier-config/package.json
+COPY packages/hash/frontend packages/hash/frontend
 COPY package.json .
 COPY tsconfig.json .
-COPY tsconfig.json .
 COPY tsconfig.base.json .
+COPY yarn.lock .
 
-RUN yarn ws:hash-backend install
-
-# Copy over the packages source now, after yarn install. This makes the build faster
-# if no changes have been made to the package.json files.
-COPY packages/hash/backend packages/hash/backend
-COPY packages/hash/frontend packages/hash/frontend
-COPY packages/hash/prettier-config packages/hash/prettier-config
-
-RUN yarn ws:hash-backend codegen \
+RUN --mount=type=cache,target=/yarn-cache \
+    --mount=type=cache,target=/var/cache/apt \
+    --mount=type=cache,target=/var/lib/apt \
+    yarn ws:hash-backend install --cache-folder /yarn-cache \
+    && yarn ws:hash-backend codegen && yarn ws:hash-frontend codegen && yarn ws:hash-shared codegen \
     && yarn ws:hash-backend build \
     # Removes devDependencies
-    && yarn install --production --ignore-scripts --prefer-offline
+    && yarn install --production --ignore-scripts --prefer-offline --cache-folder /yarn-cache
 
 #########################################################################################
 
@@ -41,4 +36,4 @@ RUN groupadd -g 999 appuser \
 
 USER appuser
 
-ENTRYPOINT ["node", "packages/hash/backend/dist/index.js"]
+ENTRYPOINT ["node", "packages/hash/backend/dist/src/index.js"]

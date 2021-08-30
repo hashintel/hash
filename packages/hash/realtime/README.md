@@ -7,6 +7,15 @@ extension. Its purpose is to provide realtime updates on entities to
 a collection of subscribers, but currently, the service just logs
 the change-stream to the console.
 
+## Environment variables
+
+  - `HASH_PG_DATABASE`: Postgres database name ("postgres"),
+  - `HASH_PG_PASSWORD`: Postgres user password ("postgres"),
+  - `HASH_PG_USER`:  Postgres username ("postgres"),
+  - `HASH_PG_HOST`: Postgres hostname ("localhost")
+  - `HASH_PG_PORT`: Postgres connection port (5432)
+  - `HASH_REALTIME_PORT`: Service listening port (3333)
+
 ## Getting started
 
 In dev mode, the service will automatically restart:
