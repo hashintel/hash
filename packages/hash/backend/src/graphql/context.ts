@@ -14,9 +14,9 @@ export interface GraphQLContext {
   };
   passport: PassportGraphQLMethods;
   logger: Logger;
-  user?: Omit<Entity, "entityType">;
+  user?: Omit<User, "entityType">;
 }
 
 export interface LoggedInGraphQLContext extends GraphQLContext {
-  user: Entity;
+  user: User;
 }

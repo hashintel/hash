@@ -8,7 +8,6 @@ import { genId } from "../util";
 import {
   UserProperties,
   User as GQLUser,
-  EntityType as GQLEntityType,
   Email,
 } from "../graphql/apiTypes.gen";
 import Entity, { EntityConstructorArgs } from "./entity.model";
@@ -228,10 +227,9 @@ class User extends Entity {
     };
 
   toGQLUser = (): GQLUser => ({
-    ...this.toGQLEntity(),
-    entityType: this.entityType as GQLEntityType,
+    ...this.toGQLUnknownEntity(),
+    __typename: "User",
     accountSignupComplete: this.isAccountSignupComplete(),
-    properties: this.properties,
   });
 }
 

@@ -49,13 +49,6 @@ export const dbEntityTypeToGraphQLEntityType = (
   };
 };
 
-export const dbEntityToGraphQLUser = (entity: db.Entity): gql.User => {
-  return {
-    ...dbEntityToGraphQLEntity(entity),
-    __typename: "User",
-  };
-};
-
 export const dbEntityToGraphQLOrg = (entity: db.Entity): gql.Org => {
   return {
     ...dbEntityToGraphQLEntity(entity),
