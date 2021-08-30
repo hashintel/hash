@@ -12,6 +12,7 @@ import {
 } from "../graphql/apiTypes.gen";
 import Entity, { EntityConstructorArgs } from "./entity.model";
 import VerificationCode from "./verificationCode.model";
+import EmailTransporter from "../email/transporter";
 
 type UserConstructorArgs = {
   properties: UserProperties;
@@ -168,7 +169,8 @@ class User extends Entity {
     });
 
   sendLoginVerificationCode =
-    (db: DBClient) => async (alternateEmailAddress?: string) => {
+    (client: DBClient, tp: EmailTransporter) =>
+    async (alternateEmailAddress?: string) => {
       // Check the supplied email address can be used for sending login codes
       if (alternateEmailAddress) {
         const email = this.getEmail(alternateEmailAddress);
@@ -187,19 +189,21 @@ class User extends Entity {
       const emailAddress =
         alternateEmailAddress || this.getPrimaryEmail().address;
 
-      const verificationCode = await VerificationCode.create(db)({
+      const verificationCode = await VerificationCode.create(client)({
         accountId: this.accountId,
         userId: this.entityId,
         emailAddress,
       });
 
-      return sendLoginCodeToEmailAddress(verificationCode, emailAddress).then(
-        () => verificationCode
-      );
+      return sendLoginCodeToEmailAddress(tp)(
+        verificationCode,
+        emailAddress
+      ).then(() => verificationCode);
     };
 
   sendEmailVerificationCode =
-    (db: DBClient) => async (emailAddress: string) => {
+    (client: DBClient, tp: EmailTransporter) =>
+    async (emailAddress: string) => {
       const email = this.getEmail(emailAddress);
 
       if (!email) {
@@ -214,13 +218,13 @@ class User extends Entity {
         );
       }
 
-      const verificationCode = await VerificationCode.create(db)({
+      const verificationCode = await VerificationCode.create(client)({
         accountId: this.accountId,
         userId: this.entityId,
         emailAddress,
       });
 
-      return sendEmailVerificationCodeToEmailAddress(
+      return sendEmailVerificationCodeToEmailAddress(tp)(
         verificationCode,
         emailAddress
       ).then(() => verificationCode);

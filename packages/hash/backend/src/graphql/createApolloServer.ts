@@ -13,9 +13,11 @@ import { resolvers } from "./resolvers";
 import { DBAdapter } from "../db";
 import { buildPassportGraphQLMethods } from "../auth/passport";
 import { GraphQLContext } from "./context";
+import EmailTransporter from "../email/transporter";
 
 export const createApolloServer = (
   db: DBAdapter,
+  emailTransporter: EmailTransporter,
   logger: Logger,
   statsd?: StatsD
 ) => {
@@ -32,6 +34,7 @@ export const createApolloServer = (
     context: (ctx): Omit<GraphQLContext, "dataSources"> => ({
       ...ctx,
       user: ctx.req.user,
+      emailTransporter,
       passport: buildPassportGraphQLMethods(ctx),
       logger: logger.child({ requestId: ctx.res.get("x-hash-request-id") }),
     }),
