@@ -1,12 +1,14 @@
 import { Resolver } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
-import { Entity } from "../../../db/adapter";
+import { Org } from "../../apiTypes.gen";
+import { dbEntityToGraphQLOrg } from "../../util";
 
 export const accounts: Resolver<
-  Promise<Entity[]>,
+  Promise<Org[]>,
   {},
   GraphQLContext,
   {}
 > = async (_, {}, { dataSources }) => {
-  return dataSources.db.getAccountEntities();
+  const entities = await dataSources.db.getAccountEntities();
+  return entities.map(dbEntityToGraphQLOrg);
 };

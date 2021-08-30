@@ -1,10 +1,11 @@
 import { genId } from "../../../util";
-import { Entity } from "../../../db/adapter";
 import { MutationCreateEntityArgs, Resolver } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
+import { UnknownEntity } from "../../apiTypes.gen";
+import { dbEntityToGraphQLEntity } from "../../util";
 
 export const createEntity: Resolver<
-  Promise<Entity>,
+  Promise<UnknownEntity>,
   {},
   GraphQLContext,
   MutationCreateEntityArgs
@@ -24,13 +25,15 @@ export const createEntity: Resolver<
 
   /** @todo restrict creation of protected types, e.g. User, Org */
 
-  return dataSources.db.createEntity({
+  const entity = await dataSources.db.createEntity({
     accountId,
     createdById: genId(), // TODO
-    entityTypeId,
+    entityTypeId: entityTypeId ?? undefined,
     entityTypeVersionId,
     systemTypeName,
     properties,
     versioned: versioned || false,
   });
+
+  return dbEntityToGraphQLEntity(entity);
 };

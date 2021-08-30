@@ -1,10 +1,15 @@
 import { ApolloError } from "apollo-server-express";
-import { MutationUpdatePageArgs, Resolver } from "../../apiTypes.gen";
+
+import {
+  MutationUpdatePageArgs,
+  Resolver,
+  UnknownEntity,
+} from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
-import { Entity } from "../../../db/adapter";
+import { dbEntityToGraphQLEntity } from "../../util";
 
 export const updatePage: Resolver<
-  Promise<Entity>,
+  Promise<UnknownEntity>,
   {},
   GraphQLContext,
   MutationUpdatePageArgs
@@ -20,15 +25,17 @@ export const updatePage: Resolver<
       throw new ApolloError(`page ${metadataId} not found`, "NOT_FOUND");
     }
 
-    const updatedEntities = await client.updateEntity({
-      accountId,
-      entityVersionId: entity.entityVersionId,
-      entityId: entity.entityId,
-      properties: {
-        ...(entity.properties ?? {}),
-        ...properties,
-      },
-    });
+    const updatedEntities = (
+      await client.updateEntity({
+        accountId,
+        entityVersionId: entity.entityVersionId,
+        entityId: entity.entityId,
+        properties: {
+          ...(entity.properties ?? {}),
+          ...properties,
+        },
+      })
+    ).map(dbEntityToGraphQLEntity);
 
     // @todo: for now, all entities are non-versioned, so the array only has a single
     // element. Return when versioned entities are implemented at the API layer.

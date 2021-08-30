@@ -2,12 +2,16 @@ import { ApolloError } from "apollo-server-express";
 import { UserInputError } from "apollo-server-errors";
 
 import { genId } from "../../../util";
-import { MutationInsertBlockIntoPageArgs, Resolver } from "../../apiTypes.gen";
+import {
+  MutationInsertBlockIntoPageArgs,
+  Resolver,
+  UnknownEntity,
+} from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
-import { Entity } from "../../../db/adapter";
+import { dbEntityToGraphQLEntity } from "../../util";
 
 export const insertBlockIntoPage: Resolver<
-  Promise<Entity>,
+  Promise<UnknownEntity>,
   {},
   GraphQLContext,
   MutationInsertBlockIntoPageArgs
@@ -26,7 +30,7 @@ export const insertBlockIntoPage: Resolver<
   },
   { dataSources }
 ) => {
-  return await dataSources.db.transaction(async (client): Promise<Entity> => {
+  return await dataSources.db.transaction(async (client) => {
     let entity;
     if (entityId) {
       // Update
@@ -47,7 +51,7 @@ export const insertBlockIntoPage: Resolver<
       entity = await dataSources.db.createEntity({
         accountId,
         createdById: genId(), // TODO
-        entityTypeId,
+        entityTypeId: entityTypeId ?? undefined,
         entityTypeVersionId,
         systemTypeName,
         properties: entityProperties,
@@ -100,7 +104,9 @@ export const insertBlockIntoPage: Resolver<
       ...page.properties.contents.slice(position),
     ];
 
-    const updatedEntities = await client.updateEntity(page);
+    const updatedEntities = (await client.updateEntity(page)).map(
+      dbEntityToGraphQLEntity
+    );
 
     // TODO: for now, all entities are non-versioned, so the list array only have a single
     // element. Return when versioned entities are implemented at the API layer.

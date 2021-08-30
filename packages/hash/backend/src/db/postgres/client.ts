@@ -23,7 +23,7 @@ import {
   insertEntityType,
   insertEntityTypeVersion,
   selectSystemEntityTypeIds,
-  updateEntityType,
+  updateVersionedEntityType,
 } from "./entitytypes";
 import { insertEntityMetadata, updateEntityMetadata } from "./metadata";
 import {
@@ -114,47 +114,29 @@ export class PostgresClient implements DBClient {
       const entityTypeVersionId = genId();
 
       const now = new Date();
-      const createdAt = now;
-      const updatedAt = now;
-
-      // create the fixed record for the type
-      await insertEntityType(conn, {
-        accountId,
-        entityTypeId,
-        name,
-        createdById,
-        createdAt,
-        updatedAt,
-      });
-
-      // create the first version
       const properties = jsonSchema(name, accountId, schema);
-      await insertEntityTypeVersion(conn, {
-        accountId,
-        entityTypeId,
-        entityTypeVersionId,
-        properties,
-        createdById,
-        createdAt,
-        updatedAt,
-      });
-
       const entityType: EntityType = {
         accountId,
         entityId: entityTypeId,
         entityVersionId: entityTypeVersionId,
         entityTypeName: "EntityType",
-        id: entityTypeId,
         createdById,
         properties,
         metadata: {
+          name,
           versioned: true,
         },
-        metadataId: entityTypeId,
-        createdAt,
-        updatedAt,
+        entityCreatedAt: now,
+        entityVersionCreatedAt: now,
+        entityVersionUpdatedAt: now,
         visibility: Visibility.Public,
       };
+
+      // create the fixed record for the type
+      await insertEntityType(conn, { ...entityType, name });
+
+      // create the first version
+      await insertEntityTypeVersion(conn, entityType);
 
       return entityType;
     });
@@ -169,10 +151,10 @@ export class PostgresClient implements DBClient {
   async createEntity(params: {
     accountId: string;
     createdById: string;
-    entityVersionId?: string | null | undefined;
-    entityTypeId?: string | null | undefined;
-    entityTypeVersionId?: string | null | undefined;
-    systemTypeName?: SystemType | null | undefined;
+    entityVersionId?: string;
+    entityTypeId?: string;
+    entityTypeVersionId?: string;
+    systemTypeName?: SystemType;
     versioned: boolean;
     properties: any;
   }): Promise<Entity> {
@@ -192,10 +174,8 @@ export class PostgresClient implements DBClient {
       const entityType = systemTypeName
         ? await getSystemTypeLatestVersion(conn, { systemTypeName })
         : entityTypeVersionId
-        ? await getEntityType(conn, { entityTypeVersionId })
-        : await getEntityTypeLatestVersion(conn, {
-            entityTypeId: entityTypeId!,
-          });
+        ? await getEntityType(conn, { entityVersionId: entityTypeVersionId })
+        : await getEntityTypeLatestVersion(conn, { entityId: entityTypeId! });
 
       if (!entityType) {
         throw new Error(
@@ -219,15 +199,14 @@ export class PostgresClient implements DBClient {
         entityTypeId: entityType.entityId,
         entityTypeVersionId: entityType.entityVersionId,
         entityTypeName: entityType.properties.title,
-        metadataId: entityId,
         properties: params.properties,
-        id: entityId,
         metadata: {
           versioned: params.versioned,
           extra: {}, // @todo: decide what to put in here
         },
-        createdAt: now,
-        updatedAt: now,
+        entityCreatedAt: now,
+        entityVersionCreatedAt: now,
+        entityVersionUpdatedAt: now,
         visibility: Visibility.Public,
       };
 
@@ -249,6 +228,7 @@ export class PostgresClient implements DBClient {
         insertEntityMetadata(conn, {
           accountId: entity.accountId,
           entityId: entity.entityId,
+          entityCreatedAt: entity.entityCreatedAt,
           ...entity.metadata,
         }),
 
@@ -296,8 +276,9 @@ export class PostgresClient implements DBClient {
       ...params.entity,
       entityVersionId: genId(),
       properties: params.newProperties,
-      createdAt: now,
-      updatedAt: now,
+      entityCreatedAt: now,
+      entityVersionCreatedAt: now,
+      entityVersionUpdatedAt: now,
     };
 
     // Defer FKs until end of transaction so we can insert concurrently
@@ -336,22 +317,17 @@ export class PostgresClient implements DBClient {
 
     const updatedEntity: Entity = {
       ...params.entity,
-      updatedAt: new Date(),
+      entityVersionUpdatedAt: new Date(),
       properties: params.newProperties,
     };
 
-    const now = new Date();
     await Promise.all([
       updateEntityVersionProperties(conn, updatedEntity),
 
       this.createLinks(conn, updatedEntity),
     ]);
 
-    return {
-      ...params.entity,
-      properties: params.newProperties,
-      updatedAt: now,
-    };
+    return updatedEntity;
   }
 
   async updateEntity(
@@ -457,71 +433,65 @@ export class PostgresClient implements DBClient {
   /**
    * Update an entity type, either its name, schema, or both.
    * Creates a new version of the entity type for any update.
-   * @param params.entityTypeId the fixed id of the entityType
-   * @param params.entityTypeVersionId optionally provide the version the update is based on.
+   * @param params.entityId the fixed id of the entityType
+   * @param params.entityVersionId optionally provide the version the update is based on.
    *   the function will throw an error if this does not match the latest in the database.
-   * @param params.name update the entity type's name (must be unique in the account)
-   * @param params.schema update the entity type's schema
+   * @param params.newName update the entity type's name (must be unique in the account)
+   * @param params.newSchema update the entity type's schema
    */
   async updateEntityType(params: {
     createdById: string;
-    entityTypeId: string;
-    entityTypeVersionId?: string;
+    entityId: string;
+    entityVersionId?: string;
     newName?: string;
     newSchema?: Record<string, any>;
   }): Promise<EntityType> {
-    const { entityTypeId, entityTypeVersionId, newName, newSchema } = params;
+    const { entityId, entityVersionId, newName, newSchema } = params;
     if (!newName && !newSchema) {
       throw new Error(
         "At least one of params.name or params.schema must be provided."
       );
     }
 
-    const latestEntityType = await getEntityTypeLatestVersion(this.conn, {
-      entityTypeId,
-    });
-    if (!latestEntityType) {
-      throw new Error(`Could not find entityType with id ${entityTypeId}`);
-    }
+    const entity = entityVersionId
+      ? await getEntityType(this.conn, { entityVersionId })
+      : await getEntityTypeLatestVersion(this.conn, params);
 
-    if (
-      entityTypeVersionId &&
-      entityTypeVersionId !== latestEntityType.entityTypeVersionId
-    ) {
+    if (!entity) {
+      throw new Error(`Could not find entityType with id ${entityId}`);
+    }
+    if (entityVersionId && entityVersionId !== entity.entityVersionId) {
       throw new Error(
-        `Provided entityTypeVersionId ${entityTypeVersionId} does not match latest: ${entityTypeVersionId}`
+        `Provided entityVersionId ${entityVersionId} does not match latest: ${entity.entityVersionId}`
       );
     }
 
-    const baseSchema = newSchema ?? latestEntityType.properties;
+    const baseSchema = newSchema ?? entity.properties;
     const nameToSet = newName ?? baseSchema.title;
 
-    const schemaToSet = jsonSchema(
-      nameToSet,
-      latestEntityType.accountId,
-      baseSchema
-    );
+    const schemaToSet = jsonSchema(nameToSet, entity.accountId, baseSchema);
 
     const now = new Date();
-    const newVersionId = genId();
 
-    await updateEntityType(this.conn, {
-      accountId: latestEntityType.accountId,
-      entityTypeId,
-      entityTypeVersionId: newVersionId,
-      name: nameToSet,
-      properties: schemaToSet,
+    const newType: EntityType = {
+      ...entity,
+      entityVersionId: genId(),
+      entityVersionCreatedAt: now,
+      entityVersionUpdatedAt: now,
       createdById: params.createdById,
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    return {
-      ...latestEntityType,
-      entityTypeName: "EntityType",
-      properties: newSchema,
-      updatedAt: now,
+      properties: schemaToSet,
     };
+
+    if (entity.metadata.versioned) {
+      await updateVersionedEntityType(this.conn, {
+        ...newType,
+        name: nameToSet,
+      });
+    } else {
+      throw new Error("updates not implemented for non-versioned entity types");
+    }
+
+    return newType;
   }
 
   async getUserByEmail(params: {

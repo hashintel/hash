@@ -3,10 +3,11 @@ import { ApolloError } from "apollo-server-express";
 import { Resolver } from "../../apiTypes.gen";
 import { DbBlockProperties } from "../../../types/dbTypes";
 import { GraphQLContext } from "../../context";
-import { Entity } from "../../../db/adapter";
+import { UnknownEntity } from "../../apiTypes.gen";
+import { dbEntityToGraphQLEntity } from "../../util";
 
 export const blockEntity: Resolver<
-  Promise<Entity>,
+  Promise<UnknownEntity>,
   DbBlockProperties,
   GraphQLContext,
   {}
@@ -22,5 +23,5 @@ export const blockEntity: Resolver<
     );
   }
 
-  return entity;
+  return dbEntityToGraphQLEntity(entity);
 };

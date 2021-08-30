@@ -3,14 +3,14 @@ import {
   MutationCreatePageArgs,
   Resolver,
   SystemTypeName,
+  UnknownEntity,
 } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { createEntity } from "../entity";
-import { Entity } from "../../../db/adapter";
 import { SystemType } from "../../../types/entityTypes";
 
 export const createPage: Resolver<
-  Promise<Entity>,
+  Promise<UnknownEntity>,
   {},
   GraphQLContext,
   MutationCreatePageArgs

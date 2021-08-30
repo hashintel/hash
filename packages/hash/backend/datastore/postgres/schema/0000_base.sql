@@ -3,22 +3,33 @@ create table if not exists accounts (
 );
 
 
+/** The entity_types table does not include account_id in its primary key, some types
+are shared access across all accounts, and for performance reasons we do not want
+to shard the entity_types table by account_id.*/
 create table if not exists entity_types (
+    -- The fixed ID across all versions of an entity type
+    entity_type_id       uuid not null primary key,
+
+    account_id           uuid not null references accounts (account_id) deferrable,
+    created_by           uuid not null, -- todo add references accounts (account_id)
+
+    -- The time at which the first version of this type was created
+    created_at           timestamp with time zone not null,
+
+    -- The time at which the shared type metadata was last updated
+    metadata_updated_at  timestamp with time zone not null,
+
     /**
-      The entity_types table does not include account_id in its primary key, unlike others:
-        some types have to be shared access across all accounts, and for performance reasons
-        we do not want to shard the entity_types table by account_id.
+    * Remaining columns are metadata shared across all versions of an entity
     */
-    entity_type_id  uuid not null primary key,
 
-    account_id      uuid not null references accounts (account_id) deferrable,
-    name            text not null,
-    versioned       boolean not null default true,
-    extra           jsonb,
+    -- If true, multiple versions of this type may exist in the entity_type_versions
+    -- table. For non-versioned types, this column is `false` and the type has exactly
+    -- one corresponding row in entity_type_versions
+    versioned            boolean not null default true,
 
-    created_by      uuid not null, -- todo add references accounts (account_id)
-    created_at      timestamp with time zone not null,
-    updated_at      timestamp with time zone not null,
+    extra                jsonb,
+    name                 text not null,
 
     unique(account_id, name)
 );
@@ -26,13 +37,18 @@ create table if not exists entity_types (
 
 create table if not exists entity_type_versions (
     entity_type_version_id  uuid not null primary key,
-
     account_id              uuid not null references accounts (account_id),
     entity_type_id          uuid not null references entity_types (entity_type_id),
     properties              jsonb not null,
 
     created_by              uuid not null, -- todo add: references accounts (account_id)
+
+    -- The time at which this version was created
     created_at              timestamp with time zone not null,
+
+    -- Versioned types are never mutated, so the updated_at time always matches the
+    -- created_at time. Non-versioned types may be mutatated in-place, and the
+    -- updated_at column changes when a mutation is made.';
     updated_at              timestamp with time zone not null
 );
 -- select create_reference_table('entity_type_versions')
@@ -41,10 +57,28 @@ create table if not exists entity_type_versions (
 The entities table stores metadata which is shared across all versions of an entity.
 */
 create table if not exists entities (
-    account_id  uuid not null,
-    entity_id   uuid not null,
-    versioned   boolean not null,
-    extra       jsonb,
+    account_id           uuid not null,
+
+    -- The fixed ID across all versions of an entity
+    entity_id            uuid not null,
+
+    -- The time at which the first version of this entity was created
+    created_at           timestamp with time zone not null,
+
+    -- The time at which the shared entity metadata was last updated
+    metadata_updated_at  timestamp with time zone not null,
+
+    /**
+    * Remaining columns are metadata shared across all versions of an entity
+    */
+
+    -- If true, multiple versions of this entity may exist in the entity_versions table.
+    -- For non-versioned entities, this column is `false` and the entity has exactly one
+    -- corresponding row in entity_versions
+    versioned            boolean not null,
+
+    -- Extra context-specific metadata
+    extra                jsonb,
 
     primary key (account_id, entity_id)
 );
@@ -58,13 +92,20 @@ create table if not exists entity_versions (
 
     properties              jsonb not null,
     created_by              uuid not null,
+
+    -- The time at which this version was created
     created_at              timestamp with time zone not null,
+
+    -- Versioned entities are never mutated, so the updated_at time always matches the
+    -- created_at time. Non-versioned entities may be mutatated in-place, and the
+    -- updated_at column changes when a mutation is made.';
     updated_at              timestamp with time zone not null,
 
     foreign key (account_id, entity_id) references entities (account_id, entity_id) deferrable,
 
     primary key (account_id, entity_version_id)
 );
+
 create index if not exists entity_versions_entity_id on entity_versions (account_id, entity_id);
 
 

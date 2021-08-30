@@ -8,4 +8,7 @@ if (process.env.HASH_DEV_INTEGRATION_EMAIL) {
       text: `time: ${new Date().toISOString()}`,
     });
   });
+} else {
+  // Need at least one test otherwise jest will complain
+  it("always passes", () => undefined);
 }
