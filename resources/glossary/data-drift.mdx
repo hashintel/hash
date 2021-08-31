@@ -5,9 +5,12 @@ slug: data-drift
 tags: ["Data Science"]
 ---
 
-Most models are driven, in some fashion, by real world data; however, like everything in the real world, data is apt to change over time.
-Also known as distributional shift, data drift is where changes in the underlying data that was measured causes models to become less accurate over time. Since models tend to be trained on an initial set of data and then put into production; if the underlying data changes and the model is not retrained on new data, the data drift will cause the model to become inaccurate.
+Also known as distributional shift, data drift is where changes in the underlying data causes models to become less accurate over time. Since models tend to be trained on an initial set of data and are then put into production, if the underlying data changes the model will become unaccurate.
 
-There can be many causes of data drift. It can come from changes in the actual data. For example, imagine a model trained to predict traffic patterns. If it uses historical data on traffic over the past decade it could be very accurate; however, if people change their behavior and start driving faster or slower, the training data will no longer reflect the real world and the model will be less predictive. 
+There are many potential causes of data drift.
 
-To combat data drift, it's important to frequently retrain models. 
+- The process that produces the data could change. Example: An IoT sensor measuring data could become uncalibrated.
+- Unexpected changes to the data infrastructure: Example: A team serving data in an enterprise setting changes their data definitions. 
+- General exogenous changes to the data. Example: Behavioral changes that cause people to drive faster or slower would change a traffic dataset.
+
+To combat data drift, it's important to monitor the data and frequently retrain models. 
