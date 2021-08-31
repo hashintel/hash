@@ -1,3 +1,8 @@
+import "./loadTestEnv";
+import User from "@hashintel/hash-backend/src/model/user.model";
+import VerificationCode from "@hashintel/hash-backend/src/model/verificationCode.model";
+import { PostgresAdapter } from "@hashintel/hash-backend/src/db";
+
 import { ApiClient } from "./util";
 import { IntegrationTestsHandler } from "./setup";
 import { PageFieldsFragment, SystemTypeName } from "../graphql/apiTypes.gen";
@@ -8,14 +13,48 @@ const client = new ApiClient("http://localhost:5001/graphql");
 
 let handler: IntegrationTestsHandler;
 
+let db: PostgresAdapter;
+
 beforeAll(async () => {
   handler = new IntegrationTestsHandler();
   await handler.init();
   await handler.createAccount(ACCOUNT_ID);
+
+  db = new PostgresAdapter();
 });
 
 afterAll(async () => {
   await handler.close();
+  await db.close();
+});
+
+it("can create user", async () => {
+  const email = "alice@bigco.com";
+
+  const { id: verificationCodeId, createdAt: verificationCodeCreatedAt } =
+    await client.createUser({ email });
+
+  const user = (await User.getUserByEmail(db)({
+    email,
+    verified: false,
+    primary: true,
+  }))!;
+
+  expect(user).not.toBeNull();
+  expect(user.properties).toEqual({
+    emails: [{ address: email, primary: true, verified: false }],
+  });
+  expect(user.entityCreatedAt).toEqual(user.entityVersionUpdatedAt);
+  expect(user.entityType.properties.title).toEqual("User");
+
+  const verificationCode = (await VerificationCode.getById(db)({
+    id: verificationCodeId,
+  }))!;
+
+  expect(verificationCode).not.toBeNull();
+  expect(verificationCode.createdAt.toISOString()).toBe(verificationCodeCreatedAt);
+
+  /** @todo: check whether the verification code was sent in an email address */
 });
 
 it("can create org", async () => {
