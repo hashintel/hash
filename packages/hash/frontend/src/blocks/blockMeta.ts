@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react";
-import { BlockMeta } from "./page/tsUtils";
+import { BlockMeta } from "./page/sharedWithBackend";
 
 export const BlockMetaContext = createContext<Map<string, BlockMeta>>(
   new Map()

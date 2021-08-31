@@ -3,4 +3,5 @@
 export const blockDependencies: Record<string, any> = {
   react: require("react"),
   "react-dom": require("react-dom"),
+  twind: require("twind"),
 };

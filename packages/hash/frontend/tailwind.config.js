@@ -5,6 +5,12 @@ module.exports = {
   ],
   darkMode: false, // or 'media' or 'class'
   theme: {
+    colors: {
+      gray: {
+        50: "#FBFBFB",
+        100: "#F1F1F1"
+      }
+    },
     extend: {},
   },
   variants: {
