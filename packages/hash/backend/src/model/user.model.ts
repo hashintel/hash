@@ -125,9 +125,7 @@ class User extends Entity {
     async (shortname: string): Promise<boolean> => {
       /** @todo: check if an org with the shortname exists */
 
-      const user = await User.getUserByShortname(client)({ shortname }).then(
-        (existingUser) => existingUser === null
-      );
+      const user = await User.getUserByShortname(client)({ shortname });
 
       return user !== null;
     };
