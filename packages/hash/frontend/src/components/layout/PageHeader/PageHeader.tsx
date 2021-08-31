@@ -29,7 +29,7 @@ export const PageHeader: VoidFunctionComponent = () => {
     >
       <nav className={tw`container mx-auto flex justify-end`}>
         {user ? (
-          <AccountDropdown name={user.properties.shortname} logout={logout} />
+          <AccountDropdown name={user.properties.shortname!} logout={logout} />
         ) : (
           <>
             <Link href="/signup">
