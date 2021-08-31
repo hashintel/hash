@@ -1,5 +1,6 @@
-import { useContext } from "react";
-import { UserContext } from "../contexts/UserContext";
+import { useQuery } from "@apollo/client";
+import { meQuery } from "../../graphql/queries/user.queries";
+import { MeQuery } from "../../graphql/apiTypes.gen";
 
 /**
  * Returns an object containing:
@@ -11,7 +12,7 @@ import { UserContext } from "../contexts/UserContext";
  * loading: a boolean to check if the api call is still loading
  */
 export const useUser = () => {
-  const { user, refetch, loading } = useContext(UserContext);
+  const { data: user, refetch, loading } = useQuery<MeQuery>(meQuery);
 
   return { user, refetch, loading };
 };
