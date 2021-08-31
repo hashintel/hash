@@ -1,4 +1,4 @@
-import { useQuery } from "@apollo/client";
+import { ApolloError, QueryHookOptions, useQuery } from "@apollo/client";
 import { meQuery } from "../../graphql/queries/user.queries";
 import { MeQuery } from "../../graphql/apiTypes.gen";
 
@@ -11,8 +11,16 @@ import { MeQuery } from "../../graphql/apiTypes.gen";
  *
  * loading: a boolean to check if the api call is still loading
  */
-export const useUser = () => {
-  const { data: user, refetch, loading } = useQuery<MeQuery>(meQuery);
+export const useUser = (options?: QueryHookOptions) => {
+  const { data, refetch, loading } = useQuery<MeQuery>(meQuery, {
+    ...options,
+    onError: ({ graphQLErrors }) =>
+      graphQLErrors.map((graphQLError) => {
+        if (graphQLError.extensions?.code !== "FORBIDDEN") {
+          throw new ApolloError({ graphQLErrors });
+        }
+      }),
+  });
 
-  return { user, refetch, loading };
+  return { user: data?.me, refetch, loading };
 };
