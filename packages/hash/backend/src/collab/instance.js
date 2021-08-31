@@ -1,9 +1,6 @@
 import { createApolloClient } from "@hashintel/hash-shared/graphql/createApolloClient";
 import { Mapping, Step, Transform } from "prosemirror-transform";
-import {
-  createInitialDoc,
-  createSchema,
-} from "@hashintel/hash-shared/schema";
+import { createInitialDoc, createSchema } from "@hashintel/hash-shared/schema";
 import {
   calculateSavePayloads,
   createBlockUpdateTransaction,

@@ -32,6 +32,7 @@ import { GraphQLContext, LoggedInGraphQLContext } from "../context";
 import { ForbiddenError } from "apollo-server-express";
 import { logout } from "./user/logout";
 import { me } from "./user/me";
+import { isShortnameTaken } from "./user/isShortnameTaken";
 import { createEntityType } from "./entity/createEntityType";
 
 const KNOWN_ENTITIES = ["Page", "Text", "User"];
@@ -68,6 +69,7 @@ export const resolvers = {
     entity,
     page,
     me: loggedIn(me),
+    isShortnameTaken,
     embedCode,
   },
 

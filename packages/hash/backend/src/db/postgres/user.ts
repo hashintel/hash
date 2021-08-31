@@ -53,7 +53,7 @@ export const getUserByShortname = async (
   const row = await conn.maybeOne(sql`
     ${selectEntities}
     where
-      properties ->> 'shortname' = ${params.shortname} and ${matchesUserType}
+      e.properties ->> 'shortname' = ${params.shortname} and ${matchesUserType}
   `);
   return row ? mapPGRowToEntity(row) : null;
 };

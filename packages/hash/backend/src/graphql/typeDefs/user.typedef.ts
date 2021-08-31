@@ -100,6 +100,10 @@ export const userTypedef = gql`
 
   extend type Query {
     me: User!
+    """
+    Determines whether a provided shortname is already taken
+    """
+    isShortnameTaken(shortname: String!): Boolean!
   }
 
   extend type Mutation {
