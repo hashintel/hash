@@ -5,12 +5,14 @@
  * @todo remove this file
  */
 
-import React, { forwardRef } from "react";
+import React, { forwardRef, useEffect, useState, createRef } from "react";
+import { tw } from "twind";
 
 import { NodeSelection, Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { toggleMark } from "prosemirror-commands";
-import { useBlockMeta } from "../blockMeta";
+import { BlockMetaContext } from "../blockMeta";
+import DragVertical from "../../components/Icons/DragVertical";
 
 import styles from "./style.module.css";
 
@@ -166,7 +168,10 @@ class AsyncView {
   }
 }
 
-/** @deprecated naively deep-compare two values as part of a hack */
+/**
+ * @deprecated naively deep-compare two values as part of a hack
+ * should disappear w/ https://app.asana.com/0/1200339985403942/1200644404374108/f
+ */
 function isSubsetOf(subset, superset) {
   const isObject = (any) => typeof any === "object" && any !== null;
   return isObject(subset) && isObject(superset)
@@ -175,163 +180,69 @@ function isSubsetOf(subset, superset) {
 }
 
 /**
- * block-type select field co-dependent of BlockView class.
+ * specialized block-type/-variant select field
  */
-const BlockSelect = forwardRef(({ view, getPos, node }, ref) => {
-  const blocksMeta = useBlockMeta();
+const BlockSelect = forwardRef(({ options, onChange, selectedIndex }, ref) => {
+  const [isPopoverVisible, setPopoverVisible] = useState(false);
 
-  const choices = Array.from(blocksMeta.values()).flatMap((blockMeta) =>
-    blockMeta.componentMetadata.variants.map((variant) => ({
-      ...variant,
-      blockType: blockMeta.componentMetadata.name,
-    }))
-  );
-
-  const selectedBlockType = node.attrs.meta?.name ?? node.type.name;
-
-  /** @todo add block variant to node attrs and remove this hack */
-  const selectedBlockVariant = (
-    node.attrs.meta?.variants.find((variant) =>
-      isSubsetOf(variant.properties, node.attrs.properties)
-    ) ?? node.attrs.meta?.variants[0]
-  )?.name;
+  useEffect(() => {
+    const closePopover = () => setPopoverVisible(false);
+    document.addEventListener("click", closePopover);
+    return () => document.removeEventListener("click", closePopover);
+  }, []);
 
   return (
-    <select
-      ref={ref}
-      value="change"
-      onChange={(evt) => {
-        /**
-         * This begins the two part process of converting from one block type to another – the second half is
-         * carried out by AsyncView's update function
-         */
-        const { blockType, ...variant } = choices[evt.target.value];
-        const componentDisplayName = blockType;
-        const componentId =
-          displayNameToId.get(componentDisplayName) ?? componentDisplayName;
-
-        let componentUrl = null;
-
-        if (componentDisplayName === "new") {
-          componentUrl = prompt("Component URL");
-
-          if (!componentUrl) {
-            evt.target.value = "change";
-            return;
-          }
-        } else {
-          componentUrl =
-            view.state.schema.nodes[componentId].defaultAttrs.meta?.url;
-        }
-
-        // Ensure that any changes to the document made are kept within a single undo item
-        view.updateState(
-          view.state.reconfigure({
-            plugins: view.state.plugins.map((plugin) =>
-              plugin === historyPlugin ? infiniteGroupHistoryPlugin : plugin
-            ),
-          })
-        );
-
-        const state = view.state;
-        const tr = state.tr;
-
-        /**
-         * When switching between blocks where both contain text, we want to persist that text, but we need to pull
-         * it out the format its stored in here and make use of it
-         *
-         * @todo we should try to find the Text entity in the original response from the DB, and use that, instead
-         *       of this, where we lose formatting
-         */
-        const text = node.isTextblock
-          ? node.content.content
-              .filter((node) => node.type.name === "text")
-              .map((node) => node.text)
-              .join("")
-          : "";
-
-        const newNode = state.schema.nodes.async.create({
-          /**
-           * The properties set up below are to ensure a) that async view knows what kind of node to load & create
-           * and b) that we are able to map back to the GraphQL format.
-           *
-           * @todo make some of this unnecessary
-           */
-          ...(componentDisplayName === "new"
-            ? {}
-            : {
-                asyncNodeId:
-                  displayNameToId.get(componentDisplayName) ??
-                  componentDisplayName,
-                asyncNodeDisplayName: componentDisplayName,
-              }),
-          asyncNodeUrl: componentUrl,
-          asyncNodeProps: {
-            attrs: {
-              // @todo do so many of these props need to switch on text?
-              properties: variant.properties,
-              entityId: text ? node.attrs.entityId : null,
-              versionId: text ? node.attrs.versionId : null,
-              childEntityId: text ? node.attrs.childEntityId : null,
-              accountId: node.attrs.accountId,
-              childEntityAccountId: text
-                ? node.attrs.childEntityAccountId
-                : null,
-              childEntityVersionId: text
-                ? node.attrs.childEntityVersionId
-                : null,
-              childEntityTypeId: text ? node.attrs.childEntityTypeId : null,
-            },
-            children: text ? [state.schema.text(text)] : [],
-            marks: null,
-          },
-        });
-
-        const pos = getPos();
-
-        /**
-         * @todo figure out why this is pos + 1
-         */
-        tr.replaceRangeWith(pos + 1, pos + 1 + node.nodeSize, newNode);
-
-        const selection = NodeSelection.create(tr.doc, tr.mapping.map(pos));
-
-        tr.setSelection(selection);
-
-        view.dispatch(tr);
-        view.focus();
-      }}
-    >
-      <option disabled value="change">
-        Type
-      </option>
-      {choices.map(({ name, description, blockType }, index) => (
-        <option
-          key={index}
-          value={index}
-          title={description}
-          disabled={
-            blockType === selectedBlockType && name === selectedBlockVariant
-          }
+    <div ref={ref} className={tw`relative cursor-pointer`}>
+      <DragVertical
+        onClick={(evt) => {
+          evt.stopPropagation(); // skips closing handler
+          setPopoverVisible(true);
+        }}
+      />
+      {isPopoverVisible && (
+        <ul
+          className={tw`absolute z-10 w-96 max-h-60 overflow-auto border border-gray-100 rounded-lg`}
         >
-          {name}
-        </option>
-      ))}
-      <option value="new">New type</option>
-    </select>
+          {options.map(([_blockType, { name, icon, description }], index) => (
+            <li
+              key={index}
+              className={tw`flex border border-gray-100 ${
+                index !== selectedIndex ? "bg-gray-50" : "bg-gray-100"
+              } hover:bg-gray-100`}
+              onClick={() =>
+                index !== selectedIndex && onChange(options[index], index)
+              }
+            >
+              <div className={tw`flex w-16 items-center justify-center`}>
+                <img className={tw`w-6 h-6`} alt={name} src={icon} />
+              </div>
+              <div className={tw`py-3`}>
+                <p className={tw`text-sm font-bold`}>{name}</p>
+                <p className={tw`text-xs text-opacity-60 text-black`}>
+                  {description}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 });
 
 /**
  * This is the node view that wraps every one of our blocks in order to inject custom UI like the <select> to change
  * type and the drag handles
+ *
+ * @implements https://prosemirror.net/docs/ref/#view.NodeView
  */
 class BlockView {
   constructor(node, view, getPos, replacePortal) {
-    this.getPos = getPos;
     this.view = view;
+    this.getPos = getPos;
     this.replacePortal = replacePortal;
 
+    /** @implements https://prosemirror.net/docs/ref/#view.NodeView.dom */
     this.dom = document.createElement("div");
     this.dom.classList.add(styles.Block);
 
@@ -342,16 +253,20 @@ class BlockView {
     this.allowDragging = false;
     this.dragging = false;
 
-    document.addEventListener("dragend", this.dragEnd);
+    document.addEventListener("dragend", this.onDragEnd);
 
+    /** @implements https://prosemirror.net/docs/ref/#view.NodeView.contentDOM */
     this.contentDOM = document.createElement("div");
     this.dom.appendChild(this.contentDOM);
     this.contentDOM.classList.add(styles.Block__Content);
 
+    /** used to hide node-view specific events from prosemirror */
+    this.blockSelectRef = createRef();
+
     this.update(node);
   }
 
-  dragEnd = () => {
+  onDragEnd = () => {
     document.activeElement.blur();
 
     this.dragging = false;
@@ -359,7 +274,10 @@ class BlockView {
     this.update(this.node);
   };
 
-  // @todo simplify this alongside the react event handling
+  /**
+   * @todo simplify this alongside the react event handling
+   * @implements https://prosemirror.net/docs/ref/#view.NodeView.stopEvent
+   */
   stopEvent(evt) {
     if (evt.type === "dragstart" && evt.target === this.dom) {
       if (!this.allowDragging) {
@@ -375,7 +293,7 @@ class BlockView {
      * We don't want Prosemirror to try to handle any of these events as they're handled by React
      */
     return (
-      evt.target === this.selectDom ||
+      evt.target === this.blockSelectRef.current ||
       (evt.target === this.handle && evt.type === "mousedown")
     );
   }
@@ -386,25 +304,27 @@ class BlockView {
    * updated. Here we're instructing PM to ignore changes made by us
    *
    * @todo find a more generalised alternative
+   * @implements https://prosemirror.net/docs/ref/#view.NodeView.ignoreMutation
    */
   ignoreMutation(record) {
     return (
       (record.type === "attributes" &&
         record.attributeName === "class" &&
         record.target === this.dom) ||
-      record.target === this.selectContainer ||
       this.selectContainer.contains(record.target)
     );
   }
 
+  /**
+   * @implements https://prosemirror.net/docs/ref/#view.NodeView.update
+   */
   update(blockNode) {
     if (blockNode.type.name !== "block") {
       return false;
     }
 
+    /** @implements https://prosemirror.net/docs/ref/#view.NodeView.node */
     this.node = blockNode;
-
-    const { getPos, view } = this;
 
     const node = blockNode.child(0);
     const container = this.selectContainer;
@@ -471,29 +391,151 @@ class BlockView {
 
             this.update(this.node);
           }}
-          onClick={() => {
-            this.dragEnd();
-          }}
+          onClick={this.onDragEnd}
         />
-        <BlockSelect
-          view={view}
-          getPos={getPos}
-          node={node}
-          ref={(selectDom) => {
-            this.selectDom = selectDom;
+        <BlockMetaContext.Consumer>
+          {(blocksMeta) => {
+            // flatMap blocks' variants
+            const options = Array.from(blocksMeta.values()).flatMap(
+              (blockMeta) =>
+                blockMeta.componentMetadata.variants.map((variant) => [
+                  blockMeta.componentMetadata.name,
+                  variant,
+                ])
+            );
+
+            /**
+             * @todo the chosen variant will be persisted in the future
+             * @see https://app.asana.com/0/1200339985403942/1200644404374108/f
+             */
+            const selectedBlockType = node.attrs.meta?.name ?? node.type.name;
+            const selectedIndex = options.findIndex(
+              ([blockType, variant]) =>
+                blockType === selectedBlockType &&
+                isSubsetOf(variant.properties, node.attrs.properties)
+            );
+
+            return (
+              <BlockSelect
+                selectedIndex={selectedIndex}
+                options={options}
+                onChange={this.onBlockChange}
+                ref={this.blockSelectRef}
+              />
+            );
           }}
-        />
+        </BlockMetaContext.Consumer>
       </>
     );
 
     return true;
   }
 
+  /**
+   * @implements https://prosemirror.net/docs/ref/#view.NodeView.destroy
+   */
   destroy() {
     this.replacePortal(this.selectContainer, null, null);
     this.dom.remove();
-    document.removeEventListener("dragend", this.dragEnd);
+    document.removeEventListener("dragend", this.onDragEnd);
   }
+
+  /**
+   * This begins the two part process of converting from one block type to another – the second half is
+   * carried out by AsyncView's update function
+   */
+  onBlockChange = ([blockType, variant]) => {
+    const { node, view, getPos } = this;
+    const componentDisplayName = blockType;
+    const componentId =
+      displayNameToId.get(componentDisplayName) ?? componentDisplayName;
+
+    let componentUrl = null;
+
+    if (componentDisplayName === "new") {
+      componentUrl = prompt("Component URL");
+
+      if (!componentUrl) {
+        evt.target.value = "change";
+        return;
+      }
+    } else {
+      componentUrl =
+        view.state.schema.nodes[componentId].defaultAttrs.meta?.url;
+    }
+
+    // Ensure that any changes to the document made are kept within a single undo item
+    view.updateState(
+      view.state.reconfigure({
+        plugins: view.state.plugins.map((plugin) =>
+          plugin === historyPlugin ? infiniteGroupHistoryPlugin : plugin
+        ),
+      })
+    );
+
+    const state = view.state;
+    const tr = state.tr;
+
+    /**
+     * When switching between blocks where both contain text, we want to persist that text, but we need to pull
+     * it out the format its stored in here and make use of it
+     *
+     * @todo we should try to find the Text entity in the original response from the DB, and use that, instead
+     *       of this, where we lose formatting
+     */
+    const text = node.isTextblock
+      ? node.content.content
+          .filter((node) => node.type.name === "text")
+          .map((node) => node.text)
+          .join("")
+      : "";
+
+    const newNode = state.schema.nodes.async.create({
+      /**
+       * The properties set up below are to ensure a) that async view knows what kind of node to load & create
+       * and b) that we are able to map back to the GraphQL format.
+       *
+       * @todo make some of this unnecessary
+       */
+      ...(componentDisplayName === "new"
+        ? {}
+        : {
+            asyncNodeId:
+              displayNameToId.get(componentDisplayName) ?? componentDisplayName,
+            asyncNodeDisplayName: componentDisplayName,
+          }),
+      asyncNodeUrl: componentUrl,
+      asyncNodeProps: {
+        attrs: {
+          // @todo do so many of these props need to switch on text?
+          properties: variant.properties,
+          entityId: text ? node.attrs.entityId : null,
+          versionId: text ? node.attrs.versionId : null,
+          childEntityId: text ? node.attrs.childEntityId : null,
+          accountId: node.attrs.accountId,
+          childEntityAccountId: text ? node.attrs.childEntityAccountId : null,
+          childEntityVersionId: text ? node.attrs.childEntityVersionId : null,
+          childEntityTypeId: text ? node.attrs.childEntityTypeId : null,
+        },
+        children: text ? [state.schema.text(text)] : [],
+        marks: null,
+      },
+    });
+
+    const pos = getPos();
+
+    /**
+     * @todo figure out why this is pos + 1
+     */
+    tr.replaceRangeWith(pos + 1, pos + 1 + node.nodeSize, newNode);
+
+    const selection = NodeSelection.create(tr.doc, tr.mapping.map(pos));
+
+    tr.setSelection(selection);
+
+    view.dispatch(tr);
+    view.focus();
+  };
 }
 
 export function createFormatPlugin(replacePortal) {

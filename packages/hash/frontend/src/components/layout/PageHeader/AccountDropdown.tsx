@@ -2,8 +2,8 @@ import { VoidFunctionComponent } from "react";
 import { tw } from "twind";
 import { Menu } from "@headlessui/react";
 
-import IconAvatar from "../../Icons/IconAvatar/IconAvatar";
-import { IconDropdown } from "../../Icons/IconDropdown/IconDropdown";
+import IconAvatar from "../../Icons/IconAvatar";
+import IconDropdown from "../../Icons/IconDropdown";
 
 type AccountDropdownProps = {
   name?: string;

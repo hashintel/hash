@@ -69,8 +69,8 @@ export const builtInBlocks: Record<string, BlockMeta> = {
       variants: [
         {
           name: "paragraph",
-          description: "",
-          icon: "path/to/icon/svg",
+          description: "just start typing",
+          icon: "/format-font.svg", // root dir is /packages/hash/frontend/public
           properties: {},
         },
       ],
@@ -89,13 +89,20 @@ function toBlockConfig(options: BlockMetadata, url: string): BlockConfig {
   const defaultVariant = {
     name: toBlockName(options.name),
     description: options.description,
-    icon: "path/to/icon.svg", // @todo: introduce icons to blocks
+    icon: "/path/to/icon.svg", // @todo default icon
     properties: {},
   };
 
   const variants = options.variants?.map((variant) => ({
     ...defaultVariant,
     ...variant,
+    /**
+     * @todo: prefix path to icon w/ block's baseUrl when introducing icons to blocks
+     * ```
+     * icon: [url, variant.icon].join("/")
+     * ```
+     */
+    icon: "/format-font.svg",
   })) ?? [defaultVariant];
 
   return { ...options, url, variants };
