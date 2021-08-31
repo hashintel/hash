@@ -7,11 +7,14 @@ import {
   CreateOrgMutationVariables,
   CreatePageMutation,
   CreatePageMutationVariables,
+  CreateUserMutation,
+  CreateUserMutationVariables,
   InsertBlocksIntoPageMutation,
   InsertBlocksIntoPageMutationVariables,
 } from "../graphql/apiTypes.gen";
 import { createEntity } from "../graphql/queries/entity.queries";
 import { createOrg } from "../graphql/queries/org.queries";
+import { createUser } from "../graphql/queries/user.queries";
 import {
   createPage,
   insertBlocksIntoPage,
@@ -40,6 +43,15 @@ export class ApiClient {
         vars
       )
     ).createOrg;
+  }
+
+  async createUser(vars: CreateUserMutationVariables) {
+    return (
+      await this.client.request<
+        CreateUserMutation,
+        CreateUserMutationVariables
+      >(createUser, vars)
+    ).createUser;
   }
 
   async createPage(vars: CreatePageMutationVariables) {
