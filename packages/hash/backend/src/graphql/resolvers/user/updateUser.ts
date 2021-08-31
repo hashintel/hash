@@ -38,19 +38,7 @@ export const updateUser: Resolver<
         );
       }
 
-      if (!(await User.shortnameIsUnique(client)(shortname))) {
-        throw new ApolloError(
-          `The shortname '${shortname}' is already taken`,
-          "SHORTNAME_TAKEN"
-        );
-      }
-
-      if (!User.shortnameIsValid(shortname)) {
-        throw new ApolloError(
-          `The shortname '${shortname}' is invalid`,
-          "SHORTNAME_INVALID"
-        );
-      }
+      await User.validateShortname(client)(shortname);
 
       await user.updateShortname(client)(shortname);
     }
