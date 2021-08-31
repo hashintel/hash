@@ -1,5 +1,7 @@
 import { ParsedUrlQueryInput } from "querystring";
 
+export const SYNTHETIC_LOADING_TIME_MS = 700;
+
 export const AUTH_ERROR_CODES = {
   ALREADY_EXISTS: "A user with this email already exists",
   EXPIRED: "This verification code has expired, please try again.",
@@ -9,7 +11,7 @@ export const AUTH_ERROR_CODES = {
     "You have exceeded the maximum number of attempts for this login code, please try again.",
   NOT_FOUND: "An unexpected error occurred, please try again.",
   SHORTNAME_TAKEN: "The shortname is already taken",
-  ALREADY_USED: "This verification code has already been used."
+  ALREADY_USED: "This verification code has already been used.",
 } as const;
 
 type ParsedAuthQuery = {
