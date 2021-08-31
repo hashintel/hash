@@ -103,7 +103,6 @@ function reducer(state: State, action: Actions): State {
 const SignupPage: NextPage = () => {
   const { user, refetch } = useUser();
   const router = useRouter();
-
   const [
     {
       activeScreen,
@@ -211,12 +210,15 @@ const SignupPage: NextPage = () => {
     });
   };
 
-  const handleVerifyEmail = (providedCode?: string) => {
+  const handleVerifyEmail = (
+    providedCode: string,
+    withSyntheticLoading?: boolean
+  ) => {
     if (!verificationCodeMetadata) return;
 
     const verificationId = verificationCodeMetadata.id;
 
-    if (providedCode) {
+    if (withSyntheticLoading) {
       dispatch({
         type: "UPDATE_STATE",
         payload: { syntheticLoading: true } as State,
@@ -229,7 +231,9 @@ const SignupPage: NextPage = () => {
         SYNTHETIC_LOADING_TIME_MS
       );
     } else {
-      void verifyEmail({ variables: { verificationId, verificationCode } });
+      void verifyEmail({
+        variables: { verificationId, verificationCode: providedCode },
+      });
     }
   };
 
@@ -277,13 +281,7 @@ const SignupPage: NextPage = () => {
         <VerifyCode
           loginIdentifier={email}
           goBack={goBack}
-          code={verificationCode}
-          setCode={(code) =>
-            dispatch({
-              type: "UPDATE_STATE",
-              payload: { verificationCode: code } as State,
-            })
-          } //todo: handle this internally
+          defaultCode={verificationCode}
           loading={verifyEmailLoading || syntheticLoading}
           handleSubmit={handleVerifyEmail}
           errorMessage={errorMessage}

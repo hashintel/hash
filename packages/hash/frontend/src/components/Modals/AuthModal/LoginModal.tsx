@@ -1,6 +1,6 @@
 import React, { VoidFunctionComponent } from "react";
 import { useRouter } from "next/router";
-import { useCallback, useEffect, useReducer } from "react";
+import { useEffect, useReducer } from "react";
 
 import {
   AuthModalLayout,
@@ -107,13 +107,6 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
     },
     dispatch,
   ] = useReducer<React.Reducer<State, Actions>>(reducer, initialState);
-  // const [activeScreen, setActiveScreen] = useState<Screen>(Screen.Intro);
-  // const [loginIdentifier, setLoginIdentifier] = useState<string>("");
-  // const [verificationCode, setVerificationCode] = useState<string>("");
-  // const [verificationCodeMetadata, setVerificationCodeMetadata] = useState<
-  //   VerificationCodeMetadata | undefined
-  // >();
-  // const [errorMessage, setErrorMessage] = useState<string>("");
   const router = useRouter();
 
   const [sendLoginCodeFn, { loading: sendLoginCodeLoading }] = useMutation<
@@ -125,11 +118,6 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
         type: "SEND_LOGIN_CODE_SUCCESS",
         payload: { verificationCodeMetadata: sendLoginCode },
       });
-      // unstable_batchedUpdates(() => {
-      //   setErrorMessage("");
-      //   setVerificationCodeMetadata(sendLoginCode);
-      //   setActiveScreen(Screen.VerifyCode);
-      // });
     },
     onError: ({ graphQLErrors }) =>
       graphQLErrors.forEach(({ extensions, message }) => {
@@ -139,7 +127,6 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
             type: "SET_ERROR",
             payload: message,
           });
-          // setErrorMessage(message);
         } else {
           throw new ApolloError({ graphQLErrors });
         }
@@ -193,11 +180,6 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
         } as State,
       });
 
-      // unstable_batchedUpdates(() => {
-      //   setActiveScreen(Screen.VerifyCode);
-      //   setVerificationCode(verificationCode);
-      // });
-
       void loginWithLoginCode({
         variables: { verificationId, verificationCode },
       });
@@ -211,16 +193,15 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
         loginIdentifier: emailOrShortname,
       } as State,
     });
-    // setLoginIdentifier(emailOrShortname);
     void sendLoginCodeFn({ variables: { emailOrShortname } });
   };
 
-  const login = (providedCode?: string) => {
+  const login = (providedCode: string, withSynthenticLoading?: boolean) => {
     if (!verificationCodeMetadata) return;
 
     const verificationId = verificationCodeMetadata.id;
 
-    if (providedCode) {
+    if (withSynthenticLoading) {
       dispatch({
         type: "UPDATE_STATE",
         payload: {
@@ -251,15 +232,6 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
     }
   };
 
-  const setCode = useCallback((code: string) => {
-    dispatch({
-      type: "UPDATE_STATE",
-      payload: {
-        verificationCode: code,
-      } as State,
-    });
-  }, []);
-
   const navigateToSignup = () => {
     void router.push("/signup");
     setTimeout(onClose, 500);
@@ -271,8 +243,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
         return (
           <VerifyCode
             loginIdentifier={loginIdentifier}
-            code={verificationCode}
-            setCode={setCode}
+            defaultCode={verificationCode}
             goBack={goBack}
             handleSubmit={login}
             loading={loginWithLoginCodeLoading || syntheticLoading}
@@ -295,6 +266,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
   };
 
   if (!show && activeScreen !== Screen.Intro) {
+    console.log("got to this point");
     dispatch({
       type: "UPDATE_STATE",
       payload: {
