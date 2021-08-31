@@ -50,6 +50,7 @@
     "regenerator-runtime": "^0.13.7",
     "rimraf": "^3.0.2",
     "serve": "11.3.2",
+    "twind": "0.16.16",
     "typescript-json-schema": "0.50.1",
     "webpack": "^4.44.2",
     "webpack-assets-manifest": "^3.1.1",

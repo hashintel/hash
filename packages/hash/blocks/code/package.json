@@ -60,6 +60,7 @@
     "sass-loader": "^10",
     "serve": "11.3.2",
     "style-loader": "2.0.0",
+    "twind": "0.16.16",
     "typescript-json-schema": "0.50.1",
     "webpack": "^4.44.2",
     "webpack-assets-manifest": "^3.1.1",
