@@ -233,7 +233,7 @@ const BlockSelect = forwardRef(({ options, onChange, selectedIndex }, ref) => {
 /**
  * This is the node view that wraps every one of our blocks in order to inject custom UI like the <select> to change
  * type and the drag handles
- * 
+ *
  * @implements https://prosemirror.net/docs/ref/#view.NodeView
  */
 class BlockView {
@@ -501,8 +501,7 @@ class BlockView {
         ? {}
         : {
             asyncNodeId:
-              displayNameToId.get(componentDisplayName) ??
-              componentDisplayName,
+              displayNameToId.get(componentDisplayName) ?? componentDisplayName,
             asyncNodeDisplayName: componentDisplayName,
           }),
       asyncNodeUrl: componentUrl,
@@ -514,12 +513,8 @@ class BlockView {
           versionId: text ? node.attrs.versionId : null,
           childEntityId: text ? node.attrs.childEntityId : null,
           accountId: node.attrs.accountId,
-          childEntityAccountId: text
-            ? node.attrs.childEntityAccountId
-            : null,
-          childEntityVersionId: text
-            ? node.attrs.childEntityVersionId
-            : null,
+          childEntityAccountId: text ? node.attrs.childEntityAccountId : null,
+          childEntityVersionId: text ? node.attrs.childEntityVersionId : null,
           childEntityTypeId: text ? node.attrs.childEntityTypeId : null,
         },
         children: text ? [state.schema.text(text)] : [],

@@ -89,14 +89,20 @@ function toBlockConfig(options: BlockMetadata, url: string): BlockConfig {
   const defaultVariant = {
     name: toBlockName(options.name),
     description: options.description,
-    icon: "/format-font.svg", // @todo: introduce icons to blocks
+    icon: "/path/to/icon.svg", // @todo default icon
     properties: {},
   };
 
-  // @todo strip out the icon to make sure every block gets the default one for now
-  const variants = options.variants?.map(({ icon, ...variant }) => ({
+  const variants = options.variants?.map((variant) => ({
     ...defaultVariant,
     ...variant,
+    /**
+     * @todo: prefix path to icon w/ block's baseUrl when introducing icons to blocks
+     * ```
+     * icon: [url, variant.icon].join("/")
+     * ```
+     */
+    icon: "/format-font.svg",
   })) ?? [defaultVariant];
 
   return { ...options, url, variants };
