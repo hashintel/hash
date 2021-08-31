@@ -1,5 +1,4 @@
 import { GraphQLClient } from "graphql-request";
-import "../lib/loadEnv";
 import { createOrgs, createUsers } from "./accounts";
 import {
   createEntity,
