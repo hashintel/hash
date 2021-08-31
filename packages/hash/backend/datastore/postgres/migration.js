@@ -51,17 +51,19 @@ const main = async () => {
   const host = argv.host || process.env.HASH_PG_HOST || "localhost";
 
   let password = process.env.HASH_PG_PASSWORD;
-  if (!password && host === "localhost") {
-    password = "postgres";
-  } else {
-    const resp = await prompts([
-      {
-        type: "password",
-        name: "password",
-        message: `Password for user ${user}`,
-      }
-    ]);
-    password = resp.password;
+  if (!password) {
+    if (host === "localhost") {
+      password = "postgres";
+    } else {
+      const resp = await prompts([
+        {
+          type: "password",
+          name: "password",
+          message: `Password for user ${user}`,
+        }
+      ]);
+      password = resp.password;
+    }
   }
 
   // Force confirmation when not on localhost
