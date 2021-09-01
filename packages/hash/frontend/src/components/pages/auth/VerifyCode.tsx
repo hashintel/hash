@@ -31,12 +31,10 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
   loginIdentifier,
   handleSubmit,
   loading,
-  defaultCode,
-  // requestCode,
-  // requestCodeLoading,
+  requestCode,
+  requestCodeLoading,
 }) => {
-  // const [emailResent, setEmailResent] = useState(false);
-  const [text, setText] = useState(() => defaultCode || "");
+  const [emailResent, setEmailResent] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -115,8 +113,8 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
         >
           &larr; <span className={tw`ml-1`}>Try logging in another way</span>
         </button>
-        {/* Temporarily remove resend email button
-        <div className={tw`flex items-center`}>
+
+        {/* <div className={tw`flex items-center`}>
           <span className={tw`mr-1`}>No email yet?</span>
           <button
             className={tw`text-blue-500 focus:text-blue-700 hover:text-blue-700 disabled:opacity-50 font-bold focus:outline-none flex items-center`}
@@ -129,7 +127,7 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
             )}
           </button>
         </div> */}
-        {/* {emailResent ? (
+        {emailResent ? (
           <div className={tw`flex items-center`}>
             <span className={tw`mr-1`}>No email yet?</span>
             <span className={tw`font-bold text-green-500`}>Email Resent</span>
@@ -140,15 +138,15 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
             <button
               className={tw`text-blue-500 focus:text-blue-700 hover:text-blue-700 disabled:opacity-50 font-bold focus:outline-none flex items-center`}
               onClick={requestCode}
-              disabled={!requestCodeLoading}
+              disabled={requestCodeLoading}
             >
               <span>Resend email</span>
-              {!requestCodeLoading && (
+              {requestCodeLoading && (
                 <IconHash className={tw`h-3 w-3 ml-1 animate-spin`} />
               )}
             </button>
           </div>
-        )} */}
+        )}
       </div>
     </div>
   );
