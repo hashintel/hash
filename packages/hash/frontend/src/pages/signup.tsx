@@ -55,7 +55,7 @@ type Actions =
   | Action<"CREATE_USER_SUCCESS", Pick<State, "verificationCodeMetadata">>
   | Action<"VERIFY_EMAIL_SUCCESS", Pick<State, "userId">>
   | Action<"SET_ERROR", string>
-  | Action<"UPDATE_STATE", State>;
+  | Action<"UPDATE_STATE", Partial<State>>;
 
 const initialState: State = {
   activeScreen: Screen.Intro,
@@ -195,7 +195,7 @@ const SignupPage: NextPage = () => {
       const { verificationId, verificationCode } = query;
       dispatch({
         type: "UPDATE_STATE",
-        payload: { activeScreen: Screen.VerifyCode, verificationCode } as State,
+        payload: { activeScreen: Screen.VerifyCode, verificationCode },
       });
       void verifyEmail({
         variables: { verificationId, verificationCode },
@@ -204,7 +204,7 @@ const SignupPage: NextPage = () => {
   }, [router, verifyEmail]);
 
   const requestVerificationCode = (email: string) => {
-    dispatch({ type: "UPDATE_STATE", payload: { email } as State });
+    dispatch({ type: "UPDATE_STATE", payload: { email } });
     void createUser({
       variables: { email },
     });
@@ -221,7 +221,7 @@ const SignupPage: NextPage = () => {
     if (withSyntheticLoading) {
       dispatch({
         type: "UPDATE_STATE",
-        payload: { syntheticLoading: true } as State,
+        payload: { syntheticLoading: true },
       });
       setTimeout(
         () =>
@@ -248,7 +248,7 @@ const SignupPage: NextPage = () => {
     if (activeScreen === Screen.VerifyCode) {
       dispatch({
         type: "UPDATE_STATE",
-        payload: { activeScreen: Screen.Intro } as State,
+        payload: { activeScreen: Screen.Intro },
       });
     }
   };
@@ -264,7 +264,7 @@ const SignupPage: NextPage = () => {
       payload: {
         userId: user.id,
         activeScreen: Screen.AccountSetup,
-      } as State,
+      },
     });
   }
 

@@ -53,7 +53,7 @@ type Action<S, T> = {
 type Actions =
   | Action<"SEND_LOGIN_CODE_SUCCESS", Pick<State, "verificationCodeMetadata">>
   | Action<"SET_ERROR", string>
-  | Action<"UPDATE_STATE", State>
+  | Action<"UPDATE_STATE", Partial<State>>
   | Action<"RESET_STATE", undefined>;
 
 const initialState: State = {
@@ -143,7 +143,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
               type: "UPDATE_STATE",
               payload: {
                 syntheticLoading: false,
-              } as State,
+              },
             });
           }
           if (onLoggedIn) onLoggedIn(loginWithLoginCode);
@@ -177,7 +177,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
         payload: {
           activeScreen: Screen.VerifyCode,
           verificationCode: verificationCode,
-        } as State,
+        },
       });
 
       void loginWithLoginCode({
@@ -191,7 +191,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
       type: "UPDATE_STATE",
       payload: {
         loginIdentifier: emailOrShortname,
-      } as State,
+      },
     });
     void sendLoginCodeFn({ variables: { emailOrShortname } });
   };
@@ -206,7 +206,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
         type: "UPDATE_STATE",
         payload: {
           syntheticLoading: true,
-        } as State,
+        },
       });
       setTimeout(
         () =>
@@ -266,12 +266,11 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
   };
 
   if (!show && activeScreen !== Screen.Intro) {
-    console.log("got to this point");
     dispatch({
       type: "UPDATE_STATE",
       payload: {
         activeScreen: Screen.Intro,
-      } as State,
+      },
     });
   }
 
