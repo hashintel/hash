@@ -1,8 +1,8 @@
 import React, { VFC, useRef, useEffect, useCallback, useState } from "react";
 import { tw } from "twind";
 import Logo from "../../../assets/svg/logo.svg";
-import { IconHash } from "../../Icons/IconHash/IconHash";
-import { IconKeyboardReturn } from "../../Icons/IconKeyboardReturn/IconKeyboardReturn";
+import { IconHash } from "../../Icons/IconHash";
+import { IconKeyboardReturn } from "../../Icons/IconKeyboardReturn";
 
 type VerifyCodeProps = {
   defaultCode?: string;

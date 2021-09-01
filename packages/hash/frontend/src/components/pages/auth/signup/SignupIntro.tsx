@@ -2,10 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useRef, VFC } from "react";
 import { tw } from "twind";
 
-// import GithubIcon from "../../../assets/svg/github.svg";
-// import GoogleIcon from "../../../assets/svg/google.svg";
 import Logo from "../../../../assets/svg/logo.svg";
-import { IconSpinner } from "../../../Icons/IconSpinner/IconSpinner";
+import { IconSpinner } from "../../../Icons/IconSpinner";
 
 type SignupIntroProps = {
   handleSubmit: (email: string) => void;
