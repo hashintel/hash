@@ -4,10 +4,17 @@
   "private": true,
   "version": "0.1.0",
   "description": "Temporary catchall place for shared code",
-  "prettier": "@hashintel/prettier-config",
   "exports": {
     "./": "./dist/"
   },
+  "typesVersions": {
+    "*": {
+      "*": [
+        "dist/*"
+      ]
+    }
+  },
+  "prettier": "@hashintel/prettier-config",
   "scripts": {
     "format": "prettier --write './src/**/*'; eslint --ext .js,.ts,.tsx --fix ./src/",
     "lint": "prettier --check './src/**/*'; eslint --ext .js,.ts,.tsx ./src/",
