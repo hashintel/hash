@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { unstable_batchedUpdates } from "react-dom";
+import React, { useEffect } from "react";
 import { NextPage } from "next";
 import { useRouter } from "next/router";
 import { useUser } from "../components/hooks/useUser";
@@ -29,6 +28,7 @@ import {
   SYNTHETIC_LOADING_TIME_MS,
 } from "../components/pages/auth/utils";
 import { AuthLayout } from "../components/layout/PageLayout/AuthLayout";
+import { useReducer } from "react";
 
 enum Screen {
   Intro,
@@ -36,20 +36,85 @@ enum Screen {
   AccountSetup,
 }
 
+type State = {
+  activeScreen: Screen;
+  email: string;
+  verificationCodeMetadata: VerificationCodeMetadata | undefined;
+  verificationCode: string;
+  errorMessage: string;
+  userId: string | null;
+  syntheticLoading: boolean;
+};
+
+type Action<S, T> = {
+  type: S;
+  payload: T;
+};
+
+type Actions =
+  | Action<"CREATE_USER_SUCCESS", Pick<State, "verificationCodeMetadata">>
+  | Action<"VERIFY_EMAIL_SUCCESS", Pick<State, "userId">>
+  | Action<"SET_ERROR", string>
+  | Action<"UPDATE_STATE", Partial<State>>;
+
+const initialState: State = {
+  activeScreen: Screen.Intro,
+  email: "",
+  verificationCodeMetadata: undefined,
+  verificationCode: "",
+  errorMessage: "",
+  userId: null,
+  syntheticLoading: false,
+};
+
+function reducer(state: State, action: Actions): State {
+  switch (action.type) {
+    case "CREATE_USER_SUCCESS":
+      return {
+        ...state,
+        ...action.payload,
+        activeScreen: Screen.VerifyCode,
+        errorMessage: "",
+      };
+    case "VERIFY_EMAIL_SUCCESS":
+      return {
+        ...state,
+        ...action.payload,
+        activeScreen: Screen.AccountSetup,
+        syntheticLoading: false,
+        errorMessage: "",
+      };
+    case "SET_ERROR":
+      return {
+        ...state,
+        syntheticLoading: false,
+        errorMessage: action.payload,
+      };
+    case "UPDATE_STATE":
+      return {
+        ...state,
+        ...action.payload,
+      };
+    default:
+      return state;
+  }
+}
+
 const SignupPage: NextPage = () => {
   const { user, refetch } = useUser();
   const router = useRouter();
-
-  const [activeScreen, setActiveScreen] = useState<Screen>(Screen.Intro);
-  const [email, setEmail] = useState("");
-  const [verificationCodeMetadata, setVerificationCodeMetadata] = useState<
-    VerificationCodeMetadata | undefined
-  >();
-  const [verificationCode, setVerificationCode] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
-  const [userId, setUserId] = useState<string | null>(null);
-  // synthetic loading state to be used when delaying the verifyEmail request using a timeout
-  const [syntheticLoading, setSyntheticLoading] = useState<boolean>(false);
+  const [
+    {
+      activeScreen,
+      email,
+      verificationCode,
+      verificationCodeMetadata,
+      errorMessage,
+      userId,
+      syntheticLoading,
+    },
+    dispatch,
+  ] = useReducer<React.Reducer<State, Actions>>(reducer, initialState);
 
   useEffect(() => {
     // If the user is logged in, and their account sign-up is complete...
@@ -64,24 +129,21 @@ const SignupPage: NextPage = () => {
     CreateUserMutationVariables
   >(createUserMutation, {
     onCompleted: ({ createUser }) => {
-      unstable_batchedUpdates(() => {
-        setErrorMessage("");
-        setVerificationCodeMetadata(createUser);
-        setActiveScreen(Screen.VerifyCode);
+      dispatch({
+        type: "CREATE_USER_SUCCESS",
+        payload: { verificationCodeMetadata: createUser },
       });
     },
     onError: ({ graphQLErrors }) => {
       graphQLErrors.forEach(({ extensions, message }) => {
         const { code } = extensions as { code?: keyof typeof AUTH_ERROR_CODES };
-        if (code) {
-          // redirect user to login if email exists
-          if (code === "ALREADY_EXISTS") {
-            void router.push({ pathname: "/login", query: { email } });
-          } else {
-            setErrorMessage(AUTH_ERROR_CODES[code]);
-          }
+        if (code === "ALREADY_EXISTS") {
+          void router.push({ pathname: "/login", query: { email } });
         } else {
-          setErrorMessage(message);
+          dispatch({
+            type: "SET_ERROR",
+            payload: code ? AUTH_ERROR_CODES[code] : message,
+          });
         }
       });
     },
@@ -92,25 +154,17 @@ const SignupPage: NextPage = () => {
     VerifyEmailMutationVariables
   >(verifyEmailMutation, {
     onCompleted: ({ verifyEmail: data }) => {
-      unstable_batchedUpdates(() => {
-        setErrorMessage("");
-        setUserId(data.id);
-        setActiveScreen(Screen.AccountSetup);
-        setSyntheticLoading(false);
+      dispatch({
+        type: "VERIFY_EMAIL_SUCCESS",
+        payload: { userId: data.id },
       });
     },
     onError: ({ graphQLErrors }) => {
-      unstable_batchedUpdates(() => {
-        setSyntheticLoading(false);
-        graphQLErrors.forEach(({ extensions, message }) => {
-          const { code } = extensions as {
-            code?: keyof typeof AUTH_ERROR_CODES;
-          };
-          if (code) {
-            setErrorMessage(AUTH_ERROR_CODES[code]);
-          } else {
-            setErrorMessage(message);
-          }
+      graphQLErrors.forEach(({ extensions, message }) => {
+        const { code } = extensions as { code?: keyof typeof AUTH_ERROR_CODES };
+        dispatch({
+          type: "SET_ERROR",
+          payload: code ? AUTH_ERROR_CODES[code] : message,
         });
       });
     },
@@ -126,7 +180,10 @@ const SignupPage: NextPage = () => {
     },
     onError: ({ graphQLErrors }) => {
       graphQLErrors.forEach(({ message }) => {
-        setErrorMessage(message);
+        dispatch({
+          type: "SET_ERROR",
+          payload: message,
+        });
       });
     },
   });
@@ -136,9 +193,9 @@ const SignupPage: NextPage = () => {
     const { pathname, query } = router;
     if (pathname === "/signup" && isParsedAuthQuery(query)) {
       const { verificationId, verificationCode } = query;
-      unstable_batchedUpdates(() => {
-        setActiveScreen(Screen.VerifyCode);
-        setVerificationCode(verificationCode);
+      dispatch({
+        type: "UPDATE_STATE",
+        payload: { activeScreen: Screen.VerifyCode, verificationCode },
       });
       void verifyEmail({
         variables: { verificationId, verificationCode },
@@ -147,19 +204,25 @@ const SignupPage: NextPage = () => {
   }, [router, verifyEmail]);
 
   const requestVerificationCode = (email: string) => {
-    setEmail(email);
+    dispatch({ type: "UPDATE_STATE", payload: { email } });
     void createUser({
       variables: { email },
     });
   };
 
-  const handleVerifyEmail = (providedCode?: string) => {
+  const handleVerifyEmail = (
+    providedCode: string,
+    withSyntheticLoading?: boolean
+  ) => {
     if (!verificationCodeMetadata) return;
 
     const verificationId = verificationCodeMetadata.id;
 
-    if (providedCode) {
-      setSyntheticLoading(true);
+    if (withSyntheticLoading) {
+      dispatch({
+        type: "UPDATE_STATE",
+        payload: { syntheticLoading: true },
+      });
       setTimeout(
         () =>
           verifyEmail({
@@ -168,7 +231,9 @@ const SignupPage: NextPage = () => {
         SYNTHETIC_LOADING_TIME_MS
       );
     } else {
-      void verifyEmail({ variables: { verificationId, verificationCode } });
+      void verifyEmail({
+        variables: { verificationId, verificationCode: providedCode },
+      });
     }
   };
 
@@ -181,7 +246,10 @@ const SignupPage: NextPage = () => {
 
   const goBack = () => {
     if (activeScreen === Screen.VerifyCode) {
-      setActiveScreen(Screen.Intro);
+      dispatch({
+        type: "UPDATE_STATE",
+        payload: { activeScreen: Screen.Intro },
+      });
     }
   };
 
@@ -191,9 +259,12 @@ const SignupPage: NextPage = () => {
     !user.accountSignupComplete &&
     activeScreen !== Screen.AccountSetup
   ) {
-    unstable_batchedUpdates(() => {
-      setUserId(user.id);
-      setActiveScreen(Screen.AccountSetup);
+    dispatch({
+      type: "UPDATE_STATE",
+      payload: {
+        userId: user.id,
+        activeScreen: Screen.AccountSetup,
+      },
     });
   }
 
@@ -210,8 +281,7 @@ const SignupPage: NextPage = () => {
         <VerifyCode
           loginIdentifier={email}
           goBack={goBack}
-          code={verificationCode}
-          setCode={setVerificationCode}
+          defaultCode={verificationCode}
           loading={verifyEmailLoading || syntheticLoading}
           handleSubmit={handleVerifyEmail}
           errorMessage={errorMessage}

@@ -1,17 +1,16 @@
-import React, { VFC, useRef, useEffect, useCallback } from "react";
+import React, { VFC, useRef, useEffect, useCallback, useState } from "react";
 import { tw } from "twind";
 import Logo from "../../../assets/svg/logo.svg";
-import { IconHash } from "../../Icons/IconHash/IconHash";
-import { IconKeyboardReturn } from "../../Icons/IconKeyboardReturn/IconKeyboardReturn";
+import { IconHash } from "../../Icons/IconHash";
+import { IconKeyboardReturn } from "../../Icons/IconKeyboardReturn";
 
 type VerifyCodeProps = {
-  code: string;
-  setCode: (x: string) => void;
+  defaultCode?: string;
   goBack: () => void;
   loading: boolean;
   errorMessage?: string;
   loginIdentifier: string;
-  handleSubmit: (code?: string) => void;
+  handleSubmit: (code: string, withSyntheticLoading?: boolean) => void;
   requestCode: () => void;
   requestCodeLoading: boolean;
 };
@@ -27,28 +26,28 @@ const isVerificationCodeValid = (code: string) => {
 };
 
 export const VerifyCode: VFC<VerifyCodeProps> = ({
-  code,
-  setCode,
   goBack,
   errorMessage,
   loginIdentifier,
   handleSubmit,
   loading,
+  defaultCode,
   // requestCode,
   // requestCodeLoading,
 }) => {
   // const [emailResent, setEmailResent] = useState(false);
+  const [text, setText] = useState(() => defaultCode || "");
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     inputRef.current?.select();
   }, []);
 
-  const isInputValid = useCallback(() => isVerificationCodeValid(code), [code]);
+  const isInputValid = useCallback(() => isVerificationCodeValid(text), [text]);
 
   const onSubmit = (evt: React.FormEvent) => {
     evt.preventDefault();
-    void handleSubmit();
+    void handleSubmit(text);
   };
 
   return (
@@ -74,17 +73,17 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
             <input
               className={tw`block border-b-1 border-gray-300 w-11/12 mx-auto mb-2 py-3 pl-3 pr-20 text-2xl text-center focus:outline-none focus:border-blue-500`}
               onChange={({ target }) =>
-                setCode(parseVerificationCodeInput(target.value))
+                setText(parseVerificationCodeInput(target.value))
               }
               onPaste={({ clipboardData }) => {
                 const pastedCode = parseVerificationCodeInput(
                   clipboardData.getData("Text")
                 );
                 if (isVerificationCodeValid(pastedCode)) {
-                  void handleSubmit(pastedCode);
+                  void handleSubmit(pastedCode, true);
                 }
               }}
-              value={code}
+              value={text}
               ref={inputRef}
             />
             <button

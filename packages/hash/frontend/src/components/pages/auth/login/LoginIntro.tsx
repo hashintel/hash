@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { tw } from "twind";
 
 import Logo from "../../../../assets/svg/logo.svg";
-import { IconHash } from "../../../Icons/IconHash/IconHash";
-import { IconKeyboardReturn } from "../../../Icons/IconKeyboardReturn/IconKeyboardReturn";
+import { IconHash } from "../../../Icons/IconHash";
+import { IconKeyboardReturn } from "../../../Icons/IconKeyboardReturn";
 
 const options = [
   {
@@ -83,7 +83,6 @@ export const LoginIntro: VoidFunctionComponent<LoginIntroProps> = ({
             <input
               ref={inputRef}
               className={tw`appearance-none border-b-2 focus:border-blue-500 w-full py-2 pl-1 pr-24 text-gray-700 leading-tight focus:outline-none focus:shadow-outline`}
-              type="email"
               value={emailOrShortname}
               onChange={({ target }) => setEmailOrShortname(target.value)}
               placeholder="Enter your email or shortname"

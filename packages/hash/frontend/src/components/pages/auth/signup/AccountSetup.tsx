@@ -2,8 +2,8 @@ import React, { VFC, useState } from "react";
 import { tw } from "twind";
 
 import Logo from "../../../../assets/svg/logo.svg";
-import IconInfo from "../../../Icons/IconInfo/IconInfo";
-import { IconSpinner } from "../../../Icons/IconSpinner/IconSpinner";
+import IconInfo from "../../../Icons/IconInfo";
+import { IconSpinner } from "../../../Icons/IconSpinner";
 
 type AccountSetupProps = {
   updateUserDetails: (shortname: string, preferredName: string) => void;
