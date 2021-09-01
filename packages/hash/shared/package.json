@@ -19,7 +19,8 @@
     "format": "prettier --write './src/**/*'; eslint --ext .js,.ts,.tsx --fix ./src/",
     "lint": "prettier --check './src/**/*'; eslint --ext .js,.ts,.tsx ./src/",
     "codegen": "graphql-codegen --config codegen.yml # shared",
-    "build": "echo 'Compiling Typescript' && rm -rf dist && tsc -b"
+    "build": "yarn codegen; tsc -b",
+    "postinstall": "yarn build"
   },
   "dependencies": {
     "@apollo/client": "3.3.19",
