@@ -10,6 +10,12 @@ export const createUser = gql`
   }
 `;
 
+export const isShortnameTaken = gql`
+  query isShortnameTaken($shortname: String!) {
+    isShortnameTaken(shortname: $shortname)
+  }
+`;
+
 export const updateUser = gql`
   mutation updateUser($id: ID!, $properties: UpdateUserProperties!) {
     updateUser(id: $id, properties: $properties) {
