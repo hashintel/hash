@@ -4,27 +4,16 @@
     // specifics
     "baseUrl": ".",
     "outDir": "dist",
-    // overrides
-    "allowJs": true,
-    "isolatedModules": true,
-    "jsx": "preserve",
-    "moduleResolution": "node",
-    "noEmit": false,
-    "typeRoots": [
-      "./src/types",
-      "node_modules/@types"
-    ],
-    "lib": [
-      "es2020"
-    ],
     "rootDir": "src",
+    "allowJs": true,
+    "declaration": true,
+    "declarationMap": true, // enables importers to jump to source
+    "isolatedModules": true,
+    "moduleResolution": "node",
+    
+    // overrides
+    "lib": ["es2020"],
     "composite": true,
   },
-  "include": [
-    "./src/**/*",
-    "src/graphql/fragmentTypes.gen.json"
-  ],
-  "exclude": [
-    "node_modules"
-  ]
+  "include": ["./src/", "./src/**/*.json"]
 }
