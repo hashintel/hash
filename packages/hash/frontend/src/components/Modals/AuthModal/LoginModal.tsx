@@ -24,6 +24,7 @@ import {
   AUTH_ERROR_CODES,
   isParsedAuthQuery,
   SYNTHETIC_LOADING_TIME_MS,
+  Action,
 } from "../../pages/auth/utils";
 
 enum Screen {
@@ -43,11 +44,6 @@ type State = {
   verificationCodeMetadata: VerificationCodeMetadata | undefined;
   errorMessage: string;
   syntheticLoading: boolean;
-};
-
-type Action<S, T> = {
-  type: S;
-  payload?: T;
 };
 
 type Actions =

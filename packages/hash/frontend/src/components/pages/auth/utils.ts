@@ -24,3 +24,8 @@ export const isParsedAuthQuery = (
 ): query is ParsedAuthQuery =>
   typeof query.verificationId === "string" &&
   typeof query.verificationCode === "string";
+
+export type Action<S, T> = {
+  type: S;
+  payload: T;
+};

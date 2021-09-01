@@ -3,6 +3,7 @@ import { tw } from "twind";
 import Logo from "../../../assets/svg/logo.svg";
 import { IconHash } from "../../Icons/IconHash";
 import { IconKeyboardReturn } from "../../Icons/IconKeyboardReturn";
+import { SYNTHETIC_LOADING_TIME_MS } from "./utils";
 
 type VerifyCodeProps = {
   defaultCode?: string;
@@ -26,6 +27,7 @@ const isVerificationCodeValid = (code: string) => {
 };
 
 export const VerifyCode: VFC<VerifyCodeProps> = ({
+  defaultCode,
   goBack,
   errorMessage,
   loginIdentifier,
@@ -34,8 +36,21 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
   requestCode,
   requestCodeLoading,
 }) => {
-  const [emailResent, setEmailResent] = useState(false);
+  const [state, setState] = useState({
+    text: defaultCode || "",
+    emailResent: false,
+    syntheticLoading: false,
+  });
+
+  const { text, emailResent, syntheticLoading } = state;
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const updateState = useCallback((newState) => {
+    setState((prevState) => ({
+      ...prevState,
+      ...newState,
+    }));
+  }, []);
 
   useEffect(() => {
     inputRef.current?.select();
@@ -46,6 +61,19 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
   const onSubmit = (evt: React.FormEvent) => {
     evt.preventDefault();
     void handleSubmit(text);
+  };
+
+  const handleResendCode = async () => {
+    updateState({ syntheticLoading: true });
+    setTimeout(async () => {
+      try {
+        await requestCode();
+        updateState({ emailResent: true, syntheticLoading: false });
+        setTimeout(() => updateState({ emailResent: false }), 5000);
+      } catch (err) {
+        updateState({ syntheticLoading: false });
+      }
+    }, SYNTHETIC_LOADING_TIME_MS);
   };
 
   return (
@@ -71,7 +99,7 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
             <input
               className={tw`block border-b-1 border-gray-300 w-11/12 mx-auto mb-2 py-3 pl-3 pr-20 text-2xl text-center focus:outline-none focus:border-blue-500`}
               onChange={({ target }) =>
-                setText(parseVerificationCodeInput(target.value))
+                updateState({ text: parseVerificationCodeInput(target.value) })
               }
               onPaste={({ clipboardData }) => {
                 const pastedCode = parseVerificationCodeInput(
@@ -113,20 +141,6 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
         >
           &larr; <span className={tw`ml-1`}>Try logging in another way</span>
         </button>
-
-        {/* <div className={tw`flex items-center`}>
-          <span className={tw`mr-1`}>No email yet?</span>
-          <button
-            className={tw`text-blue-500 focus:text-blue-700 hover:text-blue-700 disabled:opacity-50 font-bold focus:outline-none flex items-center`}
-            onClick={requestCode}
-            disabled={!requestCodeLoading}
-          >
-            <span>Resend email</span>
-            {!requestCodeLoading && (
-              <IconHash className={tw`h-3 w-3 ml-1 animate-spin`} />
-            )}
-          </button>
-        </div> */}
         {emailResent ? (
           <div className={tw`flex items-center`}>
             <span className={tw`mr-1`}>No email yet?</span>
@@ -137,11 +151,11 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
             <span className={tw`mr-1`}>No email yet?</span>
             <button
               className={tw`text-blue-500 focus:text-blue-700 hover:text-blue-700 disabled:opacity-50 font-bold focus:outline-none flex items-center`}
-              onClick={requestCode}
-              disabled={requestCodeLoading}
+              onClick={handleResendCode}
+              disabled={requestCodeLoading || syntheticLoading}
             >
               <span>Resend email</span>
-              {requestCodeLoading && (
+              {(requestCodeLoading || syntheticLoading) && (
                 <IconHash className={tw`h-3 w-3 ml-1 animate-spin`} />
               )}
             </button>
