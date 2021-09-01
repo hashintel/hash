@@ -33,7 +33,6 @@ create table if not exists entity_types (
 
     unique(account_id, name)
 );
--- select create_reference_table('entity_types')
 
 create table if not exists entity_type_versions (
     entity_type_version_id  uuid not null primary key,
@@ -51,7 +50,6 @@ create table if not exists entity_type_versions (
     -- updated_at column changes when a mutation is made.';
     updated_at              timestamp with time zone not null
 );
--- select create_reference_table('entity_type_versions')
 
 /**
 The entities table stores metadata which is shared across all versions of an entity.
@@ -101,8 +99,6 @@ create table if not exists entity_versions (
     -- updated_at column changes when a mutation is made.';
     updated_at              timestamp with time zone not null,
 
-    foreign key (account_id, entity_id) references entities (account_id, entity_id) deferrable,
-
     primary key (account_id, entity_version_id)
 );
 
@@ -112,10 +108,7 @@ create index if not exists entity_versions_entity_id on entity_versions (account
 /** For entity ID : account ID lookups */
 create table if not exists entity_account (
     entity_version_id  uuid not null primary key,
-    account_id         uuid not null,
-
-    foreign key (account_id, entity_version_id) references
-      entity_versions (account_id, entity_version_id) deferrable
+    account_id         uuid not null
 );
 
 
@@ -125,12 +118,6 @@ create table if not exists outgoing_links (
     entity_version_id uuid not null,
     child_account_id  uuid not null,
     child_version_id  uuid not null,
-
-    foreign key (account_id, entity_version_id) references
-      entity_versions (account_id, entity_version_id) deferrable,
-
-    foreign key (child_account_id, child_version_id)
-      references entity_versions (account_id, entity_version_id) deferrable,
 
     primary key (account_id, entity_version_id, child_version_id)
 );
@@ -142,12 +129,6 @@ create table if not exists incoming_links (
     entity_version_id uuid not null,
     parent_account_id uuid not null,
     parent_version_id uuid not null,
-
-    foreign key (account_id, entity_version_id) references
-      entity_versions (account_id, entity_version_id) deferrable,
-
-    foreign key (parent_account_id, parent_version_id) references
-      entity_versions (account_id, entity_version_id) deferrable,
 
     primary key (account_id, entity_version_id, parent_version_id)
 );
@@ -161,9 +142,7 @@ create table if not exists verification_codes (
     email_address      text not null,
     used               boolean not null default false,
     number_of_attempts integer not null default 0,
-    created_at         timestamp with time zone not null,
-
-    foreign key (account_id, user_id) references entities (account_id, entity_id)
+    created_at         timestamp with time zone not null
 );
 
 /**

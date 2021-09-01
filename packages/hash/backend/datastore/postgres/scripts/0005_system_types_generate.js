@@ -3,7 +3,7 @@ const path = require("path");
 
 const generatedIds = require("./data/generatedIds.json");
 const { SYSTEM_ACCOUNT_NAME } = require("../../../src/lib/config");
-const { entityTypeJson } = require("./0001_system_account_generate");
+const { entityTypeJson } = require("./0004_system_account_generate");
 
 const now =  '2021-08-19T11:00:14.588Z';
 
@@ -37,5 +37,5 @@ insert into entity_type_versions (
 
 }
 
-const outputPath = path.join(__dirname, "../schema/0002_system_types.sql");
+const outputPath = path.join(__dirname, "../schema/0005_system_types.sql");
 fs.writeFileSync(outputPath, sqlString);
