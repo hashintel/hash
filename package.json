@@ -34,10 +34,10 @@
     "// 04": "",
     "seed-db": "yarn ws:hash-backend clear-pg && yarn ws:hash-integration mock-data",
     "serve:hash-frontend": "yarn ws:hash-frontend dev",
-    "serve:hash-backend": "docker-compose -f packages/hash/docker/docker-compose.yml up",
-    "serve:hash-backend-statsd": "docker-compose -f docker/docker-compose.yml -f docker/docker-compose-statsd-override.yml up",
+    "serve:hash-backend": "cross-env DOCKER_BUILDKIT=1 docker-compose -f packages/hash/docker/docker-compose.yml up",
+    "serve:hash-backend-statsd": "cross-env DOCKER_BUILDKIT=1 docker-compose -f docker/docker-compose.yml -f docker/docker-compose-statsd-override.yml up",
     "codegen": "yarn ws:hash-backend codegen && yarn ws:hash-frontend codegen && yarn ws:hash-integration codegen && yarn ws:hash-shared codegen",
-    "rebuild:backend": "docker-compose -f packages/hash/docker/docker-compose.yml build",
+    "rebuild:backend": "cross-env DOCKER_BUILDKIT=1 docker-compose -f packages/hash/docker/docker-compose.yml build",
     "new:block": "node packages/hash/blocks/create-block",
     "// 05": "",
     "// --------------- Blocks & Demo ---------------": "",
@@ -72,6 +72,7 @@
   },
   "devDependencies": {
     "concurrently": "6.2.0",
+    "cross-env": "^7.0.3",
     "npm-run-all": "4.1.5",
     "serve": "12.0.0"
   }
