@@ -7,6 +7,8 @@
   "description": "hash's prettier config",
   "scripts": {
     "format": "echo n/a",
-    "lint": "echo n/a"
+    "lint": "echo n/a",
+    "clean": "echo n/a",
+    "build": "echo n/a"
   }
 }

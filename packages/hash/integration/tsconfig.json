@@ -4,13 +4,10 @@
     // specifics
     "baseUrl": "./",
     "outDir": "./dist",
+
     // overrides
-    "lib": [
-      "es2020"
-    ],
-    "target": "es2019",
+    "lib": ["es2020"],
+    "target": "es2019"
   },
-  "include": [
-    "./src"
-  ]
+  "include": ["./src"]
 }
