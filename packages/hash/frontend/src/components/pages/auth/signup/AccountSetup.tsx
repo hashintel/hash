@@ -63,6 +63,7 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
             <div className={tw`flex items-center`}>
               <div className={`relative`}>
                 <input
+                  autoFocus
                   className={tw`w-64 border-1 ${
                     displayShortnameError
                       ? "border-red-300 focus:border-red-500"
