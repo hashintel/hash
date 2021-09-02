@@ -1,18 +1,17 @@
 import { GraphQLClient } from "graphql-request";
 import { PostgresAdapter } from "@hashintel/hash-backend/src/db";
+import Org from "@hashintel/hash-backend/src/model/org.model";
 import "./loadEnv";
 import { createOrgs, createUsers } from "./accounts";
 import {
   createEntity,
   createEntityType,
 } from "../graphql/queries/entity.queries";
-import { getAccounts } from "../graphql/queries/org.queries";
 import {
   CreateEntityMutation,
   CreateEntityMutationVariables,
   CreateEntityTypeMutation,
   CreateEntityTypeMutationVariables,
-  GetAccountsQuery,
   SystemTypeName,
 } from "../graphql/apiTypes.gen";
 
@@ -42,15 +41,11 @@ void (async () => {
     await createOrgs(db),
   ]);
 
-  await db.close();
-
   const results = new Map<string, CreateEntityMutation>();
 
   // Get the hash org - it's already been created as part of db migration
-  const { accounts } = await client.request<GetAccountsQuery>(getAccounts);
-  const hashOrg = accounts.find(
-    (account) => account.properties.shortname === "hash"
-  )!;
+  const hashOrg = await Org.getOrgByShortname(db)({ shortname: 'hash' });
+
   if (!hashOrg) {
     throw new Error(`
       No org with shortname 'hash' found. 
@@ -745,6 +740,8 @@ void (async () => {
   );
 
   console.log("Mock data created");
+
+  await db.close();
 
   process.exit();
 })();
