@@ -54,6 +54,7 @@ import {
 import { jsonSchema } from "../../lib/schemas/jsonSchema";
 import { SystemType } from "../../types/entityTypes";
 import { Visibility } from "../../graphql/apiTypes.gen";
+import { getOrgByShortname } from "./org";
 
 export class PostgresClient implements DBClient {
   private conn: Connection;
@@ -507,6 +508,9 @@ export class PostgresClient implements DBClient {
     return await getUserByShortname(this.conn, params);
   }
 
+  async getOrgByShortname(params: { shortname: string }) {
+    return await getOrgByShortname(this.conn, params);
+  }
   async getEntitiesBySystemType(params: {
     accountId: string;
     systemTypeName: SystemType;
