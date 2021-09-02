@@ -20,7 +20,13 @@ beforeAll(async () => {
   await handler.init();
   await handler.createAccount(ACCOUNT_ID);
 
-  db = new PostgresAdapter();
+  db = new PostgresAdapter({
+    host: "localhost",
+    user: "postgres",
+    port: 5432,
+    database: "integration_tests",
+    password: "postgres",
+  });
 });
 
 afterAll(async () => {
@@ -52,7 +58,9 @@ it("can create user", async () => {
   }))!;
 
   expect(verificationCode).not.toBeNull();
-  expect(verificationCode.createdAt.toISOString()).toBe(verificationCodeCreatedAt);
+  expect(verificationCode.createdAt.toISOString()).toBe(
+    verificationCodeCreatedAt
+  );
 
   /** @todo: check whether the verification code was sent in an email address */
 });
