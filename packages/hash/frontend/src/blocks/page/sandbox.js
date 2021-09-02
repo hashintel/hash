@@ -17,14 +17,14 @@ import DragVertical from "../../components/Icons/DragVertical";
 import styles from "./style.module.css";
 
 import "prosemirror-view/style/prosemirror.css";
-import { componentUrlToProsemirrorId } from "@hashintel/hash-shared/src/sharedWithBackend";
+import { componentUrlToProsemirrorId } from "@hashintel/hash-shared/sharedWithBackend";
 import {
   createProseMirrorState,
   createRemoteBlock,
   displayNameToId,
   historyPlugin,
   infiniteGroupHistoryPlugin,
-} from "@hashintel/hash-shared/src/sharedWithBackendJs";
+} from "@hashintel/hash-shared/sharedWithBackendJs";
 import { createNodeView } from "./tsUtils";
 import { EditorConnection } from "./collab/collab";
 import { Reporter } from "./collab/reporter";

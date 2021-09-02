@@ -13,7 +13,7 @@ import {
 } from "../graphql/queries/account.queries";
 
 import styles from "./index.module.scss";
-import { createApolloClient } from "@hashintel/hash-shared/src/graphql/createApolloClient";
+import { createApolloClient } from "@hashintel/hash-shared/graphql/createApolloClient";
 
 export const getServerSideProps: GetServerSideProps = async () => {
   const client = createApolloClient();

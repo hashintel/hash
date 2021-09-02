@@ -23,7 +23,7 @@ export const useBlockProtocolUpdate = (): {
   const onCompleted = () =>
     apolloClient
       .reFetchObservableQueries()
-      .catch((err) =>
+      .catch((err: any) =>
         console.error("Error when refetching all active queries: ", err)
       );
 

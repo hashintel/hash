@@ -16,7 +16,7 @@ import { BlockMetaContext } from "../blockMeta";
 import {
   createInitialDoc,
   createSchema,
-} from "@hashintel/hash-shared/src/schema";
+} from "@hashintel/hash-shared/schema";
 import {
   Block,
   BlockMeta,
@@ -25,8 +25,8 @@ import {
   calculateSavePayloads,
   componentUrlToProsemirrorId,
   createBlockUpdateTransaction,
-} from "@hashintel/hash-shared/src/sharedWithBackend";
-import { defineNewBlock } from "@hashintel/hash-shared/src/sharedWithBackendJs";
+} from "@hashintel/hash-shared/sharedWithBackend";
+import { defineNewBlock } from "@hashintel/hash-shared/sharedWithBackendJs";
 import { collabEnabled, createNodeView } from "./tsUtils";
 import { EditorConnection } from "./collab/collab";
 
