@@ -31,7 +31,7 @@ export const createUser: Resolver<
         verified: false,
       })) ||
       // ...or create this user
-      (await User.create(client)({
+      (await User.createUser(client)({
         emails: [{ address: email, primary: true, verified: false }],
       }));
 

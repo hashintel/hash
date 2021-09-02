@@ -59,7 +59,7 @@ export const createUsers = async (db: DBAdapter) => {
 
   const userResults = await Promise.all(
     users.map(({ email, ...remainingProperties }) =>
-      User.create(db)({
+      User.createUser(db)({
         emails: [{ address: email, primary: true, verified: true }],
         ...remainingProperties,
       })
@@ -76,7 +76,7 @@ export const createUsers = async (db: DBAdapter) => {
 export const createOrgs = async (db: DBAdapter): Promise<GQLOrg[]> => {
   const orgs: OrgProperties[] = [];
 
-  const orgResults = await Promise.all(orgs.map(Org.create(db)));
+  const orgResults = await Promise.all(orgs.map(Org.createOrg(db)));
 
   return orgResults.map((org) => org.toGQLOrg());
 };

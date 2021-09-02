@@ -3,6 +3,7 @@ import { EntityType as DbEntityType } from "../db/adapter";
 import EntityType from "./entityType.model";
 import { Visibility } from "../graphql/apiTypes.gen";
 import { EntityWithIncompleteEntityType } from "./entityType.model";
+import { SystemType } from "../types/entityTypes";
 
 export type EntityConstructorArgs = {
   entityId: string;
@@ -51,6 +52,20 @@ class Entity {
     this.entityVersionCreatedAt = entityVersionCreatedAt;
     this.entityVersionUpdatedAt = entityVersionUpdatedAt;
   }
+
+  static create =
+    (client: DBClient) =>
+    async (params: {
+      accountId: string;
+      createdById: string;
+      entityVersionId?: string | null | undefined;
+      entityTypeId?: string;
+      entityTypeVersionId?: string | null | undefined;
+      systemTypeName?: SystemType | null | undefined;
+      versioned: boolean;
+      properties: any;
+    }): Promise<Entity> =>
+      client.createEntity(params).then((dbEntity) => new Entity(dbEntity));
 
   static getEntityById =
     (client: DBClient) =>

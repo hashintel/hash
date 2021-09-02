@@ -47,12 +47,12 @@ class Org extends Entity {
         .getOrgByShortname({ shortname })
         .then((dbUser) => (dbUser ? new Org(dbUser) : null));
 
-  static create =
+  static createOrg =
     (client: DBClient) =>
     async (properties: OrgProperties): Promise<Org> => {
       const id = genId();
 
-      const entity = await client.createEntity({
+      const entity = await Entity.create(client)({
         accountId: id,
         entityVersionId: id,
         createdById: id, // Orgs "create" themselves

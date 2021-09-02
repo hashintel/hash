@@ -14,6 +14,7 @@ import VerificationCode from "./verificationCode.model";
 import EmailTransporter from "../email/transporter";
 import { EntityTypeWithoutTypeFields } from "./entityType.model";
 import Creator, { CreatorConstructorArgs } from "./creator.model";
+import Entity from "./entity.model";
 
 type UserConstructorArgs = {
   properties: UserProperties;
@@ -73,12 +74,12 @@ class User extends Creator {
         .getUserByShortname({ shortname })
         .then((dbUser) => (dbUser ? new User(dbUser) : null));
 
-  static create =
+  static createUser =
     (client: DBClient) =>
     async (properties: UserProperties): Promise<User> => {
       const id = genId();
 
-      const entity = await client.createEntity({
+      const entity = await Entity.create(client)({
         accountId: id,
         entityId: id,
         createdById: id, // Users "create" themselves
