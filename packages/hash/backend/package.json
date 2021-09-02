@@ -18,8 +18,8 @@
     "clean": "rimraf './src/**/*.gen.*' ./dist/",
     "postinstall": "yarn codegen # required for linting",
     
-    "dev": "export NODE_ENV=development && nodemon --config nodemon.json src/index.ts",
-    "start": "export NODE_ENV=production && node dist/index.js",
+    "dev": "cross-env NODE_ENV=development nodemon --config nodemon.json src/index.ts",
+    "start": "cross-env NODE_ENV=production node dist/index.js",
     "ts-node": "node --max-old-space-size=2048 node_modules/.bin/ts-node --files --project tsconfig.json",
     "clear-pg": "cd datastore/postgres && yarn refresh"
   },
@@ -30,6 +30,7 @@
     "body-parser": "1.19.0",
     "connect-pg-simple": "6.2.1",
     "cron": "1.8.2",
+    "cross-env": "^7.0.3",
     "express": "4.17.1",
     "express-session": "1.17.2",
     "graphql": "15.5.0",
