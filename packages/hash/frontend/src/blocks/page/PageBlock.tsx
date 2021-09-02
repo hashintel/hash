@@ -13,10 +13,7 @@ import { useBlockProtocolInsertIntoPage } from "../../components/hooks/blockProt
 import { usePortals } from "./usePortals";
 import { useDeferredCallback } from "./useDeferredCallback";
 import { BlockMetaContext } from "../blockMeta";
-import {
-  createInitialDoc,
-  createSchema,
-} from "@hashintel/hash-shared/schema";
+import { createInitialDoc, createSchema } from "@hashintel/hash-shared/schema";
 import {
   Block,
   BlockMeta,
