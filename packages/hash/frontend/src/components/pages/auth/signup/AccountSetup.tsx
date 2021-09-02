@@ -70,6 +70,7 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
                   }-500 rounded-lg h-11 py-6 pl-9 pr-5 mr-7`}
                   placeholder="example"
                   required
+                  value={shortname}
                   onChange={({ target }) => setShortname(target.value)}
                   onFocus={() => {
                     if (!shortnameFocused) setShortnameFocused(true);
