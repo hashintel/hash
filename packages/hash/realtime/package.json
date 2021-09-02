@@ -12,10 +12,9 @@
   "main": "src/index.ts",
   "scripts": {
     "format": "prettier --write './src/**/*'; eslint --ext .ts --fix ./src/",
-    "lint": "prettier --check './src/**/*'; eslint --ext .ts ./src/; tsc --noEmit",
+    "lint": "prettier --check './src/**/*'; eslint --ext .ts ./src/; tsc --noEmit # @hashintel/hash-realtime",
     "build": "tsc -b",
     "clean": "rimraf ./dist/",
-
     "dev": "NODE_ENV=development nodemon src/index.ts",
     "start": "NODE_ENV=production node dist/index.js",
     "ts-node": "node --max-old-space-size=2048 node_modules/.bin/ts-node --files --project tsconfig.json"

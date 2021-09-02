@@ -17,7 +17,7 @@
   "prettier": "@hashintel/prettier-config",
   "scripts": {
     "format": "prettier --write './src/**/*'; eslint --ext .ts --fix ./src",
-    "lint": "prettier --check './src/**/*'; eslint --ext .ts ./src; tsc --noEmit",
+    "lint": "prettier --check './src/**/*'; eslint --ext .ts ./src; tsc --noEmit # @hashintel/block-protocol",
     "build": "tsc -b",
     "clean": "rimraf ./dist/",
     "postinstall": "yarn build"
