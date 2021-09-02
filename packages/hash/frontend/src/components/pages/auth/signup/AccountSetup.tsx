@@ -22,9 +22,9 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
   const {
     shortname,
     setShortname,
-    shortnameIsValid,
+    isShortnameValid,
     shortnameErrorMessage,
-    tooShort,
+    isShortnameTooShort,
   } = useShortnameInput();
   const shortnameInputRef = useRef<HTMLInputElement>(null);
   const [shortnameIsFocused, setShortnameIsFocused] = useState(false);
@@ -38,7 +38,7 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
   };
 
   const displayShortnameError =
-    (shortnameTouched || !tooShort) && !shortnameIsValid;
+    (shortnameTouched || !isShortnameTooShort) && !isShortnameValid;
 
   return (
     <div className={tw`w-9/12 max-w-3xl`}>
@@ -153,7 +153,7 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
 
           <button
             className={tw`group w-64 bg-gradient-to-r from-blue-400 via-blue-500 to-pink-500 rounded-lg h-11 transition-all disabled:opacity-50 flex items-center justify-center text-white text-sm font-bold`}
-            disabled={!preferredName || !shortnameIsValid || loading}
+            disabled={!preferredName || !isShortnameValid || loading}
           >
             {loading ? (
               <IconSpinner className={tw`h-4 w-4 text-white animate-spin`} />

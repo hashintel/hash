@@ -4,7 +4,7 @@ import {
   IsShortnameTakenQuery,
   QueryIsShortnameTakenArgs,
 } from "../../graphql/apiTypes.gen";
-import { isShortnameTaken } from "../../graphql/queries/user.queries";
+import { isShortnameTaken as isShortnameTakenQuery } from "../../graphql/queries/user.queries";
 
 export const ALLOWED_SHORTNAME_CHARS = /^[a-zA-Z0-9-_]+$/;
 
@@ -14,39 +14,39 @@ const parseShortnameInput = (input: string) =>
 export const useShortnameInput = () => {
   const [shortname, setShortname] = useState("");
 
-  const empty = shortname === "";
+  const isEmpty = shortname === "";
 
-  const tooLong = shortname.length > 24;
-  const tooShort = shortname.length < 4;
+  const isTooLong = shortname.length > 24;
+  const isTooShort = shortname.length < 4;
 
-  const shortnameIsValid = !empty && !tooLong && !tooShort;
+  const isShortnameValid = !isEmpty && !isTooLong && !isTooShort;
 
   const { data, loading } = useQuery<
     IsShortnameTakenQuery,
     QueryIsShortnameTakenArgs
-  >(isShortnameTaken, {
+  >(isShortnameTakenQuery, {
     variables: { shortname },
-    skip: !shortnameIsValid,
+    skip: !isShortnameValid,
   });
 
-  const shortnameIsTaken = data?.isShortnameTaken;
+  const isShortnameTaken = data?.isShortnameTaken;
 
   return {
     shortname,
     setShortname: (updatedShortname: string) =>
       setShortname(parseShortnameInput(updatedShortname)),
-    shortnameIsValid: shortnameIsValid && shortnameIsTaken !== true,
-    shortnameIsTaken,
-    shortnameIsTakenLoading: loading,
-    shortnameErrorMessage: empty
+    isShortnameValid: isShortnameValid && isShortnameTaken !== true,
+    isShortnameTaken,
+    isshortnameTakenLoading: loading,
+    shortnameErrorMessage: isEmpty
       ? "You must choose a username"
-      : tooLong
+      : isTooLong
       ? "Must be shorter than 24 characters"
-      : tooShort
+      : isTooShort
       ? "Must be at least 4 characters"
-      : shortnameIsTaken
+      : isShortnameTaken
       ? "This username has already been taken"
       : undefined,
-    tooShort,
+    isShortnameTooShort: isTooShort,
   };
 };
