@@ -208,18 +208,6 @@ export const ensureDocBlocksLoaded = async (
   );
 };
 
-export const replaceStateContent = (
-  state: EditorState,
-  newNodes: Parameters<Transaction["replaceWith"]>[2]
-) => {
-  const { tr } = state;
-
-  // This creations a transaction to replace the entire content of the document
-  tr.replaceWith(0, state.doc.content.size, newNodes);
-
-  return tr;
-};
-
 export const transformBlockForProsemirror = (
   premappedBlock: PageFieldsFragment["properties"]["contents"][number]
 ) => {
@@ -303,7 +291,12 @@ export const createBlockUpdateTransaction = async (
     }) ?? []
   );
 
-  return replaceStateContent(state, newNodes);
+  const { tr } = state;
+
+  // This creations a transaction to replace the entire content of the document
+  tr.replaceWith(0, state.doc.content.size, newNodes);
+
+  return tr;
 };
 
 /**
