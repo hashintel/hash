@@ -5,6 +5,8 @@ import Logo from "../../../../assets/svg/logo.svg";
 import IconInfo from "../../../Icons/IconInfo";
 import { IconSpinner } from "../../../Icons/IconSpinner";
 import { useShortnameInput } from "../../../hooks/useShortnameInput";
+import { useRef } from "react";
+import { unstable_batchedUpdates } from "react-dom";
 
 type AccountSetupProps = {
   updateUserDetails: (shortname: string, preferredName: string) => void;
@@ -22,10 +24,11 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
     setShortname,
     shortnameIsValid,
     shortnameErrorMessage,
-    tooLong,
+    tooShort,
   } = useShortnameInput();
-  const [shortnameFocused, setShortnameFocused] = useState(false);
-  const [shortnameBlurred, setShortnameBlurred] = useState(false);
+  const shortnameInputRef = useRef<HTMLInputElement>(null);
+  const [shortnameIsFocused, setShortnameIsFocused] = useState(false);
+  const [shortnameTouched, setShortnameTouched] = useState(false);
 
   const [preferredName, setPreferredName] = useState("");
 
@@ -35,7 +38,7 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
   };
 
   const displayShortnameError =
-    (shortnameBlurred || tooLong) && !shortnameIsValid;
+    (shortnameTouched || !tooShort) && !shortnameIsValid;
 
   return (
     <div className={tw`w-9/12 max-w-3xl`}>
@@ -63,6 +66,7 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
             <div className={tw`flex items-center`}>
               <div className={`relative`}>
                 <input
+                  ref={shortnameInputRef}
                   autoFocus
                   className={tw`w-64 border-1 ${
                     displayShortnameError
@@ -73,12 +77,13 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
                   required
                   value={shortname}
                   onChange={({ target }) => setShortname(target.value)}
-                  onFocus={() => {
-                    if (!shortnameFocused) setShortnameFocused(true);
-                  }}
-                  onBlur={() => {
-                    if (!shortnameBlurred) setShortnameBlurred(true);
-                  }}
+                  onFocus={() => setShortnameIsFocused(true)}
+                  onBlur={() =>
+                    unstable_batchedUpdates(() => {
+                      if (!shortnameTouched) setShortnameTouched(true);
+                      setShortnameIsFocused(false);
+                    })
+                  }
                   autoComplete="off"
                 />
                 <span
@@ -90,7 +95,9 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
               <div
                 style={{ minHeight: 50 }}
                 className={tw`transition-opacity ${
-                  shortnameFocused ? "opacity-100" : "opacity-0"
+                  shortnameIsFocused || displayShortnameError
+                    ? "opacity-100"
+                    : "opacity-0"
                 } max-w-sm flex items-center border-1 ${
                   displayShortnameError ? "border-red-300" : "border-blue-300"
                 } rounded-md px-3.5`}

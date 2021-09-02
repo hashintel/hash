@@ -47,6 +47,6 @@ export const useShortnameInput = () => {
       : shortnameIsTaken
       ? "This username has already been taken"
       : undefined,
-    tooLong,
+    tooShort,
   };
 };
