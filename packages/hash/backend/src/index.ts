@@ -87,7 +87,12 @@ app.use(helmet({ contentSecurityPolicy: false }));
 app.use(json({ limit: "16mb" }));
 
 // Set up authentication related middeware and routes
-setupAuth(app, db);
+setupAuth(
+  app,
+  { secret: getRequiredEnv("SESSION_SECRET") },
+  { ...pgConfig, maximumPoolSize: 10 },
+  db
+);
 
 // Set up cron jobs
 setupCronJobs(db, logger);
