@@ -251,9 +251,10 @@ export const transformBlockForProsemirror = (block: BlockWithoutMeta) => {
  */
 export const createBlockUpdateTransaction = async (
   state: EditorState,
-  contents: (Block | BlockWithoutMeta)[],
+  premappedContents: PageFieldsFragment["properties"]["contents"],
   viewConfig: ViewConfig
 ) => {
+  const contents = mapEntitiesToBlocks(premappedContents);
   const schema = state.schema;
 
   const newNodes = await Promise.all(

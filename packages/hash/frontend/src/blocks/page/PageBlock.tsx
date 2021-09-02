@@ -88,14 +88,6 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
 
   const updateContents = useCallback(
     async (signal?: AbortSignal): Promise<void> => {
-      /**
-       * This mapping is to map to a format that PageBlock was originally written to work with, before it was connected to
-       * a database.
-       *
-       * @todo remove it
-       */
-      const contents = mapEntitiesToBlocks(currentContents.current);
-
       const setup = prosemirrorSetup.current;
       if (!setup) {
         return;
@@ -105,11 +97,15 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
 
       const state = view.state;
 
-      const tr = await createBlockUpdateTransaction(state, contents, {
-        view,
-        replacePortal,
-        createNodeView,
-      });
+      const tr = await createBlockUpdateTransaction(
+        state,
+        currentContents.current,
+        {
+          view,
+          replacePortal,
+          createNodeView,
+        }
+      );
 
       if (signal?.aborted) {
         return;

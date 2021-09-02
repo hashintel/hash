@@ -264,7 +264,6 @@ async function newInstance(accountId, id) {
     query: getPageQuery,
     variables: { metadataId: id, accountId },
   });
-  const blocks = mapEntitiesToBlocks(data.page.properties.contents);
 
   const state = createProseMirrorState(
     createInitialDoc(createSchema()),
@@ -273,13 +272,19 @@ async function newInstance(accountId, id) {
   );
 
   const newState = state.apply(
-    await createBlockUpdateTransaction(state, blocks, null)
+    await createBlockUpdateTransaction(
+      state,
+      data.page.properties.contents,
+      null
+    )
   );
 
   // The instance may have been created whilst another user we were doing the above work
   if (instances[id]) {
     return instances[id];
   }
+
+  const blocks = mapEntitiesToBlocks(data.page.properties.contents);
 
   return (instances[id] = new Instance(
     accountId,
