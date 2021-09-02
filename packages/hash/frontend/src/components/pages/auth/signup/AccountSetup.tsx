@@ -63,11 +63,11 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
             <div className={tw`flex items-center`}>
               <div className={`relative`}>
                 <input
-                  className={tw`w-64 border-1 border-${
-                    displayShortnameError ? "red" : "gray"
-                  }-300 focus:outline-none focus:border-${
-                    displayShortnameError ? "red" : "blue"
-                  }-500 rounded-lg h-11 py-6 pl-9 pr-5 mr-7`}
+                  className={tw`w-64 border-1 ${
+                    displayShortnameError
+                      ? "border-red-300 focus:border-red-500"
+                      : "border-gray-300 focus:border-blue-500"
+                  } focus:outline-none rounded-lg h-11 py-6 pl-9 pr-5 mr-7`}
                   placeholder="example"
                   required
                   value={shortname}
@@ -88,22 +88,22 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
               </div>
               <div
                 style={{ minHeight: 50 }}
-                className={tw`transition-opacity opacity-${
-                  shortnameFocused ? "100" : "0"
-                } max-w-sm flex items-center border-1 border-${
-                  displayShortnameError ? "red-300" : "blue-300"
+                className={tw`transition-opacity ${
+                  shortnameFocused ? "opacity-100" : "opacity-0"
+                } max-w-sm flex items-center border-1 ${
+                  displayShortnameError ? "border-red-300" : "border-blue-300"
                 } rounded-md px-3.5`}
               >
                 <IconInfo
-                  className={tw`h-6 w-6 mr-3 text-${
-                    displayShortnameError ? "red-500" : "blue-500"
+                  className={tw`h-6 w-6 mr-3 ${
+                    displayShortnameError ? "text-red-500" : "text-blue-500"
                   }`}
                 />
                 <span
-                  className={tw`flex-1 text-${
-                    displayShortnameError ? "red-500" : "black"
-                  } ${!displayShortnameError && "text-opacity-60"} text-${
-                    displayShortnameError ? "sm" : "xs"
+                  className={tw`flex-1 ${
+                    displayShortnameError
+                      ? "text-red-500 text-sm"
+                      : "text-black text-opacity-60 text-xs"
                   }`}
                 >
                   {displayShortnameError ? (
