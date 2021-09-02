@@ -4,18 +4,27 @@
   "private": true,
   "version": "0.1.0",
   "description": "Temporary catchall place for shared code",
-  "prettier": "@hashintel/prettier-config",
   "exports": {
     "./": "./dist/"
   },
+  "typesVersions": {
+    "*": {
+      "*": [
+        "dist/*"
+      ]
+    }
+  },
+  "prettier": "@hashintel/prettier-config",
   "scripts": {
     "format": "prettier --write './src/**/*'; eslint --ext .js,.ts,.tsx --fix ./src/",
     "lint": "prettier --check './src/**/*'; eslint --ext .js,.ts,.tsx ./src/",
     "codegen": "graphql-codegen --config codegen.yml # shared",
-    "build": "echo 'Compiling Typescript' && rm -rf dist && tsc -b"
+    "build": "yarn codegen; tsc -b",
+    "postinstall": "yarn build"
   },
   "dependencies": {
     "@apollo/client": "3.3.19",
+    "@hashintel/block-protocol": "*",
     "jsonschema": "1.4.0",
     "node-fetch": "^2.6.1",
     "prosemirror-commands": "1.1.10",
@@ -49,6 +58,7 @@
     "@typescript-eslint/parser": "4.29.0",
     "eslint": "7.32.0",
     "eslint-config-prettier": "8.3.0",
-    "prettier": "2.3.2"
+    "prettier": "2.3.2",
+    "typescript": "4.3.5"
   }
 }

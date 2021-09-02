@@ -1,6 +1,6 @@
 import { Fragment, ReactElement, VoidFunctionComponent } from "react";
 import { Listbox, Transition } from "@headlessui/react";
-import { IconDropdown } from "../Icons/IconDropdown/IconDropdown";
+import IconDropdown from "../Icons/IconDropdown";
 import { tw } from "twind";
 
 type DropdownValue = string | number | undefined;

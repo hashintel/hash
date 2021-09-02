@@ -13,7 +13,7 @@
   "scripts": {
     "dev": "export NODE_ENV=development && nodemon --config nodemon.json src/index.ts",
     "build": "echo 'Compiling Typescript' && rm -rf dist && tsc -b",
-    "start": "export NODE_ENV=production && node dist/src/index.js",
+    "start": "export NODE_ENV=production && node dist/index.js",
     "codegen": "graphql-codegen --config codegen.yml # backend",
     "format": "prettier --write './src/**/*'; eslint --ext .ts  --fix ./src/",
     "lint": "prettier --check './src/**/*'; eslint --ext .ts ./src/",

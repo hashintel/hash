@@ -58,8 +58,9 @@ class Instance {
     this.doc = doc;
     this.version += steps.length;
     this.steps = this.steps.concat(steps);
-    if (this.steps.length > MAX_STEP_HISTORY)
+    if (this.steps.length > MAX_STEP_HISTORY) {
       this.steps = this.steps.slice(this.steps.length - MAX_STEP_HISTORY);
+    }
 
     this.sendUpdates();
 
@@ -210,8 +211,9 @@ class Instance {
     this.users = Object.create(null);
     this.userCount = 0;
     this.collecting = null;
-    for (let i = 0; i < this.waiting.length; i++)
+    for (let i = 0; i < this.waiting.length; i++) {
       this._registerUser(this.waiting[i].ip);
+    }
     if (this.userCount !== oldUserCount) this.sendUpdates();
   }
 
@@ -226,8 +228,9 @@ class Instance {
     if (!(ip in this.users)) {
       this.users[ip] = true;
       this.userCount++;
-      if (this.collecting == null)
+      if (this.collecting == null) {
         this.collecting = setTimeout(() => this.collectUsers(), 5000);
+      }
     }
   }
 }

@@ -3,23 +3,18 @@
   "compilerOptions": {
     // specifics
     "baseUrl": "./",
-    "outDir": "./dist",
-    // overrides
-    "lib": [
-      "es2020"
-    ],
+    "outDir": "./dist/",
     "allowJs": true,
-    "target": "es2020",
     "moduleResolution": "node",
-    "composite": true,
-    "esModuleInterop": true,
+  
+    // overrides
+    "lib": ["es2020"],
+    "target": "es2020",
   },
-  "include": [
-    "./src"
-  ],
+  "include": ["./src/"],
+
+  // enables nodemon (yarn dev) to pick up live changes made to this dependency
   "references": [
-    {
-      "path": "../shared"
-    }
+    { "path": "../shared" }
   ]
 }
