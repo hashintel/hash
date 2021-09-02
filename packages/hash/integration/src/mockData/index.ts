@@ -1,17 +1,11 @@
-import { GraphQLClient } from "graphql-request";
 import { PostgresAdapter } from "@hashintel/hash-backend/src/db";
 import Org from "@hashintel/hash-backend/src/model/org.model";
+import Entity, {
+  CreateEntityArgs,
+} from "@hashintel/hash-backend/src/model/entity.model";
 import "./loadEnv";
 import { createOrgs, createUsers } from "./accounts";
-import {
-  createEntityType,
-} from "../graphql/queries/entity.queries";
-import {
-  CreateEntityTypeMutation,
-  CreateEntityTypeMutationVariables,
-  SystemTypeName,
-} from "../graphql/apiTypes.gen";
-import Entity, { CreateEntityArgs } from "../../../backend/src/model/entity.model";
+import { SystemTypeName } from "../graphql/apiTypes.gen";
 
 export {};
 
@@ -21,11 +15,7 @@ enum Visibility {
   Public = "PUBLIC",
 }
 
-const API_HOST = process.env.API_HOST || "localhost:5001";
-
 void (async () => {
-  const client = new GraphQLClient(`http://${API_HOST}/graphql`);
-
   const db = new PostgresAdapter({
     host: process.env.HASH_PG_HOST || "localhost",
     user: process.env.HASH_PG_USER || "postgres",
@@ -42,7 +32,7 @@ void (async () => {
   const results = new Map<string, Entity>();
 
   // Get the hash org - it's already been created as part of db migration
-  const hashOrg = await Org.getOrgByShortname(db)({ shortname: 'hash' });
+  const hashOrg = await Org.getOrgByShortname(db)({ shortname: "hash" });
 
   if (!hashOrg) {
     throw new Error(`
@@ -64,17 +54,17 @@ void (async () => {
     "Table",
     "Code",
   ];
+
   await Promise.all(
-    requiredTypes.map(async (typeName) => {
-      const res = await client.request<
-        CreateEntityTypeMutation,
-        CreateEntityTypeMutationVariables
-      >(createEntityType, {
+    requiredTypes.map(async (name) => {
+      const dbEntityType = await db.createEntityType({
         accountId: hashOrg.accountId,
-        name: typeName,
+        createdById: hashOrg.entityId, // TODO
+        name,
         schema: {},
       });
-      newTypeIds[typeName] = res.createEntityType.entityId;
+
+      newTypeIds[name] = dbEntityType.entityId;
     })
   );
 
@@ -82,12 +72,15 @@ void (async () => {
    * to the `results` map.
    */
   const createEntities = async (
-    items: Map<string, Omit<CreateEntityArgs, 'versioned'> & { versioned?: boolean }>
+    items: Map<
+      string,
+      Omit<CreateEntityArgs, "versioned"> & { versioned?: boolean }
+    >
   ) => {
     const names = Array.from(items.keys());
     const mutations = await Promise.all(
-      Array.from(items.values()).map(
-        (val) => Entity.create(db)({
+      Array.from(items.values()).map((val) =>
+        Entity.create(db)({
           ...val,
           versioned: val.versioned ?? true,
         })

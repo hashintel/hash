@@ -1,9 +1,7 @@
 import { DBAdapter } from "@hashintel/hash-backend/src/db";
 import User from "@hashintel/hash-backend/src/model/user.model";
 import Org from "@hashintel/hash-backend/src/model/org.model";
-import {
-  OrgProperties,
-} from "../graphql/apiTypes.gen";
+import { OrgProperties } from "../graphql/apiTypes.gen";
 
 type CreateUserArgs = {
   email: string;
