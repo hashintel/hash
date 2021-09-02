@@ -12,10 +12,11 @@
   "prettier": "@hashintel/prettier-config",
   "scripts": {
     "format": "prettier --write './src/**/*'; eslint --ext .ts --fix ./src/",
-    "lint": "prettier --check './src/**/*'; eslint --ext .ts ./src/",
+    "lint": "prettier --check './src/**/*'; eslint --ext .ts ./src/; tsc --noEmit",
     "codegen": "graphql-codegen --config codegen.yml",
     "build": "yarn codegen; tsc -b",
     "clean": "rimraf './src/**/*.gen.*' ./dist/",
+    "postinstall": "yarn codegen # required for linting",
   
     "ts-node": "node --max-old-space-size=2048 node_modules/.bin/ts-node --files --project tsconfig.json",
     "mock-data": "yarn codegen && ts-node src/mockData/index.ts",

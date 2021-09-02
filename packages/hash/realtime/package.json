@@ -12,7 +12,7 @@
   "main": "src/index.ts",
   "scripts": {
     "format": "prettier --write './src/**/*'; eslint --ext .ts --fix ./src/",
-    "lint": "prettier --check './src/**/*'; eslint --ext .ts ./src/",
+    "lint": "prettier --check './src/**/*'; eslint --ext .ts ./src/; tsc --noEmit",
     "build": "tsc -b",
     "clean": "rimraf ./dist/",
 

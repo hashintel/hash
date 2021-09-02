@@ -17,7 +17,7 @@
   "prettier": "@hashintel/prettier-config",
   "scripts": {
     "format": "prettier --write './src/**/*'; eslint --ext .js,.ts,.tsx --fix ./src/",
-    "lint": "prettier --check './src/**/*'; eslint --ext .js,.ts,.tsx ./src/",
+    "lint": "prettier --check './src/**/*'; eslint --ext .js,.ts,.tsx ./src/; tsc --noEmit",
     "codegen": "graphql-codegen --config codegen.yml",
     "build": "yarn codegen; tsc -b",
     "clean": "rimraf './src/**/*.gen.*' ./dist/",
