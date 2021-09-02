@@ -59,7 +59,13 @@ export const createUsers = async () => {
     },
   ];
 
-  const db = new PostgresAdapter();
+  const db = new PostgresAdapter({
+    host: process.env.HASH_PG_HOST || "localhost",
+    user: process.env.HASH_PG_USER || "postgres",
+    password: process.env.HASH_PG_PASSWORD || "postgres",
+    database: process.env.HASH_PG_DATABASE || "postgres",
+    port: parseInt(process.env.HASH_PG_PORT || "5432"),
+  });
 
   const userResults = await Promise.all(
     users.map(({ email, ...remainingProperties }) =>

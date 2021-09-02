@@ -4,7 +4,6 @@ import { createPool, DatabasePoolType } from "slonik";
 import { Logger } from "winston";
 
 import { PostgresClient } from "./client";
-import { getRequiredEnv } from "../../util";
 import {
   DBAdapter,
   DBClient,
@@ -16,17 +15,22 @@ import {
 } from "../adapter";
 import { SystemType } from "../../types/entityTypes";
 
-export const createConnPool = (logger?: Logger) => {
-  const user = getRequiredEnv("HASH_PG_USER");
-  const host = getRequiredEnv("HASH_PG_HOST");
-  const port = getRequiredEnv("HASH_PG_PORT");
-  const database = getRequiredEnv("HASH_PG_DATABASE");
-  const password = getRequiredEnv("HASH_PG_PASSWORD");
-  const connStr = `postgresql://${user}:${password}@${host}:${port}/${database}`;
+export type Config = {
+  host: string;
+  user: string;
+  password: string;
+  database: string;
+  port: number;
+
+  maximumPoolSize?: number;
+};
+
+export const createConnPool = (cfg: Config, logger?: Logger) => {
+  const connStr = `postgresql://${cfg.user}:${cfg.password}@${cfg.host}:${cfg.port}/${cfg.database}`;
 
   return createPool(connStr, {
     captureStackTrace: true,
-    maximumPoolSize: 10, // @todo: needs tuning for production
+    maximumPoolSize: cfg.maximumPoolSize,
     interceptors: [
       {
         queryExecutionError: (ctx, _query, error, _notices) => {
@@ -39,7 +43,6 @@ export const createConnPool = (logger?: Logger) => {
               stackTrace: ctx.stackTrace,
             });
           }
-
           return null;
         },
       },
@@ -51,9 +54,9 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   private statsdInterval: NodeJS.Timeout;
   private pool: DatabasePoolType;
 
-  constructor(logger?: Logger, statsd?: StatsD) {
+  constructor(cfg: Config, logger?: Logger, statsd?: StatsD) {
     super();
-    this.pool = createConnPool(logger);
+    this.pool = createConnPool(cfg, logger);
     this.statsdInterval = setInterval(() => {
       const state = this.pool.getPoolState();
       statsd?.gauge("pool_waiting_count", state.waitingClientCount);

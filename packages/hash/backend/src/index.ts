@@ -66,7 +66,16 @@ const app = express();
 const PORT = process.env.PORT ?? 5001;
 
 // Connect to the database
-const db = new PostgresAdapter(logger, statsd);
+const pgConfig = {
+  host: getRequiredEnv("HASH_PG_HOST"),
+  user: getRequiredEnv("HASH_PG_USER"),
+  password: getRequiredEnv("HASH_PG_PASSWORD"),
+  database: getRequiredEnv("HASH_PG_DATABASE"),
+  port: parseInt(getRequiredEnv("HASH_PG_PORT")),
+
+  maximumPoolSize: 10, // @todo: needs tuning
+};
+const db = new PostgresAdapter(pgConfig, logger, statsd);
 
 // Set sensible default security headers: https://www.npmjs.com/package/helmet
 // Temporarily disable contentSecurityPolicy for the GraphQL playground
@@ -78,7 +87,12 @@ app.use(helmet({ contentSecurityPolicy: false }));
 app.use(json({ limit: "16mb" }));
 
 // Set up authentication related middeware and routes
-setupAuth(app, db);
+setupAuth(
+  app,
+  { secret: getRequiredEnv("SESSION_SECRET") },
+  { ...pgConfig, maximumPoolSize: 10 },
+  db
+);
 
 // Set up cron jobs
 setupCronJobs(db, logger);
