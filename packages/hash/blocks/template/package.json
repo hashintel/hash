@@ -11,13 +11,13 @@
   "scripts": {
     "format": "prettier --write './src/**/*'; eslint --ext .ts,.tsx --fix ./src/",
     "lint": "prettier --check './src/**/*'; eslint --ext .ts,.tsx ./src/; tsc --noEmit # @hashintel/block-template",
-    "build": "yarn clean && cross-env NODE_ENV=production webpack --mode production && yarn schema",
-    "build:dev": "yarn clean && cross-env NODE_ENV=development webpack --mode development",
+    "build": "yarn clean; cross-env NODE_ENV=production webpack --mode production && yarn schema",
+    "build:dev": "yarn clean; cross-env NODE_ENV=development webpack --mode development",
     "schema": "typescript-json-schema tsconfig.json AppProps --required true --out dist/block-schema.json",
     "webpack-dev-server": "cross-env NODE_ENV=development webpack-dev-server -d --port 9090 --config webpack-dev-server.config.js --open",
     "start": "concurrently -n webpack,webpack-dev-server -c green,cyan \"yarn build:dev -- --watch --verbose\" \"yarn webpack-dev-server\"",
-    "clean": "rimraf dist",
-    "serve": "serve -C dist"
+    "clean": "rimraf ./dist/",
+    "serve": "serve -C ./dist/"
   },
   "dependencies": {
     "@hashintel/block-protocol": "*"

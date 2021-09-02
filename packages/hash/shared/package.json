@@ -19,7 +19,7 @@
     "format": "prettier --write './src/**/*'; eslint --ext .js,.ts,.tsx --fix ./src/",
     "lint": "prettier --check './src/**/*'; eslint --ext .js,.ts,.tsx ./src/; tsc --noEmit # @hashintel/hash-shared",
     "codegen": "graphql-codegen --config codegen.yml",
-    "build": "yarn codegen; tsc -b",
+    "build": "yarn clean; yarn codegen; tsc -b",
     "clean": "rimraf './src/**/*.gen.*' ./dist/",
     "postinstall": "yarn build"
   },
