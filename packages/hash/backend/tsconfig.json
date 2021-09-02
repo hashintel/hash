@@ -12,6 +12,8 @@
     "target": "es2020",
   },
   "include": ["./src/"],
+
+  // enables nodemon (yarn dev) to pick up live changes made to this dependency
   "references": [
     { "path": "../shared" }
   ]
