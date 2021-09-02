@@ -68,6 +68,19 @@ class Entity {
         })
         .then((dbEntity) => (dbEntity ? new Entity(dbEntity) : null));
 
+  updateProperties = (db: DBClient) => (properties: any) =>
+    db
+      .updateEntity({
+        accountId: this.accountId,
+        entityVersionId: this.entityVersionId,
+        entityId: this.entityId,
+        properties,
+      })
+      .then(() => {
+        this.properties = properties;
+        return this;
+      });
+
   toGQLEntity = (): Omit<EntityWithIncompleteEntityType, "properties"> => ({
     id: this.entityId,
     entityId: this.entityId,

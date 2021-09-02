@@ -10,20 +10,16 @@ import {
   User as GQLUser,
   Email,
 } from "../graphql/apiTypes.gen";
-import Entity, { EntityConstructorArgs } from "./entity.model";
 import VerificationCode from "./verificationCode.model";
 import EmailTransporter from "../email/transporter";
-import { ApolloError, UserInputError } from "apollo-server-express";
-import { RESTRICTED_SHORTNAMES } from "./util";
 import { EntityTypeWithoutTypeFields } from "./entityType.model";
-
-export const ALLOWED_SHORTNAME_CHARS = /^[a-zA-Z0-9-_]+$/;
+import Creator, { CreatorConstructorArgs } from "./creator.model";
 
 type UserConstructorArgs = {
   properties: UserProperties;
-} & EntityConstructorArgs;
+} & Omit<CreatorConstructorArgs, "type">;
 
-class User extends Entity {
+class User extends Creator {
   properties: UserProperties;
 
   constructor({ properties, ...remainingArgs }: UserConstructorArgs) {
@@ -94,73 +90,16 @@ class User extends Entity {
       return new User(entity);
     };
 
-  private updateProperties = (db: DBClient) => (properties: UserProperties) =>
-    db
-      .updateEntity({
-        accountId: this.accountId,
-        entityVersionId: this.entityVersionId,
-        entityId: this.entityId,
-        properties,
-      })
-      .then(() => {
-        this.properties = properties;
-        return this;
-      });
-
-  private static checkShortnameChars = (shortname: string) => {
-    if (shortname.search(ALLOWED_SHORTNAME_CHARS)) {
-      throw new UserInputError(
-        "Shortname may only contain letters, numbers, - or _"
-      );
-    }
-    if (shortname[0] === "-") {
-      throw new UserInputError("Shortname cannot start with '-'");
-    }
-  };
-
-  static isShortnameReserved = (shortname: string): boolean =>
-    RESTRICTED_SHORTNAMES.includes(shortname);
-
-  static isShortnameTaken =
-    (client: DBClient) =>
-    async (shortname: string): Promise<boolean> => {
-      /** @todo: check if an org with the shortname exists */
-
-      const user = await User.getUserByShortname(client)({ shortname });
-
-      return user !== null;
-    };
-
-  static validateShortname =
-    (client: DBClient) => async (shortname: string) => {
-      User.checkShortnameChars(shortname);
-
-      if (
-        User.isShortnameReserved(shortname) ||
-        (await User.isShortnameTaken(client)(shortname))
-      ) {
-        throw new ApolloError(`Shortname ${shortname} taken`, "NAME_TAKEN");
-      }
-
-      /** @todo: enable admins to have a shortname under 4 characters */
-      if (shortname.length < 4) {
-        throw new UserInputError(
-          "Shortname must be at least 4 characters long."
-        );
-      }
-      if (shortname.length > 24) {
-        throw new UserInputError(
-          "Shortname cannot be longer than 24 characters"
-        );
-      }
-    };
+  private updateUserProperties =
+    (db: DBClient) => (properties: UserProperties) =>
+      this.updateProperties(db)(properties);
 
   /**
    * Must occur in the same db transaction as when `this.properties` was fetched
    * to prevent overriding externally-updated properties
    */
   updateShortname = (db: DBClient) => async (updatedShortname: string) =>
-    this.updateProperties(db)({
+    this.updateUserProperties(db)({
       ...this.properties,
       shortname: updatedShortname,
     });
@@ -172,7 +111,7 @@ class User extends Entity {
    * to prevent overriding externally-updated properties
    */
   updatePreferredName = (db: DBClient) => (updatedPreferredName: string) =>
-    this.updateProperties(db)({
+    this.updateUserProperties(db)({
       ...this.properties,
       preferredName: updatedPreferredName,
     });
@@ -203,7 +142,7 @@ class User extends Entity {
    * to prevent overriding externally-updated properties
    */
   verifyEmailAddress = (db: DBClient) => (emailAddress: string) =>
-    this.updateProperties(db)({
+    this.updateUserProperties(db)({
       ...this.properties,
       emails: this.properties.emails.map((email) =>
         email.address === emailAddress ? { ...email, verified: true } : email
