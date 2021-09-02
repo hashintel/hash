@@ -7,6 +7,9 @@ dist
 # svg files
 *.svg
 
+# images (silencing: [error] No parser could be inferred for file: someimage.png)
+*.png
+
 # generated files
 **/*.gen.*
 
