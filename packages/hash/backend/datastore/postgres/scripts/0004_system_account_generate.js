@@ -60,5 +60,5 @@ insert into entity_versions (
   '${systemAccount.fixedId}', '${now}', '${now}'
 ) on conflict do nothing;`;
 
-const outputPath = path.join(__dirname, "../schema/0001_system_account.sql");
+const outputPath = path.join(__dirname, "../schema/0004_system_account.sql");
 fs.writeFileSync(outputPath, sqlString);
