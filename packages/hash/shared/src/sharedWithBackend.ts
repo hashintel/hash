@@ -220,7 +220,11 @@ export const replaceStateContent = (
   return tr;
 };
 
-export const transformBlockForProsemirror = (block: BlockWithoutMeta) => {
+export const transformBlockForProsemirror = (
+  premappedBlock: PageFieldsFragment["properties"]["contents"][number]
+) => {
+  const block = mapEntityToBlock(premappedBlock);
+
   const {
     children,
     childEntityId = null,
@@ -251,21 +255,22 @@ export const transformBlockForProsemirror = (block: BlockWithoutMeta) => {
  */
 export const createBlockUpdateTransaction = async (
   state: EditorState,
-  premappedContents: PageFieldsFragment["properties"]["contents"],
+  blocks: PageFieldsFragment["properties"]["contents"],
   viewConfig: ViewConfig
 ) => {
-  const contents = mapEntitiesToBlocks(premappedContents);
   const schema = state.schema;
 
   const newNodes = await Promise.all(
-    contents?.map(async (block, index) => {
+    blocks?.map(async (block, index) => {
       const { children, props, attrs } = transformBlockForProsemirror(block);
 
-      const id = componentUrlToProsemirrorId(block.componentId);
+      const componentUrl = block.properties.componentId;
+      const id = componentUrlToProsemirrorId(componentUrl);
+
+      const entityId = block.metadataId;
 
       if (cachedPropertiesByPosition[index]) {
-        cachedPropertiesByEntity[block.entityId] =
-          cachedPropertiesByPosition[index];
+        cachedPropertiesByEntity[entityId] = cachedPropertiesByPosition[index];
         delete cachedPropertiesByPosition[index];
       }
 
@@ -273,11 +278,11 @@ export const createBlockUpdateTransaction = async (
       return await createRemoteBlock(
         schema,
         viewConfig,
-        block.componentId,
+        componentUrl,
         id,
         {
           properties: {
-            ...(cachedPropertiesByEntity[block.entityId] ?? {}),
+            ...(cachedPropertiesByEntity[entityId] ?? {}),
             ...props,
           },
           ...attrs,
@@ -303,60 +308,66 @@ export const createBlockUpdateTransaction = async (
 
 /**
  * @deprecated
+ */
+export const mapEntityToBlock = (
+  content: PageFieldsFragment["properties"]["contents"][number]
+): BlockWithoutMeta => {
+  const { componentId, entity } = content.properties;
+
+  const props =
+    entity.__typename === "Text"
+      ? {
+          /**
+           * These are here to help reconstruct the database objects from the prosemirror document.
+           */
+          childEntityId: entity.metadataId,
+          childEntityVersionId: entity.id,
+          childEntityAccountId: entity.accountId,
+          childEntityTypeId: entity.entityTypeId,
+
+          children: entity.textProperties.texts.map((text) => ({
+            type: "text",
+            text: text.text,
+            entityId: entity.metadataId,
+            versionId: entity.id,
+            accountId: entity.accountId,
+
+            // This maps the boolean properties on the entity into an array of mark names
+            marks: [
+              ["strong", text.bold],
+              ["underlined", text.underline],
+              ["em", text.italics],
+            ]
+              .filter(([, include]) => include)
+              .map(([mark]) => mark),
+          })),
+        }
+      : entity.__typename === "UnknownEntity"
+      ? {
+          childEntityId: entity.metadataId,
+          childEntityTypeId: entity.entityTypeId,
+          childEntityVersionId: entity.id,
+          ...entity.unknownProperties,
+        }
+      : {};
+
+  return {
+    componentId,
+    entityId: content.metadataId,
+    versionId: content.id,
+    entity: props,
+    accountId: content.accountId,
+  };
+};
+
+/**
+ * @deprecated
  * @todo remove the need for this
  * @param contents
  */
 export const mapEntitiesToBlocks = (
   contents: PageFieldsFragment["properties"]["contents"]
-): BlockWithoutMeta[] =>
-  contents.map((content): BlockWithoutMeta => {
-    const { componentId, entity } = content.properties;
-
-    const props =
-      entity.__typename === "Text"
-        ? {
-            /**
-             * These are here to help reconstruct the database objects from the prosemirror document.
-             */
-            childEntityId: entity.metadataId,
-            childEntityVersionId: entity.id,
-            childEntityAccountId: entity.accountId,
-            childEntityTypeId: entity.entityTypeId,
-
-            children: entity.textProperties.texts.map((text) => ({
-              type: "text",
-              text: text.text,
-              entityId: entity.metadataId,
-              versionId: entity.id,
-              accountId: entity.accountId,
-
-              // This maps the boolean properties on the entity into an array of mark names
-              marks: [
-                ["strong", text.bold],
-                ["underlined", text.underline],
-                ["em", text.italics],
-              ]
-                .filter(([, include]) => include)
-                .map(([mark]) => mark),
-            })),
-          }
-        : entity.__typename === "UnknownEntity"
-        ? {
-            childEntityId: entity.metadataId,
-            childEntityTypeId: entity.entityTypeId,
-            childEntityVersionId: entity.id,
-            ...entity.unknownProperties,
-          }
-        : {};
-
-    return {
-      componentId,
-      entityId: content.metadataId,
-      versionId: content.id,
-      entity: props,
-      accountId: content.accountId,
-    };
-  });
+): BlockWithoutMeta[] => contents.map(mapEntityToBlock);
 
 const invertedBlockPaths = Object.fromEntries(
   Object.entries(blockPaths).map(([key, value]) => [value, key])

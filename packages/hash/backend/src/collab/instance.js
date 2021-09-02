@@ -4,8 +4,8 @@ import { createInitialDoc, createSchema } from "@hashintel/hash-shared/schema";
 import {
   calculateSavePayloads,
   createBlockUpdateTransaction,
-  transformBlockForProsemirror,
   mapEntitiesToBlocks,
+  transformBlockForProsemirror,
 } from "@hashintel/hash-shared/sharedWithBackend";
 import {
   getPageQuery,
@@ -99,8 +99,7 @@ class Instance {
           });
 
           const transform = new Transform(this.doc);
-          const mappedNewBlock = mapEntitiesToBlocks([newBlock])[0];
-          const { attrs } = transformBlockForProsemirror(mappedNewBlock);
+          const { attrs } = transformBlockForProsemirror(newBlock);
 
           const blockWithAttrs = this.doc.childAfter(mapping.map(offset) + 1);
 
