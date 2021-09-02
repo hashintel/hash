@@ -300,7 +300,11 @@ export const createBlockUpdateTransaction = async (
   return replaceStateContent(state, newNodes);
 };
 
-// @todo remove the need for this
+/**
+ * @deprecated
+ * @todo remove the need for this
+ * @param contents
+ */
 export const mapEntitiesToBlocks = (
   contents: PageFieldsFragment["properties"]["contents"]
 ): BlockWithoutMeta[] =>

@@ -15,20 +15,20 @@ import { useDeferredCallback } from "./useDeferredCallback";
 import { BlockMetaContext } from "../blockMeta";
 import { createInitialDoc, createSchema } from "@hashintel/hash-shared/schema";
 import {
-  Block,
   BlockMeta,
-  BlockWithoutMeta,
   cachedPropertiesByEntity,
   calculateSavePayloads,
   componentUrlToProsemirrorId,
   createBlockUpdateTransaction,
+  mapEntitiesToBlocks,
 } from "@hashintel/hash-shared/sharedWithBackend";
 import { defineNewBlock } from "@hashintel/hash-shared/sharedWithBackendJs";
 import { collabEnabled, createNodeView } from "./tsUtils";
 import { EditorConnection } from "./collab/collab";
+import { PageFieldsFragment } from "@hashintel/hash-shared/graphql/apiTypes.gen";
 
 type PageBlockProps = {
-  contents: (Block | BlockWithoutMeta)[];
+  contents: PageFieldsFragment["properties"]["contents"];
   blocksMeta: Map<string, BlockMeta>;
   pageId: string;
   accountId: string;
@@ -58,7 +58,7 @@ if (typeof localStorage !== "undefined") {
  * to somehow detach the process of rendering child blocks from this and have a renderer, but it seems tricky to do that
  */
 export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
-  contents,
+  contents: premappedContents,
   blocksMeta,
   pageId,
   accountId,
@@ -81,14 +81,21 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
    * smart hack: provide a live reference to "contents" for all other effects
    * that cannot list "contents" as a dependency for reasons.
    */
-  const currentContents = useRef(contents);
+  const currentContents = useRef(premappedContents);
   useLayoutEffect(() => {
-    currentContents.current = contents;
-  }, [contents]);
+    currentContents.current = premappedContents;
+  }, [premappedContents]);
 
   const updateContents = useCallback(
     async (signal?: AbortSignal): Promise<void> => {
-      const contents = currentContents.current;
+      /**
+       * This mapping is to map to a format that PageBlock was originally written to work with, before it was connected to
+       * a database.
+       *
+       * @todo remove it
+       */
+      const contents = mapEntitiesToBlocks(currentContents.current);
+
       const setup = prosemirrorSetup.current;
       if (!setup) {
         return;
@@ -146,7 +153,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
             return;
           }
           const { view } = prosemirrorSetup.current;
-          const savedContents = currentContents.current;
+          const savedContents = mapEntitiesToBlocks(currentContents.current);
           const { state } = view;
 
           const { updatedEntitiesPayload, pageUpdatedPayload, insertPayloads } =

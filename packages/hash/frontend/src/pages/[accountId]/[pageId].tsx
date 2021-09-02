@@ -13,10 +13,9 @@ import { PageSidebar } from "../../components/layout/PageSidebar/PageSidebar";
 
 import styles from "../index.module.scss";
 import {
-  blockPaths,
   BlockMeta,
+  blockPaths,
   fetchBlockMeta,
-  mapEntitiesToBlocks,
 } from "@hashintel/hash-shared/sharedWithBackend";
 import { VersionDropdown } from "../../components/Dropdowns/VersionDropdown";
 
@@ -97,14 +96,6 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
 
     const { title, contents } = data.page.properties;
 
-    /**
-     * This mapping is to map to a format that PageBlock was originally written to work with, before it was connected to
-     * a database.
-     *
-     * @todo remove it
-     */
-    const mappedContents = mapEntitiesToBlocks(contents);
-
     return (
       <div className={styles.MainWrapper}>
         <PageSidebar />
@@ -136,7 +127,7 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
             <PageBlock
               pageId={data.page.id}
               accountId={data.page.accountId}
-              contents={mappedContents}
+              contents={contents}
               blocksMeta={preloadedBlocks}
               metadataId={data.page.metadataId}
             />
