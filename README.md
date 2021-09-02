@@ -14,26 +14,33 @@ servers, which are hosted outside the container.
 5. Install the frontend and blocks
 6. Start the frontend and blocks
 
-## Start the backend
-1. Have Docker running. 
+## System requirements
 
-2. Make sure you have nothing running on port 5432 (i.e. no other postgres service).
-- You can check with `lsof -n -i:5432`
+The following programs must be present on your development system:
 
-3. If it's your first time, run `docker volume create hash-dev-pg` to create the storage volume.
+  - A recent version of [Docker](https://docs.docker.com/get-docker/) with BuildKit
+    enabled.
+  - [Docker Compose](https://docs.docker.com/compose/install/)
+  - The [Yarn](https://classic.yarnpkg.com/en/docs/install/) v1 package manager
 
-4. **To start the backend Docker container**:
 
-```
-yarn serve:hash-backend
-```
+## Start the backend & database
 
-5. **On first run**, or if you want to reset the database to the initial mock data,
-after starting the backend, and having run `yarn install`, run:
+  1. Ensure Docker is running.
+  2. Ensure port 5432 is not occupied (i.e. no other postgres service) - You can check
+     with `lsof -n -i:5432`
+  3. If it's your first time, run `docker volume create hash-dev-pg` to create
+     the storage volume.
+  4. **To start the backend & Postgres Docker container**:
+     ```
+     yarn serve:hash-backend
+     ```
+  5. **On first run**, or if you want to reset the database to the initial mock
+     data, after starting the backend, and having run `yarn install`, run:
 
-```
-yarn seed-db
-```
+     ```
+     yarn seed-db
+     ```
 
 See the [docker/README](./docker) for further details.
 

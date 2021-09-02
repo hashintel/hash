@@ -14,6 +14,8 @@ Services:
   2. [`postgres`](./postgres): the PostgreSQL server that the API connects to.
   3. [`statsd`](./statsd): a StatsD server intended for development purposes
      which outputs metrics to the console.
+  4. [`realtime`](./realtime): the realtime subscription service
+  5. [`citus`](./citus): the Postgres + Citus configuration.
 
 ## Developing with Docker Compose
 
