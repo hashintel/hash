@@ -18,6 +18,17 @@ export type EntityConstructorArgs = {
   entityVersionUpdatedAt: Date;
 };
 
+export type CreateEntityArgs = {
+  accountId: string;
+  createdById: string;
+  entityVersionId?: string | null | undefined;
+  entityTypeId?: string;
+  entityTypeVersionId?: string | null | undefined;
+  systemTypeName?: SystemType | null | undefined;
+  versioned: boolean;
+  properties: any;
+};
+
 class Entity {
   entityId: string;
   entityVersionId: string;
@@ -55,17 +66,8 @@ class Entity {
 
   static create =
     (client: DBClient) =>
-    async (params: {
-      accountId: string;
-      createdById: string;
-      entityVersionId?: string | null | undefined;
-      entityTypeId?: string;
-      entityTypeVersionId?: string | null | undefined;
-      systemTypeName?: SystemType | null | undefined;
-      versioned: boolean;
-      properties: any;
-    }): Promise<Entity> =>
-      client.createEntity(params).then((dbEntity) => new Entity(dbEntity));
+    async (args: CreateEntityArgs): Promise<Entity> =>
+      client.createEntity(args).then((dbEntity) => new Entity(dbEntity));
 
   static getEntityById =
     (client: DBClient) =>

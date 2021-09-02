@@ -4,16 +4,14 @@ import Org from "@hashintel/hash-backend/src/model/org.model";
 import "./loadEnv";
 import { createOrgs, createUsers } from "./accounts";
 import {
-  createEntity,
   createEntityType,
 } from "../graphql/queries/entity.queries";
 import {
-  CreateEntityMutation,
-  CreateEntityMutationVariables,
   CreateEntityTypeMutation,
   CreateEntityTypeMutationVariables,
   SystemTypeName,
 } from "../graphql/apiTypes.gen";
+import Entity, { CreateEntityArgs } from "../../../backend/src/model/entity.model";
 
 export {};
 
@@ -41,7 +39,7 @@ void (async () => {
     await createOrgs(db),
   ]);
 
-  const results = new Map<string, CreateEntityMutation>();
+  const results = new Map<string, Entity>();
 
   // Get the hash org - it's already been created as part of db migration
   const hashOrg = await Org.getOrgByShortname(db)({ shortname: 'hash' });
@@ -84,16 +82,15 @@ void (async () => {
    * to the `results` map.
    */
   const createEntities = async (
-    items: Map<string, CreateEntityMutationVariables>
+    items: Map<string, Omit<CreateEntityArgs, 'versioned'> & { versioned?: boolean }>
   ) => {
     const names = Array.from(items.keys());
     const mutations = await Promise.all(
       Array.from(items.values()).map(
-        async (val) =>
-          await client.request<CreateEntityMutation>(createEntity, {
-            ...val,
-            versioned: val.versioned ?? true,
-          })
+        (val) => Entity.create(db)({
+          ...val,
+          versioned: val.versioned ?? true,
+        })
       )
     );
     mutations.forEach((res, i) => {
@@ -114,7 +111,7 @@ void (async () => {
         {
           systemTypeName: SystemTypeName.Text,
           accountId: user.accountId,
-          createdById: user.id,
+          createdById: user.entityId,
           properties: {
             texts: [{ text: "About me", bold: true }],
           },
@@ -125,7 +122,7 @@ void (async () => {
         {
           systemTypeName: SystemTypeName.Text,
           accountId: user.accountId,
-          createdById: user.id,
+          createdById: user.entityId,
           properties: {
             texts: [{ text: "My colleagues", bold: true }],
           },
@@ -137,7 +134,7 @@ void (async () => {
           type: "Divider",
           entityTypeId: newTypeIds.Divider,
           accountId: user.accountId,
-          createdById: user.id,
+          createdById: user.entityId,
           properties: {},
         },
       ],
@@ -146,7 +143,7 @@ void (async () => {
         {
           systemTypeName: SystemTypeName.Text,
           accountId: user.accountId,
-          createdById: user.id,
+          createdById: user.entityId,
           properties: {
             texts: [
               { text: "A paragraph of regular text " },
@@ -168,7 +165,7 @@ void (async () => {
           type: "Text",
           systemTypeName: SystemTypeName.Text,
           accountId: user.accountId,
-          createdById: user.id,
+          createdById: user.entityId,
           properties: {
             texts: [{ text: "A paragraph of italic text", italics: true }],
           },
@@ -180,7 +177,7 @@ void (async () => {
           type: "Text",
           systemTypeName: SystemTypeName.Text,
           accountId: user.accountId,
-          createdById: user.id,
+          createdById: user.entityId,
           properties: {
             texts: [{ text: "A paragraph of underline text", underline: true }],
           },
@@ -192,7 +189,7 @@ void (async () => {
           type: "Text",
           systemTypeName: SystemTypeName.Text,
           accountId: hashOrg.accountId,
-          createdById: user.id,
+          createdById: user.entityId,
           properties: {
             texts: [{ text: "HASH's Header Text", bold: true }],
           },
@@ -204,7 +201,7 @@ void (async () => {
           type: "Embed",
           accountId: hashOrg.accountId,
           entityTypeId: newTypeIds.Embed,
-          createdById: user.id,
+          createdById: user.entityId,
           properties: {},
         },
       ],
@@ -214,7 +211,7 @@ void (async () => {
           type: "Embed",
           entityTypeId: newTypeIds.Embed,
           accountId: hashOrg.accountId,
-          createdById: user.id,
+          createdById: user.entityId,
           properties: {},
         },
       ],
@@ -224,7 +221,7 @@ void (async () => {
           type: "Image",
           entityTypeId: newTypeIds.Image,
           accountId: hashOrg.accountId,
-          createdById: user.id,
+          createdById: user.entityId,
           properties: {},
         },
       ],
@@ -234,7 +231,7 @@ void (async () => {
           type: "Image",
           entityTypeId: newTypeIds.Image,
           accountId: hashOrg.accountId,
-          createdById: user.id,
+          createdById: user.entityId,
           properties: {},
         },
       ],
@@ -244,7 +241,7 @@ void (async () => {
           type: "Code",
           entityTypeId: newTypeIds.Code,
           accountId: hashOrg.accountId,
-          createdById: user.id,
+          createdById: user.entityId,
           properties: {},
         },
       ],
@@ -263,7 +260,7 @@ void (async () => {
           },
           entityTypeId: newTypeIds.Location,
           accountId: user.accountId,
-          createdById: user.id,
+          createdById: user.entityId,
         },
       ],
       [
@@ -276,7 +273,7 @@ void (async () => {
           },
           entityTypeId: newTypeIds.Location,
           accountId: user.accountId,
-          createdById: user.id,
+          createdById: user.entityId,
         },
       ],
       [
@@ -289,7 +286,7 @@ void (async () => {
           entityTypeId: newTypeIds.Company,
           type: "Company",
           accountId: user.accountId,
-          createdById: user.id,
+          createdById: user.entityId,
         },
       ],
     ])
@@ -308,12 +305,12 @@ void (async () => {
             employer: {
               __linkedData: {
                 entityTypeId: newTypeIds.Company,
-                entityId: results.get("c1")?.createEntity.entityVersionId,
+                entityId: results.get("c1")?.entityVersionId,
               },
             },
           },
           accountId: user.accountId,
-          createdById: user.id,
+          createdById: user.entityId,
           entityTypeId: newTypeIds.Person,
         },
       ],
@@ -326,13 +323,13 @@ void (async () => {
             employer: {
               __linkedData: {
                 entityTypeId: newTypeIds.Company,
-                entityId: results.get("c1")?.createEntity.entityVersionId,
+                entityId: results.get("c1")?.entityVersionId,
               },
             },
           },
           entityTypeId: newTypeIds.Person,
           accountId: user.accountId,
-          createdById: user.id,
+          createdById: user.entityId,
         },
       ],
       [
@@ -344,12 +341,12 @@ void (async () => {
             employer: {
               __linkedData: {
                 entityTypeId: newTypeIds.Company,
-                entityId: results.get("c1")?.createEntity.entityVersionId,
+                entityId: results.get("c1")?.entityVersionId,
               },
             },
           },
           accountId: user.accountId,
-          createdById: user.id,
+          createdById: user.entityId,
           entityTypeId: newTypeIds.Person,
         },
       ],
@@ -362,13 +359,13 @@ void (async () => {
             employer: {
               __linkedData: {
                 entityTypeId: newTypeIds.Company,
-                entityId: results.get("c1")?.createEntity.entityVersionId,
+                entityId: results.get("c1")?.entityVersionId,
               },
             },
           },
           entityTypeId: newTypeIds.Person,
           accountId: user.accountId,
-          createdById: user.id,
+          createdById: user.entityId,
         },
       ],
       [
@@ -380,13 +377,13 @@ void (async () => {
             employer: {
               __linkedData: {
                 entityTypeId: newTypeIds.Company,
-                entityId: results.get("c1")?.createEntity.entityVersionId,
+                entityId: results.get("c1")?.entityVersionId,
               },
             },
           },
           entityTypeId: newTypeIds.Person,
           accountId: user.accountId,
-          createdById: user.id,
+          createdById: user.entityId,
         },
       ],
       [
@@ -398,13 +395,13 @@ void (async () => {
             employer: {
               __linkedData: {
                 entityTypeId: newTypeIds.Company,
-                entityId: results.get("c1")?.createEntity.entityVersionId,
+                entityId: results.get("c1")?.entityVersionId,
               },
             },
           },
           entityTypeId: newTypeIds.Person,
           accountId: user.accountId,
-          createdById: user.id,
+          createdById: user.entityId,
         },
       ],
     ])
@@ -417,7 +414,7 @@ void (async () => {
         {
           entityTypeId: newTypeIds.Table,
           accountId: user.accountId,
-          createdById: user.id,
+          createdById: user.entityId,
           properties: {
             initialState: {
               hiddenColumns: [
@@ -453,10 +450,10 @@ void (async () => {
           systemTypeName: SystemTypeName.Block,
           properties: {
             componentId: "https://block.blockprotocol.org/header",
-            entityId: results.get("text1")?.createEntity.entityVersionId,
-            accountId: results.get("text1")?.createEntity.accountId,
+            entityId: results.get("text1")?.entityVersionId,
+            accountId: results.get("text1")?.accountId,
           },
-          createdById: user.id,
+          createdById: user.entityId,
           accountId: user.accountId,
         },
       ],
@@ -465,10 +462,10 @@ void (async () => {
         {
           properties: {
             componentId: "https://block.blockprotocol.org/paragraph",
-            entityId: results.get("text2")?.createEntity.entityVersionId,
-            accountId: results.get("text2")?.createEntity.accountId,
+            entityId: results.get("text2")?.entityVersionId,
+            accountId: results.get("text2")?.accountId,
           },
-          createdById: user.id,
+          createdById: user.entityId,
           accountId: user.accountId,
           systemTypeName: SystemTypeName.Block,
         },
@@ -478,10 +475,10 @@ void (async () => {
         {
           properties: {
             componentId: "https://block.blockprotocol.org/paragraph",
-            entityId: results.get("text3")?.createEntity.entityVersionId,
-            accountId: results.get("text3")?.createEntity.accountId,
+            entityId: results.get("text3")?.entityVersionId,
+            accountId: results.get("text3")?.accountId,
           },
-          createdById: user.id,
+          createdById: user.entityId,
           accountId: user.accountId,
           systemTypeName: SystemTypeName.Block,
         },
@@ -491,10 +488,10 @@ void (async () => {
         {
           properties: {
             componentId: "https://block.blockprotocol.org/table",
-            entityId: results.get("t1")?.createEntity.entityVersionId,
-            accountId: results.get("t1")?.createEntity.accountId,
+            entityId: results.get("t1")?.entityVersionId,
+            accountId: results.get("t1")?.accountId,
           },
-          createdById: user.id,
+          createdById: user.entityId,
           accountId: user.accountId,
           systemTypeName: SystemTypeName.Block,
         },
@@ -504,10 +501,10 @@ void (async () => {
         {
           properties: {
             componentId: "https://block.blockprotocol.org/header",
-            entityId: results.get("text5")?.createEntity.entityVersionId,
-            accountId: results.get("text5")?.createEntity.accountId,
+            entityId: results.get("text5")?.entityVersionId,
+            accountId: results.get("text5")?.accountId,
           },
-          createdById: user.id,
+          createdById: user.entityId,
           accountId: hashOrg.accountId,
           systemTypeName: SystemTypeName.Block,
         },
@@ -517,10 +514,10 @@ void (async () => {
         {
           properties: {
             componentId: "https://block.blockprotocol.org/paragraph",
-            entityId: results.get("text2")?.createEntity.entityVersionId,
-            accountId: results.get("text2")?.createEntity.accountId,
+            entityId: results.get("text2")?.entityVersionId,
+            accountId: results.get("text2")?.accountId,
           },
-          createdById: user.id,
+          createdById: user.entityId,
           accountId: hashOrg.accountId,
           systemTypeName: SystemTypeName.Block,
         },
@@ -530,10 +527,10 @@ void (async () => {
         {
           properties: {
             componentId: "https://block.blockprotocol.org/paragraph",
-            entityId: results.get("text3")?.createEntity.entityVersionId,
-            accountId: results.get("text3")?.createEntity.accountId,
+            entityId: results.get("text3")?.entityVersionId,
+            accountId: results.get("text3")?.accountId,
           },
-          createdById: user.id,
+          createdById: user.entityId,
           accountId: hashOrg.accountId,
           systemTypeName: SystemTypeName.Block,
         },
@@ -543,10 +540,10 @@ void (async () => {
         {
           properties: {
             componentId: "https://block.blockprotocol.org/paragraph",
-            entityId: results.get("text4")?.createEntity.entityVersionId,
-            accountId: results.get("text4")?.createEntity.accountId,
+            entityId: results.get("text4")?.entityVersionId,
+            accountId: results.get("text4")?.accountId,
           },
-          createdById: user.id,
+          createdById: user.entityId,
           accountId: hashOrg.accountId,
           systemTypeName: SystemTypeName.Block,
         },
@@ -556,10 +553,10 @@ void (async () => {
         {
           properties: {
             componentId: "https://block.blockprotocol.org/person",
-            entityId: results.get("p2")?.createEntity.entityVersionId,
-            accountId: results.get("p2")?.createEntity.accountId,
+            entityId: results.get("p2")?.entityVersionId,
+            accountId: results.get("p2")?.accountId,
           },
-          createdById: user.id,
+          createdById: user.entityId,
           accountId: hashOrg.accountId,
           systemTypeName: SystemTypeName.Block,
         },
@@ -569,10 +566,10 @@ void (async () => {
         {
           properties: {
             componentId: "https://block.blockprotocol.org/header",
-            entityId: results.get("header1")?.createEntity.entityVersionId,
-            accountId: results.get("header1")?.createEntity.accountId,
+            entityId: results.get("header1")?.entityVersionId,
+            accountId: results.get("header1")?.accountId,
           },
-          createdById: user.id,
+          createdById: user.entityId,
           accountId: hashOrg.accountId,
           systemTypeName: SystemTypeName.Block,
         },
@@ -582,10 +579,10 @@ void (async () => {
         {
           properties: {
             componentId: "https://block.blockprotocol.org/divider",
-            entityId: results.get("divider1")?.createEntity.entityVersionId,
-            accountId: results.get("divider1")?.createEntity.accountId,
+            entityId: results.get("divider1")?.entityVersionId,
+            accountId: results.get("divider1")?.accountId,
           },
-          createdById: user.id,
+          createdById: user.entityId,
           accountId: hashOrg.accountId,
           systemTypeName: SystemTypeName.Block,
         },
@@ -595,10 +592,10 @@ void (async () => {
         {
           properties: {
             componentId: "https://block.blockprotocol.org/embed",
-            entityId: results.get("embed1")?.createEntity.entityVersionId,
-            accountId: results.get("embed1")?.createEntity.accountId,
+            entityId: results.get("embed1")?.entityVersionId,
+            accountId: results.get("embed1")?.accountId,
           },
-          createdById: user.id,
+          createdById: user.entityId,
           accountId: hashOrg.accountId,
           systemTypeName: SystemTypeName.Block,
         },
@@ -608,10 +605,10 @@ void (async () => {
         {
           properties: {
             componentId: "https://block.blockprotocol.org/embed",
-            entityId: results.get("embed2")?.createEntity.entityVersionId,
-            accountId: results.get("embed2")?.createEntity.accountId,
+            entityId: results.get("embed2")?.entityVersionId,
+            accountId: results.get("embed2")?.accountId,
           },
-          createdById: user.id,
+          createdById: user.entityId,
           accountId: hashOrg.accountId,
           systemTypeName: SystemTypeName.Block,
         },
@@ -621,10 +618,10 @@ void (async () => {
         {
           properties: {
             componentId: "https://block.blockprotocol.org/image",
-            entityId: results.get("img1")?.createEntity.entityVersionId,
-            accountId: results.get("img1")?.createEntity.accountId,
+            entityId: results.get("img1")?.entityVersionId,
+            accountId: results.get("img1")?.accountId,
           },
-          createdById: user.id,
+          createdById: user.entityId,
           accountId: hashOrg.accountId,
           systemTypeName: SystemTypeName.Block,
         },
@@ -634,10 +631,10 @@ void (async () => {
         {
           properties: {
             componentId: "https://block.blockprotocol.org/image",
-            entityId: results.get("img2")?.createEntity.entityVersionId,
-            accountId: results.get("img2")?.createEntity.accountId,
+            entityId: results.get("img2")?.entityVersionId,
+            accountId: results.get("img2")?.accountId,
           },
-          createdById: user.id,
+          createdById: user.entityId,
           accountId: hashOrg.accountId,
           systemTypeName: SystemTypeName.Block,
         },
@@ -653,44 +650,44 @@ void (async () => {
         {
           systemTypeName: SystemTypeName.Page,
           accountId: user.accountId,
-          createdById: user.id,
+          createdById: user.entityId,
           properties: {
             contents: [
               {
-                entityId: results.get("b1")?.createEntity.entityVersionId,
-                accountId: results.get("b1")?.createEntity.accountId,
+                entityId: results.get("b1")?.entityVersionId,
+                accountId: results.get("b1")?.accountId,
               },
               {
-                entityId: results.get("b9")?.createEntity.entityVersionId,
-                accountId: results.get("b9")?.createEntity.accountId,
+                entityId: results.get("b9")?.entityVersionId,
+                accountId: results.get("b9")?.accountId,
               },
               {
-                entityId: results.get("b11")?.createEntity.entityVersionId,
-                accountId: results.get("b11")?.createEntity.accountId,
+                entityId: results.get("b11")?.entityVersionId,
+                accountId: results.get("b11")?.accountId,
               },
               {
-                entityId: results.get("b2")?.createEntity.entityVersionId,
-                accountId: results.get("b2")?.createEntity.accountId,
+                entityId: results.get("b2")?.entityVersionId,
+                accountId: results.get("b2")?.accountId,
               },
               {
-                entityId: results.get("b3")?.createEntity.entityVersionId,
-                accountId: results.get("b3")?.createEntity.accountId,
+                entityId: results.get("b3")?.entityVersionId,
+                accountId: results.get("b3")?.accountId,
               },
               {
-                entityId: results.get("b10")?.createEntity.entityVersionId,
-                accountId: results.get("b10")?.createEntity.accountId,
+                entityId: results.get("b10")?.entityVersionId,
+                accountId: results.get("b10")?.accountId,
               },
               {
-                entityId: results.get("b4")?.createEntity.entityVersionId,
-                accountId: results.get("b4")?.createEntity.accountId,
+                entityId: results.get("b4")?.entityVersionId,
+                accountId: results.get("b4")?.accountId,
               },
               {
-                entityId: results.get("b12")?.createEntity.entityVersionId,
-                accountId: results.get("b12")?.createEntity.accountId,
+                entityId: results.get("b12")?.entityVersionId,
+                accountId: results.get("b12")?.accountId,
               },
               {
-                entityId: results.get("b14")?.createEntity.entityVersionId,
-                accountId: results.get("b14")?.createEntity.accountId,
+                entityId: results.get("b14")?.entityVersionId,
+                accountId: results.get("b14")?.accountId,
               },
             ],
             title: "My awesome page",
@@ -703,32 +700,32 @@ void (async () => {
         {
           systemTypeName: SystemTypeName.Page,
           accountId: hashOrg.accountId,
-          createdById: user.id,
+          createdById: user.entityId,
           properties: {
             contents: [
               {
-                entityId: results.get("b5")?.createEntity.entityVersionId,
-                accountId: results.get("b5")?.createEntity.accountId,
+                entityId: results.get("b5")?.entityVersionId,
+                accountId: results.get("b5")?.accountId,
               },
               {
-                entityId: results.get("b6")?.createEntity.entityVersionId,
-                accountId: results.get("b6")?.createEntity.accountId,
+                entityId: results.get("b6")?.entityVersionId,
+                accountId: results.get("b6")?.accountId,
               },
               {
-                entityId: results.get("b7")?.createEntity.entityVersionId,
-                accountId: results.get("b7")?.createEntity.accountId,
+                entityId: results.get("b7")?.entityVersionId,
+                accountId: results.get("b7")?.accountId,
               },
               {
-                entityId: results.get("b8")?.createEntity.entityVersionId,
-                accountId: results.get("b8")?.createEntity.accountId,
+                entityId: results.get("b8")?.entityVersionId,
+                accountId: results.get("b8")?.accountId,
               },
               {
-                entityId: results.get("b13")?.createEntity.entityVersionId,
-                accountId: results.get("b13")?.createEntity.accountId,
+                entityId: results.get("b13")?.entityVersionId,
+                accountId: results.get("b13")?.accountId,
               },
               {
-                entityId: results.get("b15")?.createEntity.entityVersionId,
-                accountId: results.get("b15")?.createEntity.accountId,
+                entityId: results.get("b15")?.entityVersionId,
+                accountId: results.get("b15")?.accountId,
               },
             ],
             title: "HASH's 1st page",

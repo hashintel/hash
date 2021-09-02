@@ -3,7 +3,6 @@ import User from "@hashintel/hash-backend/src/model/user.model";
 import Org from "@hashintel/hash-backend/src/model/org.model";
 import {
   OrgProperties,
-  Org as GQLOrg,
 } from "../graphql/apiTypes.gen";
 
 type CreateUserArgs = {
@@ -13,7 +12,7 @@ type CreateUserArgs = {
 };
 
 // Note, the email addresses of these users will automatically be verified
-export const createUsers = async (db: DBAdapter) => {
+export const createUsers = async (db: DBAdapter): Promise<User[]> => {
   const users: CreateUserArgs[] = [
     {
       email: "aj@hash.ai",
@@ -57,7 +56,7 @@ export const createUsers = async (db: DBAdapter) => {
     },
   ];
 
-  const userResults = await Promise.all(
+  return Promise.all(
     users.map(({ email, ...remainingProperties }) =>
       User.createUser(db)({
         emails: [{ address: email, primary: true, verified: true }],
@@ -65,18 +64,14 @@ export const createUsers = async (db: DBAdapter) => {
       })
     )
   );
-
-  return userResults.map((user) => user.toGQLUser());
 };
 
 /**
  * Create additional orgs we might want as dummy/seed data
  * The HASH org is now created as part of migration, as it doubles up as the 'system' account.
  */
-export const createOrgs = async (db: DBAdapter): Promise<GQLOrg[]> => {
+export const createOrgs = async (db: DBAdapter): Promise<Org[]> => {
   const orgs: OrgProperties[] = [];
 
-  const orgResults = await Promise.all(orgs.map(Org.createOrg(db)));
-
-  return orgResults.map((org) => org.toGQLOrg());
+  return await Promise.all(orgs.map(Org.createOrg(db)));
 };
