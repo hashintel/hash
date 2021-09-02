@@ -291,6 +291,21 @@ export const createBlockUpdateTransaction = async (
     }) ?? []
   );
 
+  const newTree = newNodes.reduce(
+    ({ pos, list }, node, idx) => {
+      const block = blocks[idx];
+      const start = pos + 1;
+      const end = start + node.nodeSize;
+
+      list.push([start, end, block]);
+
+      return { pos: end, list };
+    },
+    { list: [], pos: -1 }
+  ).list;
+
+  console.log({ newTree });
+
   const { tr } = state;
 
   // This creations a transaction to replace the entire content of the document
