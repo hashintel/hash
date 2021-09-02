@@ -27,8 +27,8 @@ class User extends Creator {
     this.properties = properties;
   }
 
-  static getEntityType = async (db: DBClient): Promise<EntityType> =>
-    db
+  static getEntityType = async (client: DBClient): Promise<EntityType> =>
+    client
       .getSystemTypeLatestVersion({ systemTypeName: "User" })
       .then((userEntityType) => {
         if (!userEntityType) {
@@ -39,7 +39,7 @@ class User extends Creator {
       });
 
   static getUserById =
-    (db: DBClient) =>
+    (client: DBClient) =>
     ({
       accountId,
       entityId,
@@ -47,12 +47,12 @@ class User extends Creator {
       accountId: string;
       entityId: string;
     }): Promise<User | null> =>
-      db
+      client
         .getEntityLatestVersion({ accountId, entityId })
         .then((dbUser) => (dbUser ? new User(dbUser) : null));
 
   static getUserByEmail =
-    (db: DBClient) =>
+    (client: DBClient) =>
     ({
       email,
       verified = true,
@@ -62,27 +62,27 @@ class User extends Creator {
       verified?: boolean;
       primary?: boolean;
     }): Promise<User | null> =>
-      db
+      client
         .getUserByEmail({ email, verified, primary })
         .then((dbUser) => (dbUser ? new User(dbUser) : null));
 
   static getUserByShortname =
-    (db: DBClient) =>
+    (client: DBClient) =>
     ({ shortname }: { shortname: string }): Promise<User | null> =>
-      db
+      client
         .getUserByShortname({ shortname })
         .then((dbUser) => (dbUser ? new User(dbUser) : null));
 
   static create =
-    (db: DBClient) =>
+    (client: DBClient) =>
     async (properties: UserProperties): Promise<User> => {
       const id = genId();
 
-      const entity = await db.createEntity({
+      const entity = await client.createEntity({
         accountId: id,
         entityId: id,
         createdById: id, // Users "create" themselves
-        entityTypeId: (await User.getEntityType(db)).entityId,
+        entityTypeId: (await User.getEntityType(client)).entityId,
         properties,
         versioned: false, // @todo: should user's be versioned?
       });
@@ -90,16 +90,20 @@ class User extends Creator {
       return new User(entity);
     };
 
+  /**
+   * Must occur in the same db transaction as when `this.properties` was fetched
+   * to prevent overriding externally-updated properties
+   */
   private updateUserProperties =
-    (db: DBClient) => (properties: UserProperties) =>
-      this.updateProperties(db)(properties);
+    (client: DBClient) => (properties: UserProperties) =>
+      this.updateProperties(client)(properties);
 
   /**
    * Must occur in the same db transaction as when `this.properties` was fetched
    * to prevent overriding externally-updated properties
    */
-  updateShortname = (db: DBClient) => async (updatedShortname: string) =>
-    this.updateUserProperties(db)({
+  updateShortname = (client: DBClient) => async (updatedShortname: string) =>
+    this.updateUserProperties(client)({
       ...this.properties,
       shortname: updatedShortname,
     });
@@ -110,8 +114,8 @@ class User extends Creator {
    * Must occur in the same db transaction as when `this.properties` was fetched
    * to prevent overriding externally-updated properties
    */
-  updatePreferredName = (db: DBClient) => (updatedPreferredName: string) =>
-    this.updateUserProperties(db)({
+  updatePreferredName = (client: DBClient) => (updatedPreferredName: string) =>
+    this.updateUserProperties(client)({
       ...this.properties,
       preferredName: updatedPreferredName,
     });
@@ -141,8 +145,8 @@ class User extends Creator {
    * Must occur in the same db transaction as when `this.properties` was fetched
    * to prevent overriding externally-updated properties
    */
-  verifyEmailAddress = (db: DBClient) => (emailAddress: string) =>
-    this.updateUserProperties(db)({
+  verifyEmailAddress = (client: DBClient) => (emailAddress: string) =>
+    this.updateUserProperties(client)({
       ...this.properties,
       emails: this.properties.emails.map((email) =>
         email.address === emailAddress ? { ...email, verified: true } : email

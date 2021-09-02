@@ -53,7 +53,7 @@ class Entity {
   }
 
   static getEntityById =
-    (db: DBClient) =>
+    (client: DBClient) =>
     ({
       accountId,
       entityVersionId,
@@ -61,15 +61,19 @@ class Entity {
       accountId: string;
       entityVersionId: string;
     }): Promise<Entity | null> =>
-      db
+      client
         .getEntity({
           accountId,
           entityVersionId,
         })
         .then((dbEntity) => (dbEntity ? new Entity(dbEntity) : null));
 
-  updateProperties = (db: DBClient) => (properties: any) =>
-    db
+  /**
+   * Must occur in the same db transaction as when `this.properties` was fetched
+   * to prevent overriding externally-updated properties
+   */
+  updateProperties = (client: DBClient) => (properties: any) =>
+    client
       .updateEntity({
         accountId: this.accountId,
         entityVersionId: this.entityVersionId,
