@@ -5,7 +5,7 @@ import { useRouter } from "next/router";
 import { AppProps } from "next/dist/next-server/lib/router/router";
 import { ApolloProvider } from "@apollo/client/react";
 import { useEffect } from "react";
-import { createApolloClient } from "@hashintel/hash-shared/src/graphql/createApolloClient";
+import { createApolloClient } from "@hashintel/hash-shared/graphql/createApolloClient";
 import withTwindApp from "@twind/next/app";
 import { PageLayout } from "../components/layout/PageLayout/PageLayout";
 import { ModalProvider } from "react-modal-hook";

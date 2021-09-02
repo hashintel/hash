@@ -4,7 +4,7 @@ import { RemoteBlock } from "../../components/RemoteBlock/RemoteBlock";
 import {
   Block,
   ReplacePortals,
-} from "@hashintel/hash-shared/src/sharedWithBackend";
+} from "@hashintel/hash-shared/sharedWithBackend";
 
 type NodeViewConstructorArgs = Parameters<
   NonNullable<EditorProps["nodeViews"]>[string]
