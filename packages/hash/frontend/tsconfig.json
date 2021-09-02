@@ -7,13 +7,10 @@
     "jsx": "preserve",
     "moduleResolution": "node",
     "noEmit": true,
-    "typeRoots": [
-      "./src/types",
-      "node_modules/@types"
-    ],
-  
+    "typeRoots": ["./src/types", "node_modules/@types"],
+
     // overrides
-    "lib": ["dom", "dom.iterable", "esnext"],  
+    "lib": ["dom", "dom.iterable", "esnext"]
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
   "exclude": ["node_modules"]
