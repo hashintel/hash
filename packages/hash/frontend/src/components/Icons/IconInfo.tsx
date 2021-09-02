@@ -1,3 +1,3 @@
-import IconInfo from "../../../assets/svg/info.svg";
+import IconInfo from "../../assets/svg/info.svg";
 
 export default IconInfo;
