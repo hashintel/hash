@@ -3,7 +3,7 @@ import { useState } from "react";
 import {
   IsShortnameTakenQuery,
   QueryIsShortnameTakenArgs,
-} from "../../../../shared/src/graphql/apiTypes.gen";
+} from "../../graphql/apiTypes.gen";
 import { isShortnameTaken } from "../../graphql/queries/user.queries";
 
 export const ALLOWED_SHORTNAME_CHARS = /^[a-zA-Z0-9-_]+$/;
