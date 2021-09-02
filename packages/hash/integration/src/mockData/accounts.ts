@@ -1,12 +1,10 @@
-import { GraphQLClient } from "graphql-request";
-
-import { PostgresAdapter } from "@hashintel/hash-backend/src/db";
+import { DBAdapter } from "@hashintel/hash-backend/src/db";
 import User from "@hashintel/hash-backend/src/model/user.model";
+import Org from "@hashintel/hash-backend/src/model/org.model";
 import {
-  CreateOrgMutationVariables,
-  CreateOrgMutation,
+  OrgProperties,
+  Org as GQLOrg,
 } from "../graphql/apiTypes.gen";
-import { createOrg } from "../graphql/queries/org.queries";
 
 type CreateUserArgs = {
   email: string;
@@ -15,7 +13,7 @@ type CreateUserArgs = {
 };
 
 // Note, the email addresses of these users will automatically be verified
-export const createUsers = async () => {
+export const createUsers = async (db: DBAdapter) => {
   const users: CreateUserArgs[] = [
     {
       email: "aj@hash.ai",
@@ -59,14 +57,6 @@ export const createUsers = async () => {
     },
   ];
 
-  const db = new PostgresAdapter({
-    host: process.env.HASH_PG_HOST || "localhost",
-    user: process.env.HASH_PG_USER || "postgres",
-    password: process.env.HASH_PG_PASSWORD || "postgres",
-    database: process.env.HASH_PG_DATABASE || "postgres",
-    port: parseInt(process.env.HASH_PG_PORT || "5432"),
-  });
-
   const userResults = await Promise.all(
     users.map(({ email, ...remainingProperties }) =>
       User.create(db)({
@@ -76,8 +66,6 @@ export const createUsers = async () => {
     )
   );
 
-  await db.close();
-
   return userResults.map((user) => user.toGQLUser());
 };
 
@@ -85,14 +73,10 @@ export const createUsers = async () => {
  * Create additional orgs we might want as dummy/seed data
  * The HASH org is now created as part of migration, as it doubles up as the 'system' account.
  */
-export const createOrgs = async (client: GraphQLClient) => {
-  const orgs: CreateOrgMutationVariables[] = [];
+export const createOrgs = async (db: DBAdapter): Promise<GQLOrg[]> => {
+  const orgs: OrgProperties[] = [];
 
-  const orgResults = await Promise.all(
-    orgs.map(
-      async (org) => await client.request<CreateOrgMutation>(createOrg, org)
-    )
-  );
+  const orgResults = await Promise.all(orgs.map(Org.create(db)));
 
-  return orgResults.map((org) => org.createOrg);
+  return orgResults.map((org) => org.toGQLOrg());
 };
