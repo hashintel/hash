@@ -20,7 +20,7 @@ import {
   calculateSavePayloads,
   componentUrlToProsemirrorId,
   createBlockUpdateTransaction,
-  mapEntitiesToBlocks,
+  mapEntityToBlock,
 } from "@hashintel/hash-shared/sharedWithBackend";
 import { defineNewBlock } from "@hashintel/hash-shared/sharedWithBackendJs";
 import { collabEnabled, createNodeView } from "./tsUtils";
@@ -149,7 +149,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
             return;
           }
           const { view } = prosemirrorSetup.current;
-          const savedContents = mapEntitiesToBlocks(currentContents.current);
+          const savedContents = currentContents.current.map(mapEntityToBlock);
           const { state } = view;
 
           const { updatedEntitiesPayload, pageUpdatedPayload, insertPayloads } =

@@ -360,15 +360,6 @@ export const mapEntityToBlock = (
   };
 };
 
-/**
- * @deprecated
- * @todo remove the need for this
- * @param contents
- */
-export const mapEntitiesToBlocks = (
-  contents: PageFieldsFragment["properties"]["contents"]
-): BlockWithoutMeta[] => contents.map(mapEntityToBlock);
-
 const invertedBlockPaths = Object.fromEntries(
   Object.entries(blockPaths).map(([key, value]) => [value, key])
 );

@@ -4,7 +4,7 @@ import { createInitialDoc, createSchema } from "@hashintel/hash-shared/schema";
 import {
   calculateSavePayloads,
   createBlockUpdateTransaction,
-  mapEntitiesToBlocks,
+  mapEntityToBlock,
   transformBlockForProsemirror,
 } from "@hashintel/hash-shared/sharedWithBackend";
 import {
@@ -159,7 +159,8 @@ class Instance {
           variables: { metadataId: this.id, accountId: this.accountId },
         });
 
-        this.savedContents = mapEntitiesToBlocks(data.page.properties.contents);
+        this.savedContents =
+          data.page.properties.contents.map(mapEntityToBlock);
       })
       .finally(() => {
         if (this.saveMapping === mapping) {
@@ -283,7 +284,7 @@ async function newInstance(accountId, id) {
     return instances[id];
   }
 
-  const blocks = mapEntitiesToBlocks(data.page.properties.contents);
+  const blocks = data.page.properties.contents.map(mapEntityToBlock);
 
   return (instances[id] = new Instance(
     accountId,
