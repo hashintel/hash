@@ -76,8 +76,8 @@ export default function Home() {
         <h2>Accounts in this instance</h2>
         <ul>
           {data?.accounts.map((account) => (
-            <li key={account.id}>
-              <Link href={`/account/${account.id}`}>
+            <li key={account.entityId}>
+              <Link href={`/account/${account.entityId}`}>
                 <a>{account.properties.shortname}</a>
               </Link>
             </li>
