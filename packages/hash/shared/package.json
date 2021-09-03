@@ -5,12 +5,12 @@
   "version": "0.1.0",
   "description": "Temporary catchall place for shared code",
   "exports": {
-    "./": "./dist/"
+    "./": "./dist/src/"
   },
   "typesVersions": {
     "*": {
       "*": [
-        "dist/*"
+        "dist/src/*"
       ]
     }
   },
