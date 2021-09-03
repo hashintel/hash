@@ -26,6 +26,7 @@ import {
   AUTH_ERROR_CODES,
   isParsedAuthQuery,
   SYNTHETIC_LOADING_TIME_MS,
+  Action,
 } from "../components/pages/auth/utils";
 import { AuthLayout } from "../components/layout/PageLayout/AuthLayout";
 import { useReducer } from "react";
@@ -44,11 +45,6 @@ type State = {
   errorMessage: string;
   userId: string | null;
   syntheticLoading: boolean;
-};
-
-type Action<S, T> = {
-  type: S;
-  payload: T;
 };
 
 type Actions =
@@ -210,6 +206,10 @@ const SignupPage: NextPage = () => {
     });
   };
 
+  const resendVerificationCode = () => {
+    void requestVerificationCode(email);
+  };
+
   const handleVerifyEmail = (
     providedCode: string,
     withSyntheticLoading?: boolean
@@ -285,8 +285,8 @@ const SignupPage: NextPage = () => {
           loading={verifyEmailLoading || syntheticLoading}
           handleSubmit={handleVerifyEmail}
           errorMessage={errorMessage}
-          requestCodeLoading={false}
-          requestCode={() => {}}
+          requestCodeLoading={createUserLoading}
+          requestCode={resendVerificationCode}
         />
       )}
       {activeScreen === Screen.AccountSetup && (
