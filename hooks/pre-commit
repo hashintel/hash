@@ -25,6 +25,11 @@ const main = () => {
     .filter(name => !PACKAGES_TO_IGNORE.includes(name));
   packagesToLint = Array.from(new Set(packagesToLint));
 
+  if (packagesToLint.length === 0) {
+    console.log("No packages to lint");
+    process.exit(0);
+  }
+
   console.log("Will lint packages", packagesToLint);
 
   let failed = false;
