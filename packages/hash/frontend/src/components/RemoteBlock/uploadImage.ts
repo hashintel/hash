@@ -7,21 +7,22 @@ export const uploadImage = async ({
   imgURL?: string;
 }): Promise<{
   src?: string;
-  error?: string;
 }> => {
+  
   if (imgURL?.trim()) {
     return { src: imgURL };
   }
 
   if (file) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const reader = new FileReader();
 
       reader.onload = (event) => {
+        // have to keep `if` first because of Typescript
         if (event.target?.result) {
           resolve({ src: event.target.result.toString() });
         } else {
-          resolve({ error: "Couldn't read your file" });
+          reject(new Error("Couldn't read your file"));
         }
       };
 
@@ -29,7 +30,5 @@ export const uploadImage = async ({
     });
   }
 
-  return {
-    error: "Please enter a valid image URL or select a file below",
-  };
+  throw new Error("Please enter a valid image URL or select a file below");
 };

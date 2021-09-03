@@ -143,7 +143,7 @@ export const App: BlockComponent<AppProps> = (props) => {
     <>
       {displayAlert && (
         <div
-          className={tw`max-w-md mx-auto mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative`}
+          className={tw`w-96 mx-auto mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative`}
           role="alert"
         >
           <strong className={tw`font-bold`}>Error</strong>
@@ -166,7 +166,7 @@ export const App: BlockComponent<AppProps> = (props) => {
       )}
 
       <div
-        className={tw`max-w-md mx-auto bg-white rounded-sm shadow-md overflow-hidden text-center p-4 border-2 border-gray-200`}
+        className={tw`w-96 mx-auto bg-white rounded-sm shadow-md overflow-hidden text-center p-4 border-2 border-gray-200`}
       >
         <form className={tw`mb-0`} onSubmit={onSubmit}>
           <div>
