@@ -8,6 +8,7 @@ import { ProviderNames } from "./types/embedTypes";
 import { HtmlBlock } from "./HtmlBlock";
 import { getFormCopy } from "./utils";
 import { BlockProtocolUpdatePayload } from "@hashintel/block-protocol";
+import Cross from "./svgs/Cross";
 
 type AppProps = {
   embedType?: ProviderNames;
@@ -146,21 +147,17 @@ export const App: BlockComponent<AppProps> = (props) => {
           className={tw`w-96 mx-auto mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative`}
           role="alert"
         >
-          <strong className={tw`font-bold`}>Error</strong>
-          <span className={tw`block sm:inline ml-2 mr-2`}>{errorString}</span>
+          <div className={tw`mr-5`}>
+            <strong className={tw`font-bold`}>Error</strong>
+            <span className={tw`block sm:inline ml-2 `}>
+              {errorString}
+            </span>
+          </div>
           <span
             onClick={() => setDisplayAlert(false)}
             className={tw`absolute top-0 bottom-0 right-0 px-4 py-3`}
           >
-            <svg
-              className={tw`fill-current h-6 w-6 text-red-500`}
-              role="button"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 20 20"
-            >
-              <title>Close</title>
-              <path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z" />
-            </svg>
+            <Cross />
           </span>
         </div>
       )}

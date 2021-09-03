@@ -197,10 +197,12 @@ export const Image: BlockComponent<AppProps> = (props) => {
           className={tw`w-96 mx-auto mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative`}
           role="alert"
         >
-          <strong className={tw`font-bold`}>Error</strong>
-          <span className={tw`block sm:inline ml-2 mr-2`}>
-            {stateObject.errorString}
-          </span>
+          <div className={tw`mr-5`}>
+            <strong className={tw`font-bold`}>Error</strong>
+            <span className={tw`block sm:inline ml-2 `}>
+              {stateObject.errorString}
+            </span>
+          </div>
           <span
             onClick={() =>
               setStateObject((stateObject) => ({
