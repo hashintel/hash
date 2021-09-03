@@ -83,7 +83,7 @@ class User extends Entity {
 
       const entity = await db.createEntity({
         accountId: id,
-        entityVersionId: id,
+        entityId: id,
         createdById: id, // Users "create" themselves
         entityTypeId: (await User.getEntityType(db)).entityId,
         properties,
