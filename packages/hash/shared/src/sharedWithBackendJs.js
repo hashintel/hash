@@ -20,24 +20,14 @@ export const historyPlugin = history();
 export const infiniteGroupHistoryPlugin = history({ newGroupDelay: Infinity });
 
 /**
- * This will store a map between node display names (i.e, "header") and their component URLs. This is useful for the
- * select block type dropdown, but it's not ideal or really even necessary to have a global store of this.
- *
- * @todo remove this
- */
-export const displayNameToId = new Map();
-
-/**
  * This utilises getters to trick prosemirror into mutating itself in order to modify a schema with a new node type.
  * This is likely to be quite brittle, and we need to ensure this continues to work between updates to Prosemirror. We
  * could also consider asking them to make adding a new node type officially supported.
  */
-export function defineNewNode(existingSchema, displayName, id, spec) {
+export function defineNewNode(existingSchema, componentUrl, spec) {
   const existingSchemaSpec = existingSchema.spec;
 
-  displayNameToId.set(displayName, id);
-
-  existingSchemaSpec.nodes.content.push(id, spec);
+  existingSchemaSpec.nodes.content.push(componentUrl, spec);
 
   // @todo make mark fix work properly
   new (class extends Schema {
@@ -74,12 +64,15 @@ export function defineNewNode(existingSchema, displayName, id, spec) {
  *
  * @todo remove this
  */
-export function defineNewProsemirrorNode(schema, componentMetadata, id) {
+export function defineNewProsemirrorNode(
+  schema,
+  componentMetadata,
+  componentUrl
+) {
   const { domTag, ...specTemplate } = componentMetadata.spec;
   defineNewNode(
     schema,
-    componentMetadata.name,
-    id,
+    componentUrl,
     defineBlock(componentMetadata, {
       ...specTemplate,
       toDOM: () => [domTag, 0],
@@ -96,14 +89,14 @@ export function defineNewBlock(
   componentMetadata,
   componentSchema,
   viewConfig,
-  id
+  componentUrl
 ) {
-  if (schema.nodes[id]) {
+  if (schema.nodes[componentUrl]) {
     return;
   }
 
   if (componentMetadata.type === "prosemirror") {
-    defineNewProsemirrorNode(schema, componentMetadata, id);
+    defineNewProsemirrorNode(schema, componentMetadata, componentUrl);
   } else {
     const spec = defineBlock(componentMetadata, {
       /**
@@ -118,14 +111,14 @@ export function defineNewBlock(
         : {}),
     });
 
-    defineNewNode(schema, componentMetadata.name, id, spec);
+    defineNewNode(schema, componentUrl, spec);
 
     if (viewConfig) {
       const { view, replacePortal, createNodeView } = viewConfig;
 
       // @todo reduce duplication
       const NodeViewClass = createNodeView(
-        id,
+        componentUrl,
         componentSchema,
         `${componentMetadata.url}/${componentMetadata.source}`,
         replacePortal
@@ -135,7 +128,7 @@ export function defineNewBlock(
       view.setProps({
         nodeViews: {
           ...view.nodeViews,
-          [id]: (node, view, getPos, decorations) => {
+          [componentUrl]: (node, view, getPos, decorations) => {
             return new NodeViewClass(node, view, getPos, decorations);
           },
         },
@@ -154,12 +147,7 @@ let AsyncBlockCacheView = null;
  *
  * @todo support taking a signal
  */
-export const defineRemoteBlock = async (
-  schema,
-  viewConfig,
-  componentUrl,
-  id
-) => {
+export const defineRemoteBlock = async (schema, viewConfig, componentUrl) => {
   /**
    * Clear the cache if the cache was setup on a different prosemirror view. Probably won't happen but with fast
    * refresh and global variables, got to be sure
@@ -172,17 +160,17 @@ export const defineRemoteBlock = async (
   }
 
   // If the block has not already been defined, we need to fetch the metadata & define it
-  if (!id || !schema.nodes[id]) {
+  if (!componentUrl || !schema.nodes[componentUrl]) {
     if (!AsyncBlockCache.has(componentUrl)) {
       const promise = fetchBlockMeta(componentUrl)
         .then(({ componentMetadata, componentSchema }) => {
-          if (!id || !schema.nodes[id]) {
+          if (!componentUrl || !schema.nodes[componentUrl]) {
             defineNewBlock(
               schema,
               componentMetadata,
               componentSchema,
               viewConfig,
-              id
+              componentUrl
             );
           }
         })
@@ -216,15 +204,14 @@ export const createRemoteBlock = async (
   schema,
   viewConfig,
   componentUrl,
-  id,
   attrs,
   children,
   marks
 ) => {
-  await defineRemoteBlock(schema, viewConfig, componentUrl, id);
+  await defineRemoteBlock(schema, viewConfig, componentUrl);
 
   // Create a new instance of the newly defined prosemirror node
-  return schema.nodes[id].create(attrs, children, marks);
+  return schema.nodes[componentUrl].create(attrs, children, marks);
 };
 
 const rewrapCommand = (blockExisted) => (newState, dispatch) => {

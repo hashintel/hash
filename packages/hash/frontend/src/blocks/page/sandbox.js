@@ -5,7 +5,7 @@
  * @todo remove this file
  */
 
-import React, { forwardRef, useEffect, useState, createRef } from "react";
+import React, { createRef, forwardRef, useEffect, useState } from "react";
 import { tw } from "twind";
 
 import { NodeSelection, Plugin } from "prosemirror-state";
@@ -17,18 +17,15 @@ import DragVertical from "../../components/Icons/DragVertical";
 import styles from "./style.module.css";
 
 import "prosemirror-view/style/prosemirror.css";
-import { componentUrlToProsemirrorId } from "@hashintel/hash-shared/sharedWithBackend";
 import {
   createProseMirrorState,
   createRemoteBlock,
-  displayNameToId,
   historyPlugin,
   infiniteGroupHistoryPlugin,
 } from "@hashintel/hash-shared/sharedWithBackendJs";
-import { createNodeView } from "./tsUtils";
+import { collabEnabled, createNodeView } from "./tsUtils";
 import { EditorConnection } from "./collab/collab";
 import { Reporter } from "./collab/reporter";
-import { collabEnabled } from "./tsUtils";
 
 /**
  * You can think of this more as a "Switcher" view – when you change node type using the select type dropdown, the node
@@ -84,10 +81,6 @@ class AsyncView {
     const controller = (this.controller = new AbortController());
     const componentUrl = node.attrs.asyncNodeUrl;
 
-    const id =
-      node.attrs.asyncNodeId ??
-      (componentUrl ? componentUrlToProsemirrorId(componentUrl) : null);
-
     createRemoteBlock(
       view.state.schema,
       {
@@ -96,7 +89,6 @@ class AsyncView {
         createNodeView,
       },
       componentUrl,
-      id,
       node.attrs.asyncNodeProps.attrs,
       node.attrs.asyncNodeProps.children,
       node.attrs.asyncNodeProps.marks
@@ -203,27 +195,29 @@ const BlockSelect = forwardRef(({ options, onChange, selectedIndex }, ref) => {
         <ul
           className={tw`absolute z-10 w-96 max-h-60 overflow-auto border border-gray-100 rounded-lg`}
         >
-          {options.map(([_blockType, { name, icon, description }], index) => (
-            <li
-              key={index}
-              className={tw`flex border border-gray-100 ${
-                index !== selectedIndex ? "bg-gray-50" : "bg-gray-100"
-              } hover:bg-gray-100`}
-              onClick={() =>
-                index !== selectedIndex && onChange(options[index], index)
-              }
-            >
-              <div className={tw`flex w-16 items-center justify-center`}>
-                <img className={tw`w-6 h-6`} alt={name} src={icon} />
-              </div>
-              <div className={tw`py-3`}>
-                <p className={tw`text-sm font-bold`}>{name}</p>
-                <p className={tw`text-xs text-opacity-60 text-black`}>
-                  {description}
-                </p>
-              </div>
-            </li>
-          ))}
+          {options.map(
+            ([_componentUrl, { name, icon, description }], index) => (
+              <li
+                key={index}
+                className={tw`flex border border-gray-100 ${
+                  index !== selectedIndex ? "bg-gray-50" : "bg-gray-100"
+                } hover:bg-gray-100`}
+                onClick={() =>
+                  index !== selectedIndex && onChange(options[index], index)
+                }
+              >
+                <div className={tw`flex w-16 items-center justify-center`}>
+                  <img className={tw`w-6 h-6`} alt={name} src={icon} />
+                </div>
+                <div className={tw`py-3`}>
+                  <p className={tw`text-sm font-bold`}>{name}</p>
+                  <p className={tw`text-xs text-opacity-60 text-black`}>
+                    {description}
+                  </p>
+                </div>
+              </li>
+            )
+          )}
         </ul>
       )}
     </div>
@@ -399,7 +393,7 @@ class BlockView {
             const options = Array.from(blocksMeta.values()).flatMap(
               (blockMeta) =>
                 blockMeta.componentMetadata.variants.map((variant) => [
-                  blockMeta.componentMetadata.name,
+                  blockMeta.componentMetadata.url,
                   variant,
                 ])
             );
@@ -443,26 +437,14 @@ class BlockView {
   /**
    * This begins the two part process of converting from one block type to another – the second half is
    * carried out by AsyncView's update function
+   *
+   * @todo restore the ability to load in new block types here
    */
-  onBlockChange = ([blockType, variant]) => {
+  onBlockChange = ([componentId, variant]) => {
     const { node, view, getPos } = this;
-    const componentDisplayName = blockType;
-    const componentId =
-      displayNameToId.get(componentDisplayName) ?? componentDisplayName;
 
-    let componentUrl = null;
-
-    if (componentDisplayName === "new") {
-      componentUrl = prompt("Component URL");
-
-      if (!componentUrl) {
-        evt.target.value = "change";
-        return;
-      }
-    } else {
-      componentUrl =
-        view.state.schema.nodes[componentId].defaultAttrs.meta?.url;
-    }
+    const componentUrl =
+      view.state.schema.nodes[componentId].defaultAttrs.meta?.url;
 
     // Ensure that any changes to the document made are kept within a single undo item
     view.updateState(
@@ -497,14 +479,8 @@ class BlockView {
        *
        * @todo make some of this unnecessary
        */
-      ...(componentDisplayName === "new"
-        ? {}
-        : {
-            asyncNodeId:
-              displayNameToId.get(componentDisplayName) ?? componentDisplayName,
-            asyncNodeDisplayName: componentDisplayName,
-          }),
       asyncNodeUrl: componentUrl,
+
       asyncNodeProps: {
         attrs: {
           // @todo do so many of these props need to switch on text?
@@ -690,10 +666,7 @@ export function createFormatPlugin(replacePortal) {
               (node) =>
                 node.content.size === 0 ||
                 // @todo fix this check by checking for the marks a node supports
-                node.type.name !==
-                  componentUrlToProsemirrorId(
-                    "https://block.blockprotocol.org/paragraph"
-                  )
+                node.type.name !== "https://block.blockprotocol.org/paragraph"
             ) ||
           state.selection.empty
         ) {
