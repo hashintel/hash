@@ -69,9 +69,16 @@ yarn test-integration
 
 ## Code quality
 
-We use git hooks to enforce code quality. These hooks are located in the
-[hooks/](./hooks) directory. You will need to manually copy these to
-`.git/hooks` and enable execution with `chmod u+x .git/hooks/<HOOK NAME>`.
+We perform automated linting and formatting checks on pull requests using
+GitHub Actions. You may also run these checks using the git hooks provided
+in [./hooks](./hooks). To install these hooks, run:
+```
+yarn install-hooks
+```
+
+This installs the hooks into your `.git/hooks` directory as symlinks to
+the corresponding script in `./hooks`.
+
 
 ## Monorepo
 
