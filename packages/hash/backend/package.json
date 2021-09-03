@@ -11,12 +11,14 @@
   },
   "main": "src/index.ts",
   "scripts": {
-    "dev": "export NODE_ENV=development && nodemon --config nodemon.json src/index.ts",
-    "build": "echo 'Compiling Typescript' && rm -rf dist && tsc -b",
-    "start": "export NODE_ENV=production && node dist/index.js",
-    "codegen": "graphql-codegen --config codegen.yml # backend",
-    "format": "prettier --write './src/**/*'; eslint --ext .ts  --fix ./src/",
-    "lint": "prettier --check './src/**/*'; eslint --ext .ts ./src/",
+    "format": "prettier --write './src/**/*'; eslint --ext .ts --fix ./src/",
+    "lint": "prettier --check './src/**/*'; eslint --ext .ts ./src/; tsc --noEmit # @hashintel/hash-backend",
+    "codegen": "graphql-codegen --config codegen.yml",
+    "build": "yarn clean; yarn codegen; tsc -b",
+    "clean": "rimraf './src/**/*.gen.*' ./dist/",
+    "postinstall": "yarn codegen # required for linting",
+    "dev": "cross-env NODE_ENV=development nodemon --config nodemon.json src/index.ts",
+    "start": "cross-env NODE_ENV=production node dist/index.js",
     "ts-node": "node --max-old-space-size=2048 node_modules/.bin/ts-node --files --project tsconfig.json",
     "clear-pg": "cd datastore/postgres && yarn refresh"
   },
@@ -27,6 +29,7 @@
     "body-parser": "1.19.0",
     "connect-pg-simple": "6.2.1",
     "cron": "1.8.2",
+    "cross-env": "^7.0.3",
     "express": "4.17.1",
     "express-session": "1.17.2",
     "graphql": "15.5.0",
@@ -72,6 +75,7 @@
     "eslint-config-prettier": "8.3.0",
     "nodemon": "2.0.12",
     "prettier": "2.3.2",
+    "rimraf": "^3.0.2",
     "ts-node": "10.2.1",
     "typescript": "4.3.5"
   }

@@ -16,9 +16,11 @@
   },
   "prettier": "@hashintel/prettier-config",
   "scripts": {
-    "format": "prettier --write './src/**/*'",
-    "lint": "prettier --check './src/**/*'; eslint ./src --ext .ts",
-    "postinstall": "tsc"
+    "format": "prettier --write './src/**/*'; eslint --ext .ts --fix ./src",
+    "lint": "prettier --check './src/**/*'; eslint --ext .ts ./src; tsc --noEmit # @hashintel/block-protocol",
+    "build": "yarn clean; tsc -b",
+    "clean": "rimraf ./dist/",
+    "postinstall": "yarn build"
   },
   "devDependencies": {
     "@hashintel/prettier-config": "*",
@@ -29,6 +31,7 @@
     "eslint-config-prettier": "8.3.0",
     "prettier": "2.3.2",
     "react": "17.0.2",
+    "rimraf": "^3.0.2",
     "typescript": "4.3.5"
   }
 }

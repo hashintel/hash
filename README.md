@@ -88,8 +88,13 @@ The below `package.json` file outlines the minimum requirements a package has to
   "prettier": "@hashintel/prettier-config",
   "scripts": {
     // use script "echo n/a" where not applicable
-    "format": "prettier --write './src/**/*'",
-    "lint": "prettier --check './src/**/*'; eslint ./src/"
+    "format": "prettier --write './src/**/*' eslint --fix ./src/",
+    // omit type-checking if not applicable
+    "lint": "prettier --check './src/**/*'; eslint ./src/; tsc --noEmit",
+    "build": "echo produce artifacts",
+    "clean": "echo remove artifacts",
+    // required only if this is a shared package
+    "postinstall": "yarn build"
   },
   "devDependencies": {
     "@hashintel/prettier-config": "*",
@@ -97,7 +102,9 @@ The below `package.json` file outlines the minimum requirements a package has to
     "@typescript-eslint/parser": "4.29.0",
     "eslint": "7.32.0",
     "eslint-config-prettier": "8.3.0",
-    "prettier": "2.3.2"
+    "prettier": "2.3.2",
+    "rimraf": "3.2.0",
+    "typescript": "4.3.5"
   }
 }
 ```

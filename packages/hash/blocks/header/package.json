@@ -10,14 +10,14 @@
   "prettier": "@hashintel/prettier-config",
   "scripts": {
     "format": "prettier --write './src/**/*'; eslint --ext .ts,.tsx --fix ./src/",
-    "lint": "prettier --check './src/**/*'; eslint --ext .ts,.tsx ./src/",
-    "build": "yarn clean && cross-env NODE_ENV=production webpack --mode production && yarn schema",
-    "build:dev": "yarn clean && cross-env NODE_ENV=development webpack --mode development",
+    "lint": "prettier --check './src/**/*'; eslint --ext .ts,.tsx ./src/; tsc --noEmit # @hashintel/block-header",
+    "build": "yarn clean; cross-env NODE_ENV=production webpack --mode production && yarn schema",
+    "build:dev": "yarn clean; cross-env NODE_ENV=development webpack --mode development",
     "schema": "typescript-json-schema tsconfig.json AppProps --required true --out dist/block-schema.json",
     "webpack-dev-server": "cross-env NODE_ENV=development webpack-dev-server -d --port 9090 --config webpack-dev-server.config.js --open",
     "start": "concurrently -n webpack,webpack-dev-server -c green,cyan \"yarn build:dev -- --watch --verbose\" \"yarn webpack-dev-server\"",
-    "clean": "rimraf dist",
-    "serve": "serve -C dist"
+    "clean": "rimraf ./dist/",
+    "serve": "serve -C ./dist/"
   },
   "dependencies": {
     "@hashintel/block-protocol": "*"
@@ -54,6 +54,7 @@
     "rimraf": "^3.0.2",
     "serve": "11.3.2",
     "twind": "0.16.16",
+    "typescript": "4.3.5",
     "typescript-json-schema": "0.50.1",
     "webpack": "^4.44.2",
     "webpack-assets-manifest": "^3.1.1",

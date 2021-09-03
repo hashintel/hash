@@ -3,7 +3,7 @@
   "prettier": "@hashintel/prettier-config",
   "scripts": {
     "format": "prettier --write './src/**/*'",
-    "lint": "prettier --check './src/**/*'; eslint --ext .js,.ts,.tsx ./src/",
+    "lint": "prettier --check './src/**/*'; eslint --ext .js,.ts,.tsx ./src/ # @hashintel/block-html-para",
     "serve": "serve -C -l 5005"
   },
   "devDependencies": {
