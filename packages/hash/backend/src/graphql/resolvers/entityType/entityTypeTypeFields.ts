@@ -62,7 +62,6 @@ const entityTypeName: Resolver<
   EntityTypeMaybeTypeFields,
   GraphQLContext
 > = async (entityType, __, { dataSources }): Promise<string> => {
-  console.log({ entityType });
   if (entityType.entityType) {
     return entityType.entityType.properties.title;
   }

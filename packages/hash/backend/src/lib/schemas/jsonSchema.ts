@@ -25,7 +25,7 @@ const TEMPORARY_HOST_NAME = "https://hash.ai";
 export const jsonSchema = (
   title: string,
   accountId: string,
-  schema: JSONObject = {}
+  schema: string | JSONObject = {}
 ) => {
   if (title[0] !== title[0].toUpperCase()) {
     throw new Error(
@@ -33,8 +33,12 @@ export const jsonSchema = (
     );
   }
 
+  if (typeof schema === "string") {
+    schema = JSON.parse(schema);
+  }
+
   return {
-    ...schema,
+    ...schema as JSONObject,
     $schema: "https://json-schema.org/draft/2020-12/schema",
     $id: `${TEMPORARY_HOST_NAME}/${accountId}/${title.toLowerCase()}.schema.json`,
     title,
