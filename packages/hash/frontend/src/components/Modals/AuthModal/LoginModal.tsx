@@ -2,10 +2,7 @@ import React, { VoidFunctionComponent } from "react";
 import { useRouter } from "next/router";
 import { useEffect, useReducer } from "react";
 
-import {
-  AuthModalLayout,
-  AuthModalLayoutProps,
-} from "../../Modals/AuthModal/AuthModalLayout";
+import { AuthModalLayout, AuthModalLayoutProps } from "./AuthModalLayout";
 import { LoginIntro } from "../../pages/auth/login/LoginIntro";
 import { VerifyCode } from "../../pages/auth/VerifyCode";
 import {
@@ -50,7 +47,7 @@ type Actions =
   | Action<"SEND_LOGIN_CODE_SUCCESS", Pick<State, "verificationCodeMetadata">>
   | Action<"SET_ERROR", string>
   | Action<"UPDATE_STATE", Partial<State>>
-  | Action<"RESET_STATE", undefined>;
+  | Action<"RESET_STATE">;
 
 const initialState: State = {
   activeScreen: Screen.Intro,
