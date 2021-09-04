@@ -265,8 +265,7 @@ export const updateVersionedEntityType = async (
     entityVersionUpdatedAt: Date;
   }
 ): Promise<void> => {
-  // Consider not updating the name if it hasn't changed.
-  /** @todo consider refactoring to not always set name again */
+  /** @todo consider updating the name if it hasn't changed. */
   await updateEntityTypeMetadata(conn, params);
 
   await insertEntityTypeVersion(conn, params);

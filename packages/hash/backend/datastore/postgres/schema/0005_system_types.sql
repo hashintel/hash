@@ -17,6 +17,21 @@ insert into entity_types (
   entity_type_id, account_id, name, versioned,
   created_by, created_at, metadata_updated_at
 ) values (
+  '122165bb-6843-4417-a070-ee8027d2612c', '543ba1a2-ed99-447e-a4d8-d2c73d5b0c6e', 'EntityType', true,
+  '543ba1a2-ed99-447e-a4d8-d2c73d5b0c6e', '2021-08-19T11:00:14.588Z', '2021-08-19T11:00:14.588Z'
+) on conflict do nothing;
+insert into entity_type_versions (
+  entity_type_id, entity_type_version_id, account_id,
+  properties, created_by, created_at, updated_at
+) values (
+  '122165bb-6843-4417-a070-ee8027d2612c', '3fa77d97-851a-4c49-a0f5-f0b2c1b81689', '543ba1a2-ed99-447e-a4d8-d2c73d5b0c6e',
+  '{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://hash.ai/543ba1a2-ed99-447e-a4d8-d2c73d5b0c6e/entitytype.schema.json","title":"EntityType","type":"object"}',
+  '543ba1a2-ed99-447e-a4d8-d2c73d5b0c6e', '2021-08-19T11:00:14.588Z', '2021-08-19T11:00:14.588Z'
+) on conflict do nothing;
+insert into entity_types (
+  entity_type_id, account_id, name, versioned,
+  created_by, created_at, metadata_updated_at
+) values (
   '5d8c70c2-58cd-425a-8625-9fd6d2005883', '543ba1a2-ed99-447e-a4d8-d2c73d5b0c6e', 'Page', true,
   '543ba1a2-ed99-447e-a4d8-d2c73d5b0c6e', '2021-08-19T11:00:14.588Z', '2021-08-19T11:00:14.588Z'
 ) on conflict do nothing;

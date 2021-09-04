@@ -33,9 +33,9 @@ import { ForbiddenError } from "apollo-server-express";
 import { logout } from "./user/logout";
 import { me } from "./user/me";
 import { isShortnameTaken } from "./user/isShortnameTaken";
-import { createEntityType } from "./entity/createEntityType";
-
-const KNOWN_ENTITIES = ["Page", "Text", "User"];
+import { createEntityType } from "./entityType/createEntityType";
+import { SYSTEM_TYPES, SystemType } from "../../types/entityTypes";
+import { entityTypeTypeFields } from "./entityType/entityTypeTypeFields";
 
 const loggedIn =
   (next: any) => (obj: any, args: any, ctx: GraphQLContext, info: any) => {
@@ -106,12 +106,19 @@ export const resolvers = {
 
   Entity: {
     __resolveType(entity: Entity) {
-      if (KNOWN_ENTITIES.includes(entity.entityTypeName)) {
+      if (SYSTEM_TYPES.includes(entity.entityTypeName as SystemType)) {
         return entity.entityTypeName;
       }
       return "UnknownEntity";
     },
     history: entityFields.history,
+  },
+
+  EntityType: {
+    entityType: entityTypeTypeFields.entityType,
+    entityTypeId: entityTypeTypeFields.entityTypeId,
+    entityTypeName: entityTypeTypeFields.entityTypeName,
+    entityTypeVersionId: entityTypeTypeFields.entityTypeVersionId,
   },
 
   Account: {
