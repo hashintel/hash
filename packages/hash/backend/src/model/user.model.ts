@@ -15,12 +15,13 @@ import VerificationCode from "./verificationCode.model";
 import EmailTransporter from "../email/transporter";
 import { ApolloError, UserInputError } from "apollo-server-express";
 import { RESTRICTED_SHORTNAMES } from "./util";
+import { EntityTypeWithoutTypeFields } from "./entityType.model";
 
 export const ALLOWED_SHORTNAME_CHARS = /^[a-zA-Z0-9-_]+$/;
 
 type UserConstructorArgs = {
   properties: UserProperties;
-} & Omit<EntityConstructorArgs, "type">;
+} & EntityConstructorArgs;
 
 class User extends Entity {
   properties: UserProperties;
@@ -271,9 +272,10 @@ class User extends Entity {
       ).then(() => verificationCode);
     };
 
-  toGQLUser = (): GQLUser => ({
+  toGQLUser = (): Omit<GQLUser, "entityType"> & {
+    entityType: EntityTypeWithoutTypeFields;
+  } => ({
     ...this.toGQLUnknownEntity(),
-    __typename: "User",
     accountSignupComplete: this.isAccountSignupComplete(),
   });
 }

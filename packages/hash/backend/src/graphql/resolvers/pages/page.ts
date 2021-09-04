@@ -1,11 +1,12 @@
 import { ApolloError } from "apollo-server-express";
 
-import { QueryPageArgs, Resolver, UnknownEntity } from "../../apiTypes.gen";
+import { QueryPageArgs, Resolver } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { entity } from "../entity/";
+import { EntityWithIncompleteEntityType } from "../../../model/entityType.model";
 
 export const page: Resolver<
-  Promise<UnknownEntity>,
+  Promise<EntityWithIncompleteEntityType>,
   {},
   GraphQLContext,
   QueryPageArgs

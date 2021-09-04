@@ -1,15 +1,12 @@
 import { ApolloError } from "apollo-server-express";
 
-import {
-  MutationUpdateEntityArgs,
-  Resolver,
-  UnknownEntity,
-} from "../../apiTypes.gen";
+import { MutationUpdateEntityArgs, Resolver } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { dbEntityToGraphQLEntity } from "../../util";
+import { EntityWithIncompleteEntityType } from "../../../model/entityType.model";
 
 export const updateEntity: Resolver<
-  Promise<UnknownEntity>,
+  Promise<EntityWithIncompleteEntityType>,
   {},
   GraphQLContext,
   MutationUpdateEntityArgs

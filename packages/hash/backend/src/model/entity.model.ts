@@ -1,11 +1,8 @@
 import { dbEntityTypeToGraphQLEntityType } from "../graphql/util";
 import { DBClient } from "../db";
 import { EntityType } from "../db/adapter";
-import {
-  Entity as GQLEntity,
-  UnknownEntity as GQLUnknownEntity,
-  Visibility,
-} from "../graphql/apiTypes.gen";
+import { Visibility } from "../graphql/apiTypes.gen";
+import { EntityWithIncompleteEntityType } from "./entityType.model";
 
 export type EntityConstructorArgs = {
   entityId: string;
@@ -71,7 +68,7 @@ class Entity {
         })
         .then((dbEntity) => (dbEntity ? new Entity(dbEntity) : null));
 
-  toGQLEntity = (): GQLEntity => ({
+  toGQLEntity = (): Omit<EntityWithIncompleteEntityType, "properties"> => ({
     id: this.entityId,
     entityId: this.entityId,
     entityVersionId: this.entityVersionId,
@@ -89,9 +86,8 @@ class Entity {
     visibility: Visibility.Public /** @todo: get from entity metadata */,
   });
 
-  toGQLUnknownEntity = (): GQLUnknownEntity => ({
+  toGQLUnknownEntity = (): EntityWithIncompleteEntityType => ({
     ...this.toGQLEntity(),
-    entityType: dbEntityTypeToGraphQLEntityType(this.entityType),
     properties: this.properties,
   });
 }

@@ -1,13 +1,10 @@
-import {
-  QueryAccountPagesArgs,
-  Resolver,
-  UnknownEntity,
-} from "../../apiTypes.gen";
+import { QueryAccountPagesArgs, Resolver } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { dbEntityToGraphQLEntity } from "../../util";
+import { EntityWithIncompleteEntityType } from "../../../model/entityType.model";
 
 export const accountPages: Resolver<
-  Promise<UnknownEntity[]>,
+  Promise<EntityWithIncompleteEntityType[]>,
   {},
   GraphQLContext,
   QueryAccountPagesArgs
