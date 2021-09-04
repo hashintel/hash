@@ -25,7 +25,9 @@ export const isParsedAuthQuery = (
   typeof query.verificationId === "string" &&
   typeof query.verificationCode === "string";
 
-export type Action<S, T> = {
-  type: S;
-  payload: T;
-};
+export type Action<S, T = undefined> = T extends undefined
+  ? { type: S }
+  : {
+      type: S;
+      payload: T;
+    };
