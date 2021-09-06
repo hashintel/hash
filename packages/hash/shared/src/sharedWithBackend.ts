@@ -208,7 +208,7 @@ export const ensureDocBlocksLoaded = async (
   );
 };
 
-export const transformBlockForProsemirror = (
+export const prepareEntityForProsemirror = (
   entity: PageFieldsFragment["properties"]["contents"][number]
 ) => {
   const block = mapEntityToBlock(entity);
@@ -241,16 +241,16 @@ export const transformBlockForProsemirror = (
  * @todo i think we need to put placeholders for the not-yet-fetched blocks immediately, and then have the actual
  *       blocks pop in – it being delayed too much will mess with collab
  */
-export const createBlockUpdateTransaction = async (
+export const createEntityUpdateTransaction = async (
   state: EditorState,
-  blocks: PageFieldsFragment["properties"]["contents"],
+  entities: PageFieldsFragment["properties"]["contents"],
   viewConfig: ViewConfig
 ) => {
   const schema = state.schema;
 
   const newNodes = await Promise.all(
-    blocks?.map(async (block, index) => {
-      const { children, props, attrs } = transformBlockForProsemirror(block);
+    entities?.map(async (block, index) => {
+      const { children, props, attrs } = prepareEntityForProsemirror(block);
 
       const componentUrl = block.properties.componentId;
       const id = componentUrlToProsemirrorId(componentUrl);

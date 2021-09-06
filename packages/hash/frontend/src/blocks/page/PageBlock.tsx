@@ -19,7 +19,7 @@ import {
   cachedPropertiesByEntity,
   calculateSavePayloads,
   componentUrlToProsemirrorId,
-  createBlockUpdateTransaction,
+  createEntityUpdateTransaction,
   mapEntityToBlock,
 } from "@hashintel/hash-shared/sharedWithBackend";
 import { defineNewBlock } from "@hashintel/hash-shared/sharedWithBackendJs";
@@ -97,7 +97,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
 
       const state = view.state;
 
-      const tr = await createBlockUpdateTransaction(
+      const tr = await createEntityUpdateTransaction(
         state,
         currentContents.current,
         {

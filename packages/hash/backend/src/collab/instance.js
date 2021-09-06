@@ -3,9 +3,9 @@ import { Mapping, Step, Transform } from "prosemirror-transform";
 import { createInitialDoc, createSchema } from "@hashintel/hash-shared/schema";
 import {
   calculateSavePayloads,
-  createBlockUpdateTransaction,
+  createEntityUpdateTransaction,
   mapEntityToBlock,
-  transformBlockForProsemirror,
+  prepareEntityForProsemirror,
 } from "@hashintel/hash-shared/sharedWithBackend";
 import {
   getPageQuery,
@@ -99,7 +99,7 @@ class Instance {
           });
 
           const transform = new Transform(this.doc);
-          const { attrs } = transformBlockForProsemirror(newBlock);
+          const { attrs } = prepareEntityForProsemirror(newBlock);
 
           const blockWithAttrs = this.doc.childAfter(mapping.map(offset) + 1);
 
@@ -272,7 +272,7 @@ async function newInstance(accountId, id) {
   );
 
   const newState = state.apply(
-    await createBlockUpdateTransaction(
+    await createEntityUpdateTransaction(
       state,
       data.page.properties.contents,
       null
