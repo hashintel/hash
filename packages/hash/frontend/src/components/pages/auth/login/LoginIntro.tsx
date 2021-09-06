@@ -51,18 +51,17 @@ export const LoginIntro: VoidFunctionComponent<LoginIntroProps> = ({
     if (typeof query.email === "string") {
       const { email, ...remainingQuery } = query;
       setEmailOrShortname(email);
+
       void router.replace({ ...router, query: remainingQuery }, undefined, {
         shallow: true,
-      });
-      void requestLoginCode(email);
+      }).then(() => requestLoginCode(email));
     }
     if (typeof query.shortname === "string") {
       const { shortname, ...remainingQuery } = query;
       setEmailOrShortname(shortname);
       void router.replace({ ...router, query: remainingQuery }, undefined, {
         shallow: true,
-      });
-      void requestLoginCode(shortname);
+      }).then(() => requestLoginCode(shortname));
     }
   }, [router, requestLoginCode]);
 
