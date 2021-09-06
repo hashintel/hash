@@ -511,6 +511,7 @@ export class PostgresClient implements DBClient {
   async getOrgByShortname(params: { shortname: string }) {
     return await getOrgByShortname(this.conn, params);
   }
+
   async getEntitiesBySystemType(params: {
     accountId: string;
     systemTypeName: SystemType;
