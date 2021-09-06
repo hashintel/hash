@@ -117,6 +117,7 @@ export interface DBClient {
   createEntity(params: {
     accountId: string;
     createdById: string;
+    entityId?: string | null | undefined;
     entityVersionId?: string | null | undefined;
     entityTypeId?: string;
     entityTypeVersionId?: string | null | undefined;

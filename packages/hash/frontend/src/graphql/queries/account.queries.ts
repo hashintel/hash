@@ -5,7 +5,7 @@ export const getAccounts = gql`
     accounts {
       __typename
       ... on Entity {
-        id
+        entityId
         accountId
       }
       ... on User {

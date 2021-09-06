@@ -151,6 +151,7 @@ export class PostgresClient implements DBClient {
   async createEntity(params: {
     accountId: string;
     createdById: string;
+    entityId?: string;
     entityVersionId?: string;
     entityTypeId?: string;
     entityTypeVersionId?: string;
@@ -189,7 +190,7 @@ export class PostgresClient implements DBClient {
       // @todo: if versionId is provided, check that it's a UUID
       const entityVersionId = params.entityVersionId ?? genId();
       const now = new Date();
-      const entityId = genId();
+      const entityId = params.entityId ?? genId();
       const entity: Entity = {
         accountId: params.accountId,
         createdById: params.createdById,

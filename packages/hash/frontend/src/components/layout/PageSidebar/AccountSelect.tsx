@@ -24,7 +24,7 @@ export const AccountSelect: VoidFunctionComponent<AccountSelectProps> = ({
       value={value}
     >
       {data?.accounts.map((account) => (
-        <option key={account.id} value={account.id}>
+        <option key={account.entityId} value={account.entityId}>
           {account.properties.shortname}
         </option>
       ))}
