@@ -39,9 +39,10 @@ abstract class Account extends Entity {
   static isShortnameTaken =
     (client: DBClient) =>
     async (shortname: string): Promise<boolean> => {
-      const org = await Org.getOrgByShortname(client)({ shortname });
-
-      const user = await User.getUserByShortname(client)({ shortname });
+      const [org, user] = await Promise.all([
+        await Org.getOrgByShortname(client)({ shortname }),
+        await User.getUserByShortname(client)({ shortname }),
+      ]);
 
       return org !== null || user !== null;
     };
