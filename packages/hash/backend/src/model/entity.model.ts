@@ -20,6 +20,7 @@ export type EntityConstructorArgs = {
 export type CreateEntityArgs = {
   accountId: string;
   createdById: string;
+  entityId?: string | null | undefined;
   entityVersionId?: string | null | undefined;
   entityTypeId?: string;
   entityTypeVersionId?: string | null | undefined;
