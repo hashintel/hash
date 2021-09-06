@@ -1,17 +1,27 @@
 import React from "react";
-import { EditorProps, NodeView } from "prosemirror-view";
+import {
+  Decoration,
+  EditorProps,
+  EditorView,
+  NodeView,
+} from "prosemirror-view";
 import { RemoteBlock } from "../../components/RemoteBlock/RemoteBlock";
 import {
   Block,
   ReplacePortals,
 } from "@hashintel/hash-shared/sharedWithBackend";
+import { Node as ProsemirrorNode } from "prosemirror-model";
 
-type NodeViewConstructorArgs = Parameters<
-  NonNullable<EditorProps["nodeViews"]>[string]
->;
 type NodeViewConstructor = {
-  new (...args: NodeViewConstructorArgs): NodeView;
+  new (
+    node: ProsemirrorNode,
+    view: EditorView,
+    getPos: () => number,
+    decorations: Decoration[]
+  ): NodeView;
 };
+
+type NodeViewConstructorArgs = ConstructorParameters<NodeViewConstructor>;
 
 /**
  * This creates a node view which integrates between React and prosemirror for each block
@@ -55,6 +65,8 @@ export const createNodeView = (
     update(node: any) {
       if (node) {
         if (node.type.name === name) {
+          console.log(node, this.getPos(), this.view.state);
+
           replacePortal(
             this.target,
             this.target,

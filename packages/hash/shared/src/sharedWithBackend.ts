@@ -214,6 +214,8 @@ export const prepareEntityForProsemirror = (
     childEntityAccountId,
     childEntityTypeId,
     childEntityVersionId,
+    // @ts-ignore
+    originalEntity: block.originalEntity,
   };
 
   return { children, props, attrs };
@@ -235,6 +237,7 @@ export const createEntityUpdateTransaction = async (
   const newNodes = await Promise.all(
     entities?.map(async (block, index) => {
       const { children, props, attrs } = prepareEntityForProsemirror(block);
+
       const entityId = block.metadataId;
 
       if (cachedPropertiesByPosition[index]) {
@@ -328,6 +331,9 @@ export const mapEntityToBlock = (
     versionId: content.id,
     entity: props,
     accountId: content.accountId,
+
+    // @ts-ignore
+    originalEntity: content,
   };
 };
 

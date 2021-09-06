@@ -1,30 +1,66 @@
-import { Schema } from "prosemirror-model";
+import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
 
 export const createSchema = () =>
   new Schema({
     nodes: {
       doc: {
-        content: "((block|blockItem)+)|blank",
+        content: "((block|entity|blockItem)+)|blank",
       },
       blank: {
         toDOM: () => ["div", 0] as const,
       },
       block: {
-        content: "blockItem",
+        content: "blockItem|entity",
+        attrs: { id: {} },
         /**
          * These properties are necessary for copy and paste (which is necessary for drag and drop)
          */
-        toDOM: () => {
+        toDOM: (node) => {
           return [
             "div",
             {
               "data-hash-type": "block",
+              "data-hash-id": node.attrs.id,
             },
           ] as const;
         },
         parseDOM: [
           {
             tag: 'div[data-hash-type="block"]',
+            getAttrs: (node: Node | string) =>
+              typeof node === "string"
+                ? {}
+                : {
+                    id: (node as HTMLElement).getAttribute("data-hash-id"),
+                  },
+          },
+        ],
+      },
+      entity: {
+        content: "blockItem",
+        attrs: { id: {} },
+        /**
+         * These properties are necessary for copy and paste (which is necessary for drag and drop)
+         */
+        toDOM: (node) => {
+          return [
+            "div",
+            {
+              "data-hash-type": "entity",
+              "data-hash-id": node.attrs.id,
+            },
+            0,
+          ] as const;
+        },
+        parseDOM: [
+          {
+            tag: 'div[data-hash-type="entity"]',
+            getAttrs: (node: Node | string) =>
+              typeof node === "string"
+                ? {}
+                : {
+                    id: (node as HTMLElement).getAttribute("data-hash-id"),
+                  },
           },
         ],
       },

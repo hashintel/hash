@@ -1,6 +1,7 @@
 import React, {
   useCallback,
   useLayoutEffect,
+  useMemo,
   useRef,
   VoidFunctionComponent,
 } from "react";
@@ -25,6 +26,7 @@ import { defineNewBlock } from "@hashintel/hash-shared/sharedWithBackendJs";
 import { collabEnabled, createNodeView } from "./tsUtils";
 import { EditorConnection } from "./collab/collab";
 import { PageFieldsFragment } from "@hashintel/hash-shared/graphql/apiTypes.gen";
+import { createEntityList, EntityListContext } from "./EntityListContext";
 
 type PageBlockProps = {
   contents: PageFieldsFragment["properties"]["contents"];
@@ -92,6 +94,8 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     currentContents.current = contents;
   }, [contents]);
 
+  const entityList = useMemo(() => createEntityList(contents), [contents]);
+
   const updateContents = useCallback(
     async (signal?: AbortSignal): Promise<void> => {
       const setup = prosemirrorSetup.current;
@@ -144,6 +148,8 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
      */
     let saveQueue = Promise.resolve();
     (window as any).triggerSave = () => {
+      // @todo renable save
+      return;
       if (collabEnabled) {
         return;
       }
@@ -323,8 +329,10 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
 
   return (
     <BlockMetaContext.Provider value={blocksMeta}>
-      <div id="root" ref={root} />
-      {portals}
+      <EntityListContext.Provider value={entityList}>
+        <div id="root" ref={root} />
+        {portals}
+      </EntityListContext.Provider>
     </BlockMetaContext.Provider>
   );
 };

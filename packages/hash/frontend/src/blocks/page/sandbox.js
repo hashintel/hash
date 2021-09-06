@@ -239,6 +239,8 @@ class BlockView {
     /** @implements https://prosemirror.net/docs/ref/#view.NodeView.dom */
     this.dom = document.createElement("div");
     this.dom.classList.add(styles.Block);
+    this.dom.setAttribute("data-hash-type", "block");
+    this.dom.setAttribute("data-hash-id", node.attrs.id);
 
     this.selectContainer = document.createElement("div");
     this.selectContainer.classList.add(styles.Block__UI);
