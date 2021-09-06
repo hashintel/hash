@@ -3,7 +3,8 @@ import Entity, { EntityConstructorArgs } from "./entity.model";
 import { ApolloError, UserInputError } from "apollo-server-express";
 import { RESTRICTED_SHORTNAMES } from "./util";
 import User from "./user.model";
-import { OrgProperties, UserProperties } from "src/graphql/apiTypes.gen";
+import { OrgProperties, UserProperties } from "../graphql/apiTypes.gen";
+import Org from "./org.model";
 
 export const ALLOWED_SHORTNAME_CHARS = /^[a-zA-Z0-9-_]+$/;
 
@@ -38,11 +39,11 @@ abstract class Creator extends Entity {
   static isShortnameTaken =
     (client: DBClient) =>
     async (shortname: string): Promise<boolean> => {
-      /** @todo: check if an org with the shortname exists */
+      const org = await Org.getOrgByShortname(client)({ shortname });
 
       const user = await User.getUserByShortname(client)({ shortname });
 
-      return user !== null;
+      return org !== null || user !== null;
     };
 
   static validateShortname =
