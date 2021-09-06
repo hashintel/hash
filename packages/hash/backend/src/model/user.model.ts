@@ -91,10 +91,6 @@ class User extends Account {
       return new User(entity);
     };
 
-  /**
-   * Must occur in the same db transaction as when `this.properties` was fetched
-   * to prevent overriding externally-updated properties
-   */
   private updateUserProperties =
     (client: DBClient) => (properties: UserProperties) =>
       this.updateProperties(client)(properties);

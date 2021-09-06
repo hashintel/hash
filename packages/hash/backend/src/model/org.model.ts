@@ -66,10 +66,6 @@ class Org extends Account {
       return new Org(entity);
     };
 
-  /**
-   * Must occur in the same db transaction as when `this.properties` was fetched
-   * to prevent overriding externally-updated properties
-   */
   private updateOrgProperties =
     (client: DBClient) => (properties: OrgProperties) =>
       this.updateProperties(client)(properties);

@@ -88,10 +88,6 @@ class Entity {
         })
         .then((dbEntity) => (dbEntity ? new Entity(dbEntity) : null));
 
-  /**
-   * Must occur in the same db transaction as when `this.properties` was fetched
-   * to prevent overriding externally-updated properties
-   */
   updateProperties = (client: DBClient) => (properties: any) =>
     client
       .updateEntity({
