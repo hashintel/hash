@@ -15,7 +15,7 @@
     "lint": "prettier --check './src/**/*'; eslint --ext .ts ./src/; tsc --noEmit # @hashintel/hash-backend",
     "codegen": "graphql-codegen --config codegen.yml",
     "build": "yarn clean; yarn codegen; tsc -b",
-    "clean": "rimraf './src/**/*.gen.*' ./dist/",
+    "clean": "rimraf './src/**/*.gen.*' ./dist/ ./tsconfig.tsbuildinfo",
     "postinstall": "yarn codegen # required for linting",
     "dev": "cross-env NODE_ENV=development nodemon --config nodemon.json src/index.ts",
     "start": "cross-env NODE_ENV=production node dist/index.js",

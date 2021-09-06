@@ -20,7 +20,7 @@
     "lint": "prettier --check './src/**/*'; eslint --ext .js,.ts,.tsx ./src/; tsc --noEmit # @hashintel/hash-shared",
     "codegen": "graphql-codegen --config codegen.yml",
     "build": "yarn clean; yarn codegen; tsc -b",
-    "clean": "rimraf './src/**/*.gen.*' ./dist/",
+    "clean": "rimraf './src/**/*.gen.*' ./dist/ ./tsconfig.tsbuildinfo",
     "postinstall": "yarn build"
   },
   "dependencies": {
