@@ -15,7 +15,7 @@
     "lint": "prettier --check './src/**/*'; eslint --ext .ts ./src/; tsc --noEmit # @hashintel/hash-integration",
     "codegen": "graphql-codegen --config codegen.yml",
     "build": "yarn clean; yarn codegen; tsc -b",
-    "clean": "rimraf './src/**/*.gen.*' ./dist/",
+    "clean": "rimraf './src/**/*.gen.*' ./dist/ ./tsconfig.tsbuildinfo",
     "postinstall": "yarn codegen # required for linting",
     "ts-node": "node --max-old-space-size=2048 node_modules/.bin/ts-node --files --project tsconfig.json",
     "mock-data": "yarn codegen && ts-node src/mockData/index.ts",
