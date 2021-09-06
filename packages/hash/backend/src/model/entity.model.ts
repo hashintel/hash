@@ -88,6 +88,12 @@ class __Entity {
         })
         .then((dbEntity) => (dbEntity ? new Entity(dbEntity) : null));
 
+  static getAccountEntities = async (client: DBClient): Promise<Entity[]> => {
+    const dbEntities = await client.getAccountEntities();
+
+    return dbEntities.map((dbEntity) => new Entity(dbEntity));
+  };
+
   updateProperties = (client: DBClient) => (properties: any) =>
     client
       .updateEntity({
