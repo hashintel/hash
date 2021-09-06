@@ -38,7 +38,7 @@ export const jsonSchema = (
   }
 
   return {
-    ...schema as JSONObject,
+    ...(schema as JSONObject),
     $schema: "https://json-schema.org/draft/2020-12/schema",
     $id: `${TEMPORARY_HOST_NAME}/${accountId}/${title.toLowerCase()}.schema.json`,
     title,

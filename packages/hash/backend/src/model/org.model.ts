@@ -3,6 +3,7 @@ import { EntityType } from "../db/adapter";
 import { genId } from "../util";
 import { OrgProperties, Org as GQLOrg } from "../graphql/apiTypes.gen";
 import Entity, { EntityConstructorArgs } from "./entity.model";
+import { EntityTypeWithoutTypeFields } from "./entityType.model";
 
 type OrgConstructorArgs = {
   properties: OrgProperties;
@@ -72,7 +73,9 @@ class Org extends Entity {
     (client: DBClient) => (properties: OrgProperties) =>
       this.updateProperties(client)(properties);
 
-  toGQLOrg = (): GQLOrg => ({
+  toGQLOrg = (): Omit<GQLOrg, "entityType"> & {
+    entityType: EntityTypeWithoutTypeFields;
+  } => ({
     ...this.toGQLUnknownEntity(),
     __typename: "Org",
   });

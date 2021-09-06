@@ -57,7 +57,10 @@ class Entity {
     this.entityVersionId = entityVersionId;
     this.createdById = createdById;
     this.accountId = accountId;
-    this.entityType = entityType instanceof EntityType ? entityType : new EntityType(entityType);
+    this.entityType =
+      entityType instanceof EntityType
+        ? entityType
+        : new EntityType(entityType);
     this.properties = properties;
     this.entityCreatedAt = entityCreatedAt;
     this.entityVersionCreatedAt = entityVersionCreatedAt;
