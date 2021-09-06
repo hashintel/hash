@@ -58,7 +58,7 @@ if (typeof localStorage !== "undefined") {
  * to somehow detach the process of rendering child blocks from this and have a renderer, but it seems tricky to do that
  */
 export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
-  contents: premappedContents,
+  contents,
   blocksMeta,
   pageId,
   accountId,
@@ -81,10 +81,10 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
    * smart hack: provide a live reference to "contents" for all other effects
    * that cannot list "contents" as a dependency for reasons.
    */
-  const currentContents = useRef(premappedContents);
+  const currentContents = useRef(contents);
   useLayoutEffect(() => {
-    currentContents.current = premappedContents;
-  }, [premappedContents]);
+    currentContents.current = contents;
+  }, [contents]);
 
   const updateContents = useCallback(
     async (signal?: AbortSignal): Promise<void> => {

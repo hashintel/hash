@@ -209,9 +209,9 @@ export const ensureDocBlocksLoaded = async (
 };
 
 export const transformBlockForProsemirror = (
-  premappedBlock: PageFieldsFragment["properties"]["contents"][number]
+  entity: PageFieldsFragment["properties"]["contents"][number]
 ) => {
-  const block = mapEntityToBlock(premappedBlock);
+  const block = mapEntityToBlock(entity);
 
   const {
     children,
