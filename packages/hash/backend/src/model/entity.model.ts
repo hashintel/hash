@@ -1,6 +1,6 @@
-import { dbEntityTypeToGraphQLEntityType } from "../graphql/util";
 import { DBClient } from "../db";
-import { EntityType } from "../db/adapter";
+import { EntityType as DbEntityType } from "../db/adapter";
+import EntityType from "./entityType.model";
 import { Visibility } from "../graphql/apiTypes.gen";
 import { EntityWithIncompleteEntityType } from "./entityType.model";
 
@@ -9,7 +9,7 @@ export type EntityConstructorArgs = {
   entityVersionId: string;
   createdById: string;
   accountId: string;
-  entityType: EntityType;
+  entityType: DbEntityType;
   properties: any;
   // metadata: EntityMeta;
   entityCreatedAt: Date;
@@ -45,7 +45,7 @@ class Entity {
     this.entityVersionId = entityVersionId;
     this.createdById = createdById;
     this.accountId = accountId;
-    this.entityType = entityType;
+    this.entityType = new EntityType(entityType);
     this.properties = properties;
     this.entityCreatedAt = entityCreatedAt;
     this.entityVersionCreatedAt = entityVersionCreatedAt;
@@ -77,8 +77,8 @@ class Entity {
     entityTypeId: this.entityType.entityId,
     entityTypeVersionId: this.entityType.entityVersionId,
     /** @todo: stop casting this */
-    entityTypeName: this.entityType.entityTypeName as string,
-    entityType: dbEntityTypeToGraphQLEntityType(this.entityType),
+    entityTypeName: this.entityType.properties.title as string,
+    entityType: this.entityType.toGQLEntityType(),
     metadataId: this.entityId,
     createdAt: this.entityCreatedAt,
     entityVersionCreatedAt: this.entityVersionCreatedAt,

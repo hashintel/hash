@@ -5,7 +5,9 @@ import {
 } from "../model/entityType.model";
 
 /** Converts an `Entity` type returned by the `db` library, to an `UnknownEntity`
- * type defined by the GraphQL type definition. */
+ * type defined by the GraphQL type definition.
+ * @todo remove this once all resolvers go via model classes
+ * */
 export const dbEntityToGraphQLEntity = (
   entity: db.Entity
 ): EntityWithIncompleteEntityType => {
@@ -32,6 +34,8 @@ export const dbEntityToGraphQLEntity = (
  * Converts an `EntityType` type returned by the `db` library to an `EntityType`
  * type defined by the GraphQL type definition, except WITHOUT its own type fields
  * as these are currently resolved by separate field resolvers.
+ * @todo remove this once remaining uses of dbEntityToGraphQLEntity are removed
+ *    in favour of resolvers going through the model classes
  */
 export const dbEntityTypeToGraphQLEntityType = (
   type: db.EntityType

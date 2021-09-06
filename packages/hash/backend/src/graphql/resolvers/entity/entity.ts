@@ -2,8 +2,8 @@ import { ApolloError, UserInputError } from "apollo-server-express";
 
 import { QueryEntityArgs, Resolver } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
-import { dbEntityToGraphQLEntity } from "../../util";
 import { EntityWithIncompleteEntityType } from "../../../model/entityType.model";
+import Entity from "../../../model/entity.model";
 
 export const entity: Resolver<
   Promise<EntityWithIncompleteEntityType>,
@@ -36,5 +36,5 @@ export const entity: Resolver<
     );
   }
 
-  return dbEntityToGraphQLEntity(dbEntity);
+  return new Entity(dbEntity).toGQLUnknownEntity();
 };
