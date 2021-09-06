@@ -15,8 +15,12 @@ const systemAccount = generatedIds.orgs[SYSTEM_ACCOUNT_NAME];
 
 let sqlString = "";
 
-for (const typeName of ["Block", "Page", "Text", "User"]) {
+for (const typeName of ["Block", "EntityType", "Page", "Text", "User"]) {
   const type = types[typeName];
+
+  // @todo add the schemas for each type under 'properties'
+  //    the EntityType schema will probably be the general purpose JSON meta schema
+  //    https://json-schema.org/specification.html
 
   sqlString += `insert into entity_types (
   entity_type_id, account_id, name, versioned,

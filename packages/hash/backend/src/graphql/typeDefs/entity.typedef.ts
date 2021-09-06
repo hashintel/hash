@@ -261,6 +261,7 @@ export const entityTypedef = gql`
 
   enum SystemTypeName {
     Block
+    EntityType
     Org
     Page
     Text

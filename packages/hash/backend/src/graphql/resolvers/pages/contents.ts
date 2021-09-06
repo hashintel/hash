@@ -1,12 +1,13 @@
 import { ApolloError } from "apollo-server-express";
 
-import { Resolver, UnknownEntity } from "../../apiTypes.gen";
+import { Resolver } from "../../apiTypes.gen";
 import { DbPage } from "../../../types/dbTypes";
 import { GraphQLContext } from "../../context";
 import { dbEntityToGraphQLEntity } from "../../util";
+import { EntityWithIncompleteEntityType } from "../../../model/entityType.model";
 
 export const contents: Resolver<
-  Promise<UnknownEntity[]>,
+  Promise<EntityWithIncompleteEntityType[]>,
   DbPage["properties"],
   GraphQLContext
 > = async ({ contents }, _, { dataSources }) => {

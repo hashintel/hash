@@ -1,6 +1,5 @@
 import {
   AggregateOperationInput,
-  AggregationResponse,
   Resolver,
   UnknownEntity,
 } from "../../apiTypes.gen";
@@ -94,7 +93,7 @@ const resolveLinkedData = async (
       );
     } else if (aggregate) {
       // Fetch an array of entities
-      const { results } = (await aggregateEntity(
+      const { results } = await aggregateEntity(
         {},
         {
           accountId,
@@ -103,7 +102,7 @@ const resolveLinkedData = async (
         },
         ctx,
         info
-      )) as AggregationResponse;
+      );
 
       object.properties[key] = results;
       // Resolve linked data for each entity in the array

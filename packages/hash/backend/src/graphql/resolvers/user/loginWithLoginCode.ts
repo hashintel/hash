@@ -1,13 +1,10 @@
-import {
-  MutationLoginWithLoginCodeArgs,
-  Resolver,
-  User as GQLUser,
-} from "../../apiTypes.gen";
+import { MutationLoginWithLoginCodeArgs, Resolver } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { verifyVerificationCode } from "./util";
+import { EntityWithIncompleteEntityType } from "../../../model/entityType.model";
 
 export const loginWithLoginCode: Resolver<
-  GQLUser,
+  EntityWithIncompleteEntityType,
   {},
   GraphQLContext,
   MutationLoginWithLoginCodeArgs

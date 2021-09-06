@@ -1,17 +1,14 @@
 import { ApolloError, UserInputError } from "apollo-server-errors";
 
 import { DbPageProperties, DbBlockProperties } from "../../../types/dbTypes";
-import {
-  Resolver,
-  MutationInsertBlocksIntoPageArgs,
-  UnknownEntity,
-} from "../../apiTypes.gen";
+import { Resolver, MutationInsertBlocksIntoPageArgs } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { genId } from "../../../util";
 import { dbEntityToGraphQLEntity } from "../../util";
+import { EntityWithIncompleteEntityType } from "../../../model/entityType.model";
 
 export const insertBlocksIntoPage: Resolver<
-  Promise<UnknownEntity>,
+  Promise<EntityWithIncompleteEntityType>,
   {},
   GraphQLContext,
   MutationInsertBlocksIntoPageArgs

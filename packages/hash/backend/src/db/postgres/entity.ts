@@ -47,6 +47,7 @@ export const mapPGRowToEntity = (row: QueryResultRowType): Entity => {
 /**
  * @todo since many entities will be of the same small number of system types (e.g. block),
  *    for non-nested queries it will probably end up faster to request and cache types separately.
+ *    the extra join to get the type's createdAt date seems particularly wasteful.
  */
 export const selectEntities = sql`
   select
@@ -67,11 +68,15 @@ export const selectEntities = sql`
     type.entity_type_version_id as "type.entity_type_version_id",
     type.properties as "type.properties",
     type.created_by as "type.created_by",
-    type.created_at as "type.created_at"
+    type.created_at as "type.version_created_at",
+    type.updated_at as "type.version_updated_at",
+    typeMeta.created_at as "type.created_at"
   from
     entity_versions as e
     join entity_type_versions as type on
         e.entity_type_version_id = type.entity_type_version_id
+    join entity_types as typeMeta on
+        typeMeta.entity_type_id = type.entity_type_id
     join entities as meta on
         e.account_id = meta.account_id and  -- required for sharding
         e.entity_id = meta.entity_id

@@ -3,11 +3,11 @@ import { ApolloError } from "apollo-server-express";
 import { Resolver } from "../../apiTypes.gen";
 import { DbBlockProperties } from "../../../types/dbTypes";
 import { GraphQLContext } from "../../context";
-import { UnknownEntity } from "../../apiTypes.gen";
 import { dbEntityToGraphQLEntity } from "../../util";
+import { EntityWithIncompleteEntityType } from "../../../model/entityType.model";
 
 export const blockEntity: Resolver<
-  Promise<UnknownEntity>,
+  Promise<EntityWithIncompleteEntityType>,
   DbBlockProperties,
   GraphQLContext,
   {}

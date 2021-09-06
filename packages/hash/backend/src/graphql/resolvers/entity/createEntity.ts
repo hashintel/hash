@@ -1,11 +1,11 @@
 import { genId } from "../../../util";
 import { MutationCreateEntityArgs, Resolver } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
-import { UnknownEntity } from "../../apiTypes.gen";
 import { dbEntityToGraphQLEntity } from "../../util";
+import { EntityWithIncompleteEntityType } from "../../../model/entityType.model";
 
 export const createEntity: Resolver<
-  Promise<UnknownEntity>,
+  Promise<EntityWithIncompleteEntityType>,
   {},
   GraphQLContext,
   MutationCreateEntityArgs

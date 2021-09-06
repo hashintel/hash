@@ -1,16 +1,13 @@
 import { ApolloError } from "apollo-server-express";
 
-import {
-  MutationVerifyEmailArgs,
-  Resolver,
-  User as GQLUser,
-} from "../../apiTypes.gen";
+import { MutationVerifyEmailArgs, Resolver } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import User from "../../../model/user.model";
 import { verifyVerificationCode } from "./util";
+import { EntityWithIncompleteEntityType } from "../../../model/entityType.model";
 
 export const verifyEmail: Resolver<
-  GQLUser,
+  EntityWithIncompleteEntityType,
   {},
   GraphQLContext,
   MutationVerifyEmailArgs
