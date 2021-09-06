@@ -335,8 +335,6 @@ const invertedBlockPaths = Object.fromEntries(
   Object.entries(blockPaths).map(([key, value]) => [value, key])
 );
 
-(globalThis as any).invertedBlockPaths = invertedBlockPaths;
-
 export const cachedPropertiesByEntity: Record<string, Record<any, any>> = {};
 const cachedPropertiesByPosition: Record<string, Record<any, any>> = {};
 
