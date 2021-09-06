@@ -87,8 +87,7 @@ class Instance {
           });
 
           const { position } = insertPayload;
-          const newBlock =
-            data.insertBlockIntoPage.properties.contents[position];
+          const entity = data.insertBlockIntoPage.properties.contents[position];
 
           const offset = await new Promise((resolve) => {
             doc.forEach((_, offset, index) => {
@@ -99,7 +98,7 @@ class Instance {
           });
 
           const transform = new Transform(this.doc);
-          const { attrs } = prepareEntityForProsemirror(newBlock);
+          const { attrs } = prepareEntityForProsemirror(entity);
 
           const blockWithAttrs = this.doc.childAfter(mapping.map(offset) + 1);
 
