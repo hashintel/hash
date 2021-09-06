@@ -3,6 +3,7 @@ import Org from "@hashintel/hash-backend/src/model/org.model";
 import Entity, {
   CreateEntityArgs,
 } from "@hashintel/hash-backend/src/model/entity.model";
+import EntityType from "@hashintel/hash-backend/src/model/entityType.model";
 import "./loadEnv";
 import { createOrgs, createUsers } from "./accounts";
 import { SystemTypeName } from "../graphql/apiTypes.gen";
@@ -57,14 +58,14 @@ void (async () => {
 
   await Promise.all(
     requiredTypes.map(async (name) => {
-      const dbEntityType = await db.createEntityType({
+      const entityType = await EntityType.create(db)({
         accountId: hashOrg.accountId,
         createdById: hashOrg.entityId, // TODO
         name,
         schema: {},
       });
 
-      newTypeIds[name] = dbEntityType.entityId;
+      newTypeIds[name] = entityType.entityId;
     })
   );
 
