@@ -72,21 +72,27 @@ class __Entity {
     async (args: CreateEntityArgs): Promise<Entity> =>
       client.createEntity(args).then((dbEntity) => new Entity(dbEntity));
 
-  static getEntityById =
+  static getEntity =
     (client: DBClient) =>
-    ({
-      accountId,
-      entityVersionId,
-    }: {
+    async (args: {
       accountId: string;
       entityVersionId: string;
-    }): Promise<Entity | null> =>
-      client
-        .getEntity({
-          accountId,
-          entityVersionId,
-        })
-        .then((dbEntity) => (dbEntity ? new Entity(dbEntity) : null));
+    }): Promise<Entity | null> => {
+      const dbEntity = await client.getEntity(args);
+
+      return dbEntity ? new Entity(dbEntity) : null;
+    };
+
+  static getEntityLatestVersion =
+    (client: DBClient) =>
+    async (args: {
+      accountId: string;
+      entityId: string;
+    }): Promise<Entity | null> => {
+      const dbEntity = await client.getEntityLatestVersion(args);
+
+      return dbEntity ? new Entity(dbEntity) : null;
+    };
 
   static getAccountEntities = async (client: DBClient): Promise<Entity[]> => {
     const dbEntities = await client.getAccountEntities();
