@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { Schema as JSONSchema } from "jsonschema";
-import { EditorState, Transaction } from "prosemirror-state";
+import { EditorState } from "prosemirror-state";
 import { createRemoteBlock, defineRemoteBlock } from "./sharedWithBackendJs";
 
 // @todo move this
