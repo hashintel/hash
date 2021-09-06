@@ -13,14 +13,14 @@ import {
 import VerificationCode from "./verificationCode.model";
 import EmailTransporter from "../email/transporter";
 import { EntityTypeWithoutTypeFields } from "./entityType.model";
-import Creator, { CreatorConstructorArgs } from "./creator.model";
+import Account, { AccountConstructorArgs } from "./account.model";
 import Entity from "./entity.model";
 
 type UserConstructorArgs = {
   properties: UserProperties;
-} & Omit<CreatorConstructorArgs, "type">;
+} & Omit<AccountConstructorArgs, "type">;
 
-class User extends Creator {
+class User extends Account {
   properties: UserProperties;
 
   constructor({ properties, ...remainingArgs }: UserConstructorArgs) {

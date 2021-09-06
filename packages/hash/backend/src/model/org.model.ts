@@ -4,12 +4,13 @@ import { genId } from "../util";
 import { OrgProperties, Org as GQLOrg } from "../graphql/apiTypes.gen";
 import Entity, { EntityConstructorArgs } from "./entity.model";
 import { EntityTypeWithoutTypeFields } from "./entityType.model";
+import Account from "./account.model";
 
 type OrgConstructorArgs = {
   properties: OrgProperties;
 } & Omit<EntityConstructorArgs, "type">;
 
-class Org extends Entity {
+class Org extends Account {
   properties: OrgProperties;
 
   constructor({ properties, ...remainingArgs }: OrgConstructorArgs) {

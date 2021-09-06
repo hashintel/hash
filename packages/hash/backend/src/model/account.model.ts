@@ -8,16 +8,16 @@ import Org from "./org.model";
 
 export const ALLOWED_SHORTNAME_CHARS = /^[a-zA-Z0-9-_]+$/;
 
-type CreatorProperties = UserProperties | OrgProperties;
+type AccountProperties = UserProperties | OrgProperties;
 
-export type CreatorConstructorArgs = {
-  properties: CreatorProperties;
+export type AccountConstructorArgs = {
+  properties: AccountProperties;
 } & EntityConstructorArgs;
 
-abstract class Creator extends Entity {
-  properties: CreatorProperties;
+abstract class Account extends Entity {
+  properties: AccountProperties;
 
-  constructor(args: CreatorConstructorArgs) {
+  constructor(args: AccountConstructorArgs) {
     super(args);
     this.properties = args.properties;
   }
@@ -48,11 +48,11 @@ abstract class Creator extends Entity {
 
   static validateShortname =
     (client: DBClient) => async (shortname: string) => {
-      Creator.checkShortnameChars(shortname);
+      Account.checkShortnameChars(shortname);
 
       if (
-        Creator.isShortnameReserved(shortname) ||
-        (await Creator.isShortnameTaken(client)(shortname))
+        Account.isShortnameReserved(shortname) ||
+        (await Account.isShortnameTaken(client)(shortname))
       ) {
         throw new ApolloError(`Shortname ${shortname} taken`, "NAME_TAKEN");
       }
@@ -81,4 +81,4 @@ abstract class Creator extends Entity {
     });
 }
 
-export default Creator;
+export default Account;
