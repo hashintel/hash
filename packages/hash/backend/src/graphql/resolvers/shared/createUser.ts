@@ -6,7 +6,7 @@ import {
   VerificationCodeMetadata,
 } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
-import User from "../../../model/user.model";
+import { User } from "../../../model";
 
 export const createUser: Resolver<
   Promise<VerificationCodeMetadata>,

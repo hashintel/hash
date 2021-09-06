@@ -1,3 +1,10 @@
+import {
+  Entity,
+  Account,
+  AccountConstructorArgs,
+  EntityTypeWithoutTypeFields,
+  VerificationCode,
+} from ".";
 import { DBClient } from "../db";
 import { EntityType } from "../db/adapter";
 import {
@@ -10,17 +17,13 @@ import {
   User as GQLUser,
   Email,
 } from "../graphql/apiTypes.gen";
-import VerificationCode from "./verificationCode.model";
 import EmailTransporter from "../email/transporter";
-import { EntityTypeWithoutTypeFields } from "./entityType.model";
-import Account, { AccountConstructorArgs } from "./account.model";
-import Entity from "./entity.model";
 
 type UserConstructorArgs = {
   properties: UserProperties;
 } & Omit<AccountConstructorArgs, "type">;
 
-class User extends Account {
+export class User extends Account {
   properties: UserProperties;
 
   constructor({ properties, ...remainingArgs }: UserConstructorArgs) {

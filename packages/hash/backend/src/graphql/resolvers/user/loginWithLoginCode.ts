@@ -1,7 +1,7 @@
 import { MutationLoginWithLoginCodeArgs, Resolver } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { verifyVerificationCode } from "./util";
-import { EntityWithIncompleteEntityType } from "../../../model/entityType.model";
+import { EntityWithIncompleteEntityType } from "../../../model";
 
 export const loginWithLoginCode: Resolver<
   EntityWithIncompleteEntityType,

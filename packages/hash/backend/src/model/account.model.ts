@@ -1,10 +1,9 @@
-import { DBClient } from "../db";
-import Entity, { EntityConstructorArgs } from "./entity.model";
 import { ApolloError, UserInputError } from "apollo-server-express";
+
+import { Entity, EntityConstructorArgs, Org, User } from ".";
+import { DBClient } from "../db";
 import { RESTRICTED_SHORTNAMES } from "./util";
-import User from "./user.model";
 import { OrgProperties, UserProperties } from "../graphql/apiTypes.gen";
-import Org from "./org.model";
 
 export const ALLOWED_SHORTNAME_CHARS = /^[a-zA-Z0-9-_]+$/;
 
@@ -14,7 +13,7 @@ export type AccountConstructorArgs = {
   properties: AccountProperties;
 } & EntityConstructorArgs;
 
-abstract class Account extends Entity {
+export abstract class Account extends Entity {
   properties: AccountProperties;
 
   constructor(args: AccountConstructorArgs) {
@@ -81,5 +80,3 @@ abstract class Account extends Entity {
       shortname: updatedShortname,
     });
 }
-
-export default Account;

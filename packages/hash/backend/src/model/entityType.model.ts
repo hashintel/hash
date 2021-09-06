@@ -48,7 +48,7 @@ export type EntityTypeConstructorArgs = {
 };
 
 // This is a bit repetitive of Entity, but we don't want the methods on Entity available on this
-class EntityType {
+export class EntityType {
   entityId: string;
   entityVersionId: string;
   createdById: string;
@@ -125,5 +125,3 @@ class EntityType {
     visibility: Visibility.Public /** @todo: get from entity metadata */,
   });
 }
-
-export default EntityType;

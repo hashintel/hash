@@ -1,7 +1,7 @@
 import { genId } from "../../../util";
 import { MutationCreateOrgArgs, Resolver } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
-import { EntityWithIncompleteEntityType } from "../../../model/entityType.model";
+import { EntityWithIncompleteEntityType } from "../../../model";
 import { dbEntityToGraphQLEntity } from "../../util";
 
 export const createOrg: Resolver<

@@ -1,16 +1,19 @@
+import {
+  Account,
+  Entity,
+  AccountConstructorArgs,
+  EntityTypeWithoutTypeFields,
+} from ".";
 import { DBClient } from "../db";
 import { EntityType } from "../db/adapter";
 import { genId } from "../util";
 import { OrgProperties, Org as GQLOrg } from "../graphql/apiTypes.gen";
-import Entity, { EntityConstructorArgs } from "./entity.model";
-import { EntityTypeWithoutTypeFields } from "./entityType.model";
-import Account from "./account.model";
 
 type OrgConstructorArgs = {
   properties: OrgProperties;
-} & Omit<EntityConstructorArgs, "type">;
+} & Omit<AccountConstructorArgs, "type">;
 
-class Org extends Account {
+export class Org extends Account {
   properties: OrgProperties;
 
   constructor({ properties, ...remainingArgs }: OrgConstructorArgs) {

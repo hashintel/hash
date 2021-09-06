@@ -1,8 +1,7 @@
+import { EntityType, EntityWithIncompleteEntityType } from ".";
 import { DBClient } from "../db";
 import { EntityType as DbEntityType } from "../db/adapter";
-import EntityType from "./entityType.model";
 import { Visibility } from "../graphql/apiTypes.gen";
-import { EntityWithIncompleteEntityType } from "./entityType.model";
 import { SystemType } from "../types/entityTypes";
 
 export type EntityConstructorArgs = {
@@ -29,7 +28,7 @@ export type CreateEntityArgs = {
   properties: any;
 };
 
-class Entity {
+export class Entity {
   entityId: string;
   entityVersionId: string;
   createdById: string;
@@ -124,5 +123,3 @@ class Entity {
     properties: this.properties,
   });
 }
-
-export default Entity;

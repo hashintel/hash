@@ -20,7 +20,7 @@ type VerificationCodeConstructorArgs = {
   createdAt: Date;
 };
 
-class VerificationCode {
+export class VerificationCode {
   id: string;
   code: string;
   emailAddress: string;
@@ -93,5 +93,3 @@ class VerificationCode {
     createdAt: this.createdAt,
   });
 }
-
-export default VerificationCode;

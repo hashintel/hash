@@ -1,6 +1,5 @@
 import "./loadTestEnv";
-import User from "@hashintel/hash-backend/src/model/user.model";
-import VerificationCode from "@hashintel/hash-backend/src/model/verificationCode.model";
+import { User, VerificationCode } from "@hashintel/hash-backend/src/model";
 import { PostgresAdapter } from "@hashintel/hash-backend/src/db";
 
 import { ApiClient } from "./util";

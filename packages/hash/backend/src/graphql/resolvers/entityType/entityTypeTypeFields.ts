@@ -1,9 +1,10 @@
 import { Resolver, EntityType as GQLEntityType } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
-import EntityType, {
+import {
+  EntityType,
   EntityTypeTypeFields,
   EntityTypeWithoutTypeFields,
-} from "../../../model/entityType.model";
+} from "../../../model";
 import { ApolloError } from "apollo-server-express";
 
 type EntityTypeMaybeTypeFields = EntityTypeWithoutTypeFields & {

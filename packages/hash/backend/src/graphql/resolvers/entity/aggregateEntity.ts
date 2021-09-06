@@ -6,7 +6,7 @@ import {
 import { GraphQLContext } from "../../context";
 import { Entity as DbEntity } from "../../../db/adapter";
 import { dbEntityToGraphQLEntity } from "../../util";
-import { EntityWithIncompleteEntityType } from "../../../model/entityType.model";
+import { EntityWithIncompleteEntityType } from "../../../model";
 
 export const aggregateEntity: Resolver<
   Promise<{

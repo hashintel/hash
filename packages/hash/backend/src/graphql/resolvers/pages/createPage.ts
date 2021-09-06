@@ -7,7 +7,7 @@ import {
 import { GraphQLContext } from "../../context";
 import { createEntity } from "../entity";
 import { SystemType } from "../../../types/entityTypes";
-import { EntityWithIncompleteEntityType } from "../../../model/entityType.model";
+import { EntityWithIncompleteEntityType } from "../../../model";
 
 export const createPage: Resolver<
   Promise<EntityWithIncompleteEntityType>,

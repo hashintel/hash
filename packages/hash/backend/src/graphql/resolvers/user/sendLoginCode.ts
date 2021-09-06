@@ -1,6 +1,6 @@
 import { ApolloError } from "apollo-server-express";
 
-import User from "../../../model/user.model";
+import { User } from "../../../model";
 
 import {
   MutationSendLoginCodeArgs,
