@@ -13,6 +13,7 @@
   h2 {
     font-size: 1.2rem;
     font-weight: 600;
+    margin-bottom: 5px;
   }
 }
 
@@ -24,10 +25,10 @@
   font-size: 0.9rem;
 }
 
-.AccountPageList {
+.SidebarList {
   div {
     &:not(:last-child) {
-      margin-bottom: 15px;
+      margin-bottom: 5px;
     }
   }
 
@@ -37,7 +38,7 @@
 
   div {
     font-weight: 500;
-    color: $bright-blue;
+    color: black;
     border-bottom: 3px solid transparent;
   }
 

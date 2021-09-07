@@ -39,3 +39,13 @@ export const getAccountPages = gql`
     }
   }
 `;
+
+export const getAccountEntityTypes = gql`
+  query getAccountEntityTypes($accountId: ID!) {
+    getAccountEntityTypes(accountId: $accountId) {
+      entityId
+      entityVersionId
+      properties
+    }
+  }
+`;
