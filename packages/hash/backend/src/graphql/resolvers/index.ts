@@ -36,6 +36,7 @@ import { isShortnameTaken } from "./user/isShortnameTaken";
 import { createEntityType } from "./entityType/createEntityType";
 import { SYSTEM_TYPES, SystemType } from "../../types/entityTypes";
 import { entityTypeTypeFields } from "./entityType/entityTypeTypeFields";
+import { getAccountEntityTypes } from "./entityType/getAccountEntityTypes";
 
 const loggedIn =
   (next: any) => (obj: any, args: any, ctx: GraphQLContext, info: any) => {
@@ -66,6 +67,7 @@ export const resolvers = {
     accountPages,
     accounts,
     aggregateEntity,
+    getAccountEntityTypes,
     entity,
     page,
     me: loggedIn(me),

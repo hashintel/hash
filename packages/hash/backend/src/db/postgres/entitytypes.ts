@@ -109,14 +109,13 @@ export const getSystemTypeLatestVersion = async (
   return row ? mapPGRowToEntityType(row) : undefined;
 };
 
-/** @todo - put this to use to list an account's types */
 export const getAccountEntityTypes = async (
   conn: Connection,
-  accountId: string
+  params: { accountId: string }
 ): Promise<EntityType[]> => {
   const rows = await conn.any(sql`
     ${selectEntityTypes}
-    where account_id = ${accountId}
+    where type.account_id = ${params.accountId}
   `);
   return rows.map(mapPGRowToEntityType);
 };

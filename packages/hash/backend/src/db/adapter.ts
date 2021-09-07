@@ -285,9 +285,12 @@ export interface DBClient {
 
   /** Get multiple entities by their account ID and entity ID. */
   getEntities(
-    entities: {
+    params: {
       accountId: string;
       entityVersionId: string;
     }[]
   ): Promise<Entity[]>;
+
+  /** Get entity types associated with a given accountId */
+  getEntityTypes(params: { accountId: string }): Promise<EntityType[]>;
 }

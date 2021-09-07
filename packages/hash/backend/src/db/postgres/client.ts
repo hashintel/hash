@@ -17,6 +17,7 @@ import {
   insertEntityAccount,
 } from "./account";
 import {
+  getAccountEntityTypes,
   getEntityType,
   getEntityTypeLatestVersion,
   getSystemTypeLatestVersion,
@@ -624,5 +625,9 @@ export class PostgresClient implements DBClient {
     }[]
   ): Promise<Entity[]> {
     return await getEntities(this.conn, entities);
+  }
+
+  async getEntityTypes(params: { accountId: string }): Promise<EntityType[]> {
+    return await getAccountEntityTypes(this.conn, params);
   }
 }
