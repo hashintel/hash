@@ -11,6 +11,7 @@ export type EntityConstructorArgs = {
   accountId: string;
   entityType: DbEntityType | EntityType;
   properties: any;
+  visibility: Visibility;
   metadata: EntityMeta;
   entityCreatedAt: Date;
   entityVersionCreatedAt: Date;
@@ -36,6 +37,7 @@ class __Entity {
   accountId: string;
   entityType: EntityType;
   properties: any;
+  visibility: Visibility;
   metadata: EntityMeta;
   entityCreatedAt: Date;
   entityVersionCreatedAt: Date;
@@ -48,6 +50,7 @@ class __Entity {
     accountId,
     entityType,
     properties,
+    visibility,
     metadata,
     entityCreatedAt,
     entityVersionCreatedAt,
@@ -62,6 +65,7 @@ class __Entity {
         ? entityType
         : new EntityType(entityType);
     this.properties = properties;
+    this.visibility = visibility;
     this.metadata = metadata;
     this.entityCreatedAt = entityCreatedAt;
     this.entityVersionCreatedAt = entityVersionCreatedAt;
@@ -177,7 +181,7 @@ class __Entity {
     createdAt: this.entityCreatedAt,
     entityVersionCreatedAt: this.entityVersionCreatedAt,
     updatedAt: this.entityVersionUpdatedAt,
-    visibility: Visibility.Public /** @todo: get from entity metadata */,
+    visibility: this.visibility,
   });
 
   toGQLUnknownEntity = (): EntityWithIncompleteEntityType => ({
