@@ -50,7 +50,7 @@ Now all that remains is to iterate through the dictionary, find the key \(positi
    state.item_price = new_price;
 ```
 
-Finally, call the collect\_customer\_data\(\) function with context.messages\(\).
+Finally, call the collect_customer_data\(\) function with context.messages\(\).
 
 ```javascript
 if (state.counter === 0) {

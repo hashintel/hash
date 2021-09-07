@@ -37,7 +37,7 @@ def behavior(state, context):
 </Tab>
 </Tabs>
 
-If a "remove\_agent" message is sent without an id or name specified in the data, then the agent\_id defaults to that of the sender. We suggest setting the field as `state.agent_id` for readability but it can be used as shorthand when an agent needs to remove itself.
+If a "remove_agent" message is sent without an id or name specified in the data, then the agent_id defaults to that of the sender. We suggest setting the field as `state.agent_id` for readability but it can be used as shorthand when an agent needs to remove itself.
 
 ## Creating Agents via Messages
 

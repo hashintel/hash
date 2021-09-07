@@ -32,7 +32,7 @@ For example, consider a [Billing Department](https://core.hash.ai/@hash/billing-
 [Learn how to build a process model simulation using a visual interface.](../../tutorials/building-process-models/using-the-process-model-builder.md)
 </Hint>
 
-Once we've represented the department as a process model and generated a simulation, we can use the Analysis view to inspect the process models to identify bottlenecks based on resource utilization or through times. There are four different resources in use in model: senior\_billers, account\_billers, billing\_clerks, and printers. Visualizing the average utilization of these resources will allow us to determine which, if any, are responsible for any bottlenecks:
+Once we've represented the department as a process model and generated a simulation, we can use the Analysis view to inspect the process models to identify bottlenecks based on resource utilization or through times. There are four different resources in use in model: senior_billers, account_billers, billing_clerks, and printers. Visualizing the average utilization of these resources will allow us to determine which, if any, are responsible for any bottlenecks:
 
 ![Percent of a resource being utilized](https://lh4.googleusercontent.com/4TECbNGY8Cumj3fY8fBvne8etXwC75T-9AiXbUqyuuXbqRM5jh4LzxMD65aTjfw-IOumLH9W8lCTU4Bprq5cyQ5FSfJBU_ODEPGurWDs81Fmi-qs4gIGUgsRS6ehRW3h7w1lrElU)
 
@@ -54,7 +54,7 @@ Now that we know where the key constraint in the system is, we can re-engineer o
 
 One of the tricky parts of process modeling and process optimization is it can be non-obvious how different process designs impact process performance. Subtle differences can lead to dramatically different outcomes. The key to improving a system often comes from experimentation with different layouts; these can be guided by principled insights from operations research or through iteration, and trial and error. A benefit of using simulation as an aid in the design process is you can quickly experiment with different designs.
 
-In our example of the billing department senior\_billers are used in `auditCustomerAccount`,  `verifyAndFixBills`, and in `registerARAndFinancials`. Regardless of the path the bills take in the process, they end up utilizing some of the senior\_billers resource. A potential improvement might be to redesign the system such that the senior\_billers are no longer used on all parts, and instead conserving their input until the end.
+In our example of the billing department senior_billers are used in `auditCustomerAccount`,  `verifyAndFixBills`, and in `registerARAndFinancials`. Regardless of the path the bills take in the process, they end up utilizing some of the senior_billers resource. A potential improvement might be to redesign the system such that the senior_billers are no longer used on all parts, and instead conserving their input until the end.
 
 #### Adding resources or buffers to a bottleneck
 

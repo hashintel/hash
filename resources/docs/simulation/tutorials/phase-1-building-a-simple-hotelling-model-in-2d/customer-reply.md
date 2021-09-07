@@ -103,8 +103,8 @@ Define a `find_min()` function like the one below.
 
 <Hint style="info">
 
-* **overall\_min →** store the data for the business position/price combination that yields the lowest cost across all businesses
-* **Individual\_min →** store the data for the business position/price combination that yields the lowest cost across for each individual business
+* **overall_min →** store the data for the business position/price combination that yields the lowest cost across all businesses
+* **Individual_min →** store the data for the business position/price combination that yields the lowest cost across for each individual business
 
 </Hint>
 
@@ -144,7 +144,7 @@ Notice how many times you need to update `overall_min` and `individual_min`. Sin
  }
 ```
 
-Now we can replace the ‘TODO’ comments with a call to update\_min\(\) with the proper parameters. We've inserted those calls in the snippet below.
+Now we can replace the ‘TODO’ comments with a call to update_min\(\) with the proper parameters. We've inserted those calls in the snippet below.
 
 ```javascript
 // Check min for individual business
@@ -186,7 +186,7 @@ All that’s left to do now for **`customer.js`** is to update the agent’s col
  }
 ```
 
-Finally, call find\_min\(\) below your call to collect\_business\_data\(\) and pass in the const variable `businesses`.
+Finally, call find_min\(\) below your call to collect_business_data\(\) and pass in the const variable `businesses`.
 
 ```javascript
 const businesses = collect_business_data(context.messages());

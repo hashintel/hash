@@ -53,11 +53,11 @@ Below are a few simulations which use network visualizations. Inspect the releva
 
 <Embed url="https://hash.ai/@hash/oil-supply-chain" caption="" />
 
-**"edge.js"** and **"create\_pipeline.js"** in the Oil Supply Chain.
+**"edge.js"** and **"create_pipeline.js"** in the Oil Supply Chain.
 
-**"edge.js"** and **"create\_edges.js"** in the Billing Department.
+**"edge.js"** and **"create_edges.js"** in the Billing Department.
 
 <Embed url="https://hash.ai/@hash/interconnected-call-center" caption="" />
 
-**"create\_links.js"** in the Interconnected Call Center.
+**"create_links.js"** in the Interconnected Call Center.
 

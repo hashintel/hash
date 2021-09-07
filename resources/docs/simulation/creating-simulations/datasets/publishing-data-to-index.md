@@ -4,7 +4,7 @@ You can share your datasets with others by publishing them to hIndex.
 
 ## Upload Datasets
 
-To upload a dataset, first visit your projects page - hash.ai/@\[your\_username\] - and select new Dataset.
+To upload a dataset, first visit your projects page - hash.ai/@\[your_username\] - and select new Dataset.
 
 ![](https://cdn-us1.hash.ai/site/docs/kapture-2021-06-06-at-21.00.44%20%283%29%20%283%29%20%283%29%20%281%29%20%283%29.gif)
 

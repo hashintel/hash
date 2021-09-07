@@ -57,7 +57,7 @@ If you reset the simulation and click on the hospital agent the inspect modal wi
 
 Open the `check_infected` file. A person agent is sending a request to the hospital to test them; now they should also send personal information to the hospital. In particular we want to know how likely it is they're `at_risk` of complications from the disease. It’s a little bit of a hand-wave that they are directly sending their `at_risk` level - you can imagine they’re sending a blood/spit sample and don’t know what it contains, or providing demographic info like their age or pre-existing conditions. In a more complicated model we'd likely determine their `at_risk` degree from a variety of different measures.
 
-In this case, let's include a key-value pair in the message data packet for `at_risk` in the "check\_infected" behavior:
+In this case, let's include a key-value pair in the message data packet for `at_risk` in the "check_infected" behavior:
 
 <Tabs>
 <Tab title="JavaScript" >
@@ -330,7 +330,7 @@ if state.infection_duration == 0:
 </Tab>
 </Tabs>
 
-Finally, let's handle the message logic on the Hospitals side in the "test\_for\_virus" behavior at the top of the behavior:
+Finally, let's handle the message logic on the Hospitals side in the "test_for_virus" behavior at the top of the behavior:
 
 <Tabs>
 <Tab title="JavaScript" >

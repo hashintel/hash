@@ -4,7 +4,7 @@ One thing that sets agent-based modeling apart from analytic techniques or syste
 
 These different values can allow our agents to all behave in slightly different ways, or cause other agents to interact with them differently.
 
-In our Getting Started model \([Python](https://hash.ai/@hash/getting-started-base-python) or [Javascript](https://hash.ai/@hash/getting-started-base)\), we'll start by providing our agents with an 'at\_risk' property. Different people agents will have different chances of having a severe response to getting sick. In the "create\_people" behavior, new agents are defined in the `person` variable. In that block of code, add a line for the property "at\_risk":
+In our Getting Started model \([Python](https://hash.ai/@hash/getting-started-base-python) or [Javascript](https://hash.ai/@hash/getting-started-base)\), we'll start by providing our agents with an 'at_risk' property. Different people agents will have different chances of having a severe response to getting sick. In the "create_people" behavior, new agents are defined in the `person` variable. In that block of code, add a line for the property "at_risk":
 
 <Tabs>
 <Tab title="JavaScript" >
@@ -61,9 +61,9 @@ if (state["severity"] == 'moderate') and (random() < severe_chance):
 </Tab>
 </Tabs>
 
-When we instantiate a Person currently, they'll have a 50% chance of being at\_risk from the virus, and if they're infected, they'll have a different likelihoods of getting a severe infection. These likelihoods are defined in the "globals.json" file.
+When we instantiate a Person currently, they'll have a 50% chance of being at_risk from the virus, and if they're infected, they'll have a different likelihoods of getting a severe infection. These likelihoods are defined in the "globals.json" file.
 
-Of course during different scenarios and experiments we might want to vary the likelihood that someone will be at risk. Instead of hardcoding the likelihood, we will add a property called **at\_risk\_percent** to "globals.json". Here we set it to 5%:
+Of course during different scenarios and experiments we might want to vary the likelihood that someone will be at risk. Instead of hardcoding the likelihood, we will add a property called **at_risk_percent** to "globals.json". Here we set it to 5%:
 
 ** globals.json **
 
@@ -74,7 +74,7 @@ Of course during different scenarios and experiments we might want to vary the l
 ```
 
 
-And in the "create\_people" behavior, we substitute that value for the hardcoded one:
+And in the "create_people" behavior, we substitute that value for the hardcoded one:
 
 <Tabs>
 <Tab title="JavaScript" >

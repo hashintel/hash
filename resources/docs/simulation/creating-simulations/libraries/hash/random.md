@@ -18,7 +18,7 @@ function behavior(state, context) {
 
 ## setSeed(s: string)
 
-Sets a seed for the random number generator used in hash\_stdlib.random\(\) and in any stochastic function in [hash\_stdlib.stats](javascript-libraries.md#jstat-distributions). The seed will apply across all behaviors and agents within a simulation run.
+Sets a seed for the random number generator used in hash_stdlib.random\(\) and in any stochastic function in [hash_stdlib.stats](javascript-libraries.md#jstat-distributions). The seed will apply across all behaviors and agents within a simulation run.
 
 ```javascript
 function behavior(state, context) {

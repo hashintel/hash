@@ -36,7 +36,7 @@ It's best to let HASH do the heavy lifting for you, especially for computational
 
 **Search Radius**
 
-Internally, hEngine maintains a list of neighbors for each agent and updates the list with each time step. As agents move, their list of neighbors automatically updates - agents further away than a given search radius are removed and agents within the search radius are added. In the properties tab, this can be defined via a "search\_radius" keyword:
+Internally, hEngine maintains a list of neighbors for each agent and updates the list with each time step. As agents move, their list of neighbors automatically updates - agents further away than a given search radius are removed and agents within the search radius are added. In the properties tab, this can be defined via a "search_radius" keyword:
 
 ```javascript
 {

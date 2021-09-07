@@ -8,7 +8,7 @@ You can use your real world business data to power your process model and create
 For more on using data in HASH, see [Datasets](../../creating-simulations/datasets/)
 </Hint>
 
-HASH supports CSV and JSON datasets. Upload your dataset by clicking the 'new dataset' option in the editor \(_in the top left of the screen, over the file picker\)_\) \_o\_r by finding/reusing an existing dataset from the HASH index and adding it to the simulation.
+HASH supports CSV and JSON datasets. Upload your dataset by clicking the 'new dataset' option in the editor \(_in the top left of the screen, over the file picker\)_\) _o_r by finding/reusing an existing dataset from the HASH index and adding it to the simulation.
 
 The dataset is stored in the 'data/' folder, and the data will be available in the simulation through context.data\(\)
 

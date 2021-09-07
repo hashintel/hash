@@ -158,14 +158,14 @@ The service behavior seizes resources, delays the object, and then releases the 
 
 ## Select Output
 
-_@hash/process/select\_output.js_
+_@hash/process/select_output.js_
 
 This behavior allows a process to branch along two different paths, based on a conditional. There are three different ways to specify this conditional:
 
 * based on a whether a field on the object is `true` or not
 * based on a likelihood or rate
 * based on executing a code string — the string may reference `obj` to access fields on the object being processed.
-  * An example code\_condition is `obj.difficulty > 0.5 ? true : false`
+  * An example code_condition is `obj.difficulty > 0.5 ? true : false`
 
 After the Select Output block, you should specify the blocks that make up the rest of the "true" path, then the blocks that make up the "false" path. If the two paths eventually rejoin, specify the rest of the blocks after the "false" path.
 
@@ -203,7 +203,7 @@ _@hash/processs/exit.js_
 
 This behavior allows a process model to communicate with other agents, including other process models. Typically you can use an Exit block to communicate with an Enter block. The Exit block sends a message with the following fields:
 
-* `to` - the agent\_id of the target agent
+* `to` - the agent_id of the target agent
 * `type` - the name of the paired Enter block
 * `data` - the definition of the object
 
@@ -253,7 +253,7 @@ An agent can do so by sending a message with the following fields:
 
 ## Time Measure Start
 
-_@hash/process/time\_measure\_start.js_
+_@hash/process/time_measure_start.js_
 
 This behavior records the time an object reached it, to enable calculating the elapsed time until the agent reaches the corresponding Time Measure End behavior.
 
@@ -269,7 +269,7 @@ This behavior records the time an object reached it, to enable calculating the e
 
 ## Time Measure End
 
-_@hash/process/time\_measure\_end.js_
+_@hash/process/time_measure_end.js_
 
 This behavior determines the elapsed time it took an object to travel from the corresponding Time Measure Start behavior, and records that value.
 
@@ -288,7 +288,7 @@ The process label of this behavior must match that of its corresponding Time Mea
 
 ## Resource Data
 
-_@hash/process/resource\_data.js_
+_@hash/process/resource_data.js_
 
 Each **Service** or **Seize/Release** block in your process agent has an associated `resource` property specified in its parameters. If you'd like to have easy access to data about the usage of each of these resources, you can add this behavior to your agent. This behavior calculates the proportion of resources currently in use, and stores the data in the `process_data` field.
 

@@ -50,7 +50,7 @@ def behavior:
 </Tabs>
 
 <Hint style="info">
-We provide helper functions on the state object for adding messages. state.addMessage\(\) and state.add\_message\(\), for JavaScript and Python, respectively.
+We provide helper functions on the state object for adding messages. state.addMessage\(\) and state.add_message\(\), for JavaScript and Python, respectively.
 </Hint>
 
 <Tabs>

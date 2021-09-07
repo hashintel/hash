@@ -19,9 +19,9 @@ To run an experiment, you'll want to first identify the parameter of the process
    "service_agents": 6
 
 
-In this model we could run experiments with the “service\_agents” property and see how it responds to different numbers of agents.
+In this model we could run experiments with the “service_agents” property and see how it responds to different numbers of agents.
 
-To do that, we'll set service\_agents as a global parameter.
+To do that, we'll set service_agents as a global parameter.
 
 <Hint style="info">
 The [Globals](../../creating-simulations/configuration/) section describes how and why to use globals.

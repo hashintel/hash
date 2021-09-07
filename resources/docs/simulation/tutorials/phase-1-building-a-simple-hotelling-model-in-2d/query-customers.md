@@ -4,17 +4,17 @@ Businesses will perform two actions in this model: query customers and collect c
 
 <Hint style="info">
   
-Query customers → Businesses will send their neighbors every possible position and item\_price change combination.
+Query customers → Businesses will send their neighbors every possible position and item_price change combination.
 
 * Position changes: `[ [-1, 0], [0, 0], [1, 0], [0, -1], [0, 1] ]`
-* Item\_price changes: `item_price + 1, item_price, item_price - 1`
+* Item_price changes: `item_price + 1, item_price, item_price - 1`
 
-Collect customer responses → Businesses will collect and store all the customer responses to determine the position and item\_price combination with the largest profit
+Collect customer responses → Businesses will collect and store all the customer responses to determine the position and item_price combination with the largest profit
 </Hint>
 
-This action can be split into three separate functions within business.js: _send\_message_, _price\_messaging_, _movement\_messaging_.
+This action can be split into three separate functions within business.js: _send_message_, _price_messaging_, _movement_messaging_.
 
-Let’s start with sending the message. **`send_message()`** will add messages to state.messages with a neighbor agent\_id, position, item\_price, and rgb. Add this function to business.js.
+Let’s start with sending the message. **`send_message()`** will add messages to state.messages with a neighbor agent_id, position, item_price, and rgb. Add this function to business.js.
 
 <Tabs>
 <Tab title="business.js" >
@@ -35,7 +35,7 @@ const send_message = (agent_id, position, price) => {
 `rgb` is sent so we can visually see which business a customer chooses to shop at
 </Hint>
 
-The next step is to create the **`price_messaging()`** function. This function will receive the neighbor's agent\_id and position change, iterate through the possible item\_price values, and call send\_message to notify all possible neighbors.
+The next step is to create the **`price_messaging()`** function. This function will receive the neighbor's agent_id and position change, iterate through the possible item_price values, and call send_message to notify all possible neighbors.
 
 ```javascript
 const price_messaging = (agent_id, position) => {
@@ -52,7 +52,7 @@ const price_messaging = (agent_id, position) => {
 
 Notice here how we check if the `item_price` is greater than 1. This is important as we don’t want the `item_price` to drop below 0.
 
-The final function we are going to create for querying Customers is movement messaging; however, since this will be our top level function we are going to name it **`query_customers()`**. In this function, business agents are going to iterate through their Customer neighbors and send them all possible position and item\_price change combinations.
+The final function we are going to create for querying Customers is movement messaging; however, since this will be our top level function we are going to name it **`query_customers()`**. In this function, business agents are going to iterate through their Customer neighbors and send them all possible position and item_price change combinations.
 
 ```javascript
 const query_customers = (neighbors, state_position) => {
@@ -73,7 +73,7 @@ You can test your new code by placing the following snippet underneath your func
 query_customers(context.neighbors(), state.position);
 ```
 
-Find the messages field for a Business agent and it should be filled with “business\_movement” type messages.
+Find the messages field for a Business agent and it should be filled with “business_movement” type messages.
 
 <Hint style="danger" >
 
@@ -82,8 +82,8 @@ Since Business agents are sending around 100 \(neighbors\) x 6 \(positions\) x 3
 1. Add the HASH shared behavior **Counter** \(shortname: @hash/counter/counter.rs\) to your simulation and add the counter behavior to your business agents BEFORE your behavior **`business.js`**. \(You want the counter to increment before **`business.js`** is called\)
 2. In **`init.json`** give your Business agents three more variables:
 3. counter: 0
-4. counter\_reset\_at: 2
-5. counter\_reset\_to: 0
+4. counter_reset_at: 2
+5. counter_reset_to: 0
 
 ** In the `business.js` ** behavior, wrap the `query_customers()` call in the following if statement:
 </Hint>
@@ -95,7 +95,7 @@ if (state.counter === 0) {
 ```
 
 <Hint style="danger" >
-The behavior **Counter** adds a counter variable to every business agent that will automatically increment at each time step. This ensures that query\_customers\(\) is only called every 3 time steps.
+The behavior **Counter** adds a counter variable to every business agent that will automatically increment at each time step. This ensures that query_customers\(\) is only called every 3 time steps.
 </Hint>
 
 <Tabs>

@@ -91,7 +91,7 @@ const behavior = () => {
 
 
 <Hint style="info">
-Sum of squares is the typical method for calculating the error between a sample datapoint and "predicted" or modeled datapoint: _Error =  Sum of \(agent\_avg - data\_avg\)^2_
+Sum of squares is the typical method for calculating the error between a sample datapoint and "predicted" or modeled datapoint: _Error =  Sum of \(agent_avg - data_avg\)^2_
 </Hint>
 
 #### 4. Now create a metric to capture the calculated error:
