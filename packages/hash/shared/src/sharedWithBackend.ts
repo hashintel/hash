@@ -33,6 +33,7 @@ export type Block = {
   versionId: string;
   accountId: string;
   entity: Record<any, any>;
+  // @todo this is really a url – should we rename this?
   componentId: string;
   componentMetadata: BlockConfig;
   componentSchema: JSONSchema;
@@ -147,18 +148,6 @@ export type BlockWithoutMeta = Omit<
 >;
 
 /**
- * For some reason, I wanted to strip special characters from component URLs when generating their prosemirror node id,
- * which in hindsight seems unnecessary
- *
- * @todo remove this
- */
-export const componentUrlToProsemirrorId = (componentId: string) => {
-  return componentId;
-  // const stripped = componentId.replace(/[^a-zA-Z0-9]/g, "");
-  // return stripped.slice(0, 1).toUpperCase() + stripped.slice(1);
-};
-
-/**
  * @todo this API could possibly be simpler
  */
 export type ReplacePortals = (
@@ -184,12 +173,7 @@ export const ensureBlockLoaded = async (
     return;
   }
 
-  await defineRemoteBlock(
-    schema,
-    viewConfig,
-    url,
-    componentUrlToProsemirrorId(url)
-  );
+  await defineRemoteBlock(schema, viewConfig, url);
 };
 
 export const ensureDocBlocksLoaded = async (
@@ -251,10 +235,6 @@ export const createEntityUpdateTransaction = async (
   const newNodes = await Promise.all(
     entities?.map(async (block, index) => {
       const { children, props, attrs } = prepareEntityForProsemirror(block);
-
-      const componentUrl = block.properties.componentId;
-      const id = componentUrlToProsemirrorId(componentUrl);
-
       const entityId = block.metadataId;
 
       if (cachedPropertiesByPosition[index]) {
@@ -266,8 +246,7 @@ export const createEntityUpdateTransaction = async (
       return await createRemoteBlock(
         schema,
         viewConfig,
-        componentUrl,
-        id,
+        block.properties.componentId,
         {
           properties: {
             ...(cachedPropertiesByEntity[entityId] ?? {}),
@@ -285,8 +264,7 @@ export const createEntityUpdateTransaction = async (
 
           // @todo recursive nodes
           throw new Error("unrecognised child");
-        }) ?? [],
-        undefined
+        }) ?? []
       );
     }) ?? []
   );

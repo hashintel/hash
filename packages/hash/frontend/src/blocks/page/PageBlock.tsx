@@ -18,7 +18,6 @@ import {
   BlockMeta,
   cachedPropertiesByEntity,
   calculateSavePayloads,
-  componentUrlToProsemirrorId,
   createEntityUpdateTransaction,
   mapEntityToBlock,
 } from "@hashintel/hash-shared/sharedWithBackend";
@@ -269,13 +268,13 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     const { view } = prosemirrorSetup.current;
 
     // @todo filter out already defined blocks
-    for (const [url, meta] of Array.from(blocksMeta.entries())) {
+    for (const [componentUrl, meta] of Array.from(blocksMeta.entries())) {
       defineNewBlock(
         view.state.schema,
         meta.componentMetadata,
         meta.componentSchema,
         { view, replacePortal, createNodeView },
-        componentUrlToProsemirrorId(url)
+        componentUrl
       );
     }
   }, [blocksMeta, replacePortal]);
