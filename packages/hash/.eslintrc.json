@@ -4,6 +4,7 @@
   "plugins": ["@typescript-eslint"],
   "extends": [
     "plugin:@typescript-eslint/base",
+    "airbnb-base",
     "prettier" // mutes eslint rules conflicting w/ prettier (requires eslint-config-prettier)
   ],
   "ignorePatterns": ["**/*.gen.*"],
@@ -27,7 +28,24 @@
     "prefer-const": "warn",
     "prefer-arrow-callback": "warn",
     "semi": "warn",
-    "curly": ["error", "multi-line"]
+    "curly": ["error", "multi-line"],
+    "import/extensions": [
+      "error",
+      "ignorePackages",
+      {
+        "js": "never",
+        "jsx": "never",
+        "ts": "never",
+        "tsx": "never"
+      }
+    ]
+  },
+  "settings": {
+    "import/resolver": {
+      "node": {
+        "extensions": [".js", ".jsx", ".ts", ".tsx"]
+      }
+    }
   },
   "overrides": [
     {
