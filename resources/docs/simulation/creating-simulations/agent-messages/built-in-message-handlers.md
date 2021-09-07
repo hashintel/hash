@@ -52,7 +52,7 @@ Here, anything in the data field will be used to create the new agent. The `newb
 ```javascript
 const behavior = (state, context) => {
     state.addMessage("hash", "create_agent", {
-        parent: state.agent_id, 
+        parent: state.agent_id,
         behaviors: ["newborn.js"]
     });
 }
@@ -65,7 +65,7 @@ const behavior = (state, context) => {
 ```python
 def behavior(state, context):
     state.add_message("HASH", "create_agent", {
-        "parent": state.agent_id, 
+        "parent": state.agent_id,
         "behaviors": ["newborn.py"]
     })
 ```
@@ -177,3 +177,42 @@ For further information about the Mapbox API and error messages, see the [offici
 
 * [Citi Bike Visualization](https://hash.ai/@hash/citi-bike-visualization)
 * [Product Delivery](https://hash.ai/@hash/product-delivery)
+
+## Stopping a simulation
+
+A simulation may be stopped by sending a message of type `"stop"` to the
+`"hash"` agent. This built-in message may be useful to stop a simulation
+after a given number of steps, or when some condition has been reached
+in the simulation state.
+
+<Tabs>
+
+<Tab title="JavaScript">
+
+```javascript
+const behavior = (state, context) => {
+  if (context.step() > 10) {
+    state.addMessage("hash", "stop", { status: "success", reason: "10 steps" });
+  }
+}
+```
+
+</Tab>
+
+<Tab title="Python">
+
+```python
+def behavior(state, context):
+  if context.step() > 10:
+    state.add_message("hash", "stop", {"status": "success", "reason": "10 steps"})
+```
+
+</Tab>
+
+</Tabs>
+
+The message `data` is optional, but may be used to signify why the simulation
+stopped. The following fields may be included:
+
+  1. `"status"`: one of `"success"`, `"warning"` or `"error"`. Defaults to `"warning"` if not specified.
+  2. `"reason"`: a message describing why the simulation was stopped.

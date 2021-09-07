@@ -1,12 +1,12 @@
 ---
-description: Getting started with HASH
+description: Getting started with simulations in HASH
 ---
 
 # Overview
 
-Welcome to [HASH](https://hash.ai), an end-to-end solution for quickly creating massive, rich, real-time simulations.
+[HASH](https://hash.ai) is an end-to-end solution for quickly creating massive, rich, real-time simulations.
 
-You can use HASH to build detailed, agent based simulations of [factory floors](https://hash.ai/@hash/warehouse-conveyor1), [business processes](https://hash.ai/@hash/interconnected-call-center), [public policy decisions](https://hash.ai/@b/sir-infection-network-w-rapid-tests), or really any other type of complex system.
+You can use HASH's tools to build rich, detailed, agent-based simulations of [factory floors](https://hash.ai/@hash/warehouse-conveyor1), [business processes](https://hash.ai/@hash/interconnected-call-center), [public policy decisions](https://hash.ai/@b/sir-infection-network-w-rapid-tests), or any other type of complex system you can imagine.
 
 ## Getting Started
 
