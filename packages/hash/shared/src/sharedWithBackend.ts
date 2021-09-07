@@ -351,6 +351,8 @@ const cachedPropertiesByPosition: Record<string, Record<any, any>> = {};
  * that is handled by the insert block operation, so this update here is a noop
  *
  * @todo fix this
+ *
+ * @todo take ids out of entity list instead of out of prosemirror tree
  */
 export const calculateSavePayloads = (
   accountId: string,

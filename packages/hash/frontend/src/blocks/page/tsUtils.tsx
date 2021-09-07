@@ -8,14 +8,17 @@ import {
 import { RemoteBlock } from "../../components/RemoteBlock/RemoteBlock";
 import {
   Block,
+  mapEntityToBlock,
+  prepareEntityForProsemirror,
   ReplacePortals,
 } from "@hashintel/hash-shared/sharedWithBackend";
-import { Node as ProsemirrorNode } from "prosemirror-model";
+import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
+import { EntityListContext } from "./EntityListContext";
 
 type NodeViewConstructor = {
   new (
     node: ProsemirrorNode,
-    view: EditorView,
+    view: EditorView<Schema>,
     getPos: () => number,
     decorations: Decoration[]
   ): NodeView;
@@ -65,29 +68,50 @@ export const createNodeView = (
     update(node: any) {
       if (node) {
         if (node.type.name === name) {
-          console.log(node, this.getPos(), this.view.state);
-
           replacePortal(
             this.target,
             this.target,
-            <RemoteBlock
-              url={url}
-              {...node.attrs}
-              {...(editable
-                ? {
-                    editableRef: (node: HTMLElement) => {
-                      if (
-                        this.contentDOM &&
-                        node &&
-                        !node.contains(this.contentDOM)
-                      ) {
-                        node.appendChild(this.contentDOM);
-                        this.contentDOM.style.display = "";
-                      }
-                    },
-                  }
-                : {})}
-            />
+
+            <EntityListContext.Consumer>
+              {(entityList) => {
+                // @todo fix this
+                const prepared = prepareEntityForProsemirror(
+                  // @ts-ignore
+                  entityList[node.attrs.entityId]
+                );
+
+                // @todo fix this
+                // @ts-ignore
+                prepared.attrs.meta = node.attrs.meta;
+                // @ts-ignore
+                prepared.attrs.properties = prepared.props;
+
+                delete prepared.attrs.originalEntity;
+
+                console.log(prepared.attrs, node.attrs);
+
+                return (
+                  <RemoteBlock
+                    url={url}
+                    {...prepared.attrs}
+                    {...(editable
+                      ? {
+                          editableRef: (node: HTMLElement) => {
+                            if (
+                              this.contentDOM &&
+                              node &&
+                              !node.contains(this.contentDOM)
+                            ) {
+                              node.appendChild(this.contentDOM);
+                              this.contentDOM.style.display = "";
+                            }
+                          },
+                        }
+                      : {})}
+                  />
+                );
+              }}
+            </EntityListContext.Consumer>
           );
 
           return true;

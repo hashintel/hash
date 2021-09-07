@@ -148,8 +148,6 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
      */
     let saveQueue = Promise.resolve();
     (window as any).triggerSave = () => {
-      // @todo renable save
-      return;
       if (collabEnabled) {
         return;
       }
