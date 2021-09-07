@@ -8,7 +8,23 @@
     "prettier" // mutes eslint rules conflicting w/ prettier (requires eslint-config-prettier)
   ],
   "ignorePatterns": ["**/*.gen.*"],
+  "globals": {
+    "NodeJS": true
+  },
   "rules": {
+    // modified airbnb rules
+    "no-underscore-dangle": "off",
+    "no-nested-ternary":"off",
+    "no-restricted-syntax": "off",
+    "camelcase": "off", 
+    "import/no-cycle": "warn",
+    "import/prefer-default-export": "off",
+    "no-await-in-loop": "off",
+    // potential airbnb rule additions
+    // "no-unused-vars": "off",
+    // "no-console": "warn",
+    // "no-plusplus": "off",
+    // "default-case": "off",
     "eqeqeq": [
       "error",
       "always",
