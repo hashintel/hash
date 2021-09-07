@@ -1,3 +1,4 @@
+import "./loadEnv";
 import { PostgresAdapter } from "@hashintel/hash-backend/src/db";
 import {
   Org,
@@ -5,7 +6,6 @@ import {
   CreateEntityArgs,
   EntityType,
 } from "@hashintel/hash-backend/src/model";
-import "./loadEnv";
 import { createOrgs, createUsers } from "./accounts";
 import { SystemTypeName } from "../graphql/apiTypes.gen";
 
