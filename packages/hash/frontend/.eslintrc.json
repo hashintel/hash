@@ -4,6 +4,13 @@
     "useJSXTextNode": true,
     "project": ["./tsconfig.json"]
   },
+  "globals": {
+    "React": true
+  },
+  "env": {
+    "browser": true,
+    "node": true
+  },
   "plugins": ["@typescript-eslint", "react-hooks"],
   "rules": {
     "react-hooks/rules-of-hooks": "error",
