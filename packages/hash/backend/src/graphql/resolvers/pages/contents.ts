@@ -3,15 +3,14 @@ import { ApolloError } from "apollo-server-express";
 import { Resolver } from "../../apiTypes.gen";
 import { DbPage } from "../../../types/dbTypes";
 import { GraphQLContext } from "../../context";
-import { dbEntityToGraphQLEntity } from "../../util";
-import { EntityWithIncompleteEntityType } from "../../../model";
+import { Entity, EntityWithIncompleteEntityType } from "../../../model";
 
 export const contents: Resolver<
   Promise<EntityWithIncompleteEntityType[]>,
   DbPage["properties"],
   GraphQLContext
 > = async ({ contents }, _, { dataSources }) => {
-  const entities = await dataSources.db.getEntities(
+  const entities = await Entity.getEntities(dataSources.db)(
     contents.map(({ accountId, entityId }) => ({
       accountId,
       entityVersionId: entityId,
@@ -28,5 +27,5 @@ export const contents: Resolver<
     }
   });
 
-  return entities.map(dbEntityToGraphQLEntity);
+  return entities.map((entity) => entity.toGQLUnknownEntity());
 };
