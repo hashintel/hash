@@ -4,9 +4,7 @@ import {
   AggregateOperation,
 } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
-import { Entity as DbEntity } from "../../../db/adapter";
-import { dbEntityToGraphQLEntity } from "../../util";
-import { EntityWithIncompleteEntityType } from "../../../model";
+import { Entity, EntityWithIncompleteEntityType } from "../../../model";
 
 export const aggregateEntity: Resolver<
   Promise<{
@@ -27,19 +25,19 @@ export const aggregateEntity: Resolver<
   // TODO: this returns an array of all entities of the given type in the account.
   // We should perform the sorting & filtering in the database for better performance.
   // For pagination, using a database cursor may be an option.
-  const entities = await dataSources.db.getEntitiesByType({
+  const entities = await Entity.getEntitiesByType(dataSources.db)({
     accountId,
     entityTypeId,
     latestOnly: true,
   });
 
-  const dbEntities = entities
+  const results = entities
     .slice(startIndex, endIndex)
     .sort((a, b) => compareEntitiesByField(a, b, sort))
-    .map(dbEntityToGraphQLEntity);
+    .map((entity) => entity.toGQLUnknownEntity());
 
   return {
-    results: dbEntities,
+    results,
     operation: {
       page,
       perPage,
@@ -50,8 +48,8 @@ export const aggregateEntity: Resolver<
 
 /** Compare entities on a given property. */
 const compareEntitiesByField = (
-  entityA: DbEntity,
-  entityB: DbEntity,
+  entityA: Entity,
+  entityB: Entity,
   property: string
 ): number => {
   if (

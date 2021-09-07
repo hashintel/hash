@@ -94,6 +94,20 @@ class __Entity {
       return dbEntity ? new Entity(dbEntity) : null;
     };
 
+  static getEntitiesByType =
+    (client: DBClient) =>
+    async (args: {
+      accountId: string;
+      entityTypeId: string;
+      entityTypeVersionId?: string;
+      latestOnly: boolean;
+    }): Promise<Entity[]> =>
+      client
+        .getEntitiesByType(args)
+        .then((dbEntities) =>
+          dbEntities.map((dbEntity) => new Entity(dbEntity))
+        );
+
   static getEntitiesBySystemType =
     (client: DBClient) =>
     async (args: {
