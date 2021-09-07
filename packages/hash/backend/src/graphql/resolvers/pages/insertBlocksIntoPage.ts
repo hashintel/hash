@@ -4,8 +4,7 @@ import { DbPageProperties, DbBlockProperties } from "../../../types/dbTypes";
 import { Resolver, MutationInsertBlocksIntoPageArgs } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { genId } from "../../../util";
-import { dbEntityToGraphQLEntity } from "../../util";
-import { EntityWithIncompleteEntityType } from "../../../model";
+import { Entity, EntityWithIncompleteEntityType } from "../../../model";
 
 export const insertBlocksIntoPage: Resolver<
   Promise<EntityWithIncompleteEntityType>,
@@ -29,7 +28,7 @@ export const insertBlocksIntoPage: Resolver<
         }
 
         // Create the entity that the block contains
-        const childEntity = await client.createEntity({
+        const childEntity = await Entity.create(client)({
           accountId: block.accountId,
           createdById: genId(), // @todo
           entityTypeId: entityTypeId ?? undefined,
@@ -45,7 +44,7 @@ export const insertBlocksIntoPage: Resolver<
           accountId: block.accountId,
           componentId: block.componentId,
         };
-        const newBlock = await client.createEntity({
+        const newBlock = await Entity.create(client)({
           accountId: block.accountId,
           createdById: genId(), // @todo
           systemTypeName: "Block",
@@ -59,7 +58,7 @@ export const insertBlocksIntoPage: Resolver<
     // Insert the blocks into the page
     // @todo: always get the latest version for now. This is a temporary measure.
     // return here when strict vs. optimistic entity mutation question is resolved.
-    const page = await client.getEntityLatestVersion({
+    const page = await Entity.getEntityLatestVersion(client)({
       accountId,
       entityId: pageMetadataId,
     });
@@ -81,13 +80,11 @@ export const insertBlocksIntoPage: Resolver<
     );
 
     // Update the page
-    const updatedEntities = (await client.updateEntity(page)).map(
-      dbEntityToGraphQLEntity
-    );
+    await page.updateProperties(client)(page.properties);
 
     // @todo: for now, all entities are non-versioned, so the array only has a single
     // element. Return when versioned entities are implemented at the API layer.
-    return updatedEntities[0];
+    return page.toGQLUnknownEntity();
   });
 };
 

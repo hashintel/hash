@@ -4,8 +4,7 @@ import { UserInputError } from "apollo-server-errors";
 import { genId } from "../../../util";
 import { MutationInsertBlockIntoPageArgs, Resolver } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
-import { dbEntityToGraphQLEntity } from "../../util";
-import { EntityWithIncompleteEntityType } from "../../../model";
+import { Entity, EntityWithIncompleteEntityType } from "../../../model";
 
 export const insertBlockIntoPage: Resolver<
   Promise<EntityWithIncompleteEntityType>,
@@ -31,7 +30,7 @@ export const insertBlockIntoPage: Resolver<
     let entity;
     if (entityId) {
       // Update
-      entity = await dataSources.db.getEntity({
+      entity = await Entity.getEntity(dataSources.db)({
         accountId,
         entityVersionId: entityId,
       });
@@ -45,7 +44,7 @@ export const insertBlockIntoPage: Resolver<
         );
       }
       // Create new entity
-      entity = await dataSources.db.createEntity({
+      entity = await Entity.create(dataSources.db)({
         accountId,
         createdById: genId(), // TODO
         entityTypeId: entityTypeId ?? undefined,
@@ -63,11 +62,11 @@ export const insertBlockIntoPage: Resolver<
     const blockProperties = {
       componentId,
       entityId: entity.entityVersionId,
-      entityTypeId: entity.entityTypeId,
+      entityTypeId: entity.entityType.entityId,
       accountId: entity.accountId,
     };
 
-    const newBlock = await dataSources.db.createEntity({
+    const newBlock = await Entity.create(dataSources.db)({
       accountId,
       systemTypeName: "Block",
       createdById: genId(), // TODO
@@ -78,7 +77,7 @@ export const insertBlockIntoPage: Resolver<
     // Get and update the page.
     // @todo: always get the latest version for now. This is a temporary measure.
     // return here when strict vs. optimistic entity mutation question is resolved.
-    const page = await client.getEntityLatestVersion({
+    const page = await Entity.getEntityLatestVersion(client)({
       accountId,
       entityId: pageMetadataId,
     });
@@ -101,12 +100,10 @@ export const insertBlockIntoPage: Resolver<
       ...page.properties.contents.slice(position),
     ];
 
-    const updatedEntities = (await client.updateEntity(page)).map(
-      dbEntityToGraphQLEntity
-    );
+    await page.updateProperties(client)(page.properties);
 
     // TODO: for now, all entities are non-versioned, so the list array only have a single
     // element. Return when versioned entities are implemented at the API layer.
-    return updatedEntities[0];
+    return page.toGQLUnknownEntity();
   });
 };

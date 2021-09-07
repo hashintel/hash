@@ -3,8 +3,7 @@ import { ApolloError } from "apollo-server-express";
 import { Resolver } from "../../apiTypes.gen";
 import { DbBlockProperties } from "../../../types/dbTypes";
 import { GraphQLContext } from "../../context";
-import { dbEntityToGraphQLEntity } from "../../util";
-import { EntityWithIncompleteEntityType } from "../../../model";
+import { Entity, EntityWithIncompleteEntityType } from "../../../model";
 
 export const blockEntity: Resolver<
   Promise<EntityWithIncompleteEntityType>,
@@ -12,7 +11,7 @@ export const blockEntity: Resolver<
   GraphQLContext,
   {}
 > = async ({ accountId, entityId }, {}, { dataSources }) => {
-  const entity = await dataSources.db.getEntity({
+  const entity = await Entity.getEntity(dataSources.db)({
     accountId,
     entityVersionId: entityId,
   });
@@ -23,5 +22,5 @@ export const blockEntity: Resolver<
     );
   }
 
-  return dbEntityToGraphQLEntity(entity);
+  return entity.toGQLUnknownEntity();
 };
