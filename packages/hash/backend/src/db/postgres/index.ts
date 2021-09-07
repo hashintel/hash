@@ -256,12 +256,16 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   }
 
   getEntities(
-    entities: {
+    params: {
       accountId: string;
       entityVersionId: string;
     }[]
   ): Promise<Entity[]> {
-    return this.query((adapter) => adapter.getEntities(entities));
+    return this.query((adapter) => adapter.getEntities(params));
+  }
+
+  getEntityTypes(params: { accountId: string }): Promise<EntityType[]> {
+    return this.query((adapter) => adapter.getEntityTypes(params));
   }
 
   getEntityTypes(params: { accountId: string }): Promise<EntityType[]> {
