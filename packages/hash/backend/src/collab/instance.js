@@ -3,9 +3,9 @@ import { Mapping, Step, Transform } from "prosemirror-transform";
 import { createInitialDoc, createSchema } from "@hashintel/hash-shared/schema";
 import {
   calculateSavePayloads,
-  createBlockUpdateTransaction,
-  transformBlockForProsemirror,
-  mapEntitiesToBlocks,
+  createEntityUpdateTransaction,
+  mapEntityToBlock,
+  prepareEntityForProsemirror,
 } from "@hashintel/hash-shared/sharedWithBackend";
 import {
   getPageQuery,
@@ -87,8 +87,7 @@ class Instance {
           });
 
           const { position } = insertPayload;
-          const newBlock =
-            data.insertBlockIntoPage.properties.contents[position];
+          const entity = data.insertBlockIntoPage.properties.contents[position];
 
           const offset = await new Promise((resolve) => {
             doc.forEach((_, offset, index) => {
@@ -99,8 +98,7 @@ class Instance {
           });
 
           const transform = new Transform(this.doc);
-          const mappedNewBlock = mapEntitiesToBlocks([newBlock])[0];
-          const { attrs } = transformBlockForProsemirror(mappedNewBlock);
+          const { attrs } = prepareEntityForProsemirror(entity);
 
           const blockWithAttrs = this.doc.childAfter(mapping.map(offset) + 1);
 
@@ -160,7 +158,8 @@ class Instance {
           variables: { metadataId: this.id, accountId: this.accountId },
         });
 
-        this.savedContents = mapEntitiesToBlocks(data.page.properties.contents);
+        this.savedContents =
+          data.page.properties.contents.map(mapEntityToBlock);
       })
       .finally(() => {
         if (this.saveMapping === mapping) {
@@ -264,7 +263,6 @@ async function newInstance(accountId, id) {
     query: getPageQuery,
     variables: { metadataId: id, accountId },
   });
-  const blocks = mapEntitiesToBlocks(data.page.properties.contents);
 
   const state = createProseMirrorState(
     createInitialDoc(createSchema()),
@@ -273,13 +271,19 @@ async function newInstance(accountId, id) {
   );
 
   const newState = state.apply(
-    await createBlockUpdateTransaction(state, blocks, null)
+    await createEntityUpdateTransaction(
+      state,
+      data.page.properties.contents,
+      null
+    )
   );
 
   // The instance may have been created whilst another user we were doing the above work
   if (instances[id]) {
     return instances[id];
   }
+
+  const blocks = data.page.properties.contents.map(mapEntityToBlock);
 
   return (instances[id] = new Instance(
     accountId,

@@ -15,20 +15,20 @@ import { useDeferredCallback } from "./useDeferredCallback";
 import { BlockMetaContext } from "../blockMeta";
 import { createInitialDoc, createSchema } from "@hashintel/hash-shared/schema";
 import {
-  Block,
   BlockMeta,
-  BlockWithoutMeta,
   cachedPropertiesByEntity,
   calculateSavePayloads,
   componentUrlToProsemirrorId,
-  createBlockUpdateTransaction,
+  createEntityUpdateTransaction,
+  mapEntityToBlock,
 } from "@hashintel/hash-shared/sharedWithBackend";
 import { defineNewBlock } from "@hashintel/hash-shared/sharedWithBackendJs";
 import { collabEnabled, createNodeView } from "./tsUtils";
 import { EditorConnection } from "./collab/collab";
+import { PageFieldsFragment } from "@hashintel/hash-shared/graphql/apiTypes.gen";
 
 type PageBlockProps = {
-  contents: (Block | BlockWithoutMeta)[];
+  contents: PageFieldsFragment["properties"]["contents"];
   blocksMeta: Map<string, BlockMeta>;
   pageId: string;
   accountId: string;
@@ -88,7 +88,6 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
 
   const updateContents = useCallback(
     async (signal?: AbortSignal): Promise<void> => {
-      const contents = currentContents.current;
       const setup = prosemirrorSetup.current;
       if (!setup) {
         return;
@@ -98,11 +97,15 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
 
       const state = view.state;
 
-      const tr = await createBlockUpdateTransaction(state, contents, {
-        view,
-        replacePortal,
-        createNodeView,
-      });
+      const tr = await createEntityUpdateTransaction(
+        state,
+        currentContents.current,
+        {
+          view,
+          replacePortal,
+          createNodeView,
+        }
+      );
 
       if (signal?.aborted) {
         return;
@@ -146,7 +149,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
             return;
           }
           const { view } = prosemirrorSetup.current;
-          const savedContents = currentContents.current;
+          const savedContents = currentContents.current.map(mapEntityToBlock);
           const { state } = view;
 
           const { updatedEntitiesPayload, pageUpdatedPayload, insertPayloads } =
