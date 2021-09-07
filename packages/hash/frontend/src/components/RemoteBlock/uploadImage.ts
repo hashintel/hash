@@ -7,29 +7,26 @@ export const uploadImage = async ({
   imgURL?: string;
 }): Promise<{
   src?: string;
-  error?: string;
 }> => {
   if (imgURL?.trim()) {
     return { src: imgURL };
   }
 
-  if (file) {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          resolve({ src: event.target.result.toString() });
-        } else {
-          resolve({ error: "Couldn't read your file" });
-        }
-      };
-
-      reader.readAsDataURL(file);
-    });
+  if (!file) {
+    throw new Error("Please enter a valid image URL or select a file below");
   }
 
-  return {
-    error: "Please enter a valid image URL or select a file below",
-  };
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        resolve({ src: event.target.result.toString() });
+      } else {
+        reject(new Error("Couldn't read your file"));
+      }
+    };
+
+    reader.readAsDataURL(file);
+  });
 };

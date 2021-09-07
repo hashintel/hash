@@ -102,17 +102,20 @@ export const Image: BlockComponent<AppProps> = (props) => {
     if (inputText?.trim()) {
       setStateObject((stateObject) => ({ ...stateObject, loading: true }));
 
-      void uploadImage({ imgURL: inputText }).then(({ src, error }) => {
-        if (isMounted.current) {
-          setStateObject((stateObject) => ({ ...stateObject, loading: false }));
+      void uploadImage({ imgURL: inputText })
+        .then(({ src }) => {
+          if (isMounted.current) {
+            setStateObject((stateObject) => ({
+              ...stateObject,
+              loading: false,
+            }));
 
-          if (error?.trim()) {
-            return displayError(error);
+            updateData(src);
           }
-
-          updateData(src);
-        }
-      });
+        })
+        .catch((error) => {
+          return displayError(error);
+        });
     } else {
       displayError("Please enter a valid image URL or select a file below");
     }
@@ -191,13 +194,15 @@ export const Image: BlockComponent<AppProps> = (props) => {
     <>
       {stateObject.errorString && (
         <div
-          className={tw`max-w-md mx-auto mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative`}
+          className={tw`w-96 mx-auto mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative`}
           role="alert"
         >
-          <strong className={tw`font-bold`}>Error</strong>
-          <span className={tw`block sm:inline ml-2 mr-2`}>
-            {stateObject.errorString}
-          </span>
+          <div className={tw`mr-5`}>
+            <strong className={tw`font-bold`}>Error</strong>
+            <span className={tw`block sm:inline ml-2 `}>
+              {stateObject.errorString}
+            </span>
+          </div>
           <span
             onClick={() =>
               setStateObject((stateObject) => ({
@@ -213,7 +218,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
       )}
 
       <div
-        className={tw`max-w-md mx-auto bg-white rounded-sm shadow-md overflow-hidden text-center p-4 border-2 border-gray-200`}
+        className={tw`w-96 mx-auto bg-white rounded-sm shadow-md overflow-hidden text-center p-4 border-2 border-gray-200`}
         onDragOver={(event) => {
           event.stopPropagation();
           event.preventDefault();
