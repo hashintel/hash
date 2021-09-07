@@ -1,6 +1,6 @@
 import { Entity, EntityType, EntityWithIncompleteEntityType } from ".";
 import { DBClient } from "../db";
-import { EntityType as DbEntityType } from "../db/adapter";
+import { EntityMeta, EntityType as DbEntityType } from "../db/adapter";
 import { Visibility } from "../graphql/apiTypes.gen";
 import { SystemType } from "../types/entityTypes";
 
@@ -11,7 +11,7 @@ export type EntityConstructorArgs = {
   accountId: string;
   entityType: DbEntityType | EntityType;
   properties: any;
-  // metadata: EntityMeta;
+  metadata: EntityMeta;
   entityCreatedAt: Date;
   entityVersionCreatedAt: Date;
   entityVersionUpdatedAt: Date;
@@ -36,7 +36,7 @@ class __Entity {
   accountId: string;
   entityType: EntityType;
   properties: any;
-  // metadata: EntityMeta;
+  metadata: EntityMeta;
   entityCreatedAt: Date;
   entityVersionCreatedAt: Date;
   entityVersionUpdatedAt: Date;
@@ -48,7 +48,7 @@ class __Entity {
     accountId,
     entityType,
     properties,
-    // metadata,
+    metadata,
     entityCreatedAt,
     entityVersionCreatedAt,
     entityVersionUpdatedAt,
@@ -62,6 +62,7 @@ class __Entity {
         ? entityType
         : new EntityType(entityType);
     this.properties = properties;
+    this.metadata = metadata;
     this.entityCreatedAt = entityCreatedAt;
     this.entityVersionCreatedAt = entityVersionCreatedAt;
     this.entityVersionUpdatedAt = entityVersionUpdatedAt;
@@ -148,8 +149,16 @@ class __Entity {
         entityId: this.entityId,
         properties,
       })
-      .then(() => {
+      .then(([updatedEntity]) => {
         this.properties = properties;
+        this.entityVersionUpdatedAt = updatedEntity.entityVersionUpdatedAt;
+
+        if (this.metadata.versioned) {
+          this.entityVersionId = updatedEntity.entityVersionId;
+          this.entityCreatedAt = updatedEntity.entityCreatedAt;
+          this.entityVersionCreatedAt = updatedEntity.entityVersionCreatedAt;
+        }
+
         return this;
       });
 
