@@ -4,7 +4,7 @@
   "plugins": ["@typescript-eslint"],
   "extends": [
     "plugin:@typescript-eslint/base",
-    "airbnb-base",
+    "airbnb",
     "prettier" // mutes eslint rules conflicting w/ prettier (requires eslint-config-prettier)
   ],
   "ignorePatterns": ["**/*.gen.*"],
