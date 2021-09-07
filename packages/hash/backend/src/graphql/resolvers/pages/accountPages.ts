@@ -1,7 +1,6 @@
 import { QueryAccountPagesArgs, Resolver } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
-import { dbEntityToGraphQLEntity } from "../../util";
-import { EntityWithIncompleteEntityType } from "../../../model";
+import { Entity, EntityWithIncompleteEntityType } from "../../../model";
 
 export const accountPages: Resolver<
   Promise<EntityWithIncompleteEntityType[]>,
@@ -9,10 +8,11 @@ export const accountPages: Resolver<
   GraphQLContext,
   QueryAccountPagesArgs
 > = async (_, { accountId }, { dataSources }) => {
-  const pages = await dataSources.db.getEntitiesBySystemType({
+  const pages = await Entity.getEntitiesBySystemType(dataSources.db)({
     accountId,
     systemTypeName: "Page",
     latestOnly: true,
   });
-  return pages.map(dbEntityToGraphQLEntity);
+
+  return pages.map((page) => page.toGQLUnknownEntity());
 };

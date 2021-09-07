@@ -94,6 +94,19 @@ class __Entity {
       return dbEntity ? new Entity(dbEntity) : null;
     };
 
+  static getEntitiesBySystemType =
+    (client: DBClient) =>
+    async (args: {
+      accountId: string;
+      latestOnly: boolean;
+      systemTypeName: SystemType;
+    }): Promise<Entity[]> =>
+      client
+        .getEntitiesBySystemType(args)
+        .then((dbEntities) =>
+          dbEntities.map((dbEntity) => new Entity(dbEntity))
+        );
+
   static getAccountEntities = async (client: DBClient): Promise<Entity[]> => {
     const dbEntities = await client.getAccountEntities();
 
