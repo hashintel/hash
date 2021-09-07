@@ -2,7 +2,7 @@ import passport, { AuthenticateOptions } from "passport";
 import { Express } from "express";
 import { ExpressContext } from "apollo-server-express";
 import { DBAdapter } from "../../db";
-import UserModel from "../../model/user.model";
+import { User as UserModel } from "../../model";
 
 declare global {
   namespace Express {

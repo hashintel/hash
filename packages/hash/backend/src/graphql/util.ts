@@ -2,7 +2,7 @@ import * as db from "../db/adapter";
 import {
   EntityTypeWithoutTypeFields,
   EntityWithIncompleteEntityType,
-} from "../model/entityType.model";
+} from "../model";
 
 /** Converts an `Entity` type returned by the `db` library, to an `UnknownEntity`
  * type defined by the GraphQL type definition.

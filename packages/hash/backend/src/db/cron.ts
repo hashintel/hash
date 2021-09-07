@@ -1,5 +1,5 @@
 import { CronJob } from "cron";
-import { PRUNE_AGE_MS } from "../model/verificationCode.model";
+import { PRUNE_AGE_MS } from "../model";
 import { Logger } from "winston";
 import { DBAdapter } from "./adapter";
 

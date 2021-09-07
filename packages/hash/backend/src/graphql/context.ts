@@ -1,9 +1,9 @@
 import { PassportGraphQLMethods } from "../auth/passport";
 import { Logger } from "winston";
 
-import User from "../model/user.model";
+import { User } from "../model";
 import { DBAdapter } from "../db";
-import EmailTransporter from "src/email/transporter";
+import EmailTransporter from "../email/transporter";
 
 /**
  * Apollo context object with dataSources. For details see:

@@ -167,6 +167,10 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return this.query((adapter) => adapter.getUserByShortname(params));
   }
 
+  getOrgByShortname(params: { shortname: string }): Promise<Entity | null> {
+    return this.query((adapter) => adapter.getOrgByShortname(params));
+  }
+
   getEntitiesByType(params: {
     entityTypeId: string;
     entityTypeVersionId?: string;

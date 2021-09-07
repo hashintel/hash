@@ -1,7 +1,7 @@
 import { ApolloError } from "apollo-server-express";
 import { DBClient } from "../../../db";
-import User from "../../../model/user.model";
-import VerificationCode from "../../../model/verificationCode.model";
+import { User } from "../../../model";
+import { VerificationCode } from "../../../model";
 
 export const verifyVerificationCode =
   (client: DBClient) =>

@@ -5,7 +5,7 @@ import { genId } from "../../../util";
 import { MutationInsertBlockIntoPageArgs, Resolver } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { dbEntityToGraphQLEntity } from "../../util";
-import { EntityWithIncompleteEntityType } from "../../../model/entityType.model";
+import { EntityWithIncompleteEntityType } from "../../../model";
 
 export const insertBlockIntoPage: Resolver<
   Promise<EntityWithIncompleteEntityType>,

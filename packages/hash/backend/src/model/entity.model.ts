@@ -1,15 +1,15 @@
+import { Entity, EntityType, EntityWithIncompleteEntityType } from ".";
 import { DBClient } from "../db";
 import { EntityType as DbEntityType } from "../db/adapter";
-import EntityType from "./entityType.model";
 import { Visibility } from "../graphql/apiTypes.gen";
-import { EntityWithIncompleteEntityType } from "./entityType.model";
+import { SystemType } from "../types/entityTypes";
 
 export type EntityConstructorArgs = {
   entityId: string;
   entityVersionId: string;
   createdById: string;
   accountId: string;
-  entityType: DbEntityType;
+  entityType: DbEntityType | EntityType;
   properties: any;
   // metadata: EntityMeta;
   entityCreatedAt: Date;
@@ -17,7 +17,19 @@ export type EntityConstructorArgs = {
   entityVersionUpdatedAt: Date;
 };
 
-class Entity {
+export type CreateEntityArgs = {
+  accountId: string;
+  createdById: string;
+  entityId?: string | null | undefined;
+  entityVersionId?: string | null | undefined;
+  entityTypeId?: string;
+  entityTypeVersionId?: string | null | undefined;
+  systemTypeName?: SystemType | null | undefined;
+  versioned: boolean;
+  properties: any;
+};
+
+class __Entity {
   entityId: string;
   entityVersionId: string;
   createdById: string;
@@ -45,15 +57,23 @@ class Entity {
     this.entityVersionId = entityVersionId;
     this.createdById = createdById;
     this.accountId = accountId;
-    this.entityType = new EntityType(entityType);
+    this.entityType =
+      entityType instanceof EntityType
+        ? entityType
+        : new EntityType(entityType);
     this.properties = properties;
     this.entityCreatedAt = entityCreatedAt;
     this.entityVersionCreatedAt = entityVersionCreatedAt;
     this.entityVersionUpdatedAt = entityVersionUpdatedAt;
   }
 
+  static create =
+    (client: DBClient) =>
+    async (args: CreateEntityArgs): Promise<Entity> =>
+      client.createEntity(args).then((dbEntity) => new Entity(dbEntity));
+
   static getEntityById =
-    (db: DBClient) =>
+    (client: DBClient) =>
     ({
       accountId,
       entityVersionId,
@@ -61,12 +81,25 @@ class Entity {
       accountId: string;
       entityVersionId: string;
     }): Promise<Entity | null> =>
-      db
+      client
         .getEntity({
           accountId,
           entityVersionId,
         })
         .then((dbEntity) => (dbEntity ? new Entity(dbEntity) : null));
+
+  updateProperties = (client: DBClient) => (properties: any) =>
+    client
+      .updateEntity({
+        accountId: this.accountId,
+        entityVersionId: this.entityVersionId,
+        entityId: this.entityId,
+        properties,
+      })
+      .then(() => {
+        this.properties = properties;
+        return this;
+      });
 
   toGQLEntity = (): Omit<EntityWithIncompleteEntityType, "properties"> => ({
     id: this.entityId,
@@ -92,4 +125,4 @@ class Entity {
   });
 }
 
-export default Entity;
+export default __Entity;

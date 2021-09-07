@@ -1,7 +1,7 @@
 import { Resolver } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { dbEntityToGraphQLEntity } from "../../util";
-import { EntityWithIncompleteEntityType } from "../../../model/entityType.model";
+import { EntityWithIncompleteEntityType } from "../../../model";
 
 export const accounts: Resolver<
   Promise<EntityWithIncompleteEntityType[]>,

@@ -1,3 +1,11 @@
+import {
+  User,
+  Entity,
+  Account,
+  AccountConstructorArgs,
+  EntityTypeWithoutTypeFields,
+  VerificationCode,
+} from ".";
 import { DBClient } from "../db";
 import { EntityType } from "../db/adapter";
 import {
@@ -10,20 +18,13 @@ import {
   User as GQLUser,
   Email,
 } from "../graphql/apiTypes.gen";
-import Entity, { EntityConstructorArgs } from "./entity.model";
-import VerificationCode from "./verificationCode.model";
 import EmailTransporter from "../email/transporter";
-import { ApolloError, UserInputError } from "apollo-server-express";
-import { RESTRICTED_SHORTNAMES } from "./util";
-import { EntityTypeWithoutTypeFields } from "./entityType.model";
-
-export const ALLOWED_SHORTNAME_CHARS = /^[a-zA-Z0-9-_]+$/;
 
 type UserConstructorArgs = {
   properties: UserProperties;
-} & EntityConstructorArgs;
+} & Omit<AccountConstructorArgs, "type">;
 
-class User extends Entity {
+class __User extends Account {
   properties: UserProperties;
 
   constructor({ properties, ...remainingArgs }: UserConstructorArgs) {
@@ -31,8 +32,8 @@ class User extends Entity {
     this.properties = properties;
   }
 
-  static getEntityType = async (db: DBClient): Promise<EntityType> =>
-    db
+  static getEntityType = async (client: DBClient): Promise<EntityType> =>
+    client
       .getSystemTypeLatestVersion({ systemTypeName: "User" })
       .then((userEntityType) => {
         if (!userEntityType) {
@@ -43,7 +44,7 @@ class User extends Entity {
       });
 
   static getUserById =
-    (db: DBClient) =>
+    (client: DBClient) =>
     ({
       accountId,
       entityId,
@@ -51,12 +52,12 @@ class User extends Entity {
       accountId: string;
       entityId: string;
     }): Promise<User | null> =>
-      db
+      client
         .getEntityLatestVersion({ accountId, entityId })
         .then((dbUser) => (dbUser ? new User(dbUser) : null));
 
   static getUserByEmail =
-    (db: DBClient) =>
+    (client: DBClient) =>
     ({
       email,
       verified = true,
@@ -66,27 +67,27 @@ class User extends Entity {
       verified?: boolean;
       primary?: boolean;
     }): Promise<User | null> =>
-      db
+      client
         .getUserByEmail({ email, verified, primary })
         .then((dbUser) => (dbUser ? new User(dbUser) : null));
 
   static getUserByShortname =
-    (db: DBClient) =>
+    (client: DBClient) =>
     ({ shortname }: { shortname: string }): Promise<User | null> =>
-      db
+      client
         .getUserByShortname({ shortname })
         .then((dbUser) => (dbUser ? new User(dbUser) : null));
 
-  static create =
-    (db: DBClient) =>
+  static createUser =
+    (client: DBClient) =>
     async (properties: UserProperties): Promise<User> => {
       const id = genId();
 
-      const entity = await db.createEntity({
+      const entity = await Entity.create(client)({
         accountId: id,
         entityId: id,
         createdById: id, // Users "create" themselves
-        entityTypeId: (await User.getEntityType(db)).entityId,
+        entityTypeId: (await User.getEntityType(client)).entityId,
         properties,
         versioned: false, // @todo: should user's be versioned?
       });
@@ -94,73 +95,16 @@ class User extends Entity {
       return new User(entity);
     };
 
-  private updateProperties = (db: DBClient) => (properties: UserProperties) =>
-    db
-      .updateEntity({
-        accountId: this.accountId,
-        entityVersionId: this.entityVersionId,
-        entityId: this.entityId,
-        properties,
-      })
-      .then(() => {
-        this.properties = properties;
-        return this;
-      });
-
-  private static checkShortnameChars = (shortname: string) => {
-    if (shortname.search(ALLOWED_SHORTNAME_CHARS)) {
-      throw new UserInputError(
-        "Shortname may only contain letters, numbers, - or _"
-      );
-    }
-    if (shortname[0] === "-") {
-      throw new UserInputError("Shortname cannot start with '-'");
-    }
-  };
-
-  static isShortnameReserved = (shortname: string): boolean =>
-    RESTRICTED_SHORTNAMES.includes(shortname);
-
-  static isShortnameTaken =
-    (client: DBClient) =>
-    async (shortname: string): Promise<boolean> => {
-      /** @todo: check if an org with the shortname exists */
-
-      const user = await User.getUserByShortname(client)({ shortname });
-
-      return user !== null;
-    };
-
-  static validateShortname =
-    (client: DBClient) => async (shortname: string) => {
-      User.checkShortnameChars(shortname);
-
-      if (
-        User.isShortnameReserved(shortname) ||
-        (await User.isShortnameTaken(client)(shortname))
-      ) {
-        throw new ApolloError(`Shortname ${shortname} taken`, "NAME_TAKEN");
-      }
-
-      /** @todo: enable admins to have a shortname under 4 characters */
-      if (shortname.length < 4) {
-        throw new UserInputError(
-          "Shortname must be at least 4 characters long."
-        );
-      }
-      if (shortname.length > 24) {
-        throw new UserInputError(
-          "Shortname cannot be longer than 24 characters"
-        );
-      }
-    };
+  private updateUserProperties =
+    (client: DBClient) => (properties: UserProperties) =>
+      this.updateProperties(client)(properties);
 
   /**
    * Must occur in the same db transaction as when `this.properties` was fetched
    * to prevent overriding externally-updated properties
    */
-  updateShortname = (db: DBClient) => async (updatedShortname: string) =>
-    this.updateProperties(db)({
+  updateShortname = (client: DBClient) => async (updatedShortname: string) =>
+    this.updateUserProperties(client)({
       ...this.properties,
       shortname: updatedShortname,
     });
@@ -171,8 +115,8 @@ class User extends Entity {
    * Must occur in the same db transaction as when `this.properties` was fetched
    * to prevent overriding externally-updated properties
    */
-  updatePreferredName = (db: DBClient) => (updatedPreferredName: string) =>
-    this.updateProperties(db)({
+  updatePreferredName = (client: DBClient) => (updatedPreferredName: string) =>
+    this.updateUserProperties(client)({
       ...this.properties,
       preferredName: updatedPreferredName,
     });
@@ -202,8 +146,8 @@ class User extends Entity {
    * Must occur in the same db transaction as when `this.properties` was fetched
    * to prevent overriding externally-updated properties
    */
-  verifyEmailAddress = (db: DBClient) => (emailAddress: string) =>
-    this.updateProperties(db)({
+  verifyEmailAddress = (client: DBClient) => (emailAddress: string) =>
+    this.updateUserProperties(client)({
       ...this.properties,
       emails: this.properties.emails.map((email) =>
         email.address === emailAddress ? { ...email, verified: true } : email
@@ -280,4 +224,4 @@ class User extends Entity {
   });
 }
 
-export default User;
+export default __User;

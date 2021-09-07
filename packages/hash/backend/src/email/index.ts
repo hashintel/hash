@@ -1,4 +1,4 @@
-import VerificationCode from "../model/verificationCode.model";
+import { VerificationCode } from "../model";
 import { getRequiredEnv } from "../util";
 import EmailTransporter from "./transporter";
 

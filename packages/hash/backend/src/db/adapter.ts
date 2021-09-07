@@ -193,6 +193,9 @@ export interface DBClient {
   /** Get the user by their shortname. */
   getUserByShortname(params: { shortname: string }): Promise<Entity | null>;
 
+  /** Get the org by its shortname. */
+  getOrgByShortname(params: { shortname: string }): Promise<Entity | null>;
+
   /**
    * Get all entities of a given type
    * @param params.accountId the account to retrieve entities from
