@@ -1,4 +1,5 @@
 import {
+  User,
   Entity,
   Account,
   AccountConstructorArgs,
@@ -23,7 +24,7 @@ type UserConstructorArgs = {
   properties: UserProperties;
 } & Omit<AccountConstructorArgs, "type">;
 
-export class User extends Account {
+class __User extends Account {
   properties: UserProperties;
 
   constructor({ properties, ...remainingArgs }: UserConstructorArgs) {
@@ -223,4 +224,4 @@ export class User extends Account {
   });
 }
 
-export default User;
+export default __User;

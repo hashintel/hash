@@ -1,4 +1,5 @@
 import {
+  Org,
   Account,
   Entity,
   AccountConstructorArgs,
@@ -13,7 +14,7 @@ type OrgConstructorArgs = {
   properties: OrgProperties;
 } & Omit<AccountConstructorArgs, "type">;
 
-export class Org extends Account {
+class __Org extends Account {
   properties: OrgProperties;
 
   constructor({ properties, ...remainingArgs }: OrgConstructorArgs) {
@@ -81,4 +82,4 @@ export class Org extends Account {
   });
 }
 
-export default Org;
+export default __Org;

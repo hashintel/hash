@@ -1,3 +1,4 @@
+import { VerificationCode } from ".";
 import { rword } from "rword";
 import { DBClient } from "../db";
 import { VerificationCodeMetadata as GQLVerificationCodeMetadata } from "../graphql/apiTypes.gen";
@@ -20,7 +21,7 @@ type VerificationCodeConstructorArgs = {
   createdAt: Date;
 };
 
-export class VerificationCode {
+class __VerificationCode {
   id: string;
   code: string;
   emailAddress: string;
@@ -93,3 +94,5 @@ export class VerificationCode {
     createdAt: this.createdAt,
   });
 }
+
+export default __VerificationCode;

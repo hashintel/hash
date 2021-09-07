@@ -1,3 +1,4 @@
+import { EntityType } from ".";
 import { DBClient } from "../db";
 import {
   EntityType as GQLEntityType,
@@ -48,7 +49,7 @@ export type EntityTypeConstructorArgs = {
 };
 
 // This is a bit repetitive of Entity, but we don't want the methods on Entity available on this
-export class EntityType {
+class __EntityType {
   entityId: string;
   entityVersionId: string;
   createdById: string;
@@ -125,3 +126,5 @@ export class EntityType {
     visibility: Visibility.Public /** @todo: get from entity metadata */,
   });
 }
+
+export default __EntityType;
