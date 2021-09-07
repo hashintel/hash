@@ -106,8 +106,9 @@ Using the Process Model Builder, we can set properties for each of the blocks an
 
 Now we can take a [dataset defining different customer service employees](https://docs.google.com/spreadsheets/d/1dFSnjdBqbovplPwWo7DI77AX8rXWOmVQi1dW8c0l1-k/edit?usp=sharing), download it as a CSV, load it into the simulation, and use the data to set the number of CS employees we have on hand.
 
-{% code title="create\_process\_from\_chart.js" >
 ```javascript
+  // create_process_from_chart.js
+
  "start": {
         "template": {},
         "frequency": 1,
@@ -129,8 +130,9 @@ Now we can take a [dataset defining different customer service employees](https:
 
 This is a good start, but to make the model more realistic we can add a dataset representing ticket volumes over the past five days. I'll take the mean and standard deviation of the data, and set a triangular distribution for the number of tickets to generate every time step.
 
-{% code title="create\_process\_from\_chart.js" >
 ```javascript
+// create_process_from_chart.js
+
  const { triangular } = hstd.stats;
  let tickets = context.data()["Tickets.csv"];
  //Get min and max number of tickets received per day
