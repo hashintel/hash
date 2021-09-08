@@ -1,4 +1,5 @@
 import { JSONObject } from "@hashintel/block-protocol";
+import merge from "lodash.merge";
 import { Entity, EntityType, EntityWithIncompleteEntityType } from ".";
 import { DBClient } from "../db";
 import { EntityMeta, EntityType as DbEntityType } from "../db/adapter";
@@ -148,15 +149,8 @@ class __Entity {
         entityId: this.entityId,
         properties,
       })
-      .then(([updatedEntity]) => {
-        this.properties = properties;
-        this.entityVersionUpdatedAt = updatedEntity.entityVersionUpdatedAt;
-
-        if (this.metadata.versioned) {
-          this.entityVersionId = updatedEntity.entityVersionId;
-          this.entityCreatedAt = updatedEntity.entityCreatedAt;
-          this.entityVersionCreatedAt = updatedEntity.entityVersionCreatedAt;
-        }
+      .then(([updatedDbEntity]) => {
+        merge(this, new Entity(updatedDbEntity));
 
         return this;
       });
