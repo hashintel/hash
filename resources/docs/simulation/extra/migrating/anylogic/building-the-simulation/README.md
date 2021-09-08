@@ -4,8 +4,7 @@ Working outside in, we will start with **Tankers**. We’ll point out key pieces
 
 To initialize our simulation, we'll define a **Creator** agent in our [initial state](../../../../creating-simulations/anatomy-of-an-agent/initial-state.md) and begin crafting our agents inside it. Even though in our final simulation we'll have multiple of each type of agent, as we initially build our simulation with a single copy of each so that we can easily see that our agents are behaving correctly.
 
-** init.json **
-
+{% code title="init.json" %}
 ```javascript
 [
     {
@@ -17,7 +16,7 @@ To initialize our simulation, we'll define a **Creator** agent in our [initial s
     }
 ]
 ```
-
+{% endcode %}
 
 We'll import the `Remove Self` published behavior using the lower left sidebar, and create the initialize.js behavior in our simulation files sidebar \(top left\).
 

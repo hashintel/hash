@@ -27,9 +27,9 @@ The main loop is a broad concept meant to capture the general process of the sim
 * What is the high level process you’re representing in the simulation?
 * From start to finish, what is a single run of a simulation?
 
-<Hint style="info">
+{% hint style="info" %}
 Consider creating a flowchart to represent at a high level what is happening in a simulation
-</Hint>
+{% endhint %}
 
 * Are there “globals” \(environment variables\)? What are they?
 * What is the timescale of the simulation? Does each agent execute on every timestep, or are there delays?

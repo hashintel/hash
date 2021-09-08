@@ -15,9 +15,9 @@ Your agent only needs to run two behaviors to execute a system dynamics model:
 * `@hash/sd/calc_rates.js` - determines and assigns all flow rates for the current time step
 * `@hash/sd/step.js` - runs the model one step forward using the current flow rates and stock values
 
-<Hint style="info">
+{% hint style="info" %}
 Make sure that your agent's `behaviors` array always contains the two behaviors in that order.
-</Hint>
+{% endhint %}
 
 ### Properties
 
@@ -48,9 +48,9 @@ The final step is to define the rates in your model. Each rate will have 3 or 4 
 * `from` - the stock from which this rate is flowing. This stock will decrease at the rate.
 * `to` - the stock to which this rate is flowing. This stock will increase at the rate.
 
-<Hint style="info">
+{% hint style="info" %}
 Some rates will only have one of "to" or "from" if they are coming from a sink, or going to a source.
-</Hint>
+{% endhint %}
 
 ```javascript
 "sd_definition": {
@@ -85,5 +85,5 @@ As a final step, set the resolution of your time step in **`globals.json`** with
 
 You now have a fully defined system dynamics model. Go ahead and create some metrics so that you can plot the values for "adults" and "children", and you should see something like this:
 
-![](https://cdn-us1.hash.ai/site/docs/image%20%2862%29.png)
+![](../.gitbook/assets/image%20%2862%29.png)
 

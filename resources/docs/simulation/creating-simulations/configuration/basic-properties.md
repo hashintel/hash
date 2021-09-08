@@ -21,10 +21,8 @@ If, for example, we wanted to cap the height of all trees in a [forest simulatio
 
 The associated tree growth behavior would follow:
 
-<Tabs>
-<Tab title="JavaScript" >
-
-
+{% tabs %}
+{% tab title="JavaScript" %}
 ```javascript
 function behavior(state, context) {
     if (state.height + growth <= context.globals()["maxTreeHeight"]) {
@@ -32,28 +30,26 @@ function behavior(state, context) {
     }
 }
 ```
-</Tab>
+{% endtab %}
 
-<Tab title="Python" >
-
-
+{% tab title="Python" %}
 ```python
 def behavior(state, context):   
     if state['height'] + growth <= context.globals()['maxTreeHeight']):
         growtree()
 ```
-</Tab>
-</Tabs>
+{% endtab %}
+{% endtabs %}
 
 ## Visual Globals
 
 Parameters defined in `globals.json` can be viewed and modified either in code-form, or through hCore's visual interface. Click the _toggle visual globals_ button at the top right of the code editor pane to switch between these views.
 
-![Toggle between edit and input of globals](https://cdn-us1.hash.ai/site/docs/kapture-2020-12-09-at-11.52.28.gif)
+![Toggle between edit and input of globals](../../.gitbook/assets/kapture-2020-12-09-at-11.52.28.gif)
 
-<Hint style="info">
+{% hint style="info" %}
 By default a non-signed in viewer of a simulation will see and interact with the visual globals view.
-</Hint>
+{% endhint %}
 
 The type of field input for a simulation parameter can be varied by adding a "schema" property to globals. Currently you can use schemas to specify these types of interfaces be displayed in the _visual globals_ interface:
 
@@ -62,11 +58,8 @@ The type of field input for a simulation parameter can be varied by adding a "sc
 
 ### Color Picker
 
-** globals.json **
-
-
+{% code title="globals.json" %}
 ```javascript
-
   {
     "<property_name>": "#ff0000",
 
@@ -80,8 +73,9 @@ The type of field input for a simulation parameter can be varied by adding a "sc
     }
   }
 ```
+{% endcode %}
 
-![A color selector in the visual globals pane](https://cdn-us1.hash.ai/site/docs/screen-shot-2020-12-09-at-12.06.10-pm.png)
+![A color selector in the visual globals pane](../../.gitbook/assets/screen-shot-2020-12-09-at-12.06.10-pm.png)
 
 ### Slider
 
@@ -102,5 +96,5 @@ The type of field input for a simulation parameter can be varied by adding a "sc
   }
 ```
 
-![Sliders for number parameters in the visual globals pane](https://cdn-us1.hash.ai/site/docs/image%20%2832%29.png)
+![Sliders for number parameters in the visual globals pane](../../.gitbook/assets/image%20%2832%29.png)
 

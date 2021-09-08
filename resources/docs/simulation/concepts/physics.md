@@ -42,17 +42,17 @@ This behavior simulates a spring connected between the agent and one of its neig
 
 The spring force is calculated according to Hooke's Law: _F  = -kx - Bv._
 
-<Hint style="warning">
+{% hint style="warning" %}
 If the agent referenced in a spring definition is outside of the `search_radius`, then it will be ignored since it cannot find the position of that agent.
-</Hint>
+{% endhint %}
 
 ### Collision
 
 _@hash/physics/collision.rs_
 
-This behavior controls collisions between agents who come too close to one another. It calculates a purely elastic collision between the agents. Agents running this behavior must have a `mass`, `position`, and `velocity` field specified. If an agent **A** collides with an agent **B** which is **not** running the collision behavior, **A** will assume that **B** is **immovable \(has an infinite mass\).**
+This behavior controls collisions between agents who come too close to one another. It calculates a purely elastic collision between the agents. Agents running this behavior must have a `mass`, `position`, and `velocity` field specified. If an agent **A** collides with an agent **B** which is **not** running the collision behavior, **A** will assume that **B** is ****immovable \(has an infinite mass\).
 
-<Hint style="warning">
+{% hint style="warning" %}
 Agents must have a `search_radius` of &gt;= 1  specified to ensure they see other agents.
-</Hint>
+{% endhint %}
 

@@ -16,7 +16,7 @@ Once you've developed and tested the logic and functioning of your model, it can
 
 In the [hIndex](https://hash.ai/search?query=display&sort=relevance&page=1) you can find published behaviors which have been created to help with more complicated visualization tasks.
 
-<Hint style="info">
+{% hint style="info" %}
 Not all models lend themselves well to spatial representation, and when viewing the results of multiple simulation runs at once \(as part of an [experiment](../../experiments/)\), it can be more useful to create [analysis charts and graphs](../../views/analysis/).
-</Hint>
+{% endhint %}
 

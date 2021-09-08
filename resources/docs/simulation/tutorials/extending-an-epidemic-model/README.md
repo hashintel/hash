@@ -12,10 +12,8 @@ We've provided a number of agents and behaviors to simulate a virus spreading th
 
 There are four distinct agents in the model. Three are locations - homes, groceries, and offices. The fourth are people.
 
-<Tabs>
-<Tab title="JavaScript" >
-
-
+{% tabs %}
+{% tab title="JavaScript" %}
 ```javascript
  //init.json lines 9-35
  //...
@@ -47,12 +45,9 @@ There are four distinct agents in the model. Three are locations - homes, grocer
   }
 //...
 ```
+{% endtab %}
 
-</Tab>
-
-<Tab title="Python" >
-
-
+{% tab title="Python" %}
 ```javascript
  //init.json lines 9-35
  //...
@@ -84,9 +79,8 @@ There are four distinct agents in the model. Three are locations - homes, grocer
   }
 //...
 ```
-
-</Tab>
-</Tabs>
+{% endtab %}
+{% endtabs %}
 
 Our people agents whiz about this simulated world, moving back and forth between groceries, work, and their homes, and occasionally \(depending on the parameters\), get sick.
 

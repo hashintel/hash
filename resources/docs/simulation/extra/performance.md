@@ -18,9 +18,9 @@ The general solution is to keep your initial simulation agent population small, 
 
 For handling large datasets, consider preprocessing the data, for instance in an iPython notebook w/ Pandas, to only use the segments of data you need for the simulation. Often we've found people have imported a lot of extra data when, to simulate agents, they only need a small handful of columns from a much larger dataset.
 
-<Hint style="info">
+{% hint style="info" %}
 In the future we'll be bringing support for much larger datasets to both the client-side version of hCore and simulations running in hCloud.
-</Hint>
+{% endhint %}
 
 ## Compute
 
@@ -32,9 +32,9 @@ Often you can use messages to communicate between agents and request information
 
 Other common reasons for slowdown are not specific to HASH's Engine, but are general performance problems, such as running O\(n^2\) algorithms over large datasets. After you've created the initial design of your simulation, consider going back through and finding ways to make the behaviors more efficient.
 
-<Hint style="info">
+{% hint style="info" %}
 While in general it's good to optimize your functions and behaviors, be wary of premature optimization. If your simulation only has a few agents, the difference between searching through an agents message array with an O\(n\) loop or an O\(n^2\) loop will be minor.
-</Hint>
+{% endhint %}
 
 ## Hardware
 
@@ -52,5 +52,5 @@ MS and FPS reflect the total time from state _t_ to state _t_+1. If this is taki
 
 MB reflects the size of the simulation - each simulation run is stored locally. If a simulation has been run for tens of thousands of time steps, or if there are many agents, it might become too large for your browser.
 
-![Stats window for debugging](https://cdn-us1.hash.ai/site/docs/kapture-2020-12-17-at-10.26.05.gif)
+![Stats window for debugging](../.gitbook/assets/kapture-2020-12-17-at-10.26.05.gif)
 

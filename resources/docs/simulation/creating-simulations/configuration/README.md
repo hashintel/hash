@@ -12,9 +12,9 @@ Accessing these global variables is as simple as using the `context.globals()` f
 
 To modify globals while a simulation is running, first pause the simulation before making any changes, reset the simulation, and resume.
 
-<Hint style="info">
+{% hint style="info" %}
 HASH does not support modifying globals mid-step, but support for modifying globals between steps is coming soon.
-</Hint>
+{% endhint %}
 
 There are two types of global variables in HASH:
 

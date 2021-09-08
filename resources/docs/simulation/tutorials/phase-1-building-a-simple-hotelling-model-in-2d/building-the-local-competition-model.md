@@ -16,5 +16,5 @@ We can add a new type of agent which represents the actual locations that a busi
 
 We can then find some data with information about vacant storefronts in a city, to finish extending the model. Check out the [Local Competition model](https://hash.ai/@hash/local-competition) to see how we've implemented these extensions.
 
-![Locations of businesses and customers in HASH&apos;s geospatial view](https://cdn-us1.hash.ai/site/docs/screen-shot-2020-06-24-at-4.56.47-pm.png)
+![Locations of businesses and customers in HASH&apos;s geospatial view](../../.gitbook/assets/screen-shot-2020-06-24-at-4.56.47-pm.png)
 

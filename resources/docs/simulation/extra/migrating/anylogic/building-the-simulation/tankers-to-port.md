@@ -6,8 +6,8 @@ We’ve identified **Tankers** as a good place to start in this simulation. Let�
 
 Our **Tanker** needs to be able to move towards its destination at a constant velocity. Movement like this can easily be accomplished by adjusting the`lng_lat` or `position` property.
 
+{% code title="tanker.js" %}
 ```javascript
-// tanker.js
 /**
  * Move the tanker to its destination based on its speed.
  * Return its new lng_lat coordinates.
@@ -27,18 +27,17 @@ const dest = state.get("destination");
 // Move to destination
 state.set("lng_lat", new_coords(ll, dest));
 ```
+{% endcode %}
 
+On this agent, and many others in the sim, we'll use a published behavior, [Lng\_Lat to Position](https://hash.ai/@hash/ll-to-pos/overview), to translate its latitude and longitude into a 3D position.
 
-On this agent, and many others in the sim, we'll use a published behavior, [Lng_Lat to Position](https://hash.ai/@hash/ll-to-pos/overview), to translate its latitude and longitude into a 3D position.
-
-<Hint style="warning">
-To use a shared behavior like Lng_Lat To Position, [you'll need to import it into your simulation](../../../../creating-simulations/behaviors/composable-behaviors.md#importing-a-behavior).
-</Hint>
+{% hint style="warning" %}
+To use a shared behavior like Lng\_Lat To Position, [you'll need to import it into your simulation](../../../../creating-simulations/behaviors/composable-behaviors.md#importing-a-behavior).
+{% endhint %}
 
 Note that we need to also set some properties in the **globals.json** file to use the behavior.
 
-** globals.json **
-
+{% code title="globals.json" %}
 ```javascript
 {
   "center_ll": [0, 0],
@@ -46,13 +45,12 @@ Note that we need to also set some properties in the **globals.json** file to us
   "seconds_per_step": 60
 }
 ```
-
+{% endcode %}
 
 In the finished sim, the tanker.js file behavior also detects whether the agent has reached its destination to begin unloading. You'll also need to logic to `initialize.py` in order to create the **Tanker.**
 
+{% code title="initialize.py" %}
 ```python
-# initialize.py
-
 def behavior(state, context):
     sec_per_step = context.globals()['seconds_per_step']
 
@@ -80,7 +78,7 @@ def behavior(state, context):
 
     state.set('messages', messages)
 ```
-
+{% endcode %}
 
 Now let’s create a port that the **Tanker** unloads to.
 
@@ -88,9 +86,8 @@ Now let’s create a port that the **Tanker** unloads to.
 
 To give the **Port** unloading behavior, we'll make use of a published behavior in hIndex called [In Flow](https://hash.ai/@hash/in-flow). If we look at its documentation \[here\] we can see what properties we need to initialize our **Port** with. It's not enough just to add this behavior to **Port** agents, since the **Tankers** need to cooperate during the unloading process. We'll give them the complementary [Out Flow](https://hash.ai/@hash/out-flow) behavior.
 
+{% code title="initialize.py" %}
 ```python
-# initialize.py
-
 def behavior(state, context):
     sec_per_step = context.globals()['seconds_per_step']
 
@@ -136,7 +133,7 @@ def behavior(state, context):
 
     state.set('messages', messages)
 ```
-
+{% endcode %}
 
 The final addition to the tanker.js behavior is logic to detect when we're finished unloading and then set a `returning` property to indicate we should return to the loading location. Test it, and make sure that all the behaviors are working properly! Now let’s build the **Refinery** that connects to our **Port**.
 

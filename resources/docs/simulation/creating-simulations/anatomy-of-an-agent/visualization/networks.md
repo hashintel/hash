@@ -6,11 +6,11 @@ description: Visualizing network connections between agents in the 3D viewer
 
 Networks are often found in multi-agent models, and the ability to visualize them can add an additional level of clarity to your model. Edges will automatically be drawn in the 3D Viewer based on the `network_neighbor_ids` field on agents. This field must contain an array composed of the `agent_id`s of other agents in the simulation. Edges will be automatically drawn to the corresponding agents, and updated every time step.
 
-![Edges drawn between agents](https://cdn-us1.hash.ai/site/docs/image%20%2865%29.png)
+![Edges drawn between agents](../../../.gitbook/assets/image%20%2865%29.png)
 
-<Hint style="info">
+{% hint style="info" %}
 Network drawing can be toggled by accessing the menu in the top right of the 3D Viewer.
-</Hint>
+{% endhint %}
 
 You can take this a step further and use the[ Networks Library](https://hash.ai/@hash/networks) to provide agents easy access to their network neighbors.
 
@@ -20,7 +20,7 @@ You can also create and visualize networks by creating agents which represent a 
 
 In this example, bills are being processed and passed around to different employees \(represented by the green agents. Links highlight when a bill is passed along them.
 
-![](https://cdn-us1.hash.ai/site/docs/billing_department_s.gif)
+![](../../../.gitbook/assets/billing_department_s.gif)
 
 ```javascript
 // This function returns an "edge" agent that will point from position a to b
@@ -51,13 +51,13 @@ function make_edge(a, b) {
 
 Below are a few simulations which use network visualizations. Inspect the relevant code from their behaviors and add it to the models you're building:
 
-<Embed url="https://hash.ai/@hash/oil-supply-chain" caption="" />
+{% embed url="https://hash.ai/@hash/oil-supply-chain" caption="" %}
 
-**"edge.js"** and **"create_pipeline.js"** in the Oil Supply Chain.
+**"edge.js"** and **"create\_pipeline.js"** in the Oil Supply Chain.
 
-**"edge.js"** and **"create_edges.js"** in the Billing Department.
+**"edge.js"** and **"create\_edges.js"** in the Billing Department.
 
-<Embed url="https://hash.ai/@hash/interconnected-call-center" caption="" />
+{% embed url="https://hash.ai/@hash/interconnected-call-center" caption="" %}
 
-**"create_links.js"** in the Interconnected Call Center.
+**"create\_links.js"** in the Interconnected Call Center.
 
