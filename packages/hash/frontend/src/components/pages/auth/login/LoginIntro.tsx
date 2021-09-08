@@ -48,24 +48,21 @@ export const LoginIntro: VoidFunctionComponent<LoginIntroProps> = ({
 
   useEffect(() => {
     const { query } = router;
-    if (typeof query.email === "string") {
-      const { email, ...remainingQuery } = query;
-      setEmailOrShortname(email);
+    const { email, shortname, ...remainingQuery } = query;
+    const identifier = email || shortname;
 
-      void router
-        .replace({ ...router, query: remainingQuery }, undefined, {
-          shallow: true,
-        })
-        .then(() => requestLoginCode(email));
-    }
-    if (typeof query.shortname === "string") {
-      const { shortname, ...remainingQuery } = query;
-      setEmailOrShortname(shortname);
-      void router
-        .replace({ ...router, query: remainingQuery }, undefined, {
-          shallow: true,
-        })
-        .then(() => requestLoginCode(shortname));
+    if (typeof identifier === "string") {
+      setEmailOrShortname(identifier);
+      router
+        .replace(
+          { pathname: router.pathname, query: remainingQuery },
+          undefined,
+          {
+            shallow: true,
+          }
+        )
+        .then(() => requestLoginCode(identifier))
+        .catch(() => {});
     }
   }, [router, requestLoginCode]);
 
@@ -85,7 +82,7 @@ export const LoginIntro: VoidFunctionComponent<LoginIntroProps> = ({
           <form className={tw`flex mb-4 relative`} onSubmit={handleSubmit}>
             <input
               ref={inputRef}
-              className={tw`appearance-none border-b-2 focus:border-blue-500 w-full py-2 pl-1 pr-24 text-gray-700 leading-tight focus:outline-none focus:shadow-outline`}
+              className={tw`appearance-none border-b-2 focus:border-blue-500 w-full py-2 pl-1 pr-24 text-gray-700 leading-tight focus:outline-none`}
               value={emailOrShortname}
               onChange={({ target }) => setEmailOrShortname(target.value)}
               placeholder="Enter your email or shortname"
