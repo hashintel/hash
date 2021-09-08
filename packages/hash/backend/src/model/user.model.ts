@@ -1,6 +1,5 @@
 import {
   User,
-  Entity,
   Account,
   AccountConstructorArgs,
   EntityTypeWithoutTypeFields,
@@ -83,7 +82,7 @@ class __User extends Account {
     async (properties: UserProperties): Promise<User> => {
       const id = genId();
 
-      const entity = await Entity.create(client)({
+      const entity = await client.createEntity({
         accountId: id,
         entityId: id,
         createdById: id, // Users "create" themselves

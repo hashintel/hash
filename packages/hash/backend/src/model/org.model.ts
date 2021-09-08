@@ -1,7 +1,6 @@
 import {
   Org,
   Account,
-  Entity,
   AccountConstructorArgs,
   EntityTypeWithoutTypeFields,
 } from ".";
@@ -58,7 +57,7 @@ class __Org extends Account {
     async (properties: OrgProperties): Promise<Org> => {
       const id = genId();
 
-      const entity = await Entity.create(client)({
+      const entity = await client.createEntity({
         accountId: id,
         entityVersionId: id,
         createdById: id, // Orgs "create" themselves

@@ -28,8 +28,8 @@ export const createEntity: Resolver<
     accountId,
     createdById: genId(), // TODO
     entityTypeId: entityTypeId ?? undefined,
-    entityTypeVersionId,
-    systemTypeName,
+    entityTypeVersionId: entityTypeVersionId || undefined,
+    systemTypeName: systemTypeName || undefined,
     properties,
     versioned: versioned || false,
   });

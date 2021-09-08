@@ -49,8 +49,8 @@ export const insertBlockIntoPage: Resolver<
         accountId,
         createdById: genId(), // TODO
         entityTypeId: entityTypeId ?? undefined,
-        entityTypeVersionId,
-        systemTypeName,
+        entityTypeVersionId: entityTypeVersionId || undefined,
+        systemTypeName: systemTypeName || undefined,
         properties: entityProperties,
         versioned: true,
       });

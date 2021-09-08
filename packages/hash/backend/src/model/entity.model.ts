@@ -20,17 +20,29 @@ export type EntityConstructorArgs = {
   entityVersionUpdatedAt: Date;
 };
 
-export type CreateEntityArgs = {
+type CreateEntityArgsWithoutType = {
   accountId: string;
   createdById: string;
-  entityId?: string | null | undefined;
-  entityVersionId?: string | null | undefined;
-  entityTypeId?: string;
-  entityTypeVersionId?: string | null | undefined;
-  systemTypeName?: SystemType | null | undefined;
   versioned: boolean;
-  properties: JSONObject;
+  properties: any;
 };
+
+export type CreateEntityWithEntityTypeIdArgs = {
+  entityTypeId?: string;
+} & CreateEntityArgsWithoutType;
+
+export type CreateEntityWithEntityTypeVersionIdArgs = {
+  entityTypeVersionId?: string;
+} & CreateEntityArgsWithoutType;
+
+export type CreateEntityWithSystemTypeArgs = {
+  systemTypeName?: SystemType;
+} & CreateEntityArgsWithoutType;
+
+export type CreateEntityArgs =
+  | CreateEntityWithEntityTypeIdArgs
+  | CreateEntityWithEntityTypeVersionIdArgs
+  | CreateEntityWithSystemTypeArgs;
 
 class __Entity {
   entityId: string;
