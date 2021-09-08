@@ -1,3 +1,4 @@
+import { JSONObject } from '@hashintel/block-protocol';
 import { Entity, EntityType, EntityWithIncompleteEntityType } from ".";
 import { DBClient } from "../db";
 import { EntityMeta, EntityType as DbEntityType } from "../db/adapter";
@@ -10,7 +11,7 @@ export type EntityConstructorArgs = {
   createdById: string;
   accountId: string;
   entityType: DbEntityType | EntityType;
-  properties: any;
+  properties: JSONObject;
   visibility: Visibility;
   metadata: EntityMeta;
   entityCreatedAt: Date;
@@ -27,7 +28,7 @@ export type CreateEntityArgs = {
   entityTypeVersionId?: string | null | undefined;
   systemTypeName?: SystemType | null | undefined;
   versioned: boolean;
-  properties: any;
+  properties: JSONObject;
 };
 
 class __Entity {
@@ -36,7 +37,7 @@ class __Entity {
   createdById: string;
   accountId: string;
   entityType: EntityType;
-  properties: any;
+  properties: JSONObject;
   visibility: Visibility;
   metadata: EntityMeta;
   entityCreatedAt: Date;

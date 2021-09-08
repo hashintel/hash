@@ -92,7 +92,7 @@ class __User extends Account {
         versioned: false, // @todo: should user's be versioned?
       });
 
-      return new User(entity);
+      return new User({ ...entity, properties });
     };
 
   private updateUserProperties =

@@ -66,10 +66,12 @@ export const insertBlocksIntoPage: Resolver<
       const msg = `Page ${pageMetadataId} not found in account ${accountId}`;
       throw new ApolloError(msg, "NOT_FOUND");
     }
+
+    /** @todo: stop casting page.properties type */
     const pos = previousBlockId
-      ? findBlockInPage(previousBlockId, page.properties) + 1
+      ? findBlockInPage(previousBlockId, page.properties as DbPageProperties) + 1
       : 0;
-    page.properties.contents.splice(
+    (page.properties as DbPageProperties).contents.splice(
       pos,
       0,
       ...newBlocks.map((blk) => ({

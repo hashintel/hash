@@ -5,6 +5,7 @@ import { genId } from "../../../util";
 import { MutationInsertBlockIntoPageArgs, Resolver } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { Entity, EntityWithIncompleteEntityType } from "../../../model";
+import { DbPageProperties } from "../../../types/dbTypes";
 
 export const insertBlockIntoPage: Resolver<
   Promise<EntityWithIncompleteEntityType>,
@@ -86,18 +87,19 @@ export const insertBlockIntoPage: Resolver<
       throw new ApolloError(msg, "NOT_FOUND");
     }
 
-    if (position > page.properties.contents.length) {
-      position = page.properties.contents.length;
+    /** @todo: stop casting page.properties type */
+    if (position > (page.properties as DbPageProperties).contents.length) {
+      position = (page.properties as DbPageProperties).contents.length;
     }
 
     page.properties.contents = [
-      ...page.properties.contents.slice(0, position),
+      ...(page.properties as DbPageProperties).contents.slice(0, position),
       {
         type: "Block",
         entityId: newBlock.entityVersionId,
         accountId: newBlock.accountId,
       },
-      ...page.properties.contents.slice(position),
+      ...(page.properties as DbPageProperties).contents.slice(position),
     ];
 
     await page.updateProperties(client)(page.properties);
