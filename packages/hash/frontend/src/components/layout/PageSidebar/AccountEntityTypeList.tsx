@@ -9,6 +9,7 @@ import {
 } from "../../../graphql/apiTypes.gen";
 
 import styles from "./PageSidebar.module.scss";
+import { Button } from "../../forms/Button";
 
 type AccountEntityTypeListProps = {
   accountId: string;
@@ -34,6 +35,9 @@ export const AccountEntityTypeList: VoidFunctionComponent<AccountEntityTypeListP
             </div>
           );
         })}
+        <Link href={`/${accountId}/types/new`}>
+          <a><Button>Create Entity Type</Button></a>
+        </Link>
       </div>
     );
   };

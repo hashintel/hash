@@ -1,6 +1,7 @@
 import { useState, VoidFunctionComponent } from "react";
 
-import { CreatePage } from "../../Modals/CreatePage/CreatePage";
+import { CreatePage } from "./CreatePage";
+import { Button } from "../../forms/Button";
 
 type CreatePageButtonProps = {
   accountId: string;
@@ -19,9 +20,7 @@ export const CreatePageButton: VoidFunctionComponent<CreatePageButtonProps> = ({
         show={showCreatePage}
       />
 
-      <button className="button" onClick={() => setShowCreatePage(true)}>
-        Create page
-      </button>
+      <Button onClick={() => setShowCreatePage(true)}>Create page</Button>
     </>
   );
 };

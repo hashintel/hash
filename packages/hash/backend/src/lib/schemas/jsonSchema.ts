@@ -45,6 +45,6 @@ export const jsonSchema = (
     $id: `${TEMPORARY_HOST_NAME}/${accountId}/${title.toLowerCase()}.schema.json`,
     title,
     type: "object",
-    description
+    description,
   };
 };

@@ -7,6 +7,7 @@ import { useLogout } from "../../hooks/useLogout";
 import { useUser } from "../../hooks/useUser";
 import { LoginModal } from "../../Modals/AuthModal/LoginModal";
 import { AccountDropdown } from "./AccountDropdown";
+import { Button } from "../../forms/Button";
 
 export const PageHeader: VoidFunctionComponent = () => {
   const { user, refetch } = useUser();
@@ -34,19 +35,10 @@ export const PageHeader: VoidFunctionComponent = () => {
           <>
             <Link href="/signup">
               <a className={tw`pb-0 border-b-0 hover:border-b-0`}>
-                <button
-                  className={tw`bg(blue-500 hover:blue-700) text(white visited:white) font-bold border(none hover:none)  py-2 px-5 rounded  no-underline mr-3`}
-                >
-                  Sign up
-                </button>
+                <Button>Sign up</Button>
               </a>
             </Link>
-            <button
-              onClick={showLoginModal}
-              className={tw`bg(blue-500 hover:blue-700) text(white visited:white) font-bold border(none hover:none)  py-2 px-5 rounded  no-underline`}
-            >
-              Sign in
-            </button>
+            <Button onClick={showLoginModal}>Sign in</Button>
           </>
         )}
       </nav>
