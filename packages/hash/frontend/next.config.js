@@ -12,7 +12,7 @@ module.exports = withImages(
         "@hashintel/hash-shared": path.join(
           __dirname,
           "../../..",
-          "node_modules/@hashintel/hash-shared/dist/src"
+          "node_modules/@hashintel/hash-shared/dist"
         ),
       };
 
