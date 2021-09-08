@@ -126,12 +126,6 @@ class __Entity {
           dbEntities.map((dbEntity) => new Entity(dbEntity))
         );
 
-  static getAccountEntities = async (client: DBClient): Promise<Entity[]> => {
-    const dbEntities = await client.getAccountEntities();
-
-    return dbEntities.map((dbEntity) => new Entity(dbEntity));
-  };
-
   static getEntities =
     (client: DBClient) =>
     async (

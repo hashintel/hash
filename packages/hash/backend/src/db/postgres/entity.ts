@@ -236,7 +236,7 @@ export const getEntitiesByTypeAllVersions = async (
  * Get all account type entities (User or Org).
  * @todo check explicitly on the User and Org system types (and add a partial index for speed)
  * */
-export const getAccountEntities = async (conn: Connection) => {
+export const getAllAccounts = async (conn: Connection) => {
   const rows = await conn.any(sql`
     with entities as (${selectEntities})
     select * from entities where account_id = entity_id

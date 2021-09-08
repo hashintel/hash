@@ -227,7 +227,7 @@ export interface DBClient {
   /**
    * Get all account type entities (User or Account).
    */
-  getAccountEntities(): Promise<Entity[]>;
+  getAllAccounts(): Promise<Entity[]>;
 
   /** Update the metadata which may be associated with one or more entities. */
   updateEntityMetadata(params: {
