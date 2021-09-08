@@ -1,14 +1,9 @@
 import React from "react";
-import {
-  Decoration,
-  EditorProps,
-  EditorView,
-  NodeView,
-} from "prosemirror-view";
+import { Decoration, EditorView, NodeView } from "prosemirror-view";
 import { RemoteBlock } from "../../components/RemoteBlock/RemoteBlock";
 import {
   Block,
-  mapEntityToBlock,
+  cachedPropertiesByEntity,
   prepareEntityForProsemirror,
   ReplacePortals,
 } from "@hashintel/hash-shared/sharedWithBackend";
@@ -75,20 +70,23 @@ export const createNodeView = (
             <EntityListContext.Consumer>
               {(entityList) => {
                 // @todo fix this
+                const entityId = node.attrs.entityId;
+
                 const prepared = prepareEntityForProsemirror(
                   // @ts-ignore
-                  entityList[node.attrs.entityId]
+                  entityList[entityId]
                 );
 
                 // @todo fix this
                 // @ts-ignore
                 prepared.attrs.meta = node.attrs.meta;
                 // @ts-ignore
-                prepared.attrs.properties = prepared.props;
+                prepared.attrs.properties = {
+                  ...(cachedPropertiesByEntity[entityId] ?? {}),
+                  ...prepared.props,
+                };
 
                 delete prepared.attrs.originalEntity;
-
-                console.log(prepared.attrs, node.attrs);
 
                 return (
                   <RemoteBlock
