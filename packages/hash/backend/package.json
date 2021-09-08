@@ -25,6 +25,7 @@
   "dependencies": {
     "@aws-sdk/client-ses": "3.25.0",
     "@hashintel/hash-shared": "*",
+    "@hashintel/block-protocol": "*",
     "apollo-server-express": "2.24.1",
     "body-parser": "1.19.0",
     "connect-pg-simple": "6.2.1",
