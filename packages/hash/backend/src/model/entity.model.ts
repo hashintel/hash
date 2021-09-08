@@ -1,4 +1,4 @@
-import { JSONObject } from '@hashintel/block-protocol';
+import { JSONObject } from "@hashintel/block-protocol";
 import { Entity, EntityType, EntityWithIncompleteEntityType } from ".";
 import { DBClient } from "../db";
 import { EntityMeta, EntityType as DbEntityType } from "../db/adapter";

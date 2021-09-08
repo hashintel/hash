@@ -69,7 +69,8 @@ export const insertBlocksIntoPage: Resolver<
 
     /** @todo: stop casting page.properties type */
     const pos = previousBlockId
-      ? findBlockInPage(previousBlockId, page.properties as DbPageProperties) + 1
+      ? findBlockInPage(previousBlockId, page.properties as DbPageProperties) +
+        1
       : 0;
     (page.properties as DbPageProperties).contents.splice(
       pos,
