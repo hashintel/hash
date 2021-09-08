@@ -293,4 +293,7 @@ export interface DBClient {
       entityVersionId: string;
     }[]
   ): Promise<Entity[]>;
+
+  /** Get entity types associated with a given accountId */
+  getEntityTypes(params: { accountId: string }): Promise<EntityType[]>;
 }

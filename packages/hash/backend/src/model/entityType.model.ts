@@ -112,6 +112,13 @@ class __EntityType {
         return new EntityType(entityTypeType);
       });
 
+  static getEntityTypes = (db: DBClient) => (args: { accountId: string }) =>
+    db
+      .getEntityTypes(args)
+      .then((types) =>
+        types.map((dbType) => new EntityType(dbType).toGQLEntityType())
+      );
+
   toGQLEntityType = (): EntityTypeWithoutTypeFields => ({
     id: this.entityId,
     entityId: this.entityId,

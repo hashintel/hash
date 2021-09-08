@@ -5,6 +5,7 @@ import { AccountSelect } from "./AccountSelect";
 import { AccountPageList } from "./AccountPageList";
 
 import styles from "./PageSidebar.module.scss";
+import { AccountEntityTypeList } from "./AccountEntityTypeList";
 
 export const PageSidebar: VoidFunctionComponent = () => {
   const router = useRouter();
@@ -24,6 +25,12 @@ export const PageSidebar: VoidFunctionComponent = () => {
         <header className={styles.PageSidebar__Section__Header}>
           <h2>Pages</h2>
           <AccountPageList currentPageMetaId={pageId} accountId={accountId} />
+        </header>
+      </div>
+      <div className={styles.PageSidebar__Section}>
+        <header className={styles.PageSidebar__Section__Header}>
+          <h2>Entity types</h2>
+          <AccountEntityTypeList accountId={accountId} />
         </header>
       </div>
     </nav>

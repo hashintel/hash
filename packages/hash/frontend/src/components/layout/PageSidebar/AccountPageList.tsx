@@ -28,7 +28,7 @@ export const AccountPageList: VoidFunctionComponent<AccountPageListProps> = ({
   });
 
   return (
-    <div className={styles.AccountPageList}>
+    <div className={styles.SidebarList}>
       {data?.accountPages.map((page) => {
         if (page.metadataId === currentPageMetaId) {
           return <div key={page.id}>{page.properties.title}</div>;
