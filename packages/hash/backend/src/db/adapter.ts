@@ -105,8 +105,9 @@ export interface DBClient {
   createEntityType(params: {
     accountId: string;
     createdById: string;
+    description?: string | null;
     name: string;
-    schema?: Record<string, any>;
+    schema?: Record<string, any> | null;
   }): Promise<EntityType>;
 
   /**

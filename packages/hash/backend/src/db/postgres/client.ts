@@ -104,9 +104,10 @@ export class PostgresClient implements DBClient {
     name: string;
     accountId: string;
     createdById: string;
+    description?: string;
     schema?: Record<string, any>;
   }): Promise<EntityType> {
-    const { name, accountId, createdById, schema } = params;
+    const { name, accountId, createdById, description, schema } = params;
 
     return this.conn.transaction(async (conn) => {
       // The fixed type id
@@ -116,7 +117,7 @@ export class PostgresClient implements DBClient {
       const entityTypeVersionId = genId();
 
       const now = new Date();
-      const properties = jsonSchema(name, accountId, schema);
+      const properties = jsonSchema(name, accountId, schema, description);
       const entityType: EntityType = {
         accountId,
         entityId: entityTypeId,

@@ -8,11 +8,12 @@ export const createEntityType: Resolver<
   {},
   GraphQLContext,
   MutationCreateEntityTypeArgs
-> = async (_, { accountId, name, schema }, { dataSources }) =>
+> = async (_, { accountId, description, name, schema }, { dataSources }) =>
   dataSources.db.transaction(async (client) => {
     const entityType = await EntityType.create(client)({
       accountId,
       createdById: genId(), // TODO
+      description,
       name,
       schema,
     });
