@@ -92,7 +92,7 @@ export const LoginIntro: VoidFunctionComponent<LoginIntroProps> = ({
             />
 
             <button
-              className={tw`absolute right-0 top-1/2 -translate-y-1/2 flex items-center disabled:opacity-50 text-blue-500 hover:text-blue-700 font-bold py-2 px-2`}
+              className={tw`absolute right-0 top-1/2 -translate-y-1/2 flex items-center disabled:opacity-50 text(blue-500 hover:blue-700 focus:blue-600) focus:outline-none font-bold py-2 px-2`}
               disabled={loading}
               type="submit"
             >
@@ -114,7 +114,7 @@ export const LoginIntro: VoidFunctionComponent<LoginIntroProps> = ({
           <strong>No account?</strong> No problem
         </p>
         <button
-          className={tw`bg-black bg-opacity-70 hover:bg-opacity-90 rounded-lg h-11 px-6 flex items-center text-white mb-10`}
+          className={tw`focus:outline-none bg(black opacity-70 hover:opacity-90 focus:opacity-90) rounded-lg h-11 px-6 flex items-center text-white mb-10`}
           onClick={navigateToSignup}
         >
           Create a free account

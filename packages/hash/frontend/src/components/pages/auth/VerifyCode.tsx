@@ -113,7 +113,7 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
               ref={inputRef}
             />
             <button
-              className={tw`absolute right-0 top-1/2 mr-3 transition-all -translate-y-1/2 flex items-center disabled:opacity-40 disabled:pointer-events-none text-blue-500 hover:text-blue-700 font-bold py-2 px-2`}
+              className={tw`absolute right-0 top-1/2 mr-3 transition-all -translate-y-1/2 flex items-center disabled:opacity-40 disabled:pointer-events-none focus:outline-none text(blue-500 hover:blue-700 focus:blue-600) font-bold py-2 px-2`}
               disabled={!isInputValid() || loading}
             >
               {loading ? (
@@ -136,7 +136,7 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
       </div>
       <div className={tw`flex justify-between`}>
         <button
-          className={tw`border-b-1 border-transparent hover:border-current`}
+          className={tw`focus:outline-none border(b-1 transparent hover:current focus:current)`}
           onClick={goBack}
         >
           &larr; <span className={tw`ml-1`}>Try logging in another way</span>
