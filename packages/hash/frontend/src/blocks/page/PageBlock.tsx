@@ -94,6 +94,13 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     currentContents.current = contents;
   }, [contents]);
 
+  /**
+   * There's a potential minor problem here which is that entity list is updated before prosemirror's tree has yet
+   * updated to apply the new contents, meaning they can become out of sync. This shouldn't be a problem unless/until
+   * the ids used to link between PM and entity list are inconsistent between saves (i.e, if they're versioned linked).
+   * This is because any deletions from contents are driven by PM, meaning that by the time they disappear from the
+   * entity list, they've already been deleted from the PM tree by the user
+   */
   const entityList = useMemo(() => createEntityList(contents), [contents]);
 
   const updateContents = useCallback(
