@@ -10,7 +10,6 @@ const LoginPage: NextPage = () => {
   return (
     <LoginModal
       show={true}
-      onClose={() => undefined}
       onLoggedIn={({ accountSignupComplete }) => {
         void refetch().then(() => {
           // Only when account sign-up is complete redirect the user to the homepage
