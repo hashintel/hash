@@ -412,7 +412,7 @@ void (async () => {
                 "entityId",
                 "employer.entityId",
                 "employer.id",
-                "employer.entityType"
+                "employer.entityType",
               ],
             },
             data: {
@@ -699,12 +699,12 @@ void (async () => {
                 accountId: results.get("b5")?.accountId || null,
               },
               {
-                entityId: results.get("b4")?.entityVersionId,
-                accountId: results.get("b4")?.accountId,
+                entityId: results.get("b4")?.entityVersionId || null,
+                accountId: results.get("b4")?.accountId || null,
               },
               {
-                entityId: results.get("b6")?.entityVersionId,
-                accountId: results.get("b6")?.accountId,
+                entityId: results.get("b6")?.entityVersionId || null,
+                accountId: results.get("b6")?.accountId || null,
               },
               {
                 entityId: results.get("b7")?.entityVersionId || null,
