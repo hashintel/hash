@@ -2,34 +2,30 @@
 
 To start let**'**s create a message from the Person agent that contains the basics - they’re requesting a test. In the `check_infected` behavior file, add a [message](../../creating-simulations/agent-messages/) function:
 
-<Tabs>
-<Tab title="JavaScript" >
-
+{% tabs %}
+{% tab title="JavaScript" %}
+{% code title="check\_infected.js" %}
 ```javascript
-// check_infected.js
-
 function check_hospital(state) {
    state.addMessage("Hospital", "test", {
       test_sick: true
    })
  }
 ```
+{% endcode %}
+{% endtab %}
 
-</Tab>
-
-<Tab title="Python" >
-
+{% tab title="Python" %}
+{% code title="check\_infected.py" %}
 ```python
-# check_infected.py
-
 def check_hospital():
    state.add_message("Hospital", "test", {
       'test_sick': True
    })
 ```
-
-</Tab>
-</Tabs>
+{% endcode %}
+{% endtab %}
+{% endtabs %}
 
 You can add this function within the behavior function or above it.
 
@@ -37,21 +33,18 @@ If the person agent runs the`check_hospital` function, it will send a message to
 
 But we don't want our Person agent to be spamming the Hospital with requests to be tested - we only want to send it when the Person suspects that they are sick. We can add a property called `time_to_symptoms` in `globals.json`. That’s how long it takes for a person to start showing symptoms:
 
-** globals.json **
-
+{% code title="globals.json" %}
 ```javascript
  "time_to_symptoms" : 5,
 ```
-
+{% endcode %}
 
 We'll create a local variable to store the global global variable at the top of the `check_infected` behavior file, and add logic so it only sends a message after "symptoms" have developed:
 
-<Tabs>
-<Tab title="JavaScript" >
-
+{% tabs %}
+{% tab title="JavaScript" %}
+{% code title="check\_infected.js" %}
 ```javascript
-// check_infected.js
-
 function behavior(state, context) {
   const { time_to_symptoms } = context.globals();
 
@@ -67,14 +60,12 @@ function behavior(state, context) {
   }
 }
 ```
+{% endcode %}
+{% endtab %}
 
-</Tab>
-
-<Tab title="Python" >
-
+{% tab title="Python" %}
+{% code title="check\_infected.py" %}
 ```python
-# check_infected.py
-
 def behavior(state, context):
   time_to_symptoms = context.globals()['time_to_symptoms']
 
@@ -87,48 +78,43 @@ def behavior(state, context):
   if state['infected'] and state.infection_length >= time_to_symptoms:
     check_hospital()
 ```
-
-</Tab>
-</Tabs>
+{% endcode %}
+{% endtab %}
+{% endtabs %}
 
 Now after a certain period of time the person agent will get suspicious they’re sick, and send a message to the hospital.
 
 On the receiving end we need to add a message handler for the hospital. Create a new behavior file called `test_for_virus`. Add a message handler, so that every timestep an agent receives in its "mailbox" all the messages directed to its `agent_id` or `agent_name`:
 
-<Tabs>
-<Tab title="JavaScript" >
-
+{% tabs %}
+{% tab title="JavaScript" %}
+{% code title="test\_for\_virus.js" %}
 ```javascript
-// test_for_virus.js
-
 function behavior(state, context) {
     const test_messages = context.messages().filter(m => m.type === "test");
 }
 ```
+{% endcode %}
+{% endtab %}
 
-</Tab>
-
-<Tab title="Python" >
-
+{% tab title="Python" %}
+{% code title="test\_for\_virus.py" %}
 ```python
-# test_for_virus.py
-
 def behavior(state, context):
     test_messages = list(filter(lambda m: m['type'] == 'test', context.messages()))
 ```
+{% endcode %}
+{% endtab %}
+{% endtabs %}
 
-</Tab>
-</Tabs>
-
-<Hint style="info">
+{% hint style="info" %}
 While right now it’s not necessary to filter by type == test, it’s good practice when, in the future, we send a wider variety of messages to the Hospital.
-</Hint>
+{% endhint %}
 
 Make sure to attach it to the Hospital. Since we know we'll always want the behavior associated with the hospital, add it to the agent definition.
 
-<Tabs>
-<Tab title="JavaScript" >
-
+{% tabs %}
+{% tab title="JavaScript" %}
 ```javascript
 {
     "template_name": "hospitals",
@@ -141,10 +127,9 @@ Make sure to attach it to the Hospital. Since we know we'll always want the beha
     "type": "hospital"
   }
 ```
-</Tab>
+{% endtab %}
 
-<Tab title="Python" >
-
+{% tab title="Python" %}
 ```javascript
 {
     "template_name": "hospitals",
@@ -157,19 +142,17 @@ Make sure to attach it to the Hospital. Since we know we'll always want the beha
     "type": "hospital"
   }
 ```
-</Tab>
-</Tabs>
+{% endtab %}
+{% endtabs %}
 
 So what should we tell our patient? If the person is sick the test should detect that they are sick; right now the only time a person messages the hospital is if they’re sick, so testing will be easy!
 
 Let's check all of the messages and respond to each person, letting them know they are in fact sick. Add this snippet within the behavior.
 
-<Tabs>
-<Tab title="JavaScript" >
-
+{% tabs %}
+{% tab title="JavaScript" %}
+{% code title="test\_for\_virus.js" %}
 ```javascript
-// test_for_virus.js
-
  test_messages.forEach(m => state.addMessage(
    m.from,
    "test_result",
@@ -178,28 +161,25 @@ Let's check all of the messages and respond to each person, letting them know th
    }
  ))
 ```
+{% endcode %}
+{% endtab %}
 
-</Tab>
-
-<Tab title="Python" >
-
+{% tab title="Python" %}
+{% code title="test\_for\_virus.py" %}
 ```python
-# test_for_virus.py
-
 for msg in test_messages:
   state.add_message(msg['from'], 'test_result', {
      'sick': True,
   })
 ```
-
-</Tab>
-</Tabs>
+{% endcode %}
+{% endtab %}
+{% endtabs %}
 
 Back in `check_infected` , we similarly want to check for any messages about our tests.
 
-<Tabs>
-<Tab title="JavaScript" >
-
+{% tabs %}
+{% tab title="JavaScript" %}
 ```javascript
 let msgs = context.messages().filter(msg => msg.type === "test_result");
 msgs.forEach(msg => {
@@ -209,10 +189,9 @@ msgs.forEach(msg => {
      }
     })
 ```
-</Tab>
+{% endtab %}
 
-<Tab title="Python" >
-
+{% tab title="Python" %}
 ```python
 msgs = list(filter(lambda m: m['type'] == 'test_result', context.messages()))
 for msg in msgs:
@@ -220,16 +199,15 @@ for msg in msgs:
      # do something
      break
 ```
-</Tab>
-</Tabs>
+{% endtab %}
+{% endtabs %}
 
 Now that our agent knows it’s sick, what should we do? When you’re sick, you should stay home and rest. So should our Person agents.
 
 The `daily_movement` behavior contains our agent's movement logic. Importantly, we can have a Person go to a new destination by setting `state.set("destination", state.get("new_destination"))` so long as the `new_destination` is one that it has a "location for". Select the `create_people` behavior. You can see we assign each Person agent a grocery or office as their go-to grocery or office, and we store the position as a property on the Person:
 
-<Tabs>
-<Tab title="JavaScript" >
-
+{% tabs %}
+{% tab title="JavaScript" %}
 ```javascript
 // Line 20
 const grocery = random_choice(agents["groceries"]).position;
@@ -246,10 +224,9 @@ const template = state.people_template;
     // ...
   }
 ```
-</Tab>
+{% endtab %}
 
-<Tab title="Python" >
-
+{% tab title="Python" %}
 ```python
 # Line 14
 grocery = choice(agents['groceries'])['position']
@@ -263,14 +240,13 @@ person = {
   # ...
 }
 ```
-</Tab>
-</Tabs>
+{% endtab %}
+{% endtabs %}
 
 We're going to need to add the hospital as a potential destination as well:
 
-<Tabs>
-<Tab title="JavaScript" >
-
+{% tabs %}
+{% tab title="JavaScript" %}
 ```javascript
 // Line 20
 const grocery = random_choice(agents["groceries"]).position;
@@ -289,10 +265,9 @@ const template = state.people_template;
     // ...
   }
 ```
-</Tab>
+{% endtab %}
 
-<Tab title="Python" >
-
+{% tab title="Python" %}
 ```python
 # Line 14
 grocery = choice(agents['groceries'])['position']
@@ -308,16 +283,15 @@ person = {
   # ...
 }
 ```
-</Tab>
-</Tabs>
+{% endtab %}
+{% endtabs %}
 
 If we set `state.destination = "hospital"` the Person will head to the hospital \(we'll need that in the future\).
 
 For now though in `check_infected`, you can set the destination as home.
 
-<Tabs>
-<Tab title="JavaScript" >
-
+{% tabs %}
+{% tab title="JavaScript" %}
 ```javascript
 let msgs = context.messages().filter(msg => msg.type === "test_result");
  msgs.forEach(msg => {
@@ -326,24 +300,22 @@ let msgs = context.messages().filter(msg => msg.type === "test_result");
    }
  })
 ```
-</Tab>
+{% endtab %}
 
-<Tab title="Python" >
-
+{% tab title="Python" %}
 ```python
 msgs = list(filter(lambda m: m['type'] == 'test_result', context.messages()))
 for msg in msgs:
   if msg['data']['sick']:
     state['destination'] = state['home']
 ```
-</Tab>
-</Tabs>
+{% endtab %}
+{% endtabs %}
 
 Now our full `check_infected` behavior looks like this:
 
-<Tabs>
-<Tab title="JavaScript" >
-
+{% tabs %}
+{% tab title="JavaScript" %}
 ```javascript
 function behavior(state, context) {
   const { time_to_symptoms } = context.globals();
@@ -366,10 +338,9 @@ function behavior(state, context) {
    }
 }
 ```
-</Tab>
+{% endtab %}
 
-<Tab title="Python" >
-
+{% tab title="Python" %}
 ```python
 def behavior(state, context):
   time_to_symptoms = context.globals()['time_to_symptoms']
@@ -387,12 +358,12 @@ def behavior(state, context):
   if state['infected'] and state['infection_length'] >= time_to_symptoms:
     check_hospital()
 ```
-</Tab>
-</Tabs>
+{% endtab %}
+{% endtabs %}
 
 Run the simulation - our people are now being socially conscious and going back home when they’re sick. Hooray for well-being!
 
-<Hint style="success">
+{% hint style="success" %}
 **Extension:** try accounting for false negatives. Just like in real life tests are sometimes less than 100% accurate. Introduce the possibility that the hospital sends back a false negative and change the response behavior.
-</Hint>
+{% endhint %}
 

@@ -1,10 +1,10 @@
 # Spatial
 
-## distanceBetween(agentA, agentB, distanceFunction)
+## distanceBetween\(agentA, agentB, distanceFunction\)
 
 This function returns the distance between two agents, using a specific distance function. You can pass the current agent's `state` as one of the agents. The different distance functions are:
 
-* [Euclidean](https://en.wikipedia.org/wiki/Euclidean_distance) (default)
+* [Euclidean](https://en.wikipedia.org/wiki/Euclidean_distance) \(default\)
 * [Manhattan](https://en.wikipedia.org/wiki/Taxicab_geometry)
 * [Euclidean Squared](https://en.wikipedia.org/wiki/Euclidean_distance#Squared_Euclidean_distance)
 * [Chebyshev](https://en.wikipedia.org/wiki/Chebyshev_distance)
@@ -26,7 +26,7 @@ function behavior(state, context) {
 }
 ```
 
-## normalizeVector(vec)
+## normalizeVector\(vec\)
 
 This function returns the unit vector of the `vec` array. You can use it to normalize an agent's direction vector after it's modified.
 
@@ -43,7 +43,7 @@ function behavior(state, context) {
 }
 ```
 
-## randomPosition(topology, z_plane)
+## randomPosition\(topology, z\_plane\)
 
 This function returns a random integer position within the bounds of the `topology`. The Topology should be user-defined in **globals.json** \(see [Topology](../../configuration/topology/)\). By default`z_plane` is `false` and the returned position is in a 2D plane. Pass true to return a position in 3D space.
 

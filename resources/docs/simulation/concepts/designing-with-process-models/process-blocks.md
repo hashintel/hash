@@ -6,9 +6,8 @@ _@hash/process/source.js_
 
 The source behavior is the entry point to a process model. It can generate objects at various intervals and inject them into the process model.
 
+{% code title="parameters" %}
 ```javascript
-// parameters
-
 <block_name>: {
     // REQUIRED - one of frequency or rate
     // The number of time steps between each new object being generated
@@ -27,7 +26,8 @@ The source behavior is the entry point to a process model. It can generate objec
     // instead of the subsequent one in the behaviors array 
     "next_block": string 
 }
-
+```
+{% endcode %}
 
 ## Sink
 
@@ -35,9 +35,8 @@ _@hash/process/sink.js_
 
 The sink behavior is generally the endpoint of a process model. It disposes of objects and records data.
 
+{% code title="parameters" %}
 ```javascript
-// parameters
-
 <block_name>: {
     // OPTIONAL - Count the number of objects that arrive
     // in `state.process_data.counts.<block_name>`
@@ -51,7 +50,8 @@ The sink behavior is generally the endpoint of a process model. It disposes of o
     // Record the average in `state.process_data.avg_wait_times.<block_name>`
     "record_wait_times": boolean
 }
-
+```
+{% endcode %}
 
 ## Delay
 
@@ -59,9 +59,8 @@ _@hash/process/delay.js_
 
 The delay behavior causes objects in the process model to wait a certain amount of time before moving on to the next behavior.
 
+{% code title="parameters" %}
 ```javascript
-// parameters
-
 <block_name>: {
     // REQUIRED - one of time, uniform_time, triangular_time, or code_time
     // The time an object will wait in the delay queue
@@ -77,7 +76,8 @@ The delay behavior causes objects in the process model to wait a certain amount 
     // instead of the subsequent one in the behaviors array 
     "next_block": string 
 }
-
+```
+{% endcode %}
 
 ## Seize
 
@@ -87,9 +87,8 @@ The seize behavior reserves and attaches resources to the object. Resource quant
 
 The name of the resource being seized should match that of a resource recovered by a Release block.
 
+{% code title="parameters" %}
 ```javascript
-// parameters
-
 <block_name>: {
     // REQUIRED - the name of the agent field which tracks the number of available 
     // resources. The <string> field on the agent must contain a number.
@@ -101,7 +100,8 @@ The name of the resource being seized should match that of a resource recovered 
     // instead of the subsequent one in the behaviors array 
     "next_block": string 
 }
-
+```
+{% endcode %}
 
 ## Release
 
@@ -111,9 +111,8 @@ The release behavior removes resources from the object and returns them to the a
 
 The name of the resource being seized **must** match that of a resource reserved by a Seize block.
 
+{% code title="parameters" %}
 ```javascript
-// parameters
-
 <block_name>: {
     // REQUIRED - the name of the agent field which tracks the number of available 
     // resources. The <string> field on the agent must contain a number.
@@ -122,7 +121,8 @@ The name of the resource being seized **must** match that of a resource reserved
     // instead of the subsequent one in the behaviors array 
     "next_block": string 
 }
-
+```
+{% endcode %}
 
 ## Service
 
@@ -130,9 +130,8 @@ _@hash/process/service.js_
 
 The service behavior seizes resources, delays the object, and then releases the resources, functioning as a composite of those three behaviors \(Seize, Delay, Release\).
 
+{% code title="parameters" %}
 ```javascript
-// parameters
-
 <block_name>: {
     // REQUIRED - one of time, uniform_time, triangular_time, or code_time
     // The time an object will wait in the delay queue
@@ -154,26 +153,26 @@ The service behavior seizes resources, delays the object, and then releases the 
     // instead of the subsequent one in the behaviors array.
     "next_block": string 
 }
-
+```
+{% endcode %}
 
 ## Select Output
 
-_@hash/process/select_output.js_
+_@hash/process/select\_output.js_
 
 This behavior allows a process to branch along two different paths, based on a conditional. There are three different ways to specify this conditional:
 
 * based on a whether a field on the object is `true` or not
 * based on a likelihood or rate
 * based on executing a code string — the string may reference `obj` to access fields on the object being processed.
-  * An example code_condition is `obj.difficulty > 0.5 ? true : false`
+  * An example code\_condition is `obj.difficulty > 0.5 ? true : false`
 
 After the Select Output block, you should specify the blocks that make up the rest of the "true" path, then the blocks that make up the "false" path. If the two paths eventually rejoin, specify the rest of the blocks after the "false" path.
 
 On the final block of the "true" path, specify the first block where the two paths rejoin using the `next_block` parameter.
 
+{% code title="parameters" %}
 ```javascript
-// parameters
-
 <block_name>: {
     // REQUIRED - one of condition_field, true_chance, or code_condition
 
@@ -195,7 +194,8 @@ On the final block of the "true" path, specify the first block where the two pat
     // Remove the field checked in "condition_field"
     "remove_condition_field": boolean
 }
-
+```
+{% endcode %}
 
 ## Exit
 
@@ -203,15 +203,14 @@ _@hash/processs/exit.js_
 
 This behavior allows a process model to communicate with other agents, including other process models. Typically you can use an Exit block to communicate with an Enter block. The Exit block sends a message with the following fields:
 
-* `to` - the agent_id of the target agent
+* `to` - the agent\_id of the target agent
 * `type` - the name of the paired Enter block
 * `data` - the definition of the object
 
 Exit blocks can also be used to send arbitrary messages to other agents, or even create new agents by sending `"create_agent"` messages to `"hash"`.
 
+{% code title="parameters" %}
 ```javascript
-// parameters
-
 <block_name>: {
     // The agent_id of the recipient of the message
     "to": string,
@@ -226,7 +225,8 @@ Exit blocks can also be used to send arbitrary messages to other agents, or even
     "next_block": string
 
 }
-
+```
+{% endcode %}
 
 ## Enter
 
@@ -240,55 +240,55 @@ An agent can do so by sending a message with the following fields:
 * `type` - the name of the Enter block
 * `data` - the definition of the new object
 
+{% code title="parameters" %}
 ```javascript
-// parameters
-
 <block_name>: {
     // OPTIONAL - specify the block that objects will be sent to next, 
     // instead of the subsequent one in the behaviors array.
     "next_block": string
 
 }
-
+```
+{% endcode %}
 
 ## Time Measure Start
 
-_@hash/process/time_measure_start.js_
+_@hash/process/time\_measure\_start.js_
 
 This behavior records the time an object reached it, to enable calculating the elapsed time until the agent reaches the corresponding Time Measure End behavior.
 
+{% code title="parameters" %}
 ```javascript
-// parameters
-
 <block_name>: {
     // OPTIONAL - specify the block that objects will be sent to next, 
     // instead of the subsequent one in the behaviors array.
     "next_block": string 
 }
-
+```
+{% endcode %}
 
 ## Time Measure End
 
-_@hash/process/time_measure_end.js_
+_@hash/process/time\_measure\_end.js_
 
 This behavior determines the elapsed time it took an object to travel from the corresponding Time Measure Start behavior, and records that value.
 
 The process label of this behavior must match that of its corresponding Time Measure Start behavior.
 
+{% code title="parameters" %}
 ```javascript
-// parameters
-
 // Block name must match the time_measure_start
 <block_name>: {
     // OPTIONAL - specify the block that objects will be sent to next, 
     // instead of the subsequent one in the behaviors array.
     "next_block": string 
 }
-
+```
+{% endcode %}
 
 ## Resource Data
 
-_@hash/process/resource_data.js_
+_@hash/process/resource\_data.js_
 
 Each **Service** or **Seize/Release** block in your process agent has an associated `resource` property specified in its parameters. If you'd like to have easy access to data about the usage of each of these resources, you can add this behavior to your agent. This behavior calculates the proportion of resources currently in use, and stores the data in the `process_data` field.
 

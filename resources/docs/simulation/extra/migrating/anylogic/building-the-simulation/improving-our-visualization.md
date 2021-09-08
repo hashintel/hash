@@ -6,8 +6,7 @@ Now let's add some more involved visualization to our simulation. Visualizations
 
 We'll start by defining outputs that track metrics of interest, like the total quantity of crude and refined oil, and the number of gas stations that are empty. We'll use those outputs to generate a few plots of interest.
 
-** analysis.json **
-
+{% code title="analysis.json" %}
 ```javascript
 "empty_stations": [
   {
@@ -21,9 +20,9 @@ We'll start by defining outputs that track metrics of interest, like the total q
   }
 ]
 ```
+{% endcode %}
 
-
-![Plots for the Oil Supply Chain model](https://cdn-us1.hash.ai/site/docs/image%20%2827%29.png)
+![Plots for the Oil Supply Chain model](../../../../.gitbook/assets/image%20%2827%29.png)
 
 ## Advanced Agent Visualizations
 

@@ -16,7 +16,7 @@ There are two ways to create Plots. You can either use our Create new plot wizar
 
 ### Using the Create new Plot wizard
 
-![](https://cdn-us1.hash.ai/site/docs/animation.gif)
+![](../../../.gitbook/assets/animation.gif)
 
 1. Navigate to the Analysis tab
 2. Click on the Create new Plot wizard
@@ -26,7 +26,7 @@ There are two ways to create Plots. You can either use our Create new plot wizar
 
 ### Modifying the analysis.json file
 
-![](https://cdn-us1.hash.ai/site/docs/screenshot-2021-03-12-at-12.35.23.png)
+![](../../../.gitbook/assets/screenshot-2021-03-12-at-12.35.23.png)
 
 1. Focusing on the left sidebar, you'll find a folder called **views**
 2. Expand this folder by clicking on it
@@ -35,19 +35,19 @@ There are two ways to create Plots. You can either use our Create new plot wizar
 
 ## Histograms
 
-![](https://cdn-us1.hash.ai/site/docs/screenshot-2021-03-11-at-18.32.20.png)
+![](../../../.gitbook/assets/screenshot-2021-03-11-at-18.32.20.png)
 
 **Histograms** are used to summarize discrete or continuous data. It works by displaying the number of data points that form part of a group, also called "bins". They are similar to vertical bar graphs.
 
 ## Area
 
-![](https://cdn-us1.hash.ai/site/docs/screenshot-2021-03-11-at-14.55.35.png)
+![](../../../.gitbook/assets/screenshot-2021-03-11-at-14.55.35.png)
 
 **Area** plots are used to depict a time-series relationship. They allow you to visualize the sum value of metrics, which is harder to discern with a standard line plot.
 
 ## Box
 
-![](https://cdn-us1.hash.ai/site/docs/screenshot-2021-03-11-at-17.37.32.png)
+![](../../../.gitbook/assets/screenshot-2021-03-11-at-17.37.32.png)
 
 **Box** plots are a way of displaying the distribution of data based on five different summaries:
 
@@ -61,13 +61,13 @@ It can also tell you if your data is symmetrical, how it is grouped, and if and 
 
 ## Line
 
-![](https://cdn-us1.hash.ai/site/docs/screenshot-2021-03-11-at-15.22.43.png)
+![](../../../.gitbook/assets/screenshot-2021-03-11-at-15.22.43.png)
 
 **Line** plots are graphs that display data as points above a number line, showing the frequency of each value. In essence, they are like a scatter plot whose points are sequentially connected.
 
 ## Scatter
 
-![](https://cdn-us1.hash.ai/site/docs/screenshot-2021-03-11-at-15.05.21.png)
+![](../../../.gitbook/assets/screenshot-2021-03-11-at-15.05.21.png)
 
 **Scatter** plots primary uses are to observe and show relationships between two numeric variables. It helps you to detect trends in the data.
 
@@ -75,7 +75,7 @@ It can also tell you if your data is symmetrical, how it is grouped, and if and 
 
 Each plot provides extra functionality to interact with it. You need to hover the plot to see them. Here's what they mean:
 
-![](https://cdn-us1.hash.ai/site/docs/plotly-buttons-help.png)
+![](../../../.gitbook/assets/plotly-buttons-help.png)
 
 1. Download as PNG
 2. Select Zoom mode

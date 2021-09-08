@@ -13,12 +13,10 @@ Like in traditional software engineering, you can use unit tests and integration
 
 While there are a lot of ways to add unit tests to a simulation, a straightforward approach is to create a behavior attached to an agent that will run comparisons at specific time steps. For instance, in the example below, a behavior would run a test case on the first time step and tenth time step, asserting that properties stored on the agent's state are the expected values.
 
-<Tabs>
-<Tab title="JavaScript" >
-
-
+{% tabs %}
+{% tab title="JavaScript" %}
+{% code title="test\_behavior.js" %}
 ```javascript
-// test_behavior.js
 function testCaseOne(state) {
   if (state.test_case_one == state.actual_value) {
     console.info("Test Case One Passes");
@@ -46,15 +44,12 @@ const behavior = (state, context) => {
   }
 }
 ```
+{% endcode %}
+{% endtab %}
 
-</Tab>
-
-<Tab title="Python" >
-
-
+{% tab title="Python" %}
+{% code title="test\_behavior.py" %}
 ```python
-# test_behavior.py
-  
 def test_case_one():
   if state.test_case_one == state.actual_value:
     print("Test Case One Passes")
@@ -74,9 +69,9 @@ def behavior(state, context):
     test_case_two(state)
 
 ```
-
-</Tab>
-</Tabs>
+{% endcode %}
+{% endtab %}
+{% endtabs %}
 
 ## Validation
 
@@ -84,9 +79,8 @@ While verification will ensure that the simulation meets the desired specificati
 
 A common way to validate a simulation is by comparing the results of a simulation run against external data. You can use HASH's dataset features to add data and visualize it against a simulation run. For example, in the [Multi-Stage Cell Replication simulation](https://core.hash.ai/@hash/multi-stage-cell-replication/1.0.0), the validate.js behavior takes an external dataset and saves the values for a given time step to a value on state to then be visualized as a metric.
 
+{% code title="validate.js" %}
 ```javascript
-  // validate.js
-  
   const data = context.data()[context.globals().dataset][state.counter];
   const [red_data, yellow_data, green_data] = [parseFloat(data[1]), parseFloat(data[2]), parseFloat(data[3])]
 
@@ -96,11 +90,13 @@ A common way to validate a simulation is by comparing the results of a simulatio
 
   state.cells_data = red_data + yellow_data + green_data;
 ```
+{% endcode %}
 
-![A simulation that would not pass a validation test](https://cdn-us1.hash.ai/site/docs/image%20%2875%29.png)
+![A simulation that would not pass a validation test](../.gitbook/assets/image%20%2875%29.png)
 
-![A simulation that would \(probably\) pass a validation](https://cdn-us1.hash.ai/site/docs/image%20%2876%29.png)
+![A simulation that would \(probably\) pass a validation](../.gitbook/assets/image%20%2876%29.png)
 
 Additionally you can use [Complex Metrics](../creating-simulations/experiments/optimization-experiments/complex-metrics.md) to score the error difference between a simulation and an external dataset, to get a more quantitative validation measure.
+
 
 

@@ -40,7 +40,7 @@ Step Explorer is useful for understanding the shape of the data within your simu
 
 ## Custom Views
 
-<Hint style="info">
+{% hint style="info" %}
 Allowing users to develop custom views is part of our public [product roadmap](https://hash.ai/roadmap).
-</Hint>
+{% endhint %}
 

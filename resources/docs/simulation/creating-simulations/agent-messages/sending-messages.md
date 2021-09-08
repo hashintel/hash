@@ -20,10 +20,8 @@ Agents send messages by adding JSON objects to their `messages` array. The objec
 
 ## Code Examples
 
-<Tabs>
-<Tab title="JavaScript" >
-
-
+{% tabs %}
+{% tab title="JavaScript" %}
 ```javascript
 const behavior = (state, context) => {
     state.messages.push({
@@ -33,11 +31,9 @@ const behavior = (state, context) => {
     });
 }
 ```
-</Tab>
+{% endtab %}
 
-<Tab title="Python" >
-
-
+{% tab title="Python" %}
 ```python
 def behavior:
     state['messages'].append({
@@ -46,31 +42,27 @@ def behavior:
         "data": {"msg": "hello"}
     })
 ```
-</Tab>
-</Tabs>
+{% endtab %}
+{% endtabs %}
 
-<Hint style="info">
-We provide helper functions on the state object for adding messages. state.addMessage\(\) and state.add_message\(\), for JavaScript and Python, respectively.
-</Hint>
+{% hint style="info" %}
+We provide helper functions on the state object for adding messages. state.addMessage\(\) and state.add\_message\(\), for JavaScript and Python, respectively.
+{% endhint %}
 
-<Tabs>
-<Tab title="JavaScript" >
-
-
+{% tabs %}
+{% tab title="JavaScript" %}
 ```javascript
 const behavior = (state, context) => {
     state.addMessage("people", "greeting", {"msg": "hello"})
 }
 ```
-</Tab>
+{% endtab %}
 
-<Tab title="Python" >
-
-
+{% tab title="Python" %}
 ```python
 def behavior:
     state.add_message("people", "greeting", {"msg": "hello"})
 ```
-</Tab>
-</Tabs>
+{% endtab %}
+{% endtabs %}
 

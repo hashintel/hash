@@ -1,8 +1,8 @@
 # Structuring a Process Model
 
-<Hint style="info">
+{% hint style="info" %}
 A technical deep-dive into how process models are structured. This is optional context that is not required for using the [process model visual interface](using-the-process-model-builder.md).
-</Hint>
+{% endhint %}
 
 ## Structure of the Agent
 
@@ -18,20 +18,19 @@ Each process block behavior operates in three parts:
 2. The block then performs a function, such as modifying on object property or seizing a resource from the agent.
 3. The block puts modified objects back into its queue, or into the queue of the following block.
 
-<Hint style="warning">
+{% hint style="warning" %}
 The only exception to this is the Sink block. Since it represents the end of a process, it does not send objects into a new queue.
-</Hint>
+{% endhint %}
 
 ### Behaviors Array
 
 The `behaviors` array of an agent running a process model must start with the [`@hash/age/age.rs`](https://hash.ai/@hash/age) behavior, and can then contain a mix of custom and published behaviors.
 
-<Hint style="warning">
+{% hint style="warning" %}
 This behavior provides the agent with a field that allows the other process behaviors to run. Without it the other Process Library behaviors will throw errors.
-</Hint>
+{% endhint %}
 
-** init.json **
-
+{% code title="init.json" %}
 ```javascript
 {
     "behaviors": [
@@ -40,14 +39,14 @@ This behavior provides the agent with a field that allows the other process beha
     ],
     ...
 }
-
+```
+{% endcode %}
 
 ### Process Labels
 
 The agent must also contain an array of labels for each process behavior. The labels allow you to give a descriptive name to each block. Only the behaviors listed on the following Process Behaviors page require a label; all other published or custom behaviors should have a `""` placeholder string.
 
-** init.json **
-
+{% code title="init.json" %}
 ```javascript
 {
     "behaviors": [
@@ -64,7 +63,8 @@ The agent must also contain an array of labels for each process behavior. The la
     ],
     ...
 }
-
+```
+{% endcode %}
 
 ### Resources
 

@@ -38,7 +38,7 @@ Because agents receive all the messages sent to them in the previous time step a
 * Agent B receives it and processes it in Step 2, adding a message to Agent A in response
 * Agent A receives the response and processes it in Step 3
 
-![](https://cdn-us1.hash.ai/site/docs/message-exchange-diagram.svg)
+![](../../.gitbook/assets/message-exchange-diagram.svg)
 
 Agent A will not know the result of the message it added in Step 1 until it receives the response in Step 3 \(or even later if Agent B must communicate with a third agent before responding\). Watch out for [**redundant messaging!**](./#redundant-messaging) You should also consider the [**order of behaviors**](./#sequential-behavior-execution) when processing inbox messages and queueing outbox messages.
 
@@ -77,9 +77,9 @@ To streamline this, consider:
 * including any information in messages which might help resolve the dispute - e.g. include a second preference order if the first cannot be fulfilled \(where the agent receiving the order can handle both\).
 * for more complex scenarios, using a mediating or manager agent which receives information from multiple agents, and can determine the best match in a single step. 
 
-<Hint style="info">
+{% hint style="info" %}
 We are introducing a new feature to eliminate the need for manager agents and multiple back-and-forth messages to resolve conflicts. [**Contact us**](https://hash.ai/contact) if you want to be one of the first to try this feature.
-</Hint>
+{% endhint %}
 
 See [**Managing Resource Access**](managing-resource-access.md) for more.
 

@@ -2,41 +2,36 @@
 
 Now that Business agents are communicating with Customers, we need the Customers to send a reply back. To do this, let’s look at **`customer.js`**. Every time a Customer agent receives a batch of messages, it will:
 
-- Run the message data through a cost function to determine the change with the lowest cost for each Business
-- Notify each Business where they would choose to shop given all the possibilities
-- “Purchase” from the Business with the overall lowest cost return
+* Run the message data through a cost function to determine the change with the lowest cost for each Business
+* Notify each Business where they would choose to shop given all the possibilities
+* “Purchase” from the Business with the overall lowest cost return
 
 The cost function will be as follows, where price is the Business’s `item_price`, position is the Business’s `position`, and D is the distance function \(linear euclidean\) :
 
-<Math formula="C(B_i)=price_i+D(position_i)" />
+$$
+C(B_i)=price_i+D(position_i)
+$$
 
-
-<Math formula="D(p) = \sqrt{p_x^2+p_y^2}" />
+$$
+D(p) = \sqrt{p_x^2+p_y^2}
+$$
 
 Create the function `calculate_cost()` in **`customer.js`**.
 
-<Tabs>
-<Tab title="customer.js" >
-
+{% tabs %}
+{% tab title="customer.js" %}
 ```javascript
 const behavior = (state, context) => {
   // Function to determine cost --> Business price * distance from Business
   const calculate_cost = (position, price) => {
     const state_position = state.position;
 
-    return (
-      price +
-      Math.sqrt(
-        Math.pow(state_position[0] - position[0], 2) +
-          Math.pow(state_position[1] - position[1], 2)
-      )
-    );
-  };
-};
+    return price + Math.sqrt(Math.pow((state_position[0] - position[0]), 2) + Math.pow((state_position[1] - position[1]), 2));
+  }
+}
 ```
-
-</Tab>
-</Tabs>
+{% endtab %}
+{% endtabs %}
 
 Next, we are going to collect and store all the messages sent by the Business agents into a dictionary. This will make for easy access and iteration when we compare. Place this code underneath `calculate_cost()`.
 
@@ -44,26 +39,20 @@ Next, we are going to collect and store all the messages sent by the Business ag
 const collect_business_data = (messages) => {
   let shops = {};
 
-  messages
-    .filter((message) => message.type === "business_movement")
-    .forEach((message) => {
-      const agent_id = message.from;
+  messages.filter((message) => message.type === "business_movement").forEach((message) => {
+    const agent_id = message.from;
 
-      if (agent_id in shops) {
-        shops[agent_id].data.push([
-          message.data.position,
-          message.data.price,
-          message.data.rgb,
-        ]);
-      } else {
-        shops[agent_id] = {
-          data: [[message.data.position, message.data.price, message.data.rgb]],
-        };
+    if (agent_id in shops) {
+      shops[agent_id].data.push([message.data.position, message.data.price, message.data.rgb]);
+    } else {
+      shops[agent_id] = {
+        data: [[message.data.position, message.data.price, message.data.rgb]]
       }
-    });
+    }
+  });
 
   return shops;
-};
+}
 ```
 
 Now that all the Business data is stored successfully, we need to iterate through each key \(or Business\) and determine which `position` and `item_price` combination yields the lowest cost for the individual Business as well as the overall.
@@ -101,12 +90,10 @@ Define a `find_min()` function like the one below.
  }
 ```
 
-<Hint style="info">
-
-* **overall_min →** store the data for the business position/price combination that yields the lowest cost across all businesses
-* **Individual_min →** store the data for the business position/price combination that yields the lowest cost across for each individual business
-
-</Hint>
+{% hint style="info" %}
+* **overall\_min →** store the data for the business position/price combination that yields the lowest cost across all businesses
+* **Individual\_min →** store the data for the business position/price combination that yields the lowest cost across for each individual business
+{% endhint %}
 
 Let’s add the cost comparisons for both the individual Business and overall. Place the following code right below your cost calculation \(within the`businesses[shop].data.forEach() call`\).
 
@@ -144,7 +131,7 @@ Notice how many times you need to update `overall_min` and `individual_min`. Sin
  }
 ```
 
-Now we can replace the ‘TODO’ comments with a call to update_min\(\) with the proper parameters. We've inserted those calls in the snippet below.
+Now we can replace the ‘TODO’ comments with a call to update\_min\(\) with the proper parameters. We've inserted those calls in the snippet below.
 
 ```javascript
 // Check min for individual business
@@ -186,7 +173,7 @@ All that’s left to do now for **`customer.js`** is to update the agent’s col
  }
 ```
 
-Finally, call find_min\(\) below your call to collect_business_data\(\) and pass in the const variable `businesses`.
+Finally, call find\_min\(\) below your call to collect\_business\_data\(\) and pass in the const variable `businesses`.
 
 ```javascript
 const businesses = collect_business_data(context.messages());
@@ -195,19 +182,22 @@ find_min(businesses);
 
 The **`customer.js`** behavior is finally complete!
 
-<Hint style="success">
+{% hint style="success" %}
 To see **customer.js** in full, navigate to bottom of this section or click on ‘**Phase 1** **Final Code**’ in the sidebar.
-</Hint>
+{% endhint %}
+
+{% hint style="danger" %}
+
+{% endhint %}
 
 Reset and run!
 
 If you followed all the steps above, run the simulation a couple times and you should see the customer agents change color based on their decision after a couple time steps.
 
-![](https://cdn-us1.hash.ai/site/docs/lc_p2_customers.gif)
+![](../../.gitbook/assets/lc_p2_customers.gif)
 
-<Tabs>
-<Tab title="customer.js" >
-
+{% tabs %}
+{% tab title="customer.js" %}
 ```javascript
 const behavior = (state, context) => {
  // Function to determine cost --> business price + distance from business
@@ -306,10 +296,9 @@ const behavior = (state, context) => {
  find_min(businesses);
 }
 ```
-</Tab>
+{% endtab %}
 
-<Tab title="init.json" >
-
+{% tab title="init.json" %}
 ```text
 [
  {
@@ -353,10 +342,9 @@ const behavior = (state, context) => {
  }
 ]
 ```
-</Tab>
+{% endtab %}
 
-<Tab title="business.js" >
-
+{% tab title="business.js" %}
 ```javascript
 const behavior = (state, context) => {
  const send_message = (agent_id, position, price) => {
@@ -393,5 +381,6 @@ const behavior = (state, context) => {
  }
 }
 ```
-</Tab>
-</Tabs>
+{% endtab %}
+{% endtabs %}
+

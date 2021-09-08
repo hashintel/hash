@@ -1,6 +1,6 @@
 # Shortcuts
 
-## In the editor pane
+## **In the editor pane**
 
 | Command | Windows | Mac |
 | :--- | :--- | :--- |

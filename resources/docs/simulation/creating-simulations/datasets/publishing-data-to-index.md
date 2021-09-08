@@ -4,9 +4,9 @@ You can share your datasets with others by publishing them to hIndex.
 
 ## Upload Datasets
 
-To upload a dataset, first visit your projects page - hash.ai/@\[your_username\] - and select new Dataset.
+To upload a dataset, first visit your projects page - hash.ai/@\[your\_username\] - and select new Dataset.
 
-![](https://cdn-us1.hash.ai/site/docs/kapture-2021-06-06-at-21.00.44%20%283%29%20%283%29%20%283%29%20%281%29%20%283%29.gif)
+![](../../.gitbook/assets/kapture-2021-06-06-at-21.00.44%20%283%29%20%283%29%20%283%29%20%281%29%20%283%29.gif)
 
 Add a name and project path, and choose the visibility and the user or org to publish the dataset under. Private datasets are only displayed to you \(and other members of your organization if you've published under that\) while public are visible to all HASH users.
 
@@ -16,15 +16,15 @@ To edit a Dataset, visit your projects page, select the data you want to publish
 
 From the Edit Project modal add descriptions, keywords, and schemas to your data.
 
-![Publish Modal](https://cdn-us1.hash.ai/site/docs/screen-shot-2020-05-12-at-1.22.27-pm.png)
+![Publish Modal](../../.gitbook/assets/screen-shot-2020-05-12-at-1.22.27-pm.png)
 
 Release a new version and click public at the bottom of the modal.
 
-![](https://cdn-us1.hash.ai/site/docs/screenshot-2020-10-30-144523.png)
+![](../../.gitbook/assets/screenshot-2020-10-30-144523.png)
 
 Finally add semantic versioning details and create a release.
 
-![](https://cdn-us1.hash.ai/site/docs/screenshot-2020-10-30-144826.png)
+![](../../.gitbook/assets/screenshot-2020-10-30-144826.png)
 
 If publishing as yourself, the dataset will be referenced in a simulation as:
 

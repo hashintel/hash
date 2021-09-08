@@ -13,9 +13,9 @@ There are a couple of different ways you can solve this problem in HASH. Common 
 * Add discrete event features  to signal when agents should pause to allow for different computation times
 * Add delays to normalize the actions across timescales.
 
-<Hint style="info">
+{% hint style="info" %}
 We are also going to introduce in-built ways of handling a global timescale - enabling the duration or trigger points of behaviors to be specified in line with calendar-time schedules.
-</Hint>
+{% endhint %}
 
 ## Discrete Event Simulations
 
@@ -30,7 +30,7 @@ When an event occurs, specific agents in a simulation need to take certain actio
 
 The most common way to implement this in HASH is through a manager agent - it's how we've implemented the [shared discrete event library](https://hash.ai/@hash/des) you can import into your simulation. Alternatively you can roll your own manager agent to handle different timescales.
 
-### Managers
+### **Managers**
 
 A ManagerAgent in this role - lets call it TimeManager - has a basic design:
 
@@ -42,13 +42,13 @@ A ManagerAgent in this role - lets call it TimeManager - has a basic design:
 
 In essence the time manager is specifying which agents run on any given time-step based on business logic. [Here's an example simulation using a generic time manager](https://hash.ai/@hash/time-management).
 
-## Delays
+## **Delays**
 
 A simple and straightforward approach is to "slow down" the simulation. In our example above, a time-step would now be 15 mins, and the agent would leave for work either on the first or second time-step, depending on whether they take a shower. They then leave work to return home on the 32nd time-step.
 
 This has the advantage of being a straightforward, simple way of increasing the resolution of a simulation. The downside is it's inefficient - it's only in the first two steps of the simulation that we need the increased granularity. The additional 24 time-steps aren't really needed.
 
-<Hint style="warning">
+{% hint style="warning" %}
 Timescale management is a particularly common issue for new HASH users because [we utilize an actor model where there is "information lag" ](design-considerations/#actor-model)- a roundtrip message will take, at minimum, three time-steps.
-</Hint>
+{% endhint %}
 

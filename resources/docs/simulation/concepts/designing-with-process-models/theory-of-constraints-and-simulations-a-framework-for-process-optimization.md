@@ -28,11 +28,11 @@ For example, consider a [Billing Department](https://core.hash.ai/@hash/billing-
 
 ![](https://lh4.googleusercontent.com/W6wazlGHPZVxkEuWCl8DIkw66P44qrgvMbIAUs0VfgGwiY-taiU1PgVnr5dhkeBTc-kpCzm5Xhajs7-VMhGsOaG6CcKhbQ6uQMXH-z-hCxf6zRtmEqeIel3_JyHRVjIxgObDla47)
 
-<Hint style="info">
+{% hint style="info" %}
 [Learn how to build a process model simulation using a visual interface.](../../tutorials/building-process-models/using-the-process-model-builder.md)
-</Hint>
+{% endhint %}
 
-Once we've represented the department as a process model and generated a simulation, we can use the Analysis view to inspect the process models to identify bottlenecks based on resource utilization or through times. There are four different resources in use in model: senior_billers, account_billers, billing_clerks, and printers. Visualizing the average utilization of these resources will allow us to determine which, if any, are responsible for any bottlenecks:
+Once we've represented the department as a process model and generated a simulation, we can use the Analysis view to inspect the process models to identify bottlenecks based on resource utilization or through times. There are four different resources in use in model: senior\_billers, account\_billers, billing\_clerks, and printers. Visualizing the average utilization of these resources will allow us to determine which, if any, are responsible for any bottlenecks:
 
 ![Percent of a resource being utilized](https://lh4.googleusercontent.com/4TECbNGY8Cumj3fY8fBvne8etXwC75T-9AiXbUqyuuXbqRM5jh4LzxMD65aTjfw-IOumLH9W8lCTU4Bprq5cyQ5FSfJBU_ODEPGurWDs81Fmi-qs4gIGUgsRS6ehRW3h7w1lrElU)
 
@@ -54,7 +54,7 @@ Now that we know where the key constraint in the system is, we can re-engineer o
 
 One of the tricky parts of process modeling and process optimization is it can be non-obvious how different process designs impact process performance. Subtle differences can lead to dramatically different outcomes. The key to improving a system often comes from experimentation with different layouts; these can be guided by principled insights from operations research or through iteration, and trial and error. A benefit of using simulation as an aid in the design process is you can quickly experiment with different designs.
 
-In our example of the billing department senior_billers are used in `auditCustomerAccount`,  `verifyAndFixBills`, and in `registerARAndFinancials`. Regardless of the path the bills take in the process, they end up utilizing some of the senior_billers resource. A potential improvement might be to redesign the system such that the senior_billers are no longer used on all parts, and instead conserving their input until the end.
+In our example of the billing department senior\_billers are used in `auditCustomerAccount`,  `verifyAndFixBills`, and in `registerARAndFinancials`. Regardless of the path the bills take in the process, they end up utilizing some of the senior\_billers resource. A potential improvement might be to redesign the system such that the senior\_billers are no longer used on all parts, and instead conserving their input until the end.
 
 #### Adding resources or buffers to a bottleneck
 
@@ -64,7 +64,7 @@ To improve the performance at the bottleneck, you can add resources or a buffer.
 
 By adding more senior billers to the key service blocks, and keeping a larger backup buffer of senior billers in reserve, we dramatically reduce the total utilization of that resource at any one time, likely improving performing.
 
-![Senior billers utilization with 11 billers ](https://cdn-us1.hash.ai/site/docs/image%20%2851%29.png)
+![Senior billers utilization with 11 billers ](../../.gitbook/assets/image%20%2851%29.png)
 
 ## Subordinate everything else to the above decisions
 
@@ -74,23 +74,23 @@ We encourage you to use the built-in metrics, plot, and experiments with HASH to
 
 To explore the effects of different parameters, try creating an experiment to see what the optimum number of senior billers is:
 
-![Vary the number of senior billers](https://cdn-us1.hash.ai/site/docs/c11907e2-adf2-48e6-85ce-c2bb3cbdc048-464-0003638bffbf8c41.png)
+![Vary the number of senior billers](../../.gitbook/assets/c11907e2-adf2-48e6-85ce-c2bb3cbdc048-464-0003638bffbf8c41.png)
 
 Then, when you run the experiment, you can click through the plots and view the effect that different numbers of billers have on the simulation:
 
-![Through time with 11 senior billers](https://cdn-us1.hash.ai/site/docs/2b2e1b70-0249-4f90-a22e-8e033001d780-464-00036392cac553ab.png)
+![Through time with 11 senior billers](../../.gitbook/assets/2b2e1b70-0249-4f90-a22e-8e033001d780-464-00036392cac553ab.png)
 
-<Hint style="info">
+{% hint style="info" %}
 See Analyzing Process Models for more on graphing process models, and Collaboration to learn how to share a process model simulation with your team.
-</Hint>
+{% endhint %}
 
 ## Alleviate the system constraints
 
 Alleviating the constraints means investing in them until they are no longer the constraints. We can track the performance of our improvements by using real world data to inform the parameters we set on a process model. As more resources are added, or as the process changes, we can update the simulation to see over time whether the constraint has been broken.
 
-<Hint style="info">
+{% hint style="info" %}
 Read about [Adding Data to a Process Model](../../tutorials/building-process-models/using-data-in-a-process-model.md) for how to use
-</Hint>
+{% endhint %}
 
 In the example, we can take it and update the parameters as new data about the process arrives. When new data arrives or the process changes, we can create a new release that provides an updated view on the reality of the process.
 
