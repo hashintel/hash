@@ -2,8 +2,9 @@
 
 Check out the model \(Local Competition Phase 1\) in [hIndex](https://hash.ai/@hash/local-competition-phase-1)
 
-{% tabs %}
-{% tab title="init.json" %}
+<Tabs>
+<Tab title="init.json" >
+
 ```text
 [
  {
@@ -47,9 +48,10 @@ Check out the model \(Local Competition Phase 1\) in [hIndex](https://hash.ai/@h
  }
 ]
 ```
-{% endtab %}
+</Tab>
 
-{% tab title="globals.json" %}
+<Tab title="globals.json" >
+
 ```text
 {
  "topology": {
@@ -65,9 +67,10 @@ Check out the model \(Local Competition Phase 1\) in [hIndex](https://hash.ai/@h
  }
 }
 ```
-{% endtab %}
+</Tab>
 
-{% tab title="update\_businesses.js" %}
+<Tab title="update_businesses.js" >
+
 ```javascript
 const behavior = (state, context) => {
  state.agents["businesses"].map((b) => {
@@ -75,9 +78,10 @@ const behavior = (state, context) => {
  })
 }
 ```
-{% endtab %}
+</Tab>
 
-{% tab title="business.js" %}
+<Tab title="business.js" >
+
 ```javascript
 const behavior = (state, context) => {
  const send_message = (agent_id, position, price) => {
@@ -155,9 +159,10 @@ const behavior = (state, context) => {
  }
 }
 ```
-{% endtab %}
+</Tab>
 
-{% tab title="customer.js" %}
+<Tab title="customer.js" >
+
 ```javascript
 const behavior = (state, context) => {
  // Function to determine cost --> business price + distance from business
@@ -256,6 +261,6 @@ const behavior = (state, context) => {
  find_min(businesses);
 }
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 

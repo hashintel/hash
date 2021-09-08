@@ -29,8 +29,9 @@ This agent must have a search radius that allows it to see all other agents in t
 
 #### 3. Create a new behavior which calculates this metric
 
-{% code title="calculate\_metric.js" %}
 ```javascript
+// calculate_metric.js
+
 const behavior = () => {
     // Gather data
     const num_centers = context.globals().n_call_centers;
@@ -47,15 +48,15 @@ const behavior = () => {
 
 }
 ```
-{% endcode %}
 
-{% hint style="info" %}
+
+<Hint style="info">
 Metric weights can also be captured as global parameters for easy modification
-{% endhint %}
+</Hint>
 
 #### 4. Create a new Analysis metric that collects the `state.metric` field on your agent
 
-![Defining the complex metric for use an optimization](../../../.gitbook/assets/image%20%2872%29.png)
+![Defining the complex metric for use an optimization](https://cdn-us1.hash.ai/site/docs/image%20%2872%29.png)
 
 Now you can go ahead and run your new and improved optimization, which takes into account more realistic cost constraints.
 
@@ -71,8 +72,9 @@ Let's set up a slightly different complex metric:
 
 #### 3. Create a new behavior for gathering and comparing simulation data
 
-{% code title="gather\_data.js" %}
 ```javascript
+// gather_data.js
+
 const behavior = () => {
     // Gather data from agents
     const ns = context.neighbors().map(n => n.field);
@@ -86,24 +88,24 @@ const behavior = () => {
     state.cumulative_error_metric += state.error_metric;
 }
 ```
-{% endcode %}
 
-{% hint style="info" %}
-Sum of squares is the typical method for calculating the error between a sample datapoint and "predicted" or modeled datapoint: _Error =  Sum of \(agent\_avg - data\_avg\)^2_
-{% endhint %}
+
+<Hint style="info">
+Sum of squares is the typical method for calculating the error between a sample datapoint and "predicted" or modeled datapoint: _Error =  Sum of \(agent_avg - data_avg\)^2_
+</Hint>
 
 #### 4. Now create a metric to capture the calculated error:
 
-![Define a metric to capture the cumulative error](../../../.gitbook/assets/image%20%2873%29.png)
+![Define a metric to capture the cumulative error](https://cdn-us1.hash.ai/site/docs/image%20%2873%29.png)
 
 Now that we have the error captured in a metric, we can apply it. You can:
 
 1. Run an experiment to compare different models or sets of parameters to the real-world data. By defining a maximum tolerable error, you can determine whether your model is a valid digital twin, or representation of reality.
 2. Use optimization experiments to minimize the error. This effectively calibrates your model to the data. You’ll need to have some estimate for the ranges of your global parameters to provide to the optimization engine.
 
-![Defining an optimization experiment that will calibrate our model](../../../.gitbook/assets/image%20%2871%29.png)
+![Defining an optimization experiment that will calibrate our model](https://cdn-us1.hash.ai/site/docs/image%20%2871%29.png)
 
 By plotting your model output, and real-world values from the dataset, you should see the optimization experiment producing a well-calibrated model:
 
-![Model output fitted to data](../../../.gitbook/assets/image%20%2870%29.png)
+![Model output fitted to data](https://cdn-us1.hash.ai/site/docs/image%20%2870%29.png)
 

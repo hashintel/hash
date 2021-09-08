@@ -1,6 +1,6 @@
 # Neighbors
 
-## neighborsOnPosition\(agentA, neighbors\)
+## neighborsOnPosition(agentA, neighbors)
 
 This function returns all neighbors that share the same position as `agentA`. The current agent's `state` can be passed in as `agentA`, and dummy agents can be used as well.
 
@@ -22,7 +22,7 @@ function behavior(state, context) {
 }
 ```
 
-## neighborsInRadius\(agentA, neighbors, max\_radius, min\_radius, z\_axis\)
+## neighborsInRadius(agentA, neighbors, max_radius, min_radius, z_axis)
 
 This function returns all neighbors within the specified radii. The current agent's `state` can be passed in as `agentA`, and dummy agents can be used as well. By default the max and min radii are \[1, 0\]. `z_axis` is false by default, but by passing true you can enable search in a spherical, as opposed to circular radius.
 
@@ -36,7 +36,7 @@ function behavior(state, context) {
 }
 ```
 
-## neighborsInFront\(agentA, neighbors, colinear\)
+## neighborsInFront(agentA, neighbors, colinear)
 
 This function returns all neighbors located in front of an agent. `agentA` must have a "direction" property since "in front" is determined by the plane perpendicular to that vector. `colinear` defaults to false, but by passing true the function will only return agents on the same _line_ as the "direction". The current agent's `state` can be passed in as `agentA`, and dummy agents can be used as well.
 
@@ -54,9 +54,9 @@ function behavior(state, context) {
 }
 ```
 
-## neighborsBehind\(agentA, neighbors, colinear\)
+## neighborsBehind(agentA, neighbors, colinear)
 
-This function returns all neighbors located behind the agent. It functions identically to **neighborsInFront** \__\*\*_\_but returns agents behind the plane of `agentA`. The current agent's `state` can be passed in as `agentA`, and dummy agents can be used as well.
+This function returns all neighbors located behind the agent. It functions identically to **neighborsInFront** but returns agents behind the plane of `agentA`. The current agent's `state` can be passed in as `agentA`, and dummy agents can be used as well.
 
 ```javascript
 function behavior(state, context) {

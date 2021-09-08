@@ -2,9 +2,9 @@
 
 Open up the `init.json` file. It should look like:
 
-{% tabs %}
-{% tab title="JavaScript" %}
-{% code title="init.json" %}
+<Tabs>
+<Tab title="JavaScript" >
+
 ```javascript
 [
   {
@@ -43,11 +43,11 @@ Open up the `init.json` file. It should look like:
   }
 ]
 ```
-{% endcode %}
-{% endtab %}
 
-{% tab title="Python" %}
-{% code title="init.json" %}
+</Tab>
+
+<Tab title="Python" >
+
 ```javascript
 [
   {
@@ -89,21 +89,21 @@ Open up the `init.json` file. It should look like:
   }
 ]
 ```
-{% endcode %}
-{% endtab %}
-{% endtabs %}
+
+</Tab>
+</Tabs>
 
 `init.json` defines the 'initial state' of the simulation. In this case we're using some 'creator' utility behaviors, attached to a setup agent, who plays no role in our experiments beyond helping get our world set up correctly.
 
-{% hint style="info" %}
+<Hint style="info">
 See [Initializing Agents](../../creating-simulations/anatomy-of-an-agent/initial-state.md) for more on init.json and creator agents.
-{% endhint %}
+</Hint>
 
 This setup agent has four behaviors attached to it which will help populate our world. In order:
 
-* First run `@hash/create-scatters/create_scatters.js`. This is a [shared behavior](../../creating-simulations/behaviors/) \([hIndex](https://hash.ai/@hash/create-scatters)\) that, when added to an agent, will create all of the associated "scatter\_templates". It's called _scatter_ because it's scattering the child agents around the map.
+* First run `@hash/create-scatters/create_scatters.js`. This is a [shared behavior](../../creating-simulations/behaviors/) \([hIndex](https://hash.ai/@hash/create-scatters)\) that, when added to an agent, will create all of the associated "scatter_templates". It's called _scatter_ because it's scattering the child agents around the map.
 * Second it will run `create_people`, a behavior local to this simulation. In this behavior we've defined our people agents and associated them with their homes, offices, and groceries.
-* Third is the `@hash/create-agents/create_agents.js` - another shared behavior \([hIndex](https://hash.ai/@hash/create-agents)\). In our previous two functions we didn't fully create our agents, we just added them to an agents object on the "creator agent". This third behavior iterates through that object and sends messages to the [reserved hash keyword create\_agent](https://app.gitbook.com/@hash-1/s/core/~/drafts/-M3yIAt-weMIyGiVronu/agent-messages/built-in-message-handlers) to instantiate all of our new agents.
+* Third is the `@hash/create-agents/create_agents.js` - another shared behavior \([hIndex](https://hash.ai/@hash/create-agents)\). In our previous two functions we didn't fully create our agents, we just added them to an agents object on the "creator agent". This third behavior iterates through that object and sends messages to the [reserved hash keyword create_agent](/docs/simulation/creating-simulations/agent-messages/built-in-message-handlers) to instantiate all of our new agents.
 * Finally the agent runs `@hash/remove-self/remove_self.js`, which will appropriately enough remove itself from the simulation. We don't want to constantly be generating new grocery stores, which is what we'd end up with here otherwise!
 
 This kind of 'creator agent' pattern is a common and recommended method for generating lots of agents. It’s worth double-checking to make sure fully understand what's going on in this step.
@@ -123,11 +123,11 @@ Now that we understand how to instantiate our agents, let’s create a hospital.
 
 Or, we can follow the creator pattern and add it as a "stack" \(as it's at a specific location\). To do that we'd add `stack_templates` to our agent, as well as add the `@hash/create-stacks/create_stacks.js` behavior. Since it's a shared behavior, you can search in the index panel in the lower left for it. Double click and it will be added to your simulation.
 
-![It&apos;s easy to find powerful behaviors in the hIndex to add to your models \(or share your own!\) ](../../.gitbook/assets/screen-shot-2020-04-02-at-9.48.14-pm.png)
+![It&apos;s easy to find powerful behaviors in the hIndex to add to your models \(or share your own!\) ](https://cdn-us1.hash.ai/site/docs/screen-shot-2020-04-02-at-9.48.14-pm.png)
 
-{% tabs %}
-{% tab title="JavaScript" %}
-{% code title="init.json" %}
+<Tabs>
+<Tab title="JavaScript" >
+
 ```javascript
 [
   {
@@ -153,11 +153,11 @@ Or, we can follow the creator pattern and add it as a "stack" \(as it's at a spe
   }
 ]
 ```
-{% endcode %}
-{% endtab %}
 
-{% tab title="Python" %}
-{% code title="init.json" %}
+</Tab>
+
+<Tab title="Python" >
+
 ```javascript
 [
   {
@@ -183,9 +183,9 @@ Or, we can follow the creator pattern and add it as a "stack" \(as it's at a spe
   }
 ]
 ```
-{% endcode %}
-{% endtab %}
-{% endtabs %}
+
+</Tab>
+</Tabs>
 
 You can set the position, color, and height as whatever you’d like.
 

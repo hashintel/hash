@@ -2,9 +2,9 @@
 
 Once in a while you'll want to customize your process model with a new type of functionality. Custom behaviors can be placed anywhere in your behavior chain
 
-{% hint style="info" %}
+<Hint style="info">
 Custom behaviors can be used to modify objects travelling through the system, add visualizations, or track data and compute statistics, among many other things.
-{% endhint %}
+</Hint>
 
 ## Accessing a Queue
 
@@ -32,9 +32,9 @@ Each process block has a queue associated with it where incoming objects wait. A
 
 Then, you'll likely run a function over the objects currently present in the queue.
 
-{% hint style="info" %}
+<Hint style="info">
 All of the code snippets can be referenced or copied from the`custom_process_template.js` behavior in the Process Modeling Library.
-{% endhint %}
+</Hint>
 
 ## Continuing the Process
 

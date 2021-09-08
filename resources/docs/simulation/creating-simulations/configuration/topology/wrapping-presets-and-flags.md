@@ -28,7 +28,7 @@ These parameters are set in the `globals.json:`
 }
 ```
 
-{% hint style="warning" %}
+<Hint style="warning">
 Note that `offset_reflection` is a special case and is not supported for the Z axis - it will only infer shifts along either the X or Y axes.
-{% endhint %}
+</Hint>
 

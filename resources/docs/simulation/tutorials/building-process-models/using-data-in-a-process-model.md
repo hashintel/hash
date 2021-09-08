@@ -10,31 +10,33 @@ In this how-to guide we'll cover:
 
 ## Loading Data
 
-{% hint style="info" %}
+<Hint style="info">
 For more on using data in HASH, see [Datasets](../../creating-simulations/datasets/)
-{% endhint %}
+</Hint>
 
 HASH supports CSV and JSON datasets. You can upload your dataset by clicking the 'New Dataset' option in the editor. Or, by finding/reusing an existing dataset on [hIndex](https://hash.ai/index) and adding it to the simulation.
 
 The dataset is stored in the 'data/' folder, and the data will be available in the simulation through `context.data()`.
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
+
 ```javascript
 const behavior = (state, context) => {
  let cs = context.data()["CustomerServiceEmployeesSheet1.csv"]
 };
 
 ```
-{% endtab %}
+</Tab>
 
-{% tab title="Python" %}
+<Tab title="Python" >
+
 ```python
 def behavior(state, context):
   cs = context.data()["CustomerServiceEmployeesSheet1.csv"]
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 ## Customizing Parameters
 
@@ -43,9 +45,9 @@ With the data loaded in the simulation we can use it to power the process model.
 * Set the properties of the process model. For example, if a pizza delivery service model has a certain number of drivers available to deliver pizzas, they could use a dataset to set that number.
 * Create distributions for modeling uncertainty. Now, if the pizza delivery service wants to estimate the number of orders they'll get in a day, they could take a dataset that captures last weeks orders of pizzas, choose a distribution that accurately models the data, and then use that to simulate new orders. 
 
-{% hint style="info" %}
+<Hint style="info">
 Learn more about modeling uncertainty in [Designing with Distributions.](../../concepts/designing-with-distributions.md)
-{% endhint %}
+</Hint>
 
 ## Example: Customer Service Data
 
@@ -57,11 +59,11 @@ This process would have three elements:
 * At the end, a **sink** block that collects finished tickets
 * In the middle, a **service** block where customer service workers take tickets and work on them. When a CS employee is working a ticket, they can't take a different ticket until they finish.
 
-{% hint style="info" %}
+<Hint style="info">
 For more on the different blocks and when to use a given block, see [Process Model Concepts](process-model-concepts.md)
-{% endhint %}
+</Hint>
 
-![A simple customer service process model](../../.gitbook/assets/image%20%2848%29.png)
+![A simple customer service process model](https://cdn-us1.hash.ai/site/docs/image%20%2848%29.png)
 
 Using the Process Model Builder, we can set properties for each of the blocks and update my simulation with it. The resulting code will look like:
 
@@ -104,8 +106,9 @@ Using the Process Model Builder, we can set properties for each of the blocks an
 
 Now we can take a [dataset defining different customer service employees](https://docs.google.com/spreadsheets/d/1dFSnjdBqbovplPwWo7DI77AX8rXWOmVQi1dW8c0l1-k/edit?usp=sharing), download it as a CSV, load it into the simulation, and use the data to set the number of CS employees we have on hand.
 
-{% code title="create\_process\_from\_chart.js" %}
 ```javascript
+  // create_process_from_chart.js
+
  "start": {
         "template": {},
         "frequency": 1,
@@ -123,12 +126,13 @@ Now we can take a [dataset defining different customer service employees](https:
   "cs_employees": context.data()["ExampleCustomerServiceEmployeesSheet1.csv"].length
 }
 ```
-{% endcode %}
+
 
 This is a good start, but to make the model more realistic we can add a dataset representing ticket volumes over the past five days. I'll take the mean and standard deviation of the data, and set a triangular distribution for the number of tickets to generate every time step.
 
-{% code title="create\_process\_from\_chart.js" %}
 ```javascript
+// create_process_from_chart.js
+
  const { triangular } = hstd.stats;
  let tickets = context.data()["Tickets.csv"];
  //Get min and max number of tickets received per day
@@ -155,7 +159,7 @@ This is a good start, but to make the model more realistic we can add a dataset 
     }
  
 ```
-{% endcode %}
+
 
 Now when we we run the simulation, we have a good estimate of what my customer service process will look like using real world data.
 

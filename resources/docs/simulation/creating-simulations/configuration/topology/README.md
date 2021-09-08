@@ -28,15 +28,15 @@ A topology configuration might look like this:
 
 Configuring topology properly lets you leverage HASH's built-in hardware acceleration to quickly find neighbors in the simulation, define extents of the simulation area, and navigate an agent from point A to B.
 
-{% hint style="success" %}
+<Hint style="success">
 It's best to let HASH do the heavy lifting for you, especially for computationally-intensive work that we've already optimized.
-{% endhint %}
+</Hint>
 
 ## Nearest-neighbor calculations
 
 **Search Radius**
 
-Internally, hEngine maintains a list of neighbors for each agent and updates the list with each time step. As agents move, their list of neighbors automatically updates - agents further away than a given search radius are removed and agents within the search radius are added. In the properties tab, this can be defined via a "search\_radius" keyword:
+Internally, hEngine maintains a list of neighbors for each agent and updates the list with each time step. As agents move, their list of neighbors automatically updates - agents further away than a given search radius are removed and agents within the search radius are added. In the properties tab, this can be defined via a "search_radius" keyword:
 
 ```javascript
 {
@@ -49,8 +49,9 @@ Internally, hEngine maintains a list of neighbors for each agent and updates the
 
 Any agents automatically found within the search radius of a given agent can be accessed through the agent's context. In practice, an example agent behavior would look like:
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
+
 ```javascript
 function behavior(state, context) {
     const neighbors = context.neighbors()
@@ -66,9 +67,10 @@ function behavior(state, context) {
     });
 }
 ```
-{% endtab %}
+</Tab>
 
-{% tab title="Python" %}
+<Tab title="Python" >
+
 ```python
 def behavior(state, context):
     neighbors = context.neighbors()
@@ -81,8 +83,8 @@ def behavior(state, context):
     map(lambda n: ..., neighbors)
 }
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 In addition to being able to set the search radius for all agents in the simulation, it is possible for the user to override the search radius for individual agents. This can be done dynamically but is typically done in the initial state definition.
 

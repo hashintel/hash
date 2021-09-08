@@ -12,28 +12,32 @@ Currently, the most powerful built-in message handlers allow agents to add or re
 
 Any agent can remove any other agent with a special message sent directly to `hash`. Here, we remove an agent with `agent_name: "Bill"`. Before the next step starts executing, the message will be processed and Bill will be removed \(sorry Bill!\).
 
-{% hint style="warning" %}
+<Hint style="warning">
 **Case sensitivity** **matters.** If a message is sent to `bill`, it will not be received by `Bill`. The only exception to this rule is that any message sent to hASh, Hash, HASH, haSh, or any similar variant will be forwarded to the master `hash` agent.
-{% endhint %}
+</Hint>
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
+
+
 ```javascript
 const behavior = (state, context) => {
     state.addMessage("hash", "remove_agent", { agent_id: "Bill" });
 }
 ```
-{% endtab %}
+</Tab>
 
-{% tab title="Python" %}
+<Tab title="Python" >
+
+
 ```python
 def behavior(state, context):
     state.add_message("HASH", "remove_agent", { "agent_id": "Bill"})
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
-If a "remove\_agent" message is sent without an id or name specified in the data, then the agent\_id defaults to that of the sender. We suggest setting the field as `state.agent_id` for readability but it can be used as shorthand when an agent needs to remove itself.
+If a "remove_agent" message is sent without an id or name specified in the data, then the agent_id defaults to that of the sender. We suggest setting the field as `state.agent_id` for readability but it can be used as shorthand when an agent needs to remove itself.
 
 ## Creating Agents via Messages
 
@@ -41,8 +45,10 @@ Any agent can also create new agents. Any message sent to `hash` with the `creat
 
 Here, anything in the data field will be used to create the new agent. The `newborn` behavior is given to this agent, but remember, it will not be run until the next step.
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
+
+
 ```javascript
 const behavior = (state, context) => {
     state.addMessage("hash", "create_agent", {
@@ -51,9 +57,11 @@ const behavior = (state, context) => {
     });
 }
 ```
-{% endtab %}
+</Tab>
 
-{% tab title="Python" %}
+<Tab title="Python" >
+
+
 ```python
 def behavior(state, context):
     state.add_message("HASH", "create_agent", {
@@ -61,8 +69,8 @@ def behavior(state, context):
         "behaviors": ["newborn.py"]
     })
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 ## Navigation with Mapbox
 
@@ -78,8 +86,10 @@ Using the existing Mapbox API message handler, any agent can request navigation 
 
 You can then create the message by providing starting and ending coordinates, as well as the transportation method in the data field. The valid transportation methods are: `biking`, `walking`, `driving` and `driving-traffic`.
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
+
+
 ```javascript
 const behavior = (state, context) => {
     // Longitude and Latitude coordinates
@@ -95,9 +105,11 @@ const behavior = (state, context) => {
     });
 }
 ```
-{% endtab %}
+</Tab>
 
-{% tab title="Python" %}
+<Tab title="Python" >
+
+
 ```python
 def behavior(state, context):
     # Longitude and Latitude coordinates
@@ -112,8 +124,8 @@ def behavior(state, context):
         'request_route': start_string + ';' + end_string
     })
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 If you provided a valid request, the Mapbox message handler then returns you a results message. If your request was invalid, it will return an error message with a brief description of the error.
 
@@ -173,8 +185,10 @@ A simulation may be stopped by sending a message of type `"stop"` to the
 after a given number of steps, or when some condition has been reached
 in the simulation state.
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+
+<Tab title="JavaScript">
+
 ```javascript
 const behavior = (state, context) => {
   if (context.step() > 10) {
@@ -182,16 +196,20 @@ const behavior = (state, context) => {
   }
 }
 ```
-{% endtab %}
 
-{% tab title="Python" %}
+</Tab>
+
+<Tab title="Python">
+
 ```python
 def behavior(state, context):
   if context.step() > 10:
     state.add_message("hash", "stop", {"status": "success", "reason": "10 steps"})
 ```
-{% endtab %}
-{% endtabs %}
+
+</Tab>
+
+</Tabs>
 
 The message `data` is optional, but may be used to signify why the simulation
 stopped. The following fields may be included:

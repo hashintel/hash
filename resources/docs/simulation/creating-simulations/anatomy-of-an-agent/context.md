@@ -16,8 +16,10 @@ All values accessed through `context` are _read-only_, and if modified, will not
 
 The `context.neighbors()` method returns a collection of the agent's neighbors. The agent must have a `"position"` field defined, and either its own `"search_radius"` field or `globals.json` must have `"search_radius"` defined in the [topology](../configuration/topology/).
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
+
+
 ```javascript
 const behavior = (state, context) => {
     for (neighbor of context.neighbors()) {
@@ -26,21 +28,23 @@ const behavior = (state, context) => {
     }
 }
 ```
-{% endtab %}
 
-{% tab title="Python" %}
+</Tab>
+
+<Tab title="Python" >
+
 ```python
 def behavior(state, context):
     for neighbor in context.neighbors():
         pos = neighbor["position"]
         # ...
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
-{% hint style="info" %}
+<Hint style="info">
 An agent can read the state of its neighbors, but agents cannot directly modify another agent's state. However, agents may communicate by [sending messages](../agent-messages/sending-messages.md) to each other.
-{% endhint %}
+</Hint>
 
 Neighbors are calculated at the beginning of every time step, for every agent that has a `search_radius` value. For best performance, only assign a `search_radius` to an agent that needs to call context.neighbors\(\).
 
@@ -60,20 +64,23 @@ The `context.data()` method returns an immutable JSON object of the simulation's
 
 The `context.step()` method returns the current step number of the simulation. Simulation steps start at the number 1.
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
+
+
 ```javascript
 const behavior = (state, context) => {
     console.log("The current step is", context.step())
 }
 ```
-{% endtab %}
 
-{% tab title="Python" %}
+</Tab>
+
+<Tab title="Python" >
+
 ```python
 def behavior(state, context):
     print("The current step is", context.step())
 ```
-{% endtab %}
-{% endtabs %}
-
+</Tab>
+</Tabs>

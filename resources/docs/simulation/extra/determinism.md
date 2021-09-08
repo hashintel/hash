@@ -14,34 +14,39 @@ HASH is designed to execute deterministically; however, there can be situations 
 
 Often you'll create simulations with probabilities, where an agent takes an action X% of the time. This might be by drawing random numbers using the [`hstd.random()`](../creating-simulations/libraries/hash/random.md#random) function
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
+
 ```javascript
 state.foo = hstd.random() > 0.5 ? true : false
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 or by using one of the [Statistic libraries](../creating-simulations/libraries/#hash-standard-library) included in HASH, such as those outlined in [Designing with Distributions](../concepts/designing-with-distributions.md).
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
+
+
 ```javascript
   const { poisson, uniform, triangular, normal } = hstd.stats;
   ...
 
   let foo = triangular.sample(0, 100, 50)
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 To ensure the same numbers are generated every execution run, you can **set the seed** of the random number generator.
 
 1. Call `hstd.setSeed(str: s)` to set a seed at the beginning of your simulation run. 
 2. Use `hstd` functions for stochasticity. They'll return the same random number every simulation run.
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
+
+
 ```javascript
 if (state.timestep == 1) {
   // If it's the first timestep, set the initial seed of the sim.
@@ -51,16 +56,16 @@ if (state.timestep == 1) {
 // will return the same sample every run
 const num_new_agents = poisson.sample(10);
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
-{% embed url="https://hash.ai/@hash/determinism" caption="An example simulation demonstrating Determinism" %}
+<Embed url="https://hash.ai/@hash/determinism" caption="An example simulation demonstrating Determinism" />
 
 HASH standard library functions for distributions and random number generation are currently only available in JavaScript; [Python supports setting a seed natively](https://docs.python.org/3/library/random.html) and, if creating a Python simulation, you should consider using `random.seed()` and/or [numpy](../creating-simulations/libraries/python-packages.md).
 
-{% hint style="warning" %}
+<Hint style="warning">
 hEngine execution order can, at times, cause different agents to execute in different orders, causing different random numbers to be pulled between runs. We'll be building in guarantees around this in an upcoming update.
-{% endhint %}
+</Hint>
 
 ### 2. Reliance on External APIs
 
@@ -80,7 +85,7 @@ hEngine delivers messages once all agents have computed their next states. In cu
 
 Like with neighbors, randomization is not guaranteed. Shuffling messages before you access them ensures that your simulation is free of artifacts.
 
-{% hint style="info" %}
+<Hint style="info">
 If your simulation relies upon the order of the messages and neighbors array, consider adding a sorting function to the simulation that will return the agents in a predictable manner. For example, sort based on an `agent_name` field you specify in the initialization of the simulation.
-{% endhint %}
+</Hint>
 

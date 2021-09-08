@@ -4,10 +4,11 @@ One thing that sets agent-based modeling apart from analytic techniques or syste
 
 These different values can allow our agents to all behave in slightly different ways, or cause other agents to interact with them differently.
 
-In our Getting Started model \([Python](https://hash.ai/@hash/getting-started-base-python) or [Javascript](https://hash.ai/@hash/getting-started-base)\), we'll start by providing our agents with an 'at\_risk' property. Different people agents will have different chances of having a severe response to getting sick. In the "create\_people" behavior, new agents are defined in the `person` variable. In that block of code, add a line for the property "at\_risk":
+In our Getting Started model \([Python](https://hash.ai/@hash/getting-started-base-python) or [Javascript](https://hash.ai/@hash/getting-started-base)\), we'll start by providing our agents with an 'at_risk' property. Different people agents will have different chances of having a severe response to getting sick. In the "create_people" behavior, new agents are defined in the `person` variable. In that block of code, add a line for the property "at_risk":
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
+
 ```javascript
 // line 26
 agents["people"].push({
@@ -15,9 +16,10 @@ agents["people"].push({
     at_risk: Math.random() < 0.5 ? true : false
 }
 ```
-{% endtab %}
+</Tab>
 
-{% tab title="Python" %}
+<Tab title="Python" >
+
 ```python
 # line 18
 person = {
@@ -25,15 +27,16 @@ person = {
     'at_risk': True if random() < 0.5 else False
 }
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 In the "infection" behavior, when a **Person** agent gets infected, let's add logic to determine the severity of the infection:
 
-{% tabs %}
-{% tab title="JavaScript" %}
-{% code title="infection.js" %}
+<Tabs>
+<Tab title="JavaScript" >
+
 ```javascript
+// infection.js
 // line 81
 const severe_chance = state.at_risk ? at_risk_chance_of_severe : chance_of_severe;
 
@@ -41,39 +44,41 @@ if ((state.severity === "moderate") && (Math.random() < severe_chance)) {
     state.severity = "severe";
 }
 ```
-{% endcode %}
-{% endtab %}
 
-{% tab title="Python" %}
-{% code title="infection.py" %}
+</Tab>
+
+<Tab title="Python" >
+
 ```python
+# infection.py
 # line 69
 severe_chance = g['at_risk_chance_of_severe'] if state.get('at_risk') else g['chance_of_severe']
 
 if (state["severity"] == 'moderate') and (random() < severe_chance):
     state["severity"] = 'severe'
 ```
-{% endcode %}
-{% endtab %}
-{% endtabs %}
 
-When we instantiate a Person currently, they'll have a 50% chance of being at\_risk from the virus, and if they're infected, they'll have a different likelihoods of getting a severe infection. These likelihoods are defined in the "globals.json" file.
+</Tab>
+</Tabs>
 
-Of course during different scenarios and experiments we might want to vary the likelihood that someone will be at risk. Instead of hardcoding the likelihood, we will add a property called **at\_risk\_percent** to "globals.json". Here we set it to 5%:
+When we instantiate a Person currently, they'll have a 50% chance of being at_risk from the virus, and if they're infected, they'll have a different likelihoods of getting a severe infection. These likelihoods are defined in the "globals.json" file.
 
-{% code title="globals.json" %}
+Of course during different scenarios and experiments we might want to vary the likelihood that someone will be at risk. Instead of hardcoding the likelihood, we will add a property called **at_risk_percent** to "globals.json". Here we set it to 5%:
+
+** globals.json **
+
 ```javascript
 {
-
 "at_risk_percent": 0.05
 }
 ```
-{% endcode %}
 
-And in the "create\_people" behavior, we substitute that value for the hardcoded one:
 
-{% tabs %}
-{% tab title="JavaScript" %}
+And in the "create_people" behavior, we substitute that value for the hardcoded one:
+
+<Tabs>
+<Tab title="JavaScript" >
+
 ```javascript
 // line 26
 agents["people"].push({
@@ -81,9 +86,10 @@ agents["people"].push({
     at_risk: Math.random() < context.globals().at_risk_percent ? true : false,
 }
 ```
-{% endtab %}
+</Tab>
 
-{% tab title="Python" %}
+<Tab title="Python" >
+
 ```python
 # line 18
 person = {
@@ -91,6 +97,6 @@ person = {
     'at_risk': True if random() < context.globals()['at_risk_percent'] else False
 }
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 

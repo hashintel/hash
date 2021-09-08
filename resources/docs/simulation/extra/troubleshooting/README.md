@@ -11,7 +11,7 @@ There are two types of errors you may encounter when using hCore:
 
 ## Debugging simulation errors
 
-{% embed url="https://youtu.be/lqEZk0Xp51U" caption="Debugging tutorial" %}
+<Embed type="youtube" url="https://youtu.be/lqEZk0Xp51U" caption="Debugging tutorial" />
 
 A few tips for debugging simulation errors:
 
@@ -24,7 +24,7 @@ A few tips for debugging simulation errors:
 
 Despite out best efforts, sometimes hCore crashes with a screen that looks like this:
 
-![](../../.gitbook/assets/screenshot-2021-06-15-at-10.24.37.png)
+![](https://cdn-us1.hash.ai/site/docs/screenshot-2021-06-15-at-10.24.37.png)
 
 We hope you never see hCore crash. But if you do, there are a few things you can try:
 

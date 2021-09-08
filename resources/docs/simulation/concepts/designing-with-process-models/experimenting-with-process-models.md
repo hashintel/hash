@@ -2,48 +2,48 @@
 
 You can use experiments to explore different potential scenarios with a process model. For example if you want to understand how a process will run when it has half the people working on it, or double the people, you can automatically generate and compare simulation runs with those parameters.
 
-{% hint style="info" %}
+<Hint style="info">
 See the [experiments section](../../creating-simulations/experiments/) for more on experiments in HASH in general.
-{% endhint %}
+</Hint>
 
 To run an experiment, you'll want to first identify the parameter of the process you want to explore. For example, in a model with a service block:
 
-{% code title="Snippet of a process model" %}
 ```javascript
+// Snippet of a process model
+
   "support_resources_solving_stuff": {
        "time": 2,
        "resource": "service_agents",
        "track_wait": true
      },
    "service_agents": 6
-```
-{% endcode %}
 
-In this model we could run experiments with the “service\_agents” property and see how it responds to different numbers of agents.
 
-To do that, we'll set service\_agents as a global parameter.
+In this model we could run experiments with the “service_agents” property and see how it responds to different numbers of agents.
 
-{% hint style="info" %}
+To do that, we'll set service_agents as a global parameter.
+
+<Hint style="info">
 The [Globals](../../creating-simulations/configuration/) section describes how and why to use globals.
-{% endhint %}
+</Hint>
 
 1. Add a property to globals.json.
 
-{% code title="globals.json" %}
+** globals.json **
+
 ```javascript
 {
  "num_service_agents": 6
 }
-```
-{% endcode %}
+
 
 1. Replace the property on the process model with the global parameter.
 
-{% code title="create\_process.js" %}
 ```javascript
+// create_process.js
+
 "service_agents": Math.floor(context.globals().num_service_agents),
-```
-{% endcode %}
+
 
 1. Create an experiment and use the parameter as the field for the experiment
 
