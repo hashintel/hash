@@ -500,10 +500,7 @@ class BlockView {
 
     const pos = getPos();
 
-    /**
-     * @todo figure out why this is pos + 1
-     */
-    tr.replaceRangeWith(pos + 1, pos + 1 + node.nodeSize, newNode);
+    tr.replaceRangeWith(pos + 1, pos + 1 + node.content.size, newNode);
 
     const selection = NodeSelection.create(tr.doc, tr.mapping.map(pos));
 
