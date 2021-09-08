@@ -458,6 +458,8 @@ class BlockView {
     const state = view.state;
     const tr = state.tr;
 
+    const child = state.doc.resolve(getPos() + 1).nodeAfter;
+
     /**
      * When switching between blocks where both contain text, we want to persist that text, but we need to pull
      * it out the format its stored in here and make use of it
@@ -465,8 +467,8 @@ class BlockView {
      * @todo we should try to find the Text entity in the original response from the DB, and use that, instead
      *       of this, where we lose formatting
      */
-    const text = node.isTextblock
-      ? node.content.content
+    const text = child.isTextblock
+      ? child.content.content
           .filter((node) => node.type.name === "text")
           .map((node) => node.text)
           .join("")
