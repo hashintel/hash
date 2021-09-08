@@ -71,11 +71,11 @@ Like many data pipelines you first filter your data to the set you're interested
 
 The Metrics Wizard will help you construct your metrics and fill in the appropriate parameters.​‌
 
-![](https://gblobscdn.gitbook.com/assets%2F-M3CpctISatx3qXBSyvk%2F-MVWlyxFlxI_fI__mX_k%2F-MVXgDrVSHf54Fj5tFGZ%2Fimage.png?alt=media&token=8124f91d-c2c1-4d3c-9564-fcee83ca866b)
+![](https://cdn-us1.hash.ai/site/docs/analysis-metrics-1.png)
 
 For example, if you have a collection of agents with an age attribute in your simulation, you might want to count the number over 50. You will chain together operations like so:​‌
 
-![](https://gblobscdn.gitbook.com/assets%2F-M3CpctISatx3qXBSyvk%2F-MVSkob4T_EOZreFokxV%2F-MVSoOYFhg0C6tzucRYC%2Fimage.png?alt=media&token=fd6c62a5-aab8-476d-bb8b-b65fb4617ff3)
+![](https://cdn-us1.hash.ai/site/docs/analysis-metrics-2.png)
 
 It's likely that the most common operation you'll use is "filter". You can filter with numeric, boolean, and string values. The valid comparisons are listed below:
 

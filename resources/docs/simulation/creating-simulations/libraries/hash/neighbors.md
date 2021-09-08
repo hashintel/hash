@@ -56,7 +56,7 @@ function behavior(state, context) {
 
 ## neighborsBehind(agentA, neighbors, colinear)
 
-This function returns all neighbors located behind the agent. It functions identically to **neighborsInFront** \__\*\*_\_but returns agents behind the plane of `agentA`. The current agent's `state` can be passed in as `agentA`, and dummy agents can be used as well.
+This function returns all neighbors located behind the agent. It functions identically to **neighborsInFront** but returns agents behind the plane of `agentA`. The current agent's `state` can be passed in as `agentA`, and dummy agents can be used as well.
 
 ```javascript
 function behavior(state, context) {
