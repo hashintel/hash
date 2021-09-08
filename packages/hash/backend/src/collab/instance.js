@@ -3,7 +3,6 @@ import { createInitialDoc, createSchema } from "@hashintel/hash-shared/schema";
 import {
   calculateSavePayloads,
   createEntityUpdateTransaction,
-  mapEntityToBlock,
   prepareEntityForProsemirror,
 } from "@hashintel/hash-shared/sharedWithBackend";
 import {
@@ -162,8 +161,7 @@ class Instance {
           variables: { metadataId: this.id, accountId: this.accountId },
         });
 
-        this.savedContents =
-          data.page.properties.contents.map(mapEntityToBlock);
+        this.savedContents = data.page.properties.contents;
       })
       .finally(() => {
         if (this.saveMapping === mapping) {
@@ -286,7 +284,10 @@ const newInstance = (apolloClient) => async (accountId, id) => {
     return instances[id];
   }
 
-  const blocks = data.page.properties.contents.map(mapEntityToBlock);
-
-  return (instances[id] = new Instance(accountId, id, newState.doc, blocks));
+  return (instances[id] = new Instance(
+    accountId,
+    id,
+    newState.doc,
+    data.page.properties.contents
+  ));
 };

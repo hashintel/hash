@@ -360,8 +360,12 @@ export const calculateSavePayloads = (
   metadataId: string,
   schema: Schema,
   doc: ProsemirrorNode,
-  savedContents: (Block | BlockWithoutMeta)[]
+  // @todo rename
+  premappedSavedContents: PageFieldsFragment["properties"]["contents"]
 ) => {
+  // @todo look into removing this
+  const savedContents = premappedSavedContents.map(mapEntityToBlock);
+
   const blocks = doc
     .toJSON()
     .content.filter((block: any) => block.type === "block")
@@ -369,10 +373,13 @@ export const calculateSavePayloads = (
 
   const mappedBlocks = blocks.map((node: any, position) => {
     const nodeType = schema.nodes[node.type];
-    // @todo type this properly
+    // @todo type this properly – get this from somewhere else
     const meta = (nodeType as any).defaultAttrs
       .meta as Block["componentMetadata"];
 
+    /**
+     * @todo caching of properties needs to be based on entity list
+     */
     if (node.attrs.entityId) {
       cachedPropertiesByEntity[node.attrs.entityId] = node.attrs.properties;
     } else {
@@ -380,14 +387,23 @@ export const calculateSavePayloads = (
     }
 
     const componentId = invertedBlockPaths[meta.url] ?? meta.url;
+    const savedEntity = premappedSavedContents.find(
+      (entity) => entity.metadataId === node.attrs.entityId
+    );
+    const savedBlock = savedEntity
+      ? prepareEntityForProsemirror(savedEntity)
+      : null;
+
+    const savedBlockAttrs: Partial<NonNullable<typeof savedBlock>["attrs"]> =
+      savedBlock?.attrs ?? {};
 
     let entity;
     if (schema.nodes[node.type].isTextblock) {
       entity = {
         type: "Text",
-        id: node.attrs.childEntityId,
-        versionId: node.attrs.childEntityVersionId,
-        accountId: node.attrs.childEntityAccountId,
+        id: savedBlockAttrs.childEntityId ?? null,
+        versionId: savedBlockAttrs.childEntityVersionId ?? null,
+        accountId: savedBlockAttrs.childEntityAccountId ?? null,
         properties: {
           texts:
             node.content
@@ -407,6 +423,10 @@ export const calculateSavePayloads = (
         },
       };
     } else {
+      /**
+       * @todo use entity list for this – need to inject cached properties at a higher level
+       */
+
       // @todo do we need to remove other props here
       const {
         childEntityId,
@@ -424,9 +444,9 @@ export const calculateSavePayloads = (
     }
 
     return {
-      entityId: node.attrs.entityId,
-      accountId: node.attrs.accountId ?? accountId,
-      versionId: node.attrs.versionId,
+      entityId: savedBlockAttrs.entityId ?? null,
+      accountId: savedBlockAttrs.accountId ?? accountId,
+      versionId: savedBlockAttrs.versionId ?? null,
       type: "Block",
       position,
       properties: {
@@ -442,11 +462,11 @@ export const calculateSavePayloads = (
    */
   const existingBlockIds = savedContents.map((block) => block.entityId);
   const newBlocks = mappedBlocks.filter(
-    (block) => !existingBlockIds.includes(block.entityId)
+    (block) => !block.entityId || !existingBlockIds.includes(block.entityId)
   );
 
-  const existingBlocks = mappedBlocks.filter((block) =>
-    existingBlockIds.includes(block.entityId)
+  const existingBlocks = mappedBlocks.filter(
+    (block) => block.entityId && existingBlockIds.includes(block.entityId)
   );
 
   const seenEntityIds = new Set<string>();

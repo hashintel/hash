@@ -166,7 +166,6 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
             return;
           }
           const { view } = prosemirrorSetup.current;
-          const savedContents = currentContents.current.map(mapEntityToBlock);
           const { state } = view;
 
           const { updatedEntitiesPayload, pageUpdatedPayload, insertPayloads } =
@@ -176,7 +175,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
               metadataId,
               state.schema,
               state.doc,
-              savedContents
+              currentContents.current
             );
 
           return (
