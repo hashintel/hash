@@ -30,7 +30,7 @@ export const insertBlockIntoPage: Resolver<
     let entity;
     if (entityId) {
       // Update
-      entity = await Entity.getEntity(dataSources.db)({
+      entity = await Entity.getEntity(client)({
         accountId,
         entityVersionId: entityId,
       });
@@ -44,7 +44,7 @@ export const insertBlockIntoPage: Resolver<
         );
       }
       // Create new entity
-      entity = await Entity.create(dataSources.db)({
+      entity = await Entity.create(client)({
         accountId,
         createdById: genId(), // TODO
         entityTypeId: entityTypeId ?? undefined,
@@ -66,7 +66,7 @@ export const insertBlockIntoPage: Resolver<
       accountId: entity.accountId,
     };
 
-    const newBlock = await Entity.create(dataSources.db)({
+    const newBlock = await Entity.create(client)({
       accountId,
       systemTypeName: "Block",
       createdById: genId(), // TODO
