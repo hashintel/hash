@@ -48,24 +48,21 @@ export const LoginIntro: VoidFunctionComponent<LoginIntroProps> = ({
 
   useEffect(() => {
     const { query } = router;
-    if (typeof query.email === "string") {
-      const { email, ...remainingQuery } = query;
-      setEmailOrShortname(email);
+    const { email, shortname, ...remainingQuery } = query;
+    const identifier = email || shortname;
 
-      void router
-        .replace({ ...router, query: remainingQuery }, undefined, {
-          shallow: true,
-        })
-        .then(() => requestLoginCode(email));
-    }
-    if (typeof query.shortname === "string") {
-      const { shortname, ...remainingQuery } = query;
-      setEmailOrShortname(shortname);
-      void router
-        .replace({ ...router, query: remainingQuery }, undefined, {
-          shallow: true,
-        })
-        .then(() => requestLoginCode(shortname));
+    if (typeof identifier === "string") {
+      setEmailOrShortname(identifier);
+      router
+        .replace(
+          { pathname: router.pathname, query: remainingQuery },
+          undefined,
+          {
+            shallow: true,
+          }
+        )
+        .then(() => requestLoginCode(identifier))
+        .catch(() => {});
     }
   }, [router, requestLoginCode]);
 
@@ -85,14 +82,14 @@ export const LoginIntro: VoidFunctionComponent<LoginIntroProps> = ({
           <form className={tw`flex mb-4 relative`} onSubmit={handleSubmit}>
             <input
               ref={inputRef}
-              className={tw`appearance-none border-b-2 focus:border-blue-500 w-full py-2 pl-1 pr-24 text-gray-700 leading-tight focus:outline-none focus:shadow-outline`}
+              className={tw`appearance-none border-b-2 focus:border-blue-500 w-full py-2 pl-1 pr-24 text-gray-700 leading-tight focus:outline-none`}
               value={emailOrShortname}
               onChange={({ target }) => setEmailOrShortname(target.value)}
               placeholder="Enter your email or shortname"
             />
 
             <button
-              className={tw`absolute right-0 top-1/2 -translate-y-1/2 flex items-center disabled:opacity-50 text-blue-500 hover:text-blue-700 font-bold py-2 px-2`}
+              className={tw`absolute right-0 top-1/2 -translate-y-1/2 flex items-center disabled:opacity-50 text(blue-500 hover:blue-700 focus:blue-600) focus:outline-none font-bold py-2 px-2`}
               disabled={loading}
               type="submit"
             >
@@ -114,7 +111,7 @@ export const LoginIntro: VoidFunctionComponent<LoginIntroProps> = ({
           <strong>No account?</strong> No problem
         </p>
         <button
-          className={tw`bg-black bg-opacity-70 hover:bg-opacity-90 rounded-lg h-11 px-6 flex items-center text-white mb-10`}
+          className={tw`focus:outline-none bg(black opacity-70 hover:opacity-90 focus:opacity-90) rounded-lg h-11 px-6 flex items-center text-white mb-10`}
           onClick={navigateToSignup}
         >
           Create a free account

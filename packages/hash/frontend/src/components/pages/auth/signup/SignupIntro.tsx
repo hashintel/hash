@@ -58,7 +58,7 @@ export const SignupIntro: VFC<SignupIntroProps> = ({
           placeholder="Enter your email address.."
           type="email"
           ref={inputRef}
-          className={tw`w-64 bg-gray-100 border-1 border-gray-300 rounded-lg h-11 py-4 px-5 mb-2`}
+          className={tw`w-64 bg-gray-100  border(1 gray-300 hover:gray-500 focus:gray-500) focus:outline-none rounded-lg h-11 py-4 px-5 mb-2`}
           onChange={(evt) => setEmail(evt.target.value)}
         />
         {errorMessage && (
@@ -67,7 +67,7 @@ export const SignupIntro: VFC<SignupIntroProps> = ({
           </span>
         )}
         <button
-          className={tw`w-64 bg-white border-1 border-gray-300 rounded-lg h-11 flex items-center justify-center text-sm font-bold`}
+          className={tw`w-64 bg-white border-1 border(gray-300 hover:gray-500 focus:gray-500) focus:outline-none rounded-lg h-11 flex items-center justify-center text-sm font-bold`}
         >
           {loading ? (
             <IconSpinner className={tw`h-4 w-4 animate-spin`} />

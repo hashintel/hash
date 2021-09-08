@@ -227,7 +227,9 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
 
   const navigateToSignup = () => {
     void router.push("/signup");
-    setTimeout(onClose, 500);
+    if (onClose) {
+      setTimeout(onClose, 500);
+    }
   };
 
   const renderContent = () => {
