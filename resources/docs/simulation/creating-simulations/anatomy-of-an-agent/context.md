@@ -58,7 +58,7 @@ The `context.globals()` method returns an immutable JSON object of the simulatio
 
 ## Data
 
-The `context.data()` method returns an immutable JSON object of the simulation's datasets that have been added through the "Add to Simulation" toolbar. For more details see [Datasets](/creating-simulations/datasets/).
+The `context.data()` method returns an immutable JSON object of the simulation's datasets that have been added through the "Add to Simulation" toolbar. For more details see [Datasets](/docs/simulation/creating-simulations/datasets/).
 
 ## Step
 
