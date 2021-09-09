@@ -1,14 +1,17 @@
 import { MutationCreateOrgArgs, Resolver } from "../../apiTypes.gen";
-import { GraphQLContext } from "../../context";
 import { EntityWithIncompleteEntityType, Org } from "../../../model";
+import { LoggedInGraphQLContext } from "../../context";
 
 export const createOrg: Resolver<
   Promise<EntityWithIncompleteEntityType>,
   {},
-  GraphQLContext,
+  LoggedInGraphQLContext,
   MutationCreateOrgArgs
-> = async (_, { shortname }, { dataSources }) => {
-  const org = await Org.createOrg(dataSources.db)({ shortname });
+> = async (_, { shortname }, { dataSources, user }) => {
+  const org = await Org.createOrg(dataSources.db)({
+    properties: { shortname },
+    createdById: user.entityId,
+  });
 
   return org.toGQLUnknownEntity();
 };

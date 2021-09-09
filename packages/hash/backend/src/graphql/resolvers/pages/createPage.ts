@@ -1,10 +1,9 @@
-import { genId } from "../../../util";
 import {
   MutationCreatePageArgs,
   Resolver,
   SystemTypeName,
 } from "../../apiTypes.gen";
-import { GraphQLContext } from "../../context";
+import { LoggedInGraphQLContext } from "../../context";
 import { createEntity } from "../entity";
 import { SystemType } from "../../../types/entityTypes";
 import { EntityWithIncompleteEntityType } from "../../../model";
@@ -12,10 +11,11 @@ import { EntityWithIncompleteEntityType } from "../../../model";
 export const createPage: Resolver<
   Promise<EntityWithIncompleteEntityType>,
   {},
-  GraphQLContext,
+  LoggedInGraphQLContext,
   MutationCreatePageArgs
 > = async (_, { accountId, properties }, ctx, info) => {
-  const createdById = genId(); // TODO
+  const { user } = ctx;
+  const createdById = user.entityId;
 
   // Convenience wrapper
   const _createEntity = async (type: SystemType, properties: any) => {

@@ -1,18 +1,21 @@
-import { genId } from "../../../util";
 import { MutationCreateEntityTypeArgs, Resolver } from "../../apiTypes.gen";
-import { GraphQLContext } from "../../context";
+import { LoggedInGraphQLContext } from "../../context";
 import { EntityType, EntityTypeWithoutTypeFields } from "../../../model";
 
 export const createEntityType: Resolver<
   Promise<EntityTypeWithoutTypeFields>,
   {},
-  GraphQLContext,
+  LoggedInGraphQLContext,
   MutationCreateEntityTypeArgs
-> = async (_, { accountId, description, name, schema }, { dataSources }) =>
+> = async (
+  _,
+  { accountId, description, name, schema },
+  { dataSources, user }
+) =>
   dataSources.db.transaction(async (client) => {
     const entityType = await EntityType.create(client)({
       accountId,
-      createdById: genId(), // TODO
+      createdById: user.entityId,
       description,
       name,
       schema,
