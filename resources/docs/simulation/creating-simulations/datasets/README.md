@@ -2,13 +2,13 @@
 
 **Data can be used in HASH to instantiate agents in a simulation, to set the properties of agents, or to influence any part of the simulation.**
 
-HASH allows you to incorporate your own data into simulations, or download datasets from [hIndex](https://hash.ai/index) to use in a simulation.
+HASH allows you to incorporate your own data into simulations, or download datasets from [hIndex](/index) to use in a simulation.
 
 Example Simulations that use datasets:
 
 * [City Infection Model](https://core.hash.ai/@hash/city-infection-model/main)
-* [Local Competition](https://hash.ai/@hash/local-competition)
-* [Wholesale Warehouse](https://hash.ai/@hash/wholesale-warehouse1)
+* [Local Competition](/@hash/local-competition)
+* [Wholesale Warehouse](/@hash/wholesale-warehouse1)
 
 ## Importing data into HASH
 
@@ -21,7 +21,7 @@ Once uploaded the dataset will be listed in your simulation's file list.
 There are also third-party datasets published in hIndex you can add to your project, by searching in the "Add to Simulation" interface in the bottom-left hand corner of hCore.
 
 <Hint style="info">
-**Coming soon:** data syncing from remote sources is currently only achievable through [hEngine](https://hash.ai/platform/engine), but remains on our roadmap for [hCore](https://hash.ai/platform/core).
+**Coming soon:** data syncing from remote sources is currently only achievable through [hEngine](/platform/engine), but remains on our roadmap for [hCore](/platform/core).
 </Hint>
 
 <Hint style="success">
@@ -54,7 +54,7 @@ context.data()["dataset-path.csv")
 **Coming soon:** we will be streamlining this process shortly, providing more optionality around parsing treatment, and expanding support for the types of datasets ingestible by HASH.
 </Hint>
 
-If you wish to explore the universe of data available in HASH outside of hCore, you can do so directly [within hIndex](https://hash.ai/data?sort=popularity). As with behaviors, we encourage you to tag data in hIndex with the type of '[Thing](https://hash.ai/schemas/Thing)' it represents. This ensures that the data can subsequently be easily discovered and reused.
+If you wish to explore the universe of data available in HASH outside of hCore, you can do so directly [within hIndex](/data?sort=popularity). As with behaviors, we encourage you to tag data in hIndex with the type of '[Thing](/schemas/Thing)' it represents. This ensures that the data can subsequently be easily discovered and reused.
 
 ### Using data to initialize agents
 

@@ -56,10 +56,10 @@ Let's take a look at two examples:
 hCloud runs experiment runs in a parallelized fashion by default on HASH **Free**, **Base**, and **Pro** accounts. In practice this means the memory available to your simulation varies from 4-192GB, depending on your account limits.
 
 <Hint style="success">
-If you're interested in running larger-scale simulations, or want to distribute a single run across multiple instances, [contact us](https://hash.ai/contact) to learn more about upgrading to a paid version of HASH.
+If you're interested in running larger-scale simulations, or want to distribute a single run across multiple instances, [contact us](/contact) to learn more about upgrading to a paid version of HASH.
 </Hint>
 
 <Hint style="info">
-**HASH Enterprise** is required to run "unbounded" models, and distribute single runs across multiple instances in hCloud. [Contact us](https://hash.ai/contact) to register an interest.
+**HASH Enterprise** is required to run "unbounded" models, and distribute single runs across multiple instances in hCloud. [Contact us](/contact) to register an interest.
 </Hint>
 

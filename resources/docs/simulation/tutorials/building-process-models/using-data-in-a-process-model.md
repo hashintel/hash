@@ -14,7 +14,7 @@ In this how-to guide we'll cover:
 For more on using data in HASH, see [Datasets](/docs/simulation/creating-simulations/datasets/)
 </Hint>
 
-HASH supports CSV and JSON datasets. You can upload your dataset by clicking the 'New Dataset' option in the editor. Or, by finding/reusing an existing dataset on [hIndex](https://hash.ai/index) and adding it to the simulation.
+HASH supports CSV and JSON datasets. You can upload your dataset by clicking the 'New Dataset' option in the editor. Or, by finding/reusing an existing dataset on [hIndex](/index) and adding it to the simulation.
 
 The dataset is stored in the 'data/' folder, and the data will be available in the simulation through `context.data()`.
 

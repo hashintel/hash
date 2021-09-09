@@ -208,7 +208,7 @@ You can learn more about all the **init** functions in the standard library [in 
 ## Creator Agents
 
 <Hint style="info">
-If you want to jump right into code you can take a look at our [Initialization Demo ](https://hash.ai/@hash/initialization-demo)which demos creator agents.
+If you want to jump right into code you can take a look at our [Initialization Demo ](/@hash/initialization-demo)which demos creator agents.
 </Hint>
 
 With "creator" agents you can create agents that create other agents. For example, by accessing published behaviors, we can very easily generate common agent placements. These behaviors can be found in the lower left corner; search for and then click on them to add them to your simulation:
@@ -217,7 +217,7 @@ With "creator" agents you can create agents that create other agents. For exampl
 - `Create Scatters (@hash/create-scatters/create_scatters.js)`: copy an agent to random locations within the [topology](/docs/simulation/creating-simulations/configuration/topology) bounds
 - `Create Stacks (@hash/create-stacks/create_stacks.js)`: copy an agent multiple times to the same location
 
-Take a look at how we can use published behaviors in the following example, where \[rabbits forage for food and reproduce\]\([https://hash.ai/@hash/rabbits-grass-weeds](https://hash.ai/@hash/rabbits-grass-weeds), while grass and weeds grow around them:
+Take a look at how we can use published behaviors in the following example, where \[rabbits forage for food and reproduce\]\([https://hash.ai/@hash/rabbits-grass-weeds](/@hash/rabbits-grass-weeds), while grass and weeds grow around them:
 
 ![](https://cdn-us1.hash.ai/site/docs/image%20%2829%29.png)
 
@@ -265,11 +265,11 @@ state.add_message("hash", "create_agent", {
 </Tab>
 </Tabs>
 
-If you'd like to explore another simple example that uses these published behaviors, take a look at the [Wildfires](https://hash.ai/@hash/wildfires-regrowth) or [Rock, Paper, Scissors](https://core.hash.ai/@hash/rock-paper-scissors/stable) simulations.
+If you'd like to explore another simple example that uses these published behaviors, take a look at the [Wildfires](/@hash/wildfires-regrowth) or [Rock, Paper, Scissors](https://core.hash.ai/@hash/rock-paper-scissors/stable) simulations.
 
 <Hint style="info">
 
-If you ever feel like you might be "reinventing the wheel," check out [hIndex](https://hash.ai/search?contentType=Behavior&sort=relevance&query=create&page=1). There you'll find hundreds of pre-made, ready-to-use simulation components.
+If you ever feel like you might be "reinventing the wheel," check out [hIndex](/search?contentType=Behavior&sort=relevance&query=create&page=1). There you'll find hundreds of pre-made, ready-to-use simulation components.
 
 </Hint>
 

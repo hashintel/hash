@@ -1,6 +1,6 @@
 # Physics
 
-The HASH [Physics Library](https://hash.ai/@hash/physics) contains behaviors to help you create simulated physics environments. They are written in Rust, which means they are optimized to run in the HASH Engine.
+The HASH [Physics Library](/@hash/physics) contains behaviors to help you create simulated physics environments. They are written in Rust, which means they are optimized to run in the HASH Engine.
 
 ## Behaviors
 

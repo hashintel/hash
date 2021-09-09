@@ -29,7 +29,7 @@ state.set("lng_lat", new_coords(ll, dest));
 ```
 
 
-On this agent, and many others in the sim, we'll use a published behavior, [Lng_Lat to Position](https://hash.ai/@hash/ll-to-pos/overview), to translate its latitude and longitude into a 3D position.
+On this agent, and many others in the sim, we'll use a published behavior, [Lng_Lat to Position](/@hash/ll-to-pos/overview), to translate its latitude and longitude into a 3D position.
 
 <Hint style="warning">
 To use a shared behavior like Lng_Lat To Position, [you'll need to import it into your simulation](/docs/simulation/creating-simulations/behaviors/composable-behaviors#importing-a-behavior).
@@ -86,7 +86,7 @@ Now let’s create a port that the **Tanker** unloads to.
 
 ## Port
 
-To give the **Port** unloading behavior, we'll make use of a published behavior in hIndex called [In Flow](https://hash.ai/@hash/in-flow). If we look at its documentation \[here\] we can see what properties we need to initialize our **Port** with. It's not enough just to add this behavior to **Port** agents, since the **Tankers** need to cooperate during the unloading process. We'll give them the complementary [Out Flow](https://hash.ai/@hash/out-flow) behavior.
+To give the **Port** unloading behavior, we'll make use of a published behavior in hIndex called [In Flow](/@hash/in-flow). If we look at its documentation \[here\] we can see what properties we need to initialize our **Port** with. It's not enough just to add this behavior to **Port** agents, since the **Tankers** need to cooperate during the unloading process. We'll give them the complementary [Out Flow](/@hash/out-flow) behavior.
 
 ```python
 # initialize.py

@@ -1,6 +1,6 @@
 # Planning the Build
 
-Let’s apply this mental model to the [Oil Supply Chain](https://hash.ai/@hash/oil-supply-chain) model.
+Let’s apply this mental model to the [Oil Supply Chain](/@hash/oil-supply-chain) model.
 
 We start by cataloguing the agents. In AnyLogic you can double click on any of the agents to see the relevant functions, properties, state charts, etc.
 

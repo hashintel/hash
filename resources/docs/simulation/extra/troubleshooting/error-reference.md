@@ -46,5 +46,5 @@ You may see a red error message pop up when running a simulation - here's some o
   </tbody>
 </table>
 
-We're expanding this list with more errors, explanations, and fixes. If you encounter an error that is unclear, [let us know](https://hash.ai/discord).
+We're expanding this list with more errors, explanations, and fixes. If you encounter an error that is unclear, [let us know](/discord).
 

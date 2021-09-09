@@ -74,7 +74,7 @@ def behavior(state, context):
 
 ## Navigation with Mapbox
 
-**Message handlers can also be used to access 3rd party APIs during the runtime of a HASH simulation.** Presently we support just one external API, _Mapbox_, but in the coming months a number of others will be listed in [hIndex](https://hash.ai/index) and the ability to add new APIs will be opened up publicly.
+**Message handlers can also be used to access 3rd party APIs during the runtime of a HASH simulation.** Presently we support just one external API, _Mapbox_, but in the coming months a number of others will be listed in [hIndex](/index) and the ability to add new APIs will be opened up publicly.
 
 Using the existing Mapbox API message handler, any agent can request navigation directions between two points. But first, you'll need to activate the Mapbox message handler in your `globals.json` file:
 
@@ -175,8 +175,8 @@ For further information about the Mapbox API and error messages, see the [offici
 
 **Check out these two examples to see Navigation in action:**
 
-* [Citi Bike Visualization](https://hash.ai/@hash/citi-bike-visualization)
-* [Product Delivery](https://hash.ai/@hash/product-delivery)
+* [Citi Bike Visualization](/@hash/citi-bike-visualization)
+* [Product Delivery](/@hash/product-delivery)
 
 ## Stopping a simulation
 

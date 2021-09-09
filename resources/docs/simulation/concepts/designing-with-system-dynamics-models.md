@@ -2,7 +2,7 @@
 
 System dynamics model allow you to understand non-linear complex systems based on rates of change. Also known as stock-and-flow models, they consist of a set of "stocks" and the "flows" between them. These models allow you to understand the feedback loops inherent in a system.
 
-The [System Dynamics Library](https://hash.ai/@hash/sd) will allow you to easily create them in your HASH simulations. You'll need to import the library and then configure your agent with the correct set of properties.
+The [System Dynamics Library](/@hash/sd) will allow you to easily create them in your HASH simulations. You'll need to import the library and then configure your agent with the correct set of properties.
 
 ## Defining a System Dynamics Model
 

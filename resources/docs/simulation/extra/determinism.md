@@ -73,7 +73,7 @@ Currently, we only make the Mapbox API directly accessible from within both hCor
 
 ### 3. Context
 
-HASH's [actor model](https://hash.ai/wiki/actor-model) lets the engine execute agents in parallel. This allows us to run models across machines and ensure that they don't fall prey to sequencing problems, where the execution order of agents generates artifacts in your simulations. The current release of hEngine does **not** guarantee ordering of the agent interaction methods provided on the context of an agent.
+HASH's [actor model](/wiki/actor-model) lets the engine execute agents in parallel. This allows us to run models across machines and ensure that they don't fall prey to sequencing problems, where the execution order of agents generates artifacts in your simulations. The current release of hEngine does **not** guarantee ordering of the agent interaction methods provided on the context of an agent.
 
 #### Neighbors
 

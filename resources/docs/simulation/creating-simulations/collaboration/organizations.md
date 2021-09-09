@@ -4,15 +4,15 @@ Organizations exist in HASH to allow you to create private spaces with other use
 
 ## Create an organization
 
-To create a new organization, view which organizations you are a member of, or modify your role in any organization you are currently attached to, navigate to your [HASH &gt; Account &gt; Orgs](https://hash.ai/account/orgs) page.
+To create a new organization, view which organizations you are a member of, or modify your role in any organization you are currently attached to, navigate to your [HASH &gt; Account &gt; Orgs](/account/orgs) page.
 
 ## Join an existing organization
 
-If you feel you should be a member of an organization that already exists in HASH, please contact that organization's admin. If you cannot identify the admin, [contact HASH](https://hash.ai/contact) for support.
+If you feel you should be a member of an organization that already exists in HASH, please contact that organization's admin. If you cannot identify the admin, [contact HASH](/contact) for support.
 
 ## Leave an organization
 
-You can leave an organization at any time by clicking the 'Leave' button on your [HASH &gt; Account &gt; Orgs](https://hash.ai/account/orgs) dashboard.
+You can leave an organization at any time by clicking the 'Leave' button on your [HASH &gt; Account &gt; Orgs](/account/orgs) dashboard.
 
 ## Request admin permissions
 

@@ -7,7 +7,7 @@ Certain HASH features rely on cutting-edge technology that may not be supported 
 ### Browser Compatibility
 
 <Hint style="info">
-**JavaScript** and **Python** behaviors can be authored via the in-browser IDE at this time. Support for Rust behavior authoring in hCore is [coming soon](https://hash.ai/roadmap) - at present only hIndex-listed Rust behaviors are available for import within simulations.
+**JavaScript** and **Python** behaviors can be authored via the in-browser IDE at this time. Support for Rust behavior authoring in hCore is [coming soon](/roadmap) - at present only hIndex-listed Rust behaviors are available for import within simulations.
 </Hint>
 
 | Environment execution ability | Chrome | Firefox | Safari |

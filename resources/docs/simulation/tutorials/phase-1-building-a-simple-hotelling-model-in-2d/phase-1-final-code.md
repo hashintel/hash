@@ -1,6 +1,6 @@
 # Final Code
 
-Check out the model \(Local Competition Phase 1\) in [hIndex](https://hash.ai/@hash/local-competition-phase-1)
+Check out the model \(Local Competition Phase 1\) in [hIndex](/@hash/local-competition-phase-1)
 
 <Tabs>
 <Tab title="init.json" >

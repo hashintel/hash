@@ -24,7 +24,7 @@ The only exception to this is the Sink block. Since it represents the end of a p
 
 ### Behaviors Array
 
-The `behaviors` array of an agent running a process model must start with the [`@hash/age/age.rs`](https://hash.ai/@hash/age) behavior, and can then contain a mix of custom and published behaviors.
+The `behaviors` array of an agent running a process model must start with the [`@hash/age/age.rs`](/@hash/age) behavior, and can then contain a mix of custom and published behaviors.
 
 <Hint style="warning">
 This behavior provides the agent with a field that allows the other process behaviors to run. Without it the other Process Library behaviors will throw errors.

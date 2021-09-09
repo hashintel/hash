@@ -18,7 +18,7 @@ Using the playbar at the bottom of the right-hand view pane you can scrub forwar
 
 ## Geospatial
 
-**Agents can be rendered on a map-view of the world by providing them with latlong co-ordinates.** Various examples in the hIndex showcase this \(e.g. [Local Competition](https://hash.ai/@hash/local-competition), [Container Line](https://hash.ai/@hash/container-line-sim)\)
+**Agents can be rendered on a map-view of the world by providing them with latlong co-ordinates.** Various examples in the hIndex showcase this \(e.g. [Local Competition](/@hash/local-competition), [Container Line](/@hash/container-line-sim)\)
 
 ## Raw Output
 
@@ -41,6 +41,6 @@ Step Explorer is useful for understanding the shape of the data within your simu
 ## Custom Views
 
 <Hint style="info">
-Allowing users to develop custom views is part of our public [product roadmap](https://hash.ai/roadmap).
+Allowing users to develop custom views is part of our public [product roadmap](/roadmap).
 </Hint>
 

@@ -44,7 +44,7 @@ def behavior(state, context):
 </Tabs>
 
 <Hint style="info">
-If you want to jump right into code you can take a look at our [Message Passing Colors ](https://hash.ai/@hash/message-passing-colors)simulation, which demos message passing among many agents.
+If you want to jump right into code you can take a look at our [Message Passing Colors ](/@hash/message-passing-colors)simulation, which demos message passing among many agents.
 </Hint>
 
 You'll notice that each message is comprised of three fields: "to", "type", and "data."
