@@ -19,9 +19,13 @@ export const entityTypeTypedef = gql`
       """
       name: String!
       """
+      A description for the type.
+      """
+      description: String
+      """
       The schema definition for the entity type, in JSON Schema.
       """
-      schema: JSONObject!
+      schema: JSONObject
     ): EntityType!
   }
 

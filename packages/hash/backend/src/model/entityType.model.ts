@@ -84,14 +84,16 @@ class __EntityType {
     async (args: {
       accountId: string;
       createdById: string;
-      schema: JSONObject;
+      description?: string | null;
       name: string;
+      schema?: JSONObject | null;
     }): Promise<EntityType> => {
-      const { accountId, createdById, schema, name } = args;
+      const { accountId, createdById, description, schema, name } = args;
 
       const entityType = await db.createEntityType({
         accountId,
         createdById,
+        description,
         name,
         schema,
       });

@@ -30,25 +30,3 @@ a {
 #__next {
   height: 100%;
 }
-
-.button {
-  background: $bright-blue;
-  border-radius: 6px;
-  padding: 10px 25px;
-  transition: opacity 0.2s;
-  cursor: pointer;
-  border: none;
-  color: white;
-  font-size: 14px;
-
-  &:hover {
-    opacity: 0.8;
-    transition: opacity 0.2s;
-  }
-
-  &.big {
-    font-size: 17spx;
-    padding: 12px 30px;
-    font-weight: 500;
-  }
-}

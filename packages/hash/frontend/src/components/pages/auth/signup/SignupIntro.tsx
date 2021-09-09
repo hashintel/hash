@@ -4,6 +4,7 @@ import { tw } from "twind";
 
 import Logo from "../../../../assets/svg/logo.svg";
 import { IconSpinner } from "../../../Icons/IconSpinner";
+import { TextInput } from "../../../forms/TextInput";
 
 type SignupIntroProps = {
   handleSubmit: (email: string) => void;
@@ -54,12 +55,13 @@ export const SignupIntro: VFC<SignupIntroProps> = ({
       </div>
       */}
       <form className={tw`flex flex-col w-64 items-center`} onSubmit={onSubmit}>
-        <input
+        <TextInput
+          className={tw`w-64`}
           placeholder="Enter your email address.."
           type="email"
           ref={inputRef}
-          className={tw`w-64 bg-gray-100  border(1 gray-300 hover:gray-500 focus:gray-500) focus:outline-none rounded-lg h-11 py-4 px-5 mb-2`}
-          onChange={(evt) => setEmail(evt.target.value)}
+          onChange={setEmail}
+          value={email}
         />
         {errorMessage && (
           <span className={tw`text-red-500 text-sm mb-4 text-center`}>

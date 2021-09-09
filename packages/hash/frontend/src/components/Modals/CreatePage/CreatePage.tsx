@@ -3,6 +3,7 @@ import { useCreatePage } from "../../hooks/useCreatePage";
 import { Modal } from "../Modal";
 
 import styles from "./CreatePage.module.scss";
+import { Button } from "../../forms/Button";
 
 type CreatePageProps = {
   close: () => void;
@@ -40,9 +41,9 @@ export const CreatePage: VoidFunctionComponent<CreatePageProps> = ({
           value={title}
         />
 
-        <button className="button big" type="submit">
+        <Button big type="submit">
           Create
-        </button>
+        </Button>
       </form>
     </Modal>
   );
