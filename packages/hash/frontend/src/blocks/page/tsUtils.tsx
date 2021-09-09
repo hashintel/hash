@@ -71,11 +71,13 @@ export const createNodeView = (
               {(entityList) => {
                 // @todo fix this
                 const entityId = node.attrs.entityId;
-
-                const prepared = prepareEntityForProsemirror(
-                  // @ts-ignore
-                  entityList[entityId]
-                );
+                const entity = entityList[entityId];
+                const prepared = entity
+                  ? prepareEntityForProsemirror(
+                      // @ts-ignore
+                      entity
+                    )
+                  : { attrs: {}, props: {} };
 
                 // @todo fix this
                 // @ts-ignore
@@ -86,8 +88,11 @@ export const createNodeView = (
                   ...prepared.props,
                 };
 
-                delete prepared.attrs.originalEntity;
+                if ("originalEntity" in prepared.attrs) {
+                  delete prepared.attrs.originalEntity;
+                }
 
+                // @todo we need to type this such that we're certain we're passing through all the props required
                 return (
                   <RemoteBlock
                     url={url}
