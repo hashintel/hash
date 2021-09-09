@@ -13,6 +13,7 @@ import {
 } from "@hashintel/block-protocol";
 import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
 import { PageFieldsFragment, SystemTypeName } from "./graphql/apiTypes.gen";
+import { createEntityList } from "./entityList";
 
 export { blockPaths };
 
@@ -365,6 +366,8 @@ export const calculateSavePayloads = (
 ) => {
   // @todo look into removing this
   const savedContents = premappedSavedContents.map(mapEntityToBlock);
+  // @todo look into allowing passing this in as an optimisation
+  const entityList = createEntityList(premappedSavedContents);
 
   const blocks = doc
     .toJSON()
@@ -387,13 +390,22 @@ export const calculateSavePayloads = (
     }
 
     const componentId = invertedBlockPaths[meta.url] ?? meta.url;
-    const savedEntity = premappedSavedContents.find(
-      (entity) => entity.metadataId === node.attrs.entityId
-    );
+    const savedEntity = entityList[node.attrs.entityId];
+    /**
+     * @deprecated
+     * @todo remove this
+     */
     const savedBlock = savedEntity
-      ? prepareEntityForProsemirror(savedEntity)
+      ? prepareEntityForProsemirror(
+          // @todo type this
+          // @ts-ignore
+          savedEntity
+        )
       : null;
 
+    /**
+     * @deprecated
+     */
     const savedBlockAttrs: Partial<NonNullable<typeof savedBlock>["attrs"]> =
       savedBlock?.attrs ?? {};
 
@@ -423,17 +435,26 @@ export const calculateSavePayloads = (
         },
       };
     } else {
-      /**
-       * @todo use entity list for this – need to inject cached properties at a higher level
-       */
+      // @todo maybe should get this out of something other than savedBlock
+      const childEntityId = savedBlock?.attrs.childEntityId ?? null;
 
-      // @todo do we need to remove other props here
-      const {
-        childEntityId,
-        childEntityAccountId,
-        childEntityVersionId,
-        ...props
-      } = node.attrs;
+      // @todo use parent node to get this childEntityId
+      const savedChildEntity = childEntityId ? entityList[childEntityId] : null;
+
+      const childEntityVersionId = savedChildEntity?.id ?? null;
+      const childEntityAccountId = savedChildEntity?.accountId ?? null;
+
+      // @todo verify how much of this needs to be here
+      const props = {
+        // @todo fix this
+        properties: node.attrs.properties,
+        meta: node.attrs.meta,
+        entityId: savedEntity.metadataId,
+        accountId: savedEntity.accountId,
+        versionId: savedEntity.id,
+        childEntityTypeId: savedChildEntity?.entityTypeId ?? null,
+      };
+
       entity = {
         type: "UnknownEntity",
         id: childEntityId,

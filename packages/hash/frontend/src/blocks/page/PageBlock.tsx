@@ -26,7 +26,8 @@ import { defineNewBlock } from "@hashintel/hash-shared/sharedWithBackendJs";
 import { collabEnabled, createNodeView } from "./tsUtils";
 import { EditorConnection } from "./collab/collab";
 import { PageFieldsFragment } from "@hashintel/hash-shared/graphql/apiTypes.gen";
-import { createEntityList, EntityListContext } from "./EntityListContext";
+import { EntityListContext } from "./EntityListContext";
+import { createEntityList } from "@hashintel/hash-shared/entityList";
 
 type PageBlockProps = {
   contents: PageFieldsFragment["properties"]["contents"];
