@@ -10,15 +10,15 @@ description: >-
 
 In HASH, agents interact and change the world using an 'actor model', where each agent is an actor. This means that:
 
-* **Each agent has its own private** [**state**](../../creating-simulations/anatomy-of-an-agent/state.md): an agent can only change its own state. No other agent can reach in from outside and change it directly. They must send a message instead.
-* **Agents communicate by sending and receiving** [**messages**](../../creating-simulations/agent-messages/): these messages might include requests, information, or responses to earlier messages. Messages are how agents influence the world around them.
+* **Each agent has its own private** [**state**](/docs/simulation/creating-simulations/anatomy-of-an-agent/state): an agent can only change its own state. No other agent can reach in from outside and change it directly. They must send a message instead.
+* **Agents communicate by sending and receiving** [**messages**](/docs/simulation/creating-simulations/agent-messages/): these messages might include requests, information, or responses to earlier messages. Messages are how agents influence the world around them.
 
-At the beginning of each time step, agents have an inbox of messages sent from other agents: a queue of requests, instructions, responses, and so on. In their [**behaviors**](../../creating-simulations/behaviors/), they check these messages, and in response can do one or both of:
+At the beginning of each time step, agents have an inbox of messages sent from other agents: a queue of requests, instructions, responses, and so on. In their [**behaviors**](/docs/simulation/creating-simulations/behaviors/), they check these messages, and in response can do one or both of:
 
 * **Update their private state**: e.g. reduce their stock if they have received a message with an order they can fulfil, or increase their stock if they have received a message confirming delivery of stock.
 * **Queue a message to send to another agent**: e.g. confirming that the order has been fulfilled, or requesting further delivery of stock. This message is available to the receiving agent on the next time step.
 
-This process happens in private: given the same inbox, starting [**state**](../../creating-simulations/anatomy-of-an-agent/state.md) and external [**context**](../../creating-simulations/anatomy-of-an-agent/context.md), an agent will always end up with the same outbox and finishing state \(unless there is randomness in its behaviors\).
+This process happens in private: given the same inbox, starting [**state**](/docs/simulation/creating-simulations/anatomy-of-an-agent/state) and external [**context**](/docs/simulation/creating-simulations/anatomy-of-an-agent/context), an agent will always end up with the same outbox and finishing state \(unless there is randomness in its behaviors\).
 
 ## Benefits of the Actor Model
 
@@ -40,7 +40,7 @@ Because agents receive all the messages sent to them in the previous time step a
 
 ![](https://cdn-us1.hash.ai/site/docs/message-exchange-diagram.svg)
 
-Agent A will not know the result of the message it added in Step 1 until it receives the response in Step 3 \(or even later if Agent B must communicate with a third agent before responding\). Watch out for [**redundant messaging!**](./#redundant-messaging) You should also consider the [**order of behaviors**](./#sequential-behavior-execution) when processing inbox messages and queueing outbox messages.
+Agent A will not know the result of the message it added in Step 1 until it receives the response in Step 3 \(or even later if Agent B must communicate with a third agent before responding\). Watch out for [**redundant messaging!**](#redundant-messaging) You should also consider the [**order of behaviors**](#sequential-behavior-execution) when processing inbox messages and queueing outbox messages.
 
 ### Redundant Messaging
 
@@ -81,7 +81,7 @@ To streamline this, consider:
 We are introducing a new feature to eliminate the need for manager agents and multiple back-and-forth messages to resolve conflicts. [**Contact us**](https://hash.ai/contact) if you want to be one of the first to try this feature.
 </Hint>
 
-See [**Managing Resource Access**](managing-resource-access.md) for more.
+See [**Managing Resource Access**](/docs/simulation/concepts/design-considerations/managing-resource-access) for more.
 
 ### Managing timescales
 
@@ -89,7 +89,7 @@ By default, a 'step' in a simulation is simply the process of agents taking as i
 
 For many simulations, you will want to have a sense of the passage of clock or calendar time. This might mean an assumption that a step corresponds to a unit of time. This can introduce difficulties when an action that should take a long time only requires one step to process, or when an action that should be near-instantaneous takes several message-passing steps to resolve.
 
-There are strategies for aligning timescales discussed in detail in [**Designing for Different Timescales**](../designing-for-different-timescales.md).
+There are strategies for aligning timescales discussed in detail in [**Designing for Different Timescales**](/docs/simulation/concepts/designing-for-different-timescales).
 
 ### Sequential Behavior Execution
 

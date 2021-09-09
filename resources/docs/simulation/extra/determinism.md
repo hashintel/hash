@@ -8,11 +8,11 @@ HASH is designed to execute deterministically; however, there can be situations 
 
 1. randomness included within the simulation logic;
 2. reliance on external APIs/data sources which can't always be guaranteed to return the same results \(for example, the most efficient public transportation route between two destinations\); or
-3. the manner in which the hEngine builds [context](../creating-simulations/anatomy-of-an-agent/context.md) for an agent.
+3. the manner in which the hEngine builds [context](/docs/simulation/creating-simulations/anatomy-of-an-agent/context) for an agent.
 
 ### 1. Simulation Logic
 
-Often you'll create simulations with probabilities, where an agent takes an action X% of the time. This might be by drawing random numbers using the [`hstd.random()`](../creating-simulations/libraries/hash/random.md#random) function
+Often you'll create simulations with probabilities, where an agent takes an action X% of the time. This might be by drawing random numbers using the [`hstd.random()`](/docs/simulation/creating-simulations/libraries/hash/random#random) function
 
 <Tabs>
 <Tab title="JavaScript" >
@@ -23,7 +23,7 @@ state.foo = hstd.random() > 0.5 ? true : false
 </Tab>
 </Tabs>
 
-or by using one of the [Statistic libraries](../creating-simulations/libraries/#hash-standard-library) included in HASH, such as those outlined in [Designing with Distributions](../concepts/designing-with-distributions.md).
+or by using one of the [Statistic libraries](/docs/simulation/creating-simulations/libraries/#hash-standard-library) included in HASH, such as those outlined in [Designing with Distributions](/docs/simulation/concepts/designing-with-distributions).
 
 <Tabs>
 <Tab title="JavaScript" >
@@ -61,7 +61,7 @@ const num_new_agents = poisson.sample(10);
 
 <Embed url="https://hash.ai/@hash/determinism" caption="An example simulation demonstrating Determinism" />
 
-HASH standard library functions for distributions and random number generation are currently only available in JavaScript; [Python supports setting a seed natively](https://docs.python.org/3/library/random.html) and, if creating a Python simulation, you should consider using `random.seed()` and/or [numpy](../creating-simulations/libraries/python-packages.md).
+HASH standard library functions for distributions and random number generation are currently only available in JavaScript; [Python supports setting a seed natively](https://docs.python.org/3/library/random.html) and, if creating a Python simulation, you should consider using `random.seed()` and/or [numpy](/docs/simulation/creating-simulations/libraries/python-packages).
 
 <Hint style="warning">
 hEngine execution order can, at times, cause different agents to execute in different orders, causing different random numbers to be pulled between runs. We'll be building in guarantees around this in an upcoming update.

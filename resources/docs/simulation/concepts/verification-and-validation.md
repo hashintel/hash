@@ -101,6 +101,6 @@ A common way to validate a simulation is by comparing the results of a simulatio
 
 ![A simulation that would \(probably\) pass a validation](https://cdn-us1.hash.ai/site/docs/image%20%2876%29.png)
 
-Additionally you can use [Complex Metrics](../creating-simulations/experiments/optimization-experiments/complex-metrics.md) to score the error difference between a simulation and an external dataset, to get a more quantitative validation measure.
+Additionally you can use [Complex Metrics](/docs/simulation/creating-simulations/experiments/optimization-experiments/complex-metrics) to score the error difference between a simulation and an external dataset, to get a more quantitative validation measure.
 
 

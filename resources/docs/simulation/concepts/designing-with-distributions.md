@@ -79,6 +79,6 @@ You can find a working example of this in the Alcoholism Intervention model. The
 By implementing more advanced methods, you can create empirical distributions with linear or polynomial interpolation. We encourage you to share whatever you create!
 
 <Hint style="info">
-You can ensure deterministic runs by using HASH standard library functions and [setting the seed of the random number generators](../extra/determinism.md) with `hstd.setSeed("[string]")`
+You can ensure deterministic runs by using HASH standard library functions and [setting the seed of the random number generators](/docs/simulation/extra/determinism) with `hstd.setSeed("[string]")`
 </Hint>
 

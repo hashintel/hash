@@ -12,7 +12,7 @@ Every agent has a name and a unique identifier. As a simulation creator, you can
 
 <Hint style="info">
 
-The HASH Engine by default will set the `agent_id`, so don't worry about setting it manually unless you have a particular need for an agent's id [value in the sim logic](../libraries/hash/agent.md#generateagentid).
+The HASH Engine by default will set the `agent_id`, so don't worry about setting it manually unless you have a particular need for an agent's id [value in the sim logic](/docs/simulation/creating-simulations/libraries/hash/agent#generateagentid).
 
 </Hint>
 
@@ -44,10 +44,10 @@ agent = {
 
 Naming your agent is entirely optional. The simplest possible agent is simply `{}` \(although it won't do much of anything!\)
 
-An individual agent has a [state](state.md) and a [context](context.md).
+An individual agent has a [state](/docs/simulation/creating-simulations/anatomy-of-an-agent/state) and a [context](/docs/simulation/creating-simulations/anatomy-of-an-agent/context).
 
 ![An Agent](https://cdn-us1.hash.ai/site/docs/image%20%2814%29.png)
 
-When we define the [initial conditions](initial-state.md) of a simulation, we're defining the initial agents that will be present in the first timestep of the simulation, each of which will have its own state and context.
+When we define the [initial conditions](/docs/simulation/creating-simulations/anatomy-of-an-agent/initial-state) of a simulation, we're defining the initial agents that will be present in the first timestep of the simulation, each of which will have its own state and context.
 
 ![Three agents, ready to simulate.](https://cdn-us1.hash.ai/site/docs/image%20%2813%29.png)

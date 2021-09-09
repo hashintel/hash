@@ -77,5 +77,5 @@ triangular
 arcsine
 ```
 
-For an example that uses these statistics functions, see the example on the [Designing with Distributions](../../../concepts/designing-with-distributions.md) page.
+For an example that uses these statistics functions, see the example on the [Designing with Distributions](/docs/simulation/concepts/designing-with-distributions) page.
 

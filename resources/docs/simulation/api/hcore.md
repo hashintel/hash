@@ -4,11 +4,11 @@ hCore provides a messaging API for embedded instances of hCore. You can use the 
 
 <Hint style="info">
 
-See the hCore Messaging API in action in the [Create a Simulation Dashboard tutorial](../tutorials/create-a-simulation-dashboard.md).
+See the hCore Messaging API in action in the [Create a Simulation Dashboard tutorial](/docs/simulation/tutorials/create-a-simulation-dashboard).
 
 </Hint>
 
-All hCore messages use the [postMessage technique for messaging between iFrames](https://developer.mozilla.org/en-US/docs/Web/API/Window/postMessage).  In order to send a message, create a webpage which loads hCore in an iframe, and then send a message to that iframe.
+All hCore messages use the [postMessage technique for messaging between iFrames](https://developer.mozilla.org/en-US/docs/Web/API/Window/postMessage). In order to send a message, create a webpage which loads hCore in an iframe, and then send a message to that iframe.
 
 ```javascript
 //example
@@ -47,7 +47,7 @@ Request the current state of the simulation. Will return a message with `type: "
 
 ```javascript
 // sendState message example
-  
+
 {
  "id": "1625b2ce-441f-4b42-8d44-80ec3bae2495",
  "type": "sendState"
@@ -60,7 +60,7 @@ Request the current state of the simulation. Will return a message with `type: "
 
 ```
 { type: 'state',
-  contents: 
+  contents:
    { steps: { 0: [Array], 1: [Array] },
      stepsCount: 2,
      simulationRunId: 'eb42f23b-b6b2-4fd2-89ea-5e8fd9e61e9e',
@@ -72,7 +72,7 @@ Request the current state of the simulation. Will return a message with `type: "
      presentingSpeed: 'live',
      presenting: false,
      scrubbedStep: null,
-     owedSteps: 0 } 
+     owedSteps: 0 }
 }
 ```
 
@@ -86,11 +86,11 @@ Request that HASH send a message every time a file changes. If you send this to 
 <Tabs>
 
 <Tab title="Message" >
-  
+
 
 ```javascript
 // initialize message example
-  
+
 {
  "id": "1625b2ce-441f-4b42-8d44-80ec3bae2495",
  "type": "initialize"
@@ -109,10 +109,9 @@ Trigger hCore to reset the simulation, generate a new simulation run, and start 
 
 <Tab title="Message" >
 
-
 ```javascript
 // resetAndRun message example
-  
+
 {
  "id": "1625b2ce-441f-4b42-8d44-80ec3bae2495",
  "type": "resetAndRun"
@@ -122,4 +121,3 @@ Trigger hCore to reset the simulation, generate a new simulation run, and start 
 </Tab>
 
 </Tabs>
-

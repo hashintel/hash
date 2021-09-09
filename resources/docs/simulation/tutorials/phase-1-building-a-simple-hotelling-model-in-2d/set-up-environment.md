@@ -1,6 +1,6 @@
 # Environment Setup
 
-After opening up a new simulation in HASH, navigate to globals.json. First, we are going to set up the [**Topology**](https://docs.hash.ai/core/configuration/topology), or the environment, of the model.
+After opening up a new simulation in HASH, navigate to globals.json. First, we are going to set up the [**Topology**](/docs/simulation/configuration/topology), or the environment, of the model.
 
 <Tabs>
 <Tab title="globals.json" >

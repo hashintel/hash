@@ -45,7 +45,7 @@ function behavior(state, context) {
 
 ## randomPosition(topology, z_plane)
 
-This function returns a random integer position within the bounds of the `topology`. The Topology should be user-defined in **globals.json** \(see [Topology](../../configuration/topology/)\). By default`z_plane` is `false` and the returned position is in a 2D plane. Pass true to return a position in 3D space.
+This function returns a random integer position within the bounds of the `topology`. The Topology should be user-defined in **globals.json** \(see [Topology](/docs/simulation/creating-simulations/configuration/topology/)\). By default`z_plane` is `false` and the returned position is in a 2D plane. Pass true to return a position in 3D space.
 
 ```javascript
 function behavior(state, context) {

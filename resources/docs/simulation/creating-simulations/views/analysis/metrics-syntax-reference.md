@@ -25,7 +25,7 @@ Metrics are defined as an object collection of JSON objects of the form:
 }
 ```
 
-The “metric” is referenced by plot definitions, and will correspond to an array of data \(or array of arrays\). The "operations" are objects corresponding to those described in the [Analysis ](./)page, with all of the same fields that are described there. Chaining operations works identically to the wizard.
+The “metric” is referenced by plot definitions, and will correspond to an array of data \(or array of arrays\). The "operations" are objects corresponding to those described in the [Analysis](/docs/simulation/creating-simulations/views/analysis) page, with all of the same fields that are described there. Chaining operations works identically to the wizard.
 
 Operations must have an `"op"` field which designates their type. Some operations have additional arguments. The valid types and additional arguments are listed below:
 
@@ -264,4 +264,3 @@ Below are a few snippets of outputs and plots.
   ]
 }
 ```
-

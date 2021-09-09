@@ -8,7 +8,7 @@ description: >-
 
 ## Defining simulation parameters as global variables
 
-Simulation parameters defined as part of a simulation's `globals.json` file can be easily varied and subject to [experimentation](../experiments/). This makes globals an ideal place to define key assumptions about your simulated world.
+Simulation parameters defined as part of a simulation's `globals.json` file can be easily varied and subject to [experimentation](/docs/simulation/creating-simulations/experiments/). This makes globals an ideal place to define key assumptions about your simulated world.
 
 If, for example, we wanted to cap the height of all trees in a [forest simulation](https://hash.ai/@hash/forest), we might introduce the global variable `"maxTreeHeight"`. The `globals.json` file would contain something like:
 

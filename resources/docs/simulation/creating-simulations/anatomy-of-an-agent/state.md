@@ -28,7 +28,7 @@ The state object can be accessed as an object in JavaScript or a dictionary in P
 
 **Example**:
 
-This behavior takes in the current state and [context](context.md) of the agent, adds 1 to the age property stored on the state, and then returns the state.
+This behavior takes in the current state and [context](/docs/simulation/creating-simulations/anatomy-of-an-agent/context) of the agent, adds 1 to the age property stored on the state, and then returns the state.
 
 <Tabs>
 <Tab title="JavaScript" >
@@ -53,15 +53,15 @@ def behavior(state, context):
 </Tab>
 </Tabs>
 
-Important: Only the agent can modify its own state. If an agent wants to prompt another agent to perform a state change, it can send a [message](../agent-messages/) to trigger an update.
+Important: Only the agent can modify its own state. If an agent wants to prompt another agent to perform a state change, it can send a [message](/docs/simulation/creating-simulations/agent-messages/) to trigger an update.
 
 <Hint style="info">
-Agents can read one another's state - for example if agent "foo" is a [neighbor](context.md) of agent "bar", agent "bar" can access the fields of agent "foo", it just can't make any changes to those fields. That's what makes the state _**private**_.
+Agents can read one another's state - for example if agent "foo" is a [neighbor](/docs/simulation/creating-simulations/anatomy-of-an-agent/context) of agent "bar", agent "bar" can access the fields of agent "foo", it just can't make any changes to those fields. That's what makes the state _**private**_.
 </Hint>
 
 ### Reserved Fields
 
-While an agent can store arbitrary data in its own state, some state values have special meaning in HASH. The fields below are all reserved, in addition to fields tied to visualization which can be found [here](visualization/).
+While an agent can store arbitrary data in its own state, some state values have special meaning in HASH. The fields below are all reserved, in addition to fields tied to visualization which can be found [here](/docs/simulation/creating-simulations/anatomy-of-an-agent/visualization/).
 
 We've suggested ranges of values for you to start off with as you're getting to know HASH
 

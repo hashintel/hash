@@ -51,7 +51,7 @@ HASH has built in poly models which allow you to more accurately represent many 
 
 #### Adding Edges
 
-We'll also add edges to help visualize the flows between different agents. Take a look at the docs section on [visualizing networks](../../../../creating-simulations/anatomy-of-an-agent/visualization/networks.md) for implementation details.
+We'll also add edges to help visualize the flows between different agents. Take a look at the docs section on [visualizing networks](/docs/simulation/creating-simulations/anatomy-of-an-agent/visualization/networks) for implementation details.
 
 ### Agents in Motion
 

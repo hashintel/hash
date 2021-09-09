@@ -4,27 +4,27 @@ There are a number of functions that are accessible through the built-in `hstd` 
 
 Currently, we have functions implemented in the following categories:
 
-** [Init](init.md) **
+** [Init](/docs/simulation/creating-simulations/libraries/hash/init) **
 
 Functions that help initialize agents in predefined patterns.
 
-** [Spatial](spatial.md) **
+** [Spatial](/docs/simulation/creating-simulations/libraries/hash/spatial) **
 
 Functions that help with calculations for agent positioning and movement.
 
-** [Neighbors](neighbors.md) **
+** [Neighbors](/docs/simulation/creating-simulations/libraries/hash/neighbors) **
 
 Functions that can help filter for neighbors in specific positions relative to the agent.
 
-** [Statistics](javascript-libraries.md) **
+** [Statistics](/docs/simulation/creating-simulations/libraries/hash/javascript-libraries) **
 
 Functions to help calculate distributions and statistics.
 
-** [Random](random.md) **
+** [Random](/docs/simulation/creating-simulations/libraries/hash/random) **
 
 Functions for generating random numbers.
 
-** [Agent](agent.md) **
+** [Agent](/docs/simulation/creating-simulations/libraries/hash/agent) **
 
 Functions that help with creating or setting properties on agents.
 

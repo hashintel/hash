@@ -125,7 +125,7 @@ def init(context):
 </Tab>
 </Tabs>
 
-Within an `init.js` or `init.py` file you have access to the [context](context.md) of the simulation, where you can access the data and global variables attached to the simulation. You can use them to seed values in your initialization.
+Within an `init.js` or `init.py` file you have access to the [context](/docs/simulation/creating-simulations/anatomy-of-an-agent/context) of the simulation, where you can access the data and global variables attached to the simulation. You can use them to seed values in your initialization.
 
 <Tabs>
 <Tab title="JavaScript" >
@@ -203,7 +203,7 @@ const init = (context) => {
 };
 ```
 
-You can learn more about all the **init** functions in the standard library [in this section of the docs](../libraries/hash/init.md).
+You can learn more about all the **init** functions in the standard library [in this section of the docs](/docs/simulation/creating-simulations/libraries/hash/init).
 
 ## Creator Agents
 
@@ -213,8 +213,8 @@ If you want to jump right into code you can take a look at our [Initialization D
 
 With "creator" agents you can create agents that create other agents. For example, by accessing published behaviors, we can very easily generate common agent placements. These behaviors can be found in the lower left corner; search for and then click on them to add them to your simulation:
 
-- `Create Grids (@hash/create-grids/create_grids.js)`: copy an agent to every unit within the [topology](https://docs.hash.ai/core/creating-simulations/configuration/topology) bounds
-- `Create Scatters (@hash/create-scatters/create_scatters.js)`: copy an agent to random locations within the [topology](https://docs.hash.ai/core/creating-simulations/configuration/topology) bounds
+- `Create Grids (@hash/create-grids/create_grids.js)`: copy an agent to every unit within the [topology](/docs/simulation/creating-simulations/configuration/topology) bounds
+- `Create Scatters (@hash/create-scatters/create_scatters.js)`: copy an agent to random locations within the [topology](/docs/simulation/creating-simulations/configuration/topology) bounds
 - `Create Stacks (@hash/create-stacks/create_stacks.js)`: copy an agent multiple times to the same location
 
 Take a look at how we can use published behaviors in the following example, where \[rabbits forage for food and reproduce\]\([https://hash.ai/@hash/rabbits-grass-weeds](https://hash.ai/@hash/rabbits-grass-weeds), while grass and weeds grow around them:

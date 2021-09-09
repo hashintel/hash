@@ -14,10 +14,10 @@ With the process chart, you can:
 
 Additionally, you can use the [Process Modeling Library](https://hash.ai/@hash/process) behaviors directly to build a process model. Because it's all still powered with HASH, you can customize and extend any part of it. Combine it with other models, add data, modify a behavior - it's all there for you to fit to your own use cases.
 
-Building process models allows you to answer questions about your real world systems. They can help you improve resource allocation, reduce cycle-time, and identify other optimizations that can be made to your organization or system. They're especially effective when used with [Experiments](../../creating-simulations/experiments/) to explore multiple scenarios and configurations.
+Building process models allows you to answer questions about your real world systems. They can help you improve resource allocation, reduce cycle-time, and identify other optimizations that can be made to your organization or system. They're especially effective when used with [Experiments](/docs/simulation/creating-simulations/experiments/) to explore multiple scenarios and configurations.
 
 <Hint style="info">
-The [Building Process Models](../../tutorials/building-process-models.md) tutorial walks through using the visual interface to build a simple ticket queue simulation.
+The [Building Process Models](/docs/simulation/tutorials/building-process-models) tutorial walks through using the visual interface to build a simple ticket queue simulation.
 </Hint>
 
 <Hint style="success">

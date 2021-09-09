@@ -85,7 +85,7 @@ let json_data = selected.map(row => ({
 json_data.forEach(e => agents.push(e))
 ```
 
-A third behavior, `create_agents.js`, then iterates through the agents array and [initializes the agents](../../tutorials/phase-1-building-a-simple-hotelling-model-in-2d/initialization.md).
+A third behavior, `create_agents.js`, then iterates through the agents array and [initializes the agents](/docs/simulation/tutorials/phase-1-building-a-simple-hotelling-model-in-2d/initialization).
 
 Now the simulation has a collection of agents with unique positions derived from real world data.
 
@@ -100,7 +100,7 @@ This section on hydrating agents' properties with external data is coming soon.
 Datasets can be used to calibrate a model to find the parameters that best match the real world. Upload a dataset and create an optimization experiment that reduces the error between a run and the dataset - the HASH optimization engine will automatically identify the parameters that reduce the error the most.
 
 <Hint style="success">
-Read more and see an example in the [Complex Metrics section on Validating and Calibrating.](../experiments/optimization-experiments/complex-metrics.md#validating-and-calibrating)
+Read more and see an example in the [Complex Metrics section on Validating and Calibrating.](/docs/simulation/creating-simulations/experiments/optimization-experiments/complex-metrics#validating-and-calibrating)
 </Hint>
 
 

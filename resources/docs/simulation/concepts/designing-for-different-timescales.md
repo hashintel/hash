@@ -49,6 +49,6 @@ A simple and straightforward approach is to "slow down" the simulation. In our e
 This has the advantage of being a straightforward, simple way of increasing the resolution of a simulation. The downside is it's inefficient - it's only in the first two steps of the simulation that we need the increased granularity. The additional 24 time-steps aren't really needed.
 
 <Hint style="warning">
-Timescale management is a particularly common issue for new HASH users because [we utilize an actor model where there is "information lag" ](design-considerations/#actor-model)- a roundtrip message will take, at minimum, three time-steps.
+Timescale management is a particularly common issue for new HASH users because [we utilize an actor model where there is "information lag" ](/docs/simulation/concepts/design-considerations#actor-model)- a roundtrip message will take, at minimum, three time-steps.
 </Hint>
 

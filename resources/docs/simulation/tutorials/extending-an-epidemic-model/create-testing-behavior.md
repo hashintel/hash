@@ -1,6 +1,6 @@
 # Create Testing Behavior
 
-To start let**'**s create a message from the Person agent that contains the basics - they’re requesting a test. In the `check_infected` behavior file, add a [message](../../creating-simulations/agent-messages/) function:
+To start let**'**s create a message from the Person agent that contains the basics - they’re requesting a test. In the `check_infected` behavior file, add a [message](/docs/simulation/creating-simulations/agent-messages/) function:
 
 <Tabs>
 <Tab title="JavaScript" >

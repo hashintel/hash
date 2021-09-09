@@ -1,6 +1,6 @@
 # Messages
 
-Information in a simulation can propagate in one of two ways - either through neighbors which we cover in [Behaviors](../behaviors/) and [Topology](../configuration/topology/), or through message passing.
+Information in a simulation can propagate in one of two ways - either through neighbors which we cover in [Behaviors](/docs/simulation/creating-simulations/behaviors/) and [Topology](/docs/simulation/creating-simulations/configuration/topology/), or through message passing.
 
 Messages are a simple yet powerful way of moving data around a simulation and can be used to do things like adding, removing, and collecting data from agents that are not necessarily near each other.
 

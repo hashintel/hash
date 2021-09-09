@@ -66,7 +66,7 @@ An additional common use case for complex metrics is tuning a model. When we att
 
 Let's set up a slightly different complex metric:
 
-#### 1. Find and [upload a dataset](../../datasets/)
+#### 1. Find and [upload a dataset](/docs/simulation/creating-simulations/datasets/)
 
 #### 2. Create a "metric agent" set in the center of the simulation, with an appropriate search radius
 

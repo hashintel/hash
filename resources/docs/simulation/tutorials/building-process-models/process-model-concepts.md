@@ -23,10 +23,10 @@ With the HASH process library, we provide ready made behaviors for implementing 
 * Sink: Accepts objects and removes them from the process model.
 
 <Hint style="info">
-The full list of process blocks and their parameters are listed in [Process Blocks](../../concepts/designing-with-process-models/process-blocks.md).
+The full list of process blocks and their parameters are listed in [Process Blocks](/docs/simulation/concepts/designing-with-process-models/process-blocks).
 </Hint>
 
-Each of these elements has a built-in-queue, and will move objects in its queue to the next process model in line. See [Designing with Process Models](../../concepts/designing-with-process-models/custom-behaviors.md) for more on the implementation. Additionally, you can add your own elements to [perform custom logic](../../concepts/designing-with-process-models/custom-behaviors.md). Create a new behavior, or fork the custom behavior, and add in your own code.
+Each of these elements has a built-in-queue, and will move objects in its queue to the next process model in line. See [Designing with Process Models](/docs/simulation/concepts/designing-with-process-models/custom-behaviors) for more on the implementation. Additionally, you can add your own elements to [perform custom logic](/docs/simulation/concepts/designing-with-process-models/custom-behaviors). Create a new behavior, or fork the custom behavior, and add in your own code.
 
 ```javascript
 // Forked custom_process_template.js to add a behavior

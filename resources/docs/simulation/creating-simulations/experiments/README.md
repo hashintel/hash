@@ -62,10 +62,10 @@ const behavior = (state, context) => {
 Now, any behaviors that rely on the "radius" parameter from `globals.json` will use the corresponding value.
 
 <Hint style="info">
-You can run experiments locally or in [hCloud](../h.cloud.md)
+You can run experiments locally or in [hCloud](/docs/simulation/creating-simulations/h.cloud)
 </Hint>
 
-For more information on specific syntax, read more about [Experiment Types](experiment-types.md).
+For more information on specific syntax, read more about [Experiment Types](/docs/simulation/creating-simulations/experiments/experiment-types).
 
 <Embed type="youtube" url="https://youtu.be/tLcrXQxN70c" />
 

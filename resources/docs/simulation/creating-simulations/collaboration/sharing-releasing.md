@@ -16,7 +16,7 @@ When a project is public, other users will be able to fork it \(create a copy\).
 
 ## Sharing Behaviors
 
-See [Composable behaviors](../behaviors/composable-behaviors.md) for information on sharing and importing behaviors.
+See [Composable behaviors](/docs/simulation/creating-simulations/behaviors/composable-behaviors) for information on sharing and importing behaviors.
 
 ## Releases
 

@@ -1,7 +1,7 @@
 # Structuring a Process Model
 
 <Hint style="info">
-A technical deep-dive into how process models are structured. This is optional context that is not required for using the [process model visual interface](using-the-process-model-builder.md).
+A technical deep-dive into how process models are structured. This is optional context that is not required for using the [process model visual interface](/docs/simulation/concepts/designing-with-process-models/using-the-process-model-builder).
 </Hint>
 
 ## Structure of the Agent

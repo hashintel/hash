@@ -10,7 +10,7 @@ Using the playbar at the bottom of the right-hand view pane you can scrub forwar
 
 ## 3D
 
-**HASH natively supports rendering agents in 3D environments.** [Read more &gt;](3d-viewer.md)
+**HASH natively supports rendering agents in 3D environments.** [Read more &gt;](3d-viewer)
 
 ## Analysis
 
@@ -36,7 +36,7 @@ Step Explorer is useful for understanding the shape of the data within your simu
 
 ## API
 
-**The HASH API allows for programmatic access to simulation outputs.** [Read more &gt;](api-1.md)
+**The HASH API allows for programmatic access to simulation outputs.** [Read more &gt;](/docs/simulation/creating-simulations/views/api-1)
 
 ## Custom Views
 

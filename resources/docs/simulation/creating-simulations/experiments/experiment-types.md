@@ -123,5 +123,5 @@ In order to discover interaction effects in your model, you'll have to perform s
 Optimization experiments allow you to identify the best combination of parameters for minimizing or maximizing desired metrics.
 </Hint>
 
-Read more about [Optimization Experiments](optimization-experiments/) in the next section of the docs.
+Read more about [Optimization Experiments](/docs/simulation/creating-simulations/experiments/optimization-experiments) in the next section of the docs.
 

@@ -10,7 +10,7 @@ In this tutorial we'll embed an example simulation into a webpage and add button
 
 ## Communicating with a HASH simulation
 
-Moving data into and out of a simulation is as simple as passing messages between a simulation and the host application \(pro tip: everything in HASH is about [message passing](https://docs.hash.ai/core/creating-simulations/agent-messages)\).
+Moving data into and out of a simulation is as simple as passing messages between a simulation and the host application \(pro tip: everything in HASH is about [message passing](/docs/simulation/creating-simulations/agent-messages)\).
 
 In this case, you are passing messages between the webpage and the iFrame - the messages will be carried over the [postMessage](https://developer.mozilla.org/en-US/docs/Web/API/Window/postMessage) channel.
 
@@ -31,7 +31,7 @@ There are three types of messages we'll send:
 _There's a fourth, initialize, that will cause hCore to send updates to the webpage for every file changed, but we're not going to use that._
 
 <Hint style="info">
-[Read the hCore Messaging API docs for more information](../api/hcore.md)
+[Read the hCore Messaging API docs for more information](/docs/simulation/api/hcore)
 </Hint>
 
 Both types of messages contain an id and message type. For the ID, we recommend using a UUID. In the example we've included a sample function for generating UUIDs in JavaScript.

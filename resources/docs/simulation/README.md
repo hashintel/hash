@@ -12,13 +12,13 @@ You can use HASH's tools to build rich, detailed, agent-based simulations of [fa
 
 <Hint style="success">
   
-As a new user, the best way to learn HASH is to [read up on the basics of agent-based modeling](https://docs.hash.ai/core/creating-simulations/agent-based-modeling-basics-1) and [agents](https://docs.hash.ai/core/creating-simulations/anatomy-of-an-agent), and try your hand at the [Tutorials](https://docs.hash.ai/core/tutorials/). You can also browse [our own models](https://hash.ai/models?sort=popularity&query=%40hash) to find simulations with interesting dynamics you can tinker with and adapt for your own models.
+As a new user, the best way to learn HASH is to [read up on the basics of agent-based modeling](/docs/simulation/creating-simulations/agent-based-modeling-basics-1) and [agents](/docs/simulation/creating-simulations/anatomy-of-an-agent), and try your hand at the [Tutorials](/docs/simulation/tutorials/). You can also browse [our own models](https://hash.ai/models?sort=popularity&query=%40hash) to find simulations with interesting dynamics you can tinker with and adapt for your own models.
   
 </Hint>
 
-If you've used simulation modeling software before, you might find that models in HASH are a little different to those you're used to seeing. We leverage composable [agents](creating-simulations/anatomy-of-an-agent/) and [behaviors](creating-simulations/behaviors/) to make it faster and easier for you to create realistic, well-calibrated simulations.
+If you've used simulation modeling software before, you might find that models in HASH are a little different to those you're used to seeing. We leverage composable [agents](/docs/simulation/creating-simulations/anatomy-of-an-agent/) and [behaviors](/docs/simulation/creating-simulations/behaviors/) to make it faster and easier for you to create realistic, well-calibrated simulations.
 
-If you're new to agent-based modeling, or want to better understand how these concepts translate into HASH, read up on [the basics of agent-based modeling](creating-simulations/agent-based-modeling-basics-1.md).
+If you're new to agent-based modeling, or want to better understand how these concepts translate into HASH, read up on [the basics of agent-based modeling](/docs/simulation/creating-simulations/agent-based-modeling-basics-1).
 
 If you want to experiment with pre-built models, check out our examples on the [hIndex](https://hash.ai/models?sort=popularity&query=%40hash) - or carry on reading to learn how to build your own.
 
