@@ -42,10 +42,11 @@ Operations must have an `"op"` field which designates their type. Some operation
       <td class="text-left"><code>&quot;filter&quot;</code>
       </td>
       <td class="text-left">
-        <p><code>&quot;field&quot;</code>  <code>&quot;comparison&quot;</code>
-        </p>
-        <p><code>&quot;value&quot;</code>
-        </p>
+        <code>&quot;field&quot;</code>  
+        <br />
+        <code>&quot;comparison&quot;</code>
+        <br />
+        <code>&quot;value&quot;</code>
       </td>
       <td class="text-left">Filter the current output with the given <em>comparison</em> and <em>value</em> on
         the given <em>field</em> of each element</td>
