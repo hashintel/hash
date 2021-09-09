@@ -28,7 +28,7 @@ We'll begin by adding two agents into the array, and give them names.
 ```
 
 <Hint style="info">
-`agent_name` is a [reserved keyword on agents](/docs/simulation/anatomy-of-an-agent) - you can reference and send messages through `agent_name`
+`agent_name` is a [reserved keyword on agents](/docs/simulation/creating-simulations/anatomy-of-an-agent) - you can reference and send messages through `agent_name`
 </Hint>
 
 Beneath the workspace's right-hand view-pane, you'll find the simulation control buttons. Click the **Reset** button \(circular arrow\) and then select the [Raw Output](/docs/simulation/creating-simulations/views/raw-data#raw-output) tab in the viewer. Congratulations! You've given life to Alice and Bob.
@@ -52,7 +52,7 @@ When you've finished adding positions to your agents, reset the simulation. You 
 
 ### Saying Hello
 
-Alice and Bob aren't very interesting right now. Let's teach them some manners. We can give the agents [behaviors](/docs/simulation/behaviors) that enable them to act and respond to each other. In **init.json** let's add some file names into each of the behavior arrays.
+Alice and Bob aren't very interesting right now. Let's teach them some manners. We can give the agents [behaviors](/docs/simulation/creating-simulations/behaviors) that enable them to act and respond to each other. In **init.json** let's add some file names into each of the behavior arrays.
 
 <Hint style="info">
 You can build Python behaviors instead of JavaScript behaviors if you prefer. Just make sure to name your files with a ".py" ending.

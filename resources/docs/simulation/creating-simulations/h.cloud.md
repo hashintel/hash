@@ -10,7 +10,7 @@ There are no limitations or caps on your ability to simulate things locally in-b
 </Hint>
 
 <Hint style="info">
-**You must have created at least one** [**experiment**](/docs/simulation/experiments) **in order to run a model on hCloud.**  
+**You must have created at least one** [**experiment**](/docs/simulation/creating-simulations/experiments) **in order to run a model on hCloud.**  
 Single-run simulations are not supported on hCloud at this time. Please ensure you have at least one experiment defined in your `experiment.json` file before proceeding.
 </Hint>
 

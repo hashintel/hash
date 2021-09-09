@@ -23,7 +23,7 @@ state.foo = hstd.random() > 0.5 ? true : false
 </Tab>
 </Tabs>
 
-or by using one of the [Statistic libraries](/docs/simulation/creating-simulations/libraries/#hash-standard-library) included in HASH, such as those outlined in [Designing with Distributions](/docs/simulation/concepts/designing-with-distributions).
+or by using one of the [Statistic libraries](/docs/simulation/creating-simulations/libraries#hash-standard-library) included in HASH, such as those outlined in [Designing with Distributions](/docs/simulation/concepts/designing-with-distributions).
 
 <Tabs>
 <Tab title="JavaScript" >
