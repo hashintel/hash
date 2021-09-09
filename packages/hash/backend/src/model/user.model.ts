@@ -1,10 +1,4 @@
-import {
-  User,
-  Account,
-  AccountConstructorArgs,
-  EntityTypeWithoutTypeFields,
-  VerificationCode,
-} from ".";
+import { User, Account, AccountConstructorArgs, VerificationCode } from ".";
 import { DBClient } from "../db";
 import { EntityType } from "../db/adapter";
 import {
@@ -12,11 +6,7 @@ import {
   sendLoginCodeToEmailAddress,
 } from "../email";
 import { genId } from "../util";
-import {
-  UserProperties,
-  User as GQLUser,
-  Email,
-} from "../graphql/apiTypes.gen";
+import { UserProperties, Email } from "../graphql/apiTypes.gen";
 import EmailTransporter from "../email/transporter";
 
 type UserConstructorArgs = {
@@ -120,8 +110,13 @@ class __User extends Account {
       preferredName: updatedPreferredName,
     });
 
+  static isAccountSignupComplete = ({
+    shortname,
+    preferredName,
+  }: UserProperties): boolean => !!shortname && !!preferredName;
+
   isAccountSignupComplete = (): boolean =>
-    !!this.properties.shortname && !!this.properties.preferredName;
+    User.isAccountSignupComplete(this.properties);
 
   getPrimaryEmail = (): Email => {
     const primaryEmail = this.properties.emails.find(
@@ -214,13 +209,6 @@ class __User extends Account {
         emailAddress
       ).then(() => verificationCode);
     };
-
-  toGQLUser = (): Omit<GQLUser, "entityType"> & {
-    entityType: EntityTypeWithoutTypeFields;
-  } => ({
-    ...this.toGQLUnknownEntity(),
-    accountSignupComplete: this.isAccountSignupComplete(),
-  });
 }
 
 export default __User;

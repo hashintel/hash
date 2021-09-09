@@ -23,6 +23,7 @@ import { accounts } from "./account/accounts";
 import { createUser } from "./shared/createUser";
 import { updateUser } from "./user/updateUser";
 import { createOrg } from "./shared/createOrg";
+import { accountSignupComplete } from "./user/accountSignupComplete";
 import { verifyEmail } from "./user/verifyEmail";
 import { sendLoginCode } from "./user/sendLoginCode";
 import { loginWithLoginCode } from "./user/loginWithLoginCode";
@@ -100,6 +101,10 @@ export const resolvers = {
 
   PageProperties: {
     contents: pageFields.contents,
+  },
+
+  User: {
+    accountSignupComplete,
   },
 
   UnknownEntity: {

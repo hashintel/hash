@@ -15,6 +15,7 @@ export const loginWithLoginCode: Resolver<
       code: args.verificationCode,
     }).then(async ({ user }) => {
       await passport.login(user, {});
-      return user.toGQLUser();
+
+      return user.toGQLUnknownEntity();
     })
   );

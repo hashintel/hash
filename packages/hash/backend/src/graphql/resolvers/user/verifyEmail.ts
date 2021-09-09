@@ -55,6 +55,6 @@ export const verifyEmail: Resolver<
         ].flat<(Promise<any> | undefined)[]>()
       );
 
-      return user.toGQLUser();
+      return user.toGQLUnknownEntity();
     })
   );

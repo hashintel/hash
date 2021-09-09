@@ -6,4 +6,4 @@ export const me: Resolver<
   EntityWithIncompleteEntityType,
   {},
   LoggedInGraphQLContext
-> = async (_, __, { user }) => user.toGQLUser();
+> = async (_, __, { user }) => user.toGQLUnknownEntity();
