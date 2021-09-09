@@ -1,4 +1,4 @@
-import { useMutation } from "@apollo/client";
+import { useApolloClient, useMutation } from "@apollo/client";
 
 import { BlockProtocolUpdateFn } from "@hashintel/block-protocol";
 import { updateEntity } from "@hashintel/hash-shared/queries/entity.queries";
@@ -9,7 +9,6 @@ import {
   UpdatePageMutation,
   UpdatePageMutationVariables,
 } from "../../../graphql/apiTypes.gen";
-import { apolloClient } from "../../../pages/_app";
 import { updatePage } from "@hashintel/hash-shared/queries/page.queries";
 
 export const useBlockProtocolUpdate = (): {
@@ -17,6 +16,8 @@ export const useBlockProtocolUpdate = (): {
   updateLoading: boolean;
   updateError: any;
 } => {
+  const apolloClient = useApolloClient();
+
   // temporary hack to refetch page data after a mutation.
   // TODO: make caching of entities outside of GraphQL schema work
   // so that updates to those entities are reflected w/o doing this

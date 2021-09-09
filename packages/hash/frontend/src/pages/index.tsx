@@ -1,4 +1,4 @@
-import { useQuery } from "@apollo/client";
+import { useQuery, ApolloError } from "@apollo/client";
 import { GetServerSideProps } from "next";
 import Link from "next/link";
 
@@ -15,16 +15,31 @@ import {
 import styles from "./index.module.scss";
 import { createApolloClient } from "@hashintel/hash-shared/graphql/createApolloClient";
 
-export const getServerSideProps: GetServerSideProps = async () => {
-  const client = createApolloClient();
+export const getServerSideProps: GetServerSideProps = async ({ req }) => {
+  const client = createApolloClient(undefined, { Cookie: req.headers.cookie });
 
-  const result = await client.query<GetAccountsQuery>({
-    query: getAccounts,
-  });
+  const accounts = await client
+    .query<GetAccountsQuery>({
+      query: getAccounts,
+    })
+    .then(({ data }) => data.accounts)
+    .catch(({ graphQLErrors }: ApolloError) => {
+      console.log(graphQLErrors);
 
-  if (result) {
-    const { accounts } = result.data;
+      const errorsToThrow = graphQLErrors.filter(
+        ({ extensions }) => !extensions || extensions.code !== "FORBIDDEN"
+      );
 
+      if (errorsToThrow.length > 0) {
+        throw new ApolloError({ graphQLErrors: errorsToThrow });
+      }
+
+      return null;
+    });
+
+  console.log("The Accounts: ", accounts);
+
+  if (accounts) {
     const firstPage = await accounts.reduce(
       (promise, account) =>
         promise.then(async (page) => {

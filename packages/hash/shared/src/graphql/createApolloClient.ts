@@ -4,7 +4,10 @@ import { RequestInfo, RequestInit } from "node-fetch";
 import possibleTypes from "./fragmentTypes.gen.json";
 
 // @todo update references
-export const createApolloClient = (name?: string) => {
+export const createApolloClient = (
+  name?: string,
+  additionalHeaders?: { [key: string]: string | undefined }
+) => {
   const ponyfilledFetch =
     typeof (globalThis as any).fetch === "undefined"
       ? require("node-fetch")
@@ -34,6 +37,7 @@ export const createApolloClient = (name?: string) => {
     uri: "http://localhost:5001/graphql",
     credentials: "include",
     fetch: wrappedFetch,
+    headers: additionalHeaders,
   });
 
   return new ApolloClient({
