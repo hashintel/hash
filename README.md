@@ -1,10 +1,10 @@
 # HASH
 
-This repository contains HASH's open-source code and documentation. This includes:
+This repository contains HASH's open-source code, documentation, and other key resources, including:
 
-- The codebase for HASH ([Info](https://hash.ai/platform/index)) - coming soon, available under the Apache 2.0 license
-- The codebase for [hEngine](packages/engine) ([Info](https://hash.ai/platform/engine)) - coming soon, available under the Server Side Public License
-- The hEngine [standard library](packages/engine/stdlib) - helper functions available in all HASH simulations
-- Educational resources covering the whole HASH platform
+- `packages/hash`: The codebase for HASH ([Info](https://hash.ai/platform/index)) - coming soon, available under an Apache 2.0 compatible license
+- `packages/engine`: The codebase for [hEngine](packages/engine) ([Info](https://hash.ai/platform/engine)) - coming October 2021, available under the Server Side Public License
+- `packages/engine/stdlib`: The [standard library](packages/engine/stdlib) of helper functions available in all HASH simulations
+- `resources`: Educational resources covering the whole HASH platform
 
 Please see the [LICENSE](LICENSE.md) file for more information on the terms under which the various parts of this repository are made available.
