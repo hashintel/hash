@@ -66,33 +66,42 @@ const loggedInAndSignedUp =
 
 export const resolvers = {
   Query: {
-    accountPages,
-    accounts,
-    aggregateEntity,
-    getAccountEntityTypes,
-    getEntityType,
-    entity,
-    page,
+    // Logged in and signed up users only
+    accountPages: loggedInAndSignedUp(accountPages),
+    accounts:
+      loggedInAndSignedUp(
+        accounts
+      ) /** @todo: make accessible to admins only (or deprecate) */,
+    aggregateEntity: loggedInAndSignedUp(aggregateEntity),
+    getAccountEntityTypes: loggedInAndSignedUp(getAccountEntityTypes),
+    entity: loggedInAndSignedUp(entity),
+    getEntityType: loggedInAndSignedUp(getEntityType),
+    page: loggedInAndSignedUp(page),
+    // Logged in users only
     me: loggedIn(me),
+    // Any user
     isShortnameTaken,
     embedCode,
   },
 
   Mutation: {
-    createEntity,
-    createEntityType,
-    createPage,
-    insertBlockIntoPage,
-    insertBlocksIntoPage,
-    updateEntity,
-    updatePage,
-    createUser,
-    createOrg,
+    // Logged in and signed up users only
+    createEntity: loggedInAndSignedUp(createEntity),
+    createEntityType: loggedInAndSignedUp(createEntityType),
+    createPage: loggedInAndSignedUp(createPage),
+    insertBlockIntoPage: loggedInAndSignedUp(insertBlockIntoPage),
+    insertBlocksIntoPage: loggedInAndSignedUp(insertBlocksIntoPage),
+    updateEntity: loggedInAndSignedUp(updateEntity),
+    updatePage: loggedInAndSignedUp(updatePage),
+    createOrg: loggedInAndSignedUp(createOrg),
+    // Logged in users only
     updateUser: loggedIn(updateUser),
+    logout: loggedIn(logout),
+    // Any user
+    createUser,
     verifyEmail,
     sendLoginCode,
     loginWithLoginCode,
-    logout: loggedIn(logout),
   },
 
   JSONObject: GraphQLJSON,
