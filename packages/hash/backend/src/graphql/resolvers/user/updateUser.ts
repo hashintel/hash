@@ -58,5 +58,5 @@ export const updateUser: Resolver<
       await user.updatePreferredName(client)(preferredName);
     }
 
-    return user.toGQLUser();
+    return user.toGQLUnknownEntity();
   });

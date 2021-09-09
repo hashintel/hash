@@ -1,14 +1,8 @@
-import {
-  Org,
-  Account,
-  Entity,
-  AccountConstructorArgs,
-  EntityTypeWithoutTypeFields,
-} from ".";
+import { Org, Account, AccountConstructorArgs } from ".";
 import { DBClient } from "../db";
 import { EntityType } from "../db/adapter";
 import { genId } from "../util";
-import { OrgProperties, Org as GQLOrg } from "../graphql/apiTypes.gen";
+import { OrgProperties } from "../graphql/apiTypes.gen";
 
 type OrgConstructorArgs = {
   properties: OrgProperties;
@@ -58,7 +52,7 @@ class __Org extends Account {
     async (properties: OrgProperties): Promise<Org> => {
       const id = genId();
 
-      const entity = await Entity.create(client)({
+      const entity = await client.createEntity({
         accountId: id,
         entityVersionId: id,
         createdById: id, // Orgs "create" themselves
@@ -73,13 +67,6 @@ class __Org extends Account {
   private updateOrgProperties =
     (client: DBClient) => (properties: OrgProperties) =>
       this.updateProperties(client)(properties);
-
-  toGQLOrg = (): Omit<GQLOrg, "entityType"> & {
-    entityType: EntityTypeWithoutTypeFields;
-  } => ({
-    ...this.toGQLUnknownEntity(),
-    __typename: "Org",
-  });
 }
 
 export default __Org;

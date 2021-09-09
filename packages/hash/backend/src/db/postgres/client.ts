@@ -28,7 +28,7 @@ import {
 } from "./entitytypes";
 import { insertEntityMetadata, updateEntityMetadata } from "./metadata";
 import {
-  getAccountEntities,
+  getAllAccounts,
   getEntities,
   getEntitiesByTypeAllVersions,
   getEntitiesByTypeLatestVersion,
@@ -547,8 +547,8 @@ export class PostgresClient implements DBClient {
   }
 
   /**  Get all account type entities (User or Org). */
-  async getAccountEntities(): Promise<Entity[]> {
-    return await getAccountEntities(this.conn);
+  async getAllAccounts(): Promise<Entity[]> {
+    return await getAllAccounts(this.conn);
   }
 
   async updateEntityMetadata(params: {

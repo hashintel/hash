@@ -1,6 +1,8 @@
+import { JSONObject } from "@hashintel/block-protocol";
+import merge from "lodash.merge";
 import { Entity, EntityType, EntityWithIncompleteEntityType } from ".";
 import { DBClient } from "../db";
-import { EntityType as DbEntityType } from "../db/adapter";
+import { EntityMeta, EntityType as DbEntityType } from "../db/adapter";
 import { Visibility } from "../graphql/apiTypes.gen";
 import { SystemType } from "../types/entityTypes";
 
@@ -10,24 +12,37 @@ export type EntityConstructorArgs = {
   createdById: string;
   accountId: string;
   entityType: DbEntityType | EntityType;
-  properties: any;
-  // metadata: EntityMeta;
+  properties: JSONObject;
+  visibility: Visibility;
+  metadata: EntityMeta;
   entityCreatedAt: Date;
   entityVersionCreatedAt: Date;
   entityVersionUpdatedAt: Date;
 };
 
-export type CreateEntityArgs = {
+type CreateEntityArgsWithoutType = {
   accountId: string;
   createdById: string;
-  entityId?: string | null | undefined;
-  entityVersionId?: string | null | undefined;
-  entityTypeId?: string;
-  entityTypeVersionId?: string | null | undefined;
-  systemTypeName?: SystemType | null | undefined;
   versioned: boolean;
   properties: any;
 };
+
+export type CreateEntityWithEntityTypeIdArgs = {
+  entityTypeId?: string;
+} & CreateEntityArgsWithoutType;
+
+export type CreateEntityWithEntityTypeVersionIdArgs = {
+  entityTypeVersionId?: string;
+} & CreateEntityArgsWithoutType;
+
+export type CreateEntityWithSystemTypeArgs = {
+  systemTypeName?: SystemType;
+} & CreateEntityArgsWithoutType;
+
+export type CreateEntityArgs =
+  | CreateEntityWithEntityTypeIdArgs
+  | CreateEntityWithEntityTypeVersionIdArgs
+  | CreateEntityWithSystemTypeArgs;
 
 class __Entity {
   entityId: string;
@@ -35,8 +50,9 @@ class __Entity {
   createdById: string;
   accountId: string;
   entityType: EntityType;
-  properties: any;
-  // metadata: EntityMeta;
+  properties: JSONObject;
+  visibility: Visibility;
+  metadata: EntityMeta;
   entityCreatedAt: Date;
   entityVersionCreatedAt: Date;
   entityVersionUpdatedAt: Date;
@@ -48,7 +64,8 @@ class __Entity {
     accountId,
     entityType,
     properties,
-    // metadata,
+    visibility,
+    metadata,
     entityCreatedAt,
     entityVersionCreatedAt,
     entityVersionUpdatedAt,
@@ -62,6 +79,8 @@ class __Entity {
         ? entityType
         : new EntityType(entityType);
     this.properties = properties;
+    this.visibility = visibility;
+    this.metadata = metadata;
     this.entityCreatedAt = entityCreatedAt;
     this.entityVersionCreatedAt = entityVersionCreatedAt;
     this.entityVersionUpdatedAt = entityVersionUpdatedAt;
@@ -72,21 +91,67 @@ class __Entity {
     async (args: CreateEntityArgs): Promise<Entity> =>
       client.createEntity(args).then((dbEntity) => new Entity(dbEntity));
 
-  static getEntityById =
+  static getEntity =
     (client: DBClient) =>
-    ({
-      accountId,
-      entityVersionId,
-    }: {
+    async (args: {
       accountId: string;
       entityVersionId: string;
-    }): Promise<Entity | null> =>
+    }): Promise<Entity | null> => {
+      const dbEntity = await client.getEntity(args);
+
+      return dbEntity ? new Entity(dbEntity) : null;
+    };
+
+  static getEntityLatestVersion =
+    (client: DBClient) =>
+    async (args: {
+      accountId: string;
+      entityId: string;
+    }): Promise<Entity | null> => {
+      const dbEntity = await client.getEntityLatestVersion(args);
+
+      return dbEntity ? new Entity(dbEntity) : null;
+    };
+
+  static getEntitiesByType =
+    (client: DBClient) =>
+    async (args: {
+      accountId: string;
+      entityTypeId: string;
+      entityTypeVersionId?: string;
+      latestOnly: boolean;
+    }): Promise<Entity[]> =>
       client
-        .getEntity({
-          accountId,
-          entityVersionId,
-        })
-        .then((dbEntity) => (dbEntity ? new Entity(dbEntity) : null));
+        .getEntitiesByType(args)
+        .then((dbEntities) =>
+          dbEntities.map((dbEntity) => new Entity(dbEntity))
+        );
+
+  static getEntitiesBySystemType =
+    (client: DBClient) =>
+    async (args: {
+      accountId: string;
+      latestOnly: boolean;
+      systemTypeName: SystemType;
+    }): Promise<Entity[]> =>
+      client
+        .getEntitiesBySystemType(args)
+        .then((dbEntities) =>
+          dbEntities.map((dbEntity) => new Entity(dbEntity))
+        );
+
+  static getEntities =
+    (client: DBClient) =>
+    async (
+      entities: {
+        accountId: string;
+        entityVersionId: string;
+      }[]
+    ): Promise<Entity[]> => {
+      const dbEntities = await client.getEntities(entities);
+
+      return dbEntities.map((dbEntity) => new Entity(dbEntity));
+    };
 
   updateProperties = (client: DBClient) => (properties: any) =>
     client
@@ -96,13 +161,14 @@ class __Entity {
         entityId: this.entityId,
         properties,
       })
-      .then(() => {
-        this.properties = properties;
+      .then(([updatedDbEntity]) => {
+        merge(this, new Entity(updatedDbEntity));
+
         return this;
       });
 
   toGQLEntity = (): Omit<EntityWithIncompleteEntityType, "properties"> => ({
-    id: this.entityId,
+    id: this.entityVersionId,
     entityId: this.entityId,
     entityVersionId: this.entityVersionId,
     createdById: this.createdById,
@@ -116,7 +182,7 @@ class __Entity {
     createdAt: this.entityCreatedAt,
     entityVersionCreatedAt: this.entityVersionCreatedAt,
     updatedAt: this.entityVersionUpdatedAt,
-    visibility: Visibility.Public /** @todo: get from entity metadata */,
+    visibility: this.visibility,
   });
 
   toGQLUnknownEntity = (): EntityWithIncompleteEntityType => ({

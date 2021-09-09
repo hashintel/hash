@@ -1,8 +1,7 @@
 import { genId } from "../../../util";
 import { MutationCreateEntityArgs, Resolver } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
-import { dbEntityToGraphQLEntity } from "../../util";
-import { EntityWithIncompleteEntityType } from "../../../model";
+import { Entity, EntityWithIncompleteEntityType } from "../../../model";
 
 export const createEntity: Resolver<
   Promise<EntityWithIncompleteEntityType>,
@@ -25,15 +24,15 @@ export const createEntity: Resolver<
 
   /** @todo restrict creation of protected types, e.g. User, Org */
 
-  const entity = await dataSources.db.createEntity({
+  const entity = await Entity.create(dataSources.db)({
     accountId,
     createdById: genId(), // TODO
     entityTypeId: entityTypeId ?? undefined,
-    entityTypeVersionId,
-    systemTypeName,
+    entityTypeVersionId: entityTypeVersionId || undefined,
+    systemTypeName: systemTypeName || undefined,
     properties,
     versioned: versioned || false,
   });
 
-  return dbEntityToGraphQLEntity(entity);
+  return entity.toGQLUnknownEntity();
 };

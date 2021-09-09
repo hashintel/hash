@@ -4,8 +4,8 @@ import { UserInputError } from "apollo-server-errors";
 import { genId } from "../../../util";
 import { MutationInsertBlockIntoPageArgs, Resolver } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
-import { dbEntityToGraphQLEntity } from "../../util";
-import { EntityWithIncompleteEntityType } from "../../../model";
+import { Entity, EntityWithIncompleteEntityType } from "../../../model";
+import { DbPageProperties } from "../../../types/dbTypes";
 
 export const insertBlockIntoPage: Resolver<
   Promise<EntityWithIncompleteEntityType>,
@@ -31,7 +31,7 @@ export const insertBlockIntoPage: Resolver<
     let entity;
     if (entityId) {
       // Update
-      entity = await dataSources.db.getEntity({
+      entity = await Entity.getEntity(client)({
         accountId,
         entityVersionId: entityId,
       });
@@ -45,12 +45,12 @@ export const insertBlockIntoPage: Resolver<
         );
       }
       // Create new entity
-      entity = await dataSources.db.createEntity({
+      entity = await Entity.create(client)({
         accountId,
         createdById: genId(), // TODO
         entityTypeId: entityTypeId ?? undefined,
-        entityTypeVersionId,
-        systemTypeName,
+        entityTypeVersionId: entityTypeVersionId || undefined,
+        systemTypeName: systemTypeName || undefined,
         properties: entityProperties,
         versioned: true,
       });
@@ -63,11 +63,11 @@ export const insertBlockIntoPage: Resolver<
     const blockProperties = {
       componentId,
       entityId: entity.entityVersionId,
-      entityTypeId: entity.entityTypeId,
+      entityTypeId: entity.entityType.entityId,
       accountId: entity.accountId,
     };
 
-    const newBlock = await dataSources.db.createEntity({
+    const newBlock = await Entity.create(client)({
       accountId,
       systemTypeName: "Block",
       createdById: genId(), // TODO
@@ -78,7 +78,7 @@ export const insertBlockIntoPage: Resolver<
     // Get and update the page.
     // @todo: always get the latest version for now. This is a temporary measure.
     // return here when strict vs. optimistic entity mutation question is resolved.
-    const page = await client.getEntityLatestVersion({
+    const page = await Entity.getEntityLatestVersion(client)({
       accountId,
       entityId: pageMetadataId,
     });
@@ -87,26 +87,25 @@ export const insertBlockIntoPage: Resolver<
       throw new ApolloError(msg, "NOT_FOUND");
     }
 
-    if (position > page.properties.contents.length) {
-      position = page.properties.contents.length;
+    /** @todo: stop casting page.properties type */
+    if (position > (page.properties as DbPageProperties).contents.length) {
+      position = (page.properties as DbPageProperties).contents.length;
     }
 
     page.properties.contents = [
-      ...page.properties.contents.slice(0, position),
+      ...(page.properties as DbPageProperties).contents.slice(0, position),
       {
         type: "Block",
         entityId: newBlock.entityVersionId,
         accountId: newBlock.accountId,
       },
-      ...page.properties.contents.slice(position),
+      ...(page.properties as DbPageProperties).contents.slice(position),
     ];
 
-    const updatedEntities = (await client.updateEntity(page)).map(
-      dbEntityToGraphQLEntity
-    );
+    await page.updateProperties(client)(page.properties);
 
     // TODO: for now, all entities are non-versioned, so the list array only have a single
     // element. Return when versioned entities are implemented at the API layer.
-    return updatedEntities[0];
+    return page.toGQLUnknownEntity();
   });
 };

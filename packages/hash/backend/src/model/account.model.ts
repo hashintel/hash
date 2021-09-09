@@ -21,6 +21,16 @@ abstract class __Account extends Entity {
     this.properties = args.properties;
   }
 
+  static getAll = async (client: DBClient): Promise<(User | Org)[]> => {
+    const accountDbEntities = await client.getAllAccounts();
+
+    return accountDbEntities.map((dbEntity) =>
+      dbEntity.entityTypeName === "User"
+        ? new User(dbEntity)
+        : new Org(dbEntity)
+    );
+  };
+
   private static checkShortnameChars = (shortname: string) => {
     if (shortname.search(ALLOWED_SHORTNAME_CHARS)) {
       throw new UserInputError(

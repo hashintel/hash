@@ -1,7 +1,6 @@
 import { Resolver } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
-import { dbEntityToGraphQLEntity } from "../../util";
-import { EntityWithIncompleteEntityType } from "../../../model";
+import { EntityWithIncompleteEntityType, Account } from "../../../model";
 
 export const accounts: Resolver<
   Promise<EntityWithIncompleteEntityType[]>,
@@ -9,6 +8,7 @@ export const accounts: Resolver<
   GraphQLContext,
   {}
 > = async (_, {}, { dataSources }) => {
-  const entities = await dataSources.db.getAccountEntities();
-  return entities.map(dbEntityToGraphQLEntity);
+  const accounts = await Account.getAll(dataSources.db);
+
+  return accounts.map((account) => account.toGQLUnknownEntity());
 };

@@ -188,8 +188,8 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return this.query((adapter) => adapter.getEntitiesBySystemType(params));
   }
 
-  getAccountEntities(): Promise<Entity[]> {
-    return this.query((adapter) => adapter.getAccountEntities());
+  getAllAccounts(): Promise<Entity[]> {
+    return this.query((adapter) => adapter.getAllAccounts());
   }
 
   updateEntityMetadata(params: {
