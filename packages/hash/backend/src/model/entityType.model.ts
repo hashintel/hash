@@ -120,7 +120,7 @@ class __EntityType {
       );
 
   toGQLEntityType = (): EntityTypeWithoutTypeFields => ({
-    id: this.entityId,
+    id: this.entityVersionId,
     entityId: this.entityId,
     entityVersionId: this.entityVersionId,
     createdById: this.createdById,
