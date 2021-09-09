@@ -6,17 +6,7 @@ import {
   Visibility,
 } from "../graphql/apiTypes.gen";
 import { JSONObject } from "../lib/schemas/jsonSchema";
-
-/**
- * Fields we handle via a field resolver to avoid recursion problems when getting them from the db.
- * Let the API consumers request as many levels as they want.
- * @todo figure out a solution to recursion issue of an entityType having itself as an entityType
- */
-export type EntityTypeTypeFields =
-  | "entityType"
-  | "entityTypeId"
-  | "entityTypeName"
-  | "entityTypeVersionId";
+import { EntityTypeTypeFields } from "../db/adapter";
 
 /**
  * We handle the various entityType fields for an entityType in separate field resolvers,
@@ -101,7 +91,11 @@ class __EntityType {
       return new EntityType(entityType);
     };
 
-  static getEntityType = async (db: DBClient) =>
+  static getEntityType = (db: DBClient) => (args: { entityTypeId: string }) =>
+    db.getEntityTypeLatestVersion(args)
+      .then((dbEntityType) => (dbEntityType ? new EntityType(dbEntityType) : null));
+
+  static getEntityTypeType = async (db: DBClient) =>
     db
       .getSystemTypeLatestVersion({ systemTypeName: "EntityType" })
       .then((entityTypeType) => {

@@ -2,10 +2,10 @@ import { Resolver, EntityType as GQLEntityType } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import {
   EntityType,
-  EntityTypeTypeFields,
   EntityTypeWithoutTypeFields,
 } from "../../../model";
 import { ApolloError } from "apollo-server-express";
+import { EntityTypeTypeFields } from "../../../db/adapter";
 
 type EntityTypeMaybeTypeFields = EntityTypeWithoutTypeFields & {
   entityType?: GQLEntityType["entityType"];
@@ -18,8 +18,7 @@ type EntityTypeMaybeTypeFields = EntityTypeWithoutTypeFields & {
  * @todo cache this for an extremely long time
  */
 const getEntityTypeType = async (dataSources: GraphQLContext["dataSources"]) =>
-  dataSources.db
-    .transaction((client) => EntityType.getEntityType(client))
+  EntityType.getEntityTypeType(dataSources.db)
     .catch((err) => {
       throw new ApolloError(err.message);
     });

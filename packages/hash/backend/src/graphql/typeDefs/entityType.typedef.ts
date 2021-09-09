@@ -3,6 +3,12 @@ import { gql } from "apollo-server-express";
 export const entityTypeTypedef = gql`
   extend type Query {
     """
+    Get an entity type by its fixed id, which is:
+    - entityId on the EntityType itself, or
+    - entityTypeId on an Entity of its type)
+    """
+    getEntityType(entityTypeId: ID!): EntityType!
+    """
     Get all EntityTypes belonging to an account
     """
     getAccountEntityTypes(accountId: ID!): [EntityType!]!
