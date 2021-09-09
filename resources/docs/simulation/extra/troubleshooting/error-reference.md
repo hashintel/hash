@@ -18,9 +18,10 @@ You may see a red error message pop up when running a simulation - here's some o
       <td class="text-left">ReferenceError: behavior is not defined <em>or</em>
         <br />Can&#x2019;t find variable: behavior</td>
       <td class="text-left">
-        <p>Every HASH behavior file must have a function signature with a function
-          named behavior().</p>
-        <p>If it is not properly defined, you&apos;ll see this error.</p>
+        Every HASH behavior file must have a function signature with a function
+          named behavior().
+        <br />
+        If it is not properly defined, you&apos;ll see this error.
       </td>
     </tr>
     <tr>
