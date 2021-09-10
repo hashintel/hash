@@ -4,11 +4,13 @@ import { RemoteBlock } from "../../components/RemoteBlock/RemoteBlock";
 import {
   Block,
   cachedPropertiesByEntity,
-  prepareEntityForProsemirror,
+  mapEntityToBlock,
   ReplacePortals,
 } from "@hashintel/hash-shared/sharedWithBackend";
 import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
 import { EntityListContext } from "./EntityListContext";
+import { EntityListType } from "@hashintel/hash-shared/entityList";
+import { PageFieldsFragment } from "@hashintel/hash-shared/graphql/apiTypes.gen";
 
 type NodeViewConstructor = {
   new (
@@ -20,6 +22,57 @@ type NodeViewConstructor = {
 };
 
 type NodeViewConstructorArgs = ConstructorParameters<NodeViewConstructor>;
+
+/**
+ * @todo clean up / inline this function
+ */
+const prepareNodeForReact = (entity: EntityListType, node: ProsemirrorNode) => {
+  // @todo if this isn't a block we've ran into a biiiiiiig problem – we should error
+  const prepared =
+    entity && "properties" in entity
+      ? ((entity: PageFieldsFragment["properties"]["contents"][number]) => {
+          const block = mapEntityToBlock(entity);
+
+          const {
+            children,
+            childEntityId = null,
+            childEntityAccountId = null,
+            childEntityTypeId = null,
+            childEntityVersionId = null,
+            ...props
+          } = block.entity;
+
+          const attrs = {
+            entityId: block.entityId,
+            accountId: block.accountId,
+            versionId: block.versionId,
+            childEntityId,
+            childEntityAccountId,
+            childEntityTypeId,
+            childEntityVersionId,
+            // @ts-ignore
+            originalEntity: block.originalEntity,
+          };
+
+          return { children, props, attrs };
+        })(entity)
+      : { attrs: {}, props: {} };
+
+  // @todo fix this
+  // @ts-ignore
+  prepared.attrs.meta = node.attrs.meta;
+  // @ts-ignore
+  prepared.attrs.properties = {
+    ...(cachedPropertiesByEntity[entity.metadataId] ?? {}),
+    ...prepared.props,
+  };
+
+  if ("originalEntity" in prepared.attrs) {
+    delete prepared.attrs.originalEntity;
+  }
+
+  return prepared;
+};
 
 /**
  * This creates a node view which integrates between React and prosemirror for each block
@@ -73,25 +126,7 @@ export const createNodeView = (
                 const entityId = node.attrs.entityId;
                 // @todo i think we want a version of this that only has blocks in
                 const entity = entityList[entityId];
-
-                // @todo if this isn't a block we've ran into a biiiiiiig problem – we should error
-                const prepared =
-                  entity && "properties" in entity
-                    ? prepareEntityForProsemirror(entity)
-                    : { attrs: {}, props: {} };
-
-                // @todo fix this
-                // @ts-ignore
-                prepared.attrs.meta = node.attrs.meta;
-                // @ts-ignore
-                prepared.attrs.properties = {
-                  ...(cachedPropertiesByEntity[entityId] ?? {}),
-                  ...prepared.props,
-                };
-
-                if ("originalEntity" in prepared.attrs) {
-                  delete prepared.attrs.originalEntity;
-                }
+                const prepared = prepareNodeForReact(entity, node);
 
                 // @todo we need to type this such that we're certain we're passing through all the props required
                 return (

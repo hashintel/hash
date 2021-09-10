@@ -19,6 +19,9 @@ export { blockPaths };
 
 const fetch = (globalThis as any).fetch ?? require("node-fetch");
 
+/**
+ * @todo think about removing this
+ */
 type BlockConfig = BlockMetadata & { url: string } & (
     | { type?: undefined }
     | {
@@ -28,7 +31,10 @@ type BlockConfig = BlockMetadata & { url: string } & (
       }
   );
 
-// @todo this type properly exists already somewhere
+/**
+ * @deprecated
+ * @todo remove this
+ */
 export type Block = {
   entityId: string;
   versionId: string;
@@ -40,6 +46,10 @@ export type Block = {
   componentSchema: JSONSchema;
 };
 
+/**
+ * @deprecated
+ * @todo remove this
+ */
 export type BlockMeta = Pick<Block, "componentMetadata" | "componentSchema">;
 
 /**
@@ -50,6 +60,10 @@ export type BlockMeta = Pick<Block, "componentMetadata" | "componentSchema">;
  */
 export const blockCache = new Map<string, Promise<BlockMeta>>();
 
+/**
+ * @deprecated
+ * @todo remove this
+ */
 export const builtInBlocks: Record<string, BlockMeta> = {
   // @todo maybe this should be a nodeview too
   "https://block.blockprotocol.org/paragraph": {
@@ -143,6 +157,10 @@ export const fetchBlockMeta = async (url: string): Promise<BlockMeta> => {
   return await promise;
 };
 
+/**
+ * @deprecated
+ * @todo remove this
+ */
 export type BlockWithoutMeta = Omit<
   Block,
   "componentMetadata" | "componentSchema"
@@ -196,6 +214,7 @@ export const ensureDocBlocksLoaded = async (
 /**
  * @todo remove this / most props from this
  * @deprecated
+ * @todo how are props returned by this used
  */
 export const prepareEntityForProsemirror = (
   entity: PageFieldsFragment["properties"]["contents"][number]
@@ -204,21 +223,15 @@ export const prepareEntityForProsemirror = (
 
   const {
     children,
-    childEntityId = null,
-    childEntityAccountId = null,
-    childEntityTypeId = null,
-    childEntityVersionId = null,
+    childEntityId: _ = null,
+    childEntityAccountId: __ = null,
+    childEntityTypeId: ___ = null,
+    childEntityVersionId: ____ = null,
     ...props
   } = block.entity;
 
   const attrs = {
     entityId: block.entityId,
-    accountId: block.accountId,
-    versionId: block.versionId,
-    childEntityId,
-    childEntityAccountId,
-    childEntityTypeId,
-    childEntityVersionId,
     // @ts-ignore
     originalEntity: block.originalEntity,
   };
@@ -287,6 +300,7 @@ export const createEntityUpdateTransaction = async (
 
 /**
  * @deprecated
+ * @todo remove this
  */
 export const mapEntityToBlock = (
   content: PageFieldsFragment["properties"]["contents"][number]
@@ -298,6 +312,8 @@ export const mapEntityToBlock = (
       ? {
           /**
            * These are here to help reconstruct the database objects from the prosemirror document.
+           *
+           * @todo look at removing these
            */
           childEntityId: entity.metadataId,
           childEntityVersionId: entity.id,
