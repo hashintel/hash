@@ -18,6 +18,7 @@ const pageFieldsFragment = gql`
       summary
       title
       contents {
+        __typename
         id
         metadataId
         accountId

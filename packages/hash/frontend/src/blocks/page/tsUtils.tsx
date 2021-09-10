@@ -71,13 +71,14 @@ export const createNodeView = (
               {(entityList) => {
                 // @todo fix this
                 const entityId = node.attrs.entityId;
+                // @todo i think we want a version of this that only has blocks in
                 const entity = entityList[entityId];
-                const prepared = entity
-                  ? prepareEntityForProsemirror(
-                      // @ts-ignore
-                      entity
-                    )
-                  : { attrs: {}, props: {} };
+
+                // @todo if this isn't a block we've ran into a biiiiiiig problem – we should error
+                const prepared =
+                  entity && "properties" in entity
+                    ? prepareEntityForProsemirror(entity)
+                    : { attrs: {}, props: {} };
 
                 // @todo fix this
                 // @ts-ignore

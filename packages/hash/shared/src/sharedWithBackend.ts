@@ -395,13 +395,13 @@ export const calculateSavePayloads = (
      * @deprecated
      * @todo remove this
      */
-    const savedBlock = savedEntity
-      ? prepareEntityForProsemirror(
-          // @todo type this
-          // @ts-ignore
-          savedEntity
-        )
-      : null;
+    const savedBlock =
+      savedEntity && "properties" in savedEntity
+        ? prepareEntityForProsemirror(
+            // @todo type this
+            savedEntity
+          )
+        : null;
 
     /**
      * @deprecated
