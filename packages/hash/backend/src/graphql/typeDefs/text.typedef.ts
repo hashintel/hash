@@ -2,7 +2,7 @@ import { gql } from "apollo-server-express";
 
 export const textTypedef = gql`
   type Text implements Entity {
-    properties: TextProperites!
+    properties: TextProperties!
 
     # ENTITY INTERFACE FIELDS BEGIN #
     """
@@ -69,7 +69,7 @@ export const textTypedef = gql`
     # ENTITY INTERFACE FIELDS END #
   }
 
-  type TextProperites {
+  type TextProperties {
     texts: [TextPropertiesText!]!
   }
 

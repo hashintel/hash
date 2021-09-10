@@ -1,7 +1,7 @@
 import { useMutation } from "@apollo/client";
 
 import { BlockProtocolCreateFn } from "@hashintel/block-protocol";
-import { createEntity } from "../../../graphql/queries/entity.queries";
+import { createEntity } from "@hashintel/hash-shared/queries/entity.queries";
 import { useCallback } from "react";
 import {
   CreateEntityMutation,

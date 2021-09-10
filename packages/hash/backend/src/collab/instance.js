@@ -117,7 +117,7 @@ class Instance {
               mutation:
                 updatePayload.entityType === "Page" ? updatePage : updateEntity,
               variables: {
-                id: updatePayload.entityId,
+                metadataId: updatePayload.entityId,
                 properties: updatePayload.data,
                 accountId: updatePayload.accountId,
               },

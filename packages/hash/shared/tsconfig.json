@@ -14,7 +14,7 @@
     "lib": ["es2020"],
     "composite": true,
   },
-  "include": ["./src/", "./src/**/*.json"],
+  "include": ["./src/**/*.ts", "./src/**/*.js", "./src/**/*.json"],
   "references": [
     { "path": "../block-protocol/tsconfig.ref.json" }
   ]
