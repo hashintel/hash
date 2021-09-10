@@ -36,7 +36,9 @@ export const AccountEntityTypeList: VoidFunctionComponent<AccountEntityTypeListP
           );
         })}
         <Link href={`/${accountId}/types/new`}>
-          <a><Button>Create Entity Type</Button></a>
+          <a>
+            <Button>Create Entity Type</Button>
+          </a>
         </Link>
       </div>
     );
