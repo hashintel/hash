@@ -408,6 +408,7 @@ class BlockView {
             const selectedIndex = options.findIndex(
               ([blockType, variant]) =>
                 blockType === selectedBlockType &&
+                // @todo this needs to use the entity list instead
                 isSubsetOf(variant.properties, node.attrs.properties)
             );
 

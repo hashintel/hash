@@ -193,6 +193,10 @@ export const ensureDocBlocksLoaded = async (
   );
 };
 
+/**
+ * @todo remove this / most props from this
+ * @deprecated
+ */
 export const prepareEntityForProsemirror = (
   entity: PageFieldsFragment["properties"]["contents"][number]
 ) => {
@@ -409,13 +413,21 @@ export const calculateSavePayloads = (
     const savedBlockAttrs: Partial<NonNullable<typeof savedBlock>["attrs"]> =
       savedBlock?.attrs ?? {};
 
+    const childEntityId =
+      "properties" in savedEntity
+        ? savedEntity.properties.entity.metadataId
+        : null ?? null;
+
+    // @todo use parent node to get this childEntityId
+    const savedChildEntity = childEntityId ? entityList[childEntityId] : null;
+
     let entity;
     if (schema.nodes[node.type].isTextblock) {
       entity = {
         type: "Text" as const,
-        id: savedBlockAttrs.childEntityId ?? null,
-        versionId: savedBlockAttrs.childEntityVersionId ?? null,
-        accountId: savedBlockAttrs.childEntityAccountId ?? null,
+        id: savedChildEntity?.metadataId ?? null,
+        versionId: savedChildEntity?.id ?? null,
+        accountId: savedChildEntity?.accountId ?? null,
         properties: {
           texts:
             node.content
@@ -435,12 +447,6 @@ export const calculateSavePayloads = (
         },
       };
     } else {
-      // @todo maybe should get this out of something other than savedBlock
-      const childEntityId = savedBlock?.attrs.childEntityId ?? null;
-
-      // @todo use parent node to get this childEntityId
-      const savedChildEntity = childEntityId ? entityList[childEntityId] : null;
-
       const childEntityVersionId = savedChildEntity?.id ?? null;
       const childEntityAccountId = savedChildEntity?.accountId ?? null;
 
@@ -454,6 +460,7 @@ export const calculateSavePayloads = (
     }
 
     return {
+      // @todo don't rely on savedBlockAttrs
       entityId: savedBlockAttrs.entityId ?? null,
       accountId: savedBlockAttrs.accountId ?? accountId,
       versionId: savedBlockAttrs.versionId ?? null,

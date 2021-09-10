@@ -100,6 +100,7 @@ class Instance {
           const blockWithAttrs = this.doc.childAfter(mapping.map(offset) + 1);
 
           // @todo use a custom step for this so we don't need to copy attrs – we may lose some
+          // @todo this could become a problem when prepareEntityForProsemirror is change – i'm not sure
           transform.setNodeMarkup(mapping.map(offset) + 1, undefined, {
             ...blockWithAttrs.attrs,
             ...attrs,
