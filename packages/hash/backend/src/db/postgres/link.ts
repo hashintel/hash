@@ -1,5 +1,4 @@
 import { Connection } from "./types";
-import { Entity } from "../adapter";
 
 import { sql } from "slonik";
 
@@ -53,21 +52,29 @@ export const insertIncomingLinks = async (
   `);
 };
 
-/** Get the IDs of all entities which refrence a given entity. */
+/** Get the fixed entity IDs of all entities which refrence a given entity. */
 export const getEntityParentIds = async (
   conn: Connection,
-  params: { entity: Entity }
+  params: { accountId: string; entityVersionId: string }
 ) => {
-  const { accountId, entityVersionId: entityVersionId } = params.entity;
   const rows = await conn.any(sql`
-    select parent_account_id, parent_version_id from incoming_links
-    where
-      account_id = ${accountId}
-      and entity_version_id = ${entityVersionId}
+    with p as (
+      select parent_account_id, parent_version_id
+      from incoming_links
+      where
+        account_id = ${params.accountId}
+        and entity_version_id = ${params.entityVersionId}
+    )
+    select distinct e.account_id, e.entity_id
+    from
+      p
+      join entity_versions as e on
+        e.account_id = p.parent_account_id
+        and e.entity_version_id = p.parent_version_id
   `);
 
   return rows.map((row) => ({
-    accountId: row["parent_account_id"] as string,
-    entityVersionId: row["parent_version_id"] as string,
+    accountId: row["account_id"] as string,
+    entityId: row["entity_id"] as string,
   }));
 };

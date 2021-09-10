@@ -356,3 +356,31 @@ export const getEntities = async (
   entities.forEach((entity) => entityMap.set(entity.entityVersionId, entity));
   return ids.map(({ entityVersionId: versionId }) => entityMap.get(versionId)!);
 };
+
+/**
+ * Acquire a transaction-level advisory lock on a given entity ID. The lock is
+ * automatically released when the transaction ends.
+ * See: https://www.postgresql.org/docs/current/functions-admin.html#FUNCTIONS-ADVISORY-LOCKS
+ * */
+export const acquireEntityLock = async (
+  conn: Connection,
+  params: { entityId: string }
+) =>
+  // pg_advisory_xact_lock requires an integer so pass it a hash of the entity ID.
+  conn
+    .query(sql`select pg_advisory_xact_lock(${hashCode(params.entityId)})`)
+    .then((_) => null);
+
+// Convert a string to a numeric hash code.
+const hashCode = (str: string) => {
+  let hash = 0;
+  if (str.length === 0) {
+    return hash;
+  }
+  for (let i = 0; i < str.length; i++) {
+    const chr = str.charCodeAt(i);
+    hash = (hash << 5) - hash + chr;
+    hash |= 0; // Convert to 32bit integer
+  }
+  return hash;
+};
