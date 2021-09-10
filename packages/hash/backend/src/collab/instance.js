@@ -1,4 +1,3 @@
-import { createApolloClient } from "@hashintel/hash-shared/graphql/createApolloClient";
 import { Mapping, Step, Transform } from "prosemirror-transform";
 import { createInitialDoc, createSchema } from "@hashintel/hash-shared/schema";
 import {
@@ -31,7 +30,6 @@ class Instance {
     this.userCount = 0;
     this.waiting = [];
     this.savedContents = savedContents;
-    this.client = client;
     this.saveChain = Promise.resolve();
     this.saveMapping = null;
 
@@ -42,7 +40,7 @@ class Instance {
     if (this.collecting != null) clearInterval(this.collecting);
   }
 
-  addEvents(version, steps, clientID) {
+  addEvents = (apolloClient) => (version, steps, clientID) => {
     this.checkVersion(version);
     if (this.version !== version) return false;
     let doc = this.doc;
@@ -65,12 +63,12 @@ class Instance {
     this.sendUpdates();
 
     // @todo offload saves to a separate process / debounce them
-    this.save(clientID);
+    this.save(apolloClient)(clientID);
 
     return { version: this.version };
-  }
+  };
 
-  save(clientID) {
+  save = (apolloClient) => (clientID) => {
     const mapping = new Mapping();
 
     this.saveChain = this.saveChain
@@ -81,7 +79,7 @@ class Instance {
         const doc = this.doc;
 
         const insert = async (insertPayload) => {
-          const { data } = await this.client.mutate({
+          const { data } = await apolloClient.mutate({
             mutation: insertBlockIntoPage,
             variables: insertPayload,
           });
@@ -108,12 +106,16 @@ class Instance {
             ...attrs,
           });
 
-          this.addEvents(this.version, transform.steps, `${clientID}-server`);
+          this.addEvents(apolloClient)(
+            this.version,
+            transform.steps,
+            `${clientID}-server`
+          );
         };
 
         const update = async (updatePayloads) => {
           for (const updatePayload of updatePayloads) {
-            const { data } = await this.client.mutate({
+            const { data } = await apolloClient.mutate({
               mutation:
                 updatePayload.entityType === "Page" ? updatePage : updateEntity,
               variables: {
@@ -153,7 +155,7 @@ class Instance {
         console.error("could not save", err);
       })
       .then(async () => {
-        const { data } = await this.client.query({
+        const { data } = await apolloClient.query({
           query: getPageQuery,
           variables: { metadataId: this.id, accountId: this.accountId },
         });
@@ -166,15 +168,15 @@ class Instance {
           this.saveMapping = null;
         }
       });
-  }
+  };
 
-  addJsonEvents(version, jsonSteps, clientId) {
+  addJsonEvents = (apolloClient) => (version, jsonSteps, clientId) => {
     const steps = jsonSteps.map((step) =>
       Step.fromJSON(this.doc.type.schema, step)
     );
 
-    return this.addEvents(version, steps, clientId);
-  }
+    return this.addEvents(apolloClient)(version, steps, clientId);
+  };
 
   sendUpdates() {
     while (this.waiting.length) this.waiting.pop().finish();
@@ -238,14 +240,15 @@ const instances = Object.create(null);
 let instanceCount = 0;
 const maxCount = 20;
 
-export async function getInstance(accountId, id, ip) {
-  const inst = instances[id] || (await newInstance(accountId, id));
+export const getInstance = (apolloClient) => async (accountId, id, ip) => {
+  const inst =
+    instances[id] || (await newInstance(apolloClient)(accountId, id));
   if (ip) inst.registerUser(ip);
   inst.lastActive = Date.now();
   return inst;
-}
+};
 
-async function newInstance(accountId, id) {
+const newInstance = (apolloClient) => async (accountId, id) => {
   if (++instanceCount > maxCount) {
     let oldest = null;
     for (const id of Object.keys(instances)) {
@@ -257,9 +260,7 @@ async function newInstance(accountId, id) {
     --instanceCount;
   }
 
-  const client = createApolloClient("collab");
-
-  const { data } = await client.query({
+  const { data } = await apolloClient.query({
     query: getPageQuery,
     variables: { metadataId: id, accountId },
   });
@@ -285,11 +286,5 @@ async function newInstance(accountId, id) {
 
   const blocks = data.page.properties.contents.map(mapEntityToBlock);
 
-  return (instances[id] = new Instance(
-    accountId,
-    id,
-    newState.doc,
-    blocks,
-    client
-  ));
-}
+  return (instances[id] = new Instance(accountId, id, newState.doc, blocks));
+};

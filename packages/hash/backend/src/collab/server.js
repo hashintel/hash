@@ -1,3 +1,5 @@
+import { createApolloClient } from "@hashintel/hash-shared/graphql/createApolloClient";
+
 import { Router } from "./route";
 
 import { getInstance } from "./instance";
@@ -48,6 +50,11 @@ function readStreamAsJSON(stream, callback) {
 // Register a server route.
 function handle(method, url, fn) {
   router.add(method, ["collab-backend", ...url], (req, resp, ...args) => {
+    req.apolloClient = createApolloClient({
+      name: "collab",
+      additionalHeaders: { Cookie: req.headers.cookie },
+    });
+
     async function finish() {
       let output;
       try {
@@ -59,7 +66,7 @@ function handle(method, url, fn) {
       if (output) output.resp(resp);
     }
 
-    if (method === "PUT" || method === "POST")
+    if (method === "PUT" || method === "POST") {
       readStreamAsJSON(req, (err, val) => {
         if (err) new Output(500, err.toString()).resp(resp);
         else {
@@ -67,14 +74,14 @@ function handle(method, url, fn) {
           finish();
         }
       });
-    else finish();
+    } else finish();
   });
 }
 
 // Output the current state of a document instance.
 handle("GET", [null, null], async (accountId, id, req) => {
   // @todo don't use ip for user registration
-  const inst = await getInstance(accountId, id, reqIP(req));
+  const inst = await getInstance(req.apolloClient)(accountId, id, reqIP(req));
   return Output.json({
     doc: inst.doc.toJSON(),
     users: inst.userCount,
@@ -133,7 +140,7 @@ function outputEvents(inst, data) {
 handle("GET", [null, null, "events"], async (accountId, id, req, resp) => {
   const version = nonNegInteger(req.query.version);
 
-  const inst = await getInstance(accountId, id, reqIP(req));
+  const inst = await getInstance(req.apolloClient)(accountId, id, reqIP(req));
   const data = inst.getEvents(version);
   if (data === false) return new Output(410, "History no longer available");
   // If the server version is greater than the given version,
@@ -154,9 +161,17 @@ function reqIP(request) {
 
 // The event submission endpoint, which a client sends an event to.
 handle("POST", [null, null, "events"], async (data, accountId, id, req) => {
-  const instance = await getInstance(accountId, id, reqIP(req));
+  const instance = await getInstance(req.apolloClient)(
+    accountId,
+    id,
+    reqIP(req)
+  );
   const version = nonNegInteger(data.version);
-  const result = instance.addJsonEvents(version, data.steps, data.clientID);
+  const result = instance.addJsonEvents(req.apolloClient)(
+    version,
+    data.steps,
+    data.clientID
+  );
   if (!result) return new Output(409, "Version not current");
   else return Output.json(result);
 });
