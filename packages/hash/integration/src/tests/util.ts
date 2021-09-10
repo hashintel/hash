@@ -1,6 +1,9 @@
+import { print } from "graphql/language/printer";
 import { GraphQLClient } from "graphql-request";
 
 import {
+  SendLoginCodeMutation,
+  SendLoginCodeMutationVariables,
   CreateEntityMutation,
   CreateEntityMutationVariables,
   CreateOrgMutation,
@@ -11,10 +14,16 @@ import {
   CreateUserMutationVariables,
   InsertBlocksIntoPageMutation,
   InsertBlocksIntoPageMutationVariables,
+  LoginWithLoginCodeMutationVariables,
+  LoginWithLoginCodeMutation,
 } from "../graphql/apiTypes.gen";
 import { createEntity } from "../graphql/queries/entity.queries";
 import { createOrg } from "../graphql/queries/org.queries";
-import { createUser } from "../graphql/queries/user.queries";
+import {
+  createUser,
+  loginWithLoginCode,
+  sendLoginCode,
+} from "../graphql/queries/user.queries";
 import {
   createPage,
   insertBlocksIntoPage,
@@ -25,6 +34,32 @@ export class ApiClient {
 
   constructor(url: string) {
     this.client = new GraphQLClient(url);
+  }
+
+  setCookie = (cookie: string) => this.client.setHeader("Cookie", cookie);
+
+  removeCookie = () => this.client.setHeader("Cookie", "");
+
+  async sendLoginCode(vars: SendLoginCodeMutationVariables) {
+    return (
+      await this.client.request<
+        SendLoginCodeMutation,
+        SendLoginCodeMutationVariables
+      >(sendLoginCode, vars)
+    ).sendLoginCode;
+  }
+
+  async loginWithLoginCode(vars: LoginWithLoginCodeMutationVariables) {
+    const { data, headers } = await this.client.rawRequest<
+      LoginWithLoginCodeMutation,
+      LoginWithLoginCodeMutationVariables
+    >(print(loginWithLoginCode), vars);
+
+    if (!data) {
+      throw new Error("loginWithLoginCode mutation did not return data");
+    }
+
+    return { user: data.loginWithLoginCode, responseHeaders: headers };
   }
 
   async createEntity(vars: CreateEntityMutationVariables) {
