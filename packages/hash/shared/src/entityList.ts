@@ -1,9 +1,10 @@
-import { Block, Entity } from "src/graphql/apiTypes.gen";
+import { PageFieldsFragment } from "src/graphql/apiTypes.gen";
 
-// @todo clean up this type
+type ReturnedBlockType = PageFieldsFragment["properties"]["contents"][number];
+
 export type EntityListType =
-  | Pick<Entity, "metadataId" | "id" | "accountId">
-  | Pick<Block, "metadataId" | "properties" | "id" | "accountId">;
+  | ReturnedBlockType
+  | ReturnedBlockType["properties"]["entity"];
 
 function mapEntityList<T extends EntityListType>(
   entity: T

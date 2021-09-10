@@ -20,7 +20,6 @@ import {
   cachedPropertiesByEntity,
   calculateSavePayloads,
   createEntityUpdateTransaction,
-  mapEntityToBlock,
 } from "@hashintel/hash-shared/sharedWithBackend";
 import { defineNewBlock } from "@hashintel/hash-shared/sharedWithBackendJs";
 import { collabEnabled, createNodeView } from "./tsUtils";
