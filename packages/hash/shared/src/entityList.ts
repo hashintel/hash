@@ -2,11 +2,8 @@ import { Block, Entity } from "src/graphql/apiTypes.gen";
 
 // @todo clean up this type
 export type EntityListType =
-  | Pick<Entity, "metadataId" | "id" | "accountId" | "entityTypeId">
-  | Pick<
-      Block,
-      "metadataId" | "properties" | "id" | "accountId" | "entityTypeId"
-    >;
+  | Pick<Entity, "metadataId" | "id" | "accountId">
+  | Pick<Block, "metadataId" | "properties" | "id" | "accountId">;
 
 function mapEntityList<T extends EntityListType>(
   entity: T

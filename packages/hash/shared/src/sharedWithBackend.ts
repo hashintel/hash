@@ -412,7 +412,7 @@ export const calculateSavePayloads = (
     let entity;
     if (schema.nodes[node.type].isTextblock) {
       entity = {
-        type: "Text",
+        type: "Text" as const,
         id: savedBlockAttrs.childEntityId ?? null,
         versionId: savedBlockAttrs.childEntityVersionId ?? null,
         accountId: savedBlockAttrs.childEntityAccountId ?? null,
@@ -444,23 +444,12 @@ export const calculateSavePayloads = (
       const childEntityVersionId = savedChildEntity?.id ?? null;
       const childEntityAccountId = savedChildEntity?.accountId ?? null;
 
-      // @todo verify how much of this needs to be here
-      const props = {
-        // @todo fix this
-        properties: node.attrs.properties,
-        meta: node.attrs.meta,
-        entityId: savedEntity.metadataId,
-        accountId: savedEntity.accountId,
-        versionId: savedEntity.id,
-        childEntityTypeId: savedChildEntity?.entityTypeId ?? null,
-      };
-
+      // @todo much of this isn't used as blocks handle their own updates
       entity = {
-        type: "UnknownEntity",
+        type: "UnknownEntity" as const,
         id: childEntityId,
         versionId: childEntityVersionId,
         accountId: childEntityAccountId,
-        properties: props,
       };
     }
 
