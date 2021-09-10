@@ -16,7 +16,9 @@ import styles from "./index.module.scss";
 import { createApolloClient } from "@hashintel/hash-shared/graphql/createApolloClient";
 
 export const getServerSideProps: GetServerSideProps = async ({ req }) => {
-  const client = createApolloClient(undefined, { Cookie: req.headers.cookie });
+  const client = createApolloClient({
+    additionalHeaders: { Cookie: req.headers.cookie },
+  });
 
   const accounts = await client
     .query<GetAccountsQuery>({
@@ -36,8 +38,6 @@ export const getServerSideProps: GetServerSideProps = async ({ req }) => {
 
       return null;
     });
-
-  console.log("The Accounts: ", accounts);
 
   if (accounts) {
     const firstPage = await accounts.reduce(
