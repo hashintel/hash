@@ -116,7 +116,7 @@ const SignupPage: NextPage = () => {
     // If the user is logged in, and their account sign-up is complete...
     if (user && user.accountSignupComplete) {
       // ...redirect them to the homepage
-      void router.push("/");
+      void router.push(`/${user.accountId}`);
     }
   }, [user, router]);
 
@@ -170,9 +170,9 @@ const SignupPage: NextPage = () => {
     UpdateUserMutation,
     UpdateUserMutationVariables
   >(updateUserMutation, {
-    onCompleted: ({}) => {
+    onCompleted: ({ updateUser }) => {
       void refetch();
-      void router.push("/");
+      void router.push(`/${updateUser.accountId}`);
     },
     onError: ({ graphQLErrors }) => {
       graphQLErrors.forEach(({ message }) => {

@@ -10,10 +10,10 @@ const LoginPage: NextPage = () => {
   return (
     <LoginModal
       show={true}
-      onLoggedIn={({ accountSignupComplete }) => {
+      onLoggedIn={({ accountSignupComplete, accountId }) => {
         void refetch().then(() => {
-          // Only when account sign-up is complete redirect the user to the homepage
-          if (accountSignupComplete) void router.push("/");
+          // Only when account sign-up is complete redirect the user to their account page
+          if (accountSignupComplete) void router.push(`/${accountId}`);
           // Otherwise the user will be redirected to the /signup page in `src/pages/_app`
         });
       }}
