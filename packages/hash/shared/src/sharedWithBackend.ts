@@ -395,23 +395,6 @@ export const calculateSavePayloads = (
 
     const componentId = invertedBlockPaths[meta.url] ?? meta.url;
     const savedEntity = entityList[node.attrs.entityId];
-    /**
-     * @deprecated
-     * @todo remove this
-     */
-    const savedBlock =
-      savedEntity && "properties" in savedEntity
-        ? prepareEntityForProsemirror(
-            // @todo type this
-            savedEntity
-          )
-        : null;
-
-    /**
-     * @deprecated
-     */
-    const savedBlockAttrs: Partial<NonNullable<typeof savedBlock>["attrs"]> =
-      savedBlock?.attrs ?? {};
 
     const childEntityId =
       "properties" in savedEntity
@@ -461,9 +444,9 @@ export const calculateSavePayloads = (
 
     return {
       // @todo don't rely on savedBlockAttrs
-      entityId: savedBlockAttrs.entityId ?? null,
-      accountId: savedBlockAttrs.accountId ?? accountId,
-      versionId: savedBlockAttrs.versionId ?? null,
+      entityId: savedEntity.metadataId ?? null,
+      accountId: savedEntity.accountId ?? accountId,
+      versionId: savedEntity.id ?? null,
       type: "Block",
       position,
       properties: {
@@ -492,15 +475,15 @@ export const calculateSavePayloads = (
    * An updated block also contains an updated entity, so we need to create a list of
    * entities that we need to post updates to via GraphQL
    */
-  const updatedEntities = existingBlocks.flatMap((node) => {
+  const updatedEntities = existingBlocks.flatMap((existingBlock) => {
     const block = {
       type: "Block",
-      id: node.entityId,
-      accountId: node.accountId,
+      id: existingBlock.entityId,
+      accountId: existingBlock.accountId,
       properties: {
-        componentId: node.properties.componentId,
-        entityId: node.properties.entity.versionId,
-        accountId: node.properties.entity.accountId,
+        componentId: existingBlock.properties.componentId,
+        entityId: existingBlock.properties.entity.versionId,
+        accountId: existingBlock.properties.entity.accountId,
       },
     };
 
@@ -514,13 +497,14 @@ export const calculateSavePayloads = (
       blocks.push(block);
     }
 
-    if (node.properties.entity.type === "Text") {
+    if (existingBlock.properties.entity.type === "Text") {
       if (
         !contentNode ||
-        contentNode.entity.childEntityId !== node.properties.entity.id ||
-        node.properties.entity.properties.texts.length !==
+        contentNode.entity.childEntityId !==
+          existingBlock.properties.entity.id ||
+        existingBlock.properties.entity.properties.texts.length !==
           contentNode.entity.children.length ||
-        (node.properties.entity.properties.texts as any[]).some(
+        (existingBlock.properties.entity.properties.texts as any[]).some(
           (text: any, idx: number) => {
             const contentText = contentNode.entity.children[idx];
 
@@ -538,7 +522,7 @@ export const calculateSavePayloads = (
           }
         )
       ) {
-        blocks.push(node.properties.entity);
+        blocks.push(existingBlock.properties.entity);
       }
     }
 
@@ -550,15 +534,19 @@ export const calculateSavePayloads = (
      *
      * @todo improve this
      */
-    return blocks.filter((block) => {
-      if (seenEntityIds.has(block.id)) {
-        return false;
+    return blocks.filter(
+      <T extends { id: string | null }>(
+        block: T
+      ): block is T & { id: string } => {
+        if (!block.id || seenEntityIds.has(block.id)) {
+          return false;
+        }
+
+        seenEntityIds.add(block.id);
+
+        return true;
       }
-
-      seenEntityIds.add(block.id);
-
-      return true;
-    });
+    );
   });
 
   /**
@@ -584,7 +572,7 @@ export const calculateSavePayloads = (
       (entity): BlockProtocolUpdatePayload<any> => ({
         entityId: entity.id,
         data: entity.properties,
-        accountId: entity.accountId,
+        accountId: entity.accountId ?? undefined,
       })
     );
 
