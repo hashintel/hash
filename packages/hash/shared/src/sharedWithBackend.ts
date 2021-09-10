@@ -13,7 +13,7 @@ import {
 } from "@hashintel/block-protocol";
 import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
 import { PageFieldsFragment, SystemTypeName } from "./graphql/apiTypes.gen";
-import { createEntityList } from "./entityList";
+import { createEntityList, EntityListType } from "./entityList";
 
 export { blockPaths };
 
@@ -410,10 +410,11 @@ export const calculateSavePayloads = (
     }
 
     const componentId = invertedBlockPaths[meta.url] ?? meta.url;
-    const savedEntity = entityList[node.attrs.entityId];
+    const savedEntity: EntityListType | undefined =
+      entityList[node.attrs.entityId];
 
     const childEntityId =
-      "properties" in savedEntity
+      savedEntity && "properties" in savedEntity
         ? savedEntity.properties.entity.metadataId
         : null ?? null;
 
@@ -460,9 +461,9 @@ export const calculateSavePayloads = (
 
     return {
       // @todo don't rely on savedBlockAttrs
-      entityId: savedEntity.metadataId ?? null,
-      accountId: savedEntity.accountId ?? accountId,
-      versionId: savedEntity.id ?? null,
+      entityId: savedEntity?.metadataId ?? null,
+      accountId: savedEntity?.accountId ?? accountId,
+      versionId: savedEntity?.id ?? null,
       type: "Block",
       position,
       properties: {

@@ -26,7 +26,10 @@ type NodeViewConstructorArgs = ConstructorParameters<NodeViewConstructor>;
 /**
  * @todo clean up / inline this function
  */
-const prepareNodeForReact = (entity: EntityListType, node: ProsemirrorNode) => {
+const prepareNodeForReact = (
+  entity: EntityListType | null | undefined,
+  node: ProsemirrorNode
+) => {
   // @todo if this isn't a block we've ran into a biiiiiiig problem – we should error
   const prepared =
     entity && "properties" in entity
@@ -63,7 +66,7 @@ const prepareNodeForReact = (entity: EntityListType, node: ProsemirrorNode) => {
   prepared.attrs.meta = node.attrs.meta;
   // @ts-ignore
   prepared.attrs.properties = {
-    ...(cachedPropertiesByEntity[entity.metadataId] ?? {}),
+    ...((entity ? cachedPropertiesByEntity[entity.metadataId] : null) ?? {}),
     ...prepared.props,
   };
 
