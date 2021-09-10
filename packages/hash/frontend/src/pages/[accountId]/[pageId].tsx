@@ -2,7 +2,7 @@ import { useMemo, VoidFunctionComponent } from "react";
 
 import { useRouter } from "next/router";
 import { useQuery } from "@apollo/client";
-import { getPageQuery } from "../../graphql/queries/page.queries";
+import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
 import {
   GetPageQuery,
   GetPageQueryVariables,

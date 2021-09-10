@@ -1,7 +1,7 @@
 import { useLazyQuery } from "@apollo/client";
 
 import { BlockProtocolAggregateFn } from "@hashintel/block-protocol";
-import { aggregateEntity } from "../../../graphql/queries/entity.queries";
+import { aggregateEntity } from "@hashintel/hash-shared/queries/entity.queries";
 import { useCallback } from "react";
 import {
   AggregateEntityQuery,

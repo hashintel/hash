@@ -1,7 +1,7 @@
 import { useMutation } from "@apollo/client";
 
 import { BlockProtocolUpdateFn } from "@hashintel/block-protocol";
-import { updateEntity } from "../../../graphql/queries/entity.queries";
+import { updateEntity } from "@hashintel/hash-shared/queries/entity.queries";
 import { useCallback } from "react";
 import {
   UpdateEntityMutation,
@@ -10,7 +10,7 @@ import {
   UpdatePageMutationVariables,
 } from "../../../graphql/apiTypes.gen";
 import { apolloClient } from "../../../pages/_app";
-import { updatePage } from "../../../graphql/queries/page.queries";
+import { updatePage } from "@hashintel/hash-shared/queries/page.queries";
 
 export const useBlockProtocolUpdate = (): {
   update: BlockProtocolUpdateFn;

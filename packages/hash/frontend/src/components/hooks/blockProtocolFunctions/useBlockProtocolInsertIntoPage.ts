@@ -5,7 +5,7 @@ import {
   InsertBlockIntoPageMutationVariables,
 } from "../../../graphql/apiTypes.gen";
 import { apolloClient } from "../../../pages/_app";
-import { insertBlockIntoPage } from "../../../graphql/queries/page.queries";
+import { insertBlockIntoPage } from "@hashintel/hash-shared/queries/page.queries";
 
 type InsertIntoPageFn = (
   variables: InsertBlockIntoPageMutationVariables

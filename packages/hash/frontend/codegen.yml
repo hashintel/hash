@@ -10,4 +10,6 @@ generates:
       - "typescript-operations"
     config:
       skipTypename: true
-    documents: ./src/graphql/queries/*.ts
+    documents:
+      - ./src/graphql/queries/*.ts
+      - ../shared/src/queries/*.ts

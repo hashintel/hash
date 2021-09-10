@@ -6,7 +6,7 @@ import {
   CreatePageMutationVariables,
 } from "../../graphql/apiTypes.gen";
 import { getAccountPages } from "../../graphql/queries/account.queries";
-import { createPage } from "../../graphql/queries/page.queries";
+import { createPage } from "@hashintel/hash-shared/queries/page.queries";
 
 export const useCreatePage = () => {
   const router = useRouter();
