@@ -4,6 +4,7 @@ import { RemoteBlock } from "../../components/RemoteBlock/RemoteBlock";
 import {
   Block,
   cachedPropertiesByEntity,
+  mapEntityToChildren,
   mapEntityToMappedEntity,
   ReplacePortals,
 } from "@hashintel/hash-shared/sharedWithBackend";
@@ -43,7 +44,34 @@ const prepareNodeForReact = (
             childEntityTypeId: ___ = null,
             childEntityVersionId: ____ = null,
             ...props
-          } = mapEntityToMappedEntity(entity.properties.entity);
+          } = ((
+            entity: PageFieldsFragment["properties"]["contents"][number]["properties"]["entity"]
+          ) => {
+            const children = mapEntityToChildren(entity);
+
+            return entity.__typename === "Text"
+              ? {
+                  /**
+                   * These are here to help reconstruct the database objects from the prosemirror document.
+                   *
+                   * @todo look at removing these
+                   */
+                  childEntityId: entity.metadataId,
+                  childEntityVersionId: entity.id,
+                  childEntityAccountId: entity.accountId,
+                  childEntityTypeId: entity.entityTypeId,
+
+                  children,
+                }
+              : entity.__typename === "UnknownEntity"
+              ? {
+                  childEntityId: entity.metadataId,
+                  childEntityTypeId: entity.entityTypeId,
+                  childEntityVersionId: entity.id,
+                  ...entity.unknownProperties,
+                }
+              : {};
+          })(entity.properties.entity);
 
           const attrs = {
             entityId: entity.id,
