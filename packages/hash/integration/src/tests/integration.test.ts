@@ -107,7 +107,6 @@ describe("logged in", () => {
 
   afterAll(async () => {
     /** @todo: delete test user from db */
-
     client.removeCookie();
   });
 
@@ -133,24 +132,24 @@ describe("logged in", () => {
       return page;
     });
 
-    it("can update the page", async () => {
+    let textEntityId: string;
+    it("can add a block to the page", async () => {
+      const textProperties = { texts: [{ text: "Hello World!" }] };
       const updatedPage = await client.insertBlocksIntoPage({
         accountId: testLoggedInUser.accountId,
-        pageId: page.entityVersionId,
-        pageMetadataId: page.metadataId,
+        entityId: page.entityId,
+        entityVersionId: page.entityVersionId,
         blocks: [
           {
             accountId: testLoggedInUser.accountId,
             componentId: "https://block.blockprotocol.org/header",
             systemTypeName: SystemTypeName.Text,
-            entityProperties: {
-              texts: [{ text: "Hello World!" }],
-            },
+            entityProperties: textProperties,
           },
         ],
       });
 
-      expect(updatedPage.metadataId).toEqual(page.metadataId);
+      expect(updatedPage.entityId).toEqual(page.entityId);
       expect(updatedPage.entityVersionId).not.toEqual(page.entityVersionId); // new version
       expect(updatedPage.history).toHaveLength(2);
       expect(updatedPage.history).toEqual([
@@ -170,31 +169,64 @@ describe("logged in", () => {
       expect(updatedPage.properties.contents.slice(1)).toEqual(
         page.properties.contents
       );
+
+      // Get the text entity we just inserted and make sure it matches
+      const newBlock = updatedPage.properties.contents[0];
+      textEntityId = newBlock.properties.entity.metadataId;
+      const textEntity = await client.getUnknownEntity({
+        entityId: textEntityId,
+        accountId: testLoggedInUser.accountId,
+      });
+      expect(textEntity.entityVersionId).toEqual(newBlock.properties.entity.id);
+      expect(textEntity.properties).toEqual(textProperties);
     });
 
-    // @todo: we changed the behavior of GraphQL updates to perform the update on the
-    // latest version, even if the ID passed does not match that of the latest version.
-    // The test below expects an error on such cases. Return here when the question of
-    // optimistic vs. strict entity updates is resolved.
-    // it("should throw when updating non-latest version of a page", async () => {
-    //   expect.assertions(1);
-    //   await expect(
-    //     client.insertBlocksIntoPage({
-    //       accountId: ACCOUNT_ID,
-    //       pageId: page.id,
-    //       pageMetadataId: page.metadataId,
-    //       blocks: [
-    //         {
-    //           accountId: ACCOUNT_ID,
-    //           componentId: "https://block.blockprotocol.org/header",
-    //           entityType: "Text",
-    //           entityProperties: {
-    //             texts: [{ text: "This will fail" }],
-    //           },
-    //         },
-    //       ],
-    //     })
-    //   ).rejects.toThrow();
-    // });
+    it("should create a new page version when a block is updated", async () => {
+      // Update the text block inside the page
+      const newTextProperties = { texts: [{ text: "Hello HASH!" }] };
+      const { entityVersionId, entityId } = await client.updateEntity({
+        accountId: testLoggedInUser.accountId,
+        entityId: textEntityId,
+        properties: newTextProperties,
+      });
+      expect(textEntityId).toEqual(entityId);
+
+      // Check that the text update succeeded
+      const newTextEntity = await client.getUnknownEntity({
+        accountId: testLoggedInUser.accountId,
+        entityVersionId,
+      });
+      expect(newTextEntity.properties).toEqual(newTextProperties);
+
+      // Check that the updated version of the page references the latest version of the
+      // text entity.
+      let updatedPage = await client.getPage({
+        accountId: testLoggedInUser.accountId,
+        entityId: page.entityId,
+      });
+      expect(updatedPage.history!).toHaveLength(3);
+      expect(updatedPage.properties.contents[0].properties.entity.id).toEqual(
+        newTextEntity.entityVersionId
+      );
+
+      // Update the header block text entity (2nd block)
+      const newHeaderTextProperties = { texts: [{ text: "Header Text" }] };
+      const headerBlock = updatedPage.properties.contents[1];
+      const headerUpdate = await client.updateEntity({
+        accountId: testLoggedInUser.accountId,
+        entityId: headerBlock.properties.entity.metadataId,
+        properties: newHeaderTextProperties,
+      });
+
+      // Check that the page is up-to-date
+      updatedPage = await client.getPage({
+        accountId: testLoggedInUser.accountId,
+        entityId: page.entityId,
+      });
+      expect(updatedPage.history!).toHaveLength(4);
+      expect(updatedPage.properties.contents[1].properties.entity.id).toEqual(
+        headerUpdate.entityVersionId
+      );
+    });
   });
 });
