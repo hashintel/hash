@@ -4,7 +4,7 @@ import { RemoteBlock } from "../../components/RemoteBlock/RemoteBlock";
 import {
   Block,
   cachedPropertiesByEntity,
-  mapEntityToBlock,
+  mapEntityToMappedEntity,
   ReplacePortals,
 } from "@hashintel/hash-shared/sharedWithBackend";
 import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
@@ -43,7 +43,7 @@ const prepareNodeForReact = (
             childEntityTypeId: ___ = null,
             childEntityVersionId: ____ = null,
             ...props
-          } = mapEntityToBlock(entity).entity;
+          } = mapEntityToMappedEntity(entity.properties.entity);
 
           const attrs = {
             entityId: entity.id,

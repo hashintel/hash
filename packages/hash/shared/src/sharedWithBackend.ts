@@ -219,22 +219,13 @@ export const ensureDocBlocksLoaded = async (
 export const prepareEntityForProsemirror = (
   entity: PageFieldsFragment["properties"]["contents"][number]
 ) => {
-  const block = mapEntityToBlock(entity);
-
-  const {
-    children,
-    childEntityId: _ = null,
-    childEntityAccountId: __ = null,
-    childEntityTypeId: ___ = null,
-    childEntityVersionId: ____ = null,
-    ...props
-  } = block.entity;
+  const { children } = mapEntityToMappedEntity(entity.properties.entity);
 
   const attrs = {
-    entityId: block.entityId,
+    entityId: entity.metadataId,
   };
 
-  return { children, props, attrs };
+  return { children, attrs };
 };
 
 /**
@@ -252,7 +243,7 @@ export const createEntityUpdateTransaction = async (
 
   const newNodes = await Promise.all(
     entities?.map(async (block, index) => {
-      const { children, props, attrs } = prepareEntityForProsemirror(block);
+      const { children, attrs } = prepareEntityForProsemirror(block);
 
       const entityId = block.metadataId;
 
@@ -266,14 +257,7 @@ export const createEntityUpdateTransaction = async (
         schema,
         viewConfig,
         block.properties.componentId,
-        {
-          // @todo remove this
-          properties: {
-            ...(cachedPropertiesByEntity[entityId] ?? {}),
-            ...props,
-          },
-          ...attrs,
-        },
+        attrs,
         children?.map((child: any) => {
           if (child.type === "text") {
             return schema.text(
@@ -301,58 +285,46 @@ export const createEntityUpdateTransaction = async (
  * @deprecated
  * @todo remove this
  */
-export const mapEntityToBlock = (
-  content: PageFieldsFragment["properties"]["contents"][number]
-): BlockWithoutMeta => {
-  const { componentId, entity } = content.properties;
+export const mapEntityToMappedEntity = (
+  entity: PageFieldsFragment["properties"]["contents"][number]["properties"]["entity"]
+) =>
+  entity.__typename === "Text"
+    ? {
+        /**
+         * These are here to help reconstruct the database objects from the prosemirror document.
+         *
+         * @todo look at removing these
+         */
+        childEntityId: entity.metadataId,
+        childEntityVersionId: entity.id,
+        childEntityAccountId: entity.accountId,
+        childEntityTypeId: entity.entityTypeId,
 
-  const props =
-    entity.__typename === "Text"
-      ? {
-          /**
-           * These are here to help reconstruct the database objects from the prosemirror document.
-           *
-           * @todo look at removing these
-           */
-          childEntityId: entity.metadataId,
-          childEntityVersionId: entity.id,
-          childEntityAccountId: entity.accountId,
-          childEntityTypeId: entity.entityTypeId,
+        children: entity.textProperties.texts.map((text) => ({
+          type: "text",
+          text: text.text,
+          entityId: entity.metadataId,
+          versionId: entity.id,
+          accountId: entity.accountId,
 
-          children: entity.textProperties.texts.map((text) => ({
-            type: "text",
-            text: text.text,
-            entityId: entity.metadataId,
-            versionId: entity.id,
-            accountId: entity.accountId,
-
-            // This maps the boolean properties on the entity into an array of mark names
-            marks: [
-              ["strong", text.bold],
-              ["underlined", text.underline],
-              ["em", text.italics],
-            ]
-              .filter(([, include]) => include)
-              .map(([mark]) => mark),
-          })),
-        }
-      : entity.__typename === "UnknownEntity"
-      ? {
-          childEntityId: entity.metadataId,
-          childEntityTypeId: entity.entityTypeId,
-          childEntityVersionId: entity.id,
-          ...entity.unknownProperties,
-        }
-      : {};
-
-  return {
-    componentId,
-    entityId: content.metadataId,
-    versionId: content.id,
-    entity: props,
-    accountId: content.accountId,
-  };
-};
+          // This maps the boolean properties on the entity into an array of mark names
+          marks: [
+            ["strong", text.bold],
+            ["underlined", text.underline],
+            ["em", text.italics],
+          ]
+            .filter(([, include]) => include)
+            .map(([mark]) => mark),
+        })),
+      }
+    : entity.__typename === "UnknownEntity"
+    ? {
+        childEntityId: entity.metadataId,
+        childEntityTypeId: entity.entityTypeId,
+        childEntityVersionId: entity.id,
+        ...entity.unknownProperties,
+      }
+    : {};
 
 const invertedBlockPaths = Object.fromEntries(
   Object.entries(blockPaths).map(([key, value]) => [value, key])
