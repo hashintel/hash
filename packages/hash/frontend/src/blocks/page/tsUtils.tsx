@@ -35,8 +35,6 @@ const prepareNodeForReact = (
     entity && "properties" in entity
       ? ((entity: PageFieldsFragment["properties"]["contents"][number]) => {
           // @todo look at removing this reference
-          const block = mapEntityToBlock(entity);
-
           // @todo clean this up
           const {
             children,
@@ -45,7 +43,7 @@ const prepareNodeForReact = (
             childEntityTypeId: ___ = null,
             childEntityVersionId: ____ = null,
             ...props
-          } = block.entity;
+          } = mapEntityToBlock(entity).entity;
 
           const attrs = {
             entityId: entity.id,

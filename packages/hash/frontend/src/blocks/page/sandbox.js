@@ -404,12 +404,24 @@ class BlockView {
              * @todo the chosen variant will be persisted in the future
              * @see https://app.asana.com/0/1200339985403942/1200644404374108/f
              */
-            const selectedBlockType = node.attrs.meta?.name ?? node.type.name;
+            // const selectedBlockType = node.attrs.meta?.name ?? node.type.name;
             const selectedIndex = options.findIndex(
-              ([blockType, variant]) =>
-                blockType === selectedBlockType &&
-                // @todo this needs to use the entity list instead
-                isSubsetOf(variant.properties, node.attrs.properties)
+              (/*[blockType, variant]*/) => {
+                /**
+                 * This is already broken because of attempts to compare component URL vs component name. But we've also
+                 * since removed properties from the node, so you can't compare this way
+                 *
+                 * @todo use the entity list – this will require the entity list stays up to date with cached properties
+                 *       and perhaps we need two versions of the entity list, one representing the current, yet to be
+                 *       saved doc and one representing the saved doc
+                 */
+                return false;
+                // return (
+                // blockType === selectedBlockType &&
+                // // @todo this needs to use the entity list instead
+                // isSubsetOf(variant.properties, node.attrs.properties)
+                // );
+              }
             );
 
             return (
