@@ -34,27 +34,26 @@ const prepareNodeForReact = (
   const prepared =
     entity && "properties" in entity
       ? ((entity: PageFieldsFragment["properties"]["contents"][number]) => {
+          // @todo look at removing this reference
           const block = mapEntityToBlock(entity);
 
+          // @todo clean this up
           const {
             children,
-            childEntityId = null,
-            childEntityAccountId = null,
-            childEntityTypeId = null,
-            childEntityVersionId = null,
+            childEntityId: _ = null,
+            childEntityAccountId: __ = null,
+            childEntityTypeId: ___ = null,
+            childEntityVersionId: ____ = null,
             ...props
           } = block.entity;
 
           const attrs = {
-            entityId: block.entityId,
-            accountId: block.accountId,
-            versionId: block.versionId,
-            childEntityId,
-            childEntityAccountId,
-            childEntityTypeId,
-            childEntityVersionId,
+            entityId: entity.id,
+            accountId: entity.accountId,
+            versionId: entity.id,
+            childEntityId: entity.properties.entity.metadataId,
             // @ts-ignore
-            originalEntity: block.originalEntity,
+            originalEntity: entity,
           };
 
           return { children, props, attrs };
