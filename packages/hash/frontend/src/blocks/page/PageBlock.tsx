@@ -178,6 +178,13 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
               currentContents.current
             );
 
+          /**
+           * Building a promise here that updates the page block with the list of block ids it contains (if necessary, i.e,
+           * when you delete or re-order blocks, and then calls insert for each new block, before updating blocks that need
+           * to be updated. Ideally we would handle all of this in one query
+           *
+           * @todo improve this
+           */
           return (
             insertPayloads
               .reduce(

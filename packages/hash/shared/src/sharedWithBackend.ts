@@ -566,23 +566,19 @@ export const calculateSavePayloads = (
     );
   });
 
-  /**
-   * Building a promise here that updates the page block with the list of block ids it contains (if necessary, i.e,
-   * when you delete or re-order blocks, and then calls insert for each new block, before updating blocks that need
-   * to be updated. Ideally we would handle all of this in one query
-   *
-   * @todo improve this
-   */
   const updatedEntitiesPayload = updatedEntities
-    /**
-     * Not entirely sure what I was going for with this filter
-     *
-     * @todo figure this out
-     */
     .filter(
       (entity) =>
-        (entity.properties.entityTypeName !== "Text" ||
-          entity.properties.entityId) &&
+        /**
+         * This had been setup to do something special in the case that you're converting from text blocks to non-text
+         * blocks (or vice versa, not sure) but it hasn't work for a while and making this strongly typed is showing it
+         * as an error. I'm commenting this out, but we do need to figure this one out
+         *
+         * @see https://github.com/hashintel/dev/blob/664be1e740cbad694f0b76b96198fa45cc8232fc/packages/hash/frontend/src/blocks/page/PageBlock.tsx#L283
+         * @see https://app.asana.com/0/1200211978612931/1200962726214259/f
+         */
+        // (entity.properties.entityId ||
+        //   entity.properties.entityTypeName !== "Text") &&
         entity.id
     )
     .map(
