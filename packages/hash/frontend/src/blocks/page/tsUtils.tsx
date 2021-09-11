@@ -21,11 +21,7 @@ type NodeViewConstructor = {
 
 type NodeViewConstructorArgs = ConstructorParameters<NodeViewConstructor>;
 
-/**
- * @deprecated
- * @todo remove this
- */
-const getBasedPrepared = (entity: EntityListType | null | undefined) => {
+const getRemoteBlockProps = (entity: EntityListType | null | undefined) => {
   if (entity) {
     if (!("properties" in entity) || entity.__typename !== "Block") {
       throw new Error("Cannot prepare non-block entity for prosemirrior");
@@ -33,43 +29,39 @@ const getBasedPrepared = (entity: EntityListType | null | undefined) => {
 
     const childEntity = entity.properties.entity;
 
-    const props =
-      childEntity.__typename === "UnknownEntity"
-        ? childEntity.unknownProperties
-        : {};
-
-    const attrs = {
+    return {
       entityId: entity.id,
       accountId: entity.accountId,
       versionId: entity.id,
       childEntityId: childEntity.metadataId,
+      properties:
+        childEntity.__typename === "UnknownEntity"
+          ? childEntity.unknownProperties
+          : {},
     };
-
-    return { props, attrs };
   }
 
-  return { props: {}, attrs: {} };
+  return { properties: {} };
 };
 
 /**
- * @todo clean up / inline this function
+ * @todo make this unnecessary
  */
-const prepareRemoteBlockProps = (
+const getOverwrittenRemoteBlockProps = (
   entity: EntityListType | null | undefined,
-  node: ProsemirrorNode
+  node: any
 ) => {
-  const { attrs, props } = getBasedPrepared(entity);
+  const originalProps = getRemoteBlockProps(entity);
 
-  // @todo fix this
-  // @ts-ignore
-  attrs.meta = node.attrs.meta;
-  // @ts-ignore
-  attrs.properties = {
-    ...((entity ? cachedPropertiesByEntity[entity.metadataId] : null) ?? {}),
-    ...props,
+  // @todo we need to type this such that we're certain we're passing through all the props required
+  return {
+    ...originalProps,
+    meta: node.attrs.meta,
+    properties: {
+      ...((entity ? cachedPropertiesByEntity[entity.metadataId] : null) ?? {}),
+      ...originalProps.properties,
+    },
   };
-
-  return attrs;
 };
 
 /**
@@ -124,8 +116,10 @@ export const createNodeView = (
                 const entityId = node.attrs.entityId;
                 // @todo i think we want a version of this that only has blocks in
                 const entity = entityList[entityId];
-                // @todo we need to type this such that we're certain we're passing through all the props required
-                const remoteBlockProps = prepareRemoteBlockProps(entity, node);
+                const remoteBlockProps = getOverwrittenRemoteBlockProps(
+                  entity,
+                  node
+                );
 
                 return (
                   <RemoteBlock
