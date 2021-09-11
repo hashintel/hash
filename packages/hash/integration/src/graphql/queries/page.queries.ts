@@ -3,11 +3,10 @@ import { gql } from "@apollo/client";
 const pageFieldsFragment = gql`
   fragment PageFields on Page {
     __typename
-    id
+    entityId
     entityVersionId
     accountId
     createdAt
-    metadataId
     history {
       createdAt
       entityId
@@ -59,18 +58,27 @@ export const createPage = gql`
 export const insertBlocksIntoPage = gql`
   mutation insertBlocksIntoPage(
     $accountId: ID!
-    $pageId: ID!
-    $pageMetadataId: ID!
+    $entityVersionId: ID!
+    $entityId: ID!
     $blocks: [InsertBlocksData!]!
     $previousBlockId: ID
   ) {
     insertBlocksIntoPage(
       accountId: $accountId
-      pageId: $pageId
-      pageMetadataId: $pageMetadataId
+      pageMetadataId: $entityId
+      pageId: $entityVersionId
       blocks: $blocks
       previousBlockId: $previousBlockId
     ) {
+      ...PageFields
+    }
+  }
+  ${pageFieldsFragment}
+`;
+
+export const getPage = gql`
+  query getPage($accountId: ID!, $entityId: ID, $entityVersionId: ID) {
+    page(accountId: $accountId, metadataId: $entityId, id: $entityVersionId) {
       ...PageFields
     }
   }

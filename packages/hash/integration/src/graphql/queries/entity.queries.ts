@@ -44,3 +44,38 @@ export const createEntityType = gql`
     }
   }
 `;
+
+export const getUnknownEntity = gql`
+  query getEntity($accountId: ID!, $entityId: ID, $entityVersionId: ID) {
+    entity(accountId: $accountId, metadataId: $entityId, id: $entityVersionId) {
+      entityId
+      entityVersionId
+      properties
+      history {
+        entityId
+        createdAt
+      }
+      entityVersionCreatedAt
+      createdAt
+      updatedAt
+      properties
+    }
+  }
+`;
+
+export const updateEntity = gql`
+  mutation updateEntity(
+    $accountId: ID!
+    $entityId: ID!
+    $properties: JSONObject!
+  ) {
+    updateEntity(
+      accountId: $accountId
+      metadataId: $entityId
+      properties: $properties
+    ) {
+      entityId
+      entityVersionId
+    }
+  }
+`;
