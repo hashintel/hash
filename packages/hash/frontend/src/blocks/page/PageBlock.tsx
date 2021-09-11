@@ -103,6 +103,11 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
    */
   const entityList = useMemo(() => createEntityList(contents), [contents]);
 
+  const currentEntityList = useRef(entityList);
+  useLayoutEffect(() => {
+    currentEntityList.current = entityList;
+  }, [entityList]);
+
   const updateContents = useCallback(
     async (signal?: AbortSignal): Promise<void> => {
       const setup = prosemirrorSetup.current;
@@ -175,7 +180,8 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
               metadataId,
               state.schema,
               state.doc,
-              currentContents.current
+              currentContents.current,
+              currentEntityList.current
             );
 
           /**

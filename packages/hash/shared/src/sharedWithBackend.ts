@@ -377,12 +377,14 @@ export const calculateSavePayloads = (
   schema: Schema,
   doc: ProsemirrorNode,
   // @todo rename
-  premappedSavedContents: PageFieldsFragment["properties"]["contents"]
+  premappedSavedContents: PageFieldsFragment["properties"]["contents"],
+  entityList = createEntityList(premappedSavedContents)
 ) => {
-  // @todo look into removing this
+  /**
+   * @deprecated
+   * // @todo look into removing this
+   */
   const savedContents = premappedSavedContents.map(mapEntityToBlock);
-  // @todo look into allowing passing this in as an optimisation
-  const entityList = createEntityList(premappedSavedContents);
 
   const blocks = doc
     .toJSON()
