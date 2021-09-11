@@ -268,7 +268,7 @@ export const createEntityUpdateTransaction = async (
   return tr;
 };
 
-export const mapEntityToChildren = (
+const mapEntityToChildren = (
   entity: PageFieldsFragment["properties"]["contents"][number]["properties"]["entity"]
 ) => {
   if (entity.__typename === "Text") {

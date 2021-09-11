@@ -4,14 +4,11 @@ import { RemoteBlock } from "../../components/RemoteBlock/RemoteBlock";
 import {
   Block,
   cachedPropertiesByEntity,
-  mapEntityToChildren,
-  mapEntityToMappedEntity,
   ReplacePortals,
 } from "@hashintel/hash-shared/sharedWithBackend";
 import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
 import { EntityListContext } from "./EntityListContext";
 import { EntityListType } from "@hashintel/hash-shared/entityList";
-import { PageFieldsFragment } from "@hashintel/hash-shared/graphql/apiTypes.gen";
 
 type NodeViewConstructor = {
   new (
@@ -25,75 +22,54 @@ type NodeViewConstructor = {
 type NodeViewConstructorArgs = ConstructorParameters<NodeViewConstructor>;
 
 /**
+ * @deprecated
+ * @todo remove this
+ */
+const getBasedPrepared = (entity: EntityListType | null | undefined) => {
+  if (entity) {
+    if (!("properties" in entity) || entity.__typename !== "Block") {
+      throw new Error("Cannot prepare non-block entity for prosemirrior");
+    }
+
+    const childEntity = entity.properties.entity;
+
+    const props =
+      childEntity.__typename === "UnknownEntity"
+        ? childEntity.unknownProperties
+        : {};
+
+    const attrs = {
+      entityId: entity.id,
+      accountId: entity.accountId,
+      versionId: entity.id,
+      childEntityId: childEntity.metadataId,
+    };
+
+    return { props, attrs };
+  }
+
+  return { props: {}, attrs: {} };
+};
+
+/**
  * @todo clean up / inline this function
  */
-const prepareNodeForReact = (
+const prepareRemoteBlockProps = (
   entity: EntityListType | null | undefined,
   node: ProsemirrorNode
 ) => {
-  // @todo if this isn't a block we've ran into a biiiiiiig problem – we should error
-  const prepared =
-    entity && "properties" in entity
-      ? ((entity: PageFieldsFragment["properties"]["contents"][number]) => {
-          // @todo look at removing this reference
-          // @todo clean this up
-          const {
-            children,
-            childEntityId: _ = null,
-            childEntityAccountId: __ = null,
-            childEntityTypeId: ___ = null,
-            childEntityVersionId: ____ = null,
-            ...props
-          } = ((
-            entity: PageFieldsFragment["properties"]["contents"][number]["properties"]["entity"]
-          ) => {
-            const children = mapEntityToChildren(entity);
-
-            return entity.__typename === "Text"
-              ? {
-                  /**
-                   * These are here to help reconstruct the database objects from the prosemirror document.
-                   *
-                   * @todo look at removing these
-                   */
-                  childEntityId: entity.metadataId,
-                  childEntityVersionId: entity.id,
-                  childEntityAccountId: entity.accountId,
-                  childEntityTypeId: entity.entityTypeId,
-
-                  children,
-                }
-              : entity.__typename === "UnknownEntity"
-              ? {
-                  childEntityId: entity.metadataId,
-                  childEntityTypeId: entity.entityTypeId,
-                  childEntityVersionId: entity.id,
-                  ...entity.unknownProperties,
-                }
-              : {};
-          })(entity.properties.entity);
-
-          const attrs = {
-            entityId: entity.id,
-            accountId: entity.accountId,
-            versionId: entity.id,
-            childEntityId: entity.properties.entity.metadataId,
-          };
-
-          return { children, props, attrs };
-        })(entity)
-      : { attrs: {}, props: {} };
+  const { attrs, props } = getBasedPrepared(entity);
 
   // @todo fix this
   // @ts-ignore
-  prepared.attrs.meta = node.attrs.meta;
+  attrs.meta = node.attrs.meta;
   // @ts-ignore
-  prepared.attrs.properties = {
+  attrs.properties = {
     ...((entity ? cachedPropertiesByEntity[entity.metadataId] : null) ?? {}),
-    ...prepared.props,
+    ...props,
   };
 
-  return prepared;
+  return attrs;
 };
 
 /**
@@ -148,13 +124,13 @@ export const createNodeView = (
                 const entityId = node.attrs.entityId;
                 // @todo i think we want a version of this that only has blocks in
                 const entity = entityList[entityId];
-                const prepared = prepareNodeForReact(entity, node);
-
                 // @todo we need to type this such that we're certain we're passing through all the props required
+                const remoteBlockProps = prepareRemoteBlockProps(entity, node);
+
                 return (
                   <RemoteBlock
                     url={url}
-                    {...prepared.attrs}
+                    {...remoteBlockProps}
                     {...(editable
                       ? {
                           editableRef: (node: HTMLElement) => {
