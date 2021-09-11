@@ -11,7 +11,7 @@
     "isolatedModules": true,
     "moduleResolution": "node",
     // overrides
-    "lib": ["es2020", "dom"],
+    "lib": ["es2020"],
     "composite": true,
   },
   "include": ["./src/**/*.ts", "./src/**/*.js", "./src/**/*.json"],

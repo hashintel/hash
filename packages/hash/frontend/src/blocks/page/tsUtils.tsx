@@ -112,9 +112,7 @@ export const createNodeView = (
 
             <EntityListContext.Consumer>
               {(entityList) => {
-                // @todo fix this
                 const entityId = node.attrs.entityId;
-                // @todo i think we want a version of this that only has blocks in
                 const entity = entityList[entityId];
                 const remoteBlockProps = getOverwrittenRemoteBlockProps(
                   entity,

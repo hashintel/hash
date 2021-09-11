@@ -329,9 +329,6 @@ export const calculateSavePayloads = (
     const meta = (nodeType as any).defaultAttrs
       .meta as Block["componentMetadata"];
 
-    /**
-     * @todo caching of properties needs to be based on entity list
-     */
     if (node.attrs.entityId) {
       cachedPropertiesByEntity[node.attrs.entityId] = node.attrs.properties;
     } else {
@@ -379,7 +376,6 @@ export const calculateSavePayloads = (
       const childEntityVersionId = savedChildEntity?.id ?? null;
       const childEntityAccountId = savedChildEntity?.accountId ?? null;
 
-      // @todo much of this isn't used as blocks handle their own updates
       entity = {
         type: "UnknownEntity" as const,
         id: childEntityId,
@@ -389,7 +385,6 @@ export const calculateSavePayloads = (
     }
 
     return {
-      // @todo don't rely on savedBlockAttrs
       entityId: savedEntity?.metadataId ?? null,
       accountId: savedEntity?.accountId ?? accountId,
       versionId: savedEntity?.id ?? null,

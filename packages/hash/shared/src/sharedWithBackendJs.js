@@ -212,13 +212,6 @@ export const createRemoteBlock = async (
 
   // Create a new instance of the newly defined prosemirror node
   return schema.nodes[componentUrl].create(attrs, children, marks);
-  // return schema.nodes.block.create(
-  //   { id: attrs.entityId },
-  //   schema.nodes.entity.create(
-  //     { id: attrs.childEntityId },
-  //     schema.nodes[componentUrl].create(attrs, children, marks)
-  //   )
-  // );
 };
 
 const rewrapCommand = (blockExisted) => (newState, dispatch) => {
@@ -271,7 +264,6 @@ const rewrapCommand = (blockExisted) => (newState, dispatch) => {
 
   return true;
 };
-
 /**
  * This wraps a prosemirror command to unwrap relevant nodes out of their containing block node in order to ensure
  * prosemirror logic that expects text block nodes to be at the top level works as intended. Rewrapping after the
@@ -388,13 +380,6 @@ const plugins = [
       if (!transactions.some((tr) => tr.getMeta("commandWrapped"))) {
         let tr;
 
-        /**
-         * Arguably if we get as far as this and there's a block that isn't properly wrapped, there's an error. I think
-         * we ought to find out a way to crash here instead so we can pick up the error if necessary. We don't have the
-         * info necessary to rebuild the correct tree structure needed
-         *
-         * @todo remove this and crash if structure is not correct
-         */
         rewrapCommand()(newState, (dispatchedTr) => {
           tr = dispatchedTr;
         });

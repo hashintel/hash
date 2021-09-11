@@ -6,15 +6,12 @@ export type EntityListType =
   | ReturnedBlockType
   | ReturnedBlockType["properties"]["entity"];
 
-function mapEntityList<T extends EntityListType>(
+const mapEntityList = <T extends EntityListType>(
   entity: T
-): [string, EntityListType][] {
-  return [
-    [entity.metadataId, entity],
-    ...("properties" in entity ? mapEntityList(entity.properties.entity) : []),
-  ];
-}
+): [string, EntityListType][] => [
+  [entity.metadataId, entity],
+  ...("properties" in entity ? mapEntityList(entity.properties.entity) : []),
+];
 
-export function createEntityList(contents: EntityListType[]) {
-  return Object.fromEntries(contents.flatMap(mapEntityList));
-}
+export const createEntityList = (contents: EntityListType[]) =>
+  Object.fromEntries(contents.flatMap(mapEntityList));
