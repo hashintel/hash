@@ -361,14 +361,12 @@ export const cachedPropertiesByEntity: Record<string, Record<any, any>> = {};
 const cachedPropertiesByPosition: Record<string, Record<any, any>> = {};
 
 /**
- * @todo only need doc
- *
  * There's a bug here where when we add a new block, we think we need to update the page entity but
  * that is handled by the insert block operation, so this update here is a noop
  *
  * @todo fix this
  *
- * @todo take ids out of entity list instead of out of prosemirror tree
+ * @todo remove the intermediary formats used in this function
  */
 export const calculateSavePayloads = (
   accountId: string,
@@ -376,16 +374,12 @@ export const calculateSavePayloads = (
   metadataId: string,
   schema: Schema,
   doc: ProsemirrorNode,
-  // @todo rename
-  premappedSavedContents: PageFieldsFragment["properties"]["contents"],
-  entityList = createEntityList(premappedSavedContents)
+  savedContents: PageFieldsFragment["properties"]["contents"],
+  entityList = createEntityList(savedContents)
 ) => {
   /**
-   * @deprecated
-   * // @todo look into removing this
+   * @todo this needs to be typed – maybe we should use the prosemirror node APIs instead
    */
-  const savedContents = premappedSavedContents.map(mapEntityToBlock);
-
   const blocks = doc
     .toJSON()
     .content.filter((block: any) => block.type === "block")
@@ -474,7 +468,8 @@ export const calculateSavePayloads = (
    * Once we have a list of blocks, we need to divide the list of blocks into new ones and
    * updated ones, as they require different queries to handle
    */
-  const existingBlockIds = savedContents.map((block) => block.entityId);
+  const existingBlockIds = savedContents.map((block) => block.metadataId);
+
   const newBlocks = mappedBlocks.filter(
     (block) => !block.entityId || !existingBlockIds.includes(block.entityId)
   );
@@ -502,36 +497,42 @@ export const calculateSavePayloads = (
     };
 
     const contentNode = savedContents.find(
-      (existingBlock) => existingBlock.entityId === block.id
+      (existingBlock) => existingBlock.metadataId === block.id
     );
 
     const blocks = [];
 
-    if (block.properties.componentId !== contentNode?.componentId) {
+    if (block.properties.componentId !== contentNode?.properties.componentId) {
       blocks.push(block);
     }
 
     if (existingBlock.properties.entity.type === "Text") {
+      const texts =
+        contentNode && "textProperties" in contentNode.properties.entity
+          ? contentNode.properties.entity.textProperties.texts
+          : undefined;
+
       if (
         !contentNode ||
-        contentNode.entity.childEntityId !==
+        contentNode?.properties.entity.metadataId !==
           existingBlock.properties.entity.id ||
         existingBlock.properties.entity.properties.texts.length !==
-          contentNode.entity.children.length ||
+          texts?.length ||
+        // @todo remove any cast
         (existingBlock.properties.entity.properties.texts as any[]).some(
           (text: any, idx: number) => {
-            const contentText = contentNode.entity.children[idx];
+            const existingText = texts?.[idx];
 
             /**
              * Really crude way of working out if any properties we care about have changed – we need a better way
              * of working out which text entities need an update
              */
             return (
-              !contentText ||
-              text.text !== contentText.text ||
-              text.bold !== contentText.marks?.includes("strong") ||
-              text.underline !== contentText.marks?.includes("underlined") ||
-              text.italics !== contentText.marks?.includes("em")
+              !existingText ||
+              text.text !== existingText.text ||
+              text.bold !== existingText.bold ||
+              text.underline !== existingText.underline ||
+              text.italics !== existingText.italics
             );
           }
         )
@@ -593,7 +594,7 @@ export const calculateSavePayloads = (
    * @todo come up with something better
    */
   const pageUpdatedPayload =
-    JSON.stringify(savedContents.map((content) => content.entityId)) !==
+    JSON.stringify(existingBlockIds) !==
     JSON.stringify(mappedBlocks.map((block) => block.entityId))
       ? {
           entityTypeId: "Page",
