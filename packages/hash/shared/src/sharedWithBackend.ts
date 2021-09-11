@@ -267,6 +267,7 @@ export const createEntityUpdateTransaction = async (
         viewConfig,
         block.properties.componentId,
         {
+          // @todo remove this
           properties: {
             ...(cachedPropertiesByEntity[entityId] ?? {}),
             ...props,
