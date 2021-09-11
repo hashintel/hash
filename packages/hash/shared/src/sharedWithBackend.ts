@@ -211,18 +211,10 @@ export const ensureDocBlocksLoaded = async (
   );
 };
 
-/**
- * @todo remove this / most props from this
- * @deprecated
- * @todo how are props returned by this used
- */
-export const prepareEntityForProsemirror = (
+export const getProseMirrorNodeAttributes = (
   entity: PageFieldsFragment["properties"]["contents"][number]
 ) => ({
-  children: mapEntityToChildren(entity.properties.entity),
-  attrs: {
-    entityId: entity.metadataId,
-  },
+  entityId: entity.metadataId,
 });
 
 /**
@@ -240,8 +232,6 @@ export const createEntityUpdateTransaction = async (
 
   const newNodes = await Promise.all(
     entities?.map(async (block, index) => {
-      const { children, attrs } = prepareEntityForProsemirror(block);
-
       const entityId = block.metadataId;
 
       if (cachedPropertiesByPosition[index]) {
@@ -254,8 +244,8 @@ export const createEntityUpdateTransaction = async (
         schema,
         viewConfig,
         block.properties.componentId,
-        attrs,
-        children?.map((child: any) => {
+        getProseMirrorNodeAttributes(block),
+        mapEntityToChildren(block.properties.entity)?.map((child: any) => {
           if (child.type === "text") {
             return schema.text(
               child.text,
@@ -278,11 +268,6 @@ export const createEntityUpdateTransaction = async (
   return tr;
 };
 
-/**
- * @deprecated
- * @todo remove this
- * @todo maybe not deprecated
- */
 export const mapEntityToChildren = (
   entity: PageFieldsFragment["properties"]["contents"][number]["properties"]["entity"]
 ) => {

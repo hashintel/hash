@@ -3,7 +3,7 @@ import { createInitialDoc, createSchema } from "@hashintel/hash-shared/schema";
 import {
   calculateSavePayloads,
   createEntityUpdateTransaction,
-  prepareEntityForProsemirror,
+  getProseMirrorNodeAttributes,
 } from "@hashintel/hash-shared/sharedWithBackend";
 import {
   getPageQuery,
@@ -95,7 +95,7 @@ class Instance {
           });
 
           const transform = new Transform(this.doc);
-          const { attrs } = prepareEntityForProsemirror(entity);
+          const { attrs } = getProseMirrorNodeAttributes(entity);
 
           const blockWithAttrs = this.doc.childAfter(mapping.map(offset) + 1);
 
