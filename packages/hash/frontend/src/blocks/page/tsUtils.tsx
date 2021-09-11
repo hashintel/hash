@@ -52,8 +52,6 @@ const prepareNodeForReact = (
             accountId: entity.accountId,
             versionId: entity.id,
             childEntityId: entity.properties.entity.metadataId,
-            // @ts-ignore
-            originalEntity: entity,
           };
 
           return { children, props, attrs };
@@ -68,10 +66,6 @@ const prepareNodeForReact = (
     ...((entity ? cachedPropertiesByEntity[entity.metadataId] : null) ?? {}),
     ...prepared.props,
   };
-
-  if ("originalEntity" in prepared.attrs) {
-    delete prepared.attrs.originalEntity;
-  }
 
   return prepared;
 };

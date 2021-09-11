@@ -232,8 +232,6 @@ export const prepareEntityForProsemirror = (
 
   const attrs = {
     entityId: block.entityId,
-    // @ts-ignore
-    originalEntity: block.originalEntity,
   };
 
   return { children, props, attrs };
@@ -352,9 +350,6 @@ export const mapEntityToBlock = (
     versionId: content.id,
     entity: props,
     accountId: content.accountId,
-
-    // @ts-ignore
-    originalEntity: content,
   };
 };
 
