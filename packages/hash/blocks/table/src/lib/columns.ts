@@ -8,13 +8,18 @@ type TableColumn = Column<Record<string, any>> & {
 
 export const makeColumns = (
   data: Record<string, any>,
-  parentAccessor?: string
+  parentAccessor?: string,
+  hiddenColumns?: string[]
 ) => {
   const columns: TableColumn[] = [];
 
   for (const [key, value] of Object.entries(data)) {
     const prefix = parentAccessor ? `${parentAccessor}.` : "";
     const accessor = `${prefix}${key}`;
+
+    if (accessor.includes("__linkedData") || accessor.includes("entityType")) {
+      continue;
+    }
     const column: TableColumn = {
       Header: key,
       accessor,

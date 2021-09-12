@@ -82,4 +82,9 @@ export const initialState: TableOptions<{}>["initialState"] = {
   ],
 };
 
+const tableEntities = {
+  id: 'table1',
+  initialState,
+}
+
 export const entities = [...people, HASH, london];
