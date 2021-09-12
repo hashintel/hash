@@ -2,7 +2,7 @@ export const isRecord = (thing: unknown): thing is Record<string, any> => {
   if (typeof thing !== "object") {
     return false;
   }
-  if (thing == null) {
+  if (thing === null) {
     return false;
   }
   if (thing instanceof Array) {

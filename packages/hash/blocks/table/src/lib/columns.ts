@@ -1,15 +1,16 @@
 import { Column } from "react-table";
-
 import { isRecord } from "./identifyEntity";
 
 type TableColumn = Column<Record<string, any>> & {
   columns?: TableColumn[];
 };
 
+const DEFAULT_HIDDEN_COLUMNS = ["__linkedData", "entityType"];
+
 export const makeColumns = (
   data: Record<string, any>,
   parentAccessor?: string,
-  hiddenColumns?: string[]
+  hiddenColumns: string[] = DEFAULT_HIDDEN_COLUMNS
 ) => {
   const columns: TableColumn[] = [];
 
@@ -17,7 +18,7 @@ export const makeColumns = (
     const prefix = parentAccessor ? `${parentAccessor}.` : "";
     const accessor = `${prefix}${key}`;
 
-    if (accessor.includes("__linkedData") || accessor.includes("entityType")) {
+    if (hiddenColumns.find((column) => accessor.includes(column))) {
       continue;
     }
     const column: TableColumn = {
@@ -25,7 +26,7 @@ export const makeColumns = (
       accessor,
     };
     if (isRecord(value)) {
-      column.columns = makeColumns(value, accessor);
+      column.columns = makeColumns(value, accessor, hiddenColumns);
     }
     columns.push(column);
   }

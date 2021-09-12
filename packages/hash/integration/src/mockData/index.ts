@@ -419,7 +419,7 @@ void (async () => {
               __linkedData: {
                 entityTypeId: newTypeIds.Person,
                 aggregate: {
-                  perPage: 5,
+                  itemsPerPage: 5,
                   sort: {
                     field: "createdAt",
                   },

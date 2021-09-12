@@ -15,13 +15,10 @@ export const aggregateEntity: Resolver<
   GraphQLContext,
   QueryAggregateEntityArgs
 > = async (_, { accountId, operation, entityTypeId }, { dataSources }) => {
-  const page = operation?.page || 1;
-  const perPage = operation?.perPage || 10;
+  const pageNumber = operation?.pageNumber || 1;
+  const itemsPerPage = operation?.itemsPerPage || 10;
   const sort = operation?.sort?.field || "updatedAt";
-  const desc = operation?.sort?.desc
-
-  const startIndex = (page ?? 1) - 1;
-  const endIndex = startIndex + (perPage ?? 10);
+  const desc = operation?.sort?.desc;
 
   // TODO: this returns an array of all entities of the given type in the account.
   // We should perform the sorting & filtering in the database for better performance.
@@ -32,17 +29,21 @@ export const aggregateEntity: Resolver<
     latestOnly: true,
   });
 
+  const startIndex = pageNumber === 1 ? 0 : (pageNumber - 1) * itemsPerPage;
+  const endIndex = Math.min(startIndex + itemsPerPage, entities.length);
+
   const results = entities
+    .sort((a, b) => compareEntitiesByField(a, b, sort, desc ?? false))
     .slice(startIndex, endIndex)
-    .sort((a, b) => desc ? compareEntitiesByField(b, a, sort): compareEntitiesByField(a, b, sort))
     .map((entity) => entity.toGQLUnknownEntity());
 
   return {
     results,
     operation: {
-      page,
-      perPage,
       sort,
+      pageNumber,
+      itemsPerPage,
+      pageCount: Math.ceil(entities.length / itemsPerPage),
     },
   };
 };
@@ -51,7 +52,8 @@ export const aggregateEntity: Resolver<
 const compareEntitiesByField = (
   entityA: Entity,
   entityB: Entity,
-  property: string
+  property: string,
+  desc: boolean
 ): number => {
   if (
     property === "entityCreatedAt" ||
@@ -61,8 +63,8 @@ const compareEntitiesByField = (
     return entityA[property].getTime() - entityB[property].getTime();
   }
 
-  const a = entityA.properties[property];
-  const b = entityB.properties[property];
+  const a = desc ? entityB.properties[property] : entityA.properties[property];
+  const b = desc ? entityA.properties[property] : entityB.properties[property];
 
   if (typeof a === "string" && typeof b === "string") {
     return a.localeCompare(b);

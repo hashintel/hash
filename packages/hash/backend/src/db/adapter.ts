@@ -288,7 +288,7 @@ export interface DBClient {
 
   /** Get multiple entities by their account ID and entity ID. */
   getEntities(
-    params: {
+    entities: {
       accountId: string;
       entityVersionId: string;
     }[]
