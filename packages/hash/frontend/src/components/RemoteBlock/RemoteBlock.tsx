@@ -21,10 +21,13 @@ export const RemoteBlock: VoidFunctionComponent<
   const [loading, err, Component] = useRemoteBlock(url);
   const { update } = useBlockProtocolUpdate();
 
+  console.log('props ==> ', props)
   const flattenedProperties = useMemo(
     () => cloneEntityTreeWithPropertiesMovedUp(props),
     [props]
   );
+
+  console.log('flattened Props ==> ', flattenedProperties)
 
   if (loading) {
     return <div>Loading...</div>;

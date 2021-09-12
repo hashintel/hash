@@ -73,6 +73,7 @@
     "// 09": "",
     "// --------------- Tests ---------------": "",
     "test-integration": "yarn ws:hash-integration test",
+    "test-frontend": "yarn ws:hash-frontend test",
     "// 10": ""
   },
   "devDependencies": {
