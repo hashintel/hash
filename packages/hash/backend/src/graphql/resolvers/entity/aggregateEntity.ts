@@ -18,6 +18,7 @@ export const aggregateEntity: Resolver<
   const page = operation?.page || 1;
   const perPage = operation?.perPage || 10;
   const sort = operation?.sort?.field || "updatedAt";
+  const desc = operation?.sort?.desc
 
   const startIndex = (page ?? 1) - 1;
   const endIndex = startIndex + (perPage ?? 10);
@@ -33,7 +34,7 @@ export const aggregateEntity: Resolver<
 
   const results = entities
     .slice(startIndex, endIndex)
-    .sort((a, b) => compareEntitiesByField(a, b, sort))
+    .sort((a, b) => desc ? compareEntitiesByField(b, a, sort): compareEntitiesByField(a, b, sort))
     .map((entity) => entity.toGQLUnknownEntity());
 
   return {
