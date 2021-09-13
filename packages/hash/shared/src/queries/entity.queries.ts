@@ -44,7 +44,7 @@ export const updateEntity = gql`
   ) {
     updateEntity(
       accountId: $accountId
-      metadataId: $metadataId
+      entityId: $metadataId
       properties: $properties
     ) {
       __typename

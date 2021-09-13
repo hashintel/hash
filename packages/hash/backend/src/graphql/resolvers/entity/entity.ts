@@ -10,29 +10,32 @@ export const entity: Resolver<
   {},
   GraphQLContext,
   QueryEntityArgs
-> = async (_, { accountId, id, metadataId }, { dataSources }) => {
+> = async (_, { accountId, entityVersionId, entityId }, { dataSources }) => {
   let dbEntity;
-  if (id) {
+  if (entityVersionId) {
     dbEntity = await dataSources.db.getEntity({
       accountId,
-      entityVersionId: id,
-    });
-    if (!dbEntity) {
-      throw new ApolloError(`Entity ${id} not found in account ${accountId}`);
-    }
-  } else if (metadataId) {
-    dbEntity = await dataSources.db.getEntityLatestVersion({
-      accountId,
-      entityId: metadataId,
+      entityVersionId,
     });
     if (!dbEntity) {
       throw new ApolloError(
-        `Entity with entityId ${metadataId} not found in account ${accountId}`
+        `Entity with version ID ${entityVersionId} not found in account ${accountId}`,
+        "NOT_FOUND"
+      );
+    }
+  } else if (entityId) {
+    dbEntity = await dataSources.db.getEntityLatestVersion({
+      accountId,
+      entityId,
+    });
+    if (!dbEntity) {
+      throw new ApolloError(
+        `Entity with fixed ID ${entityId} not found in account ${accountId}`
       );
     }
   } else {
     throw new UserInputError(
-      "at least one of id or metadataId must be provided"
+      "at least one of entityVersionId or entityId must be provided"
     );
   }
 

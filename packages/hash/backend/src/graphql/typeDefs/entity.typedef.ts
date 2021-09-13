@@ -158,7 +158,7 @@ export const entityTypedef = gql`
   }
 
   extend type Query {
-    entity(accountId: ID!, id: ID, metadataId: ID): UnknownEntity!
+    entity(accountId: ID!, entityVersionId: ID, entityId: ID): UnknownEntity!
 
     """
     Aggregate an entity
@@ -239,7 +239,7 @@ export const entityTypedef = gql`
     """
     updateEntity(
       accountId: ID!
-      metadataId: ID!
+      entityId: ID!
       properties: JSONObject!
     ): Entity!
   }

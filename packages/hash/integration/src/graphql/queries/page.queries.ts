@@ -65,8 +65,8 @@ export const insertBlocksIntoPage = gql`
   ) {
     insertBlocksIntoPage(
       accountId: $accountId
-      pageMetadataId: $entityId
-      pageId: $entityVersionId
+      entityId: $entityId
+      entityVersionId: $entityVersionId
       blocks: $blocks
       previousBlockId: $previousBlockId
     ) {
@@ -78,7 +78,11 @@ export const insertBlocksIntoPage = gql`
 
 export const getPage = gql`
   query getPage($accountId: ID!, $entityId: ID, $entityVersionId: ID) {
-    page(accountId: $accountId, metadataId: $entityId, id: $entityVersionId) {
+    page(
+      accountId: $accountId
+      entityId: $entityId
+      entityVersionId: $entityVersionId
+    ) {
       ...PageFields
     }
   }

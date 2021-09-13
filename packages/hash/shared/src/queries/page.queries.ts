@@ -52,7 +52,11 @@ const pageFieldsFragment = gql`
 
 export const getPageQuery = gql`
   query getPage($accountId: ID!, $metadataId: ID, $versionId: ID) {
-    page(accountId: $accountId, metadataId: $metadataId, id: $versionId) {
+    page(
+      accountId: $accountId
+      entityId: $metadataId
+      entityVersionId: $versionId
+    ) {
       ...PageFields
     }
   }
@@ -76,7 +80,7 @@ export const updatePage = gql`
   ) {
     updatePage(
       accountId: $accountId
-      metadataId: $metadataId
+      entityId: $metadataId
       properties: $properties
     ) {
       ...PageFields
@@ -106,8 +110,8 @@ export const insertBlockIntoPage = gql`
       systemTypeName: $systemTypeName
       entityProperties: $entityProperties
       position: $position
-      pageId: $pageId
-      pageMetadataId: $pageMetadataId
+      pageEntityVersionId: $pageId
+      pageEntityId: $pageMetadataId
       versioned: $versioned
     ) {
       ...PageFields
@@ -126,8 +130,8 @@ export const insertBlocksIntoPage = gql`
   ) {
     insertBlocksIntoPage(
       accountId: $accountId
-      pageId: $pageId
-      pageMetadataId: $pageMetadataId
+      entityId: $pageMetadataId
+      entityVersionId: $pageId
       blocks: $blocks
       previousBlockId: $previousBlockId
     ) {

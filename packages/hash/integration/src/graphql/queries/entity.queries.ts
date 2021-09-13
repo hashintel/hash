@@ -47,7 +47,11 @@ export const createEntityType = gql`
 
 export const getUnknownEntity = gql`
   query getEntity($accountId: ID!, $entityId: ID, $entityVersionId: ID) {
-    entity(accountId: $accountId, metadataId: $entityId, id: $entityVersionId) {
+    entity(
+      accountId: $accountId
+      entityId: $entityId
+      entityVersionId: $entityVersionId
+    ) {
       entityId
       entityVersionId
       properties
@@ -71,7 +75,7 @@ export const updateEntity = gql`
   ) {
     updateEntity(
       accountId: $accountId
-      metadataId: $entityId
+      entityId: $entityId
       properties: $properties
     ) {
       entityId
