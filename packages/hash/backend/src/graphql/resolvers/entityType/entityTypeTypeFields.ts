@@ -1,9 +1,6 @@
 import { Resolver, EntityType as GQLEntityType } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
-import {
-  EntityType,
-  EntityTypeWithoutTypeFields,
-} from "../../../model";
+import { EntityType, EntityTypeWithoutTypeFields } from "../../../model";
 import { ApolloError } from "apollo-server-express";
 import { EntityTypeTypeFields } from "../../../db/adapter";
 
@@ -18,10 +15,9 @@ type EntityTypeMaybeTypeFields = EntityTypeWithoutTypeFields & {
  * @todo cache this for an extremely long time
  */
 const getEntityTypeType = async (dataSources: GraphQLContext["dataSources"]) =>
-  EntityType.getEntityTypeType(dataSources.db)
-    .catch((err) => {
-      throw new ApolloError(err.message);
-    });
+  EntityType.getEntityTypeType(dataSources.db).catch((err) => {
+    throw new ApolloError(err.message);
+  });
 
 /**
  * Get the entityType of an EntityType, i.e. the "EntityType" EntityType

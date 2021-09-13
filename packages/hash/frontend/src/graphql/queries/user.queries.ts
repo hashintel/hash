@@ -17,9 +17,10 @@ export const isShortnameTaken = gql`
 `;
 
 export const updateUser = gql`
-  mutation updateUser($id: ID!, $properties: UpdateUserProperties!) {
-    updateUser(id: $id, properties: $properties) {
+  mutation updateUser($userEntityId: ID!, $properties: UpdateUserProperties!) {
+    updateUser(userEntityId: $userEntityId, properties: $properties) {
       id
+      entityId
       createdById
       accountId
       entityTypeId
@@ -47,7 +48,7 @@ export const verifyEmail = gql`
       verificationCode: $verificationCode
     ) {
       __typename
-      id
+      entityId
       createdById
       createdAt
       updatedAt
@@ -120,6 +121,7 @@ export const meQuery = gql`
   query me {
     me {
       id
+      entityId
       createdById
       accountId
       entityTypeId

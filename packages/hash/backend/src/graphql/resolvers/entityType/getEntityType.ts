@@ -10,13 +10,15 @@ export const getEntityType: Resolver<
   {},
   GraphQLContext,
   QueryGetEntityTypeArgs
-  > = async (_, { entityTypeId }, { dataSources }) => {
-
-  const entityType = await EntityType.getEntityType(dataSources.db)({ entityTypeId});
+> = async (_, { entityTypeId }, { dataSources }) => {
+  const entityType = await EntityType.getEntityType(dataSources.db)({
+    entityTypeId,
+  });
 
   if (!entityType) {
     throw new ApolloError(
-      `EntityType with entityId ${entityTypeId} not found`, "NOT_FOUND"
+      `EntityType with entityId ${entityTypeId} not found`,
+      "NOT_FOUND"
     );
   }
 
