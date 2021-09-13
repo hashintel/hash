@@ -43,13 +43,13 @@ type State = {
   verificationCodeMetadata: VerificationCodeMetadata | undefined;
   verificationCode: string;
   errorMessage: string;
-  userId: string | null;
+  userEntityId: string | null;
   syntheticLoading: boolean;
 };
 
 type Actions =
   | Action<"CREATE_USER_SUCCESS", Pick<State, "verificationCodeMetadata">>
-  | Action<"VERIFY_EMAIL_SUCCESS", Pick<State, "userId">>
+  | Action<"VERIFY_EMAIL_SUCCESS", Pick<State, "userEntityId">>
   | Action<"SET_ERROR", string>
   | Action<"UPDATE_STATE", Partial<State>>;
 
@@ -59,7 +59,7 @@ const initialState: State = {
   verificationCodeMetadata: undefined,
   verificationCode: "",
   errorMessage: "",
-  userId: null,
+  userEntityId: null,
   syntheticLoading: false,
 };
 
@@ -106,7 +106,7 @@ const SignupPage: NextPage = () => {
       verificationCode,
       verificationCodeMetadata,
       errorMessage,
-      userId,
+      userEntityId,
       syntheticLoading,
     },
     dispatch,
@@ -149,10 +149,10 @@ const SignupPage: NextPage = () => {
     VerifyEmailMutation,
     VerifyEmailMutationVariables
   >(verifyEmailMutation, {
-    onCompleted: ({ verifyEmail: data }) => {
+    onCompleted: ({ verifyEmail: user }) => {
       dispatch({
         type: "VERIFY_EMAIL_SUCCESS",
-        payload: { userId: data.id },
+        payload: { userEntityId: user.entityId },
       });
     },
     onError: ({ graphQLErrors }) => {
@@ -238,9 +238,9 @@ const SignupPage: NextPage = () => {
   };
 
   const updateUserDetails = (shortname: string, preferredName: string) => {
-    if (!userId) return;
+    if (!userEntityId) return;
     void updateUser({
-      variables: { id: userId, properties: { shortname, preferredName } },
+      variables: { userEntityId, properties: { shortname, preferredName } },
     });
   };
 
@@ -262,7 +262,7 @@ const SignupPage: NextPage = () => {
     dispatch({
       type: "UPDATE_STATE",
       payload: {
-        userId: user.id,
+        userEntityId: user.entityId,
         activeScreen: Screen.AccountSetup,
       },
     });

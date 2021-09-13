@@ -114,7 +114,7 @@ export const userTypedef = gql`
     """
     Update a user
     """
-    updateUser(id: ID!, properties: UpdateUserProperties!): User!
+    updateUser(userEntityId: ID!, properties: UpdateUserProperties!): User!
     """
     Verifies a user's email address using a previously generated verification code
     """

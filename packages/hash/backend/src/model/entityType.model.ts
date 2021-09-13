@@ -92,8 +92,11 @@ class __EntityType {
     };
 
   static getEntityType = (db: DBClient) => (args: { entityTypeId: string }) =>
-    db.getEntityTypeLatestVersion(args)
-      .then((dbEntityType) => (dbEntityType ? new EntityType(dbEntityType) : null));
+    db
+      .getEntityTypeLatestVersion(args)
+      .then((dbEntityType) =>
+        dbEntityType ? new EntityType(dbEntityType) : null
+      );
 
   static getEntityTypeType = async (db: DBClient) =>
     db

@@ -267,7 +267,11 @@ export class PostgresClient implements DBClient {
   async getEntityTypeLatestVersion(params: {
     entityTypeId: string;
   }): Promise<EntityType | null> {
-    return (await getEntityTypeLatestVersion(this.conn, { entityId: params.entityTypeId })) || null;
+    return (
+      (await getEntityTypeLatestVersion(this.conn, {
+        entityId: params.entityTypeId,
+      })) || null
+    );
   }
 
   private async updateVersionedEntity(
