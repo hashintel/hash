@@ -488,16 +488,16 @@ class BlockView {
       : "";
 
     const newNode = state.schema.nodes.async.create({
-      /**
-       * The properties set up below are to ensure a) that async view knows what kind of node to load & create
-       * and b) that we are able to map back to the GraphQL format.
-       *
-       * @todo make some of this unnecessary
-       */
       asyncNodeUrl: componentUrl,
-
       asyncNodeProps: {
         attrs: {
+          /**
+           * This property is no longer used, meaning that when we switch to a variant, this is info is going to get
+           * lost. We need a way to put an entry in the entity list for this so that the node we're switching to can
+           * pick up that info. The consequence of this is that variants are broken.
+           *
+           * @todo fix variants
+           */
           properties: variant.properties,
           entityId: text ? child.attrs.entityId : null,
         },
