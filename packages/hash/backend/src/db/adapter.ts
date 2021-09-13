@@ -49,10 +49,7 @@ export type EntityType = Omit<Entity, EntityTypeTypeFields> & {
    *  @todo make these non-optional if we figure a way of getting the EntityType entityType
    *    attached without recursion headaches. see https://github.com/hashintel/dev/pull/200
    */
-  entityType?:
-    | EntityType
-    | undefined
-    | null;
+  entityType?: EntityType | undefined | null;
   entityTypeId?: string | undefined | null;
   entityTypeName?: "EntityType";
   entityTypeVersionId?: string;
@@ -147,11 +144,9 @@ export interface DBClient {
    * @todo should this also handle requests for a specific version?
    *    Should be consistent with how getEntity/getEntityLatestVersion are merged.
    */
-  getEntityTypeLatestVersion(
-    params: {
-      entityTypeId: string;
-    },
-  ): Promise<EntityType | null>;
+  getEntityTypeLatestVersion(params: {
+    entityTypeId: string;
+  }): Promise<EntityType | null>;
 
   /**
    * Get the latest version of a system entity type.
