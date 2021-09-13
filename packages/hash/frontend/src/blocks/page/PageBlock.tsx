@@ -177,7 +177,19 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
                   ? update([pageUpdatedPayload])
                   : Promise.resolve()
               )
-              .then(() => update(updatedEntitiesPayload))
+              /**
+               * Entity updates temporary sequential due to issue in Apollo – we'll be replacing all of this with a
+               * single atomic query anyway so this is a fine compromise for now
+               *
+               * @see https://hashintel.slack.com/archives/C022217GAHF/p1631541550015000
+               */
+              .then(() =>
+                updatedEntitiesPayload.reduce(
+                  (promise, payload) =>
+                    promise.catch(() => {}).then(() => update([payload])),
+                  Promise.resolve()
+                )
+              )
               .catch(() => {})
               // @todo remove this timeout
               .then(() => {
