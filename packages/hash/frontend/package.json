@@ -7,7 +7,7 @@
   "prettier": "@hashintel/prettier-config",
   "scripts": {
     "format": "prettier --write './src/**/*'; eslint --ext .js,.ts,.tsx --fix ./src/",
-    "lint": "prettier --check './src/**/*'; eslint --ext .js,.ts,.tsx ./src/; tsc --noEmit # @hashintel/hash-frontend",
+    "lint": "prettier --check './src/**/*' || exit 1; eslint --ext .js,.ts,.tsx ./src/; tsc --noEmit # @hashintel/hash-frontend",
     "codegen": "graphql-codegen --config codegen.yml",
     "build": "yarn clean; yarn codegen; next build",
     "clean": "rimraf './src/**/*.gen.*' ./.next/",

@@ -72,16 +72,21 @@ void (async () => {
     })
   );
 
-  type CreateEntityMapValue = Omit<CreateEntityWithEntityTypeIdArgs, "versioned"> & { versioned?: boolean }
-    | Omit<CreateEntityWithEntityTypeVersionIdArgs, "versioned"> & { versioned?: boolean }
-    | Omit<CreateEntityWithSystemTypeArgs, "versioned"> & { versioned?: boolean }
+  type CreateEntityMapValue =
+    | (Omit<CreateEntityWithEntityTypeIdArgs, "versioned"> & {
+        versioned?: boolean;
+      })
+    | (Omit<CreateEntityWithEntityTypeVersionIdArgs, "versioned"> & {
+        versioned?: boolean;
+      })
+    | (Omit<CreateEntityWithSystemTypeArgs, "versioned"> & {
+        versioned?: boolean;
+      });
 
   /** Create all entities specified in the `items` map and add the mutation's response
    * to the `results` map.
    */
-  const createEntities = async (
-    items: Map<string, CreateEntityMapValue>
-    ) => {
+  const createEntities = async (items: Map<string, CreateEntityMapValue>) => {
     const names = Array.from(items.keys());
     const mutations = await Promise.all(
       Array.from(items.values()).map((val) =>
