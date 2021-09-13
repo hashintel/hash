@@ -18,8 +18,8 @@ export const mapPGRowToEntityType = (row: QueryResultRowType): EntityType => ({
   entityTypeName: "EntityType",
   properties: row["properties"],
   metadata: {
-    name: row["name"] as string,
     versioned: row["versioned"] as boolean,
+    extra: {},
   },
   createdById: row["created_by"] as string,
   entityCreatedAt: new Date(row["created_at"] as number),
@@ -148,7 +148,7 @@ export const getEntityTypeLatestVersion = async (
   params: {
     entityId: string;
   }
-): Promise<EntityType | undefined> => {
+): Promise<EntityType | null> => {
   const row = await conn.maybeOne(sql`
     with all_matches as (
       ${selectEntityTypeAllVersions(params)}
@@ -156,7 +156,7 @@ export const getEntityTypeLatestVersion = async (
     select distinct on (entity_type_id) * from all_matches
     order by entity_type_id, version_created_at desc
   `);
-  return row ? mapPGRowToEntityType(row) : undefined;
+  return row ? mapPGRowToEntityType(row) : null;
 };
 
 // @todo: `versioned` should be a parameter here

@@ -126,7 +126,7 @@ export class PostgresClient implements DBClient {
         createdById,
         properties,
         metadata: {
-          name,
+          extra: {},
           versioned: true,
         },
         entityCreatedAt: now,
@@ -262,6 +262,12 @@ export class PostgresClient implements DBClient {
     entityId: string;
   }): Promise<Entity | undefined> {
     return (await getEntityLatestVersion(this.conn, params)) || undefined;
+  }
+
+  async getEntityTypeLatestVersion(params: {
+    entityTypeId: string;
+  }): Promise<EntityType | null> {
+    return (await getEntityTypeLatestVersion(this.conn, { entityId: params.entityTypeId })) || null;
   }
 
   private async updateVersionedEntity(

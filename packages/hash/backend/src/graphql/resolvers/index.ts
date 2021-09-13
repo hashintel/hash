@@ -38,6 +38,7 @@ import { createEntityType } from "./entityType/createEntityType";
 import { SYSTEM_TYPES, SystemType } from "../../types/entityTypes";
 import { entityTypeTypeFields } from "./entityType/entityTypeTypeFields";
 import { getAccountEntityTypes } from "./entityType/getAccountEntityTypes";
+import { getEntityType } from "./entityType/getEntityType";
 
 const loggedIn =
   (next: any) => (obj: any, args: any, ctx: GraphQLContext, info: any) => {
@@ -69,6 +70,7 @@ export const resolvers = {
     accounts,
     aggregateEntity,
     getAccountEntityTypes,
+    getEntityType,
     entity,
     page,
     me: loggedIn(me),

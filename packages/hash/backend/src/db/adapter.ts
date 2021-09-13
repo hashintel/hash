@@ -3,6 +3,17 @@ import { DataSource } from "apollo-datasource";
 import { SystemType } from "../types/entityTypes";
 
 /**
+ * Fields we handle via a field resolver to avoid recursion problems when getting them from the db.
+ * Let the API consumers request as many levels as they want.
+ * @todo figure out a solution to recursion issue of an entityType having itself as an entityType
+ */
+export type EntityTypeTypeFields =
+  | "entityType"
+  | "entityTypeId"
+  | "entityTypeName"
+  | "entityTypeVersionId";
+
+/**
  * @todo should probably store this enum in a non-generated file somewhere
  *    to revisit in light of fuller auth spec
  */
@@ -33,35 +44,18 @@ export type Entity = {
   visibility: Visibility;
 };
 
-export type EntityType = {
-  accountId: string;
-  createdById: string;
-  entityId: string;
-  entityVersionId: string;
+export type EntityType = Omit<Entity, EntityTypeTypeFields> & {
+  /**
+   *  @todo make these non-optional if we figure a way of getting the EntityType entityType
+   *    attached without recursion headaches. see https://github.com/hashintel/dev/pull/200
+   */
   entityType?:
     | EntityType
     | undefined
-    | null /** @todo make these non-optional once EntityType type exists */;
+    | null;
   entityTypeId?: string | undefined | null;
   entityTypeName?: "EntityType";
   entityTypeVersionId?: string;
-  properties: any;
-  metadata: {
-    name: string;
-    versioned: boolean;
-  };
-
-  /** The time at which the first version of this type was created. */
-  entityCreatedAt: Date;
-
-  /** The time at which this version of the type was created. */
-  entityVersionCreatedAt: Date;
-
-  /** The time at which this type version was updated. For versioned types, this
-   * always matches `entityVersionCreatedAt`.*/
-  entityVersionUpdatedAt: Date;
-
-  visibility: Visibility;
 };
 
 export type EntityMeta = {
@@ -147,6 +141,17 @@ export interface DBClient {
     accountId: string;
     entityId: string;
   }): Promise<Entity | undefined>;
+
+  /**
+   * Get an entityType by its fixed id.
+   * @todo should this also handle requests for a specific version?
+   *    Should be consistent with how getEntity/getEntityLatestVersion are merged.
+   */
+  getEntityTypeLatestVersion(
+    params: {
+      entityTypeId: string;
+    },
+  ): Promise<EntityType | null>;
 
   /**
    * Get the latest version of a system entity type.
@@ -262,7 +267,7 @@ export interface DBClient {
 
   /**
    * Prunes verification codes from the datastore older than the maximum age
-   * @param maxAgeInMs: the maximum age of a verification code in milliseconds
+   * @param params.maxAgeInMs: the maximum age of a verification code in milliseconds
    */
   pruneVerificationCodes(params: { maxAgeInMs: number }): Promise<number>;
 
