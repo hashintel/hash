@@ -45,10 +45,17 @@ if (typeof localStorage !== "undefined") {
   Object.assign(cachedPropertiesByEntity, localStorageCachedPropertiesByEntity);
 
   setInterval(() => {
-    localStorage.setItem(
-      "cachedPropertiesByEntity",
-      JSON.stringify(cachedPropertiesByEntity)
-    );
+    const stringifiedProperties = JSON.stringify(cachedPropertiesByEntity);
+
+    // Temporarily catch all errors to avoid QuotaExceededError run-time errors
+    try {
+      localStorage.setItem("cachedPropertiesByEntity", stringifiedProperties);
+    } catch (error) {
+      const errorName = error instanceof Error ? error.name : "unknown";
+      console.warn(
+        `Caught ${errorName} error when setting "cachedPropertiesByEntity" in local storage`
+      );
+    }
   }, 500);
 }
 
