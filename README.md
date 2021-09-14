@@ -9,6 +9,7 @@ servers, which are hosted outside the container.
    ```
    127.0.0.1 host.docker.internal
    ```
+2. Add the `packages/hash/docker/.env` file (found in the 1Password "HASH.dev/ai" vault with the name "HASH.dev backend .env")
 3. Run `yarn install`
 4. Start the backend (and seed the db if necessary)
 5. Install the frontend and blocks
