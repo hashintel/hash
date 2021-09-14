@@ -46,7 +46,7 @@ All HASH simulations are embeddable as iFrames. You can add an iFrame as a block
 
 ```markup
 <body>
-    <div class="simulation">
+    <div className="simulation">
         <iframe id="sim"
             src="https://core.hash.ai/embed.html?project=%40hash%2Fwildfires-regrowth&ref=stable"
             width="700" height="400" frameborder="0" scrolling="auto"></iframe>
