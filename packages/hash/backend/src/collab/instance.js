@@ -117,7 +117,9 @@ class Instance {
           for (const updatePayload of updatePayloads) {
             const { data } = await apolloClient.mutate({
               mutation:
-                updatePayload.entityType === "Page" ? updatePage : updateEntity,
+                updatePayload.entityTypeId === "Page"
+                  ? updatePage
+                  : updateEntity,
               variables: {
                 metadataId: updatePayload.entityId,
                 properties: updatePayload.data,
