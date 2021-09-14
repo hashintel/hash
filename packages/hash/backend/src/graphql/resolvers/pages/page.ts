@@ -10,8 +10,13 @@ export const page: Resolver<
   {},
   GraphQLContext,
   QueryPageArgs
-> = async (_, args, ctx, info) => {
-  const ent = await entity({}, args, ctx, info);
+> = async (_, { accountId, entityId, entityVersionId }, ctx, info) => {
+  const ent = await entity(
+    {},
+    { accountId, entityId, entityVersionId },
+    ctx,
+    info
+  );
   if (ent.entityTypeName !== "Page") {
     throw new ApolloError(
       `Entity ${ent.entityId} is type "${ent.entityTypeName}" not "Page"`

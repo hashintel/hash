@@ -21,7 +21,7 @@ export const insertBlockIntoPage: Resolver<
     entityTypeVersionId,
     systemTypeName,
     accountId,
-    pageMetadataId,
+    pageEntityId,
     position,
   },
   { dataSources, user }
@@ -79,10 +79,10 @@ export const insertBlockIntoPage: Resolver<
     // return here when strict vs. optimistic entity mutation question is resolved.
     const page = await Entity.getEntityLatestVersion(client)({
       accountId,
-      entityId: pageMetadataId,
+      entityId: pageEntityId,
     });
     if (!page) {
-      const msg = `Page ${pageMetadataId} not found in account ${accountId}`;
+      const msg = `Page with fixed ID ${pageEntityId} not found in account ${accountId}`;
       throw new ApolloError(msg, "NOT_FOUND");
     }
 

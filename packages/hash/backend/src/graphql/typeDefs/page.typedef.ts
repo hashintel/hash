@@ -80,7 +80,7 @@ export const pageTypedef = gql`
     """
     Return a page by its id
     """
-    page(accountId: ID!, id: ID, metadataId: ID): Page!
+    page(accountId: ID!, entityVersionId: ID, entityId: ID): Page!
 
     """
     Return a list of pages belonging to an account
@@ -126,7 +126,7 @@ export const pageTypedef = gql`
 
     updatePage(
       accountId: ID!
-      metadataId: ID!
+      entityId: ID!
       properties: PageUpdateData!
     ): Page!
 
@@ -154,8 +154,8 @@ export const pageTypedef = gql`
       Defaults to the page's accountId.
       """
       accountId: ID!
-      pageId: ID!
-      pageMetadataId: ID!
+      pageEntityVersionId: ID!
+      pageEntityId: ID!
       versioned: Boolean! = false
       """
       The position of the block in the page contents, starting at 0
@@ -165,8 +165,14 @@ export const pageTypedef = gql`
 
     insertBlocksIntoPage(
       accountId: ID!
-      pageId: ID!
-      pageMetadataId: ID!
+      """
+      The fixed entity ID of the page.
+      """
+      entityId: ID!
+      """
+      The entity version ID of the page.
+      """
+      entityVersionId: ID!
       """
       The blocks to insert.
       """
