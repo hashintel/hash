@@ -155,9 +155,9 @@ describe("logged in", () => {
       expect(updatedPage.history).toEqual([
         {
           createdAt: updatedPage.createdAt,
-          entityId: updatedPage.entityVersionId,
+          entityVersionId: updatedPage.entityVersionId,
         },
-        { createdAt: page.createdAt, entityId: page.entityVersionId },
+        { createdAt: page.createdAt, entityVersionId: page.entityVersionId },
       ]);
       expect(updatedPage.properties.title).toEqual("My first page");
 

@@ -56,7 +56,7 @@ export const getUnknownEntity = gql`
       entityVersionId
       properties
       history {
-        entityId
+        entityVersionId
         createdAt
       }
       entityVersionCreatedAt

@@ -8,7 +8,7 @@ type VersionDropdownProps = {
   value?: string;
   versions: {
     createdAt: string;
-    entityId: string;
+    entityVersionId: string;
   }[];
 };
 
@@ -17,13 +17,6 @@ export const VersionDropdown: VoidFunctionComponent<VersionDropdownProps> = ({
   value,
   versions,
 }) => {
-  // const options = versions.map(({ createdAt, entityId }) => ({
-  //   label: formatDistance(new Date(createdAt), new Date(), {
-  //     addSuffix: true,
-  //   }),
-  //   value: entityId,
-  // }));
-
   const now = new Date();
 
   return (
@@ -31,10 +24,10 @@ export const VersionDropdown: VoidFunctionComponent<VersionDropdownProps> = ({
       className={styles.AccountSelect}
       onChange={(event) => onChange(event.target.value)}
       style={{ width: 200 }}
-      value={versions.find((version) => value === version.createdAt)?.entityId}
+      value={value}
     >
       {versions.map((version) => (
-        <option key={version.entityId} value={version.entityId}>
+        <option key={version.entityVersionId} value={version.entityVersionId}>
           {formatDistance(new Date(version.createdAt), now, {
             addSuffix: true,
           })}
@@ -42,6 +35,4 @@ export const VersionDropdown: VoidFunctionComponent<VersionDropdownProps> = ({
       ))}
     </select>
   );
-
-  // return <Dropdown onChange={onChange} options={options} value={value} />;
 };

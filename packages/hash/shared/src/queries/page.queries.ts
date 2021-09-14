@@ -5,11 +5,12 @@ const pageFieldsFragment = gql`
     __typename
     id
     accountId
+    entityVersionId
     createdAt
     metadataId
     history {
       createdAt
-      entityId
+      entityVersionId
     }
     properties {
       __typename

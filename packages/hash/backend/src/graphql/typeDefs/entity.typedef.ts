@@ -148,9 +148,9 @@ export const entityTypedef = gql`
 
   type EntityVersion {
     """
-    The entity ID of this version
+    The entityVersionId of this version
     """
-    entityId: ID!
+    entityVersionId: ID!
     """
     The time this version was created.
     """
