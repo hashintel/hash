@@ -16,8 +16,18 @@ import {
   InsertBlocksIntoPageMutationVariables,
   LoginWithLoginCodeMutationVariables,
   LoginWithLoginCodeMutation,
+  GetEntityQueryVariables,
+  GetEntityQuery,
+  UpdateEntityMutationVariables,
+  UpdateEntityMutation,
+  GetPageQueryVariables,
+  GetPageQuery,
 } from "../graphql/apiTypes.gen";
-import { createEntity } from "../graphql/queries/entity.queries";
+import {
+  createEntity,
+  getUnknownEntity,
+  updateEntity,
+} from "../graphql/queries/entity.queries";
 import { createOrg } from "../graphql/queries/org.queries";
 import {
   createUser,
@@ -27,6 +37,7 @@ import {
 import {
   createPage,
   insertBlocksIntoPage,
+  getPage,
 } from "../graphql/queries/page.queries";
 
 export class ApiClient {
@@ -61,6 +72,19 @@ export class ApiClient {
 
     return { user: data.loginWithLoginCode, responseHeaders: headers };
   }
+
+  getUnknownEntity = async (vars: GetEntityQueryVariables) =>
+    this.client
+      .request<GetEntityQuery, GetEntityQueryVariables>(getUnknownEntity, vars)
+      .then((res) => res.entity);
+
+  updateEntity = async (vars: UpdateEntityMutationVariables) =>
+    this.client
+      .request<UpdateEntityMutation, UpdateEntityMutationVariables>(
+        updateEntity,
+        vars
+      )
+      .then((res) => res.updateEntity);
 
   async createEntity(vars: CreateEntityMutationVariables) {
     return (
@@ -98,12 +122,16 @@ export class ApiClient {
     ).createPage;
   }
 
-  async insertBlocksIntoPage(vars: InsertBlocksIntoPageMutationVariables) {
-    return (
-      await this.client.request<
+  insertBlocksIntoPage = async (vars: InsertBlocksIntoPageMutationVariables) =>
+    this.client
+      .request<
         InsertBlocksIntoPageMutation,
         InsertBlocksIntoPageMutationVariables
       >(insertBlocksIntoPage, vars)
-    ).insertBlocksIntoPage;
-  }
+      .then((res) => res.insertBlocksIntoPage);
+
+  getPage = async (vars: GetPageQueryVariables) =>
+    this.client
+      .request<GetPageQuery, GetPageQueryVariables>(getPage, vars)
+      .then((res) => res.page);
 }

@@ -38,6 +38,7 @@ import {
   getEntityLatestVersionId,
   insertEntityVersion,
   updateEntityVersionProperties,
+  acquireEntityLock,
 } from "./entity";
 import {
   getEntityParentIds,
@@ -344,46 +345,50 @@ export class PostgresClient implements DBClient {
     return updatedEntity;
   }
 
-  async updateEntity(
+  async updateEntity(params: {
+    accountId: string;
+    entityVersionId: string;
+    entityId: string;
+    properties: any;
+  }): Promise<Entity[]> {
+    const latestId = await getEntityLatestVersionId(this.conn, params);
+    if (latestId !== params.entityVersionId) {
+      throw new Error(
+        `cannot update entity with version ID ${params.entityVersionId} because it is not the latest version`
+      );
+    }
+    // Lock the entity to ensure no other transaction may update it concurrently until
+    // this transaction completes.
+    await acquireEntityLock(this.conn, params);
+    return await this._updateEntity(this.conn, params, undefined);
+  }
+
+  async _updateEntity(
+    conn: Connection,
     params: {
       accountId: string;
       entityVersionId: string;
-      entityId: string;
       properties: any;
     },
-    child?: { accountId: string; entityVersionId: string },
-    checkLatest: boolean = true
+    child?: { accountId: string; entityVersionId: string }
   ): Promise<Entity[]> {
-    const [entity, latestVersionId] = await Promise.all([
-      getEntity(this.conn, params),
-      getEntityLatestVersionId(this.conn, params),
-    ]);
+    const entity = await getEntity(conn, params);
 
     if (!entity) {
       throw entityNotFoundError(params);
-    }
-    if (
-      entity.metadata.versioned &&
-      checkLatest &&
-      entity.entityVersionId !== latestVersionId
-    ) {
-      // @todo: make this error catchable by the caller (conflicted input)
-      throw new Error(
-        `cannot update versioned entity ${entity.entityVersionId} because it does not match the latest version ${latestVersionId}`
-      );
     }
 
     /**
      * @todo validate new entity properties against the schema of its entityType
      */
     if (entity.metadata.versioned) {
-      const updatedEntity = await this.updateVersionedEntity(this.conn, {
+      const updatedEntity = await this.updateVersionedEntity(conn, {
         entity,
         newProperties: params.properties,
       });
 
       if (child) {
-        await insertIncomingLinks(this.conn, [
+        await insertIncomingLinks(conn, [
           {
             ...child,
             parentAccountId: updatedEntity.accountId,
@@ -394,44 +399,38 @@ export class PostgresClient implements DBClient {
       // @todo: handle inserting into outgoing_links
 
       // Updating a versioned entity creates a new entity with a new ID. We need to
-      // update all entities which reference this entity with this ID.
-      // TODO: there's redundant _getEntity fetching here. Could refactor the function
-      // signature to take the old state of the entity.
-      const parentRefs = await getEntityParentIds(this.conn, { entity });
-      const parents = await Promise.all(
-        parentRefs.map(async (ref) => {
-          const parent = await getEntity(this.conn, ref);
-          if (!parent) {
-            throw entityNotFoundError(ref);
-          }
-          return parent;
-        })
-      );
+      // update all parent entities which reference this entity with this new ID.
+      const parentRefs = await getEntityParentIds(conn, entity);
       const updatedParents = await Promise.all(
-        parents.map(async (parent) => {
+        parentRefs.map(async (ref) => {
+          // If concurrent transactions are updating the same parent entity, we need to
+          // wait until one of them commits their new version. Otherwise, the entity
+          // can end up with a fork in its version history when two or more transactions
+          // see the same latest version. To prevent this, we acquire a lock on the
+          // parent which will block all other transactions until this one completes.
+          await acquireEntityLock(conn, ref);
+          const parent = await getEntityLatestVersion(conn, ref);
+          if (!parent) {
+            throw new Error("latest parent entity not found");
+          }
+
           replaceLink(parent, {
             old: entity.entityVersionId,
             new: updatedEntity.entityVersionId,
           });
-          return await this.updateEntity(
-            parent,
-            {
-              entityVersionId: updatedEntity.entityVersionId,
-              accountId: updatedEntity.accountId,
-            },
-            false
-          );
+
+          return await this._updateEntity(conn, parent, updatedEntity);
         })
       );
 
       return [updatedEntity].concat(updatedParents.flat());
     } else {
-      const updatedEntity = await this.updateNonVersionedEntity(this.conn, {
+      const updatedEntity = await this.updateNonVersionedEntity(conn, {
         entity,
         newProperties: params.properties,
       });
       if (child) {
-        await insertIncomingLinks(this.conn, [
+        await insertIncomingLinks(conn, [
           {
             ...child,
             parentAccountId: updatedEntity.accountId,
