@@ -110,7 +110,7 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
                 <label>Version</label>
                 <div>
                   <VersionDropdown
-                    value={data.page.createdAt}
+                    value={data.page.entityVersionId}
                     versions={data.page.history ?? []}
                     onChange={(versionId) => {
                       void router.push(

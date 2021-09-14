@@ -9,7 +9,7 @@ const pageFieldsFragment = gql`
     createdAt
     history {
       createdAt
-      entityId
+      entityVersionId
     }
     properties {
       __typename
