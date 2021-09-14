@@ -49,11 +49,16 @@ export class Router {
       if (!match) return false;
 
       // Set CORS headers
-      response.setHeader("Access-Control-Allow-Origin", "*");
+      response.setHeader(
+        "Access-Control-Allow-Origin",
+        `http://${process.env.FRONTEND_DOMAIN}`
+      );
+      response.setHeader("Access-Control-Allow-Credentials", true);
       response.setHeader("Access-Control-Request-Method", "*");
       // @todo send correct allowed methods
       response.setHeader("Access-Control-Allow-Methods", "OPTIONS, GET, POST");
-      response.setHeader("Access-Control-Allow-Headers", "*");
+      response.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
       if (isOptions) {
         response.writeHead(200);
         response.end();

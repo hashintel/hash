@@ -49,15 +49,17 @@ class __Org extends Account {
 
   static createOrg =
     (client: DBClient) =>
-    async (properties: OrgProperties): Promise<Org> => {
+    async (params: {
+      properties: OrgProperties;
+      createdById: string;
+    }): Promise<Org> => {
       const id = genId();
 
       const entity = await client.createEntity({
+        ...params,
         accountId: id,
         entityVersionId: id,
-        createdById: id, // Orgs "create" themselves
         entityTypeId: (await Org.getEntityType(client)).entityId,
-        properties,
         versioned: false, // @todo: should Org's be versioned?
       });
 

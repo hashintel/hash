@@ -10,6 +10,7 @@ export const req = (conf) => {
   let aborted = false;
   const result = new Promise((success, failure) => {
     req.open(conf.method, conf.url, true);
+    req.withCredentials = true;
     req.addEventListener("load", () => {
       if (aborted) return;
       if (req.status < 400) {

@@ -68,7 +68,7 @@ export const createUsers = async (db: DBAdapter): Promise<User[]> => {
  * The HASH org is now created as part of migration, as it doubles up as the 'system' account.
  */
 export const createOrgs = async (db: DBAdapter): Promise<Org[]> => {
-  const orgs: OrgProperties[] = [];
+  const orgs: { properties: OrgProperties; createdById: string }[] = [];
 
   return await Promise.all(orgs.map(Org.createOrg(db)));
 };

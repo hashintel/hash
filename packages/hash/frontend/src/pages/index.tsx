@@ -1,70 +1,22 @@
 import { useQuery } from "@apollo/client";
-import { GetServerSideProps } from "next";
 import Link from "next/link";
 
-import {
-  GetAccountPagesQuery,
-  GetAccountPagesQueryVariables,
-  GetAccountsQuery,
-} from "../graphql/apiTypes.gen";
-import {
-  getAccountPages,
-  getAccounts,
-} from "../graphql/queries/account.queries";
+import { GetAccountsQuery } from "../graphql/apiTypes.gen";
+import { getAccounts } from "../graphql/queries/account.queries";
 
 import styles from "./index.module.scss";
-import { createApolloClient } from "@hashintel/hash-shared/graphql/createApolloClient";
-
-export const getServerSideProps: GetServerSideProps = async () => {
-  const client = createApolloClient();
-
-  const result = await client.query<GetAccountsQuery>({
-    query: getAccounts,
-  });
-
-  if (result) {
-    const { accounts } = result.data;
-
-    const firstPage = await accounts.reduce(
-      (promise, account) =>
-        promise.then(async (page) => {
-          if (!page) {
-            const result = await client.query<
-              GetAccountPagesQuery,
-              GetAccountPagesQueryVariables
-            >({
-              query: getAccountPages,
-              variables: {
-                accountId: account.accountId,
-              },
-            });
-
-            const pages = result.data.accountPages;
-            if (pages.length > 0) {
-              return `/${account.accountId}/${pages[0].metadataId}`;
-            }
-          }
-
-          return page;
-        }),
-      Promise.resolve<null | string>(null)
-    );
-
-    if (firstPage) {
-      return {
-        redirect: {
-          destination: firstPage,
-          permanent: false,
-        },
-      };
-    }
-  }
-
-  return { props: {} };
-};
+import { useUser } from "../components/hooks/useUser";
+import { useRouter } from "next/router";
 
 export default function Home() {
+  const router = useRouter();
+  const { user } = useUser();
   const { data } = useQuery<GetAccountsQuery>(getAccounts);
+
+  if (user) {
+    // Temporarily redirect logged in user to their account page
+    void router.push(`/${user.accountId}`);
+  }
 
   return (
     <main className={styles.Main}>

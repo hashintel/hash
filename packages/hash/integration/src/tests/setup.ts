@@ -46,13 +46,6 @@ export class IntegrationTestsHandler {
     }
   }
 
-  /** Creates an account which may be used during for integration tests. */
-  async createAccount(accountId: string) {
-    await this.pool.query("insert into accounts (account_id) values ($1)", [
-      accountId,
-    ]);
-  }
-
   async close() {
     await this.pool.end();
   }

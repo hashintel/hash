@@ -1,16 +1,15 @@
 import { ApolloError } from "apollo-server-express";
 import { UserInputError } from "apollo-server-errors";
 
-import { genId } from "../../../util";
 import { MutationInsertBlockIntoPageArgs, Resolver } from "../../apiTypes.gen";
-import { GraphQLContext } from "../../context";
 import { Entity, EntityWithIncompleteEntityType } from "../../../model";
 import { DbPageProperties } from "../../../types/dbTypes";
+import { LoggedInGraphQLContext } from "../../context";
 
 export const insertBlockIntoPage: Resolver<
   Promise<EntityWithIncompleteEntityType>,
   {},
-  GraphQLContext,
+  LoggedInGraphQLContext,
   MutationInsertBlockIntoPageArgs
 > = async (
   _,
@@ -25,7 +24,7 @@ export const insertBlockIntoPage: Resolver<
     pageMetadataId,
     position,
   },
-  { dataSources }
+  { dataSources, user }
 ) => {
   return await dataSources.db.transaction(async (client) => {
     let entity;
@@ -47,7 +46,7 @@ export const insertBlockIntoPage: Resolver<
       // Create new entity
       entity = await Entity.create(client)({
         accountId,
-        createdById: genId(), // TODO
+        createdById: user.entityId,
         entityTypeId: entityTypeId ?? undefined,
         entityTypeVersionId: entityTypeVersionId || undefined,
         systemTypeName: systemTypeName || undefined,
@@ -70,7 +69,7 @@ export const insertBlockIntoPage: Resolver<
     const newBlock = await Entity.create(client)({
       accountId,
       systemTypeName: "Block",
-      createdById: genId(), // TODO
+      createdById: user.entityId,
       properties: blockProperties,
       versioned: true,
     });

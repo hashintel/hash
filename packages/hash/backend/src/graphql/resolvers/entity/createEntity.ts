@@ -1,12 +1,12 @@
-import { genId } from "../../../util";
 import { MutationCreateEntityArgs, Resolver } from "../../apiTypes.gen";
-import { GraphQLContext } from "../../context";
+
 import { Entity, EntityWithIncompleteEntityType } from "../../../model";
+import { LoggedInGraphQLContext } from "../../context";
 
 export const createEntity: Resolver<
   Promise<EntityWithIncompleteEntityType>,
   {},
-  GraphQLContext,
+  LoggedInGraphQLContext,
   MutationCreateEntityArgs
 > = async (
   _,
@@ -18,7 +18,7 @@ export const createEntity: Resolver<
     systemTypeName,
     versioned,
   },
-  { dataSources }
+  { dataSources, user }
 ) => {
   versioned = versioned ?? true;
 
@@ -26,7 +26,7 @@ export const createEntity: Resolver<
 
   const entity = await Entity.create(dataSources.db)({
     accountId,
-    createdById: genId(), // TODO
+    createdById: user.entityId,
     entityTypeId: entityTypeId ?? undefined,
     entityTypeVersionId: entityTypeVersionId || undefined,
     systemTypeName: systemTypeName || undefined,
