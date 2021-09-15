@@ -68,6 +68,18 @@ export const createBlockSuggesterPlugin = (replacePortal: FixMeLater) => {
         return nextState || state;
       },
     },
+    props: {
+      handleKeyDown(view, event) {
+        switch (event.key) {
+          case "Escape":
+            view.dispatch(
+              view.state.tr.setMeta(suggesterPlugin, { type: "close" })
+            );
+        }
+
+        return false; // preserve default behaviour
+      },
+    },
     view() {
       return {
         update(view) {
