@@ -4,7 +4,6 @@ import { Plugin } from "prosemirror-state";
 import { inputRules, InputRule } from "prosemirror-inputrules";
 import { BlockMetaContext } from "../../blocks/blockMeta";
 import type { BlockVariant } from "@hashintel/block-protocol";
-import { px } from "../../lib/dom";
 
 /** used to retrieve the last character */
 const last = (str: string) => str.charAt(str.length - 1);
@@ -56,7 +55,7 @@ export const BlockSuggester = () => {
 /**
  * prosemirror plugin factory for the block suggester
  */
-export const createBlockSuggesterPlugin = (replacePortal) => {
+export const createBlockSuggesterPlugin = (replacePortal: FixMeLater) => {
   const mountNode = document.body;
 
   const suggesterPlugin = new Plugin({
@@ -80,8 +79,8 @@ export const createBlockSuggesterPlugin = (replacePortal) => {
 
           const style: CSSProperties = {
             position: "absolute",
-            top: px(coords.bottom),
-            left: px(coords.left),
+            top: coords.bottom,
+            left: coords.left,
           };
 
           const jsx = (
