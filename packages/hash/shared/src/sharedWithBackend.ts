@@ -66,37 +66,6 @@ export type BlockMeta = Pick<Block, "componentMetadata" | "componentSchema">;
  */
 export const blockCache = new Map<string, Promise<BlockMeta>>();
 
-/**
- * @deprecated
- * @todo remove this
- */
-export const builtInBlocks: Record<string, BlockMeta> = {
-  // @todo maybe this should be a nodeview too
-  "https://block.blockprotocol.org/paragraph": {
-    componentSchema: {},
-    // should adhere to output of `toBlockConfig`
-    componentMetadata: {
-      url: "https://block.blockprotocol.org/paragraph",
-      name: "paragraph",
-      type: "prosemirror",
-      spec: {
-        content: "text*",
-        domTag: "p",
-        marks: "_",
-      },
-      // @todo add missing metadata to the paragraph's default variant
-      variants: [
-        {
-          name: "paragraph",
-          description: "just start typing",
-          icon: "/format-font.svg", // root dir is /packages/hash/frontend/public
-          properties: {},
-        },
-      ],
-    },
-  },
-};
-
 function toBlockName(packageName: string = "Unnamed") {
   return packageName.split("/").pop()!;
 }
@@ -130,10 +99,6 @@ function toBlockConfig(options: BlockMetadata, url: string): BlockConfig {
 // @todo deal with errors, loading, abort etc.
 export const fetchBlockMeta = async (url: string): Promise<BlockMeta> => {
   const mappedUrl = ((blockPaths as any)[url] ?? url) as string;
-  if (builtInBlocks[mappedUrl]) {
-    return builtInBlocks[mappedUrl];
-  }
-
   if (blockCache.has(mappedUrl)) {
     return blockCache.get(mappedUrl)!;
   }

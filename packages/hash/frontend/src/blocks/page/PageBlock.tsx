@@ -318,8 +318,8 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   }, [accountId, clearCallback, deferCallback, metadataId, replacePortal]);
 
   /**
-   * This effect is responsible for ensuring all the preloaded blocks
-   * (currently just paragraph) are defined in prosemirror
+   * This effect is responsible for ensuring all the preloaded blocks are
+   * defined in prosemirror
    */
   useLayoutEffect(() => {
     if (!prosemirrorSetup.current) {
