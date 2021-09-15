@@ -2,7 +2,7 @@
 
 System dynamics model allow you to understand non-linear complex systems based on rates of change. Also known as stock-and-flow models, they consist of a set of "stocks" and the "flows" between them. These models allow you to understand the feedback loops inherent in a system.
 
-The [System Dynamics Library](https://hash.ai/@hash/sd) will allow you to easily create them in your HASH simulations. You'll need to import the library and then configure your agent with the correct set of properties.
+The [System Dynamics Library](/@hash/sd) will allow you to easily create them in your HASH simulations. You'll need to import the library and then configure your agent with the correct set of properties.
 
 ## Defining a System Dynamics Model
 
@@ -15,9 +15,9 @@ Your agent only needs to run two behaviors to execute a system dynamics model:
 * `@hash/sd/calc_rates.js` - determines and assigns all flow rates for the current time step
 * `@hash/sd/step.js` - runs the model one step forward using the current flow rates and stock values
 
-{% hint style="info" %}
+<Hint style="info">
 Make sure that your agent's `behaviors` array always contains the two behaviors in that order.
-{% endhint %}
+</Hint>
 
 ### Properties
 
@@ -48,9 +48,9 @@ The final step is to define the rates in your model. Each rate will have 3 or 4 
 * `from` - the stock from which this rate is flowing. This stock will decrease at the rate.
 * `to` - the stock to which this rate is flowing. This stock will increase at the rate.
 
-{% hint style="info" %}
+<Hint style="info">
 Some rates will only have one of "to" or "from" if they are coming from a sink, or going to a source.
-{% endhint %}
+</Hint>
 
 ```javascript
 "sd_definition": {
@@ -85,5 +85,5 @@ As a final step, set the resolution of your time step in **`globals.json`** with
 
 You now have a fully defined system dynamics model. Go ahead and create some metrics so that you can plot the values for "adults" and "children", and you should see something like this:
 
-![](../.gitbook/assets/image%20%2862%29.png)
+![](https://cdn-us1.hash.ai/site/docs/image%20%2862%29.png)
 

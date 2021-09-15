@@ -30,7 +30,7 @@ An agent's color can be set by either setting the "color" field on the agent wit
 
 ## Shape
 
-Agents can be represented a huge variety of ways in HASH's 3D viewer, out of the box. Read more about [agent shapes](../anatomy-of-an-agent/visualization/shapes.md).
+Agents can be represented a huge variety of ways in HASH's 3D viewer, out of the box. Read more about [agent shapes](/docs/simulation/creating-simulations/anatomy-of-an-agent/visualization/shapes).
 
 ## Hiding Agents
 
@@ -40,5 +40,5 @@ It's possible to hide agents from the viewer. Simply, set "hidden" to true on th
 
 The 3D stage and grid color can be changed and set by clicking on the gear icon in the top right.
 
-![](../../.gitbook/assets/image%20%2868%29.png)
+![](https://cdn-us1.hash.ai/site/docs/image%20%2868%29.png)
 

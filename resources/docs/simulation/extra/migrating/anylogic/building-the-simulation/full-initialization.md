@@ -6,12 +6,13 @@ We've built all our logic to run this simulation, but we want to have more than 
 
 In the AnyLogic model, the agents are initialized from a database. When the simulation starts, all of the agent values are filled in from individual properties in the db.
 
-![](../../../../.gitbook/assets/image%20%2828%29.png)
+![](https://cdn-us1.hash.ai/site/docs/image%20%2828%29.png)
 
-In HASH, we provide similar functionality through the [HASH Index](https://hash.ai/platform/index) \(hIndex\). The hIndex is a place you can find existing data or upload your own \(privately or publicly\). In this case, we’ve created an [example dataset](https://hash.ai/@hash/ex) for the simulation that contains a network representation of the system. Now in the simulation we can upload the dataset and, in a create function, spin up agents with those properties.
+In HASH, we provide similar functionality through the [HASH Index](/platform/index) \(hIndex\). The hIndex is a place you can find existing data or upload your own \(privately or publicly\). In this case, we’ve created an [example dataset](/@hash/ex) for the simulation that contains a network representation of the system. Now in the simulation we can upload the dataset and, in a create function, spin up agents with those properties.
 
-{% code title="initialize.py" %}
 ```python
+# initialize.py
+
 pipelines = context.data()['@hash/ex/oil_pipelines.json']
 G = nx.node_link_graph(pipelines)
 
@@ -27,16 +28,17 @@ for loc in pipelines['nodes']:
     elif loc['type'] == 'retailer'
         # Create Retailers
 ```
-{% endcode %}
+
 
 Our creator function will parse the dataset and assign the necessary properties and behaviors to every agent. An upcoming version of HASH will include a click-through wizard that will do this on your behalf.
 
 ## Initializing from Historical Data
 
-We'll use another dataset to determine the demand **Retailers** experience. The U.S Energy Information Administration has a database that includes historical gasoline supply. We'll import [that dataset](https://hash.ai/@useia/petrol-and-liquids) and write a behavior to process the data, and allow our `initialize.js` file to use it in assigning the `avg_demand` for **Retailers**
+We'll use another dataset to determine the demand **Retailers** experience. The U.S Energy Information Administration has a database that includes historical gasoline supply. We'll import [that dataset](/@useia/petrol-and-liquids) and write a behavior to process the data, and allow our `initialize.js` file to use it in assigning the `avg_demand` for **Retailers**
 
-{% code title="process\_data.js" %}
 ```javascript
+// process_data.js
+
 const behavior = (state, context) => {
   const data = context.data()["@useia/petrol-and-liquids/week-supply-gas.csv"];
 
@@ -67,5 +69,5 @@ const behavior = (state, context) => {
   state.set("yearly_supply", yearly_supply);
 };
 ```
-{% endcode %}
+
 

@@ -6,9 +6,9 @@ There are several possible reasons your simulation is running slowly. Broadly we
 * **Compute**: Your agents' behaviors are performing expensive calculations.
 * **Hardware**: Your local compute isn't powerful enough to run the underlying HASH environment.
 
-Below we explain these common performance bottlenecks and solutions you can use to improve your simulation's performance. Alternatively you can use [hCloud](../creating-simulations/h.cloud.md) to run simulations on dedicated remote hardware and stream these results back to your local machine.
+Below we explain these common performance bottlenecks and solutions you can use to improve your simulation's performance. Alternatively you can use [hCloud](/docs/simulation/creating-simulations/h.cloud) to run simulations on dedicated remote hardware and stream these results back to your local machine.
 
-We're also happy to chat through techniques to improve your simulation's performance in our [Discord](https://hash.ai/discord) and [Forum](https://community.hash.ai/).
+We're also happy to chat through techniques to improve your simulation's performance in our [Discord](/discord) and [Forum](https://community.hash.ai/).
 
 ## Data
 
@@ -18,27 +18,27 @@ The general solution is to keep your initial simulation agent population small, 
 
 For handling large datasets, consider preprocessing the data, for instance in an iPython notebook w/ Pandas, to only use the segments of data you need for the simulation. Often we've found people have imported a lot of extra data when, to simulate agents, they only need a small handful of columns from a much larger dataset.
 
-{% hint style="info" %}
+<Hint style="info">
 In the future we'll be bringing support for much larger datasets to both the client-side version of hCore and simulations running in hCloud.
-{% endhint %}
+</Hint>
 
 ## Compute
 
 Each agent runs its array of behaviors every time step - if a behavior is performing very complex calculations, it can slow down the simulation as a whole.
 
-The most common expensive behavior we see is using many agents with large `"search_radius"`. If an agent has a [search radius](../creating-simulations/anatomy-of-an-agent/context.md#neighbors), the HASH engine will calculate the neighbors for the agent, which is how`context.neighbors()` will return the agents neighbors. Calculating neighbors involves searching over the simulation state, which can be expensive when many agents are calling neighbors. 
+The most common expensive behavior we see is using many agents with large `"search_radius"`. If an agent has a [search radius](/docs/simulation/creating-simulations/anatomy-of-an-agent/context#neighbors), the HASH engine will calculate the neighbors for the agent, which is how`context.neighbors()` will return the agents neighbors. Calculating neighbors involves searching over the simulation state, which can be expensive when many agents are calling neighbors. 
 
 Often you can use messages to communicate between agents and request information instead of relying on retrieving many neighbors. Alternatively you might consider creating a manager agent that has a search radius which calls `context.neighbors()` and stores the results which other agents can retrieve by messaging the manager agent.
 
 Other common reasons for slowdown are not specific to HASH's Engine, but are general performance problems, such as running O\(n^2\) algorithms over large datasets. After you've created the initial design of your simulation, consider going back through and finding ways to make the behaviors more efficient.
 
-{% hint style="info" %}
+<Hint style="info">
 While in general it's good to optimize your functions and behaviors, be wary of premature optimization. If your simulation only has a few agents, the difference between searching through an agents message array with an O\(n\) loop or an O\(n^2\) loop will be minor.
-{% endhint %}
+</Hint>
 
 ## Hardware
 
-hCore is designed to be run on a wide variety of machines but it prefers modern hardware. You can find out more over on our [System Requirements](https://docs.hash.ai/core/extra/specs-requirements) page.
+hCore is designed to be run on a wide variety of machines but it prefers modern hardware. You can find out more over on our [System Requirements](/docs/simulation/extra/specs-requirements) page.
 
 ## Identifying Performance Issues
 
@@ -52,5 +52,5 @@ MS and FPS reflect the total time from state _t_ to state _t_+1. If this is taki
 
 MB reflects the size of the simulation - each simulation run is stored locally. If a simulation has been run for tens of thousands of time steps, or if there are many agents, it might become too large for your browser.
 
-![Stats window for debugging](../.gitbook/assets/kapture-2020-12-17-at-10.26.05.gif)
+![Stats window for debugging](https://cdn-us1.hash.ai/site/docs/kapture-2020-12-17-at-10.26.05.gif)
 

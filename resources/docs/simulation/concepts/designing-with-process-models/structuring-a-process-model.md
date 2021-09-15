@@ -1,8 +1,8 @@
 # Structuring a Process Model
 
-{% hint style="info" %}
-A technical deep-dive into how process models are structured. This is optional context that is not required for using the [process model visual interface](using-the-process-model-builder.md).
-{% endhint %}
+<Hint style="info">
+A technical deep-dive into how process models are structured. This is optional context that is not required for using the [process model visual interface](/docs/simulation/concepts/designing-with-process-models/using-the-process-model-builder).
+</Hint>
 
 ## Structure of the Agent
 
@@ -18,19 +18,20 @@ Each process block behavior operates in three parts:
 2. The block then performs a function, such as modifying on object property or seizing a resource from the agent.
 3. The block puts modified objects back into its queue, or into the queue of the following block.
 
-{% hint style="warning" %}
+<Hint style="warning">
 The only exception to this is the Sink block. Since it represents the end of a process, it does not send objects into a new queue.
-{% endhint %}
+</Hint>
 
 ### Behaviors Array
 
-The `behaviors` array of an agent running a process model must start with the [`@hash/age/age.rs`](https://hash.ai/@hash/age) behavior, and can then contain a mix of custom and published behaviors.
+The `behaviors` array of an agent running a process model must start with the [`@hash/age/age.rs`](/@hash/age) behavior, and can then contain a mix of custom and published behaviors.
 
-{% hint style="warning" %}
+<Hint style="warning">
 This behavior provides the agent with a field that allows the other process behaviors to run. Without it the other Process Library behaviors will throw errors.
-{% endhint %}
+</Hint>
 
-{% code title="init.json" %}
+** init.json **
+
 ```javascript
 {
     "behaviors": [
@@ -39,14 +40,14 @@ This behavior provides the agent with a field that allows the other process beha
     ],
     ...
 }
-```
-{% endcode %}
+
 
 ### Process Labels
 
 The agent must also contain an array of labels for each process behavior. The labels allow you to give a descriptive name to each block. Only the behaviors listed on the following Process Behaviors page require a label; all other published or custom behaviors should have a `""` placeholder string.
 
-{% code title="init.json" %}
+** init.json **
+
 ```javascript
 {
     "behaviors": [
@@ -63,8 +64,7 @@ The agent must also contain an array of labels for each process behavior. The la
     ],
     ...
 }
-```
-{% endcode %}
+
 
 ### Resources
 

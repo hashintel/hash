@@ -4,7 +4,7 @@ description: Granular control of how the world is presented to hCore
 
 # Wrapping Presets and Flags
 
-In [Bounds and Wrapping](bounds-and-wrapping.md) we showed how you could set wrapping presets to determine how the topology of the simulation works. Here, we'll show some flags to get even more granular control of HASH's topology engine.
+In [Bounds and Wrapping](/docs/simulation/creating-simulations/configuration/topology/bounds-and-wrapping) we showed how you could set wrapping presets to determine how the topology of the simulation works. Here, we'll show some flags to get even more granular control of HASH's topology engine.
 
 Each pair of borders share a specific wrapping behavior. This could be any one of:
 
@@ -28,7 +28,7 @@ These parameters are set in the `globals.json:`
 }
 ```
 
-{% hint style="warning" %}
+<Hint style="warning">
 Note that `offset_reflection` is a special case and is not supported for the Z axis - it will only infer shifts along either the X or Y axes.
-{% endhint %}
+</Hint>
 

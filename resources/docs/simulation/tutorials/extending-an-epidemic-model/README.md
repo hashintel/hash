@@ -6,14 +6,16 @@ description: Adding and extending features in a simulation.
 
 In this tutorial we're going to augment one of our existing epidemiological simulations and add a hospital. Along the way you'll learn key features of hCore and how to use agent based modeling to simulate and answer complex questions.
 
-Start by opening our base template in either [JavaScript](https://hash.ai/@hash/getting-started-base) or [Python ](https://hash.ai/@hash/getting-started-base-python)and copying it into your hDrive.
+Start by opening our base template in either [JavaScript](/@hash/getting-started-base) or [Python ](/@hash/getting-started-base-python)and copying it into your hDrive.
 
 We've provided a number of agents and behaviors to simulate a virus spreading through a population. Look around at the files in the editor and click play to get a sense for how the simulation currently works.
 
 There are four distinct agents in the model. Three are locations - homes, groceries, and offices. The fourth are people.
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
+
+
 ```javascript
  //init.json lines 9-35
  //...
@@ -45,9 +47,12 @@ There are four distinct agents in the model. Three are locations - homes, grocer
   }
 //...
 ```
-{% endtab %}
 
-{% tab title="Python" %}
+</Tab>
+
+<Tab title="Python" >
+
+
 ```javascript
  //init.json lines 9-35
  //...
@@ -79,8 +84,9 @@ There are four distinct agents in the model. Three are locations - homes, grocer
   }
 //...
 ```
-{% endtab %}
-{% endtabs %}
+
+</Tab>
+</Tabs>
 
 Our people agents whiz about this simulated world, moving back and forth between groceries, work, and their homes, and occasionally \(depending on the parameters\), get sick.
 

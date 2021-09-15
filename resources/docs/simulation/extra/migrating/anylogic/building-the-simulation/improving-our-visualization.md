@@ -6,7 +6,8 @@ Now let's add some more involved visualization to our simulation. Visualizations
 
 We'll start by defining outputs that track metrics of interest, like the total quantity of crude and refined oil, and the number of gas stations that are empty. We'll use those outputs to generate a few plots of interest.
 
-{% code title="analysis.json" %}
+** analysis.json **
+
 ```javascript
 "empty_stations": [
   {
@@ -20,9 +21,9 @@ We'll start by defining outputs that track metrics of interest, like the total q
   }
 ]
 ```
-{% endcode %}
 
-![Plots for the Oil Supply Chain model](../../../../.gitbook/assets/image%20%2827%29.png)
+
+![Plots for the Oil Supply Chain model](https://cdn-us1.hash.ai/site/docs/image%20%2827%29.png)
 
 ## Advanced Agent Visualizations
 
@@ -50,7 +51,7 @@ HASH has built in poly models which allow you to more accurately represent many 
 
 #### Adding Edges
 
-We'll also add edges to help visualize the flows between different agents. Take a look at the docs section on [visualizing networks](../../../../creating-simulations/anatomy-of-an-agent/visualization/networks.md) for implementation details.
+We'll also add edges to help visualize the flows between different agents. Take a look at the docs section on [visualizing networks](/docs/simulation/creating-simulations/anatomy-of-an-agent/visualization/networks) for implementation details.
 
 ### Agents in Motion
 

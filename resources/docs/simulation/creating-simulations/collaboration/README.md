@@ -16,13 +16,13 @@ You can "cut a release" of any HASH project \(whether a simulation, behavior, da
 
 ## Organizations
 
-In the same way you can create private projects as an individual user, visible only to you, by [creating an organization](organizations.md) you can extend the right to view and edit a project to trusted teams of collaborators.
+In the same way you can create private projects as an individual user, visible only to you, by [creating an organization](/docs/simulation/creating-simulations/collaboration/organizations) you can extend the right to view and edit a project to trusted teams of collaborators.
 
 ## Shareable links
 
-Should you choose to allow it, projects in [hCore](https://hash.ai/platform/core) can be shared with anybody, even if they don't have a HASH account, and opened directly in the browser -- no special software required.
+Should you choose to allow it, projects in [hCore](/platform/core) can be shared with anybody, even if they don't have a HASH account, and opened directly in the browser -- no special software required.
 
-To generate a share link, click the 'Share' button in the top-right hand corner of HASH. [Read more about sharing simulations &gt;](sharing-releasing.md)
+To generate a share link, click the 'Share' button in the top-right hand corner of HASH. [Read more about sharing simulations &gt;](/docs/simulation/creating-simulations/collaboration/sharing-releasing)
 
 ## Coming soon...
 

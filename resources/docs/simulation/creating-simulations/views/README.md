@@ -10,7 +10,7 @@ Using the playbar at the bottom of the right-hand view pane you can scrub forwar
 
 ## 3D
 
-**HASH natively supports rendering agents in 3D environments.** [Read more &gt;](3d-viewer.md)
+**HASH natively supports rendering agents in 3D environments.** [Read more &gt;](3d-viewer)
 
 ## Analysis
 
@@ -18,7 +18,7 @@ Using the playbar at the bottom of the right-hand view pane you can scrub forwar
 
 ## Geospatial
 
-**Agents can be rendered on a map-view of the world by providing them with latlong co-ordinates.** Various examples in the hIndex showcase this \(e.g. [Local Competition](https://hash.ai/@hash/local-competition), [Container Line](https://hash.ai/@hash/container-line-sim)\)
+**Agents can be rendered on a map-view of the world by providing them with latlong co-ordinates.** Various examples in the hIndex showcase this \(e.g. [Local Competition](/@hash/local-competition), [Container Line](/@hash/container-line-sim)\)
 
 ## Raw Output
 
@@ -36,11 +36,11 @@ Step Explorer is useful for understanding the shape of the data within your simu
 
 ## API
 
-**The HASH API allows for programmatic access to simulation outputs.** [Read more &gt;](api-1.md)
+**The HASH API allows for programmatic access to simulation outputs.** [Read more &gt;](/docs/simulation/creating-simulations/views/api-1)
 
 ## Custom Views
 
-{% hint style="info" %}
-Allowing users to develop custom views is part of our public [product roadmap](https://hash.ai/roadmap).
-{% endhint %}
+<Hint style="info">
+Allowing users to develop custom views is part of our public [product roadmap](/roadmap).
+</Hint>
 

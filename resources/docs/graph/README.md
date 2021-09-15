@@ -4,7 +4,7 @@ description: An introduction to your graph
 
 # Overview
 
-Every account in [HASH](https://hash.ai) has its own _graph_. An account's graph acts as the canonical reference, or "single-source of truth" for an account's users.
+Every account in [HASH](/) has its own _graph_. An account's graph acts as the canonical reference, or "single-source of truth" for an account's users.
 
 Graphs contain **entities** conforming to a **HASH schema** which defines their **properties**.
 

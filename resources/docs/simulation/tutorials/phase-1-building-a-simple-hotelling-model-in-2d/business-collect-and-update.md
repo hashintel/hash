@@ -50,7 +50,7 @@ Now all that remains is to iterate through the dictionary, find the key \(positi
    state.item_price = new_price;
 ```
 
-Finally, call the collect\_customer\_data\(\) function with context.messages\(\).
+Finally, call the collect_customer_data\(\) function with context.messages\(\).
 
 ```javascript
 if (state.counter === 0) {
@@ -66,10 +66,11 @@ Click Reset and Run!
 
 You should see your Business agents start to move around to try and find the best position and price to make the largest profit. Customer agents will also continue to change their color based on their purchase preferences.
 
-![](../../.gitbook/assets/lc_p1.gif)
+![](https://cdn-us1.hash.ai/site/docs/lc_p1.gif)
 
-{% tabs %}
-{% tab title="business.js" %}
+<Tabs>
+<Tab title="business.js" >
+
 ```javascript
 const behavior = (state, context) => {
  const send_message = (agent_id, position, price) => {
@@ -149,6 +150,6 @@ const behavior = (state, context) => {
  }
 }
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 

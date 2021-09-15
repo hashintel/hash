@@ -8,15 +8,15 @@ Business processes are the cornerstone of every company's operations. Defined an
 
 Simulation aided process design can dramatically improve results and get you answers fast.
 
-![](../.gitbook/assets/image%20%2853%29.png)
+![](https://cdn-us1.hash.ai/site/docs/image%20%2853%29.png)
 
 The process chart visual interface makes it incredibly easy to create a powerful process model, no coding expertise required.
 
-{% embed url="https://www.youtube.com/watch?v=1XHZREmn9TA" caption="" %}
+<Embed url="https://youtu.be/1XHZREmn9TA" type="youtube" caption="" />
 
 This video tutorial will walk you through using the process model visual interface to build a ticketing queue simulation.
 
-{% hint style="info" %}
-See [Designing with Process Models](../concepts/designing-with-process-models/) for more on using process models and a complete overview of the features of the process library.
-{% endhint %}
+<Hint style="info">
+See [Designing with Process Models](/docs/simulation/concepts/designing-with-process-models/) for more on using process models and a complete overview of the features of the process library.
+</Hint>
 

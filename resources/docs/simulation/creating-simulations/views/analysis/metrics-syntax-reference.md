@@ -25,67 +25,67 @@ Metrics are defined as an object collection of JSON objects of the form:
 }
 ```
 
-The “metric” is referenced by plot definitions, and will correspond to an array of data \(or array of arrays\). The "operations" are objects corresponding to those described in the [Analysis ](./)page, with all of the same fields that are described there. Chaining operations works identically to the wizard.
+The “metric” is referenced by plot definitions, and will correspond to an array of data \(or array of arrays\). The "operations" are objects corresponding to those described in the [Analysis](/docs/simulation/creating-simulations/views/analysis) page, with all of the same fields that are described there. Chaining operations works identically to the wizard.
 
 Operations must have an `"op"` field which designates their type. Some operations have additional arguments. The valid types and additional arguments are listed below:
 
-<table>
+<table className="docs-table">
   <thead>
     <tr>
-      <th style="text-align:left">Operator Name</th>
-      <th style="text-align:left">Additional Arguments</th>
-      <th style="text-align:left">Operator Description</th>
+      <th className="text-left">Operator Name</th>
+      <th className="text-left">Additional Arguments</th>
+      <th className="text-left">Operator Description</th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <td style="text-align:left"><code>&quot;filter&quot;</code>
+      <td className="text-left"><code>&quot;filter&quot;</code>
       </td>
-      <td style="text-align:left">
+      <td className="text-left">
         <p><code>&quot;field&quot;</code>  <code>&quot;comparison&quot;</code>
         </p>
         <p><code>&quot;value&quot;</code>
         </p>
       </td>
-      <td style="text-align:left">Filter the current output with the given <em>comparison</em> and <em>value</em> on
+      <td className="text-left">Filter the current output with the given <em>comparison</em> and <em>value</em> on
         the given <em>field</em> of each element</td>
     </tr>
     <tr>
-      <td style="text-align:left"><code>&quot;count&quot;</code>
+      <td className="text-left"><code>&quot;count&quot;</code>
       </td>
-      <td style="text-align:left">n/a</td>
-      <td style="text-align:left">Count the number of agents in the current output</td>
+      <td className="text-left">n/a</td>
+      <td className="text-left">Count the number of agents in the current output</td>
     </tr>
     <tr>
-      <td style="text-align:left"><code>&quot;get&quot;</code>
+      <td className="text-left"><code>&quot;get&quot;</code>
       </td>
-      <td style="text-align:left"><code>&quot;field&quot;</code>
+      <td className="text-left"><code>&quot;field&quot;</code>
       </td>
-      <td style="text-align:left">Retrieve the <em>field</em> value from each agent in the current output</td>
+      <td className="text-left">Retrieve the <em>field</em> value from each agent in the current output</td>
     </tr>
     <tr>
-      <td style="text-align:left"><code>&quot;sum&quot;</code>
+      <td className="text-left"><code>&quot;sum&quot;</code>
       </td>
-      <td style="text-align:left">n/a</td>
-      <td style="text-align:left">Sum over the elements of the current output</td>
+      <td className="text-left">n/a</td>
+      <td className="text-left">Sum over the elements of the current output</td>
     </tr>
     <tr>
-      <td style="text-align:left"><code>&quot;min&quot;</code>
+      <td className="text-left"><code>&quot;min&quot;</code>
       </td>
-      <td style="text-align:left">n/a</td>
-      <td style="text-align:left">Return the minimum of the elements in the current output</td>
+      <td className="text-left">n/a</td>
+      <td className="text-left">Return the minimum of the elements in the current output</td>
     </tr>
     <tr>
-      <td style="text-align:left"><code>&quot;max&quot;</code>
+      <td className="text-left"><code>&quot;max&quot;</code>
       </td>
-      <td style="text-align:left">n/a</td>
-      <td style="text-align:left">Return the maximum of the elements in the current output</td>
+      <td className="text-left">n/a</td>
+      <td className="text-left">Return the maximum of the elements in the current output</td>
     </tr>
     <tr>
-      <td style="text-align:left"><code>&quot;mean&quot;</code>
+      <td className="text-left"><code>&quot;mean&quot;</code>
       </td>
-      <td style="text-align:left">n/a</td>
-      <td style="text-align:left">Return the mean of the elements in the current output</td>
+      <td className="text-left">n/a</td>
+      <td className="text-left">Return the mean of the elements in the current output</td>
     </tr>
   </tbody>
 </table>
@@ -162,7 +162,9 @@ HASH uses Plotly behind the scenes to render charts and graphs. As such, the pla
 
 Below are a few snippets of outputs and plots.
 
-### [Model Market](https://core.hash.ai/@hash/model-market/4.4.1)
+### Model Market
+
+[Link to Simulation](https://core.hash.ai/@hash/model-market/4.4.1)
 
 ```javascript
 {
@@ -262,4 +264,3 @@ Below are a few snippets of outputs and plots.
   ]
 }
 ```
-

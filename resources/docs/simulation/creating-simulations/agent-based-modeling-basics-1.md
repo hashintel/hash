@@ -16,13 +16,15 @@ A popular example of an agent-based simulation is Conway's _Game of Life_ - a si
 
 These simple interactions produce what is called _emergent behavior_, where simple rules create complex results.
 
-{% hint style="info" %}
-Check out [Conway's _Game of Life_](https://hash.ai/@hash/conways-game-of-life) model in HASH
-{% endhint %}
+<Hint style="info">
+  
+Check out [Conway's _Game of Life_](/@hash/conways-game-of-life) model in HASH
+
+</Hint>
 
 _Game of Life_ enthusiasts have spent years exploring the search space of the model and its possible creations.
 
 Try playing with the _Game of Life_ HASH model and modifying its initial state \(contained in the `create_gol_grid.js` file\). Some arrangements of agents produce arrangements of agents known as "spaceships" that move across the grid as a group and can even generate new groups of agents.
 
-**What took Conway weeks can now be done in seconds, and with HASH you can set up experiments, run analyses, and leverage the power of** [**cloud computing**](https://hash.ai/cloud) **directly in your browser, extending agent-based modeling to real-world problems and scenarios with ease.**
+**What took Conway weeks can now be done in seconds, and with HASH you can set up experiments, run analyses, and leverage the power of** [**cloud computing**](/cloud) **directly in your browser, extending agent-based modeling to real-world problems and scenarios with ease.**
 

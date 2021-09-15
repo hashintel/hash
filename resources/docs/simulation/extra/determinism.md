@@ -8,40 +8,45 @@ HASH is designed to execute deterministically; however, there can be situations 
 
 1. randomness included within the simulation logic;
 2. reliance on external APIs/data sources which can't always be guaranteed to return the same results \(for example, the most efficient public transportation route between two destinations\); or
-3. the manner in which the hEngine builds [context](../creating-simulations/anatomy-of-an-agent/context.md) for an agent.
+3. the manner in which the hEngine builds [context](/docs/simulation/creating-simulations/anatomy-of-an-agent/context) for an agent.
 
 ### 1. Simulation Logic
 
-Often you'll create simulations with probabilities, where an agent takes an action X% of the time. This might be by drawing random numbers using the [`hstd.random()`](../creating-simulations/libraries/hash/random.md#random) function
+Often you'll create simulations with probabilities, where an agent takes an action X% of the time. This might be by drawing random numbers using the [`hstd.random()`](/docs/simulation/creating-simulations/libraries/hash/random#random) function
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
+
 ```javascript
 state.foo = hstd.random() > 0.5 ? true : false
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
-or by using one of the [Statistic libraries](../creating-simulations/libraries/#hash-standard-library) included in HASH, such as those outlined in [Designing with Distributions](../concepts/designing-with-distributions.md).
+or by using one of the [Statistic libraries](/docs/simulation/creating-simulations/libraries#hash-standard-library) included in HASH, such as those outlined in [Designing with Distributions](/docs/simulation/concepts/designing-with-distributions).
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
+
+
 ```javascript
   const { poisson, uniform, triangular, normal } = hstd.stats;
   ...
 
   let foo = triangular.sample(0, 100, 50)
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 To ensure the same numbers are generated every execution run, you can **set the seed** of the random number generator.
 
 1. Call `hstd.setSeed(str: s)` to set a seed at the beginning of your simulation run. 
 2. Use `hstd` functions for stochasticity. They'll return the same random number every simulation run.
 
-{% tabs %}
-{% tab title="JavaScript" %}
+<Tabs>
+<Tab title="JavaScript" >
+
+
 ```javascript
 if (state.timestep == 1) {
   // If it's the first timestep, set the initial seed of the sim.
@@ -51,16 +56,16 @@ if (state.timestep == 1) {
 // will return the same sample every run
 const num_new_agents = poisson.sample(10);
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
-{% embed url="https://hash.ai/@hash/determinism" caption="An example simulation demonstrating Determinism" %}
+<Embed url="https://hash.ai/@hash/determinism" caption="An example simulation demonstrating Determinism" />
 
-HASH standard library functions for distributions and random number generation are currently only available in JavaScript; [Python supports setting a seed natively](https://docs.python.org/3/library/random.html) and, if creating a Python simulation, you should consider using `random.seed()` and/or [numpy](../creating-simulations/libraries/python-packages.md).
+HASH standard library functions for distributions and random number generation are currently only available in JavaScript; [Python supports setting a seed natively](https://docs.python.org/3/library/random.html) and, if creating a Python simulation, you should consider using `random.seed()` and/or [numpy](/docs/simulation/creating-simulations/libraries/python-packages).
 
-{% hint style="warning" %}
+<Hint style="warning">
 hEngine execution order can, at times, cause different agents to execute in different orders, causing different random numbers to be pulled between runs. We'll be building in guarantees around this in an upcoming update.
-{% endhint %}
+</Hint>
 
 ### 2. Reliance on External APIs
 
@@ -68,7 +73,7 @@ Currently, we only make the Mapbox API directly accessible from within both hCor
 
 ### 3. Context
 
-HASH's [actor model](https://hash.ai/wiki/actor-model) lets the engine execute agents in parallel. This allows us to run models across machines and ensure that they don't fall prey to sequencing problems, where the execution order of agents generates artifacts in your simulations. The current release of hEngine does **not** guarantee ordering of the agent interaction methods provided on the context of an agent.
+HASH's [actor model](/wiki/actor-model) lets the engine execute agents in parallel. This allows us to run models across machines and ensure that they don't fall prey to sequencing problems, where the execution order of agents generates artifacts in your simulations. The current release of hEngine does **not** guarantee ordering of the agent interaction methods provided on the context of an agent.
 
 #### Neighbors
 
@@ -80,7 +85,7 @@ hEngine delivers messages once all agents have computed their next states. In cu
 
 Like with neighbors, randomization is not guaranteed. Shuffling messages before you access them ensures that your simulation is free of artifacts.
 
-{% hint style="info" %}
+<Hint style="info">
 If your simulation relies upon the order of the messages and neighbors array, consider adding a sorting function to the simulation that will return the agents in a predictable manner. For example, sort based on an `agent_name` field you specify in the initialization of the simulation.
-{% endhint %}
+</Hint>
 

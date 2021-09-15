@@ -1,6 +1,6 @@
 # Agent Initialization
 
-Now, open up init.json. This is where we will be writing our [agent creator](https://docs.hash.ai/core/creating-simulations/anatomy-of-an-agent/initial-state) that will generate all our simulation agents. First, generate the Customer agents.
+Now, open up init.json. This is where we will be writing our [agent creator](/docs/simulation/creating-simulations/anatomy-of-an-agent/initial-state) that will generate all our simulation agents. First, generate the Customer agents.
 
 ## Customers
 
@@ -15,7 +15,8 @@ Customers begin evenly distributed in a grid across the environment. Thanks to H
 * **`@hash/create-agents/create_agents.js`**- creates the Customers in the model environment.
 * **`@hash/remove-self/remove_self.js`** - removes the creator agent from the simulation after all agents have been initialized.
 
-{% code title="init.json" %}
+** init.json **
+
 ```javascript
 [
   {
@@ -42,13 +43,13 @@ Customers begin evenly distributed in a grid across the environment. Thanks to H
   }
 ]
 ```
-{% endcode %}
+
 
 Before we can successfully initialize the Customers defined under `grid_templates`, we need to create the `customer.js` behavior. Don’t worry about writing the behavior at the moment, we only need to create the file. Select the new file icon above the Files Sidebar in the top left and create customer.js.
 
 Now click Reset and then run your simulation for two time steps with the **+1** button at the bottom of the 3D Viewer. You should see a grid of white agents!
 
-![Initial Grid of Agents](../../.gitbook/assets/screen-shot-2020-12-17-at-10.38.46-am.png)
+![Initial Grid of Agents](https://cdn-us1.hash.ai/site/docs/screen-shot-2020-12-17-at-10.38.46-am.png)
 
 ## Businesses
 
@@ -60,7 +61,8 @@ Now to create Business agents:
    1. **`@hash/create-scatters/create_scatters.js`**
    2. **`update_businesses.js`**
 
-{% code title="init.json" %}
+** init.json **
+
 ```javascript
 [
   {
@@ -100,18 +102,19 @@ Now to create Business agents:
   }
 ]
 ```
-{% endcode %}
+
 
 If you run your simulation now you should see two green agents placed randomly within the grid.
 
-{% hint style="info" %}
-Since our agent creator is first defined in `init.json`, which can't run JavaScript, any agent fields that need to be calculated or generated needs to be updated in a separate behavior file \(i.e. update\_behavior.js\).
-{% endhint %}
+<Hint style="info">
+Since our agent creator is first defined in `init.json`, which can't run JavaScript, any agent fields that need to be calculated or generated needs to be updated in a separate behavior file \(i.e. update_behavior.js\).
+</Hint>
 
 We’re going to update the rgb value of each Business to a random color in `update_businesses.js`.
 
-{% tabs %}
-{% tab title="update\_businesses.js" %}
+<Tabs>
+<Tab title="update_businesses.js" >
+
 ```javascript
 const behavior = (state, context) => {
   for (b of state.agents["businesses"]) {
@@ -119,8 +122,8 @@ const behavior = (state, context) => {
   }
 }
 ```
-{% endtab %}
-{% endtabs %}
+</Tab>
+</Tabs>
 
 Both agents are now initialized with a random color! Time to move onto building out the `business.js` and `customer.js` behaviors. First let's look at the `business.js` file.
 
