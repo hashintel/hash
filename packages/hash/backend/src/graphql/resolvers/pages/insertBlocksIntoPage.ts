@@ -4,6 +4,7 @@ import { DbPageProperties, DbBlockProperties } from "../../../types/dbTypes";
 import { Resolver, MutationInsertBlocksIntoPageArgs } from "../../apiTypes.gen";
 import { Entity, EntityWithIncompleteEntityType } from "../../../model";
 import { LoggedInGraphQLContext } from "../../context";
+import { createEntityArgsBuilder } from "../util";
 
 export const insertBlocksIntoPage: Resolver<
   Promise<EntityWithIncompleteEntityType>,
@@ -20,22 +21,19 @@ export const insertBlocksIntoPage: Resolver<
     const newBlocks = await Promise.all(
       blocks.map(async (block) => {
         const { entityTypeId, entityTypeVersionId, systemTypeName } = block;
-        if (!entityTypeId && !entityTypeVersionId && !systemTypeName) {
-          throw new UserInputError(
-            "One of entityTypeId, entityTypeVersionId, or systemTypeName must be provided"
-          );
-        }
 
         // Create the entity that the block contains
-        const childEntity = await Entity.create(client)({
-          accountId: block.accountId,
-          createdById: user.entityId,
-          entityTypeId: entityTypeId ?? undefined,
-          entityTypeVersionId: entityTypeVersionId || undefined,
-          systemTypeName: systemTypeName || undefined,
-          properties: block.entityProperties,
-          versioned: true, // @todo: this should be a property of the type
-        });
+        const childEntity = await Entity.create(client)(
+          createEntityArgsBuilder({
+            accountId: block.accountId,
+            createdById: user.entityId,
+            properties: block.entityProperties,
+            versioned: true, // @todo: this should be a property of the type
+            entityTypeId,
+            entityTypeVersionId,
+            systemTypeName,
+          })
+        );
 
         // Create the block
         const blockProperties: DbBlockProperties = {
