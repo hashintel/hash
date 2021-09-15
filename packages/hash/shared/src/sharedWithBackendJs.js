@@ -1,6 +1,5 @@
 import { liftTarget, Mapping } from "prosemirror-transform";
-import { Schema } from "prosemirror-model";
-import { fetchBlockMeta } from "./sharedWithBackend";
+import { fetchBlockMeta, defineNewBlock } from "./sharedWithBackend";
 import { EditorState, NodeSelection, Plugin } from "prosemirror-state";
 import { keymap } from "prosemirror-keymap";
 import { baseKeymap, chainCommands, toggleMark } from "prosemirror-commands";
@@ -18,114 +17,6 @@ import { dropCursor } from "prosemirror-dropcursor";
  */
 export const historyPlugin = history();
 export const infiniteGroupHistoryPlugin = history({ newGroupDelay: Infinity });
-
-/**
- * This utilises getters to trick prosemirror into mutating itself in order to
- * modify a schema with a new node type. This is likely to be quite brittle,
- * and we need to ensure this continues to work between updates to Prosemirror.
- * We could also consider asking them to make adding a new node type officially
- * supported.
- */
-export function defineNewNode(existingSchema, componentUrl, spec) {
-  const existingSchemaSpec = existingSchema.spec;
-
-  existingSchemaSpec.nodes.content.push(componentUrl, spec);
-
-  // @todo make mark fix work properly
-  new (class extends Schema {
-    get nodes() {
-      return existingSchema.nodes;
-    }
-
-    get marks() {
-      return existingSchema.marks;
-    }
-
-    set marks(newMarks) {
-      for (const [key, value] of Object.entries(newMarks)) {
-        if (!this.marks[key]) {
-          value.schema = existingSchema;
-          this.marks[key] = value;
-        }
-      }
-    }
-
-    set nodes(newNodes) {
-      for (const [key, value] of Object.entries(newNodes)) {
-        if (!this.nodes[key]) {
-          value.schema = existingSchema;
-          this.nodes[key] = value;
-        }
-      }
-    }
-  })(existingSchemaSpec);
-}
-
-export const createProsemirrorSpec = (meta, attrs) => ({
-  ...attrs,
-  selectable: false,
-  group: "blockItem",
-  attrs: {
-    ...(attrs.attrs ?? {}),
-    meta: { default: meta },
-    entityId: { default: "" },
-  },
-});
-
-/**
- * This is used to define a new block type inside prosemiror when you have
- * already fetched all the necessary metadata. It'll define a new node type in
- * the schema, and create a node view wrapper for you too.
- */
-export const defineNewBlock = (
-  schema,
-  componentMetadata,
-  componentSchema,
-  viewConfig,
-  componentUrl
-) => {
-  if (schema.nodes[componentUrl]) {
-    return;
-  }
-
-  const spec = createProsemirrorSpec(componentMetadata, {
-    /**
-     * Currently we detect whether a block takes editable text by detecting if
-     * it has an editableRef prop in its schema – we need a more sophisticated
-     * way for block authors to communicate this to us
-     */
-    ...(componentSchema.properties?.["editableRef"]
-      ? {
-          content: "text*",
-          marks: "_",
-        }
-      : {}),
-  });
-
-  defineNewNode(schema, componentUrl, spec);
-
-  if (viewConfig) {
-    const { view, replacePortal, createNodeView } = viewConfig;
-
-    // @todo reduce duplication
-    const NodeViewClass = createNodeView(
-      componentUrl,
-      componentSchema,
-      `${componentMetadata.url}/${componentMetadata.source}`,
-      replacePortal
-    );
-
-    // Add the node view definition to the view – ensures our block code is called for every instance of the block
-    view.setProps({
-      nodeViews: {
-        ...view.nodeViews,
-        [componentUrl]: (node, view, getPos, decorations) => {
-          return new NodeViewClass(node, view, getPos, decorations);
-        },
-      },
-    });
-  }
-};
 
 /** @deprecated duplicates react context "blockMeta" */
 let AsyncBlockCache = new Map();

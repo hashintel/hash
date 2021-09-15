@@ -20,8 +20,8 @@ import {
   cachedPropertiesByEntity,
   calculateSavePayloads,
   createEntityUpdateTransaction,
+  defineNewBlock,
 } from "@hashintel/hash-shared/sharedWithBackend";
-import { defineNewBlock } from "@hashintel/hash-shared/sharedWithBackendJs";
 import { collabEnabled, createNodeView } from "./tsUtils";
 import { EditorConnection } from "./collab/collab";
 import { PageFieldsFragment } from "@hashintel/hash-shared/graphql/apiTypes.gen";

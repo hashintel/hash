@@ -12,13 +12,14 @@ import {
   BlockMetadata,
   BlockProtocolUpdatePayload,
 } from "@hashintel/block-protocol";
-import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
+import { Node as ProsemirrorNode, NodeSpec, Schema } from "prosemirror-model";
 import { PageFieldsFragment, SystemTypeName } from "./graphql/apiTypes.gen";
 import {
   createEntityStore,
   EntityStoreType,
   isBlockEntity,
 } from "./entityStore";
+import { Decoration, EditorView } from "prosemirror-view";
 
 export { blockPaths };
 
@@ -26,8 +27,9 @@ const fetch = (globalThis as any).fetch ?? require("node-fetch");
 
 /**
  * @todo think about removing this
+ * @todo don't export this
  */
-type BlockConfig = BlockMetadata & { url: string };
+export type BlockConfig = BlockMetadata & { url: string };
 
 /**
  * @deprecated
@@ -51,10 +53,12 @@ export type Block = {
 export type BlockMeta = Pick<Block, "componentMetadata" | "componentSchema">;
 
 /**
- * The cache is designed to store promises, not resolved values, in order to ensure multiple requests for the same
- * block in rapid succession don't cause multiple web requests
+ * The cache is designed to store promises, not resolved values, in order to
+ * ensure multiple requests for the same block in rapid succession don't cause
+ * multiple web requests
  *
- * @deprecated in favor of react context "blockMeta" (which is not the final solution either)
+ * @deprecated in favor of react context "blockMeta" (which is not the final
+ *   solution either)
  */
 export const blockCache = new Map<string, Promise<BlockMeta>>();
 
@@ -77,7 +81,8 @@ function toBlockConfig(options: BlockMetadata, url: string): BlockConfig {
     ...defaultVariant,
     ...variant,
     /**
-     * @todo: prefix path to icon w/ block's baseUrl when introducing icons to blocks
+     * @todo: prefix path to icon w/ block's baseUrl when introducing icons to
+     *   blocks
      * ```
      * icon: [url, variant.icon].join("/")
      * ```
@@ -138,7 +143,8 @@ export type ReplacePortals = (
   reactNode: ReactNode | null
 ) => void;
 
-type ViewConfig = {
+// @todo don't export this
+export type ViewConfig = {
   view: any;
   replacePortal: ReplacePortals;
   createNodeView: Function;
@@ -183,8 +189,9 @@ export const getProseMirrorNodeAttributes = (
 /**
  * @todo replace this with a prosemirror command
  * @todo take a signal
- * @todo i think we need to put placeholders for the not-yet-fetched blocks immediately, and then have the actual
- *       blocks pop in – it being delayed too much will mess with collab
+ * @todo i think we need to put placeholders for the not-yet-fetched blocks
+ *   immediately, and then have the actual blocks pop in – it being delayed too
+ *   much will mess with collab
  */
 export const createEntityUpdateTransaction = async (
   state: EditorState,
@@ -264,8 +271,9 @@ export const cachedPropertiesByEntity: Record<string, Record<any, any>> = {};
 const cachedPropertiesByPosition: Record<string, Record<any, any>> = {};
 
 /**
- * There's a bug here where when we add a new block, we think we need to update the page entity but
- * that is handled by the insert block operation, so this update here is a noop
+ * There's a bug here where when we add a new block, we think we need to update
+ * the page entity but that is handled by the insert block operation, so this
+ * update here is a noop
  *
  * @todo fix this
  *
@@ -281,7 +289,8 @@ export const calculateSavePayloads = (
   entityStore = createEntityStore(savedContents)
 ) => {
   /**
-   * @todo this needs to be typed – maybe we should use the prosemirror node APIs instead
+   * @todo this needs to be typed – maybe we should use the prosemirror node
+   *   APIs instead
    */
   const blocks = doc
     .toJSON()
@@ -363,8 +372,8 @@ export const calculateSavePayloads = (
   });
 
   /**
-   * Once we have a list of blocks, we need to divide the list of blocks into new ones and
-   * updated ones, as they require different queries to handle
+   * Once we have a list of blocks, we need to divide the list of blocks into
+   * new ones and updated ones, as they require different queries to handle
    */
   const existingBlockIds = new Set(
     savedContents.map((block) => block.metadataId)
@@ -379,8 +388,8 @@ export const calculateSavePayloads = (
   );
 
   /**
-   * An updated block also contains an updated entity, so we need to create a list of
-   * entities that we need to post updates to via GraphQL
+   * An updated block also contains an updated entity, so we need to create a
+   * list of entities that we need to post updates to via GraphQL
    */
   const updatedEntities = existingBlocks.flatMap((existingBlock) => {
     const block = {
@@ -422,8 +431,9 @@ export const calculateSavePayloads = (
             const existingText = texts?.[idx];
 
             /**
-             * Really crude way of working out if any properties we care about have changed – we need a better way
-             * of working out which text entities need an update
+             * Really crude way of working out if any properties we care about
+             * have changed – we need a better way of working out which text
+             * entities need an update
              */
             return (
               !existingText ||
@@ -440,10 +450,12 @@ export const calculateSavePayloads = (
     }
 
     /**
-     * Currently when the same block exists on the page in multiple locations, we prioritise the content of the
-     * first one that has changed when it comes to working out if an un update is required. We need a better way of
-     * handling this (i.e, take the *last* one that changed, and also more immediately sync updates between changed
-     * blocks to prevent work being lost)
+     * Currently when the same block exists on the page in multiple locations,
+     * we prioritise the content of the first one that has changed when it
+     * comes to working out if an un update is required. We need a better way
+     * of handling this (i.e, take the *last* one that changed, and also more
+     * immediately sync updates between changed blocks to prevent work being
+     * lost)
      *
      * @todo improve this
      */
@@ -456,9 +468,11 @@ export const calculateSavePayloads = (
         entity: T
       ): entity is T & { id: string } =>
         /**
-         * This had been setup to do something special in the case that you're converting from text blocks to non-text
-         * blocks (or vice versa, not sure) but it hasn't work for a while and making this strongly typed is showing it
-         * as an error. I'm commenting this out, but we do need to figure this one out
+         * This had been setup to do something special in the case that you're
+         * converting from text blocks to non-text blocks (or vice versa, not
+         * sure) but it hasn't work for a while and making this strongly typed
+         * is showing it as an error. I'm commenting this out, but we do need
+         * to figure this one out
          *
          * @see https://github.com/hashintel/dev/blob/664be1e740cbad694f0b76b96198fa45cc8232fc/packages/hash/frontend/src/blocks/page/PageBlock.tsx#L283
          * @see https://app.asana.com/0/1200211978612931/1200962726214259/f
@@ -476,8 +490,9 @@ export const calculateSavePayloads = (
     );
 
   /**
-   * This is a real crude way of working out if order of blocks (or if blocks have been added/removed) have changed
-   * within a page, in order to work out if an update operation is needed on this list
+   * This is a real crude way of working out if order of blocks (or if blocks
+   * have been added/removed) have changed within a page, in order to work out
+   * if an update operation is needed on this list
    *
    * @todo come up with something better
    */
@@ -513,3 +528,135 @@ export const calculateSavePayloads = (
 
   return { updatedEntitiesPayload, pageUpdatedPayload, insertPayloads };
 };
+
+declare interface OrderedMapPrivateInterface<T> {
+  content: (string | T)[];
+}
+
+/**
+ * This utilises getters to trick prosemirror into mutating itself in order to
+ * modify a schema with a new node type. This is likely to be quite brittle,
+ * and we need to ensure this continues to work between updates to Prosemirror.
+ * We could also consider asking them to make adding a new node type officially
+ * supported.
+ */
+export function defineNewNode<
+  N extends string = any,
+  M extends string = any,
+  S extends Schema = Schema<N, M>
+>(existingSchema: S, componentUrl: string, spec: NodeSpec) {
+  const existingSchemaSpec = existingSchema.spec;
+  const map = existingSchemaSpec.nodes;
+  const privateMap: OrderedMapPrivateInterface<NodeSpec> = map as any;
+
+  privateMap.content.push(componentUrl, spec);
+
+  new (class extends Schema {
+    // @ts-ignore
+    get nodes() {
+      return existingSchema.nodes;
+    }
+
+    // @ts-ignore
+    get marks() {
+      return existingSchema.marks;
+    }
+
+    set marks(newMarks) {
+      for (const [key, value] of Object.entries(newMarks)) {
+        if (!this.marks[key]) {
+          value.schema = existingSchema;
+          this.marks[key] = value;
+        }
+      }
+    }
+
+    set nodes(newNodes) {
+      for (const [key, value] of Object.entries(newNodes)) {
+        if (!this.nodes[key]) {
+          value.schema = existingSchema;
+          this.nodes[key] = value;
+        }
+      }
+    }
+  })(existingSchemaSpec);
+}
+
+export const createProsemirrorSpec = (
+  meta: BlockConfig,
+  spec: Partial<NodeSpec>
+): NodeSpec => ({
+  ...spec,
+  selectable: false,
+  group: "blockItem",
+  attrs: {
+    ...(spec.attrs ?? {}),
+    meta: { default: meta },
+    entityId: { default: "" },
+  },
+});
+
+/**
+ * This is used to define a new block type inside prosemiror when you have
+ * already fetched all the necessary metadata. It'll define a new node type in
+ * the schema, and create a node view wrapper for you too.
+ */
+export function defineNewBlock<
+  N extends string = any,
+  M extends string = any,
+  S extends Schema = Schema<N, M>
+>(
+  schema: S,
+  componentMetadata: BlockConfig,
+  componentSchema: Block["componentSchema"],
+  viewConfig: ViewConfig,
+  componentUrl: string
+) {
+  if (schema.nodes[componentUrl]) {
+    return;
+  }
+
+  const spec = createProsemirrorSpec(componentMetadata, {
+    /**
+     * Currently we detect whether a block takes editable text by detecting if
+     * it has an editableRef prop in its schema – we need a more sophisticated
+     * way for block authors to communicate this to us
+     */
+    ...(componentSchema.properties?.["editableRef"]
+      ? {
+          content: "text*",
+          marks: "_",
+        }
+      : {}),
+  });
+
+  defineNewNode(schema, componentUrl, spec);
+
+  if (viewConfig) {
+    const { view, replacePortal, createNodeView } = viewConfig;
+
+    // @todo type this
+    const NodeViewClass = createNodeView(
+      componentUrl,
+      componentSchema,
+      `${componentMetadata.url}/${componentMetadata.source}`,
+      replacePortal
+    );
+
+    // Add the node view definition to the view – ensures our block code is
+    // called for every instance of the block
+    view.setProps({
+      nodeViews: {
+        ...view.nodeViews,
+        [componentUrl]: (
+          node: ProsemirrorNode<S>,
+          view: EditorView<S>,
+          getPos: (() => number) | boolean,
+          decorations: Decoration[]
+        ) => {
+          return new NodeViewClass(node, view, getPos, decorations);
+        },
+      },
+    });
+  }
+}
