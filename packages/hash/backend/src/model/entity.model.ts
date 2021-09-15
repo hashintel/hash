@@ -157,7 +157,6 @@ class __Entity {
     client
       .updateEntity({
         accountId: this.accountId,
-        entityVersionId: this.entityVersionId,
         entityId: this.entityId,
         properties,
       })
