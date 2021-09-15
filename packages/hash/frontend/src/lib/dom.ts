@@ -1,6 +1,9 @@
 import { kebabCase } from "lodash";
 
-/** hyperscript function delegating to native dom api */
+/**
+ * hyperscript function delegating to native dom api
+ */
+// eslint-disable-next-line id-length
 export const h = <T extends keyof HTMLElementTagNameMap>(
   tag: T,
   props: Partial<HTMLElementTagNameMap[T]>
@@ -13,5 +16,5 @@ export const toCSSText = (styles: CSSStyleDeclaration): string =>
     .join(";");
 
 /** used to avoid subpixel rendering */
-export const px = (n: number, fractionDigits: number = 0) =>
-  n.toFixed(fractionDigits) + "px";
+export const px = (num: number, fractionDigits: number = 0) =>
+  num.toFixed(fractionDigits) + "px";
