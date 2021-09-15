@@ -24,11 +24,7 @@ If you want to experiment with pre-built models, check out our examples on the [
 
 ## Community & Support
 
-<<<<<<< HEAD
-If you need help or support, check out the [community forum](https://community.hash.ai/) or [join our Discord](/discord) \(this tends to be the fastest means of getting help\). You can also reach out to us directly via our [contact page](/contact).
-=======
 If you need help or support, check out the [community forum](https://community.hash.ai/) or [join our Discord](/discord) \(this tends to be the fastest means of getting help\). You can also reach out to us directly via our [contact page](https://hash.ai/contact).
->>>>>>> 3b5db06998f680d24b414ea3e44d3455dfc816bb
 
 ## Upcoming Features
 
