@@ -1,4 +1,4 @@
-import React, { CSSProperties, useContext } from "react";
+import React, { CSSProperties, useContext, VoidFunctionComponent } from "react";
 import { tw } from "twind";
 import { Plugin } from "prosemirror-state";
 import { inputRules, InputRule } from "prosemirror-inputrules";
@@ -11,7 +11,7 @@ const last = (str: string) => str.charAt(str.length - 1);
 /**
  * used to present list of blocks to choose from to the user
  */
-export const BlockSuggester = () => {
+export const BlockSuggester: VoidFunctionComponent = () => {
   const blocksMeta = useContext(BlockMetaContext);
 
   // flatMap blocks' variants
