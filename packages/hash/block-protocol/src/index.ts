@@ -1,6 +1,6 @@
 export type BlockProps = object;
 
-type BlockVariant = {
+export type BlockVariant = {
   description?: string;
   icon?: string;
   name?: string;
