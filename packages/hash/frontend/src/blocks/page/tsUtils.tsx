@@ -7,11 +7,11 @@ import {
   ReplacePortals,
 } from "@hashintel/hash-shared/sharedWithBackend";
 import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
-import { EntityListContext } from "./EntityListContext";
+import { EntityStoreContext } from "./EntityStoreContext";
 import {
-  EntityListType,
+  EntityStoreType,
   isBlockEntity,
-} from "@hashintel/hash-shared/entityList";
+} from "@hashintel/hash-shared/entityStore";
 
 type NodeViewConstructor = {
   new (
@@ -24,7 +24,7 @@ type NodeViewConstructor = {
 
 type NodeViewConstructorArgs = ConstructorParameters<NodeViewConstructor>;
 
-const getRemoteBlockProps = (entity: EntityListType | null | undefined) => {
+const getRemoteBlockProps = (entity: EntityStoreType | null | undefined) => {
   if (entity) {
     if (!isBlockEntity(entity)) {
       throw new Error("Cannot prepare non-block entity for prosemirrior");
@@ -51,7 +51,7 @@ const getRemoteBlockProps = (entity: EntityListType | null | undefined) => {
  * @todo make this unnecessary
  */
 const getOverwrittenRemoteBlockProps = (
-  entity: EntityListType | null | undefined,
+  entity: EntityStoreType | null | undefined,
   node: any
 ) => {
   const originalProps = getRemoteBlockProps(entity);
@@ -113,10 +113,10 @@ export const createNodeView = (
             this.target,
             this.target,
 
-            <EntityListContext.Consumer>
-              {(entityList) => {
+            <EntityStoreContext.Consumer>
+              {(entityStore) => {
                 const entityId = node.attrs.entityId;
-                const entity = entityList[entityId];
+                const entity = entityStore[entityId];
                 const remoteBlockProps = getOverwrittenRemoteBlockProps(
                   entity,
                   node
@@ -143,7 +143,7 @@ export const createNodeView = (
                   />
                 );
               }}
-            </EntityListContext.Consumer>
+            </EntityStoreContext.Consumer>
           );
 
           return true;

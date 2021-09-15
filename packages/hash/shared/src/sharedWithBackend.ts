@@ -13,7 +13,11 @@ import {
 } from "@hashintel/block-protocol";
 import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
 import { PageFieldsFragment, SystemTypeName } from "./graphql/apiTypes.gen";
-import { createEntityList, EntityListType, isBlockEntity } from "./entityList";
+import {
+  createEntityStore,
+  EntityStoreType,
+  isBlockEntity,
+} from "./entityStore";
 
 export { blockPaths };
 
@@ -313,7 +317,7 @@ export const calculateSavePayloads = (
   schema: Schema,
   doc: ProsemirrorNode,
   savedContents: PageFieldsFragment["properties"]["contents"],
-  entityList = createEntityList(savedContents)
+  entityStore = createEntityStore(savedContents)
 ) => {
   /**
    * @todo this needs to be typed – maybe we should use the prosemirror node APIs instead
@@ -336,8 +340,8 @@ export const calculateSavePayloads = (
     }
 
     const componentId = invertedBlockPaths[meta.url] ?? meta.url;
-    const savedEntity: EntityListType | undefined =
-      entityList[node.attrs.entityId];
+    const savedEntity: EntityStoreType | undefined =
+      entityStore[node.attrs.entityId];
 
     const childEntityId =
       savedEntity && isBlockEntity(savedEntity)
@@ -345,7 +349,7 @@ export const calculateSavePayloads = (
         : null ?? null;
 
     // @todo use parent node to get this childEntityId
-    const savedChildEntity = childEntityId ? entityList[childEntityId] : null;
+    const savedChildEntity = childEntityId ? entityStore[childEntityId] : null;
 
     let entity;
     if (schema.nodes[node.type].isTextblock) {
