@@ -8,7 +8,10 @@ import {
 } from "@hashintel/hash-shared/sharedWithBackend";
 import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
 import { EntityListContext } from "./EntityListContext";
-import { EntityListType } from "@hashintel/hash-shared/entityList";
+import {
+  EntityListType,
+  isBlockEntity,
+} from "@hashintel/hash-shared/entityList";
 
 type NodeViewConstructor = {
   new (
@@ -23,7 +26,7 @@ type NodeViewConstructorArgs = ConstructorParameters<NodeViewConstructor>;
 
 const getRemoteBlockProps = (entity: EntityListType | null | undefined) => {
   if (entity) {
-    if (!("properties" in entity) || entity.__typename !== "Block") {
+    if (!isBlockEntity(entity)) {
       throw new Error("Cannot prepare non-block entity for prosemirrior");
     }
 

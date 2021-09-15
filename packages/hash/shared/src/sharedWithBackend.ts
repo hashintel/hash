@@ -13,7 +13,7 @@ import {
 } from "@hashintel/block-protocol";
 import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
 import { PageFieldsFragment, SystemTypeName } from "./graphql/apiTypes.gen";
-import { createEntityList, EntityListType } from "./entityList";
+import { createEntityList, EntityListType, isBlockEntity } from "./entityList";
 
 export { blockPaths };
 
@@ -340,7 +340,7 @@ export const calculateSavePayloads = (
       entityList[node.attrs.entityId];
 
     const childEntityId =
-      savedEntity && "properties" in savedEntity
+      savedEntity && isBlockEntity(savedEntity)
         ? savedEntity.properties.entity.metadataId
         : null ?? null;
 
