@@ -106,7 +106,7 @@ export function defineNewBlock(
       ...(componentSchema.properties?.["editableRef"]
         ? {
             content: "text*",
-            marks: "",
+            marks: "_",
           }
         : {}),
     });

@@ -22,11 +22,15 @@ import { VersionDropdown } from "../../components/Dropdowns/VersionDropdown";
 /**
  * preload all configured blocks for now. in the future these will be loaded
  * progressively from the block catalogue.
+ *
+ * @todo remove paragraph from here – should just be Object.keys(blockPaths)
  */
-const preloadedBlocksUrls = [
-  "https://block.blockprotocol.org/paragraph",
-  ...Object.keys(blockPaths),
-];
+const preloadedBlocksUrls = Array.from(
+  new Set([
+    "https://block.blockprotocol.org/paragraph",
+    ...Object.keys(blockPaths),
+  ])
+);
 
 // Apparently defining this is necessary in order to get server rendered props?
 export const getStaticPaths: GetStaticPaths<{ slug: string }> = async () => {

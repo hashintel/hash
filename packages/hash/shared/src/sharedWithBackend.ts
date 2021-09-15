@@ -28,7 +28,8 @@ const fetch = (globalThis as any).fetch ?? require("node-fetch");
  * @todo think about removing this
  */
 type BlockConfig = BlockMetadata & { url: string } & (
-    | { type?: undefined }
+    | // @todo remove type
+    { type?: undefined }
     | {
         type: "prosemirror";
         // @todo type this
