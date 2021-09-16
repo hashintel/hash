@@ -154,7 +154,6 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
 
   updateEntity(params: {
     accountId: string;
-    entityVersionId: string;
     entityId: string;
     properties: any;
   }): Promise<Entity[]> {

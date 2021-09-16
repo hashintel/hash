@@ -5,6 +5,7 @@ import { MutationInsertBlockIntoPageArgs, Resolver } from "../../apiTypes.gen";
 import { Entity, EntityWithIncompleteEntityType } from "../../../model";
 import { DbPageProperties } from "../../../types/dbTypes";
 import { LoggedInGraphQLContext } from "../../context";
+import { createEntityArgsBuilder } from "../util";
 
 export const insertBlockIntoPage: Resolver<
   Promise<EntityWithIncompleteEntityType>,
@@ -44,15 +45,17 @@ export const insertBlockIntoPage: Resolver<
         );
       }
       // Create new entity
-      entity = await Entity.create(client)({
-        accountId,
-        createdById: user.entityId,
-        entityTypeId: entityTypeId ?? undefined,
-        entityTypeVersionId: entityTypeVersionId || undefined,
-        systemTypeName: systemTypeName || undefined,
-        properties: entityProperties,
-        versioned: true,
-      });
+      entity = await Entity.create(client)(
+        createEntityArgsBuilder({
+          accountId,
+          createdById: user.entityId,
+          entityTypeId,
+          entityTypeVersionId,
+          systemTypeName,
+          properties: entityProperties,
+          versioned: true,
+        })
+      );
     } else {
       throw new Error(
         `One of entityId OR entityProperties and entityType must be provided`

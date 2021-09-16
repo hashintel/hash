@@ -229,4 +229,72 @@ describe("logged in", () => {
       );
     });
   });
+
+  it("can atomically update page contents", async () => {
+    const page = await client.createPage({
+      accountId: testLoggedInUser.accountId,
+      properties: {
+        title: "My first page",
+      },
+    });
+    // The page currently has 2 blocks: an empty title block and an empty paragraph block
+    expect(page.properties.contents).toHaveLength(2);
+
+    const textPropertiesA = { texts: [{ text: "A" }] };
+    const textPropertiesB = { texts: [{ text: "B" }] };
+    const textPropertiesC = { texts: [{ text: "C" }] };
+    const titleProperties = { texts: [{ text: "Hello HASH!" }] };
+    const updatedPage = await client.updatePageContents({
+      accountId: page.accountId,
+      entityId: page.entityId,
+      actions: [
+        {
+          insertNewBlock: {
+            accountId: page.accountId,
+            componentId: "https://block.blockprotocol.org/paragraph",
+            position: 2,
+            systemTypeName: SystemTypeName.Text,
+            entityProperties: textPropertiesA,
+          },
+        },
+        {
+          insertNewBlock: {
+            accountId: page.accountId,
+            componentId: "https://block.blockprotocol.org/paragraph",
+            position: 3,
+            systemTypeName: SystemTypeName.Text,
+            entityProperties: textPropertiesB,
+          },
+        },
+        {
+          updateEntity: {
+            accountId: page.properties.contents[1].properties.entity.accountId,
+            entityId: page.properties.contents[1].properties.entity.metadataId,
+            properties: textPropertiesC,
+          },
+        },
+        {
+          moveBlock: {
+            currentPosition: 1,
+            newPosition: 3,
+          },
+        },
+        {
+          updateEntity: {
+            accountId: page.properties.contents[0].properties.entity.accountId,
+            entityId: page.properties.contents[0].properties.entity.metadataId,
+            properties: titleProperties,
+          },
+        },
+      ],
+    });
+
+    const pageEntities = updatedPage.properties.contents.map(
+      (block) => block.properties.entity as any
+    );
+    expect(pageEntities[0].textProperties).toMatchObject(titleProperties);
+    expect(pageEntities[1].textProperties).toMatchObject(textPropertiesA);
+    expect(pageEntities[2].textProperties).toMatchObject(textPropertiesB);
+    expect(pageEntities[3].textProperties).toMatchObject(textPropertiesC);
+  });
 });
