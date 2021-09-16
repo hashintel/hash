@@ -1,7 +1,8 @@
 {
   "parserOptions": {
     "jsx": true,
-    "useJSXTextNode": true
+    "useJSXTextNode": true,
+    "project": ["./tsconfig.json"]
   },
   "plugins": ["@typescript-eslint", "react-hooks", "react"],
   "rules": {
@@ -14,7 +15,6 @@
     ],
     "react/jsx-key": "error",
     "react/jsx-no-useless-fragment": "error",
-    "react/self-closing-comp": "warn",
-    "curly": ["error", "multi-line"]
+    "react/self-closing-comp": "warn"
   }
 }
