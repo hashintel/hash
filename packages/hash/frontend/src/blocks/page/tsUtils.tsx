@@ -68,7 +68,8 @@ const getOverwrittenRemoteBlockProps = (
 };
 
 /**
- * This creates a node view which integrates between React and prosemirror for each block
+ * This creates a node view which integrates between React and prosemirror for
+ * each block
  */
 export const createNodeView = (
   name: string,
@@ -107,47 +108,44 @@ export const createNodeView = (
     }
 
     update(node: any) {
-      if (node) {
-        if (node.type.name === name) {
-          replacePortal(
-            this.target,
-            this.target,
+      if (node?.type.name === name) {
+        replacePortal(
+          this.target,
+          this.target,
+          <EntityStoreContext.Consumer>
+            {(entityStore) => {
+              const entityId = node.attrs.entityId;
+              const entity = entityStore[entityId];
+              const remoteBlockProps = getOverwrittenRemoteBlockProps(
+                entity,
+                node
+              );
 
-            <EntityStoreContext.Consumer>
-              {(entityStore) => {
-                const entityId = node.attrs.entityId;
-                const entity = entityStore[entityId];
-                const remoteBlockProps = getOverwrittenRemoteBlockProps(
-                  entity,
-                  node
-                );
-
-                const editableRef = editable
-                  ? (node: HTMLElement) => {
-                      if (
-                        this.contentDOM &&
-                        node &&
-                        !node.contains(this.contentDOM)
-                      ) {
-                        node.appendChild(this.contentDOM);
-                        this.contentDOM.style.display = "";
-                      }
+              const editableRef = editable
+                ? (node: HTMLElement) => {
+                    if (
+                      this.contentDOM &&
+                      node &&
+                      !node.contains(this.contentDOM)
+                    ) {
+                      node.appendChild(this.contentDOM);
+                      this.contentDOM.style.display = "";
                     }
-                  : undefined;
+                  }
+                : undefined;
 
-                return (
-                  <RemoteBlock
-                    {...remoteBlockProps}
-                    url={url}
-                    editableRef={editableRef}
-                  />
-                );
-              }}
-            </EntityStoreContext.Consumer>
-          );
+              return (
+                <RemoteBlock
+                  {...remoteBlockProps}
+                  url={url}
+                  editableRef={editableRef}
+                />
+              );
+            }}
+          </EntityStoreContext.Consumer>
+        );
 
-          return true;
-        }
+        return true;
       }
 
       return false;
