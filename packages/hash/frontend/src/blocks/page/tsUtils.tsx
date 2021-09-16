@@ -1,20 +1,72 @@
 import React from "react";
-import { EditorProps, NodeView } from "prosemirror-view";
+import { Decoration, EditorView, NodeView } from "prosemirror-view";
 import { RemoteBlock } from "../../components/RemoteBlock/RemoteBlock";
 import {
   Block,
+  cachedPropertiesByEntity,
   ReplacePortals,
 } from "@hashintel/hash-shared/sharedWithBackend";
+import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
+import { EntityStoreContext } from "./EntityStoreContext";
+import {
+  EntityStoreType,
+  isBlockEntity,
+} from "@hashintel/hash-shared/entityStore";
 
-type NodeViewConstructorArgs = Parameters<
-  NonNullable<EditorProps["nodeViews"]>[string]
->;
 type NodeViewConstructor = {
-  new (...args: NodeViewConstructorArgs): NodeView;
+  new (
+    node: ProsemirrorNode,
+    view: EditorView<Schema>,
+    getPos: () => number,
+    decorations: Decoration[]
+  ): NodeView;
+};
+
+type NodeViewConstructorArgs = ConstructorParameters<NodeViewConstructor>;
+
+const getRemoteBlockProps = (entity: EntityStoreType | null | undefined) => {
+  if (entity) {
+    if (!isBlockEntity(entity)) {
+      throw new Error("Cannot prepare non-block entity for prosemirrior");
+    }
+
+    const childEntity = entity.properties.entity;
+
+    return {
+      childEntityId: childEntity.metadataId,
+      properties:
+        childEntity.__typename === "UnknownEntity"
+          ? childEntity.unknownProperties
+          : {},
+    };
+  }
+
+  return { properties: {} };
 };
 
 /**
- * This creates a node view which integrates between React and prosemirror for each block
+ * @todo make this unnecessary
+ */
+const getOverwrittenRemoteBlockProps = (
+  entity: EntityStoreType | null | undefined,
+  node: any
+) => {
+  const originalProps = getRemoteBlockProps(entity);
+
+  // @todo we need to type this such that we're certain we're passing through all the props required
+  return {
+    ...originalProps,
+    meta: node.attrs.meta,
+    properties: {
+      ...((entity ? cachedPropertiesByEntity[entity.metadataId] : null) ?? {}),
+      ...originalProps.properties,
+    },
+  };
+};
+
+/**
+ * This creates a node view which integrates between React and prosemirror for
+ * each block
  */
 export const createNodeView = (
   name: string,
@@ -53,36 +105,47 @@ export const createNodeView = (
     }
 
     update(node: any) {
-      if (node) {
-        if (node.type.name === name) {
-          replacePortal(
-            this.target,
-            this.target,
-            <RemoteBlock
-              url={url}
-              {...node.attrs}
-              {...(editable
-                ? {
-                    editableRef: (node: HTMLElement) => {
-                      if (
-                        this.contentDOM &&
-                        node &&
-                        !node.contains(this.contentDOM)
-                      ) {
-                        node.appendChild(this.contentDOM);
-                        this.contentDOM.style.display = "";
-                      }
-                    },
+      if (node?.type.name === name) {
+        replacePortal(
+          this.target,
+          this.target,
+          <EntityStoreContext.Consumer>
+            {(entityStore) => {
+              const entityId = node.attrs.entityId;
+              const entity = entityStore[entityId];
+              const remoteBlockProps = getOverwrittenRemoteBlockProps(
+                entity,
+                node
+              );
+
+              const editableRef = editable
+                ? (node: HTMLElement) => {
+                    if (
+                      this.contentDOM &&
+                      node &&
+                      !node.contains(this.contentDOM)
+                    ) {
+                      node.appendChild(this.contentDOM);
+                      this.contentDOM.style.display = "";
+                    }
                   }
-                : {})}
-            />
-          );
+                : undefined;
 
-          return true;
-        }
+              return (
+                <RemoteBlock
+                  {...remoteBlockProps}
+                  url={url}
+                  editableRef={editableRef}
+                />
+              );
+            }}
+          </EntityStoreContext.Consumer>
+        );
+
+        return true;
+      } else {
+        return false;
       }
-
-      return false;
     }
 
     destroy() {

@@ -24,33 +24,33 @@ export type BlockMetadata = {
 };
 
 export type BlockProtocolUpdatePayload<T> = {
-  entityTypeId?: string;
-  entityTypeVersionId?: string;
+  entityTypeId?: string | null;
+  entityTypeVersionId?: string | null;
   entityId: string;
-  accountId?: string;
+  accountId?: string | null;
   data: T;
 };
 
 export type BlockProtocolCreatePayload<T> = {
   entityTypeId: string;
-  entityTypeVersionId?: string;
+  entityTypeVersionId?: string | null;
   data: T;
   pageAccountId: string;
   userId: string;
 };
 
 export type BlockProtocolAggregateOperation = {
-  page?: number;
-  perPage?: number;
+  page?: number | null;
+  perPage?: number | null;
   sort?: {
     field: string;
-    desc?: boolean | undefined;
-  };
+    desc?: boolean | undefined | null;
+  } | null;
 };
 
 export type BlockProtocolAggregatePayload = {
   entityTypeId: string;
-  entityTypeVersionId?: string;
+  entityTypeVersionId?: string | null;
   operation: BlockProtocolAggregateOperation;
   accountId: string;
 };

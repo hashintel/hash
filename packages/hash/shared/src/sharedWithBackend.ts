@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { Schema as JSONSchema } from "jsonschema";
 import { EditorState } from "prosemirror-state";
+import { uniqBy } from "lodash";
 import { createRemoteBlock, defineRemoteBlock } from "./sharedWithBackendJs";
 
 // @todo move this
@@ -13,11 +14,19 @@ import {
 } from "@hashintel/block-protocol";
 import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
 import { PageFieldsFragment, SystemTypeName } from "./graphql/apiTypes.gen";
+import {
+  createEntityStore,
+  EntityStoreType,
+  isBlockEntity,
+} from "./entityStore";
 
 export { blockPaths };
 
 const fetch = (globalThis as any).fetch ?? require("node-fetch");
 
+/**
+ * @todo think about removing this
+ */
 type BlockConfig = BlockMetadata & { url: string } & (
     | { type?: undefined }
     | {
@@ -27,7 +36,10 @@ type BlockConfig = BlockMetadata & { url: string } & (
       }
   );
 
-// @todo this type properly exists already somewhere
+/**
+ * @deprecated
+ * @todo remove this
+ */
 export type Block = {
   entityId: string;
   versionId: string;
@@ -39,6 +51,10 @@ export type Block = {
   componentSchema: JSONSchema;
 };
 
+/**
+ * @deprecated
+ * @todo remove this
+ */
 export type BlockMeta = Pick<Block, "componentMetadata" | "componentSchema">;
 
 /**
@@ -49,6 +65,10 @@ export type BlockMeta = Pick<Block, "componentMetadata" | "componentSchema">;
  */
 export const blockCache = new Map<string, Promise<BlockMeta>>();
 
+/**
+ * @deprecated
+ * @todo remove this
+ */
 export const builtInBlocks: Record<string, BlockMeta> = {
   // @todo maybe this should be a nodeview too
   "https://block.blockprotocol.org/paragraph": {
@@ -142,6 +162,10 @@ export const fetchBlockMeta = async (url: string): Promise<BlockMeta> => {
   return await promise;
 };
 
+/**
+ * @deprecated
+ * @todo remove this
+ */
 export type BlockWithoutMeta = Omit<
   Block,
   "componentMetadata" | "componentSchema"
@@ -192,32 +216,11 @@ export const ensureDocBlocksLoaded = async (
   );
 };
 
-export const prepareEntityForProsemirror = (
+export const getProseMirrorNodeAttributes = (
   entity: PageFieldsFragment["properties"]["contents"][number]
-) => {
-  const block = mapEntityToBlock(entity);
-
-  const {
-    children,
-    childEntityId = null,
-    childEntityAccountId = null,
-    childEntityTypeId = null,
-    childEntityVersionId = null,
-    ...props
-  } = block.entity;
-
-  const attrs = {
-    entityId: block.entityId,
-    accountId: block.accountId,
-    versionId: block.versionId,
-    childEntityId,
-    childEntityAccountId,
-    childEntityTypeId,
-    childEntityVersionId,
-  };
-
-  return { children, props, attrs };
-};
+) => ({
+  entityId: entity.metadataId,
+});
 
 /**
  * @todo replace this with a prosemirror command
@@ -234,7 +237,6 @@ export const createEntityUpdateTransaction = async (
 
   const newNodes = await Promise.all(
     entities?.map(async (block, index) => {
-      const { children, props, attrs } = prepareEntityForProsemirror(block);
       const entityId = block.metadataId;
 
       if (cachedPropertiesByPosition[index]) {
@@ -247,14 +249,8 @@ export const createEntityUpdateTransaction = async (
         schema,
         viewConfig,
         block.properties.componentId,
-        {
-          properties: {
-            ...(cachedPropertiesByEntity[entityId] ?? {}),
-            ...props,
-          },
-          ...attrs,
-        },
-        children?.map((child: any) => {
+        getProseMirrorNodeAttributes(block),
+        mapEntityToChildren(block.properties.entity).map((child: any) => {
           if (child.type === "text") {
             return schema.text(
               child.text,
@@ -264,7 +260,7 @@ export const createEntityUpdateTransaction = async (
 
           // @todo recursive nodes
           throw new Error("unrecognised child");
-        }) ?? []
+        })
       );
     }) ?? []
   );
@@ -277,58 +273,29 @@ export const createEntityUpdateTransaction = async (
   return tr;
 };
 
-/**
- * @deprecated
- */
-export const mapEntityToBlock = (
-  content: PageFieldsFragment["properties"]["contents"][number]
-): BlockWithoutMeta => {
-  const { componentId, entity } = content.properties;
+const mapEntityToChildren = (
+  entity: PageFieldsFragment["properties"]["contents"][number]["properties"]["entity"]
+) => {
+  if (entity.__typename === "Text") {
+    return entity.textProperties.texts.map((text) => ({
+      type: "text",
+      text: text.text,
+      entityId: entity.metadataId,
+      versionId: entity.id,
+      accountId: entity.accountId,
 
-  const props =
-    entity.__typename === "Text"
-      ? {
-          /**
-           * These are here to help reconstruct the database objects from the prosemirror document.
-           */
-          childEntityId: entity.metadataId,
-          childEntityVersionId: entity.id,
-          childEntityAccountId: entity.accountId,
-          childEntityTypeId: entity.entityTypeId,
+      // This maps the boolean properties on the entity into an array of mark names
+      marks: [
+        ["strong", text.bold],
+        ["underlined", text.underline],
+        ["em", text.italics],
+      ]
+        .filter(([, include]) => include)
+        .map(([mark]) => mark),
+    }));
+  }
 
-          children: entity.textProperties.texts.map((text) => ({
-            type: "text",
-            text: text.text,
-            entityId: entity.metadataId,
-            versionId: entity.id,
-            accountId: entity.accountId,
-
-            // This maps the boolean properties on the entity into an array of mark names
-            marks: [
-              ["strong", text.bold],
-              ["underlined", text.underline],
-              ["em", text.italics],
-            ]
-              .filter(([, include]) => include)
-              .map(([mark]) => mark),
-          })),
-        }
-      : entity.__typename === "UnknownEntity"
-      ? {
-          childEntityId: entity.metadataId,
-          childEntityTypeId: entity.entityTypeId,
-          childEntityVersionId: entity.id,
-          ...entity.unknownProperties,
-        }
-      : {};
-
-  return {
-    componentId,
-    entityId: content.metadataId,
-    versionId: content.id,
-    entity: props,
-    accountId: content.accountId,
-  };
+  return [];
 };
 
 const invertedBlockPaths = Object.fromEntries(
@@ -339,12 +306,12 @@ export const cachedPropertiesByEntity: Record<string, Record<any, any>> = {};
 const cachedPropertiesByPosition: Record<string, Record<any, any>> = {};
 
 /**
- * @todo only need doc
- *
  * There's a bug here where when we add a new block, we think we need to update the page entity but
  * that is handled by the insert block operation, so this update here is a noop
  *
  * @todo fix this
+ *
+ * @todo remove the intermediary formats used in this function
  */
 export const calculateSavePayloads = (
   accountId: string,
@@ -352,8 +319,12 @@ export const calculateSavePayloads = (
   metadataId: string,
   schema: Schema,
   doc: ProsemirrorNode,
-  savedContents: (Block | BlockWithoutMeta)[]
+  savedContents: PageFieldsFragment["properties"]["contents"],
+  entityStore = createEntityStore(savedContents)
 ) => {
+  /**
+   * @todo this needs to be typed – maybe we should use the prosemirror node APIs instead
+   */
   const blocks = doc
     .toJSON()
     .content.filter((block: any) => block.type === "block")
@@ -361,7 +332,7 @@ export const calculateSavePayloads = (
 
   const mappedBlocks = blocks.map((node: any, position) => {
     const nodeType = schema.nodes[node.type];
-    // @todo type this properly
+    // @todo type this properly – get this from somewhere else
     const meta = (nodeType as any).defaultAttrs
       .meta as Block["componentMetadata"];
 
@@ -372,14 +343,24 @@ export const calculateSavePayloads = (
     }
 
     const componentId = invertedBlockPaths[meta.url] ?? meta.url;
+    const savedEntity: EntityStoreType | undefined =
+      entityStore[node.attrs.entityId];
+
+    const childEntityId =
+      savedEntity && isBlockEntity(savedEntity)
+        ? savedEntity.properties.entity.metadataId
+        : null ?? null;
+
+    // @todo use parent node to get this childEntityId
+    const savedChildEntity = childEntityId ? entityStore[childEntityId] : null;
 
     let entity;
     if (schema.nodes[node.type].isTextblock) {
       entity = {
-        type: "Text",
-        id: node.attrs.childEntityId,
-        versionId: node.attrs.childEntityVersionId,
-        accountId: node.attrs.childEntityAccountId,
+        type: "Text" as const,
+        id: savedChildEntity?.metadataId ?? null,
+        versionId: savedChildEntity?.id ?? null,
+        accountId: savedChildEntity?.accountId ?? null,
         properties: {
           texts:
             node.content
@@ -399,26 +380,21 @@ export const calculateSavePayloads = (
         },
       };
     } else {
-      // @todo do we need to remove other props here
-      const {
-        childEntityId,
-        childEntityAccountId,
-        childEntityVersionId,
-        ...props
-      } = node.attrs;
+      const childEntityVersionId = savedChildEntity?.id ?? null;
+      const childEntityAccountId = savedChildEntity?.accountId ?? null;
+
       entity = {
-        type: "UnknownEntity",
+        type: "UnknownEntity" as const,
         id: childEntityId,
         versionId: childEntityVersionId,
         accountId: childEntityAccountId,
-        properties: props,
       };
     }
 
     return {
-      entityId: node.attrs.entityId,
-      accountId: node.attrs.accountId ?? accountId,
-      versionId: node.attrs.versionId,
+      entityId: savedEntity?.metadataId ?? null,
+      accountId: savedEntity?.accountId ?? accountId,
+      versionId: savedEntity?.id ?? null,
       type: "Block",
       position,
       properties: {
@@ -432,68 +408,76 @@ export const calculateSavePayloads = (
    * Once we have a list of blocks, we need to divide the list of blocks into new ones and
    * updated ones, as they require different queries to handle
    */
-  const existingBlockIds = savedContents.map((block) => block.entityId);
+  const existingBlockIds = new Set(
+    savedContents.map((block) => block.metadataId)
+  );
+
   const newBlocks = mappedBlocks.filter(
-    (block) => !existingBlockIds.includes(block.entityId)
+    (block) => !block.entityId || !existingBlockIds.has(block.entityId)
   );
 
-  const existingBlocks = mappedBlocks.filter((block) =>
-    existingBlockIds.includes(block.entityId)
+  const existingBlocks = mappedBlocks.filter(
+    (block) => block.entityId && existingBlockIds.has(block.entityId)
   );
-
-  const seenEntityIds = new Set<string>();
 
   /**
    * An updated block also contains an updated entity, so we need to create a list of
    * entities that we need to post updates to via GraphQL
    */
-  const updatedEntities = existingBlocks.flatMap((node) => {
+  const updatedEntities = existingBlocks.flatMap((existingBlock) => {
     const block = {
       type: "Block",
-      id: node.entityId,
-      accountId: node.accountId,
+      id: existingBlock.entityId,
+      accountId: existingBlock.accountId,
       properties: {
-        componentId: node.properties.componentId,
-        entityId: node.properties.entity.versionId,
-        accountId: node.properties.entity.accountId,
+        componentId: existingBlock.properties.componentId,
+        entityId: existingBlock.properties.entity.versionId,
+        accountId: existingBlock.properties.entity.accountId,
       },
     };
 
     const contentNode = savedContents.find(
-      (existingBlock) => existingBlock.entityId === block.id
+      (existingBlock) => existingBlock.metadataId === block.id
     );
 
     const blocks = [];
 
-    if (block.properties.componentId !== contentNode?.componentId) {
+    if (block.properties.componentId !== contentNode?.properties.componentId) {
       blocks.push(block);
     }
 
-    if (node.properties.entity.type === "Text") {
+    if (existingBlock.properties.entity.type === "Text") {
+      const texts =
+        contentNode && "textProperties" in contentNode.properties.entity
+          ? contentNode.properties.entity.textProperties.texts
+          : undefined;
+
       if (
         !contentNode ||
-        contentNode.entity.childEntityId !== node.properties.entity.id ||
-        node.properties.entity.properties.texts.length !==
-          contentNode.entity.children.length ||
-        (node.properties.entity.properties.texts as any[]).some(
+        contentNode?.properties.entity.metadataId !==
+          existingBlock.properties.entity.id ||
+        existingBlock.properties.entity.properties.texts.length !==
+          texts?.length ||
+        // @todo remove any cast
+        (existingBlock.properties.entity.properties.texts as any[]).some(
           (text: any, idx: number) => {
-            const contentText = contentNode.entity.children[idx];
+            const existingText = texts?.[idx];
 
             /**
              * Really crude way of working out if any properties we care about have changed – we need a better way
              * of working out which text entities need an update
              */
             return (
-              !contentText ||
-              text.text !== contentText.text ||
-              text.bold !== contentText.marks?.includes("strong") ||
-              text.underline !== contentText.marks?.includes("underlined") ||
-              text.italics !== contentText.marks?.includes("em")
+              !existingText ||
+              text.text !== existingText.text ||
+              text.bold !== existingText.bold ||
+              text.underline !== existingText.underline ||
+              text.italics !== existingText.italics
             );
           }
         )
       ) {
-        blocks.push(node.properties.entity);
+        blocks.push(existingBlock.properties.entity);
       }
     }
 
@@ -505,35 +489,25 @@ export const calculateSavePayloads = (
      *
      * @todo improve this
      */
-    return blocks.filter((block) => {
-      if (seenEntityIds.has(block.id)) {
-        return false;
-      }
-
-      seenEntityIds.add(block.id);
-
-      return true;
-    });
+    return uniqBy(blocks, "id");
   });
 
-  /**
-   * Building a promise here that updates the page block with the list of block ids it contains (if necessary, i.e,
-   * when you delete or re-order blocks, and then calls insert for each new block, before updating blocks that need
-   * to be updated. Ideally we would handle all of this in one query
-   *
-   * @todo improve this
-   */
   const updatedEntitiesPayload = updatedEntities
-    /**
-     * Not entirely sure what I was going for with this filter
-     *
-     * @todo figure this out
-     */
     .filter(
-      (entity) =>
-        (entity.properties.entityTypeName !== "Text" ||
-          entity.properties.entityId) &&
-        entity.id
+      <T extends { id: string | null }>(
+        entity: T
+      ): entity is T & { id: string } =>
+        /**
+         * This had been setup to do something special in the case that you're converting from text blocks to non-text
+         * blocks (or vice versa, not sure) but it hasn't work for a while and making this strongly typed is showing it
+         * as an error. I'm commenting this out, but we do need to figure this one out
+         *
+         * @see https://github.com/hashintel/dev/blob/664be1e740cbad694f0b76b96198fa45cc8232fc/packages/hash/frontend/src/blocks/page/PageBlock.tsx#L283
+         * @see https://app.asana.com/0/1200211978612931/1200962726214259/f
+         */
+        // (entity.properties.entityId ||
+        //   entity.properties.entityTypeName !== "Text") &&
+        !!entity.id
     )
     .map(
       (entity): BlockProtocolUpdatePayload<any> => ({
@@ -550,7 +524,7 @@ export const calculateSavePayloads = (
    * @todo come up with something better
    */
   const pageUpdatedPayload =
-    JSON.stringify(savedContents.map((content) => content.entityId)) !==
+    JSON.stringify(existingBlockIds) !==
     JSON.stringify(mappedBlocks.map((block) => block.entityId))
       ? {
           entityTypeId: "Page",
