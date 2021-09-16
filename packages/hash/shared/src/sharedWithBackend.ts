@@ -520,7 +520,7 @@ export const calculateSavePayloads = (
       (entity): BlockProtocolUpdatePayload<any> => ({
         entityId: entity.id,
         data: entity.properties,
-        accountId: entity.accountId ?? undefined,
+        accountId: entity.accountId,
       })
     );
 
