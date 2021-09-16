@@ -5,30 +5,48 @@ import React, {
   useRef,
   VoidFunctionComponent,
 } from "react";
-import { Schema } from "prosemirror-model";
-import { Plugin } from "prosemirror-state";
+import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
+import { EditorState, Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { renderPM } from "./sandbox";
 import { createMarksTooltip } from "../../components/MarksTooltip";
 import { createBlockSuggester } from "../../components/BlockSuggester";
 import { useBlockProtocolUpdate } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdate";
-import { useBlockProtocolInsertIntoPage } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolInsertIntoPage";
+import {
+  InsertIntoPageFn,
+  useBlockProtocolInsertIntoPage,
+} from "../../components/hooks/blockProtocolFunctions/useBlockProtocolInsertIntoPage";
 import { usePortals } from "./usePortals";
 import { useDeferredCallback } from "./useDeferredCallback";
 import { BlockMetaContext } from "../blockMeta";
 import { createInitialDoc, createSchema } from "@hashintel/hash-shared/schema";
 import {
+  Block,
   BlockMeta,
   cachedPropertiesByEntity,
-  calculateSavePayloads,
+  cachedPropertiesByPosition,
   createEntityUpdateTransaction,
   defineNewBlock,
+  invertedBlockPaths,
 } from "@hashintel/hash-shared/sharedWithBackend";
 import { collabEnabled, createNodeView } from "./tsUtils";
 import { EditorConnection } from "./collab/collab";
-import { PageFieldsFragment } from "@hashintel/hash-shared/graphql/apiTypes.gen";
+import {
+  PageFieldsFragment,
+  SystemTypeName,
+} from "@hashintel/hash-shared/graphql/apiTypes.gen";
 import { EntityStoreContext } from "./EntityStoreContext";
-import { createEntityStore } from "@hashintel/hash-shared/entityStore";
+import {
+  createEntityStore,
+  EntityStore,
+  EntityStoreType,
+  isBlockEntity,
+} from "@hashintel/hash-shared/entityStore";
+import { uniqBy } from "lodash";
+import {
+  BlockProtocolUpdateFn,
+  BlockProtocolUpdatePayload,
+} from "@hashintel/block-protocol";
 
 type PageBlockProps = {
   contents: PageFieldsFragment["properties"]["contents"];
@@ -61,6 +79,315 @@ if (typeof localStorage !== "undefined") {
       );
     }
   }, 500);
+}
+
+// @todo move to shared package
+const calculateSavePayloadsAtomic = (
+  accountId: string,
+  pageId: string,
+  metadataId: string,
+  schema: Schema,
+  doc: ProsemirrorNode,
+  savedContents: PageFieldsFragment["properties"]["contents"],
+  entityStore = createEntityStore(savedContents)
+) => {
+  /**
+   * @todo this needs to be typed – maybe we should use the prosemirror node
+   *   APIs instead
+   */
+  const blocks = doc
+    .toJSON()
+    .content.filter((block: any) => block.type === "block")
+    .flatMap((block: any) => block.content) as any[];
+
+  const mappedBlocks = blocks.map((node: any, position) => {
+    const nodeType = schema.nodes[node.type];
+    // @todo type this properly – get this from somewhere else
+    const meta = (nodeType as any).defaultAttrs
+      .meta as Block["componentMetadata"];
+
+    if (node.attrs.entityId) {
+      cachedPropertiesByEntity[node.attrs.entityId] = node.attrs.properties;
+    } else {
+      cachedPropertiesByPosition[position] = node.attrs.properties;
+    }
+
+    const componentId = invertedBlockPaths[meta.url] ?? meta.url;
+    const savedEntity: EntityStoreType | undefined =
+      entityStore[node.attrs.entityId];
+
+    const childEntityId =
+      savedEntity && isBlockEntity(savedEntity)
+        ? savedEntity.properties.entity.metadataId
+        : null ?? null;
+
+    // @todo use parent node to get this childEntityId
+    const savedChildEntity = childEntityId ? entityStore[childEntityId] : null;
+
+    let entity;
+    if (schema.nodes[node.type].isTextblock) {
+      entity = {
+        type: "Text" as const,
+        id: savedChildEntity?.metadataId ?? null,
+        versionId: savedChildEntity?.id ?? null,
+        accountId: savedChildEntity?.accountId ?? null,
+        properties: {
+          texts:
+            node.content
+              ?.filter((child: any) => child.type === "text")
+              .map((child: any) => ({
+                text: child.text,
+                bold:
+                  child.marks?.some((mark: any) => mark.type === "strong") ??
+                  false,
+                italics:
+                  child.marks?.some((mark: any) => mark.type === "em") ?? false,
+                underline:
+                  child.marks?.some(
+                    (mark: any) => mark.type === "underlined"
+                  ) ?? false,
+              })) ?? [],
+        },
+      };
+    } else {
+      const childEntityVersionId = savedChildEntity?.id ?? null;
+      const childEntityAccountId = savedChildEntity?.accountId ?? null;
+
+      entity = {
+        type: "UnknownEntity" as const,
+        id: childEntityId,
+        versionId: childEntityVersionId,
+        accountId: childEntityAccountId,
+      };
+    }
+
+    return {
+      entityId: savedEntity?.metadataId ?? null,
+      accountId: savedEntity?.accountId ?? accountId,
+      versionId: savedEntity?.id ?? null,
+      type: "Block",
+      position,
+      properties: {
+        componentId,
+        entity,
+      },
+    };
+  });
+
+  /**
+   * Once we have a list of blocks, we need to divide the list of blocks into
+   * new ones and updated ones, as they require different queries to handle
+   */
+  const existingBlockIds = new Set(
+    savedContents.map((block) => block.metadataId)
+  );
+
+  const newBlocks = mappedBlocks.filter(
+    (block) => !block.entityId || !existingBlockIds.has(block.entityId)
+  );
+
+  const existingBlocks = mappedBlocks.filter(
+    (block) => block.entityId && existingBlockIds.has(block.entityId)
+  );
+
+  /**
+   * An updated block also contains an updated entity, so we need to create a
+   * list of entities that we need to post updates to via GraphQL
+   */
+  const updatedEntities = existingBlocks.flatMap((existingBlock) => {
+    const block = {
+      type: "Block",
+      id: existingBlock.entityId,
+      accountId: existingBlock.accountId,
+      properties: {
+        componentId: existingBlock.properties.componentId,
+        entityId: existingBlock.properties.entity.versionId,
+        accountId: existingBlock.properties.entity.accountId,
+      },
+    };
+
+    const contentNode = savedContents.find(
+      (existingBlock) => existingBlock.metadataId === block.id
+    );
+
+    const blocks = [];
+
+    if (block.properties.componentId !== contentNode?.properties.componentId) {
+      blocks.push(block);
+    }
+
+    if (existingBlock.properties.entity.type === "Text") {
+      const texts =
+        contentNode && "textProperties" in contentNode.properties.entity
+          ? contentNode.properties.entity.textProperties.texts
+          : undefined;
+
+      if (
+        !contentNode ||
+        contentNode?.properties.entity.metadataId !==
+          existingBlock.properties.entity.id ||
+        existingBlock.properties.entity.properties.texts.length !==
+          texts?.length ||
+        // @todo remove any cast
+        (existingBlock.properties.entity.properties.texts as any[]).some(
+          (text: any, idx: number) => {
+            const existingText = texts?.[idx];
+
+            /**
+             * Really crude way of working out if any properties we care about
+             * have changed – we need a better way of working out which text
+             * entities need an update
+             */
+            return (
+              !existingText ||
+              text.text !== existingText.text ||
+              text.bold !== existingText.bold ||
+              text.underline !== existingText.underline ||
+              text.italics !== existingText.italics
+            );
+          }
+        )
+      ) {
+        blocks.push(existingBlock.properties.entity);
+      }
+    }
+
+    /**
+     * Currently when the same block exists on the page in multiple locations,
+     * we prioritise the content of the first one that has changed when it
+     * comes to working out if an un update is required. We need a better way
+     * of handling this (i.e, take the *last* one that changed, and also more
+     * immediately sync updates between changed blocks to prevent work being
+     * lost)
+     *
+     * @todo improve this
+     */
+    return uniqBy(blocks, "id");
+  });
+
+  const updatedEntitiesPayload = updatedEntities
+    .filter(
+      <T extends { id: string | null }>(
+        entity: T
+      ): entity is T & { id: string } =>
+        /**
+         * This had been setup to do something special in the case that you're
+         * converting from text blocks to non-text blocks (or vice versa, not
+         * sure) but it hasn't work for a while and making this strongly typed
+         * is showing it as an error. I'm commenting this out, but we do need
+         * to figure this one out
+         *
+         * @see https://github.com/hashintel/dev/blob/664be1e740cbad694f0b76b96198fa45cc8232fc/packages/hash/frontend/src/blocks/page/PageBlock.tsx#L283
+         * @see https://app.asana.com/0/1200211978612931/1200962726214259/f
+         */
+        // (entity.properties.entityId ||
+        //   entity.properties.entityTypeName !== "Text") &&
+        !!entity.id
+    )
+    .map(
+      (entity): BlockProtocolUpdatePayload<any> => ({
+        entityId: entity.id,
+        data: entity.properties,
+        accountId: entity.accountId,
+      })
+    );
+
+  /**
+   * This is a real crude way of working out if order of blocks (or if blocks
+   * have been added/removed) have changed within a page, in order to work out
+   * if an update operation is needed on this list
+   *
+   * @todo come up with something better
+   */
+  const pageUpdatedPayload =
+    JSON.stringify(existingBlockIds) !==
+    JSON.stringify(mappedBlocks.map((block) => block.entityId))
+      ? {
+          entityTypeId: "Page",
+          entityId: metadataId,
+          accountId,
+          data: {
+            contents: existingBlocks.map((node) => ({
+              entityId: node.versionId,
+              accountId: node.accountId,
+              type: "Block",
+            })),
+          },
+        }
+      : null;
+
+  const insertPayloads = newBlocks.map((newBlock) => ({
+    // @todo this should take the user id of whoever creates it
+    pageId,
+    pageMetadataId: metadataId,
+    position: newBlock.position,
+    componentId: newBlock.properties.componentId,
+    entityProperties: newBlock.properties.entity.properties,
+    /** @todo handle inserting non-text blocks */
+    systemTypeName: SystemTypeName.Text,
+    accountId,
+    versioned: true,
+  }));
+
+  return { updatedEntitiesPayload, pageUpdatedPayload, insertPayloads };
+};
+
+/**
+ * @todo better name, move to shared package
+ */
+function triggerAtomicSave(
+  accountId: string,
+  pageId: string,
+  metadataId: string,
+  // @todo type this properly
+  state: EditorState,
+  currentContents: PageFieldsFragment["properties"]["contents"],
+  currentEntityStoreValue: EntityStore,
+  insert: InsertIntoPageFn,
+  update: BlockProtocolUpdateFn
+) {
+  const { updatedEntitiesPayload, pageUpdatedPayload, insertPayloads } =
+    calculateSavePayloadsAtomic(
+      accountId,
+      pageId,
+      metadataId,
+      state.schema,
+      state.doc,
+      currentContents,
+      currentEntityStoreValue
+    );
+
+  return (
+    insertPayloads
+      .reduce(
+        (promise, insertPayload) =>
+          promise.catch(() => {}).then(() => insert(insertPayload)),
+        pageUpdatedPayload ? update([pageUpdatedPayload]) : Promise.resolve()
+      )
+      /**
+       * Entity updates temporary sequential due to issue in Apollo –
+       * we'll be replacing all of this with a single atomic query
+       * anyway so this is a fine compromise for now
+       *
+       * @see https://hashintel.slack.com/archives/C022217GAHF/p1631541550015000
+       */
+      .then(() =>
+        updatedEntitiesPayload.reduce(
+          (promise, payload) =>
+            promise.catch(() => {}).then(() => update([payload])),
+          Promise.resolve()
+        )
+      )
+      .catch(() => {})
+      // @todo remove this timeout
+      .then(() => {
+        return new Promise<void>((resolve) => {
+          setTimeout(() => {
+            resolve();
+          }, 250);
+        });
+      })
+  );
 }
 
 /**
@@ -185,63 +512,18 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
           }
           const { view } = prosemirrorSetup.current;
           const { state } = view;
-
-          const { updatedEntitiesPayload, pageUpdatedPayload, insertPayloads } =
-            calculateSavePayloads(
-              accountId,
-              pageId,
-              metadataId,
-              state.schema,
-              state.doc,
-              currentContents.current,
-              currentEntityStoreValue.current
-            );
-
-          /**
-           * Building a promise here that updates the page block with the list
-           * of block ids it contains (if necessary, i.e, when you delete or
-           * re-order blocks, and then calls insert for each new block, before
-           * updating blocks that need to be updated. Ideally we would handle
-           * all of this in one query
-           *
-           * @todo improve this
-           */
-          return (
-            insertPayloads
-              .reduce(
-                (promise, insertPayload) =>
-                  promise.catch(() => {}).then(() => insert(insertPayload)),
-                pageUpdatedPayload
-                  ? update([pageUpdatedPayload])
-                  : Promise.resolve()
-              )
-              /**
-               * Entity updates temporary sequential due to issue in Apollo –
-               * we'll be replacing all of this with a single atomic query
-               * anyway so this is a fine compromise for now
-               *
-               * @see https://hashintel.slack.com/archives/C022217GAHF/p1631541550015000
-               */
-              .then(() =>
-                updatedEntitiesPayload.reduce(
-                  (promise, payload) =>
-                    promise.catch(() => {}).then(() => update([payload])),
-                  Promise.resolve()
-                )
-              )
-              .catch(() => {})
-              // @todo remove this timeout
-              .then(() => {
-                return new Promise<void>((resolve) => {
-                  setTimeout(() => {
-                    resolve();
-                  }, 250);
-                });
-              })
-              .then(() => {
-                return updateContents();
-              })
-          );
+          return triggerAtomicSave(
+            accountId,
+            pageId,
+            metadataId,
+            state,
+            currentContents.current,
+            currentEntityStoreValue.current,
+            insert,
+            update
+          ).then(() => {
+            return updateContents();
+          });
         });
     };
   }, [accountId, insert, metadataId, pageId, update, updateContents]);

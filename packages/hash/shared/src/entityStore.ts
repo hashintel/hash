@@ -3,6 +3,7 @@ import { PageFieldsFragment } from "src/graphql/apiTypes.gen";
 type BlockType = PageFieldsFragment["properties"]["contents"][number];
 
 export type EntityStoreType = BlockType | BlockType["properties"]["entity"];
+export type EntityStore = Record<string, EntityStoreType>;
 
 export const isBlockEntity = (entity: EntityStoreType): entity is BlockType =>
   "properties" in entity && entity.__typename === "Block";
@@ -19,5 +20,5 @@ const mapEntityToEntityStoreItems = <T extends EntityStoreType>(
     : []),
 ];
 
-export const createEntityStore = (contents: EntityStoreType[]) =>
+export const createEntityStore = (contents: EntityStoreType[]): EntityStore =>
   Object.fromEntries(contents.flatMap(mapEntityToEntityStoreItems));

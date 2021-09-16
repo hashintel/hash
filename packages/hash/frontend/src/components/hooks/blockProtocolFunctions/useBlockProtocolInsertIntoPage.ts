@@ -6,7 +6,7 @@ import {
 } from "../../../graphql/apiTypes.gen";
 import { insertBlockIntoPage } from "@hashintel/hash-shared/queries/page.queries";
 
-type InsertIntoPageFn = (
+export type InsertIntoPageFn = (
   variables: InsertBlockIntoPageMutationVariables
 ) => void;
 

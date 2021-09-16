@@ -268,7 +268,8 @@ const mapEntityToChildren = (
 };
 
 export const cachedPropertiesByEntity: Record<string, Record<any, any>> = {};
-const cachedPropertiesByPosition: Record<string, Record<any, any>> = {};
+// @todo revert exporting this
+export const cachedPropertiesByPosition: Record<string, Record<any, any>> = {};
 
 /**
  * There's a bug here where when we add a new block, we think we need to update
@@ -278,6 +279,7 @@ const cachedPropertiesByPosition: Record<string, Record<any, any>> = {};
  * @todo fix this
  *
  * @todo remove the intermediary formats used in this function
+ * @deprecated
  */
 export const calculateSavePayloads = (
   accountId: string,
