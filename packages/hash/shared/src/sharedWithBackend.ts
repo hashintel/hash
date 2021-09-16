@@ -27,9 +27,8 @@ const fetch = (globalThis as any).fetch ?? require("node-fetch");
 
 /**
  * @todo think about removing this
- * @todo don't export this
  */
-export type BlockConfig = BlockMetadata & { url: string };
+type BlockConfig = BlockMetadata & { url: string };
 
 /**
  * @deprecated
@@ -143,8 +142,7 @@ export type ReplacePortals = (
   reactNode: ReactNode | null
 ) => void;
 
-// @todo don't export this
-export type ViewConfig = {
+type ViewConfig = {
   view: any;
   replacePortal: ReplacePortals;
   createNodeView: Function;
