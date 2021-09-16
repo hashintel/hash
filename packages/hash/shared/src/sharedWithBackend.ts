@@ -408,14 +408,16 @@ export const calculateSavePayloads = (
    * Once we have a list of blocks, we need to divide the list of blocks into new ones and
    * updated ones, as they require different queries to handle
    */
-  const existingBlockIds = savedContents.map((block) => block.metadataId);
+  const existingBlockIds = new Set(
+    savedContents.map((block) => block.metadataId)
+  );
 
   const newBlocks = mappedBlocks.filter(
-    (block) => !block.entityId || !existingBlockIds.includes(block.entityId)
+    (block) => !block.entityId || !existingBlockIds.has(block.entityId)
   );
 
   const existingBlocks = mappedBlocks.filter(
-    (block) => block.entityId && existingBlockIds.includes(block.entityId)
+    (block) => block.entityId && existingBlockIds.has(block.entityId)
   );
 
   /**
