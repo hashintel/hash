@@ -22,6 +22,8 @@ import {
   UpdateEntityMutation,
   GetPageQueryVariables,
   GetPageQuery,
+  UpdatePageContentsMutation,
+  UpdatePageContentsMutationVariables,
 } from "../graphql/apiTypes.gen";
 import {
   createEntity,
@@ -38,6 +40,7 @@ import {
   createPage,
   insertBlocksIntoPage,
   getPage,
+  updatePageContents,
 } from "../graphql/queries/page.queries";
 
 export class ApiClient {
@@ -134,4 +137,12 @@ export class ApiClient {
     this.client
       .request<GetPageQuery, GetPageQueryVariables>(getPage, vars)
       .then((res) => res.page);
+
+  updatePageContents = async (vars: UpdatePageContentsMutationVariables) =>
+    this.client
+      .request<UpdatePageContentsMutation, UpdatePageContentsMutationVariables>(
+        updatePageContents,
+        vars
+      )
+      .then((res) => res.updatePageContents);
 }
