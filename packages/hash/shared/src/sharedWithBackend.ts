@@ -249,7 +249,7 @@ export const createEntityUpdateTransaction = async (
         viewConfig,
         block.properties.componentId,
         getProseMirrorNodeAttributes(block),
-        mapEntityToChildren(block.properties.entity)?.map((child: any) => {
+        mapEntityToChildren(block.properties.entity).map((child: any) => {
           if (child.type === "text") {
             return schema.text(
               child.text,
@@ -259,7 +259,7 @@ export const createEntityUpdateTransaction = async (
 
           // @todo recursive nodes
           throw new Error("unrecognised child");
-        }) ?? []
+        })
       );
     }) ?? []
   );
@@ -293,6 +293,8 @@ const mapEntityToChildren = (
         .map(([mark]) => mark),
     }));
   }
+
+  return [];
 };
 
 const invertedBlockPaths = Object.fromEntries(
