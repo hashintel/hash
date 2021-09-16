@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { Schema as JSONSchema } from "jsonschema";
 import { EditorState } from "prosemirror-state";
+import { uniqBy } from "lodash";
 import { createRemoteBlock, defineRemoteBlock } from "./sharedWithBackendJs";
 
 // @todo move this
@@ -417,8 +418,6 @@ export const calculateSavePayloads = (
     (block) => block.entityId && existingBlockIds.includes(block.entityId)
   );
 
-  const seenEntityIds = new Set<string>();
-
   /**
    * An updated block also contains an updated entity, so we need to create a list of
    * entities that we need to post updates to via GraphQL
@@ -488,24 +487,14 @@ export const calculateSavePayloads = (
      *
      * @todo improve this
      */
-    return blocks.filter(
-      <T extends { id: string | null }>(
-        block: T
-      ): block is T & { id: string } => {
-        if (!block.id || seenEntityIds.has(block.id)) {
-          return false;
-        }
-
-        seenEntityIds.add(block.id);
-
-        return true;
-      }
-    );
+    return uniqBy(blocks, "id");
   });
 
   const updatedEntitiesPayload = updatedEntities
     .filter(
-      (entity) =>
+      <T extends { id: string | null }>(
+        entity: T
+      ): entity is T & { id: string } =>
         /**
          * This had been setup to do something special in the case that you're converting from text blocks to non-text
          * blocks (or vice versa, not sure) but it hasn't work for a while and making this strongly typed is showing it
@@ -516,7 +505,7 @@ export const calculateSavePayloads = (
          */
         // (entity.properties.entityId ||
         //   entity.properties.entityTypeName !== "Text") &&
-        entity.id
+        !!entity.id
     )
     .map(
       (entity): BlockProtocolUpdatePayload<any> => ({
