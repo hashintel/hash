@@ -122,24 +122,24 @@ export const createNodeView = (
                   node
                 );
 
+                const editableRef = editable
+                  ? (node: HTMLElement) => {
+                      if (
+                        this.contentDOM &&
+                        node &&
+                        !node.contains(this.contentDOM)
+                      ) {
+                        node.appendChild(this.contentDOM);
+                        this.contentDOM.style.display = "";
+                      }
+                    }
+                  : undefined;
+
                 return (
                   <RemoteBlock
-                    url={url}
                     {...remoteBlockProps}
-                    {...(editable
-                      ? {
-                          editableRef: (node: HTMLElement) => {
-                            if (
-                              this.contentDOM &&
-                              node &&
-                              !node.contains(this.contentDOM)
-                            ) {
-                              node.appendChild(this.contentDOM);
-                              this.contentDOM.style.display = "";
-                            }
-                          },
-                        }
-                      : {})}
+                    url={url}
+                    editableRef={editableRef}
                   />
                 );
               }}
