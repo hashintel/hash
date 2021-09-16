@@ -33,9 +33,6 @@ const getRemoteBlockProps = (entity: EntityStoreType | null | undefined) => {
     const childEntity = entity.properties.entity;
 
     return {
-      entityId: entity.id,
-      accountId: entity.accountId,
-      versionId: entity.id,
       childEntityId: childEntity.metadataId,
       properties:
         childEntity.__typename === "UnknownEntity"
