@@ -146,9 +146,9 @@ export const createNodeView = (
         );
 
         return true;
+      } else {
+        return false;
       }
-
-      return false;
     }
 
     destroy() {
