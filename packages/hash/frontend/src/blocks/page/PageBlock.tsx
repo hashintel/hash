@@ -81,16 +81,22 @@ if (typeof localStorage !== "undefined") {
   }, 500);
 }
 
-// @todo move to shared package
-const calculateSavePayloadsAtomic = (
+/**
+ * @todo better name, move to shared package
+ */
+const triggerAtomicSave = async (
   accountId: string,
   pageId: string,
   metadataId: string,
-  schema: Schema,
-  doc: ProsemirrorNode,
+  // @todo type this properly
+  state: EditorState,
   savedContents: PageFieldsFragment["properties"]["contents"],
-  entityStore = createEntityStore(savedContents)
+  entityStore: EntityStore,
+  insert: InsertIntoPageFn,
+  update: BlockProtocolUpdateFn
 ) => {
+  let schema = state.schema;
+  let doc = state.doc;
   /**
    * @todo this needs to be typed – maybe we should use the prosemirror node
    *   APIs instead
@@ -329,66 +335,43 @@ const calculateSavePayloadsAtomic = (
     versioned: true,
   }));
 
-  return { updatedEntitiesPayload, pageUpdatedPayload, insertPayloads };
+  let res = { updatedEntitiesPayload, pageUpdatedPayload, insertPayloads };
+
+  console.log(res);
+
+  //
+  // return (
+  //   insertPayloads
+  //     .reduce(
+  //       (promise, insertPayload) =>
+  //         promise.catch(() => {}).then(() => insert(insertPayload)),
+  //       pageUpdatedPayload ? update([pageUpdatedPayload]) : Promise.resolve()
+  //     )
+  //     /**
+  //      * Entity updates temporary sequential due to issue in Apollo –
+  //      * we'll be replacing all of this with a single atomic query
+  //      * anyway so this is a fine compromise for now
+  //      *
+  //      * @see https://hashintel.slack.com/archives/C022217GAHF/p1631541550015000
+  //      */
+  //     .then(() =>
+  //       updatedEntitiesPayload.reduce(
+  //         (promise, payload) =>
+  //           promise.catch(() => {}).then(() => update([payload])),
+  //         Promise.resolve()
+  //       )
+  //     )
+  //     .catch(() => {})
+  //     // @todo remove this timeout
+  //     .then(() => {
+  //       return new Promise<void>((resolve) => {
+  //         setTimeout(() => {
+  //           resolve();
+  //         }, 250);
+  //       });
+  //     })
+  // );
 };
-
-/**
- * @todo better name, move to shared package
- */
-function triggerAtomicSave(
-  accountId: string,
-  pageId: string,
-  metadataId: string,
-  // @todo type this properly
-  state: EditorState,
-  currentContents: PageFieldsFragment["properties"]["contents"],
-  currentEntityStoreValue: EntityStore,
-  insert: InsertIntoPageFn,
-  update: BlockProtocolUpdateFn
-) {
-  const { updatedEntitiesPayload, pageUpdatedPayload, insertPayloads } =
-    calculateSavePayloadsAtomic(
-      accountId,
-      pageId,
-      metadataId,
-      state.schema,
-      state.doc,
-      currentContents,
-      currentEntityStoreValue
-    );
-
-  return (
-    insertPayloads
-      .reduce(
-        (promise, insertPayload) =>
-          promise.catch(() => {}).then(() => insert(insertPayload)),
-        pageUpdatedPayload ? update([pageUpdatedPayload]) : Promise.resolve()
-      )
-      /**
-       * Entity updates temporary sequential due to issue in Apollo –
-       * we'll be replacing all of this with a single atomic query
-       * anyway so this is a fine compromise for now
-       *
-       * @see https://hashintel.slack.com/archives/C022217GAHF/p1631541550015000
-       */
-      .then(() =>
-        updatedEntitiesPayload.reduce(
-          (promise, payload) =>
-            promise.catch(() => {}).then(() => update([payload])),
-          Promise.resolve()
-        )
-      )
-      .catch(() => {})
-      // @todo remove this timeout
-      .then(() => {
-        return new Promise<void>((resolve) => {
-          setTimeout(() => {
-            resolve();
-          }, 250);
-        });
-      })
-  );
-}
 
 /**
  * The naming of this as a "Block" is… interesting, considering it doesn't
