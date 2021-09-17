@@ -3,7 +3,8 @@ const path = require("path");
 
 const generatedIds = require("./data/generatedIds.json");
 const { SYSTEM_ACCOUNT_NAME } = require("../../../src/lib/config");
-const { entityTypeJson } = require("./0004_system_account_generate");
+
+const { entityTypeJson } = require("./data/systemTypeSchemas");
 
 const now =  '2021-08-19T11:00:14.588Z';
 
@@ -17,10 +18,6 @@ let sqlString = "";
 
 for (const typeName of ["Block", "EntityType", "Page", "Text", "User"]) {
   const type = types[typeName];
-
-  // @todo add the schemas for each type under 'properties'
-  //    the EntityType schema will probably be the general purpose JSON meta schema
-  //    https://json-schema.org/specification.html
 
   sqlString += `insert into entity_types (
   entity_type_id, account_id, name, versioned,
