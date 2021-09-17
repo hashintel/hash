@@ -12,10 +12,7 @@ import { renderPM } from "./sandbox";
 import { createMarksTooltip } from "../../components/MarksTooltip";
 import { createBlockSuggester } from "../../components/BlockSuggester";
 import { useBlockProtocolUpdate } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdate";
-import {
-  InsertIntoPageFn,
-  useBlockProtocolInsertIntoPage,
-} from "../../components/hooks/blockProtocolFunctions/useBlockProtocolInsertIntoPage";
+import { useBlockProtocolInsertIntoPage } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolInsertIntoPage";
 import { usePortals } from "./usePortals";
 import { useDeferredCallback } from "./useDeferredCallback";
 import { BlockMetaContext } from "../blockMeta";
@@ -46,17 +43,14 @@ import {
   isBlockEntity,
 } from "@hashintel/hash-shared/entityStore";
 import { uniqBy } from "lodash";
-import {
-  BlockProtocolUpdateFn,
-  BlockProtocolUpdatePayload,
-} from "@hashintel/block-protocol";
+import { BlockProtocolUpdatePayload } from "@hashintel/block-protocol";
 import {
   InsertNewBlock,
   SystemTypeName,
   UpdatePageContentsMutation,
   UpdatePageContentsMutationVariables,
 } from "../../graphql/apiTypes.gen";
-import { ApolloClient, useApolloClient, useMutation } from "@apollo/client";
+import { useApolloClient, useMutation } from "@apollo/client";
 import { updatePageContents } from "@hashintel/hash-shared/queries/page.queries";
 
 type PageBlockProps = {
@@ -201,13 +195,10 @@ const calculateSaveOperations = (
 
   const currentBlockIds = new Set(mappedBlocks.map((block) => block.entityId));
 
-  const newBlocks = mappedBlocks.filter(
-    (block) => !block.entityId || !existingBlockIds.has(block.entityId)
-  );
+  const isBlockNew = (block: typeof mappedBlocks[number]) =>
+    !block.entityId || !existingBlockIds.has(block.entityId);
 
-  const existingBlocks = mappedBlocks.filter(
-    (block) => block.entityId && existingBlockIds.has(block.entityId)
-  );
+  const existingBlocks = mappedBlocks.filter((block) => !isBlockNew(block));
 
   const removedBlocks = savedContents
     .map((block, position) => [block, position] as const)
@@ -215,10 +206,6 @@ const calculateSaveOperations = (
 
   const removedBlocksInputs = removedBlocks.map(
     ([, position]): RemoveBlock => ({ position })
-  );
-
-  const removedBlocksIds = new Set(
-    removedBlocks.map((block) => block[0].metadataId)
   );
 
   const removedBlocksPositions = new Set(
@@ -235,7 +222,7 @@ const calculateSaveOperations = (
   ];
 
   const mappedBlocksWithoutNewBlocks = mappedBlocks.filter(
-    (block) => !!block.entityId
+    (block) => !isBlockNew(block)
   );
 
   for (
@@ -268,15 +255,12 @@ const calculateSaveOperations = (
     }
   }
 
-  const savedContentsWithNewBlocks = [
-    ...savedContentsWithoutRemovedBlocksWithMovements,
-  ];
   const insertBlockOperation: InsertNewBlock[] = [];
 
   for (let position = 0; position < mappedBlocks.length; position++) {
     const block = mappedBlocks[position];
 
-    if (block.entityId) {
+    if (!isBlockNew(block)) {
       continue;
     }
 
