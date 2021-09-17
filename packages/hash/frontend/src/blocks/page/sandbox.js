@@ -740,9 +740,14 @@ export function createFormatPlugin(replacePortal) {
         const end = view.coordsAtPos(to);
 
         dom.style.opacity = "1";
-        dom.style.top = `${start.top - dom.offsetHeight}px`;
+        dom.style.top = `${
+          start.top - dom.offsetHeight + document.documentElement.scrollTop
+        }px`;
         dom.style.left = `${
-          start.left - dom.offsetWidth / 2 + (end.right - start.left) / 2
+          start.left -
+          dom.offsetWidth / 2 +
+          (end.right - start.left) / 2 +
+          document.documentElement.scrollLeft
         }px`;
 
         for (const fn of updateFns) {
