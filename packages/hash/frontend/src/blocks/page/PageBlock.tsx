@@ -415,8 +415,6 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   metadataId,
 }) => {
   const root = useRef<HTMLDivElement>(null);
-  const { insert } = useBlockProtocolInsertIntoPage();
-  const { update } = useBlockProtocolUpdate();
   const client = useApolloClient();
   const [updatePageContentsFn] = useMutation<
     UpdatePageContentsMutation,
@@ -462,7 +460,10 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   }, [entityStoreValue]);
 
   const updateContents = useCallback(
-    async (signal?: AbortSignal): Promise<void> => {
+    async (
+      contents: PageFieldsFragment["properties"]["contents"],
+      signal?: AbortSignal
+    ): Promise<void> => {
       const setup = prosemirrorSetup.current;
       if (!setup) {
         return;
@@ -472,15 +473,11 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
 
       const state = view.state;
 
-      const tr = await createEntityUpdateTransaction(
-        state,
-        currentContents.current,
-        {
-          view,
-          replacePortal,
-          createNodeView,
-        }
-      );
+      const tr = await createEntityUpdateTransaction(state, contents, {
+        view,
+        replacePortal,
+        createNodeView,
+      });
 
       if (signal?.aborted) {
         return;
@@ -493,7 +490,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
        * @todo probably better way of dealing with this
        */
       if (view.state !== state || prosemirrorSetup.current !== setup) {
-        return updateContents(signal);
+        return updateContents(contents, signal);
       }
 
       view.dispatch(tr);
@@ -546,12 +543,10 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
 
           return promise
             .then(() => client.reFetchObservableQueries())
-            .then(() => {
-              return updateContents();
-            });
+            .then(() => {});
         });
     };
-  }, [accountId, client, insert, metadataId, pageId, update, updateContents]);
+  }, [accountId, client, metadataId, pageId, updatePageContentsFn]);
 
   /**
    * This effect runs once and just sets up the prosemirror instance. It is not
@@ -661,16 +656,13 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
    * the contents, which ensures that blocks referencing the same entity are
    * all updated, and that empty IDs are properly filled (i.e, when creating a
    * new block)
-   *
-   * @todo fix when getPage queries are triggered rather than relying on a hook
-   *       that doesn't actually update from contents (because of the laddering
-   *       problem)
    */
   useLayoutEffect(() => {
     const controller = new AbortController();
 
     if (!collabEnabled) {
-      updateContents(controller.signal).catch((err) =>
+      // @todo inline this function
+      updateContents(contents, controller.signal).catch((err) =>
         console.error("Could not update page contents: ", err)
       );
     }
@@ -678,7 +670,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     return () => {
       controller.abort();
     };
-  }, [replacePortal, updateContents, metadataId]);
+  }, [replacePortal, updateContents, metadataId, contents]);
 
   return (
     <BlockMetaContext.Provider value={blocksMeta}>
