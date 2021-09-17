@@ -5,7 +5,7 @@ import React, {
   useRef,
   VoidFunctionComponent,
 } from "react";
-import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
+import { Schema } from "prosemirror-model";
 import { EditorState, Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { renderPM } from "./sandbox";
@@ -32,8 +32,11 @@ import {
 import { collabEnabled, createNodeView } from "./tsUtils";
 import { EditorConnection } from "./collab/collab";
 import {
+  MoveBlock,
   PageFieldsFragment,
-  SystemTypeName,
+  RemoveBlock,
+  UpdateEntity,
+  UpdatePageAction,
 } from "@hashintel/hash-shared/graphql/apiTypes.gen";
 import { EntityStoreContext } from "./EntityStoreContext";
 import {
@@ -47,6 +50,14 @@ import {
   BlockProtocolUpdateFn,
   BlockProtocolUpdatePayload,
 } from "@hashintel/block-protocol";
+import {
+  InsertNewBlock,
+  SystemTypeName,
+  UpdatePageContentsMutation,
+  UpdatePageContentsMutationVariables,
+} from "../../graphql/apiTypes.gen";
+import { ApolloClient, useApolloClient, useMutation } from "@apollo/client";
+import { updatePageContents } from "@hashintel/hash-shared/queries/page.queries";
 
 type PageBlockProps = {
   contents: PageFieldsFragment["properties"]["contents"];
@@ -83,17 +94,16 @@ if (typeof localStorage !== "undefined") {
 
 /**
  * @todo better name, move to shared package
+ * @todo this needs to be able to handle multiple instances of the same block
  */
-const triggerAtomicSave = async (
+const calculateSaveOperations = (
   accountId: string,
   pageId: string,
   metadataId: string,
   // @todo type this properly
   state: EditorState,
   savedContents: PageFieldsFragment["properties"]["contents"],
-  entityStore: EntityStore,
-  insert: InsertIntoPageFn,
-  update: BlockProtocolUpdateFn
+  entityStore: EntityStore
 ) => {
   let schema = state.schema;
   let doc = state.doc;
@@ -119,8 +129,9 @@ const triggerAtomicSave = async (
     }
 
     const componentId = invertedBlockPaths[meta.url] ?? meta.url;
-    const savedEntity: EntityStoreType | undefined =
-      entityStore[node.attrs.entityId];
+    const savedEntity = (
+      entityStore as Record<string, EntityStoreType | undefined>
+    )[node.attrs.entityId];
 
     const childEntityId =
       savedEntity && isBlockEntity(savedEntity)
@@ -188,6 +199,8 @@ const triggerAtomicSave = async (
     savedContents.map((block) => block.metadataId)
   );
 
+  const currentBlockIds = new Set(mappedBlocks.map((block) => block.entityId));
+
   const newBlocks = mappedBlocks.filter(
     (block) => !block.entityId || !existingBlockIds.has(block.entityId)
   );
@@ -195,6 +208,86 @@ const triggerAtomicSave = async (
   const existingBlocks = mappedBlocks.filter(
     (block) => block.entityId && existingBlockIds.has(block.entityId)
   );
+
+  const removedBlocks = savedContents
+    .map((block, position) => [block, position] as const)
+    .filter(([block]) => !currentBlockIds.has(block.metadataId));
+
+  const removedBlocksInputs = removedBlocks.map(
+    ([, position]): RemoveBlock => ({ position })
+  );
+
+  const removedBlocksIds = new Set(
+    removedBlocks.map((block) => block[0].metadataId)
+  );
+
+  const removedBlocksPositions = new Set(
+    removedBlocksInputs.map((block) => block.position)
+  );
+
+  const savedContentsWithoutRemovedBlocks = savedContents.filter(
+    (_, position) => !removedBlocksPositions.has(position)
+  );
+
+  const movements: MoveBlock[] = [];
+  const savedContentsWithoutRemovedBlocksWithMovements = [
+    ...savedContentsWithoutRemovedBlocks,
+  ];
+
+  const mappedBlocksWithoutNewBlocks = mappedBlocks.filter(
+    (block) => !!block.entityId
+  );
+
+  for (
+    let position = 0;
+    position < savedContentsWithoutRemovedBlocksWithMovements.length;
+    position++
+  ) {
+    const block = savedContentsWithoutRemovedBlocksWithMovements[position];
+    const positionInMappedBlocks = mappedBlocksWithoutNewBlocks.findIndex(
+      (otherBlock) => otherBlock.entityId === block.metadataId
+    );
+
+    if (positionInMappedBlocks < 0) {
+      throw new Error(
+        "invariant: found removed block whilst calculating movements"
+      );
+    }
+
+    if (position !== positionInMappedBlocks) {
+      movements.push({
+        currentPosition: position,
+        newPosition: positionInMappedBlocks,
+      });
+      savedContentsWithoutRemovedBlocksWithMovements.splice(position, 1);
+      savedContentsWithoutRemovedBlocksWithMovements.splice(
+        positionInMappedBlocks,
+        0,
+        block
+      );
+    }
+  }
+
+  const savedContentsWithNewBlocks = [
+    ...savedContentsWithoutRemovedBlocksWithMovements,
+  ];
+  const insertBlockOperation: InsertNewBlock[] = [];
+
+  for (let position = 0; position < mappedBlocks.length; position++) {
+    const block = mappedBlocks[position];
+
+    if (block.entityId) {
+      continue;
+    }
+
+    insertBlockOperation.push({
+      position,
+      componentId: block.properties.componentId,
+      accountId: block.accountId,
+      entityProperties: block.properties.entity.properties,
+      systemTypeName: SystemTypeName.Text,
+    });
+  }
 
   /**
    * An updated block also contains an updated entity, so we need to create a
@@ -298,79 +391,30 @@ const triggerAtomicSave = async (
       })
     );
 
-  /**
-   * This is a real crude way of working out if order of blocks (or if blocks
-   * have been added/removed) have changed within a page, in order to work out
-   * if an update operation is needed on this list
-   *
-   * @todo come up with something better
-   */
-  const pageUpdatedPayload =
-    JSON.stringify(existingBlockIds) !==
-    JSON.stringify(mappedBlocks.map((block) => block.entityId))
-      ? {
-          entityTypeId: "Page",
-          entityId: metadataId,
-          accountId,
-          data: {
-            contents: existingBlocks.map((node) => ({
-              entityId: node.versionId,
-              accountId: node.accountId,
-              type: "Block",
-            })),
-          },
-        }
-      : null;
+  const updatedEntitiesOperations = updatedEntitiesPayload.map(
+    (payload): UpdateEntity => {
+      if (!payload.accountId) {
+        throw new Error("invariant: all updated entities must have account id");
+      }
 
-  const insertPayloads = newBlocks.map((newBlock) => ({
-    // @todo this should take the user id of whoever creates it
-    pageId,
-    pageMetadataId: metadataId,
-    position: newBlock.position,
-    componentId: newBlock.properties.componentId,
-    entityProperties: newBlock.properties.entity.properties,
-    /** @todo handle inserting non-text blocks */
-    systemTypeName: SystemTypeName.Text,
-    accountId,
-    versioned: true,
-  }));
+      return {
+        entityId: payload.entityId,
+        accountId: payload.accountId,
+        properties: payload.data,
+      };
+    }
+  );
 
-  let res = { updatedEntitiesPayload, pageUpdatedPayload, insertPayloads };
+  const operations: UpdatePageAction[] = [
+    ...removedBlocksInputs.map((input) => ({ removeBlock: input })),
+    ...movements.map((movement) => ({ moveBlock: movement })),
+    ...insertBlockOperation.map((operation) => ({ insertNewBlock: operation })),
+    ...updatedEntitiesOperations.map((operation) => ({
+      updateEntity: operation,
+    })),
+  ];
 
-  console.log(res);
-
-  //
-  // return (
-  //   insertPayloads
-  //     .reduce(
-  //       (promise, insertPayload) =>
-  //         promise.catch(() => {}).then(() => insert(insertPayload)),
-  //       pageUpdatedPayload ? update([pageUpdatedPayload]) : Promise.resolve()
-  //     )
-  //     /**
-  //      * Entity updates temporary sequential due to issue in Apollo –
-  //      * we'll be replacing all of this with a single atomic query
-  //      * anyway so this is a fine compromise for now
-  //      *
-  //      * @see https://hashintel.slack.com/archives/C022217GAHF/p1631541550015000
-  //      */
-  //     .then(() =>
-  //       updatedEntitiesPayload.reduce(
-  //         (promise, payload) =>
-  //           promise.catch(() => {}).then(() => update([payload])),
-  //         Promise.resolve()
-  //       )
-  //     )
-  //     .catch(() => {})
-  //     // @todo remove this timeout
-  //     .then(() => {
-  //       return new Promise<void>((resolve) => {
-  //         setTimeout(() => {
-  //           resolve();
-  //         }, 250);
-  //       });
-  //     })
-  // );
+  return operations;
 };
 
 /**
@@ -389,6 +433,11 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   const root = useRef<HTMLDivElement>(null);
   const { insert } = useBlockProtocolInsertIntoPage();
   const { update } = useBlockProtocolUpdate();
+  const client = useApolloClient();
+  const [updatePageContentsFn] = useMutation<
+    UpdatePageContentsMutation,
+    UpdatePageContentsMutationVariables
+  >(updatePageContents);
 
   const [portals, replacePortal] = usePortals();
   const [deferCallback, clearCallback] = useDeferredCallback();
@@ -495,21 +544,30 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
           }
           const { view } = prosemirrorSetup.current;
           const { state } = view;
-          return triggerAtomicSave(
+          const operations = calculateSaveOperations(
             accountId,
             pageId,
             metadataId,
             state,
             currentContents.current,
-            currentEntityStoreValue.current,
-            insert,
-            update
-          ).then(() => {
-            return updateContents();
+            currentEntityStoreValue.current
+          );
+          const promise = updatePageContentsFn({
+            variables: {
+              actions: operations,
+              accountId: accountId,
+              entityId: metadataId,
+            },
           });
+
+          return promise
+            .then(() => client.reFetchObservableQueries())
+            .then(() => {
+              return updateContents();
+            });
         });
     };
-  }, [accountId, insert, metadataId, pageId, update, updateContents]);
+  }, [accountId, client, insert, metadataId, pageId, update, updateContents]);
 
   /**
    * This effect runs once and just sets up the prosemirror instance. It is not
