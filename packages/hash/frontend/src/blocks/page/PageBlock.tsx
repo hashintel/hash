@@ -20,8 +20,8 @@ import {
   cachedPropertiesByEntity,
   calculateSavePayloads,
   createEntityUpdateTransaction,
+  defineNewBlock,
 } from "@hashintel/hash-shared/sharedWithBackend";
-import { defineNewBlock } from "@hashintel/hash-shared/sharedWithBackendJs";
 import { collabEnabled, createNodeView } from "./tsUtils";
 import { EditorConnection } from "./collab/collab";
 import { PageFieldsFragment } from "@hashintel/hash-shared/graphql/apiTypes.gen";
@@ -318,8 +318,8 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   }, [accountId, clearCallback, deferCallback, metadataId, replacePortal]);
 
   /**
-   * This effect is responsible for ensuring all the preloaded blocks
-   * (currently just paragraph) are defined in prosemirror
+   * This effect is responsible for ensuring all the preloaded blocks are
+   * defined in prosemirror
    */
   useLayoutEffect(() => {
     if (!prosemirrorSetup.current) {

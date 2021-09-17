@@ -711,13 +711,14 @@ export function createFormatPlugin(replacePortal) {
             .content.content.map((node) =>
               node.type.name === "block" ? node.firstChild : node
             )
-            .every(
-              (node) =>
+            .every((node) => {
+              return (
                 node.content.size === 0 ||
                 // @todo fix this check by checking for the
                 // marks a node supports
-                node.type.name !== "https://block.blockprotocol.org/paragraph"
-            ) ||
+                !node.isTextblock
+              );
+            }) ||
           state.selection.empty
         ) {
           dom.style.opacity = "0";
