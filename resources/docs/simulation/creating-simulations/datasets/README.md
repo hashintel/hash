@@ -47,7 +47,7 @@ To access a dataset, use its path on `context.data()`- you can find its path by 
 
 ```javascript
 // Access a dataset in your simulation
-context.data()["dataset-path.csv")
+context.data()["dataset-path.csv"]
 ```
 
 <Hint style="info">
