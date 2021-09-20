@@ -27,10 +27,7 @@ import {
 import { collabEnabled, createNodeView } from "./tsUtils";
 import { EditorConnection } from "./collab/collab";
 import {
-  MoveBlock,
   PageFieldsFragment,
-  RemoveBlock,
-  UpdateEntity,
   UpdatePageAction,
 } from "@hashintel/hash-shared/graphql/apiTypes.gen";
 import { EntityStoreContext } from "./EntityStoreContext";
@@ -42,7 +39,6 @@ import {
 } from "@hashintel/hash-shared/entityStore";
 import { uniqBy } from "lodash";
 import {
-  InsertNewBlock,
   SystemTypeName,
   UpdatePageContentsMutation,
   UpdatePageContentsMutationVariables,
@@ -107,7 +103,7 @@ const prosemirrorNodeToEntityProperties = (node: ProsemirrorNode<Schema>) =>
 /**
  * @todo get this info from entity store & a separate component register
  */
-const prosemirrorNodeToComponentId = (node: ProsemirrorNode<Schema>) => {
+const nodeToComponentId = (node: ProsemirrorNode<Schema>) => {
   const nodeType = node.type;
 
   // @todo type this properly – get this from somewhere else
@@ -129,7 +125,7 @@ const calculateSaveOperations = (
   state: EditorState,
   savedContents: PageFieldsFragment["properties"]["contents"],
   entityStore: EntityStore
-) => {
+): UpdatePageAction[] => {
   const doc = state.doc;
 
   const entityNodes: [ProsemirrorNode<Schema>, string | null][] = [];
@@ -161,18 +157,15 @@ const calculateSaveOperations = (
     .filter(([block]) => !currentBlockIds.has(block.metadataId));
 
   const removedBlocksInputs = removedBlocks.map(
-    ([, position]): RemoveBlock => ({ position })
-  );
-
-  const removedBlocksPositions = new Set(
-    removedBlocksInputs.map((block) => block.position)
+    ([, position]): UpdatePageAction => ({ removeBlock: { position } })
   );
 
   const savedContentsWithoutRemovedBlocks = savedContents.filter(
-    (_, position) => !removedBlocksPositions.has(position)
+    (_, position) =>
+      !removedBlocks.some(([, removedPosition]) => removedPosition === position)
   );
 
-  const movements: MoveBlock[] = [];
+  const movements: UpdatePageAction[] = [];
   const savedContentsWithoutRemovedBlocksWithMovements = [
     ...savedContentsWithoutRemovedBlocks,
   ];
@@ -202,8 +195,10 @@ const calculateSaveOperations = (
 
     if (position !== positionInDoc) {
       movements.push({
-        currentPosition: position,
-        newPosition: positionInDoc,
+        moveBlock: {
+          currentPosition: position,
+          newPosition: positionInDoc,
+        },
       });
       savedContentsWithoutRemovedBlocksWithMovements.splice(position, 1);
       savedContentsWithoutRemovedBlocksWithMovements.splice(
@@ -214,7 +209,7 @@ const calculateSaveOperations = (
     }
   }
 
-  const insertBlockOperation: InsertNewBlock[] = [];
+  const insertBlockOperation: UpdatePageAction[] = [];
 
   for (const [position, [node, entityId]] of Object.entries(entityNodes)) {
     if (entityId && existingBlockIds.has(entityId)) {
@@ -222,12 +217,14 @@ const calculateSaveOperations = (
     }
 
     insertBlockOperation.push({
-      position: Number(position),
-      componentId: prosemirrorNodeToComponentId(node),
-      accountId,
-      entityProperties: prosemirrorNodeToEntityProperties(node),
-      // @todo support new non-text nodes
-      systemTypeName: SystemTypeName.Text,
+      insertNewBlock: {
+        position: Number(position),
+        componentId: nodeToComponentId(node),
+        accountId,
+        entityProperties: prosemirrorNodeToEntityProperties(node),
+        // @todo support new non-text nodes
+        systemTypeName: SystemTypeName.Text,
+      },
     });
   }
 
@@ -247,7 +244,7 @@ const calculateSaveOperations = (
        * An updated block also contains an updated entity, so we need to create
        * a list of entities that we need to post updates to via GraphQL
        */
-      .flatMap(([node, entityId]): UpdateEntity[] => {
+      .flatMap(([node, entityId]) => {
         if (!entityId || !existingBlockIds.has(entityId)) {
           return [];
         }
@@ -285,7 +282,7 @@ const calculateSaveOperations = (
           entityId: savedEntity.metadataId,
           accountId: savedEntity.accountId,
           properties: {
-            componentId: prosemirrorNodeToComponentId(node),
+            componentId: nodeToComponentId(node),
             entityId: savedChildEntity.id,
             accountId: savedChildEntity.accountId,
           },
@@ -300,15 +297,17 @@ const calculateSaveOperations = (
           throw new Error("Cannot find existing block entity");
         }
 
-        const updates: UpdateEntity[] = [];
+        const updates: UpdatePageAction[] = [];
 
         if (
           block.properties.componentId !== existingBlock?.properties.componentId
         ) {
           updates.push({
-            entityId: block.entityId,
-            accountId: block.accountId,
-            properties: block.properties,
+            updateEntity: {
+              entityId: block.entityId,
+              accountId: block.accountId,
+              properties: block.properties,
+            },
           });
         }
 
@@ -343,9 +342,11 @@ const calculateSaveOperations = (
             )
           ) {
             updates.push({
-              entityId: childEntityId,
-              accountId: savedChildEntity.accountId,
-              properties: entityProperties,
+              updateEntity: {
+                entityId: childEntityId,
+                accountId: savedChildEntity.accountId,
+                properties: entityProperties,
+              },
             });
           }
         }
@@ -356,12 +357,10 @@ const calculateSaveOperations = (
   );
 
   return [
-    ...removedBlocksInputs.map((input) => ({ removeBlock: input })),
-    ...movements.map((movement) => ({ moveBlock: movement })),
-    ...insertBlockOperation.map((operation) => ({ insertNewBlock: operation })),
-    ...updatedEntitiesOperations.map((operation) => ({
-      updateEntity: operation,
-    })),
+    ...removedBlocksInputs,
+    ...movements,
+    ...insertBlockOperation,
+    ...updatedEntitiesOperations,
   ];
 };
 
