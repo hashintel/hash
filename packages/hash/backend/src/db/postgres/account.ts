@@ -3,7 +3,7 @@ import { sql } from "slonik";
 import { Connection } from "./types";
 
 // @ts-ignore
-import { SYSTEM_ACCOUNT_NAME } from "../../lib/config";
+import { SYSTEM_ACCOUNT_SHORTNAME } from "../../lib/config";
 
 export const insertAccount = async (
   conn: Connection,
@@ -52,5 +52,5 @@ export const getEntityAccountIdMany = async (
 export const selectSystemAccountIds = sql`
   select account_id from entity_versions
   where account_id = entity_id
-    and properties->>'shortname' = ${SYSTEM_ACCOUNT_NAME}
+    and properties->>'shortname' = ${SYSTEM_ACCOUNT_SHORTNAME}
 `;

@@ -2,16 +2,30 @@ const fs = require("fs");
 const path = require("path");
 
 const generatedIds = require("./data/generatedIds.json");
-const { SYSTEM_ACCOUNT_NAME } = require("../../../src/lib/config");
 const { entityTypeJson } = require("./data/systemTypeSchemas");
+const {
+  SYSTEM_ACCOUNT_SHORTNAME,
+  SYSTEM_ACCOUNT_NAME,
+  SYSTEM_ACCOUNT_SIZE_LOWER_BOUND
+} = require("../../../src/lib/config");
 
 const now = '2021-08-19T11:00:14.587Z';
 
 const { Org } = generatedIds.types;
-const systemAccount = generatedIds.orgs[SYSTEM_ACCOUNT_NAME];
+const systemAccount = generatedIds.orgs[SYSTEM_ACCOUNT_SHORTNAME];
 
-const systemAccountProperties = JSON.stringify({
-  shortname: SYSTEM_ACCOUNT_NAME,
+const systemAccountPropertiesStringified = JSON.stringify({
+  shortname: SYSTEM_ACCOUNT_SHORTNAME,
+  name: SYSTEM_ACCOUNT_NAME,
+  /**
+   * This isn't useful, but is expected by the OrgProperties
+   * GraphQL type decleration (see src/graphql/typeDefs/org.typedef.ts)
+   */
+  infoProvidedAtCreation: {
+    orgSize: {
+      lowerBound: SYSTEM_ACCOUNT_SIZE_LOWER_BOUND 
+    }
+  }
 });
 
 const sqlString = `
@@ -49,7 +63,7 @@ insert into entity_versions (
   created_by, created_at, updated_at
 ) values (
   '${systemAccount.fixedId}', '${systemAccount.firstVersionId}', '${Org.firstVersionId}',
-  '${systemAccountProperties}', '${systemAccount.fixedId}',
+  '${systemAccountPropertiesStringified}', '${systemAccount.fixedId}',
   '${systemAccount.fixedId}', '${now}', '${now}'
 ) on conflict do nothing;`;
 

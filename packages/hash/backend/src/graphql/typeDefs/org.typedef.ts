@@ -69,11 +69,32 @@ export const orgTypedef = gql`
     # ENTITY INTERFACE FIELDS END #
   }
 
+  type OrgSizeRange {
+    lowerBound: Int!
+    upperBound: Int
+  }
+
+  type OrgInfoProvidedAtCreation {
+    """
+    The size of the organization
+    """
+    orgSize: OrgSizeRange!
+  }
+
   type OrgProperties {
     shortname: String
+    name: String!
+    infoProvidedAtCreation: OrgInfoProvidedAtCreation!
+  }
+
+  input CreateOrgInput {
+    shortname: String!
+    name: String!
+    orgSizeLowerBound: Int!
+    orgSizeUpperBound: Int
   }
 
   extend type Mutation {
-    createOrg(shortname: String!): Org!
+    createOrg(org: CreateOrgInput!): Org!
   }
 `;

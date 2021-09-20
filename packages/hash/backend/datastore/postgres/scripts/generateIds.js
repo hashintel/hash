@@ -1,10 +1,10 @@
 const fs = require("fs");
 const path = require("path");
 const { Uuid4 } = require("id128");
-const {SYSTEM_ACCOUNT_NAME} = require("../../../src/lib/config");
+const {SYSTEM_ACCOUNT_SHORTNAME} = require("../../../src/lib/config");
 
 const requiredIds = {
-  orgs: [SYSTEM_ACCOUNT_NAME],
+  orgs: [SYSTEM_ACCOUNT_SHORTNAME],
   types: ["Block", "EntityType", "Org", "Page", "Text", "User"]
 };
 
