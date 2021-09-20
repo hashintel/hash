@@ -126,6 +126,8 @@ const calculateSaveOperations = (
   savedContents: PageFieldsFragment["properties"]["contents"],
   entityStore: EntityStore
 ): UpdatePageAction[] => {
+  const operations: UpdatePageAction[] = [];
+
   const doc = state.doc;
 
   const entityNodes: [ProsemirrorNode<Schema>, string | null][] = [];
@@ -160,12 +162,13 @@ const calculateSaveOperations = (
     ([, position]): UpdatePageAction => ({ removeBlock: { position } })
   );
 
+  operations.push(...removedBlocksInputs);
+
   const savedContentsWithoutRemovedBlocks = savedContents.filter(
     (_, position) =>
       !removedBlocks.some(([, removedPosition]) => removedPosition === position)
   );
 
-  const movements: UpdatePageAction[] = [];
   const savedContentsWithoutRemovedBlocksWithMovements = [
     ...savedContentsWithoutRemovedBlocks,
   ];
@@ -194,7 +197,7 @@ const calculateSaveOperations = (
     }
 
     if (position !== positionInDoc) {
-      movements.push({
+      operations.push({
         moveBlock: {
           currentPosition: position,
           newPosition: positionInDoc,
@@ -209,14 +212,12 @@ const calculateSaveOperations = (
     }
   }
 
-  const insertBlockOperation: UpdatePageAction[] = [];
-
   for (const [position, [node, entityId]] of Object.entries(entityNodes)) {
     if (entityId && existingBlockIds.has(entityId)) {
       continue;
     }
 
-    insertBlockOperation.push({
+    operations.push({
       insertNewBlock: {
         position: Number(position),
         componentId: nodeToComponentId(node),
@@ -356,12 +357,9 @@ const calculateSaveOperations = (
     "id"
   );
 
-  return [
-    ...removedBlocksInputs,
-    ...movements,
-    ...insertBlockOperation,
-    ...updatedEntitiesOperations,
-  ];
+  operations.push(...updatedEntitiesOperations);
+
+  return operations;
 };
 
 /**
