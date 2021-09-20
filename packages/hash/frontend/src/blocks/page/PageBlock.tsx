@@ -355,7 +355,7 @@ const calculateSaveOperations = (
     "id"
   );
 
-  const operations: UpdatePageAction[] = [
+  return [
     ...removedBlocksInputs.map((input) => ({ removeBlock: input })),
     ...movements.map((movement) => ({ moveBlock: movement })),
     ...insertBlockOperation.map((operation) => ({ insertNewBlock: operation })),
@@ -363,8 +363,6 @@ const calculateSaveOperations = (
       updateEntity: operation,
     })),
   ];
-
-  return operations;
 };
 
 /**
