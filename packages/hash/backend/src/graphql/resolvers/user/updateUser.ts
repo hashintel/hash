@@ -1,6 +1,6 @@
 import { ApolloError, ForbiddenError } from "apollo-server-express";
 
-import { User } from "../../../model";
+import { Account, User } from "../../../model";
 import { MutationUpdateUserArgs, Resolver } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
 import { EntityWithIncompleteEntityType } from "../../../model";
@@ -35,7 +35,7 @@ export const updateUser: Resolver<
         );
       }
 
-      await User.validateShortname(client)(shortname);
+      await Account.validateShortname(client)(shortname);
 
       await user.updateShortname(client)(shortname);
     }
