@@ -1,12 +1,15 @@
 import React, { useEffect, useRef, useState } from "react";
+import { unstable_batchedUpdates } from "react-dom";
+
 import { v4 as uuid } from "uuid";
 import { tw } from "twind";
 import { BlockComponent } from "@hashintel/block-protocol/react";
+import { BlockProtocolUpdatePayload } from "@hashintel/block-protocol";
 
-import { unstable_batchedUpdates } from "react-dom";
+import { ResizeImageBlock } from "./components/ResizeImageBlock";
+
 import Loader from "./svgs/Loader";
 import Pencil from "./svgs/Pencil";
-import { BlockProtocolUpdatePayload } from "@hashintel/block-protocol";
 import Cross from "./svgs/Cross";
 
 type UploadImageParamsType = {
@@ -17,6 +20,7 @@ type UploadImageParamsType = {
 type AppProps = {
   initialSrc?: string;
   initialCaption?: string;
+  initialWidth?: number;
   uploadImage: (uploadImageParams: UploadImageParamsType) => Promise<{
     src?: string;
     error?: string;
@@ -33,6 +37,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
   const {
     initialSrc,
     initialCaption,
+    initialWidth,
     uploadImage,
     entityId,
     entityTypeId,
@@ -42,19 +47,19 @@ export const Image: BlockComponent<AppProps> = (props) => {
   const [stateObject, setStateObject] = useState<{
     src: string;
     loading: boolean;
+    width: number | undefined;
     errorString: string | null;
   }>({
     src: initialSrc ?? "",
+    width: initialWidth,
     loading: false,
     errorString: null,
   });
-
-  const isMounted = useRef(true);
-
   const [inputText, setInputText] = useState("");
   const [captionText, setCaptionText] = useState(initialCaption ?? "");
-
   const [randomId] = useState(() => `image-input-${uuid()}`);
+
+  const isMounted = useRef(true);
 
   useEffect(() => {
     isMounted.current = true;
@@ -64,8 +69,12 @@ export const Image: BlockComponent<AppProps> = (props) => {
     };
   }, []);
 
+  const updateStateObject = (properties: Partial<typeof stateObject>) => {
+    setStateObject((stateObject) => ({ ...stateObject, ...properties }));
+  };
+
   function displayError(errorString: string) {
-    setStateObject((stateObject) => ({ ...stateObject, errorString }));
+    updateStateObject({ errorString });
   }
 
   function updateData(src: string | undefined) {
@@ -143,6 +152,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
         loading: false,
         errorString: null,
         src: "",
+        width: "auto",
       });
 
       setInputText("");
@@ -154,25 +164,18 @@ export const Image: BlockComponent<AppProps> = (props) => {
     return (
       <div className={tw`flex justify-center text-center w-full`}>
         <div className={tw`flex flex-col`}>
-          <img
-            style={{
-              maxWidth: "100%",
-            }}
-            src={stateObject.src}
-            alt="Image block"
+          <ResizeImageBlock
+            imageSrc={stateObject.src}
+            width={stateObject.width}
+            setWidth={(width) => width ? updateStateObject({ width }): {}}
           />
-
           <input
             placeholder="Add a caption"
             className={tw`focus:outline-none text-center mt-3`}
             type="text"
             value={captionText}
             onChange={(event) => setCaptionText(event.target.value)}
-            onBlur={() => {
-              if (update) {
-                updateData(stateObject.src);
-              }
-            }}
+            onBlur={() => updateData(stateObject.src)}
           />
         </div>
         <button
@@ -204,12 +207,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
             </span>
           </div>
           <span
-            onClick={() =>
-              setStateObject((stateObject) => ({
-                ...stateObject,
-                errorString: null,
-              }))
-            }
+            onClick={() => updateStateObject({ errorString: null })}
             className={tw`absolute top-0 bottom-0 right-0 px-4 py-3`}
           >
             <Cross />
