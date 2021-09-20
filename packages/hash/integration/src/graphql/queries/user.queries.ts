@@ -30,7 +30,7 @@ export const loginWithLoginCode = gql`
       verificationCode: $verificationCode
     ) {
       __typename
-      id
+      entityId
       createdById
       createdAt
       updatedAt
