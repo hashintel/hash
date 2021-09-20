@@ -44,7 +44,7 @@ export const createEntityArgsBuilder = (params: {
   } else if (params.systemTypeName) {
     if (!isSystemType(params.systemTypeName)) {
       throw new UserInputError(
-        `Invalid system type name "${params.systemTypeName}"`
+        `Invalid systemTypeName "${params.systemTypeName}"`
       );
     }
     args = { ..._args, systemTypeName: params.systemTypeName };

@@ -145,7 +145,8 @@ class __Entity {
     async (
       entities: {
         accountId: string;
-        entityVersionId: string;
+        entityId: string;
+        entityVersionId?: string;
       }[]
     ): Promise<Entity[]> => {
       const dbEntities = await client.getEntities(entities);
@@ -158,7 +159,7 @@ class __Entity {
     (args: { accountId: string; entityId: string; properties: string }) =>
       client
         .updateEntity(args)
-        .then(([updatedDbEntity]) => new Entity(updatedDbEntity));
+        .then((updatedDbEntity) => new Entity(updatedDbEntity));
 
   updateProperties = (client: DBClient) => (properties: any) =>
     client
@@ -167,11 +168,14 @@ class __Entity {
         entityId: this.entityId,
         properties,
       })
-      .then(([updatedDbEntity]) => {
+      .then((updatedDbEntity) => {
         merge(this, new Entity(updatedDbEntity));
 
         return this;
       });
+
+  static acquireLock = (client: DBClient) => (args: { entityId: string }) =>
+    client.acquireEntityLock(args);
 
   toGQLEntity = (): Omit<EntityWithIncompleteEntityType, "properties"> => ({
     id: this.entityVersionId,

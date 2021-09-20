@@ -58,9 +58,9 @@ insert into entity_versions (
 ) on conflict do nothing;
 
 insert into entity_account (
-  entity_version_id, account_id
+  entity_id, entity_version_id, account_id
 ) values (
-  '${systemAccount.firstVersionId}', '${systemAccount.fixedId}'
+  '${systemAccount.fixedId}', '${systemAccount.firstVersionId}', '${systemAccount.fixedId}'
 ) on conflict do nothing;
 
 `;

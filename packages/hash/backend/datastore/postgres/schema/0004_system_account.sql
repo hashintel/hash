@@ -38,8 +38,8 @@ insert into entity_versions (
 ) on conflict do nothing;
 
 insert into entity_account (
-  entity_version_id, account_id
+  entity_id, entity_version_id, account_id
 ) values (
-  '809a81f4-9c72-4d8b-bc2f-54ce884443e1', '543ba1a2-ed99-447e-a4d8-d2c73d5b0c6e'
+  '543ba1a2-ed99-447e-a4d8-d2c73d5b0c6e', '809a81f4-9c72-4d8b-bc2f-54ce884443e1', '543ba1a2-ed99-447e-a4d8-d2c73d5b0c6e'
 ) on conflict do nothing;
 

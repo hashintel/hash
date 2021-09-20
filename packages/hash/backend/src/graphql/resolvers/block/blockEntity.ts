@@ -11,9 +11,9 @@ export const blockEntity: Resolver<
   GraphQLContext,
   {}
 > = async ({ accountId, entityId }, {}, { dataSources }) => {
-  const entity = await Entity.getEntity(dataSources.db)({
+  const entity = await Entity.getEntityLatestVersion(dataSources.db)({
     accountId,
-    entityVersionId: entityId,
+    entityId,
   });
   if (!entity) {
     throw new ApolloError(

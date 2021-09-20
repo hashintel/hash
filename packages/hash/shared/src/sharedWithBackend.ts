@@ -396,7 +396,7 @@ export const calculateSavePayloads = (
       accountId: existingBlock.accountId,
       properties: {
         componentId: existingBlock.properties.componentId,
-        entityId: existingBlock.properties.entity.versionId,
+        entityId: existingBlock.properties.entity.id,
         accountId: existingBlock.properties.entity.accountId,
       },
     };
@@ -503,7 +503,7 @@ export const calculateSavePayloads = (
           accountId,
           data: {
             contents: existingBlocks.map((node) => ({
-              entityId: node.versionId,
+              entityId: node.entityId,
               accountId: node.accountId,
               type: "Block",
             })),

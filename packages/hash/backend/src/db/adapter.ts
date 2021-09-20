@@ -159,7 +159,10 @@ export interface DBClient {
   /**
    * Get an entity's accountId using its entityVersionId
    */
-  getEntityAccountId(params: { entityVersionId: string }): Promise<string>;
+  getEntityAccountId(params: {
+    entityId: string;
+    entityVersionId?: string;
+  }): Promise<string>;
 
   /** Get an entity by ID in a given account. If `lock` is set to `true`, then no
    * other client may access the entity until the current transaction has ended.
@@ -213,13 +216,19 @@ export interface DBClient {
   }): Promise<EntityType>;
 
   /**
-   * Update an entity's properties.
+   * Update an entity, either versioned or non-versioned. Note: the update is always
+   * applied to the latest version of the entity.
+   * @param params.accountId the account ID the entity belongs to.
+   * @param params.entityId the entity's fixed ID.
+   * @param params.properties the entity's new properties.
+   * @returns the entity's updated state.
+   * @throws `DbEntityNotFoundError` if the entity does not exist.
    */
   updateEntity(params: {
     accountId: string;
     entityId: string;
     properties: any;
-  }): Promise<Entity[]>;
+  }): Promise<Entity>;
 
   /**
    * Get the user by their email address.
@@ -309,18 +318,6 @@ export interface DBClient {
   pruneVerificationCodes(params: { maxAgeInMs: number }): Promise<number>;
 
   /**
-   * getAndUpdateEntity may be used to retrieve and update an entity within
-   * the same transaction. It accepts a handler function which, given the
-   * current state of the entity, should return an updated state. Returns
-   * the state of all updated entities.
-   * */
-  getAndUpdateEntity(params: {
-    accountId: string;
-    entityVersionId: string;
-    handler: (entity: Entity) => Entity;
-  }): Promise<Entity[]>;
-
-  /**
    * getEntityHistory returns the sorted version timeline of an entity given its
    * `entityId`.
    * */
@@ -333,10 +330,14 @@ export interface DBClient {
   getEntities(
     entities: {
       accountId: string;
-      entityVersionId: string;
+      entityId: string;
+      entityVersionId?: string;
     }[]
   ): Promise<Entity[]>;
 
   /** Get entity types associated with a given accountId */
   getEntityTypes(params: { accountId: string }): Promise<EntityType[]>;
+
+  /** Acquire a transaction-scoped lock on the provided entity ID. */
+  acquireEntityLock(params: { entityId: string }): Promise<null>;
 }

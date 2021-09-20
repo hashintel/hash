@@ -257,7 +257,7 @@ class __User extends Account {
           {
             org: {
               __linkedData: {
-                entityId: params.org.entityVersionId,
+                entityId: params.org.entityId,
                 entityTypeId: params.org.entityType.entityId,
               },
             },

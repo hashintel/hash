@@ -40,13 +40,16 @@ export const updatePageContents: Resolver<
         )
     );
 
-    // Perform any entity updates. Currently, each of these may cause a new page version
-    // to be created.
-    // @todo: when we move to linking on entityId, instead of entityVersionId, it will
-    // be possible to perform these updates concurrently.
-    for (const action of actions.filter((action) => action.updateEntity)) {
-      await Entity.updateProperties(client)(action.updateEntity!);
-    }
+    // Perform any entity updates.
+    await Promise.all(
+      actions
+        .filter((action) => action.updateEntity)
+        .map((action) => Entity.updateProperties(client)(action.updateEntity!))
+    );
+
+    // Lock the page so that no other concurrent call to this resolver will conflict
+    // with the page update.
+    await Entity.acquireLock(client)({ entityId });
 
     const page = await Entity.getEntityLatestVersion(client)({
       accountId,
@@ -66,7 +69,7 @@ export const updatePageContents: Resolver<
         if (action.insertNewBlock) {
           insertBlock(pageProperties, {
             accountId: newBlocks[insertCount].accountId,
-            entityId: newBlocks[insertCount].entityVersionId, // pages currently link on version ID
+            entityId: newBlocks[insertCount].entityId,
             position: action.insertNewBlock.position,
           });
           insertCount += 1;
@@ -124,7 +127,10 @@ const createBlock = async (
   params: InsertNewBlock,
   user: User
 ) => {
-  const childEntity = await Entity.create(client)(
+  // @todo: if we generate the entity IDs up-front, the entity and the block may
+  // be created concurrently.
+
+  const newEntity = await Entity.create(client)(
     createEntityArgsBuilder({
       accountId: params.accountId,
       createdById: user.entityId,
@@ -138,7 +144,7 @@ const createBlock = async (
 
   // Create the block
   const blockProperties: DbBlockProperties = {
-    entityId: childEntity.entityVersionId,
+    entityId: newEntity.entityId,
     accountId: params.accountId,
     componentId: params.componentId,
   };

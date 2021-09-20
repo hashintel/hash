@@ -37,6 +37,7 @@ type LinkedDataDefinition = {
   aggregate?: AggregateOperationInput;
   entityTypeId?: string;
   entityId?: string;
+  entityVersionId?: string;
 };
 
 // Recursively resolve any __linkedData fields in arbitrary entities
@@ -46,6 +47,7 @@ const resolveLinkedData = async (
   object: Record<string, any>,
   info: GraphQLResolveInfo
 ) => {
+  const db = ctx.dataSources.db;
   if (!isRecord(object)) {
     return;
   }
@@ -65,7 +67,7 @@ const resolveLinkedData = async (
       continue;
     }
 
-    const { aggregate, entityId, entityTypeId } =
+    const { aggregate, entityId, entityVersionId, entityTypeId } =
       value.__linkedData as LinkedDataDefinition;
 
     // We need a type and one of an aggregation operation or id
@@ -73,16 +75,18 @@ const resolveLinkedData = async (
       continue;
     }
 
-    if (entityId) {
-      const accountId = await ctx.dataSources.db.getEntityAccountId({
-        entityVersionId: entityId,
-      });
+    if (entityId || entityVersionId) {
+      if (!entityId) {
+        throw new Error('__linkedData field "entityId" must be provided.');
+      }
       // Fetch a single entity and resolve any linked data in it
-      const entity = await ctx.dataSources.db.getEntity({
-        accountId,
-        entityVersionId: entityId,
+      const accountId = await db.getEntityAccountId({
+        entityId,
+        entityVersionId,
       });
-
+      const entity = entityVersionId
+        ? await db.getEntity({ accountId, entityVersionId })
+        : await db.getEntityLatestVersion({ accountId, entityId });
       if (!entity) {
         throw new Error(`entity ${entityId} in account ${accountId} not found`);
       }
