@@ -175,14 +175,13 @@ describe("logged in user ", () => {
     expect(updatedExistingUser).not.toBeNull();
 
     const orgMembership = updatedExistingUser.properties.memberOf.find(
-      ({ org: linkedOrg }) =>
-        linkedOrg.__linkedData.entityId === org.entityVersionId
+      ({ org: linkedOrg }) => linkedOrg.__linkedData.entityId === org.entityId
     );
 
     expect(orgMembership).toEqual({
       org: {
         __linkedData: {
-          entityId: org.entityVersionId,
+          entityId: org.entityId,
           entityTypeId: org.entityType.entityId,
         },
       },
@@ -274,7 +273,6 @@ describe("logged in user ", () => {
         accountId: existingUser.accountId,
         entityId: page.entityId,
       });
-      expect(updatedPage.history!).toHaveLength(3);
       expect(updatedPage.properties.contents[0].properties.entity.id).toEqual(
         newTextEntity.entityVersionId
       );
@@ -293,7 +291,6 @@ describe("logged in user ", () => {
         accountId: existingUser.accountId,
         entityId: page.entityId,
       });
-      expect(updatedPage.history!).toHaveLength(4);
       expect(updatedPage.properties.contents[1].properties.entity.id).toEqual(
         headerUpdate.entityVersionId
       );
