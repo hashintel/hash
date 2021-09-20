@@ -1,12 +1,9 @@
+import type { BlockVariant } from "@hashintel/block-protocol";
+import { ResolvedPos } from "prosemirror-model";
+import { EditorState, Plugin } from "prosemirror-state";
 import React, { CSSProperties, useContext, VoidFunctionComponent } from "react";
 import { tw } from "twind";
-import { Plugin } from "prosemirror-state";
-import { inputRules, InputRule } from "prosemirror-inputrules";
 import { BlockMetaContext } from "../../blocks/blockMeta";
-import type { BlockVariant } from "@hashintel/block-protocol";
-
-/** used to retrieve the last character */
-const last = (str: string) => str.charAt(str.length - 1);
 
 /**
  * used to present list of blocks to choose from to the user
@@ -52,20 +49,65 @@ export const BlockSuggester: VoidFunctionComponent = () => {
   );
 };
 
+const findTrigger = (state: EditorState) => {
+  // @ts-expect-error: only empty TextSelection has a $cursor
+  const cursor: ResolvedPos = state.selection.$cursor;
+  if (!cursor) return null;
+
+  // the cursor's parent is the node that contains it
+  const text = cursor.parent.textContent;
+
+  // the cursor's position inside its parent
+  const cursorPos = cursor.parentOffset;
+
+  // the parent's position relative to the document root
+  const parentPos = cursor.pos - cursorPos;
+
+  // see if we can find a slash looking backwards
+  const from = text.lastIndexOf("/", cursorPos - 1);
+  if (from < 0) return null;
+
+  // assert that there's no whitespace between the slash and the cursor
+  const fromSlashToCursor = text.substring(from, cursorPos);
+  if (/\s/.test(fromSlashToCursor)) return null;
+
+  // match upto the first whitespace character or the end of the node
+  const to = cursorPos + text.substring(cursorPos).search(/\s|$/g);
+
+  return {
+    search: text.substring(from, to),
+    from: parentPos + from,
+    to: parentPos + to,
+  };
+};
+
 /**
  * prosemirror plugin factory for the block suggester
  */
 export const createBlockSuggesterPlugin = (replacePortal: FixMeLater) => {
   const mountNode = document.body;
 
-  const suggesterPlugin = new Plugin({
+  const suggesterPlugin: Plugin = new Plugin({
     state: {
       init() {
-        return { type: "close", search: null, position: null };
+        return { open: false, trigger: null, requireChange: false };
       },
-      apply(tr, state) {
-        const nextState = tr.getMeta(this);
-        return nextState || state;
+      apply(tr, state, _prevEitorState, nextEditorState) {
+        const action = tr.getMeta(suggesterPlugin);
+
+        if (action?.type === "escape") {
+          return { ...state, open: false, requireChange: true };
+        }
+
+        const trigger = findTrigger(nextEditorState);
+
+        if (trigger && state.requireChange) {
+          return state.trigger?.search === trigger.search
+            ? state
+            : { open: true, trigger, requireChange: false };
+        }
+
+        return { ...state, open: trigger != null, trigger };
       },
     },
     props: {
@@ -73,11 +115,11 @@ export const createBlockSuggesterPlugin = (replacePortal: FixMeLater) => {
         switch (event.key) {
           case "Escape":
             view.dispatch(
-              view.state.tr.setMeta(suggesterPlugin, { type: "close" })
+              view.state.tr.setMeta(suggesterPlugin, { type: "escape" })
             );
         }
 
-        return false; // preserve default behaviour
+        return false;
       },
     },
     view() {
@@ -85,9 +127,9 @@ export const createBlockSuggesterPlugin = (replacePortal: FixMeLater) => {
         update(view) {
           const pluginState = suggesterPlugin.getState(view.state);
 
-          if (pluginState.type === "close") return this.destroy!();
+          if (!pluginState.open) return this.destroy!();
 
-          const coords = view.coordsAtPos(pluginState.position);
+          const coords = view.coordsAtPos(pluginState.trigger.from);
 
           const style: CSSProperties = {
             position: "absolute",
@@ -110,20 +152,5 @@ export const createBlockSuggesterPlugin = (replacePortal: FixMeLater) => {
     },
   });
 
-  const slashMatchRule = new InputRule(
-    /(?:^|\s)\/(\S*)(\s?)/g,
-    (state, [match, search, whitespace], position) => {
-      // reproduce the standard behaviour
-      const tr = state.tr.insertText(last(match)).scrollIntoView();
-
-      // additionally dispatch an action to our suggester plugin
-      const action = whitespace
-        ? { type: "close" }
-        : { type: "search", search, position };
-
-      return tr.setMeta(suggesterPlugin, action);
-    }
-  );
-
-  return [suggesterPlugin, inputRules({ rules: [slashMatchRule] })];
+  return suggesterPlugin;
 };
