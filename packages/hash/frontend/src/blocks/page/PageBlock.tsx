@@ -83,6 +83,40 @@ if (typeof localStorage !== "undefined") {
   }, 500);
 }
 
+const prosemirrorNodeToEntityProperties = (node: ProsemirrorNode<Schema>) =>
+  node.type.isTextblock
+    ? {
+        texts:
+          node.content
+            .toJSON()
+            ?.filter((child: any) => child.type === "text")
+            .map((child: any) => ({
+              text: child.text,
+              bold:
+                child.marks?.some((mark: any) => mark.type === "strong") ??
+                false,
+              italics:
+                child.marks?.some((mark: any) => mark.type === "em") ?? false,
+              underline:
+                child.marks?.some((mark: any) => mark.type === "underlined") ??
+                false,
+            })) ?? [],
+      }
+    : undefined;
+
+/**
+ * @todo get this info from entity store & a separate component register
+ */
+const prosemirrorNodeToComponentId = (node: ProsemirrorNode<Schema>) => {
+  const nodeType = node.type;
+
+  // @todo type this properly – get this from somewhere else
+  const meta = (nodeType as any).defaultAttrs
+    .meta as Block["componentMetadata"];
+
+  return invertedBlockPaths[meta.url] ?? meta.url;
+};
+
 /**
  * @todo better name, move to shared package
  * @todo this needs to be able to handle multiple instances of the same block
@@ -96,7 +130,6 @@ const calculateSaveOperations = (
   savedContents: PageFieldsFragment["properties"]["contents"],
   entityStore: EntityStore
 ) => {
-  const schema: Schema = state.schema;
   const doc = state.doc;
 
   const entityNodes: [ProsemirrorNode<Schema>, string | null][] = [];
@@ -114,91 +147,6 @@ const calculateSaveOperations = (
   });
 
   /**
-   * @deprecated
-   */
-  const mappedBlocks = entityNodes.map(([node, entityId], position) => {
-    const nodeType = node.type;
-
-    // @todo type this properly – get this from somewhere else
-    const meta = (nodeType as any).defaultAttrs
-      .meta as Block["componentMetadata"];
-
-    if (entityId) {
-      cachedPropertiesByEntity[entityId] = node.attrs.properties;
-    } else {
-      cachedPropertiesByPosition[position] = node.attrs.properties;
-    }
-
-    const componentId = invertedBlockPaths[meta.url] ?? meta.url;
-    const savedEntity = entityId
-      ? (entityStore as Record<string, EntityStoreType | undefined>)[entityId]
-      : undefined;
-
-    const childEntityId =
-      savedEntity && isBlockEntity(savedEntity)
-        ? savedEntity.properties.entity.metadataId
-        : null ?? null;
-
-    // @todo use parent node to get this childEntityId
-    const savedChildEntity = childEntityId ? entityStore[childEntityId] : null;
-
-    let entity;
-    if (node.type.isTextblock) {
-      /**
-       * @deprecated
-       * @todo don't use JSON for this, it's untyped
-       */
-      const content = node.content.toJSON();
-
-      entity = {
-        type: "Text" as const,
-        entityId: savedChildEntity?.metadataId ?? null,
-        versionId: savedChildEntity?.id ?? null,
-        accountId: savedChildEntity?.accountId ?? null,
-        properties: {
-          texts:
-            content
-              ?.filter((child: any) => child.type === "text")
-              .map((child: any) => ({
-                text: child.text,
-                bold:
-                  child.marks?.some((mark: any) => mark.type === "strong") ??
-                  false,
-                italics:
-                  child.marks?.some((mark: any) => mark.type === "em") ?? false,
-                underline:
-                  child.marks?.some(
-                    (mark: any) => mark.type === "underlined"
-                  ) ?? false,
-              })) ?? [],
-        },
-      };
-    } else {
-      const childEntityVersionId = savedChildEntity?.id ?? null;
-      const childEntityAccountId = savedChildEntity?.accountId ?? null;
-
-      entity = {
-        type: "UnknownEntity" as const,
-        id: childEntityId,
-        versionId: childEntityVersionId,
-        accountId: childEntityAccountId,
-      };
-    }
-
-    return {
-      entityId: savedEntity?.metadataId ?? null,
-      accountId: savedEntity?.accountId ?? accountId,
-      versionId: savedEntity?.id ?? null,
-      type: "Block",
-      position,
-      properties: {
-        componentId,
-        entity,
-      },
-    };
-  });
-
-  /**
    * Once we have a list of blocks, we need to divide the list of blocks into
    * new ones and updated ones, as they require different queries to handle
    */
@@ -207,9 +155,6 @@ const calculateSaveOperations = (
   );
 
   const currentBlockIds = new Set(entityNodes.map(([, id]) => id));
-
-  const isBlockNew = (block: typeof mappedBlocks[number]) =>
-    !block.entityId || !existingBlockIds.has(block.entityId);
 
   const removedBlocks = savedContents
     .map((block, position) => [block, position] as const)
@@ -231,13 +176,6 @@ const calculateSaveOperations = (
   const savedContentsWithoutRemovedBlocksWithMovements = [
     ...savedContentsWithoutRemovedBlocks,
   ];
-
-  /**
-   * @deprecated
-   */
-  const mappedBlocksWithoutNewBlocks = mappedBlocks.filter(
-    (block) => !isBlockNew(block)
-  );
 
   /**
    * @todo type this properly
@@ -278,16 +216,17 @@ const calculateSaveOperations = (
 
   const insertBlockOperation: InsertNewBlock[] = [];
 
-  for (const [position, block] of Object.entries(mappedBlocks)) {
-    if (!isBlockNew(block)) {
+  for (const [position, [node, entityId]] of Object.entries(entityNodes)) {
+    if (entityId && existingBlockIds.has(entityId)) {
       continue;
     }
 
     insertBlockOperation.push({
       position: Number(position),
-      componentId: block.properties.componentId,
-      accountId: block.accountId,
-      entityProperties: block.properties.entity.properties,
+      componentId: prosemirrorNodeToComponentId(node),
+      accountId,
+      entityProperties: prosemirrorNodeToEntityProperties(node),
+      // @todo support new non-text nodes
       systemTypeName: SystemTypeName.Text,
     });
   }
@@ -303,50 +242,88 @@ const calculateSaveOperations = (
    * @todo improve this
    */
   const updatedEntitiesOperations = uniqBy(
-    mappedBlocks
-      .filter((block) => !isBlockNew(block))
+    entityNodes
       /**
        * An updated block also contains an updated entity, so we need to create
        * a list of entities that we need to post updates to via GraphQL
        */
-      .flatMap((existingBlock) => {
+      .flatMap(([node, entityId]): UpdateEntity[] => {
+        if (!entityId || !existingBlockIds.has(entityId)) {
+          return [];
+        }
+
+        cachedPropertiesByEntity[entityId] = node.attrs.properties;
+
+        const savedEntity = (
+          entityStore as Record<string, EntityStoreType | undefined>
+        )[entityId];
+
+        if (!savedEntity) {
+          throw new Error("Entity missing from entity store");
+        }
+
+        if (!isBlockEntity(savedEntity)) {
+          throw new Error("Non-block entity found when saving");
+        }
+
+        const childEntityId = savedEntity.properties.entity.metadataId;
+
+        // @todo use parent node to get this childEntityId
+        const savedChildEntity = entityStore[childEntityId];
+
+        if (!savedChildEntity) {
+          throw new Error("Child entity missing from entity store");
+        }
+
+        /**
+         * @todo remove this
+         */
+        const entityProperties = prosemirrorNodeToEntityProperties(node);
+
         const block = {
           type: "Block",
-          entityId: existingBlock.entityId,
-          accountId: existingBlock.accountId,
+          entityId: savedEntity.metadataId,
+          accountId: savedEntity.accountId,
           properties: {
-            componentId: existingBlock.properties.componentId,
-            entityId: existingBlock.properties.entity.versionId,
-            accountId: existingBlock.properties.entity.accountId,
+            componentId: prosemirrorNodeToComponentId(node),
+            entityId: savedChildEntity.id,
+            accountId: savedChildEntity.accountId,
           },
         };
 
-        const contentNode = savedContents.find(
+        // @todo could probably get this from entity store
+        const existingBlock = savedContents.find(
           (existingBlock) => existingBlock.metadataId === block.entityId
         );
 
-        const blocks = [];
-
-        if (
-          block.properties.componentId !== contentNode?.properties.componentId
-        ) {
-          blocks.push(block);
+        if (!existingBlock) {
+          throw new Error("Cannot find existing block entity");
         }
 
-        if (existingBlock.properties.entity.type === "Text") {
+        const updates: UpdateEntity[] = [];
+
+        if (
+          block.properties.componentId !== existingBlock?.properties.componentId
+        ) {
+          updates.push({
+            entityId: block.entityId,
+            accountId: block.accountId,
+            properties: block.properties,
+          });
+        }
+
+        if (node.type.isTextblock) {
           const texts =
-            contentNode && "textProperties" in contentNode.properties.entity
-              ? contentNode.properties.entity.textProperties.texts
+            existingBlock && "textProperties" in existingBlock.properties.entity
+              ? existingBlock.properties.entity.textProperties.texts
               : undefined;
 
           if (
-            !contentNode ||
-            contentNode?.properties.entity.metadataId !==
-              existingBlock.properties.entity.entityId ||
-            existingBlock.properties.entity.properties.texts.length !==
-              texts?.length ||
+            !existingBlock ||
+            existingBlock?.properties.entity.metadataId !== childEntityId ||
+            entityProperties?.texts.length !== texts?.length ||
             // @todo remove any cast
-            (existingBlock.properties.entity.properties.texts as any[]).some(
+            (entityProperties?.texts as any[])?.some(
               (text: any, idx: number) => {
                 const existingText = texts?.[idx];
 
@@ -365,43 +342,18 @@ const calculateSaveOperations = (
               }
             )
           ) {
-            blocks.push(existingBlock.properties.entity);
+            updates.push({
+              entityId: childEntityId,
+              accountId: savedChildEntity.accountId,
+              properties: entityProperties,
+            });
           }
         }
 
-        return blocks;
+        return updates;
       }),
     "id"
-  )
-    .filter(
-      <T extends { entityId: string | null }>(
-        entity: T
-      ): entity is T & { entityId: string } =>
-        /**
-         * This had been setup to do something special in the case that you're
-         * converting from text blocks to non-text blocks (or vice versa, not
-         * sure) but it hasn't work for a while and making this strongly typed
-         * is showing it as an error. I'm commenting this out, but we do need
-         * to figure this one out
-         *
-         * @see https://github.com/hashintel/dev/blob/664be1e740cbad694f0b76b96198fa45cc8232fc/packages/hash/frontend/src/blocks/page/PageBlock.tsx#L283
-         * @see https://app.asana.com/0/1200211978612931/1200962726214259/f
-         */
-        // (entity.properties.entityId ||
-        //   entity.properties.entityTypeName !== "Text") &&
-        !!entity.entityId
-    )
-    .map((entity): UpdateEntity => {
-      if (!entity.accountId) {
-        throw new Error("invariant: all updated entities must have account id");
-      }
-
-      return {
-        entityId: entity.entityId,
-        accountId: entity.accountId,
-        properties: entity.properties,
-      };
-    });
+  );
 
   const operations: UpdatePageAction[] = [
     ...removedBlocksInputs.map((input) => ({ removeBlock: input })),
