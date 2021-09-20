@@ -5,14 +5,12 @@ import React, {
   useRef,
   VoidFunctionComponent,
 } from "react";
-import { Schema } from "prosemirror-model";
+import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorState, Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { renderPM } from "./sandbox";
 import { createMarksTooltip } from "../../components/MarksTooltip";
 import { createBlockSuggester } from "../../components/BlockSuggester";
-import { useBlockProtocolUpdate } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdate";
-import { useBlockProtocolInsertIntoPage } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolInsertIntoPage";
 import { usePortals } from "./usePortals";
 import { useDeferredCallback } from "./useDeferredCallback";
 import { BlockMetaContext } from "../blockMeta";
@@ -43,7 +41,6 @@ import {
   isBlockEntity,
 } from "@hashintel/hash-shared/entityStore";
 import { uniqBy } from "lodash";
-import { BlockProtocolUpdatePayload } from "@hashintel/block-protocol";
 import {
   InsertNewBlock,
   SystemTypeName,
@@ -99,33 +96,43 @@ const calculateSaveOperations = (
   savedContents: PageFieldsFragment["properties"]["contents"],
   entityStore: EntityStore
 ) => {
-  let schema = state.schema;
-  let doc = state.doc;
-  /**
-   * @todo this needs to be typed – maybe we should use the prosemirror node
-   *   APIs instead
-   */
-  const blocks = doc
-    .toJSON()
-    .content.filter((block: any) => block.type === "block")
-    .flatMap((block: any) => block.content) as any[];
+  const schema: Schema = state.schema;
+  const doc = state.doc;
 
-  const mappedBlocks = blocks.map((node: any, position) => {
-    const nodeType = schema.nodes[node.type];
+  const entityNodes: [ProsemirrorNode<Schema>, string | null][] = [];
+
+  doc.descendants((node) => {
+    if (node.type.name === "block") {
+      return true;
+    }
+
+    if (node.type.spec.attrs && "entityId" in node.type.spec.attrs) {
+      entityNodes.push([node, node.attrs.entityId]);
+    }
+
+    return false;
+  });
+
+  /**
+   * @deprecated
+   */
+  const mappedBlocks = entityNodes.map(([node, entityId], position) => {
+    const nodeType = node.type;
+
     // @todo type this properly – get this from somewhere else
     const meta = (nodeType as any).defaultAttrs
       .meta as Block["componentMetadata"];
 
-    if (node.attrs.entityId) {
-      cachedPropertiesByEntity[node.attrs.entityId] = node.attrs.properties;
+    if (entityId) {
+      cachedPropertiesByEntity[entityId] = node.attrs.properties;
     } else {
       cachedPropertiesByPosition[position] = node.attrs.properties;
     }
 
     const componentId = invertedBlockPaths[meta.url] ?? meta.url;
-    const savedEntity = (
-      entityStore as Record<string, EntityStoreType | undefined>
-    )[node.attrs.entityId];
+    const savedEntity = entityId
+      ? (entityStore as Record<string, EntityStoreType | undefined>)[entityId]
+      : undefined;
 
     const childEntityId =
       savedEntity && isBlockEntity(savedEntity)
@@ -139,7 +146,7 @@ const calculateSaveOperations = (
     if (schema.nodes[node.type].isTextblock) {
       entity = {
         type: "Text" as const,
-        id: savedChildEntity?.metadataId ?? null,
+        entityId: savedChildEntity?.metadataId ?? null,
         versionId: savedChildEntity?.id ?? null,
         accountId: savedChildEntity?.accountId ?? null,
         properties: {
@@ -193,12 +200,10 @@ const calculateSaveOperations = (
     savedContents.map((block) => block.metadataId)
   );
 
-  const currentBlockIds = new Set(mappedBlocks.map((block) => block.entityId));
+  const currentBlockIds = new Set(entityNodes.map(([, id]) => id));
 
   const isBlockNew = (block: typeof mappedBlocks[number]) =>
     !block.entityId || !existingBlockIds.has(block.entityId);
-
-  const existingBlocks = mappedBlocks.filter((block) => !isBlockNew(block));
 
   const removedBlocks = savedContents
     .map((block, position) => [block, position] as const)
@@ -257,15 +262,13 @@ const calculateSaveOperations = (
 
   const insertBlockOperation: InsertNewBlock[] = [];
 
-  for (let position = 0; position < mappedBlocks.length; position++) {
-    const block = mappedBlocks[position];
-
+  for (const [position, block] of Object.entries(mappedBlocks)) {
     if (!isBlockNew(block)) {
       continue;
     }
 
     insertBlockOperation.push({
-      position,
+      position: Number(position),
       componentId: block.properties.componentId,
       accountId: block.accountId,
       entityProperties: block.properties.entity.properties,
@@ -274,85 +277,90 @@ const calculateSaveOperations = (
   }
 
   /**
-   * An updated block also contains an updated entity, so we need to create a
-   * list of entities that we need to post updates to via GraphQL
+   * Currently when the same block exists on the page in multiple locations,
+   * we prioritise the content of the first one that has changed when it
+   * comes to working out if an un update is required. We need a better way
+   * of handling this (i.e, take the *last* one that changed, and also more
+   * immediately sync updates between changed blocks to prevent work being
+   * lost)
+   *
+   * @todo improve this
    */
-  const updatedEntities = existingBlocks.flatMap((existingBlock) => {
-    const block = {
-      type: "Block",
-      id: existingBlock.entityId,
-      accountId: existingBlock.accountId,
-      properties: {
-        componentId: existingBlock.properties.componentId,
-        entityId: existingBlock.properties.entity.versionId,
-        accountId: existingBlock.properties.entity.accountId,
-      },
-    };
+  const updatedEntitiesOperations = uniqBy(
+    mappedBlocks
+      .filter((block) => !isBlockNew(block))
+      /**
+       * An updated block also contains an updated entity, so we need to create
+       * a list of entities that we need to post updates to via GraphQL
+       */
+      .flatMap((existingBlock) => {
+        const block = {
+          type: "Block",
+          entityId: existingBlock.entityId,
+          accountId: existingBlock.accountId,
+          properties: {
+            componentId: existingBlock.properties.componentId,
+            entityId: existingBlock.properties.entity.versionId,
+            accountId: existingBlock.properties.entity.accountId,
+          },
+        };
 
-    const contentNode = savedContents.find(
-      (existingBlock) => existingBlock.metadataId === block.id
-    );
+        const contentNode = savedContents.find(
+          (existingBlock) => existingBlock.metadataId === block.entityId
+        );
 
-    const blocks = [];
+        const blocks = [];
 
-    if (block.properties.componentId !== contentNode?.properties.componentId) {
-      blocks.push(block);
-    }
+        if (
+          block.properties.componentId !== contentNode?.properties.componentId
+        ) {
+          blocks.push(block);
+        }
 
-    if (existingBlock.properties.entity.type === "Text") {
-      const texts =
-        contentNode && "textProperties" in contentNode.properties.entity
-          ? contentNode.properties.entity.textProperties.texts
-          : undefined;
+        if (existingBlock.properties.entity.type === "Text") {
+          const texts =
+            contentNode && "textProperties" in contentNode.properties.entity
+              ? contentNode.properties.entity.textProperties.texts
+              : undefined;
 
-      if (
-        !contentNode ||
-        contentNode?.properties.entity.metadataId !==
-          existingBlock.properties.entity.id ||
-        existingBlock.properties.entity.properties.texts.length !==
-          texts?.length ||
-        // @todo remove any cast
-        (existingBlock.properties.entity.properties.texts as any[]).some(
-          (text: any, idx: number) => {
-            const existingText = texts?.[idx];
+          if (
+            !contentNode ||
+            contentNode?.properties.entity.metadataId !==
+              existingBlock.properties.entity.entityId ||
+            existingBlock.properties.entity.properties.texts.length !==
+              texts?.length ||
+            // @todo remove any cast
+            (existingBlock.properties.entity.properties.texts as any[]).some(
+              (text: any, idx: number) => {
+                const existingText = texts?.[idx];
 
-            /**
-             * Really crude way of working out if any properties we care about
-             * have changed – we need a better way of working out which text
-             * entities need an update
-             */
-            return (
-              !existingText ||
-              text.text !== existingText.text ||
-              text.bold !== existingText.bold ||
-              text.underline !== existingText.underline ||
-              text.italics !== existingText.italics
-            );
+                /**
+                 * Really crude way of working out if any properties we care
+                 * about have changed – we need a better way of working out
+                 * which text entities need an update
+                 */
+                return (
+                  !existingText ||
+                  text.text !== existingText.text ||
+                  text.bold !== existingText.bold ||
+                  text.underline !== existingText.underline ||
+                  text.italics !== existingText.italics
+                );
+              }
+            )
+          ) {
+            blocks.push(existingBlock.properties.entity);
           }
-        )
-      ) {
-        blocks.push(existingBlock.properties.entity);
-      }
-    }
+        }
 
-    /**
-     * Currently when the same block exists on the page in multiple locations,
-     * we prioritise the content of the first one that has changed when it
-     * comes to working out if an un update is required. We need a better way
-     * of handling this (i.e, take the *last* one that changed, and also more
-     * immediately sync updates between changed blocks to prevent work being
-     * lost)
-     *
-     * @todo improve this
-     */
-    return uniqBy(blocks, "id");
-  });
-
-  const updatedEntitiesPayload = updatedEntities
+        return blocks;
+      }),
+    "id"
+  )
     .filter(
-      <T extends { id: string | null }>(
+      <T extends { entityId: string | null }>(
         entity: T
-      ): entity is T & { id: string } =>
+      ): entity is T & { entityId: string } =>
         /**
          * This had been setup to do something special in the case that you're
          * converting from text blocks to non-text blocks (or vice versa, not
@@ -365,29 +373,19 @@ const calculateSaveOperations = (
          */
         // (entity.properties.entityId ||
         //   entity.properties.entityTypeName !== "Text") &&
-        !!entity.id
+        !!entity.entityId
     )
-    .map(
-      (entity): BlockProtocolUpdatePayload<any> => ({
-        entityId: entity.id,
-        data: entity.properties,
-        accountId: entity.accountId,
-      })
-    );
-
-  const updatedEntitiesOperations = updatedEntitiesPayload.map(
-    (payload): UpdateEntity => {
-      if (!payload.accountId) {
+    .map((entity): UpdateEntity => {
+      if (!entity.accountId) {
         throw new Error("invariant: all updated entities must have account id");
       }
 
       return {
-        entityId: payload.entityId,
-        accountId: payload.accountId,
-        properties: payload.data,
+        entityId: entity.entityId,
+        accountId: entity.accountId,
+        properties: entity.properties,
       };
-    }
-  );
+    });
 
   const operations: UpdatePageAction[] = [
     ...removedBlocksInputs.map((input) => ({ removeBlock: input })),
