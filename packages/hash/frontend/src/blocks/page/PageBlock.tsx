@@ -143,7 +143,13 @@ const calculateSaveOperations = (
     const savedChildEntity = childEntityId ? entityStore[childEntityId] : null;
 
     let entity;
-    if (schema.nodes[node.type].isTextblock) {
+    if (node.type.isTextblock) {
+      /**
+       * @deprecated
+       * @todo don't use JSON for this, it's untyped
+       */
+      const content = node.content.toJSON();
+
       entity = {
         type: "Text" as const,
         entityId: savedChildEntity?.metadataId ?? null,
@@ -151,7 +157,7 @@ const calculateSaveOperations = (
         accountId: savedChildEntity?.accountId ?? null,
         properties: {
           texts:
-            node.content
+            content
               ?.filter((child: any) => child.type === "text")
               .map((child: any) => ({
                 text: child.text,
@@ -226,8 +232,18 @@ const calculateSaveOperations = (
     ...savedContentsWithoutRemovedBlocks,
   ];
 
+  /**
+   * @deprecated
+   */
   const mappedBlocksWithoutNewBlocks = mappedBlocks.filter(
     (block) => !isBlockNew(block)
+  );
+
+  /**
+   * @todo type this properly
+   */
+  const entityNodesWithoutNewBlocks = entityNodes.filter(
+    ([, entityId]) => !!entityId
   );
 
   for (
@@ -236,24 +252,24 @@ const calculateSaveOperations = (
     position++
   ) {
     const block = savedContentsWithoutRemovedBlocksWithMovements[position];
-    const positionInMappedBlocks = mappedBlocksWithoutNewBlocks.findIndex(
-      (otherBlock) => otherBlock.entityId === block.metadataId
+    const positionInDoc = entityNodesWithoutNewBlocks.findIndex(
+      ([, entityId]) => entityId === block.metadataId
     );
 
-    if (positionInMappedBlocks < 0) {
+    if (positionInDoc < 0) {
       throw new Error(
         "invariant: found removed block whilst calculating movements"
       );
     }
 
-    if (position !== positionInMappedBlocks) {
+    if (position !== positionInDoc) {
       movements.push({
         currentPosition: position,
-        newPosition: positionInMappedBlocks,
+        newPosition: positionInDoc,
       });
       savedContentsWithoutRemovedBlocksWithMovements.splice(position, 1);
       savedContentsWithoutRemovedBlocksWithMovements.splice(
-        positionInMappedBlocks,
+        positionInDoc,
         0,
         block
       );
