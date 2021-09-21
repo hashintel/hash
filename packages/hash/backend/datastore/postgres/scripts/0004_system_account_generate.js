@@ -5,8 +5,7 @@ const generatedIds = require("./data/generatedIds.json");
 const { entityTypeJson } = require("./data/systemTypeSchemas");
 const {
   SYSTEM_ACCOUNT_SHORTNAME,
-  SYSTEM_ACCOUNT_NAME,
-  SYSTEM_ACCOUNT_SIZE_LOWER_BOUND
+  SYSTEM_ACCOUNT_NAME
 } = require("../../../src/lib/config");
 
 const now = '2021-08-19T11:00:14.587Z';
@@ -17,15 +16,6 @@ const systemAccount = generatedIds.orgs[SYSTEM_ACCOUNT_SHORTNAME];
 const systemAccountPropertiesStringified = JSON.stringify({
   shortname: SYSTEM_ACCOUNT_SHORTNAME,
   name: SYSTEM_ACCOUNT_NAME,
-  /**
-   * This isn't useful, but is expected by the OrgProperties
-   * GraphQL type decleration (see src/graphql/typeDefs/org.typedef.ts)
-   */
-  infoProvidedAtCreation: {
-    orgSize: {
-      lowerBound: SYSTEM_ACCOUNT_SIZE_LOWER_BOUND 
-    }
-  }
 });
 
 const sqlString = `

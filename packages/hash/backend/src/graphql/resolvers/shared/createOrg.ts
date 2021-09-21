@@ -9,7 +9,7 @@ export const createOrg: Resolver<
   MutationCreateOrgArgs
 > = async (_, { org: orgInput, role }, { dataSources, user }) =>
   dataSources.db.transaction(async (client) => {
-    const { shortname, name, orgSizeLowerBound, orgSizeUpperBound } = orgInput;
+    const { shortname, name, orgSize } = orgInput;
 
     await Account.validateShortname(client)(shortname);
 
@@ -18,10 +18,7 @@ export const createOrg: Resolver<
         shortname,
         name,
         infoProvidedAtCreation: {
-          orgSize: {
-            lowerBound: orgSizeLowerBound,
-            upperBound: orgSizeUpperBound,
-          },
+          orgSize,
         },
       },
       createdById: user.entityId,

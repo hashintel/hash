@@ -69,9 +69,11 @@ export const orgTypedef = gql`
     # ENTITY INTERFACE FIELDS END #
   }
 
-  type OrgSizeRange {
-    lowerBound: Int!
-    upperBound: Int
+  enum OrgSize {
+    ONE_TO_TEN
+    ELEVEN_TO_FIFTY
+    FIFTY_ONE_TO_TWO_HUNDRED_AND_FIFTY
+    TWO_HUNDRED_AND_FIFTY_PLUS
   }
 
   type OrgProperties {
@@ -82,8 +84,7 @@ export const orgTypedef = gql`
   input CreateOrgInput {
     shortname: String!
     name: String!
-    orgSizeLowerBound: Int!
-    orgSizeUpperBound: Int
+    orgSize: OrgSize!
   }
 
   extend type Mutation {

@@ -1,20 +1,13 @@
 import { ApolloError, UserInputError } from "apollo-server-express";
 
-import {
-  Account,
-  DBUserProperties,
-  Entity,
-  EntityConstructorArgs,
-  Org,
-  User,
-} from ".";
+import { Account, Entity, EntityConstructorArgs, Org, User } from ".";
 import { DBClient } from "../db";
 import { RESTRICTED_SHORTNAMES } from "./util";
-import { OrgProperties } from "../graphql/apiTypes.gen";
+import { DBOrgProperties, DBUserProperties } from "../db/adapter";
 
 export const ALLOWED_SHORTNAME_CHARS = /^[a-zA-Z0-9-_]+$/;
 
-type DBAccountProperties = DBUserProperties | OrgProperties;
+type DBAccountProperties = DBUserProperties | DBOrgProperties;
 
 export type AccountConstructorArgs = {
   properties: DBAccountProperties;

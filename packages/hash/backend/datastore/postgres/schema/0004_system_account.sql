@@ -33,7 +33,7 @@ insert into entity_versions (
   created_by, created_at, updated_at
 ) values (
   '543ba1a2-ed99-447e-a4d8-d2c73d5b0c6e', '809a81f4-9c72-4d8b-bc2f-54ce884443e1', 'ca0e4f70-407c-486d-95e2-7f2b3a6c21bd',
-  '{"shortname":"hash","name":"HASH","infoProvidedAtCreation":{"orgSize":{"lowerBound":0}}}', '543ba1a2-ed99-447e-a4d8-d2c73d5b0c6e',
+  '{"shortname":"hash","name":"HASH"}', '543ba1a2-ed99-447e-a4d8-d2c73d5b0c6e',
   '543ba1a2-ed99-447e-a4d8-d2c73d5b0c6e', '2021-08-19T11:00:14.587Z', '2021-08-19T11:00:14.587Z'
 ) on conflict do nothing;
 

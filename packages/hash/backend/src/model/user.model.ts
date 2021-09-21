@@ -137,11 +137,7 @@ class __User extends Account {
   static isAccountSignupComplete = (params: {
     shortname?: string | null;
     preferredName?: string | null;
-    infoProvidedAtSignup: UserInfoProvidedAtSignup;
-  }): boolean =>
-    !!params.shortname &&
-    !!params.preferredName &&
-    !!params.infoProvidedAtSignup.usingHow;
+  }): boolean => !!params.shortname && !!params.preferredName;
 
   isAccountSignupComplete = (): boolean =>
     User.isAccountSignupComplete(this.properties);

@@ -5,6 +5,8 @@ import { PostgresAdapter } from "@hashintel/hash-backend/src/db";
 import { ApiClient } from "./util";
 import { IntegrationTestsHandler } from "./setup";
 import {
+  CreateOrgMutationVariables,
+  OrgSize,
   PageFieldsFragment,
   SystemTypeName,
   WayToUseHash,
@@ -144,12 +146,11 @@ describe("logged in user ", () => {
   });
 
   it("can create org", async () => {
-    const variables = {
+    const variables: CreateOrgMutationVariables = {
       org: {
         name: "Big Company",
         shortname: "bigco",
-        orgSizeLowerBound: 100,
-        orgSizeUpperBound: 250,
+        orgSize: OrgSize.TwoHundredAndFiftyPlus,
       },
       role: "CEO",
     };
@@ -162,10 +163,9 @@ describe("logged in user ", () => {
     expect(org).not.toBeNull();
     expect(org.properties.name).toEqual(variables.org.name);
     expect(org.properties.shortname).toEqual(variables.org.shortname);
-    expect(org.properties.infoProvidedAtCreation.orgSize).toEqual({
-      lowerBound: 100,
-      upperBound: 250,
-    });
+    expect(org.properties.infoProvidedAtCreation?.orgSize).toEqual(
+      variables.org.orgSize
+    );
     expect(org.entityCreatedAt).toEqual(org.entityVersionUpdatedAt);
     expect(org.entityType.properties.title).toEqual("Org");
 

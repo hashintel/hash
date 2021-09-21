@@ -17,7 +17,7 @@ export type EntityTypeTypeFields =
  * @todo should probably store this enum in a non-generated file somewhere
  *    to revisit in light of fuller auth spec
  */
-import { Visibility, WayToUseHash } from "../graphql/apiTypes.gen";
+import { OrgSize, Visibility, WayToUseHash } from "../graphql/apiTypes.gen";
 
 export type Entity = {
   accountId: string;
@@ -103,6 +103,16 @@ export type DBUserProperties = {
     org: DBLinkedEntity;
     role: string;
   }[];
+};
+
+export type OrgInfoProvidedAtCreation = {
+  orgSize: OrgSize;
+};
+
+export type DBOrgProperties = {
+  shortname: string;
+  name: string;
+  infoProvidedAtCreation?: OrgInfoProvidedAtCreation;
 };
 
 export interface DBAdapter extends DataSource, DBClient {
