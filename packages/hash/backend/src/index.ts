@@ -12,10 +12,7 @@ import setupAuth from "./auth";
 import { getRequiredEnv } from "./util";
 import { handleCollabRequest } from "./collab/server";
 import AwsSesEmailTransporter from "./email/transporter/awsSes";
-
-// TODO: account for production domain
-export const FRONTEND_DOMAIN = getRequiredEnv("FRONTEND_DOMAIN");
-export const FRONTEND_URL = `http://${FRONTEND_DOMAIN}`;
+const { FRONTEND_URL } = require("./lib/config");
 
 // Request ID generator
 const nanoid = customAlphabet(

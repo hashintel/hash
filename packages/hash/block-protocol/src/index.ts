@@ -90,6 +90,8 @@ export type BlockProtocolProps = {
   create?: BlockProtocolCreateFn;
   createLoading?: boolean;
   createError?: Error;
+  entityId?: string;
+  entityTypeId?: string;
   id?: string;
   schemas?: Record<string, JSONObject>;
   type?: string;

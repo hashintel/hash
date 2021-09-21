@@ -3,19 +3,12 @@ const path = require("path");
 
 const generatedIds = require("./data/generatedIds.json");
 const { SYSTEM_ACCOUNT_NAME } = require("../../../src/lib/config");
+const { entityTypeJson } = require("./data/systemTypeSchemas");
 
 const now = '2021-08-19T11:00:14.587Z';
 
 const { Org } = generatedIds.types;
 const systemAccount = generatedIds.orgs[SYSTEM_ACCOUNT_NAME];
-
-const entityTypeJson = (name) => JSON.stringify({
-  $schema: "https://json-schema.org/draft/2020-12/schema",
-  $id: `https://hash.ai/${systemAccount.fixedId}/${name.toLowerCase()}.schema.json`,
-  title: name,
-  type: "object",
-});
-module.exports = { entityTypeJson };
 
 const systemAccountProperties = JSON.stringify({
   shortname: SYSTEM_ACCOUNT_NAME,
