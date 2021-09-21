@@ -90,8 +90,12 @@ export const userTypedef = gql`
     usingHow: WayToUseHASH
   }
 
+  type LinkedOrg {
+    data: Org!
+  }
+
   type MemberOfOrg {
-    org: Org!
+    org: LinkedOrg!
     role: String!
   }
 

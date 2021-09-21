@@ -86,7 +86,7 @@ const resolveLinkedData = async (
       if (!entity) {
         throw new Error(`entity ${entityId} in account ${accountId} not found`);
       }
-      object[key] = entity;
+      object[key].data = entity;
       await resolveLinkedData(ctx, entity.accountId, object[key], info);
     } else if (aggregate) {
       // Fetch an array of entities
