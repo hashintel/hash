@@ -116,6 +116,10 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return this.query((adapter) => adapter.createEntity(params));
   }
 
+  getEntityAccountId(params: { entityVersionId: string }): Promise<string> {
+    return this.query((adapter) => adapter.getEntityAccountId(params));
+  }
+
   getEntity(params: {
     accountId: string;
     entityVersionId: string;

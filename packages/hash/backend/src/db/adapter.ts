@@ -118,6 +118,11 @@ export interface DBClient {
     properties: any;
   }): Promise<Entity>;
 
+  /**
+   * Get an entity's accountId using its entityVersionId
+   */
+  getEntityAccountId(params: { entityVersionId: string }): Promise<string>;
+
   /** Get an entity by ID in a given account. If `lock` is set to `true`, then no
    * other client may access the entity until the current transaction has ended.
    */

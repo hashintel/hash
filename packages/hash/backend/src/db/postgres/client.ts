@@ -12,6 +12,7 @@ import { gatherLinks, replaceLink, entityNotFoundError } from "./util";
 import { genId } from "../../util";
 import { Connection } from "./types";
 import {
+  getEntityAccountId,
   getEntityAccountIdMany,
   insertAccount,
   insertEntityAccount,
@@ -246,6 +247,12 @@ export class PostgresClient implements DBClient {
 
       return entity;
     });
+  }
+
+  async getEntityAccountId(params: {
+    entityVersionId: string;
+  }): Promise<string> {
+    return getEntityAccountId(this.conn, params.entityVersionId);
   }
 
   async getEntity(

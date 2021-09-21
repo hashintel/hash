@@ -23,6 +23,19 @@ export const insertEntityAccount = async (
     values (${params.entityVersionId}, ${params.accountId})`);
 };
 
+/** Get the account ID of an entity. */
+export const getEntityAccountId = async (
+  conn: Connection,
+  entityVersionId: string
+): Promise<string> => {
+  const row = await conn.one(sql`
+    select account_id from entity_account
+    where entity_version_id = ${entityVersionId}
+  `);
+
+  return row["account_id"] as string;
+};
+
 /** Get the account ID of multiple entities. Returns a map from entity ID to account ID. */
 export const getEntityAccountIdMany = async (
   conn: Connection,
