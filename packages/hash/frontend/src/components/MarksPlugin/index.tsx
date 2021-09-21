@@ -17,8 +17,8 @@ export function createMarksPlugin(replacePortal: ReplacePortals) {
      * is important for knowing whether to show the format tooltip
      */
     state: {
-      init(_, view) {
-        return { focused: view.focused };
+      init() {
+        return { focused: false };
       },
       apply(tr, state) {
         const formatBlur = tr.getMeta("format-blur");
