@@ -40,8 +40,8 @@ void (async () => {
   }
 
   const [users, _orgs] = await Promise.all([
-    await createUsers(db)(hashOrg),
-    await createOrgs(db),
+    createUsers(db)(hashOrg),
+    createOrgs(db),
   ]);
 
   const results = new Map<string, Entity>();
