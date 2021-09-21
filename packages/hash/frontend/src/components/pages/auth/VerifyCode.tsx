@@ -111,6 +111,7 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
               }}
               value={text}
               ref={inputRef}
+              data-testid="verify-code-input"
             />
             <button
               className={tw`absolute right-0 top-1/2 mr-3 transition-all -translate-y-1/2 flex items-center disabled:opacity-40 disabled:pointer-events-none focus:outline-none text(blue-500 hover:blue-700 focus:blue-600) font-bold py-2 px-2`}

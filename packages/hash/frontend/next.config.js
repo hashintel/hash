@@ -4,6 +4,7 @@ const withImages = require("next-images");
 
 module.exports = withImages(
   withTM({
+    pageExtensions: ['page.tsx', 'page.ts', 'page.jsx','page.jsx'],
     webpack5: false,
     webpack: (config) => {
       // help out nextjs plugin next-transpile-modules to correctly resolve monorepo dependencies

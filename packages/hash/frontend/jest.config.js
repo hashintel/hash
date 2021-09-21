@@ -1,7 +1,20 @@
 module.exports = {
-  setupFilesAfterEnv: ["./jest.setup.ts"],
-  testPathIgnorePatterns: ['./.next/', './node_modules/'],
+  roots: ["<rootDir>"],
+  rootDir: "./src", 
+  setupFilesAfterEnv: ["../jest.setup.ts"],
+  testEnvironment: "jsdom",
+  moduleFileExtensions: ["ts", "tsx", "js", "json", "jsx"],
+  transform: {
+    "^.+\\.(ts|tsx)$": "babel-jest",
+  },
+  watchPlugins: [
+    "jest-watch-typeahead/filename",
+    "jest-watch-typeahead/testname",
+  ],
+  modulePaths: ["<rootDir>"],
   moduleNameMapper: {
-      '\\.(scss|sass|css)$': 'identity-obj-proxy'
-  }
+    "\\.(css|less|sass|scss)$": "identity-obj-proxy",
+    "\\.(gif|ttf|eot|svg|png)$": "<rootDir>/tests/__mocks__/fileMock.ts",
+  },
+  verbose: true,
 };
