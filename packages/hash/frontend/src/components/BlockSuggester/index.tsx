@@ -134,8 +134,8 @@ export const createBlockSuggesterPlugin = (replacePortal: ReplacePortals) => {
 
           const style: CSSProperties = {
             position: "absolute",
-            top: coords.bottom,
-            left: coords.left,
+            top: coords.bottom + document.documentElement.scrollTop,
+            left: coords.left + document.documentElement.scrollLeft,
           };
 
           const jsx = (
