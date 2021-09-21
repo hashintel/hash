@@ -6,29 +6,18 @@ import {
   Org,
 } from ".";
 import { DBClient } from "../db";
-import { EntityType } from "../db/adapter";
+import {
+  DBUserProperties,
+  EntityType,
+  UserInfoProvidedAtSignup,
+} from "../db/adapter";
 import {
   sendEmailVerificationCodeToEmailAddress,
   sendLoginCodeToEmailAddress,
 } from "../email";
 import { genId } from "../util";
-import {
-  UserProperties as GQLUserProperties,
-  Email,
-  UserInfoProvidedAtSignup,
-} from "../graphql/apiTypes.gen";
+import { Email } from "../graphql/apiTypes.gen";
 import EmailTransporter from "../email/transporter";
-import { LinkedEntity } from "../types/entity";
-
-type UserLinkedData = {
-  memberOf: {
-    org: LinkedEntity;
-    role: string;
-  }[];
-};
-
-export type DBUserProperties = UserLinkedData &
-  Omit<GQLUserProperties, "memberOf">;
 
 type UserConstructorArgs = {
   properties: DBUserProperties;

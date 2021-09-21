@@ -17,7 +17,7 @@ export type EntityTypeTypeFields =
  * @todo should probably store this enum in a non-generated file somewhere
  *    to revisit in light of fuller auth spec
  */
-import { Visibility } from "../graphql/apiTypes.gen";
+import { Visibility, WayToUseHash } from "../graphql/apiTypes.gen";
 
 export type Entity = {
   accountId: string;
@@ -75,6 +75,34 @@ export type VerificationCode = {
   numberOfAttempts: number;
   used: boolean;
   createdAt: Date;
+};
+
+export type DBLinkedEntity = {
+  __linkedData: {
+    entityTypeId: string;
+    entityId: string;
+  };
+};
+
+export type DBUserEmail = {
+  address: string;
+  verified: boolean;
+  primary: boolean;
+};
+
+export type UserInfoProvidedAtSignup = {
+  usingHow?: WayToUseHash;
+};
+
+export type DBUserProperties = {
+  emails: DBUserEmail[];
+  shortname?: string;
+  preferredName?: string;
+  infoProvidedAtSignup: UserInfoProvidedAtSignup;
+  memberOf: {
+    org: DBLinkedEntity;
+    role: string;
+  }[];
 };
 
 export interface DBAdapter extends DataSource, DBClient {
