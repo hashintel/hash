@@ -91,24 +91,20 @@ export const createBlockSuggesterPlugin = (replacePortal: ReplacePortals) => {
   const suggesterPlugin: Plugin = new Plugin({
     state: {
       init() {
-        return { open: false, trigger: null, requireChange: false };
+        return { open: false, trigger: null, disabled: false };
       },
       apply(tr, state, _prevEitorState, nextEditorState) {
         const action = tr.getMeta(suggesterPlugin);
 
         if (action?.type === "escape") {
-          return { ...state, open: false, requireChange: true };
+          return { ...state, open: false, disabled: true };
         }
 
         const trigger = findTrigger(nextEditorState);
+        const disabled = state.disabled && trigger !== null;
+        const open = !disabled && trigger !== null;
 
-        if (trigger && state.requireChange) {
-          return state.trigger?.search === trigger.search
-            ? state
-            : { open: true, trigger, requireChange: false };
-        }
-
-        return { ...state, open: trigger != null, trigger };
+        return { open, trigger, disabled };
       },
     },
     props: {
