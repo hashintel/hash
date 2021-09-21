@@ -65,7 +65,15 @@ insert into entity_versions (
   '${systemAccount.fixedId}', '${systemAccount.firstVersionId}', '${Org.firstVersionId}',
   '${systemAccountPropertiesStringified}', '${systemAccount.fixedId}',
   '${systemAccount.fixedId}', '${now}', '${now}'
-) on conflict do nothing;`;
+) on conflict do nothing;
+
+insert into entity_account (
+  entity_version_id, account_id
+) values (
+  '${systemAccount.firstVersionId}', '${systemAccount.fixedId}'
+) on conflict do nothing;
+
+`;
 
 const outputPath = path.join(__dirname, "../schema/0004_system_account.sql");
 fs.writeFileSync(outputPath, sqlString);
