@@ -95,6 +95,6 @@ export const orgTypedef = gql`
   }
 
   extend type Mutation {
-    createOrg(org: CreateOrgInput!): Org!
+    createOrg(org: CreateOrgInput!, role: String!): Org!
   }
 `;

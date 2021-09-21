@@ -7,7 +7,7 @@ export const createOrg: Resolver<
   {},
   LoggedInGraphQLContext,
   MutationCreateOrgArgs
-> = async (_, { org: orgInput }, { dataSources, user }) =>
+> = async (_, { org: orgInput, role }, { dataSources, user }) =>
   dataSources.db.transaction(async (client) => {
     const { shortname, name, orgSizeLowerBound, orgSizeUpperBound } = orgInput;
 
@@ -27,7 +27,7 @@ export const createOrg: Resolver<
       createdById: user.entityId,
     });
 
-    /** @todo: make the user that created the org a member of the org  */
+    await user.joinOrg(client)({ org, role });
 
     return org.toGQLUnknownEntity();
   });

@@ -118,6 +118,7 @@ export const resolvers = {
 
   User: {
     accountSignupComplete,
+    properties: entityFields.properties,
   },
 
   UnknownEntity: {

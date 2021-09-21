@@ -28,13 +28,6 @@ void (async () => {
     port: parseInt(process.env.HASH_PG_PORT || "5432"),
   });
 
-  const [users, _orgs] = await Promise.all([
-    await createUsers(db),
-    await createOrgs(db),
-  ]);
-
-  const results = new Map<string, Entity>();
-
   // Get the hash org - it's already been created as part of db migration
   const hashOrg = await Org.getOrgByShortname(db)({ shortname: "hash" });
 
@@ -45,6 +38,13 @@ void (async () => {
       Has the system account name been changed?
     `);
   }
+
+  const [users, _orgs] = await Promise.all([
+    await createUsers(db)(hashOrg),
+    await createOrgs(db),
+  ]);
+
+  const results = new Map<string, Entity>();
 
   // create the types we'll need below so we can assign their ids to entities
   const newTypeIds: Record<string, string> = {};

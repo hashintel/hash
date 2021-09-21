@@ -33,6 +33,8 @@ export const createUser: Resolver<
       // ...or create this user
       (await User.createUser(client)({
         emails: [{ address: email, primary: true, verified: false }],
+        infoProvidedAtSignup: {},
+        memberOf: [],
       }));
 
     /** @todo: rate limit creation of email verification codes */

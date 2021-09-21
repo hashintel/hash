@@ -78,10 +78,29 @@ export const userTypedef = gql`
     primary: Boolean!
   }
 
+  enum WayToUseHASH {
+    BY_THEMSELVES
+    WITH_A_TEAM
+  }
+
+  type UserInfoProvidedAtSignup {
+    """
+    How the user indicated they are using HASH when signing up
+    """
+    usingHow: WayToUseHASH
+  }
+
+  type MemberOfOrg {
+    org: Org!
+    role: String!
+  }
+
   type UserProperties {
     emails: [Email!]!
     shortname: String
     preferredName: String
+    infoProvidedAtSignup: UserInfoProvidedAtSignup!
+    memberOf: [MemberOfOrg!]!
   }
 
   type VerificationCodeMetadata {
@@ -92,6 +111,7 @@ export const userTypedef = gql`
   input UpdateUserProperties {
     shortname: String
     preferredName: String
+    usingHow: WayToUseHASH
   }
 
   enum LogoutResponse {
