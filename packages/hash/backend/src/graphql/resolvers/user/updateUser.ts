@@ -22,7 +22,7 @@ export const updateUser: Resolver<
 
     if (!shortname && !preferredName && !usingHow) {
       throw new ApolloError(
-        "An updated shortname or preferredName must be provided to update a user",
+        "An updated 'shortname', 'preferredName' or 'usingHow' value  must be provided to update a user",
         "NO_OP"
       );
     }
