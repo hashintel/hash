@@ -83,13 +83,6 @@ export const userTypedef = gql`
     WITH_A_TEAM
   }
 
-  type UserInfoProvidedAtSignup {
-    """
-    How the user indicated they are using HASH when signing up
-    """
-    usingHow: WayToUseHASH
-  }
-
   type LinkedOrg {
     data: Org!
   }
@@ -103,7 +96,6 @@ export const userTypedef = gql`
     emails: [Email!]!
     shortname: String
     preferredName: String
-    infoProvidedAtSignup: UserInfoProvidedAtSignup!
     memberOf: [MemberOfOrg!]!
   }
 

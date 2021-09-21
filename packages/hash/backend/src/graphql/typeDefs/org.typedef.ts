@@ -74,17 +74,9 @@ export const orgTypedef = gql`
     upperBound: Int
   }
 
-  type OrgInfoProvidedAtCreation {
-    """
-    The size of the organization
-    """
-    orgSize: OrgSizeRange!
-  }
-
   type OrgProperties {
     shortname: String
     name: String!
-    infoProvidedAtCreation: OrgInfoProvidedAtCreation!
   }
 
   input CreateOrgInput {
