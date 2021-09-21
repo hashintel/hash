@@ -1,9 +1,9 @@
 const generatedIds = require("./generatedIds.json");
-const { SYSTEM_ACCOUNT_NAME } = require("../../../../src/lib/config");
+const { SYSTEM_ACCOUNT_NAME, FRONTEND_URL} = require("../../../../src/lib/config");
 
 const systemAccount = generatedIds.orgs[SYSTEM_ACCOUNT_NAME];
 
-const schemaId = (name) => `https://hash.ai/${systemAccount.fixedId}/types/${generatedIds.types[name].fixedId}`;
+const schemaId = (name) => `${FRONTEND_URL}/${systemAccount.fixedId}/types/${generatedIds.types[name].fixedId}`;
 
 const shortnameConstraints = {
   minLength: 4,
