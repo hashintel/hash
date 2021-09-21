@@ -102,8 +102,7 @@ export function createFormatPlugin(replacePortal) {
           editorView.focus();
           toggleMark(editorView.state.schema.marks[name])(
             editorView.state,
-            editorView.dispatch,
-            editorView
+            editorView.dispatch
           );
           update();
         });
