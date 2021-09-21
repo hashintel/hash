@@ -246,7 +246,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
         savePlugin,
         createFormatPlugin(replacePortal),
         createBlockSuggesterPlugin(replacePortal),
-      ].flat(),
+      ],
       accountId,
       metadataId
     );
