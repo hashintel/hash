@@ -18,13 +18,7 @@ import {
   UserInfoProvidedAtSignup,
 } from "../graphql/apiTypes.gen";
 import EmailTransporter from "../email/transporter";
-
-type LinkedEntity = {
-  __linkedData: {
-    entityTypeId: string;
-    entityId: string;
-  };
-};
+import { LinkedEntity } from "../types/entity";
 
 type UserLinkedData = {
   memberOf: {
