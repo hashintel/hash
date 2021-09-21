@@ -1,34 +1,46 @@
-import React, { useLayoutEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { tw } from "twind";
 
 type ResizeBlockProps = {
   imageSrc: string;
   width: number | undefined;
-  setWidth: (width: string | number) => void;
+  updateWidth: (width: number) => void;
 };
 
 const BLOCK_RESIZER_POSITIONS = ["left", "right"] as const;
 
+const MIN_WIDTH = 96;
+
 export const ResizeImageBlock: React.VFC<ResizeBlockProps> = ({
   imageSrc,
   width,
-  setWidth,
+  updateWidth,
 }) => {
   const imageRef = useRef<HTMLImageElement>(null);
 
   useLayoutEffect(() => {
     if (!imageRef.current) return;
     if (!width) {
-      setWidth(imageRef.current.getBoundingClientRect().width);
+      const initialImageWidth = imageRef.current.getBoundingClientRect().width;
+      updateWidth(initialImageWidth);
     }
   }, []);
+
+  useEffect(() => {
+    if (!imageRef.current) return;
+
+    const imageWidth = imageRef.current.getBoundingClientRect().width;
+
+    if (imageWidth != width) {
+      imageRef.current.style.width = `${width}px`;
+    }
+  }, [width]);
 
   const handleResize = (evt: React.MouseEvent, direction: "left" | "right") => {
     function onMouseMove(mouseMoveEvt: MouseEvent) {
       if (!imageRef.current) return;
-
-      const { left, right } = imageRef.current.getBoundingClientRect();
       let newWidth;
+      const { left, right } = imageRef.current.getBoundingClientRect();
 
       if (direction == "right") {
         newWidth = mouseMoveEvt.pageX - left;
@@ -38,15 +50,18 @@ export const ResizeImageBlock: React.VFC<ResizeBlockProps> = ({
         newWidth = right - mouseMoveEvt.pageX;
       }
 
-      if (!newWidth || newWidth < 96) {
-        return;
+      if (newWidth && newWidth > MIN_WIDTH) {
+        imageRef.current.style.width = `${newWidth}px`;
       }
-
-      setWidth(newWidth);
     }
 
     function onMouseUp() {
       document.removeEventListener("mousemove", onMouseMove);
+      setTimeout(() => {
+        if (!imageRef.current) return;
+        const { width: newWidth } = imageRef.current.getBoundingClientRect();
+        updateWidth(newWidth);
+      }, 1000);
     }
 
     document.addEventListener("mousemove", onMouseMove);
@@ -56,12 +71,8 @@ export const ResizeImageBlock: React.VFC<ResizeBlockProps> = ({
   return (
     <div className={tw`relative flex group`}>
       <img
-        className={tw`mx-auto`}
+        className={tw`mx-auto max-w-full`}
         ref={imageRef}
-        style={{
-          // maxWidth: "100%",
-          width: width || "100%",
-        }}
         src={imageSrc}
         alt="Image block"
       />

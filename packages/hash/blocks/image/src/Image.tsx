@@ -77,14 +77,19 @@ export const Image: BlockComponent<AppProps> = (props) => {
     updateStateObject({ errorString });
   }
 
-  function updateData(src: string | undefined) {
+  function updateData(src: string | undefined, width?: number) {
     if (src?.trim()) {
       if (update) {
         const updateAction: BlockProtocolUpdatePayload<{
           initialSrc: string;
           initialCaption: string;
+          initialWidth?: number;
         }> = {
-          data: { initialSrc: src, initialCaption: captionText },
+          data: {
+            initialSrc: src,
+            initialCaption: captionText,
+            initialWidth: width,
+          },
           entityId,
         };
 
@@ -95,7 +100,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
         void update([updateAction]);
       }
 
-      setStateObject((stateObject) => ({ ...stateObject, src }));
+      updateStateObject(width ? { src, width } : { src });
     }
   }
 
@@ -152,7 +157,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
         loading: false,
         errorString: null,
         src: "",
-        width: "auto",
+        width: undefined,
       });
 
       setInputText("");
@@ -167,7 +172,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
           <ResizeImageBlock
             imageSrc={stateObject.src}
             width={stateObject.width}
-            setWidth={(width) => width ? updateStateObject({ width }): {}}
+            updateWidth={(width) => updateData(stateObject.src, width)}
           />
           <input
             placeholder="Add a caption"
@@ -179,13 +184,10 @@ export const Image: BlockComponent<AppProps> = (props) => {
           />
         </div>
         <button
-          // Tailwind doesn't have this as a class
-          // https://github.com/tailwindlabs/tailwindcss/issues/1042#issuecomment-781271382
-          style={{ height: "max-content" }}
           onClick={() => {
             resetComponent();
           }}
-          className={tw`ml-2 bg-gray-100 p-1.5 border-1 border-gray-300 rounded-sm`}
+          className={tw`ml-2 bg-gray-100 p-1.5 border-1 border-gray-300 rounded-sm self-start`}
         >
           <Pencil />
         </button>
