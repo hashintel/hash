@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef } from "react";
 import { tw } from "twind";
 
 type ResizeBlockProps = {
@@ -10,6 +10,8 @@ type ResizeBlockProps = {
 const BLOCK_RESIZER_POSITIONS = ["left", "right"] as const;
 
 const MIN_WIDTH = 96;
+
+// @todo set a max-width
 
 export const ResizeImageBlock: React.VFC<ResizeBlockProps> = ({
   imageSrc,
@@ -24,14 +26,14 @@ export const ResizeImageBlock: React.VFC<ResizeBlockProps> = ({
       const initialImageWidth = imageRef.current.getBoundingClientRect().width;
       updateWidth(initialImageWidth);
     }
-  }, []);
+  }, [width, updateWidth]);
 
   useEffect(() => {
     if (!imageRef.current) return;
 
     const imageWidth = imageRef.current.getBoundingClientRect().width;
 
-    if (imageWidth != width) {
+    if (imageWidth !== width) {
       imageRef.current.style.width = `${width}px`;
     }
   }, [width]);
@@ -42,11 +44,11 @@ export const ResizeImageBlock: React.VFC<ResizeBlockProps> = ({
       let newWidth;
       const { left, right } = imageRef.current.getBoundingClientRect();
 
-      if (direction == "right") {
+      if (direction === "right") {
         newWidth = mouseMoveEvt.pageX - left;
       }
 
-      if (direction == "left") {
+      if (direction === "left") {
         newWidth = right - mouseMoveEvt.pageX;
       }
 
@@ -78,12 +80,13 @@ export const ResizeImageBlock: React.VFC<ResizeBlockProps> = ({
       />
       {BLOCK_RESIZER_POSITIONS.map((position) => (
         <div
+          key={position}
           style={{ maxHeight: "50%" }}
           className={tw`transition-all absolute ${
-            position == "left" ? "left-1" : "right-1"
+            position === "left" ? "left-1" : "right-1"
           } top-1/2 -translate-y-1/2 h-12 w-1.5 rounded-full bg-black bg-opacity-70 cursor-col-resize opacity-0 group-hover:opacity-100`}
-          onMouseDown={(e) => handleResize(e, position)}
-        ></div>
+          onMouseDown={(evt) => handleResize(evt, position)}
+        />
       ))}
     </div>
   );

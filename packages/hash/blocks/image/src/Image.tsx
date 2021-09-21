@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { unstable_batchedUpdates } from "react-dom";
 
 import { v4 as uuid } from "uuid";
@@ -80,11 +80,9 @@ export const Image: BlockComponent<AppProps> = (props) => {
   function updateData(src: string | undefined, width?: number) {
     if (src?.trim()) {
       if (update) {
-        const updateAction: BlockProtocolUpdatePayload<{
-          initialSrc: string;
-          initialCaption: string;
-          initialWidth?: number;
-        }> = {
+        const updateAction: BlockProtocolUpdatePayload<
+          Pick<AppProps, "initialSrc" | "initialCaption" | "initialWidth">
+        > = {
           data: {
             initialSrc: src,
             initialCaption: captionText,
@@ -104,6 +102,13 @@ export const Image: BlockComponent<AppProps> = (props) => {
     }
   }
 
+  const updateWidth = useCallback(
+    (width: number) => {
+      updateData(stateObject.src, width);
+    },
+    [stateObject, updateData]
+  );
+
   const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     const { loading } = stateObject;
 
@@ -114,16 +119,12 @@ export const Image: BlockComponent<AppProps> = (props) => {
     }
 
     if (inputText?.trim()) {
-      setStateObject((stateObject) => ({ ...stateObject, loading: true }));
+      updateStateObject({ loading: true });
 
       void uploadImage({ imgURL: inputText })
         .then(({ src }) => {
           if (isMounted.current) {
-            setStateObject((stateObject) => ({
-              ...stateObject,
-              loading: false,
-            }));
-
+            updateStateObject({ loading: false });
             updateData(src);
           }
         })
@@ -172,7 +173,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
           <ResizeImageBlock
             imageSrc={stateObject.src}
             width={stateObject.width}
-            updateWidth={(width) => updateData(stateObject.src, width)}
+            updateWidth={updateWidth}
           />
           <input
             placeholder="Add a caption"

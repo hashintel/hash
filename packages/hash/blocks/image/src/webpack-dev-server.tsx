@@ -5,7 +5,7 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import Component from "./index";
-import { tw } from 'twind'
+import { tw } from "twind";
 
 const node = document.getElementById("app");
 
