@@ -20,7 +20,7 @@ export function createMarksPlugin(replacePortal: ReplacePortals) {
       init(_, view) {
         return { focused: view.focused };
       },
-      apply(tr, oldValue) {
+      apply(tr, state) {
         const formatBlur = tr.getMeta("format-blur");
         const formatFocus = tr.getMeta("format-focus");
 
@@ -32,7 +32,7 @@ export function createMarksPlugin(replacePortal: ReplacePortals) {
           return { focused: true };
         }
 
-        return oldValue;
+        return state;
       },
     },
     props: {
