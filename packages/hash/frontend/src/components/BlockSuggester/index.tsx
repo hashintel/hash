@@ -50,7 +50,19 @@ export const BlockSuggester: VoidFunctionComponent = () => {
   );
 };
 
-const findTrigger = (state: EditorState) => {
+interface Trigger {
+  /** matched search string including its leading slash */
+  search: string;
+  /** starting prosemirror document position */
+  from: number;
+  /** ending prosemirror document position */
+  to: number;
+}
+
+/**
+ * used to find a string triggering the suggester plugin
+ */
+const findTrigger = (state: EditorState): Trigger | null => {
   // @ts-expect-error: only empty TextSelection has a $cursor
   const cursor: ResolvedPos = state.selection.$cursor;
   if (!cursor) return null;
@@ -82,19 +94,34 @@ const findTrigger = (state: EditorState) => {
   };
 };
 
+interface SuggesterState {
+  /** whether or not the suggester is disabled */
+  disabled: boolean;
+  /** whether or not the popup is opened */
+  open: boolean;
+  /** the suggester's current trigger */
+  trigger: Trigger | null;
+}
+
 /**
- * prosemirror plugin factory for the block suggester
+ * Suggester plugin factory
+ *
+ * Behaviour:
+ * Typing a slash followed by any number of non-whitespace characters will activate the plugin and
+ * open a popup right under the "textual trigger". Moving the cursor outside the trigger will close
+ * the popup. Pressing the Escape-key while inside the trigger will disable the plugin until a
+ * trigger is newly encountered (e.g. by leaving/deleting and reentering/retyping a trigger).
  */
-export const createBlockSuggesterPlugin = (replacePortal: ReplacePortals) => {
+export const createSuggesterPlugin = (replacePortal: ReplacePortals) => {
   const mountNode = document.body;
 
-  const suggesterPlugin: Plugin = new Plugin({
+  const plugin = new Plugin<SuggesterState>({
     state: {
       init() {
         return { open: false, trigger: null, disabled: false };
       },
       apply(tr, state, _prevEitorState, nextEditorState) {
-        const action = tr.getMeta(suggesterPlugin);
+        const action = tr.getMeta(plugin);
 
         if (action?.type === "escape") {
           return { ...state, open: false, disabled: true };
@@ -111,9 +138,7 @@ export const createBlockSuggesterPlugin = (replacePortal: ReplacePortals) => {
       handleKeyDown(view, event) {
         switch (event.key) {
           case "Escape":
-            view.dispatch(
-              view.state.tr.setMeta(suggesterPlugin, { type: "escape" })
-            );
+            view.dispatch(view.state.tr.setMeta(plugin, { type: "escape" }));
         }
 
         return false;
@@ -122,11 +147,11 @@ export const createBlockSuggesterPlugin = (replacePortal: ReplacePortals) => {
     view() {
       return {
         update(view) {
-          const pluginState = suggesterPlugin.getState(view.state);
+          const { open, trigger } = plugin.getState(view.state);
 
-          if (!pluginState.open) return this.destroy!();
+          if (!open) return this.destroy!();
 
-          const coords = view.coordsAtPos(pluginState.trigger.from);
+          const coords = view.coordsAtPos(trigger!.from);
 
           const style: CSSProperties = {
             position: "absolute",
@@ -149,5 +174,5 @@ export const createBlockSuggesterPlugin = (replacePortal: ReplacePortals) => {
     },
   });
 
-  return suggesterPlugin;
+  return plugin;
 };
