@@ -4,11 +4,14 @@ import { Node as ProsemirrorNode } from "prosemirror-model";
 import { NodeSelection, Plugin } from "prosemirror-state";
 import React from "react";
 
+interface FormatPluginState {
+  focused: boolean;
+}
 
-export function createFormatPlugin(replacePortal) {
-  let timeout;
+export function createFormatPlugin(replacePortal: ReplacePortals) {
+  let timeout: NodeJS.Timeout;
 
-  const formatPlugin = new Plugin({
+  const formatPlugin = new Plugin<FormatPluginState>({
     /**
      * This allows us to keep track of whether the view is focused, which
      * is important for knowing whether to show the format tooltip
@@ -70,9 +73,9 @@ export function createFormatPlugin(replacePortal) {
           }} />
       );
 
-      const updateFns = [];
+      const updateFns: Function[] = [];
 
-      const button = (name, text) => {
+      const button = (name: string, text: string) => {
         const button = document.createElement("button");
 
         button.innerText = text;
@@ -129,7 +132,7 @@ export function createFormatPlugin(replacePortal) {
       button("em", "I");
       button("underlined", "U");
 
-      const update = (view, lastState) => {
+      const update = (view: FixMeLater, lastState?: FixMeLater) => {
         const dragging = !!editorView.dragging;
 
         const state = view.state;
@@ -152,9 +155,10 @@ export function createFormatPlugin(replacePortal) {
            */
           state.selection
             .content()
-            .content.content.map((node) => node.type.name === "block" ? node.firstChild : node
+            .content.content.map((node: ProsemirrorNode) =>
+              node.type.name === "block" ? node.firstChild : node
             )
-            .every((node) => {
+            .every((node: ProsemirrorNode) => {
               return (
                 node.content.size === 0 ||
                 // @todo fix this check by checking for the
