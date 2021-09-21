@@ -4,14 +4,14 @@ import { Node as ProsemirrorNode } from "prosemirror-model";
 import { NodeSelection, Plugin } from "prosemirror-state";
 import React from "react";
 
-interface FormatPluginState {
+interface MarksPluginState {
   focused: boolean;
 }
 
-export function createFormatPlugin(replacePortal: ReplacePortals) {
+export function createMarksPlugin(replacePortal: ReplacePortals) {
   let timeout: NodeJS.Timeout;
 
-  const formatPlugin = new Plugin<FormatPluginState>({
+  const formatPlugin = new Plugin<MarksPluginState>({
     /**
      * This allows us to keep track of whether the view is focused, which
      * is important for knowing whether to show the format tooltip
