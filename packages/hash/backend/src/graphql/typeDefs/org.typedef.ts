@@ -95,6 +95,16 @@ export const orgTypedef = gql`
   }
 
   extend type Mutation {
-    createOrg(org: CreateOrgInput!, role: String!): Org!
+    """
+    Create a new organization. The user that calls this mutation is automatically added 
+    as a member with the provided 'role'.
+    """
+    createOrg(
+      org: CreateOrgInput!,
+      """
+      The 'role' of the user at the organization.
+      """
+      role: String!
+    ): Org!
   }
 `;
