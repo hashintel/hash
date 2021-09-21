@@ -4,7 +4,7 @@ export const createOrg = gql`
   mutation createOrg($org: CreateOrgInput!, $role: String!) {
     createOrg(org: $org, role: $role) {
       __typename
-      id
+      entityId
       entityTypeName
       createdById
       createdAt
