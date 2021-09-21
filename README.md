@@ -61,12 +61,15 @@ See the [docker/README](./docker) for further details.
 ## Tests
 
 Integration tests are located at [packages/hash/integration](./packages/hash/integration).
-To run these tests, ensure the API and database are running
-(`yarn serve:hash-backend`) and execute:
+To run these tests, ensure the API and database are running in test mode
+(`yarn serve:hash-backend-test`), which sets a test database name, and execute:
 
 ```
 yarn test-integration
 ```
+
+**N.B.** Don't forget to re-start the backend in regular mode (`yarn serve:hash-backend`)
+for normal development. 
 
 ## Code quality
 
