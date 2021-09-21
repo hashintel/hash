@@ -97,7 +97,7 @@ export const orgTypedef = gql`
       """
       The 'role' of the user at the organization.
       """
-      role: String!
+      responsibility: String!
     ): Org!
   }
 `;

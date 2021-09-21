@@ -152,7 +152,7 @@ describe("logged in user ", () => {
         shortname: "bigco",
         orgSize: OrgSize.TwoHundredAndFiftyPlus,
       },
-      role: "CEO",
+      responsibility: "CEO",
     };
 
     const { accountId, entityId } = await client.createOrg(variables);
@@ -186,7 +186,7 @@ describe("logged in user ", () => {
           entityTypeId: org.entityType.entityId,
         },
       },
-      role: variables.role,
+      responsibility: variables.responsibility,
     });
   });
 

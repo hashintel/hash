@@ -63,7 +63,7 @@ export const createUsers =
           infoProvidedAtSignup: { usingHow: WayToUseHash.WithATeam },
           memberOf: [
             {
-              role: "Developer",
+              responsibility: "Developer",
               org: {
                 __linkedData: {
                   entityId: org.entityVersionId,

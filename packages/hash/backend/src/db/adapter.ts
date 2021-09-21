@@ -101,7 +101,7 @@ export type DBUserProperties = {
   infoProvidedAtSignup: UserInfoProvidedAtSignup;
   memberOf: {
     org: DBLinkedEntity;
-    role: string;
+    responsibility?: string;
   }[];
 };
 

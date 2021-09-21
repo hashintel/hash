@@ -89,7 +89,7 @@ export const userTypedef = gql`
 
   type MemberOfOrg {
     org: LinkedOrg!
-    role: String!
+    responsibility: String
   }
 
   type UserProperties {

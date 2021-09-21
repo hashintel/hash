@@ -243,28 +243,29 @@ class __User extends Account {
    * Must occur in the same db transaction as when `this.properties` was fetched
    * to prevent overriding externally-updated properties
    */
-  joinOrg = (client: DBClient) => (params: { org: Org; role: string }) => {
-    if (this.isMemberOfOrg(params.org)) {
-      throw new Error(
-        `User with entityId '${this.entityId}' is already a member of the organization with entityId '${params.org.entityId}'`
-      );
-    }
-    return this.updateUserProperties(client)({
-      ...this.properties,
-      memberOf: [
-        ...this.properties.memberOf,
-        {
-          org: {
-            __linkedData: {
-              entityId: params.org.entityVersionId,
-              entityTypeId: params.org.entityType.entityId,
+  joinOrg =
+    (client: DBClient) => (params: { org: Org; responsibility: string }) => {
+      if (this.isMemberOfOrg(params.org)) {
+        throw new Error(
+          `User with entityId '${this.entityId}' is already a member of the organization with entityId '${params.org.entityId}'`
+        );
+      }
+      return this.updateUserProperties(client)({
+        ...this.properties,
+        memberOf: [
+          ...this.properties.memberOf,
+          {
+            org: {
+              __linkedData: {
+                entityId: params.org.entityVersionId,
+                entityTypeId: params.org.entityType.entityId,
+              },
             },
+            responsibility: params.responsibility,
           },
-          role: params.role,
-        },
-      ],
-    });
-  };
+        ],
+      });
+    };
 }
 
 export default __User;
