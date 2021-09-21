@@ -9,6 +9,7 @@ import { Schema } from "prosemirror-model";
 import { Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { createFormatPlugin, renderPM } from "./sandbox";
+import { createSuggesterPlugin } from "../../components/BlockSuggester";
 import { useBlockProtocolUpdate } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdate";
 import { useBlockProtocolInsertIntoPage } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolInsertIntoPage";
 import { usePortals } from "./usePortals";
@@ -302,7 +303,11 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       createInitialDoc(schema),
       { nodeViews: {} },
       replacePortal,
-      [savePlugin, createFormatPlugin(replacePortal)],
+      [
+        savePlugin,
+        createFormatPlugin(replacePortal),
+        createSuggesterPlugin(replacePortal),
+      ],
       accountId,
       metadataId
     );
