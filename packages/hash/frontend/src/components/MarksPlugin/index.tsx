@@ -70,7 +70,8 @@ export function createFormatPlugin(replacePortal: ReplacePortals) {
             if (node) {
               node.appendChild(dom);
             }
-          }} />
+          }}
+        />
       );
 
       const updateFns: Function[] = [];
@@ -145,7 +146,8 @@ export function createFormatPlugin(replacePortal: ReplacePortals) {
          *
          * @todo enable the format tooltip outside of a paragraph node
          */
-        if (!formatPlugin.getState(view.state).focused ||
+        if (
+          !formatPlugin.getState(view.state).focused ||
           dragging ||
           state.selection instanceof NodeSelection ||
           // !(state.selection instanceof TextSelection) ||
@@ -166,17 +168,20 @@ export function createFormatPlugin(replacePortal: ReplacePortals) {
                 !node.isTextblock
               );
             }) ||
-          state.selection.empty) {
+          state.selection.empty
+        ) {
           dom.style.opacity = "0";
           dom.style.top = "-10000px";
           dom.style.left = "-10000px";
           return;
         }
 
-        if (!dragging &&
+        if (
+          !dragging &&
           lastState &&
           lastState.doc.eq(state.doc) &&
-          lastState.selection.eq(state.selection)) {
+          lastState.selection.eq(state.selection)
+        ) {
           return;
         }
 
@@ -185,11 +190,15 @@ export function createFormatPlugin(replacePortal: ReplacePortals) {
         const end = view.coordsAtPos(to);
 
         dom.style.opacity = "1";
-        dom.style.top = `${start.top - dom.offsetHeight + document.documentElement.scrollTop}px`;
-        dom.style.left = `${start.left -
+        dom.style.top = `${
+          start.top - dom.offsetHeight + document.documentElement.scrollTop
+        }px`;
+        dom.style.left = `${
+          start.left -
           dom.offsetWidth / 2 +
           (end.right - start.left) / 2 +
-          document.documentElement.scrollLeft}px`;
+          document.documentElement.scrollLeft
+        }px`;
 
         for (const fn of updateFns) {
           fn();
@@ -219,5 +228,6 @@ export function createFormatPlugin(replacePortal: ReplacePortals) {
       };
     },
   });
+
   return formatPlugin;
 }
