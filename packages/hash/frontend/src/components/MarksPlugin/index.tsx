@@ -1,6 +1,8 @@
-import React from "react";
-import { NodeSelection, Plugin } from "prosemirror-state";
+import { ReplacePortals } from "@hashintel/hash-shared/sharedWithBackend";
 import { toggleMark } from "prosemirror-commands";
+import { Node as ProsemirrorNode } from "prosemirror-model";
+import { NodeSelection, Plugin } from "prosemirror-state";
+import React from "react";
 
 
 export function createFormatPlugin(replacePortal) {

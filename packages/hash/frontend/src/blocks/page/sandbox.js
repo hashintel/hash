@@ -5,26 +5,23 @@
  * @todo remove this file
  */
 
-import React, { createRef, forwardRef, useEffect, useState } from "react";
-import { tw } from "twind";
-
-import { NodeSelection } from "prosemirror-state";
-import { EditorView } from "prosemirror-view";
-import { BlockMetaContext } from "../blockMeta";
-import DragVertical from "../../components/Icons/DragVertical";
-
-import styles from "./style.module.css";
-
-import "prosemirror-view/style/prosemirror.css";
 import {
   createProseMirrorState,
   createRemoteBlock,
   historyPlugin,
   infiniteGroupHistoryPlugin,
 } from "@hashintel/hash-shared/sharedWithBackendJs";
-import { collabEnabled, createNodeView } from "./tsUtils";
+import { NodeSelection } from "prosemirror-state";
+import { EditorView } from "prosemirror-view";
+import "prosemirror-view/style/prosemirror.css";
+import React, { createRef, forwardRef, useEffect, useState } from "react";
+import { tw } from "twind";
+import DragVertical from "../../components/Icons/DragVertical";
+import { BlockMetaContext } from "../blockMeta";
 import { EditorConnection } from "./collab/collab";
 import { Reporter } from "./collab/reporter";
+import styles from "./style.module.css";
+import { collabEnabled, createNodeView } from "./tsUtils";
 
 /**
  * You can think of this more as a "Switcher" view – when you change node type
