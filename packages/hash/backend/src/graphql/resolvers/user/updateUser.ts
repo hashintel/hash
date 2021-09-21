@@ -18,9 +18,9 @@ export const updateUser: Resolver<
       throw new ForbiddenError("You can only update your own user properties");
     }
 
-    const { shortname, preferredName } = properties;
+    const { shortname, preferredName, usingHow } = properties;
 
-    if (!shortname && !preferredName) {
+    if (!shortname && !preferredName && !usingHow) {
       throw new ApolloError(
         "An updated shortname or preferredName must be provided to update a user",
         "NO_OP"
@@ -56,6 +56,17 @@ export const updateUser: Resolver<
       }
 
       await user.updatePreferredName(client)(preferredName);
+    }
+
+    if (usingHow) {
+      if (user.properties.infoProvidedAtSignup.usingHow === usingHow) {
+        throw new ApolloError(
+          `User with entityId '${user.entityId}' already indicated how they are using HASH '${usingHow}'`,
+          "NO_OP"
+        );
+      }
+
+      await user.updateInfoProvidedAtSignup(client)({ usingHow });
     }
 
     return user.toGQLUnknownEntity();
