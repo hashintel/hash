@@ -255,12 +255,22 @@ class __User extends Account {
       ).then(() => verificationCode);
     };
 
+  isMemberOfOrg = ({ entityVersionId }: Org) =>
+    this.properties.memberOf.find(
+      ({ org }) => org.__linkedData.entityId === entityVersionId
+    ) !== undefined;
+
   /**
    * Must occur in the same db transaction as when `this.properties` was fetched
    * to prevent overriding externally-updated properties
    */
-  joinOrg = (client: DBClient) => (params: { org: Org; role: string }) =>
-    this.updateUserProperties(client)({
+  joinOrg = (client: DBClient) => (params: { org: Org; role: string }) => {
+    if (this.isMemberOfOrg(params.org)) {
+      throw new Error(
+        `User with entityId '${this.entityId}' is already a member of the organization with entityId '${params.org.entityId}'`
+      );
+    }
+    return this.updateUserProperties(client)({
       ...this.properties,
       memberOf: [
         ...this.properties.memberOf,
@@ -275,6 +285,7 @@ class __User extends Account {
         },
       ],
     });
+  };
 }
 
 export default __User;
