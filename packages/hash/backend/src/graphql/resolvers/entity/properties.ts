@@ -84,7 +84,7 @@ const resolveLinkedData = async (
       if (!entity) {
         throw new Error(`entity ${entityId} in account ${accountId} not found`);
       }
-      object.properties[key] = entity;
+      object.properties[key].data = entity;
       await resolveLinkedData(
         ctx,
         entity.accountId,
@@ -93,7 +93,7 @@ const resolveLinkedData = async (
       );
     } else if (aggregate) {
       // Fetch an array of entities
-      const { results } = await aggregateEntity(
+      const { results, operation } = await aggregateEntity(
         {},
         {
           accountId,
@@ -104,10 +104,14 @@ const resolveLinkedData = async (
         info
       );
 
-      object.properties[key] = results;
+      object.properties[key].data = results;
+      object.properties[key].__linkedData.aggregate = {
+        ...object.properties[key].__linkedData.aggregate,
+        ...operation,
+      };
       // Resolve linked data for each entity in the array
       await Promise.all(
-        object.properties[key].map((entity: DbUnknownEntity) => {
+        object.properties[key].data.map((entity: DbUnknownEntity) => {
           return resolveLinkedData(ctx, entity.accountId, entity, info);
         })
       );

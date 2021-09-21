@@ -39,19 +39,26 @@ export type BlockProtocolCreatePayload<T> = {
   userId: string;
 };
 
-export type BlockProtocolAggregateOperation = {
-  page?: number | null;
-  perPage?: number | null;
+export type BlockProtocolAggregateOperationInput = {
+  pageNumber?: number;
+  itemsPerPage?: number;
   sort?: {
     field: string;
     desc?: boolean | undefined | null;
   } | null;
+  filter?: { field: string; value: string } | null;
+};
+
+export type BlockProtocolLinkedDataDefinition = {
+  aggregate?: BlockProtocolAggregateOperationInput & { pageCount?: number };
+  entityTypeId?: string;
+  entityId?: string;
 };
 
 export type BlockProtocolAggregatePayload = {
   entityTypeId: string;
   entityTypeVersionId?: string | null;
-  operation: BlockProtocolAggregateOperation;
+  operation: BlockProtocolAggregateOperationInput;
   accountId: string;
 };
 

@@ -86,8 +86,8 @@ export const aggregateEntity = gql`
         }
       }
       operation {
-        page
-        perPage
+        pageNumber
+        itemsPerPage
         sort
       }
     }

@@ -173,8 +173,8 @@ export const entityTypedef = gql`
 
   input AggregateOperationInput {
     filter: FilterOperationInput
-    perPage: Int = 10
-    page: Int = 1
+    itemsPerPage: Int = 10
+    pageNumber: Int = 1
     sort: SortOperationInput
   }
 
@@ -190,8 +190,9 @@ export const entityTypedef = gql`
 
   type AggregateOperation {
     filter: FilterOperation
-    perPage: Int!
-    page: Int!
+    itemsPerPage: Int!
+    pageNumber: Int!
+    pageCount: Int!
     sort: String!
   }
 

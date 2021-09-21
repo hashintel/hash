@@ -412,13 +412,14 @@ void (async () => {
                 "entityId",
                 "employer.entityId",
                 "employer.id",
+                "employer.entityType",
               ],
             },
             data: {
               __linkedData: {
                 entityTypeId: newTypeIds.Person,
                 aggregate: {
-                  perPage: 5,
+                  itemsPerPage: 5,
                   sort: {
                     field: "createdAt",
                   },
@@ -696,6 +697,10 @@ void (async () => {
               {
                 entityId: results.get("b5")?.entityVersionId || null,
                 accountId: results.get("b5")?.accountId || null,
+              },
+              {
+                entityId: results.get("b4")?.entityVersionId || null,
+                accountId: results.get("b4")?.accountId || null,
               },
               {
                 entityId: results.get("b6")?.entityVersionId || null,
