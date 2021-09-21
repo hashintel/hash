@@ -1,4 +1,5 @@
 import type { BlockVariant } from "@hashintel/block-protocol";
+import type { ReplacePortals } from "@hashintel/hash-shared/sharedWithBackend";
 import { ResolvedPos } from "prosemirror-model";
 import { EditorState, Plugin } from "prosemirror-state";
 import React, { CSSProperties, useContext, VoidFunctionComponent } from "react";
@@ -84,7 +85,7 @@ const findTrigger = (state: EditorState) => {
 /**
  * prosemirror plugin factory for the block suggester
  */
-export const createBlockSuggesterPlugin = (replacePortal: FixMeLater) => {
+export const createBlockSuggesterPlugin = (replacePortal: ReplacePortals) => {
   const mountNode = document.body;
 
   const suggesterPlugin: Plugin = new Plugin({
