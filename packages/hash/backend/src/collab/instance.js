@@ -74,7 +74,6 @@ class Instance {
         this.saveMapping = mapping;
 
         // @todo need to deal with generating steps for new blocks
-        // @todo new blocks aren't seeming to work
         return updatePageMutation(
           this.accountId,
           /* @todo one of these should be something else*/

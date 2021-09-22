@@ -42,18 +42,7 @@ const nodeToEntityProperties = (node: ProsemirrorNode<Schema>) =>
       }
     : undefined;
 
-/**
- * @todo get this info from entity store & a separate component register
- */
-const nodeToComponentId = (node: ProsemirrorNode<Schema>) => {
-  const nodeType = node.type;
-
-  // @todo type this properly – get this from somewhere else
-  const meta = (nodeType as any).defaultAttrs
-    .meta as Block["componentMetadata"];
-
-  return invertedBlockPaths[meta.url] ?? meta.url;
-};
+const nodeToComponentId = (node: ProsemirrorNode<Schema>) => node.type.name;
 
 const isEntityNode = (node: ProsemirrorNode<any>): node is EntityNode =>
   !!node.type.spec.attrs && "entityId" in node.type.spec.attrs;
@@ -275,7 +264,7 @@ const updateBlocks = defineOperation(
                 accountId: savedEntity.accountId,
                 properties: {
                   componentId: componentId,
-                  entityId: savedChildEntity.id,
+                  entityId: savedChildEntity.metadataId,
                   accountId: savedChildEntity.accountId,
                 },
               },
