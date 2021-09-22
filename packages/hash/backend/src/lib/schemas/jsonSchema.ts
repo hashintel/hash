@@ -1,16 +1,7 @@
+import { JSONObject } from "@hashintel/block-protocol";
 import Ajv2019 from "ajv/dist/2019";
 
 export const ajv = new Ajv2019();
-
-export type JSONValue =
-  | null
-  | boolean
-  | number
-  | string
-  | JSONValue[]
-  | JSONObject;
-
-export type JSONObject = { [key: string]: JSONValue };
 
 /**
  * @todo read server name from server config or environment variable
