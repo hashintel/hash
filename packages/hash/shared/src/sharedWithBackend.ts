@@ -194,16 +194,9 @@ export const createEntityUpdateTransaction = async (
   const schema = state.schema;
 
   const newNodes = await Promise.all(
-    entities.map(async (block, index) => {
-      const entityId = block.metadataId;
-
-      if (cachedPropertiesByPosition[index]) {
-        cachedPropertiesByEntity[entityId] = cachedPropertiesByPosition[index];
-        delete cachedPropertiesByPosition[index];
-      }
-
+    entities.map((block) =>
       // @todo pass signal through somehow
-      return await createRemoteBlock(
+      createRemoteBlock(
         schema,
         viewConfig,
         block.properties.componentId,
@@ -219,8 +212,8 @@ export const createEntityUpdateTransaction = async (
           // @todo recursive nodes
           throw new Error("unrecognised child");
         })
-      );
-    })
+      )
+    )
   );
 
   const { tr } = state;
@@ -253,9 +246,6 @@ const mapEntityToChildren = (entity: BlockEntity["properties"]["entity"]) => {
 
   return [];
 };
-
-export const cachedPropertiesByEntity: Record<string, Record<any, any>> = {};
-const cachedPropertiesByPosition: Record<string, Record<any, any>> = {};
 
 declare interface OrderedMapPrivateInterface<T> {
   content: (string | T)[];

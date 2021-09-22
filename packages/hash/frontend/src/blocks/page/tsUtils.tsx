@@ -24,6 +24,7 @@ type NodeViewConstructor = {
 
 type NodeViewConstructorArgs = ConstructorParameters<NodeViewConstructor>;
 
+// @todo we need to type this such that we're certain we're passing through all the props required
 const getRemoteBlockProps = (entity: EntityStoreType | null | undefined) => {
   if (entity) {
     if (!isBlockEntity(entity)) {
@@ -43,24 +44,6 @@ const getRemoteBlockProps = (entity: EntityStoreType | null | undefined) => {
   }
 
   return { properties: {} };
-};
-
-/**
- * @todo make this unnecessary
- */
-const getOverwrittenRemoteBlockProps = (
-  entity: EntityStoreType | null | undefined
-) => {
-  const originalProps = getRemoteBlockProps(entity);
-
-  // @todo we need to type this such that we're certain we're passing through all the props required
-  return {
-    ...originalProps,
-    // properties: {
-    //   ...((entity ? cachedPropertiesByEntity[entity.metadataId] : null) ?? {}),
-    //   ...originalProps.properties,
-    // },
-  };
 };
 
 /**
@@ -112,7 +95,7 @@ export const createNodeView = (
             {(entityStore) => {
               const entityId = node.attrs.entityId;
               const entity = entityStore[entityId];
-              const remoteBlockProps = getOverwrittenRemoteBlockProps(entity);
+              const remoteBlockProps = getRemoteBlockProps(entity);
 
               const editableRef = editable
                 ? (node: HTMLElement) => {
