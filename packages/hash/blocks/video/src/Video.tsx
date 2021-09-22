@@ -23,7 +23,6 @@ type AppProps = {
   }>;
   entityId: string;
   entityTypeId?: string;
-  htmlVideoProps?: HTMLVideoElement;
 };
 
 const placeholderText = "Enter Video URL";
@@ -38,7 +37,6 @@ export const Video: BlockComponent<AppProps> = (props) => {
     entityId,
     entityTypeId,
     update,
-    htmlVideoProps,
   } = props;
 
   const [stateObject, setStateObject] = useState<{
@@ -157,7 +155,6 @@ export const Video: BlockComponent<AppProps> = (props) => {
       <div className={tw`flex justify-center text-center w-full`}>
         <div className={tw`flex flex-col`}>
           <video
-            {...(htmlVideoProps ?? {})}
             controls
             style={{
               maxWidth: "100%",
