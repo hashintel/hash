@@ -1,9 +1,10 @@
-import { sql } from "slonik";
+import { NotFoundError, sql } from "slonik";
 
 import { Connection } from "./types";
 
 // @ts-ignore
 import { SYSTEM_ACCOUNT_SHORTNAME } from "../../lib/config";
+import { DbEntityNotFoundError } from "../errors";
 
 export const insertAccount = async (
   conn: Connection,
@@ -30,17 +31,24 @@ export const getEntityAccountId = async (
   conn: Connection,
   params: { entityId: string; entityVersionId?: string }
 ): Promise<string> => {
-  const row = params.entityVersionId
-    ? await conn.one(sql`
-      select account_id from entity_account
-      where entity_version_id = ${params.entityVersionId!}
-    `)
-    : await conn.one(sql`
-      select account_id from entity_account
-      where entity_id = ${params.entityId}
-    `);
-
-  return row["account_id"] as string;
+  const { entityId, entityVersionId } = params;
+  try {
+    const row = params.entityVersionId
+      ? await conn.one(sql`
+        select account_id from entity_account
+        where entity_version_id = ${entityVersionId!}
+      `)
+      : await conn.one(sql`
+        select account_id from entity_account
+        where entity_id = ${entityId}
+      `);
+    return row["account_id"] as string;
+  } catch (err) {
+    if (err instanceof NotFoundError) {
+      throw new DbEntityNotFoundError({ entityId, entityVersionId });
+    }
+    throw err;
+  }
 };
 
 /** Get the account ID of multiple entities. Returns a map from entity ID to account ID. */

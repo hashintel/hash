@@ -140,9 +140,12 @@ export interface DBClient {
   }): Promise<EntityType>;
 
   /**
-   * Create a new entity. If "entityVersionId" is not provided it will be automatically
-   * generated. To create a versioned entity, set the optional parameter "versioned" to
-   * `true`. One of entityTypeId, entityTypeVersionId or systemTypeName must be provided.
+   * Create a new entity. If `entityVersionId` is not provided it will be automatically
+   * generated. To create a versioned entity, set the optional parameter `versioned` to
+   * `true`. One of `entityTypeId`, `entityTypeVersionId` or `systemTypeName` must be
+   * provided.
+   * @throws: `DbInvalidLinksError` if the entity's properties contain a link to an
+   *          entity which does not exist.
    * */
   createEntity(params: {
     accountId: string;
@@ -223,6 +226,8 @@ export interface DBClient {
    * @param params.properties the entity's new properties.
    * @returns the entity's updated state.
    * @throws `DbEntityNotFoundError` if the entity does not exist.
+   * @throws `DbInvalidLinksError` if the entity's new properties link to an entity which
+   *          does not exist.
    */
   updateEntity(params: {
     accountId: string;
@@ -281,7 +286,10 @@ export interface DBClient {
    */
   getAllAccounts(): Promise<Entity[]>;
 
-  /** Update the metadata which may be associated with one or more entities. */
+  /**
+   * Update the metadata shared across all versions of an entity. Throws a
+   * `DbEntityNotFoundError` if the entity does not exist.
+   * */
   updateEntityMetadata(params: {
     accountId: string;
     entityId: string;

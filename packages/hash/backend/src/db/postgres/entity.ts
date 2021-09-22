@@ -1,4 +1,4 @@
-import { sql, QueryResultRowType } from "slonik";
+import { sql, QueryResultRowType, NotFoundError } from "slonik";
 
 import { Entity, EntityType, EntityVersion } from "../adapter";
 import { Connection } from "./types";
@@ -482,7 +482,11 @@ const hashCode = (str: string) => {
   return hash;
 };
 
-/** Update the properties of the provided entity by creating a new version. */
+/** Update the properties of the provided entity by creating a new version.
+ * @throws `DbEntityNotFoundError` if the entity does not exist.
+ * @throws `DbInvalidLinksError` if the entity's new properties link to an entity which
+ *          does not exist.
+ */
 const updateVersionedEntity = async (
   conn: Connection,
   params: {
@@ -549,17 +553,27 @@ const updateNonVersionedEntity = async (
     properties: params.properties,
   };
 
-  await Promise.all([
-    updateEntityVersionProperties(conn, updatedEntity),
+  try {
+    await Promise.all([
+      updateEntityVersionProperties(conn, updatedEntity),
 
-    insertLinks(conn, updatedEntity),
-  ]);
+      insertLinks(conn, updatedEntity),
+    ]);
+  } catch (err) {
+    if (err instanceof NotFoundError) {
+      throw new DbEntityNotFoundError(params.entity);
+    }
+    throw err;
+  }
 
   return updatedEntity;
 };
 
 /** Update an entity, either versioned or non-versioned. Note: the update is applied
  * to the latest version of the entity.
+ * @throws `DbEntityNotFoundError` if the entity does not exist.
+ * @throws `DbInvalidLinksError` if the entity's new properties link to an entity which
+ *          does not exist.
  */
 export const updateEntity = async (
   conn: Connection,
@@ -572,7 +586,7 @@ export const updateEntity = async (
   const { accountId, entityId, properties } = params;
   const entity = await getEntityLatestVersion(conn, params);
   if (!entity) {
-    throw new DbEntityNotFoundError(accountId, entityId);
+    throw new DbEntityNotFoundError({ accountId, entityId });
   }
 
   // @todo validate new entity properties against the schema of its entityType

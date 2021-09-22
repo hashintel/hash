@@ -4,6 +4,7 @@ import { Connection } from "./types";
 import { Entity } from "../adapter";
 import { gatherLinks } from "./util";
 import { getEntityAccountIdMany } from "./account";
+import { DbInvalidLinksError } from "../errors";
 
 const ZERO_UUID = "00000000-0000-0000-0000-000000000000";
 
@@ -113,8 +114,8 @@ export const getEntityParentIds = async (
 };
 
 /** Insert the link references made by the provided `entity` into the
- * `incoming_links` and `outgoing_links` tables. Throws an error if `entity` contains a
- * link to another entity which does not exist. */
+ * `incoming_links` and `outgoing_links` tables. Throws a `DbInalidLinksError` if `entity`
+ * contains a link to another entity which does not exist. */
 export const insertLinks = async (conn: Connection, entity: Entity) => {
   const linkedEntities = gatherLinks(entity);
   if (linkedEntities.length === 0) {
@@ -133,14 +134,9 @@ export const insertLinks = async (conn: Connection, entity: Entity) => {
         );
         return found ? null : { entityId, entityVersionId };
       })
-      .filter((it) => it);
-    throw new Error(
-      `entity ${entity.entityId} with version ID ${
-        entity.entityVersionId
-      } and type "${
-        entity.entityTypeName
-      }" links to unknown entities: ${JSON.stringify(missing)}`
-    );
+      .filter((it) => it)
+      .map((it) => it!);
+    throw new DbInvalidLinksError({ entity, invalid: missing });
   }
 
   await Promise.all([
