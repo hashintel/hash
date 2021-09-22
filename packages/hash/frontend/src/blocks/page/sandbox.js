@@ -200,7 +200,7 @@ const BlockSelect = forwardRef(({ options, onChange, selectedIndex }, ref) => {
         <ul
           className={tw`absolute z-10 w-96 max-h-60 overflow-auto border border-gray-100 rounded-lg`}
         >
-          {options.map(([componentId, { name, icon, description }], index) => (
+          {options.map(([_componentId, { name, icon, description }], index) => (
             <li
               key={index}
               className={tw`flex border border-gray-100 ${
