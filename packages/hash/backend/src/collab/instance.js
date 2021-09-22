@@ -1,15 +1,14 @@
-import { Mapping, Step } from "prosemirror-transform";
+import { Mapping, Step, Transform } from "prosemirror-transform";
 import { createInitialDoc, createSchema } from "@hashintel/hash-shared/schema";
-import { createEntityUpdateTransaction } from "@hashintel/hash-shared/sharedWithBackend";
+import {
+  createEntityUpdateTransaction,
+  getProseMirrorNodeAttributes,
+} from "@hashintel/hash-shared/sharedWithBackend";
 import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
 import { createProseMirrorState } from "@hashintel/hash-shared/sharedWithBackendJs";
 import { updatePageMutation } from "@hashintel/hash-shared/save";
-import {
-  createEntityStore,
-  EntityStore,
-} from "@hashintel/hash-shared/entityStore";
-import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
-import { BlockEntity } from "@hashintel/hash-shared/src/types";
+import { createEntityStore } from "@hashintel/hash-shared/entityStore";
+import { findEntityNodes } from "@hashintel/hash-shared/util";
 
 const MAX_STEP_HISTORY = 10000;
 
@@ -73,30 +72,57 @@ class Instance {
       .then(() => {
         this.saveMapping = mapping;
 
-        // @todo need to deal with generating steps for new blocks
+        const doc = this.doc;
+        const savedContents = this.savedContents;
+
         return updatePageMutation(
           this.accountId,
-          /* @todo one of these should be something else*/
           this.id,
-          this.id,
-          this.doc,
+          doc,
           this.savedContents,
+
           // @todo figure out something more performant than this
-          createEntityStore(this.savedContents),
+          createEntityStore(savedContents),
           apolloClient
-        );
+        ).then((newPage) => {
+          const entityNodes = findEntityNodes(this.doc);
+
+          this.savedContents = newPage.properties.contents;
+
+          for (let idx = 0; idx < entityNodes.length; idx++) {
+            const [entityNode, pos] = entityNodes[idx];
+
+            const entity = newPage.properties.contents[idx];
+
+            if (!entity) {
+              throw new Error("Could not find block in saved page");
+            }
+
+            if (!entityNode.attrs.entityId) {
+              const transform = new Transform(this.doc);
+              const attrs = getProseMirrorNodeAttributes(entity);
+              const mappedPos = mapping.map(pos);
+              const blockWithAttrs = this.doc.childAfter(mappedPos);
+
+              // @todo use a custom step for this so we don't need to copy attrs – we may lose some
+              transform.setNodeMarkup(mappedPos, undefined, {
+                ...blockWithAttrs.attrs,
+                ...attrs,
+              });
+
+              this.addEvents(apolloClient)(
+                this.version,
+                transform.steps,
+                `${clientID}-server`
+              );
+            }
+          }
+        });
       })
       .catch((err) => {
         console.error("could not save", err);
       })
-      .then(async () => {
-        const { data } = await apolloClient.query({
-          query: getPageQuery,
-          variables: { metadataId: this.id, accountId: this.accountId },
-        });
 
-        this.savedContents = data.page.properties.contents;
-      })
       .finally(() => {
         if (this.saveMapping === mapping) {
           this.saveMapping = null;

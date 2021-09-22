@@ -184,7 +184,6 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
 
           return updatePageMutation(
             accountId,
-            pageId,
             metadataId,
             prosemirrorSetup.current.view.state.doc,
             currentContents.current,

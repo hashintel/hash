@@ -1,5 +1,4 @@
 // @todo maybe this type needs to be named in more places
-import { EditorState } from "prosemirror-state";
 import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
 import { EntityStore, EntityStoreType, isBlockEntity } from "./entityStore";
 import { ApolloClient } from "@apollo/client";
@@ -11,14 +10,13 @@ import {
   UpdatePageContentsMutationVariables,
 } from "./graphql/apiTypes.gen";
 import { isEqual, omit, uniqBy } from "lodash";
-import { Block, invertedBlockPaths } from "./sharedWithBackend";
 import { BlockEntity } from "./types";
-
-type EntityNode = Omit<ProsemirrorNode<Schema>, "attrs"> & {
-  attrs: {
-    entityId: string | null;
-  };
-};
+import {
+  entityIdExists,
+  EntityNode,
+  findEntityNodes,
+  nodeToComponentId,
+} from "./util";
 
 // @todo type this properly
 const nodeToEntityProperties = (node: ProsemirrorNode<Schema>) =>
@@ -41,36 +39,6 @@ const nodeToEntityProperties = (node: ProsemirrorNode<Schema>) =>
             }) ?? [],
       }
     : undefined;
-
-const nodeToComponentId = (node: ProsemirrorNode<Schema>) => node.type.name;
-
-const isEntityNode = (node: ProsemirrorNode<any>): node is EntityNode =>
-  !!node.type.spec.attrs && "entityId" in node.type.spec.attrs;
-
-const findEntityNodes = (doc: ProsemirrorNode<any>) => {
-  const entityNodes: EntityNode[] = [];
-
-  doc.descendants((node) => {
-    if (node.type.name === "block") {
-      return true;
-    }
-
-    if (isEntityNode(node)) {
-      entityNodes.push(node);
-    }
-
-    return false;
-  });
-
-  return entityNodes;
-};
-
-const entityIdExists = (entities: BlockEntity[]) => {
-  const ids = new Set(entities.map((block) => block.metadataId));
-
-  return (entityId: string | null): entityId is string =>
-    !!entityId && ids.has(entityId);
-};
 
 /**
  * Our operations need to combine the actions from the previous operation,
@@ -306,13 +274,11 @@ const updateBlocks = defineOperation(
 
 const calculateSaveActions = (
   accountId: string,
-  pageId: string,
-  metadataId: string,
   doc: ProsemirrorNode<Schema>,
   blocks: BlockEntity[],
   entityStore: EntityStore
-): UpdatePageAction[] => {
-  const blockEntityNodes = findEntityNodes(doc);
+) => {
+  const blockEntityNodes = findEntityNodes(doc).map(([node]) => node);
   let actions: UpdatePageAction[] = [];
 
   blocks = [...blocks];
@@ -325,29 +291,20 @@ const calculateSaveActions = (
     accountId
   );
   [actions] = updateBlocks(actions, blocks, blockEntityNodes, entityStore);
-
   return actions;
 };
 
 export const updatePageMutation = async (
   accountId: string,
-  pageId: string,
   metadataId: string,
   doc: ProsemirrorNode<Schema>,
   blocks: BlockEntity[],
   entityStore: EntityStore,
   client: ApolloClient<any>
 ) => {
-  const actions = calculateSaveActions(
-    accountId,
-    pageId,
-    metadataId,
-    doc,
-    blocks,
-    entityStore
-  );
+  const actions = calculateSaveActions(accountId, doc, blocks, entityStore);
 
-  await client.mutate<
+  const res = await client.mutate<
     UpdatePageContentsMutation,
     UpdatePageContentsMutationVariables
   >({
@@ -355,5 +312,11 @@ export const updatePageMutation = async (
     mutation: updatePageContents,
   });
 
+  if (!res.data) {
+    throw new Error("Failed");
+  }
+
   await client.reFetchObservableQueries();
+
+  return res.data.updatePageContents;
 };
