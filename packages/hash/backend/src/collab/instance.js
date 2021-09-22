@@ -72,17 +72,13 @@ class Instance {
       .then(() => {
         this.saveMapping = mapping;
 
-        const doc = this.doc;
-        const savedContents = this.savedContents;
-
         return updatePageMutation(
           this.accountId,
           this.id,
-          doc,
+          this.doc,
           this.savedContents,
-
           // @todo figure out something more performant than this
-          createEntityStore(savedContents),
+          createEntityStore(this.savedContents),
           apolloClient
         ).then((newPage) => {
           const entityNodes = findEntityNodes(this.doc);
