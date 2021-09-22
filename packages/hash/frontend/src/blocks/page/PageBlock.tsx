@@ -33,7 +33,6 @@ import { BlockEntity } from "@hashintel/hash-shared/types";
 type PageBlockProps = {
   contents: BlockEntity[];
   blocksMeta: Map<string, BlockMeta>;
-  pageId: string;
   accountId: string;
   metadataId: string;
 };
@@ -72,7 +71,6 @@ if (typeof localStorage !== "undefined") {
 export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   contents,
   blocksMeta,
-  pageId,
   accountId,
   metadataId,
 }) => {
@@ -117,45 +115,6 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     currentEntityStoreValue.current = entityStoreValue;
   }, [entityStoreValue]);
 
-  const updateContents = useCallback(
-    async (
-      contents: PageFieldsFragment["properties"]["contents"],
-      signal?: AbortSignal
-    ): Promise<void> => {
-      const setup = prosemirrorSetup.current;
-      if (!setup) {
-        return;
-      }
-
-      const { view } = setup;
-
-      const state = view.state;
-
-      const tr = await createEntityUpdateTransaction(state, contents, {
-        view,
-        replacePortal,
-        createNodeView,
-      });
-
-      if (signal?.aborted) {
-        return;
-      }
-
-      /**
-       * The view's state may have changed, making our current transaction
-       * invalid – so lets start again.
-       *
-       * @todo probably better way of dealing with this
-       */
-      if (view.state !== state || prosemirrorSetup.current !== setup) {
-        return updateContents(contents, signal);
-      }
-
-      view.dispatch(tr);
-    },
-    [replacePortal]
-  );
-
   useLayoutEffect(() => {
     /**
      * Setting this function to global state as a shortcut to call it from deep
@@ -192,7 +151,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
           ).then(() => {});
         });
     };
-  }, [accountId, client, metadataId, pageId]);
+  }, [accountId, client, metadataId]);
 
   /**
    * This effect runs once and just sets up the prosemirror instance. It is not
@@ -307,8 +266,41 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     const controller = new AbortController();
 
     if (!collabEnabled) {
-      // @todo inline this function
-      updateContents(contents, controller.signal).catch((err) =>
+      (async function updateContents(
+        contents: PageFieldsFragment["properties"]["contents"],
+        signal?: AbortSignal
+      ): Promise<void> {
+        const setup = prosemirrorSetup.current;
+        if (!setup) {
+          return;
+        }
+
+        const { view } = setup;
+
+        const state = view.state;
+
+        const tr = await createEntityUpdateTransaction(state, contents, {
+          view,
+          replacePortal,
+          createNodeView,
+        });
+
+        if (signal?.aborted) {
+          return;
+        }
+
+        /**
+         * The view's state may have changed, making our current transaction
+         * invalid – so lets start again.
+         *
+         * @todo probably better way of dealing with this
+         */
+        if (view.state !== state || prosemirrorSetup.current !== setup) {
+          return updateContents(contents, signal);
+        }
+
+        view.dispatch(tr);
+      })(contents, controller.signal).catch((err) =>
         console.error("Could not update page contents: ", err)
       );
     }
@@ -316,7 +308,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     return () => {
       controller.abort();
     };
-  }, [replacePortal, updateContents, metadataId, contents]);
+  }, [replacePortal, metadataId, contents]);
 
   return (
     <BlockMetaContext.Provider value={blocksMeta}>
