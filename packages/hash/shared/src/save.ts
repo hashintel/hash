@@ -138,6 +138,10 @@ const moveBlocks = defineOperation(
   }
 );
 
+/**
+ * @warning this does not apply its actions to the entities it returns as it is
+ *          not necessary for the pipeline of calculations. Be wary of this.
+ */
 const insertBlocks = defineOperation(
   (entities: BlockEntity[], nodes: EntityNode[], accountId: string) => {
     const actions: UpdatePageAction[] = [];
@@ -164,6 +168,10 @@ const insertBlocks = defineOperation(
   }
 );
 
+/**
+ * @warning this does not apply its actions to the entities it returns as it is
+ *          not necessary for the pipeline of calculations. Be wary of this.
+ */
 const updateBlocks = defineOperation(
   (entities: BlockEntity[], nodes: EntityNode[], entityStore: EntityStore) => {
     const exists = entityIdExists(entities);
@@ -273,6 +281,26 @@ const updateBlocks = defineOperation(
   }
 );
 
+/**
+ * This function (and the various subfunctions) are written to be as
+ * readable as possible, as a priority over performance. Splitting it up into
+ * processing each type of operation one at a time means I'm probably looping
+ * more often that I need to. But it also makes the logic much more simple.
+ *
+ * This function loops through all the blocks on a page in order to
+ * generate a list of actions to sync the api with the changes made by a
+ * user. In order to do this, for each category of action, it loops through the
+ * page blocks at least once, and compares them to result of the previous
+ * action (or, if the first time, the result of the last save). When it finds a
+ * difference, it produces an action which can reproduce that difference on
+ * the API, and also emits a new version of the document with this action
+ * applied optimistically, in order to aid further change calculations –
+ * this is because each action is applied on the document produced by the
+ * previous document, so we need to track this as our actions are developed.
+ *
+ * @todo this needs to be able to handle multiple blocks of the same id
+ *       appearing on the same page
+ */
 const calculateSaveActions = (
   accountId: string,
   doc: ProsemirrorNode<Schema>,
