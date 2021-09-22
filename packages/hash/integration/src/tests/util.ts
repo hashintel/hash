@@ -24,9 +24,12 @@ import {
   GetPageQuery,
   UpdatePageContentsMutation,
   UpdatePageContentsMutationVariables,
+  CreateEntityTypeMutation,
+  CreateEntityTypeMutationVariables,
 } from "../graphql/apiTypes.gen";
 import {
   createEntity,
+  createEntityType,
   getUnknownEntity,
   updateEntity,
 } from "../graphql/queries/entity.queries";
@@ -128,6 +131,15 @@ export class ApiClient {
         CreatePageMutationVariables
       >(createPage, vars)
     ).createPage;
+  }
+
+  async createEntityType(vars: CreateEntityTypeMutationVariables) {
+    return (
+      await this.client.request<
+        CreateEntityTypeMutation,
+        CreateEntityTypeMutationVariables
+      >(createEntityType, vars)
+    ).createEntityType;
   }
 
   insertBlocksIntoPage = async (vars: InsertBlocksIntoPageMutationVariables) =>

@@ -367,4 +367,73 @@ describe("logged in user ", () => {
     expect(pageEntities[2].textProperties).toMatchObject(textPropertiesB);
     expect(pageEntities[3].textProperties).toMatchObject(textPropertiesC);
   });
+
+  describe("can create entity types", () => {
+    const validSchemaInput = {
+      description: "Test description",
+      schema: {
+        properties: {
+          testProperty: {
+            type: "string",
+          },
+        },
+      },
+      name: "Test schema",
+    };
+
+    it("can create an entity type with a valid schema", async () => {
+      const entityType = await client.createEntityType({
+        accountId: existingUser.accountId,
+        ...validSchemaInput,
+      });
+      expect(entityType.properties.title).toEqual(validSchemaInput.name);
+      expect(entityType.properties.description).toEqual(
+        validSchemaInput.description
+      );
+    });
+
+    it("enforces uniqueness of schema name in account", async () => {
+      await expect(
+        client.createEntityType({
+          accountId: existingUser.accountId,
+          ...validSchemaInput,
+        })
+      ).rejects.toThrowError(/name.+is not unique/i);
+    });
+
+    it("rejects entity types with invalid JSON schemas", async () => {
+      const schemaName = "Invalid schema entity type";
+      await expect(
+        client.createEntityType({
+          accountId: existingUser.accountId,
+          schema: {
+            properties: [],
+          },
+          name: schemaName + 1,
+        })
+      ).rejects.toThrowError(/properties must be object/);
+
+      await expect(
+        client.createEntityType({
+          accountId: existingUser.accountId,
+          schema: {
+            properties: {
+              testField: 4,
+            },
+          },
+          name: schemaName + 2,
+        })
+      ).rejects.toThrowError(/testField must be object,boolean/);
+
+      await expect(
+        client.createEntityType({
+          accountId: existingUser.accountId,
+          schema: {
+            invalidKeyword: true,
+          },
+          name: schemaName + 3,
+        })
+      ).rejects.toThrowError(/unknown keyword/);
+    });
+  });
 });

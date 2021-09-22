@@ -1,4 +1,6 @@
+import { ApolloError } from "apollo-server-express";
 import url from "url";
+import { JSONObject } from "@hashintel/block-protocol";
 
 import { EntityType } from ".";
 import { DBClient } from "../db";
@@ -7,7 +9,6 @@ import {
   UnknownEntity as GQLUnknownEntity,
   Visibility,
 } from "../graphql/apiTypes.gen";
-import { JSONObject } from "../lib/schemas/jsonSchema";
 import { EntityTypeTypeFields } from "../db/adapter";
 
 const { FRONTEND_URL } = require("../lib/config");
@@ -87,13 +88,20 @@ class __EntityType {
     }): Promise<EntityType> => {
       const { accountId, createdById, description, schema, name } = args;
 
-      const entityType = await db.createEntityType({
-        accountId,
-        createdById,
-        description,
-        name,
-        schema,
-      });
+      const entityType = await db
+        .createEntityType({
+          accountId,
+          createdById,
+          description,
+          name,
+          schema,
+        })
+        .catch((err) => {
+          if (err.message.includes("not unique")) {
+            throw new ApolloError(err.message, "NAME_NOT_UNIQUE");
+          }
+          throw err;
+        });
 
       return new EntityType(entityType);
     };

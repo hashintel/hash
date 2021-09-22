@@ -1,14 +1,7 @@
-import { validate } from "jsonschema";
+import { JSONObject } from "@hashintel/block-protocol";
+import Ajv2019 from "ajv/dist/2019";
 
-export type JSONValue =
-  | null
-  | boolean
-  | number
-  | string
-  | JSONValue[]
-  | JSONObject;
-
-export type JSONObject = { [key: string]: JSONValue };
+export const ajv = new Ajv2019();
 
 /**
  * @todo read server name from server config or environment variable
@@ -38,11 +31,11 @@ export const jsonSchema = (
   }
 
   if (typeof schema === "string") {
-    schema = JSON.parse(schema);
+    schema = JSON.parse(schema) as JSONObject;
   }
 
   try {
-    validate(title, schema, { allowUnknownAttributes: false });
+    ajv.compile(schema);
   } catch (err) {
     throw new Error("Error in provided schema: " + err.message);
   }

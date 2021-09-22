@@ -171,9 +171,6 @@ export const insertEntityType = async (
   }
 ): Promise<void> => {
   try {
-    // The "on conflict do nothing" clause is required here because multiple transactions
-    // may try to insert at the same time causing a conflict on the UNIQUE constraint on
-    // entity_types name column.
     await conn.query(sql`
       insert into entity_types (
         name, account_id, entity_type_id, versioned,
@@ -184,7 +181,6 @@ export const insertEntityType = async (
         ${params.createdById}, ${params.entityCreatedAt.toISOString()},
         ${params.entityCreatedAt.toISOString()}
       )
-      on conflict do nothing
     `);
   } catch (err) {
     if (err instanceof UniqueIntegrityConstraintViolationError) {
