@@ -27,8 +27,9 @@ The following programs must be present on your development system:
 
 ## Start the backend & database
 
-  1. Ensure Docker is running.
-  2. Ensure port 5432 is not occupied (i.e. no other postgres service) - You can check
+  1. Make sure you have the `packages/hash/docker/.env` file present (found in 1Password)
+  2. Ensure Docker is running.
+  3. Ensure port 5432 is not occupied (i.e. no other postgres service) - You can check
      with `lsof -n -i:5432`
   3. If it's your first time, run `docker volume create hash-dev-pg` to create
      the storage volume.
@@ -125,6 +126,10 @@ That same config requires a `tsconfig.json` next to the `package.json` if `.ts(x
 be linted.
 
 ## Troubleshooting
+
+### Can't log in / not receiving an email
+
+Make sure you have the `.env` file added at `packages/hash/docker/.env`
 
 ### npm-run-all
 
