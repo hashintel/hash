@@ -2,7 +2,11 @@ import { JSONObject } from "@hashintel/block-protocol";
 import merge from "lodash.merge";
 import { Entity, EntityType, EntityWithIncompleteEntityType } from ".";
 import { DBClient } from "../db";
-import { EntityMeta, EntityType as DbEntityType } from "../db/adapter";
+import {
+  DBLinkedEntity,
+  EntityMeta,
+  EntityType as DbEntityType,
+} from "../db/adapter";
 import { Visibility } from "../graphql/apiTypes.gen";
 import { SystemType } from "../types/entityTypes";
 
@@ -160,6 +164,13 @@ class __Entity {
       client
         .updateEntity(args)
         .then((updatedDbEntity) => new Entity(updatedDbEntity));
+
+  convertToDBLink = (): DBLinkedEntity => ({
+    __linkedData: {
+      entityId: this.entityId,
+      entityTypeId: this.entityType.entityId,
+    },
+  });
 
   updateProperties = (client: DBClient) => (properties: any) =>
     client

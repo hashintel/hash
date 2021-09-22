@@ -1,4 +1,4 @@
-import { Org, Account, AccountConstructorArgs } from ".";
+import { Org, Account, AccountConstructorArgs, OrgInvitation } from ".";
 import { DBClient } from "../db";
 import { DBOrgProperties, EntityType } from "../db/adapter";
 import { genId } from "../util";
@@ -49,20 +49,23 @@ class __Org extends Account {
   static createOrg =
     (client: DBClient) =>
     async (params: {
-      properties: DBOrgProperties;
       createdById: string;
+      properties: DBOrgProperties;
     }): Promise<Org> => {
-      const id = genId();
+      const accountId = genId();
 
       const entity = await client.createEntity({
         ...params,
-        accountId: id,
-        entityVersionId: id,
+        accountId,
         entityTypeId: (await Org.getEntityType(client)).entityId,
         versioned: false, // @todo: should Org's be versioned?
       });
 
-      return new Org(entity);
+      const org = new Org(entity);
+
+      await OrgInvitation.createOrgInvitation(client)({ org });
+
+      return org;
     };
 
   private updateOrgProperties =

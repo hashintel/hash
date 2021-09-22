@@ -255,12 +255,7 @@ class __User extends Account {
         memberOf: [
           ...this.properties.memberOf,
           {
-            org: {
-              __linkedData: {
-                entityId: params.org.entityId,
-                entityTypeId: params.org.entityType.entityId,
-              },
-            },
+            org: params.org.convertToDBLink(),
             responsibility: params.responsibility,
           },
         ],

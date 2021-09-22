@@ -19,8 +19,15 @@ abstract class __AccessToken extends Entity {
     this.properties = properties;
   }
 
+  /**
+   * Generates a cryptographically secure access token.
+   * @returns the access token
+   */
   static generateAccessToken = () => crypto.randomBytes(16).toString("hex");
 
+  /**
+   * Revokes the access token, so that it can no longer be used.
+   */
   revoke = (client: DBClient) => {
     if (this.hasBeenRevoked()) {
       throw new Error(
@@ -33,6 +40,9 @@ abstract class __AccessToken extends Entity {
     });
   };
 
+  /**
+   * @returns whether or not the access token has been revoked.
+   */
   hasBeenRevoked = (): boolean => !!this.properties.revokedAt;
 }
 
