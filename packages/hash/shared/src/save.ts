@@ -1,10 +1,10 @@
-// @todo maybe this type needs to be named in more places
 import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
 import { EntityStore, EntityStoreType, isBlockEntity } from "./entityStore";
 import { ApolloClient } from "@apollo/client";
 import { updatePageContents } from "./queries/page.queries";
 import {
   SystemTypeName,
+  TextPropertiesText,
   UpdatePageAction,
   UpdatePageContentsMutation,
   UpdatePageContentsMutationVariables,
@@ -18,27 +18,28 @@ import {
   nodeToComponentId,
 } from "./util";
 
-// @todo type this properly
-const nodeToEntityProperties = (node: ProsemirrorNode<Schema>) =>
-  node.type.isTextblock
-    ? {
-        texts:
-          (node.content.toJSON() as any[])
-            ?.filter((child: any) => child.type === "text")
-            .map((child: any) => {
-              const marks = new Set<string>(
-                child.marks?.map((mark: any) => mark.type) ?? []
-              );
+const nodeToEntityProperties = (node: ProsemirrorNode<Schema>) => {
+  if (node.type.isTextblock) {
+    const texts: TextPropertiesText[] = [];
 
-              return {
-                text: child.text,
-                bold: marks.has("strong"),
-                italics: marks.has("em"),
-                underline: marks.has("underlined"),
-              };
-            }) ?? [],
+    node.content.descendants((child) => {
+      if (child.type.name === "text") {
+        const marks = new Set<string>(
+          child.marks.map((mark) => mark.type.name)
+        );
+
+        texts.push({
+          text: child.text ?? "",
+          bold: marks.has("strong"),
+          italics: marks.has("em"),
+          underline: marks.has("underlined"),
+        });
       }
-    : undefined;
+    });
+
+    return { texts };
+  }
+};
 
 /**
  * Our operations need to combine the actions from the previous operation,
