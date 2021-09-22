@@ -3,8 +3,8 @@ import { Decoration, EditorView, NodeView } from "prosemirror-view";
 import { RemoteBlock } from "../../components/RemoteBlock/RemoteBlock";
 import {
   Block,
-  blockPaths,
   cachedPropertiesByEntity,
+  componentIdToUrl,
   ReplacePortals,
 } from "@hashintel/hash-shared/sharedWithBackend";
 import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
@@ -133,8 +133,7 @@ export const createNodeView = (
                   }
                 : undefined;
 
-              const mappedUrl = ((blockPaths as any)[componentId] ??
-                componentId) as string;
+              const mappedUrl = componentIdToUrl(componentId);
 
               return (
                 <RemoteBlock

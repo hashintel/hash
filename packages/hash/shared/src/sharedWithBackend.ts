@@ -94,11 +94,14 @@ function toBlockConfig(
   return { ...options, componentId, variants };
 }
 
+export const componentIdToUrl = (componentId: string) =>
+  ((blockPaths as any)[componentId] ?? componentId) as string;
+
 // @todo deal with errors, loading, abort etc.
 export const fetchBlockMeta = async (
   componentId: string
 ): Promise<BlockMeta> => {
-  const url = ((blockPaths as any)[componentId] ?? componentId) as string;
+  const url = componentIdToUrl(componentId);
 
   if (blockCache.has(url)) {
     return blockCache.get(url)!;
