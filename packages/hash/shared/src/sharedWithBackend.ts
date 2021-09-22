@@ -267,10 +267,6 @@ const mapEntityToChildren = (
   return [];
 };
 
-const invertedBlockPaths = Object.fromEntries(
-  Object.entries(blockPaths).map(([key, value]) => [value, key])
-);
-
 export const cachedPropertiesByEntity: Record<string, Record<any, any>> = {};
 const cachedPropertiesByPosition: Record<string, Record<any, any>> = {};
 
