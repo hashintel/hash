@@ -3,6 +3,7 @@ import { Decoration, EditorView, NodeView } from "prosemirror-view";
 import { RemoteBlock } from "../../components/RemoteBlock/RemoteBlock";
 import {
   Block,
+  blockPaths,
   cachedPropertiesByEntity,
   ReplacePortals,
 } from "@hashintel/hash-shared/sharedWithBackend";
@@ -70,9 +71,9 @@ const getOverwrittenRemoteBlockProps = (
  * each block
  */
 export const createNodeView = (
-  name: string,
+  componentId: string,
   componentSchema: Block["componentSchema"],
-  url: string,
+  sourceName: string,
   replacePortal: ReplacePortals
 ): NodeViewConstructor => {
   const editable = componentSchema.properties?.["editableRef"];
@@ -106,7 +107,7 @@ export const createNodeView = (
     }
 
     update(node: any) {
-      if (node?.type.name === name) {
+      if (node?.type.name === componentId) {
         replacePortal(
           this.target,
           this.target,
@@ -132,10 +133,13 @@ export const createNodeView = (
                   }
                 : undefined;
 
+              const mappedUrl = ((blockPaths as any)[componentId] ??
+                componentId) as string;
+
               return (
                 <RemoteBlock
                   {...remoteBlockProps}
-                  url={url}
+                  url={`${mappedUrl}/${sourceName}`}
                   editableRef={editableRef}
                 />
               );
@@ -173,7 +177,7 @@ export const createNodeView = (
   };
 
   // Attempt to improve debugging by giving the node view class a dynamic name
-  Object.defineProperty(nodeView, "name", { value: `${name}View` });
+  Object.defineProperty(nodeView, "name", { value: `${componentId}View` });
 
   return nodeView;
 };

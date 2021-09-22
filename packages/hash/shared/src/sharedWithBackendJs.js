@@ -28,7 +28,7 @@ let AsyncBlockCacheView = null;
  *
  * @todo support taking a signal
  */
-export const defineRemoteBlock = async (schema, viewConfig, componentUrl) => {
+export const defineRemoteBlock = async (schema, viewConfig, componentId) => {
   /**
    * Clear the cache if the cache was setup on a different prosemirror view.
    * Probably won't happen but with fast refresh and global variables, got to
@@ -42,38 +42,38 @@ export const defineRemoteBlock = async (schema, viewConfig, componentUrl) => {
   }
 
   // If the block has not already been defined, we need to fetch the metadata & define it
-  if (!componentUrl || !schema.nodes[componentUrl]) {
-    if (!AsyncBlockCache.has(componentUrl)) {
-      const promise = fetchBlockMeta(componentUrl)
+  if (!componentId || !schema.nodes[componentId]) {
+    if (!AsyncBlockCache.has(componentId)) {
+      const promise = fetchBlockMeta(componentId)
         .then(({ componentMetadata, componentSchema }) => {
-          if (!componentUrl || !schema.nodes[componentUrl]) {
+          if (!componentId || !schema.nodes[componentId]) {
             defineNewBlock(
               schema,
               componentMetadata,
               componentSchema,
               viewConfig,
-              componentUrl
+              componentId
             );
           }
         })
         .catch((err) => {
           // We don't want failed requests to prevent future requests to the block being successful
-          if (AsyncBlockCache.get(componentUrl) === promise) {
-            AsyncBlockCache.delete(componentUrl);
+          if (AsyncBlockCache.get(componentId) === promise) {
+            AsyncBlockCache.delete(componentId);
           }
 
           console.error("bang", err);
           throw err;
         });
 
-      AsyncBlockCache.set(componentUrl, promise);
+      AsyncBlockCache.set(componentId, promise);
     }
 
     /**
      * Wait for the cached request to finish (and therefore the block to have
      * been defined). In theory we'd want a retry mechanism here
      */
-    await AsyncBlockCache.get(componentUrl);
+    await AsyncBlockCache.get(componentId);
   }
 };
 
@@ -86,15 +86,15 @@ export const defineRemoteBlock = async (schema, viewConfig, componentUrl) => {
 export const createRemoteBlock = async (
   schema,
   viewConfig,
-  componentUrl,
+  componentId,
   attrs,
   children,
   marks
 ) => {
-  await defineRemoteBlock(schema, viewConfig, componentUrl);
+  await defineRemoteBlock(schema, viewConfig, componentId);
 
   // Create a new instance of the newly defined prosemirror node
-  return schema.nodes[componentUrl].create(attrs, children, marks);
+  return schema.nodes[componentId].create(attrs, children, marks);
 };
 
 const rewrapCommand = (blockExisted) => (newState, dispatch) => {
