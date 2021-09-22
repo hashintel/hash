@@ -42,6 +42,8 @@ export const entityTypeTypedef = gql`
     Page
     Text
     User
+    OrgInvitation
+    OrgEmailInvitation
   }
 
   """

@@ -4,7 +4,7 @@ const path = require("path");
 const generatedIds = require("./data/generatedIds.json");
 
 const { entityTypeJson } = require("./data/systemTypeSchemas");
-const { SYSTEM_ACCOUNT_SHORTNAME } = require("../../../src/lib/config");
+const { SYSTEM_ACCOUNT_SHORTNAME, SYSTEM_TYPES } = require("../../../src/lib/config");
 
 const now =  '2021-08-19T11:00:14.588Z';
 
@@ -16,7 +16,7 @@ const systemAccount = generatedIds.orgs[SYSTEM_ACCOUNT_SHORTNAME];
 
 let sqlString = "";
 
-for (const typeName of ["Block", "EntityType", "Page", "Text", "User"]) {
+for (const typeName of SYSTEM_TYPES.filter((typeName) => typeName !== "Org")) {
   const type = types[typeName];
 
   sqlString += `insert into entity_types (

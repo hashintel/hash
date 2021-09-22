@@ -1,34 +1,42 @@
 {
   "orgs": {
     "hash": {
-      "fixedId": "543ba1a2-ed99-447e-a4d8-d2c73d5b0c6e",
-      "firstVersionId": "809a81f4-9c72-4d8b-bc2f-54ce884443e1"
+      "fixedId": "bc2e14d1-36a2-47fc-aa97-99c6ab28d562",
+      "firstVersionId": "fdc7586e-e014-40b6-bea7-5d382b773954"
     }
   },
   "types": {
     "Block": {
-      "fixedId": "3c3d4aed-6b48-483f-a48b-10c0d327ef41",
-      "firstVersionId": "dca9bb26-2bbc-41c7-af42-005ed803a1e4"
+      "fixedId": "766ab052-f6b0-4264-9827-8999e637466c",
+      "firstVersionId": "821c8aa3-b5cb-4276-a550-342decc9a563"
     },
     "EntityType": {
-      "fixedId": "122165bb-6843-4417-a070-ee8027d2612c",
-      "firstVersionId": "3fa77d97-851a-4c49-a0f5-f0b2c1b81689"
+      "fixedId": "b9e57867-943a-4e84-88c5-5d5f7022d99a",
+      "firstVersionId": "10d08f4f-7215-4a52-ad44-a3bb2407a6ad"
     },
     "Org": {
-      "fixedId": "6163639e-5a47-4f05-b595-7ebe086d616d",
-      "firstVersionId": "ca0e4f70-407c-486d-95e2-7f2b3a6c21bd"
+      "fixedId": "2684ab5a-c927-4c91-a49e-838bb75719b3",
+      "firstVersionId": "993600be-de8e-46f1-aef7-d3ea9ded65a2"
     },
     "Page": {
-      "fixedId": "5d8c70c2-58cd-425a-8625-9fd6d2005883",
-      "firstVersionId": "ad67c2cd-7457-4807-8b69-91b52bf9be4e"
+      "fixedId": "dc1fac23-7b73-4076-a0f2-db766a763fce",
+      "firstVersionId": "4fcaf862-f896-43c9-94f3-40af2ac3efaf"
     },
     "Text": {
-      "fixedId": "3a9c2ea5-4d21-4c12-8619-08c20fb3bf94",
-      "firstVersionId": "f39082ba-7c30-4890-a3f2-2658145808fe"
+      "fixedId": "fb82f307-ea4c-46fc-b447-c3441308e980",
+      "firstVersionId": "106de286-9890-443e-808e-0564167b65b5"
     },
     "User": {
-      "fixedId": "54001e67-eef5-4719-ad48-648d638d73c4",
-      "firstVersionId": "ed449fe2-abc4-48f0-bf43-921e7e8dfb5a"
+      "fixedId": "947a1b54-5ec9-49f6-aae8-1c71ba722461",
+      "firstVersionId": "0452c7fc-2743-4e6e-8135-a9dcc094696b"
+    },
+    "OrgInvitation": {
+      "fixedId": "05f144cf-01f0-4bd6-a54d-d9ddc3db5d43",
+      "firstVersionId": "b5b39548-ef9e-4c93-ac16-03c811edd488"
+    },
+    "OrgEmailInvitation": {
+      "fixedId": "394eb1aa-bb99-44d6-b3ca-a46524605d50",
+      "firstVersionId": "98802676-271a-43af-ba17-acc9298bf7d3"
     }
   }
 }

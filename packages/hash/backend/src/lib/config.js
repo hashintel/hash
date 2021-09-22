@@ -12,4 +12,14 @@ module.exports = {
   FRONTEND_URL: `http://${FRONTEND_DOMAIN}`,
   SYSTEM_ACCOUNT_SHORTNAME: "hash",
   SYSTEM_ACCOUNT_NAME: "HASH",
+  SYSTEM_TYPES: [
+    "Block",
+    "EntityType",
+    "Org",
+    "Page",
+    "Text",
+    "User",
+    "OrgInvitation",
+    "OrgEmailInvitation",
+  ],
 };
