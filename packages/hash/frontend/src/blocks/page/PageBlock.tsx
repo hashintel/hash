@@ -186,7 +186,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
             accountId,
             pageId,
             metadataId,
-            prosemirrorSetup.current.view.state,
+            prosemirrorSetup.current.view.state.doc,
             currentContents.current,
             currentEntityStoreValue.current,
             client

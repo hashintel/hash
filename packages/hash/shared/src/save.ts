@@ -319,11 +319,11 @@ const calculateSaveActions = (
   accountId: string,
   pageId: string,
   metadataId: string,
-  state: EditorState<Schema>,
+  doc: ProsemirrorNode<Schema>,
   blocks: BlockEntity[],
   entityStore: EntityStore
 ): UpdatePageAction[] => {
-  const blockEntityNodes = findEntityNodes(state.doc);
+  const blockEntityNodes = findEntityNodes(doc);
   let actions: UpdatePageAction[] = [];
 
   blocks = [...blocks];
@@ -344,7 +344,7 @@ export const updatePageMutation = async (
   accountId: string,
   pageId: string,
   metadataId: string,
-  state: EditorState<Schema>,
+  doc: ProsemirrorNode<Schema>,
   blocks: BlockEntity[],
   entityStore: EntityStore,
   client: ApolloClient<any>
@@ -353,7 +353,7 @@ export const updatePageMutation = async (
     accountId,
     pageId,
     metadataId,
-    state,
+    doc,
     blocks,
     entityStore
   );

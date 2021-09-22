@@ -1,23 +1,21 @@
-import { Mapping, Step, Transform } from "prosemirror-transform";
+import { Mapping, Step } from "prosemirror-transform";
 import { createInitialDoc, createSchema } from "@hashintel/hash-shared/schema";
-import {
-  calculateSavePayloads,
-  createEntityUpdateTransaction,
-  getProseMirrorNodeAttributes,
-} from "@hashintel/hash-shared/sharedWithBackend";
-import {
-  getPageQuery,
-  insertBlockIntoPage,
-  updatePage,
-} from "@hashintel/hash-shared/queries/page.queries";
-import { updateEntity } from "@hashintel/hash-shared/queries/entity.queries";
+import { createEntityUpdateTransaction } from "@hashintel/hash-shared/sharedWithBackend";
+import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
 import { createProseMirrorState } from "@hashintel/hash-shared/sharedWithBackendJs";
+import { updatePageMutation } from "@hashintel/hash-shared/save";
+import {
+  createEntityStore,
+  EntityStore,
+} from "@hashintel/hash-shared/entityStore";
+import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
+import { BlockEntity } from "@hashintel/hash-shared/src/types";
 
 const MAX_STEP_HISTORY = 10000;
 
 // A collaborative editing document instance.
 class Instance {
-  constructor(accountId, id, doc, savedContents, client) {
+  constructor(accountId, id, doc, savedContents) {
     this.accountId = accountId;
     this.id = id;
     this.doc = doc;
@@ -75,82 +73,19 @@ class Instance {
       .then(() => {
         this.saveMapping = mapping;
 
-        const doc = this.doc;
-
-        const insert = async (insertPayload) => {
-          const { data } = await apolloClient.mutate({
-            mutation: insertBlockIntoPage,
-            variables: insertPayload,
-          });
-
-          const { position } = insertPayload;
-          const entity = data.insertBlockIntoPage.properties.contents[position];
-
-          const offset = await new Promise((resolve) => {
-            doc.forEach((_, offset, index) => {
-              if (index === position) {
-                resolve(offset);
-              }
-            });
-          });
-
-          const transform = new Transform(this.doc);
-          const attrs = getProseMirrorNodeAttributes(entity);
-
-          const blockWithAttrs = this.doc.childAfter(mapping.map(offset) + 1);
-
-          // @todo use a custom step for this so we don't need to copy attrs – we may lose some
-          transform.setNodeMarkup(mapping.map(offset) + 1, undefined, {
-            ...blockWithAttrs.attrs,
-            ...attrs,
-          });
-
-          this.addEvents(apolloClient)(
-            this.version,
-            transform.steps,
-            `${clientID}-server`
-          );
-        };
-
-        const update = async (updatePayloads) => {
-          for (const updatePayload of updatePayloads) {
-            const { data } = await apolloClient.mutate({
-              mutation:
-                updatePayload.entityTypeId === "Page"
-                  ? updatePage
-                  : updateEntity,
-              variables: {
-                metadataId: updatePayload.entityId,
-                properties: updatePayload.data,
-                accountId: updatePayload.accountId,
-              },
-            });
-
-            console.log("update", data);
-          }
-        };
-
-        const { insertPayloads, pageUpdatedPayload, updatedEntitiesPayload } =
-          calculateSavePayloads(
-            this.accountId,
-            // @todo one of these should be something else
-            this.id,
-            this.id,
-
-            this.doc.type.schema,
-            this.doc,
-            this.savedContents
-          );
-
-        return insertPayloads
-          .reduce(
-            (promise, insertPayload) =>
-              promise.catch(() => {}).then(() => insert(insertPayload)),
-            pageUpdatedPayload
-              ? update([pageUpdatedPayload])
-              : Promise.resolve()
-          )
-          .then(() => update(updatedEntitiesPayload));
+        // @todo need to deal with generating steps for new blocks
+        // @todo new blocks aren't seeming to work
+        return updatePageMutation(
+          this.accountId,
+          /* @todo one of these should be something else*/
+          this.id,
+          this.id,
+          this.doc,
+          this.savedContents,
+          // @todo figure out something more performant than this
+          createEntityStore(this.savedContents),
+          apolloClient
+        );
       })
       .catch((err) => {
         console.error("could not save", err);
