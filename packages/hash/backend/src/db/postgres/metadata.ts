@@ -1,7 +1,8 @@
 import { Connection } from "./types";
 import { EntityMeta } from "../adapter";
 
-import { sql } from "slonik";
+import { NotFoundError, sql } from "slonik";
+import { DbEntityNotFoundError } from "../errors";
 
 export const insertEntityMetadata = async (
   conn: Connection,
@@ -26,6 +27,10 @@ export const insertEntityMetadata = async (
   return params;
 };
 
+/**
+ * Update the fixed metadata across all versions of an entity. Throws a
+ * `DbEntityNotFoundError` if the entity does not exist.
+ * */
 export const updateEntityMetadata = async (
   conn: Connection,
   params: {
@@ -34,17 +39,24 @@ export const updateEntityMetadata = async (
     extra: any;
   }
 ): Promise<EntityMeta> => {
-  const row = await conn.one(sql`
-    update entities
-    set
-      extra = ${sql.json(params.extra)},
-      metadata_updated_at = ${new Date().toISOString()}
-    where
-      account_id = ${params.accountId} and entity_id = ${params.entityId}
-    returning *
-  `);
-  return {
-    versioned: row["versioned"] as boolean,
-    extra: row["extra"],
-  };
+  try {
+    const row = await conn.one(sql`
+      update entities
+      set
+        extra = ${sql.json(params.extra)},
+        metadata_updated_at = ${new Date().toISOString()}
+      where
+        account_id = ${params.accountId} and entity_id = ${params.entityId}
+      returning *
+    `);
+    return {
+      versioned: row["versioned"] as boolean,
+      extra: row["extra"],
+    };
+  } catch (err) {
+    if (err instanceof NotFoundError) {
+      throw new DbEntityNotFoundError(params);
+    }
+    throw err;
+  }
 };

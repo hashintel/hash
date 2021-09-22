@@ -1,10 +1,13 @@
-import { sql, QueryResultRowType } from "slonik";
+import { sql, QueryResultRowType, NotFoundError } from "slonik";
 
 import { Entity, EntityType, EntityVersion } from "../adapter";
 import { Connection } from "./types";
-
 import { mapPGRowToEntityType } from "./entitytypes";
 import { Visibility } from "../../graphql/apiTypes.gen";
+import { genId } from "../../util";
+import { insertLinks } from "./link";
+import { insertEntityAccount } from "./account";
+import { DbEntityNotFoundError } from "../errors";
 
 /** Prefix to distinguish identical fields when joining with a type record */
 const entityTypeFieldPrefix = "type.";
@@ -105,6 +108,17 @@ const selectEntityAllVersions = (params: {
     account_id = ${params.accountId} and entity_id = ${params.entityId}
 `;
 
+/** Query for retriveing all versions of multiple entities. */
+const selectEntitiesAllVersions = (params: {
+  accountId: string;
+  entityIds: string[];
+}) => sql`
+  select * from (${selectEntities}) as entities
+  where
+    account_id = ${params.accountId}
+    and entity_id = any(${sql.array(params.entityIds, "uuid")})
+`;
+
 /**
  * Select all entities of the same type,
  * @param params.entityTypeId the entity type id to return entities of
@@ -167,6 +181,50 @@ export const getEntityLatestVersion = async (
     order by entity_id, version_created_at desc`
   );
   return row ? mapPGRowToEntity(row) : undefined;
+};
+
+/**
+ * Get the latest version of multiple entities from a single account.
+ */
+const getEntitiesLatestVersion = async (
+  conn: Connection,
+  params: {
+    accountId: string;
+    entityIds: string[];
+  }
+): Promise<Entity[]> => {
+  const rows = await conn.any(sql`
+    select * from (
+      select
+        *,
+        row_number() over (partition by entity_id order by version_created_at desc) as rank
+      from (${selectEntitiesAllVersions(params)}) as all_matches
+    ) as ranking
+    where rank = 1;
+  `);
+  return rows.map(mapPGRowToEntity);
+};
+
+/**
+ * Get specific versions of multiple entities from a single account.
+ */
+const getEntityVersions = async (
+  conn: Connection,
+  params: {
+    accountId: string;
+    entityVersionIds: string[];
+  }
+): Promise<Entity[]> => {
+  const rows = await conn.any(sql`
+    with all_matches as (
+      ${selectEntities}
+    )
+    select * from all_matches
+    where
+      account_id = ${params.accountId}
+      and entity_version_id = any(${sql.array(params.entityVersionIds, "uuid")})
+  `);
+  return rows.map(mapPGRowToEntity);
 };
 
 /** Get the ID of the latest version of an entity. Returns `undefined` if the entity
@@ -314,47 +372,86 @@ export const getEntityHistory = async (
   }));
 };
 
+/**
+ * Get multiple entities from a given account. If `entityVersionId` is not set, the
+ * function retrieves the latest version of that entity, otherwise it retrieves the
+ * specific version requested.
+ */
 const getEntitiesInAccount = async (
   conn: Connection,
-  params: { accountId: string; versionIds: string[] }
+  params: {
+    accountId: string;
+    ids: { entityId: string; entityVersionId?: string }[];
+  }
 ) => {
-  const rows = await conn.any(sql`
-    select * from (${selectEntities}) as entities
-    where
-      account_id = ${params.accountId}
-      and entity_version_id = any(${sql.array(params.versionIds, "uuid")})
-  `);
-  return rows.map(mapPGRowToEntity);
+  const { accountId } = params;
+
+  const latestEntities = params.ids
+    .filter((id) => !id.entityVersionId)
+    .map((id) => id.entityId);
+
+  const versionEntities = params.ids
+    .filter((id) => id.entityVersionId)
+    .map((id) => id.entityVersionId!);
+
+  return (
+    await Promise.all([
+      getEntitiesLatestVersion(conn, { accountId, entityIds: latestEntities }),
+      getEntityVersions(conn, { accountId, entityVersionIds: versionEntities }),
+    ])
+  ).flat();
 };
 
-/** Get multiple entities in a single query. */
+/** Get multiple entities in a single query. If `entityVersionId` is not set, the
+ * function retrieves the latest version of that entity, otherwise it retrieves the
+ * specific version requested. The array returned is in the same sort order as `ids`.
+ */
 export const getEntities = async (
   conn: Connection,
-  ids: { entityVersionId: string; accountId: string }[]
+  ids: { accountId: string; entityId: string; entityVersionId?: string }[]
 ): Promise<Entity[]> => {
   // Need to group by account ID to use the index
-  const idsByAccount = new Map<string, string[]>();
-  for (const { entityVersionId: versionId, accountId } of ids) {
+  const idsByAccount = new Map<
+    string,
+    { entityId: string; entityVersionId?: string }[]
+  >();
+  for (const { entityId, entityVersionId, accountId } of ids) {
     if (idsByAccount.has(accountId)) {
-      idsByAccount.get(accountId)?.push(versionId);
+      idsByAccount.get(accountId)!.push({ entityId, entityVersionId });
     } else {
-      idsByAccount.set(accountId, [versionId]);
+      idsByAccount.set(accountId, [{ entityId, entityVersionId }]);
     }
   }
 
   const entities = (
     await Promise.all(
-      Array.from(idsByAccount.entries()).map(
-        async ([accountId, versionIds]) =>
-          await getEntitiesInAccount(conn, { accountId, versionIds })
+      Array.from(idsByAccount.entries()).map(([accountId, ids]) =>
+        getEntitiesInAccount(conn, { accountId, ids })
       )
     )
   ).flat();
 
-  // Need to sort the result from the DB to be in the same order as `ids`
-  const entityMap = new Map<string, Entity>();
-  entities.forEach((entity) => entityMap.set(entity.entityVersionId, entity));
-  return ids.map(({ entityVersionId: versionId }) => entityMap.get(versionId)!);
+  // Sort the result from the DB to be in the same order as `ids`
+  const versionLookup = new Map<string, Entity>();
+  const latestLookup = new Map<string, Entity>();
+  for (const entity of entities) {
+    versionLookup.set(entity.entityVersionId, entity);
+    const latest = latestLookup.get(entity.entityId);
+    if (!latest) {
+      latestLookup.set(entity.entityId, entity);
+    } else {
+      if (latest.entityCreatedAt < entity.entityCreatedAt) {
+        latestLookup.set(entity.entityId, entity);
+      }
+    }
+  }
+  return ids
+    .map((id) =>
+      id.entityVersionId
+        ? versionLookup.get(id.entityVersionId!)
+        : latestLookup.get(id.entityId)
+    )
+    .filter((entity): entity is Entity => !!entity);
 };
 
 /**
@@ -383,4 +480,118 @@ const hashCode = (str: string) => {
     hash |= 0; // Convert to 32bit integer
   }
   return hash;
+};
+
+/** Update the properties of the provided entity by creating a new version.
+ * @throws `DbEntityNotFoundError` if the entity does not exist.
+ * @throws `DbInvalidLinksError` if the entity's new properties link to an entity which
+ *          does not exist.
+ */
+const updateVersionedEntity = async (
+  conn: Connection,
+  params: {
+    entity: Entity;
+    properties: any;
+  }
+) => {
+  const { entity, properties } = params;
+  if (!params.entity.metadata.versioned) {
+    throw new Error("cannot create new version of non-versioned entity");
+  }
+
+  const now = new Date();
+  const newEntityVersion: Entity = {
+    ...params.entity,
+    entityVersionId: genId(),
+    properties,
+    entityCreatedAt: now,
+    entityVersionCreatedAt: now,
+    entityVersionUpdatedAt: now,
+  };
+
+  // Lock the entity to ensure no other transaction may update it concurrently until
+  // this transaction completes.
+  await acquireEntityLock(conn, { entityId: entity.entityId });
+
+  // Defer FKs until end of transaction so we can insert concurrently
+  await conn.query(sql`
+    set constraints
+      entity_account_account_id_entity_version_id_fkey,
+      outgoing_links_src_account_id_src_entity_id_fkey,
+      outgoing_links_dst_account_id_dst_entity_id_fkey,
+      incoming_links_dst_account_id_dst_entity_id_fkey,
+      incoming_links_src_account_id_src_entity_id_fkey
+    deferred
+  `);
+
+  await Promise.all([
+    insertEntityVersion(conn, newEntityVersion),
+
+    insertLinks(conn, newEntityVersion),
+
+    // Make a reference to this entity's account in the `entity_account` lookup table
+    insertEntityAccount(conn, newEntityVersion),
+  ]);
+
+  return newEntityVersion;
+};
+
+const updateNonVersionedEntity = async (
+  conn: Connection,
+  params: {
+    entity: Entity;
+    properties: any;
+  }
+): Promise<Entity> => {
+  if (params.entity.metadata.versioned) {
+    throw new Error("cannot mutate a versioned entity");
+  }
+
+  const updatedEntity: Entity = {
+    ...params.entity,
+    entityVersionUpdatedAt: new Date(),
+    properties: params.properties,
+  };
+
+  try {
+    await Promise.all([
+      updateEntityVersionProperties(conn, updatedEntity),
+
+      insertLinks(conn, updatedEntity),
+    ]);
+  } catch (err) {
+    if (err instanceof NotFoundError) {
+      throw new DbEntityNotFoundError(params.entity);
+    }
+    throw err;
+  }
+
+  return updatedEntity;
+};
+
+/** Update an entity, either versioned or non-versioned. Note: the update is applied
+ * to the latest version of the entity.
+ * @throws `DbEntityNotFoundError` if the entity does not exist.
+ * @throws `DbInvalidLinksError` if the entity's new properties link to an entity which
+ *          does not exist.
+ */
+export const updateEntity = async (
+  conn: Connection,
+  params: {
+    accountId: string;
+    entityId: string;
+    properties: any;
+  }
+): Promise<Entity> => {
+  const { accountId, entityId, properties } = params;
+  const entity = await getEntityLatestVersion(conn, params);
+  if (!entity) {
+    throw new DbEntityNotFoundError({ accountId, entityId });
+  }
+
+  // @todo validate new entity properties against the schema of its entityType
+
+  return entity.metadata.versioned
+    ? updateVersionedEntity(conn, { entity, properties })
+    : updateNonVersionedEntity(conn, { entity, properties });
 };

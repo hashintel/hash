@@ -13,7 +13,7 @@ export const contents: Resolver<
   const entities = await Entity.getEntities(dataSources.db)(
     contents.map(({ accountId, entityId }) => ({
       accountId,
-      entityVersionId: entityId,
+      entityId,
     }))
   );
 

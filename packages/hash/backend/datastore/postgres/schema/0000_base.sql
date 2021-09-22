@@ -105,32 +105,43 @@ create table if not exists entity_versions (
 create index if not exists entity_versions_entity_id on entity_versions (account_id, entity_id);
 
 
-/** For entity ID : account ID lookups */
+/** For entityId : accountId lookups or entityVersionId : accountId lookups */
 create table if not exists entity_account (
     entity_version_id  uuid not null primary key,
+    entity_id          uuid not null,
     account_id         uuid not null
 );
+create index if not exists entity_account_entity_id on entity_account (entity_id);
 
 
 /** Stores parent --> child link references */
 create table if not exists outgoing_links (
-    account_id        uuid not null,
-    entity_version_id uuid not null,
-    child_account_id  uuid not null,
-    child_version_id  uuid not null,
+    src_account_id              uuid not null,
+    src_entity_id               uuid not null,
+    dst_account_id              uuid not null,
+    dst_entity_id               uuid not null,
+    -- dst_entity_version_id is part of the primary key, which means it cannot be null,
+    -- so we just set it to the zero UUID. We're not currently using outgoing_links for
+    -- anything, but when we do, we will need to be aware of this.
+    dst_entity_version_id       uuid not null default '00000000-0000-0000-0000-000000000000'::uuid,
+    src_entity_version_ids      uuid[] not null,
 
-    primary key (account_id, entity_version_id, child_version_id)
+    constraint outgoing_links_pk primary key (
+      src_account_id, src_entity_id, dst_entity_id, dst_entity_version_id
+    )
 );
 
 
 /** Stores reverse child --> parent link references */
 create table if not exists incoming_links (
-    account_id        uuid not null,
-    entity_version_id uuid not null,
-    parent_account_id uuid not null,
-    parent_version_id uuid not null,
+    dst_account_id              uuid not null,
+    dst_entity_id               uuid not null,
+    src_account_id              uuid not null,
+    src_entity_id               uuid not null,
 
-    primary key (account_id, entity_version_id, parent_version_id)
+    constraint incoming_links_pk primary key (
+      dst_account_id, dst_entity_id, src_entity_id
+    )
 );
 
 /** Stores verification codes used for passwordless authentication and email verification */

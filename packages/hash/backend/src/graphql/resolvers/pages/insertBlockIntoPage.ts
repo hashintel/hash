@@ -3,7 +3,7 @@ import { UserInputError } from "apollo-server-errors";
 
 import { MutationInsertBlockIntoPageArgs, Resolver } from "../../apiTypes.gen";
 import { Entity, EntityWithIncompleteEntityType } from "../../../model";
-import { DbPageProperties } from "../../../types/dbTypes";
+import { DbBlockProperties, DbPageProperties } from "../../../types/dbTypes";
 import { LoggedInGraphQLContext } from "../../context";
 import { createEntityArgsBuilder } from "../util";
 
@@ -31,9 +31,9 @@ export const insertBlockIntoPage: Resolver<
     let entity;
     if (entityId) {
       // Update
-      entity = await Entity.getEntity(client)({
+      entity = await Entity.getEntityLatestVersion(client)({
         accountId,
-        entityVersionId: entityId,
+        entityId,
       });
       if (!entity) {
         throw new ApolloError(`entity ${entityId} not found`, "NOT_FOUND");
@@ -62,10 +62,9 @@ export const insertBlockIntoPage: Resolver<
       );
     }
 
-    const blockProperties = {
+    const blockProperties: DbBlockProperties = {
       componentId,
-      entityId: entity.entityVersionId,
-      entityTypeId: entity.entityType.entityId,
+      entityId: entity.entityId,
       accountId: entity.accountId,
     };
 
@@ -98,7 +97,7 @@ export const insertBlockIntoPage: Resolver<
       ...(page.properties as DbPageProperties).contents.slice(0, position),
       {
         type: "Block",
-        entityId: newBlock.entityVersionId,
+        entityId: newBlock.entityId,
         accountId: newBlock.accountId,
       },
       ...(page.properties as DbPageProperties).contents.slice(position),

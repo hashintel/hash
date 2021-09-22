@@ -66,7 +66,7 @@ export const createUsers =
               responsibility: "Developer",
               org: {
                 __linkedData: {
-                  entityId: org.entityVersionId,
+                  entityId: org.entityId,
                   entityTypeId: org.entityType.entityId,
                 },
               },

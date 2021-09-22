@@ -8,12 +8,10 @@ import {
   EntityVersion,
   VerificationCode,
 } from "../adapter";
-import { gatherLinks, replaceLink, entityNotFoundError } from "./util";
 import { genId } from "../../util";
 import { Connection } from "./types";
 import {
   getEntityAccountId,
-  getEntityAccountIdMany,
   insertAccount,
   insertEntityAccount,
 } from "./account";
@@ -36,16 +34,11 @@ import {
   getEntity,
   getEntityHistory,
   getEntityLatestVersion,
-  getEntityLatestVersionId,
   insertEntityVersion,
-  updateEntityVersionProperties,
   acquireEntityLock,
+  updateEntity,
 } from "./entity";
-import {
-  getEntityParentIds,
-  insertIncomingLinks,
-  insertOutgoingLinks,
-} from "./link";
+import { insertLinks } from "./link";
 import { getUserByEmail, getUserByShortname } from "./user";
 import {
   insertVerificationCode,
@@ -58,47 +51,13 @@ import { jsonSchema } from "../../lib/schemas/jsonSchema";
 import { SystemType } from "../../types/entityTypes";
 import { Visibility } from "../../graphql/apiTypes.gen";
 import { getOrgByShortname } from "./org";
+import { exactlyOne } from "../../util";
 
 export class PostgresClient implements DBClient {
   private conn: Connection;
 
   constructor(conn: Connection) {
     this.conn = conn;
-  }
-
-  private async createLinks(conn: Connection, entity: Entity): Promise<void> {
-    const linkedEntityIdsSet = new Set(gatherLinks(entity));
-    const linkedEntityIds = Array.from(linkedEntityIdsSet);
-    const accIdMap = await getEntityAccountIdMany(conn, linkedEntityIdsSet);
-
-    const missing = linkedEntityIds.filter((id) => !accIdMap.has(id));
-    if (missing.length !== 0) {
-      throw new Error(
-        `entity ${entity.entityVersionId} references missing entities ${missing}`
-      );
-    }
-
-    await Promise.all([
-      insertOutgoingLinks(
-        conn,
-        linkedEntityIds.map((id) => ({
-          accountId: entity.accountId,
-          entityVersionId: entity.entityVersionId,
-          childAccountId: accIdMap.get(id)!,
-          childVersionId: id,
-        }))
-      ),
-
-      insertIncomingLinks(
-        conn,
-        linkedEntityIds.map((id) => ({
-          accountId: accIdMap.get(id)!,
-          entityVersionId: id,
-          parentAccountId: entity.accountId,
-          parentVersionId: entity.entityVersionId,
-        }))
-      ),
-    ]);
   }
 
   /** Create an entity type definition and return its uuid. */
@@ -153,6 +112,11 @@ export class PostgresClient implements DBClient {
     return getSystemTypeLatestVersion(this.conn, params);
   }
 
+  /**
+   * Create a new entity.
+   * @throws: `DbInvalidLinksError` if the entity's properties contain a link to an
+   *          entity which does not exist.
+   */
   async createEntity(params: {
     accountId: string;
     createdById: string;
@@ -171,9 +135,9 @@ export class PostgresClient implements DBClient {
 
       const { entityTypeId, entityTypeVersionId, systemTypeName } = params;
 
-      if (!entityTypeId && !entityTypeVersionId && !systemTypeName) {
+      if (!exactlyOne(entityTypeId, entityTypeVersionId, systemTypeName)) {
         throw new Error(
-          "You must provide one of entityTypeId, entityTypeVersionId, or systemTypeName."
+          "Exactly one of entityTypeId, entityTypeVersionId or systemTypeName must be provided"
         );
       }
 
@@ -188,7 +152,9 @@ export class PostgresClient implements DBClient {
           `Entity type not found with ` +
             (entityTypeVersionId
               ? `entityTypeVersionId ${entityTypeVersionId}.`
-              : `entityTypeId ${entityTypeId}.`)
+              : entityTypeId
+              ? `entityTypeId ${entityTypeId}.`
+              : `systemTypeName '${systemTypeName}'`)
         );
       }
 
@@ -221,15 +187,15 @@ export class PostgresClient implements DBClient {
         set constraints
           entity_versions_account_id_entity_id_fkey,
           entity_account_account_id_entity_version_id_fkey,
-          outgoing_links_account_id_entity_version_id_fkey,
-          outgoing_links_child_account_id_child_version_id_fkey,
-          incoming_links_account_id_entity_version_id_fkey,
-          incoming_links_parent_account_id_parent_version_id_fkey
+          outgoing_links_src_account_id_src_entity_id_fkey,
+          outgoing_links_dst_account_id_dst_entity_id_fkey,
+          incoming_links_dst_account_id_dst_entity_id_fkey,
+          incoming_links_src_account_id_src_entity_id_fkey
         deferred
       `);
 
       await Promise.all([
-        this.createLinks(conn, entity),
+        insertLinks(conn, entity),
 
         insertEntityMetadata(conn, {
           accountId: entity.accountId,
@@ -250,9 +216,10 @@ export class PostgresClient implements DBClient {
   }
 
   async getEntityAccountId(params: {
-    entityVersionId: string;
+    entityId: string;
+    entityVersionId?: string;
   }): Promise<string> {
-    return getEntityAccountId(this.conn, params.entityVersionId);
+    return getEntityAccountId(this.conn, params);
   }
 
   async getEntity(
@@ -282,178 +249,22 @@ export class PostgresClient implements DBClient {
     );
   }
 
-  private async updateVersionedEntity(
-    conn: Connection,
-    params: {
-      entity: Entity;
-      newProperties: any;
-    }
-  ) {
-    if (!params.entity.metadata.versioned) {
-      throw new Error("cannot create new version of non-versioned entity"); // TODO: better error
-    }
-
-    const now = new Date();
-    const newEntityVersion: Entity = {
-      ...params.entity,
-      entityVersionId: genId(),
-      properties: params.newProperties,
-      entityCreatedAt: now,
-      entityVersionCreatedAt: now,
-      entityVersionUpdatedAt: now,
-    };
-
-    // Defer FKs until end of transaction so we can insert concurrently
-    await conn.query(sql`
-      set constraints
-        entity_account_account_id_entity_version_id_fkey,
-        outgoing_links_account_id_entity_version_id_fkey,
-        outgoing_links_child_account_id_child_version_id_fkey,
-        incoming_links_account_id_entity_version_id_fkey,
-        incoming_links_parent_account_id_parent_version_id_fkey
-      deferred
-    `);
-
-    await Promise.all([
-      insertEntityVersion(conn, newEntityVersion),
-
-      this.createLinks(conn, newEntityVersion),
-
-      // Make a reference to this entity's account in the `entity_account` lookup table
-      insertEntityAccount(this.conn, newEntityVersion),
-    ]);
-
-    return newEntityVersion;
-  }
-
-  private async updateNonVersionedEntity(
-    conn: Connection,
-    params: {
-      entity: Entity;
-      newProperties: any;
-    }
-  ): Promise<Entity> {
-    if (params.entity.metadata.versioned) {
-      throw new Error("cannot in-place update a versioned entity"); // TODO: better error
-    }
-
-    const updatedEntity: Entity = {
-      ...params.entity,
-      entityVersionUpdatedAt: new Date(),
-      properties: params.newProperties,
-    };
-
-    await Promise.all([
-      updateEntityVersionProperties(conn, updatedEntity),
-
-      this.createLinks(conn, updatedEntity),
-    ]);
-
-    return updatedEntity;
-  }
-
-  async updateEntity(params: {
+  /**
+   * Update an entity, either versioned or non-versioned. Note: the update is always
+   * applied to the latest version of the entity.
+   * @param params.accountId the account ID the entity belongs to.
+   * @param params.entityId the entity's fixed ID.
+   * @param params.properties the entity's new properties.
+   * @returns the entity's updated state.
+   * @throws `DbEntityNotFoundError` if the entity does not exist.
+   * @throws `DbInvalidLinksError` if the entity's new properties link to an entity which
+   *          does not exist.
+   */
+  updateEntity = async (params: {
     accountId: string;
     entityId: string;
     properties: any;
-  }): Promise<Entity[]> {
-    const versionId = await getEntityLatestVersionId(this.conn, params);
-    if (!versionId) {
-      throw new Error(
-        `entity with fixed ID ${params.entityId} not found in account ${params.accountId}`
-      );
-    }
-
-    // Lock the entity to ensure no other transaction may update it concurrently until
-    // this transaction completes.
-    await acquireEntityLock(this.conn, { entityId: params.entityId });
-
-    return await this._updateEntity(this.conn, {
-      accountId: params.accountId,
-      entityVersionId: versionId,
-      properties: params.properties,
-    });
-  }
-
-  async _updateEntity(
-    conn: Connection,
-    params: {
-      accountId: string;
-      entityVersionId: string;
-      properties: any;
-    },
-    child?: { accountId: string; entityVersionId: string }
-  ): Promise<Entity[]> {
-    const entity = await getEntity(conn, params);
-
-    if (!entity) {
-      throw entityNotFoundError(params);
-    }
-
-    /**
-     * @todo validate new entity properties against the schema of its entityType
-     */
-    if (entity.metadata.versioned) {
-      const updatedEntity = await this.updateVersionedEntity(conn, {
-        entity,
-        newProperties: params.properties,
-      });
-
-      if (child) {
-        await insertIncomingLinks(conn, [
-          {
-            ...child,
-            parentAccountId: updatedEntity.accountId,
-            parentVersionId: updatedEntity.entityVersionId,
-          },
-        ]);
-      }
-      // @todo: handle inserting into outgoing_links
-
-      // Updating a versioned entity creates a new entity with a new ID. We need to
-      // update all parent entities which reference this entity with this new ID.
-      const parentRefs = await getEntityParentIds(conn, entity);
-      const updatedParents = await Promise.all(
-        parentRefs.map(async (ref) => {
-          // If concurrent transactions are updating the same parent entity, we need to
-          // wait until one of them commits their new version. Otherwise, the entity
-          // can end up with a fork in its version history when two or more transactions
-          // see the same latest version. To prevent this, we acquire a lock on the
-          // parent which will block all other transactions until this one completes.
-          await acquireEntityLock(conn, ref);
-          const parent = await getEntityLatestVersion(conn, ref);
-          if (!parent) {
-            throw new Error("latest parent entity not found");
-          }
-
-          replaceLink(parent, {
-            old: entity.entityVersionId,
-            new: updatedEntity.entityVersionId,
-          });
-
-          return await this._updateEntity(conn, parent, updatedEntity);
-        })
-      );
-
-      return [updatedEntity].concat(updatedParents.flat());
-    } else {
-      const updatedEntity = await this.updateNonVersionedEntity(conn, {
-        entity,
-        newProperties: params.properties,
-      });
-      if (child) {
-        await insertIncomingLinks(conn, [
-          {
-            ...child,
-            parentAccountId: updatedEntity.accountId,
-            parentVersionId: updatedEntity.entityVersionId,
-          },
-        ]);
-        // @todo: handle inserting into outgoing_links
-      }
-      return [updatedEntity];
-    }
-  }
+  }): Promise<Entity> => updateEntity(this.conn, params);
 
   /**
    * Update an entity type, either its name, schema, or both.
@@ -618,25 +429,6 @@ export class PostgresClient implements DBClient {
     return await pruneVerificationCodes(this.conn, params);
   }
 
-  // @todo: may be deprecated. Users of the adapter can now use a transction to combine
-  // getEntity and updateEntity.
-  async getAndUpdateEntity(params: {
-    accountId: string;
-    entityVersionId: string;
-    handler: (entity: Entity) => Entity;
-  }): Promise<Entity[]> {
-    const entity = await this.getEntity(params, true);
-    if (!entity) {
-      throw entityNotFoundError(params);
-    }
-    const updated = params.handler(entity);
-    return await this.updateEntity({
-      accountId: params.accountId,
-      entityId: entity.entityId,
-      properties: updated.properties,
-    });
-  }
-
   async getEntityHistory(params: {
     accountId: string;
     entityId: string;
@@ -647,7 +439,8 @@ export class PostgresClient implements DBClient {
   async getEntities(
     entities: {
       accountId: string;
-      entityVersionId: string;
+      entityId: string;
+      entityVersionId?: string;
     }[]
   ): Promise<Entity[]> {
     return await getEntities(this.conn, entities);
@@ -655,5 +448,9 @@ export class PostgresClient implements DBClient {
 
   async getEntityTypes(params: { accountId: string }): Promise<EntityType[]> {
     return await getAccountEntityTypes(this.conn, params);
+  }
+
+  async acquireEntityLock(params: { entityId: string }): Promise<null> {
+    return acquireEntityLock(this.conn, params);
   }
 }

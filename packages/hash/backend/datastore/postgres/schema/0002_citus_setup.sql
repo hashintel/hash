@@ -27,11 +27,11 @@ begin
     end if;
 
     if not is_citus_distributed_table('outgoing_links') then
-      perform create_distributed_table('outgoing_links', 'account_id');
+      perform create_distributed_table('outgoing_links', 'src_account_id');
     end if;
 
     if not is_citus_distributed_table('incoming_links') then
-      perform create_distributed_table('incoming_links', 'account_id');
+      perform create_distributed_table('incoming_links', 'dst_account_id');
     end if;
 
   end if;
