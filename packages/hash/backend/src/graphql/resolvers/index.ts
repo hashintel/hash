@@ -21,9 +21,9 @@ import {
   updatePageContents,
 } from "./pages";
 import { accounts } from "./account/accounts";
-import { createUser } from "./shared/createUser";
+import { createUser } from "./user/createUser";
 import { updateUser } from "./user/updateUser";
-import { createOrg } from "./shared/createOrg";
+import { createOrg } from "./org/createOrg";
 import { accountSignupComplete } from "./user/accountSignupComplete";
 import { verifyEmail } from "./user/verifyEmail";
 import { sendLoginCode } from "./user/sendLoginCode";
