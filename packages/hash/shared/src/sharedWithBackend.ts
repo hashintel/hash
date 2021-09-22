@@ -9,8 +9,8 @@ import { createRemoteBlock, defineRemoteBlock } from "./sharedWithBackendJs";
 import blockPaths from "../blockPaths.sample.json";
 import { BlockMetadata } from "@hashintel/block-protocol";
 import { Node as ProsemirrorNode, NodeSpec, Schema } from "prosemirror-model";
-import { PageFieldsFragment } from "./graphql/apiTypes.gen";
 import { Decoration, EditorView } from "prosemirror-view";
+import { BlockEntity } from "./types";
 
 export { blockPaths };
 
@@ -175,9 +175,7 @@ export const ensureDocBlocksLoaded = async (
   );
 };
 
-export const getProseMirrorNodeAttributes = (
-  entity: PageFieldsFragment["properties"]["contents"][number]
-) => ({
+export const getProseMirrorNodeAttributes = (entity: BlockEntity) => ({
   entityId: entity.metadataId,
 });
 
@@ -190,7 +188,7 @@ export const getProseMirrorNodeAttributes = (
  */
 export const createEntityUpdateTransaction = async (
   state: EditorState,
-  entities: PageFieldsFragment["properties"]["contents"],
+  entities: BlockEntity[],
   viewConfig: ViewConfig
 ) => {
   const schema = state.schema;
@@ -233,9 +231,7 @@ export const createEntityUpdateTransaction = async (
   return tr;
 };
 
-const mapEntityToChildren = (
-  entity: PageFieldsFragment["properties"]["contents"][number]["properties"]["entity"]
-) => {
+const mapEntityToChildren = (entity: BlockEntity["properties"]["entity"]) => {
   if (entity.__typename === "Text") {
     return entity.textProperties.texts.map((text) => ({
       type: "text",

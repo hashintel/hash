@@ -1,5 +1,4 @@
 import React, {
-  useCallback,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -23,7 +22,6 @@ import {
 } from "@hashintel/hash-shared/sharedWithBackend";
 import { collabEnabled, createNodeView } from "./tsUtils";
 import { EditorConnection } from "./collab/collab";
-import { PageFieldsFragment } from "@hashintel/hash-shared/graphql/apiTypes.gen";
 import { EntityStoreContext } from "./EntityStoreContext";
 import { createEntityStore } from "@hashintel/hash-shared/entityStore";
 import { useApolloClient } from "@apollo/client";
@@ -267,7 +265,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
 
     if (!collabEnabled) {
       (async function updateContents(
-        contents: PageFieldsFragment["properties"]["contents"],
+        contents: BlockEntity[],
         signal?: AbortSignal
       ): Promise<void> {
         const setup = prosemirrorSetup.current;
