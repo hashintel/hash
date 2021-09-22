@@ -50,19 +50,17 @@ const getRemoteBlockProps = (entity: EntityStoreType | null | undefined) => {
  * @todo make this unnecessary
  */
 const getOverwrittenRemoteBlockProps = (
-  entity: EntityStoreType | null | undefined,
-  node: any
+  entity: EntityStoreType | null | undefined
 ) => {
   const originalProps = getRemoteBlockProps(entity);
 
   // @todo we need to type this such that we're certain we're passing through all the props required
   return {
     ...originalProps,
-    meta: node.attrs.meta,
-    properties: {
-      ...((entity ? cachedPropertiesByEntity[entity.metadataId] : null) ?? {}),
-      ...originalProps.properties,
-    },
+    // properties: {
+    //   ...((entity ? cachedPropertiesByEntity[entity.metadataId] : null) ?? {}),
+    //   ...originalProps.properties,
+    // },
   };
 };
 
@@ -115,10 +113,7 @@ export const createNodeView = (
             {(entityStore) => {
               const entityId = node.attrs.entityId;
               const entity = entityStore[entityId];
-              const remoteBlockProps = getOverwrittenRemoteBlockProps(
-                entity,
-                node
-              );
+              const remoteBlockProps = getOverwrittenRemoteBlockProps(entity);
 
               const editableRef = editable
                 ? (node: HTMLElement) => {
