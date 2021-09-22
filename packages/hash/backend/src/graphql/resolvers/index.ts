@@ -40,6 +40,7 @@ import { SYSTEM_TYPES, SystemType } from "../../types/entityTypes";
 import { entityTypeTypeFields } from "./entityType/entityTypeTypeFields";
 import { getAccountEntityTypes } from "./entityType/getAccountEntityTypes";
 import { getEntityType } from "./entityType/getEntityType";
+import { createOrgEmailInvitation } from "./org/createOrgEmailInvitation";
 
 const loggedIn =
   (next: any) => (obj: any, args: any, ctx: GraphQLContext, info: any) => {
@@ -96,6 +97,7 @@ export const resolvers = {
     updatePage: loggedInAndSignedUp(updatePage),
     updatePageContents: loggedInAndSignedUp(updatePageContents),
     createOrg: loggedInAndSignedUp(createOrg),
+    createOrgEmailInvitation: loggedInAndSignedUp(createOrgEmailInvitation),
     // Logged in users only
     updateUser: loggedIn(updateUser),
     logout: loggedIn(logout),
@@ -118,6 +120,10 @@ export const resolvers = {
 
   User: {
     accountSignupComplete,
+    properties: entityFields.properties,
+  },
+
+  OrgEmailInvitation: {
     properties: entityFields.properties,
   },
 

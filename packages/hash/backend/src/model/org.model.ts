@@ -1,4 +1,10 @@
-import { Org, Account, AccountConstructorArgs, OrgInvitation } from ".";
+import {
+  Org,
+  Account,
+  AccountConstructorArgs,
+  OrgInvitation,
+  OrgEmailInvitation,
+} from ".";
 import { DBClient } from "../db";
 import { DBOrgProperties, EntityType } from "../db/adapter";
 import { genId } from "../util";
@@ -71,6 +77,21 @@ class __Org extends Account {
   private updateOrgProperties =
     (client: DBClient) => (properties: DBOrgProperties) =>
       this.updateProperties(client)(properties);
+
+  /**
+   * @returns all email invitations associated with the organization.
+   */
+  getEmailInvitations = async (
+    client: DBClient
+  ): Promise<OrgEmailInvitation[]> => {
+    /** @todo: query for email invitations with correct outgoing 'org' relationships */
+    const dbEntities = await client.getEntitiesBySystemType({
+      accountId: this.accountId,
+      systemTypeName: "OrgEmailInvitation",
+    });
+
+    return dbEntities.map((entity) => new OrgEmailInvitation(entity));
+  };
 }
 
 export default __Org;

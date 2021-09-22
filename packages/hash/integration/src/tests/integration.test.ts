@@ -11,6 +11,7 @@ import {
   SystemTypeName,
   WayToUseHash,
 } from "../graphql/apiTypes.gen";
+import { ClientError } from "graphql-request";
 
 const client = new ApiClient("http://localhost:5001/graphql");
 
@@ -19,6 +20,8 @@ let handler: IntegrationTestsHandler;
 let db: PostgresAdapter;
 
 let existingUser: User;
+
+let existingOrg: Org;
 
 beforeAll(async () => {
   handler = new IntegrationTestsHandler();
@@ -39,6 +42,16 @@ beforeAll(async () => {
     memberOf: [],
     infoProvidedAtSignup: { usingHow: WayToUseHash.ByThemselves },
   });
+
+  existingOrg = await Org.createOrg(db)({
+    createdById: existingUser.entityId,
+    properties: {
+      shortname: "bigco",
+      name: "Big Company",
+    },
+  });
+
+  await existingUser.joinOrg(db)({ org: existingOrg, responsibility: "CEO" });
 });
 
 afterAll(async () => {
@@ -148,8 +161,8 @@ describe("logged in user ", () => {
   it("can create org", async () => {
     const variables: CreateOrgMutationVariables = {
       org: {
-        name: "Big Company",
-        shortname: "bigco",
+        name: "Second Big Company",
+        shortname: "bigco2",
         orgSize: OrgSize.TwoHundredAndFiftyPlus,
       },
       responsibility: "CEO",
@@ -187,6 +200,47 @@ describe("logged in user ", () => {
       },
       responsibility: variables.responsibility,
     });
+  });
+
+  it("can create an org email invitation", async () => {
+    const inviteeEmailAddress = "bob@bigco.com";
+    const response = await client.createOrgEmailInvitation({
+      orgAccountId: existingOrg.accountId,
+      orgEntityId: existingOrg.entityId,
+      inviteeEmailAddress,
+    });
+
+    expect(response.properties.inviter.data.entityId).toEqual(
+      existingUser.entityId
+    );
+    expect(response.properties.inviteeEmailAddress).toEqual(
+      inviteeEmailAddress
+    );
+
+    /** @todo: cleanup created email invitations */
+  });
+
+  it("cannot create duplicate org email invitations", async () => {
+    const inviteeEmailAddress = "charlie@bigco.com";
+    await client.createOrgEmailInvitation({
+      orgAccountId: existingOrg.accountId,
+      orgEntityId: existingOrg.entityId,
+      inviteeEmailAddress,
+    });
+
+    await client
+      .createOrgEmailInvitation({
+        orgAccountId: existingOrg.accountId,
+        orgEntityId: existingOrg.entityId,
+        inviteeEmailAddress,
+      })
+      .catch((error: ClientError) => {
+        expect(
+          ApiClient.getErrorCodesFromClientError(error).includes(
+            "ALREADY_INVITED"
+          )
+        ).toBe(true);
+      });
   });
 
   describe("can create and update pages", () => {

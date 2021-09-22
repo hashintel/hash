@@ -1,4 +1,4 @@
-import { VerificationCode } from "../model";
+import { Org, OrgEmailInvitation, VerificationCode } from "../model";
 import { getRequiredEnv } from "../util";
 import EmailTransporter from "./transporter";
 
@@ -34,6 +34,34 @@ export const sendEmailVerificationCodeToEmailAddress =
       html: `
         <p>To verify your email address, copy and paste your verification code or <a href="${magicLink}">click here</a>.</p>
         <code>${verificationCode.code}</code>
+      `,
+    });
+  };
+
+export const sendOrgEmailInvitationToEmailAddress =
+  (transporter: EmailTransporter) =>
+  async (params: {
+    org: Org;
+    emailInvitation: OrgEmailInvitation;
+    emailAddress: string;
+  }): Promise<void> => {
+    const { org, emailInvitation, emailAddress } = params;
+
+    const invitationLink = [
+      `http://${FRONTEND_DOMAIN}/signup?`,
+      `orgAccountId=${encodeURIComponent(org.accountId)}&`,
+      `orgEntityId=${encodeURIComponent(org.entityId)}&`,
+      `accessToken=${encodeURIComponent(
+        emailInvitation.properties.accessToken
+      )}`,
+    ].join("");
+
+    await transporter.sendMail({
+      to: emailAddress,
+      subject: "You've been invited to join an organization at HASH",
+      html: `
+        <p>You've been invited to join the <strong>${org.properties.name}</strong> organization</p>
+        <p>To join the organization <a href="${invitationLink}">click here</a>.</p>
       `,
     });
   };

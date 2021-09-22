@@ -1,5 +1,5 @@
 import { print } from "graphql/language/printer";
-import { GraphQLClient } from "graphql-request";
+import { GraphQLClient, ClientError } from "graphql-request";
 
 import {
   SendLoginCodeMutation,
@@ -26,6 +26,8 @@ import {
   UpdatePageContentsMutationVariables,
   CreateEntityTypeMutation,
   CreateEntityTypeMutationVariables,
+  CreateOrgEmailInvitationMutationVariables,
+  CreateOrgEmailInvitationMutation,
 } from "../graphql/apiTypes.gen";
 import {
   createEntity,
@@ -33,7 +35,10 @@ import {
   getUnknownEntity,
   updateEntity,
 } from "../graphql/queries/entity.queries";
-import { createOrg } from "../graphql/queries/org.queries";
+import {
+  createOrg,
+  createOrgEmailInvitation,
+} from "../graphql/queries/org.queries";
 import {
   createUser,
   loginWithLoginCode,
@@ -53,6 +58,14 @@ export class ApiClient {
     this.client = new GraphQLClient(url);
   }
 
+  static getErrorCodesFromClientError = (clientError: ClientError) => {
+    if (!clientError.response.errors) {
+      throw new Error("No response errors found on client error");
+    }
+    return clientError.response.errors.map(
+      (error: any) => error.extensions.code
+    );
+  };
   setCookie = (cookie: string) => this.client.setHeader("Cookie", cookie);
 
   removeCookie = () => this.client.setHeader("Cookie", "");
@@ -122,6 +135,17 @@ export class ApiClient {
         vars
       )
     ).createOrg;
+  }
+
+  async createOrgEmailInvitation(
+    vars: CreateOrgEmailInvitationMutationVariables
+  ) {
+    return (
+      await this.client.request<
+        CreateOrgEmailInvitationMutation,
+        CreateOrgEmailInvitationMutationVariables
+      >(createOrgEmailInvitation, vars)
+    ).createOrgEmailInvitation;
   }
 
   async createPage(vars: CreatePageMutationVariables) {

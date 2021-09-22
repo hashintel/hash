@@ -8,6 +8,8 @@ import {
   Org,
   User,
 } from ".";
+import { sendOrgEmailInvitationToEmailAddress } from "../email";
+import EmailTransporter from "../email/transporter";
 
 export type DBOrgEmailInvitationProperties = {
   inviter: DBLinkedEntity;
@@ -51,7 +53,7 @@ class __OrgEmailInvitation extends AccessToken {
    * @param {string} inviteeEmailAddress - The email address that will receive the invitation.
    */
   static createOrgEmailInvitation =
-    (client: DBClient) =>
+    (client: DBClient, transporter: EmailTransporter) =>
     async (params: {
       org: Org;
       inviter: User;
@@ -74,7 +76,13 @@ class __OrgEmailInvitation extends AccessToken {
         versioned: false,
       });
 
-      /** @todo: send invitation email */
+      const emailInvitation = new OrgEmailInvitation({ ...entity, properties });
+
+      await sendOrgEmailInvitationToEmailAddress(transporter)({
+        org,
+        emailInvitation,
+        emailAddress: inviteeEmailAddress,
+      });
 
       return new OrgEmailInvitation({ ...entity, properties });
     };
@@ -102,6 +110,8 @@ class __OrgEmailInvitation extends AccessToken {
    * @returns whether the email invitation has already been used.
    */
   hasBeenUsed = (): boolean => !!this.properties.usedAt;
+
+  isValid = (): boolean => !this.hasBeenUsed() && !this.hasBeenRevoked();
 }
 
 export default __OrgEmailInvitation;

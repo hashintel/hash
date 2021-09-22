@@ -349,7 +349,7 @@ export class PostgresClient implements DBClient {
   async getEntitiesBySystemType(params: {
     accountId: string;
     systemTypeName: SystemType;
-    latestOnly: boolean;
+    latestOnly?: boolean;
   }): Promise<Entity[]> {
     const { entity_type_id: entityTypeId } = await this.conn.one(
       selectSystemEntityTypeIds(params)

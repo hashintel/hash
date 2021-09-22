@@ -234,9 +234,9 @@ class __User extends Account {
       ).then(() => verificationCode);
     };
 
-  isMemberOfOrg = ({ entityVersionId }: Org) =>
+  isMemberOfOrg = ({ entityId }: Org) =>
     this.properties.memberOf.find(
-      ({ org }) => org.__linkedData.entityId === entityVersionId
+      ({ org }) => org.__linkedData.entityId === entityId
     ) !== undefined;
 
   /**
