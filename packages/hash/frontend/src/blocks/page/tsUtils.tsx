@@ -3,7 +3,6 @@ import { Decoration, EditorView, NodeView } from "prosemirror-view";
 import { RemoteBlock } from "../../components/RemoteBlock/RemoteBlock";
 import {
   Block,
-  cachedPropertiesByEntity,
   componentIdToUrl,
   ReplacePortals,
 } from "@hashintel/hash-shared/sharedWithBackend";
