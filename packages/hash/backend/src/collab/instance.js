@@ -77,7 +77,6 @@ class Instance {
           this.id,
           this.doc,
           this.savedContents,
-          // @todo figure out something more performant than this
           createEntityStore(this.savedContents),
           apolloClient
         ).then((newPage) => {
