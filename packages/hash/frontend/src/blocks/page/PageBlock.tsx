@@ -19,7 +19,6 @@ import {
   Block,
   BlockMeta,
   cachedPropertiesByEntity,
-  cachedPropertiesByPosition,
   createEntityUpdateTransaction,
   defineNewBlock,
   invertedBlockPaths,
@@ -37,17 +36,20 @@ import {
   EntityStoreType,
   isBlockEntity,
 } from "@hashintel/hash-shared/entityStore";
-import { uniqBy } from "lodash";
+import { isEqual, omit, uniqBy } from "lodash";
 import {
   SystemTypeName,
   UpdatePageContentsMutation,
   UpdatePageContentsMutationVariables,
 } from "../../graphql/apiTypes.gen";
-import { useApolloClient, useMutation } from "@apollo/client";
+import { ApolloClient, useApolloClient, useMutation } from "@apollo/client";
 import { updatePageContents } from "@hashintel/hash-shared/queries/page.queries";
 
+// @todo maybe this type needs to be named in more places
+type BlockEntity = PageFieldsFragment["properties"]["contents"][number];
+
 type PageBlockProps = {
-  contents: PageFieldsFragment["properties"]["contents"];
+  contents: BlockEntity[];
   blocksMeta: Map<string, BlockMeta>;
   pageId: string;
   accountId: string;
@@ -79,24 +81,25 @@ if (typeof localStorage !== "undefined") {
   }, 500);
 }
 
-const prosemirrorNodeToEntityProperties = (node: ProsemirrorNode<Schema>) =>
+// @todo type this properly
+const nodeToEntityProperties = (node: ProsemirrorNode<Schema>) =>
   node.type.isTextblock
     ? {
         texts:
-          node.content
-            .toJSON()
+          (node.content.toJSON() as any[])
             ?.filter((child: any) => child.type === "text")
-            .map((child: any) => ({
-              text: child.text,
-              bold:
-                child.marks?.some((mark: any) => mark.type === "strong") ??
-                false,
-              italics:
-                child.marks?.some((mark: any) => mark.type === "em") ?? false,
-              underline:
-                child.marks?.some((mark: any) => mark.type === "underlined") ??
-                false,
-            })) ?? [],
+            .map((child: any) => {
+              const marks = new Set<string>(
+                child.marks?.map((mark: any) => mark.type) ?? []
+              );
+
+              return {
+                text: child.text,
+                bold: marks.has("strong"),
+                italics: marks.has("em"),
+                underline: marks.has("underlined"),
+              };
+            }) ?? [],
       }
     : undefined;
 
@@ -113,253 +116,328 @@ const nodeToComponentId = (node: ProsemirrorNode<Schema>) => {
   return invertedBlockPaths[meta.url] ?? meta.url;
 };
 
-/**
- * @todo better name, move to shared package
- * @todo this needs to be able to handle multiple instances of the same block
- */
-const calculateSaveOperations = (
-  accountId: string,
-  pageId: string,
-  metadataId: string,
-  // @todo type this properly
-  state: EditorState,
-  savedContents: PageFieldsFragment["properties"]["contents"],
-  entityStore: EntityStore
-): UpdatePageAction[] => {
-  const operations: UpdatePageAction[] = [];
+type EntityNode = Omit<ProsemirrorNode<Schema>, "attrs"> & {
+  attrs: {
+    entityId: string | null;
+  };
+};
 
-  const doc = state.doc;
+const isEntityNode = (node: ProsemirrorNode<any>): node is EntityNode =>
+  !!node.type.spec.attrs && "entityId" in node.type.spec.attrs;
 
-  const entityNodes: [ProsemirrorNode<Schema>, string | null][] = [];
+const findEntityNodes = (doc: ProsemirrorNode<any>) => {
+  const entityNodes: EntityNode[] = [];
 
   doc.descendants((node) => {
     if (node.type.name === "block") {
       return true;
     }
 
-    if (node.type.spec.attrs && "entityId" in node.type.spec.attrs) {
-      entityNodes.push([node, node.attrs.entityId]);
+    if (isEntityNode(node)) {
+      entityNodes.push(node);
     }
 
     return false;
   });
 
-  /**
-   * Once we have a list of blocks, we need to divide the list of blocks into
-   * new ones and updated ones, as they require different queries to handle
-   */
-  const existingBlockIds = new Set(
-    savedContents.map((block) => block.metadataId)
-  );
+  return entityNodes;
+};
 
-  const currentBlockIds = new Set(entityNodes.map(([, id]) => id));
+const entityIdExists = (entities: BlockEntity[]) => {
+  const ids = new Set(entities.map((block) => block.metadataId));
 
-  const removedBlocks = savedContents
-    .map((block, position) => [block, position] as const)
-    .filter(([block]) => !currentBlockIds.has(block.metadataId));
+  return (entityId: string | null): entityId is string =>
+    !!entityId && ids.has(entityId);
+};
 
-  const removedBlocksInputs = removedBlocks.map(
-    ([, position]): UpdatePageAction => ({ removeBlock: { position } })
-  );
+/**
+ * Our operations need to combine the actions from the previous operation,
+ * but the actual code to do this is a bit mundane / messes up code clarity,
+ * so I've extracted that to a wrapper function. This means each operation
+ * only needs to handle creating their own actions
+ */
+const defineOperation =
+  <T extends any[]>(
+    fn: (
+      entities: BlockEntity[],
+      ...args: T
+    ) => readonly [UpdatePageAction[], BlockEntity[]]
+  ) =>
+  (
+    existingActions: UpdatePageAction[],
+    entities: BlockEntity[],
+    ...args: T
+  ): [UpdatePageAction[], BlockEntity[]] => {
+    const [nextActions, nextEntities] = fn(entities, ...args);
 
-  operations.push(...removedBlocksInputs);
+    return [[...existingActions, ...nextActions], nextEntities];
+  };
 
-  const savedContentsWithoutRemovedBlocks = savedContents.filter(
-    (_, position) =>
-      !removedBlocks.some(([, removedPosition]) => removedPosition === position)
-  );
-
-  const savedContentsWithoutRemovedBlocksWithMovements = [
-    ...savedContentsWithoutRemovedBlocks,
-  ];
-
-  /**
-   * @todo type this properly
-   */
-  const entityNodesWithoutNewBlocks = entityNodes.filter(
-    ([, entityId]) => !!entityId
-  );
-
-  for (
-    let position = 0;
-    position < savedContentsWithoutRemovedBlocksWithMovements.length;
-    position++
-  ) {
-    const block = savedContentsWithoutRemovedBlocksWithMovements[position];
-    const positionInDoc = entityNodesWithoutNewBlocks.findIndex(
-      ([, entityId]) => entityId === block.metadataId
+const removeBlocks = defineOperation(
+  (entities: BlockEntity[], nodes: EntityNode[]) => {
+    const draftBlockEntityIds = new Set(
+      nodes.map((node) => node.attrs.entityId)
     );
 
-    if (positionInDoc < 0) {
-      throw new Error(
-        "invariant: found removed block whilst calculating movements"
-      );
-    }
+    const removedBlockEntities = entities
+      .map((block, position) => [block, position] as const)
+      .filter(([block]) => !draftBlockEntityIds.has(block.metadataId));
 
-    if (position !== positionInDoc) {
-      operations.push({
-        moveBlock: {
-          currentPosition: position,
-          newPosition: positionInDoc,
-        },
-      });
-      savedContentsWithoutRemovedBlocksWithMovements.splice(position, 1);
-      savedContentsWithoutRemovedBlocksWithMovements.splice(
-        positionInDoc,
-        0,
-        block
-      );
-    }
+    const updatedEntities = entities.filter(
+      (_, position) =>
+        !removedBlockEntities.some(
+          ([, removedPosition]) => removedPosition === position
+        )
+    );
+
+    const actions = removedBlockEntities.map(
+      ([, position], idx): UpdatePageAction => ({
+        /**
+         * Each removal results in the position of further removals being
+         * subtracted by 1 – luckily we can just used the index in the array to
+         * work this out
+         */
+        removeBlock: { position: position - idx },
+      })
+    );
+
+    return [actions, updatedEntities] as const;
   }
+);
 
-  for (const [position, [node, entityId]] of Object.entries(entityNodes)) {
-    if (entityId && existingBlockIds.has(entityId)) {
-      continue;
-    }
+const moveBlocks = defineOperation(
+  (entities: BlockEntity[], nodes: EntityNode[]) => {
+    const entitiesWithoutNewBlocks = nodes.filter(
+      (node) => !!node.attrs.entityId
+    );
 
-    operations.push({
-      insertNewBlock: {
-        position: Number(position),
-        componentId: nodeToComponentId(node),
-        accountId,
-        entityProperties: prosemirrorNodeToEntityProperties(node),
-        // @todo support new non-text nodes
-        systemTypeName: SystemTypeName.Text,
-      },
-    });
-  }
+    const actions: UpdatePageAction[] = [];
+    entities = [...entities];
 
-  /**
-   * Currently when the same block exists on the page in multiple locations,
-   * we prioritise the content of the first one that has changed when it
-   * comes to working out if an un update is required. We need a better way
-   * of handling this (i.e, take the *last* one that changed, and also more
-   * immediately sync updates between changed blocks to prevent work being
-   * lost)
-   *
-   * @todo improve this
-   */
-  const updatedEntitiesOperations = uniqBy(
-    entityNodes
-      /**
-       * An updated block also contains an updated entity, so we need to create
-       * a list of entities that we need to post updates to via GraphQL
-       */
-      .flatMap(([node, entityId]) => {
-        if (!entityId || !existingBlockIds.has(entityId)) {
-          return [];
-        }
+    for (let position = 0; position < entities.length; position++) {
+      const block = entities[position];
+      const positionInDoc = entitiesWithoutNewBlocks.findIndex(
+        (node) => node.attrs.entityId === block.metadataId
+      );
 
-        cachedPropertiesByEntity[entityId] = node.attrs.properties;
+      if (positionInDoc < 0) {
+        throw new Error(
+          "invariant: found removed block whilst calculating movements"
+        );
+      }
 
-        const savedEntity = (
-          entityStore as Record<string, EntityStoreType | undefined>
-        )[entityId];
-
-        if (!savedEntity) {
-          throw new Error("Entity missing from entity store");
-        }
-
-        if (!isBlockEntity(savedEntity)) {
-          throw new Error("Non-block entity found when saving");
-        }
-
-        const childEntityId = savedEntity.properties.entity.metadataId;
-
-        // @todo use parent node to get this childEntityId
-        const savedChildEntity = entityStore[childEntityId];
-
-        if (!savedChildEntity) {
-          throw new Error("Child entity missing from entity store");
-        }
+      if (position !== positionInDoc) {
+        actions.push({
+          moveBlock: {
+            currentPosition: position,
+            newPosition: positionInDoc,
+          },
+        });
+        entities.splice(position, 1);
+        entities.splice(positionInDoc, 0, block);
 
         /**
-         * @todo remove this
+         * @todo figure out how to calculate movements without starting again
+         * after each movement
          */
-        const entityProperties = prosemirrorNodeToEntityProperties(node);
+        position = 0;
+      }
+    }
+    return [actions, entities] as const;
+  }
+);
 
-        const block = {
-          type: "Block",
-          entityId: savedEntity.metadataId,
-          accountId: savedEntity.accountId,
-          properties: {
-            componentId: nodeToComponentId(node),
-            entityId: savedChildEntity.id,
-            accountId: savedChildEntity.accountId,
-          },
-        };
+const insertBlocks = defineOperation(
+  (entities: BlockEntity[], nodes: EntityNode[], accountId: string) => {
+    const actions: UpdatePageAction[] = [];
+    const exists = entityIdExists(entities);
 
-        // @todo could probably get this from entity store
-        const existingBlock = savedContents.find(
-          (existingBlock) => existingBlock.metadataId === block.entityId
-        );
+    for (const [position, node] of Object.entries(nodes)) {
+      if (exists(node.attrs.entityId)) {
+        continue;
+      }
 
-        if (!existingBlock) {
-          throw new Error("Cannot find existing block entity");
-        }
+      actions.push({
+        insertNewBlock: {
+          position: Number(position),
+          componentId: nodeToComponentId(node),
+          accountId,
+          entityProperties: nodeToEntityProperties(node),
+          // @todo support new non-text nodes
+          systemTypeName: SystemTypeName.Text,
+        },
+      });
+    }
 
-        const updates: UpdatePageAction[] = [];
+    return [actions, entities] as const;
+  }
+);
 
-        if (
-          block.properties.componentId !== existingBlock?.properties.componentId
-        ) {
-          updates.push({
-            updateEntity: {
-              entityId: block.entityId,
-              accountId: block.accountId,
-              properties: block.properties,
-            },
-          });
-        }
+const updateBlocks = defineOperation(
+  (entities: BlockEntity[], nodes: EntityNode[], entityStore: EntityStore) => {
+    const exists = entityIdExists(entities);
 
-        if (node.type.isTextblock) {
-          const texts =
-            existingBlock && "textProperties" in existingBlock.properties.entity
-              ? existingBlock.properties.entity.textProperties.texts
-              : undefined;
+    /**
+     * Currently when the same block exists on the page in multiple locations,
+     * we prioritise the content of the first one that has changed when it
+     * comes to working out if an un update is required. We need a better way
+     * of handling this (i.e, take the *last* one that changed, and also more
+     * immediately sync updates between changed blocks to prevent work being
+     * lost)
+     *
+     * @todo improve this
+     */
+    const actions = uniqBy(
+      nodes
+        /**
+         * An updated block also contains an updated entity, so we need to
+         * create a list of entities that we need to post updates to via
+         * GraphQL
+         */
+        .flatMap((node) => {
+          const { entityId } = node.attrs;
 
-          if (
-            !existingBlock ||
-            existingBlock?.properties.entity.metadataId !== childEntityId ||
-            entityProperties?.texts.length !== texts?.length ||
-            // @todo remove any cast
-            (entityProperties?.texts as any[])?.some(
-              (text: any, idx: number) => {
-                const existingText = texts?.[idx];
+          if (!exists(entityId)) {
+            return [];
+          }
 
-                /**
-                 * Really crude way of working out if any properties we care
-                 * about have changed – we need a better way of working out
-                 * which text entities need an update
-                 */
-                return (
-                  !existingText ||
-                  text.text !== existingText.text ||
-                  text.bold !== existingText.bold ||
-                  text.underline !== existingText.underline ||
-                  text.italics !== existingText.italics
-                );
-              }
-            )
-          ) {
+          // @todo this is where cached properties should be being set
+          // cachedPropertiesByEntity[entityId] = node.attrs.properties;
+
+          const savedEntity = (
+            entityStore as Record<string, EntityStoreType | undefined>
+          )[entityId];
+
+          if (!savedEntity) {
+            throw new Error("Entity missing from entity store");
+          }
+
+          if (!isBlockEntity(savedEntity)) {
+            throw new Error("Non-block entity found when saving");
+          }
+
+          const childEntityId = savedEntity.properties.entity.metadataId;
+          const savedChildEntity = entityStore[childEntityId];
+
+          if (!savedChildEntity) {
+            throw new Error("Child entity missing from entity store");
+          }
+
+          // @todo could probably get this from entity store
+          const existingBlock = entities.find(
+            (existingBlock) => existingBlock.metadataId === entityId
+          );
+
+          if (!existingBlock) {
+            throw new Error("Cannot find existing block entity");
+          }
+
+          const updates: UpdatePageAction[] = [];
+          const componentId = nodeToComponentId(node);
+
+          if (componentId !== existingBlock.properties.componentId) {
             updates.push({
               updateEntity: {
-                entityId: childEntityId,
-                accountId: savedChildEntity.accountId,
-                properties: entityProperties,
+                entityId: entityId,
+                accountId: savedEntity.accountId,
+                properties: {
+                  componentId: componentId,
+                  entityId: savedChildEntity.id,
+                  accountId: savedChildEntity.accountId,
+                },
               },
             });
           }
-        }
 
-        return updates;
-      }),
-    "id"
+          if (node.type.isTextblock) {
+            const texts =
+              "textProperties" in existingBlock.properties.entity
+                ? existingBlock.properties.entity.textProperties.texts
+                : undefined;
+
+            const entityProperties = nodeToEntityProperties(node);
+
+            if (
+              !isEqual(
+                texts?.map((text) => omit(text, "__typename")),
+                entityProperties?.texts
+              )
+            ) {
+              updates.push({
+                updateEntity: {
+                  entityId: childEntityId,
+                  accountId: savedChildEntity.accountId,
+                  properties: entityProperties,
+                },
+              });
+            }
+          }
+
+          return updates;
+        }),
+      (action) => action.updateEntity?.entityId
+    );
+
+    return [actions, entities] as const;
+  }
+);
+
+/**
+ * @todo better name, move to shared package
+ * @todo this needs to be able to handle multiple instances of the same block
+ */
+const calculateSaveActions = (
+  accountId: string,
+  pageId: string,
+  metadataId: string,
+  state: EditorState<Schema>,
+  blocks: BlockEntity[],
+  entityStore: EntityStore
+): UpdatePageAction[] => {
+  const blockEntityNodes = findEntityNodes(state.doc);
+  let actions: UpdatePageAction[] = [];
+
+  blocks = [...blocks];
+  [actions, blocks] = removeBlocks(actions, blocks, blockEntityNodes);
+  [actions, blocks] = moveBlocks(actions, blocks, blockEntityNodes);
+  [actions, blocks] = insertBlocks(
+    actions,
+    blocks,
+    blockEntityNodes,
+    accountId
+  );
+  [actions] = updateBlocks(actions, blocks, blockEntityNodes, entityStore);
+
+  return actions;
+};
+
+const updatePageMutation = async (
+  accountId: string,
+  pageId: string,
+  metadataId: string,
+  state: EditorState<Schema>,
+  blocks: BlockEntity[],
+  entityStore: EntityStore,
+  client: ApolloClient<any>
+) => {
+  const actions = calculateSaveActions(
+    accountId,
+    pageId,
+    metadataId,
+    state,
+    blocks,
+    entityStore
   );
 
-  operations.push(...updatedEntitiesOperations);
+  await client.mutate<
+    UpdatePageContentsMutation,
+    UpdatePageContentsMutationVariables
+  >({
+    variables: { actions, accountId, entityId: metadataId },
+    mutation: updatePageContents,
+  });
 
-  return operations;
+  await client.reFetchObservableQueries();
 };
 
 /**
@@ -484,27 +562,16 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
           if (!prosemirrorSetup.current) {
             return;
           }
-          const { view } = prosemirrorSetup.current;
-          const { state } = view;
-          const operations = calculateSaveOperations(
+
+          return updatePageMutation(
             accountId,
             pageId,
             metadataId,
-            state,
+            prosemirrorSetup.current.view.state,
             currentContents.current,
-            currentEntityStoreValue.current
-          );
-          const promise = updatePageContentsFn({
-            variables: {
-              actions: operations,
-              accountId: accountId,
-              entityId: metadataId,
-            },
-          });
-
-          return promise
-            .then(() => client.reFetchObservableQueries())
-            .then(() => {});
+            currentEntityStoreValue.current,
+            client
+          ).then(() => {});
         });
     };
   }, [accountId, client, metadataId, pageId, updatePageContentsFn]);
