@@ -1,10 +1,16 @@
 import "./loadTestEnv";
-import { User, VerificationCode } from "@hashintel/hash-backend/src/model";
+import { Org, User, VerificationCode } from "@hashintel/hash-backend/src/model";
 import { PostgresAdapter } from "@hashintel/hash-backend/src/db";
 
 import { ApiClient } from "./util";
 import { IntegrationTestsHandler } from "./setup";
-import { PageFieldsFragment, SystemTypeName } from "../graphql/apiTypes.gen";
+import {
+  CreateOrgMutationVariables,
+  OrgSize,
+  PageFieldsFragment,
+  SystemTypeName,
+  WayToUseHash,
+} from "../graphql/apiTypes.gen";
 
 const client = new ApiClient("http://localhost:5001/graphql");
 
@@ -30,6 +36,8 @@ beforeAll(async () => {
     shortname: "test-user",
     preferredName: "Alice",
     emails: [{ address: "alice@bigco.com", primary: true, verified: true }],
+    memberOf: [],
+    infoProvidedAtSignup: { usingHow: WayToUseHash.ByThemselves },
   });
 });
 
@@ -102,7 +110,7 @@ describe("can log in", () => {
 
 /** @todo: integration tests for login and signup mutations */
 
-describe("when logged in ", () => {
+describe("logged in user ", () => {
   beforeAll(async () => {
     const { id: verificationId } = await client.sendLoginCode({
       emailOrShortname: existingUser.getPrimaryEmail().address,
@@ -138,13 +146,48 @@ describe("when logged in ", () => {
   });
 
   it("can create org", async () => {
-    const orgVars = {
-      shortname: "bigco",
+    const variables: CreateOrgMutationVariables = {
+      org: {
+        name: "Big Company",
+        shortname: "bigco",
+        orgSize: OrgSize.TwoHundredAndFiftyPlus,
+      },
+      responsibility: "CEO",
     };
-    const res = await client.createOrg(orgVars);
-    expect(res.properties).toEqual(orgVars);
-    expect(res.createdAt).toEqual(res.updatedAt);
-    expect(res.entityTypeName).toEqual("Org");
+
+    const { accountId, entityId } = await client.createOrg(variables);
+
+    const org = (await Org.getOrgById(db)({ accountId, entityId }))!;
+
+    // Test the org has been created correctly
+    expect(org).not.toBeNull();
+    expect(org.properties.name).toEqual(variables.org.name);
+    expect(org.properties.shortname).toEqual(variables.org.shortname);
+    expect(org.properties.infoProvidedAtCreation?.orgSize).toEqual(
+      variables.org.orgSize
+    );
+    expect(org.entityCreatedAt).toEqual(org.entityVersionUpdatedAt);
+    expect(org.entityType.properties.title).toEqual("Org");
+
+    // Test the user is now a member of the org
+    const updatedExistingUser = (await User.getUserById(db)(existingUser))!;
+
+    expect(updatedExistingUser).not.toBeNull();
+
+    const orgMembership = updatedExistingUser.properties.memberOf.find(
+      ({ org: linkedOrg }) =>
+        linkedOrg.__linkedData.entityId === org.entityVersionId
+    );
+
+    expect(orgMembership).toEqual({
+      org: {
+        __linkedData: {
+          entityId: org.entityVersionId,
+          entityTypeId: org.entityType.entityId,
+        },
+      },
+      responsibility: variables.responsibility,
+    });
   });
 
   describe("can create and update pages", () => {

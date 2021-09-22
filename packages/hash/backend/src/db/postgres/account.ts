@@ -3,7 +3,7 @@ import { sql } from "slonik";
 import { Connection } from "./types";
 
 // @ts-ignore
-import { SYSTEM_ACCOUNT_NAME } from "../../lib/config";
+import { SYSTEM_ACCOUNT_SHORTNAME } from "../../lib/config";
 
 export const insertAccount = async (
   conn: Connection,
@@ -21,6 +21,19 @@ export const insertEntityAccount = async (
   await conn.query(sql`
     insert into entity_account (entity_version_id, account_id)
     values (${params.entityVersionId}, ${params.accountId})`);
+};
+
+/** Get the account ID of an entity. */
+export const getEntityAccountId = async (
+  conn: Connection,
+  entityVersionId: string
+): Promise<string> => {
+  const row = await conn.one(sql`
+    select account_id from entity_account
+    where entity_version_id = ${entityVersionId}
+  `);
+
+  return row["account_id"] as string;
 };
 
 /** Get the account ID of multiple entities. Returns a map from entity ID to account ID. */
@@ -52,5 +65,5 @@ export const getEntityAccountIdMany = async (
 export const selectSystemAccountIds = sql`
   select account_id from entity_versions
   where account_id = entity_id
-    and properties->>'shortname' = ${SYSTEM_ACCOUNT_NAME}
+    and properties->>'shortname' = ${SYSTEM_ACCOUNT_SHORTNAME}
 `;

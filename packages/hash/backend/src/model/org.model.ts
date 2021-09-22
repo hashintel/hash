@@ -1,15 +1,14 @@
 import { Org, Account, AccountConstructorArgs } from ".";
 import { DBClient } from "../db";
-import { EntityType } from "../db/adapter";
+import { DBOrgProperties, EntityType } from "../db/adapter";
 import { genId } from "../util";
-import { OrgProperties } from "../graphql/apiTypes.gen";
 
 type OrgConstructorArgs = {
-  properties: OrgProperties;
+  properties: DBOrgProperties;
 } & Omit<AccountConstructorArgs, "type">;
 
 class __Org extends Account {
-  properties: OrgProperties;
+  properties: DBOrgProperties;
 
   constructor({ properties, ...remainingArgs }: OrgConstructorArgs) {
     super({ ...remainingArgs, properties });
@@ -50,7 +49,7 @@ class __Org extends Account {
   static createOrg =
     (client: DBClient) =>
     async (params: {
-      properties: OrgProperties;
+      properties: DBOrgProperties;
       createdById: string;
     }): Promise<Org> => {
       const id = genId();
@@ -67,7 +66,7 @@ class __Org extends Account {
     };
 
   private updateOrgProperties =
-    (client: DBClient) => (properties: OrgProperties) =>
+    (client: DBClient) => (properties: DBOrgProperties) =>
       this.updateProperties(client)(properties);
 }
 

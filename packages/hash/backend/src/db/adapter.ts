@@ -17,7 +17,7 @@ export type EntityTypeTypeFields =
  * @todo should probably store this enum in a non-generated file somewhere
  *    to revisit in light of fuller auth spec
  */
-import { Visibility } from "../graphql/apiTypes.gen";
+import { OrgSize, Visibility, WayToUseHash } from "../graphql/apiTypes.gen";
 
 export type Entity = {
   accountId: string;
@@ -77,6 +77,44 @@ export type VerificationCode = {
   createdAt: Date;
 };
 
+export type DBLinkedEntity = {
+  __linkedData: {
+    entityTypeId: string;
+    entityId: string;
+  };
+};
+
+export type DBUserEmail = {
+  address: string;
+  verified: boolean;
+  primary: boolean;
+};
+
+export type UserInfoProvidedAtSignup = {
+  usingHow?: WayToUseHash;
+};
+
+export type DBUserProperties = {
+  emails: DBUserEmail[];
+  shortname?: string;
+  preferredName?: string;
+  infoProvidedAtSignup: UserInfoProvidedAtSignup;
+  memberOf: {
+    org: DBLinkedEntity;
+    responsibility?: string;
+  }[];
+};
+
+export type OrgInfoProvidedAtCreation = {
+  orgSize: OrgSize;
+};
+
+export type DBOrgProperties = {
+  shortname: string;
+  name: string;
+  infoProvidedAtCreation?: OrgInfoProvidedAtCreation;
+};
+
 export interface DBAdapter extends DataSource, DBClient {
   /** Initiate a new database transaction. All `DBAdapter` methods called within
    * the provided callback `fn` are executed within the same transaction.
@@ -117,6 +155,11 @@ export interface DBClient {
     versioned: boolean;
     properties: any;
   }): Promise<Entity>;
+
+  /**
+   * Get an entity's accountId using its entityVersionId
+   */
+  getEntityAccountId(params: { entityVersionId: string }): Promise<string>;
 
   /** Get an entity by ID in a given account. If `lock` is set to `true`, then no
    * other client may access the entity until the current transaction has ended.

@@ -1,20 +1,30 @@
-import { User, Account, AccountConstructorArgs, VerificationCode } from ".";
+import {
+  User,
+  Account,
+  AccountConstructorArgs,
+  VerificationCode,
+  Org,
+} from ".";
 import { DBClient } from "../db";
-import { EntityType } from "../db/adapter";
+import {
+  DBUserProperties,
+  EntityType,
+  UserInfoProvidedAtSignup,
+} from "../db/adapter";
 import {
   sendEmailVerificationCodeToEmailAddress,
   sendLoginCodeToEmailAddress,
 } from "../email";
 import { genId } from "../util";
-import { UserProperties, Email } from "../graphql/apiTypes.gen";
+import { Email } from "../graphql/apiTypes.gen";
 import EmailTransporter from "../email/transporter";
 
 type UserConstructorArgs = {
-  properties: UserProperties;
+  properties: DBUserProperties;
 } & Omit<AccountConstructorArgs, "type">;
 
 class __User extends Account {
-  properties: UserProperties;
+  properties: DBUserProperties;
 
   constructor({ properties, ...remainingArgs }: UserConstructorArgs) {
     super({ ...remainingArgs, properties });
@@ -69,7 +79,7 @@ class __User extends Account {
 
   static createUser =
     (client: DBClient) =>
-    async (properties: UserProperties): Promise<User> => {
+    async (properties: DBUserProperties): Promise<User> => {
       const id = genId();
 
       const entity = await client.createEntity({
@@ -85,7 +95,7 @@ class __User extends Account {
     };
 
   private updateUserProperties =
-    (client: DBClient) => (properties: UserProperties) =>
+    (client: DBClient) => (properties: DBUserProperties) =>
       this.updateProperties(client)(properties);
 
   /**
@@ -110,10 +120,24 @@ class __User extends Account {
       preferredName: updatedPreferredName,
     });
 
-  static isAccountSignupComplete = ({
-    shortname,
-    preferredName,
-  }: UserProperties): boolean => !!shortname && !!preferredName;
+  /**
+   * Must occur in the same db transaction as when `this.properties` was fetched
+   * to prevent overriding externally-updated properties
+   */
+  updateInfoProvidedAtSignup =
+    (client: DBClient) => (updatedInfo: UserInfoProvidedAtSignup) =>
+      this.updateUserProperties(client)({
+        ...this.properties,
+        infoProvidedAtSignup: {
+          ...this.properties.infoProvidedAtSignup,
+          ...updatedInfo,
+        },
+      });
+
+  static isAccountSignupComplete = (params: {
+    shortname?: string | null;
+    preferredName?: string | null;
+  }): boolean => !!params.shortname && !!params.preferredName;
 
   isAccountSignupComplete = (): boolean =>
     User.isAccountSignupComplete(this.properties);
@@ -208,6 +232,39 @@ class __User extends Account {
         verificationCode,
         emailAddress
       ).then(() => verificationCode);
+    };
+
+  isMemberOfOrg = ({ entityVersionId }: Org) =>
+    this.properties.memberOf.find(
+      ({ org }) => org.__linkedData.entityId === entityVersionId
+    ) !== undefined;
+
+  /**
+   * Must occur in the same db transaction as when `this.properties` was fetched
+   * to prevent overriding externally-updated properties
+   */
+  joinOrg =
+    (client: DBClient) => (params: { org: Org; responsibility: string }) => {
+      if (this.isMemberOfOrg(params.org)) {
+        throw new Error(
+          `User with entityId '${this.entityId}' is already a member of the organization with entityId '${params.org.entityId}'`
+        );
+      }
+      return this.updateUserProperties(client)({
+        ...this.properties,
+        memberOf: [
+          ...this.properties.memberOf,
+          {
+            org: {
+              __linkedData: {
+                entityId: params.org.entityVersionId,
+                entityTypeId: params.org.entityType.entityId,
+              },
+            },
+            responsibility: params.responsibility,
+          },
+        ],
+      });
     };
 }
 

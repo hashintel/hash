@@ -69,11 +69,35 @@ export const orgTypedef = gql`
     # ENTITY INTERFACE FIELDS END #
   }
 
+  enum OrgSize {
+    ONE_TO_TEN
+    ELEVEN_TO_FIFTY
+    FIFTY_ONE_TO_TWO_HUNDRED_AND_FIFTY
+    TWO_HUNDRED_AND_FIFTY_PLUS
+  }
+
   type OrgProperties {
     shortname: String
+    name: String!
+  }
+
+  input CreateOrgInput {
+    shortname: String!
+    name: String!
+    orgSize: OrgSize!
   }
 
   extend type Mutation {
-    createOrg(shortname: String!): Org!
+    """
+    Create a new organization. The user that calls this mutation is automatically added
+    as a member with the provided 'role'.
+    """
+    createOrg(
+      org: CreateOrgInput!
+      """
+      The 'role' of the user at the organization.
+      """
+      responsibility: String!
+    ): Org!
   }
 `;
