@@ -1,4 +1,6 @@
+import { ApolloError } from "apollo-server-express";
 import url from "url";
+import { JSONObject } from "@hashintel/block-protocol";
 
 import { EntityType } from ".";
 import { DBClient } from "../db";
@@ -7,9 +9,7 @@ import {
   UnknownEntity as GQLUnknownEntity,
   Visibility,
 } from "../graphql/apiTypes.gen";
-import { JSONObject } from "../lib/schemas/jsonSchema";
 import { EntityTypeTypeFields } from "../db/adapter";
-import { ApolloError } from "apollo-server-express";
 
 const { FRONTEND_URL } = require("../lib/config");
 
