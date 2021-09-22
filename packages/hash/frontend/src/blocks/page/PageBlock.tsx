@@ -8,7 +8,8 @@ import React, {
 import { Schema } from "prosemirror-model";
 import { Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
-import { createFormatPlugin, renderPM } from "./sandbox";
+import { renderPM } from "./sandbox";
+import { createMarksPlugin } from "../../components/MarksPlugin";
 import { createSuggesterPlugin } from "../../components/BlockSuggester";
 import { useBlockProtocolUpdate } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdate";
 import { useBlockProtocolInsertIntoPage } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolInsertIntoPage";
@@ -305,7 +306,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       replacePortal,
       [
         savePlugin,
-        createFormatPlugin(replacePortal),
+        createMarksPlugin(replacePortal),
         createSuggesterPlugin(replacePortal),
       ],
       accountId,
