@@ -35,12 +35,19 @@ export const createEntity = gql`
 export const createEntityType = gql`
   mutation createEntityType(
     $accountId: ID!
+    $description: String
     $name: String!
     $schema: JSONObject!
   ) {
-    createEntityType(accountId: $accountId, name: $name, schema: $schema) {
+    createEntityType(
+      accountId: $accountId
+      description: $description
+      name: $name
+      schema: $schema
+    ) {
       entityId
       entityTypeName
+      properties
     }
   }
 `;

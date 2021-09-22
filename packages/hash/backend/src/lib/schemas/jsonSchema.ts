@@ -1,4 +1,6 @@
-import { validate } from "jsonschema";
+import Ajv2019 from "ajv/dist/2019";
+
+export const ajv = new Ajv2019();
 
 export type JSONValue =
   | null
@@ -38,11 +40,11 @@ export const jsonSchema = (
   }
 
   if (typeof schema === "string") {
-    schema = JSON.parse(schema);
+    schema = JSON.parse(schema) as JSONObject;
   }
 
   try {
-    validate(title, schema, { allowUnknownAttributes: false });
+    ajv.compile(schema);
   } catch (err) {
     throw new Error("Error in provided schema: " + err.message);
   }
