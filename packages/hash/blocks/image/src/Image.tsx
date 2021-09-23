@@ -75,11 +75,6 @@ export const Image: BlockComponent<AppProps> = (props) => {
     []
   );
 
-  function displayError(errorString: string) {
-    console.log("error ==> ", errorString);
-    updateStateObject({ errorString });
-  }
-
   const updateData = useCallback(
     (src: string | undefined, width?: number) => {
       if (src?.trim()) {
@@ -118,26 +113,40 @@ export const Image: BlockComponent<AppProps> = (props) => {
     [stateObject.src, updateData]
   );
 
-  const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    const { loading } = stateObject;
+  const displayError = (errorString: string) => {
+    updateStateObject({ errorString });
+  };
 
-    event.preventDefault();
-
-    if (loading) {
-      return;
-    }
-
-    if (inputText?.trim()) {
+  const handleImageUpload = useCallback(
+    (imageProp: { imgURL: string } | { file: FileList[number] }) => {
       updateStateObject({ loading: true });
-
-      uploadImage({ imgURL: inputText })
+      uploadImage(imageProp)
         .then(({ src }: { src?: string }) => {
           if (isMounted.current) {
             updateStateObject({ loading: false });
             updateData(src);
           }
         })
-        .catch((error: Error) => displayError(error.message));
+        .catch((error: Error) =>
+          updateStateObject({
+            errorString: error.message,
+            loading: false,
+          })
+        );
+    },
+    [updateData, updateStateObject]
+  );
+
+  const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const { loading } = stateObject;
+
+    if (loading) {
+      return;
+    }
+
+    if (inputText?.trim()) {
+      handleImageUpload({ imgURL: inputText });
     } else {
       displayError("Please enter a valid image URL or select a file below");
     }
@@ -147,13 +156,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
     const { files } = event.target;
 
     if (files?.[0]) {
-      uploadImage({ file: files[0] })
-        .then(({ src }: { src?: string }) => {
-          if (isMounted.current) {
-            updateData(src);
-          }
-        })
-        .catch((error: Error) => displayError(error.message));
+      handleImageUpload({ file: files[0] });
     }
   };
 
@@ -240,13 +243,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
             // we set our input's 'files' property
 
             if (files[0].type.search("image") > -1) {
-              void uploadImage({ file: files[0] })
-                .then(({ src }: { src: string }) => {
-                  if (isMounted.current) {
-                    updateData(src);
-                  }
-                })
-                .catch(displayError);
+              handleImageUpload({ file: files[0] });
             }
           }
         }}
