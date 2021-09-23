@@ -51,18 +51,20 @@ export const sendOrgEmailInvitationToEmailAddress =
   (transporter: EmailTransporter) =>
   async (params: {
     org: Org;
+    isExistingUser?: boolean;
     emailInvitation: OrgEmailInvitation;
     emailAddress: string;
   }): Promise<void> => {
-    const { org, emailInvitation, emailAddress } = params;
+    const { org, emailInvitation, emailAddress, isExistingUser } = params;
 
     const invitationLink = [
-      `http://${FRONTEND_DOMAIN}/signup?`,
-      `orgAccountId=${encodeURIComponent(org.accountId)}&`,
-      `orgEntityId=${encodeURIComponent(org.entityId)}&`,
-      `accessToken=${encodeURIComponent(
+      `http://${FRONTEND_DOMAIN}/invite?`,
+      `orgAccountId=${encodeURIComponent(org.accountId)}`,
+      `&orgEntityId=${encodeURIComponent(org.entityId)}`,
+      `&accessToken=${encodeURIComponent(
         emailInvitation.properties.accessToken
       )}`,
+      isExistingUser ? `&isExistingUser=true` : "",
     ].join("");
 
     await transporter.sendMail({

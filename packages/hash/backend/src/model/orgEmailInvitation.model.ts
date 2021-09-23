@@ -78,9 +78,15 @@ class __OrgEmailInvitation extends AccessToken {
 
       const emailInvitation = new OrgEmailInvitation({ ...entity, properties });
 
+      const existingUser = User.getUserByEmail(client)({
+        email: inviteeEmailAddress,
+        verified: true,
+      });
+
       await sendOrgEmailInvitationToEmailAddress(transporter)({
         org,
         emailInvitation,
+        isExistingUser: !!existingUser,
         emailAddress: inviteeEmailAddress,
       });
 
