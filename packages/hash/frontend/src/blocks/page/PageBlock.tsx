@@ -16,7 +16,6 @@ import { BlockMetaContext } from "../blockMeta";
 import { createInitialDoc, createSchema } from "@hashintel/hash-shared/schema";
 import {
   BlockMeta,
-  cachedPropertiesByEntity,
   createEntityUpdateTransaction,
   defineNewBlock,
 } from "@hashintel/hash-shared/sharedWithBackend";
@@ -34,31 +33,6 @@ type PageBlockProps = {
   accountId: string;
   metadataId: string;
 };
-
-if (typeof localStorage !== "undefined") {
-  const localStorageCachedPropertiesByEntity =
-    JSON.parse(
-      typeof localStorage !== "undefined"
-        ? localStorage.getItem("cachedPropertiesByEntity") ?? "{}"
-        : "{}"
-    ) ?? {};
-
-  Object.assign(cachedPropertiesByEntity, localStorageCachedPropertiesByEntity);
-
-  setInterval(() => {
-    const stringifiedProperties = JSON.stringify(cachedPropertiesByEntity);
-
-    // Temporarily catch all errors to avoid QuotaExceededError run-time errors
-    try {
-      localStorage.setItem("cachedPropertiesByEntity", stringifiedProperties);
-    } catch (error) {
-      const errorName = error instanceof Error ? error.name : "unknown";
-      console.warn(
-        `Caught ${errorName} error when setting "cachedPropertiesByEntity" in local storage`
-      );
-    }
-  }, 500);
-}
 
 /**
  * The naming of this as a "Block" is… interesting, considering it doesn't

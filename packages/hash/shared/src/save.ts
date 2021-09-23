@@ -200,9 +200,6 @@ const updateBlocks = defineOperation(
             return [];
           }
 
-          // @todo this is where cached properties should be being set
-          // cachedPropertiesByEntity[entityId] = node.attrs.properties;
-
           const savedEntity = (
             entityStore as Record<string, EntityStoreType | undefined>
           )[entityId];
