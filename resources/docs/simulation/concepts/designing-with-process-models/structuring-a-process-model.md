@@ -1,7 +1,7 @@
 ---
 title: Structuring a Process Model
 slug: simulation/concepts/designing-with-process-models/structuring-a-process-model
-objectID: 8f7a46a1-9513-4de7-ab75-acd0c6cd1ad1
+objectId: b4c1cda6-a614-4b68-9484-a5d264bf76a5}
 ---
 
 # Structuring a Process Model

@@ -1,7 +1,7 @@
 ---
 title: Shortcuts
 slug: simulation/extra/shortcuts
-objectID: 221397af-708b-4f57-af04-c6a4176163fa
+objectId: d3b822a4-2329-4bde-b3bb-a05b1d6819a6}
 ---
 
 # Shortcuts

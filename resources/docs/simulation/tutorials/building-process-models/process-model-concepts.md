@@ -1,5 +1,7 @@
 ---
-objectID: 56a0c46b-584b-41dc-8995-9711fbd389fb
+title: Process Model Concepts
+slug: simulation/tutorials/building-process-models/process-model-concepts
+objectId: 9f6ec0b6-c84e-4ab7-9e36-a0d843a32e3e}
 ---
 
 # Process Model Concepts

@@ -1,5 +1,7 @@
 ---
-objectID: f5736a9e-8732-4b49-b0a5-b72389262991
+title: Publishing Datasets to Index
+slug: simulation/creating-simulations/datasets/publishing-data-to-index
+objectId: d8103bea-2124-494a-a852-c38e8e1d0f9d}
 ---
 
 # Publishing Datasets to Index

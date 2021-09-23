@@ -1,7 +1,7 @@
 ---
 title: Types
 slug: simulation/creating-simulations/behaviors/behavior-keys/types
-objectID: affe1017-9008-4d1b-b2f2-15d97282aa1b
+objectId: b713ff2f-2b68-4f5a-8cf3-e7a1f1d54760}
 ---
 
 # Types

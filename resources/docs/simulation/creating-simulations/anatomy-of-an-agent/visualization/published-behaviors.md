@@ -1,7 +1,7 @@
 ---
 title: Published Behaviors
 slug: simulation/creating-simulations/anatomy-of-an-agent/visualization/published-behaviors
-objectID: d79352c0-c359-42c3-b89d-9a142b5e33eb
+objectId: 2d1fb8c7-1ab3-481c-897e-cdd613c49402}
 ---
 
 # Published Behaviors

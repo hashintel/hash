@@ -1,7 +1,7 @@
 ---
 title: Trucks on the Move
 slug: simulation/extra/migrating/anylogic/building-the-simulation/trucks-on-the-move
-objectID: e7a0b14f-660b-4844-841e-6cd50b0dd9c9
+objectId: caf5c3c1-c940-41a8-a21b-5ae15760c305}
 ---
 
 # Trucks on the Move

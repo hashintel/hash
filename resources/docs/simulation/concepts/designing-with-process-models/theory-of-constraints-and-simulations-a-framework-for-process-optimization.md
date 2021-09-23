@@ -1,5 +1,7 @@
 ---
-objectID: 39959dcc-df1c-4b35-bf7f-a7efdcc94a88
+title: Theory of Constraints and Simulations: A framework for process optimization
+slug: simulation/concepts/designing-with-process-models/theory-of-constraints-and-simulations-a-framework-for-process-optimization
+objectId: bc91289d-975c-4bc5-8a54-6e3fc2810de7}
 ---
 
 # Theory of Constraints and Simulations: A framework for process optimization

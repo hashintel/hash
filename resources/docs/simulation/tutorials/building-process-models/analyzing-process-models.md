@@ -1,5 +1,7 @@
 ---
-objectID: d6ccbd88-f12f-4433-99f3-d65c17d2f0a2
+title: Analyzing Process Models
+slug: simulation/tutorials/building-process-models/analyzing-process-models
+objectId: 71393281-6569-46d3-a308-8445c79a3553}
 ---
 
 # Analyzing Process Models

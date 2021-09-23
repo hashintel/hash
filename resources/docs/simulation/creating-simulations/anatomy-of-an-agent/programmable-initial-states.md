@@ -1,5 +1,7 @@
 ---
-objectID: 7b315c20-26fb-42ec-8611-65a5960a9f02
+title: Programmable Initialization
+slug: simulation/creating-simulations/anatomy-of-an-agent/programmable-initial-states
+objectId: 13e5ee9e-1c0e-4ffe-be93-739606ed9af6
 description: Initializing simulations with JavaScript and Python
 ---
 

@@ -1,7 +1,7 @@
 ---
 title: Query Customers
 slug: simulation/tutorials/phase-1-building-a-simple-hotelling-model-in-2d/query-customers
-objectID: a3c49945-87ab-4279-b843-b0ff8fecec0c
+objectId: 72bc9a10-e87a-457a-bb7b-0ae5f366f5f0}
 ---
 
 # Query Customers

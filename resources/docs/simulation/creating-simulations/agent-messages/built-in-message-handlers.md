@@ -1,7 +1,7 @@
 ---
 title: Built-in message handlers
 slug: simulation/creating-simulations/agent-messages/built-in-message-handlers
-objectID: 6479d550-45cb-4eda-9946-00f1f8d62bcd
+objectId: c38f31e7-519c-4e5a-ba60-267c33c859ba
 description: Add and remove agents by interacting with hCore
 ---
 

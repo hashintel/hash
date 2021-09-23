@@ -1,7 +1,7 @@
 ---
 title: Full Initialization
 slug: simulation/extra/migrating/anylogic/building-the-simulation/full-initialization
-objectID: 6ccd70fb-b09e-481a-96e1-520e15e60c37
+objectId: aadcc558-465d-4877-b859-c777344d5dca}
 ---
 
 # Full Initialization

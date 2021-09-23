@@ -1,7 +1,7 @@
 ---
 title: Troubleshooting & Debugging
 slug: simulation/extra/troubleshooting
-objectID: 9e74664f-d438-47ec-86cf-2c7883a67d8c
+objectId: 114101d4-8aab-4aad-b191-d19f260a3cc3
 description: Debugging simulation logic and application crashes
 ---
 

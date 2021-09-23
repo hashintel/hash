@@ -1,7 +1,7 @@
 ---
 title: Environment Setup
 slug: simulation/tutorials/phase-1-building-a-simple-hotelling-model-in-2d/set-up-environment
-objectID: e9bbf446-7d3d-438b-a757-9bf0776de92a
+objectId: 91bc373a-7049-4375-ac7d-31fa440ca059}
 ---
 
 # Environment Setup

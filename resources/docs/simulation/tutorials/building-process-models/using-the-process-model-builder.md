@@ -1,5 +1,7 @@
 ---
-objectID: 6b10dbe9-577f-47d4-b4fa-8621f4efc6f1
+title: Using the Process Model Visual Interface
+slug: simulation/tutorials/building-process-models/using-the-process-model-builder
+objectId: 94b05ca6-53c7-47dd-a22d-8c8f1a76d78f}
 ---
 
 # Using the Process Model Visual Interface

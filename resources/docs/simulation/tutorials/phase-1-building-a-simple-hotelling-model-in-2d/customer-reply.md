@@ -1,7 +1,7 @@
 ---
 title: Customer Reply
 slug: simulation/tutorials/phase-1-building-a-simple-hotelling-model-in-2d/customer-reply
-objectID: bf73b412-2626-4b98-9b39-91dad739a0ba
+objectId: 91eaa467-7855-4948-adc0-5d325d839f4d}
 ---
 
 # Customer Reply

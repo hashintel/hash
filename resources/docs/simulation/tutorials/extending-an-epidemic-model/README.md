@@ -1,7 +1,7 @@
 ---
 title: Extending an Epidemic Model
 slug: simulation/tutorials/extending-an-epidemic-model
-objectID: 3b6927d3-84f0-4166-8833-c99da427701f
+objectId: 4cbcaf50-fd13-40c1-abb2-b70d30bc0dfe
 description: Adding and extending features in a simulation.
 ---
 

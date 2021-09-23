@@ -1,7 +1,7 @@
 ---
 title: Managing Resource Access
 slug: simulation/concepts/design-considerations/managing-resource-access
-objectID: a4b71af2-3608-45e2-b42c-46fda6ad728d
+objectId: 92a2661e-3fc1-4a67-a1ea-152b0ab4dbdf}
 ---
 
 # Managing Resource Access
