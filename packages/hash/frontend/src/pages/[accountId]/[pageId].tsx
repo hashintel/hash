@@ -139,7 +139,6 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
 
           <main>
             <PageBlock
-              pageId={data.page.id}
               accountId={data.page.accountId}
               contents={contents}
               blocksMeta={preloadedBlocks}

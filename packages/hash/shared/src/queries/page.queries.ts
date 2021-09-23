@@ -91,51 +91,16 @@ export const updatePage = gql`
   ${pageFieldsFragment}
 `;
 
-export const insertBlockIntoPage = gql`
-  mutation insertBlockIntoPage(
+export const updatePageContents = gql`
+  mutation updatePageContents(
     $accountId: ID!
-    $componentId: ID!
-    $entityTypeId: ID
-    $entityTypeVersionId: ID
-    $systemTypeName: SystemTypeName
-    $entityProperties: JSONObject!
-    $position: Int!
-    $pageId: ID!
-    $pageMetadataId: ID!
-    $versioned: Boolean! = true
+    $entityId: ID!
+    $actions: [UpdatePageAction!]!
   ) {
-    insertBlockIntoPage(
+    updatePageContents(
       accountId: $accountId
-      componentId: $componentId
-      entityTypeId: $entityTypeId
-      entityTypeVersionId: $entityTypeVersionId
-      systemTypeName: $systemTypeName
-      entityProperties: $entityProperties
-      position: $position
-      pageEntityVersionId: $pageId
-      pageEntityId: $pageMetadataId
-      versioned: $versioned
-    ) {
-      ...PageFields
-    }
-  }
-  ${pageFieldsFragment}
-`;
-
-export const insertBlocksIntoPage = gql`
-  mutation insertBlocksIntoPage(
-    $accountId: ID!
-    $pageId: ID!
-    $pageMetadataId: ID!
-    $blocks: [InsertBlocksData!]!
-    $previousBlockId: ID
-  ) {
-    insertBlocksIntoPage(
-      accountId: $accountId
-      entityId: $pageMetadataId
-      entityVersionId: $pageId
-      blocks: $blocks
-      previousBlockId: $previousBlockId
+      entityId: $entityId
+      actions: $actions
     ) {
       ...PageFields
     }

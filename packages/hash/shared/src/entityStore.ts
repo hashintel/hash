@@ -1,10 +1,9 @@
-import { PageFieldsFragment } from "src/graphql/apiTypes.gen";
+import { BlockEntity } from "./types";
 
-type BlockType = PageFieldsFragment["properties"]["contents"][number];
+export type EntityStoreType = BlockEntity | BlockEntity["properties"]["entity"];
+export type EntityStore = Record<string, EntityStoreType>;
 
-export type EntityStoreType = BlockType | BlockType["properties"]["entity"];
-
-export const isBlockEntity = (entity: EntityStoreType): entity is BlockType =>
+export const isBlockEntity = (entity: EntityStoreType): entity is BlockEntity =>
   "properties" in entity && entity.__typename === "Block";
 
 /**
@@ -19,5 +18,5 @@ const mapEntityToEntityStoreItems = <T extends EntityStoreType>(
     : []),
 ];
 
-export const createEntityStore = (contents: EntityStoreType[]) =>
+export const createEntityStore = (contents: EntityStoreType[]): EntityStore =>
   Object.fromEntries(contents.flatMap(mapEntityToEntityStoreItems));
