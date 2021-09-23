@@ -6,13 +6,22 @@ const FRONTEND_DOMAIN = getRequiredEnv("FRONTEND_DOMAIN");
 
 export const sendLoginCodeToEmailAddress =
   (transporter: EmailTransporter) =>
-  async (verificationCode: VerificationCode, email: string): Promise<void> => {
-    const magicLink = `http://${FRONTEND_DOMAIN}/login?verificationId=${encodeURIComponent(
-      verificationCode.id
-    )}&verificationCode=${encodeURIComponent(verificationCode.code)}`;
+  async (params: {
+    verificationCode: VerificationCode;
+    emailAddress: string;
+    redirectPath?: string;
+  }): Promise<void> => {
+    const { verificationCode, emailAddress, redirectPath } = params;
+
+    const magicLink = [
+      `http://${FRONTEND_DOMAIN}/login?`,
+      `verificationId=${encodeURIComponent(verificationCode.id)}`,
+      `&verificationCode=${encodeURIComponent(verificationCode.code)}`,
+      redirectPath ? `&redirectPath=${encodeURIComponent(redirectPath)}` : "",
+    ].join("");
 
     await transporter.sendMail({
-      to: email,
+      to: emailAddress,
       subject: "Your HASH verification code",
       html: `
         <p>To log in, copy and paste your verification code or <a href="${magicLink}">click here</a>.</p>

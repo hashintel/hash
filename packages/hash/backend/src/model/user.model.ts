@@ -174,7 +174,11 @@ class __User extends Account {
 
   sendLoginVerificationCode =
     (client: DBClient, tp: EmailTransporter) =>
-    async (alternateEmailAddress?: string) => {
+    async (params: {
+      alternateEmailAddress?: string;
+      redirectPath?: string;
+    }) => {
+      const { alternateEmailAddress, redirectPath } = params;
       // Check the supplied email address can be used for sending login codes
       if (alternateEmailAddress) {
         const email = this.getEmail(alternateEmailAddress);
@@ -199,10 +203,11 @@ class __User extends Account {
         emailAddress,
       });
 
-      return sendLoginCodeToEmailAddress(tp)(
+      return sendLoginCodeToEmailAddress(tp)({
         verificationCode,
-        emailAddress
-      ).then(() => verificationCode);
+        emailAddress,
+        redirectPath,
+      }).then(() => verificationCode);
     };
 
   sendEmailVerificationCode =

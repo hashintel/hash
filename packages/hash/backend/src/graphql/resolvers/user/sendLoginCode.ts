@@ -14,7 +14,11 @@ export const sendLoginCode: Resolver<
   {},
   GraphQLContext,
   MutationSendLoginCodeArgs
-> = async (_, { emailOrShortname }, { dataSources, emailTransporter }) =>
+> = async (
+  _,
+  { emailOrShortname, redirectPath },
+  { dataSources, emailTransporter }
+) =>
   dataSources.db.transaction(async (client) => {
     const hasProvidedEmail = emailOrShortname.includes("@");
 
@@ -54,7 +58,10 @@ export const sendLoginCode: Resolver<
       .sendLoginVerificationCode(
         client,
         emailTransporter
-      )(hasProvidedEmail ? emailOrShortname : undefined)
+      )({
+        alternateEmailAddress: hasProvidedEmail ? emailOrShortname : undefined,
+        redirectPath: redirectPath || undefined,
+      })
       .then((verificationCode) =>
         verificationCode.toGQLVerificationCodeMetadata()
       );

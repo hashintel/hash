@@ -138,7 +138,10 @@ export const userTypedef = gql`
     """
     Sends an existing user a login verification code
     """
-    sendLoginCode(emailOrShortname: String!): VerificationCodeMetadata!
+    sendLoginCode(
+      emailOrShortname: String!
+      redirectPath: String
+    ): VerificationCodeMetadata!
     """
     Logs a user in using a previously generated verification code
     """
