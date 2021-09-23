@@ -537,6 +537,10 @@
           {
             "title": "Shortcuts",
             "slug": "simulation/extra/shortcuts"
+          },
+          {
+            "title": "Design Considerations",
+            "slug": "simulation/extra/design-considerations"
           }
         ]
       }

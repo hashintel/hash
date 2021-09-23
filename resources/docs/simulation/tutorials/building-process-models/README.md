@@ -1,4 +1,6 @@
 ---
+title: Building Process Models
+slug: simulation/tutorials/building-process-models
 objectID: e46938a4-1a49-414c-9e27-fb4d41614526
 ---
 
