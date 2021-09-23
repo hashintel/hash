@@ -1,3 +1,7 @@
+---
+objectID: db2517a6-b57f-432d-89a8-d7175c987671
+---
+
 # Create a Simulation Dashboard
 
 Simulations are powerful ways to model the world, but they won't do any good if they're not used! It's important to build presentations of simulations in anticipation of how the end user will want to interact with it, helping them to explore the parameters of the simulation and derive insights.

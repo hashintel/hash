@@ -1,3 +1,7 @@
+---
+objectID: affe1017-9008-4d1b-b2f2-15d97282aa1b
+---
+
 # Types
 
 If you've used a statically defined language before - like Rust, Go, or Clojure then you'll already be familiar with strong type systems. You select the type - `string`, `number`, `list`, etc. - of data that a field will store. This improves memory allocation and access speed, as well as making sure that if you assign an incorrect type to the field an error is thrown. **If you are unsure about typing a field, assign it an 'any' type - or ask us for help!**

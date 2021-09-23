@@ -1,3 +1,7 @@
+---
+objectID: d2371288-735b-4244-80d9-3776cc4e651b
+---
+
 # Bounds and Wrapping
 
 Often, you don't want your agents to move ad infinitum. You might be simulating gas particles in a closed box, or flights across the globe. In these situations, you need to define how big the world is, and how the agent operates as it nears the borders.

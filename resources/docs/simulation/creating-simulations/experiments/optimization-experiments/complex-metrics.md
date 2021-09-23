@@ -1,3 +1,7 @@
+---
+objectID: 1771ca79-b0c1-406a-9169-99228bc3846f
+---
+
 # Complex Metrics
 
 HASH has a robust analysis system in place, allowing users to gather data from their simulation with metrics, and plot them in numerous different graph types. By defining an agent in your simulation that performs its own data collection and transformation, you can generate more complex metrics which represent weighted combinations of other metrics and datasets. This can unlock additional functionality in your HASH simulations.

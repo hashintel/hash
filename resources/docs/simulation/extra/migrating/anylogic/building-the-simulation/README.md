@@ -1,3 +1,7 @@
+---
+objectID: 53dece1f-b1d9-49d4-989e-2bf5964b134e
+---
+
 # Building the Simulation
 
 Working outside in, we will start with **Tankers**. We’ll point out key pieces of logic contained in each agent’s behaviors, show you some code snippets, and call out when we made use of published behaviors in hIndex. We encourage you to follow along in the [existing simulation](/@hash/oil-supply-chain) to see how these snippets fit into the full behaviors and simulation.

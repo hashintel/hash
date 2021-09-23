@@ -1,3 +1,7 @@
+---
+objectID: f5736a9e-8732-4b49-b0a5-b72389262991
+---
+
 # Publishing Datasets to Index
 
 You can share your datasets with others by publishing them to hIndex.

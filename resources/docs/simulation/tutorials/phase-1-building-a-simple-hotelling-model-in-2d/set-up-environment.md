@@ -1,3 +1,7 @@
+---
+objectID: e9bbf446-7d3d-438b-a757-9bf0776de92a
+---
+
 # Environment Setup
 
 After opening up a new simulation in HASH, navigate to globals.json. First, we are going to set up the [**Topology**](/docs/simulation/configuration/topology), or the environment, of the model.

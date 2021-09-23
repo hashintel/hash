@@ -1,3 +1,7 @@
+---
+objectID: d79352c0-c359-42c3-b89d-9a142b5e33eb
+---
+
 # Published Behaviors
 
 A number of behaviors on hIndex will help you complete more complicated visualization tasks. The behaviors below, for instance, allow you to link a property of your agent to one of the reserved display fields. When the driving property is updated, the display property will be as well.

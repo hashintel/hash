@@ -1,3 +1,7 @@
+---
+objectID: 0ac7dd77-9d1c-405d-9452-d0ac6ecb1d99
+---
+
 # Mental Models
 
 Mental models are conceptual frameworks, or ways of thinking, that can be applied to help solve problems.

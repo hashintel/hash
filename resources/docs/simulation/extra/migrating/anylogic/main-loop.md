@@ -1,3 +1,7 @@
+---
+objectID: 753e9821-fd1f-4c12-8c1f-24312712fcfe
+---
+
 # Main Loop
 
 Now that we have our list of agents, we move to step 2 - understanding the main loop. The main loop is a broad term meant to convey the general process of the simulation. While sophisticated simulations can and do evolve over time, there is always a process or set of processes that directs the agent interactions.

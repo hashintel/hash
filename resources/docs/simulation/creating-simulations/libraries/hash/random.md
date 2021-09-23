@@ -1,4 +1,5 @@
 ---
+objectID: 3101bc8c-5af5-49d3-b7b1-fa5e41424ac6
 description: hstd functions for generating pseudo-random numbers.
 ---
 

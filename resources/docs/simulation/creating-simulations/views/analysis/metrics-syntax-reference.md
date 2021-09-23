@@ -1,3 +1,7 @@
+---
+objectID: 39ff713b-299d-4bf5-afbd-6c3d183803ee
+---
+
 # Metrics Syntax Reference
 
 We recommend using hCore's fully featured wizards to define metrics and generate plots. If you would like to define them manually for any reason, you can reference the below for an explanation of the structure and syntax of the **analysis.json** file.

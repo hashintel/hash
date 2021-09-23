@@ -1,3 +1,7 @@
+---
+objectID: 861085ec-a981-4778-be27-c95ed450e1df
+---
+
 # Composable Behaviors
 
 **All user-authored behaviors, regardless of language, are** _**composable**_**.** This means they can be combined in any fashion with any number of others behaviors.

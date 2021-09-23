@@ -1,3 +1,7 @@
+---
+objectID: 6ccd70fb-b09e-481a-96e1-520e15e60c37
+---
+
 # Full Initialization
 
 We've built all our logic to run this simulation, but we want to have more than just one agent of each type in our model. We're going to create a dataset to represent a network of ports, refineries, storages, etc. and use it to initialize our model. We'll also import some historical oil supply data to populate the demand gas stations experience.

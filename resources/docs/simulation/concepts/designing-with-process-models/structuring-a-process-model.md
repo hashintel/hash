@@ -1,3 +1,7 @@
+---
+objectID: 8f7a46a1-9513-4de7-ab75-acd0c6cd1ad1
+---
+
 # Structuring a Process Model
 
 <Hint style="info">

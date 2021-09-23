@@ -1,3 +1,7 @@
+---
+objectID: 9ccda572-e8b4-4db7-9b6f-dd2ffe8d5bf1
+---
+
 # Final Code
 
 Check out the model \(Local Competition Phase 1\) in [hIndex](/@hash/local-competition-phase-1)

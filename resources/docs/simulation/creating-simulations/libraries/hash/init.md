@@ -1,3 +1,7 @@
+---
+objectID: 893cb298-60fe-4b1d-a084-a9bd1cf695d3
+---
+
 # Init
 
 When using `init.js` or `init.py` to initialize your simulation, these standard library functions can help you easily initialize agents in predefined patterns.

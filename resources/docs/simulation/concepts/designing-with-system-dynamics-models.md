@@ -1,3 +1,7 @@
+---
+objectID: 06cb22f3-1bd4-4962-b0df-74d5151345fb
+---
+
 # System Dynamics
 
 System dynamics model allow you to understand non-linear complex systems based on rates of change. Also known as stock-and-flow models, they consist of a set of "stocks" and the "flows" between them. These models allow you to understand the feedback loops inherent in a system.

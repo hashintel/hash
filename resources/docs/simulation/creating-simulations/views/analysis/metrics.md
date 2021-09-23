@@ -1,3 +1,7 @@
+---
+objectID: 5b84538b-1e4f-4dae-afa7-e9a2f978f33d
+---
+
 # Metrics
 
 Your first step is to define Metrics that you are interested in plotting. Each Metric is an output of your simulation, represented as an array of data. Metrics are defined as a series of Operations which transform your simulation data into an array of specific data, typically by filtering for specific agents, then retrieving a certain value from each agent. The available Operations are listed below.

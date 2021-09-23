@@ -1,3 +1,7 @@
+---
+objectID: 258b6a4a-b5a3-4b3f-87a2-39174597d381
+---
+
 # Create an ICU
 
 So now we can tell people they’re sick, and when they hear they’re sick they go home. But we also want to account for another function of a hospital - providing treatment for severe cases.

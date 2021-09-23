@@ -1,3 +1,7 @@
+---
+objectID: c722c4f7-8dfe-4a9b-8565-54cdf19b403c
+---
+
 # hCore Message API
 
 hCore provides a messaging API for embedded instances of hCore. You can use the messaging API to edit and set a simulation files and to read the state of a simulation. We'd love your [feedback](/contact) on this feature.

@@ -1,3 +1,7 @@
+---
+objectID: 3c8075a5-b7f8-4b0d-87ad-9c6eb7c80536
+---
+
 # Add heterogeneity
 
 One thing that sets agent-based modeling apart from analytic techniques or system dynamic models is the ease with which you can add 'heterogeneity'. This means that our population of agents can have different demographic features; for example in HASH you can easily create a distribution of age by adding a property and assigning different age values to different agents.

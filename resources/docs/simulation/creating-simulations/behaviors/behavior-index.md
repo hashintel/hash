@@ -1,3 +1,7 @@
+---
+objectID: 00f6b05d-a4bf-4236-8a71-a8bd854b59bf
+---
+
 # Getting the Behavior Index
 
 Sometimes behaviors may need to know which behaviors executed before it, and which behaviors will execute after it, in the agent's behavior chain. For this, the agent's `state` has a special method — `state.behaviorIndex()` in Javascript and `state.behavior_index()` in Python — which returns the index of the currently executing behavior in the agent's behavior chain.

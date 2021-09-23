@@ -1,3 +1,7 @@
+---
+objectID: 8a3a6551-945f-4385-8fdb-e47d8c405556
+---
+
 # Create Testing Behavior
 
 To start let**'**s create a message from the Person agent that contains the basics - they’re requesting a test. In the `check_infected` behavior file, add a [message](/docs/simulation/creating-simulations/agent-messages/) function:

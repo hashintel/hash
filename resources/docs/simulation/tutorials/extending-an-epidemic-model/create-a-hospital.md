@@ -1,3 +1,7 @@
+---
+objectID: a2b80dda-09bb-4b27-9685-79d49e852a72
+---
+
 # Create a Hospital
 
 Open up the `init.json` file. It should look like:

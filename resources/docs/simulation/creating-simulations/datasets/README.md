@@ -1,3 +1,7 @@
+---
+objectID: 06945f04-7459-4141-b433-0bad8f78cc20
+---
+
 # Datasets
 
 **Data can be used in HASH to instantiate agents in a simulation, to set the properties of agents, or to influence any part of the simulation.**

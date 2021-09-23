@@ -1,3 +1,7 @@
+---
+objectID: a4b71af2-3608-45e2-b42c-46fda6ad728d
+---
+
 # Managing Resource Access
 
 Managing shared resource access is a common software design challenge. For instance [mutexes](https://en.wikipedia.org/wiki/Lock_%28computer_science%29) and similar locking mechanisms might be implemented to ensure only one process is modifying the resource at once. To avoid the need for this, **HASH manages state through the actor model, with each individual actor controlling its own state.**

@@ -1,3 +1,7 @@
+---
+objectID: c80ee10c-be50-4cc0-9e27-e6abed2785c3
+---
+
 # System Requirements
 
 Certain HASH features rely on cutting-edge technology that may not be supported in every browser and on every platform. For whatever browser you choose to use, we recommend the latest and greatest version to ensure support. We have found the best performance and user experience on the latest Chrome release.

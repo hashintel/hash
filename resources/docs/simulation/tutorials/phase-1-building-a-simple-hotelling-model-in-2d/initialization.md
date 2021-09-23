@@ -1,3 +1,7 @@
+---
+objectID: 7ad7c073-86b4-4c5e-aaed-c4a1fb16e85a
+---
+
 # Agent Initialization
 
 Now, open up init.json. This is where we will be writing our [agent creator](/docs/simulation/creating-simulations/anatomy-of-an-agent/initial-state) that will generate all our simulation agents. First, generate the Customer agents.

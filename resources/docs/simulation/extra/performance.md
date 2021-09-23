@@ -1,3 +1,7 @@
+---
+objectID: 2b53b54d-ef04-4bbf-867b-a8f194066373
+---
+
 # Performance
 
 There are several possible reasons your simulation is running slowly. Broadly we bucket them in three categories: data, compute, and hardware.

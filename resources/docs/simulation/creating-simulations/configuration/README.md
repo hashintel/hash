@@ -1,4 +1,5 @@
 ---
+objectID: 73151c8e-8af8-40c8-b1ba-9c857ea656ab
 description: Globals are variables which are accessible to all agents in a simulation
 ---
 

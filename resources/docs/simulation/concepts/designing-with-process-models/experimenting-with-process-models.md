@@ -1,3 +1,7 @@
+---
+objectID: 5bc61681-0c32-42e1-a701-108f5ad7ab91
+---
+
 # Experimenting with Process Models
 
 You can use experiments to explore different potential scenarios with a process model. For example if you want to understand how a process will run when it has half the people working on it, or double the people, you can automatically generate and compare simulation runs with those parameters.

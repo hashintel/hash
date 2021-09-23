@@ -1,3 +1,7 @@
+---
+objectID: 9bf17889-9535-4a79-9321-0aed40f8c5a9
+---
+
 # Switching to HASH
 
 One of the most common questions we hear from users is “We want to use HASH because it’s free, fast, and integrates with my other tools - but we’ve already built a simulation in another package. How can we easily port it over into HASH?”

@@ -1,3 +1,7 @@
+---
+objectID: e46938a4-1a49-414c-9e27-fb4d41614526
+---
+
 # Building Process Models
 
 Business processes are the cornerstone of every company's operations. Defined and repeatable plans for satisfying business objectives differentiate a focused, efficient machine from a disorganized mess.

@@ -1,3 +1,7 @@
+---
+objectID: 8d3c274d-4e34-442a-bd33-c67b5c9229e9
+---
+
 # Analyzing Process Models
 
 Once you've created your process model, you'll want to use it to answer questions about its performance. Creating plots will make it easy and visually engaging to interpret the results of your simulation runs.

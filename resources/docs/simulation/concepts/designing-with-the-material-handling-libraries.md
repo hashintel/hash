@@ -1,3 +1,7 @@
+---
+objectID: c0578fe5-4555-4e28-bd84-298fca28c44f
+---
+
 # Material Handling
 
 When designing simulations, you might want certain agents to be able to manipulate other agents. Picking up, moving, and placing agents is an extremely common task in warehouse models, and many others. The Material Handling Libraries make it easy for you to import and extend these capabilities into your simulations.

@@ -1,3 +1,7 @@
+---
+objectID: aba75f1a-1768-427f-9521-c514acc3ddf0
+---
+
 # State
 
 Every agent has a private **state**. Is the agent of height 1 or height 2? Is the agent's name "foo" or is its name "bar"? These properties are expressed and saved on the agent's state.

@@ -1,3 +1,7 @@
+---
+objectID: a3c49945-87ab-4279-b843-b0ff8fecec0c
+---
+
 # Query Customers
 
 Businesses will perform two actions in this model: query customers and collect customer responses to update their position and item price.

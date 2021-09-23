@@ -1,3 +1,7 @@
+---
+objectID: 04f8acd9-acc9-4689-ac04-9abe870865b0
+---
+
 # Behavior Keys
 
 Behavior Keys define the **data** **type** of the fields that a behavior accesses on an agent's state. HASH uses behavior keys to improve the runtime performance of simulations. To view the behavior keys associated with a file, click the button containing the _brain_ icon, located next to the help button, to toggle the key panel's visibility \(highlighted in green below\).

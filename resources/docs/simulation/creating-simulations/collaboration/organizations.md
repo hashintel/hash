@@ -1,3 +1,7 @@
+---
+objectID: 20c18665-201c-402e-9f0b-c4a11f7adea0
+---
+
 # Organizations
 
 Organizations exist in HASH to allow you to create private spaces with other users for permissioned sharing and collaboration on projects. They are free to create, and can contain unlimited number of members.

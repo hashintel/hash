@@ -1,3 +1,7 @@
+---
+objectID: 4e160de3-a797-475e-90c7-9b85d515118f
+---
+
 # Visualization
 
 Once you've developed and tested the logic and functioning of your model, it can be helpful to create a compelling visualization that clearly turns your model into an explanatory tool.

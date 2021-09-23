@@ -1,3 +1,7 @@
+---
+objectID: 83b5f923-aea4-4a39-941a-a33c71b202e6
+---
+
 # Improving our Visualization
 
 Now let's add some more involved visualization to our simulation. Visualizations allow users of your simulation to better understand your model, and includes generating graphs in the **Plots** view, and improving the visuals in the **3D Viewer**.

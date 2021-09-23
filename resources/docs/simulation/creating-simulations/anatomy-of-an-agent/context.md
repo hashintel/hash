@@ -1,3 +1,7 @@
+---
+objectID: 8b1b7ff0-7c67-4a38-8810-1c6a85b1a686
+---
+
 # Context
 
 Besides their [**state**](/docs/simulation/creating-simulations/anatomy-of-an-agent/state), an agent always has access to their **context**. The context is the parts of the simulation that the agent is exposed to; another way of thinking about it is that an agent's context are the parts of the simulation that the agent "can see".

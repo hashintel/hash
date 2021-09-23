@@ -1,3 +1,7 @@
+---
+objectID: 39959dcc-df1c-4b35-bf7f-a7efdcc94a88
+---
+
 # Theory of Constraints and Simulations: A framework for process optimization
 
 Simulating process models is a powerful technique for understanding and optimizing work processes. And like most powerful techniques, it's important to have a framework for applying it, to help use it in a way that's beneficial and aligned with management objectives.
