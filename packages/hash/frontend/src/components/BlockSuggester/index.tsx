@@ -98,8 +98,6 @@ const findTrigger = (state: EditorState): Trigger | null => {
 interface SuggesterState {
   /** whether or not the suggester is disabled */
   disabled: boolean;
-  /** whether or not the popup is opened */
-  open: boolean;
   /** the suggester's current trigger */
   trigger: Trigger | null;
 }
@@ -117,20 +115,19 @@ export const createBlockSuggester = (replacePortal: ReplacePortals) => {
   const plugin = new Plugin<SuggesterState>({
     state: {
       init() {
-        return { open: false, trigger: null, disabled: false };
+        return { trigger: null, disabled: false };
       },
       apply(tr, state, _prevEitorState, nextEditorState) {
         const action = tr.getMeta(plugin);
 
         if (action?.type === "escape") {
-          return { ...state, open: false, disabled: true };
+          return { ...state, disabled: true };
         }
 
         const trigger = findTrigger(nextEditorState);
         const disabled = state.disabled && trigger !== null;
-        const open = !disabled && trigger !== null;
 
-        return { open, trigger, disabled };
+        return { trigger, disabled };
       },
     },
     props: {
@@ -148,11 +145,11 @@ export const createBlockSuggester = (replacePortal: ReplacePortals) => {
 
       return {
         update(view) {
-          const { open, trigger } = plugin.getState(view.state);
+          const { trigger, disabled } = plugin.getState(view.state);
 
-          if (!open) return this.destroy!();
+          if (!trigger || disabled) return this.destroy!();
 
-          const coords = view.coordsAtPos(trigger!.from);
+          const coords = view.coordsAtPos(trigger.from);
 
           const style: CSSProperties = {
             position: "absolute",
