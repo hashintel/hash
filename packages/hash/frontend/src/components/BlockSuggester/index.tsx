@@ -5,6 +5,7 @@ import { EditorState, Plugin } from "prosemirror-state";
 import React, { CSSProperties, useContext, VoidFunctionComponent } from "react";
 import { tw } from "twind";
 import { BlockMetaContext } from "../../blocks/blockMeta";
+import { ensureMounted } from "../../lib/dom";
 
 /**
  * used to present list of blocks to choose from to the user
@@ -112,9 +113,7 @@ interface SuggesterState {
  * the popup. Pressing the Escape-key while inside the trigger will disable the plugin until a
  * trigger is newly encountered (e.g. by leaving/deleting and reentering/retyping a trigger).
  */
-export const createSuggesterPlugin = (replacePortal: ReplacePortals) => {
-  const mountNode = document.body;
-
+export const createBlockSuggester = (replacePortal: ReplacePortals) => {
   const plugin = new Plugin<SuggesterState>({
     state: {
       init() {
@@ -145,6 +144,8 @@ export const createSuggesterPlugin = (replacePortal: ReplacePortals) => {
       },
     },
     view() {
+      const mountNode = document.createElement("div");
+
       return {
         update(view) {
           const { open, trigger } = plugin.getState(view.state);
@@ -165,10 +166,12 @@ export const createSuggesterPlugin = (replacePortal: ReplacePortals) => {
             </div>
           );
 
+          ensureMounted(mountNode, document.body);
           replacePortal(mountNode, mountNode, jsx);
         },
         destroy() {
           replacePortal(mountNode, null, null);
+          mountNode.remove();
         },
       };
     },

@@ -3,15 +3,16 @@ import { toggleMark } from "prosemirror-commands";
 import { Node as ProsemirrorNode } from "prosemirror-model";
 import { NodeSelection, Plugin } from "prosemirror-state";
 import React from "react";
+import { ensureMounted } from "../../lib/dom";
 
-interface MarksPluginState {
+interface MarksTooltipState {
   focused: boolean;
 }
 
-export function createMarksPlugin(replacePortal: ReplacePortals) {
+export function createMarksTooltip(replacePortal: ReplacePortals) {
   let timeout: NodeJS.Timeout;
 
-  const formatPlugin = new Plugin<MarksPluginState>({
+  const marksTooltip = new Plugin<MarksTooltipState>({
     /**
      * This allows us to keep track of whether the view is focused, which
      * is important for knowing whether to show the format tooltip
@@ -53,6 +54,7 @@ export function createMarksPlugin(replacePortal: ReplacePortals) {
     },
 
     view(editorView) {
+      const mountNode = document.createElement("div");
       const dom = document.createElement("div");
 
       /**
@@ -63,8 +65,8 @@ export function createMarksPlugin(replacePortal: ReplacePortals) {
        * @todo fully rewrite this to use React completely
        */
       replacePortal(
-        document.body,
-        document.body,
+        mountNode,
+        mountNode,
         <div
           ref={(node) => {
             if (node) {
@@ -134,6 +136,8 @@ export function createMarksPlugin(replacePortal: ReplacePortals) {
       button("underlined", "U");
 
       const update = (view: FixMeLater, lastState?: FixMeLater) => {
+        ensureMounted(mountNode, document.body);
+
         const dragging = !!editorView.dragging;
 
         const state = view.state;
@@ -147,7 +151,7 @@ export function createMarksPlugin(replacePortal: ReplacePortals) {
          * @todo enable the format tooltip outside of a paragraph node
          */
         if (
-          !formatPlugin.getState(view.state).focused ||
+          !marksTooltip.getState(view.state).focused ||
           dragging ||
           state.selection instanceof NodeSelection ||
           // !(state.selection instanceof TextSelection) ||
@@ -220,7 +224,8 @@ export function createMarksPlugin(replacePortal: ReplacePortals) {
 
       return {
         destroy() {
-          replacePortal(document.body, null, null);
+          replacePortal(mountNode, null, null);
+          mountNode.remove();
           document.removeEventListener("dragstart", dragstart);
           document.removeEventListener("dragend", dragend);
         },
@@ -229,5 +234,5 @@ export function createMarksPlugin(replacePortal: ReplacePortals) {
     },
   });
 
-  return formatPlugin;
+  return marksTooltip;
 }
