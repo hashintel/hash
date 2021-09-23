@@ -23,7 +23,7 @@ import { VersionDropdown } from "../../components/Dropdowns/VersionDropdown";
  * preload all configured blocks for now. in the future these will be loaded
  * progressively from the block catalogue.
  */
-const preloadedBlocksUrls = Object.keys(blockPaths);
+const preloadedComponentIds = Object.keys(blockPaths);
 
 // Apparently defining this is necessary in order to get server rendered props?
 export const getStaticPaths: GetStaticPaths<{ slug: string }> = async () => {
@@ -41,7 +41,8 @@ export const getStaticPaths: GetStaticPaths<{ slug: string }> = async () => {
  */
 export const getStaticProps: GetStaticProps = async () => {
   const preloadedBlockMeta = await Promise.all(
-    preloadedBlocksUrls?.map((url) => fetchBlockMeta(url)) ?? []
+    preloadedComponentIds?.map((componentId) => fetchBlockMeta(componentId)) ??
+      []
   );
 
   return { props: { preloadedBlockMeta } };
@@ -94,7 +95,7 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
                 ? 1
                 : 0
             )
-            .map((node) => [node.componentMetadata.url, node] as const)
+            .map((node) => [node.componentMetadata.componentId, node] as const)
         ),
       [preloadedBlockMeta]
     );

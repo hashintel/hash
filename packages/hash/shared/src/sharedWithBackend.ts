@@ -28,7 +28,7 @@ const fetch = (globalThis as any).fetch ?? require("node-fetch");
 /**
  * @todo think about removing this
  */
-type BlockConfig = BlockMetadata & { url: string };
+type BlockConfig = BlockMetadata & { componentId: string };
 
 /**
  * @deprecated
@@ -39,7 +39,6 @@ export type Block = {
   versionId: string;
   accountId: string;
   entity: Record<any, any>;
-  // @todo this is really a url – should we rename this?
   componentId: string;
   componentMetadata: BlockConfig;
   componentSchema: JSONSchema;
@@ -59,7 +58,7 @@ export type BlockMeta = Pick<Block, "componentMetadata" | "componentSchema">;
  * @deprecated in favor of react context "blockMeta" (which is not the final
  *   solution either)
  */
-export const blockCache = new Map<string, Promise<BlockMeta>>();
+const blockCache = new Map<string, Promise<BlockMeta>>();
 
 function toBlockName(packageName: string = "Unnamed") {
   return packageName.split("/").pop()!;
@@ -68,7 +67,10 @@ function toBlockName(packageName: string = "Unnamed") {
 /**
  * transform mere options into a useable block configuration
  */
-function toBlockConfig(options: BlockMetadata, url: string): BlockConfig {
+function toBlockConfig(
+  options: BlockMetadata,
+  componentId: string
+): BlockConfig {
   const defaultVariant = {
     name: toBlockName(options.name),
     description: options.description,
@@ -89,27 +91,31 @@ function toBlockConfig(options: BlockMetadata, url: string): BlockConfig {
     icon: "/format-font.svg",
   })) ?? [defaultVariant];
 
-  return { ...options, url, variants };
+  return { ...options, componentId, variants };
 }
 
+export const componentIdToUrl = (componentId: string) =>
+  ((blockPaths as any)[componentId] ?? componentId) as string;
+
 // @todo deal with errors, loading, abort etc.
-export const fetchBlockMeta = async (url: string): Promise<BlockMeta> => {
-  const mappedUrl = ((blockPaths as any)[url] ?? url) as string;
-  if (blockCache.has(mappedUrl)) {
-    return blockCache.get(mappedUrl)!;
+export const fetchBlockMeta = async (
+  componentId: string
+): Promise<BlockMeta> => {
+  const url = componentIdToUrl(componentId);
+
+  if (blockCache.has(url)) {
+    return blockCache.get(url)!;
   }
 
   const promise = (async () => {
     const metadata: BlockMetadata = await (
-      await fetch(`${mappedUrl}/metadata.json`)
+      await fetch(`${url}/metadata.json`)
     ).json();
 
-    const schema = await (
-      await fetch(`${mappedUrl}/${metadata.schema}`)
-    ).json();
+    const schema = await (await fetch(`${url}/${metadata.schema}`)).json();
 
     const result: BlockMeta = {
-      componentMetadata: toBlockConfig(metadata, mappedUrl),
+      componentMetadata: toBlockConfig(metadata, componentId),
       componentSchema: schema,
     };
 
@@ -118,7 +124,7 @@ export const fetchBlockMeta = async (url: string): Promise<BlockMeta> => {
 
   // @ts-ignore
   if (typeof window !== "undefined") {
-    blockCache.set(mappedUrl, promise);
+    blockCache.set(url, promise);
   }
 
   return await promise;
@@ -261,10 +267,6 @@ const mapEntityToChildren = (
   return [];
 };
 
-const invertedBlockPaths = Object.fromEntries(
-  Object.entries(blockPaths).map(([key, value]) => [value, key])
-);
-
 export const cachedPropertiesByEntity: Record<string, Record<any, any>> = {};
 const cachedPropertiesByPosition: Record<string, Record<any, any>> = {};
 
@@ -296,18 +298,13 @@ export const calculateSavePayloads = (
     .flatMap((block: any) => block.content) as any[];
 
   const mappedBlocks = blocks.map((node: any, position) => {
-    const nodeType = schema.nodes[node.type];
-    // @todo type this properly – get this from somewhere else
-    const meta = (nodeType as any).defaultAttrs
-      .meta as Block["componentMetadata"];
-
     if (node.attrs.entityId) {
       cachedPropertiesByEntity[node.attrs.entityId] = node.attrs.properties;
     } else {
       cachedPropertiesByPosition[position] = node.attrs.properties;
     }
 
-    const componentId = invertedBlockPaths[meta.url] ?? meta.url;
+    const componentId = node.type;
     const savedEntity: EntityStoreType | undefined =
       entityStore[node.attrs.entityId];
 
@@ -542,12 +539,12 @@ export function defineNewNode<
   N extends string = any,
   M extends string = any,
   S extends Schema = Schema<N, M>
->(existingSchema: S, componentUrl: string, spec: NodeSpec) {
+>(existingSchema: S, componentId: string, spec: NodeSpec) {
   const existingSchemaSpec = existingSchema.spec;
   const map = existingSchemaSpec.nodes;
   const privateMap: OrderedMapPrivateInterface<NodeSpec> = map as any;
 
-  privateMap.content.push(componentUrl, spec);
+  privateMap.content.push(componentId, spec);
 
   new (class extends Schema {
     // @ts-ignore
@@ -580,16 +577,12 @@ export function defineNewNode<
   })(existingSchemaSpec);
 }
 
-export const createProsemirrorSpec = (
-  meta: BlockConfig,
-  spec: Partial<NodeSpec>
-): NodeSpec => ({
+export const createProsemirrorSpec = (spec: Partial<NodeSpec>): NodeSpec => ({
   ...spec,
   selectable: false,
   group: "blockItem",
   attrs: {
     ...(spec.attrs ?? {}),
-    meta: { default: meta },
     entityId: { default: "" },
   },
 });
@@ -608,13 +601,13 @@ export function defineNewBlock<
   componentMetadata: BlockConfig,
   componentSchema: Block["componentSchema"],
   viewConfig: ViewConfig,
-  componentUrl: string
+  componentId: string
 ) {
-  if (schema.nodes[componentUrl]) {
+  if (schema.nodes[componentId]) {
     return;
   }
 
-  const spec = createProsemirrorSpec(componentMetadata, {
+  const spec = createProsemirrorSpec({
     /**
      * Currently we detect whether a block takes editable text by detecting if
      * it has an editableRef prop in its schema – we need a more sophisticated
@@ -628,16 +621,16 @@ export function defineNewBlock<
       : {}),
   });
 
-  defineNewNode(schema, componentUrl, spec);
+  defineNewNode(schema, componentId, spec);
 
   if (viewConfig) {
     const { view, replacePortal, createNodeView } = viewConfig;
 
     // @todo type this
     const NodeViewClass = createNodeView(
-      componentUrl,
+      componentId,
       componentSchema,
-      `${componentMetadata.url}/${componentMetadata.source}`,
+      componentMetadata.source,
       replacePortal
     );
 
@@ -646,7 +639,7 @@ export function defineNewBlock<
     view.setProps({
       nodeViews: {
         ...view.nodeViews,
-        [componentUrl]: (
+        [componentId]: (
           node: ProsemirrorNode<S>,
           view: EditorView<S>,
           getPos: (() => number) | boolean,

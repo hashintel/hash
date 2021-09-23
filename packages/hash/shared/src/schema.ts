@@ -34,7 +34,7 @@ export const createSchema = () =>
         attrs: {
           // @todo rename these props
           asyncNodeProps: { default: {} },
-          asyncNodeUrl: { default: null },
+          asyncComponentId: { default: null },
           autofocus: { default: true },
         },
       },

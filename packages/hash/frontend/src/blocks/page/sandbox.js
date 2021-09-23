@@ -79,7 +79,7 @@ class AsyncView {
     this.dom.appendChild(this.spinner);
 
     const controller = (this.controller = new AbortController());
-    const componentUrl = node.attrs.asyncNodeUrl;
+    const componentId = node.attrs.asyncComponentId;
 
     createRemoteBlock(
       view.state.schema,
@@ -88,7 +88,7 @@ class AsyncView {
         replacePortal: this.replacePortal,
         createNodeView,
       },
-      componentUrl,
+      componentId,
       node.attrs.asyncNodeProps.attrs,
       node.attrs.asyncNodeProps.children,
       node.attrs.asyncNodeProps.marks
@@ -200,29 +200,27 @@ const BlockSelect = forwardRef(({ options, onChange, selectedIndex }, ref) => {
         <ul
           className={tw`absolute z-10 w-96 max-h-60 overflow-auto border border-gray-100 rounded-lg`}
         >
-          {options.map(
-            ([_componentUrl, { name, icon, description }], index) => (
-              <li
-                key={index}
-                className={tw`flex border border-gray-100 ${
-                  index !== selectedIndex ? "bg-gray-50" : "bg-gray-100"
-                } hover:bg-gray-100`}
-                onClick={() =>
-                  index !== selectedIndex && onChange(options[index], index)
-                }
-              >
-                <div className={tw`flex w-16 items-center justify-center`}>
-                  <img className={tw`w-6 h-6`} alt={name} src={icon} />
-                </div>
-                <div className={tw`py-3`}>
-                  <p className={tw`text-sm font-bold`}>{name}</p>
-                  <p className={tw`text-xs text-opacity-60 text-black`}>
-                    {description}
-                  </p>
-                </div>
-              </li>
-            )
-          )}
+          {options.map(([_componentId, { name, icon, description }], index) => (
+            <li
+              key={index}
+              className={tw`flex border border-gray-100 ${
+                index !== selectedIndex ? "bg-gray-50" : "bg-gray-100"
+              } hover:bg-gray-100`}
+              onClick={() =>
+                index !== selectedIndex && onChange(options[index], index)
+              }
+            >
+              <div className={tw`flex w-16 items-center justify-center`}>
+                <img className={tw`w-6 h-6`} alt={name} src={icon} />
+              </div>
+              <div className={tw`py-3`}>
+                <p className={tw`text-sm font-bold`}>{name}</p>
+                <p className={tw`text-xs text-opacity-60 text-black`}>
+                  {description}
+                </p>
+              </div>
+            </li>
+          ))}
         </ul>
       )}
     </div>
@@ -409,7 +407,7 @@ class BlockView {
             const options = Array.from(blocksMeta.values()).flatMap(
               (blockMeta) =>
                 blockMeta.componentMetadata.variants.map((variant) => [
-                  blockMeta.componentMetadata.url,
+                  blockMeta.componentMetadata.componentId,
                   variant,
                 ])
             );
@@ -485,9 +483,6 @@ class BlockView {
   onBlockChange = ([componentId, variant]) => {
     const { node, view, getPos } = this;
 
-    const componentUrl =
-      view.state.schema.nodes[componentId].defaultAttrs.meta?.url;
-
     // Ensure that any changes to the document made are kept within a
     // single undo item
     view.updateState(
@@ -520,7 +515,7 @@ class BlockView {
       : "";
 
     const newNode = state.schema.nodes.async.create({
-      asyncNodeUrl: componentUrl,
+      asyncComponentId: componentId,
       asyncNodeProps: {
         attrs: {
           /**

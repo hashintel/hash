@@ -335,13 +335,13 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     const { view } = prosemirrorSetup.current;
 
     // @todo filter out already defined blocks
-    for (const [componentUrl, meta] of Array.from(blocksMeta.entries())) {
+    for (const [componentId, meta] of Array.from(blocksMeta.entries())) {
       defineNewBlock(
         view.state.schema,
         meta.componentMetadata,
         meta.componentSchema,
         { view, replacePortal, createNodeView },
-        componentUrl
+        componentId
       );
     }
   }, [blocksMeta, replacePortal]);
