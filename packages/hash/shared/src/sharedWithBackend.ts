@@ -74,7 +74,7 @@ function toBlockConfig(
   const defaultVariant = {
     name: toBlockName(options.name),
     description: options.description,
-    icon: "/path/to/icon.svg", // @todo default icon
+    icon: "/format-font.svg",
     properties: {},
   };
 
@@ -88,7 +88,6 @@ function toBlockConfig(
      * icon: [url, variant.icon].join("/")
      * ```
      */
-    icon: "/format-font.svg",
   })) ?? [defaultVariant];
 
   return { ...options, componentId, variants };
