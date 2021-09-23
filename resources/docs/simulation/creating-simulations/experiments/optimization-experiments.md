@@ -1,4 +1,6 @@
 ---
+title: Optimization Experiments
+slug: simulation/creating-simulations/experiments/optimization-experiments
 objectID: 3e7e7895-d9b3-4fdd-9760-4d70ade862af
 description: How to use HASH to optimize your simulation's parameters
 ---

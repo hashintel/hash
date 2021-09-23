@@ -1,4 +1,6 @@
 ---
+title: Messages
+slug: simulation/creating-simulations/agent-messages
 objectID: 2b59be71-8ec8-44fe-a62a-1d34e425b1b9
 ---
 

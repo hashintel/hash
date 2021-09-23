@@ -1,4 +1,6 @@
 ---
+title: Simulation Outputs
+slug: simulation/creating-simulations/views
 objectID: d5cb459e-3523-4fc8-b29e-c5068eff32fc
 description: Accessing data and insights from simulation runs
 ---

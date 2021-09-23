@@ -1,4 +1,6 @@
 ---
+title: Shortcuts
+slug: simulation/extra/shortcuts
 objectID: 221397af-708b-4f57-af04-c6a4176163fa
 ---
 

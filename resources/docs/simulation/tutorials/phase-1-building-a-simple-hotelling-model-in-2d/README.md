@@ -1,4 +1,6 @@
 ---
+title: Building a Simple Hotelling Model in 2D
+slug: simulation/tutorials/phase-1-building-a-simple-hotelling-model-in-2d
 objectID: 8fd4f61b-e2b8-4219-8bf4-d16ee657eece
 ---
 

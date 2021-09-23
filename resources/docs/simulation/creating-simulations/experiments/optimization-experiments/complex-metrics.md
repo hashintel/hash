@@ -1,4 +1,6 @@
 ---
+title: Complex Metrics
+slug: simulation/creating-simulations/experiments/optimization-experiments/complex-metrics
 objectID: 1771ca79-b0c1-406a-9169-99228bc3846f
 ---
 

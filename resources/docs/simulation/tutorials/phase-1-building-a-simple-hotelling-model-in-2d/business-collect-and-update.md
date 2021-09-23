@@ -1,4 +1,6 @@
 ---
+title: Business Collect and Update
+slug: simulation/tutorials/phase-1-building-a-simple-hotelling-model-in-2d/business-collect-and-update
 objectID: 2d7bff0b-a1f6-4e19-b2de-c81eac036ecc
 ---
 

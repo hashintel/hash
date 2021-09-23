@@ -1,4 +1,6 @@
 ---
+title: Activity History
+slug: simulation/creating-simulations/views/activity-history
 objectID: 3e168a66-e844-4f05-8cfa-35733e100450
 ---
 

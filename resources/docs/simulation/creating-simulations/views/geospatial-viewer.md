@@ -1,4 +1,6 @@
 ---
+title: Geospatial
+slug: simulation/creating-simulations/views/geospatial-viewer
 objectID: 92d1ed76-7119-48c7-904e-039d96f9e20b
 ---
 

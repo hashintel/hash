@@ -1,4 +1,6 @@
 ---
+title: Composable Behaviors
+slug: simulation/creating-simulations/behaviors/composable-behaviors
 objectID: 861085ec-a981-4778-be27-c95ed450e1df
 ---
 

@@ -1,4 +1,6 @@
 ---
+title: Add heterogeneity
+slug: simulation/tutorials/extending-an-epidemic-model/add-heterogeneity
 objectID: 3c8075a5-b7f8-4b0d-87ad-9c6eb7c80536
 ---
 

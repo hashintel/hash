@@ -1,4 +1,6 @@
 ---
+title: HASH
+slug: simulation/creating-simulations/libraries/hash
 objectID: 6e62ef1b-d7c5-435c-948a-c5c8a28d2b05
 ---
 

@@ -1,4 +1,6 @@
 ---
+title: Building the Simulation
+slug: simulation/extra/migrating/anylogic/building-the-simulation
 objectID: 53dece1f-b1d9-49d4-989e-2bf5964b134e
 ---
 

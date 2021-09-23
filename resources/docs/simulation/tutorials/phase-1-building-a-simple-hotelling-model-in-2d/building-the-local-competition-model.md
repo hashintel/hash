@@ -1,4 +1,6 @@
 ---
+title: Extending the Model
+slug: simulation/tutorials/phase-1-building-a-simple-hotelling-model-in-2d/building-the-local-competition-model
 objectID: c5f2cc40-92f8-4dae-aa30-95732ae0b16e
 description: Adding complexity to the simulation
 ---

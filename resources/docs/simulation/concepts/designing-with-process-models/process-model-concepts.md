@@ -1,4 +1,6 @@
 ---
+title: Process Model Concepts
+slug: simulation/concepts/designing-with-process-models/process-model-concepts
 objectID: 21951603-2120-44a5-b104-360e0de03e2c
 ---
 

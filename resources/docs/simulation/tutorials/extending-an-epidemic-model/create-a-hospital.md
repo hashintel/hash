@@ -1,4 +1,6 @@
 ---
+title: Create a Hospital
+slug: simulation/tutorials/extending-an-epidemic-model/create-a-hospital
 objectID: a2b80dda-09bb-4b27-9685-79d49e852a72
 ---
 

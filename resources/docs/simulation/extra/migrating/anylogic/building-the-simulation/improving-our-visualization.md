@@ -1,4 +1,6 @@
 ---
+title: Improving our Visualization
+slug: simulation/extra/migrating/anylogic/building-the-simulation/improving-our-visualization
 objectID: 83b5f923-aea4-4a39-941a-a33c71b202e6
 ---
 

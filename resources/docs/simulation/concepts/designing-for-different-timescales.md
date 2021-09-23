@@ -1,4 +1,6 @@
 ---
+title: Managing Timescales
+slug: simulation/concepts/designing-for-different-timescales
 objectID: 4609d2db-6a33-453a-90b6-4d4212bb4268
 description: Building complex multi-timescale simulations
 ---

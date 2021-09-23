@@ -1,4 +1,6 @@
 ---
+title: Topology
+slug: simulation/creating-simulations/configuration/topology
 objectID: ee7af53b-b141-4261-8f6c-193ec9e22d31
 ---
 

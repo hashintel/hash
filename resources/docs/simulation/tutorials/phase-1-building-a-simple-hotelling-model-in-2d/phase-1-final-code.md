@@ -1,4 +1,6 @@
 ---
+title: Final Code
+slug: simulation/tutorials/phase-1-building-a-simple-hotelling-model-in-2d/phase-1-final-code
 objectID: 9ccda572-e8b4-4db7-9b6f-dd2ffe8d5bf1
 ---
 

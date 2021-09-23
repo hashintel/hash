@@ -1,4 +1,6 @@
 ---
+title: 3D
+slug: simulation/creating-simulations/views/3d-viewer
 objectID: 728dc2ce-c48a-4923-bae2-b8e83cdcb077
 ---
 

@@ -1,4 +1,6 @@
 ---
+title: Custom Behaviors
+slug: simulation/concepts/designing-with-process-models/custom-behaviors
 objectID: 4a50695e-0d35-4098-b978-35374f3dd597
 ---
 

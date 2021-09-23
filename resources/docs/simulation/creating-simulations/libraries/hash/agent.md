@@ -1,4 +1,6 @@
 ---
+title: Agent
+slug: simulation/creating-simulations/libraries/hash/agent
 objectID: 8d5b91b9-6aac-45d8-a5a1-3df383d257a6
 ---
 

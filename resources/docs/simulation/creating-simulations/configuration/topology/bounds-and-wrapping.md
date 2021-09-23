@@ -1,4 +1,6 @@
 ---
+title: Bounds and Wrapping
+slug: simulation/creating-simulations/configuration/topology/bounds-and-wrapping
 objectID: d2371288-735b-4244-80d9-3776cc4e651b
 ---
 

@@ -1,4 +1,6 @@
 ---
+title: Behavior Keys
+slug: simulation/creating-simulations/behaviors/behavior-keys
 objectID: 04f8acd9-acc9-4689-ac04-9abe870865b0
 ---
 

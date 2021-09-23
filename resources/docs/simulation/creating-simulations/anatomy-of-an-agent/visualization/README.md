@@ -1,4 +1,6 @@
 ---
+title: Visualization
+slug: simulation/creating-simulations/anatomy-of-an-agent/visualization
 objectID: 4e160de3-a797-475e-90c7-9b85d515118f
 ---
 

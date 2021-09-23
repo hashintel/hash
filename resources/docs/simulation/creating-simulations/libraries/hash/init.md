@@ -1,4 +1,6 @@
 ---
+title: Init
+slug: simulation/creating-simulations/libraries/hash/init
 objectID: 893cb298-60fe-4b1d-a084-a9bd1cf695d3
 ---
 

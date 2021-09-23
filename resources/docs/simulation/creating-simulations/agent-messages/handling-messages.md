@@ -1,4 +1,6 @@
 ---
+title: Handling Messages
+slug: simulation/creating-simulations/agent-messages/handling-messages
 objectID: 9163334b-f855-45bc-aaad-450b1c8a49fa
 ---
 

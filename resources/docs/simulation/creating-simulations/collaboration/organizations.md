@@ -1,4 +1,6 @@
 ---
+title: Organizations
+slug: simulation/creating-simulations/collaboration/organizations
 objectID: 20c18665-201c-402e-9f0b-c4a11f7adea0
 ---
 

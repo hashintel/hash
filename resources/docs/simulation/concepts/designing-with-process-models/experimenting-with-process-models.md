@@ -1,4 +1,6 @@
 ---
+title: Experimenting with Process Models
+slug: simulation/concepts/designing-with-process-models/experimenting-with-process-models
 objectID: 5bc61681-0c32-42e1-a701-108f5ad7ab91
 ---
 

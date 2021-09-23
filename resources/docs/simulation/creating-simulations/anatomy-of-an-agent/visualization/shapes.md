@@ -1,4 +1,6 @@
 ---
+title: Shapes
+slug: simulation/creating-simulations/anatomy-of-an-agent/visualization/shapes
 objectID: eda3264d-1c70-4017-99cb-69c40007ec39
 ---
 

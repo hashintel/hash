@@ -1,4 +1,6 @@
 ---
+title: Forking and Merging
+slug: simulation/creating-simulations/collaboration/forking-and-merging
 objectID: 2c756def-5d03-4a67-a85b-b3548557a886
 ---
 

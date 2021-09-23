@@ -1,4 +1,6 @@
 ---
+title: Managing Resource Access
+slug: simulation/concepts/design-considerations/managing-resource-access
 objectID: a4b71af2-3608-45e2-b42c-46fda6ad728d
 ---
 

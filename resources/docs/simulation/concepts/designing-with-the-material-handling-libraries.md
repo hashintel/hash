@@ -1,4 +1,6 @@
 ---
+title: Material Handling
+slug: simulation/concepts/designing-with-the-material-handling-libraries
 objectID: c0578fe5-4555-4e28-bd84-298fca28c44f
 ---
 

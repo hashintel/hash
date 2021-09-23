@@ -1,4 +1,6 @@
 ---
+title: Switching to HASH
+slug: simulation/extra/migrating
 objectID: 9bf17889-9535-4a79-9321-0aed40f8c5a9
 ---
 

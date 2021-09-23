@@ -1,4 +1,6 @@
 ---
+title: System Requirements
+slug: simulation/extra/specs-requirements
 objectID: c80ee10c-be50-4cc0-9e27-e6abed2785c3
 ---
 

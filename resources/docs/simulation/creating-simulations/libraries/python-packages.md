@@ -1,4 +1,6 @@
 ---
+title: Python
+slug: simulation/creating-simulations/libraries/python-packages
 objectID: a48d4f8e-d98b-40e6-8f2d-689a05b2b452
 description: Python packages and libraries support in HASH
 ---

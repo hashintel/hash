@@ -1,4 +1,6 @@
 ---
+title: State
+slug: simulation/creating-simulations/anatomy-of-an-agent/state
 objectID: aba75f1a-1768-427f-9521-c514acc3ddf0
 ---
 

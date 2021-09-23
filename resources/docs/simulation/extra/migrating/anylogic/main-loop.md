@@ -1,4 +1,6 @@
 ---
+title: Main Loop
+slug: simulation/extra/migrating/anylogic/main-loop
 objectID: 753e9821-fd1f-4c12-8c1f-24312712fcfe
 ---
 

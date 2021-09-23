@@ -1,4 +1,6 @@
 ---
+title: System Dynamics
+slug: simulation/concepts/designing-with-system-dynamics-models
 objectID: 06cb22f3-1bd4-4962-b0df-74d5151345fb
 ---
 

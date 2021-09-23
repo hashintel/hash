@@ -1,4 +1,6 @@
 ---
+title: Process Modeling
+slug: simulation/concepts/designing-with-process-models
 objectID: 1bd99770-3a6c-4c96-950d-e14bb6820671
 ---
 

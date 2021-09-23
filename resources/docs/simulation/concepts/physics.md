@@ -1,4 +1,6 @@
 ---
+title: Physics
+slug: simulation/concepts/physics
 objectID: 4c9a1714-3c48-4d5b-b4d3-84b96785e824
 ---
 

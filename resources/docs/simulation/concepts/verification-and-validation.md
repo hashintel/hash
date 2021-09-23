@@ -1,4 +1,6 @@
 ---
+title: Verification and Validation
+slug: simulation/concepts/verification-and-validation
 objectID: 4923d018-38b9-4d7a-8531-5efed43da62f
 ---
 

@@ -1,4 +1,6 @@
 ---
+title: Tankers to Port
+slug: simulation/extra/migrating/anylogic/building-the-simulation/tankers-to-port
 objectID: c2099950-ee5c-4efd-b975-ff7b9284f006
 ---
 

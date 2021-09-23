@@ -1,4 +1,6 @@
 ---
+title: Probability Distributions
+slug: simulation/concepts/designing-with-distributions
 objectID: 1036af0b-5a51-4210-8321-70743e4273cc
 ---
 

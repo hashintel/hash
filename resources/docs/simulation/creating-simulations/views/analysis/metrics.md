@@ -1,4 +1,6 @@
 ---
+title: Metrics
+slug: simulation/creating-simulations/views/analysis/metrics
 objectID: 5b84538b-1e4f-4dae-afa7-e9a2f978f33d
 ---
 

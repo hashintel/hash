@@ -1,4 +1,6 @@
 ---
+title: Advanced Scenarios
+slug: simulation/creating-simulations/behaviors/behavior-keys/advanced-scenarios
 objectID: 11fef41b-378c-442d-9200-b50d04b5ad96
 ---
 

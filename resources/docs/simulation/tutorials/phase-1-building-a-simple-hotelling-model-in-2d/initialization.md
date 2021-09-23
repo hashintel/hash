@@ -1,4 +1,6 @@
 ---
+title: Agent Initialization
+slug: simulation/tutorials/phase-1-building-a-simple-hotelling-model-in-2d/initialization
 objectID: 7ad7c073-86b4-4c5e-aaed-c4a1fb16e85a
 ---
 

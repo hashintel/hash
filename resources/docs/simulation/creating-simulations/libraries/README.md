@@ -1,4 +1,6 @@
 ---
+title: Libraries
+slug: simulation/creating-simulations/libraries
 objectID: 960497c8-9d8b-42d9-afed-f76c6c55a4cb
 ---
 

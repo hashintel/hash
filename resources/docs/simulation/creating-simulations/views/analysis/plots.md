@@ -1,4 +1,6 @@
 ---
+title: Plots
+slug: simulation/creating-simulations/views/analysis/plots
 objectID: 14f7bd20-5f98-4d16-a5f0-569a7c350d62
 ---
 

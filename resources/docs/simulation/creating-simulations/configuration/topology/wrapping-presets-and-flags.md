@@ -1,4 +1,6 @@
 ---
+title: Wrapping Presets and Flags
+slug: simulation/creating-simulations/configuration/topology/wrapping-presets-and-flags
 objectID: 8bc66c86-74df-47a6-b8bf-4f066096c009
 description: Granular control of how the world is presented to hCore
 ---

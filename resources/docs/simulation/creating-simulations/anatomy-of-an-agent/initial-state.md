@@ -1,4 +1,6 @@
 ---
+title: Initializing Agents
+slug: simulation/creating-simulations/anatomy-of-an-agent/initial-state
 objectID: 8f7cf860-94d2-484a-8c08-c86c1b8df5a2
 description: Where simulated life begins
 ---

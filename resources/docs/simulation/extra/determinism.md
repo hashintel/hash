@@ -1,4 +1,6 @@
 ---
+title: Determinism
+slug: simulation/extra/determinism
 objectID: 1ea0b8cf-019e-4df4-818e-aa82c8bc906e
 ---
 

@@ -1,4 +1,6 @@
 ---
+title: Process Blocks
+slug: simulation/concepts/designing-with-process-models/process-blocks
 objectID: d08a0dff-88bc-4fa3-a522-c463a7784bbd
 ---
 

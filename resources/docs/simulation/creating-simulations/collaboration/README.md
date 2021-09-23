@@ -1,4 +1,6 @@
 ---
+title: Collaboration
+slug: simulation/creating-simulations/collaboration
 objectID: 86f90edc-be28-4ca7-a982-c9030cfa5986
 description: Speed development and experimentation by working with others
 ---

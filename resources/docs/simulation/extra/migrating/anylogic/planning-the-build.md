@@ -1,4 +1,6 @@
 ---
+title: Planning the Build
+slug: simulation/extra/migrating/anylogic/planning-the-build
 objectID: c7d0e36d-43bd-42be-a489-2cd52f79aff8
 ---
 

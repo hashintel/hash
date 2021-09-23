@@ -1,4 +1,6 @@
 ---
+title: Building Process Models
+slug: simulation/tutorials/building-process-models
 objectID: ae60b9c4-b6e3-4b46-bc3d-80c040cfc752
 description: Using the HASH process chart interface to build a ticketing queue simulation
 ---

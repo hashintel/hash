@@ -1,4 +1,6 @@
 ---
+title: Spatial
+slug: simulation/creating-simulations/libraries/hash/spatial
 objectID: 591aa401-375e-49b1-b3c5-8816b1f2b77e
 ---
 

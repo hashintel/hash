@@ -1,4 +1,6 @@
 ---
+title: Structuring a Process Model
+slug: simulation/concepts/designing-with-process-models/structuring-a-process-model
 objectID: 8f7a46a1-9513-4de7-ab75-acd0c6cd1ad1
 ---
 

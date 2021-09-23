@@ -1,4 +1,6 @@
 ---
+title: Create an ICU
+slug: simulation/tutorials/extending-an-epidemic-model/create-an-icu
 objectID: 258b6a4a-b5a3-4b3f-87a2-39174597d381
 ---
 

@@ -1,4 +1,6 @@
 ---
+title: Datasets
+slug: simulation/creating-simulations/datasets
 objectID: 06945f04-7459-4141-b433-0bad8f78cc20
 ---
 

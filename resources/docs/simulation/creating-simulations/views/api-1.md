@@ -1,4 +1,6 @@
 ---
+title: API
+slug: simulation/creating-simulations/views/api-1
 objectID: 0b354340-2b00-443c-b5b4-54cf8caf0bb8
 ---
 

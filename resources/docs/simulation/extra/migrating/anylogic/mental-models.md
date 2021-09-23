@@ -1,4 +1,6 @@
 ---
+title: Mental Models
+slug: simulation/extra/migrating/anylogic/mental-models
 objectID: 0ac7dd77-9d1c-405d-9452-d0ac6ecb1d99
 ---
 

@@ -1,4 +1,6 @@
 ---
+title: Performance
+slug: simulation/extra/performance
 objectID: 2b53b54d-ef04-4bbf-867b-a8f194066373
 ---
 

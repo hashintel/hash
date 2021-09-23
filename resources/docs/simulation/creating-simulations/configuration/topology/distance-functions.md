@@ -1,4 +1,6 @@
 ---
+title: Distance Functions
+slug: simulation/creating-simulations/configuration/topology/distance-functions
 objectID: 18dad1da-18d1-4315-b778-d141b7e6e8ca
 description: How far away is one agent from another?
 ---

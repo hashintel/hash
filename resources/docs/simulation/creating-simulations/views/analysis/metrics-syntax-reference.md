@@ -1,4 +1,6 @@
 ---
+title: Metrics Syntax Reference
+slug: simulation/creating-simulations/views/analysis/metrics-syntax-reference
 objectID: 39ff713b-299d-4bf5-afbd-6c3d183803ee
 ---
 

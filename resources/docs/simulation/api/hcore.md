@@ -1,4 +1,6 @@
 ---
+title: hCore Message API
+slug: simulation/api/hcore
 objectID: c722c4f7-8dfe-4a9b-8565-54cdf19b403c
 ---
 

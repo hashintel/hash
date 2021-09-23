@@ -1,4 +1,6 @@
 ---
+title: Published Behaviors
+slug: simulation/creating-simulations/anatomy-of-an-agent/visualization/published-behaviors
 objectID: d79352c0-c359-42c3-b89d-9a142b5e33eb
 ---
 

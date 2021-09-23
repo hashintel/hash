@@ -1,4 +1,6 @@
 ---
+title: Behaviors
+slug: simulation/creating-simulations/behaviors
 objectID: d914123e-7c69-4bcb-96e5-6b87f836ae12
 description: Giving agents agency and specifying laws of the universe
 ---

@@ -1,4 +1,6 @@
 ---
+title: Sending Messages
+slug: simulation/creating-simulations/agent-messages/sending-messages
 objectID: ddb8664a-2214-4a60-8403-3ef93be48d1f
 ---
 

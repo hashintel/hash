@@ -1,4 +1,6 @@
 ---
+title: Raw Data
+slug: simulation/creating-simulations/views/raw-data
 objectID: b2068487-4ee9-40a4-ba60-31eb3892fe6d
 ---
 
