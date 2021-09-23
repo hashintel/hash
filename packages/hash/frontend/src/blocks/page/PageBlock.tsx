@@ -9,8 +9,8 @@ import { Schema } from "prosemirror-model";
 import { Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { renderPM } from "./sandbox";
-import { createMarksPlugin } from "../../components/MarksPlugin";
-import { createSuggesterPlugin } from "../../components/BlockSuggester";
+import { createMarksTooltip } from "../../components/MarksTooltip";
+import { createBlockSuggester } from "../../components/BlockSuggester";
 import { useBlockProtocolUpdate } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdate";
 import { useBlockProtocolInsertIntoPage } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolInsertIntoPage";
 import { usePortals } from "./usePortals";
@@ -306,8 +306,8 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       replacePortal,
       [
         savePlugin,
-        createMarksPlugin(replacePortal),
-        createSuggesterPlugin(replacePortal),
+        createMarksTooltip(replacePortal),
+        createBlockSuggester(replacePortal),
       ],
       accountId,
       metadataId
