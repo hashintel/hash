@@ -90,7 +90,7 @@ the corresponding script in `./hooks`.
 In order to work w/ multiple packages in a single repository, they must adhere to some conventions.
 The below `package.json` file outlines the minimum requirements a package has to fulfill:
 
-```json
+```javascript
 {
   "name": "@hashintel/hash-<name>",
   "version": "major.minor.patch",
