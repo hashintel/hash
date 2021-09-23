@@ -23,7 +23,6 @@ type AppProps = {
   initialWidth?: number;
   uploadImage: (uploadImageParams: UploadImageParamsType) => Promise<{
     src?: string;
-    error?: string;
   }>;
   entityId: string;
   entityTypeId?: string;
@@ -59,7 +58,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
   const [captionText, setCaptionText] = useState(initialCaption ?? "");
   const [randomId] = useState(() => `image-input-${uuid()}`);
 
-  const isMounted = useRef(true);
+  const isMounted = useRef(false);
 
   useEffect(() => {
     isMounted.current = true;
@@ -69,44 +68,54 @@ export const Image: BlockComponent<AppProps> = (props) => {
     };
   }, []);
 
-  const updateStateObject = (properties: Partial<typeof stateObject>) => {
-    setStateObject((stateObject) => ({ ...stateObject, ...properties }));
-  };
+  const updateStateObject = useCallback(
+    (properties: Partial<typeof stateObject>) => {
+      setStateObject((stateObject) => ({ ...stateObject, ...properties }));
+    },
+    []
+  );
 
   function displayError(errorString: string) {
+    console.log("error ==> ", errorString);
     updateStateObject({ errorString });
   }
 
-  function updateData(src: string | undefined, width?: number) {
-    if (src?.trim()) {
-      if (update) {
-        const updateAction: BlockProtocolUpdatePayload<
-          Pick<AppProps, "initialSrc" | "initialCaption" | "initialWidth">
-        > = {
-          data: {
-            initialSrc: src,
-            initialCaption: captionText,
-            initialWidth: width,
-          },
-          entityId,
-        };
+  const updateData = useCallback(
+    (src: string | undefined, width?: number) => {
+      if (src?.trim()) {
+        if (update) {
+          const updateAction: BlockProtocolUpdatePayload<
+            Pick<AppProps, "initialSrc" | "initialCaption" | "initialWidth">
+          > = {
+            data: {
+              initialSrc: src,
+              initialCaption: captionText,
+            },
+            entityId,
+          };
 
-        if (entityTypeId) {
-          updateAction.entityTypeId = entityTypeId;
+          if (width) {
+            updateAction.data.initialWidth = width;
+          }
+
+          if (entityTypeId) {
+            updateAction.entityTypeId = entityTypeId;
+          }
+
+          void update([updateAction]);
         }
 
-        void update([updateAction]);
+        updateStateObject(width ? { src, width } : { src });
       }
-
-      updateStateObject(width ? { src, width } : { src });
-    }
-  }
+    },
+    [captionText, entityId, entityTypeId, updateStateObject]
+  );
 
   const updateWidth = useCallback(
     (width: number) => {
       updateData(stateObject.src, width);
     },
-    [stateObject, updateData]
+    [stateObject.src, updateData]
   );
 
   const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -121,16 +130,14 @@ export const Image: BlockComponent<AppProps> = (props) => {
     if (inputText?.trim()) {
       updateStateObject({ loading: true });
 
-      void uploadImage({ imgURL: inputText })
-        .then(({ src }) => {
+      uploadImage({ imgURL: inputText })
+        .then(({ src }: { src?: string }) => {
           if (isMounted.current) {
             updateStateObject({ loading: false });
             updateData(src);
           }
         })
-        .catch((error) => {
-          return displayError(error);
-        });
+        .catch((error: Error) => displayError(error.message));
     } else {
       displayError("Please enter a valid image URL or select a file below");
     }
@@ -140,15 +147,13 @@ export const Image: BlockComponent<AppProps> = (props) => {
     const { files } = event.target;
 
     if (files?.[0]) {
-      void uploadImage({ file: files[0] }).then(({ src, error }) => {
-        if (isMounted.current) {
-          if (error?.trim()) {
-            return displayError(error);
+      uploadImage({ file: files[0] })
+        .then(({ src }: { src?: string }) => {
+          if (isMounted.current) {
+            updateData(src);
           }
-
-          updateData(src);
-        }
-      });
+        })
+        .catch((error: Error) => displayError(error.message));
     }
   };
 
@@ -235,15 +240,13 @@ export const Image: BlockComponent<AppProps> = (props) => {
             // we set our input's 'files' property
 
             if (files[0].type.search("image") > -1) {
-              void uploadImage({ file: files[0] }).then(({ src, error }) => {
-                if (isMounted.current) {
-                  if (error?.trim()) {
-                    return displayError(error);
+              void uploadImage({ file: files[0] })
+                .then(({ src }: { src: string }) => {
+                  if (isMounted.current) {
+                    updateData(src);
                   }
-
-                  updateData(src);
-                }
-              });
+                })
+                .catch(displayError);
             }
           }
         }}

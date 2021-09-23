@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef } from "react";
+import React, { useLayoutEffect, useRef } from "react";
 import { tw } from "twind";
 
 type ResizeBlockProps = {
@@ -22,21 +22,19 @@ export const ResizeImageBlock: React.VFC<ResizeBlockProps> = ({
 
   useLayoutEffect(() => {
     if (!imageRef.current) return;
-    if (!width) {
-      const initialImageWidth = imageRef.current.getBoundingClientRect().width;
-      updateWidth(initialImageWidth);
-    }
-  }, [width, updateWidth]);
-
-  useEffect(() => {
-    if (!imageRef.current) return;
+    if (!imageSrc) return;
 
     const imageWidth = imageRef.current.getBoundingClientRect().width;
 
-    if (imageWidth !== width) {
+    if (!width) {
+      updateWidth(imageWidth);
+      return;
+    }
+
+    if (width && imageWidth !== width) {
       imageRef.current.style.width = `${width}px`;
     }
-  }, [width]);
+  }, [width, imageSrc, updateWidth]);
 
   const handleResize = (evt: React.MouseEvent, direction: "left" | "right") => {
     function onMouseMove(mouseMoveEvt: MouseEvent) {
