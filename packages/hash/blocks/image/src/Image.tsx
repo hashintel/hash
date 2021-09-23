@@ -103,7 +103,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
         updateStateObject(width ? { src, width } : { src });
       }
     },
-    [captionText, entityId, entityTypeId, updateStateObject]
+    [captionText, entityId, entityTypeId, updateStateObject, update]
   );
 
   const updateWidth = useCallback(
@@ -134,7 +134,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
           })
         );
     },
-    [updateData, updateStateObject]
+    [updateData, updateStateObject, uploadImage]
   );
 
   const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
