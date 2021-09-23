@@ -194,7 +194,7 @@ export const createEntityUpdateTransaction = async (
   const schema = state.schema;
 
   const newNodes = await Promise.all(
-    entities?.map(async (block, index) => {
+    entities.map(async (block, index) => {
       const entityId = block.metadataId;
 
       if (cachedPropertiesByPosition[index]) {
@@ -220,7 +220,7 @@ export const createEntityUpdateTransaction = async (
           throw new Error("unrecognised child");
         })
       );
-    }) ?? []
+    })
   );
 
   const { tr } = state;
