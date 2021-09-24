@@ -11,6 +11,7 @@ import { getFormCopy } from "./utils";
 import Cross from "./svgs/Cross";
 import Loader from "./svgs/Loader";
 import Pencil from "./svgs/Pencil";
+import { ResizeBlock } from "./components/ResizeBlock";
 
 type AppProps = {
   embedType?: ProviderNames;
@@ -108,7 +109,9 @@ export const App: BlockComponent<AppProps> = (props) => {
     return (
       <div className={tw`flex justify-center text-center w-full`}>
         <div>
-          <HtmlBlock html={html} />
+          <ResizeBlock width={600} updateWidth={x => {}}>
+            <HtmlBlock html={html} />
+          </ResizeBlock>
         </div>
         <button
           // Tailwind doesn't have this as a class

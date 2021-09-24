@@ -11,6 +11,8 @@ import { ProviderNames } from "./types/embedTypes";
 
 const node = document.getElementById("app");
 
+const INITIAL_HTML = `<iframe id=\"cp_embed_mdmQjEQ\" src=\"https://codepen.io/teenoh/embed/preview/mdmQjEQ?default-tabs=css%2Cresult&amp;height=300&amp;host=https%3A%2F%2Fcodepen.io&amp;slug-hash=mdmQjEQ\" title=\"Javascripters CSS battle\" scrolling=\"no\" frameborder=\"0\" height=\"300\" allowtransparency=\"true\" class=\"cp_embed_iframe\" style=\"width: 100%; overflow: hidden;\"></iframe>`
+
 function AppComponent() {
   const getEmbedBlock = async (
     url: string,
@@ -49,6 +51,7 @@ function AppComponent() {
         entityTypeId="Embed"
         getEmbedBlock={getEmbedBlock}
         update={updateBlockData}
+        // initialHtml={INITIAL_HTML}
       />
     </div>
   );
