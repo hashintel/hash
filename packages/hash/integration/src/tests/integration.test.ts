@@ -353,6 +353,47 @@ describe("logged in user ", () => {
     /** @todo: cleanup created bob user and org */
   });
 
+  it("can get org invitation", async () => {
+    const bobUser = await User.createUser(db)({
+      shortname: `bob-${bobCounter}`,
+      preferredName: `Bob-${bobCounter}`,
+      emails: [
+        {
+          address: `bob-${bobCounter}@bigco.com`,
+          primary: true,
+          verified: true,
+        },
+      ],
+      memberOf: [],
+      infoProvidedAtSignup: { usingHow: WayToUseHash.WithATeam },
+    });
+
+    bobCounter += 1;
+
+    const bobOrg = await Org.createOrg(db)({
+      createdById: bobUser.entityId,
+      properties: {
+        shortname: `${bobUser.properties.shortname}-org`,
+        name: `${bobUser.properties.preferredName}'s Org`,
+      },
+    });
+
+    await bobUser.joinOrg(db)({ org: bobOrg, responsibility: "CEO" });
+
+    const [invitation] = await bobOrg.getInvitations(db);
+
+    const gqlInvitation = await client.orgInvitation({
+      orgAccountId: bobOrg.accountId,
+      orgEntityId: bobOrg.entityId,
+      invitationToken: invitation.properties.accessToken,
+    });
+
+    expect(gqlInvitation.entityId).toEqual(invitation.entityId);
+    expect(gqlInvitation.properties.org.data.entityId).toEqual(bobOrg.entityId);
+
+    /** @todo: cleanup created bob user and org */
+  });
+
   describe("can create and update pages", () => {
     let page: PageFieldsFragment;
     it("can create a page", async () => {

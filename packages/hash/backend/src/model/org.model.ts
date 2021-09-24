@@ -79,6 +79,34 @@ class __Org extends Account {
       this.updateProperties(client)(properties);
 
   /**
+   * @returns all invitations associated with the organization
+   */
+  getInvitations = async (client: DBClient): Promise<OrgInvitation[]> => {
+    /** @todo: query for invitations with correct outgoing 'org' relationships */
+    const dbEntities = await client.getEntitiesBySystemType({
+      accountId: this.accountId,
+      systemTypeName: "OrgInvitation",
+    });
+
+    return dbEntities.map((entity) => new OrgInvitation(entity));
+  };
+
+  /**
+   * @returns the invitation associated with the organization that has a matching token, or null.
+   */
+  getInvitationWithToken =
+    (client: DBClient) =>
+    async (invitationToken: string): Promise<OrgInvitation | null> => {
+      const invitations = await this.getInvitations(client);
+
+      return (
+        invitations.find(
+          ({ properties }) => properties.accessToken === invitationToken
+        ) || null
+      );
+    };
+
+  /**
    * @returns all email invitations associated with the organization.
    */
   getEmailInvitations = async (

@@ -5,6 +5,7 @@ import { blockTypedef } from "./block.typedef";
 import { entityTypedef } from "./entity.typedef";
 import { entityTypeTypedef } from "./entityType.typedef";
 import { orgEmailInvitationTypedef } from "./orgEmailInvitation.typedef";
+import { orgInvitationTypedef } from "./orgInvitation.typdef";
 import { orgTypedef } from "./org.typedef";
 import { pageTypedef } from "./page.typedef";
 import { textTypedef } from "./text.typedef";
@@ -39,6 +40,7 @@ export const schema = [
   entityTypedef,
   entityTypeTypedef,
   orgEmailInvitationTypedef,
+  orgInvitationTypedef,
   orgTypedef,
   pageTypedef,
   textTypedef,

@@ -1,18 +1,12 @@
 import { gql } from "apollo-server-express";
 
-export const orgEmailInvitationTypedef = gql`
-  type LinkedUser {
-    data: User!
-  }
-
-  type OrgEmailInvitationProperties {
+export const orgInvitationTypedef = gql`
+  type OrgInvitationProperties {
     org: LinkedOrg!
-    inviter: LinkedUser!
-    inviteeEmailAddress: String!
   }
 
-  type OrgEmailInvitation implements Entity {
-    properties: OrgEmailInvitationProperties!
+  type OrgInvitation implements Entity {
+    properties: OrgInvitationProperties!
 
     # ENTITY INTERFACE FIELDS BEGIN #
     """
@@ -83,33 +77,13 @@ export const orgEmailInvitationTypedef = gql`
     """
     Get an org email invitation
     """
-    orgEmailInvitation(
+    orgInvitation(
       orgAccountId: ID!
       orgEntityId: ID!
       """
-      The token associated with the email invitation
+      The token associated with the invitation
       """
-      emailInvitationToken: String!
-    ): OrgEmailInvitation!
-  }
-
-  extend type Mutation {
-    """
-    Create an email invitation for an existing organization
-    """
-    createOrgEmailInvitation(
-      """
-      The accountId of the organization
-      """
-      orgAccountId: ID!
-      """
-      The entityId of the organization
-      """
-      orgEntityId: ID!
-      """
-      The email address of the invited user
-      """
-      inviteeEmailAddress: String!
-    ): OrgEmailInvitation!
+      invitationToken: String!
+    ): OrgInvitation!
   }
 `;

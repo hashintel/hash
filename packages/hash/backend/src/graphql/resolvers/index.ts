@@ -43,6 +43,7 @@ import { getAccountEntityTypes } from "./entityType/getAccountEntityTypes";
 import { getEntityType } from "./entityType/getEntityType";
 import { createOrgEmailInvitation } from "./org/createOrgEmailInvitation";
 import { orgEmailInvitation } from "./org/orgEmailInvitation";
+import { orgInvitation } from "./org/orgInvitation";
 
 const loggedIn =
   (next: any) => (obj: any, args: any, ctx: GraphQLContext, info: any) => {
@@ -83,6 +84,7 @@ export const resolvers = {
     page: loggedInAndSignedUp(page),
     // Logged in users only
     orgEmailInvitation: loggedIn(orgEmailInvitation),
+    orgInvitation: loggedIn(orgInvitation),
     me: loggedIn(me),
     // Any user
     isShortnameTaken,
@@ -128,6 +130,10 @@ export const resolvers = {
   },
 
   OrgEmailInvitation: {
+    properties: entityFields.properties,
+  },
+
+  OrgInvitation: {
     properties: entityFields.properties,
   },
 
