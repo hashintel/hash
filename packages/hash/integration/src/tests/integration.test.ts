@@ -34,6 +34,36 @@ let existingUser: User;
 
 let existingOrg: Org;
 
+const createNewBobWithOrg = async () => {
+  const bobUser = await User.createUser(db)({
+    shortname: `bob-${bobCounter}`,
+    preferredName: `Bob-${bobCounter}`,
+    emails: [
+      {
+        address: `bob-${bobCounter}@bigco.com`,
+        primary: true,
+        verified: true,
+      },
+    ],
+    memberOf: [],
+    infoProvidedAtSignup: { usingHow: WayToUseHash.WithATeam },
+  });
+
+  bobCounter += 1;
+
+  const bobOrg = await Org.createOrg(db)({
+    createdById: bobUser.entityId,
+    properties: {
+      shortname: `${bobUser.properties.shortname}-org`,
+      name: `${bobUser.properties.preferredName}'s Org`,
+    },
+  });
+
+  await bobUser.joinOrg(db)({ org: bobOrg, responsibility: "CEO" });
+
+  return { bobUser, bobOrg };
+};
+
 beforeAll(async () => {
   handler = new IntegrationTestsHandler();
   await handler.init();
@@ -299,31 +329,7 @@ describe("logged in user ", () => {
   });
 
   it("can get org email invitation", async () => {
-    const bobUser = await User.createUser(db)({
-      shortname: `bob-${bobCounter}`,
-      preferredName: `Bob-${bobCounter}`,
-      emails: [
-        {
-          address: `bob-${bobCounter}@bigco.com`,
-          primary: true,
-          verified: true,
-        },
-      ],
-      memberOf: [],
-      infoProvidedAtSignup: { usingHow: WayToUseHash.WithATeam },
-    });
-
-    bobCounter += 1;
-
-    const bobOrg = await Org.createOrg(db)({
-      createdById: bobUser.entityId,
-      properties: {
-        shortname: `${bobUser.properties.shortname}-org`,
-        name: `${bobUser.properties.preferredName}'s Org`,
-      },
-    });
-
-    await bobUser.joinOrg(db)({ org: bobOrg, responsibility: "CEO" });
+    const { bobUser, bobOrg } = await createNewBobWithOrg();
 
     const inviteeEmailAddress = existingUser.getPrimaryEmail().address;
 
@@ -354,31 +360,7 @@ describe("logged in user ", () => {
   });
 
   it("can get org invitation", async () => {
-    const bobUser = await User.createUser(db)({
-      shortname: `bob-${bobCounter}`,
-      preferredName: `Bob-${bobCounter}`,
-      emails: [
-        {
-          address: `bob-${bobCounter}@bigco.com`,
-          primary: true,
-          verified: true,
-        },
-      ],
-      memberOf: [],
-      infoProvidedAtSignup: { usingHow: WayToUseHash.WithATeam },
-    });
-
-    bobCounter += 1;
-
-    const bobOrg = await Org.createOrg(db)({
-      createdById: bobUser.entityId,
-      properties: {
-        shortname: `${bobUser.properties.shortname}-org`,
-        name: `${bobUser.properties.preferredName}'s Org`,
-      },
-    });
-
-    await bobUser.joinOrg(db)({ org: bobOrg, responsibility: "CEO" });
+    const { bobOrg } = await createNewBobWithOrg();
 
     const [invitation] = await bobOrg.getInvitations(db);
 
@@ -392,6 +374,65 @@ describe("logged in user ", () => {
     expect(gqlInvitation.properties.org.data.entityId).toEqual(bobOrg.entityId);
 
     /** @todo: cleanup created bob user and org */
+  });
+
+  it("can join org with email invitation", async () => {
+    const { bobUser, bobOrg } = await createNewBobWithOrg();
+
+    const emailInvitation = await OrgEmailInvitation.createOrgEmailInvitation(
+      db,
+      transporter
+    )({
+      org: bobOrg,
+      inviter: bobUser,
+      inviteeEmailAddress: existingUser.getPrimaryEmail().address,
+    });
+
+    const responsibility = "CTO";
+
+    const gqlUser = await client.joinOrg({
+      orgAccountId: bobOrg.accountId,
+      orgEntityId: bobOrg.entityId,
+      verification: {
+        emailInvitationToken: emailInvitation.properties.accessToken,
+      },
+      responsibility,
+    });
+
+    expect(gqlUser.entityId).toEqual(existingUser.entityId);
+
+    const gqlMemberOf = gqlUser.properties.memberOf.find(
+      ({ org }) => org.data.entityId === bobOrg.entityId
+    )!;
+
+    expect(gqlMemberOf).not.toBeUndefined();
+    expect(gqlMemberOf.responsibility).toEqual(responsibility);
+  });
+
+  it("can join org with invitation", async () => {
+    const { bobOrg } = await createNewBobWithOrg();
+
+    const [invitation] = await bobOrg.getInvitations(db);
+
+    const responsibility = "CTO";
+
+    const gqlUser = await client.joinOrg({
+      orgAccountId: bobOrg.accountId,
+      orgEntityId: bobOrg.entityId,
+      verification: {
+        invitationToken: invitation.properties.accessToken,
+      },
+      responsibility,
+    });
+
+    expect(gqlUser.entityId).toEqual(existingUser.entityId);
+
+    const gqlMemberOf = gqlUser.properties.memberOf.find(
+      ({ org }) => org.data.entityId === bobOrg.entityId
+    )!;
+
+    expect(gqlMemberOf).not.toBeUndefined();
+    expect(gqlMemberOf.responsibility).toEqual(responsibility);
   });
 
   describe("can create and update pages", () => {

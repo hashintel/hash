@@ -104,6 +104,14 @@ export const userTypedef = gql`
     createdAt: Date!
   }
 
+  extend type Query {
+    me: User!
+    """
+    Determines whether a provided shortname is already taken
+    """
+    isShortnameTaken(shortname: String!): Boolean!
+  }
+
   input UpdateUserProperties {
     shortname: String
     preferredName: String
@@ -114,12 +122,9 @@ export const userTypedef = gql`
     SUCCESS
   }
 
-  extend type Query {
-    me: User!
-    """
-    Determines whether a provided shortname is already taken
-    """
-    isShortnameTaken(shortname: String!): Boolean!
+  input JoinOrgVerification {
+    invitationToken: String
+    emailInvitationToken: String
   }
 
   extend type Mutation {
@@ -155,5 +160,18 @@ export const userTypedef = gql`
     """
     loginWithLoginCode(verificationId: ID!, verificationCode: String!): User!
     logout: LogoutResponse!
+    """
+    Create a new organization. The user that calls this mutation is automatically added
+    as a member with the provided 'role'.
+    """
+    joinOrg(
+      orgAccountId: ID!
+      orgEntityId: ID!
+      verification: JoinOrgVerification!
+      """
+      The 'role' of the user at the organization.
+      """
+      responsibility: String!
+    ): User!
   }
 `;

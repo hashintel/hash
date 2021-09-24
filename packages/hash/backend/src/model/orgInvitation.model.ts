@@ -69,9 +69,9 @@ class __OrgInvitation extends AccessToken {
       this.updateProperties(client)(properties);
 
   /**
-   * Increment the use count of the invitation.
+   * Increments the use count of the invitation.
    */
-  incrementUseCount = (client: DBClient) =>
+  use = (client: DBClient) =>
     this.updateOrgInvitationProperties(client)({
       ...this.properties,
       useCount: this.properties.useCount + 1,

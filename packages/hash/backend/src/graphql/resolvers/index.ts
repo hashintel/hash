@@ -44,6 +44,7 @@ import { getEntityType } from "./entityType/getEntityType";
 import { createOrgEmailInvitation } from "./org/createOrgEmailInvitation";
 import { orgEmailInvitation } from "./org/orgEmailInvitation";
 import { orgInvitation } from "./org/orgInvitation";
+import { joinOrg } from "./user/joinOrg";
 
 const loggedIn =
   (next: any) => (obj: any, args: any, ctx: GraphQLContext, info: any) => {
@@ -103,6 +104,7 @@ export const resolvers = {
     updatePageContents: loggedInAndSignedUp(updatePageContents),
     createOrg: loggedInAndSignedUp(createOrg),
     createOrgEmailInvitation: loggedInAndSignedUp(createOrgEmailInvitation),
+    joinOrg: loggedInAndSignedUp(joinOrg),
     // Logged in users only
     updateUser: loggedIn(updateUser),
     logout: loggedIn(logout),

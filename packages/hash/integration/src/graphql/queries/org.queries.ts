@@ -88,6 +88,34 @@ export const orgInvitation = gql`
   }
 `;
 
+export const joinOrg = gql`
+  mutation joinOrg(
+    $orgAccountId: ID!
+    $orgEntityId: ID!
+    $verification: JoinOrgVerification!
+    $responsibility: String!
+  ) {
+    joinOrg(
+      orgAccountId: $orgAccountId
+      orgEntityId: $orgEntityId
+      verification: $verification
+      responsibility: $responsibility
+    ) {
+      entityId
+      properties {
+        memberOf {
+          org {
+            data {
+              entityId
+            }
+          }
+          responsibility
+        }
+      }
+    }
+  }
+`;
+
 export const getAccounts = gql`
   query getAccounts {
     accounts {
