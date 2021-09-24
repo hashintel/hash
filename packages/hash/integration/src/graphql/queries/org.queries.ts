@@ -65,13 +65,13 @@ export const orgEmailInvitation = gql`
   }
 `;
 
-export const orgInvitation = gql`
-  query orgInvitation(
+export const orgInvitationLink = gql`
+  query orgInvitationLink(
     $orgAccountId: ID!
     $orgEntityId: ID!
     $invitationToken: String!
   ) {
-    orgInvitation(
+    orgInvitationLink(
       orgAccountId: $orgAccountId
       orgEntityId: $orgEntityId
       invitationToken: $invitationToken

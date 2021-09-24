@@ -77,7 +77,7 @@ insert into entity_types (
   entity_type_id, account_id, name, versioned,
   created_by, created_at, metadata_updated_at
 ) values (
-  '05f144cf-01f0-4bd6-a54d-d9ddc3db5d43', 'bc2e14d1-36a2-47fc-aa97-99c6ab28d562', 'OrgInvitation', true,
+  '05f144cf-01f0-4bd6-a54d-d9ddc3db5d43', 'bc2e14d1-36a2-47fc-aa97-99c6ab28d562', 'OrgInvitationLink', true,
   'bc2e14d1-36a2-47fc-aa97-99c6ab28d562', '2021-08-19T11:00:14.588Z', '2021-08-19T11:00:14.588Z'
 ) on conflict do nothing;
 insert into entity_type_versions (
@@ -85,7 +85,7 @@ insert into entity_type_versions (
   properties, created_by, created_at, updated_at
 ) values (
   '05f144cf-01f0-4bd6-a54d-d9ddc3db5d43', 'b5b39548-ef9e-4c93-ac16-03c811edd488', 'bc2e14d1-36a2-47fc-aa97-99c6ab28d562',
-  '{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"http://hash.ai/bc2e14d1-36a2-47fc-aa97-99c6ab28d562/types/05f144cf-01f0-4bd6-a54d-d9ddc3db5d43","title":"OrgInvitation","type":"object"}',
+  '{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"http://hash.ai/bc2e14d1-36a2-47fc-aa97-99c6ab28d562/types/05f144cf-01f0-4bd6-a54d-d9ddc3db5d43","title":"OrgInvitationLink","type":"object"}',
   'bc2e14d1-36a2-47fc-aa97-99c6ab28d562', '2021-08-19T11:00:14.588Z', '2021-08-19T11:00:14.588Z'
 ) on conflict do nothing;
 insert into entity_types (

@@ -19,7 +19,7 @@ module.exports = {
     "Page",
     "Text",
     "User",
-    "OrgInvitation",
+    "OrgInvitationLink",
     "OrgEmailInvitation",
   ],
 };

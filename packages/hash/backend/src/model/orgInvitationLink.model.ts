@@ -2,36 +2,39 @@ import { DBClient } from "../db";
 import { DBLinkedEntity, EntityType } from "../db/adapter";
 import {
   AccessToken,
-  OrgInvitation,
+  OrgInvitationLink,
   DBAccessTokenProperties,
   AccessTokenConstructorArgs,
   Org,
 } from ".";
 
-export type DBOrgInvitationProperties = {
+export type DBOrgInvitationLinkProperties = {
   useCount: number;
   org: DBLinkedEntity;
 } & DBAccessTokenProperties;
 
-type OrgInvitationConstructorArgs = {
-  properties: DBOrgInvitationProperties;
+type OrgInvitationLinkConstructorArgs = {
+  properties: DBOrgInvitationLinkProperties;
 } & AccessTokenConstructorArgs;
 
-class __OrgInvitation extends AccessToken {
-  properties: DBOrgInvitationProperties;
+class __OrgInvitationLink extends AccessToken {
+  properties: DBOrgInvitationLinkProperties;
 
-  constructor({ properties, ...remainingArgs }: OrgInvitationConstructorArgs) {
+  constructor({
+    properties,
+    ...remainingArgs
+  }: OrgInvitationLinkConstructorArgs) {
     super({ ...remainingArgs, properties });
     this.properties = properties;
   }
 
   static getEntityType = async (client: DBClient): Promise<EntityType> =>
     client
-      .getSystemTypeLatestVersion({ systemTypeName: "OrgInvitation" })
+      .getSystemTypeLatestVersion({ systemTypeName: "OrgInvitationLink" })
       .then((entityType) => {
         if (!entityType) {
           throw new Error(
-            "OrgInvitation system entity type not found in datastore"
+            "OrgInvitationLink system entity type not found in datastore"
           );
         }
 
@@ -42,12 +45,12 @@ class __OrgInvitation extends AccessToken {
    * Create an org invitation.
    * @param {Org} org - The organisation the invitation is associated with.
    */
-  static createOrgInvitation =
+  static createOrgInvitationLink =
     (client: DBClient) =>
-    async (params: { org: Org }): Promise<OrgInvitation> => {
+    async (params: { org: Org }): Promise<OrgInvitationLink> => {
       const { org } = params;
 
-      const properties: DBOrgInvitationProperties = {
+      const properties: DBOrgInvitationLinkProperties = {
         useCount: 0,
         accessToken: AccessToken.generateAccessToken(),
         org: org.convertToDBLink(),
@@ -56,26 +59,26 @@ class __OrgInvitation extends AccessToken {
       const entity = await client.createEntity({
         accountId: org.accountId,
         createdById: org.entityId,
-        entityTypeId: (await OrgInvitation.getEntityType(client)).entityId,
+        entityTypeId: (await OrgInvitationLink.getEntityType(client)).entityId,
         properties,
         versioned: false,
       });
 
-      return new OrgInvitation({ ...entity, properties });
+      return new OrgInvitationLink({ ...entity, properties });
     };
 
-  private updateOrgInvitationProperties =
-    (client: DBClient) => (properties: DBOrgInvitationProperties) =>
+  private updateOrgInvitationLinkProperties =
+    (client: DBClient) => (properties: DBOrgInvitationLinkProperties) =>
       this.updateProperties(client)(properties);
 
   /**
    * Increments the use count of the invitation.
    */
   use = (client: DBClient) =>
-    this.updateOrgInvitationProperties(client)({
+    this.updateOrgInvitationLinkProperties(client)({
       ...this.properties,
       useCount: this.properties.useCount + 1,
     });
 }
 
-export default __OrgInvitation;
+export default __OrgInvitationLink;

@@ -1,14 +1,14 @@
 import { ApolloError } from "apollo-server-express";
 
-import { QueryOrgInvitationArgs, Resolver } from "../../apiTypes.gen";
+import { QueryOrgInvitationLinkArgs, Resolver } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
 import { Org, EntityTypeWithoutTypeFields } from "../../../model";
 
-export const orgInvitation: Resolver<
+export const orgInvitationLink: Resolver<
   Promise<EntityTypeWithoutTypeFields>,
   {},
   LoggedInGraphQLContext,
-  QueryOrgInvitationArgs
+  QueryOrgInvitationLinkArgs
 > = async (
   _,
   { orgAccountId, orgEntityId, invitationToken },

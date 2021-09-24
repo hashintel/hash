@@ -2,7 +2,7 @@ import {
   Org,
   Account,
   AccountConstructorArgs,
-  OrgInvitation,
+  OrgInvitationLink,
   OrgEmailInvitation,
 } from ".";
 import { DBClient } from "../db";
@@ -69,7 +69,7 @@ class __Org extends Account {
 
       const org = new Org(entity);
 
-      await OrgInvitation.createOrgInvitation(client)({ org });
+      await OrgInvitationLink.createOrgInvitationLink(client)({ org });
 
       return org;
     };
@@ -81,14 +81,14 @@ class __Org extends Account {
   /**
    * @returns all invitations associated with the organization
    */
-  getInvitations = async (client: DBClient): Promise<OrgInvitation[]> => {
+  getInvitations = async (client: DBClient): Promise<OrgInvitationLink[]> => {
     /** @todo: query for invitations with correct outgoing 'org' relationships */
     const dbEntities = await client.getEntitiesBySystemType({
       accountId: this.accountId,
-      systemTypeName: "OrgInvitation",
+      systemTypeName: "OrgInvitationLink",
     });
 
-    return dbEntities.map((entity) => new OrgInvitation(entity));
+    return dbEntities.map((entity) => new OrgInvitationLink(entity));
   };
 
   /**
@@ -96,7 +96,7 @@ class __Org extends Account {
    */
   getInvitationWithToken =
     (client: DBClient) =>
-    async (invitationToken: string): Promise<OrgInvitation | null> => {
+    async (invitationToken: string): Promise<OrgInvitationLink | null> => {
       const invitations = await this.getInvitations(client);
 
       return (

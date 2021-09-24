@@ -1,12 +1,12 @@
 import { gql } from "apollo-server-express";
 
-export const orgInvitationTypedef = gql`
-  type OrgInvitationProperties {
+export const orgInvitationLinkTypedef = gql`
+  type OrgInvitationLinkProperties {
     org: LinkedOrg!
   }
 
-  type OrgInvitation implements Entity {
-    properties: OrgInvitationProperties!
+  type OrgInvitationLink implements Entity {
+    properties: OrgInvitationLinkProperties!
 
     # ENTITY INTERFACE FIELDS BEGIN #
     """
@@ -77,13 +77,13 @@ export const orgInvitationTypedef = gql`
     """
     Get an org email invitation
     """
-    orgInvitation(
+    orgInvitationLink(
       orgAccountId: ID!
       orgEntityId: ID!
       """
       The token associated with the invitation
       """
       invitationToken: String!
-    ): OrgInvitation!
+    ): OrgInvitationLink!
   }
 `;

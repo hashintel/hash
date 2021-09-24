@@ -364,7 +364,7 @@ describe("logged in user ", () => {
 
     const [invitation] = await bobOrg.getInvitations(db);
 
-    const gqlInvitation = await client.orgInvitation({
+    const gqlInvitation = await client.orgInvitationLink({
       orgAccountId: bobOrg.accountId,
       orgEntityId: bobOrg.entityId,
       invitationToken: invitation.properties.accessToken,
