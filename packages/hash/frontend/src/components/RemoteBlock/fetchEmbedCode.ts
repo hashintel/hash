@@ -1,4 +1,4 @@
-import { ProviderNames } from "../../../../blocks/embed/src/types/embedTypes";
+import { ProviderNames } from "../../../../blocks/embed/src/types";
 
 export async function fetchEmbedCode(url: string, type?: ProviderNames) {
   return fetch("http://localhost:5001/graphql", {
@@ -10,12 +10,12 @@ export async function fetchEmbedCode(url: string, type?: ProviderNames) {
       operationName: "getEmbedCode",
       variables: { url, type },
       query:
-        "query getEmbedCode($url: String!, $type: String) {\n  embedCode(url: $url, type: $type) {\n    html\n    providerName\n    __typename\n  }\n}\n",
+        "query getEmbedCode($url: String!, $type: String) {\n  embedCode(url: $url, type: $type) {\n    html\n    providerName\n     height\n     width\n    __typename\n  }\n}\n",
     }),
   })
     .then((response) => response.json())
     .then((responseData) => ({
-      html: responseData.data?.embedCode.html,
+      ...responseData.data?.embedCode,
       error: responseData?.errors?.[0]?.message,
     }));
 }
