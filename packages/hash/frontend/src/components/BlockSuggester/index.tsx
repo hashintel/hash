@@ -54,7 +54,11 @@ interface SuggesterState {
   disabled: boolean;
   /** the suggester's current trigger */
   trigger: Trigger | null;
+  /** current suggestion index */
+  selectedIndex: number;
 }
+
+type SuggesterAction = { type: "escape" } | { type: "select"; delta: number };
 
 /**
  * Suggester plugin factory
@@ -69,19 +73,24 @@ export const createBlockSuggester = (replacePortal: ReplacePortals) => {
   const plugin = new Plugin<SuggesterState>({
     state: {
       init() {
-        return { trigger: null, disabled: false };
+        return { trigger: null, disabled: false, selectedIndex: 0 };
       },
+      /** used in a reducer fashion */
       apply(tr, state, _prevEitorState, nextEditorState) {
-        const action = tr.getMeta(plugin);
+        const action: SuggesterAction | undefined = tr.getMeta(plugin);
 
-        if (action?.type === "escape") {
-          return { ...state, disabled: true };
+        switch (action?.type) {
+          case "escape":
+            return { ...state, disabled: true };
+          case "select":
+            const selectedIndex = state.selectedIndex + action.delta;
+            return { ...state, selectedIndex };
         }
 
         const trigger = findTrigger(nextEditorState);
         const disabled = state.disabled && trigger !== null;
 
-        return { trigger, disabled };
+        return { ...state, trigger, disabled };
       },
     },
     props: {
@@ -89,9 +98,23 @@ export const createBlockSuggester = (replacePortal: ReplacePortals) => {
         switch (event.key) {
           case "Escape":
             view.dispatch(view.state.tr.setMeta(plugin, { type: "escape" }));
-        }
+            return false;
+          case "ArrowUp": /** fall through */
+          case "ArrowDown":
+            const { trigger, disabled } = this.getState(view.state);
+            if (!trigger || disabled) return false;
 
-        return false;
+            view.dispatch(
+              view.state.tr.setMeta(plugin, {
+                type: "select",
+                delta: event.key === "ArrowUp" ? -1 : 1,
+              })
+            );
+
+            return true; // prevents further propagation
+          default:
+            return false;
+        }
       },
     },
     view() {
@@ -99,7 +122,9 @@ export const createBlockSuggester = (replacePortal: ReplacePortals) => {
 
       return {
         update(view) {
-          const { trigger, disabled } = plugin.getState(view.state);
+          const { trigger, disabled, selectedIndex } = plugin.getState(
+            view.state
+          );
 
           if (!trigger || disabled) return this.destroy!();
 
@@ -113,7 +138,7 @@ export const createBlockSuggester = (replacePortal: ReplacePortals) => {
 
           const jsx = (
             <div style={style}>
-              <BlockSuggester />
+              <BlockSuggester selectedIndex={selectedIndex} />
             </div>
           );
 

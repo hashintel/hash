@@ -197,7 +197,7 @@ const BlockHandle = forwardRef((_props, ref) => {
           setPopoverVisible(true);
         }}
       />
-      {isPopoverVisible && <BlockSuggester />}
+      {isPopoverVisible && <BlockSuggester selectedIndex={0} />}
     </div>
   );
 });
