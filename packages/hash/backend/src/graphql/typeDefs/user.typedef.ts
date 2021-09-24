@@ -128,6 +128,14 @@ export const userTypedef = gql`
     """
     createUser(email: String!): VerificationCodeMetadata!
     """
+    Creates a the user associated with the email invitation, and sends them an email verification code
+    """
+    createUserWithOrgEmailInvitation(
+      orgAccountId: ID!
+      orgEntityId: ID!
+      emailInvitationToken: String!
+    ): User!
+    """
     Update a user
     """
     updateUser(userEntityId: ID!, properties: UpdateUserProperties!): User!

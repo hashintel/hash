@@ -22,6 +22,7 @@ import {
 } from "./pages";
 import { accounts } from "./account/accounts";
 import { createUser } from "./user/createUser";
+import { createUserWithOrgEmailInvitation } from "./user/createUserWithOrgEmailInvitation";
 import { updateUser } from "./user/updateUser";
 import { createOrg } from "./org/createOrg";
 import { accountSignupComplete } from "./user/accountSignupComplete";
@@ -103,6 +104,7 @@ export const resolvers = {
     logout: loggedIn(logout),
     // Any user
     createUser,
+    createUserWithOrgEmailInvitation,
     verifyEmail,
     sendLoginCode,
     loginWithLoginCode,

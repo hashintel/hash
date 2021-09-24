@@ -1,6 +1,13 @@
 import "./loadTestEnv";
-import { Org, User, VerificationCode } from "@hashintel/hash-backend/src/model";
+import {
+  Org,
+  OrgEmailInvitation,
+  User,
+  VerificationCode,
+} from "@hashintel/hash-backend/src/model";
 import { PostgresAdapter } from "@hashintel/hash-backend/src/db";
+import EmailTransporter from "@hashintel/hash-backend/src/email/transporter";
+import SesEmailTransporter from "@hashintel/hash-backend/src/email/transporter/awsSes";
 
 import { ApiClient } from "./util";
 import { IntegrationTestsHandler } from "./setup";
@@ -19,6 +26,8 @@ let handler: IntegrationTestsHandler;
 
 let db: PostgresAdapter;
 
+let transporter: EmailTransporter;
+
 let existingUser: User;
 
 let existingOrg: Org;
@@ -34,6 +43,8 @@ beforeAll(async () => {
     database: "integration_tests",
     password: "postgres",
   });
+
+  transporter = new SesEmailTransporter();
 
   existingUser = await User.createUser(db)({
     shortname: "test-user",
@@ -60,7 +71,7 @@ afterAll(async () => {
 });
 
 it("can create user", async () => {
-  const email = "bob@bibco.com";
+  const email = "bob@bigco.com";
 
   const { id: verificationCodeId, createdAt: verificationCodeCreatedAt } =
     await client.createUser({ email });
@@ -87,6 +98,42 @@ it("can create user", async () => {
   expect(verificationCode.createdAt.toISOString()).toBe(
     verificationCodeCreatedAt
   );
+
+  /** @todo: cleanup created user in datastore */
+});
+
+it("can create user with email verification code", async () => {
+  const inviteeEmailAddress = "david@bigco.com";
+
+  const emailInvitation = await OrgEmailInvitation.createOrgEmailInvitation(
+    db,
+    transporter
+  )({
+    org: existingOrg,
+    inviter: existingUser,
+    inviteeEmailAddress,
+  });
+
+  /** @todo: use test email transporter to obtain email invitation token */
+  const emailInvitationToken = emailInvitation.properties.accessToken;
+
+  const { accountId, entityId, accountSignupComplete } =
+    await client.createUserWithOrgEmailInvitation({
+      orgAccountId: existingOrg.accountId,
+      orgEntityId: existingOrg.entityId,
+      emailInvitationToken,
+    });
+
+  expect(accountSignupComplete).toEqual(false);
+
+  const user = (await User.getUserById(db)({ accountId, entityId }))!;
+
+  expect(user).not.toBeNull();
+  expect(user.getPrimaryEmail()).toEqual({
+    address: inviteeEmailAddress,
+    verified: true,
+    primary: true,
+  });
 });
 
 describe("can log in", () => {
