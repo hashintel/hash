@@ -41,6 +41,30 @@ export const createOrgEmailInvitation = gql`
   }
 `;
 
+export const orgEmailInvitation = gql`
+  query orgEmailInvitation(
+    $orgAccountId: ID!
+    $orgEntityId: ID!
+    $emailInvitationToken: String!
+  ) {
+    orgEmailInvitation(
+      orgAccountId: $orgAccountId
+      orgEntityId: $orgEntityId
+      emailInvitationToken: $emailInvitationToken
+    ) {
+      entityId
+      properties {
+        inviter {
+          data {
+            entityId
+          }
+        }
+        inviteeEmailAddress
+      }
+    }
+  }
+`;
+
 export const getAccounts = gql`
   query getAccounts {
     accounts {

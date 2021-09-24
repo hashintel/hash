@@ -92,6 +92,23 @@ class __Org extends Account {
 
     return dbEntities.map((entity) => new OrgEmailInvitation(entity));
   };
+
+  /**
+   * @returns the email invitation associated with the organization that has a matching token, or null.
+   */
+  getEmailInvitationWithToken =
+    (client: DBClient) =>
+    async (
+      emailInvitationToken: string
+    ): Promise<OrgEmailInvitation | null> => {
+      const emailInvitations = await this.getEmailInvitations(client);
+
+      return (
+        emailInvitations.find(
+          ({ properties }) => properties.accessToken === emailInvitationToken
+        ) || null
+      );
+    };
 }
 
 export default __Org;

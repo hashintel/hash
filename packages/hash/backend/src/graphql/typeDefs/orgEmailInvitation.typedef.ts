@@ -78,6 +78,20 @@ export const orgEmailInvitationTypedef = gql`
     # ENTITY INTERFACE FIELDS END #
   }
 
+  extend type Query {
+    """
+    Get an org email invitation
+    """
+    orgEmailInvitation(
+      orgAccountId: ID!
+      orgEntityId: ID!
+      """
+      The token associated with the email invitation
+      """
+      emailInvitationToken: String!
+    ): OrgEmailInvitation!
+  }
+
   extend type Mutation {
     """
     Create an email invitation for an existing organization

@@ -42,6 +42,7 @@ import { entityTypeTypeFields } from "./entityType/entityTypeTypeFields";
 import { getAccountEntityTypes } from "./entityType/getAccountEntityTypes";
 import { getEntityType } from "./entityType/getEntityType";
 import { createOrgEmailInvitation } from "./org/createOrgEmailInvitation";
+import { orgEmailInvitation } from "./org/orgEmailInvitation";
 
 const loggedIn =
   (next: any) => (obj: any, args: any, ctx: GraphQLContext, info: any) => {
@@ -81,6 +82,7 @@ export const resolvers = {
     getEntityType: loggedInAndSignedUp(getEntityType),
     page: loggedInAndSignedUp(page),
     // Logged in users only
+    orgEmailInvitation: loggedIn(orgEmailInvitation),
     me: loggedIn(me),
     // Any user
     isShortnameTaken,

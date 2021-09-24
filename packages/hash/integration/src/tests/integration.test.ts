@@ -22,6 +22,8 @@ import { ClientError } from "graphql-request";
 
 const client = new ApiClient("http://localhost:5001/graphql");
 
+let bobCounter = 0;
+
 let handler: IntegrationTestsHandler;
 
 let db: PostgresAdapter;
@@ -71,7 +73,9 @@ afterAll(async () => {
 });
 
 it("can create user", async () => {
-  const email = "bob@bigco.com";
+  const email = `bob-${bobCounter}@bigco.com`;
+
+  bobCounter += 1;
 
   const { id: verificationCodeId, createdAt: verificationCodeCreatedAt } =
     await client.createUser({ email });
@@ -250,7 +254,10 @@ describe("logged in user ", () => {
   });
 
   it("can create an org email invitation", async () => {
-    const inviteeEmailAddress = "bob@bigco.com";
+    const inviteeEmailAddress = `bob-${bobCounter}@bigco.com`;
+
+    bobCounter += 1;
+
     const response = await client.createOrgEmailInvitation({
       orgAccountId: existingOrg.accountId,
       orgEntityId: existingOrg.entityId,
@@ -268,7 +275,8 @@ describe("logged in user ", () => {
   });
 
   it("cannot create duplicate org email invitations", async () => {
-    const inviteeEmailAddress = "charlie@bigco.com";
+    const inviteeEmailAddress = `bob-${bobCounter}@bigco.com`;
+    bobCounter += 1;
     await client.createOrgEmailInvitation({
       orgAccountId: existingOrg.accountId,
       orgEntityId: existingOrg.entityId,
@@ -288,6 +296,61 @@ describe("logged in user ", () => {
           )
         ).toBe(true);
       });
+  });
+
+  it("can get org email invitation", async () => {
+    const bobUser = await User.createUser(db)({
+      shortname: `bob-${bobCounter}`,
+      preferredName: `Bob-${bobCounter}`,
+      emails: [
+        {
+          address: `bob-${bobCounter}@bigco.com`,
+          primary: true,
+          verified: true,
+        },
+      ],
+      memberOf: [],
+      infoProvidedAtSignup: { usingHow: WayToUseHash.WithATeam },
+    });
+
+    bobCounter += 1;
+
+    const bobOrg = await Org.createOrg(db)({
+      createdById: bobUser.entityId,
+      properties: {
+        shortname: `${bobUser.properties.shortname}-org`,
+        name: `${bobUser.properties.preferredName}'s Org`,
+      },
+    });
+
+    await bobUser.joinOrg(db)({ org: bobOrg, responsibility: "CEO" });
+
+    const inviteeEmailAddress = existingUser.getPrimaryEmail().address;
+
+    const emailInvitation = await OrgEmailInvitation.createOrgEmailInvitation(
+      db,
+      transporter
+    )({
+      org: bobOrg,
+      inviter: bobUser,
+      inviteeEmailAddress,
+    });
+
+    const gqlEmailInvitation = await client.orgEmailInvitation({
+      orgAccountId: bobOrg.accountId,
+      orgEntityId: bobOrg.entityId,
+      emailInvitationToken: emailInvitation.properties.accessToken,
+    });
+
+    expect(gqlEmailInvitation.entityId).toEqual(emailInvitation.entityId);
+    expect(gqlEmailInvitation.properties.inviteeEmailAddress).toEqual(
+      inviteeEmailAddress
+    );
+    expect(gqlEmailInvitation.properties.inviter.data.entityId).toEqual(
+      bobUser.entityId
+    );
+
+    /** @todo: cleanup created bob user and org */
   });
 
   describe("can create and update pages", () => {

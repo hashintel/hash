@@ -30,6 +30,8 @@ import {
   CreateOrgEmailInvitationMutation,
   CreateUserWithOrgEmailInvitationMutationVariables,
   CreateUserWithOrgEmailInvitationMutation,
+  OrgEmailInvitationQueryVariables,
+  OrgEmailInvitationQuery,
 } from "../graphql/apiTypes.gen";
 import {
   createEntity,
@@ -40,6 +42,7 @@ import {
 import {
   createOrg,
   createOrgEmailInvitation,
+  orgEmailInvitation,
 } from "../graphql/queries/org.queries";
 import {
   createUser,
@@ -162,6 +165,15 @@ export class ApiClient {
         CreateOrgEmailInvitationMutationVariables
       >(createOrgEmailInvitation, vars)
     ).createOrgEmailInvitation;
+  }
+
+  async orgEmailInvitation(vars: OrgEmailInvitationQueryVariables) {
+    return (
+      await this.client.request<
+        OrgEmailInvitationQuery,
+        OrgEmailInvitationQueryVariables
+      >(orgEmailInvitation, vars)
+    ).orgEmailInvitation;
   }
 
   async createPage(vars: CreatePageMutationVariables) {
