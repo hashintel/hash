@@ -47,8 +47,11 @@ class __OrgInvitationLink extends AccessToken {
    */
   static createOrgInvitationLink =
     (client: DBClient) =>
-    async (params: { org: Org }): Promise<OrgInvitationLink> => {
-      const { org } = params;
+    async (params: {
+      org: Org;
+      createdById: string;
+    }): Promise<OrgInvitationLink> => {
+      const { org, createdById } = params;
 
       const properties: DBOrgInvitationLinkProperties = {
         useCount: 0,
@@ -58,7 +61,7 @@ class __OrgInvitationLink extends AccessToken {
 
       const entity = await client.createEntity({
         accountId: org.accountId,
-        createdById: org.entityId,
+        createdById,
         entityTypeId: (await OrgInvitationLink.getEntityType(client)).entityId,
         properties,
         versioned: false,

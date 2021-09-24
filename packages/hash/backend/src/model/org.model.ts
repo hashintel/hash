@@ -58,18 +58,24 @@ class __Org extends Account {
       createdById: string;
       properties: DBOrgProperties;
     }): Promise<Org> => {
+      const { properties, createdById } = params;
+
       const accountId = genId();
 
       const entity = await client.createEntity({
-        ...params,
         accountId,
+        createdById,
+        properties,
         entityTypeId: (await Org.getEntityType(client)).entityId,
         versioned: false, // @todo: should Org's be versioned?
       });
 
       const org = new Org(entity);
 
-      await OrgInvitationLink.createOrgInvitationLink(client)({ org });
+      await OrgInvitationLink.createOrgInvitationLink(client)({
+        org,
+        createdById,
+      });
 
       return org;
     };
