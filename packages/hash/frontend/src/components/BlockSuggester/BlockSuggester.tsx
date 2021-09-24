@@ -1,5 +1,5 @@
 import { BlockVariant } from "@hashintel/block-protocol";
-import React, { useContext } from "react";
+import React, { useContext, useEffect, useRef } from "react";
 import { tw } from "twind";
 import { BlockMetaContext } from "../../blocks/blockMeta";
 
@@ -19,10 +19,17 @@ export const BlockSuggester: React.VFC<BlockSuggesterProps> = ({
   const options = Array.from(blocksMeta.values()).flatMap(
     (blockMeta) => blockMeta.componentMetadata.variants
   );
-  
+
   // rotate the index through the available options
   selectedIndex += options.length;
   selectedIndex %= options.length;
+
+  // scroll the selected option into view
+  const selectedRef = useRef<HTMLLIElement>(null);
+  useEffect(
+    () => selectedRef.current?.scrollIntoView({ block: "nearest" }),
+    [selectedIndex]
+  );
 
   /**
    * @todo use the entity store – this will
@@ -44,6 +51,7 @@ export const BlockSuggester: React.VFC<BlockSuggesterProps> = ({
     >
       {options.map(({ name, icon, description }, index) => (
         <li
+          ref={index === selectedIndex ? selectedRef : undefined}
           key={index}
           className={tw`flex border border-gray-100 ${
             index !== selectedIndex ? "bg-gray-50" : "bg-gray-100"
