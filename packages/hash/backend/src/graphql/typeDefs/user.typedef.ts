@@ -131,7 +131,10 @@ export const userTypedef = gql`
     """
     Creates a user, and sends them an email verification code
     """
-    createUser(email: String!): VerificationCodeMetadata!
+    createUser(
+      email: String!
+      magicLinkQueryParams: String
+    ): VerificationCodeMetadata!
     """
     Creates a the user associated with the email invitation, and sends them an email verification code
     """

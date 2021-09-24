@@ -32,13 +32,23 @@ export const sendLoginCodeToEmailAddress =
 
 export const sendEmailVerificationCodeToEmailAddress =
   (transporter: EmailTransporter) =>
-  async (verificationCode: VerificationCode, email: string): Promise<void> => {
-    const magicLink = `http://${FRONTEND_DOMAIN}/signup?verificationId=${encodeURIComponent(
-      verificationCode.id
-    )}&verificationCode=${encodeURIComponent(verificationCode.code)}`;
+  async (params: {
+    verificationCode: VerificationCode;
+    emailAddress: string;
+    magicLinkQueryParams?: string;
+  }): Promise<void> => {
+    const { verificationCode, emailAddress, magicLinkQueryParams } = params;
+
+    const magicLink = [
+      `http://${FRONTEND_DOMAIN}/signup?verificationId=${encodeURIComponent(
+        verificationCode.id
+      )}`,
+      `&verificationCode=${encodeURIComponent(verificationCode.code)}`,
+      magicLinkQueryParams || "",
+    ].join("");
 
     await transporter.sendMail({
-      to: email,
+      to: emailAddress,
       subject: "Please verify your HASH email address",
       html: `
         <p>To verify your email address, copy and paste your verification code or <a href="${magicLink}">click here</a>.</p>

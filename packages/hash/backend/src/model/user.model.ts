@@ -212,7 +212,9 @@ class __User extends Account {
 
   sendEmailVerificationCode =
     (client: DBClient, tp: EmailTransporter) =>
-    async (emailAddress: string) => {
+    async (params: { emailAddress: string; magicLinkQueryParams?: string }) => {
+      const { emailAddress, magicLinkQueryParams } = params;
+
       const email = this.getEmail(emailAddress);
 
       if (!email) {
@@ -233,10 +235,11 @@ class __User extends Account {
         emailAddress,
       });
 
-      return sendEmailVerificationCodeToEmailAddress(tp)(
+      return sendEmailVerificationCodeToEmailAddress(tp)({
         verificationCode,
-        emailAddress
-      ).then(() => verificationCode);
+        emailAddress,
+        magicLinkQueryParams,
+      }).then(() => verificationCode);
     };
 
   isMemberOfOrg = ({ entityId }: Org) =>
