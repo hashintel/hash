@@ -16,6 +16,7 @@ import { EditorView } from "prosemirror-view";
 import "prosemirror-view/style/prosemirror.css";
 import React, { createRef, forwardRef, useEffect, useState } from "react";
 import { tw } from "twind";
+import { BlockSuggester } from "../../components/BlockSuggester/BlockSuggester";
 import DragVertical from "../../components/Icons/DragVertical";
 import { BlockMetaContext } from "../blockMeta";
 import { EditorConnection } from "./collab/collab";
@@ -179,7 +180,7 @@ function isSubsetOf(subset, superset) {
 /**
  * specialized block-type/-variant select field
  */
-const BlockSelect = forwardRef(({ options, onChange, selectedIndex }, ref) => {
+const BlockHandle = forwardRef((_props, ref) => {
   const [isPopoverVisible, setPopoverVisible] = useState(false);
 
   useEffect(() => {
@@ -196,33 +197,7 @@ const BlockSelect = forwardRef(({ options, onChange, selectedIndex }, ref) => {
           setPopoverVisible(true);
         }}
       />
-      {isPopoverVisible && (
-        <ul
-          className={tw`absolute z-10 w-96 max-h-60 overflow-auto border border-gray-100 rounded-lg`}
-        >
-          {options.map(([_componentId, { name, icon, description }], index) => (
-            <li
-              key={index}
-              className={tw`flex border border-gray-100 ${
-                index !== selectedIndex ? "bg-gray-50" : "bg-gray-100"
-              } hover:bg-gray-100`}
-              onClick={() =>
-                index !== selectedIndex && onChange(options[index], index)
-              }
-            >
-              <div className={tw`flex w-16 items-center justify-center`}>
-                <img className={tw`w-6 h-6`} alt={name} src={icon} />
-              </div>
-              <div className={tw`py-3`}>
-                <p className={tw`text-sm font-bold`}>{name}</p>
-                <p className={tw`text-xs text-opacity-60 text-black`}>
-                  {description}
-                </p>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
+      {isPopoverVisible && <BlockSuggester />}
     </div>
   );
 });
@@ -260,7 +235,7 @@ class BlockView {
     this.contentDOM.classList.add(styles.Block__Content);
 
     /** used to hide node-view specific events from prosemirror */
-    this.blockSelectRef = createRef();
+    this.blockHandleRef = createRef();
 
     this.update(node);
   }
@@ -293,7 +268,7 @@ class BlockView {
      * they're handled by React
      */
     return (
-      evt.target === this.blockSelectRef.current ||
+      evt.target === this.blockHandleRef.current ||
       (evt.target === this.handle && evt.type === "mousedown")
     );
   }
@@ -401,64 +376,7 @@ class BlockView {
           }}
           onClick={this.onDragEnd}
         />
-        <BlockMetaContext.Consumer>
-          {(blocksMeta) => {
-            // flatMap blocks' variants
-            const options = Array.from(blocksMeta.values()).flatMap(
-              (blockMeta) =>
-                blockMeta.componentMetadata.variants.map((variant) => [
-                  blockMeta.componentMetadata.componentId,
-                  variant,
-                ])
-            );
-
-            /**
-             * @todo the chosen variant will be persisted in the
-             *       future
-             * @see https://app.asana.com/0/1200339985403942/1200644404374108/f
-             */
-            // const selectedBlockType = node.attrs.meta?.name
-            // ?? node.type.name;
-            const selectedIndex = options.findIndex(
-              (/*[blockType, variant]*/) => {
-                /**
-                 * This is already broken because of
-                 * attempts to compare component URL vs
-                 * component name. But we've also since
-                 * removed properties from the node, so you
-                 * can't compare this way
-                 *
-                 * @todo use the entity store – this will
-                 *       require the entity store stays up
-                 *       to date with cached properties and
-                 *       perhaps we need two versions of the
-                 *       entity store, one representing the
-                 *       current, yet to be saved doc and one
-                 *       representing the saved doc – we will
-                 *       also be using the variant name for
-                 *       comparison instead of property
-                 *       values
-                 */
-                return false;
-                // return (
-                // blockType === selectedBlockType &&
-                // // @todo this needs to use the entity
-                // store instead
-                // isSubsetOf(variant.properties,
-                // node.attrs.properties) );
-              }
-            );
-
-            return (
-              <BlockSelect
-                selectedIndex={selectedIndex}
-                options={options}
-                onChange={this.onBlockChange}
-                ref={this.blockSelectRef}
-              />
-            );
-          }}
-        </BlockMetaContext.Consumer>
+        <BlockHandle ref={this.blockHandleRef}/>
       </>
     );
 

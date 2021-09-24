@@ -14,7 +14,19 @@ export const BlockSuggester: VoidFunctionComponent = () => {
     (blockMeta) => blockMeta.componentMetadata.variants
   );
 
-  // @todo implement interactivity for selection
+  /**
+   * @todo use the entity store – this will
+   * require the entity store stays up
+   * to date with cached properties and
+   * perhaps we need two versions of the
+   * entity store, one representing the
+   * current, yet to be saved doc and one
+   * representing the saved doc – we will
+   * also be using the variant name for
+   * comparison instead of property
+   * values
+   */
+
   const selectedIndex = 0;
   const onChange = (_option: BlockVariant, _index: number) => { };
 
