@@ -18,13 +18,27 @@ export const createSchema = () =>
           return [
             "div",
             {
+              // @todo this isn't applied because of the node view
               "data-hash-type": "block",
             },
           ] as const;
         },
         parseDOM: [
           {
+            // @todo is this necessary
             tag: 'div[data-hash-type="block"]',
+          },
+        ],
+      },
+      entity: {
+        group: "blockItem",
+        content: "blockItem",
+        toDOM: () => {
+          return ["div", { "data-hash-type": "entity" }, 0] as const;
+        },
+        parseDOM: [
+          {
+            tag: 'div[data-hash-type="entity"]',
           },
         ],
       },

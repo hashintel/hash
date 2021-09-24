@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { Schema as JSONSchema } from "jsonschema";
-import { EditorState } from "prosemirror-state";
+import { EditorState, NodeSelection } from "prosemirror-state";
 import { createRemoteBlock, defineRemoteBlock } from "./sharedWithBackendJs";
 
 // @todo move this
@@ -11,6 +11,8 @@ import { BlockMetadata } from "@hashintel/block-protocol";
 import { Node as ProsemirrorNode, NodeSpec, Schema } from "prosemirror-model";
 import { Decoration, EditorView } from "prosemirror-view";
 import { BlockEntity } from "./types";
+import { Mapping } from "prosemirror-transform";
+import { Command } from "prosemirror-commands";
 
 export { blockPaths };
 
@@ -374,3 +376,157 @@ export function defineNewBlock<
     });
   }
 }
+
+export const rewrapCommand =
+  (blockExisted?: (position: number) => boolean): Command =>
+  (newState, dispatch) => {
+    const tr = newState.tr;
+
+    const mapping = new Mapping();
+    let stepCount = tr.steps.length;
+
+    newState.doc.descendants((node, pos) => {
+      if (
+        // @todo need to do something smarter here
+        node.type.name !== "block" &&
+        node.type.name !== "async" &&
+        node.type.name !== "blank" &&
+        node.type.name !== "entity"
+      ) {
+        let newSteps = tr.steps.slice(stepCount);
+        stepCount = tr.steps.length;
+        for (const newStep of newSteps) {
+          const map = newStep.getMap();
+          mapping.appendMap(map);
+        }
+        const $from = tr.doc.resolve(mapping.map(pos));
+        const $to = tr.doc.resolve(mapping.map(pos + node.nodeSize));
+        const range = $from.blockRange($to);
+        if (!range) {
+          throw new Error("Cannot rewrap");
+        }
+        const didBlockExist = blockExisted?.(pos) ?? true;
+        tr.wrap(range, [
+          { type: newState.schema.nodes.block },
+          { type: newState.schema.nodes.entity },
+        ]);
+
+        newSteps = tr.steps.slice(stepCount);
+        stepCount = tr.steps.length;
+        for (const newStep of newSteps) {
+          const map = newStep.getMap();
+          mapping.appendMap(map);
+        }
+
+        if (!didBlockExist) {
+          tr.setNodeMarkup(mapping.map(pos), undefined, {
+            entityId: null,
+          });
+        }
+      }
+      return false;
+    });
+
+    dispatch?.(tr);
+
+    return true;
+  };
+
+/**
+ * This wraps a prosemirror command to unwrap relevant nodes out of their
+ * containing block node in order to ensure prosemirror logic that expects text
+ * block nodes to be at the top level works as intended. Rewrapping after the
+ * prosemirror commands are applied is not handled here, but in a plugin (to
+ * ensure that nodes being wrapped by a block is an invariant that can't be
+ * accidentally breached)
+ *
+ * @todo ensure we remove undo item if command fails
+ */
+export const wrapCommand =
+  (command: Command): Command =>
+  (state, dispatch, view) => {
+    if (state.selection instanceof NodeSelection) {
+      return command(state, dispatch, view);
+    }
+
+    const tr = state.tr;
+
+    // const blockLocations: number[] = [];
+    // /**
+    //  * First we apply changes to the transaction to unwrap every block
+    //  */
+    // state.doc.descendants((node, pos) => {
+    //   if (node.type.name !== "block") {
+    //     return true;
+    //   }
+    //
+    //   if (node.firstChild.isTextblock) {
+    //     const start = pos + 1;
+    //     const $from = tr.doc.resolve(tr.mapping.map(start));
+    //     const end = pos + node.nodeSize - 1;
+    //     const $to = tr.doc.resolve(tr.mapping.map(end));
+    //     const range = $from.blockRange($to);
+    //     const target = liftTarget(range);
+    //     tr.lift(range, target);
+    //
+    //     blockLocations.push(start);
+    //   }
+    //
+    //   return false;
+    // });
+
+    /**
+     * We don't want to yet dispatch the transaction unwrapping each block,
+     * because that could create an undesirable history breakpoint. However, in
+     * order to apply the desired prosemirror command, we need an instance of the
+     * current state at the point of which each of the blocks have been
+     * unwrapped. To do that, we "apply" the transaction to our current state,
+     * which gives us the next state without setting the current editor view to
+     * that next state. This will allow us to use it to generate the desired end
+     * state.
+     *
+     * Additionally, we set a meta flag to ensure our plugin that ensures all
+     * nodes are wrapped by blocks doesn't get in the way.
+     */
+    tr.setMeta("commandWrapped", true);
+    const nextState = state.apply(tr);
+    tr.setMeta("commandWrapped", false);
+
+    /**
+     * Now that we have a copy of the state with unwrapped blocks, we can run the
+     * desired prosemirror command. We pass a custom dispatch function instead of
+     * allowing prosemirror to directly dispatch the change to the editor view so
+     * that we can capture the transactions generated by prosemirror and merge
+     * them into our existing transaction. This allows us to apply all the
+     * changes together in one fell swoop, ensuring we don't have awkward
+     * intermediary history breakpoints
+     *
+     * @todo is this sufficient to merge transactions?
+     */
+    const retVal = command(nextState, (nextTr) => {
+      for (const step of nextTr.steps) {
+        tr.step(step);
+      }
+    });
+
+    // const mappedBlockLocations = blockLocations.map((loc) =>
+    //   tr.mapping.map(loc)
+    // );
+
+    // tr.setMeta("commandWrapped", true);
+    // const nextState2 = state.apply(tr);
+    // tr.setMeta("commandWrapped", false);
+
+    // rewrapCommand((start) => mappedBlockLocations.includes(start))(
+    //   nextState2,
+    //   (nextTr) => {
+    //     for (const step of nextTr.steps) {
+    //       tr.step(step);
+    //     }
+    //   }
+    // );
+
+    dispatch?.(tr);
+
+    return retVal;
+  };
