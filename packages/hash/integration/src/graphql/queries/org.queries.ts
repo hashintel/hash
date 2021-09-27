@@ -45,12 +45,12 @@ export const orgEmailInvitation = gql`
   query orgEmailInvitation(
     $orgAccountId: ID!
     $orgEntityId: ID!
-    $emailInvitationToken: String!
+    $invitationEmailToken: String!
   ) {
     orgEmailInvitation(
       orgAccountId: $orgAccountId
       orgEntityId: $orgEntityId
-      emailInvitationToken: $emailInvitationToken
+      invitationEmailToken: $invitationEmailToken
     ) {
       entityId
       properties {
@@ -69,12 +69,12 @@ export const orgInvitationLink = gql`
   query orgInvitationLink(
     $orgAccountId: ID!
     $orgEntityId: ID!
-    $invitationToken: String!
+    $invitationLinkToken: String!
   ) {
     orgInvitationLink(
       orgAccountId: $orgAccountId
       orgEntityId: $orgEntityId
-      invitationToken: $invitationToken
+      invitationLinkToken: $invitationLinkToken
     ) {
       entityId
       properties {

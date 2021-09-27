@@ -14,7 +14,7 @@ export const createUserWithOrgEmailInvitation: Resolver<
   MutationCreateUserWithOrgEmailInvitationArgs
 > = async (
   _,
-  { orgAccountId, orgEntityId, emailInvitationToken },
+  { orgAccountId, orgEntityId, invitationEmailToken },
   { dataSources, passport }
 ) =>
   dataSources.db.transaction(async (client) => {
@@ -32,11 +32,11 @@ export const createUserWithOrgEmailInvitation: Resolver<
     const emailInvitation = (await org.getEmailInvitations(client))
       .filter((invitation) => invitation.isValid())
       .find(
-        ({ properties }) => properties.accessToken === emailInvitationToken
+        ({ properties }) => properties.accessToken === invitationEmailToken
       );
 
     if (!emailInvitation) {
-      const msg = `An email invitation with access token ${emailInvitationToken} for org with entityId ${orgEntityId} not found in datastore`;
+      const msg = `An email invitation with access token ${invitationEmailToken} for org with entityId ${orgEntityId} not found in datastore`;
       throw new ApolloError(msg, "INVITATION_NOT_FOUND");
     }
 

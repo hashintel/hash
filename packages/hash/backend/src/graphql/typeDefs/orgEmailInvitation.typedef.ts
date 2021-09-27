@@ -89,7 +89,7 @@ export const orgEmailInvitationTypedef = gql`
       """
       The token associated with the email invitation
       """
-      emailInvitationToken: String!
+      invitationEmailToken: String!
     ): OrgEmailInvitation!
   }
 

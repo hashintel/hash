@@ -83,7 +83,7 @@ export const orgInvitationLinkTypedef = gql`
       """
       The token associated with the invitation
       """
-      invitationToken: String!
+      invitationLinkToken: String!
     ): OrgInvitationLink!
   }
 `;

@@ -11,7 +11,7 @@ export const orgInvitationLink: Resolver<
   QueryOrgInvitationLinkArgs
 > = async (
   _,
-  { orgAccountId, orgEntityId, invitationToken },
+  { orgAccountId, orgEntityId, invitationLinkToken },
   { dataSources }
 ) =>
   dataSources.db.transaction(async (client) => {
@@ -26,10 +26,10 @@ export const orgInvitationLink: Resolver<
     }
 
     const invitation = await org.getInvitationWithToken(client)(
-      invitationToken
+      invitationLinkToken
     );
 
-    const errorMsgPrefix = `The invitation with token ${invitationToken} associated with org with entityId ${orgEntityId}`;
+    const errorMsgPrefix = `The invitation with token ${invitationLinkToken} associated with org with entityId ${orgEntityId}`;
 
     if (!invitation) {
       const msg = `${errorMsgPrefix} could not be found in the datastore.`;

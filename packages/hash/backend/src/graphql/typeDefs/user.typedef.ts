@@ -123,8 +123,8 @@ export const userTypedef = gql`
   }
 
   input JoinOrgVerification {
-    invitationToken: String
-    emailInvitationToken: String
+    invitationLinkToken: String
+    invitationEmailToken: String
   }
 
   extend type Mutation {
@@ -141,7 +141,7 @@ export const userTypedef = gql`
     createUserWithOrgEmailInvitation(
       orgAccountId: ID!
       orgEntityId: ID!
-      emailInvitationToken: String!
+      invitationEmailToken: String!
     ): User!
     """
     Update a user

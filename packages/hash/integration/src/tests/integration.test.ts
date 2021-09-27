@@ -149,13 +149,13 @@ it("can create user with email verification code", async () => {
   });
 
   /** @todo: use test email transporter to obtain email invitation token */
-  const emailInvitationToken = emailInvitation.properties.accessToken;
+  const invitationEmailToken = emailInvitation.properties.accessToken;
 
   const { accountId, entityId, accountSignupComplete } =
     await client.createUserWithOrgEmailInvitation({
       orgAccountId: existingOrg.accountId,
       orgEntityId: existingOrg.entityId,
-      emailInvitationToken,
+      invitationEmailToken,
     });
 
   expect(accountSignupComplete).toEqual(false);
@@ -345,7 +345,7 @@ describe("logged in user ", () => {
     const gqlEmailInvitation = await client.orgEmailInvitation({
       orgAccountId: bobOrg.accountId,
       orgEntityId: bobOrg.entityId,
-      emailInvitationToken: emailInvitation.properties.accessToken,
+      invitationEmailToken: emailInvitation.properties.accessToken,
     });
 
     expect(gqlEmailInvitation.entityId).toEqual(emailInvitation.entityId);
@@ -367,7 +367,7 @@ describe("logged in user ", () => {
     const gqlInvitation = await client.orgInvitationLink({
       orgAccountId: bobOrg.accountId,
       orgEntityId: bobOrg.entityId,
-      invitationToken: invitation.properties.accessToken,
+      invitationLinkToken: invitation.properties.accessToken,
     });
 
     expect(gqlInvitation.entityId).toEqual(invitation.entityId);
@@ -396,7 +396,7 @@ describe("logged in user ", () => {
       orgAccountId: bobOrg.accountId,
       orgEntityId: bobOrg.entityId,
       verification: {
-        emailInvitationToken: emailInvitation.properties.accessToken,
+        invitationEmailToken: emailInvitation.properties.accessToken,
       },
       responsibility,
     });
@@ -432,7 +432,7 @@ describe("logged in user ", () => {
       orgAccountId: bobOrg.accountId,
       orgEntityId: bobOrg.entityId,
       verification: {
-        invitationToken: invitation.properties.accessToken,
+        invitationLinkToken: invitation.properties.accessToken,
       },
       responsibility,
     });

@@ -102,12 +102,12 @@ class __Org extends Account {
    */
   getInvitationWithToken =
     (client: DBClient) =>
-    async (invitationToken: string): Promise<OrgInvitationLink | null> => {
+    async (invitationLinkToken: string): Promise<OrgInvitationLink | null> => {
       const invitations = await this.getInvitations(client);
 
       return (
         invitations.find(
-          ({ properties }) => properties.accessToken === invitationToken
+          ({ properties }) => properties.accessToken === invitationLinkToken
         ) || null
       );
     };
@@ -133,13 +133,13 @@ class __Org extends Account {
   getEmailInvitationWithToken =
     (client: DBClient) =>
     async (
-      emailInvitationToken: string
+      invitationEmailToken: string
     ): Promise<OrgEmailInvitation | null> => {
       const emailInvitations = await this.getEmailInvitations(client);
 
       return (
         emailInvitations.find(
-          ({ properties }) => properties.accessToken === emailInvitationToken
+          ({ properties }) => properties.accessToken === invitationEmailToken
         ) || null
       );
     };

@@ -11,7 +11,7 @@ export const orgEmailInvitation: Resolver<
   QueryOrgEmailInvitationArgs
 > = async (
   _,
-  { orgAccountId, orgEntityId, emailInvitationToken },
+  { orgAccountId, orgEntityId, invitationEmailToken },
   { dataSources, user }
 ) =>
   dataSources.db.transaction(async (client) => {
@@ -26,10 +26,10 @@ export const orgEmailInvitation: Resolver<
     }
 
     const emailInvitation = await org.getEmailInvitationWithToken(client)(
-      emailInvitationToken
+      invitationEmailToken
     );
 
-    const errorMsgPrefix = `The email invitation with token ${emailInvitationToken} associated with org with entityId ${orgEntityId}`;
+    const errorMsgPrefix = `The email invitation with token ${invitationEmailToken} associated with org with entityId ${orgEntityId}`;
 
     if (
       !emailInvitation ||

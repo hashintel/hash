@@ -26,32 +26,32 @@ export const joinOrg: Resolver<
       throw new ApolloError(msg, "ORG_NOT_FOUND");
     }
 
-    const { invitationToken, emailInvitationToken } = verification;
+    const { invitationLinkToken, invitationEmailToken } = verification;
 
-    if (!invitationToken && !emailInvitationToken) {
+    if (!invitationLinkToken && !invitationEmailToken) {
       const msg = `Either an org invitation or email invitation token must be provided`;
       throw new ApolloError(msg);
     }
 
-    const invitation = invitationToken
-      ? await org.getInvitationWithToken(client)(invitationToken)
-      : emailInvitationToken
-      ? await org.getEmailInvitationWithToken(client)(emailInvitationToken)
+    const invitation = invitationLinkToken
+      ? await org.getInvitationWithToken(client)(invitationLinkToken)
+      : invitationEmailToken
+      ? await org.getEmailInvitationWithToken(client)(invitationEmailToken)
       : null;
 
     if (!invitation) {
-      const msg = `The invitation with token ${invitationToken} associated with org with entityId ${orgEntityId} not found in the datastore.`;
+      const msg = `The invitation with token ${invitationLinkToken} associated with org with entityId ${orgEntityId} not found in the datastore.`;
       throw new ApolloError(msg, "INVITATION_NOT_FOUND");
     }
 
     if (invitation.hasBeenRevoked()) {
-      const msg = `The invitation with token ${invitationToken} associated with org with entityId ${orgEntityId} has been revoked.`;
+      const msg = `The invitation with token ${invitationLinkToken} associated with org with entityId ${orgEntityId} has been revoked.`;
       throw new ApolloError(msg, "INVITATION_REVOKED");
     }
 
     if (invitation instanceof OrgEmailInvitation) {
       if (invitation.hasBeenUsed()) {
-        const msg = `The email invitation with token ${invitationToken} associated with org with entityId ${orgEntityId} has already been used.`;
+        const msg = `The email invitation with token ${invitationLinkToken} associated with org with entityId ${orgEntityId} has already been used.`;
         throw new ApolloError(msg, "INVITATION_ALREADY_USED");
       }
     }
