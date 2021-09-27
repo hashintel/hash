@@ -4,17 +4,30 @@ import { tw } from "twind";
 import { BlockMetaContext } from "../../blocks/blockMeta";
 import { useKey } from "rooks";
 
+interface BlockSuggesterProps {
+  onChange(variant: BlockVariant): void;
+}
+
 /**
  * used to present list of blocks to choose from to the user
+ * 
+ * @todo highlight variant of the prosemirror-node this suggester is attached to.
+ * more context: use the entity store – this will require the entity store stays
+ * up to date with cached properties and perhaps we need two versions of the
+ * entity store, one representing the current, yet to be saved doc and one
+ * representing the saved doc – we will also be using the variant name for
+ * comparison instead of property values.
  */
-export const BlockSuggester: React.VFC = () => {
+export const BlockSuggester: React.VFC<BlockSuggesterProps> = ({
+  onChange,
+}) => {
   const blocksMeta = useContext(BlockMetaContext);
-  
+
   // flatMap blocks' variants
   const options = Array.from(blocksMeta.values()).flatMap(
     (blockMeta) => blockMeta.componentMetadata.variants
   );
-  
+
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   useKey(["ArrowUp", "ArrowDown"], (event) => {
@@ -32,19 +45,7 @@ export const BlockSuggester: React.VFC = () => {
     [selectedIndex]
   );
 
-  /**
-   * @todo use the entity store – this will
-   * require the entity store stays up
-   * to date with cached properties and
-   * perhaps we need two versions of the
-   * entity store, one representing the
-   * current, yet to be saved doc and one
-   * representing the saved doc – we will
-   * also be using the variant name for
-   * comparison instead of property
-   * values
-   */
-  const onChange = (_option: BlockVariant, _index: number) => {};
+  useKey(["Enter"], (event) => onChange(options[selectedIndex]));
 
   return (
     <ul
@@ -57,9 +58,7 @@ export const BlockSuggester: React.VFC = () => {
           className={tw`flex border border-gray-100 ${
             index !== selectedIndex ? "bg-gray-50" : "bg-gray-100"
           } hover:bg-gray-100`}
-          onClick={() =>
-            index !== selectedIndex && onChange(options[index], index)
-          }
+          onClick={() => onChange(options[index])}
         >
           <div className={tw`flex w-16 items-center justify-center`}>
             <img className={tw`w-6 h-6`} alt={name} src={icon} />

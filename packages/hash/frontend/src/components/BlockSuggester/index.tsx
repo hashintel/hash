@@ -1,15 +1,10 @@
+import type { BlockVariant } from "@hashintel/block-protocol";
 import type { ReplacePortals } from "@hashintel/hash-shared/sharedWithBackend";
 import { ResolvedPos } from "prosemirror-model";
 import { EditorState, Plugin, PluginKey } from "prosemirror-state";
 import React, { CSSProperties } from "react";
 import { ensureMounted } from "../../lib/dom";
 import { BlockSuggester } from "./BlockSuggester";
-
-/**
- * used to tag the suggester plugin
- * @see https://prosemirror.net/docs/ref/#state.PluginKey
- */
-const key = new PluginKey("suggester");
 
 interface Trigger {
   /** matched search string including its leading slash */
@@ -62,7 +57,15 @@ interface SuggesterState {
   disabled: boolean;
   /** the suggester's current trigger */
   trigger: Trigger | null;
+  /** whether or not the suggester is currently open */
+  isOpen(): boolean;
 }
+
+/**
+ * used to tag the suggester plugin/make it a singleton
+ * @see https://prosemirror.net/docs/ref/#state.PluginKey
+ */
+const key = new PluginKey<SuggesterState>("suggester");
 
 /**
  * Suggester plugin factory
@@ -78,9 +81,15 @@ export const createBlockSuggester = (replacePortal: ReplacePortals) =>
     key,
     state: {
       init() {
-        return { trigger: null, disabled: false };
+        return {
+          trigger: null,
+          disabled: false,
+          isOpen() {
+            return this.trigger !== null && !this.disabled;
+          },
+        };
       },
-      /** used in a reducer fashion */
+      /** produces a new state from the old state and incoming transactions (cf. reducer) */
       apply(tr, state, _prevEitorState, nextEditorState) {
         const action: SuggesterAction | undefined = tr.getMeta(key);
 
@@ -96,19 +105,26 @@ export const createBlockSuggester = (replacePortal: ReplacePortals) =>
       },
     },
     props: {
-      handleKeyDown(view, event) {
-        switch (event.key) {
-          case "Escape":
-            view.dispatch(view.state.tr.setMeta(key, { type: "escape" }));
-            return false;
-          case "ArrowUp": /** fall through */
-          case "ArrowDown":
-            // stop prosemirror from handling these keyboard events while the suggester is open
-            const { trigger, disabled } = this.getState(view.state);
-            return trigger !== null && !disabled;
-          default:
-            return false;
-        }
+      /** cannot use EditorProps.handleKeyDown because it doesn't capture all keys (notably Enter) */
+      handleDOMEvents: {
+        keydown(view, event) {
+          switch (event.key) {
+            // stop prosemirror from handling these keyboard events while the suggester handles them
+            case "Enter":
+            case "ArrowUp":
+            case "ArrowDown":
+              if (this.getState(view.state).isOpen()) {
+                event.preventDefault();
+                return true;
+              }
+              return false;
+            case "Escape":
+              view.dispatch(view.state.tr.setMeta(key, { type: "escape" }));
+              return false;
+            default:
+              return false;
+          }
+        },
       },
     },
     view() {
@@ -116,11 +132,12 @@ export const createBlockSuggester = (replacePortal: ReplacePortals) =>
 
       return {
         update(view) {
-          const { trigger, disabled } = key.getState(view.state);
+          const state = key.getState(view.state)!;
 
-          if (!trigger || disabled) return this.destroy!();
+          if (!state.isOpen()) return this.destroy!();
 
-          const coords = view.coordsAtPos(trigger.from);
+          const { from, to } = state.trigger!;
+          const coords = view.coordsAtPos(from);
 
           const style: CSSProperties = {
             position: "absolute",
@@ -128,9 +145,17 @@ export const createBlockSuggester = (replacePortal: ReplacePortals) =>
             left: coords.left + document.documentElement.scrollLeft,
           };
 
+          /**
+           * @todo actually create and insert an instance of the selected block type variant
+           */
+          const onChange = (variant: BlockVariant) => {
+            const replacement = view.state.schema.text(`[${variant.name}]`);
+            view.dispatch(view.state.tr.replaceWith(from, to, replacement));
+          };
+
           const jsx = (
             <div style={style}>
-              <BlockSuggester />
+              <BlockSuggester onChange={onChange} />
             </div>
           );
 
