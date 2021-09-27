@@ -98,8 +98,16 @@ export const createRemoteBlock = async (
 ) => {
   await defineRemoteBlock(schema, viewConfig, componentId);
 
+  // @todo remove the wrapper creations here
   // Create a new instance of the newly defined prosemirror node
-  return schema.nodes[componentId].create(attrs, children, marks);
+  return schema.nodes.block.create({}, [
+    schema.nodes.entity.create(
+      {
+        temp: Math.floor(Math.random() * 1000),
+      },
+      [schema.nodes[componentId].create(attrs, children, marks)]
+    ),
+  ]);
 };
 
 const plugins = [
@@ -131,9 +139,9 @@ const plugins = [
       if (!transactions.some((tr) => tr.getMeta("commandWrapped"))) {
         let tr;
 
-        rewrapCommand()(newState, (dispatchedTr) => {
-          tr = dispatchedTr;
-        });
+        // rewrapCommand()(newState, (dispatchedTr) => {
+        //   tr = dispatchedTr;
+        // });
 
         return tr;
       }
