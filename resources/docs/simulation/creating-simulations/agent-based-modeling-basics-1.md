@@ -1,4 +1,7 @@
 ---
+title: Agent-Based Modeling Basics
+slug: simulation/creating-simulations/agent-based-modeling-basics-1
+objectId: f53e9d6f-902c-4fc1-b560-c9339f37ca5d
 description: Learn the basic terminology
 ---
 

@@ -1,3 +1,9 @@
+---
+title: Analyzing Process Models
+slug: simulation/concepts/designing-with-process-models/analyzing-process-models
+objectId: 498a6df9-0208-419a-99c0-a3581bcdf839}
+---
+
 # Analyzing Process Models
 
 Once you've created your process model, you'll want to use it to answer questions about its performance. Creating plots will make it easy and visually engaging to interpret the results of your simulation runs.

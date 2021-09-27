@@ -1,3 +1,9 @@
+---
+title: Publishing Datasets to Index
+slug: simulation/creating-simulations/datasets/publishing-data-to-index
+objectId: d8103bea-2124-494a-a852-c38e8e1d0f9d}
+---
+
 # Publishing Datasets to Index
 
 You can share your datasets with others by publishing them to hIndex.

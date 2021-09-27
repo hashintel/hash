@@ -1,4 +1,7 @@
 ---
+title: Standard Experiments
+slug: simulation/creating-simulations/experiments/experiment-types
+objectId: eeee40ed-8215-4464-86be-b8314a8239fc
 description: Reference for different experiment options
 ---
 

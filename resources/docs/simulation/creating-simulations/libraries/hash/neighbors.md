@@ -1,3 +1,9 @@
+---
+title: Neighbors
+slug: simulation/creating-simulations/libraries/hash/neighbors
+objectId: c1c7f910-08cb-4d8f-a5ef-60a4c1c76ab1}
+---
+
 # Neighbors
 
 ## neighborsOnPosition(agentA, neighbors)

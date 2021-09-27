@@ -1,3 +1,9 @@
+---
+title: Planning the Build
+slug: simulation/extra/migrating/anylogic/planning-the-build
+objectId: c5053645-5e04-49a3-99ad-239296c6ce7b}
+---
+
 # Planning the Build
 
 Let’s apply this mental model to the [Oil Supply Chain](/@hash/oil-supply-chain) model.

@@ -1,4 +1,7 @@
 ---
+title: Random
+slug: simulation/creating-simulations/libraries/hash/random
+objectId: b1f18a3b-9454-49c7-8dbf-70eceb24b940
 description: hstd functions for generating pseudo-random numbers.
 ---
 

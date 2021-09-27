@@ -1,3 +1,9 @@
+---
+title: Handling Messages
+slug: simulation/creating-simulations/agent-messages/handling-messages
+objectId: 115d9a68-381f-4b08-8765-4a17be0a1afe}
+---
+
 # Handling Messages
 
 **What happens when an agent receives a message?**

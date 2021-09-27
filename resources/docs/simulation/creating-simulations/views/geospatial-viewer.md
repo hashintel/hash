@@ -1,3 +1,9 @@
+---
+title: Geospatial
+slug: simulation/creating-simulations/views/geospatial-viewer
+objectId: 5c60988f-abb9-4eff-bded-fb8616dc7d93}
+---
+
 # Geospatial
 
 The geospatial viewer provides a realtime view of a simulation running inside any geographic area — a neighborhood, a city, a country, or the whole world. It's great for visualizing simulations in which agents occupy a position on a map. Take a look at the [City Infection Model](/@hash/city-infection-model-with-vaccine) for an example simulation using the geospatial viewer.

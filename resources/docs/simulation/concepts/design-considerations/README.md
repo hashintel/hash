@@ -1,4 +1,7 @@
 ---
+title: Actor Model
+slug: simulation/concepts/design-considerations
+objectId: d36e9198-f292-4e12-8dbb-7c7f937a7306
 description: >-
   Understanding how agents communicate, influence the world and resolve
   conflicts

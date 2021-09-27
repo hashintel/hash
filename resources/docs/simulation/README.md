@@ -1,4 +1,7 @@
 ---
+title: Overview
+slug: simulation
+objectId: d9e39386-bfd1-4bfb-a647-4d07e93b6150
 description: Getting started with simulations in HASH
 ---
 

@@ -1,3 +1,9 @@
+---
+title: Process Modeling
+slug: simulation/concepts/designing-with-process-models
+objectId: 35b4192a-b378-480f-a904-be39061eefdd}
+---
+
 # Process Modeling
 
 Process models allow you to represent systems or organizations which perform sequences of tasks. By chaining together delays, resource allocations, and other blocks representing real-life tasks and events, you can simulate processes such as assembly lines, company workflows, and supply chains.

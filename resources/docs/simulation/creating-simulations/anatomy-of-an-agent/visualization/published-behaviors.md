@@ -1,3 +1,9 @@
+---
+title: Published Behaviors
+slug: simulation/creating-simulations/anatomy-of-an-agent/visualization/published-behaviors
+objectId: 2d1fb8c7-1ab3-481c-897e-cdd613c49402}
+---
+
 # Published Behaviors
 
 A number of behaviors on hIndex will help you complete more complicated visualization tasks. The behaviors below, for instance, allow you to link a property of your agent to one of the reserved display fields. When the driving property is updated, the display property will be as well.

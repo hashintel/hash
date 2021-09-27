@@ -1,3 +1,9 @@
+---
+title: Topology
+slug: simulation/creating-simulations/configuration/topology
+objectId: dceb2b2a-ef0f-4950-9e26-c4ab04f34346}
+---
+
 # Topology
 
 An important keyword recognized by the [hEngine](/platform/engine) is `topology`.

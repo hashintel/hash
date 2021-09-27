@@ -1,3 +1,9 @@
+---
+title: Verification and Validation
+slug: simulation/concepts/verification-and-validation
+objectId: 78ba7242-a732-466c-b9fe-7e983b120100}
+---
+
 # Verification and Validation
 
 Before putting a simulation into production it's important to confirm its trustworthiness and authenticate that it works as intended. This process of quality assurance is made up of two separate procedures:

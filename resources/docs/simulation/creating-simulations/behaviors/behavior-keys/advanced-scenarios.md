@@ -1,3 +1,9 @@
+---
+title: Advanced Scenarios
+slug: simulation/creating-simulations/behaviors/behavior-keys/advanced-scenarios
+objectId: ea0981ad-6f6c-4c43-9d9f-156e86cc71eb}
+---
+
 # Advanced Scenarios
 
 ## How do I use a field defined in another behavior?

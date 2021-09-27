@@ -1,4 +1,7 @@
 ---
+title: Managing Timescales
+slug: simulation/concepts/designing-for-different-timescales
+objectId: 892fd7c4-b442-44da-8d22-cc5c0fdf58ac
 description: Building complex multi-timescale simulations
 ---
 

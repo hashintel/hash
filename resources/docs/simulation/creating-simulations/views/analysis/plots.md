@@ -1,3 +1,9 @@
+---
+title: Plots
+slug: simulation/creating-simulations/views/analysis/plots
+objectId: f14b16d1-1cc0-463a-923c-92efa40be340}
+---
+
 # Plots
 
 ## What are Plots?

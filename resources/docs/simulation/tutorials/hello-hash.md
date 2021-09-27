@@ -1,4 +1,7 @@
 ---
+title: Hello, HASH!
+slug: simulation/tutorials/hello-hash
+objectId: 96392257-39b5-46e2-b655-6a4a78ab1450
 description: 'Get started creating agents in our Hello, HASH tutorial!'
 ---
 

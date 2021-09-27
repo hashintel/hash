@@ -1,4 +1,7 @@
 ---
+title: Experiments
+slug: simulation/creating-simulations/experiments
+objectId: d8aaa790-5ce3-45cd-95e7-9e1024be7305
 description: 'Sweep parameters, explore a search space, and find optimal configurations'
 ---
 

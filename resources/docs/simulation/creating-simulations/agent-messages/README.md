@@ -1,3 +1,9 @@
+---
+title: Messages
+slug: simulation/creating-simulations/agent-messages
+objectId: 0d485ed3-efcc-4f4b-a8f0-0d886e688802}
+---
+
 # Messages
 
 Information in a simulation can propagate in one of two ways - either through neighbors which we cover in [Behaviors](/docs/simulation/creating-simulations/behaviors/) and [Topology](/docs/simulation/creating-simulations/configuration/topology/), or through message passing.

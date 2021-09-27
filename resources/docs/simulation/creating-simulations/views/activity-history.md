@@ -1,3 +1,9 @@
+---
+title: Activity History
+slug: simulation/creating-simulations/views/activity-history
+objectId: b80e9f3f-9445-4c53-922d-ef9a643c4b32}
+---
+
 # Activity History
 
 When you make changes to files in a project, create a release, or run a simulation/experiment, HASH automatically records the action and output within the _Activity_ panel \(by default the right-hand sidebar in hCore\). You can revisit earlier versions of a project, view previously computed results, or re-run a simulation or experiment with its original values in order to reproduce the run.

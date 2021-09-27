@@ -1,4 +1,7 @@
 ---
+title: Cloud Compute
+slug: simulation/creating-simulations/h.cloud
+objectId: 32b300a1-02a7-44ac-9db9-8300ef180496
 description: Run simulations on our hCloud infrastructure
 ---
 

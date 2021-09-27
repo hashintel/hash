@@ -1,4 +1,7 @@
 ---
+title: Error reference
+slug: simulation/extra/troubleshooting/error-reference
+objectId: 90dca8e5-ac3b-46d8-a0e9-e4224c2b953c
 description: Errors you may encounter and how to fix them
 ---
 

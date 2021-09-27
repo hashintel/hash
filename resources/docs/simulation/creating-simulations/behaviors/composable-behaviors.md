@@ -1,3 +1,9 @@
+---
+title: Composable Behaviors
+slug: simulation/creating-simulations/behaviors/composable-behaviors
+objectId: eaa33255-8efa-4fa0-a37e-90781a2bc889}
+---
+
 # Composable Behaviors
 
 **All user-authored behaviors, regardless of language, are** _**composable**_**.** This means they can be combined in any fashion with any number of others behaviors.

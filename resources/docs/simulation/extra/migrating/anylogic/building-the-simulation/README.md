@@ -1,3 +1,9 @@
+---
+title: Building the Simulation
+slug: simulation/extra/migrating/anylogic/building-the-simulation
+objectId: 6c28dc07-a85d-4cea-a6a0-0b7c8bf10ee1}
+---
+
 # Building the Simulation
 
 Working outside in, we will start with **Tankers**. We’ll point out key pieces of logic contained in each agent’s behaviors, show you some code snippets, and call out when we made use of published behaviors in hIndex. We encourage you to follow along in the [existing simulation](/@hash/oil-supply-chain) to see how these snippets fit into the full behaviors and simulation.

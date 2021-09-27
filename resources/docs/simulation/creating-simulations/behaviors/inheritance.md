@@ -1,4 +1,7 @@
 ---
+title: Inheriting Behaviors
+slug: simulation/creating-simulations/behaviors/inheritance
+objectId: 5e2af55a-b595-4fb4-8cd4-7a10916695f6
 description: Agent Types in HASH
 ---
 

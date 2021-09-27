@@ -1,3 +1,9 @@
+---
+title: Shapes
+slug: simulation/creating-simulations/anatomy-of-an-agent/visualization/shapes
+objectId: 1f39e725-319c-42a3-805d-223e63e872fd}
+---
+
 # Shapes
 
 ## Geometric Shapes

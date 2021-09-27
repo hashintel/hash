@@ -1,4 +1,7 @@
 ---
+title: Simulation Parameters
+slug: simulation/creating-simulations/configuration/basic-properties
+objectId: aaf900cd-674f-4aa6-b575-21167ffd8b3a
 description: >-
   Capture truths or assumptions about the state of your world which can easily
   be varied

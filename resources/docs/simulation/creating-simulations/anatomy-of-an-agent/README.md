@@ -1,4 +1,7 @@
 ---
+title: Agents
+slug: simulation/creating-simulations/anatomy-of-an-agent
+objectId: 177727f1-acbd-4f2d-811c-cebb25e7b3e5
 description: The beating hearts of agent-based models
 ---
 

@@ -1,4 +1,7 @@
 ---
+title: Troubleshooting & Debugging
+slug: simulation/extra/troubleshooting
+objectId: 114101d4-8aab-4aad-b191-d19f260a3cc3
 description: Debugging simulation logic and application crashes
 ---
 

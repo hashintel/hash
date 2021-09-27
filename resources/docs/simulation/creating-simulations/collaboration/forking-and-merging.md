@@ -1,3 +1,9 @@
+---
+title: Forking and Merging
+slug: simulation/creating-simulations/collaboration/forking-and-merging
+objectId: 514b0840-5158-4e13-a151-58dcf65ee584}
+---
+
 # Forking and Merging
 
 HASH supports forking and merging operations. You can fork a simulation, make changes, and then create a merge request to merge the changes back into the main simulation.

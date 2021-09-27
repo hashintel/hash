@@ -1,4 +1,7 @@
 ---
+title: Design Considerations
+slug: simulation/extra/design-considerations
+objectId: 0fd004a1-84fb-4974-94ee-2b3144d74be6
 description: Important considerations to keep in mind when building your simulation
 ---
 

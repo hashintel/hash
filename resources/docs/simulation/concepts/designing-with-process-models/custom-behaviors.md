@@ -1,3 +1,9 @@
+---
+title: Custom Behaviors
+slug: simulation/concepts/designing-with-process-models/custom-behaviors
+objectId: 0f610147-152c-410e-87c6-ace0321664bd}
+---
+
 # Custom Behaviors
 
 Once in a while you'll want to customize your process model with a new type of functionality. Custom behaviors can be placed anywhere in your behavior chain

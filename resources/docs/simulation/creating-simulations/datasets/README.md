@@ -1,3 +1,9 @@
+---
+title: Datasets
+slug: simulation/creating-simulations/datasets
+objectId: d784acc8-ffd5-4299-8e54-ab64011b3cea}
+---
+
 # Datasets
 
 **Data can be used in HASH to instantiate agents in a simulation, to set the properties of agents, or to influence any part of the simulation.**

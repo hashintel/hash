@@ -1,4 +1,7 @@
 ---
+title: Globals
+slug: simulation/creating-simulations/configuration
+objectId: c24c4485-292d-46a8-9c72-8c66aab52e23
 description: Globals are variables which are accessible to all agents in a simulation
 ---
 

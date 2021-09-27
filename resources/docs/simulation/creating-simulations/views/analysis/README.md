@@ -1,3 +1,9 @@
+---
+title: Analysis
+slug: simulation/creating-simulations/views/analysis
+objectId: be31030c-4021-4a21-81d1-3e845a53be5e}
+---
+
 # Analysis
 
 ## What is Simulation Analysis?

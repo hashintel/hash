@@ -1,3 +1,9 @@
+---
+title: API
+slug: simulation/creating-simulations/views/api-1
+objectId: 218e40ad-3932-4e97-a1ab-fe86739c8a12}
+---
+
 # API
 
 If you run an experiment or simulation in hCloud, it's possible to get access the results of those runs via HASH's API.

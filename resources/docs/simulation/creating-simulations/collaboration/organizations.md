@@ -1,3 +1,9 @@
+---
+title: Organizations
+slug: simulation/creating-simulations/collaboration/organizations
+objectId: 8907a843-8e7c-40c9-9734-cbe9a89016fe}
+---
+
 # Organizations
 
 Organizations exist in HASH to allow you to create private spaces with other users for permissioned sharing and collaboration on projects. They are free to create, and can contain unlimited number of members.

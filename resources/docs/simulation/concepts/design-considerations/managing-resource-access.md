@@ -1,3 +1,9 @@
+---
+title: Managing Resource Access
+slug: simulation/concepts/design-considerations/managing-resource-access
+objectId: 92a2661e-3fc1-4a67-a1ea-152b0ab4dbdf}
+---
+
 # Managing Resource Access
 
 Managing shared resource access is a common software design challenge. For instance [mutexes](https://en.wikipedia.org/wiki/Lock_%28computer_science%29) and similar locking mechanisms might be implemented to ensure only one process is modifying the resource at once. To avoid the need for this, **HASH manages state through the actor model, with each individual actor controlling its own state.**

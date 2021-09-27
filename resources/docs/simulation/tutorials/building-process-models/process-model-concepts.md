@@ -1,3 +1,9 @@
+---
+title: Process Model Concepts
+slug: simulation/tutorials/building-process-models/process-model-concepts
+objectId: 9f6ec0b6-c84e-4ab7-9e36-a0d843a32e3e}
+---
+
 # Process Model Concepts
 
 Process modeling is designing a process as a series of discrete, executable steps, and then optimizing and analyzing the design.
