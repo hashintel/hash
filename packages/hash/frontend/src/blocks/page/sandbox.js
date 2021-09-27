@@ -18,7 +18,6 @@ import React, { createRef, forwardRef, useEffect, useState } from "react";
 import { tw } from "twind";
 import { BlockSuggester } from "../../components/BlockSuggester/BlockSuggester";
 import DragVertical from "../../components/Icons/DragVertical";
-import { BlockMetaContext } from "../blockMeta";
 import { EditorConnection } from "./collab/collab";
 import { Reporter } from "./collab/reporter";
 import styles from "./style.module.css";
@@ -376,7 +375,7 @@ class BlockView {
           }}
           onClick={this.onDragEnd}
         />
-        <BlockHandle ref={this.blockHandleRef}/>
+        <BlockHandle ref={this.blockHandleRef} />
       </>
     );
 

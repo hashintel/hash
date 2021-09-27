@@ -1,28 +1,29 @@
 import { BlockVariant } from "@hashintel/block-protocol";
-import React, { useContext, useEffect, useRef } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import { tw } from "twind";
 import { BlockMetaContext } from "../../blocks/blockMeta";
-
-interface BlockSuggesterProps {
-  selectedIndex: number;
-}
+import { useKey } from "rooks";
 
 /**
  * used to present list of blocks to choose from to the user
  */
-export const BlockSuggester: React.VFC<BlockSuggesterProps> = ({
-  selectedIndex,
-}) => {
+export const BlockSuggester: React.VFC = () => {
   const blocksMeta = useContext(BlockMetaContext);
-
+  
   // flatMap blocks' variants
   const options = Array.from(blocksMeta.values()).flatMap(
     (blockMeta) => blockMeta.componentMetadata.variants
   );
+  
+  const [selectedIndex, setSelectedIndex] = useState(0);
 
-  // rotate the index through the available options
-  selectedIndex += options.length;
-  selectedIndex %= options.length;
+  useKey(["ArrowUp", "ArrowDown"], (event) => {
+    let index = selectedIndex + (event.key === "ArrowUp" ? -1 : 1);
+    // rotate the index through the available options
+    index += options.length;
+    index %= options.length;
+    setSelectedIndex(index);
+  });
 
   // scroll the selected option into view
   const selectedRef = useRef<HTMLLIElement>(null);

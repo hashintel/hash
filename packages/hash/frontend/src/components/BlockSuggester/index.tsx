@@ -54,11 +54,9 @@ interface SuggesterState {
   disabled: boolean;
   /** the suggester's current trigger */
   trigger: Trigger | null;
-  /** current suggestion index */
-  selectedIndex: number;
 }
 
-type SuggesterAction = { type: "escape" } | { type: "select"; delta: number };
+type SuggesterAction = { type: "escape" };
 
 /**
  * Suggester plugin factory
@@ -73,7 +71,7 @@ export const createBlockSuggester = (replacePortal: ReplacePortals) => {
   const plugin = new Plugin<SuggesterState>({
     state: {
       init() {
-        return { trigger: null, disabled: false, selectedIndex: 0 };
+        return { trigger: null, disabled: false };
       },
       /** used in a reducer fashion */
       apply(tr, state, _prevEitorState, nextEditorState) {
@@ -82,9 +80,6 @@ export const createBlockSuggester = (replacePortal: ReplacePortals) => {
         switch (action?.type) {
           case "escape":
             return { ...state, disabled: true };
-          case "select":
-            const selectedIndex = state.selectedIndex + action.delta;
-            return { ...state, selectedIndex };
         }
 
         const trigger = findTrigger(nextEditorState);
@@ -101,17 +96,9 @@ export const createBlockSuggester = (replacePortal: ReplacePortals) => {
             return false;
           case "ArrowUp": /** fall through */
           case "ArrowDown":
+            // stop prosemirror from handling these keyboard events while the suggester is open
             const { trigger, disabled } = this.getState(view.state);
-            if (!trigger || disabled) return false;
-
-            view.dispatch(
-              view.state.tr.setMeta(plugin, {
-                type: "select",
-                delta: event.key === "ArrowUp" ? -1 : 1,
-              })
-            );
-
-            return true; // prevents further propagation
+            return trigger !== null && !disabled;
           default:
             return false;
         }
@@ -122,9 +109,7 @@ export const createBlockSuggester = (replacePortal: ReplacePortals) => {
 
       return {
         update(view) {
-          const { trigger, disabled, selectedIndex } = plugin.getState(
-            view.state
-          );
+          const { trigger, disabled } = plugin.getState(view.state);
 
           if (!trigger || disabled) return this.destroy!();
 
@@ -138,7 +123,7 @@ export const createBlockSuggester = (replacePortal: ReplacePortals) => {
 
           const jsx = (
             <div style={style}>
-              <BlockSuggester selectedIndex={selectedIndex} />
+              <BlockSuggester />
             </div>
           );
 

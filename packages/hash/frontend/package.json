@@ -46,6 +46,7 @@
     "react": "17.0.2",
     "react-dom": "17.0.2",
     "react-modal-hook": "3.0.0",
+    "rooks": "5.7.1",
     "setimmediate": "1.0.5",
     "twind": "0.16.16",
     "uuid": "8.3.2"
