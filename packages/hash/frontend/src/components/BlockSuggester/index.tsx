@@ -151,7 +151,10 @@ export const createBlockSuggester = (replacePortal: ReplacePortals) =>
 
           const jsx = (
             <div style={style}>
-              <BlockSuggester search={search.substring(1)} onChange={onChange} />
+              <BlockSuggester
+                search={search.substring(1)}
+                onChange={onChange}
+              />
             </div>
           );
 

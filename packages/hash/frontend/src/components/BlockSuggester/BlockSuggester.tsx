@@ -32,14 +32,17 @@ export const BlockSuggester: React.VFC<BlockSuggesterProps> = ({
 
   const matchedOptions = useMemo(
     () => fuzzySearchBy(options, search, (variant) => variant.name ?? ""),
-    [search]
+    [options, search]
   );
 
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   // reset selected index whenever the number of matched options changes
   useEffect(
-    () => setSelectedIndex(Math.min(selectedIndex, matchedOptions.length - 1)),
+    () =>
+      setSelectedIndex((selectedIndex) =>
+        Math.min(selectedIndex, matchedOptions.length - 1)
+      ),
     [matchedOptions.length]
   );
 
