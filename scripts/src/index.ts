@@ -66,7 +66,6 @@ function ensureDirectoryExistence(filePath) {
 }
 
 const addUuidDocs = () => {
-  // fs.writeFileSync("./output/files.json", JSON.stringify(getAllFiles("../resources/docs/simulation", [])))
   const files = getAllFiles("../resources/docs/simulation", []);
 
   for (const file of files) {
@@ -186,14 +185,6 @@ export const generateAlgoliaJson = () => {
   return jsonData;
 };
 
-// fs.writeFileSync("./output/algoliaData.json", JSON.stringify(generateAlgoliaJson()))
-// addTitleToPage();
-// addUuidGlossary()
-// fs.writeFileSync(
-//   "./output/algoliaData.json",
-//   JSON.stringify(generateAlgoliaJson())
-// );
-
 export const uploadAlgoliaData = async (records) => {
   const client = algoliasearch(
     process.env.ALGOLIA_PROJECT,
@@ -206,7 +197,3 @@ export const uploadAlgoliaData = async (records) => {
     .saveObjects(records, { autoGenerateObjectIDIfNotExist: true })
     .catch(console.error);
 };
-
-// uploadAlgoliaData(
-//   JSON.parse(fs.readFileSync("./output/algoliaData.json", "utf8"))
-// );
