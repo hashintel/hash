@@ -186,7 +186,6 @@ const BlockHandle = forwardRef((_props, ref) => {
       />
       {isPopoverVisible && (
         <BlockSuggester
-          search={""}
           onChange={() => {
             throw new Error("not yet implemented");
           }}

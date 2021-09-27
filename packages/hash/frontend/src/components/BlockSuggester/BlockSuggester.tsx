@@ -6,7 +6,7 @@ import { useKey } from "rooks";
 import { fuzzySearchBy } from "./fuzzySearchBy";
 
 interface BlockSuggesterProps {
-  search: string;
+  search?: string;
   onChange(variant: BlockVariant): void;
 }
 
@@ -21,7 +21,7 @@ interface BlockSuggesterProps {
  * comparison instead of property values.
  */
 export const BlockSuggester: React.VFC<BlockSuggesterProps> = ({
-  search,
+  search = "",
   onChange,
 }) => {
   const blocksMeta = useContext(BlockMetaContext);
