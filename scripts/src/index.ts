@@ -3,7 +3,7 @@ import path from "path";
 import matter from "gray-matter";
 import algoliasearch from "algoliasearch";
 
-import simulationMap from "../resources/docs/url_map.json";
+import simulationMap from "../../resources/docs/url_map.json";
 
 function uuidv4() {
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
@@ -42,7 +42,7 @@ const getAllFiles = function (
     if (fs.statSync(dirPath + "/" + file).isDirectory()) {
       arrayOfFiles = getAllFiles(dirPath + "/" + file, arrayOfFiles);
     } else {
-      const inputPath = path.join(__dirname, dirPath, "/", file);
+      const inputPath = path.join(dirPath, "/", file);
       const outputPath = `.\\output\\${path.join(
         "./output/",
         dirPath,
@@ -128,7 +128,7 @@ const addTitleToPage = () => {
   });
 };
 
-const generateAlgoliaJson = () => {
+export const generateAlgoliaJson = () => {
   const jsonData = [];
 
   const glossaryFiles = fs.readdirSync("../resources/glossary");
@@ -194,7 +194,7 @@ const generateAlgoliaJson = () => {
 //   JSON.stringify(generateAlgoliaJson())
 // );
 
-const uploadAlgoliaData = (records) => {
+export const uploadAlgoliaData = async (records) => {
   const client = algoliasearch(
     process.env.ALGOLIA_PROJECT,
     process.env.AGOLIA_WRITE_KEY
@@ -202,11 +202,11 @@ const uploadAlgoliaData = (records) => {
 
   const index = client.initIndex("hash_learn");
 
-  index
+  return await index
     .saveObjects(records, { autoGenerateObjectIDIfNotExist: true })
     .catch(console.error);
 };
 
-uploadAlgoliaData(
-  JSON.parse(fs.readFileSync("./output/algoliaData.json", "utf8"))
-);
+// uploadAlgoliaData(
+//   JSON.parse(fs.readFileSync("./output/algoliaData.json", "utf8"))
+// );

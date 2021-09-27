@@ -12,8 +12,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    - uses: actions/checkout@v2
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '12'
 
-    # Runs a single command using the runners shell
-    - name: Run a one-line script
-      run: ls
+      # Runs a single command using the runners shell
+      - name: Upload to algolia
+        run: sh scripts/algolia_script.sh
