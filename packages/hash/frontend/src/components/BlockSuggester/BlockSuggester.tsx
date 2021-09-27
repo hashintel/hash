@@ -39,10 +39,7 @@ export const BlockSuggester: React.VFC<BlockSuggesterProps> = ({
 
   // reset selected index whenever the number of matched options changes
   useEffect(
-    () =>
-      setSelectedIndex((selectedIndex) =>
-        Math.min(selectedIndex, matchedOptions.length - 1)
-      ),
+    () => setSelectedIndex((idx) => Math.min(idx, matchedOptions.length - 1)),
     [matchedOptions.length]
   );
 
