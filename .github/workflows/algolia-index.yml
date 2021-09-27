@@ -1,0 +1,19 @@
+name: Algolia Index
+
+env:
+  ALGOLIA_PROJECT: ${{ secrets.ALGOLIA_PROJECT }}
+  AGOLIA_WRITE_KEY: ${{ secrets.AGOLIA_WRITE_KEY }}
+
+on:
+  push:
+    branches: [ master, aj/algolia-github-action ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    - uses: actions/checkout@v2
+
+    # Runs a single command using the runners shell
+    - name: Run a one-line script
+      run: ls
