@@ -1,5 +1,5 @@
 import { BlockVariant } from "@hashintel/block-protocol";
-import React, { useContext, useEffect, useRef, useState } from "react";
+import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { tw } from "twind";
 import { BlockMetaContext } from "../../blocks/blockMeta";
 import { useKey } from "rooks";
@@ -19,9 +19,6 @@ interface BlockSuggesterProps {
  * entity store, one representing the current, yet to be saved doc and one
  * representing the saved doc – we will also be using the variant name for
  * comparison instead of property values.
- *
- * @todo the selected index and the list of block-type-variants can change
- * independently from one another and can get out of sync.
  */
 export const BlockSuggester: React.VFC<BlockSuggesterProps> = ({
   search,
@@ -33,18 +30,23 @@ export const BlockSuggester: React.VFC<BlockSuggesterProps> = ({
     (blockMeta) => blockMeta.componentMetadata.variants
   );
 
-  const matchedOptions = fuzzySearchBy(
-    options,
-    search,
-    (variant) => variant.name ?? ""
+  const matchedOptions = useMemo(
+    () => fuzzySearchBy(options, search, (variant) => variant.name ?? ""),
+    [search]
   );
 
   const [selectedIndex, setSelectedIndex] = useState(0);
 
+  // reset selected index whenever the number of matched options changes
+  useEffect(
+    () => setSelectedIndex(Math.min(selectedIndex, matchedOptions.length - 1)),
+    [matchedOptions.length]
+  );
+
+  // enable cyclic arrow-key navigation
   useKey(["ArrowUp", "ArrowDown"], (event) => {
     event.preventDefault();
     let index = selectedIndex + (event.key === "ArrowUp" ? -1 : 1);
-    // rotate the index through the matched options
     index += matchedOptions.length;
     index %= matchedOptions.length;
     setSelectedIndex(index);
