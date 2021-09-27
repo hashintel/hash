@@ -132,7 +132,7 @@ export const createBlockSuggester = (replacePortal: ReplacePortals) =>
 
           if (!state.isOpen()) return this.destroy!();
 
-          const { from, to } = state.trigger!;
+          const { from, to, search } = state.trigger!;
           const coords = view.coordsAtPos(from);
 
           const style: CSSProperties = {
@@ -151,7 +151,7 @@ export const createBlockSuggester = (replacePortal: ReplacePortals) =>
 
           const jsx = (
             <div style={style}>
-              <BlockSuggester onChange={onChange} />
+              <BlockSuggester search={search.substring(1)} onChange={onChange} />
             </div>
           );
 
