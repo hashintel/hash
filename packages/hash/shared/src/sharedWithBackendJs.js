@@ -131,9 +131,9 @@ const plugins = [
       if (!transactions.some((tr) => tr.getMeta("commandWrapped"))) {
         let tr;
 
-        // rewrapCommand()(newState, (dispatchedTr) => {
-        //   tr = dispatchedTr;
-        // });
+        rewrapCommand()(newState, (dispatchedTr) => {
+          tr = dispatchedTr;
+        });
 
         return tr;
       }

@@ -11,7 +11,7 @@ import { BlockMetadata } from "@hashintel/block-protocol";
 import { Node as ProsemirrorNode, NodeSpec, Schema } from "prosemirror-model";
 import { Decoration, EditorView } from "prosemirror-view";
 import { BlockEntity } from "./types";
-import { Mapping } from "prosemirror-transform";
+import { liftTarget, Mapping } from "prosemirror-transform";
 import { Command } from "prosemirror-commands";
 
 export { blockPaths };
@@ -378,7 +378,7 @@ export function defineNewBlock<
 }
 
 export const rewrapCommand =
-  (blockExisted?: (position: number) => boolean): Command =>
+  (blockExisted?: (position: number) => boolean): Command<Schema> =>
   (newState, dispatch) => {
     const tr = newState.tr;
 
@@ -443,15 +443,16 @@ export const rewrapCommand =
  * @todo ensure we remove undo item if command fails
  */
 export const wrapCommand =
-  (command: Command): Command =>
+  (command: Command<Schema>): Command<Schema> =>
   (state, dispatch, view) => {
+    // @todo maybe this doesn't work now
     if (state.selection instanceof NodeSelection) {
       return command(state, dispatch, view);
     }
+    const { schema, tr } = state;
 
-    const tr = state.tr;
+    const blockLocations: number[] = [];
 
-    // const blockLocations: number[] = [];
     // /**
     //  * First we apply changes to the transaction to unwrap every block
     //  */
@@ -474,6 +475,30 @@ export const wrapCommand =
     //
     //   return false;
     // });
+
+    state.doc.descendants((node, pos) => {
+      if ([schema.nodes.block, schema.nodes.entity].includes(node.type)) {
+        return true;
+      }
+
+      if (node.isTextblock) {
+        const $start = tr.doc.resolve(tr.mapping.map(pos));
+        const $end = tr.doc.resolve(tr.mapping.map(pos + node.nodeSize));
+        const range = $start.blockRange($end);
+
+        if (!range) {
+          throw new Error("Cannot unwrap");
+        }
+
+        /**
+         * @todo we need to store the nodes that we're destroying, so we can
+         * recreate them
+         */
+        tr.lift(range, 0);
+      }
+
+      return false;
+    });
 
     /**
      * We don't want to yet dispatch the transaction unwrapping each block,
@@ -509,22 +534,22 @@ export const wrapCommand =
       }
     });
 
-    // const mappedBlockLocations = blockLocations.map((loc) =>
-    //   tr.mapping.map(loc)
-    // );
+    const mappedBlockLocations = blockLocations.map((loc) =>
+      tr.mapping.map(loc)
+    );
 
-    // tr.setMeta("commandWrapped", true);
-    // const nextState2 = state.apply(tr);
-    // tr.setMeta("commandWrapped", false);
+    tr.setMeta("commandWrapped", true);
+    const nextState2 = state.apply(tr);
+    tr.setMeta("commandWrapped", false);
 
-    // rewrapCommand((start) => mappedBlockLocations.includes(start))(
-    //   nextState2,
-    //   (nextTr) => {
-    //     for (const step of nextTr.steps) {
-    //       tr.step(step);
-    //     }
-    //   }
-    // );
+    rewrapCommand((start) => mappedBlockLocations.includes(start))(
+      nextState2,
+      (nextTr) => {
+        for (const step of nextTr.steps) {
+          tr.step(step);
+        }
+      }
+    );
 
     dispatch?.(tr);
 
