@@ -1,4 +1,4 @@
-import AwsSesEmailTransporter from "@hashintel/hash-backend/src/email/transporter/awsSes";
+import AwsSesEmailTransporter from "@hashintel/hash-backend/src/email/transporter/awsSesEmailTransporter";
 
 if (process.env.HASH_DEV_INTEGRATION_EMAIL) {
   it("can send an email", async () => {
