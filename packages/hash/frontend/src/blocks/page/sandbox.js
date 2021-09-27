@@ -165,18 +165,6 @@ class AsyncView {
 }
 
 /**
- * @deprecated naively deep-compare two values as part of a hack  should
- *             disappear w/
- *             https://app.asana.com/0/1200339985403942/1200644404374108/f
- */
-function isSubsetOf(subset, superset) {
-  const isObject = (any) => typeof any === "object" && any !== null;
-  return isObject(subset) && isObject(superset)
-    ? Object.keys(subset).every((key) => isSubsetOf(subset[key], superset[key]))
-    : subset === superset;
-}
-
-/**
  * specialized block-type/-variant select field
  */
 const BlockHandle = forwardRef((_props, ref) => {
