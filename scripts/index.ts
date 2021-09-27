@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import matter from "gray-matter";
+import algoliasearch from "algoliasearch";
 
 import simulationMap from "../resources/docs/url_map.json";
 
@@ -188,7 +189,24 @@ const generateAlgoliaJson = () => {
 // fs.writeFileSync("./output/algoliaData.json", JSON.stringify(generateAlgoliaJson()))
 // addTitleToPage();
 // addUuidGlossary()
-fs.writeFileSync(
-  "./output/algoliaData.json",
-  JSON.stringify(generateAlgoliaJson())
+// fs.writeFileSync(
+//   "./output/algoliaData.json",
+//   JSON.stringify(generateAlgoliaJson())
+// );
+
+const uploadAlgoliaData = (records) => {
+  const client = algoliasearch(
+    process.env.ALGOLIA_PROJECT,
+    process.env.AGOLIA_WRITE_KEY
+  );
+
+  const index = client.initIndex("hash_learn");
+
+  index
+    .saveObjects(records, { autoGenerateObjectIDIfNotExist: true })
+    .catch(console.error);
+};
+
+uploadAlgoliaData(
+  JSON.parse(fs.readFileSync("./output/algoliaData.json", "utf8"))
 );
