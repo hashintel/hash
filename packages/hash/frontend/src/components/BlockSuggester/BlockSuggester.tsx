@@ -31,6 +31,7 @@ export const BlockSuggester: React.VFC<BlockSuggesterProps> = ({
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   useKey(["ArrowUp", "ArrowDown"], (event) => {
+    event.preventDefault();
     let index = selectedIndex + (event.key === "ArrowUp" ? -1 : 1);
     // rotate the index through the available options
     index += options.length;
@@ -45,7 +46,10 @@ export const BlockSuggester: React.VFC<BlockSuggesterProps> = ({
     [selectedIndex]
   );
 
-  useKey(["Enter"], (event) => onChange(options[selectedIndex]));
+  useKey(["Enter"], (event) => {
+    event.preventDefault();
+    onChange(matchedOptions[selectedIndex]);
+  });
 
   return (
     <ul

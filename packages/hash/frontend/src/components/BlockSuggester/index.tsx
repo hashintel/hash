@@ -113,11 +113,7 @@ export const createBlockSuggester = (replacePortal: ReplacePortals) =>
             case "Enter":
             case "ArrowUp":
             case "ArrowDown":
-              if (this.getState(view.state).isOpen()) {
-                event.preventDefault();
-                return true;
-              }
-              return false;
+              return this.getState(view.state).isOpen();
             case "Escape":
               view.dispatch(view.state.tr.setMeta(key, { type: "escape" }));
               return false;

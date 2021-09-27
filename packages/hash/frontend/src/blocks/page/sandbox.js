@@ -184,7 +184,14 @@ const BlockHandle = forwardRef((_props, ref) => {
           setPopoverVisible(true);
         }}
       />
-      {isPopoverVisible && <BlockSuggester selectedIndex={0} />}
+      {isPopoverVisible && (
+        <BlockSuggester
+          search={""}
+          onChange={() => {
+            throw new Error("not yet implemented");
+          }}
+        />
+      )}
     </div>
   );
 });
