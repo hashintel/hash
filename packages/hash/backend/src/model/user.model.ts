@@ -164,13 +164,39 @@ class __User extends Account {
    * Must occur in the same db transaction as when `this.properties` was fetched
    * to prevent overriding externally-updated properties
    */
-  verifyEmailAddress = (client: DBClient) => (emailAddress: string) =>
-    this.updateUserProperties(client)({
+  addEmailAddress =
+    (client: DBClient) =>
+    (email: Email): Promise<User> => {
+      if (this.getEmail(email.address)) {
+        throw new Error(
+          `User with entityId ${this.entityId} already has email address ${email.address}`
+        );
+      }
+
+      return this.updateUserProperties(client)({
+        ...this.properties,
+        emails: [...this.properties.emails, email],
+      });
+    };
+
+  /**
+   * Must occur in the same db transaction as when `this.properties` was fetched
+   * to prevent overriding externally-updated properties
+   */
+  verifyExistingEmailAddress = (client: DBClient) => (emailAddress: string) => {
+    if (!this.getEmail(emailAddress)) {
+      throw new Error(
+        `User with entityId ${this.entityId} does not have email address ${emailAddress}`
+      );
+    }
+
+    return this.updateUserProperties(client)({
       ...this.properties,
       emails: this.properties.emails.map((email) =>
         email.address === emailAddress ? { ...email, verified: true } : email
       ),
     });
+  };
 
   sendLoginVerificationCode =
     (client: DBClient, tp: EmailTransporter) =>

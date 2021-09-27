@@ -59,7 +59,7 @@ export const createUserWithOrgEmailInvitation: Resolver<
     // If an existing User entity was found with the primary un-verified email...
     if (existingUser) {
       // ...we can verify it now.
-      await existingUser.verifyEmailAddress(client)(email);
+      await existingUser.verifyExistingEmailAddress(client)(email);
     }
 
     const user =

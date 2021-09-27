@@ -49,5 +49,7 @@ export const orgEmailInvitation: Resolver<
       throw new ApolloError(msg, "ALREADY_USED");
     }
 
+    /** @todo: verify the invitation hasn't expired */
+
     return emailInvitation.toGQLUnknownEntity();
   });

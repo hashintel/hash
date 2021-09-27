@@ -379,13 +379,15 @@ describe("logged in user ", () => {
   it("can join org with email invitation", async () => {
     const { bobUser, bobOrg } = await createNewBobWithOrg();
 
+    const inviteeEmailAddress = "alice-second@bigco.com";
+
     const emailInvitation = await OrgEmailInvitation.createOrgEmailInvitation(
       db,
       transporter
     )({
       org: bobOrg,
       inviter: bobUser,
-      inviteeEmailAddress: existingUser.getPrimaryEmail().address,
+      inviteeEmailAddress,
     });
 
     const responsibility = "CTO";
@@ -407,6 +409,16 @@ describe("logged in user ", () => {
 
     expect(gqlMemberOf).not.toBeUndefined();
     expect(gqlMemberOf.responsibility).toEqual(responsibility);
+
+    const { emails } = gqlUser.properties;
+
+    const addedEmail = emails.find(
+      ({ address }) => address === inviteeEmailAddress
+    )!;
+
+    expect(addedEmail).not.toBeUndefined();
+    expect(addedEmail.verified).toEqual(true);
+    expect(addedEmail.primary).toEqual(false);
   });
 
   it("can join org with invitation", async () => {

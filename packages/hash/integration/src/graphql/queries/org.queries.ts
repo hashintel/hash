@@ -111,6 +111,11 @@ export const joinOrg = gql`
           }
           responsibility
         }
+        emails {
+          address
+          verified
+          primary
+        }
       }
     }
   }

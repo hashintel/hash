@@ -56,9 +56,30 @@ export const joinOrg: Resolver<
       }
     }
 
+    /** @todo: verify the invitation hasn't expired */
+
     await user.joinOrg(client)({ org, responsibility });
 
     await invitation.use(client);
+
+    if (invitation instanceof OrgEmailInvitation) {
+      const { inviteeEmailAddress } = invitation.properties;
+      const existingUserEmail = user.getEmail(inviteeEmailAddress);
+
+      // If the user doesn't have an email with the inviteeEmailAddress...
+      if (!existingUserEmail) {
+        // ...we can create it.
+        await user.addEmailAddress(client)({
+          address: inviteeEmailAddress,
+          primary: false,
+          verified: true,
+        });
+        // If the user has an email with the inviteeEmailAddress that isn't verified...
+      } else if (!existingUserEmail.verified) {
+        // ...we can verify it.
+        await user.verifyExistingEmailAddress(client)(inviteeEmailAddress);
+      }
+    }
 
     return user.toGQLUnknownEntity();
   });
