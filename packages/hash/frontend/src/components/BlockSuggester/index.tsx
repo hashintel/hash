@@ -1,9 +1,15 @@
 import type { ReplacePortals } from "@hashintel/hash-shared/sharedWithBackend";
 import { ResolvedPos } from "prosemirror-model";
-import { EditorState, Plugin } from "prosemirror-state";
+import { EditorState, Plugin, PluginKey } from "prosemirror-state";
 import React, { CSSProperties } from "react";
 import { ensureMounted } from "../../lib/dom";
 import { BlockSuggester } from "./BlockSuggester";
+
+/**
+ * used to tag the suggester plugin
+ * @see https://prosemirror.net/docs/ref/#state.PluginKey
+ */
+const key = new PluginKey("suggester");
 
 interface Trigger {
   /** matched search string including its leading slash */
@@ -49,14 +55,14 @@ const findTrigger = (state: EditorState): Trigger | null => {
   };
 };
 
+type SuggesterAction = { type: "escape" };
+
 interface SuggesterState {
   /** whether or not the suggester is disabled */
   disabled: boolean;
   /** the suggester's current trigger */
   trigger: Trigger | null;
 }
-
-type SuggesterAction = { type: "escape" };
 
 /**
  * Suggester plugin factory
@@ -67,15 +73,16 @@ type SuggesterAction = { type: "escape" };
  * the popup. Pressing the Escape-key while inside the trigger will disable the plugin until a
  * trigger is newly encountered (e.g. by leaving/deleting and reentering/retyping a trigger).
  */
-export const createBlockSuggester = (replacePortal: ReplacePortals) => {
-  const plugin = new Plugin<SuggesterState>({
+export const createBlockSuggester = (replacePortal: ReplacePortals) =>
+  new Plugin<SuggesterState>({
+    key,
     state: {
       init() {
         return { trigger: null, disabled: false };
       },
       /** used in a reducer fashion */
       apply(tr, state, _prevEitorState, nextEditorState) {
-        const action: SuggesterAction | undefined = tr.getMeta(plugin);
+        const action: SuggesterAction | undefined = tr.getMeta(key);
 
         switch (action?.type) {
           case "escape":
@@ -92,7 +99,7 @@ export const createBlockSuggester = (replacePortal: ReplacePortals) => {
       handleKeyDown(view, event) {
         switch (event.key) {
           case "Escape":
-            view.dispatch(view.state.tr.setMeta(plugin, { type: "escape" }));
+            view.dispatch(view.state.tr.setMeta(key, { type: "escape" }));
             return false;
           case "ArrowUp": /** fall through */
           case "ArrowDown":
@@ -109,7 +116,7 @@ export const createBlockSuggester = (replacePortal: ReplacePortals) => {
 
       return {
         update(view) {
-          const { trigger, disabled } = plugin.getState(view.state);
+          const { trigger, disabled } = key.getState(view.state);
 
           if (!trigger || disabled) return this.destroy!();
 
@@ -137,6 +144,3 @@ export const createBlockSuggester = (replacePortal: ReplacePortals) => {
       };
     },
   });
-
-  return plugin;
-};
