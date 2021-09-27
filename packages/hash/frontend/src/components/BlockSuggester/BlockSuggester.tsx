@@ -26,29 +26,27 @@ export const BlockSuggester: React.VFC<BlockSuggesterProps> = ({
 }) => {
   const blocksMeta = useContext(BlockMetaContext);
 
-  const options = Array.from(blocksMeta.values()).flatMap(
-    (blockMeta) => blockMeta.componentMetadata.variants
-  );
-
-  const matchedOptions = useMemo(
-    () => fuzzySearchBy(options, search, (variant) => variant.name ?? ""),
-    [options, search]
-  );
+  const options = useMemo(() => {
+    const variants = Array.from(blocksMeta.values()).flatMap(
+      (blockMeta) => blockMeta.componentMetadata.variants
+    );
+    return fuzzySearchBy(variants, search, (variant) => variant.name ?? "");
+  }, [search, blocksMeta]);
 
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  // reset selected index whenever the number of matched options changes
+  // reset selected index whenever the number of options changes
   useEffect(
-    () => setSelectedIndex((idx) => Math.min(idx, matchedOptions.length - 1)),
-    [matchedOptions.length]
+    () => setSelectedIndex((idx) => Math.min(idx, options.length - 1)),
+    [options.length]
   );
 
   // enable cyclic arrow-key navigation
   useKey(["ArrowUp", "ArrowDown"], (event) => {
     event.preventDefault();
     let index = selectedIndex + (event.key === "ArrowUp" ? -1 : 1);
-    index += matchedOptions.length;
-    index %= matchedOptions.length;
+    index += options.length;
+    index %= options.length;
     setSelectedIndex(index);
   });
 
@@ -61,21 +59,21 @@ export const BlockSuggester: React.VFC<BlockSuggesterProps> = ({
 
   useKey(["Enter"], (event) => {
     event.preventDefault();
-    onChange(matchedOptions[selectedIndex]);
+    onChange(options[selectedIndex]);
   });
 
   return (
     <ul
       className={tw`absolute z-10 w-96 max-h-60 overflow-auto border border-gray-100 rounded-lg shadow-md`}
     >
-      {matchedOptions.map(({ name, icon, description }, index) => (
+      {options.map(({ name, icon, description }, index) => (
         <li
           ref={index === selectedIndex ? selectedRef : undefined}
           key={index}
           className={tw`flex border border-gray-100 ${
             index !== selectedIndex ? "bg-gray-50" : "bg-gray-100"
           } hover:bg-gray-100`}
-          onClick={() => onChange(matchedOptions[index])}
+          onClick={() => onChange(options[index])}
         >
           <div className={tw`flex w-16 items-center justify-center`}>
             <img className={tw`w-6 h-6`} alt={name} src={icon} />
