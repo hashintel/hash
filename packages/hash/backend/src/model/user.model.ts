@@ -160,7 +160,18 @@ class __User extends Account {
    */
   addEmailAddress =
     (client: DBClient) =>
-    (email: Email): Promise<User> => {
+    async (email: Email): Promise<User> => {
+      if (
+        await User.getUserByEmail(client)({
+          email: email.address,
+          verified: true,
+        })
+      ) {
+        throw new Error(
+          "Cannot add email address that has already been verified by another user"
+        );
+      }
+
       if (this.getEmail(email.address)) {
         throw new Error(
           `User with entityId ${this.entityId} already has email address ${email.address}`
