@@ -132,12 +132,13 @@ export const generateAlgoliaJson = () => {
 
   const glossaryFiles = fs.readdirSync("../resources/glossary");
 
-  const appendToJson = (matterData) => {
+  const appendToJson = (matterData, type = "glossary") => {
     const appendData = {
       ...matterData.data,
       objectId: undefined,
       content: matterData.content,
       objectID: matterData.data.objectId,
+      type,
     };
 
     jsonData.push(appendData);
@@ -179,7 +180,7 @@ export const generateAlgoliaJson = () => {
       };
     };
 
-    appendToJson(grayMatterData);
+    appendToJson(grayMatterData, "docs");
   }
 
   return jsonData;
