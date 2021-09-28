@@ -15,6 +15,13 @@
     ],
     "react/jsx-key": "error",
     "react/jsx-no-useless-fragment": "error",
-    "react/self-closing-comp": "warn"
+    "react/self-closing-comp": "warn",
+    "no-restricted-imports": ["error", {
+      "paths": [{
+        "name": "@testing-library/react",
+        "importNames": ["render"],
+        "message": "Please use ./src/tests/testUtils.tsx#render instead"
+      }]
+    }]
   }
 }
