@@ -25,25 +25,22 @@ export const joinOrg: Resolver<
 
     const { invitationLinkToken, invitationEmailToken } = verification;
 
-    if (!invitationLinkToken && !invitationEmailToken) {
-      const msg = `Either an org invitation link or email invitation token must be provided`;
-      throw new ApolloError(msg);
-    }
-
     const invitation = invitationLinkToken
-      ? await org.getInvitationWithToken(client)(invitationLinkToken)
+      ? await org.getInvitationLinkWithToken(client)({
+          invitationLinkToken,
+          errorCodePrefix: "INVITATION_",
+        })
       : invitationEmailToken
-      ? await org.getEmailInvitationWithToken(client)(invitationEmailToken)
+      ? await org.getEmailInvitationWithToken(client)({
+          invitationEmailToken,
+          errorCodePrefix: "INVITATION_",
+        })
       : null;
 
     if (!invitation) {
-      const msg = `The ${
-        invitationLinkToken ? "invitation link" : "email invitation"
-      } with token ${invitationLinkToken} associated with org with entityId ${orgEntityId} not found in the datastore.`;
-      throw new ApolloError(msg, "INVITATION_NOT_FOUND");
+      const msg = `Either an org invitation link or email invitation token must be provided`;
+      throw new ApolloError(msg);
     }
-
-    invitation.validate("INVITATION_");
 
     /** @todo: verify the invitation hasn't expired */
 

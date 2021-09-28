@@ -1,3 +1,4 @@
+import { ApolloError } from "apollo-server-errors";
 import {
   Org,
   Account,
@@ -82,7 +83,9 @@ class __Org extends Account {
   /**
    * @returns all invitations associated with the organization
    */
-  getInvitations = async (client: DBClient): Promise<OrgInvitationLink[]> => {
+  getInvitationLinks = async (
+    client: DBClient
+  ): Promise<OrgInvitationLink[]> => {
     /** @todo: query for invitations with correct outgoing 'org' relationships */
     const dbEntities = await client.getEntitiesBySystemType({
       accountId: this.accountId,
@@ -95,16 +98,28 @@ class __Org extends Account {
   /**
    * @returns the invitation associated with the organization that has a matching token, or null.
    */
-  getInvitationWithToken =
+  getInvitationLinkWithToken =
     (client: DBClient) =>
-    async (invitationLinkToken: string): Promise<OrgInvitationLink | null> => {
-      const invitations = await this.getInvitations(client);
+    async (params: {
+      invitationLinkToken: string;
+      errorCodePrefix?: string;
+    }): Promise<OrgInvitationLink> => {
+      const { invitationLinkToken, errorCodePrefix } = params;
 
-      return (
-        invitations.find(
-          ({ properties }) => properties.accessToken === invitationLinkToken
-        ) || null
+      const invitationLinks = await this.getInvitationLinks(client);
+
+      const invitationLink = invitationLinks.find(
+        ({ properties }) => properties.accessToken === invitationLinkToken
       );
+
+      if (!invitationLink) {
+        const msg = `The invitation with token ${invitationLinkToken} associated with org with entityId ${this.entityId} could not be found in the datastore.`;
+        throw new ApolloError(msg, `${errorCodePrefix}NOT_FOUND`);
+      }
+
+      invitationLink.validate(errorCodePrefix);
+
+      return invitationLink;
     };
 
   /**
@@ -127,16 +142,26 @@ class __Org extends Account {
    */
   getEmailInvitationWithToken =
     (client: DBClient) =>
-    async (
-      invitationEmailToken: string
-    ): Promise<OrgEmailInvitation | null> => {
+    async (params: {
+      invitationEmailToken: string;
+      errorCodePrefix?: string;
+    }): Promise<OrgEmailInvitation> => {
+      const { invitationEmailToken, errorCodePrefix } = params;
+
       const emailInvitations = await this.getEmailInvitations(client);
 
-      return (
-        emailInvitations.find(
-          ({ properties }) => properties.accessToken === invitationEmailToken
-        ) || null
+      const emailInvitation = emailInvitations.find(
+        ({ properties }) => properties.accessToken === invitationEmailToken
       );
+
+      if (!emailInvitation) {
+        const msg = `The email invitation with token ${invitationEmailToken} associated with org with entityId ${this.entityId} could not be found in the datastore.`;
+        throw new ApolloError(msg, `${errorCodePrefix}NOT_FOUND`);
+      }
+
+      emailInvitation.validate(errorCodePrefix);
+
+      return emailInvitation;
     };
 }
 

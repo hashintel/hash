@@ -18,21 +18,9 @@ export const getOrgInvitationLink: Resolver<
       throw new ApolloError(msg, "ORG_NOT_FOUND");
     }
 
-    const invitation = await org.getInvitationWithToken(client)(
-      invitationLinkToken
-    );
-
-    const errorMsgPrefix = `The invitation with token ${invitationLinkToken} associated with org with entityId ${orgEntityId}`;
-
-    if (!invitation) {
-      const msg = `${errorMsgPrefix} could not be found in the datastore.`;
-      throw new ApolloError(msg, "NOT_FOUND");
-    }
-
-    if (invitation.hasBeenRevoked()) {
-      const msg = `${errorMsgPrefix} has been revoked.`;
-      throw new ApolloError(msg, "REVOKED");
-    }
+    const invitation = await org.getInvitationLinkWithToken(client)({
+      invitationLinkToken,
+    });
 
     return invitation.toGQLUnknownEntity();
   });

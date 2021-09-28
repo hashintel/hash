@@ -357,7 +357,7 @@ describe("logged in user ", () => {
   it("can get org invitation", async () => {
     const { bobOrg } = await createNewBobWithOrg();
 
-    const [invitation] = await bobOrg.getInvitations(db);
+    const [invitation] = await bobOrg.getInvitationLinks(db);
 
     const gqlInvitation = await client.getOrgInvitationLink({
       orgEntityId: bobOrg.entityId,
@@ -417,7 +417,7 @@ describe("logged in user ", () => {
   it("can join org with invitation", async () => {
     const { bobOrg } = await createNewBobWithOrg();
 
-    const [invitation] = await bobOrg.getInvitations(db);
+    const [invitation] = await bobOrg.getInvitationLinks(db);
 
     const responsibility = "CTO";
 
