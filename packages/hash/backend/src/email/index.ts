@@ -1,7 +1,7 @@
+import { URLSearchParams } from "url";
 import { Org, OrgEmailInvitation, VerificationCode } from "../model";
 import { getRequiredEnv } from "../util";
 import EmailTransporter from "./transporter";
-
 const FRONTEND_DOMAIN = getRequiredEnv("FRONTEND_DOMAIN");
 
 export const sendLoginCodeToEmailAddress =
@@ -13,12 +13,13 @@ export const sendLoginCodeToEmailAddress =
   }): Promise<void> => {
     const { verificationCode, emailAddress, redirectPath } = params;
 
-    const magicLink = [
-      `http://${FRONTEND_DOMAIN}/login?`,
-      `verificationId=${encodeURIComponent(verificationCode.id)}`,
-      `&verificationCode=${encodeURIComponent(verificationCode.code)}`,
-      redirectPath ? `&redirectPath=${encodeURIComponent(redirectPath)}` : "",
-    ].join("");
+    const queryParams = new URLSearchParams({
+      verificationId: verificationCode.id,
+      verificationCode: verificationCode.code,
+      ...(redirectPath ? { redirectPath } : {}),
+    }).toString();
+
+    const magicLink = `http://${FRONTEND_DOMAIN}/login?${queryParams}`;
 
     await transporter.sendMail({
       to: emailAddress,
@@ -39,13 +40,14 @@ export const sendEmailVerificationCodeToEmailAddress =
   }): Promise<void> => {
     const { verificationCode, emailAddress, magicLinkQueryParams } = params;
 
-    const magicLink = [
-      `http://${FRONTEND_DOMAIN}/signup?verificationId=${encodeURIComponent(
-        verificationCode.id
-      )}`,
-      `&verificationCode=${encodeURIComponent(verificationCode.code)}`,
-      magicLinkQueryParams || "",
-    ].join("");
+    const queryParams = new URLSearchParams({
+      verificationId: verificationCode.id,
+      verificationCode: verificationCode.code,
+    }).toString();
+
+    const magicLink = `http://${FRONTEND_DOMAIN}/signup?${queryParams}${
+      magicLinkQueryParams || ""
+    }`;
 
     await transporter.sendMail({
       to: emailAddress,
@@ -67,15 +69,14 @@ export const sendOrgEmailInvitationToEmailAddress =
   }): Promise<void> => {
     const { org, emailInvitation, emailAddress, isExistingUser } = params;
 
-    const invitationLink = [
-      `http://${FRONTEND_DOMAIN}/invite?`,
-      `orgAccountId=${encodeURIComponent(org.accountId)}`,
-      `&orgEntityId=${encodeURIComponent(org.entityId)}`,
-      `&accessToken=${encodeURIComponent(
-        emailInvitation.properties.accessToken
-      )}`,
-      isExistingUser ? `&isExistingUser=true` : "",
-    ].join("");
+    const queryParams = new URLSearchParams({
+      orgAccountId: org.accountId,
+      orgEntityId: org.entityId,
+      accessToken: emailInvitation.properties.accessToken,
+      ...(isExistingUser ? { isExistingUser: "true" } : {}),
+    }).toString();
+
+    const invitationLink = `http://${FRONTEND_DOMAIN}/invite?${queryParams}`;
 
     await transporter.sendMail({
       to: emailAddress,
