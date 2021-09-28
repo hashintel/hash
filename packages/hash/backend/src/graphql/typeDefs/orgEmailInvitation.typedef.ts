@@ -83,7 +83,7 @@ export const orgEmailInvitationTypedef = gql`
     """
     Get an org email invitation
     """
-    orgEmailInvitation(
+    getOrgEmailInvitation(
       orgEntityId: ID!
       """
       The token associated with the email invitation

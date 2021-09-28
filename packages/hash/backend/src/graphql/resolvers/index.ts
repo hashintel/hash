@@ -42,8 +42,8 @@ import { entityTypeTypeFields } from "./entityType/entityTypeTypeFields";
 import { getAccountEntityTypes } from "./entityType/getAccountEntityTypes";
 import { getEntityType } from "./entityType/getEntityType";
 import { createOrgEmailInvitation } from "./org/createOrgEmailInvitation";
-import { orgEmailInvitation } from "./org/orgEmailInvitation";
-import { orgInvitationLink } from "./org/orgInvitationLink";
+import { getOrgEmailInvitation } from "./org/getOrgEmailInvitation";
+import { getOrgInvitationLink } from "./org/getOrgInvitationLink";
 import { joinOrg } from "./user/joinOrg";
 
 const loggedIn =
@@ -84,8 +84,8 @@ export const resolvers = {
     getEntityType: loggedInAndSignedUp(getEntityType),
     page: loggedInAndSignedUp(page),
     // Logged in users only
-    orgEmailInvitation: loggedIn(orgEmailInvitation),
-    orgInvitationLink: loggedIn(orgInvitationLink),
+    getOrgEmailInvitation: loggedIn(getOrgEmailInvitation),
+    getOrgInvitationLink: loggedIn(getOrgInvitationLink),
     me: loggedIn(me),
     // Any user
     isShortnameTaken,

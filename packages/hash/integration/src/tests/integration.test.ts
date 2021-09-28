@@ -338,7 +338,7 @@ describe("logged in user ", () => {
       inviteeEmailAddress,
     });
 
-    const gqlEmailInvitation = await client.orgEmailInvitation({
+    const gqlEmailInvitation = await client.getOrgEmailInvitation({
       orgEntityId: bobOrg.entityId,
       invitationEmailToken: emailInvitation.properties.accessToken,
     });
@@ -359,7 +359,7 @@ describe("logged in user ", () => {
 
     const [invitation] = await bobOrg.getInvitations(db);
 
-    const gqlInvitation = await client.orgInvitationLink({
+    const gqlInvitation = await client.getOrgInvitationLink({
       orgEntityId: bobOrg.entityId,
       invitationLinkToken: invitation.properties.accessToken,
     });

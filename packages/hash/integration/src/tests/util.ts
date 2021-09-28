@@ -30,10 +30,10 @@ import {
   CreateOrgEmailInvitationMutation,
   CreateUserWithOrgEmailInvitationMutationVariables,
   CreateUserWithOrgEmailInvitationMutation,
-  OrgEmailInvitationQueryVariables,
-  OrgEmailInvitationQuery,
-  OrgInvitationLinkQueryVariables,
-  OrgInvitationLinkQuery,
+  GetOrgEmailInvitationQueryVariables,
+  GetOrgEmailInvitationQuery,
+  GetOrgInvitationLinkQueryVariables,
+  GetOrgInvitationLinkQuery,
   JoinOrgMutationVariables,
   JoinOrgMutation,
 } from "../graphql/apiTypes.gen";
@@ -173,22 +173,22 @@ export class ApiClient {
     ).createOrgEmailInvitation;
   }
 
-  async orgEmailInvitation(vars: OrgEmailInvitationQueryVariables) {
+  async getOrgEmailInvitation(vars: GetOrgEmailInvitationQueryVariables) {
     return (
       await this.client.request<
-        OrgEmailInvitationQuery,
-        OrgEmailInvitationQueryVariables
+        GetOrgEmailInvitationQuery,
+        GetOrgEmailInvitationQueryVariables
       >(orgEmailInvitation, vars)
-    ).orgEmailInvitation;
+    ).getOrgEmailInvitation;
   }
 
-  async orgInvitationLink(vars: OrgInvitationLinkQueryVariables) {
+  async getOrgInvitationLink(vars: GetOrgInvitationLinkQueryVariables) {
     return (
       await this.client.request<
-        OrgInvitationLinkQuery,
-        OrgInvitationLinkQueryVariables
+        GetOrgInvitationLinkQuery,
+        GetOrgInvitationLinkQueryVariables
       >(orgInvitationLink, vars)
-    ).orgInvitationLink;
+    ).getOrgInvitationLink;
   }
 
   async joinOrg(vars: JoinOrgMutationVariables) {

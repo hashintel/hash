@@ -40,8 +40,11 @@ export const createOrgEmailInvitation = gql`
 `;
 
 export const orgEmailInvitation = gql`
-  query orgEmailInvitation($orgEntityId: ID!, $invitationEmailToken: String!) {
-    orgEmailInvitation(
+  query getOrgEmailInvitation(
+    $orgEntityId: ID!
+    $invitationEmailToken: String!
+  ) {
+    getOrgEmailInvitation(
       orgEntityId: $orgEntityId
       invitationEmailToken: $invitationEmailToken
     ) {
@@ -59,8 +62,8 @@ export const orgEmailInvitation = gql`
 `;
 
 export const orgInvitationLink = gql`
-  query orgInvitationLink($orgEntityId: ID!, $invitationLinkToken: String!) {
-    orgInvitationLink(
+  query getOrgInvitationLink($orgEntityId: ID!, $invitationLinkToken: String!) {
+    getOrgInvitationLink(
       orgEntityId: $orgEntityId
       invitationLinkToken: $invitationLinkToken
     ) {

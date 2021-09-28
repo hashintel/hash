@@ -1,14 +1,14 @@
 import { ApolloError } from "apollo-server-express";
 
-import { QueryOrgEmailInvitationArgs, Resolver } from "../../apiTypes.gen";
+import { QueryGetOrgEmailInvitationArgs, Resolver } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
 import { Org, EntityTypeWithoutTypeFields } from "../../../model";
 
-export const orgEmailInvitation: Resolver<
+export const getOrgEmailInvitation: Resolver<
   Promise<EntityTypeWithoutTypeFields>,
   {},
   LoggedInGraphQLContext,
-  QueryOrgEmailInvitationArgs
+  QueryGetOrgEmailInvitationArgs
 > = async (_, { orgEntityId, invitationEmailToken }, { dataSources, user }) =>
   dataSources.db.transaction(async (client) => {
     const org = await Org.getOrgById(client)({ entityId: orgEntityId });
