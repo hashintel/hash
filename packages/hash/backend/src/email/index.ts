@@ -1,8 +1,7 @@
 import { URLSearchParams } from "url";
 import { Org, OrgEmailInvitation, VerificationCode } from "../model";
-import { getRequiredEnv } from "../util";
 import EmailTransporter from "./transporter";
-const FRONTEND_DOMAIN = getRequiredEnv("FRONTEND_DOMAIN");
+const { FRONTEND_URL } = require("../lib/config");
 
 export const sendLoginCodeToEmailAddress =
   (transporter: EmailTransporter) =>
@@ -19,7 +18,7 @@ export const sendLoginCodeToEmailAddress =
       ...(redirectPath ? { redirectPath } : {}),
     }).toString();
 
-    const magicLink = `http://${FRONTEND_DOMAIN}/login?${queryParams}`;
+    const magicLink = `${FRONTEND_URL}/login?${queryParams}`;
 
     await transporter.sendMail({
       to: emailAddress,
@@ -45,7 +44,7 @@ export const sendEmailVerificationCodeToEmailAddress =
       verificationCode: verificationCode.code,
     }).toString();
 
-    const magicLink = `http://${FRONTEND_DOMAIN}/signup?${queryParams}${
+    const magicLink = `${FRONTEND_URL}/signup?${queryParams}${
       magicLinkQueryParams || ""
     }`;
 
@@ -76,7 +75,7 @@ export const sendOrgEmailInvitationToEmailAddress =
       ...(isExistingUser ? { isExistingUser: "true" } : {}),
     }).toString();
 
-    const invitationLink = `http://${FRONTEND_DOMAIN}/invite?${queryParams}`;
+    const invitationLink = `${FRONTEND_URL}/invite?${queryParams}`;
 
     await transporter.sendMail({
       to: emailAddress,
