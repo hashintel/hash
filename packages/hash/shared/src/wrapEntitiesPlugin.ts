@@ -11,6 +11,17 @@ import { keymap } from "prosemirror-keymap";
 type WrapperNodes = [number, ProsemirrorNode<Schema>[]];
 type WrapperNodesList = WrapperNodes[];
 
+const getRangeForNodeAtMappedPosition = (
+  pos: number,
+  node: ProsemirrorNode<Schema>,
+  tr: Transaction<Schema>
+) => {
+  const $start = tr.doc.resolve(tr.mapping.map(pos));
+  const $end = tr.doc.resolve(tr.mapping.map(pos + node.nodeSize));
+
+  return $start.blockRange($end);
+};
+
 const createEnsureEntitiesAreWrappedCommand =
   (wrappers?: WrapperNodesList): Command<Schema> =>
   (newState, dispatch) => {
@@ -26,17 +37,17 @@ const createEnsureEntitiesAreWrappedCommand =
         parent.type === schema.nodes.doc &&
         (wrapperNodes || node.type !== schema.nodes.block)
       ) {
-        const mappedPosition = tr.mapping.map(position);
-        const $start = tr.doc.resolve(mappedPosition);
-        const $end = tr.doc.resolve($start.pos + node.nodeSize);
-        const range = $start.blockRange($end);
+        const range = getRangeForNodeAtMappedPosition(position, node, tr);
+
         if (!range) {
           throw new Error("Cannot rewrap");
         }
+
         const DEFAULT_WRAPPERS = [
           { type: schema.nodes.block },
           { type: schema.nodes.entity },
         ];
+
         tr.wrap(
           range,
           wrapperNodes?.map((node) => ({
@@ -44,10 +55,9 @@ const createEnsureEntitiesAreWrappedCommand =
             attrs: node.attrs,
           })) ?? DEFAULT_WRAPPERS
         );
-        return false;
-      } else {
-        return;
       }
+
+      return false;
     });
 
     dispatch?.(tr);
@@ -111,9 +121,7 @@ const prepareCommandForWrappedEntities =
       }
 
       if (node.isTextblock) {
-        const $start = tr.doc.resolve(tr.mapping.map(pos));
-        const $end = tr.doc.resolve(tr.mapping.map(pos + node.nodeSize));
-        const range = $start.blockRange($end);
+        const range = getRangeForNodeAtMappedPosition(pos, node, tr);
 
         if (!range) {
           throw new Error("Cannot unwrap");
