@@ -32,7 +32,9 @@ export const createSchema = () =>
       },
       entity: {
         content: "blockItem",
-        attrs: {},
+        attrs: {
+          entityId: { default: null },
+        },
         toDOM: () => {
           return ["div", { "data-hash-type": "entity" }, 0] as const;
         },

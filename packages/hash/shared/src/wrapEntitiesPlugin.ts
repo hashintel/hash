@@ -43,10 +43,11 @@ const createEnsureEntitiesAreWrappedCommand =
           throw new Error("Cannot rewrap");
         }
 
-        const DEFAULT_WRAPPERS = [
-          { type: schema.nodes.block },
-          { type: schema.nodes.entity },
-        ];
+        const DEFAULT_WRAPPERS = [{ type: schema.nodes.block }];
+
+        if (node.type !== schema.nodes.enitity) {
+          DEFAULT_WRAPPERS.push({ type: schema.nodes.entity });
+        }
 
         tr.wrap(
           range,

@@ -81,6 +81,7 @@ export const defineRemoteBlock = async (schema, viewConfig, componentId) => {
  * Creating a new type of block in prosemirror, without necessarily having
  * requested the block metadata yet.
  *
+ * @todo update arguments to this
  * @todo support taking a signal
  */
 export const createRemoteBlock = async (
@@ -94,7 +95,10 @@ export const createRemoteBlock = async (
   await defineRemoteBlock(schema, viewConfig, componentId);
 
   // Create a new instance of the newly defined prosemirror node
-  return schema.nodes[componentId].create(attrs, children, marks);
+  // @todo get entityId from an argument
+  return schema.nodes.entity.create({ entityId: attrs.entityId }, [
+    schema.nodes[componentId].create(attrs, children, marks),
+  ]);
 };
 
 const plugins = [
