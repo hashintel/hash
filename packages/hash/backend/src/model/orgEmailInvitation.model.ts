@@ -1,3 +1,4 @@
+import { ApolloError } from "apollo-server-errors";
 import { DBClient } from "../db";
 import { DBLinkedEntity, EntityType } from "../db/adapter";
 import {
@@ -25,12 +26,15 @@ type OrgEmailInvitationConstructorArgs = {
 class __OrgEmailInvitation extends AccessToken {
   properties: DBOrgEmailInvitationProperties;
 
+  errorMsgPrefix: string;
+
   constructor({
     properties,
     ...remainingArgs
   }: OrgEmailInvitationConstructorArgs) {
     super({ ...remainingArgs, properties });
     this.properties = properties;
+    this.errorMsgPrefix = `The email invitation with entityId ${this.entityId} associated with org with entityId ${this.properties.org.__linkedData.entityId}`;
   }
 
   static getEntityType = async (client: DBClient): Promise<EntityType> =>
@@ -116,6 +120,18 @@ class __OrgEmailInvitation extends AccessToken {
    * @returns whether the email invitation has already been used.
    */
   hasBeenUsed = (): boolean => !!this.properties.usedAt;
+
+  validate = (errorCodePrefix?: string) => {
+    if (this.hasBeenRevoked()) {
+      const msg = `${this.errorMsgPrefix} has been revoked.`;
+      throw new ApolloError(msg, `${errorCodePrefix}REVOKED`);
+    }
+
+    if (this.hasBeenUsed()) {
+      const msg = `${this.errorMsgPrefix} has been used.`;
+      throw new ApolloError(msg, `${errorCodePrefix}ALREADY_USED`);
+    }
+  };
 
   isValid = (): boolean => !this.hasBeenUsed() && !this.hasBeenRevoked();
 }

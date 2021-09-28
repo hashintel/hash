@@ -26,16 +26,16 @@ export const createUserWithOrgEmailInvitation: Resolver<
     }
 
     // Retrieve the valid email invitation with a matching token associated with the org.
-    const emailInvitation = (await org.getEmailInvitations(client))
-      .filter((invitation) => invitation.isValid())
-      .find(
-        ({ properties }) => properties.accessToken === invitationEmailToken
-      );
+    const emailInvitation = await org.getEmailInvitationWithToken(client)(
+      invitationEmailToken
+    );
 
     if (!emailInvitation) {
       const msg = `An email invitation with access token ${invitationEmailToken} for org with entityId ${orgEntityId} not found in datastore`;
       throw new ApolloError(msg, "INVITATION_NOT_FOUND");
     }
+
+    emailInvitation.validate("INVITATION_");
 
     const { inviteeEmailAddress: email } = emailInvitation.properties;
 

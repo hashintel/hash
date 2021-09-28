@@ -32,15 +32,7 @@ export const getOrgEmailInvitation: Resolver<
       throw new ApolloError(msg, "NOT_FOUND");
     }
 
-    if (emailInvitation.hasBeenRevoked()) {
-      const msg = `${errorMsgPrefix} has been revoked.`;
-      throw new ApolloError(msg, "REVOKED");
-    }
-
-    if (emailInvitation.hasBeenUsed()) {
-      const msg = `${errorMsgPrefix} has been used.`;
-      throw new ApolloError(msg, "ALREADY_USED");
-    }
+    emailInvitation.validate();
 
     /** @todo: verify the invitation hasn't expired */
 
