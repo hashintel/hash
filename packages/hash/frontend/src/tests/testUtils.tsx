@@ -1,4 +1,5 @@
 import { MockedProvider, MockedResponse } from "@apollo/client/testing";
+// eslint-disable-next-line no-restricted-imports
 import { render, RenderOptions } from "@testing-library/react";
 
 type CustomRenderOptions = RenderOptions & {
@@ -19,5 +20,6 @@ const customRender = (
   return render(ui, { wrapper: Wrapper, ...options });
 };
 
+// eslint-disable-next-line no-restricted-imports
 export * from "@testing-library/react";
 export { customRender as render };
