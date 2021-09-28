@@ -16,6 +16,10 @@ export const joinOrg: Resolver<
   dataSources.db.transaction(async (client) => {
     const { orgEntityId, verification, responsibility } = args;
 
+    await user.acquireLock(client);
+
+    await user.refetchLatestVersion(client);
+
     const org = await Org.getOrgById(client)({ entityId: orgEntityId });
 
     if (!org) {
