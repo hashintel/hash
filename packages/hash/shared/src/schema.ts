@@ -32,16 +32,9 @@ export const createSchema = () =>
       },
       entity: {
         content: "blockItem",
-        // @todo remove this
-        attrs: {
-          temp: { default: null },
-        },
-        toDOM: (node) => {
-          return [
-            "div",
-            { "data-hash-type": "entity", "data-hash-temp": node.attrs.temp },
-            0,
-          ] as const;
+        attrs: {},
+        toDOM: () => {
+          return ["div", { "data-hash-type": "entity" }, 0] as const;
         },
         parseDOM: [
           {
