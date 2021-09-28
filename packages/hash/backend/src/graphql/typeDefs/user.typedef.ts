@@ -159,6 +159,10 @@ export const userTypedef = gql`
     """
     sendLoginCode(
       emailOrShortname: String!
+      """
+      Optionally provide a redirectPath, which is added as query parameter to
+      the magic link sent to the email address
+      """
       redirectPath: String
     ): VerificationCodeMetadata!
 
