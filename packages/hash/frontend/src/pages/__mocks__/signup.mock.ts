@@ -1,7 +1,7 @@
 import {
   createUser as createUserMutation,
   verifyEmail as verifyEmailMutation,
-} from "../../../graphql/queries/user.queries";
+} from "../../graphql/queries/user.queries";
 
 const newUser = {
   shortname: "tester",

@@ -1,14 +1,14 @@
 import React from "react";
 import { waitFor } from "@testing-library/dom";
 
-import { render, fireEvent } from "../tests/testUtils";
-import { SIGNUP_MOCKS } from "../tests/__mocks__/api/signup.mock";
-import { useMockRouter } from "../tests/useMockRouter";
+import { fireEvent, render } from "../testUtils/testUtils";
+import { SIGNUP_MOCKS } from "./__mocks__/signup.mock";
+import { mockUseRouter } from "../testUtils/mockUseRouter";
 import Signup from "./signup.page";
 
 describe("Signup page", () => {
   it("should render", () => {
-    useMockRouter({
+    mockUseRouter({
       route: "/",
     });
     const { getByText } = render(<Signup />);
@@ -17,7 +17,7 @@ describe("Signup page", () => {
   });
 
   it("should accept a user's email and request verification code", async () => {
-    useMockRouter({
+    mockUseRouter({
       route: "/login",
     });
     const { getByPlaceholderText, getByText, getByTestId } = render(

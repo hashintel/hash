@@ -1,5 +1,5 @@
 import React from "react";
-import { render } from "../../tests/testUtils";
+import { render } from "../../testUtils/testUtils";
 import { Button } from "./Button";
 
 describe("Button", () => {

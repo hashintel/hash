@@ -7,7 +7,7 @@ jest.mock("next/router", () => ({
 
 const useRouter = jest.spyOn(require("next/router"), "useRouter");
 
-export function useMockRouter(
+export function mockUseRouter(
   props?: Partial<Pick<NextRouter, "route" | "pathname" | "query" | "asPath">>
 ) {
   const defaults = {
