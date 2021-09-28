@@ -41,20 +41,24 @@ export const createUserWithOrgEmailInvitation: Resolver<
       );
     }
 
-    const existingUser = await User.getUserByEmail(client)({
+    const danglingExistingUser = await User.getUserByEmail(client)({
       email,
       primary: true,
       verified: false,
     });
 
     // If an existing User entity was found with the primary un-verified email...
-    if (existingUser) {
-      // ...we can verify it now.
-      await existingUser.verifyExistingEmailAddress(client)(email);
+    if (danglingExistingUser) {
+      // ...we can verify it now and re-use it instead of creating a new user entity.
+      await danglingExistingUser.verifyExistingEmailAddress(client)(email);
     }
 
+    /**
+     * @todo: instead of re-using dangling existing user entities, prune them
+     * periodically from the datastore
+     */
     const user =
-      existingUser ||
+      danglingExistingUser ||
       (await User.createUser(client)({
         emails: [{ address: email, primary: true, verified: true }],
         infoProvidedAtSignup: {},

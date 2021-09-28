@@ -27,6 +27,10 @@ export const createUser: Resolver<
       );
     }
 
+    /**
+     * @todo: instead of re-using dangling existing user entities, prune them
+     * periodically from the datastore
+     */
     const user =
       // Either get an existing user with this primary un-verified email address, ...
       (await User.getUserByEmail(client)({

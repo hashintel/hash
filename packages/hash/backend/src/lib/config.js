@@ -9,7 +9,9 @@ if (!FRONTEND_DOMAIN) {
  */
 module.exports = {
   FRONTEND_DOMAIN,
-  FRONTEND_URL: `http${process.env.HTTPS_ENABLED ? "s" : ""}://${FRONTEND_DOMAIN}`,
+  FRONTEND_URL: `http${
+    process.env.HTTPS_ENABLED ? "s" : ""
+  }://${FRONTEND_DOMAIN}`,
   SYSTEM_ACCOUNT_SHORTNAME: "hash",
   SYSTEM_ACCOUNT_NAME: "HASH",
   SYSTEM_TYPES: [
