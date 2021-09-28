@@ -17,10 +17,7 @@ const createEnsureEntitiesAreWrappedCommand =
     const { tr, schema } = newState;
 
     tr.doc.descendants((node, position, parent) => {
-      const mappedPosition = tr.mapping.map(position);
-      const wrapperNodes = wrappers?.find(
-        ([pos]) => mappedPosition === pos
-      )?.[1];
+      const wrapperNodes = wrappers?.find(([pos]) => position === pos)?.[1];
 
       /**
        * This position may already be wrapped – due to blocks merging
@@ -29,6 +26,7 @@ const createEnsureEntitiesAreWrappedCommand =
         parent.type === schema.nodes.doc &&
         (wrapperNodes || node.type !== schema.nodes.block)
       ) {
+        const mappedPosition = tr.mapping.map(position);
         const $start = tr.doc.resolve(mappedPosition);
         const $end = tr.doc.resolve($start.pos + node.nodeSize);
         const range = $start.blockRange($end);
