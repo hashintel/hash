@@ -26,7 +26,7 @@ export const joinOrg: Resolver<
     const { invitationLinkToken, invitationEmailToken } = verification;
 
     if (!invitationLinkToken && !invitationEmailToken) {
-      const msg = `Either an org invitation or email invitation token must be provided`;
+      const msg = `Either an org invitation link or email invitation token must be provided`;
       throw new ApolloError(msg);
     }
 
@@ -37,21 +37,13 @@ export const joinOrg: Resolver<
       : null;
 
     if (!invitation) {
-      const msg = `The invitation with token ${invitationLinkToken} associated with org with entityId ${orgEntityId} not found in the datastore.`;
+      const msg = `The ${
+        invitationLinkToken ? "invitation link" : "email invitation"
+      } with token ${invitationLinkToken} associated with org with entityId ${orgEntityId} not found in the datastore.`;
       throw new ApolloError(msg, "INVITATION_NOT_FOUND");
     }
 
-    if (invitation.hasBeenRevoked()) {
-      const msg = `The invitation with token ${invitationLinkToken} associated with org with entityId ${orgEntityId} has been revoked.`;
-      throw new ApolloError(msg, "INVITATION_REVOKED");
-    }
-
-    if (invitation instanceof OrgEmailInvitation) {
-      if (invitation.hasBeenUsed()) {
-        const msg = `The email invitation with token ${invitationLinkToken} associated with org with entityId ${orgEntityId} has already been used.`;
-        throw new ApolloError(msg, "INVITATION_ALREADY_USED");
-      }
-    }
+    invitation.validate("INVITATION_");
 
     /** @todo: verify the invitation hasn't expired */
 

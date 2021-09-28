@@ -7,6 +7,7 @@ import {
   AccessTokenConstructorArgs,
   Org,
 } from ".";
+import { ApolloError } from "apollo-server-errors";
 
 export type DBOrgInvitationLinkProperties = {
   useCount: number;
@@ -19,6 +20,7 @@ type OrgInvitationLinkConstructorArgs = {
 
 class __OrgInvitationLink extends AccessToken {
   properties: DBOrgInvitationLinkProperties;
+  errorMsgPrefix: string;
 
   constructor({
     properties,
@@ -26,6 +28,7 @@ class __OrgInvitationLink extends AccessToken {
   }: OrgInvitationLinkConstructorArgs) {
     super({ ...remainingArgs, properties });
     this.properties = properties;
+    this.errorMsgPrefix = `The invitation link with entityId ${this.entityId} associated with org with entityId ${this.properties.org.__linkedData.entityId}`;
   }
 
   static getEntityType = async (client: DBClient): Promise<EntityType> =>
@@ -82,6 +85,13 @@ class __OrgInvitationLink extends AccessToken {
       ...this.properties,
       useCount: this.properties.useCount + 1,
     });
+
+  validate = (errorCodePrefix?: string) => {
+    if (this.hasBeenRevoked()) {
+      const msg = `${this.errorMsgPrefix} has been revoked.`;
+      throw new ApolloError(msg, `${errorCodePrefix}REVOKED`);
+    }
+  };
 }
 
 export default __OrgInvitationLink;
