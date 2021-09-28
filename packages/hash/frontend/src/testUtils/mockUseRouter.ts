@@ -1,11 +1,9 @@
-import { NextRouter } from "next/router";
+import { NextRouter, useRouter } from "next/router";
 
 jest.mock("next/router", () => ({
   __esModule: true,
   useRouter: jest.fn(),
 }));
-
-const useRouter = jest.spyOn(require("next/router"), "useRouter");
 
 export function mockUseRouter(
   props?: Partial<Pick<NextRouter, "route" | "pathname" | "query" | "asPath">>
