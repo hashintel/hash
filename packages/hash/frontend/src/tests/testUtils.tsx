@@ -1,6 +1,5 @@
 import { MockedProvider, MockedResponse } from "@apollo/client/testing";
 import { render, RenderOptions } from "@testing-library/react";
-import { useMockRouter } from "./useMockRouter";
 
 type CustomRenderOptions = RenderOptions & {
   mocks?: MockedResponse[];
@@ -21,4 +20,4 @@ const customRender = (
 };
 
 export * from "@testing-library/react";
-export { customRender as render, useMockRouter };
+export { customRender as render };
