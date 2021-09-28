@@ -17,7 +17,7 @@ export function mockUseRouter(
     prefetch: () => new Promise<void>((resolve) => resolve()),
   };
 
-  useRouter.mockReturnValue({
+  (useRouter as jest.Mock).mockReturnValue({
     ...defaults,
     ...(props ? props : {}),
   });
