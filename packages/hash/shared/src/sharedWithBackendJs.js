@@ -1,16 +1,11 @@
-import { liftTarget, Mapping } from "prosemirror-transform";
-import {
-  fetchBlockMeta,
-  defineNewBlock,
-  wrapCommand,
-  rewrapCommand,
-} from "./sharedWithBackend";
-import { EditorState, NodeSelection, Plugin } from "prosemirror-state";
+import { defineNewBlock, fetchBlockMeta } from "./sharedWithBackend";
+import { EditorState } from "prosemirror-state";
 import { keymap } from "prosemirror-keymap";
 import { baseKeymap, chainCommands, toggleMark } from "prosemirror-commands";
 import { history, redo, undo } from "prosemirror-history";
 import { undoInputRule } from "prosemirror-inputrules";
 import { dropCursor } from "prosemirror-dropcursor";
+import { wrapEntitiesPlugin } from "./wrapEntitiesPlugin";
 
 /**
  * We setup two versions of the history plugin, because we occasionally
@@ -113,40 +108,9 @@ export const createRemoteBlock = async (
 const plugins = [
   historyPlugin,
   keymap({ "Mod-z": chainCommands(undo, undoInputRule), "Mod-y": redo }),
-  keymap({
-    /**
-     * Wrap all of the default keymap shortcuts to ensure that the block
-     * nodeviews are unwrapped before prosemirror logic is applied (the block
-     * nodeview wrappers interfere with this logic)
-     */
-    ...Object.fromEntries(
-      Object.entries(baseKeymap).map(([name, command]) => [
-        name,
-        wrapCommand(command),
-      ])
-    ),
-    // @todo better way of working out that this command doesn't need wrapping
-    "Mod-a": baseKeymap["Mod-a"],
-  }),
+  ...wrapEntitiesPlugin(baseKeymap),
   // This enables an indicator to appear when drag and dropping blocks
   dropCursor(),
-  /**
-   * This plugin ensures at the end of every transaction all necessary nodes
-   * are wrapped with block nodeviews
-   */
-  new Plugin({
-    appendTransaction(transactions, __, newState) {
-      if (!transactions.some((tr) => tr.getMeta("commandWrapped"))) {
-        let tr;
-
-        // rewrapCommand()(newState, (dispatchedTr) => {
-        //   tr = dispatchedTr;
-        // });
-
-        return tr;
-      }
-    },
-  }),
 ];
 
 export const createProseMirrorState = (

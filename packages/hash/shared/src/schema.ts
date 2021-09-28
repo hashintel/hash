@@ -10,7 +10,7 @@ export const createSchema = () =>
         toDOM: () => ["div", 0] as const,
       },
       block: {
-        content: "blockItem",
+        content: "entity",
         /**
          * These properties are necessary for copy and paste (which is necessary for drag and drop)
          */
@@ -31,7 +31,6 @@ export const createSchema = () =>
         ],
       },
       entity: {
-        group: "blockItem",
         content: "blockItem",
         // @todo remove this
         attrs: {
