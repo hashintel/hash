@@ -12,12 +12,10 @@ export const createUser = gql`
 
 export const createUserWithOrgEmailInvitation = gql`
   mutation createUserWithOrgEmailInvitation(
-    $orgAccountId: ID!
     $orgEntityId: ID!
     $invitationEmailToken: String!
   ) {
     createUserWithOrgEmailInvitation(
-      orgAccountId: $orgAccountId
       orgEntityId: $orgEntityId
       invitationEmailToken: $invitationEmailToken
     ) {

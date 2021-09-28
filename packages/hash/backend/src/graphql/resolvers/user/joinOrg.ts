@@ -14,12 +14,9 @@ export const joinOrg: Resolver<
   MutationJoinOrgArgs
 > = async (_, args, { dataSources, user }) =>
   dataSources.db.transaction(async (client) => {
-    const { orgAccountId, orgEntityId, verification, responsibility } = args;
+    const { orgEntityId, verification, responsibility } = args;
 
-    const org = await Org.getOrgById(client)({
-      accountId: orgAccountId,
-      entityId: orgEntityId,
-    });
+    const org = await Org.getOrgById(client)({ entityId: orgEntityId });
 
     if (!org) {
       const msg = `Org with entityId ${orgEntityId} not found in datastore`;

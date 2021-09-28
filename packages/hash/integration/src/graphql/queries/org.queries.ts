@@ -20,12 +20,10 @@ export const createOrg = gql`
 
 export const createOrgEmailInvitation = gql`
   mutation createOrgEmailInvitation(
-    $orgAccountId: ID!
     $orgEntityId: ID!
     $inviteeEmailAddress: String!
   ) {
     createOrgEmailInvitation(
-      orgAccountId: $orgAccountId
       orgEntityId: $orgEntityId
       inviteeEmailAddress: $inviteeEmailAddress
     ) {
@@ -42,13 +40,8 @@ export const createOrgEmailInvitation = gql`
 `;
 
 export const orgEmailInvitation = gql`
-  query orgEmailInvitation(
-    $orgAccountId: ID!
-    $orgEntityId: ID!
-    $invitationEmailToken: String!
-  ) {
+  query orgEmailInvitation($orgEntityId: ID!, $invitationEmailToken: String!) {
     orgEmailInvitation(
-      orgAccountId: $orgAccountId
       orgEntityId: $orgEntityId
       invitationEmailToken: $invitationEmailToken
     ) {
@@ -66,13 +59,8 @@ export const orgEmailInvitation = gql`
 `;
 
 export const orgInvitationLink = gql`
-  query orgInvitationLink(
-    $orgAccountId: ID!
-    $orgEntityId: ID!
-    $invitationLinkToken: String!
-  ) {
+  query orgInvitationLink($orgEntityId: ID!, $invitationLinkToken: String!) {
     orgInvitationLink(
-      orgAccountId: $orgAccountId
       orgEntityId: $orgEntityId
       invitationLinkToken: $invitationLinkToken
     ) {
@@ -90,13 +78,11 @@ export const orgInvitationLink = gql`
 
 export const joinOrg = gql`
   mutation joinOrg(
-    $orgAccountId: ID!
     $orgEntityId: ID!
     $verification: JoinOrgVerification!
     $responsibility: String!
   ) {
     joinOrg(
-      orgAccountId: $orgAccountId
       orgEntityId: $orgEntityId
       verification: $verification
       responsibility: $responsibility

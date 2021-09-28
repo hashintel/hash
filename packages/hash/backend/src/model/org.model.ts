@@ -34,15 +34,9 @@ class __Org extends Account {
 
   static getOrgById =
     (client: DBClient) =>
-    ({
-      accountId,
-      entityId,
-    }: {
-      accountId: string;
-      entityId: string;
-    }): Promise<Org | null> =>
+    ({ entityId }: { entityId: string }): Promise<Org | null> =>
       client
-        .getEntityLatestVersion({ accountId, entityId })
+        .getEntityLatestVersion({ accountId: entityId, entityId })
         .then((dbOrg) => (dbOrg ? new Org(dbOrg) : null));
 
   static getOrgByShortname =
@@ -60,10 +54,11 @@ class __Org extends Account {
     }): Promise<Org> => {
       const { properties, createdById } = params;
 
-      const accountId = genId();
+      const id = genId();
 
       const entity = await client.createEntity({
-        accountId,
+        accountId: id,
+        entityId: id,
         createdById,
         properties,
         entityTypeId: (await Org.getEntityType(client)).entityId,

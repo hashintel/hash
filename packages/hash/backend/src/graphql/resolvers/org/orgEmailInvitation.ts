@@ -9,16 +9,9 @@ export const orgEmailInvitation: Resolver<
   {},
   LoggedInGraphQLContext,
   QueryOrgEmailInvitationArgs
-> = async (
-  _,
-  { orgAccountId, orgEntityId, invitationEmailToken },
-  { dataSources, user }
-) =>
+> = async (_, { orgEntityId, invitationEmailToken }, { dataSources, user }) =>
   dataSources.db.transaction(async (client) => {
-    const org = await Org.getOrgById(client)({
-      accountId: orgAccountId,
-      entityId: orgEntityId,
-    });
+    const org = await Org.getOrgById(client)({ entityId: orgEntityId });
 
     if (!org) {
       const msg = `Org with entityId ${orgEntityId} not found in datastore`;

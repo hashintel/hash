@@ -78,7 +78,6 @@ export const orgInvitationLinkTypedef = gql`
     Get an org email invitation
     """
     orgInvitationLink(
-      orgAccountId: ID!
       orgEntityId: ID!
       """
       The token associated with the invitation

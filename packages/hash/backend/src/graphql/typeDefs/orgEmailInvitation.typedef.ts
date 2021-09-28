@@ -84,7 +84,6 @@ export const orgEmailInvitationTypedef = gql`
     Get an org email invitation
     """
     orgEmailInvitation(
-      orgAccountId: ID!
       orgEntityId: ID!
       """
       The token associated with the email invitation
@@ -98,10 +97,6 @@ export const orgEmailInvitationTypedef = gql`
     Create an email invitation for an existing organization
     """
     createOrgEmailInvitation(
-      """
-      The accountId of the organization
-      """
-      orgAccountId: ID!
       """
       The entityId of the organization
       """

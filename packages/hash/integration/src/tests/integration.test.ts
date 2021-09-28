@@ -151,16 +151,15 @@ it("can create user with email verification code", async () => {
   /** @todo: use test email transporter to obtain email invitation token */
   const invitationEmailToken = emailInvitation.properties.accessToken;
 
-  const { accountId, entityId, accountSignupComplete } =
+  const { entityId, accountSignupComplete } =
     await client.createUserWithOrgEmailInvitation({
-      orgAccountId: existingOrg.accountId,
       orgEntityId: existingOrg.entityId,
       invitationEmailToken,
     });
 
   expect(accountSignupComplete).toEqual(false);
 
-  const user = (await User.getUserById(db)({ accountId, entityId }))!;
+  const user = (await User.getUserById(db)({ entityId }))!;
 
   expect(user).not.toBeNull();
   expect(user.getPrimaryEmail()).toEqual({
@@ -249,9 +248,9 @@ describe("logged in user ", () => {
       responsibility: "CEO",
     };
 
-    const { accountId, entityId } = await client.createOrg(variables);
+    const { entityId } = await client.createOrg(variables);
 
-    const org = (await Org.getOrgById(db)({ accountId, entityId }))!;
+    const org = (await Org.getOrgById(db)({ entityId }))!;
 
     // Test the org has been created correctly
     expect(org).not.toBeNull();
@@ -289,7 +288,6 @@ describe("logged in user ", () => {
     bobCounter += 1;
 
     const response = await client.createOrgEmailInvitation({
-      orgAccountId: existingOrg.accountId,
       orgEntityId: existingOrg.entityId,
       inviteeEmailAddress,
     });
@@ -308,14 +306,12 @@ describe("logged in user ", () => {
     const inviteeEmailAddress = `bob-${bobCounter}@bigco.com`;
     bobCounter += 1;
     await client.createOrgEmailInvitation({
-      orgAccountId: existingOrg.accountId,
       orgEntityId: existingOrg.entityId,
       inviteeEmailAddress,
     });
 
     await client
       .createOrgEmailInvitation({
-        orgAccountId: existingOrg.accountId,
         orgEntityId: existingOrg.entityId,
         inviteeEmailAddress,
       })
@@ -343,7 +339,6 @@ describe("logged in user ", () => {
     });
 
     const gqlEmailInvitation = await client.orgEmailInvitation({
-      orgAccountId: bobOrg.accountId,
       orgEntityId: bobOrg.entityId,
       invitationEmailToken: emailInvitation.properties.accessToken,
     });
@@ -365,7 +360,6 @@ describe("logged in user ", () => {
     const [invitation] = await bobOrg.getInvitations(db);
 
     const gqlInvitation = await client.orgInvitationLink({
-      orgAccountId: bobOrg.accountId,
       orgEntityId: bobOrg.entityId,
       invitationLinkToken: invitation.properties.accessToken,
     });
@@ -393,7 +387,6 @@ describe("logged in user ", () => {
     const responsibility = "CTO";
 
     const gqlUser = await client.joinOrg({
-      orgAccountId: bobOrg.accountId,
       orgEntityId: bobOrg.entityId,
       verification: {
         invitationEmailToken: emailInvitation.properties.accessToken,
@@ -429,7 +422,6 @@ describe("logged in user ", () => {
     const responsibility = "CTO";
 
     const gqlUser = await client.joinOrg({
-      orgAccountId: bobOrg.accountId,
       orgEntityId: bobOrg.entityId,
       verification: {
         invitationLinkToken: invitation.properties.accessToken,

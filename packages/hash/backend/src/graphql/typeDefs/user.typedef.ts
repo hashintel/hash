@@ -139,7 +139,6 @@ export const userTypedef = gql`
     Creates a the user associated with the email invitation, and sends them an email verification code
     """
     createUserWithOrgEmailInvitation(
-      orgAccountId: ID!
       orgEntityId: ID!
       invitationEmailToken: String!
     ): User!
@@ -168,7 +167,6 @@ export const userTypedef = gql`
     as a member with the provided 'role'.
     """
     joinOrg(
-      orgAccountId: ID!
       orgEntityId: ID!
       verification: JoinOrgVerification!
       """
