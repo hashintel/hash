@@ -11,7 +11,8 @@ import { createApolloServer } from "./graphql/createApolloServer";
 import setupAuth from "./auth";
 import { getRequiredEnv } from "./util";
 import { handleCollabRequest } from "./collab/server";
-import AwsSesEmailTransporter from "./email/transporter/awsSes";
+import AwsSesEmailTransporter from "./email/transporter/awsSesEmailTransporter";
+import TestTransporter from "./email/transporter/testEmailTransporter";
 const { FRONTEND_URL } = require("./lib/config");
 
 // Request ID generator
@@ -30,7 +31,10 @@ const logger = winston.createLogger({
   defaultMeta: { service: "api" },
 });
 
-if (process.env.NODE_ENV === "development") {
+if (
+  process.env.NODE_ENV &&
+  ["development", "test"].includes(process.env.NODE_ENV)
+) {
   logger.add(
     new winston.transports.Console({
       level: "debug",
@@ -95,7 +99,10 @@ setupAuth(
 setupCronJobs(db, logger);
 
 // Create an email transporter
-const transporter = new AwsSesEmailTransporter();
+const transporter =
+  process.env.NODE_ENV === "test"
+    ? new TestTransporter()
+    : new AwsSesEmailTransporter();
 
 const apolloServer = createApolloServer(db, transporter, logger, statsd);
 
@@ -107,7 +114,7 @@ app.get("/health-check", (_, res) => res.status(200).send("Hello World!"));
 app.use((req, res, next) => {
   const requestId = nanoid();
   res.set("x-hash-request-id", requestId);
-  if (process.env.NODE_ENV !== "development") {
+  if (process.env.NODE_ENV === "production") {
     logger.info({
       requestId,
       method: req.method,
