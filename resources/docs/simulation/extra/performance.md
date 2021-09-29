@@ -14,7 +14,7 @@ There are several possible reasons your simulation is running slowly. Broadly we
 
 Below we explain these common performance bottlenecks and solutions you can use to improve your simulation's performance. Alternatively you can use [hCloud](/docs/simulation/creating-simulations/h.cloud) to run simulations on dedicated remote hardware and stream these results back to your local machine.
 
-We're also happy to chat through techniques to improve your simulation's performance in our [Discord](/discord) and [Forum](https://community.hash.ai/).
+We're also happy to chat through techniques to improve your simulation's performance in our [HASH community Discord](/discord) and [support forum](https://hash.community/).
 
 ## Data
 
