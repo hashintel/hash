@@ -22,49 +22,66 @@ const getRangeForNodeAtMappedPosition = (
   return $start.blockRange($end);
 };
 
-const createEnsureEntitiesAreWrappedCommand =
-  (wrappers?: WrapperNodesList): Command<Schema> =>
-  (newState, dispatch) => {
-    const { tr, schema } = newState;
+/**
+ * This takes a state and not a transaction because I believe it needs to work
+ * from a clean transaction to be able to properly map positions – we need a
+ * version of descendants that gives you the correct position taking into
+ * account how positions may have changed in a transaction
+ *
+ * @todo make this take a transaction and not state
+ */
+const ensureEntitiesAreWrapped = (
+  state: EditorState<Schema>,
+  wrappers?: WrapperNodesList
+) => {
+  const { tr, schema, doc } = state;
 
-    tr.doc.descendants((node, position, parent) => {
-      const wrapperNodes = wrappers?.find(([pos]) => position === pos)?.[1];
+  doc.descendants((node, position, parent) => {
+    const wrapperNodes = wrappers?.find(([pos]) => position === pos)?.[1];
 
-      /**
-       * This position may already be wrapped – due to blocks merging
-       */
-      if (
-        parent.type === schema.nodes.doc &&
-        (wrapperNodes || node.type !== schema.nodes.block)
-      ) {
-        const range = getRangeForNodeAtMappedPosition(position, node, tr);
+    /**
+     * This position may already be wrapped – due to blocks merging
+     */
+    if (
+      parent.type === schema.nodes.doc &&
+      (wrapperNodes || node.type !== schema.nodes.block)
+    ) {
+      const range = getRangeForNodeAtMappedPosition(position, node, tr);
 
-        if (!range) {
-          throw new Error("Cannot rewrap");
-        }
-
-        const DEFAULT_WRAPPERS = [{ type: schema.nodes.block }];
-
-        if (node.type !== schema.nodes.enitity) {
-          DEFAULT_WRAPPERS.push({ type: schema.nodes.entity });
-        }
-
-        tr.wrap(
-          range,
-          wrapperNodes?.map((node) => ({
-            type: node.type,
-            attrs: node.attrs,
-          })) ?? DEFAULT_WRAPPERS
-        );
+      if (!range) {
+        throw new Error("Cannot rewrap");
       }
 
-      return false;
-    });
+      /**
+       * @todo we won't need this once we remove entityId from the component
+       *       node
+       */
+      if (!wrapperNodes) {
+        tr.setNodeMarkup(tr.mapping.map(position), undefined, {
+          entityId: null,
+        });
+      }
 
-    dispatch?.(tr);
+      const DEFAULT_WRAPPERS = [{ type: schema.nodes.block }];
 
-    return true;
-  };
+      if (node.type !== schema.nodes.enitity) {
+        DEFAULT_WRAPPERS.push({ type: schema.nodes.entity });
+      }
+
+      tr.wrap(
+        range,
+        wrapperNodes?.map((node) => ({
+          type: node.type,
+          attrs: node.attrs,
+        })) ?? DEFAULT_WRAPPERS
+      );
+    }
+
+    return false;
+  });
+
+  return tr;
+};
 
 /**
  * Use to create a copy of the editor state with a certain transaction applied.
@@ -163,11 +180,13 @@ const prepareCommandForWrappedEntities =
       combineTransactions(tr, nextTr);
     });
 
-    createEnsureEntitiesAreWrappedCommand(
-      wrappers.map(([pos, nodes]) => [tr.mapping.map(pos), nodes])
-    )(stateWithTransaction(state, tr), (nextTr) => {
-      combineTransactions(tr, nextTr);
-    });
+    combineTransactions(
+      tr,
+      ensureEntitiesAreWrapped(
+        stateWithTransaction(state, tr),
+        wrappers.map(([pos, nodes]) => [tr.mapping.map(pos), nodes])
+      )
+    );
 
     dispatch?.(tr);
 
@@ -196,23 +215,12 @@ export const wrapEntitiesPlugin = (
 ) => {
   const wrappedKeymapPlugin = wrapEntitiesKeymap(baseKeymap);
 
-  const ensureEntitiesAreWrappedCommand =
-    createEnsureEntitiesAreWrappedCommand();
-
   /**
    * This plugin ensures at the end of every transaction all necessary nodes
    * are wrapped with block nodeviews
    */
   const ensureWrappedPlugin = new Plugin({
-    appendTransaction(transactions, __, newState) {
-      let tr;
-
-      ensureEntitiesAreWrappedCommand(newState, (dispatchedTr) => {
-        tr = dispatchedTr;
-      });
-
-      return tr;
-    },
+    appendTransaction: (_, __, newState) => ensureEntitiesAreWrapped(newState),
   });
 
   return [wrappedKeymapPlugin, ensureWrappedPlugin];
