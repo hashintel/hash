@@ -1,7 +1,7 @@
 ---
 title: Raw Data
 slug: simulation/creating-simulations/views/raw-data
-objectId: 0aa39b69-df1b-4834-915e-aeb86e846077}
+objectId: 0aa39b69-df1b-4834-915e-aeb86e846077
 ---
 
 # Raw Data

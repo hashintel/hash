@@ -1,7 +1,7 @@
 ---
 title: 3D
 slug: simulation/creating-simulations/views/3d-viewer
-objectId: b1a70631-35af-46e7-a1a9-6e66c0031f36}
+objectId: b1a70631-35af-46e7-a1a9-6e66c0031f36
 ---
 
 # 3D

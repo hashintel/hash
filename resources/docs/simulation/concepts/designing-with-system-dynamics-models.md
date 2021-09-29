@@ -1,7 +1,7 @@
 ---
 title: System Dynamics
 slug: simulation/concepts/designing-with-system-dynamics-models
-objectId: aef10a45-182a-486c-96b4-079ac06bb72d}
+objectId: aef10a45-182a-486c-96b4-079ac06bb72d
 ---
 
 # System Dynamics

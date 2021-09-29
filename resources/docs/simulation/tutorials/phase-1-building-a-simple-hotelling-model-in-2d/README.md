@@ -1,7 +1,7 @@
 ---
 title: Building a Simple Hotelling Model in 2D
 slug: simulation/tutorials/phase-1-building-a-simple-hotelling-model-in-2d
-objectId: e179c5c1-bd46-43f3-a374-6fa3ce7cfc02}
+objectId: e179c5c1-bd46-43f3-a374-6fa3ce7cfc02
 ---
 
 # Building a Simple Hotelling Model in 2D

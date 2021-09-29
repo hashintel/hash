@@ -1,7 +1,7 @@
 ---
 title: Agent
 slug: simulation/creating-simulations/libraries/hash/agent
-objectId: 34c98a57-c201-48ef-bb76-5abcd714fea9}
+objectId: 34c98a57-c201-48ef-bb76-5abcd714fea9
 ---
 
 # Agent

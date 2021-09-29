@@ -1,7 +1,7 @@
 ---
 title: HASH
 slug: simulation/creating-simulations/libraries/hash
-objectId: fa7eb71c-7119-4abb-8d6d-226590d6dec1}
+objectId: fa7eb71c-7119-4abb-8d6d-226590d6dec1
 ---
 
 # HASH

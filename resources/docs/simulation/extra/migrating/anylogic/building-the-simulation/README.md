@@ -1,7 +1,7 @@
 ---
 title: Building the Simulation
 slug: simulation/extra/migrating/anylogic/building-the-simulation
-objectId: 6c28dc07-a85d-4cea-a6a0-0b7c8bf10ee1}
+objectId: 6c28dc07-a85d-4cea-a6a0-0b7c8bf10ee1
 ---
 
 # Building the Simulation

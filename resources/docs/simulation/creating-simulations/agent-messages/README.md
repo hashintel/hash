@@ -1,7 +1,7 @@
 ---
 title: Messages
 slug: simulation/creating-simulations/agent-messages
-objectId: 0d485ed3-efcc-4f4b-a8f0-0d886e688802}
+objectId: 0d485ed3-efcc-4f4b-a8f0-0d886e688802
 ---
 
 # Messages

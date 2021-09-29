@@ -1,7 +1,7 @@
 ---
 title: Organizations
 slug: simulation/creating-simulations/collaboration/organizations
-objectId: 8907a843-8e7c-40c9-9734-cbe9a89016fe}
+objectId: 8907a843-8e7c-40c9-9734-cbe9a89016fe
 ---
 
 # Organizations

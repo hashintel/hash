@@ -1,7 +1,7 @@
 ---
 title: Switching to HASH
 slug: simulation/extra/migrating
-objectId: 0a257bb5-c96f-44b9-b00e-3a2ebb777b83}
+objectId: 0a257bb5-c96f-44b9-b00e-3a2ebb777b83
 ---
 
 # Switching to HASH

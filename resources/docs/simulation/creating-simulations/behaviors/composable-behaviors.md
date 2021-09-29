@@ -1,7 +1,7 @@
 ---
 title: Composable Behaviors
 slug: simulation/creating-simulations/behaviors/composable-behaviors
-objectId: eaa33255-8efa-4fa0-a37e-90781a2bc889}
+objectId: eaa33255-8efa-4fa0-a37e-90781a2bc889
 ---
 
 # Composable Behaviors

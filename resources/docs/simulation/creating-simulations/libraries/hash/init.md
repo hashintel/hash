@@ -1,7 +1,7 @@
 ---
 title: Init
 slug: simulation/creating-simulations/libraries/hash/init
-objectId: 45499e0d-98af-4a99-9353-fddc8b3ca79e}
+objectId: 45499e0d-98af-4a99-9353-fddc8b3ca79e
 ---
 
 # Init

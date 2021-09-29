@@ -1,7 +1,7 @@
 ---
 title: Getting the Behavior Index
 slug: simulation/creating-simulations/behaviors/behavior-index
-objectId: e884821d-d244-48e5-ba49-7fee10b98d3d}
+objectId: e884821d-d244-48e5-ba49-7fee10b98d3d
 ---
 
 # Getting the Behavior Index

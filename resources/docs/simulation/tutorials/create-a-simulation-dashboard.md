@@ -1,7 +1,7 @@
 ---
 title: Create a Simulation Dashboard
 slug: simulation/tutorials/create-a-simulation-dashboard
-objectId: c565e7db-89db-4bbb-b75a-9a954ef87a6b}
+objectId: c565e7db-89db-4bbb-b75a-9a954ef87a6b
 ---
 
 # Create a Simulation Dashboard

@@ -1,7 +1,7 @@
 ---
 title: Adding Data to a Process Model
 slug: simulation/concepts/designing-with-process-models/using-data-in-a-process-model
-objectId: 887d2242-a88b-4ec1-b6fc-45d4df52eb6a}
+objectId: 887d2242-a88b-4ec1-b6fc-45d4df52eb6a
 ---
 
 # Adding Data to a Process Model

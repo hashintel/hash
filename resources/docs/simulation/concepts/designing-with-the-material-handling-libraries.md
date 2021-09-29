@@ -1,7 +1,7 @@
 ---
 title: Material Handling
 slug: simulation/concepts/designing-with-the-material-handling-libraries
-objectId: d465e54a-a108-43b7-a2c1-fe8778c40230}
+objectId: d465e54a-a108-43b7-a2c1-fe8778c40230
 ---
 
 # Material Handling

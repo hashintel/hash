@@ -1,7 +1,7 @@
 ---
 title: Plots Syntax Reference
 slug: simulation/creating-simulations/views/analysis/plots-syntax-reference
-objectId: 563b072a-2228-451d-a731-8c0e6c0d5f02}
+objectId: 563b072a-2228-451d-a731-8c0e6c0d5f02
 ---
 
 # Plots Syntax Reference

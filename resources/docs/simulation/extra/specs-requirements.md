@@ -1,7 +1,7 @@
 ---
 title: System Requirements
 slug: simulation/extra/specs-requirements
-objectId: 41414b73-3d57-4d53-bf43-79d4007e9660}
+objectId: 41414b73-3d57-4d53-bf43-79d4007e9660
 ---
 
 # System Requirements

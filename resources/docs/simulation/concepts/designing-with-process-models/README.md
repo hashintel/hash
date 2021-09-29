@@ -1,7 +1,7 @@
 ---
 title: Process Modeling
 slug: simulation/concepts/designing-with-process-models
-objectId: 35b4192a-b378-480f-a904-be39061eefdd}
+objectId: 35b4192a-b378-480f-a904-be39061eefdd
 ---
 
 # Process Modeling

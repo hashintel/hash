@@ -1,7 +1,7 @@
 ---
 title: Verification and Validation
 slug: simulation/concepts/verification-and-validation
-objectId: 78ba7242-a732-466c-b9fe-7e983b120100}
+objectId: 78ba7242-a732-466c-b9fe-7e983b120100
 ---
 
 # Verification and Validation

@@ -1,7 +1,7 @@
 ---
 title: Mental Models
 slug: simulation/extra/migrating/anylogic/mental-models
-objectId: 89895f63-effb-4a53-b543-653d9e5637e3}
+objectId: 89895f63-effb-4a53-b543-653d9e5637e3
 ---
 
 # Mental Models

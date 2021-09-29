@@ -1,7 +1,7 @@
 ---
 title: Metrics Syntax Reference
 slug: simulation/creating-simulations/views/analysis/metrics-syntax-reference
-objectId: 909dde86-3681-4653-be0e-105c79ed564f}
+objectId: 909dde86-3681-4653-be0e-105c79ed564f
 ---
 
 # Metrics Syntax Reference

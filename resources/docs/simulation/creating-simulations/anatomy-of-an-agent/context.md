@@ -1,7 +1,7 @@
 ---
 title: Context
 slug: simulation/creating-simulations/anatomy-of-an-agent/context
-objectId: 4645bf7c-a7a7-4928-82fe-3298ad3ff584}
+objectId: 4645bf7c-a7a7-4928-82fe-3298ad3ff584
 ---
 
 # Context

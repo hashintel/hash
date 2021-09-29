@@ -1,7 +1,7 @@
 ---
 title: Geospatial
 slug: simulation/creating-simulations/views/geospatial-viewer
-objectId: 5c60988f-abb9-4eff-bded-fb8616dc7d93}
+objectId: 5c60988f-abb9-4eff-bded-fb8616dc7d93
 ---
 
 # Geospatial

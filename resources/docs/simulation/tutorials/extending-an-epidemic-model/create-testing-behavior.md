@@ -1,7 +1,7 @@
 ---
 title: Create Testing Behavior
 slug: simulation/tutorials/extending-an-epidemic-model/create-testing-behavior
-objectId: 23f25cd1-3577-40ad-9bdf-d2e5c3e56e39}
+objectId: 23f25cd1-3577-40ad-9bdf-d2e5c3e56e39
 ---
 
 # Create Testing Behavior

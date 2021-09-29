@@ -1,7 +1,7 @@
 ---
 title: Physics
 slug: simulation/concepts/physics
-objectId: d715d3b8-451c-47ca-aae3-c0faee9c09ac}
+objectId: d715d3b8-451c-47ca-aae3-c0faee9c09ac
 ---
 
 # Physics

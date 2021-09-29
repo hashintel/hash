@@ -1,7 +1,7 @@
 ---
 title: API
 slug: simulation/creating-simulations/views/api-1
-objectId: 218e40ad-3932-4e97-a1ab-fe86739c8a12}
+objectId: 218e40ad-3932-4e97-a1ab-fe86739c8a12
 ---
 
 # API

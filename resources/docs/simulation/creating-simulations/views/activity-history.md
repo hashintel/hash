@@ -1,7 +1,7 @@
 ---
 title: Activity History
 slug: simulation/creating-simulations/views/activity-history
-objectId: b80e9f3f-9445-4c53-922d-ef9a643c4b32}
+objectId: b80e9f3f-9445-4c53-922d-ef9a643c4b32
 ---
 
 # Activity History

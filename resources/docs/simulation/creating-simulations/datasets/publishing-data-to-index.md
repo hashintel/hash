@@ -1,7 +1,7 @@
 ---
 title: Publishing Datasets to Index
 slug: simulation/creating-simulations/datasets/publishing-data-to-index
-objectId: d8103bea-2124-494a-a852-c38e8e1d0f9d}
+objectId: d8103bea-2124-494a-a852-c38e8e1d0f9d
 ---
 
 # Publishing Datasets to Index

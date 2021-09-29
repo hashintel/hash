@@ -1,7 +1,7 @@
 ---
 title: Bounds and Wrapping
 slug: simulation/creating-simulations/configuration/topology/bounds-and-wrapping
-objectId: 8ecc00e9-25de-43be-ad10-900e51bd2ad3}
+objectId: 8ecc00e9-25de-43be-ad10-900e51bd2ad3
 ---
 
 # Bounds and Wrapping

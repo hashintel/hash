@@ -1,7 +1,7 @@
 ---
 title: Experimenting with Process Models
 slug: simulation/concepts/designing-with-process-models/experimenting-with-process-models
-objectId: 7de9fbe8-8ae6-4753-9ec1-7ca22e56e377}
+objectId: 7de9fbe8-8ae6-4753-9ec1-7ca22e56e377
 ---
 
 # Experimenting with Process Models

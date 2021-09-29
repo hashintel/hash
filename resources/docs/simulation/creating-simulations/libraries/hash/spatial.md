@@ -1,7 +1,7 @@
 ---
 title: Spatial
 slug: simulation/creating-simulations/libraries/hash/spatial
-objectId: 3b8ec1aa-6569-45dd-860e-2a52692ab603}
+objectId: 3b8ec1aa-6569-45dd-860e-2a52692ab603
 ---
 
 # Spatial

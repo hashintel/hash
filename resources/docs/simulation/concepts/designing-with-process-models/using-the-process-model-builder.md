@@ -1,7 +1,7 @@
 ---
 title: Using the Process Model Visual Interface
 slug: simulation/concepts/designing-with-process-models/using-the-process-model-builder
-objectId: 09140f39-a6fe-44e3-be22-d86d9c39be0b}
+objectId: 09140f39-a6fe-44e3-be22-d86d9c39be0b
 ---
 
 # Using the Process Model Visual Interface

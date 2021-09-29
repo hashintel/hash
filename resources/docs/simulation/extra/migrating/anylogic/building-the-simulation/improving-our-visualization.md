@@ -1,7 +1,7 @@
 ---
 title: Improving our Visualization
 slug: simulation/extra/migrating/anylogic/building-the-simulation/improving-our-visualization
-objectId: 03f86810-5714-4ab3-a71e-5829698d12ed}
+objectId: 03f86810-5714-4ab3-a71e-5829698d12ed
 ---
 
 # Improving our Visualization

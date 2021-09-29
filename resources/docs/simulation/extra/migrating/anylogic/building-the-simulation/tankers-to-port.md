@@ -1,7 +1,7 @@
 ---
 title: Tankers to Port
 slug: simulation/extra/migrating/anylogic/building-the-simulation/tankers-to-port
-objectId: a83de86e-50f5-4651-b290-33ab9a3e6265}
+objectId: a83de86e-50f5-4651-b290-33ab9a3e6265
 ---
 
 # Tankers to Port

@@ -1,7 +1,7 @@
 ---
 title: Sharing Simulations
 slug: simulation/creating-simulations/collaboration/sharing-releasing
-objectId: 5254c8d8-7b2f-4220-b033-dc1f428cbe88}
+objectId: 5254c8d8-7b2f-4220-b033-dc1f428cbe88
 ---
 
 # Sharing Simulations

@@ -1,7 +1,7 @@
 ---
 title: Performance
 slug: simulation/extra/performance
-objectId: beaf7fe2-b926-452c-a38a-3299e74a34e4}
+objectId: beaf7fe2-b926-452c-a38a-3299e74a34e4
 ---
 
 # Performance

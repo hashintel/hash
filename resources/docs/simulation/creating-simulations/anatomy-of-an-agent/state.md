@@ -1,7 +1,7 @@
 ---
 title: State
 slug: simulation/creating-simulations/anatomy-of-an-agent/state
-objectId: 3d62b426-d773-4982-9b3c-6b20a270b564}
+objectId: 3d62b426-d773-4982-9b3c-6b20a270b564
 ---
 
 # State

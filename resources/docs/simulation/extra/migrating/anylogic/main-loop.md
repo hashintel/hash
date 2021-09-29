@@ -1,7 +1,7 @@
 ---
 title: Main Loop
 slug: simulation/extra/migrating/anylogic/main-loop
-objectId: 1b7b0aef-f6b7-4e7a-9c28-6c8a2de3e63d}
+objectId: 1b7b0aef-f6b7-4e7a-9c28-6c8a2de3e63d
 ---
 
 # Main Loop

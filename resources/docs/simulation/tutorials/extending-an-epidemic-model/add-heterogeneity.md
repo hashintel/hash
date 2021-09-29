@@ -1,7 +1,7 @@
 ---
 title: Add heterogeneity
 slug: simulation/tutorials/extending-an-epidemic-model/add-heterogeneity
-objectId: a8d95e6d-22d0-4628-aab0-ad34f1af3e2a}
+objectId: a8d95e6d-22d0-4628-aab0-ad34f1af3e2a
 ---
 
 # Add heterogeneity

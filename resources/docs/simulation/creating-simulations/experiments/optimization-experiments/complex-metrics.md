@@ -1,7 +1,7 @@
 ---
 title: Complex Metrics
 slug: simulation/creating-simulations/experiments/optimization-experiments/complex-metrics
-objectId: 299b81a3-c732-4528-bba3-88bf765bb114}
+objectId: 299b81a3-c732-4528-bba3-88bf765bb114
 ---
 
 # Complex Metrics

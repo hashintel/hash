@@ -1,7 +1,7 @@
 ---
 title: Metrics
 slug: simulation/creating-simulations/views/analysis/metrics
-objectId: 28ad0ee6-385d-4c3d-9bd8-71bb5e7f239b}
+objectId: 28ad0ee6-385d-4c3d-9bd8-71bb5e7f239b
 ---
 
 # Metrics

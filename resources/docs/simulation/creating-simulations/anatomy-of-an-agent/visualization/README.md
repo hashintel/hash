@@ -1,7 +1,7 @@
 ---
 title: Visualization
 slug: simulation/creating-simulations/anatomy-of-an-agent/visualization
-objectId: 2b67bcfb-525f-4f39-951c-fc98ee009384}
+objectId: 2b67bcfb-525f-4f39-951c-fc98ee009384
 ---
 
 # Visualization

@@ -1,7 +1,7 @@
 ---
 title: Analyzing Process Models
 slug: simulation/concepts/designing-with-process-models/analyzing-process-models
-objectId: 498a6df9-0208-419a-99c0-a3581bcdf839}
+objectId: 498a6df9-0208-419a-99c0-a3581bcdf839
 ---
 
 # Analyzing Process Models

@@ -1,7 +1,7 @@
 ---
 title: Probability Distributions
 slug: simulation/concepts/designing-with-distributions
-objectId: 692fd35b-3ada-43be-8d32-79c939111f48}
+objectId: 692fd35b-3ada-43be-8d32-79c939111f48
 ---
 
 # Probability Distributions

@@ -1,7 +1,7 @@
 ---
 title: Process Model Concepts
 slug: simulation/concepts/designing-with-process-models/process-model-concepts
-objectId: 810f5897-976f-4c31-886f-f3526ddffd84}
+objectId: 810f5897-976f-4c31-886f-f3526ddffd84
 ---
 
 # Process Model Concepts

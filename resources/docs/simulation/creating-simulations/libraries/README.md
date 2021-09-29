@@ -1,7 +1,7 @@
 ---
 title: Libraries
 slug: simulation/creating-simulations/libraries
-objectId: b5d41ca2-e55b-4040-98dd-4d7035d6b7c9}
+objectId: b5d41ca2-e55b-4040-98dd-4d7035d6b7c9
 ---
 
 # Libraries
