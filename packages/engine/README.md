@@ -18,4 +18,4 @@ Our [docs](https://docs.hash.ai/?utm_medium=organic&utm_source=github_readme_eng
 The [HASH wiki](https://hash.ai/wiki?utm_medium=organic&utm_source=github_readme_engine) contains helpful explainers around key modeling, simulation and AI-related terms and concepts.
 
 ## Questions & Support
-We're building a community of people who care about enabling better decision-making through modeling and simulation. Our [online forum](https://community.hash.ai/?utm_medium=organic&utm_source=github_readme_engine) and [HASH Discord server](https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_engine) (requires login) are both great places to meet other modelers and get help.
+We're building a community of people who care about enabling better decision-making through modeling and simulation. Our [support forum](https://hash.community/?utm_medium=organic&utm_source=github_readme_engine) and [HASH community Discord server](https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_engine) (requires login) are both great places to meet other modelers and get help.
