@@ -2,17 +2,25 @@ import { ReactNode, VoidFunctionComponent } from "react";
 import { tw } from "twind";
 
 import bgPattern from "../../../assets/images/auth-bg-pattern.png";
+import Logo from "../../../assets/svg/logo.svg";
 
 export type AuthLayoutProps = {
   children: ReactNode;
   onClose?: () => void;
+  showTopLogo?: boolean;
 };
 
 export const AuthLayout: VoidFunctionComponent<AuthLayoutProps> = ({
   children,
   onClose,
+  showTopLogo,
 }) => (
   <div className={tw`fixed flex items-center inset-0 bg-white`}>
+    {showTopLogo && (
+      <div className={tw`fixed z-10 top-14 left-1/2 -translate-x-1/2`}>
+        <Logo />
+      </div>
+    )}
     <div className={tw`relative z-10 w-full flex justify-center`}>
       {children}
     </div>

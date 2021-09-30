@@ -1,21 +1,26 @@
 import React, { useEffect, useReducer } from "react";
 import { NextPage } from "next";
 import { useRouter } from "next/router";
-import { useMutation } from "@apollo/client";
+import { tw } from "twind";
 import { useUser } from "../components/hooks/useUser";
 
-import { SignupIntro as SignupIntroScreen } from "../components/pages/auth/signup/SignupIntro";
-import { VerifyCode as VerifyCodeScreen } from "../components/pages/auth/VerifyCode";
-import { AccountSetup as AccountSetupScreen } from "../components/pages/auth/signup/AccountSetup";
+import { SignupIntro } from "../components/pages/auth/signup/SignupIntro";
+import { VerifyCode } from "../components/pages/auth/VerifyCode";
+import { AccountSetup } from "../components/pages/auth/signup/AccountSetup";
+import { AccountUsage } from "../components/pages/auth/signup/AccountUsage";
+import { OrgCreate } from "../components/pages/auth/signup/OrgCreate";
+import { OrgInvite } from "../components/pages/auth/signup/OrgInvite";
 
 import {
   CreateUserMutation,
   CreateUserMutationVariables,
   UpdateUserMutation,
   UpdateUserMutationVariables,
+  UpdateUserProperties,
   VerificationCodeMetadata,
   VerifyEmailMutation,
   VerifyEmailMutationVariables,
+  WayToUseHash,
 } from "../graphql/apiTypes.gen";
 import {
   createUser as createUserMutation,
@@ -34,6 +39,9 @@ enum Screen {
   Intro,
   VerifyCode,
   AccountSetup,
+  AccountUsage,
+  OrgCreate,
+  OrgInvite,
 }
 
 type State = {
@@ -53,7 +61,7 @@ type Actions =
   | Action<"UPDATE_STATE", Partial<State>>;
 
 const initialState: State = {
-  activeScreen: Screen.Intro,
+  activeScreen: Screen.OrgCreate,
   email: "",
   verificationCodeMetadata: undefined,
   verificationCode: "",
@@ -171,7 +179,17 @@ const SignupPage: NextPage = () => {
   >(updateUserMutation, {
     onCompleted: ({ updateUser: updatedUser }) => {
       void refetch();
-      void router.push(`/${updatedUser.accountId}`);
+      if (updateUser.accountSignupComplete) {
+        // check if `usingHow` can be retrieved
+        if (updateUser.properties.usingHow == WayToUseHash.WithATeam) {
+          dispatch({
+            type: "UPDATE_STATE",
+            payload: { activeScreen: Screen.OrgCreate, errorMessage: "" },
+          });
+        } else {
+          void router.push(`/${updateUser.accountId}`);
+        }
+      }
     },
     onError: ({ graphQLErrors }) => {
       graphQLErrors.forEach(({ message }) => {
@@ -241,11 +259,32 @@ const SignupPage: NextPage = () => {
     }
   };
 
-  const updateUserDetails = (shortname: string, preferredName: string) => {
+  const updateUserDetails = (
+    shortname: string,
+    preferredName: string,
+    usingHow?: WayToUseHash
+  ) => {
     if (!userEntityId) return;
+    let properties = { shortname, preferredName } as UpdateUserProperties;
+    if (usingHow) {
+      properties.usingHow = usingHow;
+    }
     void updateUser({
-      variables: { userEntityId, properties: { shortname, preferredName } },
+      variables: {
+        userEntityId,
+        properties: { shortname, preferredName, usingHow },
+      },
     });
+  };
+
+  const updateWayToUseHash = (usingHow?: WayToUseHash) => {
+    console.log("user ==> ", user);
+    if (!user?.properties.shortname || !user?.properties.preferredName) return;
+    updateUserDetails(
+      user.properties.shortname,
+      user.properties.preferredName,
+      usingHow
+    );
   };
 
   const goBack = () => {
@@ -273,7 +312,13 @@ const SignupPage: NextPage = () => {
   }
 
   return (
-    <AuthLayout>
+    <AuthLayout
+      showTopLogo={[
+        Screen.AccountUsage,
+        Screen.OrgCreate,
+        Screen.OrgInvite,
+      ].includes(activeScreen)}
+    >
       {activeScreen === Screen.Intro && (
         <SignupIntroScreen
           loading={createUserLoading}
@@ -300,6 +345,15 @@ const SignupPage: NextPage = () => {
           errorMessage={errorMessage}
         />
       )}
+      {activeScreen == Screen.AccountUsage && (
+        <AccountUsage
+          updateWayToUseHash={updateWayToUseHash}
+          loading={updateUserLoading}
+          errorMessage={errorMessage}
+        />
+      )}
+      {activeScreen == Screen.OrgCreate && <OrgCreate />}
+      {activeScreen == Screen.OrgInvite && <OrgInvite />}
     </AuthLayout>
   );
 };
