@@ -6,10 +6,15 @@ import { EditorState } from "prosemirror-state";
 // @ts-ignore
 // @todo allow overwriting this again
 import { BlockMetadata } from "@hashintel/block-protocol";
-import { Node as ProsemirrorNode, NodeSpec, Schema } from "prosemirror-model";
+import {
+  Mark,
+  Node as ProsemirrorNode,
+  NodeSpec,
+  Schema,
+} from "prosemirror-model";
 import { Decoration, EditorView } from "prosemirror-view";
 import blockPaths from "./blockPaths.sample.json";
-import { createRemoteBlock, defineRemoteBlock } from "./sharedWithBackendJs";
+import { defineRemoteBlock } from "./sharedWithBackendJs";
 import { BlockEntity } from "./types";
 
 export { blockPaths };
@@ -183,27 +188,53 @@ export const getProseMirrorNodeAttributes = (entity: BlockEntity) => ({
   entityId: entity.metadataId,
 });
 
-const mapEntityToChildren = (entity: BlockEntity["properties"]["entity"]) => {
-  if (entity.__typename === "Text") {
-    return entity.textProperties.texts.map((text) => ({
-      type: "text",
-      text: text.text,
-      entityId: entity.metadataId,
-      versionId: entity.id,
-      accountId: entity.accountId,
+// @todo move these types
+// @todo rename
+type BlockEntityEntity = BlockEntity["properties"]["entity"];
+type TextEntity = Extract<BlockEntityEntity, { __typename: "Text" }>;
 
-      // This maps the boolean properties on the entity into an array of mark names
-      marks: [
-        ["strong", text.bold],
-        ["underlined", text.underline],
-        ["em", text.italics],
+const isTextEntity = (entity: BlockEntityEntity): entity is TextEntity =>
+  entity.__typename === "Text";
+
+const mapTextEntityToNode = (entity: TextEntity, schema: Schema) =>
+  entity.textProperties.texts.map((text) =>
+    schema.text(
+      text.text,
+      [
+        ["strong", text.bold] as const,
+        ["underlined", text.underline] as const,
+        ["em", text.italics] as const,
       ]
         .filter(([, include]) => include)
-        .map(([mark]) => mark),
-    }));
-  }
+        .map(([mark]) => schema.mark(mark))
+    )
+  );
 
-  return [];
+const mapEntityToNode = (entity: BlockEntityEntity, schema: Schema) =>
+  isTextEntity(entity) ? mapTextEntityToNode(entity, schema) : [];
+
+/**
+ * Creating a new type of block in prosemirror, without necessarily having
+ * requested the block metadata yet.
+ *
+ * @todo update arguments to this
+ * @todo support taking a signal
+ */
+export const createRemoteBlock = async (
+  schema: Schema,
+  viewConfig: ViewConfig,
+  componentId: string,
+  attrs: Record<string, any>,
+  children: ProsemirrorNode[],
+  marks?: Mark[]
+) => {
+  await defineRemoteBlock(schema, viewConfig, componentId);
+
+  // Create a new instance of the newly defined prosemirror node
+  // @todo get entityId from an argument
+  return schema.nodes.entity.create({ entityId: attrs.entityId }, [
+    schema.nodes[componentId].create(attrs, children, marks),
+  ]);
 };
 
 /**
@@ -221,24 +252,14 @@ export const createEntityUpdateTransaction = async (
   const schema = state.schema;
 
   const newNodes = await Promise.all(
-    entities.map((block) =>
+    entities.map((entity) =>
       // @todo pass signal through somehow
       createRemoteBlock(
         schema,
         viewConfig,
-        block.properties.componentId,
-        getProseMirrorNodeAttributes(block),
-        mapEntityToChildren(block.properties.entity).map((child: any) => {
-          if (child.type === "text") {
-            return schema.text(
-              child.text,
-              child.marks.map((mark: string) => schema.mark(mark))
-            );
-          }
-
-          // @todo recursive nodes
-          throw new Error("unrecognised child");
-        })
+        entity.properties.componentId,
+        getProseMirrorNodeAttributes(entity),
+        mapEntityToNode(entity.properties.entity, schema)
       )
     )
   );
@@ -262,11 +283,11 @@ declare interface OrderedMapPrivateInterface<T> {
  * We could also consider asking them to make adding a new node type officially
  * supported.
  */
-export function defineNewNode<
-  N extends string = any,
-  M extends string = any,
-  S extends Schema = Schema<N, M>
->(existingSchema: S, componentId: string, spec: NodeSpec) {
+export function defineNewNode(
+  existingSchema: Schema,
+  componentId: string,
+  spec: NodeSpec
+) {
   const existingSchemaSpec = existingSchema.spec;
   const map = existingSchemaSpec.nodes;
   const privateMap: OrderedMapPrivateInterface<NodeSpec> = map as any;

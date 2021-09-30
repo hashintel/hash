@@ -7,7 +7,6 @@
 
 import {
   createProseMirrorState,
-  createRemoteBlock,
   historyPlugin,
   infiniteGroupHistoryPlugin,
 } from "@hashintel/hash-shared/sharedWithBackendJs";
@@ -16,6 +15,7 @@ import { EditorView } from "prosemirror-view";
 import "prosemirror-view/style/prosemirror.css";
 import React, { createRef, forwardRef, useEffect, useState } from "react";
 import { tw } from "twind";
+import { createRemoteBlock } from "@hashintel/hash-shared/sharedWithBackend";
 import { BlockSuggester } from "../../components/BlockSuggester/BlockSuggester";
 import DragVertical from "../../components/Icons/DragVertical";
 import { EditorConnection } from "./collab/collab";
