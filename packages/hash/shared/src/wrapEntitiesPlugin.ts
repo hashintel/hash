@@ -7,6 +7,7 @@ import {
 import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
 import { Command } from "prosemirror-commands";
 import { keymap } from "prosemirror-keymap";
+import { mapValues } from "lodash";
 
 type WrapperNodes = [number, ProsemirrorNode<Schema>[]];
 type WrapperNodesList = WrapperNodes[];
@@ -200,12 +201,8 @@ const wrapEntitiesKeymap = (baseKeymap: Record<string, Command<Schema>>) =>
      * nodeviews are unwrapped before prosemirror logic is applied (the block
      * nodeview wrappers interfere with this logic)
      */
-    ...Object.fromEntries(
-      Object.entries(baseKeymap).map(([name, command]) => [
-        name,
-        prepareCommandForWrappedEntities(command),
-      ])
-    ),
+    ...mapValues(baseKeymap, prepareCommandForWrappedEntities),
+
     // @todo better way of working out that this command doesn't need wrapping
     "Mod-a": baseKeymap["Mod-a"],
   });
