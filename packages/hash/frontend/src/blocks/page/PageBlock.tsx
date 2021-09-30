@@ -17,7 +17,7 @@ import { createEntityStore } from "@hashintel/hash-shared/entityStore";
 import { useApolloClient } from "@apollo/client";
 import { updatePageMutation } from "@hashintel/hash-shared/save";
 import { BlockEntity } from "@hashintel/hash-shared/types";
-import { renderPM } from "./sandbox";
+import { createEditorView } from "./createEditorView";
 import { createMarksTooltip } from "../../components/MarksTooltip";
 import { createBlockSuggester } from "../../components/BlockSuggester";
 import { usePortals } from "./usePortals";
@@ -178,7 +178,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
      * contain at least one child, so lets insert a special "blank" placeholder
      * child
      */
-    const { view, connection } = renderPM(
+    const { view, connection } = createEditorView(
       node,
       createInitialDoc(schema),
       { nodeViews: {} },
