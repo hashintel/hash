@@ -7,7 +7,7 @@ import {
 } from "@hashintel/hash-backend/src/model";
 import { PostgresAdapter } from "@hashintel/hash-backend/src/db";
 import EmailTransporter from "@hashintel/hash-backend/src/email/transporter";
-import SesEmailTransporter from "@hashintel/hash-backend/src/email/transporter/awsSes";
+import SesEmailTransporter from "@hashintel/hash-backend/src/email/transporter/awsSesEmailTransporter";
 
 import { ApiClient } from "./util";
 import { IntegrationTestsHandler } from "./setup";
