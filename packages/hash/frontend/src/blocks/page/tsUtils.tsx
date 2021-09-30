@@ -1,5 +1,5 @@
 import React from "react";
-import { Decoration, EditorView, NodeView } from "prosemirror-view";
+import { EditorView, NodeView } from "prosemirror-view";
 import {
   Block,
   componentIdToUrl,
@@ -12,17 +12,6 @@ import {
 } from "@hashintel/hash-shared/entityStore";
 import { EntityStoreContext } from "./EntityStoreContext";
 import { RemoteBlock } from "../../components/RemoteBlock/RemoteBlock";
-
-type NodeViewConstructor = {
-  new (
-    node: ProsemirrorNode,
-    view: EditorView<Schema>,
-    getPos: () => number,
-    decorations: Decoration[]
-  ): NodeView;
-};
-
-type NodeViewConstructorArgs = ConstructorParameters<NodeViewConstructor>;
 
 // @todo we need to type this such that we're certain we're passing through all the props required
 const getRemoteBlockProps = (entity: EntityStoreType | null | undefined) => {
@@ -55,7 +44,7 @@ export const createNodeView = (
   componentSchema: Block["componentSchema"],
   sourceName: string,
   replacePortal: ReplacePortals
-): NodeViewConstructor => {
+) => {
   const editable = componentSchema.properties?.editableRef;
 
   const nodeView = class BlockWrapper implements NodeView {
@@ -66,9 +55,9 @@ export const createNodeView = (
 
     // @todo types
     constructor(
-      node: NodeViewConstructorArgs[0],
-      public view: NodeViewConstructorArgs[1],
-      public getPos: NodeViewConstructorArgs[2]
+      node: ProsemirrorNode,
+      public view: EditorView<Schema>,
+      public getPos: () => number
     ) {
       this.dom.setAttribute("data-dom", "true");
 
