@@ -5,9 +5,7 @@ import React, {
   VoidFunctionComponent,
 } from "react";
 import { Schema } from "prosemirror-model";
-import { Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
-import { createInitialDoc, createSchema } from "@hashintel/hash-shared/schema";
 import {
   BlockMeta,
   createEntityUpdateTransaction,
@@ -18,10 +16,7 @@ import { useApolloClient } from "@apollo/client";
 import { updatePageMutation } from "@hashintel/hash-shared/save";
 import { BlockEntity } from "@hashintel/hash-shared/types";
 import { createEditorView } from "./createEditorView";
-import { createMarksTooltip } from "../../components/MarksTooltip";
-import { createBlockSuggester } from "../../components/BlockSuggester";
 import { usePortals } from "./usePortals";
-import { useDeferredCallback } from "./useDeferredCallback";
 import { BlockMetaContext } from "../blockMeta";
 import { collabEnabled, createNodeView } from "./tsUtils";
 import { EditorConnection } from "./collab/collab";
@@ -50,7 +45,6 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   const client = useApolloClient();
 
   const [portals, replacePortal] = usePortals();
-  const [deferCallback, clearCallback] = useDeferredCallback();
 
   const prosemirrorSetup = useRef<null | {
     view: EditorView;
@@ -130,47 +124,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
    * responsible for setting the contents of the prosemirror document
    */
   useLayoutEffect(() => {
-    const schema = createSchema();
     const node = root.current!;
-
-    /**
-     * We want to apply saves when Prosemirror loses focus (or is triggered
-     * manually with cmd+s). However, interacting with the format tooltip
-     * momentarily loses focus, so we want to wait a moment and cancel that
-     * save if focus is regained quickly. The reason we only want to save when
-     * losing focus is because the process of taking the response from a save
-     * and updating the prosemirror tree with new contents can mess with the
-     * cursor position.
-     *
-     * @todo make saves more frequent & seamless
-     */
-    const savePlugin = new Plugin({
-      props: {
-        handleDOMEvents: {
-          keydown(view, evt) {
-            // Manual save for cmd+s
-            if (evt.key === "s" && evt.metaKey) {
-              evt.preventDefault();
-              (window as any).triggerSave?.();
-
-              return true;
-            }
-            return false;
-          },
-          focus() {
-            // Cancel the in-progress save
-            clearCallback();
-            return false;
-          },
-          blur() {
-            // Trigger a cancellable save on blur
-            deferCallback(() => (window as any).triggerSave());
-
-            return false;
-          },
-        },
-      },
-    });
 
     /**
      * Lets see up prosemirror with an empty document, as another effect will
@@ -180,19 +134,16 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
      */
     const { view, connection } = createEditorView(
       node,
-      createInitialDoc(schema),
-      { nodeViews: {} },
       replacePortal,
-      [
-        savePlugin,
-        createMarksTooltip(replacePortal),
-        createBlockSuggester(replacePortal),
-      ],
       accountId,
       metadataId
     );
 
-    prosemirrorSetup.current = { schema, view, connection: connection ?? null };
+    prosemirrorSetup.current = {
+      schema: view.state.schema,
+      view,
+      connection: connection ?? null,
+    };
 
     return () => {
       // @todo how does this work with portals?
@@ -200,7 +151,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       prosemirrorSetup.current = null;
       connection?.close();
     };
-  }, [accountId, clearCallback, deferCallback, metadataId, replacePortal]);
+  }, [accountId, metadataId, replacePortal]);
 
   /**
    * This effect is responsible for ensuring all the preloaded blocks are

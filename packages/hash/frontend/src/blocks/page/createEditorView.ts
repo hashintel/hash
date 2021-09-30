@@ -1,31 +1,81 @@
 import { createProseMirrorState } from "@hashintel/hash-shared/sharedWithBackendJs";
-import { DirectEditorProps, EditorView } from "prosemirror-view";
-import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
+import { EditorView } from "prosemirror-view";
+import { Schema } from "prosemirror-model";
 import { ReplacePortals } from "@hashintel/hash-shared/sharedWithBackend";
+import { createInitialDoc, createSchema } from "@hashintel/hash-shared/schema";
 import { Plugin } from "prosemirror-state";
+import React from "react";
 import { AsyncView } from "./AsyncView";
 import { BlockView } from "./BlockView";
 import { collabEnabled } from "./tsUtils";
 import { EditorConnection } from "./collab/collab";
 import { Reporter } from "./collab/reporter";
+import { createMarksTooltip } from "../../components/MarksTooltip";
+import { createBlockSuggester } from "../../components/BlockSuggester";
 import styles from "./style.module.css";
+
+const createSavePlugin = () => {
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+
+  return new Plugin<unknown, Schema>({
+    props: {
+      handleDOMEvents: {
+        keydown(view, evt) {
+          // Manual save for cmd+s
+          if (evt.key === "s" && evt.metaKey) {
+            evt.preventDefault();
+            (window as any).triggerSave?.();
+
+            return true;
+          }
+          return false;
+        },
+        focus() {
+          // Cancel the in-progress save
+          if (timeout) {
+            clearTimeout(timeout);
+          }
+          return false;
+        },
+        blur() {
+          if (timeout) {
+            clearTimeout(timeout);
+          }
+
+          timeout = setTimeout(() => (window as any).triggerSave?.(), 500);
+
+          return false;
+        },
+      },
+    },
+  });
+};
+
+export const createPlugins = (
+  replacePortal: (
+    existingNode: HTMLElement | null,
+    nextNode: HTMLElement | null,
+    reactNode: React.ReactNode | null
+  ) => void
+) => [
+  createSavePlugin(),
+  createMarksTooltip(replacePortal),
+  createBlockSuggester(replacePortal),
+];
 
 /**
  * @todo remove this function
  */
 export const createEditorView = (
   node: HTMLElement,
-  content: ProsemirrorNode<Schema>,
-  viewProps: Partial<DirectEditorProps<Schema>>,
   replacePortal: ReplacePortals,
-  additionalPlugins: Plugin[],
   accountId: string,
   pageId: string
 ) => {
   const state = createProseMirrorState(
-    content,
+    createInitialDoc(createSchema()),
     replacePortal,
-    additionalPlugins
+    createPlugins(replacePortal)
   );
 
   let connection: EditorConnection | null = null;
@@ -33,7 +83,6 @@ export const createEditorView = (
   const view = new EditorView<Schema>(node, {
     state,
     nodeViews: {
-      ...viewProps.nodeViews,
       async(currentNode, currentView, getPos) {
         if (typeof getPos === "boolean") {
           throw new Error("Invalid config for nodeview");
