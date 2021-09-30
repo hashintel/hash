@@ -16,7 +16,7 @@ import styles from "./style.module.css";
 export const createEditorView = (
   node: HTMLElement,
   content: ProsemirrorNode<Schema>,
-  viewProps: DirectEditorProps<Schema>,
+  viewProps: Partial<DirectEditorProps<Schema>>,
   replacePortal: ReplacePortals,
   additionalPlugins: Plugin[],
   accountId: string,
