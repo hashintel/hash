@@ -46,8 +46,6 @@ void (async () => {
 
   const results = new Map<string, Entity>();
 
-  // create the types we'll need below so we can assign their ids to entities
-  const newTypeIds: Record<string, string> = {};
   const requiredTypes = [
     "Company",
     "Divider",
@@ -58,7 +56,10 @@ void (async () => {
     "Table",
     "Code",
     "Video",
-  ];
+    "Header",
+  ] as const;
+  // create the types we'll need below so we can assign their ids to entities
+  const newTypeIds: Record<typeof requiredTypes[number], string> = {} as any;
 
   await Promise.all(
     requiredTypes.map(async (name) => {
@@ -124,7 +125,7 @@ void (async () => {
         },
       ],
       [
-        "header1",
+        "header1text",
         {
           systemTypeName: SystemTypeName.Text,
           accountId: user.accountId,
@@ -256,6 +257,25 @@ void (async () => {
 
   await createEntities(
     new Map<string, CreateEntityMapValue>([
+      [
+        "header1",
+        {
+          properties: {
+            level: 2,
+            // @todo should this be children or something else?
+            children: {
+              __linkedData: {
+                // @todo check if this should be something else
+                entityTypeId: SystemTypeName.Text,
+                entityId: results.get("header1text")!.entityId,
+              },
+            },
+          },
+          entityTypeId: newTypeIds.Header,
+          accountId: user.accountId,
+          createdById: user.entityId,
+        },
+      ],
       [
         "place1",
         {
