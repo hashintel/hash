@@ -44,15 +44,9 @@ class __User extends Account {
 
   static getUserById =
     (client: DBClient) =>
-    ({
-      accountId,
-      entityId,
-    }: {
-      accountId: string;
-      entityId: string;
-    }): Promise<User | null> =>
+    ({ entityId }: { entityId: string }): Promise<User | null> =>
       client
-        .getEntityLatestVersion({ accountId, entityId })
+        .getEntityLatestVersion({ accountId: entityId, entityId })
         .then((dbUser) => (dbUser ? new User(dbUser) : null));
 
   static getUserByEmail =
@@ -164,17 +158,58 @@ class __User extends Account {
    * Must occur in the same db transaction as when `this.properties` was fetched
    * to prevent overriding externally-updated properties
    */
-  verifyEmailAddress = (client: DBClient) => (emailAddress: string) =>
-    this.updateUserProperties(client)({
+  addEmailAddress =
+    (client: DBClient) =>
+    async (email: Email): Promise<User> => {
+      if (
+        await User.getUserByEmail(client)({
+          email: email.address,
+          verified: true,
+        })
+      ) {
+        throw new Error(
+          "Cannot add email address that has already been verified by another user"
+        );
+      }
+
+      if (this.getEmail(email.address)) {
+        throw new Error(
+          `User with entityId ${this.entityId} already has email address ${email.address}`
+        );
+      }
+
+      return this.updateUserProperties(client)({
+        ...this.properties,
+        emails: [...this.properties.emails, email],
+      });
+    };
+
+  /**
+   * Must occur in the same db transaction as when `this.properties` was fetched
+   * to prevent overriding externally-updated properties
+   */
+  verifyExistingEmailAddress = (client: DBClient) => (emailAddress: string) => {
+    if (!this.getEmail(emailAddress)) {
+      throw new Error(
+        `User with entityId ${this.entityId} does not have email address ${emailAddress}`
+      );
+    }
+
+    return this.updateUserProperties(client)({
       ...this.properties,
       emails: this.properties.emails.map((email) =>
         email.address === emailAddress ? { ...email, verified: true } : email
       ),
     });
+  };
 
   sendLoginVerificationCode =
     (client: DBClient, tp: EmailTransporter) =>
-    async (alternateEmailAddress?: string) => {
+    async (params: {
+      alternateEmailAddress?: string;
+      redirectPath?: string;
+    }) => {
+      const { alternateEmailAddress, redirectPath } = params;
       // Check the supplied email address can be used for sending login codes
       if (alternateEmailAddress) {
         const email = this.getEmail(alternateEmailAddress);
@@ -199,15 +234,18 @@ class __User extends Account {
         emailAddress,
       });
 
-      return sendLoginCodeToEmailAddress(tp)(
+      return sendLoginCodeToEmailAddress(tp)({
         verificationCode,
-        emailAddress
-      ).then(() => verificationCode);
+        emailAddress,
+        redirectPath,
+      }).then(() => verificationCode);
     };
 
   sendEmailVerificationCode =
     (client: DBClient, tp: EmailTransporter) =>
-    async (emailAddress: string) => {
+    async (params: { emailAddress: string; magicLinkQueryParams?: string }) => {
+      const { emailAddress, magicLinkQueryParams } = params;
+
       const email = this.getEmail(emailAddress);
 
       if (!email) {
@@ -228,15 +266,16 @@ class __User extends Account {
         emailAddress,
       });
 
-      return sendEmailVerificationCodeToEmailAddress(tp)(
+      return sendEmailVerificationCodeToEmailAddress(tp)({
         verificationCode,
-        emailAddress
-      ).then(() => verificationCode);
+        emailAddress,
+        magicLinkQueryParams,
+      }).then(() => verificationCode);
     };
 
-  isMemberOfOrg = ({ entityVersionId }: Org) =>
+  isMemberOfOrg = ({ entityId }: Org) =>
     this.properties.memberOf.find(
-      ({ org }) => org.__linkedData.entityId === entityVersionId
+      ({ org }) => org.__linkedData.entityId === entityId
     ) !== undefined;
 
   /**
@@ -255,12 +294,7 @@ class __User extends Account {
         memberOf: [
           ...this.properties.memberOf,
           {
-            org: {
-              __linkedData: {
-                entityId: params.org.entityId,
-                entityTypeId: params.org.entityType.entityId,
-              },
-            },
+            org: params.org.convertToDBLink(),
             responsibility: params.responsibility,
           },
         ],

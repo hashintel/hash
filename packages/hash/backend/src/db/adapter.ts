@@ -277,7 +277,7 @@ export interface DBClient {
    * */
   getEntitiesBySystemType(params: {
     accountId: string;
-    latestOnly: boolean;
+    latestOnly?: boolean;
     systemTypeName: SystemType;
   }): Promise<Entity[]>;
 

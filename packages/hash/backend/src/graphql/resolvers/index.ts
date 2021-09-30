@@ -21,9 +21,10 @@ import {
   updatePageContents,
 } from "./pages";
 import { accounts } from "./account/accounts";
-import { createUser } from "./shared/createUser";
+import { createUser } from "./user/createUser";
+import { createUserWithOrgEmailInvitation } from "./user/createUserWithOrgEmailInvitation";
 import { updateUser } from "./user/updateUser";
-import { createOrg } from "./shared/createOrg";
+import { createOrg } from "./org/createOrg";
 import { accountSignupComplete } from "./user/accountSignupComplete";
 import { verifyEmail } from "./user/verifyEmail";
 import { sendLoginCode } from "./user/sendLoginCode";
@@ -40,6 +41,10 @@ import { SYSTEM_TYPES, SystemType } from "../../types/entityTypes";
 import { entityTypeTypeFields } from "./entityType/entityTypeTypeFields";
 import { getAccountEntityTypes } from "./entityType/getAccountEntityTypes";
 import { getEntityType } from "./entityType/getEntityType";
+import { createOrgEmailInvitation } from "./org/createOrgEmailInvitation";
+import { getOrgEmailInvitation } from "./org/getOrgEmailInvitation";
+import { getOrgInvitationLink } from "./org/getOrgInvitationLink";
+import { joinOrg } from "./user/joinOrg";
 
 const loggedIn =
   (next: any) => (obj: any, args: any, ctx: GraphQLContext, info: any) => {
@@ -79,6 +84,8 @@ export const resolvers = {
     getEntityType: loggedInAndSignedUp(getEntityType),
     page: loggedInAndSignedUp(page),
     // Logged in users only
+    getOrgEmailInvitation: loggedIn(getOrgEmailInvitation),
+    getOrgInvitationLink: loggedIn(getOrgInvitationLink),
     me: loggedIn(me),
     // Any user
     isShortnameTaken,
@@ -96,11 +103,14 @@ export const resolvers = {
     updatePage: loggedInAndSignedUp(updatePage),
     updatePageContents: loggedInAndSignedUp(updatePageContents),
     createOrg: loggedInAndSignedUp(createOrg),
+    createOrgEmailInvitation: loggedInAndSignedUp(createOrgEmailInvitation),
+    joinOrg: loggedInAndSignedUp(joinOrg),
     // Logged in users only
     updateUser: loggedIn(updateUser),
     logout: loggedIn(logout),
     // Any user
     createUser,
+    createUserWithOrgEmailInvitation,
     verifyEmail,
     sendLoginCode,
     loginWithLoginCode,
@@ -118,6 +128,14 @@ export const resolvers = {
 
   User: {
     accountSignupComplete,
+    properties: entityFields.properties,
+  },
+
+  OrgEmailInvitation: {
+    properties: entityFields.properties,
+  },
+
+  OrgInvitationLink: {
     properties: entityFields.properties,
   },
 

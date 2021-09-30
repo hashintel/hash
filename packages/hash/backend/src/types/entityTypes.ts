@@ -5,6 +5,8 @@ export const SYSTEM_TYPES = [
   "Page",
   "Text",
   "User",
+  "OrgInvitationLink",
+  "OrgEmailInvitation",
 ] as const;
 
 export type SystemType = typeof SYSTEM_TYPES[number];

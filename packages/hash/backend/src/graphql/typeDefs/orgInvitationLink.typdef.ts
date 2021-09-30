@@ -1,60 +1,12 @@
 import { gql } from "apollo-server-express";
 
-export const entityTypeTypedef = gql`
-  extend type Query {
-    """
-    Get an entity type by its fixed id, which is:
-    - entityId on the EntityType itself, or
-    - entityTypeId on an Entity of its type)
-    """
-    getEntityType(entityTypeId: ID!): EntityType!
-    """
-    Get all EntityTypes belonging to an account
-    """
-    getAccountEntityTypes(accountId: ID!): [EntityType!]!
+export const orgInvitationLinkTypedef = gql`
+  type OrgInvitationLinkProperties {
+    org: LinkedOrg!
   }
 
-  extend type Mutation {
-    """
-    Create an entity type
-    """
-    createEntityType(
-      accountId: ID!
-      """
-      The name for the type. Must be unique in the given account.
-      """
-      name: String!
-      """
-      A description for the type.
-      """
-      description: String
-      """
-      The schema definition for the entity type, in JSON Schema.
-      """
-      schema: JSONObject
-    ): EntityType!
-  }
-
-  enum SystemTypeName {
-    Block
-    EntityType
-    Org
-    Page
-    Text
-    User
-    OrgInvitationLink
-    OrgEmailInvitation
-  }
-
-  """
-  A schema describing and validating a specific type of entity
-  """
-  type EntityType implements Entity {
-    """
-    The shape of the entity, expressed as a JSON Schema
-    https://json-schema.org/
-    """
-    properties: JSONObject!
+  type OrgInvitationLink implements Entity {
+    properties: OrgInvitationLinkProperties!
 
     # ENTITY INTERFACE FIELDS BEGIN #
     """
@@ -119,5 +71,18 @@ export const entityTypeTypedef = gql`
     """
     metadataId: ID!
     # ENTITY INTERFACE FIELDS END #
+  }
+
+  extend type Query {
+    """
+    Get an org email invitation
+    """
+    getOrgInvitationLink(
+      orgEntityId: ID!
+      """
+      The token associated with the invitation
+      """
+      invitationLinkToken: String!
+    ): OrgInvitationLink!
   }
 `;

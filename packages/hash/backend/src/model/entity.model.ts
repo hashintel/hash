@@ -2,7 +2,11 @@ import { JSONObject } from "@hashintel/block-protocol";
 import merge from "lodash.merge";
 import { Entity, EntityType, EntityWithIncompleteEntityType } from ".";
 import { DBClient } from "../db";
-import { EntityMeta, EntityType as DbEntityType } from "../db/adapter";
+import {
+  DBLinkedEntity,
+  EntityMeta,
+  EntityType as DbEntityType,
+} from "../db/adapter";
 import { Visibility } from "../graphql/apiTypes.gen";
 import { SystemType } from "../types/entityTypes";
 
@@ -161,6 +165,13 @@ class __Entity {
         .updateEntity(args)
         .then((updatedDbEntity) => new Entity(updatedDbEntity));
 
+  convertToDBLink = (): DBLinkedEntity => ({
+    __linkedData: {
+      entityId: this.entityId,
+      entityTypeId: this.entityType.entityId,
+    },
+  });
+
   updateProperties = (client: DBClient) => (properties: any) =>
     client
       .updateEntity({
@@ -176,6 +187,32 @@ class __Entity {
 
   static acquireLock = (client: DBClient) => (args: { entityId: string }) =>
     client.acquireEntityLock(args);
+
+  acquireLock = (client: DBClient) =>
+    Entity.acquireLock(client)({ entityId: this.entityId });
+
+  /**
+   * Refetches the entity's latest version, updating the entity's properties
+   * and related values to the latest version found in the datastore.
+   *
+   * This may update the `entityVersionId` if the entity is versioned.
+   */
+  refetchLatestVersion = async (client: DBClient) => {
+    const refetchedDbEntity = await client.getEntityLatestVersion({
+      accountId: this.accountId,
+      entityId: this.entityId,
+    });
+
+    if (!refetchedDbEntity) {
+      throw new Error(
+        `Could not find latest version of entity with entityId ${this.entityId} in the datastore`
+      );
+    }
+
+    merge(this, new Entity(refetchedDbEntity));
+
+    return this;
+  };
 
   toGQLEntity = (): Omit<EntityWithIncompleteEntityType, "properties"> => ({
     id: this.entityVersionId,
