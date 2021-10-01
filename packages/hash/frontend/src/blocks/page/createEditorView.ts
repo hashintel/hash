@@ -4,7 +4,6 @@ import { Schema } from "prosemirror-model";
 import { ReplacePortals } from "@hashintel/hash-shared/sharedWithBackend";
 import { createInitialDoc, createSchema } from "@hashintel/hash-shared/schema";
 import { Plugin } from "prosemirror-state";
-import React from "react";
 import { AsyncView } from "./AsyncView";
 import { BlockView } from "./BlockView";
 import { collabEnabled } from "./tsUtils";
@@ -51,18 +50,6 @@ const createSavePlugin = () => {
   });
 };
 
-export const createPlugins = (
-  replacePortal: (
-    existingNode: HTMLElement | null,
-    nextNode: HTMLElement | null,
-    reactNode: React.ReactNode | null
-  ) => void
-) => [
-  createSavePlugin(),
-  createMarksTooltip(replacePortal),
-  createBlockSuggester(replacePortal),
-];
-
 /**
  * @todo remove this function
  */
@@ -72,10 +59,16 @@ export const createEditorView = (
   accountId: string,
   pageId: string
 ) => {
+  const plugins = [
+    createSavePlugin(),
+    createMarksTooltip(replacePortal),
+    createBlockSuggester(replacePortal),
+  ];
+
   const state = createProseMirrorState(
     createInitialDoc(createSchema()),
     replacePortal,
-    createPlugins(replacePortal)
+    plugins
   );
 
   let connection: EditorConnection | null = null;
@@ -108,7 +101,7 @@ export const createEditorView = (
       view.state.schema,
       view,
       replacePortal,
-      additionalPlugins
+      plugins
     );
   }
 
