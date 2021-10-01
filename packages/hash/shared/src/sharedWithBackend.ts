@@ -6,12 +6,7 @@ import { EditorState } from "prosemirror-state";
 // @ts-ignore
 // @todo allow overwriting this again
 import { BlockMetadata } from "@hashintel/block-protocol";
-import {
-  Mark,
-  Node as ProsemirrorNode,
-  NodeSpec,
-  Schema,
-} from "prosemirror-model";
+import { Node as ProsemirrorNode, NodeSpec, Schema } from "prosemirror-model";
 import { Decoration, EditorView } from "prosemirror-view";
 import blockPaths from "./blockPaths.sample.json";
 import { defineRemoteBlock } from "./sharedWithBackendJs";
@@ -217,23 +212,24 @@ const mapEntityToNode = (entity: BlockEntityEntity, schema: Schema) =>
  * Creating a new type of block in prosemirror, without necessarily having
  * requested the block metadata yet.
  *
- * @todo update arguments to this
  * @todo support taking a signal
  */
-export const createRemoteBlock = async (
+export const createRemoteBlockFromEntity = async (
   schema: Schema,
   viewConfig: ViewConfig,
-  componentId: string,
-  attrs: Record<string, any>,
-  children: ProsemirrorNode[],
-  marks?: Mark[]
+  entity: BlockEntity,
+  targetComponentId = entity.properties.componentId
 ) => {
-  await defineRemoteBlock(schema, viewConfig, componentId);
+  const attrs = getProseMirrorNodeAttributes(entity);
+  await defineRemoteBlock(schema, viewConfig, targetComponentId);
 
   // Create a new instance of the newly defined prosemirror node
   // @todo get entityId from an argument
   return schema.nodes.entity.create({ entityId: attrs.entityId }, [
-    schema.nodes[componentId].create(attrs, children, marks),
+    schema.nodes[targetComponentId].create(
+      attrs,
+      mapEntityToNode(entity.properties.entity, schema)
+    ),
   ]);
 };
 
@@ -254,13 +250,7 @@ export const createEntityUpdateTransaction = async (
   const newNodes = await Promise.all(
     entities.map((entity) =>
       // @todo pass signal through somehow
-      createRemoteBlock(
-        schema,
-        viewConfig,
-        entity.properties.componentId,
-        getProseMirrorNodeAttributes(entity),
-        mapEntityToNode(entity.properties.entity, schema)
-      )
+      createRemoteBlockFromEntity(schema, viewConfig, entity)
     )
   );
 

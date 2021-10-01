@@ -48,10 +48,8 @@ export const createSchema = () =>
       async: {
         group: "blockItem",
         attrs: {
-          // @todo rename these props
-          asyncNodeProps: { default: {} },
-          asyncComponentId: { default: null },
-          autofocus: { default: true },
+          targetComponentId: { default: null },
+          entityId: { default: null },
         },
       },
     },

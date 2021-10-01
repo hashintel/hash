@@ -218,8 +218,10 @@ export class BlockView implements NodeView {
    * another – the second half is carried out by AsyncView's update function
    *
    * @todo restore the ability to load in new block types here
+   * @todo this will revert the text content of a block back to what it was
+   *       when you last saved – we need to fix this
    */
-  onBlockChange = ([componentId, variant]: BlockHandleOption) => {
+  onBlockChange = ([componentId]: BlockHandleOption) => {
     const { node, view, getPos } = this;
 
     // Ensure that any changes to the document made are kept within a
@@ -234,45 +236,10 @@ export class BlockView implements NodeView {
 
     const state = view.state;
     const tr = state.tr;
-
     const child = state.doc.resolve(getPos() + 1).nodeAfter;
-
-    /**
-     * When switching between blocks where both contain text, we want to
-     * persist that text, but we need to pull it out the format its stored
-     * in here and make use of it
-     *
-     * @todo we should try to find the Text entity in the original response
-     *       from the DB, and use that, instead of this, where we lose
-     *       formatting
-     */
-    const text = child?.isTextblock
-      ? (child.content as unknown as { content: ProsemirrorNode[] }).content
-          .filter((contentNode) => contentNode.type.name === "text")
-          .map((contentNode) => contentNode.text)
-          .join("")
-      : "";
-
     const newNode = state.schema.nodes.async.create({
-      asyncComponentId: componentId,
-      asyncNodeProps: {
-        attrs: {
-          /**
-           * This property is no longer used, meaning that when we
-           * switch to a variant, this is info is going to get lost.
-           * We need a way to put an entry in the entity store for
-           * this so that the node we're switching to can pick up
-           * that info. The consequence of this is that variants are
-           * broken.
-           *
-           * @todo fix variants
-           */
-          properties: variant.properties,
-          entityId: child && text ? child.attrs.entityId : null,
-        },
-        children: text ? [state.schema.text(text)] : [],
-        marks: null,
-      },
+      targetComponentId: componentId,
+      entityId: child?.attrs.entityId ?? null,
     });
 
     const pos = getPos();

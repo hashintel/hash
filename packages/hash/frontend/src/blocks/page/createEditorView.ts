@@ -3,6 +3,7 @@ import { EditorView } from "prosemirror-view";
 import { Schema } from "prosemirror-model";
 import { ReplacePortals } from "@hashintel/hash-shared/sharedWithBackend";
 import { createInitialDoc, createSchema } from "@hashintel/hash-shared/schema";
+import { EntityStore } from "@hashintel/hash-shared/entityStore";
 import { Plugin } from "prosemirror-state";
 import { AsyncView } from "./AsyncView";
 import { BlockView } from "./BlockView";
@@ -57,7 +58,8 @@ export const createEditorView = (
   node: HTMLElement,
   replacePortal: ReplacePortals,
   accountId: string,
-  pageId: string
+  pageId: string,
+  getEntityStore: () => EntityStore
 ) => {
   const plugins = [
     createSavePlugin(),
@@ -80,7 +82,13 @@ export const createEditorView = (
         if (typeof getPos === "boolean") {
           throw new Error("Invalid config for nodeview");
         }
-        return new AsyncView(currentNode, currentView, getPos, replacePortal);
+        return new AsyncView(
+          currentNode,
+          currentView,
+          getPos,
+          replacePortal,
+          getEntityStore
+        );
       },
       block(currentNode, currentView, getPos) {
         if (typeof getPos === "boolean") {

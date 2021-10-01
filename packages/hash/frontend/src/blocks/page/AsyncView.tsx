@@ -1,11 +1,12 @@
 import {
-  createRemoteBlock,
+  createRemoteBlockFromEntity,
   ReplacePortals,
 } from "@hashintel/hash-shared/sharedWithBackend";
 import {
   historyPlugin,
   infiniteGroupHistoryPlugin,
 } from "@hashintel/hash-shared/sharedWithBackendJs";
+import { EntityStore, isBlockEntity } from "@hashintel/hash-shared/entityStore";
 import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorView, NodeView } from "prosemirror-view";
 import { createNodeView } from "./tsUtils";
@@ -24,23 +25,23 @@ import { createNodeView } from "./tsUtils";
 export class AsyncView implements NodeView {
   dom: HTMLDivElement;
   contentDOM: HTMLSpanElement;
+  node: ProsemirrorNode<Schema>;
 
   controller: AbortController | null = null;
   spinner: HTMLSpanElement | null = null;
 
   constructor(
-    public node: ProsemirrorNode<Schema>,
+    node: ProsemirrorNode<Schema>,
     public view: EditorView,
     public getPos: () => number,
-    public replacePortal: ReplacePortals
+    public replacePortal: ReplacePortals,
+    public getEntityStore: () => EntityStore
   ) {
     this.dom = document.createElement("div");
     this.contentDOM = document.createElement("span");
     this.dom.appendChild(this.contentDOM);
-    this.view = view;
-    this.getPos = getPos;
-    this.replacePortal = replacePortal;
     this.update(node);
+    this.node = node;
   }
 
   destroy() {
@@ -76,21 +77,25 @@ export class AsyncView implements NodeView {
 
     this.dom.appendChild(this.spinner);
 
+    const entityId = this.node.attrs.entityId;
+
+    if (!entityId) {
+      throw new Error("Missing entity id of the block to switch");
+    }
+
+    const entity = this.getEntityStore()[entityId];
+
+    if (!isBlockEntity(entity)) {
+      throw new Error("Cannot switch using non-block entity");
+    }
+
     this.controller = new AbortController();
 
-    const componentId = node.attrs.asyncComponentId;
-
-    createRemoteBlock(
+    createRemoteBlockFromEntity(
       view.state.schema,
-      {
-        view,
-        replacePortal: this.replacePortal,
-        createNodeView,
-      },
-      componentId,
-      node.attrs.asyncNodeProps.attrs,
-      node.attrs.asyncNodeProps.children,
-      node.attrs.asyncNodeProps.marks
+      { view, replacePortal: this.replacePortal, createNodeView },
+      entity,
+      node.attrs.targetComponentId
     )
       .then((newNode) => {
         if (this.controller?.signal.aborted) {

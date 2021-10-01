@@ -136,7 +136,8 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       node,
       replacePortal,
       accountId,
-      metadataId
+      metadataId,
+      () => currentEntityStoreValue.current
     );
 
     prosemirrorSetup.current = {

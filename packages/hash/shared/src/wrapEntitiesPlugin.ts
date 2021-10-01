@@ -44,6 +44,7 @@ const ensureEntitiesAreWrapped = (
      * This position may already be wrapped – due to blocks merging
      */
     if (
+      node.type !== schema.nodes.async &&
       parent.type === schema.nodes.doc &&
       (wrapperNodes || node.type !== schema.nodes.block)
     ) {
