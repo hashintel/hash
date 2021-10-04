@@ -5,7 +5,8 @@
     "project": ["./tsconfig.json"]
   },
   "globals": {
-    "React": true
+    "React": true,
+    "JSX": true
   },
   "env": {
     "browser": true,
