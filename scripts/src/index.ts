@@ -3,27 +3,15 @@ import path from "path";
 import matter from "gray-matter";
 import algoliasearch from "algoliasearch";
 
-import simulationMap from "../../resources/docs/url_map.json";
-
-function uuidv4() {
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
-    var r = (Math.random() * 16) | 0,
-      v = c == "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
-
-const addUuidGlossary = () => {
-  const files = fs.readdirSync("../resources/glossary");
-
-  for (const fileName of files) {
-    const file = fs.readFileSync(`../resources/glossary/${fileName}`, "utf8");
-
-    fs.writeFileSync(
-      `./output/glossary/${fileName}`,
-      file.replace("---", `---\nobjectId: ${uuidv4()}`)
-    );
-  }
+type DocsFrontMatter = {
+  content: string;
+  data: {
+    objectId: string;
+    title?: string;
+    description?: string;
+    slug?: string;
+    tags?: Array<string>;
+  };
 };
 
 const getAllFiles = function (
@@ -56,81 +44,8 @@ const getAllFiles = function (
   return arrayOfFiles;
 };
 
-function ensureDirectoryExistence(filePath) {
-  var dirname = path.dirname(filePath);
-  if (fs.existsSync(dirname)) {
-    return true;
-  }
-  ensureDirectoryExistence(dirname);
-  fs.mkdirSync(dirname);
-}
-
-const addUuidDocs = () => {
-  const files = getAllFiles("../resources/docs/simulation", []);
-
-  for (const file of files) {
-    writeFile(file.inputPath, file.outputPath);
-  }
-};
-
-const writeFile = (
-  inputPath,
-  outputPath,
-  textData = `objectId: ${uuidv4()}`
-) => {
-  const file = fs.readFileSync(inputPath, "utf8");
-
-  ensureDirectoryExistence(outputPath);
-
-  if (file.startsWith("---")) {
-    fs.writeFileSync(outputPath, file.replace("---", `---\n${textData}`));
-  } else {
-    fs.writeFileSync(outputPath, `---\n${textData}}\n---\n\n${file}`);
-  }
-};
-
-const writeDocsFile = (urlObj) => {
-  let inputPath = `../resources/docs/${urlObj.slug}.md`;
-  let outputPath = `./output/${urlObj.slug}.md`;
-
-  if (!fs.existsSync(inputPath)) {
-    inputPath = `../resources/docs/${urlObj.slug}/README.md`;
-    outputPath = `./output/${urlObj.slug}/README.md`;
-  }
-
-  writeFile(
-    inputPath,
-    outputPath,
-    `title: ${urlObj.title}\nslug: ${urlObj.slug}\nobjectId: ${uuidv4()}`
-  );
-};
-
-const addTitleToPage = () => {
-  simulationMap.forEach((simulation) => {
-    simulation.urldata.forEach((title) => {
-      title.urldata.forEach((h1) => {
-        writeDocsFile(h1);
-
-        h1?.urldata?.forEach((h2) => {
-          writeDocsFile(h2);
-
-          h2?.urldata?.forEach((h3: any) => {
-            writeDocsFile(h3);
-
-            h3?.urldata?.forEach((h4) => {
-              writeDocsFile(h4);
-            });
-          });
-        });
-      });
-    });
-  });
-};
-
 export const generateAlgoliaJson = () => {
   const jsonData = [];
-
-  const glossaryFiles = fs.readdirSync("../resources/glossary");
 
   const appendToJson = (matterData, type = "glossary") => {
     const appendData = {
@@ -144,22 +59,12 @@ export const generateAlgoliaJson = () => {
     jsonData.push(appendData);
   };
 
-  for (const glossaryFileName of glossaryFiles) {
-    const file = fs.readFileSync(
-      `../resources/glossary/${glossaryFileName}`,
-      "utf8"
-    );
+  const glossaryFiles = getAllFiles("../resources/docs/glossary", []);
 
-    const grayMatterData = matter(file) as unknown as {
-      content: string;
-      data: {
-        objectId: string;
-        title?: string;
-        description?: string;
-        slug?: string;
-        tags?: Array<string>;
-      };
-    };
+  for (const glossaryFileName of glossaryFiles) {
+    const file = fs.readFileSync(glossaryFileName.inputPath, "utf8");
+
+    const grayMatterData = matter(file) as unknown as DocsFrontMatter;
 
     appendToJson(grayMatterData);
   }
@@ -169,16 +74,7 @@ export const generateAlgoliaJson = () => {
   for (const docsFile of docsFiles) {
     const file = fs.readFileSync(docsFile.inputPath, "utf8");
 
-    const grayMatterData = matter(file) as unknown as {
-      content: string;
-      data: {
-        objectId: string;
-        title?: string;
-        description?: string;
-        slug?: string;
-        tags?: Array<string>;
-      };
-    };
+    const grayMatterData = matter(file) as unknown as DocsFrontMatter;
 
     appendToJson(grayMatterData, "docs");
   }

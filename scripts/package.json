@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "algoliasearch": "^4.10.5",
-    "gray-matter": "^4.0.3"
+    "gray-matter": "^4.0.3",
+    "uuid": "^8.3.2"
   }
 }
