@@ -1,10 +1,14 @@
-import { BlockEntity } from "./types";
+import { BlockEntity, MappedEntity } from "./types";
 
-export type EntityStoreType = BlockEntity | BlockEntity["properties"]["entity"];
+// @todo clean up this type
+export type EntityStoreType = BlockEntity | MappedEntity;
+
 export type EntityStore = Record<string, EntityStoreType>;
 
 export const isBlockEntity = (entity: EntityStoreType): entity is BlockEntity =>
-  "properties" in entity && entity.__typename === "Block";
+  "properties" in entity &&
+  "__typename" in entity &&
+  entity.__typename === "Block";
 
 /**
  * Should only be used by createEntityStore – needs to be called with flatMap
@@ -15,7 +19,7 @@ export const isBlockEntity = (entity: EntityStoreType): entity is BlockEntity =>
 const mapEntityToEntityStoreItems = <T extends EntityStoreType>(
   entity: T
 ): [string, EntityStoreType][] => [
-  [entity.metadataId, entity],
+  [entity.entityId, entity],
   ...(isBlockEntity(entity)
     ? mapEntityToEntityStoreItems(entity.properties.entity)
     : []),

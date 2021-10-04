@@ -26,7 +26,7 @@ type PageBlockProps = {
   contents: BlockEntity[];
   blocksMeta: Map<string, BlockMeta>;
   accountId: string;
-  metadataId: string;
+  entityId: string;
 };
 
 /**
@@ -39,7 +39,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   contents,
   blocksMeta,
   accountId,
-  metadataId,
+  entityId,
 }) => {
   const root = useRef<HTMLDivElement>(null);
   const client = useApolloClient();
@@ -109,7 +109,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
 
           return updatePageMutation(
             accountId,
-            metadataId,
+            entityId,
             prosemirrorSetup.current.view.state.doc,
             currentContents.current,
             currentEntityStoreValue.current,
@@ -117,7 +117,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
           ).then(() => {});
         });
     };
-  }, [accountId, client, metadataId]);
+  }, [accountId, client, entityId]);
 
   /**
    * This effect runs once and just sets up the prosemirror instance. It is not
@@ -136,7 +136,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       node,
       replacePortal,
       accountId,
-      metadataId,
+      entityId,
       () => currentEntityStoreValue.current
     );
 
@@ -152,7 +152,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       prosemirrorSetup.current = null;
       connection?.close();
     };
-  }, [accountId, metadataId, replacePortal]);
+  }, [accountId, entityId, replacePortal]);
 
   /**
    * This effect is responsible for ensuring all the preloaded blocks are
@@ -232,7 +232,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     return () => {
       controller.abort();
     };
-  }, [replacePortal, metadataId, contents]);
+  }, [replacePortal, entityId, contents]);
 
   return (
     <BlockMetaContext.Provider value={blocksMeta}>

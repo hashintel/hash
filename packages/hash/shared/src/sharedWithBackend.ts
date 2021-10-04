@@ -11,6 +11,7 @@ import { Decoration, EditorView } from "prosemirror-view";
 import blockPaths from "./blockPaths.sample.json";
 import { defineRemoteBlock } from "./sharedWithBackendJs";
 import { BlockEntity } from "./types";
+import { Text } from "./graphql/apiTypes.gen";
 
 export { blockPaths };
 
@@ -180,19 +181,19 @@ export const ensureDocBlocksLoaded = async (
 };
 
 export const getProseMirrorNodeAttributes = (entity: BlockEntity) => ({
-  entityId: entity.metadataId,
+  entityId: entity.entityId,
 });
 
 // @todo move these types
 // @todo rename
 type BlockEntityEntity = BlockEntity["properties"]["entity"];
-type TextEntity = Extract<BlockEntityEntity, { __typename: "Text" }>;
+export type TextEntity = Omit<Text, "metadataId">;
 
-const isTextEntity = (entity: BlockEntityEntity): entity is TextEntity =>
-  entity.__typename === "Text";
+export const isTextEntity = (entity: BlockEntityEntity): entity is TextEntity =>
+  "properties" in entity && "texts" in entity.properties;
 
 const mapTextEntityToNode = (entity: TextEntity, schema: Schema) =>
-  entity.textProperties.texts.map((text) =>
+  entity.properties.texts.map((text) =>
     schema.text(
       text.text,
       [

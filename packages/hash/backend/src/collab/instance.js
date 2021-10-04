@@ -217,7 +217,7 @@ const newInstance = (apolloClient) => async (accountId, id) => {
 
   const { data } = await apolloClient.query({
     query: getPageQuery,
-    variables: { metadataId: id, accountId },
+    variables: { entityId: id, accountId },
   });
 
   const state = createProseMirrorState(

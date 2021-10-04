@@ -13,7 +13,8 @@ import {
 import { EntityStoreContext } from "./EntityStoreContext";
 import { RemoteBlock } from "../../components/RemoteBlock/RemoteBlock";
 
-// @todo we need to type this such that we're certain we're passing through all the props required
+// @todo we need to type this such that we're certain we're passing through all
+// the props required
 const getRemoteBlockProps = (entity: EntityStoreType | null | undefined) => {
   if (entity) {
     if (!isBlockEntity(entity)) {
@@ -24,11 +25,8 @@ const getRemoteBlockProps = (entity: EntityStoreType | null | undefined) => {
 
     return {
       accountId: childEntity.accountId,
-      childEntityId: childEntity.metadataId,
-      properties:
-        childEntity.__typename === "UnknownEntity"
-          ? childEntity.unknownProperties
-          : {},
+      childEntityId: childEntity.entityId,
+      properties: "properties" in childEntity ? childEntity.properties : {},
     };
   }
 

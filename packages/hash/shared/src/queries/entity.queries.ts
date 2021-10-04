@@ -39,17 +39,17 @@ export const createEntity = gql`
 export const updateEntity = gql`
   mutation updateEntity(
     $accountId: ID!
-    $metadataId: ID!
+    $entityId: ID!
     $properties: JSONObject!
   ) {
     updateEntity(
       accountId: $accountId
-      entityId: $metadataId
+      entityId: $entityId
       properties: $properties
     ) {
       __typename
       id
-      metadataId
+      entityId
       entityTypeId
       entityTypeVersionId
       entityTypeName

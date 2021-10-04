@@ -31,7 +31,7 @@ export const getAccountPages = gql`
   query getAccountPages($accountId: ID!) {
     accountPages(accountId: $accountId) {
       id
-      metadataId
+      entityId
       properties {
         title
         summary

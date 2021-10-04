@@ -7,7 +7,7 @@ const pageFieldsFragment = gql`
     accountId
     entityVersionId
     createdAt
-    metadataId
+    entityId
     history {
       createdAt
       entityVersionId
@@ -20,32 +20,11 @@ const pageFieldsFragment = gql`
       contents {
         __typename
         id
-        metadataId
+        entityId
         accountId
         properties {
           componentId
-          entity {
-            __typename
-            id
-            accountId
-            metadataId
-            entityTypeId
-            entityTypeVersionId
-            entityTypeName
-            ... on UnknownEntity {
-              unknownProperties: properties
-            }
-            ... on Text {
-              textProperties: properties {
-                texts {
-                  text
-                  bold
-                  underline
-                  italics
-                }
-              }
-            }
-          }
+          entity
         }
       }
     }
@@ -53,10 +32,10 @@ const pageFieldsFragment = gql`
 `;
 
 export const getPageQuery = gql`
-  query getPage($accountId: ID!, $metadataId: ID, $versionId: ID) {
+  query getPage($accountId: ID!, $entityId: ID, $versionId: ID) {
     page(
       accountId: $accountId
-      entityId: $metadataId
+      entityId: $entityId
       entityVersionId: $versionId
     ) {
       ...PageFields
@@ -77,12 +56,12 @@ export const createPage = gql`
 export const updatePage = gql`
   mutation updatePage(
     $accountId: ID!
-    $metadataId: ID!
+    $entityId: ID!
     $properties: PageUpdateData!
   ) {
     updatePage(
       accountId: $accountId
-      entityId: $metadataId
+      entityId: $entityId
       properties: $properties
     ) {
       ...PageFields

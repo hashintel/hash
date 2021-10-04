@@ -18,6 +18,7 @@ import {
   findEntityNodes,
   nodeToComponentId,
 } from "./util";
+import { isTextEntity } from "./sharedWithBackend";
 
 const nodeToEntityProperties = (node: ProsemirrorNode<Schema>) => {
   if (node.type.isTextblock) {
@@ -73,7 +74,7 @@ const removeBlocks = defineOperation(
 
     const removedBlockEntities = entities
       .map((block, position) => [block, position] as const)
-      .filter(([block]) => !draftBlockEntityIds.has(block.metadataId));
+      .filter(([block]) => !draftBlockEntityIds.has(block.entityId));
 
     const updatedEntities = entities.filter(
       (_, position) =>
@@ -109,7 +110,7 @@ const moveBlocks = defineOperation(
     for (let position = 0; position < entities.length; position++) {
       const block = entities[position];
       const positionInDoc = entitiesWithoutNewBlocks.findIndex(
-        (node) => node.attrs.entityId === block.metadataId
+        (node) => node.attrs.entityId === block.entityId
       );
 
       if (positionInDoc < 0) {
@@ -213,7 +214,7 @@ const updateBlocks = defineOperation(
             throw new Error("Non-block entity found when saving");
           }
 
-          const childEntityId = savedEntity.properties.entity.metadataId;
+          const childEntityId = savedEntity.properties.entity.entityId;
           const savedChildEntity = entityStore[childEntityId];
 
           if (!savedChildEntity) {
@@ -222,7 +223,7 @@ const updateBlocks = defineOperation(
 
           // @todo could probably get this from entity store
           const existingBlock = entities.find(
-            ({ metadataId }) => metadataId === entityId
+            (entity) => entity.entityId === entityId
           );
 
           if (!existingBlock) {
@@ -239,7 +240,7 @@ const updateBlocks = defineOperation(
                 accountId: savedEntity.accountId,
                 properties: {
                   componentId,
-                  entityId: savedChildEntity.metadataId,
+                  entityId: savedChildEntity.entityId,
                   accountId: savedChildEntity.accountId,
                 },
               },
@@ -247,10 +248,9 @@ const updateBlocks = defineOperation(
           }
 
           if (node.type.isTextblock) {
-            const texts =
-              "textProperties" in existingBlock.properties.entity
-                ? existingBlock.properties.entity.textProperties.texts
-                : undefined;
+            const texts = isTextEntity(existingBlock.properties.entity)
+              ? existingBlock.properties.entity.properties.texts
+              : undefined;
 
             const entityProperties = nodeToEntityProperties(node);
 
@@ -323,7 +323,7 @@ const calculateSaveActions = (
 
 export const updatePageMutation = async (
   accountId: string,
-  metadataId: string,
+  entityId: string,
   doc: ProsemirrorNode<Schema>,
   blocks: BlockEntity[],
   entityStore: EntityStore,
@@ -335,7 +335,7 @@ export const updatePageMutation = async (
     UpdatePageContentsMutation,
     UpdatePageContentsMutationVariables
   >({
-    variables: { actions, accountId, entityId: metadataId },
+    variables: { actions, accountId, entityId },
     mutation: updatePageContents,
   });
 

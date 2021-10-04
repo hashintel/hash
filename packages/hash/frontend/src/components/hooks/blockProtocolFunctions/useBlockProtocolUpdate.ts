@@ -49,7 +49,7 @@ export const useBlockProtocolUpdate = (): {
             ? updatePageFn
             : updateEntityFn)({
             variables: {
-              metadataId: action.entityId,
+              entityId: action.entityId,
               properties: action.data,
               accountId: action.accountId!,
             },
