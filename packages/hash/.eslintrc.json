@@ -45,12 +45,24 @@
     "import/prefer-default-export": "off",
     "no-await-in-loop": "off",
     "import/no-unresolved": [2, { "ignore": ["^@hashintel"] }], 
-    "react/react-in-jsx-scope": "off",
     "react/prop-types": "off", // because we are using typescript this is redundant
     "jsx-a11y/anchor-is-valid": "off", // because we use next.js empty anchor tags should be used when using the Link component
     "react/jsx-filename-extension": [2, { "extensions": [".js", ".jsx", ".ts", ".tsx"] }],
     "react/jsx-props-no-spreading": "off",
     "no-void":  ["error", { "allowAsStatement": true }],
+    "no-continue": "off",
+    "react/react-in-jsx-scope": "off",
+    "no-return-await": "off",
+    "max-classes-per-file": "off",
+    "consistent-return": "off",
+    "default-case": "off",
+    "class-methods-use-this": "off",
+    "react/no-unescapted-entities": "off",
+    "jsx-a11y/no-autofocus": "off",
+    "no-plusplus": "off",
+    "prefer-destructuring": "off",
+    "no-else-return": "off",
+    "arrow-body-style": "off",
     // potential airbnb rule additions
     // "no-unused-vars": "off",
     // "no-console": "warn",
@@ -98,9 +110,17 @@
   },
   "overrides": [
     {
-      "files": ["*.test.ts", "*.test.tsx"],
+      "files": [
+        "**/__mocks__/*",
+        "**/testUtils/*",
+        "*.test.ts",
+        "*.test.tsx"
+      ],
       "env": {
         "jest/globals": true
+      },
+      "rules": {
+        "import/no-extraneous-dependencies": ["error", { "devDependencies": true }]
       }
     },
     {
