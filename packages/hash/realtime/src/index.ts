@@ -135,14 +135,14 @@ const main = async () => {
 
   // Start a HTTP server
   const httpServer = createHttpServer(logger);
-  const port = parseInt(process.env.HASH_REALTIME_PORT || "0") || 3333;
+  const port = parseInt(process.env.HASH_REALTIME_PORT || "0", 10) || 3333;
   httpServer.listen({ host: "::", port });
   logger.info(`HTTP server listening on port ${port}`);
 
   const pool = createPostgresConnPool(logger, {
     user: getRequiredEnv("HASH_PG_USER", "postgres"),
     host: getRequiredEnv("HASH_PG_HOST", "localhost"),
-    port: parseInt(getRequiredEnv("HASH_PG_PORT", "5432")),
+    port: parseInt(getRequiredEnv("HASH_PG_PORT", "5432"), 10),
     database: getRequiredEnv("HASH_PG_DATABASE", "postgres"),
     password: getRequiredEnv("HASH_PG_PASSWORD", "postgres"),
     maxPoolSize: 1,
