@@ -1,7 +1,7 @@
 import { URLSearchParams } from "url";
 import { Org, OrgEmailInvitation, VerificationCode } from "../model";
 import EmailTransporter from "./transporter";
-const { FRONTEND_URL } = require("../lib/config");
+const { FRONTEND_URL } = require("../lib/jsConfig");
 
 export const sendLoginCodeToEmailAddress =
   (transporter: EmailTransporter) =>
