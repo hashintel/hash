@@ -3,13 +3,13 @@ import { useApolloClient, useMutation } from "@apollo/client";
 import { BlockProtocolUpdateFn } from "@hashintel/block-protocol";
 import { updateEntity } from "@hashintel/hash-shared/queries/entity.queries";
 import { useCallback } from "react";
+import { updatePage } from "@hashintel/hash-shared/queries/page.queries";
 import {
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
   UpdatePageMutation,
   UpdatePageMutationVariables,
 } from "../../../graphql/apiTypes.gen";
-import { updatePage } from "@hashintel/hash-shared/queries/page.queries";
 
 export const useBlockProtocolUpdate = (): {
   update: BlockProtocolUpdateFn;

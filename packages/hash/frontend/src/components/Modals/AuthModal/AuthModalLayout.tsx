@@ -17,7 +17,7 @@ export const AuthModalLayout: VoidFunctionComponent<AuthModalLayoutProps> = ({
   <Dialog
     as="div"
     open={show}
-    onClose={onClose ? onClose : () => {}}
+    onClose={onClose || (() => {})}
     className={tw`fixed z-10 inset-0 overflow-y-auto`}
   >
     <AuthLayout onClose={onClose}>{children}</AuthLayout>

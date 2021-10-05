@@ -1,13 +1,13 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useReducer } from "react";
 import { NextPage } from "next";
 import { useRouter } from "next/router";
+import { useMutation } from "@apollo/client";
 import { useUser } from "../components/hooks/useUser";
 
 import { SignupIntro } from "../components/pages/auth/signup/SignupIntro";
 import { VerifyCode } from "../components/pages/auth/VerifyCode";
 import { AccountSetup } from "../components/pages/auth/signup/AccountSetup";
 
-import { useMutation } from "@apollo/client";
 import {
   CreateUserMutation,
   CreateUserMutationVariables,
@@ -29,7 +29,6 @@ import {
   Action,
 } from "../components/pages/auth/utils";
 import { AuthLayout } from "../components/layout/PageLayout/AuthLayout";
-import { useReducer } from "react";
 
 enum Screen {
   Intro,

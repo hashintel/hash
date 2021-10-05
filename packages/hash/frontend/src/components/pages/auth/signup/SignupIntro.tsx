@@ -1,5 +1,4 @@
-import React, { useEffect, useState } from "react";
-import { useRef, VFC } from "react";
+import React, { useEffect, useState, useRef, VFC } from "react";
 import { tw } from "twind";
 
 import Logo from "../../../../assets/svg/logo.svg";

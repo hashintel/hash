@@ -1,7 +1,7 @@
-import React, { VoidFunctionComponent } from "react";
+import React, { VoidFunctionComponent, useEffect, useReducer } from "react";
 import { useRouter } from "next/router";
-import { useEffect, useReducer } from "react";
 
+import { ApolloError, useMutation } from "@apollo/client";
 import { AuthModalLayout, AuthModalLayoutProps } from "./AuthModalLayout";
 import { LoginIntro } from "../../pages/auth/login/LoginIntro";
 import { VerifyCode } from "../../pages/auth/VerifyCode";
@@ -12,7 +12,6 @@ import {
   SendLoginCodeMutation,
   SendLoginCodeMutationVariables,
 } from "../../../graphql/apiTypes.gen";
-import { ApolloError, useMutation } from "@apollo/client";
 import {
   sendLoginCode as sendLoginCodeMutation,
   loginWithLoginCode as loginWithLoginCodeMutation,
@@ -169,7 +168,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
         type: "UPDATE_STATE",
         payload: {
           activeScreen: Screen.VerifyCode,
-          verificationCode: verificationCode,
+          verificationCode,
         },
       });
 

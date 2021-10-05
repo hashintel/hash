@@ -1,6 +1,10 @@
 import { useRouter } from "next/router";
-import React, { useRef, VoidFunctionComponent } from "react";
-import { useEffect, useState } from "react";
+import React, {
+  useRef,
+  VoidFunctionComponent,
+  useEffect,
+  useState,
+} from "react";
 import { tw } from "twind";
 
 import Logo from "../../../../assets/svg/logo.svg";

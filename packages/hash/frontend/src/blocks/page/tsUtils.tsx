@@ -1,17 +1,17 @@
 import React from "react";
 import { Decoration, EditorView, NodeView } from "prosemirror-view";
-import { RemoteBlock } from "../../components/RemoteBlock/RemoteBlock";
 import {
   Block,
   componentIdToUrl,
   ReplacePortals,
 } from "@hashintel/hash-shared/sharedWithBackend";
 import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
-import { EntityStoreContext } from "./EntityStoreContext";
 import {
   EntityStoreType,
   isBlockEntity,
 } from "@hashintel/hash-shared/entityStore";
+import { EntityStoreContext } from "./EntityStoreContext";
+import { RemoteBlock } from "../../components/RemoteBlock/RemoteBlock";
 
 type NodeViewConstructor = {
   new (
@@ -56,10 +56,11 @@ export const createNodeView = (
   sourceName: string,
   replacePortal: ReplacePortals
 ): NodeViewConstructor => {
-  const editable = componentSchema.properties?.["editableRef"];
+  const editable = componentSchema.properties?.editableRef;
 
   const nodeView = class BlockWrapper implements NodeView {
     dom: HTMLDivElement = document.createElement("div");
+
     contentDOM: HTMLElement | undefined = undefined;
 
     private target = document.createElement("div");

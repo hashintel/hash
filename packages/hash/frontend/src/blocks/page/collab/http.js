@@ -21,7 +21,7 @@ export const req = (conf) => {
           text = makePlain(text);
         }
         const err = new Error(
-          "Request failed: " + req.statusText + (text ? "\n\n" + text : "")
+          `Request failed: ${req.statusText}${text ? `\n\n${text}` : ""}`
         );
         err.status = req.status;
         failure(err);

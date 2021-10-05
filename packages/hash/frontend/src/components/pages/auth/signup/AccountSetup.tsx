@@ -1,12 +1,11 @@
-import React, { VFC, useState } from "react";
+import React, { VFC, useState, useRef } from "react";
 import { tw } from "twind";
 
+import { unstable_batchedUpdates } from "react-dom";
 import Logo from "../../../../assets/svg/logo.svg";
 import IconInfo from "../../../Icons/IconInfo";
 import { IconSpinner } from "../../../Icons/IconSpinner";
 import { useShortnameInput } from "../../../hooks/useShortnameInput";
-import { useRef } from "react";
-import { unstable_batchedUpdates } from "react-dom";
 
 type AccountSetupProps = {
   updateUserDetails: (shortname: string, preferredName: string) => void;
@@ -64,7 +63,7 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
               </strong>
             </p>
             <div className={tw`flex items-center`}>
-              <div className={`relative`}>
+              <div className="relative">
                 <input
                   ref={shortnameInputRef}
                   autoFocus

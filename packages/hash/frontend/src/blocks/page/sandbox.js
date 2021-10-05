@@ -420,7 +420,7 @@ class BlockView {
             // const selectedBlockType = node.attrs.meta?.name
             // ?? node.type.name;
             const selectedIndex = options.findIndex(
-              (/*[blockType, variant]*/) => {
+              (/* [blockType, variant] */) => {
                 /**
                  * This is already broken because of
                  * attempts to compare component URL vs
@@ -570,7 +570,7 @@ export const renderPM = (
   let connection;
 
   const view = new EditorView(node, {
-    state: state,
+    state,
     nodeViews: {
       ...viewProps.nodeViews,
       async(node, view, getPos) {

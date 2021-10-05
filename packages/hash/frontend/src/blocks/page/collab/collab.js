@@ -121,7 +121,7 @@ export class EditorConnection {
         return ensureDocBlocksLoaded(this.schema, data.doc, {
           view: this.view,
           replacePortal: this.replacePortal,
-          createNodeView: createNodeView,
+          createNodeView,
         }).then(() => data);
       })
       .then((data) => {
@@ -145,8 +145,8 @@ export class EditorConnection {
   // for a new version of the document to be created if the client
   // is already up-to-date.
   poll() {
-    const query = "version=" + getVersion(this.state.edit);
-    this.run(GET(this.url + "/events?" + query)).then(
+    const query = `version=${getVersion(this.state.edit)}`;
+    this.run(GET(`${this.url}/events?${query}`)).then(
       (data) => {
         this.report.success();
         data = JSON.parse(data);
@@ -191,7 +191,7 @@ export class EditorConnection {
       steps: steps ? steps.steps.map((step) => step.toJSON()) : [],
       clientID: steps ? steps.clientID : 0,
     });
-    this.run(POST(this.url + "/events", json, "application/json")).then(
+    this.run(POST(`${this.url}/events`, json, "application/json")).then(
       (_data) => {
         this.report.success();
         this.backOff = 0;

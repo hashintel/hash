@@ -26,7 +26,7 @@ export class Reporter {
     this.state = type;
     this.setAt = Date.now();
     this.node = document.body.appendChild(document.createElement("div"));
-    this.node.className = "ProseMirror-report ProseMirror-report-" + type;
+    this.node.className = `ProseMirror-report ProseMirror-report-${type}`;
     this.node.textContent = message;
   }
 

@@ -1,12 +1,12 @@
 import { useMutation } from "@apollo/client";
 import { useRouter } from "next/router";
 
+import { createPage } from "@hashintel/hash-shared/queries/page.queries";
 import {
   CreatePageMutation,
   CreatePageMutationVariables,
 } from "../../graphql/apiTypes.gen";
 import { getAccountPages } from "../../graphql/queries/account.queries";
-import { createPage } from "@hashintel/hash-shared/queries/page.queries";
 
 export const useCreatePage = () => {
   const router = useRouter();

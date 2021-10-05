@@ -7,25 +7,25 @@ import React, {
 import { Schema } from "prosemirror-model";
 import { Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
-import { renderPM } from "./sandbox";
-import { createMarksTooltip } from "../../components/MarksTooltip";
-import { createBlockSuggester } from "../../components/BlockSuggester";
-import { usePortals } from "./usePortals";
-import { useDeferredCallback } from "./useDeferredCallback";
-import { BlockMetaContext } from "../blockMeta";
 import { createInitialDoc, createSchema } from "@hashintel/hash-shared/schema";
 import {
   BlockMeta,
   createEntityUpdateTransaction,
   defineNewBlock,
 } from "@hashintel/hash-shared/sharedWithBackend";
-import { collabEnabled, createNodeView } from "./tsUtils";
-import { EditorConnection } from "./collab/collab";
-import { EntityStoreContext } from "./EntityStoreContext";
 import { createEntityStore } from "@hashintel/hash-shared/entityStore";
 import { useApolloClient } from "@apollo/client";
 import { updatePageMutation } from "@hashintel/hash-shared/save";
 import { BlockEntity } from "@hashintel/hash-shared/types";
+import { renderPM } from "./sandbox";
+import { createMarksTooltip } from "../../components/MarksTooltip";
+import { createBlockSuggester } from "../../components/BlockSuggester";
+import { usePortals } from "./usePortals";
+import { useDeferredCallback } from "./useDeferredCallback";
+import { BlockMetaContext } from "../blockMeta";
+import { collabEnabled, createNodeView } from "./tsUtils";
+import { EditorConnection } from "./collab/collab";
+import { EntityStoreContext } from "./EntityStoreContext";
 
 type PageBlockProps = {
   contents: BlockEntity[];
@@ -162,7 +162,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
             clearCallback();
             return false;
           },
-          blur: function () {
+          blur() {
             // Trigger a cancellable save on blur
             deferCallback(() => (window as any).triggerSave());
 
