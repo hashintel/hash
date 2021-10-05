@@ -4,11 +4,11 @@ import { spawnSync } from "child_process";
 import { Pool } from "pg";
 
 const createPool = () => {
-  const user = process.env["HASH_PG_USER"] || "postgres";
-  const host = process.env["HASH_PG_HOST"] || "localhost";
-  const port = process.env["HASH_PG_PORT"] || "5432";
+  const user = process.env.HASH_PG_USER || "postgres";
+  const host = process.env.HASH_PG_HOST || "localhost";
+  const port = process.env.HASH_PG_PORT || "5432";
   const database = "integration_tests";
-  const password = process.env["HASH_PG_PASSWORD"] || "postgres";
+  const password = process.env.HASH_PG_PASSWORD || "postgres";
 
   return new Pool({
     user,

@@ -9,6 +9,7 @@ import { PostgresAdapter } from "@hashintel/hash-backend/src/db";
 import EmailTransporter from "@hashintel/hash-backend/src/email/transporter";
 import SesEmailTransporter from "@hashintel/hash-backend/src/email/transporter/awsSesEmailTransporter";
 
+import { ClientError } from "graphql-request";
 import { ApiClient } from "./util";
 import { IntegrationTestsHandler } from "./setup";
 import {
@@ -18,7 +19,6 @@ import {
   SystemTypeName,
   WayToUseHash,
 } from "../graphql/apiTypes.gen";
-import { ClientError } from "graphql-request";
 
 const client = new ApiClient("http://localhost:5001/graphql");
 
