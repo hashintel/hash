@@ -1,5 +1,5 @@
 import { print } from "graphql/language/printer";
-import { GraphQLClient } from "graphql-request";
+import { GraphQLClient, ClientError } from "graphql-request";
 
 import {
   SendLoginCodeMutation,
@@ -24,15 +24,35 @@ import {
   GetPageQuery,
   UpdatePageContentsMutation,
   UpdatePageContentsMutationVariables,
+  CreateEntityTypeMutation,
+  CreateEntityTypeMutationVariables,
+  CreateOrgEmailInvitationMutationVariables,
+  CreateOrgEmailInvitationMutation,
+  CreateUserWithOrgEmailInvitationMutationVariables,
+  CreateUserWithOrgEmailInvitationMutation,
+  GetOrgEmailInvitationQueryVariables,
+  GetOrgEmailInvitationQuery,
+  GetOrgInvitationLinkQueryVariables,
+  GetOrgInvitationLinkQuery,
+  JoinOrgMutationVariables,
+  JoinOrgMutation,
 } from "../graphql/apiTypes.gen";
 import {
   createEntity,
+  createEntityType,
   getUnknownEntity,
   updateEntity,
 } from "../graphql/queries/entity.queries";
-import { createOrg } from "../graphql/queries/org.queries";
+import {
+  createOrg,
+  createOrgEmailInvitation,
+  joinOrg,
+  orgEmailInvitation,
+  orgInvitationLink,
+} from "../graphql/queries/org.queries";
 import {
   createUser,
+  createUserWithOrgEmailInvitation,
   loginWithLoginCode,
   sendLoginCode,
 } from "../graphql/queries/user.queries";
@@ -50,6 +70,14 @@ export class ApiClient {
     this.client = new GraphQLClient(url);
   }
 
+  static getErrorCodesFromClientError = (clientError: ClientError) => {
+    if (!clientError.response.errors) {
+      throw new Error("No response errors found on client error");
+    }
+    return clientError.response.errors.map(
+      (error: any) => error.extensions.code
+    );
+  };
   setCookie = (cookie: string) => this.client.setHeader("Cookie", cookie);
 
   removeCookie = () => this.client.setHeader("Cookie", "");
@@ -63,6 +91,19 @@ export class ApiClient {
         vars
       )
       .then(({ createUser }) => createUser);
+
+  createUserWithOrgEmailInvitation = async (
+    vars: CreateUserWithOrgEmailInvitationMutationVariables
+  ) =>
+    this.client
+      .request<
+        CreateUserWithOrgEmailInvitationMutation,
+        CreateUserWithOrgEmailInvitationMutationVariables
+      >(createUserWithOrgEmailInvitation, vars)
+      .then(
+        ({ createUserWithOrgEmailInvitation }) =>
+          createUserWithOrgEmailInvitation
+      );
 
   /* Log-in related requests **/
 
@@ -121,6 +162,44 @@ export class ApiClient {
     ).createOrg;
   }
 
+  async createOrgEmailInvitation(
+    vars: CreateOrgEmailInvitationMutationVariables
+  ) {
+    return (
+      await this.client.request<
+        CreateOrgEmailInvitationMutation,
+        CreateOrgEmailInvitationMutationVariables
+      >(createOrgEmailInvitation, vars)
+    ).createOrgEmailInvitation;
+  }
+
+  async getOrgEmailInvitation(vars: GetOrgEmailInvitationQueryVariables) {
+    return (
+      await this.client.request<
+        GetOrgEmailInvitationQuery,
+        GetOrgEmailInvitationQueryVariables
+      >(orgEmailInvitation, vars)
+    ).getOrgEmailInvitation;
+  }
+
+  async getOrgInvitationLink(vars: GetOrgInvitationLinkQueryVariables) {
+    return (
+      await this.client.request<
+        GetOrgInvitationLinkQuery,
+        GetOrgInvitationLinkQueryVariables
+      >(orgInvitationLink, vars)
+    ).getOrgInvitationLink;
+  }
+
+  async joinOrg(vars: JoinOrgMutationVariables) {
+    return (
+      await this.client.request<JoinOrgMutation, JoinOrgMutationVariables>(
+        joinOrg,
+        vars
+      )
+    ).joinOrg;
+  }
+
   async createPage(vars: CreatePageMutationVariables) {
     return (
       await this.client.request<
@@ -128,6 +207,15 @@ export class ApiClient {
         CreatePageMutationVariables
       >(createPage, vars)
     ).createPage;
+  }
+
+  async createEntityType(vars: CreateEntityTypeMutationVariables) {
+    return (
+      await this.client.request<
+        CreateEntityTypeMutation,
+        CreateEntityTypeMutationVariables
+      >(createEntityType, vars)
+    ).createEntityType;
   }
 
   insertBlocksIntoPage = async (vars: InsertBlocksIntoPageMutationVariables) =>

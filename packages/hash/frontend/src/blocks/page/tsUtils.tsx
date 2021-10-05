@@ -3,7 +3,7 @@ import { Decoration, EditorView, NodeView } from "prosemirror-view";
 import { RemoteBlock } from "../../components/RemoteBlock/RemoteBlock";
 import {
   Block,
-  cachedPropertiesByEntity,
+  componentIdToUrl,
   ReplacePortals,
 } from "@hashintel/hash-shared/sharedWithBackend";
 import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
@@ -24,6 +24,7 @@ type NodeViewConstructor = {
 
 type NodeViewConstructorArgs = ConstructorParameters<NodeViewConstructor>;
 
+// @todo we need to type this such that we're certain we're passing through all the props required
 const getRemoteBlockProps = (entity: EntityStoreType | null | undefined) => {
   if (entity) {
     if (!isBlockEntity(entity)) {
@@ -46,33 +47,13 @@ const getRemoteBlockProps = (entity: EntityStoreType | null | undefined) => {
 };
 
 /**
- * @todo make this unnecessary
- */
-const getOverwrittenRemoteBlockProps = (
-  entity: EntityStoreType | null | undefined,
-  node: any
-) => {
-  const originalProps = getRemoteBlockProps(entity);
-
-  // @todo we need to type this such that we're certain we're passing through all the props required
-  return {
-    ...originalProps,
-    meta: node.attrs.meta,
-    properties: {
-      ...((entity ? cachedPropertiesByEntity[entity.metadataId] : null) ?? {}),
-      ...originalProps.properties,
-    },
-  };
-};
-
-/**
  * This creates a node view which integrates between React and prosemirror for
  * each block
  */
 export const createNodeView = (
-  name: string,
+  componentId: string,
   componentSchema: Block["componentSchema"],
-  url: string,
+  sourceName: string,
   replacePortal: ReplacePortals
 ): NodeViewConstructor => {
   const editable = componentSchema.properties?.["editableRef"];
@@ -106,7 +87,7 @@ export const createNodeView = (
     }
 
     update(node: any) {
-      if (node?.type.name === name) {
+      if (node?.type.name === componentId) {
         replacePortal(
           this.target,
           this.target,
@@ -114,10 +95,7 @@ export const createNodeView = (
             {(entityStore) => {
               const entityId = node.attrs.entityId;
               const entity = entityStore[entityId];
-              const remoteBlockProps = getOverwrittenRemoteBlockProps(
-                entity,
-                node
-              );
+              const remoteBlockProps = getRemoteBlockProps(entity);
 
               const editableRef = editable
                 ? (node: HTMLElement) => {
@@ -132,10 +110,12 @@ export const createNodeView = (
                   }
                 : undefined;
 
+              const mappedUrl = componentIdToUrl(componentId);
+
               return (
                 <RemoteBlock
                   {...remoteBlockProps}
-                  url={url}
+                  url={`${mappedUrl}/${sourceName}`}
                   editableRef={editableRef}
                 />
               );
@@ -173,7 +153,7 @@ export const createNodeView = (
   };
 
   // Attempt to improve debugging by giving the node view class a dynamic name
-  Object.defineProperty(nodeView, "name", { value: `${name}View` });
+  Object.defineProperty(nodeView, "name", { value: `${componentId}View` });
 
   return nodeView;
 };

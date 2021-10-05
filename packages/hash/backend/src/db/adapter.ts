@@ -17,7 +17,7 @@ export type EntityTypeTypeFields =
  * @todo should probably store this enum in a non-generated file somewhere
  *    to revisit in light of fuller auth spec
  */
-import { Visibility } from "../graphql/apiTypes.gen";
+import { OrgSize, Visibility, WayToUseHash } from "../graphql/apiTypes.gen";
 
 export type Entity = {
   accountId: string;
@@ -77,6 +77,44 @@ export type VerificationCode = {
   createdAt: Date;
 };
 
+export type DBLinkedEntity = {
+  __linkedData: {
+    entityTypeId: string;
+    entityId: string;
+  };
+};
+
+export type DBUserEmail = {
+  address: string;
+  verified: boolean;
+  primary: boolean;
+};
+
+export type UserInfoProvidedAtSignup = {
+  usingHow?: WayToUseHash;
+};
+
+export type DBUserProperties = {
+  emails: DBUserEmail[];
+  shortname?: string;
+  preferredName?: string;
+  infoProvidedAtSignup: UserInfoProvidedAtSignup;
+  memberOf: {
+    org: DBLinkedEntity;
+    responsibility?: string;
+  }[];
+};
+
+export type OrgInfoProvidedAtCreation = {
+  orgSize: OrgSize;
+};
+
+export type DBOrgProperties = {
+  shortname: string;
+  name: string;
+  infoProvidedAtCreation?: OrgInfoProvidedAtCreation;
+};
+
 export interface DBAdapter extends DataSource, DBClient {
   /** Initiate a new database transaction. All `DBAdapter` methods called within
    * the provided callback `fn` are executed within the same transaction.
@@ -102,9 +140,12 @@ export interface DBClient {
   }): Promise<EntityType>;
 
   /**
-   * Create a new entity. If "entityVersionId" is not provided it will be automatically
-   * generated. To create a versioned entity, set the optional parameter "versioned" to
-   * `true`. One of entityTypeId, entityTypeVersionId or systemTypeName must be provided.
+   * Create a new entity. If `entityVersionId` is not provided it will be automatically
+   * generated. To create a versioned entity, set the optional parameter `versioned` to
+   * `true`. One of `entityTypeId`, `entityTypeVersionId` or `systemTypeName` must be
+   * provided.
+   * @throws: `DbInvalidLinksError` if the entity's properties contain a link to an
+   *          entity which does not exist.
    * */
   createEntity(params: {
     accountId: string;
@@ -117,6 +158,14 @@ export interface DBClient {
     versioned: boolean;
     properties: any;
   }): Promise<Entity>;
+
+  /**
+   * Get an entity's accountId using its entityVersionId
+   */
+  getEntityAccountId(params: {
+    entityId: string;
+    entityVersionId?: string;
+  }): Promise<string>;
 
   /** Get an entity by ID in a given account. If `lock` is set to `true`, then no
    * other client may access the entity until the current transaction has ended.
@@ -170,13 +219,21 @@ export interface DBClient {
   }): Promise<EntityType>;
 
   /**
-   * Update an entity's properties.
+   * Update an entity, either versioned or non-versioned. Note: the update is always
+   * applied to the latest version of the entity.
+   * @param params.accountId the account ID the entity belongs to.
+   * @param params.entityId the entity's fixed ID.
+   * @param params.properties the entity's new properties.
+   * @returns the entity's updated state.
+   * @throws `DbEntityNotFoundError` if the entity does not exist.
+   * @throws `DbInvalidLinksError` if the entity's new properties link to an entity which
+   *          does not exist.
    */
   updateEntity(params: {
     accountId: string;
     entityId: string;
     properties: any;
-  }): Promise<Entity[]>;
+  }): Promise<Entity>;
 
   /**
    * Get the user by their email address.
@@ -220,7 +277,7 @@ export interface DBClient {
    * */
   getEntitiesBySystemType(params: {
     accountId: string;
-    latestOnly: boolean;
+    latestOnly?: boolean;
     systemTypeName: SystemType;
   }): Promise<Entity[]>;
 
@@ -229,7 +286,10 @@ export interface DBClient {
    */
   getAllAccounts(): Promise<Entity[]>;
 
-  /** Update the metadata which may be associated with one or more entities. */
+  /**
+   * Update the metadata shared across all versions of an entity. Throws a
+   * `DbEntityNotFoundError` if the entity does not exist.
+   * */
   updateEntityMetadata(params: {
     accountId: string;
     entityId: string;
@@ -266,18 +326,6 @@ export interface DBClient {
   pruneVerificationCodes(params: { maxAgeInMs: number }): Promise<number>;
 
   /**
-   * getAndUpdateEntity may be used to retrieve and update an entity within
-   * the same transaction. It accepts a handler function which, given the
-   * current state of the entity, should return an updated state. Returns
-   * the state of all updated entities.
-   * */
-  getAndUpdateEntity(params: {
-    accountId: string;
-    entityVersionId: string;
-    handler: (entity: Entity) => Entity;
-  }): Promise<Entity[]>;
-
-  /**
    * getEntityHistory returns the sorted version timeline of an entity given its
    * `entityId`.
    * */
@@ -290,10 +338,14 @@ export interface DBClient {
   getEntities(
     entities: {
       accountId: string;
-      entityVersionId: string;
+      entityId: string;
+      entityVersionId?: string;
     }[]
   ): Promise<Entity[]>;
 
   /** Get entity types associated with a given accountId */
   getEntityTypes(params: { accountId: string }): Promise<EntityType[]>;
+
+  /** Acquire a transaction-scoped lock on the provided entity ID. */
+  acquireEntityLock(params: { entityId: string }): Promise<null>;
 }

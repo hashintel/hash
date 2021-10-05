@@ -1,5 +1,4 @@
 import React, {
-  useCallback,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -8,59 +7,32 @@ import React, {
 import { Schema } from "prosemirror-model";
 import { Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
-import { createFormatPlugin, renderPM } from "./sandbox";
-import { createSuggesterPlugin } from "../../components/BlockSuggester";
-import { useBlockProtocolUpdate } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdate";
-import { useBlockProtocolInsertIntoPage } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolInsertIntoPage";
+import { renderPM } from "./sandbox";
+import { createMarksTooltip } from "../../components/MarksTooltip";
+import { createBlockSuggester } from "../../components/BlockSuggester";
 import { usePortals } from "./usePortals";
 import { useDeferredCallback } from "./useDeferredCallback";
 import { BlockMetaContext } from "../blockMeta";
 import { createInitialDoc, createSchema } from "@hashintel/hash-shared/schema";
 import {
   BlockMeta,
-  cachedPropertiesByEntity,
-  calculateSavePayloads,
   createEntityUpdateTransaction,
   defineNewBlock,
 } from "@hashintel/hash-shared/sharedWithBackend";
 import { collabEnabled, createNodeView } from "./tsUtils";
 import { EditorConnection } from "./collab/collab";
-import { PageFieldsFragment } from "@hashintel/hash-shared/graphql/apiTypes.gen";
 import { EntityStoreContext } from "./EntityStoreContext";
 import { createEntityStore } from "@hashintel/hash-shared/entityStore";
+import { useApolloClient } from "@apollo/client";
+import { updatePageMutation } from "@hashintel/hash-shared/save";
+import { BlockEntity } from "@hashintel/hash-shared/types";
 
 type PageBlockProps = {
-  contents: PageFieldsFragment["properties"]["contents"];
+  contents: BlockEntity[];
   blocksMeta: Map<string, BlockMeta>;
-  pageId: string;
   accountId: string;
   metadataId: string;
 };
-
-if (typeof localStorage !== "undefined") {
-  const localStorageCachedPropertiesByEntity =
-    JSON.parse(
-      typeof localStorage !== "undefined"
-        ? localStorage.getItem("cachedPropertiesByEntity") ?? "{}"
-        : "{}"
-    ) ?? {};
-
-  Object.assign(cachedPropertiesByEntity, localStorageCachedPropertiesByEntity);
-
-  setInterval(() => {
-    const stringifiedProperties = JSON.stringify(cachedPropertiesByEntity);
-
-    // Temporarily catch all errors to avoid QuotaExceededError run-time errors
-    try {
-      localStorage.setItem("cachedPropertiesByEntity", stringifiedProperties);
-    } catch (error) {
-      const errorName = error instanceof Error ? error.name : "unknown";
-      console.warn(
-        `Caught ${errorName} error when setting "cachedPropertiesByEntity" in local storage`
-      );
-    }
-  }, 500);
-}
 
 /**
  * The naming of this as a "Block" is… interesting, considering it doesn't
@@ -71,13 +43,11 @@ if (typeof localStorage !== "undefined") {
 export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   contents,
   blocksMeta,
-  pageId,
   accountId,
   metadataId,
 }) => {
   const root = useRef<HTMLDivElement>(null);
-  const { insert } = useBlockProtocolInsertIntoPage();
-  const { update } = useBlockProtocolUpdate();
+  const client = useApolloClient();
 
   const [portals, replacePortal] = usePortals();
   const [deferCallback, clearCallback] = useDeferredCallback();
@@ -117,46 +87,6 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     currentEntityStoreValue.current = entityStoreValue;
   }, [entityStoreValue]);
 
-  const updateContents = useCallback(
-    async (signal?: AbortSignal): Promise<void> => {
-      const setup = prosemirrorSetup.current;
-      if (!setup) {
-        return;
-      }
-
-      const { view } = setup;
-
-      const state = view.state;
-
-      const tr = await createEntityUpdateTransaction(
-        state,
-        currentContents.current,
-        {
-          view,
-          replacePortal,
-          createNodeView,
-        }
-      );
-
-      if (signal?.aborted) {
-        return;
-      }
-
-      /**
-       * The view's state may have changed, making our current transaction
-       * invalid – so lets start again.
-       *
-       * @todo probably better way of dealing with this
-       */
-      if (view.state !== state || prosemirrorSetup.current !== setup) {
-        return updateContents(signal);
-      }
-
-      view.dispatch(tr);
-    },
-    [replacePortal]
-  );
-
   useLayoutEffect(() => {
     /**
      * Setting this function to global state as a shortcut to call it from deep
@@ -182,68 +112,18 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
           if (!prosemirrorSetup.current) {
             return;
           }
-          const { view } = prosemirrorSetup.current;
-          const { state } = view;
 
-          const { updatedEntitiesPayload, pageUpdatedPayload, insertPayloads } =
-            calculateSavePayloads(
-              accountId,
-              pageId,
-              metadataId,
-              state.schema,
-              state.doc,
-              currentContents.current,
-              currentEntityStoreValue.current
-            );
-
-          /**
-           * Building a promise here that updates the page block with the list
-           * of block ids it contains (if necessary, i.e, when you delete or
-           * re-order blocks, and then calls insert for each new block, before
-           * updating blocks that need to be updated. Ideally we would handle
-           * all of this in one query
-           *
-           * @todo improve this
-           */
-          return (
-            insertPayloads
-              .reduce(
-                (promise, insertPayload) =>
-                  promise.catch(() => {}).then(() => insert(insertPayload)),
-                pageUpdatedPayload
-                  ? update([pageUpdatedPayload])
-                  : Promise.resolve()
-              )
-              /**
-               * Entity updates temporary sequential due to issue in Apollo –
-               * we'll be replacing all of this with a single atomic query
-               * anyway so this is a fine compromise for now
-               *
-               * @see https://hashintel.slack.com/archives/C022217GAHF/p1631541550015000
-               */
-              .then(() =>
-                updatedEntitiesPayload.reduce(
-                  (promise, payload) =>
-                    promise.catch(() => {}).then(() => update([payload])),
-                  Promise.resolve()
-                )
-              )
-              .catch(() => {})
-              // @todo remove this timeout
-              .then(() => {
-                return new Promise<void>((resolve) => {
-                  setTimeout(() => {
-                    resolve();
-                  }, 250);
-                });
-              })
-              .then(() => {
-                return updateContents();
-              })
-          );
+          return updatePageMutation(
+            accountId,
+            metadataId,
+            prosemirrorSetup.current.view.state.doc,
+            currentContents.current,
+            currentEntityStoreValue.current,
+            client
+          ).then(() => {});
         });
     };
-  }, [accountId, insert, metadataId, pageId, update, updateContents]);
+  }, [accountId, client, metadataId]);
 
   /**
    * This effect runs once and just sets up the prosemirror instance. It is not
@@ -305,8 +185,8 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       replacePortal,
       [
         savePlugin,
-        createFormatPlugin(replacePortal),
-        createSuggesterPlugin(replacePortal),
+        createMarksTooltip(replacePortal),
+        createBlockSuggester(replacePortal),
       ],
       accountId,
       metadataId
@@ -334,13 +214,13 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     const { view } = prosemirrorSetup.current;
 
     // @todo filter out already defined blocks
-    for (const [componentUrl, meta] of Array.from(blocksMeta.entries())) {
+    for (const [componentId, meta] of Array.from(blocksMeta.entries())) {
       defineNewBlock(
         view.state.schema,
         meta.componentMetadata,
         meta.componentSchema,
         { view, replacePortal, createNodeView },
-        componentUrl
+        componentId
       );
     }
   }, [blocksMeta, replacePortal]);
@@ -353,16 +233,46 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
    * the contents, which ensures that blocks referencing the same entity are
    * all updated, and that empty IDs are properly filled (i.e, when creating a
    * new block)
-   *
-   * @todo fix when getPage queries are triggered rather than relying on a hook
-   *       that doesn't actually update from contents (because of the laddering
-   *       problem)
    */
   useLayoutEffect(() => {
     const controller = new AbortController();
 
     if (!collabEnabled) {
-      updateContents(controller.signal).catch((err) =>
+      (async function updateContents(
+        contents: BlockEntity[],
+        signal?: AbortSignal
+      ): Promise<void> {
+        const setup = prosemirrorSetup.current;
+        if (!setup) {
+          return;
+        }
+
+        const { view } = setup;
+
+        const state = view.state;
+
+        const tr = await createEntityUpdateTransaction(state, contents, {
+          view,
+          replacePortal,
+          createNodeView,
+        });
+
+        if (signal?.aborted) {
+          return;
+        }
+
+        /**
+         * The view's state may have changed, making our current transaction
+         * invalid – so lets start again.
+         *
+         * @todo probably better way of dealing with this
+         */
+        if (view.state !== state || prosemirrorSetup.current !== setup) {
+          return updateContents(contents, signal);
+        }
+
+        view.dispatch(tr);
+      })(contents, controller.signal).catch((err) =>
         console.error("Could not update page contents: ", err)
       );
     }
@@ -370,7 +280,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     return () => {
       controller.abort();
     };
-  }, [replacePortal, updateContents, metadataId]);
+  }, [replacePortal, metadataId, contents]);
 
   return (
     <BlockMetaContext.Provider value={blocksMeta}>

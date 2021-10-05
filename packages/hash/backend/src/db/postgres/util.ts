@@ -1,93 +1,63 @@
+import { DbPageProperties, DbBlockProperties } from "../../types/dbTypes";
 import { Entity } from "../adapter";
 
 const isObject = (val: any) => typeof val === "object" && val !== null;
 
 const isObjectOrArray = (val: any) => Array.isArray(val) || isObject(val);
 
+// @todo: it would be preferrable to import the __linkedData type definition from
+// adapter.ts to avoid duplication. However, that type includes `entityTypeId` which
+// is not currently set by the links in "Block" entities. Return here when we refactor
+// the definition of Block entities to use the __linkedData concept.
+export type Link = {
+  entityId: string;
+  entityVersionId?: string;
+};
+
 /**
  * Recursively traverse the properties of an entity, gathering the IDs of all entities
- * it references through the __linkedData field.
+ * it references through the `__linkedData` field.
  * */
-export const gatherLinks = (entity: Entity): string[] => {
-  // Note: the implementation is not actually recursive. NodeJS does not perform tail-call
-  // optimization which presents a performance penalty for deeply nested entities.
-  // Instead, we're doing an iterative depth-first search of the object tree.
-
+export const gatherLinks = (entity: Entity): Link[] => {
   // Block entities are a special case. They (currently) don't have a __linkedData field,
   // but reference the entity they wrap with an "entityId" property.
   if (entity.entityTypeName === "Block") {
-    return [entity.properties.entityId as string];
+    const properties = entity.properties as DbBlockProperties;
+    return [
+      {
+        entityId: properties.entityId,
+      },
+    ];
   }
 
-  // Page entities are another special case
+  // Page entities are another special case. The links to the blocks are contained in
+  // its "contents" array property.
   if (entity.entityTypeName === "Page") {
-    return entity.properties.contents.map(
-      (item: { entityId: string }) => item.entityId as string
-    );
+    const properties = entity.properties as DbPageProperties;
+    return properties.contents.map((item) => ({
+      entityId: item.entityId,
+    }));
   }
 
   if (!isObject(entity.properties)) {
     throw new Error(
-      `entity ${entity.entityVersionId} has invalid type for field "properties"`
+      `entity version ${entity.entityVersionId} has invalid type for field "properties"`
     );
   }
 
-  const linkedEntityIds: string[] = [];
-  const stack: any[] = Object.values(entity.properties).filter(isObjectOrArray);
+  const linksSeen = new Set<string>();
+  const links: Link[] = [];
 
-  while (stack.length > 0) {
-    const item = stack.pop();
-
-    if (Array.isArray(item)) {
-      stack.push(...item.filter(isObjectOrArray));
-      continue;
+  // Push a Link onto linkedEntities if it's not already present
+  const pushLinkedEntity = (link: Link) => {
+    const id = link.entityId + (link.entityVersionId || "");
+    if (linksSeen.has(id)) {
+      return;
     }
+    linksSeen.add(id);
+    links.push(link);
+  };
 
-    const entityId = item.__linkedData?.entityId;
-    if (entityId) {
-      linkedEntityIds.push(entityId as string);
-    } else {
-      stack.push(...Object.values(item).filter(isObjectOrArray));
-    }
-  }
-
-  return linkedEntityIds;
-};
-
-/** Mutate an entitiy's properties **in-place** by replacing all linked data from
- * one entity ID to another entity ID.
- */
-export const replaceLink = (
-  entity: Entity,
-  replace: { old: string; new: string }
-) => {
-  // Need to do special cases for now like in `gatherLinks` above.
-
-  if (entity.entityTypeName === "Block") {
-    if (entity.properties.entityId === replace.old) {
-      entity.properties.entityId = replace.new;
-    }
-    return;
-  }
-
-  if (entity.entityTypeName === "Page") {
-    for (let i = 0; i < entity.properties.contents.length; i++) {
-      const item = entity.properties.contents[i];
-      if (item.entityId === replace.old) {
-        item.entityId = replace.new;
-      }
-    }
-    return;
-  }
-
-  if (!isObject(entity.properties)) {
-    throw new Error(
-      `entity ${entity.entityVersionId} has invalid type for field "properties"`
-    );
-  }
-
-  // TODO: there's some duplication here with `gatherLinks`. Consider refactoring
-  // the search into a separate function.
   const stack: any[] = Object.values(entity.properties).filter(isObjectOrArray);
   while (stack.length > 0) {
     const item = stack.pop();
@@ -97,24 +67,50 @@ export const replaceLink = (
       continue;
     }
 
-    const entityId = item.__linkedData?.entityId;
-    if (entityId) {
-      if (entityId === replace.old) {
-        item.__linkedData.entityId = replace.new;
+    const linkedData = item.__linkedData;
+    if (linkedData) {
+      try {
+        const link = getLink(linkedData);
+        if (link) {
+          pushLinkedEntity(link);
+        }
+      } catch (err) {
+        throw new Error(
+          `invalid __linkedData in entity version ${entity.entityVersionId}: ${err}`
+        );
       }
     } else {
       stack.push(...Object.values(item).filter(isObjectOrArray));
     }
   }
+
+  return links;
 };
 
-export const entityNotFoundError = (ref: {
-  accountId: string;
-  entityVersionId: string;
-  type?: string;
-}) => {
-  const type = ref.type ? ref.type + " " : "";
-  return new Error(
-    `${type}entity ${ref.entityVersionId} not found in account ${ref.accountId}`
-  );
+/** Validates a `__linkedData` field. Returns a `Link` if it's valid, otherwise, the
+ * function throws an error. */
+const getLink = (linkedData: any): Link | null => {
+  if (!isObject(linkedData)) {
+    throw new Error("must be an object");
+  }
+  if (linkedData.aggregate) {
+    // We can ignore linked data based on an aggregation here
+    return null;
+  }
+  if (!linkedData.entityId) {
+    throw new Error("field 'entityId' missing");
+  }
+  if (!(typeof linkedData.entityId === "string")) {
+    throw new Error("field 'entityId' must be a string");
+  }
+  if (
+    linkedData.entityVersionId &&
+    !(typeof linkedData.entityVersionId === "string")
+  ) {
+    throw new Error("field 'entityVersionId', if set, must be a string");
+  }
+  return {
+    entityId: linkedData.entityId,
+    entityVersionId: linkedData.entityVersionId,
+  };
 };

@@ -78,24 +78,30 @@ export const userTypedef = gql`
     primary: Boolean!
   }
 
+  enum WayToUseHASH {
+    BY_THEMSELVES
+    WITH_A_TEAM
+  }
+
+  type LinkedOrg {
+    data: Org!
+  }
+
+  type MemberOfOrg {
+    org: LinkedOrg!
+    responsibility: String
+  }
+
   type UserProperties {
     emails: [Email!]!
     shortname: String
     preferredName: String
+    memberOf: [MemberOfOrg!]!
   }
 
   type VerificationCodeMetadata {
     id: ID!
     createdAt: Date!
-  }
-
-  input UpdateUserProperties {
-    shortname: String
-    preferredName: String
-  }
-
-  enum LogoutResponse {
-    SUCCESS
   }
 
   extend type Query {
@@ -106,27 +112,81 @@ export const userTypedef = gql`
     isShortnameTaken(shortname: String!): Boolean!
   }
 
+  input UpdateUserProperties {
+    shortname: String
+    preferredName: String
+    usingHow: WayToUseHASH
+  }
+
+  enum LogoutResponse {
+    SUCCESS
+  }
+
+  input JoinOrgVerification {
+    invitationLinkToken: String
+    invitationEmailToken: String
+  }
+
   extend type Mutation {
     """
     Creates a user, and sends them an email verification code
     """
-    createUser(email: String!): VerificationCodeMetadata!
+    createUser(
+      email: String!
+      magicLinkQueryParams: String
+    ): VerificationCodeMetadata!
+
+    """
+    Creates a the user associated with the email invitation, verifying the email address in the process
+    """
+    createUserWithOrgEmailInvitation(
+      orgEntityId: ID!
+      invitationEmailToken: String!
+    ): User!
+
     """
     Update a user
     """
     updateUser(userEntityId: ID!, properties: UpdateUserProperties!): User!
+
     """
     Verifies a user's email address using a previously generated verification code
     """
     verifyEmail(verificationId: ID!, verificationCode: String!): User!
+
     """
     Sends an existing user a login verification code
     """
-    sendLoginCode(emailOrShortname: String!): VerificationCodeMetadata!
+    sendLoginCode(
+      emailOrShortname: String!
+      """
+      Optionally provide a redirectPath, which is added as query parameter to
+      the magic link sent to the email address
+      """
+      redirectPath: String
+    ): VerificationCodeMetadata!
+
     """
     Logs a user in using a previously generated verification code
     """
     loginWithLoginCode(verificationId: ID!, verificationCode: String!): User!
+
+    """
+    Logs a user out
+    """
     logout: LogoutResponse!
+
+    """
+    Create a new organization. The user that calls this mutation is automatically added
+    as a member with the provided 'responsibility'.
+    """
+    joinOrg(
+      orgEntityId: ID!
+      verification: JoinOrgVerification!
+      """
+      The 'responsibility' of the user at the organization.
+      """
+      responsibility: String!
+    ): User!
   }
 `;

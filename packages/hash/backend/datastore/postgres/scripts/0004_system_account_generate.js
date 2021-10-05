@@ -2,16 +2,20 @@ const fs = require("fs");
 const path = require("path");
 
 const generatedIds = require("./data/generatedIds.json");
-const { SYSTEM_ACCOUNT_NAME } = require("../../../src/lib/config");
 const { entityTypeJson } = require("./data/systemTypeSchemas");
+const {
+  SYSTEM_ACCOUNT_SHORTNAME,
+  SYSTEM_ACCOUNT_NAME
+} = require("../../../src/lib/config");
 
 const now = '2021-08-19T11:00:14.587Z';
 
 const { Org } = generatedIds.types;
-const systemAccount = generatedIds.orgs[SYSTEM_ACCOUNT_NAME];
+const systemAccount = generatedIds.orgs[SYSTEM_ACCOUNT_SHORTNAME];
 
-const systemAccountProperties = JSON.stringify({
-  shortname: SYSTEM_ACCOUNT_NAME,
+const systemAccountPropertiesStringified = JSON.stringify({
+  shortname: SYSTEM_ACCOUNT_SHORTNAME,
+  name: SYSTEM_ACCOUNT_NAME,
 });
 
 const sqlString = `
@@ -49,9 +53,17 @@ insert into entity_versions (
   created_by, created_at, updated_at
 ) values (
   '${systemAccount.fixedId}', '${systemAccount.firstVersionId}', '${Org.firstVersionId}',
-  '${systemAccountProperties}', '${systemAccount.fixedId}',
+  '${systemAccountPropertiesStringified}', '${systemAccount.fixedId}',
   '${systemAccount.fixedId}', '${now}', '${now}'
-) on conflict do nothing;`;
+) on conflict do nothing;
+
+insert into entity_account (
+  entity_id, entity_version_id, account_id
+) values (
+  '${systemAccount.fixedId}', '${systemAccount.firstVersionId}', '${systemAccount.fixedId}'
+) on conflict do nothing;
+
+`;
 
 const outputPath = path.join(__dirname, "../schema/0004_system_account.sql");
 fs.writeFileSync(outputPath, sqlString);

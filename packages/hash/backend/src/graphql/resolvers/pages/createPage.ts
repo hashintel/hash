@@ -17,6 +17,9 @@ export const createPage: Resolver<
   const { user } = ctx;
   const createdById = user.entityId;
 
+  // @todo: generate all of the entity IDs up-front and create all entities below
+  // concurrently (may need to defer FK constraints).
+
   // Convenience wrapper
   const _createEntity = async (type: SystemType, properties: any) => {
     return await createEntity(
@@ -39,7 +42,7 @@ export const createPage: Resolver<
 
   const newHeaderBlock = await _createEntity("Block", {
     componentId: "https://block.blockprotocol.org/header",
-    entityId: newHeaderEntity.entityVersionId,
+    entityId: newHeaderEntity.entityId,
     accountId,
   });
 
@@ -47,7 +50,7 @@ export const createPage: Resolver<
 
   const newParaBlock = await _createEntity("Block", {
     componentId: "https://block.blockprotocol.org/paragraph",
-    entityId: newParaEntity.entityVersionId,
+    entityId: newParaEntity.entityId,
     accountId,
   });
 
@@ -55,11 +58,11 @@ export const createPage: Resolver<
     title: properties.title,
     contents: [
       {
-        entityId: newHeaderBlock.entityVersionId,
+        entityId: newHeaderBlock.entityId,
         accountId,
       },
       {
-        entityId: newParaBlock.entityVersionId,
+        entityId: newParaBlock.entityId,
         accountId,
       },
     ],

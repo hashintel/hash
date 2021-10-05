@@ -23,7 +23,7 @@ export const insertBlocksIntoPage: Resolver<
         const { entityTypeId, entityTypeVersionId, systemTypeName } = block;
 
         // Create the entity that the block contains
-        const childEntity = await Entity.create(client)(
+        const newEntity = await Entity.create(client)(
           createEntityArgsBuilder({
             accountId: block.accountId,
             createdById: user.entityId,
@@ -37,8 +37,8 @@ export const insertBlocksIntoPage: Resolver<
 
         // Create the block
         const blockProperties: DbBlockProperties = {
-          entityId: childEntity.entityVersionId,
-          accountId: block.accountId,
+          entityId: newEntity.entityId,
+          accountId: newEntity.accountId,
           componentId: block.componentId,
         };
         const newBlock = await Entity.create(client)({
@@ -53,8 +53,6 @@ export const insertBlocksIntoPage: Resolver<
     );
 
     // Insert the blocks into the page
-    // @todo: always get the latest version for now. This is a temporary measure.
-    // return here when strict vs. optimistic entity mutation question is resolved.
     const page = await Entity.getEntityLatestVersion(client)({
       accountId,
       entityId,
@@ -75,7 +73,7 @@ export const insertBlocksIntoPage: Resolver<
       ...newBlocks.map((blk) => ({
         type: "Block",
         accountId: blk.accountId,
-        entityId: blk.entityVersionId,
+        entityId: blk.entityId,
       }))
     );
 

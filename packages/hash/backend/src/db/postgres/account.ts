@@ -1,9 +1,10 @@
-import { sql } from "slonik";
+import { NotFoundError, sql } from "slonik";
 
 import { Connection } from "./types";
 
 // @ts-ignore
-import { SYSTEM_ACCOUNT_NAME } from "../../lib/config";
+import { SYSTEM_ACCOUNT_SHORTNAME } from "../../lib/config";
+import { DbEntityNotFoundError } from "../errors";
 
 export const insertAccount = async (
   conn: Connection,
@@ -16,33 +17,96 @@ export const insertAccount = async (
 
 export const insertEntityAccount = async (
   conn: Connection,
-  params: { entityVersionId: string; accountId: string }
+  params: { entityId: string; entityVersionId: string; accountId: string }
 ): Promise<void> => {
   await conn.query(sql`
-    insert into entity_account (entity_version_id, account_id)
-    values (${params.entityVersionId}, ${params.accountId})`);
+    insert into entity_account (entity_version_id, entity_id, account_id)
+    values (${params.entityVersionId}, ${params.entityId}, ${params.accountId})
+    on conflict do nothing
+  `);
+};
+
+/** Get the account ID of an entity. */
+export const getEntityAccountId = async (
+  conn: Connection,
+  params: { entityId: string; entityVersionId?: string }
+): Promise<string> => {
+  const { entityId, entityVersionId } = params;
+  try {
+    const row = params.entityVersionId
+      ? await conn.one(sql`
+        select account_id from entity_account
+        where entity_version_id = ${entityVersionId!}
+      `)
+      : await conn.one(sql`
+        select account_id from entity_account
+        where entity_id = ${entityId}
+      `);
+    return row["account_id"] as string;
+  } catch (err) {
+    if (err instanceof NotFoundError) {
+      throw new DbEntityNotFoundError({ entityId, entityVersionId });
+    }
+    throw err;
+  }
 };
 
 /** Get the account ID of multiple entities. Returns a map from entity ID to account ID. */
+/** Get the account ID of multiple entities. */
 export const getEntityAccountIdMany = async (
   conn: Connection,
-  entityVersionIds: Set<string>
-): Promise<Map<string, string>> => {
-  const rows = await conn.any(sql`
-    select entity_version_id, account_id from entity_account
-    where
-      entity_version_id = any(${sql.array(
-        Array.from(entityVersionIds),
-        "uuid"
-      )})
-  `);
+  params: { ids: { entityId: string; entityVersionId?: string }[] }
+): Promise<
+  { entityId: string; entityVersionId?: string; accountId: string }[]
+> => {
+  // Query 1: get the account IDs for links with just the entityId set
+  const entityIds = params.ids
+    .filter((link) => !link.entityVersionId)
+    .map((link) => link.entityId);
 
-  const result = new Map<string, string>();
-  for (const row of rows) {
-    result.set(row["entity_version_id"] as string, row["account_id"] as string);
+  // Query 2: get the account IDs for the links with the entityVersionId set
+  const entityVersionIds = params.ids
+    .filter((link) => link.entityVersionId)
+    .map((link) => link.entityVersionId!);
+
+  const [rows1, rows2] = await Promise.all([
+    entityIds.length > 0
+      ? conn.any(sql`
+        select distinct entity_id, account_id from entity_account
+        where
+          entity_id = any(${sql.array(entityIds, "uuid")})
+      `)
+      : [],
+
+    entityVersionIds.length > 0
+      ? conn.any(sql`
+        select entity_id, entity_version_id, account_id from entity_account
+        where
+          entity_version_id = any(${sql.array(entityVersionIds, "uuid")})
+      `)
+      : [],
+  ]);
+
+  const result1 = rows1.map((row) => ({
+    accountId: row["account_id"] as string,
+    entityId: row["entity_id"] as string,
+    entityVersionId: undefined as string | undefined,
+  }));
+
+  const result2 = rows2.map((row) => ({
+    accountId: row["account_id"] as string,
+    entityId: row["entity_id"] as string,
+    entityVersionId: row["entity_version_id"] as string | undefined,
+  }));
+
+  // Return in same order as params.ids
+  const ids = new Map();
+  for (const res of result1.concat(result2)) {
+    ids.set(res.entityId + (res.entityVersionId || ""), res);
   }
-
-  return result;
+  return params.ids
+    .map((id) => ids.get(id.entityId + (id.entityVersionId || "")))
+    .filter((id) => id);
 };
 
 /**
@@ -52,5 +116,5 @@ export const getEntityAccountIdMany = async (
 export const selectSystemAccountIds = sql`
   select account_id from entity_versions
   where account_id = entity_id
-    and properties->>'shortname' = ${SYSTEM_ACCOUNT_NAME}
+    and properties->>'shortname' = ${SYSTEM_ACCOUNT_SHORTNAME}
 `;

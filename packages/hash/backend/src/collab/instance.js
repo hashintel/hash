@@ -1,23 +1,20 @@
 import { Mapping, Step, Transform } from "prosemirror-transform";
 import { createInitialDoc, createSchema } from "@hashintel/hash-shared/schema";
 import {
-  calculateSavePayloads,
   createEntityUpdateTransaction,
   getProseMirrorNodeAttributes,
 } from "@hashintel/hash-shared/sharedWithBackend";
-import {
-  getPageQuery,
-  insertBlockIntoPage,
-  updatePage,
-} from "@hashintel/hash-shared/queries/page.queries";
-import { updateEntity } from "@hashintel/hash-shared/queries/entity.queries";
+import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
 import { createProseMirrorState } from "@hashintel/hash-shared/sharedWithBackendJs";
+import { updatePageMutation } from "@hashintel/hash-shared/save";
+import { createEntityStore } from "@hashintel/hash-shared/entityStore";
+import { findEntityNodes } from "@hashintel/hash-shared/util";
 
 const MAX_STEP_HISTORY = 10000;
 
 // A collaborative editing document instance.
 class Instance {
-  constructor(accountId, id, doc, savedContents, client) {
+  constructor(accountId, id, doc, savedContents) {
     this.accountId = accountId;
     this.id = id;
     this.doc = doc;
@@ -75,94 +72,52 @@ class Instance {
       .then(() => {
         this.saveMapping = mapping;
 
-        const doc = this.doc;
+        return updatePageMutation(
+          this.accountId,
+          this.id,
+          this.doc,
+          this.savedContents,
+          createEntityStore(this.savedContents),
+          apolloClient
+        ).then((newPage) => {
+          const entityNodes = findEntityNodes(this.doc);
 
-        const insert = async (insertPayload) => {
-          const { data } = await apolloClient.mutate({
-            mutation: insertBlockIntoPage,
-            variables: insertPayload,
-          });
+          this.savedContents = newPage.properties.contents;
 
-          const { position } = insertPayload;
-          const entity = data.insertBlockIntoPage.properties.contents[position];
+          for (let idx = 0; idx < entityNodes.length; idx++) {
+            const [entityNode, pos] = entityNodes[idx];
 
-          const offset = await new Promise((resolve) => {
-            doc.forEach((_, offset, index) => {
-              if (index === position) {
-                resolve(offset);
-              }
-            });
-          });
+            const entity = newPage.properties.contents[idx];
 
-          const transform = new Transform(this.doc);
-          const attrs = getProseMirrorNodeAttributes(entity);
+            if (!entity) {
+              throw new Error("Could not find block in saved page");
+            }
 
-          const blockWithAttrs = this.doc.childAfter(mapping.map(offset) + 1);
+            if (!entityNode.attrs.entityId) {
+              const transform = new Transform(this.doc);
+              const attrs = getProseMirrorNodeAttributes(entity);
+              const mappedPos = mapping.map(pos);
+              const blockWithAttrs = this.doc.childAfter(mappedPos);
 
-          // @todo use a custom step for this so we don't need to copy attrs – we may lose some
-          transform.setNodeMarkup(mapping.map(offset) + 1, undefined, {
-            ...blockWithAttrs.attrs,
-            ...attrs,
-          });
+              // @todo use a custom step for this so we don't need to copy attrs – we may lose some
+              transform.setNodeMarkup(mappedPos, undefined, {
+                ...blockWithAttrs.attrs,
+                ...attrs,
+              });
 
-          this.addEvents(apolloClient)(
-            this.version,
-            transform.steps,
-            `${clientID}-server`
-          );
-        };
-
-        const update = async (updatePayloads) => {
-          for (const updatePayload of updatePayloads) {
-            const { data } = await apolloClient.mutate({
-              mutation:
-                updatePayload.entityTypeId === "Page"
-                  ? updatePage
-                  : updateEntity,
-              variables: {
-                metadataId: updatePayload.entityId,
-                properties: updatePayload.data,
-                accountId: updatePayload.accountId,
-              },
-            });
-
-            console.log("update", data);
+              this.addEvents(apolloClient)(
+                this.version,
+                transform.steps,
+                `${clientID}-server`
+              );
+            }
           }
-        };
-
-        const { insertPayloads, pageUpdatedPayload, updatedEntitiesPayload } =
-          calculateSavePayloads(
-            this.accountId,
-            // @todo one of these should be something else
-            this.id,
-            this.id,
-
-            this.doc.type.schema,
-            this.doc,
-            this.savedContents
-          );
-
-        return insertPayloads
-          .reduce(
-            (promise, insertPayload) =>
-              promise.catch(() => {}).then(() => insert(insertPayload)),
-            pageUpdatedPayload
-              ? update([pageUpdatedPayload])
-              : Promise.resolve()
-          )
-          .then(() => update(updatedEntitiesPayload));
+        });
       })
       .catch((err) => {
         console.error("could not save", err);
       })
-      .then(async () => {
-        const { data } = await apolloClient.query({
-          query: getPageQuery,
-          variables: { metadataId: this.id, accountId: this.accountId },
-        });
 
-        this.savedContents = data.page.properties.contents;
-      })
       .finally(() => {
         if (this.saveMapping === mapping) {
           this.saveMapping = null;

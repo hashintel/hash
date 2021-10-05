@@ -37,37 +37,37 @@ type LinkedDataDefinition = {
   aggregate?: AggregateOperationInput;
   entityTypeId?: string;
   entityId?: string;
+  entityVersionId?: string;
 };
 
 // Recursively resolve any __linkedData fields in arbitrary entities
 const resolveLinkedData = async (
   ctx: GraphQLContext,
-  accountId: string,
+  parentAccountId: string,
   object: Record<string, any>,
   info: GraphQLResolveInfo
 ) => {
-  if (!isRecord(object.properties)) {
+  const db = ctx.dataSources.db;
+  if (!isRecord(object)) {
     return;
   }
-  for (const [key, value] of Object.entries(object.properties)) {
+
+  for (const [key, value] of Object.entries(object)) {
     if (Array.isArray(value)) {
       await Promise.all(
         value
           .flat(Infinity)
           .filter(isRecord)
-          .map(
-            async (obj) => await resolveLinkedData(ctx, accountId, obj, info)
-          )
+          .map((obj) => resolveLinkedData(ctx, parentAccountId, obj, info))
       );
       continue;
     }
-
     // We're only interested in properties which link to other data
     if (!isRecord(value) || !value.__linkedData) {
       continue;
     }
 
-    const { aggregate, entityId, entityTypeId } =
+    const { aggregate, entityId, entityVersionId, entityTypeId } =
       value.__linkedData as LinkedDataDefinition;
 
     // We need a type and one of an aggregation operation or id
@@ -75,28 +75,29 @@ const resolveLinkedData = async (
       continue;
     }
 
-    if (entityId) {
+    if (entityId || entityVersionId) {
+      if (!entityId) {
+        throw new Error('__linkedData field "entityId" must be provided.');
+      }
       // Fetch a single entity and resolve any linked data in it
-      const entity = await ctx.dataSources.db.getEntity({
-        accountId,
-        entityVersionId: entityId,
+      const accountId = await db.getEntityAccountId({
+        entityId,
+        entityVersionId,
       });
+      const entity = entityVersionId
+        ? await db.getEntity({ accountId, entityVersionId })
+        : await db.getEntityLatestVersion({ accountId, entityId });
       if (!entity) {
         throw new Error(`entity ${entityId} in account ${accountId} not found`);
       }
-      object.properties[key].data = entity;
-      await resolveLinkedData(
-        ctx,
-        entity.accountId,
-        object.properties[key],
-        info
-      );
+      object[key].data = entity;
+      await resolveLinkedData(ctx, entity.accountId, object[key], info);
     } else if (aggregate) {
       // Fetch an array of entities
       const { results, operation } = await aggregateEntity(
         {},
         {
-          accountId,
+          accountId: parentAccountId,
           entityTypeId,
           operation: aggregate,
         },
@@ -104,14 +105,14 @@ const resolveLinkedData = async (
         info
       );
 
-      object.properties[key].data = results;
-      object.properties[key].__linkedData.aggregate = {
-        ...object.properties[key].__linkedData.aggregate,
+      object[key].data = results;
+      object[key].__linkedData.aggregate = {
+        ...object[key].__linkedData.aggregate,
         ...operation,
       };
       // Resolve linked data for each entity in the array
       await Promise.all(
-        object.properties[key].data.map((entity: DbUnknownEntity) => {
+        object[key].data.map((entity: DbUnknownEntity) => {
           return resolveLinkedData(ctx, entity.accountId, entity, info);
         })
       );
@@ -124,6 +125,7 @@ export const properties: Resolver<
   DbUnknownEntity,
   GraphQLContext
 > = async (entity, _, ctx, info) => {
-  await resolveLinkedData(ctx, entity.accountId, entity, info);
+  await resolveLinkedData(ctx, entity.accountId, entity.properties, info);
+
   return entity.properties;
 };

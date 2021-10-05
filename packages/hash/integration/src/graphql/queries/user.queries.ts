@@ -10,6 +10,23 @@ export const createUser = gql`
   }
 `;
 
+export const createUserWithOrgEmailInvitation = gql`
+  mutation createUserWithOrgEmailInvitation(
+    $orgEntityId: ID!
+    $invitationEmailToken: String!
+  ) {
+    createUserWithOrgEmailInvitation(
+      orgEntityId: $orgEntityId
+      invitationEmailToken: $invitationEmailToken
+    ) {
+      id
+      accountId
+      entityId
+      accountSignupComplete
+    }
+  }
+`;
+
 export const sendLoginCode = gql`
   mutation sendLoginCode($emailOrShortname: String!) {
     sendLoginCode(emailOrShortname: $emailOrShortname) {

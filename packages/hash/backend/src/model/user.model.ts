@@ -1,20 +1,30 @@
-import { User, Account, AccountConstructorArgs, VerificationCode } from ".";
+import {
+  User,
+  Account,
+  AccountConstructorArgs,
+  VerificationCode,
+  Org,
+} from ".";
 import { DBClient } from "../db";
-import { EntityType } from "../db/adapter";
+import {
+  DBUserProperties,
+  EntityType,
+  UserInfoProvidedAtSignup,
+} from "../db/adapter";
 import {
   sendEmailVerificationCodeToEmailAddress,
   sendLoginCodeToEmailAddress,
 } from "../email";
 import { genId } from "../util";
-import { UserProperties, Email } from "../graphql/apiTypes.gen";
+import { Email } from "../graphql/apiTypes.gen";
 import EmailTransporter from "../email/transporter";
 
 type UserConstructorArgs = {
-  properties: UserProperties;
+  properties: DBUserProperties;
 } & Omit<AccountConstructorArgs, "type">;
 
 class __User extends Account {
-  properties: UserProperties;
+  properties: DBUserProperties;
 
   constructor({ properties, ...remainingArgs }: UserConstructorArgs) {
     super({ ...remainingArgs, properties });
@@ -34,15 +44,9 @@ class __User extends Account {
 
   static getUserById =
     (client: DBClient) =>
-    ({
-      accountId,
-      entityId,
-    }: {
-      accountId: string;
-      entityId: string;
-    }): Promise<User | null> =>
+    ({ entityId }: { entityId: string }): Promise<User | null> =>
       client
-        .getEntityLatestVersion({ accountId, entityId })
+        .getEntityLatestVersion({ accountId: entityId, entityId })
         .then((dbUser) => (dbUser ? new User(dbUser) : null));
 
   static getUserByEmail =
@@ -69,7 +73,7 @@ class __User extends Account {
 
   static createUser =
     (client: DBClient) =>
-    async (properties: UserProperties): Promise<User> => {
+    async (properties: DBUserProperties): Promise<User> => {
       const id = genId();
 
       const entity = await client.createEntity({
@@ -85,7 +89,7 @@ class __User extends Account {
     };
 
   private updateUserProperties =
-    (client: DBClient) => (properties: UserProperties) =>
+    (client: DBClient) => (properties: DBUserProperties) =>
       this.updateProperties(client)(properties);
 
   /**
@@ -110,10 +114,24 @@ class __User extends Account {
       preferredName: updatedPreferredName,
     });
 
-  static isAccountSignupComplete = ({
-    shortname,
-    preferredName,
-  }: UserProperties): boolean => !!shortname && !!preferredName;
+  /**
+   * Must occur in the same db transaction as when `this.properties` was fetched
+   * to prevent overriding externally-updated properties
+   */
+  updateInfoProvidedAtSignup =
+    (client: DBClient) => (updatedInfo: UserInfoProvidedAtSignup) =>
+      this.updateUserProperties(client)({
+        ...this.properties,
+        infoProvidedAtSignup: {
+          ...this.properties.infoProvidedAtSignup,
+          ...updatedInfo,
+        },
+      });
+
+  static isAccountSignupComplete = (params: {
+    shortname?: string | null;
+    preferredName?: string | null;
+  }): boolean => !!params.shortname && !!params.preferredName;
 
   isAccountSignupComplete = (): boolean =>
     User.isAccountSignupComplete(this.properties);
@@ -140,17 +158,58 @@ class __User extends Account {
    * Must occur in the same db transaction as when `this.properties` was fetched
    * to prevent overriding externally-updated properties
    */
-  verifyEmailAddress = (client: DBClient) => (emailAddress: string) =>
-    this.updateUserProperties(client)({
+  addEmailAddress =
+    (client: DBClient) =>
+    async (email: Email): Promise<User> => {
+      if (
+        await User.getUserByEmail(client)({
+          email: email.address,
+          verified: true,
+        })
+      ) {
+        throw new Error(
+          "Cannot add email address that has already been verified by another user"
+        );
+      }
+
+      if (this.getEmail(email.address)) {
+        throw new Error(
+          `User with entityId ${this.entityId} already has email address ${email.address}`
+        );
+      }
+
+      return this.updateUserProperties(client)({
+        ...this.properties,
+        emails: [...this.properties.emails, email],
+      });
+    };
+
+  /**
+   * Must occur in the same db transaction as when `this.properties` was fetched
+   * to prevent overriding externally-updated properties
+   */
+  verifyExistingEmailAddress = (client: DBClient) => (emailAddress: string) => {
+    if (!this.getEmail(emailAddress)) {
+      throw new Error(
+        `User with entityId ${this.entityId} does not have email address ${emailAddress}`
+      );
+    }
+
+    return this.updateUserProperties(client)({
       ...this.properties,
       emails: this.properties.emails.map((email) =>
         email.address === emailAddress ? { ...email, verified: true } : email
       ),
     });
+  };
 
   sendLoginVerificationCode =
     (client: DBClient, tp: EmailTransporter) =>
-    async (alternateEmailAddress?: string) => {
+    async (params: {
+      alternateEmailAddress?: string;
+      redirectPath?: string;
+    }) => {
+      const { alternateEmailAddress, redirectPath } = params;
       // Check the supplied email address can be used for sending login codes
       if (alternateEmailAddress) {
         const email = this.getEmail(alternateEmailAddress);
@@ -175,15 +234,18 @@ class __User extends Account {
         emailAddress,
       });
 
-      return sendLoginCodeToEmailAddress(tp)(
+      return sendLoginCodeToEmailAddress(tp)({
         verificationCode,
-        emailAddress
-      ).then(() => verificationCode);
+        emailAddress,
+        redirectPath,
+      }).then(() => verificationCode);
     };
 
   sendEmailVerificationCode =
     (client: DBClient, tp: EmailTransporter) =>
-    async (emailAddress: string) => {
+    async (params: { emailAddress: string; magicLinkQueryParams?: string }) => {
+      const { emailAddress, magicLinkQueryParams } = params;
+
       const email = this.getEmail(emailAddress);
 
       if (!email) {
@@ -204,10 +266,39 @@ class __User extends Account {
         emailAddress,
       });
 
-      return sendEmailVerificationCodeToEmailAddress(tp)(
+      return sendEmailVerificationCodeToEmailAddress(tp)({
         verificationCode,
-        emailAddress
-      ).then(() => verificationCode);
+        emailAddress,
+        magicLinkQueryParams,
+      }).then(() => verificationCode);
+    };
+
+  isMemberOfOrg = ({ entityId }: Org) =>
+    this.properties.memberOf.find(
+      ({ org }) => org.__linkedData.entityId === entityId
+    ) !== undefined;
+
+  /**
+   * Must occur in the same db transaction as when `this.properties` was fetched
+   * to prevent overriding externally-updated properties
+   */
+  joinOrg =
+    (client: DBClient) => (params: { org: Org; responsibility: string }) => {
+      if (this.isMemberOfOrg(params.org)) {
+        throw new Error(
+          `User with entityId '${this.entityId}' is already a member of the organization with entityId '${params.org.entityId}'`
+        );
+      }
+      return this.updateUserProperties(client)({
+        ...this.properties,
+        memberOf: [
+          ...this.properties.memberOf,
+          {
+            org: params.org.convertToDBLink(),
+            responsibility: params.responsibility,
+          },
+        ],
+      });
     };
 }
 

@@ -13,7 +13,11 @@ export const createUser: Resolver<
   {},
   GraphQLContext,
   MutationCreateUserArgs
-> = async (_, { email }, { dataSources, emailTransporter }) =>
+> = async (
+  _,
+  { email, magicLinkQueryParams },
+  { dataSources, emailTransporter }
+) =>
   dataSources.db.transaction(async (client) => {
     // Ensure the email address isn't already verified and associated with a user
     if (await User.getUserByEmail(client)({ email, verified: true })) {
@@ -23,6 +27,10 @@ export const createUser: Resolver<
       );
     }
 
+    /**
+     * @todo: instead of re-using dangling existing user entities, prune them
+     * periodically from the datastore
+     */
     const user =
       // Either get an existing user with this primary un-verified email address, ...
       (await User.getUserByEmail(client)({
@@ -33,16 +41,19 @@ export const createUser: Resolver<
       // ...or create this user
       (await User.createUser(client)({
         emails: [{ address: email, primary: true, verified: false }],
+        infoProvidedAtSignup: {},
+        memberOf: [],
       }));
 
     /** @todo: rate limit creation of email verification codes */
 
-    return user
-      .sendEmailVerificationCode(
-        client,
-        emailTransporter
-      )(email)
-      .then((verificationCode) =>
-        verificationCode.toGQLVerificationCodeMetadata()
-      );
+    const verificationCode = await user.sendEmailVerificationCode(
+      client,
+      emailTransporter
+    )({
+      emailAddress: email,
+      magicLinkQueryParams: magicLinkQueryParams || undefined,
+    });
+
+    return verificationCode.toGQLVerificationCodeMetadata();
   });

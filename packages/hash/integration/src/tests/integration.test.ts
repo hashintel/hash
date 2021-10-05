@@ -1,18 +1,68 @@
 import "./loadTestEnv";
-import { User, VerificationCode } from "@hashintel/hash-backend/src/model";
+import {
+  Org,
+  OrgEmailInvitation,
+  User,
+  VerificationCode,
+} from "@hashintel/hash-backend/src/model";
 import { PostgresAdapter } from "@hashintel/hash-backend/src/db";
+import EmailTransporter from "@hashintel/hash-backend/src/email/transporter";
+import SesEmailTransporter from "@hashintel/hash-backend/src/email/transporter/awsSesEmailTransporter";
 
 import { ApiClient } from "./util";
 import { IntegrationTestsHandler } from "./setup";
-import { PageFieldsFragment, SystemTypeName } from "../graphql/apiTypes.gen";
+import {
+  CreateOrgMutationVariables,
+  OrgSize,
+  PageFieldsFragment,
+  SystemTypeName,
+  WayToUseHash,
+} from "../graphql/apiTypes.gen";
+import { ClientError } from "graphql-request";
 
 const client = new ApiClient("http://localhost:5001/graphql");
+
+let bobCounter = 0;
 
 let handler: IntegrationTestsHandler;
 
 let db: PostgresAdapter;
 
+let transporter: EmailTransporter;
+
 let existingUser: User;
+
+let existingOrg: Org;
+
+const createNewBobWithOrg = async () => {
+  const bobUser = await User.createUser(db)({
+    shortname: `bob-${bobCounter}`,
+    preferredName: `Bob-${bobCounter}`,
+    emails: [
+      {
+        address: `bob-${bobCounter}@bigco.com`,
+        primary: true,
+        verified: true,
+      },
+    ],
+    memberOf: [],
+    infoProvidedAtSignup: { usingHow: WayToUseHash.WithATeam },
+  });
+
+  bobCounter += 1;
+
+  const bobOrg = await Org.createOrg(db)({
+    createdById: bobUser.entityId,
+    properties: {
+      shortname: `${bobUser.properties.shortname}-org`,
+      name: `${bobUser.properties.preferredName}'s Org`,
+    },
+  });
+
+  await bobUser.joinOrg(db)({ org: bobOrg, responsibility: "CEO" });
+
+  return { bobUser, bobOrg };
+};
 
 beforeAll(async () => {
   handler = new IntegrationTestsHandler();
@@ -26,11 +76,25 @@ beforeAll(async () => {
     password: "postgres",
   });
 
+  transporter = new SesEmailTransporter();
+
   existingUser = await User.createUser(db)({
     shortname: "test-user",
     preferredName: "Alice",
     emails: [{ address: "alice@bigco.com", primary: true, verified: true }],
+    memberOf: [],
+    infoProvidedAtSignup: { usingHow: WayToUseHash.ByThemselves },
   });
+
+  existingOrg = await Org.createOrg(db)({
+    createdById: existingUser.entityId,
+    properties: {
+      shortname: "bigco",
+      name: "Big Company",
+    },
+  });
+
+  await existingUser.joinOrg(db)({ org: existingOrg, responsibility: "CEO" });
 });
 
 afterAll(async () => {
@@ -39,7 +103,9 @@ afterAll(async () => {
 });
 
 it("can create user", async () => {
-  const email = "bob@bibco.com";
+  const email = `bob-${bobCounter}@bigco.com`;
+
+  bobCounter += 1;
 
   const { id: verificationCodeId, createdAt: verificationCodeCreatedAt } =
     await client.createUser({ email });
@@ -66,6 +132,41 @@ it("can create user", async () => {
   expect(verificationCode.createdAt.toISOString()).toBe(
     verificationCodeCreatedAt
   );
+
+  /** @todo: cleanup created user in datastore */
+});
+
+it("can create user with email verification code", async () => {
+  const inviteeEmailAddress = "david@bigco.com";
+
+  const emailInvitation = await OrgEmailInvitation.createOrgEmailInvitation(
+    db,
+    transporter
+  )({
+    org: existingOrg,
+    inviter: existingUser,
+    inviteeEmailAddress,
+  });
+
+  /** @todo: use test email transporter to obtain email invitation token */
+  const invitationEmailToken = emailInvitation.properties.accessToken;
+
+  const { entityId, accountSignupComplete } =
+    await client.createUserWithOrgEmailInvitation({
+      orgEntityId: existingOrg.entityId,
+      invitationEmailToken,
+    });
+
+  expect(accountSignupComplete).toEqual(false);
+
+  const user = (await User.getUserById(db)({ entityId }))!;
+
+  expect(user).not.toBeNull();
+  expect(user.getPrimaryEmail()).toEqual({
+    address: inviteeEmailAddress,
+    verified: true,
+    primary: true,
+  });
 });
 
 describe("can log in", () => {
@@ -102,7 +203,7 @@ describe("can log in", () => {
 
 /** @todo: integration tests for login and signup mutations */
 
-describe("when logged in ", () => {
+describe("logged in user ", () => {
   beforeAll(async () => {
     const { id: verificationId } = await client.sendLoginCode({
       emailOrShortname: existingUser.getPrimaryEmail().address,
@@ -138,13 +239,204 @@ describe("when logged in ", () => {
   });
 
   it("can create org", async () => {
-    const orgVars = {
-      shortname: "bigco",
+    const variables: CreateOrgMutationVariables = {
+      org: {
+        name: "Second Big Company",
+        shortname: "bigco2",
+        orgSize: OrgSize.TwoHundredAndFiftyPlus,
+      },
+      responsibility: "CEO",
     };
-    const res = await client.createOrg(orgVars);
-    expect(res.properties).toEqual(orgVars);
-    expect(res.createdAt).toEqual(res.updatedAt);
-    expect(res.entityTypeName).toEqual("Org");
+
+    const { entityId } = await client.createOrg(variables);
+
+    const org = (await Org.getOrgById(db)({ entityId }))!;
+
+    // Test the org has been created correctly
+    expect(org).not.toBeNull();
+    expect(org.properties.name).toEqual(variables.org.name);
+    expect(org.properties.shortname).toEqual(variables.org.shortname);
+    expect(org.properties.infoProvidedAtCreation?.orgSize).toEqual(
+      variables.org.orgSize
+    );
+    expect(org.entityCreatedAt).toEqual(org.entityVersionUpdatedAt);
+    expect(org.entityType.properties.title).toEqual("Org");
+
+    // Test the user is now a member of the org
+    const updatedExistingUser = (await User.getUserById(db)(existingUser))!;
+
+    expect(updatedExistingUser).not.toBeNull();
+
+    const orgMembership = updatedExistingUser.properties.memberOf.find(
+      ({ org: linkedOrg }) => linkedOrg.__linkedData.entityId === org.entityId
+    );
+
+    expect(orgMembership).toEqual({
+      org: {
+        __linkedData: {
+          entityId: org.entityId,
+          entityTypeId: org.entityType.entityId,
+        },
+      },
+      responsibility: variables.responsibility,
+    });
+  });
+
+  it("can create an org email invitation", async () => {
+    const inviteeEmailAddress = `bob-${bobCounter}@bigco.com`;
+
+    bobCounter += 1;
+
+    const response = await client.createOrgEmailInvitation({
+      orgEntityId: existingOrg.entityId,
+      inviteeEmailAddress,
+    });
+
+    expect(response.properties.inviter.data.entityId).toEqual(
+      existingUser.entityId
+    );
+    expect(response.properties.inviteeEmailAddress).toEqual(
+      inviteeEmailAddress
+    );
+
+    /** @todo: cleanup created email invitations */
+  });
+
+  it("cannot create duplicate org email invitations", async () => {
+    const inviteeEmailAddress = `bob-${bobCounter}@bigco.com`;
+    bobCounter += 1;
+    await client.createOrgEmailInvitation({
+      orgEntityId: existingOrg.entityId,
+      inviteeEmailAddress,
+    });
+
+    await client
+      .createOrgEmailInvitation({
+        orgEntityId: existingOrg.entityId,
+        inviteeEmailAddress,
+      })
+      .catch((error: ClientError) => {
+        expect(
+          ApiClient.getErrorCodesFromClientError(error).includes(
+            "ALREADY_INVITED"
+          )
+        ).toBe(true);
+      });
+  });
+
+  it("can get org email invitation", async () => {
+    const { bobUser, bobOrg } = await createNewBobWithOrg();
+
+    const inviteeEmailAddress = existingUser.getPrimaryEmail().address;
+
+    const emailInvitation = await OrgEmailInvitation.createOrgEmailInvitation(
+      db,
+      transporter
+    )({
+      org: bobOrg,
+      inviter: bobUser,
+      inviteeEmailAddress,
+    });
+
+    const gqlEmailInvitation = await client.getOrgEmailInvitation({
+      orgEntityId: bobOrg.entityId,
+      invitationEmailToken: emailInvitation.properties.accessToken,
+    });
+
+    expect(gqlEmailInvitation.entityId).toEqual(emailInvitation.entityId);
+    expect(gqlEmailInvitation.properties.inviteeEmailAddress).toEqual(
+      inviteeEmailAddress
+    );
+    expect(gqlEmailInvitation.properties.inviter.data.entityId).toEqual(
+      bobUser.entityId
+    );
+
+    /** @todo: cleanup created bob user and org */
+  });
+
+  it("can get org invitation", async () => {
+    const { bobOrg } = await createNewBobWithOrg();
+
+    const [invitation] = await bobOrg.getInvitationLinks(db);
+
+    const gqlInvitation = await client.getOrgInvitationLink({
+      orgEntityId: bobOrg.entityId,
+      invitationLinkToken: invitation.properties.accessToken,
+    });
+
+    expect(gqlInvitation.entityId).toEqual(invitation.entityId);
+    expect(gqlInvitation.properties.org.data.entityId).toEqual(bobOrg.entityId);
+
+    /** @todo: cleanup created bob user and org */
+  });
+
+  it("can join org with email invitation", async () => {
+    const { bobUser, bobOrg } = await createNewBobWithOrg();
+
+    const inviteeEmailAddress = "alice-second@bigco.com";
+
+    const emailInvitation = await OrgEmailInvitation.createOrgEmailInvitation(
+      db,
+      transporter
+    )({
+      org: bobOrg,
+      inviter: bobUser,
+      inviteeEmailAddress,
+    });
+
+    const responsibility = "CTO";
+
+    const gqlUser = await client.joinOrg({
+      orgEntityId: bobOrg.entityId,
+      verification: {
+        invitationEmailToken: emailInvitation.properties.accessToken,
+      },
+      responsibility,
+    });
+
+    expect(gqlUser.entityId).toEqual(existingUser.entityId);
+
+    const gqlMemberOf = gqlUser.properties.memberOf.find(
+      ({ org }) => org.data.entityId === bobOrg.entityId
+    )!;
+
+    expect(gqlMemberOf).not.toBeUndefined();
+    expect(gqlMemberOf.responsibility).toEqual(responsibility);
+
+    const { emails } = gqlUser.properties;
+
+    const addedEmail = emails.find(
+      ({ address }) => address === inviteeEmailAddress
+    )!;
+
+    expect(addedEmail).not.toBeUndefined();
+    expect(addedEmail.verified).toEqual(true);
+    expect(addedEmail.primary).toEqual(false);
+  });
+
+  it("can join org with invitation", async () => {
+    const { bobOrg } = await createNewBobWithOrg();
+
+    const [invitation] = await bobOrg.getInvitationLinks(db);
+
+    const responsibility = "CTO";
+
+    const gqlUser = await client.joinOrg({
+      orgEntityId: bobOrg.entityId,
+      verification: {
+        invitationLinkToken: invitation.properties.accessToken,
+      },
+      responsibility,
+    });
+
+    expect(gqlUser.entityId).toEqual(existingUser.entityId);
+
+    const gqlMemberOf = gqlUser.properties.memberOf.find(
+      ({ org }) => org.data.entityId === bobOrg.entityId
+    )!;
+
+    expect(gqlMemberOf).not.toBeUndefined();
+    expect(gqlMemberOf.responsibility).toEqual(responsibility);
   });
 
   describe("can create and update pages", () => {
@@ -231,7 +523,6 @@ describe("when logged in ", () => {
         accountId: existingUser.accountId,
         entityId: page.entityId,
       });
-      expect(updatedPage.history!).toHaveLength(3);
       expect(updatedPage.properties.contents[0].properties.entity.id).toEqual(
         newTextEntity.entityVersionId
       );
@@ -250,7 +541,6 @@ describe("when logged in ", () => {
         accountId: existingUser.accountId,
         entityId: page.entityId,
       });
-      expect(updatedPage.history!).toHaveLength(4);
       expect(updatedPage.properties.contents[1].properties.entity.id).toEqual(
         headerUpdate.entityVersionId
       );
@@ -323,5 +613,74 @@ describe("when logged in ", () => {
     expect(pageEntities[1].textProperties).toMatchObject(textPropertiesA);
     expect(pageEntities[2].textProperties).toMatchObject(textPropertiesB);
     expect(pageEntities[3].textProperties).toMatchObject(textPropertiesC);
+  });
+
+  describe("can create entity types", () => {
+    const validSchemaInput = {
+      description: "Test description",
+      schema: {
+        properties: {
+          testProperty: {
+            type: "string",
+          },
+        },
+      },
+      name: "Test schema",
+    };
+
+    it("can create an entity type with a valid schema", async () => {
+      const entityType = await client.createEntityType({
+        accountId: existingUser.accountId,
+        ...validSchemaInput,
+      });
+      expect(entityType.properties.title).toEqual(validSchemaInput.name);
+      expect(entityType.properties.description).toEqual(
+        validSchemaInput.description
+      );
+    });
+
+    it("enforces uniqueness of schema name in account", async () => {
+      await expect(
+        client.createEntityType({
+          accountId: existingUser.accountId,
+          ...validSchemaInput,
+        })
+      ).rejects.toThrowError(/name.+is not unique/i);
+    });
+
+    it("rejects entity types with invalid JSON schemas", async () => {
+      const schemaName = "Invalid schema entity type";
+      await expect(
+        client.createEntityType({
+          accountId: existingUser.accountId,
+          schema: {
+            properties: [],
+          },
+          name: schemaName + 1,
+        })
+      ).rejects.toThrowError(/properties must be object/);
+
+      await expect(
+        client.createEntityType({
+          accountId: existingUser.accountId,
+          schema: {
+            properties: {
+              testField: 4,
+            },
+          },
+          name: schemaName + 2,
+        })
+      ).rejects.toThrowError(/testField must be object,boolean/);
+
+      await expect(
+        client.createEntityType({
+          accountId: existingUser.accountId,
+          schema: {
+            invalidKeyword: true,
+          },
+          name: schemaName + 3,
+        })
+      ).rejects.toThrowError(/unknown keyword/);
+    });
   });
 });

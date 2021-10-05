@@ -1,6 +1,6 @@
 import { ApolloError, ForbiddenError } from "apollo-server-express";
 
-import { User } from "../../../model";
+import { Account, User } from "../../../model";
 import { MutationUpdateUserArgs, Resolver } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
 import { EntityWithIncompleteEntityType } from "../../../model";
@@ -18,11 +18,11 @@ export const updateUser: Resolver<
       throw new ForbiddenError("You can only update your own user properties");
     }
 
-    const { shortname, preferredName } = properties;
+    const { shortname, preferredName, usingHow } = properties;
 
-    if (!shortname && !preferredName) {
+    if (!shortname && !preferredName && !usingHow) {
       throw new ApolloError(
-        "An updated shortname or preferredName must be provided to update a user",
+        "An updated 'shortname', 'preferredName' or 'usingHow' value  must be provided to update a user",
         "NO_OP"
       );
     }
@@ -35,7 +35,7 @@ export const updateUser: Resolver<
         );
       }
 
-      await User.validateShortname(client)(shortname);
+      await Account.validateShortname(client)(shortname);
 
       await user.updateShortname(client)(shortname);
     }
@@ -56,6 +56,17 @@ export const updateUser: Resolver<
       }
 
       await user.updatePreferredName(client)(preferredName);
+    }
+
+    if (usingHow) {
+      if (user.properties.infoProvidedAtSignup.usingHow === usingHow) {
+        throw new ApolloError(
+          `User with entityId '${user.entityId}' already indicated how they are using HASH '${usingHow}'`,
+          "NO_OP"
+        );
+      }
+
+      await user.updateInfoProvidedAtSignup(client)({ usingHow });
     }
 
     return user.toGQLUnknownEntity();

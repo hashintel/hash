@@ -116,6 +116,13 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return this.query((adapter) => adapter.createEntity(params));
   }
 
+  getEntityAccountId(params: {
+    entityId: string;
+    entityVersionId?: string;
+  }): Promise<string> {
+    return this.query((adapter) => adapter.getEntityAccountId(params));
+  }
+
   getEntity(params: {
     accountId: string;
     entityVersionId: string;
@@ -156,7 +163,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     accountId: string;
     entityId: string;
     properties: any;
-  }): Promise<Entity[]> {
+  }): Promise<Entity> {
     return this.query((adapter) => adapter.updateEntity(params));
   }
 
@@ -188,7 +195,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   getEntitiesBySystemType(params: {
     accountId: string;
     systemTypeName: SystemType;
-    latestOnly: boolean;
+    latestOnly?: boolean;
   }): Promise<Entity[]> {
     return this.query((adapter) => adapter.getEntitiesBySystemType(params));
   }
@@ -240,14 +247,6 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return this.query((adapter) => adapter.pruneVerificationCodes(params));
   }
 
-  getAndUpdateEntity(params: {
-    accountId: string;
-    entityVersionId: string;
-    handler: (entity: Entity) => Entity;
-  }): Promise<Entity[]> {
-    return this.query((adapter) => adapter.getAndUpdateEntity(params));
-  }
-
   getEntityHistory(params: {
     accountId: string;
     entityId: string;
@@ -258,7 +257,8 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   getEntities(
     entities: {
       accountId: string;
-      entityVersionId: string;
+      entityId: string;
+      entityVersionId?: string;
     }[]
   ): Promise<Entity[]> {
     return this.query((adapter) => adapter.getEntities(entities));
@@ -267,4 +267,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   getEntityTypes(params: { accountId: string }): Promise<EntityType[]> {
     return this.query((adapter) => adapter.getEntityTypes(params));
   }
+
+  acquireEntityLock = (params: { entityId: string }): Promise<null> =>
+    this.query((adapter) => adapter.acquireEntityLock(params));
 }

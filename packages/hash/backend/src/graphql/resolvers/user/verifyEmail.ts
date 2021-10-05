@@ -50,7 +50,7 @@ export const verifyEmail: Resolver<
       // Otherwise the email address can be verified with the user
       await Promise.all(
         [
-          user.verifyEmailAddress(client)(email.address),
+          user.verifyExistingEmailAddress(client)(email.address),
           ctx.user ? undefined : passport.login(user, {}),
         ].flat<(Promise<any> | undefined)[]>()
       );
