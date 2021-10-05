@@ -1,9 +1,7 @@
 {
   "env": {
-    "node": true,
-    "jest/globals": true
+    "node": true
   },
-  "plugins": ["jest"],
   "parserOptions": {
     "project": ["./tsconfig.json"]
   }

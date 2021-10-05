@@ -1,7 +1,7 @@
 {
   "root": true, // this is the highest config lower ones will automatically extend
   "parser": "@typescript-eslint/parser",
-  "plugins": ["@typescript-eslint"],
+  "plugins": ["@typescript-eslint", "react-hooks", "jest"],
   "extends": [
     "plugin:@typescript-eslint/base",
     "airbnb",
@@ -9,9 +9,33 @@
   ],
   "ignorePatterns": ["**/*.gen.*"],
   "globals": {
-    "NodeJS": true
+    "NodeJS": true,
+    "React": true,
+    "JSX": true
+  },
+  "env": {
+    "browser": true,
+    "node": true
   },
   "rules": {
+    // /frontend/.eslintrc.json
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": [
+      "warn",
+      {
+        "additionalHooks": "(^useModal$)|(^useUserGatedEffect$)"
+      }
+    ],
+    "react/jsx-key": "error",
+    "react/jsx-no-useless-fragment": "error",
+    "react/self-closing-comp": "warn",
+    "no-restricted-imports": ["error", {
+      "paths": [{
+        "name": "@testing-library/react",
+        "importNames": ["render"],
+        "message": "Please use ./src/tests/testUtils.tsx#render instead"
+      }]
+    }],
     // modified airbnb rules
     "no-underscore-dangle": "off",
     "no-nested-ternary":"off",
@@ -73,6 +97,12 @@
     }
   },
   "overrides": [
+    {
+      "files": ["*.test.ts", "*.test.tsx"],
+      "env": {
+        "jest/globals": true
+      }
+    },
     {
       "files": ["*.ts", "*.tsx"],
       "rules": {
