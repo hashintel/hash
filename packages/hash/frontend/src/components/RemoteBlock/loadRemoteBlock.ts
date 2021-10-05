@@ -31,6 +31,7 @@ export const loadRemoteBlock = memoizeFetchFunction((url, signal) =>
        */
       const exports = {};
       const module = { exports };
+      // eslint-disable-next-line no-new-func
       const func = new Function("require", "module", "exports", source);
       func(requires, module, exports);
 

@@ -11,7 +11,8 @@
   "globals": {
     "NodeJS": true,
     "React": true,
-    "JSX": true
+    "JSX": true,
+    "FixMeLater": "readonly"
   },
   "env": {
     "browser": true,
@@ -63,6 +64,9 @@
     "prefer-destructuring": "off",
     "no-else-return": "off",
     "arrow-body-style": "off",
+    "react/no-unescaped-entities": "off",
+    "no-shadow": "off", // see https://github.com/typescript-eslint/typescript-eslint/issues/2483
+    "@typescript-eslint/no-shadow": "error",
     // potential airbnb rule additions
     // "no-unused-vars": "off",
     // "no-console": "warn",

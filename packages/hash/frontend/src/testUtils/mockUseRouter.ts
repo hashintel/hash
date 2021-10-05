@@ -19,6 +19,6 @@ export function mockUseRouter(
 
   (useRouter as jest.Mock).mockReturnValue({
     ...defaults,
-    ...(props || {}),
+    ...props,
   });
 }

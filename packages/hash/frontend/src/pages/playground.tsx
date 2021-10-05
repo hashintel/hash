@@ -8,7 +8,10 @@ import styles from "./playground.module.scss";
 const validator = new Validator();
 
 const PassOrFail: VoidFunctionComponent<{ pass: boolean }> = ({ pass }) => (
-  <img src={pass ? "/green-check.png" : "/red-cross.png"} />
+  <img
+    alt={pass ? "green-check" : "red-cross"}
+    src={pass ? "/green-check.png" : "/red-cross.png"}
+  />
 );
 
 const BlockPlayground = () => {
@@ -33,11 +36,14 @@ const BlockPlayground = () => {
     setError("");
     fetch(`${folderUrl}/metadata.json`)
       .then((resp) => resp.json())
-      .then((metadata) => {
-        metadata.source = `${folderUrl}/${metadata.source}`;
-        metadata.schema = `${folderUrl}/${metadata.schema}`;
-        setMetadata(metadata);
-        fetch(metadata.schema)
+      .then((resMetadata) => {
+        const updatedMetadata = {
+          ...resMetadata,
+          source: `${folderUrl}/${resMetadata.source}`,
+          schema: `${folderUrl}/${resMetadata.schema}`,
+        };
+        setMetadata(updatedMetadata);
+        fetch(updatedMetadata.schema)
           .then((resp) => resp.json())
           .then(setSchema)
           .catch(() => {});

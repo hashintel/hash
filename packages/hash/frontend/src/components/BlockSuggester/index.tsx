@@ -28,7 +28,7 @@ export const BlockSuggester: VoidFunctionComponent = () => {
     >
       {options.map(({ name, icon, description }, index) => (
         <li
-          key={index}
+          key={name}
           className={tw`flex border border-gray-100 ${
             index !== selectedIndex ? "bg-gray-50" : "bg-gray-100"
           } hover:bg-gray-100`}

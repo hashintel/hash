@@ -1,13 +1,15 @@
 export class Reporter {
   constructor() {
-    this.state = this.node = null;
+    this.node = null;
+    this.state = null;
     this.setAt = 0;
   }
 
   clearState() {
     if (this.state) {
       document.body.removeChild(this.node);
-      this.state = this.node = null;
+      this.node = null;
+      this.state = null;
       this.setAt = 0;
     }
   }

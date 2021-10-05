@@ -46,15 +46,13 @@ export class EditorConnection {
     let newEditState = null;
     switch (action.type) {
       case "loaded":
-        const editState = createProseMirrorState(
-          action.doc,
-          this.replacePortal,
-          [
+        this.state = new State(
+          createProseMirrorState(action.doc, this.replacePortal, [
             ...this.additionalPlugins, // @todo set this version properly
             collab({ version: action.version }),
-          ]
+          ]),
+          "poll"
         );
-        this.state = new State(editState, "poll");
         this.poll();
         break;
       case "restart":
@@ -88,6 +86,7 @@ export class EditorConnection {
         this.state = new State(newEditState, "detached");
       } else if (
         (this.state.comm === "poll" || action.requestDone) &&
+        // eslint-disable-next-line no-cond-assign
         (sendable = this.sendable(newEditState))
       ) {
         this.closeRequest();
@@ -116,8 +115,8 @@ export class EditorConnection {
   // Load the document from the server and start up
   start() {
     this.run(GET(this.url))
-      .then((data) => {
-        data = JSON.parse(data);
+      .then((stringifiedData) => {
+        const data = JSON.parse(stringifiedData);
         return ensureDocBlocksLoaded(this.schema, data.doc, {
           view: this.view,
           replacePortal: this.replacePortal,
@@ -147,9 +146,9 @@ export class EditorConnection {
   poll() {
     const query = `version=${getVersion(this.state.edit)}`;
     this.run(GET(`${this.url}/events?${query}`)).then(
-      (data) => {
+      (stringifiedData) => {
         this.report.success();
-        data = JSON.parse(data);
+        const data = JSON.parse(stringifiedData);
         this.backOff = 0;
         if (data.steps && (data.steps.length || data.comment.length)) {
           const tr = receiveTransaction(
@@ -192,7 +191,7 @@ export class EditorConnection {
       clientID: steps ? steps.clientID : 0,
     });
     this.run(POST(`${this.url}/events`, json, "application/json")).then(
-      (_data) => {
+      () => {
         this.report.success();
         this.backOff = 0;
         const tr = steps
@@ -242,7 +241,8 @@ export class EditorConnection {
   }
 
   run(request) {
-    return (this.request = request);
+    this.request = request;
+    return this.request;
   }
 
   close() {
@@ -252,6 +252,7 @@ export class EditorConnection {
 
   setView(view) {
     if (this.view) this.view.destroy();
-    this.view = window.view = view;
+    window.view = view;
+    this.view = view;
   }
 }

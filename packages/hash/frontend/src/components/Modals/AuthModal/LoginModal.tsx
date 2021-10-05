@@ -3,8 +3,8 @@ import { useRouter } from "next/router";
 
 import { ApolloError, useMutation } from "@apollo/client";
 import { AuthModalLayout, AuthModalLayoutProps } from "./AuthModalLayout";
-import { LoginIntro } from "../../pages/auth/login/LoginIntro";
-import { VerifyCode } from "../../pages/auth/VerifyCode";
+import { LoginIntro as LoginIntroScreen } from "../../pages/auth/login/LoginIntro";
+import { VerifyCode as VerifyCodeScreen } from "../../pages/auth/VerifyCode";
 import {
   VerificationCodeMetadata,
   LoginWithLoginCodeMutation,
@@ -129,7 +129,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
     useMutation<LoginWithLoginCodeMutation, MutationLoginWithLoginCodeArgs>(
       loginWithLoginCodeMutation,
       {
-        onCompleted: ({ loginWithLoginCode }) => {
+        onCompleted: ({ loginWithLoginCode: user }) => {
           if (syntheticLoading) {
             dispatch({
               type: "UPDATE_STATE",
@@ -138,7 +138,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
               },
             });
           }
-          if (onLoggedIn) onLoggedIn(loginWithLoginCode);
+          if (onLoggedIn) onLoggedIn(user);
         },
         onError: ({ graphQLErrors }) =>
           graphQLErrors.forEach(({ extensions }) => {
@@ -162,18 +162,19 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
   useEffect(() => {
     const { pathname, query } = router;
     if (pathname === "/login" && isParsedAuthQuery(query)) {
-      const { verificationId, verificationCode } = query;
-
       dispatch({
         type: "UPDATE_STATE",
         payload: {
           activeScreen: Screen.VerifyCode,
-          verificationCode,
+          verificationCode: query.verificationCode,
         },
       });
 
       void loginWithLoginCode({
-        variables: { verificationId, verificationCode },
+        variables: {
+          verificationId: query.verificationId,
+          verificationCode: query.verificationCode,
+        },
       });
     }
   }, [router, loginWithLoginCode]);
@@ -235,7 +236,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
     switch (activeScreen) {
       case Screen.VerifyCode:
         return (
-          <VerifyCode
+          <VerifyCodeScreen
             loginIdentifier={loginIdentifier}
             defaultCode={verificationCode}
             goBack={goBack}
@@ -249,7 +250,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
       case Screen.Intro:
       default:
         return (
-          <LoginIntro
+          <LoginIntroScreen
             requestLoginCode={requestLoginCode}
             loading={sendLoginCodeLoading}
             errorMessage={errorMessage}

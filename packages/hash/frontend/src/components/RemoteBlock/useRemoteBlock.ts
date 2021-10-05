@@ -60,8 +60,8 @@ export const useRemoteBlock: UseRemoteBlockHook = (url) => {
           url,
         })
       )
-      .catch((err) =>
-        update({ loading: false, err, component: undefined, url: null })
+      .catch((newErr) =>
+        update({ loading: false, err: newErr, component: undefined, url: null })
       );
 
     return () => {

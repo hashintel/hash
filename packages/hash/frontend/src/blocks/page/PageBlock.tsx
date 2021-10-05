@@ -239,7 +239,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
 
     if (!collabEnabled) {
       (async function updateContents(
-        contents: BlockEntity[],
+        updatedContents: BlockEntity[],
         signal?: AbortSignal
       ): Promise<void> {
         const setup = prosemirrorSetup.current;
@@ -251,7 +251,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
 
         const state = view.state;
 
-        const tr = await createEntityUpdateTransaction(state, contents, {
+        const tr = await createEntityUpdateTransaction(state, updatedContents, {
           view,
           replacePortal,
           createNodeView,
@@ -268,7 +268,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
          * @todo probably better way of dealing with this
          */
         if (view.state !== state || prosemirrorSetup.current !== setup) {
-          return updateContents(contents, signal);
+          return updateContents(updatedContents, signal);
         }
 
         view.dispatch(tr);

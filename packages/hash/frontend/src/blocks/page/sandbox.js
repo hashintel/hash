@@ -78,7 +78,8 @@ class AsyncView {
 
     this.dom.appendChild(this.spinner);
 
-    const controller = (this.controller = new AbortController());
+    this.controller = new AbortController();
+
     const componentId = node.attrs.asyncComponentId;
 
     createRemoteBlock(
@@ -94,7 +95,7 @@ class AsyncView {
       node.attrs.asyncNodeProps.marks
     )
       .then((newNode) => {
-        if (controller.signal.aborted) {
+        if (this.controller.signal.aborted) {
           return;
         }
 
@@ -169,12 +170,12 @@ class AsyncView {
  *             disappear w/
  *             https://app.asana.com/0/1200339985403942/1200644404374108/f
  */
-function isSubsetOf(subset, superset) {
-  const isObject = (any) => typeof any === "object" && any !== null;
-  return isObject(subset) && isObject(superset)
-    ? Object.keys(subset).every((key) => isSubsetOf(subset[key], superset[key]))
-    : subset === superset;
-}
+// function isSubsetOf(subset, superset) {
+//   const isObject = (any) => typeof any === "object" && any !== null;
+//   return isObject(subset) && isObject(superset)
+//     ? Object.keys(subset).every((key) => isSubsetOf(subset[key], superset[key]))
+//     : subset === superset;
+// }
 
 /**
  * specialized block-type/-variant select field
@@ -202,7 +203,7 @@ const BlockSelect = forwardRef(({ options, onChange, selectedIndex }, ref) => {
         >
           {options.map(([_componentId, { name, icon, description }], index) => (
             <li
-              key={index}
+              key={_componentId}
               className={tw`flex border border-gray-100 ${
                 index !== selectedIndex ? "bg-gray-50" : "bg-gray-100"
               } hover:bg-gray-100`}
@@ -509,8 +510,8 @@ class BlockView {
      */
     const text = child.isTextblock
       ? child.content.content
-          .filter((node) => node.type.name === "text")
-          .map((node) => node.text)
+          .filter(({ type }) => type.name === "text")
+          .map((contentNode) => contentNode.text)
           .join("")
       : "";
 
@@ -573,11 +574,11 @@ export const renderPM = (
     state,
     nodeViews: {
       ...viewProps.nodeViews,
-      async(node, view, getPos) {
-        return new AsyncView(node, view, getPos, replacePortal);
+      async(currentNode, currentView, getPos) {
+        return new AsyncView(currentNode, currentView, getPos, replacePortal);
       },
-      block(node, view, getPos) {
-        return new BlockView(node, view, getPos, replacePortal);
+      block(currentNode, currentView, getPos) {
+        return new BlockView(currentNode, currentView, getPos, replacePortal);
       },
     },
     dispatchTransaction: collabEnabled

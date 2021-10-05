@@ -1,4 +1,7 @@
+/* eslint-disable import/first */
 // @todo have webpack polyfill this
+require("setimmediate");
+
 import { useRouter } from "next/router";
 import { AppProps } from "next/dist/next-server/lib/router/router";
 import { ApolloProvider } from "@apollo/client/react";
@@ -13,7 +16,6 @@ import "../../styles/prism.css";
 import "../../styles/globals.scss";
 import { useUser } from "../components/hooks/useUser";
 
-require("setimmediate");
 
 export const apolloClient = createApolloClient();
 

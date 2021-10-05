@@ -15,9 +15,8 @@ export const useCreatePage = () => {
     CreatePageMutation,
     CreatePageMutationVariables
   >(createPage, {
-    onCompleted: (data) => {
-      const { createPage } = data;
-      const { metadataId, accountId } = createPage;
+    onCompleted: ({ createPage: createdPage }) => {
+      const { metadataId, accountId } = createdPage;
       void router.push(`/${accountId}/${metadataId}`);
     },
     refetchQueries: ({ data }) => [

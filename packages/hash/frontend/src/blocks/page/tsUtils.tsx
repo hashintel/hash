@@ -99,13 +99,13 @@ export const createNodeView = (
               const remoteBlockProps = getRemoteBlockProps(entity);
 
               const editableRef = editable
-                ? (node: HTMLElement) => {
+                ? (editableNode: HTMLElement) => {
                     if (
                       this.contentDOM &&
-                      node &&
-                      !node.contains(this.contentDOM)
+                      editableNode &&
+                      !editableNode.contains(this.contentDOM)
                     ) {
-                      node.appendChild(this.contentDOM);
+                      editableNode.appendChild(this.contentDOM);
                       this.contentDOM.style.display = "";
                     }
                   }

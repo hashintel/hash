@@ -26,10 +26,8 @@ export const NewEntityType: VoidFunctionComponent = () => {
     CreateEntityTypeMutation,
     CreateEntityTypeMutationVariables
   >(createEntityTypeMutation, {
-    onCompleted: ({ createEntityType }) =>
-      router.push(
-        `/${createEntityType.accountId}/types/${createEntityType.entityId}`
-      ),
+    onCompleted: ({ createEntityType: entityType }) =>
+      router.push(`/${entityType.accountId}/types/${entityType.entityId}`),
   });
 
   const submit = (event: FormEvent) => {

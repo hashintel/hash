@@ -126,9 +126,9 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
                   <VersionDropdown
                     value={data.page.entityVersionId}
                     versions={data.page.history ?? []}
-                    onChange={(versionId) => {
+                    onChange={(changedVersionId) => {
                       void router.push(
-                        `/${accountId}/${metadataId}?version=${versionId}`
+                        `/${accountId}/${metadataId}?version=${changedVersionId}`
                       );
                     }}
                   />

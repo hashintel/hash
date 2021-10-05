@@ -4,9 +4,9 @@ import { useRouter } from "next/router";
 import { useMutation } from "@apollo/client";
 import { useUser } from "../components/hooks/useUser";
 
-import { SignupIntro } from "../components/pages/auth/signup/SignupIntro";
-import { VerifyCode } from "../components/pages/auth/VerifyCode";
-import { AccountSetup } from "../components/pages/auth/signup/AccountSetup";
+import { SignupIntro as SignupIntroScreen } from "../components/pages/auth/signup/SignupIntro";
+import { VerifyCode as VerifyCodeScreen } from "../components/pages/auth/VerifyCode";
+import { AccountSetup as AccountSetupScreen } from "../components/pages/auth/signup/AccountSetup";
 
 import {
   CreateUserMutation,
@@ -123,10 +123,10 @@ const SignupPage: NextPage = () => {
     CreateUserMutation,
     CreateUserMutationVariables
   >(createUserMutation, {
-    onCompleted: ({ createUser }) => {
+    onCompleted: (res) => {
       dispatch({
         type: "CREATE_USER_SUCCESS",
-        payload: { verificationCodeMetadata: createUser },
+        payload: { verificationCodeMetadata: res.createUser },
       });
     },
     onError: ({ graphQLErrors }) => {
@@ -148,10 +148,10 @@ const SignupPage: NextPage = () => {
     VerifyEmailMutation,
     VerifyEmailMutationVariables
   >(verifyEmailMutation, {
-    onCompleted: ({ verifyEmail: user }) => {
+    onCompleted: ({ verifyEmail: returnedUser }) => {
       dispatch({
         type: "VERIFY_EMAIL_SUCCESS",
-        payload: { userEntityId: user.entityId },
+        payload: { userEntityId: returnedUser.entityId },
       });
     },
     onError: ({ graphQLErrors }) => {
@@ -169,9 +169,9 @@ const SignupPage: NextPage = () => {
     UpdateUserMutation,
     UpdateUserMutationVariables
   >(updateUserMutation, {
-    onCompleted: ({ updateUser }) => {
+    onCompleted: ({ updateUser: updatedUser }) => {
       void refetch();
-      void router.push(`/${updateUser.accountId}`);
+      void router.push(`/${updatedUser.accountId}`);
     },
     onError: ({ graphQLErrors }) => {
       graphQLErrors.forEach(({ message }) => {
@@ -187,21 +187,26 @@ const SignupPage: NextPage = () => {
   useEffect(() => {
     const { pathname, query } = router;
     if (pathname === "/signup" && isParsedAuthQuery(query)) {
-      const { verificationId, verificationCode } = query;
       dispatch({
         type: "UPDATE_STATE",
-        payload: { activeScreen: Screen.VerifyCode, verificationCode },
+        payload: {
+          activeScreen: Screen.VerifyCode,
+          verificationCode: query.verificationCode,
+        },
       });
       void verifyEmail({
-        variables: { verificationId, verificationCode },
+        variables: {
+          verificationId: query.verificationId,
+          verificationCode: query.verificationCode,
+        },
       });
     }
   }, [router, verifyEmail]);
 
-  const requestVerificationCode = (email: string) => {
-    dispatch({ type: "UPDATE_STATE", payload: { email } });
+  const requestVerificationCode = (providedEmail: string) => {
+    dispatch({ type: "UPDATE_STATE", payload: { email: providedEmail } });
     void createUser({
-      variables: { email },
+      variables: { email: providedEmail },
     });
   };
 
@@ -270,14 +275,14 @@ const SignupPage: NextPage = () => {
   return (
     <AuthLayout>
       {activeScreen === Screen.Intro && (
-        <SignupIntro
+        <SignupIntroScreen
           loading={createUserLoading}
           errorMessage={errorMessage}
           handleSubmit={requestVerificationCode}
         />
       )}
       {activeScreen === Screen.VerifyCode && (
-        <VerifyCode
+        <VerifyCodeScreen
           loginIdentifier={email}
           goBack={goBack}
           defaultCode={verificationCode}
@@ -289,7 +294,7 @@ const SignupPage: NextPage = () => {
         />
       )}
       {activeScreen === Screen.AccountSetup && (
-        <AccountSetup
+        <AccountSetupScreen
           updateUserDetails={updateUserDetails}
           loading={updateUserLoading}
           errorMessage={errorMessage}

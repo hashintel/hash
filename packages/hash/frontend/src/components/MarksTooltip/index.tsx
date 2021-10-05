@@ -99,10 +99,10 @@ export function createMarksTooltip(replacePortal: ReplacePortals) {
       const updateFns: Function[] = [];
 
       const button = (name: string, text: string) => {
-        const button = document.createElement("button");
+        const buttonElement = document.createElement("button");
 
-        button.innerText = text;
-        dom.appendChild(button);
+        buttonElement.innerText = text;
+        dom.appendChild(buttonElement);
 
         const update = () => {
           // @todo no idea if this is the best way to get a list of
@@ -120,14 +120,14 @@ export function createMarksTooltip(replacePortal: ReplacePortals) {
 
           const active = marks.has(name);
 
-          button.style.backgroundColor = active ? "#2482ff" : "white";
-          button.style.color = active ? "white" : "black";
-          button.style.padding = "4px 0";
-          button.style.width = "25px";
-          button.style.border = "1px solid lightgrey";
+          buttonElement.style.backgroundColor = active ? "#2482ff" : "white";
+          buttonElement.style.color = active ? "white" : "black";
+          buttonElement.style.padding = "4px 0";
+          buttonElement.style.width = "25px";
+          buttonElement.style.border = "1px solid lightgrey";
         };
 
-        button.addEventListener("click", (evt) => {
+        buttonElement.addEventListener("click", (evt) => {
           evt.preventDefault();
           editorView.focus();
           toggleMark(editorView.state.schema.marks[name])(
