@@ -16,7 +16,8 @@ type DocsFrontMatter = {
 
 const getAllFiles = function (
   dirPath,
-  arrayOfFiles: Array<{ inputPath: string; outputPath: string }>
+  arrayOfFiles: Array<{ inputPath: string; outputPath: string, type: string }>,
+  type
 ) {
   const files = fs.readdirSync(dirPath);
 
@@ -24,7 +25,7 @@ const getAllFiles = function (
 
   files.forEach(function (file) {
     if (fs.statSync(dirPath + "/" + file).isDirectory()) {
-      arrayOfFiles = getAllFiles(dirPath + "/" + file, arrayOfFiles);
+      arrayOfFiles = getAllFiles(dirPath + "/" + file, arrayOfFiles, type);
     } else {
       const inputPath = path.join(dirPath, "/", file);
       const outputPath = `.\\output\\${path.join(
@@ -33,7 +34,7 @@ const getAllFiles = function (
         "/",
         file
       )}`;
-      arrayOfFiles.push({ inputPath, outputPath });
+      arrayOfFiles.push({ inputPath, outputPath, type });
     }
   });
 
@@ -43,7 +44,7 @@ const getAllFiles = function (
 export const checkObjectIds = () => {
   const objectIds = [];
 
-  const checkObjectId = (matterData: DocsFrontMatter, type = "glossary") => {
+  const checkObjectId = (matterData: DocsFrontMatter, type) => {
     if (!matterData.data.objectId) {
       throw new Error(
         `objectId missing on file ${type}/${matterData.data.slug}.`
@@ -57,8 +58,8 @@ export const checkObjectIds = () => {
     objectIds.push(matterData.data.objectId);
   };
 
-  const glossaryFiles = getAllFiles("../../resources/glossary", []);
-  const docsFiles = getAllFiles("../../resources/docs/simulation", []);
+  const glossaryFiles = getAllFiles("../../resources/glossary", [], "glossary");
+  const docsFiles = getAllFiles("../../resources/docs/simulation", [], "docs");
 
   const files = [...glossaryFiles, ...docsFiles];
 
@@ -67,7 +68,7 @@ export const checkObjectIds = () => {
 
     const grayMatterData = matter(file) as unknown as DocsFrontMatter;
 
-    checkObjectId(grayMatterData);
+    checkObjectId(grayMatterData, filePath.type);
   });
 };
 
@@ -75,7 +76,7 @@ export const generateAlgoliaJson = () => {
   const jsonData = [];
   const objectIds = [];
 
-  const appendToJson = (matterData: DocsFrontMatter, type = "glossary") => {
+  const appendToJson = (matterData: DocsFrontMatter, type) => {
     if (!matterData.data.objectId) {
       throw new Error(
         `objectId missing on file ${type}/${matterData.data.slug}.`
@@ -99,8 +100,8 @@ export const generateAlgoliaJson = () => {
     jsonData.push(appendData);
   };
 
-  const glossaryFiles = getAllFiles("../../resources/glossary", []);
-  const docsFiles = getAllFiles("../../resources/docs/simulation", []);
+  const glossaryFiles = getAllFiles("../../resources/glossary", [], "glossary");
+  const docsFiles = getAllFiles("../../resources/docs/simulation", [], "docs");
 
   const files = [...glossaryFiles, ...docsFiles];
 
@@ -109,7 +110,7 @@ export const generateAlgoliaJson = () => {
 
     const grayMatterData = matter(file) as unknown as DocsFrontMatter;
 
-    appendToJson(grayMatterData);
+    appendToJson(grayMatterData, filePath.type);
   });
 
   return jsonData;
