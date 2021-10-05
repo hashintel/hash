@@ -35,7 +35,7 @@ const InvitePage: NextPage = () => {
   const { user, loading: fetchingUser } = useUser();
   const router = useRouter();
   const { register } = useForm();
-  const { orgEntityId, accessToken, isExistingUser } = router.query;
+  const { orgEntityId, invitationEmailToken, isExistingUser } = router.query;
 
   const handleSubmit = () => {};
   const errorMessage = "";
@@ -46,12 +46,10 @@ const InvitePage: NextPage = () => {
   >(getOrgEmailInvitation, {
     variables: {
       orgEntityId: orgEntityId as string,
-      invitationEmailToken: accessToken as string,
+      invitationEmailToken: invitationEmailToken as string,
     },
-    skip: !orgEntityId || !accessToken || !user,
+    skip: !orgEntityId || !invitationEmailToken || !user,
   });
-
-  
 
   useEffect(() => {
     if (typeof window == "undefined") {
@@ -61,7 +59,7 @@ const InvitePage: NextPage = () => {
     /**
      * Redirect to home page is necessary query params aren't available
      */
-    if ((!orgEntityId || !accessToken) && router.isReady) {
+    if ((!orgEntityId || !invitationEmailToken) && router.isReady) {
       router.push("/");
       return;
     }

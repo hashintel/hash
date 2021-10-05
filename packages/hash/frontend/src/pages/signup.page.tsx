@@ -12,10 +12,13 @@ import { OrgCreate } from "../components/pages/auth/signup/OrgCreate";
 import { OrgInvite } from "../components/pages/auth/signup/OrgInvite";
 
 import {
+  CreateOrgEmailInvitationMutation,
+  CreateOrgEmailInvitationMutationVariables,
   CreateOrgMutation,
   CreateOrgMutationVariables,
   CreateUserMutation,
   CreateUserMutationVariables,
+  OrgSize,
   UpdateUserMutation,
   UpdateUserMutationVariables,
   UpdateUserProperties,
@@ -30,6 +33,7 @@ import {
   verifyEmail as verifyEmailMutation,
 } from "../graphql/queries/user.queries";
 import { createOrg as createOrgMutation } from "../graphql/queries/org.queries";
+import { createOrgEmailInvitation as createOrgEmailInvitationMutation } from "../graphql/queries/orgEmailInvitation.queries";
 import {
   AUTH_ERROR_CODES,
   isParsedAuthQuery,
@@ -56,6 +60,7 @@ type State = {
   userEntityId: string | null;
   syntheticLoading: boolean;
   orgEntityId: string | null;
+  invitationLink?: string;
 };
 
 type Actions =
@@ -65,7 +70,7 @@ type Actions =
   | Action<"UPDATE_STATE", Partial<State>>;
 
 const initialState: State = {
-  activeScreen: Screen.Intro,
+  activeScreen: Screen.OrgCreate,
   email: "",
   verificationCodeMetadata: undefined,
   verificationCode: "",
@@ -121,6 +126,7 @@ const SignupPage: NextPage = () => {
       userEntityId,
       syntheticLoading,
       orgEntityId,
+      invitationLink,
     },
     dispatch,
   ] = useReducer<React.Reducer<State, Actions>>(reducer, initialState);
@@ -230,10 +236,36 @@ const SignupPage: NextPage = () => {
     CreateOrgMutationVariables
   >(createOrgMutation, {
     onCompleted: ({ createOrg }) => {
+      const accessToken =
+        createOrg.properties.invitationLink?.data.properties.accessToken;
+      const inviteQueryParams = new URLSearchParams({
+        orgEntityId: createOrg.entityId,
+        ...(accessToken ? { invitationLinkToken: accessToken } : {}),
+      });
       updateState({
         orgEntityId: createOrg.accountId,
+        invitationLink: `${window.location.origin}/invite?${inviteQueryParams}`,
+        activeScreen: Screen.OrgInvite,
       });
     },
+    onError: ({ graphQLErrors }) => {
+      graphQLErrors.forEach(({ message }) => {
+        dispatch({
+          type: "SET_ERROR",
+          payload: message,
+        });
+      });
+    },
+  });
+
+  const [
+    createOrgEmailInvitation,
+    { loading: createOrgEmailInvitationLoading },
+  ] = useMutation<
+    CreateOrgEmailInvitationMutation,
+    CreateOrgEmailInvitationMutationVariables
+  >(createOrgEmailInvitationMutation, {
+    onCompleted: ({ createOrgEmailInvitation }) => {},
     onError: ({ graphQLErrors }) => {
       graphQLErrors.forEach(({ message }) => {
         dispatch({
@@ -334,6 +366,40 @@ const SignupPage: NextPage = () => {
     });
   };
 
+  const handleCreateOrganization = ({
+    responsibility,
+    shortname,
+    name,
+    orgSize,
+  }: {
+    responsibility: string;
+    shortname: string;
+    name: string;
+    orgSize: OrgSize;
+  }) => {
+    createOrg({
+      variables: {
+        org: {
+          shortname,
+          name,
+          orgSize,
+        },
+        responsibility,
+      },
+    });
+  };
+
+  const sendEmailInvite = (email: string) => {
+    if (!orgEntityId) return;
+
+    createOrgEmailInvitation({
+      variables: {
+        orgEntityId,
+        inviteeEmailAddress: email,
+      },
+    });
+  };
+
   const goBack = () => {
     if (activeScreen === Screen.VerifyCode) {
       updateState({ activeScreen: Screen.Intro });
@@ -393,8 +459,20 @@ const SignupPage: NextPage = () => {
           errorMessage={errorMessage}
         />
       )}
-      {activeScreen == Screen.OrgCreate && <OrgCreate />}
-      {activeScreen == Screen.OrgInvite && <OrgInvite />}
+      {activeScreen == Screen.OrgCreate && (
+        <OrgCreate
+          createOrg={handleCreateOrganization}
+          loading={createOrgLoading}
+        />
+      )}
+      {activeScreen == Screen.OrgInvite && (
+        <OrgInvite
+          invitationLink={invitationLink}
+          loading={createOrgEmailInvitationLoading}
+          sendEmailInvite={sendEmailInvite}
+          navigateToHome={() => { user && router.push(`/${user.accountId}`)}}
+        />
+      )}
     </AuthLayout>
   );
 };

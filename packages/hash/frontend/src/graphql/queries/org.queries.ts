@@ -9,12 +9,21 @@ export const createOrg = gql`
       createdAt
       updatedAt
       accountId
+      entityId
       entityTypeId
       entityTypeVersionId
       entityTypeName
       visibility
       properties {
         shortname
+        invitationLink {
+          data {
+            entityId
+            properties {
+              accessToken
+            }
+          }
+        }
       }
     }
   }

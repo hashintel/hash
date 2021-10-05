@@ -1,12 +1,15 @@
 import React, { VFC } from "react";
-import { useForm } from "react-hook-form";
+import { RegisterOptions, useForm } from "react-hook-form";
 import { tw } from "twind";
 import { OrgSize } from "../../../../graphql/apiTypes.gen";
 import { SelectInput } from "../../../forms/SelectInput";
 import { TextInput } from "../../../forms/TextInput";
 import { IconSpinner } from "../../../Icons/IconSpinner";
 
-type OrgCreateProps = {};
+type OrgCreateProps = {
+  createOrg: (info: Inputs) => void;
+  loading: boolean;
+};
 
 const ROLES = [
   { label: "Marketing", value: "Marketing" },
@@ -28,62 +31,93 @@ const ORG_SIZES = [
   { label: "250+ people", value: OrgSize.TwoHundredAndFiftyPlus },
 ];
 
-const FORM_INPUTS = [
+const FORM_INPUTS: FormInputsType = [
   {
     name: "name",
     label: "Workspace Name",
     inputType: "textInput",
-    required: true,
+    fieldOptions: {
+      required: true,
+    },
   },
   {
     name: "shortname",
     label: "Org Username",
     inputType: "textInput",
-    required: true,
+    fieldOptions: {
+      required: true,
+      minLength: {
+        value: 4,
+        message: "Must be at least 4 characters",
+      },
+      maxLength: {
+        value: 24,
+        message: "Must be shorter than 24 characters",
+      },
+      pattern: {
+        value: /[a-zA-Z0-9-_]+/,
+        message: "Must only take alphanumeric characters",
+      },
+    },
   },
   {
     name: "orgSize",
     label: "Org Size",
     inputType: "selectInput",
     options: ORG_SIZES,
-    required: true,
+    fieldOptions: {
+      required: true,
+    },
   },
   {
     name: "responsibility",
     label: "Your Role",
     inputType: "selectInput",
     options: ROLES,
-    required: true,
+    fieldOptions: {
+      required: true,
+    },
   },
-] as const;
+];
+
+type FormInputsType = {
+  name: keyof Inputs;
+  label: string;
+  inputType: "textInput" | "selectInput";
+  options?: { label: string; value: string }[];
+  fieldOptions: RegisterOptions;
+}[];
 
 type Inputs = {
   name: string;
   shortname: string;
-  orgSize: string;
+  orgSize: OrgSize;
   responsibility: string;
 };
 
-export const OrgCreate: VFC<OrgCreateProps> = () => {
-  const { register, watch, handleSubmit } = useForm<Inputs>();
-  const onSubmit = handleSubmit((data) => {
-    console.log("data ==> ", data);
+export const OrgCreate: VFC<OrgCreateProps> = ({ createOrg, loading }) => {
+  const {
+    register,
+    watch,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<Inputs>({
+    mode: "onChange",
   });
-  const initials = watch("name");
+  const onSubmit = handleSubmit(createOrg);
+  const nameWatcher = watch("name");
 
   const getInitials = () => {
-    if (!initials) return;
-    // @todo use better variable name
-    const x = initials.trim().split(" ");
-    if (!x.length) return "";
-    if (x.length == 1) return x[0][0];
-    if (x.length > 1) return x[0][0] + x[1][0];
+    if (!nameWatcher) return;
+    const initials = nameWatcher.trim().split(" ");
+    if (!initials.length) return "";
+    if (initials.length == 1) return initials[0][0];
+    if (initials.length > 1) return initials[0][0] + initials[1][0];
   };
 
   return (
     <div className={tw`flex flex-col items-center`}>
-      <h1 className={tw`text-3xl mb-12`}>Create a team workspace</h1>
-
+      ˝<h1 className={tw`text-3xl mb-12`}>Create a team workspace</h1>
       <div className={tw`text-center mb-6`}>
         <div
           className={tw`w-24 h-24 border-1 border-gray-200 rounded-lg flex justify-center items-center mb-2`}
@@ -97,36 +131,33 @@ export const OrgCreate: VFC<OrgCreateProps> = () => {
       <div>
         {FORM_INPUTS.map((field) => {
           return (
-            <React.Fragment>
+            <React.Fragment key={field.name}>
               {field.inputType == "selectInput" ? (
                 <SelectInput
-                  className={tw`mb-6`}
                   label={field.label}
-                  options={field.options}
-                  key={field.name}
-                  {...register(field.name)}
-                  required={field.required}
+                  options={field.options as { label: string; value: string }[]}
+                  {...register(field.name, field.fieldOptions)}
                 />
               ) : (
                 <TextInput
-                  className={tw`mb-6`}
                   label={field.label}
                   transparent
-                  key={field.name}
-                  {...register(field.name)}
-                  required={field.required}
+                  {...register(field.name, field.fieldOptions)}
                 />
               )}
+              <span className={tw`text-red-500 text-sm`}>
+                {errors?.[field.name]?.message}
+              </span>
+              <div className={tw`mb-6`}></div>
             </React.Fragment>
           );
         })}
-        {/* @todo use Button component */}
         <button
           className={tw`group w-64 bg-gradient-to-r from-blue-400 via-blue-500 to-pink-500 rounded-lg h-11 transition-all disabled:opacity-50 flex items-center justify-center text-white text-sm font-bold mx-auto`}
           onClick={onSubmit}
-          disabled={false}
+          disabled={loading}
         >
-          {false ? (
+          {loading ? (
             <IconSpinner className={tw`h-4 w-4 text-white animate-spin`} />
           ) : (
             <>

@@ -30,3 +30,27 @@ export const getOrgEmailInvitation = gql`
     }
   }
 `;
+
+export const createOrgEmailInvitation = gql`
+  mutation createOrgEmailInvitation(
+    $orgEntityId: ID!
+    $inviteeEmailAddress: String!
+  ) {
+    createOrgEmailInvitation(
+      orgEntityId: $orgEntityId
+      inviteeEmailAddress: $inviteeEmailAddress
+    ) {
+      properties {
+        org {
+          data {
+            properties {
+              name
+              shortname
+            }
+          }
+        }
+        inviteeEmailAddress
+      }
+    }
+  }
+`;
