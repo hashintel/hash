@@ -248,7 +248,9 @@ describe("logged in user ", () => {
       responsibility: "CEO",
     };
 
-    const { entityId } = await client.createOrg(variables);
+    const { entityId, properties: gqlOrgProperties } = await client.createOrg(
+      variables
+    );
 
     const org = (await Org.getOrgById(db)({ entityId }))!;
 
@@ -261,6 +263,20 @@ describe("logged in user ", () => {
     );
     expect(org.entityCreatedAt).toEqual(org.entityVersionUpdatedAt);
     expect(org.entityType.properties.title).toEqual("Org");
+
+    // Test an invitaiton link has been created for the org
+    const invitationLinks = await org.getInvitationLinks(db);
+    expect(invitationLinks.length).toEqual(1);
+    const [invitationLink] = invitationLinks;
+    expect(invitationLink).not.toBeUndefined();
+
+    // Test the invitation link has been returned in the createOrg GraphQL mutation
+    expect(gqlOrgProperties.invitationLink?.data.entityId).toEqual(
+      invitationLink.entityId
+    );
+    expect(
+      gqlOrgProperties.invitationLink?.data.properties.accessToken
+    ).toEqual(invitationLink.properties.accessToken);
 
     // Test the user is now a member of the org
     const updatedExistingUser = (await User.getUserById(db)(existingUser))!;

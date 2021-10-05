@@ -13,6 +13,14 @@ export const createOrg = gql`
       visibility
       properties {
         shortname
+        invitationLink {
+          data {
+            entityId
+            properties {
+              accessToken
+            }
+          }
+        }
       }
     }
   }

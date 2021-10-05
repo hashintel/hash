@@ -7,15 +7,19 @@ import {
   OrgEmailInvitation,
 } from ".";
 import { DBClient } from "../db";
-import { DBOrgProperties, EntityType } from "../db/adapter";
+import { DBLinkedEntity, DBOrgProperties, EntityType } from "../db/adapter";
 import { genId } from "../util";
 
+type OrgModelProperties = {
+  invitationLink?: DBLinkedEntity;
+} & DBOrgProperties;
+
 type OrgConstructorArgs = {
-  properties: DBOrgProperties;
+  properties: OrgModelProperties;
 } & Omit<AccountConstructorArgs, "type">;
 
 class __Org extends Account {
-  properties: DBOrgProperties;
+  properties: OrgModelProperties;
 
   constructor({ properties, ...remainingArgs }: OrgConstructorArgs) {
     super({ ...remainingArgs, properties });

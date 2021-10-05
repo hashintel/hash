@@ -70,7 +70,19 @@ class __OrgInvitationLink extends AccessToken {
         versioned: false,
       });
 
-      return new OrgInvitationLink({ ...entity, properties });
+      const orgInvitationLink = new OrgInvitationLink({
+        ...entity,
+        properties,
+      });
+
+      /**
+       * @todo: remove this when we have a way of resolving the inverse
+       * relationship of (OrgInvitationLink)-[org]->(Org)
+       */
+
+      org.properties.invitationLink = orgInvitationLink.convertToDBLink();
+
+      return orgInvitationLink;
     };
 
   private updateOrgInvitationLinkProperties =

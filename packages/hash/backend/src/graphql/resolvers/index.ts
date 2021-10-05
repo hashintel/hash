@@ -131,6 +131,10 @@ export const resolvers = {
     properties: entityFields.properties,
   },
 
+  Org: {
+    properties: entityFields.properties,
+  },
+
   OrgEmailInvitation: {
     properties: entityFields.properties,
   },
