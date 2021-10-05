@@ -16,17 +16,23 @@ export const isShortnameTaken = gql`
   }
 `;
 
+const userFieldsFragment = gql`
+  fragment UserFields on User {
+    id
+    entityId
+    createdById
+    accountId
+    entityTypeId
+    entityTypeVersionId
+    entityTypeName
+    visibility
+  }
+`;
+
 export const updateUser = gql`
   mutation updateUser($userEntityId: ID!, $properties: UpdateUserProperties!) {
     updateUser(userEntityId: $userEntityId, properties: $properties) {
-      id
-      entityId
-      createdById
-      accountId
-      entityTypeId
-      entityTypeVersionId
-      entityTypeName
-      visibility
+      ...UserFields
       accountSignupComplete
       properties {
         shortname
@@ -39,6 +45,7 @@ export const updateUser = gql`
       }
     }
   }
+  ${userFieldsFragment}
 `;
 
 export const verifyEmail = gql`
@@ -120,14 +127,7 @@ export const logout = gql`
 export const meQuery = gql`
   query me {
     me {
-      id
-      entityId
-      createdById
-      accountId
-      entityTypeId
-      entityTypeVersionId
-      entityTypeName
-      visibility
+      ...UserFields
       accountSignupComplete
       properties {
         shortname
@@ -140,4 +140,30 @@ export const meQuery = gql`
       }
     }
   }
+  ${userFieldsFragment}
+`;
+
+export const joinOrg = gql`
+  mutation joinOrg(
+    $orgEntityId: ID!
+    $verification: JoinOrgVerification!
+    $responsibility: String!
+  ) {
+    joinOrg(
+      orgEntityId: $orgEntityId
+      verification: $verification
+      responsibility: $responsibility
+    ) {
+      ...UserFields
+      accountSignupComplete
+      properties {
+        shortname
+        preferredName
+        memberOf {
+          responsibility
+        }
+      }
+    }
+  }
+  ${userFieldsFragment}
 `;

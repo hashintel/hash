@@ -146,7 +146,6 @@ const SignupPage: NextPage = () => {
     CreateUserMutationVariables
   >(createUserMutation, {
     onCompleted: ({ createUser }) => {
-      console.log("createUser ==> ", createUser);
       dispatch({
         type: "CREATE_USER_SUCCESS",
         payload: { verificationCodeMetadata: res.createUser },
