@@ -40,12 +40,12 @@ export const AccountUsage: VFC<AccountUsageProps> = ({
   };
 
   return (
-    <div>
+    <div className={tw`flex flex-col items-center`}>
       <h1 className={tw`text-3xl mb-14`}>How are you planning to use HASH?</h1>
-
       <div className={tw`flex justify-center mb-14`}>
         {USAGE_OPTIONS.map(({ title, description, icon, value }, index) => (
           <button
+            key={value}
             className={tw`w-52 group relative focus:outline-none ${
               index == 0 ? "mr-8" : ""
             }`}
@@ -86,6 +86,8 @@ export const AccountUsage: VFC<AccountUsageProps> = ({
           </>
         )}
       </button>
+      {/* todo: style this properly */}
+      {<p>{errorMessage}</p>}
     </div>
   );
 };

@@ -33,23 +33,27 @@ const FORM_INPUTS = [
     name: "name",
     label: "Workspace Name",
     inputType: "textInput",
+    required: true,
   },
   {
     name: "shortname",
     label: "Org Username",
     inputType: "textInput",
+    required: true,
   },
   {
     name: "orgSize",
     label: "Org Size",
     inputType: "selectInput",
     options: ORG_SIZES,
+    required: true,
   },
   {
     name: "responsibility",
     label: "Your Role",
     inputType: "selectInput",
     options: ROLES,
+    required: true,
   },
 ] as const;
 
@@ -61,11 +65,20 @@ type Inputs = {
 };
 
 export const OrgCreate: VFC<OrgCreateProps> = () => {
-  const { register, handleSubmit } = useForm<Inputs>();
-
+  const { register, watch, handleSubmit } = useForm<Inputs>();
   const onSubmit = handleSubmit((data) => {
     console.log("data ==> ", data);
   });
+  const initials = watch("name");
+
+  const getInitials = () => {
+    if (!initials) return;
+    // @todo use better variable name
+    const x = initials.trim().split(" ");
+    if (!x.length) return "";
+    if (x.length == 1) return x[0][0];
+    if (x.length > 1) return x[0][0] + x[1][0];
+  };
 
   return (
     <div className={tw`flex flex-col items-center`}>
@@ -75,7 +88,9 @@ export const OrgCreate: VFC<OrgCreateProps> = () => {
         <div
           className={tw`w-24 h-24 border-1 border-gray-200 rounded-lg flex justify-center items-center mb-2`}
         >
-          <p className={tw`text-4xl font-bold text-gray-200 uppercase`}>AC</p>
+          <p className={tw`text-4xl font-bold text-gray-200 uppercase`}>
+            {getInitials()}
+          </p>
         </div>
         <span className={tw`text-sm font-bold text-gray-500`}>Add a logo</span>
       </div>
@@ -90,6 +105,7 @@ export const OrgCreate: VFC<OrgCreateProps> = () => {
                   options={field.options}
                   key={field.name}
                   {...register(field.name)}
+                  required={field.required}
                 />
               ) : (
                 <TextInput
@@ -98,37 +114,12 @@ export const OrgCreate: VFC<OrgCreateProps> = () => {
                   transparent
                   key={field.name}
                   {...register(field.name)}
+                  required={field.required}
                 />
               )}
             </React.Fragment>
           );
         })}
-
-        {/* <TextInput
-          className={tw`mb-6`}
-          label="Workspace Name"
-          transparent
-          {...register("name")}
-        />
-        <TextInput
-          className={tw`mb-6`}
-          label="Org Username"
-          transparent
-          {...register("shortname")}
-        />
-        <TextInput
-          className={tw`mb-6`}
-          label="Org Size"
-          transparent
-          {...register("orgSize")}
-        /> */}
-        {/* 
-        <SelectInput
-          className={tw`mb-6`}
-          label="Your Role"
-          options={ROLES}
-          onChange={(x) => {}}
-        /> */}
         {/* @todo use Button component */}
         <button
           className={tw`group w-64 bg-gradient-to-r from-blue-400 via-blue-500 to-pink-500 rounded-lg h-11 transition-all disabled:opacity-50 flex items-center justify-center text-white text-sm font-bold mx-auto`}

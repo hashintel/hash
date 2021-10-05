@@ -8,7 +8,10 @@ import { IconSpinner } from "../../../Icons/IconSpinner";
 import { useShortnameInput } from "../../../hooks/useShortnameInput";
 
 type AccountSetupProps = {
-  updateUserDetails: (shortname: string, preferredName: string) => void;
+  updateUserDetails: (details: {
+    shortname: string;
+    preferredName: string;
+  }) => void;
   loading: boolean;
   errorMessage?: string;
 };
@@ -33,7 +36,7 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
 
   const handleSubmit = (evt: React.FormEvent) => {
     evt.preventDefault();
-    void updateUserDetails(shortname, preferredName);
+    void updateUserDetails({ shortname, preferredName });
   };
 
   const displayShortnameError =

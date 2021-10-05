@@ -59,7 +59,7 @@ export const SignupIntro: VFC<SignupIntroProps> = ({
           placeholder="Enter your email address.."
           type="email"
           ref={inputRef}
-          onChange={setEmail}
+          onChangeText={setEmail}
           value={email}
         />
         {errorMessage && (

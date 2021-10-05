@@ -1,4 +1,4 @@
-import React, { useEffect, useReducer } from "react";
+import React, { useEffect, useRef } from "react";
 import { NextPage } from "next";
 import { useRouter } from "next/router";
 import { tw } from "twind";
@@ -12,6 +12,8 @@ import { OrgCreate } from "../components/pages/auth/signup/OrgCreate";
 import { OrgInvite } from "../components/pages/auth/signup/OrgInvite";
 
 import {
+  CreateOrgMutation,
+  CreateOrgMutationVariables,
   CreateUserMutation,
   CreateUserMutationVariables,
   UpdateUserMutation,
@@ -27,6 +29,7 @@ import {
   updateUser as updateUserMutation,
   verifyEmail as verifyEmailMutation,
 } from "../graphql/queries/user.queries";
+import { createOrg as createOrgMutation } from "../graphql/queries/org.queries";
 import {
   AUTH_ERROR_CODES,
   isParsedAuthQuery,
@@ -52,6 +55,7 @@ type State = {
   errorMessage: string;
   userEntityId: string | null;
   syntheticLoading: boolean;
+  orgEntityId: string | null;
 };
 
 type Actions =
@@ -61,13 +65,14 @@ type Actions =
   | Action<"UPDATE_STATE", Partial<State>>;
 
 const initialState: State = {
-  activeScreen: Screen.OrgCreate,
+  activeScreen: Screen.Intro,
   email: "",
   verificationCodeMetadata: undefined,
   verificationCode: "",
   errorMessage: "",
   userEntityId: null,
   syntheticLoading: false,
+  orgEntityId: null,
 };
 
 function reducer(state: State, action: Actions): State {
@@ -115,23 +120,33 @@ const SignupPage: NextPage = () => {
       errorMessage,
       userEntityId,
       syntheticLoading,
+      orgEntityId,
     },
     dispatch,
   ] = useReducer<React.Reducer<State, Actions>>(reducer, initialState);
+  const accountUsageType = useRef<WayToUseHash | null>(null);
 
   useEffect(() => {
     // If the user is logged in, and their account sign-up is complete...
-    if (user && user.accountSignupComplete) {
-      // ...redirect them to the homepage
-      void router.push(`/${user.accountId}`);
-    }
+    // ...redirect them to the homepage
+    // if (user && user.accountSignupComplete) {
+    //   void router.push(`/${user.accountId}`);
+    // }
   }, [user, router]);
+
+  const updateState = (properties: Partial<State>) => {
+    dispatch({
+      type: "UPDATE_STATE",
+      payload: properties,
+    });
+  };
 
   const [createUser, { loading: createUserLoading }] = useMutation<
     CreateUserMutation,
     CreateUserMutationVariables
   >(createUserMutation, {
-    onCompleted: (res) => {
+    onCompleted: ({ createUser }) => {
+      console.log("createUser ==> ", createUser);
       dispatch({
         type: "CREATE_USER_SUCCESS",
         payload: { verificationCodeMetadata: res.createUser },
@@ -177,19 +192,48 @@ const SignupPage: NextPage = () => {
     UpdateUserMutation,
     UpdateUserMutationVariables
   >(updateUserMutation, {
-    onCompleted: ({ updateUser: updatedUser }) => {
+    onCompleted: ({ updateUser }) => {
+      // for normal flow, accountUsageType is null. Direct user to accountUsage setup
+      // @todo update user cache instead of refetching here
       void refetch();
       if (updateUser.accountSignupComplete) {
-        // check if `usingHow` can be retrieved
-        if (updateUser.properties.usingHow == WayToUseHash.WithATeam) {
-          dispatch({
-            type: "UPDATE_STATE",
-            payload: { activeScreen: Screen.OrgCreate, errorMessage: "" },
+        if (!accountUsageType.current) {
+          updateState({
+            activeScreen: Screen.AccountUsage,
+            errorMessage: "",
           });
-        } else {
-          void router.push(`/${updateUser.accountId}`);
+          return;
         }
+
+        if (accountUsageType.current == WayToUseHash.WithATeam) {
+          updateState({
+            activeScreen: Screen.OrgCreate,
+            errorMessage: "",
+          });
+          return;
+        }
+
+        void router.push(`/${updateUser.accountId}`);
       }
+    },
+    onError: ({ graphQLErrors }) => {
+      graphQLErrors.forEach(({ message }) => {
+        dispatch({
+          type: "SET_ERROR",
+          payload: message,
+        });
+      });
+    },
+  });
+
+  const [createOrg, { loading: createOrgLoading }] = useMutation<
+    CreateOrgMutation,
+    CreateOrgMutationVariables
+  >(createOrgMutation, {
+    onCompleted: ({ createOrg }) => {
+      updateState({
+        orgEntityId: createOrg.accountId,
+      });
     },
     onError: ({ graphQLErrors }) => {
       graphQLErrors.forEach(({ message }) => {
@@ -205,13 +249,8 @@ const SignupPage: NextPage = () => {
   useEffect(() => {
     const { pathname, query } = router;
     if (pathname === "/signup" && isParsedAuthQuery(query)) {
-      dispatch({
-        type: "UPDATE_STATE",
-        payload: {
-          activeScreen: Screen.VerifyCode,
-          verificationCode: query.verificationCode,
-        },
-      });
+      const { verificationId, verificationCode } = query;
+      updateState({ activeScreen: Screen.VerifyCode, verificationCode });
       void verifyEmail({
         variables: {
           verificationId: query.verificationId,
@@ -221,8 +260,8 @@ const SignupPage: NextPage = () => {
     }
   }, [router, verifyEmail]);
 
-  const requestVerificationCode = (providedEmail: string) => {
-    dispatch({ type: "UPDATE_STATE", payload: { email: providedEmail } });
+  const requestVerificationCode = (email: string) => {
+    updateState({ email });
     void createUser({
       variables: { email: providedEmail },
     });
@@ -241,10 +280,7 @@ const SignupPage: NextPage = () => {
     const verificationId = verificationCodeMetadata.id;
 
     if (withSyntheticLoading) {
-      dispatch({
-        type: "UPDATE_STATE",
-        payload: { syntheticLoading: true },
-      });
+      updateState({ syntheticLoading: true });
       setTimeout(
         () =>
           verifyEmail({
@@ -259,40 +295,49 @@ const SignupPage: NextPage = () => {
     }
   };
 
-  const updateUserDetails = (
-    shortname: string,
-    preferredName: string,
-    usingHow?: WayToUseHash
-  ) => {
+  const updateUserDetails = ({
+    shortname,
+    preferredName,
+    usingHow,
+  }: {
+    shortname?: string;
+    preferredName?: string;
+    usingHow?: WayToUseHash;
+  }) => {
     if (!userEntityId) return;
-    let properties = { shortname, preferredName } as UpdateUserProperties;
+    let properties = {} as UpdateUserProperties;
+
+    if (shortname) {
+      properties.shortname = shortname;
+    }
+    if (preferredName) {
+      properties.preferredName = preferredName;
+    }
     if (usingHow) {
       properties.usingHow = usingHow;
     }
+
     void updateUser({
       variables: {
         userEntityId,
-        properties: { shortname, preferredName, usingHow },
+        properties,
       },
     });
   };
 
   const updateWayToUseHash = (usingHow?: WayToUseHash) => {
-    console.log("user ==> ", user);
-    if (!user?.properties.shortname || !user?.properties.preferredName) return;
-    updateUserDetails(
-      user.properties.shortname,
-      user.properties.preferredName,
-      usingHow
-    );
+    if (usingHow) {
+      accountUsageType.current = usingHow;
+    }
+
+    updateUserDetails({
+      usingHow,
+    });
   };
 
   const goBack = () => {
     if (activeScreen === Screen.VerifyCode) {
-      dispatch({
-        type: "UPDATE_STATE",
-        payload: { activeScreen: Screen.Intro },
-      });
+      updateState({ activeScreen: Screen.Intro });
     }
   };
 
@@ -302,12 +347,9 @@ const SignupPage: NextPage = () => {
     !user.accountSignupComplete &&
     activeScreen !== Screen.AccountSetup
   ) {
-    dispatch({
-      type: "UPDATE_STATE",
-      payload: {
-        userEntityId: user.entityId,
-        activeScreen: Screen.AccountSetup,
-      },
+    updateState({
+      userEntityId: user.entityId,
+      activeScreen: Screen.AccountSetup,
     });
   }
 
