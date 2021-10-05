@@ -8,7 +8,7 @@ import { EditorState } from "prosemirror-state";
 import { BlockMetadata } from "@hashintel/block-protocol";
 import { Node as ProsemirrorNode, NodeSpec, Schema } from "prosemirror-model";
 import { Decoration, EditorView } from "prosemirror-view";
-import blockPaths from "../blockPaths.sample.json";
+import blockPaths from "./blockPaths.sample.json";
 import { createRemoteBlock, defineRemoteBlock } from "./sharedWithBackendJs";
 import { BlockEntity } from "./types";
 
