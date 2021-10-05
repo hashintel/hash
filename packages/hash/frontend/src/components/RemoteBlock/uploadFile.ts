@@ -1,17 +1,17 @@
 // This doesn't actually upload the file, just supplies a fake link to the local file or internet URL
 export const uploadFile = async ({
   file,
-  imgURL,
+  url,
   mime,
 }: {
   file?: File;
-  imgURL?: string;
+  url?: string;
   mime?: string;
 }): Promise<{
   src?: string;
 }> => {
-  if (imgURL?.trim()) {
-    return { src: imgURL };
+  if (url?.trim()) {
+    return { src: url };
   }
 
   if (!file) {

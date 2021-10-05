@@ -128,17 +128,15 @@ export const Video: BlockComponent<AppProps> = (props) => {
     const { files } = event.target;
 
     if (files?.[0]) {
-      void uploadFile({ file: files[0], mime: VIDEO_MIME_TYPE }).then(
-        ({ src, error }) => {
+      void uploadFile({ file: files[0], mime: VIDEO_MIME_TYPE })
+        .then(({ src }) => {
           if (isMounted.current) {
-            if (error?.trim()) {
-              return displayError(error);
-            }
-
             updateData(src);
           }
-        }
-      );
+        })
+        .catch((error) => {
+          return displayError(error);
+        });
     }
   };
 
@@ -239,17 +237,15 @@ export const Video: BlockComponent<AppProps> = (props) => {
             // we set our input's 'files' property
 
             if (files[0].type.search("video") > -1) {
-              void uploadFile({ file: files[0], mime: VIDEO_MIME_TYPE }).then(
-                ({ src, error }) => {
+              void uploadFile({ file: files[0], mime: VIDEO_MIME_TYPE })
+                .then(({ src }) => {
                   if (isMounted.current) {
-                    if (error?.trim()) {
-                      return displayError(error);
-                    }
-
                     updateData(src);
                   }
-                }
-              );
+                })
+                .catch((error) => {
+                  return displayError(error);
+                });
             }
           }
         }}

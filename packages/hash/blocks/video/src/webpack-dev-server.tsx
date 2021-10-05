@@ -12,36 +12,51 @@ const App = () => {
   const uploadFile = async ({
     file,
     url,
+    mime,
   }: {
     file?: File;
     url?: string;
+    mime?: string;
   }): Promise<{
     src?: string;
-    error?: string;
   }> => {
     if (url?.trim()) {
       return { src: url };
     }
 
-    if (file) {
-      return new Promise((resolve) => {
-        const reader = new FileReader();
+    if (!file) {
+      let fileType = "";
 
-        reader.onload = function (event) {
-          if (event.target?.result) {
-            resolve({ src: event.target.result.toString() });
-          } else {
-            resolve({ error: "Couldn't read your file" });
-          }
-        };
+      if (mime) {
+        if (mime.includes("image")) {
+          fileType = "Image";
+        }
 
-        reader.readAsDataURL(file);
-      });
+        if (mime.includes("video")) {
+          fileType = "Video";
+        }
+      }
+
+      throw new Error(
+        `Please enter a valid  ${
+          fileType ? `${fileType} ` : ""
+        }URL or select a file below`
+      );
     }
 
-    return {
-      error: "Please enter a valid video URL or select a file below",
-    };
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          resolve({ src: event.target.result.toString() });
+        } else {
+          reject(new Error("Couldn't read your file"));
+        }
+      };
+
+      reader.readAsDataURL(file);
+    });
   };
 
   return (

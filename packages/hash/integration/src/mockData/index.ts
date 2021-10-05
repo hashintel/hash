@@ -645,7 +645,7 @@ void (async () => {
         {
           properties: {
             componentId: "https://block.blockprotocol.org/video",
-            entityId: results.get("video1")!.entityVersionId,
+            entityId: results.get("video1")!.entityId,
             accountId: results.get("video1")!.accountId,
           },
           createdById: user.entityId,
@@ -746,7 +746,7 @@ void (async () => {
                 accountId: results.get("b15")!.accountId,
               },
               {
-                entityId: results.get("b16")!.entityVersionId,
+                entityId: results.get("b16")!.entityId,
                 accountId: results.get("b16")!.accountId,
               },
             ],
