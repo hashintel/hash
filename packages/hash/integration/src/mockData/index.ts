@@ -645,8 +645,8 @@ void (async () => {
         {
           properties: {
             componentId: "https://block.blockprotocol.org/video",
-            entityId: results.get("video1")?.entityVersionId || null,
-            accountId: results.get("video1")?.accountId || null,
+            entityId: results.get("video1")!.entityVersionId,
+            accountId: results.get("video1")!.accountId,
           },
           createdById: user.entityId,
           accountId: hashOrg.accountId,
@@ -746,8 +746,8 @@ void (async () => {
                 accountId: results.get("b15")!.accountId,
               },
               {
-                entityId: results.get("b16")?.entityVersionId || null,
-                accountId: results.get("b16")?.accountId || null,
+                entityId: results.get("b16")!.entityVersionId,
+                accountId: results.get("b16")!.accountId,
               },
             ],
             title: "HASH's 1st page",
