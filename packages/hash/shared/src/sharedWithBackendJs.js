@@ -1,10 +1,10 @@
-import { defineNewBlock, fetchBlockMeta } from "./sharedWithBackend";
 import { EditorState } from "prosemirror-state";
 import { keymap } from "prosemirror-keymap";
 import { baseKeymap, chainCommands, toggleMark } from "prosemirror-commands";
 import { history, redo, undo } from "prosemirror-history";
 import { undoInputRule } from "prosemirror-inputrules";
 import { dropCursor } from "prosemirror-dropcursor";
+import { defineNewBlock, fetchBlockMeta } from "./sharedWithBackend";
 import { wrapEntitiesPlugin } from "./wrapEntitiesPlugin";
 
 /**
@@ -121,7 +121,7 @@ export const createProseMirrorState = (
   });
 
   return EditorState.create({
-    doc: doc,
+    doc,
     plugins: [...plugins, formatKeymap, ...additionalPlugins],
   });
 };

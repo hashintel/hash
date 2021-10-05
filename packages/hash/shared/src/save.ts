@@ -1,6 +1,7 @@
 import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
-import { EntityStore, EntityStoreType, isBlockEntity } from "./entityStore";
 import { ApolloClient } from "@apollo/client";
+import { isEqual, omit, uniqBy } from "lodash";
+import { EntityStore, EntityStoreType, isBlockEntity } from "./entityStore";
 import { updatePageContents } from "./queries/page.queries";
 import {
   SystemTypeName,
@@ -9,7 +10,6 @@ import {
   UpdatePageContentsMutation,
   UpdatePageContentsMutationVariables,
 } from "./graphql/apiTypes.gen";
-import { isEqual, omit, uniqBy } from "lodash";
 import { BlockEntity } from "./types";
 import {
   entityIdExists,
@@ -234,10 +234,10 @@ const updateBlocks = defineOperation(
           if (componentId !== existingBlock.properties.componentId) {
             updates.push({
               updateEntity: {
-                entityId: entityId,
+                entityId,
                 accountId: savedEntity.accountId,
                 properties: {
-                  componentId: componentId,
+                  componentId,
                   entityId: savedChildEntity.metadataId,
                   accountId: savedChildEntity.accountId,
                 },

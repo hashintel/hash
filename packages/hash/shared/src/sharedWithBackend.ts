@@ -1,15 +1,15 @@
 import { ReactNode } from "react";
 import { Schema as JSONSchema } from "jsonschema";
 import { EditorState } from "prosemirror-state";
-import { createRemoteBlock, defineRemoteBlock } from "./sharedWithBackendJs";
 
 // @todo move this
 // @ts-ignore
 // @todo allow overwriting this again
-import blockPaths from "../blockPaths.sample.json";
 import { BlockMetadata } from "@hashintel/block-protocol";
 import { Node as ProsemirrorNode, NodeSpec, Schema } from "prosemirror-model";
 import { Decoration, EditorView } from "prosemirror-view";
+import blockPaths from "../blockPaths.sample.json";
+import { createRemoteBlock, defineRemoteBlock } from "./sharedWithBackendJs";
 import { BlockEntity } from "./types";
 
 export { blockPaths };
@@ -336,7 +336,7 @@ export function defineNewBlock<
      * it has an editableRef prop in its schema – we need a more sophisticated
      * way for block authors to communicate this to us
      */
-    ...(componentSchema.properties?.["editableRef"]
+    ...(componentSchema.properties?.editableRef
       ? {
           content: "text*",
           marks: "_",
