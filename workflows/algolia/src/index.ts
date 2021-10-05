@@ -23,10 +23,6 @@ const getAllFiles = function (
   arrayOfFiles = arrayOfFiles || [];
 
   files.forEach(function (file) {
-    if (file === "LICENSE.MD") {
-      return;
-    }
-
     if (fs.statSync(dirPath + "/" + file).isDirectory()) {
       arrayOfFiles = getAllFiles(dirPath + "/" + file, arrayOfFiles);
     } else {
@@ -62,24 +58,17 @@ export const checkObjectIds = () => {
   };
 
   const glossaryFiles = getAllFiles("../../resources/glossary", []);
+  const docsFiles = getAllFiles("../../resources/docs/simulation", []);
 
-  for (const glossaryFileName of glossaryFiles) {
-    const file = fs.readFileSync(glossaryFileName.inputPath, "utf8");
+  const files = [...glossaryFiles, ...docsFiles];
+
+  files.forEach((filePath) => {
+    const file = fs.readFileSync(filePath.inputPath, "utf8");
 
     const grayMatterData = matter(file) as unknown as DocsFrontMatter;
 
     checkObjectId(grayMatterData);
-  }
-
-  const docsFiles = getAllFiles("../../resources/docs/simulation", []);
-
-  for (const docsFile of docsFiles) {
-    const file = fs.readFileSync(docsFile.inputPath, "utf8");
-
-    const grayMatterData = matter(file) as unknown as DocsFrontMatter;
-
-    checkObjectId(grayMatterData, "docs");
-  }
+  });
 };
 
 export const generateAlgoliaJson = () => {
@@ -111,24 +100,17 @@ export const generateAlgoliaJson = () => {
   };
 
   const glossaryFiles = getAllFiles("../../resources/glossary", []);
+  const docsFiles = getAllFiles("../../resources/docs/simulation", []);
 
-  for (const glossaryFileName of glossaryFiles) {
-    const file = fs.readFileSync(glossaryFileName.inputPath, "utf8");
+  const files = [...glossaryFiles, ...docsFiles];
+
+  files.forEach((filePath) => {
+    const file = fs.readFileSync(filePath.inputPath, "utf8");
 
     const grayMatterData = matter(file) as unknown as DocsFrontMatter;
 
     appendToJson(grayMatterData);
-  }
-
-  const docsFiles = getAllFiles("../../resources/docs/simulation", []);
-
-  for (const docsFile of docsFiles) {
-    const file = fs.readFileSync(docsFile.inputPath, "utf8");
-
-    const grayMatterData = matter(file) as unknown as DocsFrontMatter;
-
-    appendToJson(grayMatterData, "docs");
-  }
+  });
 
   return jsonData;
 };
