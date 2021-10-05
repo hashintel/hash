@@ -1,4 +1,4 @@
-name: Algolia Index
+name: Algolia Upload Index
 
 env:
   ALGOLIA_PROJECT: ${{ secrets.ALGOLIA_PROJECT }}
@@ -6,7 +6,7 @@ env:
 
 on:
   push:
-    branches: [ master, aj/algolia-github-action ]
+    branches: [ master ]
 
 jobs:
   build:
@@ -20,4 +20,4 @@ jobs:
 
       # Runs a single command using the runners shell
       - name: Upload to algolia
-        run: sh scripts/algolia_script.sh
+        run: cd workflows/algolia && sh algolia_upload_script.sh

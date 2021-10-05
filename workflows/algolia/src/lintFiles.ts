@@ -1,0 +1,3 @@
+import { checkObjectIds } from ".";
+
+checkObjectIds();

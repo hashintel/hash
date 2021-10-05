@@ -44,10 +44,61 @@ const getAllFiles = function (
   return arrayOfFiles;
 };
 
+export const checkObjectIds = () => {
+  const objectIds = [];
+
+  const checkObjectId = (matterData: DocsFrontMatter, type = "glossary") => {
+    if (!matterData.data.objectId) {
+      throw new Error(
+        `objectId missing on file ${type}/${matterData.data.slug}.`
+      );
+    }
+
+    if (objectIds.includes(matterData.data.objectId)) {
+      throw new Error(`objectId ${matterData.data.objectId} appeared twice.`);
+    }
+
+    objectIds.push(matterData.data.objectId);
+  };
+
+  const glossaryFiles = getAllFiles("../../resources/glossary", []);
+
+  for (const glossaryFileName of glossaryFiles) {
+    const file = fs.readFileSync(glossaryFileName.inputPath, "utf8");
+
+    const grayMatterData = matter(file) as unknown as DocsFrontMatter;
+
+    checkObjectId(grayMatterData);
+  }
+
+  const docsFiles = getAllFiles("../../resources/docs/simulation", []);
+
+  for (const docsFile of docsFiles) {
+    const file = fs.readFileSync(docsFile.inputPath, "utf8");
+
+    const grayMatterData = matter(file) as unknown as DocsFrontMatter;
+
+    checkObjectId(grayMatterData, "docs");
+  }
+};
+
 export const generateAlgoliaJson = () => {
   const jsonData = [];
+  const objectIds = [];
 
-  const appendToJson = (matterData, type = "glossary") => {
+  const appendToJson = (matterData: DocsFrontMatter, type = "glossary") => {
+    if (!matterData.data.objectId) {
+      throw new Error(
+        `objectId missing on file ${type}/${matterData.data.slug}.`
+      );
+    }
+
+    if (objectIds.includes(matterData.data.objectId)) {
+      throw new Error(`objectId ${matterData.data.objectId} appeared twice.`);
+    }
+
+    objectIds.push(matterData.data.objectId);
+
     const appendData = {
       ...matterData.data,
       objectId: undefined,
@@ -59,7 +110,7 @@ export const generateAlgoliaJson = () => {
     jsonData.push(appendData);
   };
 
-  const glossaryFiles = getAllFiles("../resources/docs/glossary", []);
+  const glossaryFiles = getAllFiles("../../resources/glossary", []);
 
   for (const glossaryFileName of glossaryFiles) {
     const file = fs.readFileSync(glossaryFileName.inputPath, "utf8");
@@ -69,7 +120,7 @@ export const generateAlgoliaJson = () => {
     appendToJson(grayMatterData);
   }
 
-  const docsFiles = getAllFiles("../resources/docs/simulation", []);
+  const docsFiles = getAllFiles("../../resources/docs/simulation", []);
 
   for (const docsFile of docsFiles) {
     const file = fs.readFileSync(docsFile.inputPath, "utf8");
