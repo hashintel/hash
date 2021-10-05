@@ -13,7 +13,7 @@ const createPool = () => {
   return new Pool({
     user,
     host,
-    port: parseInt(port || "5432"),
+    port: parseInt(port || "5432", 10),
     database,
     password,
   });
