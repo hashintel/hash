@@ -1,7 +1,7 @@
+import { ApolloError } from "apollo-server-express";
 import { Resolver, EntityType as GQLEntityType } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { EntityType, EntityTypeWithoutTypeFields } from "../../../model";
-import { ApolloError } from "apollo-server-express";
 import { EntityTypeTypeFields } from "../../../db/adapter";
 
 type EntityTypeMaybeTypeFields = EntityTypeWithoutTypeFields & {

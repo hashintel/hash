@@ -1,6 +1,6 @@
+import { sql } from "slonik";
 import { Connection } from "./types";
 
-import { sql } from "slonik";
 import { VerificationCode } from "../adapter";
 
 /** Insert a row into the entities table. */
@@ -37,14 +37,14 @@ export const getVerificationCode = async (
     where verification_id = ${params.id}
   `);
   return {
-    id: row["verification_id"] as string,
-    accountId: row["account_id"] as string,
-    userId: row["user_id"] as string,
-    code: row["verification_code"] as string,
-    emailAddress: row["email_address"] as string,
-    numberOfAttempts: row["number_of_attempts"] as number,
-    used: row["used"] as boolean,
-    createdAt: new Date(row["created_at"] as string),
+    id: row.verification_id as string,
+    accountId: row.account_id as string,
+    userId: row.user_id as string,
+    code: row.verification_code as string,
+    emailAddress: row.email_address as string,
+    numberOfAttempts: row.number_of_attempts as number,
+    used: row.used as boolean,
+    createdAt: new Date(row.created_at as string),
   };
 };
 

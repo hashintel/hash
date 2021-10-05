@@ -1,5 +1,6 @@
 import GraphQLJSON from "graphql-type-json";
 
+import { ForbiddenError } from "apollo-server-express";
 import { Entity } from "../apiTypes.gen";
 // import { entityAccountName } from "./shared/account";
 import {
@@ -32,7 +33,6 @@ import { loginWithLoginCode } from "./user/loginWithLoginCode";
 import { embedCode } from "./embed";
 
 import { GraphQLContext, LoggedInGraphQLContext } from "../context";
-import { ForbiddenError } from "apollo-server-express";
 import { logout } from "./user/logout";
 import { me } from "./user/me";
 import { isShortnameTaken } from "./user/isShortnameTaken";

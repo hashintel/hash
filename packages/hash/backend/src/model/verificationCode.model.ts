@@ -1,5 +1,5 @@
-import { VerificationCode } from ".";
 import { rword } from "rword";
+import { VerificationCode } from ".";
 import { DBClient } from "../db";
 import { VerificationCodeMetadata as GQLVerificationCodeMetadata } from "../graphql/apiTypes.gen";
 
@@ -23,12 +23,19 @@ type VerificationCodeConstructorArgs = {
 
 class __VerificationCode {
   id: string;
+
   code: string;
+
   emailAddress: string;
+
   accountId: string;
+
   userId: string;
+
   numberOfAttempts: number;
+
   used: boolean;
+
   createdAt: Date;
 
   private static generateCode = () => (rword.generate(4) as string[]).join("-");

@@ -52,6 +52,7 @@ export const createConnPool = (cfg: Config, logger?: Logger) => {
 
 export class PostgresAdapter extends DataSource implements DBAdapter {
   private statsdInterval: NodeJS.Timeout;
+
   private pool: DatabasePoolType;
 
   constructor(cfg: Config, logger?: Logger, statsd?: StatsD) {
@@ -64,7 +65,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     }, 5000);
   }
 
-  /** Close all connections to the database. This function is idempotent.*/
+  /** Close all connections to the database. This function is idempotent. */
   async close() {
     if (this.pool.getPoolState().ended) {
       return;

@@ -1,6 +1,6 @@
 import { CronJob } from "cron";
-import { PRUNE_AGE_MS } from "../model";
 import { Logger } from "winston";
+import { PRUNE_AGE_MS } from "../model";
 import { DBAdapter } from "./adapter";
 
 export const setupCronJobs = (db: DBAdapter, logger: Logger) => {

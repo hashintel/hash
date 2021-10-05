@@ -2,7 +2,9 @@ import { Entity } from "./adapter";
 
 export class DbEntityNotFoundError extends Error {
   accountId?: string;
+
   entityId: string;
+
   entityVersionId?: string;
 
   constructor(params: {
@@ -24,6 +26,7 @@ export class DbEntityNotFoundError extends Error {
 
 export class DbInvalidLinksError extends Error {
   entity: Entity;
+
   invalid: { entityId: string; entityVersionId?: string }[];
 
   constructor(params: {

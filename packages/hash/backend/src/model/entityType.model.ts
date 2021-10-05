@@ -49,12 +49,19 @@ const schemaIdWithFrontendDomain = ($id?: string) =>
 // This is a bit repetitive of Entity, but we don't want the methods on Entity available on this
 class __EntityType {
   entityId: string;
+
   entityVersionId: string;
+
   createdById: string;
+
   accountId: string;
+
   properties: JSONObject;
+
   entityCreatedAt: Date;
+
   entityVersionCreatedAt: Date;
+
   entityVersionUpdatedAt: Date;
 
   constructor({

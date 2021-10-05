@@ -1,9 +1,9 @@
 import nodemailer, { SendMailOptions } from "nodemailer";
 import SESTransport from "nodemailer/lib/ses-transport";
 import * as aws from "@aws-sdk/client-ses";
-import EmailTransporter from ".";
 import { convert } from "html-to-text";
 import { isProdEnv } from "../../lib/config";
+import EmailTransporter from ".";
 
 const ses = new aws.SES({
   apiVersion: "2010-12-01",

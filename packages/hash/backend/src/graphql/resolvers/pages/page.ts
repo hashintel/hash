@@ -2,7 +2,7 @@ import { ApolloError } from "apollo-server-express";
 
 import { QueryPageArgs, Resolver } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
-import { entity } from "../entity/";
+import { entity } from "../entity";
 import { EntityWithIncompleteEntityType } from "../../../model";
 
 export const page: Resolver<

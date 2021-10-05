@@ -37,7 +37,7 @@ export const jsonSchema = (
   try {
     ajv.compile(schema);
   } catch (err) {
-    throw new Error("Error in provided schema: " + err.message);
+    throw new Error(`Error in provided schema: ${err.message}`);
   }
 
   return {

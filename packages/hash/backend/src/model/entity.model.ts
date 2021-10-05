@@ -50,15 +50,25 @@ export type CreateEntityArgs =
 
 class __Entity {
   entityId: string;
+
   entityVersionId: string;
+
   createdById: string;
+
   accountId: string;
+
   entityType: EntityType;
+
   properties: JSONObject;
+
   visibility: Visibility;
+
   metadata: EntityMeta;
+
   entityCreatedAt: Date;
+
   entityVersionCreatedAt: Date;
+
   entityVersionUpdatedAt: Date;
 
   constructor({

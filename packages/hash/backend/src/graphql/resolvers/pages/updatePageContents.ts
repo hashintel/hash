@@ -9,8 +9,7 @@ import {
   RemoveBlock,
   MoveBlock,
 } from "../../apiTypes.gen";
-import { Entity, EntityWithIncompleteEntityType } from "../../../model";
-import { User } from "../../../model";
+import { Entity, EntityWithIncompleteEntityType, User } from "../../../model";
 import { LoggedInGraphQLContext } from "../../context";
 import { DBClient } from "../../../db";
 import { exactlyOne } from "../../../util";

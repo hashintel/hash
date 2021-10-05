@@ -1,3 +1,4 @@
+import { ApolloError } from "apollo-server-errors";
 import { DBClient } from "../db";
 import { DBLinkedEntity, EntityType } from "../db/adapter";
 import {
@@ -7,7 +8,6 @@ import {
   AccessTokenConstructorArgs,
   Org,
 } from ".";
-import { ApolloError } from "apollo-server-errors";
 
 export type DBOrgInvitationLinkProperties = {
   useCount: number;
@@ -20,6 +20,7 @@ type OrgInvitationLinkConstructorArgs = {
 
 class __OrgInvitationLink extends AccessToken {
   properties: DBOrgInvitationLinkProperties;
+
   errorMsgPrefix: string;
 
   constructor({

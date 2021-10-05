@@ -15,22 +15,22 @@ const entityTypeFieldPrefix = "type.";
 /** maps a postgres row to its corresponding Entity object */
 export const mapPGRowToEntity = (row: QueryResultRowType): Entity => {
   const entity: Omit<Entity, "entityType"> & { entityType?: EntityType } = {
-    accountId: row["account_id"] as string,
-    entityId: row["entity_id"] as string,
-    entityVersionId: row["entity_version_id"] as string,
-    createdById: row["created_by"] as string,
+    accountId: row.account_id as string,
+    entityId: row.entity_id as string,
+    entityVersionId: row.entity_version_id as string,
+    createdById: row.created_by as string,
     entityTypeId: row["type.entity_type_id"] as string,
     entityTypeName: (row["type.properties"] as any)
       ?.title /** @see https://github.com/gajus/slonik/issues/275 */,
-    entityTypeVersionId: row["entity_type_version_id"] as string,
-    properties: row["properties"],
+    entityTypeVersionId: row.entity_type_version_id as string,
+    properties: row.properties,
     metadata: {
-      versioned: row["versioned"] as boolean,
-      extra: row["extra"],
+      versioned: row.versioned as boolean,
+      extra: row.extra,
     },
-    entityCreatedAt: new Date(row["entity_created_at"] as number),
-    entityVersionCreatedAt: new Date(row["version_created_at"] as number),
-    entityVersionUpdatedAt: new Date(row["version_updated_at"] as number),
+    entityCreatedAt: new Date(row.entity_created_at as number),
+    entityVersionCreatedAt: new Date(row.version_created_at as number),
+    entityVersionUpdatedAt: new Date(row.version_updated_at as number),
     visibility: Visibility.Public /** @todo implement this */,
   };
 
@@ -124,7 +124,7 @@ const selectEntitiesAllVersions = (params: {
  * @param params.entityTypeId the entity type id to return entities of
  * @param params.entityTypeVersionId optionally limit to entities of a specific version of a type
  * @param params.accountId the account to retrieve entities from
- **/
+ * */
 const selectEntitiesByType = (params: {
   entityTypeId: string;
   entityTypeVersionId?: string;
@@ -148,7 +148,7 @@ const selectEntitiesByType = (params: {
 
 /** Get an entity. The optional argument `lock` may be set to `true` to lock
  *  the entity for selects or updates until the transaction completes. Returns
- * `undefined` if the entity does not exist in the given account.*/
+ * `undefined` if the entity does not exist in the given account. */
 export const getEntity = async (
   conn: Connection,
   params: { accountId: string; entityVersionId: string },
@@ -366,9 +366,9 @@ export const getEntityHistory = async (
     order by created_at desc
   `);
   return rows.map((row) => ({
-    entityVersionId: row["entity_version_id"] as string,
-    createdAt: new Date(row["created_at"] as string),
-    createdById: row["created_by"] as string,
+    entityVersionId: row.entity_version_id as string,
+    createdAt: new Date(row.created_at as string),
+    createdById: row.created_by as string,
   }));
 };
 
@@ -439,10 +439,8 @@ export const getEntities = async (
     const latest = latestLookup.get(entity.entityId);
     if (!latest) {
       latestLookup.set(entity.entityId, entity);
-    } else {
-      if (latest.entityCreatedAt < entity.entityCreatedAt) {
-        latestLookup.set(entity.entityId, entity);
-      }
+    } else if (latest.entityCreatedAt < entity.entityCreatedAt) {
+      latestLookup.set(entity.entityId, entity);
     }
   }
   return ids

@@ -1,9 +1,10 @@
 import fetch from "node-fetch";
 import { ApolloError } from "apollo-server-errors";
 
+import oEmbedData from "oembed-providers/providers.json";
 import { Embed, Maybe, QueryEmbedCodeArgs, Resolver } from "../../apiTypes.gen";
 
-import oEmbedData from "oembed-providers/providers.json";
+import { GraphQLContext } from "../../context";
 
 oEmbedData.unshift({
   provider_name: "HASH",
@@ -16,8 +17,6 @@ oEmbedData.unshift({
     },
   ],
 });
-
-import { GraphQLContext } from "../../context";
 
 interface Endpoint {
   schemes?: string[];
@@ -55,7 +54,7 @@ async function getEmbedResponse({
   url: string;
   type?: Maybe<string>;
 }) {
-  let oembedEndpoint = undefined;
+  let oembedEndpoint;
 
   if (!type) {
     (oEmbedData as IoEmbedData[]).find((oembed) => {

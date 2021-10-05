@@ -1,3 +1,4 @@
+import { GraphQLResolveInfo } from "graphql";
 import {
   AggregateOperationInput,
   Resolver,
@@ -6,7 +7,6 @@ import {
 import { DbUnknownEntity } from "../../../types/dbTypes";
 import { aggregateEntity } from "./aggregateEntity";
 import { GraphQLContext } from "../../context";
-import { GraphQLResolveInfo } from "graphql";
 
 export const isRecord = (thing: unknown): thing is Record<string, any> => {
   if (typeof thing !== "object") {
