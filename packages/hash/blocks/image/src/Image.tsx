@@ -21,12 +21,8 @@ type UploadFileParamsType = {
 type AppProps = {
   initialSrc?: string;
   initialCaption?: string;
-<<<<<<< HEAD
-  uploadFile: (uploadFileParams: UploadFileParamsType) => Promise<{
-=======
   initialWidth?: number;
-  uploadImage: (uploadImageParams: UploadImageParamsType) => Promise<{
->>>>>>> origin/main
+  uploadFile: (uploadFileParams: UploadFileParamsType) => Promise<{
     src?: string;
   }>;
   entityId: string;
@@ -43,12 +39,8 @@ export const Image: BlockComponent<AppProps> = (props) => {
   const {
     initialSrc,
     initialCaption,
-<<<<<<< HEAD
     uploadFile,
-=======
     initialWidth,
-    uploadImage,
->>>>>>> origin/main
     entityId,
     entityTypeId,
     update,
@@ -129,9 +121,9 @@ export const Image: BlockComponent<AppProps> = (props) => {
   };
 
   const handleImageUpload = useCallback(
-    (imageProp: { imgURL: string } | { file: FileList[number] }) => {
+    (imageProp: { url: string } | { file: FileList[number] }) => {
       updateStateObject({ loading: true });
-      uploadImage(imageProp)
+      uploadFile({ ...imageProp, mime: IMG_MIME_TYPE })
         .then(({ src }: { src?: string }) => {
           if (isMounted.current) {
             updateStateObject({ loading: false });
@@ -145,7 +137,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
           })
         );
     },
-    [updateData, updateStateObject, uploadImage]
+    [updateData, updateStateObject, uploadFile]
   );
 
   const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -157,26 +149,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
     }
 
     if (inputText?.trim()) {
-<<<<<<< HEAD
-      setStateObject((stateObject) => ({ ...stateObject, loading: true }));
-
-      void uploadFile({ url: inputText, mime: IMG_MIME_TYPE })
-        .then(({ src }) => {
-          if (isMounted.current) {
-            setStateObject((stateObject) => ({
-              ...stateObject,
-              loading: false,
-            }));
-
-            updateData(src);
-          }
-        })
-        .catch((error) => {
-          return displayError(error);
-        });
-=======
-      handleImageUpload({ imgURL: inputText });
->>>>>>> origin/main
+      handleImageUpload({ url: inputText });
     } else {
       displayError("Please enter a valid image URL or select a file below");
     }
@@ -186,19 +159,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
     const { files } = event.target;
 
     if (files?.[0]) {
-<<<<<<< HEAD
-      void uploadFile({ file: files[0], mime: IMG_MIME_TYPE }).then(({ src, error }) => {
-        if (isMounted.current) {
-          if (error?.trim()) {
-            return displayError(error);
-          }
-
-          updateData(src);
-        }
-      });
-=======
       handleImageUpload({ file: files[0] });
->>>>>>> origin/main
     }
   };
 
@@ -285,19 +246,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
             // we set our input's 'files' property
 
             if (files[0].type.search("image") > -1) {
-<<<<<<< HEAD
-              void uploadFile({ file: files[0], mime: IMG_MIME_TYPE }).then(({ src, error }) => {
-                if (isMounted.current) {
-                  if (error?.trim()) {
-                    return displayError(error);
-                  }
-
-                  updateData(src);
-                }
-              });
-=======
               handleImageUpload({ file: files[0] });
->>>>>>> origin/main
             }
           }
         }}
