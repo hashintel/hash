@@ -12,7 +12,8 @@
     "NodeJS": true,
     "React": true,
     "JSX": true,
-    "FixMeLater": "readonly"
+    "FixMeLater": "readonly",
+    "globalThis": "readonly"
   },
   "env": {
     "browser": true,

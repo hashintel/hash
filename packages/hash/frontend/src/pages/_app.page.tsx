@@ -16,7 +16,6 @@ import "../../styles/prism.css";
 import "../../styles/globals.scss";
 import { useUser } from "../components/hooks/useUser";
 
-
 export const apolloClient = createApolloClient();
 
 function MyApp({ Component, pageProps }: AppProps) {

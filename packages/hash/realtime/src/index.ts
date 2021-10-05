@@ -96,7 +96,7 @@ const pollChanges = async (logger: Logger, pool: ConnPool) => {
     select data::jsonb from pg_logical_slot_get_changes(${SLOT_NAME}, null, null, 'add-tables', ${MONITOR_TABLES})
   `);
   for (const row of rows) {
-    for (const change of (row as any)["change"]) {
+    for (const change of (row as any).change) {
       // @todo: do something with the change
       logger.info({ message: "change", change });
     }

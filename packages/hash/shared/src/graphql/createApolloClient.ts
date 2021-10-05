@@ -10,7 +10,8 @@ export const createApolloClient = (params?: {
 }) => {
   const ponyfilledFetch =
     typeof (globalThis as any).fetch === "undefined"
-      ? require("node-fetch")
+      ? // eslint-disable-next-line global-require
+        require("node-fetch")
       : (globalThis as any).fetch;
 
   /**
@@ -25,7 +26,10 @@ export const createApolloClient = (params?: {
     if (typeof options?.body === "string") {
       try {
         ({ operationName } = JSON.parse(options.body));
-      } catch {}
+        // eslint-disable-next-line no-empty
+      } catch (err) {
+        console.error(err);
+      }
     }
 
     return ponyfilledFetch(

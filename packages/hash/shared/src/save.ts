@@ -1,3 +1,4 @@
+/* eslint-disable no-param-reassign */
 import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
 import { ApolloClient } from "@apollo/client";
 import { isEqual, omit, uniqBy } from "lodash";
@@ -221,7 +222,7 @@ const updateBlocks = defineOperation(
 
           // @todo could probably get this from entity store
           const existingBlock = entities.find(
-            (existingBlock) => existingBlock.metadataId === entityId
+            ({ metadataId }) => metadataId === entityId
           );
 
           if (!existingBlock) {
