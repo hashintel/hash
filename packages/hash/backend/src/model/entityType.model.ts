@@ -1,3 +1,5 @@
+import url from "url";
+
 import { EntityType } from ".";
 import { DBClient } from "../db";
 import {
@@ -7,6 +9,8 @@ import {
 } from "../graphql/apiTypes.gen";
 import { JSONObject } from "../lib/schemas/jsonSchema";
 import { EntityTypeTypeFields } from "../db/adapter";
+
+const { FRONTEND_URL } = require("../lib/config");
 
 /**
  * We handle the various entityType fields for an entityType in separate field resolvers,
@@ -37,6 +41,9 @@ export type EntityTypeConstructorArgs = {
   entityVersionCreatedAt: Date;
   entityVersionUpdatedAt: Date;
 };
+
+const schemaIdWithFrontendDomain = ($id?: string) =>
+  $id ? FRONTEND_URL + url.parse($id).pathname : undefined;
 
 // This is a bit repetitive of Entity, but we don't want the methods on Entity available on this
 class __EntityType {
@@ -124,7 +131,12 @@ class __EntityType {
     entityVersionId: this.entityVersionId,
     createdById: this.createdById,
     accountId: this.accountId,
-    properties: this.properties,
+    properties: {
+      ...this.properties,
+      $id: schemaIdWithFrontendDomain(
+        this.properties.$id as string | undefined
+      ),
+    },
     metadataId: this.entityId,
     createdAt: this.entityCreatedAt,
     entityVersionCreatedAt: this.entityVersionCreatedAt,

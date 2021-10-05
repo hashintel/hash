@@ -9,18 +9,18 @@ import Component from "./index";
 const node = document.getElementById("app");
 
 const App = () => {
-  const uploadVideo = async ({
+  const uploadFile = async ({
     file,
-    videoURL,
+    url,
   }: {
     file?: File;
-    videoURL?: string;
+    url?: string;
   }): Promise<{
     src?: string;
     error?: string;
   }> => {
-    if (videoURL?.trim()) {
-      return { src: videoURL };
+    if (url?.trim()) {
+      return { src: url };
     }
 
     if (file) {
@@ -52,7 +52,7 @@ const App = () => {
         }
         initialCaption={"ASDASDASDSAD"}
         entityId={"entity-asdasd"}
-        uploadVideo={uploadVideo}
+        uploadFile={uploadFile}
       />
     </div>
   );

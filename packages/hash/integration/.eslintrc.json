@@ -2,7 +2,7 @@
   "env": {
     "node": true
   },
-  "rules": {
-    "curly": ["error", "multi-line"]
+  "parserOptions": {
+    "project": ["./tsconfig.json"]
   }
 }

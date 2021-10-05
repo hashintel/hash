@@ -1,7 +1,6 @@
 {
-  "parserOptions": {},
-  "plugins": ["@typescript-eslint"],
-  "rules": {
-    "curly": ["error", "multi-line"]
-  }
+  "parserOptions": {
+    "project": ["./tsconfig.json"]
+  },
+  "plugins": ["@typescript-eslint"]
 }

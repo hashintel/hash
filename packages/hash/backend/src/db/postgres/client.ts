@@ -347,20 +347,25 @@ export class PostgresClient implements DBClient {
 
   async updateEntity(params: {
     accountId: string;
-    entityVersionId: string;
     entityId: string;
     properties: any;
   }): Promise<Entity[]> {
-    const latestId = await getEntityLatestVersionId(this.conn, params);
-    if (latestId !== params.entityVersionId) {
+    const versionId = await getEntityLatestVersionId(this.conn, params);
+    if (!versionId) {
       throw new Error(
-        `cannot update entity with version ID ${params.entityVersionId} because it is not the latest version`
+        `entity with fixed ID ${params.entityId} not found in account ${params.accountId}`
       );
     }
+
     // Lock the entity to ensure no other transaction may update it concurrently until
     // this transaction completes.
-    await acquireEntityLock(this.conn, params);
-    return await this._updateEntity(this.conn, params, undefined);
+    await acquireEntityLock(this.conn, { entityId: params.entityId });
+
+    return await this._updateEntity(this.conn, {
+      accountId: params.accountId,
+      entityVersionId: versionId,
+      properties: params.properties,
+    });
   }
 
   async _updateEntity(
@@ -620,7 +625,6 @@ export class PostgresClient implements DBClient {
     const updated = params.handler(entity);
     return await this.updateEntity({
       accountId: params.accountId,
-      entityVersionId: params.entityVersionId,
       entityId: entity.entityId,
       properties: updated.properties,
     });

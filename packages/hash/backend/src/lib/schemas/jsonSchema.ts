@@ -1,3 +1,5 @@
+import { validate } from "jsonschema";
+
 export type JSONValue =
   | null
   | boolean
@@ -37,6 +39,12 @@ export const jsonSchema = (
 
   if (typeof schema === "string") {
     schema = JSON.parse(schema);
+  }
+
+  try {
+    validate(title, schema, { allowUnknownAttributes: false });
+  } catch (err) {
+    throw new Error("Error in provided schema: " + err.message);
   }
 
   return {

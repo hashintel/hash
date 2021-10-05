@@ -1,5 +1,14 @@
 import gql from "graphql-tag";
 
+export const getEntityTypeQuery = gql`
+  query getEntityType($entityTypeId: ID!) {
+    getEntityType(entityTypeId: $entityTypeId) {
+      entityId
+      properties
+    }
+  }
+`;
+
 export const createEntityTypeMutation = gql`
   mutation createEntityType(
     $accountId: ID!

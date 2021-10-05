@@ -14,3 +14,9 @@ export const getRequiredEnv = (name: string) => {
   }
   return value;
 };
+
+/** Returns true if exactly one of items is not null or undefined. */
+export const exactlyOne = (...items: any[]): boolean =>
+  items
+    .map((val) => val !== null && val !== undefined)
+    .reduce((acc, val) => (val ? 1 : 0) + acc, 0) === 1;

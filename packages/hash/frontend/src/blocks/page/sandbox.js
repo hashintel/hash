@@ -1,6 +1,6 @@
 /**
- * This file was written during sandbox prototyping. It will be slowly removed & replaced with typescript integrate with
- * our system
+ * This file was written during sandbox prototyping. It will be slowly removed
+ * & replaced with typescript integrate with our system
  *
  * @todo remove this file
  */
@@ -28,12 +28,15 @@ import { EditorConnection } from "./collab/collab";
 import { Reporter } from "./collab/reporter";
 
 /**
- * You can think of this more as a "Switcher" view – when you change node type using the select type dropdown, the node
- * is first switched to a node of type Async, which ensures the desired node type exists in the schema before searching.
- * This is because the select dropdown used to contain (and will again in the future) contain node types that have not
- * yet actually had their metadata fetched & imported into the schema, so this node does it for us.
+ * You can think of this more as a "Switcher" view – when you change node type
+ * using the select type dropdown, the node is first switched to a node of type
+ * Async, which ensures the desired node type exists in the schema before
+ * searching. This is because the select dropdown used to contain (and will
+ * again in the future) contain node types that have not yet actually had their
+ * metadata fetched & imported into the schema, so this node does it for us.
  *
- * @todo consider removing this – we don't necessarily need a node view to trigger this functionality
+ * @todo consider removing this – we don't necessarily need a node view to
+ *       trigger this functionality
  */
 class AsyncView {
   constructor(node, view, getPos, replacePortal) {
@@ -53,8 +56,9 @@ class AsyncView {
 
   update(node) {
     /**
-     * This is the second half of the process of converting from one block type to another, with the first half being
-     * initiated by the onChange handler of the <select> component rendered by BlockView
+     * This is the second half of the process of converting from one block
+     * type to another, with the first half being initiated by the onChange
+     * handler of the <select> component rendered by BlockView
      */
     if (node.type.name !== "async") {
       return false;
@@ -99,9 +103,11 @@ class AsyncView {
         }
 
         /**
-         * The code below used to ensure the cursor was positioned within the new node, depending on its type, but
-         * because we now want to trigger saves when we change node type, and because triggering saves can mess up the
-         * cursor position, we're currently not re-focusing the editor view.
+         * The code below used to ensure the cursor was positioned
+         * within the new node, depending on its type, but because we
+         * now want to trigger saves when we change node type, and
+         * because triggering saves can mess up the cursor position,
+         * we're currently not re-focusing the editor view.
          */
 
         const pos = this.getPos();
@@ -140,7 +146,8 @@ class AsyncView {
         if (err.name !== "AbortError") {
           console.error(err);
           /**
-           * This was causing infinite loops. I don't know why. I think ProseMirror was detecting the mutations and
+           * This was causing infinite loops. I don't know why. I
+           * think ProseMirror was detecting the mutations and
            * causing us problems
            */
           // this.spinner.innerText = "Failed: " + err.toString();
@@ -151,7 +158,8 @@ class AsyncView {
   }
 
   /**
-   * Attempting to prevent PM being weird when we mutate our own contents. Doesn't always work
+   * Attempting to prevent PM being weird when we mutate our own contents.
+   * Doesn't always work
    *
    * @todo look into this
    */
@@ -161,8 +169,9 @@ class AsyncView {
 }
 
 /**
- * @deprecated naively deep-compare two values as part of a hack
- * should disappear w/ https://app.asana.com/0/1200339985403942/1200644404374108/f
+ * @deprecated naively deep-compare two values as part of a hack  should
+ *             disappear w/
+ *             https://app.asana.com/0/1200339985403942/1200644404374108/f
  */
 function isSubsetOf(subset, superset) {
   const isObject = (any) => typeof any === "object" && any !== null;
@@ -225,8 +234,8 @@ const BlockSelect = forwardRef(({ options, onChange, selectedIndex }, ref) => {
 });
 
 /**
- * This is the node view that wraps every one of our blocks in order to inject custom UI like the <select> to change
- * type and the drag handles
+ * This is the node view that wraps every one of our blocks in order to inject
+ * custom UI like the <select> to change type and the drag handles
  *
  * @implements https://prosemirror.net/docs/ref/#view.NodeView
  */
@@ -249,7 +258,9 @@ class BlockView {
 
     document.addEventListener("dragend", this.onDragEnd);
 
-    /** @implements https://prosemirror.net/docs/ref/#view.NodeView.contentDOM */
+    /**
+     * @implements https://prosemirror.net/docs/ref/#view.NodeView.contentDOM
+     */
     this.contentDOM = document.createElement("div");
     this.dom.appendChild(this.contentDOM);
     this.contentDOM.classList.add(styles.Block__Content);
@@ -284,7 +295,8 @@ class BlockView {
     }
 
     /**
-     * We don't want Prosemirror to try to handle any of these events as they're handled by React
+     * We don't want Prosemirror to try to handle any of these events as
+     * they're handled by React
      */
     return (
       evt.target === this.blockSelectRef.current ||
@@ -293,9 +305,11 @@ class BlockView {
   }
 
   /**
-   * Prosemirror can be over eager with reacting to mutations within node views – this can be important because this
-   * is part of how it detects changes made by users, but this can cause node views to be unnecessarily destroyed and/or
-   * updated. Here we're instructing PM to ignore changes made by us
+   * Prosemirror can be over eager with reacting to mutations within node
+   * views – this can be important because this is part of how it detects
+   * changes made by users, but this can cause node views to be unnecessarily
+   * destroyed and/or updated. Here we're instructing PM to ignore changes
+   * made by us
    *
    * @todo find a more generalised alternative
    * @implements https://prosemirror.net/docs/ref/#view.NodeView.ignoreMutation
@@ -324,8 +338,9 @@ class BlockView {
     const container = this.selectContainer;
 
     /**
-     * We don't need to inject any custom UI around async nodes, but for simplicity they are still wrapped with block
-     * node views. Let's just hide the custom UI in these instances.
+     * We don't need to inject any custom UI around async nodes, but for
+     * simplicity they are still wrapped with block node views. Let's just
+     * hide the custom UI in these instances.
      */
     if (node.type.name === "async") {
       container.style.display = "none";
@@ -341,7 +356,8 @@ class BlockView {
     container.contentEditable = false;
 
     /**
-     * This removes the outline that prosemirror has when a node is selected whilst we are dragging it
+     * This removes the outline that prosemirror has when a node is
+     * selected whilst we are dragging it
      */
     if (this.dragging) {
       this.dom.classList.add(styles["Block--dragging"]);
@@ -356,15 +372,18 @@ class BlockView {
         <div
           className={styles.Block__Handle}
           ref={(handle) => {
-            // We need a reference to this elsewhere in the NodeView for event handling
+            // We need a reference to this elsewhere in the
+            // NodeView for event handling
             this.handle = handle;
           }}
           onMouseDown={() => {
             /**
-             * We only want to allow dragging from the drag handle so we set a flag which we can use to indicate whether
-             * a drag was initiated from the drag handle
+             * We only want to allow dragging from the drag handle
+             * so we set a flag which we can use to indicate
+             * whether a drag was initiated from the drag handle
              *
-             * @todo we may not need this – we may be able to get it from the event
+             * @todo we may not need this – we may be able to get
+             *       it from the event
              */
             this.allowDragging = true;
 
@@ -374,8 +393,9 @@ class BlockView {
             this.dom.classList.add(styles["Block--dragging"]);
 
             /**
-             * By triggering a selection of the node, we can ensure that the whole node is re-ordered when drag &
-             * drop starts
+             * By triggering a selection of the node, we can ensure
+             * that the whole node is re-ordered when drag & drop
+             * starts
              */
             tr.setSelection(
               NodeSelection.create(this.view.state.doc, this.getPos())
@@ -399,14 +419,40 @@ class BlockView {
             );
 
             /**
-             * @todo the chosen variant will be persisted in the future
+             * @todo the chosen variant will be persisted in the
+             *       future
              * @see https://app.asana.com/0/1200339985403942/1200644404374108/f
              */
-            const selectedBlockType = node.attrs.meta?.name ?? node.type.name;
+            // const selectedBlockType = node.attrs.meta?.name
+            // ?? node.type.name;
             const selectedIndex = options.findIndex(
-              ([blockType, variant]) =>
-                blockType === selectedBlockType &&
-                isSubsetOf(variant.properties, node.attrs.properties)
+              (/*[blockType, variant]*/) => {
+                /**
+                 * This is already broken because of
+                 * attempts to compare component URL vs
+                 * component name. But we've also since
+                 * removed properties from the node, so you
+                 * can't compare this way
+                 *
+                 * @todo use the entity store – this will
+                 *       require the entity store stays up
+                 *       to date with cached properties and
+                 *       perhaps we need two versions of the
+                 *       entity store, one representing the
+                 *       current, yet to be saved doc and one
+                 *       representing the saved doc – we will
+                 *       also be using the variant name for
+                 *       comparison instead of property
+                 *       values
+                 */
+                return false;
+                // return (
+                // blockType === selectedBlockType &&
+                // // @todo this needs to use the entity
+                // store instead
+                // isSubsetOf(variant.properties,
+                // node.attrs.properties) );
+              }
             );
 
             return (
@@ -435,8 +481,8 @@ class BlockView {
   }
 
   /**
-   * This begins the two part process of converting from one block type to another – the second half is
-   * carried out by AsyncView's update function
+   * This begins the two part process of converting from one block type to
+   * another – the second half is carried out by AsyncView's update function
    *
    * @todo restore the ability to load in new block types here
    */
@@ -446,7 +492,8 @@ class BlockView {
     const componentUrl =
       view.state.schema.nodes[componentId].defaultAttrs.meta?.url;
 
-    // Ensure that any changes to the document made are kept within a single undo item
+    // Ensure that any changes to the document made are kept within a
+    // single undo item
     view.updateState(
       view.state.reconfigure({
         plugins: view.state.plugins.map((plugin) =>
@@ -461,11 +508,13 @@ class BlockView {
     const child = state.doc.resolve(getPos() + 1).nodeAfter;
 
     /**
-     * When switching between blocks where both contain text, we want to persist that text, but we need to pull
-     * it out the format its stored in here and make use of it
+     * When switching between blocks where both contain text, we want to
+     * persist that text, but we need to pull it out the format its stored
+     * in here and make use of it
      *
-     * @todo we should try to find the Text entity in the original response from the DB, and use that, instead
-     *       of this, where we lose formatting
+     * @todo we should try to find the Text entity in the original response
+     *       from the DB, and use that, instead of this, where we lose
+     *       formatting
      */
     const text = child.isTextblock
       ? child.content.content
@@ -475,25 +524,21 @@ class BlockView {
       : "";
 
     const newNode = state.schema.nodes.async.create({
-      /**
-       * The properties set up below are to ensure a) that async view knows what kind of node to load & create
-       * and b) that we are able to map back to the GraphQL format.
-       *
-       * @todo make some of this unnecessary
-       */
       asyncNodeUrl: componentUrl,
-
       asyncNodeProps: {
         attrs: {
-          // @todo do so many of these props need to switch on text?
+          /**
+           * This property is no longer used, meaning that when we
+           * switch to a variant, this is info is going to get lost.
+           * We need a way to put an entry in the entity store for
+           * this so that the node we're switching to can pick up
+           * that info. The consequence of this is that variants are
+           * broken.
+           *
+           * @todo fix variants
+           */
           properties: variant.properties,
-          entityId: text ? node.attrs.entityId : null,
-          versionId: text ? node.attrs.versionId : null,
-          childEntityId: text ? node.attrs.childEntityId : null,
-          accountId: node.attrs.accountId,
-          childEntityAccountId: text ? node.attrs.childEntityAccountId : null,
-          childEntityVersionId: text ? node.attrs.childEntityVersionId : null,
-          childEntityTypeId: text ? node.attrs.childEntityTypeId : null,
+          entityId: text ? child.attrs.entityId : null,
         },
         children: text ? [state.schema.text(text)] : [],
         marks: null,
@@ -518,8 +563,8 @@ export function createFormatPlugin(replacePortal) {
 
   const formatPlugin = new Plugin({
     /**
-     * This allows us to keep track of whether the view is focused, which is important for knowing whether to show the
-     * format tooltip
+     * This allows us to keep track of whether the view is focused, which
+     * is important for knowing whether to show the format tooltip
      */
     state: {
       init(_, view) {
@@ -561,8 +606,9 @@ export function createFormatPlugin(replacePortal) {
       const dom = document.createElement("div");
 
       /**
-       * This was originally written using DOM APIs directly, but we want to ensure the tooltip is rendered within
-       * a React controlled context, so we move the tooltip into a portal created by React.
+       * This was originally written using DOM APIs directly, but we want
+       * to ensure the tooltip is rendered within a React controlled
+       * context, so we move the tooltip into a portal created by React.
        *
        * @todo fully rewrite this to use React completely
        */
@@ -587,7 +633,8 @@ export function createFormatPlugin(replacePortal) {
         dom.appendChild(button);
 
         const update = () => {
-          // @todo no idea if this is the best way to get a list of marks in a selection
+          // @todo no idea if this is the best way to get a list of
+          // marks in a selection
           const marks = new Set();
           editorView.state.selection.content().content.descendants((node) => {
             for (const mark of node.marks) {
@@ -643,8 +690,10 @@ export function createFormatPlugin(replacePortal) {
         const state = view.state;
 
         /**
-         * We don't always want to display a format tooltip – i.e, when the view isn't focused, when we're dragging and
-         * dropping, if you're got an entire node selection, or the text selected is not within a paragraph
+         * We don't always want to display a format tooltip – i.e, when
+         * the view isn't focused, when we're dragging and dropping, if
+         * you're got an entire node selection, or the text selected is
+         * not within a paragraph
          *
          * @todo enable the format tooltip outside of a paragraph node
          */
@@ -654,19 +703,22 @@ export function createFormatPlugin(replacePortal) {
           state.selection instanceof NodeSelection ||
           // !(state.selection instanceof TextSelection) ||
           /**
-           * This is checking that the selected node is eligible to have a format tooltip
+           * This is checking that the selected node is eligible to
+           * have a format tooltip
            */
           state.selection
             .content()
             .content.content.map((node) =>
               node.type.name === "block" ? node.firstChild : node
             )
-            .every(
-              (node) =>
+            .every((node) => {
+              return (
                 node.content.size === 0 ||
-                // @todo fix this check by checking for the marks a node supports
-                node.type.name !== "https://block.blockprotocol.org/paragraph"
-            ) ||
+                // @todo fix this check by checking for the
+                // marks a node supports
+                !node.isTextblock
+              );
+            }) ||
           state.selection.empty
         ) {
           dom.style.opacity = "0";
@@ -689,9 +741,14 @@ export function createFormatPlugin(replacePortal) {
         const end = view.coordsAtPos(to);
 
         dom.style.opacity = "1";
-        dom.style.top = `${start.top - dom.offsetHeight}px`;
+        dom.style.top = `${
+          start.top - dom.offsetHeight + document.documentElement.scrollTop
+        }px`;
         dom.style.left = `${
-          start.left - dom.offsetWidth / 2 + (end.right - start.left) / 2
+          start.left -
+          dom.offsetWidth / 2 +
+          (end.right - start.left) / 2 +
+          document.documentElement.scrollLeft
         }px`;
 
         for (const fn of updateFns) {

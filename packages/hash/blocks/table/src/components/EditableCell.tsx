@@ -62,7 +62,7 @@ export const EditableCell: VoidFunctionComponent<EditableCellProps> = ({
     updateData([
       {
         data: newEntity,
-        entityId: objectToUpdate.id,
+        entityId: objectToUpdate.entityId,
         entityTypeId: objectToUpdate.entityTypeId,
         // @todo shouldn't need this – hash.dev should know it
         accountId: objectToUpdate.accountId,

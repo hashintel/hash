@@ -32,9 +32,6 @@
   "overrides": [
     {
       "files": ["*.ts", "*.tsx"],
-      "parserOptions": {
-        "project": ["./tsconfig.json"] // resolved relative to eslint cwd (package.json)
-      },
       "rules": {
         "no-unused-vars": "off", // replaced by @typescript-eslint/no-unused-vars
         "@typescript-eslint/no-unused-vars": [

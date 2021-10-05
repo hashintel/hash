@@ -28,15 +28,15 @@ type CreateEntityArgsWithoutType = {
 };
 
 export type CreateEntityWithEntityTypeIdArgs = {
-  entityTypeId?: string;
+  entityTypeId: string;
 } & CreateEntityArgsWithoutType;
 
 export type CreateEntityWithEntityTypeVersionIdArgs = {
-  entityTypeVersionId?: string;
+  entityTypeVersionId: string;
 } & CreateEntityArgsWithoutType;
 
 export type CreateEntityWithSystemTypeArgs = {
-  systemTypeName?: SystemType;
+  systemTypeName: SystemType;
 } & CreateEntityArgsWithoutType;
 
 export type CreateEntityArgs =
@@ -153,11 +153,17 @@ class __Entity {
       return dbEntities.map((dbEntity) => new Entity(dbEntity));
     };
 
+  static updateProperties =
+    (client: DBClient) =>
+    (args: { accountId: string; entityId: string; properties: string }) =>
+      client
+        .updateEntity(args)
+        .then(([updatedDbEntity]) => new Entity(updatedDbEntity));
+
   updateProperties = (client: DBClient) => (properties: any) =>
     client
       .updateEntity({
         accountId: this.accountId,
-        entityVersionId: this.entityVersionId,
         entityId: this.entityId,
         properties,
       })

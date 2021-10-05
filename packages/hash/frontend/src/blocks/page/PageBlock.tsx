@@ -1,6 +1,7 @@
 import React, {
   useCallback,
   useLayoutEffect,
+  useMemo,
   useRef,
   VoidFunctionComponent,
 } from "react";
@@ -8,6 +9,7 @@ import { Schema } from "prosemirror-model";
 import { Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { createFormatPlugin, renderPM } from "./sandbox";
+import { createSuggesterPlugin } from "../../components/BlockSuggester";
 import { useBlockProtocolUpdate } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdate";
 import { useBlockProtocolInsertIntoPage } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolInsertIntoPage";
 import { usePortals } from "./usePortals";
@@ -19,12 +21,13 @@ import {
   cachedPropertiesByEntity,
   calculateSavePayloads,
   createEntityUpdateTransaction,
-  mapEntityToBlock,
+  defineNewBlock,
 } from "@hashintel/hash-shared/sharedWithBackend";
-import { defineNewBlock } from "@hashintel/hash-shared/sharedWithBackendJs";
 import { collabEnabled, createNodeView } from "./tsUtils";
 import { EditorConnection } from "./collab/collab";
 import { PageFieldsFragment } from "@hashintel/hash-shared/graphql/apiTypes.gen";
+import { EntityStoreContext } from "./EntityStoreContext";
+import { createEntityStore } from "@hashintel/hash-shared/entityStore";
 
 type PageBlockProps = {
   contents: PageFieldsFragment["properties"]["contents"];
@@ -60,8 +63,10 @@ if (typeof localStorage !== "undefined") {
 }
 
 /**
- * The naming of this as a "Block" is… interesting, considering it doesn't really work like a Block. It would be cool
- * to somehow detach the process of rendering child blocks from this and have a renderer, but it seems tricky to do that
+ * The naming of this as a "Block" is… interesting, considering it doesn't
+ * really work like a Block. It would be cool to somehow detach the process of
+ * rendering child blocks from this and have a renderer, but it seems tricky to
+ * do that
  */
 export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   contents,
@@ -92,6 +97,26 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     currentContents.current = contents;
   }, [contents]);
 
+  /**
+   * There's a potential minor problem here which is that entity store is
+   * updated before prosemirror's tree has yet updated to apply the new
+   * contents, meaning they can become out of sync. This shouldn't be a problem
+   * unless/until the ids used to link between PM and entity store are
+   * inconsistent between saves (i.e, if they're versioned linked). This is
+   * because any deletions from contents are driven by PM, meaning that by the
+   * time they disappear from the entity store, they've already been deleted
+   * from the PM tree by the user
+   */
+  const entityStoreValue = useMemo(
+    () => createEntityStore(contents),
+    [contents]
+  );
+
+  const currentEntityStoreValue = useRef(entityStoreValue);
+  useLayoutEffect(() => {
+    currentEntityStoreValue.current = entityStoreValue;
+  }, [entityStoreValue]);
+
   const updateContents = useCallback(
     async (signal?: AbortSignal): Promise<void> => {
       const setup = prosemirrorSetup.current;
@@ -118,7 +143,8 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       }
 
       /**
-       * The view's state may have changed, making our current transaction invalid – so lets start again.
+       * The view's state may have changed, making our current transaction
+       * invalid – so lets start again.
        *
        * @todo probably better way of dealing with this
        */
@@ -133,14 +159,16 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
 
   useLayoutEffect(() => {
     /**
-     * Setting this function to global state as a shortcut to call it from deep within prosemirror.
+     * Setting this function to global state as a shortcut to call it from deep
+     * within prosemirror.
      *
      * @todo come up with a better solution for this
      *
-     * Note that this save handler only handles saving for things that prosemirror controls – i.e, the contents of
-     * prosemirror text nodes / the order of / the creation of / ther deletion of blocks (noting that changing block
-     * type is a deletion & a creation at once). Saves can be handled directly by the blocks implementation using the
-     * update callbacks
+     * Note that this save handler only handles saving for things that
+     * prosemirror controls – i.e, the contents of prosemirror text nodes /
+     * the order of / the creation of / ther deletion of blocks (noting that
+     * changing block type is a deletion & a creation at once). Saves can be
+     * handled directly by the blocks implementation using the update callbacks
      */
     let saveQueue = Promise.resolve();
     (window as any).triggerSave = () => {
@@ -155,7 +183,6 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
             return;
           }
           const { view } = prosemirrorSetup.current;
-          const savedContents = currentContents.current.map(mapEntityToBlock);
           const { state } = view;
 
           const { updatedEntitiesPayload, pageUpdatedPayload, insertPayloads } =
@@ -165,9 +192,19 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
               metadataId,
               state.schema,
               state.doc,
-              savedContents
+              currentContents.current,
+              currentEntityStoreValue.current
             );
 
+          /**
+           * Building a promise here that updates the page block with the list
+           * of block ids it contains (if necessary, i.e, when you delete or
+           * re-order blocks, and then calls insert for each new block, before
+           * updating blocks that need to be updated. Ideally we would handle
+           * all of this in one query
+           *
+           * @todo improve this
+           */
           return (
             insertPayloads
               .reduce(
@@ -178,8 +215,9 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
                   : Promise.resolve()
               )
               /**
-               * Entity updates temporary sequential due to issue in Apollo – we'll be replacing all of this with a
-               * single atomic query anyway so this is a fine compromise for now
+               * Entity updates temporary sequential due to issue in Apollo –
+               * we'll be replacing all of this with a single atomic query
+               * anyway so this is a fine compromise for now
                *
                * @see https://hashintel.slack.com/archives/C022217GAHF/p1631541550015000
                */
@@ -208,18 +246,21 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   }, [accountId, insert, metadataId, pageId, update, updateContents]);
 
   /**
-   * This effect runs once and just sets up the prosemirror instance. It is not responsible for setting the contents of
-   * the prosemirror document
+   * This effect runs once and just sets up the prosemirror instance. It is not
+   * responsible for setting the contents of the prosemirror document
    */
   useLayoutEffect(() => {
     const schema = createSchema();
     const node = root.current!;
 
     /**
-     * We want to apply saves when Prosemirror loses focus (or is triggered manually with cmd+s). However, interacting
-     * with the format tooltip momentarily loses focus, so we want to wait a moment and cancel that save if focus is
-     * regained quickly. The reason we only want to save when losing focus is because the process of taking the response
-     * from a save and updating the prosemirror tree with new contents can mess with the cursor position.
+     * We want to apply saves when Prosemirror loses focus (or is triggered
+     * manually with cmd+s). However, interacting with the format tooltip
+     * momentarily loses focus, so we want to wait a moment and cancel that
+     * save if focus is regained quickly. The reason we only want to save when
+     * losing focus is because the process of taking the response from a save
+     * and updating the prosemirror tree with new contents can mess with the
+     * cursor position.
      *
      * @todo make saves more frequent & seamless
      */
@@ -252,15 +293,21 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     });
 
     /**
-     * Lets see up prosemirror with an empty document, as another effect will set its contents. Unfortunately all
-     * prosemirror documents have to contain at least one child, so lets insert a special "blank" placeholder child
+     * Lets see up prosemirror with an empty document, as another effect will
+     * set its contents. Unfortunately all prosemirror documents have to
+     * contain at least one child, so lets insert a special "blank" placeholder
+     * child
      */
     const { view, connection } = renderPM(
       node,
       createInitialDoc(schema),
       { nodeViews: {} },
       replacePortal,
-      [savePlugin, createFormatPlugin(replacePortal)],
+      [
+        savePlugin,
+        createFormatPlugin(replacePortal),
+        createSuggesterPlugin(replacePortal),
+      ],
       accountId,
       metadataId
     );
@@ -276,8 +323,8 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   }, [accountId, clearCallback, deferCallback, metadataId, replacePortal]);
 
   /**
-   * This effect is responsible for ensuring all the preloaded blocks (currently just paragraph) are defined in
-   * prosemirror
+   * This effect is responsible for ensuring all the preloaded blocks are
+   * defined in prosemirror
    */
   useLayoutEffect(() => {
     if (!prosemirrorSetup.current) {
@@ -299,13 +346,17 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   }, [blocksMeta, replacePortal]);
 
   /**
-   * Whenever contents are updated, we want to sync them to the prosemirror document, which is an async operation as it
-   * may involved defining new node types (and fetching the metadata for them). Contents change whenever we save (as we
-   * replace our already loaded contents with another request for the contents, which ensures that blocks referencing
-   * the same entity are all updated, and that empty IDs are properly filled (i.e, when creating a new block)
+   * Whenever contents are updated, we want to sync them to the prosemirror
+   * document, which is an async operation as it may involved defining new node
+   * types (and fetching the metadata for them). Contents change whenever we
+   * save (as we replace our already loaded contents with another request for
+   * the contents, which ensures that blocks referencing the same entity are
+   * all updated, and that empty IDs are properly filled (i.e, when creating a
+   * new block)
    *
-   * @todo fix when getPage queries are triggered rather than relying on a hook that doesn't actually update from
-   *       contents (because of the laddering problem)
+   * @todo fix when getPage queries are triggered rather than relying on a hook
+   *       that doesn't actually update from contents (because of the laddering
+   *       problem)
    */
   useLayoutEffect(() => {
     const controller = new AbortController();
@@ -323,8 +374,10 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
 
   return (
     <BlockMetaContext.Provider value={blocksMeta}>
-      <div id="root" ref={root} />
-      {portals}
+      <EntityStoreContext.Provider value={entityStoreValue}>
+        <div id="root" ref={root} />
+        {portals}
+      </EntityStoreContext.Provider>
     </BlockMetaContext.Provider>
   );
 };

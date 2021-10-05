@@ -88,3 +88,20 @@ export const getPage = gql`
   }
   ${pageFieldsFragment}
 `;
+
+export const updatePageContents = gql`
+  mutation updatePageContents(
+    $accountId: ID!
+    $entityId: ID!
+    $actions: [UpdatePageAction!]!
+  ) {
+    updatePageContents(
+      accountId: $accountId
+      entityId: $entityId
+      actions: $actions
+    ) {
+      ...PageFields
+    }
+  }
+  ${pageFieldsFragment}
+`;

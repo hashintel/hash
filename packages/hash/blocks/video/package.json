@@ -1,10 +1,10 @@
 {
   "name": "@hashintel/block-video",
   "version": "0.1.0",
-  "description": "image block component",
+  "description": "video block component",
   "private": true,
   "browser": "dist/main.js",
-  "author": "Nate Higgins",
+  "author": "Akash Joshi",
   "license": "MIT",
   "main": "src/index.ts",
   "prettier": "@hashintel/prettier-config",
@@ -17,7 +17,7 @@
     "webpack-dev-server": "cross-env NODE_ENV=development webpack-dev-server -d --port 9090 --config webpack-dev-server.config.js --open",
     "start": "concurrently -n webpack,webpack-dev-server -c green,cyan \"yarn build:dev -- --watch --verbose\" \"yarn webpack-dev-server\"",
     "clean": "rimraf ./dist/",
-    "serve": "serve -C -l 62677 ./dist/"
+    "serve": "serve -C -l 62683 ./dist/"
   },
   "peerDependencies": {
     "react": "17.0.2",

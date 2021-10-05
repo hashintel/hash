@@ -29,7 +29,7 @@ export const PageSidebar: VoidFunctionComponent = () => {
       </div>
       <div className={styles.PageSidebar__Section}>
         <header className={styles.PageSidebar__Section__Header}>
-          <h2>Entity types</h2>
+          <h2>Entities</h2>
           <AccountEntityTypeList accountId={accountId} />
         </header>
       </div>

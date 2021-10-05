@@ -1,6 +1,6 @@
 export type BlockProps = object;
 
-type BlockVariant = {
+export type BlockVariant = {
   description?: string;
   icon?: string;
   name?: string;
@@ -24,34 +24,41 @@ export type BlockMetadata = {
 };
 
 export type BlockProtocolUpdatePayload<T> = {
-  entityTypeId?: string;
-  entityTypeVersionId?: string;
+  entityTypeId?: string | null;
+  entityTypeVersionId?: string | null;
   entityId: string;
-  accountId?: string;
+  accountId?: string | null;
   data: T;
 };
 
 export type BlockProtocolCreatePayload<T> = {
   entityTypeId: string;
-  entityTypeVersionId?: string;
+  entityTypeVersionId?: string | null;
   data: T;
   pageAccountId: string;
   userId: string;
 };
 
-export type BlockProtocolAggregateOperation = {
-  page?: number;
-  perPage?: number;
+export type BlockProtocolAggregateOperationInput = {
+  pageNumber?: number;
+  itemsPerPage?: number;
   sort?: {
     field: string;
-    desc?: boolean | undefined;
-  };
+    desc?: boolean | undefined | null;
+  } | null;
+  filter?: { field: string; value: string } | null;
+};
+
+export type BlockProtocolLinkedDataDefinition = {
+  aggregate?: BlockProtocolAggregateOperationInput & { pageCount?: number };
+  entityTypeId?: string;
+  entityId?: string;
 };
 
 export type BlockProtocolAggregatePayload = {
   entityTypeId: string;
-  entityTypeVersionId?: string;
-  operation: BlockProtocolAggregateOperation;
+  entityTypeVersionId?: string | null;
+  operation: BlockProtocolAggregateOperationInput;
   accountId: string;
 };
 
@@ -90,6 +97,8 @@ export type BlockProtocolProps = {
   create?: BlockProtocolCreateFn;
   createLoading?: boolean;
   createError?: Error;
+  entityId?: string;
+  entityTypeId?: string;
   id?: string;
   schemas?: Record<string, JSONObject>;
   type?: string;

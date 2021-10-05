@@ -23,10 +23,7 @@ import { VersionDropdown } from "../../components/Dropdowns/VersionDropdown";
  * preload all configured blocks for now. in the future these will be loaded
  * progressively from the block catalogue.
  */
-const preloadedBlocksUrls = [
-  "https://block.blockprotocol.org/paragraph",
-  ...Object.keys(blockPaths),
-];
+const preloadedBlocksUrls = Object.keys(blockPaths);
 
 // Apparently defining this is necessary in order to get server rendered props?
 export const getStaticPaths: GetStaticPaths<{ slug: string }> = async () => {
@@ -37,8 +34,8 @@ export const getStaticPaths: GetStaticPaths<{ slug: string }> = async () => {
 };
 
 /**
- * This is used to fetch the metadata associated with blocks that're preloaded ahead of time so that the client doesn't
- * need to
+ * This is used to fetch the metadata associated with blocks that're preloaded
+ * ahead of time so that the client doesn't need to
  *
  * @todo Include blocks present in the document in this
  */
@@ -68,20 +65,36 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
     );
 
     /**
-     * This is to ensure that certain blocks are always contained within the "select type" dropdown even if the document
-     * does not yet contain those blocks. This is important for paragraphs especially, as the first text block in the
-     * schema is what prosemirror defaults to when creating a new paragraph. We need to change it so the order of blocks
-     * in the dropdown is not determinned by the order in the prosemirror schema, and also so that items can be in that
-     * dropdown without having be loaded into the schema.
+     * This is to ensure that certain blocks are always contained within the
+     * "select type" dropdown even if the document does not yet contain those
+     * blocks. This is important for paragraphs especially, as the first text
+     * block in the schema is what prosemirror defaults to when creating a new
+     * paragraph. We need to change it so the order of blocks in the dropdown
+     * is not determinned by the order in the prosemirror schema, and also so
+     * that items can be in that dropdown without having be loaded into the
+     * schema.
      *
      * @todo this doesn't need to be a map.
      */
     const preloadedBlocks = useMemo(
       () =>
         new Map(
-          preloadedBlockMeta.map(
-            (node) => [node.componentMetadata.url, node] as const
-          )
+          preloadedBlockMeta
+            /**
+             * Paragraph must be first for now, as it'll bw the first loaded
+             * into prosemirror and therefore the block chosen when you
+             * press enter.
+             *
+             * @todo remove need for this
+             */
+            .sort((a, b) =>
+              a.componentMetadata.name === "paragraph"
+                ? -1
+                : b.componentMetadata.name === "paragraph"
+                ? 1
+                : 0
+            )
+            .map((node) => [node.componentMetadata.url, node] as const)
         ),
       [preloadedBlockMeta]
     );

@@ -18,6 +18,7 @@ import {
   page,
   pageFields,
   updatePage,
+  updatePageContents,
 } from "./pages";
 import { accounts } from "./account/accounts";
 import { createUser } from "./shared/createUser";
@@ -93,6 +94,7 @@ export const resolvers = {
     insertBlocksIntoPage: loggedInAndSignedUp(insertBlocksIntoPage),
     updateEntity: loggedInAndSignedUp(updateEntity),
     updatePage: loggedInAndSignedUp(updatePage),
+    updatePageContents: loggedInAndSignedUp(updatePageContents),
     createOrg: loggedInAndSignedUp(createOrg),
     // Logged in users only
     updateUser: loggedIn(updateUser),

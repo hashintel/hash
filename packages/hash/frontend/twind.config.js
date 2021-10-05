@@ -22,5 +22,12 @@ module.exports = {
       "font-size": "1.3rem",
       "font-weight": "400"
     }
-  })
+  }),
+  variants: {
+    extend: {
+      borderTopLeftRadius: ["first"],
+      borderTopRightRadius: ["last"],
+      backgroundColor: ["odd", "even"]
+    }
+  }
 };

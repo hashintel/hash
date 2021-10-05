@@ -9,15 +9,16 @@ import Pencil from "./svgs/Pencil";
 import { BlockProtocolUpdatePayload } from "@hashintel/block-protocol";
 import Cross from "./svgs/Cross";
 
-type UploadVideoParamsType = {
+type UploadFileParamsType = {
   file?: File;
-  videoURL?: string;
+  url?: string;
+  mime?: string;
 };
 
 type AppProps = {
   initialSrc?: string;
   initialCaption?: string;
-  uploadVideo: (uploadVideo: UploadVideoParamsType) => Promise<{
+  uploadFile: (uploadFileParams: UploadFileParamsType) => Promise<{
     src?: string;
     error?: string;
   }>;
@@ -29,11 +30,13 @@ const placeholderText = "Enter Video URL";
 const buttonText = "Embed Video";
 const bottomText = "Works with web-supported video formats";
 
+const VIDEO_MIME_TYPE = "video/*";
+
 export const Video: BlockComponent<AppProps> = (props) => {
   const {
     initialSrc,
     initialCaption,
-    uploadVideo,
+    uploadFile,
     entityId,
     entityTypeId,
     update,
@@ -102,7 +105,7 @@ export const Video: BlockComponent<AppProps> = (props) => {
     if (inputText?.trim()) {
       setStateObject((stateObject) => ({ ...stateObject, loading: true }));
 
-      void uploadVideo({ videoURL: inputText })
+      void uploadFile({ url: inputText, mime: VIDEO_MIME_TYPE })
         .then(({ src }) => {
           if (isMounted.current) {
             setStateObject((stateObject) => ({
@@ -125,15 +128,17 @@ export const Video: BlockComponent<AppProps> = (props) => {
     const { files } = event.target;
 
     if (files?.[0]) {
-      void uploadVideo({ file: files[0] }).then(({ src, error }) => {
-        if (isMounted.current) {
-          if (error?.trim()) {
-            return displayError(error);
-          }
+      void uploadFile({ file: files[0], mime: VIDEO_MIME_TYPE }).then(
+        ({ src, error }) => {
+          if (isMounted.current) {
+            if (error?.trim()) {
+              return displayError(error);
+            }
 
-          updateData(src);
+            updateData(src);
+          }
         }
-      });
+      );
     }
   };
 
@@ -234,15 +239,17 @@ export const Video: BlockComponent<AppProps> = (props) => {
             // we set our input's 'files' property
 
             if (files[0].type.search("video") > -1) {
-              void uploadVideo({ file: files[0] }).then(({ src, error }) => {
-                if (isMounted.current) {
-                  if (error?.trim()) {
-                    return displayError(error);
-                  }
+              void uploadFile({ file: files[0], mime: VIDEO_MIME_TYPE }).then(
+                ({ src, error }) => {
+                  if (isMounted.current) {
+                    if (error?.trim()) {
+                      return displayError(error);
+                    }
 
-                  updateData(src);
+                    updateData(src);
+                  }
                 }
-              });
+              );
             }
           }
         }}
@@ -269,7 +276,7 @@ export const Video: BlockComponent<AppProps> = (props) => {
               id={randomId}
               className={tw`hidden`}
               type="file"
-              accept="video/*"
+              accept={VIDEO_MIME_TYPE}
               onChange={onFileSelect}
             />
           </div>

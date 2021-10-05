@@ -9,15 +9,16 @@ import Pencil from "./svgs/Pencil";
 import { BlockProtocolUpdatePayload } from "@hashintel/block-protocol";
 import Cross from "./svgs/Cross";
 
-type UploadImageParamsType = {
+type UploadFileParamsType = {
   file?: File;
-  imgURL?: string;
+  url?: string;
+  mime?: string;
 };
 
 type AppProps = {
   initialSrc?: string;
   initialCaption?: string;
-  uploadImage: (uploadImageParams: UploadImageParamsType) => Promise<{
+  uploadFile: (uploadFileParams: UploadFileParamsType) => Promise<{
     src?: string;
     error?: string;
   }>;
@@ -29,11 +30,13 @@ const placeholderText = "Enter Image URL";
 const buttonText = "Embed Image";
 const bottomText = "Works with web-supported image formats";
 
+const IMG_MIME_TYPE = "image/*";
+
 export const Image: BlockComponent<AppProps> = (props) => {
   const {
     initialSrc,
     initialCaption,
-    uploadImage,
+    uploadFile,
     entityId,
     entityTypeId,
     update,
@@ -102,7 +105,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
     if (inputText?.trim()) {
       setStateObject((stateObject) => ({ ...stateObject, loading: true }));
 
-      void uploadImage({ imgURL: inputText })
+      void uploadFile({ url: inputText, mime: IMG_MIME_TYPE })
         .then(({ src }) => {
           if (isMounted.current) {
             setStateObject((stateObject) => ({
@@ -125,7 +128,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
     const { files } = event.target;
 
     if (files?.[0]) {
-      void uploadImage({ file: files[0] }).then(({ src, error }) => {
+      void uploadFile({ file: files[0], mime: IMG_MIME_TYPE }).then(({ src, error }) => {
         if (isMounted.current) {
           if (error?.trim()) {
             return displayError(error);
@@ -234,7 +237,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
             // we set our input's 'files' property
 
             if (files[0].type.search("image") > -1) {
-              void uploadImage({ file: files[0] }).then(({ src, error }) => {
+              void uploadFile({ file: files[0], mime: IMG_MIME_TYPE }).then(({ src, error }) => {
                 if (isMounted.current) {
                   if (error?.trim()) {
                     return displayError(error);
@@ -269,7 +272,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
               id={randomId}
               className={tw`hidden`}
               type="file"
-              accept="image/*"
+              accept={IMG_MIME_TYPE}
               onChange={onFileSelect}
             />
           </div>

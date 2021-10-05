@@ -174,7 +174,6 @@ export interface DBClient {
    */
   updateEntity(params: {
     accountId: string;
-    entityVersionId: string;
     entityId: string;
     properties: any;
   }): Promise<Entity[]>;

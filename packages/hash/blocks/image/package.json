@@ -4,7 +4,7 @@
   "description": "image block component",
   "private": true,
   "browser": "dist/main.js",
-  "author": "Nate Higgins",
+  "author": "Akash Joshi",
   "license": "MIT",
   "main": "src/index.ts",
   "prettier": "@hashintel/prettier-config",

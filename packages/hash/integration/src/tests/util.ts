@@ -22,6 +22,8 @@ import {
   UpdateEntityMutation,
   GetPageQueryVariables,
   GetPageQuery,
+  UpdatePageContentsMutation,
+  UpdatePageContentsMutationVariables,
 } from "../graphql/apiTypes.gen";
 import {
   createEntity,
@@ -38,6 +40,7 @@ import {
   createPage,
   insertBlocksIntoPage,
   getPage,
+  updatePageContents,
 } from "../graphql/queries/page.queries";
 
 export class ApiClient {
@@ -50,6 +53,18 @@ export class ApiClient {
   setCookie = (cookie: string) => this.client.setHeader("Cookie", cookie);
 
   removeCookie = () => this.client.setHeader("Cookie", "");
+
+  /* Sign-up related requests **/
+
+  createUser = async (vars: CreateUserMutationVariables) =>
+    this.client
+      .request<CreateUserMutation, CreateUserMutationVariables>(
+        createUser,
+        vars
+      )
+      .then(({ createUser }) => createUser);
+
+  /* Log-in related requests **/
 
   async sendLoginCode(vars: SendLoginCodeMutationVariables) {
     return (
@@ -72,6 +87,8 @@ export class ApiClient {
 
     return { user: data.loginWithLoginCode, responseHeaders: headers };
   }
+
+  /* Other requests **/
 
   getUnknownEntity = async (vars: GetEntityQueryVariables) =>
     this.client
@@ -104,15 +121,6 @@ export class ApiClient {
     ).createOrg;
   }
 
-  async createUser(vars: CreateUserMutationVariables) {
-    return (
-      await this.client.request<
-        CreateUserMutation,
-        CreateUserMutationVariables
-      >(createUser, vars)
-    ).createUser;
-  }
-
   async createPage(vars: CreatePageMutationVariables) {
     return (
       await this.client.request<
@@ -134,4 +142,12 @@ export class ApiClient {
     this.client
       .request<GetPageQuery, GetPageQueryVariables>(getPage, vars)
       .then((res) => res.page);
+
+  updatePageContents = async (vars: UpdatePageContentsMutationVariables) =>
+    this.client
+      .request<UpdatePageContentsMutation, UpdatePageContentsMutationVariables>(
+        updatePageContents,
+        vars
+      )
+      .then((res) => res.updatePageContents);
 }

@@ -12,6 +12,8 @@ let handler: IntegrationTestsHandler;
 
 let db: PostgresAdapter;
 
+let existingUser: User;
+
 beforeAll(async () => {
   handler = new IntegrationTestsHandler();
   await handler.init();
@@ -23,6 +25,12 @@ beforeAll(async () => {
     database: "integration_tests",
     password: "postgres",
   });
+
+  existingUser = await User.createUser(db)({
+    shortname: "test-user",
+    preferredName: "Alice",
+    emails: [{ address: "alice@bigco.com", primary: true, verified: true }],
+  });
 });
 
 afterAll(async () => {
@@ -31,7 +39,7 @@ afterAll(async () => {
 });
 
 it("can create user", async () => {
-  const email = "alice@bigco.com";
+  const email = "bob@bibco.com";
 
   const { id: verificationCodeId, createdAt: verificationCodeCreatedAt } =
     await client.createUser({ email });
@@ -43,12 +51,13 @@ it("can create user", async () => {
   }))!;
 
   expect(user).not.toBeNull();
-  expect(user.properties).toEqual({
-    emails: [{ address: email, primary: true, verified: false }],
-  });
+  expect(user.properties.emails).toEqual([
+    { address: email, primary: true, verified: false },
+  ]);
   expect(user.entityCreatedAt).toEqual(user.entityVersionUpdatedAt);
   expect(user.entityType.properties.title).toEqual("User");
 
+  /** @todo: check whether the verification code was sent to the email address */
   const verificationCode = (await VerificationCode.getById(db)({
     id: verificationCodeId,
   }))!;
@@ -57,28 +66,46 @@ it("can create user", async () => {
   expect(verificationCode.createdAt.toISOString()).toBe(
     verificationCodeCreatedAt
   );
-
-  /** @todo: check whether the verification code was sent to the email address */
 });
 
-const SHORTNAME = "test-user";
-const PREFERRED_NAME = "Alice";
-const PRIMARY_EMAIL = "test@gmail.com";
+describe("can log in", () => {
+  let verificationCode: VerificationCode;
+
+  it("can send login code", async () => {
+    const { address: emailAddress } = existingUser.getPrimaryEmail();
+
+    const { id: verificationId } = await client.sendLoginCode({
+      emailOrShortname: emailAddress,
+    });
+
+    const verificationCodeOrNull = await VerificationCode.getById(db)({
+      id: verificationId,
+    });
+
+    expect(verificationCodeOrNull).not.toBeNull();
+
+    verificationCode = verificationCodeOrNull!;
+
+    expect(verificationCode.emailAddress).toBe(emailAddress);
+  });
+
+  it("can login with login code", async () => {
+    const { user, responseHeaders } = await client.loginWithLoginCode({
+      verificationCode: verificationCode.code,
+      verificationId: verificationCode.id,
+    });
+
+    expect(user.entityId).toBe(existingUser.entityId);
+    expect(typeof responseHeaders.get("set-cookie")).toBe("string");
+  });
+});
 
 /** @todo: integration tests for login and signup mutations */
 
-describe("logged in", () => {
-  let testLoggedInUser: User;
-
+describe("when logged in ", () => {
   beforeAll(async () => {
-    testLoggedInUser = await User.createUser(db)({
-      shortname: SHORTNAME,
-      preferredName: PREFERRED_NAME,
-      emails: [{ address: PRIMARY_EMAIL, primary: true, verified: true }],
-    });
-
     const { id: verificationId } = await client.sendLoginCode({
-      emailOrShortname: PRIMARY_EMAIL,
+      emailOrShortname: existingUser.getPrimaryEmail().address,
     });
 
     const verificationCode = await VerificationCode.getById(db)({
@@ -120,11 +147,11 @@ describe("logged in", () => {
     expect(res.entityTypeName).toEqual("Org");
   });
 
-  describe("create and update pages", () => {
+  describe("can create and update pages", () => {
     let page: PageFieldsFragment;
     it("can create a page", async () => {
       page = await client.createPage({
-        accountId: testLoggedInUser.accountId,
+        accountId: existingUser.accountId,
         properties: {
           title: "My first page",
         },
@@ -136,12 +163,12 @@ describe("logged in", () => {
     it("can add a block to the page", async () => {
       const textProperties = { texts: [{ text: "Hello World!" }] };
       const updatedPage = await client.insertBlocksIntoPage({
-        accountId: testLoggedInUser.accountId,
+        accountId: existingUser.accountId,
         entityId: page.entityId,
         entityVersionId: page.entityVersionId,
         blocks: [
           {
-            accountId: testLoggedInUser.accountId,
+            accountId: existingUser.accountId,
             componentId: "https://block.blockprotocol.org/header",
             systemTypeName: SystemTypeName.Text,
             entityProperties: textProperties,
@@ -175,7 +202,7 @@ describe("logged in", () => {
       textEntityId = newBlock.properties.entity.metadataId;
       const textEntity = await client.getUnknownEntity({
         entityId: textEntityId,
-        accountId: testLoggedInUser.accountId,
+        accountId: existingUser.accountId,
       });
       expect(textEntity.entityVersionId).toEqual(newBlock.properties.entity.id);
       expect(textEntity.properties).toEqual(textProperties);
@@ -185,7 +212,7 @@ describe("logged in", () => {
       // Update the text block inside the page
       const newTextProperties = { texts: [{ text: "Hello HASH!" }] };
       const { entityVersionId, entityId } = await client.updateEntity({
-        accountId: testLoggedInUser.accountId,
+        accountId: existingUser.accountId,
         entityId: textEntityId,
         properties: newTextProperties,
       });
@@ -193,7 +220,7 @@ describe("logged in", () => {
 
       // Check that the text update succeeded
       const newTextEntity = await client.getUnknownEntity({
-        accountId: testLoggedInUser.accountId,
+        accountId: existingUser.accountId,
         entityVersionId,
       });
       expect(newTextEntity.properties).toEqual(newTextProperties);
@@ -201,7 +228,7 @@ describe("logged in", () => {
       // Check that the updated version of the page references the latest version of the
       // text entity.
       let updatedPage = await client.getPage({
-        accountId: testLoggedInUser.accountId,
+        accountId: existingUser.accountId,
         entityId: page.entityId,
       });
       expect(updatedPage.history!).toHaveLength(3);
@@ -213,14 +240,14 @@ describe("logged in", () => {
       const newHeaderTextProperties = { texts: [{ text: "Header Text" }] };
       const headerBlock = updatedPage.properties.contents[1];
       const headerUpdate = await client.updateEntity({
-        accountId: testLoggedInUser.accountId,
+        accountId: existingUser.accountId,
         entityId: headerBlock.properties.entity.metadataId,
         properties: newHeaderTextProperties,
       });
 
       // Check that the page is up-to-date
       updatedPage = await client.getPage({
-        accountId: testLoggedInUser.accountId,
+        accountId: existingUser.accountId,
         entityId: page.entityId,
       });
       expect(updatedPage.history!).toHaveLength(4);
@@ -228,5 +255,73 @@ describe("logged in", () => {
         headerUpdate.entityVersionId
       );
     });
+  });
+
+  it("can atomically update page contents", async () => {
+    const page = await client.createPage({
+      accountId: existingUser.accountId,
+      properties: {
+        title: "My first page",
+      },
+    });
+    // The page currently has 2 blocks: an empty title block and an empty paragraph block
+    expect(page.properties.contents).toHaveLength(2);
+
+    const textPropertiesA = { texts: [{ text: "A" }] };
+    const textPropertiesB = { texts: [{ text: "B" }] };
+    const textPropertiesC = { texts: [{ text: "C" }] };
+    const titleProperties = { texts: [{ text: "Hello HASH!" }] };
+    const updatedPage = await client.updatePageContents({
+      accountId: page.accountId,
+      entityId: page.entityId,
+      actions: [
+        {
+          insertNewBlock: {
+            accountId: page.accountId,
+            componentId: "https://block.blockprotocol.org/paragraph",
+            position: 2,
+            systemTypeName: SystemTypeName.Text,
+            entityProperties: textPropertiesA,
+          },
+        },
+        {
+          insertNewBlock: {
+            accountId: page.accountId,
+            componentId: "https://block.blockprotocol.org/paragraph",
+            position: 3,
+            systemTypeName: SystemTypeName.Text,
+            entityProperties: textPropertiesB,
+          },
+        },
+        {
+          updateEntity: {
+            accountId: page.properties.contents[1].properties.entity.accountId,
+            entityId: page.properties.contents[1].properties.entity.metadataId,
+            properties: textPropertiesC,
+          },
+        },
+        {
+          moveBlock: {
+            currentPosition: 1,
+            newPosition: 3,
+          },
+        },
+        {
+          updateEntity: {
+            accountId: page.properties.contents[0].properties.entity.accountId,
+            entityId: page.properties.contents[0].properties.entity.metadataId,
+            properties: titleProperties,
+          },
+        },
+      ],
+    });
+
+    const pageEntities = updatedPage.properties.contents.map(
+      (block) => block.properties.entity as any
+    );
+    expect(pageEntities[0].textProperties).toMatchObject(titleProperties);
+    expect(pageEntities[1].textProperties).toMatchObject(textPropertiesA);
+    expect(pageEntities[2].textProperties).toMatchObject(textPropertiesB);
+    expect(pageEntities[3].textProperties).toMatchObject(textPropertiesC);
   });
 });

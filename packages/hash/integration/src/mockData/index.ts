@@ -57,6 +57,7 @@ void (async () => {
     "Person",
     "Table",
     "Code",
+    "Video"
   ];
 
   await Promise.all(
@@ -239,6 +240,15 @@ void (async () => {
           properties: {},
         },
       ],
+      [
+        "video1",
+        {
+          entityTypeId: newTypeIds.Video,
+          accountId: hashOrg.accountId,
+          createdById: user.entityId,
+          properties: {},
+        },
+      ],
     ])
   );
 
@@ -412,13 +422,14 @@ void (async () => {
                 "entityId",
                 "employer.entityId",
                 "employer.id",
+                "employer.entityType",
               ],
             },
             data: {
               __linkedData: {
                 entityTypeId: newTypeIds.Person,
                 aggregate: {
-                  perPage: 5,
+                  itemsPerPage: 5,
                   sort: {
                     field: "createdAt",
                   },
@@ -629,6 +640,19 @@ void (async () => {
           systemTypeName: SystemTypeName.Block,
         },
       ],
+      [
+        "b16",
+        {
+          properties: {
+            componentId: "https://block.blockprotocol.org/video",
+            entityId: results.get("video1")?.entityVersionId || null,
+            accountId: results.get("video1")?.accountId || null,
+          },
+          createdById: user.entityId,
+          accountId: hashOrg.accountId,
+          systemTypeName: SystemTypeName.Block,
+        },
+      ],
     ])
   );
 
@@ -698,6 +722,10 @@ void (async () => {
                 accountId: results.get("b5")?.accountId || null,
               },
               {
+                entityId: results.get("b4")?.entityVersionId || null,
+                accountId: results.get("b4")?.accountId || null,
+              },
+              {
                 entityId: results.get("b6")?.entityVersionId || null,
                 accountId: results.get("b6")?.accountId || null,
               },
@@ -716,6 +744,10 @@ void (async () => {
               {
                 entityId: results.get("b15")?.entityVersionId || null,
                 accountId: results.get("b15")?.accountId || null,
+              },
+              {
+                entityId: results.get("b16")?.entityVersionId || null,
+                accountId: results.get("b16")?.accountId || null,
               },
             ],
             title: "HASH's 1st page",
