@@ -26,9 +26,9 @@ const entityType: Resolver<
   Omit<GQLEntityType["entityType"], EntityTypeTypeFields>,
   EntityTypeMaybeTypeFields,
   GraphQLContext
-> = async (entityType, __, { dataSources }) => {
-  if (entityType.entityType) {
-    return entityType.entityType;
+> = async (gqlEntityType, __, { dataSources }) => {
+  if (gqlEntityType.entityType) {
+    return gqlEntityType.entityType;
   }
   return getEntityTypeType(dataSources).then((type) => type.toGQLEntityType());
 };
@@ -40,12 +40,12 @@ const entityTypeId: Resolver<
   GQLEntityType["entityTypeId"],
   EntityTypeMaybeTypeFields,
   GraphQLContext
-> = async (entityType, __, { dataSources }) => {
-  if (entityType.entityType) {
-    return entityType.entityType.entityId;
+> = async (gqlEntityType, __, { dataSources }) => {
+  if (gqlEntityType.entityType) {
+    return gqlEntityType.entityType.entityId;
   }
-  if (entityType.entityTypeId) {
-    return entityType.entityTypeId;
+  if (gqlEntityType.entityTypeId) {
+    return gqlEntityType.entityTypeId;
   }
   return getEntityTypeType(dataSources).then((type) => type.entityId);
 };
@@ -57,12 +57,12 @@ const entityTypeName: Resolver<
   GQLEntityType["entityTypeName"],
   EntityTypeMaybeTypeFields,
   GraphQLContext
-> = async (entityType, __, { dataSources }): Promise<string> => {
-  if (entityType.entityType) {
-    return entityType.entityType.properties.title;
+> = async (gqlEntityType, __, { dataSources }): Promise<string> => {
+  if (gqlEntityType.entityType) {
+    return gqlEntityType.entityType.properties.title;
   }
-  if (entityType.entityTypeName) {
-    return entityType.entityTypeName;
+  if (gqlEntityType.entityTypeName) {
+    return gqlEntityType.entityTypeName;
   }
   return getEntityTypeType(dataSources).then(
     (type) => type.properties.title as string
@@ -76,12 +76,12 @@ const entityTypeVersionId: Resolver<
   GQLEntityType["entityTypeVersionId"],
   EntityTypeMaybeTypeFields,
   GraphQLContext
-> = async (entityType, __, { dataSources }) => {
-  if (entityType.entityType) {
-    return entityType.entityType.entityVersionId;
+> = async (gqlEntityType, __, { dataSources }) => {
+  if (gqlEntityType.entityType) {
+    return gqlEntityType.entityType.entityVersionId;
   }
-  if (entityType.entityTypeVersionId) {
-    return entityType.entityTypeVersionId;
+  if (gqlEntityType.entityTypeVersionId) {
+    return gqlEntityType.entityTypeVersionId;
   }
   return getEntityTypeType(dataSources).then((type) => type.entityVersionId);
 };

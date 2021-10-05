@@ -57,6 +57,8 @@ async function getEmbedResponse({
   let oembedEndpoint;
 
   if (!type) {
+    /** @todo: refactor this to stop using .find without a returned boolean */
+    // eslint-disable-next-line array-callback-return
     (oEmbedData as IoEmbedData[]).find((oembed) => {
       oembed.endpoints.find((endpoint) =>
         endpoint.schemes?.find((scheme) => {
@@ -73,7 +75,7 @@ async function getEmbedResponse({
     });
   } else {
     const oembed = (oEmbedData as IoEmbedData[]).find(
-      (oembed) => oembed.provider_name === type
+      (possibleOembed) => possibleOembed.provider_name === type
     );
 
     oembed?.endpoints.find((endpoint) =>
@@ -106,7 +108,7 @@ export const embedCode: Resolver<
   {},
   GraphQLContext,
   QueryEmbedCodeArgs
-> = async (_, { url, type }, {}, {}) => {
+> = async (_, { url, type }) => {
   const embedResponse: OembedResponse & { error: boolean } =
     await getEmbedResponse({
       url,

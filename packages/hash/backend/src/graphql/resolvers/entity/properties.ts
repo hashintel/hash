@@ -40,6 +40,15 @@ type LinkedDataDefinition = {
   entityVersionId?: string;
 };
 
+/* eslint-disable no-param-reassign */
+
+/**
+ * @todo: refactor resolveLinkedData to return updated record object
+ * instead of mutating it directly, to better adhere to functional
+ * programming best-practices, and so that no-param-reassign can
+ * be turned back on
+ */
+
 // Recursively resolve any __linkedData fields in arbitrary entities
 const resolveLinkedData = async (
   ctx: GraphQLContext,

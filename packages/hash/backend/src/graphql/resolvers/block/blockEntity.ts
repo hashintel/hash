@@ -10,7 +10,7 @@ export const blockEntity: Resolver<
   DbBlockProperties,
   GraphQLContext,
   {}
-> = async ({ accountId, entityId }, {}, { dataSources }) => {
+> = async ({ accountId, entityId }, _, { dataSources }) => {
   const entity = await Entity.getEntityLatestVersion(dataSources.db)({
     accountId,
     entityId,

@@ -425,8 +425,8 @@ export const getEntities = async (
 
   const entities = (
     await Promise.all(
-      Array.from(idsByAccount.entries()).map(([accountId, ids]) =>
-        getEntitiesInAccount(conn, { accountId, ids })
+      Array.from(idsByAccount.entries()).map(([accountId, idsInAccount]) =>
+        getEntitiesInAccount(conn, { accountId, ids: idsInAccount })
       )
     )
   ).flat();
@@ -452,6 +452,22 @@ export const getEntities = async (
     .filter((entity): entity is Entity => !!entity);
 };
 
+// Convert a string to a numeric hash code.
+const hashCode = (str: string) => {
+  let hash = 0;
+  if (str.length === 0) {
+    return hash;
+  }
+  for (let i = 0; i < str.length; i++) {
+    const chr = str.charCodeAt(i);
+    // eslint-disable-next-line no-bitwise
+    hash = (hash << 5) - hash + chr;
+    // eslint-disable-next-line no-bitwise
+    hash |= 0; // Convert to 32bit integer
+  }
+  return hash;
+};
+
 /**
  * Acquire a transaction-level advisory lock on a given entity ID. The lock is
  * automatically released when the transaction ends.
@@ -465,20 +481,6 @@ export const acquireEntityLock = async (
   conn
     .query(sql`select pg_advisory_xact_lock(${hashCode(params.entityId)})`)
     .then((_) => null);
-
-// Convert a string to a numeric hash code.
-const hashCode = (str: string) => {
-  let hash = 0;
-  if (str.length === 0) {
-    return hash;
-  }
-  for (let i = 0; i < str.length; i++) {
-    const chr = str.charCodeAt(i);
-    hash = (hash << 5) - hash + chr;
-    hash |= 0; // Convert to 32bit integer
-  }
-  return hash;
-};
 
 /** Update the properties of the provided entity by creating a new version.
  * @throws `DbEntityNotFoundError` if the entity does not exist.

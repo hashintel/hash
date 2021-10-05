@@ -21,14 +21,14 @@ export const createPage: Resolver<
   // concurrently (may need to defer FK constraints).
 
   // Convenience wrapper
-  const _createEntity = async (type: SystemType, properties: any) => {
+  const _createEntity = async (type: SystemType, entityProperties: any) => {
     return await createEntity(
       {},
       {
         accountId,
         createdById,
         systemTypeName: SystemTypeName[type],
-        properties,
+        properties: entityProperties,
         versioned: true,
       },
       ctx,

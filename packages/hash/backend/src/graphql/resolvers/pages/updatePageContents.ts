@@ -15,94 +15,6 @@ import { DBClient } from "../../../db";
 import { exactlyOne } from "../../../util";
 import { createEntityArgsBuilder } from "../util";
 
-export const updatePageContents: Resolver<
-  Promise<EntityWithIncompleteEntityType>,
-  {},
-  LoggedInGraphQLContext,
-  MutationUpdatePageContentsArgs
-> = async (_, { accountId, entityId, actions }, { dataSources, user }) => {
-  validateActionsInput(actions);
-
-  return await dataSources.db.transaction(async (client) => {
-    // Create any new blocks
-    const newBlocks = await Promise.all(
-      actions
-        .map((action, i) => ({ action, i }))
-        .filter(({ action }) => action.insertNewBlock)
-        .map(({ action, i }) =>
-          createBlock(client, action.insertNewBlock!, user).catch((err) => {
-            if (err instanceof UserInputError) {
-              throw new UserInputError(`action ${i}: ${err}`);
-            }
-            throw err;
-          })
-        )
-    );
-
-    // Perform any entity updates.
-    await Promise.all(
-      actions
-        .filter((action) => action.updateEntity)
-        .map((action) => Entity.updateProperties(client)(action.updateEntity!))
-    );
-
-    // Lock the page so that no other concurrent call to this resolver will conflict
-    // with the page update.
-    await Entity.acquireLock(client)({ entityId });
-
-    const page = await Entity.getEntityLatestVersion(client)({
-      accountId,
-      entityId,
-    });
-    if (!page) {
-      const msg = `Page with fixed ID ${entityId} not found in account ${accountId}`;
-      throw new ApolloError(msg, "NOT_FOUND");
-    }
-
-    // Update the page by inserting new blocks, moving blocks and removing blocks
-    const pageProperties = page.properties as DbPageProperties;
-    let insertCount = 0;
-    let propertiesChanged = false;
-    for (const [i, action] of actions.entries()) {
-      try {
-        if (action.insertNewBlock) {
-          insertBlock(pageProperties, {
-            accountId: newBlocks[insertCount].accountId,
-            entityId: newBlocks[insertCount].entityId,
-            position: action.insertNewBlock.position,
-          });
-          insertCount += 1;
-          propertiesChanged = true;
-        } else if (action.moveBlock) {
-          moveBlock(pageProperties, action.moveBlock);
-          propertiesChanged = true;
-        } else if (action.removeBlock) {
-          removeBlock(pageProperties, action.removeBlock);
-          propertiesChanged = true;
-        }
-      } catch (err) {
-        if (err instanceof UserInputError) {
-          throw new UserInputError(`action ${i}: ${err}`);
-        }
-        throw err;
-      }
-    }
-    if (propertiesChanged) {
-      await page.updateProperties(client)(pageProperties);
-    }
-
-    // Return the new state of the page
-    const updatedPage = await Entity.getEntityLatestVersion(client)({
-      accountId,
-      entityId,
-    });
-    if (!updatedPage) {
-      throw new Error(`could not find entity with fixed id ${entityId}`);
-    }
-    return updatedPage.toGQLUnknownEntity();
-  });
-};
-
 const validateActionsInput = (actions: UpdatePageAction[]) => {
   for (const [i, action] of actions.entries()) {
     if (
@@ -196,4 +108,92 @@ const removeBlock = (properties: DbPageProperties, remove: RemoveBlock) => {
     throw new UserInputError(`invalid position: ${remove.position}`);
   }
   properties.contents.splice(remove.position, 1);
+};
+
+export const updatePageContents: Resolver<
+  Promise<EntityWithIncompleteEntityType>,
+  {},
+  LoggedInGraphQLContext,
+  MutationUpdatePageContentsArgs
+> = async (_, { accountId, entityId, actions }, { dataSources, user }) => {
+  validateActionsInput(actions);
+
+  return await dataSources.db.transaction(async (client) => {
+    // Create any new blocks
+    const newBlocks = await Promise.all(
+      actions
+        .map((action, i) => ({ action, i }))
+        .filter(({ action }) => action.insertNewBlock)
+        .map(({ action, i }) =>
+          createBlock(client, action.insertNewBlock!, user).catch((err) => {
+            if (err instanceof UserInputError) {
+              throw new UserInputError(`action ${i}: ${err}`);
+            }
+            throw err;
+          })
+        )
+    );
+
+    // Perform any entity updates.
+    await Promise.all(
+      actions
+        .filter((action) => action.updateEntity)
+        .map((action) => Entity.updateProperties(client)(action.updateEntity!))
+    );
+
+    // Lock the page so that no other concurrent call to this resolver will conflict
+    // with the page update.
+    await Entity.acquireLock(client)({ entityId });
+
+    const page = await Entity.getEntityLatestVersion(client)({
+      accountId,
+      entityId,
+    });
+    if (!page) {
+      const msg = `Page with fixed ID ${entityId} not found in account ${accountId}`;
+      throw new ApolloError(msg, "NOT_FOUND");
+    }
+
+    // Update the page by inserting new blocks, moving blocks and removing blocks
+    const pageProperties = page.properties as DbPageProperties;
+    let insertCount = 0;
+    let propertiesChanged = false;
+    for (const [i, action] of actions.entries()) {
+      try {
+        if (action.insertNewBlock) {
+          insertBlock(pageProperties, {
+            accountId: newBlocks[insertCount].accountId,
+            entityId: newBlocks[insertCount].entityId,
+            position: action.insertNewBlock.position,
+          });
+          insertCount += 1;
+          propertiesChanged = true;
+        } else if (action.moveBlock) {
+          moveBlock(pageProperties, action.moveBlock);
+          propertiesChanged = true;
+        } else if (action.removeBlock) {
+          removeBlock(pageProperties, action.removeBlock);
+          propertiesChanged = true;
+        }
+      } catch (err) {
+        if (err instanceof UserInputError) {
+          throw new UserInputError(`action ${i}: ${err}`);
+        }
+        throw err;
+      }
+    }
+    if (propertiesChanged) {
+      await page.updateProperties(client)(pageProperties);
+    }
+
+    // Return the new state of the page
+    const updatedPage = await Entity.getEntityLatestVersion(client)({
+      accountId,
+      entityId,
+    });
+    if (!updatedPage) {
+      throw new Error(`could not find entity with fixed id ${entityId}`);
+    }
+    return updatedPage.toGQLUnknownEntity();
+  });
 };

@@ -21,7 +21,7 @@ const TEMPORARY_HOST_NAME = "https://hash.ai";
 export const jsonSchema = (
   title: string,
   accountId: string,
-  schema: string | JSONObject = {},
+  maybeStringifiedSchema: string | JSONObject = {},
   description?: string
 ) => {
   if (title[0] !== title[0].toUpperCase()) {
@@ -30,14 +30,15 @@ export const jsonSchema = (
     );
   }
 
-  if (typeof schema === "string") {
-    schema = JSON.parse(schema) as JSONObject;
-  }
+  const schema: JSONObject =
+    typeof maybeStringifiedSchema === "string"
+      ? JSON.parse(maybeStringifiedSchema)
+      : maybeStringifiedSchema;
 
   try {
     ajv.compile(schema);
-  } catch (err) {
-    throw new Error(`Error in provided schema: ${err.message}`);
+  } catch (err: any) {
+    throw new Error(`Error in provided schema: ${(err as Error).message}`);
   }
 
   return {
