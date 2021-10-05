@@ -57,7 +57,7 @@ void (async () => {
     "Person",
     "Table",
     "Code",
-    "Video"
+    "Video",
   ];
 
   await Promise.all(
