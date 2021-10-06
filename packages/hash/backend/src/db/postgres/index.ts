@@ -257,6 +257,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   getEntityHistory(params: {
     accountId: string;
     entityId: string;
+    order: "asc" | "desc";
   }): Promise<EntityVersion[]> {
     return this.query((adapter) => adapter.getEntityHistory(params));
   }

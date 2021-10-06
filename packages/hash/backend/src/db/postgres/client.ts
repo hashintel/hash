@@ -440,6 +440,7 @@ export class PostgresClient implements DBClient {
   async getEntityHistory(params: {
     accountId: string;
     entityId: string;
+    order: "asc" | "desc";
   }): Promise<EntityVersion[]> {
     return await getEntityHistory(this.conn, params);
   }

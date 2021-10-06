@@ -340,6 +340,7 @@ export interface DBClient {
   getEntityHistory(params: {
     accountId: string;
     entityId: string;
+    order: "asc" | "desc";
   }): Promise<EntityVersion[]>;
 
   /** Get multiple entities by their account ID and entity ID. */
