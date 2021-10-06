@@ -20,3 +20,23 @@ export const exactlyOne = (...items: any[]): boolean =>
   items
     .map((val) => val !== null && val !== undefined)
     .reduce((acc, val) => (val ? 1 : 0) + acc, 0) === 1;
+
+/** A `Map` which creates a default value if the value for a key is not set. */
+export class DefaultMap<K, V> extends Map<K, V> {
+  private makeDefault: () => V;
+
+  constructor(makeDefault: () => V) {
+    super();
+    this.makeDefault = makeDefault;
+  }
+
+  get = (key: K) => {
+    let value = super.get(key);
+    if (value) {
+      return value;
+    }
+    value = this.makeDefault();
+    super.set(key, value);
+    return value;
+  };
+}

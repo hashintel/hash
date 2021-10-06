@@ -117,6 +117,15 @@ export type DBOrgProperties = {
   infoProvidedAtCreation?: OrgInfoProvidedAtCreation;
 };
 
+export type Graph = {
+  entities: EntityVersion[];
+  links: {
+    src: EntityVersion;
+    dst: EntityVersion;
+    fixed: boolean;
+  }[];
+};
+
 export interface DBAdapter extends DataSource, DBClient {
   /** Initiate a new database transaction. All `DBAdapter` methods called within
    * the provided callback `fn` are executed within the same transaction.
@@ -363,4 +372,10 @@ export interface DBClient {
 
   /** Acquire a transaction-scoped lock on the provided entity ID. */
   acquireEntityLock(params: { entityId: string }): Promise<null>;
+
+  /** Get all implied version history sub-graphs for a given root entity. */
+  getImpliedEntityHistory(params: {
+    accountId: string;
+    entityId: string;
+  }): Promise<Graph[]>;
 }

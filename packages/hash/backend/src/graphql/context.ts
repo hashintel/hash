@@ -1,5 +1,4 @@
 import { Logger } from "winston";
-import { PassportGraphQLMethods } from "../auth/passport";
 
 import { User } from "../model";
 import { DBAdapter } from "../db";
