@@ -40,7 +40,7 @@ const createNewBobWithOrg = async () => {
     preferredName: `Bob-${bobCounter}`,
     emails: [
       {
-        address: `bob-${bobCounter}@bigco.com`,
+        address: `bob-${bobCounter}@hash.test`,
         primary: true,
         verified: true,
       },
@@ -81,7 +81,7 @@ beforeAll(async () => {
   existingUser = await User.createUser(db)({
     shortname: "test-user",
     preferredName: "Alice",
-    emails: [{ address: "alice@bigco.com", primary: true, verified: true }],
+    emails: [{ address: "alice@hash.test", primary: true, verified: true }],
     memberOf: [],
     infoProvidedAtSignup: { usingHow: WayToUseHash.ByThemselves },
   });
@@ -103,7 +103,7 @@ afterAll(async () => {
 });
 
 it("can create user", async () => {
-  const email = `bob-${bobCounter}@bigco.com`;
+  const email = `bob-${bobCounter}@hash.test`;
 
   bobCounter += 1;
 
@@ -137,7 +137,7 @@ it("can create user", async () => {
 });
 
 it("can create user with email verification code", async () => {
-  const inviteeEmailAddress = "david@bigco.com";
+  const inviteeEmailAddress = "david@hash.test";
 
   const emailInvitation = await OrgEmailInvitation.createOrgEmailInvitation(
     db,
@@ -299,7 +299,7 @@ describe("logged in user ", () => {
   });
 
   it("can create an org email invitation", async () => {
-    const inviteeEmailAddress = `bob-${bobCounter}@bigco.com`;
+    const inviteeEmailAddress = `bob-${bobCounter}@hash.test`;
 
     bobCounter += 1;
 
@@ -319,7 +319,7 @@ describe("logged in user ", () => {
   });
 
   it("cannot create duplicate org email invitations", async () => {
-    const inviteeEmailAddress = `bob-${bobCounter}@bigco.com`;
+    const inviteeEmailAddress = `bob-${bobCounter}@hash.test`;
     bobCounter += 1;
     await client.createOrgEmailInvitation({
       orgEntityId: existingOrg.entityId,
@@ -389,7 +389,7 @@ describe("logged in user ", () => {
   it("can join org with email invitation", async () => {
     const { bobUser, bobOrg } = await createNewBobWithOrg();
 
-    const inviteeEmailAddress = "alice-second@bigco.com";
+    const inviteeEmailAddress = "alice-second@hash.test";
 
     const emailInvitation = await OrgEmailInvitation.createOrgEmailInvitation(
       db,
