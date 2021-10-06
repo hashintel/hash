@@ -70,7 +70,10 @@ export const Image: BlockComponent<AppProps> = (props) => {
 
   const updateStateObject = useCallback(
     (properties: Partial<typeof stateObject>) => {
-      setStateObject((stateObject) => ({ ...stateObject, ...properties }));
+      setStateObject((prevStateObject) => ({
+        ...prevStateObject,
+        ...properties,
+      }));
     },
     []
   );
@@ -193,6 +196,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
           />
         </div>
         <button
+          type="button"
           onClick={() => {
             resetComponent();
           }}

@@ -4,8 +4,8 @@
  */
 import React from "react";
 import ReactDOM from "react-dom";
-import Component from "./index";
 import { tw } from "twind";
+import Component from "./index";
 
 const node = document.getElementById("app");
 
@@ -48,11 +48,9 @@ const App = () => {
   return (
     <div className={tw`mt-5`}>
       <Component
-        initialSrc={
-          "https://www.google.com/logos/doodles/2021/doodle-champion-island-games-july-26-6753651837109017-s.png"
-        }
-        initialCaption={"ASDASDASDSAD"}
-        entityId={"entity-asdasd"}
+        initialSrc="https://www.google.com/logos/doodles/2021/doodle-champion-island-games-july-26-6753651837109017-s.png"
+        initialCaption="ASDASDASDSAD"
+        entityId="entity-asdasd"
         uploadImage={uploadImage}
       />
     </div>

@@ -70,6 +70,7 @@ export const ResizeImageBlock: React.VFC<ResizeBlockProps> = ({
 
   return (
     <div className={tw`relative flex group`}>
+      {/* eslint-disable-next-line jsx-a11y/img-redundant-alt */}
       <img
         className={tw`mx-auto max-w-full`}
         ref={imageRef}
