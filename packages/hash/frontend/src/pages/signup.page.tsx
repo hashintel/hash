@@ -11,6 +11,7 @@ import { AccountUsage } from "../components/pages/auth/signup/AccountUsage";
 import { OrgCreate } from "../components/pages/auth/signup/OrgCreate";
 import { OrgInvite } from "../components/pages/auth/signup/OrgInvite";
 
+import { useMutation, useQuery } from "@apollo/client";
 import {
   CreateOrgEmailInvitationMutation,
   CreateOrgEmailInvitationMutationVariables,
@@ -26,14 +27,22 @@ import {
   VerifyEmailMutation,
   VerifyEmailMutationVariables,
   WayToUseHash,
+  GetOrgEmailInvitationQuery,
+  GetOrgEmailInvitationQueryVariables,
+  CreateUserWithOrgEmailInvitationMutation,
+  CreateUserWithOrgEmailInvitationMutationVariables,
 } from "../graphql/apiTypes.gen";
 import {
   createUser as createUserMutation,
   updateUser as updateUserMutation,
   verifyEmail as verifyEmailMutation,
+  createUserWithOrgEmailInvitation as createUserWithOrgEmailInvitationMutation,
 } from "../graphql/queries/user.queries";
 import { createOrg as createOrgMutation } from "../graphql/queries/org.queries";
-import { createOrgEmailInvitation as createOrgEmailInvitationMutation } from "../graphql/queries/orgEmailInvitation.queries";
+import {
+  createOrgEmailInvitation as createOrgEmailInvitationMutation,
+  getOrgEmailInvitation,
+} from "../graphql/queries/orgEmailInvitation.queries";
 import {
   AUTH_ERROR_CODES,
   isParsedAuthQuery,
@@ -61,6 +70,10 @@ type State = {
   syntheticLoading: boolean;
   orgEntityId: string | null;
   invitationLink?: string;
+  emailInvitationInfo: {
+    orgName: string;
+    inviter: string;
+  } | null;
 };
 
 type Actions =
@@ -70,7 +83,7 @@ type Actions =
   | Action<"UPDATE_STATE", Partial<State>>;
 
 const initialState: State = {
-  activeScreen: Screen.OrgCreate,
+  activeScreen: Screen.Intro,
   email: "",
   verificationCodeMetadata: undefined,
   verificationCode: "",
@@ -78,6 +91,7 @@ const initialState: State = {
   userEntityId: null,
   syntheticLoading: false,
   orgEntityId: null,
+  emailInvitationInfo: null,
 };
 
 function reducer(state: State, action: Actions): State {
@@ -112,6 +126,13 @@ function reducer(state: State, action: Actions): State {
       return state;
   }
 }
+
+/**
+ * LEFT TO DO
+ * Error states for entire flow
+ * invite ui should in account setup screen if user got there from invite link
+ *
+ */
 
 const SignupPage: NextPage = () => {
   const { user, refetch } = useUser();
@@ -169,6 +190,59 @@ const SignupPage: NextPage = () => {
           });
         }
       });
+    },
+  });
+
+  const [
+    createUserWithOrgEmailInvite,
+    { loading: createUserWithOrgEmailInviteLoading },
+  ] = useMutation<
+    CreateUserWithOrgEmailInvitationMutation,
+    CreateUserWithOrgEmailInvitationMutationVariables
+  >(createUserWithOrgEmailInvitationMutation, {
+    onCompleted: ({ createUserWithOrgEmailInvitation }) => {
+      dispatch({
+        type: "UPDATE_STATE",
+        payload: {
+          activeScreen: Screen.AccountSetup,
+        },
+      });
+    },
+  });
+
+  const { data: orgEmailInvitationData } = useQuery<
+    GetOrgEmailInvitationQuery,
+    GetOrgEmailInvitationQueryVariables
+  >(getOrgEmailInvitation, {
+    variables: {
+      orgEntityId: router.query.orgEntityId as string,
+      invitationEmailToken: router.query.invitationEmailToken as string,
+    },
+    skip: !router.query.orgEntityId || !router.query.invitationEmailToken,
+    onCompleted: ({ getOrgEmailInvitation }) => {
+      const { invitationEmailToken, orgEntityId } = router.query;
+
+      dispatch({
+        type: "UPDATE_STATE",
+        payload: {
+          orgEntityId: orgEntityId as string,
+          emailInvitationInfo: {
+            orgName:
+              getOrgEmailInvitation.properties.org.data.properties.shortname ||
+              "",
+            inviter:
+              getOrgEmailInvitation.properties.inviter.data.properties
+                .preferredName || "",
+          },
+        },
+      });
+
+      // createUserWithOrgEmailInvite({
+      //   variables: {
+      //     invitationEmailToken: invitationEmailToken as string,
+      //     orgEntityId: orgEntityId as string,
+      //   },
+      // });
     },
   });
 
@@ -288,8 +362,23 @@ const SignupPage: NextPage = () => {
           verificationCode: query.verificationCode,
         },
       });
+      return;
     }
   }, [router, verifyEmail]);
+
+  // @todo merge both effects
+  useEffect(() => {
+    const { pathname, query } = router;
+
+    if (query.invitationEmailToken && query.orgEntityId) {
+      createUserWithOrgEmailInvite({
+        variables: {
+          invitationEmailToken: query.invitationEmailToken as string,
+          orgEntityId: query.orgEntityId as string,
+        },
+      });
+    }
+  }, [router, createUserWithOrgEmailInvite]);
 
   const requestVerificationCode = (email: string) => {
     updateState({ email });
@@ -470,7 +559,9 @@ const SignupPage: NextPage = () => {
           invitationLink={invitationLink}
           loading={createOrgEmailInvitationLoading}
           sendEmailInvite={sendEmailInvite}
-          navigateToHome={() => { user && router.push(`/${user.accountId}`)}}
+          navigateToHome={() => {
+            user && router.push(`/${user.accountId}`);
+          }}
         />
       )}
     </AuthLayout>

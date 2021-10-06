@@ -1,21 +1,5 @@
 import { gql } from "@apollo/client";
 
-export const createUser = gql`
-  mutation createUser($email: String!) {
-    createUser(email: $email) {
-      __typename
-      id
-      createdAt
-    }
-  }
-`;
-
-export const isShortnameTaken = gql`
-  query isShortnameTaken($shortname: String!) {
-    isShortnameTaken(shortname: $shortname)
-  }
-`;
-
 const userFieldsFragment = gql`
   fragment UserFields on User {
     id
@@ -26,6 +10,47 @@ const userFieldsFragment = gql`
     entityTypeVersionId
     entityTypeName
     visibility
+  }
+`;
+
+export const createUser = gql`
+  mutation createUser($email: String!) {
+    createUser(email: $email) {
+      __typename
+      id
+      createdAt
+    }
+  }
+`;
+
+export const createUserWithOrgEmailInvitation = gql`
+  mutation createUserWithOrgEmailInvitation(
+    $orgEntityId: ID!
+    $invitationEmailToken: String!
+  ) {
+    createUserWithOrgEmailInvitation(
+      orgEntityId: $orgEntityId
+      invitationEmailToken: $invitationEmailToken
+    ) {
+      ...UserFields
+      accountSignupComplete
+      properties {
+        shortname
+        preferredName
+        emails {
+          address
+          primary
+          verified
+        }
+      }
+    }
+  }
+  ${userFieldsFragment}
+`;
+
+export const isShortnameTaken = gql`
+  query isShortnameTaken($shortname: String!) {
+    isShortnameTaken(shortname: $shortname)
   }
 `;
 
