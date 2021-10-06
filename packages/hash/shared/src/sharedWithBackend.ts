@@ -481,6 +481,10 @@ export const createRemoteBlockFromEntity = async (
       ]),
     ]);
   } else {
+    /**
+     * @todo arguably this doesn't need to be here – remove it if possible when
+     *       working on switching blocks
+     */
     return schema.nodes.entity.create(
       { entity: attrs.entityId },
       schema.nodes[targetComponentId].create(attrs, [])
