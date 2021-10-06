@@ -20,24 +20,6 @@
     "node": true
   },
   "rules": {
-    // /frontend/.eslintrc.json
-    "react-hooks/rules-of-hooks": "error",
-    "react-hooks/exhaustive-deps": [
-      "warn",
-      {
-        "additionalHooks": "(^useModal$)|(^useUserGatedEffect$)"
-      }
-    ],
-    "react/jsx-key": "error",
-    "react/jsx-no-useless-fragment": "error",
-    "react/self-closing-comp": "warn",
-    "no-restricted-imports": ["error", {
-      "paths": [{
-        "name": "@testing-library/react",
-        "importNames": ["render"],
-        "message": "Please use ./src/tests/testUtils.tsx#render instead"
-      }]
-    }],
     // modified airbnb rules
     "no-underscore-dangle": "off",
     "no-nested-ternary":"off",
@@ -66,13 +48,28 @@
     "no-else-return": "off",
     "arrow-body-style": "off",
     "react/no-unescaped-entities": "off",
+    // Other rule changes
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": [
+      "warn",
+      {
+        "additionalHooks": "(^useModal$)|(^useUserGatedEffect$)"
+      }
+    ],
+    "react/jsx-key": "error",
+    "react/jsx-no-useless-fragment": "error",
+    "react/self-closing-comp": "warn",
+    "no-restricted-imports": ["error", {
+      "paths": [{
+        "name": "@testing-library/react",
+        "importNames": ["render"],
+        "message": "Please use ./src/tests/testUtils.tsx#render instead"
+      }]
+    }],
     "no-shadow": "off", // see https://github.com/typescript-eslint/typescript-eslint/issues/2483
     "@typescript-eslint/no-shadow": "error",
-    // potential airbnb rule additions
-    // "no-unused-vars": "off",
-    // "no-console": "warn",
-    // "no-plusplus": "off",
-    // "default-case": "off",
+    "no-use-before-define": "off",
+    "@typescript-eslint/no-use-before-define": ["error"],
     "eqeqeq": [
       "error",
       "always",
@@ -89,9 +86,6 @@
       }
     ],
     "no-unused-expressions": "error",
-    "prefer-const": "warn",
-    "prefer-arrow-callback": "warn",
-    "semi": "warn",
     "curly": ["error", "multi-line"],
     "import/extensions": [
       "error",
@@ -102,9 +96,7 @@
         "ts": "never",
         "tsx": "never"
       }
-    ],
-    "no-use-before-define": "off",
-    "@typescript-eslint/no-use-before-define": ["error"]
+    ]
   },
   "settings": {
     "import/resolver": {
