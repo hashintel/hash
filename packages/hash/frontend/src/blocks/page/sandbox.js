@@ -202,6 +202,7 @@ const BlockSelect = forwardRef(({ options, onChange, selectedIndex }, ref) => {
           className={tw`absolute z-10 w-96 max-h-60 overflow-auto border border-gray-100 rounded-lg`}
         >
           {options.map(([_componentId, { name, icon, description }], index) => (
+            // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions
             <li
               key={_componentId}
               className={tw`flex border border-gray-100 ${
@@ -364,6 +365,7 @@ class BlockView {
       container,
       container,
       <>
+        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
         <div
           className={styles.Block__Handle}
           ref={(handle) => {

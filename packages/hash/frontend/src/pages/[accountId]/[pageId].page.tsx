@@ -117,10 +117,12 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
           <header>
             <div className={styles.PageHeader}>
               <div>
+                {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
                 <label>Title</label>
                 <h1>{title}</h1>
               </div>
               <div>
+                {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
                 <label>Version</label>
                 <div>
                   <VersionDropdown

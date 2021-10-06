@@ -141,6 +141,7 @@ export const App: BlockComponent<AppProps> = (props) => {
             <strong className={tw`font-bold`}>Error</strong>
             <span className={tw`block sm:inline ml-2 `}>{errorString}</span>
           </div>
+          {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
           <span
             onClick={() => setDisplayAlert(false)}
             className={tw`absolute top-0 bottom-0 right-0 px-4 py-3`}

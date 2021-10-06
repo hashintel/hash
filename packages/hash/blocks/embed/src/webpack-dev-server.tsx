@@ -12,10 +12,10 @@ import { ProviderNames } from "./types/embedTypes";
 const node = document.getElementById("app");
 
 function AppComponent() {
-  async function getEmbedBlock(
+  const getEmbedBlock = async (
     url: string,
     type?: ProviderNames
-  ): Promise<{ html: string; error?: string }> {
+  ): Promise<{ html: string; error?: string }> => {
     return fetch("http://localhost:5001/graphql", {
       method: "POST",
       headers: {
@@ -33,7 +33,7 @@ function AppComponent() {
         html: responseData.data?.embedCode.html,
         error: responseData?.errors?.[0]?.message,
       }));
-  }
+  };
 
   const updateBlockData: BlockProtocolUpdateFn = async () => {
     // do something with the data

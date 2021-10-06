@@ -52,6 +52,7 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
 
         <form onSubmit={handleSubmit}>
           <div className={tw`mb-8`}>
+            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
             <label className={tw`block font-bold uppercase mb-2`}>
               Personal Username
             </label>
@@ -126,6 +127,7 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
             </div>
           </div>
           <div className={tw`mb-14`}>
+            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
             <label className={tw`block font-bold uppercase mb-2`}>
               Preferred name{" "}
               <span className={tw`font-normal`}>or first name</span>

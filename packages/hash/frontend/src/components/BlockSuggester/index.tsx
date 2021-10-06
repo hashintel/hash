@@ -27,6 +27,7 @@ export const BlockSuggester: VoidFunctionComponent = () => {
       className={tw`absolute z-10 w-96 max-h-60 overflow-auto border border-gray-100 rounded-lg shadow-md`}
     >
       {options.map(({ name, icon, description }, index) => (
+        // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions
         <li
           key={name}
           className={tw`flex border border-gray-100 ${
