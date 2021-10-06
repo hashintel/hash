@@ -1,7 +1,9 @@
 import { Logger } from "winston";
 
+import { PassportGraphQLMethods } from "../auth/passport";
 import { User } from "../model";
 import { DBAdapter } from "../db";
+import { CacheAdapter } from "../cache";
 import EmailTransporter from "../email/transporter";
 
 /**
@@ -11,6 +13,7 @@ import EmailTransporter from "../email/transporter";
 export interface GraphQLContext {
   dataSources: {
     db: DBAdapter;
+    cache: CacheAdapter;
   };
   emailTransporter: EmailTransporter;
   passport: PassportGraphQLMethods;
