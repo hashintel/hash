@@ -8,7 +8,7 @@ export const getSchemaPropertyDefinition = (
 
   let definition: DefinitionOrBoolean | undefined = schema;
   for (const key of keys) {
-    const properties: Definition["properties"] = definition["properties"];
+    const properties: Definition["properties"] = definition.properties;
     if (!properties) {
       return null;
     }

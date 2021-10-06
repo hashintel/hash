@@ -25,6 +25,7 @@ export const Pagination: VFC<PaginationProps> = ({
       const _page = index + 1;
       return (
         <button
+          type="button"
           className={tw`border-1 w-7 py-0.5 rounded-md text-sm leading-none mr-1 ${
             _page === pageNumber ? "border-blue-500 text-blue-500" : ""
           } focus:outline-none`}

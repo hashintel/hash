@@ -68,6 +68,7 @@ export const FilterSort: VFC<FilterSortProps> = ({
             desc
           </label>
           <button
+            type="button"
             className={tw`bg(blue-500 hover:blue-700) text(white visited:white) font-bold border(none hover:none) rounded no-underline mr-3 text-sm py-1 px-4`}
             onClick={() => handleAggregate("sort")}
           >
@@ -104,6 +105,7 @@ export const FilterSort: VFC<FilterSortProps> = ({
             }
           />
           <button
+            type="button"
             className={tw`bg(blue-500 hover:blue-700) text(white visited:white) font-bold border(none hover:none) rounded no-underline mr-3 text-sm py-1 px-4`}
             onClick={() => handleAggregate("filter")}
           >
