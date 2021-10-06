@@ -75,7 +75,8 @@ export const Editor = ({
     if (evt.key === "Tab") {
       evt.preventDefault();
       const { selectionStart } = evt.currentTarget;
-      let newCursorPos, newContent;
+      let newCursorPos;
+      let newContent;
 
       if (evt.shiftKey) {
         // The previous character has to be a tab
@@ -83,17 +84,17 @@ export const Editor = ({
           return;
         }
 
-        newContent =
-          content.substring(0, selectionStart - 1) +
-          "" +
-          content.substring(selectionStart);
+        newContent = `${content.substring(
+          0,
+          selectionStart - 1
+        )}${content.substring(selectionStart)}`;
 
         newCursorPos = selectionStart - 1;
       } else {
-        newContent =
-          content.substring(0, selectionStart) +
-          "\t" +
-          content.substring(selectionStart);
+        newContent = `${content.substring(
+          0,
+          selectionStart
+        )}\t${content.substring(selectionStart)}`;
         newCursorPos = selectionStart + 1;
       }
 
@@ -109,7 +110,7 @@ export const Editor = ({
   };
 
   return (
-    <div className={tw`relative` + " prism-theme-override"}>
+    <div className={`${tw`relative`} prism-theme-override`}>
       <textarea
         ref={textAreaRef}
         className={tw`resize-none outline-none bg-transparent text-transparent absolute left-0 w-full top-0`}

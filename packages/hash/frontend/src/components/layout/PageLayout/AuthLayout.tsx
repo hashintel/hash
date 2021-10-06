@@ -17,7 +17,7 @@ export const AuthLayout: VoidFunctionComponent<AuthLayoutProps> = ({
       {children}
     </div>
     <div className={tw`absolute right-0 top-0 bottom-0 `}>
-      <img src={bgPattern} className={tw`h-screen`} />
+      <img alt="" src={bgPattern} className={tw`h-screen`} />
     </div>
     {onClose && (
       <button

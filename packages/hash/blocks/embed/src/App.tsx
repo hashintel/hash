@@ -4,10 +4,10 @@ import { tw } from "twind";
 
 import { BlockComponent } from "@hashintel/block-protocol/react";
 
+import { BlockProtocolUpdatePayload } from "@hashintel/block-protocol";
 import { ProviderNames } from "./types/embedTypes";
 import { HtmlBlock } from "./HtmlBlock";
 import { getFormCopy } from "./utils";
-import { BlockProtocolUpdatePayload } from "@hashintel/block-protocol";
 import Cross from "./svgs/Cross";
 import Loader from "./svgs/Loader";
 import Pencil from "./svgs/Pencil";
@@ -73,19 +73,19 @@ export const App: BlockComponent<AppProps> = (props) => {
     await getEmbedBlock(inputText, embedType).then((responseData) => {
       setLoading(false);
 
-      const { html, error } = responseData;
+      const { html: htmlResponseData, error } = responseData;
 
       if (error?.trim()) {
         setHtml(undefined);
         return setErrorString(error);
       }
 
-      if (html?.trim()) {
+      if (htmlResponseData?.trim()) {
         if (update) {
           const updateAction: BlockProtocolUpdatePayload<{
             initialHtml: string;
           }> = {
-            data: { initialHtml: html },
+            data: { initialHtml: htmlResponseData },
             entityId,
           };
 
@@ -98,7 +98,7 @@ export const App: BlockComponent<AppProps> = (props) => {
           );
         }
 
-        setHtml(html);
+        setHtml(htmlResponseData);
       }
     });
     setEdit(false);
@@ -113,6 +113,7 @@ export const App: BlockComponent<AppProps> = (props) => {
         <button
           // Tailwind doesn't have this as a class
           // https://github.com/tailwindlabs/tailwindcss/issues/1042#issuecomment-781271382
+          type="button"
           style={{ height: "max-content" }}
           onClick={() => {
             if (resetData) {
@@ -140,6 +141,7 @@ export const App: BlockComponent<AppProps> = (props) => {
             <strong className={tw`font-bold`}>Error</strong>
             <span className={tw`block sm:inline ml-2 `}>{errorString}</span>
           </div>
+          {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
           <span
             onClick={() => setDisplayAlert(false)}
             className={tw`absolute top-0 bottom-0 right-0 px-4 py-3`}

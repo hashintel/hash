@@ -1,3 +1,4 @@
+import { GraphQLResolveInfo } from "graphql";
 import {
   AggregateOperationInput,
   Resolver,
@@ -6,7 +7,6 @@ import {
 import { DbUnknownEntity } from "../../../types/dbTypes";
 import { aggregateEntity } from "./aggregateEntity";
 import { GraphQLContext } from "../../context";
-import { GraphQLResolveInfo } from "graphql";
 
 export const isRecord = (thing: unknown): thing is Record<string, any> => {
   if (typeof thing !== "object") {
@@ -39,6 +39,15 @@ type LinkedDataDefinition = {
   entityId?: string;
   entityVersionId?: string;
 };
+
+/* eslint-disable no-param-reassign */
+
+/**
+ * @todo: refactor resolveLinkedData to return updated record object
+ * instead of mutating it directly, to better adhere to functional
+ * programming best-practices, and so that no-param-reassign can
+ * be turned back on
+ */
 
 // Recursively resolve any __linkedData fields in arbitrary entities
 const resolveLinkedData = async (

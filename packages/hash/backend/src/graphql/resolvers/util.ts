@@ -1,5 +1,5 @@
 import { JSONObject } from "@hashintel/block-protocol";
-import { UserInputError } from "apollo-server-core";
+import { UserInputError } from "apollo-server-express";
 
 import { CreateEntityArgs } from "../../model";
 import { isSystemType } from "../../types/entityTypes";

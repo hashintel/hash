@@ -1,3 +1,4 @@
+import { ApolloError, ForbiddenError } from "apollo-server-errors";
 import {
   MutationCreateOrgEmailInvitationArgs,
   Resolver,
@@ -8,7 +9,6 @@ import {
   OrgEmailInvitation,
 } from "../../../model";
 import { LoggedInGraphQLContext } from "../../context";
-import { ApolloError, ForbiddenError } from "apollo-server-errors";
 
 export const createOrgEmailInvitation: Resolver<
   Promise<EntityWithIncompleteEntityType>,

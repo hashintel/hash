@@ -2,9 +2,8 @@ import { ApolloError } from "apollo-server-express";
 
 import { MutationVerifyEmailArgs, Resolver } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
-import { User } from "../../../model";
+import { User, EntityWithIncompleteEntityType } from "../../../model";
 import { verifyVerificationCode } from "./util";
-import { EntityWithIncompleteEntityType } from "../../../model";
 
 export const verifyEmail: Resolver<
   EntityWithIncompleteEntityType,

@@ -1,6 +1,6 @@
 import { SendMailOptions } from "nodemailer";
-import EmailTransporter from ".";
 import { convert } from "html-to-text";
+import EmailTransporter from ".";
 
 type TestEmail = {
   from: SendMailOptions["from"];

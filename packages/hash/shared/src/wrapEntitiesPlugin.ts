@@ -71,9 +71,9 @@ const ensureEntitiesAreWrapped = (
 
       tr.wrap(
         range,
-        wrapperNodes?.map((node) => ({
-          type: node.type,
-          attrs: node.attrs,
+        wrapperNodes?.map((wrapperNode) => ({
+          type: wrapperNode.type,
+          attrs: wrapperNode.attrs,
         })) ?? DEFAULT_WRAPPERS
       );
     }

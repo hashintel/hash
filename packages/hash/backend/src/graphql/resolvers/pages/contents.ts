@@ -9,9 +9,9 @@ export const contents: Resolver<
   Promise<EntityWithIncompleteEntityType[]>,
   DbPage["properties"],
   GraphQLContext
-> = async ({ contents }, _, { dataSources }) => {
+> = async (properties, _, { dataSources }) => {
   const entities = await Entity.getEntities(dataSources.db)(
-    contents.map(({ accountId, entityId }) => ({
+    properties.contents.map(({ accountId, entityId }) => ({
       accountId,
       entityId,
     }))
@@ -19,7 +19,7 @@ export const contents: Resolver<
 
   entities.forEach((entity, i) => {
     if (!entity) {
-      const { accountId, entityId } = contents[i];
+      const { accountId, entityId } = properties.contents[i];
       throw new ApolloError(
         `entity ${entityId} not found in account ${accountId}`,
         "NOT_FOUND"

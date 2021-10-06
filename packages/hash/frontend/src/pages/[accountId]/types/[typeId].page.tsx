@@ -74,8 +74,9 @@ export const EntityType: VoidFunctionComponent = () => {
          * This could be a property name for an object defined in the tree of the schema or a sub-schema within it.
          * Really these should instead be defined under $defs and referenced as such, but they might exist.
          */
-        schemaLinkPath =
-          schemaId + (subSchemaReference || "#") + `/properties/${schemaRef}`;
+        schemaLinkPath = `${
+          schemaId + (subSchemaReference || "#")
+        }/properties/${schemaRef}`;
       }
 
       return (

@@ -25,7 +25,7 @@ void (async () => {
     user: process.env.HASH_PG_USER || "postgres",
     password: process.env.HASH_PG_PASSWORD || "postgres",
     database: process.env.HASH_PG_DATABASE || "postgres",
-    port: parseInt(process.env.HASH_PG_PORT || "5432"),
+    port: parseInt(process.env.HASH_PG_PORT || "5432", 10),
   });
 
   // Get the hash org - it's already been created as part of db migration
@@ -102,7 +102,9 @@ void (async () => {
     });
   };
 
-  const user = users.find((user) => user.properties.shortname === "ciaran");
+  const user = users.find(
+    ({ properties }) => properties.shortname === "ciaran"
+  );
   if (!user) {
     throw new Error("user not found");
   }

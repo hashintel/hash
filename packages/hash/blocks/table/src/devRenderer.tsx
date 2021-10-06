@@ -5,6 +5,11 @@
 import React, { useCallback, useMemo, useState } from "react";
 import ReactDOM from "react-dom";
 
+import {
+  BlockProtocolUpdateFn,
+  BlockProtocolUpdatePayload,
+  BlockProtocolLinkedDataDefinition,
+} from "@hashintel/block-protocol";
 import Component from "./index";
 import { schemas } from "./schemas";
 import {
@@ -14,11 +19,6 @@ import {
   initialTableData,
   Person,
 } from "./mockData/mockData";
-import {
-  BlockProtocolUpdateFn,
-  BlockProtocolUpdatePayload,
-  BlockProtocolLinkedDataDefinition,
-} from "@hashintel/block-protocol";
 import { compareEntitiesByField } from "./lib/compareEntitiesByField";
 
 const DEFAULT_PAGE_SIZE = 3;
@@ -109,7 +109,7 @@ const useMockData = () => {
         initialState?: Record<string, any>;
       }>[]
     ) => {
-      const newTableData = Object.assign({}, tableData);
+      const newTableData = { ...tableData };
 
       // handle aggregation updates
       const actionWithAggregation = actions.find(
@@ -148,7 +148,7 @@ const useMockData = () => {
       initialState: tableData.initialState,
       data: getResolvedData(),
       entityId: tableData.entityId,
-      updateData: updateData,
+      updateData,
     }),
     [tableData, getResolvedData, updateData]
   );

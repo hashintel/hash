@@ -6,6 +6,14 @@ import { Entity, EntityWithIncompleteEntityType } from "../../../model";
 import { LoggedInGraphQLContext } from "../../context";
 import { createEntityArgsBuilder } from "../util";
 
+const findBlockInPage = (blockId: string, props: DbPageProperties) => {
+  const i = props.contents.findIndex((blk) => blk.entityId === blockId);
+  if (i === -1) {
+    throw new UserInputError(`block ${blockId} not found in page`);
+  }
+  return i;
+};
+
 export const insertBlocksIntoPage: Resolver<
   Promise<EntityWithIncompleteEntityType>,
   {},
@@ -84,12 +92,4 @@ export const insertBlocksIntoPage: Resolver<
     // element. Return when versioned entities are implemented at the API layer.
     return page.toGQLUnknownEntity();
   });
-};
-
-const findBlockInPage = (blockId: string, props: DbPageProperties) => {
-  const i = props.contents.findIndex((blk) => blk.entityId === blockId);
-  if (i === -1) {
-    throw new UserInputError(`block ${blockId} not found in page`);
-  }
-  return i;
 };

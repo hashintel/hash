@@ -12,19 +12,19 @@ import { Visibility } from "../../graphql/apiTypes.gen";
 
 /** maps a postgres row to its corresponding EntityType object */
 export const mapPGRowToEntityType = (row: QueryResultRowType): EntityType => ({
-  accountId: row["account_id"] as string,
-  entityId: row["entity_type_id"] as string,
-  entityVersionId: row["entity_type_version_id"] as string,
+  accountId: row.account_id as string,
+  entityId: row.entity_type_id as string,
+  entityVersionId: row.entity_type_version_id as string,
   entityTypeName: "EntityType",
-  properties: row["properties"],
+  properties: row.properties,
   metadata: {
-    versioned: row["versioned"] as boolean,
+    versioned: row.versioned as boolean,
     extra: {},
   },
-  createdById: row["created_by"] as string,
-  entityCreatedAt: new Date(row["created_at"] as number),
-  entityVersionCreatedAt: new Date(row["version_created_at"] as number),
-  entityVersionUpdatedAt: new Date(row["version_updated_at"] as number),
+  createdById: row.created_by as string,
+  entityCreatedAt: new Date(row.created_at as number),
+  entityVersionCreatedAt: new Date(row.version_created_at as number),
+  entityVersionUpdatedAt: new Date(row.version_updated_at as number),
   visibility: Visibility.Public /** @todo implement this */,
 });
 

@@ -20,6 +20,7 @@ import {
   isTestEnv,
   port,
 } from "./lib/config";
+
 const { FRONTEND_URL } = require("./lib/jsConfig");
 
 // Request ID generator
@@ -58,7 +59,7 @@ let statsd: StatsD | undefined;
 try {
   if (isStatsDEnabled) {
     statsd = new StatsD({
-      port: parseInt(process.env.STATSD_PORT || "8125"), // 8125 is default StatsD port
+      port: parseInt(process.env.STATSD_PORT || "8125", 10), // 8125 is default StatsD port
       host: process.env.STATSD_HOST,
     });
   }
@@ -75,7 +76,7 @@ const pgConfig = {
   user: getRequiredEnv("HASH_PG_USER"),
   password: getRequiredEnv("HASH_PG_PASSWORD"),
   database: getRequiredEnv("HASH_PG_DATABASE"),
-  port: parseInt(getRequiredEnv("HASH_PG_PORT")),
+  port: parseInt(getRequiredEnv("HASH_PG_PORT"), 10),
 
   maximumPoolSize: 10, // @todo: needs tuning
 };

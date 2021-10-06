@@ -1,7 +1,7 @@
+import { NotFoundError, sql } from "slonik";
 import { Connection } from "./types";
 import { EntityMeta } from "../adapter";
 
-import { NotFoundError, sql } from "slonik";
 import { DbEntityNotFoundError } from "../errors";
 
 export const insertEntityMetadata = async (
@@ -50,8 +50,8 @@ export const updateEntityMetadata = async (
       returning *
     `);
     return {
-      versioned: row["versioned"] as boolean,
-      extra: row["extra"],
+      versioned: row.versioned as boolean,
+      extra: row.extra,
     };
   } catch (err) {
     if (err instanceof NotFoundError) {

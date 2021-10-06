@@ -4,19 +4,18 @@
  */
 import React from "react";
 import ReactDOM from "react-dom";
+import { BlockProtocolUpdateFn } from "@hashintel/block-protocol";
 import Component from "./index";
 
 import { ProviderNames } from "./types/embedTypes";
 
-import { BlockProtocolUpdateFn } from "@hashintel/block-protocol";
-
 const node = document.getElementById("app");
 
 function AppComponent() {
-  async function getEmbedBlock(
+  const getEmbedBlock = async (
     url: string,
     type?: ProviderNames
-  ): Promise<{ html: string; error?: string }> {
+  ): Promise<{ html: string; error?: string }> => {
     return fetch("http://localhost:5001/graphql", {
       method: "POST",
       headers: {
@@ -34,7 +33,7 @@ function AppComponent() {
         html: responseData.data?.embedCode.html,
         error: responseData?.errors?.[0]?.message,
       }));
-  }
+  };
 
   const updateBlockData: BlockProtocolUpdateFn = async () => {
     // do something with the data
@@ -43,10 +42,10 @@ function AppComponent() {
   return (
     <div style={{ marginTop: 12 }}>
       <Component
-        accountId={"uuid-1234-account"}
-        type={"uuid-1234-type"}
-        id={"uuid-1234-id"}
-        entityId={"uuid-1234-id"}
+        accountId="uuid-1234-account"
+        type="uuid-1234-type"
+        id="uuid-1234-id"
+        entityId="uuid-1234-id"
         entityTypeId="Embed"
         getEmbedBlock={getEmbedBlock}
         update={updateBlockData}
