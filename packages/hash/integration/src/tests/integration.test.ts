@@ -7,7 +7,7 @@ import {
 } from "@hashintel/hash-backend/src/model";
 import { PostgresAdapter } from "@hashintel/hash-backend/src/db";
 import EmailTransporter from "@hashintel/hash-backend/src/email/transporter";
-import SesEmailTransporter from "@hashintel/hash-backend/src/email/transporter/awsSesEmailTransporter";
+import TestEmailTransporter from "@hashintel/hash-backend/src/email/transporter/testEmailTransporter";
 
 import { ClientError } from "graphql-request";
 import { ApiClient } from "./util";
@@ -76,7 +76,7 @@ beforeAll(async () => {
     password: "postgres",
   });
 
-  transporter = new SesEmailTransporter();
+  transporter = new TestEmailTransporter();
 
   existingUser = await User.createUser(db)({
     shortname: "test-user",
