@@ -3,6 +3,7 @@ import { EditorView, NodeView } from "prosemirror-view";
 import {
   Block,
   componentIdToUrl,
+  componentRequiresText,
   ReplacePortals,
 } from "@hashintel/hash-shared/sharedWithBackend";
 import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
@@ -43,7 +44,7 @@ export const createNodeView = (
   sourceName: string,
   replacePortal: ReplacePortals
 ) => {
-  const editable = componentSchema.properties?.editableRef;
+  const editable = componentRequiresText(componentSchema);
 
   const nodeView = class BlockWrapper implements NodeView {
     dom: HTMLDivElement = document.createElement("div");

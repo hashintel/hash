@@ -5,7 +5,7 @@ export type EntityStoreType = BlockEntity | MappedEntity;
 export type EntityStore = Record<string, EntityStoreType>;
 
 // @todo should be more robust
-const isEntity = (value: unknown): value is EntityStoreType =>
+export const isEntity = (value: unknown): value is EntityStoreType =>
   typeof value === "object" && value !== null && "entityId" in value;
 
 type EntityLink = {
@@ -13,7 +13,7 @@ type EntityLink = {
   data: EntityStoreType;
 };
 
-const isEntityLink = (value: unknown): value is EntityLink =>
+export const isEntityLink = (value: unknown): value is EntityLink =>
   typeof value === "object" &&
   value !== null &&
   "__linkedData" in value &&
