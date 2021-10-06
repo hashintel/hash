@@ -73,19 +73,19 @@ export const App: BlockComponent<AppProps> = (props) => {
     await getEmbedBlock(inputText, embedType).then((responseData) => {
       setLoading(false);
 
-      const { html, error } = responseData;
+      const { html: htmlResponseData, error } = responseData;
 
       if (error?.trim()) {
         setHtml(undefined);
         return setErrorString(error);
       }
 
-      if (html?.trim()) {
+      if (htmlResponseData?.trim()) {
         if (update) {
           const updateAction: BlockProtocolUpdatePayload<{
             initialHtml: string;
           }> = {
-            data: { initialHtml: html },
+            data: { initialHtml: htmlResponseData },
             entityId,
           };
 
@@ -98,7 +98,7 @@ export const App: BlockComponent<AppProps> = (props) => {
           );
         }
 
-        setHtml(html);
+        setHtml(htmlResponseData);
       }
     });
     setEdit(false);
@@ -113,6 +113,7 @@ export const App: BlockComponent<AppProps> = (props) => {
         <button
           // Tailwind doesn't have this as a class
           // https://github.com/tailwindlabs/tailwindcss/issues/1042#issuecomment-781271382
+          type="button"
           style={{ height: "max-content" }}
           onClick={() => {
             if (resetData) {
