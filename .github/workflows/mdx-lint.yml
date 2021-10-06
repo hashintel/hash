@@ -18,4 +18,4 @@ jobs:
 
       # Runs a single command using the runners shell
       - name: Lint for objectID
-        run: cd workflows/algolia && sh objectid_lint.sh
+        run: cd .github/workflows/algolia && sh objectid_lint.sh

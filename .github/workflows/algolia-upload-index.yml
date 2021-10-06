@@ -20,4 +20,4 @@ jobs:
 
       # Runs a single command using the runners shell
       - name: Upload to algolia
-        run: cd workflows/algolia && sh algolia_upload_script.sh
+        run: cd .github/workflows/algolia && sh algolia_upload_script.sh

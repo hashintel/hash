@@ -72,4 +72,3 @@ typings/
 # Python compiled files and package metadata
 **/__pycache__
 **/*.egg-info
-scripts/output/

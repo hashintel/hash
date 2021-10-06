@@ -16,7 +16,7 @@ type DocsFrontMatter = {
 
 const getAllFiles = function (
   dirPath,
-  arrayOfFiles: Array<{ inputPath: string; outputPath: string, type: string }>,
+  arrayOfFiles: Array<{ inputPath: string; outputPath: string; type: string }>,
   type
 ) {
   const files = fs.readdirSync(dirPath);
@@ -73,10 +73,9 @@ export const checkObjectIds = () => {
 };
 
 export const generateAlgoliaJson = () => {
-  const jsonData = [];
   const objectIds = [];
 
-  const appendToJson = (matterData: DocsFrontMatter, type) => {
+  const getFormattedData = (matterData: DocsFrontMatter, type) => {
     if (!matterData.data.objectId) {
       throw new Error(
         `objectId missing on file ${type}/${matterData.data.slug}.`
@@ -97,7 +96,7 @@ export const generateAlgoliaJson = () => {
       type,
     };
 
-    jsonData.push(appendData);
+    return appendData;
   };
 
   const glossaryFiles = getAllFiles("../../resources/glossary", [], "glossary");
@@ -105,12 +104,12 @@ export const generateAlgoliaJson = () => {
 
   const files = [...glossaryFiles, ...docsFiles];
 
-  files.forEach((filePath) => {
+  const jsonData = files.map((filePath) => {
     const file = fs.readFileSync(filePath.inputPath, "utf8");
 
     const grayMatterData = matter(file) as unknown as DocsFrontMatter;
 
-    appendToJson(grayMatterData, filePath.type);
+    return getFormattedData(grayMatterData, filePath.type);
   });
 
   return jsonData;
