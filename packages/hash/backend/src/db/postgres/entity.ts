@@ -366,6 +366,8 @@ export const getEntityHistory = async (
     order by created_at desc
   `);
   return rows.map((row) => ({
+    entityId: params.entityId,
+    accountId: params.accountId,
     entityVersionId: row.entity_version_id as string,
     createdAt: new Date(row.created_at as string),
     createdById: row.created_by as string,

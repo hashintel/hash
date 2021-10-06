@@ -61,6 +61,8 @@ export type EntityMeta = {
 };
 
 export type EntityVersion = {
+  accountId: string;
+  entityId: string;
   entityVersionId: string;
   createdAt: Date;
   createdById: string;
