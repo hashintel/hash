@@ -40,12 +40,13 @@ export const EditView: React.VFC<EditViewProps> = ({
             <strong className={tw`font-bold`}>Error</strong>
             <span className={tw`block sm:inline ml-2 `}>{errorString}</span>
           </div>
-          <span
+          <button
             onClick={() => setErrorString("")}
-            className={tw`absolute top-0 bottom-0 right-0 px-4 py-3`}
+            type="button"
+            className={tw`absolute focus:outline-none top-0 bottom-0 right-0 px-4 py-3`}
           >
             <Cross />
-          </span>
+          </button>
         </div>
       )}
 

@@ -5,7 +5,10 @@
 import React, { useState } from "react";
 import ReactDOM from "react-dom";
 import { tw } from "twind";
-import { BlockProtocolUpdateFn, BlockProtocolUpdatePayload } from "@hashintel/block-protocol";
+import {
+  BlockProtocolUpdateFn,
+  BlockProtocolUpdatePayload,
+} from "@hashintel/block-protocol";
 
 import Component from "./index";
 import { ProviderNames } from "./types";

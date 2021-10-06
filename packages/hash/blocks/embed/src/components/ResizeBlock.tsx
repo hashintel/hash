@@ -5,7 +5,7 @@ import { CornerResize } from "../svgs/CornerResize";
 
 type ResizeBlockProps = {
   width: number | undefined;
-  height?: number | undefined;
+  height: number | undefined;
   maxWidth: number;
   updateDimensions: (width: number, height: number) => void;
   shouldRespectAspectRatio: boolean;
@@ -173,6 +173,7 @@ export const ResizeBlock: React.FC<ResizeBlockProps> = ({
         case "bottom-left":
           newHeight = Math.ceil(mouseMoveEvt.pageY - top);
           newWidth = Math.ceil(right - mouseMoveEvt.pageX);
+          break;
         default:
           break;
       }
@@ -189,7 +190,6 @@ export const ResizeBlock: React.FC<ResizeBlockProps> = ({
 
       if (newHeight) {
         updateLocalDimensions({ height: newHeight, aspectRatio });
-        return;
       }
     }
 
@@ -229,21 +229,23 @@ export const ResizeBlock: React.FC<ResizeBlockProps> = ({
       {resizerPositions.map(({ position, className }) => {
         if (["bottom-left", "bottom-right"].includes(position)) {
           return (
-            <div
-              className={tw`transition-all absolute z-10 opacity-0 group-hover:opacity-100 ${className}`}
+            <button
+              type="button"
+              className={tw`transition-all absolute z-10 opacity-0 group-hover:opacity-100 focus:outline-none ${className}`}
               onMouseDown={(evt) => handleResize(evt, position)}
             >
               <CornerResize position={position} />
-            </div>
+            </button>
           );
         }
 
         return (
-          <div
+          <button
             key={position}
             style={{ maxHeight: "50%" }}
-            role="button"
-            className={tw`transition-all absolute border-1 border-white rounded-full bg-black bg-opacity-70 z-10 opacity-0 opacity-1 group-hover:opacity-100 ${className}`}
+            aria-label={`${position} resize button`}
+            type="button"
+            className={tw`transition-all absolute border-1 border-white rounded-full bg-black bg-opacity-70 z-10 opacity-0 focus:outline-none group-hover:opacity-100 ${className}`}
             onMouseDown={(evt) => handleResize(evt, position)}
           />
         );

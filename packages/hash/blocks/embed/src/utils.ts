@@ -49,5 +49,5 @@ const kebabCase = (str: string) =>
 
 export const toCSSText = (styles: CSSStyleDeclaration): string =>
   Object.entries(styles)
-    .map(([prop, value]) => kebabCase(prop) + ":" + value)
+    .map(([prop, value]) => `${kebabCase(prop)}:${value}`)
     .join(";");

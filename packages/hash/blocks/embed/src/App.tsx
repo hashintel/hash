@@ -10,10 +10,10 @@ import { tw } from "twind";
 
 import { BlockComponent } from "@hashintel/block-protocol/react";
 
+import { BlockProtocolUpdatePayload } from "@hashintel/block-protocol";
 import { ProviderNames, AppState, Actions } from "./types";
 import { HtmlBlock } from "./HtmlBlock";
 import { getFormCopy } from "./utils";
-import { BlockProtocolUpdatePayload } from "@hashintel/block-protocol";
 import Pencil from "./svgs/Pencil";
 import { ResizeBlock } from "./components/ResizeBlock";
 import { EditView } from "./components/EditView";
@@ -52,10 +52,10 @@ const getInitialState = ({
   embedType,
 }: Partial<AppState> = {}) => ({
   embedUrl: "",
-  embedType: embedType,
-  html: html,
-  width: width,
-  height: height,
+  embedType,
+  html,
+  width,
+  height,
   maxWidth: MAX_WIDTH,
   loading: false,
   errorString: "",
@@ -120,13 +120,13 @@ export const App: BlockComponent<AppProps> = ({
         html: initialHtml,
         width: initialWidth,
         height: initialHeight,
-        embedType: embedType,
+        embedType,
       },
     });
   }, [initialHtml, initialHeight, initialWidth, embedType]);
 
-  const setErrorString = (errorString: string) =>
-    dispatch({ type: "UPDATE_STATE", payload: { errorString } });
+  const setErrorString = (error: string) =>
+    dispatch({ type: "UPDATE_STATE", payload: { errorString: error } });
 
   useLayoutEffect(() => {
     if (!containerRef.current) return;
@@ -142,21 +142,18 @@ export const App: BlockComponent<AppProps> = ({
   }, [html, width, initialWidth]);
 
   const updateRemoteData = useCallback(
-    ({
-      html,
-      width,
-      height,
-      embedType,
-    }: Partial<
-      Pick<AppState, "html" | "width" | "height" | "embedType"> & {
-        embedType: string;
-      }
-    >) => {
+    (
+      properties: Partial<
+        Pick<AppState, "html" | "width" | "height" | "embedType"> & {
+          embedType: string;
+        }
+      >
+    ) => {
       const data = {
-        initialHtml: html,
-        initialHeight: height,
-        initialWidth: width,
-        embedType,
+        initialHtml: properties.html,
+        initialHeight: properties.height,
+        initialWidth: properties.width,
+        embedType: properties.embedType,
       };
 
       const updateAction: BlockProtocolUpdatePayload<{
@@ -251,8 +248,8 @@ export const App: BlockComponent<AppProps> = ({
   };
 
   const updateDimensions = useCallback(
-    () => (width: number, height: number) => {
-      updateRemoteData({ html, width, height });
+    () => (newWidth: number, newHeight: number) => {
+      updateRemoteData({ html, width: newWidth, height: newHeight });
     },
     [html, updateRemoteData]
   );
@@ -305,6 +302,7 @@ export const App: BlockComponent<AppProps> = ({
         </div>
         <button
           onClick={resetData}
+          type="button"
           className={tw`bg-gray-100 p-1.5 ml-1 border-1 border-gray-300 rounded-sm self-start`}
         >
           <Pencil />
