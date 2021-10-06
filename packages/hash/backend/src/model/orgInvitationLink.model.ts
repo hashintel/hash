@@ -20,7 +20,6 @@ type OrgInvitationLinkConstructorArgs = {
 
 class __OrgInvitationLink extends AccessToken {
   properties: DBOrgInvitationLinkProperties;
-
   errorMsgPrefix: string;
 
   constructor({

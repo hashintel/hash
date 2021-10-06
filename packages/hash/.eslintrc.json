@@ -38,6 +38,7 @@
     "react/react-in-jsx-scope": "off",
     "no-return-await": "off",
     "max-classes-per-file": "off",
+    "lines-between-class-members": ["error", "always", { "exceptAfterSingleLine": true }],
     "consistent-return": "off",
     "default-case": "off",
     "class-methods-use-this": "off",

@@ -52,7 +52,6 @@ export const createConnPool = (cfg: Config, logger?: Logger) => {
 
 export class PostgresAdapter extends DataSource implements DBAdapter {
   private statsdInterval: NodeJS.Timeout;
-
   private pool: DatabasePoolType;
 
   constructor(cfg: Config, logger?: Logger, statsd?: StatsD) {

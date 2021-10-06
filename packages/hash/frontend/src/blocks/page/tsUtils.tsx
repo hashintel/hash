@@ -60,7 +60,6 @@ export const createNodeView = (
 
   const nodeView = class BlockWrapper implements NodeView {
     dom: HTMLDivElement = document.createElement("div");
-
     contentDOM: HTMLElement | undefined = undefined;
 
     private target = document.createElement("div");
