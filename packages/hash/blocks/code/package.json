@@ -9,7 +9,7 @@
   "main": "src/index.ts",
   "prettier": "@hashintel/prettier-config",
   "scripts": {
-    "format": "prettier --write './src/**/*'; eslint --ext .ts,.tsx --fix ./src/",
+    "format": "eslint --ext .ts,.tsx --fix ./src/; prettier --write --list-different './src/**/*'",
     "lint": "prettier --check './src/**/*' || exit 1; eslint --ext .ts,.tsx ./src/; tsc --noEmit # code",
     "build": "yarn clean; cross-env NODE_ENV=production webpack --mode production && yarn schema",
     "build:dev": "yarn clean; cross-env NODE_ENV=development webpack --mode development",

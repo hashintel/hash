@@ -16,11 +16,19 @@ type AppProps = {
   accountId: string;
 };
 
-export const App: BlockComponent<AppProps> = (props) => {
+export const App: BlockComponent<AppProps> = ({
+  entityId,
+  entityTypeId,
+  accountId,
+  caption,
+  content,
+  language,
+  update,
+}) => {
   const [localData, setLocalData] = useState(() => ({
-    caption: props.caption,
-    content: props.content,
-    language: props.language,
+    caption,
+    content,
+    language,
   }));
   const [copied, setCopied] = useState(false);
   const editorRef = useRef<HTMLTextAreaElement>(null);
@@ -28,11 +36,11 @@ export const App: BlockComponent<AppProps> = (props) => {
 
   useEffect(() => {
     setLocalData({
-      caption: props.caption,
-      content: props.content,
-      language: props.language,
+      caption,
+      content,
+      language,
     });
-  }, [props.caption, props.content, props.language]);
+  }, [caption, content, language]);
 
   const updateLocalData = (
     newData: Partial<Pick<AppProps, "caption" | "language" | "content">>
@@ -44,11 +52,11 @@ export const App: BlockComponent<AppProps> = (props) => {
   };
 
   const updateRemoteData = () => {
-    void props.update?.([
+    void update?.([
       {
-        entityId: props.entityId,
-        entityTypeId: props.entityTypeId,
-        accountId: props.accountId,
+        entityId,
+        entityTypeId,
+        accountId,
         data: localData,
       },
     ] as BlockProtocolUpdatePayload<AppProps>[]);
@@ -73,7 +81,9 @@ export const App: BlockComponent<AppProps> = (props) => {
           setTimeout(() => setCopied(false), 2000);
         }
       }
-    } catch (err) {}
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleCaptionBtnClick = () => {
@@ -108,6 +118,7 @@ export const App: BlockComponent<AppProps> = (props) => {
 
           <div className={tw`flex`}>
             <button
+              type="button"
               className={tw`mr-2 bg-black flex items-center bg-opacity-10 hover:bg-opacity-20 px-2 py-1 rounded-md`}
               onClick={copyToClipboard}
             >
@@ -115,6 +126,7 @@ export const App: BlockComponent<AppProps> = (props) => {
               <CopyIcon />
             </button>
             <button
+              type="button"
               className={tw`bg-black bg-opacity-10 hover:bg-opacity-20 px-2 py-1 rounded-md`}
               onClick={handleCaptionBtnClick}
             >
