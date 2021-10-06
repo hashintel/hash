@@ -4,10 +4,10 @@ import { tw } from "twind";
 
 import { BlockComponent } from "@hashintel/block-protocol/react";
 
+import { BlockProtocolUpdatePayload } from "@hashintel/block-protocol";
 import { ProviderNames } from "./types/embedTypes";
 import { HtmlBlock } from "./HtmlBlock";
 import { getFormCopy } from "./utils";
-import { BlockProtocolUpdatePayload } from "@hashintel/block-protocol";
 import Cross from "./svgs/Cross";
 import Loader from "./svgs/Loader";
 import Pencil from "./svgs/Pencil";

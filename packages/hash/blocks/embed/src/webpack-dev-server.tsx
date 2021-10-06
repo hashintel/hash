@@ -4,11 +4,10 @@
  */
 import React from "react";
 import ReactDOM from "react-dom";
+import { BlockProtocolUpdateFn } from "@hashintel/block-protocol";
 import Component from "./index";
 
 import { ProviderNames } from "./types/embedTypes";
-
-import { BlockProtocolUpdateFn } from "@hashintel/block-protocol";
 
 const node = document.getElementById("app");
 
@@ -43,10 +42,10 @@ function AppComponent() {
   return (
     <div style={{ marginTop: 12 }}>
       <Component
-        accountId={"uuid-1234-account"}
-        type={"uuid-1234-type"}
-        id={"uuid-1234-id"}
-        entityId={"uuid-1234-id"}
+        accountId="uuid-1234-account"
+        type="uuid-1234-type"
+        id="uuid-1234-id"
+        entityId="uuid-1234-id"
         entityTypeId="Embed"
         getEmbedBlock={getEmbedBlock}
         update={updateBlockData}
