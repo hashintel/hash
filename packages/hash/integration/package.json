@@ -12,7 +12,7 @@
   "prettier": "@hashintel/prettier-config",
   "scripts": {
     "format": "eslint --ext .ts --fix ./src/; prettier --write --list-different './src/**/*'",
-    "lint": "prettier --check './src/**/*' || exit 1; eslint --ext .ts ./src/; tsc --noEmit # @hashintel/hash-integration",
+    "lint": "prettier --check './src/**/*' || exit 1; eslint --ext .ts ./src/ || exit 1; tsc --noEmit # @hashintel/hash-integration",
     "codegen": "graphql-codegen --config codegen.yml",
     "build": "yarn clean; yarn codegen; tsc -b",
     "clean": "rimraf './src/**/*.gen.*' ./dist/ ./tsconfig.tsbuildinfo",
