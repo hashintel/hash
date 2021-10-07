@@ -40,7 +40,7 @@ export const getEntityAccountId = async (
       `)
       : await conn.one(sql`
         select account_id from entity_account
-        where entity_id = ${entityId}
+        where entity_id = ${entityId} limit 1
       `);
     return row.account_id as string;
   } catch (err) {
