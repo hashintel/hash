@@ -4,6 +4,7 @@ import { tw } from "twind";
 import Logo from "../../../../assets/svg/logo.svg";
 import { IconSpinner } from "../../../Icons/IconSpinner";
 import { TextInput } from "../../../forms/TextInput";
+import { useRouter } from "next/router";
 
 type SignupIntroProps = {
   handleSubmit: (email: string) => void;
@@ -18,6 +19,7 @@ export const SignupIntro: VFC<SignupIntroProps> = ({
 }) => {
   const [email, setEmail] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
   useEffect(() => {
     inputRef.current?.select();
@@ -26,6 +28,10 @@ export const SignupIntro: VFC<SignupIntroProps> = ({
   const onSubmit = (evt: React.FormEvent) => {
     evt.preventDefault();
     handleSubmit(email);
+  };
+
+  const navigateToLogin = () => {
+    router.push({ pathname: "/login", query: router.query });
   };
 
   return (
@@ -53,14 +59,16 @@ export const SignupIntro: VFC<SignupIntroProps> = ({
         <div className={tw`flex-1 h-px bg-gray-200`} />
       </div>
       */}
-      <form className={tw`flex flex-col w-64 items-center`} onSubmit={onSubmit}>
+      <form
+        className={tw`flex flex-col mb-14 w-64 items-center`}
+        onSubmit={onSubmit}
+      >
         <TextInput
           className={tw`w-64`}
           placeholder="Enter your email address.."
           type="email"
           ref={inputRef}
           onChangeText={setEmail}
-          value={email}
         />
         {errorMessage && (
           <span className={tw`text-red-500 text-sm mb-4 text-center`}>
@@ -78,6 +86,16 @@ export const SignupIntro: VFC<SignupIntroProps> = ({
           )}
         </button>
       </form>
+      <p className={tw`text-sm  md:whitespace-nowrap text-center`}>
+        Alternatively if you already have a HASH account,
+        <button
+          role="button"
+          onClick={navigateToLogin}
+          className={tw`font-bold focus:outline-none ml-1`}
+        >
+          Click here to log in
+        </button>
+      </p>
     </div>
   );
 };
