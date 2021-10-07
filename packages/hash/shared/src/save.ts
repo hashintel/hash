@@ -32,9 +32,9 @@ const nodeToEntityProperties = (node: ProsemirrorNode<Schema>) => {
 
         texts.push({
           text: child.text ?? "",
-          bold: marks.has("strong"),
-          italics: marks.has("em"),
-          underline: marks.has("underlined"),
+          ...(marks.has("strong") ? { bold: true } : {}),
+          ...(marks.has("em") ? { italics: true } : {}),
+          ...(marks.has("underlined") ? { underline: true } : {}),
         });
       }
     });
