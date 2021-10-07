@@ -59,3 +59,80 @@ export const joinOrg = gql`
     }
   }
 `;
+
+export const createOrgEmailInvitation = gql`
+  mutation createOrgEmailInvitation(
+    $orgEntityId: ID!
+    $inviteeEmailAddress: String!
+  ) {
+    createOrgEmailInvitation(
+      orgEntityId: $orgEntityId
+      inviteeEmailAddress: $inviteeEmailAddress
+    ) {
+      properties {
+        org {
+          data {
+            properties {
+              name
+              shortname
+            }
+          }
+        }
+        inviteeEmailAddress
+      }
+    }
+  }
+`;
+
+export const getOrgEmailInvitation = gql`
+  query getOrgEmailInvitation(
+    $orgEntityId: ID!
+    $invitationEmailToken: String!
+  ) {
+    getOrgEmailInvitation(
+      orgEntityId: $orgEntityId
+      invitationEmailToken: $invitationEmailToken
+    ) {
+      entityId
+      properties {
+        org {
+          data {
+            properties {
+              name
+            }
+          }
+        }
+        inviter {
+          data {
+            entityId
+            properties {
+              preferredName
+            }
+          }
+        }
+        inviteeEmailAddress
+      }
+    }
+  }
+`;
+
+export const getOrgInvitationLink = gql`
+  query getOrgInvitationLink($orgEntityId: ID!, $invitationLinkToken: String!) {
+    getOrgInvitationLink(
+      orgEntityId: $orgEntityId
+      invitationLinkToken: $invitationLinkToken
+    ) {
+      entityId
+      properties {
+        org {
+          data {
+            entityId
+            properties {
+              name
+            }
+          }
+        }
+      }
+    }
+  }
+`;

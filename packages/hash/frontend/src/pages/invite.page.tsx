@@ -8,35 +8,50 @@ import Logo from "../assets/svg/logo.svg";
 import { IconSpinner } from "../components/Icons/IconSpinner";
 import { SelectInput } from "../components/forms/SelectInput";
 import { useRouter } from "next/router";
-import { useForm } from "react-hook-form";
-import { useQuery } from "@apollo/client";
+import { useMutation, useQuery } from "@apollo/client";
 import {
   GetOrgEmailInvitationQuery,
   GetOrgEmailInvitationQueryVariables,
+  GetOrgInvitationLinkQuery,
+  GetOrgInvitationLinkQueryVariables,
+  JoinOrgMutation,
+  JoinOrgMutationVariables,
 } from "../graphql/apiTypes.gen";
-import { getOrgEmailInvitation } from "../graphql/queries/orgEmailInvitation.queries";
-import { useEffect, useMemo } from "react";
-import { ORG_ROLES } from "../components/pages/auth/utils";
+import {
+  joinOrg as joinOrgMutation,
+  getOrgEmailInvitation,
+  getOrgInvitationLink,
+} from "../graphql/queries/org.queries";
+import { useEffect, useMemo, useState } from "react";
+import {
+  INVITE_ERROR_CODES,
+  isParsedInviteQuery,
+  ORG_ROLES,
+} from "../components/pages/auth/utils";
+
+type InvitationInfo = {
+  orgName: string;
+  inviter?: string;
+  mode: "email" | "general";
+};
+
+// @todo: show success message before navigating to home page
+// @todo add error component for invalid links
 
 const InvitePage: NextPage = () => {
   const { user, loading: fetchingUser } = useUser();
   const router = useRouter();
-  const { register } = useForm();
-  const { orgEntityId, invitationEmailToken, isExistingUser } = router.query;
-
-  const handleSubmit = () => {};
-  const errorMessage = "";
-
-  const { data, loading, error } = useQuery<
-    GetOrgEmailInvitationQuery,
-    GetOrgEmailInvitationQueryVariables
-  >(getOrgEmailInvitation, {
-    variables: {
-      orgEntityId: orgEntityId as string,
-      invitationEmailToken: invitationEmailToken as string,
-    },
-    skip: !orgEntityId || !invitationEmailToken || !user,
-  });
+  const {
+    orgEntityId,
+    invitationEmailToken,
+    invitationLinkToken,
+    isExistingUser,
+  } = router.query;
+  const [responsibility, setResponsibility] = useState(ORG_ROLES[0].value);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [invitationInfo, setInvitationInfo] = useState<
+    InvitationInfo | undefined
+  >();
 
   useEffect(() => {
     if (typeof window == "undefined") {
@@ -46,7 +61,7 @@ const InvitePage: NextPage = () => {
     /**
      * Redirect to home page is necessary query params aren't available
      */
-    if ((!orgEntityId || !invitationEmailToken) && router.isReady) {
+    if (!isParsedInviteQuery(router.query) && router.isReady) {
       router.push("/");
       return;
     }
@@ -63,36 +78,145 @@ const InvitePage: NextPage = () => {
     }
   }, [router, user, fetchingUser]);
 
-  const inviterShortname = useMemo(() => {
-    if (!data) return "";
-    return data.getOrgEmailInvitation?.properties.inviter.data.properties
-      .preferredName;
-  }, [data]);
+  const navigateToHome = () => {
+    router.push("/");
+  };
 
-  const orgShortname = useMemo(() => {
-    if (!data) return "";
-    return data.getOrgEmailInvitation?.properties.org.data.properties.shortname;
-  }, [data]);
+  // @todo merge both into a hook
+  const { loading: getOrgEmailInvitationLoading, error } = useQuery<
+    GetOrgEmailInvitationQuery,
+    GetOrgEmailInvitationQueryVariables
+  >(getOrgEmailInvitation, {
+    variables: {
+      orgEntityId: orgEntityId as string,
+      invitationEmailToken: invitationEmailToken as string,
+    },
+    skip: !orgEntityId || !invitationEmailToken || !user,
+    onCompleted: ({ getOrgEmailInvitation }) => {
+      const orgName = getOrgEmailInvitation.properties.org.data.properties.name;
+      const inviter =
+        getOrgEmailInvitation.properties.inviter.data.properties.preferredName;
+      if (orgName && inviter) {
+        setInvitationInfo({
+          inviter,
+          orgName,
+          mode: "email",
+        });
+      }
+    },
+    onError: ({ graphQLErrors }) => {
+      graphQLErrors.forEach(({ extensions, message }) => {
+        const { code } = extensions as {
+          code?: keyof typeof INVITE_ERROR_CODES;
+        };
+        setErrorMessage(message);
+      });
+    },
+  });
 
-  console.log("data ==> ", data);
+  const { loading: getOrgInvitationLoading } = useQuery<
+    GetOrgInvitationLinkQuery,
+    GetOrgInvitationLinkQueryVariables
+  >(getOrgInvitationLink, {
+    variables: {
+      orgEntityId: orgEntityId as string,
+      invitationLinkToken: invitationLinkToken as string,
+    },
+    skip: !orgEntityId || !invitationLinkToken || !user,
+    onCompleted: ({ getOrgInvitationLink }) => {
+      const orgName = getOrgInvitationLink.properties.org.data.properties.name;
+      if (orgName) {
+        setInvitationInfo({
+          orgName,
+          mode: "general",
+        });
+      }
+    },
+    onError: ({ graphQLErrors }) => {
+      graphQLErrors.forEach(({ extensions, message }) => {
+        const { code } = extensions as {
+          code?: keyof typeof INVITE_ERROR_CODES;
+        };
+        console.log(code);
+        setErrorMessage(message);
+      });
+    },
+  });
+
+  const [joinOrg, { loading: joinOrgLoading }] = useMutation<
+    JoinOrgMutation,
+    JoinOrgMutationVariables
+  >(joinOrgMutation, {
+    onCompleted: ({ joinOrg }) => {
+      navigateToHome();
+    },
+    onError: ({ graphQLErrors }) => {
+      graphQLErrors.forEach(({ extensions, message }) => {
+        const { code } = extensions as {
+          code?: keyof typeof INVITE_ERROR_CODES;
+        };
+        if (code === "ALREADY_USED") {
+          void router.push("/");
+        } else {
+          setErrorMessage(message);
+        }
+      });
+    },
+  });
+
+  const handleSubmit = (evt: React.FormEvent) => {
+    evt.preventDefault();
+    setErrorMessage("");
+    joinOrg({
+      variables: {
+        orgEntityId: orgEntityId as string,
+        verification: {
+          ...(invitationEmailToken && {
+            invitationEmailToken: invitationEmailToken as string,
+          }),
+          ...(invitationLinkToken && {
+            invitationLinkToken: invitationLinkToken as string,
+          }),
+        },
+        responsibility,
+      },
+    });
+  };
+
+  const [title, subtitle] = useMemo(() => {
+    if (invitationInfo?.mode === "email") {
+      return [
+        `${invitationInfo.inviter} has invited you to join ${invitationInfo.orgName} on HASH`,
+        `Now it's time to select your role at ${invitationInfo.orgName}`,
+      ];
+    }
+    if (invitationInfo?.mode === "general") {
+      return [
+        `You have been invited to join ${invitationInfo.orgName} on HASH`,
+        `Now it's time to select your role at ${invitationInfo.orgName}`,
+      ];
+    }
+    return ["", ""];
+  }, [invitationInfo]);
 
   return (
-    <AuthLayout>
+    <AuthLayout
+      loading={getOrgInvitationLoading || getOrgEmailInvitationLoading}
+      onClose={navigateToHome}
+    >
       <div className={tw`w-9/12 max-w-3xl`}>
         <Logo className={tw`mb-16`} />
         <div className={tw`mb-9`}>
-          <h1 className={tw`text-3xl font-bold mb-4`}>
-            {inviterShortname} has invited you to join {orgShortname} on HASH
-          </h1>
-          <p className={tw`text-2xl mb-14 font-light`}>
-            Now it's time to select your role at {orgShortname}
-          </p>
+          <h1 className={tw`text-3xl font-bold mb-4`}>{title}</h1>
+          <p className={tw`text-2xl mb-14 font-light`}>{subtitle}</p>
 
           <form onSubmit={handleSubmit}>
             <div className={tw`mb-6`}>
               <SelectInput
-                label={`Your role at ${orgShortname}`}
+                id="responsibility"
+                label={`Your role at ${invitationInfo?.orgName}`}
                 options={ORG_ROLES}
+                onChangeValue={setResponsibility}
               />
               {errorMessage ? (
                 <p className={tw`text-red-500 text-sm mt-5 `}>{errorMessage}</p>
@@ -100,10 +224,10 @@ const InvitePage: NextPage = () => {
             </div>
 
             <button
-              className={tw`group w-64 bg-gradient-to-r from-blue-400 via-blue-500 to-pink-500 rounded-lg h-11 transition-all disabled:opacity-50 flex items-center justify-center text-white text-sm font-bold`}
-              disabled={false}
+              className={tw`group w-64 bg-gradient-to-r from-blue-400 via-blue-500 to-pink-500 focus:outline-none rounded-lg h-11 transition-all disabled:opacity-50 flex items-center justify-center text-white text-sm font-bold`}
+              disabled={joinOrgLoading}
             >
-              {false ? (
+              {joinOrgLoading ? (
                 <IconSpinner className={tw`h-4 w-4 text-white animate-spin`} />
               ) : (
                 <>
