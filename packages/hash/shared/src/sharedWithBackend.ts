@@ -470,8 +470,8 @@ export const createRemoteBlockFromEntity = async (
       );
     }
 
-    return schema.nodes.entity.create({ entity: attrs.entityId }, [
-      schema.nodes.entity.create({ entity: textEntity.entityId }, [
+    return schema.nodes.entity.create({ entityId: attrs.entityId }, [
+      schema.nodes.entity.create({ entityId: textEntity.entityId }, [
         schema.nodes[targetComponentId].create(
           attrs,
           childrenForTextEntity(textEntity, schema)
@@ -484,7 +484,7 @@ export const createRemoteBlockFromEntity = async (
      *       working on switching blocks
      */
     return schema.nodes.entity.create(
-      { entity: attrs.entityId },
+      { entityId: attrs.entityId },
       schema.nodes[targetComponentId].create(attrs, [])
     );
   }
