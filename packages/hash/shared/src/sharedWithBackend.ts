@@ -21,7 +21,10 @@ const fetch = (globalThis as any).fetch ?? require("node-fetch");
 /**
  * @todo think about removing this
  */
-type BlockConfig = BlockMetadata & { componentId: string };
+interface BlockConfig extends BlockMetadata {
+  componentId: string;
+  variants: NonNullable<BlockMetadata["variants"]>;
+}
 
 /**
  * @deprecated
@@ -67,22 +70,21 @@ function toBlockConfig(
   const defaultVariant = {
     name: toBlockName(options.name),
     description: options.description,
-    icon: "/path/to/icon.svg", // @todo default icon
+    icon: "/format-font.svg",
     properties: {},
   };
 
-  const variants = options.variants?.map((variant) => ({
+  /**
+   * @todo: prefix relative path to future icon w/ block's
+   *   baseUrl when introducing icons to blocks
+   * ```
+   * icon: [url, variant.icon].join("/")
+   * ```
+   */
+  const variants = (options.variants ?? [{}]).map((variant) => ({
     ...defaultVariant,
     ...variant,
-    /**
-     * @todo: prefix path to icon w/ block's baseUrl when introducing icons to
-     *   blocks
-     * ```
-     * icon: [url, variant.icon].join("/")
-     * ```
-     */
-    icon: "/format-font.svg",
-  })) ?? [defaultVariant];
+  }));
 
   return { ...options, componentId, variants };
 }
