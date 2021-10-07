@@ -31,6 +31,7 @@ import { verifyEmail } from "./user/verifyEmail";
 import { sendLoginCode } from "./user/sendLoginCode";
 import { loginWithLoginCode } from "./user/loginWithLoginCode";
 import { embedCode } from "./embed";
+import { getImpliedEntityHistory } from "./entity/impliedHistory";
 
 import { GraphQLContext, LoggedInGraphQLContext } from "../context";
 import { logout } from "./user/logout";
@@ -83,6 +84,7 @@ export const resolvers = {
     entity: loggedInAndSignedUp(entity),
     getEntityType: loggedInAndSignedUp(getEntityType),
     page: loggedInAndSignedUp(page),
+    getImpliedEntityHistory: loggedInAndSignedUp(getImpliedEntityHistory),
     // Logged in users only
     me: loggedIn(me),
     // Any user
