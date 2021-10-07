@@ -30,7 +30,7 @@ export const BlockSuggester: React.VFC<BlockSuggesterProps> = ({
     const variants = Array.from(blocksMeta.values()).flatMap(
       (blockMeta) => blockMeta.componentMetadata.variants
     );
-    
+
     return fuzzySearchBy(variants, search, (variant) =>
       [variant.name, variant.description].map((str) => (str || "")).join(" ")
     );
@@ -38,11 +38,10 @@ export const BlockSuggester: React.VFC<BlockSuggesterProps> = ({
 
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  // reset selected index whenever the number of options changes
-  useEffect(
-    () => setSelectedIndex((idx) => Math.min(idx, options.length - 1)),
-    [options.length]
-  );
+  // reset selected index if it exceeds the options available
+  if (selectedIndex >= options.length) {
+    setSelectedIndex(options.length - 1);
+  }
 
   // enable cyclic arrow-key navigation
   useKey(["ArrowUp", "ArrowDown"], (event) => {
