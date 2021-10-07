@@ -18,9 +18,11 @@ type AccountSetupProps = {
   loading: boolean;
   errorMessage?: string;
   email: string;
-  emailInvitationInfo: {
+  invitationInfo: {
     orgName: string;
-    inviter: string;
+    inviter?: string;
+    invitationEmailToken?: string;
+    invitationLinkToken?: string;
   } | null;
 };
 
@@ -29,7 +31,7 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
   loading,
   errorMessage,
   email,
-  emailInvitationInfo,
+  invitationInfo,
 }) => {
   const {
     shortname,
@@ -50,7 +52,7 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
     void onSubmit({
       shortname,
       preferredName,
-      ...(!!emailInvitationInfo && { responsibility }),
+      ...(!!invitationInfo && { responsibility }),
     });
   };
 
@@ -58,9 +60,9 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
     (shortnameTouched || !isShortnameTooShort) && !isShortnameValid;
 
   const [title, subtitle] = useMemo(() => {
-    if (emailInvitationInfo) {
+    if (invitationInfo) {
       return [
-        `${emailInvitationInfo.inviter} has invited you to join ${emailInvitationInfo.orgName} on HASH`,
+        `${invitationInfo.inviter} has invited you to join ${invitationInfo.orgName} on HASH`,
         `${email} has been confirmed. Now it's time to choose a username...`,
       ];
     }
@@ -69,7 +71,7 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
       "Thanks for confirming your account",
       "Now it's time to choose a username...",
     ];
-  }, [emailInvitationInfo]);
+  }, [invitationInfo]);
 
   return (
     <div className={tw`w-9/12 max-w-3xl`}>
@@ -181,10 +183,10 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
             />
           </div>
 
-          {!!emailInvitationInfo && (
+          {!!invitationInfo && (
             <div className={tw`mt-8`}>
               <SelectInput
-                label={`Your Role at ${emailInvitationInfo.orgName}`}
+                label={`Your Role at ${invitationInfo.orgName}`}
                 labelClass={`font-bold text-base mb-4`}
                 id="responsibility"
                 options={ORG_ROLES}

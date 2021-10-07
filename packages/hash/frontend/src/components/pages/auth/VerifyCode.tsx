@@ -14,6 +14,13 @@ type VerifyCodeProps = {
   handleSubmit: (code: string, withSyntheticLoading?: boolean) => void;
   requestCode: () => void;
   requestCodeLoading: boolean;
+  invitationInfo: {
+    orgName: string;
+    orgEntityId: string;
+    inviter?: string;
+    invitationEmailToken?: string;
+    invitationLinkToken?: string;
+  } | null;
 };
 
 const isShortname = (identifier: string) => !identifier.includes("@");
@@ -35,6 +42,7 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
   loading,
   requestCode,
   requestCodeLoading,
+  invitationInfo,
 }) => {
   const [state, setState] = useState({
     text: defaultCode || "",
@@ -76,6 +84,23 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
     }, SYNTHETIC_LOADING_TIME_MS);
   };
 
+  const renderInviteHeader = () => {
+    if (invitationInfo?.inviter) {
+      return (
+        <p className={tw`font-bold text-2xl text-blue-500 mb-12`}>
+          {invitationInfo.inviter} has invited you to join{" "}
+          {invitationInfo.orgName}
+        </p>
+      );
+    }
+
+    return (
+      <p className={tw`font-bold text-2xl text-blue-500 mb-12`}>
+        You have been invited you to join {invitationInfo?.orgName}
+      </p>
+    );
+  };
+
   return (
     <div className={tw`w-8/12 max-w-4xl`}>
       <Logo className={tw`mb-6`} />
@@ -83,6 +108,7 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
         className={tw`h-96 mb-9 rounded-2xl bg-white shadow-xl flex justify-center items-center text-center`}
       >
         <div className={tw`w-8/12`}>
+          {!!invitationInfo && renderInviteHeader()}
           <p className={tw`font-bold`}>
             A verification code has been sent to{" "}
             <span>

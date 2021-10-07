@@ -2,7 +2,7 @@ import { useRouter } from "next/router";
 import { FC } from "react";
 import { PageHeader } from "../PageHeader/PageHeader";
 
-const AUTH_ROUTES = ["/login", "/signup"];
+const AUTH_ROUTES = ["/login", "/signup", "/invite"];
 
 export const PageLayout: FC = ({ children }) => {
   const router = useRouter();

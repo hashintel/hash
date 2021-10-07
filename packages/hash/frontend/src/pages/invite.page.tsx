@@ -54,14 +54,14 @@ const InvitePage: NextPage = () => {
   >();
 
   useEffect(() => {
-    if (typeof window == "undefined") {
+    if (typeof window == "undefined" || !router.isReady) {
       return;
     }
 
     /**
-     * Redirect to home page is necessary query params aren't available
+     * Redirect to home page if necessary query params aren't available
      */
-    if (!isParsedInviteQuery(router.query) && router.isReady) {
+    if (!isParsedInviteQuery(router.query)) {
       router.push("/");
       return;
     }
@@ -70,11 +70,10 @@ const InvitePage: NextPage = () => {
      *  handle redirects when user isn't authenticated
      * */
     if (!user && !fetchingUser) {
-      if (isExistingUser) {
-        router.push({ pathname: "/login", query: router.query });
-      } else {
-        router.push({ pathname: "/signup", query: router.query });
-      }
+      router.push({
+        pathname: isExistingUser ? "/login" : "/signup",
+        query: router.query,
+      });
     }
   }, [router, user, fetchingUser]);
 
