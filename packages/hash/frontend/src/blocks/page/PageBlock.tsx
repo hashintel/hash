@@ -6,6 +6,7 @@ import React, {
 } from "react";
 import { Schema } from "prosemirror-model";
 import { EditorView } from "prosemirror-view";
+import "prosemirror-view/style/prosemirror.css";
 import {
   BlockMeta,
   createEntityUpdateTransaction,

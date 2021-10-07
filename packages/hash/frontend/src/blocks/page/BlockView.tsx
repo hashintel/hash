@@ -1,4 +1,4 @@
-import React, { createRef } from "react";
+import React, { createRef, forwardRef, useEffect, useState } from "react";
 import { NodeSelection } from "prosemirror-state";
 import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
 import {
@@ -7,11 +7,41 @@ import {
 } from "@hashintel/hash-shared/sharedWithBackendJs";
 import { EditorView, NodeView } from "prosemirror-view";
 import { ReplacePortals } from "@hashintel/hash-shared/sharedWithBackend";
-import { BlockVariant } from "@hashintel/block-protocol";
+import { tw } from "twind";
 import styles from "./style.module.css";
-import { BlockHandle } from "./sandbox";
+import DragVertical from "../../components/Icons/DragVertical";
+import { BlockSuggester } from "../../components/BlockSuggester/BlockSuggester";
 
-type BlockHandleOption = [string, BlockVariant];
+/**
+ * specialized block-type/-variant select field
+ */
+export const BlockHandle = forwardRef<HTMLDivElement>((_, ref) => {
+  const [isPopoverVisible, setPopoverVisible] = useState(false);
+
+  useEffect(() => {
+    const closePopover = () => setPopoverVisible(false);
+    document.addEventListener("click", closePopover);
+    return () => document.removeEventListener("click", closePopover);
+  }, []);
+
+  return (
+    <div ref={ref} className={tw`relative cursor-pointer`}>
+      <DragVertical
+        onClick={(evt: MouseEvent) => {
+          evt.stopPropagation(); // skips closing handler
+          setPopoverVisible(true);
+        }}
+      />
+      {isPopoverVisible && (
+        <BlockSuggester
+          onChange={() => {
+            throw new Error("not yet implemented");
+          }}
+        />
+      )}
+    </div>
+  );
+});
 
 /**
  * This is the node view that wraps every one of our blocks in order to inject
@@ -221,7 +251,7 @@ export class BlockView implements NodeView {
    * @todo this will revert the text content of a block back to what it was
    *       when you last saved – we need to fix this
    */
-  onBlockChange = ([componentId]: BlockHandleOption) => {
+  onBlockChange = ([componentId]: [string]) => {
     const { node, view, getPos } = this;
 
     // Ensure that any changes to the document made are kept within a
