@@ -73,7 +73,10 @@ export const Image: BlockComponent<AppProps> = (props) => {
 
   const updateStateObject = useCallback(
     (properties: Partial<typeof stateObject>) => {
-      setStateObject((stateObject) => ({ ...stateObject, ...properties }));
+      setStateObject((prevStateObject) => ({
+        ...prevStateObject,
+        ...properties,
+      }));
     },
     []
   );
@@ -196,6 +199,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
           />
         </div>
         <button
+          type="button"
           onClick={() => {
             resetComponent();
           }}
@@ -220,6 +224,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
               {stateObject.errorString}
             </span>
           </div>
+          {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
           <span
             onClick={() => updateStateObject({ errorString: null })}
             className={tw`absolute top-0 bottom-0 right-0 px-4 py-3`}
@@ -261,6 +266,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
             />
           </div>
           <div>
+            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
             <label htmlFor={randomId}>
               <div
                 className={tw`my-4 bg-gray-50 border-2 border-dashed border-gray-200 py-4 text-sm text-gray-400 cursor-pointer`}

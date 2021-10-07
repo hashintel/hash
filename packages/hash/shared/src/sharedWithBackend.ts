@@ -1,19 +1,21 @@
 import { ReactNode } from "react";
 import { Schema as JSONSchema } from "jsonschema";
 import { EditorState } from "prosemirror-state";
-import { createRemoteBlock, defineRemoteBlock } from "./sharedWithBackendJs";
 
 // @todo move this
 // @ts-ignore
 // @todo allow overwriting this again
-import blockPaths from "../blockPaths.sample.json";
 import { BlockMetadata } from "@hashintel/block-protocol";
 import { Node as ProsemirrorNode, NodeSpec, Schema } from "prosemirror-model";
 import { Decoration, EditorView } from "prosemirror-view";
+import blockPaths from "./blockPaths.sample.json";
+import { createRemoteBlock, defineRemoteBlock } from "./sharedWithBackendJs";
 import { BlockEntity } from "./types";
 
 export { blockPaths };
 
+/** @todo: might need refactor: https://github.com/hashintel/dev/pull/206#discussion_r723210329 */
+// eslint-disable-next-line global-require
 const fetch = (globalThis as any).fetch ?? require("node-fetch");
 
 /**
@@ -179,6 +181,29 @@ export const getProseMirrorNodeAttributes = (entity: BlockEntity) => ({
   entityId: entity.metadataId,
 });
 
+const mapEntityToChildren = (entity: BlockEntity["properties"]["entity"]) => {
+  if (entity.__typename === "Text") {
+    return entity.textProperties.texts.map((text) => ({
+      type: "text",
+      text: text.text,
+      entityId: entity.metadataId,
+      versionId: entity.id,
+      accountId: entity.accountId,
+
+      // This maps the boolean properties on the entity into an array of mark names
+      marks: [
+        ["strong", text.bold],
+        ["underlined", text.underline],
+        ["em", text.italics],
+      ]
+        .filter(([, include]) => include)
+        .map(([mark]) => mark),
+    }));
+  }
+
+  return [];
+};
+
 /**
  * @todo replace this with a prosemirror command
  * @todo take a signal
@@ -224,29 +249,6 @@ export const createEntityUpdateTransaction = async (
   return tr;
 };
 
-const mapEntityToChildren = (entity: BlockEntity["properties"]["entity"]) => {
-  if (entity.__typename === "Text") {
-    return entity.textProperties.texts.map((text) => ({
-      type: "text",
-      text: text.text,
-      entityId: entity.metadataId,
-      versionId: entity.id,
-      accountId: entity.accountId,
-
-      // This maps the boolean properties on the entity into an array of mark names
-      marks: [
-        ["strong", text.bold],
-        ["underlined", text.underline],
-        ["em", text.italics],
-      ]
-        .filter(([, include]) => include)
-        .map(([mark]) => mark),
-    }));
-  }
-
-  return [];
-};
-
 declare interface OrderedMapPrivateInterface<T> {
   content: (string | T)[];
 }
@@ -269,6 +271,7 @@ export function defineNewNode<
 
   privateMap.content.push(componentId, spec);
 
+  // eslint-disable-next-line no-new
   new (class extends Schema {
     // @ts-ignore
     get nodes() {
@@ -336,7 +339,7 @@ export function defineNewBlock<
      * it has an editableRef prop in its schema – we need a more sophisticated
      * way for block authors to communicate this to us
      */
-    ...(componentSchema.properties?.["editableRef"]
+    ...(componentSchema.properties?.editableRef
       ? {
           content: "text*",
           marks: "_",
@@ -364,11 +367,11 @@ export function defineNewBlock<
         ...view.nodeViews,
         [componentId]: (
           node: ProsemirrorNode<S>,
-          view: EditorView<S>,
+          editorView: EditorView<S>,
           getPos: (() => number) | boolean,
           decorations: Decoration[]
         ) => {
-          return new NodeViewClass(node, view, getPos, decorations);
+          return new NodeViewClass(node, editorView, getPos, decorations);
         },
       },
     });

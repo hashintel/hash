@@ -1,4 +1,4 @@
-import { gql } from "apollo-server-express";
+import gql from "graphql-tag";
 
 export const createOrg = gql`
   mutation createOrg($org: CreateOrgInput!, $responsibility: String!) {
@@ -13,6 +13,14 @@ export const createOrg = gql`
       visibility
       properties {
         shortname
+        invitationLink {
+          data {
+            entityId
+            properties {
+              accessToken
+            }
+          }
+        }
       }
     }
   }

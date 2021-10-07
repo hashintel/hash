@@ -4,8 +4,8 @@
  */
 import React from "react";
 import ReactDOM from "react-dom";
-import Component from "./index";
 import { tw } from "twind";
+import Component from "./index";
 
 const node = document.getElementById("app");
 

@@ -23,7 +23,7 @@ export const insertBlockIntoPage: Resolver<
     systemTypeName,
     accountId,
     pageEntityId,
-    position,
+    ...args
   },
   { dataSources, user }
 ) => {
@@ -89,9 +89,10 @@ export const insertBlockIntoPage: Resolver<
     }
 
     /** @todo: stop casting page.properties type */
-    if (position > (page.properties as DbPageProperties).contents.length) {
-      position = (page.properties as DbPageProperties).contents.length;
-    }
+    const position =
+      args.position > (page.properties as DbPageProperties).contents.length
+        ? (page.properties as DbPageProperties).contents.length
+        : args.position;
 
     page.properties.contents = [
       ...(page.properties as DbPageProperties).contents.slice(0, position),

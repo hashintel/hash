@@ -1,12 +1,12 @@
 import { useQuery } from "@apollo/client";
 import Link from "next/link";
 
+import { useRouter } from "next/router";
 import { GetAccountsQuery } from "../graphql/apiTypes.gen";
 import { getAccounts } from "../graphql/queries/account.queries";
 
 import styles from "./index.module.scss";
 import { useUser } from "../components/hooks/useUser";
-import { useRouter } from "next/router";
 
 export default function Home() {
   const router = useRouter();

@@ -11,8 +11,8 @@
   },
   "main": "src/index.ts",
   "scripts": {
-    "format": "prettier --write './src/**/*'; eslint --ext .ts --fix ./src/",
-    "lint": "prettier --check './src/**/*' || exit 1; eslint --ext .ts ./src/; tsc --noEmit # @hashintel/hash-realtime",
+    "format": "eslint --ext .ts --fix ./src/; prettier --write --list-different './src/**/*'",
+    "lint": "prettier --check './src/**/*' && eslint --ext .ts ./src/ && tsc --noEmit # @hashintel/hash-realtime",
     "build": "yarn clean; tsc -b",
     "clean": "rimraf ./dist/ ./tsconfig.tsbuildinfo",
     "dev": "NODE_ENV=development nodemon src/index.ts",

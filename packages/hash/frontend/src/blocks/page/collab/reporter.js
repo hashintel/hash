@@ -1,13 +1,15 @@
 export class Reporter {
   constructor() {
-    this.state = this.node = null;
+    this.node = null;
+    this.state = null;
     this.setAt = 0;
   }
 
   clearState() {
     if (this.state) {
       document.body.removeChild(this.node);
-      this.state = this.node = null;
+      this.node = null;
+      this.state = null;
       this.setAt = 0;
     }
   }
@@ -26,7 +28,7 @@ export class Reporter {
     this.state = type;
     this.setAt = Date.now();
     this.node = document.body.appendChild(document.createElement("div"));
-    this.node.className = "ProseMirror-report ProseMirror-report-" + type;
+    this.node.className = `ProseMirror-report ProseMirror-report-${type}`;
     this.node.textContent = message;
   }
 

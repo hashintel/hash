@@ -1,9 +1,10 @@
 import fetch from "node-fetch";
 import { ApolloError } from "apollo-server-errors";
 
+import oEmbedData from "oembed-providers/providers.json";
 import { Embed, Maybe, QueryEmbedCodeArgs, Resolver } from "../../apiTypes.gen";
 
-import oEmbedData from "oembed-providers/providers.json";
+import { GraphQLContext } from "../../context";
 
 oEmbedData.unshift({
   provider_name: "HASH",
@@ -16,8 +17,6 @@ oEmbedData.unshift({
     },
   ],
 });
-
-import { GraphQLContext } from "../../context";
 
 interface Endpoint {
   schemes?: string[];
@@ -55,9 +54,11 @@ async function getEmbedResponse({
   url: string;
   type?: Maybe<string>;
 }) {
-  let oembedEndpoint = undefined;
+  let oembedEndpoint;
 
   if (!type) {
+    /** @todo: refactor this to stop using .find without a returned boolean */
+    // eslint-disable-next-line array-callback-return
     (oEmbedData as IoEmbedData[]).find((oembed) => {
       oembed.endpoints.find((endpoint) =>
         endpoint.schemes?.find((scheme) => {
@@ -74,7 +75,7 @@ async function getEmbedResponse({
     });
   } else {
     const oembed = (oEmbedData as IoEmbedData[]).find(
-      (oembed) => oembed.provider_name === type
+      (possibleOembed) => possibleOembed.provider_name === type
     );
 
     oembed?.endpoints.find((endpoint) =>
@@ -107,7 +108,7 @@ export const embedCode: Resolver<
   {},
   GraphQLContext,
   QueryEmbedCodeArgs
-> = async (_, { url, type }, {}, {}) => {
+> = async (_, { url, type }) => {
   const embedResponse: OembedResponse & { error: boolean } =
     await getEmbedResponse({
       url,

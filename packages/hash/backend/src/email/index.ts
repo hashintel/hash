@@ -1,7 +1,8 @@
 import { URLSearchParams } from "url";
 import { Org, OrgEmailInvitation, VerificationCode } from "../model";
 import EmailTransporter from "./transporter";
-const { FRONTEND_URL } = require("../lib/config");
+
+const { FRONTEND_URL } = require("../lib/jsConfig");
 
 export const sendLoginCodeToEmailAddress =
   (transporter: EmailTransporter) =>
@@ -69,7 +70,6 @@ export const sendOrgEmailInvitationToEmailAddress =
     const { org, emailInvitation, emailAddress, isExistingUser } = params;
 
     const queryParams = new URLSearchParams({
-      orgAccountId: org.accountId,
       orgEntityId: org.entityId,
       accessToken: emailInvitation.properties.accessToken,
       ...(isExistingUser ? { isExistingUser: "true" } : {}),

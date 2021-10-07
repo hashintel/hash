@@ -76,9 +76,14 @@ export const orgTypedef = gql`
     TWO_HUNDRED_AND_FIFTY_PLUS
   }
 
+  type LinkedOrgInvitationLink {
+    data: OrgInvitationLink!
+  }
+
   type OrgProperties {
     shortname: String
     name: String!
+    invitationLink: LinkedOrgInvitationLink
   }
 
   input CreateOrgInput {

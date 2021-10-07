@@ -37,6 +37,7 @@ export const FilterSort: VFC<FilterSortProps> = ({
   return (
     <div className={tw`p-4`}>
       <div className={tw`flex flex-col mt-5 mb-3`}>
+        {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
         <label className={tw`underline`}>Sort Field</label>
         <div className={tw`flex items-center`}>
           <select
@@ -54,6 +55,7 @@ export const FilterSort: VFC<FilterSortProps> = ({
               </option>
             ))}
           </select>
+          {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
           <label className={tw`mr-4`}>
             <input
               type="checkbox"
@@ -68,6 +70,7 @@ export const FilterSort: VFC<FilterSortProps> = ({
             desc
           </label>
           <button
+            type="button"
             className={tw`bg(blue-500 hover:blue-700) text(white visited:white) font-bold border(none hover:none) rounded no-underline mr-3 text-sm py-1 px-4`}
             onClick={() => handleAggregate("sort")}
           >
@@ -76,6 +79,7 @@ export const FilterSort: VFC<FilterSortProps> = ({
         </div>
       </div>
       <div className={tw`flex flex-col mt-5 mb-3`}>
+        {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
         <label className="underline">Filter Field</label>
         <div className={tw`flex items-center`}>
           <select
@@ -104,6 +108,7 @@ export const FilterSort: VFC<FilterSortProps> = ({
             }
           />
           <button
+            type="button"
             className={tw`bg(blue-500 hover:blue-700) text(white visited:white) font-bold border(none hover:none) rounded no-underline mr-3 text-sm py-1 px-4`}
             onClick={() => handleAggregate("filter")}
           >

@@ -2,16 +2,16 @@ import { FormEvent, useState, VoidFunctionComponent } from "react";
 
 import { useRouter } from "next/router";
 
+import { useMutation } from "@apollo/client";
+import { tw } from "twind";
 import styles from "../../index.module.scss";
 import { PageSidebar } from "../../../components/layout/PageSidebar/PageSidebar";
-import { useMutation } from "@apollo/client";
 import { createEntityTypeMutation } from "../../../graphql/queries/entityType.queries";
 import {
   CreateEntityTypeMutation,
   CreateEntityTypeMutationVariables,
 } from "../../../graphql/apiTypes.gen";
 import { TextInput } from "../../../components/forms/TextInput";
-import { tw } from "twind";
 import { Button } from "../../../components/forms/Button";
 
 export const NewEntityType: VoidFunctionComponent = () => {
@@ -26,10 +26,8 @@ export const NewEntityType: VoidFunctionComponent = () => {
     CreateEntityTypeMutation,
     CreateEntityTypeMutationVariables
   >(createEntityTypeMutation, {
-    onCompleted: ({ createEntityType }) =>
-      router.push(
-        `/${createEntityType.accountId}/types/${createEntityType.entityId}`
-      ),
+    onCompleted: ({ createEntityType: entityType }) =>
+      router.push(`/${entityType.accountId}/types/${entityType.entityId}`),
   });
 
   const submit = (event: FormEvent) => {
@@ -70,7 +68,7 @@ export const NewEntityType: VoidFunctionComponent = () => {
               />
             </div>
             <div>
-              <Button type={"submit"}>Create Entity Type</Button>
+              <Button type="submit">Create Entity Type</Button>
             </div>
           </form>
         </section>

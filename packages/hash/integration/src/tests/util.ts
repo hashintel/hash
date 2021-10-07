@@ -78,11 +78,12 @@ export class ApiClient {
       (error: any) => error.extensions.code
     );
   };
+
   setCookie = (cookie: string) => this.client.setHeader("Cookie", cookie);
 
   removeCookie = () => this.client.setHeader("Cookie", "");
 
-  /* Sign-up related requests **/
+  /** Sign-up related requests */
 
   createUser = async (vars: CreateUserMutationVariables) =>
     this.client
@@ -90,7 +91,7 @@ export class ApiClient {
         createUser,
         vars
       )
-      .then(({ createUser }) => createUser);
+      .then((res) => res.createUser);
 
   createUserWithOrgEmailInvitation = async (
     vars: CreateUserWithOrgEmailInvitationMutationVariables
@@ -100,12 +101,9 @@ export class ApiClient {
         CreateUserWithOrgEmailInvitationMutation,
         CreateUserWithOrgEmailInvitationMutationVariables
       >(createUserWithOrgEmailInvitation, vars)
-      .then(
-        ({ createUserWithOrgEmailInvitation }) =>
-          createUserWithOrgEmailInvitation
-      );
+      .then((res) => res.createUserWithOrgEmailInvitation);
 
-  /* Log-in related requests **/
+  /** Log-in related requests */
 
   async sendLoginCode(vars: SendLoginCodeMutationVariables) {
     return (
@@ -129,7 +127,7 @@ export class ApiClient {
     return { user: data.loginWithLoginCode, responseHeaders: headers };
   }
 
-  /* Other requests **/
+  /** Other requests */
 
   getUnknownEntity = async (vars: GetEntityQueryVariables) =>
     this.client

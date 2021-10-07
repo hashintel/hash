@@ -7,8 +7,9 @@ import {
 } from "@hashintel/hash-backend/src/model";
 import { PostgresAdapter } from "@hashintel/hash-backend/src/db";
 import EmailTransporter from "@hashintel/hash-backend/src/email/transporter";
-import SesEmailTransporter from "@hashintel/hash-backend/src/email/transporter/awsSesEmailTransporter";
+import TestEmailTransporter from "@hashintel/hash-backend/src/email/transporter/testEmailTransporter";
 
+import { ClientError } from "graphql-request";
 import { ApiClient } from "./util";
 import { IntegrationTestsHandler } from "./setup";
 import {
@@ -18,7 +19,6 @@ import {
   SystemTypeName,
   WayToUseHash,
 } from "../graphql/apiTypes.gen";
-import { ClientError } from "graphql-request";
 
 const client = new ApiClient("http://localhost:5001/graphql");
 
@@ -40,7 +40,7 @@ const createNewBobWithOrg = async () => {
     preferredName: `Bob-${bobCounter}`,
     emails: [
       {
-        address: `bob-${bobCounter}@bigco.com`,
+        address: `bob-${bobCounter}@hash.test`,
         primary: true,
         verified: true,
       },
@@ -76,12 +76,12 @@ beforeAll(async () => {
     password: "postgres",
   });
 
-  transporter = new SesEmailTransporter();
+  transporter = new TestEmailTransporter();
 
   existingUser = await User.createUser(db)({
     shortname: "test-user",
     preferredName: "Alice",
-    emails: [{ address: "alice@bigco.com", primary: true, verified: true }],
+    emails: [{ address: "alice@hash.test", primary: true, verified: true }],
     memberOf: [],
     infoProvidedAtSignup: { usingHow: WayToUseHash.ByThemselves },
   });
@@ -103,7 +103,7 @@ afterAll(async () => {
 });
 
 it("can create user", async () => {
-  const email = `bob-${bobCounter}@bigco.com`;
+  const email = `bob-${bobCounter}@hash.test`;
 
   bobCounter += 1;
 
@@ -137,7 +137,7 @@ it("can create user", async () => {
 });
 
 it("can create user with email verification code", async () => {
-  const inviteeEmailAddress = "david@bigco.com";
+  const inviteeEmailAddress = "david@hash.test";
 
   const emailInvitation = await OrgEmailInvitation.createOrgEmailInvitation(
     db,
@@ -248,7 +248,9 @@ describe("logged in user ", () => {
       responsibility: "CEO",
     };
 
-    const { entityId } = await client.createOrg(variables);
+    const { entityId, properties: gqlOrgProperties } = await client.createOrg(
+      variables
+    );
 
     const org = (await Org.getOrgById(db)({ entityId }))!;
 
@@ -261,6 +263,20 @@ describe("logged in user ", () => {
     );
     expect(org.entityCreatedAt).toEqual(org.entityVersionUpdatedAt);
     expect(org.entityType.properties.title).toEqual("Org");
+
+    // Test an invitaiton link has been created for the org
+    const invitationLinks = await org.getInvitationLinks(db);
+    expect(invitationLinks.length).toEqual(1);
+    const [invitationLink] = invitationLinks;
+    expect(invitationLink).not.toBeUndefined();
+
+    // Test the invitation link has been returned in the createOrg GraphQL mutation
+    expect(gqlOrgProperties.invitationLink?.data.entityId).toEqual(
+      invitationLink.entityId
+    );
+    expect(
+      gqlOrgProperties.invitationLink?.data.properties.accessToken
+    ).toEqual(invitationLink.properties.accessToken);
 
     // Test the user is now a member of the org
     const updatedExistingUser = (await User.getUserById(db)(existingUser))!;
@@ -283,7 +299,7 @@ describe("logged in user ", () => {
   });
 
   it("can create an org email invitation", async () => {
-    const inviteeEmailAddress = `bob-${bobCounter}@bigco.com`;
+    const inviteeEmailAddress = `bob-${bobCounter}@hash.test`;
 
     bobCounter += 1;
 
@@ -303,7 +319,7 @@ describe("logged in user ", () => {
   });
 
   it("cannot create duplicate org email invitations", async () => {
-    const inviteeEmailAddress = `bob-${bobCounter}@bigco.com`;
+    const inviteeEmailAddress = `bob-${bobCounter}@hash.test`;
     bobCounter += 1;
     await client.createOrgEmailInvitation({
       orgEntityId: existingOrg.entityId,
@@ -373,7 +389,7 @@ describe("logged in user ", () => {
   it("can join org with email invitation", async () => {
     const { bobUser, bobOrg } = await createNewBobWithOrg();
 
-    const inviteeEmailAddress = "alice-second@bigco.com";
+    const inviteeEmailAddress = "alice-second@hash.test";
 
     const emailInvitation = await OrgEmailInvitation.createOrgEmailInvitation(
       db,

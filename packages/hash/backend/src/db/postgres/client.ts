@@ -8,7 +8,7 @@ import {
   EntityVersion,
   VerificationCode,
 } from "../adapter";
-import { genId } from "../../util";
+import { genId, exactlyOne } from "../../util";
 import { Connection } from "./types";
 import {
   getEntityAccountId,
@@ -51,7 +51,6 @@ import { jsonSchema } from "../../lib/schemas/jsonSchema";
 import { SystemType } from "../../types/entityTypes";
 import { Visibility } from "../../graphql/apiTypes.gen";
 import { getOrgByShortname } from "./org";
-import { exactlyOne } from "../../util";
 
 export class PostgresClient implements DBClient {
   private conn: Connection;
@@ -149,12 +148,13 @@ export class PostgresClient implements DBClient {
 
       if (!entityType) {
         throw new Error(
-          `Entity type not found with ` +
-            (entityTypeVersionId
+          `Entity type not found with ${
+            entityTypeVersionId
               ? `entityTypeVersionId ${entityTypeVersionId}.`
               : entityTypeId
               ? `entityTypeId ${entityTypeId}.`
-              : `systemTypeName '${systemTypeName}'`)
+              : `systemTypeName '${systemTypeName}'`
+          }`
         );
       }
 

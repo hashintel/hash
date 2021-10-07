@@ -7,8 +7,8 @@ export const accounts: Resolver<
   {},
   GraphQLContext,
   {}
-> = async (_, {}, { dataSources }) => {
-  const accounts = await Account.getAll(dataSources.db);
+> = async (_, __, { dataSources }) => {
+  const allAccounts = await Account.getAll(dataSources.db);
 
-  return accounts.map((account) => account.toGQLUnknownEntity());
+  return allAccounts.map((account) => account.toGQLUnknownEntity());
 };

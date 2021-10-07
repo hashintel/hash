@@ -6,6 +6,38 @@ import {
 import { GraphQLContext } from "../../context";
 import { Entity, EntityWithIncompleteEntityType } from "../../../model";
 
+/** Compare entities on a given property. */
+const compareEntitiesByField = (
+  entityA: Entity,
+  entityB: Entity,
+  property: string,
+  desc: boolean
+): number => {
+  if (
+    property === "entityCreatedAt" ||
+    property === "entityVersionCreatedAt" ||
+    property === "entityVersionUpdatedAt"
+  ) {
+    return entityA[property].getTime() - entityB[property].getTime();
+  }
+
+  const a = desc ? entityB.properties[property] : entityA.properties[property];
+  const b = desc ? entityA.properties[property] : entityB.properties[property];
+
+  if (typeof a === "string" && typeof b === "string") {
+    return a.localeCompare(b);
+  }
+  if (typeof a === "number" && typeof b === "number") {
+    return a - b;
+  }
+  if (typeof a === "boolean" && typeof b === "boolean") {
+    // Treat true as 1 and false as 0 as JS does
+    return (a ? 1 : 0) - (b ? 1 : 0);
+  }
+
+  return (typeof a).localeCompare(typeof b);
+};
+
 export const aggregateEntity: Resolver<
   Promise<{
     results: EntityWithIncompleteEntityType[];
@@ -46,36 +78,4 @@ export const aggregateEntity: Resolver<
       pageCount: Math.ceil(entities.length / itemsPerPage),
     },
   };
-};
-
-/** Compare entities on a given property. */
-const compareEntitiesByField = (
-  entityA: Entity,
-  entityB: Entity,
-  property: string,
-  desc: boolean
-): number => {
-  if (
-    property === "entityCreatedAt" ||
-    property === "entityVersionCreatedAt" ||
-    property === "entityVersionUpdatedAt"
-  ) {
-    return entityA[property].getTime() - entityB[property].getTime();
-  }
-
-  const a = desc ? entityB.properties[property] : entityA.properties[property];
-  const b = desc ? entityA.properties[property] : entityB.properties[property];
-
-  if (typeof a === "string" && typeof b === "string") {
-    return a.localeCompare(b);
-  }
-  if (typeof a === "number" && typeof b === "number") {
-    return a - b;
-  }
-  if (typeof a === "boolean" && typeof b === "boolean") {
-    // Treat true as 1 and false as 0 as JS does
-    return (a ? 1 : 0) - (b ? 1 : 0);
-  }
-
-  return (typeof a).localeCompare(typeof b);
 };

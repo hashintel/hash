@@ -5,8 +5,8 @@ import React, {
   VoidFunctionComponent,
 } from "react";
 import { Column, Row } from "react-table";
-import { identityEntityAndProperty } from "../lib/identifyEntity";
 import { BlockProtocolUpdateFn } from "@hashintel/block-protocol";
+import { identityEntityAndProperty } from "../lib/identifyEntity";
 
 type EditableCellProps = {
   value: string;

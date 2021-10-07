@@ -1,4 +1,4 @@
-import { gql } from "apollo-server-express";
+import { gql } from "@apollo/client";
 
 export const createOrg = gql`
   mutation createOrg($org: CreateOrgInput!, $responsibility: String!) {

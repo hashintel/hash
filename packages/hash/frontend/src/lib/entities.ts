@@ -3,6 +3,12 @@ import { cloneDeep } from "lodash";
 import { UnknownEntity } from "../graphql/apiTypes.gen";
 import { isParsedJsonObject, isParsedJsonObjectOrArray } from "./json-utils";
 
+/* eslint-disable no-param-reassign */
+
+/**
+ * @todo: refactor to adhere to no-param-reassign
+ */
+
 /**
  * MUTATES an object in order to:
  * - delete all non-id and non-type metadata fields from the root,

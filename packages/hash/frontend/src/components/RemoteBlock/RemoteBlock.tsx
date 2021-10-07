@@ -52,7 +52,9 @@ export const RemoteBlock: VoidFunctionComponent<
         ...updateData[0],
         accountId: props.accountId,
       },
-    ])?.catch((err) => console.error("Could not update entity: ", err));
+    ])?.catch((updateError) =>
+      console.error("Could not update entity: ", updateError)
+    );
   };
 
   return (

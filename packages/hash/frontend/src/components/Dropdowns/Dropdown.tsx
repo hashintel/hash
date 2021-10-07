@@ -1,10 +1,11 @@
 import { Fragment, ReactElement, VoidFunctionComponent } from "react";
 import { Listbox, Transition } from "@headlessui/react";
-import IconDropdown from "../Icons/IconDropdown";
 import { tw } from "twind";
+import IconDropdown from "../Icons/IconDropdown";
 
 type DropdownValue = string | number | undefined;
 
+/** @todo: refactor as mentioned in https://github.com/hashintel/dev/pull/206#discussion_r723188550 */
 export type DropdownProps = {
   onChange: (value?: DropdownValue) => void;
   options: {
@@ -48,19 +49,19 @@ export const Dropdown: VoidFunctionComponent<DropdownProps> = ({
           <Listbox.Options
             className={tw`absolute w-60 py-1 mt-1 overflow-auto text-base bg-white rounded-md shadow-lg max-h-60 ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm`}
           >
-            {options.map(({ extendedLabel, label, value }) => (
+            {options.map(({ extendedLabel, label, value: optionValue }) => (
               <Listbox.Option
-                key={value}
+                key={optionValue}
                 className={({ active }) =>
                   tw`${active ? "text-amber-900 bg-amber-100" : "text-gray-900"}
                           cursor-default select-none relative py-2 pl-10 pr-4`
                 }
-                value={value}
+                value={optionValue}
               >
-                {({ selected }) => (
+                {({ selected: isSelected }) => (
                   <span
                     className={tw`${
-                      selected ? "font-medium" : "font-normal"
+                      isSelected ? "font-medium" : "font-normal"
                     } block truncate`}
                   >
                     {extendedLabel ?? label}

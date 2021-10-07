@@ -1,6 +1,6 @@
 import { NextPage } from "next";
-import { LoginModal } from "../components/Modals/AuthModal/LoginModal";
 import { useRouter } from "next/router";
+import { LoginModal } from "../components/Modals/AuthModal/LoginModal";
 import { useUser } from "../components/hooks/useUser";
 
 const LoginPage: NextPage = () => {
@@ -9,7 +9,7 @@ const LoginPage: NextPage = () => {
 
   return (
     <LoginModal
-      show={true}
+      show
       onLoggedIn={({ accountSignupComplete, accountId }) => {
         void refetch().then(() => {
           // Only when account sign-up is complete redirect the user to their account page

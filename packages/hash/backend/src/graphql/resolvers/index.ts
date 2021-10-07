@@ -1,5 +1,6 @@
 import GraphQLJSON from "graphql-type-json";
 
+import { ForbiddenError } from "apollo-server-express";
 import { Entity } from "../apiTypes.gen";
 // import { entityAccountName } from "./shared/account";
 import {
@@ -32,7 +33,6 @@ import { loginWithLoginCode } from "./user/loginWithLoginCode";
 import { embedCode } from "./embed";
 
 import { GraphQLContext, LoggedInGraphQLContext } from "../context";
-import { ForbiddenError } from "apollo-server-express";
 import { logout } from "./user/logout";
 import { me } from "./user/me";
 import { isShortnameTaken } from "./user/isShortnameTaken";
@@ -131,6 +131,10 @@ export const resolvers = {
     properties: entityFields.properties,
   },
 
+  Org: {
+    properties: entityFields.properties,
+  },
+
   OrgEmailInvitation: {
     properties: entityFields.properties,
   },
@@ -144,13 +148,13 @@ export const resolvers = {
   },
 
   Entity: {
-    __resolveType(entity: Entity) {
+    __resolveType({ entityTypeName }: Entity) {
       // @todo this should also check if the type is in the HASH account
       //    otherwise it'll catch User, Org etc types in other accounts
       //    which may have a different structure to the HASH one.
       //    should also extract this check (e.g. to src/types/entityTypes).
-      if (SYSTEM_TYPES.includes(entity.entityTypeName as SystemType)) {
-        return entity.entityTypeName;
+      if (SYSTEM_TYPES.includes(entityTypeName as SystemType)) {
+        return entityTypeName;
       }
       return "UnknownEntity";
     },
@@ -165,8 +169,8 @@ export const resolvers = {
   },
 
   Account: {
-    __resolveType(entity: Entity) {
-      return entity.entityTypeName;
+    __resolveType({ entityTypeName }: Entity) {
+      return entityTypeName;
     },
   },
 };

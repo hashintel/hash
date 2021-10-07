@@ -4,9 +4,9 @@
  */
 import React, { useState } from "react";
 import ReactDOM from "react-dom";
-import Component from "./index.ts";
-
 import { tw } from "twind";
+// eslint-disable-next-line import/extensions
+import Component from "./index.ts";
 
 const node = document.getElementById("app");
 
@@ -29,9 +29,9 @@ const App = () => {
   return (
     <div className={tw`mx-auto mt-14 max-w-3xl`}>
       <Component
-        entityTypeId={"code"}
-        entityId={"entity-code"}
-        accountId={"account-code"}
+        entityTypeId="code"
+        entityId="entity-code"
+        accountId="account-code"
         update={updateData}
         {...data}
       />

@@ -1,3 +1,4 @@
+import { ApolloError } from "apollo-server-errors";
 import { DBClient } from "../db";
 import { DBLinkedEntity, EntityType } from "../db/adapter";
 import {
@@ -7,7 +8,6 @@ import {
   AccessTokenConstructorArgs,
   Org,
 } from ".";
-import { ApolloError } from "apollo-server-errors";
 
 export type DBOrgInvitationLinkProperties = {
   useCount: number;
@@ -70,7 +70,19 @@ class __OrgInvitationLink extends AccessToken {
         versioned: false,
       });
 
-      return new OrgInvitationLink({ ...entity, properties });
+      const orgInvitationLink = new OrgInvitationLink({
+        ...entity,
+        properties,
+      });
+
+      /**
+       * @todo: remove this when we have a way of resolving the inverse
+       * relationship of (OrgInvitationLink)-[org]->(Org)
+       */
+
+      org.properties.invitationLink = orgInvitationLink.convertToDBLink();
+
+      return orgInvitationLink;
     };
 
   private updateOrgInvitationLinkProperties =

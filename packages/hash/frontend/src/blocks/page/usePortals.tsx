@@ -58,8 +58,8 @@ export const usePortals = () => {
         const queue = portalQueue.current;
         portalQueue.current = [];
 
-        setPortals((portals) => {
-          const nextPortals = new Map(portals);
+        setPortals((prevPortals) => {
+          const nextPortals = new Map(prevPortals);
 
           for (const cb of queue) {
             cb(nextPortals);

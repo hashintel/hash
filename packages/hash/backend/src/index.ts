@@ -13,7 +13,15 @@ import { getRequiredEnv } from "./util";
 import { handleCollabRequest } from "./collab/server";
 import AwsSesEmailTransporter from "./email/transporter/awsSesEmailTransporter";
 import TestTransporter from "./email/transporter/testEmailTransporter";
-const { FRONTEND_URL } = require("./lib/config");
+import {
+  isDevEnv,
+  isProdEnv,
+  isStatsDEnabled,
+  isTestEnv,
+  port,
+} from "./lib/config";
+
+const { FRONTEND_URL } = require("./lib/jsConfig");
 
 // Request ID generator
 const nanoid = customAlphabet(
@@ -31,10 +39,7 @@ const logger = winston.createLogger({
   defaultMeta: { service: "api" },
 });
 
-if (
-  process.env.NODE_ENV &&
-  ["development", "test"].includes(process.env.NODE_ENV)
-) {
+if (isDevEnv || isTestEnv) {
   logger.add(
     new winston.transports.Console({
       level: "debug",
@@ -44,7 +49,7 @@ if (
       ),
     })
   );
-} else {
+} else if (isProdEnv) {
   // TODO: add production logging transport here
   // Datadog: https://github.com/winstonjs/winston/blob/master/docs/transports.md#datadog-transport
 }
@@ -52,9 +57,9 @@ if (
 // Configure the StatsD client for reporting metrics
 let statsd: StatsD | undefined;
 try {
-  if (parseInt(process.env.STATSD_ENABLED || "0") === 1) {
+  if (isStatsDEnabled) {
     statsd = new StatsD({
-      port: parseInt(process.env.STATSD_PORT || "8125"), // 8125 is default StatsD port
+      port: parseInt(process.env.STATSD_PORT || "8125", 10), // 8125 is default StatsD port
       host: process.env.STATSD_HOST,
     });
   }
@@ -64,7 +69,6 @@ try {
 
 // Configure the Express server
 const app = express();
-const PORT = process.env.PORT ?? 5001;
 
 // Connect to the database
 const pgConfig = {
@@ -72,7 +76,7 @@ const pgConfig = {
   user: getRequiredEnv("HASH_PG_USER"),
   password: getRequiredEnv("HASH_PG_PASSWORD"),
   database: getRequiredEnv("HASH_PG_DATABASE"),
-  port: parseInt(getRequiredEnv("HASH_PG_PORT")),
+  port: parseInt(getRequiredEnv("HASH_PG_PORT"), 10),
 
   maximumPoolSize: 10, // @todo: needs tuning
 };
@@ -99,10 +103,9 @@ setupAuth(
 setupCronJobs(db, logger);
 
 // Create an email transporter
-const transporter =
-  process.env.NODE_ENV === "test"
-    ? new TestTransporter()
-    : new AwsSesEmailTransporter();
+const transporter = isTestEnv
+  ? new TestTransporter()
+  : new AwsSesEmailTransporter();
 
 const apolloServer = createApolloServer(db, transporter, logger, statsd);
 
@@ -114,7 +117,7 @@ app.get("/health-check", (_, res) => res.status(200).send("Hello World!"));
 app.use((req, res, next) => {
   const requestId = nanoid();
   res.set("x-hash-request-id", requestId);
-  if (process.env.NODE_ENV === "production") {
+  if (isProdEnv) {
     logger.info({
       requestId,
       method: req.method,
@@ -143,8 +146,8 @@ apolloServer
       }
     };
 
-    const server = createServer(requestWrapper).listen(PORT, () => {
-      logger.info(`Listening on port ${PORT}`);
+    const server = createServer(requestWrapper).listen(port, () => {
+      logger.info(`Listening on port ${port}`);
     });
 
     // Gracefully shutdown on receiving a termination signal.
