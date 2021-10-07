@@ -1,8 +1,8 @@
 import { BlockVariant } from "@hashintel/block-protocol";
 import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useKey } from "rooks";
 import { tw } from "twind";
 import { BlockMetaContext } from "../../blocks/blockMeta";
-import { useKey } from "rooks";
 import { fuzzySearchBy } from "./fuzzySearchBy";
 
 interface BlockSuggesterProps {
@@ -69,9 +69,10 @@ export const BlockSuggester: React.VFC<BlockSuggesterProps> = ({
       className={tw`absolute z-10 w-96 max-h-60 overflow-auto border border-gray-100 rounded-lg shadow-md`}
     >
       {options.map(({ name, icon, description }, index) => (
+        /* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */
         <li
           ref={index === selectedIndex ? selectedRef : undefined}
-          key={index}
+          key={name}
           className={tw`flex border border-gray-100 ${
             index !== selectedIndex ? "bg-gray-50" : "bg-gray-100"
           } hover:bg-gray-100`}
