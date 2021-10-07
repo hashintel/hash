@@ -30,7 +30,10 @@ export const BlockSuggester: React.VFC<BlockSuggesterProps> = ({
     const variants = Array.from(blocksMeta.values()).flatMap(
       (blockMeta) => blockMeta.componentMetadata.variants
     );
-    return fuzzySearchBy(variants, search, (variant) => variant.name ?? "");
+    
+    return fuzzySearchBy(variants, search, (variant) =>
+      [variant.name, variant.description].map((str) => (str || "")).join(" ")
+    );
   }, [search, blocksMeta]);
 
   const [selectedIndex, setSelectedIndex] = useState(0);
