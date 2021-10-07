@@ -29,7 +29,7 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
   loading,
   errorMessage,
   email,
-  emailInvitationInfo = { orgName: "Stugg", inviter: "sdjis" },
+  emailInvitationInfo,
 }) => {
   const {
     shortname,

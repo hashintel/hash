@@ -5,31 +5,12 @@ import { OrgSize } from "../../../../graphql/apiTypes.gen";
 import { SelectInput } from "../../../forms/SelectInput";
 import { TextInput } from "../../../forms/TextInput";
 import { IconSpinner } from "../../../Icons/IconSpinner";
+import { ORG_ROLES, ORG_SIZES } from "../utils";
 
 type OrgCreateProps = {
   createOrg: (info: Inputs) => void;
   loading: boolean;
 };
-
-const ROLES = [
-  { label: "Marketing", value: "Marketing" },
-  { label: "Sales", value: "Sales" },
-  { label: "Operations", value: "Operations" },
-  { label: "Customer Success", value: "Customer Success" },
-  { label: "Design", value: "Design" },
-  { label: "Engineering", value: "Engineering" },
-  { label: "Product", value: "Product" },
-  { label: "IT", value: "IT" },
-  { label: "HR", value: "HR" },
-  { label: "Cross-Functional", value: "Cross-Functional" },
-];
-
-const ORG_SIZES = [
-  { label: "1-10 people", value: OrgSize.OneToTen },
-  { label: "11-50 people", value: OrgSize.ElevenToFifty },
-  { label: "51-250 people", value: OrgSize.FiftyOneToTwoHundredAndFifty },
-  { label: "250+ people", value: OrgSize.TwoHundredAndFiftyPlus },
-];
 
 const FORM_INPUTS: FormInputsType = [
   {
@@ -73,7 +54,7 @@ const FORM_INPUTS: FormInputsType = [
     name: "responsibility",
     label: "Your Role",
     inputType: "selectInput",
-    options: ROLES,
+    options: ORG_ROLES,
     fieldOptions: {
       required: true,
     },
