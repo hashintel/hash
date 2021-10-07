@@ -51,9 +51,6 @@ const createSavePlugin = () => {
   });
 };
 
-/**
- * @todo remove this function
- */
 export const createEditorView = (
   node: HTMLElement,
   replacePortal: ReplacePortals,
