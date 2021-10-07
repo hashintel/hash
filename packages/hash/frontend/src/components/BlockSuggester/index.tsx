@@ -33,12 +33,10 @@ const findTrigger = (state: EditorState): Trigger | null => {
   const parentPos = cursor.pos - cursorPos;
 
   // see if we can find a slash looking backwards
-  const from = text.lastIndexOf("/", cursorPos - 1);
-  if (from < 0) return null;
+  const slashMatch = text.substring(0, cursorPos).match(/\/\S*$/);
+  if (!slashMatch) return null;
 
-  // assert that there's no whitespace between the slash and the cursor
-  const fromSlashToCursor = text.substring(from, cursorPos);
-  if (/\s/.test(fromSlashToCursor)) return null;
+  const from = slashMatch.index!;
 
   // match upto the first whitespace character or the end of the node
   const to = cursorPos + text.substring(cursorPos).search(/\s|$/g);
