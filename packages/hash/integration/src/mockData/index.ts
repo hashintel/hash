@@ -262,10 +262,8 @@ void (async () => {
         {
           properties: {
             level: 2,
-            // @todo should this be children or something else?
             text: {
               __linkedData: {
-                // @todo check if this should be something else
                 entityTypeId: SystemTypeName.Text,
                 entityId: results.get("header1text")!.entityId,
               },
