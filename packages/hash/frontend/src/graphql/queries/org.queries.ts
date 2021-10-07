@@ -28,3 +28,34 @@ export const createOrg = gql`
     }
   }
 `;
+
+export const joinOrg = gql`
+  mutation joinOrg(
+    $orgEntityId: ID!
+    $verification: JoinOrgVerification!
+    $responsibility: String!
+  ) {
+    joinOrg(
+      orgEntityId: $orgEntityId
+      verification: $verification
+      responsibility: $responsibility
+    ) {
+      entityId
+      properties {
+        memberOf {
+          org {
+            data {
+              entityId
+            }
+          }
+          responsibility
+        }
+        emails {
+          address
+          verified
+          primary
+        }
+      }
+    }
+  }
+`;

@@ -16,20 +16,7 @@ import {
 } from "../graphql/apiTypes.gen";
 import { getOrgEmailInvitation } from "../graphql/queries/orgEmailInvitation.queries";
 import { useEffect, useMemo } from "react";
-
-// @todo make this reusable
-const ROLES = [
-  { label: "Marketing", value: "Marketing" },
-  { label: "Sales", value: "Sales" },
-  { label: "Operations", value: "Operations" },
-  { label: "Customer Success", value: "Customer Success" },
-  { label: "Design", value: "Design" },
-  { label: "Engineering", value: "Engineering" },
-  { label: "Product", value: "Product" },
-  { label: "IT", value: "IT" },
-  { label: "HR", value: "HR" },
-  { label: "Cross-Functional", value: "Cross-Functional" },
-];
+import { ORG_ROLES } from "../components/pages/auth/utils";
 
 const InvitePage: NextPage = () => {
   const { user, loading: fetchingUser } = useUser();
@@ -105,7 +92,7 @@ const InvitePage: NextPage = () => {
             <div className={tw`mb-6`}>
               <SelectInput
                 label={`Your role at ${orgShortname}`}
-                options={ROLES}
+                options={ORG_ROLES}
               />
               {errorMessage ? (
                 <p className={tw`text-red-500 text-sm mt-5 `}>{errorMessage}</p>

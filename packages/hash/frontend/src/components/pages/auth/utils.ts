@@ -1,4 +1,5 @@
 import { ParsedUrlQueryInput } from "querystring";
+import { OrgSize } from "../../../graphql/apiTypes.gen";
 
 export const SYNTHETIC_LOADING_TIME_MS = 700;
 
@@ -31,3 +32,23 @@ export type Action<S, T = undefined> = T extends undefined
       type: S;
       payload: T;
     };
+
+export const ORG_ROLES = [
+  { label: "Marketing", value: "Marketing" },
+  { label: "Sales", value: "Sales" },
+  { label: "Operations", value: "Operations" },
+  { label: "Customer Success", value: "Customer Success" },
+  { label: "Design", value: "Design" },
+  { label: "Engineering", value: "Engineering" },
+  { label: "Product", value: "Product" },
+  { label: "IT", value: "IT" },
+  { label: "HR", value: "HR" },
+  { label: "Cross-Functional", value: "Cross-Functional" },
+];
+
+export const ORG_SIZES = [
+  { label: "1-10 people", value: OrgSize.OneToTen },
+  { label: "11-50 people", value: OrgSize.ElevenToFifty },
+  { label: "51-250 people", value: OrgSize.FiftyOneToTwoHundredAndFifty },
+  { label: "250+ people", value: OrgSize.TwoHundredAndFiftyPlus },
+];

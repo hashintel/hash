@@ -167,28 +167,3 @@ export const meQuery = gql`
   }
   ${userFieldsFragment}
 `;
-
-export const joinOrg = gql`
-  mutation joinOrg(
-    $orgEntityId: ID!
-    $verification: JoinOrgVerification!
-    $responsibility: String!
-  ) {
-    joinOrg(
-      orgEntityId: $orgEntityId
-      verification: $verification
-      responsibility: $responsibility
-    ) {
-      ...UserFields
-      accountSignupComplete
-      properties {
-        shortname
-        preferredName
-        memberOf {
-          responsibility
-        }
-      }
-    }
-  }
-  ${userFieldsFragment}
-`;
