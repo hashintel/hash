@@ -285,29 +285,15 @@ const defineRemoteBlock = async (
 
   // If the block has not already been defined, we need to fetch the metadata & define it
   if (!AsyncBlockCache.has(componentId)) {
-    const promise = fetchBlockMeta(componentId)
-      .then((meta): BlockMeta => {
-        if (!componentId || !schema.nodes[componentId]) {
-          defineNewBlock(
-            schema,
-            meta.componentMetadata,
-            meta.componentSchema,
-            viewConfig,
-            componentId
-          );
-        }
+    const promise = fetchBlockMeta(componentId).catch((err) => {
+      // We don't want failed requests to prevent future requests to the block being successful
+      if (AsyncBlockCache.get(componentId) === promise) {
+        AsyncBlockCache.delete(componentId);
+      }
 
-        return meta;
-      })
-      .catch((err) => {
-        // We don't want failed requests to prevent future requests to the block being successful
-        if (AsyncBlockCache.get(componentId) === promise) {
-          AsyncBlockCache.delete(componentId);
-        }
-
-        console.error("bang", err);
-        throw err;
-      });
+      console.error("bang", err);
+      throw err;
+    });
 
     AsyncBlockCache.set(componentId, promise);
   }
@@ -322,7 +308,19 @@ const defineRemoteBlock = async (
     throw new Error("Invariant: block cache missing component");
   }
 
-  return await promise;
+  const meta = await promise;
+
+  if (!componentId || !schema.nodes[componentId]) {
+    defineNewBlock(
+      schema,
+      meta.componentMetadata,
+      meta.componentSchema,
+      viewConfig,
+      componentId
+    );
+  }
+
+  return meta;
 };
 
 /**
