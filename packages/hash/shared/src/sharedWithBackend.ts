@@ -429,7 +429,7 @@ const childrenForTextEntity = (entity: TextEntity, schema: Schema) =>
     )
   );
 
-const getTextEntityFromBlock = (
+export const getTextEntityFromBlock = (
   blockEntity: BlockEntity
 ): TextEntity | null => {
   const blockPropertiesEntity = blockEntity.properties.entity;

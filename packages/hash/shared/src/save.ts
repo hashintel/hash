@@ -1,7 +1,7 @@
 /* eslint-disable no-param-reassign */
 import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
 import { ApolloClient } from "@apollo/client";
-import { isEqual, omit, uniqBy } from "lodash";
+import { isEqual, uniqBy } from "lodash";
 import { EntityStore, EntityStoreType, isBlockEntity } from "./entityStore";
 import { updatePageContents } from "./queries/page.queries";
 import {
@@ -18,7 +18,7 @@ import {
   findEntityNodes,
   nodeToComponentId,
 } from "./util";
-import { isTextEntity } from "./sharedWithBackend";
+import { getTextEntityFromBlock } from "./sharedWithBackend";
 
 const nodeToEntityProperties = (node: ProsemirrorNode<Schema>) => {
   if (node.type.isTextblock) {
@@ -248,22 +248,22 @@ const updateBlocks = defineOperation(
           }
 
           if (node.type.isTextblock) {
-            const texts = isTextEntity(existingBlock.properties.entity)
-              ? existingBlock.properties.entity.properties.texts
-              : undefined;
+            const textEntity = getTextEntityFromBlock(savedEntity);
 
+            if (!textEntity) {
+              throw new Error(
+                "invariant: text entity missing for updating text node"
+              );
+            }
+
+            const { texts } = textEntity.properties;
             const entityProperties = nodeToEntityProperties(node);
 
-            if (
-              !isEqual(
-                texts?.map((text) => omit(text, "__typename")),
-                entityProperties?.texts
-              )
-            ) {
+            if (!isEqual(texts, entityProperties?.texts)) {
               updates.push({
                 updateEntity: {
-                  entityId: childEntityId,
-                  accountId: savedChildEntity.accountId,
+                  entityId: textEntity.entityId,
+                  accountId: textEntity.accountId,
                   properties: entityProperties,
                 },
               });
