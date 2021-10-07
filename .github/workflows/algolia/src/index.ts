@@ -58,8 +58,8 @@ export const checkObjectIds = () => {
     objectIds.push(matterData.data.objectId);
   };
 
-  const glossaryFiles = getAllFiles("../../resources/glossary", [], "glossary");
-  const docsFiles = getAllFiles("../../resources/docs/simulation", [], "docs");
+  const glossaryFiles = getAllFiles("../../../resources/glossary", [], "glossary");
+  const docsFiles = getAllFiles("../../../resources/docs/simulation", [], "docs");
 
   const files = [...glossaryFiles, ...docsFiles];
 
@@ -99,8 +99,8 @@ export const generateAlgoliaJson = () => {
     return appendData;
   };
 
-  const glossaryFiles = getAllFiles("../../resources/glossary", [], "glossary");
-  const docsFiles = getAllFiles("../../resources/docs/simulation", [], "docs");
+  const glossaryFiles = getAllFiles("../../../resources/glossary", [], "glossary");
+  const docsFiles = getAllFiles("../../../resources/docs/simulation", [], "docs");
 
   const files = [...glossaryFiles, ...docsFiles];
 
