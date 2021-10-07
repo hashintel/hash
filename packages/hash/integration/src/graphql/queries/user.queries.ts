@@ -1,4 +1,4 @@
-import { gql } from "@apollo/client";
+import gql from "graphql-tag";
 
 export const createUser = gql`
   mutation createUser($email: String!) {
@@ -6,6 +6,23 @@ export const createUser = gql`
       __typename
       id
       createdAt
+    }
+  }
+`;
+
+export const createUserWithOrgEmailInvitation = gql`
+  mutation createUserWithOrgEmailInvitation(
+    $orgEntityId: ID!
+    $invitationEmailToken: String!
+  ) {
+    createUserWithOrgEmailInvitation(
+      orgEntityId: $orgEntityId
+      invitationEmailToken: $invitationEmailToken
+    ) {
+      id
+      accountId
+      entityId
+      accountSignupComplete
     }
   }
 `;

@@ -5,19 +5,19 @@ import { DBAdapter } from "../../db";
 import { User as UserModel } from "../../model";
 
 declare global {
+  // eslint-disable-next-line no-shadow
   namespace Express {
     interface User extends UserModel {}
   }
 }
 
 type SerializedPassportUser = {
-  accountId: string;
   entityId: string;
 };
 
 export const setupPassport = (app: Express, db: DBAdapter) => {
   passport.serializeUser<SerializedPassportUser>((user, done) =>
-    done(null, { accountId: user.accountId, entityId: user.entityId })
+    done(null, { entityId: user.entityId })
   );
 
   passport.deserializeUser<SerializedPassportUser>((serializedUser, done) =>

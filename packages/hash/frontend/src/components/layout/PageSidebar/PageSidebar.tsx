@@ -11,7 +11,7 @@ export const PageSidebar: VoidFunctionComponent = () => {
   const router = useRouter();
   const { accountId, pageId } = router.query as Record<string, string>;
 
-  const goToAccount = (accountId: string) => router.push(`/${accountId}`);
+  const goToAccount = (id: string) => router.push(`/${id}`);
 
   return (
     <nav className={styles.PageSidebar}>

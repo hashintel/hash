@@ -1,4 +1,4 @@
-import { gql } from "@apollo/client";
+import gql from "graphql-tag";
 
 const pageFieldsFragment = gql`
   fragment PageFields on Page {

@@ -14,7 +14,11 @@ export const sendLoginCode: Resolver<
   {},
   GraphQLContext,
   MutationSendLoginCodeArgs
-> = async (_, { emailOrShortname }, { dataSources, emailTransporter }) =>
+> = async (
+  _,
+  { emailOrShortname, redirectPath },
+  { dataSources, emailTransporter }
+) =>
   dataSources.db.transaction(async (client) => {
     const hasProvidedEmail = emailOrShortname.includes("@");
 
@@ -22,30 +26,30 @@ export const sendLoginCode: Resolver<
       ? await User.getUserByEmail(client)({
           email: emailOrShortname,
           verified: true,
-        }).then((user) => {
+        }).then((fetchedUser) => {
           /**
            * @todo: if the email address is associated with a user but it hasn't been verified,
            * send an email verification code to the user and return it
            */
 
-          if (!user) {
+          if (!fetchedUser) {
             throw new ApolloError(
               `A user with the email '${emailOrShortname}' could not be found.`,
               "NOT_FOUND"
             );
           }
-          return user;
+          return fetchedUser;
         })
       : await User.getUserByShortname(client)({
           shortname: emailOrShortname,
-        }).then((user) => {
-          if (!user) {
+        }).then((fetchedUser) => {
+          if (!fetchedUser) {
             throw new ApolloError(
               `A user with the shortname '${emailOrShortname}' could not be found.`,
               "NOT_FOUND"
             );
           }
-          return user;
+          return fetchedUser;
         });
 
     /** @todo: rate limit login codes sent to the user */
@@ -54,7 +58,10 @@ export const sendLoginCode: Resolver<
       .sendLoginVerificationCode(
         client,
         emailTransporter
-      )(hasProvidedEmail ? emailOrShortname : undefined)
+      )({
+        alternateEmailAddress: hasProvidedEmail ? emailOrShortname : undefined,
+        redirectPath: redirectPath || undefined,
+      })
       .then((verificationCode) =>
         verificationCode.toGQLVerificationCodeMetadata()
       );

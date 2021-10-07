@@ -6,7 +6,7 @@ const { entityTypeJson } = require("./data/systemTypeSchemas");
 const {
   SYSTEM_ACCOUNT_SHORTNAME,
   SYSTEM_ACCOUNT_NAME
-} = require("../../../src/lib/config");
+} = require("../../../src/lib/jsConfig");
 
 const now = '2021-08-19T11:00:14.587Z';
 

@@ -20,8 +20,6 @@ export const createEntity: Resolver<
   },
   { dataSources, user }
 ) => {
-  versioned = versioned ?? true;
-
   /** @todo restrict creation of protected types, e.g. User, Org */
 
   const entity = await Entity.create(dataSources.db)(

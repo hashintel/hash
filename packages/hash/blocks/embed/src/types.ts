@@ -1,3 +1,18 @@
+export type AppState = {
+  embedUrl: string;
+  embedType: ProviderNames | undefined;
+  html?: string;
+  height?: number;
+  width?: number;
+  maxWidth: number;
+  loading: boolean;
+  errorString: string;
+};
+
+export type Actions =
+  | { type: "UPDATE_STATE"; payload: Partial<AppState> }
+  | { type: "RESET_STATE" };
+
 export type ProviderNames =
   | "23HQ"
   | "Bopp"

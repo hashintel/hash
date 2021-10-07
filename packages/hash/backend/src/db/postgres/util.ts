@@ -15,6 +15,37 @@ export type Link = {
 };
 
 /**
+ * Validates a `__linkedData` field.
+ * @returns a `Link` if it's valid
+ * @throws if it's invalid
+ */
+const getLink = (linkedData: any): Link | null => {
+  if (!isObject(linkedData)) {
+    throw new Error("must be an object");
+  }
+  if (linkedData.aggregate) {
+    // We can ignore linked data based on an aggregation here
+    return null;
+  }
+  if (!linkedData.entityId) {
+    throw new Error("field 'entityId' missing");
+  }
+  if (!(typeof linkedData.entityId === "string")) {
+    throw new Error("field 'entityId' must be a string");
+  }
+  if (
+    linkedData.entityVersionId &&
+    !(typeof linkedData.entityVersionId === "string")
+  ) {
+    throw new Error("field 'entityVersionId', if set, must be a string");
+  }
+  return {
+    entityId: linkedData.entityId,
+    entityVersionId: linkedData.entityVersionId,
+  };
+};
+
+/**
  * Recursively traverse the properties of an entity, gathering the IDs of all entities
  * it references through the `__linkedData` field.
  * */
@@ -85,32 +116,4 @@ export const gatherLinks = (entity: Entity): Link[] => {
   }
 
   return links;
-};
-
-/** Validates a `__linkedData` field. Returns a `Link` if it's valid, otherwise, the
- * function throws an error. */
-const getLink = (linkedData: any): Link | null => {
-  if (!isObject(linkedData)) {
-    throw new Error("must be an object");
-  }
-  if (linkedData.aggregate) {
-    // We can ignore linked data based on an aggregation here
-    return null;
-  }
-  if (!linkedData.entityId) {
-    throw new Error("field 'entityId' missing");
-  }
-  if (!(typeof linkedData.entityId === "string")) {
-    throw new Error("field 'entityId' must be a string");
-  }
-  if (
-    linkedData.entityVersionId &&
-    !(typeof linkedData.entityVersionId === "string")
-  ) {
-    throw new Error("field 'entityVersionId', if set, must be a string");
-  }
-  return {
-    entityId: linkedData.entityId,
-    entityVersionId: linkedData.entityVersionId,
-  };
 };

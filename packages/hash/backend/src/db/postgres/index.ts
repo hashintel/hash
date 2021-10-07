@@ -64,7 +64,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     }, 5000);
   }
 
-  /** Close all connections to the database. This function is idempotent.*/
+  /** Close all connections to the database. This function is idempotent. */
   async close() {
     if (this.pool.getPoolState().ended) {
       return;
@@ -195,7 +195,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   getEntitiesBySystemType(params: {
     accountId: string;
     systemTypeName: SystemType;
-    latestOnly: boolean;
+    latestOnly?: boolean;
   }): Promise<Entity[]> {
     return this.query((adapter) => adapter.getEntitiesBySystemType(params));
   }

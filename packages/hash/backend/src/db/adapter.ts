@@ -3,6 +3,12 @@ import { DataSource } from "apollo-datasource";
 import { SystemType } from "../types/entityTypes";
 
 /**
+ * @todo should probably store this enum in a non-generated file somewhere
+ *    to revisit in light of fuller auth spec
+ */
+import { OrgSize, Visibility, WayToUseHash } from "../graphql/apiTypes.gen";
+
+/**
  * Fields we handle via a field resolver to avoid recursion problems when getting them from the db.
  * Let the API consumers request as many levels as they want.
  * @todo figure out a solution to recursion issue of an entityType having itself as an entityType
@@ -12,12 +18,6 @@ export type EntityTypeTypeFields =
   | "entityTypeId"
   | "entityTypeName"
   | "entityTypeVersionId";
-
-/**
- * @todo should probably store this enum in a non-generated file somewhere
- *    to revisit in light of fuller auth spec
- */
-import { OrgSize, Visibility, WayToUseHash } from "../graphql/apiTypes.gen";
 
 export type Entity = {
   accountId: string;
@@ -38,7 +38,7 @@ export type Entity = {
   entityVersionCreatedAt: Date;
 
   /** The time at which this entity version was updated. For versioned entities, this
-   * always matches `entityVersionCreatedAt`.*/
+   * always matches `entityVersionCreatedAt`. */
   entityVersionUpdatedAt: Date;
 
   visibility: Visibility;
@@ -277,7 +277,7 @@ export interface DBClient {
    * */
   getEntitiesBySystemType(params: {
     accountId: string;
-    latestOnly: boolean;
+    latestOnly?: boolean;
     systemTypeName: SystemType;
   }): Promise<Entity[]>;
 

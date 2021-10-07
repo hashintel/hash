@@ -4,13 +4,13 @@ import dotenv from "dotenv";
 dotenv.config({ path: "../docker/.env" });
 
 // Load the developer environment variables
-[
-  { name: "PORT", value: "5003" },
-  { name: "HASH_PG_HOST", value: "localhost" },
-  { name: "HASH_PG_USER", value: "postgres" },
-  { name: "HASH_PG_PORT", value: "5432" },
-  { name: "HASH_PG_DATABASE", value: "postgres" },
-  { name: "HASH_PG_PASSWORD", value: "postgres" },
-  { name: "SESSION_SECRET", value: "secret" },
-  { name: "FRONTEND_DOMAIN", value: "localhost:3000" },
-].map(({ name, value }) => (process.env[name] = value));
+Object.assign(process.env, {
+  PORT: "5003",
+  HASH_PG_HOST: "localhost",
+  HASH_PG_USER: "postgres",
+  HASH_PG_PORT: "5432",
+  HASH_PG_DATABASE: "postgres",
+  HASH_PG_PASSWORD: "postgres",
+  SESSION_SECRET: "secret",
+  FRONTEND_DOMAIN: "localhost:3000",
+});

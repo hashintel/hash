@@ -1,7 +1,7 @@
 import { ReplacePortals } from "@hashintel/hash-shared/sharedWithBackend";
 import { toggleMark } from "prosemirror-commands";
-import { Node as ProsemirrorNode } from "prosemirror-model";
-import { NodeSelection, Plugin } from "prosemirror-state";
+import { Schema } from "prosemirror-model";
+import { EditorState, NodeSelection, Plugin } from "prosemirror-state";
 import React from "react";
 import { ensureMounted } from "../../lib/dom";
 
@@ -9,10 +9,30 @@ interface MarksTooltipState {
   focused: boolean;
 }
 
+const selectionContainsText = (state: EditorState<Schema>) => {
+  const content = state.selection.content().content;
+  let containsText = false;
+
+  content.descendants((node) => {
+    if (containsText) {
+      return false;
+    }
+
+    if (node.isTextblock) {
+      containsText = true;
+      return false;
+    }
+
+    return true;
+  });
+
+  return containsText;
+};
+
 export function createMarksTooltip(replacePortal: ReplacePortals) {
   let timeout: NodeJS.Timeout;
 
-  const marksTooltip = new Plugin<MarksTooltipState>({
+  const marksTooltip = new Plugin<MarksTooltipState, Schema>({
     /**
      * This allows us to keep track of whether the view is focused, which
      * is important for knowing whether to show the format tooltip
@@ -53,7 +73,7 @@ export function createMarksTooltip(replacePortal: ReplacePortals) {
       },
     },
 
-    view(editorView) {
+    view(editorView: FixMeLater) {
       const mountNode = document.createElement("div");
       const dom = document.createElement("div");
 
@@ -79,33 +99,35 @@ export function createMarksTooltip(replacePortal: ReplacePortals) {
       const updateFns: Function[] = [];
 
       const button = (name: string, text: string) => {
-        const button = document.createElement("button");
+        const buttonElement = document.createElement("button");
 
-        button.innerText = text;
-        dom.appendChild(button);
+        buttonElement.innerText = text;
+        dom.appendChild(buttonElement);
 
         const update = () => {
           // @todo no idea if this is the best way to get a list of
           // marks in a selection
           const marks = new Set();
-          editorView.state.selection.content().content.descendants((node) => {
-            for (const mark of node.marks) {
-              marks.add(mark.type.name);
-            }
+          editorView.state.selection
+            .content()
+            .content.descendants((node: FixMeLater) => {
+              for (const mark of node.marks) {
+                marks.add(mark.type.name);
+              }
 
-            return true;
-          });
+              return true;
+            });
 
           const active = marks.has(name);
 
-          button.style.backgroundColor = active ? "#2482ff" : "white";
-          button.style.color = active ? "white" : "black";
-          button.style.padding = "4px 0";
-          button.style.width = "25px";
-          button.style.border = "1px solid lightgrey";
+          buttonElement.style.backgroundColor = active ? "#2482ff" : "white";
+          buttonElement.style.color = active ? "white" : "black";
+          buttonElement.style.padding = "4px 0";
+          buttonElement.style.width = "25px";
+          buttonElement.style.border = "1px solid lightgrey";
         };
 
-        button.addEventListener("click", (evt) => {
+        buttonElement.addEventListener("click", (evt) => {
           evt.preventDefault();
           editorView.focus();
           toggleMark(editorView.state.schema.marks[name])(
@@ -155,23 +177,7 @@ export function createMarksTooltip(replacePortal: ReplacePortals) {
           dragging ||
           state.selection instanceof NodeSelection ||
           // !(state.selection instanceof TextSelection) ||
-          /**
-           * This is checking that the selected node is eligible to
-           * have a format tooltip
-           */
-          state.selection
-            .content()
-            .content.content.map((node: ProsemirrorNode) =>
-              node.type.name === "block" ? node.firstChild : node
-            )
-            .every((node: ProsemirrorNode) => {
-              return (
-                node.content.size === 0 ||
-                // @todo fix this check by checking for the
-                // marks a node supports
-                !node.isTextblock
-              );
-            }) ||
+          !selectionContainsText(state) ||
           state.selection.empty
         ) {
           dom.style.opacity = "0";

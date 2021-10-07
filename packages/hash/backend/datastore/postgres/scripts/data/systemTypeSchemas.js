@@ -1,5 +1,5 @@
 const generatedIds = require("./generatedIds.json");
-const { SYSTEM_ACCOUNT_SHORTNAME, FRONTEND_URL} = require("../../../../src/lib/config");
+const { SYSTEM_ACCOUNT_SHORTNAME, FRONTEND_URL} = require("../../../../src/lib/jsConfig");
 
 const systemAccount = generatedIds.orgs[SYSTEM_ACCOUNT_SHORTNAME];
 

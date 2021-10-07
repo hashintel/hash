@@ -111,8 +111,10 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
               }}
               value={text}
               ref={inputRef}
+              data-testid="verify-code-input"
             />
             <button
+              type="submit"
               className={tw`absolute right-0 top-1/2 mr-3 transition-all -translate-y-1/2 flex items-center disabled:opacity-40 disabled:pointer-events-none focus:outline-none text(blue-500 hover:blue-700 focus:blue-600) font-bold py-2 px-2`}
               disabled={!isInputValid() || loading}
             >
@@ -136,6 +138,7 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
       </div>
       <div className={tw`flex justify-between`}>
         <button
+          type="button"
           className={tw`focus:outline-none border(b-1 transparent hover:current focus:current)`}
           onClick={goBack}
         >
@@ -150,6 +153,7 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
           <div className={tw`flex items-center`}>
             <span className={tw`mr-1`}>No email yet?</span>
             <button
+              type="button"
               className={tw`text-blue-500 focus:text-blue-700 hover:text-blue-700 disabled:opacity-50 font-bold focus:outline-none flex items-center`}
               onClick={handleResendCode}
               disabled={requestCodeLoading || syntheticLoading}

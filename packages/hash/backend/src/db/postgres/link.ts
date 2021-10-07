@@ -108,8 +108,8 @@ export const getEntityParentIds = async (
   `);
 
   return rows.map((row) => ({
-    accountId: row["account_id"] as string,
-    entityId: row["entity_id"] as string,
+    accountId: row.account_id as string,
+    entityId: row.entity_id as string,
   }));
 };
 

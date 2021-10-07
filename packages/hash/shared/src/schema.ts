@@ -10,7 +10,7 @@ export const createSchema = () =>
         toDOM: () => ["div", 0] as const,
       },
       block: {
-        content: "blockItem",
+        content: "entity",
         /**
          * These properties are necessary for copy and paste (which is necessary for drag and drop)
          */
@@ -18,13 +18,29 @@ export const createSchema = () =>
           return [
             "div",
             {
+              // @todo this isn't applied because of the node view
               "data-hash-type": "block",
             },
           ] as const;
         },
         parseDOM: [
           {
+            // @todo is this necessary
             tag: 'div[data-hash-type="block"]',
+          },
+        ],
+      },
+      entity: {
+        content: "blockItem",
+        attrs: {
+          entityId: { default: null },
+        },
+        toDOM: () => {
+          return ["div", { "data-hash-type": "entity" }, 0] as const;
+        },
+        parseDOM: [
+          {
+            tag: 'div[data-hash-type="entity"]',
           },
         ],
       },

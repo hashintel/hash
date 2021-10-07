@@ -12,14 +12,20 @@ type SchemaPropertyTypeListProps = {
 };
 
 export const SchemaPropertyTypeList: VoidFunctionComponent<SchemaPropertyTypeListProps> =
-  ({ hasSubSchema, propertyName, SchemaSelect, type, $ref }) => {
+  ({
+    hasSubSchema,
+    propertyName,
+    SchemaSelect,
+    type: typeMaybeArray,
+    $ref,
+  }) => {
     if ($ref) {
       return <SchemaSelect schemaRef={$ref} />;
     }
 
     return (
       <>
-        {(type instanceof Array ? type : [type])
+        {(typeMaybeArray instanceof Array ? typeMaybeArray : [typeMaybeArray])
           .map<React.ReactNode>((type) =>
             type === "object" && hasSubSchema ? (
               <SchemaSelect schemaRef={propertyName} />

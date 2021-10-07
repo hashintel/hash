@@ -1,12 +1,12 @@
 import React, { useCallback, useMemo } from "react";
 import { TableOptions, useSortBy, useTable } from "react-table";
+import { BlockProtocolLinkedDataDefinition } from "@hashintel/block-protocol";
+import { BlockComponent } from "@hashintel/block-protocol/react";
+import { tw } from "twind";
 import { EditableCell } from "./components/EditableCell";
 import { makeColumns } from "./lib/columns";
 import { getSchemaPropertyDefinition } from "./lib/getSchemaProperty";
 import { identityEntityAndProperty } from "./lib/identifyEntity";
-import { BlockProtocolLinkedDataDefinition } from "@hashintel/block-protocol";
-import { BlockComponent } from "@hashintel/block-protocol/react";
-import { tw } from "twind";
 
 import { Pagination } from "./components/Pagination";
 import { FilterSort, AggregateArgs } from "./components/FilterSort";
@@ -68,7 +68,7 @@ export const App: BlockComponent<AppProps> = ({
   const handleAggregate = useCallback(
     ({ operation, filter, sort, itemsPerPage, pageNumber }: AggregateArgs) => {
       if (!update || !data.__linkedData) return;
-      const newLinkedData = Object.assign({}, data.__linkedData);
+      const newLinkedData = { ...data.__linkedData };
 
       if (!newLinkedData.aggregate) {
         return;
@@ -158,10 +158,9 @@ export const App: BlockComponent<AppProps> = ({
               return (
                 <tr key={rowKey} {...restRowProps}>
                   {row.cells.map((cell) => {
-                    const { column, row } = cell;
                     const { entity, property } = identityEntityAndProperty(
-                      row.original,
-                      column.id
+                      cell.row.original,
+                      cell.column.id
                     );
                     const propertyDef = getSchemaPropertyDefinition(
                       (schemas ?? {})[entity.type],

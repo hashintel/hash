@@ -4,7 +4,8 @@ export const compareEntitiesByField = (
   property: string,
   desc: boolean
 ): number => {
-  let a, b;
+  let a;
+  let b;
 
   if (desc) {
     a = entityB[property];

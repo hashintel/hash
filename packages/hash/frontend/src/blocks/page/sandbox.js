@@ -78,7 +78,8 @@ class AsyncView {
 
     this.dom.appendChild(this.spinner);
 
-    const controller = (this.controller = new AbortController());
+    this.controller = new AbortController();
+
     const componentId = node.attrs.asyncComponentId;
 
     createRemoteBlock(
@@ -94,7 +95,7 @@ class AsyncView {
       node.attrs.asyncNodeProps.marks
     )
       .then((newNode) => {
-        if (controller.signal.aborted) {
+        if (this.controller.signal.aborted) {
           return;
         }
 
@@ -331,6 +332,7 @@ class BlockView {
       container,
       container,
       <>
+        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
         <div
           className={styles.Block__Handle}
           ref={(handle) => {
@@ -420,8 +422,8 @@ class BlockView {
      */
     const text = child.isTextblock
       ? child.content.content
-          .filter((node) => node.type.name === "text")
-          .map((node) => node.text)
+          .filter(({ type }) => type.name === "text")
+          .map((contentNode) => contentNode.text)
           .join("")
       : "";
 
@@ -481,14 +483,14 @@ export const renderPM = (
   let connection;
 
   const view = new EditorView(node, {
-    state: state,
+    state,
     nodeViews: {
       ...viewProps.nodeViews,
-      async(node, view, getPos) {
-        return new AsyncView(node, view, getPos, replacePortal);
+      async(currentNode, currentView, getPos) {
+        return new AsyncView(currentNode, currentView, getPos, replacePortal);
       },
-      block(node, view, getPos) {
-        return new BlockView(node, view, getPos, replacePortal);
+      block(currentNode, currentView, getPos) {
+        return new BlockView(currentNode, currentView, getPos, replacePortal);
       },
     },
     dispatchTransaction: collabEnabled

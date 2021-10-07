@@ -1,17 +1,17 @@
 import React from "react";
 import { Decoration, EditorView, NodeView } from "prosemirror-view";
-import { RemoteBlock } from "../../components/RemoteBlock/RemoteBlock";
 import {
   Block,
   componentIdToUrl,
   ReplacePortals,
 } from "@hashintel/hash-shared/sharedWithBackend";
 import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
-import { EntityStoreContext } from "./EntityStoreContext";
 import {
   EntityStoreType,
   isBlockEntity,
 } from "@hashintel/hash-shared/entityStore";
+import { EntityStoreContext } from "./EntityStoreContext";
+import { RemoteBlock } from "../../components/RemoteBlock/RemoteBlock";
 
 type NodeViewConstructor = {
   new (
@@ -24,6 +24,7 @@ type NodeViewConstructor = {
 
 type NodeViewConstructorArgs = ConstructorParameters<NodeViewConstructor>;
 
+// @todo we need to type this such that we're certain we're passing through all the props required
 const getRemoteBlockProps = (entity: EntityStoreType | null | undefined) => {
   if (entity) {
     if (!isBlockEntity(entity)) {
@@ -46,24 +47,6 @@ const getRemoteBlockProps = (entity: EntityStoreType | null | undefined) => {
 };
 
 /**
- * @todo make this unnecessary
- */
-const getOverwrittenRemoteBlockProps = (
-  entity: EntityStoreType | null | undefined
-) => {
-  const originalProps = getRemoteBlockProps(entity);
-
-  // @todo we need to type this such that we're certain we're passing through all the props required
-  return {
-    ...originalProps,
-    // properties: {
-    //   ...((entity ? cachedPropertiesByEntity[entity.metadataId] : null) ?? {}),
-    //   ...originalProps.properties,
-    // },
-  };
-};
-
-/**
  * This creates a node view which integrates between React and prosemirror for
  * each block
  */
@@ -73,7 +56,7 @@ export const createNodeView = (
   sourceName: string,
   replacePortal: ReplacePortals
 ): NodeViewConstructor => {
-  const editable = componentSchema.properties?.["editableRef"];
+  const editable = componentSchema.properties?.editableRef;
 
   const nodeView = class BlockWrapper implements NodeView {
     dom: HTMLDivElement = document.createElement("div");
@@ -112,16 +95,16 @@ export const createNodeView = (
             {(entityStore) => {
               const entityId = node.attrs.entityId;
               const entity = entityStore[entityId];
-              const remoteBlockProps = getOverwrittenRemoteBlockProps(entity);
+              const remoteBlockProps = getRemoteBlockProps(entity);
 
               const editableRef = editable
-                ? (node: HTMLElement) => {
+                ? (editableNode: HTMLElement) => {
                     if (
                       this.contentDOM &&
-                      node &&
-                      !node.contains(this.contentDOM)
+                      editableNode &&
+                      !editableNode.contains(this.contentDOM)
                     ) {
-                      node.appendChild(this.contentDOM);
+                      editableNode.appendChild(this.contentDOM);
                       this.contentDOM.style.display = "";
                     }
                   }

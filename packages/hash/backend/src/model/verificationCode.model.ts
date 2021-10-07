@@ -1,5 +1,5 @@
-import { VerificationCode } from ".";
 import { rword } from "rword";
+import { VerificationCode } from ".";
 import { DBClient } from "../db";
 import { VerificationCodeMetadata as GQLVerificationCodeMetadata } from "../graphql/apiTypes.gen";
 

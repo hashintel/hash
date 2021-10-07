@@ -1,179 +1,319 @@
-import React, { useEffect, useState } from "react";
+import React, {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useReducer,
+  useCallback,
+} from "react";
 
 import { tw } from "twind";
 
 import { BlockComponent } from "@hashintel/block-protocol/react";
 
-import { ProviderNames } from "./types/embedTypes";
+import { BlockProtocolUpdatePayload } from "@hashintel/block-protocol";
+import { ProviderNames, AppState, Actions } from "./types";
 import { HtmlBlock } from "./HtmlBlock";
 import { getFormCopy } from "./utils";
-import { BlockProtocolUpdatePayload } from "@hashintel/block-protocol";
-import Cross from "./svgs/Cross";
-import Loader from "./svgs/Loader";
 import Pencil from "./svgs/Pencil";
+import { ResizeBlock } from "./components/ResizeBlock";
+import { EditView } from "./components/EditView";
+import {
+  MAX_WIDTH,
+  BASE_HEIGHT,
+  BASE_WIDTH,
+  PROVIDER_NAMES_TO_RESPECT_ASPECT_RATIO,
+  PROVIDER_NAMES_THAT_CANT_BE_RESIZED,
+} from "./constants";
 
 type AppProps = {
-  embedType?: ProviderNames;
   getEmbedBlock: (
     url: string,
     type?: ProviderNames
-  ) => Promise<{ html: string; error?: string }>;
+  ) => Promise<{
+    html: string;
+    error?: string;
+    height?: number;
+    width?: number;
+    providerName?: string;
+  }>;
+  embedType?: ProviderNames;
   initialHtml?: string;
+  initialWidth?: number;
+  initialHeight?: number;
   entityId: string;
   entityTypeId?: string;
   accountId: string;
 };
 
-export const App: BlockComponent<AppProps> = (props) => {
-  const {
-    embedType,
-    getEmbedBlock,
-    initialHtml,
-    entityId,
-    entityTypeId,
-    update,
-  } = props;
+const getInitialState = ({
+  html,
+  width,
+  height,
+  embedType,
+}: Partial<AppState> = {}) => ({
+  embedUrl: "",
+  embedType,
+  html,
+  width,
+  height,
+  maxWidth: MAX_WIDTH,
+  loading: false,
+  errorString: "",
+});
 
-  const copyObject = getFormCopy(embedType);
+const reducer = (state: AppState, action: Actions): AppState => {
+  switch (action.type) {
+    case "UPDATE_STATE":
+      return {
+        ...state,
+        ...action.payload,
+      };
 
-  const { bottomText, buttonText, placeholderText } = copyObject;
+    case "RESET_STATE":
+      return getInitialState();
 
-  const [inputText, setTextInput] = useState("");
-  const [edit, setEdit] = useState(false);
-  const [displayAlert, setDisplayAlert] = useState(false);
+    default:
+      return state;
+  }
+};
 
-  const [html, setHtml] = useState(initialHtml);
+export const App: BlockComponent<AppProps> = ({
+  embedType: initialEmbedType,
+  getEmbedBlock,
+  initialHtml,
+  initialHeight,
+  initialWidth,
+  entityId,
+  entityTypeId,
+  update,
+}) => {
+  const [
+    {
+      embedUrl,
+      html,
+      width,
+      height,
+      embedType,
+      maxWidth,
+      loading,
+      errorString,
+    },
+    dispatch,
+  ] = useReducer<React.Reducer<AppState, Actions>>(
+    reducer,
+    getInitialState({
+      html: initialHtml,
+      width: initialWidth,
+      height: initialHeight,
+      embedType: initialEmbedType,
+    })
+  );
 
-  const [loading, setLoading] = useState(false);
-  const [errorString, setErrorString] = useState("");
-
-  const resetData = () => setHtml(undefined);
+  const containerRef = useRef<HTMLDivElement>(null);
+  // The default width the block takes up. Ideally it should be provided by the EA
+  const blockWidthRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (initialHtml?.trim()) {
-      setHtml(initialHtml);
+    dispatch({
+      type: "UPDATE_STATE",
+      payload: {
+        html: initialHtml,
+        width: initialWidth,
+        height: initialHeight,
+        embedType,
+      },
+    });
+  }, [initialHtml, initialHeight, initialWidth, embedType]);
+
+  const setErrorString = (error: string) =>
+    dispatch({ type: "UPDATE_STATE", payload: { errorString: error } });
+
+  useLayoutEffect(() => {
+    if (!containerRef.current) return;
+    const blockWidth = containerRef.current.getBoundingClientRect().width;
+
+    if (!blockWidthRef.current) {
+      blockWidthRef.current = blockWidth;
     }
-  }, [initialHtml]);
 
-  useEffect(() => {
-    if (errorString?.trim()) {
-      setDisplayAlert(true);
+    if (html && !width && !initialWidth) {
+      dispatch({ type: "UPDATE_STATE", payload: { width: blockWidth } });
     }
-  }, [errorString]);
+  }, [html, width, initialWidth]);
 
-  const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const updateRemoteData = useCallback(
+    (
+      properties: Partial<
+        Pick<AppState, "html" | "width" | "height" | "embedType"> & {
+          embedType: string;
+        }
+      >
+    ) => {
+      const data = {
+        initialHtml: properties.html,
+        initialHeight: properties.height,
+        initialWidth: properties.width,
+        embedType: properties.embedType,
+      };
 
-    if (!inputText.trim()) {
+      const updateAction: BlockProtocolUpdatePayload<{
+        initialHtml: string | undefined;
+        initialHeight: number | undefined;
+        initialWidth: number | undefined;
+        embedType: string | undefined;
+      }> = {
+        data,
+        entityId,
+      };
+
+      if (entityTypeId) {
+        updateAction.entityTypeId = entityTypeId;
+      }
+
+      if (update) {
+        void update<any>([updateAction]);
+      }
+    },
+    [entityId, entityTypeId, update]
+  );
+
+  const handleGetEmbed = async () => {
+    if (!embedUrl) {
       return;
     }
 
-    setLoading(true);
+    dispatch({ type: "UPDATE_STATE", payload: { loading: true } });
 
-    await getEmbedBlock(inputText, embedType).then((responseData) => {
-      setLoading(false);
+    const responseData = await getEmbedBlock(embedUrl, embedType);
+    const {
+      html: embedHtml,
+      height: embedHeight,
+      width: embedWidth,
+      providerName,
+      error,
+    } = responseData;
 
-      const { html, error } = responseData;
+    if (error) {
+      return dispatch({
+        type: "UPDATE_STATE",
+        payload: { errorString: error, loading: false },
+      });
+    }
 
-      if (error?.trim()) {
-        setHtml(undefined);
-        return setErrorString(error);
-      }
+    const blockShouldNotBeResized =
+      providerName &&
+      PROVIDER_NAMES_THAT_CANT_BE_RESIZED.has(providerName as ProviderNames);
 
-      if (html?.trim()) {
-        if (update) {
-          const updateAction: BlockProtocolUpdatePayload<{
-            initialHtml: string;
-          }> = {
-            data: { initialHtml: html },
-            entityId,
-          };
+    const blockShouldRespectAspectRatio =
+      providerName &&
+      PROVIDER_NAMES_TO_RESPECT_ASPECT_RATIO.has(providerName as ProviderNames);
 
-          if (entityTypeId) {
-            updateAction.entityTypeId = entityTypeId;
-          }
+    let defaultWidth: number = BASE_WIDTH;
+    let defaultHeight: number = BASE_HEIGHT;
 
-          update([updateAction])?.catch((err) =>
-            console.log("Could not update block data", err)
-          );
+    if (blockShouldNotBeResized) {
+      defaultWidth = embedWidth as number;
+      defaultHeight = embedHeight as number;
+    } else {
+      defaultWidth = Math.min(
+        Math.max(blockWidthRef.current ?? 0, defaultWidth),
+        maxWidth
+      );
+
+      if (blockShouldRespectAspectRatio && embedHeight && embedWidth) {
+        const embedAspectRatio =
+          Math.round((embedWidth / embedHeight) * 100) / 100;
+        if (embedAspectRatio) {
+          defaultHeight = Math.ceil(defaultWidth / embedAspectRatio);
         }
-
-        setHtml(html);
       }
-    });
-    setEdit(false);
+    }
+
+    const payload = {
+      html: embedHtml as string,
+      width: defaultWidth,
+      height: defaultHeight,
+      embedType: providerName as ProviderNames,
+    };
+
+    dispatch({ type: "UPDATE_STATE", payload: { ...payload, loading: false } });
+
+    updateRemoteData(payload);
   };
 
-  if (html && !edit) {
+  const resetData = () => {
+    dispatch({ type: "RESET_STATE" });
+
+    updateRemoteData({});
+  };
+
+  const updateDimensions = useCallback(
+    () => (newWidth: number, newHeight: number) => {
+      updateRemoteData({ html, width: newWidth, height: newHeight });
+    },
+    [html, updateRemoteData]
+  );
+
+  const renderContent = () => {
+    if (!html) {
+      const { bottomText, buttonText, placeholderText } =
+        getFormCopy(embedType);
+      return (
+        <EditView
+          errorString={errorString}
+          setErrorString={setErrorString}
+          loading={loading}
+          buttonText={buttonText}
+          bottomText={bottomText}
+          placeholderText={placeholderText}
+          onSubmit={handleGetEmbed}
+          onChangeEmbedUrl={(url) =>
+            dispatch({ type: "UPDATE_STATE", payload: { embedUrl: url } })
+          }
+        />
+      );
+    }
+
+    const shouldRespectAspectRatio =
+      !!embedType && PROVIDER_NAMES_TO_RESPECT_ASPECT_RATIO.has(embedType);
+
+    const shouldNotBeResized =
+      !!embedType && PROVIDER_NAMES_THAT_CANT_BE_RESIZED.has(embedType);
+
     return (
-      <div className={tw`flex justify-center text-center w-full`}>
+      <div className={tw`flex justify-center`}>
         <div>
-          <HtmlBlock html={html} />
+          {shouldNotBeResized ? (
+            <HtmlBlock
+              html={html}
+              dimensions={{ width: width as number, height: height as number }}
+            />
+          ) : (
+            <ResizeBlock
+              width={width}
+              height={height}
+              maxWidth={maxWidth}
+              shouldRespectAspectRatio={shouldRespectAspectRatio}
+              updateDimensions={updateDimensions}
+            >
+              <HtmlBlock html={html} />
+            </ResizeBlock>
+          )}
         </div>
         <button
-          // Tailwind doesn't have this as a class
-          // https://github.com/tailwindlabs/tailwindcss/issues/1042#issuecomment-781271382
-          style={{ height: "max-content" }}
-          onClick={() => {
-            if (resetData) {
-              resetData();
-            }
-
-            setEdit(true);
-          }}
-          className={tw`ml-2 bg-gray-100 p-1.5 border-1 border-gray-300 rounded-sm`}
+          onClick={resetData}
+          type="button"
+          className={tw`bg-gray-100 p-1.5 ml-1 border-1 border-gray-300 rounded-sm self-start`}
         >
           <Pencil />
         </button>
       </div>
     );
-  }
+  };
 
   return (
-    <>
-      {displayAlert && (
-        <div
-          className={tw`w-96 mx-auto mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative`}
-          role="alert"
-        >
-          <div className={tw`mr-5`}>
-            <strong className={tw`font-bold`}>Error</strong>
-            <span className={tw`block sm:inline ml-2 `}>{errorString}</span>
-          </div>
-          <span
-            onClick={() => setDisplayAlert(false)}
-            className={tw`absolute top-0 bottom-0 right-0 px-4 py-3`}
-          >
-            <Cross />
-          </span>
-        </div>
-      )}
-
-      <div
-        className={tw`w-96 mx-auto bg-white rounded-sm shadow-md overflow-hidden text-center p-4 border-2 border-gray-200`}
-      >
-        <form className={tw`mb-0`} onSubmit={onSubmit}>
-          <div>
-            <input
-              required
-              className={tw`px-1.5 py-1 rounded-sm border-2 border-gray-200 bg-gray-50 focus:outline-none focus:ring focus:border-blue-300 w-full`}
-              onChange={(event) => setTextInput(event.target.value)}
-              type="url"
-              placeholder={placeholderText}
-            />
-          </div>
-          <div className={tw`mt-4`}>
-            <button
-              className={tw`bg-blue-400 rounded-sm hover:bg-blue-500 focus:bg-blue-600 py-1 text-white w-full flex items-center justify-center`}
-              type="submit"
-            >
-              {loading && <Loader />}
-              {buttonText}
-            </button>
-          </div>
-          <div className={tw`text-sm text-gray-400 mt-4`}>{bottomText}</div>
-        </form>
-      </div>
-    </>
+    <div className={tw`w-full`} ref={containerRef}>
+      {renderContent()}
+    </div>
   );
 };

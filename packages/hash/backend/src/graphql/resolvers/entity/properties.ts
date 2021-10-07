@@ -1,3 +1,4 @@
+import { GraphQLResolveInfo } from "graphql";
 import {
   AggregateOperationInput,
   Resolver,
@@ -6,7 +7,6 @@ import {
 import { DbUnknownEntity } from "../../../types/dbTypes";
 import { aggregateEntity } from "./aggregateEntity";
 import { GraphQLContext } from "../../context";
-import { GraphQLResolveInfo } from "graphql";
 
 export const isRecord = (thing: unknown): thing is Record<string, any> => {
   if (typeof thing !== "object") {
@@ -40,6 +40,15 @@ type LinkedDataDefinition = {
   entityVersionId?: string;
 };
 
+/* eslint-disable no-param-reassign */
+
+/**
+ * @todo: refactor resolveLinkedData to return updated record object
+ * instead of mutating it directly, to better adhere to functional
+ * programming best-practices, and so that no-param-reassign can
+ * be turned back on
+ */
+
 // Recursively resolve any __linkedData fields in arbitrary entities
 const resolveLinkedData = async (
   ctx: GraphQLContext,
@@ -62,13 +71,18 @@ const resolveLinkedData = async (
       );
       continue;
     }
+
+    if (isRecord(value)) {
+      await resolveLinkedData(ctx, parentAccountId, value, info);
+    }
+
     // We're only interested in properties which link to other data
-    if (!isRecord(value) || !value.__linkedData) {
+    if (key !== "__linkedData" || !isRecord(value)) {
       continue;
     }
 
     const { aggregate, entityId, entityVersionId, entityTypeId } =
-      value.__linkedData as LinkedDataDefinition;
+      value as LinkedDataDefinition;
 
     // We need a type and one of an aggregation operation or id
     if (!entityTypeId || (!aggregate && !entityId)) {
@@ -90,8 +104,8 @@ const resolveLinkedData = async (
       if (!entity) {
         throw new Error(`entity ${entityId} in account ${accountId} not found`);
       }
-      object[key].data = entity;
-      await resolveLinkedData(ctx, entity.accountId, object[key], info);
+      object.data = entity;
+      await resolveLinkedData(ctx, entity.accountId, object.data, info);
     } else if (aggregate) {
       // Fetch an array of entities
       const { results, operation } = await aggregateEntity(
@@ -105,14 +119,14 @@ const resolveLinkedData = async (
         info
       );
 
-      object[key].data = results;
-      object[key].__linkedData.aggregate = {
-        ...object[key].__linkedData.aggregate,
+      object.data = results;
+      object.__linkedData.aggregate = {
+        ...object.__linkedData.aggregate,
         ...operation,
       };
       // Resolve linked data for each entity in the array
       await Promise.all(
-        object[key].data.map((entity: DbUnknownEntity) => {
+        object.data.map((entity: DbUnknownEntity) => {
           return resolveLinkedData(ctx, entity.accountId, entity, info);
         })
       );

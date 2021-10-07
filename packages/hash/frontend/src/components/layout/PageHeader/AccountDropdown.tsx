@@ -23,6 +23,7 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
     >
       {avatar ? (
         <img
+          alt="avatar"
           src={avatar}
           className={tw`h-6 w-6 border border(solid gray-200) rounded-full mr-3`}
         />
@@ -39,6 +40,7 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
     >
       <Menu.Item>
         <button
+          type="button"
           onClick={logout}
           className={tw`text-sm font-light border(b-1 transparent hover:gray-200) `}
         >

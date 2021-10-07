@@ -2,9 +2,8 @@ import { ApolloError } from "apollo-server-express";
 
 import { MutationVerifyEmailArgs, Resolver } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
-import { User } from "../../../model";
+import { User, EntityWithIncompleteEntityType } from "../../../model";
 import { verifyVerificationCode } from "./util";
-import { EntityWithIncompleteEntityType } from "../../../model";
 
 export const verifyEmail: Resolver<
   EntityWithIncompleteEntityType,
@@ -50,7 +49,7 @@ export const verifyEmail: Resolver<
       // Otherwise the email address can be verified with the user
       await Promise.all(
         [
-          user.verifyEmailAddress(client)(email.address),
+          user.verifyExistingEmailAddress(client)(email.address),
           ctx.user ? undefined : passport.login(user, {}),
         ].flat<(Promise<any> | undefined)[]>()
       );
