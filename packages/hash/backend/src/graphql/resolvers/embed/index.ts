@@ -113,8 +113,7 @@ export const embedCode: Resolver<
     await getEmbedResponse({
       url,
       type,
-    }).catch((err) => {
-      console.error(err);
+    }).catch((__) => {
       throw new ApolloError(
         `Embed Code for URL ${url} not found${
           type?.trim() ? ` for type ${type}` : ""
@@ -123,7 +122,7 @@ export const embedCode: Resolver<
       );
     });
 
-  const { html, error, provider_name } = embedResponse;
+  const { html, error, provider_name, height, width } = embedResponse;
 
   if (error) {
     throw new ApolloError(
@@ -137,5 +136,7 @@ export const embedCode: Resolver<
   return {
     html,
     providerName: provider_name,
+    height,
+    width,
   };
 };

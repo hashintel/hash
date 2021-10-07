@@ -197,9 +197,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
         </div>
         <button
           type="button"
-          onClick={() => {
-            resetComponent();
-          }}
+          onClick={resetComponent}
           className={tw`ml-2 bg-gray-100 p-1.5 border-1 border-gray-300 rounded-sm self-start`}
         >
           <Pencil />
