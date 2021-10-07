@@ -12,10 +12,19 @@ import { MeQuery } from "../../graphql/apiTypes.gen";
  * loading: a boolean to check if the api call is still loading
  */
 export const useUser = (options?: Omit<QueryHookOptions, "errorPolicy">) => {
-  const { data, refetch, loading } = useQuery<MeQuery>(meQuery, {
+  const { data, refetch, loading, client } = useQuery<MeQuery>(meQuery, {
     ...options,
     errorPolicy: "all",
   });
+
+  /**
+   * @todo add method to manually update user cache after
+   * a query/mutation returns the updated User object.
+   * This will help prevent having to call meQuery after every mutation
+   */
+  // const updateCache = () => {
+  //   client.writeQuery();
+  // };
 
   return { user: data?.me, refetch, loading };
 };
