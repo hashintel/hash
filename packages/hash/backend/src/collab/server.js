@@ -3,31 +3,13 @@ import { createApolloClient } from "@hashintel/hash-shared/graphql/createApolloC
 import { Router } from "./route";
 
 import { getInstance } from "./instance";
+import { Output } from "./Output";
 
 const router = new Router();
 
 export const handleCollabRequest = function (req, resp) {
   return router.resolve(req, resp);
 };
-
-// Object that represents an HTTP response.
-class Output {
-  constructor(code, body, type) {
-    this.code = code;
-    this.body = body;
-    this.type = type || "text/plain";
-  }
-
-  static json(data) {
-    return new Output(200, JSON.stringify(data), "application/json");
-  }
-
-  // Write the response.
-  resp(resp) {
-    resp.writeHead(this.code, { "Content-Type": this.type });
-    resp.end(this.body);
-  }
-}
 
 // : (stream.Readable, Function)
 // Invoke a callback with a stream's data.
