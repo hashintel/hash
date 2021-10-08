@@ -40,3 +40,16 @@ export class DefaultMap<K, V> extends Map<K, V> {
     return value;
   };
 }
+
+export const isRecord = (thing: unknown): thing is Record<string, any> => {
+  if (typeof thing !== "object") {
+    return false;
+  }
+  if (thing == null) {
+    return false;
+  }
+  if (thing instanceof Array) {
+    return false;
+  }
+  return true;
+};
