@@ -1,4 +1,3 @@
-import { defineNodeView } from "@hashintel/hash-shared/defineNodeView";
 import { EntityStore, isBlockEntity } from "@hashintel/hash-shared/entityStore";
 import {
   createRemoteBlockFromEntity,
@@ -7,7 +6,7 @@ import {
 } from "@hashintel/hash-shared/prosemirror";
 import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorView, NodeView } from "prosemirror-view";
-import { createNodeViewFactory } from "./tsUtils";
+import { createNodeViewFactory, defineNodeView } from "./tsUtils";
 import { ReplacePortal } from "./usePortals";
 
 /**

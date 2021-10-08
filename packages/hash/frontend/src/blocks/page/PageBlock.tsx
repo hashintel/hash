@@ -1,6 +1,5 @@
 import { useApolloClient } from "@apollo/client";
 import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
-import { defineNodeView } from "@hashintel/hash-shared/defineNodeView";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 import { createEntityStore } from "@hashintel/hash-shared/entityStore";
 import {
@@ -21,7 +20,11 @@ import { BlockMetaContext } from "../blockMeta";
 import { EditorConnection } from "./collab/collab";
 import { createEditorView } from "./createEditorView";
 import { EntityStoreContext } from "./EntityStoreContext";
-import { collabEnabled, createNodeViewFactory } from "./tsUtils";
+import {
+  collabEnabled,
+  createNodeViewFactory,
+  defineNodeView,
+} from "./tsUtils";
 import { usePortals } from "./usePortals";
 
 type PageBlockProps = {

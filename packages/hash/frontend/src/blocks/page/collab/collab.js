@@ -10,9 +10,8 @@ import {
   ensureDocBlocksLoaded,
 } from "@hashintel/hash-shared/prosemirror";
 
-import { defineNodeView } from "@hashintel/hash-shared/src/defineNodeView";
 import { GET, POST } from "./http";
-import { createNodeViewFactory } from "../tsUtils";
+import { createNodeViewFactory, defineNodeView } from "../tsUtils";
 
 const badVersion = (err) => err.status === 400 && /invalid version/i.test(err);
 

@@ -3,13 +3,14 @@ import {
   blockComponentRequiresText,
   componentIdToUrl,
 } from "@hashintel/hash-shared/blockMeta";
+import { DefineNodeView } from "@hashintel/hash-shared/defineNodeView";
 import {
   EntityStoreType,
   isBlockEntity,
 } from "@hashintel/hash-shared/entityStore";
 import { ViewConfig } from "@hashintel/hash-shared/prosemirror";
 import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
-import { EditorView, NodeView } from "prosemirror-view";
+import { Decoration, EditorView, NodeView } from "prosemirror-view";
 import React from "react";
 import { RemoteBlock } from "../../components/RemoteBlock/RemoteBlock";
 import { EntityStoreContext } from "./EntityStoreContext";
@@ -41,7 +42,7 @@ const getRemoteBlockProps = (entity: EntityStoreType | null | undefined) => {
  * This creates a node view which integrates between React and prosemirror for
  * each block
  *
- * @todo rename this
+ * @todo inline this
  */
 export const createNodeViewFactory = (
   replacePortal: ReplacePortal
@@ -151,6 +152,43 @@ export const createNodeViewFactory = (
     Object.defineProperty(nodeView, "name", { value: `${componentId}View` });
 
     return nodeView;
+  };
+
+export const defineNodeView =
+  (
+    // @todo this doesn't need to be an argument, it's define in this file
+    createNodeView: NonNullable<ViewConfig>["createNodeView"],
+    // @todo type this
+    view: any
+  ): DefineNodeView =>
+  // @todo perhaps arguments to this could be simpler
+  (componentId, componentSchema, componentMetadata) => {
+    if (!componentMetadata.source) {
+      throw new Error("Cannot create new block for component missing a source");
+    }
+
+    // @todo type this
+    const NodeViewClass = createNodeView(
+      componentId,
+      componentSchema,
+      componentMetadata.source
+    );
+
+    // Add the node view definition to the view – ensures our block code is
+    // called for every instance of the block
+    view.setProps({
+      nodeViews: {
+        ...view.nodeViews,
+        [componentId]: (
+          node: ProsemirrorNode<Schema>,
+          editorView: EditorView<Schema>,
+          getPos: (() => number) | boolean,
+          decorations: Decoration[]
+        ) => {
+          return new NodeViewClass(node, editorView, getPos, decorations);
+        },
+      },
+    });
   };
 
 export const collabEnabled =
