@@ -11,7 +11,7 @@ import { pageTypedef } from "./page.typedef";
 import { textTypedef } from "./text.typedef";
 import { userTypedef } from "./user.typedef";
 import { embedTypeDef } from "./embed.typedef";
-import { impliedHistoryTypedef } from "./impliedHistory.typedef"
+import { impliedHistoryTypedef } from "./impliedHistory.typedef";
 
 const baseSchema = gql`
   scalar Date

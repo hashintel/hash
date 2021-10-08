@@ -2,7 +2,6 @@ import { gql } from "apollo-server-express";
 
 export const impliedHistoryTypedef = gql`
   type ImpliedEntityVersion {
-    impliedVersionId: ID!
     createdAt: Date!
   }
 
@@ -21,8 +20,13 @@ export const impliedHistoryTypedef = gql`
     ): ImpliedEntityHistory!
 
     """
-    Get a specific implied version of an entity.
+    Get a specific implied version of an entity. The impliedVersionCreatedAt should
+    match one of the items returned by the getImpliedEntityHistory resolver.
     """
-    getImpliedEntityVersion(impliedVersionId: ID!): UnknownEntity!
+    getImpliedEntityVersion(
+      accountId: ID!
+      entityId: ID!
+      impliedVersionCreatedAt: Date!
+    ): UnknownEntity!
   }
 `;
