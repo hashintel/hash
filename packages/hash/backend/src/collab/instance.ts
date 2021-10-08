@@ -116,13 +116,11 @@ class Instance {
               const transform = new Transform(this.doc);
               const attrs = getProseMirrorNodeAttributes(entity);
               const mappedPos = mapping.map(pos);
-              const blockWithAttrs = this.doc.childAfter(mappedPos);
+              const blockWithAttrs = this.doc.childAfter(mappedPos).node;
 
               // @todo use a custom step for this so we don't need to copy attrs – we may lose some
               transform.setNodeMarkup(mappedPos, undefined, {
-                // @todo look into this
-                // @ts-ignore-error
-                ...blockWithAttrs.attrs,
+                ...blockWithAttrs?.attrs,
                 ...attrs,
               });
 
