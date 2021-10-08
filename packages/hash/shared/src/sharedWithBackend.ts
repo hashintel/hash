@@ -8,7 +8,7 @@ import { Decoration, EditorView } from "prosemirror-view";
 // @ts-ignore
 // @todo allow overwriting this again
 import blockPaths from "./blockPaths.sample.json";
-import { BlockEntity, MappedEntity } from "./types";
+import { BlockEntity, AnyEntity } from "./types";
 import { Text } from "./graphql/apiTypes.gen";
 import { EntityStoreType, isEntityLink } from "./entityStore";
 
@@ -381,11 +381,7 @@ export const getProseMirrorNodeAttributes = (entity: BlockEntity) => ({
   entityId: entity.entityId,
 });
 
-// @todo move these types
-// @todo rename
-export type TextEntity = Omit<Text, "metadataId">;
-
-export const isTextEntity = (entity: EntityStoreType): entity is TextEntity =>
+export const isTextEntity = (entity: EntityStoreType): entity is Text =>
   "properties" in entity && "texts" in entity.properties;
 
 type DistributiveOmit<T, K extends keyof any> = T extends any
@@ -393,11 +389,11 @@ type DistributiveOmit<T, K extends keyof any> = T extends any
   : never;
 
 export const isTextEntityContainingEntity = (
-  entity: DistributiveOmit<MappedEntity, "properties"> & {
+  entity: DistributiveOmit<AnyEntity, "properties"> & {
     properties?: unknown;
   }
-): entity is DistributiveOmit<MappedEntity, "properties"> & {
-  properties: { text: { data: TextEntity } };
+): entity is DistributiveOmit<AnyEntity, "properties"> & {
+  properties: { text: { data: Text } };
 } => {
   if (
     "properties" in entity &&
@@ -415,7 +411,7 @@ export const isTextEntityContainingEntity = (
   return false;
 };
 
-const childrenForTextEntity = (entity: TextEntity, schema: Schema) =>
+const childrenForTextEntity = (entity: Text, schema: Schema) =>
   entity.properties.texts.map((text) =>
     schema.text(
       text.text,
@@ -431,7 +427,7 @@ const childrenForTextEntity = (entity: TextEntity, schema: Schema) =>
 
 export const getTextEntityFromBlock = (
   blockEntity: BlockEntity
-): TextEntity | null => {
+): Text | null => {
   const blockPropertiesEntity = blockEntity.properties.entity;
 
   if (!isTextEntity(blockPropertiesEntity)) {

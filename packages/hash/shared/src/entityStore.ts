@@ -1,6 +1,6 @@
-import { BlockEntity, MappedEntity } from "./types";
+import { BlockEntity, AnyEntity } from "./types";
 
-export type EntityStoreType = BlockEntity | MappedEntity;
+export type EntityStoreType = BlockEntity | AnyEntity;
 
 export type EntityStore = Record<string, EntityStoreType>;
 
