@@ -60,6 +60,7 @@ class Instance {
       for (let i = 0; i < steps.length; i++) {
         // @todo fix this
         // @ts-ignore-error
+        // eslint-disable-next-line no-param-reassign
         steps[i].clientID = clientID;
         const result = steps[i].apply(doc);
         if (!result.doc) return false;
