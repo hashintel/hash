@@ -5,7 +5,6 @@ import { undoInputRule } from "prosemirror-inputrules";
 import { keymap } from "prosemirror-keymap";
 import { Node as ProsemirrorNode, NodeSpec, Schema } from "prosemirror-model";
 import { EditorState, Plugin } from "prosemirror-state";
-import { NodeView } from "prosemirror-view";
 import {
   Block,
   blockComponentRequiresText,
@@ -13,7 +12,7 @@ import {
   BlockMeta,
   fetchBlockMeta,
 } from "./blockMeta";
-import { DefineNodeView } from "./defineNodeView";
+import { CreateNodeView, DefineNodeView } from "./defineNodeView";
 import { BlockEntity, getTextEntityFromBlock } from "./entity";
 import { childrenForTextEntity } from "./entityProsemirror";
 import { createSchema } from "./schema";
@@ -33,13 +32,8 @@ export type ViewConfig = {
   // @todo remove this
   replacePortal: unknown;
 
-  // @todo type the constructor here
   // @todo remove this
-  createNodeView: (
-    componentId: string,
-    componentSchema: Block["componentSchema"],
-    sourceName: string
-  ) => new (...args: any[]) => NodeView;
+  createNodeView: CreateNodeView;
 } | null;
 
 declare interface OrderedMapPrivateInterface<T> {

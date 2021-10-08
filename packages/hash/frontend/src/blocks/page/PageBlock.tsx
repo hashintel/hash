@@ -180,10 +180,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
           view,
           replacePortal,
           createNodeView: createNodeViewFactory(replacePortal),
-          defineNodeView: defineNodeView(
-            createNodeViewFactory(replacePortal),
-            view
-          ),
+          defineNodeView: defineNodeView(view, replacePortal),
         },
         componentId
       );
@@ -220,10 +217,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
           view,
           replacePortal,
           createNodeView: createNodeViewFactory(replacePortal),
-          defineNodeView: defineNodeView(
-            createNodeViewFactory(replacePortal),
-            view
-          ),
+          defineNodeView: defineNodeView(view, replacePortal),
         });
 
         if (signal?.aborted) {

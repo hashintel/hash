@@ -128,10 +128,7 @@ export class EditorConnection {
           view: this.view,
           replacePortal: this.replacePortal,
           createNodeView: createNodeViewFactory(this.replacePortal),
-          defineNodeView: defineNodeView(
-            createNodeViewFactory(this.replacePortal),
-            this.view
-          ),
+          defineNodeView: defineNodeView(this.view, this.replacePortal),
         }).then(() => data);
       })
       .then((data) => {

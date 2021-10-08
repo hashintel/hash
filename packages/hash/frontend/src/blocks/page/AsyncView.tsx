@@ -95,10 +95,7 @@ export class AsyncView implements NodeView {
         view,
         replacePortal: this.replacePortal,
         createNodeView: createNodeViewFactory(this.replacePortal),
-        defineNodeView: defineNodeView(
-          createNodeViewFactory(this.replacePortal),
-          view
-        ),
+        defineNodeView: defineNodeView(view, this.replacePortal),
       },
       entity,
       node.attrs.targetComponentId

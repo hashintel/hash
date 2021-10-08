@@ -3,7 +3,10 @@ import {
   blockComponentRequiresText,
   componentIdToUrl,
 } from "@hashintel/hash-shared/blockMeta";
-import { DefineNodeView } from "@hashintel/hash-shared/defineNodeView";
+import {
+  CreateNodeView,
+  DefineNodeView,
+} from "@hashintel/hash-shared/defineNodeView";
 import {
   EntityStoreType,
   isBlockEntity,
@@ -46,7 +49,7 @@ const getRemoteBlockProps = (entity: EntityStoreType | null | undefined) => {
  */
 export const createNodeViewFactory = (
   replacePortal: ReplacePortal
-): NonNullable<ViewConfig>["createNodeView"] =>
+): CreateNodeView =>
   function createNodeView(
     componentId: string,
     componentSchema: Block["componentSchema"],
@@ -156,10 +159,9 @@ export const createNodeViewFactory = (
 
 export const defineNodeView =
   (
-    // @todo this doesn't need to be an argument, it's define in this file
-    createNodeView: NonNullable<ViewConfig>["createNodeView"],
     // @todo type this
-    view: any
+    view: any,
+    replacePortal: ReplacePortal
   ): DefineNodeView =>
   // @todo perhaps arguments to this could be simpler
   (componentId, componentSchema, componentMetadata) => {
@@ -168,7 +170,7 @@ export const defineNodeView =
     }
 
     // @todo type this
-    const NodeViewClass = createNodeView(
+    const NodeViewClass = createNodeViewFactory(replacePortal)(
       componentId,
       componentSchema,
       componentMetadata.source
