@@ -20,7 +20,8 @@
     "dev": "cross-env NODE_ENV=\"${NODE_ENV:-development}\" nodemon --config nodemon.json src/index.ts",
     "start": "cross-env NODE_ENV=production node dist/index.js",
     "ts-node": "node --max-old-space-size=2048 node_modules/.bin/ts-node --files --project tsconfig.json",
-    "clear-pg": "cd datastore/postgres && yarn refresh"
+    "clear-pg": "cd datastore/postgres && yarn refresh",
+    "test": "jest"
   },
   "dependencies": {
     "@aws-sdk/client-ses": "3.25.0",
@@ -69,6 +70,7 @@
     "@types/express-session": "1.17.4",
     "@types/graphql-type-json": "0.3.2",
     "@types/html-to-text": "8.0.1",
+    "@types/jest": "27.0.1",
     "@types/node-fetch": "^2.5.10",
     "@types/nodemailer": "6.4.4",
     "@types/passport": "1.0.7",
@@ -88,9 +90,11 @@
     "eslint-plugin-no-restricted-imports": "0.0.0",
     "eslint-plugin-react": "^7.25.1",
     "eslint-plugin-react-hooks": "4.2.0",
+    "jest": "27.0.6",
     "nodemon": "2.0.12",
     "prettier": "2.3.2",
     "rimraf": "^3.0.2",
+    "ts-jest": "27.0.5",
     "ts-node": "10.2.1",
     "typescript": "4.3.5"
   }
