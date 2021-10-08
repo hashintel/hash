@@ -46,8 +46,6 @@ export const BlockHandle = forwardRef<HTMLDivElement>((_, ref) => {
 /**
  * This is the node view that wraps every one of our blocks in order to inject
  * custom UI like the <select> to change type and the drag handles
- *
- * @implements https://prosemirror.net/docs/ref/#view.NodeView
  */
 export class BlockView implements NodeView {
   dom: HTMLDivElement;
@@ -67,7 +65,6 @@ export class BlockView implements NodeView {
     public getPos: () => number,
     public replacePortal: ReplacePortals
   ) {
-    /** @implements https://prosemirror.net/docs/ref/#view.NodeView.dom */
     this.dom = document.createElement("div");
     this.dom.classList.add(styles.Block);
 
@@ -78,9 +75,6 @@ export class BlockView implements NodeView {
 
     document.addEventListener("dragend", this.onDragEnd);
 
-    /**
-     * @implements https://prosemirror.net/docs/ref/#view.NodeView.contentDOM
-     */
     this.contentDOM = document.createElement("div");
     this.dom.appendChild(this.contentDOM);
     this.contentDOM.classList.add(styles.Block__Content);
@@ -98,7 +92,6 @@ export class BlockView implements NodeView {
 
   /**
    * @todo simplify this alongside the react event handling
-   * @implements https://prosemirror.net/docs/ref/#view.NodeView.stopEvent
    */
   stopEvent(evt: Event) {
     if (evt.type === "dragstart" && evt.target === this.dom) {
@@ -129,7 +122,6 @@ export class BlockView implements NodeView {
    * made by us
    *
    * @todo find a more generalised alternative
-   * @implements https://prosemirror.net/docs/ref/#view.NodeView.ignoreMutation
    */
   ignoreMutation(
     record: Parameters<NonNullable<NodeView["ignoreMutation"]>>[0]
@@ -142,15 +134,11 @@ export class BlockView implements NodeView {
     );
   }
 
-  /**
-   * @implements https://prosemirror.net/docs/ref/#view.NodeView.update
-   */
   update(blockNode: ProsemirrorNode<Schema>) {
     if (blockNode.type.name !== "block") {
       return false;
     }
 
-    /** @implements https://prosemirror.net/docs/ref/#view.NodeView.node */
     this.node = blockNode;
 
     const node = blockNode.child(0);
@@ -234,9 +222,6 @@ export class BlockView implements NodeView {
     return true;
   }
 
-  /**
-   * @implements https://prosemirror.net/docs/ref/#view.NodeView.destroy
-   */
   destroy() {
     this.replacePortal(this.selectContainer, null, null);
     this.dom.remove();
