@@ -186,10 +186,14 @@ export const getImpliedEntityHistory = async (
   const impliedHistorySubGraphs: Graph[] = [];
   // eslint-disable-next-line no-constant-condition
   while (true) {
-    const subGraph: Graph = { entities: [], links: [] };
     const rootVersion = entityVersions.get(root.entityId)![
       checkpoints.getRoot()
     ];
+    const subGraph: Graph = {
+      entities: [],
+      links: [],
+      rootEntityVersionId: rootVersion.entityVersionId,
+    };
 
     // Perform a breadth-first search starting at rootVersion
     const stack = [rootVersion];

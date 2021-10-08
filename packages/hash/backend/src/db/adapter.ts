@@ -118,6 +118,7 @@ export type DBOrgProperties = {
 };
 
 export type Graph = {
+  rootEntityVersionId: string;
   entities: EntityVersion[];
   links: {
     src: EntityVersion;
