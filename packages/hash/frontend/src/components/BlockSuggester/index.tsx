@@ -1,8 +1,8 @@
 import type { BlockVariant } from "@hashintel/block-protocol";
-import type { ReplacePortals } from "@hashintel/hash-shared/sharedWithBackend";
 import { ResolvedPos } from "prosemirror-model";
 import { EditorState, Plugin, PluginKey } from "prosemirror-state";
 import React, { CSSProperties } from "react";
+import { ReplacePortal } from "../../blocks/page/usePortals";
 import { ensureMounted } from "../../lib/dom";
 import { BlockSuggester } from "./BlockSuggester";
 
@@ -69,12 +69,14 @@ const key = new PluginKey<SuggesterState>("suggester");
  * Suggester plugin factory
  *
  * Behaviour:
- * Typing a slash followed by any number of non-whitespace characters will activate the plugin and
- * open a popup right under the "textual trigger". Moving the cursor outside the trigger will close
- * the popup. Pressing the Escape-key while inside the trigger will disable the plugin until a
- * trigger is newly encountered (e.g. by leaving/deleting and reentering/retyping a trigger).
+ * Typing a slash followed by any number of non-whitespace characters will
+ * activate the plugin and open a popup right under the "textual trigger".
+ * Moving the cursor outside the trigger will close the popup. Pressing the
+ * Escape-key while inside the trigger will disable the plugin until a trigger
+ * is newly encountered (e.g. by leaving/deleting and reentering/retyping a
+ * trigger).
  */
-export const createBlockSuggester = (replacePortal: ReplacePortals) =>
+export const createBlockSuggester = (replacePortal: ReplacePortal) =>
   new Plugin<SuggesterState>({
     key,
     state: {
@@ -140,7 +142,8 @@ export const createBlockSuggester = (replacePortal: ReplacePortals) =>
           };
 
           /**
-           * @todo actually create and insert an instance of the selected block type variant
+           * @todo actually create and insert an instance of the selected block
+           *   type variant
            */
           const onChange = (variant: BlockVariant) => {
             const replacement = view.state.schema.text(`[${variant.name}]`);

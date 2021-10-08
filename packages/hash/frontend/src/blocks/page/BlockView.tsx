@@ -1,16 +1,16 @@
-import React, { createRef, forwardRef, useEffect, useState } from "react";
-import { NodeSelection } from "prosemirror-state";
-import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
 import {
   historyPlugin,
   infiniteGroupHistoryPlugin,
 } from "@hashintel/hash-shared/sharedWithBackendJs";
+import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
+import { NodeSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
-import { ReplacePortals } from "@hashintel/hash-shared/sharedWithBackend";
+import React, { createRef, forwardRef, useEffect, useState } from "react";
 import { tw } from "twind";
-import styles from "./style.module.css";
-import DragVertical from "../../components/Icons/DragVertical";
 import { BlockSuggester } from "../../components/BlockSuggester/BlockSuggester";
+import DragVertical from "../../components/Icons/DragVertical";
+import styles from "./style.module.css";
+import { ReplacePortal } from "./usePortals";
 
 /**
  * specialized block-type/-variant select field
@@ -63,7 +63,7 @@ export class BlockView implements NodeView {
     public node: ProsemirrorNode<Schema>,
     public view: EditorView,
     public getPos: () => number,
-    public replacePortal: ReplacePortals
+    public replacePortal: ReplacePortal
   ) {
     this.dom = document.createElement("div");
     this.dom.classList.add(styles.Block);

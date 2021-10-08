@@ -1,15 +1,13 @@
-import {
-  createRemoteBlockFromEntity,
-  ReplacePortals,
-} from "@hashintel/hash-shared/sharedWithBackend";
+import { EntityStore, isBlockEntity } from "@hashintel/hash-shared/entityStore";
+import { createRemoteBlockFromEntity } from "@hashintel/hash-shared/prosemirror";
 import {
   historyPlugin,
   infiniteGroupHistoryPlugin,
 } from "@hashintel/hash-shared/sharedWithBackendJs";
-import { EntityStore, isBlockEntity } from "@hashintel/hash-shared/entityStore";
 import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorView, NodeView } from "prosemirror-view";
-import { createNodeView } from "./tsUtils";
+import { createNodeViewFactory } from "./tsUtils";
+import { ReplacePortal } from "./usePortals";
 
 /**
  * You can think of this more as a "Switcher" view – when you change node type
@@ -34,7 +32,7 @@ export class AsyncView implements NodeView {
     node: ProsemirrorNode<Schema>,
     public view: EditorView,
     public getPos: () => number,
-    public replacePortal: ReplacePortals,
+    public replacePortal: ReplacePortal,
     public getEntityStore: () => EntityStore
   ) {
     this.dom = document.createElement("div");
@@ -93,7 +91,11 @@ export class AsyncView implements NodeView {
 
     createRemoteBlockFromEntity(
       view.state.schema,
-      { view, replacePortal: this.replacePortal, createNodeView },
+      {
+        view,
+        replacePortal: this.replacePortal,
+        createNodeView: createNodeViewFactory(this.replacePortal),
+      },
       entity,
       node.attrs.targetComponentId
     )

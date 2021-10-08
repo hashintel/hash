@@ -5,6 +5,7 @@ import { history, redo, undo } from "prosemirror-history";
 import { undoInputRule } from "prosemirror-inputrules";
 import { dropCursor } from "prosemirror-dropcursor";
 import { wrapEntitiesPlugin } from "./wrapEntitiesPlugin";
+import { createInitialDoc } from "./prosemirror";
 
 /**
  * We setup two versions of the history plugin, because we occasionally
@@ -17,7 +18,7 @@ import { wrapEntitiesPlugin } from "./wrapEntitiesPlugin";
 export const historyPlugin = history();
 export const infiniteGroupHistoryPlugin = history({ newGroupDelay: Infinity });
 
-const plugins = [
+const defaultPlugins = [
   historyPlugin,
   keymap({ "Mod-z": chainCommands(undo, undoInputRule), "Mod-y": redo }),
   ...wrapEntitiesPlugin(baseKeymap),
@@ -26,9 +27,10 @@ const plugins = [
 ];
 
 export const createProseMirrorState = (
-  doc,
-  replacePortal,
-  additionalPlugins
+  doc = createInitialDoc(),
+  // @todo remove this
+  replacePortal = null,
+  plugins = []
 ) => {
   const formatKeymap = keymap({
     "Mod-b": toggleMark(doc.type.schema.marks.strong),
@@ -38,6 +40,6 @@ export const createProseMirrorState = (
 
   return EditorState.create({
     doc,
-    plugins: [...plugins, formatKeymap, ...additionalPlugins],
+    plugins: [...defaultPlugins, formatKeymap, ...plugins],
   });
 };

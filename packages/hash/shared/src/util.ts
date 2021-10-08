@@ -1,5 +1,5 @@
 import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
-import { BlockEntity } from "./types";
+import { BlockEntity } from "./entity";
 
 export type EntityNode = Omit<ProsemirrorNode<Schema>, "attrs"> & {
   attrs: {

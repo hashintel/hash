@@ -1,18 +1,18 @@
-import { createProseMirrorState } from "@hashintel/hash-shared/sharedWithBackendJs";
-import { EditorView } from "prosemirror-view";
-import { Schema } from "prosemirror-model";
-import { ReplacePortals } from "@hashintel/hash-shared/sharedWithBackend";
-import { createInitialDoc, createSchema } from "@hashintel/hash-shared/schema";
 import { EntityStore } from "@hashintel/hash-shared/entityStore";
+import { createInitialDoc } from "@hashintel/hash-shared/prosemirror";
+import { createProseMirrorState } from "@hashintel/hash-shared/sharedWithBackendJs";
+import { Schema } from "prosemirror-model";
 import { Plugin } from "prosemirror-state";
+import { EditorView } from "prosemirror-view";
+import { createBlockSuggester } from "../../components/BlockSuggester";
+import { createMarksTooltip } from "../../components/MarksTooltip";
 import { AsyncView } from "./AsyncView";
 import { BlockView } from "./BlockView";
-import { collabEnabled } from "./tsUtils";
 import { EditorConnection } from "./collab/collab";
 import { Reporter } from "./collab/reporter";
-import { createMarksTooltip } from "../../components/MarksTooltip";
-import { createBlockSuggester } from "../../components/BlockSuggester";
 import styles from "./style.module.css";
+import { collabEnabled } from "./tsUtils";
+import { ReplacePortal } from "./usePortals";
 
 const createSavePlugin = () => {
   let timeout: ReturnType<typeof setTimeout> | null = null;
@@ -53,7 +53,7 @@ const createSavePlugin = () => {
 
 export const createEditorView = (
   node: HTMLElement,
-  replacePortal: ReplacePortals,
+  replacePortal: ReplacePortal,
   accountId: string,
   pageId: string,
   getEntityStore: () => EntityStore
@@ -65,7 +65,7 @@ export const createEditorView = (
   ];
 
   const state = createProseMirrorState(
-    createInitialDoc(createSchema()),
+    createInitialDoc(),
     replacePortal,
     plugins
   );

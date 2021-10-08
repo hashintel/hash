@@ -1,27 +1,27 @@
+import { useApolloClient } from "@apollo/client";
+import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
+import { BlockEntity } from "@hashintel/hash-shared/entity";
+import { createEntityStore } from "@hashintel/hash-shared/entityStore";
+import {
+  createEntityUpdateTransaction,
+  defineNewBlock,
+} from "@hashintel/hash-shared/prosemirror";
+import { updatePageMutation } from "@hashintel/hash-shared/save";
+import { Schema } from "prosemirror-model";
+import { EditorView } from "prosemirror-view";
+import "prosemirror-view/style/prosemirror.css";
 import React, {
   useLayoutEffect,
   useMemo,
   useRef,
   VoidFunctionComponent,
 } from "react";
-import { Schema } from "prosemirror-model";
-import { EditorView } from "prosemirror-view";
-import "prosemirror-view/style/prosemirror.css";
-import {
-  BlockMeta,
-  createEntityUpdateTransaction,
-  defineNewBlock,
-} from "@hashintel/hash-shared/sharedWithBackend";
-import { createEntityStore } from "@hashintel/hash-shared/entityStore";
-import { useApolloClient } from "@apollo/client";
-import { updatePageMutation } from "@hashintel/hash-shared/save";
-import { BlockEntity } from "@hashintel/hash-shared/types";
-import { createEditorView } from "./createEditorView";
-import { usePortals } from "./usePortals";
 import { BlockMetaContext } from "../blockMeta";
-import { collabEnabled, createNodeView } from "./tsUtils";
 import { EditorConnection } from "./collab/collab";
+import { createEditorView } from "./createEditorView";
 import { EntityStoreContext } from "./EntityStoreContext";
+import { collabEnabled, createNodeViewFactory } from "./tsUtils";
+import { usePortals } from "./usePortals";
 
 type PageBlockProps = {
   contents: BlockEntity[];
@@ -172,7 +172,11 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
         view.state.schema,
         meta.componentMetadata,
         meta.componentSchema,
-        { view, replacePortal, createNodeView },
+        {
+          view,
+          replacePortal,
+          createNodeView: createNodeViewFactory(replacePortal),
+        },
         componentId
       );
     }
@@ -207,7 +211,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
         const tr = await createEntityUpdateTransaction(state, updatedContents, {
           view,
           replacePortal,
-          createNodeView,
+          createNodeView: createNodeViewFactory(replacePortal),
         });
 
         if (signal?.aborted) {

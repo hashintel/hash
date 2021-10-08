@@ -1,9 +1,8 @@
 import { Mapping, Step, Transform } from "prosemirror-transform";
-import { createInitialDoc, createSchema } from "@hashintel/hash-shared/schema";
 import {
   createEntityUpdateTransaction,
   getProseMirrorNodeAttributes,
-} from "@hashintel/hash-shared/sharedWithBackend";
+} from "@hashintel/hash-shared/prosemirror";
 import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
 import { createProseMirrorState } from "@hashintel/hash-shared/sharedWithBackendJs";
 import { updatePageMutation } from "@hashintel/hash-shared/save";
@@ -220,11 +219,7 @@ const newInstance = (apolloClient) => async (accountId, id) => {
     variables: { entityId: id, accountId },
   });
 
-  const state = createProseMirrorState(
-    createInitialDoc(createSchema()),
-    null,
-    []
-  );
+  const state = createProseMirrorState();
 
   const newState = state.apply(
     await createEntityUpdateTransaction(

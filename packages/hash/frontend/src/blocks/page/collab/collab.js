@@ -6,10 +6,10 @@ import {
   sendableSteps,
 } from "prosemirror-collab";
 import { createProseMirrorState } from "@hashintel/hash-shared/sharedWithBackendJs";
-import { ensureDocBlocksLoaded } from "@hashintel/hash-shared/sharedWithBackend";
+import { ensureDocBlocksLoaded } from "@hashintel/hash-shared/prosemirror";
 
 import { GET, POST } from "./http";
-import { createNodeView } from "../tsUtils";
+import { createNodeViewFactory } from "../tsUtils";
 
 const badVersion = (err) => err.status === 400 && /invalid version/i.test(err);
 
@@ -38,6 +38,7 @@ export class EditorConnection {
     this.start();
     this.schema = schema;
     this.replacePortal = replacePortal;
+    // @todo rename this
     this.additionalPlugins = additionalPlugins;
   }
 
@@ -48,7 +49,8 @@ export class EditorConnection {
       case "loaded":
         this.state = new State(
           createProseMirrorState(action.doc, this.replacePortal, [
-            ...this.additionalPlugins, // @todo set this version properly
+            ...this.additionalPlugins,
+            // @todo set this version properly
             collab({ version: action.version }),
           ]),
           "poll"
@@ -120,7 +122,7 @@ export class EditorConnection {
         return ensureDocBlocksLoaded(this.schema, data.doc, {
           view: this.view,
           replacePortal: this.replacePortal,
-          createNodeView,
+          createNodeView: createNodeViewFactory(this.replacePortal),
         }).then(() => data);
       })
       .then((data) => {
