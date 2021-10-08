@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { v4 as uuid } from "uuid";
 import { tw } from "twind";
 import { BlockComponent } from "@hashintel/block-protocol/react";
@@ -52,7 +52,7 @@ export const Video: BlockComponent<AppProps> = (props) => {
     errorString: null,
   });
 
-  const isMounted = useRef(true);
+  const isMounted = useRef(false);
 
   const [inputText, setInputText] = useState("");
   const [captionText, setCaptionText] = useState(initialCaption ?? "");
@@ -93,6 +93,36 @@ export const Video: BlockComponent<AppProps> = (props) => {
     }
   }
 
+  const updateStateObject = useCallback(
+    (properties: Partial<typeof stateObject>) => {
+      setStateObject((prevStateObject) => ({
+        ...prevStateObject,
+        ...properties,
+      }));
+    },
+    []
+  );
+
+  const handleVideoUpload = useCallback(
+    (imageProp: { url: string } | { file: FileList[number] }) => {
+      updateStateObject({ loading: true });
+      uploadFile({ ...imageProp, mime: VIDEO_MIME_TYPE })
+        .then(({ src }: { src?: string }) => {
+          if (isMounted.current) {
+            updateStateObject({ loading: false });
+            updateData(src);
+          }
+        })
+        .catch((error: Error) =>
+          updateStateObject({
+            errorString: error.message,
+            loading: false,
+          })
+        );
+    },
+    [updateData, updateStateObject, uploadFile]
+  );
+
   const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     const { loading } = stateObject;
 
@@ -103,22 +133,7 @@ export const Video: BlockComponent<AppProps> = (props) => {
     }
 
     if (inputText?.trim()) {
-      setStateObject((stateObject) => ({ ...stateObject, loading: true }));
-
-      void uploadFile({ url: inputText, mime: VIDEO_MIME_TYPE })
-        .then(({ src }) => {
-          if (isMounted.current) {
-            setStateObject((stateObject) => ({
-              ...stateObject,
-              loading: false,
-            }));
-
-            updateData(src);
-          }
-        })
-        .catch((error) => {
-          return displayError(error);
-        });
+      handleVideoUpload({ url: inputText });
     } else {
       displayError("Please enter a valid video URL or select a file below");
     }
@@ -128,15 +143,7 @@ export const Video: BlockComponent<AppProps> = (props) => {
     const { files } = event.target;
 
     if (files?.[0]) {
-      void uploadFile({ file: files[0], mime: VIDEO_MIME_TYPE })
-        .then(({ src }) => {
-          if (isMounted.current) {
-            updateData(src);
-          }
-        })
-        .catch((error) => {
-          return displayError(error);
-        });
+      handleVideoUpload({ file: files[0] });
     }
   };
 
@@ -156,7 +163,7 @@ export const Video: BlockComponent<AppProps> = (props) => {
   if (stateObject.src?.trim()) {
     return (
       <div className={tw`flex justify-center text-center w-full`}>
-        <div className={tw`flex flex-col`}>
+        <div className={tw`max-w-full`}>
           <video
             controls
             style={{
@@ -172,20 +179,15 @@ export const Video: BlockComponent<AppProps> = (props) => {
             value={captionText}
             onChange={(event) => setCaptionText(event.target.value)}
             onBlur={() => {
-              if (update) {
-                updateData(stateObject.src);
-              }
+              updateData(stateObject.src);
             }}
           />
         </div>
         <button
-          // Tailwind doesn't have this as a class
-          // https://github.com/tailwindlabs/tailwindcss/issues/1042#issuecomment-781271382
-          style={{ height: "max-content" }}
           onClick={() => {
             resetComponent();
           }}
-          className={tw`ml-2 bg-gray-100 p-1.5 border-1 border-gray-300 rounded-sm`}
+          className={tw`ml-2 bg-gray-100 p-1.5 border-1 border-gray-300 rounded-sm self-start`}
         >
           <Pencil />
         </button>
@@ -237,15 +239,7 @@ export const Video: BlockComponent<AppProps> = (props) => {
             // we set our input's 'files' property
 
             if (files[0].type.search("video") > -1) {
-              void uploadFile({ file: files[0], mime: VIDEO_MIME_TYPE })
-                .then(({ src }) => {
-                  if (isMounted.current) {
-                    updateData(src);
-                  }
-                })
-                .catch((error) => {
-                  return displayError(error);
-                });
+              handleVideoUpload({ file: files[0] });
             }
           }
         }}
