@@ -1,4 +1,4 @@
-import uniq from "lodash.uniq";
+import { uniq } from "lodash";
 
 import { Connection } from "./types";
 import { getEntityHistory } from "./entity";

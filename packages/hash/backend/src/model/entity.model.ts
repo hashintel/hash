@@ -1,5 +1,5 @@
 import { JSONObject } from "@hashintel/block-protocol";
-import merge from "lodash.merge";
+import { merge } from "lodash";
 import { Entity, EntityType, EntityWithIncompleteEntityType } from ".";
 import { DBClient } from "../db";
 import {
