@@ -1,5 +1,8 @@
 import { NextPage } from "next";
 import { tw } from "twind";
+import { useRouter } from "next/router";
+import { useMutation, useQuery } from "@apollo/client";
+import { useEffect, useMemo, useState } from "react";
 import { useUser } from "../components/hooks/useUser";
 
 import { AuthLayout } from "../components/layout/PageLayout/AuthLayout";
@@ -7,8 +10,6 @@ import { AuthLayout } from "../components/layout/PageLayout/AuthLayout";
 import Logo from "../assets/svg/logo.svg";
 import { IconSpinner } from "../components/Icons/IconSpinner";
 import { SelectInput } from "../components/forms/SelectInput";
-import { useRouter } from "next/router";
-import { useMutation, useQuery } from "@apollo/client";
 import {
   GetOrgEmailInvitationQuery,
   GetOrgEmailInvitationQueryVariables,
@@ -22,7 +23,6 @@ import {
   getOrgEmailInvitation,
   getOrgInvitationLink,
 } from "../graphql/queries/org.queries";
-import { useEffect, useMemo, useState } from "react";
 import {
   INVITE_ERROR_CODES,
   isParsedInviteQuery,
@@ -54,7 +54,7 @@ const InvitePage: NextPage = () => {
   >();
 
   useEffect(() => {
-    if (typeof window == "undefined" || !router.isReady) {
+    if (typeof window === "undefined" || !router.isReady) {
       return;
     }
 
@@ -62,7 +62,7 @@ const InvitePage: NextPage = () => {
      * Redirect to home page if necessary query params aren't available
      */
     if (!isParsedInviteQuery(router.query)) {
-      router.push("/");
+      void router.push("/");
       return;
     }
 
@@ -70,7 +70,7 @@ const InvitePage: NextPage = () => {
      *  handle redirects when user isn't authenticated
      * */
     if (!user && !fetchingUser) {
-      router.push({
+      void router.push({
         pathname: isExistingUser ? "/login" : "/signup",
         query: router.query,
       });
@@ -78,11 +78,11 @@ const InvitePage: NextPage = () => {
   }, [router, user, fetchingUser]);
 
   const navigateToHome = () => {
-    router.push("/");
+    void router.push("/");
   };
 
   // @todo merge both into a hook
-  const { loading: getOrgEmailInvitationLoading, error } = useQuery<
+  const { loading: getOrgEmailInvitationLoading } = useQuery<
     GetOrgEmailInvitationQuery,
     GetOrgEmailInvitationQueryVariables
   >(getOrgEmailInvitation, {
@@ -91,10 +91,12 @@ const InvitePage: NextPage = () => {
       invitationEmailToken: invitationEmailToken as string,
     },
     skip: !orgEntityId || !invitationEmailToken || !user,
-    onCompleted: ({ getOrgEmailInvitation }) => {
-      const orgName = getOrgEmailInvitation.properties.org.data.properties.name;
+    onCompleted: (res) => {
+      const orgName =
+        res.getOrgEmailInvitation.properties.org.data.properties.name;
       const inviter =
-        getOrgEmailInvitation.properties.inviter.data.properties.preferredName;
+        res.getOrgEmailInvitation.properties.inviter.data.properties
+          .preferredName;
       if (orgName && inviter) {
         setInvitationInfo({
           inviter,
@@ -104,10 +106,10 @@ const InvitePage: NextPage = () => {
       }
     },
     onError: ({ graphQLErrors }) => {
-      graphQLErrors.forEach(({ extensions, message }) => {
-        const { code } = extensions as {
-          code?: keyof typeof INVITE_ERROR_CODES;
-        };
+      graphQLErrors.forEach(({ message }) => {
+        // const { code } = extensions as {
+        //   code?: keyof typeof INVITE_ERROR_CODES;
+        // };
         setErrorMessage(message);
       });
     },
@@ -122,8 +124,9 @@ const InvitePage: NextPage = () => {
       invitationLinkToken: invitationLinkToken as string,
     },
     skip: !orgEntityId || !invitationLinkToken || !user,
-    onCompleted: ({ getOrgInvitationLink }) => {
-      const orgName = getOrgInvitationLink.properties.org.data.properties.name;
+    onCompleted: (res) => {
+      const orgName =
+        res.getOrgInvitationLink.properties.org.data.properties.name;
       if (orgName) {
         setInvitationInfo({
           orgName,
@@ -132,11 +135,10 @@ const InvitePage: NextPage = () => {
       }
     },
     onError: ({ graphQLErrors }) => {
-      graphQLErrors.forEach(({ extensions, message }) => {
-        const { code } = extensions as {
-          code?: keyof typeof INVITE_ERROR_CODES;
-        };
-        console.log(code);
+      graphQLErrors.forEach(({ message }) => {
+        // const { code } = extensions as {
+        //   code?: keyof typeof INVITE_ERROR_CODES;
+        // };
         setErrorMessage(message);
       });
     },
@@ -146,7 +148,7 @@ const InvitePage: NextPage = () => {
     JoinOrgMutation,
     JoinOrgMutationVariables
   >(joinOrgMutation, {
-    onCompleted: ({ joinOrg }) => {
+    onCompleted: (_) => {
       navigateToHome();
     },
     onError: ({ graphQLErrors }) => {
@@ -166,7 +168,7 @@ const InvitePage: NextPage = () => {
   const handleSubmit = (evt: React.FormEvent) => {
     evt.preventDefault();
     setErrorMessage("");
-    joinOrg({
+    void joinOrg({
       variables: {
         orgEntityId: orgEntityId as string,
         verification: {
@@ -223,6 +225,7 @@ const InvitePage: NextPage = () => {
             </div>
 
             <button
+              type="submit"
               className={tw`group w-64 bg-gradient-to-r from-blue-400 via-blue-500 to-pink-500 focus:outline-none rounded-lg h-11 transition-all disabled:opacity-50 flex items-center justify-center text-white text-sm font-bold`}
               disabled={joinOrgLoading}
             >

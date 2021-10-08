@@ -1,7 +1,6 @@
 import { uniqueId } from "lodash";
 import React, { forwardRef, ChangeEvent, useCallback, useState } from "react";
 import { tw } from "twind";
-import { InputLabelWrapper } from "./InputLabelWrapper";
 
 type SelectInputProps = {
   label?: string;
@@ -16,14 +15,14 @@ export const SelectInput = forwardRef<HTMLSelectElement, SelectInputProps>(
     { label, onChange, onChangeValue, id, options, labelClass, ...props },
     ref
   ) => {
-    const [inputId, setInputId] = useState(() => id ?? uniqueId());
+    const [inputId, _] = useState(() => id ?? uniqueId());
 
     const _onChange = useCallback(
-      (e: ChangeEvent<HTMLSelectElement>) => {
+      (evt: ChangeEvent<HTMLSelectElement>) => {
         if (onChangeValue) {
-          onChangeValue(e.target.value);
+          onChangeValue(evt.target.value);
         } else {
-          onChange?.(e);
+          onChange?.(evt);
         }
       },
       [onChange, onChangeValue]
@@ -44,9 +43,12 @@ export const SelectInput = forwardRef<HTMLSelectElement, SelectInputProps>(
           className={tw`border(1 gray-300 hover:gray-400 focus:gray-500) bg-transparent focus:outline-none rounded-lg h-11 px-5 mb-2 w-full`}
           onChange={_onChange}
           ref={ref}
+          {...props}
         >
-          {options.map(({ label, value }) => (
-            <option key={value} value={value}>{label}</option>
+          {options.map(({ label: optionLabel, value }) => (
+            <option key={value} value={value}>
+              {optionLabel}
+            </option>
           ))}
         </select>
       </div>

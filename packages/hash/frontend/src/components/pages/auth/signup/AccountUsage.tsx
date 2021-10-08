@@ -47,9 +47,10 @@ export const AccountUsage: VFC<AccountUsageProps> = ({
           <button
             key={value}
             className={tw`w-52 group relative focus:outline-none ${
-              index == 0 ? "mr-8" : ""
+              index === 0 ? "mr-8" : ""
             }`}
             onClick={() => setActiveOption(value)}
+            type="button"
           >
             <div
               className={tw`flex flex(1 col) items-center bg-white border(1 gray-200) rounded-xl relative z-10 pt-8 pb-14 px-5 `}
@@ -61,16 +62,17 @@ export const AccountUsage: VFC<AccountUsageProps> = ({
 
             <div
               className={tw`transition-opacity opacity-0 ${
-                activeOption == value
+                activeOption === value
                   ? "opacity-50"
                   : "group-focus:opacity-20 group-hover:opacity-10"
               } absolute -inset-0.5 bg-gradient-to-b from-blue-400 to-pink-500 filter blur`}
-            ></div>
+            />
           </button>
         ))}
       </div>
       {/* @todo use Button component */}
       <button
+        type="submit"
         className={tw`group w-64 bg-gradient-to-r from-blue-400 via-blue-500 to-pink-500 rounded-lg h-11 transition-all disabled:opacity-50 flex items-center justify-center text-white text-sm font-bold mx-auto`}
         onClick={onSubmit}
         disabled={!activeOption || loading}
@@ -87,7 +89,7 @@ export const AccountUsage: VFC<AccountUsageProps> = ({
         )}
       </button>
       {/* todo: style this properly */}
-      {<p>{errorMessage}</p>}
+      <p>{errorMessage}</p>
     </div>
   );
 };

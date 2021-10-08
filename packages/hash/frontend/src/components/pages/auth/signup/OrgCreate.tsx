@@ -92,7 +92,7 @@ export const OrgCreate: VFC<OrgCreateProps> = ({ createOrg, loading }) => {
     if (!nameWatcher) return;
     const initials = nameWatcher.trim().split(" ");
     if (!initials.length) return "";
-    if (initials.length == 1) return initials[0][0];
+    if (initials.length === 1) return initials[0][0];
     if (initials.length > 1) return initials[0][0] + initials[1][0];
   };
 
@@ -113,7 +113,7 @@ export const OrgCreate: VFC<OrgCreateProps> = ({ createOrg, loading }) => {
         {FORM_INPUTS.map((field) => {
           return (
             <React.Fragment key={field.name}>
-              {field.inputType == "selectInput" ? (
+              {field.inputType === "selectInput" ? (
                 <SelectInput
                   label={field.label}
                   options={field.options as { label: string; value: string }[]}
@@ -129,7 +129,7 @@ export const OrgCreate: VFC<OrgCreateProps> = ({ createOrg, loading }) => {
               <span className={tw`text-red-500 text-sm`}>
                 {errors?.[field.name]?.message}
               </span>
-              <div className={tw`mb-6`}></div>
+              <div className={tw`mb-6`} />
             </React.Fragment>
           );
         })}
@@ -137,6 +137,7 @@ export const OrgCreate: VFC<OrgCreateProps> = ({ createOrg, loading }) => {
           className={tw`group w-64 bg-gradient-to-r from-blue-400 via-blue-500 to-pink-500 rounded-lg h-11 transition-all disabled:opacity-50 flex items-center justify-center text-white text-sm font-bold mx-auto`}
           onClick={onSubmit}
           disabled={loading}
+          type="submit"
         >
           {loading ? (
             <IconSpinner className={tw`h-4 w-4 text-white animate-spin`} />

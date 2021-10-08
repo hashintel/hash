@@ -38,15 +38,15 @@ type ParsedInviteQuery = {
   invitationLinkToken?: string;
   invitationEmailToken?: string;
   orgEntityId: string;
-  isExistingUser?: string
+  isExistingUser?: string;
 };
 
 export const isParsedInviteQuery = (
   query: ParsedUrlQueryInput
 ): query is ParsedInviteQuery =>
-  typeof query.orgEntityId == "string" &&
-  (typeof query.invitationLinkToken == "string" ||
-    typeof query.invitationEmailToken == "string");
+  typeof query.orgEntityId === "string" &&
+  (typeof query.invitationLinkToken === "string" ||
+    typeof query.invitationEmailToken === "string");
 
 export type Action<S, T = undefined> = T extends undefined
   ? { type: S }

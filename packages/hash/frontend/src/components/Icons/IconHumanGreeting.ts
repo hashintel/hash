@@ -1,3 +1,3 @@
-import IconHumanGreeting from "../../assets/svg/human-greeting.svg"
+import IconHumanGreeting from "../../assets/svg/human-greeting.svg";
 
-export { IconHumanGreeting }
+export { IconHumanGreeting };

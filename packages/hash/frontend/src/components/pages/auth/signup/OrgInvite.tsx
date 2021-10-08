@@ -1,5 +1,5 @@
 import { useMutation } from "@apollo/client";
-import React, { VFC, useState } from "react";
+import React, { VFC, useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { tw } from "twind";
 import {
@@ -10,15 +10,16 @@ import { createOrgEmailInvitation as createOrgEmailInvitationMutation } from "..
 import { IconSpinner } from "../../../Icons/IconSpinner";
 
 type OrgInviteProps = {
-  invitationLink?: string;
-  orgEntityId: string | null;
   navigateToHome: () => void;
+  createOrgInfo?: {
+    invitationLinkToken: string;
+    orgEntityId: string;
+  };
 };
 
 export const OrgInvite: VFC<OrgInviteProps> = ({
-  invitationLink,
   navigateToHome,
-  orgEntityId,
+  createOrgInfo,
 }) => {
   const [copied, setCopied] = useState(false);
   const [showSuccessMsg, setShowSuccessMsg] = useState(false);
@@ -33,7 +34,7 @@ export const OrgInvite: VFC<OrgInviteProps> = ({
     mode: "onChange",
   });
 
-  const [createOrgEmailInvitation, { loading }] = useMutation<
+  const [sendEmailInvitation, { loading }] = useMutation<
     CreateOrgEmailInvitationMutation,
     CreateOrgEmailInvitationMutationVariables
   >(createOrgEmailInvitationMutation, {
@@ -51,15 +52,26 @@ export const OrgInvite: VFC<OrgInviteProps> = ({
   });
 
   const onSubmit = handleSubmit(async ({ inviteeEmail }) => {
-    if (!orgEntityId) return;
+    if (!createOrgInfo?.orgEntityId) return;
 
-    createOrgEmailInvitation({
+    void sendEmailInvitation({
       variables: {
-        orgEntityId,
+        orgEntityId: createOrgInfo.orgEntityId,
         inviteeEmailAddress: inviteeEmail,
       },
     });
   });
+
+  const invitationLink = useMemo(() => {
+    if (!createOrgInfo) return "-";
+
+    const inviteQueryParams = new URLSearchParams({
+      orgEntityId: createOrgInfo.orgEntityId,
+      invitationLinkToken: createOrgInfo.invitationLinkToken,
+    });
+
+    return `${window.location.origin}/invite?${inviteQueryParams}`;
+  }, [createOrgInfo]);
 
   const handleCopyBtnClick = async () => {
     if (!invitationLink) return;
@@ -88,6 +100,7 @@ export const OrgInvite: VFC<OrgInviteProps> = ({
               {invitationLink}
             </span>
             <button
+              type="button"
               className={tw`absolute right-0 top-0 bottom-0 w-24 flex justify-center items-center text-white rounded-r-lg  ${
                 copied ? "bg(green-500)" : "bg(blue-500 hover:blue-700)"
               } `}
@@ -101,8 +114,8 @@ export const OrgInvite: VFC<OrgInviteProps> = ({
 
         <div className={tw`mb-12`}>
           <label
-            id="inviteeEmail"
             className={tw`mb-2 uppercase text-sm font-semibold`}
+            htmlFor="inviteeEmail"
           >
             Invite via email
           </label>
@@ -116,7 +129,7 @@ export const OrgInvite: VFC<OrgInviteProps> = ({
             {...register("inviteeEmail", {
               required: true,
             })}
-          ></textarea>
+          />
           {errors.inviteeEmail && (
             <p className={tw`text-red-500 text-sm mt-5 `}>
               {errors.inviteeEmail}
@@ -145,6 +158,7 @@ export const OrgInvite: VFC<OrgInviteProps> = ({
 
         <div className={tw`flex flex-col`}>
           <button
+            type="submit"
             className={tw`group w-64 bg-gradient-to-r from-blue-400 via-blue-500 to-pink-500 rounded-lg h-11 transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center text-white text-sm font-bold mx-auto mb-4`}
             disabled={loading || !isValid}
             onClick={onSubmit}
@@ -164,6 +178,7 @@ export const OrgInvite: VFC<OrgInviteProps> = ({
           </button>
 
           <button
+            type="button"
             onClick={navigateToHome}
             className={tw`mx-auto text-blue-500 underline`}
           >

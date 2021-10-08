@@ -12,7 +12,7 @@ import { MeQuery } from "../../graphql/apiTypes.gen";
  * loading: a boolean to check if the api call is still loading
  */
 export const useUser = (options?: Omit<QueryHookOptions, "errorPolicy">) => {
-  const { data, refetch, loading, client } = useQuery<MeQuery>(meQuery, {
+  const { data, refetch, loading } = useQuery<MeQuery>(meQuery, {
     ...options,
     errorPolicy: "all",
   });

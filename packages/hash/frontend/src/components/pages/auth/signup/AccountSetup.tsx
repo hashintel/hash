@@ -71,7 +71,7 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
       "Thanks for confirming your account",
       "Now it's time to choose a username...",
     ];
-  }, [invitationInfo]);
+  }, [invitationInfo, email]);
 
   return (
     <div className={tw`w-9/12 max-w-3xl`}>
@@ -187,7 +187,7 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
             <div className={tw`mt-8`}>
               <SelectInput
                 label={`Your Role at ${invitationInfo.orgName}`}
-                labelClass={`font-bold text-base mb-4`}
+                labelClass="font-bold text-base mb-4"
                 id="responsibility"
                 options={ORG_ROLES}
                 onChangeValue={setResponsibility}
@@ -200,6 +200,7 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
           )}
 
           <button
+            type="submit"
             className={tw`group w-64 bg-gradient-to-r from-blue-400 via-blue-500 to-pink-500 rounded-lg h-11 transition-all disabled:opacity-50 flex items-center justify-center text-white text-sm font-bold mt-14`}
             disabled={!preferredName || !isShortnameValid || loading}
           >

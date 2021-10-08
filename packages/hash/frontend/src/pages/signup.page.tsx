@@ -1,17 +1,16 @@
 import React, { useEffect, useRef, useReducer } from "react";
 import { NextPage } from "next";
 import { useRouter } from "next/router";
-import { tw } from "twind";
+import { useMutation, useQuery } from "@apollo/client";
 import { useUser } from "../components/hooks/useUser";
 
-import { SignupIntro } from "../components/pages/auth/signup/SignupIntro";
-import { VerifyCode } from "../components/pages/auth/VerifyCode";
-import { AccountSetup } from "../components/pages/auth/signup/AccountSetup";
-import { AccountUsage } from "../components/pages/auth/signup/AccountUsage";
-import { OrgCreate } from "../components/pages/auth/signup/OrgCreate";
-import { OrgInvite } from "../components/pages/auth/signup/OrgInvite";
+import { SignupIntro as SignupIntroScreen } from "../components/pages/auth/signup/SignupIntro";
+import { VerifyCode as VerifyCodeScreen } from "../components/pages/auth/VerifyCode";
+import { AccountSetup as AccountSetupScreen } from "../components/pages/auth/signup/AccountSetup";
+import { AccountUsage as AccountUsageScreen } from "../components/pages/auth/signup/AccountUsage";
+import { OrgCreate as OrgCreateScreen } from "../components/pages/auth/signup/OrgCreate";
+import { OrgInvite as OrgInviteScreen } from "../components/pages/auth/signup/OrgInvite";
 
-import { useMutation, useQuery } from "@apollo/client";
 import {
   CreateOrgMutation,
   CreateOrgMutationVariables,
@@ -72,8 +71,6 @@ type State = {
   errorMessage: string;
   userEntityId: string | null;
   syntheticLoading: boolean;
-  orgEntityId: string | null;
-  invitationLink?: string;
   invitationInfo: {
     orgName: string;
     orgEntityId: string;
@@ -81,26 +78,28 @@ type State = {
     invitationEmailToken?: string;
     invitationLinkToken?: string;
   } | null;
-  signupMode: "normal" | "invite";
+  createOrgInfo?: {
+    invitationLinkToken: string;
+    orgEntityId: string;
+  };
 };
 
 type Actions =
   | Action<"CREATE_USER_SUCCESS", Pick<State, "verificationCodeMetadata">>
   | Action<"VERIFY_EMAIL_SUCCESS", Pick<State, "userEntityId">>
   | Action<"SET_ERROR", string>
-  | Action<"UPDATE_STATE", Partial<State>>;
+  | Action<"UPDATE_STATE", Partial<State>>
+  | Action<"CREATE_ORG_SUCCESS", Pick<State, "createOrgInfo">>;
 
 const initialState: State = {
-  activeScreen: Screen.VerifyCode,
+  activeScreen: Screen.Intro,
   email: "",
   verificationCodeMetadata: undefined,
   verificationCode: "",
   errorMessage: "",
   userEntityId: null,
   syntheticLoading: false,
-  orgEntityId: null,
   invitationInfo: null,
-  signupMode: "normal",
 };
 
 function reducer(state: State, action: Actions): State {
@@ -126,6 +125,13 @@ function reducer(state: State, action: Actions): State {
         syntheticLoading: false,
         errorMessage: action.payload,
       };
+    case "CREATE_ORG_SUCCESS":
+      return {
+        ...state,
+        ...action.payload,
+        activeScreen: Screen.OrgInvite,
+        errorMessage: "",
+      };
     case "UPDATE_STATE":
       return {
         ...state,
@@ -137,13 +143,13 @@ function reducer(state: State, action: Actions): State {
 }
 
 /**
- * LEFT TODO
+ * @todo
  * Error states for entire flow
  * hook to handle invitationLink and emailInvitationLink
  */
 
 const SignupPage: NextPage = () => {
-  const { user, refetch } = useUser();
+  const { user, refetch: refetchUser } = useUser();
   const router = useRouter();
   const [
     {
@@ -154,10 +160,8 @@ const SignupPage: NextPage = () => {
       errorMessage,
       userEntityId,
       syntheticLoading,
-      orgEntityId,
-      invitationLink,
       invitationInfo,
-      signupMode,
+      createOrgInfo,
     },
     dispatch,
   ] = useReducer<React.Reducer<State, Actions>>(reducer, initialState);
@@ -174,7 +178,7 @@ const SignupPage: NextPage = () => {
     CreateUserMutation,
     CreateUserMutationVariables
   >(createUserMutation, {
-    onCompleted: ({ createUser }) => {
+    onCompleted: (res) => {
       dispatch({
         type: "CREATE_USER_SUCCESS",
         payload: { verificationCodeMetadata: res.createUser },
@@ -211,7 +215,6 @@ const SignupPage: NextPage = () => {
         type: "UPDATE_STATE",
         payload: {
           activeScreen: Screen.AccountSetup,
-          signupMode: "normal",
           email: createdEmail?.address,
         },
       });
@@ -243,12 +246,12 @@ const SignupPage: NextPage = () => {
     UpdateUserMutation,
     UpdateUserMutationVariables
   >(updateUserMutation, {
-    onCompleted: async ({ updateUser }) => {
+    onCompleted: async (res) => {
       // for normal flow, accountUsageType is null. Direct user to accountUsage setup
       // @todo update user cache with updateUser data instead of refetching here
-      await refetch();
+      await refetchUser();
 
-      if (updateUser.accountSignupComplete) {
+      if (res.updateUser.accountSignupComplete) {
         if (!accountUsageType.current) {
           updateState({
             activeScreen: Screen.AccountUsage,
@@ -257,7 +260,7 @@ const SignupPage: NextPage = () => {
           return;
         }
 
-        if (accountUsageType.current == WayToUseHash.WithATeam) {
+        if (accountUsageType.current === WayToUseHash.WithATeam) {
           updateState({
             activeScreen: Screen.OrgCreate,
             errorMessage: "",
@@ -265,7 +268,7 @@ const SignupPage: NextPage = () => {
           return;
         }
 
-        void router.push(`/${updateUser.accountId}`);
+        void router.push(`/${res.updateUser.accountId}`);
       }
     },
     onError: ({ graphQLErrors }) => {
@@ -282,18 +285,20 @@ const SignupPage: NextPage = () => {
     CreateOrgMutation,
     CreateOrgMutationVariables
   >(createOrgMutation, {
-    onCompleted: ({ createOrg }) => {
+    onCompleted: (res) => {
       const accessToken =
-        createOrg.properties.invitationLink?.data.properties.accessToken;
-      const inviteQueryParams = new URLSearchParams({
-        orgEntityId: createOrg.entityId,
-        ...(accessToken ? { invitationLinkToken: accessToken } : {}),
-      });
-      updateState({
-        orgEntityId: createOrg.accountId,
-        invitationLink: `${window.location.origin}/invite?${inviteQueryParams}`,
-        activeScreen: Screen.OrgInvite,
-      });
+        res.createOrg.properties.invitationLink?.data.properties.accessToken;
+      if (accessToken && res.createOrg.accountId) {
+        dispatch({
+          type: "CREATE_ORG_SUCCESS",
+          payload: {
+            createOrgInfo: {
+              orgEntityId: res.createOrg.accountId,
+              invitationLinkToken: accessToken,
+            },
+          },
+        });
+      }
     },
     onError: ({ graphQLErrors }) => {
       graphQLErrors.forEach(({ message }) => {
@@ -310,9 +315,9 @@ const SignupPage: NextPage = () => {
    */
 
   const { loading: getOrgEmailInvitationLoading } = useQuery<
-  GetOrgEmailInvitationQuery,
-  GetOrgEmailInvitationQueryVariables
->(getOrgEmailInvitation, {
+    GetOrgEmailInvitationQuery,
+    GetOrgEmailInvitationQueryVariables
+  >(getOrgEmailInvitation, {
     variables: {
       orgEntityId: router.query.orgEntityId as string,
       invitationEmailToken: router.query.invitationEmailToken as string,
@@ -320,22 +325,27 @@ const SignupPage: NextPage = () => {
     skip: !(
       isParsedInviteQuery(router.query) && !!router.query.invitationEmailToken
     ),
-    onCompleted: ({ getOrgEmailInvitation }) => {
-      const { invitationEmailToken, orgEntityId } = router.query;
-
+    onCompleted: (res) => {
       dispatch({
         type: "UPDATE_STATE",
         payload: {
-          orgEntityId: orgEntityId as string,
           invitationInfo: {
-            orgEntityId: orgEntityId as string,
+            orgEntityId: router.query.orgEntityId as string,
             orgName:
-              getOrgEmailInvitation.properties.org.data.properties.name || "",
+              res.getOrgEmailInvitation.properties.org.data.properties.name ||
+              "",
             inviter:
-              getOrgEmailInvitation.properties.inviter.data.properties
+              res.getOrgEmailInvitation.properties.inviter.data.properties
                 .preferredName || "",
-            invitationEmailToken: invitationEmailToken as string,
+            invitationEmailToken: router.query.invitationEmailToken as string,
           },
+        },
+      });
+
+      void createUserWithOrgEmailInvite({
+        variables: {
+          invitationEmailToken: router.query.invitationEmailToken as string,
+          orgEntityId: router.query.orgEntityId as string,
         },
       });
     },
@@ -347,13 +357,14 @@ const SignupPage: NextPage = () => {
   >(getOrgInvitationLink, {
     variables: {
       orgEntityId: router.query.orgEntityId as string,
-      invitationLinkToken: router.query.invitationEmailToken as string,
+      invitationLinkToken: router.query.invitationLinkToken as string,
     },
     skip: !(
       isParsedInviteQuery(router.query) && !!router.query.invitationLinkToken
     ),
-    onCompleted: ({ getOrgInvitationLink }) => {
-      const orgName = getOrgInvitationLink.properties.org.data.properties.name;
+    onCompleted: (res) => {
+      const orgName =
+        res.getOrgInvitationLink.properties.org.data.properties.name;
 
       if (orgName) {
         dispatch({
@@ -362,7 +373,8 @@ const SignupPage: NextPage = () => {
             invitationInfo: {
               orgEntityId: router.query.orgEntityId as string,
               orgName:
-                getOrgInvitationLink.properties.org.data.properties.name || "",
+                res.getOrgInvitationLink.properties.org.data.properties.name ||
+                "",
               invitationLinkToken: router.query.invitationLinkToken as string,
             },
           },
@@ -375,9 +387,9 @@ const SignupPage: NextPage = () => {
     JoinOrgMutation,
     JoinOrgMutationVariables
   >(joinOrgMutation, {
-    onCompleted: ({ joinOrg }) => {
+    onCompleted: (_) => {
       // redirect to home page
-      router.push("/");
+      void router.push("/");
     },
     onError: ({ graphQLErrors }) => {
       graphQLErrors.forEach(({ message }) => {
@@ -404,34 +416,21 @@ const SignupPage: NextPage = () => {
     const { pathname, query } = router;
     // handles when user clicks on the verification link sent to their email
     if (pathname === "/signup" && isParsedAuthQuery(query) && router.isReady) {
-      const { verificationId, verificationCode } = query;
-      updateState({ activeScreen: Screen.VerifyCode, verificationCode });
+      updateState({
+        activeScreen: Screen.VerifyCode,
+        verificationCode: query.verificationCode,
+      });
       void verifyEmail({
         variables: {
           verificationId: query.verificationId,
           verificationCode: query.verificationCode,
         },
       });
-      return;
     }
+  }, [router, verifyEmail]);
 
-    // handles when user either opens an inviteLink or emailInviteLink
-    if (
-      pathname === "/signup" &&
-      isParsedInviteQuery(query) &&
-      router.isReady
-    ) {
-      createUserWithOrgEmailInvite({
-        variables: {
-          invitationEmailToken: query.invitationEmailToken as string,
-          orgEntityId: query.orgEntityId as string,
-        },
-      });
-    }
-  }, [router, verifyEmail, createUserWithOrgEmailInvite]);
-
-  const requestVerificationCode = (email: string) => {
-    updateState({ email });
+  const requestVerificationCode = (providedEmail: string) => {
+    updateState({ email: providedEmail });
     void createUser({
       variables: { email: providedEmail },
     });
@@ -475,7 +474,7 @@ const SignupPage: NextPage = () => {
     usingHow?: WayToUseHash;
   }) => {
     if (!userEntityId) return;
-    let properties = {} as UpdateUserProperties;
+    const properties = {} as UpdateUserProperties;
 
     if (shortname) {
       properties.shortname = shortname;
@@ -520,17 +519,17 @@ const SignupPage: NextPage = () => {
       ...(responsibility && { usingHow: WayToUseHash.WithATeam }),
     });
 
-    // join organization once update user details has been completed
-    if (responsibility) {
-      joinOrg({
+    /** join organization once update user details has been completed  */
+    if (responsibility && invitationInfo) {
+      void joinOrg({
         variables: {
-          orgEntityId,
+          orgEntityId: invitationInfo.orgEntityId as string,
           verification: {
-            ...(invitationInfo?.invitationEmailToken && {
-              invitationEmailToken: invitationInfo?.invitationEmailToken,
+            ...(invitationInfo.invitationEmailToken && {
+              invitationEmailToken: invitationInfo.invitationEmailToken,
             }),
-            ...(invitationInfo?.invitationLinkToken && {
-              invitationLinkToken: invitationInfo?.invitationLinkToken,
+            ...(invitationInfo.invitationLinkToken && {
+              invitationLinkToken: invitationInfo.invitationLinkToken,
             }),
           },
           responsibility,
@@ -550,7 +549,7 @@ const SignupPage: NextPage = () => {
     name: string;
     orgSize: OrgSize;
   }) => {
-    createOrg({
+    void createOrg({
       variables: {
         org: {
           shortname,
@@ -566,6 +565,10 @@ const SignupPage: NextPage = () => {
     if (activeScreen === Screen.VerifyCode) {
       updateState({ activeScreen: Screen.Intro });
     }
+  };
+
+  const navigateToHome = () => {
+    void router.push(user ? `/${user.accountId}` : "/");
   };
 
   // handles when the user is logged in but hasn't finished setting up his account
@@ -587,13 +590,21 @@ const SignupPage: NextPage = () => {
         Screen.OrgCreate,
         Screen.OrgInvite,
       ].includes(activeScreen)}
-      loading={getOrgInvitationLoading || getOrgEmailInvitationLoading}
+      loading={
+        getOrgInvitationLoading ||
+        getOrgEmailInvitationLoading ||
+        createUserWithOrgEmailInviteLoading
+      }
+      {...(activeScreen === Screen.OrgInvite && {
+        onClose: navigateToHome,
+      })}
     >
       {activeScreen === Screen.Intro && (
         <SignupIntroScreen
           loading={createUserLoading}
           errorMessage={errorMessage}
           handleSubmit={requestVerificationCode}
+          invitationInfo={invitationInfo}
         />
       )}
       {activeScreen === Screen.VerifyCode && (
@@ -610,34 +621,31 @@ const SignupPage: NextPage = () => {
         />
       )}
       {activeScreen === Screen.AccountSetup && (
-        <AccountSetup
+        <AccountSetupScreen
           onSubmit={handleAccountSetup}
-          loading={updateUserLoading}
+          loading={updateUserLoading || joinOrgLoading}
           errorMessage={errorMessage}
           email={email}
           invitationInfo={invitationInfo}
         />
       )}
-      {activeScreen == Screen.AccountUsage && (
-        <AccountUsage
+      {activeScreen === Screen.AccountUsage && (
+        <AccountUsageScreen
           updateWayToUseHash={updateWayToUseHash}
           loading={updateUserLoading}
           errorMessage={errorMessage}
         />
       )}
-      {activeScreen == Screen.OrgCreate && (
-        <OrgCreate
+      {activeScreen === Screen.OrgCreate && (
+        <OrgCreateScreen
           createOrg={handleCreateOrganization}
           loading={createOrgLoading}
         />
       )}
-      {activeScreen == Screen.OrgInvite && (
-        <OrgInvite
-          invitationLink={invitationLink}
-          orgEntityId={orgEntityId}
-          navigateToHome={() => {
-            user && router.push(`/${user.accountId}`);
-          }}
+      {activeScreen === Screen.OrgInvite && (
+        <OrgInviteScreen
+          createOrgInfo={createOrgInfo}
+          navigateToHome={navigateToHome}
         />
       )}
     </AuthLayout>

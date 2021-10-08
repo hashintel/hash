@@ -5,7 +5,7 @@ export const InputLabelWrapper: FunctionComponent<{
   children: ReactNode;
   label: string;
   className?: string;
-}> = ({ label, children, className }) => (
+}> = ({ label, children, className = "" }) => (
   // eslint-disable-next-line jsx-a11y/label-has-associated-control
   <label>
     <div

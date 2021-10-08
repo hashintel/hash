@@ -1,3 +1,3 @@
-import IconPeople from "../../assets/svg/people.svg"
+import IconPeople from "../../assets/svg/people.svg";
 
-export { IconPeople }
+export { IconPeople };

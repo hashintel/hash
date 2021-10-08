@@ -26,15 +26,15 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
     },
     ref
   ) => {
-    const _onChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const _onChange = (evt: ChangeEvent<HTMLInputElement>) => {
       if (onChangeText) {
         onChangeText(
           disallowRegExp
-            ? e.target.value.replace(disallowRegExp, "")
-            : e.target.value
+            ? evt.target.value.replace(disallowRegExp, "")
+            : evt.target.value
         );
       } else {
-        onChange?.(e);
+        onChange?.(evt);
       }
     };
 

@@ -1,21 +1,29 @@
 import React, { useEffect, useState, useRef, VFC } from "react";
 import { tw } from "twind";
 
+import { useRouter } from "next/router";
 import Logo from "../../../../assets/svg/logo.svg";
 import { IconSpinner } from "../../../Icons/IconSpinner";
 import { TextInput } from "../../../forms/TextInput";
-import { useRouter } from "next/router";
 
 type SignupIntroProps = {
   handleSubmit: (email: string) => void;
   loading: boolean;
   errorMessage: string;
+  invitationInfo: {
+    orgName: string;
+    orgEntityId: string;
+    inviter?: string;
+    invitationEmailToken?: string;
+    invitationLinkToken?: string;
+  } | null;
 };
 
 export const SignupIntro: VFC<SignupIntroProps> = ({
   handleSubmit,
   loading,
   errorMessage,
+  invitationInfo,
 }) => {
   const [email, setEmail] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -31,11 +39,29 @@ export const SignupIntro: VFC<SignupIntroProps> = ({
   };
 
   const navigateToLogin = () => {
-    router.push({ pathname: "/login", query: router.query });
+    void router.push({ pathname: "/login", query: router.query });
+  };
+
+  const renderInviteHeader = () => {
+    if (invitationInfo?.inviter) {
+      return (
+        <p className={tw`font-bold text-2xl text-blue-500 mb-12`}>
+          {invitationInfo.inviter} has invited you to join{" "}
+          {invitationInfo.orgName}
+        </p>
+      );
+    }
+
+    return (
+      <p className={tw`font-bold text-2xl text-blue-500 mb-12`}>
+        You have been invited you to join {invitationInfo?.orgName}
+      </p>
+    );
   };
 
   return (
-    <div className={tw`flex flex-col items-center w-80`}>
+    <div className={tw`flex flex-col items-center`}>
+      {!!invitationInfo && renderInviteHeader()}
       <div className={tw`mb-12 flex items-center`}>
         <Logo className={tw`mr-5`} />
         <h1 className={tw`text-2xl font-bold`}>Sign up</h1>
@@ -89,7 +115,7 @@ export const SignupIntro: VFC<SignupIntroProps> = ({
       <p className={tw`text-sm  md:whitespace-nowrap text-center`}>
         Alternatively if you already have a HASH account,
         <button
-          role="button"
+          type="button"
           onClick={navigateToLogin}
           className={tw`font-bold focus:outline-none ml-1`}
         >
