@@ -24,6 +24,7 @@
     "test": "jest"
   },
   "dependencies": {
+    "@apollo/client": "3.3.19",
     "@aws-sdk/client-ses": "3.25.0",
     "@hashintel/block-protocol": "*",
     "@hashintel/hash-shared": "*",

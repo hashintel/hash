@@ -100,7 +100,8 @@ function nonNegInteger(str) {
 // An object to assist in waiting for a collaborative editing
 // instance to publish a new version before sending the version
 // event data to the client.
-class Waiting {
+// @todo type this
+export class Waiting {
   constructor(resp, inst, ip, finish) {
     this.resp = resp;
     this.inst = inst;
