@@ -2,8 +2,9 @@ import { createApolloClient } from "@hashintel/hash-shared/graphql/createApolloC
 
 import { Router } from "./route";
 
-import { getInstance } from "./instance";
+import { getInstance } from "./Instance";
 import { Output } from "./Output";
+import { Waiting } from "./Waiting";
 
 const router = new Router();
 
@@ -77,35 +78,6 @@ function nonNegInteger(str) {
   const err = new Error("Not a non-negative integer: " + str);
   err.status = 400;
   throw err;
-}
-
-// An object to assist in waiting for a collaborative editing
-// instance to publish a new version before sending the version
-// event data to the client.
-// @todo type this
-export class Waiting {
-  constructor(resp, inst, ip, finish) {
-    this.resp = resp;
-    this.inst = inst;
-    this.ip = ip;
-    this.finish = finish;
-    this.done = false;
-    resp.setTimeout(1000 * 60 * 5, () => {
-      this.abort();
-      this.send(Output.json({}));
-    });
-  }
-
-  abort() {
-    const found = this.inst.waiting.indexOf(this);
-    if (found > -1) this.inst.waiting.splice(found, 1);
-  }
-
-  send(output) {
-    if (this.done) return;
-    output.resp(this.resp);
-    this.done = true;
-  }
 }
 
 function outputEvents(inst, data) {

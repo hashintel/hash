@@ -11,8 +11,7 @@ import { updatePageMutation } from "@hashintel/hash-shared/save";
 import { findEntityNodes } from "@hashintel/hash-shared/util";
 import { Node } from "prosemirror-model";
 import { Mapping, Step, Transform } from "prosemirror-transform";
-// @todo fix this
-import { Waiting } from "./server";
+import { Waiting } from "./Waiting";
 
 // @todo rename id to pageEntityId
 
@@ -25,7 +24,7 @@ class StatusError extends Error {
 }
 
 // A collaborative editing document instance.
-class Instance {
+export class Instance {
   // The version number of the document instance.
   version = 0;
   steps: Step[] = [];
