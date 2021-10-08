@@ -1,8 +1,5 @@
 import { EntityStore } from "@hashintel/hash-shared/entityStore";
-import {
-  createInitialDoc,
-  createProseMirrorState,
-} from "@hashintel/hash-shared/prosemirror";
+import { createProseMirrorState } from "@hashintel/hash-shared/prosemirror";
 import { Schema } from "prosemirror-model";
 import { Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
@@ -66,7 +63,7 @@ export const createEditorView = (
     createBlockSuggester(replacePortal),
   ];
 
-  const state = createProseMirrorState(createInitialDoc(), plugins);
+  const state = createProseMirrorState({ plugins });
 
   let connection: EditorConnection | null = null;
 

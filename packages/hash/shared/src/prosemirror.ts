@@ -301,8 +301,7 @@ export const createEntityUpdateTransaction = async (
   return tr;
 };
 
-// @todo don't export this
-export const createInitialDoc = (schema: Schema = createSchema()) =>
+const createInitialDoc = (schema: Schema = createSchema()) =>
   schema.node("doc", {}, [schema.node("blank")]);
 
 /**
@@ -325,10 +324,13 @@ const defaultPlugins = [
   dropCursor(),
 ];
 
-export const createProseMirrorState = (
+export const createProseMirrorState = ({
   doc = createInitialDoc(),
-  plugins: Plugin[] = []
-) => {
+  plugins = [],
+}: {
+  doc?: ProsemirrorNode;
+  plugins?: Plugin[];
+} = {}) => {
   const formatKeymap = keymap({
     "Mod-b": toggleMark(doc.type.schema.marks.strong),
     "Mod-i": toggleMark(doc.type.schema.marks.em),

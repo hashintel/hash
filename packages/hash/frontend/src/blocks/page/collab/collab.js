@@ -50,11 +50,14 @@ export class EditorConnection {
     switch (action.type) {
       case "loaded":
         this.state = new State(
-          createProseMirrorState(action.doc, [
-            ...this.additionalPlugins,
-            // @todo set this version properly
-            collab({ version: action.version }),
-          ]),
+          createProseMirrorState({
+            doc: action.doc,
+            plugins: [
+              ...this.additionalPlugins,
+              // @todo set this version properly
+              collab({ version: action.version }),
+            ],
+          }),
           "poll"
         );
         this.poll();
