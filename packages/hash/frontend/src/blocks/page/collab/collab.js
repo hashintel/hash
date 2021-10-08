@@ -10,6 +10,7 @@ import {
   ensureDocBlocksLoaded,
 } from "@hashintel/hash-shared/prosemirror";
 
+import { defineNodeView } from "@hashintel/hash-shared/src/defineNodeView";
 import { GET, POST } from "./http";
 import { createNodeViewFactory } from "../tsUtils";
 
@@ -128,6 +129,10 @@ export class EditorConnection {
           view: this.view,
           replacePortal: this.replacePortal,
           createNodeView: createNodeViewFactory(this.replacePortal),
+          defineNodeView: defineNodeView(
+            createNodeViewFactory(this.replacePortal),
+            this.view
+          ),
         }).then(() => data);
       })
       .then((data) => {

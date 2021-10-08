@@ -1,3 +1,4 @@
+import { defineNodeView } from "@hashintel/hash-shared/defineNodeView";
 import { EntityStore, isBlockEntity } from "@hashintel/hash-shared/entityStore";
 import {
   createRemoteBlockFromEntity,
@@ -95,6 +96,10 @@ export class AsyncView implements NodeView {
         view,
         replacePortal: this.replacePortal,
         createNodeView: createNodeViewFactory(this.replacePortal),
+        defineNodeView: defineNodeView(
+          createNodeViewFactory(this.replacePortal),
+          view
+        ),
       },
       entity,
       node.attrs.targetComponentId

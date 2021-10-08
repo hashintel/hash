@@ -15,6 +15,8 @@ import { RemoteBlock } from "../../components/RemoteBlock/RemoteBlock";
 import { EntityStoreContext } from "./EntityStoreContext";
 import { ReplacePortal } from "./usePortals";
 
+// @todo maybe this file should be split up
+
 // @todo we need to type this such that we're certain we're passing through all
 // the props required
 const getRemoteBlockProps = (entity: EntityStoreType | null | undefined) => {

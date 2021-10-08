@@ -5,7 +5,7 @@ import { undoInputRule } from "prosemirror-inputrules";
 import { keymap } from "prosemirror-keymap";
 import { Node as ProsemirrorNode, NodeSpec, Schema } from "prosemirror-model";
 import { EditorState, Plugin } from "prosemirror-state";
-import { Decoration, EditorView, NodeView } from "prosemirror-view";
+import { NodeView } from "prosemirror-view";
 import {
   Block,
   blockComponentRequiresText,
@@ -13,6 +13,7 @@ import {
   BlockMeta,
   fetchBlockMeta,
 } from "./blockMeta";
+import { DefineNodeView } from "./defineNodeView";
 import { BlockEntity, getTextEntityFromBlock } from "./entity";
 import { childrenForTextEntity } from "./entityProsemirror";
 import { createSchema } from "./schema";
@@ -23,6 +24,9 @@ import { wrapEntitiesPlugin } from "./wrapEntitiesPlugin";
  * @deprecated
  */
 export type ViewConfig = {
+  // @todo maybe remove this
+  defineNodeView: DefineNodeView;
+
   // @todo type this
   view: any;
 
@@ -30,6 +34,7 @@ export type ViewConfig = {
   replacePortal: unknown;
 
   // @todo type the constructor here
+  // @todo remove this
   createNodeView: (
     componentId: string,
     componentSchema: Block["componentSchema"],
@@ -117,10 +122,6 @@ export const defineNewBlock = (
     return;
   }
 
-  if (!componentMetadata.source) {
-    throw new Error("Cannot create new block for component missing a source");
-  }
-
   const spec = createComponentNodeSpec({
     /**
      * Currently we detect whether a block takes editable text by detecting if
@@ -136,34 +137,7 @@ export const defineNewBlock = (
   });
 
   defineNewNode(schema, componentId, spec);
-
-  // @todo this should be a function provided by the frontend
-  if (viewConfig) {
-    const { view, createNodeView } = viewConfig;
-
-    // @todo type this
-    const NodeViewClass = createNodeView(
-      componentId,
-      componentSchema,
-      componentMetadata.source
-    );
-
-    // Add the node view definition to the view – ensures our block code is
-    // called for every instance of the block
-    view.setProps({
-      nodeViews: {
-        ...view.nodeViews,
-        [componentId]: (
-          node: ProsemirrorNode<Schema>,
-          editorView: EditorView<Schema>,
-          getPos: (() => number) | boolean,
-          decorations: Decoration[]
-        ) => {
-          return new NodeViewClass(node, editorView, getPos, decorations);
-        },
-      },
-    });
-  }
+  viewConfig?.defineNodeView(componentId, componentSchema, componentMetadata);
 };
 
 /**

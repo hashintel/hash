@@ -1,5 +1,6 @@
 import { useApolloClient } from "@apollo/client";
 import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
+import { defineNodeView } from "@hashintel/hash-shared/defineNodeView";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 import { createEntityStore } from "@hashintel/hash-shared/entityStore";
 import {
@@ -176,6 +177,10 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
           view,
           replacePortal,
           createNodeView: createNodeViewFactory(replacePortal),
+          defineNodeView: defineNodeView(
+            createNodeViewFactory(replacePortal),
+            view
+          ),
         },
         componentId
       );
@@ -212,6 +217,10 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
           view,
           replacePortal,
           createNodeView: createNodeViewFactory(replacePortal),
+          defineNodeView: defineNodeView(
+            createNodeViewFactory(replacePortal),
+            view
+          ),
         });
 
         if (signal?.aborted) {
