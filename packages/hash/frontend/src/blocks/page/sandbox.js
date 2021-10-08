@@ -16,6 +16,8 @@ import { EditorView } from "prosemirror-view";
 import "prosemirror-view/style/prosemirror.css";
 import React, { createRef, forwardRef, useEffect, useState } from "react";
 import { tw } from "twind";
+import LinkIcon from '@mui/icons-material/Link';
+
 import DragVertical from "../../components/Icons/DragVertical";
 import { BlockMetaContext } from "../blockMeta";
 import { EditorConnection } from "./collab/collab";
@@ -180,7 +182,7 @@ class AsyncView {
 /**
  * specialized block-type/-variant select field
  */
-const BlockSelect = forwardRef(({ options, onChange, selectedIndex }, ref) => {
+const BlockSelect = forwardRef(({ options, onChange, selectedIndex, entityId }, ref) => {
   const [isPopoverVisible, setPopoverVisible] = useState(false);
 
   useEffect(() => {
@@ -205,9 +207,8 @@ const BlockSelect = forwardRef(({ options, onChange, selectedIndex }, ref) => {
             // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions
             <li
               key={_componentId}
-              className={tw`flex border border-gray-100 ${
-                index !== selectedIndex ? "bg-gray-50" : "bg-gray-100"
-              } hover:bg-gray-100`}
+              className={tw`flex border border-gray-100 ${index !== selectedIndex ? "bg-gray-50" : "bg-gray-100"
+                } hover:bg-gray-100`}
               onClick={() =>
                 index !== selectedIndex && onChange(options[index], index)
               }
@@ -223,6 +224,25 @@ const BlockSelect = forwardRef(({ options, onChange, selectedIndex }, ref) => {
               </div>
             </li>
           ))}
+          <li
+            className={tw`flex border border-gray-100 bg-gray-50 hover:bg-gray-100`}
+            onClick={() => {
+              const url = new URL(location.href);
+              url.hash = entityId;
+              navigator.clipboard.writeText(url.toString());
+            }
+            }
+          >
+            <div className={tw`flex w-16 items-center justify-center`}>
+              <LinkIcon className={tw`w-6 h-6`} />
+            </div>
+            <div className={tw`py-3`}>
+              <p className={tw`text-sm font-bold`}>Copy link</p>
+              <p className={tw`text-xs text-opacity-60 text-black`}>
+                Copy link to current block
+              </p>
+            </div>
+          </li>
         </ul>
       )}
     </div>
@@ -241,9 +261,12 @@ class BlockView {
     this.getPos = getPos;
     this.replacePortal = replacePortal;
 
+    const entityId = node.content.content[0].attrs.entityId
+
     /** @implements https://prosemirror.net/docs/ref/#view.NodeView.dom */
     this.dom = document.createElement("div");
     this.dom.classList.add(styles.Block);
+    this.dom.id = entityId;
 
     this.selectContainer = document.createElement("div");
     this.selectContainer.classList.add(styles.Block__UI);
@@ -458,6 +481,7 @@ class BlockView {
                 options={options}
                 onChange={this.onBlockChange}
                 ref={this.blockSelectRef}
+                entityId={blockNode.content.content[0].attrs.entityId}
               />
             );
           }}
@@ -512,9 +536,9 @@ class BlockView {
      */
     const text = child.isTextblock
       ? child.content.content
-          .filter(({ type }) => type.name === "text")
-          .map((contentNode) => contentNode.text)
-          .join("")
+        .filter(({ type }) => type.name === "text")
+        .map((contentNode) => contentNode.text)
+        .join("")
       : "";
 
     const newNode = state.schema.nodes.async.create({

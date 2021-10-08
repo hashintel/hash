@@ -1,4 +1,4 @@
-import { useMemo, VoidFunctionComponent } from "react";
+import { useEffect, useMemo, VoidFunctionComponent } from "react";
 
 import { useRouter } from "next/router";
 import { useQuery } from "@apollo/client";
@@ -58,12 +58,40 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
     // versionId is an optional param for requesting a specific page version
     const versionId = router.query.version as string | undefined;
 
-    const { data, error } = useQuery<GetPageQuery, GetPageQueryVariables>(
-      getPageQuery,
-      {
-        variables: { metadataId, accountId, versionId },
+    const { data, error, loading } = useQuery<
+      GetPageQuery,
+      GetPageQueryVariables
+    >(getPageQuery, {
+      variables: { metadataId, accountId, versionId },
+    });
+
+    useEffect(() => {
+      let scrollInterval: NodeJS.Timeout | undefined = undefined;
+      const routeHash = router.asPath.split("#")[1];
+
+      if (!loading && routeHash) {
+        scrollInterval = setInterval(() => {
+          const routeElement = document.getElementById(routeHash);
+
+          console.log("in here", data, routeElement);
+          if (routeElement) {
+            document
+              .getElementById(routeHash)
+              ?.scrollIntoView({ behavior: "smooth" });
+
+            if (scrollInterval) {
+              clearInterval(scrollInterval);
+            }
+          }
+        }, 100);
       }
-    );
+
+      return () => {
+        if (scrollInterval) {
+          clearInterval(scrollInterval);
+        }
+      };
+    }, [data, loading, router.asPath]);
 
     /**
      * This is to ensure that certain blocks are always contained within the
