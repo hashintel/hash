@@ -141,7 +141,7 @@ class Instance {
   // document version.
   checkVersion(version) {
     if (version < 0 || version > this.version) {
-      const err = new Error("Invalid version " + version);
+      const err = new Error(`Invalid version ${version}`);
       err.status = 400;
       throw err;
     }
@@ -194,19 +194,11 @@ const instances = Object.create(null);
 let instanceCount = 0;
 const maxCount = 20;
 
-export const getInstance = (apolloClient) => async (accountId, id, ip) => {
-  const inst =
-    instances[id] || (await newInstance(apolloClient)(accountId, id));
-  if (ip) inst.registerUser(ip);
-  inst.lastActive = Date.now();
-  return inst;
-};
-
 const newInstance = (apolloClient) => async (accountId, id) => {
   if (++instanceCount > maxCount) {
     let oldest = null;
-    for (const id of Object.keys(instances)) {
-      const inst = instances[id];
+    for (const instanceId of Object.keys(instances)) {
+      const inst = instances[instanceId];
       if (!oldest || inst.lastActive < oldest.lastActive) oldest = inst;
     }
     instances[oldest.id].stop();
@@ -234,10 +226,20 @@ const newInstance = (apolloClient) => async (accountId, id) => {
     return instances[id];
   }
 
-  return (instances[id] = new Instance(
+  instances[id] = new Instance(
     accountId,
     id,
     newState.doc,
     data.page.properties.contents
-  ));
+  );
+
+  return instances[id];
+};
+
+export const getInstance = (apolloClient) => async (accountId, id, ip) => {
+  const inst =
+    instances[id] || (await newInstance(apolloClient)(accountId, id));
+  if (ip) inst.registerUser(ip);
+  inst.lastActive = Date.now();
+  return inst;
 };
