@@ -28,8 +28,6 @@ const defaultPlugins = [
 
 export const createProseMirrorState = (
   doc = createInitialDoc(),
-  // @todo remove this
-  replacePortal = null,
   plugins = []
 ) => {
   const formatKeymap = keymap({

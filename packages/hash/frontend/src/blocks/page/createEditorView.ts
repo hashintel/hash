@@ -64,11 +64,7 @@ export const createEditorView = (
     createBlockSuggester(replacePortal),
   ];
 
-  const state = createProseMirrorState(
-    createInitialDoc(),
-    replacePortal,
-    plugins
-  );
+  const state = createProseMirrorState(createInitialDoc(), plugins);
 
   let connection: EditorConnection | null = null;
 

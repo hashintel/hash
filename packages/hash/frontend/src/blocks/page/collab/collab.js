@@ -48,7 +48,7 @@ export class EditorConnection {
     switch (action.type) {
       case "loaded":
         this.state = new State(
-          createProseMirrorState(action.doc, this.replacePortal, [
+          createProseMirrorState(action.doc, [
             ...this.additionalPlugins,
             // @todo set this version properly
             collab({ version: action.version }),
