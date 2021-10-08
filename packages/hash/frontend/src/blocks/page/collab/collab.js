@@ -5,8 +5,10 @@ import {
   receiveTransaction,
   sendableSteps,
 } from "prosemirror-collab";
-import { createProseMirrorState } from "@hashintel/hash-shared/sharedWithBackendJs";
-import { ensureDocBlocksLoaded } from "@hashintel/hash-shared/prosemirror";
+import {
+  createProseMirrorState,
+  ensureDocBlocksLoaded,
+} from "@hashintel/hash-shared/prosemirror";
 
 import { GET, POST } from "./http";
 import { createNodeViewFactory } from "../tsUtils";

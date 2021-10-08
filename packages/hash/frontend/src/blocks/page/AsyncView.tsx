@@ -1,9 +1,9 @@
 import { EntityStore, isBlockEntity } from "@hashintel/hash-shared/entityStore";
-import { createRemoteBlockFromEntity } from "@hashintel/hash-shared/prosemirror";
 import {
+  createRemoteBlockFromEntity,
   historyPlugin,
   infiniteGroupHistoryPlugin,
-} from "@hashintel/hash-shared/sharedWithBackendJs";
+} from "@hashintel/hash-shared/prosemirror";
 import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorView, NodeView } from "prosemirror-view";
 import { createNodeViewFactory } from "./tsUtils";

@@ -1,6 +1,8 @@
 import { EntityStore } from "@hashintel/hash-shared/entityStore";
-import { createInitialDoc } from "@hashintel/hash-shared/prosemirror";
-import { createProseMirrorState } from "@hashintel/hash-shared/sharedWithBackendJs";
+import {
+  createInitialDoc,
+  createProseMirrorState,
+} from "@hashintel/hash-shared/prosemirror";
 import { Schema } from "prosemirror-model";
 import { Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";

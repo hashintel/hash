@@ -1,10 +1,10 @@
 import { Mapping, Step, Transform } from "prosemirror-transform";
 import {
   createEntityUpdateTransaction,
+  createProseMirrorState,
   getProseMirrorNodeAttributes,
 } from "@hashintel/hash-shared/prosemirror";
 import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
-import { createProseMirrorState } from "@hashintel/hash-shared/sharedWithBackendJs";
 import { updatePageMutation } from "@hashintel/hash-shared/save";
 import { createEntityStore } from "@hashintel/hash-shared/entityStore";
 import { findEntityNodes } from "@hashintel/hash-shared/util";

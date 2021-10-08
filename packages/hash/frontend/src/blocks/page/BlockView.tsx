@@ -1,7 +1,7 @@
 import {
   historyPlugin,
   infiniteGroupHistoryPlugin,
-} from "@hashintel/hash-shared/sharedWithBackendJs";
+} from "@hashintel/hash-shared/prosemirror";
 import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
 import { NodeSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
