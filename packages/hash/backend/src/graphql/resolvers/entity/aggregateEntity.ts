@@ -2,9 +2,11 @@ import {
   QueryAggregateEntityArgs,
   Resolver,
   AggregateOperation,
+  AggregateOperationInput,
 } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { Entity, EntityWithIncompleteEntityType } from "../../../model";
+import { DBAdapter } from "../../../db";
 
 /** Compare entities on a given property. */
 const compareEntitiesByField = (
@@ -38,6 +40,47 @@ const compareEntitiesByField = (
   return (typeof a).localeCompare(typeof b);
 };
 
+export const dbAggregateEntity =
+  (db: DBAdapter) =>
+  async (params: {
+    accountId: string;
+    operation?: AggregateOperationInput | null;
+    entityTypeId: string;
+  }) => {
+    const { accountId, operation, entityTypeId } = params;
+    const pageNumber = operation?.pageNumber || 1;
+    const itemsPerPage = operation?.itemsPerPage || 10;
+    const sort = operation?.sort?.field || "updatedAt";
+    const desc = operation?.sort?.desc;
+
+    // TODO: this returns an array of all entities of the given type in the account.
+    // We should perform the sorting & filtering in the database for better performance.
+    // For pagination, using a database cursor may be an option.
+    const entities = await Entity.getEntitiesByType(db)({
+      accountId,
+      entityTypeId,
+      latestOnly: true,
+    });
+
+    const startIndex = pageNumber === 1 ? 0 : (pageNumber - 1) * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage, entities.length);
+
+    const results = entities
+      .sort((a, b) => compareEntitiesByField(a, b, sort, desc ?? false))
+      .slice(startIndex, endIndex)
+      .map((entity) => entity.toGQLUnknownEntity());
+
+    return {
+      results,
+      operation: {
+        sort,
+        pageNumber,
+        itemsPerPage,
+        pageCount: Math.ceil(entities.length / itemsPerPage),
+      },
+    };
+  };
+
 export const aggregateEntity: Resolver<
   Promise<{
     results: EntityWithIncompleteEntityType[];
@@ -46,36 +89,6 @@ export const aggregateEntity: Resolver<
   {},
   GraphQLContext,
   QueryAggregateEntityArgs
-> = async (_, { accountId, operation, entityTypeId }, { dataSources }) => {
-  const pageNumber = operation?.pageNumber || 1;
-  const itemsPerPage = operation?.itemsPerPage || 10;
-  const sort = operation?.sort?.field || "updatedAt";
-  const desc = operation?.sort?.desc;
-
-  // TODO: this returns an array of all entities of the given type in the account.
-  // We should perform the sorting & filtering in the database for better performance.
-  // For pagination, using a database cursor may be an option.
-  const entities = await Entity.getEntitiesByType(dataSources.db)({
-    accountId,
-    entityTypeId,
-    latestOnly: true,
-  });
-
-  const startIndex = pageNumber === 1 ? 0 : (pageNumber - 1) * itemsPerPage;
-  const endIndex = Math.min(startIndex + itemsPerPage, entities.length);
-
-  const results = entities
-    .sort((a, b) => compareEntitiesByField(a, b, sort, desc ?? false))
-    .slice(startIndex, endIndex)
-    .map((entity) => entity.toGQLUnknownEntity());
-
-  return {
-    results,
-    operation: {
-      sort,
-      pageNumber,
-      itemsPerPage,
-      pageCount: Math.ceil(entities.length / itemsPerPage),
-    },
-  };
+> = async (_, args, { dataSources }) => {
+  return dbAggregateEntity(dataSources.db)(args);
 };
