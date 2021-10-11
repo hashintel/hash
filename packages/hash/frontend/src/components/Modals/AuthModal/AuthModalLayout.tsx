@@ -1,18 +1,17 @@
-import { ReactNode, VoidFunctionComponent } from "react";
+import {  FC } from "react";
 import { Dialog } from "@headlessui/react";
 import { tw } from "twind";
 import { AuthLayout } from "../../layout/PageLayout/AuthLayout";
 
 export type AuthModalLayoutProps = {
-  children: ReactNode;
   onClose?: () => void;
   show: boolean;
 };
 
-export const AuthModalLayout: VoidFunctionComponent<AuthModalLayoutProps> = ({
-  children,
+export const AuthModalLayout: FC<AuthModalLayoutProps> = ({
   onClose = () => {},
   show,
+  children,
 }) => (
   <Dialog
     as="div"

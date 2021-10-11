@@ -7,6 +7,7 @@ import React, {
 import { Column, Row } from "react-table";
 import { BlockProtocolUpdateFn } from "@hashintel/block-protocol";
 import { identityEntityAndProperty } from "../lib/identifyEntity";
+import { tw } from "twind";
 
 type EditableCellProps = {
   value: string;
@@ -72,6 +73,7 @@ export const EditableCell: VoidFunctionComponent<EditableCellProps> = ({
 
   return (
     <input
+      className={tw`block w-28 bg-transparent rounded border-1 border-transparent hover:border-blue-500 py-1 px-2 `}
       value={value}
       onChange={onChange}
       onBlur={onBlur}

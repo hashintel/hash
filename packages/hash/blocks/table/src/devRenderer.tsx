@@ -4,6 +4,7 @@
  */
 import React, { useCallback, useMemo, useState } from "react";
 import ReactDOM from "react-dom";
+import { tw } from "twind";
 
 import {
   BlockProtocolUpdateFn,
@@ -111,17 +112,28 @@ const useMockData = () => {
     ) => {
       const newTableData = { ...tableData };
 
-      // handle aggregation updates
-      const actionWithAggregation = actions.find(
-        (action) => !!action.data.data?.__linkedData
-      );
-
-      if (actionWithAggregation?.data.data?.__linkedData) {
-        newTableData.data.__linkedData =
-          actionWithAggregation.data.data.__linkedData;
+      actions.forEach((action) => {
+        if (!!action.data.data?.__linkedData) {
+          newTableData.data.__linkedData = action.data.data?.__linkedData;
+        }
+        newTableData.initialState = action.data.initialState;
         setTableData(newTableData);
         return;
-      }
+      });
+
+      // handle initialState updates
+
+      // handle aggregation updates
+      // const actionWithAggregation = actions.find(
+      //   (action) => !!action.data.data?.__linkedData
+      // );
+
+      // if (actionWithAggregation?.data.data?.__linkedData) {
+      //   newTableData.data.__linkedData =
+      //     actionWithAggregation.data.data.__linkedData;
+      //   setTableData(newTableData);
+      //   return;
+      // }
 
       setEntities((prevData) => {
         const newData = prevData.map((entity) => {
@@ -160,13 +172,15 @@ const App = () => {
   const { data, initialState, updateData } = useMockData();
 
   return (
-    <Component
-      data={data}
-      initialState={initialState}
-      schemas={schemas}
-      update={updateData}
-      entityId="table-1"
-    />
+    <div className={tw`flex justify-center py-8`}>
+      <Component
+        data={data}
+        initialState={initialState}
+        schemas={schemas}
+        update={updateData}
+        entityId="table-1"
+      />
+    </div>
   );
 };
 
