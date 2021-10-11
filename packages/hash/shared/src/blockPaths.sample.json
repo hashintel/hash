@@ -7,5 +7,6 @@
   "https://block.blockprotocol.org/table": "http://host.docker.internal:62678",
   "https://block.blockprotocol.org/divider": "http://host.docker.internal:62679",
   "https://block.blockprotocol.org/embed": "http://host.docker.internal:62680",
-  "https://block.blockprotocol.org/code": "http://host.docker.internal:62681"
+  "https://block.blockprotocol.org/code": "http://host.docker.internal:62681",
+  "https://block.blockprotocol.org/video": "http://host.docker.internal:62683"
 }

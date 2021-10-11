@@ -1,15 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { unstable_batchedUpdates } from "react-dom";
-
 import { v4 as uuid } from "uuid";
 import { tw } from "twind";
 import { BlockComponent } from "@hashintel/block-protocol/react";
-import { BlockProtocolUpdatePayload } from "@hashintel/block-protocol";
 
-import { ResizeImageBlock } from "./components/ResizeImageBlock";
-
+import { unstable_batchedUpdates } from "react-dom";
 import Loader from "./svgs/Loader";
 import Pencil from "./svgs/Pencil";
+import { BlockProtocolUpdatePayload } from "@hashintel/block-protocol";
 import Cross from "./svgs/Cross";
 
 type UploadFileParamsType = {
@@ -21,26 +18,25 @@ type UploadFileParamsType = {
 type AppProps = {
   initialSrc?: string;
   initialCaption?: string;
-  initialWidth?: number;
   uploadFile: (uploadFileParams: UploadFileParamsType) => Promise<{
     src?: string;
+    error?: string;
   }>;
   entityId: string;
   entityTypeId?: string;
 };
 
-const placeholderText = "Enter Image URL";
-const buttonText = "Embed Image";
-const bottomText = "Works with web-supported image formats";
+const placeholderText = "Enter Video URL";
+const buttonText = "Embed Video";
+const bottomText = "Works with web-supported video formats";
 
-const IMG_MIME_TYPE = "image/*";
+const VIDEO_MIME_TYPE = "video/*";
 
-export const Image: BlockComponent<AppProps> = (props) => {
+export const Video: BlockComponent<AppProps> = (props) => {
   const {
     initialSrc,
     initialCaption,
     uploadFile,
-    initialWidth,
     entityId,
     entityTypeId,
     update,
@@ -49,19 +45,19 @@ export const Image: BlockComponent<AppProps> = (props) => {
   const [stateObject, setStateObject] = useState<{
     src: string;
     loading: boolean;
-    width: number | undefined;
     errorString: string | null;
   }>({
     src: initialSrc ?? "",
-    width: initialWidth,
     loading: false,
     errorString: null,
   });
-  const [inputText, setInputText] = useState("");
-  const [captionText, setCaptionText] = useState(initialCaption ?? "");
-  const [randomId] = useState(() => `image-input-${uuid()}`);
 
   const isMounted = useRef(false);
+
+  const [inputText, setInputText] = useState("");
+  const [captionText, setCaptionText] = useState(initialCaption ?? "");
+
+  const [randomId] = useState(() => `video-input-${uuid()}`);
 
   useEffect(() => {
     isMounted.current = true;
@@ -70,6 +66,32 @@ export const Image: BlockComponent<AppProps> = (props) => {
       isMounted.current = false;
     };
   }, []);
+
+  function displayError(errorString: string) {
+    setStateObject((stateObject) => ({ ...stateObject, errorString }));
+  }
+
+  function updateData(src: string | undefined) {
+    if (src?.trim()) {
+      if (update) {
+        const updateAction: BlockProtocolUpdatePayload<{
+          initialSrc: string;
+          initialCaption: string;
+        }> = {
+          data: { initialSrc: src, initialCaption: captionText },
+          entityId,
+        };
+
+        if (entityTypeId) {
+          updateAction.entityTypeId = entityTypeId;
+        }
+
+        void update([updateAction]);
+      }
+
+      setStateObject((stateObject) => ({ ...stateObject, src }));
+    }
+  }
 
   const updateStateObject = useCallback(
     (properties: Partial<typeof stateObject>) => {
@@ -81,52 +103,10 @@ export const Image: BlockComponent<AppProps> = (props) => {
     []
   );
 
-  const updateData = useCallback(
-    (src: string | undefined, width?: number) => {
-      if (src?.trim()) {
-        if (update) {
-          const updateAction: BlockProtocolUpdatePayload<
-            Pick<AppProps, "initialSrc" | "initialCaption" | "initialWidth">
-          > = {
-            data: {
-              initialSrc: src,
-              initialCaption: captionText,
-            },
-            entityId,
-          };
-
-          if (width) {
-            updateAction.data.initialWidth = width;
-          }
-
-          if (entityTypeId) {
-            updateAction.entityTypeId = entityTypeId;
-          }
-
-          void update([updateAction]);
-        }
-
-        updateStateObject(width ? { src, width } : { src });
-      }
-    },
-    [captionText, entityId, entityTypeId, updateStateObject, update]
-  );
-
-  const updateWidth = useCallback(
-    (width: number) => {
-      updateData(stateObject.src, width);
-    },
-    [stateObject.src, updateData]
-  );
-
-  const displayError = (errorString: string) => {
-    updateStateObject({ errorString });
-  };
-
-  const handleImageUpload = useCallback(
+  const handleVideoUpload = useCallback(
     (imageProp: { url: string } | { file: FileList[number] }) => {
       updateStateObject({ loading: true });
-      uploadFile({ ...imageProp, mime: IMG_MIME_TYPE })
+      uploadFile({ ...imageProp, mime: VIDEO_MIME_TYPE })
         .then(({ src }: { src?: string }) => {
           if (isMounted.current) {
             updateStateObject({ loading: false });
@@ -144,17 +124,18 @@ export const Image: BlockComponent<AppProps> = (props) => {
   );
 
   const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
     const { loading } = stateObject;
+
+    event.preventDefault();
 
     if (loading) {
       return;
     }
 
     if (inputText?.trim()) {
-      handleImageUpload({ url: inputText });
+      handleVideoUpload({ url: inputText });
     } else {
-      displayError("Please enter a valid image URL or select a file below");
+      displayError("Please enter a valid video URL or select a file below");
     }
   };
 
@@ -162,7 +143,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
     const { files } = event.target;
 
     if (files?.[0]) {
-      handleImageUpload({ file: files[0] });
+      handleVideoUpload({ file: files[0] });
     }
   };
 
@@ -172,7 +153,6 @@ export const Image: BlockComponent<AppProps> = (props) => {
         loading: false,
         errorString: null,
         src: "",
-        width: undefined,
       });
 
       setInputText("");
@@ -183,24 +163,30 @@ export const Image: BlockComponent<AppProps> = (props) => {
   if (stateObject.src?.trim()) {
     return (
       <div className={tw`flex justify-center text-center w-full`}>
-        <div className={tw`flex flex-col`}>
-          <ResizeImageBlock
-            imageSrc={stateObject.src}
-            width={stateObject.width}
-            updateWidth={updateWidth}
+        <div className={tw`max-w-full`}>
+          <video
+            controls
+            style={{
+              maxWidth: "100%",
+            }}
+            src={stateObject.src}
           />
+
           <input
             placeholder="Add a caption"
             className={tw`focus:outline-none text-center mt-3`}
             type="text"
             value={captionText}
             onChange={(event) => setCaptionText(event.target.value)}
-            onBlur={() => updateData(stateObject.src)}
+            onBlur={() => {
+              updateData(stateObject.src);
+            }}
           />
         </div>
         <button
-          type="button"
-          onClick={resetComponent}
+          onClick={() => {
+            resetComponent();
+          }}
           className={tw`ml-2 bg-gray-100 p-1.5 border-1 border-gray-300 rounded-sm self-start`}
         >
           <Pencil />
@@ -222,9 +208,13 @@ export const Image: BlockComponent<AppProps> = (props) => {
               {stateObject.errorString}
             </span>
           </div>
-          {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
           <span
-            onClick={() => updateStateObject({ errorString: null })}
+            onClick={() =>
+              setStateObject((stateObject) => ({
+                ...stateObject,
+                errorString: null,
+              }))
+            }
             className={tw`absolute top-0 bottom-0 right-0 px-4 py-3`}
           >
             <Cross />
@@ -248,8 +238,8 @@ export const Image: BlockComponent<AppProps> = (props) => {
           if (files && files.length) {
             // we set our input's 'files' property
 
-            if (files[0].type.search("image") > -1) {
-              handleImageUpload({ file: files[0] });
+            if (files[0].type.search("video") > -1) {
+              handleVideoUpload({ file: files[0] });
             }
           }
         }}
@@ -264,7 +254,6 @@ export const Image: BlockComponent<AppProps> = (props) => {
             />
           </div>
           <div>
-            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
             <label htmlFor={randomId}>
               <div
                 className={tw`my-4 bg-gray-50 border-2 border-dashed border-gray-200 py-4 text-sm text-gray-400 cursor-pointer`}
@@ -277,7 +266,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
               id={randomId}
               className={tw`hidden`}
               type="file"
-              accept={IMG_MIME_TYPE}
+              accept={VIDEO_MIME_TYPE}
               onChange={onFileSelect}
             />
           </div>

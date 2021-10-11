@@ -57,6 +57,7 @@ void (async () => {
     "Person",
     "Table",
     "Code",
+    "Video",
   ];
 
   await Promise.all(
@@ -236,6 +237,15 @@ void (async () => {
         "code1",
         {
           entityTypeId: newTypeIds.Code,
+          accountId: hashOrg.accountId,
+          createdById: user.entityId,
+          properties: {},
+        },
+      ],
+      [
+        "video1",
+        {
+          entityTypeId: newTypeIds.Video,
           accountId: hashOrg.accountId,
           createdById: user.entityId,
           properties: {},
@@ -632,6 +642,19 @@ void (async () => {
           systemTypeName: SystemTypeName.Block,
         },
       ],
+      [
+        "b16",
+        {
+          properties: {
+            componentId: "https://block.blockprotocol.org/video",
+            entityId: results.get("video1")!.entityId,
+            accountId: results.get("video1")!.accountId,
+          },
+          createdById: user.entityId,
+          accountId: hashOrg.accountId,
+          systemTypeName: SystemTypeName.Block,
+        },
+      ],
     ])
   );
 
@@ -723,6 +746,10 @@ void (async () => {
               {
                 entityId: results.get("b15")!.entityId,
                 accountId: results.get("b15")!.accountId,
+              },
+              {
+                entityId: results.get("b16")!.entityId,
+                accountId: results.get("b16")!.accountId,
               },
             ],
             title: "HASH's 1st page",
