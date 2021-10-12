@@ -50,7 +50,8 @@ import {
   isParsedAuthQuery,
   SYNTHETIC_LOADING_TIME_MS,
   Action,
-  isParsedInviteQuery,
+  isParsedInvitationEmailQuery,
+  isParsedInvitationLinkQuery,
 } from "../components/pages/auth/utils";
 import { AuthLayout } from "../components/layout/PageLayout/AuthLayout";
 
@@ -322,9 +323,7 @@ const SignupPage: NextPage = () => {
       orgEntityId: router.query.orgEntityId as string,
       invitationEmailToken: router.query.invitationEmailToken as string,
     },
-    skip: !(
-      isParsedInviteQuery(router.query) && !!router.query.invitationEmailToken
-    ),
+    skip: !isParsedInvitationEmailQuery(router.query),
     onCompleted: (res) => {
       dispatch({
         type: "UPDATE_STATE",
@@ -360,7 +359,7 @@ const SignupPage: NextPage = () => {
       invitationLinkToken: router.query.invitationLinkToken as string,
     },
     skip: !(
-      isParsedInviteQuery(router.query) && !!router.query.invitationLinkToken
+      isParsedInvitationLinkQuery(router.query)
     ),
     onCompleted: (res) => {
       const orgName =

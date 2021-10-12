@@ -98,7 +98,7 @@ export const OrgCreate: VFC<OrgCreateProps> = ({ createOrg, loading }) => {
 
   return (
     <div className={tw`flex flex-col items-center`}>
-      ˝<h1 className={tw`text-3xl mb-12`}>Create a team workspace</h1>
+      ˝<h1 className={tw`text-3xl font-bold mb-12`}>Create a team workspace</h1>
       <div className={tw`text-center mb-6`}>
         <div
           className={tw`w-24 h-24 border-1 border-gray-200 rounded-lg flex justify-center items-center mb-2`}

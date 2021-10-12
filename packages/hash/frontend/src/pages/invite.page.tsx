@@ -25,7 +25,8 @@ import {
 } from "../graphql/queries/org.queries";
 import {
   INVITE_ERROR_CODES,
-  isParsedInviteQuery,
+  isParsedInvitationEmailQuery,
+  isParsedInvitationLinkQuery,
   ORG_ROLES,
 } from "../components/pages/auth/utils";
 
@@ -61,7 +62,10 @@ const InvitePage: NextPage = () => {
     /**
      * Redirect to home page if necessary query params aren't available
      */
-    if (!isParsedInviteQuery(router.query)) {
+    if (
+      !isParsedInvitationLinkQuery(router.query) &&
+      !isParsedInvitationEmailQuery
+    ) {
       void router.push("/");
       return;
     }
