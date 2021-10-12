@@ -54,23 +54,29 @@ async function getEmbedResponse({
   url: string;
   type?: Maybe<string>;
 }) {
-  let oembedEndpoint;
+  let oembedEndpoint = undefined;
 
   if (!type) {
-    (oEmbedData as IoEmbedData[]).find((oembed) => {
-      return oembed.endpoints.find((endpoint) =>
-        endpoint.schemes?.find((scheme) => {
+    for (const oembed of oEmbedData as IoEmbedData[]) {
+      for (const endpoint of oembed.endpoints) {
+        for (const scheme of endpoint.schemes ?? []) {
           if (
             scheme.split("*").every((substring) => url.search(substring) > -1)
           ) {
             oembedEndpoint = endpoint.url;
-            return true;
+            break;
           }
+        }
 
-          return false;
-        })
-      );
-    });
+        if (oembedEndpoint) {
+          break;
+        }
+      }
+
+      if (oembedEndpoint) {
+        break;
+      }
+    }
   } else {
     const oembed = (oEmbedData as IoEmbedData[]).find(
       (possibleOembed) => possibleOembed.provider_name === type
