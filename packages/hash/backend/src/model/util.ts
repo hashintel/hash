@@ -50,3 +50,10 @@ export const RESTRICTED_SHORTNAMES = [
   "users",
   "v2",
 ];
+
+export const RATE_LIMITING_MAX_ATTEMPTS = 5;
+export const RATE_LIMITING_PERIOD_SECONDS = 5 * 60;
+
+export const getRateLimitQueryTime = () => {
+  return new Date(Date.now() - RATE_LIMITING_PERIOD_SECONDS * 1000);
+};

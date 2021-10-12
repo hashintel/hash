@@ -18,6 +18,8 @@ import {
 import { genId } from "../util";
 import { Email } from "../graphql/apiTypes.gen";
 import EmailTransporter from "../email/transporter";
+import { getRateLimitQueryTime, RATE_LIMITING_MAX_ATTEMPTS } from "./util";
+import { ApolloError } from "apollo-server-express";
 
 type UserConstructorArgs = {
   properties: DBUserProperties;
@@ -225,6 +227,14 @@ class __User extends Account {
         }
       }
 
+      const allowed = await this.canCreateVerificationCode(client)();
+      if (!allowed) {
+        throw new ApolloError(
+          `User with id ${this.entityId} has created too many verification codes recently.`,
+          "FORBIDDEN"
+        );
+      }
+
       const emailAddress =
         alternateEmailAddress || this.getPrimaryEmail().address;
 
@@ -260,6 +270,14 @@ class __User extends Account {
         );
       }
 
+      const allowed = await this.canCreateVerificationCode(client)();
+      if (!allowed) {
+        throw new ApolloError(
+          `User with id ${this.entityId} has created too many verification codes recently.`,
+          "FORBIDDEN"
+        );
+      }
+
       const verificationCode = await VerificationCode.create(client)({
         accountId: this.accountId,
         userId: this.entityId,
@@ -272,6 +290,18 @@ class __User extends Account {
         magicLinkQueryParams,
       }).then(() => verificationCode);
     };
+
+  canCreateVerificationCode = (client: DBClient) => async () => {
+    const createdAfter = getRateLimitQueryTime();
+    const verificationCodes = await client.getUserVerificationCodes({
+      userEntityId: this.entityId,
+      createdAfter,
+    });
+    if (verificationCodes.length >= RATE_LIMITING_MAX_ATTEMPTS) {
+      return false;
+    }
+    return true;
+  };
 
   isMemberOfOrg = ({ entityId }: Org) =>
     this.properties.memberOf.find(
