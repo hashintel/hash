@@ -57,10 +57,8 @@ async function getEmbedResponse({
   let oembedEndpoint;
 
   if (!type) {
-    /** @todo: refactor this to stop using .find without a returned boolean */
-    // eslint-disable-next-line array-callback-return
     (oEmbedData as IoEmbedData[]).find((oembed) => {
-      oembed.endpoints.find((endpoint) =>
+      return oembed.endpoints.find((endpoint) =>
         endpoint.schemes?.find((scheme) => {
           if (
             scheme.split("*").every((substring) => url.search(substring) > -1)
