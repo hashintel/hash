@@ -84,10 +84,10 @@ export const resolvers = {
     getEntityType: loggedInAndSignedUp(getEntityType),
     page: loggedInAndSignedUp(page),
     // Logged in users only
-    getOrgEmailInvitation: loggedIn(getOrgEmailInvitation),
-    getOrgInvitationLink: loggedIn(getOrgInvitationLink),
     me: loggedIn(me),
     // Any user
+    getOrgEmailInvitation,
+    getOrgInvitationLink,
     isShortnameTaken,
     embedCode,
   },
