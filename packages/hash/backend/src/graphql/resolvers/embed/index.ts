@@ -47,6 +47,23 @@ type OembedResponse = {
   html: string;
 };
 
+const getOembedEndpoint = (url: string, type?: string) => {
+  for (const { provider_name, endpoints } of oEmbedData as IoEmbedData[]) {
+    if (type && provider_name !== type) {
+      continue;
+    }
+    for (const endpoint of endpoints) {
+      const isMatch = !!endpoint.schemes?.find((scheme) =>
+        scheme.split("*").every((substring) => url.search(substring) > -1)
+      );
+
+      if (isMatch) {
+        return endpoint.url;
+      }
+    }
+  }
+};
+
 async function getEmbedResponse({
   url,
   type,
@@ -54,47 +71,7 @@ async function getEmbedResponse({
   url: string;
   type?: Maybe<string>;
 }) {
-  let oembedEndpoint = undefined;
-
-  if (!type) {
-    for (const oembed of oEmbedData as IoEmbedData[]) {
-      for (const endpoint of oembed.endpoints) {
-        for (const scheme of endpoint.schemes ?? []) {
-          if (
-            scheme.split("*").every((substring) => url.search(substring) > -1)
-          ) {
-            oembedEndpoint = endpoint.url;
-            break;
-          }
-        }
-
-        if (oembedEndpoint) {
-          break;
-        }
-      }
-
-      if (oembedEndpoint) {
-        break;
-      }
-    }
-  } else {
-    const oembed = (oEmbedData as IoEmbedData[]).find(
-      (possibleOembed) => possibleOembed.provider_name === type
-    );
-
-    oembed?.endpoints.find((endpoint) =>
-      endpoint.schemes?.find((scheme) => {
-        if (
-          scheme.split("*").every((substring) => url.search(substring) > -1)
-        ) {
-          oembedEndpoint = endpoint.url;
-          return true;
-        }
-
-        return false;
-      })
-    );
-  }
+  const oembedEndpoint = getOembedEndpoint(url, type || undefined);
 
   if (!oembedEndpoint) {
     return {
