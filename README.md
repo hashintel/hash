@@ -48,6 +48,8 @@ See the [docker/README](./docker) for further details.
 
 ## Install the frontend and required remote blocks
 
+- Ensure you are running npm v6 or `npm-run-all` will cause issues - see [troubleshooting](#troubleshooting)
+
 `yarn install:demo`
 
 ## Start the frontend and required blocks

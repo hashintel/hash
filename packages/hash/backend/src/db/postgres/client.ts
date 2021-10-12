@@ -454,7 +454,10 @@ export class PostgresClient implements DBClient {
     return await getEntities(this.conn, entities);
   }
 
-  async getEntityTypes(params: { accountId: string }): Promise<EntityType[]> {
+  async getAccountEntityTypes(params: {
+    accountId: string;
+    includeOtherTypesInUse?: boolean | null;
+  }): Promise<EntityType[]> {
     return await getAccountEntityTypes(this.conn, params);
   }
 

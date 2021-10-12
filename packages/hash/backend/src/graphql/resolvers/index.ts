@@ -2,7 +2,7 @@ import GraphQLJSON from "graphql-type-json";
 
 import { ForbiddenError } from "apollo-server-express";
 import { Entity } from "../apiTypes.gen";
-// import { entityAccountName } from "./shared/account";
+
 import {
   aggregateEntity,
   createEntity,
