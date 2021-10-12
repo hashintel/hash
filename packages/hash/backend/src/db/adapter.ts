@@ -343,8 +343,14 @@ export interface DBClient {
     }[]
   ): Promise<Entity[]>;
 
-  /** Get entity types associated with a given accountId */
-  getEntityTypes(params: { accountId: string }): Promise<EntityType[]>;
+  /**
+   * Get entity types associated with a given accountId.
+   * Optionally include other types the account uses.
+   * */
+  getAccountEntityTypes(params: {
+    accountId: string;
+    includeOtherTypesInUse?: boolean | null;
+  }): Promise<EntityType[]>;
 
   /** Acquire a transaction-scoped lock on the provided entity ID. */
   acquireEntityLock(params: { entityId: string }): Promise<null>;
