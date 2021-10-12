@@ -20,7 +20,7 @@ type AccountSetupProps = {
   email: string;
   invitationInfo: {
     orgName: string;
-    inviter?: string;
+    inviterPreferredName?: string;
     invitationEmailToken?: string;
     invitationLinkToken?: string;
   } | null;
@@ -62,7 +62,7 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
   const [title, subtitle] = useMemo(() => {
     if (invitationInfo) {
       return [
-        `${invitationInfo.inviter} has invited you to join ${invitationInfo.orgName} on HASH`,
+        `${invitationInfo.inviterPreferredName} has invited you to join ${invitationInfo.orgName} on HASH`,
         `${email} has been confirmed. Now it's time to choose a username...`,
       ];
     }

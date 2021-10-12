@@ -5,6 +5,7 @@ import { useRouter } from "next/router";
 import Logo from "../../../../assets/svg/logo.svg";
 import { IconSpinner } from "../../../Icons/IconSpinner";
 import { TextInput } from "../../../forms/TextInput";
+import { useUser } from "../../../hooks/useUser";
 
 type SignupIntroProps = {
   handleSubmit: (email: string) => void;
@@ -13,7 +14,7 @@ type SignupIntroProps = {
   invitationInfo: {
     orgName: string;
     orgEntityId: string;
-    inviter?: string;
+    inviterPreferredName?: string;
     invitationEmailToken?: string;
     invitationLinkToken?: string;
   } | null;
@@ -27,11 +28,18 @@ export const SignupIntro: VFC<SignupIntroProps> = ({
 }) => {
   const [email, setEmail] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const { user } = useUser();
   const router = useRouter();
 
   useEffect(() => {
     inputRef.current?.select();
   }, []);
+
+  useEffect(() => {
+    if (user?.accountSignupComplete) {
+      void router.push(`/${user.accountId}`);
+    }
+  }, [user, router]);
 
   const onSubmit = (evt: React.FormEvent) => {
     evt.preventDefault();
@@ -43,10 +51,10 @@ export const SignupIntro: VFC<SignupIntroProps> = ({
   };
 
   const renderInviteHeader = () => {
-    if (invitationInfo?.inviter) {
+    if (invitationInfo?.inviterPreferredName) {
       return (
         <p className={tw`font-bold text-2xl text-blue-500 mb-12`}>
-          {invitationInfo.inviter} has invited you to join{" "}
+          {invitationInfo.inviterPreferredName} has invited you to join{" "}
           {invitationInfo.orgName}
         </p>
       );

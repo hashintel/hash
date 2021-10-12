@@ -17,7 +17,7 @@ type VerifyCodeProps = {
   invitationInfo: {
     orgName: string;
     orgEntityId: string;
-    inviter?: string;
+    inviterPreferredName?: string;
     invitationEmailToken?: string;
     invitationLinkToken?: string;
   } | null;
@@ -85,10 +85,10 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
   };
 
   const renderInviteHeader = () => {
-    if (invitationInfo?.inviter) {
+    if (invitationInfo?.inviterPreferredName) {
       return (
         <p className={tw`font-bold text-2xl text-blue-500 mb-12`}>
-          {invitationInfo.inviter} has invited you to join{" "}
+          {invitationInfo.inviterPreferredName} has invited you to join{" "}
           {invitationInfo.orgName}
         </p>
       );

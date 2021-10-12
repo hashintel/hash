@@ -32,7 +32,7 @@ import {
 
 type InvitationInfo = {
   orgName: string;
-  inviter?: string;
+  inviterPreferredName?: string;
   mode: "email" | "general";
 };
 
@@ -103,7 +103,7 @@ const InvitePage: NextPage = () => {
           .preferredName;
       if (orgName && inviter) {
         setInvitationInfo({
-          inviter,
+          inviterPreferredName: inviter,
           orgName,
           mode: "email",
         });
@@ -191,7 +191,7 @@ const InvitePage: NextPage = () => {
   const [title, subtitle] = useMemo(() => {
     if (invitationInfo?.mode === "email") {
       return [
-        `${invitationInfo.inviter} has invited you to join ${invitationInfo.orgName} on HASH`,
+        `${invitationInfo.inviterPreferredName} has invited you to join ${invitationInfo.orgName} on HASH`,
         `Now it's time to select your role at ${invitationInfo.orgName}`,
       ];
     }

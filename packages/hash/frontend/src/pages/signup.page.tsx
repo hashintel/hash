@@ -75,7 +75,7 @@ type State = {
   invitationInfo: {
     orgName: string;
     orgEntityId: string;
-    inviter?: string;
+    inviterPreferredName?: string;
     invitationEmailToken?: string;
     invitationLinkToken?: string;
   } | null;
@@ -333,7 +333,7 @@ const SignupPage: NextPage = () => {
             orgName:
               res.getOrgEmailInvitation.properties.org.data.properties.name ||
               "",
-            inviter:
+            inviterPreferredName:
               res.getOrgEmailInvitation.properties.inviter.data.properties
                 .preferredName || "",
             invitationEmailToken: router.query.invitationEmailToken as string,
@@ -400,16 +400,6 @@ const SignupPage: NextPage = () => {
     },
   });
 
-  useEffect(() => {
-    // If the user is logged in, and their account sign-up is complete...
-    // ...redirect them to the homepage
-    //  @todo this interferes with users that signup with normal flow and want to create an org
-    // if (
-    //   user?.accountSignupComplete
-    // ) {
-    //   void router.push(`/${user.accountId}`);
-    // }
-  }, [user, router, accountUsageType]);
 
   useEffect(() => {
     const { pathname, query } = router;
@@ -522,7 +512,7 @@ const SignupPage: NextPage = () => {
     if (responsibility && invitationInfo) {
       void joinOrg({
         variables: {
-          orgEntityId: invitationInfo.orgEntityId as string,
+          orgEntityId: invitationInfo.orgEntityId,
           verification: {
             ...(invitationInfo.invitationEmailToken && {
               invitationEmailToken: invitationInfo.invitationEmailToken,
