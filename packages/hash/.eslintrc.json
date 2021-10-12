@@ -80,6 +80,7 @@
         ]
       }
     ],
+    "react/require-default-props": "off",
     "no-shadow": "off", // see https://github.com/typescript-eslint/typescript-eslint/issues/2483
     "@typescript-eslint/no-shadow": "error",
     "no-use-before-define": "off",
