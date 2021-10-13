@@ -2,8 +2,8 @@ import { EntityStore, isBlockEntity } from "@hashintel/hash-shared/entityStore";
 import {
   historyPlugin,
   infiniteGroupHistoryPlugin,
-  ProsemirrorSchemaManager,
 } from "@hashintel/hash-shared/prosemirror";
+import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorView, NodeView } from "prosemirror-view";
 import { ReplacePortal } from "./usePortals";

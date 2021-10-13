@@ -2,7 +2,7 @@ import { useApolloClient } from "@apollo/client";
 import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 import { createEntityStore } from "@hashintel/hash-shared/entityStore";
-import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/prosemirror";
+import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { updatePageMutation } from "@hashintel/hash-shared/save";
 import { Schema } from "prosemirror-model";
 import { EditorView } from "prosemirror-view";

@@ -4,8 +4,8 @@ import { createEntityStore } from "@hashintel/hash-shared/entityStore";
 import {
   createProseMirrorState,
   getProseMirrorNodeAttributes,
-  ProsemirrorSchemaManager,
 } from "@hashintel/hash-shared/prosemirror";
+import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
 import { updatePageMutation } from "@hashintel/hash-shared/save";
 import { findEntityNodes } from "@hashintel/hash-shared/util";
