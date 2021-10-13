@@ -1,3 +1,4 @@
+import { ApolloError } from "apollo-server-express";
 import {
   User,
   Account,
@@ -19,7 +20,6 @@ import { genId } from "../util";
 import { Email } from "../graphql/apiTypes.gen";
 import EmailTransporter from "../email/transporter";
 import { getRateLimitQueryTime, RATE_LIMITING_MAX_ATTEMPTS } from "./util";
-import { ApolloError } from "apollo-server-express";
 
 type UserConstructorArgs = {
   properties: DBUserProperties;
