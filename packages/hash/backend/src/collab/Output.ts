@@ -1,5 +1,9 @@
 import { ServerResponse } from "http";
 
+/**
+ * @deprecated
+ * @todo remove this class
+ */
 export class Output {
   // eslint-disable-next-line no-useless-constructor
   constructor(

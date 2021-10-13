@@ -1,20 +1,18 @@
-import express from "express";
 import { json } from "body-parser";
+import express from "express";
 import helmet from "helmet";
-import { customAlphabet } from "nanoid";
 import { StatsD } from "hot-shots";
-import { createServer, RequestListener } from "http";
-
-import { PostgresAdapter, setupCronJobs } from "./db";
-import { createApolloServer } from "./graphql/createApolloServer";
+import { customAlphabet } from "nanoid";
 import setupAuth from "./auth";
-import { getRequiredEnv } from "./util";
-import { handleCollabRequest } from "./collab/server";
+import { RedisCache } from "./cache";
+import { collabApp } from "./collab/collabApp";
+import { PostgresAdapter, setupCronJobs } from "./db";
 import AwsSesEmailTransporter from "./email/transporter/awsSesEmailTransporter";
 import TestTransporter from "./email/transporter/testEmailTransporter";
-import { logger } from "./logger";
-import { RedisCache } from "./cache";
+import { createApolloServer } from "./graphql/createApolloServer";
 import { isProdEnv, isStatsDEnabled, isTestEnv, port } from "./lib/env-config";
+import { logger } from "./logger";
+import { getRequiredEnv } from "./util";
 
 const { FRONTEND_URL } = require("./lib/config");
 
@@ -107,6 +105,8 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use("/collab-backend", collabApp);
+
 // Ensure the GraphQL server has started before starting the HTTP server
 apolloServer
   .start()
@@ -116,13 +116,7 @@ apolloServer
       cors: { credentials: true, origin: FRONTEND_URL },
     });
 
-    const requestWrapper: RequestListener = (req, res) => {
-      if (!handleCollabRequest(req, res)) {
-        return app(req, res);
-      }
-    };
-
-    const server = createServer(requestWrapper).listen(port, () => {
+    const server = app.listen(port, () => {
       logger.info(`Listening on port ${port}`);
     });
 
