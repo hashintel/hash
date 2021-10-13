@@ -1,6 +1,6 @@
 import {
   createProseMirrorState,
-  ensureDocBlocksLoaded,
+  ProsemirrorSchemaManager,
 } from "@hashintel/hash-shared/prosemirror";
 import {
   collab,
@@ -12,8 +12,6 @@ import { Node, Schema } from "prosemirror-model";
 import { EditorState, Plugin, Transaction } from "prosemirror-state";
 import { Step } from "prosemirror-transform";
 import { EditorView } from "prosemirror-view";
-
-import { defineNodeViewFactory } from "../tsUtils";
 import { ReplacePortal } from "../usePortals";
 import { AbortingPromise, GET, POST } from "./http";
 import { Reporter } from "./Reporter";
@@ -66,12 +64,14 @@ export class EditorConnection {
   backOff = 0;
   request: AbortingPromise<string> | null = null;
 
+  // @todo check arguments to this
   constructor(
     public report: Reporter,
     public url: string,
     public schema: Schema,
     public view: EditorView,
     public replacePortal: ReplacePortal,
+    public manager: ProsemirrorSchemaManager,
 
     // @todo rename this
     public additionalPlugins: Plugin[]
@@ -163,11 +163,8 @@ export class EditorConnection {
     this.run(GET(this.url))
       .then((stringifiedData) => {
         const data = JSON.parse(stringifiedData);
-        return ensureDocBlocksLoaded(
-          this.schema,
-          data.doc,
-          defineNodeViewFactory(this.view, this.replacePortal)
-        ).then(() => data);
+
+        return this.manager.ensureDocBlocksLoaded(data.doc).then(() => data);
       })
       .then((data) => {
         this.report.success();

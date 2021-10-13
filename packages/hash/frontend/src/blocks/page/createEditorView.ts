@@ -1,5 +1,8 @@
 import { EntityStore } from "@hashintel/hash-shared/entityStore";
-import { createProseMirrorState } from "@hashintel/hash-shared/prosemirror";
+import {
+  createProseMirrorState,
+  ProsemirrorSchemaManager,
+} from "@hashintel/hash-shared/prosemirror";
 import { Schema } from "prosemirror-model";
 import { Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
@@ -10,7 +13,7 @@ import { BlockView } from "./BlockView";
 import { EditorConnection } from "./collab/EditorConnection";
 import { Reporter } from "./collab/Reporter";
 import styles from "./style.module.css";
-import { collabEnabled } from "./tsUtils";
+import { collabEnabled, defineNodeViewFactory } from "./tsUtils";
 import { ReplacePortal } from "./usePortals";
 
 const createSavePlugin = () => {
@@ -66,6 +69,7 @@ export const createEditorView = (
   const state = createProseMirrorState({ plugins });
 
   let connection: EditorConnection | null = null;
+  let manager: ProsemirrorSchemaManager;
 
   const view = new EditorView<Schema>(node, {
     state,
@@ -79,7 +83,8 @@ export const createEditorView = (
           currentView,
           getPos,
           replacePortal,
-          getEntityStore
+          getEntityStore,
+          manager
         );
       },
       block(currentNode, currentView, getPos) {
@@ -94,6 +99,11 @@ export const createEditorView = (
       : undefined,
   });
 
+  manager = new ProsemirrorSchemaManager(
+    state.schema,
+    defineNodeViewFactory(view, replacePortal)
+  );
+
   if (collabEnabled) {
     connection = new EditorConnection(
       new Reporter(),
@@ -101,6 +111,7 @@ export const createEditorView = (
       view.state.schema,
       view,
       replacePortal,
+      manager,
       plugins
     );
   }
@@ -110,5 +121,5 @@ export const createEditorView = (
   // @todo figure out how to use dev tools without it breaking fast refresh
   // applyDevTools(view);
 
-  return { view, connection };
+  return { view, connection, manager };
 };

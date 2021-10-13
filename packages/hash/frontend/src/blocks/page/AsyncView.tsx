@@ -1,12 +1,11 @@
 import { EntityStore, isBlockEntity } from "@hashintel/hash-shared/entityStore";
 import {
-  createRemoteBlockFromEntity,
   historyPlugin,
   infiniteGroupHistoryPlugin,
+  ProsemirrorSchemaManager,
 } from "@hashintel/hash-shared/prosemirror";
 import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorView, NodeView } from "prosemirror-view";
-import { defineNodeViewFactory } from "./tsUtils";
 import { ReplacePortal } from "./usePortals";
 
 /**
@@ -28,12 +27,14 @@ export class AsyncView implements NodeView {
   controller: AbortController | null = null;
   spinner: HTMLSpanElement | null = null;
 
+  // @todo check arguments to this
   constructor(
     node: ProsemirrorNode<Schema>,
     public view: EditorView,
     public getPos: () => number,
     public replacePortal: ReplacePortal,
-    public getEntityStore: () => EntityStore
+    public getEntityStore: () => EntityStore,
+    public manager: ProsemirrorSchemaManager
   ) {
     this.dom = document.createElement("div");
     this.contentDOM = document.createElement("span");
@@ -89,12 +90,8 @@ export class AsyncView implements NodeView {
 
     this.controller = new AbortController();
 
-    createRemoteBlockFromEntity(
-      view.state.schema,
-      defineNodeViewFactory(view, this.replacePortal),
-      entity,
-      node.attrs.targetComponentId
-    )
+    this.manager
+      .createRemoteBlockFromEntity(entity, node.attrs.targetComponentId)
       .then((newNode) => {
         if (this.controller?.signal.aborted) {
           return;

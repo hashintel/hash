@@ -2,9 +2,9 @@ import { ApolloClient } from "@apollo/client";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 import { createEntityStore } from "@hashintel/hash-shared/entityStore";
 import {
-  createEntityUpdateTransaction,
   createProseMirrorState,
   getProseMirrorNodeAttributes,
+  ProsemirrorSchemaManager,
 } from "@hashintel/hash-shared/prosemirror";
 import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
 import { updatePageMutation } from "@hashintel/hash-shared/save";
@@ -229,11 +229,12 @@ const newInstance =
 
     const state = createProseMirrorState();
 
+    const manager = new ProsemirrorSchemaManager(state.schema);
+
     const newState = state.apply(
-      await createEntityUpdateTransaction(
-        state,
+      await manager.createEntityUpdateTransaction(
         data.page.properties.contents,
-        null
+        state
       )
     );
 

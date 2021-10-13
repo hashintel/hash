@@ -2,10 +2,7 @@ import { useApolloClient } from "@apollo/client";
 import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 import { createEntityStore } from "@hashintel/hash-shared/entityStore";
-import {
-  createEntityUpdateTransaction,
-  defineNewBlock,
-} from "@hashintel/hash-shared/prosemirror";
+import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/prosemirror";
 import { updatePageMutation } from "@hashintel/hash-shared/save";
 import { Schema } from "prosemirror-model";
 import { EditorView } from "prosemirror-view";
@@ -20,7 +17,7 @@ import { BlockMetaContext } from "../blockMeta";
 import { EditorConnection } from "./collab/EditorConnection";
 import { createEditorView } from "./createEditorView";
 import { EntityStoreContext } from "./EntityStoreContext";
-import { collabEnabled, defineNodeViewFactory } from "./tsUtils";
+import { collabEnabled } from "./tsUtils";
 import { usePortals } from "./usePortals";
 
 type PageBlockProps = {
@@ -51,6 +48,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     view: EditorView;
     schema: Schema;
     connection: EditorConnection | null;
+    manager: ProsemirrorSchemaManager;
   }>(null);
 
   /**
@@ -133,7 +131,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
      * contain at least one child, so lets insert a special "blank" placeholder
      * child
      */
-    const { view, connection } = createEditorView(
+    const { view, connection, manager } = createEditorView(
       node,
       replacePortal,
       accountId,
@@ -141,10 +139,19 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       () => currentEntityStoreValue.current
     );
 
+    for (const [componentId, meta] of Array.from(blocksMeta.entries())) {
+      manager.defineNewBlock(
+        meta.componentMetadata,
+        meta.componentSchema,
+        componentId
+      );
+    }
+
     prosemirrorSetup.current = {
       schema: view.state.schema,
       view,
       connection: connection ?? null,
+      manager,
     };
 
     return () => {
@@ -153,30 +160,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       prosemirrorSetup.current = null;
       connection?.close();
     };
-  }, [accountId, entityId, replacePortal]);
-
-  /**
-   * This effect is responsible for ensuring all the preloaded blocks are
-   * defined in prosemirror
-   */
-  useLayoutEffect(() => {
-    if (!prosemirrorSetup.current) {
-      return;
-    }
-
-    const { view } = prosemirrorSetup.current;
-
-    // @todo filter out already defined blocks
-    for (const [componentId, meta] of Array.from(blocksMeta.entries())) {
-      defineNewBlock(
-        view.state.schema,
-        meta.componentMetadata,
-        meta.componentSchema,
-        defineNodeViewFactory(view, replacePortal),
-        componentId
-      );
-    }
-  }, [blocksMeta, replacePortal]);
+  }, [accountId, blocksMeta, entityId, replacePortal]);
 
   /**
    * Whenever contents are updated, we want to sync them to the prosemirror
@@ -200,14 +184,12 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
           return;
         }
 
-        const { view } = setup;
+        const { view, manager } = setup;
 
         const state = view.state;
-
-        const tr = await createEntityUpdateTransaction(
-          state,
+        const tr = await manager.createEntityUpdateTransaction(
           updatedContents,
-          defineNodeViewFactory(view, replacePortal)
+          state
         );
 
         if (signal?.aborted) {
@@ -233,7 +215,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     return () => {
       controller.abort();
     };
-  }, [replacePortal, entityId, contents]);
+  }, [contents]);
 
   return (
     <BlockMetaContext.Provider value={blocksMeta}>
