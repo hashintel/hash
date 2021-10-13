@@ -94,7 +94,13 @@ collabApp.get("/:accountId/:pageId/events", (req, resp) => {
     // If the server version matches the given version,
     // wait until a new version is published to return the event data.
     const wait = new Waiting(resp, inst, reqIP(req), () => {
-      wait.send(jsonEvents(inst, inst.getEvents(version)));
+      const events = inst.getEvents(version);
+      if (events === false) {
+        resp.status(410).send("History no longer available");
+        return;
+      }
+
+      wait.send(jsonEvents(inst, events));
     });
     inst.waiting.push(wait);
     resp.on("close", () => wait.abort());
