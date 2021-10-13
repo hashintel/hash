@@ -4,11 +4,6 @@ import { Instance } from "./Instance";
 // An object to assist in waiting for a collaborative editing
 // instance to publish a new version before sending the version
 // event data to the client.
-
-/**
- * @deprecated
- * @todo consider removing this class
- */
 export class Waiting {
   done = false;
 
