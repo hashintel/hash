@@ -3,7 +3,6 @@ import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 import { createEntityStore } from "@hashintel/hash-shared/entityStore";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
-import { updatePageMutation } from "@hashintel/hash-shared/save";
 import { EditorView } from "prosemirror-view";
 import "prosemirror-view/style/prosemirror.css";
 import React, {
@@ -78,44 +77,6 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     currentEntityStoreValue.current = entityStoreValue;
   }, [entityStoreValue]);
 
-  useLayoutEffect(() => {
-    /**
-     * Setting this function to global state as a shortcut to call it from deep
-     * within prosemirror.
-     *
-     * @todo come up with a better solution for this
-     *
-     * Note that this save handler only handles saving for things that
-     * prosemirror controls – i.e, the contents of prosemirror text nodes /
-     * the order of / the creation of / ther deletion of blocks (noting that
-     * changing block type is a deletion & a creation at once). Saves can be
-     * handled directly by the blocks implementation using the update callbacks
-     */
-    let saveQueue = Promise.resolve();
-    (window as any).triggerSave = () => {
-      if (collabEnabled) {
-        return;
-      }
-
-      saveQueue = saveQueue
-        .catch(() => {})
-        .then(() => {
-          if (!prosemirrorSetup.current) {
-            return;
-          }
-
-          return updatePageMutation(
-            accountId,
-            entityId,
-            prosemirrorSetup.current.view.state.doc,
-            currentContents.current,
-            currentEntityStoreValue.current,
-            client
-          ).then(() => {});
-        });
-    };
-  }, [accountId, client, entityId]);
-
   /**
    * This effect runs once and just sets up the prosemirror instance. It is not
    * responsible for setting the contents of the prosemirror document
@@ -134,12 +95,11 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       replacePortal,
       accountId,
       entityId,
-      () => currentEntityStoreValue.current
+      Array.from(blocksMeta.values()),
+      () => currentEntityStoreValue.current,
+      () => currentContents.current,
+      client
     );
-
-    for (const [componentId, meta] of Array.from(blocksMeta.entries())) {
-      manager.defineNewBlock(meta);
-    }
 
     prosemirrorSetup.current = {
       view,
@@ -153,7 +113,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       prosemirrorSetup.current = null;
       connection?.close();
     };
-  }, [accountId, blocksMeta, entityId, replacePortal]);
+  }, [accountId, blocksMeta, client, entityId, replacePortal]);
 
   /**
    * Whenever contents are updated, we want to sync them to the prosemirror

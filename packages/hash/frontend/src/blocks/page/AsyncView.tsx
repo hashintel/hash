@@ -102,21 +102,9 @@ export class AsyncView implements NodeView {
 
         tr.replaceRangeWith(pos, pos + node.nodeSize, newNode);
 
-        if (node.attrs.autofocus) {
-          // @todo trigger a node selection
-        } else {
-          document.body.focus();
-        }
-
+        document.body.focus();
         this.view.dispatch(tr);
-
         history.enableTracking(this.view);
-
-        if (node.attrs.autofocus) {
-          (window as any).triggerSave();
-          document.body.focus();
-          // view.focus();
-        }
       })
       .catch((err) => {
         if (err.name !== "AbortError") {

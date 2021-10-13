@@ -1,7 +1,11 @@
+import { ApolloClient } from "@apollo/client";
+import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
+import { BlockEntity } from "@hashintel/hash-shared/entity";
 import { EntityStore } from "@hashintel/hash-shared/entityStore";
 import { createProseMirrorState } from "@hashintel/hash-shared/prosemirror";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
-import { Schema } from "prosemirror-model";
+import { updatePageMutation } from "@hashintel/hash-shared/save";
+import { Node, Schema } from "prosemirror-model";
 import { Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { createBlockSuggester } from "../../components/BlockSuggester";
@@ -15,7 +19,35 @@ import { ComponentNodeView } from "./ComponentNodeView";
 import styles from "./style.module.css";
 import { ReplacePortal } from "./usePortals";
 
-const createSavePlugin = () => {
+const createSavePlugin = (
+  accountId: string,
+  pageId: string,
+  getDoc: () => Node<Schema>,
+  getLastSavedValue: () => BlockEntity[],
+  getEntityStore: () => EntityStore,
+  client: ApolloClient<unknown>
+) => {
+  let saveQueue = Promise.resolve();
+
+  const triggerSave = () => {
+    if (collabEnabled) {
+      return;
+    }
+
+    saveQueue = saveQueue
+      .catch(() => {})
+      .then(() => {
+        return updatePageMutation(
+          accountId,
+          pageId,
+          getDoc(),
+          getLastSavedValue(),
+          getEntityStore(),
+          client
+        ).then(() => {});
+      });
+  };
+
   let timeout: ReturnType<typeof setTimeout> | null = null;
 
   return new Plugin<unknown, Schema>({
@@ -25,7 +57,7 @@ const createSavePlugin = () => {
           // Manual save for cmd+s
           if (evt.key === "s" && evt.metaKey) {
             evt.preventDefault();
-            (window as any).triggerSave?.();
+            triggerSave();
 
             return true;
           }
@@ -43,7 +75,7 @@ const createSavePlugin = () => {
             clearTimeout(timeout);
           }
 
-          timeout = setTimeout(() => (window as any).triggerSave?.(), 500);
+          timeout = setTimeout(() => triggerSave(), 500);
 
           return false;
         },
@@ -57,10 +89,22 @@ export const createEditorView = (
   replacePortal: ReplacePortal,
   accountId: string,
   pageId: string,
-  getEntityStore: () => EntityStore
+  preloadedBlocks: BlockMeta[],
+  getEntityStore: () => EntityStore,
+  getLastSavedValue: () => BlockEntity[],
+  client: ApolloClient<unknown>
 ) => {
+  let view: EditorView;
+
   const plugins = [
-    createSavePlugin(),
+    createSavePlugin(
+      accountId,
+      pageId,
+      () => view.state.doc,
+      getLastSavedValue,
+      getEntityStore,
+      client
+    ),
     createMarksTooltip(replacePortal),
     createBlockSuggester(replacePortal),
   ];
@@ -70,7 +114,7 @@ export const createEditorView = (
   let connection: EditorConnection | null = null;
   let manager: ProsemirrorSchemaManager;
 
-  const view = new EditorView<Schema>(renderNode, {
+  view = new EditorView<Schema>(renderNode, {
     state,
     nodeViews: {
       async(currentNode, currentView, getPos) {
@@ -127,6 +171,10 @@ export const createEditorView = (
   }
 
   view.dom.classList.add(styles.ProseMirror);
+
+  for (const meta of preloadedBlocks) {
+    manager.defineNewBlock(meta);
+  }
 
   // @todo figure out how to use dev tools without it breaking fast refresh
   // applyDevTools(view);
