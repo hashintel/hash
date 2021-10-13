@@ -303,7 +303,7 @@ class __User extends Account {
       userEntityId: this.entityId,
       createdAfter,
     });
-    if (verificationCodes.length >= EMAIL_RATE_LIMITING_MAX_ATTEMPTS) {
+    if (verificationCodes.length > EMAIL_RATE_LIMITING_MAX_ATTEMPTS) {
       return false;
     }
     return true;
