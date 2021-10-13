@@ -701,9 +701,9 @@ describe("logged in user ", () => {
   });
 
   it("Can only create 5 login codes before being rate limited", async () => {
-    // The first code is the one when the account was created, so we should fail at the fifth one
+    // The first code is the one when the account was created, so we should fail at the fourth one
     const { address: emailAddress } = existingUser.getPrimaryEmail();
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 3; i++) {
       await expect(
         client.sendLoginCode({
           emailOrShortname: emailAddress,
