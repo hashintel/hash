@@ -1,11 +1,11 @@
 import { NodeSpec, Schema } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
+import { DirectEditorProps, EditorView } from "prosemirror-view";
 import {
   blockComponentRequiresText,
   BlockMeta,
   fetchBlockMeta,
 } from "./blockMeta";
-import { DefineNodeView } from "./defineNodeView";
 import { BlockEntity, getTextEntityFromBlock } from "./entity";
 import { childrenForTextEntity } from "./entityProsemirror";
 import { getProseMirrorNodeAttributes } from "./prosemirror";
@@ -24,12 +24,18 @@ const createComponentNodeSpec = (spec: Partial<NodeSpec>): NodeSpec => ({
   },
 });
 
+type NodeViewFactory = NonNullable<
+  DirectEditorProps<Schema>["nodeViews"]
+>[string];
+
+type ComponentNodeViewFactory = (meta: BlockMeta) => NodeViewFactory;
+
 export class ProsemirrorSchemaManager {
   // eslint-disable-next-line no-useless-constructor
   constructor(
     public schema: Schema,
-    // @todo consider making this replace portal
-    private defineNodeView: DefineNodeView | null = null // eslint-disable-next-line no-empty-function
+    private view: EditorView<Schema> | null = null,
+    private componentNodeViewFactory: ComponentNodeViewFactory | null = null // eslint-disable-next-line no-empty-function
   ) {}
 
   /**
@@ -108,7 +114,20 @@ export class ProsemirrorSchemaManager {
     });
 
     this.defineNewNode(componentId, spec);
-    this.defineNodeView?.(meta);
+    this.defineNodeView(componentId, meta);
+  }
+
+  defineNodeView(componentId: string, meta: BlockMeta) {
+    if (this.componentNodeViewFactory && this.view) {
+      this.view.setProps({
+        nodeViews: {
+          // @todo look into this
+          // @ts-ignore-error
+          ...this.view.nodeViews,
+          [componentId]: this.componentNodeViewFactory(meta),
+        },
+      });
+    }
   }
 
   /**

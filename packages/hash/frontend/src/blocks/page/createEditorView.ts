@@ -10,8 +10,9 @@ import { AsyncView } from "./AsyncView";
 import { BlockView } from "./BlockView";
 import { EditorConnection } from "./collab/EditorConnection";
 import { Reporter } from "./collab/Reporter";
+import { collabEnabled } from "./collabEnabled";
+import { ComponentNodeView } from "./ComponentNodeView";
 import styles from "./style.module.css";
-import { collabEnabled, defineNodeViewFactory } from "./tsUtils";
 import { ReplacePortal } from "./usePortals";
 
 const createSavePlugin = () => {
@@ -52,7 +53,7 @@ const createSavePlugin = () => {
 };
 
 export const createEditorView = (
-  node: HTMLElement,
+  renderNode: HTMLElement,
   replacePortal: ReplacePortal,
   accountId: string,
   pageId: string,
@@ -69,7 +70,7 @@ export const createEditorView = (
   let connection: EditorConnection | null = null;
   let manager: ProsemirrorSchemaManager;
 
-  const view = new EditorView<Schema>(node, {
+  const view = new EditorView<Schema>(renderNode, {
     state,
     nodeViews: {
       async(currentNode, currentView, getPos) {
@@ -98,7 +99,20 @@ export const createEditorView = (
 
   manager = new ProsemirrorSchemaManager(
     state.schema,
-    defineNodeViewFactory(view, replacePortal)
+    view,
+    (meta) => (node, editorView, getPos) => {
+      if (typeof getPos === "boolean") {
+        throw new Error("Invalid config for nodeview");
+      }
+
+      return new ComponentNodeView(
+        node,
+        editorView,
+        getPos,
+        replacePortal,
+        meta
+      );
+    }
   );
 
   if (collabEnabled) {

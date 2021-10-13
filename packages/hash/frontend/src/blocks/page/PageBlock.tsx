@@ -14,9 +14,9 @@ import React, {
 } from "react";
 import { BlockMetaContext } from "../blockMeta";
 import { EditorConnection } from "./collab/EditorConnection";
+import { collabEnabled } from "./collabEnabled";
 import { createEditorView } from "./createEditorView";
 import { EntityStoreContext } from "./EntityStoreContext";
-import { collabEnabled } from "./tsUtils";
 import { usePortals } from "./usePortals";
 
 type PageBlockProps = {
