@@ -80,9 +80,8 @@ export const createEditorView = (
           currentNode,
           currentView,
           getPos,
-          replacePortal,
-          getEntityStore,
-          manager
+          manager,
+          getEntityStore
         );
       },
       block(currentNode, currentView, getPos) {
@@ -108,7 +107,6 @@ export const createEditorView = (
       `http://localhost:5001/collab-backend/${accountId}/${pageId}`,
       view.state.schema,
       view,
-      replacePortal,
       manager,
       plugins
     );

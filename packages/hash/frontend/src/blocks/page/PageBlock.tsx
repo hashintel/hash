@@ -4,7 +4,6 @@ import { BlockEntity } from "@hashintel/hash-shared/entity";
 import { createEntityStore } from "@hashintel/hash-shared/entityStore";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { updatePageMutation } from "@hashintel/hash-shared/save";
-import { Schema } from "prosemirror-model";
 import { EditorView } from "prosemirror-view";
 import "prosemirror-view/style/prosemirror.css";
 import React, {
@@ -46,7 +45,6 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
 
   const prosemirrorSetup = useRef<null | {
     view: EditorView;
-    schema: Schema;
     connection: EditorConnection | null;
     manager: ProsemirrorSchemaManager;
   }>(null);
@@ -148,7 +146,6 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     }
 
     prosemirrorSetup.current = {
-      schema: view.state.schema,
       view,
       connection: connection ?? null,
       manager,
@@ -183,11 +180,8 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
         if (!setup) {
           return;
         }
-
-        const { view, manager } = setup;
-
-        const state = view.state;
-        const tr = await manager.createEntityUpdateTransaction(
+        const { state } = setup.view;
+        const tr = await setup.manager.createEntityUpdateTransaction(
           updatedContents,
           state
         );
@@ -202,11 +196,11 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
          *
          * @todo probably better way of dealing with this
          */
-        if (view.state !== state || prosemirrorSetup.current !== setup) {
+        if (setup.view.state !== state || prosemirrorSetup.current !== setup) {
           return updateContents(updatedContents, signal);
         }
 
-        view.dispatch(tr);
+        setup.view.dispatch(tr);
       })(contents, controller.signal).catch((err) =>
         console.error("Could not update page contents: ", err)
       );

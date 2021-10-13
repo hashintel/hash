@@ -6,7 +6,6 @@ import {
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorView, NodeView } from "prosemirror-view";
-import { ReplacePortal } from "./usePortals";
 
 /**
  * You can think of this more as a "Switcher" view – when you change node type
@@ -27,14 +26,12 @@ export class AsyncView implements NodeView {
   controller: AbortController | null = null;
   spinner: HTMLSpanElement | null = null;
 
-  // @todo check arguments to this
   constructor(
     node: ProsemirrorNode<Schema>,
     public view: EditorView,
     public getPos: () => number,
-    public replacePortal: ReplacePortal,
-    public getEntityStore: () => EntityStore,
-    public manager: ProsemirrorSchemaManager
+    public manager: ProsemirrorSchemaManager,
+    public getEntityStore: () => EntityStore
   ) {
     this.dom = document.createElement("div");
     this.contentDOM = document.createElement("span");
@@ -67,8 +64,6 @@ export class AsyncView implements NodeView {
     if (this.spinner) {
       this.spinner.remove();
     }
-
-    const view = this.view;
 
     this.spinner = document.createElement("span");
     this.spinner.innerText = "Loading…";
@@ -106,7 +101,7 @@ export class AsyncView implements NodeView {
          */
 
         const pos = this.getPos();
-        const tr = view.state.tr;
+        const tr = this.view.state.tr;
 
         tr.replaceRangeWith(pos, pos + node.nodeSize, newNode);
 
@@ -116,16 +111,16 @@ export class AsyncView implements NodeView {
           document.body.focus();
         }
 
-        view.dispatch(tr);
+        this.view.dispatch(tr);
 
         /**
          * Ensures we start tracking history properly again
          *
          * @todo remove the need for this
          */
-        view.updateState(
-          view.state.reconfigure({
-            plugins: view.state.plugins.map((plugin) =>
+        this.view.updateState(
+          this.view.state.reconfigure({
+            plugins: this.view.state.plugins.map((plugin) =>
               plugin === infiniteGroupHistoryPlugin ? historyPlugin : plugin
             ),
           })

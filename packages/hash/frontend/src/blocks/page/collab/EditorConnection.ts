@@ -10,7 +10,6 @@ import { Node, Schema } from "prosemirror-model";
 import { EditorState, Plugin, Transaction } from "prosemirror-state";
 import { Step } from "prosemirror-transform";
 import { EditorView } from "prosemirror-view";
-import { ReplacePortal } from "../usePortals";
 import { AbortingPromise, GET, POST } from "./http";
 import { Reporter } from "./Reporter";
 import { StatusError } from "./StatusError";
@@ -62,16 +61,12 @@ export class EditorConnection {
   backOff = 0;
   request: AbortingPromise<string> | null = null;
 
-  // @todo check arguments to this
   constructor(
     public report: Reporter,
     public url: string,
     public schema: Schema,
     public view: EditorView,
-    public replacePortal: ReplacePortal,
     public manager: ProsemirrorSchemaManager,
-
-    // @todo rename this
     public additionalPlugins: Plugin[]
   ) {
     this.start();
