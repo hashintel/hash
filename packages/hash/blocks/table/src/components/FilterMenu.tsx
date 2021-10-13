@@ -1,55 +1,21 @@
 import React, { useState } from "react";
+import { BlockProtocolFilterOperator } from "@hashintel/block-protocol";
 import { AddIcon } from "./Icons";
 import { tw } from "twind";
 import { v4 as uuid } from "uuid";
-import { Modal } from "./Modal";
 import { ColumnInstance } from "react-table";
 
-const OPERATIONS = [
-  {
-    label: "Is",
-    value: "IS",
-  },
-  {
-    label: "Is Not",
-    value: "IS_NOT",
-  },
-  {
-    label: "Contains",
-    value: "CONTAINS",
-  },
-  {
-    label: "Does not contain",
-    value: "DOES_NOT_CONTAIN",
-  },
-  {
-    label: "Starts with",
-    value: "STARTS_WITH",
-  },
-  {
-    label: "Ends with",
-    value: "ENDS_WITH",
-  },
-  {
-    label: "Is empty",
-    value: "IS_EMPTY",
-  },
-  {
-    label: "Is not empty",
-    value: "IS_NOT_EMPTY",
-  },
-] as const;
 
-type FilterDetailProps = {
+type FilterMenuProps = {
   columns: ColumnInstance<{}>[];
 };
 
-export const FilterDetail: React.VFC<FilterDetailProps> = ({ columns }) => {
+export const FilterMenu: React.VFC<FilterMenuProps> = ({ columns }) => {
   const [operation, setOperation] = useState("And");
   const [fields, setFields] = useState<
     {
       property: string;
-      operator: typeof OPERATIONS[number]["value"];
+      operator: BlockProtocolFilterOperator;
       value: string;
       id: string;
     }[]
@@ -60,7 +26,7 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({ columns }) => {
       ...prevFields,
       {
         property: columns?.[0].id ?? "",
-        operator: "CONTAINS",
+        operator: BlockProtocolFilterOperator.CONTAINS,
         value: "",
         id: uuid(),
       },
@@ -69,7 +35,7 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({ columns }) => {
 
   const removeField = (id: string) => {
     setFields((prevFields) =>
-      prevFields.filter((property) => property.id != id)
+      prevFields.filter((property) => property.id !== id)
     );
   };
 
@@ -78,11 +44,11 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({ columns }) => {
     data: {
       property?: string;
       value?: string;
-      operator?: typeof OPERATIONS[number]["value"];
+      operator?: BlockProtocolFilterOperator;
     }
   ) => {
     const updatedFields = fields.map((item) =>
-      item.id == id
+      item.id === id
         ? {
             id: item.id,
             property: data.property ?? item.property,
@@ -103,7 +69,7 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({ columns }) => {
         return (
           <div key={id} className={tw`flex items-center mb-4`}>
             <div className={tw`w-14 mr-2`}>
-              {index == 0 ? (
+              {index === 0 ? (
                 <span className={tw`text-sm px-1`}>Where</span>
               ) : (
                 <select
@@ -133,16 +99,17 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({ columns }) => {
               className={tw`text-sm border(1 gray-300 focus:gray-500) focus:outline-none rounded h-8 w-28 px-2 mr-2`}
               onChange={(evt) =>
                 updateField(id, {
-                  operator: evt.target
-                    .value as typeof OPERATIONS[number]["value"],
+                  operator: evt.target.value as BlockProtocolFilterOperator,
                 })
               }
             >
-              {OPERATIONS.map(({ label, value }) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
+              {Object.values(BlockProtocolFilterOperator).map((operator) => {
+                return (
+                  <option key={operator} value={operator}>
+                    {operator}
+                  </option>
+                );
+              })}
             </select>
             <input
               placeholder="Value"

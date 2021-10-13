@@ -8,23 +8,35 @@ import { GraphQLContext } from "../../context";
 import { Entity, EntityWithIncompleteEntityType } from "../../../model";
 import { DBAdapter } from "../../../db";
 
+/** makes it possible to access nested paths (e.g person.location.name)
+ * @todo properly type this
+ */
+const resolvePath = (object: any, path: string, defaultValue?: any) =>
+  path
+    .split(".")
+    .reduce((acc, currVal) => acc?.[currVal] ?? defaultValue, object);
+
 /** Compare entities on a given property. */
 const compareEntitiesByField = (
   entityA: Entity,
   entityB: Entity,
-  property: string,
+  propertyPath: string,
   desc: boolean
 ): number => {
   if (
-    property === "entityCreatedAt" ||
-    property === "entityVersionCreatedAt" ||
-    property === "entityVersionUpdatedAt"
+    propertyPath === "entityCreatedAt" ||
+    propertyPath === "entityVersionCreatedAt" ||
+    propertyPath === "entityVersionUpdatedAt"
   ) {
-    return entityA[property].getTime() - entityB[property].getTime();
+    return entityA[propertyPath].getTime() - entityB[propertyPath].getTime();
   }
 
-  const a = desc ? entityB.properties[property] : entityA.properties[property];
-  const b = desc ? entityA.properties[property] : entityB.properties[property];
+  const a = desc
+    ? resolvePath(entityB.properties, propertyPath)
+    : resolvePath(entityA.properties, propertyPath);
+  const b = desc
+    ? resolvePath(entityA.properties, propertyPath)
+    : resolvePath(entityB.properties, propertyPath);
 
   if (typeof a === "string" && typeof b === "string") {
     return a.localeCompare(b);

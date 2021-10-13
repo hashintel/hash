@@ -6,8 +6,8 @@ import React, {
 } from "react";
 import { Column, Row } from "react-table";
 import { BlockProtocolUpdateFn } from "@hashintel/block-protocol";
-import { identityEntityAndProperty } from "../lib/identifyEntity";
 import { tw } from "twind";
+import { identityEntityAndProperty } from "../lib/identifyEntity";
 
 type EditableCellProps = {
   value: string;

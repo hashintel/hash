@@ -1,4 +1,4 @@
-import {  FC } from "react";
+import { FC } from "react";
 import { Dialog } from "@headlessui/react";
 import { tw } from "twind";
 import { AuthLayout } from "../../layout/PageLayout/AuthLayout";

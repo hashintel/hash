@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo } from "react";
+import React, { useCallback, useMemo } from "react";
 import { TableOptions, useSortBy, useTable } from "react-table";
 import { BlockProtocolLinkedDataDefinition } from "@hashintel/block-protocol";
 import { BlockComponent } from "@hashintel/block-protocol/react";
@@ -19,6 +19,7 @@ type AppProps = {
   initialState?: TableOptions<{}>["initialState"];
   entityId: string;
 };
+
 
 export const App: BlockComponent<AppProps> = ({
   data = { data: [] },
@@ -64,7 +65,13 @@ export const App: BlockComponent<AppProps> = ({
   );
 
   const handleAggregate = useCallback(
-    ({ operation, filter, sort, itemsPerPage, pageNumber }: AggregateArgs) => {
+    ({
+      operation,
+      filters,
+      sorts,
+      itemsPerPage,
+      pageNumber,
+    }: AggregateArgs) => {
       if (!update || !data.__linkedData) return;
       const newLinkedData = { ...data.__linkedData };
       const newState = { hiddenColumns: initialState?.hiddenColumns };
@@ -73,12 +80,12 @@ export const App: BlockComponent<AppProps> = ({
         return;
       }
 
-      if (operation === "sort" && sort) {
-        newLinkedData.aggregate.sort = sort;
+      if (operation === "sort" && sorts) {
+        newLinkedData.aggregate.sorts = sorts;
       }
 
-      if (operation === "filter" && filter) {
-        newLinkedData.aggregate.filter = filter;
+      if (operation === "filter" && filters) {
+        newLinkedData.aggregate.filters = filters;
       }
 
       if (operation === "changePage" && (itemsPerPage || pageNumber)) {
@@ -145,7 +152,7 @@ export const App: BlockComponent<AppProps> = ({
     let newColumns: string[] = [];
 
     if (state.hiddenColumns.includes(columnId) || !showColumn) {
-      newColumns = state.hiddenColumns.filter((id) => id != columnId);
+      newColumns = state.hiddenColumns.filter((id) => id !== columnId);
     } else {
       newColumns = state.hiddenColumns.concat(columnId);
     }

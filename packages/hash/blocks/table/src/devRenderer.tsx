@@ -29,7 +29,7 @@ const useMockData = () => {
   const [tableData, setTableData] = useState(initialTableData);
 
   const getResolvedData = useCallback(() => {
-    let resolvedData = [];
+    let resolvedData: Person[] = [];
 
     const linkedData = tableData.data.__linkedData;
     if (!linkedData) {
@@ -79,11 +79,14 @@ const useMockData = () => {
     }
 
     // SORTING
-    if (linkedData.aggregate?.sort) {
-      const { field, desc } = linkedData.aggregate.sort;
-      resolvedData = resolvedData.sort((a, b) =>
-        compareEntitiesByField(a, b, field, desc ?? false)
-      );
+    if (linkedData.aggregate?.sorts) {
+      const sortFields = linkedData.aggregate.sorts;
+
+      sortFields.forEach(({ field, desc }) => {
+        resolvedData = resolvedData.sort((a, b) =>
+          compareEntitiesByField(a, b, field, desc ?? false)
+        );
+      });
     }
 
     // PAGINATION
@@ -113,27 +116,12 @@ const useMockData = () => {
       const newTableData = { ...tableData };
 
       actions.forEach((action) => {
-        if (!!action.data.data?.__linkedData) {
+        if (action.data.data?.__linkedData) {
           newTableData.data.__linkedData = action.data.data?.__linkedData;
         }
         newTableData.initialState = action.data.initialState;
         setTableData(newTableData);
-        return;
       });
-
-      // handle initialState updates
-
-      // handle aggregation updates
-      // const actionWithAggregation = actions.find(
-      //   (action) => !!action.data.data?.__linkedData
-      // );
-
-      // if (actionWithAggregation?.data.data?.__linkedData) {
-      //   newTableData.data.__linkedData =
-      //     actionWithAggregation.data.data.__linkedData;
-      //   setTableData(newTableData);
-      //   return;
-      // }
 
       setEntities((prevData) => {
         const newData = prevData.map((entity) => {

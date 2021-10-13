@@ -23,7 +23,7 @@ export const makeColumns = (
     }
 
     const column: TableColumn = {
-      Header: accessor.split('.').join(' '),
+      Header: accessor.split(".").join(" "),
       accessor,
     };
     if (isRecord(value)) {
@@ -40,7 +40,9 @@ export const makeColumns = (
       : (a.accessor as string).localeCompare(b.accessor as string)
   );
 
-  const flattenedColumns = columns.flatMap(column => column.columns ?? column)
+  const flattenedColumns = columns.flatMap(
+    (column) => column.columns ?? column
+  );
 
   return flattenedColumns;
 };

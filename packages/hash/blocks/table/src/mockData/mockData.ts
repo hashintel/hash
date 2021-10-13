@@ -33,11 +33,26 @@ const london: Location = {
   type: "Location",
 };
 
-const HASH: Company = {
+const newYork: Location = {
+  entityId: "place2",
+  country: "US",
+  name: "New York",
+  type: "Location",
+};
+
+const HASH1: Company = {
   name: "HASH",
   url: "https://hash.ai",
   locationId: "place1",
   entityId: "c1",
+  type: "Company",
+};
+
+const HASH2: Company = {
+  name: "HASH",
+  url: "https://hash.ai",
+  locationId: "place2",
+  entityId: "c2",
   type: "Company",
 };
 
@@ -98,6 +113,13 @@ const people: Person[] = [
     name: "Andre Litvin",
     type: "Person",
   },
+  {
+    email: "ns@hash.ai",
+    employerId: "c2",
+    entityId: "9",
+    name: "Nur Shlapobersky",
+    type: "Person",
+  },
 ];
 
 export const initialTableData = {
@@ -107,7 +129,9 @@ export const initialTableData = {
       "employerId",
       "employer.locationId",
       "employer.entityId",
+      "employer.type",
       "employer.location.entityId",
+      "employer.location.type",
     ],
   } as TableOptions<{}>["initialState"],
   data: {
@@ -115,9 +139,9 @@ export const initialTableData = {
       entityTypeId: "Person",
       aggregate: {
         itemsPerPage: 3,
-        sort: {
+        sorts: [{
           field: "name",
-        },
+        }],
       },
     } as BlockProtocolLinkedDataDefinition,
     data: [] as Person[],
@@ -125,4 +149,4 @@ export const initialTableData = {
   entityId: "table1",
 };
 
-export const entities = [...people, HASH, london];
+export const entities = [...people, HASH1, HASH2, london, newYork];

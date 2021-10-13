@@ -2,20 +2,15 @@ import React, { FC } from "react";
 import { Popover, Transition } from "@headlessui/react";
 import { tw } from "twind";
 
-type ModalProps = {
-  onClose?: () => void;
-  show?: boolean;
+type MenuProps = {
   label: string;
 };
 
-export const Modal: FC<ModalProps> = ({
-  children,
-  onClose = () => {},
-  show,
-  label,
-}) => (
+export const Menu: FC<MenuProps> = ({ children, label }) => (
   <Popover className={tw`relative z-10`}>
-    <Popover.Button className={tw`text-sm text-blue-500 hover:text-blue-700 focus:outline-none`}>
+    <Popover.Button
+      className={tw`text-sm text-blue-500 hover:text-blue-700 focus:outline-none`}
+    >
       {label}
     </Popover.Button>
     <Transition

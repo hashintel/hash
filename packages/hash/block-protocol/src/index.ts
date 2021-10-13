@@ -58,20 +58,19 @@ export enum BlockProtocolCombinatorFilterOperator {
 export type BlockProtocolAggregateOperationInput = {
   pageNumber?: number;
   itemsPerPage?: number;
-  sort?: {
-    field: string;
-    desc?: boolean | undefined | null;
-  } | null;
   sorts?:
     | {
         field: string;
         desc?: boolean | undefined | null;
       }[]
     | null;
-  filter?: { field: string; value: string } | null;
   // @todo call this multiFilters or combinatorFilter ?
   filters?: {
-    filters: { field: string; operator: BlockProtocolFilterOperator; value: string }[];
+    filters: {
+      field: string;
+      operator: BlockProtocolFilterOperator;
+      value: string;
+    }[];
     operator: BlockProtocolCombinatorFilterOperator;
   } | null;
 };

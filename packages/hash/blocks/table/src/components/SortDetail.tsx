@@ -1,41 +1,48 @@
 import React, { useEffect, useState } from "react";
-import { AddIcon } from "./Icons";
 import { tw } from "twind";
 import { ColumnInstance } from "react-table";
+import { v4 as uuid } from "uuid";
+import { BlockProtocolAggregateOperationInput } from "@hashintel/block-protocol";
+import { AddIcon } from "./Icons";
 
 type SortDetailProps = {
   columns: ColumnInstance<{}>[];
-  onSort: (sortFields: { field: string; desc: boolean }[]) => void;
+  onSort: (
+    sortFields: NonNullable<BlockProtocolAggregateOperationInput["sorts"]>
+  ) => void;
 };
 
 export const SortDetail: React.VFC<SortDetailProps> = ({ columns, onSort }) => {
   const [fields, setFields] = useState<
-    { field: string; desc: boolean; id: number }[]
+    (NonNullable<BlockProtocolAggregateOperationInput["sorts"]>[number] & {
+      id: string;
+    })[]
   >([]);
 
   useEffect(() => {
-    onSort(fields);
+    const fieldsWithoutId = fields.map(({ field, desc }) => ({ field, desc }));
+    onSort(fieldsWithoutId);
   }, [fields]);
 
   const addField = () => {
     setFields((prevFields) => [
       ...prevFields,
-      { field: "", desc: false, id: prevFields.length + 1 },
+      { field: columns?.[0].id ?? "", desc: false, id: uuid() },
     ]);
   };
 
-  const removeField = (id: number) => {
+  const removeField = (id: string) => {
     setFields((prevFields) =>
-      prevFields.filter((property) => property.id != id)
+      prevFields.filter((property) => property.id !== id)
     );
   };
 
   const updateField = (
-    id: number,
+    id: string,
     property: { field?: string; desc?: boolean }
   ) => {
     const updatedFields = fields.map((item) =>
-      item.id == id
+      item.id === id
         ? {
             id: item.id,
             field: property.field ?? item.field,
@@ -51,15 +58,18 @@ export const SortDetail: React.VFC<SortDetailProps> = ({ columns, onSort }) => {
     <div className={tw`w-96 pt-4 px-4 pb-2`}>
       <p className={tw`text-sm mb-3`}>Sort for</p>
 
-      {fields.map(({ id }) => {
+      {fields.map(({ id, field, desc }) => {
         return (
-          <div className={tw`flex mb-4`}>
+          <div key={id} className={tw`flex mb-4`}>
             <select
               className={tw`text-sm border(1 gray-300 focus:gray-500) focus:outline-none rounded h-8 px-2 mr-2`}
               onChange={(evt) => updateField(id, { field: evt.target.value })}
+              value={field}
             >
               {columns.map((column) => (
-                <option value={column.id}>{column.id}</option>
+                <option key={column.id} value={column.id}>
+                  {column.id}
+                </option>
               ))}
             </select>
             <select
@@ -67,6 +77,7 @@ export const SortDetail: React.VFC<SortDetailProps> = ({ columns, onSort }) => {
               onChange={(evt) =>
                 updateField(id, { desc: evt.target.value == "desc" })
               }
+              value={desc ? "desc" : "asc"}
             >
               <option value="asc">Ascending</option>
               <option value="desc">Descending</option>
