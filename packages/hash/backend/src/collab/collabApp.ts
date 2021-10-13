@@ -1,11 +1,11 @@
 import { createApolloClient } from "@hashintel/hash-shared/graphql/createApolloClient";
 import { json } from "body-parser";
 import corsMiddleware from "cors";
-import express from "express";
+import express, { Response } from "express";
 import { IncomingMessage } from "http";
 import { FRONTEND_URL } from "../lib/config";
 import { getInstance, Instance } from "./Instance";
-import { StatusError } from "./StatusError";
+import { InvalidVersionError } from "./InvalidVersionError";
 import { Waiting } from "./Waiting";
 
 export const collabApp = express();
@@ -29,11 +29,17 @@ interface ParsedQs {
   [key: string]: undefined | string | string[] | ParsedQs | ParsedQs[];
 }
 
+const handleError = (resp: Response, err: any) => {
+  resp
+    .status(err instanceof InvalidVersionError ? 400 : 500)
+    .send(err.toString());
+};
+
 const nonNegInteger = (str: ParsedQs[string]) => {
   const num = Number(str);
   if (!Number.isNaN(num) && Math.floor(num) === num && num >= 0) return num;
 
-  throw new StatusError(400, `Not a non-negative integer: ${str}`);
+  throw new InvalidVersionError(str);
 };
 
 const jsonEvents = (
@@ -67,7 +73,7 @@ collabApp.get("/:accountId/:pageId", (req, resp) => {
       version: inst.version,
     });
   })().catch((err) => {
-    resp.status(500).send(err.toString());
+    handleError(resp, err);
   });
 });
 
@@ -98,7 +104,7 @@ collabApp.get("/:accountId/:pageId/events", (req, resp) => {
     inst.waiting.push(wait);
     resp.on("close", () => wait.abort());
   })().catch((err) => {
-    resp.status(500).send(err.toString());
+    handleError(resp, err);
   });
 });
 
@@ -126,6 +132,6 @@ collabApp.post("/:accountId/:pageId/events", (req, resp) => {
       resp.json(result);
     }
   })().catch((err) => {
-    resp.status(500).send(err.toString());
+    handleError(resp, err);
   });
 });

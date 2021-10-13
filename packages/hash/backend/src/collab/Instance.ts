@@ -11,7 +11,7 @@ import { updatePageMutation } from "@hashintel/hash-shared/save";
 import { findEntityNodes } from "@hashintel/hash-shared/util";
 import { Node } from "prosemirror-model";
 import { Mapping, Step, Transform } from "prosemirror-transform";
-import { StatusError } from "./StatusError";
+import { InvalidVersionError } from "./InvalidVersionError";
 import { Waiting } from "./Waiting";
 
 // @todo rename id to pageEntityId
@@ -158,7 +158,7 @@ export class Instance {
   // document version.
   checkVersion(version: number) {
     if (version < 0 || version > this.version) {
-      throw new StatusError(400, `Invalid version ${version}`);
+      throw new InvalidVersionError(version);
     }
   }
 
