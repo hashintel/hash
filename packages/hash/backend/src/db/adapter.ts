@@ -307,6 +307,12 @@ export interface DBClient {
   /** Get a verification code (it may be invalid!) */
   getVerificationCode(params: { id: string }): Promise<VerificationCode | null>;
 
+  /** Gets all verification codes associated with a user, optionally filtering by minimum creation date */
+  getUserVerificationCodes(params: {
+    userEntityId: string;
+    createdAfter?: Date;
+  }): Promise<VerificationCode[]>;
+
   /** Increment the number of verification attempts by 1 */
   incrementVerificationCodeAttempts(params: {
     id: string;

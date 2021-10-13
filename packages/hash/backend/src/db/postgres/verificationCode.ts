@@ -1,7 +1,22 @@
-import { sql } from "slonik";
+import { QueryResultRowType, sql } from "slonik";
 import { Connection } from "./types";
 
 import { VerificationCode } from "../adapter";
+
+const convertRowToVerificationCode = (
+  row: QueryResultRowType
+): VerificationCode => {
+  return {
+    id: row.verification_id as string,
+    accountId: row.account_id as string,
+    userId: row.user_id as string,
+    code: row.verification_code as string,
+    emailAddress: row.email_address as string,
+    numberOfAttempts: row.number_of_attempts as number,
+    used: row.used as boolean,
+    createdAt: new Date(row.created_at as string),
+  };
+};
 
 /** Insert a row into the entities table. */
 export const insertVerificationCode = async (
@@ -32,20 +47,37 @@ export const getVerificationCode = async (
   params: { id: string }
 ): Promise<VerificationCode | null> => {
   const row = await conn.one(sql`
-    select verification_id, account_id, user_id, verification_code, email_address, number_of_attempts, used, created_at
+    select verification_id, account_id, user_id, verification_code,
+    email_address, number_of_attempts, used, created_at
     from verification_codes
     where verification_id = ${params.id}
   `);
-  return {
-    id: row.verification_id as string,
-    accountId: row.account_id as string,
-    userId: row.user_id as string,
-    code: row.verification_code as string,
-    emailAddress: row.email_address as string,
-    numberOfAttempts: row.number_of_attempts as number,
-    used: row.used as boolean,
-    createdAt: new Date(row.created_at as string),
-  };
+  return convertRowToVerificationCode(row);
+};
+
+export const getUserVerificationCodes = async (
+  conn: Connection,
+  params: {
+    userEntityId: string;
+    createdAfter?: Date;
+  }
+): Promise<VerificationCode[]> => {
+  const queryConditions = sql.join(
+    [
+      sql`user_id = ${params.userEntityId}`,
+      params.createdAfter !== undefined
+        ? sql`created_at > ${params.createdAfter.toISOString()}`
+        : [],
+    ].flat(),
+    sql` and `
+  );
+  const rows = await conn.any(sql`
+    select verification_id, account_id, user_id, verification_code,
+    email_address, number_of_attempts, used, created_at
+    from verification_codes
+    where ${queryConditions}
+  `);
+  return rows.map((row) => convertRowToVerificationCode(row));
 };
 
 export const incrementVerificationCodeAttempts = async (
