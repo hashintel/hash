@@ -1,3 +1,5 @@
+import { StatusError } from "./StatusError";
+
 type ReporterStateType = "fail" | "delay";
 
 export class Reporter {
@@ -17,7 +19,7 @@ export class Reporter {
     }
   }
 
-  failure(err: Error) {
+  failure(err: StatusError | Error) {
     this.show("fail", err.toString());
   }
 

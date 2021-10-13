@@ -17,7 +17,7 @@ import React, {
   VoidFunctionComponent,
 } from "react";
 import { BlockMetaContext } from "../blockMeta";
-import { EditorConnection } from "./collab/collab";
+import { EditorConnection } from "./collab/EditorConnection";
 import { createEditorView } from "./createEditorView";
 import { EntityStoreContext } from "./EntityStoreContext";
 import {
