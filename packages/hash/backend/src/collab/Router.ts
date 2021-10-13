@@ -1,12 +1,12 @@
-import { Request, Response } from "express";
+import { IncomingMessage, ServerResponse } from "http";
 import { parse } from "url";
 
-type Route = {
-  method: string;
-  url: string[];
+export type Route = {
+  method: "GET" | "POST";
+  url: (string | null)[];
   handler: (
-    request: Request,
-    response: Response,
+    request: IncomingMessage,
+    response: ServerResponse,
     ...urlParts: string[]
   ) => void;
 };
@@ -21,7 +21,10 @@ export class Router {
 
   // : (union<string, RegExp, Array>, string) → union<Array, null>
   // Check whether a route pattern matches a given URL path.
-  match(pattern: string | string[] | RegExp, path: string): string[] | null {
+  match(
+    pattern: string | (string | null)[] | RegExp,
+    path: string
+  ): string[] | null {
     if (typeof pattern === "string") {
       if (pattern === path) return [];
     } else if (pattern instanceof RegExp) {
@@ -46,9 +49,12 @@ export class Router {
   }
 
   // Resolve a request, letting the matching route write a response.
-  resolve(request: Request, response: Response) {
-    const parsed = parse(request.url, true);
+  resolve(request: IncomingMessage, response: ServerResponse) {
+    const parsed = parse(request.url ?? "", true);
     const path = parsed.pathname ?? "";
+
+    // @todo type this
+    // @ts-ignore-error
     request.query = parsed.query;
 
     return this.routes.some((route) => {

@@ -1,4 +1,4 @@
-import { Response } from "express";
+import { ServerResponse } from "http";
 import { Instance } from "./Instance";
 import { Output } from "./Output";
 
@@ -9,9 +9,9 @@ export class Waiting {
   done = false;
 
   constructor(
-    public resp: Response,
+    public resp: ServerResponse,
     public inst: Instance,
-    public ip: string,
+    public ip: string | null,
     public finish: () => void
   ) {
     this.inst = inst;

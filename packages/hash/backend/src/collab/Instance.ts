@@ -11,17 +11,12 @@ import { updatePageMutation } from "@hashintel/hash-shared/save";
 import { findEntityNodes } from "@hashintel/hash-shared/util";
 import { Node } from "prosemirror-model";
 import { Mapping, Step, Transform } from "prosemirror-transform";
+import { StatusError } from "./StatusError";
 import { Waiting } from "./Waiting";
 
 // @todo rename id to pageEntityId
 
 const MAX_STEP_HISTORY = 10000;
-
-class StatusError extends Error {
-  constructor(public status: number, message: string) {
-    super(message);
-  }
-}
 
 // A collaborative editing document instance.
 export class Instance {
@@ -199,8 +194,8 @@ export class Instance {
     }
   }
 
-  _registerUser(ip: string) {
-    if (!(ip in this.users)) {
+  _registerUser(ip: string | null) {
+    if (ip !== null && !(ip in this.users)) {
       this.users[ip] = true;
       this.userCount++;
       if (this.collecting == null) {
@@ -260,7 +255,7 @@ const newInstance =
 
 export const getInstance =
   (apolloClient: ApolloClient<unknown>) =>
-  async (accountId: string, id: string, ip: string) => {
+  async (accountId: string, id: string, ip: string | null) => {
     const inst =
       instances[id] || (await newInstance(apolloClient)(accountId, id));
     if (ip) inst.registerUser(ip);

@@ -1,4 +1,4 @@
-import { Response } from "express";
+import { ServerResponse } from "http";
 
 export class Output {
   // eslint-disable-next-line no-useless-constructor
@@ -13,7 +13,7 @@ export class Output {
   }
 
   // Write the response.
-  resp(resp: Response) {
+  resp(resp: ServerResponse) {
     resp.writeHead(this.code, { "Content-Type": this.type });
     resp.end(this.body);
   }
