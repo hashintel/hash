@@ -1,11 +1,24 @@
-const makePlain = (html) => {
+import { StatusError } from "./StatusError";
+
+const makePlain = (html?: string | null | void) => {
   const elt = document.createElement("div");
-  elt.innerHTML = html;
-  return elt.textContent.replace(/\n[^]*|\s+$/g, "");
+  elt.innerHTML = html ?? "";
+  return elt.textContent?.replace(/\n[^]*|\s+$/g, "") ?? "";
 };
 
 // A simple wrapper for XHR.
-export const req = (conf) => {
+/**
+ * @todo use signal
+ * @todo replace with fetch
+ */
+export const req = (conf: {
+  method: string;
+  url: string;
+  headers?: Record<string, string>;
+
+  // @todo type body
+  body?: any;
+}) => {
   const request = new XMLHttpRequest();
   let aborted = false;
   const result = new Promise((success, failure) => {
@@ -17,13 +30,16 @@ export const req = (conf) => {
         success(request.responseText);
       } else {
         let text = request.responseText;
-        if (text && /html/.test(request.getResponseHeader("content-type"))) {
+        if (
+          text &&
+          /html/.test(request.getResponseHeader("content-type") ?? "")
+        ) {
           text = makePlain(text);
         }
-        const err = new Error(
+        const err = new StatusError(
+          request.status,
           `Request failed: ${request.statusText}${text ? `\n\n${text}` : ""}`
         );
-        err.status = request.status;
         failure(err);
       }
     });
@@ -37,16 +53,21 @@ export const req = (conf) => {
     }
     request.send(conf.body || null);
   });
-  result.abort = () => {
-    if (!aborted) {
-      request.abort();
-      aborted = true;
-    }
+
+  // @todo don't do this – use signal
+  return {
+    ...result,
+    abort: () => {
+      if (!aborted) {
+        request.abort();
+        aborted = true;
+      }
+    },
   };
-  return result;
 };
 
-export const GET = (url) => req({ url, method: "GET" });
+export const GET = (url: string) => req({ url, method: "GET" });
 
-export const POST = (url, body, type) =>
+// @todo type body
+export const POST = (url: string, body: any, type: string) =>
   req({ url, method: "POST", body, headers: { "Content-Type": type } });
