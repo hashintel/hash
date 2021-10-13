@@ -14,8 +14,6 @@ import { Mapping, Step, Transform } from "prosemirror-transform";
 import { InvalidVersionError } from "./InvalidVersionError";
 import { Waiting } from "./Waiting";
 
-// @todo rename id to pageEntityId
-
 const MAX_STEP_HISTORY = 10000;
 
 // A collaborative editing document instance.
@@ -24,10 +22,8 @@ export class Instance {
   version = 0;
   steps: Step[] = [];
   lastActive = Date.now();
-  // @todo type this
-  users: Record<string, unknown> = Object.create(null);
+  users: Record<string, boolean> = Object.create(null);
   userCount = 0;
-  // @todo type this
   waiting: Waiting[] = [];
   saveChain = Promise.resolve();
   saveMapping: Mapping | null = null;
@@ -36,7 +32,7 @@ export class Instance {
   // eslint-disable-next-line no-useless-constructor
   constructor(
     public accountId: string,
-    public id: string,
+    public pageEntityId: string,
     public doc: Node,
     public savedContents: BlockEntity[] // eslint-disable-next-line no-empty-function
   ) {}
@@ -88,7 +84,7 @@ export class Instance {
 
         return updatePageMutation(
           this.accountId,
-          this.id,
+          this.pageEntityId,
           this.doc,
           this.savedContents,
           createEntityStore(this.savedContents),
@@ -205,27 +201,29 @@ export class Instance {
   }
 }
 
-const instances = Object.create(null);
+const instances: Record<string, Instance> = Object.create(null);
 let instanceCount = 0;
 const maxCount = 20;
 
 const newInstance =
   (apolloClient: ApolloClient<unknown>) =>
-  async (accountId: string, id: string) => {
+  async (accountId: string, pageEntityId: string) => {
     if (++instanceCount > maxCount) {
       let oldest = null;
       for (const instanceId of Object.keys(instances)) {
         const inst = instances[instanceId];
         if (!oldest || inst.lastActive < oldest.lastActive) oldest = inst;
       }
-      instances[oldest.id].stop();
-      delete instances[oldest.id];
-      --instanceCount;
+      if (oldest) {
+        instances[oldest.pageEntityId].stop();
+        delete instances[oldest.pageEntityId];
+        --instanceCount;
+      }
     }
 
     const { data } = await apolloClient.query({
       query: getPageQuery,
-      variables: { entityId: id, accountId },
+      variables: { entityId: pageEntityId, accountId },
     });
 
     const state = createProseMirrorState();
@@ -239,25 +237,26 @@ const newInstance =
     );
 
     // The instance may have been created whilst another user we were doing the above work
-    if (instances[id]) {
-      return instances[id];
+    if (instances[pageEntityId]) {
+      return instances[pageEntityId];
     }
 
-    instances[id] = new Instance(
+    instances[pageEntityId] = new Instance(
       accountId,
-      id,
+      pageEntityId,
       newState.doc,
       data.page.properties.contents
     );
 
-    return instances[id];
+    return instances[pageEntityId];
   };
 
 export const getInstance =
   (apolloClient: ApolloClient<unknown>) =>
-  async (accountId: string, id: string, ip: string | null) => {
+  async (accountId: string, pageEntityId: string, ip: string | null) => {
     const inst =
-      instances[id] || (await newInstance(apolloClient)(accountId, id));
+      instances[pageEntityId] ||
+      (await newInstance(apolloClient)(accountId, pageEntityId));
     if (ip) inst.registerUser(ip);
     inst.lastActive = Date.now();
     return inst;

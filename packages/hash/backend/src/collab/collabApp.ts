@@ -1,7 +1,7 @@
 import { createApolloClient } from "@hashintel/hash-shared/graphql/createApolloClient";
 import { json } from "body-parser";
 import corsMiddleware from "cors";
-import express, { Response } from "express";
+import express, { Request, Response } from "express";
 import { IncomingMessage } from "http";
 import { FRONTEND_URL } from "../lib/config";
 import { getInstance, Instance } from "./Instance";
@@ -24,18 +24,13 @@ const reqIP = (request: IncomingMessage): string | null =>
   request.socket.remoteAddress ??
   null;
 
-// @todo remove this
-interface ParsedQs {
-  [key: string]: undefined | string | string[] | ParsedQs | ParsedQs[];
-}
-
 const handleError = (resp: Response, err: any) => {
   resp
     .status(err instanceof InvalidVersionError ? 400 : 500)
     .send(err.toString());
 };
 
-const nonNegInteger = (str: ParsedQs[string]) => {
+const nonNegInteger = (str: Request["query"][string]) => {
   const num = Number(str);
   if (!Number.isNaN(num) && Math.floor(num) === num && num >= 0) return num;
 
