@@ -1,6 +1,5 @@
-import { ServerResponse } from "http";
+import { Response } from "express";
 import { Instance } from "./Instance";
-import { Output } from "./Output";
 
 // An object to assist in waiting for a collaborative editing
 // instance to publish a new version before sending the version
@@ -14,7 +13,7 @@ export class Waiting {
   done = false;
 
   constructor(
-    public resp: ServerResponse,
+    public resp: Response,
     public inst: Instance,
     public ip: string | null,
     public finish: () => void
@@ -24,7 +23,7 @@ export class Waiting {
     this.finish = finish;
     resp.setTimeout(1000 * 60 * 5, () => {
       this.abort();
-      this.send(Output.json({}));
+      this.send({});
     });
   }
 
@@ -33,9 +32,9 @@ export class Waiting {
     if (found > -1) this.inst.waiting.splice(found, 1);
   }
 
-  send(output: Output) {
+  send(data: any) {
     if (this.done) return;
-    output.resp(this.resp);
+    this.resp.json(data);
     this.done = true;
   }
 }
