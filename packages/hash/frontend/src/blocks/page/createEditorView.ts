@@ -8,7 +8,7 @@ import { createMarksTooltip } from "../../components/MarksTooltip";
 import { AsyncView } from "./AsyncView";
 import { BlockView } from "./BlockView";
 import { EditorConnection } from "./collab/collab";
-import { Reporter } from "./collab/reporter";
+import { Reporter } from "./collab/Reporter";
 import styles from "./style.module.css";
 import { collabEnabled } from "./tsUtils";
 import { ReplacePortal } from "./usePortals";
