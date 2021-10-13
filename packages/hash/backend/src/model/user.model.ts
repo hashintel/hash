@@ -21,10 +21,10 @@ import { Email } from "../graphql/apiTypes.gen";
 import EmailTransporter from "../email/transporter";
 
 export const EMAIL_RATE_LIMITING_MAX_ATTEMPTS = 5;
-export const EMAIL_RATE_LIMITING_PERIOD_SECONDS = 5 * 60;
+export const EMAIL_RATE_LIMITING_PERIOD_MS = 5 * 60 * 1000;
 
 export const getEmailRateLimitQueryTime = () => {
-  return new Date(Date.now() - EMAIL_RATE_LIMITING_PERIOD_SECONDS * 1000);
+  return new Date(Date.now() - EMAIL_RATE_LIMITING_PERIOD_MS);
 };
 
 type UserConstructorArgs = {

@@ -700,26 +700,22 @@ describe("logged in user ", () => {
     });
   });
 
-  describe("Rate limiting", () => {
-    it("Can only create 5 login codes before being rate limited", async () => {
-      // The first code is the one when the account was created, so we should fail at the fourth one
-      const { address: emailAddress } = existingUser.getPrimaryEmail();
-      for (let i = 0; i < 3; i++) {
-        await expect(
-          client.sendLoginCode({
-            emailOrShortname: emailAddress,
-          })
-        ).resolves.not.toThrow();
-      }
-
-      // 5th code should throw
+  it("Can only create 5 login codes before being rate limited", async () => {
+    // The first code is the one when the account was created, so we should fail at the fourth one
+    const { address: emailAddress } = existingUser.getPrimaryEmail();
+    for (let i = 0; i < 3; i++) {
       await expect(
         client.sendLoginCode({
           emailOrShortname: emailAddress,
         })
-      ).rejects.toThrowError(
-        /has created too many verification codes recently/
-      );
-    });
+      ).resolves.not.toThrow();
+    }
+
+    // 5th code should throw
+    await expect(
+      client.sendLoginCode({
+        emailOrShortname: emailAddress,
+      })
+    ).rejects.toThrowError(/has created too many verification codes recently/);
   });
 });
