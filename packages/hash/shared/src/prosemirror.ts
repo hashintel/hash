@@ -22,56 +22,6 @@ declare interface OrderedMapPrivateInterface<T> {
   content: (string | T)[];
 }
 
-/**
- * This utilises getters to trick prosemirror into mutating itself in order to
- * modify a schema with a new node type. This is likely to be quite brittle,
- * and we need to ensure this continues to work between updates to Prosemirror.
- * We could also consider asking them to make adding a new node type officially
- * supported.
- */
-const defineNewNode = (
-  existingSchema: Schema,
-  componentId: string,
-  spec: NodeSpec
-) => {
-  const existingSchemaSpec = existingSchema.spec;
-  const map = existingSchemaSpec.nodes;
-  const privateMap: OrderedMapPrivateInterface<NodeSpec> = map as any;
-
-  privateMap.content.push(componentId, spec);
-
-  // eslint-disable-next-line no-new
-  new (class extends Schema {
-    // @ts-ignore
-    get nodes() {
-      return existingSchema.nodes;
-    }
-
-    // @ts-ignore
-    get marks() {
-      return existingSchema.marks;
-    }
-
-    set marks(newMarks) {
-      for (const [key, value] of Object.entries(newMarks)) {
-        if (!this.marks[key]) {
-          value.schema = existingSchema;
-          this.marks[key] = value;
-        }
-      }
-    }
-
-    set nodes(newNodes) {
-      for (const [key, value] of Object.entries(newNodes)) {
-        if (!this.nodes[key]) {
-          value.schema = existingSchema;
-          this.nodes[key] = value;
-        }
-      }
-    }
-  })(existingSchemaSpec);
-};
-
 const createComponentNodeSpec = (spec: Partial<NodeSpec>): NodeSpec => ({
   ...spec,
   selectable: false,
@@ -82,10 +32,219 @@ const createComponentNodeSpec = (spec: Partial<NodeSpec>): NodeSpec => ({
   },
 });
 
+// @todo should maybe be somewhere else
+export const getProseMirrorNodeAttributes = (entity: BlockEntity) => ({
+  entityId: entity.entityId,
+});
+
+export class ProsemirrorSchemaManager {
+  // eslint-disable-next-line no-useless-constructor
+  constructor(
+    public schema: Schema,
+    // @todo consider making this replace portal
+    private defineNodeView: DefineNodeView | null = null // eslint-disable-next-line no-empty-function
+  ) {}
+
+  /**
+   * This utilises getters to trick prosemirror into mutating itself in order
+   * to
+   * modify a schema with a new node type. This is likely to be quite brittle,
+   * and we need to ensure this continues to work between updates to
+   * Prosemirror. We could also consider asking them to make adding a new node
+   * type officially supported.
+   */
+  defineNewNode(componentId: string, spec: NodeSpec) {
+    const existingSchema = this.schema;
+    const existingSchemaSpec = existingSchema.spec;
+    const map = existingSchemaSpec.nodes;
+    const privateMap: OrderedMapPrivateInterface<NodeSpec> = map as any;
+
+    privateMap.content.push(componentId, spec);
+
+    // eslint-disable-next-line no-new
+    new (class extends Schema {
+      // @ts-ignore
+      get nodes() {
+        return existingSchema.nodes;
+      }
+
+      // @ts-ignore
+      get marks() {
+        return existingSchema.marks;
+      }
+
+      set marks(newMarks) {
+        for (const [key, value] of Object.entries(newMarks)) {
+          if (!this.marks[key]) {
+            value.schema = existingSchema;
+            this.marks[key] = value;
+          }
+        }
+      }
+
+      set nodes(newNodes) {
+        for (const [key, value] of Object.entries(newNodes)) {
+          if (!this.nodes[key]) {
+            value.schema = existingSchema;
+            this.nodes[key] = value;
+          }
+        }
+      }
+    })(existingSchemaSpec);
+  }
+
+  /**
+   * This is used to define a new block type inside prosemiror when you have
+   * already fetched all the necessary metadata. It'll define a new node type in
+   * the schema, and create a node view wrapper for you too.
+   */
+  defineNewBlock(
+    componentMetadata: BlockConfig,
+    componentSchema: Block["componentSchema"],
+    componentId: string
+  ) {
+    if (this.schema.nodes[componentId]) {
+      return;
+    }
+
+    const spec = createComponentNodeSpec({
+      /**
+       * Currently we detect whether a block takes editable text by detecting if
+       * it has an editableRef prop in its schema – we need a more sophisticated
+       * way for block authors to communicate this to us
+       */
+      ...(blockComponentRequiresText(componentSchema)
+        ? {
+            content: "text*",
+            marks: "_",
+          }
+        : {}),
+    });
+
+    this.defineNewNode(componentId, spec);
+    this.defineNodeView?.(componentId, componentSchema, componentMetadata);
+  }
+
+  /**
+   * Defining a new type of block in prosemirror. Designed to be cached so
+   * doesn't need to request the block multiple times
+   *
+   * @todo support taking a signal
+   */
+  async defineRemoteBlock(componentId: string): Promise<BlockMeta> {
+    const meta = await fetchBlockMeta(componentId);
+
+    if (!componentId || !this.schema.nodes[componentId]) {
+      this.defineNewBlock(
+        meta.componentMetadata,
+        meta.componentSchema,
+        componentId
+      );
+    }
+
+    return meta;
+  }
+
+  /**
+   * @todo work with doc, not docJson
+   */
+  async ensureBlockLoaded(blockJson: { [key: string]: any }) {
+    const url = blockJson.type;
+
+    if (!url.startsWith("http")) {
+      return;
+    }
+
+    await this.defineRemoteBlock(url);
+  }
+
+  /**
+   * @todo work with doc, not docJson
+   */
+  async ensureDocBlocksLoaded(docJson: { [key: string]: any }) {
+    return await Promise.all(
+      (docJson.content as any[]).map(async (block) => {
+        const content = block.type === "block" ? block.content?.[0] : block;
+        await this.ensureBlockLoaded(content);
+      })
+    );
+  }
+
+  /**
+   * Creating a new type of block in prosemirror, without necessarily having
+   * requested the block metadata yet.
+   *
+   * @todo support taking a signal
+   */
+  async createRemoteBlockFromEntity(
+    blockEntity: BlockEntity,
+    targetComponentId: string = blockEntity.properties.componentId
+  ) {
+    const attrs = getProseMirrorNodeAttributes(blockEntity);
+    const meta = await this.defineRemoteBlock(targetComponentId);
+    const requiresText = blockComponentRequiresText(meta.componentSchema);
+
+    if (requiresText) {
+      const textEntity = getTextEntityFromBlock(blockEntity);
+
+      if (!textEntity) {
+        throw new Error(
+          "Entity should contain text entity if used with text block"
+        );
+      }
+
+      return this.schema.nodes.entity.create({ entityId: attrs.entityId }, [
+        this.schema.nodes.entity.create({ entityId: textEntity.entityId }, [
+          this.schema.nodes[targetComponentId].create(
+            attrs,
+            childrenForTextEntity(textEntity, this.schema)
+          ),
+        ]),
+      ]);
+    } else {
+      /**
+       * @todo arguably this doesn't need to be here – remove it if possible
+       *   when working on switching blocks
+       */
+      return this.schema.nodes.entity.create(
+        { entityId: attrs.entityId },
+        this.schema.nodes[targetComponentId].create(attrs, [])
+      );
+    }
+  }
+
+  /**
+   * @todo replace this with a prosemirror command
+   * @todo take a signal
+   * @todo i think we need to put placeholders for the not-yet-fetched blocks
+   *   immediately, and then have the actual blocks pop in – it being delayed
+   *   too much will mess with collab
+   */
+  async createEntityUpdateTransaction(
+    entities: BlockEntity[],
+    state: EditorState<Schema>
+  ) {
+    const manager = this;
+
+    const newNodes = await Promise.all(
+      entities.map((entity) =>
+        // @todo pass signal through somehow
+        manager.createRemoteBlockFromEntity(entity)
+      )
+    );
+
+    const { tr } = state;
+
+    // This creations a transaction to replace the entire content of the document
+    tr.replaceWith(0, state.doc.content.size, newNodes);
+
+    return tr;
+  }
+}
+
 /**
- * This is used to define a new block type inside prosemiror when you have
- * already fetched all the necessary metadata. It'll define a new node type in
- * the schema, and create a node view wrapper for you too.
+ * @deprecated
+ * @todo remove this
  */
 export const defineNewBlock = (
   schema: Schema,
@@ -94,68 +253,17 @@ export const defineNewBlock = (
   defineNodeView: DefineNodeView | null,
   componentId: string
 ) => {
-  if (schema.nodes[componentId]) {
-    return;
-  }
-
-  const spec = createComponentNodeSpec({
-    /**
-     * Currently we detect whether a block takes editable text by detecting if
-     * it has an editableRef prop in its schema – we need a more sophisticated
-     * way for block authors to communicate this to us
-     */
-    ...(blockComponentRequiresText(componentSchema)
-      ? {
-          content: "text*",
-          marks: "_",
-        }
-      : {}),
-  });
-
-  defineNewNode(schema, componentId, spec);
-  defineNodeView?.(componentId, componentSchema, componentMetadata);
+  new ProsemirrorSchemaManager(schema, defineNodeView).defineNewBlock(
+    componentMetadata,
+    componentSchema,
+    componentId
+  );
 };
 
 /**
- * Defining a new type of block in prosemirror. Designed to be cached so
- * doesn't need to request the block multiple times
- *
- * @todo support taking a signal
+ * @deprecated
+ * @todo remove this
  */
-const defineRemoteBlock = async (
-  schema: Schema,
-  defineNodeView: DefineNodeView | null,
-  componentId: string
-): Promise<BlockMeta> => {
-  const meta = await fetchBlockMeta(componentId);
-
-  if (!componentId || !schema.nodes[componentId]) {
-    defineNewBlock(
-      schema,
-      meta.componentMetadata,
-      meta.componentSchema,
-      defineNodeView,
-      componentId
-    );
-  }
-
-  return meta;
-};
-
-const ensureBlockLoaded = async (
-  schema: Schema,
-  blockJson: { [key: string]: any },
-  defineNodeView: DefineNodeView | null
-) => {
-  const url = blockJson.type;
-
-  if (!url.startsWith("http")) {
-    return;
-  }
-
-  await defineRemoteBlock(schema, defineNodeView, url);
-};
-
 export const ensureDocBlocksLoaded = async (
   schema: Schema,
   // @todo maybe don't use docJson for this
@@ -164,95 +272,40 @@ export const ensureDocBlocksLoaded = async (
   },
   defineNodeView: DefineNodeView | null
 ) => {
-  await Promise.all(
-    (docJson.content as any[]).map(async (block) => {
-      const content = block.type === "block" ? block.content?.[0] : block;
-
-      await ensureBlockLoaded(schema, content, defineNodeView);
-    })
-  );
+  const manager = new ProsemirrorSchemaManager(schema, defineNodeView);
+  return await manager.ensureDocBlocksLoaded(docJson);
 };
 
-export const getProseMirrorNodeAttributes = (entity: BlockEntity) => ({
-  entityId: entity.entityId,
-});
-
 /**
- * Creating a new type of block in prosemirror, without necessarily having
- * requested the block metadata yet.
- *
- * @todo support taking a signal
+ * @deprecated
+ * @todo remove this
  */
 export const createRemoteBlockFromEntity = async (
   schema: Schema,
   defineNodeView: DefineNodeView | null,
   blockEntity: BlockEntity,
-  targetComponentId = blockEntity.properties.componentId
+  targetComponentId?: string
 ) => {
-  const attrs = getProseMirrorNodeAttributes(blockEntity);
-  const meta = await defineRemoteBlock(
-    schema,
-    defineNodeView,
+  const manager = new ProsemirrorSchemaManager(schema, defineNodeView);
+
+  return await manager.createRemoteBlockFromEntity(
+    blockEntity,
     targetComponentId
   );
-  const requiresText = blockComponentRequiresText(meta.componentSchema);
-
-  if (requiresText) {
-    const textEntity = getTextEntityFromBlock(blockEntity);
-
-    if (!textEntity) {
-      throw new Error(
-        "Entity should contain text entity if used with text block"
-      );
-    }
-
-    return schema.nodes.entity.create({ entityId: attrs.entityId }, [
-      schema.nodes.entity.create({ entityId: textEntity.entityId }, [
-        schema.nodes[targetComponentId].create(
-          attrs,
-          childrenForTextEntity(textEntity, schema)
-        ),
-      ]),
-    ]);
-  } else {
-    /**
-     * @todo arguably this doesn't need to be here – remove it if possible when
-     *       working on switching blocks
-     */
-    return schema.nodes.entity.create(
-      { entityId: attrs.entityId },
-      schema.nodes[targetComponentId].create(attrs, [])
-    );
-  }
 };
 
 /**
- * @todo replace this with a prosemirror command
- * @todo take a signal
- * @todo i think we need to put placeholders for the not-yet-fetched blocks
- *   immediately, and then have the actual blocks pop in – it being delayed too
- *   much will mess with collab
+ * @deprecated
+ * @todo remove this
  */
 export const createEntityUpdateTransaction = async (
   state: EditorState,
   entities: BlockEntity[],
   defineNodeView: DefineNodeView | null
 ) => {
-  const schema = state.schema;
+  const manager = new ProsemirrorSchemaManager(state.schema, defineNodeView);
 
-  const newNodes = await Promise.all(
-    entities.map((entity) =>
-      // @todo pass signal through somehow
-      createRemoteBlockFromEntity(schema, defineNodeView, entity)
-    )
-  );
-
-  const { tr } = state;
-
-  // This creations a transaction to replace the entire content of the document
-  tr.replaceWith(0, state.doc.content.size, newNodes);
-
-  return tr;
+  return await manager.createEntityUpdateTransaction(entities, state);
 };
 
 const createInitialDoc = (schema: Schema = createSchema()) =>
