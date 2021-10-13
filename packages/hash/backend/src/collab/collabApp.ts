@@ -43,12 +43,7 @@ const jsonEvents = (
 ) => ({
   version: inst.version,
   steps: data.steps.map((step) => step.toJSON()),
-  clientIDs: data.steps.map(
-    (step) =>
-      // @todo fix this
-      // @ts-ignore-error
-      step.clientID
-  ),
+  clientIDs: data.clientIDs,
   users: data.users,
 });
 

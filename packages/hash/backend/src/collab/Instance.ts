@@ -28,6 +28,7 @@ export class Instance {
   saveChain = Promise.resolve();
   saveMapping: Mapping | null = null;
   collecting: ReturnType<typeof setInterval> | null = null;
+  clientIds = new WeakMap<Step, string>();
 
   // eslint-disable-next-line no-useless-constructor
   constructor(
@@ -48,10 +49,8 @@ export class Instance {
       if (this.version !== version) return false;
       let doc = this.doc;
       for (let i = 0; i < steps.length; i++) {
-        // @todo fix this
-        // @ts-ignore-error
-        // eslint-disable-next-line no-param-reassign
-        steps[i].clientID = clientID;
+        this.clientIds.set(steps[i], clientID);
+
         const result = steps[i].apply(doc);
         if (!result.doc) return false;
         if (this.saveMapping) {
@@ -166,9 +165,11 @@ export class Instance {
     const startIndex = this.steps.length - (this.version - version);
     if (startIndex < 0) return false;
 
+    const steps = this.steps.slice(startIndex);
     return {
-      steps: this.steps.slice(startIndex),
+      steps,
       users: this.userCount,
+      clientIDs: steps.map((step) => this.clientIds.get(step)),
     };
   }
 
