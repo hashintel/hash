@@ -138,11 +138,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     );
 
     for (const [componentId, meta] of Array.from(blocksMeta.entries())) {
-      manager.defineNewBlock(
-        meta.componentMetadata,
-        meta.componentSchema,
-        componentId
-      );
+      manager.defineNewBlock(meta);
     }
 
     prosemirrorSetup.current = {

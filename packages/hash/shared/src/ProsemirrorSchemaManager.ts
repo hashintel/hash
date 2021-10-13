@@ -1,9 +1,7 @@
 import { NodeSpec, Schema } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
 import {
-  Block,
   blockComponentRequiresText,
-  BlockConfig,
   BlockMeta,
   fetchBlockMeta,
 } from "./blockMeta";
@@ -31,9 +29,8 @@ export class ProsemirrorSchemaManager {
   constructor(
     public schema: Schema,
     // @todo consider making this replace portal
-    private defineNodeView: DefineNodeView | null = null
-  ) // eslint-disable-next-line no-empty-function
-  {}
+    private defineNodeView: DefineNodeView | null = null // eslint-disable-next-line no-empty-function
+  ) {}
 
   /**
    * This utilises getters to trick prosemirror into mutating itself in order
@@ -88,11 +85,10 @@ export class ProsemirrorSchemaManager {
    * already fetched all the necessary metadata. It'll define a new node type in
    * the schema, and create a node view wrapper for you too.
    */
-  defineNewBlock(
-    componentMetadata: BlockConfig,
-    componentSchema: Block["componentSchema"],
-    componentId: string
-  ) {
+  defineNewBlock(meta: BlockMeta) {
+    const { componentMetadata, componentSchema } = meta;
+    const { componentId } = componentMetadata;
+
     if (this.schema.nodes[componentId]) {
       return;
     }
@@ -112,7 +108,7 @@ export class ProsemirrorSchemaManager {
     });
 
     this.defineNewNode(componentId, spec);
-    this.defineNodeView?.(componentId, componentSchema, componentMetadata);
+    this.defineNodeView?.(meta);
   }
 
   /**
@@ -125,11 +121,7 @@ export class ProsemirrorSchemaManager {
     const meta = await fetchBlockMeta(componentId);
 
     if (!componentId || !this.schema.nodes[componentId]) {
-      this.defineNewBlock(
-        meta.componentMetadata,
-        meta.componentSchema,
-        componentId
-      );
+      this.defineNewBlock(meta);
     }
 
     return meta;

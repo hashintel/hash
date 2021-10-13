@@ -1,6 +1,6 @@
 import {
-  Block,
   blockComponentRequiresText,
+  BlockMeta,
   componentIdToUrl,
 } from "@hashintel/hash-shared/blockMeta";
 import {
@@ -41,15 +41,26 @@ export class ComponentNodeView implements NodeView {
 
   private target = document.createElement("div");
 
+  private readonly componentId: string;
+  private readonly sourceName: string;
+
   constructor(
     node: ProsemirrorNode,
     public view: EditorView<Schema>,
     public getPos: () => number,
-    private componentId: string,
-    componentSchema: Block["componentSchema"],
-    private sourceName: string,
-    private replacePortal: ReplacePortal
+    private replacePortal: ReplacePortal,
+    private meta: BlockMeta
   ) {
+    const { componentMetadata, componentSchema } = meta;
+    const { source } = componentMetadata;
+
+    if (!source) {
+      throw new Error("Cannot create new block for component missing a source");
+    }
+
+    this.sourceName = source;
+    this.componentId = componentMetadata.componentId;
+
     this.dom.setAttribute("data-dom", "true");
 
     this.editable = blockComponentRequiresText(componentSchema);
