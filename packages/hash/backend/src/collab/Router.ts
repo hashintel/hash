@@ -1,18 +1,27 @@
+import { Request, Response } from "express";
 import { parse } from "url";
+
+type Route = {
+  method: string;
+  url: string[];
+  handler: (
+    request: Request,
+    response: Response,
+    ...urlParts: string[]
+  ) => void;
+};
 
 // A URL router for the server.
 export class Router {
-  constructor() {
-    this.routes = [];
-  }
+  routes: Route[] = [];
 
-  add(method, url, handler) {
+  add(method: Route["method"], url: Route["url"], handler: Route["handler"]) {
     this.routes.push({ method, url, handler });
   }
 
   // : (union<string, RegExp, Array>, string) → union<Array, null>
   // Check whether a route pattern matches a given URL path.
-  match(pattern, path) {
+  match(pattern: string | string[] | RegExp, path: string): string[] | null {
     if (typeof pattern === "string") {
       if (pattern === path) return [];
     } else if (pattern instanceof RegExp) {
@@ -33,12 +42,13 @@ export class Router {
       }
       return result;
     }
+    return null;
   }
 
   // Resolve a request, letting the matching route write a response.
-  resolve(request, response) {
+  resolve(request: Request, response: Response) {
     const parsed = parse(request.url, true);
-    const path = parsed.pathname;
+    const path = parsed.pathname ?? "";
     request.query = parsed.query;
 
     return this.routes.some((route) => {
@@ -53,7 +63,7 @@ export class Router {
         "Access-Control-Allow-Origin",
         `http://${process.env.FRONTEND_DOMAIN}`
       );
-      response.setHeader("Access-Control-Allow-Credentials", true);
+      response.setHeader("Access-Control-Allow-Credentials", "true");
       response.setHeader("Access-Control-Request-Method", "*");
       // @todo send correct allowed methods
       response.setHeader("Access-Control-Allow-Methods", "OPTIONS, GET, POST");

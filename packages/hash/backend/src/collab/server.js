@@ -1,6 +1,6 @@
 import { createApolloClient } from "@hashintel/hash-shared/graphql/createApolloClient";
 
-import { Router } from "./route";
+import { Router } from "./Router";
 
 import { getInstance } from "./Instance";
 import { Output } from "./Output";
