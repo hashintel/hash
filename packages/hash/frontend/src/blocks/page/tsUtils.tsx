@@ -11,7 +11,6 @@ import {
   EntityStoreType,
   isBlockEntity,
 } from "@hashintel/hash-shared/entityStore";
-import { ViewConfig } from "@hashintel/hash-shared/prosemirror";
 import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
 import { Decoration, EditorView, NodeView } from "prosemirror-view";
 import React from "react";
