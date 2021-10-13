@@ -711,12 +711,15 @@ describe("logged in user ", () => {
           })
         ).resolves.not.toThrow();
       }
+
       // 5th code should throw
       await expect(
         client.sendLoginCode({
           emailOrShortname: emailAddress,
         })
-      ).rejects.toThrow();
+      ).rejects.toThrowError(
+        /has created too many verification codes recently/
+      );
     });
   });
 });
