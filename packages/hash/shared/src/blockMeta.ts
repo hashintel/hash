@@ -115,4 +115,5 @@ export const fetchBlockMeta = async (
 
 export const blockComponentRequiresText = (
   componentSchema: BlockMeta["componentSchema"]
-) => componentSchema.properties && "editableRef" in componentSchema.properties;
+) =>
+  !!componentSchema.properties && "editableRef" in componentSchema.properties;
