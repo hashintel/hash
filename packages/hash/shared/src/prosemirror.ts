@@ -12,7 +12,7 @@ import {
   BlockMeta,
   fetchBlockMeta,
 } from "./blockMeta";
-import { CreateNodeView, DefineNodeView } from "./defineNodeView";
+import { DefineNodeView } from "./defineNodeView";
 import { BlockEntity, getTextEntityFromBlock } from "./entity";
 import { childrenForTextEntity } from "./entityProsemirror";
 import { createSchema } from "./schema";
@@ -31,9 +31,6 @@ export type ViewConfig = {
 
   // @todo remove this
   replacePortal: unknown;
-
-  // @todo remove this
-  createNodeView: CreateNodeView;
 } | null;
 
 declare interface OrderedMapPrivateInterface<T> {

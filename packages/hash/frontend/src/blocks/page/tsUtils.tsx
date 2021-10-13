@@ -3,10 +3,7 @@ import {
   blockComponentRequiresText,
   componentIdToUrl,
 } from "@hashintel/hash-shared/blockMeta";
-import {
-  CreateNodeView,
-  DefineNodeView,
-} from "@hashintel/hash-shared/defineNodeView";
+import { DefineNodeView } from "@hashintel/hash-shared/defineNodeView";
 import {
   EntityStoreType,
   isBlockEntity,
@@ -40,121 +37,113 @@ const getRemoteBlockProps = (entity: EntityStoreType | null | undefined) => {
   return { properties: {} };
 };
 
-/**
- * This creates a node view which integrates between React and prosemirror for
- * each block
- *
- * @todo inline this
- */
-export const createNodeViewFactory = (
+const createNodeView = function createNodeView(
+  componentId: string,
+  componentSchema: Block["componentSchema"],
+  sourceName: string,
   replacePortal: ReplacePortal
-): CreateNodeView =>
-  function createNodeView(
-    componentId: string,
-    componentSchema: Block["componentSchema"],
-    sourceName: string
-  ): new (...args: any[]) => NodeView {
-    const editable = blockComponentRequiresText(componentSchema);
+): new (...args: any[]) => NodeView {
+  const editable = blockComponentRequiresText(componentSchema);
 
-    const nodeView = class BlockWrapper implements NodeView {
-      dom: HTMLDivElement = document.createElement("div");
-      contentDOM: HTMLElement | undefined = undefined;
+  const nodeView = class BlockWrapper implements NodeView {
+    dom: HTMLDivElement = document.createElement("div");
+    contentDOM: HTMLElement | undefined = undefined;
 
-      private target = document.createElement("div");
+    private target = document.createElement("div");
 
-      constructor(
-        node: ProsemirrorNode,
-        public view: EditorView<Schema>,
-        public getPos: () => number
-      ) {
-        this.dom.setAttribute("data-dom", "true");
+    constructor(
+      node: ProsemirrorNode,
+      public view: EditorView<Schema>,
+      public getPos: () => number
+    ) {
+      this.dom.setAttribute("data-dom", "true");
 
-        if (editable) {
-          this.contentDOM = document.createElement("div");
-          this.contentDOM.setAttribute("data-contentDOM", "true");
-          this.contentDOM.style.display = "none";
-          this.dom.appendChild(this.contentDOM);
-        }
-
-        this.target.setAttribute("data-target", "true");
-
-        this.dom.appendChild(this.target);
-
-        this.update(node);
+      if (editable) {
+        this.contentDOM = document.createElement("div");
+        this.contentDOM.setAttribute("data-contentDOM", "true");
+        this.contentDOM.style.display = "none";
+        this.dom.appendChild(this.contentDOM);
       }
 
-      update(node: any) {
-        if (node?.type.name === componentId) {
-          replacePortal(
-            this.target,
-            this.target,
-            <EntityStoreContext.Consumer>
-              {(entityStore) => {
-                const entityId = node.attrs.entityId;
-                const entity = entityStore[entityId];
-                const remoteBlockProps = getRemoteBlockProps(entity);
+      this.target.setAttribute("data-target", "true");
 
-                const editableRef = editable
-                  ? (editableNode: HTMLElement) => {
-                      if (
-                        this.contentDOM &&
-                        editableNode &&
-                        !editableNode.contains(this.contentDOM)
-                      ) {
-                        editableNode.appendChild(this.contentDOM);
-                        this.contentDOM.style.display = "";
-                      }
+      this.dom.appendChild(this.target);
+
+      this.update(node);
+    }
+
+    update(node: any) {
+      if (node?.type.name === componentId) {
+        replacePortal(
+          this.target,
+          this.target,
+          <EntityStoreContext.Consumer>
+            {(entityStore) => {
+              const entityId = node.attrs.entityId;
+              const entity = entityStore[entityId];
+              const remoteBlockProps = getRemoteBlockProps(entity);
+
+              const editableRef = editable
+                ? (editableNode: HTMLElement) => {
+                    if (
+                      this.contentDOM &&
+                      editableNode &&
+                      !editableNode.contains(this.contentDOM)
+                    ) {
+                      editableNode.appendChild(this.contentDOM);
+                      this.contentDOM.style.display = "";
                     }
-                  : undefined;
+                  }
+                : undefined;
 
-                const mappedUrl = componentIdToUrl(componentId);
+              const mappedUrl = componentIdToUrl(componentId);
 
-                return (
-                  <RemoteBlock
-                    {...remoteBlockProps}
-                    url={`${mappedUrl}/${sourceName}`}
-                    editableRef={editableRef}
-                  />
-                );
-              }}
-            </EntityStoreContext.Consumer>
-          );
-
-          return true;
-        } else {
-          return false;
-        }
-      }
-
-      destroy() {
-        this.dom.remove();
-        replacePortal(this.target, null, null);
-      }
-
-      // @todo type this
-      stopEvent(evt: any) {
-        if (evt.type === "dragstart") {
-          evt.preventDefault();
-        }
+              return (
+                <RemoteBlock
+                  {...remoteBlockProps}
+                  url={`${mappedUrl}/${sourceName}`}
+                  editableRef={editableRef}
+                />
+              );
+            }}
+          </EntityStoreContext.Consumer>
+        );
 
         return true;
+      } else {
+        return false;
+      }
+    }
+
+    destroy() {
+      this.dom.remove();
+      replacePortal(this.target, null, null);
+    }
+
+    // @todo type this
+    stopEvent(evt: any) {
+      if (evt.type === "dragstart") {
+        evt.preventDefault();
       }
 
-      ignoreMutation(evt: any) {
-        return !(
-          !evt.target ||
-          (evt.target !== this.contentDOM &&
-            this.contentDOM?.contains(evt.target))
-        );
-      }
-    };
+      return true;
+    }
 
-    // Attempt to improve debugging by giving the node view class a dynamic
-    // name
-    Object.defineProperty(nodeView, "name", { value: `${componentId}View` });
-
-    return nodeView;
+    ignoreMutation(evt: any) {
+      return !(
+        !evt.target ||
+        (evt.target !== this.contentDOM &&
+          this.contentDOM?.contains(evt.target))
+      );
+    }
   };
+
+  // Attempt to improve debugging by giving the node view class a dynamic
+  // name
+  Object.defineProperty(nodeView, "name", { value: `${componentId}View` });
+
+  return nodeView;
+};
 
 export const defineNodeView =
   (
@@ -168,11 +157,11 @@ export const defineNodeView =
       throw new Error("Cannot create new block for component missing a source");
     }
 
-    // @todo type this
-    const NodeViewClass = createNodeViewFactory(replacePortal)(
+    const NodeViewClass = createNodeView(
       componentId,
       componentSchema,
-      componentMetadata.source
+      componentMetadata.source,
+      replacePortal
     );
 
     // Add the node view definition to the view – ensures our block code is

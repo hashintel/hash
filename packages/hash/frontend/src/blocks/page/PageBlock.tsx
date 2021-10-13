@@ -20,11 +20,7 @@ import { BlockMetaContext } from "../blockMeta";
 import { EditorConnection } from "./collab/EditorConnection";
 import { createEditorView } from "./createEditorView";
 import { EntityStoreContext } from "./EntityStoreContext";
-import {
-  collabEnabled,
-  createNodeViewFactory,
-  defineNodeView,
-} from "./tsUtils";
+import { collabEnabled, defineNodeView } from "./tsUtils";
 import { usePortals } from "./usePortals";
 
 type PageBlockProps = {
@@ -179,7 +175,6 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
         {
           view,
           replacePortal,
-          createNodeView: createNodeViewFactory(replacePortal),
           defineNodeView: defineNodeView(view, replacePortal),
         },
         componentId
@@ -216,7 +211,6 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
         const tr = await createEntityUpdateTransaction(state, updatedContents, {
           view,
           replacePortal,
-          createNodeView: createNodeViewFactory(replacePortal),
           defineNodeView: defineNodeView(view, replacePortal),
         });
 

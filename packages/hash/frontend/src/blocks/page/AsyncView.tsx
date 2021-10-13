@@ -6,7 +6,7 @@ import {
 } from "@hashintel/hash-shared/prosemirror";
 import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorView, NodeView } from "prosemirror-view";
-import { createNodeViewFactory, defineNodeView } from "./tsUtils";
+import { defineNodeView } from "./tsUtils";
 import { ReplacePortal } from "./usePortals";
 
 /**
@@ -94,7 +94,6 @@ export class AsyncView implements NodeView {
       {
         view,
         replacePortal: this.replacePortal,
-        createNodeView: createNodeViewFactory(this.replacePortal),
         defineNodeView: defineNodeView(view, this.replacePortal),
       },
       entity,
