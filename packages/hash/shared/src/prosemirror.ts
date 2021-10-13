@@ -1,11 +1,12 @@
 import { baseKeymap, chainCommands, toggleMark } from "prosemirror-commands";
 import { dropCursor } from "prosemirror-dropcursor";
-import { history, redo, undo } from "prosemirror-history";
+import { redo, undo } from "prosemirror-history";
 import { undoInputRule } from "prosemirror-inputrules";
 import { keymap } from "prosemirror-keymap";
 import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorState, Plugin } from "prosemirror-state";
 import { BlockEntity } from "./entity";
+import { history } from "./history";
 import { createSchema } from "./schema";
 import { wrapEntitiesPlugin } from "./wrapEntitiesPlugin";
 
@@ -16,20 +17,8 @@ export const getProseMirrorNodeAttributes = (entity: BlockEntity) => ({
 const createInitialDoc = (schema: Schema = createSchema()) =>
   schema.node("doc", {}, [schema.node("blank")]);
 
-/**
- * We setup two versions of the history plugin, because we occasionally
- * temporarily want to ensure that all updates made between two points are
- * absorbed into a single history item. We need a more sophisticated way of
- * manipulating history items though.
- *
- * @todo deal with this
- * @todo don't export these – export a function for swapping these
- */
-export const historyPlugin = history();
-export const infiniteGroupHistoryPlugin = history({ newGroupDelay: Infinity });
-
 const defaultPlugins = [
-  historyPlugin,
+  history.plugin,
   keymap({ "Mod-z": chainCommands(undo, undoInputRule), "Mod-y": redo }),
   ...wrapEntitiesPlugin(baseKeymap),
   // This enables an indicator to appear when drag and dropping blocks

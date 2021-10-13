@@ -1,7 +1,4 @@
-import {
-  historyPlugin,
-  infiniteGroupHistoryPlugin,
-} from "@hashintel/hash-shared/prosemirror";
+import { history } from "@hashintel/hash-shared/history";
 import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
 import { NodeSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
@@ -239,15 +236,7 @@ export class BlockView implements NodeView {
   onBlockChange = ([componentId]: [string]) => {
     const { node, view, getPos } = this;
 
-    // Ensure that any changes to the document made are kept within a
-    // single undo item
-    view.updateState(
-      view.state.reconfigure({
-        plugins: view.state.plugins.map((plugin) =>
-          plugin === historyPlugin ? infiniteGroupHistoryPlugin : plugin
-        ),
-      })
-    );
+    history.disableTracking(view);
 
     const state = view.state;
     const tr = state.tr;

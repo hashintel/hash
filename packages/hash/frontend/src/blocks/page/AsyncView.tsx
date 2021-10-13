@@ -1,8 +1,5 @@
 import { EntityStore, isBlockEntity } from "@hashintel/hash-shared/entityStore";
-import {
-  historyPlugin,
-  infiniteGroupHistoryPlugin,
-} from "@hashintel/hash-shared/prosemirror";
+import { history } from "@hashintel/hash-shared/history";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorView, NodeView } from "prosemirror-view";
@@ -113,18 +110,7 @@ export class AsyncView implements NodeView {
 
         this.view.dispatch(tr);
 
-        /**
-         * Ensures we start tracking history properly again
-         *
-         * @todo remove the need for this
-         */
-        this.view.updateState(
-          this.view.state.reconfigure({
-            plugins: this.view.state.plugins.map((plugin) =>
-              plugin === infiniteGroupHistoryPlugin ? historyPlugin : plugin
-            ),
-          })
-        );
+        history.enableTracking(this.view);
 
         if (node.attrs.autofocus) {
           (window as any).triggerSave();
