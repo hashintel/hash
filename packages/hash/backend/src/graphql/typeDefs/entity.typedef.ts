@@ -175,7 +175,7 @@ export const entityTypedef = gql`
     filter: FilterOperationInput
     itemsPerPage: Int = 10
     pageNumber: Int = 1
-    sort: SortOperationInput
+    sorts: [SortOperationInput!]
   }
 
   input SortOperationInput {
@@ -193,7 +193,7 @@ export const entityTypedef = gql`
     itemsPerPage: Int!
     pageNumber: Int!
     pageCount: Int!
-    sort: String!
+    sorts: [SortOperation!]
   }
 
   type SortOperation {

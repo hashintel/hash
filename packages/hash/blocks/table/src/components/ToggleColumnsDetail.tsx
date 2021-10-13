@@ -19,8 +19,10 @@ export const ToggleColumnsDetail: React.VFC<ToggleColumnsDetailProps> = ({
           <label
             key={column.id}
             className={tw`text-sm leading-none flex items-center mb-3`}
+            htmlFor={column.id}
           >
             <input
+              id={column.id}
               type="checkbox"
               className={tw`mr-2`}
               onChange={(evt) =>

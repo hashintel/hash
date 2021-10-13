@@ -75,7 +75,7 @@ export const SortDetail: React.VFC<SortDetailProps> = ({ columns, onSort }) => {
             <select
               className={tw`text-sm border(1 gray-300 focus:gray-500) focus:outline-none rounded h-8 px-2`}
               onChange={(evt) =>
-                updateField(id, { desc: evt.target.value == "desc" })
+                updateField(id, { desc: evt.target.value === "desc" })
               }
               value={desc ? "desc" : "asc"}
             >
@@ -85,6 +85,7 @@ export const SortDetail: React.VFC<SortDetailProps> = ({ columns, onSort }) => {
             <button
               className={tw`ml-auto text-2xl text-gray-300 hover:text-gray-400`}
               onClick={() => removeField(id)}
+              type="button"
             >
               &times;
             </button>
@@ -95,6 +96,7 @@ export const SortDetail: React.VFC<SortDetailProps> = ({ columns, onSort }) => {
       <button
         className={tw`flex w-full items-center text-blue-500 text-sm py-1 px-2 hover:bg-gray-200   focus:outline-none`}
         onClick={addField}
+        type="button"
       >
         <AddIcon className={tw`text-current h-4 w-4 mr-2`} />
         <span>Add a sort</span>

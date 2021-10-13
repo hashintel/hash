@@ -20,7 +20,10 @@ import {
   initialTableData,
   Person,
 } from "./mockData/mockData";
-import { compareEntitiesByField } from "./lib/compareEntitiesByField";
+import {
+  compareEntitiesByField,
+  resolvePath,
+} from "./lib/compareEntitiesByField";
 
 const DEFAULT_PAGE_SIZE = 3;
 
@@ -65,16 +68,17 @@ const useMockData = () => {
     }
 
     // FILTERING
-    if (linkedData.aggregate?.filter?.value) {
-      const { field, value } = linkedData.aggregate.filter as {
-        field: keyof Person;
-        value: string;
-      };
-
-      resolvedData = resolvedData.filter((entity) => {
-        const property = entity[field];
-        if (typeof property !== "string" || !property) return;
-        return property.toLowerCase().includes(value.toLowerCase());
+    if (linkedData.aggregate?.filters) {
+      const combinatorFilter = linkedData.aggregate.filters;
+      // This assumes the operator for each field is Contains and
+      // the combinator operator is AND
+      // @todo update to handle all filter scenarios
+      combinatorFilter.filters.forEach(({ field, value }) => {
+        resolvedData = resolvedData.filter((entity) => {
+          const property = resolvePath(entity, field);
+          if (typeof property !== "string" || !property) return;
+          return property.toLowerCase().includes(value.toLowerCase());
+        });
       });
     }
 

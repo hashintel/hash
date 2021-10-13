@@ -1,4 +1,4 @@
-import React, { useState, VFC } from "react";
+import React, { VFC } from "react";
 import { tw } from "twind";
 import { BlockProtocolAggregateOperationInput } from "@hashintel/block-protocol";
 import { ColumnInstance } from "react-table";

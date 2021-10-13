@@ -1,6 +1,6 @@
 /** makes it possible to access nested paths (e.g person.location.name)
  */
-const resolvePath = (object: any, path: string, defaultValue?: any) =>
+export const resolvePath = (object: any, path: string, defaultValue?: any) =>
   path
     .split(".")
     .reduce((acc, currVal) => acc?.[currVal] ?? defaultValue, object);

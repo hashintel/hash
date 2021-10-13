@@ -139,9 +139,11 @@ export const initialTableData = {
       entityTypeId: "Person",
       aggregate: {
         itemsPerPage: 3,
-        sorts: [{
-          field: "name",
-        }],
+        sorts: [
+          {
+            field: "name",
+          },
+        ],
       },
     } as BlockProtocolLinkedDataDefinition,
     data: [] as Person[],

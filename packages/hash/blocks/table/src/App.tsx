@@ -20,7 +20,6 @@ type AppProps = {
   entityId: string;
 };
 
-
 export const App: BlockComponent<AppProps> = ({
   data = { data: [] },
   initialState,
