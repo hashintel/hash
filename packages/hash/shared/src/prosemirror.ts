@@ -18,21 +18,6 @@ import { childrenForTextEntity } from "./entityProsemirror";
 import { createSchema } from "./schema";
 import { wrapEntitiesPlugin } from "./wrapEntitiesPlugin";
 
-/**
- * @todo remove this / don't export it
- * @deprecated
- */
-export type ViewConfig = {
-  // @todo maybe remove this
-  defineNodeView: DefineNodeView;
-
-  // @todo type this
-  view: any;
-
-  // @todo remove this
-  replacePortal: unknown;
-} | null;
-
 declare interface OrderedMapPrivateInterface<T> {
   content: (string | T)[];
 }
@@ -106,7 +91,7 @@ export const defineNewBlock = (
   schema: Schema,
   componentMetadata: BlockConfig,
   componentSchema: Block["componentSchema"],
-  viewConfig: ViewConfig,
+  defineNodeView: DefineNodeView | null,
   componentId: string
 ) => {
   if (schema.nodes[componentId]) {
@@ -128,7 +113,7 @@ export const defineNewBlock = (
   });
 
   defineNewNode(schema, componentId, spec);
-  viewConfig?.defineNodeView(componentId, componentSchema, componentMetadata);
+  defineNodeView?.(componentId, componentSchema, componentMetadata);
 };
 
 /**
@@ -139,7 +124,7 @@ export const defineNewBlock = (
  */
 const defineRemoteBlock = async (
   schema: Schema,
-  viewConfig: ViewConfig,
+  defineNodeView: DefineNodeView | null,
   componentId: string
 ): Promise<BlockMeta> => {
   const meta = await fetchBlockMeta(componentId);
@@ -149,7 +134,7 @@ const defineRemoteBlock = async (
       schema,
       meta.componentMetadata,
       meta.componentSchema,
-      viewConfig,
+      defineNodeView,
       componentId
     );
   }
@@ -160,7 +145,7 @@ const defineRemoteBlock = async (
 const ensureBlockLoaded = async (
   schema: Schema,
   blockJson: { [key: string]: any },
-  viewConfig: ViewConfig
+  defineNodeView: DefineNodeView | null
 ) => {
   const url = blockJson.type;
 
@@ -168,7 +153,7 @@ const ensureBlockLoaded = async (
     return;
   }
 
-  await defineRemoteBlock(schema, viewConfig, url);
+  await defineRemoteBlock(schema, defineNodeView, url);
 };
 
 export const ensureDocBlocksLoaded = async (
@@ -177,13 +162,13 @@ export const ensureDocBlocksLoaded = async (
   docJson: {
     [key: string]: any;
   },
-  viewConfig: ViewConfig
+  defineNodeView: DefineNodeView | null
 ) => {
   await Promise.all(
     (docJson.content as any[]).map(async (block) => {
       const content = block.type === "block" ? block.content?.[0] : block;
 
-      await ensureBlockLoaded(schema, content, viewConfig);
+      await ensureBlockLoaded(schema, content, defineNodeView);
     })
   );
 };
@@ -200,12 +185,16 @@ export const getProseMirrorNodeAttributes = (entity: BlockEntity) => ({
  */
 export const createRemoteBlockFromEntity = async (
   schema: Schema,
-  viewConfig: ViewConfig,
+  defineNodeView: DefineNodeView | null,
   blockEntity: BlockEntity,
   targetComponentId = blockEntity.properties.componentId
 ) => {
   const attrs = getProseMirrorNodeAttributes(blockEntity);
-  const meta = await defineRemoteBlock(schema, viewConfig, targetComponentId);
+  const meta = await defineRemoteBlock(
+    schema,
+    defineNodeView,
+    targetComponentId
+  );
   const requiresText = blockComponentRequiresText(meta.componentSchema);
 
   if (requiresText) {
@@ -247,14 +236,14 @@ export const createRemoteBlockFromEntity = async (
 export const createEntityUpdateTransaction = async (
   state: EditorState,
   entities: BlockEntity[],
-  viewConfig: ViewConfig
+  defineNodeView: DefineNodeView | null
 ) => {
   const schema = state.schema;
 
   const newNodes = await Promise.all(
     entities.map((entity) =>
       // @todo pass signal through somehow
-      createRemoteBlockFromEntity(schema, viewConfig, entity)
+      createRemoteBlockFromEntity(schema, defineNodeView, entity)
     )
   );
 

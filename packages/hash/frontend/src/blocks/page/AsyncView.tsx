@@ -91,11 +91,7 @@ export class AsyncView implements NodeView {
 
     createRemoteBlockFromEntity(
       view.state.schema,
-      {
-        view,
-        replacePortal: this.replacePortal,
-        defineNodeView: defineNodeView(view, this.replacePortal),
-      },
+      defineNodeView(view, this.replacePortal),
       entity,
       node.attrs.targetComponentId
     )

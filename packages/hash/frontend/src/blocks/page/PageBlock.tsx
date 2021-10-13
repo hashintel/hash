@@ -172,11 +172,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
         view.state.schema,
         meta.componentMetadata,
         meta.componentSchema,
-        {
-          view,
-          replacePortal,
-          defineNodeView: defineNodeView(view, replacePortal),
-        },
+        defineNodeView(view, replacePortal),
         componentId
       );
     }
@@ -208,11 +204,11 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
 
         const state = view.state;
 
-        const tr = await createEntityUpdateTransaction(state, updatedContents, {
-          view,
-          replacePortal,
-          defineNodeView: defineNodeView(view, replacePortal),
-        });
+        const tr = await createEntityUpdateTransaction(
+          state,
+          updatedContents,
+          defineNodeView(view, replacePortal)
+        );
 
         if (signal?.aborted) {
           return;

@@ -163,11 +163,11 @@ export class EditorConnection {
     this.run(GET(this.url))
       .then((stringifiedData) => {
         const data = JSON.parse(stringifiedData);
-        return ensureDocBlocksLoaded(this.schema, data.doc, {
-          view: this.view,
-          replacePortal: this.replacePortal,
-          defineNodeView: defineNodeView(this.view, this.replacePortal),
-        }).then(() => data);
+        return ensureDocBlocksLoaded(
+          this.schema,
+          data.doc,
+          defineNodeView(this.view, this.replacePortal)
+        ).then(() => data);
       })
       .then((data) => {
         this.report.success();
