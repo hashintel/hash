@@ -19,7 +19,13 @@ import {
 import { genId } from "../util";
 import { Email } from "../graphql/apiTypes.gen";
 import EmailTransporter from "../email/transporter";
-import { getRateLimitQueryTime, RATE_LIMITING_MAX_ATTEMPTS } from "./util";
+
+export const EMAIL_RATE_LIMITING_MAX_ATTEMPTS = 5;
+export const EMAIL_RATE_LIMITING_PERIOD_SECONDS = 5 * 60;
+
+export const getEmailRateLimitQueryTime = () => {
+  return new Date(Date.now() - EMAIL_RATE_LIMITING_PERIOD_SECONDS * 1000);
+};
 
 type UserConstructorArgs = {
   properties: DBUserProperties;
@@ -292,12 +298,12 @@ class __User extends Account {
     };
 
   canCreateVerificationCode = (client: DBClient) => async () => {
-    const createdAfter = getRateLimitQueryTime();
+    const createdAfter = getEmailRateLimitQueryTime();
     const verificationCodes = await client.getUserVerificationCodes({
       userEntityId: this.entityId,
       createdAfter,
     });
-    if (verificationCodes.length >= RATE_LIMITING_MAX_ATTEMPTS) {
+    if (verificationCodes.length >= EMAIL_RATE_LIMITING_MAX_ATTEMPTS) {
       return false;
     }
     return true;

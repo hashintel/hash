@@ -230,7 +230,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   getUserVerificationCodes(params: {
     userEntityId: string;
     createdAfter?: Date;
-  }): Promise<Array<VerificationCode>> {
+  }): Promise<VerificationCode[]> {
     return this.query((adapter) => adapter.getUserVerificationCodes(params));
   }
 

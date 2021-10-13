@@ -413,7 +413,7 @@ export class PostgresClient implements DBClient {
   async getUserVerificationCodes(params: {
     userEntityId: string;
     createdAfter?: Date;
-  }): Promise<Array<VerificationCode>> {
+  }): Promise<VerificationCode[]> {
     return await getUserVerificationCodes(this.conn, params);
   }
 

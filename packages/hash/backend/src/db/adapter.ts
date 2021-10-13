@@ -311,7 +311,7 @@ export interface DBClient {
   getUserVerificationCodes(params: {
     userEntityId: string;
     createdAfter?: Date;
-  }): Promise<Array<VerificationCode>>;
+  }): Promise<VerificationCode[]>;
 
   /** Increment the number of verification attempts by 1 */
   incrementVerificationCodeAttempts(params: {

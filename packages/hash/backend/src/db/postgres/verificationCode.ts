@@ -47,7 +47,8 @@ export const getVerificationCode = async (
   params: { id: string }
 ): Promise<VerificationCode | null> => {
   const row = await conn.one(sql`
-    select verification_id, account_id, user_id, verification_code, email_address, number_of_attempts, used, created_at
+    select verification_id, account_id, user_id, verification_code,
+    email_address, number_of_attempts, used, created_at
     from verification_codes
     where verification_id = ${params.id}
   `);
@@ -60,7 +61,7 @@ export const getUserVerificationCodes = async (
     userEntityId: string;
     createdAfter?: Date;
   }
-): Promise<Array<VerificationCode>> => {
+): Promise<VerificationCode[]> => {
   const queryConditions = sql.join(
     [
       sql`user_id = ${params.userEntityId}`,
@@ -71,7 +72,8 @@ export const getUserVerificationCodes = async (
     sql` and `
   );
   const rows = await conn.any(sql`
-    select verification_id, account_id, user_id, verification_code, email_address, number_of_attempts, used, created_at
+    select verification_id, account_id, user_id, verification_code,
+    email_address, number_of_attempts, used, created_at
     from verification_codes
     where ${queryConditions}
   `);
