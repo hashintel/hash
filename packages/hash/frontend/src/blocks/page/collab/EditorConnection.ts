@@ -13,7 +13,7 @@ import { EditorState, Plugin, Transaction } from "prosemirror-state";
 import { Step } from "prosemirror-transform";
 import { EditorView } from "prosemirror-view";
 
-import { defineNodeView } from "../tsUtils";
+import { defineNodeViewFactory } from "../tsUtils";
 import { ReplacePortal } from "../usePortals";
 import { AbortingPromise, GET, POST } from "./http";
 import { Reporter } from "./Reporter";
@@ -166,7 +166,7 @@ export class EditorConnection {
         return ensureDocBlocksLoaded(
           this.schema,
           data.doc,
-          defineNodeView(this.view, this.replacePortal)
+          defineNodeViewFactory(this.view, this.replacePortal)
         ).then(() => data);
       })
       .then((data) => {

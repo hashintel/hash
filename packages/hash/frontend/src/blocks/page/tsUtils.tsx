@@ -145,7 +145,7 @@ const createNodeView = function createNodeView(
   return nodeView;
 };
 
-export const defineNodeView =
+export const defineNodeViewFactory =
   (
     // @todo type this
     view: any,

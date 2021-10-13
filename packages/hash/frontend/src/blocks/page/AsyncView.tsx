@@ -6,7 +6,7 @@ import {
 } from "@hashintel/hash-shared/prosemirror";
 import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorView, NodeView } from "prosemirror-view";
-import { defineNodeView } from "./tsUtils";
+import { defineNodeViewFactory } from "./tsUtils";
 import { ReplacePortal } from "./usePortals";
 
 /**
@@ -91,7 +91,7 @@ export class AsyncView implements NodeView {
 
     createRemoteBlockFromEntity(
       view.state.schema,
-      defineNodeView(view, this.replacePortal),
+      defineNodeViewFactory(view, this.replacePortal),
       entity,
       node.attrs.targetComponentId
     )
