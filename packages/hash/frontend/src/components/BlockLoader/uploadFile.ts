@@ -1,4 +1,8 @@
-// This doesn't actually upload the file, just supplies a fake link to the local file or internet URL
+/**
+ * This doesn't actually upload the file, just supplies a fake link to the local file or internet URL
+ * @todo make this a hook when implementing a real uploadFile function
+ */
+
 export const uploadFile = async ({
   file,
   url,

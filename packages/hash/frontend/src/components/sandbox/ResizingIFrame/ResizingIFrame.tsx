@@ -36,8 +36,11 @@ export const ResizingIFrame = forwardRef<
       throw new Error("iFrame not loaded.");
     }
 
-    /** @todo figure out warnings about unresponsive frames */
-    iFrameResizer({}, iframe);
+    /**
+     * @todo see if anything else to be done about unresponsive frame warnings.
+     *    fix the library types to include this valid option.
+     * */
+    iFrameResizer({ warningTimeout: 20_000 } as FixMeLater, iframe);
 
     return () => (iframe as IFrameWithResizer).iFrameResizer.removeListeners();
   }, [iFrameRef, props]);

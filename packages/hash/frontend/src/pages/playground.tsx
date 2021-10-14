@@ -1,8 +1,9 @@
 import { Validator } from "jsonschema";
 import Prism from "prismjs";
 import { useEffect, useState, VoidFunctionComponent } from "react";
-import { BlockMetadata, BlockProps } from "@hashintel/block-protocol";
-import { RemoteBlock } from "../components/RemoteBlock/RemoteBlock";
+import { BlockMetadata, JSONObject } from "@hashintel/block-protocol";
+
+import { BlockLoader } from "../components/BlockLoader/BlockLoader";
 import styles from "./playground.module.scss";
 
 const validator = new Validator();
@@ -17,7 +18,7 @@ const PassOrFail: VoidFunctionComponent<{ pass: boolean }> = ({ pass }) => (
 const BlockPlayground = () => {
   const [_error, setError] = useState("");
   const [inputData, setInputData] = useState(`{\n  "key": "value"\n}`);
-  const [blockProps, setBlockProps] = useState<BlockProps>({});
+  const [blockProps, setBlockProps] = useState<JSONObject>({});
   const [inputErrors, setInputErrors] = useState<{
     validJson: boolean;
     matchesSchema: boolean;
@@ -168,7 +169,7 @@ const BlockPlayground = () => {
             ) : !inputErrors.matchesSchema ? (
               "Input does not match schema"
             ) : (
-              <RemoteBlock url={metadata.source ?? ""} {...blockProps} />
+              <BlockLoader sourceUrl={metadata.source ?? ""} {...blockProps} />
             )}
           </div>
         </div>

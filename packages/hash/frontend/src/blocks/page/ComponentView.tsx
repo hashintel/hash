@@ -11,7 +11,7 @@ import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 import { Schema } from "prosemirror-model";
 import { EditorView, NodeView } from "prosemirror-view";
 import React from "react";
-import { RemoteBlock } from "../../components/RemoteBlock/RemoteBlock";
+import { BlockLoader } from "../../components/BlockLoader/BlockLoader";
 import { EntityStoreContext } from "./EntityStoreContext";
 import { RenderPortal } from "./usePortals";
 
@@ -105,10 +105,11 @@ export class ComponentView implements NodeView<Schema> {
             const mappedUrl = componentIdToUrl(this.componentId);
 
             return (
-              <RemoteBlock
+              <BlockLoader
                 {...remoteBlockProps}
-                url={`${mappedUrl}/${this.sourceName}`}
+                sourceUrl={`${mappedUrl}/${this.sourceName}`}
                 editableRef={editableRef}
+                shouldSandbox={!editableRef}
               />
             );
           }}

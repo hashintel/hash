@@ -4,6 +4,7 @@ import {
   BlockProtocolUpdateFn,
   JSONObject,
 } from "@hashintel/block-protocol";
+import { FetchEmbedCodeFn } from "../BlockLoader/fetchEmbedCode";
 
 export type MessageFromFramedBlock = {
   requestId: string;
@@ -13,16 +14,20 @@ export type MessageFromFramedBlock = {
       payload: string;
     }
   | {
+      type: "getEmbedBlock";
+      payload: Parameters<FetchEmbedCodeFn>;
+    }
+  | {
       type: "update";
-      payload: Parameters<BlockProtocolUpdateFn>[0];
+      payload: Parameters<BlockProtocolUpdateFn>;
     }
   | {
       type: "create";
-      payload: Parameters<BlockProtocolCreateFn>[0];
+      payload: Parameters<BlockProtocolCreateFn>;
     }
   | {
       type: "aggregate";
-      payload: Parameters<BlockProtocolAggregateFn>[0];
+      payload: Parameters<BlockProtocolAggregateFn>;
     }
 );
 

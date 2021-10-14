@@ -22,10 +22,19 @@ const fetchSource = memoizeFetchFunction((url) =>
 
 export const BlockFramer: VoidFunctionComponent<
   CrossFrameProxyProps & Record<string, any>
-> = ({ sourceUrl, aggregate, create, update, blockProperties }) => {
+> = ({
+  sourceUrl,
+  aggregate,
+  create,
+  getEmbedBlock,
+  update,
+  blockProperties,
+}) => {
   const frameRef = useRef<HTMLIFrameElement>(null);
 
-  const b64Properties = encode(JSON.stringify(blockProperties));
+  const b64Properties = encodeURIComponent(
+    encode(JSON.stringify(blockProperties))
+  );
 
   const sendMessage = (message: MessageFromBlockFramer, origin = "*") =>
     frameRef.current?.contentWindow?.postMessage(message, origin);
@@ -44,7 +53,7 @@ export const BlockFramer: VoidFunctionComponent<
   const asyncCallAndResponse = useCallback(
     <T extends BlockProtocolFunction | typeof fetchSource>(
       fn: T | undefined,
-      args: Parameters<T>[0],
+      args: Parameters<T>,
       requestId: string
     ) => {
       const responseMsg: MessageFromBlockFramer & { type: "response" } = {
@@ -61,7 +70,10 @@ export const BlockFramer: VoidFunctionComponent<
         return;
       }
 
-      fn(args as FixMeLater)
+      /**
+       * @todo args is a tuple but the compiler doesn't know. why?
+       */
+      fn(...(args as [FixMeLater]))
         .then((response) => {
           sendMessage({ ...responseMsg, payload: { data: response || "ok" } });
         })
@@ -98,8 +110,11 @@ export const BlockFramer: VoidFunctionComponent<
         case "update":
           asyncCallAndResponse(update, data.payload, data.requestId);
           break;
+        case "getEmbedBlock":
+          asyncCallAndResponse(getEmbedBlock, data.payload, data.requestId);
+          break;
         case "fetchUrl":
-          asyncCallAndResponse(fetchSource, data.payload, data.requestId);
+          asyncCallAndResponse(fetchSource, [data.payload], data.requestId);
           break;
       }
     };
@@ -107,7 +122,7 @@ export const BlockFramer: VoidFunctionComponent<
     window.addEventListener("message", msgHandler);
 
     return () => window.removeEventListener("message", msgHandler);
-  }, [aggregate, asyncCallAndResponse, create, update]);
+  }, [aggregate, getEmbedBlock, asyncCallAndResponse, create, update]);
 
   return (
     <ResizingIFrame
