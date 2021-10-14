@@ -21,24 +21,32 @@
   },
   "rules": {
     // overridden airbnb rules (if you wish to add to this list, please outline your reasoning here: https://www.notion.so/hashintel/HASH-dev-eslint-configuration-60c52c127d13478fbce6bb5579a6b7be)
+    "no-undef-init": "off",
     "no-underscore-dangle": "off",
-    "no-nested-ternary":"off",
+    "no-nested-ternary": "off",
     "no-restricted-syntax": "off",
-    "camelcase": "off", 
+    "camelcase": "off",
     "import/no-cycle": "warn",
     "import/prefer-default-export": "off",
     "no-await-in-loop": "off",
-    "import/no-unresolved": [2, { "ignore": ["^@hashintel"] }], 
+    "import/no-unresolved": [2, { "ignore": ["^@hashintel"] }],
     "react/prop-types": "off", // because we are using typescript this is redundant
     "jsx-a11y/anchor-is-valid": "off", // because we use next.js empty anchor tags should be used when using the Link component
-    "react/jsx-filename-extension": [2, { "extensions": [".js", ".jsx", ".ts", ".tsx"] }],
+    "react/jsx-filename-extension": [
+      2,
+      { "extensions": [".js", ".jsx", ".ts", ".tsx"] }
+    ],
     "react/jsx-props-no-spreading": "off",
-    "no-void":  ["error", { "allowAsStatement": true }],
+    "no-void": ["error", { "allowAsStatement": true }],
     "no-continue": "off",
     "react/react-in-jsx-scope": "off",
     "no-return-await": "off",
     "max-classes-per-file": "off",
-    "lines-between-class-members": ["error", "always", { "exceptAfterSingleLine": true }],
+    "lines-between-class-members": [
+      "error",
+      "always",
+      { "exceptAfterSingleLine": true }
+    ],
     "consistent-return": "off",
     "default-case": "off",
     "class-methods-use-this": "off",
@@ -60,14 +68,19 @@
     "react/jsx-key": "error",
     "react/jsx-no-useless-fragment": "error",
     "react/self-closing-comp": "warn",
+    "no-restricted-imports": [
+      "error",
+      {
+        "paths": [
+          {
+            "name": "@testing-library/react",
+            "importNames": ["render"],
+            "message": "Please use ./src/tests/testUtils.tsx#render instead"
+          }
+        ]
+      }
+    ],
     "react/require-default-props": "off",
-    "no-restricted-imports": ["error", {
-      "paths": [{
-        "name": "@testing-library/react",
-        "importNames": ["render"],
-        "message": "Please use ./src/tests/testUtils.tsx#render instead"
-      }]
-    }],
     "no-shadow": "off", // see https://github.com/typescript-eslint/typescript-eslint/issues/2483
     "@typescript-eslint/no-shadow": "error",
     "no-use-before-define": "off",
@@ -109,17 +122,15 @@
   },
   "overrides": [
     {
-      "files": [
-        "**/__mocks__/*",
-        "**/testUtils/*",
-        "*.test.ts",
-        "*.test.tsx"
-      ],
+      "files": ["**/__mocks__/*", "**/testUtils/*", "*.test.ts", "*.test.tsx"],
       "env": {
         "jest/globals": true
       },
       "rules": {
-        "import/no-extraneous-dependencies": ["error", { "devDependencies": true }]
+        "import/no-extraneous-dependencies": [
+          "error",
+          { "devDependencies": true }
+        ]
       }
     },
     {

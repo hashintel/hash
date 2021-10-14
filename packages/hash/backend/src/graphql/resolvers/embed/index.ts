@@ -47,6 +47,23 @@ type OembedResponse = {
   html: string;
 };
 
+const getOembedEndpoint = (url: string, type?: string) => {
+  for (const { provider_name, endpoints } of oEmbedData as IoEmbedData[]) {
+    if (type && provider_name !== type) {
+      continue;
+    }
+    for (const endpoint of endpoints) {
+      const isMatch = !!endpoint.schemes?.find((scheme) =>
+        scheme.split("*").every((substring) => url.search(substring) > -1)
+      );
+
+      if (isMatch) {
+        return endpoint.url;
+      }
+    }
+  }
+};
+
 async function getEmbedResponse({
   url,
   type,
@@ -54,43 +71,7 @@ async function getEmbedResponse({
   url: string;
   type?: Maybe<string>;
 }) {
-  let oembedEndpoint;
-
-  if (!type) {
-    /** @todo: refactor this to stop using .find without a returned boolean */
-    // eslint-disable-next-line array-callback-return
-    (oEmbedData as IoEmbedData[]).find((oembed) => {
-      oembed.endpoints.find((endpoint) =>
-        endpoint.schemes?.find((scheme) => {
-          if (
-            scheme.split("*").every((substring) => url.search(substring) > -1)
-          ) {
-            oembedEndpoint = endpoint.url;
-            return true;
-          }
-
-          return false;
-        })
-      );
-    });
-  } else {
-    const oembed = (oEmbedData as IoEmbedData[]).find(
-      (possibleOembed) => possibleOembed.provider_name === type
-    );
-
-    oembed?.endpoints.find((endpoint) =>
-      endpoint.schemes?.find((scheme) => {
-        if (
-          scheme.split("*").every((substring) => url.search(substring) > -1)
-        ) {
-          oembedEndpoint = endpoint.url;
-          return true;
-        }
-
-        return false;
-      })
-    );
-  }
+  const oembedEndpoint = getOembedEndpoint(url, type || undefined);
 
   if (!oembedEndpoint) {
     return {
