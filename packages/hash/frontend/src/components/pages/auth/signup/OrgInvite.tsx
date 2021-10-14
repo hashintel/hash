@@ -1,17 +1,17 @@
 import { useMutation } from "@apollo/client";
 import React, { VFC, useState, useMemo } from "react";
-import { useForm } from "react-hook-form";
 import { tw } from "twind";
 import {
   CreateOrgEmailInvitationMutation,
   CreateOrgEmailInvitationMutationVariables,
 } from "../../../../graphql/apiTypes.gen";
 import { createOrgEmailInvitation as createOrgEmailInvitationMutation } from "../../../../graphql/queries/org.queries";
-import { IconSpinner } from "../../../Icons/IconSpinner";
+import { TagsInput } from "../../../forms/TagsInput";
+import { SpinnerIcon } from "../../../Icons/SpinnerIcon";
 
 type OrgInviteProps = {
   navigateToHome: () => void;
-  createOrgInfo?: {
+  createOrgInfo: {
     invitationLinkToken: string;
     orgEntityId: string;
   };
@@ -22,28 +22,16 @@ export const OrgInvite: VFC<OrgInviteProps> = ({
   createOrgInfo,
 }) => {
   const [copied, setCopied] = useState(false);
-  const [showSuccessMsg, setShowSuccessMsg] = useState(false);
   const [error, setError] = useState("");
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isValid },
-  } = useForm<{
-    inviteeEmail: string;
-  }>({
-    mode: "onChange",
-  });
+  const [emails, setEmails] = useState<string[]>([]);
+  const [sendingInvitations, setSendingInvitations] = useState(false);
 
   const [sendEmailInvitation, { loading }] = useMutation<
     CreateOrgEmailInvitationMutation,
     CreateOrgEmailInvitationMutationVariables
   >(createOrgEmailInvitationMutation, {
     onCompleted: (_) => {
-      setShowSuccessMsg(true);
-      setTimeout(() => {
-        setShowSuccessMsg(false);
-        // navigateToHome()
-      }, 3000);
+      navigateToHome;
     },
     onError: ({ graphQLErrors }) => {
       const errorMsg = graphQLErrors?.[0].message;
@@ -51,16 +39,25 @@ export const OrgInvite: VFC<OrgInviteProps> = ({
     },
   });
 
-  const onSubmit = handleSubmit(async ({ inviteeEmail }) => {
-    if (!createOrgInfo?.orgEntityId) return;
+  const onSubmit = async () => {
+    if (emails.length == 0) {
+      navigateToHome();
+      return;
+    }
 
-    void sendEmailInvitation({
-      variables: {
-        orgEntityId: createOrgInfo.orgEntityId,
-        inviteeEmailAddress: inviteeEmail,
-      },
-    });
-  });
+    setSendingInvitations(true);
+    await Promise.all(
+      emails.map((email) =>
+        sendEmailInvitation({
+          variables: {
+            orgEntityId: createOrgInfo.orgEntityId,
+            inviteeEmailAddress: email,
+          },
+        })
+      )
+    );
+    setSendingInvitations(false);
+  };
 
   const invitationLink = useMemo(() => {
     if (!createOrgInfo) return "-";
@@ -119,30 +116,13 @@ export const OrgInvite: VFC<OrgInviteProps> = ({
           >
             Invite via email
           </label>
-          <textarea
-            id="inviteeEmail"
-            className={tw`block w-full border(1 gray-300 hover:gray-400 focus:gray-500) focus:outline-none rounded-lg py-4 px-5 resize-none mb-1`}
-            // Commenting this out till the api can handle sending invites to multiple emails
-            // placeholder="Type or paste one or more emails here, seperated by commas"
-            placeholder="Type or paste the invitee's email"
-            rows={2}
-            {...register("inviteeEmail", {
-              required: true,
-            })}
+          <TagsInput
+            minHeight={96}
+            tags={emails}
+            setTags={setEmails}
+            placeholder="Enter Email"
           />
-          {errors.inviteeEmail && (
-            <p className={tw`text-red-500 text-sm mt-5 `}>
-              {errors.inviteeEmail}
-            </p>
-          )}
-          {error && (
-            <p className={tw`text-red-500 text-sm mt-5 `}>
-              {errors.inviteeEmail}
-            </p>
-          )}
-          {showSuccessMsg && (
-            <p className={tw`text-sm text-green-500`}>Email invite sent!</p>
-          )}
+          {error && <p className={tw`text-red-500 text-sm mt-5 `}>{error}</p>}
         </div>
 
         {/* Commenting this out till this scenario is handled */}
@@ -160,14 +140,14 @@ export const OrgInvite: VFC<OrgInviteProps> = ({
           <button
             type="submit"
             className={tw`group w-64 bg-gradient-to-r from-blue-400 via-blue-500 to-pink-500 rounded-lg h-11 transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center text-white text-sm font-bold mx-auto mb-4`}
-            disabled={loading || !isValid}
+            disabled={loading}
             onClick={onSubmit}
           >
-            {loading ? (
-              <IconSpinner className={tw`h-4 w-4 text-white animate-spin`} />
+            {sendingInvitations ? (
+              <SpinnerIcon className={tw`h-4 w-4 text-white animate-spin`} />
             ) : (
               <>
-                <span>Send Invite</span>
+                <span>Continue</span>
                 <span
                   className={tw`ml-2 transition-all group-hover:translate-x-1`}
                 >
@@ -175,14 +155,6 @@ export const OrgInvite: VFC<OrgInviteProps> = ({
                 </span>
               </>
             )}
-          </button>
-
-          <button
-            type="button"
-            onClick={navigateToHome}
-            className={tw`mx-auto text-blue-500 underline`}
-          >
-            Do this later
           </button>
         </div>
       </div>
