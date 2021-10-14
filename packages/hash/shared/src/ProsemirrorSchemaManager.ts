@@ -1,6 +1,6 @@
 import { NodeSpec, Schema } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
-import { DirectEditorProps, EditorView } from "prosemirror-view";
+import { EditorProps, EditorView } from "prosemirror-view";
 import {
   blockComponentRequiresText,
   BlockMeta,
@@ -24,9 +24,7 @@ const createComponentNodeSpec = (spec: Partial<NodeSpec>): NodeSpec => ({
   },
 });
 
-type NodeViewFactory = NonNullable<
-  DirectEditorProps<Schema>["nodeViews"]
->[string];
+type NodeViewFactory = NonNullable<EditorProps<Schema>["nodeViews"]>[string];
 
 type ComponentNodeViewFactory = (meta: BlockMeta) => NodeViewFactory;
 
