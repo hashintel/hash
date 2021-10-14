@@ -1,10 +1,8 @@
-export type BlockProps = object;
-
 export type BlockVariant = {
   description?: string;
   icon?: string;
   name?: string;
-  properties?: BlockProps;
+  properties?: JSONObject;
 };
 
 /**
@@ -84,16 +82,21 @@ export type BlockProtocolAggregatePayload = {
 };
 
 export type BlockProtocolCreateFn = {
-  <T>(actions: BlockProtocolCreatePayload<T>[]): void;
+  <T>(actions: BlockProtocolCreatePayload<T>[]): Promise<any[]>;
 };
 
 export type BlockProtocolUpdateFn = {
-  <T>(actions: BlockProtocolUpdatePayload<T>[]): Promise<void>;
+  <T>(actions: BlockProtocolUpdatePayload<T>[]): Promise<any[]>;
 };
 
 export type BlockProtocolAggregateFn = {
-  (action: BlockProtocolAggregatePayload): void;
+  (action: BlockProtocolAggregatePayload): Promise<any[]>;
 };
+
+export type BlockProtocolFunction =
+  | BlockProtocolAggregateFn
+  | BlockProtocolCreateFn
+  | BlockProtocolUpdateFn;
 
 export type JSONValue =
   | null
@@ -112,7 +115,7 @@ export interface JSONArray extends Array<JSONValue> {}
  * which the embedding application should provide.
  */
 export type BlockProtocolProps = {
-  aggregate?: BlockProtocolCreateFn;
+  aggregate?: BlockProtocolAggregateFn;
   aggregateLoading?: boolean;
   aggregateError?: Error;
   create?: BlockProtocolCreateFn;

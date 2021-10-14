@@ -136,6 +136,8 @@ const useMockData = () => {
 
         return newData;
       });
+
+      return [];
     },
     [tableData]
   );

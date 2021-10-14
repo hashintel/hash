@@ -60,6 +60,7 @@ function AppComponent() {
     if (actions[0]) {
       updateState(actions[0].data);
     }
+    return actions[0].data;
   };
 
   return (
