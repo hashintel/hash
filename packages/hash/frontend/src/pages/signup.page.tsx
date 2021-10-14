@@ -54,6 +54,7 @@ import {
   isParsedInvitationLinkQuery,
 } from "../components/pages/auth/utils";
 import { AuthLayout } from "../components/layout/PageLayout/AuthLayout";
+import { useGetInvitationInfo } from "../components/hooks/useGetInvitationInfo";
 
 enum Screen {
   Intro,
@@ -146,7 +147,7 @@ function reducer(state: State, action: Actions): State {
 /**
  * @todo
  * Error states for entire flow
- * hook to handle invitationLink and emailInvitationLink
+ * 
  */
 
 const SignupPage: NextPage = () => {
@@ -166,6 +167,7 @@ const SignupPage: NextPage = () => {
     },
     dispatch,
   ] = useReducer<React.Reducer<State, Actions>>(reducer, initialState);
+  // const { } = useGetInvitationInfo()
   const accountUsageType = useRef<WayToUseHash | null>(null);
 
   const updateState = (properties: Partial<State>) => {
@@ -437,7 +439,7 @@ const SignupPage: NextPage = () => {
         },
       });
     }
-  }, [router, verifyEmail, getOrgEmailInvitation]);
+  }, [router, verifyEmail, getOrgEmailInvitation, getOrgInvitationLink]);
 
   const requestVerificationCode = (providedEmail: string) => {
     updateState({ email: providedEmail });
