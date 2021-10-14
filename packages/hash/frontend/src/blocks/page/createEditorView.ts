@@ -5,7 +5,7 @@ import { EntityStore } from "@hashintel/hash-shared/entityStore";
 import { createProseMirrorState } from "@hashintel/hash-shared/prosemirror";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { updatePageMutation } from "@hashintel/hash-shared/save";
-import { Node, Schema } from "prosemirror-model";
+import { Schema } from "prosemirror-model";
 import { Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { createBlockSuggester } from "../../components/BlockSuggester";
@@ -22,14 +22,13 @@ import { ReplacePortal } from "./usePortals";
 const createSavePlugin = (
   accountId: string,
   pageId: string,
-  getDoc: () => Node<Schema>,
   getLastSavedValue: () => BlockEntity[],
   getEntityStore: () => EntityStore,
   client: ApolloClient<unknown>
 ) => {
   let saveQueue = Promise.resolve();
 
-  const triggerSave = () => {
+  const triggerSave = (view: EditorView<Schema>) => {
     if (collabEnabled) {
       return;
     }
@@ -40,7 +39,7 @@ const createSavePlugin = (
         return updatePageMutation(
           accountId,
           pageId,
-          getDoc(),
+          view.state.doc,
           getLastSavedValue(),
           getEntityStore(),
           client
@@ -57,7 +56,7 @@ const createSavePlugin = (
           // Manual save for cmd+s
           if (evt.key === "s" && evt.metaKey) {
             evt.preventDefault();
-            triggerSave();
+            triggerSave(view);
 
             return true;
           }
@@ -70,12 +69,12 @@ const createSavePlugin = (
           }
           return false;
         },
-        blur() {
+        blur(view) {
           if (timeout) {
             clearTimeout(timeout);
           }
 
-          timeout = setTimeout(() => triggerSave(), 500);
+          timeout = setTimeout(() => triggerSave(view), 500);
 
           return false;
         },
@@ -94,13 +93,10 @@ export const createEditorView = (
   getLastSavedValue: () => BlockEntity[],
   client: ApolloClient<unknown>
 ) => {
-  let view: EditorView;
-
   const plugins = [
     createSavePlugin(
       accountId,
       pageId,
-      () => view.state.doc,
       getLastSavedValue,
       getEntityStore,
       client
@@ -114,7 +110,7 @@ export const createEditorView = (
   let connection: EditorConnection | null = null;
   let manager: ProsemirrorSchemaManager;
 
-  view = new EditorView<Schema>(renderNode, {
+  const view = new EditorView<Schema>(renderNode, {
     state,
     nodeViews: {
       async(currentNode, currentView, getPos) {
