@@ -18,6 +18,7 @@ import { PageSidebar } from "../../components/layout/PageSidebar/PageSidebar";
 
 import styles from "../index.module.scss";
 import { VersionDropdown } from "../../components/Dropdowns/VersionDropdown";
+import { PageTitle } from "../../blocks/page/PageTitle";
 
 /**
  * preload all configured blocks for now. in the future these will be loaded
@@ -119,7 +120,11 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
               <div>
                 {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
                 <label>Title</label>
-                <h1>{title}</h1>
+                <PageTitle
+                  value={title}
+                  accountId={data.page.accountId}
+                  metadataId={data.page.metadataId}
+                />
               </div>
               <div>
                 {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
