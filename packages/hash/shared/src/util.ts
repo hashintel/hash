@@ -9,6 +9,11 @@ export type EntityNode = Omit<ProsemirrorNode<Schema>, "attrs"> & {
   };
 };
 
+/**
+ * @deprecated
+ * @todo remove this – get this from entity store instead – this will rely
+ * on having a draft entity store
+ */
 export const nodeToComponentId = (node: ProsemirrorNode<Schema>) =>
   node.type.name;
 

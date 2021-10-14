@@ -26,7 +26,7 @@ const createSavePlugin = (
   getEntityStore: () => EntityStore,
   client: ApolloClient<unknown>
 ) => {
-  let saveQueue = Promise.resolve();
+  let saveQueue = Promise.resolve<unknown>(null);
 
   const triggerSave = (view: EditorView<Schema>) => {
     if (collabEnabled) {
@@ -34,17 +34,17 @@ const createSavePlugin = (
     }
 
     saveQueue = saveQueue
-      .catch(() => {})
-      .then(() => {
-        return updatePageMutation(
+      .catch()
+      .then(() =>
+        updatePageMutation(
           accountId,
           pageId,
           view.state.doc,
           getLastSavedValue(),
           getEntityStore(),
           client
-        ).then(() => {});
-      });
+        )
+      );
   };
 
   let timeout: ReturnType<typeof setTimeout> | null = null;
