@@ -12,7 +12,17 @@ type SelectInputProps = {
 
 export const SelectInput = forwardRef<HTMLSelectElement, SelectInputProps>(
   (
-    { label, onChange, onChangeValue, id, options, labelClass, ...props },
+    {
+      label,
+      onChange,
+      onChangeValue,
+      id,
+      options,
+      labelClass,
+      placeholder,
+      value,
+      ...props
+    },
     ref
   ) => {
     const [inputId, _] = useState(() => id ?? uniqueId());
@@ -40,13 +50,22 @@ export const SelectInput = forwardRef<HTMLSelectElement, SelectInputProps>(
         )}
         <select
           id={inputId}
-          className={tw`border(1 gray-300 hover:gray-400 focus:gray-500) bg-transparent focus:outline-none rounded-lg h-11 px-5 mb-2 w-full`}
+          className={tw`border(1 gray-300 hover:gray-400 focus:gray-500) ${
+            !value ? "text-gray-400" : ""
+          }  bg-transparent focus:outline-none rounded-lg h-11 px-5 mb-2 w-full `}
           onChange={_onChange}
           ref={ref}
+          {...(value && { value })}
+          {...(placeholder && { defaultValue: "" })}
           {...props}
         >
-          {options.map(({ label: optionLabel, value }) => (
-            <option key={value} value={value}>
+          {placeholder && (
+            <option value="" hidden disabled>
+              {placeholder || "---"}
+            </option>
+          )}
+          {options.map(({ label: optionLabel, value: optionValue }) => (
+            <option key={optionValue} value={optionValue}>
               {optionLabel}
             </option>
           ))}

@@ -3,9 +3,10 @@ import { tw } from "twind";
 
 import { useRouter } from "next/router";
 import Logo from "../../../../assets/svg/logo.svg";
-import { IconSpinner } from "../../../Icons/IconSpinner";
+import { SpinnerIcon } from "../../../Icons/SpinnerIcon";
 import { TextInput } from "../../../forms/TextInput";
 import { useUser } from "../../../hooks/useUser";
+import { InviteHeader } from "../InviteHeader";
 
 type SignupIntroProps = {
   handleSubmit: (email: string) => void;
@@ -50,26 +51,9 @@ export const SignupIntro: VFC<SignupIntroProps> = ({
     void router.push({ pathname: "/login", query: router.query });
   };
 
-  const renderInviteHeader = () => {
-    if (invitationInfo?.inviterPreferredName) {
-      return (
-        <p className={tw`font-bold text-2xl text-blue-500 mb-12`}>
-          {invitationInfo.inviterPreferredName} has invited you to join{" "}
-          {invitationInfo.orgName}
-        </p>
-      );
-    }
-
-    return (
-      <p className={tw`font-bold text-2xl text-blue-500 mb-12`}>
-        You have been invited you to join {invitationInfo?.orgName}
-      </p>
-    );
-  };
-
   return (
     <div className={tw`flex flex-col items-center`}>
-      {!!invitationInfo && renderInviteHeader()}
+      {!!invitationInfo && <InviteHeader invitationInfo={invitationInfo} />}
       <div className={tw`mb-12 flex items-center`}>
         <Logo className={tw`mr-5`} />
         <h1 className={tw`text-2xl font-bold`}>Sign up</h1>
@@ -114,7 +98,7 @@ export const SignupIntro: VFC<SignupIntroProps> = ({
           className={tw`w-64 bg-white border-1 border(gray-300 hover:gray-500 focus:gray-500) focus:outline-none rounded-lg h-11 flex items-center justify-center text-sm font-bold`}
         >
           {loading ? (
-            <IconSpinner className={tw`h-4 w-4 animate-spin`} />
+            <SpinnerIcon className={tw`h-4 w-4 animate-spin`} />
           ) : (
             <span>Continue with email</span>
           )}

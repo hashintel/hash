@@ -4,7 +4,7 @@ import { tw } from "twind";
 import { unstable_batchedUpdates } from "react-dom";
 import Logo from "../../../../assets/svg/logo.svg";
 import IconInfo from "../../../Icons/IconInfo";
-import { IconSpinner } from "../../../Icons/IconSpinner";
+import { SpinnerIcon } from "../../../Icons/SpinnerIcon";
 import { useShortnameInput } from "../../../hooks/useShortnameInput";
 import { SelectInput } from "../../../forms/SelectInput";
 import { ORG_ROLES } from "../utils";
@@ -45,7 +45,7 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
   const [shortnameTouched, setShortnameTouched] = useState(false);
 
   const [preferredName, setPreferredName] = useState("");
-  const [responsibility, setResponsibility] = useState(ORG_ROLES[0].value);
+  const [responsibility, setResponsibility] = useState<string | undefined>();
 
   const handleSubmit = (evt: React.FormEvent) => {
     evt.preventDefault();
@@ -62,7 +62,9 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
   const [title, subtitle] = useMemo(() => {
     if (invitationInfo) {
       return [
-        `${invitationInfo.inviterPreferredName} has invited you to join ${invitationInfo.orgName} on HASH`,
+        invitationInfo.inviterPreferredName
+          ? `${invitationInfo.inviterPreferredName} has invited you to join ${invitationInfo.orgName} on HASH`
+          : `You have been invited to join ${invitationInfo.orgName} on HASH`,
         `${email} has been confirmed. Now it's time to choose a username...`,
       ];
     }
@@ -202,10 +204,15 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
           <button
             type="submit"
             className={tw`group w-64 bg-gradient-to-r from-blue-400 via-blue-500 to-pink-500 rounded-lg h-11 transition-all disabled:opacity-50 flex items-center justify-center text-white text-sm font-bold mt-14`}
-            disabled={!preferredName || !isShortnameValid || loading}
+            disabled={
+              !preferredName ||
+              !isShortnameValid ||
+              loading ||
+              (!!invitationInfo && !responsibility)
+            }
           >
             {loading ? (
-              <IconSpinner className={tw`h-4 w-4 text-white animate-spin`} />
+              <SpinnerIcon className={tw`h-4 w-4 text-white animate-spin`} />
             ) : (
               <>
                 <span>Continue</span>

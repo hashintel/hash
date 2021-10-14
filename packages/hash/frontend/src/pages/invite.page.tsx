@@ -8,7 +8,7 @@ import { useUser } from "../components/hooks/useUser";
 import { AuthLayout } from "../components/layout/PageLayout/AuthLayout";
 
 import Logo from "../assets/svg/logo.svg";
-import { IconSpinner } from "../components/Icons/IconSpinner";
+import { SpinnerIcon } from "../components/Icons/SpinnerIcon";
 import { SelectInput } from "../components/forms/SelectInput";
 import {
   GetOrgEmailInvitationQuery,
@@ -48,7 +48,7 @@ const InvitePage: NextPage = () => {
     invitationLinkToken,
     isExistingUser,
   } = router.query;
-  const [responsibility, setResponsibility] = useState(ORG_ROLES[0].value);
+  const [responsibility, setResponsibility] = useState<string | undefined>();
   const [errorMessage, setErrorMessage] = useState("");
   const [invitationInfo, setInvitationInfo] = useState<
     InvitationInfo | undefined
@@ -140,9 +140,6 @@ const InvitePage: NextPage = () => {
     },
     onError: ({ graphQLErrors }) => {
       graphQLErrors.forEach(({ message }) => {
-        // const { code } = extensions as {
-        //   code?: keyof typeof INVITE_ERROR_CODES;
-        // };
         setErrorMessage(message);
       });
     },
@@ -171,6 +168,8 @@ const InvitePage: NextPage = () => {
 
   const handleSubmit = (evt: React.FormEvent) => {
     evt.preventDefault();
+    if (!responsibility) return;
+
     setErrorMessage("");
     void joinOrg({
       variables: {
@@ -222,6 +221,9 @@ const InvitePage: NextPage = () => {
                 label={`Your role at ${invitationInfo?.orgName}`}
                 options={ORG_ROLES}
                 onChangeValue={setResponsibility}
+                value={responsibility}
+                placeholder={ORG_ROLES[0].label}
+                required
               />
               {errorMessage ? (
                 <p className={tw`text-red-500 text-sm mt-5 `}>{errorMessage}</p>
@@ -234,7 +236,7 @@ const InvitePage: NextPage = () => {
               disabled={joinOrgLoading}
             >
               {joinOrgLoading ? (
-                <IconSpinner className={tw`h-4 w-4 text-white animate-spin`} />
+                <SpinnerIcon className={tw`h-4 w-4 text-white animate-spin`} />
               ) : (
                 <>
                   <span>Continue</span>

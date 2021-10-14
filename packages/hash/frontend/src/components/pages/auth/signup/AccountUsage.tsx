@@ -2,8 +2,8 @@ import React, { useState, VFC } from "react";
 import { tw } from "twind";
 import { WayToUseHash } from "../../../../graphql/apiTypes.gen";
 import { IconHumanGreeting } from "../../../Icons/IconHumanGreeting";
-import { IconPeople } from "../../../Icons/IconPeople";
-import { IconSpinner } from "../../../Icons/IconSpinner";
+import { PeopleIcon } from "../../../Icons/PeopleIcon";
+import { SpinnerIcon } from "../../../Icons/SpinnerIcon";
 
 type AccountUsageProps = {
   updateWayToUseHash: (usingHow: WayToUseHash) => void;
@@ -19,7 +19,7 @@ const USAGE_OPTIONS = [
     value: WayToUseHash.ByThemselves,
   },
   {
-    icon: <IconPeople className={tw`mb-6 w-20 h-20`} />,
+    icon: <PeopleIcon className={tw`mb-6 w-20 h-20`} />,
     title: "With a team",
     description: "Share your graph in whole or part",
     value: WayToUseHash.WithATeam,
@@ -78,7 +78,7 @@ export const AccountUsage: VFC<AccountUsageProps> = ({
         disabled={!activeOption || loading}
       >
         {loading ? (
-          <IconSpinner className={tw`h-4 w-4 text-white animate-spin`} />
+          <SpinnerIcon className={tw`h-4 w-4 text-white animate-spin`} />
         ) : (
           <>
             <span>Continue</span>

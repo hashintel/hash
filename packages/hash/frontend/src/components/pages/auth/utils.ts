@@ -34,23 +34,27 @@ export const isParsedAuthQuery = (
   typeof query.verificationId === "string" &&
   typeof query.verificationCode === "string";
 
-type ParsedInviteQuery = {
-  invitationLinkToken?: string;
-  invitationEmailToken?: string;
+type ParsedInviteEmailQuery = {
+  invitationEmailToken: string;
   orgEntityId: string;
   isExistingUser?: string;
 };
 
+type ParsedInviteLinkQuery = {
+  invitationLinkToken: string;
+  orgEntityId: string;
+};
+
 export const isParsedInvitationEmailQuery = (
   query: ParsedUrlQueryInput
-): query is ParsedInviteQuery =>
+): query is ParsedInviteEmailQuery =>
   typeof query.orgEntityId === "string" &&
   typeof query.invitationEmailToken === "string" &&
   !!query.invitationEmailToken;
 
 export const isParsedInvitationLinkQuery = (
   query: ParsedUrlQueryInput
-): query is ParsedInviteQuery =>
+): query is ParsedInviteLinkQuery =>
   typeof query.orgEntityId === "string" &&
   typeof query.invitationLinkToken === "string" &&
   !!query.invitationLinkToken;
@@ -73,6 +77,7 @@ export const ORG_ROLES = [
   { label: "IT", value: "IT" },
   { label: "HR", value: "HR" },
   { label: "Cross-Functional", value: "Cross-Functional" },
+  { label: "Other", value: "Other" },
 ];
 
 export const ORG_SIZES = [

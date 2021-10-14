@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef } from "react";
 import { tw } from "twind";
 
 type TagsInputProps = {
@@ -30,7 +30,7 @@ export const TagsInput: React.VFC<TagsInputProps> = ({
   };
 
   const handleRemove = (tagToRemove: string) => {
-    const newTags = tags.filter((tag) => tag != tagToRemove);
+    const newTags = tags.filter((tag) => tag !== tagToRemove);
     setTags(newTags);
   };
 
@@ -42,6 +42,7 @@ export const TagsInput: React.VFC<TagsInputProps> = ({
       <ul className={tw`flex flex-wrap items-start`}>
         {tags.map((tag) => (
           <li
+            key={tag}
             className={tw`relative flex flex-wrap bg-gray-300 text-xs pl-3 pr-6 py-1 rounded-2xl mr-1 mb-1`}
           >
             {tag}{" "}

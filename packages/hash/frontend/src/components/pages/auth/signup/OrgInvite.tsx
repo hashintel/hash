@@ -30,9 +30,7 @@ export const OrgInvite: VFC<OrgInviteProps> = ({
     CreateOrgEmailInvitationMutation,
     CreateOrgEmailInvitationMutationVariables
   >(createOrgEmailInvitationMutation, {
-    onCompleted: (_) => {
-      navigateToHome;
-    },
+    onCompleted: (_) => {},
     onError: ({ graphQLErrors }) => {
       const errorMsg = graphQLErrors?.[0].message;
       setError(errorMsg);
@@ -40,7 +38,7 @@ export const OrgInvite: VFC<OrgInviteProps> = ({
   });
 
   const onSubmit = async () => {
-    if (emails.length == 0) {
+    if (emails.length === 0) {
       navigateToHome();
       return;
     }
@@ -57,6 +55,7 @@ export const OrgInvite: VFC<OrgInviteProps> = ({
       )
     );
     setSendingInvitations(false);
+    navigateToHome();
   };
 
   const invitationLink = useMemo(() => {
@@ -110,12 +109,9 @@ export const OrgInvite: VFC<OrgInviteProps> = ({
         </div>
 
         <div className={tw`mb-12`}>
-          <label
-            className={tw`mb-2 uppercase text-sm font-semibold`}
-            htmlFor="inviteeEmail"
-          >
+          <p className={tw`mb-2 uppercase text-sm font-semibold`}>
             Invite via email
-          </label>
+          </p>
           <TagsInput
             minHeight={96}
             tags={emails}
