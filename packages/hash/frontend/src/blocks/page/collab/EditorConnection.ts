@@ -26,12 +26,11 @@ const repeat = <T>(val: T, count: number): T[] => {
   return result;
 };
 
-// @todo type comm
 class State {
-  // eslint-disable-next-line no-useless-constructor,no-empty-function
+  // eslint-disable-next-line no-useless-constructor
   constructor(
     public edit: EditorState<Schema> | null,
-    public comm: string | null
+    public comm: string | null // eslint-disable-next-line no-empty-function
   ) {}
 }
 
