@@ -27,10 +27,9 @@ const repeat = <T>(val: T, count: number): T[] => {
 };
 
 class State {
-  // eslint-disable-next-line no-useless-constructor
   constructor(
     public edit: EditorState<Schema> | null,
-    public comm: string | null // eslint-disable-next-line no-empty-function
+    public comm: string | null
   ) {}
 }
 

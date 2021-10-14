@@ -31,11 +31,10 @@ type NodeViewFactory = NonNullable<
 type ComponentNodeViewFactory = (meta: BlockMeta) => NodeViewFactory;
 
 export class ProsemirrorSchemaManager {
-  // eslint-disable-next-line no-useless-constructor
   constructor(
     public schema: Schema,
     private view: EditorView<Schema> | null = null,
-    private componentNodeViewFactory: ComponentNodeViewFactory | null = null // eslint-disable-next-line no-empty-function
+    private componentNodeViewFactory: ComponentNodeViewFactory | null = null
   ) {}
 
   /**

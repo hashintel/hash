@@ -30,12 +30,11 @@ export class Instance {
   collecting: ReturnType<typeof setInterval> | null = null;
   clientIds = new WeakMap<Step, string>();
 
-  // eslint-disable-next-line no-useless-constructor
   constructor(
     public accountId: string,
     public pageEntityId: string,
     public doc: Node<Schema>,
-    public savedContents: BlockEntity[] // eslint-disable-next-line no-empty-function
+    public savedContents: BlockEntity[]
   ) {}
 
   stop() {
