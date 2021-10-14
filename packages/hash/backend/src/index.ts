@@ -13,6 +13,8 @@ import { getRequiredEnv } from "./util";
 import { handleCollabRequest } from "./collab/server";
 import AwsSesEmailTransporter from "./email/transporter/awsSesEmailTransporter";
 import TestTransporter from "./email/transporter/testEmailTransporter";
+import { logger } from "./logger";
+
 import {
   isDevEnv,
   isProdEnv,
@@ -28,31 +30,6 @@ const nanoid = customAlphabet(
   "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
   14
 );
-
-// Configure the logger
-const logger = winston.createLogger({
-  level: "info",
-  format: winston.format.combine(
-    winston.format.json(),
-    winston.format.timestamp()
-  ),
-  defaultMeta: { service: "api" },
-});
-
-if (isDevEnv || isTestEnv) {
-  logger.add(
-    new winston.transports.Console({
-      level: "debug",
-      format: winston.format.combine(
-        winston.format.colorize(),
-        winston.format.simple()
-      ),
-    })
-  );
-} else if (isProdEnv) {
-  // TODO: add production logging transport here
-  // Datadog: https://github.com/winstonjs/winston/blob/master/docs/transports.md#datadog-transport
-}
 
 // Configure the StatsD client for reporting metrics
 let statsd: StatsD | undefined;
