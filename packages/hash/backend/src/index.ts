@@ -2,7 +2,6 @@ import express from "express";
 import { json } from "body-parser";
 import helmet from "helmet";
 import { customAlphabet } from "nanoid";
-import winston from "winston";
 import { StatsD } from "hot-shots";
 import { createServer, RequestListener } from "http";
 
@@ -15,13 +14,7 @@ import AwsSesEmailTransporter from "./email/transporter/awsSesEmailTransporter";
 import TestTransporter from "./email/transporter/testEmailTransporter";
 import { logger } from "./logger";
 
-import {
-  isDevEnv,
-  isProdEnv,
-  isStatsDEnabled,
-  isTestEnv,
-  port,
-} from "./lib/config";
+import { isProdEnv, isStatsDEnabled, isTestEnv, port } from "./lib/config";
 
 const { FRONTEND_URL } = require("./lib/jsConfig");
 
