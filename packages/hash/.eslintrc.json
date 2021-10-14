@@ -134,6 +134,11 @@
             "name": "@testing-library/react",
             "importNames": ["render"],
             "message": "Please use ./src/tests/testUtils.tsx#render instead"
+          },
+          {
+            "name": "prosemirror-model",
+            "importNames": ["Node"],
+            "message": "Please use ProsemirrorNode from @hashintel/shared/node"
           }
         ]
       }

@@ -1,5 +1,6 @@
 import { history } from "@hashintel/hash-shared/history";
-import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
+import { ProsemirrorNode } from "@hashintel/hash-shared/node";
+import { Schema } from "prosemirror-model";
 import { NodeSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
 import React, { createRef, forwardRef, useEffect, useState } from "react";

@@ -1,7 +1,7 @@
 /* eslint-disable no-param-reassign */
 import { ApolloClient } from "@apollo/client";
 import { isEqual, uniqBy } from "lodash";
-import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
+import { Schema } from "prosemirror-model";
 import { BlockEntity, getTextEntityFromBlock } from "./entity";
 import { EntityStore, EntityStoreType, isBlockEntity } from "./entityStore";
 import {
@@ -11,6 +11,7 @@ import {
   UpdatePageContentsMutation,
   UpdatePageContentsMutationVariables,
 } from "./graphql/apiTypes.gen";
+import { ProsemirrorNode } from "./node";
 import { updatePageContents } from "./queries/page.queries";
 import {
   entityIdExists,

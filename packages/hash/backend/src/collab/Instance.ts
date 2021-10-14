@@ -1,6 +1,7 @@
 import { ApolloClient } from "@apollo/client";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 import { createEntityStore } from "@hashintel/hash-shared/entityStore";
+import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 import {
   createProseMirrorState,
   getProseMirrorNodeAttributes,
@@ -9,7 +10,7 @@ import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSche
 import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
 import { updatePageMutation } from "@hashintel/hash-shared/save";
 import { findEntityNodes } from "@hashintel/hash-shared/util";
-import { Node, Schema } from "prosemirror-model";
+import { Schema } from "prosemirror-model";
 import { Mapping, Step, Transform } from "prosemirror-transform";
 import { InvalidVersionError } from "./InvalidVersionError";
 import { Waiting } from "./Waiting";
@@ -33,7 +34,7 @@ export class Instance {
   constructor(
     public accountId: string,
     public pageEntityId: string,
-    public doc: Node<Schema>,
+    public doc: ProsemirrorNode<Schema>,
     public savedContents: BlockEntity[]
   ) {}
 
@@ -76,7 +77,7 @@ export class Instance {
     const mapping = new Mapping();
 
     this.saveChain = this.saveChain
-      .catch(() => {})
+      .catch()
       .then(() => {
         this.saveMapping = mapping;
 
@@ -102,7 +103,7 @@ export class Instance {
             }
 
             if (!entityNode.attrs.entityId) {
-              const transform = new Transform(this.doc);
+              const transform = new Transform<Schema>(this.doc);
               const attrs = getProseMirrorNodeAttributes(entity);
               const mappedPos = mapping.map(pos);
               const blockWithAttrs = this.doc.childAfter(mappedPos).node;

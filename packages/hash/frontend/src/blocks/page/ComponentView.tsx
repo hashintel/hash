@@ -7,7 +7,8 @@ import {
   EntityStoreType,
   isBlockEntity,
 } from "@hashintel/hash-shared/entityStore";
-import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
+import { ProsemirrorNode } from "@hashintel/hash-shared/node";
+import { Schema } from "prosemirror-model";
 import { EditorView, NodeView } from "prosemirror-view";
 import React from "react";
 import { RemoteBlock } from "../../components/RemoteBlock/RemoteBlock";

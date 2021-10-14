@@ -1,3 +1,4 @@
+import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 import { createProseMirrorState } from "@hashintel/hash-shared/prosemirror";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import {
@@ -6,7 +7,7 @@ import {
   receiveTransaction,
   sendableSteps,
 } from "prosemirror-collab";
-import { Node, Schema } from "prosemirror-model";
+import { Schema } from "prosemirror-model";
 import { EditorState, Plugin, Transaction } from "prosemirror-state";
 import { Step } from "prosemirror-transform";
 import { EditorView } from "prosemirror-view";
@@ -36,7 +37,7 @@ class State {
 type EditorConnectionAction =
   | {
       type: "loaded";
-      doc: Node<Schema>;
+      doc: ProsemirrorNode<Schema>;
       version: number;
       // @todo type this
       users: unknown;
@@ -53,7 +54,7 @@ type EditorConnectionAction =
     }
   | {
       type: "transaction";
-      transaction: Transaction;
+      transaction: Transaction<Schema>;
       requestDone?: boolean;
     };
 
@@ -148,7 +149,7 @@ export class EditorConnection {
     }
   };
 
-  dispatchTransaction = (transaction: Transaction) => {
+  dispatchTransaction = (transaction: Transaction<Schema>) => {
     this.dispatch({ type: "transaction", transaction });
   };
 

@@ -1,13 +1,14 @@
+import { mapValues } from "lodash";
+import { Command } from "prosemirror-commands";
+import { keymap } from "prosemirror-keymap";
+import { Schema } from "prosemirror-model";
 import {
   EditorState,
   NodeSelection,
   Plugin,
   Transaction,
 } from "prosemirror-state";
-import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
-import { Command } from "prosemirror-commands";
-import { keymap } from "prosemirror-keymap";
-import { mapValues } from "lodash";
+import { ProsemirrorNode } from "./node";
 
 type WrapperNodes = [number, ProsemirrorNode<Schema>[]];
 type WrapperNodesList = WrapperNodes[];

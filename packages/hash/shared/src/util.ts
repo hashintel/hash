@@ -1,5 +1,6 @@
-import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
+import { Schema } from "prosemirror-model";
 import { BlockEntity } from "./entity";
+import { ProsemirrorNode } from "./node";
 
 // @todo move these functions to a more appropriate place
 

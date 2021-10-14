@@ -3,10 +3,11 @@ import { dropCursor } from "prosemirror-dropcursor";
 import { redo, undo } from "prosemirror-history";
 import { undoInputRule } from "prosemirror-inputrules";
 import { keymap } from "prosemirror-keymap";
-import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
+import { Schema } from "prosemirror-model";
 import { EditorState, Plugin } from "prosemirror-state";
 import { BlockEntity } from "./entity";
 import { history } from "./history";
+import { ProsemirrorNode } from "./node";
 import { createSchema } from "./schema";
 import { wrapEntitiesPlugin } from "./wrapEntitiesPlugin";
 

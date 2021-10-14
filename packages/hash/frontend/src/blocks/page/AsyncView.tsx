@@ -1,7 +1,8 @@
 import { EntityStore, isBlockEntity } from "@hashintel/hash-shared/entityStore";
 import { history } from "@hashintel/hash-shared/history";
+import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
-import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
+import { Schema } from "prosemirror-model";
 import { EditorView, NodeView } from "prosemirror-view";
 
 /**
