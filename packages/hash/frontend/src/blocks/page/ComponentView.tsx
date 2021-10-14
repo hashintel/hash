@@ -12,7 +12,7 @@ import { EditorView, NodeView } from "prosemirror-view";
 import React from "react";
 import { RemoteBlock } from "../../components/RemoteBlock/RemoteBlock";
 import { EntityStoreContext } from "./EntityStoreContext";
-import { ReplacePortal } from "./usePortals";
+import { PortalRender } from "./usePortals";
 
 // @todo we need to type this such that we're certain we're passing through all
 // the props required
@@ -48,7 +48,7 @@ export class ComponentView implements NodeView<Schema> {
     node: ProsemirrorNode<Schema>,
     public view: EditorView<Schema>,
     public getPos: () => number,
-    private replacePortal: ReplacePortal,
+    private portalRender: PortalRender,
     private meta: BlockMeta
   ) {
     const { componentMetadata, componentSchema } = meta;
@@ -81,9 +81,7 @@ export class ComponentView implements NodeView<Schema> {
 
   update(node: any) {
     if (node?.type.name === this.componentId) {
-      this.replacePortal(
-        this.target,
-        this.target,
+      this.portalRender(
         <EntityStoreContext.Consumer>
           {(entityStore) => {
             const entityId = node.attrs.entityId;
@@ -113,7 +111,8 @@ export class ComponentView implements NodeView<Schema> {
               />
             );
           }}
-        </EntityStoreContext.Consumer>
+        </EntityStoreContext.Consumer>,
+        this.target
       );
 
       return true;
@@ -124,7 +123,7 @@ export class ComponentView implements NodeView<Schema> {
 
   destroy() {
     this.dom.remove();
-    this.replacePortal(this.target, null, null);
+    this.portalRender(null, this.target);
   }
 
   // @todo type this

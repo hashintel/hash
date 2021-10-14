@@ -17,7 +17,7 @@ import { Reporter } from "./collab/Reporter";
 import { collabEnabled } from "./collabEnabled";
 import { ComponentView } from "./ComponentView";
 import styles from "./style.module.css";
-import { ReplacePortal } from "./usePortals";
+import { PortalRender } from "./usePortals";
 
 const createSavePlugin = (
   accountId: string,
@@ -85,7 +85,7 @@ const createSavePlugin = (
 
 export const createEditorView = (
   renderNode: HTMLElement,
-  replacePortal: ReplacePortal,
+  portalRender: PortalRender,
   accountId: string,
   pageId: string,
   preloadedBlocks: BlockMeta[],
@@ -101,8 +101,8 @@ export const createEditorView = (
       getEntityStore,
       client
     ),
-    createMarksTooltip(replacePortal),
-    createBlockSuggester(replacePortal),
+    createMarksTooltip(portalRender),
+    createBlockSuggester(portalRender),
   ];
 
   const state = createProseMirrorState({ plugins });
@@ -129,7 +129,7 @@ export const createEditorView = (
         if (typeof getPos === "boolean") {
           throw new Error("Invalid config for nodeview");
         }
-        return new BlockView(currentNode, currentView, getPos, replacePortal);
+        return new BlockView(currentNode, currentView, getPos, portalRender);
       },
     },
     dispatchTransaction: collabEnabled
@@ -145,7 +145,7 @@ export const createEditorView = (
         throw new Error("Invalid config for nodeview");
       }
 
-      return new ComponentView(node, editorView, getPos, replacePortal, meta);
+      return new ComponentView(node, editorView, getPos, portalRender, meta);
     }
   );
 

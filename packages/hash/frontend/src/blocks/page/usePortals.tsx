@@ -11,13 +11,9 @@ import { v4 as uuid } from "uuid";
 
 type PortalSet = Map<HTMLElement, { key: string; reactNode: ReactNode }>;
 
-/**
- * @todo this API could possibly be simpler
- */
-export type ReplacePortal = (
-  existingNode: HTMLElement | null,
-  nextNode: HTMLElement | null,
-  reactNode: ReactNode | null
+export type PortalRender = (
+  reactNode: React.ReactNode | null,
+  node: HTMLElement | null
 ) => void;
 
 /**
@@ -44,48 +40,44 @@ export const usePortals = () => {
   );
 
   /**
-   * Call this to render a piece of JSX to a given DOM node, or to move it from
-   * a previous DOM node to a new one.
+   * Call this to render a piece of JSX to a given DOM node in a portal
    *
-   * replacePortal(previousDomNode, nextDomNode, jsx)
+   * portalRender(jsx, node)
    *
-   * To clear, pass null for both nextNode and jsx
+   * To clear, pass null for jsx
    */
-  const replacePortal = useCallback<ReplacePortal>(
-    (existingNode, nextNode, reactNode) => {
-      if (portalQueueTimeout.current !== null) {
-        clearImmediate(portalQueueTimeout.current);
+  const portalRender = useCallback<PortalRender>((reactNode, node) => {
+    if (portalQueueTimeout.current !== null) {
+      clearImmediate(portalQueueTimeout.current);
+    }
+
+    portalQueue.current.push((nextPortals) => {
+      if (node) {
+        if (reactNode) {
+          const key = nextPortals.get(node)?.key ?? uuid();
+
+          nextPortals.set(node, { key, reactNode });
+        } else {
+          nextPortals.delete(node);
+        }
       }
+    });
 
-      portalQueue.current.push((nextPortals) => {
-        if (existingNode && existingNode !== nextNode) {
-          nextPortals.delete(existingNode);
+    portalQueueTimeout.current = setImmediate(() => {
+      const queue = portalQueue.current;
+      portalQueue.current = [];
+
+      setPortals((prevPortals) => {
+        const nextPortals = new Map(prevPortals);
+
+        for (const cb of queue) {
+          cb(nextPortals);
         }
 
-        if (nextNode && reactNode) {
-          const key = nextPortals.get(nextNode)?.key ?? uuid();
-
-          nextPortals.set(nextNode, { key, reactNode });
-        }
+        return nextPortals;
       });
-
-      portalQueueTimeout.current = setImmediate(() => {
-        const queue = portalQueue.current;
-        portalQueue.current = [];
-
-        setPortals((prevPortals) => {
-          const nextPortals = new Map(prevPortals);
-
-          for (const cb of queue) {
-            cb(nextPortals);
-          }
-
-          return nextPortals;
-        });
-      });
-    },
-    []
-  );
+    });
+  }, []);
 
   useLayoutEffect(() => {
     return () => {
@@ -103,5 +95,5 @@ export const usePortals = () => {
     )
   );
 
-  return [renderedPortals, replacePortal, clearPortals] as const;
+  return [renderedPortals, portalRender, clearPortals] as const;
 };

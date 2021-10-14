@@ -2,7 +2,7 @@ import { toggleMark } from "prosemirror-commands";
 import { Schema } from "prosemirror-model";
 import { EditorState, NodeSelection, Plugin } from "prosemirror-state";
 import React from "react";
-import { ReplacePortal } from "../../blocks/page/usePortals";
+import { PortalRender } from "../../blocks/page/usePortals";
 import { ensureMounted } from "../../lib/dom";
 
 interface MarksTooltipState {
@@ -29,7 +29,7 @@ const selectionContainsText = (state: EditorState<Schema>) => {
   return containsText;
 };
 
-export function createMarksTooltip(replacePortal: ReplacePortal) {
+export function createMarksTooltip(portalRender: PortalRender) {
   let timeout: NodeJS.Timeout;
 
   const marksTooltip = new Plugin<MarksTooltipState, Schema>({
@@ -84,16 +84,15 @@ export function createMarksTooltip(replacePortal: ReplacePortal) {
        *
        * @todo fully rewrite this to use React completely
        */
-      replacePortal(
-        mountNode,
-        mountNode,
+      portalRender(
         <div
           ref={(node) => {
             if (node) {
               node.appendChild(dom);
             }
           }}
-        />
+        />,
+        mountNode
       );
 
       const updateFns: Function[] = [];
@@ -230,7 +229,7 @@ export function createMarksTooltip(replacePortal: ReplacePortal) {
 
       return {
         destroy() {
-          replacePortal(mountNode, null, null);
+          portalRender(null, mountNode);
           mountNode.remove();
           document.removeEventListener("dragstart", dragstart);
           document.removeEventListener("dragend", dragend);

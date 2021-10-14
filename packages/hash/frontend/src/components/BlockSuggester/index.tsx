@@ -2,7 +2,7 @@ import type { BlockVariant } from "@hashintel/block-protocol";
 import { ResolvedPos, Schema } from "prosemirror-model";
 import { EditorState, Plugin, PluginKey } from "prosemirror-state";
 import React, { CSSProperties } from "react";
-import { ReplacePortal } from "../../blocks/page/usePortals";
+import { PortalRender } from "../../blocks/page/usePortals";
 import { ensureMounted } from "../../lib/dom";
 import { BlockSuggester } from "./BlockSuggester";
 
@@ -76,7 +76,7 @@ const key = new PluginKey<SuggesterState, Schema>("suggester");
  * is newly encountered (e.g. by leaving/deleting and reentering/retyping a
  * trigger).
  */
-export const createBlockSuggester = (replacePortal: ReplacePortal) =>
+export const createBlockSuggester = (portalRender: PortalRender) =>
   new Plugin<SuggesterState, Schema>({
     key,
     state: {
@@ -160,10 +160,10 @@ export const createBlockSuggester = (replacePortal: ReplacePortal) =>
           );
 
           ensureMounted(mountNode, document.body);
-          replacePortal(mountNode, mountNode, jsx);
+          portalRender(jsx, mountNode);
         },
         destroy() {
-          replacePortal(mountNode, null, null);
+          portalRender(null, mountNode);
           mountNode.remove();
         },
       };
