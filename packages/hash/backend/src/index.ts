@@ -21,7 +21,7 @@ import {
   port,
 } from "./lib/config";
 
-const { FRONTEND_URL } = require("./lib/jsConfig");
+const { FRONTEND_URL } = require("./lib/config");
 
 // Request ID generator
 const nanoid = customAlphabet(

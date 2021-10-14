@@ -1,9 +1,13 @@
-const generatedIds = require("./generatedIds.json");
-const { SYSTEM_ACCOUNT_SHORTNAME, FRONTEND_URL} = require("../../../../src/lib/jsConfig");
+import {
+  SYSTEM_ACCOUNT_SHORTNAME,
+  FRONTEND_URL,
+} from "../../../../src/lib/config";
+const generatedIds: any = import("./generatedIds.json");
 
 const systemAccount = generatedIds.orgs[SYSTEM_ACCOUNT_SHORTNAME];
 
-const schemaId = (name) => `${FRONTEND_URL}/${systemAccount.fixedId}/types/${generatedIds.types[name].fixedId}`;
+const schemaId = (name: string) =>
+  `${FRONTEND_URL}/${systemAccount.fixedId}/types/${generatedIds.types[name].fixedId}`;
 
 const shortnameConstraints = {
   minLength: 4,
@@ -14,20 +18,26 @@ const shortnameConstraints = {
 // @todo add the remaining schemas for each system type
 //    the EntityType schema will probably be the general purpose JSON meta schema
 //    https://json-schema.org/specification.html
-const systemTypeSchemas = {
+const systemTypeSchemas: {
+  [key: string]: {
+    description: string;
+    properties: any;
+    required: string[];
+  };
+} = {
   Org: {
     description: "An organization account in a HASH.dev instance.",
     properties: {
       shortname: {
         ...shortnameConstraints,
-        description: "A unique slug for the organization."
+        description: "A unique slug for the organization.",
       },
       name: {
         type: "string",
-        description: "A display name for the organization."
-      }
+        description: "A display name for the organization.",
+      },
     },
-    required: ["shortname"]
+    required: ["shortname"],
   },
   User: {
     description: "A user with an account in a HASH.dev instance.",
@@ -44,40 +54,38 @@ const systemTypeSchemas = {
               type: "string",
             },
             primary: {
-              description: "Whether this email address is the primary one for the user",
-              type: "boolean"
+              description:
+                "Whether this email address is the primary one for the user",
+              type: "boolean",
             },
             verified: {
               description: "Whether this email address has been verified",
-              type: "boolean"
-            }
-          }
-        }
+              type: "boolean",
+            },
+          },
+        },
       },
       memberOf: {
-        $ref: schemaId("Org")
+        $ref: schemaId("Org"),
       },
       shortname: {
         ...shortnameConstraints,
-        description: "A unique slug for the user."
+        description: "A unique slug for the user.",
       },
       preferredName: {
         description: "The name which the user prefers to go by",
         type: "string",
-      }
+      },
     },
-    required: ["emails"]
-  }
+    required: ["emails"],
+  },
 };
 
-const entityTypeJson = (name) => JSON.stringify({
-  $schema: "https://json-schema.org/draft/2020-12/schema",
-  $id: schemaId(name),
-  title: name,
-  type: "object",
-  ...systemTypeSchemas[name],
-});
-
-module.exports = {
-  entityTypeJson,
-};
+export const entityTypeJson = (name: string) =>
+  JSON.stringify({
+    $schema: "https://json-schema.org/draft/2020-12/schema",
+    $id: schemaId(name),
+    title: name,
+    type: "object",
+    ...systemTypeSchemas[name],
+  });

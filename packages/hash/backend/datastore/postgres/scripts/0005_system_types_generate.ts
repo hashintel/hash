@@ -1,12 +1,15 @@
-const fs = require("fs");
-const path = require("path");
+import fs from "fs";
+import path from "path";
 
-const generatedIds = require("./data/generatedIds.json");
+const generatedIds: any = import("./data/generatedIds.json");
 
-const { entityTypeJson } = require("./data/systemTypeSchemas");
-const { SYSTEM_ACCOUNT_SHORTNAME, SYSTEM_TYPES } = require("../../../src/lib/jsConfig");
+import { entityTypeJson } from "./data/systemTypeSchemas";
+import {
+  SYSTEM_ACCOUNT_SHORTNAME,
+  SYSTEM_TYPES,
+} from "../../../src/lib/config";
 
-const now =  '2021-08-19T11:00:14.588Z';
+const now = "2021-08-19T11:00:14.588Z";
 
 const { types } = generatedIds;
 const systemAccount = generatedIds.orgs[SYSTEM_ACCOUNT_SHORTNAME];
@@ -16,7 +19,9 @@ const systemAccount = generatedIds.orgs[SYSTEM_ACCOUNT_SHORTNAME];
 
 let sqlString = "";
 
-for (const typeName of SYSTEM_TYPES.filter((typeName) => typeName !== "Org")) {
+for (const typeName of SYSTEM_TYPES.filter(
+  (typeName: string) => typeName !== "Org"
+)) {
   const type = types[typeName];
 
   sqlString += `insert into entity_types (
@@ -35,7 +40,6 @@ insert into entity_type_versions (
   '${systemAccount.fixedId}', '${now}', '${now}'
 ) on conflict do nothing;
 `;
-
 }
 
 const outputPath = path.join(__dirname, "../schema/0005_system_types.sql");

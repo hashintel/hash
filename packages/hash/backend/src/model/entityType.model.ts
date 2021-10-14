@@ -11,7 +11,7 @@ import {
 } from "../graphql/apiTypes.gen";
 import { EntityTypeTypeFields } from "../db/adapter";
 
-const { FRONTEND_URL } = require("../lib/jsConfig");
+const { FRONTEND_URL } = require("../lib/config");
 
 /**
  * We handle the various entityType fields for an entityType in separate field resolvers,
