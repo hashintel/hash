@@ -93,7 +93,7 @@ export const createEditorView = (
   getLastSavedValue: () => BlockEntity[],
   client: ApolloClient<unknown>
 ) => {
-  const plugins = [
+  const plugins: Plugin<unknown, Schema>[] = [
     createSavePlugin(
       accountId,
       pageId,

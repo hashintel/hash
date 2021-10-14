@@ -3,6 +3,7 @@ import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 import { createEntityStore } from "@hashintel/hash-shared/entityStore";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
+import { Schema } from "prosemirror-model";
 import { EditorView } from "prosemirror-view";
 import "prosemirror-view/style/prosemirror.css";
 import React, {
@@ -43,7 +44,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   const [portals, replacePortal] = usePortals();
 
   const prosemirrorSetup = useRef<null | {
-    view: EditorView;
+    view: EditorView<Schema>;
     connection: EditorConnection | null;
     manager: ProsemirrorSchemaManager;
   }>(null);

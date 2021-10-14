@@ -44,7 +44,7 @@ export const BlockHandle = forwardRef<HTMLDivElement>((_, ref) => {
  * This is the node view that wraps every one of our blocks in order to inject
  * custom UI like the <select> to change type and the drag handles
  */
-export class BlockView implements NodeView {
+export class BlockView implements NodeView<Schema> {
   dom: HTMLDivElement;
   selectContainer: HTMLDivElement;
   contentDOM: HTMLDivElement;
@@ -58,7 +58,7 @@ export class BlockView implements NodeView {
 
   constructor(
     public node: ProsemirrorNode<Schema>,
-    public view: EditorView,
+    public view: EditorView<Schema>,
     public getPos: () => number,
     public replacePortal: ReplacePortal
   ) {
@@ -121,7 +121,7 @@ export class BlockView implements NodeView {
    * @todo find a more generalised alternative
    */
   ignoreMutation(
-    record: Parameters<NonNullable<NodeView["ignoreMutation"]>>[0]
+    record: Parameters<NonNullable<NodeView<Schema>["ignoreMutation"]>>[0]
   ) {
     return (
       (record.type === "attributes" &&
@@ -203,7 +203,7 @@ export class BlockView implements NodeView {
              * starts
              */
             tr.setSelection(
-              NodeSelection.create(this.view.state.doc, this.getPos())
+              NodeSelection.create<Schema>(this.view.state.doc, this.getPos())
             );
 
             this.view.dispatch(tr);
@@ -250,7 +250,7 @@ export class BlockView implements NodeView {
 
     tr.replaceRangeWith(pos + 1, pos + 1 + node.content.size, newNode);
 
-    const selection = NodeSelection.create(tr.doc, tr.mapping.map(pos));
+    const selection = NodeSelection.create<Schema>(tr.doc, tr.mapping.map(pos));
 
     tr.setSelection(selection);
 

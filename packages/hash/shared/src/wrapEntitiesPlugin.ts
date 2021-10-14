@@ -95,7 +95,7 @@ const stateWithTransaction = (
   state: EditorState<Schema>,
   tr: Transaction<Schema>
 ) =>
-  EditorState.create({
+  EditorState.create<Schema>({
     doc: tr.doc,
     selection: tr.selection,
     plugins: state.plugins,
@@ -196,7 +196,7 @@ const prepareCommandForWrappedEntities =
   };
 
 const wrapEntitiesKeymap = (baseKeymap: Record<string, Command<Schema>>) =>
-  keymap({
+  keymap<Schema>({
     /**
      * Wrap all of the default keymap shortcuts to ensure that the block
      * nodeviews are unwrapped before prosemirror logic is applied (the block
@@ -217,7 +217,7 @@ export const wrapEntitiesPlugin = (
    * This plugin ensures at the end of every transaction all necessary nodes
    * are wrapped with block nodeviews
    */
-  const ensureWrappedPlugin = new Plugin({
+  const ensureWrappedPlugin = new Plugin<unknown, Schema>({
     appendTransaction: (_, __, newState) => ensureEntitiesAreWrapped(newState),
   });
 

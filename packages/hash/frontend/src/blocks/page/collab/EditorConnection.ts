@@ -29,13 +29,16 @@ const repeat = <T>(val: T, count: number): T[] => {
 // @todo type comm
 class State {
   // eslint-disable-next-line no-useless-constructor,no-empty-function
-  constructor(public edit: EditorState | null, public comm: string | null) {}
+  constructor(
+    public edit: EditorState<Schema> | null,
+    public comm: string | null
+  ) {}
 }
 
 type EditorConnectionAction =
   | {
       type: "loaded";
-      doc: Node;
+      doc: Node<Schema>;
       version: number;
       // @todo type this
       users: unknown;
@@ -65,9 +68,9 @@ export class EditorConnection {
     public report: Reporter,
     public url: string,
     public schema: Schema,
-    public view: EditorView,
+    public view: EditorView<Schema>,
     public manager: ProsemirrorSchemaManager,
-    public additionalPlugins: Plugin[]
+    public additionalPlugins: Plugin<unknown, Schema>[]
   ) {
     this.start();
   }
@@ -220,14 +223,14 @@ export class EditorConnection {
     );
   }
 
-  sendable(editState: EditorState) {
+  sendable(editState: EditorState<Schema>) {
     const steps = sendableSteps(editState);
     if (steps) return { steps };
   }
 
   // Send the given steps to the server
   send(
-    editState: EditorState,
+    editState: EditorState<Schema>,
     { steps }: { steps?: ReturnType<typeof sendableSteps> } = {}
   ) {
     const json = JSON.stringify({

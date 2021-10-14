@@ -9,7 +9,7 @@ import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSche
 import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
 import { updatePageMutation } from "@hashintel/hash-shared/save";
 import { findEntityNodes } from "@hashintel/hash-shared/util";
-import { Node } from "prosemirror-model";
+import { Node, Schema } from "prosemirror-model";
 import { Mapping, Step, Transform } from "prosemirror-transform";
 import { InvalidVersionError } from "./InvalidVersionError";
 import { Waiting } from "./Waiting";
@@ -34,7 +34,7 @@ export class Instance {
   constructor(
     public accountId: string,
     public pageEntityId: string,
-    public doc: Node,
+    public doc: Node<Schema>,
     public savedContents: BlockEntity[] // eslint-disable-next-line no-empty-function
   ) {}
 

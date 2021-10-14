@@ -34,7 +34,7 @@ const getRemoteBlockProps = (entity: EntityStoreType | null | undefined) => {
   return { properties: {} };
 };
 
-export class ComponentView implements NodeView {
+export class ComponentView implements NodeView<Schema> {
   dom: HTMLDivElement = document.createElement("div");
   contentDOM: HTMLElement | undefined = undefined;
   editable: boolean;
@@ -45,7 +45,7 @@ export class ComponentView implements NodeView {
   private readonly sourceName: string;
 
   constructor(
-    node: ProsemirrorNode,
+    node: ProsemirrorNode<Schema>,
     public view: EditorView<Schema>,
     public getPos: () => number,
     private replacePortal: ReplacePortal,

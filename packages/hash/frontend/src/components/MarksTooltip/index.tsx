@@ -240,5 +240,5 @@ export function createMarksTooltip(replacePortal: ReplacePortal) {
     },
   });
 
-  return marksTooltip;
+  return marksTooltip as Plugin<unknown, Schema>;
 }

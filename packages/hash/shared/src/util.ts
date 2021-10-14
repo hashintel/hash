@@ -15,14 +15,16 @@ export const nodeToComponentId = (node: ProsemirrorNode<Schema>) =>
 /**
  * @todo this can't look at attrs because we're going to remove entityId from it
  */
-export const isEntityNode = (node: ProsemirrorNode<any>): node is EntityNode =>
+export const isEntityNode = (
+  node: ProsemirrorNode<Schema>
+): node is EntityNode =>
   !!node.type.spec.attrs &&
   "entityId" in node.type.spec.attrs &&
   // This is temporary because we've added a new entity PM node but we're not
   // yet using it for update calculation
   node.type.name !== "entity";
 
-export const findEntityNodes = (doc: ProsemirrorNode<any>) => {
+export const findEntityNodes = (doc: ProsemirrorNode<Schema>) => {
   const entityNodes: [EntityNode, number][] = [];
 
   doc.descendants((node, pos) => {

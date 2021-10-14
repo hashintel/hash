@@ -1,5 +1,5 @@
 import type { BlockVariant } from "@hashintel/block-protocol";
-import { ResolvedPos } from "prosemirror-model";
+import { ResolvedPos, Schema } from "prosemirror-model";
 import { EditorState, Plugin, PluginKey } from "prosemirror-state";
 import React, { CSSProperties } from "react";
 import { ReplacePortal } from "../../blocks/page/usePortals";
@@ -18,7 +18,7 @@ interface Trigger {
 /**
  * used to find a string triggering the suggester plugin
  */
-const findTrigger = (state: EditorState): Trigger | null => {
+const findTrigger = (state: EditorState<Schema>): Trigger | null => {
   // @ts-expect-error: only empty TextSelection has a $cursor
   const cursor: ResolvedPos = state.selection.$cursor;
   if (!cursor) return null;
@@ -63,7 +63,7 @@ interface SuggesterState {
  * used to tag the suggester plugin/make it a singleton
  * @see https://prosemirror.net/docs/ref/#state.PluginKey
  */
-const key = new PluginKey<SuggesterState>("suggester");
+const key = new PluginKey<SuggesterState, Schema>("suggester");
 
 /**
  * Suggester plugin factory
@@ -77,7 +77,7 @@ const key = new PluginKey<SuggesterState>("suggester");
  * trigger).
  */
 export const createBlockSuggester = (replacePortal: ReplacePortal) =>
-  new Plugin<SuggesterState>({
+  new Plugin<SuggesterState, Schema>({
     key,
     state: {
       init() {
@@ -90,7 +90,7 @@ export const createBlockSuggester = (replacePortal: ReplacePortal) =>
         };
       },
       /** produces a new state from the old state and incoming transactions (cf. reducer) */
-      apply(tr, state, _prevEitorState, nextEditorState) {
+      apply(tr, state, _prevEditorState, nextEditorState) {
         const action: SuggesterAction | undefined = tr.getMeta(key);
 
         switch (action?.type) {
@@ -168,4 +168,4 @@ export const createBlockSuggester = (replacePortal: ReplacePortal) =>
         },
       };
     },
-  });
+  }) as Plugin<unknown, Schema>;

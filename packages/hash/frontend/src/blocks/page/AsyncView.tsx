@@ -15,7 +15,7 @@ import { EditorView, NodeView } from "prosemirror-view";
  * @todo consider removing this – we don't necessarily need a node view to
  *       trigger this functionality
  */
-export class AsyncView implements NodeView {
+export class AsyncView implements NodeView<Schema> {
   dom: HTMLDivElement;
   contentDOM: HTMLSpanElement;
   node: ProsemirrorNode<Schema>;
@@ -25,7 +25,7 @@ export class AsyncView implements NodeView {
 
   constructor(
     node: ProsemirrorNode<Schema>,
-    public view: EditorView,
+    public view: EditorView<Schema>,
     public getPos: () => number,
     public manager: ProsemirrorSchemaManager,
     public getEntityStore: () => EntityStore
