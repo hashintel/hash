@@ -15,7 +15,7 @@ import { BlockView } from "./BlockView";
 import { EditorConnection } from "./collab/EditorConnection";
 import { Reporter } from "./collab/Reporter";
 import { collabEnabled } from "./collabEnabled";
-import { ComponentNodeView } from "./ComponentNodeView";
+import { ComponentView } from "./ComponentView";
 import styles from "./style.module.css";
 import { ReplacePortal } from "./usePortals";
 
@@ -145,13 +145,7 @@ export const createEditorView = (
         throw new Error("Invalid config for nodeview");
       }
 
-      return new ComponentNodeView(
-        node,
-        editorView,
-        getPos,
-        replacePortal,
-        meta
-      );
+      return new ComponentView(node, editorView, getPos, replacePortal, meta);
     }
   );
 
