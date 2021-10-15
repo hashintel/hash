@@ -50,7 +50,7 @@ type LinkedDataDefinition = {
  */
 
 // Recursively resolve any __linkedData fields in arbitrary entities
-const resolveLinkedData = async (
+export const resolveLinkedData = async (
   ctx: GraphQLContext,
   parentAccountId: string,
   object: Record<string, any>,
