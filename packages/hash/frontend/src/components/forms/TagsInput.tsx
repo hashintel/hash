@@ -38,12 +38,13 @@ export const TagsInput: React.VFC<TagsInputProps> = ({
     <div
       style={{ minHeight: minHeight ?? 48 }}
       className={tw`flex flex-wrap items-start rounded-lg p-2 border(1 gray-300 hover:gray-400 focus-within:gray-500)`}
+      onClick={() => inputRef.current?.focus()}
     >
       <ul className={tw`flex flex-wrap items-start`}>
         {tags.map((tag) => (
           <li
             key={tag}
-            className={tw`relative flex flex-wrap bg-gray-300 text-xs pl-3 pr-6 py-1 rounded-2xl mr-1 mb-1`}
+            className={tw`relative flex flex-wrap bg-gray-300 text-sm pl-3 pr-6 py-1 rounded-2xl mr-1 mb-1`}
           >
             {tag}{" "}
             <button
@@ -59,7 +60,7 @@ export const TagsInput: React.VFC<TagsInputProps> = ({
       <input
         type="text"
         ref={inputRef}
-        className={tw`flex-1 focus:outline-none bg-transparent text-xs py-1 px-1`}
+        className={tw`flex-1 focus:outline-none bg-transparent text-sm py-1 px-1`}
         placeholder={placeholder}
         onKeyDown={handleKeyDown}
       />

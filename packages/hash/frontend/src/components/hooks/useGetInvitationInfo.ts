@@ -1,6 +1,6 @@
 import { useLazyQuery } from "@apollo/client";
 import { useRouter } from "next/router";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   GetOrgEmailInvitationQuery,
   GetOrgEmailInvitationQueryVariables,
@@ -26,6 +26,7 @@ type InvitationInfo = {
 
 export const useGetInvitationInfo = () => {
   const [invitationInfo, setInvitationInfo] = useState<InvitationInfo>(null);
+  const [errorMessage, setErrorMessage] = useState<string | undefined>();
   const router = useRouter();
 
   const [
@@ -50,6 +51,10 @@ export const useGetInvitationInfo = () => {
         inviterPreferredName: inviter.data.properties.preferredName || "",
         invitationEmailToken: invitationEmailToken as string,
       });
+    },
+    onError: ({ graphQLErrors }) => {
+      const message = graphQLErrors?.[0].message;
+      setErrorMessage(message);
     },
   });
 
@@ -99,10 +104,12 @@ export const useGetInvitationInfo = () => {
         },
       });
     }
-  }, [router]);
+  }, [router, getOrgInvitationLinkCalled, getOrgEmailInvitationCalled]);
 
   return {
     invitationInfo,
-    loading: getOrgEmailInvitationLoading || getOrgInvitationLinkLoading,
+    invitationInfoLoading:
+      getOrgEmailInvitationLoading || getOrgInvitationLinkLoading,
+    invitationInfoError: errorMessage,
   };
 };

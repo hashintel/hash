@@ -86,7 +86,6 @@ export const OrgCreate: VFC<OrgCreateProps> = ({ createOrg, loading }) => {
     watch,
     handleSubmit,
     formState: { errors, isValid },
-    control,
   } = useForm<Inputs>({
     mode: "onChange",
     defaultValues: {
