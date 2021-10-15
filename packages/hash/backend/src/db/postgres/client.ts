@@ -48,6 +48,7 @@ import {
   setVerificationCodeToUsed,
   getUserVerificationCodes,
 } from "./verificationCode";
+import { getImpliedEntityHistory } from "./history";
 import { jsonSchema } from "../../lib/schemas/jsonSchema";
 import { SystemType } from "../../types/entityTypes";
 import { Visibility } from "../../graphql/apiTypes.gen";
@@ -440,6 +441,7 @@ export class PostgresClient implements DBClient {
   async getEntityHistory(params: {
     accountId: string;
     entityId: string;
+    order: "asc" | "desc";
   }): Promise<EntityVersion[]> {
     return await getEntityHistory(this.conn, params);
   }
@@ -463,5 +465,12 @@ export class PostgresClient implements DBClient {
 
   async acquireEntityLock(params: { entityId: string }): Promise<null> {
     return acquireEntityLock(this.conn, params);
+  }
+
+  async getImpliedEntityHistory(params: {
+    accountId: string;
+    entityId: string;
+  }) {
+    return getImpliedEntityHistory(this.conn, params);
   }
 }

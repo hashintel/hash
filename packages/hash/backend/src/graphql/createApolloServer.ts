@@ -11,12 +11,14 @@ import { StatsD } from "hot-shots";
 import { schema } from "./typeDefs";
 import { resolvers } from "./resolvers";
 import { DBAdapter } from "../db";
+import { CacheAdapter } from "../cache";
 import { buildPassportGraphQLMethods } from "../auth/passport";
 import { GraphQLContext } from "./context";
 import EmailTransporter from "../email/transporter";
 
 export const createApolloServer = (
   db: DBAdapter,
+  cache: CacheAdapter,
   emailTransporter: EmailTransporter,
   logger: Logger,
   statsd?: StatsD
@@ -30,7 +32,7 @@ export const createApolloServer = (
 
   return new ApolloServer({
     schema: combinedSchema,
-    dataSources: () => ({ db }),
+    dataSources: () => ({ db, cache }),
     context: (ctx): Omit<GraphQLContext, "dataSources"> => ({
       ...ctx,
       user: ctx.req.user,

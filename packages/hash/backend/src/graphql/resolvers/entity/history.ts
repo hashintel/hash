@@ -12,6 +12,7 @@ export const history: Resolver<
   const versions = await dataSources.db.getEntityHistory({
     accountId: entity.accountId,
     entityId: entity.entityId,
+    order: "desc",
   });
 
   return versions?.map((ver) => ({

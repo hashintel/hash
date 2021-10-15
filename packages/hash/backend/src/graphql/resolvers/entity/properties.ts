@@ -1,44 +1,11 @@
 import { GraphQLResolveInfo } from "graphql";
-import {
-  AggregateOperationInput,
-  Resolver,
-  UnknownEntity,
-} from "../../apiTypes.gen";
+
+import { LinkedDataDefinition } from "../util";
+import { Resolver, UnknownEntity } from "../../apiTypes.gen";
 import { DbUnknownEntity } from "../../../types/dbTypes";
 import { aggregateEntity } from "./aggregateEntity";
 import { GraphQLContext } from "../../context";
-
-export const isRecord = (thing: unknown): thing is Record<string, any> => {
-  if (typeof thing !== "object") {
-    return false;
-  }
-  if (thing == null) {
-    return false;
-  }
-  if (thing instanceof Array) {
-    return false;
-  }
-  return true;
-};
-
-// Where a property needs to resolve to another object or objects of a type,
-// that property should be expressed as this object under a __linkedData key
-// e.g.
-// properties: {
-//   email: "c@hash.ai",
-//   employer: { <-- will be resolved to the data requested in __linkedData
-//     __linkedData: {
-//       entityTypeId: "companyType1",
-//       entityId: "c1"
-//     }
-//   }
-// },
-type LinkedDataDefinition = {
-  aggregate?: AggregateOperationInput;
-  entityTypeId?: string;
-  entityId?: string;
-  entityVersionId?: string;
-};
+import { isRecord } from "../../../util";
 
 /* eslint-disable no-param-reassign */
 

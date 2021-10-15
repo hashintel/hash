@@ -257,6 +257,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   getEntityHistory(params: {
     accountId: string;
     entityId: string;
+    order: "asc" | "desc";
   }): Promise<EntityVersion[]> {
     return this.query((adapter) => adapter.getEntityHistory(params));
   }
@@ -278,6 +279,14 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return this.query((adapter) => adapter.getAccountEntityTypes(params));
   }
 
-  acquireEntityLock = (params: { entityId: string }): Promise<null> =>
-    this.query((adapter) => adapter.acquireEntityLock(params));
+  acquireEntityLock = (params: { entityId: string }): Promise<null> => {
+    return this.query((adapter) => adapter.acquireEntityLock(params));
+  };
+
+  getImpliedEntityHistory = (params: {
+    accountId: string;
+    entityId: string;
+  }) => {
+    return this.query((adapter) => adapter.getImpliedEntityHistory(params));
+  };
 }
