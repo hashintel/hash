@@ -29,12 +29,15 @@ const main = async () => {
     .version(false)
     .option("host", {
       description: "Postgres host",
+      type: "string",
     })
     .option("user", {
       description: "Postgres user",
+      type: "string",
     })
     .option("database", {
       description: "Postgres database",
+      type: "string",
     })
     .option("port", {
       description: "Postgres port",
@@ -46,8 +49,8 @@ const main = async () => {
     })
     .help("help").argv;
 
-  const user = (argv.user as string) || process.env.HASH_PG_USER || "postgres";
-  const host = (argv.host as string) || process.env.HASH_PG_HOST || "localhost";
+  const user = argv.user || process.env.HASH_PG_USER || "postgres";
+  const host = argv.host || process.env.HASH_PG_HOST || "localhost";
 
   let password = process.env.HASH_PG_PASSWORD;
   if (!password) {
@@ -88,8 +91,7 @@ const main = async () => {
       : process.env.HASH_PG_PORT
       ? parseInt(process.env.HASH_PG_PORT)
       : 5432,
-    database:
-      (argv.database as string) || process.env.HASH_PG_DATABASE || "postgres",
+    database: argv.database || process.env.HASH_PG_DATABASE || "postgres",
     password: password || process.env.HASH_PG_PASSWORD || "postgres",
   };
 

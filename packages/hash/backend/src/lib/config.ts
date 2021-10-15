@@ -39,4 +39,4 @@ export const SYSTEM_TYPES = [
   "User",
   "OrgInvitationLink",
   "OrgEmailInvitation",
-];
+] as const;
