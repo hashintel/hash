@@ -38,11 +38,6 @@ export const OrgInvite: VFC<OrgInviteProps> = ({
   });
 
   const onSubmit = async () => {
-    if (emails.length === 0) {
-      navigateToHome();
-      return;
-    }
-
     setSendingInvitations(true);
     await Promise.all(
       emails.map((email) =>
@@ -88,7 +83,7 @@ export const OrgInvite: VFC<OrgInviteProps> = ({
             Share an invite link
           </p>
           <div
-            className={tw`flex items-center border(1 gray-300) rounded-lg h-11 pl-5 pr-24 mb-2 w-full relative`}
+            className={tw`flex items-center bg-white border(1 gray-300) rounded-lg h-11 pl-5 pr-24 mb-2 w-full relative`}
           >
             <span
               className={tw`whitespace-nowrap overflow-ellipsis overflow-hidden`}

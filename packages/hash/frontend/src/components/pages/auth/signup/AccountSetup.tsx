@@ -193,6 +193,7 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
                 id="responsibility"
                 options={ORG_ROLES}
                 onChangeValue={setResponsibility}
+                value={responsibility}
                 required
               />
               {errorMessage ? (

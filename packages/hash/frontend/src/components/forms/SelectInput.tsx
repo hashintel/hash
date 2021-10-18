@@ -52,7 +52,7 @@ export const SelectInput = forwardRef<HTMLSelectElement, SelectInputProps>(
           id={inputId}
           className={tw`border(1 gray-300 hover:gray-400 focus:gray-500) ${
             !value ? "text-gray-400" : ""
-          }  bg-transparent focus:outline-none rounded-lg h-11 px-5 mb-2 w-full `}
+          }  bg-white focus:outline-none rounded-lg h-11 px-5 mb-2 w-full `}
           onChange={_onChange}
           ref={ref}
           {...(value && { value })}

@@ -396,7 +396,7 @@ const SignupPage: NextPage = () => {
     }
   };
 
-  const updateUserDetails = ({
+  const updateUserDetails = async ({
     shortname,
     preferredName,
     usingHow,
@@ -418,9 +418,7 @@ const SignupPage: NextPage = () => {
       properties.usingHow = usingHow;
     }
 
-    console.log(user);
-
-    void updateUser({
+    await updateUser({
       variables: {
         userEntityId: user.entityId,
         properties,
