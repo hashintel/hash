@@ -4,10 +4,16 @@
     // specifics
     "baseUrl": "./",
     "outDir": "./dist",
+    "moduleResolution": "node",
 
     // overrides
     "lib": ["es2020"],
-    "target": "es2020",
+    "target": "es2020"
   },
-  "include": ["./src"],
+  "include": ["./src/"],
+
+  // enables nodemon (yarn dev) to pick up live changes made to this dependency
+  "references": [
+    { "path": "../backend-utils/tsconfig.ref.json" }
+  ]
 }

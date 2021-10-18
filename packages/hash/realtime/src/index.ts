@@ -4,13 +4,14 @@ import * as http from "http";
 import { sql } from "slonik";
 import { Logger } from "winston";
 
+import { RedisQueueProducer } from "@hashintel/hash-backend-utils/queue/redis";
+import { AsyncRedisClient } from "@hashintel/hash-backend-utils/redis";
 import {
   getRequiredEnv,
   createPostgresConnPool,
   createLogger,
   ConnPool,
 } from "./util";
-import { RedisQueueProducer, AsyncRedisClient } from "./queue/redis";
 
 // The name of the Postgres logical replication slot
 const SLOT_NAME = "realtime";
