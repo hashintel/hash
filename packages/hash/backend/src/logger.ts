@@ -1,6 +1,6 @@
 import winston from "winston";
 
-import { isDevEnv, isProdEnv, isTestEnv } from "./lib/config";
+import { isDevEnv, isProdEnv, isTestEnv } from "./lib/env-config";
 
 // Configure the logger
 export const logger = winston.createLogger({

@@ -14,7 +14,7 @@ import AwsSesEmailTransporter from "./email/transporter/awsSesEmailTransporter";
 import TestTransporter from "./email/transporter/testEmailTransporter";
 import { logger } from "./logger";
 import { RedisCache } from "./cache";
-import { isProdEnv, isStatsDEnabled, isTestEnv, port } from "./lib/config";
+import { isProdEnv, isStatsDEnabled, isTestEnv, port } from "./lib/env-config";
 
 const { FRONTEND_URL } = require("./lib/config");
 
