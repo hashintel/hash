@@ -11,6 +11,9 @@ export const ToggleColumnsDetail: React.VFC<ToggleColumnsDetailProps> = ({
   columns,
   toggleHideColumn,
 }) => {
+  /**
+   * @todo fix issue with the popup closing when the label is clicked on 
+   */
   return (
     <div className={tw`w-60 pt-4 px-2 pb-2`}>
       <p className={tw`text-sm font-bold mb-3`}>Select columns to display</p>

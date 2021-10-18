@@ -2,71 +2,87 @@ import React, { useEffect, useState } from "react";
 import { tw } from "twind";
 import { v4 as uuid } from "uuid";
 import { ColumnInstance } from "react-table";
-import { BlockProtocolAggregateOperationInput } from "@hashintel/block-protocol";
-// @todo figure out why importing these enums results in an error
-// import {
-//   BlockProtocolFilterOperator,
-//   BlockProtocolCombinatorFilterOperator,
-// } from "@hashintel/block-protocol";
+import {
+  BlockProtocolAggregateOperationInput,
+  BlockProtocolMultiFilterOperatorType,
+  BlockProtocolFilterOperatorType,
+} from "@hashintel/block-protocol";
 import { AddIcon } from "./Icons";
-
-enum BlockProtocolFilterOperator {
-  IS = "IS",
-  IS_NOT = "IS_NOT",
-  CONTAINS = "CONTAINS",
-  DOES_NOT_CONTAIN = "DOES_NOT_CONTAIN",
-  STARTS_WITH = "STARTS_WITH",
-  ENDS_WITH = "ENDS_WITH",
-  IS_EMPTY = "IS_EMPTY",
-  IS_NOT_EMPTY = "IS_NOT_EMPTY",
-}
-
-enum BlockProtocolCombinatorFilterOperator {
-  AND = "AND",
-  OR = "OR",
-}
+import { unstable_batchedUpdates } from "react-dom";
 
 const MENU_WIDTH = 540;
 
+export const BlockProtocolFilterOperators: BlockProtocolFilterOperatorType[] = [
+  "CONTAINS",
+  "DOES_NOT_CONTAIN",
+  "IS",
+  "IS_NOT",
+  "STARTS_WITH",
+  "ENDS_WITH",
+  "IS_EMPTY",
+  "IS_NOT_EMPTY",
+];
+
+export const BlockProtocolMultiFilterOperators: BlockProtocolMultiFilterOperatorType[] =
+  ["AND", "OR"];
+
 type FilterDetailProps = {
   columns: ColumnInstance<{}>[];
-  onFilter: (filters: BlockProtocolAggregateOperationInput["filters"]) => void;
+  onFilter: (
+    multiFilter: BlockProtocolAggregateOperationInput["multiFilter"]
+  ) => void;
+  multiFilter: BlockProtocolAggregateOperationInput["multiFilter"];
 };
+
+type FilterFieldsWithId = (NonNullable<
+  BlockProtocolAggregateOperationInput["multiFilter"]
+>["filters"][number] & { id: string })[];
 
 export const FilterDetail: React.VFC<FilterDetailProps> = ({
   columns,
   onFilter,
+  multiFilter,
 }) => {
   const [combinatorFilterOperator, setCombinatorFilterOperator] =
-    useState<BlockProtocolCombinatorFilterOperator>(
-      BlockProtocolCombinatorFilterOperator.AND
-    );
-  const [filters, setFilters] = useState<
-    (NonNullable<
-      BlockProtocolAggregateOperationInput["filters"]
-    >["filters"][number] & { id: string })[]
-  >([]);
+    useState<BlockProtocolMultiFilterOperatorType>("AND");
+  const [filters, setFilters] = useState<FilterFieldsWithId>([]);
 
   useEffect(() => {
-    const filtersWithoutId = filters.map((filter) => ({
-      field: filter.field,
-      operator: filter.operator,
-      value: filter.value,
-    }));
+    if (!multiFilter) return;
+    const fieldsWithId = (multiFilter.filters ?? []).map(
+      ({ field, value, operator }) => ({
+        field,
+        value,
+        operator,
+        id: uuid(),
+      })
+    );
 
-    // @todo throttle call
+    console.log(fieldsWithId);
+
+    unstable_batchedUpdates(() => {
+      setFilters(fieldsWithId);
+      setCombinatorFilterOperator(multiFilter.operator);
+    });
+  }, [multiFilter]);
+
+  const handleFilter = (filterFields?: FilterFieldsWithId) => {
+    const filtersWithoutId = (filterFields ?? filters)
+      .filter(({ field }) => Boolean(field))
+      .map(({ field, operator, value }) => ({ field, operator, value }));
+
     onFilter({
       operator: combinatorFilterOperator,
       filters: filtersWithoutId,
     });
-  }, [filters, combinatorFilterOperator]);
+  };
 
   const addField = () => {
     setFilters((prevFields) => [
       ...prevFields,
       {
         field: columns?.[0].id ?? "",
-        operator: BlockProtocolFilterOperator.CONTAINS,
+        operator: "CONTAINS",
         value: "",
         id: uuid(),
       },
@@ -74,9 +90,9 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
   };
 
   const removeField = (id: string) => {
-    setFilters((prevFields) =>
-      prevFields.filter((property) => property.id !== id)
-    );
+    const newFields = filters.filter((filter) => filter.id !== id);
+    setFilters(newFields);
+    handleFilter(newFields);
   };
 
   const updateField = (
@@ -84,21 +100,20 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
     data: {
       field?: string;
       value?: string;
-      operator?: BlockProtocolFilterOperator;
+      operator?: BlockProtocolFilterOperatorType;
     }
   ) => {
     const updatedFields = filters.map((item) =>
       item.id === id
         ? {
-            id: item.id,
-            field: data.field ?? item.field,
-            value: data.value ?? item.value,
-            operator: data.operator ?? item.operator,
+            ...item,
+            ...data,
           }
         : item
     );
 
     setFilters(updatedFields);
+    handleFilter(updatedFields);
   };
 
   return (
@@ -115,21 +130,19 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
                 <select
                   className={tw`text-sm border(1 gray-300 focus:gray-500) focus:outline-none rounded h-8 px-1`}
                   value={combinatorFilterOperator}
-                  onChange={(evt) =>
+                  onChange={(evt) => {
                     setCombinatorFilterOperator(
-                      evt.target.value as BlockProtocolCombinatorFilterOperator
-                    )
-                  }
+                      evt.target.value as BlockProtocolMultiFilterOperatorType
+                    );
+                  }}
                 >
-                  {Object.values(BlockProtocolCombinatorFilterOperator).map(
-                    (operator) => {
-                      return (
-                        <option key={operator} value={operator}>
-                          {operator}
-                        </option>
-                      );
-                    }
-                  )}
+                  {BlockProtocolMultiFilterOperators.map((operator) => {
+                    return (
+                      <option key={operator} value={operator}>
+                        {operator}
+                      </option>
+                    );
+                  })}
                 </select>
               )}
             </div>
@@ -141,6 +154,7 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
               }
               value={filter.field}
             >
+              <option value="">---</option>
               {columns.map((column) => (
                 <option key={column.id} value={column.id}>
                   {column.id}
@@ -151,12 +165,12 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
               className={tw`text-sm capitalize border(1 gray-300 focus:gray-500) focus:outline-none rounded h-8 w-28 px-2 mr-2`}
               onChange={(evt) =>
                 updateField(filter.id, {
-                  operator: evt.target.value as BlockProtocolFilterOperator,
+                  operator: evt.target.value as BlockProtocolFilterOperatorType,
                 })
               }
               value={filter.operator}
             >
-              {Object.values(BlockProtocolFilterOperator).map((operator) => {
+              {BlockProtocolFilterOperators.map((operator) => {
                 const label = operator.replaceAll("_", " ").toLowerCase();
                 return (
                   <option key={operator} value={operator}>
@@ -167,14 +181,14 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
             </select>
             <input
               placeholder="Value"
-              className={tw`text-sm border(1 gray-300 focus:gray-500) focus:outline-none rounded h-8 w-40 px-2`}
-              onChange={(evt) =>
+              className={tw`text-sm border(1 gray-300 focus:gray-500) focus:outline-none rounded h-8 flex-1 px-2`}
+              onBlur={(evt) =>
                 updateField(filter.id, { value: evt.target.value })
               }
-              value={filter.value}
+              defaultValue={filter.value}
             />
             <button
-              className={tw`ml-auto text-2xl text-gray-300 hover:text-gray-400`}
+              className={tw`ml-4 text-2xl text-gray-300 hover:text-gray-400`}
               onClick={() => removeField(filter.id)}
               type="button"
             >

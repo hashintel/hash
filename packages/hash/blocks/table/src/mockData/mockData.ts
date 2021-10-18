@@ -139,7 +139,7 @@ export const initialTableData = {
       entityTypeId: "Person",
       aggregate: {
         itemsPerPage: 3,
-        sorts: [
+        multiSort: [
           {
             field: "name",
           },

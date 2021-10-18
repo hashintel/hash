@@ -7,6 +7,7 @@ import {
 import { GraphQLContext } from "../../context";
 import { Entity, EntityWithIncompleteEntityType } from "../../../model";
 import { DBAdapter } from "../../../db";
+import { orderBy } from "lodash";
 
 /** makes it possible to access nested paths (e.g person.location.name)
  * @todo properly type this
@@ -15,6 +16,29 @@ const resolvePath = (object: any, path: string, defaultValue?: any) =>
   path
     .split(".")
     .reduce((acc, currVal) => acc?.[currVal] ?? defaultValue, object);
+
+const sortEntities = (
+  entities: Entity[],
+  multiSort: NonNullable<AggregateOperation["multiSort"]>
+) => {
+  return orderBy(
+    entities,
+    multiSort.map(({ field }) => {
+      if (
+        [
+          "entityCreatedAt",
+          "entityVersionCreatedAt",
+          "entityVersionUpdatedAt",
+        ].includes(field)
+      ) {
+        return field;
+      }
+
+      return (entity) => entity.properties[field];
+    }),
+    multiSort.map(({ desc }) => (desc ? "desc" : "asc"))
+  );
+};
 
 /** Compare entities on a given property. */
 const compareEntitiesByField = (
@@ -62,8 +86,7 @@ export const dbAggregateEntity =
     const { accountId, operation, entityTypeId } = params;
     const pageNumber = operation?.pageNumber || 1;
     const itemsPerPage = operation?.itemsPerPage || 10;
-    const sort = operation?.sort?.field || "updatedAt";
-    const desc = operation?.sort?.desc;
+    const multiSort = operation?.multiSort ?? [{ field: "updatedAt" }];
 
     // TODO: this returns an array of all entities of the given type in the account.
     // We should perform the sorting & filtering in the database for better performance.
@@ -77,15 +100,14 @@ export const dbAggregateEntity =
     const startIndex = pageNumber === 1 ? 0 : (pageNumber - 1) * itemsPerPage;
     const endIndex = Math.min(startIndex + itemsPerPage, entities.length);
 
-    const results = entities
-      .sort((a, b) => compareEntitiesByField(a, b, sort, desc ?? false))
-      .slice(startIndex, endIndex)
-      .map((entity) => entity.toGQLUnknownEntity());
+    const results = sortEntities(entities, multiSort)
+    .slice(startIndex, endIndex)
+    .map((entity) => entity.toGQLUnknownEntity());
 
     return {
       results,
       operation: {
-        sort,
+        multiSort,
         pageNumber,
         itemsPerPage,
         pageCount: Math.ceil(entities.length / itemsPerPage),

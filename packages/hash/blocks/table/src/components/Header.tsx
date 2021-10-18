@@ -16,12 +16,17 @@ type HeaderProps = {
   columns: ColumnInstance<{}>[];
   onAggregate: (args: AggregateArgs) => void;
   toggleHideColumn: (columnId: string) => void;
+  aggregateOptions: Pick<
+    BlockProtocolAggregateOperationInput,
+    "multiFilter" | "multiSort"
+  >;
 };
 
 export const Header: VFC<HeaderProps> = ({
   onAggregate,
   columns,
   toggleHideColumn,
+  aggregateOptions
 }) => {
   return (
     <div className={tw`pb-3 relative`}>
@@ -31,8 +36,9 @@ export const Header: VFC<HeaderProps> = ({
             <FilterDetail
               columns={columns}
               onFilter={(filters) =>
-                onAggregate({ operation: "filter", filters })
+                onAggregate({ operation: "filter", multiFilter: filters })
               }
+              multiFilter={aggregateOptions.multiFilter}
             />
           </Menu>
         </div>
@@ -41,8 +47,9 @@ export const Header: VFC<HeaderProps> = ({
             <SortDetail
               columns={columns}
               onSort={(sortFields) =>
-                onAggregate({ operation: "sort", sorts: sortFields })
+                onAggregate({ operation: "sort", multiSort: sortFields })
               }
+              multiSort={aggregateOptions.multiSort}
             />
           </Menu>
         </div>

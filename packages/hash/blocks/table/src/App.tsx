@@ -36,6 +36,13 @@ export const App: BlockComponent<AppProps> = ({
       pageSize: aggregate?.itemsPerPage || 1,
     };
   }, [data]);
+  const aggregateOptions = useMemo(() => {
+    const aggregate = data.__linkedData?.aggregate;
+    return {
+      multiFilter: aggregate?.multiFilter,
+      multiSort: aggregate?.multiSort,
+    };
+  }, [data]);
 
   const {
     getTableProps,
@@ -51,7 +58,6 @@ export const App: BlockComponent<AppProps> = ({
       columns,
       initialState: {
         ...initialState,
-        pageIndex: 1,
       },
       data: data.data || [],
       defaultColumn: {
@@ -66,8 +72,8 @@ export const App: BlockComponent<AppProps> = ({
   const handleAggregate = useCallback(
     ({
       operation,
-      filters,
-      sorts,
+      multiFilter,
+      multiSort,
       itemsPerPage,
       pageNumber,
     }: AggregateArgs) => {
@@ -79,12 +85,12 @@ export const App: BlockComponent<AppProps> = ({
         return;
       }
 
-      if (operation === "sort" && sorts) {
-        newLinkedData.aggregate.sorts = sorts;
+      if (operation === "sort" && multiSort) {
+        newLinkedData.aggregate.multiSort = multiSort;
       }
 
-      if (operation === "filter" && filters) {
-        newLinkedData.aggregate.filters = filters;
+      if (operation === "filter" && multiFilter) {
+        newLinkedData.aggregate.multiFilter = multiFilter;
       }
 
       if (operation === "changePage" && (itemsPerPage || pageNumber)) {
@@ -169,6 +175,7 @@ export const App: BlockComponent<AppProps> = ({
         columns={allColumns}
         toggleHideColumn={handleToggleColumn}
         onAggregate={handleAggregate}
+        aggregateOptions={aggregateOptions}
       />
       <div className={tw`max-w-full`}>
         <table

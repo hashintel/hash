@@ -8,33 +8,53 @@ import { AddIcon } from "./Icons";
 type SortDetailProps = {
   columns: ColumnInstance<{}>[];
   onSort: (
-    sortFields: NonNullable<BlockProtocolAggregateOperationInput["sorts"]>
+    sortFields: NonNullable<BlockProtocolAggregateOperationInput["multiSort"]>
   ) => void;
+  multiSort: BlockProtocolAggregateOperationInput["multiSort"];
 };
 
-export const SortDetail: React.VFC<SortDetailProps> = ({ columns, onSort }) => {
-  const [fields, setFields] = useState<
-    (NonNullable<BlockProtocolAggregateOperationInput["sorts"]>[number] & {
-      id: string;
-    })[]
-  >([]);
+type SortFieldsWithId = (NonNullable<
+  BlockProtocolAggregateOperationInput["multiSort"]
+>[number] & {
+  id: string;
+})[];
+
+export const SortDetail: React.VFC<SortDetailProps> = ({
+  columns,
+  onSort,
+  multiSort,
+}) => {
+  const [fields, setFields] = useState<SortFieldsWithId>([]);
 
   useEffect(() => {
-    const fieldsWithoutId = fields.map(({ field, desc }) => ({ field, desc }));
+    if (!multiSort) return 
+    const fieldsWithId = multiSort.map(({ field, desc }) => ({
+      field,
+      desc,
+      id: uuid(),
+    }));
+    setFields(fieldsWithId);
+  }, [multiSort]);
+
+  const handleSort = (sortFields?: SortFieldsWithId) => {
+    const fieldsWithoutId = (sortFields ?? fields)
+      .filter(({ field }) => Boolean(field))
+      .map(({ field, desc }) => ({ field, desc }));
+
     onSort(fieldsWithoutId);
-  }, [fields]);
+  };
 
   const addField = () => {
     setFields((prevFields) => [
       ...prevFields,
-      { field: columns?.[0].id ?? "", desc: false, id: uuid() },
+      { field: "", desc: false, id: uuid() },
     ]);
   };
 
   const removeField = (id: string) => {
-    setFields((prevFields) =>
-      prevFields.filter((property) => property.id !== id)
-    );
+    const newFields = fields.filter((property) => property.id !== id);
+    setFields(newFields);
+    handleSort(newFields);
   };
 
   const updateField = (
@@ -52,6 +72,7 @@ export const SortDetail: React.VFC<SortDetailProps> = ({ columns, onSort }) => {
     );
 
     setFields(updatedFields);
+    handleSort(updatedFields);
   };
 
   return (
@@ -66,6 +87,7 @@ export const SortDetail: React.VFC<SortDetailProps> = ({ columns, onSort }) => {
               onChange={(evt) => updateField(id, { field: evt.target.value })}
               value={field}
             >
+              <option value="">---</option>
               {columns.map((column) => (
                 <option key={column.id} value={column.id}>
                   {column.id}
