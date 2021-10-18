@@ -52,7 +52,7 @@ export const SignupIntro: VFC<SignupIntroProps> = ({
   };
 
   return (
-    <div className={tw`flex flex-col items-center`}>
+    <div className={tw`flex flex-col items-center pt-24`}>
       {!!invitationInfo && <InviteHeader invitationInfo={invitationInfo} />}
       <div className={tw`mb-12 flex items-center`}>
         <Logo className={tw`mr-5`} />

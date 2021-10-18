@@ -51,17 +51,21 @@ const InvitePage: NextPage = () => {
       !isParsedInvitationEmailQuery(router.query)
     ) {
       void router.push("/");
-      return;
-    }
+    } else {
+      /**
+       *  handle redirects when user isn't authenticated
+       * */
+      if (!user && !fetchingUser) {
+        if (isParsedInvitationEmailQuery(router.query)){
+          void router.push({
+            pathname: router.query.isExistingUser ? "/login" : "/signup",
+            query: router.query,
+          })
+        }
 
-    /**
-     *  handle redirects when user isn't authenticated
-     * */
-    if (!user && !fetchingUser) {
-      void router.push({
-        pathname: isExistingUser ? "/login" : "/signup",
-        query: router.query,
-      });
+
+       
+      }
     }
   }, [router, user, fetchingUser]);
 
