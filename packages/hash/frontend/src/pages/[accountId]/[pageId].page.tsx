@@ -53,8 +53,8 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
   ({ preloadedBlockMeta }) => {
     const router = useRouter();
 
-    // metadataId is the consistent identifier for pages (across all versions)
-    const metadataId = router.query.pageId as string;
+    // entityId is the consistent identifier for pages (across all versions)
+    const pageEntityId = router.query.pageId as string;
     const accountId = router.query.accountId as string;
     // versionId is an optional param for requesting a specific page version
     const versionId = router.query.version as string | undefined;
@@ -62,7 +62,7 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
     const { data, error } = useQuery<GetPageQuery, GetPageQueryVariables>(
       getPageQuery,
       {
-        variables: { metadataId, accountId, versionId },
+        variables: { entityId: pageEntityId, accountId, versionId },
       }
     );
 
@@ -123,7 +123,7 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
                 <PageTitle
                   value={title}
                   accountId={data.page.accountId}
-                  metadataId={data.page.metadataId}
+                  metadataId={data.page.entityId}
                 />
               </div>
               <div>
@@ -135,7 +135,7 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
                     versions={data.page.history ?? []}
                     onChange={(changedVersionId) => {
                       void router.push(
-                        `/${accountId}/${metadataId}?version=${changedVersionId}`
+                        `/${accountId}/${pageEntityId}?version=${changedVersionId}`
                       );
                     }}
                   />
@@ -149,7 +149,7 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
               accountId={data.page.accountId}
               contents={contents}
               blocksMeta={preloadedBlocks}
-              metadataId={data.page.metadataId}
+              entityId={data.page.entityId}
             />
           </main>
         </div>

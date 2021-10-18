@@ -2,7 +2,6 @@ import express from "express";
 import { json } from "body-parser";
 import helmet from "helmet";
 import { customAlphabet } from "nanoid";
-import winston from "winston";
 import { StatsD } from "hot-shots";
 import { createServer, RequestListener } from "http";
 
@@ -13,13 +12,9 @@ import { getRequiredEnv } from "./util";
 import { handleCollabRequest } from "./collab/server";
 import AwsSesEmailTransporter from "./email/transporter/awsSesEmailTransporter";
 import TestTransporter from "./email/transporter/testEmailTransporter";
-import {
-  isDevEnv,
-  isProdEnv,
-  isStatsDEnabled,
-  isTestEnv,
-  port,
-} from "./lib/config";
+import { logger } from "./logger";
+import { RedisCache } from "./cache";
+import { isProdEnv, isStatsDEnabled, isTestEnv, port } from "./lib/config";
 
 const { FRONTEND_URL } = require("./lib/config");
 
@@ -28,31 +23,6 @@ const nanoid = customAlphabet(
   "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
   14
 );
-
-// Configure the logger
-const logger = winston.createLogger({
-  level: "info",
-  format: winston.format.combine(
-    winston.format.json(),
-    winston.format.timestamp()
-  ),
-  defaultMeta: { service: "api" },
-});
-
-if (isDevEnv || isTestEnv) {
-  logger.add(
-    new winston.transports.Console({
-      level: "debug",
-      format: winston.format.combine(
-        winston.format.colorize(),
-        winston.format.simple()
-      ),
-    })
-  );
-} else if (isProdEnv) {
-  // TODO: add production logging transport here
-  // Datadog: https://github.com/winstonjs/winston/blob/master/docs/transports.md#datadog-transport
-}
 
 // Configure the StatsD client for reporting metrics
 let statsd: StatsD | undefined;
@@ -82,6 +52,12 @@ const pgConfig = {
 };
 const db = new PostgresAdapter(pgConfig, logger, statsd);
 
+// Connect to Redis
+const redis = new RedisCache({
+  host: getRequiredEnv("HASH_REDIS_HOST"),
+  port: parseInt(getRequiredEnv("HASH_REDIS_PORT"), 10),
+});
+
 // Set sensible default security headers: https://www.npmjs.com/package/helmet
 // Temporarily disable contentSecurityPolicy for the GraphQL playground
 // Longer-term we can set rules which allow only the playground to load
@@ -107,7 +83,7 @@ const transporter = isTestEnv
   ? new TestTransporter()
   : new AwsSesEmailTransporter();
 
-const apolloServer = createApolloServer(db, transporter, logger, statsd);
+const apolloServer = createApolloServer(db, redis, transporter, logger, statsd);
 
 app.get("/", (_, res) => res.send("Hello World"));
 
@@ -180,6 +156,6 @@ apolloServer
     process.on("SIGINT", () => shutdown("SIGINT"));
   })
   .catch((err) => {
-    console.error(err);
+    logger.error(err);
     process.exit(1);
   });

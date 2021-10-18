@@ -2,15 +2,15 @@ import { ReactNode } from "react";
 import { Schema as JSONSchema } from "jsonschema";
 import { EditorState } from "prosemirror-state";
 
-// @todo move this
-// @ts-ignore
-// @todo allow overwriting this again
 import { BlockMetadata } from "@hashintel/block-protocol";
 import { Node as ProsemirrorNode, NodeSpec, Schema } from "prosemirror-model";
 import { Decoration, EditorView } from "prosemirror-view";
+// @ts-ignore
+// @todo allow overwriting this again
 import blockPaths from "./blockPaths.sample.json";
-import { createRemoteBlock, defineRemoteBlock } from "./sharedWithBackendJs";
-import { BlockEntity } from "./types";
+import { BlockEntity, AnyEntity } from "./types";
+import { Text } from "./graphql/apiTypes.gen";
+import { EntityStoreType, isEntityLink } from "./entityStore";
 
 export { blockPaths };
 
@@ -107,7 +107,9 @@ export const fetchBlockMeta = async (
       await fetch(`${url}/metadata.json`)
     ).json();
 
-    const schema = await (await fetch(`${url}/${metadata.schema}`)).json();
+    const schema: Block["componentSchema"] = await (
+      await fetch(`${url}/${metadata.schema}`)
+    ).json();
 
     const result: BlockMeta = {
       componentMetadata: toBlockConfig(metadata, componentId),
@@ -125,135 +127,9 @@ export const fetchBlockMeta = async (
   return await promise;
 };
 
-/**
- * @deprecated
- * @todo remove this
- */
-export type BlockWithoutMeta = Omit<
-  Block,
-  "componentMetadata" | "componentSchema"
->;
-
-/**
- * @todo this API could possibly be simpler
- */
-export type ReplacePortals = (
-  existingNode: HTMLElement | null,
-  nextNode: HTMLElement | null,
-  reactNode: ReactNode | null
-) => void;
-
-type ViewConfig = {
-  view: any;
-  replacePortal: ReplacePortals;
-  createNodeView: Function;
-} | null;
-
-export const ensureBlockLoaded = async (
-  schema: Schema,
-  blockJson: { [key: string]: any },
-  viewConfig: ViewConfig
-) => {
-  const url = blockJson.type;
-
-  if (!url.startsWith("http")) {
-    return;
-  }
-
-  await defineRemoteBlock(schema, viewConfig, url);
-};
-
-export const ensureDocBlocksLoaded = async (
-  schema: Schema,
-  docJson: {
-    [key: string]: any;
-  },
-  viewConfig: ViewConfig
-) => {
-  await Promise.all(
-    (docJson.content as any[]).map(async (block) => {
-      const content = block.type === "block" ? block.content?.[0] : block;
-
-      await ensureBlockLoaded(schema, content, viewConfig);
-    })
-  );
-};
-
-export const getProseMirrorNodeAttributes = (entity: BlockEntity) => ({
-  entityId: entity.metadataId,
-});
-
-const mapEntityToChildren = (entity: BlockEntity["properties"]["entity"]) => {
-  if (entity.__typename === "Text") {
-    return entity.textProperties.texts.map((text) => ({
-      type: "text",
-      text: text.text,
-      entityId: entity.metadataId,
-      versionId: entity.id,
-      accountId: entity.accountId,
-
-      // This maps the boolean properties on the entity into an array of mark names
-      marks: [
-        ["strong", text.bold],
-        ["underlined", text.underline],
-        ["em", text.italics],
-      ]
-        .filter(([, include]) => include)
-        .map(([mark]) => mark),
-    }));
-  }
-
-  return [];
-};
-
-/**
- * @todo replace this with a prosemirror command
- * @todo take a signal
- * @todo i think we need to put placeholders for the not-yet-fetched blocks
- *   immediately, and then have the actual blocks pop in – it being delayed too
- *   much will mess with collab
- */
-export const createEntityUpdateTransaction = async (
-  state: EditorState,
-  entities: BlockEntity[],
-  viewConfig: ViewConfig
-) => {
-  const schema = state.schema;
-
-  const newNodes = await Promise.all(
-    entities.map((block) =>
-      // @todo pass signal through somehow
-      createRemoteBlock(
-        schema,
-        viewConfig,
-        block.properties.componentId,
-        getProseMirrorNodeAttributes(block),
-        mapEntityToChildren(block.properties.entity).map((child: any) => {
-          if (child.type === "text") {
-            return schema.text(
-              child.text,
-              child.marks.map((mark: string) => schema.mark(mark))
-            );
-          }
-
-          // @todo recursive nodes
-          throw new Error("unrecognised child");
-        })
-      )
-    )
-  );
-
-  const { tr } = state;
-
-  // This creations a transaction to replace the entire content of the document
-  tr.replaceWith(0, state.doc.content.size, newNodes);
-
-  return tr;
-};
-
-declare interface OrderedMapPrivateInterface<T> {
-  content: (string | T)[];
-}
+export const componentRequiresText = (
+  componentSchema: BlockMeta["componentSchema"]
+) => componentSchema.properties && "editableRef" in componentSchema.properties;
 
 /**
  * This utilises getters to trick prosemirror into mutating itself in order to
@@ -262,11 +138,11 @@ declare interface OrderedMapPrivateInterface<T> {
  * We could also consider asking them to make adding a new node type officially
  * supported.
  */
-export function defineNewNode<
-  N extends string = any,
-  M extends string = any,
-  S extends Schema = Schema<N, M>
->(existingSchema: S, componentId: string, spec: NodeSpec) {
+export function defineNewNode(
+  existingSchema: Schema,
+  componentId: string,
+  spec: NodeSpec
+) {
   const existingSchemaSpec = existingSchema.spec;
   const map = existingSchemaSpec.nodes;
   const privateMap: OrderedMapPrivateInterface<NodeSpec> = map as any;
@@ -341,7 +217,7 @@ export function defineNewBlock<
      * it has an editableRef prop in its schema – we need a more sophisticated
      * way for block authors to communicate this to us
      */
-    ...(componentSchema.properties?.editableRef
+    ...(componentRequiresText(componentSchema)
       ? {
           content: "text*",
           marks: "_",
@@ -378,4 +254,267 @@ export function defineNewBlock<
       },
     });
   }
+}
+
+/** @deprecated duplicates react context "blockMeta" */
+let AsyncBlockCache = new Map<string, Promise<BlockMeta>>();
+let AsyncBlockCacheView: EditorView | null = null;
+
+/**
+ * Defining a new type of block in prosemirror. Designed to be cached so
+ * doesn't need to request the block multiple times
+ *
+ * @todo support taking a signal
+ */
+const defineRemoteBlock = async (
+  schema: Schema,
+  viewConfig: ViewConfig,
+  componentId: string
+): Promise<BlockMeta> => {
+  /**
+   * Clear the cache if the cache was setup on a different prosemirror view.
+   * Probably won't happen but with fast refresh and global variables, got to
+   * be sure
+   */
+  if (viewConfig?.view) {
+    if (AsyncBlockCacheView && AsyncBlockCacheView !== viewConfig.view) {
+      AsyncBlockCache = new Map();
+    }
+    AsyncBlockCacheView = viewConfig.view;
+  }
+
+  // If the block has not already been defined, we need to fetch the metadata & define it
+  if (!AsyncBlockCache.has(componentId)) {
+    const promise = fetchBlockMeta(componentId).catch((err) => {
+      // We don't want failed requests to prevent future requests to the block being successful
+      if (AsyncBlockCache.get(componentId) === promise) {
+        AsyncBlockCache.delete(componentId);
+      }
+
+      console.error("bang", err);
+      throw err;
+    });
+
+    AsyncBlockCache.set(componentId, promise);
+  }
+
+  /**
+   * Wait for the cached request to finish (and therefore the block to have
+   * been defined). In theory we'd want a retry mechanism here
+   */
+  const promise = AsyncBlockCache.get(componentId);
+
+  if (!promise) {
+    throw new Error("Invariant: block cache missing component");
+  }
+
+  const meta = await promise;
+
+  if (!componentId || !schema.nodes[componentId]) {
+    defineNewBlock(
+      schema,
+      meta.componentMetadata,
+      meta.componentSchema,
+      viewConfig,
+      componentId
+    );
+  }
+
+  return meta;
+};
+
+/**
+ * @deprecated
+ * @todo remove this
+ */
+export type BlockWithoutMeta = Omit<
+  Block,
+  "componentMetadata" | "componentSchema"
+>;
+
+/**
+ * @todo this API could possibly be simpler
+ */
+export type ReplacePortals = (
+  existingNode: HTMLElement | null,
+  nextNode: HTMLElement | null,
+  reactNode: ReactNode | null
+) => void;
+
+type ViewConfig = {
+  view: any;
+  replacePortal: ReplacePortals;
+  createNodeView: Function;
+} | null;
+
+export const ensureBlockLoaded = async (
+  schema: Schema,
+  blockJson: { [key: string]: any },
+  viewConfig: ViewConfig
+) => {
+  const url = blockJson.type;
+
+  if (!url.startsWith("http")) {
+    return;
+  }
+
+  await defineRemoteBlock(schema, viewConfig, url);
+};
+
+export const ensureDocBlocksLoaded = async (
+  schema: Schema,
+  docJson: {
+    [key: string]: any;
+  },
+  viewConfig: ViewConfig
+) => {
+  await Promise.all(
+    (docJson.content as any[]).map(async (block) => {
+      const content = block.type === "block" ? block.content?.[0] : block;
+
+      await ensureBlockLoaded(schema, content, viewConfig);
+    })
+  );
+};
+
+export const getProseMirrorNodeAttributes = (entity: BlockEntity) => ({
+  entityId: entity.entityId,
+});
+
+export const isTextEntity = (entity: EntityStoreType): entity is Text =>
+  "properties" in entity && "texts" in entity.properties;
+
+type DistributiveOmit<T, K extends keyof any> = T extends any
+  ? Omit<T, K>
+  : never;
+
+export const isTextEntityContainingEntity = (
+  entity: DistributiveOmit<AnyEntity, "properties"> & {
+    properties?: unknown;
+  }
+): entity is DistributiveOmit<AnyEntity, "properties"> & {
+  properties: { text: { data: Text } };
+} => {
+  if (
+    "properties" in entity &&
+    typeof entity.properties === "object" &&
+    entity.properties !== null
+  ) {
+    const properties: Partial<Record<string, unknown>> = entity.properties;
+
+    return (
+      "text" in properties &&
+      isEntityLink(properties.text) &&
+      isTextEntity(properties.text.data)
+    );
+  }
+  return false;
+};
+
+const childrenForTextEntity = (entity: Text, schema: Schema) =>
+  entity.properties.texts.map((text) =>
+    schema.text(
+      text.text,
+      [
+        ["strong", text.bold] as const,
+        ["underlined", text.underline] as const,
+        ["em", text.italics] as const,
+      ]
+        .filter(([, include]) => include)
+        .map(([mark]) => schema.mark(mark))
+    )
+  );
+
+export const getTextEntityFromBlock = (
+  blockEntity: BlockEntity
+): Text | null => {
+  const blockPropertiesEntity = blockEntity.properties.entity;
+
+  if (!isTextEntity(blockPropertiesEntity)) {
+    if (isTextEntityContainingEntity(blockPropertiesEntity)) {
+      return blockPropertiesEntity.properties.text.data;
+    }
+  } else {
+    return blockPropertiesEntity;
+  }
+
+  return null;
+};
+
+/**
+ * Creating a new type of block in prosemirror, without necessarily having
+ * requested the block metadata yet.
+ *
+ * @todo support taking a signal
+ */
+export const createRemoteBlockFromEntity = async (
+  schema: Schema,
+  viewConfig: ViewConfig,
+  blockEntity: BlockEntity,
+  targetComponentId = blockEntity.properties.componentId
+) => {
+  const attrs = getProseMirrorNodeAttributes(blockEntity);
+  const meta = await defineRemoteBlock(schema, viewConfig, targetComponentId);
+  const requiresText = componentRequiresText(meta.componentSchema);
+
+  if (requiresText) {
+    const textEntity = getTextEntityFromBlock(blockEntity);
+
+    if (!textEntity) {
+      throw new Error(
+        "Entity should contain text entity if used with text block"
+      );
+    }
+
+    return schema.nodes.entity.create({ entityId: attrs.entityId }, [
+      schema.nodes.entity.create({ entityId: textEntity.entityId }, [
+        schema.nodes[targetComponentId].create(
+          attrs,
+          childrenForTextEntity(textEntity, schema)
+        ),
+      ]),
+    ]);
+  } else {
+    /**
+     * @todo arguably this doesn't need to be here – remove it if possible when
+     *       working on switching blocks
+     */
+    return schema.nodes.entity.create(
+      { entityId: attrs.entityId },
+      schema.nodes[targetComponentId].create(attrs, [])
+    );
+  }
+};
+
+/**
+ * @todo replace this with a prosemirror command
+ * @todo take a signal
+ * @todo i think we need to put placeholders for the not-yet-fetched blocks
+ *   immediately, and then have the actual blocks pop in – it being delayed too
+ *   much will mess with collab
+ */
+export const createEntityUpdateTransaction = async (
+  state: EditorState,
+  entities: BlockEntity[],
+  viewConfig: ViewConfig
+) => {
+  const schema = state.schema;
+
+  const newNodes = await Promise.all(
+    entities.map((entity) =>
+      // @todo pass signal through somehow
+      createRemoteBlockFromEntity(schema, viewConfig, entity)
+    )
+  );
+
+  const { tr } = state;
+
+  // This creations a transaction to replace the entire content of the document
+  tr.replaceWith(0, state.doc.content.size, newNodes);
+
+  return tr;
+};
+
+declare interface OrderedMapPrivateInterface<T> {
+  content: (string | T)[];
 }

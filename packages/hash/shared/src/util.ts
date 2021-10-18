@@ -35,7 +35,7 @@ export const findEntityNodes = (doc: ProsemirrorNode<any>) => {
 };
 
 export const entityIdExists = (entities: BlockEntity[]) => {
-  const ids = new Set(entities.map((block) => block.metadataId));
+  const ids = new Set(entities.map((block) => block.entityId));
 
   return (entityId: string | null): entityId is string =>
     !!entityId && ids.has(entityId);

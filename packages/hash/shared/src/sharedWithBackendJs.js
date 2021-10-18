@@ -4,7 +4,6 @@ import { baseKeymap, chainCommands, toggleMark } from "prosemirror-commands";
 import { history, redo, undo } from "prosemirror-history";
 import { undoInputRule } from "prosemirror-inputrules";
 import { dropCursor } from "prosemirror-dropcursor";
-import { defineNewBlock, fetchBlockMeta } from "./sharedWithBackend";
 import { wrapEntitiesPlugin } from "./wrapEntitiesPlugin";
 
 /**
@@ -17,89 +16,6 @@ import { wrapEntitiesPlugin } from "./wrapEntitiesPlugin";
  */
 export const historyPlugin = history();
 export const infiniteGroupHistoryPlugin = history({ newGroupDelay: Infinity });
-
-/** @deprecated duplicates react context "blockMeta" */
-let AsyncBlockCache = new Map();
-let AsyncBlockCacheView = null;
-
-/**
- * Defining a new type of block in prosemirror. Designed to be cached so
- * doesn't need to request the block multiple times
- *
- * @todo support taking a signal
- */
-export const defineRemoteBlock = async (schema, viewConfig, componentId) => {
-  /**
-   * Clear the cache if the cache was setup on a different prosemirror view.
-   * Probably won't happen but with fast refresh and global variables, got to
-   * be sure
-   */
-  if (viewConfig?.view) {
-    if (AsyncBlockCacheView && AsyncBlockCacheView !== viewConfig.view) {
-      AsyncBlockCache = new Map();
-    }
-    AsyncBlockCacheView = viewConfig.view;
-  }
-
-  // If the block has not already been defined, we need to fetch the metadata & define it
-  if (!componentId || !schema.nodes[componentId]) {
-    if (!AsyncBlockCache.has(componentId)) {
-      const promise = fetchBlockMeta(componentId)
-        .then(({ componentMetadata, componentSchema }) => {
-          if (!componentId || !schema.nodes[componentId]) {
-            defineNewBlock(
-              schema,
-              componentMetadata,
-              componentSchema,
-              viewConfig,
-              componentId
-            );
-          }
-        })
-        .catch((err) => {
-          // We don't want failed requests to prevent future requests to the block being successful
-          if (AsyncBlockCache.get(componentId) === promise) {
-            AsyncBlockCache.delete(componentId);
-          }
-
-          console.error("bang", err);
-          throw err;
-        });
-
-      AsyncBlockCache.set(componentId, promise);
-    }
-
-    /**
-     * Wait for the cached request to finish (and therefore the block to have
-     * been defined). In theory we'd want a retry mechanism here
-     */
-    await AsyncBlockCache.get(componentId);
-  }
-};
-
-/**
- * Creating a new type of block in prosemirror, without necessarily having
- * requested the block metadata yet.
- *
- * @todo update arguments to this
- * @todo support taking a signal
- */
-export const createRemoteBlock = async (
-  schema,
-  viewConfig,
-  componentId,
-  attrs,
-  children,
-  marks
-) => {
-  await defineRemoteBlock(schema, viewConfig, componentId);
-
-  // Create a new instance of the newly defined prosemirror node
-  // @todo get entityId from an argument
-  return schema.nodes.entity.create({ entityId: attrs.entityId }, [
-    schema.nodes[componentId].create(attrs, children, marks),
-  ]);
-};
 
 const plugins = [
   historyPlugin,
