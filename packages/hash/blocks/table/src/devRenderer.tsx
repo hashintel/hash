@@ -20,10 +20,8 @@ import {
   initialTableData,
   Person,
 } from "./mockData/mockData";
-import {
-  compareEntitiesByField,
-  resolvePath,
-} from "./lib/compareEntitiesByField";
+import { resolvePath } from "./lib/compareEntitiesByField";
+import { sortEntities } from "./lib/sortEntities";
 
 const DEFAULT_PAGE_SIZE = 3;
 
@@ -68,8 +66,8 @@ const useMockData = () => {
     }
 
     // FILTERING
-    if (linkedData.aggregate?.filters) {
-      const combinatorFilter = linkedData.aggregate.filters;
+    if (linkedData.aggregate?.multiFilter) {
+      const combinatorFilter = linkedData.aggregate.multiFilter;
       // This assumes the operator for each field is Contains and
       // the combinator operator is AND
       // @todo update to handle all filter scenarios
@@ -83,14 +81,9 @@ const useMockData = () => {
     }
 
     // SORTING
-    if (linkedData.aggregate?.sorts) {
-      const sortFields = linkedData.aggregate.sorts;
-
-      sortFields.forEach(({ field, desc }) => {
-        resolvedData = resolvedData.sort((a, b) =>
-          compareEntitiesByField(a, b, field, desc ?? false)
-        );
-      });
+    if (linkedData.aggregate?.multiSort) {
+      const sortFields = linkedData.aggregate.multiSort;
+      resolvedData = sortEntities(resolvedData, sortFields);
     }
 
     // PAGINATION

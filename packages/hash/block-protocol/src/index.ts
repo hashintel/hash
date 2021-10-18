@@ -39,39 +39,34 @@ export type BlockProtocolCreatePayload<T> = {
   userId: string;
 };
 
-export enum BlockProtocolFilterOperator {
-  IS = "IS",
-  IS_NOT = "IS_NOT",
-  CONTAINS = "CONTAINS",
-  DOES_NOT_CONTAIN = "DOES_NOT_CONTAIN",
-  STARTS_WITH = "STARTS_WITH",
-  ENDS_WITH = "ENDS_WITH",
-  IS_EMPTY = "IS_EMPTY",
-  IS_NOT_EMPTY = "IS_NOT_EMPTY",
-}
+export type BlockProtocolFilterOperatorType =
+  | "CONTAINS"
+  | "DOES_NOT_CONTAIN"
+  | "IS"
+  | "IS_NOT"
+  | "STARTS_WITH"
+  | "ENDS_WITH"
+  | "IS_EMPTY"
+  | "IS_NOT_EMPTY";
 
-export enum BlockProtocolCombinatorFilterOperator {
-  AND = "AND",
-  OR = "OR",
-}
+export type BlockProtocolMultiFilterOperatorType = "AND" | "OR";
 
 export type BlockProtocolAggregateOperationInput = {
   pageNumber?: number;
   itemsPerPage?: number;
-  sorts?:
+  multiSort?:
     | {
         field: string;
         desc?: boolean | undefined | null;
       }[]
     | null;
-  // @todo call this multiFilters or combinatorFilter ?
-  filters?: {
+  multiFilter?: {
     filters: {
       field: string;
-      operator: BlockProtocolFilterOperator;
+      operator: BlockProtocolFilterOperatorType;
       value: string;
     }[];
-    operator: BlockProtocolCombinatorFilterOperator;
+    operator: BlockProtocolMultiFilterOperatorType;
   } | null;
 };
 

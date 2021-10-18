@@ -172,15 +172,20 @@ export const entityTypedef = gql`
   }
 
   input AggregateOperationInput {
-    filter: FilterOperationInput
+    multiFilter: MultiFilterOperationInput
     itemsPerPage: Int = 10
     pageNumber: Int = 1
-    sorts: [SortOperationInput!]
+    multiSort: [SortOperationInput!]
   }
 
   input SortOperationInput {
     field: String!
     desc: Boolean = false
+  }
+
+  input MultiFilterOperationInput {
+    filters: [FilterOperationInput!]!
+    operator: String!
   }
 
   input FilterOperationInput {
@@ -189,11 +194,11 @@ export const entityTypedef = gql`
   }
 
   type AggregateOperation {
-    filter: FilterOperation
+    multiFilter: FilterOperation
+    multiSort: [SortOperation!]!
     itemsPerPage: Int!
     pageNumber: Int!
     pageCount: Int!
-    sorts: [SortOperation!]
   }
 
   type SortOperation {
@@ -201,9 +206,15 @@ export const entityTypedef = gql`
     desc: Boolean
   }
 
+  type MultiFilterOperation {
+    filters: [FilterOperation!]!
+    operator: String!
+  }
+
   type FilterOperation {
     field: String!
     value: String!
+    operator: String!
   }
 
   type AggregationResponse {

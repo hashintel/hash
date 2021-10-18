@@ -450,7 +450,7 @@ void (async () => {
                 entityTypeId: newTypeIds.Person,
                 aggregate: {
                   itemsPerPage: 5,
-                  sorts: [
+                  multiSort: [
                     {
                       field: "createdAt",
                     },
