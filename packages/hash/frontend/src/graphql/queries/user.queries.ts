@@ -2,6 +2,7 @@ import { gql } from "@apollo/client";
 
 const userFieldsFragment = gql`
   fragment UserFields on User {
+    __typename
     id
     entityId
     createdById
@@ -10,6 +11,16 @@ const userFieldsFragment = gql`
     entityTypeVersionId
     entityTypeName
     visibility
+    accountSignupComplete
+    properties {
+      shortname
+      preferredName
+      emails {
+        address
+        primary
+        verified
+      }
+    }
   }
 `;
 
@@ -33,16 +44,6 @@ export const createUserWithOrgEmailInvitation = gql`
       invitationEmailToken: $invitationEmailToken
     ) {
       ...UserFields
-      accountSignupComplete
-      properties {
-        shortname
-        preferredName
-        emails {
-          address
-          primary
-          verified
-        }
-      }
     }
   }
   ${userFieldsFragment}
@@ -58,16 +59,6 @@ export const updateUser = gql`
   mutation updateUser($userEntityId: ID!, $properties: UpdateUserProperties!) {
     updateUser(userEntityId: $userEntityId, properties: $properties) {
       ...UserFields
-      accountSignupComplete
-      properties {
-        shortname
-        preferredName
-        emails {
-          address
-          primary
-          verified
-        }
-      }
     }
   }
   ${userFieldsFragment}
@@ -80,24 +71,9 @@ export const verifyEmail = gql`
       verificationCode: $verificationCode
     ) {
       __typename
-      entityId
-      createdById
-      createdAt
-      updatedAt
-      accountId
-      entityTypeId
-      entityTypeVersionId
-      entityTypeName
-      visibility
-      properties {
-        shortname
-        emails {
-          address
-          primary
-          verified
-        }
-      }
+      ...UserFields
     }
+    ${userFieldsFragment}
   }
 `;
 
@@ -121,26 +97,10 @@ export const loginWithLoginCode = gql`
       verificationCode: $verificationCode
     ) {
       __typename
-      id
-      createdById
-      createdAt
-      updatedAt
-      accountId
-      entityTypeId
-      entityTypeVersionId
-      entityTypeName
-      visibility
-      accountSignupComplete
-      properties {
-        shortname
-        emails {
-          address
-          primary
-          verified
-        }
-      }
+      ...UserFields
     }
   }
+  ${userFieldsFragment}
 `;
 
 export const logout = gql`
@@ -153,16 +113,6 @@ export const meQuery = gql`
   query me {
     me {
       ...UserFields
-      accountSignupComplete
-      properties {
-        shortname
-        preferredName
-        emails {
-          address
-          primary
-          verified
-        }
-      }
     }
   }
   ${userFieldsFragment}

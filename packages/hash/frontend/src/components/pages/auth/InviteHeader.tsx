@@ -14,7 +14,7 @@ export const InviteHeader: React.VFC<InviteHeaderProps> = React.memo(
     return (
       <p className={tw`font-bold text-2xl text-blue-500 mb-12`}>
         {invitationInfo.inviterPreferredName
-          ? `${invitationInfo.inviterPreferredName} has invited you to join{" "}
+          ? `${invitationInfo.inviterPreferredName} has invited you to join 
           ${invitationInfo.orgName}`
           : ` You have been invited you to join ${invitationInfo?.orgName}`}
       </p>

@@ -22,6 +22,7 @@ import {
   SYNTHETIC_LOADING_TIME_MS,
   Action,
 } from "../../pages/auth/utils";
+import { useGetInvitationInfo } from "../../hooks/useGetInvitationInfo";
 
 enum Screen {
   Intro,
@@ -99,6 +100,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
     },
     dispatch,
   ] = useReducer<React.Reducer<State, Actions>>(reducer, initialState);
+  const { invitationInfo, invitationInfoLoading } = useGetInvitationInfo();
   const router = useRouter();
 
   const [sendLoginCodeFn, { loading: sendLoginCodeLoading }] = useMutation<
@@ -245,6 +247,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
             requestCode={resendLoginCode}
             requestCodeLoading={sendLoginCodeLoading}
             errorMessage={errorMessage}
+            invitationInfo={invitationInfo}
           />
         );
       case Screen.Intro:
@@ -255,6 +258,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
             loading={sendLoginCodeLoading}
             errorMessage={errorMessage}
             navigateToSignup={navigateToSignup}
+            invitationInfo={invitationInfo}
           />
         );
     }
@@ -270,7 +274,11 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
   }
 
   return (
-    <AuthModalLayout show={show} onClose={onClose}>
+    <AuthModalLayout
+      loading={invitationInfoLoading}
+      show={show}
+      onClose={onClose}
+    >
       {renderContent()}
     </AuthModalLayout>
   );
