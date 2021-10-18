@@ -26,7 +26,7 @@ export const Header: VFC<HeaderProps> = ({
   onAggregate,
   columns,
   toggleHideColumn,
-  aggregateOptions
+  aggregateOptions,
 }) => {
   return (
     <div className={tw`pb-3 relative`}>

@@ -87,10 +87,14 @@ export const App: BlockComponent<AppProps> = ({
 
       if (operation === "sort" && multiSort) {
         newLinkedData.aggregate.multiSort = multiSort;
+        // if sort or filter fields changed, reset page to 1
+        newLinkedData.aggregate.pageNumber = 1
       }
 
       if (operation === "filter" && multiFilter) {
         newLinkedData.aggregate.multiFilter = multiFilter;
+        // if sort or filter fields changed, reset page to 1
+        newLinkedData.aggregate.pageNumber = 1
       }
 
       if (operation === "changePage" && (itemsPerPage || pageNumber)) {

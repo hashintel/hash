@@ -27,7 +27,7 @@ export const SortDetail: React.VFC<SortDetailProps> = ({
   const [fields, setFields] = useState<SortFieldsWithId>([]);
 
   useEffect(() => {
-    if (!multiSort) return 
+    if (!multiSort) return;
     const fieldsWithId = multiSort.map(({ field, desc }) => ({
       field,
       desc,

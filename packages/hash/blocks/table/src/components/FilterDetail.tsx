@@ -7,8 +7,8 @@ import {
   BlockProtocolMultiFilterOperatorType,
   BlockProtocolFilterOperatorType,
 } from "@hashintel/block-protocol";
-import { AddIcon } from "./Icons";
 import { unstable_batchedUpdates } from "react-dom";
+import { AddIcon } from "./Icons";
 
 const MENU_WIDTH = 540;
 
