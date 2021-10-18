@@ -26,7 +26,7 @@ export const OrgInvite: VFC<OrgInviteProps> = ({
   const [emails, setEmails] = useState<string[]>([]);
   const [sendingInvitations, setSendingInvitations] = useState(false);
 
-  const [sendEmailInvitation, { loading }] = useMutation<
+  const [sendEmailInvitation] = useMutation<
     CreateOrgEmailInvitationMutation,
     CreateOrgEmailInvitationMutationVariables
   >(createOrgEmailInvitationMutation, {
@@ -131,7 +131,7 @@ export const OrgInvite: VFC<OrgInviteProps> = ({
           <button
             type="submit"
             className={tw`group w-64 bg-gradient-to-r from-blue-400 via-blue-500 to-pink-500 rounded-lg h-11 transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center text-white text-sm font-bold mx-auto mb-4`}
-            disabled={loading}
+            disabled={sendingInvitations}
             onClick={onSubmit}
           >
             {sendingInvitations ? (

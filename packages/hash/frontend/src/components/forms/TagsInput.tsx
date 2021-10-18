@@ -26,6 +26,10 @@ export const TagsInput: React.VFC<TagsInputProps> = ({
         setTags([...tags, text]);
       }
       inputRef.current.value = "";
+    } else if (evt.key === "Backspace" || evt.key === "Delete") {
+      if (inputRef.current.value == "" && tags.length > 0) {
+        setTags(tags.filter((_, index) => index !== tags.length - 1));
+      }
     }
   };
 
@@ -37,7 +41,7 @@ export const TagsInput: React.VFC<TagsInputProps> = ({
   return (
     <div
       style={{ minHeight: minHeight ?? 48 }}
-      className={tw`flex flex-wrap items-start rounded-lg p-2 border(1 gray-300 hover:gray-400 focus-within:gray-500)`}
+      className={tw`flex flex-wrap bg-white items-start rounded-lg p-2 border(1 gray-300 hover:gray-400 focus-within:gray-500)`}
       onClick={() => inputRef.current?.focus()}
     >
       <ul className={tw`flex flex-wrap items-start`}>
