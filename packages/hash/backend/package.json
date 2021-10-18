@@ -27,6 +27,7 @@
     "@aws-sdk/client-ses": "3.25.0",
     "@hashintel/block-protocol": "*",
     "@hashintel/hash-shared": "*",
+    "@hashintel/hash-backend-utils": "*",
     "@types/lodash": "4.14.175",
     "@types/redis": "2.8.32",
     "ajv": "8.6.3",
