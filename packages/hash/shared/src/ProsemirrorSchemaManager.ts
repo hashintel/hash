@@ -118,9 +118,8 @@ export class ProsemirrorSchemaManager {
     if (this.componentNodeViewFactory && this.view) {
       this.view.setProps({
         nodeViews: {
-          // @todo look into this
-          // @ts-ignore-error
-          ...this.view.nodeViews,
+          // Private API
+          ...(this.view as any).nodeViews,
           [componentId]: this.componentNodeViewFactory(meta),
         },
       });
