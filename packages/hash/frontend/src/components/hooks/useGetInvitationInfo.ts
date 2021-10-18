@@ -14,18 +14,13 @@ import {
 import {
   isParsedInvitationEmailQuery,
   isParsedInvitationLinkQuery,
+  InvitationInfo,
 } from "../pages/auth/utils";
 
-type InvitationInfo = {
-  orgName: string;
-  orgEntityId: string;
-  inviterPreferredName?: string;
-  invitationEmailToken?: string;
-  invitationLinkToken?: string;
-} | null;
-
 export const useGetInvitationInfo = () => {
-  const [invitationInfo, setInvitationInfo] = useState<InvitationInfo>(null);
+  const [invitationInfo, setInvitationInfo] = useState<InvitationInfo | null>(
+    null
+  );
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
   const router = useRouter();
 
@@ -93,10 +88,10 @@ export const useGetInvitationInfo = () => {
           invitationEmailToken: query.invitationEmailToken,
         },
       });
-      return;
-    }
-
-    if (isParsedInvitationLinkQuery(query) && !getOrgInvitationLinkCalled) {
+    } else if (
+      isParsedInvitationLinkQuery(query) &&
+      !getOrgInvitationLinkCalled
+    ) {
       void getOrgInvitationLink({
         variables: {
           orgEntityId: query.orgEntityId,
@@ -104,7 +99,13 @@ export const useGetInvitationInfo = () => {
         },
       });
     }
-  }, [router, getOrgInvitationLinkCalled, getOrgEmailInvitationCalled]);
+  }, [
+    router,
+    getOrgEmailInvitation,
+    getOrgInvitationLink,
+    getOrgInvitationLinkCalled,
+    getOrgEmailInvitationCalled,
+  ]);
 
   return {
     invitationInfo,

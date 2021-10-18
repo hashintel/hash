@@ -30,9 +30,7 @@ export const AuthLayout: VoidFunctionComponent<AuthLayoutProps> = ({
 
   return (
     <div className={tw`fixed inset-0 bg-white`}>
-      <div
-        className={tw`relative z-10 h-screen overflow-y-scroll border-4`}
-      >
+      <div className={tw`relative z-10 h-screen overflow-y-scroll border-4`}>
         <div
           className={tw`py-10 flex justify-center ${
             showTopLogo ? "" : "invisible"
@@ -41,9 +39,7 @@ export const AuthLayout: VoidFunctionComponent<AuthLayoutProps> = ({
           <Logo />
         </div>
 
-        <div className={tw`pt-24 pb-10 flex justify-center`}>
-          {children}
-        </div>
+        <div className={tw`pt-24 pb-10 flex justify-center`}>{children}</div>
       </div>
 
       <div className={tw`absolute right-0 top-0 bottom-0`}>

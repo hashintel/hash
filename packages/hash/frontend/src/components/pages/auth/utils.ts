@@ -23,6 +23,13 @@ export const INVITE_ERROR_CODES = {
   REVOKED: "",
 } as const;
 
+export type Action<S, T = undefined> = T extends undefined
+  ? { type: S }
+  : {
+      type: S;
+      payload: T;
+    };
+
 type ParsedAuthQuery = {
   verificationId: string;
   verificationCode: string;
@@ -37,7 +44,7 @@ export const isParsedAuthQuery = (
 type ParsedInviteEmailQuery = {
   invitationEmailToken: string;
   orgEntityId: string;
-  isExistingUser?: string;
+  isExistingUser?: boolean;
 };
 
 type ParsedInviteLinkQuery = {
@@ -59,12 +66,20 @@ export const isParsedInvitationLinkQuery = (
   typeof query.invitationLinkToken === "string" &&
   !!query.invitationLinkToken;
 
-export type Action<S, T = undefined> = T extends undefined
-  ? { type: S }
-  : {
-      type: S;
-      payload: T;
-    };
+type InvitationEmailInfo = {
+  orgName: string;
+  orgEntityId: string;
+  inviterPreferredName: string;
+  invitationEmailToken: string;
+};
+
+type InvitationLinkInfo = {
+  orgName: string;
+  orgEntityId: string;
+  invitationLinkToken: string;
+};
+
+export type InvitationInfo = InvitationEmailInfo | InvitationLinkInfo;
 
 export const ORG_ROLES = [
   { label: "Marketing", value: "Marketing" },

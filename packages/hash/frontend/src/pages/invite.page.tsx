@@ -20,6 +20,7 @@ import {
   isParsedInvitationEmailQuery,
   isParsedInvitationLinkQuery,
   ORG_ROLES,
+  SYNTHETIC_LOADING_TIME_MS,
 } from "../components/pages/auth/utils";
 import { useGetInvitationInfo } from "../components/hooks/useGetInvitationInfo";
 
@@ -27,12 +28,9 @@ import { useGetInvitationInfo } from "../components/hooks/useGetInvitationInfo";
 const InvitePage: NextPage = () => {
   const { user, loading: fetchingUser } = useUser();
   const router = useRouter();
-  const {
-    orgEntityId,
-    invitationEmailToken,
-    invitationLinkToken,
-    isExistingUser,
-  } = router.query;
+
+  /** Ensures the loader shows up initially until all requests are complete */
+  const [initialLoading, setInitialLoading] = useState(true);
   const [responsibility, setResponsibility] = useState<string | undefined>();
   const [errorMessage, setErrorMessage] = useState("");
   const { invitationInfo, invitationInfoLoading, invitationInfoError } =
@@ -43,6 +41,9 @@ const InvitePage: NextPage = () => {
       return;
     }
 
+    setTimeout(() => {
+      setInitialLoading(false);
+    }, SYNTHETIC_LOADING_TIME_MS);
     /**
      * Redirect to home page if necessary query params aren't available
      */
@@ -51,20 +52,21 @@ const InvitePage: NextPage = () => {
       !isParsedInvitationEmailQuery(router.query)
     ) {
       void router.push("/");
-    } else {
+    } else if (!user && !fetchingUser) {
       /**
-       *  handle redirects when user isn't authenticated
-       * */
-      if (!user && !fetchingUser) {
-        if (isParsedInvitationEmailQuery(router.query)){
-          void router.push({
-            pathname: router.query.isExistingUser ? "/login" : "/signup",
-            query: router.query,
-          })
-        }
-
-
-       
+       * handle redirects when user isn't authenticated
+       */
+      if (isParsedInvitationEmailQuery(router.query)) {
+        const { isExistingUser, ...remainingQuery } = router.query;
+        void router.push({
+          pathname: isExistingUser ? "/login" : "/signup",
+          query: remainingQuery,
+        });
+      } else {
+        void router.push({
+          pathname: "/login",
+          query: router.query,
+        });
       }
     }
   }, [router, user, fetchingUser]);
@@ -97,17 +99,18 @@ const InvitePage: NextPage = () => {
   const handleSubmit = (evt: React.FormEvent) => {
     evt.preventDefault();
     if (!responsibility) return;
+    if (!invitationInfo) return;
 
     setErrorMessage("");
     void joinOrg({
       variables: {
-        orgEntityId: orgEntityId as string,
+        orgEntityId: invitationInfo.orgEntityId,
         verification: {
-          ...(invitationEmailToken && {
-            invitationEmailToken: invitationEmailToken as string,
+          ...("invitationEmailToken" in invitationInfo && {
+            invitationEmailToken: invitationInfo.invitationEmailToken,
           }),
-          ...(invitationLinkToken && {
-            invitationLinkToken: invitationLinkToken as string,
+          ...("invitationLinkToken" in invitationInfo && {
+            invitationLinkToken: invitationInfo.invitationLinkToken as string,
           }),
         },
         responsibility,
@@ -117,7 +120,7 @@ const InvitePage: NextPage = () => {
 
   const [title, subtitle] = useMemo(() => {
     if (!invitationInfo) return ["", ""];
-    if (invitationInfo?.inviterPreferredName) {
+    if ("inviterPreferredName" in invitationInfo) {
       return [
         `${invitationInfo.inviterPreferredName} has invited you to join ${invitationInfo.orgName} on HASH`,
         `Now it's time to select your role at ${invitationInfo.orgName}`,
@@ -131,7 +134,10 @@ const InvitePage: NextPage = () => {
   }, [invitationInfo]);
 
   return (
-    <AuthLayout loading={invitationInfoLoading} onClose={navigateToHome}>
+    <AuthLayout
+      loading={invitationInfoLoading || initialLoading}
+      onClose={navigateToHome}
+    >
       <div className={tw`w-9/12 max-w-3xl`}>
         <Logo className={tw`mb-16`} />
         <div className={tw`mb-9`}>

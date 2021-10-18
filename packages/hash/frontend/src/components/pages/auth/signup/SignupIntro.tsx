@@ -7,18 +7,13 @@ import { SpinnerIcon } from "../../../Icons/SpinnerIcon";
 import { TextInput } from "../../../forms/TextInput";
 import { useUser } from "../../../hooks/useUser";
 import { InviteHeader } from "../InviteHeader";
+import { InvitationInfo } from "../utils";
 
 type SignupIntroProps = {
   handleSubmit: (email: string) => void;
   loading: boolean;
   errorMessage: string;
-  invitationInfo: {
-    orgName: string;
-    orgEntityId: string;
-    inviterPreferredName?: string;
-    invitationEmailToken?: string;
-    invitationLinkToken?: string;
-  } | null;
+  invitationInfo: InvitationInfo | null;
 };
 
 export const SignupIntro: VFC<SignupIntroProps> = ({

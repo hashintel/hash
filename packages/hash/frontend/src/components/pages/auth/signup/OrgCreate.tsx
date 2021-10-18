@@ -1,5 +1,5 @@
 import React, { VFC } from "react";
-import { RegisterOptions, useForm } from "react-hook-form";
+import { RegisterOptions, useForm, Controller } from "react-hook-form";
 import { tw } from "twind";
 import { OrgSize } from "../../../../graphql/apiTypes.gen";
 import { SelectInput } from "../../../forms/SelectInput";
@@ -80,12 +80,20 @@ type Inputs = {
   responsibility: string;
 };
 
+const getInitials = (name: string) => {
+  const initials = name.trim().split(" ");
+  if (!initials.length) return "";
+  if (initials.length === 1) return initials[0][0];
+  if (initials.length > 1) return initials[0][0] + initials[1][0];
+};
+
 export const OrgCreate: VFC<OrgCreateProps> = ({ createOrg, loading }) => {
   const {
     register,
     watch,
     handleSubmit,
     formState: { errors, isValid },
+    control,
   } = useForm<Inputs>({
     mode: "onChange",
     defaultValues: {
@@ -94,15 +102,7 @@ export const OrgCreate: VFC<OrgCreateProps> = ({ createOrg, loading }) => {
     },
   });
   const onSubmit = handleSubmit(createOrg);
-  const nameWatcher = watch("name");
-
-  const getInitials = () => {
-    if (!nameWatcher) return;
-    const initials = nameWatcher.trim().split(" ");
-    if (!initials.length) return "";
-    if (initials.length === 1) return initials[0][0];
-    if (initials.length > 1) return initials[0][0] + initials[1][0];
-  };
+  const nameWatcher = watch("name", "");
 
   return (
     <div className={tw`flex flex-col items-center`}>
@@ -113,7 +113,7 @@ export const OrgCreate: VFC<OrgCreateProps> = ({ createOrg, loading }) => {
             className={tw`relative w-24 h-24 border-1 border-gray-200 rounded-lg flex justify-center items-center mb-2`}
           >
             <p className={tw`text-4xl font-bold text-gray-200 uppercase`}>
-              {getInitials()}
+              {getInitials(nameWatcher)}
             </p>
           </div>
         ) : (
@@ -122,30 +122,39 @@ export const OrgCreate: VFC<OrgCreateProps> = ({ createOrg, loading }) => {
         <span className={tw`text-sm font-bold text-gray-500`}>Add a logo</span>
       </div>
       <div>
-        {FORM_INPUTS.map((field) => {
-          return (
-            <React.Fragment key={field.name}>
-              {field.inputType === "selectInput" ? (
-                <SelectInput
-                  label={field.label}
-                  options={field.options as { label: string; value: string }[]}
-                  {...register(field.name, field.fieldOptions)}
-                  {...(field.placeholder && { placeholder: field.placeholder })}
-                />
-              ) : (
-                <TextInput
-                  label={field.label}
-                  transparent
-                  {...register(field.name, field.fieldOptions)}
-                />
-              )}
-              <span className={tw`text-red-500 text-sm`}>
-                {errors?.[field.name]?.message}
-              </span>
-              <div className={tw`mb-6`} />
-            </React.Fragment>
-          );
-        })}
+        {FORM_INPUTS.map(
+          ({ name, label, inputType, options, placeholder, fieldOptions }) => {
+            return (
+              <React.Fragment key={name}>
+                {inputType === "selectInput" ? (
+                  <Controller
+                    control={control}
+                    name={name}
+                    render={({ field: { onChange, value } }) => (
+                      <SelectInput
+                        label={label}
+                        options={options as { label: string; value: string }[]}
+                        onChange={onChange}
+                        value={value}
+                        {...(placeholder && { placeholder })}
+                      />
+                    )}
+                  />
+                ) : (
+                  <TextInput
+                    label={label}
+                    transparent
+                    {...register(name, fieldOptions)}
+                  />
+                )}
+                <span className={tw`text-red-500 text-sm`}>
+                  {errors?.[name]?.message}
+                </span>
+                <div className={tw`mb-6`} />
+              </React.Fragment>
+            );
+          }
+        )}
         <button
           className={tw`group w-64 bg-gradient-to-r from-blue-400 via-blue-500 to-pink-500 rounded-lg h-11 transition-all disabled:opacity-50 flex items-center justify-center text-white text-sm font-bold mx-auto`}
           onClick={onSubmit}

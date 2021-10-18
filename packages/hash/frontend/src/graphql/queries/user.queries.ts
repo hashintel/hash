@@ -73,8 +73,8 @@ export const verifyEmail = gql`
       __typename
       ...UserFields
     }
-    ${userFieldsFragment}
   }
+  ${userFieldsFragment}
 `;
 
 export const sendLoginCode = gql`

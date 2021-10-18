@@ -149,7 +149,7 @@ export const LoginIntro: VoidFunctionComponent<LoginIntroProps> = ({
                 </button>
               ))}
             </div>
-          </div>*/}
+          </div> */}
         </div>
       </div>
     </div>

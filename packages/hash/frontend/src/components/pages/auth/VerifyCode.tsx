@@ -4,7 +4,7 @@ import Logo from "../../../assets/svg/logo.svg";
 import { IconHash } from "../../Icons/IconHash";
 import { IconKeyboardReturn } from "../../Icons/IconKeyboardReturn";
 import { InviteHeader } from "./InviteHeader";
-import { SYNTHETIC_LOADING_TIME_MS } from "./utils";
+import { SYNTHETIC_LOADING_TIME_MS, InvitationInfo } from "./utils";
 
 type VerifyCodeProps = {
   defaultCode?: string;
@@ -15,13 +15,7 @@ type VerifyCodeProps = {
   handleSubmit: (code: string, withSyntheticLoading?: boolean) => void;
   requestCode: () => void;
   requestCodeLoading: boolean;
-  invitationInfo: {
-    orgName: string;
-    orgEntityId: string;
-    inviterPreferredName?: string;
-    invitationEmailToken?: string;
-    invitationLinkToken?: string;
-  } | null;
+  invitationInfo: InvitationInfo | null;
 };
 
 const isShortname = (identifier: string) => !identifier.includes("@");

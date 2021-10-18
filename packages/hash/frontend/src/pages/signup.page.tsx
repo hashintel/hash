@@ -44,6 +44,7 @@ import {
   isParsedAuthQuery,
   SYNTHETIC_LOADING_TIME_MS,
   Action,
+  InvitationInfo,
 } from "../components/pages/auth/utils";
 import { AuthLayout } from "../components/layout/PageLayout/AuthLayout";
 import { useGetInvitationInfo } from "../components/hooks/useGetInvitationInfo";
@@ -65,13 +66,7 @@ type State = {
   errorMessage: string;
   userEntityId: string | null;
   syntheticLoading: boolean;
-  invitationInfo: {
-    orgName: string;
-    orgEntityId: string;
-    inviterPreferredName?: string;
-    invitationEmailToken?: string;
-    invitationLinkToken?: string;
-  } | null;
+  invitationInfo: InvitationInfo | null;
   createOrgInfo?: {
     invitationLinkToken: string;
     orgEntityId: string;
@@ -351,7 +346,7 @@ const SignupPage: NextPage = () => {
   useEffect(() => {
     if (invitationInfoLoading || !invitationInfo) return;
 
-    if (invitationInfo.invitationEmailToken) {
+    if ("invitationEmailToken" in invitationInfo) {
       void createUserWithOrgEmailInvite({
         variables: {
           invitationEmailToken: invitationInfo.invitationEmailToken,
@@ -396,7 +391,7 @@ const SignupPage: NextPage = () => {
     }
   };
 
-  const updateUserDetails = async ({
+  const updateUserDetails = ({
     shortname,
     preferredName,
     usingHow,
@@ -406,6 +401,7 @@ const SignupPage: NextPage = () => {
     usingHow?: WayToUseHash;
   }) => {
     if (!user) return;
+
     const properties = {} as UpdateUserProperties;
 
     if (shortname) {
@@ -418,7 +414,7 @@ const SignupPage: NextPage = () => {
       properties.usingHow = usingHow;
     }
 
-    await updateUser({
+    return updateUser({
       variables: {
         userEntityId: user.entityId,
         properties,
@@ -431,7 +427,7 @@ const SignupPage: NextPage = () => {
       accountUsageType.current = usingHow;
     }
 
-    updateUserDetails({
+    void updateUserDetails({
       usingHow,
     });
   };
@@ -452,15 +448,16 @@ const SignupPage: NextPage = () => {
     });
 
     /** join organization once update user details has been completed  */
+
     if (responsibility && invitationInfo) {
       void joinOrg({
         variables: {
           orgEntityId: invitationInfo.orgEntityId,
           verification: {
-            ...(invitationInfo.invitationEmailToken && {
+            ...("invitationEmailToken" in invitationInfo && {
               invitationEmailToken: invitationInfo.invitationEmailToken,
             }),
-            ...(invitationInfo.invitationLinkToken && {
+            ...("invitationLinkToken" in invitationInfo && {
               invitationLinkToken: invitationInfo.invitationLinkToken,
             }),
           },

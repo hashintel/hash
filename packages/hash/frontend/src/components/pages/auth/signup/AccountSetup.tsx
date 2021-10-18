@@ -7,7 +7,7 @@ import IconInfo from "../../../Icons/IconInfo";
 import { SpinnerIcon } from "../../../Icons/SpinnerIcon";
 import { useShortnameInput } from "../../../hooks/useShortnameInput";
 import { SelectInput } from "../../../forms/SelectInput";
-import { ORG_ROLES } from "../utils";
+import { ORG_ROLES, InvitationInfo } from "../utils";
 
 type AccountSetupProps = {
   onSubmit: (details: {
@@ -18,12 +18,7 @@ type AccountSetupProps = {
   loading: boolean;
   errorMessage?: string;
   email: string;
-  invitationInfo: {
-    orgName: string;
-    inviterPreferredName?: string;
-    invitationEmailToken?: string;
-    invitationLinkToken?: string;
-  } | null;
+  invitationInfo: InvitationInfo | null;
 };
 
 export const AccountSetup: VFC<AccountSetupProps> = ({
@@ -62,7 +57,7 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
   const [title, subtitle] = useMemo(() => {
     if (invitationInfo) {
       return [
-        invitationInfo.inviterPreferredName
+        "inviterPreferredName" in invitationInfo
           ? `${invitationInfo.inviterPreferredName} has invited you to join ${invitationInfo.orgName} on HASH`
           : `You have been invited to join ${invitationInfo.orgName} on HASH`,
         `${email} has been confirmed. Now it's time to choose a username...`,
@@ -83,19 +78,18 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
         <p className={tw`text-2xl mb-14 font-light`}>{subtitle}</p>
         <form onSubmit={handleSubmit}>
           <div className={tw`mb-8`}>
-            <label
-              htmlFor="shortname"
-              className={tw`block font-bold uppercase mb-2`}
-            >
-              Personal Username
+            <label htmlFor="shortname" className={tw`block mb-5`}>
+              <p className={tw`block font-bold uppercase mb-2`}>
+                Personal Username
+              </p>
+              <p className={tw`text-sm text-black text-opacity-60 mb-5`}>
+                Your own personal graph will exist under this username. e.g.
+                https://hash.ai/
+                <strong className={tw`text-black text-opacity-100`}>
+                  @{shortname || "example"}
+                </strong>
+              </p>
             </label>
-            <p className={tw`text-sm text-black text-opacity-60 mb-5`}>
-              Your own personal graph will exist under this username. e.g.
-              https://hash.ai/
-              <strong className={tw`text-black text-opacity-100`}>
-                @{shortname || "example"}
-              </strong>
-            </p>
             <div className={tw`flex items-center`}>
               <div className={tw`relative`}>
                 <input
