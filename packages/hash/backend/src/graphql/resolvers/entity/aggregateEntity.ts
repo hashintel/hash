@@ -9,14 +9,6 @@ import { Entity, EntityWithIncompleteEntityType } from "../../../model";
 import { DBAdapter } from "../../../db";
 import { orderBy } from "lodash";
 
-/** makes it possible to access nested paths (e.g person.location.name)
- * @todo properly type this
- */
-const resolvePath = (object: any, path: string, defaultValue?: any) =>
-  path
-    .split(".")
-    .reduce((acc, currVal) => acc?.[currVal] ?? defaultValue, object);
-
 const sortEntities = (
   entities: Entity[],
   multiSort: NonNullable<AggregateOperation["multiSort"]>
@@ -38,42 +30,6 @@ const sortEntities = (
     }),
     multiSort.map(({ desc }) => (desc ? "desc" : "asc"))
   );
-};
-
-/** Compare entities on a given property. */
-const compareEntitiesByField = (
-  entityA: Entity,
-  entityB: Entity,
-  propertyPath: string,
-  desc: boolean
-): number => {
-  if (
-    propertyPath === "entityCreatedAt" ||
-    propertyPath === "entityVersionCreatedAt" ||
-    propertyPath === "entityVersionUpdatedAt"
-  ) {
-    return entityA[propertyPath].getTime() - entityB[propertyPath].getTime();
-  }
-
-  const a = desc
-    ? resolvePath(entityB.properties, propertyPath)
-    : resolvePath(entityA.properties, propertyPath);
-  const b = desc
-    ? resolvePath(entityA.properties, propertyPath)
-    : resolvePath(entityB.properties, propertyPath);
-
-  if (typeof a === "string" && typeof b === "string") {
-    return a.localeCompare(b);
-  }
-  if (typeof a === "number" && typeof b === "number") {
-    return a - b;
-  }
-  if (typeof a === "boolean" && typeof b === "boolean") {
-    // Treat true as 1 and false as 0 as JS does
-    return (a ? 1 : 0) - (b ? 1 : 0);
-  }
-
-  return (typeof a).localeCompare(typeof b);
 };
 
 export const dbAggregateEntity =
