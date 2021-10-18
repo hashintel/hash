@@ -1,7 +1,5 @@
 import { AnyEntity, BlockEntity } from "./entity";
 
-// @todo most of this file should be in entity.ts
-
 // @todo should AnyEntity include BlockEntity, and should this just be AnyEntity
 export type EntityStoreType = BlockEntity | AnyEntity;
 
