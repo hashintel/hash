@@ -1,3 +1,4 @@
+import { orderBy } from "lodash";
 import {
   QueryAggregateEntityArgs,
   Resolver,
@@ -7,7 +8,6 @@ import {
 import { GraphQLContext } from "../../context";
 import { Entity, EntityWithIncompleteEntityType } from "../../../model";
 import { DBAdapter } from "../../../db";
-import { orderBy } from "lodash";
 
 const sortEntities = (
   entities: Entity[],
@@ -57,8 +57,8 @@ export const dbAggregateEntity =
     const endIndex = Math.min(startIndex + itemsPerPage, entities.length);
 
     const results = sortEntities(entities, multiSort)
-    .slice(startIndex, endIndex)
-    .map((entity) => entity.toGQLUnknownEntity());
+      .slice(startIndex, endIndex)
+      .map((entity) => entity.toGQLUnknownEntity());
 
     return {
       results,

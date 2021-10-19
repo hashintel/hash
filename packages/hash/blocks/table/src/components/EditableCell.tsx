@@ -1,6 +1,7 @@
 import React, {
   ChangeEvent,
   useEffect,
+  useRef,
   useState,
   VoidFunctionComponent,
 } from "react";
@@ -25,17 +26,27 @@ export const EditableCell: VoidFunctionComponent<EditableCellProps> = ({
   updateData,
 }) => {
   const [value, setValue] = useState(initialValue);
+  const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
   // If the initialValue is changed external, sync it up with our state
   useEffect(() => {
     setValue(initialValue);
   }, [initialValue]);
 
+  // dynamically resize text area height
+  useEffect(() => {
+    if (!textAreaRef.current) return;
+    const inputEl = textAreaRef.current;
+
+    inputEl.style.height = "auto";
+    inputEl.style.height = `${inputEl.scrollHeight}px`;
+  }, [value, textAreaRef]);
+
   if (readOnly) {
     return <span>{initialValue}</span>;
   }
 
-  const onChange = (event: ChangeEvent<HTMLInputElement>) => {
+  const onChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
     setValue(event.target.value);
   };
 
@@ -72,8 +83,9 @@ export const EditableCell: VoidFunctionComponent<EditableCellProps> = ({
   };
 
   return (
-    <input
-      className={tw`block w-28 bg-transparent rounded border-1 border-transparent hover:border-blue-500 py-1 px-2 `}
+    <textarea
+      ref={textAreaRef}
+      className={tw`block resize-none w-full bg-transparent rounded border-1 border-transparent hover:border-blue-500 py-1 px-2 -mx-2 `}
       value={value}
       onChange={onChange}
       onBlur={onBlur}
@@ -82,6 +94,7 @@ export const EditableCell: VoidFunctionComponent<EditableCellProps> = ({
           onBlur();
         }
       }}
-    />
+      rows={1}
+    ></textarea>
   );
 };
