@@ -105,7 +105,7 @@ export const fetchBlockMeta = async (
     return result;
   })();
 
-  // @ts-ignore
+  // @ts-expect-error: Usage of window is not allowed because tsconfig.json does not include DOM
   if (typeof window !== "undefined") {
     blockCache.set(url, promise);
   }

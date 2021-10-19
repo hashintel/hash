@@ -177,6 +177,13 @@
     ],
     "no-useless-constructor": "off",
     "@typescript-eslint/no-useless-constructor": ["error"],
+    "@typescript-eslint/ban-ts-comment": [
+      "error",
+      {
+        "ts-expect-error": "allow-with-description",
+        "minimumDescriptionLength": 10
+      }
+    ],
     "no-empty-function": "off"
   },
   "settings": {

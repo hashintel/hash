@@ -2,7 +2,6 @@ import { NotFoundError, sql } from "slonik";
 
 import { Connection } from "./types";
 
-// @ts-ignore
 import { SYSTEM_ACCOUNT_SHORTNAME } from "../../lib/config";
 import { DbEntityNotFoundError } from "../errors";
 

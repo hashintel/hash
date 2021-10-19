@@ -53,12 +53,12 @@ export class ProsemirrorSchemaManager {
 
     // eslint-disable-next-line no-new
     new (class extends Schema {
-      // @ts-ignore
+      // @ts-expect-error: This is one of the hacks in our code to allow defining new node types at run time which isn't officially supported in ProseMirror
       get nodes() {
         return existingSchema.nodes;
       }
 
-      // @ts-ignore
+      // @ts-expect-error: This is one of the hacks in our code to allow defining new node types at run time which isn't officially supported in ProseMirror
       get marks() {
         return existingSchema.marks;
       }
