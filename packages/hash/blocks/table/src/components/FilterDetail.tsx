@@ -12,7 +12,7 @@ import { AddIcon } from "./Icons";
 
 const MENU_WIDTH = 540;
 
-export const BlockProtocolFilterOperators: BlockProtocolFilterOperatorType[] = [
+const FILTER_OPERATORS: BlockProtocolFilterOperatorType[] = [
   "CONTAINS",
   "DOES_NOT_CONTAIN",
   "IS",
@@ -23,8 +23,15 @@ export const BlockProtocolFilterOperators: BlockProtocolFilterOperatorType[] = [
   "IS_NOT_EMPTY",
 ];
 
-export const BlockProtocolMultiFilterOperators: BlockProtocolMultiFilterOperatorType[] =
-  ["AND", "OR"];
+const MULTI_FILTER_OPERATORS: BlockProtocolMultiFilterOperatorType[] = [
+  "AND",
+  "OR",
+];
+
+const FILTER_OPERATORS_WITHOUT_VALUE: BlockProtocolFilterOperatorType[] = [
+  "IS_EMPTY",
+  "IS_NOT_EMPTY",
+];
 
 type FilterDetailProps = {
   columns: ColumnInstance<{}>[];
@@ -57,8 +64,6 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
         id: uuid(),
       })
     );
-
-    console.log(fieldsWithId);
 
     unstable_batchedUpdates(() => {
       setFilters(fieldsWithId);
@@ -136,7 +141,7 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
                     );
                   }}
                 >
-                  {BlockProtocolMultiFilterOperators.map((operator) => {
+                  {MULTI_FILTER_OPERATORS.map((operator) => {
                     return (
                       <option key={operator} value={operator}>
                         {operator}
@@ -170,7 +175,7 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
               }
               value={filter.operator}
             >
-              {BlockProtocolFilterOperators.map((operator) => {
+              {FILTER_OPERATORS.map((operator) => {
                 const label = operator.replaceAll("_", " ").toLowerCase();
                 return (
                   <option key={operator} value={operator}>
@@ -179,16 +184,18 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
                 );
               })}
             </select>
-            <input
-              placeholder="Value"
-              className={tw`text-sm border(1 gray-300 focus:gray-500) focus:outline-none rounded h-8 flex-1 px-2`}
-              onBlur={(evt) =>
-                updateField(filter.id, { value: evt.target.value })
-              }
-              defaultValue={filter.value}
-            />
+            {!FILTER_OPERATORS_WITHOUT_VALUE.includes(filter.operator) && (
+              <input
+                placeholder="Value"
+                className={tw`text-sm w-40 border(1 gray-300 focus:gray-500) focus:outline-none rounded h-8 px-2`}
+                onBlur={(evt) =>
+                  updateField(filter.id, { value: evt.target.value })
+                }
+                defaultValue={filter.value}
+              />
+            )}
             <button
-              className={tw`ml-4 text-2xl text-gray-300 hover:text-gray-400`}
+              className={tw`ml-auto text-2xl text-gray-300 hover:text-gray-400`}
               onClick={() => removeField(filter.id)}
               type="button"
             >

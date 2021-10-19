@@ -197,7 +197,7 @@ export const App: BlockComponent<AppProps> = ({
                     const { key, ...restHeaderProps } = column.getHeaderProps();
                     return (
                       <th
-                        className={tw`first:rounded-tl-2xl last:rounded-tr-2xl pl-4 pr-8 py-4 capitalize`}
+                        className={tw`first:rounded-tl-2xl last:rounded-tr-2xl px-4 py-4 whitespace-nowrap capitalize w-36`}
                         key={key}
                         {...restHeaderProps}
                       >
@@ -233,7 +233,7 @@ export const App: BlockComponent<AppProps> = ({
                     return (
                       <td
                         key={key}
-                        className={tw`pl-4 pr-8 py-4`}
+                        className={tw`px-4 py-4`}
                         {...restCellProps}
                       >
                         {cell.render("Cell", { readOnly })}

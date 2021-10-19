@@ -13,6 +13,7 @@ export const ToggleColumnsDetail: React.VFC<ToggleColumnsDetailProps> = ({
 }) => {
   /**
    * @todo fix issue with the popup closing when the label is clicked on
+   * @see https://github.com/tailwindlabs/headlessui/issues/514
    */
   return (
     <div className={tw`w-60 pt-4 px-2 pb-2`}>
