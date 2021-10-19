@@ -1,6 +1,7 @@
+import { EntityStore } from "@hashintel/hash-shared/entityStore";
 import { createContext } from "react";
-import { EntityStoreType } from "@hashintel/hash-shared/entityStore";
 
-export const EntityStoreContext = createContext<
-  Record<string, EntityStoreType>
->({});
+export const EntityStoreContext = createContext<EntityStore>({
+  saved: {},
+  draft: null,
+});

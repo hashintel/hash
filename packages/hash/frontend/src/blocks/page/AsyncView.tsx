@@ -71,11 +71,13 @@ export class AsyncView implements NodeView<Schema> {
 
     const entityId = this.node.attrs.entityId;
 
+    // @todo entityId can be null if switching an unsaved block
     if (!entityId) {
       throw new Error("Missing entity id of the block to switch");
     }
 
-    const entity = this.getEntityStore()[entityId];
+    // @todo this needs to use draft
+    const entity = this.getEntityStore().saved[entityId];
 
     if (!isBlockEntity(entity)) {
       throw new Error("Cannot switch using non-block entity");

@@ -3,7 +3,7 @@ import { ApolloClient } from "@apollo/client";
 import { isEqual, uniqBy } from "lodash";
 import { Schema } from "prosemirror-model";
 import { BlockEntity, getTextEntityFromBlock } from "./entity";
-import { EntityStore, EntityStoreType, isBlockEntity } from "./entityStore";
+import { EntityStore, isBlockEntity } from "./entityStore";
 import {
   SystemTypeName,
   TextPropertiesText,
@@ -202,9 +202,7 @@ const updateBlocks = defineOperation(
             return [];
           }
 
-          const savedEntity = (
-            entityStore as Record<string, EntityStoreType | undefined>
-          )[entityId];
+          const savedEntity = entityStore.saved[entityId];
 
           if (!savedEntity) {
             throw new Error("Entity missing from entity store");
@@ -215,7 +213,7 @@ const updateBlocks = defineOperation(
           }
 
           const childEntityId = savedEntity.properties.entity.entityId;
-          const savedChildEntity = entityStore[childEntityId];
+          const savedChildEntity = entityStore.saved[childEntityId];
 
           if (!savedChildEntity) {
             throw new Error("Child entity missing from entity store");

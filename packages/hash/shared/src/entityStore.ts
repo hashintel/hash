@@ -3,7 +3,10 @@ import { AnyEntity, BlockEntity } from "./entity";
 // @todo should AnyEntity include BlockEntity, and should this just be AnyEntity
 export type EntityStoreType = BlockEntity | AnyEntity;
 
-export type EntityStore = Record<string, EntityStoreType>;
+export type EntityStore = {
+  saved: Record<string, EntityStoreType | undefined>;
+  draft: null;
+};
 
 /**
  * @todo should be more robust
@@ -53,5 +56,8 @@ export const createEntityStore = (contents: EntityStoreType[]): EntityStore => {
     return entities;
   };
 
-  return Object.fromEntries(contents.flatMap(flattenPotentialEntity));
+  return {
+    saved: Object.fromEntries(contents.flatMap(flattenPotentialEntity)),
+    draft: null,
+  };
 };

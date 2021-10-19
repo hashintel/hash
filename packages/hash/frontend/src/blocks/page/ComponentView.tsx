@@ -86,7 +86,8 @@ export class ComponentView implements NodeView<Schema> {
         <EntityStoreContext.Consumer>
           {(entityStore) => {
             const entityId = node.attrs.entityId;
-            const entity = entityStore[entityId];
+            // @todo probably ought to use draft
+            const entity = entityStore.saved[entityId];
             const remoteBlockProps = getRemoteBlockProps(entity);
 
             const editableRef = this.editable
