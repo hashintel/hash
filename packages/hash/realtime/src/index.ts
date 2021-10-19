@@ -4,6 +4,8 @@ import * as http from "http";
 import { sql } from "slonik";
 import { Logger } from "winston";
 
+import { RedisQueueProducer } from "@hashintel/hash-backend-utils/queue/redis";
+import { AsyncRedisClient } from "@hashintel/hash-backend-utils/redis";
 import {
   getRequiredEnv,
   createPostgresConnPool,
@@ -14,22 +16,36 @@ import {
 // The name of the Postgres logical replication slot
 const SLOT_NAME = "realtime";
 
-// The number of seconds between queries to the replication slot
-const POLL_INTERVAL_SECONDS = 5;
+// The number of milliseconds between queries to the replication slot
+const POLL_INTERVAL_MILLIS = 5_000;
 
 // An identifier for this instance of the realtime service. It is used to ensure
 // only a single instance of the service is reading from the replication slot
 // at a time.
 const INSTANCE_ID = crypto.randomUUID();
 
-// The number of seconds after which ownership of the replication slot expires.
+// The number of milliseconds after which ownership of the replication slot expires.
 // If an instance of this service fails to update its ownership within this
 // time interval, another instance may acquire exclusive access to the slot.
 // This expiry should be at least 2 * POLL_INTERVAL_SECONDS
-const OWNERSHIP_EXPIRY_SECONDS = 10;
+const OWNERSHIP_EXPIRY_MILLIS = 10_000;
 
 // The tables to monitor for changes
 const MONITOR_TABLES = ["public.entities", "public.entity_types"].join(",");
+
+// The realtime service will push all updates from the Postgres changestream to the
+// following queues.
+const QUEUES = [
+  {
+    name: "opensearch",
+    producer: new RedisQueueProducer(
+      new AsyncRedisClient({
+        host: getRequiredEnv("HASH_REDIS_HOST"),
+        port: parseInt(getRequiredEnv("HASH_REDIS_PORT"), 10),
+      })
+    ),
+  },
+];
 
 const acquireSlot = async (logger: Logger, pool: ConnPool) => {
   // Create the slot if it does not exist
@@ -51,7 +67,9 @@ const acquireSlot = async (logger: Logger, pool: ConnPool) => {
       for update
     `);
     if (!slotIsOwned) {
-      const expires = sql`now() + ${OWNERSHIP_EXPIRY_SECONDS} * interval '1 second'`;
+      const expires = sql`now() + ${
+        OWNERSHIP_EXPIRY_MILLIS / 1000
+      } * interval '1 second'`;
       await tx.query(sql`
         insert into realtime.ownership (slot_name, slot_owner, ownership_expires_at)
         values (${SLOT_NAME}, ${INSTANCE_ID}, ${expires})
@@ -73,7 +91,9 @@ const updateSlotOwnership = async (logger: Logger, pool: ConnPool) => {
   await pool.query(sql`
     update realtime.ownership
     set
-      ownership_expires_at = now() + ${OWNERSHIP_EXPIRY_SECONDS} * interval '1 second'
+      ownership_expires_at = now() + ${
+        OWNERSHIP_EXPIRY_MILLIS / 1000
+      } * interval '1 second'
     where slot_name = ${SLOT_NAME} and slot_owner = ${INSTANCE_ID}
   `);
   logger.info("Updated slot ownership");
@@ -97,8 +117,11 @@ const pollChanges = async (logger: Logger, pool: ConnPool) => {
   `);
   for (const row of rows) {
     for (const change of (row as any).change) {
-      // @todo: do something with the change
-      logger.info({ message: "change", change });
+      // Push the changes onto the queues
+      logger.debug({ message: "change", change });
+      for (const { name, producer } of QUEUES) {
+        await producer.push(name, JSON.stringify(change));
+      }
     }
   }
 };
@@ -125,8 +148,9 @@ const createHttpServer = (logger: Logger) => {
   return server;
 };
 
+const logger = createLogger("realtime");
+
 const main = async () => {
-  const logger = createLogger("realtime");
   logger.defaultMeta = {
     ...(logger.defaultMeta ?? {}),
     instanceId: INSTANCE_ID,
@@ -158,7 +182,7 @@ const main = async () => {
       return;
     }
     logger.info("Slot is owned. Waiting in standby.");
-  }, OWNERSHIP_EXPIRY_SECONDS * 1000);
+  }, OWNERSHIP_EXPIRY_MILLIS);
 
   // Poll the replication slot for new data
   const int2 = setInterval(async () => {
@@ -169,7 +193,7 @@ const main = async () => {
       pollChanges(logger, pool),
       updateSlotOwnership(logger, pool),
     ]);
-  }, POLL_INTERVAL_SECONDS * 1000);
+  }, POLL_INTERVAL_MILLIS);
 
   // Gracefully shutdown on receiving a termination signal.
   let receivedTerminationSignal = false;
@@ -198,4 +222,4 @@ const main = async () => {
 
 (async () => {
   await main();
-})().catch((err) => console.error(err));
+})().catch(logger.error);

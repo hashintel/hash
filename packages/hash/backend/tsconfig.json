@@ -6,16 +6,17 @@
     "outDir": "./dist/",
     "allowJs": true,
     "moduleResolution": "node",
-  
+
     // overrides
     "lib": ["es2020"],
-    "target": "es2020",
+    "target": "es2020"
   },
   "include": ["./src/"],
 
   // enables nodemon (yarn dev) to pick up live changes made to this dependency
   "references": [
     { "path": "../shared" },
-    { "path": "../block-protocol/tsconfig.ref.json" }
+    { "path": "../block-protocol/tsconfig.ref.json" },
+    { "path": "../backend-utils/tsconfig.ref.json" }
   ]
 }

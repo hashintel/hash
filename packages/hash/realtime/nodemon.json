@@ -1,8 +1,9 @@
 {
-  "ignoreRoot": [".git"],
+  "ignoreRoot": [
+    ".git"
+  ],
   "watch": [
     ".",
-    "../../../node_modules/@hashintel/hash-shared",
     "../../../node_modules/@hashintel/hash-backend-utils"
   ],
   "ext": "js,ts"
