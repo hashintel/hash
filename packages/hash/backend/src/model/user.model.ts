@@ -96,16 +96,22 @@ class __User extends Account {
       return new User({ ...entity, properties });
     };
 
-  private updateUserProperties =
-    (client: DBClient) => (properties: DBUserProperties) =>
-      this.updateProperties(client)(properties);
+  updateProperties(client: DBClient) {
+    return (properties: DBUserProperties) =>
+      super
+        .updateProperties(client)(properties)
+        .then(() => {
+          this.properties = properties;
+          return properties;
+        });
+  }
 
   /**
    * Must occur in the same db transaction as when `this.properties` was fetched
    * to prevent overriding externally-updated properties
    */
   updateShortname = (client: DBClient) => async (updatedShortname: string) =>
-    this.updateUserProperties(client)({
+    this.updateProperties(client)({
       ...this.properties,
       shortname: updatedShortname,
     });
@@ -117,7 +123,7 @@ class __User extends Account {
    * to prevent overriding externally-updated properties
    */
   updatePreferredName = (client: DBClient) => (updatedPreferredName: string) =>
-    this.updateUserProperties(client)({
+    this.updateProperties(client)({
       ...this.properties,
       preferredName: updatedPreferredName,
     });
@@ -128,7 +134,7 @@ class __User extends Account {
    */
   updateInfoProvidedAtSignup =
     (client: DBClient) => (updatedInfo: UserInfoProvidedAtSignup) =>
-      this.updateUserProperties(client)({
+      this.updateProperties(client)({
         ...this.properties,
         infoProvidedAtSignup: {
           ...this.properties.infoProvidedAtSignup,
@@ -186,10 +192,12 @@ class __User extends Account {
         );
       }
 
-      return this.updateUserProperties(client)({
+      await this.updateProperties(client)({
         ...this.properties,
         emails: [...this.properties.emails, email],
       });
+
+      return this;
     };
 
   /**
@@ -203,7 +211,7 @@ class __User extends Account {
       );
     }
 
-    return this.updateUserProperties(client)({
+    return this.updateProperties(client)({
       ...this.properties,
       emails: this.properties.emails.map((email) =>
         email.address === emailAddress ? { ...email, verified: true } : email
@@ -319,13 +327,15 @@ class __User extends Account {
    * to prevent overriding externally-updated properties
    */
   joinOrg =
-    (client: DBClient) => (params: { org: Org; responsibility: string }) => {
+    (client: DBClient) =>
+    async (params: { org: Org; responsibility: string }) => {
       if (this.isMemberOfOrg(params.org)) {
         throw new Error(
           `User with entityId '${this.entityId}' is already a member of the organization with entityId '${params.org.entityId}'`
         );
       }
-      return this.updateUserProperties(client)({
+
+      await this.updateProperties(client)({
         ...this.properties,
         memberOf: [
           ...this.properties.memberOf,
@@ -335,6 +345,8 @@ class __User extends Account {
           },
         ],
       });
+
+      return this;
     };
 }
 

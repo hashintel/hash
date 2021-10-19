@@ -25,6 +25,16 @@ abstract class __AccessToken extends Entity {
    */
   static generateAccessToken = () => crypto.randomBytes(16).toString("hex");
 
+  updateProperties(client: DBClient) {
+    return (properties: any) =>
+      super
+        .updateProperties(client)(properties)
+        .then(() => {
+          this.properties = properties;
+          return properties;
+        });
+  }
+
   /**
    * Revokes the access token, so that it can no longer be used.
    */

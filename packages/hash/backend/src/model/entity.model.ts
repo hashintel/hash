@@ -172,18 +172,20 @@ class __Entity {
     },
   });
 
-  updateProperties = (client: DBClient) => (properties: any) =>
-    client
-      .updateEntity({
-        accountId: this.accountId,
-        entityId: this.entityId,
-        properties,
-      })
-      .then((updatedDbEntity) => {
-        merge(this, new Entity(updatedDbEntity));
+  updateProperties(client: DBClient) {
+    return (properties: any) =>
+      client
+        .updateEntity({
+          accountId: this.accountId,
+          entityId: this.entityId,
+          properties,
+        })
+        .then((updatedDbEntity) => {
+          merge(this, new Entity(updatedDbEntity));
 
-        return this;
-      });
+          return this.properties;
+        });
+  }
 
   static acquireLock = (client: DBClient) => (args: { entityId: string }) =>
     client.acquireEntityLock(args);

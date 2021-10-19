@@ -85,15 +85,21 @@ class __OrgInvitationLink extends AccessToken {
       return orgInvitationLink;
     };
 
-  private updateOrgInvitationLinkProperties =
-    (client: DBClient) => (properties: DBOrgInvitationLinkProperties) =>
-      this.updateProperties(client)(properties);
+  updateProperties(client: DBClient) {
+    return (properties: DBOrgInvitationLinkProperties) =>
+      super
+        .updateProperties(client)(properties)
+        .then(() => {
+          this.properties = properties;
+          return properties;
+        });
+  }
 
   /**
    * Increments the use count of the invitation.
    */
   use = (client: DBClient) =>
-    this.updateOrgInvitationLinkProperties(client)({
+    this.updateProperties(client)({
       ...this.properties,
       useCount: this.properties.useCount + 1,
     });
