@@ -41,7 +41,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   const root = useRef<HTMLDivElement>(null);
   const client = useApolloClient();
 
-  const [portals, portalRender] = usePortals();
+  const [portals, renderPortal] = usePortals();
 
   const prosemirrorSetup = useRef<null | {
     view: EditorView<Schema>;
@@ -93,7 +93,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
      */
     const { view, connection, manager } = createEditorView(
       node,
-      portalRender,
+      renderPortal,
       accountId,
       entityId,
       Array.from(blocksMeta.values()),
@@ -114,7 +114,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       prosemirrorSetup.current = null;
       connection?.close();
     };
-  }, [accountId, blocksMeta, client, entityId, portalRender]);
+  }, [accountId, blocksMeta, client, entityId, renderPortal]);
 
   /**
    * Whenever contents are updated, we want to sync them to the prosemirror

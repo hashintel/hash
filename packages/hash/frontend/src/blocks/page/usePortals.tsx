@@ -11,7 +11,7 @@ import { v4 as uuid } from "uuid";
 
 type PortalSet = Map<HTMLElement, { key: string; reactNode: ReactNode }>;
 
-export type PortalRender = (
+export type RenderPortal = (
   reactNode: React.ReactNode | null,
   node: HTMLElement | null
 ) => void;
@@ -42,11 +42,11 @@ export const usePortals = () => {
   /**
    * Call this to render a piece of JSX to a given DOM node in a portal
    *
-   * portalRender(jsx, node)
+   * renderPortal(jsx, node)
    *
    * To clear, pass null for jsx
    */
-  const portalRender = useCallback<PortalRender>((reactNode, node) => {
+  const renderPortal = useCallback<RenderPortal>((reactNode, node) => {
     if (portalQueueTimeout.current !== null) {
       clearImmediate(portalQueueTimeout.current);
     }
@@ -95,5 +95,5 @@ export const usePortals = () => {
     )
   );
 
-  return [renderedPortals, portalRender, clearPortals] as const;
+  return [renderedPortals, renderPortal, clearPortals] as const;
 };

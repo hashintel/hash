@@ -13,7 +13,7 @@ import { EditorView, NodeView } from "prosemirror-view";
 import React from "react";
 import { RemoteBlock } from "../../components/RemoteBlock/RemoteBlock";
 import { EntityStoreContext } from "./EntityStoreContext";
-import { PortalRender } from "./usePortals";
+import { RenderPortal } from "./usePortals";
 
 // @todo we need to type this such that we're certain we're passing through all
 // the props required
@@ -49,7 +49,7 @@ export class ComponentView implements NodeView<Schema> {
     node: ProsemirrorNode<Schema>,
     public view: EditorView<Schema>,
     public getPos: () => number,
-    private portalRender: PortalRender,
+    private renderPortal: RenderPortal,
     private meta: BlockMeta
   ) {
     const { componentMetadata, componentSchema } = meta;
@@ -82,7 +82,7 @@ export class ComponentView implements NodeView<Schema> {
 
   update(node: any) {
     if (node?.type.name === this.componentId) {
-      this.portalRender(
+      this.renderPortal(
         <EntityStoreContext.Consumer>
           {(entityStore) => {
             const entityId = node.attrs.entityId;
@@ -124,7 +124,7 @@ export class ComponentView implements NodeView<Schema> {
 
   destroy() {
     this.dom.remove();
-    this.portalRender(null, this.target);
+    this.renderPortal(null, this.target);
   }
 
   // @todo type this

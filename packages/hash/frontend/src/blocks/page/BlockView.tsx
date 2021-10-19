@@ -8,7 +8,7 @@ import { tw } from "twind";
 import { BlockSuggester } from "../../components/BlockSuggester/BlockSuggester";
 import DragVertical from "../../components/Icons/DragVertical";
 import styles from "./style.module.css";
-import { PortalRender } from "./usePortals";
+import { RenderPortal } from "./usePortals";
 
 /**
  * specialized block-type/-variant select field
@@ -61,7 +61,7 @@ export class BlockView implements NodeView<Schema> {
     public node: ProsemirrorNode<Schema>,
     public view: EditorView<Schema>,
     public getPos: () => number,
-    public portalRender: PortalRender
+    public renderPortal: RenderPortal
   ) {
     this.dom = document.createElement("div");
     this.dom.classList.add(styles.Block);
@@ -170,7 +170,7 @@ export class BlockView implements NodeView<Schema> {
       this.dom.classList.remove(styles["Block--dragging"]);
     }
 
-    this.portalRender(
+    this.renderPortal(
       <>
         {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
         <div
@@ -220,7 +220,7 @@ export class BlockView implements NodeView<Schema> {
   }
 
   destroy() {
-    this.portalRender(null, this.selectContainer);
+    this.renderPortal(null, this.selectContainer);
     this.dom.remove();
     document.removeEventListener("dragend", this.onDragEnd);
   }
