@@ -46,9 +46,9 @@ The following programs must be present on your development system:
 
 See the [docker/README](./docker) for further details.
 
-## Install the frontend and required remote blocks
+## Build blocks
 
-`yarn install:demo`
+`yarn build-blocks`
 
 ## Start the frontend and required blocks
 

@@ -1,5 +1,5 @@
 {
-  "name": "code",
+  "name": "@hashintel/block-code",
   "version": "0.1.0",
   "description": "code block component",
   "private": true,
@@ -16,8 +16,8 @@
     "schema": "typescript-json-schema tsconfig.json AppProps --required true --out dist/block-schema.json",
     "webpack-dev-server": "cross-env NODE_ENV=development webpack-dev-server -d --port 9090 --config webpack-dev-server.config.js --open",
     "start": "concurrently -n webpack,webpack-dev-server -c green,cyan \"yarn build:dev -- --watch --verbose\" \"yarn webpack-dev-server\"",
-    "clean": "rimraf dist",
-    "serve": "serve -C -l 62681 dist"
+    "clean": "rimraf ./dist/",
+    "serve": "serve -C -l 62681 ./dist/"
   },
   "dependencies": {
     "@hashintel/block-protocol": "*",
