@@ -1,9 +1,9 @@
 /* eslint-disable no-param-reassign */
-import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
 import { ApolloClient } from "@apollo/client";
 import { isEqual, uniqBy } from "lodash";
+import { Schema } from "prosemirror-model";
+import { BlockEntity, getTextEntityFromBlock } from "./entity";
 import { EntityStore, EntityStoreType, isBlockEntity } from "./entityStore";
-import { updatePageContents } from "./queries/page.queries";
 import {
   SystemTypeName,
   TextPropertiesText,
@@ -11,14 +11,14 @@ import {
   UpdatePageContentsMutation,
   UpdatePageContentsMutationVariables,
 } from "./graphql/apiTypes.gen";
-import { BlockEntity } from "./types";
+import { ProsemirrorNode } from "./node";
+import { updatePageContents } from "./queries/page.queries";
 import {
   entityIdExists,
   EntityNode,
   findEntityNodes,
   nodeToComponentId,
 } from "./util";
-import { getTextEntityFromBlock } from "./sharedWithBackend";
 
 const nodeToEntityProperties = (node: ProsemirrorNode<Schema>) => {
   if (node.type.isTextblock) {

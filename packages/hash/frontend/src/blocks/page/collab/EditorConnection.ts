@@ -1,56 +1,93 @@
-import { Step } from "prosemirror-transform";
+import { ProsemirrorNode } from "@hashintel/hash-shared/node";
+import { createProseMirrorState } from "@hashintel/hash-shared/prosemirror";
+import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import {
   collab,
   getVersion,
   receiveTransaction,
   sendableSteps,
 } from "prosemirror-collab";
-import { createProseMirrorState } from "@hashintel/hash-shared/sharedWithBackendJs";
-import { ensureDocBlocksLoaded } from "@hashintel/hash-shared/sharedWithBackend";
+import { Schema } from "prosemirror-model";
+import { EditorState, Plugin, Transaction } from "prosemirror-state";
+import { Step } from "prosemirror-transform";
+import { EditorView } from "prosemirror-view";
+import { AbortingPromise, GET, POST } from "./http";
+import { Reporter } from "./Reporter";
+import { StatusError } from "./StatusError";
 
-import { GET, POST } from "./http";
-import { createNodeView } from "../tsUtils";
+// @todo check this
+const badVersion = (err: Error | StatusError) =>
+  err instanceof StatusError &&
+  err.status === 400 &&
+  /invalid version/i.test(err.message);
 
-const badVersion = (err) => err.status === 400 && /invalid version/i.test(err);
-
-const repeat = (val, count) => {
+const repeat = <T>(val: T, count: number): T[] => {
   const result = [];
   for (let i = 0; i < count; i++) result.push(val);
   return result;
 };
 
 class State {
-  constructor(edit, comm) {
-    this.edit = edit;
-    this.comm = comm;
-  }
+  constructor(
+    public edit: EditorState<Schema> | null,
+    public comm: string | null
+  ) {}
 }
 
+type EditorConnectionAction =
+  | {
+      type: "loaded";
+      doc: ProsemirrorNode<Schema>;
+      version: number;
+      // @todo type this
+      users: unknown;
+    }
+  | {
+      type: "restart";
+    }
+  | {
+      type: "poll";
+    }
+  | {
+      type: "recover";
+      error: StatusError;
+    }
+  | {
+      type: "transaction";
+      transaction: Transaction<Schema>;
+      requestDone?: boolean;
+    };
+
 export class EditorConnection {
-  constructor(report, url, schema, view, replacePortal, additionalPlugins) {
-    this.report = report;
-    this.url = url;
-    this.state = new State(null, "start");
-    this.request = null;
-    this.backOff = 0;
-    this.view = view;
-    this.dispatch = this.dispatch.bind(this);
+  state = new State(null, "start");
+  backOff = 0;
+  request: AbortingPromise<string> | null = null;
+
+  constructor(
+    public report: Reporter,
+    public url: string,
+    public schema: Schema,
+    public view: EditorView<Schema>,
+    public manager: ProsemirrorSchemaManager,
+    public additionalPlugins: Plugin<unknown, Schema>[]
+  ) {
     this.start();
-    this.schema = schema;
-    this.replacePortal = replacePortal;
-    this.additionalPlugins = additionalPlugins;
   }
 
   // All state changes go through this
-  dispatch(action) {
+  dispatch = (action: EditorConnectionAction) => {
     let newEditState = null;
     switch (action.type) {
       case "loaded":
         this.state = new State(
-          createProseMirrorState(action.doc, this.replacePortal, [
-            ...this.additionalPlugins, // @todo set this version properly
-            collab({ version: action.version }),
-          ]),
+          createProseMirrorState({
+            doc: action.doc,
+            plugins: [
+              ...this.additionalPlugins,
+              // @todo set this version properly
+              collab({ version: action.version }),
+            ],
+          }),
           "poll"
         );
         this.poll();
@@ -73,6 +110,9 @@ export class EditorConnection {
         }
         break;
       case "transaction":
+        if (!this.state.edit) {
+          throw new Error("Cannot apply transaction without state to apply to");
+        }
         newEditState = this.state.edit.apply(action.transaction);
         break;
     }
@@ -81,18 +121,19 @@ export class EditorConnection {
       let sendable;
       if (newEditState.doc.content.size > 40000) {
         if (this.state.comm !== "detached") {
-          this.report.failure("Document too big. Detached.");
+          this.report.failure(new Error("Document too big. Detached."));
         }
         this.state = new State(newEditState, "detached");
       } else if (
-        (this.state.comm === "poll" || action.requestDone) &&
+        (this.state.comm === "poll" ||
+          ("requestDone" in action && action.requestDone)) &&
         // eslint-disable-next-line no-cond-assign
         (sendable = this.sendable(newEditState))
       ) {
         this.closeRequest();
         this.state = new State(newEditState, "send");
         this.send(newEditState, sendable);
-      } else if (action.requestDone) {
+      } else if ("requestDone" in action && action.requestDone) {
         this.state = new State(newEditState, "poll");
         this.poll();
       } else {
@@ -106,9 +147,9 @@ export class EditorConnection {
     } else {
       // @todo disable
     }
-  }
+  };
 
-  dispatchTransaction = (transaction) => {
+  dispatchTransaction = (transaction: Transaction<Schema>) => {
     this.dispatch({ type: "transaction", transaction });
   };
 
@@ -117,11 +158,8 @@ export class EditorConnection {
     this.run(GET(this.url))
       .then((stringifiedData) => {
         const data = JSON.parse(stringifiedData);
-        return ensureDocBlocksLoaded(this.schema, data.doc, {
-          view: this.view,
-          replacePortal: this.replacePortal,
-          createNodeView,
-        }).then(() => data);
+
+        return this.manager.ensureDocBlocksLoaded(data.doc).then(() => data);
       })
       .then((data) => {
         this.report.success();
@@ -144,6 +182,9 @@ export class EditorConnection {
   // for a new version of the document to be created if the client
   // is already up-to-date.
   poll() {
+    if (!this.state.edit) {
+      throw new Error("Cannot poll without state");
+    }
     const query = `version=${getVersion(this.state.edit)}`;
     this.run(GET(`${this.url}/events?${query}`)).then(
       (stringifiedData) => {
@@ -151,9 +192,12 @@ export class EditorConnection {
         const data = JSON.parse(stringifiedData);
         this.backOff = 0;
         if (data.steps && (data.steps.length || data.comment.length)) {
+          if (!this.state.edit) {
+            throw new Error("Cannot receive transaction without state");
+          }
           const tr = receiveTransaction(
             this.state.edit,
-            data.steps.map((json) => Step.fromJSON(this.schema, json)),
+            data.steps.map((json: any) => Step.fromJSON(this.schema, json)),
             data.clientIDs
           );
           this.dispatch({
@@ -178,13 +222,16 @@ export class EditorConnection {
     );
   }
 
-  sendable(editState) {
+  sendable(editState: EditorState<Schema>) {
     const steps = sendableSteps(editState);
     if (steps) return { steps };
   }
 
   // Send the given steps to the server
-  send(editState, { steps }) {
+  send(
+    editState: EditorState<Schema>,
+    { steps }: { steps?: ReturnType<typeof sendableSteps> } = {}
+  ) {
     const json = JSON.stringify({
       version: getVersion(editState),
       steps: steps ? steps.steps.map((step) => step.toJSON()) : [],
@@ -194,6 +241,9 @@ export class EditorConnection {
       () => {
         this.report.success();
         this.backOff = 0;
+        if (!this.state.edit) {
+          throw new Error("Cannot receive steps without state");
+        }
         const tr = steps
           ? receiveTransaction(
               this.state.edit,
@@ -224,7 +274,7 @@ export class EditorConnection {
   }
 
   // Try to recover from an error
-  recover(err) {
+  recover(err: StatusError | Error) {
     const newBackOff = this.backOff ? Math.min(this.backOff * 2, 6e4) : 200;
     if (newBackOff > 1000 && this.backOff < 1000) this.report.delay(err);
     this.backOff = newBackOff;
@@ -240,19 +290,12 @@ export class EditorConnection {
     }
   }
 
-  run(request) {
+  run(request: AbortingPromise<string>) {
     this.request = request;
-    return this.request;
+    return this.request!;
   }
 
   close() {
     this.closeRequest();
-    this.setView(null);
-  }
-
-  setView(view) {
-    if (this.view) this.view.destroy();
-    window.view = view;
-    this.view = view;
   }
 }

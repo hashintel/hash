@@ -1,8 +1,8 @@
 import type { BlockVariant } from "@hashintel/block-protocol";
-import type { ReplacePortals } from "@hashintel/hash-shared/sharedWithBackend";
-import { ResolvedPos } from "prosemirror-model";
+import { ResolvedPos, Schema } from "prosemirror-model";
 import { EditorState, Plugin, PluginKey } from "prosemirror-state";
 import React, { CSSProperties } from "react";
+import { RenderPortal } from "../../blocks/page/usePortals";
 import { ensureMounted } from "../../lib/dom";
 import { BlockSuggester } from "./BlockSuggester";
 
@@ -18,7 +18,7 @@ interface Trigger {
 /**
  * used to find a string triggering the suggester plugin
  */
-const findTrigger = (state: EditorState): Trigger | null => {
+const findTrigger = (state: EditorState<Schema>): Trigger | null => {
   // @ts-expect-error: only empty TextSelection has a $cursor
   const cursor: ResolvedPos = state.selection.$cursor;
   if (!cursor) return null;
@@ -63,19 +63,21 @@ interface SuggesterState {
  * used to tag the suggester plugin/make it a singleton
  * @see https://prosemirror.net/docs/ref/#state.PluginKey
  */
-const key = new PluginKey<SuggesterState>("suggester");
+const key = new PluginKey<SuggesterState, Schema>("suggester");
 
 /**
  * Suggester plugin factory
  *
  * Behaviour:
- * Typing a slash followed by any number of non-whitespace characters will activate the plugin and
- * open a popup right under the "textual trigger". Moving the cursor outside the trigger will close
- * the popup. Pressing the Escape-key while inside the trigger will disable the plugin until a
- * trigger is newly encountered (e.g. by leaving/deleting and reentering/retyping a trigger).
+ * Typing a slash followed by any number of non-whitespace characters will
+ * activate the plugin and open a popup right under the "textual trigger".
+ * Moving the cursor outside the trigger will close the popup. Pressing the
+ * Escape-key while inside the trigger will disable the plugin until a trigger
+ * is newly encountered (e.g. by leaving/deleting and reentering/retyping a
+ * trigger).
  */
-export const createBlockSuggester = (replacePortal: ReplacePortals) =>
-  new Plugin<SuggesterState>({
+export const createBlockSuggester = (renderPortal: RenderPortal) =>
+  new Plugin<SuggesterState, Schema>({
     key,
     state: {
       init() {
@@ -88,7 +90,7 @@ export const createBlockSuggester = (replacePortal: ReplacePortals) =>
         };
       },
       /** produces a new state from the old state and incoming transactions (cf. reducer) */
-      apply(tr, state, _prevEitorState, nextEditorState) {
+      apply(tr, state, _prevEditorState, nextEditorState) {
         const action: SuggesterAction | undefined = tr.getMeta(key);
 
         switch (action?.type) {
@@ -140,7 +142,8 @@ export const createBlockSuggester = (replacePortal: ReplacePortals) =>
           };
 
           /**
-           * @todo actually create and insert an instance of the selected block type variant
+           * @todo actually create and insert an instance of the selected block
+           *   type variant
            */
           const onChange = (variant: BlockVariant) => {
             const replacement = view.state.schema.text(`[${variant.name}]`);
@@ -157,12 +160,12 @@ export const createBlockSuggester = (replacePortal: ReplacePortals) =>
           );
 
           ensureMounted(mountNode, document.body);
-          replacePortal(mountNode, mountNode, jsx);
+          renderPortal(jsx, mountNode);
         },
         destroy() {
-          replacePortal(mountNode, null, null);
+          renderPortal(null, mountNode);
           mountNode.remove();
         },
       };
     },
-  });
+  }) as Plugin<unknown, Schema>;

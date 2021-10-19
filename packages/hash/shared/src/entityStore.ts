@@ -1,10 +1,13 @@
-import { BlockEntity, AnyEntity } from "./types";
+import { AnyEntity, BlockEntity } from "./entity";
 
+// @todo should AnyEntity include BlockEntity, and should this just be AnyEntity
 export type EntityStoreType = BlockEntity | AnyEntity;
 
 export type EntityStore = Record<string, EntityStoreType>;
 
-// @todo should be more robust
+/**
+ * @todo should be more robust
+ */
 export const isEntity = (value: unknown): value is EntityStoreType =>
   typeof value === "object" && value !== null && "entityId" in value;
 

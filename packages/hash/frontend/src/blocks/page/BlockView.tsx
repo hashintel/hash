@@ -1,16 +1,14 @@
-import React, { createRef, forwardRef, useEffect, useState } from "react";
+import { history } from "@hashintel/hash-shared/history";
+import { ProsemirrorNode } from "@hashintel/hash-shared/node";
+import { Schema } from "prosemirror-model";
 import { NodeSelection } from "prosemirror-state";
-import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
-import {
-  historyPlugin,
-  infiniteGroupHistoryPlugin,
-} from "@hashintel/hash-shared/sharedWithBackendJs";
 import { EditorView, NodeView } from "prosemirror-view";
-import { ReplacePortals } from "@hashintel/hash-shared/sharedWithBackend";
+import React, { createRef, forwardRef, useEffect, useState } from "react";
 import { tw } from "twind";
-import styles from "./style.module.css";
-import DragVertical from "../../components/Icons/DragVertical";
 import { BlockSuggester } from "../../components/BlockSuggester/BlockSuggester";
+import DragVertical from "../../components/Icons/DragVertical";
+import styles from "./style.module.css";
+import { RenderPortal } from "./usePortals";
 
 /**
  * specialized block-type/-variant select field
@@ -47,7 +45,7 @@ export const BlockHandle = forwardRef<HTMLDivElement>((_, ref) => {
  * This is the node view that wraps every one of our blocks in order to inject
  * custom UI like the <select> to change type and the drag handles
  */
-export class BlockView implements NodeView {
+export class BlockView implements NodeView<Schema> {
   dom: HTMLDivElement;
   selectContainer: HTMLDivElement;
   contentDOM: HTMLDivElement;
@@ -61,9 +59,9 @@ export class BlockView implements NodeView {
 
   constructor(
     public node: ProsemirrorNode<Schema>,
-    public view: EditorView,
+    public view: EditorView<Schema>,
     public getPos: () => number,
-    public replacePortal: ReplacePortals
+    public renderPortal: RenderPortal
   ) {
     this.dom = document.createElement("div");
     this.dom.classList.add(styles.Block);
@@ -124,7 +122,7 @@ export class BlockView implements NodeView {
    * @todo find a more generalised alternative
    */
   ignoreMutation(
-    record: Parameters<NonNullable<NodeView["ignoreMutation"]>>[0]
+    record: Parameters<NonNullable<NodeView<Schema>["ignoreMutation"]>>[0]
   ) {
     return (
       (record.type === "attributes" &&
@@ -172,9 +170,7 @@ export class BlockView implements NodeView {
       this.dom.classList.remove(styles["Block--dragging"]);
     }
 
-    this.replacePortal(
-      container,
-      container,
+    this.renderPortal(
       <>
         {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
         <div
@@ -206,7 +202,7 @@ export class BlockView implements NodeView {
              * starts
              */
             tr.setSelection(
-              NodeSelection.create(this.view.state.doc, this.getPos())
+              NodeSelection.create<Schema>(this.view.state.doc, this.getPos())
             );
 
             this.view.dispatch(tr);
@@ -216,14 +212,15 @@ export class BlockView implements NodeView {
           onClick={this.onDragEnd}
         />
         <BlockHandle ref={this.blockHandleRef} />
-      </>
+      </>,
+      container
     );
 
     return true;
   }
 
   destroy() {
-    this.replacePortal(this.selectContainer, null, null);
+    this.renderPortal(null, this.selectContainer);
     this.dom.remove();
     document.removeEventListener("dragend", this.onDragEnd);
   }
@@ -239,15 +236,7 @@ export class BlockView implements NodeView {
   onBlockChange = ([componentId]: [string]) => {
     const { node, view, getPos } = this;
 
-    // Ensure that any changes to the document made are kept within a
-    // single undo item
-    view.updateState(
-      view.state.reconfigure({
-        plugins: view.state.plugins.map((plugin) =>
-          plugin === historyPlugin ? infiniteGroupHistoryPlugin : plugin
-        ),
-      })
-    );
+    history.disableTracking(view);
 
     const state = view.state;
     const tr = state.tr;
@@ -261,7 +250,7 @@ export class BlockView implements NodeView {
 
     tr.replaceRangeWith(pos + 1, pos + 1 + node.content.size, newNode);
 
-    const selection = NodeSelection.create(tr.doc, tr.mapping.map(pos));
+    const selection = NodeSelection.create<Schema>(tr.doc, tr.mapping.map(pos));
 
     tr.setSelection(selection);
 

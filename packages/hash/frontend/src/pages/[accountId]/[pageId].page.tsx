@@ -1,24 +1,20 @@
-import { useMemo, VoidFunctionComponent } from "react";
-
-import { useRouter } from "next/router";
 import { useQuery } from "@apollo/client";
+import { BlockMeta, fetchBlockMeta } from "@hashintel/hash-shared/blockMeta";
+import { blockPaths } from "@hashintel/hash-shared/paths";
 import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
 import { GetStaticPaths, GetStaticProps } from "next";
-import {
-  BlockMeta,
-  blockPaths,
-  fetchBlockMeta,
-} from "@hashintel/hash-shared/sharedWithBackend";
+
+import { useRouter } from "next/router";
+import { useMemo, VoidFunctionComponent } from "react";
+import { PageBlock } from "../../blocks/page/PageBlock";
+import { PageTitle } from "../../blocks/page/PageTitle";
+import { VersionDropdown } from "../../components/Dropdowns/VersionDropdown";
+import { PageSidebar } from "../../components/layout/PageSidebar/PageSidebar";
 import {
   GetPageQuery,
   GetPageQueryVariables,
 } from "../../graphql/apiTypes.gen";
-import { PageBlock } from "../../blocks/page/PageBlock";
-import { PageSidebar } from "../../components/layout/PageSidebar/PageSidebar";
-
 import styles from "../index.module.scss";
-import { VersionDropdown } from "../../components/Dropdowns/VersionDropdown";
-import { PageTitle } from "../../blocks/page/PageTitle";
 
 /**
  * preload all configured blocks for now. in the future these will be loaded

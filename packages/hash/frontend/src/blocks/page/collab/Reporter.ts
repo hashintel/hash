@@ -1,29 +1,34 @@
+import { StatusError } from "./StatusError";
+
+type ReporterStateType = "fail" | "delay";
+
 export class Reporter {
-  constructor() {
-    this.node = null;
-    this.state = null;
-    this.setAt = 0;
-  }
+  node: HTMLElement | null = null;
+  state: null | ReporterStateType = null;
+  setAt = 0;
 
   clearState() {
     if (this.state) {
-      document.body.removeChild(this.node);
+      if (this.node) {
+        document.body.removeChild(this.node);
+      }
+
       this.node = null;
       this.state = null;
       this.setAt = 0;
     }
   }
 
-  failure(err) {
+  failure(err: StatusError | Error) {
     this.show("fail", err.toString());
   }
 
-  delay(err) {
+  delay(err: Error) {
     if (this.state === "fail") return;
     this.show("delay", err.toString());
   }
 
-  show(type, message) {
+  show(type: ReporterStateType, message: string) {
     this.clearState();
     this.state = type;
     this.setAt = Date.now();

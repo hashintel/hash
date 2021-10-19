@@ -1,15 +1,9 @@
-import {
-  createRemoteBlockFromEntity,
-  ReplacePortals,
-} from "@hashintel/hash-shared/sharedWithBackend";
-import {
-  historyPlugin,
-  infiniteGroupHistoryPlugin,
-} from "@hashintel/hash-shared/sharedWithBackendJs";
 import { EntityStore, isBlockEntity } from "@hashintel/hash-shared/entityStore";
-import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
+import { history } from "@hashintel/hash-shared/history";
+import { ProsemirrorNode } from "@hashintel/hash-shared/node";
+import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
+import { Schema } from "prosemirror-model";
 import { EditorView, NodeView } from "prosemirror-view";
-import { createNodeView } from "./tsUtils";
 
 /**
  * You can think of this more as a "Switcher" view – when you change node type
@@ -22,7 +16,7 @@ import { createNodeView } from "./tsUtils";
  * @todo consider removing this – we don't necessarily need a node view to
  *       trigger this functionality
  */
-export class AsyncView implements NodeView {
+export class AsyncView implements NodeView<Schema> {
   dom: HTMLDivElement;
   contentDOM: HTMLSpanElement;
   node: ProsemirrorNode<Schema>;
@@ -32,9 +26,9 @@ export class AsyncView implements NodeView {
 
   constructor(
     node: ProsemirrorNode<Schema>,
-    public view: EditorView,
+    public view: EditorView<Schema>,
     public getPos: () => number,
-    public replacePortal: ReplacePortals,
+    public manager: ProsemirrorSchemaManager,
     public getEntityStore: () => EntityStore
   ) {
     this.dom = document.createElement("div");
@@ -69,8 +63,6 @@ export class AsyncView implements NodeView {
       this.spinner.remove();
     }
 
-    const view = this.view;
-
     this.spinner = document.createElement("span");
     this.spinner.innerText = "Loading…";
     this.spinner.setAttribute("contentEditable", "false");
@@ -91,12 +83,8 @@ export class AsyncView implements NodeView {
 
     this.controller = new AbortController();
 
-    createRemoteBlockFromEntity(
-      view.state.schema,
-      { view, replacePortal: this.replacePortal, createNodeView },
-      entity,
-      node.attrs.targetComponentId
-    )
+    this.manager
+      .createRemoteBlockFromEntity(entity, node.attrs.targetComponentId)
       .then((newNode) => {
         if (this.controller?.signal.aborted) {
           return;
@@ -111,36 +99,13 @@ export class AsyncView implements NodeView {
          */
 
         const pos = this.getPos();
-        const tr = view.state.tr;
+        const tr = this.view.state.tr;
 
         tr.replaceRangeWith(pos, pos + node.nodeSize, newNode);
 
-        if (node.attrs.autofocus) {
-          // @todo trigger a node selection
-        } else {
-          document.body.focus();
-        }
-
-        view.dispatch(tr);
-
-        /**
-         * Ensures we start tracking history properly again
-         *
-         * @todo remove the need for this
-         */
-        view.updateState(
-          view.state.reconfigure({
-            plugins: view.state.plugins.map((plugin) =>
-              plugin === infiniteGroupHistoryPlugin ? historyPlugin : plugin
-            ),
-          })
-        );
-
-        if (node.attrs.autofocus) {
-          (window as any).triggerSave();
-          document.body.focus();
-          // view.focus();
-        }
+        document.body.focus();
+        this.view.dispatch(tr);
+        history.enableTracking(this.view);
       })
       .catch((err) => {
         if (err.name !== "AbortError") {

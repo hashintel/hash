@@ -1,20 +1,52 @@
-import { createProseMirrorState } from "@hashintel/hash-shared/sharedWithBackendJs";
-import { EditorView } from "prosemirror-view";
-import { Schema } from "prosemirror-model";
-import { ReplacePortals } from "@hashintel/hash-shared/sharedWithBackend";
-import { createInitialDoc, createSchema } from "@hashintel/hash-shared/schema";
+import { ApolloClient } from "@apollo/client";
+import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
+import { BlockEntity } from "@hashintel/hash-shared/entity";
 import { EntityStore } from "@hashintel/hash-shared/entityStore";
+import { createProseMirrorState } from "@hashintel/hash-shared/prosemirror";
+import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
+import { updatePageMutation } from "@hashintel/hash-shared/save";
+import { Schema } from "prosemirror-model";
 import { Plugin } from "prosemirror-state";
+import { EditorView } from "prosemirror-view";
+import { createBlockSuggester } from "../../components/BlockSuggester";
+import { createMarksTooltip } from "../../components/MarksTooltip";
 import { AsyncView } from "./AsyncView";
 import { BlockView } from "./BlockView";
-import { collabEnabled } from "./tsUtils";
-import { EditorConnection } from "./collab/collab";
-import { Reporter } from "./collab/reporter";
-import { createMarksTooltip } from "../../components/MarksTooltip";
-import { createBlockSuggester } from "../../components/BlockSuggester";
+import { EditorConnection } from "./collab/EditorConnection";
+import { Reporter } from "./collab/Reporter";
+import { collabEnabled } from "./collabEnabled";
+import { ComponentView } from "./ComponentView";
 import styles from "./style.module.css";
+import { RenderPortal } from "./usePortals";
 
-const createSavePlugin = () => {
+const createSavePlugin = (
+  accountId: string,
+  pageId: string,
+  getLastSavedValue: () => BlockEntity[],
+  getEntityStore: () => EntityStore,
+  client: ApolloClient<unknown>
+) => {
+  let saveQueue = Promise.resolve<unknown>(null);
+
+  const triggerSave = (view: EditorView<Schema>) => {
+    if (collabEnabled) {
+      return;
+    }
+
+    saveQueue = saveQueue
+      .catch()
+      .then(() =>
+        updatePageMutation(
+          accountId,
+          pageId,
+          view.state.doc,
+          getLastSavedValue(),
+          getEntityStore(),
+          client
+        )
+      );
+  };
+
   let timeout: ReturnType<typeof setTimeout> | null = null;
 
   return new Plugin<unknown, Schema>({
@@ -24,7 +56,7 @@ const createSavePlugin = () => {
           // Manual save for cmd+s
           if (evt.key === "s" && evt.metaKey) {
             evt.preventDefault();
-            (window as any).triggerSave?.();
+            triggerSave(view);
 
             return true;
           }
@@ -37,12 +69,12 @@ const createSavePlugin = () => {
           }
           return false;
         },
-        blur() {
+        blur(view) {
           if (timeout) {
             clearTimeout(timeout);
           }
 
-          timeout = setTimeout(() => (window as any).triggerSave?.(), 500);
+          timeout = setTimeout(() => triggerSave(view), 500);
 
           return false;
         },
@@ -52,27 +84,33 @@ const createSavePlugin = () => {
 };
 
 export const createEditorView = (
-  node: HTMLElement,
-  replacePortal: ReplacePortals,
+  renderNode: HTMLElement,
+  renderPortal: RenderPortal,
   accountId: string,
   pageId: string,
-  getEntityStore: () => EntityStore
+  preloadedBlocks: BlockMeta[],
+  getEntityStore: () => EntityStore,
+  getLastSavedValue: () => BlockEntity[],
+  client: ApolloClient<unknown>
 ) => {
-  const plugins = [
-    createSavePlugin(),
-    createMarksTooltip(replacePortal),
-    createBlockSuggester(replacePortal),
+  const plugins: Plugin<unknown, Schema>[] = [
+    createSavePlugin(
+      accountId,
+      pageId,
+      getLastSavedValue,
+      getEntityStore,
+      client
+    ),
+    createMarksTooltip(renderPortal),
+    createBlockSuggester(renderPortal),
   ];
 
-  const state = createProseMirrorState(
-    createInitialDoc(createSchema()),
-    replacePortal,
-    plugins
-  );
+  const state = createProseMirrorState({ plugins });
 
   let connection: EditorConnection | null = null;
+  let manager: ProsemirrorSchemaManager;
 
-  const view = new EditorView<Schema>(node, {
+  const view = new EditorView<Schema>(renderNode, {
     state,
     nodeViews: {
       async(currentNode, currentView, getPos) {
@@ -83,7 +121,7 @@ export const createEditorView = (
           currentNode,
           currentView,
           getPos,
-          replacePortal,
+          manager,
           getEntityStore
         );
       },
@@ -91,7 +129,7 @@ export const createEditorView = (
         if (typeof getPos === "boolean") {
           throw new Error("Invalid config for nodeview");
         }
-        return new BlockView(currentNode, currentView, getPos, replacePortal);
+        return new BlockView(currentNode, currentView, getPos, renderPortal);
       },
     },
     dispatchTransaction: collabEnabled
@@ -99,21 +137,37 @@ export const createEditorView = (
       : undefined,
   });
 
+  manager = new ProsemirrorSchemaManager(
+    state.schema,
+    view,
+    (meta) => (node, editorView, getPos) => {
+      if (typeof getPos === "boolean") {
+        throw new Error("Invalid config for nodeview");
+      }
+
+      return new ComponentView(node, editorView, getPos, renderPortal, meta);
+    }
+  );
+
   if (collabEnabled) {
     connection = new EditorConnection(
       new Reporter(),
       `http://localhost:5001/collab-backend/${accountId}/${pageId}`,
       view.state.schema,
       view,
-      replacePortal,
+      manager,
       plugins
     );
   }
 
   view.dom.classList.add(styles.ProseMirror);
 
+  for (const meta of preloadedBlocks) {
+    manager.defineNewBlock(meta);
+  }
+
   // @todo figure out how to use dev tools without it breaking fast refresh
   // applyDevTools(view);
 
-  return { view, connection };
+  return { view, connection, manager };
 };

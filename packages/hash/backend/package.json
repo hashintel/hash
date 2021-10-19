@@ -24,6 +24,7 @@
     "test": "jest"
   },
   "dependencies": {
+    "@apollo/client": "3.3.19",
     "@aws-sdk/client-ses": "3.25.0",
     "@hashintel/block-protocol": "*",
     "@hashintel/hash-shared": "*",
@@ -35,6 +36,7 @@
     "apollo-server-express": "2.24.1",
     "body-parser": "1.19.0",
     "connect-pg-simple": "6.2.1",
+    "cors": "2.8.5",
     "cron": "1.8.2",
     "cross-env": "^7.0.3",
     "express": "4.17.1",
