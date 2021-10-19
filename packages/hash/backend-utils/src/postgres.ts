@@ -1,21 +1,10 @@
-import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { createPool, DatabasePoolType } from "slonik";
+
+import { Logger } from "./logger";
 
 export type ConnPool = DatabasePoolType;
 
-/** Gets an environment variable. Throws an error if it's not set and a fallback
- * value is not provided. */
-export const getRequiredEnv = (name: string, fallback?: string) => {
-  if (process.env[name]) {
-    return process.env[name] as string;
-  }
-  if (fallback) {
-    return fallback;
-  }
-  throw new Error(`environment variable ${name} is required`);
-};
-
-/** Create a connection pool to the Postgres database */
+/** Create a connection pool to a Postgres database */
 export const createPostgresConnPool = (
   logger: Logger,
   params: {
@@ -26,7 +15,7 @@ export const createPostgresConnPool = (
     database: string;
     maxPoolSize: number;
   }
-): ConnPool => {
+): DatabasePoolType => {
   const { user, password, host, port, database } = params;
   const connStr = `postgresql://${user}:${password}@${host}:${port}/${database}`;
 
@@ -36,7 +25,7 @@ export const createPostgresConnPool = (
     interceptors: [
       {
         queryExecutionError: (
-          { queryId, originalQuery, stackTrace },
+          { queryId, originalQuery, stackTrace, transactionId },
           _query,
           error,
           _notices
@@ -47,6 +36,7 @@ export const createPostgresConnPool = (
             query: originalQuery.sql,
             errorMessage: `${error.name}: ${error.message}`,
             stackTrace,
+            transactionId,
           });
           return null;
         },

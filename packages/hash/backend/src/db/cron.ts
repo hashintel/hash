@@ -1,5 +1,6 @@
 import { CronJob } from "cron";
-import { Logger } from "winston";
+import { Logger } from "@hashintel/hash-backend-utils/logger";
+
 import { PRUNE_AGE_MS } from "../model";
 import { DBAdapter } from "./adapter";
 

@@ -9,16 +9,19 @@ export type RedisConfig = {
 
 /** An async-await compatible wrapper around a `RedisClient`. */
 export class AsyncRedisClient {
-  /** Pop an item from the right side of the `src` list and push it onto the left side
-   * of the `dst` list. If `src` is empty, it blocks until an item appears. */
+  /** Pop an item from the right side of the `src` list, push it onto the left side
+   * of the `dst` list, and return the item. If the `src` list is empty, and
+   * `timeoutSecs` is `0`, the function blocks indefinitely until an item arrives,
+   * otherwise, it waits for the specified time, returning `null` if no new item arrives.
+   * */
   brpoplpush: (
     src: string,
     dst: string,
-    timeout: number
+    timeoutSecs: number
   ) => Promise<string | null>;
 
-  /** Pop an item from the right side of the `src` list and push it onto the left side
-   * of the `dst` list. */
+  /** Pop an item from the right side of the `src` list, push it onto the left side of
+   * the `dst` list and return the item. Returns `null` if the `src` queue is empty. */
   rpoplpush: (src: string, dst: string) => Promise<string | null>;
 
   /** Pop an item from the left side of a list, if the list exists. */
@@ -36,7 +39,7 @@ export class AsyncRedisClient {
   get: (key: string) => Promise<string | null>;
 
   /** Set a value. */
-  set: (key: string, value: string) => Promise<null>;
+  set: (key: string, value: string) => Promise<void>;
 
   /** Get the TTL of a value. Returns a negative value if the key is not set, or if
    * the key does not have a TTL. */
@@ -48,8 +51,22 @@ export class AsyncRedisClient {
   /** Set the expiration of a `key` in seconds. Returns 1 if the expiry was set. */
   expire: (key: string, seconds: number) => Promise<number>;
 
+  private quit: () => Promise<"OK">;
+
   constructor(cfg: RedisConfig) {
-    const client = createClient(cfg);
+    const client = createClient({
+      ...cfg,
+      retry_strategy: (options) => {
+        if (options.total_retry_time > 30_000) {
+          throw new Error(
+            "could not connect to Redis server within 30 seconds"
+          );
+        }
+        return 1_000;
+      },
+    });
+
+    this.quit = promisify(client.quit).bind(client);
     this.brpoplpush = promisify(client.brpoplpush).bind(client);
     this.rpoplpush = promisify(client.rpoplpush).bind(client);
     this.lpop = promisify(client.lpop).bind(client);
@@ -59,9 +76,16 @@ export class AsyncRedisClient {
     this.expire = promisify(client.expire).bind(client);
     this.lpush = promisify(client.lpush).bind(client);
     this.rpush = promisify(client.rpush).bind(client);
+
+    const set = promisify(client.set).bind(client);
     this.set = async (key: string, value: string) => {
-      await promisify(client.set).bind(client)(key, value);
-      return null;
+      await set(key, value);
     };
+  }
+
+  /** Close the connection to the Redis server, waiting for all pending commands to
+   * complete. */
+  async close(): Promise<void> {
+    await this.quit();
   }
 }

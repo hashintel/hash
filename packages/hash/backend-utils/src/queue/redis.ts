@@ -29,7 +29,7 @@ export class RedisQueueProducer implements QueueProducer {
  * An implementation of the `QueueExclusiveConsumer` interface based on Redis.
  */
 export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
-  client: AsyncRedisClient;
+  private client: AsyncRedisClient;
 
   // A unique identifier for this consumer. Used to signify ownership of the queue.
   private consumerId: string;
@@ -81,8 +81,8 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
     );
   }
 
-  async acquire(name: string, timeout: number): Promise<boolean> {
-    if (timeout < 1000) {
+  async acquire(name: string, timeout: number | null): Promise<boolean> {
+    if (timeout && timeout < 1000) {
       throw new Error("timeout must be at least 1000 milliseconds");
     }
     if (this.queueOwned && this.queueOwned!.name === name) {
@@ -95,9 +95,10 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
 
     // Check if the queue already has an exclusive consumer, and if not, acquire it.
     const start = Date.now();
-    while (Date.now() - start < timeout) {
+    while (timeout ? Date.now() - start < timeout : true) {
       const ttl = await this.client.ttl(this.ownerKey(name)); // seconds
-      if (Date.now() + ttl * 1000 - start > timeout) {
+      const ttlMillis = ttl * 1000;
+      if (timeout && Date.now() + ttlMillis - start > timeout) {
         // The TTL is longer than the timeout. No point in trying again.
         return false;
       }
@@ -115,7 +116,7 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
         await this.setOwnership(name);
         return true;
       }
-      await new Promise((resolve) => setTimeout(resolve, ttl * 1000 + 100));
+      await new Promise((resolve) => setTimeout(resolve, ttlMillis + 100));
     }
 
     return false;
@@ -128,30 +129,64 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
     }
   }
 
-  async pop<T>(name: string, cb: (item: string) => Promise<T>): Promise<T> {
+  /** Pop an item from the queue and execute the callback on it. The items stays on
+   * the queue if the callback throws an error. If timeout is `null`, it blocks until
+   * an item appears on the queue.
+   */
+  private async _pop<T>(
+    name: string,
+    timeout: number | null,
+    cb: (item: string) => Promise<T>
+  ): Promise<T | null> {
+    if (timeout && timeout < 0) {
+      throw new Error("timeout must be positive or zero");
+    }
     if (!this.ownershipIsValid(name)) {
       throw new Error(`consumer does not own queue "${name}"`);
     }
+
     // Check if there's an item which wasn't processed correctly on the last call
     const processingName = `${name}-processing`;
     let item = await this.client.rpoplpush(processingName, processingName);
-    const inProcessing = item !== null;
 
-    // Otherwise, get an item from the main queue and temporarily put it on the
-    // processing queue. This blocks until an item arrives.
-    if (!inProcessing) {
-      item = await this.client.brpoplpush(name, processingName, 0);
-    }
     if (!item) {
-      // Should never happen
-      throw new Error("item is null");
+      // Pop from the main queue and push onto the processing queue.
+      item =
+        timeout === 0
+          ? // Non-blocking
+            await this.client.rpoplpush(name, processingName)
+          : timeout === null
+          ? // Blocking
+            await this.client.brpoplpush(name, processingName, 0)
+          : // Blocking with timeout
+            await this.client.brpoplpush(name, processingName, timeout / 1000);
     }
 
-    const result = await cb(item);
+    if (timeout && !item) {
+      // The timeout was reached.
+      return null;
+    }
+
+    const result = await cb(item!);
 
     // The callback has succeeded. Remove the item from the processing queue.
     await this.client.lpop(processingName);
 
     return result;
+  }
+
+  async popBlocking<T>(
+    name: string,
+    cb: (item: string) => Promise<T>
+  ): Promise<T> {
+    return (await this._pop(name, null, cb))!;
+  }
+
+  async pop<T>(
+    name: string,
+    timeout: number,
+    cb: (item: string) => Promise<T>
+  ): Promise<T | null> {
+    return this._pop(name, timeout, cb);
   }
 }

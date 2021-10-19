@@ -1,28 +1,9 @@
-import winston from "winston";
+import { Logger } from "@hashintel/hash-backend-utils/logger";
 
-import { isDevEnv, isProdEnv, isTestEnv } from "./lib/env-config";
+import { isDevEnv, isTestEnv } from "./lib/env-config";
 
-// Configure the logger
-export const logger = winston.createLogger({
-  level: "info",
-  format: winston.format.combine(
-    winston.format.json(),
-    winston.format.timestamp()
-  ),
-  defaultMeta: { service: "api" },
+export const logger = new Logger({
+  mode: isDevEnv || isTestEnv ? "dev" : "prod",
+  level: isDevEnv || isTestEnv ? "debug" : "info",
+  serviceName: "api",
 });
-
-if (isDevEnv || isTestEnv) {
-  logger.add(
-    new winston.transports.Console({
-      level: "debug",
-      format: winston.format.combine(
-        winston.format.colorize(),
-        winston.format.simple()
-      ),
-    })
-  );
-} else if (isProdEnv) {
-  // TODO: add production logging transport here
-  // Datadog: https://github.com/winstonjs/winston/blob/master/docs/transports.md#datadog-transport
-}

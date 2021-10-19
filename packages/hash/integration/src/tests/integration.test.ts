@@ -8,6 +8,7 @@ import {
 import { PostgresAdapter } from "@hashintel/hash-backend/src/db";
 import EmailTransporter from "@hashintel/hash-backend/src/email/transporter";
 import TestEmailTransporter from "@hashintel/hash-backend/src/email/transporter/testEmailTransporter";
+import { Logger } from "@hashintel/hash-backend-utils/logger";
 
 import { ClientError } from "graphql-request";
 import { ApiClient } from "./util";
@@ -19,6 +20,12 @@ import {
   SystemTypeName,
   WayToUseHash,
 } from "../graphql/apiTypes.gen";
+
+const logger = new Logger({
+  mode: "dev",
+  level: "debug",
+  serviceName: "integration-tests",
+});
 
 const client = new ApiClient("http://localhost:5001/graphql");
 
@@ -74,7 +81,8 @@ beforeAll(async () => {
     port: 5432,
     database: "integration_tests",
     password: "postgres",
-  });
+    maxPoolSize: 10,
+  }, logger);
 
   transporter = new TestEmailTransporter();
 

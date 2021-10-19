@@ -1,7 +1,7 @@
 import { DataSource } from "apollo-datasource";
 import { StatsD } from "hot-shots";
 import { createPool, DatabasePoolType } from "slonik";
-import { Logger } from "winston";
+import { Logger } from "@hashintel/hash-backend-utils/logger";
 
 import { PostgresClient } from "./client";
 import {

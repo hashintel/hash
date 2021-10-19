@@ -2,16 +2,11 @@ import * as crypto from "crypto";
 import * as http from "http";
 
 import { sql } from "slonik";
-import { Logger } from "winston";
+import { Logger } from "@hashintel/hash-backend-utils/logger";
 
 import { RedisQueueProducer } from "@hashintel/hash-backend-utils/queue/redis";
 import { AsyncRedisClient } from "@hashintel/hash-backend-utils/redis";
-import {
-  getRequiredEnv,
-  createPostgresConnPool,
-  createLogger,
-  ConnPool,
-} from "./util";
+import { getRequiredEnv, createPostgresConnPool, ConnPool } from "./util";
 
 // The name of the Postgres logical replication slot
 const SLOT_NAME = "realtime";
@@ -33,11 +28,18 @@ const OWNERSHIP_EXPIRY_MILLIS = 10_000;
 // The tables to monitor for changes
 const MONITOR_TABLES = ["public.entities", "public.entity_types"].join(",");
 
+const logger = new Logger({
+  mode: process.env.NODE_ENV === "development" ? "dev" : "prod",
+  level: process.env.NODE_ENV === "development" ? "debug" : "info",
+  serviceName: "realtime",
+  metadata: { instanceId: INSTANCE_ID },
+});
+
 // The realtime service will push all updates from the Postgres changestream to the
 // following queues.
 const QUEUES = [
   {
-    name: "opensearch",
+    name: getRequiredEnv("HASH_SEARCH_QUEUE_NAME"),
     producer: new RedisQueueProducer(
       new AsyncRedisClient({
         host: getRequiredEnv("HASH_REDIS_HOST"),
@@ -47,7 +49,7 @@ const QUEUES = [
   },
 ];
 
-const acquireSlot = async (logger: Logger, pool: ConnPool) => {
+const acquireSlot = async (pool: ConnPool) => {
   // Create the slot if it does not exist
   const slotExists = await pool.exists(sql`
     select * from pg_replication_slots where slot_name = ${SLOT_NAME}
@@ -60,7 +62,7 @@ const acquireSlot = async (logger: Logger, pool: ConnPool) => {
   }
 
   // Attempt to take ownership of the slot
-  const slotAcquired = pool.transaction(async (tx) => {
+  const slotAcquired = await pool.transaction(async (tx) => {
     const slotIsOwned = await tx.maybeOneFirst(sql`
       select ownership_expires_at > now() as owned from realtime.ownership
       where slot_name = ${SLOT_NAME}
@@ -80,6 +82,7 @@ const acquireSlot = async (logger: Logger, pool: ConnPool) => {
       `);
       return true;
     }
+    // The slot is owned by another instance of the realtime service
     return false;
   });
 
@@ -87,7 +90,7 @@ const acquireSlot = async (logger: Logger, pool: ConnPool) => {
 };
 
 /** Update this instance's ownership of the slot. */
-const updateSlotOwnership = async (logger: Logger, pool: ConnPool) => {
+const updateSlotOwnership = async (pool: ConnPool) => {
   await pool.query(sql`
     update realtime.ownership
     set
@@ -96,22 +99,22 @@ const updateSlotOwnership = async (logger: Logger, pool: ConnPool) => {
       } * interval '1 second'
     where slot_name = ${SLOT_NAME} and slot_owner = ${INSTANCE_ID}
   `);
-  logger.info("Updated slot ownership");
+  logger.info(`Updated ownership of slot "${SLOT_NAME}"`);
 };
 
 /** Release ownership of the slot. Does nothing if this instance is not the current
  * owner. */
-const releaseSlotOwnership = async (logger: Logger, pool: ConnPool) => {
+const releaseSlotOwnership = async (pool: ConnPool) => {
   const res = await pool.query(sql`
     delete from realtime.ownership
     where slot_name = ${SLOT_NAME} and slot_owner = ${INSTANCE_ID}
   `);
   if (res.rowCount > 0) {
-    logger.info("Released slot ownership");
+    logger.info(`Released ownership of slot "${SLOT_NAME}"`);
   }
 };
 
-const pollChanges = async (logger: Logger, pool: ConnPool) => {
+const pollChanges = async (pool: ConnPool) => {
   const rows = await pool.anyFirst(sql`
     select data::jsonb from pg_logical_slot_get_changes(${SLOT_NAME}, null, null, 'add-tables', ${MONITOR_TABLES})
   `);
@@ -126,7 +129,7 @@ const pollChanges = async (logger: Logger, pool: ConnPool) => {
   }
 };
 
-const createHttpServer = (logger: Logger) => {
+const createHttpServer = () => {
   const server = http.createServer((req, res) => {
     if (req.method === "GET" && req.url === "/health-check") {
       res.setHeader("Content-Type", "application/json");
@@ -148,17 +151,11 @@ const createHttpServer = (logger: Logger) => {
   return server;
 };
 
-const logger = createLogger("realtime");
-
 const main = async () => {
-  logger.defaultMeta = {
-    ...(logger.defaultMeta ?? {}),
-    instanceId: INSTANCE_ID,
-  };
   logger.info("STARTED");
 
   // Start a HTTP server
-  const httpServer = createHttpServer(logger);
+  const httpServer = createHttpServer();
   const port = parseInt(process.env.HASH_REALTIME_PORT || "0", 10) || 3333;
   httpServer.listen({ host: "::", port });
   logger.info(`HTTP server listening on port ${port}`);
@@ -175,7 +172,7 @@ const main = async () => {
   // Try to acquire the slot
   let slotAcquired = false;
   const int1 = setInterval(async () => {
-    slotAcquired = await acquireSlot(logger, pool);
+    slotAcquired = await acquireSlot(pool);
     if (slotAcquired) {
       clearInterval(int1);
       logger.info("Acquired slot ownership");
@@ -189,10 +186,7 @@ const main = async () => {
     if (!slotAcquired) {
       return;
     }
-    await Promise.all([
-      pollChanges(logger, pool),
-      updateSlotOwnership(logger, pool),
-    ]);
+    await Promise.all([pollChanges(pool), updateSlotOwnership(pool)]);
   }, POLL_INTERVAL_MILLIS);
 
   // Gracefully shutdown on receiving a termination signal.
@@ -206,7 +200,7 @@ const main = async () => {
     clearInterval(int2);
 
     // Ownership will expire, but release anyway
-    await releaseSlotOwnership(logger, pool);
+    await releaseSlotOwnership(pool);
 
     logger.info("Closing connection pool");
     await pool.end();
