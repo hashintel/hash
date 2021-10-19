@@ -8,12 +8,11 @@
  *
  *  node migration.js refresh
  */
-const pg = require("pg");
-const path = require("path");
-const fs = require("fs");
-
-const yargs = require("yargs");
-const prompts = require("prompts");
+import pg from "pg";
+import path from "path";
+import fs from "fs";
+import yargs from "yargs";
+import prompts from "prompts";
 
 const cliDescription = `Database schema migration runner
 
@@ -22,7 +21,7 @@ or using the environment variables: HASH_PG_HOST, HASH_PG_USER, HASH_PG_PORT
 and HASH_PG_DATABASE.
 
 HASH_PG_PASSWORD, if set, will be used as the password, otherwise you
-will be prompted for the password.`
+will be prompted for the password.`;
 
 const main = async () => {
   const argv = yargs(process.argv.slice(2))
@@ -30,22 +29,25 @@ const main = async () => {
     .version(false)
     .option("host", {
       description: "Postgres host",
+      type: "string",
     })
     .option("user", {
       description: "Postgres user",
+      type: "string",
     })
     .option("database", {
       description: "Postgres database",
+      type: "string",
     })
     .option("port", {
       description: "Postgres port",
-      number: true
+      number: true,
     })
     .option("yes", {
       boolean: true,
       description: "Do not ask for confirmation",
     })
-    .help("help").argv
+    .help("help").argv;
 
   const user = argv.user || process.env.HASH_PG_USER || "postgres";
   const host = argv.host || process.env.HASH_PG_HOST || "localhost";
@@ -60,7 +62,7 @@ const main = async () => {
           type: "password",
           name: "password",
           message: `Password for user ${user}`,
-        }
+        },
       ]);
       password = resp.password;
     }
@@ -72,19 +74,23 @@ const main = async () => {
       {
         type: "text",
         name: "yes",
-        message: `Run schema migration on ${host}? Please type 'yes'`
-      }
+        message: `Run schema migration on ${host}? Please type 'yes'`,
+      },
     ]);
     if (yes !== "yes") {
-      process.stderr.write("Operation cancelled\n")
+      process.stderr.write("Operation cancelled\n");
       return;
     }
   }
 
-  const cfg = {
+  const cfg: pg.PoolConfig = {
     host,
     user,
-    port: argv.port ? argv.port : process.env.HASH_PG_PORT ? parseInt(process.env.HASH_PG_PORT) : 5432,
+    port: argv.port
+      ? argv.port
+      : process.env.HASH_PG_PORT
+      ? parseInt(process.env.HASH_PG_PORT)
+      : 5432,
     database: argv.database || process.env.HASH_PG_DATABASE || "postgres",
     password: password || process.env.HASH_PG_PASSWORD || "postgres",
   };
@@ -100,7 +106,7 @@ const main = async () => {
 
   const pool = new pg.Pool(cfg);
 
-  const tx = async (fn) => {
+  const tx = async (fn: (client: pg.PoolClient) => void) => {
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
@@ -117,7 +123,7 @@ const main = async () => {
 
   if (refresh) {
     console.log("Refreshing the database");
-    await tx(async (client) => {
+    await tx(async (client: pg.PoolClient) => {
       await client.query("drop schema public cascade");
       await client.query("create schema public;");
     });

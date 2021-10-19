@@ -1,14 +1,14 @@
-const fs = require("fs");
-const path = require("path");
+import fs from "fs";
+import path from "path";
 
-const generatedIds = require("./data/generatedIds.json");
-const { entityTypeJson } = require("./data/systemTypeSchemas");
-const {
+const generatedIds: any = import("./data/generatedIds.json");
+import { entityTypeJson } from "./data/systemTypeSchemas";
+import {
   SYSTEM_ACCOUNT_SHORTNAME,
-  SYSTEM_ACCOUNT_NAME
-} = require("../../../src/lib/jsConfig");
+  SYSTEM_ACCOUNT_NAME,
+} from "../../../src/lib/config";
 
-const now = '2021-08-19T11:00:14.587Z';
+const now = "2021-08-19T11:00:14.587Z";
 
 const { Org } = generatedIds.types;
 const systemAccount = generatedIds.orgs[SYSTEM_ACCOUNT_SHORTNAME];
@@ -19,7 +19,9 @@ const systemAccountPropertiesStringified = JSON.stringify({
 });
 
 const sqlString = `
-insert into accounts (account_id) values('${systemAccount.fixedId}') on conflict do nothing;
+insert into accounts (account_id) values('${
+  systemAccount.fixedId
+}') on conflict do nothing;
 
 -- create org entity type
 insert into entity_types (
@@ -52,7 +54,9 @@ insert into entity_versions (
   properties, entity_id,
   created_by, created_at, updated_at
 ) values (
-  '${systemAccount.fixedId}', '${systemAccount.firstVersionId}', '${Org.firstVersionId}',
+  '${systemAccount.fixedId}', '${systemAccount.firstVersionId}', '${
+  Org.firstVersionId
+}',
   '${systemAccountPropertiesStringified}', '${systemAccount.fixedId}',
   '${systemAccount.fixedId}', '${now}', '${now}'
 ) on conflict do nothing;
@@ -60,7 +64,9 @@ insert into entity_versions (
 insert into entity_account (
   entity_id, entity_version_id, account_id
 ) values (
-  '${systemAccount.fixedId}', '${systemAccount.firstVersionId}', '${systemAccount.fixedId}'
+  '${systemAccount.fixedId}', '${systemAccount.firstVersionId}', '${
+  systemAccount.fixedId
+}'
 ) on conflict do nothing;
 
 `;
