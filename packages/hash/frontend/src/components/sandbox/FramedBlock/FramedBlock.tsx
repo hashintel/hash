@@ -5,27 +5,28 @@ import {
   BlockProtocolUpdateFn,
   JSONObject,
 } from "@hashintel/block-protocol";
-import { decode } from "js-base64";
 
 import { sendMessage, settlePromiseFromResponse } from "./util";
 import { MessageFromBlockFramer } from "../types";
-import { RemoteBlock } from "../../RemoteBlock/RemoteBlock";
+import {
+  BlockLoadingIndicator,
+  RemoteBlock,
+} from "../../RemoteBlock/RemoteBlock";
 
 import "iframe-resizer/js/iframeResizer.contentWindow";
 import { FetchEmbedCodeFn } from "../../BlockLoader/fetchEmbedCode";
 
-export const FramedBlock: VoidFunctionComponent = () => {
-  const params = new URL(window.location.href).searchParams;
+const params = new URL(window.location.href).searchParams;
 
+export const FramedBlock: VoidFunctionComponent = () => {
   const sourceUrl = params.get("sourceUrl");
   const properties = params.get("properties");
 
-  const initialData = properties
-    ? JSON.parse(decodeURIComponent(decode(properties)))
-    : {};
+  const initialData = properties ? JSON.parse(properties) : undefined;
 
-  const [blockProperties, setBlockProperties] =
-    useState<JSONObject>(initialData);
+  const [blockProperties, setBlockProperties] = useState<
+    JSONObject | undefined
+  >(initialData);
 
   useEffect(() => {
     const msgHandler = ({ data }: MessageEvent<MessageFromBlockFramer>) => {
@@ -47,15 +48,29 @@ export const FramedBlock: VoidFunctionComponent = () => {
     throw new Error("sourceUrl URL param not provided");
   }
 
+  if (!blockProperties) {
+    /**
+     * if we have _no_ properties object then they are being sent by message instead.
+     * we can't load the block until we have them, as it might crash without.
+     * */
+    return <BlockLoadingIndicator />;
+  }
+
   /**
    * @todo set loading / error states based on promise status and pass into block.
    *    in order to provide aggregateLoading, aggregateError, etc
    */
   const aggregate: BlockProtocolAggregateFn = (...payload) =>
-    sendMessage({ payload, type: "aggregate" });
+    sendMessage({
+      payload,
+      type: "aggregate",
+    });
 
   const create: BlockProtocolCreateFn = (...payload) =>
-    sendMessage({ payload, type: "aggregate" });
+    sendMessage({
+      payload,
+      type: "aggregate",
+    });
 
   const update: BlockProtocolUpdateFn = (...payload) =>
     sendMessage({ payload, type: "update" });

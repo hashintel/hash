@@ -4,9 +4,9 @@ import { tw } from "twind";
 import { BlockComponent } from "@hashintel/block-protocol/react";
 
 import { unstable_batchedUpdates } from "react-dom";
+import { BlockProtocolUpdatePayload } from "@hashintel/block-protocol";
 import Loader from "./svgs/Loader";
 import Pencil from "./svgs/Pencil";
-import { BlockProtocolUpdatePayload } from "@hashintel/block-protocol";
 import Cross from "./svgs/Cross";
 
 type UploadFileParamsType = {

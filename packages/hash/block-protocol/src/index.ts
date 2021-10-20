@@ -82,15 +82,15 @@ export type BlockProtocolAggregatePayload = {
 };
 
 export type BlockProtocolCreateFn = {
-  <T>(actions: BlockProtocolCreatePayload<T>[]): Promise<any[]>;
+  <T>(actions: BlockProtocolCreatePayload<T>[]): Promise<unknown[]>;
 };
 
 export type BlockProtocolUpdateFn = {
-  <T>(actions: BlockProtocolUpdatePayload<T>[]): Promise<any[]>;
+  <T>(actions: BlockProtocolUpdatePayload<T>[]): Promise<unknown[]>;
 };
 
 export type BlockProtocolAggregateFn = {
-  (action: BlockProtocolAggregatePayload): Promise<any[]>;
+  (action: BlockProtocolAggregatePayload): Promise<unknown[]>;
 };
 
 export type BlockProtocolFunction =

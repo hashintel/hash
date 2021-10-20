@@ -6,6 +6,10 @@ const withBundleAnalyzer = require("@next/bundle-analyzer")({
   enabled: process.env.ANALYZE === "true",
 });
 
+/**
+ * @todo try using next-compose-plugins when upgrading next to 11 and/or to webpack 5
+ *    was not building with compose-plugins on next 10 w/ webpack 4.
+ */
 module.exports = withBundleAnalyzer(
   withImages(
     withTM({
@@ -27,10 +31,7 @@ module.exports = withBundleAnalyzer(
         config.plugins.push(
           new HtmlWebpackPlugin({
             filename: "static/sandbox.html",
-            template: path.join(
-              __dirname,
-              "/src/components/sandbox/FramedBlock/index.html"
-            ),
+            template: path.join(__dirname, framedBlockFolder, "index.html"),
             chunks: ["sandbox"],
           })
         );

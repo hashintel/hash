@@ -26,7 +26,6 @@
     "graphql": "15.5.0",
     "html-webpack-plugin": "4.5.1",
     "iframe-resizer": "4.3.2",
-    "js-base64": "3.7.2",
     "jsonschema": "1.4.0",
     "lodash": "4.17.21",
     "next": "10.2.3",

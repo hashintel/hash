@@ -4,7 +4,7 @@ import { FramedBlock } from "./FramedBlock";
 
 ReactDOM.render(
   <React.StrictMode>
-    <FramedBlock />{" "}
+    <FramedBlock />
   </React.StrictMode>,
   document.getElementById("root")
 );

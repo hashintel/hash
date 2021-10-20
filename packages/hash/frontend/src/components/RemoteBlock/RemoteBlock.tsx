@@ -9,6 +9,10 @@ type RemoteBlockProps = {
   sourceUrl: string;
 } & BlockProtocolProps;
 
+export const BlockLoadingIndicator: VoidFunctionComponent = () => (
+  <div>Loading...</div>
+);
+
 /**
  * @see https://github.com/Paciolan/remote-component/blob/2b2cfbb5b6006117c56f3aa7daa2292d3823bb83/src/createRemoteComponent.tsx
  */
@@ -18,7 +22,7 @@ export const RemoteBlock: VoidFunctionComponent<
   const [loading, err, Component] = useRemoteBlock(sourceUrl, crossFrame);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <BlockLoadingIndicator />;
   }
 
   if (err || !Component) {

@@ -1,6 +1,11 @@
 import { iframeResizer as iFrameResizer } from "iframe-resizer";
 
-import { forwardRef, HTMLProps, useEffect } from "react";
+import {
+  DetailedHTMLProps,
+  forwardRef,
+  IframeHTMLAttributes,
+  useEffect,
+} from "react";
 
 /**
  * @todo expose the unused functions to component consumers, or use them here,
@@ -10,7 +15,7 @@ type IFrameObject = {
   close: () => void;
   moveToAnchor: (anchor: string) => void;
   resize: () => void;
-  sendMessage: (message: any, targetOrigin?: string) => void;
+  sendMessage: (message: unknown, targetOrigin?: string) => void;
   removeListeners: () => void;
 };
 
@@ -18,7 +23,10 @@ type IFrameWithResizer = HTMLIFrameElement & {
   iFrameResizer: IFrameObject;
 };
 
-type ResizingIFrameProps = HTMLProps<HTMLIFrameElement> & {
+type ResizingIFrameProps = DetailedHTMLProps<
+  IframeHTMLAttributes<HTMLIFrameElement>,
+  HTMLIFrameElement
+> & {
   children?: undefined;
 };
 
@@ -39,11 +47,22 @@ export const ResizingIFrame = forwardRef<
     /**
      * @todo see if anything else to be done about unresponsive frame warnings.
      *    fix the library types to include this valid option.
+     *  @todo check origin for only the sandbox origin, once we have a way of setting it
      * */
-    iFrameResizer({ warningTimeout: 20_000 } as FixMeLater, iframe);
+    iFrameResizer(
+      { checkOrigin: false, warningTimeout: 20_000 } as FixMeLater,
+      iframe
+    );
 
     return () => (iframe as IFrameWithResizer).iFrameResizer.removeListeners();
   }, [iFrameRef, props]);
 
-  return <iframe {...props} ref={iFrameRef} title={props.title || "HASH"} />;
+  return (
+    <iframe
+      {...props}
+      ref={iFrameRef}
+      title={props.title || "HASH"}
+      sandbox="allow-scripts allow-top-navigation-by-user-activation"
+    />
+  );
 });
