@@ -91,8 +91,10 @@ export const createEditorView = (
   preloadedBlocks: BlockMeta[],
   getEntityStore: () => EntityStore,
   getLastSavedValue: () => BlockEntity[],
-  client: ApolloClient<unknown>
+  client: ApolloClient<unknown>,
+  customPlugins: Plugin<unknown, Schema>[] = []
 ) => {
+  // @todo should probably be moved from here
   const plugins: Plugin<unknown, Schema>[] = [
     createSavePlugin(
       accountId,
@@ -103,6 +105,7 @@ export const createEditorView = (
     ),
     createMarksTooltip(renderPortal),
     createBlockSuggester(renderPortal),
+    ...customPlugins,
   ];
 
   const state = createProseMirrorState({ plugins });

@@ -20,6 +20,7 @@ const createComponentNodeSpec = (spec: Partial<NodeSpec>): NodeSpec => ({
   group: "blockItem",
   attrs: {
     ...(spec.attrs ?? {}),
+    // @todo consider removing this
     entityId: { default: "" },
   },
 });

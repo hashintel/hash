@@ -20,7 +20,8 @@ import {
   nodeToComponentId,
 } from "./util";
 
-const nodeToEntityProperties = (node: ProsemirrorNode<Schema>) => {
+// @todo consider moving this
+export const nodeToEntityProperties = (node: ProsemirrorNode<Schema>) => {
   if (node.type.isTextblock) {
     const texts: TextPropertiesText[] = [];
 

@@ -68,6 +68,7 @@ const ensureEntitiesAreWrapped = (
       const DEFAULT_WRAPPERS = [{ type: schema.nodes.block }];
 
       if (node.type !== schema.nodes.entity) {
+        // @todo need to set a draft id
         DEFAULT_WRAPPERS.push({ type: schema.nodes.entity });
       }
 

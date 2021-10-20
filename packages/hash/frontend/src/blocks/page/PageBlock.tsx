@@ -3,15 +3,20 @@ import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 import { createEntityStore } from "@hashintel/hash-shared/entityStore";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
+import { nodeToEntityProperties } from "@hashintel/hash-shared/save";
+import { current, isDraft, produce } from "immer";
 import { Schema } from "prosemirror-model";
+import { Plugin, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import "prosemirror-view/style/prosemirror.css";
 import React, {
   useLayoutEffect,
   useMemo,
   useRef,
+  useState,
   VoidFunctionComponent,
 } from "react";
+import { v4 as uuid } from "uuid";
 import { BlockMetaContext } from "../blockMeta";
 import { EditorConnection } from "./collab/EditorConnection";
 import { collabEnabled } from "./collabEnabled";
@@ -58,19 +63,39 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     currentContents.current = contents;
   }, [contents]);
 
-  /**
-   * There's a potential minor problem here which is that entity store is
-   * updated before prosemirror's tree has yet updated to apply the new
-   * contents, meaning they can become out of sync. This shouldn't be a problem
-   * unless/until the ids used to link between PM and entity store are
-   * inconsistent between saves (i.e, if they're versioned linked). This is
-   * because any deletions from contents are driven by PM, meaning that by the
-   * time they disappear from the entity store, they've already been deleted
-   * from the PM tree by the user
-   */
-  const entityStoreValue = useMemo(
+  const savedEntityStore = useMemo(
     () => createEntityStore(contents),
     [contents]
+  );
+
+  const defaultDraftEntityStore = Object.fromEntries(
+    Object.values(savedEntityStore).map((entity) => {
+      const draftId = uuid();
+      return [draftId, { ...entity!, draftId }];
+    })
+  );
+  const [draftEntityStore, setDraftEntityStore] = useState(
+    defaultDraftEntityStore
+  );
+
+  let hasChanged = false;
+  for (const savedEntityId of Object.keys(savedEntityStore)) {
+    if (
+      !Object.values(draftEntityStore).some(
+        (entity) => entity.entityId === savedEntityId
+      )
+    ) {
+      hasChanged = true;
+    }
+  }
+
+  if (hasChanged) {
+    setDraftEntityStore({ ...defaultDraftEntityStore, ...draftEntityStore });
+  }
+
+  const entityStoreValue = useMemo(
+    () => ({ saved: savedEntityStore, draft: draftEntityStore }),
+    [draftEntityStore, savedEntityStore]
   );
 
   const currentEntityStoreValue = useRef(entityStoreValue);
@@ -99,7 +124,73 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       Array.from(blocksMeta.values()),
       () => currentEntityStoreValue.current,
       () => currentContents.current,
-      client
+      client,
+      [
+        new Plugin<unknown, Schema>({
+          appendTransaction(_, __, state) {
+            const prevDraft = currentEntityStoreValue.current.draft;
+            let tr: Transaction<Schema> | undefined;
+
+            const newDraft = produce(prevDraft, (draft) => {
+              state.doc.descendants((node, pos) => {
+                if (node.type === view.state.schema.nodes.entity) {
+                  let draftId = node.attrs.draftId;
+                  if (!draftId) {
+                    if (node.attrs.entityId) {
+                      const existingDraftId = Object.values(prevDraft).find(
+                        (entity) => entity.entityId === node.attrs.entityId
+                      )?.draftId;
+
+                      if (!existingDraftId) {
+                        // @todo fix this invariant
+                        window.location.reload();
+                        throw new Error(
+                          "invariant: entity missing from saved entity store"
+                        );
+                      }
+
+                      draftId = existingDraftId;
+                    } else {
+                      draftId = uuid();
+                      draft[draftId] = {
+                        draftId,
+                        // @todo make this ok
+                        entityId: null,
+                      };
+                    }
+
+                    if (!tr) {
+                      tr = state.tr;
+                    }
+
+                    tr.setNodeMarkup(pos, undefined, {
+                      ...node.attrs,
+                      draftId,
+                    });
+                  }
+
+                  const draftEntity = Object.values(draft).find(
+                    (entity) => entity.draftId === draftId
+                  );
+
+                  const child = node.firstChild;
+
+                  if (child) {
+                    const props = nodeToEntityProperties(child);
+                    if (props) {
+                      draftEntity.properties = props;
+                    }
+                  }
+                }
+              });
+            });
+
+            setDraftEntityStore(newDraft);
+
+            return tr;
+          },
+        }),
+      ]
     );
 
     prosemirrorSetup.current = {

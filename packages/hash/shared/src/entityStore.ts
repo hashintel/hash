@@ -31,7 +31,9 @@ export const isBlockEntity = (entity: unknown): entity is BlockEntity =>
   "__typename" in entity &&
   entity.__typename === "Block";
 
-export const createEntityStore = (contents: EntityStoreType[]): EntityStore => {
+export const createEntityStore = (
+  contents: EntityStoreType[]
+): EntityStore["saved"] => {
   const flattenPotentialEntity = (
     value: unknown
   ): [string, EntityStoreType][] => {
@@ -66,8 +68,5 @@ export const createEntityStore = (contents: EntityStoreType[]): EntityStore => {
     return entities;
   };
 
-  return {
-    saved: Object.fromEntries(contents.flatMap(flattenPotentialEntity)),
-    draft: null,
-  };
+  return Object.fromEntries(contents.flatMap(flattenPotentialEntity));
 };
