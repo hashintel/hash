@@ -21,8 +21,9 @@ export const makeColumns = (
     if (hiddenColumns.find((column) => accessor.includes(column))) {
       continue;
     }
+
     const column: TableColumn = {
-      Header: key,
+      Header: accessor.split(".").join(" "),
       accessor,
     };
     if (isRecord(value)) {
@@ -30,6 +31,7 @@ export const makeColumns = (
     }
     columns.push(column);
   }
+
   columns.sort((a, b) =>
     a.columns && !b.columns
       ? 1
@@ -38,5 +40,9 @@ export const makeColumns = (
       : (a.accessor as string).localeCompare(b.accessor as string)
   );
 
-  return columns;
+  const flattenedColumns = columns.flatMap(
+    (column) => column.columns ?? column
+  );
+
+  return flattenedColumns;
 };

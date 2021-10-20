@@ -23,9 +23,13 @@
   },
   "dependencies": {
     "@hashintel/block-protocol": "*",
-    "react-table": "7.7.0"
+    "@headlessui/react": "1.4.1",
+    "lodash": "4.17.21",
+    "react-table": "7.7.0",
+    "uuid": "8.3.2"
   },
   "peerDependencies": {
+    "lodash": "4.17.21",
     "react": "17.0.2",
     "twind": "0.16.16"
   },

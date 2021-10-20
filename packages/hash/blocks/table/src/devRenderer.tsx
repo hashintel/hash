@@ -4,6 +4,7 @@
  */
 import React, { useCallback, useMemo, useState } from "react";
 import ReactDOM from "react-dom";
+import { tw } from "twind";
 
 import {
   BlockProtocolUpdateFn,
@@ -19,7 +20,8 @@ import {
   initialTableData,
   Person,
 } from "./mockData/mockData";
-import { compareEntitiesByField } from "./lib/compareEntitiesByField";
+import { resolvePath } from "./lib/compareEntitiesByField";
+import { sortEntities } from "./lib/sortEntities";
 
 const DEFAULT_PAGE_SIZE = 3;
 
@@ -28,7 +30,7 @@ const useMockData = () => {
   const [tableData, setTableData] = useState(initialTableData);
 
   const getResolvedData = useCallback(() => {
-    let resolvedData = [];
+    let resolvedData: Person[] = [];
 
     const linkedData = tableData.data.__linkedData;
     if (!linkedData) {
@@ -64,25 +66,24 @@ const useMockData = () => {
     }
 
     // FILTERING
-    if (linkedData.aggregate?.filter?.value) {
-      const { field, value } = linkedData.aggregate.filter as {
-        field: keyof Person;
-        value: string;
-      };
-
-      resolvedData = resolvedData.filter((entity) => {
-        const property = entity[field];
-        if (typeof property !== "string" || !property) return;
-        return property.toLowerCase().includes(value.toLowerCase());
+    if (linkedData.aggregate?.multiFilter) {
+      const combinatorFilter = linkedData.aggregate.multiFilter;
+      // This assumes the operator for each field is Contains and
+      // the combinator operator is AND
+      // @todo update to handle all filter scenarios
+      combinatorFilter.filters.forEach(({ field, value }) => {
+        resolvedData = resolvedData.filter((entity) => {
+          const property = resolvePath(entity, field);
+          if (typeof property !== "string" || !property) return;
+          return property.toLowerCase().includes(value.toLowerCase());
+        });
       });
     }
 
     // SORTING
-    if (linkedData.aggregate?.sort) {
-      const { field, desc } = linkedData.aggregate.sort;
-      resolvedData = resolvedData.sort((a, b) =>
-        compareEntitiesByField(a, b, field, desc ?? false)
-      );
+    if (linkedData.aggregate?.multiSort) {
+      const sortFields = linkedData.aggregate.multiSort;
+      resolvedData = sortEntities(resolvedData, sortFields);
     }
 
     // PAGINATION
@@ -111,17 +112,13 @@ const useMockData = () => {
     ) => {
       const newTableData = { ...tableData };
 
-      // handle aggregation updates
-      const actionWithAggregation = actions.find(
-        (action) => !!action.data.data?.__linkedData
-      );
-
-      if (actionWithAggregation?.data.data?.__linkedData) {
-        newTableData.data.__linkedData =
-          actionWithAggregation.data.data.__linkedData;
+      actions.forEach((action) => {
+        if (action.data.data?.__linkedData) {
+          newTableData.data.__linkedData = action.data.data?.__linkedData;
+        }
+        newTableData.initialState = action.data.initialState;
         setTableData(newTableData);
-        return;
-      }
+      });
 
       setEntities((prevData) => {
         const newData = prevData.map((entity) => {
@@ -160,13 +157,15 @@ const App = () => {
   const { data, initialState, updateData } = useMockData();
 
   return (
-    <Component
-      data={data}
-      initialState={initialState}
-      schemas={schemas}
-      update={updateData}
-      entityId="table-1"
-    />
+    <div className={tw`flex justify-center py-8`}>
+      <Component
+        data={data}
+        initialState={initialState}
+        schemas={schemas}
+        update={updateData}
+        entityId="table-1"
+      />
+    </div>
   );
 };
 

@@ -88,7 +88,10 @@ export const aggregateEntity = gql`
       operation {
         pageNumber
         itemsPerPage
-        sort
+        multiSort {
+          field
+          desc
+        }
       }
     }
   }

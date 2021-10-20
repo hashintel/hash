@@ -1,18 +1,25 @@
+/** makes it possible to access nested paths (e.g person.location.name)
+ */
+export const resolvePath = (object: any, path: string, defaultValue?: any) =>
+  path
+    .split(".")
+    .reduce((acc, currVal) => acc?.[currVal] ?? defaultValue, object);
+
 export const compareEntitiesByField = (
   entityA: any,
   entityB: any,
-  property: string,
+  propertyPath: string,
   desc: boolean
 ): number => {
   let a;
   let b;
 
   if (desc) {
-    a = entityB[property];
-    b = entityA[property];
+    a = resolvePath(entityB, propertyPath);
+    b = resolvePath(entityA, propertyPath);
   } else {
-    a = entityA[property];
-    b = entityB[property];
+    a = resolvePath(entityA, propertyPath);
+    b = resolvePath(entityB, propertyPath);
   }
 
   if (typeof a === "string" && typeof b === "string") {

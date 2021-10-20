@@ -39,14 +39,35 @@ export type BlockProtocolCreatePayload<T> = {
   userId: string;
 };
 
+export type BlockProtocolFilterOperatorType =
+  | "CONTAINS"
+  | "DOES_NOT_CONTAIN"
+  | "IS"
+  | "IS_NOT"
+  | "STARTS_WITH"
+  | "ENDS_WITH"
+  | "IS_EMPTY"
+  | "IS_NOT_EMPTY";
+
+export type BlockProtocolMultiFilterOperatorType = "AND" | "OR";
+
 export type BlockProtocolAggregateOperationInput = {
   pageNumber?: number;
   itemsPerPage?: number;
-  sort?: {
-    field: string;
-    desc?: boolean | undefined | null;
+  multiSort?:
+    | {
+        field: string;
+        desc?: boolean | undefined | null;
+      }[]
+    | null;
+  multiFilter?: {
+    filters: {
+      field: string;
+      operator: BlockProtocolFilterOperatorType;
+      value: string;
+    }[];
+    operator: BlockProtocolMultiFilterOperatorType;
   } | null;
-  filter?: { field: string; value: string } | null;
 };
 
 export type BlockProtocolLinkedDataDefinition = {
