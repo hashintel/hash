@@ -1,11 +1,20 @@
+import { v4 as uuid } from "uuid";
 import { AnyEntity, BlockEntity } from "./entity";
+import { DistributiveOmit } from "./util";
 
 // @todo should AnyEntity include BlockEntity, and should this just be AnyEntity
 export type EntityStoreType = BlockEntity | AnyEntity;
 
+export type DraftEntityStoreType = Partial<
+  DistributiveOmit<EntityStoreType, "entityId">
+> & {
+  entityId: EntityStoreType["entityId"] | null;
+  draftId: string;
+};
+
 export type EntityStore = {
-  saved: Record<string, EntityStoreType | undefined>;
-  draft: null;
+  saved: Record<string, EntityStoreType>;
+  draft: Record<string, DraftEntityStoreType>;
 };
 
 /**
@@ -14,12 +23,18 @@ export type EntityStore = {
 export const isEntity = (value: unknown): value is EntityStoreType =>
   typeof value === "object" && value !== null && "entityId" in value;
 
-type EntityLink = {
+type EntityLink<
+  EntityType extends EntityStoreType | DraftEntityStoreType = EntityStoreType
+> = {
   __linkedData: unknown;
-  data: EntityStoreType | EntityStoreType[];
+  data: EntityType | EntityType[];
 };
 
-export const isEntityLink = (value: unknown): value is EntityLink =>
+export const isEntityLink = <
+  EntityType extends EntityStoreType | DraftEntityStoreType = EntityStoreType
+>(
+  value: unknown
+): value is EntityLink<EntityType> =>
   typeof value === "object" &&
   value !== null &&
   "__linkedData" in value &&
@@ -31,32 +46,24 @@ export const isBlockEntity = (entity: unknown): entity is BlockEntity =>
   "__typename" in entity &&
   entity.__typename === "Block";
 
+// @todo links within these draft entities need a draft id too
 export const createEntityStore = (
-  contents: EntityStoreType[]
-): EntityStore["saved"] => {
-  const flattenPotentialEntity = (
-    value: unknown
-  ): [string, EntityStoreType][] => {
-    let entities: [string, EntityStoreType][] = [];
+  contents: EntityStoreType[],
+  draftData: Record<string, DraftEntityStoreType>
+): EntityStore => {
+  const draftDataRows = Object.values(draftData);
+
+  const flattenPotentialEntity = (value: unknown): EntityStoreType[] => {
+    let entities: EntityStoreType[] = [];
 
     if (isEntityLink(value)) {
       const linkedEntities = Array.isArray(value.data)
         ? value.data
         : [value.data];
 
-      entities = [
-        ...entities,
-        ...linkedEntities.map((entity): [string, EntityStoreType] => [
-          entity.entityId,
-          entity,
-        ]),
-      ];
+      entities = [...entities, ...linkedEntities];
     } else if (isBlockEntity(value)) {
-      entities = [
-        ...entities,
-        [value.entityId, value],
-        [value.properties.entity.entityId, value.properties.entity],
-      ];
+      entities = [...entities, value, value.properties.entity];
     }
 
     if (typeof value === "object" && value !== null) {
@@ -68,5 +75,32 @@ export const createEntityStore = (
     return entities;
   };
 
-  return Object.fromEntries(contents.flatMap(flattenPotentialEntity));
+  const entities = contents.flatMap(flattenPotentialEntity);
+
+  const existingDraftByEntityId = Object.fromEntries(
+    draftDataRows.map((row) => [row.entityId, row])
+  );
+
+  const savedDraft = Object.fromEntries(
+    entities.map((entity) => {
+      const existingDraft = existingDraftByEntityId[entity.entityId];
+      const id = existingDraft?.draftId ?? uuid();
+
+      return [id, { ...entity, draftId: id }];
+    })
+  );
+
+  for (const row of draftDataRows) {
+    savedDraft[row.draftId] = {
+      ...savedDraft[row.draftId],
+      ...row,
+    };
+  }
+
+  return {
+    saved: Object.fromEntries(
+      entities.map((entity) => [entity.entityId, entity])
+    ),
+    draft: savedDraft,
+  };
 };

@@ -5,11 +5,7 @@ import {
   Text,
   UnknownEntity,
 } from "./graphql/apiTypes.gen";
-
-// @todo this should be defined elsewhere
-type DistributiveOmit<T, K extends keyof any> = T extends any
-  ? Omit<T, K>
-  : never;
+import { DistributiveOmit } from "./util";
 
 export type AnyEntity = Entity | UnknownEntity | Text;
 

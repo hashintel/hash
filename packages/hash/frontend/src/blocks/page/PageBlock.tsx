@@ -4,7 +4,7 @@ import { BlockEntity } from "@hashintel/hash-shared/entity";
 import { createEntityStore } from "@hashintel/hash-shared/entityStore";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { nodeToEntityProperties } from "@hashintel/hash-shared/save";
-import { current, isDraft, produce } from "immer";
+import { produce } from "immer";
 import { Schema } from "prosemirror-model";
 import { Plugin, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
@@ -63,39 +63,11 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     currentContents.current = contents;
   }, [contents]);
 
-  const savedEntityStore = useMemo(
-    () => createEntityStore(contents),
-    [contents]
-  );
-
-  const defaultDraftEntityStore = Object.fromEntries(
-    Object.values(savedEntityStore).map((entity) => {
-      const draftId = uuid();
-      return [draftId, { ...entity!, draftId }];
-    })
-  );
-  const [draftEntityStore, setDraftEntityStore] = useState(
-    defaultDraftEntityStore
-  );
-
-  let hasChanged = false;
-  for (const savedEntityId of Object.keys(savedEntityStore)) {
-    if (
-      !Object.values(draftEntityStore).some(
-        (entity) => entity.entityId === savedEntityId
-      )
-    ) {
-      hasChanged = true;
-    }
-  }
-
-  if (hasChanged) {
-    setDraftEntityStore({ ...defaultDraftEntityStore, ...draftEntityStore });
-  }
+  const [draftEntityStore, setDraftEntityStore] = useState({});
 
   const entityStoreValue = useMemo(
-    () => ({ saved: savedEntityStore, draft: draftEntityStore }),
-    [draftEntityStore, savedEntityStore]
+    () => createEntityStore(contents, draftEntityStore),
+    [contents, draftEntityStore]
   );
 
   const currentEntityStoreValue = useRef(entityStoreValue);
@@ -156,6 +128,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
                         draftId,
                         // @todo make this ok
                         entityId: null,
+                        properties: {},
                       };
                     }
 
@@ -173,12 +146,14 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
                     (entity) => entity.draftId === draftId
                   );
 
-                  const child = node.firstChild;
+                  if (draftEntity) {
+                    const child = node.firstChild;
 
-                  if (child) {
-                    const props = nodeToEntityProperties(child);
-                    if (props) {
-                      draftEntity.properties = props;
+                    if (child) {
+                      const props = nodeToEntityProperties(child);
+                      if (props && "properties" in draftEntity) {
+                        draftEntity.properties = props;
+                      }
                     }
                   }
                 }

@@ -50,3 +50,8 @@ export const entityIdExists = (entities: BlockEntity[]) => {
   return (entityId: string | null): entityId is string =>
     !!entityId && ids.has(entityId);
 };
+
+// @todo this should be defined elsewhere
+export type DistributiveOmit<T, K extends keyof any> = T extends any
+  ? Omit<T, K>
+  : never;
