@@ -16,7 +16,7 @@ export const isEntity = (value: unknown): value is EntityStoreType =>
 
 type EntityLink = {
   __linkedData: unknown;
-  data: EntityStoreType;
+  data: EntityStoreType | EntityStoreType[];
 };
 
 export const isEntityLink = (value: unknown): value is EntityLink =>
@@ -38,7 +38,17 @@ export const createEntityStore = (contents: EntityStoreType[]): EntityStore => {
     let entities: [string, EntityStoreType][] = [];
 
     if (isEntityLink(value)) {
-      entities = [...entities, [value.data.entityId, value.data]];
+      const linkedEntities = Array.isArray(value.data)
+        ? value.data
+        : [value.data];
+
+      entities = [
+        ...entities,
+        ...linkedEntities.map((entity): [string, EntityStoreType] => [
+          entity.entityId,
+          entity,
+        ]),
+      ];
     } else if (isBlockEntity(value)) {
       entities = [
         ...entities,
