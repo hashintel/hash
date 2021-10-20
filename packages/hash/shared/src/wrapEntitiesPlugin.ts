@@ -59,7 +59,7 @@ const ensureEntitiesAreWrapped = (
        * @todo we won't need this once we remove entityId from the component
        *       node
        */
-      if (!wrapperNodes) {
+      if (wrappers && !wrapperNodes) {
         tr.setNodeMarkup(tr.mapping.map(position), undefined, {
           entityId: null,
         });
@@ -67,7 +67,7 @@ const ensureEntitiesAreWrapped = (
 
       const DEFAULT_WRAPPERS = [{ type: schema.nodes.block }];
 
-      if (node.type !== schema.nodes.enitity) {
+      if (node.type !== schema.nodes.entity) {
         DEFAULT_WRAPPERS.push({ type: schema.nodes.entity });
       }
 
