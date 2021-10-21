@@ -70,5 +70,26 @@ export const createSchema = () =>
       underlined: {
         toDOM: () => ["u", 0] as const,
       },
+      link: {
+        attrs: {
+          href: {},
+          title: { default: null },
+        },
+        toDOM(node) {
+          let { href, title } = node.attrs;
+          return ["a", { href, title }, 0] as const;
+        },
+        parseDOM: [
+          {
+            tag: "a[href]",
+            getAttrs(dom) {
+              return {
+                href: dom.getAttribute("href"),
+                title: dom.getAttribute("title"),
+              };
+            },
+          },
+        ],
+      },
     },
   });
