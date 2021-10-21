@@ -183,7 +183,7 @@ export const updatePageContents: Resolver<
       }
     }
     if (propertiesChanged) {
-      await page.updateProperties(client)(pageProperties);
+      await page.updateEntityProperties(client)(pageProperties);
     }
 
     // Return the new state of the page

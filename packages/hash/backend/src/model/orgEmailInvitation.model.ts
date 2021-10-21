@@ -97,9 +97,15 @@ class __OrgEmailInvitation extends AccessToken {
       return new OrgEmailInvitation({ ...entity, properties });
     };
 
-  private updateOrgEmailInvitationProperties =
-    (client: DBClient) => (properties: DBOrgEmailInvitationProperties) =>
-      this.updateProperties(client)(properties);
+  updateProperties(client: DBClient) {
+    return (properties: DBOrgEmailInvitationProperties) =>
+      super
+        .updateProperties(client)(properties)
+        .then(() => {
+          this.properties = properties;
+          return properties;
+        });
+  }
 
   /**
    * Sets the email invitation to used.
@@ -110,7 +116,7 @@ class __OrgEmailInvitation extends AccessToken {
         `OrgEmailInvitation with entityId ${this.entityId} has already been used`
       );
     }
-    return this.updateOrgEmailInvitationProperties(client)({
+    return this.updateProperties(client)({
       ...this.properties,
       revokedAt: new Date().toISOString(),
     });

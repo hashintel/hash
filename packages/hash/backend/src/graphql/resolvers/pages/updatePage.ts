@@ -24,7 +24,7 @@ export const updatePage: Resolver<
       );
     }
 
-    await entity.updateProperties(client)({
+    await entity.updateEntityProperties(client)({
       ...(entity.properties ?? {}),
       ...properties,
     });

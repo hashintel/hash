@@ -27,7 +27,7 @@ export const updateEntity: Resolver<
     const propertiesToUpdate = properties.properties ?? properties;
     entity.properties = propertiesToUpdate;
 
-    await entity.updateProperties(client)(propertiesToUpdate);
+    await entity.updateEntityProperties(client)(propertiesToUpdate);
 
     // TODO: for now, all entities are non-versioned, so the array only has a single
     // element. Return when versioned entities are implemented at the API layer.
