@@ -86,7 +86,7 @@ export const insertBlocksIntoPage: Resolver<
     );
 
     // Update the page
-    await page.updateProperties(client)(page.properties);
+    await page.updateEntityProperties(client)(page.properties);
 
     // @todo: for now, all entities are non-versioned, so the array only has a single
     // element. Return when versioned entities are implemented at the API layer.

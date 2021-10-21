@@ -172,7 +172,7 @@ class __Entity {
     },
   });
 
-  updateProperties(client: DBClient) {
+  protected updateProperties(client: DBClient) {
     return (properties: any) =>
       client
         .updateEntity({
@@ -185,6 +185,11 @@ class __Entity {
 
           return this.properties;
         });
+  }
+
+  updateEntityProperties(client: DBClient) {
+    return (properties: JSONObject) =>
+      this.updateProperties(client)(properties);
   }
 
   static acquireLock = (client: DBClient) => (args: { entityId: string }) =>

@@ -14,7 +14,7 @@ export type AccountConstructorArgs = {
 } & EntityConstructorArgs;
 
 abstract class __Account extends Entity {
-  updateProperties(client: DBClient) {
+  protected updateProperties(client: DBClient) {
     return (properties: any) => super.updateProperties(client)(properties);
   }
 

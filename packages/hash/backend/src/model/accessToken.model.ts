@@ -25,7 +25,7 @@ abstract class __AccessToken extends Entity {
    */
   static generateAccessToken = () => crypto.randomBytes(16).toString("hex");
 
-  updateProperties(client: DBClient) {
+  protected updateProperties(client: DBClient) {
     return (properties: any) =>
       super
         .updateProperties(client)(properties)
