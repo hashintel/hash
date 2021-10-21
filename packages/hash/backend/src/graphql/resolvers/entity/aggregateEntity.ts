@@ -6,7 +6,7 @@ import {
   AggregateOperationInput,
 } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
-import { Entity, EntityWithIncompleteEntityType } from "../../../model";
+import { Entity, UnresolvedGQLEntity } from "../../../model";
 import { DBAdapter } from "../../../db";
 
 const sortEntities = (
@@ -73,7 +73,7 @@ export const dbAggregateEntity =
 
 export const aggregateEntity: Resolver<
   Promise<{
-    results: EntityWithIncompleteEntityType[];
+    results: UnresolvedGQLEntity[];
     operation: AggregateOperation;
   }>,
   {},

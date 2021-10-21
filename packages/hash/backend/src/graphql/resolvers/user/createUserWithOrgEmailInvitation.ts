@@ -5,10 +5,10 @@ import {
   Resolver,
 } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
-import { User, EntityWithIncompleteEntityType, Org } from "../../../model";
+import { User, UnresolvedGQLEntity, Org } from "../../../model";
 
 export const createUserWithOrgEmailInvitation: Resolver<
-  Promise<EntityWithIncompleteEntityType>,
+  Promise<UnresolvedGQLEntity>,
   {},
   GraphQLContext,
   MutationCreateUserWithOrgEmailInvitationArgs

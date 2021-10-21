@@ -3,11 +3,11 @@ import { ApolloError } from "apollo-server-express";
 import { Resolver } from "../../apiTypes.gen";
 import { DbBlockProperties } from "../../../types/dbTypes";
 import { GraphQLContext } from "../../context";
-import { Entity, EntityWithIncompleteEntityType } from "../../../model";
+import { Entity, UnresolvedGQLEntity } from "../../../model";
 import { resolveLinkedData } from "../entity/properties";
 
 export const blockEntity: Resolver<
-  Promise<EntityWithIncompleteEntityType>,
+  Promise<UnresolvedGQLEntity>,
   DbBlockProperties,
   GraphQLContext
 > = async ({ accountId, entityId }, _, ctx, info) => {

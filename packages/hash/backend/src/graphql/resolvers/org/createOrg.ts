@@ -1,9 +1,9 @@
 import { MutationCreateOrgArgs, Resolver } from "../../apiTypes.gen";
-import { Account, EntityWithIncompleteEntityType, Org } from "../../../model";
+import { Account, UnresolvedGQLEntity, Org } from "../../../model";
 import { LoggedInGraphQLContext } from "../../context";
 
 export const createOrg: Resolver<
-  Promise<EntityWithIncompleteEntityType>,
+  Promise<UnresolvedGQLEntity>,
   {},
   LoggedInGraphQLContext,
   MutationCreateOrgArgs

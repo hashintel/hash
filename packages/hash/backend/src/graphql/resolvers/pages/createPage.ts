@@ -6,10 +6,10 @@ import {
 import { LoggedInGraphQLContext } from "../../context";
 import { createEntity } from "../entity";
 import { SystemType } from "../../../types/entityTypes";
-import { EntityWithIncompleteEntityType } from "../../../model";
+import { UnresolvedGQLEntity } from "../../../model";
 
 export const createPage: Resolver<
-  Promise<EntityWithIncompleteEntityType>,
+  Promise<UnresolvedGQLEntity>,
   {},
   LoggedInGraphQLContext,
   MutationCreatePageArgs

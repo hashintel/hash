@@ -2,10 +2,10 @@ import { ApolloError } from "apollo-server-express";
 
 import { QueryGetOrgEmailInvitationArgs, Resolver } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
-import { Org, EntityTypeWithoutTypeFields } from "../../../model";
+import { Org, UnresolvedGQLUnknownEntity } from "../../../model";
 
 export const getOrgEmailInvitation: Resolver<
-  Promise<EntityTypeWithoutTypeFields>,
+  Promise<UnresolvedGQLUnknownEntity>,
   {},
   GraphQLContext,
   QueryGetOrgEmailInvitationArgs

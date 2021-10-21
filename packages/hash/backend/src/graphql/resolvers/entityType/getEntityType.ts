@@ -2,10 +2,10 @@ import { ApolloError } from "apollo-server-express";
 
 import { QueryGetEntityTypeArgs, Resolver } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
-import { EntityTypeWithoutTypeFields, EntityType } from "../../../model";
+import { UnresolvedGQLEntityType, EntityType } from "../../../model";
 
 export const getEntityType: Resolver<
-  Promise<EntityTypeWithoutTypeFields>,
+  Promise<UnresolvedGQLEntityType>,
   {},
   GraphQLContext,
   QueryGetEntityTypeArgs

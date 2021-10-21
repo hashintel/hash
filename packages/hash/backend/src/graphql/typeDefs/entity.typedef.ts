@@ -93,11 +93,11 @@ export const entityTypedef = gql`
     """
     The entityId of the link's destination entity.
     """
-    destinationEntityId: ID!
+    destinationEntityId: ID
     """
     The entityVersionId of a specific version of the link's destination entity.
     """
-    destinationEntityTypeId: ID
+    destinationEntityVersionId: ID
     """
     The JSON path where the link occurs on its source entity's properties.
     """
@@ -169,7 +169,7 @@ export const entityTypedef = gql`
     The metadata ID of the entity. This is shared across all versions of the same entity.
     """
     metadataId: ID!
-        """
+    """
     The outgoing links of the entity.
     """
     links: [Link!]!

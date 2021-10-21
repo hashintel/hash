@@ -1,14 +1,33 @@
 import { JSONObject } from "@hashintel/block-protocol";
 import { merge } from "lodash";
-import { Entity, EntityType, EntityWithIncompleteEntityType } from ".";
+import { Entity, EntityType, UnresolvedGQLEntityType } from ".";
 import { DBClient } from "../db";
 import {
   DBLinkedEntity,
   EntityMeta,
   EntityType as DbEntityType,
 } from "../db/adapter";
-import { Visibility } from "../graphql/apiTypes.gen";
+import {
+  Visibility,
+  Entity as GQLEntity,
+  UnknownEntity as GQLUnknownEntity,
+} from "../graphql/apiTypes.gen";
 import { SystemType } from "../types/entityTypes";
+
+export type EntityExternalResolvers =
+  | "entityType" // resolved in resolvers/entityTypeTypeFields
+  | "links" // resolved in resolvers/links
+  | "linkedEntities" // resolved in resolvers/linkedEntities
+  | "__typename";
+
+export type UnresolvedGQLEntity = Omit<GQLEntity, EntityExternalResolvers> & {
+  entityType: UnresolvedGQLEntityType;
+};
+
+export type UnresolvedGQLUnknownEntity = Omit<
+  GQLUnknownEntity,
+  EntityExternalResolvers
+> & { entityType: UnresolvedGQLEntityType };
 
 export type EntityConstructorArgs = {
   entityId: string;
@@ -221,7 +240,7 @@ class __Entity {
     return this;
   };
 
-  toGQLEntity = (): Omit<EntityWithIncompleteEntityType, "properties"> => ({
+  toGQLEntity = (): Omit<UnresolvedGQLEntity, "properties"> => ({
     id: this.entityVersionId,
     entityId: this.entityId,
     entityVersionId: this.entityVersionId,
@@ -239,7 +258,7 @@ class __Entity {
     visibility: this.visibility,
   });
 
-  toGQLUnknownEntity = (): EntityWithIncompleteEntityType => ({
+  toGQLUnknownEntity = (): UnresolvedGQLUnknownEntity => ({
     ...this.toGQLEntity(),
     properties: this.properties,
   });
