@@ -165,6 +165,7 @@ export const resolvers = {
       return "UnknownEntity";
     },
     history: entityFields.history,
+    links: entityFields.links,
   },
 
   EntityType: {
