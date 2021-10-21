@@ -62,11 +62,9 @@ const App = () => {
   return (
     <div style={{ marginTop: 20 }}>
       <Component
-        initialSrc={
-          "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm"
-        }
-        initialCaption={"ASDASDASDSAD"}
-        entityId={"entity-asdasd"}
+        initialSrc="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm"
+        initialCaption="ASDASDASDSAD"
+        entityId="entity-asdasd"
         uploadFile={uploadFile}
       />
     </div>

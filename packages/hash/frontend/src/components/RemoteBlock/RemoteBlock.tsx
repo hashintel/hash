@@ -1,33 +1,28 @@
-import React, { useMemo, VoidFunctionComponent } from "react";
-import { BlockProtocolUpdatePayload } from "@hashintel/block-protocol";
+import React, { VoidFunctionComponent } from "react";
+import { BlockProtocolProps } from "@hashintel/block-protocol";
 
 import { useRemoteBlock } from "./useRemoteBlock";
 import { HtmlBlock } from "../HtmlBlock/HtmlBlock";
-import { useBlockProtocolUpdate } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdate";
-import { cloneEntityTreeWithPropertiesMovedUp } from "../../lib/entities";
-import { fetchEmbedCode } from "./fetchEmbedCode";
-import { uploadFile } from "./uploadFile";
 
 type RemoteBlockProps = {
-  url: string;
-};
+  crossFrame?: boolean;
+  sourceUrl: string;
+} & BlockProtocolProps;
+
+export const BlockLoadingIndicator: VoidFunctionComponent = () => (
+  <div>Loading...</div>
+);
 
 /**
  * @see https://github.com/Paciolan/remote-component/blob/2b2cfbb5b6006117c56f3aa7daa2292d3823bb83/src/createRemoteComponent.tsx
  */
 export const RemoteBlock: VoidFunctionComponent<
   RemoteBlockProps & Record<string, any>
-> = ({ url, ...props }) => {
-  const [loading, err, Component] = useRemoteBlock(url);
-  const { update } = useBlockProtocolUpdate();
-
-  const flattenedProperties = useMemo(
-    () => cloneEntityTreeWithPropertiesMovedUp(props),
-    [props]
-  );
+> = ({ crossFrame, sourceUrl, ...props }) => {
+  const [loading, err, Component] = useRemoteBlock(sourceUrl, crossFrame);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <BlockLoadingIndicator />;
   }
 
   if (err || !Component) {
@@ -35,37 +30,13 @@ export const RemoteBlock: VoidFunctionComponent<
   }
 
   if (typeof Component === "string") {
-    return <HtmlBlock html={Component} {...flattenedProperties} />;
+    /**
+     * This HTML block has no props available to it, unless loaded via FramedBlock.
+     * @todo do something about this. throw if not in an iframe?
+     *    or check for iframe status and assign props to window here, not FramedBlock?
+     */
+    return <HtmlBlock html={Component} />;
   }
 
-  /**
-   * Temporary hack to provide the accountId for blocks.
-   * Assumes that the accountId of the block entity will be the same as
-   * all entities it is rendering / in its tree. Unsafe assumption.
-   * @todo Replace with a proper mapping of entities to accountIds.
-   */
-  const updateWithAccountId = (
-    updateData: BlockProtocolUpdatePayload<any>[]
-  ) => {
-    update([
-      {
-        ...updateData[0],
-        accountId: props.accountId,
-      },
-    ])?.catch((updateError) =>
-      console.error("Could not update entity: ", updateError)
-    );
-  };
-
-  return (
-    <Component
-      /** @todo have this passed in to RemoteBlock as entityId, not childEntityId */
-      {...flattenedProperties}
-      update={updateWithAccountId}
-      getEmbedBlock={fetchEmbedCode}
-      editableRef={props.editableRef}
-      entityId={props.childEntityId}
-      uploadFile={uploadFile}
-    />
-  );
+  return <Component {...props} />;
 };

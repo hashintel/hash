@@ -1,6 +1,12 @@
+import { JSONObject } from "@hashintel/block-protocol";
 import { ProviderNames } from "../../../../blocks/embed/src/types";
 
-export async function fetchEmbedCode(url: string, type?: ProviderNames) {
+export type FetchEmbedCodeFn = (
+  url: string,
+  type?: ProviderNames
+) => Promise<JSONObject>;
+
+export const fetchEmbedCode: FetchEmbedCodeFn = (url, type?) => {
   return fetch("http://localhost:5001/graphql", {
     method: "POST",
     headers: {
@@ -18,4 +24,4 @@ export async function fetchEmbedCode(url: string, type?: ProviderNames) {
       ...responseData.data?.embedCode,
       error: responseData?.errors?.[0]?.message,
     }));
-}
+};

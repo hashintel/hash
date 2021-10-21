@@ -42,21 +42,22 @@ export const useBlockProtocolUpdate = (): {
     });
 
   const update: BlockProtocolUpdateFn = useCallback(
-    async (actions) => {
-      await Promise.all(
-        actions.map(async (action) => {
-          await (action.entityTypeId === "Page"
-            ? updatePageFn
-            : updateEntityFn)({
+    async (actions) =>
+      Promise.all(
+        actions.map(async (action) =>
+          (action.entityTypeId === "Page" ? updatePageFn : updateEntityFn)({
             variables: {
               entityId: action.entityId,
               properties: action.data,
               accountId: action.accountId!,
             },
-          });
-        })
-      );
-    },
+          }).then(
+            ({ data }) =>
+              data &&
+              ("updatePage" in data ? data.updatePage : data.updateEntity)
+          )
+        )
+      ),
     [updateEntityFn, updatePageFn]
   );
 
