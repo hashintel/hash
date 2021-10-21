@@ -13791,6 +13791,30 @@ slonik@24.0.1:
     serialize-error "^8.1.0"
     through2 "^4.0.2"
 
+slonik@24.1.2:
+  version "24.1.2"
+  resolved "https://registry.yarnpkg.com/slonik/-/slonik-24.1.2.tgz#a2986777c3dc8e96b77044a720aa20fcadd2b864"
+  integrity sha512-TMSDhUCtaMcyqXBQhPHw5rbZCPGhmLiZtCRRYXlvs3yPs3xpmmujqnASGEFHPlIAV36KuKgYyHwgTgaAfAEZDw==
+  dependencies:
+    concat-stream "^2.0.0"
+    es6-error "^4.1.1"
+    get-stack-trace "^2.1.1"
+    hyperid "^2.3.1"
+    is-plain-object "^5.0.0"
+    iso8601-duration "^1.3.0"
+    pg "^8.7.1"
+    pg-connection-string "^2.5.0"
+    pg-copy-streams "^5.1.1"
+    pg-copy-streams-binary "^2.0.1"
+    pg-cursor "^2.7.1"
+    pg-minify "^1.6.2"
+    postgres-array "^3.0.1"
+    postgres-interval "^3.0.0"
+    promise-deferred "^2.0.3"
+    roarr "^7.0.3"
+    serialize-error "^8.1.0"
+    through2 "^4.0.2"
+
 snake-case@^3.0.4:
   version "3.0.4"
   resolved "https://registry.yarnpkg.com/snake-case/-/snake-case-3.0.4.tgz#4f2bbd568e9935abdfd593f34c691dadb49c452c"

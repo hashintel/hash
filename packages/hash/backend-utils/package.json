@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "redis": "3.1.2",
+    "slonik": "24.1.2",
     "winston": "3.3.3"
   },
   "devDependencies": {
