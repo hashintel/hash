@@ -2,7 +2,7 @@
 node_modules
 
 # build files
-dist
+.next
 
 # svg files
 *.svg
@@ -12,6 +12,3 @@ dist
 
 # generated files
 **/*.gen.*
-
-# other
-datastore
