@@ -7,12 +7,12 @@ import { LinkedDataDefinition } from "../util";
 /**
  * Temporary function for extracting outgoing links from an entity's
  * `properties` JSON blob.
- * 
+ *
  * This function will be deprecated when the links are no longer stored
  * in an entity's `properties` JSON blob.
  */
 
-const parseLinksFromPropertiesObject = (
+export const parseLinksFromPropertiesObject = (
   propertiesObject: any,
   entityId: string,
   path: string
@@ -37,6 +37,12 @@ const parseLinksFromPropertiesObject = (
             entityId: destinationEntityId,
             entityVersionId: destinationEntityVersionId,
           } = value as LinkedDataDefinition;
+
+          if (!destinationEntityId) {
+            throw new Error(
+              "Linked data is now requried to provide an entityId"
+            );
+          }
 
           return [
             {

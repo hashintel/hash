@@ -93,7 +93,7 @@ export const entityTypedef = gql`
     """
     The entityId of the link's destination entity.
     """
-    destinationEntityId: ID
+    destinationEntityId: ID!
     """
     The entityVersionId of a specific version of the link's destination entity.
     """
