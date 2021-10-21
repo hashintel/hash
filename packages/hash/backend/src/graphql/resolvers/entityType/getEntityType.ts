@@ -2,8 +2,7 @@ import { ApolloError } from "apollo-server-express";
 
 import { QueryGetEntityTypeArgs, Resolver } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
-import { EntityTypeWithoutTypeFields } from "../../../model";
-import { EntityType } from "../../../model";
+import { EntityTypeWithoutTypeFields, EntityType } from "../../../model";
 
 export const getEntityType: Resolver<
   Promise<EntityTypeWithoutTypeFields>,

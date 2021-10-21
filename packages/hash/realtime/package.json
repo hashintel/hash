@@ -11,8 +11,8 @@
   },
   "main": "src/index.ts",
   "scripts": {
-    "format": "prettier --write './src/**/*'; eslint --ext .ts --fix ./src/",
-    "lint": "prettier --check './src/**/*' || exit 1; eslint --ext .ts ./src/; tsc --noEmit # @hashintel/hash-realtime",
+    "format": "eslint --ext .ts --fix ./src/; prettier --write --list-different './src/**/*'",
+    "lint": "prettier --check './src/**/*' && eslint --ext .ts ./src/ && tsc --noEmit # @hashintel/hash-realtime",
     "build": "yarn clean; tsc -b",
     "clean": "rimraf ./dist/ ./tsconfig.tsbuildinfo",
     "dev": "NODE_ENV=development nodemon src/index.ts",
@@ -20,6 +20,7 @@
     "ts-node": "node --max-old-space-size=2048 node_modules/.bin/ts-node --files --project tsconfig.json"
   },
   "dependencies": {
+    "@hashintel/hash-backend-utils": "*",
     "slonik": "24.0.1",
     "winston": "3.3.3"
   },

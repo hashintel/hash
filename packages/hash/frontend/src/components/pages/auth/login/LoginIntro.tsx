@@ -1,29 +1,30 @@
 import { useRouter } from "next/router";
-import React, { useRef, VoidFunctionComponent } from "react";
-import { useEffect, useState } from "react";
+import React, {
+  useRef,
+  VoidFunctionComponent,
+  useEffect,
+  useState,
+} from "react";
 import { tw } from "twind";
 
 import Logo from "../../../../assets/svg/logo.svg";
 import { IconHash } from "../../../Icons/IconHash";
 import { IconKeyboardReturn } from "../../../Icons/IconKeyboardReturn";
 
-const options = [
-  {
-    label: "Google",
-  },
-  {
-    label: "Github",
-  },
-  {
-    label: "Google",
-  },
-  {
-    label: "Bitbucket",
-  },
-  {
-    label: "Okta",
-  },
-];
+// const options = [
+//   {
+//     label: "Google",
+//   },
+//   {
+//     label: "Github",
+//   },
+//   {
+//     label: "Bitbucket",
+//   },
+//   {
+//     label: "Okta",
+//   },
+// ];
 
 type LoginIntroProps = {
   requestLoginCode: (emailOrShortname: string) => void;
@@ -111,28 +112,31 @@ export const LoginIntro: VoidFunctionComponent<LoginIntroProps> = ({
           <strong>No account?</strong> No problem
         </p>
         <button
+          type="button"
           className={tw`focus:outline-none bg(black opacity-70 hover:opacity-90 focus:opacity-90) rounded-lg h-11 px-6 flex items-center text-white mb-10`}
           onClick={navigateToSignup}
         >
           Create a free account
         </button>
 
+        {/* Don't display until sign-up with Google and Github are supported 
         <div className={tw`invisible`}>
           <p className={tw`mb-3.5`}>
             If you use SSO, or have previously linked your account to a
             third-party you can sign in with them
           </p>
           <div className={tw`flex flex-wrap`}>
-            {options.map(({ label }, index) => (
+            {options.map(({ label }) => (
               <button
+                type="button"
                 className={tw`px-5 h-11 flex items-center bg-white border-1 border-gray-300 hover:border-gray-500 rounded-lg text-sm font-bold mr-2.5 mb-2 `}
-                key={index}
+                key={label}
               >
                 {label}
               </button>
             ))}
           </div>
-        </div>
+        </div> */}
       </div>
     </div>
   );

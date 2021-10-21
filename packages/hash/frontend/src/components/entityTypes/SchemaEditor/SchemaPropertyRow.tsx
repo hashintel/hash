@@ -44,9 +44,9 @@ export const SchemaPropertyRow: VoidFunctionComponent<SchemaPropertyRowProps> =
         <td className={tdClasses}>{required ? "Yes" : "No"}</td>
         <td className={tdClasses}>
           {/* @todo constraints may appear on any in a list of types, need to display this multiple times */}
-          {Object.entries(constraints).map(([type, value]) => (
-            <div key={type}>
-              {type}: {value}
+          {Object.entries(constraints).map(([typeName, value]) => (
+            <div key={typeName}>
+              {typeName}: {value}
             </div>
           ))}
         </td>

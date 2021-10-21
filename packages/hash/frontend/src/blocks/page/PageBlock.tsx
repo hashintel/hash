@@ -1,37 +1,29 @@
+import { useApolloClient } from "@apollo/client";
+import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
+import { BlockEntity } from "@hashintel/hash-shared/entity";
+import { createEntityStore } from "@hashintel/hash-shared/entityStore";
+import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
+import { Schema } from "prosemirror-model";
+import { EditorView } from "prosemirror-view";
+import "prosemirror-view/style/prosemirror.css";
 import React, {
   useLayoutEffect,
   useMemo,
   useRef,
   VoidFunctionComponent,
 } from "react";
-import { Schema } from "prosemirror-model";
-import { Plugin } from "prosemirror-state";
-import { EditorView } from "prosemirror-view";
-import { renderPM } from "./sandbox";
-import { createMarksTooltip } from "../../components/MarksTooltip";
-import { createBlockSuggester } from "../../components/BlockSuggester";
-import { usePortals } from "./usePortals";
-import { useDeferredCallback } from "./useDeferredCallback";
 import { BlockMetaContext } from "../blockMeta";
-import { createInitialDoc, createSchema } from "@hashintel/hash-shared/schema";
-import {
-  BlockMeta,
-  createEntityUpdateTransaction,
-  defineNewBlock,
-} from "@hashintel/hash-shared/sharedWithBackend";
-import { collabEnabled, createNodeView } from "./tsUtils";
-import { EditorConnection } from "./collab/collab";
+import { EditorConnection } from "./collab/EditorConnection";
+import { collabEnabled } from "./collabEnabled";
+import { createEditorView } from "./createEditorView";
 import { EntityStoreContext } from "./EntityStoreContext";
-import { createEntityStore } from "@hashintel/hash-shared/entityStore";
-import { useApolloClient } from "@apollo/client";
-import { updatePageMutation } from "@hashintel/hash-shared/save";
-import { BlockEntity } from "@hashintel/hash-shared/types";
+import { usePortals } from "./usePortals";
 
 type PageBlockProps = {
   contents: BlockEntity[];
   blocksMeta: Map<string, BlockMeta>;
   accountId: string;
-  metadataId: string;
+  entityId: string;
 };
 
 /**
@@ -44,18 +36,17 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   contents,
   blocksMeta,
   accountId,
-  metadataId,
+  entityId,
 }) => {
   const root = useRef<HTMLDivElement>(null);
   const client = useApolloClient();
 
-  const [portals, replacePortal] = usePortals();
-  const [deferCallback, clearCallback] = useDeferredCallback();
+  const [portals, renderPortal] = usePortals();
 
   const prosemirrorSetup = useRef<null | {
-    view: EditorView;
-    schema: Schema;
+    view: EditorView<Schema>;
     connection: EditorConnection | null;
+    manager: ProsemirrorSchemaManager;
   }>(null);
 
   /**
@@ -87,90 +78,12 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     currentEntityStoreValue.current = entityStoreValue;
   }, [entityStoreValue]);
 
-  useLayoutEffect(() => {
-    /**
-     * Setting this function to global state as a shortcut to call it from deep
-     * within prosemirror.
-     *
-     * @todo come up with a better solution for this
-     *
-     * Note that this save handler only handles saving for things that
-     * prosemirror controls – i.e, the contents of prosemirror text nodes /
-     * the order of / the creation of / ther deletion of blocks (noting that
-     * changing block type is a deletion & a creation at once). Saves can be
-     * handled directly by the blocks implementation using the update callbacks
-     */
-    let saveQueue = Promise.resolve();
-    (window as any).triggerSave = () => {
-      if (collabEnabled) {
-        return;
-      }
-
-      saveQueue = saveQueue
-        .catch(() => {})
-        .then(() => {
-          if (!prosemirrorSetup.current) {
-            return;
-          }
-
-          return updatePageMutation(
-            accountId,
-            metadataId,
-            prosemirrorSetup.current.view.state.doc,
-            currentContents.current,
-            currentEntityStoreValue.current,
-            client
-          ).then(() => {});
-        });
-    };
-  }, [accountId, client, metadataId]);
-
   /**
    * This effect runs once and just sets up the prosemirror instance. It is not
    * responsible for setting the contents of the prosemirror document
    */
   useLayoutEffect(() => {
-    const schema = createSchema();
     const node = root.current!;
-
-    /**
-     * We want to apply saves when Prosemirror loses focus (or is triggered
-     * manually with cmd+s). However, interacting with the format tooltip
-     * momentarily loses focus, so we want to wait a moment and cancel that
-     * save if focus is regained quickly. The reason we only want to save when
-     * losing focus is because the process of taking the response from a save
-     * and updating the prosemirror tree with new contents can mess with the
-     * cursor position.
-     *
-     * @todo make saves more frequent & seamless
-     */
-    const savePlugin = new Plugin({
-      props: {
-        handleDOMEvents: {
-          keydown(view, evt) {
-            // Manual save for cmd+s
-            if (evt.key === "s" && evt.metaKey) {
-              evt.preventDefault();
-              (window as any).triggerSave?.();
-
-              return true;
-            }
-            return false;
-          },
-          focus() {
-            // Cancel the in-progress save
-            clearCallback();
-            return false;
-          },
-          blur: function () {
-            // Trigger a cancellable save on blur
-            deferCallback(() => (window as any).triggerSave());
-
-            return false;
-          },
-        },
-      },
-    });
 
     /**
      * Lets see up prosemirror with an empty document, as another effect will
@@ -178,21 +91,22 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
      * contain at least one child, so lets insert a special "blank" placeholder
      * child
      */
-    const { view, connection } = renderPM(
+    const { view, connection, manager } = createEditorView(
       node,
-      createInitialDoc(schema),
-      { nodeViews: {} },
-      replacePortal,
-      [
-        savePlugin,
-        createMarksTooltip(replacePortal),
-        createBlockSuggester(replacePortal),
-      ],
+      renderPortal,
       accountId,
-      metadataId
+      entityId,
+      Array.from(blocksMeta.values()),
+      () => currentEntityStoreValue.current,
+      () => currentContents.current,
+      client
     );
 
-    prosemirrorSetup.current = { schema, view, connection: connection ?? null };
+    prosemirrorSetup.current = {
+      view,
+      connection: connection ?? null,
+      manager,
+    };
 
     return () => {
       // @todo how does this work with portals?
@@ -200,30 +114,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       prosemirrorSetup.current = null;
       connection?.close();
     };
-  }, [accountId, clearCallback, deferCallback, metadataId, replacePortal]);
-
-  /**
-   * This effect is responsible for ensuring all the preloaded blocks are
-   * defined in prosemirror
-   */
-  useLayoutEffect(() => {
-    if (!prosemirrorSetup.current) {
-      return;
-    }
-
-    const { view } = prosemirrorSetup.current;
-
-    // @todo filter out already defined blocks
-    for (const [componentId, meta] of Array.from(blocksMeta.entries())) {
-      defineNewBlock(
-        view.state.schema,
-        meta.componentMetadata,
-        meta.componentSchema,
-        { view, replacePortal, createNodeView },
-        componentId
-      );
-    }
-  }, [blocksMeta, replacePortal]);
+  }, [accountId, blocksMeta, client, entityId, renderPortal]);
 
   /**
    * Whenever contents are updated, we want to sync them to the prosemirror
@@ -239,23 +130,18 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
 
     if (!collabEnabled) {
       (async function updateContents(
-        contents: BlockEntity[],
+        updatedContents: BlockEntity[],
         signal?: AbortSignal
       ): Promise<void> {
         const setup = prosemirrorSetup.current;
         if (!setup) {
           return;
         }
-
-        const { view } = setup;
-
-        const state = view.state;
-
-        const tr = await createEntityUpdateTransaction(state, contents, {
-          view,
-          replacePortal,
-          createNodeView,
-        });
+        const { state } = setup.view;
+        const tr = await setup.manager.createEntityUpdateTransaction(
+          updatedContents,
+          state
+        );
 
         if (signal?.aborted) {
           return;
@@ -267,11 +153,11 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
          *
          * @todo probably better way of dealing with this
          */
-        if (view.state !== state || prosemirrorSetup.current !== setup) {
-          return updateContents(contents, signal);
+        if (setup.view.state !== state || prosemirrorSetup.current !== setup) {
+          return updateContents(updatedContents, signal);
         }
 
-        view.dispatch(tr);
+        setup.view.dispatch(tr);
       })(contents, controller.signal).catch((err) =>
         console.error("Could not update page contents: ", err)
       );
@@ -280,7 +166,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     return () => {
       controller.abort();
     };
-  }, [replacePortal, metadataId, contents]);
+  }, [contents]);
 
   return (
     <BlockMetaContext.Provider value={blocksMeta}>

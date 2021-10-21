@@ -15,7 +15,7 @@ export const PageHeader: VoidFunctionComponent = () => {
 
   const [showLoginModal, hideLoginModal] = useModal(() => (
     <LoginModal
-      show={true}
+      show
       onClose={hideLoginModal}
       onLoggedIn={() => {
         void refetch();
@@ -35,7 +35,7 @@ export const PageHeader: VoidFunctionComponent = () => {
           <>
             <Link href="/signup">
               <a className={tw`pb-0 border-b-0 hover:border-b-0`}>
-                <Button>Sign up</Button>
+                <Button className="mr-3">Sign up</Button>
               </a>
             </Link>
             <Button onClick={showLoginModal}>Sign in</Button>

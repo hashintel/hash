@@ -1,3 +1,4 @@
+import { ApolloError } from "apollo-server-errors";
 import { MutationJoinOrgArgs, Resolver } from "../../apiTypes.gen";
 import {
   EntityWithIncompleteEntityType,
@@ -5,7 +6,6 @@ import {
   OrgEmailInvitation,
 } from "../../../model";
 import { LoggedInGraphQLContext } from "../../context";
-import { ApolloError } from "apollo-server-errors";
 
 export const joinOrg: Resolver<
   Promise<EntityWithIncompleteEntityType>,

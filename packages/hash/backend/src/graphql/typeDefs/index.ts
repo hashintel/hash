@@ -11,6 +11,7 @@ import { pageTypedef } from "./page.typedef";
 import { textTypedef } from "./text.typedef";
 import { userTypedef } from "./user.typedef";
 import { embedTypeDef } from "./embed.typedef";
+import { impliedHistoryTypedef } from "./impliedHistory.typedef";
 
 const baseSchema = gql`
   scalar Date
@@ -37,13 +38,14 @@ export const schema = [
   accountTypedef,
   baseSchema,
   blockTypedef,
+  embedTypeDef,
   entityTypedef,
   entityTypeTypedef,
+  impliedHistoryTypedef,
   orgEmailInvitationTypedef,
   orgInvitationLinkTypedef,
   orgTypedef,
   pageTypedef,
   textTypedef,
   userTypedef,
-  embedTypeDef,
 ];

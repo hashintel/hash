@@ -11,12 +11,14 @@ import { StatsD } from "hot-shots";
 import { schema } from "./typeDefs";
 import { resolvers } from "./resolvers";
 import { DBAdapter } from "../db";
+import { CacheAdapter } from "../cache";
 import { buildPassportGraphQLMethods } from "../auth/passport";
 import { GraphQLContext } from "./context";
 import EmailTransporter from "../email/transporter";
 
 export const createApolloServer = (
   db: DBAdapter,
+  cache: CacheAdapter,
   emailTransporter: EmailTransporter,
   logger: Logger,
   statsd?: StatsD
@@ -30,7 +32,7 @@ export const createApolloServer = (
 
   return new ApolloServer({
     schema: combinedSchema,
-    dataSources: () => ({ db }),
+    dataSources: () => ({ db, cache }),
     context: (ctx): Omit<GraphQLContext, "dataSources"> => ({
       ...ctx,
       user: ctx.req.user,
@@ -45,26 +47,42 @@ export const createApolloServer = (
           ctx.logger = ctx.context.logger as Logger;
           const startedAt = performance.now();
           return {
-            didResolveOperation: (ctx) => {
-              if (ctx.operationName) {
-                statsd?.increment(ctx.operationName, ["graphql"]);
+            didResolveOperation: (didResolveOperationCtx) => {
+              if (didResolveOperationCtx.operationName) {
+                statsd?.increment(didResolveOperationCtx.operationName, [
+                  "graphql",
+                ]);
               }
             },
 
-            willSendResponse: async (ctx) => {
-              if (ctx.operationName === "IntrospectionQuery") {
+            willSendResponse: async (willSendResponseCtx) => {
+              if (willSendResponseCtx.operationName === "IntrospectionQuery") {
                 // Ignore introspection queries from graphiql
                 return;
               }
-              const msg = { message: "graphql", operation: ctx.operationName };
-              if (ctx.errors) {
-                const stack = ctx.errors.map((err) => err.stack);
-                ctx.logger.error({ ...msg, errors: ctx.errors, stack });
+              const msg = {
+                message: "graphql",
+                operation: willSendResponseCtx.operationName,
+              };
+              if (willSendResponseCtx.errors) {
+                const stack = willSendResponseCtx.errors.map(
+                  (err) => err.stack
+                );
+                willSendResponseCtx.logger.error({
+                  ...msg,
+                  errors: willSendResponseCtx.errors,
+                  stack,
+                });
               } else {
-                ctx.logger.info(msg);
-                if (ctx.operationName) {
+                willSendResponseCtx.logger.info(msg);
+                if (willSendResponseCtx.operationName) {
                   const elapsed = performance.now() - startedAt;
-                  statsd?.timing(ctx.operationName, elapsed, 1, ["graphql"]);
+                  statsd?.timing(
+                    willSendResponseCtx.operationName,
+                    elapsed,
+                    1,
+                    ["graphql"]
+                  );
                 }
               }
             },

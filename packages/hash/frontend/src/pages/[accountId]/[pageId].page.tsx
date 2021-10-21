@@ -1,23 +1,20 @@
-import { useMemo, VoidFunctionComponent } from "react";
+import { useQuery } from "@apollo/client";
+import { BlockMeta, fetchBlockMeta } from "@hashintel/hash-shared/blockMeta";
+import { blockPaths } from "@hashintel/hash-shared/paths";
+import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
+import { GetStaticPaths, GetStaticProps } from "next";
 
 import { useRouter } from "next/router";
-import { useQuery } from "@apollo/client";
-import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
+import { useMemo, VoidFunctionComponent } from "react";
+import { PageBlock } from "../../blocks/page/PageBlock";
+import { PageTitle } from "../../blocks/page/PageTitle";
+import { VersionDropdown } from "../../components/Dropdowns/VersionDropdown";
+import { PageSidebar } from "../../components/layout/PageSidebar/PageSidebar";
 import {
   GetPageQuery,
   GetPageQueryVariables,
 } from "../../graphql/apiTypes.gen";
-import { PageBlock } from "../../blocks/page/PageBlock";
-import { GetStaticPaths, GetStaticProps } from "next";
-import { PageSidebar } from "../../components/layout/PageSidebar/PageSidebar";
-
 import styles from "../index.module.scss";
-import {
-  BlockMeta,
-  blockPaths,
-  fetchBlockMeta,
-} from "@hashintel/hash-shared/sharedWithBackend";
-import { VersionDropdown } from "../../components/Dropdowns/VersionDropdown";
 
 /**
  * preload all configured blocks for now. in the future these will be loaded
@@ -28,8 +25,8 @@ const preloadedComponentIds = Object.keys(blockPaths);
 // Apparently defining this is necessary in order to get server rendered props?
 export const getStaticPaths: GetStaticPaths<{ slug: string }> = async () => {
   return {
-    paths: [], //indicates that no page needs be created at build time
-    fallback: "blocking", //indicates the type of fallback
+    paths: [], // indicates that no page needs be created at build time
+    fallback: "blocking", // indicates the type of fallback
   };
 };
 
@@ -52,8 +49,8 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
   ({ preloadedBlockMeta }) => {
     const router = useRouter();
 
-    // metadataId is the consistent identifier for pages (across all versions)
-    const metadataId = router.query.pageId as string;
+    // entityId is the consistent identifier for pages (across all versions)
+    const pageEntityId = router.query.pageId as string;
     const accountId = router.query.accountId as string;
     // versionId is an optional param for requesting a specific page version
     const versionId = router.query.version as string | undefined;
@@ -61,7 +58,7 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
     const { data, error } = useQuery<GetPageQuery, GetPageQueryVariables>(
       getPageQuery,
       {
-        variables: { metadataId, accountId, versionId },
+        variables: { entityId: pageEntityId, accountId, versionId },
       }
     );
 
@@ -117,18 +114,24 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
           <header>
             <div className={styles.PageHeader}>
               <div>
+                {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
                 <label>Title</label>
-                <h1>{title}</h1>
+                <PageTitle
+                  value={title}
+                  accountId={data.page.accountId}
+                  metadataId={data.page.entityId}
+                />
               </div>
               <div>
+                {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
                 <label>Version</label>
                 <div>
                   <VersionDropdown
                     value={data.page.entityVersionId}
                     versions={data.page.history ?? []}
-                    onChange={(versionId) => {
+                    onChange={(changedVersionId) => {
                       void router.push(
-                        `/${accountId}/${metadataId}?version=${versionId}`
+                        `/${accountId}/${pageEntityId}?version=${changedVersionId}`
                       );
                     }}
                   />
@@ -142,7 +145,7 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
               accountId={data.page.accountId}
               contents={contents}
               blocksMeta={preloadedBlocks}
-              metadataId={data.page.metadataId}
+              entityId={data.page.entityId}
             />
           </main>
         </div>

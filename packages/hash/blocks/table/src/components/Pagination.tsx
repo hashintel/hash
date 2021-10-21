@@ -25,7 +25,8 @@ export const Pagination: VFC<PaginationProps> = ({
       const _page = index + 1;
       return (
         <button
-          className={tw`border-1 w-7 py-0.5 rounded-md text-sm leading-none mr-1 ${
+          type="button"
+          className={tw`border-1 w-7 h-7 py-0.5 rounded-md text-sm leading-none mr-1 ${
             _page === pageNumber ? "border-blue-500 text-blue-500" : ""
           } focus:outline-none`}
           onClick={() => setPageIndex(_page)}
@@ -43,7 +44,7 @@ export const Pagination: VFC<PaginationProps> = ({
       {/* We'd have to think of the various page sizes to work with */}
       <div className={tw`flex items-center text-sm mr-6`}>
         <select
-          className={tw`border-1 mr-1`}
+          className={tw`h-7 rounded-md border-1 mr-1`}
           onChange={(evt) => setPageSize(Number(evt.target.value))}
           value={pageSize}
         >

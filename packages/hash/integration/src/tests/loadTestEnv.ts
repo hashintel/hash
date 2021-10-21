@@ -1,6 +1,6 @@
 // Load the test environment variables
-[
-  { name: "PORT", value: "5003" },
-  { name: "SESSION_SECRET", value: "secret" },
-  { name: "FRONTEND_DOMAIN", value: "localhost:3000" },
-].map(({ name, value }) => (process.env[name] = value));
+Object.assign(process.env, {
+  PORT: "5003",
+  SESSION_SECRET: "secret",
+  FRONTEND_DOMAIN: "localhost:3000",
+});

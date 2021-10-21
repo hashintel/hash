@@ -12,16 +12,17 @@ import Loader from "./svgs/Loader";
 import Pencil from "./svgs/Pencil";
 import Cross from "./svgs/Cross";
 
-type UploadImageParamsType = {
+type UploadFileParamsType = {
   file?: File;
-  imgURL?: string;
+  url?: string;
+  mime?: string;
 };
 
 type AppProps = {
   initialSrc?: string;
   initialCaption?: string;
   initialWidth?: number;
-  uploadImage: (uploadImageParams: UploadImageParamsType) => Promise<{
+  uploadFile: (uploadFileParams: UploadFileParamsType) => Promise<{
     src?: string;
   }>;
   entityId: string;
@@ -32,12 +33,14 @@ const placeholderText = "Enter Image URL";
 const buttonText = "Embed Image";
 const bottomText = "Works with web-supported image formats";
 
+const IMG_MIME_TYPE = "image/*";
+
 export const Image: BlockComponent<AppProps> = (props) => {
   const {
     initialSrc,
     initialCaption,
+    uploadFile,
     initialWidth,
-    uploadImage,
     entityId,
     entityTypeId,
     update,
@@ -70,7 +73,10 @@ export const Image: BlockComponent<AppProps> = (props) => {
 
   const updateStateObject = useCallback(
     (properties: Partial<typeof stateObject>) => {
-      setStateObject((stateObject) => ({ ...stateObject, ...properties }));
+      setStateObject((prevStateObject) => ({
+        ...prevStateObject,
+        ...properties,
+      }));
     },
     []
   );
@@ -118,9 +124,9 @@ export const Image: BlockComponent<AppProps> = (props) => {
   };
 
   const handleImageUpload = useCallback(
-    (imageProp: { imgURL: string } | { file: FileList[number] }) => {
+    (imageProp: { url: string } | { file: FileList[number] }) => {
       updateStateObject({ loading: true });
-      uploadImage(imageProp)
+      uploadFile({ ...imageProp, mime: IMG_MIME_TYPE })
         .then(({ src }: { src?: string }) => {
           if (isMounted.current) {
             updateStateObject({ loading: false });
@@ -134,7 +140,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
           })
         );
     },
-    [updateData, updateStateObject, uploadImage]
+    [updateData, updateStateObject, uploadFile]
   );
 
   const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -146,7 +152,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
     }
 
     if (inputText?.trim()) {
-      handleImageUpload({ imgURL: inputText });
+      handleImageUpload({ url: inputText });
     } else {
       displayError("Please enter a valid image URL or select a file below");
     }
@@ -193,9 +199,8 @@ export const Image: BlockComponent<AppProps> = (props) => {
           />
         </div>
         <button
-          onClick={() => {
-            resetComponent();
-          }}
+          type="button"
+          onClick={resetComponent}
           className={tw`ml-2 bg-gray-100 p-1.5 border-1 border-gray-300 rounded-sm self-start`}
         >
           <Pencil />
@@ -217,6 +222,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
               {stateObject.errorString}
             </span>
           </div>
+          {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
           <span
             onClick={() => updateStateObject({ errorString: null })}
             className={tw`absolute top-0 bottom-0 right-0 px-4 py-3`}
@@ -258,6 +264,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
             />
           </div>
           <div>
+            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
             <label htmlFor={randomId}>
               <div
                 className={tw`my-4 bg-gray-50 border-2 border-dashed border-gray-200 py-4 text-sm text-gray-400 cursor-pointer`}
@@ -270,7 +277,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
               id={randomId}
               className={tw`hidden`}
               type="file"
-              accept="image/*"
+              accept={IMG_MIME_TYPE}
               onChange={onFileSelect}
             />
           </div>

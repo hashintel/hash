@@ -8,7 +8,10 @@ import styles from "./playground.module.scss";
 const validator = new Validator();
 
 const PassOrFail: VoidFunctionComponent<{ pass: boolean }> = ({ pass }) => (
-  <img src={pass ? "/green-check.png" : "/red-cross.png"} />
+  <img
+    alt={pass ? "green-check" : "red-cross"}
+    src={pass ? "/green-check.png" : "/red-cross.png"}
+  />
 );
 
 const BlockPlayground = () => {
@@ -33,11 +36,14 @@ const BlockPlayground = () => {
     setError("");
     fetch(`${folderUrl}/metadata.json`)
       .then((resp) => resp.json())
-      .then((metadata) => {
-        metadata.source = `${folderUrl}/${metadata.source}`;
-        metadata.schema = `${folderUrl}/${metadata.schema}`;
-        setMetadata(metadata);
-        fetch(metadata.schema)
+      .then((resMetadata) => {
+        const updatedMetadata = {
+          ...resMetadata,
+          source: `${folderUrl}/${resMetadata.source}`,
+          schema: `${folderUrl}/${resMetadata.schema}`,
+        };
+        setMetadata(updatedMetadata);
+        fetch(updatedMetadata.schema)
           .then((resp) => resp.json())
           .then(setSchema)
           .catch(() => {});
@@ -95,6 +101,7 @@ const BlockPlayground = () => {
   return (
     <div className={styles.PlaygroundWrapper}>
       <div className={`${styles.PlaygroundSection} ${styles.UrlEntry}`}>
+        {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
         <label>URL to block folder</label>
         <input
           type="text"
@@ -110,6 +117,7 @@ const BlockPlayground = () => {
       <div className={`${styles.BlockDisplay} ${styles.PlaygroundSection}`}>
         <div className={styles.BlockInterface}>
           <div className={styles.BlockDataInput}>
+            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
             <label>Data to send block</label>
             <textarea
               className="language-json"
@@ -133,6 +141,7 @@ const BlockPlayground = () => {
           </div>
 
           <div className="language-json">
+            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
             <label>Block interface schema</label>
             <pre>
               <code>{JSON.stringify(schema, undefined, 2)}</code>
@@ -140,6 +149,7 @@ const BlockPlayground = () => {
           </div>
 
           <div className="language-json">
+            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
             <label>Block variants</label>
             <pre>
               <code>
@@ -150,6 +160,7 @@ const BlockPlayground = () => {
         </div>
 
         <div className={styles.RenderedBlock}>
+          {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
           <label>Rendered block {metadata?.name && `- ${metadata.name}`}</label>
           <div>
             {!metadata.source ? (

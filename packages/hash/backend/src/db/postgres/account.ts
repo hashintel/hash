@@ -40,9 +40,9 @@ export const getEntityAccountId = async (
       `)
       : await conn.one(sql`
         select account_id from entity_account
-        where entity_id = ${entityId}
+        where entity_id = ${entityId} limit 1
       `);
-    return row["account_id"] as string;
+    return row.account_id as string;
   } catch (err) {
     if (err instanceof NotFoundError) {
       throw new DbEntityNotFoundError({ entityId, entityVersionId });
@@ -88,15 +88,15 @@ export const getEntityAccountIdMany = async (
   ]);
 
   const result1 = rows1.map((row) => ({
-    accountId: row["account_id"] as string,
-    entityId: row["entity_id"] as string,
+    accountId: row.account_id as string,
+    entityId: row.entity_id as string,
     entityVersionId: undefined as string | undefined,
   }));
 
   const result2 = rows2.map((row) => ({
-    accountId: row["account_id"] as string,
-    entityId: row["entity_id"] as string,
-    entityVersionId: row["entity_version_id"] as string | undefined,
+    accountId: row.account_id as string,
+    entityId: row.entity_id as string,
+    entityVersionId: row.entity_version_id as string | undefined,
   }));
 
   // Return in same order as params.ids

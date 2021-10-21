@@ -9,9 +9,13 @@ export const entityTypeTypedef = gql`
     """
     getEntityType(entityTypeId: ID!): EntityType!
     """
-    Get all EntityTypes belonging to an account
+    Get all EntityTypes belonging to an account.
+    Optionally include types in use by the account, but belonging to other accounts.
     """
-    getAccountEntityTypes(accountId: ID!): [EntityType!]!
+    getAccountEntityTypes(
+      accountId: ID!
+      includeOtherTypesInUse: Boolean = false
+    ): [EntityType!]!
   }
 
   extend type Mutation {

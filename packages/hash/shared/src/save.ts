@@ -1,7 +1,9 @@
-import { Node as ProsemirrorNode, Schema } from "prosemirror-model";
-import { EntityStore, EntityStoreType, isBlockEntity } from "./entityStore";
+/* eslint-disable no-param-reassign */
 import { ApolloClient } from "@apollo/client";
-import { updatePageContents } from "./queries/page.queries";
+import { isEqual, uniqBy } from "lodash";
+import { Schema } from "prosemirror-model";
+import { BlockEntity, getTextEntityFromBlock } from "./entity";
+import { EntityStore, EntityStoreType, isBlockEntity } from "./entityStore";
 import {
   SystemTypeName,
   TextPropertiesText,
@@ -9,8 +11,8 @@ import {
   UpdatePageContentsMutation,
   UpdatePageContentsMutationVariables,
 } from "./graphql/apiTypes.gen";
-import { isEqual, omit, uniqBy } from "lodash";
-import { BlockEntity } from "./types";
+import { ProsemirrorNode } from "./node";
+import { updatePageContents } from "./queries/page.queries";
 import {
   entityIdExists,
   EntityNode,
@@ -30,9 +32,9 @@ const nodeToEntityProperties = (node: ProsemirrorNode<Schema>) => {
 
         texts.push({
           text: child.text ?? "",
-          bold: marks.has("strong"),
-          italics: marks.has("em"),
-          underline: marks.has("underlined"),
+          ...(marks.has("strong") ? { bold: true } : {}),
+          ...(marks.has("em") ? { italics: true } : {}),
+          ...(marks.has("underlined") ? { underline: true } : {}),
         });
       }
     });
@@ -72,7 +74,7 @@ const removeBlocks = defineOperation(
 
     const removedBlockEntities = entities
       .map((block, position) => [block, position] as const)
-      .filter(([block]) => !draftBlockEntityIds.has(block.metadataId));
+      .filter(([block]) => !draftBlockEntityIds.has(block.entityId));
 
     const updatedEntities = entities.filter(
       (_, position) =>
@@ -108,7 +110,7 @@ const moveBlocks = defineOperation(
     for (let position = 0; position < entities.length; position++) {
       const block = entities[position];
       const positionInDoc = entitiesWithoutNewBlocks.findIndex(
-        (node) => node.attrs.entityId === block.metadataId
+        (node) => node.attrs.entityId === block.entityId
       );
 
       if (positionInDoc < 0) {
@@ -212,7 +214,7 @@ const updateBlocks = defineOperation(
             throw new Error("Non-block entity found when saving");
           }
 
-          const childEntityId = savedEntity.properties.entity.metadataId;
+          const childEntityId = savedEntity.properties.entity.entityId;
           const savedChildEntity = entityStore[childEntityId];
 
           if (!savedChildEntity) {
@@ -221,7 +223,7 @@ const updateBlocks = defineOperation(
 
           // @todo could probably get this from entity store
           const existingBlock = entities.find(
-            (existingBlock) => existingBlock.metadataId === entityId
+            (entity) => entity.entityId === entityId
           );
 
           if (!existingBlock) {
@@ -234,11 +236,11 @@ const updateBlocks = defineOperation(
           if (componentId !== existingBlock.properties.componentId) {
             updates.push({
               updateEntity: {
-                entityId: entityId,
+                entityId,
                 accountId: savedEntity.accountId,
                 properties: {
-                  componentId: componentId,
-                  entityId: savedChildEntity.metadataId,
+                  componentId,
+                  entityId: savedChildEntity.entityId,
                   accountId: savedChildEntity.accountId,
                 },
               },
@@ -246,23 +248,22 @@ const updateBlocks = defineOperation(
           }
 
           if (node.type.isTextblock) {
-            const texts =
-              "textProperties" in existingBlock.properties.entity
-                ? existingBlock.properties.entity.textProperties.texts
-                : undefined;
+            const textEntity = getTextEntityFromBlock(savedEntity);
 
+            if (!textEntity) {
+              throw new Error(
+                "invariant: text entity missing for updating text node"
+              );
+            }
+
+            const { texts } = textEntity.properties;
             const entityProperties = nodeToEntityProperties(node);
 
-            if (
-              !isEqual(
-                texts?.map((text) => omit(text, "__typename")),
-                entityProperties?.texts
-              )
-            ) {
+            if (!isEqual(texts, entityProperties?.texts)) {
               updates.push({
                 updateEntity: {
-                  entityId: childEntityId,
-                  accountId: savedChildEntity.accountId,
+                  entityId: textEntity.entityId,
+                  accountId: textEntity.accountId,
                   properties: entityProperties,
                 },
               });
@@ -322,7 +323,7 @@ const calculateSaveActions = (
 
 export const updatePageMutation = async (
   accountId: string,
-  metadataId: string,
+  entityId: string,
   doc: ProsemirrorNode<Schema>,
   blocks: BlockEntity[],
   entityStore: EntityStore,
@@ -334,7 +335,7 @@ export const updatePageMutation = async (
     UpdatePageContentsMutation,
     UpdatePageContentsMutationVariables
   >({
-    variables: { actions, accountId, entityId: metadataId },
+    variables: { actions, accountId, entityId },
     mutation: updatePageContents,
   });
 

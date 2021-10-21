@@ -4,56 +4,69 @@
  */
 import React from "react";
 import ReactDOM from "react-dom";
-import Component from "./index";
 import { tw } from "twind";
+import Component from "./index";
 
 const node = document.getElementById("app");
 
 const App = () => {
-  const uploadImage = async ({
+  const uploadFile = async ({
     file,
-    imgURL,
+    url,
+    mime,
   }: {
     file?: File;
-    imgURL?: string;
+    url?: string;
+    mime?: string;
   }): Promise<{
     src?: string;
-    error?: string;
   }> => {
-    if (imgURL?.trim()) {
-      return { src: imgURL };
+    if (url?.trim()) {
+      return { src: url };
     }
 
-    if (file) {
-      return new Promise((resolve) => {
-        const reader = new FileReader();
+    if (!file) {
+      let fileType = "";
 
-        reader.onload = function (event) {
-          if (event.target?.result) {
-            resolve({ src: event.target.result.toString() });
-          } else {
-            resolve({ error: "Couldn't read your file" });
-          }
-        };
+      if (mime) {
+        if (mime.includes("image")) {
+          fileType = "Image";
+        }
 
-        reader.readAsDataURL(file);
-      });
+        if (mime.includes("video")) {
+          fileType = "Video";
+        }
+      }
+
+      throw new Error(
+        `Please enter a valid  ${
+          fileType ? `${fileType} ` : ""
+        }URL or select a file below`
+      );
     }
 
-    return {
-      error: "Please enter a valid image URL or select a file below",
-    };
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          resolve({ src: event.target.result.toString() });
+        } else {
+          reject(new Error("Couldn't read your file"));
+        }
+      };
+
+      reader.readAsDataURL(file);
+    });
   };
 
   return (
     <div className={tw`mt-5`}>
       <Component
-        initialSrc={
-          "https://www.google.com/logos/doodles/2021/doodle-champion-island-games-july-26-6753651837109017-s.png"
-        }
-        initialCaption={"ASDASDASDSAD"}
-        entityId={"entity-asdasd"}
-        uploadImage={uploadImage}
+        initialSrc="https://www.google.com/logos/doodles/2021/doodle-champion-island-games-july-26-6753651837109017-s.png"
+        initialCaption="ASDASDASDSAD"
+        entityId="entity-asdasd"
+        uploadFile={uploadFile}
       />
     </div>
   );

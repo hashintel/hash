@@ -11,7 +11,7 @@ export const PageSidebar: VoidFunctionComponent = () => {
   const router = useRouter();
   const { accountId, pageId } = router.query as Record<string, string>;
 
-  const goToAccount = (accountId: string) => router.push(`/${accountId}`);
+  const goToAccount = (id: string) => router.push(`/${id}`);
 
   return (
     <nav className={styles.PageSidebar}>
@@ -24,7 +24,7 @@ export const PageSidebar: VoidFunctionComponent = () => {
       <div className={styles.PageSidebar__Section}>
         <header className={styles.PageSidebar__Section__Header}>
           <h2>Pages</h2>
-          <AccountPageList currentPageMetaId={pageId} accountId={accountId} />
+          <AccountPageList currentPageEntityId={pageId} accountId={accountId} />
         </header>
       </div>
       <div className={styles.PageSidebar__Section}>

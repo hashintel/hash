@@ -126,12 +126,14 @@ class __EntityType {
         return new EntityType(entityTypeType);
       });
 
-  static getEntityTypes = (db: DBClient) => (args: { accountId: string }) =>
-    db
-      .getEntityTypes(args)
-      .then((types) =>
-        types.map((dbType) => new EntityType(dbType).toGQLEntityType())
-      );
+  static getAccountEntityTypes =
+    (db: DBClient) =>
+    (args: { accountId: string; includeOtherTypesInUse?: boolean | null }) =>
+      db
+        .getAccountEntityTypes(args)
+        .then((types) =>
+          types.map((dbType) => new EntityType(dbType).toGQLEntityType())
+        );
 
   toGQLEntityType = (): EntityTypeWithoutTypeFields => ({
     id: this.entityVersionId,

@@ -1,12 +1,11 @@
-import React, { VFC, useState } from "react";
+import React, { VFC, useState, useRef } from "react";
 import { tw } from "twind";
 
+import { unstable_batchedUpdates } from "react-dom";
 import Logo from "../../../../assets/svg/logo.svg";
 import IconInfo from "../../../Icons/IconInfo";
 import { IconSpinner } from "../../../Icons/IconSpinner";
 import { useShortnameInput } from "../../../hooks/useShortnameInput";
-import { useRef } from "react";
-import { unstable_batchedUpdates } from "react-dom";
 
 type AccountSetupProps = {
   updateUserDetails: (shortname: string, preferredName: string) => void;
@@ -53,6 +52,7 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
 
         <form onSubmit={handleSubmit}>
           <div className={tw`mb-8`}>
+            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
             <label className={tw`block font-bold uppercase mb-2`}>
               Personal Username
             </label>
@@ -64,7 +64,7 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
               </strong>
             </p>
             <div className={tw`flex items-center`}>
-              <div className={`relative`}>
+              <div className="relative">
                 <input
                   ref={shortnameInputRef}
                   autoFocus
@@ -127,6 +127,7 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
             </div>
           </div>
           <div className={tw`mb-14`}>
+            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
             <label className={tw`block font-bold uppercase mb-2`}>
               Preferred name{" "}
               <span className={tw`font-normal`}>or first name</span>
@@ -152,6 +153,7 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
           </div>
 
           <button
+            type="submit"
             className={tw`group w-64 bg-gradient-to-r from-blue-400 via-blue-500 to-pink-500 rounded-lg h-11 transition-all disabled:opacity-50 flex items-center justify-center text-white text-sm font-bold`}
             disabled={!preferredName || !isShortnameValid || loading}
           >

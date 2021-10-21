@@ -11,7 +11,7 @@ servers, which are hosted outside the container.
    ```
 2. Add the `packages/hash/docker/.env` file (found in the 1Password "HASH.dev/ai" vault with the name "HASH.dev backend .env")
 3. Run `yarn install`
-4. Start the backend (and seed the db if necessary)
+4. Start the backend and seed the db if necessary (see instructions below)
 5. Install the frontend and blocks
 6. Start the frontend and blocks
 
@@ -46,9 +46,9 @@ The following programs must be present on your development system:
 
 See the [docker/README](./docker) for further details.
 
-## Install the frontend and required remote blocks
+## Build blocks
 
-`yarn install:demo`
+`yarn build-blocks`
 
 ## Start the frontend and required blocks
 
@@ -112,8 +112,15 @@ The below `package.json` file outlines the minimum requirements a package has to
     "@hashintel/prettier-config": "*",
     "@typescript-eslint/eslint-plugin": "4.29.0",
     "@typescript-eslint/parser": "4.29.0",
-    "eslint": "7.32.0",
+    "eslint": "^7.32.0",
+    "eslint-config-airbnb": "^18.2.1",
     "eslint-config-prettier": "8.3.0",
+    "eslint-plugin-import": "^2.24.2",
+    "eslint-plugin-jest": "24.5.0",
+    "eslint-plugin-jsx-a11y": "^6.4.1",
+    "eslint-plugin-no-restricted-imports": "0.0.0",
+    "eslint-plugin-react": "^7.25.1",
+    "eslint-plugin-react-hooks": "4.2.0",
     "prettier": "2.3.2",
     "rimraf": "3.2.0",
     "typescript": "4.3.5"
@@ -130,19 +137,6 @@ be linted.
 ### Can't log in / not receiving an email
 
 Make sure you have the `.env` file added at `packages/hash/docker/.env`
-
-### npm-run-all
-
-When running this command you may encounter an error along the lines of
-
-```sh
-$ npx npm-run-all -p install:header ...
-Watching .../repos/dev and all sub-directories not excluded by your .gitignore. Will not monitor dotfiles.
-Found & ignored ./.git/logs ; is listed in .gitignore
-Found & ignored ./node_modules ; is listed in .gitignore
-```
-
-You will have to downgrade your npm version using `npm i -g npm@6` as described [here](https://github.com/mysticatea/npm-run-all/issues/196#issuecomment-813599087)
 
 ### eslint `parserOptions.project`
 

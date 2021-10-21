@@ -64,7 +64,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     }, 5000);
   }
 
-  /** Close all connections to the database. This function is idempotent.*/
+  /** Close all connections to the database. This function is idempotent. */
   async close() {
     if (this.pool.getPoolState().ended) {
       return;
@@ -227,6 +227,13 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return this.query((adapter) => adapter.getVerificationCode(params));
   }
 
+  getUserVerificationCodes(params: {
+    userEntityId: string;
+    createdAfter?: Date;
+  }): Promise<VerificationCode[]> {
+    return this.query((adapter) => adapter.getUserVerificationCodes(params));
+  }
+
   incrementVerificationCodeAttempts(params: {
     id: string;
     userId: string;
@@ -250,6 +257,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   getEntityHistory(params: {
     accountId: string;
     entityId: string;
+    order: "asc" | "desc";
   }): Promise<EntityVersion[]> {
     return this.query((adapter) => adapter.getEntityHistory(params));
   }
@@ -264,10 +272,21 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return this.query((adapter) => adapter.getEntities(entities));
   }
 
-  getEntityTypes(params: { accountId: string }): Promise<EntityType[]> {
-    return this.query((adapter) => adapter.getEntityTypes(params));
+  getAccountEntityTypes(params: {
+    accountId: string;
+    includeOtherTypesInUse?: boolean | null;
+  }): Promise<EntityType[]> {
+    return this.query((adapter) => adapter.getAccountEntityTypes(params));
   }
 
-  acquireEntityLock = (params: { entityId: string }): Promise<null> =>
-    this.query((adapter) => adapter.acquireEntityLock(params));
+  acquireEntityLock = (params: { entityId: string }): Promise<null> => {
+    return this.query((adapter) => adapter.acquireEntityLock(params));
+  };
+
+  getImpliedEntityHistory = (params: {
+    accountId: string;
+    entityId: string;
+  }) => {
+    return this.query((adapter) => adapter.getImpliedEntityHistory(params));
+  };
 }

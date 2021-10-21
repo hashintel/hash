@@ -15,22 +15,22 @@ const entityTypeFieldPrefix = "type.";
 /** maps a postgres row to its corresponding Entity object */
 export const mapPGRowToEntity = (row: QueryResultRowType): Entity => {
   const entity: Omit<Entity, "entityType"> & { entityType?: EntityType } = {
-    accountId: row["account_id"] as string,
-    entityId: row["entity_id"] as string,
-    entityVersionId: row["entity_version_id"] as string,
-    createdById: row["created_by"] as string,
+    accountId: row.account_id as string,
+    entityId: row.entity_id as string,
+    entityVersionId: row.entity_version_id as string,
+    createdById: row.created_by as string,
     entityTypeId: row["type.entity_type_id"] as string,
     entityTypeName: (row["type.properties"] as any)
       ?.title /** @see https://github.com/gajus/slonik/issues/275 */,
-    entityTypeVersionId: row["entity_type_version_id"] as string,
-    properties: row["properties"],
+    entityTypeVersionId: row.entity_type_version_id as string,
+    properties: row.properties,
     metadata: {
-      versioned: row["versioned"] as boolean,
-      extra: row["extra"],
+      versioned: row.versioned as boolean,
+      extra: row.extra,
     },
-    entityCreatedAt: new Date(row["entity_created_at"] as number),
-    entityVersionCreatedAt: new Date(row["version_created_at"] as number),
-    entityVersionUpdatedAt: new Date(row["version_updated_at"] as number),
+    entityCreatedAt: new Date(row.entity_created_at as number),
+    entityVersionCreatedAt: new Date(row.version_created_at as number),
+    entityVersionUpdatedAt: new Date(row.version_updated_at as number),
     visibility: Visibility.Public /** @todo implement this */,
   };
 
@@ -124,7 +124,7 @@ const selectEntitiesAllVersions = (params: {
  * @param params.entityTypeId the entity type id to return entities of
  * @param params.entityTypeVersionId optionally limit to entities of a specific version of a type
  * @param params.accountId the account to retrieve entities from
- **/
+ * */
 const selectEntitiesByType = (params: {
   entityTypeId: string;
   entityTypeVersionId?: string;
@@ -148,7 +148,7 @@ const selectEntitiesByType = (params: {
 
 /** Get an entity. The optional argument `lock` may be set to `true` to lock
  *  the entity for selects or updates until the transaction completes. Returns
- * `undefined` if the entity does not exist in the given account.*/
+ * `undefined` if the entity does not exist in the given account. */
 export const getEntity = async (
   conn: Connection,
   params: { accountId: string; entityVersionId: string },
@@ -354,6 +354,7 @@ export const getEntityHistory = async (
   params: {
     accountId: string;
     entityId: string;
+    order: "asc" | "desc";
   }
 ): Promise<EntityVersion[]> => {
   const rows = await conn.any(sql`
@@ -363,12 +364,14 @@ export const getEntityHistory = async (
     where
       account_id = ${params.accountId}
       and entity_id = ${params.entityId}
-    order by created_at desc
+    order by created_at ${params.order === "asc" ? sql`asc` : sql`desc`}
   `);
   return rows.map((row) => ({
-    entityVersionId: row["entity_version_id"] as string,
-    createdAt: new Date(row["created_at"] as string),
-    createdById: row["created_by"] as string,
+    entityId: params.entityId,
+    accountId: params.accountId,
+    entityVersionId: row.entity_version_id as string,
+    createdAt: new Date(row.created_at as string),
+    createdById: row.created_by as string,
   }));
 };
 
@@ -425,8 +428,8 @@ export const getEntities = async (
 
   const entities = (
     await Promise.all(
-      Array.from(idsByAccount.entries()).map(([accountId, ids]) =>
-        getEntitiesInAccount(conn, { accountId, ids })
+      Array.from(idsByAccount.entries()).map(([accountId, idsInAccount]) =>
+        getEntitiesInAccount(conn, { accountId, ids: idsInAccount })
       )
     )
   ).flat();
@@ -439,10 +442,8 @@ export const getEntities = async (
     const latest = latestLookup.get(entity.entityId);
     if (!latest) {
       latestLookup.set(entity.entityId, entity);
-    } else {
-      if (latest.entityCreatedAt < entity.entityCreatedAt) {
-        latestLookup.set(entity.entityId, entity);
-      }
+    } else if (latest.entityCreatedAt < entity.entityCreatedAt) {
+      latestLookup.set(entity.entityId, entity);
     }
   }
   return ids
@@ -452,6 +453,22 @@ export const getEntities = async (
         : latestLookup.get(id.entityId)
     )
     .filter((entity): entity is Entity => !!entity);
+};
+
+// Convert a string to a numeric hash code.
+const hashCode = (str: string) => {
+  let hash = 0;
+  if (str.length === 0) {
+    return hash;
+  }
+  for (let i = 0; i < str.length; i++) {
+    const chr = str.charCodeAt(i);
+    // eslint-disable-next-line no-bitwise
+    hash = (hash << 5) - hash + chr;
+    // eslint-disable-next-line no-bitwise
+    hash |= 0; // Convert to 32bit integer
+  }
+  return hash;
 };
 
 /**
@@ -467,20 +484,6 @@ export const acquireEntityLock = async (
   conn
     .query(sql`select pg_advisory_xact_lock(${hashCode(params.entityId)})`)
     .then((_) => null);
-
-// Convert a string to a numeric hash code.
-const hashCode = (str: string) => {
-  let hash = 0;
-  if (str.length === 0) {
-    return hash;
-  }
-  for (let i = 0; i < str.length; i++) {
-    const chr = str.charCodeAt(i);
-    hash = (hash << 5) - hash + chr;
-    hash |= 0; // Convert to 32bit integer
-  }
-  return hash;
-};
 
 /** Update the properties of the provided entity by creating a new version.
  * @throws `DbEntityNotFoundError` if the entity does not exist.

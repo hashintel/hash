@@ -1,27 +1,6 @@
 {
   "parserOptions": {
-    "jsx": true,
-    "useJSXTextNode": true,
     "project": ["./tsconfig.json"]
   },
-  "plugins": ["@typescript-eslint", "react-hooks", "react"],
-  "rules": {
-    "react-hooks/rules-of-hooks": "error",
-    "react-hooks/exhaustive-deps": [
-      "warn",
-      {
-        "additionalHooks": "(^useModal$)|(^useUserGatedEffect$)"
-      }
-    ],
-    "react/jsx-key": "error",
-    "react/jsx-no-useless-fragment": "error",
-    "react/self-closing-comp": "warn",
-    "no-restricted-imports": ["error", {
-      "paths": [{
-        "name": "@testing-library/react",
-        "importNames": ["render"],
-        "message": "Please use ./src/tests/testUtils.tsx#render instead"
-      }]
-    }]
-  }
+  "plugins": ["@typescript-eslint"]
 }

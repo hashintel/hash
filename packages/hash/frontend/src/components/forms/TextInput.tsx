@@ -1,6 +1,6 @@
 import { ChangeEvent, forwardRef } from "react";
-import { InputLabelWrapper } from "./InputLabelWrapper";
 import { tw } from "twind";
+import { InputLabelWrapper } from "./InputLabelWrapper";
 
 type TextInputProps = {
   disallowRegExp?: RegExp;

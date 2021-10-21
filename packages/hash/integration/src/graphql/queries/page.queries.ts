@@ -1,4 +1,4 @@
-import { gql } from "@apollo/client";
+import gql from "graphql-tag";
 
 const pageFieldsFragment = gql`
   fragment PageFields on Page {
@@ -21,25 +21,7 @@ const pageFieldsFragment = gql`
         accountId
         properties {
           componentId
-          entity {
-            __typename
-            id
-            accountId
-            metadataId
-            ... on UnknownEntity {
-              unknownProperties: properties
-            }
-            ... on Text {
-              textProperties: properties {
-                texts {
-                  text
-                  bold
-                  underline
-                  italics
-                }
-              }
-            }
-          }
+          entity
         }
       }
     }

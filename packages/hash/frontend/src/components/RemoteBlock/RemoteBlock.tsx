@@ -6,7 +6,7 @@ import { HtmlBlock } from "../HtmlBlock/HtmlBlock";
 import { useBlockProtocolUpdate } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdate";
 import { cloneEntityTreeWithPropertiesMovedUp } from "../../lib/entities";
 import { fetchEmbedCode } from "./fetchEmbedCode";
-import { uploadImage } from "./uploadImage";
+import { uploadFile } from "./uploadFile";
 
 type RemoteBlockProps = {
   url: string;
@@ -52,7 +52,9 @@ export const RemoteBlock: VoidFunctionComponent<
         ...updateData[0],
         accountId: props.accountId,
       },
-    ])?.catch((err) => console.error("Could not update entity: ", err));
+    ])?.catch((updateError) =>
+      console.error("Could not update entity: ", updateError)
+    );
   };
 
   return (
@@ -63,7 +65,7 @@ export const RemoteBlock: VoidFunctionComponent<
       getEmbedBlock={fetchEmbedCode}
       editableRef={props.editableRef}
       entityId={props.childEntityId}
-      uploadImage={uploadImage}
+      uploadFile={uploadFile}
     />
   );
 };

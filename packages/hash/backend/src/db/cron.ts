@@ -1,9 +1,9 @@
 import { CronJob } from "cron";
-import { PRUNE_AGE_MS } from "../model";
 import { Logger } from "winston";
+import { PRUNE_AGE_MS } from "../model";
 import { DBAdapter } from "./adapter";
 
-export const setupCronJobs = (db: DBAdapter, logger: Logger) => {
+export const setupCronJobs = (db: DBAdapter, logger: Logger) => [
   // Once a day (at 5am) prune expired verification codes from the datastore
   new CronJob(
     "0 0 5 * * *",
@@ -17,5 +17,5 @@ export const setupCronJobs = (db: DBAdapter, logger: Logger) => {
         ),
     null,
     true
-  );
-};
+  ),
+];

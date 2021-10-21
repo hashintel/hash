@@ -108,8 +108,8 @@ export const getEntityParentIds = async (
   `);
 
   return rows.map((row) => ({
-    accountId: row["account_id"] as string,
-    entityId: row["entity_id"] as string,
+    accountId: row.account_id as string,
+    entityId: row.entity_id as string,
   }));
 };
 
@@ -162,4 +162,47 @@ export const insertLinks = async (conn: Connection, entity: Entity) => {
       }))
     ),
   ]);
+};
+
+export type OutgoingLink = {
+  accountId: string;
+  entityId: string;
+  entityVersionId?: string;
+  validForSrcEntityVersionIds: Set<string>;
+};
+
+/** Get the outgoing links made by an entity. Returns an array of objects with the
+ * following fields:
+ *   1. `accountId`: the account ID of the linked entity
+ *   2. `entityId`: the entity ID of the linked entity
+ *   3. `entityVersionId`: `undefined` if the link does not specify a specific version ID
+ *   4. `validForSrcEntityVersionIds`: a `Set` of version IDs for `params.entityId` for
+ *       which the link is valid.
+ */
+export const getEntityOutgoingLinks = async (
+  conn: Connection,
+  params: { accountId: string; entityId: string }
+): Promise<OutgoingLink[]> => {
+  const rows = await conn.any(sql`
+    select
+      dst_account_id, dst_entity_id, dst_entity_version_id, src_entity_version_ids
+    from
+      outgoing_links
+    where
+      src_account_id = ${params.accountId}
+      and src_entity_id = ${params.entityId}
+  `);
+  return rows.map((row) => {
+    const dstEntityVersionId = row.dst_entity_version_id as string;
+    return {
+      accountId: row.dst_account_id as string,
+      entityId: row.dst_entity_id as string,
+      entityVersionId:
+        dstEntityVersionId === ZERO_UUID ? undefined : dstEntityVersionId,
+      // The version IDs of `params.entityId` for which this link is valid
+      validForSrcEntityVersionIds: new Set(
+        row.src_entity_version_ids as string[]
+      ),
+    };
+  });
 };

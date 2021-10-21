@@ -1,5 +1,4 @@
-import React, { useEffect, useState } from "react";
-import { useRef, VFC } from "react";
+import React, { useEffect, useState, useRef, VFC } from "react";
 import { tw } from "twind";
 
 import Logo from "../../../../assets/svg/logo.svg";
@@ -69,6 +68,7 @@ export const SignupIntro: VFC<SignupIntroProps> = ({
           </span>
         )}
         <button
+          type="submit"
           className={tw`w-64 bg-white border-1 border(gray-300 hover:gray-500 focus:gray-500) focus:outline-none rounded-lg h-11 flex items-center justify-center text-sm font-bold`}
         >
           {loading ? (

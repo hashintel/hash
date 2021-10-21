@@ -1,12 +1,12 @@
 import { useMutation } from "@apollo/client";
 import { useRouter } from "next/router";
 
+import { createPage } from "@hashintel/hash-shared/queries/page.queries";
 import {
   CreatePageMutation,
   CreatePageMutationVariables,
 } from "../../graphql/apiTypes.gen";
 import { getAccountPages } from "../../graphql/queries/account.queries";
-import { createPage } from "@hashintel/hash-shared/queries/page.queries";
 
 export const useCreatePage = () => {
   const router = useRouter();
@@ -15,10 +15,9 @@ export const useCreatePage = () => {
     CreatePageMutation,
     CreatePageMutationVariables
   >(createPage, {
-    onCompleted: (data) => {
-      const { createPage } = data;
-      const { metadataId, accountId } = createPage;
-      void router.push(`/${accountId}/${metadataId}`);
+    onCompleted: ({ createPage: createdPage }) => {
+      const { entityId, accountId } = createdPage;
+      void router.push(`/${accountId}/${entityId}`);
     },
     refetchQueries: ({ data }) => [
       {

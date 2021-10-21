@@ -1,9 +1,29 @@
 import { JSONObject } from "@hashintel/block-protocol";
-import { UserInputError } from "apollo-server-core";
+import { UserInputError } from "apollo-server-express";
 
 import { CreateEntityArgs } from "../../model";
 import { isSystemType } from "../../types/entityTypes";
 import { exactlyOne } from "../../util";
+import { AggregateOperationInput } from "../apiTypes.gen";
+
+// Where a property needs to resolve to another object or objects of a type,
+// that property should be expressed as this object under a __linkedData key
+// e.g.
+// properties: {
+//   email: "c@hash.ai",
+//   employer: { <-- will be resolved to the data requested in __linkedData
+//     __linkedData: {
+//       entityTypeId: "companyType1",
+//       entityId: "c1"
+//     }
+//   }
+// },
+export type LinkedDataDefinition = {
+  aggregate?: AggregateOperationInput;
+  entityTypeId?: string;
+  entityId?: string;
+  entityVersionId?: string;
+};
 
 /** Builds the argument object for the createEntity function. It checks that exactly
  * one of entityTypeId, entityTypeVersionId or systemTypeName is set, and returns

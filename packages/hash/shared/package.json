@@ -16,8 +16,8 @@
   },
   "prettier": "@hashintel/prettier-config",
   "scripts": {
-    "format": "prettier --write './src/**/*'; eslint --ext .js,.ts,.tsx --fix ./src/",
-    "lint": "prettier --check './src/**/*' || exit 1; eslint --ext .js,.ts,.tsx ./src/; tsc --noEmit # @hashintel/hash-shared",
+    "format": "eslint --ext .js,.ts,.tsx --fix ./src/; prettier --write --list-different './src/**/*'",
+    "lint": "prettier --check './src/**/*' && eslint --ext .js,.ts,.tsx ./src/ && tsc --noEmit # @hashintel/hash-shared",
     "codegen": "graphql-codegen --config codegen.yml",
     "build": "yarn clean; yarn codegen; tsc -b",
     "clean": "rimraf './src/**/*.gen.*' ./dist/ ./tsconfig.tsbuildinfo",
@@ -27,6 +27,7 @@
   "dependencies": {
     "@apollo/client": "3.3.19",
     "@hashintel/block-protocol": "*",
+    "graphql-tag": "2.12.5",
     "jsonschema": "1.4.0",
     "lodash": "4.17.21",
     "node-fetch": "^2.6.1",
@@ -42,7 +43,7 @@
     "prosemirror-schema-list": "1.1.5",
     "prosemirror-state": "1.3.4",
     "prosemirror-transform": "1.3.2",
-    "prosemirror-view": "1.19.3"
+    "prosemirror-view": "1.20.3"
   },
   "devDependencies": {
     "@graphql-codegen/cli": "1.21.5",
@@ -50,7 +51,7 @@
     "@graphql-codegen/typescript": "1.22.1",
     "@graphql-codegen/typescript-operations": "1.18.0",
     "@hashintel/prettier-config": "*",
-    "@types/lodash": "4.14.171",
+    "@types/lodash": "4.14.175",
     "@types/node": "16.7.6",
     "@types/node-fetch": "^2.5.10",
     "@types/prosemirror-commands": "1.0.4",
@@ -64,13 +65,21 @@
     "@types/prosemirror-schema-list": "1.0.3",
     "@types/prosemirror-state": "1.2.7",
     "@types/prosemirror-transform": "1.1.4",
-    "@types/prosemirror-view": "1.19.0",
+    "@types/prosemirror-view": "1.19.1",
     "@typescript-eslint/eslint-plugin": "4.29.0",
     "@typescript-eslint/parser": "4.29.0",
-    "eslint": "7.32.0",
+    "eslint": "^7.32.0",
+    "eslint-config-airbnb": "^18.2.1",
     "eslint-config-prettier": "8.3.0",
+    "eslint-plugin-import": "^2.24.2",
+    "eslint-plugin-jest": "24.5.0",
+    "eslint-plugin-jsx-a11y": "^6.4.1",
+    "eslint-plugin-no-restricted-imports": "0.0.0",
+    "eslint-plugin-react": "^7.25.1",
+    "eslint-plugin-react-hooks": "4.2.0",
     "nodemon": "2.0.12",
     "prettier": "2.3.2",
+    "react": "17.0.2",
     "rimraf": "^3.0.2",
     "typescript": "4.3.5"
   }

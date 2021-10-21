@@ -35,13 +35,18 @@ export const createPostgresConnPool = (
     maximumPoolSize: params.maxPoolSize,
     interceptors: [
       {
-        queryExecutionError: (ctx, _query, error, _notices) => {
+        queryExecutionError: (
+          { queryId, originalQuery, stackTrace },
+          _query,
+          error,
+          _notices
+        ) => {
           logger.error({
             message: "sql_query_error",
-            queryId: ctx.queryId,
-            query: ctx.originalQuery.sql,
+            queryId,
+            query: originalQuery.sql,
             errorMessage: `${error.name}: ${error.message}`,
-            stackTrace: ctx.stackTrace,
+            stackTrace,
           });
           return null;
         },
