@@ -1,9 +1,10 @@
 import { toggleMark } from "prosemirror-commands";
 import { Schema } from "prosemirror-model";
 import { EditorState, NodeSelection, Plugin } from "prosemirror-state";
-import React from "react";
+import React, { CSSProperties } from "react";
 import { RenderPortal } from "../../blocks/page/usePortals";
 import { ensureMounted } from "../../lib/dom";
+import { MarksToolTip } from "./MarksTooltip";
 
 interface MarksTooltipState {
   focused: boolean;
@@ -71,6 +72,9 @@ export function createMarksTooltip(renderPortal: RenderPortal) {
           return false;
         },
       },
+      handleClick: () => {
+        return false
+      }
     },
 
     view(editorView: FixMeLater) {
@@ -84,81 +88,73 @@ export function createMarksTooltip(renderPortal: RenderPortal) {
        *
        * @todo fully rewrite this to use React completely
        */
-      renderPortal(
-        <div
-          ref={(node) => {
-            if (node) {
-              node.appendChild(dom);
-            }
-          }}
-        />,
-        mountNode,
-      );
+      // renderPortal(
+      //   <div
+      //     ref={(node) => {
+      //       if (node) {
+      //         node.appendChild(dom);
+      //       }
+      //     }}
+      //   />,
+      //   mountNode
+      // );
+
+      // const jsx = (
+      //   <div style={{ position: "fixed", top: 20, left: 20 }}>
+      //     <MarksToolTip />
+      //   </div>
+      // );
+
+      // renderPortal(jsx, mountNode);
 
       const updateFns: Function[] = [];
 
-      const button = (name: string, text: string) => {
-        const buttonElement = document.createElement("button");
-
-        buttonElement.innerText = text;
-        dom.appendChild(buttonElement);
-
-        const update = () => {
-          // @todo no idea if this is the best way to get a list of
-          // marks in a selection
-          const marks = new Set();
-          editorView.state.selection
-            .content()
-            .content.descendants((node: FixMeLater) => {
-              for (const mark of node.marks) {
-                marks.add(mark.type.name);
-              }
-
-              return true;
-            });
-
-          const active = marks.has(name);
-
-          buttonElement.style.backgroundColor = active ? "#2482ff" : "white";
-          buttonElement.style.color = active ? "white" : "black";
-          buttonElement.style.padding = "4px 0";
-          buttonElement.style.width = "25px";
-          buttonElement.style.border = "1px solid lightgrey";
-        };
-
-        buttonElement.addEventListener("click", (evt) => {
-          evt.preventDefault();
-          editorView.focus();
-          toggleMark(editorView.state.schema.marks[name])(
-            editorView.state,
-            editorView.dispatch,
-          );
-          update();
-        });
-
-        update();
-        updateFns.push(update);
+      let style: CSSProperties = {
+        // padding: "8px 7px 6px",
+        position: "absolute",
+        zIndex: 1,
+        top: -10000,
+        left: -10000,
+        // marginTop: "-6px",
+        opacity: 0,
+        // backgroundColor: "#222",
+        borderRadius: "4px",
+        transition: "opacity 0.75s",
       };
 
-      dom.style.cssText = `
-        padding: 8px 7px 6px;
-        position: absolute;
-        z-index: 1;
-        top: -10000;
-        left: -10000;
-        margin-top: -6px;
-        opacity: 0;
-        background-color: #222;
-        border-radius: 4px;
-        transition: opacity 0.75s;
-      `;
-      button("strong", "B");
-      button("em", "I");
-      button("underlined", "U");
+      const renderPortalFn = (style: CSSProperties) => {
+        const marks = new Set<string>();
+        editorView.state.selection
+          .content()
+          .content.descendants((node: FixMeLater) => {
+            for (const mark of node.marks) {
+              marks.add(mark.type.name);
+            }
+
+            return true;
+          });
+
+        // todo how to make it rerender
+        const jsx = (
+          <div style={style}>
+            <MarksToolTip
+              marks={marks}
+              toggleMark={(name) => {
+                editorView.focus();
+                toggleMark(
+                  editorView.state.schema.marks[name],
+                  name == "link" ? { href: "https://google.com" } : undefined
+                )(editorView.state, editorView.dispatch);
+              }}
+            />
+          </div>
+        );
+
+        renderPortal(jsx, mountNode);
+      };
 
       const update = (view: FixMeLater, lastState?: FixMeLater) => {
         ensureMounted(mountNode, document.body);
-
         const dragging = !!editorView.dragging;
 
         const state = view.state;
@@ -179,9 +175,14 @@ export function createMarksTooltip(renderPortal: RenderPortal) {
           !selectionContainsText(state) ||
           state.selection.empty
         ) {
-          dom.style.opacity = "0";
-          dom.style.top = "-10000px";
-          dom.style.left = "-10000px";
+          // @todo consider moving styling to react component
+          style = {
+            ...style,
+            opacity: 0,
+            top: "-10000px",
+            left: "-10000px",
+          };
+          renderPortalFn(style);
           return;
         }
 
@@ -198,20 +199,38 @@ export function createMarksTooltip(renderPortal: RenderPortal) {
         const start = view.coordsAtPos(from);
         const end = view.coordsAtPos(to);
 
-        dom.style.opacity = "1";
-        dom.style.top = `${
-          start.top - dom.offsetHeight + document.documentElement.scrollTop
-        }px`;
-        dom.style.left = `${
-          start.left -
-          dom.offsetWidth / 2 +
-          (end.right - start.left) / 2 +
-          document.documentElement.scrollLeft
-        }px`;
+        // style = {
+        //   ...style,
+        //   opacity: 1,
+        //   top: `${
+        //     start.top - 50 + document.documentElement.scrollTop
+        //   }px`,
+        //   left: `${
+        //     start.left -
+        //     dom.offsetWidth / 2 +
+        //     (end.right - start.left) / 2 +
+        //     document.documentElement.scrollLeft
+        //   }px`,
+        // };
+
+
+        style = {
+          ...style,
+          opacity: 1,
+          top: `${start.top + document.documentElement.scrollTop}px`,
+          left: `${
+            start.left +
+            (end.right - start.left) / 2 +
+            document.documentElement.scrollLeft
+          }px`,
+          
+        };
 
         for (const fn of updateFns) {
           fn();
         }
+
+        renderPortalFn(style);
       };
 
       update(editorView);
