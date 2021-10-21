@@ -71,6 +71,37 @@ export const entityTypedef = gql`
     The metadata ID of the entity. This is shared across all versions of the same entity.
     """
     metadataId: ID!
+    """
+    The outgoing links of the entity.
+    """
+    links: [Link!]!
+    """
+    The linked entities of the entity.
+    """
+    linkedEntities: [Entity!]!
+  }
+
+  type Link {
+    """
+    The id of the link.
+    """
+    id: ID!
+    """
+    The entityId of the link's source entity.
+    """
+    sourceEntityId: ID!
+    """
+    The entityId of the link's destination entity.
+    """
+    destinationEntityId: ID!
+    """
+    The entityVersionId of a specific version of the link's destination entity.
+    """
+    destinationEntityTypeId: ID
+    """
+    The JSON path where the link occurs on its source entity's properties.
+    """
+    path: String!
   }
 
   type UnknownEntity implements Entity {
@@ -138,6 +169,14 @@ export const entityTypedef = gql`
     The metadata ID of the entity. This is shared across all versions of the same entity.
     """
     metadataId: ID!
+        """
+    The outgoing links of the entity.
+    """
+    links: [Link!]!
+    """
+    The linked entities of the entity.
+    """
+    linkedEntities: [Entity!]!
     # ENTITY INTERFACE FIELDS END #
   }
 

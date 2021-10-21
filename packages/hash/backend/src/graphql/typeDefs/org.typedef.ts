@@ -66,6 +66,14 @@ export const orgTypedef = gql`
     The metadata ID of the entity. This is shared across all versions of the same entity.
     """
     metadataId: ID!
+    """
+    The outgoing links of the entity.
+    """
+    links: [Link!]!
+    """
+    The linked entities of the entity.
+    """
+    linkedEntities: [Entity!]!
     # ENTITY INTERFACE FIELDS END #
   }
 
