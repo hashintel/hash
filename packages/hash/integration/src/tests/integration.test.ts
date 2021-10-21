@@ -75,14 +75,17 @@ beforeAll(async () => {
   handler = new IntegrationTestsHandler();
   await handler.init();
 
-  db = new PostgresAdapter({
-    host: "localhost",
-    user: "postgres",
-    port: 5432,
-    database: "integration_tests",
-    password: "postgres",
-    maxPoolSize: 10,
-  }, logger);
+  db = new PostgresAdapter(
+    {
+      host: "localhost",
+      user: "postgres",
+      port: 5432,
+      database: "integration_tests",
+      password: "postgres",
+      maxPoolSize: 10,
+    },
+    logger
+  );
 
   transporter = new TestEmailTransporter();
 

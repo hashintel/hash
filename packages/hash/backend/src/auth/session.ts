@@ -38,7 +38,7 @@ export const setupSession = (
     expressSession({
       secret: sessConfig.secret,
       store: new (pgSessionStore(expressSession))({
-        pool: new Pool({ ...pgConfig, max: pgConfig.maximumPoolSize }),
+        pool: new Pool({ ...pgConfig, max: pgConfig.maxPoolSize }),
         // prevents expired db sessions from being removed from the db
         pruneSessionInterval: false,
       }),

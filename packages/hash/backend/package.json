@@ -60,7 +60,7 @@
     "prosemirror-transform": "1.3.2",
     "redis": "3.1.2",
     "rword": "3.2.0",
-    "slonik": "24.0.1"
+    "slonik": "24.1.2"
   },
   "devDependencies": {
     "@graphql-codegen/cli": "1.21.4",

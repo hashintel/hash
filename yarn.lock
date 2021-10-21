@@ -13767,30 +13767,6 @@ slice-ansi@^4.0.0:
     astral-regex "^2.0.0"
     is-fullwidth-code-point "^3.0.0"
 
-slonik@24.0.1:
-  version "24.0.1"
-  resolved "https://registry.yarnpkg.com/slonik/-/slonik-24.0.1.tgz#0eaca823173a0ff1d6ee3a98a9f28445aa8d5273"
-  integrity sha512-OiAB2Jw3V1G0P8OvWp/BkYHPU+6sgWKd/eVTCFTB4CHwqlwWwWBV9ePgF24oSlRKyQsf2Xn+FeLgf0za7a+69Q==
-  dependencies:
-    concat-stream "^2.0.0"
-    es6-error "^4.1.1"
-    get-stack-trace "^2.1.1"
-    hyperid "^2.3.1"
-    is-plain-object "^5.0.0"
-    iso8601-duration "^1.3.0"
-    pg "^8.7.1"
-    pg-connection-string "^2.5.0"
-    pg-copy-streams "^5.1.1"
-    pg-copy-streams-binary "^2.0.1"
-    pg-cursor "^2.7.1"
-    pg-minify "^1.6.2"
-    postgres-array "^3.0.1"
-    postgres-interval "^3.0.0"
-    promise-deferred "^2.0.3"
-    roarr "^7.0.3"
-    serialize-error "^8.1.0"
-    through2 "^4.0.2"
-
 slonik@24.1.2:
   version "24.1.2"
   resolved "https://registry.yarnpkg.com/slonik/-/slonik-24.1.2.tgz#a2986777c3dc8e96b77044a720aa20fcadd2b864"

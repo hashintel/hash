@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "@hashintel/hash-backend-utils": "*",
-    "slonik": "24.0.1"
+    "slonik": "24.1.2"
   },
   "devDependencies": {
     "@types/node": "16.7.6",

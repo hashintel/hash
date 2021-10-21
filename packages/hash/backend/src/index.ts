@@ -45,8 +45,7 @@ const pgConfig = {
   password: getRequiredEnv("HASH_PG_PASSWORD"),
   database: getRequiredEnv("HASH_PG_DATABASE"),
   port: parseInt(getRequiredEnv("HASH_PG_PORT"), 10),
-
-  maximumPoolSize: 10, // @todo: needs tuning
+  maxPoolSize: 10, // @todo: needs tuning
 };
 const db = new PostgresAdapter(pgConfig, logger, statsd);
 
@@ -69,7 +68,7 @@ app.use(json({ limit: "16mb" }));
 setupAuth(
   app,
   { secret: getRequiredEnv("SESSION_SECRET") },
-  { ...pgConfig, maximumPoolSize: 10 },
+  { ...pgConfig, maxPoolSize: 10 },
   db
 );
 

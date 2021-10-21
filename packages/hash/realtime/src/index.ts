@@ -2,11 +2,15 @@ import * as crypto from "crypto";
 import * as http from "http";
 
 import { sql } from "slonik";
-import { Logger } from "@hashintel/hash-backend-utils/logger";
 
+import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { RedisQueueProducer } from "@hashintel/hash-backend-utils/queue/redis";
 import { AsyncRedisClient } from "@hashintel/hash-backend-utils/redis";
-import { getRequiredEnv, createPostgresConnPool, ConnPool } from "./util";
+import {
+  createPostgresConnPool,
+  ConnPool,
+} from "@hashintel/hash-backend-utils/postgres";
+import { getRequiredEnv } from "./util";
 
 // The name of the Postgres logical replication slot
 const SLOT_NAME = "realtime";
