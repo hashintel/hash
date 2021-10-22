@@ -25,7 +25,7 @@ const getEntityTypeType = async (dataSources: GraphQLContext["dataSources"]) =>
 const entityType: Resolver<
   Omit<
     GQLEntityType["entityType"],
-    EntityTypeTypeFields | "links" | "linkedEntities"
+    EntityTypeTypeFields | "links" | "linkedEntities" | "linkedAggregations"
   >,
   EntityTypeMaybeTypeFields,
   GraphQLContext

@@ -167,6 +167,7 @@ export const resolvers = {
     history: entityFields.history,
     links: entityFields.links,
     linkedEntities: entityFields.linkedEntities,
+    linkedAggregations: entityFields.linkedAggregations,
   },
 
   EntityType: {

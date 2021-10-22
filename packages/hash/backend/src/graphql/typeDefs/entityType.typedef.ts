@@ -130,6 +130,10 @@ export const entityTypeTypedef = gql`
     The linked entities of the entity.
     """
     linkedEntities: [Entity!]!
+    """
+    The linked aggregations of the entity.
+    """
+    linkedAggregations: [LinkedAggregation!]!
     # ENTITY INTERFACE FIELDS END #
   }
 `;

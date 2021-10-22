@@ -79,6 +79,10 @@ export const entityTypedef = gql`
     The linked entities of the entity.
     """
     linkedEntities: [Entity!]!
+    """
+    The linked aggregations of the entity.
+    """
+    linkedAggregations: [LinkedAggregation!]!
   }
 
   type Link {
@@ -177,7 +181,17 @@ export const entityTypedef = gql`
     The linked entities of the entity.
     """
     linkedEntities: [Entity!]!
+    """
+    The linked aggregations of the entity.
+    """
+    linkedAggregations: [LinkedAggregation!]!
     # ENTITY INTERFACE FIELDS END #
+  }
+
+  type LinkedAggregation {
+    operation: AggregateOperation
+    results: [Entity!]!
+    path: String!
   }
 
   enum Visibility {

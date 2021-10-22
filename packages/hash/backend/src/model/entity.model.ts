@@ -18,6 +18,7 @@ export type EntityExternalResolvers =
   | "entityType" // resolved in resolvers/entityTypeTypeFields
   | "links" // resolved in resolvers/links
   | "linkedEntities" // resolved in resolvers/linkedEntities
+  | "linkedAggregations" // resovled in resolvers/linkedAggregations
   | "__typename";
 
 export type UnresolvedGQLEntity = Omit<GQLEntity, EntityExternalResolvers> & {

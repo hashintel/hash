@@ -32,7 +32,10 @@ export const parseLinksFromPropertiesObject = (
           .flat();
       }
       if (isRecord(value)) {
-        if (key === "__linkedData") {
+        if (
+          key === "__linkedData" &&
+          !(value as LinkedDataDefinition).aggregate
+        ) {
           const {
             entityId: destinationEntityId,
             entityVersionId: destinationEntityVersionId,
