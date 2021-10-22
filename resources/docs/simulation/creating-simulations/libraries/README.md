@@ -39,5 +39,5 @@ function behavior(state, context) {
 
 ## Scientific Python
 
-HASH provides access to a number of scientific Python packages which can be utilized in simulations. [Read more &gt;](/docs/simulation/libraries/python-packages)
+HASH provides access to a number of scientific Python packages which can be utilized in simulations. [Read more &gt;](/docs/simulation/creating-simulations/libraries/python-packages)
 
