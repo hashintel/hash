@@ -1,4 +1,4 @@
-import { useLazyQuery } from "@apollo/client";
+import { useApolloClient, useLazyQuery } from "@apollo/client";
 
 import { BlockProtocolAggregateFn } from "@hashintel/block-protocol";
 import { aggregateEntity } from "@hashintel/hash-shared/queries/entity.queries";
@@ -10,13 +10,28 @@ import {
 
 export const useBlockProtocolAggregate = (): {
   aggregate: BlockProtocolAggregateFn;
-  aggregateLoading: boolean;
-  aggregateError: any;
+  // aggregateLoading: boolean;
+  // aggregateError: any;
 } => {
-  const [aggregateFn, { loading: aggregateLoading, error: aggregateError }] =
-    useLazyQuery<AggregateEntityQuery, AggregateEntityQueryVariables>(
-      aggregateEntity
-    );
+  const client = useApolloClient();
+  // const [aggregateFn, { loading: aggregateLoading, error: aggregateError }] =
+  //   useLazyQuery<AggregateEntityQuery, AggregateEntityQueryVariables>(
+  //     aggregateEntity
+  //   );
+
+  const aggregateFn = useCallback(
+    (action) =>
+      client.query<AggregateEntityQuery, AggregateEntityQueryVariables>({
+        query: aggregateEntity,
+        variables: {
+          operation: action.operation,
+          entityTypeId: action.entityTypeId,
+          entityTypeVersionId: action.entityTypeVersionId,
+          accountId: action.accountId,
+        },
+      }),
+    [client]
+  );
 
   const aggregate: BlockProtocolAggregateFn = useCallback(
     (action) => {
@@ -25,20 +40,13 @@ export const useBlockProtocolAggregate = (): {
        * useLazyQuery should return a promise as of apollo-client 3.5
        * @see https://github.com/apollographql/apollo-client/issues/7714
        */
-      return new Promise((resolve, reject) => {
-        try {
-          aggregateFn({
-            variables: {
-              operation: action.operation,
-              entityTypeId: action.entityTypeId,
-              entityTypeVersionId: action.entityTypeVersionId,
-              accountId: action.accountId,
-            },
-          });
-          resolve([]);
-        } catch (err) {
-          reject(err);
-        }
+      return aggregateFn({
+        variables: {
+          operation: action.operation,
+          entityTypeId: action.entityTypeId,
+          entityTypeVersionId: action.entityTypeVersionId,
+          accountId: action.accountId,
+        },
       });
     },
     [aggregateFn]
@@ -46,7 +54,7 @@ export const useBlockProtocolAggregate = (): {
 
   return {
     aggregate,
-    aggregateLoading,
-    aggregateError,
+    // aggregateLoading,
+    // aggregateError,
   };
 };
