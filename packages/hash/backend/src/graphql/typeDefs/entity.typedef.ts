@@ -85,29 +85,6 @@ export const entityTypedef = gql`
     linkedAggregations: [LinkedAggregation!]!
   }
 
-  type Link {
-    """
-    The id of the link.
-    """
-    id: ID!
-    """
-    The entityId of the link's source entity.
-    """
-    sourceEntityId: ID!
-    """
-    The entityId of the link's destination entity.
-    """
-    destinationEntityId: ID!
-    """
-    The entityVersionId of a specific version of the link's destination entity.
-    """
-    destinationEntityVersionId: ID
-    """
-    The JSON path where the link occurs on its source entity's properties.
-    """
-    path: String!
-  }
-
   type UnknownEntity implements Entity {
     properties: JSONObject!
 

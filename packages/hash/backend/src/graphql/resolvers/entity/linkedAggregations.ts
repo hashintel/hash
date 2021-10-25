@@ -1,3 +1,4 @@
+import jp from "jsonpath";
 import { UnresolvedGQLEntity } from "../../../model";
 import {
   Resolver,
@@ -20,7 +21,7 @@ import { DbUnknownEntity } from "../../../types/dbTypes";
 
 export const parseAggregationsFromPropertiesObject = (
   propertiesObject: any,
-  path: string
+  path: jp.PathComponent[] = ["$"]
 ): {
   entityTypeId: string;
   operationInput: AggregateOperationInput;
@@ -37,10 +38,11 @@ export const parseAggregationsFromPropertiesObject = (
           return value
             .filter(isRecord)
             .map((arrayItem, i) =>
-              parseAggregationsFromPropertiesObject(
-                arrayItem,
-                `${path}${path ? "." : ""}${key}[${i}]`
-              )
+              parseAggregationsFromPropertiesObject(arrayItem, [
+                ...path,
+                key,
+                i,
+              ])
             )
             .flat();
         }
@@ -50,13 +52,12 @@ export const parseAggregationsFromPropertiesObject = (
               value as LinkedDataDefinition;
 
             if (entityTypeId && operationInput) {
-              return [{ entityTypeId, operationInput, path }];
+              return [
+                { entityTypeId, operationInput, path: jp.stringify(path) },
+              ];
             }
           } else {
-            return parseAggregationsFromPropertiesObject(
-              value,
-              `${path}${path ? "." : ""}${key}`
-            );
+            return parseAggregationsFromPropertiesObject(value, [...path, key]);
           }
         }
 
@@ -79,8 +80,7 @@ export const linkedAggregations: Resolver<
 > = (entity, _, ctx, info) => {
   // Temporarily obtain links by parsing the entity's properties object
   const parsedAggregations = parseAggregationsFromPropertiesObject(
-    entity.properties,
-    ""
+    entity.properties
   );
 
   const { accountId } = entity;

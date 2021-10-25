@@ -1,0 +1,54 @@
+import { gql } from "apollo-server-express";
+
+export const linkTypedef = gql`
+  type Link {
+    """
+    The id of the link.
+    """
+    id: ID!
+    """
+    The accountId of the link's source entity.
+    """
+    sourceAccountId: ID!
+    """
+    The entityId of the link's source entity.
+    """
+    sourceEntityId: ID!
+    """
+    The accountId of the link's source entity.
+    """
+    destinationAccountId: ID!
+    """
+    The entityId of the link's destination entity.
+    """
+    destinationEntityId: ID!
+    """
+    The entityVersionId of a specific version of the link's destination entity - defined
+    if this link is pinned to a specific version of the destination entity. If omitted,
+    the link is to the latest version of the destination entity.
+    """
+    destinationEntityVersionId: ID
+    """
+    The JSON path where the link occurs on its source entity's properties.
+    """
+    path: String!
+  }
+
+  extend type Mutation {
+    """
+    Create a link
+    """
+    createLink(
+      path: String!
+      sourceAccountId: ID!
+      sourceEntityId: ID!
+      destinationAccountId: ID!
+      destinationEntityId: ID!
+      destinationEntityVersionId: ID
+    ): Link!
+    """
+    Delete a link
+    """
+    deleteLink(accountId: ID!, linkId: ID!): ID!
+  }
+`;

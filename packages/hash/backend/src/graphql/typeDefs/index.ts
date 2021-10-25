@@ -3,6 +3,7 @@ import { gql } from "apollo-server-express";
 import { accountTypedef } from "./account.typedef";
 import { blockTypedef } from "./block.typedef";
 import { entityTypedef } from "./entity.typedef";
+import { linkTypedef } from "./link.typedef";
 import { entityTypeTypedef } from "./entityType.typedef";
 import { orgEmailInvitationTypedef } from "./orgEmailInvitation.typedef";
 import { orgInvitationLinkTypedef } from "./orgInvitationLink.typdef";
@@ -40,6 +41,7 @@ export const schema = [
   blockTypedef,
   embedTypeDef,
   entityTypedef,
+  linkTypedef,
   entityTypeTypedef,
   impliedHistoryTypedef,
   orgEmailInvitationTypedef,

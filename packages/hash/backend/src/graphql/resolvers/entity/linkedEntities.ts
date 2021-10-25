@@ -13,30 +13,31 @@ export const linkedEntities: Resolver<
   const { db } = dataSources;
 
   // Temporarily obtain links by parsing the entity's properties object
-  const parsedLinks = parseLinksFromPropertiesObject(
+  const parsedLinks = await parseLinksFromPropertiesObject(
+    dataSources.db,
     entity.properties,
-    entity.entityId,
-    ""
+    entity.entityId
   );
 
   return Promise.all(
     parsedLinks
-      .map(({ destinationEntityId, destinationEntityVersionId }) => ({
-        entityId: destinationEntityId,
-        entityVersionId: destinationEntityVersionId || undefined,
-      }))
+      .map(
+        ({
+          destinationAccountId,
+          destinationEntityId,
+          destinationEntityVersionId,
+        }) => ({
+          accountId: destinationAccountId,
+          entityId: destinationEntityId,
+          entityVersionId: destinationEntityVersionId || undefined,
+        })
+      )
       // Remove duplicates
       .filter(
         (link, i, allLinks) =>
           allLinks.findIndex(({ entityId }) => link.entityId === entityId) === i
       )
-      .map(async ({ entityId, entityVersionId }) => {
-        /** @todo: stop looking up accountId */
-        const accountId = await db.getEntityAccountId({
-          entityId,
-          entityVersionId,
-        });
-
+      .map(async ({ accountId, entityId, entityVersionId }) => {
         const linkedEntity = entityVersionId
           ? await Entity.getEntity(db)({
               accountId,
