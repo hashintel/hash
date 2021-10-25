@@ -92,7 +92,7 @@ export type BlockProtocolUpdateFn = {
 };
 
 export type BlockProtocolAggregateFn = {
-  (action: BlockProtocolAggregatePayload): Promise<unknown[]>;
+  (action: BlockProtocolAggregatePayload): Promise<unknown>;
 };
 
 export type BlockProtocolFunction =
