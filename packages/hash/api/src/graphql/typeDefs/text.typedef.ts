@@ -1,3 +1,4 @@
+import { TextProperties } from "./../../../../integration/src/graphql/apiTypes.gen";
 import { gql } from "apollo-server-express";
 
 export const textTypedef = gql`

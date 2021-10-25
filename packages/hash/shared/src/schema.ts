@@ -72,20 +72,18 @@ export const createSchema = () =>
       },
       link: {
         attrs: {
-          href: {},
-          title: { default: null },
+          href: { default: ""},
         },
         toDOM(node) {
-          let { href, title } = node.attrs;
-          return ["a", { href, title }, 0] as const;
+          let { href } = node.attrs;
+          return ["a", { href, style: "color: blue; text-decoration: underline" }, 0] as const;
         },
         parseDOM: [
           {
             tag: "a[href]",
             getAttrs(dom) {
               return {
-                href: dom.getAttribute("href"),
-                title: dom.getAttribute("title"),
+                href: dom.getAttribute("href")
               };
             },
           },
