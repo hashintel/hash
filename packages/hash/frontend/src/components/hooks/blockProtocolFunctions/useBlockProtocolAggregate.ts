@@ -1,7 +1,9 @@
-import { BlockProtocolAggregatePayload } from "./../../../../../block-protocol/src/index";
 import { useApolloClient } from "@apollo/client";
 
-import { BlockProtocolAggregateFn } from "@hashintel/block-protocol";
+import {
+  BlockProtocolAggregateFn,
+  BlockProtocolAggregatePayload,
+} from "@hashintel/block-protocol";
 import { aggregateEntity } from "@hashintel/hash-shared/queries/entity.queries";
 import { useCallback } from "react";
 import {
