@@ -80,7 +80,7 @@ const behavior = (state, context) => {
 
 ```python
 def behavior(state, context):
-  state.add_message("foo", "bar", {msg: "hello"})
+  state.add_message("foo", "bar", {"msg": "hello"})
 ```
 
 </Tab>
