@@ -10,6 +10,7 @@ import {
   entityFields,
   updateEntity,
 } from "./entity";
+import { createLink } from "./link/createLink";
 import { blockFields } from "./block";
 import {
   createPage,
@@ -101,6 +102,7 @@ export const resolvers = {
   Mutation: {
     // Logged in and signed up users only
     createEntity: loggedInAndSignedUp(createEntity),
+    createLink: loggedInAndSignedUp(createLink),
     createEntityType: loggedInAndSignedUp(createEntityType),
     createPage: loggedInAndSignedUp(createPage),
     insertBlockIntoPage: loggedInAndSignedUp(insertBlockIntoPage),
