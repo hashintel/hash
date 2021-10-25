@@ -1,4 +1,4 @@
-import { BlockMetadata } from "@hashintel/block-protocol";
+import { BlockMetadata, BlockVariant } from "@hashintel/block-protocol";
 import { Schema as JSONSchema } from "jsonschema";
 import { blockPaths } from "./paths";
 
@@ -44,7 +44,8 @@ export type BlockMeta = Pick<Block, "componentMetadata" | "componentSchema">;
  */
 const blockCache = new Map<string, Promise<BlockMeta>>();
 
-const toBlockName = (packageName = "Unnamed") => packageName.split("/").pop()!;
+const toDisplayName = (name = "Unnamed") =>
+  name.substring("@hashintel/block-".length);
 
 /**
  * transform mere options into a useable block configuration
@@ -53,24 +54,26 @@ const toBlockConfig = (
   options: BlockMetadata,
   componentId: string
 ): BlockConfig => {
-  const defaultVariant = {
-    name: toBlockName(options.name),
+  const defaultVariant: BlockVariant = {
     description: options.description,
-    icon: "/format-font.svg",
+    displayName: options.displayName ?? toDisplayName(options.name),
+    icon: options.icon,
     properties: {},
   };
 
-  /**
-   * @todo: prefix relative path to future icon w/ block's
-   *   baseUrl when introducing icons to blocks
-   * ```
-   * icon: [url, variant.icon].join("/")
-   * ```
-   */
-  const variants = (options.variants ?? [{}]).map((variant) => ({
-    ...defaultVariant,
-    ...variant,
-  }));
+  const variants = options.variants
+    ? options.variants.map((variant) =>
+        Object.assign({}, defaultVariant, variant)
+      )
+    : [defaultVariant];
+
+  // make the icon url absolute or use a relative fallback
+  const baseUrl = componentIdToUrl(componentId);
+  variants.forEach((variant) => {
+    variant.icon = variant.icon
+      ? [baseUrl, variant.icon].join("/")
+      : "/format-font.svg";
+  });
 
   return { ...options, componentId, variants };
 };

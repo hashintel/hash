@@ -146,7 +146,7 @@ export const createBlockSuggester = (renderPortal: RenderPortal) =>
            *   type variant
            */
           const onChange = (variant: BlockVariant) => {
-            const replacement = view.state.schema.text(`[${variant.name}]`);
+            const replacement = view.state.schema.text(`[${variant.displayName}]`);
             view.dispatch(view.state.tr.replaceWith(from, to, replacement));
           };
 

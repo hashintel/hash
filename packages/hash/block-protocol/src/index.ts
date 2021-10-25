@@ -1,7 +1,7 @@
 export type BlockVariant = {
   description?: string;
+  displayName?: string;
   icon?: string;
-  name?: string;
   properties?: JSONObject;
 };
 
@@ -12,8 +12,10 @@ export type BlockVariant = {
 export type BlockMetadata = {
   author?: string;
   description?: string;
+  displayName?: string;
   externals?: Record<string, string>;
   license?: string;
+  icon?: string;
   name?: string;
   schema?: string;
   source?: string;

@@ -32,7 +32,7 @@ export const BlockSuggester: React.VFC<BlockSuggesterProps> = ({
     );
 
     return fuzzySearchBy(variants, search, (variant) =>
-      [variant.name, variant.description].map((str) => str || "").join(" ")
+      [variant.displayName, variant.description].map((str) => str || "").join(" ")
     );
   }, [search, blocksMeta]);
 
@@ -68,21 +68,21 @@ export const BlockSuggester: React.VFC<BlockSuggesterProps> = ({
     <ul
       className={tw`absolute z-10 w-96 max-h-60 overflow-auto border border-gray-100 rounded-lg shadow-md`}
     >
-      {options.map(({ name, icon, description }, index) => (
+      {options.map(({ displayName, icon, description }, index) => (
         /* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */
         <li
           ref={index === selectedIndex ? selectedRef : undefined}
-          key={name}
+          key={displayName}
           className={tw`flex border border-gray-100 ${
             index !== selectedIndex ? "bg-gray-50" : "bg-gray-100"
           } hover:bg-gray-100`}
           onClick={() => onChange(options[index])}
         >
           <div className={tw`flex w-16 items-center justify-center`}>
-            <img className={tw`w-6 h-6`} alt={name} src={icon} />
+            <img className={tw`w-6 h-6`} alt={displayName} src={icon} />
           </div>
           <div className={tw`py-3`}>
-            <p className={tw`text-sm font-bold`}>{name}</p>
+            <p className={tw`text-sm font-bold`}>{displayName}</p>
             <p className={tw`text-xs text-opacity-60 text-black`}>
               {description}
             </p>

@@ -9,6 +9,7 @@ const {
   description,
   author,
   license,
+  blockprotocol,
   // peerDependencies,
   // devDependencies,
   // dependencies,
@@ -23,8 +24,8 @@ const variants = fs.existsSync("./variants.json")
 class StatsPlugin {
   apply(compiler) {
     compiler.hooks.done.tap(this.constructor.name, (stats) => {
-      const main = Object.keys(stats.compilation.assets).find((name) =>
-        name.startsWith("main")
+      const main = Object.keys(stats.compilation.assets).find((asset) =>
+        asset.startsWith("main")
       );
 
       const blockMetadata = {
@@ -37,6 +38,7 @@ class StatsPlugin {
         schema: "block-schema.json",
         source: main,
         variants,
+        ...blockprotocol,
       };
 
       return writeFile("dist/metadata.json", beautify(blockMetadata), "utf8");
