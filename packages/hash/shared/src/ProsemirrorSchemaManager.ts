@@ -39,13 +39,17 @@ type ComponentNodeViewFactory = (meta: BlockMeta) => NodeViewFactory;
 export const replaceNodeWithRemoteBlock = (
   view: EditorView<Schema>,
   manager: ProsemirrorSchemaManager,
-  node: ProsemirrorNode<Schema>,
-  getPos: () => number
+  draftBlockId: string,
+  targetComponentId: string,
+  getPos: () => number,
+  node: ProsemirrorNode<Schema>
 ) => {
+  history.disableTracking(view);
+
   const store = entityStoreFromProsemirror(view.state).store;
 
   return manager
-    .createRemoteBlock(store, node.attrs.draftId, node.attrs.targetComponentId)
+    .createRemoteBlock(store, draftBlockId, targetComponentId)
     .then((newNode) => {
       /**
        * The code below used to ensure the cursor was positioned

@@ -1,6 +1,5 @@
 import { BlockVariant } from "@hashintel/block-protocol";
 import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
-import { history } from "@hashintel/hash-shared/history";
 import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 import {
   ProsemirrorSchemaManager,
@@ -146,26 +145,12 @@ export class BlockView implements NodeView<Schema> {
 
     this.node = blockNode;
 
-    const node = blockNode.child(0);
-    const container = this.selectContainer;
-
-    /**
-     * We don't need to inject any custom UI around async nodes, but for
-     * simplicity they are still wrapped with block node views. Let's just
-     * hide the custom UI in these instances.
-     */
-    if (node.type.name === "async") {
-      container.style.display = "none";
-    } else {
-      container.style.display = "";
-    }
-
     /**
      * Ensure that a user cannot type inside the custom UI container
      *
      * @todo see if this is necessary
      */
-    container.contentEditable = "false";
+    this.selectContainer.contentEditable = "false";
 
     /**
      * This removes the outline that prosemirror has when a node is
@@ -223,7 +208,7 @@ export class BlockView implements NodeView<Schema> {
           onTypeChange={this.onBlockChange}
         />
       </>,
-      container
+      this.selectContainer
     );
 
     return true;
@@ -236,18 +221,12 @@ export class BlockView implements NodeView<Schema> {
   }
 
   /**
-   * This begins the two part process of converting from one block type to
-   * another – the second half is carried out by AsyncView's update function
-   *
    * @todo restore the ability to load in new block types here
    */
   onBlockChange = (variant: BlockVariant, meta: BlockMeta) => {
     const { node, view, getPos } = this;
 
-    history.disableTracking(view);
-
     const state = view.state;
-    const tr = state.tr;
     const child = state.doc.resolve(getPos() + 1).nodeAfter;
     const draftId = child?.attrs.draftId;
 
@@ -255,27 +234,13 @@ export class BlockView implements NodeView<Schema> {
       throw new Error("Cannot switch node without draft id");
     }
 
-    /**
-     * @todo remove the need to do this at all
-     */
-    const newNode = state.schema.nodes.async.create({
-      targetComponentId: meta.componentMetadata.componentId,
-      entityId: child?.attrs.entityId ?? null,
+    replaceNodeWithRemoteBlock(
+      this.view,
+      this.manager,
       draftId,
-    });
-
-    const pos = getPos();
-
-    tr.replaceRangeWith(pos + 1, pos + 1 + node.content.size, newNode);
-
-    const selection = NodeSelection.create<Schema>(tr.doc, tr.mapping.map(pos));
-
-    tr.setSelection(selection);
-    view.dispatch(tr);
-    view.focus();
-
-    replaceNodeWithRemoteBlock(this.view, this.manager, newNode, () =>
-      tr.mapping.map(pos)
+      meta.componentMetadata.componentId,
+      getPos,
+      node
     ).catch((err) => {
       console.error(err);
     });
