@@ -35,36 +35,6 @@ type NodeViewFactory = NonNullable<EditorProps<Schema>["nodeViews"]>[string];
 
 type ComponentNodeViewFactory = (meta: BlockMeta) => NodeViewFactory;
 
-export const replaceNodeWithRemoteBlock = (
-  view: EditorView<Schema>,
-  manager: ProsemirrorSchemaManager,
-  draftBlockId: string,
-  targetComponentId: string,
-  getPos: () => number,
-  node: ProsemirrorNode<Schema>
-) => {
-  const store = entityStoreFromProsemirror(view.state).store;
-
-  return manager
-    .createRemoteBlock(store, draftBlockId, targetComponentId)
-    .then((newNode) => {
-      /**
-       * The code below used to ensure the cursor was positioned
-       * within the new node, depending on its type, but because we
-       * now want to trigger saves when we change node type, and
-       * because triggering saves can mess up the cursor position,
-       * we're currently not re-focusing the editor view.
-       */
-
-      const pos = getPos();
-      const tr = view.state.tr;
-
-      tr.replaceRangeWith(pos, pos + node.nodeSize, newNode);
-
-      view.dispatch(tr);
-    });
-};
-
 export class ProsemirrorSchemaManager {
   constructor(
     public schema: Schema,
@@ -306,5 +276,41 @@ export class ProsemirrorSchemaManager {
     tr.replaceWith(0, state.doc.content.size, newNodes);
 
     return tr;
+  }
+
+  /**
+   * @todo if these are both text nodes, look into using setNodeMarkup
+   */
+  async replaceNodeWithRemoteBlock(
+    draftBlockId: string,
+    targetComponentId: string,
+    node: ProsemirrorNode<Schema>,
+    getPos: () => number
+  ) {
+    const { view } = this;
+
+    if (!view) {
+      throw new Error("Cannot trigger replaceNodeWithRemoteBlock without view");
+    }
+
+    const entityStoreState = entityStoreFromProsemirror(view.state);
+    const newNode = await this.createRemoteBlock(
+      entityStoreState.store,
+      draftBlockId,
+      targetComponentId
+    );
+
+    /**
+     * The code below used to ensure the cursor was positioned
+     * within the new node, depending on its type, but because we
+     * now want to trigger saves when we change node type, and
+     * because triggering saves can mess up the cursor position,
+     * we're currently not re-focusing the editor view.
+     */
+
+    const pos = getPos();
+    const tr = view.state.tr;
+    tr.replaceRangeWith(pos, pos + node.nodeSize, newNode);
+    view.dispatch(tr);
   }
 }

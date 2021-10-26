@@ -1,10 +1,7 @@
 import { BlockVariant } from "@hashintel/block-protocol";
 import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { ProsemirrorNode } from "@hashintel/hash-shared/node";
-import {
-  ProsemirrorSchemaManager,
-  replaceNodeWithRemoteBlock,
-} from "@hashintel/hash-shared/ProsemirrorSchemaManager";
+import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { Schema } from "prosemirror-model";
 import { NodeSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
@@ -234,15 +231,15 @@ export class BlockView implements NodeView<Schema> {
       throw new Error("Cannot switch node without draft id");
     }
 
-    replaceNodeWithRemoteBlock(
-      this.view,
-      this.manager,
-      draftId,
-      meta.componentMetadata.componentId,
-      getPos,
-      node
-    ).catch((err) => {
-      console.error(err);
-    });
+    this.manager
+      .replaceNodeWithRemoteBlock(
+        draftId,
+        meta.componentMetadata.componentId,
+        node,
+        getPos
+      )
+      .catch((err) => {
+        console.error(err);
+      });
   };
 }
