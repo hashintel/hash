@@ -1,6 +1,4 @@
-import { getRequiredEnv } from "../util";
-
-export const FRONTEND_DOMAIN = getRequiredEnv("FRONTEND_DOMAIN");
+export const FRONTEND_DOMAIN = process.env.FRONTEND_DOMAIN || "localhost:3000";
 
 export const FRONTEND_URL = `http${
   process.env.HTTPS_ENABLED ? "s" : ""
@@ -18,3 +16,4 @@ export const SYSTEM_TYPES = [
   "OrgInvitationLink",
   "OrgEmailInvitation",
 ] as const;
+export type SYSTEM_TYPE = typeof SYSTEM_TYPES[number];
