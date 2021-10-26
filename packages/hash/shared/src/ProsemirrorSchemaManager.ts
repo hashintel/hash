@@ -10,7 +10,7 @@ import { BlockEntity, getTextEntityFromDraftBlock } from "./entity";
 import { childrenForTextEntity } from "./entityProsemirror";
 import { EntityStore, isBlockEntity } from "./entityStore";
 import {
-  applyEntitiesToTransaction,
+  entityStoreAndTransactionForEntities,
   entityStoreFromProsemirror,
 } from "./entityStorePlugin";
 import { ProsemirrorNode } from "./node";
@@ -240,8 +240,6 @@ export class ProsemirrorSchemaManager {
   }
 
   /**
-   * @todo replace this with a prosemirror command
-   * @todo take a signal
    * @todo i think we need to put placeholders for the not-yet-fetched blocks
    *   immediately, and then have the actual blocks pop in – it being delayed
    *   too much will mess with collab
@@ -250,13 +248,12 @@ export class ProsemirrorSchemaManager {
     entities: BlockEntity[],
     state: EditorState<Schema>
   ) {
-    const { tr } = state;
-    const entityStore = applyEntitiesToTransaction(state, entities, tr);
+    const { store, tr } = entityStoreAndTransactionForEntities(state, entities);
 
     const newNodes = await Promise.all(
       entities.map((blockEntity) => {
         // @todo this isn't nice
-        const draftEntity = Object.values(entityStore.draft).find(
+        const draftEntity = Object.values(store.draft).find(
           (entity) => entity.entityId === blockEntity.entityId
         );
 
@@ -264,9 +261,8 @@ export class ProsemirrorSchemaManager {
           throw new Error("Missing draft entity");
         }
 
-        // @todo pass signal through somehow
         return this.createRemoteBlock(
-          entityStore,
+          store,
           draftEntity.draftId,
           blockEntity.properties.componentId
         );

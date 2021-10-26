@@ -35,35 +35,53 @@ export const entityStoreFromProsemirror = (state: EditorState<Schema>) => {
 };
 
 /**
- * @todo document this better / how much of this can be done in
- *       appendTransaction?
+ * When updating the view with a new set of entities, we need a draft store
+ * to construct the Prosemirror nodes for. However,
  */
-export const applyEntitiesToTransaction = (
+export const entityStoreAndTransactionForEntities = (
   state: EditorState<Schema>,
-  entities: BlockEntity[],
-  tr: Transaction<Schema>
+  entities: BlockEntity[]
 ) => {
+  const { tr } = state;
+
   tr.setMeta(entityStorePluginKey, { type: "contents", payload: entities });
 
+  /**
+   * We need to remove the draft ids were previously generated for nodes
+   * that did not yet have entity ids, so that the draft ids created when we
+   * updated with the new entities can be matched to the nodes representing
+   * those entities (in appendTransaction).
+   */
   tr.doc.descendants((node, pos) => {
-    if (node.type === state.schema.nodes.entity) {
-      if (node.attrs.draftId && !node.attrs.entityId) {
-        tr.setNodeMarkup(pos, undefined, {
-          ...node.attrs,
-          draftId: null,
-        });
-      }
+    if (
+      node.type === state.schema.nodes.entity &&
+      node.attrs.draftId &&
+      !node.attrs.entityId
+    ) {
+      tr.setNodeMarkup(pos, undefined, {
+        ...node.attrs,
+        draftId: null,
+      });
     }
   });
 
-  const entityStore = entityStoreFromProsemirror(state.apply(tr)).store;
+  /**
+   * Create a copy of the prosemirror state with the above transaction
+   * applied to, in order to get the entity store for this set of entities,
+   * without yet dispatching the transaction
+   */
+  const { store } = entityStoreFromProsemirror(state.apply(tr));
 
-  // This is to get around the problem that we're creating a whole new
-  // entity store
-  // @todo expand on this problem
-  tr.setMeta(entityStorePluginKey, { type: "store", payload: entityStore });
+  /**
+   * We've generated a new entity store for the new set of entities, but we need
+   * to ensure that when the transaction that uses this entity store is
+   * dispatched, that that entity store overwrites the one currently stored in
+   * Prosemirror, as the use of state.apply above does not actually replace the
+   * store inside Prosemirror
+   */
+  tr.setMeta(entityStorePluginKey, { type: "store", payload: store });
 
-  return entityStore;
+  return { store, tr };
 };
 
 export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
