@@ -1,15 +1,15 @@
 import { ApolloClient } from "@apollo/client";
+import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 import { createEntityStore } from "@hashintel/hash-shared/entityStore";
 import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 import {
-  createProseMirrorState,
+  findComponentNodes,
   getComponentNodeAttrs,
 } from "@hashintel/hash-shared/prosemirror";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
 import { updatePageMutation } from "@hashintel/hash-shared/save";
-import { findComponentNodes } from "@hashintel/hash-shared/util";
 import { Schema } from "prosemirror-model";
 import { Mapping, Step, Transform } from "prosemirror-transform";
 import { InvalidVersionError } from "./InvalidVersionError";

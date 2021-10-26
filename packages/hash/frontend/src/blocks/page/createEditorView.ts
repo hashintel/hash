@@ -1,8 +1,8 @@
 import { ApolloClient } from "@apollo/client";
 import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
+import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 import { entityStoreFromProsemirror } from "@hashintel/hash-shared/entityStorePlugin";
-import { createProseMirrorState } from "@hashintel/hash-shared/prosemirror";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { updatePageMutation } from "@hashintel/hash-shared/save";
 import { Schema } from "prosemirror-model";

@@ -8,8 +8,11 @@ import {
   EntityStore,
   isDraftBlockEntity,
 } from "./entityStore";
-import { nodeToEntityProperties } from "./save";
-import { EntityNode, isEntityNode } from "./util";
+import {
+  EntityNode,
+  isEntityNode,
+  nodeToEntityProperties,
+} from "./prosemirror";
 
 type EntityStorePluginState = { store: EntityStore };
 

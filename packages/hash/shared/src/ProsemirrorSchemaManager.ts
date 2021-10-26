@@ -7,14 +7,13 @@ import {
   fetchBlockMeta,
 } from "./blockMeta";
 import { BlockEntity, getTextEntityFromDraftBlock } from "./entity";
-import { childrenForTextEntity } from "./entityProsemirror";
 import { EntityStore, isBlockEntity } from "./entityStore";
 import {
   entityStoreAndTransactionForEntities,
   entityStoreFromProsemirror,
 } from "./entityStorePlugin";
 import { ProsemirrorNode } from "./node";
-import { getComponentNodeAttrs } from "./prosemirror";
+import { childrenForTextEntity, getComponentNodeAttrs } from "./prosemirror";
 
 declare interface OrderedMapPrivateInterface<T> {
   content: (string | T)[];

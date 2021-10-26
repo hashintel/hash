@@ -83,3 +83,10 @@ export const getTextEntityFromSavedBlock = (
     return blockPropertiesEntity;
   }
 };
+
+export const blockEntityIdExists = (entities: BlockEntity[]) => {
+  const ids = new Set(entities.map((block) => block.entityId));
+
+  return (blockEntityId: string | null): blockEntityId is string =>
+    !!blockEntityId && ids.has(blockEntityId);
+};

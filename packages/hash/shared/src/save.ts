@@ -2,47 +2,25 @@
 import { ApolloClient } from "@apollo/client";
 import { isEqual, uniqBy } from "lodash";
 import { Schema } from "prosemirror-model";
-import { BlockEntity, getTextEntityFromSavedBlock } from "./entity";
+import {
+  BlockEntity,
+  blockEntityIdExists,
+  getTextEntityFromSavedBlock,
+} from "./entity";
 import { EntityStore, isBlockEntity } from "./entityStore";
 import {
   SystemTypeName,
-  TextPropertiesText,
   UpdatePageAction,
   UpdatePageContentsMutation,
   UpdatePageContentsMutationVariables,
 } from "./graphql/apiTypes.gen";
 import { ProsemirrorNode } from "./node";
-import { updatePageContents } from "./queries/page.queries";
 import {
-  blockEntityIdExists,
   ComponentNode,
   findComponentNodes,
-  nodeToComponentId,
-} from "./util";
-
-// @todo consider moving this
-export const nodeToEntityProperties = (node: ProsemirrorNode<Schema>) => {
-  if (node.type.isTextblock) {
-    const texts: TextPropertiesText[] = [];
-
-    node.content.descendants((child) => {
-      if (child.type.name === "text") {
-        const marks = new Set<string>(
-          child.marks.map((mark) => mark.type.name)
-        );
-
-        texts.push({
-          text: child.text ?? "",
-          ...(marks.has("strong") ? { bold: true } : {}),
-          ...(marks.has("em") ? { italics: true } : {}),
-          ...(marks.has("underlined") ? { underline: true } : {}),
-        });
-      }
-    });
-
-    return { texts };
-  }
-};
+  nodeToEntityProperties,
+} from "./prosemirror";
+import { updatePageContents } from "./queries/page.queries";
 
 /**
  * Our operations need to combine the actions from the previous operation,
@@ -140,6 +118,13 @@ const moveBlocks = defineOperation(
     return [actions, entities] as const;
   }
 );
+
+/**
+ * @deprecated
+ * @todo remove this – get this from entity store instead – draft entity
+ *       store doesn't always have the correct componentId though
+ */
+const nodeToComponentId = (node: ProsemirrorNode<Schema>) => node.type.name;
 
 /**
  * @warning this does not apply its actions to the entities it returns as it is
