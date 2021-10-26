@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 
-const generatedIds: any = import("./data/generatedIds.json");
+import generatedIds from "./data/generatedIds.json";
 
 import { entityTypeJson } from "./data/systemTypeSchemas";
 import {

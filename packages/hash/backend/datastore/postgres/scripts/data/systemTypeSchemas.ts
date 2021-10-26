@@ -1,12 +1,13 @@
 import {
   SYSTEM_ACCOUNT_SHORTNAME,
+  SYSTEM_TYPE,
   FRONTEND_URL,
 } from "../../../../src/lib/config";
-const generatedIds: any = import("./generatedIds.json");
+import generatedIds from "./generatedIds.json";
 
 const systemAccount = generatedIds.orgs[SYSTEM_ACCOUNT_SHORTNAME];
 
-const schemaId = (name: string) =>
+const schemaId = (name: SYSTEM_TYPE) =>
   `${FRONTEND_URL}/${systemAccount.fixedId}/types/${generatedIds.types[name].fixedId}`;
 
 const shortnameConstraints = {
@@ -81,7 +82,7 @@ const systemTypeSchemas: {
   },
 };
 
-export const entityTypeJson = (name: string) =>
+export const entityTypeJson = (name: SYSTEM_TYPE) =>
   JSON.stringify({
     $schema: "https://json-schema.org/draft/2020-12/schema",
     $id: schemaId(name),
