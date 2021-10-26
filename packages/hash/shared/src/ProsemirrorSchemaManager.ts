@@ -6,13 +6,10 @@ import {
   BlockMeta,
   fetchBlockMeta,
 } from "./blockMeta";
-import { BlockEntity, getTextEntityFromBlock, isTextEntity } from "./entity";
+import { BlockEntity, getTextEntityFromDraftBlock } from "./entity";
 import { childrenForTextEntity } from "./entityProsemirror";
 import { EntityStore, isBlockEntity } from "./entityStore";
-import {
-  entityStoreFromProsemirror,
-  entityStorePluginKey,
-} from "./entityStorePlugin";
+import { applyEntitiesToTransaction } from "./entityStorePlugin";
 import { getProseMirrorNodeAttributes } from "./prosemirror";
 
 declare interface OrderedMapPrivateInterface<T> {
@@ -187,39 +184,37 @@ export class ProsemirrorSchemaManager {
     const meta = await this.defineRemoteBlock(targetComponentId);
     const requiresText = blockComponentRequiresText(meta.componentSchema);
     const blockEntity = entityStore.draft[draftBlockId];
-    const attrs = getProseMirrorNodeAttributes(blockEntity);
 
     if (!isBlockEntity(blockEntity)) {
       throw new Error("Can only create remote block from block entity");
     }
 
-    if (requiresText) {
-      const textEntity = getTextEntityFromBlock(blockEntity);
+    const attrs = getProseMirrorNodeAttributes(blockEntity);
 
-      if (!textEntity) {
+    if (requiresText) {
+      const draftTextEntity = getTextEntityFromDraftBlock(
+        draftBlockId,
+        entityStore
+      );
+
+      if (!draftTextEntity) {
         throw new Error(
           "Entity should contain text entity if used with text block"
         );
       }
 
-      const draftTextEntity = Object.values(entityStore.draft).find(
-        (entity) => entity.entityId === textEntity.entityId
-      );
-
-      const content = childrenForTextEntity(
-        // @ts-expect-error
-        draftTextEntity && isTextEntity(draftTextEntity)
-          ? draftTextEntity
-          : textEntity,
-        this.schema
-      );
+      const content = childrenForTextEntity(draftTextEntity, this.schema);
 
       return this.schema.nodes.entity.create(
-        { entityId: blockEntity.entityId },
+        { entityId: blockEntity.entityId, draftId: draftBlockId },
         [
-          this.schema.nodes.entity.create({ entityId: textEntity.entityId }, [
-            this.schema.nodes[targetComponentId].create(attrs, content),
-          ]),
+          this.schema.nodes.entity.create(
+            {
+              entityId: draftTextEntity.entityId,
+              draftId: draftTextEntity.draftId,
+            },
+            [this.schema.nodes[targetComponentId].create(attrs, content)]
+          ),
         ]
       );
     } else {
@@ -228,8 +223,14 @@ export class ProsemirrorSchemaManager {
        *   when working on switching blocks
        */
       return this.schema.nodes.entity.create(
-        { entityId: blockEntity.entityId },
-        this.schema.nodes[targetComponentId].create(attrs, [])
+        { entityId: blockEntity.entityId, draftId: draftBlockId },
+        this.schema.nodes.entity.create(
+          {
+            // @todo add draftId
+            entityId: blockEntity.properties.entityId,
+          },
+          [this.schema.nodes[targetComponentId].create(attrs, [])]
+        )
       );
     }
   }
@@ -246,9 +247,7 @@ export class ProsemirrorSchemaManager {
     state: EditorState<Schema>
   ) {
     const { tr } = state;
-    // @todo allow this to be typed
-    tr.setMeta(entityStorePluginKey, { type: "contents", payload: entities });
-    const entityStore = entityStoreFromProsemirror(state.apply(tr)).store;
+    const entityStore = applyEntitiesToTransaction(state, entities, tr);
 
     const newNodes = await Promise.all(
       entities.map((blockEntity) => {
@@ -270,8 +269,6 @@ export class ProsemirrorSchemaManager {
       })
     );
 
-    // This creations a transaction to replace the entire content of the
-    // document
     tr.replaceWith(0, state.doc.content.size, newNodes);
 
     return tr;

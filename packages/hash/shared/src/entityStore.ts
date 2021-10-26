@@ -1,3 +1,4 @@
+import { produce } from "immer";
 import { v4 as uuid } from "uuid";
 import { AnyEntity, BlockEntity } from "./entity";
 import { DistributiveOmit } from "./util";
@@ -14,6 +15,7 @@ export type DraftEntityStoreType = Partial<
 
 export type EntityStore = {
   saved: Record<string, EntityStoreType>;
+  // @todo typing here doesn't quite work
   draft: Record<string, DraftEntityStoreType>;
 };
 
@@ -40,18 +42,29 @@ export const isEntityLink = <
   "__linkedData" in value &&
   "data" in value;
 
+// @todo does this need to be more robust?
 export const isBlockEntity = (entity: unknown): entity is BlockEntity =>
   isEntity(entity) &&
   "properties" in entity &&
-  "__typename" in entity &&
-  entity.__typename === "Block";
+  "entity" in entity.properties &&
+  isEntity(entity.properties.entity);
 
-// @todo links within these draft entities need a draft id too
 export const createEntityStore = (
   contents: EntityStoreType[],
   draftData: Record<string, DraftEntityStoreType>
 ): EntityStore => {
-  const draftDataRows = Object.values(draftData);
+  const saved: EntityStore["saved"] = {};
+  const draft: EntityStore["draft"] = {};
+
+  const draftToEntity: Record<string, string | null> = {};
+  const entityToDraft: Record<string, string> = {};
+
+  for (const row of Object.values(draftData)) {
+    draftToEntity[row.draftId!] = row.entityId;
+    if (row.entityId) {
+      entityToDraft[row.entityId] = row.draftId;
+    }
+  }
 
   const flattenPotentialEntity = (value: unknown): EntityStoreType[] => {
     let entities: EntityStoreType[] = [];
@@ -77,30 +90,35 @@ export const createEntityStore = (
 
   const entities = contents.flatMap(flattenPotentialEntity);
 
-  const existingDraftByEntityId = Object.fromEntries(
-    draftDataRows.map((row) => [row.entityId, row])
-  );
-
-  const savedDraft = Object.fromEntries(
-    entities.map((entity) => {
-      const existingDraft = existingDraftByEntityId[entity.entityId];
-      const id = existingDraft?.draftId ?? uuid();
-
-      return [id, { ...entity, draftId: id }];
-    })
-  );
-
-  for (const row of draftDataRows) {
-    savedDraft[row.draftId] = {
-      ...savedDraft[row.draftId],
-      ...row,
-    };
+  for (const entity of entities) {
+    if (!entityToDraft[entity.entityId]) {
+      entityToDraft[entity.entityId] = uuid();
+    }
   }
 
-  return {
-    saved: Object.fromEntries(
-      entities.map((entity) => [entity.entityId, entity])
-    ),
-    draft: savedDraft,
-  };
+  for (const entity of entities) {
+    saved[entity.entityId] = entity;
+    const draftId = entityToDraft[entity.entityId];
+
+    // @ts-expect-error
+    draft[draftId] = produce(entity, (draftEntity) => {
+      // @ts-expect-error
+      draftEntity.draftId = draftId;
+
+      if (draftData[draftId]) {
+        Object.assign(
+          draftEntity,
+          JSON.parse(JSON.stringify(draftData[draftId]))
+        );
+      }
+
+      if (isBlockEntity(draftEntity)) {
+        // @ts-expect-error
+        draftEntity.properties.entity.draftId =
+          entityToDraft[draftEntity.properties.entity.entityId];
+      }
+    });
+  }
+
+  return { saved, draft };
 };

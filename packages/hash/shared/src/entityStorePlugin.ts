@@ -16,12 +16,12 @@ type EntityStorePluginMessage =
   | {
       type: "draft";
       payload: EntityStore["draft"];
-    };
+    }
+  | { type: "store"; payload: EntityStore };
 
-export const entityStorePluginKey = new PluginKey<
-  EntityStorePluginState,
-  Schema
->("entityStore");
+const entityStorePluginKey = new PluginKey<EntityStorePluginState, Schema>(
+  "entityStore"
+);
 
 export const entityStoreFromProsemirror = (state: EditorState<Schema>) => {
   const pluginState = entityStorePluginKey.getState(state);
@@ -32,6 +32,38 @@ export const entityStoreFromProsemirror = (state: EditorState<Schema>) => {
     );
   }
   return pluginState;
+};
+
+/**
+ * @todo document this better / how much of this can be done in
+ *       appendTransaction?
+ */
+export const applyEntitiesToTransaction = (
+  state: EditorState<Schema>,
+  entities: BlockEntity[],
+  tr: Transaction<Schema>
+) => {
+  tr.setMeta(entityStorePluginKey, { type: "contents", payload: entities });
+
+  tr.doc.descendants((node, pos) => {
+    if (node.type === state.schema.nodes.entity) {
+      if (node.attrs.draftId && !node.attrs.entityId) {
+        tr.setNodeMarkup(pos, undefined, {
+          ...node.attrs,
+          draftId: null,
+        });
+      }
+    }
+  });
+
+  const entityStore = entityStoreFromProsemirror(state.apply(tr)).store;
+
+  // This is to get around the problem that we're creating a whole new
+  // entity store
+  // @todo expand on this problem
+  tr.setMeta(entityStorePluginKey, { type: "store", payload: entityStore });
+
+  return entityStore;
 };
 
 export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
@@ -59,6 +91,9 @@ export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
                 draft: action.payload,
               },
             };
+          case "store": {
+            return { store: action.payload };
+          }
         }
       }
 
@@ -72,7 +107,7 @@ export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
     let tr: Transaction<Schema> | undefined;
 
     const newDraft = produce(prevDraft, (draft) => {
-      state.doc.descendants((node, pos) => {
+      state.doc.descendants((node, pos, parent) => {
         if (node.type === state.schema.nodes.entity) {
           let draftId = node.attrs.draftId;
           if (!draftId) {
@@ -115,6 +150,28 @@ export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
           const draftEntity = Object.values(draft).find(
             (entity) => entity.draftId === draftId
           );
+
+          if (parent.type === state.schema.nodes.entity) {
+            const parentDraftId = (tr?.doc ?? state.doc).nodeAt(pos - 1)?.attrs
+              .draftId;
+
+            if (parentDraftId) {
+              if (!draft[parentDraftId]) {
+                throw new Error(
+                  "invariant: parent node missing from draft store"
+                );
+              }
+
+              // @ts-expect-error
+              draft[parentDraftId].properties!.entity ??= {};
+              // @ts-expect-error
+              // @todo need to set componentId here somehow?
+              Object.assign(draft[parentDraftId].properties!.entity, {
+                draftId,
+                entityId: draftEntity?.entityId ?? null,
+              });
+            }
+          }
 
           if (draftEntity) {
             const child = node.firstChild;
