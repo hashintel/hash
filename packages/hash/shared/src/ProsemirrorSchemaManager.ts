@@ -13,7 +13,6 @@ import {
   applyEntitiesToTransaction,
   entityStoreFromProsemirror,
 } from "./entityStorePlugin";
-import { history } from "./history";
 import { ProsemirrorNode } from "./node";
 import { getProseMirrorNodeAttributes } from "./prosemirror";
 
@@ -44,8 +43,6 @@ export const replaceNodeWithRemoteBlock = (
   getPos: () => number,
   node: ProsemirrorNode<Schema>
 ) => {
-  history.disableTracking(view);
-
   const store = entityStoreFromProsemirror(view.state).store;
 
   return manager
@@ -65,7 +62,6 @@ export const replaceNodeWithRemoteBlock = (
       tr.replaceRangeWith(pos, pos + node.nodeSize, newNode);
 
       view.dispatch(tr);
-      history.enableTracking(view);
     });
 };
 

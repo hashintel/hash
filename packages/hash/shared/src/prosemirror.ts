@@ -1,13 +1,11 @@
 import { baseKeymap, chainCommands, toggleMark } from "prosemirror-commands";
 import { dropCursor } from "prosemirror-dropcursor";
-import { redo, undo } from "prosemirror-history";
+import { history, redo, undo } from "prosemirror-history";
 import { undoInputRule } from "prosemirror-inputrules";
 import { keymap } from "prosemirror-keymap";
 import { Schema } from "prosemirror-model";
 import { EditorState, Plugin } from "prosemirror-state";
-import { BlockEntity } from "./entity";
 import { entityStorePlugin } from "./entityStorePlugin";
-import { history } from "./history";
 import { ProsemirrorNode } from "./node";
 import { createSchema } from "./schema";
 import { wrapEntitiesPlugin } from "./wrapEntitiesPlugin";
@@ -26,7 +24,7 @@ const createInitialDoc = (schema: Schema = createSchema()) =>
 
 const defaultPlugins: Plugin<any, Schema>[] = [
   entityStorePlugin,
-  history.plugin,
+  history(),
   keymap<Schema>({
     "Mod-z": chainCommands(undo, undoInputRule),
     "Mod-y": redo,
