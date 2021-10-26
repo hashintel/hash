@@ -1,118 +1,59 @@
-import { Mark, MarkType, Schema } from "prosemirror-model";
-import { EditorState, Transaction } from "prosemirror-state";
+import { Schema } from "prosemirror-model";
+import { EditorState } from "prosemirror-state";
+import { EditorView } from "prosemirror-view";
 
-export function getMarkType(
-  nameOrType: string | MarkType,
-  schema: Schema
-): MarkType {
-  if (typeof nameOrType === "string") {
-    if (!schema.marks[nameOrType]) {
-      throw Error(
-        `There is no mark type named '${nameOrType}'. Maybe you forgot to add the extension?`
-      );
+export const selectionContainsText = (state: EditorState<Schema>) => {
+  const content = state.selection.content().content;
+  let containsText = false;
+
+  content.descendants((node) => {
+    if (containsText) {
+      return false;
     }
 
-    return schema.marks[nameOrType];
-  }
-
-  return nameOrType;
-}
-
-export function getMarkAttributes(
-  state: EditorState,
-  typeOrName: string | MarkType
-): Record<string, any> {
-  const type = getMarkType(typeOrName, state.schema);
-  const { from, to, empty } = state.selection;
-  const marks: Mark[] = [];
-
-  if (empty) {
-    if (state.storedMarks) {
-      marks.push(...state.storedMarks);
-    }
-
-    marks.push(...state.selection.$head.marks());
-  } else {
-    state.doc.nodesBetween(from, to, (node) => {
-      marks.push(...node.marks);
-    });
-  }
-
-  const mark = marks.find((markItem) => markItem.type.name === type.name);
-
-  if (!mark) {
-    return {};
-  }
-
-  return { ...mark.attrs };
-}
-
-export const setMark =
-  (typeOrName: string | MarkType, attributes = {}) =>
-  ({
-    tr,
-    state,
-    dispatch,
-  }: {
-    tr: Transaction;
-    state: EditorState;
-    dispatch?: (args?: any) => any;
-  }) => {
-    const { selection } = tr;
-    const { empty, ranges } = selection;
-    const type = getMarkType(typeOrName, state.schema);
-
-    if (dispatch) {
-      if (empty) {
-        const oldAttributes = getMarkAttributes(state, type);
-
-        tr.addStoredMark(
-          type.create({
-            ...oldAttributes,
-            ...attributes,
-          })
-        );
-      } else {
-        ranges.forEach((range) => {
-          const from = range.$from.pos;
-          const to = range.$to.pos;
-
-          state.doc.nodesBetween(from, to, (node, pos) => {
-            const trimmedFrom = Math.max(pos, from);
-            const trimmedTo = Math.min(pos + node.nodeSize, to);
-            const someHasMark = node.marks.find((mark) => mark.type === type);
-
-            // if there is already a mark of this type
-            // we know that we have to merge its attributes
-            // otherwise we add a fresh new mark
-            if (someHasMark) {
-              node.marks.forEach((mark) => {
-                if (type === mark.type) {
-                  tr.addMark(
-                    trimmedFrom,
-                    trimmedTo,
-                    type.create({
-                      ...mark.attrs,
-                      ...attributes,
-                    })
-                  );
-                }
-              });
-            } else {
-              tr.addMark(trimmedFrom, trimmedTo, type.create(attributes));
-            }
-          });
-        });
-      }
+    if (node.isTextblock) {
+      containsText = true;
+      return false;
     }
 
     return true;
-  };
+  });
+
+  return containsText;
+};
+
+
+export function checkIfSelectionIsEmpty(selection: Selection | null) {
+  return (
+    selection &&
+    selection.rangeCount === 1 &&
+    selection.getRangeAt(0).toString() === ""
+  );
+}
+
+export function getActiveMarks(editorView: EditorView) {
+  const activeMarks: { name: string; attrs?: Record<string, string> }[] = [];
+  editorView.state.selection
+    .content()
+    .content.descendants((node: FixMeLater) => {
+      for (const mark of node.marks) {
+        // marks.add(mark.type.name);
+        activeMarks.push({
+          name: mark.type.name,
+          attrs: mark.attrs,
+        });
+        // marks.add(mark);
+      }
+
+      return true;
+    });
+
+  return activeMarks;
+}
 
 export function setLink(from: number, to: number, href?: string) {
   return (state: EditorState, dispatch) => {
     href = href && href.trim();
-    // @todo check if there's text at that position
     const linkMark = state.schema.marks.link;
     let tr = state.tr.removeMark(from, to, linkMark);
     if (href) {

@@ -1,10 +1,12 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { tw } from "twind";
+import IconDropdown from "../Icons/IconDropdown";
 
 interface MarksToolTipProps {
-  marks: { name: string; attrs?: Record<string, string> }[];
+  activeMarks: { name: string; attrs?: Record<string, string> }[];
   toggleMark: (name: string, attrs?: Record<string, string>) => void;
-  updateLink: (href: string) => void
+  updateLink: (href: string) => void;
+  space: number;
 }
 
 const items = [
@@ -27,40 +29,49 @@ const items = [
 ];
 
 export const MarksToolTip: React.VFC<MarksToolTipProps> = ({
-  marks,
+  activeMarks,
   toggleMark,
   space,
-  updateLink
+  updateLink,
 }) => {
   const ref = useRef<HTMLDivElement>(null);
-  const [href, setHref] = useState("");
+  const [linkHref, setLinkHref] = useState("");
 
-  useEffect(() => {
-    console.log("marks ==> ", marks);
-    const markLink =
-      marks.find(({ name }) => name == "link")?.attrs?.href ?? "";
-    if (markLink) {
-      setHref(markLink);
-    }
-  }, [marks]);
+  const defaultLinkMarkHref = useMemo(
+    () => activeMarks.find(({ name }) => name == "link")?.attrs?.href,
+    [activeMarks]
+  );
 
   const handleToggleMark = (name: string) => {
     if (name == "link") {
       if (!ref.current) return;
-
-      if (ref.current.classList.contains("hidden")) {
-        ref.current.classList.remove("hidden");
-      }
+      ref.current.classList.toggle("hidden");
       return;
     }
     toggleMark(name);
   };
 
-  // this doesn't remove the mark, come up with a better
-  // implementation for this
   const removeMark = (name: string) => {
     toggleMark(name);
   };
+
+  const getBtnClass = (name: string) => {
+    const isActive = activeMarks.find((mark) => mark.name == name);
+
+    if (isActive) {
+      if (name == "link") {
+        return "text-blue-500";
+      }
+
+      return "bg-blue-500 text-white";
+    } else {
+      return "bg-white text-black";
+    }
+  };
+
+  if (!linkHref && defaultLinkMarkHref) {
+    return setLinkHref(defaultLinkMarkHref);
+  }
 
   return (
     <>
@@ -70,49 +81,54 @@ export const MarksToolTip: React.VFC<MarksToolTipProps> = ({
         <div className={tw`flex`}>
           {items.map(({ name, text }) => (
             <button
-              className={tw`flex ${
-                marks.find((mark) => mark.name == name)
-                  ? "bg-blue-500 text-white"
-                  : "bg-white text-black"
-              } py-1 px-4 border-r-1 border-gray-300`}
+              className={tw`flex items-center ${getBtnClass(
+                name
+              )} py-1 px-4 border-r-1 border-gray-300`}
               key={name}
               onClick={() => handleToggleMark(name)}
             >
               {text}
+              {name == "link" && <IconDropdown className={tw`ml-2`} />}
             </button>
           ))}
         </div>
 
         <div
           style={{ marginTop: `calc(${space}px + 2rem)` }}
-          className={tw`absolute left-0 top-full shadow-md border-1 p-4 bg-white hidden rounded-md`}
+          className={tw`absolute left-0 top-full shadow-md border-1 py-4 bg-white hidden rounded-md`}
           ref={ref}
         >
-          <div className={tw`flex mb-2`}>
+          <div className={tw`flex px-4 mb-2`}>
             <form
               onSubmit={(evt) => {
                 evt.preventDefault();
-                console.log("href==> ", href);
-                updateLink(href)
-                // toggleMark("link", { href });
-                setHref("");
+                updateLink(linkHref);
               }}
             >
               <input
-                className={tw`border-1 mr-2`}
+                className={tw`block w-full px-2 py-1 text-sm border-1 outline-none rounded-sm focus:outline-none focus:border-gray-500`}
                 type="text"
-                onChange={(evt) => setHref(evt.target.value)}
-                value={href}
-                onFocus={(evt) => evt.preventDefault()}
+                onChange={(evt) => setLinkHref(evt.target.value)}
+                value={linkHref}
               />
             </form>
           </div>
-          <ul className={tw`text-sm`}>
+          <ul className={tw`text-sm text-gray-700`}>
             <li>
-              <button onClick={() => removeMark("link")}>Copy link</button>
+              <button
+                className={tw`hover:bg-gray-200 text-left w-full px-4 py-0.5`}
+                onClick={() => removeMark("link")}
+              >
+                Copy link
+              </button>
             </li>
             <li>
-              <button onClick={() => removeMark("link")}>Remove link</button>
+              <button
+                className={tw`hover:bg-gray-200 text-left w-full px-4 py-0.5`}
+                onClick={() => removeMark("link")}
+              >
+                Remove link
+              </button>
             </li>
           </ul>
         </div>

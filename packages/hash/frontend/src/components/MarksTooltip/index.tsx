@@ -1,7 +1,6 @@
 import { toggleMark } from "prosemirror-commands";
 import { Schema } from "prosemirror-model";
 import {
-  EditorState,
   NodeSelection,
   Plugin,
   PluginKey,
@@ -11,43 +10,20 @@ import { tw } from "twind";
 import { RenderPortal } from "../../blocks/page/usePortals";
 import { ensureMounted } from "../../lib/dom";
 import { MarksToolTip } from "./MarksTooltip";
-import { updateLink } from './utils'
+import {
+  checkIfSelectionIsEmpty,
+  getActiveMarks,
+  updateLink,
+  selectionContainsText,
+} from "./utils";
 
 
-
-// @todo Continue from trying to handle pasted links
-
+const TOOLTIP_ID = "hash_marks_tooltip";
 
 interface MarksTooltipState {
   // focused: boolean;
   isSelectionEmpty: boolean;
 }
-
-const selectionContainsText = (state: EditorState<Schema>) => {
-  const content = state.selection.content().content;
-  let containsText = false;
-
-  content.descendants((node) => {
-    if (containsText) {
-      return false;
-    }
-
-    if (node.isTextblock) {
-      containsText = true;
-      return false;
-    }
-
-    return true;
-  });
-
-  return containsText;
-};
-
-// check out bangle dev and tip tap implementation of updating the links
-// https://github.com/bangle-io/bangle.dev/blob/d5363e385a89aea26bf8f90fa543bda06692a4d7/core/components/link.js#L26
-
-const isEmpty = (selection: Selection) =>
-  selection.rangeCount === 1 && selection.getRangeAt(0).toString() === "";
 
 interface MarksTooltipState {
   isSelectionEmpty: boolean;
@@ -78,17 +54,14 @@ export function createMarksTooltip(renderPortal: RenderPortal) {
       },
     },
     props: {
-      // handleDOMEvents: {},
-      // handlePaste: (view, evt) => {
-      //   // either try linkifyjs or use regex
-      //   console.log('this was pasted => ', evt.clipboardData?.getData('text/plain'))
-
-      //   return true
+      handleDOMEvents: {},
+      // this doesn't get triggered
+      // transformPasted(slice) {
+      //   console.log("slice ==> ", slice);
+      //   return slice;
       // },
-
-      // tiptap   packages/extension-link/src/link.ts
-
-      // handlePaste: (view, event, slice) => {
+      // this doesn't get triggered
+      // handlePaste(view, event, slice) {
       //   if (!event.clipboardData) {
       //     return false;
       //   }
@@ -98,38 +71,7 @@ export function createMarksTooltip(renderPortal: RenderPortal) {
       //   const isPlainText = text && !html;
 
       //   if (!isPlainText || view.state.selection.empty) {
-      //     return false;
-      //   }
-
-      //   const { state, dispatch } = view;
-      //   // @todo handle regex to be sure what was pasted was a link
-
-      //   // const match = matchAllPlus(regexp, text);
-      //   // const singleMatch = match.length === 1 && match.every((m) => m.match);
-      //   // // Only handle if paste has one URL
-      //   // if (!singleMatch) {
-      //   //   return false;
-      //   // }
-
-      //   return createLink(text)(state, dispatch);
-      // },
-
-      // transformPastedText: (slice) => {
-      //   console.log('slice ==> ', slice)
-      //   return false
-      // },
-
-      // handlePaste: (view, event, slice) => {
-      //   console.log('slice ==> ', slice)
-      //   if (!event.clipboardData) {
-      //     return false;
-      //   }
-      //   let text = event.clipboardData.getData("text/plain");
-      //   const html = event.clipboardData.getData("text/html");
-
-      //   const isPlainText = text && !html;
-
-      //   if (!isPlainText || view.state.selection.empty) {
+      //     console.log("selection empty");
       //     return false;
       //   }
 
@@ -151,7 +93,6 @@ export function createMarksTooltip(renderPortal: RenderPortal) {
           transition: "opacity 0.75s",
           position: "absolute",
           zIndex: 1,
-
           ...(hidden
             ? {
                 top: -10000,
@@ -161,36 +102,12 @@ export function createMarksTooltip(renderPortal: RenderPortal) {
             : dimensions),
         };
 
-        const marks = new Set<{
-          name: string;
-          attrs?: Record<string, string>;
-        }>();
+        const activeMarks = getActiveMarks(editorView);
 
-        const activeMarks: { name: string; attrs?: Record<string, string> }[] =
-          [];
-
-        console.log("selection => ", editorView.state.selection.content());
-
-        editorView.state.selection
-          .content()
-          .content.descendants((node: FixMeLater) => {
-            for (const mark of node.marks) {
-              // marks.add(mark.type.name);
-              activeMarks.push({
-                name: mark.type.name,
-                attrs: mark.attrs,
-              });
-              // marks.add(mark);
-            }
-
-            return true;
-          });
-
-        // todo how to make it rerender
         const jsx = (
-          <div className={tw`absolute`} style={style} id="test-div">
+          <div className={tw`absolute`} style={style} id={TOOLTIP_ID}>
             <MarksToolTip
-              marks={activeMarks}
+              activeMarks={activeMarks}
               toggleMark={(name, attrs) => {
                 editorView.focus();
                 toggleMark(editorView.state.schema.marks[name], attrs)(
@@ -211,27 +128,32 @@ export function createMarksTooltip(renderPortal: RenderPortal) {
         renderPortal(jsx, mountNode);
       };
 
-      const selectionchange = (evt) => {
-        const x = document.getElementById("test-div");
+      const handleSelectionChange = (_) => {
+        const toolTipEl = document.getElementById(TOOLTIP_ID);
+        const selectionFocusNode = document.getSelection()?.focusNode;
 
-        if (x?.contains(document.getSelection()?.focusNode)) {
+        if (selectionFocusNode && toolTipEl?.contains(selectionFocusNode)) {
           return;
         }
 
         editorView.dispatch(
           editorView.state.tr.setMeta(key, {
-            payload: { isSelectionEmpty: isEmpty(document.getSelection()) },
+            payload: {
+              isSelectionEmpty: checkIfSelectionIsEmpty(
+                document.getSelection()
+              ),
+            },
           })
         );
       };
 
-      document.addEventListener("selectionchange", selectionchange);
+      document.addEventListener("selectionchange", handleSelectionChange);
 
       return {
         destroy() {
           renderPortal(null, mountNode);
           mountNode.remove();
-          document.removeEventListener("selectionchange", selectionchange);
+          document.removeEventListener("selectionchange", handleSelectionChange);
         },
         update: (view: FixMeLater, lastState?: FixMeLater) => {
           const dragging = !!editorView.dragging;
@@ -252,10 +174,9 @@ export function createMarksTooltip(renderPortal: RenderPortal) {
             // !(state.selection instanceof TextSelection) ||
             !selectionContainsText(state) ||
             // state.selection.empty ||
-            key.getState(view.state).isSelectionEmpty
+            key.getState(view.state)?.isSelectionEmpty
           ) {
             renderPortal(null, mountNode);
-            // renderPortalFn(true);
             return;
           }
 

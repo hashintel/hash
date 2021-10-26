@@ -74,6 +74,7 @@ export const createSchema = () =>
         attrs: {
           href: { default: ""},
         },
+        inclusive: false,
         toDOM(node) {
           let { href } = node.attrs;
           return ["a", { href, style: "color: blue; text-decoration: underline" }, 0] as const;
