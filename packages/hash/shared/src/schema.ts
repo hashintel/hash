@@ -50,6 +50,9 @@ export const createSchema = () =>
       text: {},
       async: {
         group: "blockItem",
+        toDOM: () => {
+          return ["div", {}, ["p", {}, "Loading…"]];
+        },
         attrs: {
           targetComponentId: { default: null },
           // @todo remove this

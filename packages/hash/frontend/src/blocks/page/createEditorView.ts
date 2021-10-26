@@ -10,7 +10,6 @@ import { Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { createBlockSuggester } from "../../components/BlockSuggester/createBlockSuggester";
 import { createMarksTooltip } from "../../components/MarksTooltip";
-import { AsyncView } from "./AsyncView";
 import { BlockView } from "./BlockView";
 import { EditorConnection } from "./collab/EditorConnection";
 import { Reporter } from "./collab/Reporter";
@@ -106,17 +105,17 @@ export const createEditorView = (
   const view = new EditorView<Schema>(renderNode, {
     state,
     nodeViews: {
-      async(currentNode, currentView, getPos) {
-        if (typeof getPos === "boolean") {
-          throw new Error("Invalid config for nodeview");
-        }
-        return new AsyncView(currentNode, currentView, getPos, manager);
-      },
       block(currentNode, currentView, getPos) {
         if (typeof getPos === "boolean") {
           throw new Error("Invalid config for nodeview");
         }
-        return new BlockView(currentNode, currentView, getPos, renderPortal);
+        return new BlockView(
+          currentNode,
+          currentView,
+          getPos,
+          renderPortal,
+          manager
+        );
       },
     },
     dispatchTransaction: collabEnabled

@@ -2,6 +2,10 @@ import { BlockVariant } from "@hashintel/block-protocol";
 import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { history } from "@hashintel/hash-shared/history";
 import { ProsemirrorNode } from "@hashintel/hash-shared/node";
+import {
+  ProsemirrorSchemaManager,
+  replaceNodeWithRemoteBlock,
+} from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { Schema } from "prosemirror-model";
 import { NodeSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
@@ -63,7 +67,8 @@ export class BlockView implements NodeView<Schema> {
     public node: ProsemirrorNode<Schema>,
     public view: EditorView<Schema>,
     public getPos: () => number,
-    public renderPortal: RenderPortal
+    public renderPortal: RenderPortal,
+    public manager: ProsemirrorSchemaManager
   ) {
     this.dom = document.createElement("div");
     this.dom.classList.add(styles.Block);
@@ -250,6 +255,9 @@ export class BlockView implements NodeView<Schema> {
       throw new Error("Cannot switch node without draft id");
     }
 
+    /**
+     * @todo remove the need to do this at all
+     */
     const newNode = state.schema.nodes.async.create({
       targetComponentId: meta.componentMetadata.componentId,
       entityId: child?.attrs.entityId ?? null,
@@ -263,8 +271,13 @@ export class BlockView implements NodeView<Schema> {
     const selection = NodeSelection.create<Schema>(tr.doc, tr.mapping.map(pos));
 
     tr.setSelection(selection);
-
     view.dispatch(tr);
     view.focus();
+
+    replaceNodeWithRemoteBlock(this.view, this.manager, newNode, () =>
+      tr.mapping.map(pos)
+    ).catch((err) => {
+      console.error(err);
+    });
   };
 }
