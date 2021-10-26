@@ -89,7 +89,7 @@ const main = async () => {
     port: argv.port
       ? argv.port
       : process.env.HASH_PG_PORT
-      ? parseInt(process.env.HASH_PG_PORT)
+      ? parseInt(process.env.HASH_PG_PORT, 10)
       : 5432,
     database: argv.database || process.env.HASH_PG_DATABASE || "postgres",
     password: password || process.env.HASH_PG_PASSWORD || "postgres",
@@ -144,6 +144,6 @@ const main = async () => {
   console.log("Schema migration complete");
 };
 
-(async () => {
+void (async () => {
   await main();
 })();

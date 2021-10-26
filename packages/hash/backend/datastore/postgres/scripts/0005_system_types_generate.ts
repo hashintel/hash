@@ -20,7 +20,7 @@ const systemAccount = generatedIds.orgs[SYSTEM_ACCOUNT_SHORTNAME];
 let sqlString = "";
 
 for (const typeName of SYSTEM_TYPES.filter(
-  (typeName: string) => typeName !== "Org"
+  (name: string) => name !== "Org"
 )) {
   const type = types[typeName];
 
