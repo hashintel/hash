@@ -63,6 +63,7 @@ export const dbAggregateEntity =
     return {
       results,
       operation: {
+        entityTypeId,
         multiSort,
         pageNumber,
         itemsPerPage,

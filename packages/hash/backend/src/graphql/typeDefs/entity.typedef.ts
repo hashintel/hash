@@ -166,7 +166,7 @@ export const entityTypedef = gql`
   }
 
   type LinkedAggregation {
-    operation: AggregateOperation
+    operation: AggregateOperation!
     results: [Entity!]!
     path: String!
   }
@@ -224,6 +224,7 @@ export const entityTypedef = gql`
   }
 
   type AggregateOperation {
+    entityTypeId: ID!
     multiFilter: FilterOperation
     multiSort: [SortOperation!]!
     itemsPerPage: Int!
