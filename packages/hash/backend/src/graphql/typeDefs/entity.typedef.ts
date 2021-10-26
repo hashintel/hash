@@ -221,6 +221,7 @@ export const entityTypedef = gql`
   input FilterOperationInput {
     field: String!
     value: String!
+    operator: String!
   }
 
   type AggregateOperation {

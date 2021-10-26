@@ -1,6 +1,9 @@
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { TableOptions, useSortBy, useTable } from "react-table";
-import { BlockProtocolLinkedDataDefinition } from "@hashintel/block-protocol";
+import {
+  BlockProtocolAggregateFn,
+  BlockProtocolLinkedDataDefinition,
+} from "@hashintel/block-protocol";
 import { BlockComponent } from "@hashintel/block-protocol/react";
 import { tw } from "twind";
 import { EditableCell } from "./components/EditableCell";
@@ -26,10 +29,49 @@ export const App: BlockComponent<AppProps> = ({
   schemas,
   update,
   entityId,
+  aggregate: aggregateFn,
 }) => {
-  const columns = useMemo(() => makeColumns(data?.data?.[0] || {}, ""), [data]);
+  const [tableData, setTableData] = useState<{
+    results: any[];
+    operation: any;
+  }>({
+    results: [],
+    operation: null,
+  });
+
+  useEffect(() => {
+    if (
+      !data.__linkedData?.entityTypeId ||
+      !data.__linkedData?.aggregate ||
+      !aggregateFn
+    )
+      return;
+
+    if (data.__linkedData.aggregate.pageCount) {
+      data.__linkedData.aggregate.itemsPerPage =
+        data.__linkedData.aggregate.pageCount;
+
+      delete data.__linkedData.aggregate.pageCount;
+    }
+
+    aggregateFn({
+      entityTypeId: data.__linkedData.entityTypeId,
+      operation: data.__linkedData.aggregate,
+      accountId: "",
+    }).then(({ results, operation }: any) =>
+      setTableData({
+        results,
+        operation,
+      })
+    );
+  }, [data.__linkedData]);
+
+  const columns = useMemo(
+    () => makeColumns(tableData.results?.[0] || {}, ""),
+    [tableData.results]
+  );
   const pageOptions = useMemo(() => {
-    const aggregate = data.__linkedData?.aggregate;
+    const aggregate = tableData.operation;
     return {
       pageCount: aggregate?.pageCount || 1,
       pageNumber: aggregate?.pageNumber || 1,
@@ -37,7 +79,7 @@ export const App: BlockComponent<AppProps> = ({
     };
   }, [data]);
   const aggregateOptions = useMemo(() => {
-    const aggregate = data.__linkedData?.aggregate;
+    const aggregate = tableData.operation;
     return {
       multiFilter: aggregate?.multiFilter,
       multiSort: aggregate?.multiSort,
@@ -106,6 +148,18 @@ export const App: BlockComponent<AppProps> = ({
 
       if (newLinkedData.aggregate.pageCount) {
         delete newLinkedData.aggregate.pageCount;
+      }
+
+      if (
+        newLinkedData.entityTypeId &&
+        newLinkedData.aggregate &&
+        aggregateFn
+      ) {
+        aggregateFn({
+          entityTypeId: newLinkedData.entityTypeId,
+          operation: newLinkedData.aggregate,
+          accountId: "",
+        }).then((x: any) => console.log(x));
       }
 
       void update<{
