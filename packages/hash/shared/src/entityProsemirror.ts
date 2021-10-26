@@ -1,7 +1,10 @@
 import { Schema } from "prosemirror-model";
 import { Text } from "./graphql/apiTypes.gen";
 
-export const childrenForTextEntity = (entity: Text, schema: Schema) =>
+export const childrenForTextEntity = (
+  entity: Pick<Text, "properties">,
+  schema: Schema
+) =>
   entity.properties.texts.map((text) =>
     schema.text(
       text.text,

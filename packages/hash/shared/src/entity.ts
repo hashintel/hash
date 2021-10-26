@@ -1,8 +1,9 @@
 import {
+  DraftEntity,
   EntityStore,
   EntityStoreType,
   isBlockEntity,
-  isEntityLink,
+  isDraftBlockEntity,
 } from "./entityStore";
 import {
   Entity,
@@ -10,7 +11,6 @@ import {
   Text,
   UnknownEntity,
 } from "./graphql/apiTypes.gen";
-import { DistributiveOmit } from "./util";
 
 export type AnyEntity = Entity | UnknownEntity | Text;
 
@@ -22,44 +22,21 @@ export type BlockEntity = Omit<ContentsEntity, "properties"> & {
   };
 };
 
-export const isTextEntity = (entity: EntityStoreType): entity is Text =>
-  "properties" in entity && "texts" in entity.properties;
-
-const isTextEntityContainingEntity = (
-  entity: DistributiveOmit<AnyEntity, "properties"> & {
-    properties?: unknown;
-  }
-): entity is DistributiveOmit<AnyEntity, "properties"> & {
-  properties: { text: { data: Text } };
-} => {
-  if (
-    "properties" in entity &&
-    typeof entity.properties === "object" &&
-    entity.properties !== null
-  ) {
-    const properties: Partial<Record<string, unknown>> = entity.properties;
-
-    return (
-      "text" in properties &&
-      isEntityLink(properties.text) &&
-      // @todo deal with array entity links
-      !Array.isArray(properties.text.data) &&
-      isTextEntity(properties.text.data)
-    );
-  }
-  return false;
-};
+export const isTextEntity = (
+  entity: EntityStoreType | DraftEntity
+): entity is Text => "properties" in entity && "texts" in entity.properties;
 
 /**
  * @todo reimplement links
+ * @todo reduce duplication
  */
 export const getTextEntityFromDraftBlock = (
   draftBlockId: string,
   entityStore: EntityStore
-) => {
+): DraftEntity<Text> | null => {
   const blockEntity = entityStore.draft[draftBlockId];
 
-  if (!isBlockEntity(blockEntity)) {
+  if (!isDraftBlockEntity(blockEntity)) {
     throw new Error("Can only get text entity from block entity");
   }
 
@@ -68,10 +45,9 @@ export const getTextEntityFromDraftBlock = (
   const blockPropertiesEntity = entityStore.draft[blockPropertiesEntityDraftId];
 
   if (!blockPropertiesEntity) {
-    throw new Error("invariant: missing draft entity");
+    throw new Error("invariant: missing block entity");
   }
 
-  // @ts-expect-error: isTextEntity needs updating
   if (!isTextEntity(blockPropertiesEntity)) {
     return null;
   } else {
@@ -80,21 +56,30 @@ export const getTextEntityFromDraftBlock = (
 };
 
 /**
- * @deprecated
- * @todo need to use draft store
+ * @todo reimplement links
+ * @todo reduce duplication
  */
-export const getTextEntityFromBlock = (
-  blockEntity: BlockEntity
+export const getTextEntityFromSavedBlock = (
+  blockId: string,
+  entityStore: EntityStore
 ): Text | null => {
-  const blockPropertiesEntity = blockEntity.properties.entity;
+  const blockEntity = entityStore.saved[blockId];
+
+  if (!isBlockEntity(blockEntity)) {
+    throw new Error("Can only get text entity from block entity");
+  }
+
+  // @todo type of this
+  const blockPropertiesEntityDraftId = blockEntity.properties.entity.entityId;
+  const blockPropertiesEntity = entityStore.saved[blockPropertiesEntityDraftId];
+
+  if (!blockPropertiesEntity) {
+    throw new Error("invariant: missing block entity");
+  }
 
   if (!isTextEntity(blockPropertiesEntity)) {
-    if (isTextEntityContainingEntity(blockPropertiesEntity)) {
-      return blockPropertiesEntity.properties.text.data;
-    }
+    return null;
   } else {
     return blockPropertiesEntity;
   }
-
-  return null;
 };

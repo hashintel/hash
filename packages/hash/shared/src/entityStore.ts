@@ -32,24 +32,6 @@ export type EntityStore = {
 export const isEntity = (value: unknown): value is EntityStoreType =>
   typeof value === "object" && value !== null && "entityId" in value;
 
-// @todo remove this entity link stuff
-type EntityLink<
-  EntityType extends EntityStoreType | DraftEntity = EntityStoreType
-> = {
-  __linkedData: unknown;
-  data: EntityType | EntityType[];
-};
-
-export const isEntityLink = <
-  EntityType extends EntityStoreType | DraftEntity = EntityStoreType
->(
-  value: unknown
-): value is EntityLink<EntityType> =>
-  typeof value === "object" &&
-  value !== null &&
-  "__linkedData" in value &&
-  "data" in value;
-
 // @todo does this need to be more robust?
 export const isBlockEntity = (entity: unknown): entity is BlockEntity =>
   isEntity(entity) &&
@@ -63,6 +45,9 @@ export const isDraftBlockEntity = (
 ): entity is DraftEntity<BlockEntity> =>
   isBlockEntity(entity) && "draftId" in entity;
 
+/**
+ * @todo restore dealing with links
+ */
 export const createEntityStore = (
   contents: EntityStoreType[],
   draftData: Record<string, DraftEntity>
@@ -83,13 +68,7 @@ export const createEntityStore = (
   const flattenPotentialEntity = (value: unknown): EntityStoreType[] => {
     let entities: EntityStoreType[] = [];
 
-    if (isEntityLink(value)) {
-      const linkedEntities = Array.isArray(value.data)
-        ? value.data
-        : [value.data];
-
-      entities = [...entities, ...linkedEntities];
-    } else if (isBlockEntity(value)) {
+    if (isBlockEntity(value)) {
       entities = [...entities, value, value.properties.entity];
     }
 

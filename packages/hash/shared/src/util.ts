@@ -4,18 +4,19 @@ import { ProsemirrorNode } from "./node";
 
 // @todo move these functions to a more appropriate place
 
-export type ComponentNode = Omit<ProsemirrorNode<Schema>, "attrs"> & {
-  attrs: {
-    blockEntityId: string | null;
-  };
-};
+type NodeWithAttrs<Attrs extends {}> = Omit<
+  ProsemirrorNode<Schema>,
+  "attrs"
+> & { attrs: Attrs };
 
-export type EntityNode = Omit<ProsemirrorNode<Schema>, "attrs"> & {
-  attrs: {
-    entityId: string | null;
-    draftId: string | null;
-  };
-};
+export type ComponentNode = NodeWithAttrs<{
+  blockEntityId: string | null;
+}>;
+
+export type EntityNode = NodeWithAttrs<{
+  entityId: string | null;
+  draftId: string | null;
+}>;
 
 /**
  * @deprecated

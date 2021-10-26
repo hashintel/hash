@@ -2,7 +2,7 @@
 import { ApolloClient } from "@apollo/client";
 import { isEqual, uniqBy } from "lodash";
 import { Schema } from "prosemirror-model";
-import { BlockEntity, getTextEntityFromBlock } from "./entity";
+import { BlockEntity, getTextEntityFromSavedBlock } from "./entity";
 import { EntityStore, isBlockEntity } from "./entityStore";
 import {
   SystemTypeName,
@@ -250,7 +250,10 @@ const updateBlocks = defineOperation(
           }
 
           if (node.type.isTextblock) {
-            const textEntity = getTextEntityFromBlock(savedEntity);
+            const textEntity = getTextEntityFromSavedBlock(
+              blockEntityId,
+              entityStore
+            );
 
             if (!textEntity) {
               throw new Error(
@@ -259,6 +262,7 @@ const updateBlocks = defineOperation(
             }
 
             const { texts } = textEntity.properties;
+            // @todo consider using draft entity store for this
             const entityProperties = nodeToEntityProperties(node);
 
             if (!isEqual(texts, entityProperties?.texts)) {
@@ -318,6 +322,9 @@ const calculateSaveActions = (
   return actions;
 };
 
+/**
+ * @todo use draft entity store for this
+ */
 export const updatePageMutation = async (
   accountId: string,
   entityId: string,
