@@ -46,6 +46,7 @@ const ensureEntitiesAreWrapped = (
      */
     if (
       node.type !== schema.nodes.async &&
+      node.type !== schema.nodes.blank &&
       parent.type === schema.nodes.doc &&
       (wrapperNodes || node.type !== schema.nodes.block)
     ) {

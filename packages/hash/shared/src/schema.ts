@@ -52,7 +52,9 @@ export const createSchema = () =>
         group: "blockItem",
         attrs: {
           targetComponentId: { default: null },
+          // @todo remove this
           entityId: { default: null },
+          draftId: { default: null },
         },
       },
     },

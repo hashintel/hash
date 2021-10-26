@@ -89,6 +89,10 @@ export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
 
               draftId = existingDraftId;
             } else {
+              /**
+               * @todo how do we ensure this is the same on frontend and on
+               *       collab
+               */
               draftId = uuid();
               draft[draftId] = {
                 draftId,
@@ -118,7 +122,16 @@ export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
             if (child) {
               const props = nodeToEntityProperties(child);
               if (props && "properties" in draftEntity) {
-                draftEntity.properties = props;
+                // @todo need to be smarter
+                if (
+                  JSON.stringify(props) !==
+                  JSON.stringify(draftEntity.properties)
+                ) {
+                  if (!tr) {
+                    tr = state.tr;
+                  }
+                  draftEntity.properties = props;
+                }
               }
             }
           }

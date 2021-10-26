@@ -1,4 +1,3 @@
-import { isBlockEntity } from "@hashintel/hash-shared/entityStore";
 import { entityStoreFromProsemirror } from "@hashintel/hash-shared/entityStorePlugin";
 import { history } from "@hashintel/hash-shared/history";
 import { ProsemirrorNode } from "@hashintel/hash-shared/node";
@@ -69,26 +68,16 @@ export class AsyncView implements NodeView<Schema> {
 
     this.dom.appendChild(this.spinner);
 
-    const entityId = this.node.attrs.entityId;
-
-    // @todo entityId can be null if switching an unsaved block
-    if (!entityId) {
-      throw new Error("Missing entity id of the block to switch");
-    }
-
-    // @todo this needs to use draft
-    const entity = entityStoreFromProsemirror(this.view.state).store.saved[
-      entityId
-    ];
-
-    if (!isBlockEntity(entity)) {
-      throw new Error("Cannot switch using non-block entity");
-    }
+    const store = entityStoreFromProsemirror(this.view.state).store;
 
     this.controller = new AbortController();
 
     this.manager
-      .createRemoteBlockFromEntity(entity, node.attrs.targetComponentId)
+      .createRemoteBlock(
+        store,
+        node.attrs.draftId,
+        node.attrs.targetComponentId
+      )
       .then((newNode) => {
         if (this.controller?.signal.aborted) {
           return;

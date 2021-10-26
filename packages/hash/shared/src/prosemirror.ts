@@ -12,7 +12,12 @@ import { ProsemirrorNode } from "./node";
 import { createSchema } from "./schema";
 import { wrapEntitiesPlugin } from "./wrapEntitiesPlugin";
 
-export const getProseMirrorNodeAttributes = (entity: BlockEntity) => ({
+/**
+ * @deprecated
+ */
+export const getProseMirrorNodeAttributes = (entity: {
+  entityId: string | null;
+}) => ({
   entityId: entity.entityId,
 });
 

@@ -37,6 +37,8 @@ const isTextEntityContainingEntity = (
     return (
       "text" in properties &&
       isEntityLink(properties.text) &&
+      // @todo deal with array entity links
+      !Array.isArray(properties.text.data) &&
       isTextEntity(properties.text.data)
     );
   }

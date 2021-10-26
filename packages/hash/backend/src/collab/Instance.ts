@@ -86,7 +86,7 @@ export class Instance {
           this.pageEntityId,
           this.doc,
           this.savedContents,
-          createEntityStore(this.savedContents),
+          createEntityStore(this.savedContents, {}),
           apolloClient
         ).then((newPage) => {
           const entityNodes = findEntityNodes(this.doc);

@@ -1,3 +1,5 @@
+import { BlockVariant } from "@hashintel/block-protocol";
+import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { history } from "@hashintel/hash-shared/history";
 import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 import { Schema } from "prosemirror-model";
@@ -5,7 +7,10 @@ import { NodeSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
 import React, { createRef, forwardRef, useEffect, useState } from "react";
 import { tw } from "twind";
-import { BlockSuggester } from "../../components/BlockSuggester/BlockSuggester";
+import {
+  BlockSuggester,
+  BlockSuggesterProps,
+} from "../../components/BlockSuggester/BlockSuggester";
 import DragVertical from "../../components/Icons/DragVertical";
 import styles from "./style.module.css";
 import { RenderPortal } from "./usePortals";
@@ -13,7 +18,10 @@ import { RenderPortal } from "./usePortals";
 /**
  * specialized block-type/-variant select field
  */
-export const BlockHandle = forwardRef<HTMLDivElement>((_, ref) => {
+export const BlockHandle = forwardRef<
+  HTMLDivElement,
+  { onTypeChange: BlockSuggesterProps["onChange"] }
+>(({ onTypeChange }, ref) => {
   const [isPopoverVisible, setPopoverVisible] = useState(false);
 
   useEffect(() => {
@@ -30,13 +38,7 @@ export const BlockHandle = forwardRef<HTMLDivElement>((_, ref) => {
           setPopoverVisible(true);
         }}
       />
-      {isPopoverVisible && (
-        <BlockSuggester
-          onChange={() => {
-            throw new Error("not yet implemented");
-          }}
-        />
-      )}
+      {isPopoverVisible ? <BlockSuggester onChange={onTypeChange} /> : null}
     </div>
   );
 });
@@ -211,7 +213,10 @@ export class BlockView implements NodeView<Schema> {
           }}
           onClick={this.onDragEnd}
         />
-        <BlockHandle ref={this.blockHandleRef} />
+        <BlockHandle
+          ref={this.blockHandleRef}
+          onTypeChange={this.onBlockChange}
+        />
       </>,
       container
     );
@@ -230,10 +235,8 @@ export class BlockView implements NodeView<Schema> {
    * another – the second half is carried out by AsyncView's update function
    *
    * @todo restore the ability to load in new block types here
-   * @todo this will revert the text content of a block back to what it was
-   *       when you last saved – we need to fix this
    */
-  onBlockChange = ([componentId]: [string]) => {
+  onBlockChange = (variant: BlockVariant, meta: BlockMeta) => {
     const { node, view, getPos } = this;
 
     history.disableTracking(view);
@@ -241,9 +244,16 @@ export class BlockView implements NodeView<Schema> {
     const state = view.state;
     const tr = state.tr;
     const child = state.doc.resolve(getPos() + 1).nodeAfter;
+    const draftId = child?.attrs.draftId;
+
+    if (!draftId) {
+      throw new Error("Cannot switch node without draft id");
+    }
+
     const newNode = state.schema.nodes.async.create({
-      targetComponentId: componentId,
+      targetComponentId: meta.componentMetadata.componentId,
       entityId: child?.attrs.entityId ?? null,
+      draftId,
     });
 
     const pos = getPos();

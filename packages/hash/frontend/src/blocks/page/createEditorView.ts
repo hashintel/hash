@@ -8,7 +8,7 @@ import { updatePageMutation } from "@hashintel/hash-shared/save";
 import { Schema } from "prosemirror-model";
 import { Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
-import { createBlockSuggester } from "../../components/BlockSuggester";
+import { createBlockSuggester } from "../../components/BlockSuggester/createBlockSuggester";
 import { createMarksTooltip } from "../../components/MarksTooltip";
 import { AsyncView } from "./AsyncView";
 import { BlockView } from "./BlockView";
