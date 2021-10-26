@@ -1,7 +1,8 @@
-import { entityStoreFromProsemirror } from "@hashintel/hash-shared/entityStorePlugin";
-import { history } from "@hashintel/hash-shared/history";
 import { ProsemirrorNode } from "@hashintel/hash-shared/node";
-import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
+import {
+  ProsemirrorSchemaManager,
+  replaceNodeWithRemoteBlock,
+} from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { Schema } from "prosemirror-model";
 import { EditorView, NodeView } from "prosemirror-view";
 
@@ -21,7 +22,6 @@ export class AsyncView implements NodeView<Schema> {
   contentDOM: HTMLSpanElement;
   node: ProsemirrorNode<Schema>;
 
-  controller: AbortController | null = null;
   spinner: HTMLSpanElement | null = null;
 
   constructor(
@@ -38,7 +38,6 @@ export class AsyncView implements NodeView<Schema> {
   }
 
   destroy() {
-    this.controller?.abort();
     this.dom.remove();
   }
 
@@ -68,38 +67,7 @@ export class AsyncView implements NodeView<Schema> {
 
     this.dom.appendChild(this.spinner);
 
-    const store = entityStoreFromProsemirror(this.view.state).store;
-
-    this.controller = new AbortController();
-
-    this.manager
-      .createRemoteBlock(
-        store,
-        node.attrs.draftId,
-        node.attrs.targetComponentId
-      )
-      .then((newNode) => {
-        if (this.controller?.signal.aborted) {
-          return;
-        }
-
-        /**
-         * The code below used to ensure the cursor was positioned
-         * within the new node, depending on its type, but because we
-         * now want to trigger saves when we change node type, and
-         * because triggering saves can mess up the cursor position,
-         * we're currently not re-focusing the editor view.
-         */
-
-        const pos = this.getPos();
-        const tr = this.view.state.tr;
-
-        tr.replaceRangeWith(pos, pos + node.nodeSize, newNode);
-
-        document.body.focus();
-        this.view.dispatch(tr);
-        history.enableTracking(this.view);
-      })
+    replaceNodeWithRemoteBlock(this.view, this.manager, node, this.getPos)
       .catch((err) => {
         if (err.name !== "AbortError") {
           console.error(err);
@@ -110,6 +78,9 @@ export class AsyncView implements NodeView<Schema> {
            */
           // this.spinner.innerText = "Failed: " + err.toString();
         }
+      })
+      .then(() => {
+        document.body.focus();
       });
 
     return true;

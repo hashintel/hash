@@ -9,7 +9,12 @@ import {
 import { BlockEntity, getTextEntityFromDraftBlock } from "./entity";
 import { childrenForTextEntity } from "./entityProsemirror";
 import { EntityStore, isBlockEntity } from "./entityStore";
-import { applyEntitiesToTransaction } from "./entityStorePlugin";
+import {
+  applyEntitiesToTransaction,
+  entityStoreFromProsemirror,
+} from "./entityStorePlugin";
+import { history } from "./history";
+import { ProsemirrorNode } from "./node";
 import { getProseMirrorNodeAttributes } from "./prosemirror";
 
 declare interface OrderedMapPrivateInterface<T> {
@@ -30,6 +35,35 @@ const createComponentNodeSpec = (spec: Partial<NodeSpec>): NodeSpec => ({
 type NodeViewFactory = NonNullable<EditorProps<Schema>["nodeViews"]>[string];
 
 type ComponentNodeViewFactory = (meta: BlockMeta) => NodeViewFactory;
+
+export const replaceNodeWithRemoteBlock = (
+  view: EditorView<Schema>,
+  manager: ProsemirrorSchemaManager,
+  node: ProsemirrorNode<Schema>,
+  getPos: () => number
+) => {
+  const store = entityStoreFromProsemirror(view.state).store;
+
+  return manager
+    .createRemoteBlock(store, node.attrs.draftId, node.attrs.targetComponentId)
+    .then((newNode) => {
+      /**
+       * The code below used to ensure the cursor was positioned
+       * within the new node, depending on its type, but because we
+       * now want to trigger saves when we change node type, and
+       * because triggering saves can mess up the cursor position,
+       * we're currently not re-focusing the editor view.
+       */
+
+      const pos = getPos();
+      const tr = view.state.tr;
+
+      tr.replaceRangeWith(pos, pos + node.nodeSize, newNode);
+
+      view.dispatch(tr);
+      history.enableTracking(view);
+    });
+};
 
 export class ProsemirrorSchemaManager {
   constructor(
