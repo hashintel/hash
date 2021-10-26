@@ -14,9 +14,9 @@ import {
 import { ProsemirrorNode } from "./node";
 import { updatePageContents } from "./queries/page.queries";
 import {
+  blockEntityIdExists,
   ComponentNode,
-  entityIdExists,
-  findEntityNodes,
+  findComponentNodes,
   nodeToComponentId,
 } from "./util";
 
@@ -70,7 +70,7 @@ const defineOperation =
 const removeBlocks = defineOperation(
   (entities: BlockEntity[], nodes: ComponentNode[]) => {
     const draftBlockEntityIds = new Set(
-      nodes.map((node) => node.attrs.entityId)
+      nodes.map((node) => node.attrs.blockEntityId)
     );
 
     const removedBlockEntities = entities
@@ -102,7 +102,7 @@ const removeBlocks = defineOperation(
 const moveBlocks = defineOperation(
   (entities: BlockEntity[], nodes: ComponentNode[]) => {
     const entitiesWithoutNewBlocks = nodes.filter(
-      (node) => !!node.attrs.entityId
+      (node) => !!node.attrs.blockEntityId
     );
 
     const actions: UpdatePageAction[] = [];
@@ -111,7 +111,7 @@ const moveBlocks = defineOperation(
     for (let position = 0; position < entities.length; position++) {
       const block = entities[position];
       const positionInDoc = entitiesWithoutNewBlocks.findIndex(
-        (node) => node.attrs.entityId === block.entityId
+        (node) => node.attrs.blockEntityId === block.entityId
       );
 
       if (positionInDoc < 0) {
@@ -148,10 +148,10 @@ const moveBlocks = defineOperation(
 const insertBlocks = defineOperation(
   (entities: BlockEntity[], nodes: ComponentNode[], accountId: string) => {
     const actions: UpdatePageAction[] = [];
-    const exists = entityIdExists(entities);
+    const exists = blockEntityIdExists(entities);
 
     for (const [position, node] of Object.entries(nodes)) {
-      if (exists(node.attrs.entityId)) {
+      if (exists(node.attrs.blockEntityId)) {
         continue;
       }
 
@@ -181,7 +181,7 @@ const updateBlocks = defineOperation(
     nodes: ComponentNode[],
     entityStore: EntityStore
   ) => {
-    const exists = entityIdExists(entities);
+    const exists = blockEntityIdExists(entities);
 
     /**
      * Currently when the same block exists on the page in multiple locations,
@@ -201,13 +201,12 @@ const updateBlocks = defineOperation(
          * GraphQL
          */
         .flatMap((node) => {
-          const { entityId } = node.attrs;
-
-          if (!exists(entityId)) {
+          const { blockEntityId } = node.attrs;
+          if (!exists(blockEntityId)) {
             return [];
           }
 
-          const savedEntity = entityStore.saved[entityId];
+          const savedEntity = entityStore.saved[blockEntityId];
 
           if (!savedEntity) {
             throw new Error("Entity missing from entity store");
@@ -226,7 +225,7 @@ const updateBlocks = defineOperation(
 
           // @todo could probably get this from entity store
           const existingBlock = entities.find(
-            (entity) => entity.entityId === entityId
+            (entity) => entity.entityId === blockEntityId
           );
 
           if (!existingBlock) {
@@ -239,7 +238,7 @@ const updateBlocks = defineOperation(
           if (componentId !== existingBlock.properties.componentId) {
             updates.push({
               updateEntity: {
-                entityId,
+                entityId: blockEntityId,
                 accountId: savedEntity.accountId,
                 properties: {
                   componentId,
@@ -308,19 +307,14 @@ const calculateSaveActions = (
   blocks: BlockEntity[],
   entityStore: EntityStore
 ) => {
-  const blockEntityNodes = findEntityNodes(doc).map(([node]) => node);
+  const componentNodes = findComponentNodes(doc).map(([node]) => node);
   let actions: UpdatePageAction[] = [];
 
   blocks = [...blocks];
-  [actions, blocks] = removeBlocks(actions, blocks, blockEntityNodes);
-  [actions, blocks] = moveBlocks(actions, blocks, blockEntityNodes);
-  [actions, blocks] = insertBlocks(
-    actions,
-    blocks,
-    blockEntityNodes,
-    accountId
-  );
-  [actions] = updateBlocks(actions, blocks, blockEntityNodes, entityStore);
+  [actions, blocks] = removeBlocks(actions, blocks, componentNodes);
+  [actions, blocks] = moveBlocks(actions, blocks, componentNodes);
+  [actions, blocks] = insertBlocks(actions, blocks, componentNodes, accountId);
+  [actions] = updateBlocks(actions, blocks, componentNodes, entityStore);
   return actions;
 };
 

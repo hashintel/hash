@@ -6,7 +6,7 @@ import { ProsemirrorNode } from "./node";
 
 export type ComponentNode = Omit<ProsemirrorNode<Schema>, "attrs"> & {
   attrs: {
-    entityId: string | null;
+    blockEntityId: string | null;
   };
 };
 
@@ -35,31 +35,27 @@ export const isEntityNode = (
 export const isComponentNode = (
   node: ProsemirrorNode<Schema>
 ): node is ComponentNode =>
-  !!node.type.spec.attrs &&
-  "entityId" in node.type.spec.attrs &&
-  // This is temporary because we've added a new entity PM node but we're not
-  // yet using it for update calculation
-  node.type !== node.type.schema.nodes.entity;
+  !!node.type.spec.attrs && "blockEntityId" in node.type.spec.attrs;
 
-export const findEntityNodes = (doc: ProsemirrorNode<Schema>) => {
-  const entityNodes: [ComponentNode, number][] = [];
+export const findComponentNodes = (doc: ProsemirrorNode<Schema>) => {
+  const componentNodes: [ComponentNode, number][] = [];
 
   doc.descendants((node, pos) => {
     if (isComponentNode(node)) {
-      entityNodes.push([node, pos]);
+      componentNodes.push([node, pos]);
     }
 
     return true;
   });
 
-  return entityNodes;
+  return componentNodes;
 };
 
-export const entityIdExists = (entities: BlockEntity[]) => {
+export const blockEntityIdExists = (entities: BlockEntity[]) => {
   const ids = new Set(entities.map((block) => block.entityId));
 
-  return (entityId: string | null): entityId is string =>
-    !!entityId && ids.has(entityId);
+  return (blockEntityId: string | null): blockEntityId is string =>
+    !!blockEntityId && ids.has(blockEntityId);
 };
 
 // @todo this should be defined elsewhere

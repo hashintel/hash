@@ -4,12 +4,12 @@ import { createEntityStore } from "@hashintel/hash-shared/entityStore";
 import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 import {
   createProseMirrorState,
-  getProseMirrorNodeAttributes,
+  getComponentNodeAttrs,
 } from "@hashintel/hash-shared/prosemirror";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
 import { updatePageMutation } from "@hashintel/hash-shared/save";
-import { findEntityNodes } from "@hashintel/hash-shared/util";
+import { findComponentNodes } from "@hashintel/hash-shared/util";
 import { Schema } from "prosemirror-model";
 import { Mapping, Step, Transform } from "prosemirror-transform";
 import { InvalidVersionError } from "./InvalidVersionError";
@@ -89,12 +89,12 @@ export class Instance {
           createEntityStore(this.savedContents, {}),
           apolloClient
         ).then((newPage) => {
-          const entityNodes = findEntityNodes(this.doc);
+          const componentNodes = findComponentNodes(this.doc);
 
           this.savedContents = newPage.properties.contents;
 
-          for (let idx = 0; idx < entityNodes.length; idx++) {
-            const [entityNode, pos] = entityNodes[idx];
+          for (let idx = 0; idx < componentNodes.length; idx++) {
+            const [componentNode, pos] = componentNodes[idx];
 
             const entity = newPage.properties.contents[idx];
 
@@ -102,9 +102,9 @@ export class Instance {
               throw new Error("Could not find block in saved page");
             }
 
-            if (!entityNode.attrs.entityId) {
+            if (!componentNode.attrs.blockEntityId) {
               const transform = new Transform<Schema>(this.doc);
-              const attrs = getProseMirrorNodeAttributes(entity);
+              const attrs = getComponentNodeAttrs(entity);
               const mappedPos = mapping.map(pos);
               const blockWithAttrs = this.doc.childAfter(mappedPos).node;
 

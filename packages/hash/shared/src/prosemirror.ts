@@ -13,10 +13,8 @@ import { wrapEntitiesPlugin } from "./wrapEntitiesPlugin";
 /**
  * @deprecated
  */
-export const getProseMirrorNodeAttributes = (entity: {
-  entityId: string | null;
-}) => ({
-  entityId: entity.entityId,
+export const getComponentNodeAttrs = (entity: { entityId: string | null }) => ({
+  blockEntityId: entity.entityId,
 });
 
 const createInitialDoc = (schema: Schema = createSchema()) =>

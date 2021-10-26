@@ -14,7 +14,7 @@ import {
   entityStoreFromProsemirror,
 } from "./entityStorePlugin";
 import { ProsemirrorNode } from "./node";
-import { getProseMirrorNodeAttributes } from "./prosemirror";
+import { getComponentNodeAttrs } from "./prosemirror";
 
 declare interface OrderedMapPrivateInterface<T> {
   content: (string | T)[];
@@ -26,8 +26,7 @@ const createComponentNodeSpec = (spec: Partial<NodeSpec>): NodeSpec => ({
   group: "blockItem",
   attrs: {
     ...(spec.attrs ?? {}),
-    // @todo consider removing this
-    entityId: { default: "" },
+    blockEntityId: { default: "" },
   },
 });
 
@@ -193,7 +192,7 @@ export class ProsemirrorSchemaManager {
       throw new Error("Can only create remote block from block entity");
     }
 
-    const attrs = getProseMirrorNodeAttributes(blockEntity);
+    const componentNodeAttributes = getComponentNodeAttrs(blockEntity);
 
     if (requiresText) {
       const draftTextEntity = getTextEntityFromDraftBlock(
@@ -217,7 +216,12 @@ export class ProsemirrorSchemaManager {
               entityId: draftTextEntity.entityId,
               draftId: draftTextEntity.draftId,
             },
-            [this.schema.nodes[targetComponentId].create(attrs, content)]
+            [
+              this.schema.nodes[targetComponentId].create(
+                componentNodeAttributes,
+                content
+              ),
+            ]
           ),
         ]
       );
@@ -233,7 +237,12 @@ export class ProsemirrorSchemaManager {
             // @todo add draftId
             entityId: blockEntity.properties.entityId,
           },
-          [this.schema.nodes[targetComponentId].create(attrs, [])]
+          [
+            this.schema.nodes[targetComponentId].create(
+              componentNodeAttributes,
+              []
+            ),
+          ]
         )
       );
     }

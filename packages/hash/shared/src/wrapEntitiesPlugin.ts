@@ -56,12 +56,12 @@ const ensureEntitiesAreWrapped = (
       }
 
       /**
-       * @todo we won't need this once we remove entityId from the component
-       *       node
+       * @todo we won't need this once we remove blockEntityId from the
+       *       component node
        */
       if (wrappers && !wrapperNodes) {
         tr.setNodeMarkup(tr.mapping.map(position), undefined, {
-          entityId: null,
+          blockEntityId: null,
         });
       }
 

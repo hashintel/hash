@@ -84,7 +84,7 @@ export class ComponentView implements NodeView<Schema> {
     const entityStore = entityStoreFromProsemirror(this.view.state).store;
 
     if (node?.type.name === this.componentId) {
-      const entityId = node.attrs.entityId;
+      const entityId = node.attrs.blockEntityId;
       // @todo probably ought to use draft
       const entity = entityStore.saved[entityId];
       const remoteBlockProps = getRemoteBlockProps(entity);
