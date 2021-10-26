@@ -7,6 +7,10 @@
   "author": "Ciaran Morinan",
   "license": "MIT",
   "main": "src/index.ts",
+  "blockprotocol": {
+    "displayName": "Heading",
+    "icon": "public/h1.svg"
+  },
   "prettier": "@hashintel/prettier-config",
   "scripts": {
     "format": "eslint --ext .ts,.tsx --fix ./src/; prettier --write --list-different './src/**/*'",
