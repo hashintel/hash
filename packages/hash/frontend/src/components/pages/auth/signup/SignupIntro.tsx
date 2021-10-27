@@ -2,13 +2,13 @@ import React, { useEffect, useState, useRef, VFC } from "react";
 import { tw } from "twind";
 
 import { useRouter } from "next/router";
+import Link from "next/link";
 import Logo from "../../../../assets/svg/logo.svg";
 import { SpinnerIcon } from "../../../Icons/SpinnerIcon";
 import { TextInput } from "../../../forms/TextInput";
 import { useUser } from "../../../hooks/useUser";
 import { InviteHeader } from "../InviteHeader";
 import { InvitationInfo } from "../utils";
-import Link from "next/link";
 
 type SignupIntroProps = {
   handleSubmit: (email: string) => void;
