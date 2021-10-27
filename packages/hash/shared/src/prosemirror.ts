@@ -6,6 +6,7 @@ import { keymap } from "prosemirror-keymap";
 import { Schema } from "prosemirror-model";
 import { EditorState, Plugin } from "prosemirror-state";
 import { BlockEntity } from "./entity";
+import { entityStorePlugin } from "./entityStorePlugin";
 import { history } from "./history";
 import { ProsemirrorNode } from "./node";
 import { createSchema } from "./schema";
@@ -18,7 +19,8 @@ export const getProseMirrorNodeAttributes = (entity: BlockEntity) => ({
 const createInitialDoc = (schema: Schema = createSchema()) =>
   schema.node("doc", {}, [schema.node("blank")]);
 
-const defaultPlugins: Plugin<unknown, Schema>[] = [
+const defaultPlugins: Plugin<any, Schema>[] = [
+  entityStorePlugin,
   history.plugin,
   keymap<Schema>({
     "Mod-z": chainCommands(undo, undoInputRule),
@@ -26,7 +28,7 @@ const defaultPlugins: Plugin<unknown, Schema>[] = [
   }),
   ...wrapEntitiesPlugin(baseKeymap),
   // This enables an indicator to appear when drag and dropping blocks
-  dropCursor() as Plugin<unknown, Schema>,
+  dropCursor(),
 ];
 
 export const createProseMirrorState = ({
@@ -34,7 +36,7 @@ export const createProseMirrorState = ({
   plugins = [],
 }: {
   doc?: ProsemirrorNode<Schema>;
-  plugins?: Plugin<unknown, Schema>[];
+  plugins?: Plugin<any, Schema>[];
 } = {}) => {
   const formatKeymap = keymap<Schema>({
     "Mod-b": toggleMark(doc.type.schema.marks.strong),

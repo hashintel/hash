@@ -1,7 +1,7 @@
 import { ApolloClient } from "@apollo/client";
 import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
-import { EntityStore } from "@hashintel/hash-shared/entityStore";
+import { entityStoreFromProsemirror } from "@hashintel/hash-shared/entityStorePlugin";
 import { createProseMirrorState } from "@hashintel/hash-shared/prosemirror";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { updatePageMutation } from "@hashintel/hash-shared/save";
@@ -23,7 +23,6 @@ const createSavePlugin = (
   accountId: string,
   pageId: string,
   getLastSavedValue: () => BlockEntity[],
-  getEntityStore: () => EntityStore,
   client: ApolloClient<unknown>
 ) => {
   let saveQueue = Promise.resolve<unknown>(null);
@@ -41,7 +40,7 @@ const createSavePlugin = (
           pageId,
           view.state.doc,
           getLastSavedValue(),
-          getEntityStore(),
+          entityStoreFromProsemirror(view.state).store,
           client
         )
       );
@@ -89,23 +88,14 @@ export const createEditorView = (
   accountId: string,
   pageId: string,
   preloadedBlocks: BlockMeta[],
-  getEntityStore: () => EntityStore,
   getLastSavedValue: () => BlockEntity[],
-  client: ApolloClient<unknown>,
-  customPlugins: Plugin<unknown, Schema>[] = []
+  client: ApolloClient<unknown>
 ) => {
   // @todo should probably be moved from here
   const plugins: Plugin<unknown, Schema>[] = [
-    createSavePlugin(
-      accountId,
-      pageId,
-      getLastSavedValue,
-      getEntityStore,
-      client
-    ),
+    createSavePlugin(accountId, pageId, getLastSavedValue, client),
     createMarksTooltip(renderPortal),
     createBlockSuggester(renderPortal),
-    ...customPlugins,
   ];
 
   const state = createProseMirrorState({ plugins });
@@ -120,13 +110,7 @@ export const createEditorView = (
         if (typeof getPos === "boolean") {
           throw new Error("Invalid config for nodeview");
         }
-        return new AsyncView(
-          currentNode,
-          currentView,
-          getPos,
-          manager,
-          getEntityStore
-        );
+        return new AsyncView(currentNode, currentView, getPos, manager);
       },
       block(currentNode, currentView, getPos) {
         if (typeof getPos === "boolean") {

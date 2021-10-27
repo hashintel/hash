@@ -1,4 +1,5 @@
-import { EntityStore, isBlockEntity } from "@hashintel/hash-shared/entityStore";
+import { isBlockEntity } from "@hashintel/hash-shared/entityStore";
+import { entityStoreFromProsemirror } from "@hashintel/hash-shared/entityStorePlugin";
 import { history } from "@hashintel/hash-shared/history";
 import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
@@ -28,8 +29,7 @@ export class AsyncView implements NodeView<Schema> {
     node: ProsemirrorNode<Schema>,
     public view: EditorView<Schema>,
     public getPos: () => number,
-    public manager: ProsemirrorSchemaManager,
-    public getEntityStore: () => EntityStore
+    public manager: ProsemirrorSchemaManager
   ) {
     this.dom = document.createElement("div");
     this.contentDOM = document.createElement("span");
@@ -77,7 +77,9 @@ export class AsyncView implements NodeView<Schema> {
     }
 
     // @todo this needs to use draft
-    const entity = this.getEntityStore().saved[entityId];
+    const entity = entityStoreFromProsemirror(this.view.state).store.saved[
+      entityId
+    ];
 
     if (!isBlockEntity(entity)) {
       throw new Error("Cannot switch using non-block entity");

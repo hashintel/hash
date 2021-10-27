@@ -7,12 +7,12 @@ import {
   EntityStoreType,
   isBlockEntity,
 } from "@hashintel/hash-shared/entityStore";
+import { entityStoreFromProsemirror } from "@hashintel/hash-shared/entityStorePlugin";
 import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 import { Schema } from "prosemirror-model";
 import { EditorView, NodeView } from "prosemirror-view";
 import React from "react";
 import { BlockLoader } from "../../components/BlockLoader/BlockLoader";
-import { EntityStoreContext } from "./EntityStoreContext";
 import { RenderPortal } from "./usePortals";
 
 // @todo we need to type this such that we're certain we're passing through all
@@ -81,40 +81,36 @@ export class ComponentView implements NodeView<Schema> {
   }
 
   update(node: any) {
+    const entityStore = entityStoreFromProsemirror(this.view.state).store;
+
     if (node?.type.name === this.componentId) {
+      const entityId = node.attrs.entityId;
+      // @todo probably ought to use draft
+      const entity = entityStore.saved[entityId];
+      const remoteBlockProps = getRemoteBlockProps(entity);
+
+      const editableRef = this.editable
+        ? (editableNode: HTMLElement) => {
+            if (
+              this.contentDOM &&
+              editableNode &&
+              !editableNode.contains(this.contentDOM)
+            ) {
+              editableNode.appendChild(this.contentDOM);
+              this.contentDOM.style.display = "";
+            }
+          }
+        : undefined;
+
+      const mappedUrl = componentIdToUrl(this.componentId);
+
       this.renderPortal(
-        <EntityStoreContext.Consumer>
-          {(entityStore) => {
-            const entityId = node.attrs.entityId;
-            // @todo probably ought to use draft
-            const entity = entityStore.saved[entityId];
-            const remoteBlockProps = getRemoteBlockProps(entity);
-
-            const editableRef = this.editable
-              ? (editableNode: HTMLElement) => {
-                  if (
-                    this.contentDOM &&
-                    editableNode &&
-                    !editableNode.contains(this.contentDOM)
-                  ) {
-                    editableNode.appendChild(this.contentDOM);
-                    this.contentDOM.style.display = "";
-                  }
-                }
-              : undefined;
-
-            const mappedUrl = componentIdToUrl(this.componentId);
-
-            return (
-              <BlockLoader
-                {...remoteBlockProps}
-                sourceUrl={`${mappedUrl}/${this.sourceName}`}
-                editableRef={editableRef}
-                shouldSandbox={!editableRef}
-              />
-            );
-          }}
-        </EntityStoreContext.Consumer>,
+        <BlockLoader
+          {...remoteBlockProps}
+          sourceUrl={`${mappedUrl}/${this.sourceName}`}
+          editableRef={editableRef}
+          shouldSandbox={!editableRef}
+        />,
         this.target
       );
 

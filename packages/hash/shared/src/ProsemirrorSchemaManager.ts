@@ -8,6 +8,7 @@ import {
 } from "./blockMeta";
 import { BlockEntity, getTextEntityFromBlock } from "./entity";
 import { childrenForTextEntity } from "./entityProsemirror";
+import { entityStorePluginKey } from "./entityStorePlugin";
 import { getProseMirrorNodeAttributes } from "./prosemirror";
 
 declare interface OrderedMapPrivateInterface<T> {
@@ -191,21 +192,24 @@ export class ProsemirrorSchemaManager {
         );
       }
 
-      return this.schema.nodes.entity.create({ entityId: attrs.entityId }, [
-        this.schema.nodes.entity.create({ entityId: textEntity.entityId }, [
-          this.schema.nodes[targetComponentId].create(
-            attrs,
-            childrenForTextEntity(textEntity, this.schema)
-          ),
-        ]),
-      ]);
+      return this.schema.nodes.entity.create(
+        { entityId: blockEntity.entityId },
+        [
+          this.schema.nodes.entity.create({ entityId: textEntity.entityId }, [
+            this.schema.nodes[targetComponentId].create(
+              attrs,
+              childrenForTextEntity(textEntity, this.schema)
+            ),
+          ]),
+        ]
+      );
     } else {
       /**
        * @todo arguably this doesn't need to be here – remove it if possible
        *   when working on switching blocks
        */
       return this.schema.nodes.entity.create(
-        { entityId: attrs.entityId },
+        { entityId: blockEntity.entityId },
         this.schema.nodes[targetComponentId].create(attrs, [])
       );
     }
@@ -236,6 +240,9 @@ export class ProsemirrorSchemaManager {
     // This creations a transaction to replace the entire content of the
     // document
     tr.replaceWith(0, state.doc.content.size, newNodes);
+
+    // @todo allow this to be typed
+    tr.setMeta(entityStorePluginKey, { type: "contents", payload: entities });
 
     return tr;
   }
