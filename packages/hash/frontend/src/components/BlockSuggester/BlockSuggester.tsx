@@ -62,7 +62,11 @@ export const BlockSuggester: React.VFC<BlockSuggesterProps> = ({
 
   useKey(["Enter"], (event) => {
     event.preventDefault();
-    onChange(options[selectedIndex].variant, options[selectedIndex].meta);
+
+    const option = options[selectedIndex];
+    if (option) {
+      onChange(option.variant, option.meta);
+    }
   });
 
   return (
