@@ -119,10 +119,11 @@ collabApp.post("/:accountId/:pageId/events", (req, resp) => {
     const data: any = req.body;
     const version = nonNegInteger(data.version);
 
-    const result = inst.addJsonEvents(client)(
+    const result = await inst.addJsonEvents(client)(
       version,
       data.steps,
-      data.clientID
+      data.clientID,
+      data.blockIds
     );
     if (!result) {
       resp.status(409).send("Version not current");

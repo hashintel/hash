@@ -246,6 +246,10 @@ export class EditorConnection {
       version: getVersion(editState),
       steps: steps ? steps.steps.map((step) => step.toJSON()) : [],
       clientID: steps ? steps.clientID : 0,
+      // @todo do something smarter
+      blockIds: Object.keys(editState.schema.nodes).filter((key) =>
+        key.startsWith("http")
+      ),
     });
     this.run(POST(`${this.url}/events`, json, "application/json")).then(
       () => {

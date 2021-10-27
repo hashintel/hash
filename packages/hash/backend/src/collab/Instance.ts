@@ -35,6 +35,7 @@ export class Instance {
     public accountId: string,
     public pageEntityId: string,
     public state: EditorState<Schema>,
+    public manager: ProsemirrorSchemaManager,
     public savedContents: BlockEntity[]
   ) {}
 
@@ -140,7 +141,20 @@ export class Instance {
 
   addJsonEvents =
     (apolloClient: ApolloClient<unknown>) =>
-    (version: number, jsonSteps: any[], clientId: string) => {
+    async (
+      version: number,
+      jsonSteps: any[],
+      clientId: string,
+      blockIds: string[]
+    ) => {
+      /**
+       * This is a potential security risk as the frontend can instruct us
+       * to make a web request
+       */
+      await Promise.all(
+        blockIds.map((id) => this.manager.defineRemoteBlock(id))
+      );
+
       const steps = jsonSteps.map((step) =>
         Step.fromJSON(this.state.doc.type.schema, step)
       );
@@ -254,6 +268,7 @@ const newInstance =
       accountId,
       pageEntityId,
       newState,
+      manager,
       data.page.properties.contents
     );
 
