@@ -118,6 +118,37 @@ create table if not exists entity_account (
 );
 create index if not exists entity_account_entity_id on entity_account (entity_id);
 
+/** Stores links between entities */
+create table if not exists links (
+    -- The account id of the link
+    account_id                  uuid not null,
+    -- The UUID of the link
+    link_id                     uuid not null,
+    -- The JSON path of the link on the source entity's properties JSON blob
+    path                        text not null,
+    -- The account id of the source entity
+    src_account_id              uuid not null,
+    -- The entity id of the source entity.
+    src_entity_id               uuid not null,
+    -- The entity version ids of the source entity's versions where
+    -- the link exists.
+    src_entity_version_ids      uuid[] not null,
+    -- The account id of the destination entity
+    dst_account_id              uuid not null,
+    -- The entity id of the destination entity
+    dst_entity_id               uuid not null,
+    -- The entity version id of a specific version of the link's destination
+    -- entity which is defined only if this link is pinned to a specific version
+    -- of the destination entity. When set to null, the link is to the latest
+    -- version of the destination entity.
+    dst_entity_version_id       uuid,
+    created_at                  timestamp with time zone not null,
+
+    constraint links_pk primary key (
+      account_id, -- included in the primary key so it can be used as a sharding key
+      link_id
+    )
+);
 
 /** Stores parent --> child link references */
 create table if not exists outgoing_links (
