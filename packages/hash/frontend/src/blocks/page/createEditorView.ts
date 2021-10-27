@@ -92,7 +92,6 @@ export const createEditorView = (
 ) => {
   let manager: ProsemirrorSchemaManager;
 
-  // @todo should probably be moved from here
   const plugins: Plugin<unknown, Schema>[] = [
     createSavePlugin(accountId, pageId, getLastSavedValue, client),
     createMarksTooltip(renderPortal),

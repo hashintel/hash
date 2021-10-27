@@ -7,7 +7,11 @@ import {
   fetchBlockMeta,
 } from "./blockMeta";
 import { BlockEntity, getTextEntityFromDraftBlock } from "./entity";
-import { EntityStore, isBlockEntity } from "./entityStore";
+import {
+  draftEntityForEntityId,
+  EntityStore,
+  isBlockEntity,
+} from "./entityStore";
 import {
   entityStoreAndTransactionForEntities,
   entityStoreFromProsemirror,
@@ -25,6 +29,7 @@ const createComponentNodeSpec = (spec: Partial<NodeSpec>): NodeSpec => ({
   group: "blockItem",
   attrs: {
     ...(spec.attrs ?? {}),
+    // @todo remove this
     blockEntityId: { default: "" },
   },
 });
@@ -226,7 +231,6 @@ export class ProsemirrorSchemaManager {
       /**
        * @todo arguably this doesn't need to be here – remove it if possible
        *   when working on switching blocks
-       *   @todo check this
        */
       return this.schema.nodes.entity.create(
         { entityId: blockEntity?.entityId, draftId: draftBlockId },
@@ -261,10 +265,7 @@ export class ProsemirrorSchemaManager {
 
     const newNodes = await Promise.all(
       entities.map((blockEntity) => {
-        // @todo this isn't nice
-        const draftEntity = Object.values(store.draft).find(
-          (entity) => entity.entityId === blockEntity.entityId
-        );
+        const draftEntity = draftEntityForEntityId(store, blockEntity.entityId);
 
         if (!draftEntity) {
           throw new Error("Missing draft entity");
@@ -314,7 +315,8 @@ export class ProsemirrorSchemaManager {
      */
 
     const pos = getPos();
-    const tr = view.state.tr;
+    const { tr } = view.state;
+
     tr.replaceRangeWith(pos, pos + node.nodeSize, newNode);
     view.dispatch(tr);
   }

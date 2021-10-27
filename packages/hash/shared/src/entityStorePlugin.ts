@@ -140,8 +140,10 @@ const draftIdForNode = (
       draftId,
     });
   }
+
   return draftId;
 };
+
 export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
   key: entityStorePluginKey,
   state: {
@@ -160,6 +162,7 @@ export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
             return {
               store: createEntityStore(action.payload, value.store.draft),
             };
+
           case "draft":
             return {
               store: {
@@ -167,6 +170,7 @@ export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
                 draft: action.payload,
               },
             };
+
           case "store": {
             return { store: action.payload };
           }
@@ -181,7 +185,7 @@ export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
    * This is necessary to ensure the draft entity store stays in sync with the
    * changes made by users to the document
    */
-  appendTransaction(transactions, __, state) {
+  appendTransaction(transactions, _, state) {
     if (!transactions.some((tr) => tr.docChanged)) {
       return;
     }
@@ -197,9 +201,7 @@ export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
         }
 
         const draftId = draftIdForNode(tr, node, pos, draftDraftEntityStore);
-        const draftEntity = Object.values(draftDraftEntityStore).find(
-          (entity) => entity.draftId === draftId
-        );
+        const draftEntity = draftDraftEntityStore[draftId];
 
         if (!draftEntity) {
           throw new Error("invariant: draft entity missing from store");
@@ -232,7 +234,13 @@ export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
             ...parentEntity,
             properties: {
               entity: draftEntity,
-              // @todo set this properly
+              /**
+               * We don't currently rely on componentId of the draft right
+               * now, but this will be a problem in the future (i.e, if save
+               * starts using the draft entity store)
+               *
+               * @todo set this properly
+               */
               componentId: "",
             },
           };

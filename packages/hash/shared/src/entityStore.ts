@@ -46,6 +46,28 @@ export const isDraftBlockEntity = (
   isBlockEntity(entity) && "draftId" in entity;
 
 /**
+ * @todo we could store a map of entity id <-> draft id to make this easier
+ */
+export const draftEntityForEntityId = (store: EntityStore, entityId: string) =>
+  Object.values(store.draft).find((entity) => entity.entityId === entityId);
+
+const findEntitiesInValue = (value: unknown): EntityStoreType[] => {
+  let entities: EntityStoreType[] = [];
+
+  if (isBlockEntity(value)) {
+    entities = [...entities, value, value.properties.entity];
+  }
+
+  if (typeof value === "object" && value !== null) {
+    for (const property of Object.values(value)) {
+      entities = [...entities, ...findEntitiesInValue(property)];
+    }
+  }
+
+  return entities;
+};
+
+/**
  * @todo restore dealing with links
  */
 export const createEntityStore = (
@@ -65,23 +87,7 @@ export const createEntityStore = (
     }
   }
 
-  const flattenPotentialEntity = (value: unknown): EntityStoreType[] => {
-    let entities: EntityStoreType[] = [];
-
-    if (isBlockEntity(value)) {
-      entities = [...entities, value, value.properties.entity];
-    }
-
-    if (typeof value === "object" && value !== null) {
-      for (const property of Object.values(value)) {
-        entities = [...entities, ...flattenPotentialEntity(property)];
-      }
-    }
-
-    return entities;
-  };
-
-  const entities = contents.flatMap(flattenPotentialEntity);
+  const entities = contents.flatMap(findEntitiesInValue);
 
   for (const entity of entities) {
     if (!entityToDraft[entity.entityId]) {
@@ -93,18 +99,18 @@ export const createEntityStore = (
     saved[entity.entityId] = entity;
     const draftId = entityToDraft[entity.entityId];
 
-    // @todo need to update links to this entity too / clean this up
     draft[draftId] = produce<DraftEntity>(
       { ...entity, draftId },
       (draftEntity: Draft<DraftEntity>) => {
         if (draftData[draftId]) {
-          // @todo do something smarter here
-          Object.assign(
-            draftEntity,
-            JSON.parse(JSON.stringify(draftData[draftId]))
-          );
+          Object.assign(draftEntity, draftData[draftId]);
         }
+      }
+    );
 
+    draft[draftId] = produce<DraftEntity>(
+      draft[draftId],
+      (draftEntity: Draft<DraftEntity>) => {
         if (isBlockEntity(draftEntity)) {
           draftEntity.properties.entity.draftId =
             entityToDraft[draftEntity.properties.entity.entityId];

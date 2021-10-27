@@ -181,9 +181,9 @@ export class BlockView implements NodeView<Schema> {
             this.allowDragging = true;
 
             this.dragging = true;
-            const tr = this.view.state.tr;
-
             this.dom.classList.add(styles["Block--dragging"]);
+
+            const { tr } = this.view.state;
 
             /**
              * By triggering a selection of the node, we can ensure

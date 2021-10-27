@@ -84,9 +84,6 @@ export const findComponentNodes = (doc: ProsemirrorNode<Schema>) => {
   return componentNodes;
 };
 
-/**
- * @deprecated
- */
 export const getComponentNodeAttrs = (
   entity?: { entityId?: string | null } | null
 ) => ({

@@ -40,7 +40,6 @@ export const getTextEntityFromDraftBlock = (
     throw new Error("Can only get text entity from block entity");
   }
 
-  // @todo type of this
   const blockPropertiesEntityDraftId = blockEntity.properties.entity.draftId;
   const blockPropertiesEntity = entityStore.draft[blockPropertiesEntityDraftId];
 
@@ -69,7 +68,6 @@ export const getTextEntityFromSavedBlock = (
     throw new Error("Can only get text entity from block entity");
   }
 
-  // @todo type of this
   const blockPropertiesEntityDraftId = blockEntity.properties.entity.entityId;
   const blockPropertiesEntity = entityStore.saved[blockPropertiesEntityDraftId];
 
