@@ -69,7 +69,6 @@ const ensureEntitiesAreWrapped = (
 
       // @todo when would entity be at the top level?
       if (node.type !== schema.nodes.entity) {
-        // @todo need to set a draft id
         DEFAULT_WRAPPERS.push(
           { type: schema.nodes.entity },
           { type: schema.nodes.entity }
