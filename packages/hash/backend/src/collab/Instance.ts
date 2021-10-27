@@ -55,6 +55,7 @@ export class Instance {
 
         const result = tr.maybeStep(steps[i]);
         if (!result.doc) return false;
+        // @todo look into whether this is needed now we use a tr
         if (this.saveMapping) {
           this.saveMapping.appendMap(steps[i].getMap());
         }
