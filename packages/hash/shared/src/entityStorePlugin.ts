@@ -147,10 +147,12 @@ const draftIdForNode = (
     };
   }
 
-  tr.setNodeMarkup(pos, undefined, {
-    ...node.attrs,
-    draftId,
-  });
+  if (draftId !== node.attrs.draftId) {
+    tr.setNodeMarkup(pos, undefined, {
+      ...node.attrs,
+      draftId,
+    });
+  }
 
   return draftId;
 };
