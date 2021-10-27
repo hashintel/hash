@@ -90,17 +90,18 @@ export const createEditorView = (
   getLastSavedValue: () => BlockEntity[],
   client: ApolloClient<unknown>
 ) => {
+  let manager: ProsemirrorSchemaManager;
+
   // @todo should probably be moved from here
   const plugins: Plugin<unknown, Schema>[] = [
     createSavePlugin(accountId, pageId, getLastSavedValue, client),
     createMarksTooltip(renderPortal),
-    createBlockSuggester(renderPortal),
+    createBlockSuggester(renderPortal, () => manager),
   ];
 
   const state = createProseMirrorState({ plugins });
 
   let connection: EditorConnection | null = null;
-  let manager: ProsemirrorSchemaManager;
 
   const view = new EditorView<Schema>(renderNode, {
     state,

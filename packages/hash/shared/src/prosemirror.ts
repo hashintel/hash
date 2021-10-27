@@ -87,6 +87,8 @@ export const findComponentNodes = (doc: ProsemirrorNode<Schema>) => {
 /**
  * @deprecated
  */
-export const getComponentNodeAttrs = (entity: { entityId: string | null }) => ({
-  blockEntityId: entity.entityId,
+export const getComponentNodeAttrs = (
+  entity?: { entityId?: string | null } | null
+) => ({
+  blockEntityId: entity?.entityId ?? "",
 });

@@ -177,43 +177,41 @@ export class ProsemirrorSchemaManager {
    * requested the block metadata yet.
    *
    * @todo support taking a signal
+   * @todo consider merging this into replaceNodeWithRemoteBlock as
+   *       realistically cannot use this without a node to replace
    */
   async createRemoteBlock(
-    entityStore: EntityStore,
-    draftBlockId: string,
-    targetComponentId: string
+    targetComponentId: string,
+    entityStore?: EntityStore,
+    draftBlockId?: string
   ) {
     const meta = await this.defineRemoteBlock(targetComponentId);
     const requiresText = blockComponentRequiresText(meta.componentSchema);
-    const blockEntity = entityStore.draft[draftBlockId];
+    const blockEntity = draftBlockId ? entityStore?.draft[draftBlockId] : null;
 
-    if (!isBlockEntity(blockEntity)) {
+    if (blockEntity && !isBlockEntity(blockEntity)) {
       throw new Error("Can only create remote block from block entity");
     }
 
     const componentNodeAttributes = getComponentNodeAttrs(blockEntity);
 
     if (requiresText) {
-      const draftTextEntity = getTextEntityFromDraftBlock(
-        draftBlockId,
-        entityStore
-      );
+      const draftTextEntity =
+        draftBlockId && entityStore
+          ? getTextEntityFromDraftBlock(draftBlockId, entityStore)
+          : null;
 
-      if (!draftTextEntity) {
-        throw new Error(
-          "Entity should contain text entity if used with text block"
-        );
-      }
-
-      const content = childrenForTextEntity(draftTextEntity, this.schema);
+      const content = draftTextEntity
+        ? childrenForTextEntity(draftTextEntity, this.schema)
+        : [];
 
       return this.schema.nodes.entity.create(
-        { entityId: blockEntity.entityId, draftId: draftBlockId },
+        { entityId: blockEntity?.entityId, draftId: draftBlockId },
         [
           this.schema.nodes.entity.create(
             {
-              entityId: draftTextEntity.entityId,
-              draftId: draftTextEntity.draftId,
+              entityId: draftTextEntity?.entityId,
+              draftId: draftTextEntity?.draftId,
             },
             [
               this.schema.nodes[targetComponentId].create(
@@ -228,13 +226,16 @@ export class ProsemirrorSchemaManager {
       /**
        * @todo arguably this doesn't need to be here – remove it if possible
        *   when working on switching blocks
+       *   @todo check this
        */
       return this.schema.nodes.entity.create(
-        { entityId: blockEntity.entityId, draftId: draftBlockId },
+        { entityId: blockEntity?.entityId, draftId: draftBlockId },
         this.schema.nodes.entity.create(
           {
             // @todo add draftId
-            entityId: blockEntity.properties.entityId,
+            entityId: isBlockEntity(blockEntity)
+              ? blockEntity.properties.entity.entityId
+              : null,
           },
           [
             this.schema.nodes[targetComponentId].create(
@@ -270,9 +271,9 @@ export class ProsemirrorSchemaManager {
         }
 
         return this.createRemoteBlock(
+          blockEntity.properties.componentId,
           store,
-          draftEntity.draftId,
-          blockEntity.properties.componentId
+          draftEntity.draftId
         );
       })
     );
@@ -299,9 +300,9 @@ export class ProsemirrorSchemaManager {
 
     const entityStoreState = entityStoreFromProsemirror(view.state);
     const newNode = await this.createRemoteBlock(
+      targetComponentId,
       entityStoreState.store,
-      draftBlockId,
-      targetComponentId
+      draftBlockId
     );
 
     /**
