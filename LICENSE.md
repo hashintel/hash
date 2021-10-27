@@ -13,4 +13,4 @@ which specifies its licensing information.
 
 Written content, illustrations and graphics published under the `resources`
 folder within this repository are made available under the [Creative Commons
-Attribution-ShareAlike 4.0 International](resources/docs/simulation/LICENSE.md) license.
+Attribution-ShareAlike 4.0 International](resources/LICENSE.md) license.
