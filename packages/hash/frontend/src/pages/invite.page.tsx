@@ -48,7 +48,7 @@ const InvitePage: NextPage = () => {
      * Redirect to home page if necessary query params aren't available
      */
     if (
-      !isParsedInvitationLinkQuery(router.query) &&
+      !isParsedInvitationLinkQuery(router.query) ||
       !isParsedInvitationEmailQuery(router.query)
     ) {
       void router.push("/");

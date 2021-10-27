@@ -64,7 +64,6 @@ type State = {
   verificationCodeMetadata: VerificationCodeMetadata | undefined;
   verificationCode: string;
   errorMessage: string;
-  userEntityId: string | null;
   syntheticLoading: boolean;
   invitationInfo: InvitationInfo | null;
   createOrgInfo?: {
@@ -75,7 +74,7 @@ type State = {
 
 type Actions =
   | Action<"CREATE_USER_SUCCESS", Pick<State, "verificationCodeMetadata">>
-  | Action<"VERIFY_EMAIL_SUCCESS", Pick<State, "userEntityId">>
+  | Action<"VERIFY_EMAIL_SUCCESS">
   | Action<"SET_ERROR", string>
   | Action<"UPDATE_STATE", Partial<State>>
   | Action<"CREATE_ORG_SUCCESS", Pick<State, "createOrgInfo">>;
@@ -86,7 +85,6 @@ const initialState: State = {
   verificationCodeMetadata: undefined,
   verificationCode: "",
   errorMessage: "",
-  userEntityId: null,
   syntheticLoading: false,
   invitationInfo: null,
 };
@@ -103,7 +101,6 @@ function reducer(state: State, action: Actions): State {
     case "VERIFY_EMAIL_SUCCESS":
       return {
         ...state,
-        ...action.payload,
         activeScreen: Screen.AccountSetup,
         syntheticLoading: false,
         errorMessage: "",
@@ -147,7 +144,6 @@ const SignupPage: NextPage = () => {
       verificationCode,
       verificationCodeMetadata,
       errorMessage,
-      // userEntityId,
       syntheticLoading,
       createOrgInfo,
     },
@@ -201,15 +197,26 @@ const SignupPage: NextPage = () => {
         createUserWithOrgEmailInvitation.properties.emails.find(
           ({ primary, verified }) => primary && verified
         );
-      // const createdUserEntityId = createUserWithOrgEmailInvitation.entityId;
 
       dispatch({
         type: "UPDATE_STATE",
         payload: {
           activeScreen: Screen.AccountSetup,
           email: createdEmail?.address,
-          // userEntityId: createdUserEntityId,
         },
+      });
+    },
+    onError: ({ graphQLErrors }) => {
+      graphQLErrors.forEach(({ extensions, message }) => {
+        const { code } = extensions as { code?: keyof typeof AUTH_ERROR_CODES };
+        if (code === "ALREADY_EXISTS") {
+          // @todo should redirect the user to login screen
+        } else {
+          dispatch({
+            type: "SET_ERROR",
+            payload: code ? AUTH_ERROR_CODES[code] : message,
+          });
+        }
       });
     },
   });
@@ -218,12 +225,10 @@ const SignupPage: NextPage = () => {
     VerifyEmailMutation,
     VerifyEmailMutationVariables
   >(verifyEmailMutation, {
-    onCompleted: async ({ verifyEmail: returnedUser }) => {
+    onCompleted: async (_) => {
       await refetchUser();
-      // @todo remove the need for userEntityId
       dispatch({
         type: "VERIFY_EMAIL_SUCCESS",
-        payload: { userEntityId: returnedUser.entityId },
       });
     },
     onError: ({ graphQLErrors }) => {
@@ -391,33 +396,16 @@ const SignupPage: NextPage = () => {
     }
   };
 
-  const updateUserDetails = ({
-    shortname,
-    preferredName,
-    usingHow,
-  }: {
-    shortname?: string;
-    preferredName?: string;
-    usingHow?: WayToUseHash;
-  }) => {
-    if (!user) return;
-
-    const properties = {} as UpdateUserProperties;
-
-    if (shortname) {
-      properties.shortname = shortname;
-    }
-    if (preferredName) {
-      properties.preferredName = preferredName;
-    }
-    if (usingHow) {
-      properties.usingHow = usingHow;
+  const updateUserDetails = (updatedProperties: UpdateUserProperties) => {
+    if (!user) {
+      // @todo handle error in the ui
+      throw new Error("The user must be logged in to update themselves");
     }
 
     return updateUser({
       variables: {
         userEntityId: user.entityId,
-        properties,
+        properties: updatedProperties,
       },
     });
   };
@@ -507,7 +495,6 @@ const SignupPage: NextPage = () => {
     activeScreen !== Screen.AccountSetup
   ) {
     updateState({
-      userEntityId: user.entityId,
       activeScreen: Screen.AccountSetup,
     });
   }

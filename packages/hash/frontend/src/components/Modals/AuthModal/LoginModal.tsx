@@ -227,13 +227,6 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
     }
   };
 
-  const navigateToSignup = () => {
-    void router.push("/signup");
-    if (onClose) {
-      setTimeout(onClose, 500);
-    }
-  };
-
   const renderContent = () => {
     switch (activeScreen) {
       case Screen.VerifyCode:
@@ -257,7 +250,6 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
             requestLoginCode={requestLoginCode}
             loading={sendLoginCodeLoading}
             errorMessage={errorMessage}
-            navigateToSignup={navigateToSignup}
             invitationInfo={invitationInfo}
           />
         );

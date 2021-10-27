@@ -8,6 +8,7 @@ import { TextInput } from "../../../forms/TextInput";
 import { useUser } from "../../../hooks/useUser";
 import { InviteHeader } from "../InviteHeader";
 import { InvitationInfo } from "../utils";
+import Link from "next/link";
 
 type SignupIntroProps = {
   handleSubmit: (email: string) => void;
@@ -40,10 +41,6 @@ export const SignupIntro: VFC<SignupIntroProps> = ({
   const onSubmit = (evt: React.FormEvent) => {
     evt.preventDefault();
     handleSubmit(email);
-  };
-
-  const navigateToLogin = () => {
-    void router.push({ pathname: "/login", query: router.query });
   };
 
   return (
@@ -101,13 +98,19 @@ export const SignupIntro: VFC<SignupIntroProps> = ({
       </form>
       <p className={tw`text-sm  md:whitespace-nowrap text-center`}>
         Alternatively if you already have a HASH account,
-        <button
-          type="button"
-          onClick={navigateToLogin}
-          className={tw`font-bold focus:outline-none ml-1`}
+        <Link
+          href={{
+            pathname: "/login",
+            query: router.query,
+          }}
         >
-          Click here to log in
-        </button>
+          <button
+            type="button"
+            className={tw`font-bold focus:outline-none ml-1`}
+          >
+            Click here to log in
+          </button>
+        </Link>
       </p>
     </div>
   );

@@ -130,6 +130,7 @@ export const OrgCreate: VFC<OrgCreateProps> = ({ createOrg, loading }) => {
                   <Controller
                     control={control}
                     name={name}
+                    rules={{ required: true }}
                     render={({ field: { onChange, value } }) => (
                       <SelectInput
                         label={label}

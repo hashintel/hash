@@ -45,12 +45,12 @@ type ParsedInviteEmailQuery = {
   invitationEmailToken: string;
   orgEntityId: string;
   isExistingUser?: boolean;
-};
+} & ParsedUrlQueryInput;
 
 type ParsedInviteLinkQuery = {
   invitationLinkToken: string;
   orgEntityId: string;
-};
+} & ParsedUrlQueryInput;
 
 export const isParsedInvitationEmailQuery = (
   query: ParsedUrlQueryInput

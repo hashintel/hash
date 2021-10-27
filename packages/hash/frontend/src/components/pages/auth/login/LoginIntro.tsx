@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { useRouter } from "next/router";
 import React, {
   useRef,
@@ -31,7 +32,6 @@ type LoginIntroProps = {
   requestLoginCode: (emailOrShortname: string) => void;
   errorMessage?: string;
   loading: boolean;
-  navigateToSignup: () => void;
   invitationInfo: {
     orgName: string;
     orgEntityId: string;
@@ -43,7 +43,6 @@ export const LoginIntro: VoidFunctionComponent<LoginIntroProps> = ({
   requestLoginCode,
   errorMessage,
   loading,
-  navigateToSignup,
   invitationInfo,
 }) => {
   const router = useRouter();
@@ -124,13 +123,19 @@ export const LoginIntro: VoidFunctionComponent<LoginIntroProps> = ({
           <p className={tw`mb-3.5`}>
             <strong>No account?</strong> No problem
           </p>
-          <button
-            type="button"
-            className={tw`focus:outline-none bg(black opacity-70 hover:opacity-90 focus:opacity-90) rounded-lg h-11 px-6 flex items-center text-white mb-10`}
-            onClick={navigateToSignup}
+          <Link
+            href={{
+              pathname: "/signup",
+              query: router.query,
+            }}
           >
-            Create a free account
-          </button>
+            <button
+              type="button"
+              className={tw`focus:outline-none bg(black opacity-70 hover:opacity-90 focus:opacity-90) rounded-lg h-11 px-6 flex items-center text-white mb-10`}
+            >
+              Create a free account
+            </button>
+          </Link>
 
           {/* Don't display until sign-up with Google and Github are supported 
           <div className={tw`invisible`}>
