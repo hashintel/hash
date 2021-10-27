@@ -26,6 +26,7 @@ const reqIP = (request: IncomingMessage): string | null =>
   null;
 
 const handleError = (resp: Response, err: any) => {
+  console.error(err);
   resp
     .status(err instanceof InvalidVersionError ? 400 : 500)
     .send(err.toString());
