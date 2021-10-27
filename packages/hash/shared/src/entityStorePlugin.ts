@@ -152,32 +152,30 @@ export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
         store: createEntityStore([], {}),
       };
     },
-    apply(tr, value) {
+    apply(tr, state) {
       const action: EntityStorePluginMessage | undefined =
         tr.getMeta(entityStorePluginKey);
 
-      if (action) {
-        switch (action.type) {
-          case "contents":
-            return {
-              store: createEntityStore(action.payload, value.store.draft),
-            };
+      switch (action?.type) {
+        case "contents":
+          return {
+            store: createEntityStore(action.payload, state.store.draft),
+          };
 
-          case "draft":
-            return {
-              store: {
-                ...value.store,
-                draft: action.payload,
-              },
-            };
+        case "draft":
+          return {
+            store: {
+              ...state.store,
+              draft: action.payload,
+            },
+          };
 
-          case "store": {
-            return { store: action.payload };
-          }
+        case "store": {
+          return { store: action.payload };
         }
       }
 
-      return value;
+      return state;
     },
   },
 
