@@ -1,3 +1,4 @@
+import { entityStoreFromProsemirror } from "@hashintel/hash-shared/entityStorePlugin";
 import { createApolloClient } from "@hashintel/hash-shared/graphql/createApolloClient";
 import { json } from "body-parser";
 import corsMiddleware from "cors";
@@ -58,7 +59,8 @@ collabApp.get("/:accountId/:pageId", (req, resp) => {
     );
 
     resp.json({
-      doc: inst.doc.toJSON(),
+      doc: inst.state.doc.toJSON(),
+      store: entityStoreFromProsemirror(inst.state).store,
       users: inst.userCount,
       version: inst.version,
     });

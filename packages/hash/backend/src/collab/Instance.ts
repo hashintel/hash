@@ -2,7 +2,6 @@ import { ApolloClient } from "@apollo/client";
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 import { createEntityStore } from "@hashintel/hash-shared/entityStore";
-import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 import {
   findComponentNodes,
   getComponentNodeAttrs,
@@ -11,6 +10,7 @@ import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSche
 import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
 import { updatePageMutation } from "@hashintel/hash-shared/save";
 import { Schema } from "prosemirror-model";
+import { EditorState } from "prosemirror-state";
 import { Mapping, Step, Transform } from "prosemirror-transform";
 import { InvalidVersionError } from "./InvalidVersionError";
 import { Waiting } from "./Waiting";
@@ -34,7 +34,7 @@ export class Instance {
   constructor(
     public accountId: string,
     public pageEntityId: string,
-    public doc: ProsemirrorNode<Schema>,
+    public state: EditorState<Schema>,
     public savedContents: BlockEntity[]
   ) {}
 
@@ -47,18 +47,20 @@ export class Instance {
     (version: number, steps: Step[], clientID: string) => {
       this.checkVersion(version);
       if (this.version !== version) return false;
-      let doc = this.doc;
+      const tr = this.state.tr;
+
       for (let i = 0; i < steps.length; i++) {
         this.clientIds.set(steps[i], clientID);
 
-        const result = steps[i].apply(doc);
+        const result = tr.maybeStep(steps[i]);
         if (!result.doc) return false;
         if (this.saveMapping) {
           this.saveMapping.appendMap(steps[i].getMap());
         }
-        doc = result.doc;
       }
-      this.doc = doc;
+      this.state = this.state.apply(tr);
+
+      // this.doc = doc;
       this.version += steps.length;
       this.steps = this.steps.concat(steps);
       if (this.steps.length > MAX_STEP_HISTORY) {
@@ -84,13 +86,15 @@ export class Instance {
         return updatePageMutation(
           this.accountId,
           this.pageEntityId,
-          this.doc,
+          this.state.doc,
           this.savedContents,
+          // @todo get this from this.state
           createEntityStore(this.savedContents, {}),
           apolloClient
         ).then((newPage) => {
-          const componentNodes = findComponentNodes(this.doc);
+          const componentNodes = findComponentNodes(this.state.doc);
 
+          // @todo need to inform the prosemirror plugin of this
           this.savedContents = newPage.properties.contents;
 
           for (let idx = 0; idx < componentNodes.length; idx++) {
@@ -103,10 +107,10 @@ export class Instance {
             }
 
             if (!componentNode.attrs.blockEntityId) {
-              const transform = new Transform<Schema>(this.doc);
+              const transform = new Transform<Schema>(this.state.doc);
               const attrs = getComponentNodeAttrs(entity);
               const mappedPos = mapping.map(pos);
-              const blockWithAttrs = this.doc.childAfter(mappedPos).node;
+              const blockWithAttrs = this.state.doc.childAfter(mappedPos).node;
 
               // @todo use a custom step for this so we don't need to copy attrs – we may lose some
               transform.setNodeMarkup(mappedPos, undefined, {
@@ -138,7 +142,7 @@ export class Instance {
     (apolloClient: ApolloClient<unknown>) =>
     (version: number, jsonSteps: any[], clientId: string) => {
       const steps = jsonSteps.map((step) =>
-        Step.fromJSON(this.doc.type.schema, step)
+        Step.fromJSON(this.state.doc.type.schema, step)
       );
 
       return this.addEvents(apolloClient)(version, steps, clientId);
@@ -231,6 +235,9 @@ const newInstance =
 
     const manager = new ProsemirrorSchemaManager(state.schema);
 
+    /**
+     * @todo check plugins
+     */
     const newState = state.apply(
       await manager.createEntityUpdateTransaction(
         data.page.properties.contents,
@@ -246,7 +253,7 @@ const newInstance =
     instances[pageEntityId] = new Instance(
       accountId,
       pageEntityId,
-      newState.doc,
+      newState,
       data.page.properties.contents
     );
 

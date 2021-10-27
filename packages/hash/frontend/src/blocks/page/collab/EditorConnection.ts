@@ -1,4 +1,6 @@
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
+import { EntityStore } from "@hashintel/hash-shared/entityStore";
+import { entityStorePluginKey } from "@hashintel/hash-shared/entityStorePlugin";
 import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import {
@@ -38,6 +40,7 @@ type EditorConnectionAction =
   | {
       type: "loaded";
       doc: ProsemirrorNode<Schema>;
+      store: EntityStore;
       version: number;
       // @todo type this
       users: unknown;
@@ -78,20 +81,26 @@ export class EditorConnection {
   dispatch = (action: EditorConnectionAction) => {
     let newEditState = null;
     switch (action.type) {
-      case "loaded":
-        this.state = new State(
-          createProseMirrorState({
-            doc: action.doc,
-            plugins: [
-              ...this.additionalPlugins,
-              // @todo set this version properly
-              collab({ version: action.version }),
-            ],
-          }),
-          "poll"
+      case "loaded": {
+        const editorState = createProseMirrorState({
+          doc: action.doc,
+          plugins: [
+            ...this.additionalPlugins,
+            // @todo set this version properly
+            collab({ version: action.version }),
+          ],
+        });
+        // @todo clear history?
+        const result = editorState.apply(
+          editorState.tr.setMeta(entityStorePluginKey, {
+            type: "store",
+            payload: action.store,
+          })
         );
+        this.state = new State(result, "poll");
         this.poll();
         break;
+      }
       case "restart":
         this.state = new State(null, "start");
         this.start();
@@ -167,6 +176,7 @@ export class EditorConnection {
         this.dispatch({
           type: "loaded",
           doc: this.schema.nodeFromJSON(data.doc),
+          store: data.store,
           version: data.version,
           users: data.users,
         });

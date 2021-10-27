@@ -5,6 +5,7 @@ import { v4 as uuid } from "uuid";
 import { BlockEntity } from "./entity";
 import {
   createEntityStore,
+  draftEntityForEntityId,
   EntityStore,
   isBlockEntity,
   isDraftBlockEntity,
@@ -17,6 +18,9 @@ import {
   nodeToEntityProperties,
 } from "./prosemirror";
 
+/**
+ * @todo I think this should just be EntityStore
+ */
 type EntityStorePluginState = { store: EntityStore };
 
 type EntityStorePluginMessage =
@@ -30,9 +34,11 @@ type EntityStorePluginMessage =
     }
   | { type: "store"; payload: EntityStore };
 
-const entityStorePluginKey = new PluginKey<EntityStorePluginState, Schema>(
-  "entityStore"
-);
+// @todo don't export this
+export const entityStorePluginKey = new PluginKey<
+  EntityStorePluginState,
+  Schema
+>("entityStore");
 
 export const entityStoreFromProsemirror = (state: EditorState<Schema>) => {
   const pluginState = entityStorePluginKey.getState(state);
@@ -114,10 +120,11 @@ const draftIdForNode = (
 ) => {
   let draftId = node.attrs.draftId;
 
-  if (!draftId) {
+  if (draftId && draftDraftEntityStore[draftId]) {
     if (node.attrs.entityId) {
-      const existingDraftId = Object.values(draftDraftEntityStore).find(
-        (entity) => entity.entityId === node.attrs.entityId
+      const existingDraftId = draftEntityForEntityId(
+        draftDraftEntityStore,
+        node.attrs.entityId
       )?.draftId;
 
       if (!existingDraftId) {
@@ -125,24 +132,25 @@ const draftIdForNode = (
       }
 
       draftId = existingDraftId;
-    } else {
-      draftId = uuid();
-      /**
-       * @todo how do we ensure this is the same on frontend and on
-       *       collab
-       */
-      draftDraftEntityStore[draftId] = {
-        draftId,
-        entityId: null,
-        properties: {},
-      };
     }
+  } else {
+    /**
+     * @todo this will lead to the frontend setting draft id uuids for new
+     *       blocks – this is potentially insecure and needs considering
+     */
+    draftId ??= uuid();
 
-    tr.setNodeMarkup(pos, undefined, {
-      ...node.attrs,
+    draftDraftEntityStore[draftId] = {
       draftId,
-    });
+      entityId: null,
+      properties: {},
+    };
   }
+
+  tr.setNodeMarkup(pos, undefined, {
+    ...node.attrs,
+    draftId,
+  });
 
   return draftId;
 };
