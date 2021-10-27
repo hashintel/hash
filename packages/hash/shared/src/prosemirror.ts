@@ -40,6 +40,8 @@ export const nodeToEntityProperties = (node: ProsemirrorNode<Schema>) => {
 
     return { texts };
   }
+
+  return {};
 };
 
 type NodeWithAttrs<Attrs extends {}> = Omit<

@@ -206,8 +206,7 @@ export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
         }
 
         if ("properties" in draftEntity && node.firstChild) {
-          draftEntity.properties =
-            nodeToEntityProperties(node.firstChild) ?? {};
+          draftEntity.properties = nodeToEntityProperties(node.firstChild);
         }
 
         const parent = tr.doc.resolve(pos).parent;
