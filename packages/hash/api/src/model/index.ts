@@ -9,12 +9,16 @@ import OrgInvitationLink from "./orgInvitationLink.model";
 import OrgEmailInvitation from "./orgEmailInvitation.model";
 import File from "./file.model";
 import OrgMembership from "./orgMembership.model";
+import Link from "./link.model";
 
 export * from "./entityType.model";
 export { EntityType };
 
 export * from "./verificationCode.model";
 export { VerificationCode };
+
+export * from "./link.model";
+export { Link };
 
 // Import in order of inheritance
 export * from "./entity.model";
