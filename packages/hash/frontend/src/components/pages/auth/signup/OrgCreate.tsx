@@ -50,7 +50,7 @@ const FORM_INPUTS: FormInputsType = [
     fieldOptions: {
       required: true,
     },
-    placeholder: ORG_SIZES[0].label,
+    placeholder: "Number of People",
   },
   {
     name: "responsibility",
@@ -60,7 +60,7 @@ const FORM_INPUTS: FormInputsType = [
     fieldOptions: {
       required: true,
     },
-    placeholder: ORG_ROLES[0].label,
+    placeholder: "Current Position",
   },
 ];
 

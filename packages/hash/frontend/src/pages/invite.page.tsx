@@ -152,7 +152,7 @@ const InvitePage: NextPage = () => {
                 options={ORG_ROLES}
                 onChangeValue={setResponsibility}
                 value={responsibility}
-                placeholder={ORG_ROLES[0].label}
+                placeholder={"Current Position"}
                 required
               />
               {errorMessage || invitationInfoError ? (
