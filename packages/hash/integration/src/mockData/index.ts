@@ -285,40 +285,6 @@ void (async () => {
 
   await createEntities(
     new Map<string, CreateEntityMapValue>([
-      // [
-      //   "header1",
-      //   {
-      //     properties: {
-      //       level: 2,
-      //       text: {
-      //         __linkedData: {
-      //           entityTypeId: SystemTypeName.Text,
-      //           entityId: results.get("header1text")!.entityId,
-      //         },
-      //       },
-      //     },
-      //     entityTypeId: newTypeIds.Header,
-      //     accountId: user.accountId,
-      //     createdById: user.entityId,
-      //   },
-      // ],
-      // [
-      //   "header2",
-      //   {
-      //     properties: {
-      //       level: 2,
-      //       text: {
-      //         __linkedData: {
-      //           entityTypeId: SystemTypeName.Text,
-      //           entityId: results.get("header2text")!.entityId,
-      //         },
-      //       },
-      //     },
-      //     entityTypeId: newTypeIds.Header,
-      //     accountId: user.accountId,
-      //     createdById: user.entityId,
-      //   },
-      // ],
       [
         "place1",
         {
