@@ -31,60 +31,57 @@ export const App: BlockComponent<AppProps> = ({
   entityId,
   aggregate: aggregateFn,
 }) => {
-  const [tableData, setTableData] = useState<{
-    results: any[];
-    operation: any;
-  }>({
-    results: [],
-    operation: null,
-  });
+  const [tableData, setTableData] = useState<AppProps["data"]>(data);
 
   useEffect(() => {
-    if (
-      !data.__linkedData?.entityTypeId ||
-      !data.__linkedData?.aggregate ||
-      !aggregateFn
-    )
-      return;
+    setTableData(data);
+  }, [data]);
 
-    if (data.__linkedData.aggregate.pageCount) {
-      data.__linkedData.aggregate.itemsPerPage =
-        data.__linkedData.aggregate.pageCount;
+  // useEffect(() => {
+  //   if (
+  //     !data.__linkedData?.entityTypeId ||
+  //     !data.__linkedData?.aggregate ||
+  //     !aggregateFn
+  //   )
+  //     return;
 
-      delete data.__linkedData.aggregate.pageCount;
-    }
+  //   if (data.__linkedData.aggregate.pageCount) {
+  //     data.__linkedData.aggregate.itemsPerPage =
+  //       data.__linkedData.aggregate.pageCount;
 
-    aggregateFn({
-      entityTypeId: data.__linkedData.entityTypeId,
-      operation: data.__linkedData.aggregate,
-      accountId: "",
-    }).then(({ results, operation }: any) =>
-      setTableData({
-        results,
-        operation,
-      })
-    );
-  }, [data.__linkedData]);
+  //     delete data.__linkedData.aggregate.pageCount;
+  //   }
+
+  //   aggregateFn({
+  //     entityTypeId: data.__linkedData.entityTypeId,
+  //     operation: data.__linkedData.aggregate,
+  //     accountId: "",
+  //   }).then(({ results, operation }: any) =>
+  //     setTableData({
+  //       results,
+  //       operation,
+  //     })
+  //   );
+  // }, [data.__linkedData]);
 
   const columns = useMemo(
-    () => makeColumns(tableData.results?.[0] || {}, ""),
-    [tableData.results]
+    () => makeColumns(tableData.data?.[0] || {}, ""),
+    [tableData.data]
   );
-  const pageOptions = useMemo(() => {
-    const aggregate = tableData.operation;
-    return {
-      pageCount: aggregate?.pageCount || 1,
-      pageNumber: aggregate?.pageNumber || 1,
-      pageSize: aggregate?.itemsPerPage || 1,
-    };
-  }, [data]);
-  const aggregateOptions = useMemo(() => {
-    const aggregate = tableData.operation;
-    return {
-      multiFilter: aggregate?.multiFilter,
-      multiSort: aggregate?.multiSort,
-    };
-  }, [data]);
+  const [pageOptions, aggregateOptions] = useMemo(() => {
+    const aggregate = tableData.__linkedData?.aggregate;
+    return [
+      {
+        pageCount: aggregate?.pageCount || 1,
+        pageNumber: aggregate?.pageNumber || 1,
+        pageSize: aggregate?.itemsPerPage || 1,
+      },
+      {
+        multiFilter: aggregate?.multiFilter,
+        multiSort: aggregate?.multiSort,
+      },
+    ];
+  }, [tableData]);
 
   const {
     getTableProps,
@@ -101,7 +98,7 @@ export const App: BlockComponent<AppProps> = ({
       initialState: {
         ...initialState,
       },
-      data: data.data || [],
+      data: tableData.data || [],
       defaultColumn: {
         Cell: EditableCell,
       },
@@ -111,7 +108,7 @@ export const App: BlockComponent<AppProps> = ({
     useSortBy
   );
 
-  const handleAggregate = useCallback(
+  const handleUpdate = useCallback(
     ({
       operation,
       multiFilter,
@@ -119,8 +116,8 @@ export const App: BlockComponent<AppProps> = ({
       itemsPerPage,
       pageNumber,
     }: AggregateArgs) => {
-      if (!update || !data.__linkedData) return;
-      const newLinkedData = { ...data.__linkedData };
+      if (!update || !tableData.__linkedData) return;
+      const newLinkedData = { ...tableData.__linkedData };
       const newState = { hiddenColumns: initialState?.hiddenColumns };
 
       if (!newLinkedData.aggregate) {
@@ -144,22 +141,34 @@ export const App: BlockComponent<AppProps> = ({
           newLinkedData.aggregate;
         newLinkedData.aggregate.itemsPerPage = itemsPerPage || previtemsPerPage;
         newLinkedData.aggregate.pageNumber = pageNumber || prevPage;
-      }
 
-      if (newLinkedData.aggregate.pageCount) {
-        delete newLinkedData.aggregate.pageCount;
-      }
+        // not sure if this is necessary
+        if (newLinkedData.aggregate.pageCount) {
+          delete newLinkedData.aggregate.pageCount;
+        }
 
-      if (
-        newLinkedData.entityTypeId &&
-        newLinkedData.aggregate &&
-        aggregateFn
-      ) {
-        aggregateFn({
-          entityTypeId: newLinkedData.entityTypeId,
-          operation: newLinkedData.aggregate,
-          accountId: "",
-        }).then((x: any) => console.log(x));
+        if (
+          newLinkedData.entityTypeId &&
+          newLinkedData.aggregate &&
+          pageNumber != 1 &&
+          aggregateFn
+        ) {
+          aggregateFn({
+            entityTypeId: newLinkedData.entityTypeId,
+            operation: newLinkedData.aggregate,
+            accountId: "",
+          }).then(({ operation, results }: any) => {
+            console.log("operation ==> ", operation);
+            setTableData({
+              data: results,
+              __linkedData: {
+                ...newLinkedData,
+                aggregate: operation,
+              },
+            } as AppProps["data"]);
+          });
+        }
+        return;
       }
 
       void update<{
@@ -198,16 +207,16 @@ export const App: BlockComponent<AppProps> = ({
 
   const setPageIndex = useCallback(
     (index: number) => {
-      handleAggregate({ operation: "changePage", pageNumber: index });
+      handleUpdate({ operation: "changePage", pageNumber: index });
     },
-    [handleAggregate]
+    [handleUpdate]
   );
 
   const setPageSize = useCallback(
     (size: number) => {
-      handleAggregate({ operation: "changePage", itemsPerPage: size });
+      handleUpdate({ operation: "changePage", itemsPerPage: size });
     },
-    [handleAggregate]
+    [handleUpdate]
   );
 
   const handleToggleColumn = (columnId: string, showColumn?: boolean) => {
@@ -232,7 +241,7 @@ export const App: BlockComponent<AppProps> = ({
       <Header
         columns={allColumns}
         toggleHideColumn={handleToggleColumn}
-        onAggregate={handleAggregate}
+        onAggregate={handleUpdate}
         aggregateOptions={aggregateOptions}
       />
       <div className={tw`max-w-full`}>
