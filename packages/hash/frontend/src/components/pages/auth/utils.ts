@@ -45,6 +45,7 @@ type ParsedInviteEmailQuery = {
   invitationEmailToken: string;
   orgEntityId: string;
   isExistingUser?: boolean;
+  email: string;
 } & ParsedUrlQueryInput;
 
 type ParsedInviteLinkQuery = {
@@ -57,7 +58,9 @@ export const isParsedInvitationEmailQuery = (
 ): query is ParsedInviteEmailQuery =>
   typeof query.orgEntityId === "string" &&
   typeof query.invitationEmailToken === "string" &&
-  !!query.invitationEmailToken;
+  typeof query.email == "string" &&
+  !!query.invitationEmailToken &&
+  !!query.email;
 
 export const isParsedInvitationLinkQuery = (
   query: ParsedUrlQueryInput

@@ -210,7 +210,7 @@ const SignupPage: NextPage = () => {
       graphQLErrors.forEach(({ extensions, message }) => {
         const { code } = extensions as { code?: keyof typeof AUTH_ERROR_CODES };
         if (code === "ALREADY_EXISTS") {
-          // @todo should redirect the user to login screen
+          void router.push({ pathname: "/login", query: router.query });
         } else {
           dispatch({
             type: "SET_ERROR",
