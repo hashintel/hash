@@ -6,10 +6,13 @@ import { BlockEntity } from "./entity";
 import {
   createEntityStore,
   EntityStore,
+  isBlockEntity,
   isDraftBlockEntity,
 } from "./entityStore";
 import {
+  componentNodeToId,
   EntityNode,
+  isComponentNode,
   isEntityNode,
   nodeToEntityProperties,
 } from "./prosemirror";
@@ -194,6 +197,34 @@ export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
 
     const nextDraft = produce(prevDraft, (draftDraftEntityStore) => {
       state.doc.descendants((node, pos) => {
+        if (isComponentNode(node)) {
+          let blockEntityNode: EntityNode | null = null;
+          const resolved = tr.doc.resolve(pos);
+          for (let depth = 0; depth < resolved.depth; depth++) {
+            const parentNode = resolved.node(depth);
+            if (isEntityNode(parentNode)) {
+              blockEntityNode = parentNode;
+              break;
+            }
+          }
+
+          if (!blockEntityNode) {
+            throw new Error("invariant: unexpected structure");
+          }
+
+          if (blockEntityNode.attrs.draftId) {
+            const entity = draftDraftEntityStore[blockEntityNode.attrs.draftId];
+
+            if (!entity || !isBlockEntity(entity)) {
+              throw new Error(
+                "Block entity node points at non-block entity in draft store"
+              );
+            }
+
+            entity.properties.componentId = componentNodeToId(node);
+          }
+        }
+
         if (!isEntityNode(node)) {
           return;
         }

@@ -89,3 +89,5 @@ export const getComponentNodeAttrs = (
 ) => ({
   blockEntityId: entity?.entityId ?? "",
 });
+
+export const componentNodeToId = (node: ComponentNode) => node.type.name;

@@ -17,6 +17,7 @@ import {
 import { ProsemirrorNode } from "./node";
 import {
   ComponentNode,
+  componentNodeToId,
   findComponentNodes,
   nodeToEntityProperties,
 } from "./prosemirror";
@@ -120,13 +121,6 @@ const moveBlocks = defineOperation(
 );
 
 /**
- * @deprecated
- * @todo remove this – get this from entity store instead – draft entity
- *       store doesn't always have the correct componentId though
- */
-const nodeToComponentId = (node: ProsemirrorNode<Schema>) => node.type.name;
-
-/**
  * @warning this does not apply its actions to the entities it returns as it is
  *          not necessary for the pipeline of calculations. Be wary of this.
  */
@@ -143,7 +137,7 @@ const insertBlocks = defineOperation(
       actions.push({
         insertNewBlock: {
           position: Number(position),
-          componentId: nodeToComponentId(node),
+          componentId: componentNodeToId(node),
           accountId,
           entityProperties: nodeToEntityProperties(node),
           // @todo support new non-text nodes
@@ -218,7 +212,7 @@ const updateBlocks = defineOperation(
           }
 
           const updates: UpdatePageAction[] = [];
-          const componentId = nodeToComponentId(node);
+          const componentId = componentNodeToId(node);
 
           if (componentId !== existingBlock.properties.componentId) {
             updates.push({

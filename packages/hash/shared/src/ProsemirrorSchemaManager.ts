@@ -192,10 +192,24 @@ export class ProsemirrorSchemaManager {
   ) {
     const meta = await this.defineRemoteBlock(targetComponentId);
     const requiresText = blockComponentRequiresText(meta.componentSchema);
-    const blockEntity = draftBlockId ? entityStore?.draft[draftBlockId] : null;
+    let blockEntity = draftBlockId ? entityStore?.draft[draftBlockId] : null;
 
-    if (blockEntity && !isBlockEntity(blockEntity)) {
-      throw new Error("Can only create remote block from block entity");
+    if (blockEntity) {
+      if (!isBlockEntity(blockEntity)) {
+        throw new Error("Can only create remote block from block entity");
+      }
+
+      if (blockEntity.properties.componentId !== targetComponentId) {
+        const blockMeta = await fetchBlockMeta(
+          blockEntity.properties.componentId
+        );
+
+        if (
+          blockComponentRequiresText(blockMeta.componentSchema) !== requiresText
+        ) {
+          blockEntity = null;
+        }
+      }
     }
 
     const componentNodeAttributes = getComponentNodeAttrs(blockEntity);
@@ -265,7 +279,10 @@ export class ProsemirrorSchemaManager {
 
     const newNodes = await Promise.all(
       entities.map((blockEntity) => {
-        const draftEntity = draftEntityForEntityId(store, blockEntity.entityId);
+        const draftEntity = draftEntityForEntityId(
+          store.draft,
+          blockEntity.entityId
+        );
 
         if (!draftEntity) {
           throw new Error("Missing draft entity");
