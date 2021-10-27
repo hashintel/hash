@@ -49,6 +49,19 @@ export type Entity = {
   visibility: Visibility;
 };
 
+export type DBLink = {
+  accountId: string;
+  linkId: string;
+  path: string;
+  srcAccountId: string;
+  srcEntityId: string;
+  srcEntityVersionIds: Set<string>;
+  dstAccountId: string;
+  dstEntityId: string;
+  dstEntityVersionId?: string;
+  createdAt: Date;
+};
+
 export type EntityType = Omit<Entity, EntityTypeTypeFields> & {
   /**
    *  @todo make these non-optional if we figure a way of getting the EntityType entityType
@@ -349,6 +362,23 @@ export interface DBClient {
     entityId: string;
     extra: any;
   }): Promise<EntityMeta>;
+
+  /** Create a link */
+  createLink(params: {
+    accountId: string;
+    path: string;
+    srcAccountId: string;
+    srcEntityId: string;
+    srcEntityVersionIds: Set<string>;
+    dstAccountId: string;
+    dstEntityId: string;
+    dstEntityVersionId?: string;
+  }): Promise<DBLink>;
+
+  getLink(params: {
+    accountId: string;
+    linkId: string;
+  }): Promise<DBLink | null>;
 
   /** Create a verification code */
   createVerificationCode(params: {

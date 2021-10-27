@@ -10,6 +10,7 @@ import { PostgresClient } from "./client";
 import {
   DBAdapter,
   DBClient,
+  DBLink,
   Entity,
   EntityMeta,
   EntityType,
@@ -196,6 +197,27 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     extra: any;
   }): Promise<EntityMeta> {
     return this.query((adapter) => adapter.updateEntityMetadata(params));
+  }
+
+  /** Create a link */
+  createLink(params: {
+    accountId: string;
+    path: string;
+    srcAccountId: string;
+    srcEntityId: string;
+    srcEntityVersionIds: Set<string>;
+    dstAccountId: string;
+    dstEntityId: string;
+    dstEntityVersionId?: string;
+  }): Promise<DBLink> {
+    return this.query((adapter) => adapter.createLink(params));
+  }
+
+  getLink(params: {
+    accountId: string;
+    linkId: string;
+  }): Promise<DBLink | null> {
+    return this.query((adapter) => adapter.getLink(params));
   }
 
   createVerificationCode(params: {

@@ -2,6 +2,7 @@ import { sql } from "slonik";
 
 import {
   DBClient,
+  DBLink,
   Entity,
   EntityMeta,
   EntityType,
@@ -41,7 +42,13 @@ import {
   updateEntity,
   updateEntityAccountId,
 } from "./entity";
-import { insertLinks, getAncestorReferences, getChildren } from "./link";
+import {
+  insertLinks,
+  getAncestorReferences,
+  getChildren,
+  insertLink,
+  getLink,
+} from "./link";
 import { getUserByEmail, getUserByShortname } from "./user";
 import {
   insertVerificationCode,
@@ -398,6 +405,31 @@ export class PostgresClient implements DBClient {
     extra: any;
   }): Promise<EntityMeta> {
     return await updateEntityMetadata(this.conn, params);
+  }
+
+  async createLink(params: {
+    accountId: string;
+    path: string;
+    srcAccountId: string;
+    srcEntityId: string;
+    srcEntityVersionIds: Set<string>;
+    dstAccountId: string;
+    dstEntityId: string;
+    dstEntityVersionId?: string;
+  }): Promise<DBLink> {
+    const linkId = genId();
+    const createdAt = new Date();
+
+    await insertLink(this.conn, { ...params, linkId, createdAt });
+
+    return { ...params, linkId, createdAt };
+  }
+
+  async getLink(params: {
+    accountId: string;
+    linkId: string;
+  }): Promise<DBLink | null> {
+    return await getLink(this.conn, params);
   }
 
   async createVerificationCode(params: {

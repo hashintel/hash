@@ -2,7 +2,7 @@ import { sql } from "slonik";
 import { uniq } from "lodash";
 
 import { Connection } from "./types";
-import { Entity } from "../adapter";
+import { DBLink, Entity } from "../adapter";
 import { gatherLinks } from "./util";
 import { getEntityAccountIdMany } from "./account";
 import { DbInvalidLinksError } from "../errors";
@@ -262,4 +262,102 @@ export const getChildren = async (
       return entity;
     }),
   );
+};
+
+const linksColumnNames = [
+  "account_id",
+  "link_id",
+  "path",
+  "src_account_id",
+  "src_entity_id",
+  "src_entity_version_ids",
+  "dst_account_id",
+  "dst_entity_id",
+  "dst_entity_version_id",
+  "created_at",
+] as const;
+
+const linksColumnNamesSQL = sql.join(
+  linksColumnNames.map((columnName) => sql.identifier([columnName])),
+  sql`, `,
+);
+
+export const insertLink = async (
+  conn: Connection,
+  params: {
+    accountId: string;
+    linkId: string;
+    path: string;
+    srcAccountId: string;
+    srcEntityId: string;
+    srcEntityVersionIds: Set<string>;
+    dstAccountId: string;
+    dstEntityId: string;
+    dstEntityVersionId?: string;
+    createdAt: Date;
+  },
+): Promise<void> => {
+  await conn.query(sql`
+    insert into links (${linksColumnNamesSQL})
+    values (${sql.join(
+      [
+        params.accountId,
+        params.linkId,
+        params.path,
+        params.srcAccountId,
+        params.srcEntityId,
+        sql.array(Array.from(params.srcEntityVersionIds), "uuid"),
+        params.dstAccountId,
+        params.dstEntityId,
+        params.dstEntityVersionId || null,
+        params.createdAt.toISOString(),
+      ],
+      sql`, `,
+    )})
+  `);
+};
+
+type DBLinkRow = {
+  account_id: string;
+  link_id: string;
+  path: string;
+  src_account_id: string;
+  src_entity_id: string;
+  src_entity_version_ids: string[];
+  dst_account_id: string;
+  dst_entity_id: string;
+  dst_entity_version_id: string | null;
+  created_at: string;
+};
+
+const mapDBLinkRowToDBLink = (row: DBLinkRow): DBLink => ({
+  accountId: row.account_id,
+  linkId: row.link_id,
+  path: row.path,
+  srcAccountId: row.src_account_id,
+  srcEntityId: row.src_entity_id,
+  srcEntityVersionIds: new Set(row.src_entity_version_ids),
+  dstAccountId: row.dst_account_id,
+  dstEntityId: row.dst_entity_id,
+  dstEntityVersionId: row.dst_entity_version_id || undefined,
+  createdAt: new Date(row.created_at),
+});
+
+export const selectLinks = sql<DBLinkRow>`
+  select ${linksColumnNamesSQL}
+  from links
+`;
+
+export const getLink = async (
+  conn: Connection,
+  params: { accountId: string; linkId: string },
+) => {
+  const row = await conn.maybeOne(sql<DBLinkRow>`
+    ${selectLinks}
+    where
+      account_id = ${params.accountId}
+      and link_id = ${params.linkId}
+  `);
+
+  return row ? mapDBLinkRowToDBLink(row) : null;
 };
