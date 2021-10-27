@@ -4,9 +4,16 @@ import { ProsemirrorNode } from "./node";
 
 // @todo move these functions to a more appropriate place
 
+export type ComponentNode = Omit<ProsemirrorNode<Schema>, "attrs"> & {
+  attrs: {
+    entityId: string | null;
+  };
+};
+
 export type EntityNode = Omit<ProsemirrorNode<Schema>, "attrs"> & {
   attrs: {
     entityId: string | null;
+    draftId: string | null;
   };
 };
 
@@ -18,23 +25,27 @@ export type EntityNode = Omit<ProsemirrorNode<Schema>, "attrs"> & {
 export const nodeToComponentId = (node: ProsemirrorNode<Schema>) =>
   node.type.name;
 
-/**
- * @todo this can't look at attrs because we're going to remove entityId from it
- */
 export const isEntityNode = (
+  node: ProsemirrorNode<Schema> | null
+): node is EntityNode => !!node && node.type === node.type.schema.nodes.entity;
+
+/**
+ * @todo use group name for this
+ */
+export const isComponentNode = (
   node: ProsemirrorNode<Schema>
-): node is EntityNode =>
+): node is ComponentNode =>
   !!node.type.spec.attrs &&
   "entityId" in node.type.spec.attrs &&
   // This is temporary because we've added a new entity PM node but we're not
   // yet using it for update calculation
-  node.type.name !== "entity";
+  node.type !== node.type.schema.nodes.entity;
 
 export const findEntityNodes = (doc: ProsemirrorNode<Schema>) => {
-  const entityNodes: [EntityNode, number][] = [];
+  const entityNodes: [ComponentNode, number][] = [];
 
   doc.descendants((node, pos) => {
-    if (isEntityNode(node)) {
+    if (isComponentNode(node)) {
       entityNodes.push([node, pos]);
     }
 

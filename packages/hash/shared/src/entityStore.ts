@@ -1,4 +1,4 @@
-import { produce } from "immer";
+import { Draft, produce } from "immer";
 import { v4 as uuid } from "uuid";
 import { AnyEntity, BlockEntity } from "./entity";
 import { DistributiveOmit } from "./util";
@@ -6,17 +6,24 @@ import { DistributiveOmit } from "./util";
 // @todo should AnyEntity include BlockEntity, and should this just be AnyEntity
 export type EntityStoreType = BlockEntity | AnyEntity;
 
-export type DraftEntityStoreType = Partial<
-  DistributiveOmit<EntityStoreType, "entityId">
-> & {
-  entityId: EntityStoreType["entityId"] | null;
+type PropertiesType<Properties extends {}> = Properties extends {
+  entity: EntityStoreType;
+}
+  ? DistributiveOmit<Properties, "entity"> & {
+      entity: DraftEntity<Properties["entity"]>;
+    }
+  : Properties;
+
+export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
+  entityId: Type["entityId"] | null;
   draftId: string;
-};
+} & (Type extends { properties: any }
+  ? { properties: PropertiesType<Type["properties"]> }
+  : {});
 
 export type EntityStore = {
   saved: Record<string, EntityStoreType>;
-  // @todo typing here doesn't quite work
-  draft: Record<string, DraftEntityStoreType>;
+  draft: Record<string, DraftEntity>;
 };
 
 /**
@@ -25,15 +32,16 @@ export type EntityStore = {
 export const isEntity = (value: unknown): value is EntityStoreType =>
   typeof value === "object" && value !== null && "entityId" in value;
 
+// @todo remove this entity link stuff
 type EntityLink<
-  EntityType extends EntityStoreType | DraftEntityStoreType = EntityStoreType
+  EntityType extends EntityStoreType | DraftEntity = EntityStoreType
 > = {
   __linkedData: unknown;
   data: EntityType | EntityType[];
 };
 
 export const isEntityLink = <
-  EntityType extends EntityStoreType | DraftEntityStoreType = EntityStoreType
+  EntityType extends EntityStoreType | DraftEntity = EntityStoreType
 >(
   value: unknown
 ): value is EntityLink<EntityType> =>
@@ -46,12 +54,18 @@ export const isEntityLink = <
 export const isBlockEntity = (entity: unknown): entity is BlockEntity =>
   isEntity(entity) &&
   "properties" in entity &&
+  entity.properties &&
   "entity" in entity.properties &&
   isEntity(entity.properties.entity);
 
+export const isDraftBlockEntity = (
+  entity: unknown
+): entity is DraftEntity<BlockEntity> =>
+  isBlockEntity(entity) && "draftId" in entity;
+
 export const createEntityStore = (
   contents: EntityStoreType[],
-  draftData: Record<string, DraftEntityStoreType>
+  draftData: Record<string, DraftEntity>
 ): EntityStore => {
   const saved: EntityStore["saved"] = {};
   const draft: EntityStore["draft"] = {};
@@ -100,24 +114,24 @@ export const createEntityStore = (
     saved[entity.entityId] = entity;
     const draftId = entityToDraft[entity.entityId];
 
-    // @ts-expect-error
-    draft[draftId] = produce(entity, (draftEntity) => {
-      // @ts-expect-error
-      draftEntity.draftId = draftId;
+    // @todo need to update links to this entity too / clean this up
+    draft[draftId] = produce<DraftEntity>(
+      { ...entity, draftId },
+      (draftEntity: Draft<DraftEntity>) => {
+        if (draftData[draftId]) {
+          // @todo do something smarter here
+          Object.assign(
+            draftEntity,
+            JSON.parse(JSON.stringify(draftData[draftId]))
+          );
+        }
 
-      if (draftData[draftId]) {
-        Object.assign(
-          draftEntity,
-          JSON.parse(JSON.stringify(draftData[draftId]))
-        );
+        if (isBlockEntity(draftEntity)) {
+          draftEntity.properties.entity.draftId =
+            entityToDraft[draftEntity.properties.entity.entityId];
+        }
       }
-
-      if (isBlockEntity(draftEntity)) {
-        // @ts-expect-error
-        draftEntity.properties.entity.draftId =
-          entityToDraft[draftEntity.properties.entity.entityId];
-      }
-    });
+    );
   }
 
   return { saved, draft };

@@ -14,8 +14,8 @@ import {
 import { ProsemirrorNode } from "./node";
 import { updatePageContents } from "./queries/page.queries";
 import {
+  ComponentNode,
   entityIdExists,
-  EntityNode,
   findEntityNodes,
   nodeToComponentId,
 } from "./util";
@@ -68,7 +68,7 @@ const defineOperation =
   };
 
 const removeBlocks = defineOperation(
-  (entities: BlockEntity[], nodes: EntityNode[]) => {
+  (entities: BlockEntity[], nodes: ComponentNode[]) => {
     const draftBlockEntityIds = new Set(
       nodes.map((node) => node.attrs.entityId)
     );
@@ -100,7 +100,7 @@ const removeBlocks = defineOperation(
 );
 
 const moveBlocks = defineOperation(
-  (entities: BlockEntity[], nodes: EntityNode[]) => {
+  (entities: BlockEntity[], nodes: ComponentNode[]) => {
     const entitiesWithoutNewBlocks = nodes.filter(
       (node) => !!node.attrs.entityId
     );
@@ -146,7 +146,7 @@ const moveBlocks = defineOperation(
  *          not necessary for the pipeline of calculations. Be wary of this.
  */
 const insertBlocks = defineOperation(
-  (entities: BlockEntity[], nodes: EntityNode[], accountId: string) => {
+  (entities: BlockEntity[], nodes: ComponentNode[], accountId: string) => {
     const actions: UpdatePageAction[] = [];
     const exists = entityIdExists(entities);
 
@@ -176,7 +176,11 @@ const insertBlocks = defineOperation(
  *          not necessary for the pipeline of calculations. Be wary of this.
  */
 const updateBlocks = defineOperation(
-  (entities: BlockEntity[], nodes: EntityNode[], entityStore: EntityStore) => {
+  (
+    entities: BlockEntity[],
+    nodes: ComponentNode[],
+    entityStore: EntityStore
+  ) => {
     const exists = entityIdExists(entities);
 
     /**
