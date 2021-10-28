@@ -60,6 +60,7 @@
     "webpack-dev-server": "^3.11.0"
   },
   "dependencies": {
-    "@hashintel/block-protocol": "*"
+    "@hashintel/block-protocol": "*",
+    "uuid": "^8.3.2"
   }
 }
