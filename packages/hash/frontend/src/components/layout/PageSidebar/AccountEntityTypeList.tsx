@@ -37,7 +37,7 @@ export const AccountEntityTypeList: VoidFunctionComponent<AccountEntityTypeListP
           );
         })}
         <Link href={`/${accountId}/types/new`}>
-          <a className={tw`inline-block hover:border-b-0`}>
+          <a className={tw`inline-block hover:border-transparent`}>
             <Button>Create Entity Type</Button>
           </a>
         </Link>
