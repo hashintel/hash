@@ -1,9 +1,6 @@
 import { Resolver } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
-import { EntityWithIncompleteEntityType } from "../../../model";
+import { UnresolvedGQLEntity } from "../../../model";
 
-export const me: Resolver<
-  EntityWithIncompleteEntityType,
-  {},
-  LoggedInGraphQLContext
-> = async (_, __, { user }) => user.toGQLUnknownEntity();
+export const me: Resolver<UnresolvedGQLEntity, {}, LoggedInGraphQLContext> =
+  async (_, __, { user }) => user.toGQLUnknownEntity();

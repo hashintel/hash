@@ -1,11 +1,11 @@
 import { ApolloError, ForbiddenError } from "apollo-server-express";
 
-import { Account, User, EntityWithIncompleteEntityType } from "../../../model";
+import { Account, User, UnresolvedGQLEntity } from "../../../model";
 import { MutationUpdateUserArgs, Resolver } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
 
 export const updateUser: Resolver<
-  Promise<EntityWithIncompleteEntityType>,
+  Promise<UnresolvedGQLEntity>,
   {},
   LoggedInGraphQLContext,
   MutationUpdateUserArgs

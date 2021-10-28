@@ -11,7 +11,7 @@ import {
 import { LinkedDataDefinition } from "../util";
 import { GraphQLContext } from "../../context";
 import { genId, topologicalSort, isRecord } from "../../../util";
-import { EntityWithIncompleteEntityType, Entity } from "../../../model";
+import { UnresolvedGQLEntity, Entity } from "../../../model";
 import { DBAdapter } from "../../../db";
 import { Graph, Entity as DbEntity } from "../../../db/adapter";
 import { DbPageProperties, DbBlockProperties } from "../../../types/dbTypes";
@@ -239,7 +239,7 @@ const hydrateRootSubgraph = async (
 };
 
 export const getImpliedEntityVersion: Resolver<
-  Promise<EntityWithIncompleteEntityType>,
+  Promise<UnresolvedGQLEntity>,
   {},
   GraphQLContext,
   QueryGetImpliedEntityVersionArgs

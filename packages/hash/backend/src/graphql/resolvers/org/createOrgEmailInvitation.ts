@@ -3,15 +3,11 @@ import {
   MutationCreateOrgEmailInvitationArgs,
   Resolver,
 } from "../../apiTypes.gen";
-import {
-  EntityWithIncompleteEntityType,
-  Org,
-  OrgEmailInvitation,
-} from "../../../model";
+import { UnresolvedGQLEntity, Org, OrgEmailInvitation } from "../../../model";
 import { LoggedInGraphQLContext } from "../../context";
 
 export const createOrgEmailInvitation: Resolver<
-  Promise<EntityWithIncompleteEntityType>,
+  Promise<UnresolvedGQLEntity>,
   {},
   LoggedInGraphQLContext,
   MutationCreateOrgEmailInvitationArgs

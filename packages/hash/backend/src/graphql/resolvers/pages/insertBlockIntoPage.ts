@@ -2,13 +2,13 @@ import { ApolloError } from "apollo-server-express";
 import { UserInputError } from "apollo-server-errors";
 
 import { MutationInsertBlockIntoPageArgs, Resolver } from "../../apiTypes.gen";
-import { Entity, EntityWithIncompleteEntityType } from "../../../model";
+import { Entity, UnresolvedGQLEntity } from "../../../model";
 import { DbBlockProperties, DbPageProperties } from "../../../types/dbTypes";
 import { LoggedInGraphQLContext } from "../../context";
 import { createEntityArgsBuilder } from "../util";
 
 export const insertBlockIntoPage: Resolver<
-  Promise<EntityWithIncompleteEntityType>,
+  Promise<UnresolvedGQLEntity>,
   {},
   LoggedInGraphQLContext,
   MutationInsertBlockIntoPageArgs

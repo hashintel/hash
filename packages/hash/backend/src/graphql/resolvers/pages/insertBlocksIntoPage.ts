@@ -2,7 +2,7 @@ import { ApolloError, UserInputError } from "apollo-server-errors";
 
 import { DbPageProperties, DbBlockProperties } from "../../../types/dbTypes";
 import { Resolver, MutationInsertBlocksIntoPageArgs } from "../../apiTypes.gen";
-import { Entity, EntityWithIncompleteEntityType } from "../../../model";
+import { Entity, UnresolvedGQLEntity } from "../../../model";
 import { LoggedInGraphQLContext } from "../../context";
 import { createEntityArgsBuilder } from "../util";
 
@@ -15,7 +15,7 @@ const findBlockInPage = (blockId: string, props: DbPageProperties) => {
 };
 
 export const insertBlocksIntoPage: Resolver<
-  Promise<EntityWithIncompleteEntityType>,
+  Promise<UnresolvedGQLEntity>,
   {},
   LoggedInGraphQLContext,
   MutationInsertBlocksIntoPageArgs

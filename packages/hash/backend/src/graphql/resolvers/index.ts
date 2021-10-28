@@ -10,6 +10,8 @@ import {
   entityFields,
   updateEntity,
 } from "./entity";
+import { createLink } from "./link/createLink";
+import { deleteLink } from "./link/deleteLink";
 import { blockFields } from "./block";
 import {
   createPage,
@@ -101,15 +103,17 @@ export const resolvers = {
   Mutation: {
     // Logged in and signed up users only
     createEntity: loggedInAndSignedUp(createEntity),
+    createLink: loggedInAndSignedUp(createLink),
     createEntityType: loggedInAndSignedUp(createEntityType),
     createPage: loggedInAndSignedUp(createPage),
+    createOrg: loggedInAndSignedUp(createOrg),
+    createOrgEmailInvitation: loggedInAndSignedUp(createOrgEmailInvitation),
     insertBlockIntoPage: loggedInAndSignedUp(insertBlockIntoPage),
     insertBlocksIntoPage: loggedInAndSignedUp(insertBlocksIntoPage),
     updateEntity: loggedInAndSignedUp(updateEntity),
     updatePage: loggedInAndSignedUp(updatePage),
     updatePageContents: loggedInAndSignedUp(updatePageContents),
-    createOrg: loggedInAndSignedUp(createOrg),
-    createOrgEmailInvitation: loggedInAndSignedUp(createOrgEmailInvitation),
+    deleteLink: loggedInAndSignedUp(deleteLink),
     joinOrg: loggedInAndSignedUp(joinOrg),
     // Logged in users only
     updateUser: loggedIn(updateUser),
@@ -165,6 +169,9 @@ export const resolvers = {
       return "UnknownEntity";
     },
     history: entityFields.history,
+    links: entityFields.links,
+    linkedEntities: entityFields.linkedEntities,
+    linkedAggregations: entityFields.linkedAggregations,
   },
 
   EntityType: {

@@ -1,10 +1,10 @@
 import { ApolloError } from "apollo-server-express";
 import { Resolver, EntityType as GQLEntityType } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
-import { EntityType, EntityTypeWithoutTypeFields } from "../../../model";
+import { EntityType, UnresolvedGQLEntityType } from "../../../model";
 import { EntityTypeTypeFields } from "../../../db/adapter";
 
-type EntityTypeMaybeTypeFields = EntityTypeWithoutTypeFields & {
+type EntityTypeMaybeTypeFields = UnresolvedGQLEntityType & {
   entityType?: GQLEntityType["entityType"];
   entityTypeId?: GQLEntityType["entityTypeId"];
   entityTypeVersionId?: GQLEntityType["entityTypeVersionId"];
@@ -23,7 +23,10 @@ const getEntityTypeType = async (dataSources: GraphQLContext["dataSources"]) =>
  * Get the entityType of an EntityType, i.e. the "EntityType" EntityType
  */
 const entityType: Resolver<
-  Omit<GQLEntityType["entityType"], EntityTypeTypeFields>,
+  Omit<
+    GQLEntityType["entityType"],
+    EntityTypeTypeFields | "links" | "linkedEntities" | "linkedAggregations"
+  >,
   EntityTypeMaybeTypeFields,
   GraphQLContext
 > = async (gqlEntityType, __, { dataSources }) => {
