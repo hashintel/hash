@@ -2,19 +2,29 @@
 
 The `realtime` package connects to a Postgres instance and reads its
 change-stream by connecting to a [logical replication slot](https://www.postgresql.org/docs/10/logical-replication.html)
-created using the [`wal2json`](https://github.com/eulerto/wal2json)
-extension. Its purpose is to provide realtime updates on entities to
-a collection of subscribers, but currently, the service just logs
-the change-stream to the console.
+created using the [`wal2json`](https://github.com/eulerto/wal2json) extension. Its purpose
+is to provide realtime updates on entities to a collection of subscribers, by pushing
+change messages onto pre-specified queues.
 
-## Environment variables
+## Configuration
 
-  - `HASH_PG_DATABASE`: Postgres database name ("postgres"),
-  - `HASH_PG_PASSWORD`: Postgres user password ("postgres"),
-  - `HASH_PG_USER`:  Postgres username ("postgres"),
-  - `HASH_PG_HOST`: Postgres hostname ("localhost")
-  - `HASH_PG_PORT`: Postgres connection port (5432)
-  - `HASH_REALTIME_PORT`: Service listening port (3333)
+The `realtime` service uses the following environment variables:
+
+  - `NODE_ENV`: controls the logging level & formatting. Must be either "development"
+     or "production".
+  - `HASH_PG_DATABASE`: Postgres database name.
+  - `HASH_PG_PASSWORD`: Postgres user password.
+  - `HASH_PG_USER`:  Postgres username.
+  - `HASH_PG_HOST`: Postgres hostname.
+  - `HASH_PG_PORT`: Postgres connection port.
+  - `HASH_REALTIME_PORT`: (default: 3333) Service listening port.
+  - `HASH_SEARCH_QUEUE_NAME`: The name of the queue to push changes for the
+    [`search-loader`](../search-loader) service.
+
+Configuration for the tables to monitor and the queues to push messages to is defined
+in [`src/config.ts`](./src/config.ts). The service will push all insert/update/delete
+changes from the tables specified in the `MONITOR_TABLES` array, to all queues specified
+in the `QUEUES` array.
 
 ## Getting started
 

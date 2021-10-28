@@ -2,15 +2,15 @@ import * as crypto from "crypto";
 import * as http from "http";
 
 import { sql } from "slonik";
-
 import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { RedisQueueProducer } from "@hashintel/hash-backend-utils/queue/redis";
-import { AsyncRedisClient } from "@hashintel/hash-backend-utils/redis";
 import {
   createPostgresConnPool,
-  ConnPool,
+  PgPool,
 } from "@hashintel/hash-backend-utils/postgres";
-import { getRequiredEnv } from "./util";
+import { Wal2JsonMsg } from "@hashintel/hash-backend-utils/wal2json";
+import { getRequiredEnv } from "@hashintel/hash-backend-utils/env";
+
+import { MONITOR_TABLES, QUEUES } from "./config";
 
 // The name of the Postgres logical replication slot
 const SLOT_NAME = "realtime";
@@ -29,9 +29,6 @@ const INSTANCE_ID = crypto.randomUUID();
 // This expiry should be at least 2 * POLL_INTERVAL_SECONDS
 const OWNERSHIP_EXPIRY_MILLIS = 10_000;
 
-// The tables to monitor for changes
-const MONITOR_TABLES = ["public.entities", "public.entity_types"].join(",");
-
 const logger = new Logger({
   mode: process.env.NODE_ENV === "development" ? "dev" : "prod",
   level: process.env.NODE_ENV === "development" ? "debug" : "info",
@@ -39,21 +36,6 @@ const logger = new Logger({
   metadata: { instanceId: INSTANCE_ID },
 });
 
-// The realtime service will push all updates from the Postgres changestream to the
-// following queues.
-const QUEUES = [
-  {
-    name: getRequiredEnv("HASH_SEARCH_QUEUE_NAME"),
-    producer: new RedisQueueProducer(
-      new AsyncRedisClient({
-        host: getRequiredEnv("HASH_REDIS_HOST"),
-        port: parseInt(getRequiredEnv("HASH_REDIS_PORT"), 10),
-      })
-    ),
-  },
-];
-
-const acquireSlot = async (pool: ConnPool) => {
 const acquireSlot = async (pool: PgPool) => {
   // Create the slot if it does not exist
   const slotExists = await pool.exists(sql`
@@ -120,17 +102,29 @@ const releaseSlotOwnership = async (pool: PgPool) => {
 };
 
 const pollChanges = async (pool: PgPool) => {
+  // Note: setting 'include-transaction' to 'false' here removes the transaction begin
+  // & end messages with action types "B" and "C", respectively. We don't need these.
   const rows = await pool.anyFirst(sql`
-    select data::jsonb from pg_logical_slot_get_changes(${SLOT_NAME}, null, null, 'add-tables', ${MONITOR_TABLES})
+    select data::jsonb from pg_logical_slot_get_changes(
+      ${SLOT_NAME},
+      null,
+      null,
+      'add-tables', ${MONITOR_TABLES.join(",")},
+      'format-version', '2',
+      'include-transaction', 'false'
+    )
   `);
-  for (const row of rows) {
-    for (const change of (row as any).change) {
-      // Push the changes onto the queues
-      logger.debug({ message: "change", change });
-      for (const { name, producer } of QUEUES) {
-        await producer.push(name, JSON.stringify(change));
-      }
+  // Push each row change onto the queues
+  for (const change of rows as any[]) {
+    logger.debug({ message: "change", change });
+    if (change.action === "T") {
+      // Ignore TRUNCATE changes
+      continue;
     }
+    const changeStr = JSON.stringify(change as Wal2JsonMsg);
+    await Promise.all(
+      QUEUES.map(({ name, producer }) => producer.push(name, changeStr))
+    );
   }
 };
 
@@ -161,16 +155,16 @@ const main = async () => {
 
   // Start a HTTP server
   const httpServer = createHttpServer();
-  const port = parseInt(process.env.HASH_REALTIME_PORT || "0", 10) || 3333;
+  const port = parseInt(process.env.HASH_REALTIME_PORT || "3333", 10);
   httpServer.listen({ host: "::", port });
   logger.info(`HTTP server listening on port ${port}`);
 
   const pool = createPostgresConnPool(logger, {
-    user: getRequiredEnv("HASH_PG_USER", "postgres"),
-    host: getRequiredEnv("HASH_PG_HOST", "localhost"),
-    port: parseInt(getRequiredEnv("HASH_PG_PORT", "5432"), 10),
-    database: getRequiredEnv("HASH_PG_DATABASE", "postgres"),
-    password: getRequiredEnv("HASH_PG_PASSWORD", "postgres"),
+    user: getRequiredEnv("HASH_PG_USER"),
+    host: getRequiredEnv("HASH_PG_HOST"),
+    port: parseInt(getRequiredEnv("HASH_PG_PORT"), 10),
+    database: getRequiredEnv("HASH_PG_DATABASE"),
+    password: getRequiredEnv("HASH_PG_PASSWORD"),
     maxPoolSize: 1,
   });
 
