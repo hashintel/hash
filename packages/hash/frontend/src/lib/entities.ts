@@ -107,3 +107,15 @@ export const cloneEntityTreeWithPropertiesMovedUp = (
   }
   return clonedTree;
 };
+
+export const entityName = (
+  entity: Pick<UnknownEntity, "properties"> & { entityId?: string }
+) =>
+  entity.properties?.name ??
+  entity.properties?.preferredName ??
+  entity.properties?.displayName ??
+  entity.properties?.title ??
+  entity.properties?.shortname ??
+  entity.properties?.legalName ??
+  entity.entityId ??
+  "Entity";
