@@ -67,32 +67,6 @@ export const Video: BlockComponent<AppProps> = (props) => {
     };
   }, []);
 
-  function displayError(errorString: string) {
-    setStateObject((stateObject) => ({ ...stateObject, errorString }));
-  }
-
-  function updateData(src: string | undefined) {
-    if (src?.trim()) {
-      if (update) {
-        const updateAction: BlockProtocolUpdatePayload<{
-          initialSrc: string;
-          initialCaption: string;
-        }> = {
-          data: { initialSrc: src, initialCaption: captionText },
-          entityId,
-        };
-
-        if (entityTypeId) {
-          updateAction.entityTypeId = entityTypeId;
-        }
-
-        void update([updateAction]);
-      }
-
-      setStateObject((stateObject) => ({ ...stateObject, src }));
-    }
-  }
-
   const updateStateObject = useCallback(
     (properties: Partial<typeof stateObject>) => {
       setStateObject((prevStateObject) => ({
@@ -101,6 +75,35 @@ export const Video: BlockComponent<AppProps> = (props) => {
       }));
     },
     []
+  );
+
+  function displayError(errorString: string) {
+    updateStateObject({ errorString });
+  }
+
+  const updateData = useCallback(
+    (src: string | undefined) => {
+      if (src?.trim()) {
+        if (update) {
+          const updateAction: BlockProtocolUpdatePayload<{
+            initialSrc: string;
+            initialCaption: string;
+          }> = {
+            data: { initialSrc: src, initialCaption: captionText },
+            entityId,
+          };
+
+          if (entityTypeId) {
+            updateAction.entityTypeId = entityTypeId;
+          }
+
+          void update([updateAction]);
+        }
+
+        updateStateObject({ src });
+      }
+    },
+    [captionText, entityId, entityTypeId, update, updateStateObject]
   );
 
   const handleVideoUpload = useCallback(
@@ -164,6 +167,7 @@ export const Video: BlockComponent<AppProps> = (props) => {
     return (
       <div className={tw`flex justify-center text-center w-full`}>
         <div className={tw`max-w-full`}>
+          {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
           <video
             controls
             style={{
@@ -184,6 +188,7 @@ export const Video: BlockComponent<AppProps> = (props) => {
           />
         </div>
         <button
+          type="button"
           onClick={() => {
             resetComponent();
           }}
@@ -208,13 +213,9 @@ export const Video: BlockComponent<AppProps> = (props) => {
               {stateObject.errorString}
             </span>
           </div>
+          {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
           <span
-            onClick={() =>
-              setStateObject((stateObject) => ({
-                ...stateObject,
-                errorString: null,
-              }))
-            }
+            onClick={() => updateStateObject({ errorString: null })}
             className={tw`absolute top-0 bottom-0 right-0 px-4 py-3`}
           >
             <Cross />
@@ -254,6 +255,7 @@ export const Video: BlockComponent<AppProps> = (props) => {
             />
           </div>
           <div>
+            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
             <label htmlFor={randomId}>
               <div
                 className={tw`my-4 bg-gray-50 border-2 border-dashed border-gray-200 py-4 text-sm text-gray-400 cursor-pointer`}
