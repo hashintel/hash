@@ -43,11 +43,12 @@ import {
   updateEntityAccountId,
 } from "./entity";
 import {
-  insertLinks,
   getAncestorReferences,
   getChildren,
-  insertLink,
   getLink,
+  insertIncomingLink,
+  insertLink,
+  insertOutgoingLink,
 } from "./link";
 import { getUserByEmail, getUserByShortname } from "./user";
 import {
@@ -198,15 +199,13 @@ export class PostgresClient implements DBClient {
           entity_versions_account_id_entity_id_fk,
           entity_account_account_id_entity_version_id_fk,
           outgoing_links_source_account_id_source_entity_id_fk,
-          outgoing_links_destination_account_id_destination_entity_id_fk,
+          outgoing_links_link_account_id_link_id_fk,
           incoming_links_destination_account_id_destination_entity_id_fk,
-          incoming_links_source_account_id_source_entity_id_fk
+          incoming_links_link_account_id_link_id_fk
         deferred
       `);
 
       await Promise.all([
-        insertLinks(conn, entity),
-
         insertEntityMetadata(conn, {
           accountId: entity.accountId,
           entityId: entity.entityId,
@@ -417,12 +416,34 @@ export class PostgresClient implements DBClient {
     dstEntityId: string;
     dstEntityVersionId?: string;
   }): Promise<DBLink> {
-    const linkId = genId();
-    const createdAt = new Date();
+    return await this.conn.transaction(async (conn) => {
+      const linkId = genId();
+      const createdAt = new Date();
 
-    await insertLink(this.conn, { ...params, linkId, createdAt });
+      // Defer FKs until end of transaction so we can insert concurrently
+      await conn.query(sql`
+        set constraints
+          outgoing_links_link_account_id_link_id_fkey,
+          incoming_links_link_account_id_link_id_fkey
+        deferred
+      `);
 
-    return { ...params, linkId, createdAt };
+      await Promise.all([
+        insertLink(conn, { ...params, linkId, createdAt }),
+        insertOutgoingLink(conn, {
+          ...params,
+          linkAccountId: params.accountId,
+          linkId,
+        }),
+        insertIncomingLink(conn, {
+          ...params,
+          linkAccountId: params.accountId,
+          linkId,
+        }),
+      ]);
+
+      return { ...params, linkId, createdAt };
+    });
   }
 
   async getLink(params: {

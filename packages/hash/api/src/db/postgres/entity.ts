@@ -5,7 +5,6 @@ import { Connection } from "./types";
 import { EntityTypePGRow, mapPGRowToEntityType } from "./entitytypes";
 import { Visibility } from "../../graphql/apiTypes.gen";
 import { genId } from "../../util";
-import { insertLinks } from "./link";
 import { insertEntityAccount } from "./account";
 import { DbEntityNotFoundError } from "../errors";
 
@@ -631,20 +630,19 @@ const updateVersionedEntity = async (
   await acquireEntityLock(conn, { entityId: entity.entityId });
 
   // Defer FKs until end of transaction so we can insert concurrently
+  /** @todo: only defer violated FKs */
   await conn.query(sql`
     set constraints
       entity_account_account_id_entity_version_id_fk,
       outgoing_links_source_account_id_source_entity_id_fk,
-      outgoing_links_destination_account_id_destination_entity_id_fk,
+      outgoing_links_link_account_id_link_id_fk,
       incoming_links_destination_account_id_destination_entity_id_fk,
-      incoming_links_source_account_id_source_entity_id_fk
+      incoming_links_link_account_id_link_id_fk
     deferred
   `);
 
   await Promise.all([
     insertEntityVersion(conn, newEntityVersion),
-
-    insertLinks(conn, newEntityVersion),
 
     // Make a reference to this entity's account in the `entity_account` lookup table
     insertEntityAccount(conn, newEntityVersion),
@@ -673,11 +671,7 @@ const updateNonVersionedEntity = async (
   };
 
   try {
-    await Promise.all([
-      updateEntityVersionProperties(conn, updatedEntity),
-
-      insertLinks(conn, updatedEntity),
-    ]);
+    await updateEntityVersionProperties(conn, updatedEntity);
   } catch (err) {
     if (err instanceof NotFoundError) {
       throw new DbEntityNotFoundError(params.entity);

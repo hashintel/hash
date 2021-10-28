@@ -264,6 +264,80 @@ export const getChildren = async (
   );
 };
 
+const mapColumnNamesToSQL = (columnNames: string[]) =>
+  sql.join(
+    columnNames.map((columnName) => sql.identifier([columnName])),
+    sql`, `,
+  );
+
+const outgoingLinksColumnNames = [
+  "src_account_id",
+  "src_entity_id",
+  "link_account_id",
+  "link_id",
+];
+
+const outgoingLinksColumnNamesSQL = mapColumnNamesToSQL(
+  outgoingLinksColumnNames,
+);
+
+export const insertOutgoingLink = async (
+  conn: Connection,
+  params: {
+    srcAccountId: string;
+    srcEntityId: string;
+    linkAccountId: string;
+    linkId: string;
+  },
+): Promise<void> => {
+  await conn.query(sql`
+    insert into outgoing_links (${outgoingLinksColumnNamesSQL})
+    values (${sql.join(
+      [
+        params.srcAccountId,
+        params.srcEntityId,
+        params.linkAccountId,
+        params.linkId,
+      ],
+      sql`, `,
+    )})
+  `);
+};
+
+const incomingLinksColumnNames = [
+  "dst_account_id",
+  "dst_entity_id",
+  "link_account_id",
+  "link_id",
+];
+
+const incomingLinksColumnNamesSQL = mapColumnNamesToSQL(
+  incomingLinksColumnNames,
+);
+
+export const insertIncomingLink = async (
+  conn: Connection,
+  params: {
+    dstAccountId: string;
+    dstEntityId: string;
+    linkAccountId: string;
+    linkId: string;
+  },
+): Promise<void> => {
+  await conn.query(sql`
+    insert into incoming_links (${incomingLinksColumnNamesSQL})
+    values (${sql.join(
+      [
+        params.dstAccountId,
+        params.dstEntityId,
+        params.linkAccountId,
+        params.linkId,
+      ],
+      sql`, `,
+    )})
+  `);
+};
+
 const linksColumnNames = [
   "account_id",
   "link_id",
@@ -275,12 +349,9 @@ const linksColumnNames = [
   "dst_entity_id",
   "dst_entity_version_id",
   "created_at",
-] as const;
+];
 
-const linksColumnNamesSQL = sql.join(
-  linksColumnNames.map((columnName) => sql.identifier([columnName])),
-  sql`, `,
-);
+const linksColumnNamesSQL = mapColumnNamesToSQL(linksColumnNames);
 
 export const insertLink = async (
   conn: Connection,
