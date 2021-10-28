@@ -35,6 +35,9 @@ export class AsyncRedisClient {
    * list. */
   rpush: (key: string, ...values: string[]) => Promise<number>;
 
+  /** Returns the length of the list at `key`. */
+  llen: (key: string) => Promise<number>;
+
   /** Get a value, if it exists. */
   get: (key: string) => Promise<string | null>;
 
@@ -76,6 +79,7 @@ export class AsyncRedisClient {
     this.expire = promisify(client.expire).bind(client);
     this.lpush = promisify(client.lpush).bind(client);
     this.rpush = promisify(client.rpush).bind(client);
+    this.llen = promisify(client.llen).bind(client);
 
     const set = promisify(client.set).bind(client);
     this.set = async (key: string, value: string) => {

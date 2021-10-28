@@ -53,4 +53,10 @@ export interface QueueExclusiveConsumer {
    * Like `pop`, but blocks indefinitely until an item appears on the queue.
    */
   popBlocking<T>(name: string, cb: (item: string) => Promise<T>): Promise<T>;
+
+  /**
+   * @param name the name of the queue.
+   * @returns the number of items onf the queue
+   */
+  length(name: string): Promise<number>;
 }

@@ -129,6 +129,10 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
     }
   }
 
+  processingName(name: string) {
+    return `${name}-processing`;
+  }
+
   /** Pop an item from the queue and execute the callback on it. The items stays on
    * the queue if the callback throws an error. If timeout is `null`, it blocks until
    * an item appears on the queue.
@@ -146,7 +150,7 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
     }
 
     // Check if there's an item which wasn't processed correctly on the last call
-    const processingName = `${name}-processing`;
+    const processingName = this.processingName(name);
     let item = await this.client.rpoplpush(processingName, processingName);
 
     if (!item) {
@@ -188,5 +192,13 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
     cb: (item: string) => Promise<T>
   ): Promise<T | null> {
     return this._pop(name, timeout, cb);
+  }
+
+  async length(name: string) {
+    const [mainLen, processingLen] = await Promise.all([
+      this.client.llen(name),
+      this.client.llen(this.processingName(name)),
+    ]);
+    return mainLen + processingLen;
   }
 }
