@@ -3,9 +3,13 @@
  */
 import * as winston from "winston";
 
+export const LOG_LEVELS = ["debug", "info", "warn", "error"] as const;
+
+export type LogLevel = typeof LOG_LEVELS[number];
+
 export type LoggerConfig = {
   mode: "dev" | "prod";
-  level: "debug" | "info" | "warn" | "error";
+  level: LogLevel;
   serviceName: string;
   metadata?: Record<string, string>;
 };
