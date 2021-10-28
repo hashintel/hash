@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="https://github.com/hashintel/hash/blob/master/packages/engine/static/img/github-readme-header@2x.png">
+  <img src="https://cdn-us1.hash.ai/assets/hengine-github-readme-header%402x.png">
 </p>
 <div align="center">
- <a href="https://github.com/hashintel/engine/blob/master/LICENSE"><img src="https://github.com/hashintel/hash/blob/master/packages/engine/static/img/license-badge.svg" alt="Server Side Public License" /></a>
+ <a href="https://github.com/hashintel/engine/blob/master/LICENSE"><img src="https://cdn-us1.hash.ai/assets/license-badge-sspl.svg" alt="Server Side Public License" /></a>
  <a href="https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_engine"><img src="https://img.shields.io/discord/840573247803097118" alt="Join HASH on Discord" /></a>
 </div>
 
