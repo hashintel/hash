@@ -380,6 +380,11 @@ export interface DBClient {
     linkId: string;
   }): Promise<DBLink | null>;
 
+  getEntityOutgoingLinks(params: {
+    accountId: string;
+    entityId: string;
+  }): Promise<DBLink[]>;
+
   /** Create a verification code */
   createVerificationCode(params: {
     accountId: string;

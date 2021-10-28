@@ -2,7 +2,7 @@ import { uniq } from "lodash";
 
 import { Connection } from "./types";
 import { getEntityHistory } from "./entity";
-import { getEntityOutgoingLinks, OutgoingLink } from "./link";
+import { getEntityOutgoingLinks } from "./link";
 import { EntityVersion, Graph } from "../adapter";
 import { DefaultMap } from "../../util";
 
@@ -79,6 +79,14 @@ immediately moved to the linked version, and it's not changed unless a subsequen
 of the reference entity updates the link.
 */
 
+/** @todo: deprecate this type, and use the DBLink type instead */
+type OutgoingLink = {
+  accountId: string;
+  entityId: string;
+  entityVersionId?: string;
+  validForSrcEntityVersionIds: Set<string>;
+};
+
 class CheckpointManager {
   checkpoints: DefaultMap<string, Map<string, number>>;
   rootCheckpoint: number;
@@ -152,6 +160,17 @@ export const getImpliedEntityHistory = async (
   while (slice.length > 0) {
     const entityLinks = await Promise.all(
       slice.map((ref) => getEntityOutgoingLinks(conn, ref)),
+    ).then((nestedLinks) =>
+      nestedLinks.map((links) =>
+        links.map(
+          (link): OutgoingLink => ({
+            accountId: link.srcAccountId,
+            entityId: link.srcEntityId,
+            entityVersionId: link.dstEntityVersionId,
+            validForSrcEntityVersionIds: link.srcEntityVersionIds,
+          })
+        )
+      )
     );
     for (const [i, links] of entityLinks.entries()) {
       graph.set(slice[i].entityId, links);
