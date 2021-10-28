@@ -150,33 +150,32 @@ create table if not exists links (
     )
 );
 
-/** Stores parent --> child link references */
+/** Stores parent --> child link references for looking up the outgoing links for a given entity */
 create table if not exists outgoing_links (
-    source_account_id              uuid not null,
-    source_entity_id               uuid not null,
-    destination_account_id         uuid not null,
-    destination_entity_id          uuid not null,
-    -- destination_entity_version_id is part of the primary key, which means it cannot be null,
-    -- so we just set it to the zero UUID. We're not currently using outgoing_links for
-    -- anything, but when we do, we will need to be aware of this.
-    destination_entity_version_id  uuid not null default '00000000-0000-0000-0000-000000000000'::uuid,
-    source_entity_version_ids      uuid[] not null,
+    source_account_id           uuid not null,
+    source_entity_id            uuid not null,
+    link_account_id             uuid not null,
+    link_id                     uuid not null,
 
     constraint outgoing_links_pk primary key (
-      source_account_id, source_entity_id, destination_entity_id, destination_entity_version_id
+      src_account_id, -- included in the primary key so it can be used as a sharding key
+      src_entity_id,
+      link_id
     )
 );
 
 
-/** Stores reverse child --> parent link references */
+/** Stores reverse child --> parent link references for looking up the incoming links for a given entity */
 create table if not exists incoming_links (
-    destination_account_id              uuid not null,
-    destination_entity_id               uuid not null,
-    source_account_id              uuid not null,
-    source_entity_id               uuid not null,
+    destination_account_id      uuid not null,
+    destination_entity_id       uuid not null,
+    link_account_id             uuid not null,
+    link_id                     uuid not null,
 
     constraint incoming_links_pk primary key (
-      destination_account_id, destination_entity_id, source_entity_id
+      dst_account_id, -- included in the primary key so it can be used as a sharding key
+      dst_entity_id,
+      link_id
     )
 );
 
