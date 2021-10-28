@@ -70,11 +70,6 @@ export type BlockProtocolAggregateOperationInput = {
   } | null;
 };
 
-export type BlockProtocolAggregateOperationOutput = {
-  results: unknown[];
-  operation: BlockProtocolAggregateOperationInput & { pageCount: number };
-};
-
 export type BlockProtocolLinkedDataDefinition = {
   aggregate?: BlockProtocolAggregateOperationInput & { pageCount?: number };
   entityTypeId?: string;
@@ -86,6 +81,11 @@ export type BlockProtocolAggregatePayload = {
   entityTypeVersionId?: string | null;
   operation: BlockProtocolAggregateOperationInput;
   accountId?: string;
+};
+
+export type BlockProtocolAggregateOperationOutput = {
+  results: unknown[];
+  operation: BlockProtocolAggregateOperationInput & { pageCount: number };
 };
 
 export type BlockProtocolCreateFn = {

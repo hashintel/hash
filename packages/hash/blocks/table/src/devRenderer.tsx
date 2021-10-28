@@ -10,6 +10,8 @@ import {
   BlockProtocolUpdateFn,
   BlockProtocolUpdatePayload,
   BlockProtocolLinkedDataDefinition,
+  BlockProtocolAggregateFn,
+  BlockProtocolAggregateOperationOutput,
 } from "@hashintel/block-protocol";
 import Component from "./index";
 import { schemas } from "./schemas";
@@ -29,79 +31,97 @@ const useMockData = () => {
   const [entities, setEntities] = useState(initialEntities);
   const [tableData, setTableData] = useState(initialTableData);
 
-  const getResolvedData = useCallback(() => {
-    let resolvedData: Person[] = [];
+  const getResolvedData = useCallback(
+    (linkedInfo?: typeof tableData["data"]["__linkedData"]) => {
+      let resolvedData: Person[] = [];
 
-    const linkedData = tableData.data.__linkedData;
-    if (!linkedData) {
-      return {
-        data: [],
-      };
-    }
-
-    // attach linked field info to each entity
-    for (const entity of entities) {
-      switch (entity.type) {
-        case "Company":
-          entity.location = entities.find(
-            (subEnt) => subEnt.entityId === entity.locationId
-          ) as Location;
-          break;
-        case "Person":
-          entity.employer = entities.find(
-            (subEnt) => subEnt.entityId === entity.employerId
-          ) as Company;
+      const linkedData = linkedInfo ?? tableData.data.__linkedData;
+      if (!linkedData) {
+        return {
+          data: [] as Person[],
+        };
       }
-    }
 
-    resolvedData = entities.filter(
-      ({ type }) => type === linkedData.entityTypeId
-    ) as Person[];
+      // attach linked field info to each entity
+      for (const entity of entities) {
+        switch (entity.type) {
+          case "Company":
+            entity.location = entities.find(
+              (subEnt) => subEnt.entityId === entity.locationId
+            ) as Location;
+            break;
+          case "Person":
+            entity.employer = entities.find(
+              (subEnt) => subEnt.entityId === entity.employerId
+            ) as Company;
+        }
+      }
 
-    if (!linkedData.aggregate) {
-      return {
-        __linkedData: tableData.data.__linkedData,
-        data: resolvedData.slice(0, DEFAULT_PAGE_SIZE),
-      };
-    }
+      resolvedData = entities.filter(
+        ({ type }) => type === linkedData.entityTypeId
+      ) as Person[];
 
-    // FILTERING
-    if (linkedData.aggregate?.multiFilter) {
-      const combinatorFilter = linkedData.aggregate.multiFilter;
-      // This assumes the operator for each field is Contains and
-      // the combinator operator is AND
-      // @todo update to handle all filter scenarios
-      combinatorFilter.filters.forEach(({ field, value }) => {
-        resolvedData = resolvedData.filter((entity) => {
-          const property = resolvePath(entity, field);
-          if (typeof property !== "string" || !property) return;
-          return property.toLowerCase().includes(value.toLowerCase());
+      if (!linkedData.aggregate) {
+        return {
+          __linkedData: tableData.data.__linkedData,
+          data: resolvedData.slice(0, DEFAULT_PAGE_SIZE),
+        };
+      }
+
+      // FILTERING
+      if (linkedData.aggregate?.multiFilter) {
+        const combinatorFilter = linkedData.aggregate.multiFilter;
+        // This assumes the operator for each field is Contains and
+        // the combinator operator is AND
+        // @todo update to handle all filter scenarios
+        combinatorFilter.filters.forEach(({ field, value }) => {
+          resolvedData = resolvedData.filter((entity) => {
+            const property = resolvePath(entity, field);
+            if (typeof property !== "string" || !property) return;
+            return property.toLowerCase().includes(value.toLowerCase());
+          });
         });
-      });
-    }
+      }
 
-    // SORTING
-    if (linkedData.aggregate?.multiSort) {
-      const sortFields = linkedData.aggregate.multiSort;
-      resolvedData = sortEntities(resolvedData, sortFields);
-    }
+      // SORTING
+      if (linkedData.aggregate?.multiSort) {
+        const sortFields = linkedData.aggregate.multiSort;
+        resolvedData = sortEntities(resolvedData, sortFields);
+      }
 
-    // PAGINATION
-    const { pageNumber = 1, itemsPerPage = DEFAULT_PAGE_SIZE } =
-      linkedData.aggregate;
+      // PAGINATION
+      const { pageNumber = 1, itemsPerPage = DEFAULT_PAGE_SIZE } =
+        linkedData.aggregate;
 
-    const startIndex = pageNumber === 1 ? 0 : (pageNumber - 1) * itemsPerPage;
-    const endIndex = Math.min(startIndex + itemsPerPage, resolvedData.length);
-    const pageCount = Math.ceil(resolvedData.length / itemsPerPage);
-    resolvedData = resolvedData.slice(startIndex, endIndex);
+      const startIndex = pageNumber === 1 ? 0 : (pageNumber - 1) * itemsPerPage;
+      const endIndex = Math.min(startIndex + itemsPerPage, resolvedData.length);
+      const pageCount = Math.ceil(resolvedData.length / itemsPerPage);
+      resolvedData = resolvedData.slice(startIndex, endIndex);
 
-    linkedData.aggregate.pageCount = pageCount;
+      linkedData.aggregate.pageCount = pageCount;
 
-    return {
-      __linkedData: linkedData,
-      data: resolvedData,
-    };
-  }, [tableData, entities]);
+      return {
+        __linkedData: linkedData,
+        data: resolvedData,
+      };
+    },
+    [tableData, entities]
+  );
+
+  const aggregateData: BlockProtocolAggregateFn = useCallback(
+    async (action) => {
+      const results = getResolvedData({
+        aggregate: action.operation,
+        entityTypeId: action.entityTypeId,
+      }).data;
+
+      return Promise.resolve({
+        results,
+        operation: action.operation,
+      } as BlockProtocolAggregateOperationOutput);
+    },
+    []
+  );
 
   const updateData: BlockProtocolUpdateFn = useCallback(
     async (
@@ -148,15 +168,16 @@ const useMockData = () => {
       data: getResolvedData(),
       entityId: tableData.entityId,
       updateData,
+      aggregateData,
     }),
-    [tableData, getResolvedData, updateData]
+    [tableData, getResolvedData, updateData, aggregateData]
   );
 };
 
 const node = document.getElementById("app");
 
 const App = () => {
-  const { data, initialState, updateData } = useMockData();
+  const { data, initialState, updateData, aggregateData } = useMockData();
 
   return (
     <div className={tw`flex justify-center py-8`}>
@@ -165,6 +186,7 @@ const App = () => {
         initialState={initialState}
         schemas={schemas}
         update={updateData}
+        aggregate={aggregateData}
         entityId="table-1"
       />
     </div>
