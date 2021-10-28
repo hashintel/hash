@@ -1,4 +1,4 @@
-import { BlockMetadata } from "@hashintel/block-protocol";
+import { BlockMetadata, BlockVariant } from "@hashintel/block-protocol";
 import { Schema as JSONSchema } from "jsonschema";
 import { blockPaths } from "./paths";
 
@@ -44,7 +44,14 @@ export type BlockMeta = Pick<Block, "componentMetadata" | "componentSchema">;
  */
 const blockCache = new Map<string, Promise<BlockMeta>>();
 
-const toBlockName = (packageName = "Unnamed") => packageName.split("/").pop()!;
+/** @todo don't special-case @hash's blocks */
+const toDisplayName = (name = "Unnamed") =>
+  name.startsWith("@hashintel/block-")
+    ? name.substring("@hashintel/block-".length)
+    : name.split("/").pop()!;
+
+export const componentIdToUrl = (componentId: string) =>
+  ((blockPaths as any)[componentId] as string | undefined) ?? componentId;
 
 /**
  * transform mere options into a useable block configuration
@@ -53,30 +60,27 @@ const toBlockConfig = (
   options: BlockMetadata,
   componentId: string
 ): BlockConfig => {
-  const defaultVariant = {
-    name: toBlockName(options.name),
+  const defaultVariant: BlockVariant = {
     description: options.description,
-    icon: "/format-font.svg",
+    displayName: options.displayName ?? toDisplayName(options.name),
+    icon: options.icon,
     properties: {},
   };
 
-  /**
-   * @todo: prefix relative path to future icon w/ block's
-   *   baseUrl when introducing icons to blocks
-   * ```
-   * icon: [url, variant.icon].join("/")
-   * ```
-   */
-  const variants = (options.variants ?? [{}]).map((variant) => ({
-    ...defaultVariant,
-    ...variant,
-  }));
+  const baseUrl = componentIdToUrl(componentId);
+
+  const variants = (options.variants ?? [{}])
+    .map((variant) => ({ ...defaultVariant, ...variant }))
+    .map((variant) => ({
+      ...variant,
+      // make the icon url absolute or use a relative fallback
+      icon: variant.icon
+        ? [baseUrl, variant.icon].join("/")
+        : "/format-font.svg",
+    }));
 
   return { ...options, componentId, variants };
 };
-
-export const componentIdToUrl = (componentId: string) =>
-  ((blockPaths as any)[componentId] as string | undefined) ?? componentId;
 
 // @todo deal with errors, loading, abort etc.
 export const fetchBlockMeta = async (

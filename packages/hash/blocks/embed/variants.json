@@ -1,37 +1,37 @@
 [
   {
-    "name": "Embed",
+    "displayName": "Embed",
     "description": "Embed Content",
-    "icon": "path/to/icon.svg"
+    "icon": "public/embed.svg"
   },
   {
-    "name": "Twitter",
+    "displayName": "Twitter",
     "description": "Embed Tweet",
-    "icon": "path/to/icon.svg",
+    "icon": "public/twitter.svg",
     "properties": {
       "embedType": "Twitter"
     }
   },
   {
-    "name": "YouTube",
+    "displayName": "YouTube",
     "description": "Embed YouTube Video",
-    "icon": "path/to/icon.svg",
+    "icon": "public/youtube.svg",
     "properties": {
       "embedType": "YouTube"
     }
   },
   {
-    "name": "Spotify",
+    "displayName": "Spotify",
     "description": "Embed Spotify Song",
-    "icon": "path/to/icon.svg",
+    "icon": "public/spotify.svg",
     "properties": {
       "embedType": "Spotify"
     }
   },
   {
-    "name": "HASH",
+    "displayName": "HASH",
     "description": "Embed Simulation",
-    "icon": "path/to/icon.svg",
+    "icon": "public/hash.svg",
     "properties": {
       "embedType": "HASH"
     }

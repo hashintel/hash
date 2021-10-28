@@ -7,12 +7,17 @@
   "author": "Akash Joshi",
   "license": "MIT",
   "main": "src/index.ts",
+  "blockprotocol": {
+    "displayName": "Image",
+    "icon": "public/play-box-outline.svg"
+  },
   "prettier": "@hashintel/prettier-config",
   "scripts": {
     "format": "prettier --write './src/**/*'; eslint --ext .ts,.tsx --fix ./src/",
     "lint": "prettier --check './src/**/*' || exit 1; eslint --ext .ts,.tsx ./src/; tsc --noEmit # @hashintel/block-video",
-    "build": "yarn clean; cross-env NODE_ENV=production webpack --mode production && yarn schema",
-    "build:dev": "yarn clean; cross-env NODE_ENV=development webpack --mode development",
+    "build:public": "mkdir -p ./dist; cp -a ./public ./dist",
+    "build": "yarn clean; yarn build:public; cross-env NODE_ENV=production webpack --mode production && yarn schema",
+    "build:dev": "yarn clean; yarn build:public; cross-env NODE_ENV=development webpack --mode development",
     "schema": "typescript-json-schema tsconfig.json AppProps --required true --out dist/block-schema.json",
     "webpack-dev-server": "cross-env NODE_ENV=development webpack-dev-server -d --port 9090 --config webpack-dev-server.config.js --open",
     "start": "concurrently -n webpack,webpack-dev-server -c green,cyan \"yarn build:dev -- --watch --verbose\" \"yarn webpack-dev-server\"",

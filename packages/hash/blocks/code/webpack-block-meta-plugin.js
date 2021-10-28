@@ -1,5 +1,6 @@
 const fs = require("fs");
 const { promisify } = require("util");
+
 const writeFile = promisify(fs.writeFile);
 const beautify = (obj) => JSON.stringify(obj, null, 2);
 
@@ -9,9 +10,7 @@ const {
   description,
   author,
   license,
-  // peerDependencies,
-  // devDependencies,
-  // dependencies,
+  blockprotocol,
 } = require("./package.json");
 
 const { externals } = require("./webpack-main.config");
@@ -23,8 +22,8 @@ const variants = fs.existsSync("./variants.json")
 class StatsPlugin {
   apply(compiler) {
     compiler.hooks.done.tap(this.constructor.name, (stats) => {
-      const main = Object.keys(stats.compilation.assets).find((name) =>
-        name.startsWith("main")
+      const main = Object.keys(stats.compilation.assets).find((asset) =>
+        asset.startsWith("main")
       );
 
       const blockMetadata = {
@@ -37,6 +36,7 @@ class StatsPlugin {
         schema: "block-schema.json",
         source: main,
         variants,
+        ...blockprotocol,
       };
 
       return writeFile("dist/metadata.json", beautify(blockMetadata), "utf8");
