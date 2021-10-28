@@ -44,6 +44,26 @@ The following programs must be present on your development system:
 
 See the [docker/README](./docker) for further details.
 
+## Start the frontend
+
+Use `yarn serve:hash-frontend` to start the frontend application.
+
+## Integration w/ blockprotocol.org
+
+Block builds are pulled from the URLs configured at `packages/hash/shared/src/blockPaths.json`. Note
+that any changes to this file require a rebuild `yarn workspace @hashintel/hash-shared run build`
+(use `yarn workspace @hashintel/hash-shared run dev` to watch and rebuild on every change).
+
+By default, `blockPaths.json` point to the `dev` branch's deployment of the blockprotocol.org CDN at
+https://blockprotocol-git-dev-hashintel.vercel.app . This can be changed to either a local instance
+of blockprotocol.org (see its `/site/README.md` on how to do that) or a webpack-dev-server instance
+of a block in development
+`yarn workspace @hashintel/block-<block-under-development> run dev --port 3010`.
+
+## Build blocks
+
+In order to build individual blocks, use `yarn build-block:<blockname>`. Use `yarn build-blocks` to
+build all blocks concurrently.
 
 ## Create a new block bundle from template
 
