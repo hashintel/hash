@@ -2,7 +2,7 @@ import { createPool, DatabasePoolType } from "slonik";
 
 import { Logger } from "./logger";
 
-export type ConnPool = DatabasePoolType;
+export type PgPool = DatabasePoolType;
 
 /** Create a connection pool to a Postgres database */
 export const createPostgresConnPool = (
@@ -15,7 +15,7 @@ export const createPostgresConnPool = (
     database: string;
     maxPoolSize: number;
   }
-): DatabasePoolType => {
+): PgPool => {
   const { user, password, host, port, database } = params;
   const connStr = `postgresql://${user}:${password}@${host}:${port}/${database}`;
 

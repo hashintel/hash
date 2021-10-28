@@ -32,7 +32,7 @@ try {
     });
   }
 } catch (err) {
-  logger.warn(`Could not start StatsD client: {e}`);
+  logger.error(`Could not start StatsD client: ${err}`);
 }
 
 // Configure the Express server

@@ -54,6 +54,7 @@ const QUEUES = [
 ];
 
 const acquireSlot = async (pool: ConnPool) => {
+const acquireSlot = async (pool: PgPool) => {
   // Create the slot if it does not exist
   const slotExists = await pool.exists(sql`
     select * from pg_replication_slots where slot_name = ${SLOT_NAME}
@@ -94,7 +95,7 @@ const acquireSlot = async (pool: ConnPool) => {
 };
 
 /** Update this instance's ownership of the slot. */
-const updateSlotOwnership = async (pool: ConnPool) => {
+const updateSlotOwnership = async (pool: PgPool) => {
   await pool.query(sql`
     update realtime.ownership
     set
@@ -108,7 +109,7 @@ const updateSlotOwnership = async (pool: ConnPool) => {
 
 /** Release ownership of the slot. Does nothing if this instance is not the current
  * owner. */
-const releaseSlotOwnership = async (pool: ConnPool) => {
+const releaseSlotOwnership = async (pool: PgPool) => {
   const res = await pool.query(sql`
     delete from realtime.ownership
     where slot_name = ${SLOT_NAME} and slot_owner = ${INSTANCE_ID}
@@ -118,7 +119,7 @@ const releaseSlotOwnership = async (pool: ConnPool) => {
   }
 };
 
-const pollChanges = async (pool: ConnPool) => {
+const pollChanges = async (pool: PgPool) => {
   const rows = await pool.anyFirst(sql`
     select data::jsonb from pg_logical_slot_get_changes(${SLOT_NAME}, null, null, 'add-tables', ${MONITOR_TABLES})
   `);

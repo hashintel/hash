@@ -3,7 +3,7 @@ import { StatsD } from "hot-shots";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import {
   createPostgresConnPool,
-  ConnPool,
+  PgPool,
 } from "@hashintel/hash-backend-utils/postgres";
 
 import { PostgresClient } from "./client";
@@ -29,7 +29,7 @@ export type Config = {
 
 export class PostgresAdapter extends DataSource implements DBAdapter {
   private statsdInterval: NodeJS.Timeout;
-  private pool: ConnPool;
+  private pool: PgPool;
 
   constructor(cfg: Config, logger: Logger, statsd?: StatsD) {
     super();
