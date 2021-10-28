@@ -1,3 +1,3 @@
-import blockPaths from "./blockPaths.sample.json";
+import blockPaths from "./blockPaths.json";
 
 export { blockPaths };

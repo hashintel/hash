@@ -50,8 +50,18 @@ const toDisplayName = (name = "Unnamed") =>
     ? name.substring("@hashintel/block-".length)
     : name.split("/").pop()!;
 
-export const componentIdToUrl = (componentId: string) =>
-  ((blockPaths as any)[componentId] as string | undefined) ?? componentId;
+// @todo spread use of this type
+type ComponentId = keyof typeof blockPaths;
+
+export const componentIdToUrl = (componentId_: string) => {
+  const componentId = componentId_ as ComponentId;
+  const protocol = (globalThis as any).location.protocol;
+  const url = blockPaths[componentId];
+
+  return url.startsWith(protocol)
+    ? url
+    : url.substring(url.indexOf("//") + "//".length);
+};
 
 /**
  * transform mere options into a useable block configuration
