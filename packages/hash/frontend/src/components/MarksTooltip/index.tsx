@@ -1,39 +1,28 @@
 import { toggleMark } from "prosemirror-commands";
 import { Schema } from "prosemirror-model";
-import {
-  NodeSelection,
-  Plugin,
-  PluginKey,
-} from "prosemirror-state";
+import { NodeSelection, Plugin, PluginKey } from "prosemirror-state";
 import React, { CSSProperties } from "react";
 import { tw } from "twind";
 import { RenderPortal } from "../../blocks/page/usePortals";
 import { ensureMounted } from "../../lib/dom";
-import { MarksToolTip } from "./MarksTooltip";
+import { MarksTooltip } from "./MarksTooltip";
 import {
-  checkIfSelectionIsEmpty,
-  getActiveMarks,
+  getActiveMarksWithAttrs,
   updateLink,
   selectionContainsText,
-} from "./utils";
-
+  validateLink,
+} from "./util";
 
 const TOOLTIP_ID = "hash_marks_tooltip";
 
 interface MarksTooltipState {
-  // focused: boolean;
-  isSelectionEmpty: boolean;
-}
-
-interface MarksTooltipState {
-  isSelectionEmpty: boolean;
+  focused: boolean;
 }
 
 const key = new PluginKey<MarksTooltipState, Schema>("markstooltip");
 
 export function createMarksTooltip(renderPortal: RenderPortal) {
   let timeout: NodeJS.Timeout;
-
   const marksTooltip = new Plugin<MarksTooltipState, Schema>({
     key,
     /**
@@ -42,85 +31,79 @@ export function createMarksTooltip(renderPortal: RenderPortal) {
      */
     state: {
       init() {
-        return { isSelectionEmpty: true };
+        return { isSelectionEmpty: true, focused: false };
       },
       apply(tr, state) {
         const action = tr.getMeta(key);
-        if (typeof action !== "undefined") {
-          return { ...state, ...action.payload };
+
+        switch (action?.type) {
+          case "format-blur":
+            return { focused: false };
+          case "format-focus":
+            return { focused: true };
         }
 
         return state;
       },
     },
+
     props: {
-      handleDOMEvents: {},
-      // this doesn't get triggered
-      // transformPasted(slice) {
-      //   console.log("slice ==> ", slice);
-      //   return slice;
-      // },
-      // this doesn't get triggered
-      // handlePaste(view, event, slice) {
-      //   if (!event.clipboardData) {
-      //     return false;
-      //   }
-      //   let text = event.clipboardData.getData("text/plain");
-      //   const html = event.clipboardData.getData("text/html");
+      handleDOMEvents: {
+        blur(view) {
+          clearTimeout(timeout);
+          timeout = setTimeout(() => {
+            const toolTipEl = document.getElementById(TOOLTIP_ID);
 
-      //   const isPlainText = text && !html;
+            if (toolTipEl?.contains(document.activeElement)) {
+              return false;
+            }
 
-      //   if (!isPlainText || view.state.selection.empty) {
-      //     console.log("selection empty");
-      //     return false;
-      //   }
-
-      //   const { state, dispatch } = view;
-      //   // @todo handle regex to be sure what was pasted was a link
-
-      //   return createLink(text)(state, dispatch);
-      // },
+            view.dispatch(view.state.tr.setMeta(key, { type: "format-blur" }));
+          }, 300);
+          return false;
+        },
+        focus(view) {
+          clearTimeout(timeout);
+          view.dispatch(view.state.tr.setMeta(key, { type: "format-focus" }));
+          return false;
+        },
+      },
     },
 
     view(editorView: FixMeLater) {
       const mountNode = document.createElement("div");
 
-      const renderPortalFn = (
-        hidden: boolean,
-        dimensions?: { top: number; left: number; bottom: number }
-      ) => {
-        let style: CSSProperties = {
-          transition: "opacity 0.75s",
-          position: "absolute",
-          zIndex: 1,
-          ...(hidden
-            ? {
-                top: -10000,
-                left: -10000,
-                opacity: 0,
-              }
-            : dimensions),
+      const renderPortalFn = (dimensions: {
+        top: number;
+        left: number;
+        bottom: number;
+      }) => {
+        const activeMarks = getActiveMarksWithAttrs(editorView);
+
+        const style: CSSProperties = {
+          top: dimensions.top,
+          left: dimensions.left,
         };
 
-        const activeMarks = getActiveMarks(editorView);
-
         const jsx = (
-          <div className={tw`absolute`} style={style} id={TOOLTIP_ID}>
-            <MarksToolTip
+          <div className={tw`absolute z-50`} style={style} id={TOOLTIP_ID}>
+            <MarksTooltip
               activeMarks={activeMarks}
               toggleMark={(name, attrs) => {
-                editorView.focus();
                 toggleMark(editorView.state.schema.marks[name], attrs)(
                   editorView.state,
                   editorView.dispatch
                 );
               }}
-              updateLink={
-                (href) =>
-                  updateLink(href)(editorView.state, editorView.dispatch) // can just pick out editorView
+              updateLink={(href) => {
+                updateLink(editorView, href);
+              }}
+              closeTooltip={() =>
+                editorView.dispatch(
+                  editorView.state.tr.setMeta(key, { type: "format-blur" })
+                )
               }
-              // @todo use a better name
-              space={dimensions ? dimensions.bottom - dimensions.top : 0}
+              selectionHeight={dimensions.bottom - dimensions.top}
             />
           </div>
         );
@@ -128,32 +111,28 @@ export function createMarksTooltip(renderPortal: RenderPortal) {
         renderPortal(jsx, mountNode);
       };
 
-      const handleSelectionChange = (_) => {
-        const toolTipEl = document.getElementById(TOOLTIP_ID);
-        const selectionFocusNode = document.getSelection()?.focusNode;
-
-        if (selectionFocusNode && toolTipEl?.contains(selectionFocusNode)) {
+      const handlePaste = (evt: ClipboardEvent) => {
+        if (!evt.clipboardData) {
           return;
         }
 
-        editorView.dispatch(
-          editorView.state.tr.setMeta(key, {
-            payload: {
-              isSelectionEmpty: checkIfSelectionIsEmpty(
-                document.getSelection()
-              ),
-            },
-          })
-        );
+        const text = evt.clipboardData.getData("text/plain");
+        const html = evt.clipboardData.getData("text/html");
+        const isPlainText = Boolean(text) && !html;
+
+        if (isPlainText && validateLink(text)) {
+          evt.preventDefault();
+          updateLink(editorView, text);
+        }
       };
 
-      document.addEventListener("selectionchange", handleSelectionChange);
+      document.addEventListener("paste", handlePaste);
 
       return {
         destroy() {
           renderPortal(null, mountNode);
           mountNode.remove();
-          document.removeEventListener("selectionchange", handleSelectionChange);
+          document.removeEventListener("paste", handlePaste);
         },
         update: (view: FixMeLater, lastState?: FixMeLater) => {
           const dragging = !!editorView.dragging;
@@ -166,15 +145,14 @@ export function createMarksTooltip(renderPortal: RenderPortal) {
            * not within a paragraph
            *
            * @todo enable the format tooltip outside of a paragraph node
+           * @todo confirm if we need all these conditions
            */
           if (
-            // !marksTooltip.getState(view.state).focused ||
+            !key.getState(view.state)?.focused ||
             dragging ||
             state.selection instanceof NodeSelection ||
-            // !(state.selection instanceof TextSelection) ||
             !selectionContainsText(state) ||
-            // state.selection.empty ||
-            key.getState(view.state)?.isSelectionEmpty
+            state.selection.empty
           ) {
             renderPortal(null, mountNode);
             return;
@@ -198,9 +176,9 @@ export function createMarksTooltip(renderPortal: RenderPortal) {
             start.left +
             (end.right - start.left) / 2 +
             document.documentElement.scrollLeft;
-          const bottom = start.bottom + document.documentElement.scrollTop;
+          const bottom = end.bottom + document.documentElement.scrollTop;
 
-          renderPortalFn(false, { top, left, bottom });
+          renderPortalFn({ top, left, bottom });
         },
       };
     },
