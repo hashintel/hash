@@ -22,7 +22,7 @@
     "build": "yarn clean; yarn codegen; tsc -b",
     "clean": "rimraf './src/**/*.gen.*' ./dist/ ./tsconfig.tsbuildinfo",
     "postinstall": "yarn build",
-    "dev": "nodemon --watch ./src/ --ignore './src/**/*.gen.*' --ext js,ts,json --exec 'yarn build'"
+    "dev": "nodemon --watch ./src/ --ignore './src/**/*.gen.*' --ext js,ts,json --exec 'tsc -b'"
   },
   "dependencies": {
     "@apollo/client": "3.3.19",

@@ -32,7 +32,9 @@ export const BlockSuggester: React.VFC<BlockSuggesterProps> = ({
     );
 
     return fuzzySearchBy(variants, search, (variant) =>
-      [variant.displayName, variant.description].map((str) => str || "").join(" ")
+      [variant.displayName, variant.description]
+        .map((str) => str || "")
+        .join(" ")
     );
   }, [search, blocksMeta]);
 
