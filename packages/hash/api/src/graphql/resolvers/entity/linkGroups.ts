@@ -1,104 +1,12 @@
-import jp from "jsonpath";
+import { ApolloError } from "apollo-server-errors";
 import {
   Resolver,
   Entity as GQLEntity,
-  Link,
   LinkGroup,
 } from "../../apiTypes.gen";
 import { DbUnknownEntity } from "../../../types/dbTypes";
 import { GraphQLContext } from "../../context";
-import { isRecord, genId } from "../../../util";
-import { LinkedDataDefinition } from "../util";
-import { DBClient } from "../../../db";
-
-/**
- * Temporary function for extracting outgoing links from an entity's
- * `properties` JSON blob.
- *
- * This function will be deprecated when the links are no longer stored
- * in an entity's `properties` JSON blob.
- */
-
-export const parseLinksFromPropertiesObject = (
-  client: DBClient,
-  propertiesObject: any,
-  sourceEntityId: string,
-  path: jp.PathComponent[] = ["$"],
-): Promise<Link[]> =>
-  Promise.all(
-    Object.entries(propertiesObject).map(
-      async ([key, value]): Promise<Link[]> => {
-        if (Array.isArray(value)) {
-          return Promise.all(
-            value
-              .filter(isRecord)
-              .map((arrayItem, i) =>
-                parseLinksFromPropertiesObject(
-                  client,
-                  arrayItem,
-                  sourceEntityId,
-                  [...path, key, i],
-                ),
-              ),
-          ).then((nestedLinks) => nestedLinks.flat());
-        }
-        if (isRecord(value)) {
-          if (
-            key === "__linkedData" &&
-            !(value as LinkedDataDefinition).aggregate
-          ) {
-            const {
-              entityId: destinationEntityId,
-              entityVersionId: destinationEntityVersionId,
-            } = value as LinkedDataDefinition;
-
-            if (!destinationEntityId) {
-              throw new Error(
-                "Linked data is now requried to provide an entityId",
-              );
-            }
-
-            /** @todo: stop looking up accountId */
-            const [sourceAccountId, destinationAccountId] = await Promise.all([
-              client.getEntityAccountId({ entityId: sourceEntityId }),
-              client.getEntityAccountId({ entityId: destinationEntityId }),
-            ]);
-
-            const finalPathComponent = path[path.length - 1];
-
-            return [
-              {
-                id: genId(),
-                sourceAccountId,
-                sourceEntityId,
-                destinationAccountId,
-                destinationEntityId,
-                destinationEntityVersionId,
-                path: jp.stringify(
-                  typeof finalPathComponent === "number"
-                    ? path.slice(0, -1)
-                    : path,
-                ),
-                index:
-                  typeof finalPathComponent === "number"
-                    ? finalPathComponent
-                    : undefined,
-              },
-            ];
-          } else {
-            return parseLinksFromPropertiesObject(
-              client,
-              value,
-              sourceEntityId,
-              [...path, key],
-            );
-          }
-        }
-
-        return [];
-      },
-    ),
-  ).then((nestedLinks) => nestedLinks.flat());
+import { Entity, Link } from "../../../model";
 
 const doesLinkBelongInGroup =
   (sourceEntity: GQLEntity, link: Link) =>
@@ -114,7 +22,7 @@ const mapLinkToLinkGroup = (
   sourceEntityId: sourceEntity.entityId,
   sourceEntityVersionId: sourceEntity.entityVersionId,
   path: link.path,
-  links: [link],
+  links: [link.toUnresolvedGQLLink()],
 });
 
 export const linkGroups: Resolver<
@@ -122,13 +30,20 @@ export const linkGroups: Resolver<
   DbUnknownEntity,
   GraphQLContext
 > = async (sourceEntity, _, { dataSources }) => {
-  const parsedLinks = await parseLinksFromPropertiesObject(
-    dataSources.db,
-    sourceEntity.properties,
-    sourceEntity.entityId,
-  );
+  const source = await Entity.getEntity(dataSources.db, {
+    accountId: sourceEntity.accountId,
+    entityVersionId: sourceEntity.entityVersionId,
+  });
 
-  return parsedLinks.reduce<LinkGroup[]>((prevLinkGroups, currentLink) => {
+  if (!source) {
+    const msg = `entity with version ID ${sourceEntity.entityVersionId} not found in account ${sourceEntity.accountId}`;
+    throw new ApolloError(msg, "NOT_FOUND");
+  }
+
+  const outgoingLinks = await source.getOutgoingLinks(dataSources.db);
+
+  /** @todo: use a more efficient data-structure to produce `outgoingLinks` (https://github.com/hashintel/dev/pull/341#discussion_r746635315) */
+  return outgoingLinks.reduce<LinkGroup[]>((prevLinkGroups, currentLink) => {
     const existingGroupIndex = prevLinkGroups.findIndex(
       doesLinkBelongInGroup(sourceEntity, currentLink),
     );
@@ -139,7 +54,7 @@ export const linkGroups: Resolver<
           ...prevLinkGroups.slice(0, existingGroupIndex),
           {
             ...prevLinkGroups[existingGroupIndex],
-            links: [...prevLinkGroups[existingGroupIndex].links, currentLink],
+            links: [...prevLinkGroups[existingGroupIndex].links, currentLink.toUnresolvedGQLLink()],
           },
           ...prevLinkGroups.slice(existingGroupIndex + 1),
         ];
