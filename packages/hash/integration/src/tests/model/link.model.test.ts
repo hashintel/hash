@@ -45,6 +45,12 @@ beforeAll(async () => {
 });
 
 describe("Link model class ", () => {
+  it("static isPathValid method correctly validates JSON path correctly", () => {
+    expect(Link.isPathValid("$.this[0].path['should'].be[\"valid\"]")).toBe(true);
+    expect(Link.isPathValid("thispathisn'tvalid")).toBe(false);
+    expect(Link.isPathValid("$.this.is.not.valid.")).toBe(false);
+  });
+
   it("static create method can create a link", async () => {
     const accountId = existingUser.accountId;
     const createdById = existingUser.entityId;

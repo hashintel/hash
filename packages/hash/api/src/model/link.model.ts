@@ -1,5 +1,12 @@
+import jp from "jsonpath";
+import { UserInputError } from "apollo-server-errors";
 import { DBClient } from "../db";
 import { Entity, Link } from ".";
+import { Link as GQLLink } from "../graphql/apiTypes.gen";
+
+export type GQLLinkExternalResolvers = "__typename";
+
+export type UnresolvedGQLLink = Omit<GQLLink, GQLLinkExternalResolvers>;
 
 type CreateLinkArgs = {
   path: string;
@@ -71,6 +78,21 @@ class __Link {
     }
     this.createdAt = createdAt;
   }
+
+  static isPathValid = (path: string): boolean => {
+    try {
+      jp.parse(path);
+    } catch {
+      return false;
+    }
+    return true;
+  };
+
+  static validatePath = (path: string) => {
+    if (!Link.isPathValid(path)) {
+      throw new UserInputError(`"${path}" is not a valid JSON path"`);
+    }
+  };
 
   static create =
     (client: DBClient) =>
@@ -149,6 +171,16 @@ class __Link {
       this.destination || (await this.fetchDestination(client));
     return this.destination;
   };
+
+  toUnresolvedGQLLink = (): UnresolvedGQLLink => ({
+    id: this.linkId,
+    sourceAccountId: this.srcAccountId,
+    sourceEntityId: this.srcEntityId,
+    destinationAccountId: this.dstAccountId,
+    destinationEntityId: this.dstEntityId,
+    destinationEntityVersionId: this.dstEntityVersionId,
+    path: this.path,
+  });
 }
 
 export default __Link;
