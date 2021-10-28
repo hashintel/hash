@@ -44,8 +44,11 @@ export type BlockMeta = Pick<Block, "componentMetadata" | "componentSchema">;
  */
 const blockCache = new Map<string, Promise<BlockMeta>>();
 
+/** @todo don't special-case @hash's blocks */
 const toDisplayName = (name = "Unnamed") =>
-  name.substring("@hashintel/block-".length);
+  name.startsWith("@hashintel/block-")
+    ? name.substring("@hashintel/block-".length)
+    : name.split("/").pop()!;
 
 /**
  * transform mere options into a useable block configuration
