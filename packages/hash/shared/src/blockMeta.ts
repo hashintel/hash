@@ -50,6 +50,9 @@ const toDisplayName = (name = "Unnamed") =>
     ? name.substring("@hashintel/block-".length)
     : name.split("/").pop()!;
 
+export const componentIdToUrl = (componentId: string) =>
+  ((blockPaths as any)[componentId] as string | undefined) ?? componentId;
+
 /**
  * transform mere options into a useable block configuration
  */
@@ -64,25 +67,20 @@ const toBlockConfig = (
     properties: {},
   };
 
-  const variants = options.variants
-    ? options.variants.map((variant) =>
-        Object.assign({}, defaultVariant, variant)
-      )
-    : [defaultVariant];
-
-  // make the icon url absolute or use a relative fallback
   const baseUrl = componentIdToUrl(componentId);
-  variants.forEach((variant) => {
-    variant.icon = variant.icon
-      ? [baseUrl, variant.icon].join("/")
-      : "/format-font.svg";
-  });
+
+  const variants = (options.variants ?? [{}])
+    .map((variant) => ({ ...defaultVariant, ...variant }))
+    .map((variant) => ({
+      ...variant,
+      // make the icon url absolute or use a relative fallback
+      icon: variant.icon
+        ? [baseUrl, variant.icon].join("/")
+        : "/format-font.svg",
+    }));
 
   return { ...options, componentId, variants };
 };
-
-export const componentIdToUrl = (componentId: string) =>
-  ((blockPaths as any)[componentId] as string | undefined) ?? componentId;
 
 // @todo deal with errors, loading, abort etc.
 export const fetchBlockMeta = async (
