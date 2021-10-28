@@ -10,7 +10,8 @@
     "packages/hash/integration",
     "packages/hash/prettier-config",
     "packages/hash/realtime",
-    "packages/hash/shared"
+    "packages/hash/shared",
+    "packages/hash/search-loader"
   ],
   "scripts": {
     "// 01": "",
@@ -22,6 +23,7 @@
     "ws:hash-shared": "yarn workspace @hashintel/hash-shared",
     "ws:hash-realtime": "yarn workspace @hashintel/hash-realtime",
     "ws:hash-backend-utils": "yarn workspace @hashintel/hash-backend-utils",
+    "ws:hash-search-loader": "yarn workspace @hashintel/hash-search-loader",
     "// 03": "",
     "// ---------------Install & serve ---------------": "",
     "// 04": "",

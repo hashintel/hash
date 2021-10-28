@@ -33,3 +33,9 @@ realtime:
   - packages/hash/realtime/.*
   - packages/hash/realtime/**/*
   - packages/hash/realtime/**/.*
+
+search-loader:
+  - packages/hash/search-loader/*
+  - packages/hash/search-loader/.*
+  - packages/hash/search-loader/**/*
+  - packages/hash/search-loader/**/.*
