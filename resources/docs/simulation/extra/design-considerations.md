@@ -9,7 +9,7 @@ description: Important considerations to keep in mind when building your simulat
 
 ## Actor Model
 
-HASH is designed around an [actor oriented programming model](https://en.wikipedia.org/wiki/Actor_model). Each agent in a simulation is an actor with its own private state. The only way one actor affects another actor is through sending messages. 
+HASH is designed around an [actor oriented programming model](https://hash.ai/glossary/actor-model#What-is-actor-based-simulation?). Each agent in a simulation is an actor with its own private state. The only way one actor affects another actor is through sending messages. 
 
 This is key to handling the computational complexity of large simulations as it removes the need for lock-based synchronization and it makes designing simulations easier. You can trust that an agent's state will only be changed by that agent, so you can cleanly separate the input and outputs of an agent - its message handling - from the agents internal behaviors. 
 
