@@ -3,7 +3,7 @@ import { useApolloClient } from "@apollo/client";
 
 import {
   BlockProtocolAggregateFn,
-  BlockProtocolAggregatePayload,
+  BlockProtocolAggregateOperationOutput,
 } from "@hashintel/block-protocol";
 import { aggregateEntity } from "@hashintel/hash-shared/queries/entity.queries";
 import { useCallback, useState } from "react";
@@ -18,7 +18,7 @@ export const useBlockProtocolAggregate = (): {
   const client = useApolloClient();
 
   const aggregate: BlockProtocolAggregateFn = useCallback(
-    async (action: BlockProtocolAggregatePayload) => {
+    async (action) => {
       try {
         /**
          * Using client.query since useLazyQuery does not return anything
@@ -33,9 +33,9 @@ export const useBlockProtocolAggregate = (): {
           query: aggregateEntity,
           variables: {
             operation: action.operation,
-            entityTypeId: action.entityTypeId,
+            entityTypeId: action.entityTypeId!,
             entityTypeVersionId: action.entityTypeVersionId,
-            accountId: action.accountId,
+            accountId: action.accountId!,
           },
         });
         let { operation, results } = result.data.aggregateEntity;
@@ -45,7 +45,7 @@ export const useBlockProtocolAggregate = (): {
         return {
           operation,
           results: newResults,
-        };
+        } as BlockProtocolAggregateOperationOutput;
       } catch (err) {
         throw err;
       }

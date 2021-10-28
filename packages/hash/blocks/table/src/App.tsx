@@ -1,9 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { TableOptions, useSortBy, useTable } from "react-table";
-import {
-  BlockProtocolAggregateFn,
-  BlockProtocolLinkedDataDefinition,
-} from "@hashintel/block-protocol";
+import { BlockProtocolLinkedDataDefinition } from "@hashintel/block-protocol";
 import { BlockComponent } from "@hashintel/block-protocol/react";
 import { tw } from "twind";
 import { EditableCell } from "./components/EditableCell";
@@ -36,33 +33,6 @@ export const App: BlockComponent<AppProps> = ({
   useEffect(() => {
     setTableData(data);
   }, [data]);
-
-  // useEffect(() => {
-  //   if (
-  //     !data.__linkedData?.entityTypeId ||
-  //     !data.__linkedData?.aggregate ||
-  //     !aggregateFn
-  //   )
-  //     return;
-
-  //   if (data.__linkedData.aggregate.pageCount) {
-  //     data.__linkedData.aggregate.itemsPerPage =
-  //       data.__linkedData.aggregate.pageCount;
-
-  //     delete data.__linkedData.aggregate.pageCount;
-  //   }
-
-  //   aggregateFn({
-  //     entityTypeId: data.__linkedData.entityTypeId,
-  //     operation: data.__linkedData.aggregate,
-  //     accountId: "",
-  //   }).then(({ results, operation }: any) =>
-  //     setTableData({
-  //       results,
-  //       operation,
-  //     })
-  //   );
-  // }, [data.__linkedData]);
 
   const columns = useMemo(
     () => makeColumns(tableData.data?.[0] || {}, ""),
@@ -108,14 +78,54 @@ export const App: BlockComponent<AppProps> = ({
     useSortBy
   );
 
-  const handleUpdate = useCallback(
+  /**
+   * At the moment we only call this for page changes
+   */
+  const handleAggregate = useCallback(
     ({
-      operation,
-      multiFilter,
-      multiSort,
-      itemsPerPage,
       pageNumber,
-    }: AggregateArgs) => {
+      itemsPerPage,
+    }: {
+      pageNumber: number;
+      itemsPerPage?: number;
+    }) => {
+      const linkedData = { ...tableData.__linkedData };
+      if (!aggregateFn || !linkedData?.aggregate || !linkedData.entityTypeId) {
+        return;
+      }
+
+      const { itemsPerPage: prevPerPage, pageNumber: prevPage } =
+        linkedData.aggregate;
+      linkedData.aggregate.itemsPerPage = itemsPerPage || prevPerPage;
+      linkedData.aggregate.pageNumber = pageNumber || prevPage;
+
+      /** remove pageCount since it's not required in aggregate resolver */
+      if (linkedData.aggregate.pageCount) {
+        delete linkedData.aggregate.pageCount;
+      }
+
+      aggregateFn({
+        entityTypeId: linkedData.entityTypeId,
+        operation: linkedData.aggregate,
+      })
+        .then(({ operation, results }) => {
+          setTableData({
+            data: results as AppProps["data"]["data"],
+            __linkedData: {
+              ...tableData.__linkedData,
+              aggregate: operation,
+            },
+          });
+        })
+        .catch((_) => {
+          // @todo properly handle error
+        });
+    },
+    [aggregateFn, tableData.__linkedData]
+  );
+
+  const handleUpdate = useCallback(
+    ({ operation, multiFilter, multiSort, itemsPerPage }: AggregateArgs) => {
       if (!update || !tableData.__linkedData) return;
       const newLinkedData = { ...tableData.__linkedData };
       const newState = { hiddenColumns: initialState?.hiddenColumns };
@@ -136,39 +146,17 @@ export const App: BlockComponent<AppProps> = ({
         newLinkedData.aggregate.pageNumber = 1;
       }
 
-      if (operation === "changePage" && (itemsPerPage || pageNumber)) {
-        const { itemsPerPage: previtemsPerPage, pageNumber: prevPage } =
-          newLinkedData.aggregate;
-        newLinkedData.aggregate.itemsPerPage = itemsPerPage || previtemsPerPage;
-        newLinkedData.aggregate.pageNumber = pageNumber || prevPage;
+      if (operation === "changePage" && itemsPerPage) {
+        const { itemsPerPage: prevItemsPerPage } = newLinkedData.aggregate;
+        newLinkedData.aggregate.itemsPerPage = itemsPerPage || prevItemsPerPage;
+      }
 
-        // not sure if this is necessary
-        if (newLinkedData.aggregate.pageCount) {
-          delete newLinkedData.aggregate.pageCount;
-        }
-
-        if (
-          newLinkedData.entityTypeId &&
-          newLinkedData.aggregate &&
-          pageNumber != 1 &&
-          aggregateFn
-        ) {
-          aggregateFn({
-            entityTypeId: newLinkedData.entityTypeId,
-            operation: newLinkedData.aggregate,
-            accountId: "",
-          }).then(({ operation, results }: any) => {
-            console.log("operation ==> ", operation);
-            setTableData({
-              data: results,
-              __linkedData: {
-                ...newLinkedData,
-                aggregate: operation,
-              },
-            } as AppProps["data"]);
-          });
-        }
-        return;
+      if (
+        newLinkedData.aggregate.pageCount ||
+        newLinkedData.aggregate.pageNumber
+      ) {
+        delete newLinkedData.aggregate.pageCount;
+        delete newLinkedData.aggregate.pageNumber;
       }
 
       void update<{
@@ -187,7 +175,7 @@ export const App: BlockComponent<AppProps> = ({
     [update, data, entityId, initialState]
   );
 
-  const updateRemoteHiddenState = (hiddenColumns: string[]) => {
+  const updateRemoteHiddenColumns = (hiddenColumns: string[]) => {
     if (!update) return;
 
     const newState = { ...initialState, hiddenColumns };
@@ -207,9 +195,9 @@ export const App: BlockComponent<AppProps> = ({
 
   const setPageIndex = useCallback(
     (index: number) => {
-      handleUpdate({ operation: "changePage", pageNumber: index });
+      handleAggregate({ pageNumber: index });
     },
-    [handleUpdate]
+    [handleAggregate]
   );
 
   const setPageSize = useCallback(
@@ -219,6 +207,9 @@ export const App: BlockComponent<AppProps> = ({
     [handleUpdate]
   );
 
+  /**
+   * handles which columns should be visible in the table
+   */
   const handleToggleColumn = (columnId: string, showColumn?: boolean) => {
     if (!state.hiddenColumns) return;
     let newColumns: string[] = [];
@@ -232,7 +223,7 @@ export const App: BlockComponent<AppProps> = ({
     setHiddenColumns(newColumns);
 
     // @todo throttle this call
-    updateRemoteHiddenState(newColumns);
+    updateRemoteHiddenColumns(newColumns);
   };
 
   /** @todo Fix keys in iterators below to not use the index */
