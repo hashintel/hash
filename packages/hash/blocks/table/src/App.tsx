@@ -10,6 +10,7 @@ import { identityEntityAndProperty } from "./lib/identifyEntity";
 
 import { Pagination } from "./components/Pagination";
 import { Header, AggregateArgs } from "./components/Header";
+import { omitTypenameDeep } from "./lib/omitTypenameDeep";
 
 type AppProps = {
   data: {
@@ -89,7 +90,8 @@ export const App: BlockComponent<AppProps> = ({
       pageNumber: number;
       itemsPerPage?: number;
     }) => {
-      const linkedData = { ...tableData.__linkedData };
+      const linkedData = omitTypenameDeep(tableData.__linkedData);
+
       if (!aggregateFn || !linkedData?.aggregate || !linkedData.entityTypeId) {
         return;
       }
@@ -127,7 +129,8 @@ export const App: BlockComponent<AppProps> = ({
   const handleUpdate = useCallback(
     ({ operation, multiFilter, multiSort, itemsPerPage }: AggregateArgs) => {
       if (!update || !tableData.__linkedData) return;
-      const newLinkedData = { ...tableData.__linkedData };
+      
+      const newLinkedData = omitTypenameDeep(tableData.__linkedData);
       const newState = { hiddenColumns: initialState?.hiddenColumns };
 
       if (!newLinkedData.aggregate) {
@@ -136,17 +139,13 @@ export const App: BlockComponent<AppProps> = ({
 
       if (operation === "sort" && multiSort) {
         newLinkedData.aggregate.multiSort = multiSort;
-        // if sort or filter fields changed, reset page to 1
-        newLinkedData.aggregate.pageNumber = 1;
       }
 
       if (operation === "filter" && multiFilter) {
         newLinkedData.aggregate.multiFilter = multiFilter;
-        // if sort or filter fields changed, reset page to 1
-        newLinkedData.aggregate.pageNumber = 1;
       }
 
-      if (operation === "changePage" && itemsPerPage) {
+      if (operation === "changePageSize" && itemsPerPage) {
         const { itemsPerPage: prevItemsPerPage } = newLinkedData.aggregate;
         newLinkedData.aggregate.itemsPerPage = itemsPerPage || prevItemsPerPage;
       }
@@ -202,7 +201,7 @@ export const App: BlockComponent<AppProps> = ({
 
   const setPageSize = useCallback(
     (size: number) => {
-      handleUpdate({ operation: "changePage", itemsPerPage: size });
+      handleUpdate({ operation: "changePageSize", itemsPerPage: size });
     },
     [handleUpdate]
   );

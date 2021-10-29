@@ -13,6 +13,7 @@ import {
   BlockProtocolAggregateFn,
   BlockProtocolAggregateOperationOutput,
 } from "@hashintel/block-protocol";
+import { cloneDeep } from "lodash";
 import Component from "./index";
 import { schemas } from "./schemas";
 import {
@@ -130,7 +131,7 @@ const useMockData = () => {
         initialState?: Record<string, any>;
       }>[]
     ) => {
-      const newTableData = { ...tableData };
+      const newTableData = cloneDeep(tableData);
 
       actions.forEach((action) => {
         if (action.data.data?.__linkedData) {
