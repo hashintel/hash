@@ -188,7 +188,6 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       scrollTimerRef.current = setTimeout(() => {
         setScrollingComplete(true);
         if (scrollIntervalRef.current) {
-          console.log("clearing intervals");
           clearInterval(scrollIntervalRef.current);
           document.removeEventListener("scroll", scrollCheck);
         }
