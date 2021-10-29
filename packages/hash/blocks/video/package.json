@@ -8,7 +8,7 @@
   "license": "MIT",
   "main": "src/index.ts",
   "blockprotocol": {
-    "displayName": "Image",
+    "displayName": "Video",
     "icon": "public/play-box-outline.svg"
   },
   "prettier": "@hashintel/prettier-config",
