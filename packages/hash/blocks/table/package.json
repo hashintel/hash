@@ -22,7 +22,7 @@
     "type-schema": "node schemaGenerator",
     "webpack-dev-server": "cross-env NODE_ENV=development webpack-dev-server -d --port 9090 --config webpack-dev-server.config.js --open",
     "dev": "yarn start",
-    "start": "concurrently -n webpack,webpack-dev-server -c green,cyan \"yarn build:dev -- --watch --verbose\" \"yarn webpack-dev-server\"",
+    "start": "concurrently -n webpack,webpack-dev-server,schema -c green,cyan,orange \"yarn build:dev -- --watch --verbose\" \"yarn webpack-dev-server\" \"yarn schema\"",
     "clean": "rimraf ./dist/",
     "serve": "serve -C -l 62678 ./dist/"
   },

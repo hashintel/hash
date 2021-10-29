@@ -4,10 +4,7 @@ import { tw } from "twind";
 
 import { useRouter } from "next/router";
 
-import {
-  BlockProtocolCreateFn,
-  BlockProtocolAggregateFn,
-} from "@hashintel/block-protocol";
+import { BlockProtocolCreateFn } from "@hashintel/block-protocol";
 import styles from "../../index.module.scss";
 import { PageSidebar } from "../../../components/layout/PageSidebar/PageSidebar";
 import { EntityEditor } from "../../../components/EntityEditor/EntityEditor";
@@ -31,19 +28,10 @@ const NewEntity: VoidFunctionComponent = () => {
     entityTypeId
   );
 
-  const { create } = useBlockProtocolCreate();
-  const { aggregate } = useBlockProtocolAggregate();
+  const { create } = useBlockProtocolCreate(accountId);
+  const { aggregate } = useBlockProtocolAggregate(accountId);
 
-  const aggregateFn: BlockProtocolAggregateFn = (args) =>
-    aggregate({
-      ...args,
-      accountId,
-    });
-
-  const createFn: BlockProtocolCreateFn = (args) => {
-    for (const action of args) {
-      action.accountId = accountId;
-    }
+  const createAndNavigateToFirstEntity: BlockProtocolCreateFn = (args) => {
     return create(args)
       .then((res) => {
         void router.push(
@@ -112,8 +100,8 @@ const NewEntity: VoidFunctionComponent = () => {
         <div>
           {selectedType && (
             <EntityEditor
-              aggregate={aggregateFn}
-              create={createFn}
+              aggregate={aggregate}
+              create={createAndNavigateToFirstEntity}
               entityTypeId={selectedTypeId!}
               schema={selectedType.properties}
             />

@@ -1,8 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { TableOptions, useSortBy, useTable } from "react-table";
-import { BlockProtocolLinkedDataDefinition } from "@hashintel/block-protocol";
+import {
+  BlockProtocolEntityType,
+  BlockProtocolLinkedDataDefinition,
+} from "@hashintel/block-protocol";
 import { BlockComponent } from "@hashintel/block-protocol/react";
 import { tw } from "twind";
+import { orderBy } from "lodash";
 import { EditableCell } from "./components/EditableCell";
 import { makeColumns } from "./lib/columns";
 import { getSchemaPropertyDefinition } from "./lib/getSchemaProperty";
@@ -10,6 +14,7 @@ import { identityEntityAndProperty } from "./lib/identifyEntity";
 
 import { Pagination } from "./components/Pagination";
 import { Header, AggregateArgs } from "./components/Header";
+import { EntityTypeDropdown } from "./components/EntityTypeDropdown";
 import { omitTypenameDeep } from "./lib/omitTypenameDeep";
 
 type AppProps = {
@@ -28,6 +33,7 @@ export const App: BlockComponent<AppProps> = ({
   update,
   entityId,
   aggregate: aggregateFn,
+  aggregateEntityTypes,
 }) => {
   const [tableData, setTableData] = useState<AppProps["data"]>(data);
 
@@ -225,6 +231,61 @@ export const App: BlockComponent<AppProps> = ({
     updateRemoteHiddenColumns(newColumns);
   };
 
+  const [entityTypes, setEntityTypes] = useState<BlockProtocolEntityType[]>();
+
+  useEffect(() => {
+    void aggregateEntityTypes?.({
+      includeOtherTypesInUse: true,
+    }).then(({ results }) => {
+      setEntityTypes(orderBy(results, (entityType) => entityType.title));
+    });
+  }, [aggregateEntityTypes]);
+
+  const handleEntityTypeChange = useCallback(
+    (entityTypeId: string | undefined) => {
+      void update?.([
+        {
+          data: {
+            data: {
+              __linkedData: entityTypeId
+                ? {
+                    entityTypeId,
+                    aggregate: {
+                      // There is scope to include other options if entity properties overlap
+                      itemsPerPage: data.__linkedData?.aggregate?.itemsPerPage,
+                    },
+                  }
+                : undefined,
+            },
+          },
+          entityId,
+        },
+      ]);
+    },
+    [update, data.__linkedData?.aggregate?.itemsPerPage, entityId]
+  );
+
+  const entityTypeDropdown = entityTypes ? (
+    <EntityTypeDropdown
+      options={entityTypes}
+      value={data?.__linkedData?.entityTypeId}
+      onChange={handleEntityTypeChange}
+    />
+  ) : null;
+
+  if (!data.__linkedData?.entityTypeId) {
+    if (!aggregateEntityTypes) {
+      return (
+        <div>
+          Table cannot be shown because entity type is not selected and the list
+          of entity types is unavailable
+        </div>
+      );
+    }
+
+    return <div>{entityTypeDropdown}</div>;
+  }
+
   /** @todo Fix keys in iterators below to not use the index */
   return (
     <div>
@@ -233,6 +294,7 @@ export const App: BlockComponent<AppProps> = ({
         toggleHideColumn={handleToggleColumn}
         onAggregate={handleUpdate}
         aggregateOptions={aggregateOptions}
+        entityTypeDropdown={entityTypeDropdown}
       />
       <div className={tw`max-w-full`}>
         <table

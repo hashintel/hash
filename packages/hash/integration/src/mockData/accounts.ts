@@ -20,6 +20,11 @@ export const createUsers =
         preferredName: "Akash",
       },
       {
+        email: "ak@hash.ai",
+        shortname: "kachkaev",
+        preferredName: "Alex",
+      },
+      {
         email: "c@hash.ai",
         shortname: "ciaran",
         preferredName: "Ciaran",

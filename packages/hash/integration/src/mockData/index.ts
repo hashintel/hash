@@ -153,6 +153,17 @@ void (async () => {
         },
       ],
       [
+        "header2text",
+        {
+          systemTypeName: SystemTypeName.Text,
+          accountId: user.accountId,
+          createdById: user.entityId,
+          properties: {
+            texts: [{ text: "Two synced table blocks", bold: true }],
+          },
+        },
+      ],
+      [
         "divider1",
         {
           entityTypeId: newTypeIds.Divider,
@@ -283,6 +294,23 @@ void (async () => {
               __linkedData: {
                 entityTypeId: SystemTypeName.Text,
                 entityId: results.get("header1text")!.entityId,
+              },
+            },
+          },
+          entityTypeId: newTypeIds.Header,
+          accountId: user.accountId,
+          createdById: user.entityId,
+        },
+      ],
+      [
+        "header2",
+        {
+          properties: {
+            level: 2,
+            text: {
+              __linkedData: {
+                entityTypeId: SystemTypeName.Text,
+                entityId: results.get("header2text")!.entityId,
               },
             },
           },
@@ -475,6 +503,17 @@ void (async () => {
                 },
               },
             },
+          },
+        },
+      ],
+      [
+        "t2",
+        {
+          entityTypeId: newTypeIds.Table,
+          accountId: user.accountId,
+          createdById: user.entityId,
+          properties: {
+            data: {},
           },
         },
       ],
@@ -692,6 +731,45 @@ void (async () => {
           systemTypeName: SystemTypeName.Block,
         },
       ],
+      [
+        "b17",
+        {
+          properties: {
+            componentId: "https://block.blockprotocol.org/header",
+            entityId: results.get("header2")!.entityId,
+            accountId: results.get("header2")!.accountId,
+          },
+          createdById: user.entityId,
+          accountId: hashOrg.accountId,
+          systemTypeName: SystemTypeName.Block,
+        },
+      ],
+      [
+        "b18",
+        {
+          properties: {
+            componentId: "https://block.blockprotocol.org/table",
+            entityId: results.get("t2")!.entityId,
+            accountId: results.get("t2")!.accountId,
+          },
+          createdById: user.entityId,
+          accountId: user.accountId,
+          systemTypeName: SystemTypeName.Block,
+        },
+      ],
+      [
+        "b19",
+        {
+          properties: {
+            componentId: "https://block.blockprotocol.org/table",
+            entityId: results.get("t2")!.entityId,
+            accountId: results.get("t2")!.accountId,
+          },
+          createdById: user.entityId,
+          accountId: user.accountId,
+          systemTypeName: SystemTypeName.Block,
+        },
+      ],
     ])
   );
 
@@ -733,6 +811,18 @@ void (async () => {
               {
                 entityId: results.get("b4")!.entityId,
                 accountId: results.get("b4")!.accountId,
+              },
+              {
+                entityId: results.get("b17")!.entityId,
+                accountId: results.get("b17")!.accountId,
+              },
+              {
+                entityId: results.get("b18")!.entityId,
+                accountId: results.get("b18")!.accountId,
+              },
+              {
+                entityId: results.get("b19")!.entityId,
+                accountId: results.get("b19")!.accountId,
               },
               {
                 entityId: results.get("b12")!.entityId,

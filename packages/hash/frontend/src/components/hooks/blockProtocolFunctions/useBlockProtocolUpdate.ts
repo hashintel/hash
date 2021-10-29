@@ -11,7 +11,10 @@ import {
   UpdatePageMutationVariables,
 } from "../../../graphql/apiTypes.gen";
 
-export const useBlockProtocolUpdate = (): {
+export const useBlockProtocolUpdate = (
+  /** Providing accountId here saves blocks from having to know it */
+  accountId: string
+): {
   update: BlockProtocolUpdateFn;
   updateLoading: boolean;
   updateError: any;
@@ -49,7 +52,7 @@ export const useBlockProtocolUpdate = (): {
             variables: {
               entityId: action.entityId,
               properties: action.data,
-              accountId: action.accountId!,
+              accountId,
             },
           }).then(
             ({ data }) =>
@@ -58,7 +61,7 @@ export const useBlockProtocolUpdate = (): {
           )
         )
       ),
-    [updateEntityFn, updatePageFn]
+    [accountId, updateEntityFn, updatePageFn]
   );
 
   const updateLoading = updateEntityLoading || updatePageLoading;

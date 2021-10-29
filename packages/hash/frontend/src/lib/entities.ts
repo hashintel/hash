@@ -59,7 +59,7 @@ const cloneEntityWithPropertiesAtRoot = (
  * Clones an entity tree, and for each entity within it,
  * moves the contents of its 'properties' to the root of that entity.
  *
- * Deletes existing root fields unless they relate to the entiy's id or type.
+ * Deletes existing root fields unless they relate to the entity's id or type.
  * To preserve all existing root fields, pass 'false' as the second argument.
  * @param entity The entity to clone
  * @param preserveExtraMetadata Whether to keep non-id and non-type metadata.
