@@ -247,11 +247,18 @@ const SignupPage: NextPage = () => {
     UpdateUserMutationVariables
   >(updateUserMutation, {
     onCompleted: async (res) => {
-      // for normal flow, accountUsageType is null. Direct user to accountUsage setup
-      // @todo update user cache with updateUser data instead of refetching here
+      // For normal flow, accountUsageType is null. Direct user to accountUsage setup
       await refetchUser();
 
       if (res.updateUser.accountSignupComplete) {
+        // If this mutation was called during the invite flow, do nothing
+        // Next steps (redirecting to homepage ) is handled in `joinOrg`'s onCompleted
+        if (invitationInfo) {
+          return;
+        }
+
+        // If this mutation was called in normal flow, and user hasn't
+        // set how they are using HASH, render AccountUsage screen
         if (!accountUsageType.current) {
           updateState({
             activeScreen: Screen.AccountUsage,
@@ -260,6 +267,8 @@ const SignupPage: NextPage = () => {
           return;
         }
 
+        // If the mutation was called in the normal flow, and the user
+        // is using HASH with a team, render OrgCreate screen
         if (accountUsageType.current === WayToUseHash.WithATeam) {
           updateState({
             activeScreen: Screen.OrgCreate,

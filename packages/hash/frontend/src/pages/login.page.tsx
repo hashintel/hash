@@ -28,7 +28,6 @@ const LoginPage: NextPage = () => {
 
             void router.push(`/${accountId}`);
           }
-          // Otherwise the user will be redirected to the /signup page in `src/pages/_app`
         });
       }}
     />

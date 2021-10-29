@@ -2,7 +2,7 @@ import { NextPage } from "next";
 import { tw } from "twind";
 import { useRouter } from "next/router";
 import { useMutation } from "@apollo/client";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useUser } from "../components/hooks/useUser";
 
 import { AuthLayout } from "../components/layout/PageLayout/AuthLayout";
@@ -36,6 +36,10 @@ const InvitePage: NextPage = () => {
   const { invitationInfo, invitationInfoLoading, invitationInfoError } =
     useGetInvitationInfo();
 
+  const navigateToHome = useCallback(() => {
+    void router.push("/");
+  }, [router]);
+
   useEffect(() => {
     if (typeof window === "undefined" || !router.isReady) {
       return;
@@ -51,7 +55,7 @@ const InvitePage: NextPage = () => {
       !isParsedInvitationLinkQuery(router.query) &&
       !isParsedInvitationEmailQuery(router.query)
     ) {
-      void router.push("/");
+      navigateToHome();
     } else if (!user && !fetchingUser) {
       /**
        * handle redirects when user isn't authenticated
@@ -69,11 +73,7 @@ const InvitePage: NextPage = () => {
         });
       }
     }
-  }, [router, user, fetchingUser]);
-
-  const navigateToHome = () => {
-    void router.push("/");
-  };
+  }, [router, user, fetchingUser, navigateToHome]);
 
   const [joinOrg, { loading: joinOrgLoading }] = useMutation<
     JoinOrgMutation,
@@ -88,7 +88,7 @@ const InvitePage: NextPage = () => {
           code?: keyof typeof INVITE_ERROR_CODES;
         };
         if (code === "ALREADY_USED") {
-          void router.push("/");
+          navigateToHome();
         } else {
           setErrorMessage(message);
         }
@@ -134,10 +134,7 @@ const InvitePage: NextPage = () => {
   }, [invitationInfo]);
 
   return (
-    <AuthLayout
-      loading={invitationInfoLoading || initialLoading}
-      onClose={navigateToHome}
-    >
+    <AuthLayout loading={invitationInfoLoading || initialLoading}>
       <div className={tw`w-9/12 max-w-3xl`}>
         <Logo className={tw`mb-16`} />
         <div className={tw`mb-9`}>
@@ -152,7 +149,7 @@ const InvitePage: NextPage = () => {
                 options={ORG_ROLES}
                 onChangeValue={setResponsibility}
                 value={responsibility}
-                placeholder={"Current Position"}
+                placeholder="Current Position"
                 required
               />
               {errorMessage || invitationInfoError ? (

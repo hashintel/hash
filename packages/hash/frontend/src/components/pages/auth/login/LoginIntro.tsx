@@ -12,6 +12,7 @@ import Logo from "../../../../assets/svg/logo.svg";
 import { IconHash } from "../../../Icons/IconHash";
 import { IconKeyboardReturn } from "../../../Icons/IconKeyboardReturn";
 import { InviteHeader } from "../InviteHeader";
+import { InvitationInfo } from "../utils";
 
 // const options = [
 //   {
@@ -32,11 +33,8 @@ type LoginIntroProps = {
   requestLoginCode: (emailOrShortname: string) => void;
   errorMessage?: string;
   loading: boolean;
-  invitationInfo: {
-    orgName: string;
-    orgEntityId: string;
-    inviterPreferredName?: string;
-  } | null;
+  invitationInfo: InvitationInfo | null;
+  defaultLoginIdentifier: string | undefined;
 };
 
 export const LoginIntro: VoidFunctionComponent<LoginIntroProps> = ({
@@ -44,6 +42,7 @@ export const LoginIntro: VoidFunctionComponent<LoginIntroProps> = ({
   errorMessage,
   loading,
   invitationInfo,
+  defaultLoginIdentifier,
 }) => {
   const router = useRouter();
   const [emailOrShortname, setEmailOrShortname] = useState<string>("");
@@ -53,30 +52,14 @@ export const LoginIntro: VoidFunctionComponent<LoginIntroProps> = ({
     inputRef.current?.select();
   }, []);
 
-  useEffect(() => {
-    const { query } = router;
-    const { email, shortname, ...remainingQuery } = query;
-    const identifier = email || shortname;
-
-    if (typeof identifier === "string") {
-      setEmailOrShortname(identifier);
-      router
-        .replace(
-          { pathname: router.pathname, query: remainingQuery },
-          undefined,
-          {
-            shallow: true,
-          }
-        )
-        .then(() => requestLoginCode(identifier))
-        .catch(() => {});
-    }
-  }, [router, requestLoginCode]);
-
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     void requestLoginCode(emailOrShortname);
   };
+
+  if (defaultLoginIdentifier && !emailOrShortname) {
+    setEmailOrShortname(defaultLoginIdentifier);
+  }
 
   return (
     <div className={tw`w-full flex flex-col items-center`}>

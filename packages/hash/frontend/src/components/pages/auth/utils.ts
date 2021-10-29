@@ -58,7 +58,7 @@ export const isParsedInvitationEmailQuery = (
 ): query is ParsedInviteEmailQuery =>
   typeof query.orgEntityId === "string" &&
   typeof query.invitationEmailToken === "string" &&
-  typeof query.email == "string" &&
+  typeof query.email === "string" &&
   !!query.invitationEmailToken &&
   !!query.email;
 

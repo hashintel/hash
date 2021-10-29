@@ -1,4 +1,10 @@
-import React, { VoidFunctionComponent, useEffect, useReducer } from "react";
+import React, {
+  VoidFunctionComponent,
+  useEffect,
+  useReducer,
+  useMemo,
+  useCallback,
+} from "react";
 import { useRouter } from "next/router";
 
 import { ApolloError, useMutation } from "@apollo/client";
@@ -27,7 +33,6 @@ import { useGetInvitationInfo } from "../../hooks/useGetInvitationInfo";
 enum Screen {
   Intro,
   VerifyCode,
-  AccountSetup,
 }
 
 type LoginModalProps = {
@@ -181,15 +186,41 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
     }
   }, [router, loginWithLoginCode]);
 
-  const requestLoginCode = (emailOrShortname: string) => {
-    dispatch({
-      type: "UPDATE_STATE",
-      payload: {
-        loginIdentifier: emailOrShortname,
-      },
-    });
-    void sendLoginCodeFn({ variables: { emailOrShortname } });
-  };
+  const requestLoginCode = useCallback(
+    (emailOrShortname: string) => {
+      dispatch({
+        type: "UPDATE_STATE",
+        payload: {
+          loginIdentifier: emailOrShortname,
+        },
+      });
+      void sendLoginCodeFn({ variables: { emailOrShortname } });
+    },
+    [sendLoginCodeFn]
+  );
+
+  const defaultLoginIdentifier = useMemo(() => {
+    const { email, shortname } = router.query;
+    const identifier = email || shortname;
+
+    if (typeof identifier === "string") {
+      return identifier;
+    }
+  }, [router]);
+
+  useEffect(() => {
+    if (!defaultLoginIdentifier) return;
+
+    if (activeScreen === Screen.Intro) {
+      requestLoginCode(defaultLoginIdentifier);
+    }
+  }, [
+    defaultLoginIdentifier,
+    invitationInfo,
+    router,
+    activeScreen,
+    requestLoginCode,
+  ]);
 
   const login = (providedCode: string, withSynthenticLoading?: boolean) => {
     if (!verificationCodeMetadata) return;
@@ -251,6 +282,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
             loading={sendLoginCodeLoading}
             errorMessage={errorMessage}
             invitationInfo={invitationInfo}
+            defaultLoginIdentifier={defaultLoginIdentifier}
           />
         );
     }
