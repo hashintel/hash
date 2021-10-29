@@ -8,6 +8,7 @@ import { Schema } from "prosemirror-model";
 import { EditorView } from "prosemirror-view";
 import "prosemirror-view/style/prosemirror.css";
 import React, {
+  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -173,13 +174,29 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   }, [contents]);
 
   const [scrollingComplete, setScrollingComplete] = useState(false);
+  const scrollIntervalRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const scrollTimerRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   useEffect(() => {
-    let scrollInterval: NodeJS.Timeout | undefined = undefined;
     const routeHash = router.asPath.split("#")[1];
 
+    const scrollCheck = () => {
+      if (scrollTimerRef.current) {
+        clearTimeout(scrollTimerRef.current);
+      }
+
+      scrollTimerRef.current = setTimeout(() => {
+        setScrollingComplete(true);
+        if (scrollIntervalRef.current) {
+          console.log("clearing intervals");
+          clearInterval(scrollIntervalRef.current);
+          document.removeEventListener("scroll", scrollCheck);
+        }
+      }, 300);
+    };
+
     if (contents?.length > 0 && routeHash && !scrollingComplete) {
-      scrollInterval = setInterval(() => {
+      scrollIntervalRef.current = setInterval(() => {
         const routeElement = document.getElementById(routeHash);
 
         if (routeElement) {
@@ -187,28 +204,17 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
             .getElementById(routeHash)
             ?.scrollIntoView({ behavior: "smooth" });
 
-
-          let timer: NodeJS.Timeout | undefined = undefined;
-
-          const scrollCheck = () => {
-            if (timer) {
-              clearTimeout(timer);
-            }
-
-            timer = setTimeout(() => {
-              if (scrollInterval) {
-                setScrollingComplete(true);
-
-                clearInterval(scrollInterval);
-                document.removeEventListener("scroll", scrollCheck);
-              }
-            }, 300);
-          };
-
           document.addEventListener("scroll", scrollCheck);
         }
       }, 100);
     }
+
+    return () => {
+      if (scrollIntervalRef.current) {
+        clearInterval(scrollIntervalRef.current);
+        document.removeEventListener("scroll", scrollCheck);
+      }
+    };
   });
 
   return (

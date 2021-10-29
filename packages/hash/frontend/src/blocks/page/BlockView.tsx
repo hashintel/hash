@@ -3,13 +3,7 @@ import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 import { Schema } from "prosemirror-model";
 import { NodeSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
-import React, {
-  createRef,
-  forwardRef,
-  ReactNode,
-  useEffect,
-  useState,
-} from "react";
+import React, { createRef, forwardRef, useEffect, useState } from "react";
 import { tw } from "twind";
 import { BlockSuggester } from "../../components/BlockSuggester/BlockSuggester";
 import DragVertical from "../../components/Icons/DragVertical";
@@ -76,7 +70,7 @@ export class BlockView implements NodeView<Schema> {
     public getPos: () => number,
     public renderPortal: RenderPortal
   ) {
-    const entityId = node.content.content[0].attrs.entityId;
+    const entityId = (node.content as any).content[0].attrs.entityId;
 
     this.dom = document.createElement("div");
     this.dom.id = entityId;

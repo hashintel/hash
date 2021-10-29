@@ -2,7 +2,7 @@ import { BlockVariant } from "@hashintel/block-protocol";
 import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useKey } from "rooks";
 import { tw } from "twind";
-import LinkIcon from '@mui/icons-material/Link';
+import LinkIcon from "@mui/icons-material/Link";
 
 import { BlockMetaContext } from "../../blocks/blockMeta";
 import { fuzzySearchBy } from "./fuzzySearchBy";
@@ -10,7 +10,7 @@ import { fuzzySearchBy } from "./fuzzySearchBy";
 interface BlockSuggesterProps {
   search?: string;
   onChange(variant: BlockVariant): void;
-  entityId: string;
+  entityId?: string;
 }
 
 /**
@@ -26,7 +26,7 @@ interface BlockSuggesterProps {
 export const BlockSuggester: React.VFC<BlockSuggesterProps> = ({
   search = "",
   onChange,
-  entityId
+  entityId,
 }) => {
   const blocksMeta = useContext(BlockMetaContext);
 
@@ -95,12 +95,15 @@ export const BlockSuggester: React.VFC<BlockSuggesterProps> = ({
           </div>
         </li>
       ))}
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */}
       <li
         className={tw`flex border border-gray-100 bg-gray-50 hover:bg-gray-100`}
         onClick={() => {
-          const url = new URL(location.href);
-          url.hash = entityId;
-          navigator.clipboard.writeText(url.toString());
+          const url = new URL(document.location.href);
+          if (entityId) {
+            url.hash = entityId;
+          }
+          void navigator.clipboard.writeText(url.toString());
         }}
       >
         <div className={tw`flex w-16 items-center justify-center`}>
