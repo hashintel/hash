@@ -221,11 +221,12 @@ export const entityTypedef = gql`
   input FilterOperationInput {
     field: String!
     value: String!
+    operator: String!
   }
 
   type AggregateOperation {
     entityTypeId: ID!
-    multiFilter: FilterOperation
+    multiFilter: MultiFilterOperation
     multiSort: [SortOperation!]!
     itemsPerPage: Int!
     pageNumber: Int!

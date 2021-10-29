@@ -9,7 +9,7 @@ import { FilterDetail } from "./FilterDetail";
 import { Menu } from "./Menu";
 
 export type AggregateArgs = {
-  operation: "filter" | "sort" | "changePage";
+  operation: "filter" | "sort" | "changePageSize";
 } & BlockProtocolAggregateOperationInput;
 
 type HeaderProps = {

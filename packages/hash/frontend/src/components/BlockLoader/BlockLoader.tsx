@@ -1,5 +1,8 @@
 import React, { useMemo, VoidFunctionComponent } from "react";
-import { BlockProtocolUpdatePayload } from "@hashintel/block-protocol";
+import {
+  BlockProtocolAggregatePayload,
+  BlockProtocolUpdatePayload,
+} from "@hashintel/block-protocol";
 
 import { useBlockProtocolUpdate } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdate";
 import { cloneEntityTreeWithPropertiesMovedUp } from "../../lib/entities";
@@ -7,6 +10,7 @@ import { fetchEmbedCode } from "./fetchEmbedCode";
 import { uploadFile } from "./uploadFile";
 import { BlockFramer } from "../sandbox/BlockFramer/BlockFramer";
 import { RemoteBlock } from "../RemoteBlock/RemoteBlock";
+import { useBlockProtocolAggregate } from "../hooks/blockProtocolFunctions/useBlockProtocolAggregate";
 
 type BlockLoaderProps = {
   shouldSandbox?: boolean;
@@ -21,6 +25,7 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   ...props
 }) => {
   const { update } = useBlockProtocolUpdate();
+  const { aggregate } = useBlockProtocolAggregate();
 
   const flattenedProperties = useMemo(
     () => cloneEntityTreeWithPropertiesMovedUp(props),
@@ -47,6 +52,19 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
     });
   };
 
+  // @todo type this to be better
+  const aggregateWithAccountId = (
+    action: BlockProtocolAggregatePayload
+  ): Promise<any> => {
+    return aggregate({
+      ...action,
+      accountId: props.accountId,
+    }).catch((aggregateError) => {
+      console.error("Cout not perform aggregation: ", aggregateError);
+      throw aggregateError;
+    });
+  };
+
   const blockProperties = {
     ...flattenedProperties,
     editableRef: props.editableRef,
@@ -56,6 +74,7 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
 
   const functions = {
     update: updateWithAccountId,
+    aggregate: aggregateWithAccountId,
     /** @todo pick one of getEmbedBlock or fetchEmbedCode */
     getEmbedBlock: fetchEmbedCode,
     uploadFile,

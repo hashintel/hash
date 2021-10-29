@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { TableOptions, useSortBy, useTable } from "react-table";
 import { BlockProtocolLinkedDataDefinition } from "@hashintel/block-protocol";
 import { BlockComponent } from "@hashintel/block-protocol/react";
@@ -10,6 +10,7 @@ import { identityEntityAndProperty } from "./lib/identifyEntity";
 
 import { Pagination } from "./components/Pagination";
 import { Header, AggregateArgs } from "./components/Header";
+import { omitTypenameDeep } from "./lib/omitTypenameDeep";
 
 type AppProps = {
   data: {
@@ -26,23 +27,32 @@ export const App: BlockComponent<AppProps> = ({
   schemas,
   update,
   entityId,
+  aggregate: aggregateFn,
 }) => {
-  const columns = useMemo(() => makeColumns(data?.data?.[0] || {}, ""), [data]);
-  const pageOptions = useMemo(() => {
-    const aggregate = data.__linkedData?.aggregate;
-    return {
-      pageCount: aggregate?.pageCount || 1,
-      pageNumber: aggregate?.pageNumber || 1,
-      pageSize: aggregate?.itemsPerPage || 1,
-    };
+  const [tableData, setTableData] = useState<AppProps["data"]>(data);
+
+  useEffect(() => {
+    setTableData(data);
   }, [data]);
-  const aggregateOptions = useMemo(() => {
-    const aggregate = data.__linkedData?.aggregate;
-    return {
-      multiFilter: aggregate?.multiFilter,
-      multiSort: aggregate?.multiSort,
-    };
-  }, [data]);
+
+  const columns = useMemo(
+    () => makeColumns(tableData.data?.[0] || {}, ""),
+    [tableData.data]
+  );
+  const [pageOptions, aggregateOptions] = useMemo(() => {
+    const aggregate = tableData.__linkedData?.aggregate;
+    return [
+      {
+        pageCount: aggregate?.pageCount || 1,
+        pageNumber: aggregate?.pageNumber || 1,
+        pageSize: aggregate?.itemsPerPage || 1,
+      },
+      {
+        multiFilter: aggregate?.multiFilter,
+        multiSort: aggregate?.multiSort,
+      },
+    ];
+  }, [tableData]);
 
   const {
     getTableProps,
@@ -59,7 +69,7 @@ export const App: BlockComponent<AppProps> = ({
       initialState: {
         ...initialState,
       },
-      data: data.data || [],
+      data: tableData.data || [],
       defaultColumn: {
         Cell: EditableCell,
       },
@@ -69,16 +79,58 @@ export const App: BlockComponent<AppProps> = ({
     useSortBy
   );
 
+  /**
+   * At the moment we only call this for page changes
+   */
   const handleAggregate = useCallback(
     ({
-      operation,
-      multiFilter,
-      multiSort,
-      itemsPerPage,
       pageNumber,
-    }: AggregateArgs) => {
-      if (!update || !data.__linkedData) return;
-      const newLinkedData = { ...data.__linkedData };
+      itemsPerPage,
+    }: {
+      pageNumber: number;
+      itemsPerPage?: number;
+    }) => {
+      const linkedData = omitTypenameDeep(tableData.__linkedData);
+
+      if (!aggregateFn || !linkedData?.aggregate || !linkedData.entityTypeId) {
+        return;
+      }
+
+      const { itemsPerPage: prevPerPage, pageNumber: prevPage } =
+        linkedData.aggregate;
+      linkedData.aggregate.itemsPerPage = itemsPerPage || prevPerPage;
+      linkedData.aggregate.pageNumber = pageNumber || prevPage;
+
+      /** remove pageCount since it's not required in aggregate resolver */
+      if (linkedData.aggregate.pageCount) {
+        delete linkedData.aggregate.pageCount;
+      }
+
+      aggregateFn({
+        entityTypeId: linkedData.entityTypeId,
+        operation: linkedData.aggregate,
+      })
+        .then(({ operation, results }) => {
+          setTableData({
+            data: results as AppProps["data"]["data"],
+            __linkedData: {
+              ...tableData.__linkedData,
+              aggregate: operation,
+            },
+          });
+        })
+        .catch((_) => {
+          // @todo properly handle error
+        });
+    },
+    [aggregateFn, tableData.__linkedData]
+  );
+
+  const handleUpdate = useCallback(
+    ({ operation, multiFilter, multiSort, itemsPerPage }: AggregateArgs) => {
+      if (!update || !tableData.__linkedData) return;
+
+      const newLinkedData = omitTypenameDeep(tableData.__linkedData);
       const newState = { hiddenColumns: initialState?.hiddenColumns };
 
       if (!newLinkedData.aggregate) {
@@ -87,25 +139,23 @@ export const App: BlockComponent<AppProps> = ({
 
       if (operation === "sort" && multiSort) {
         newLinkedData.aggregate.multiSort = multiSort;
-        // if sort or filter fields changed, reset page to 1
-        newLinkedData.aggregate.pageNumber = 1;
       }
 
       if (operation === "filter" && multiFilter) {
         newLinkedData.aggregate.multiFilter = multiFilter;
-        // if sort or filter fields changed, reset page to 1
-        newLinkedData.aggregate.pageNumber = 1;
       }
 
-      if (operation === "changePage" && (itemsPerPage || pageNumber)) {
-        const { itemsPerPage: previtemsPerPage, pageNumber: prevPage } =
-          newLinkedData.aggregate;
-        newLinkedData.aggregate.itemsPerPage = itemsPerPage || previtemsPerPage;
-        newLinkedData.aggregate.pageNumber = pageNumber || prevPage;
+      if (operation === "changePageSize" && itemsPerPage) {
+        const { itemsPerPage: prevItemsPerPage } = newLinkedData.aggregate;
+        newLinkedData.aggregate.itemsPerPage = itemsPerPage || prevItemsPerPage;
       }
 
-      if (newLinkedData.aggregate.pageCount) {
+      if (
+        newLinkedData.aggregate.pageCount ||
+        newLinkedData.aggregate.pageNumber
+      ) {
         delete newLinkedData.aggregate.pageCount;
+        delete newLinkedData.aggregate.pageNumber;
       }
 
       void update<{
@@ -121,10 +171,10 @@ export const App: BlockComponent<AppProps> = ({
         },
       ]);
     },
-    [update, data, entityId, initialState]
+    [update, tableData.__linkedData, entityId, initialState]
   );
 
-  const updateRemoteHiddenState = (hiddenColumns: string[]) => {
+  const updateRemoteHiddenColumns = (hiddenColumns: string[]) => {
     if (!update) return;
 
     const newState = { ...initialState, hiddenColumns };
@@ -144,18 +194,21 @@ export const App: BlockComponent<AppProps> = ({
 
   const setPageIndex = useCallback(
     (index: number) => {
-      handleAggregate({ operation: "changePage", pageNumber: index });
+      handleAggregate({ pageNumber: index });
     },
     [handleAggregate]
   );
 
   const setPageSize = useCallback(
     (size: number) => {
-      handleAggregate({ operation: "changePage", itemsPerPage: size });
+      handleUpdate({ operation: "changePageSize", itemsPerPage: size });
     },
-    [handleAggregate]
+    [handleUpdate]
   );
 
+  /**
+   * handles which columns should be visible in the table
+   */
   const handleToggleColumn = (columnId: string, showColumn?: boolean) => {
     if (!state.hiddenColumns) return;
     let newColumns: string[] = [];
@@ -169,7 +222,7 @@ export const App: BlockComponent<AppProps> = ({
     setHiddenColumns(newColumns);
 
     // @todo throttle this call
-    updateRemoteHiddenState(newColumns);
+    updateRemoteHiddenColumns(newColumns);
   };
 
   /** @todo Fix keys in iterators below to not use the index */
@@ -178,7 +231,7 @@ export const App: BlockComponent<AppProps> = ({
       <Header
         columns={allColumns}
         toggleHideColumn={handleToggleColumn}
-        onAggregate={handleAggregate}
+        onAggregate={handleUpdate}
         aggregateOptions={aggregateOptions}
       />
       <div className={tw`max-w-full`}>

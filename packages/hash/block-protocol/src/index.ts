@@ -77,10 +77,15 @@ export type BlockProtocolLinkedDataDefinition = {
 };
 
 export type BlockProtocolAggregatePayload = {
-  entityTypeId: string;
+  entityTypeId?: string;
   entityTypeVersionId?: string | null;
   operation: BlockProtocolAggregateOperationInput;
-  accountId: string;
+  accountId?: string;
+};
+
+export type BlockProtocolAggregateOperationOutput = {
+  results: unknown[];
+  operation: BlockProtocolAggregateOperationInput & { pageCount: number };
 };
 
 export type BlockProtocolCreateFn = {
@@ -92,7 +97,9 @@ export type BlockProtocolUpdateFn = {
 };
 
 export type BlockProtocolAggregateFn = {
-  (action: BlockProtocolAggregatePayload): Promise<unknown[]>;
+  (
+    action: BlockProtocolAggregatePayload
+  ): Promise<BlockProtocolAggregateOperationOutput>;
 };
 
 export type BlockProtocolFunction =
