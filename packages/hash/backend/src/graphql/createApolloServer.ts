@@ -5,8 +5,8 @@ import {
   defaultPlaygroundOptions,
   makeExecutableSchema,
 } from "apollo-server-express";
-import { Logger } from "winston";
 import { StatsD } from "hot-shots";
+import { Logger } from "@hashintel/hash-backend-utils/logger";
 
 import { schema } from "./typeDefs";
 import { resolvers } from "./resolvers";

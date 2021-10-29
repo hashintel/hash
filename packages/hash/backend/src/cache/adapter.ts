@@ -11,7 +11,7 @@ export interface CacheAdapter extends DataSource {
    * Set a value in the cache.
    * @todo: add "expiresAt" or "expiresIn" optional argument.
    */
-  set(key: string, value: string): Promise<null>;
+  set(key: string, value: string): Promise<void>;
 
   /**
    * Push one or more values onto the end of a list.

@@ -1,4 +1,4 @@
-import { Logger } from "winston";
+import { Logger } from "@hashintel/hash-backend-utils/logger";
 
 import { PassportGraphQLMethods } from "../auth/passport";
 import { User } from "../model";

@@ -9,7 +9,7 @@ import { CacheAdapter } from "./adapter";
 export class RedisCache extends DataSource implements CacheAdapter {
   private client: AsyncRedisClient;
   get: (key: string) => Promise<string | null>;
-  set: (key: string, value: string) => Promise<null>;
+  set: (key: string, value: string) => Promise<void>;
   rpush: (key: string, ...values: string[]) => Promise<number>;
 
   constructor(cfg: RedisConfig) {

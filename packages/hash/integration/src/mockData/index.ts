@@ -1,4 +1,4 @@
-import "./loadEnv";
+import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { PostgresAdapter } from "@hashintel/hash-backend/src/db";
 import {
   Org,
@@ -8,8 +8,10 @@ import {
   CreateEntityWithEntityTypeVersionIdArgs,
   CreateEntityWithSystemTypeArgs,
 } from "@hashintel/hash-backend/src/model";
+
 import { createOrgs, createUsers } from "./accounts";
 import { SystemTypeName } from "../graphql/apiTypes.gen";
+import "./loadEnv";
 
 export {};
 
@@ -19,14 +21,24 @@ export {};
 //   Public = "PUBLIC",
 // }
 
+const logger = new Logger({
+  mode: "dev",
+  level: "debug",
+  serviceName: "integration-tests",
+});
+
 void (async () => {
-  const db = new PostgresAdapter({
-    host: process.env.HASH_PG_HOST || "localhost",
-    user: process.env.HASH_PG_USER || "postgres",
-    password: process.env.HASH_PG_PASSWORD || "postgres",
-    database: process.env.HASH_PG_DATABASE || "postgres",
-    port: parseInt(process.env.HASH_PG_PORT || "5432", 10),
-  });
+  const db = new PostgresAdapter(
+    {
+      host: process.env.HASH_PG_HOST || "localhost",
+      user: process.env.HASH_PG_USER || "postgres",
+      password: process.env.HASH_PG_PASSWORD || "postgres",
+      database: process.env.HASH_PG_DATABASE || "postgres",
+      port: parseInt(process.env.HASH_PG_PORT || "5432", 10),
+      maxPoolSize: 10,
+    },
+    logger
+  );
 
   // Get the hash org - it's already been created as part of db migration
   const hashOrg = await Org.getOrgByShortname(db)({ shortname: "hash" });

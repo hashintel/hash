@@ -1,26 +1,29 @@
 {
-  "name": "@hashintel/hash-realtime",
+  "name": "@hashintel/hash-search-loader",
   "license": "GPL-3.0",
   "private": true,
   "version": "0.1.0",
-  "description": "Realtime streaming update server from the HASH.dev datstore",
+  "description": "Loads changes from the hash/realtime package stream into the search service",
   "prettier": "@hashintel/prettier-config",
   "repository": {
-    "url": "https://github.com/hashintel/dev/packages/hash/realtime",
-    "directory": "packages/hash/realtime"
+    "url": "https://github.com/hashintel/dev/packages/hash/search-loader",
+    "directory": "packages/hash/search-loader"
   },
   "main": "src/index.ts",
   "scripts": {
+    "postinstall": "yarn build",
     "format": "eslint --ext .ts --fix ./src/; prettier --write --list-different './src/**/*'",
-    "lint": "prettier --check './src/**/*' && eslint --ext .ts ./src/ && tsc --noEmit # @hashintel/hash-realtime",
+    "lint": "prettier --check './src/**/*' && eslint --ext .ts ./src/ && tsc --noEmit # @hashintel/hash-search-loader",
     "build": "yarn clean; tsc -b",
     "clean": "rimraf ./dist/ ./tsconfig.tsbuildinfo",
-    "dev": "NODE_ENV=development nodemon --config nodemon.json src/index.ts",
+    "dev": "cross-env NODE_ENV=\"${NODE_ENV:-development}\" nodemon --config nodemon.json src/index.ts",
     "start": "NODE_ENV=production node dist/index.js",
     "ts-node": "node --max-old-space-size=2048 node_modules/.bin/ts-node --files --project tsconfig.json"
   },
   "dependencies": {
     "@hashintel/hash-backend-utils": "*",
+    "@opensearch-project/opensearch": "1.0.0",
+    "hot-shots": "8.5.0",
     "slonik": "24.1.2"
   },
   "devDependencies": {
