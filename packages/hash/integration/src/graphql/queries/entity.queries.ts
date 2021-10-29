@@ -3,7 +3,6 @@ import gql from "graphql-tag";
 export const createEntity = gql`
   mutation createEntity(
     $accountId: ID!
-    $createdById: ID!
     $properties: JSONObject!
     $systemTypeName: SystemTypeName
     $entityTypeId: ID
@@ -11,7 +10,6 @@ export const createEntity = gql`
   ) {
     createEntity(
       accountId: $accountId
-      createdById: $createdById
       properties: $properties
       systemTypeName: $systemTypeName
       entityTypeId: $entityTypeId
@@ -19,6 +17,7 @@ export const createEntity = gql`
     ) {
       __typename
       id
+      entityId
       entityVersionId
       createdById
       createdAt

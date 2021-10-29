@@ -251,7 +251,7 @@ export const entityTypedef = gql`
 
   type AggregationResponse {
     operation: AggregateOperation
-    results: [Entity!]!
+    results: [UnknownEntity!]!
   }
 
   extend type Mutation {
@@ -260,7 +260,6 @@ export const entityTypedef = gql`
     """
     createEntity(
       accountId: ID!
-      createdById: ID!
       properties: JSONObject!
       """
       The id of an existing entity type to assign this entity

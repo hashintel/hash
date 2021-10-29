@@ -19,6 +19,9 @@ export const useBlockProtocolAggregate = (): {
 
   const aggregate: BlockProtocolAggregateFn = useCallback(
     async (action) => {
+      if (!action.accountId) {
+        throw new Error("accountId not provided with aggregate action");
+      }
       /**
        * Using client.query since useLazyQuery does not return anything
        * useLazyQuery should return a promise as of apollo-client 3.5
@@ -34,7 +37,7 @@ export const useBlockProtocolAggregate = (): {
           operation: action.operation,
           entityTypeId: action.entityTypeId!,
           entityTypeVersionId: action.entityTypeVersionId,
-          accountId: action.accountId!,
+          accountId: action.accountId,
         },
       });
       const { operation, results } = response.data.aggregateEntity;
