@@ -35,8 +35,7 @@ export type BlockProtocolCreatePayload<T> = {
   entityTypeId: string;
   entityTypeVersionId?: string | null;
   data: T;
-  pageAccountId: string;
-  userId: string;
+  accountId?: string;
 };
 
 export type BlockProtocolFilterOperatorType =

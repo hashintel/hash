@@ -58,20 +58,13 @@ const NewEntity: VoidFunctionComponent = () => {
   };
 
   useEffect(() => {
-    const handleRouteChange = (url: string) => {
-      const params = new URL(url, window.origin).searchParams;
-      const typeId = params.get("entityTypeId");
-      if (typeId && typeId !== selectedTypeId) {
-        setSelectedTypeId(typeId);
-      }
-    };
-
-    router.events.on("routeChangeStart", handleRouteChange);
-
-    return () => {
-      router.events.off("routeChangeStart", handleRouteChange);
-    };
-  });
+    if (
+      typeof router.query.entityTypeId === "string" &&
+      selectedTypeId !== router.query.entityTypeId
+    ) {
+      setSelectedTypeId(router.query.entityTypeId);
+    }
+  }, [router.query.entityTypeId, selectedTypeId]);
 
   const { data } = useQuery<
     GetAccountEntityTypesQuery,
@@ -100,7 +93,11 @@ const NewEntity: VoidFunctionComponent = () => {
         <div className={tw`mb-12`}>
           <select
             className={tw`py-2 px-4 rounded-md border border-gray-300 w-40 text-sm`}
-            onChange={(evt) => setSelectedTypeId(evt.target.value)}
+            onChange={(evt) =>
+              router.push(
+                `/${accountId}/entities/new?entityTypeId=${evt.target.value}`
+              )
+            }
             value={selectedTypeId ?? "none"}
           >
             {/* eslint-disable-next-line jsx-a11y/control-has-associated-label */}

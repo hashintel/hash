@@ -1,6 +1,6 @@
 import JSONSchemaForm from "@rjsf/material-ui";
 import jsonpath from "jsonpath";
-import { FormEvent, VoidFunctionComponent } from "react";
+import { FormEvent, useMemo, VoidFunctionComponent } from "react";
 import {
   BlockProtocolAggregateFn,
   BlockProtocolProps,
@@ -29,6 +29,7 @@ type EntityEditorProps = {
 /**
  * Schemas id themselves and other schemas with a URI.
  * HASH schemas contain the entityTypeId in this URI
+ * @todo handle pointers to subschemas
  * @todo handle references to schemas hosted elsewhere
  */
 const typeIdFromSchemaRef = ($ref: string) =>
@@ -114,7 +115,10 @@ export const EntityEditor: VoidFunctionComponent<EntityEditorProps> = ({
     }
   };
 
-  const { links: _links, schemaWithoutLinks } = splitSchema(schema);
+  const { links: _links, schemaWithoutLinks } = useMemo(
+    () => splitSchema(schema),
+    [schema]
+  );
 
   const name = existingData
     ? entityName({ properties: existingData })

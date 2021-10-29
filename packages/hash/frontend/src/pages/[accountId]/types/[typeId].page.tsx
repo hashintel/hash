@@ -1,5 +1,6 @@
 import { useCallback, VoidFunctionComponent } from "react";
 import Link from "next/link";
+import pluralize from "pluralize";
 import { useQuery } from "@apollo/client";
 import { useRouter } from "next/router";
 
@@ -105,7 +106,7 @@ export const EntityType: VoidFunctionComponent = () => {
             <div className={tw`mb-12`}>
               <div className={tw`mb-8`}>
                 <h1>
-                  <strong>{schema.title}s in account</strong>
+                  <strong>{pluralize(schema.title)} in account</strong>
                 </h1>
                 <AccountEntityOfTypeList
                   accountId={accountId}
