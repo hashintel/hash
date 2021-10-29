@@ -2,35 +2,26 @@ import { ApolloError } from "apollo-server-express";
 import url from "url";
 import { JSONObject } from "@hashintel/block-protocol";
 
-import { EntityType } from ".";
+import { EntityExternalResolvers, EntityType } from ".";
 import { DBClient } from "../db";
 import {
   EntityType as GQLEntityType,
-  UnknownEntity as GQLUnknownEntity,
   Visibility,
 } from "../graphql/apiTypes.gen";
 import { EntityTypeTypeFields } from "../db/adapter";
 
-const { FRONTEND_URL } = require("../lib/jsConfig");
+const { FRONTEND_URL } = require("../lib/config");
 
 /**
  * We handle the various entityType fields for an entityType in separate field resolvers,
  * to allow consumers to recursively request the entityType of an entityType, and so on.
  */
-export type EntityTypeWithoutTypeFields = Omit<
-  GQLEntityType,
-  EntityTypeTypeFields
->;
+type EntityTypeWithoutTypeFields = Omit<GQLEntityType, EntityTypeTypeFields>;
 
-/**
- * Because we handle certain fields on an EntityTypes via their own field resolvers,
- * the entityType property on each Entity is not an exact match for the final GraphQL definition.
- * This type represents an Entity with a partially populated entityType field.
- */
-export type EntityWithIncompleteEntityType = Omit<
-  GQLUnknownEntity,
-  "entityType" | "__typename"
-> & { entityType: EntityTypeWithoutTypeFields };
+export type UnresolvedGQLEntityType = Omit<
+  EntityTypeWithoutTypeFields,
+  EntityExternalResolvers
+>;
 
 export type EntityTypeConstructorArgs = {
   entityId: string;
@@ -126,14 +117,16 @@ class __EntityType {
         return new EntityType(entityTypeType);
       });
 
-  static getEntityTypes = (db: DBClient) => (args: { accountId: string }) =>
-    db
-      .getEntityTypes(args)
-      .then((types) =>
-        types.map((dbType) => new EntityType(dbType).toGQLEntityType())
-      );
+  static getAccountEntityTypes =
+    (db: DBClient) =>
+    (args: { accountId: string; includeOtherTypesInUse?: boolean | null }) =>
+      db
+        .getAccountEntityTypes(args)
+        .then((types) =>
+          types.map((dbType) => new EntityType(dbType).toGQLEntityType())
+        );
 
-  toGQLEntityType = (): EntityTypeWithoutTypeFields => ({
+  toGQLEntityType = (): UnresolvedGQLEntityType => ({
     id: this.entityVersionId,
     entityId: this.entityId,
     entityVersionId: this.entityVersionId,

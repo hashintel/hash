@@ -1,10 +1,10 @@
 import { MutationCreateEntityArgs, Resolver } from "../../apiTypes.gen";
-import { Entity, EntityWithIncompleteEntityType } from "../../../model";
+import { Entity, UnresolvedGQLEntity } from "../../../model";
 import { LoggedInGraphQLContext } from "../../context";
 import { createEntityArgsBuilder } from "../util";
 
 export const createEntity: Resolver<
-  Promise<EntityWithIncompleteEntityType>,
+  Promise<UnresolvedGQLEntity>,
   {},
   LoggedInGraphQLContext,
   MutationCreateEntityArgs

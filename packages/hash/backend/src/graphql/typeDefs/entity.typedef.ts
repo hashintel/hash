@@ -71,6 +71,18 @@ export const entityTypedef = gql`
     The metadata ID of the entity. This is shared across all versions of the same entity.
     """
     metadataId: ID!
+    """
+    The outgoing links of the entity.
+    """
+    links: [Link!]!
+    """
+    The linked entities of the entity.
+    """
+    linkedEntities: [Entity!]!
+    """
+    The linked aggregations of the entity.
+    """
+    linkedAggregations: [LinkedAggregation!]!
   }
 
   type UnknownEntity implements Entity {
@@ -138,7 +150,25 @@ export const entityTypedef = gql`
     The metadata ID of the entity. This is shared across all versions of the same entity.
     """
     metadataId: ID!
+    """
+    The outgoing links of the entity.
+    """
+    links: [Link!]!
+    """
+    The linked entities of the entity.
+    """
+    linkedEntities: [Entity!]!
+    """
+    The linked aggregations of the entity.
+    """
+    linkedAggregations: [LinkedAggregation!]!
     # ENTITY INTERFACE FIELDS END #
+  }
+
+  type LinkedAggregation {
+    operation: AggregateOperation!
+    results: [Entity!]!
+    path: String!
   }
 
   enum Visibility {
@@ -172,15 +202,20 @@ export const entityTypedef = gql`
   }
 
   input AggregateOperationInput {
-    filter: FilterOperationInput
+    multiFilter: MultiFilterOperationInput
     itemsPerPage: Int = 10
     pageNumber: Int = 1
-    sort: SortOperationInput
+    multiSort: [SortOperationInput!]
   }
 
   input SortOperationInput {
     field: String!
     desc: Boolean = false
+  }
+
+  input MultiFilterOperationInput {
+    filters: [FilterOperationInput!]!
+    operator: String!
   }
 
   input FilterOperationInput {
@@ -189,11 +224,12 @@ export const entityTypedef = gql`
   }
 
   type AggregateOperation {
-    filter: FilterOperation
+    entityTypeId: ID!
+    multiFilter: FilterOperation
+    multiSort: [SortOperation!]!
     itemsPerPage: Int!
     pageNumber: Int!
     pageCount: Int!
-    sort: String!
   }
 
   type SortOperation {
@@ -201,9 +237,15 @@ export const entityTypedef = gql`
     desc: Boolean
   }
 
+  type MultiFilterOperation {
+    filters: [FilterOperation!]!
+    operator: String!
+  }
+
   type FilterOperation {
     field: String!
     value: String!
+    operator: String!
   }
 
   type AggregationResponse {

@@ -2,10 +2,10 @@ import { ApolloError } from "apollo-server-express";
 
 import { MutationUpdatePageArgs, Resolver } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
-import { Entity, EntityWithIncompleteEntityType } from "../../../model";
+import { Entity, UnresolvedGQLEntity } from "../../../model";
 
 export const updatePage: Resolver<
-  Promise<EntityWithIncompleteEntityType>,
+  Promise<UnresolvedGQLEntity>,
   {},
   GraphQLContext,
   MutationUpdatePageArgs
@@ -24,7 +24,7 @@ export const updatePage: Resolver<
       );
     }
 
-    await entity.updateProperties(client)({
+    await entity.updateEntityProperties(client)({
       ...(entity.properties ?? {}),
       ...properties,
     });

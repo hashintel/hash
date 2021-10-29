@@ -12,7 +12,8 @@ export const createSchema = () =>
       block: {
         content: "entity",
         /**
-         * These properties are necessary for copy and paste (which is necessary for drag and drop)
+         * These properties are necessary for copy and paste (which is
+         * necessary for drag and drop)
          */
         toDOM: () => {
           return [
@@ -48,10 +49,8 @@ export const createSchema = () =>
       async: {
         group: "blockItem",
         attrs: {
-          // @todo rename these props
-          asyncNodeProps: { default: {} },
-          asyncComponentId: { default: null },
-          autofocus: { default: true },
+          targetComponentId: { default: null },
+          entityId: { default: null },
         },
       },
     },
@@ -67,6 +66,3 @@ export const createSchema = () =>
       },
     },
   });
-
-export const createInitialDoc = (schema: Schema) =>
-  schema.node("doc", {}, [schema.node("blank")]);

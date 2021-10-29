@@ -1,13 +1,13 @@
 import { ApolloError } from "apollo-server-express";
 
 import { QueryGetOrgInvitationLinkArgs, Resolver } from "../../apiTypes.gen";
-import { LoggedInGraphQLContext } from "../../context";
-import { Org, EntityTypeWithoutTypeFields } from "../../../model";
+import { GraphQLContext } from "../../context";
+import { Org, UnresolvedGQLUnknownEntity } from "../../../model";
 
 export const getOrgInvitationLink: Resolver<
-  Promise<EntityTypeWithoutTypeFields>,
+  Promise<UnresolvedGQLUnknownEntity>,
   {},
-  LoggedInGraphQLContext,
+  GraphQLContext,
   QueryGetOrgInvitationLinkArgs
 > = async (_, { orgEntityId, invitationLinkToken }, { dataSources }) =>
   dataSources.db.transaction(async (client) => {

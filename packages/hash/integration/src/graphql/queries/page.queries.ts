@@ -21,25 +21,7 @@ const pageFieldsFragment = gql`
         accountId
         properties {
           componentId
-          entity {
-            __typename
-            id
-            accountId
-            metadataId
-            ... on UnknownEntity {
-              unknownProperties: properties
-            }
-            ... on Text {
-              textProperties: properties {
-                texts {
-                  text
-                  bold
-                  underline
-                  italics
-                }
-              }
-            }
-          }
+          entity
         }
       }
     }

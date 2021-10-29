@@ -9,9 +9,13 @@ export const entityTypeTypedef = gql`
     """
     getEntityType(entityTypeId: ID!): EntityType!
     """
-    Get all EntityTypes belonging to an account
+    Get all EntityTypes belonging to an account.
+    Optionally include types in use by the account, but belonging to other accounts.
     """
-    getAccountEntityTypes(accountId: ID!): [EntityType!]!
+    getAccountEntityTypes(
+      accountId: ID!
+      includeOtherTypesInUse: Boolean = false
+    ): [EntityType!]!
   }
 
   extend type Mutation {
@@ -118,6 +122,18 @@ export const entityTypeTypedef = gql`
     The metadata ID of the entity. This is shared across all versions of the same entity.
     """
     metadataId: ID!
+    """
+    The outgoing links of the entity.
+    """
+    links: [Link!]!
+    """
+    The linked entities of the entity.
+    """
+    linkedEntities: [Entity!]!
+    """
+    The linked aggregations of the entity.
+    """
+    linkedAggregations: [LinkedAggregation!]!
     # ENTITY INTERFACE FIELDS END #
   }
 `;

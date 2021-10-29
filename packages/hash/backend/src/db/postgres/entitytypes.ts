@@ -111,12 +111,21 @@ export const getSystemTypeLatestVersion = async (
 
 export const getAccountEntityTypes = async (
   conn: Connection,
-  params: { accountId: string }
+  params: { accountId: string; includeOtherTypesInUse?: boolean | null }
 ): Promise<EntityType[]> => {
-  const rows = await conn.any(sql`
+  const query = sql`
     ${selectEntityTypes}
     where type.account_id = ${params.accountId}
-  `);
+      ${
+        params.includeOtherTypesInUse
+          ? sql`or ver.entity_type_version_id in (
+                  select distinct entity_type_version_id 
+                  from entity_versions where account_id = ${params.accountId}
+                )`
+          : sql``
+      }
+  `;
+  const rows = await conn.any(query);
   return rows.map(mapPGRowToEntityType);
 };
 

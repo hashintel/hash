@@ -14,11 +14,8 @@ export type AccountConstructorArgs = {
 } & EntityConstructorArgs;
 
 abstract class __Account extends Entity {
-  properties: DBAccountProperties;
-
-  constructor(args: AccountConstructorArgs) {
-    super(args);
-    this.properties = args.properties;
+  protected updateProperties(client: DBClient) {
+    return (properties: any) => super.updateProperties(client)(properties);
   }
 
   static getAll = async (client: DBClient): Promise<(User | Org)[]> => {

@@ -19,19 +19,20 @@ export const useBlockProtocolCreate = (): {
     );
 
   const create: BlockProtocolCreateFn = useCallback(
-    (actions) => {
-      for (const action of actions) {
-        void createFn({
-          variables: {
-            properties: action.data,
-            entityTypeId: action.entityTypeId,
-            entityTypeVersionId: action.entityTypeVersionId,
-            accountId: action.pageAccountId,
-            createdById: action.userId,
-          },
-        });
-      }
-    },
+    (actions) =>
+      Promise.all(
+        actions.map((action) =>
+          createFn({
+            variables: {
+              properties: action.data,
+              entityTypeId: action.entityTypeId,
+              entityTypeVersionId: action.entityTypeVersionId,
+              accountId: action.pageAccountId,
+              createdById: action.userId,
+            },
+          }).then(({ data }) => data?.createEntity)
+        )
+      ),
     [createFn]
   );
 

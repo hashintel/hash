@@ -80,9 +80,15 @@ class __Org extends Account {
       return org;
     };
 
-  private updateOrgProperties =
-    (client: DBClient) => (properties: DBOrgProperties) =>
-      this.updateProperties(client)(properties);
+  updateProperties(client: DBClient) {
+    return (properties: DBOrgProperties) =>
+      super
+        .updateProperties(client)(properties)
+        .then(() => {
+          this.properties = properties;
+          return properties;
+        });
+  }
 
   /**
    * @returns all invitations associated with the organization

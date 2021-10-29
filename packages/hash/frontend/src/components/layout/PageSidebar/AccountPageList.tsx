@@ -13,11 +13,11 @@ import { CreatePageButton } from "../../Modals/CreatePage/CreatePageButton";
 
 type AccountPageListProps = {
   accountId: string;
-  currentPageMetaId: string;
+  currentPageEntityId: string;
 };
 
 export const AccountPageList: VoidFunctionComponent<AccountPageListProps> = ({
-  currentPageMetaId,
+  currentPageEntityId,
   accountId,
 }) => {
   const { data } = useQuery<
@@ -30,12 +30,12 @@ export const AccountPageList: VoidFunctionComponent<AccountPageListProps> = ({
   return (
     <div className={styles.SidebarList}>
       {data?.accountPages.map((page) => {
-        if (page.metadataId === currentPageMetaId) {
+        if (page.entityId === currentPageEntityId) {
           return <div key={page.id}>{page.properties.title}</div>;
         }
         return (
           <div key={page.id}>
-            <Link href={`/${accountId}/${page.metadataId}`}>
+            <Link href={`/${accountId}/${page.entityId}`}>
               <a>{page.properties.title}</a>
             </Link>
           </div>

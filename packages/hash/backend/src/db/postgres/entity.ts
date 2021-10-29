@@ -354,6 +354,7 @@ export const getEntityHistory = async (
   params: {
     accountId: string;
     entityId: string;
+    order: "asc" | "desc";
   }
 ): Promise<EntityVersion[]> => {
   const rows = await conn.any(sql`
@@ -363,9 +364,11 @@ export const getEntityHistory = async (
     where
       account_id = ${params.accountId}
       and entity_id = ${params.entityId}
-    order by created_at desc
+    order by created_at ${params.order === "asc" ? sql`asc` : sql`desc`}
   `);
   return rows.map((row) => ({
+    entityId: params.entityId,
+    accountId: params.accountId,
     entityVersionId: row.entity_version_id as string,
     createdAt: new Date(row.created_at as string),
     createdById: row.created_by as string,

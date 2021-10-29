@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
-import { loadRemoteBlock } from "./loadRemoteBlock";
-
-export type UnknownComponent = (...props: any[]) => JSX.Element;
+import {
+  loadCrossFrameRemoteBlock,
+  loadRemoteBlock,
+  UnknownComponent,
+} from "./loadRemoteBlock";
+import { isTopWindow } from "./util";
 
 type UseRemoteBlockHook = {
-  (url: string): [
+  (url: string, crossFrame?: boolean): [
     boolean,
     Error | undefined,
     UnknownComponent | string | undefined
@@ -23,7 +26,13 @@ const remoteModuleCache: Record<string, UseRemoteComponentState> = {};
 /**
  * @see https://github.com/Paciolan/remote-component/blob/master/src/hooks/useRemoteComponent.ts
  */
-export const useRemoteBlock: UseRemoteBlockHook = (url) => {
+export const useRemoteBlock: UseRemoteBlockHook = (url, crossFrame) => {
+  if (crossFrame && isTopWindow()) {
+    throw new Error(
+      "crossFrame passed to useRemoteBlock from top window. This should be set from framed windows only."
+    );
+  }
+
   const [{ loading, err, component, url: loadedUrl }, setState] =
     useState<UseRemoteComponentState>(
       remoteModuleCache[url] ?? {
@@ -51,7 +60,11 @@ export const useRemoteBlock: UseRemoteBlockHook = (url) => {
 
     update({ loading: true, err: undefined, component: undefined, url: null });
 
-    loadRemoteBlock(url, signal)
+    const blockLoaderFn = crossFrame
+      ? loadCrossFrameRemoteBlock
+      : loadRemoteBlock;
+
+    blockLoaderFn(url, signal)
       .then((module) =>
         update({
           loading: false,
@@ -70,7 +83,7 @@ export const useRemoteBlock: UseRemoteBlockHook = (url) => {
       // invalidate update function for stale closures
       update = () => {};
     };
-  }, [err, loading, url, loadedUrl]);
+  }, [err, crossFrame, loading, url, loadedUrl]);
 
   return [loading, err, component];
 };

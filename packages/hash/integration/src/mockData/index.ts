@@ -46,8 +46,6 @@ void (async () => {
 
   const results = new Map<string, Entity>();
 
-  // create the types we'll need below so we can assign their ids to entities
-  const newTypeIds: Record<string, string> = {};
   const requiredTypes = [
     "Company",
     "Divider",
@@ -57,7 +55,11 @@ void (async () => {
     "Person",
     "Table",
     "Code",
-  ];
+    "Video",
+    "Header",
+  ] as const;
+  // create the types we'll need below so we can assign their ids to entities
+  const newTypeIds: Record<typeof requiredTypes[number], string> = {} as any;
 
   await Promise.all(
     requiredTypes.map(async (name) => {
@@ -123,7 +125,7 @@ void (async () => {
         },
       ],
       [
-        "header1",
+        "header1text",
         {
           systemTypeName: SystemTypeName.Text,
           accountId: user.accountId,
@@ -241,11 +243,37 @@ void (async () => {
           properties: {},
         },
       ],
+      [
+        "video1",
+        {
+          entityTypeId: newTypeIds.Video,
+          accountId: hashOrg.accountId,
+          createdById: user.entityId,
+          properties: {},
+        },
+      ],
     ])
   );
 
   await createEntities(
     new Map<string, CreateEntityMapValue>([
+      [
+        "header1",
+        {
+          properties: {
+            level: 2,
+            text: {
+              __linkedData: {
+                entityTypeId: SystemTypeName.Text,
+                entityId: results.get("header1text")!.entityId,
+              },
+            },
+          },
+          entityTypeId: newTypeIds.Header,
+          accountId: user.accountId,
+          createdById: user.entityId,
+        },
+      ],
       [
         "place1",
         {
@@ -422,9 +450,11 @@ void (async () => {
                 entityTypeId: newTypeIds.Person,
                 aggregate: {
                   itemsPerPage: 5,
-                  sort: {
-                    field: "createdAt",
-                  },
+                  multiSort: [
+                    {
+                      field: "createdAt",
+                    },
+                  ],
                 },
               },
             },
@@ -632,6 +662,19 @@ void (async () => {
           systemTypeName: SystemTypeName.Block,
         },
       ],
+      [
+        "b16",
+        {
+          properties: {
+            componentId: "https://block.blockprotocol.org/video",
+            entityId: results.get("video1")!.entityId,
+            accountId: results.get("video1")!.accountId,
+          },
+          createdById: user.entityId,
+          accountId: hashOrg.accountId,
+          systemTypeName: SystemTypeName.Block,
+        },
+      ],
     ])
   );
 
@@ -723,6 +766,10 @@ void (async () => {
               {
                 entityId: results.get("b15")!.entityId,
                 accountId: results.get("b15")!.accountId,
+              },
+              {
+                entityId: results.get("b16")!.entityId,
+                accountId: results.get("b16")!.accountId,
               },
             ],
             title: "HASH's 1st page",

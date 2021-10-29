@@ -61,6 +61,8 @@ export type EntityMeta = {
 };
 
 export type EntityVersion = {
+  accountId: string;
+  entityId: string;
   entityVersionId: string;
   createdAt: Date;
   createdById: string;
@@ -113,6 +115,16 @@ export type DBOrgProperties = {
   shortname: string;
   name: string;
   infoProvidedAtCreation?: OrgInfoProvidedAtCreation;
+};
+
+export type Graph = {
+  rootEntityVersionId: string;
+  entities: EntityVersion[];
+  links: {
+    src: EntityVersion;
+    dst: EntityVersion;
+    fixed: boolean;
+  }[];
 };
 
 export interface DBAdapter extends DataSource, DBClient {
@@ -307,6 +319,12 @@ export interface DBClient {
   /** Get a verification code (it may be invalid!) */
   getVerificationCode(params: { id: string }): Promise<VerificationCode | null>;
 
+  /** Gets all verification codes associated with a user, optionally filtering by minimum creation date */
+  getUserVerificationCodes(params: {
+    userEntityId: string;
+    createdAfter?: Date;
+  }): Promise<VerificationCode[]>;
+
   /** Increment the number of verification attempts by 1 */
   incrementVerificationCodeAttempts(params: {
     id: string;
@@ -332,6 +350,7 @@ export interface DBClient {
   getEntityHistory(params: {
     accountId: string;
     entityId: string;
+    order: "asc" | "desc";
   }): Promise<EntityVersion[]>;
 
   /** Get multiple entities by their account ID and entity ID. */
@@ -343,9 +362,21 @@ export interface DBClient {
     }[]
   ): Promise<Entity[]>;
 
-  /** Get entity types associated with a given accountId */
-  getEntityTypes(params: { accountId: string }): Promise<EntityType[]>;
+  /**
+   * Get entity types associated with a given accountId.
+   * Optionally include other types the account uses.
+   * */
+  getAccountEntityTypes(params: {
+    accountId: string;
+    includeOtherTypesInUse?: boolean | null;
+  }): Promise<EntityType[]>;
 
   /** Acquire a transaction-scoped lock on the provided entity ID. */
   acquireEntityLock(params: { entityId: string }): Promise<null>;
+
+  /** Get all implied version history sub-graphs for a given root entity. */
+  getImpliedEntityHistory(params: {
+    accountId: string;
+    entityId: string;
+  }): Promise<Graph[]>;
 }

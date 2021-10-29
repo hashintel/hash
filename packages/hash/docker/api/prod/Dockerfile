@@ -7,6 +7,7 @@ COPY packages/hash/prettier-config packages/hash/prettier-config
 COPY packages/hash/shared packages/hash/shared
 COPY packages/hash/block-protocol packages/hash/block-protocol
 COPY packages/hash/frontend packages/hash/frontend
+COPY packages/hash/backend-utils packages/hash/backend-utils
 COPY package.json .
 COPY tsconfig.json .
 COPY tsconfig.base.json .

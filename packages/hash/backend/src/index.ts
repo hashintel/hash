@@ -1,58 +1,26 @@
-import express from "express";
 import { json } from "body-parser";
+import express from "express";
 import helmet from "helmet";
-import { customAlphabet } from "nanoid";
-import winston from "winston";
 import { StatsD } from "hot-shots";
-import { createServer, RequestListener } from "http";
-
-import { PostgresAdapter, setupCronJobs } from "./db";
-import { createApolloServer } from "./graphql/createApolloServer";
+import { customAlphabet } from "nanoid";
 import setupAuth from "./auth";
-import { getRequiredEnv } from "./util";
-import { handleCollabRequest } from "./collab/server";
+import { RedisCache } from "./cache";
+import { collabApp } from "./collab/collabApp";
+import { PostgresAdapter, setupCronJobs } from "./db";
 import AwsSesEmailTransporter from "./email/transporter/awsSesEmailTransporter";
 import TestTransporter from "./email/transporter/testEmailTransporter";
-import {
-  isDevEnv,
-  isProdEnv,
-  isStatsDEnabled,
-  isTestEnv,
-  port,
-} from "./lib/config";
+import { createApolloServer } from "./graphql/createApolloServer";
+import { isProdEnv, isStatsDEnabled, isTestEnv, port } from "./lib/env-config";
+import { logger } from "./logger";
+import { getRequiredEnv } from "./util";
 
-const { FRONTEND_URL } = require("./lib/jsConfig");
+const { FRONTEND_URL } = require("./lib/config");
 
 // Request ID generator
 const nanoid = customAlphabet(
   "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
   14
 );
-
-// Configure the logger
-const logger = winston.createLogger({
-  level: "info",
-  format: winston.format.combine(
-    winston.format.json(),
-    winston.format.timestamp()
-  ),
-  defaultMeta: { service: "api" },
-});
-
-if (isDevEnv || isTestEnv) {
-  logger.add(
-    new winston.transports.Console({
-      level: "debug",
-      format: winston.format.combine(
-        winston.format.colorize(),
-        winston.format.simple()
-      ),
-    })
-  );
-} else if (isProdEnv) {
-  // TODO: add production logging transport here
-  // Datadog: https://github.com/winstonjs/winston/blob/master/docs/transports.md#datadog-transport
-}
 
 // Configure the StatsD client for reporting metrics
 let statsd: StatsD | undefined;
@@ -82,6 +50,12 @@ const pgConfig = {
 };
 const db = new PostgresAdapter(pgConfig, logger, statsd);
 
+// Connect to Redis
+const redis = new RedisCache({
+  host: getRequiredEnv("HASH_REDIS_HOST"),
+  port: parseInt(getRequiredEnv("HASH_REDIS_PORT"), 10),
+});
+
 // Set sensible default security headers: https://www.npmjs.com/package/helmet
 // Temporarily disable contentSecurityPolicy for the GraphQL playground
 // Longer-term we can set rules which allow only the playground to load
@@ -107,7 +81,7 @@ const transporter = isTestEnv
   ? new TestTransporter()
   : new AwsSesEmailTransporter();
 
-const apolloServer = createApolloServer(db, transporter, logger, statsd);
+const apolloServer = createApolloServer(db, redis, transporter, logger, statsd);
 
 app.get("/", (_, res) => res.send("Hello World"));
 
@@ -131,6 +105,8 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use("/collab-backend", collabApp);
+
 // Ensure the GraphQL server has started before starting the HTTP server
 apolloServer
   .start()
@@ -140,13 +116,7 @@ apolloServer
       cors: { credentials: true, origin: FRONTEND_URL },
     });
 
-    const requestWrapper: RequestListener = (req, res) => {
-      if (!handleCollabRequest(req, res)) {
-        return app(req, res);
-      }
-    };
-
-    const server = createServer(requestWrapper).listen(port, () => {
+    const server = app.listen(port, () => {
       logger.info(`Listening on port ${port}`);
     });
 
@@ -180,6 +150,6 @@ apolloServer
     process.on("SIGINT", () => shutdown("SIGINT"));
   })
   .catch((err) => {
-    console.error(err);
+    logger.error(err);
     process.exit(1);
   });

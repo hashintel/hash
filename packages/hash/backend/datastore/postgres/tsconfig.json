@@ -1,0 +1,13 @@
+{
+  "extends": "../../../../../tsconfig.base.json",
+  "compilerOptions": {
+    // specifics
+    "allowJs": true,
+    "moduleResolution": "node",
+
+    // overrides
+    "lib": ["es2020"],
+    "target": "es2020"
+  },
+  "include": ["./"]
+}

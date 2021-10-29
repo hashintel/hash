@@ -1,8 +1,8 @@
-import { ReplacePortals } from "@hashintel/hash-shared/sharedWithBackend";
 import { toggleMark } from "prosemirror-commands";
 import { Schema } from "prosemirror-model";
 import { EditorState, NodeSelection, Plugin } from "prosemirror-state";
 import React from "react";
+import { RenderPortal } from "../../blocks/page/usePortals";
 import { ensureMounted } from "../../lib/dom";
 
 interface MarksTooltipState {
@@ -29,7 +29,7 @@ const selectionContainsText = (state: EditorState<Schema>) => {
   return containsText;
 };
 
-export function createMarksTooltip(replacePortal: ReplacePortals) {
+export function createMarksTooltip(renderPortal: RenderPortal) {
   let timeout: NodeJS.Timeout;
 
   const marksTooltip = new Plugin<MarksTooltipState, Schema>({
@@ -84,16 +84,15 @@ export function createMarksTooltip(replacePortal: ReplacePortals) {
        *
        * @todo fully rewrite this to use React completely
        */
-      replacePortal(
-        mountNode,
-        mountNode,
+      renderPortal(
         <div
           ref={(node) => {
             if (node) {
               node.appendChild(dom);
             }
           }}
-        />
+        />,
+        mountNode
       );
 
       const updateFns: Function[] = [];
@@ -230,7 +229,7 @@ export function createMarksTooltip(replacePortal: ReplacePortals) {
 
       return {
         destroy() {
-          replacePortal(mountNode, null, null);
+          renderPortal(null, mountNode);
           mountNode.remove();
           document.removeEventListener("dragstart", dragstart);
           document.removeEventListener("dragend", dragend);
@@ -240,5 +239,5 @@ export function createMarksTooltip(replacePortal: ReplacePortals) {
     },
   });
 
-  return marksTooltip;
+  return marksTooltip as Plugin<unknown, Schema>;
 }

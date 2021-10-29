@@ -4,6 +4,7 @@ WORKDIR /app
 
 COPY packages/hash/realtime packages/hash/realtime
 COPY packages/hash/prettier-config packages/hash/prettier-config
+COPY packages/hash/backend-utils packages/hash/backend-utils
 COPY package.json .
 COPY tsconfig.base.json .
 COPY yarn.lock .

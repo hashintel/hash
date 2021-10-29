@@ -2,13 +2,13 @@ import { ApolloError } from "apollo-server-express";
 import { UserInputError } from "apollo-server-errors";
 
 import { MutationInsertBlockIntoPageArgs, Resolver } from "../../apiTypes.gen";
-import { Entity, EntityWithIncompleteEntityType } from "../../../model";
+import { Entity, UnresolvedGQLEntity } from "../../../model";
 import { DbBlockProperties, DbPageProperties } from "../../../types/dbTypes";
 import { LoggedInGraphQLContext } from "../../context";
 import { createEntityArgsBuilder } from "../util";
 
 export const insertBlockIntoPage: Resolver<
-  Promise<EntityWithIncompleteEntityType>,
+  Promise<UnresolvedGQLEntity>,
   {},
   LoggedInGraphQLContext,
   MutationInsertBlockIntoPageArgs
@@ -104,7 +104,7 @@ export const insertBlockIntoPage: Resolver<
       ...(page.properties as DbPageProperties).contents.slice(position),
     ];
 
-    await page.updateProperties(client)(page.properties);
+    await page.updateEntityProperties(client)(page.properties);
 
     // TODO: for now, all entities are non-versioned, so the list array only have a single
     // element. Return when versioned entities are implemented at the API layer.

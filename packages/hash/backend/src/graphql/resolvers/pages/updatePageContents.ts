@@ -9,7 +9,7 @@ import {
   RemoveBlock,
   MoveBlock,
 } from "../../apiTypes.gen";
-import { Entity, EntityWithIncompleteEntityType, User } from "../../../model";
+import { Entity, UnresolvedGQLEntity, User } from "../../../model";
 import { LoggedInGraphQLContext } from "../../context";
 import { DBClient } from "../../../db";
 import { exactlyOne } from "../../../util";
@@ -111,7 +111,7 @@ const removeBlock = (properties: DbPageProperties, remove: RemoveBlock) => {
 };
 
 export const updatePageContents: Resolver<
-  Promise<EntityWithIncompleteEntityType>,
+  Promise<UnresolvedGQLEntity>,
   {},
   LoggedInGraphQLContext,
   MutationUpdatePageContentsArgs
@@ -183,7 +183,7 @@ export const updatePageContents: Resolver<
       }
     }
     if (propertiesChanged) {
-      await page.updateProperties(client)(pageProperties);
+      await page.updateEntityProperties(client)(pageProperties);
     }
 
     // Return the new state of the page

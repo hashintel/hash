@@ -2,6 +2,7 @@ import { VoidFunctionComponent } from "react";
 import Link from "next/link";
 import { useQuery } from "@apollo/client";
 
+import { tw } from "twind";
 import { getAccountEntityTypes } from "../../../graphql/queries/account.queries";
 import {
   GetAccountEntityTypesQuery,
@@ -36,7 +37,7 @@ export const AccountEntityTypeList: VoidFunctionComponent<AccountEntityTypeListP
           );
         })}
         <Link href={`/${accountId}/types/new`}>
-          <a>
+          <a className={tw`inline-block hover:border-b-0`}>
             <Button>Create Entity Type</Button>
           </a>
         </Link>

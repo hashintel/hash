@@ -1,23 +1,20 @@
-import { useEffect, useMemo, VoidFunctionComponent } from "react";
-
-import { useRouter } from "next/router";
 import { useQuery } from "@apollo/client";
+import { BlockMeta, fetchBlockMeta } from "@hashintel/hash-shared/blockMeta";
+import { blockPaths } from "@hashintel/hash-shared/paths";
 import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
 import { GetStaticPaths, GetStaticProps } from "next";
-import {
-  BlockMeta,
-  blockPaths,
-  fetchBlockMeta,
-} from "@hashintel/hash-shared/sharedWithBackend";
+
+import { useRouter } from "next/router";
+import { useMemo, VoidFunctionComponent } from "react";
+import { PageBlock } from "../../blocks/page/PageBlock";
+import { PageTitle } from "../../blocks/page/PageTitle";
+import { VersionDropdown } from "../../components/Dropdowns/VersionDropdown";
+import { PageSidebar } from "../../components/layout/PageSidebar/PageSidebar";
 import {
   GetPageQuery,
   GetPageQueryVariables,
 } from "../../graphql/apiTypes.gen";
-import { PageBlock } from "../../blocks/page/PageBlock";
-import { PageSidebar } from "../../components/layout/PageSidebar/PageSidebar";
-
 import styles from "../index.module.scss";
-import { VersionDropdown } from "../../components/Dropdowns/VersionDropdown";
 
 /**
  * preload all configured blocks for now. in the future these will be loaded
@@ -52,46 +49,18 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
   ({ preloadedBlockMeta }) => {
     const router = useRouter();
 
-    // metadataId is the consistent identifier for pages (across all versions)
-    const metadataId = router.query.pageId as string;
+    // entityId is the consistent identifier for pages (across all versions)
+    const pageEntityId = router.query.pageId as string;
     const accountId = router.query.accountId as string;
     // versionId is an optional param for requesting a specific page version
     const versionId = router.query.version as string | undefined;
 
-    const { data, error, loading } = useQuery<
-      GetPageQuery,
-      GetPageQueryVariables
-    >(getPageQuery, {
-      variables: { metadataId, accountId, versionId },
-    });
-
-    useEffect(() => {
-      let scrollInterval: NodeJS.Timeout | undefined = undefined;
-      const routeHash = router.asPath.split("#")[1];
-
-      if (!loading && routeHash) {
-        scrollInterval = setInterval(() => {
-          const routeElement = document.getElementById(routeHash);
-
-          console.log("in here", data, routeElement);
-          if (routeElement) {
-            document
-              .getElementById(routeHash)
-              ?.scrollIntoView({ behavior: "smooth" });
-
-            if (scrollInterval) {
-              clearInterval(scrollInterval);
-            }
-          }
-        }, 100);
+    const { data, error } = useQuery<GetPageQuery, GetPageQueryVariables>(
+      getPageQuery,
+      {
+        variables: { entityId: pageEntityId, accountId, versionId },
       }
-
-      return () => {
-        if (scrollInterval) {
-          clearInterval(scrollInterval);
-        }
-      };
-    }, [data, loading, router.asPath]);
+    );
 
     /**
      * This is to ensure that certain blocks are always contained within the
@@ -147,7 +116,11 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
               <div>
                 {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
                 <label>Title</label>
-                <h1>{title}</h1>
+                <PageTitle
+                  value={title}
+                  accountId={data.page.accountId}
+                  metadataId={data.page.entityId}
+                />
               </div>
               <div>
                 {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
@@ -158,7 +131,7 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
                     versions={data.page.history ?? []}
                     onChange={(changedVersionId) => {
                       void router.push(
-                        `/${accountId}/${metadataId}?version=${changedVersionId}`
+                        `/${accountId}/${pageEntityId}?version=${changedVersionId}`
                       );
                     }}
                   />
@@ -172,7 +145,7 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
               accountId={data.page.accountId}
               contents={contents}
               blocksMeta={preloadedBlocks}
-              metadataId={data.page.metadataId}
+              entityId={data.page.entityId}
             />
           </main>
         </div>

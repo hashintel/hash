@@ -12,16 +12,17 @@ import Loader from "./svgs/Loader";
 import Pencil from "./svgs/Pencil";
 import Cross from "./svgs/Cross";
 
-type UploadImageParamsType = {
+type UploadFileParamsType = {
   file?: File;
-  imgURL?: string;
+  url?: string;
+  mime?: string;
 };
 
 type AppProps = {
   initialSrc?: string;
   initialCaption?: string;
   initialWidth?: number;
-  uploadImage: (uploadImageParams: UploadImageParamsType) => Promise<{
+  uploadFile: (uploadFileParams: UploadFileParamsType) => Promise<{
     src?: string;
   }>;
   entityId: string;
@@ -32,12 +33,14 @@ const placeholderText = "Enter Image URL";
 const buttonText = "Embed Image";
 const bottomText = "Works with web-supported image formats";
 
+const IMG_MIME_TYPE = "image/*";
+
 export const Image: BlockComponent<AppProps> = (props) => {
   const {
     initialSrc,
     initialCaption,
+    uploadFile,
     initialWidth,
-    uploadImage,
     entityId,
     entityTypeId,
     update,
@@ -121,9 +124,9 @@ export const Image: BlockComponent<AppProps> = (props) => {
   };
 
   const handleImageUpload = useCallback(
-    (imageProp: { imgURL: string } | { file: FileList[number] }) => {
+    (imageProp: { url: string } | { file: FileList[number] }) => {
       updateStateObject({ loading: true });
-      uploadImage(imageProp)
+      uploadFile({ ...imageProp, mime: IMG_MIME_TYPE })
         .then(({ src }: { src?: string }) => {
           if (isMounted.current) {
             updateStateObject({ loading: false });
@@ -137,7 +140,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
           })
         );
     },
-    [updateData, updateStateObject, uploadImage]
+    [updateData, updateStateObject, uploadFile]
   );
 
   const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -149,7 +152,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
     }
 
     if (inputText?.trim()) {
-      handleImageUpload({ imgURL: inputText });
+      handleImageUpload({ url: inputText });
     } else {
       displayError("Please enter a valid image URL or select a file below");
     }
@@ -197,9 +200,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
         </div>
         <button
           type="button"
-          onClick={() => {
-            resetComponent();
-          }}
+          onClick={resetComponent}
           className={tw`ml-2 bg-gray-100 p-1.5 border-1 border-gray-300 rounded-sm self-start`}
         >
           <Pencil />
@@ -276,7 +277,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
               id={randomId}
               className={tw`hidden`}
               type="file"
-              accept="image/*"
+              accept={IMG_MIME_TYPE}
               onChange={onFileSelect}
             />
           </div>

@@ -1,0 +1,36 @@
+{
+  "name": "@hashintel/hash-backend-utils",
+  "license": "SSPL-1.0",
+  "private": true,
+  "version": "0.1.0",
+  "description": "HASH backend utilities",
+  "exports": {
+    "./": "./dist/"
+  },
+  "typesVersions": {
+    "*": {
+      "*": [
+        "dist/*"
+      ]
+    }
+  },
+  "prettier": "@hashintel/prettier-config",
+  "scripts": {
+    "postinstall": "yarn build",
+    "format": "eslint --ext .ts --fix ./src/; prettier --write --list-different './src/**/*'",
+    "lint": "prettier --check './src/**/*' && eslint --ext .ts ./src/ && tsc --noEmit # @hashintel/hash-backend-utils",
+    "build": "yarn clean; tsc -b",
+    "clean": "rimraf ./dist/ ./tsconfig.tsbuildinfo",
+    "ts-node": "node --max-old-space-size=2048 node_modules/.bin/ts-node --files --project tsconfig.json"
+  },
+  "dependencies": {
+    "redis": "3.1.2"
+  },
+  "devDependencies": {
+    "@types/node": "16.7.6",
+    "@types/redis": "2.8.32",
+    "rimraf": "^3.0.2",
+    "ts-node": "10.2.1",
+    "typescript": "4.3.5"
+  }
+}

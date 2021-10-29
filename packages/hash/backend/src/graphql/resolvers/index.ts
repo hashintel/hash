@@ -2,7 +2,7 @@ import GraphQLJSON from "graphql-type-json";
 
 import { ForbiddenError } from "apollo-server-express";
 import { Entity } from "../apiTypes.gen";
-// import { entityAccountName } from "./shared/account";
+
 import {
   aggregateEntity,
   createEntity,
@@ -10,6 +10,8 @@ import {
   entityFields,
   updateEntity,
 } from "./entity";
+import { createLink } from "./link/createLink";
+import { deleteLink } from "./link/deleteLink";
 import { blockFields } from "./block";
 import {
   createPage,
@@ -31,6 +33,10 @@ import { verifyEmail } from "./user/verifyEmail";
 import { sendLoginCode } from "./user/sendLoginCode";
 import { loginWithLoginCode } from "./user/loginWithLoginCode";
 import { embedCode } from "./embed";
+import {
+  getImpliedEntityHistory,
+  getImpliedEntityVersion,
+} from "./entity/impliedHistory";
 
 import { GraphQLContext, LoggedInGraphQLContext } from "../context";
 import { logout } from "./user/logout";
@@ -83,11 +89,13 @@ export const resolvers = {
     entity: loggedInAndSignedUp(entity),
     getEntityType: loggedInAndSignedUp(getEntityType),
     page: loggedInAndSignedUp(page),
+    getImpliedEntityHistory: loggedInAndSignedUp(getImpliedEntityHistory),
+    getImpliedEntityVersion: loggedInAndSignedUp(getImpliedEntityVersion),
     // Logged in users only
-    getOrgEmailInvitation: loggedIn(getOrgEmailInvitation),
-    getOrgInvitationLink: loggedIn(getOrgInvitationLink),
     me: loggedIn(me),
     // Any user
+    getOrgEmailInvitation,
+    getOrgInvitationLink,
     isShortnameTaken,
     embedCode,
   },
@@ -95,15 +103,17 @@ export const resolvers = {
   Mutation: {
     // Logged in and signed up users only
     createEntity: loggedInAndSignedUp(createEntity),
+    createLink: loggedInAndSignedUp(createLink),
     createEntityType: loggedInAndSignedUp(createEntityType),
     createPage: loggedInAndSignedUp(createPage),
+    createOrg: loggedInAndSignedUp(createOrg),
+    createOrgEmailInvitation: loggedInAndSignedUp(createOrgEmailInvitation),
     insertBlockIntoPage: loggedInAndSignedUp(insertBlockIntoPage),
     insertBlocksIntoPage: loggedInAndSignedUp(insertBlocksIntoPage),
     updateEntity: loggedInAndSignedUp(updateEntity),
     updatePage: loggedInAndSignedUp(updatePage),
     updatePageContents: loggedInAndSignedUp(updatePageContents),
-    createOrg: loggedInAndSignedUp(createOrg),
-    createOrgEmailInvitation: loggedInAndSignedUp(createOrgEmailInvitation),
+    deleteLink: loggedInAndSignedUp(deleteLink),
     joinOrg: loggedInAndSignedUp(joinOrg),
     // Logged in users only
     updateUser: loggedIn(updateUser),
@@ -159,6 +169,9 @@ export const resolvers = {
       return "UnknownEntity";
     },
     history: entityFields.history,
+    links: entityFields.links,
+    linkedEntities: entityFields.linkedEntities,
+    linkedAggregations: entityFields.linkedAggregations,
   },
 
   EntityType: {

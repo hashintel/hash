@@ -1,14 +1,34 @@
 import { JSONObject } from "@hashintel/block-protocol";
-import merge from "lodash.merge";
-import { Entity, EntityType, EntityWithIncompleteEntityType } from ".";
+import { merge } from "lodash";
+import { Entity, EntityType, UnresolvedGQLEntityType } from ".";
 import { DBClient } from "../db";
 import {
   DBLinkedEntity,
   EntityMeta,
   EntityType as DbEntityType,
 } from "../db/adapter";
-import { Visibility } from "../graphql/apiTypes.gen";
+import {
+  Visibility,
+  Entity as GQLEntity,
+  UnknownEntity as GQLUnknownEntity,
+} from "../graphql/apiTypes.gen";
 import { SystemType } from "../types/entityTypes";
+
+export type EntityExternalResolvers =
+  | "entityType" // resolved in resolvers/entityTypeTypeFields
+  | "links" // resolved in resolvers/links
+  | "linkedEntities" // resolved in resolvers/linkedEntities
+  | "linkedAggregations" // resovled in resolvers/linkedAggregations
+  | "__typename";
+
+export type UnresolvedGQLEntity = Omit<GQLEntity, EntityExternalResolvers> & {
+  entityType: UnresolvedGQLEntityType;
+};
+
+export type UnresolvedGQLUnknownEntity = Omit<
+  GQLUnknownEntity,
+  EntityExternalResolvers
+> & { entityType: UnresolvedGQLEntityType };
 
 export type EntityConstructorArgs = {
   entityId: string;
@@ -172,18 +192,25 @@ class __Entity {
     },
   });
 
-  updateProperties = (client: DBClient) => (properties: any) =>
-    client
-      .updateEntity({
-        accountId: this.accountId,
-        entityId: this.entityId,
-        properties,
-      })
-      .then((updatedDbEntity) => {
-        merge(this, new Entity(updatedDbEntity));
+  protected updateProperties(client: DBClient) {
+    return (properties: any) =>
+      client
+        .updateEntity({
+          accountId: this.accountId,
+          entityId: this.entityId,
+          properties,
+        })
+        .then((updatedDbEntity) => {
+          merge(this, new Entity(updatedDbEntity));
 
-        return this;
-      });
+          return this.properties;
+        });
+  }
+
+  updateEntityProperties(client: DBClient) {
+    return (properties: JSONObject) =>
+      this.updateProperties(client)(properties);
+  }
 
   static acquireLock = (client: DBClient) => (args: { entityId: string }) =>
     client.acquireEntityLock(args);
@@ -214,7 +241,7 @@ class __Entity {
     return this;
   };
 
-  toGQLEntity = (): Omit<EntityWithIncompleteEntityType, "properties"> => ({
+  toGQLEntity = (): Omit<UnresolvedGQLEntity, "properties"> => ({
     id: this.entityVersionId,
     entityId: this.entityId,
     entityVersionId: this.entityVersionId,
@@ -232,7 +259,7 @@ class __Entity {
     visibility: this.visibility,
   });
 
-  toGQLUnknownEntity = (): EntityWithIncompleteEntityType => ({
+  toGQLUnknownEntity = (): UnresolvedGQLUnknownEntity => ({
     ...this.toGQLEntity(),
     properties: this.properties,
   });

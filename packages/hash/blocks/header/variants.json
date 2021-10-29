@@ -1,26 +1,50 @@
 [
   {
-    "name": "h1",
-    "description": "first level headline",
-    "icon": "path/to/icon.svg",
+    "name": "Heading 1",
+    "description": "For the largest (top-level) section headings",
+    "icon": "public/h1.svg",
     "properties": {
       "level": 1
     }
   },
   {
-    "name": "h2",
-    "description": "second level headline",
-    "icon": "path/to/icon.svg",
+    "name": "Heading 2",
+    "description": "For large section headings",
+    "icon": "public/h2.svg",
     "properties": {
       "level": 2
     }
   },
   {
-    "name": "h3",
-    "description": "third level headline",
-    "icon": "path/to/icon.svg",
+    "name": "Heading 3",
+    "description": "For medium-large section headings",
+    "icon": "public/h3.svg",
     "properties": {
       "level": 3
+    }
+  },
+  {
+    "name": "Heading 4",
+    "description": "For medium-sized section headings",
+    "icon": "public/h4.svg",
+    "properties": {
+      "level": 4
+    }
+  },
+  {
+    "name": "Heading 5",
+    "description": "For medium-small section headings",
+    "icon": "public/h5.svg",
+    "properties": {
+      "level": 5
+    }
+  },
+  {
+    "name": "Heading 6",
+    "description": "For small section headings",
+    "icon": "public/h6.svg",
+    "properties": {
+      "level": 6
     }
   }
 ]

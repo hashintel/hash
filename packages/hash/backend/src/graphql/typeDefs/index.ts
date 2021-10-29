@@ -3,6 +3,7 @@ import { gql } from "apollo-server-express";
 import { accountTypedef } from "./account.typedef";
 import { blockTypedef } from "./block.typedef";
 import { entityTypedef } from "./entity.typedef";
+import { linkTypedef } from "./link.typedef";
 import { entityTypeTypedef } from "./entityType.typedef";
 import { orgEmailInvitationTypedef } from "./orgEmailInvitation.typedef";
 import { orgInvitationLinkTypedef } from "./orgInvitationLink.typdef";
@@ -11,6 +12,7 @@ import { pageTypedef } from "./page.typedef";
 import { textTypedef } from "./text.typedef";
 import { userTypedef } from "./user.typedef";
 import { embedTypeDef } from "./embed.typedef";
+import { impliedHistoryTypedef } from "./impliedHistory.typedef";
 
 const baseSchema = gql`
   scalar Date
@@ -37,13 +39,15 @@ export const schema = [
   accountTypedef,
   baseSchema,
   blockTypedef,
+  embedTypeDef,
   entityTypedef,
+  linkTypedef,
   entityTypeTypedef,
+  impliedHistoryTypedef,
   orgEmailInvitationTypedef,
   orgInvitationLinkTypedef,
   orgTypedef,
   pageTypedef,
   textTypedef,
   userTypedef,
-  embedTypeDef,
 ];

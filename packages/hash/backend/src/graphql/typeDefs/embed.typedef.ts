@@ -4,6 +4,8 @@ export const embedTypeDef = gql`
   type Embed {
     html: String!
     providerName: String!
+    height: Int
+    width: Int!
   }
 
   extend type Query {

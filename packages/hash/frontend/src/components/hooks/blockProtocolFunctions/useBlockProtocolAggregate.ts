@@ -20,13 +20,25 @@ export const useBlockProtocolAggregate = (): {
 
   const aggregate: BlockProtocolAggregateFn = useCallback(
     (action) => {
-      aggregateFn({
-        variables: {
-          operation: action.operation,
-          entityTypeId: action.entityTypeId,
-          entityTypeVersionId: action.entityTypeVersionId,
-          accountId: action.accountId,
-        },
+      /**
+       * Temporary hack while useLazyQuery doesn't return anything.
+       * useLazyQuery should return a promise as of apollo-client 3.5
+       * @see https://github.com/apollographql/apollo-client/issues/7714
+       */
+      return new Promise((resolve, reject) => {
+        try {
+          aggregateFn({
+            variables: {
+              operation: action.operation,
+              entityTypeId: action.entityTypeId,
+              entityTypeVersionId: action.entityTypeVersionId,
+              accountId: action.accountId,
+            },
+          });
+          resolve([]);
+        } catch (err) {
+          reject(err);
+        }
       });
     },
     [aggregateFn]

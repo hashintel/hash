@@ -11,23 +11,20 @@ import Logo from "../../../../assets/svg/logo.svg";
 import { IconHash } from "../../../Icons/IconHash";
 import { IconKeyboardReturn } from "../../../Icons/IconKeyboardReturn";
 
-const options = [
-  {
-    label: "Google",
-  },
-  {
-    label: "Github",
-  },
-  {
-    label: "Google",
-  },
-  {
-    label: "Bitbucket",
-  },
-  {
-    label: "Okta",
-  },
-];
+// const options = [
+//   {
+//     label: "Google",
+//   },
+//   {
+//     label: "Github",
+//   },
+//   {
+//     label: "Bitbucket",
+//   },
+//   {
+//     label: "Okta",
+//   },
+// ];
 
 type LoginIntroProps = {
   requestLoginCode: (emailOrShortname: string) => void;
@@ -122,6 +119,7 @@ export const LoginIntro: VoidFunctionComponent<LoginIntroProps> = ({
           Create a free account
         </button>
 
+        {/* Don't display until sign-up with Google and Github are supported 
         <div className={tw`invisible`}>
           <p className={tw`mb-3.5`}>
             If you use SSO, or have previously linked your account to a
@@ -138,7 +136,7 @@ export const LoginIntro: VoidFunctionComponent<LoginIntroProps> = ({
               </button>
             ))}
           </div>
-        </div>
+        </div> */}
       </div>
     </div>
   );

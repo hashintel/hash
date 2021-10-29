@@ -1,9 +1,17 @@
 {
   "name": "@hashintel/block-html-para",
+  "version": "0.1.0",
+  "license": "MIT",
+  "blockprotocol": {
+    "displayName": "Inline HTML",
+    "icon": "public/html.svg"
+  },
   "prettier": "@hashintel/prettier-config",
   "scripts": {
-    "format": "prettier --write './src/**/*'",
-    "lint": "prettier --check './src/**/*' && eslint --ext .js,.ts,.tsx ./src/ || exit 1 # @hashintel/block-html-para",
+    "build": "echo \"@hashintel/block-html-para contains no resources to build\"",
+    "build:dev": "echo \"@hashintel/block-html-para contains no resources to build\"",
+    "format": "prettier --write './**/*.{html,json}'",
+    "lint": "prettier --check './**/*.{html,json}' && eslint --ext .js,.ts,.tsx,.json || exit 1 # @hashintel/block-html-para",
     "serve": "serve -C -l 5005"
   },
   "devDependencies": {

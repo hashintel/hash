@@ -3,11 +3,13 @@
 }
 
 .MainContent {
+  width: 80%;
   padding: 60px 80px;
   line-height: 140%;
   font-weight: 300;
   font-size: 17px;
   overflow-x: hidden;
+  flex: 1;
 
   h1,
   h2 {
@@ -21,7 +23,8 @@
   display: flex;
 
   > :first-child {
-    margin-right: 120px;
+    margin-right: 40px;
+    flex: 1;
   }
 
   label {
@@ -30,10 +33,5 @@
     font-size: 15px;
     margin-bottom: 5px;
     text-transform: uppercase;
-  }
-
-  h1 {
-    font-size: 24px;
-    font-weight: 500;
   }
 }

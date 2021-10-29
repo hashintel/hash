@@ -1,7 +1,7 @@
 .PageSidebar {
   min-height: 100vh;
   background: #f9fafc;
-  min-width: 260px;
+  width: 260px;
   padding: 60px 40px;
 }
 
@@ -27,6 +27,13 @@
 
 .SidebarList {
   div {
+    font-weight: 500;
+    color: black;
+    padding-bottom: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
     &:not(:last-child) {
       margin-bottom: 5px;
     }
@@ -34,12 +41,6 @@
 
   a {
     font-weight: 300;
-  }
-
-  div {
-    font-weight: 500;
-    color: black;
-    border-bottom: 3px solid transparent;
   }
 
   button {

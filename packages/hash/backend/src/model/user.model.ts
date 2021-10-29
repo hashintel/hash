@@ -1,3 +1,4 @@
+import { ApolloError } from "apollo-server-express";
 import {
   User,
   Account,
@@ -18,6 +19,13 @@ import {
 import { genId } from "../util";
 import { Email } from "../graphql/apiTypes.gen";
 import EmailTransporter from "../email/transporter";
+
+export const EMAIL_RATE_LIMITING_MAX_ATTEMPTS = 5;
+export const EMAIL_RATE_LIMITING_PERIOD_MS = 5 * 60 * 1000;
+
+export const getEmailRateLimitQueryTime = () => {
+  return new Date(Date.now() - EMAIL_RATE_LIMITING_PERIOD_MS);
+};
 
 type UserConstructorArgs = {
   properties: DBUserProperties;
@@ -88,16 +96,22 @@ class __User extends Account {
       return new User({ ...entity, properties });
     };
 
-  private updateUserProperties =
-    (client: DBClient) => (properties: DBUserProperties) =>
-      this.updateProperties(client)(properties);
+  updateProperties(client: DBClient) {
+    return (properties: DBUserProperties) =>
+      super
+        .updateProperties(client)(properties)
+        .then(() => {
+          this.properties = properties;
+          return properties;
+        });
+  }
 
   /**
    * Must occur in the same db transaction as when `this.properties` was fetched
    * to prevent overriding externally-updated properties
    */
   updateShortname = (client: DBClient) => async (updatedShortname: string) =>
-    this.updateUserProperties(client)({
+    this.updateProperties(client)({
       ...this.properties,
       shortname: updatedShortname,
     });
@@ -109,7 +123,7 @@ class __User extends Account {
    * to prevent overriding externally-updated properties
    */
   updatePreferredName = (client: DBClient) => (updatedPreferredName: string) =>
-    this.updateUserProperties(client)({
+    this.updateProperties(client)({
       ...this.properties,
       preferredName: updatedPreferredName,
     });
@@ -120,7 +134,7 @@ class __User extends Account {
    */
   updateInfoProvidedAtSignup =
     (client: DBClient) => (updatedInfo: UserInfoProvidedAtSignup) =>
-      this.updateUserProperties(client)({
+      this.updateProperties(client)({
         ...this.properties,
         infoProvidedAtSignup: {
           ...this.properties.infoProvidedAtSignup,
@@ -178,10 +192,12 @@ class __User extends Account {
         );
       }
 
-      return this.updateUserProperties(client)({
+      await this.updateProperties(client)({
         ...this.properties,
         emails: [...this.properties.emails, email],
       });
+
+      return this;
     };
 
   /**
@@ -195,7 +211,7 @@ class __User extends Account {
       );
     }
 
-    return this.updateUserProperties(client)({
+    return this.updateProperties(client)({
       ...this.properties,
       emails: this.properties.emails.map((email) =>
         email.address === emailAddress ? { ...email, verified: true } : email
@@ -223,6 +239,14 @@ class __User extends Account {
             `User with entityId '${this.entityId}' hasn't verified the email address '${alternateEmailAddress}'`
           );
         }
+      }
+
+      const allowed = await this.canCreateVerificationCode(client)();
+      if (!allowed) {
+        throw new ApolloError(
+          `User with id ${this.entityId} has created too many verification codes recently.`,
+          "FORBIDDEN"
+        );
       }
 
       const emailAddress =
@@ -260,6 +284,14 @@ class __User extends Account {
         );
       }
 
+      const allowed = await this.canCreateVerificationCode(client)();
+      if (!allowed) {
+        throw new ApolloError(
+          `User with id ${this.entityId} has created too many verification codes recently.`,
+          "FORBIDDEN"
+        );
+      }
+
       const verificationCode = await VerificationCode.create(client)({
         accountId: this.accountId,
         userId: this.entityId,
@@ -273,6 +305,18 @@ class __User extends Account {
       }).then(() => verificationCode);
     };
 
+  canCreateVerificationCode = (client: DBClient) => async () => {
+    const createdAfter = getEmailRateLimitQueryTime();
+    const verificationCodes = await client.getUserVerificationCodes({
+      userEntityId: this.entityId,
+      createdAfter,
+    });
+    if (verificationCodes.length >= EMAIL_RATE_LIMITING_MAX_ATTEMPTS) {
+      return false;
+    }
+    return true;
+  };
+
   isMemberOfOrg = ({ entityId }: Org) =>
     this.properties.memberOf.find(
       ({ org }) => org.__linkedData.entityId === entityId
@@ -283,13 +327,15 @@ class __User extends Account {
    * to prevent overriding externally-updated properties
    */
   joinOrg =
-    (client: DBClient) => (params: { org: Org; responsibility: string }) => {
+    (client: DBClient) =>
+    async (params: { org: Org; responsibility: string }) => {
       if (this.isMemberOfOrg(params.org)) {
         throw new Error(
           `User with entityId '${this.entityId}' is already a member of the organization with entityId '${params.org.entityId}'`
         );
       }
-      return this.updateUserProperties(client)({
+
+      await this.updateProperties(client)({
         ...this.properties,
         memberOf: [
           ...this.properties.memberOf,
@@ -299,6 +345,8 @@ class __User extends Account {
           },
         ],
       });
+
+      return this;
     };
 }
 

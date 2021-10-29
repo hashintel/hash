@@ -1,56 +1,10 @@
 import type { BlockVariant } from "@hashintel/block-protocol";
-import type { ReplacePortals } from "@hashintel/hash-shared/sharedWithBackend";
-import { ResolvedPos } from "prosemirror-model";
-import { EditorState, Plugin } from "prosemirror-state";
-import React, { CSSProperties, useContext, VoidFunctionComponent } from "react";
-import { tw } from "twind";
-import { BlockMetaContext } from "../../blocks/blockMeta";
+import { ResolvedPos, Schema } from "prosemirror-model";
+import { EditorState, Plugin, PluginKey } from "prosemirror-state";
+import React, { CSSProperties } from "react";
+import { RenderPortal } from "../../blocks/page/usePortals";
 import { ensureMounted } from "../../lib/dom";
-
-/**
- * used to present list of blocks to choose from to the user
- */
-export const BlockSuggester: VoidFunctionComponent = () => {
-  const blocksMeta = useContext(BlockMetaContext);
-
-  // flatMap blocks' variants
-  const options = Array.from(blocksMeta.values()).flatMap(
-    (blockMeta) => blockMeta.componentMetadata.variants ?? []
-  );
-
-  // @todo implement interactivity for selection
-  const selectedIndex = 0;
-  const onChange = (_option: BlockVariant, _index: number) => {};
-
-  return (
-    <ul
-      className={tw`absolute z-10 w-96 max-h-60 overflow-auto border border-gray-100 rounded-lg shadow-md`}
-    >
-      {options.map(({ name, icon, description }, index) => (
-        // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions
-        <li
-          key={name}
-          className={tw`flex border border-gray-100 ${
-            index !== selectedIndex ? "bg-gray-50" : "bg-gray-100"
-          } hover:bg-gray-100`}
-          onClick={() =>
-            index !== selectedIndex && onChange(options[index], index)
-          }
-        >
-          <div className={tw`flex w-16 items-center justify-center`}>
-            <img className={tw`w-6 h-6`} alt={name} src={icon} />
-          </div>
-          <div className={tw`py-3`}>
-            <p className={tw`text-sm font-bold`}>{name}</p>
-            <p className={tw`text-xs text-opacity-60 text-black`}>
-              {description}
-            </p>
-          </div>
-        </li>
-      ))}
-    </ul>
-  );
-};
+import { BlockSuggester } from "./BlockSuggester";
 
 interface Trigger {
   /** matched search string including its leading slash */
@@ -64,7 +18,7 @@ interface Trigger {
 /**
  * used to find a string triggering the suggester plugin
  */
-const findTrigger = (state: EditorState): Trigger | null => {
+const findTrigger = (state: EditorState<Schema>): Trigger | null => {
   // @ts-expect-error: only empty TextSelection has a $cursor
   const cursor: ResolvedPos = state.selection.$cursor;
   if (!cursor) return null;
@@ -79,12 +33,10 @@ const findTrigger = (state: EditorState): Trigger | null => {
   const parentPos = cursor.pos - cursorPos;
 
   // see if we can find a slash looking backwards
-  const from = text.lastIndexOf("/", cursorPos - 1);
-  if (from < 0) return null;
+  const slashMatch = text.substring(0, cursorPos).match(/\/\S*$/);
+  if (!slashMatch) return null;
 
-  // assert that there's no whitespace between the slash and the cursor
-  const fromSlashToCursor = text.substring(from, cursorPos);
-  if (/\s/.test(fromSlashToCursor)) return null;
+  const from = slashMatch.index!;
 
   // match upto the first whitespace character or the end of the node
   const to = cursorPos + text.substring(cursorPos).search(/\s|$/g);
@@ -96,52 +48,79 @@ const findTrigger = (state: EditorState): Trigger | null => {
   };
 };
 
+type SuggesterAction = { type: "escape" };
+
 interface SuggesterState {
   /** whether or not the suggester is disabled */
   disabled: boolean;
-  /** whether or not the popup is opened */
-  open: boolean;
   /** the suggester's current trigger */
   trigger: Trigger | null;
+  /** whether or not the suggester is currently open */
+  isOpen(): boolean;
 }
+
+/**
+ * used to tag the suggester plugin/make it a singleton
+ * @see https://prosemirror.net/docs/ref/#state.PluginKey
+ */
+const key = new PluginKey<SuggesterState, Schema>("suggester");
 
 /**
  * Suggester plugin factory
  *
  * Behaviour:
- * Typing a slash followed by any number of non-whitespace characters will activate the plugin and
- * open a popup right under the "textual trigger". Moving the cursor outside the trigger will close
- * the popup. Pressing the Escape-key while inside the trigger will disable the plugin until a
- * trigger is newly encountered (e.g. by leaving/deleting and reentering/retyping a trigger).
+ * Typing a slash followed by any number of non-whitespace characters will
+ * activate the plugin and open a popup right under the "textual trigger".
+ * Moving the cursor outside the trigger will close the popup. Pressing the
+ * Escape-key while inside the trigger will disable the plugin until a trigger
+ * is newly encountered (e.g. by leaving/deleting and reentering/retyping a
+ * trigger).
  */
-export const createBlockSuggester = (replacePortal: ReplacePortals) => {
-  const plugin = new Plugin<SuggesterState>({
+export const createBlockSuggester = (renderPortal: RenderPortal) =>
+  new Plugin<SuggesterState, Schema>({
+    key,
     state: {
       init() {
-        return { open: false, trigger: null, disabled: false };
+        return {
+          trigger: null,
+          disabled: false,
+          isOpen() {
+            return this.trigger !== null && !this.disabled;
+          },
+        };
       },
-      apply(tr, state, _prevEitorState, nextEditorState) {
-        const action = tr.getMeta(plugin);
+      /** produces a new state from the old state and incoming transactions (cf. reducer) */
+      apply(tr, state, _prevEditorState, nextEditorState) {
+        const action: SuggesterAction | undefined = tr.getMeta(key);
 
-        if (action?.type === "escape") {
-          return { ...state, open: false, disabled: true };
+        switch (action?.type) {
+          case "escape":
+            return { ...state, disabled: true };
         }
 
         const trigger = findTrigger(nextEditorState);
         const disabled = state.disabled && trigger !== null;
-        const open = !disabled && trigger !== null;
 
-        return { open, trigger, disabled };
+        return { ...state, trigger, disabled };
       },
     },
     props: {
-      handleKeyDown(view, event) {
-        switch (event.key) {
-          case "Escape":
-            view.dispatch(view.state.tr.setMeta(plugin, { type: "escape" }));
-        }
-
-        return false;
+      /** cannot use EditorProps.handleKeyDown because it doesn't capture all keys (notably Enter) */
+      handleDOMEvents: {
+        keydown(view, event) {
+          switch (event.key) {
+            // stop prosemirror from handling these keyboard events while the suggester handles them
+            case "Enter":
+            case "ArrowUp":
+            case "ArrowDown":
+              return this.getState(view.state).isOpen();
+            case "Escape":
+              view.dispatch(view.state.tr.setMeta(key, { type: "escape" }));
+              return false;
+            default:
+              return false;
+          }
+        },
       },
     },
     view() {
@@ -149,11 +128,12 @@ export const createBlockSuggester = (replacePortal: ReplacePortals) => {
 
       return {
         update(view) {
-          const { open, trigger } = plugin.getState(view.state);
+          const state = key.getState(view.state)!;
 
-          if (!open) return this.destroy!();
+          if (!state.isOpen()) return this.destroy!();
 
-          const coords = view.coordsAtPos(trigger!.from);
+          const { from, to, search } = state.trigger!;
+          const coords = view.coordsAtPos(from);
 
           const style: CSSProperties = {
             position: "absolute",
@@ -161,22 +141,33 @@ export const createBlockSuggester = (replacePortal: ReplacePortals) => {
             left: coords.left + document.documentElement.scrollLeft,
           };
 
+          /**
+           * @todo actually create and insert an instance of the selected block
+           *   type variant
+           */
+          const onChange = (variant: BlockVariant) => {
+            const replacement = view.state.schema.text(
+              `[${variant.displayName}]`
+            );
+            view.dispatch(view.state.tr.replaceWith(from, to, replacement));
+          };
+
           const jsx = (
             <div style={style}>
-              <BlockSuggester />
+              <BlockSuggester
+                search={search.substring(1)}
+                onChange={onChange}
+              />
             </div>
           );
 
           ensureMounted(mountNode, document.body);
-          replacePortal(mountNode, mountNode, jsx);
+          renderPortal(jsx, mountNode);
         },
         destroy() {
-          replacePortal(mountNode, null, null);
+          renderPortal(null, mountNode);
           mountNode.remove();
         },
       };
     },
-  });
-
-  return plugin;
-};
+  }) as Plugin<unknown, Schema>;
