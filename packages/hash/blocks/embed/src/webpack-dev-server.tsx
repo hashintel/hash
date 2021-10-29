@@ -9,6 +9,7 @@ import {
   BlockProtocolUpdateFn,
   BlockProtocolUpdatePayload,
 } from "@hashintel/block-protocol";
+import { apiGraphQLEndpoint } from "@hashintel/hash-shared/environment";
 
 import Component from "./index";
 import { ProviderNames } from "./types";
@@ -25,7 +26,7 @@ async function getEmbedBlock(
   height?: number;
   width?: number;
 }> {
-  return fetch("http://localhost:5001/graphql", {
+  return fetch(apiGraphQLEndpoint, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
