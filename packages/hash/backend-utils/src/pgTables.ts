@@ -16,7 +16,7 @@ export class EntityVersion {
     public updatedAt: Date
   ) {}
 
-  static parseFromRow(row: Record<string, unknown>): EntityVersion {
+  private static parseFromRow(row: Record<string, unknown>): EntityVersion {
     return {
       accountId: row.account_id as string,
       entityId: row.entity_id as string,

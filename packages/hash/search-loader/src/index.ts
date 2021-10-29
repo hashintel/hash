@@ -8,7 +8,7 @@ import { getRequiredEnv } from "@hashintel/hash-backend-utils/env";
 import { GracefulShutdown } from "@hashintel/hash-backend-utils/shutdown";
 import { Wal2JsonMsg } from "@hashintel/hash-backend-utils/wal2json";
 import { EntityVersion } from "@hashintel/hash-backend-utils/pgTables";
-import { waitFor } from "@hashintel/hash-backend-utils/timers";
+import { Repeater, waitFor } from "@hashintel/hash-backend-utils/timers";
 import {
   createPostgresConnPool,
   PgPool,
@@ -287,10 +287,17 @@ const main = async () => {
   // Note: must `.release()` ownership before closing the Redis connection.
   const queue = new RedisQueueExclusiveConsumer(redis);
   logger.info(`Acquiring read ownership on queue "${SEARCH_QUEUE_NAME}" ...`);
-  if (!(await queue.acquire(SEARCH_QUEUE_NAME, null))) {
-    logger.error(`Could not acquire queue "${SEARCH_QUEUE_NAME}"`);
-    return;
-  }
+  const repeater = new Repeater(async () => {
+    const res = await queue.acquire(SEARCH_QUEUE_NAME, 5_000);
+    if (!res) {
+      logger.info(
+        "Queue is owned by another consumer. Attempting to acquire ownership again ..."
+      );
+    }
+    return res;
+  });
+  shutdown.addCleanup("repeater", async () => repeater.stop());
+  await repeater.start();
   queueAcquired = true;
   logger.info("Queue acquired");
   shutdown.addCleanup("queue ownership", async () => queue.release());
