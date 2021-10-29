@@ -1,3 +1,9 @@
+/**
+ * `import "./loadEnv";` has to come before importing anything from the backend,
+ * to ensure that required environment variables have been loaded.
+ */
+import "./loadEnv";
+
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { PostgresAdapter } from "@hashintel/hash-backend/src/db";
 import {
@@ -11,7 +17,6 @@ import {
 
 import { createOrgs, createUsers } from "./accounts";
 import { SystemTypeName } from "../graphql/apiTypes.gen";
-import "./loadEnv";
 
 export {};
 
