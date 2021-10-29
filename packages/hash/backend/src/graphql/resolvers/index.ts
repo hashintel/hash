@@ -51,6 +51,8 @@ import { createOrgEmailInvitation } from "./org/createOrgEmailInvitation";
 import { getOrgEmailInvitation } from "./org/getOrgEmailInvitation";
 import { getOrgInvitationLink } from "./org/getOrgInvitationLink";
 import { joinOrg } from "./user/joinOrg";
+import { fileFields } from "./file";
+import { requestFileUpload } from "./file/requestFileUpload";
 
 const loggedIn =
   (next: any) => (obj: any, args: any, ctx: GraphQLContext, info: any) => {
@@ -115,6 +117,7 @@ export const resolvers = {
     updatePageContents: loggedInAndSignedUp(updatePageContents),
     deleteLink: loggedInAndSignedUp(deleteLink),
     joinOrg: loggedInAndSignedUp(joinOrg),
+    requestFileUpload: loggedInAndSignedUp(requestFileUpload),
     // Logged in users only
     updateUser: loggedIn(updateUser),
     logout: loggedIn(logout),
@@ -143,6 +146,10 @@ export const resolvers = {
 
   Org: {
     properties: entityFields.properties,
+  },
+
+  FileProperties: {
+    url: fileFields.url,
   },
 
   OrgEmailInvitation: {

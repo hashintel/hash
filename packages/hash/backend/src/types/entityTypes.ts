@@ -5,6 +5,7 @@ export const SYSTEM_TYPES = [
   "Page",
   "Text",
   "User",
+  "File",
   "OrgInvitationLink",
   "OrgEmailInvitation",
 ] as const;

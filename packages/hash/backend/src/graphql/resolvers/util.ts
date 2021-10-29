@@ -36,6 +36,8 @@ export const createEntityArgsBuilder = (params: {
   versioned: boolean;
   entityTypeId?: string | null;
   entityTypeVersionId?: string | null;
+  entityId?: string;
+  entityVersionId?: string;
   systemTypeName?: string | null;
 }): CreateEntityArgs => {
   if (
@@ -70,6 +72,12 @@ export const createEntityArgsBuilder = (params: {
     args = { ..._args, systemTypeName: params.systemTypeName };
   } else {
     throw new Error("unreachable");
+  }
+  if (params.entityId) {
+    args.entityId = params.entityId;
+  }
+  if (params.entityVersionId) {
+    args.entityVersionId = params.entityVersionId;
   }
 
   return args;

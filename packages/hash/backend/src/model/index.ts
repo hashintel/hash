@@ -7,6 +7,7 @@ import Org from "./org.model";
 import AccessToken from "./accessToken.model";
 import OrgInvitationLink from "./orgInvitationLink.model";
 import OrgEmailInvitation from "./orgEmailInvitation.model";
+import File from "./file.model";
 
 export * from "./entityType.model";
 export { EntityType };
@@ -35,3 +36,6 @@ export { OrgInvitationLink };
 
 export * from "./orgEmailInvitation.model";
 export { OrgEmailInvitation };
+
+export * from "./file.model";
+export { File };

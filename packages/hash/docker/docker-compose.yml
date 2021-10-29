@@ -61,6 +61,7 @@ services:
             - AWS_REGION=${AWS_REGION}
             - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
             - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+            - AWS_S3_UPLOADS_BUCKET=${AWS_S3_UPLOADS_BUCKET}
         # Wait until the database is running before starting the API
         command: ["wait-for-it", "-h", "hash-dev-pg", "-p", "5432", "-s", "-t", "30", "--", "./start.sh"]
         volumes:
