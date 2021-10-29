@@ -225,6 +225,7 @@ export const entityTypedef = gql`
   }
 
   type AggregateOperation {
+    entityTypeId: ID!
     multiFilter: MultiFilterOperation
     multiSort: [SortOperation!]!
     itemsPerPage: Int!

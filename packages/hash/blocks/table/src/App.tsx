@@ -129,7 +129,7 @@ export const App: BlockComponent<AppProps> = ({
   const handleUpdate = useCallback(
     ({ operation, multiFilter, multiSort, itemsPerPage }: AggregateArgs) => {
       if (!update || !tableData.__linkedData) return;
-      
+
       const newLinkedData = omitTypenameDeep(tableData.__linkedData);
       const newState = { hiddenColumns: initialState?.hiddenColumns };
 
@@ -171,7 +171,7 @@ export const App: BlockComponent<AppProps> = ({
         },
       ]);
     },
-    [update, data, entityId, initialState]
+    [update, tableData.__linkedData, entityId, initialState]
   );
 
   const updateRemoteHiddenColumns = (hiddenColumns: string[]) => {
