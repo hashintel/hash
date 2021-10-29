@@ -21,17 +21,19 @@ export const useBlockProtocolCreate = (): {
   const create: BlockProtocolCreateFn = useCallback(
     (actions) =>
       Promise.all(
-        actions.map((action) =>
-          createFn({
+        actions.map((action) => {
+          if (!action.accountId) {
+            throw new Error(`accountId was not provided for create action.`);
+          }
+          return createFn({
             variables: {
               properties: action.data,
               entityTypeId: action.entityTypeId,
               entityTypeVersionId: action.entityTypeVersionId,
-              accountId: action.pageAccountId,
-              createdById: action.userId,
+              accountId: action.accountId,
             },
-          }).then(({ data }) => data?.createEntity)
-        )
+          }).then(({ data }) => data?.createEntity);
+        })
       ),
     [createFn]
   );

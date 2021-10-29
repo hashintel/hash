@@ -14,9 +14,6 @@ export const createPage: Resolver<
   LoggedInGraphQLContext,
   MutationCreatePageArgs
 > = async (_, { accountId, properties }, ctx, info) => {
-  const { user } = ctx;
-  const createdById = user.entityId;
-
   // @todo: generate all of the entity IDs up-front and create all entities below
   // concurrently (may need to defer FK constraints).
 
@@ -26,7 +23,6 @@ export const createPage: Resolver<
       {},
       {
         accountId,
-        createdById,
         systemTypeName: SystemTypeName[type],
         properties: entityProperties,
         versioned: true,
