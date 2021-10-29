@@ -16,15 +16,23 @@ const shortnameConstraints = {
   type: "string",
 };
 
+type SchemaProperty = {
+  type?: string;
+  $ref?: string;
+  description?: string;
+  items?: SchemaProperty;
+  properties?: Record<string, SchemaProperty>;
+};
+
+type PartialSchema = SchemaProperty & {
+  required: string[];
+  $defs?: Record<string, PartialSchema>;
+};
 // @todo add the remaining schemas for each system type
 //    the EntityType schema will probably be the general purpose JSON meta schema
 //    https://json-schema.org/specification.html
 const systemTypeSchemas: {
-  [key: string]: {
-    description: string;
-    properties: any;
-    required: string[];
-  };
+  [key: string]: PartialSchema;
 } = {
   Org: {
     description: "An organization account in a HASH.dev instance.",
@@ -67,7 +75,11 @@ const systemTypeSchemas: {
         },
       },
       memberOf: {
-        $ref: schemaId("Org"),
+        description: "Details of org membership(s).",
+        type: "array",
+        items: {
+          $ref: "#/$defs/orgMembership",
+        },
       },
       shortname: {
         ...shortnameConstraints,
@@ -79,6 +91,24 @@ const systemTypeSchemas: {
       },
     },
     required: ["emails"],
+
+    $defs: {
+      orgMembership: {
+        description: "Metadata on membership of an org.",
+        type: "object",
+        properties: {
+          org: {
+            description: "A reference to the org itself.",
+            $ref: schemaId("Org"),
+          },
+          role: {
+            description: "The role of the user in the org",
+            type: "string",
+          },
+        },
+        required: ["org", "role"],
+      },
+    },
   },
 };
 
