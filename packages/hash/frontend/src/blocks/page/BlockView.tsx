@@ -1,11 +1,16 @@
-import { history } from "@hashintel/hash-shared/history";
+import { BlockVariant } from "@hashintel/block-protocol";
+import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { ProsemirrorNode } from "@hashintel/hash-shared/node";
+import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { Schema } from "prosemirror-model";
 import { NodeSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
 import React, { createRef, forwardRef, useEffect, useState } from "react";
 import { tw } from "twind";
-import { BlockSuggester } from "../../components/BlockSuggester/BlockSuggester";
+import {
+  BlockSuggester,
+  BlockSuggesterProps,
+} from "../../components/BlockSuggester/BlockSuggester";
 import DragVertical from "../../components/Icons/DragVertical";
 import styles from "./style.module.css";
 import { RenderPortal } from "./usePortals";
@@ -13,7 +18,10 @@ import { RenderPortal } from "./usePortals";
 /**
  * specialized block-type/-variant select field
  */
-export const BlockHandle = forwardRef<HTMLDivElement>((_, ref) => {
+export const BlockHandle = forwardRef<
+  HTMLDivElement,
+  { onTypeChange: BlockSuggesterProps["onChange"] }
+>(({ onTypeChange }, ref) => {
   const [isPopoverVisible, setPopoverVisible] = useState(false);
 
   useEffect(() => {
@@ -30,13 +38,7 @@ export const BlockHandle = forwardRef<HTMLDivElement>((_, ref) => {
           setPopoverVisible(true);
         }}
       />
-      {isPopoverVisible && (
-        <BlockSuggester
-          onChange={() => {
-            throw new Error("not yet implemented");
-          }}
-        />
-      )}
+      {isPopoverVisible ? <BlockSuggester onChange={onTypeChange} /> : null}
     </div>
   );
 });
@@ -61,7 +63,8 @@ export class BlockView implements NodeView<Schema> {
     public node: ProsemirrorNode<Schema>,
     public view: EditorView<Schema>,
     public getPos: () => number,
-    public renderPortal: RenderPortal
+    public renderPortal: RenderPortal,
+    public manager: ProsemirrorSchemaManager
   ) {
     this.dom = document.createElement("div");
     this.dom.classList.add(styles.Block);
@@ -139,26 +142,12 @@ export class BlockView implements NodeView<Schema> {
 
     this.node = blockNode;
 
-    const node = blockNode.child(0);
-    const container = this.selectContainer;
-
-    /**
-     * We don't need to inject any custom UI around async nodes, but for
-     * simplicity they are still wrapped with block node views. Let's just
-     * hide the custom UI in these instances.
-     */
-    if (node.type.name === "async") {
-      container.style.display = "none";
-    } else {
-      container.style.display = "";
-    }
-
     /**
      * Ensure that a user cannot type inside the custom UI container
      *
      * @todo see if this is necessary
      */
-    container.contentEditable = "false";
+    this.selectContainer.contentEditable = "false";
 
     /**
      * This removes the outline that prosemirror has when a node is
@@ -192,9 +181,9 @@ export class BlockView implements NodeView<Schema> {
             this.allowDragging = true;
 
             this.dragging = true;
-            const tr = this.view.state.tr;
-
             this.dom.classList.add(styles["Block--dragging"]);
+
+            const { tr } = this.view.state;
 
             /**
              * By triggering a selection of the node, we can ensure
@@ -211,9 +200,12 @@ export class BlockView implements NodeView<Schema> {
           }}
           onClick={this.onDragEnd}
         />
-        <BlockHandle ref={this.blockHandleRef} />
+        <BlockHandle
+          ref={this.blockHandleRef}
+          onTypeChange={this.onBlockChange}
+        />
       </>,
-      container
+      this.selectContainer
     );
 
     return true;
@@ -226,35 +218,28 @@ export class BlockView implements NodeView<Schema> {
   }
 
   /**
-   * This begins the two part process of converting from one block type to
-   * another – the second half is carried out by AsyncView's update function
-   *
    * @todo restore the ability to load in new block types here
-   * @todo this will revert the text content of a block back to what it was
-   *       when you last saved – we need to fix this
    */
-  onBlockChange = ([componentId]: [string]) => {
+  onBlockChange = (variant: BlockVariant, meta: BlockMeta) => {
     const { node, view, getPos } = this;
 
-    history.disableTracking(view);
-
     const state = view.state;
-    const tr = state.tr;
     const child = state.doc.resolve(getPos() + 1).nodeAfter;
-    const newNode = state.schema.nodes.async.create({
-      targetComponentId: componentId,
-      entityId: child?.attrs.entityId ?? null,
-    });
+    const draftId = child?.attrs.draftId;
 
-    const pos = getPos();
+    if (!draftId) {
+      throw new Error("Cannot switch node without draft id");
+    }
 
-    tr.replaceRangeWith(pos + 1, pos + 1 + node.content.size, newNode);
-
-    const selection = NodeSelection.create<Schema>(tr.doc, tr.mapping.map(pos));
-
-    tr.setSelection(selection);
-
-    view.dispatch(tr);
-    view.focus();
+    this.manager
+      .replaceNodeWithRemoteBlock(
+        draftId,
+        meta.componentMetadata.componentId,
+        node,
+        getPos
+      )
+      .catch((err) => {
+        console.error(err);
+      });
   };
 }

@@ -45,7 +45,7 @@ const ensureEntitiesAreWrapped = (
      * This position may already be wrapped – due to blocks merging
      */
     if (
-      node.type !== schema.nodes.async &&
+      node.type !== schema.nodes.blank &&
       parent.type === schema.nodes.doc &&
       (wrapperNodes || node.type !== schema.nodes.block)
     ) {
@@ -56,19 +56,23 @@ const ensureEntitiesAreWrapped = (
       }
 
       /**
-       * @todo we won't need this once we remove entityId from the component
-       *       node
+       * @todo we won't need this once we remove blockEntityId from the
+       *       component node
        */
-      if (!wrapperNodes) {
+      if (wrappers && !wrapperNodes) {
         tr.setNodeMarkup(tr.mapping.map(position), undefined, {
-          entityId: null,
+          blockEntityId: null,
         });
       }
 
       const DEFAULT_WRAPPERS = [{ type: schema.nodes.block }];
 
-      if (node.type !== schema.nodes.enitity) {
-        DEFAULT_WRAPPERS.push({ type: schema.nodes.entity });
+      // @todo when would entity be at the top level?
+      if (node.type !== schema.nodes.entity) {
+        DEFAULT_WRAPPERS.push(
+          { type: schema.nodes.entity },
+          { type: schema.nodes.entity }
+        );
       }
 
       tr.wrap(

@@ -1,22 +1,15 @@
 import { useApolloClient } from "@apollo/client";
 import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
-import { createEntityStore } from "@hashintel/hash-shared/entityStore";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { Schema } from "prosemirror-model";
 import { EditorView } from "prosemirror-view";
 import "prosemirror-view/style/prosemirror.css";
-import React, {
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  VoidFunctionComponent,
-} from "react";
+import React, { useLayoutEffect, useRef, VoidFunctionComponent } from "react";
 import { BlockMetaContext } from "../blockMeta";
 import { EditorConnection } from "./collab/EditorConnection";
 import { collabEnabled } from "./collabEnabled";
 import { createEditorView } from "./createEditorView";
-import { EntityStoreContext } from "./EntityStoreContext";
 import { usePortals } from "./usePortals";
 
 type PageBlockProps = {
@@ -59,26 +52,6 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   }, [contents]);
 
   /**
-   * There's a potential minor problem here which is that entity store is
-   * updated before prosemirror's tree has yet updated to apply the new
-   * contents, meaning they can become out of sync. This shouldn't be a problem
-   * unless/until the ids used to link between PM and entity store are
-   * inconsistent between saves (i.e, if they're versioned linked). This is
-   * because any deletions from contents are driven by PM, meaning that by the
-   * time they disappear from the entity store, they've already been deleted
-   * from the PM tree by the user
-   */
-  const entityStoreValue = useMemo(
-    () => createEntityStore(contents),
-    [contents]
-  );
-
-  const currentEntityStoreValue = useRef(entityStoreValue);
-  useLayoutEffect(() => {
-    currentEntityStoreValue.current = entityStoreValue;
-  }, [entityStoreValue]);
-
-  /**
    * This effect runs once and just sets up the prosemirror instance. It is not
    * responsible for setting the contents of the prosemirror document
    */
@@ -97,7 +70,6 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       accountId,
       entityId,
       Array.from(blocksMeta.values()),
-      () => currentEntityStoreValue.current,
       () => currentContents.current,
       client
     );
@@ -170,10 +142,8 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
 
   return (
     <BlockMetaContext.Provider value={blocksMeta}>
-      <EntityStoreContext.Provider value={entityStoreValue}>
-        <div id="root" ref={root} />
-        {portals}
-      </EntityStoreContext.Provider>
+      <div id="root" ref={root} />
+      {portals}
     </BlockMetaContext.Provider>
   );
 };

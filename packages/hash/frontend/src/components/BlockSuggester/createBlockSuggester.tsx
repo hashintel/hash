@@ -1,6 +1,16 @@
 import type { BlockVariant } from "@hashintel/block-protocol";
+import {
+  blockComponentRequiresText,
+  BlockMeta,
+} from "@hashintel/hash-shared/blockMeta";
+import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { ResolvedPos, Schema } from "prosemirror-model";
-import { EditorState, Plugin, PluginKey } from "prosemirror-state";
+import {
+  EditorState,
+  Plugin,
+  PluginKey,
+  TextSelection,
+} from "prosemirror-state";
 import React, { CSSProperties } from "react";
 import { RenderPortal } from "../../blocks/page/usePortals";
 import { ensureMounted } from "../../lib/dom";
@@ -76,7 +86,10 @@ const key = new PluginKey<SuggesterState, Schema>("suggester");
  * is newly encountered (e.g. by leaving/deleting and reentering/retyping a
  * trigger).
  */
-export const createBlockSuggester = (renderPortal: RenderPortal) =>
+export const createBlockSuggester = (
+  renderPortal: RenderPortal,
+  getManager: () => ProsemirrorSchemaManager
+) =>
   new Plugin<SuggesterState, Schema>({
     key,
     state: {
@@ -145,11 +158,28 @@ export const createBlockSuggester = (renderPortal: RenderPortal) =>
            * @todo actually create and insert an instance of the selected block
            *   type variant
            */
-          const onChange = (variant: BlockVariant) => {
-            const replacement = view.state.schema.text(
-              `[${variant.displayName}]`
-            );
-            view.dispatch(view.state.tr.replaceWith(from, to, replacement));
+          const onChange = (variant: BlockVariant, meta: BlockMeta) => {
+            getManager()
+              .createRemoteBlock(meta.componentMetadata.componentId)
+              .then((node) => {
+                const $end = view.state.doc.resolve(to);
+
+                const { tr } = view.state;
+                const endPosition = $end.end(1);
+                tr.insert(endPosition, node);
+
+                if (blockComponentRequiresText(meta.componentSchema)) {
+                  tr.setSelection(
+                    TextSelection.create<Schema>(tr.doc, endPosition)
+                  );
+                }
+                tr.replaceWith(from, to, []);
+
+                view.dispatch(tr);
+              })
+              .catch((err) => {
+                console.error(err);
+              });
           };
 
           const jsx = (

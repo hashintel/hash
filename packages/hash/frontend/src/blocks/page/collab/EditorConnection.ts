@@ -1,5 +1,5 @@
+import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
 import { ProsemirrorNode } from "@hashintel/hash-shared/node";
-import { createProseMirrorState } from "@hashintel/hash-shared/prosemirror";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import {
   collab,

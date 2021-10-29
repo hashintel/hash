@@ -286,40 +286,6 @@ void (async () => {
   await createEntities(
     new Map<string, CreateEntityMapValue>([
       [
-        "header1",
-        {
-          properties: {
-            level: 2,
-            text: {
-              __linkedData: {
-                entityTypeId: SystemTypeName.Text,
-                entityId: results.get("header1text")!.entityId,
-              },
-            },
-          },
-          entityTypeId: newTypeIds.Header,
-          accountId: user.accountId,
-          createdById: user.entityId,
-        },
-      ],
-      [
-        "header2",
-        {
-          properties: {
-            level: 2,
-            text: {
-              __linkedData: {
-                entityTypeId: SystemTypeName.Text,
-                entityId: results.get("header2text")!.entityId,
-              },
-            },
-          },
-          entityTypeId: newTypeIds.Header,
-          accountId: user.accountId,
-          createdById: user.entityId,
-        },
-      ],
-      [
         "place1",
         {
           properties: {
@@ -645,8 +611,8 @@ void (async () => {
         {
           properties: {
             componentId: "https://block.blockprotocol.org/header",
-            entityId: results.get("header1")!.entityId,
-            accountId: results.get("header1")!.accountId,
+            entityId: results.get("header1text")!.entityId,
+            accountId: results.get("header1text")!.accountId,
           },
           createdById: user.entityId,
           accountId: hashOrg.accountId,
@@ -736,8 +702,8 @@ void (async () => {
         {
           properties: {
             componentId: "https://block.blockprotocol.org/header",
-            entityId: results.get("header2")!.entityId,
-            accountId: results.get("header2")!.accountId,
+            entityId: results.get("header2text")!.entityId,
+            accountId: results.get("header2text")!.accountId,
           },
           createdById: user.entityId,
           accountId: hashOrg.accountId,

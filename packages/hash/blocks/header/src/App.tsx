@@ -1,6 +1,5 @@
-import React, { RefCallback } from "react";
-
 import { BlockComponent } from "@hashintel/block-protocol/react";
+import React, { RefCallback } from "react";
 
 type AppProps = {
   color?: string;
@@ -8,6 +7,10 @@ type AppProps = {
   editableRef?: RefCallback<HTMLElement>;
 };
 
+/**
+ * @todo restore heading level variants when links are handled by the
+ *       frontend properly
+ */
 export const App: BlockComponent<AppProps> = ({
   color,
   level = 1,
