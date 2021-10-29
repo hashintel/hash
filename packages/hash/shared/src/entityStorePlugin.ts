@@ -195,6 +195,15 @@ export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
     const prevDraft = pluginState.store.draft;
     const { tr } = state;
 
+    /**
+     * We current violate Immer's rules, as properties inside entities can be
+     * other entities themselves, and we expect `entity.property.entity` to be
+     * the same object as the other entity. We either need to change that, or
+     * remove immer, or both.
+     *
+     * @todo address this
+     * @see https://immerjs.github.io/immer/pitfalls#immer-only-supports-unidirectional-trees
+     */
     const nextDraft = produce(prevDraft, (draftDraftEntityStore) => {
       state.doc.descendants((node, pos) => {
         if (isComponentNode(node)) {

@@ -101,6 +101,15 @@ export const createEntityStore = (
     saved[entity.entityId] = entity;
     const draftId = entityToDraft[entity.entityId];
 
+    /**
+     * We current violate Immer's rules, as properties inside entities can be
+     * other entities themselves, and we expect `entity.property.entity` to be
+     * the same object as the other entity. We either need to change that, or
+     * remove immer, or both.
+     *
+     * @todo address this
+     * @see https://immerjs.github.io/immer/pitfalls#immer-only-supports-unidirectional-trees
+     */
     draft[draftId] = produce<DraftEntity>(
       { ...entity, draftId },
       (draftEntity: Draft<DraftEntity>) => {
