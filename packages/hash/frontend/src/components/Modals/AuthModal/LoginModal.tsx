@@ -4,6 +4,7 @@ import React, {
   useReducer,
   useMemo,
   useCallback,
+  useState,
 } from "react";
 import { useRouter } from "next/router";
 
@@ -107,6 +108,8 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
   ] = useReducer<React.Reducer<State, Actions>>(reducer, initialState);
   const { invitationInfo, invitationInfoLoading } = useGetInvitationInfo();
   const router = useRouter();
+  const [requestedLoginCodeForDefault, setRequestedLoginCodeForDefault] =
+    useState<boolean>(false);
 
   const [sendLoginCodeFn, { loading: sendLoginCodeLoading }] = useMutation<
     SendLoginCodeMutation,
@@ -209,12 +212,16 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
   }, [router]);
 
   useEffect(() => {
-    if (!defaultLoginIdentifier) return;
-
-    if (activeScreen === Screen.Intro) {
+    if (
+      defaultLoginIdentifier &&
+      !requestedLoginCodeForDefault &&
+      activeScreen === Screen.Intro
+    ) {
+      setRequestedLoginCodeForDefault(true);
       requestLoginCode(defaultLoginIdentifier);
     }
   }, [
+    requestedLoginCodeForDefault,
     defaultLoginIdentifier,
     invitationInfo,
     router,
