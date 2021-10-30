@@ -38,7 +38,7 @@ const filterEntities = (
 ) => {
   if (!multifilter) return data;
 
-  return filter(data, (x) => {
+  return data.filter((x) => {
     const o = multifilter.filters
       .map((filter) => {
         const item = get(x.properties, filter.field);
@@ -47,13 +47,13 @@ const filterEntities = (
 
         switch (filter.operator) {
           case "CONTAINS":
-            return item.includes(filter.value);
+            return item.toLowerCase().includes(filter.value.toLowerCase());
           case "DOES_NOT_CONTAIN":
-            return !item.includes(filter.value);
+            return !item.toLowerCase().includes(filter.value.toLowerCase());
           case "STARTS_WITH":
-            return item.startsWith(filter.value);
+            return item.toLowerCase().startsWith(filter.value.toLowerCase());
           case "ENDS_WITH":
-            return item.endsWith(filter.value);
+            return item.toLowerCase().endsWith(filter.value.toLowerCase());
           case "IS_EMPTY":
             return !item;
           case "IS_NOT_EMPTY":
@@ -102,7 +102,7 @@ export const dbAggregateEntity =
     const endIndex = Math.min(startIndex + itemsPerPage, entities.length);
 
     // fix return type of filter entities
-    let filteredEntities = filterEntities(entities, multiFilter) as Entity[];
+    const filteredEntities = filterEntities(entities, multiFilter);
 
     const results = sortEntities(filteredEntities, multiSort)
       .slice(startIndex, endIndex)

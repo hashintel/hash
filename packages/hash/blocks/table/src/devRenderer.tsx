@@ -25,6 +25,7 @@ import {
 } from "./mockData/mockData";
 import { resolvePath } from "./lib/compareEntitiesByField";
 import { sortEntities } from "./lib/sortEntities";
+import { filterEntities } from "./lib/filterEntities";
 
 const DEFAULT_PAGE_SIZE = 3;
 
@@ -71,17 +72,10 @@ const useMockData = () => {
 
       // FILTERING
       if (linkedData.aggregate?.multiFilter) {
-        const combinatorFilter = linkedData.aggregate.multiFilter;
-        // This assumes the operator for each field is Contains and
-        // the combinator operator is AND
-        // @todo update to handle all filter scenarios
-        combinatorFilter.filters.forEach(({ field, value }) => {
-          resolvedData = resolvedData.filter((entity) => {
-            const property = resolvePath(entity, field);
-            if (typeof property !== "string" || !property) return;
-            return property.toLowerCase().includes(value.toLowerCase());
-          });
-        });
+        resolvedData = filterEntities(
+          resolvedData,
+          linkedData.aggregate.multiFilter
+        );
       }
 
       // SORTING
