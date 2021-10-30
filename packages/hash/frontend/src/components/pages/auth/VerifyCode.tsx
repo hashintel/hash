@@ -3,7 +3,8 @@ import { tw } from "twind";
 import Logo from "../../../assets/svg/logo.svg";
 import { IconHash } from "../../Icons/IconHash";
 import { IconKeyboardReturn } from "../../Icons/IconKeyboardReturn";
-import { SYNTHETIC_LOADING_TIME_MS } from "./utils";
+import { InviteHeader } from "./InviteHeader";
+import { SYNTHETIC_LOADING_TIME_MS, InvitationInfo } from "./utils";
 
 type VerifyCodeProps = {
   defaultCode?: string;
@@ -14,6 +15,7 @@ type VerifyCodeProps = {
   handleSubmit: (code: string, withSyntheticLoading?: boolean) => void;
   requestCode: () => void;
   requestCodeLoading: boolean;
+  invitationInfo: InvitationInfo | null;
 };
 
 const isShortname = (identifier: string) => !identifier.includes("@");
@@ -35,6 +37,7 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
   loading,
   requestCode,
   requestCodeLoading,
+  invitationInfo,
 }) => {
   const [state, setState] = useState({
     text: defaultCode || "",
@@ -83,6 +86,7 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
         className={tw`h-96 mb-9 rounded-2xl bg-white shadow-xl flex justify-center items-center text-center`}
       >
         <div className={tw`w-8/12`}>
+          {!!invitationInfo && <InviteHeader invitationInfo={invitationInfo} />}
           <p className={tw`font-bold`}>
             A verification code has been sent to{" "}
             <span>

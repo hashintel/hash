@@ -57,13 +57,13 @@ export const NewEntityType: VoidFunctionComponent = () => {
                 className={tw`w-full mb-6 lg:(mb-0 w-72)`}
                 disallowRegExp={/\W/g}
                 label="Name"
-                onChange={setName}
+                onChangeText={setName}
                 value={name}
               />
               <TextInput
                 className={tw`w-full lg:w-72`}
                 label="Description"
-                onChange={setDescription}
+                onChangeText={setDescription}
                 value={description}
               />
             </div>

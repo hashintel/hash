@@ -1,4 +1,4 @@
-export const IconSpinner = ({ className }: { className: string }) => {
+export const SpinnerIcon = ({ className }: { className: string }) => {
   return (
     <svg viewBox="0 0 32 32" className={className}>
       <path

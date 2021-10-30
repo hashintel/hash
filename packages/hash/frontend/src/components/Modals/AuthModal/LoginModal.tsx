@@ -1,4 +1,11 @@
-import React, { VoidFunctionComponent, useEffect, useReducer } from "react";
+import React, {
+  VoidFunctionComponent,
+  useEffect,
+  useReducer,
+  useMemo,
+  useCallback,
+  useState,
+} from "react";
 import { useRouter } from "next/router";
 
 import { ApolloError, useMutation } from "@apollo/client";
@@ -22,11 +29,11 @@ import {
   SYNTHETIC_LOADING_TIME_MS,
   Action,
 } from "../../pages/auth/utils";
+import { useGetInvitationInfo } from "../../hooks/useGetInvitationInfo";
 
 enum Screen {
   Intro,
   VerifyCode,
-  AccountSetup,
 }
 
 type LoginModalProps = {
@@ -99,7 +106,10 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
     },
     dispatch,
   ] = useReducer<React.Reducer<State, Actions>>(reducer, initialState);
+  const { invitationInfo, invitationInfoLoading } = useGetInvitationInfo();
   const router = useRouter();
+  const [requestedLoginCodeForDefault, setRequestedLoginCodeForDefault] =
+    useState<boolean>(false);
 
   const [sendLoginCodeFn, { loading: sendLoginCodeLoading }] = useMutation<
     SendLoginCodeMutation,
@@ -179,15 +189,45 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
     }
   }, [router, loginWithLoginCode]);
 
-  const requestLoginCode = (emailOrShortname: string) => {
-    dispatch({
-      type: "UPDATE_STATE",
-      payload: {
-        loginIdentifier: emailOrShortname,
-      },
-    });
-    void sendLoginCodeFn({ variables: { emailOrShortname } });
-  };
+  const requestLoginCode = useCallback(
+    (emailOrShortname: string) => {
+      dispatch({
+        type: "UPDATE_STATE",
+        payload: {
+          loginIdentifier: emailOrShortname,
+        },
+      });
+      void sendLoginCodeFn({ variables: { emailOrShortname } });
+    },
+    [sendLoginCodeFn]
+  );
+
+  const defaultLoginIdentifier = useMemo(() => {
+    const { email, shortname } = router.query;
+    const identifier = email || shortname;
+
+    if (typeof identifier === "string") {
+      return identifier;
+    }
+  }, [router]);
+
+  useEffect(() => {
+    if (
+      defaultLoginIdentifier &&
+      !requestedLoginCodeForDefault &&
+      activeScreen === Screen.Intro
+    ) {
+      setRequestedLoginCodeForDefault(true);
+      requestLoginCode(defaultLoginIdentifier);
+    }
+  }, [
+    requestedLoginCodeForDefault,
+    defaultLoginIdentifier,
+    invitationInfo,
+    router,
+    activeScreen,
+    requestLoginCode,
+  ]);
 
   const login = (providedCode: string, withSynthenticLoading?: boolean) => {
     if (!verificationCodeMetadata) return;
@@ -225,13 +265,6 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
     }
   };
 
-  const navigateToSignup = () => {
-    void router.push("/signup");
-    if (onClose) {
-      setTimeout(onClose, 500);
-    }
-  };
-
   const renderContent = () => {
     switch (activeScreen) {
       case Screen.VerifyCode:
@@ -245,6 +278,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
             requestCode={resendLoginCode}
             requestCodeLoading={sendLoginCodeLoading}
             errorMessage={errorMessage}
+            invitationInfo={invitationInfo}
           />
         );
       case Screen.Intro:
@@ -254,7 +288,8 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
             requestLoginCode={requestLoginCode}
             loading={sendLoginCodeLoading}
             errorMessage={errorMessage}
-            navigateToSignup={navigateToSignup}
+            invitationInfo={invitationInfo}
+            defaultLoginIdentifier={defaultLoginIdentifier}
           />
         );
     }
@@ -270,7 +305,11 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
   }
 
   return (
-    <AuthModalLayout show={show} onClose={onClose}>
+    <AuthModalLayout
+      loading={invitationInfoLoading}
+      show={show}
+      onClose={onClose}
+    >
       {renderContent()}
     </AuthModalLayout>
   );
