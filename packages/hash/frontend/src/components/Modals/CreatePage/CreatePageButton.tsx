@@ -14,11 +14,12 @@ export const CreatePageButton: VoidFunctionComponent<CreatePageButtonProps> = ({
 
   return (
     <>
-      <CreatePage
-        close={() => setShowCreatePage(false)}
-        accountId={accountId}
-        show={showCreatePage}
-      />
+      {showCreatePage && (
+        <CreatePage
+          close={() => setShowCreatePage(false)}
+          accountId={accountId}
+        />
+      )}
 
       <Button onClick={() => setShowCreatePage(true)}>Create page</Button>
     </>
