@@ -37,4 +37,4 @@ RUN groupadd -g 999 appuser \
 
 USER appuser
 
-ENTRYPOINT ["node", "packages/hash/backend/dist/index.js"]
+ENTRYPOINT ["node", "packages/hash/backend/dist/src/index.js"]
