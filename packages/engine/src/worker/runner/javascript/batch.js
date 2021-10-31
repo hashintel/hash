@@ -1,0 +1,236 @@
+((arrow, hash_util)=>{
+'use strict';
+const Batch = function() {
+    this.mem_version = -1;
+    this.batch_version = -1;
+    this.mem = null; // After loading, `mem` will be an ArrayBuffer.
+    this.vectors = {};
+    this.cols = {}; // Syncing erases columns that have become invalid.
+}
+
+const get_u64 = (dataview, offset) => {
+    const left  = dataview.getUint32(offset, true);
+    const right = dataview.getUint32(offset+4, true);
+    const combined = left + 2**32 * right; // Assumes little-endian.
+
+    // `MAX_SAFE_INTEGER` is (2^53 - 1). We (currently) don't support more
+    // than 2^32 agents, so as long as we use less than about 2^20 bytes
+    // per agent (including message pools, whose size can grow quadratically
+    // with the number of agents in the worst case), the shared memory length
+    // will accurately fit in a double.
+    // Also, 2^53 bytes is 2^43 kilobytes, i.e. 2^33 megabytes, i.e. 2^23
+    // gigabytes, i.e. 2^13 terabytes. It's unlikely that any HASH users
+    // will have that much RAM or even disk space. Even virtual memory
+    // address space is usually less than 2^53 bytes (current 64-bit
+    // computers don't enable using the full 64 bits of address space).
+
+    if (!Number.isSafeInteger(combined)) {
+        throw new RangeError(combined + ' exceeds MAX_SAFE_INTEGER.');
+    }
+    return combined;
+};
+
+const load_markers = bytes => { // `bytes` should be ArrayBuffer.
+    const dataview = new DataView(bytes);
+    const m = {
+        // TODO: Use Uint32Array instead of Dataview, both
+        //       here and in `get_u64`.
+        // Size of `u64` is 8 bytes.
+        "schema_offset": get_u64(dataview, 0 * 8),
+        "schema_size":   get_u64(dataview, 1 * 8),
+        "header_offset": get_u64(dataview, 2 * 8),
+        "header_size":   get_u64(dataview, 3 * 8),
+        "meta_offset":   get_u64(dataview, 4 * 8),
+        "meta_size":     get_u64(dataview, 5 * 8),
+        "data_offset":   get_u64(dataview, 6 * 8),
+        "data_size":     get_u64(dataview, 7 * 8),
+    };
+
+    if (m.schema_offset + m.schema_size > m.header_offset) {
+        throw new RangeError("schema marker");
+    }
+    if (m.header_offset + m.header_size > m.meta_offset) {
+        throw new RangeError("header marker");
+    }
+    if (m.meta_offset + m.meta_size > m.data_offset) {
+        throw new RangeError("meta marker");
+    }
+    if (m.data_offset + m.data_size > bytes.length) {
+        throw new RangeError("data marker");
+    }
+    return m;
+};
+
+const load_vectors = (bytes, schema) => {
+    const reader = new arrow.MessageReader(bytes);
+    const msg = reader.readMessage();
+    const header = msg.header();
+    const body = reader.readMessageBody(msg.bodyLength);
+    const dicts = new Map();
+    const loader = new reader.VectorLoader(body, header.nodes, header.buffers, dicts);
+    const vector_list = loader.visitMany(schema.fields);
+    // Unnecessary:
+    // const rb = new arrow.RecordBatch(schema, header.length, vector_list);
+
+    const vectors = {}; // Field name --> vector.
+    for (var i = 0; i < vector_list.length; ++i) {
+        // `VectorLoader` doesn't actually return instances of `Vector` for some reason.
+        const vector = arrow.Vector.new(vector_list[i]);
+        const field = schema.fields[i];
+        vector.type.is_any = field.metadata.get('is_any');
+        vectors[field.name] = vector;
+    }
+    return vectors;
+};
+
+/// `latest_batch` should have `batch_version` (number), `mem_version` (number) and
+/// `mem` (ArrayBuffer) fields. 
+Batch.prototype.sync = function(latest_batch, schema) {
+    const should_load = this.batch_version < latest_batch.batch_version;
+    if (this.mem_version < latest_batch.mem_version) {
+        if (!should_load) {
+            throw new Error("Should be impossible to have new memory without new batch");
+        }
+        
+        this.mem = latest_batch.mem;
+        this.mem_version = latest_batch.mem_version;
+    }
+    if (should_load) {
+        this.vectors = load_vectors(this.mem, schema);
+        this.cols = {}; // Reset columns because they might be invalid due to vectors changing.
+        this.batch_version = latest_batch.batch_version;
+    }
+}
+
+/// `name` is the name of the Arrow column/field.
+/// `loader` is optional.
+Batch.prototype.load_col = function(name, loader) {
+    const vector = this.vectors[name];
+    if (!vector) throw new ReferenceError("Missing vector for " + name);
+
+    let col;
+    if (loader) {
+        col = loader(vector);
+    } else if (name.startsWith('__')) {
+        col = hash_util.load_shallow(vector);
+    } else {
+        col = hash_util.load_full(vector);
+    }
+    return this.cols[name] = col;
+}
+
+/// Load columns that are in `schema`, but haven't been loaded yet
+/// (or were loaded, but then were erased again). Uses optional
+/// custom loaders.
+Batch.prototype.load_missing_cols = function(schema, loaders) {
+    for (var i = 0; i < schema.fields.length; ++i) {
+        const name = schema.fields[i].name;
+        if (!this.cols[name]) this.load_col(name, loaders[name]);
+    }
+}
+
+const builder_from_col = (col, field_type) => {
+    // TODO: Would `new arrow.Builder` work?
+    // TODO: Faster way to convert JS array to vector than using `Builder`?
+    //       `arrow.Vector.from(col)` doesn't seem to quite work.
+    const builder = arrow.Builder.new({
+        "type": field_type,
+        "nullValues": [null, undefined]
+    });
+    
+    // TODO: Is there a way to add the whole column all at once to `builder`? 
+    try {
+        for (var i_agent = 0; i_agent < n_agents; ++i_agent) {
+            builder.append(col[i_agent]);
+        }
+    } catch (e) {
+        throw new Error("Flushing error: " + JSON.stringify(col[i_agent]));
+    }
+
+    // JS Arrow doesn't really document what `builder.finish` does, but
+    // maybe it affects later serialization.
+    builder.finish();
+    return builder;
+}
+
+// TODO: Can JS Arrow silently coerce some flushed values to different types if
+//       their type differs from what it's supposed to be according to the schema?
+const array_data_from_builder = builder => {
+    // TODO: Union arrays.
+    // TODO: Use Arrow Data methods and function `builder.flush` more straightforwardly.
+
+    const len = builder.length;
+    const null_count = builder.nullCount;
+    const null_bits  = builder._nulls ? builder._nulls.flush(len).buffer : null;
+    // `.buffer` gets Uint8Array's underlying ArrayBuffer for FFI.
+    // ArrayData offset is always 0. (Not to be confused with offset buffer.)
+
+    const buffers = [];
+    const offsets = builder._offsets;
+    const values  = builder._values;
+
+    if (offsets) {
+        buffers[0] = offsets.flush(len).buffer;
+        if (values) buffers.push(values.flush(offsets.last()).buffer);
+    } else if (values) {
+        buffers[0] = values.flush(len).buffer;
+    }
+
+    const child_data = [];
+    for (var i = 0; i < builder.children.length; ++i) {
+        child_data[i] = array_data_from_builder(builder.children[i]);
+    }
+    return { // Get datatype from schema later.
+        "len": len,
+        "null_count": null_count,
+        "null_bits": null_bits,
+        "buffers": buffers,
+        "child_data": child_data
+    };
+}
+
+Batch.prototype.flush_changes = function(schema, skip) {
+    const changes = [];
+    // TODO: Benchmark vs `Object.entries` and vs `for (var col in cols)`.
+    for (var i_field = 0; i_field < schema.fields.length; ++i_field) {
+        const field = schema.fields[i_field];
+        const col = this.cols[field.name];
+        if (!col) continue; // A package might not require all columns,
+                            // in which case some columns that are in the schema
+                            // might be missing from `cols`. (But columns that
+                            // are in `cols` should always be in schema too.)
+
+        if (field.metadata.get('is_any')) {
+            for (var i_agent = 0; i_agent < n_agents; ++i_agent) {
+                col[i_agent] = json_stringify(col[i_agent]);
+            }
+        }
+        const builder = builder_from_col(col, field.type);
+        const data = array_data_from_builder(builder);
+        changes.push({          // Some fields might be skipped, so a
+            "i_field": i_field, // field's index in `changes` might not
+            "data":    data     // be equal to `i_field`.
+        });
+    }
+    return changes;
+}
+
+const Batches = function() {
+    this.batches = {};
+};
+
+Batches.prototype.get = function(batch_id) {
+    return this.batches[batch_id];
+}
+
+Batches.prototype.sync = function(latest_batch) {
+    const loaded_batch = this.batches[latest_batch.id];
+    if (!loaded_batch) {
+        this.batches[latest_batch.id] = loaded_batch = new Batch();
+    }
+    loaded_batch.sync(latest_batch);
+    return loaded_batch;
+}
+
+return Batches;
+})()
