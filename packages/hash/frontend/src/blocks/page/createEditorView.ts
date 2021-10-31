@@ -2,6 +2,7 @@ import { ApolloClient } from "@apollo/client";
 import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
+import { apiOrigin } from "@hashintel/hash-shared/environment";
 import { entityStoreFromProsemirror } from "@hashintel/hash-shared/entityStorePlugin";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { updatePageMutation } from "@hashintel/hash-shared/save";
@@ -138,7 +139,7 @@ export const createEditorView = (
   if (collabEnabled) {
     connection = new EditorConnection(
       new Reporter(),
-      `http://localhost:5001/collab-backend/${accountId}/${pageId}`,
+      `${apiOrigin}/collab-backend/${accountId}/${pageId}`,
       view.state.schema,
       view,
       manager,
