@@ -1,0 +1,69 @@
+include "runner_error.fbs";
+include "runner_errors.fbs";
+include "runner_warning.fbs";
+include "runner_warnings.fbs";
+include "serialized.fbs";
+include "sync_state_interim.fbs";
+include "target.fbs";
+
+// A Task UUID
+//
+// This is duplicated in multiple files since it is a struct
+// and cannot be a root type.
+//
+// fields:
+//    `inner` : the uuid as bytes 
+struct TaskID {
+  inner:[byte:16];
+}
+
+// A task message for a Task (run by a package) 
+// which is outbound from a worker.
+//
+// fields:
+//    `package_sid`    : the short id for the packge
+//    `task_id`        : the uuid for the task
+//    `metaversioning` : included when any batches have changed
+//                       (possibly since the last `StateSync`)
+//    `payload`        : payload for the task message (json)
+table TaskMsg {
+  package_sid:ushort;
+  task_id:TaskID;
+  target:Target;
+  metaversioning:StateInterimSync;
+  payload:Serialized (required);
+}
+
+// A confirmation message for a Task (run by a package)
+// that was cancelled
+//
+// fields:
+//    `task_id`        : the uuid for the task
+table TaskCancelled {
+  task_id:TaskID;
+}
+
+
+// The payload for the `RunnerOutboundMsg` type
+//
+// There is a collection of built-in types. When building
+// packages and adding Tasks, the TaskMsg type can be used
+// to add new payload types.
+union RunnerOutboundMsgPayload {
+  TaskMsg,
+  TaskCancelled,
+  RunnerError,
+  RunnerErrors,
+  RunnerWarning,
+  RunnerWarnings,
+  PackageError,
+  UserErrors,
+  UserWarnings
+}
+
+table RunnerOutboundMsg {
+  sim_sid:uint = 0;
+  payload:RunnerOutboundMsgPayload (required);
+}
+
+root_type RunnerOutboundMsg;

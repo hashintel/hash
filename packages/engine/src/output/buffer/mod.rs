@@ -1,0 +1,78 @@
+mod part;
+mod util;
+
+const RELATIVE_PARTS_FOLDER: &str = "./parts";
+
+use std::{collections::HashMap, sync::Arc};
+
+use crate::proto::SimulationShortID;
+use crate::simulation::packages::output;
+pub use part::OutputPartBuffer;
+pub use util::cleanup_experiment;
+
+use crate::proto::ExperimentID;
+use crate::simulation::packages::output::packages::{
+    analysis::{AnalysisOutput, AnalysisSingleOutput},
+    OutputPackagesSimConfig,
+};
+use crate::simulation::{Error, Result};
+use serde::Serialize;
+
+#[derive(Default)]
+pub struct Buffers {
+    pub json_state: OutputPartBuffer,
+    pub analysis: AnalysisBuffer,
+}
+
+impl Buffers {
+    pub(crate) fn new(
+        exp_id: ExperimentID,
+        sim_id: SimulationShortID,
+        output_packages_sim_config: &OutputPackagesSimConfig,
+    ) -> Result<Buffers> {
+        Ok(Buffers {
+            json_state: OutputPartBuffer::new("json_state", exp_id, sim_id)?,
+            analysis: AnalysisBuffer::new(output_packages_sim_config)?,
+        })
+    }
+}
+
+#[derive(Serialize)]
+struct AnalysisBuffer {
+    pub manifest: String,
+    pub buffers: HashMap<Arc<String>, Vec<AnalysisSingleOutput>>,
+}
+
+impl AnalysisBuffer {
+    pub fn new(output_packages_config: &OutputPackagesSimConfig) -> Result<AnalysisBuffer> {
+        let value = output_packages_config
+            .map
+            .get(&output::Name::Analysis)
+            .ok_or_else(|| Error::from("Missing analysis config"))?;
+        let config: output::packages::analysis::AnalysisOutputConfig =
+            serde_json::from_value(value.clone())?;
+        let buffer = AnalysisBuffer {
+            manifest: config.manifest.clone(),
+            buffers: config
+                .outputs
+                .keys()
+                .iter()
+                .map(|v| (Arc::new(v.clone()), vec![]))
+                .collect(),
+        };
+        Ok(buffer)
+    }
+
+    pub fn add(&mut self, output: AnalysisOutput) -> Result<()> {
+        output.inner.into_iter().try_for_each(|(name, output)| {
+            self.buffers
+                .get_mut(&name)
+                .ok_or_else(|| {
+                    Error::from(format!("Missing output buffer when persisting: {}", &name))
+                })?
+                .push(output);
+
+            Ok(())
+        })
+    }
+}

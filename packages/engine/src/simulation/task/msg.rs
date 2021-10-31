@@ -1,0 +1,34 @@
+use enum_dispatch::enum_dispatch;
+
+use crate::simulation::packages::PackageType;
+use crate::{
+    simulation::packages::id::PackageId, types::TaskID, worker::runner::comms::MessageTarget,
+};
+
+use super::prelude::*;
+
+#[enum_dispatch]
+#[derive(Debug)]
+pub enum TaskMessage {
+    InitTaskMessage,
+    ContextTaskMessage,
+    StateTaskMessage,
+    OutputTaskMessage,
+}
+
+impl From<(String, PackageType)> for TaskMessage {
+    fn from(_: (String, PackageType)) -> Self {
+        todo!()
+    }
+}
+
+pub struct TargetedTaskMessage {
+    pub target: MessageTarget,
+    pub payload: TaskMessage,
+}
+
+pub struct WrappedTaskMessage {
+    pub task_id: TaskID,
+    pub package_id: PackageId,
+    pub payload: TaskMessage,
+}

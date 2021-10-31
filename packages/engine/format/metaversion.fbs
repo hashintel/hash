@@ -1,0 +1,25 @@
+// The Metaversion of a Shared Batch.
+//
+// The Metaversion of a Batch is used by language runners and the datastore to keep
+// track of when memory or batch reload is required. 
+//
+// For example, when the current metaversion for a batch the Python runner is {2, 3},
+// and a task command comes in with the Metaversion of {2, 4} then as 3 != 4
+// the RecordBatch component of the Shared Batch has to be reloaded.
+//
+// It is the job of every language runner to be responsible for updating 
+// (and distributing) the metaversion whenever it makes a change to the shared batch 
+// which has consequences for other runners (or the datastore for that matter).
+//
+// NB! Whenever a memory reload is required, then the recordbatch has to be reloaded
+// too.
+//
+// fields:
+//    `memory`: shared memory segment metaversion
+//    `batch` : RecordBatch metaversion
+table Metaversion {
+  memory:uint;
+  batch:uint;
+}
+
+root_type Metaversion;

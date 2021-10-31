@@ -1,0 +1,19 @@
+include "shared_context.fbs";
+include "package_config.fbs";
+
+// Experiment UUID
+struct ExperimentID {
+  inner:[byte:16];
+}
+
+// Primary Initialization Message for language workers.
+//
+//    `shared_context`       : shared context (datasets, etc.) for the experiment run
+//    `package_config`       : configuration about which simulation packages are used in this
+//                             experiment run 
+table Init {
+  experiment_id:ExperimentID;
+  worker_index:usize;
+  shared_context:SharedContext;
+  package_config:PackageConfig (required);
+}

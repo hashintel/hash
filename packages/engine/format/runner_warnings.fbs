@@ -1,0 +1,14 @@
+include "runner_warning.fbs";
+
+// `RunnerWarnings` Message Body Type.
+//
+// Used by the runners to signal of failures in the engine.
+// These warnings are not specific to a simulation, but can be.
+//
+// fields:
+//    `inner` : the warning messages contained within
+table RunnerWarnings {
+  inner:[RunnerWarning] (required);
+}
+
+root_type RunnerWarnings;
