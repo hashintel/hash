@@ -2,8 +2,8 @@ pub mod packages;
 
 use std::sync::Arc;
 
-use crate::datastore::schema::FieldSpecMapBuilder;
 pub use crate::config::Globals;
+use crate::datastore::schema::FieldSpecMapBuilder;
 use crate::proto::ExperimentRunBase;
 use crate::simulation::comms::package::PackageComms;
 use crate::SimRunConfig;

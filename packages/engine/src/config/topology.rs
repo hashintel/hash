@@ -1,7 +1,7 @@
-use std::sync::Arc;
 use crate::config::globals::Globals;
 use crate::config::topology::functions::{conway, euclidean, euclidean_squared, manhattan};
 use crate::Result;
+use std::sync::Arc;
 
 // TODO OS - think about creating a system of ConfigProviders whereby packages can depend on them
 //   and decrease the amount of assumptions the core engine has to make, for example position
@@ -251,7 +251,7 @@ impl Config {
 
             // Override whatever the user entered for x and y wrap if they entered a preset
             if let Some(serde_json::Value::String(wrapping_preset_str)) =
-            topology_props.get("wrapping_preset")
+                topology_props.get("wrapping_preset")
             {
                 match &**wrapping_preset_str {
                     "spherical" => {
@@ -380,7 +380,7 @@ impl Config {
             }
 
             if let Some(serde_json::Value::String(distance_func_str)) =
-            topology_props.get("distance_function")
+                topology_props.get("distance_function")
             {
                 config.distance_function = Box::new(match &**distance_func_str {
                     "manhattan" => manhattan,
@@ -393,7 +393,7 @@ impl Config {
             }
 
             if let Some(serde_json::Value::Bool(move_wrapped_agents)) =
-            topology_props.get("move_wrapped_agents")
+                topology_props.get("move_wrapped_agents")
             {
                 config.move_wrapped_agents = *move_wrapped_agents;
             }

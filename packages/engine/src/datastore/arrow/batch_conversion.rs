@@ -6,12 +6,13 @@
 
 use super::prelude::*;
 use crate::datastore::schema::state::AgentSchema;
-use crate::datastore::schema::{IsRequired, PREVIOUS_INDEX_COLUMN_NAME};
+use crate::datastore::schema::{FieldScope, IsRequired};
 use crate::datastore::{
     prelude::*,
-    schema::{FieldTypeVariant, PresetFieldType},
+    schema::{FieldKey, FieldTypeVariant, PresetFieldType},
     UUID_V4_LEN,
 };
+use crate::simulation::packages::creator::PREVIOUS_INDEX_COLUMN_NAME;
 use crate::hash_types::state::{AgentStateField, BUILTIN_FIELDS};
 use arrow::array::{self, Array, ArrayDataBuilder, ArrayRef, PrimitiveBuilder};
 use arrow::buffer::MutableBuffer;
@@ -537,8 +538,6 @@ impl IntoRecordBatch for &[&AgentState] {
                 agents_to_id_col(*self)
             } else if name.eq(AgentStateField::AgentName.name()) {
                 json_vals_to_utf8(vals, true)
-            } else if name.eq(AgentStateField::Behaviors.name()) {
-                agents_to_behaviors_col(*self)
             } else if name.eq(AgentStateField::Messages.name()) {
                 message::messages_column_from_serde_values(vals)
                     .map(|arr| Arc::new(arr) as ArrayRef)
@@ -548,10 +547,6 @@ impl IntoRecordBatch for &[&AgentState] {
                 agents_to_direction_col(*self)
             } else if name.eq(AgentStateField::Velocity.name()) {
                 agents_to_direction_col(*self)
-            } else if name.eq(AgentStateField::SearchRadius.name()) {
-                json_vals_to_primitive::<datatypes::Float64Type>(vals, true)
-            } else if name.eq(AgentStateField::PositionWasCorrected.name()) {
-                json_vals_to_bool(vals)
             } else if name.eq(AgentStateField::Shape.name()) {
                 json_vals_to_utf8(vals, true)
             } else if name.eq(AgentStateField::Height.name()) {
@@ -567,8 +562,12 @@ impl IntoRecordBatch for &[&AgentState] {
             } else if name.eq(PREVIOUS_INDEX_COLUMN_NAME) {
                 agents_index_to_empty_col(self.len(), field.data_type())
             } else if matches!(
-                // TODO: OS [1] - RUNTIME BLOCK - get_key
-                schema.field_spec_map.get_(&name)?.key_type.variant,
+                schema
+                    .field_spec_map
+                    ._get_field_spec(&FieldKey::new_agent_scoped(&name)?)?
+                    .inner
+                    .field_type
+                    .variant,
                 FieldTypeVariant::Serialized
             ) {
                 // Any-type (JSON string) column
@@ -593,7 +592,6 @@ pub trait IntoAgentStates {
     // null values are selectively ignored
     fn into_filtered_agent_states<'b, 's: 'b>(
         &'s self,
-        behaviors: &[&'b str],
         agent_schema: &Arc<AgentSchema>,
     ) -> Result<Vec<AgentState>>;
 }
@@ -709,36 +707,6 @@ fn set_states_color(states: &mut Vec<AgentState>, rb: &RecordBatch) -> Result<()
     Ok(())
 }
 
-fn set_states_behaviors(states: &mut Vec<AgentState>, rb: &RecordBatch) -> Result<()> {
-    let field = AgentStateField::Behaviors;
-    if let Some(i_col) = get_i_col(field.clone(), rb)? {
-        let list_array = rb
-            .column(i_col)
-            .as_any()
-            .downcast_ref::<arrow::array::ListArray>()
-            .ok_or(Error::InvalidArrowDowncast {
-                name: field.name().into(),
-            })?;
-
-        for (i_state, state) in states.iter_mut().enumerate() {
-            let str_col = list_array.value(i_state);
-            let str_array = str_col
-                .as_any()
-                .downcast_ref::<arrow::array::StringArray>()
-                .ok_or(Error::InvalidArrowDowncast {
-                    name: format!("[inside {}]", field.name()),
-                })?;
-
-            let mut behaviors: Vec<String> = Vec::with_capacity(str_array.len());
-            for i_behavior in 0..str_array.len() {
-                behaviors.push(str_array.value(i_behavior).into());
-            }
-            state.behaviors = behaviors;
-        }
-    }
-    Ok(())
-}
-
 macro_rules! set_states_opt_vec3_gen {
     ($field_name:ident, $function_name:ident, $field:expr) => {
         // Can't just be generic function, because need different field names at compile time.
@@ -813,29 +781,6 @@ macro_rules! set_states_opt_f64_gen {
 }
 
 set_states_opt_f64_gen!(height, set_states_height, AgentStateField::Height);
-set_states_opt_f64_gen!(
-    search_radius,
-    set_states_search_radius,
-    AgentStateField::SearchRadius
-);
-
-fn set_states_position_was_corrected(states: &mut Vec<AgentState>, rb: &RecordBatch) -> Result<()> {
-    let field = AgentStateField::PositionWasCorrected;
-    if let Some(i_col) = get_i_col(field.clone(), rb)? {
-        let array = rb
-            .column(i_col)
-            .as_any()
-            .downcast_ref::<arrow::array::BooleanArray>()
-            .ok_or(Error::InvalidArrowDowncast {
-                name: field.name().into(),
-            })?;
-
-        for (i_state, state) in states.iter_mut().enumerate() {
-            state.position_was_corrected = array.value(i_state)
-        }
-    }
-    Ok(())
-}
 
 fn set_states_hidden(states: &mut Vec<AgentState>, rb: &RecordBatch) -> Result<()> {
     let field = AgentStateField::Hidden;
@@ -904,13 +849,10 @@ fn set_states_builtins(states: &mut Vec<AgentState>, agents: &RecordBatch) -> Re
     // TODO make this dependent on `SPECIAL_FIELD_SET`
     set_states_agent_id(states, agents)?;
     set_states_agent_name(states, agents)?;
-    set_states_behaviors(states, agents)?;
 
     set_states_position(states, agents)?;
     set_states_direction(states, agents)?;
     set_states_velocity(states, agents)?;
-    set_states_search_radius(states, agents)?;
-    set_states_position_was_corrected(states, agents)?;
 
     set_states_shape(states, agents)?;
     set_states_height(states, agents)?;
@@ -1154,12 +1096,11 @@ impl IntoAgentStates for (&AgentBatch, &MessageBatch) {
 
     fn into_filtered_agent_states<'b, 's: 'b>(
         &'s self,
-        behaviors: &[&'b str],
         agent_schema: &Arc<AgentSchema>,
     ) -> Result<Vec<AgentState>> {
         let agents = &self.0.batch;
         let messages = &self.1.batch;
-        let mut states = agents.into_filtered_agent_states(behaviors, agent_schema)?;
+        let mut states = agents.into_filtered_agent_states(agent_schema)?;
         set_states_messages(&mut states, messages)?;
         Ok(states)
     }
@@ -1179,12 +1120,11 @@ impl IntoAgentStates for (&RecordBatch, &RecordBatch) {
 
     fn into_filtered_agent_states<'b, 's: 'b>(
         &'s self,
-        behaviors: &[&'b str],
         agent_schema: &Arc<AgentSchema>,
     ) -> Result<Vec<AgentState>> {
         let agents = &self.0;
         let messages = &self.1;
-        let mut states = agents.into_filtered_agent_states(behaviors, agent_schema)?;
+        let mut states = agents.into_filtered_agent_states(agent_schema)?;
         set_states_messages(&mut states, messages)?;
         Ok(states)
     }
@@ -1212,7 +1152,7 @@ impl IntoAgentStates for RecordBatch {
                             field_spec.inner.field_type.variant,
                             FieldTypeVariant::Serialized
                         ) {
-                            Some(key.value().clone())
+                            Some(key.value().to_string())
                         } else {
                             None
                         }
@@ -1246,49 +1186,34 @@ impl IntoAgentStates for RecordBatch {
 
     fn into_filtered_agent_states<'b, 's: 'b>(
         &'s self,
-        behaviors: &[&'b str],
         agent_schema: &Arc<AgentSchema>,
     ) -> Result<Vec<AgentState>> {
         let agent_states = self.into_agent_states(Some(agent_schema))?;
 
-        let group_fields = {
-            // `group_fields` should at least have capacity for built-in fields.
-            let mut group_fields: HashSet<&str> = HashSet::with_capacity(15);
-            for behavior in behaviors {
-                let behavior_fields =
-                    agent_schema
-                        .behaviors_fields
-                        .get(*behavior)
-                        .ok_or_else(|| {
-                            log::error!("{:?}", agent_schema.behaviors_fields);
-                            Error::Unique("Behavior's fields missing: ".to_string() + behavior)
-                        })?;
-
-                for field in behavior_fields.iter() {
-                    group_fields.insert(field);
+        let group_field_names = agent_schema
+            .field_spec_map
+            .iter()
+            .filter_map(|(key, spec)| {
+                if spec.scope == FieldScope::Agent {
+                    Some(key.value())
+                } else {
+                    None
                 }
-            }
-            group_fields
-        };
+            })
+            .collect::<Vec<_>>();
 
         // Use `reserve_exact` instead of `reserve` to minimize max memory usage.
         let mut filtered_states = Vec::with_capacity(agent_states.len());
 
         // Remove custom fields which are (1) null and (2) not in behavior keys of
         // any of agent's behaviors. Also remove previous index column.
-        // TODO: For better performance, could previous index column be
-        //       filtered out earlier, e.g. inside batch conversion?
         for mut state in agent_states {
             // This function consumes `agent_states`, so it's ok to change `state` in-place.
             state.custom.retain(|field, value| {
-                field != PREVIOUS_INDEX_COLUMN_NAME
-                    && (
-                        !value.is_null() ||                    // Cheap check.
-                    group_fields.contains(field.as_str())
-                        // Expensive check.
-                    )
+                !value.is_null() ||                    // Cheap check.
+                    group_field_names.contains(&field.as_str())
+                // Expensive check.
             });
-            // TODO: Also filter null built-in fields?
             filtered_states.push(state);
         }
         Ok(filtered_states)

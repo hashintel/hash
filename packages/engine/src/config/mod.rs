@@ -1,29 +1,29 @@
 mod engine;
 mod experiment;
+mod globals;
 mod package;
 mod persistence;
 mod simulation;
 mod store;
 mod task_distribution;
+pub mod topology;
 mod worker;
 mod worker_pool;
-pub mod topology;
-mod globals;
 
 use std::sync::Arc;
 
-pub use globals::Globals;
 use crate::proto::{ExperimentRunRepr, SimulationShortID};
 pub use engine::{Config as EngineConfig, Worker, WorkerAllocation};
 pub use experiment::Config as ExperimentConfig;
+pub use globals::Globals;
 pub use package::{Config as PackageConfig, ConfigBuilder as PackageConfigBuilder};
 pub use persistence::Config as PersistenceConfig;
 pub use simulation::Config as SimulationConfig;
 pub use store::Config as StoreConfig;
 pub use task_distribution::{Config as TaskDistributionConfig, Distribution};
+pub use topology::Config as TopologyConfig;
 pub use worker::{Config as WorkerConfig, SpawnConfig as WorkerSpawnConfig};
 pub use worker_pool::Config as WorkerPoolConfig;
-pub use topology::{Config as TopologyConfig};
 
 use crate::{Args, Environment};
 

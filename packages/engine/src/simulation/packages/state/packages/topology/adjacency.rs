@@ -53,7 +53,9 @@ pub fn correct_agent(
 }
 
 fn wrap_pos_coord(pos: &mut Position, i: usize, config: &TopologyConfig) {
-    use crate::config::topology::WrappingBehavior::{Continuous, NoWrap, OffsetReflection, Reflection};
+    use crate::config::topology::WrappingBehavior::{
+        Continuous, NoWrap, OffsetReflection, Reflection,
+    };
     match get_wrap_mode(i, config) {
         Continuous => {
             if pos[i] > get_half(i, config) {

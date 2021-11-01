@@ -1,8 +1,8 @@
+use crate::config::Globals;
 use crate::{
     proto::ExperimentRunBase,
     simulation::packages::{creator::PackageCreators, output::packages::OutputPackagesSimConfig},
 };
-use crate::config::Globals;
 
 #[derive(Clone)]
 pub struct Config {

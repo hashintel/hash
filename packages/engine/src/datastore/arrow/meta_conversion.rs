@@ -17,7 +17,6 @@ use arrow::ipc::{
     Buffer as BufferMessage, FieldNode as NodeMessage, MessageBuilder, MessageHeader,
     MetadataVersion, RecordBatch, RecordBatchBuilder,
 };
-use flatbuffers::FlatBufferBuilder;
 
 use std::{convert::TryFrom, sync::Arc};
 

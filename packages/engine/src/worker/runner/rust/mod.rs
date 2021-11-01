@@ -14,33 +14,33 @@ use context::{AgentContext, GroupContext, SimContext};
 pub use error::{Error, Result};
 use state::{AgentState, GroupState, SimState, StateSnapshot};
 
+use crate::config::Globals;
+use crate::datastore::schema::state::AgentSchema;
 use crate::{
+    datastore::prelude::{AgentBatch, MessageBatch},
     datastore::{
         arrow::{
-            message::{MESSAGE_COLUMN_INDEX, outbound_messages_to_arrow_column},
+            message::{outbound_messages_to_arrow_column, MESSAGE_COLUMN_INDEX},
             util::arrow_continuation,
         },
         batch::{change::ArrayChange, ContextBatch},
         table::sync::{ContextBatchSync, StateSync},
     },
     datastore::{batch::Metaversion, storage::memory::Memory},
-    datastore::prelude::{AgentBatch, MessageBatch},
-    hash_types::{Agent, message::Outbound as OutboundMessage},
-    Language,
+    hash_types::{message::Outbound as OutboundMessage, Agent},
     proto::SimulationShortID,
     simulation::packages::{
         state::packages::behavior_execution::config::BehaviorDescription,
         worker_init::PackageInitMsgForWorker,
     },
     worker::{Error as WorkerError, Result as WorkerResult, TaskMessage},
+    Language,
 };
-use crate::config::Globals;
-use crate::datastore::schema::state::AgentSchema;
 
 use super::comms::{
-    ExperimentInitRunnerMsg,
     inbound::{InboundToRunnerMsg, InboundToRunnerMsgPayload},
-    MessageTarget, NewSimulationRun, outbound::{OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload, RunnerError}, RunnerTaskMsg, StateInterimSync,
+    outbound::{OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload, RunnerError},
+    ExperimentInitRunnerMsg, MessageTarget, NewSimulationRun, RunnerTaskMsg, StateInterimSync,
     TargetedRunnerTaskMsg,
 };
 

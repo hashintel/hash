@@ -276,15 +276,6 @@ impl Batch {
         let meta_data = &self.dynamic_meta.buffers[buffer_index];
         Ok(&data_buffer[meta_data.offset..meta_data.offset + meta_data.length])
     }
-
-    pub fn get_used_languages(&self) -> [bool; Language::NUM] {
-        let mut ret = [false; Language::NUM];
-        for language in &self.behavior_chain_languages {
-            ret[*language as usize] = true;
-        }
-
-        ret
-    }
 }
 
 impl GrowableBatch<ArrayChange, Arc<array::ArrayData>> for Batch {
@@ -479,9 +470,8 @@ impl Batch {
         BooleanColumn,
     )> {
         let row_count = self.batch.num_rows();
-
-        let pwc_column_name = AgentStateField::PositionWasCorrected.name();
-        let pwc_column = self.get_arrow_column(pwc_column_name)?;
+        // TODO[1] remove the dependency on this
+        let pwc_column = self.get_arrow_column("position_was_corrected")?;
         let pwc_column = BooleanColumn::new_non_nullable(pwc_column);
 
         let pos_column_name = AgentStateField::Position.name();
@@ -611,7 +601,8 @@ impl Batch {
     }
 
     pub fn search_radius_iter<'a>(&'a self) -> Result<impl Iterator<Item = Option<f64>> + 'a> {
-        let column_name = AgentStateField::SearchRadius.name();
+        // TODO[1] remove dependency on neighbors package
+        let column_name = "search_radius";
         self.f64_iter(column_name)
     }
 
@@ -753,7 +744,8 @@ pub fn behavior_list_bytes_iter<'a, K: AgentList>(
     agent_list: &'a K,
 ) -> Result<impl Iterator<Item = Vec<&'a [u8]>> + 'a> {
     let record_batch = agent_list.record_batch();
-    let column_name = AgentStateField::Behaviors.name();
+    // TODO[1] remove dependency on behavior_execution
+    let column_name = "behaviors";
     let row_count = record_batch.num_rows();
     let (column_id, _) = record_batch
         .schema()
@@ -788,7 +780,7 @@ mod tests {
 
     use super::*;
 
-    use crate::datastore::test_utils::gen_schema_and_test_agents;
+    // use crate::datastore::test_utils::gen_schema_and_test_agents;
 
     #[test]
     fn bench() -> Result<()> {

@@ -108,14 +108,10 @@ pub struct Agent {
 pub enum AgentStateField {
     AgentId,
     AgentName,
-    Behaviors,
     Messages,
     Position,
     Direction,
     Velocity,
-    SearchRadius,
-    PositionWasCorrected,
-    BehaviorIndex,
     Shape,
     Height,
     Scale,
@@ -870,8 +866,8 @@ fn generate_agent_id() -> String {
 mod tests {
     use serde_json::json;
 
-    use super::*;
     use super::super::message::GenericPayload;
+    use super::*;
 
     #[test]
     fn agent_state_ergonomics() -> Result<()> {

@@ -5,41 +5,41 @@ use std::{
     sync::Arc,
 };
 
-use arrow::{array::ArrayData, datatypes::Schema};
 use arrow::array::Array;
+use arrow::{array::ArrayData, datatypes::Schema};
 use parking_lot::{RwLock, RwLockWriteGuard};
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
+use crate::config::globals::Globals;
+use crate::datastore::arrow::message::get_message_arrow_builder;
+use crate::datastore::prelude::{AgentBatch, IntoAgentStates, MessageBatch};
+use crate::datastore::{batch::Metaversion, storage::memory::Memory};
+use crate::hash_types::message::Outbound as OutboundMessage;
+use crate::worker::{Error as WorkerError, Result as WorkerResult, TaskMessage};
 use crate::{
     datastore::{
         arrow::{
-            message::{MESSAGE_COLUMN_INDEX, outbound_messages_to_arrow_column},
+            message::{outbound_messages_to_arrow_column, MESSAGE_COLUMN_INDEX},
             util::arrow_continuation,
         },
         batch::{change::ArrayChange, ContextBatch},
         table::sync::{ContextBatchSync, StateSync},
     },
     hash_types::Agent,
-    Language,
     simulation::packages::{
         state::packages::behavior_execution::config::BehaviorDescription,
         worker_init::PackageInitMsgForWorker,
     },
+    Language,
 };
-use crate::config::globals::Globals;
-use crate::datastore::{batch::Metaversion, storage::memory::Memory};
-use crate::datastore::arrow::message::get_message_arrow_builder;
-use crate::datastore::prelude::{AgentBatch, IntoAgentStates, MessageBatch};
-use crate::hash_types::message::Outbound as OutboundMessage;
-use crate::worker::{Error as WorkerError, Result as WorkerResult, TaskMessage};
 
-use super::{Column, Error, NativeState, Result, SimSchema};
 use super::super::comms::{
-    ExperimentInitRunnerMsg,
     inbound::{InboundToRunnerMsg, InboundToRunnerMsgPayload},
-    MessageTarget, NewSimulationRun, outbound::{OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload, RunnerError}, RunnerTaskMsg, StateInterimSync,
+    outbound::{OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload, RunnerError},
+    ExperimentInitRunnerMsg, MessageTarget, NewSimulationRun, RunnerTaskMsg, StateInterimSync,
     TargetedRunnerTaskMsg,
 };
+use super::{Column, Error, NativeState, Result, SimSchema};
 
 /// Wrapper for running columnar behaviors on single agents
 pub struct AgentState<'s> {

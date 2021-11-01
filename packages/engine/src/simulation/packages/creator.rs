@@ -7,7 +7,10 @@ use crate::proto::ExperimentRunBase;
 use crate::config::PackageConfig;
 use crate::datastore::schema::context::ContextSchema;
 use crate::datastore::schema::state::AgentSchema;
-use crate::datastore::schema::{FieldScope, FieldSource, FieldSpecMapBuilder, FieldType};
+use crate::datastore::schema::{
+    FieldScope, FieldSource, FieldSpec, FieldSpecMapBuilder, FieldType, FieldTypeVariant,
+    PresetFieldType,
+};
 use crate::simulation::comms::package::PackageComms;
 use crate::simulation::packages::name::PackageName;
 use crate::{
@@ -254,6 +257,12 @@ impl PackageCreators {
     }
 }
 
+pub const PREVIOUS_INDEX_COLUMN_NAME: &str = "__previous_index";
+pub const PREVIOUS_INDEX_COLUMN_INDEX: usize = 0;
+
+pub const CONTEXT_INDEX_COLUMN_NAME: &str = "__context_index";
+pub const CONTEXT_INDEX_COLUMN_INDEX: usize = 1;
+
 fn add_base_agent_fields(field_builder: &mut FieldSpecMapBuilder) -> Result<()> {
     field_builder.source(FieldSource::Engine);
     use crate::hash_types::state::AgentStateField::*;
@@ -264,6 +273,65 @@ fn add_base_agent_fields(field_builder: &mut FieldSpecMapBuilder) -> Result<()> 
         let field_type: FieldType = field.clone().try_into()?;
         field_builder.add_field_spec(field.name().into(), field_type, FieldScope::Agent)?;
     }
+
+    // This key is required for accessing neighbors' outboxes (new inboxes).
+    // Since the neighbor agent state is always the previous step state of the
+    // agent, then we need to know where its outbox is. This would be
+    // straightforward if we didn't add/remove/move agents between batches.
+    // This means `AgentBatch` ordering gets changed at the beginning of the step
+    // meaning agents are not aligned with their `OutboxBatch` anymore.
+    #[must_use]
+    // TODO migrate this to be logic handled by the Engine
+    pub fn last_state_index_key() -> FieldSpec {
+        // There are 2 indices for every agent: 1) Group index 2) Row (agent) index. This points
+        // to the relevant old outbox (i.e. new inbox)
+        FieldSpec::new_built_in(
+            crate::datastore::schema::PREVIOUS_INDEX_COLUMN_NAME,
+            FieldType::new(
+                FieldTypeVariant::FixedLengthArray {
+                    kind: Box::new(FieldType::new(
+                        FieldTypeVariant::Preset(PresetFieldType::Index),
+                        false,
+                    )),
+                    len: 2,
+                },
+                // This key is nullable because new agents
+                // do not get an index (their outboxes are empty by default)
+                true,
+            ),
+        )
+    }
+
+    // This key is required for agents to access their context. Since agent
+    // batches may be arbitrarily shuffled after context is written, then we
+    // need a way to keep track.
+    #[must_use]
+    // TODO migrate this to be logic handled by the Engine
+    pub fn context_index_key() -> FieldSpec {
+        FieldSpec::new_built_in(
+            CONTEXT_INDEX_COLUMN_NAME,
+            FieldType::new(
+                FieldTypeVariant::Preset(PresetFieldType::Index),
+                // This key is not nullable because all agents have a context
+                false,
+            ),
+        )
+    }
+
+    let ctx_index = context_index_key();
+    let last_state_index = last_state_index_key();
+
+    field_builder.add_field_spec(
+        ctx_index.name().into(),
+        ctx_index.field_type,
+        FieldScope::Hidden,
+    )?;
+    field_builder.add_field_spec(
+        last_state_index.name().into(),
+        last_state_index.field_type,
+        FieldScope::Hidden,
+    )?;
+
     Ok(())
 }
 

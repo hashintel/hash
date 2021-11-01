@@ -2,10 +2,10 @@ use std::sync::Arc;
 
 use super::{Error, Result};
 
+use crate::config::Globals;
 use crate::config::{
     EngineConfig, ExperimentConfig, PersistenceConfig, StoreConfig, WorkerAllocation,
 };
-use crate::config::Globals;
 use crate::proto::{ExperimentPackageConfig, ExperimentRunBase, SimulationShortID};
 use crate::SimRunConfig;
 

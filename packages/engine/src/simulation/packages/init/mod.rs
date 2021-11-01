@@ -2,11 +2,11 @@ use std::sync::Arc;
 
 pub use packages::{InitTask, InitTaskMessage, InitTaskResult, Name, PACKAGES};
 
-use crate::{SimRunConfig, simulation::comms::package::PackageComms};
 pub use crate::config::Globals;
 use crate::datastore::schema::FieldSpecMapBuilder;
 pub use crate::hash_types::Agent;
 use crate::proto::ExperimentRunBase;
+use crate::{simulation::comms::package::PackageComms, SimRunConfig};
 
 use super::{
     deps::Dependencies,

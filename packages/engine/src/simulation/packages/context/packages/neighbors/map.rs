@@ -2,8 +2,8 @@ use std::collections::HashSet;
 
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
-use crate::{config, hash_types};
 use crate::datastore::batch::AgentIndex;
+use crate::{config, hash_types};
 
 use super::*;
 

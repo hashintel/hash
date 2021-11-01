@@ -16,20 +16,6 @@ pub mod built_in;
 pub mod display;
 pub mod short_json;
 
-pub const PREVIOUS_INDEX_COLUMN_NAME: &str = "__previous_index"; // TODO[1] the engine should define this
-pub const PREVIOUS_INDEX_COLUMN_INDEX: usize = 0;
-lazy_static! {
-    static ref NON_KEY_FIELDS: HashSet<&'static AgentStateField> = {
-        let mut set: HashSet<&'static AgentStateField> = HashSet::new();
-        set.insert(&AgentStateField::Messages);
-        set.insert(&AgentStateField::BehaviorIndex);
-        set
-    };
-}
-
-pub const CONTEXT_INDEX_COLUMN_NAME: &str = "__context_index";
-pub const CONTEXT_INDEX_COLUMN_INDEX: usize = 1; // TODO[1] the engine should define this (maybe on context instead)
-
 const HIDDEN_PREFIX: &str = "_HIDDEN_";
 const PRIVATE_PREFIX: &str = "_PRIVATE_";
 
@@ -196,50 +182,6 @@ impl RootFieldSpec {
             }
         }
     }
-
-    // This key is required for accessing neighbors' outboxes (new inboxes).
-    // Since the neighbor agent state is always the previous step state of the
-    // agent, then we need to know where its outbox is. This would be
-    // straightforward if we didn't add/remove/move agents between batches.
-    // This means `AgentBatch` ordering gets changed at the beginning of the step
-    // meaning agents are not aligned with their `OutboxBatch` anymore.
-    #[must_use]
-    // TODO migrate this to be logic handled by the Engine
-    pub fn last_state_index_key() -> FieldSpec {
-        // There are 2 indices for every agent: 1) Group index 2) Row (agent) index. This points
-        // to the relevant old outbox (i.e. new inbox)
-        FieldSpec::new_built_in(
-            PREVIOUS_INDEX_COLUMN_NAME,
-            FieldType::new(
-                FieldTypeVariant::FixedLengthArray {
-                    kind: Box::new(FieldType::new(
-                        FieldTypeVariant::Preset(PresetFieldType::Index),
-                        false,
-                    )),
-                    len: 2,
-                },
-                // This key is nullable because new agents
-                // do not get an index (their outboxes are empty by default)
-                true,
-            ),
-        )
-    }
-
-    // This key is required for agents to access their context. Since agent
-    // batches may be arbitrarily shuffled after context is written, then we
-    // need a way to keep track.
-    #[must_use]
-    // TODO migrate this to be logic handled by the Engine
-    pub fn context_index_key() -> FieldSpec {
-        FieldSpec::new_built_in(
-            CONTEXT_INDEX_COLUMN_NAME,
-            FieldType::new(
-                FieldTypeVariant::Preset(PresetFieldType::Index),
-                // This key is not nullable because all agents have a context
-                false,
-            ),
-        )
-    }
 }
 
 /// A wrapper struct around a hashmap of field-keys (unique identifiers used to name/label Arrow
@@ -256,7 +198,7 @@ impl FieldSpecMap {
         }
     }
 
-    fn add(&mut self, new_field: RootFieldSpec) -> Result<()> {
+    pub(in crate::datastore) fn add(&mut self, new_field: RootFieldSpec) -> Result<()> {
         let field_key = new_field.to_key()?;
         if let Some(existing_field) = self.field_specs.get(&field_key) {
             if existing_field.scope == FieldScope::Agent
@@ -264,15 +206,15 @@ impl FieldSpecMap {
                 && existing_field.inner.field_type == new_field.inner.field_type
             {
                 if existing_field.source == new_field.source {
-                    Err(Error::from(format!(
+                    return Err(Error::from(format!(
                         "Key clash when attempting to insert a new agent-scoped field with key: {:?}. The new field has a differing type: {:?} to the existing field: {:?}",
                         field_key, new_field.inner.field_type, existing_field.inner.field_type
-                    )))
+                    )));
                 } else {
                     if let FieldSource::Package(package_src) = new_field.source {
                         if existing_field.source == FieldSource::Engine {
                             log::warn!("Key clash when a package attempted to insert a new agent-scoped field with key: {:?}, the existing field was created by the engine, the new field will be ignored", field_key);
-                            Ok(())
+                            return Ok(());
                         }
                     }
                 }
@@ -297,7 +239,7 @@ impl FieldSpecMap {
         self.field_specs.contains_key(key)
     }
 
-    pub fn iter(&self) -> Iter<FieldKey, RootFieldSpec> {
+    pub(in crate::datastore) fn iter(&self) -> Iter<FieldKey, RootFieldSpec> {
         self.field_specs.iter()
     }
 
@@ -305,57 +247,13 @@ impl FieldSpecMap {
         self.field_specs.len()
     }
 
-    fn _get_field_spec(&self, field_key: &FieldKey) -> Result<&RootFieldSpec> {
+    pub(in crate::datastore) fn _get_field_spec(
+        &self,
+        field_key: &FieldKey,
+    ) -> Result<&RootFieldSpec> {
         self.field_specs
             .get(field_key)
             .ok_or_else(|| Error::from(format!("Cannot find field with name '{:?}'", field_key)))
-    }
-
-    fn with_hidden_columns() -> Result<FieldSpecMap> {
-        let mut field_spec_map = FieldSpecMap::empty();
-
-        field_spec_map.add(FieldSpec::last_state_index_key())?;
-        field_spec_map.add(FieldSpec::context_index_key())?;
-        Ok(field_spec_map)
-    }
-
-    pub fn base() -> Result<FieldSpecMap> {
-        let mut field_spec_map = Self::with_all_agent_batch_fields()?;
-        field_spec_map.union(FieldSpecMap::with_hidden_columns()?)?;
-        Ok(field_spec_map)
-    }
-
-    pub fn required_base() -> Result<FieldSpecMap> {
-        let mut field_spec_map = Self::with_all_required_agent_batch_fields()?;
-        field_spec_map.union(FieldSpecMap::with_hidden_columns()?)?;
-        Ok(field_spec_map)
-    }
-
-    // TODO OS [5] - RUNTIME BLOCK - FieldSpecMap generators need scope and source information for built in fields
-
-    fn with_all_agent_batch_fields() -> Result<FieldSpecMap> {
-        let mut field_spec_map = FieldSpecMap::default();
-        for field in AgentStateField::FIELDS {
-            // Skip non-key columns
-            if NON_KEY_FIELDS.contains(field) {
-                continue;
-            }
-            field_spec_map.add_built_in(field, todo!(), todo!())?;
-        }
-        Ok(field_spec_map)
-    }
-
-    fn with_all_required_agent_batch_fields() -> Result<FieldSpecMap> {
-        let mut field_spec_map = FieldSpecMap::default();
-        for field in AgentStateField::FIELDS {
-            // Skip non-key columns
-            if NON_KEY_FIELDS.contains(field) {
-                continue;
-            } else if field.is_required() {
-                field_spec_map.add_built_in(field, todo!(), todo!())?;
-            }
-        }
-        Ok(field_spec_map)
     }
 }
 
@@ -373,14 +271,6 @@ impl TryInto<FieldType> for AgentStateField {
             AgentStateField::AgentName | AgentStateField::Shape | AgentStateField::Color => {
                 FieldType::new(FieldTypeVariant::String, true)
             }
-            AgentStateField::Behaviors => FieldType::new(
-                FieldTypeVariant::VariableLengthArray(Box::new(FieldType::new(
-                    FieldTypeVariant::String,
-                    false,
-                ))),
-                false,
-            ),
-
             AgentStateField::Position
             | AgentStateField::Direction
             | AgentStateField::Scale
@@ -392,12 +282,7 @@ impl TryInto<FieldType> for AgentStateField {
                 },
                 true,
             ),
-
-            AgentStateField::SearchRadius | AgentStateField::Height => {
-                FieldType::new(FieldTypeVariant::Number, true)
-            }
-
-            AgentStateField::PositionWasCorrected | AgentStateField::Hidden => {
+            AgentStateField::Hidden => {
                 // TODO diff w/ `AgentStateField`
 
                 FieldType::new(FieldTypeVariant::Boolean, false)
@@ -407,9 +292,7 @@ impl TryInto<FieldType> for AgentStateField {
             // 1) `Messages` as they are in a separate batch
             // 2) `Extra` as they are not yet implemented
             // 3) 'BehaviorIndex' as it is only used in prime
-            AgentStateField::Extra(_)
-            | AgentStateField::Messages
-            | AgentStateField::BehaviorIndex => {
+            AgentStateField::Extra(_) | AgentStateField::Messages => {
                 return Err(Error::from(format!(
                     "Cannot match built in field with name {}",
                     name
@@ -424,11 +307,6 @@ impl TryInto<FieldType> for AgentStateField {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-
-    #[test]
-    fn state_fields() {
-        assert!(FieldSpecMap::with_all_agent_batch_fields().is_ok());
-    }
 
     #[test]
     fn name_collision_built_in() {

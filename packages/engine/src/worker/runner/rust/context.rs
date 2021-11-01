@@ -5,46 +5,46 @@ use std::{
     sync::Arc,
 };
 
+use arrow::array::Array;
 use arrow::{
     array::{FixedSizeListArray, ListArray, UInt32Array},
     datatypes::Schema,
 };
-use arrow::array::Array;
 use parking_lot::{RwLock, RwLockWriteGuard};
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
+use crate::config::Globals;
+use crate::datastore::prelude::{AgentBatch, MessageBatch};
+use crate::datastore::{batch::Metaversion, storage::memory::Memory};
+use crate::worker::{Error as WorkerError, Result as WorkerResult, TaskMessage};
 use crate::{
     datastore::{
         arrow::{
-            message::{MESSAGE_COLUMN_INDEX, outbound_messages_to_arrow_column},
+            message::{outbound_messages_to_arrow_column, MESSAGE_COLUMN_INDEX},
             util::arrow_continuation,
         },
         batch::{change::ArrayChange, ContextBatch},
         table::sync::{ContextBatchSync, StateSync},
     },
     hash_types::Agent,
-    Language,
     simulation::packages::{
         state::packages::behavior_execution::config::BehaviorDescription,
         worker_init::PackageInitMsgForWorker,
     },
+    Language,
 };
-use crate::config::Globals;
-use crate::datastore::{batch::Metaversion, storage::memory::Memory};
-use crate::datastore::prelude::{AgentBatch, MessageBatch};
-use crate::worker::{Error as WorkerError, Result as WorkerResult, TaskMessage};
 
+use super::state::{SimState, StateSnapshot};
 use super::{
-    neighbor::Neighbor,
     super::comms::{
-        ExperimentInitRunnerMsg,
         inbound::{InboundToRunnerMsg, InboundToRunnerMsgPayload},
-        MessageTarget, NewSimulationRun, outbound::{OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload, RunnerError}, RunnerTaskMsg, StateInterimSync,
+        outbound::{OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload, RunnerError},
+        ExperimentInitRunnerMsg, MessageTarget, NewSimulationRun, RunnerTaskMsg, StateInterimSync,
         TargetedRunnerTaskMsg,
     },
+    neighbor::Neighbor,
 };
 use super::{Error, Result, SimSchema};
-use super::state::{SimState, StateSnapshot};
 
 /// Wrapper for running columnar behaviors on single agents
 pub struct AgentContext<'c> {
