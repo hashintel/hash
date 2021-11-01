@@ -7,7 +7,7 @@ use arrow::datatypes::DataType as ArrowDataType;
 
 use crate::datastore::error::{Error, Result};
 use crate::datastore::schema::IsRequired;
-use crate::simulation::packages::id::PackageId;
+
 use crate::simulation::packages::name::PackageName;
 
 pub mod accessor;
@@ -91,23 +91,20 @@ pub enum FieldSource {
     Package(PackageName),
 }
 
-impl Default for FieldSource {
-    fn default() -> Self {
-        Self::Missing
-    }
-}
-
 impl FieldSource {
     /// A unique static identifier of the package source, used in building Keys for fields
     pub fn unique_id(&self) -> Result<String> {
         match self {
             FieldSource::Engine => Ok("_".into()),
-            FieldSource::Package(package_name) => Ok(package_name.get_id()?.to_string()),
+            FieldSource::Package(package_name) => Ok(package_name
+                .get_id()
+                .map_err(|err| Error::from(err.to_string()))?
+                .to_string()),
         }
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct FieldKey(String);
 
 impl FieldKey {
@@ -247,7 +244,7 @@ impl RootFieldSpec {
 
 /// A wrapper struct around a hashmap of field-keys (unique identifiers used to name/label Arrow
 /// data columns mapped to the specification of those fields
-#[derive(Debug, Clone, Eq, PartialEq, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct FieldSpecMap {
     field_specs: HashMap<FieldKey, RootFieldSpec>, // a mapping of field unique identifiers to the fields themselves
 }
@@ -261,9 +258,7 @@ impl FieldSpecMap {
 
     fn add(&mut self, new_field: RootFieldSpec) -> Result<()> {
         let field_key = new_field.to_key()?;
-        if self.field_specs.contains_key(&field_key) {
-            let existing_field = &self.field_specs[&field_key];
-
+        if let Some(existing_field) = self.field_specs.get(&field_key) {
             if existing_field.scope == FieldScope::Agent
                 && new_field.scope == FieldScope::Agent
                 && existing_field.inner.field_type == new_field.inner.field_type
@@ -281,11 +276,11 @@ impl FieldSpecMap {
                         }
                     }
                 }
-            } else {
-                Err(Error::from(
-                    format!("Attempting to insert a new field under key:{:?} which clashes. New field: {:?} Existing field: {:?}", field_key, new_field, existing_field)
-                ))
             }
+
+            Err(Error::from(
+                format!("Attempting to insert a new field under key:{:?} which clashes. New field: {:?} Existing field: {:?}", field_key, new_field, existing_field)
+            ))
         } else {
             self.field_specs.insert(field_key, new_field);
             Ok(())
@@ -339,7 +334,7 @@ impl FieldSpecMap {
     // TODO OS [5] - RUNTIME BLOCK - FieldSpecMap generators need scope and source information for built in fields
 
     fn with_all_agent_batch_fields() -> Result<FieldSpecMap> {
-        let mut field_spec_map = FieldSpecMap::default()?;
+        let mut field_spec_map = FieldSpecMap::default();
         for field in AgentStateField::FIELDS {
             // Skip non-key columns
             if NON_KEY_FIELDS.contains(field) {
@@ -351,7 +346,7 @@ impl FieldSpecMap {
     }
 
     fn with_all_required_agent_batch_fields() -> Result<FieldSpecMap> {
-        let mut field_spec_map = FieldSpecMap::default()?;
+        let mut field_spec_map = FieldSpecMap::default();
         for field in AgentStateField::FIELDS {
             // Skip non-key columns
             if NON_KEY_FIELDS.contains(field) {

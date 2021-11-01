@@ -790,7 +790,7 @@ mod tests {
 
     use crate::datastore::test_utils::gen_schema_and_test_agents;
 
-    #[bench]
+    #[test]
     fn bench() -> Result<()> {
         // TODO OS[28] - RUNTIME BLOCK - Benchmark needs to be updated to use new FieldSpecMap stuff, requires built_in methods to be figured out
         todo!()

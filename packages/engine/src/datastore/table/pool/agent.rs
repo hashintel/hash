@@ -1,8 +1,8 @@
 use parking_lot::RwLock;
-use rayon::iter::{IndexedParallelIterator, ParallelIterator};
 
 use crate::{datastore::prelude::*, simulation::packages::state::StateColumn};
 
+use crate::datastore::batch::DynamicBatch;
 use std::{
     ops::{Deref, DerefMut},
     sync::Arc,
@@ -33,7 +33,7 @@ impl AgentPool {
             .map(|a| {
                 a.try_read()
                     .map(|read| read.deref())
-                    .ok_or_else(|e| Error::from(e))
+                    .ok_or_else(|| Error::from("failed to read batches"))
             })
             .collect::<Result<_>>()
     }
@@ -44,13 +44,13 @@ impl AgentPool {
             .map(|a| {
                 a.try_write()
                     .map(|mut read| read.deref_mut())
-                    .ok_or_else(|e| Error::from(e))
+                    .ok_or_else(|| Error::from("failed to write batches"))
             })
             .collect::<Result<_>>()
     }
 
     pub fn mut_batches(&mut self) -> &mut Vec<Arc<RwLock<AgentBatch>>> {
-        &mut self.batches.inner
+        &mut self.batches
     }
 
     pub fn len(&self) -> usize {
@@ -62,7 +62,12 @@ impl AgentPool {
             .batches
             .get(index)
             .map(|batch| batch.try_write().map(|b| b.deref()))
-            .transpose()?;
+            .ok_or_else(|| {
+                Error::from(format!(
+                    "failed to get write lock for batch at index: {}",
+                    index
+                ))
+            })?;
         Ok(batch)
     }
 

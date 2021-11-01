@@ -3,12 +3,9 @@ use rayon::iter::{
     IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,
 };
 
-use crate::datastore::{
-    batch, prelude::*, schema::state::MessageSchema, table::references::AgentMessageReference,
-    UUID_V4_LEN,
-};
+use crate::datastore::{batch, prelude::*, table::references::AgentMessageReference, UUID_V4_LEN};
 
-use crate::proto::{ExperimentID, ExperimentRunBase};
+use crate::proto::ExperimentRunBase;
 use crate::SimRunConfig;
 use std::ops::DerefMut;
 use std::{ops::Deref, sync::Arc};
@@ -34,6 +31,7 @@ impl MessagePool {
     }
 
     pub fn read(&self) -> Result<MessagePoolRead<'_>> {
+        // TODO OS: Fix - Cannot infer type for collect
         let read_batches = self
             .batches()
             .iter()
@@ -113,11 +111,13 @@ impl<K> TryAcquire<K> for RwLock<K> {
     }
 
     fn try_read_res<'a>(&self) -> Result<RwLockReadGuard<'a, K>> {
+        // TODO OS: Fix - cannot infer an appropriate lifetime for autoref
         self.try_read()
             .ok_or_else(|| Error::from("Failed to acquire read lock"))
     }
 
     fn try_write_res<'a>(&mut self) -> Result<RwLockWriteGuard<'a, K>> {
+        // TODO OS: Fix - cannot infer an appropriate lifetime for autoref
         self.try_write()
             .ok_or_else(|| Error::from("Failed to acquire write lock"))
     }

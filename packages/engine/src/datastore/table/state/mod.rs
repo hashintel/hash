@@ -5,13 +5,12 @@ pub mod view;
 
 use crate::proto::{ExperimentID, ExperimentRunBase};
 
-use crate::config::StoreConfig;
 use crate::{
     datastore::{batch::DynamicBatch, prelude::*, schema::state::AgentSchema},
     simulation::{command::CreateRemoveCommands, packages::state::StateColumn},
     SimRunConfig,
 };
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 use self::create_remove::CreateRemovePlanner;
 
@@ -171,7 +170,18 @@ impl ExState {
                 .rev()
                 .try_for_each::<_, Result<()>>(|remove_index| {
                     let removed = static_pool.remove(remove_index);
-                    removed_ids.push(removed.try_read()?.get_batch_id().to_string());
+                    removed_ids.push(
+                        removed
+                            .try_read()
+                            .ok_or_else(|| {
+                                Error::from(format!(
+                                    "failed to acquire read lock for removed batch at index: {}",
+                                    remove_index
+                                ))
+                            })?
+                            .get_batch_id()
+                            .to_string(),
+                    );
                     Ok(())
                 })?;
             removed_ids

@@ -1,11 +1,8 @@
 use std::sync::Arc;
 
-use crate::proto::ExperimentRunBase;
-
 use crate::proto::ExperimentID;
 use crate::{
     config::StoreConfig, datastore::prelude::*, simulation::packages::context::ContextColumn,
-    SimRunConfig,
 };
 
 use super::{

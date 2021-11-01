@@ -2,13 +2,14 @@ use std::sync::Arc;
 
 use parking_lot::{lock_api::RawRwLock, RwLock};
 
+use crate::datastore::table::pool::BatchPool;
 use crate::datastore::{
     batch::Batch,
     prelude::{AgentBatch, Error, MessageBatch, Result},
 };
 
 use super::{
-    pool::proxy::{PoolReadProxy, PoolWriteProxy},
+    pool::proxy::{BatchPool, PoolReadProxy, PoolWriteProxy},
     state::{ReadState, WriteState},
 };
 
@@ -21,7 +22,7 @@ impl<K: Batch> BatchReadProxy<K> {
         if unsafe { arc.raw() }.try_lock_shared() {
             Ok(BatchReadProxy { arc: arc.clone() })
         } else {
-            Err(Error::from("Couldn't acquire shared lock on object"));
+            Err(Error::from("Couldn't acquire shared lock on object"))
         }
     }
 
@@ -52,7 +53,7 @@ impl<K: Batch> BatchWriteProxy<K> {
         if unsafe { arc.raw() }.try_lock_exclusive() {
             Ok(BatchWriteProxy { arc: arc.clone() })
         } else {
-            Err(Error::from("Couldn't acquire exclusive lock on object"));
+            Err(Error::from("Couldn't acquire exclusive lock on object"))
         }
     }
 
@@ -85,7 +86,6 @@ impl<K: Batch> Drop for BatchWriteProxy<K> {
     }
 }
 
-#[derive(Default)]
 pub struct StateReadProxy {
     agent_pool_proxy: PoolReadProxy<AgentBatch>,
     message_pool_proxy: PoolReadProxy<MessageBatch>,
@@ -106,23 +106,22 @@ impl StateReadProxy {
         })
     }
 
-    pub fn agent_pool(&self) -> &PoolWriteProxy<AgentBatch> {
+    pub fn agent_pool(&self) -> &PoolReadProxy<AgentBatch> {
         &self.agent_pool_proxy
     }
 
-    pub fn message_pool(&self) -> &PoolWriteProxy<MessageBatch> {
+    pub fn message_pool(&self) -> &PoolReadProxy<MessageBatch> {
         &self.message_pool_proxy
     }
 }
 
-#[derive(Default)]
 pub struct StateWriteProxy {
     agent_pool_proxy: PoolWriteProxy<AgentBatch>,
     message_pool_proxy: PoolWriteProxy<MessageBatch>,
 }
 
 impl StateWriteProxy {
-    pub fn new<K: WriteState>(state: &K) -> Result<Self> {
+    pub fn new<K: WriteState>(state: &mut K) -> Result<Self> {
         Ok(StateWriteProxy {
             agent_pool_proxy: state.agent_pool_mut().write_proxy()?,
             message_pool_proxy: state.message_pool_mut().write_proxy()?,

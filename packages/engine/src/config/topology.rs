@@ -183,7 +183,7 @@ impl Config {
     /// Will return an error if there is no suitable `topology::Config` specified within
     /// the Globals JSON object.
     pub fn create_from_globals(globals: &Arc<Globals>) -> Result<Self> {
-        _try_extract_topology_config(globals)
+        Self::_try_extract_topology_config(globals)
             .ok_or_else(|| "TopologyConfig not found within Globals".into())
     }
 
@@ -382,7 +382,6 @@ impl Config {
             if let Some(serde_json::Value::String(distance_func_str)) =
             topology_props.get("distance_function")
             {
-                use crate::hash_types::distance::functions::{conway, euclidean, euclidean_squared, manhattan};
                 config.distance_function = Box::new(match &**distance_func_str {
                     "manhattan" => manhattan,
                     "euclidean" => euclidean,

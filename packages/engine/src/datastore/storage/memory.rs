@@ -6,8 +6,6 @@ use super::{ptr::MemoryPtr, visitor::Visit, visitor::Visitor, visitor::VisitorMu
 
 use crate::datastore::prelude::*;
 
-use crate::proto::ExperimentID;
-use std::sync::Arc;
 use std::{os::unix::io::RawFd, path::Path};
 
 pub type Buffers<'a> = (&'a [u8], &'a [u8], &'a [u8], &'a [u8]);

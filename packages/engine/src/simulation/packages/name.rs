@@ -4,7 +4,7 @@ use strum_macros::IntoStaticStr;
 use crate::simulation::packages::{context, init, output, state};
 use crate::simulation::{packages::id::PackageId, Error, Result};
 
-#[derive(Debug, Clone, PartialEq, Eq, IntoStaticStr)]
+#[derive(Debug, Clone, PartialEq, Eq, IntoStaticStr, Hash)]
 pub enum PackageName {
     Context(context::Name),
     Init(init::Name),

@@ -1,6 +1,5 @@
-use crate::config::topology::{Config, WrappingBehavior};
-use crate::config::topology::functions::{conway, euclidean, euclidean_squared, manhattan};
 use crate::Result;
+use serde::{Deserialize, Serialize};
 
 // TODO Go through code-base and verify that out-dated references to "properties" are now "globals"
 // We also have some consts that come in along with our initial world state.

@@ -11,7 +11,7 @@ use super::{
     state::{ReadState, WriteState},
 };
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct TaskSharedStore {
     state: SharedState,
     context: SharedContext,
@@ -33,13 +33,11 @@ impl TaskSharedStore {
     }
 }
 
-#[derive(Default)]
 pub struct PartialStateWriteProxy {
     indices: Vec<usize>,
     inner: StateWriteProxy,
 }
 
-#[derive(Default)]
 pub struct PartialStateReadProxy {
     indices: Vec<usize>,
     inner: StateReadProxy,
@@ -69,7 +67,7 @@ impl Default for SharedContext {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct TaskSharedStoreBuilder {
     inner: TaskSharedStore,
 }
@@ -105,7 +103,7 @@ impl TaskSharedStoreBuilder {
     }
 
     /// Allow the task runners to have write access to all of agent state
-    pub fn write_state<K: WriteState>(mut self, state: &K) -> Result<Self> {
+    pub fn write_state<K: WriteState>(mut self, state: &mut K) -> Result<Self> {
         self.inner.state = SharedState::Write(StateWriteProxy::new(state)?);
         Ok(self)
     }
@@ -127,6 +125,7 @@ impl TaskSharedStoreBuilder {
 // of the data store. Can have both write
 // and read access to different (non-overlapping)
 // subsets of the state pool
+#[derive(Debug)]
 pub enum PartialSharedState {
     Write(PartialStateWriteProxy),
     Read(PartialStateReadProxy),

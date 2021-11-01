@@ -67,14 +67,20 @@ pub struct RootFieldSpecMapAccessor {
     pub field_spec_map: Arc<FieldSpecMap>,
 }
 
-impl RootFieldSpec {
-    fn get_field_spec(
+impl RootFieldSpecMapAccessor {
+    fn get_agent_scoped_field_spec(&self, field_name: &str) -> Result<&RootFieldSpec> {
+        let key = FieldKey::new_agent_scoped(field_name)?;
+        self.field_spec_map._get_field_spec(&key)
+    }
+
+    fn get_private_or_hidden_scoped_field_spec(
         &self,
         field_name: &str,
         field_source: &FieldSource,
         field_scope: &FieldScope,
     ) -> Result<&RootFieldSpec> {
-        let key = FieldKey::new(field_name, field_source, field_scope)?;
+        let key = FieldKey::new_private_or_hidden_scoped(field_name, field_source, field_scope)?;
+
         self.field_spec_map._get_field_spec(&key)
     }
 }

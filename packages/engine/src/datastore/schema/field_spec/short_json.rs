@@ -169,7 +169,7 @@ impl FieldSpec {
 impl FieldSpecMap {
     pub fn from_short_json(json: serde_json::Value) -> Result<FieldSpecMap> {
         if let serde_json::Value::Object(object_map) = json {
-            let mut field_spec_map = FieldSpecMap::default()?;
+            let mut field_spec_map = FieldSpecMap::default();
             let mut definitions = None;
             let mut map: HashMap<&str, FieldSpec> = HashMap::new();
             if let Some(defined_object_map) = object_map
@@ -240,6 +240,6 @@ mod tests {
         let key_set = FieldSpecMap::from_short_json(json)
             .expect("KeySet should be able to be created from this JSON");
         // 10 not 9 because we have to special __previous_index field in there too
-        assert_eq!(key_set.keys.len(), 10);
+        assert_eq!(key_set.len(), 10);
     }
 }

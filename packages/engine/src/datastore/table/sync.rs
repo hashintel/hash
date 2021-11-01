@@ -6,7 +6,7 @@ use crate::{
     worker::runner::comms::inbound::InboundToRunnerMsgPayload,
 };
 
-#[derive(new, Default)]
+#[derive(new)]
 pub struct StateSync {
     pub agent_pool: Box<dyn BatchPool<AgentBatch>>,
     pub message_pool: Box<dyn BatchPool<MessageBatch>>,

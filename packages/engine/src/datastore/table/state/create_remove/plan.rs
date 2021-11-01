@@ -38,7 +38,9 @@ impl<'a> MigrationPlan<'a> {
             .par_iter()
             .zip_eq(mut_batches.par_iter_mut())
             .try_for_each::<_, Result<()>>(|(action, batch)| {
-                let write_batch = &mut batch.try_write()?;
+                let write_batch = &mut batch
+                    .try_write()
+                    .ok_or(|| Error::from("failed to acquire write lock"))?;
                 match action {
                     ExistingGroupBufferActions::Persist { affinity } => {
                         write_batch.set_affinity(*affinity);
@@ -70,7 +72,8 @@ impl<'a> MigrationPlan<'a> {
                         removed_ids.push(
                             mut_batches
                                 .swap_remove(batch_index)
-                                .try_read()?
+                                .try_read()
+                                .ok_or(|| Error::from("failed to get read lock for batch"))?
                                 .get_batch_id()
                                 .to_string(),
                         );
@@ -87,6 +90,7 @@ impl<'a> MigrationPlan<'a> {
             .map(|action| {
                 let buffer_actions = action.actions;
                 let new_batch = buffer_actions
+                    // Todo no field agent_schema
                     .new_batch(&meta.agent_schema, &meta.run_id, action.affinity)
                     .map_err(Error::from)?;
                 Ok(Arc::new(RwLock::new(new_batch)))

@@ -54,7 +54,10 @@ impl CreateRemovePlanner {
             .map(|(batch_index, batch)| {
                 PendingBatch::from_batch(
                     batch_index,
-                    batch.try_read()?.deref(),
+                    batch
+                        .try_read()
+                        .ok_or(|| Error::from("failed to acquire read lock"))?
+                        .deref(),
                     &mut self.commands.remove_ids,
                 )
             })

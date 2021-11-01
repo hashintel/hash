@@ -1,4 +1,4 @@
-use crate::hash_types::worker::{RunnerError, RunnerStatus};
+use crate::hash_types::worker::RunnerError;
 use crate::simulation::status::SimStatus;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
