@@ -7,6 +7,7 @@ import { Visibility } from "../../graphql/apiTypes.gen";
 import { genId } from "../../util";
 import { insertEntityAccount } from "./account";
 import { DbEntityNotFoundError } from "../errors";
+import { addSrcEntityVersionIdToLink, getEntityOutgoingLinks } from "./link";
 
 /** Prefix to distinguish identical fields when joining with a type record */
 const entityTypeFieldPrefix = "type.";
@@ -643,6 +644,22 @@ const updateVersionedEntity = async (
 
   await Promise.all([
     insertEntityVersion(conn, newEntityVersion),
+
+    getEntityOutgoingLinks(conn, {
+      accountId: entity.accountId,
+      entityId: entity.entityId,
+      entityVersionId: entity.entityVersionId,
+    }).then((outgoingLinks) =>
+      Promise.all(
+        outgoingLinks.map(({ accountId, linkId }) =>
+          addSrcEntityVersionIdToLink(conn, {
+            accountId,
+            linkId,
+            newSrcEntityVersionId: newEntityVersion.entityVersionId,
+          })
+        )
+      )
+    ),
 
     // Make a reference to this entity's account in the `entity_account` lookup table
     insertEntityAccount(conn, newEntityVersion),

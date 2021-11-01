@@ -471,6 +471,26 @@ export const getLink = async (
   return row ? mapDBLinkRowToDBLink(row) : null;
 };
 
+export const addSrcEntityVersionIdToLink = async (
+  conn: Connection,
+  params: {
+    accountId: string;
+    linkId: string;
+    newSrcEntityVersionId: string;
+  }
+) => {
+  await conn.one(
+    sql`
+      update links
+      set src_entity_version_ids = array_append(links.src_entity_version_ids, ${params.newSrcEntityVersionId})
+      where
+        account_id = ${params.accountId}
+        and link_id = ${params.linkId}
+        and not ${params.newSrcEntityVersionId} = ANY(links.src_entity_version_ids)
+    `
+  );
+};
+
 export const getEntityOutgoingLinks = async (
   conn: Connection,
   params: {
