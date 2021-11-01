@@ -4,15 +4,14 @@
   "private": true,
   "version": "0.1.0",
   "description": "Realtime streaming update server from the HASH.dev datstore",
-  "prettier": "@hashintel/prettier-config",
   "repository": {
     "url": "https://github.com/hashintel/dev/packages/hash/realtime",
     "directory": "packages/hash/realtime"
   },
   "main": "src/index.ts",
   "scripts": {
-    "format": "eslint --ext .ts --fix ./src/; prettier --write --list-different './src/**/*'",
-    "lint": "prettier --check './src/**/*' && eslint --ext .ts ./src/ && tsc --noEmit # @hashintel/hash-realtime",
+    "fix": "eslint --ext .ts --fix ./src/",
+    "lint": "eslint --ext .ts ./src/ && tsc --noEmit # @hashintel/hash-realtime",
     "build": "yarn clean; tsc -b",
     "clean": "rimraf ./dist/ ./tsconfig.tsbuildinfo",
     "dev": "NODE_ENV=development nodemon --config nodemon.json src/index.ts",

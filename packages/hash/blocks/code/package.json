@@ -11,10 +11,9 @@
     "displayName": "Code",
     "icon": "public/code.svg"
   },
-  "prettier": "@hashintel/prettier-config",
   "scripts": {
-    "format": "eslint --ext .ts,.tsx,.js --fix ./src/; prettier --write --list-different './src/**/*'",
-    "lint": "prettier --check './src/**/*' && eslint --ext .ts,.tsx ./src/ && tsc --noEmit # @hashintel/block-code",
+    "fix": "eslint --ext .ts,.tsx,.js --fix ./src/",
+    "lint": "eslint --ext .ts,.tsx ./src/ && tsc --noEmit # @hashintel/block-code",
     "build:public": "mkdir -p ./dist; cp -a ./public ./dist",
     "build": "yarn clean; yarn build:public; cross-env NODE_ENV=production webpack --mode production && yarn schema",
     "build:dev": "yarn clean; yarn build:public; cross-env NODE_ENV=development webpack --mode development",
@@ -41,7 +40,6 @@
     "@babel/preset-react": "^7.12.10",
     "@babel/preset-typescript": "7.13.0",
     "@babel/runtime": "^7.12.5",
-    "@hashintel/prettier-config": "*",
     "@types/prismjs": "1.16.5",
     "@typescript-eslint/eslint-plugin": "4.29.0",
     "@typescript-eslint/parser": "4.29.0",
@@ -56,7 +54,6 @@
     "eslint-plugin-react": "7.24.0",
     "eslint-plugin-react-hooks": "4.2.0",
     "html-webpack-plugin": "^4.5.0",
-    "prettier": "2.3.2",
     "react": "17.0.2",
     "react-dom": "17.0.2",
     "regenerator-runtime": "^0.13.7",

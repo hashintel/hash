@@ -3,7 +3,6 @@ FROM node:16 AS builder
 WORKDIR /app
 
 COPY packages/hash/backend packages/hash/backend
-COPY packages/hash/prettier-config packages/hash/prettier-config
 COPY packages/hash/shared packages/hash/shared
 COPY packages/hash/block-protocol packages/hash/block-protocol
 COPY packages/hash/frontend packages/hash/frontend

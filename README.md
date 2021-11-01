@@ -108,19 +108,16 @@ The below `package.json` file outlines the minimum requirements a package has to
   "description": "lorem ipsum",
   "author": "<package-author>",
   "license": "<package-licence>",
-  "prettier": "@hashintel/prettier-config",
   "scripts": {
-    // use script "echo n/a" where not applicable
-    "format": "prettier --write './src/**/*' eslint --fix ./src/",
     // omit type-checking if not applicable
-    "lint": "prettier --check './src/**/*'; eslint ./src/; tsc --noEmit",
+    "lint": "eslint --ext .ts,.tsx ./src/; tsc --noEmit",
+    "fix": "eslint --ext .ts,.tsx --fix ./src/",
     "build": "echo produce artifacts",
     "clean": "echo remove artifacts",
     // required only if this is a shared package
     "postinstall": "yarn build"
   },
   "devDependencies": {
-    "@hashintel/prettier-config": "*",
     "@typescript-eslint/eslint-plugin": "4.29.0",
     "@typescript-eslint/parser": "4.29.0",
     "eslint": "^7.32.0",
@@ -132,7 +129,6 @@ The below `package.json` file outlines the minimum requirements a package has to
     "eslint-plugin-no-restricted-imports": "0.0.0",
     "eslint-plugin-react": "^7.25.1",
     "eslint-plugin-react-hooks": "4.2.0",
-    "prettier": "2.3.2",
     "rimraf": "3.2.0",
     "typescript": "4.3.5"
   }

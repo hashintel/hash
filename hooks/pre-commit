@@ -2,9 +2,7 @@
 const process = require("process");
 const { spawnSync } = require("child_process");
 
-const PACKAGES_TO_IGNORE = [
-  "packages/hash/docker",
-]
+const PACKAGES_TO_IGNORE = ["packages/hash/docker"];
 
 const main = () => {
   const diff = spawnSync(
@@ -19,10 +17,10 @@ const main = () => {
   let packagesToLint = diff.stdout
     .trim()
     .split("\n")
-    .map(name => name.match(/^packages\/hash\/[a-zA-Z_\-\.]+/))
-    .filter(m => m)
-    .map(m => m[0])
-    .filter(name => !PACKAGES_TO_IGNORE.includes(name));
+    .map((name) => name.match(/^packages\/hash\/[a-zA-Z_\-\.]+/))
+    .filter((m) => m)
+    .map((m) => m[0])
+    .filter((name) => !PACKAGES_TO_IGNORE.includes(name));
   packagesToLint = Array.from(new Set(packagesToLint));
 
   if (packagesToLint.length === 0) {
@@ -33,12 +31,13 @@ const main = () => {
   console.log("Will lint packages", packagesToLint);
 
   let failed = false;
-  packagesToLint.forEach((package)=> {
+  packagesToLint.forEach((package) => {
     console.log(`Linting package ${package}`);
-    const lint = spawnSync(
-      "yarn", ["lint"],
-      { cwd: package, encoding: "utf8", stdio: ["pipe", process.stdout, "pipe"] }
-    );
+    const lint = spawnSync("yarn", ["lint"], {
+      cwd: package,
+      encoding: "utf8",
+      stdio: ["pipe", process.stdout, "pipe"],
+    });
     if (lint.status !== 0) {
       failed = true;
     }
@@ -48,6 +47,6 @@ const main = () => {
     console.error("Linting failed");
     process.exit(1);
   }
-}
+};
 
 main();

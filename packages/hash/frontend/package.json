@@ -4,10 +4,9 @@
   "private": true,
   "version": "0.1.0",
   "description": "Frontend for HASH.dev",
-  "prettier": "@hashintel/prettier-config",
   "scripts": {
-    "format": "eslint --ext .js,.ts,.tsx --fix ./src/; prettier --write --list-different './src/**/*'",
-    "lint": "prettier --check './src/**/*' && eslint --ext .js,.ts,.tsx ./src/ && tsc --noEmit # @hashintel/hash-frontend",
+    "fix": "eslint --ext .js,.ts,.tsx --fix ./src/",
+    "lint": "eslint --ext .js,.ts,.tsx ./src/ && tsc --noEmit # @hashintel/hash-frontend",
     "codegen": "graphql-codegen --config codegen.yml",
     "build": "yarn clean; yarn codegen; next build",
     "clean": "rimraf './src/**/*.gen.*' ./.next/",
@@ -67,7 +66,6 @@
     "@graphql-codegen/fragment-matcher": "2.0.1",
     "@graphql-codegen/typescript": "1.22.1",
     "@graphql-codegen/typescript-operations": "1.18.0",
-    "@hashintel/prettier-config": "*",
     "@next/bundle-analyzer": "11.1.2",
     "@testing-library/dom": "8.3.0",
     "@testing-library/jest-dom": "5.14.1",
@@ -113,7 +111,6 @@
     "identity-obj-proxy": "3.0.0",
     "jest": "27.1.1",
     "jest-watch-typeahead": "0.6.4",
-    "prettier": "2.3.2",
     "rimraf": "^3.0.2",
     "sass": "1.34.1",
     "typescript": "4.3.5"
