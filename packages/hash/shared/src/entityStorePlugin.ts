@@ -42,10 +42,9 @@ type EntityStorePluginAction =
 
 type EntityStorePluginMessage = EntityStorePluginAction[];
 
-export const entityStorePluginKey = new PluginKey<
-  EntityStorePluginState,
-  Schema
->("entityStore");
+const entityStorePluginKey = new PluginKey<EntityStorePluginState, Schema>(
+  "entityStore"
+);
 
 export const addEntityStoreAction = (
   tr: Transaction<Schema>,
