@@ -25,7 +25,7 @@ type EntityStorePluginState = {
   decorations: DecorationSet<Schema>;
 };
 
-type EntityStorePluginMessage =
+type EntityStorePluginAction =
   | {
       type: "contents";
       payload: BlockEntity[];
@@ -36,11 +36,22 @@ type EntityStorePluginMessage =
     }
   | { type: "store"; payload: EntityStore };
 
-// @todo don't export this
+type EntityStorePluginMessage = EntityStorePluginAction[];
+
 export const entityStorePluginKey = new PluginKey<
   EntityStorePluginState,
   Schema
 >("entityStore");
+
+export const addEntityStoreAction = (
+  tr: Transaction<Schema>,
+  action: EntityStorePluginAction
+) => {
+  const actions: EntityStorePluginMessage =
+    tr.getMeta(entityStorePluginKey) ?? [];
+
+  tr.setMeta(entityStorePluginKey, [...actions, action]);
+};
 
 export const entityStoreFromProsemirror = (state: EditorState<Schema>) => {
   const pluginState = entityStorePluginKey.getState(state);
@@ -74,7 +85,12 @@ export const entityStoreAndTransactionForEntities = (
 ) => {
   const { tr } = state;
 
-  tr.setMeta(entityStorePluginKey, { type: "contents", payload: entities });
+  /**
+   * @todo we should remove this action once its been applied
+   * @todo this is a pretty crude way of getting a store – why not just call
+   *       it directly?
+   */
+  addEntityStoreAction(tr, { type: "contents", payload: entities });
 
   /**
    * We need to remove the draft ids were previously generated for nodes
@@ -109,7 +125,7 @@ export const entityStoreAndTransactionForEntities = (
    * Prosemirror, as the use of state.apply above does not actually replace the
    * store inside Prosemirror
    */
-  tr.setMeta(entityStorePluginKey, { type: "store", payload: store });
+  addEntityStoreAction(tr, { type: "store", payload: store });
 
   return { store, tr };
 };
@@ -196,45 +212,49 @@ export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
         decorations: decorationSet(state.doc),
       };
     },
-    apply(tr, state) {
-      const action: EntityStorePluginMessage | undefined =
-        tr.getMeta(entityStorePluginKey);
+    apply(tr, initialState) {
+      const actions: EntityStorePluginMessage =
+        tr.getMeta(entityStorePluginKey) ?? [];
 
-      if (action) {
-        /**
-         * A more efficient thing to do would be to work out which entities this
-         * action changes, and only update the decorations for the entities that
-         * have changed
-         */
-        const decorations = decorationSet(tr.doc);
+      return actions.reduce<EntityStorePluginState>(
+        (state, action) => {
+          /**
+           * A more efficient thing to do would be to work out which entities this
+           * action changes, and only update the decorations for the entities that
+           * have changed
+           */
+          const decorations = decorationSet(tr.doc);
 
-        switch (action?.type) {
-          case "contents":
-            return {
-              ...state,
-              store: createEntityStore(action.payload, state.store.draft),
-              decorations,
-            };
-
-          case "draft":
-            return {
-              ...state,
-              store: {
-                ...state.store,
-                draft: action.payload,
+          switch (action.type) {
+            case "contents":
+              return {
+                ...state,
+                store: createEntityStore(action.payload, state.store.draft),
                 decorations,
-              },
-            };
+              };
 
-          case "store": {
-            return { ...state, store: action.payload, decorations };
+            case "draft":
+              return {
+                ...state,
+                store: {
+                  ...state.store,
+                  draft: action.payload,
+                  decorations,
+                },
+              };
+
+            case "store": {
+              return { ...state, store: action.payload, decorations };
+            }
           }
+
+          return state;
+        },
+        {
+          ...initialState,
+          decorations: initialState.decorations.map(tr.mapping, tr.doc),
         }
-      }
-      return {
-        ...state,
-        decorations: state.decorations.map(tr.mapping, tr.doc),
-      };
+      );
     },
   },
 
@@ -348,7 +368,7 @@ export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
       });
     });
 
-    tr.setMeta(entityStorePluginKey, { type: "draft", payload: nextDraft });
+    addEntityStoreAction(tr, { type: "draft", payload: nextDraft });
 
     return tr;
   },
