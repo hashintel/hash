@@ -12,8 +12,7 @@ pub mod simulation {
 
     impl SimCtlSend {
         pub async fn send(&mut self, msg: SimControl) -> Result<()> {
-            self.inner.send(msg).await?;
-            Ok(())
+            self.inner.send(msg).into()
         }
     }
 
@@ -45,8 +44,7 @@ pub mod sim_status {
 
     impl SimStatusSend {
         pub async fn send(&mut self, msg: SimStatus) -> Result<()> {
-            self.inner.send(msg).await?;
-            Ok(())
+            self.inner.send(msg).into()
         }
     }
 
@@ -77,8 +75,7 @@ pub mod exp_pkg_ctl {
 
     impl ExpPkgCtlSend {
         pub async fn send(&mut self, msg: ExperimentControl) -> Result<()> {
-            self.inner.send(msg).await?;
-            Ok(())
+            self.inner.send(msg).into()
         }
     }
 
@@ -110,8 +107,7 @@ pub mod exp_pkg_update {
 
     impl ExpPkgUpdateSend {
         pub async fn send(&self, msg: StepUpdate) -> Result<()> {
-            self.inner.send(msg).await?;
-            Ok(())
+            self.inner.send(msg).into()
         }
     }
 

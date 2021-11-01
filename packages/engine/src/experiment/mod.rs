@@ -1,15 +1,15 @@
 pub mod controller;
 pub mod package;
 
+use crate::config::Globals;
 use crate::experiment::controller::comms::exp_pkg_ctl::ExpPkgCtlSend;
 use crate::experiment::package::UpdateRequest;
-use crate::proto::{ExperimentPackageConfig, ExperimentRunBase, SimulationShortID};
-use crate::{config::ExperimentConfig, hash_types, proto};
-use crate::config::Globals;
+use crate::proto::{ExperimentPackageConfig, SimulationShortID};
+use crate::{config::ExperimentConfig, proto};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as SerdeValue;
 use thiserror::Error as ThisError;
-use tokio::{sync::mpsc::UnboundedSender, task::JoinHandle};
+use tokio::task::JoinHandle;
 
 use self::controller::comms::exp_pkg_update::ExpPkgUpdateRecv;
 
@@ -156,7 +156,7 @@ pub fn apply_property_changes(mut base: Globals, changes: &SerdeValue) -> Result
         let property_path = property_path.split('.').collect();
         set_nested_property(&mut map, property_path, changed_value.clone(), 0)?;
     }
-    let globals = Globals(map.into())?;
+    let globals = Globals(map.into());
     Ok(globals)
 }
 
@@ -187,11 +187,13 @@ pub fn init_exp_package(
 ) -> Result<(JoinHandle<Result<()>>, Option<UpdateRequest>)> {
     let (future, request) = match exp_package_config {
         ExperimentPackageConfig::Simple(config) => {
+            // TODO OS: Fix - expected `&Arc<Config<ExperimentRun>>`, found `&&Config<ExperimentRun>`
             let pkg = package::simple::SimpleExperiment::new(&experiment_config, config)?;
             let future = tokio::spawn(async move { pkg.run(pkg_to_exp, pkg_from_exp).await });
             (future, None)
         }
         ExperimentPackageConfig::SingleRun(config) => {
+            // TODO OS: Fix - expected `&Arc<Config<ExperimentRun>>`, found `&&Config<ExperimentRun>`
             let pkg = package::single::SingleRunExperiment::new(&experiment_config, config)?;
             let future = tokio::spawn(async move { pkg.run(pkg_to_exp, pkg_from_exp).await });
             (future, None)

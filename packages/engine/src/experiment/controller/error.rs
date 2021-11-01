@@ -1,4 +1,5 @@
 use thiserror::Error as ThisError;
+use tokio::sync::mpsc::error::SendError;
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -6,6 +7,12 @@ pub type Result<T, E = Error> = std::result::Result<T, E>;
 pub enum Error {
     #[error("Experiment Controller error: {0}")]
     Unique(String),
+
+    #[error("Env error: {0}")]
+    Env(#[from] crate::env::Error),
+
+    #[error("Experiment error: {0}")]
+    Experiment(#[from] crate::experiment::Error),
 
     #[error("Serialize/Deserialize error")]
     Serde(#[from] serde_json::Error),
@@ -18,6 +25,9 @@ pub enum Error {
 
     #[error("Missing configuration in dynamic payloads. Key: {0}")]
     MissingConfiguration(String),
+
+    #[error("Datastore: {0}")]
+    Datastore(#[from] crate::datastore::error::Error),
 }
 
 impl From<&str> for Error {
@@ -29,5 +39,14 @@ impl From<&str> for Error {
 impl From<String> for Error {
     fn from(s: String) -> Self {
         Error::Unique(s)
+    }
+}
+
+impl<T> From<SendError<T>> for Error
+where
+    T: std::fmt::Debug,
+{
+    fn from(e: SendError<T>) -> Self {
+        Error::Unique(format!("Tokio Send Error: {:?}", e))
     }
 }

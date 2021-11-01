@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::{output::local::config::LocalPersistenceConfig, Environment};
 
 use serde::{Deserialize, Serialize};
@@ -28,7 +26,7 @@ pub fn get_dynamic<'de, K: Deserialize<'de>, E: ExperimentRunRepr>(
 ) -> Result<K> {
     env.dyn_payloads
         .get(key)
-        .map(|value| serde_json::from_value(value.clone()))
-        .ok_or_else(|| Error::MissingConfiguration(key.to_string()))?
-        .into()
+        // TODO OS: Fix - Investigate mismatched types
+        .map(|value| serde_json::from_value(value.clone()).map_err(|e| Error::from(e)))
+        .ok_or_else(|| Error::MissingConfiguration(key.to_string()))
 }

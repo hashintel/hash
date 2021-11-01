@@ -1,11 +1,5 @@
 use std::convert::TryInto;
-use std::{
-    collections::{
-        hash_map::{Entry, OccupiedEntry},
-        HashMap,
-    },
-    sync::Arc,
-};
+use std::{collections::HashMap, sync::Arc};
 
 use crate::{
     config::{PersistenceConfig, StoreConfig},
@@ -22,11 +16,9 @@ use crate::{
             top::{WorkerPoolMsgRecv, WorkerPoolToExpCtlMsg},
         },
     },
-    ExperimentConfig, SimRunConfig,
+    ExperimentConfig,
 };
-use crate::{
-    experiment::package::ExperimentPackageComms, hash_types::worker::RunnerStatus, Environment,
-};
+use crate::{experiment::package::ExperimentPackageComms, Environment};
 
 use crate::proto::{
     EngineMsg, EngineStatus, ExperimentRunBase, ExperimentRunRepr, SimulationShortID,
@@ -39,10 +31,7 @@ use crate::workerpool::runs::SimulationRuns;
 
 use super::comms::sim_status::SimStatusSend;
 use super::{
-    comms::{
-        exp_pkg_ctl::ExpPkgCtlRecv, exp_pkg_update::ExpPkgUpdateSend, sim_status::SimStatusRecv,
-        simulation::SimCtlSend,
-    },
+    comms::{sim_status::SimStatusRecv, simulation::SimCtlSend},
     id_store::SimIdStore,
     sim_configurer::SimConfigurer,
     Error, Result,
@@ -77,11 +66,11 @@ impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController
     async fn handle_orch_msg(&mut self, orch_msg: EngineMsg<E>) -> Result<()> {
         match orch_msg {
             EngineMsg::Init(init) => Err(Error::from("Unexpected init message")),
-            EngineMsg::SimRegistered(short_id, registered_id) => {
-                self.sim_id_store
-                    .set_registered_id(short_id, registered_id)
-                    .await
-            }
+            EngineMsg::SimRegistered(short_id, registered_id) => self
+                .sim_id_store
+                .set_registered_id(short_id, registered_id)
+                .await
+                .into(),
         }
     }
 
@@ -108,11 +97,17 @@ impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController
 
     async fn handle_sim_status(&mut self, status: SimStatus) -> Result<()> {
         self.orch_client()
+            // TODO OS: Fix - No such enum variant RunnerStatus
             .send(EngineStatus::RunnerStatus(status.try_into()?))
+            .await
+            .into()
     }
 
     async fn handle_sim_run_stop(&mut self, id: SimulationShortID) -> Result<()> {
-        self.orch_client().send(EngineStatus::SimStop(id))
+        self.orch_client()
+            .send(EngineStatus::SimStop(id))
+            .await
+            .into()
     }
 
     async fn handle_worker_pool_controller_msg(
@@ -122,12 +117,14 @@ impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController
     ) -> Result<()> {
         let engine_status = match msg {
             WorkerPoolToExpCtlMsg::Errors(errors) => {
+                // TODO OS: Fix - no method named into_sendable for RunnerError
                 let runner_errors = errors.into_iter().map(|w| w.into_sendable(false)).collect();
                 EngineStatus::Warnings(id, runner_errors)
             }
             WorkerPoolToExpCtlMsg::Warnings(warnings) => {
                 let runner_warnings = warnings
                     .into_iter()
+                    // TODO OS: Fix - no method named into_sendable for RunnerError
                     .map(|w| w.into_sendable(true))
                     .collect();
                 EngineStatus::Warnings(id, runner_warnings)
@@ -182,7 +179,7 @@ impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController
             .new_init(&sim_config, task_comms.clone())?;
 
         let datastore_payload = DatastoreSimulationPayload {
-            agent_batch_schema: sim_config.sim.store.agent_schema.arrow.clone(),
+            agent_batch_schema: sim_config.sim.store.agent_schema.clone(),
             message_batch_schema: sim_config.sim.store.message_schema.arrow.clone(),
             context_batch_schema: sim_config.sim.store.context_schema.arrow.clone(),
             shared_store: self.shared_store.clone(),

@@ -1,11 +1,31 @@
-use crate::{nano, Args, Error, Result};
-
 use crate::proto::{EngineMsg, EngineStatus, ExecutionEnvironment, ExperimentRunRepr, InitMessage};
+use crate::{nano, Args};
 use serde::Deserialize;
+use thiserror::Error as ThisError;
 use tokio::time::Duration;
+
+pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 lazy_static! {
     static ref INIT_MSG_RECV_TIMEOUT: Duration = Duration::from_secs(60);
+}
+
+#[derive(ThisError, Debug)]
+pub enum Error {
+    #[error("Env error: {0}")]
+    Unique(String),
+}
+
+impl From<&str> for Error {
+    fn from(s: &str) -> Self {
+        Error::Unique(s.to_string())
+    }
+}
+
+impl From<String> for Error {
+    fn from(s: String) -> Self {
+        Error::Unique(s)
+    }
 }
 
 pub struct OrchClient {

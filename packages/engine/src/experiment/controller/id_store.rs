@@ -5,8 +5,8 @@ use tokio::{
     time,
 };
 
+use super::{Error, Result};
 use crate::proto::{SimulationRegisteredID, SimulationShortID};
-use crate::{Error, Result};
 
 enum SendersOrID {
     Senders(Vec<oneshot::Sender<SimulationRegisteredID>>),
@@ -24,11 +24,11 @@ impl SimIdStore {
         short_id: SimulationShortID,
         timeout_ms: usize,
     ) -> Result<SimulationRegisteredID> {
-        Ok(time::timeout(
+        time::timeout(
             Duration::from_millis(timeout_ms as u64),
             self.get_registered_id(short_id),
         )
-        .await?)
+        .await?
     }
 
     async fn get_registered_id(
