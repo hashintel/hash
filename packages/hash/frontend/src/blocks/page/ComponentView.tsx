@@ -9,7 +9,6 @@ import {
   isBlockEntity,
 } from "@hashintel/hash-shared/entityStore";
 import {
-  addEntityStoreAction,
   entityStoreFromProsemirror,
   subscribeToEntityStore,
 } from "@hashintel/hash-shared/entityStorePlugin";
