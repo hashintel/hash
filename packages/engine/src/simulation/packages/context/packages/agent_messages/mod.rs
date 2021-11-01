@@ -37,7 +37,7 @@ impl PackageCreator for Creator {
     fn add_context_field_specs(
         &self,
         _config: &ExperimentConfig<ExperimentRunBase>,
-        _globals: &Properties,
+        _globals: &Globals,
         field_spec_map_builder: &mut FieldSpecMapBuilder,
     ) -> Result<()> {
         fields::add_context(field_spec_map_builder)?;

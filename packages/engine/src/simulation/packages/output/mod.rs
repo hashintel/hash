@@ -3,7 +3,7 @@ pub mod packages;
 use std::sync::Arc;
 
 use crate::datastore::schema::FieldSpecMapBuilder;
-pub use crate::hash_types::Properties;
+pub use crate::config::Globals;
 use crate::proto::ExperimentRunBase;
 use crate::simulation::comms::package::PackageComms;
 use crate::SimRunConfig;
@@ -32,7 +32,7 @@ pub trait PackageCreator: Sync {
     fn persistence_config(
         &self,
         config: &ExperimentConfig<ExperimentRunBase>,
-        globals: &Properties,
+        globals: &Globals,
     ) -> Result<serde_json::Value> {
         Ok(serde_json::Value::Null)
     }
@@ -40,7 +40,7 @@ pub trait PackageCreator: Sync {
     fn add_state_field_specs(
         &self,
         config: &ExperimentConfig<ExperimentRunBase>,
-        globals: &Properties,
+        globals: &Globals,
         field_spec_map_builder: &mut FieldSpecMapBuilder,
     ) -> Result<()> {
         Ok(())

@@ -294,7 +294,7 @@ fn read_project(project_path: PathBuf) -> Result<ProjectBase> {
         initial_state: local_project
             .initial_state
             .ok_or_else(|| Error::from("Project must specify an initial state file."))?,
-        properties_src: local_project
+        globals_src: local_project
             .globals_json
             .ok_or_else(|| Error::from("Project must contain a `globals.json` file"))?,
         dependencies_src: local_project.dependencies_json,

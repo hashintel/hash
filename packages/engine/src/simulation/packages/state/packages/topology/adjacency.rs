@@ -1,6 +1,6 @@
-use super::{Direction, Position};
+use crate::config::topology::{AxisBoundary, Config as TopologyConfig, WrappingBehavior};
 
-use crate::hash_types::topology::{AxisBoundary, Config as TopologyConfig, WrappingBehavior};
+use super::{Direction, Position};
 
 /// Performs all the bounds checking and shifts points over depending on the topology config
 /// Takes in a single position and returns a vector containing all the possible wrapping
@@ -53,7 +53,7 @@ pub fn correct_agent(
 }
 
 fn wrap_pos_coord(pos: &mut Position, i: usize, config: &TopologyConfig) {
-    use WrappingBehavior::{Continuous, NoWrap, OffsetReflection, Reflection};
+    use crate::config::topology::WrappingBehavior::{Continuous, NoWrap, OffsetReflection, Reflection};
     match get_wrap_mode(i, config) {
         Continuous => {
             if pos[i] > get_half(i, config) {
@@ -88,7 +88,7 @@ fn wrap_pos_coord(pos: &mut Position, i: usize, config: &TopologyConfig) {
 }
 
 fn wrap_dir_coord(dir: &mut Direction, i: usize, config: &TopologyConfig) {
-    use WrappingBehavior::{OffsetReflection, Reflection};
+    use crate::config::topology::WrappingBehavior::{OffsetReflection, Reflection};
     match get_wrap_mode(i, config) {
         Reflection | OffsetReflection => {
             dir[i] = -dir[i];

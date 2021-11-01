@@ -1,8 +1,12 @@
-pub mod packages;
-
 use std::sync::Arc;
 
-use crate::{simulation::comms::package::PackageComms, SimRunConfig};
+pub use packages::{InitTask, InitTaskMessage, InitTaskResult, Name, PACKAGES};
+
+use crate::{SimRunConfig, simulation::comms::package::PackageComms};
+pub use crate::config::Globals;
+use crate::datastore::schema::FieldSpecMapBuilder;
+pub use crate::hash_types::Agent;
+use crate::proto::ExperimentRunBase;
 
 use super::{
     deps::Dependencies,
@@ -10,11 +14,7 @@ use super::{
     prelude::*,
 };
 
-use crate::proto::ExperimentRunBase;
-pub use packages::{InitTask, InitTaskMessage, InitTaskResult, Name, PACKAGES};
-
-use crate::datastore::schema::FieldSpecMapBuilder;
-pub use crate::hash_types::{Agent, Properties};
+pub mod packages;
 
 #[async_trait]
 pub trait Package: MaybeCPUBound + GetWorkerStartMsg + Send + Sync {
@@ -36,7 +36,7 @@ pub trait PackageCreator: Sync {
     fn add_state_field_specs(
         &self,
         config: &ExperimentConfig<ExperimentRunBase>,
-        globals: &Properties,
+        globals: &Globals,
         field_spec_map_builder: &mut FieldSpecMapBuilder,
     ) -> Result<()> {
         Ok(())

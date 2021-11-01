@@ -125,7 +125,7 @@ pub struct InitialState {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct ProjectBase {
     pub initial_state: InitialState,
-    pub properties_src: String,
+    pub globals_src: String,
     pub dependencies_src: Option<String>,
     pub experiments_src: Option<String>,
     pub behaviors: Vec<SharedBehavior>,

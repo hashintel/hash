@@ -5,45 +5,46 @@ use std::{
     sync::Arc,
 };
 
-use arrow::array::Array;
 use arrow::{
     array::{FixedSizeListArray, ListArray, UInt32Array},
     datatypes::Schema,
 };
+use arrow::array::Array;
 use parking_lot::{RwLock, RwLockWriteGuard};
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
-use super::{
-    super::comms::{
-        inbound::{InboundToRunnerMsg, InboundToRunnerMsgPayload},
-        outbound::{OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload, RunnerError},
-        ExperimentInitRunnerMsg, MessageTarget, NewSimulationRun, RunnerTaskMsg, StateInterimSync,
-        TargetedRunnerTaskMsg,
-    },
-    neighbor::Neighbor,
-};
-use crate::datastore::prelude::{AgentBatch, MessageBatch};
-use crate::datastore::{batch::Metaversion, storage::memory::Memory};
-use crate::worker::{Error as WorkerError, Result as WorkerResult, TaskMessage};
 use crate::{
     datastore::{
         arrow::{
-            message::{outbound_messages_to_arrow_column, MESSAGE_COLUMN_INDEX},
+            message::{MESSAGE_COLUMN_INDEX, outbound_messages_to_arrow_column},
             util::arrow_continuation,
         },
         batch::{change::ArrayChange, ContextBatch},
         table::sync::{ContextBatchSync, StateSync},
     },
-    hash_types::{Agent, Properties},
+    hash_types::Agent,
+    Language,
     simulation::packages::{
         state::packages::behavior_execution::config::BehaviorDescription,
         worker_init::PackageInitMsgForWorker,
     },
-    Language,
 };
+use crate::config::Globals;
+use crate::datastore::{batch::Metaversion, storage::memory::Memory};
+use crate::datastore::prelude::{AgentBatch, MessageBatch};
+use crate::worker::{Error as WorkerError, Result as WorkerResult, TaskMessage};
 
-use super::state::{SimState, StateSnapshot};
+use super::{
+    neighbor::Neighbor,
+    super::comms::{
+        ExperimentInitRunnerMsg,
+        inbound::{InboundToRunnerMsg, InboundToRunnerMsgPayload},
+        MessageTarget, NewSimulationRun, outbound::{OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload, RunnerError}, RunnerTaskMsg, StateInterimSync,
+        TargetedRunnerTaskMsg,
+    },
+};
 use super::{Error, Result, SimSchema};
+use super::state::{SimState, StateSnapshot};
 
 /// Wrapper for running columnar behaviors on single agents
 pub struct AgentContext<'c> {
@@ -52,7 +53,7 @@ pub struct AgentContext<'c> {
     snapshot: &'c Option<StateSnapshot>,
     col_indices: &'c HashMap<String, usize>,
     neighbors_index: usize, // Used often.
-    globals: &'c Arc<Properties>,
+    globals: &'c Arc<Globals>,
     index_in_sim: usize,
     group_start_index: usize,
 }
@@ -93,7 +94,7 @@ impl<'c> AgentContext<'c> {
         Ok(neighbors)
     }
 
-    pub fn globals(&self) -> &Arc<Properties> {
+    pub fn globals(&self) -> &Arc<Globals> {
         &self.globals
     }
 
@@ -107,7 +108,7 @@ pub struct GroupContext<'c> {
     ctx_batch: &'c Option<Arc<ContextBatch>>,
     snapshot: &'c Option<StateSnapshot>,
     col_indices: &'c HashMap<String, usize>,
-    globals: &'c Arc<Properties>,
+    globals: &'c Arc<Globals>,
     start_index: usize,
 }
 
@@ -136,12 +137,12 @@ pub struct SimContext {
     group_start_indices: Vec<usize>,
     snapshot: Option<StateSnapshot>,
     current_step: isize,
-    globals: Arc<Properties>,
+    globals: Arc<Globals>,
     col_indices: HashMap<String, usize>,
 }
 
 impl SimContext {
-    pub fn new(schema: SimSchema, globals: Arc<Properties>) -> Self {
+    pub fn new(schema: SimSchema, globals: Arc<Globals>) -> Self {
         let mut col_indices = HashMap::new();
         for field in schema.agent.arrow.fields().iter() {
             let index = schema

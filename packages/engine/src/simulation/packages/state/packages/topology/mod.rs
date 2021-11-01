@@ -1,12 +1,12 @@
-mod adjacency;
-mod fields;
-
-use crate::hash_types::topology;
 use serde_json::Value;
 
-use crate::{config::ExperimentConfig, datastore::table::state::WriteState};
+use crate::config::TopologyConfig;
+use crate::{config, config::ExperimentConfig, datastore::table::state::WriteState};
 
 use super::super::*;
+
+mod adjacency;
+mod fields;
 
 type PositionSubType = f64;
 type Position = [PositionSubType; 3];
@@ -30,11 +30,8 @@ impl PackageCreator for Creator {
     ) -> Result<Box<dyn Package>> {
         let topology = Topology {
             config: Arc::new(
-                config
-                    .sim
-                    .globals
-                    .topology_config()
-                    .unwrap_or_else(|| topology::Config::default()),
+                TopologyConfig::create_from_globals(&config.sim.globals)
+                    .unwrap_or_else(|| TopologyConfig::default()),
             ),
         };
         Ok(Box::new(topology))
@@ -43,7 +40,7 @@ impl PackageCreator for Creator {
     fn add_state_field_specs(
         &self,
         _config: &ExperimentConfig<ExperimentRunBase>,
-        _globals: &Properties,
+        _globals: &Globals,
         field_spec_map_builder: &mut FieldSpecMapBuilder,
     ) -> Result<()> {
         fields::add_state(field_spec_map_builder)?;
@@ -52,7 +49,7 @@ impl PackageCreator for Creator {
 }
 
 pub struct Topology {
-    config: Arc<topology::Config>,
+    config: Arc<config::TopologyConfig>,
 }
 
 impl Topology {

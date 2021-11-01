@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::hash_types::Properties;
+use crate::config::globals::Globals;
 use crate::proto::{ExperimentRunBase, ExperimentRunRepr};
 
 use super::{package, worker, worker_pool};
@@ -15,7 +15,7 @@ pub struct Config<E: ExperimentRunRepr> {
     pub packages: Arc<package::Config>,
     pub run: Arc<E>,
     pub worker_pool: Arc<worker_pool::Config>,
-    pub base_globals: Properties,
+    pub base_globals: Globals,
 }
 
 impl<E: ExperimentRunRepr> Config<E> {
@@ -23,8 +23,8 @@ impl<E: ExperimentRunRepr> Config<E> {
         // For differentiation purposes when multiple experiment runs are active in the same system
         let run_id = uuid::Uuid::new_v4().to_string();
         let packages = Arc::new(package::ConfigBuilder::new().build()?);
-        let base_globals = Properties::from_json(serde_json::from_str(
-            &experiment_run.base().project_base.properties_src,
+        let base_globals = Globals::from_json(serde_json::from_str(
+            &experiment_run.base().project_base.globals_src,
         )?)?;
 
         let run = Arc::new(experiment_run);

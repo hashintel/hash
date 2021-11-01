@@ -9,17 +9,6 @@ use arrow::datatypes::Schema;
 use parking_lot::{RwLock, RwLockWriteGuard};
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
-use super::super::comms::{
-    inbound::{InboundToRunnerMsg, InboundToRunnerMsgPayload},
-    outbound::{OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload, RunnerError},
-    ExperimentInitRunnerMsg, MessageTarget, NewSimulationRun, RunnerTaskMsg, StateInterimSync,
-    TargetedRunnerTaskMsg,
-};
-use super::behaviors::{get_built_in, get_built_in_columns, is_built_in};
-use super::{AgentContext, AgentState, Column, Error, Result};
-use super::{GroupContext, GroupState};
-use crate::datastore::{batch::Metaversion, storage::memory::Memory};
-use crate::worker::{Error as WorkerError, Result as WorkerResult, TaskMessage};
 use crate::{
     datastore::prelude::{AgentBatch, MessageBatch},
     simulation::packages::id::PackageId,
@@ -27,18 +16,30 @@ use crate::{
 use crate::{
     datastore::{
         arrow::{
-            message::{outbound_messages_to_arrow_column, MESSAGE_COLUMN_INDEX},
+            message::{MESSAGE_COLUMN_INDEX, outbound_messages_to_arrow_column},
             util::arrow_continuation,
         },
         batch::{change::ArrayChange, ContextBatch},
         table::sync::{ContextBatchSync, StateSync},
     },
-    hash_types::Properties,
+    Language,
     simulation::packages::{
         state::packages::behavior_execution::config::BehaviorDescription,
         worker_init::PackageInitMsgForWorker,
     },
-    Language,
+};
+use crate::config::Globals;
+use crate::datastore::{batch::Metaversion, storage::memory::Memory};
+use crate::worker::{Error as WorkerError, Result as WorkerResult, TaskMessage};
+
+use super::{AgentContext, AgentState, Column, Error, Result};
+use super::{GroupContext, GroupState};
+use super::behaviors::{get_built_in, get_built_in_columns, is_built_in};
+use super::super::comms::{
+    ExperimentInitRunnerMsg,
+    inbound::{InboundToRunnerMsg, InboundToRunnerMsgPayload},
+    MessageTarget, NewSimulationRun, outbound::{OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload, RunnerError}, RunnerTaskMsg, StateInterimSync,
+    TargetedRunnerTaskMsg,
 };
 
 struct Behavior {

@@ -1,9 +1,9 @@
+use std::collections::HashSet;
+
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
+use crate::{config, hash_types};
 use crate::datastore::batch::AgentIndex;
-
-use crate::hash_types;
-use std::collections::HashSet;
 
 use super::*;
 
@@ -42,7 +42,7 @@ fn gather_neighbors(
     idx: AgentIndex,
     position: &Position,
     search_radius: &Option<PositionSubType>,
-    topology: &hash_types::topology::Config,
+    topology: &config::TopologyConfig,
 ) -> Result<Vec<AgentIndex>> {
     // Check if the agent has a custom search radius. If not, fall back to the topology search radius
     let search_radius = match *search_radius {
@@ -93,7 +93,7 @@ fn gather_neighbors(
 impl NeighborMap {
     pub fn gather(
         states: Vec<NeighborRef>,
-        topology_config: &hash_types::topology::Config,
+        topology_config: &config::ToplogyConfig,
     ) -> Result<NeighborMap> {
         let num_states = states.len();
         let adjacency_map = agents_adjacency_map(states)?;

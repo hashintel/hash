@@ -1,16 +1,18 @@
+use std::{collections::HashMap, sync::Arc};
+
+use parking_lot::RwLock;
+
+use crate::{
+    datastore::prelude::{AgentBatch, ArrowSchema, Dataset, MessageBatch},
+    Language,
+    simulation::{packages::worker_init::PackageInitMsgForWorker, task::prelude::TaskMessage},
+    types::{TaskID, WorkerIndex},
+};
+use crate::config::Globals;
 use crate::datastore::schema::state::AgentSchema;
 use crate::datastore::shared_store::SharedStore;
 use crate::proto::{ExperimentID, SimulationShortID};
 use crate::simulation::packages::id::PackageId;
-use crate::{
-    datastore::prelude::{AgentBatch, ArrowSchema, Dataset, MessageBatch},
-    hash_types::Properties,
-    simulation::{packages::worker_init::PackageInitMsgForWorker, task::prelude::TaskMessage},
-    types::{TaskID, WorkerIndex},
-    Language,
-};
-use parking_lot::RwLock;
-use std::{collections::HashMap, sync::Arc};
 
 pub mod inbound;
 pub mod outbound;
@@ -68,7 +70,7 @@ pub struct NewSimulationRun {
     pub short_id: SimulationShortID,
     pub packages: PackageMsgs,
     pub datastore: DatastoreSimulationPayload,
-    pub globals: Arc<Properties>,
+    pub globals: Arc<Globals>,
 }
 
 #[derive(new)]

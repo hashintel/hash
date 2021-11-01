@@ -1,72 +1,201 @@
-use super::{
-    error::Result,
-    topology::{Config, WrappingBehavior},
-};
-use serde::{Deserialize, Serialize};
+use std::sync::Arc;
+use crate::config::globals::Globals;
+use crate::config::topology::functions::{conway, euclidean, euclidean_squared, manhattan};
+use crate::Result;
 
-// We also have some consts that come in along with our initial world state.
-// These, we call 'properties', and store them in context.
-// For now, they're... you guessed it, JSON.
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Properties(pub serde_json::Value);
-impl Properties {
-    /// # Errors
-    /// This function cannot fail, as Properties is a free-flowing JSON object.
-    /// TODO: Audit this (Can a `serde_json::Value` be anything else?)
-    pub fn from_json(value: serde_json::Value) -> Result<Properties, serde_json::Error> {
-        serde_json::from_value(value)
-    }
+// TODO OS - think about creating a system of ConfigProviders whereby packages can depend on them
+//   and decrease the amount of assumptions the core engine has to make, for example position
+//   correction and neighbour search depend on this config, but this config is useless if those
+//   packages are not run
 
-    #[must_use]
-    pub fn from_json_unchecked(value: serde_json::Value) -> Properties {
-        Properties::from_json(value)
-            .expect("This should not happen (Properties is a free-flowing JSON object)")
-    }
+#[allow(clippy::module_name_repetitions)]
+pub trait DistanceFn: Fn(&[f64], &[f64]) -> f64 + Send + Sync + 'static {}
+impl<T> DistanceFn for T where T: Fn(&[f64], &[f64]) -> f64 + Send + Sync + 'static {}
 
-    #[must_use]
-    pub fn empty() -> Properties {
-        Properties(serde_json::Value::Object(serde_json::Map::new()))
-    }
-
-    pub fn get<S>(&self, key: S) -> Option<&serde_json::Value>
-    where
-        S: AsRef<str>,
-    {
-        self.0.get(key.as_ref())
-    }
-
-    pub fn get_cloned<S>(&self, key: S) -> Option<serde_json::Value>
-    where
-        S: AsRef<str>,
-    {
-        self.0.get(key.as_ref()).cloned()
-    }
-
-    #[must_use]
-    pub fn topology_config_unchecked(&self) -> Config {
-        self.topology_config()
-            .expect("Expected topology configuration")
-    }
-
-    /// `topology` is a type safe SimulationResult-oriented getter for `topology::Config`
+pub mod functions {
+    /// The distance function associated with the infinite norm
+    /// In simpler terms - the distance function that returns the largest distance in any given axes
     ///
-    /// # Errors
-    /// `topology` will return an error if there is no suitable `topology::Config` specified within
-    /// the Properties JSON object.
-    pub fn topology(&self) -> Result<Config> {
-        self.topology_config()
-            .ok_or_else(|| "TopologyConfig not found within properties".into())
+    /// Takes two positions as an array of coordinates
+    #[must_use]
+    pub fn conway(a: &[f64], b: &[f64]) -> f64 {
+        debug_assert!(a.len() == b.len());
+        a.iter()
+            .zip(b.iter()) // Line the two coordinates up in a set of hstacked pairs
+            .map(|(x1, x2)| (*x1 - *x2).abs()) // pull in each hstack pair and return the abs of their difference
+            .fold(0_f64, |a, b| a.max(b)) //
     }
 
-    /// `topology_config` will attempt to create a `topology::Config` struct from the given json
-    /// value stored within properties, otherwise it will return None.
+    /// The distance function associated with the L-1 norm
+    /// Also known as the Taxicab distance - returns the total distance traveled in all axes
+    ///
+    /// Takes two positions as an array of coordinates
+    #[must_use]
+    pub fn manhattan(a: &[f64], b: &[f64]) -> f64 {
+        debug_assert!(a.len() == b.len());
+        a.iter()
+            .zip(b.iter())
+            .map(|(x1, x2)| (*x1 - *x2).abs())
+            .fold(0_f64, |acc, add| acc + add)
+    }
+
+    /// The distance function associated with the L-2 norm
+    /// Most familiar distance function - is the straightline distance between two points
+    /// Results are left squared for efficient comparisons
+    ///
+    /// Takes two positions as an array of coordinates
+    #[must_use]
+    pub fn euclidean_squared(a: &[f64], b: &[f64]) -> f64 {
+        debug_assert!(a.len() == b.len());
+        a.iter()
+            .zip(b.iter())
+            .map(|(x1, x2)| (*x1 - *x2).powi(2))
+            .fold(0_f64, |acc, add| acc + add)
+    }
+
+    /// The distance function associated with the L-2 norm
+    /// Most familiar distance function - is the straightline distance between two points
+    ///
+    /// Takes two positions as an array of coordinates
+    #[must_use]
+    pub fn euclidean(a: &[f64], b: &[f64]) -> f64 {
+        debug_assert!(a.len() == b.len());
+        a.iter()
+            .zip(b.iter())
+            .map(|(x1, x2)| (*x1 - *x2).powi(2))
+            .fold(0_f64, |acc, add| acc + add)
+            .sqrt()
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct AxisBoundary {
+    pub min: f64,
+    pub max: f64,
+}
+
+impl std::default::Default for AxisBoundary {
+    fn default() -> AxisBoundary {
+        AxisBoundary {
+            min: std::f64::NEG_INFINITY,
+            max: std::f64::INFINITY,
+        }
+    }
+}
+
+/// Configuration of the topology relevant to movement and neighbor calculation
+pub struct Config {
+    /// Dimensions of board associated with "width"
+    pub x_bounds: AxisBoundary,
+
+    /// Dimensions of board associated with "length"
+    pub y_bounds: AxisBoundary,
+
+    /// Dimensions of board associated with "height"
+    pub z_bounds: AxisBoundary,
+
+    /// Determines how agents interact with the boundaries of the simulation associated with "width"
+    pub wrap_x_mode: WrappingBehavior,
+
+    /// Determines how agents interact with the boundaries of the simulation associated with "length"
+    pub wrap_y_mode: WrappingBehavior,
+
+    /// Determines how agents interact with the boundaries of the simulation associated with "height"
+    pub wrap_z_mode: WrappingBehavior,
+
+    /// The search radius for the kd-tree distance function
+    pub search_radius: Option<f64>,
+
+    /// The type of distance function to be used
+    /// Currently can be any of Manhattan, Euclidean, Lnorm(p), and Chebyshev
+    pub distance_function: Box<dyn DistanceFn>,
+
+    /// Whether or not position and velocity wrapping are enabled by default
+    pub move_wrapped_agents: bool,
+
+    /// Cache how many wrapped points we need to calculate
+    pub wrapping_combinations: usize,
+}
+
+impl std::default::Default for Config {
+    fn default() -> Config {
+        Config {
+            x_bounds: AxisBoundary::default(),
+            y_bounds: AxisBoundary::default(),
+            z_bounds: AxisBoundary::default(),
+            wrap_x_mode: WrappingBehavior::default(),
+            wrap_y_mode: WrappingBehavior::default(),
+            wrap_z_mode: WrappingBehavior::default(),
+            search_radius: None,
+            distance_function: Box::new(functions::conway),
+            move_wrapped_agents: true,
+            wrapping_combinations: 1,
+        }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub enum WrappingBehavior {
+    /// Agents crossing the border re-enter on the other side
+    ///
+    /// An example would be a 2D surface on a torus
+    Continuous,
+
+    /// Agents crossing the border are reflected
+    ///
+    /// En example would be balls bouncing against a wall
+    Reflection,
+
+    /// Agents crossing the border are reflected and offset by half the border width
+    ///
+    /// An example would be a 2D on a sphere
+    OffsetReflection,
+
+    /// No changes in behavior
+    ///
+    /// Distances are calculated ignoring the size of the board
+    NoWrap,
+}
+
+impl std::default::Default for WrappingBehavior {
+    fn default() -> WrappingBehavior {
+        WrappingBehavior::NoWrap
+    }
+}
+
+impl WrappingBehavior {
+    pub fn from_string<S>(source: S) -> Option<WrappingBehavior>
+    where
+        S: AsRef<str>,
+    {
+        Some(match source.as_ref() {
+            "continuous" => WrappingBehavior::Continuous,
+            "reflection" => WrappingBehavior::Reflection,
+            "offset_reflection" => WrappingBehavior::OffsetReflection,
+            "none" => WrappingBehavior::NoWrap,
+            _ => return None,
+        })
+    }
+}
+
+impl Config {
+    /// # Errors
+    /// Will return an error if there is no suitable `topology::Config` specified within
+    /// the Globals JSON object.
+    pub fn create_from_globals(globals: &Arc<Globals>) -> Result<Self> {
+        _try_extract_topology_config(globals)
+            .ok_or_else(|| "TopologyConfig not found within Globals".into())
+    }
+
+    /// `_try_extract_topology_config` will attempt to create a `topology::Config` struct from the given json
+    /// value stored within the globals, otherwise it will return None.
     ///
     /// This should be used in conjunction with `topology::Config::default()`
     #[allow(clippy::cognitive_complexity, clippy::too_many_lines)] // TODO: split up
     #[must_use]
-    pub fn topology_config(&self) -> Option<Config> {
-        // Start interpreting the user's properties into a topology without tripping on errors
-        if let Some(serde_json::Value::Object(topology_props)) = self.0.get("topology") {
+    fn _try_extract_topology_config(globals: &Arc<Globals>) -> Option<Self> {
+        // Start interpreting the user's global properties into a topology without tripping on errors
+        if let Some(serde_json::Value::Object(topology_props)) = globals.0.get("topology") {
             let mut config = Config::default();
             if let Some(serde_json::Value::Array(x_bounds_arr)) = topology_props.get("x_bounds") {
                 if let Some(x_bounds_min) = x_bounds_arr.get(0).and_then(serde_json::Value::as_f64)
@@ -122,7 +251,7 @@ impl Properties {
 
             // Override whatever the user entered for x and y wrap if they entered a preset
             if let Some(serde_json::Value::String(wrapping_preset_str)) =
-                topology_props.get("wrapping_preset")
+            topology_props.get("wrapping_preset")
             {
                 match &**wrapping_preset_str {
                     "spherical" => {
@@ -251,9 +380,9 @@ impl Properties {
             }
 
             if let Some(serde_json::Value::String(distance_func_str)) =
-                topology_props.get("distance_function")
+            topology_props.get("distance_function")
             {
-                use super::distance::functions::{conway, euclidean, euclidean_squared, manhattan};
+                use crate::hash_types::distance::functions::{conway, euclidean, euclidean_squared, manhattan};
                 config.distance_function = Box::new(match &**distance_func_str {
                     "manhattan" => manhattan,
                     "euclidean" => euclidean,
@@ -265,7 +394,7 @@ impl Properties {
             }
 
             if let Some(serde_json::Value::Bool(move_wrapped_agents)) =
-                topology_props.get("move_wrapped_agents")
+            topology_props.get("move_wrapped_agents")
             {
                 config.move_wrapped_agents = *move_wrapped_agents;
             }
@@ -274,10 +403,40 @@ impl Properties {
         }
         None
     }
-}
 
-impl std::default::Default for Properties {
-    fn default() -> Properties {
-        Properties::empty()
+    /// Get the halfway axis of x dimensions
+    #[must_use]
+    pub fn get_half_x(&self) -> f64 {
+        self.x_bounds.max - (self.x_bounds.max - self.x_bounds.min) * 0.5
+    }
+
+    /// Get the halfway axis of x dimensions
+    #[must_use]
+    pub fn get_half_y(&self) -> f64 {
+        self.y_bounds.max - (self.y_bounds.max - self.y_bounds.min) * 0.5
+    }
+
+    /// Get the halfway axis of x dimensions
+    #[must_use]
+    pub fn get_half_z(&self) -> f64 {
+        self.z_bounds.max - (self.z_bounds.max - self.z_bounds.min) * 0.5
+    }
+
+    /// Get distance between each end of the dimension
+    #[must_use]
+    pub fn get_x_size(&self) -> f64 {
+        self.x_bounds.max - self.x_bounds.min
+    }
+
+    /// Get distance between each end of the dimension
+    #[must_use]
+    pub fn get_y_size(&self) -> f64 {
+        self.y_bounds.max - self.y_bounds.min
+    }
+
+    /// Get distance between each end of the dimension
+    #[must_use]
+    pub fn get_z_size(&self) -> f64 {
+        self.z_bounds.max - self.z_bounds.min
     }
 }

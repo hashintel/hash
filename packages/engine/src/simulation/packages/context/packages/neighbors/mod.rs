@@ -1,22 +1,23 @@
-mod adjacency;
-mod fields;
-mod map;
-mod writer;
-
-use serde_json::Value;
 use std::sync::Arc;
 
-use crate::hash_types::topology;
+use serde_json::Value;
 
+use crate::config;
 use crate::datastore::{
     batch::iterators,
     table::{pool::agent::AgentPool, state::ReadState},
 };
 use crate::simulation::comms::package::PackageComms;
+use crate::simulation::task::prelude::TopologyConfig;
+
+pub use super::super::*;
 
 use self::map::{NeighborMap, NeighborRef};
 
-pub use super::super::*;
+mod adjacency;
+mod fields;
+mod map;
+mod writer;
 
 const CPU_BOUND: bool = true;
 pub const NEIGHBOR_INDEX_COUNT: usize = 2;
@@ -37,21 +38,19 @@ impl PackageCreator for Creator {
         config: &Arc<SimRunConfig<ExperimentRunBase>>,
         _comms: PackageComms,
     ) -> Result<Box<dyn InitPackage>> {
-        Ok(Box::new(Neighbors {
+        let neighbors = Neighbors {
             topology: Arc::new(
-                config
-                    .sim
-                    .globals
-                    .topology_config()
-                    .unwrap_or_else(|| topology::Config::default()),
+                TopologyConfig::create_from_globals(&config.sim.globals)
+                    .unwrap_or_else(|| TopologyConfig::default()),
             ),
-        }))
+        };
+        Ok(Box::new(neighbors))
     }
 
     fn add_context_field_specs(
         &self,
         _config: &ExperimentConfig<ExperimentRunBase>,
-        _globals: &Properties,
+        _globals: &Globals,
         field_spec_map_builder: &mut FieldSpecMapBuilder,
     ) -> Result<()> {
         fields::add_context(field_spec_map_builder)?;
@@ -61,7 +60,7 @@ impl PackageCreator for Creator {
     fn add_state_field_specs(
         &self,
         _config: &ExperimentConfig<ExperimentRunBase>,
-        _globals: &Properties,
+        _globals: &Globals,
         field_spec_map_builder: &mut FieldSpecMapBuilder,
     ) -> Result<()> {
         fields::add_state(field_spec_map_builder)?;
@@ -70,7 +69,7 @@ impl PackageCreator for Creator {
 }
 
 struct Neighbors {
-    topology: Arc<topology::Config>,
+    topology: Arc<TopologyConfig>,
 }
 
 impl Neighbors {

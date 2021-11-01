@@ -1,13 +1,13 @@
 use std::sync::Arc;
 
-use crate::hash_types::Properties;
+use crate::config::Globals;
 use crate::proto::SimulationShortID;
 
 use super::{EngineConfig, PersistenceConfig, StoreConfig};
 
 pub struct Config {
     pub id: SimulationShortID,
-    pub globals: Arc<Properties>,
+    pub globals: Arc<Globals>,
     pub store: Arc<StoreConfig>,
     pub engine: EngineConfig,
     pub max_num_steps: usize,

@@ -7,10 +7,12 @@ mod store;
 mod task_distribution;
 mod worker;
 mod worker_pool;
+pub mod topology;
+mod globals;
 
 use std::sync::Arc;
 
-use crate::hash_types::Properties;
+pub use globals::Globals;
 use crate::proto::{ExperimentRunRepr, SimulationShortID};
 pub use engine::{Config as EngineConfig, Worker, WorkerAllocation};
 pub use experiment::Config as ExperimentConfig;
@@ -21,6 +23,7 @@ pub use store::Config as StoreConfig;
 pub use task_distribution::{Config as TaskDistributionConfig, Distribution};
 pub use worker::{Config as WorkerConfig, SpawnConfig as WorkerSpawnConfig};
 pub use worker_pool::Config as WorkerPoolConfig;
+pub use topology::{Config as TopologyConfig};
 
 use crate::{Args, Environment};
 
@@ -44,7 +47,7 @@ impl<E: ExperimentRunRepr> SimRunConfig<E> {
     pub fn new(
         global: &Arc<ExperimentConfig<E>>,
         id: SimulationShortID,
-        globals: Properties,
+        globals: Globals,
         engine: EngineConfig,
         store: StoreConfig,
         persistence: PersistenceConfig,
@@ -68,7 +71,7 @@ impl<E: ExperimentRunRepr> SimRunConfig<E> {
 
 fn simulation_config<E: ExperimentRunRepr>(
     id: SimulationShortID,
-    globals: Properties,
+    globals: Globals,
     engine: EngineConfig,
     global: &ExperimentConfig<E>,
     store: StoreConfig,

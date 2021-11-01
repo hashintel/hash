@@ -12,7 +12,7 @@ use crate::{
     SimRunConfig,
 };
 
-pub use crate::hash_types::Properties;
+pub use crate::config::Globals;
 
 use super::{deps::Dependencies, ext_traits::GetWorkerStartMsg, prelude::*};
 
@@ -40,7 +40,7 @@ pub trait PackageCreator: Sync {
     fn add_state_field_specs(
         &self,
         config: &ExperimentConfig<ExperimentRunBase>,
-        globals: &Properties,
+        globals: &Globals,
         field_spec_map_builder: &mut FieldSpecMapBuilder,
     ) -> Result<()> {
         Ok(())

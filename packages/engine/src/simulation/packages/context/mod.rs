@@ -16,7 +16,7 @@ use super::{
     ext_traits::{GetWorkerStartMsg, MaybeCPUBound},
     prelude::*,
 };
-pub use crate::hash_types::Properties;
+pub use crate::config::Globals;
 use crate::proto::ExperimentRunBase;
 pub use packages::{ContextTask, ContextTaskMessage, ContextTaskResult, Name, PACKAGES};
 
@@ -47,7 +47,7 @@ pub trait PackageCreator: Sync {
     fn add_context_field_specs(
         &self,
         config: &ExperimentConfig<ExperimentRunBase>,
-        globals: &Properties,
+        globals: &Globals,
         field_spec_map_builder: &mut FieldSpecMapBuilder,
     ) -> Result<()> {
         Ok(())
@@ -56,7 +56,7 @@ pub trait PackageCreator: Sync {
     fn add_state_field_specs(
         &self,
         config: &ExperimentConfig<ExperimentRunBase>,
-        globals: &Properties,
+        globals: &Globals,
         field_spec_map_builder: &mut FieldSpecMapBuilder,
     ) -> Result<()> {
         Ok(())

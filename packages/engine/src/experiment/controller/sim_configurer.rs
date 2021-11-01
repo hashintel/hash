@@ -5,7 +5,7 @@ use super::{Error, Result};
 use crate::config::{
     EngineConfig, ExperimentConfig, PersistenceConfig, StoreConfig, WorkerAllocation,
 };
-use crate::hash_types::Properties;
+use crate::config::Globals;
 use crate::proto::{ExperimentPackageConfig, ExperimentRunBase, SimulationShortID};
 use crate::SimRunConfig;
 
@@ -36,7 +36,7 @@ impl SimConfigurer {
         &mut self,
         exp_config: &Arc<ExperimentConfig<ExperimentRunBase>>,
         id: SimulationShortID,
-        globals: Properties,
+        globals: Globals,
         store_config: StoreConfig,
         persistence_config: PersistenceConfig,
         max_num_steps: usize,

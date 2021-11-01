@@ -12,7 +12,7 @@ use crate::{
 };
 
 use super::super::*;
-use crate::hash_types::Properties;
+use crate::config::Globals;
 use futures::{stream::FuturesUnordered, StreamExt};
 use response::{APIResponseMap, APIResponses};
 use serde_json::Value;
@@ -46,7 +46,7 @@ impl PackageCreator for Creator {
     fn add_context_field_specs(
         &self,
         _config: &ExperimentConfig<ExperimentRunBase>,
-        _globals: &Properties,
+        _globals: &Globals,
         field_spec_map_builder: &mut FieldSpecMapBuilder,
     ) -> Result<()> {
         fields::add_context(field_spec_map_builder)?;
@@ -141,7 +141,7 @@ impl Package for APIRequests {
 }
 
 pub fn custom_message_handlers_from_properties(
-    properties: &Properties,
+    properties: &Globals,
 ) -> Result<Option<Vec<String>>> {
     properties
         .get_cloned("messageHandlers")

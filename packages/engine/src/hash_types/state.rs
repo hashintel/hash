@@ -1,17 +1,21 @@
-use super::{
-    error::{Error, Result},
-    message::{self, Outbound},
-    Properties, Vec3,
+use std::{
+    collections::{HashMap, HashSet},
+    fmt,
+    ops::{Deref, Index, IndexMut},
 };
+
 use serde::{
     de::{self, Deserializer, MapAccess, Visitor},
     Deserialize, Serialize,
 };
 use serde_aux::prelude::deserialize_string_from_number;
-use std::{
-    collections::{HashMap, HashSet},
-    fmt,
-    ops::{Deref, Index, IndexMut},
+
+use crate::config::globals::Globals;
+
+use super::{
+    error::{Error, Result},
+    message::{self, Outbound},
+    Vec3,
 };
 
 #[allow(clippy::module_name_repetitions)]
@@ -44,7 +48,7 @@ pub const BUILTIN_FIELDS: [&str; 15] = [
 // Context is immutable, although an agent can send messages to other agents as part of its return value.
 #[derive(Serialize, Debug)]
 pub struct Context<'a> {
-    pub properties: &'a Properties,
+    pub properties: &'a Globals,
     pub neighbors: Vec<&'a Agent>,
     pub messages: Vec<&'a message::Incoming>,
     pub datasets: &'a DatasetMap,
@@ -864,9 +868,10 @@ fn generate_agent_id() -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::super::message::GenericPayload;
-    use super::*;
     use serde_json::json;
+
+    use super::*;
+    use super::super::message::GenericPayload;
 
     #[test]
     fn agent_state_ergonomics() -> Result<()> {

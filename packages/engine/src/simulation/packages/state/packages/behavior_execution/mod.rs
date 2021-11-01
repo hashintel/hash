@@ -48,7 +48,7 @@ impl PackageCreator for Creator {
     fn add_state_field_specs(
         &self,
         config: &ExperimentConfig<ExperimentRunBase>,
-        globals: &Properties,
+        globals: &Globals,
         field_spec_map_builder: &mut FieldSpecMapBuilder,
     ) -> Result<()> {
         fields::add_state(config, field_spec_map_builder)?;

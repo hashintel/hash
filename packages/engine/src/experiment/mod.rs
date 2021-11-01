@@ -5,7 +5,7 @@ use crate::experiment::controller::comms::exp_pkg_ctl::ExpPkgCtlSend;
 use crate::experiment::package::UpdateRequest;
 use crate::proto::{ExperimentPackageConfig, ExperimentRunBase, SimulationShortID};
 use crate::{config::ExperimentConfig, hash_types, proto};
-use hash_types::Properties;
+use crate::config::Globals;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as SerdeValue;
 use thiserror::Error as ThisError;
@@ -88,11 +88,11 @@ pub enum Error {
     #[error("Simulation run's changed property values are not in a JSON object")]
     ChangedPropertiesNotObject,
 
-    #[error("properties.json doesn't contain a JSON object")]
-    BasePropertiesNotObject,
+    #[error("globals.json doesn't contain a JSON object")]
+    BaseGlobalsNotProject,
 
-    #[error("properties.json doesn't contain property to vary: {0}")]
-    MissingChangedProperty(String),
+    #[error("globals.json doesn't contain property to vary: {0}")]
+    MissingChangedGlobalProperty(String),
 
     #[error("Property is not object, but is supposed to contain a varying property: {0}")]
     NestedPropertyNotObject(String),
@@ -131,7 +131,7 @@ fn set_nested_property(
         // TODO[3]: Uninitialized nested properties
         let property = map
             .get_mut(name)
-            .ok_or_else(|| Error::MissingChangedProperty(name.to_string()))?;
+            .ok_or_else(|| Error::MissingChangedGlobalProperty(name.to_string()))?;
         set_nested_property(
             property
                 .as_object_mut()
@@ -143,11 +143,11 @@ fn set_nested_property(
     }
 }
 
-pub fn apply_property_changes(mut base: Properties, changes: &SerdeValue) -> Result<Properties> {
+pub fn apply_property_changes(mut base: Globals, changes: &SerdeValue) -> Result<Globals> {
     let mut map = base
         .0
         .as_object()
-        .ok_or(Error::BasePropertiesNotObject)?
+        .ok_or(Error::BaseGlobalsNotProject)?
         .clone();
     let changes = changes
         .as_object()
@@ -156,7 +156,7 @@ pub fn apply_property_changes(mut base: Properties, changes: &SerdeValue) -> Res
         let property_path = property_path.split('.').collect();
         set_nested_property(&mut map, property_path, changed_value.clone(), 0)?;
     }
-    let globals = Properties(map.into())?;
+    let globals = Globals(map.into())?;
     Ok(globals)
 }
 

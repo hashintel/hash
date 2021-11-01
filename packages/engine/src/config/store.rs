@@ -1,4 +1,4 @@
-use crate::hash_types::Properties;
+use crate::config::globals::Globals;
 use crate::proto::ExperimentRunBase;
 
 use crate::{
@@ -22,7 +22,7 @@ pub struct Config {
 impl Config {
     pub fn new_sim(
         exp_config: &super::ExperimentConfig<ExperimentRunBase>,
-        globals: &Properties,
+        globals: &Globals,
         package_creators: &PackageCreators,
     ) -> Result<Config> {
         let agent_schema = Arc::new(package_creators.get_agent_schema(exp_config, globals)?);
