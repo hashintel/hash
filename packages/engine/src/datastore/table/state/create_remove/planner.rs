@@ -7,6 +7,7 @@ use crate::SimRunConfig;
 use crate::{
     datastore::{
         batch::migration::{BufferActions, IndexRange, RangeActions},
+        error::{Error, Result},
         prelude::*,
         table::{pool::agent::AgentPool, state::ReadState},
     },

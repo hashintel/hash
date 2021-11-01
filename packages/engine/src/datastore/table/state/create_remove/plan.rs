@@ -5,7 +5,11 @@ use rayon::prelude::*;
 use super::action::{CreateActions, ExistingGroupBufferActions};
 
 use crate::config::ExperimentConfig;
-use crate::datastore::{prelude::*, table::pool::agent::AgentPool};
+use crate::datastore::{
+    error::{Error, Result},
+    prelude::*,
+    table::pool::agent::AgentPool,
+};
 use crate::proto::ExperimentRunBase;
 
 #[derive(Debug)]
@@ -90,7 +94,7 @@ impl<'a> MigrationPlan<'a> {
             .map(|action| {
                 let buffer_actions = action.actions;
                 let new_batch = buffer_actions
-                    // Todo no field agent_schema
+                    // TODO OS: Fix - no field agent_schema
                     .new_batch(&meta.agent_schema, &meta.run_id, action.affinity)
                     .map_err(Error::from)?;
                 Ok(Arc::new(RwLock::new(new_batch)))

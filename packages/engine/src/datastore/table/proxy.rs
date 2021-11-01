@@ -9,7 +9,7 @@ use crate::datastore::{
 };
 
 use super::{
-    pool::proxy::{BatchPool, PoolReadProxy, PoolWriteProxy},
+    pool::proxy::{PoolReadProxy, PoolWriteProxy},
     state::{ReadState, WriteState},
 };
 
@@ -95,6 +95,7 @@ impl StateReadProxy {
     pub fn new<K: ReadState>(state: &K) -> Result<Self> {
         Ok(StateReadProxy {
             agent_pool_proxy: state.agent_pool().read_proxy()?,
+            // TODO OS: MessagePool doesn't impl BatchPool so read_proxy isn't available, should it?
             message_pool_proxy: state.message_pool().read_proxy()?,
         })
     }
@@ -124,6 +125,7 @@ impl StateWriteProxy {
     pub fn new<K: WriteState>(state: &mut K) -> Result<Self> {
         Ok(StateWriteProxy {
             agent_pool_proxy: state.agent_pool_mut().write_proxy()?,
+            // TODO OS: MessagePool doesn't impl BatchPool so write_proxy isn't available, should it?
             message_pool_proxy: state.message_pool_mut().write_proxy()?,
         })
     }

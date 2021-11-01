@@ -125,7 +125,6 @@ impl TaskSharedStoreBuilder {
 // of the data store. Can have both write
 // and read access to different (non-overlapping)
 // subsets of the state pool
-#[derive(Debug)]
 pub enum PartialSharedState {
     Write(PartialStateWriteProxy),
     Read(PartialStateReadProxy),
