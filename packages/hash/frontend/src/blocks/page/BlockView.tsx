@@ -170,7 +170,7 @@ export class BlockView implements NodeView<Schema> {
       this.dom.classList.remove(styles["Block--dragging"]);
     }
 
-    const entityId = node.attrs.entityId;
+    const entityId = this.node.attrs.entityId;
 
     this.renderPortal(
       <>
