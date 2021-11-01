@@ -1,7 +1,6 @@
 import { Draft, produce } from "immer";
 import { Schema } from "prosemirror-model";
 import { EditorState, Plugin, PluginKey, Transaction } from "prosemirror-state";
-import { Decoration, DecorationSet } from "prosemirror-view";
 import { v4 as uuid } from "uuid";
 import { BlockEntity } from "./entity";
 import {
@@ -11,7 +10,6 @@ import {
   isBlockEntity,
   isDraftBlockEntity,
 } from "./entityStore";
-import { ProsemirrorNode } from "./node";
 import {
   componentNodeToId,
   EntityNode,
@@ -20,9 +18,11 @@ import {
   nodeToEntityProperties,
 } from "./prosemirror";
 
+type EntityStorePluginStateListener = (store: EntityStore) => void;
+
 type EntityStorePluginState = {
   store: EntityStore;
-  decorations: DecorationSet<Schema>;
+  listeners: EntityStorePluginStateListener[];
 };
 
 type EntityStorePluginAction =
@@ -34,7 +34,9 @@ type EntityStorePluginAction =
       type: "draft";
       payload: EntityStore["draft"];
     }
-  | { type: "store"; payload: EntityStore };
+  | { type: "store"; payload: EntityStore }
+  | { type: "subscribe"; payload: EntityStorePluginStateListener }
+  | { type: "unsubscribe"; payload: EntityStorePluginStateListener };
 
 type EntityStorePluginMessage = EntityStorePluginAction[];
 
@@ -175,62 +177,26 @@ const draftIdForNode = (
   return draftId;
 };
 
-/**
- * As updates to plugin state don't necessarily trigger updates on the
- * blocks that rely on them, we need a mechanism to force that. We're doing that
- * for component nodes here by applying a random decoration around them which
- * will trigger ComponentView to be updated.
- *
- * @warning Other views that use the entity store will need their own mechanism
- *          to trigger updates.
- * @todo    we need an explicit way of subscribing to the entity store
- */
-const decorationSet = (doc: ProsemirrorNode<Schema>) => {
-  const decorations: Decoration[] = [];
-
-  doc.descendants((node, pos) => {
-    if (isComponentNode(node)) {
-      decorations.push(
-        Decoration.node(pos, pos + node.nodeSize, {}, { entityStoreId: uuid() })
-      );
-
-      return false;
-    }
-
-    return true;
-  });
-
-  return DecorationSet.create<Schema>(doc, decorations);
-};
-
 export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
   key: entityStorePluginKey,
   state: {
-    init(_, state) {
+    init(_): EntityStorePluginState {
       return {
         store: createEntityStore([], {}),
-        decorations: decorationSet(state.doc),
+        listeners: [],
       };
     },
-    apply(tr, initialState) {
+    apply(tr, initialState): EntityStorePluginState {
       const actions: EntityStorePluginMessage =
         tr.getMeta(entityStorePluginKey) ?? [];
 
-      return actions.reduce<EntityStorePluginState>(
-        (state, action) => {
-          /**
-           * A more efficient thing to do would be to work out which entities this
-           * action changes, and only update the decorations for the entities that
-           * have changed
-           */
-          const decorations = decorationSet(tr.doc);
-
+      const nextState = actions.reduce(
+        (state, action): EntityStorePluginState => {
           switch (action.type) {
             case "contents":
               return {
                 ...state,
                 store: createEntityStore(action.payload, state.store.draft),
-                decorations,
               };
 
             case "draft":
@@ -239,28 +205,40 @@ export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
                 store: {
                   ...state.store,
                   draft: action.payload,
-                  decorations,
                 },
               };
 
             case "store": {
-              return { ...state, store: action.payload, decorations };
+              return { ...state, store: action.payload };
             }
+
+            case "subscribe":
+              return {
+                ...state,
+                listeners: Array.from(
+                  new Set([...state.listeners, action.payload])
+                ),
+              };
+
+            case "unsubscribe":
+              return {
+                ...state,
+                listeners: state.listeners.filter(
+                  (listener) => listener !== action.payload
+                ),
+              };
           }
 
           return state;
         },
-        {
-          ...initialState,
-          decorations: initialState.decorations.map(tr.mapping, tr.doc),
-        }
+        initialState
       );
-    },
-  },
 
-  props: {
-    decorations(state) {
-      return entityStoreFromProsemirror(state).decorations;
+      if (nextState.store !== initialState.store) {
+        nextState.listeners.forEach((listener) => listener(nextState.store));
+      }
+
+      return nextState;
     },
   },
 

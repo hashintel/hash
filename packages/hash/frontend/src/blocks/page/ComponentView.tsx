@@ -4,10 +4,14 @@ import {
   componentIdToUrl,
 } from "@hashintel/hash-shared/blockMeta";
 import {
+  EntityStore,
   EntityStoreType,
   isBlockEntity,
 } from "@hashintel/hash-shared/entityStore";
-import { entityStoreFromProsemirror } from "@hashintel/hash-shared/entityStorePlugin";
+import {
+  addEntityStoreAction,
+  entityStoreFromProsemirror,
+} from "@hashintel/hash-shared/entityStorePlugin";
 import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 import { Schema } from "prosemirror-model";
 import { EditorView, NodeView } from "prosemirror-view";
@@ -45,8 +49,10 @@ export class ComponentView implements NodeView<Schema> {
   private readonly componentId: string;
   private readonly sourceName: string;
 
+  private store: EntityStore;
+
   constructor(
-    node: ProsemirrorNode<Schema>,
+    private node: ProsemirrorNode<Schema>,
     public view: EditorView<Schema>,
     public getPos: () => number,
     private renderPortal: RenderPortal,
@@ -77,11 +83,31 @@ export class ComponentView implements NodeView<Schema> {
 
     this.dom.appendChild(this.target);
 
+    this.store = entityStoreFromProsemirror(view.state).store;
+
     this.update(node);
+
+    const { tr } = view.state;
+
+    addEntityStoreAction(tr, {
+      type: "subscribe",
+      payload: this.listener,
+    });
+
+    view.dispatch(tr);
   }
 
+  listener = (store: EntityStore) => {
+    if (this.node) {
+      this.store = store;
+      this.update(this.node);
+    }
+  };
+
   update(node: any) {
-    const entityStore = entityStoreFromProsemirror(this.view.state).store;
+    this.node = node;
+
+    const entityStore = this.store;
 
     if (node?.type.name === this.componentId) {
       const entityId = node.attrs.blockEntityId;
@@ -122,6 +148,15 @@ export class ComponentView implements NodeView<Schema> {
   destroy() {
     this.dom.remove();
     this.renderPortal(null, this.target);
+    const { view } = this;
+    const { tr } = view.state;
+
+    addEntityStoreAction(tr, {
+      type: "unsubscribe",
+      payload: this.listener,
+    });
+
+    view.dispatch(tr);
   }
 
   // @todo type this
