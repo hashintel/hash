@@ -1,6 +1,7 @@
 import { Draft, produce } from "immer";
 import { Schema } from "prosemirror-model";
 import { EditorState, Plugin, PluginKey, Transaction } from "prosemirror-state";
+import { Decoration, DecorationSet } from "prosemirror-view";
 import { v4 as uuid } from "uuid";
 import { BlockEntity } from "./entity";
 import {
@@ -10,6 +11,7 @@ import {
   isBlockEntity,
   isDraftBlockEntity,
 } from "./entityStore";
+import { ProsemirrorNode } from "./node";
 import {
   componentNodeToId,
   EntityNode,
@@ -18,10 +20,10 @@ import {
   nodeToEntityProperties,
 } from "./prosemirror";
 
-/**
- * @todo I think this should just be EntityStore
- */
-type EntityStorePluginState = { store: EntityStore };
+type EntityStorePluginState = {
+  store: EntityStore;
+  decorations: DecorationSet<Schema>;
+};
 
 type EntityStorePluginMessage =
   | {
@@ -157,38 +159,88 @@ const draftIdForNode = (
   return draftId;
 };
 
+/**
+ * As updates to plugin state don't necessarily trigger updates on the
+ * blocks that rely on them, we need a mechanism to force that. We're doing that
+ * for component nodes here by applying a random decoration around them which
+ * will trigger ComponentView to be updated.
+ *
+ * @warning Other views that use the entity store will need their own mechanism
+ *          to trigger updates.
+ * @todo    we need an explicit way of subscribing to the entity store
+ */
+const decorationSet = (doc: ProsemirrorNode<Schema>) => {
+  const decorations: Decoration[] = [];
+
+  doc.descendants((node, pos) => {
+    if (isComponentNode(node)) {
+      decorations.push(
+        Decoration.node(pos, pos + node.nodeSize, {}, { entityStoreId: uuid() })
+      );
+
+      return false;
+    }
+
+    return true;
+  });
+
+  return DecorationSet.create<Schema>(doc, decorations);
+};
+
 export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
   key: entityStorePluginKey,
   state: {
-    init() {
+    init(_, state) {
       return {
         store: createEntityStore([], {}),
+        decorations: decorationSet(state.doc),
       };
     },
     apply(tr, state) {
       const action: EntityStorePluginMessage | undefined =
         tr.getMeta(entityStorePluginKey);
 
-      switch (action?.type) {
-        case "contents":
-          return {
-            store: createEntityStore(action.payload, state.store.draft),
-          };
+      if (action) {
+        /**
+         * A more efficient thing to do would be to work out which entities this
+         * action changes, and only update the decorations for the entities that
+         * have changed
+         */
+        const decorations = decorationSet(tr.doc);
 
-        case "draft":
-          return {
-            store: {
-              ...state.store,
-              draft: action.payload,
-            },
-          };
+        switch (action?.type) {
+          case "contents":
+            return {
+              ...state,
+              store: createEntityStore(action.payload, state.store.draft),
+              decorations,
+            };
 
-        case "store": {
-          return { store: action.payload };
+          case "draft":
+            return {
+              ...state,
+              store: {
+                ...state.store,
+                draft: action.payload,
+                decorations,
+              },
+            };
+
+          case "store": {
+            return { ...state, store: action.payload, decorations };
+          }
         }
       }
+      return {
+        ...state,
+        decorations: state.decorations.map(tr.mapping, tr.doc),
+      };
+    },
+  },
 
-      return state;
+  props: {
+    decorations(state) {
+      return entityStoreFromProsemirror(state).decorations;
     },
   },
 
