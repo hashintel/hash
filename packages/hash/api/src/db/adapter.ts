@@ -380,6 +380,8 @@ export interface DBClient {
     linkId: string;
   }): Promise<DBLink | null>;
 
+  deleteLink(params: { accountId: string; linkId: string }): Promise<void>;
+
   getEntityOutgoingLinks(params: {
     accountId: string;
     entityId: string;

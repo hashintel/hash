@@ -45,6 +45,7 @@ import {
 import {
   getAncestorReferences,
   getChildren,
+  deleteLink,
   getEntityOutgoingLinks,
   getLink,
   insertIncomingLink,
@@ -452,6 +453,13 @@ export class PostgresClient implements DBClient {
     linkId: string;
   }): Promise<DBLink | null> {
     return await getLink(this.conn, params);
+  }
+
+  async deleteLink(params: {
+    accountId: string;
+    linkId: string;
+  }): Promise<void> {
+    return await deleteLink(this.conn, params);
   }
 
   async getEntityOutgoingLinks(params: {

@@ -414,6 +414,18 @@ export const insertLink = async (
   `);
 };
 
+export const deleteLink = async (
+  conn: Connection,
+  params: { accountId: string; linkId: string },
+): Promise<void> => {
+  /** @todo: update postgres schema to cascade delete */
+  await conn.query(sql`
+    delete from outgoing_links where link_account_id = ${params.accountId} link_id = ${params.linkId};
+    delete from incoming_links where link_account_id = ${params.accountId} link_id = ${params.linkId};
+    delete from links where account_id = ${params.accountId} and link_id = ${params.linkId};
+  `);
+};
+
 type DBLinkRow = {
   account_id: string;
   link_id: string;
