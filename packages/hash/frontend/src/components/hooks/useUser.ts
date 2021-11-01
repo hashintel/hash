@@ -17,5 +17,14 @@ export const useUser = (options?: Omit<QueryHookOptions, "errorPolicy">) => {
     errorPolicy: "all",
   });
 
+  /**
+   * @todo add method to manually update user cache after
+   * a query/mutation returns the updated User object.
+   * This will help prevent having to call meQuery after every mutation
+   */
+  // const updateCache = () => {
+  //   client.writeQuery();
+  // };
+
   return { user: data?.me, refetch, loading };
 };

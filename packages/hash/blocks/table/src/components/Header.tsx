@@ -9,7 +9,7 @@ import { FilterDetail } from "./FilterDetail";
 import { Menu } from "./Menu";
 
 export type AggregateArgs = {
-  operation: "filter" | "sort" | "changePage";
+  operation: "filter" | "sort" | "changePageSize";
 } & BlockProtocolAggregateOperationInput;
 
 type HeaderProps = {
@@ -20,6 +20,7 @@ type HeaderProps = {
     BlockProtocolAggregateOperationInput,
     "multiFilter" | "multiSort"
   >;
+  entityTypeDropdown: React.ReactNode;
 };
 
 export const Header: VFC<HeaderProps> = ({
@@ -27,10 +28,12 @@ export const Header: VFC<HeaderProps> = ({
   columns,
   toggleHideColumn,
   aggregateOptions,
+  entityTypeDropdown,
 }) => {
   return (
     <div className={tw`pb-3 relative`}>
-      <div className={tw`flex items-center justify-end`}>
+      <div className={tw`flex items-center`}>
+        <div className={tw`mr-3 flex-grow-1`}>{entityTypeDropdown}</div>
         <div className={tw`mr-3`}>
           <Menu label="Filter">
             <FilterDetail

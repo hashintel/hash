@@ -107,6 +107,14 @@ export type DBUserProperties = {
   }[];
 };
 
+export type DBFileProperties = {
+  name: string;
+  key: string;
+  contentMd5: string;
+  size: number;
+  mediaType: string;
+};
+
 export type OrgInfoProvidedAtCreation = {
   orgSize: OrgSize;
 };

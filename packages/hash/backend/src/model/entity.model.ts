@@ -49,6 +49,8 @@ type CreateEntityArgsWithoutType = {
   createdById: string;
   versioned: boolean;
   properties: any;
+  entityVersionId?: string;
+  entityId?: string;
 };
 
 export type CreateEntityWithEntityTypeIdArgs = {

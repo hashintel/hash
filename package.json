@@ -10,7 +10,8 @@
     "packages/hash/integration",
     "packages/hash/prettier-config",
     "packages/hash/realtime",
-    "packages/hash/shared"
+    "packages/hash/shared",
+    "packages/hash/search-loader"
   ],
   "scripts": {
     "// 01": "",
@@ -22,12 +23,13 @@
     "ws:hash-shared": "yarn workspace @hashintel/hash-shared",
     "ws:hash-realtime": "yarn workspace @hashintel/hash-realtime",
     "ws:hash-backend-utils": "yarn workspace @hashintel/hash-backend-utils",
+    "ws:hash-search-loader": "yarn workspace @hashintel/hash-search-loader",
     "// 03": "",
     "// ---------------Install & serve ---------------": "",
     "// 04": "",
     "seed-db": "yarn ws:hash-backend clear-pg && yarn ws:hash-integration mock-data",
     "serve:hash-frontend": "yarn ws:hash-frontend dev",
-    "serve:hash-backend": "cross-env DOCKER_BUILDKIT=1 docker-compose -f packages/hash/docker/docker-compose.yml up",
+    "serve:hash-backend": "yarn ws:hash-backend-utils build && cross-env DOCKER_BUILDKIT=1 docker-compose -f packages/hash/docker/docker-compose.yml up",
     "serve:hash-backend-statsd": "cross-env DOCKER_BUILDKIT=1 docker-compose -f docker/docker-compose.yml -f docker/docker-compose-statsd-override.yml up",
     "serve:hash-backend-test": "cross-env DOCKER_BUILDKIT=1 HASH_PG_DATABASE=integration_tests NODE_ENV=test docker-compose -f packages/hash/docker/docker-compose.yml up",
     "codegen": "yarn ws:hash-backend codegen && yarn ws:hash-frontend codegen && yarn ws:hash-integration codegen && yarn ws:hash-shared codegen",

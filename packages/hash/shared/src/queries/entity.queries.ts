@@ -1,9 +1,31 @@
 import gql from "graphql-tag";
 
+export const getEntity = gql`
+  query getEntity($accountId: ID!, $entityId: ID!) {
+    entity(accountId: $accountId, entityId: $entityId) {
+      __typename
+      createdById
+      createdAt
+      entityId
+      entityTypeId
+      entityTypeVersionId
+      entityTypeName
+      updatedAt
+      accountId
+      ... on UnknownEntity {
+        properties
+      }
+      entityType {
+        properties
+      }
+      visibility
+    }
+  }
+`;
+
 export const createEntity = gql`
   mutation createEntity(
     $accountId: ID!
-    $createdById: ID!
     $properties: JSONObject!
     $entityTypeId: ID
     $entityTypeVersionId: ID
@@ -12,7 +34,6 @@ export const createEntity = gql`
   ) {
     createEntity(
       accountId: $accountId
-      createdById: $createdById
       properties: $properties
       entityTypeId: $entityTypeId
       entityTypeVersionId: $entityTypeVersionId
@@ -23,6 +44,7 @@ export const createEntity = gql`
       id
       createdById
       createdAt
+      entityId
       entityTypeId
       entityTypeVersionId
       entityTypeName
@@ -78,19 +100,27 @@ export const aggregateEntity = gql`
       results {
         __typename
         id
+        entityId
         entityTypeId
         entityTypeVersionId
         entityTypeName
-        ... on UnknownEntity {
-          properties
-        }
+        properties
       }
       operation {
         pageNumber
+        pageCount
         itemsPerPage
         multiSort {
           field
           desc
+        }
+        multiFilter {
+          operator
+          filters {
+            field
+            value
+            operator
+          }
         }
       }
     }

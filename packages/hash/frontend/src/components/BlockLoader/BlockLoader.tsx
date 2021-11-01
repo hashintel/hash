@@ -1,5 +1,4 @@
 import React, { useMemo, VoidFunctionComponent } from "react";
-import { BlockProtocolUpdatePayload } from "@hashintel/block-protocol";
 
 import { useBlockProtocolUpdate } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdate";
 import { cloneEntityTreeWithPropertiesMovedUp } from "../../lib/entities";
@@ -7,6 +6,8 @@ import { fetchEmbedCode } from "./fetchEmbedCode";
 import { uploadFile } from "./uploadFile";
 import { BlockFramer } from "../sandbox/BlockFramer/BlockFramer";
 import { RemoteBlock } from "../RemoteBlock/RemoteBlock";
+import { useBlockProtocolAggregateEntityTypes } from "../hooks/blockProtocolFunctions/useBlockProtocolAggregateEntityTypes";
+import { useBlockProtocolAggregate } from "../hooks/blockProtocolFunctions/useBlockProtocolAggregate";
 
 type BlockLoaderProps = {
   shouldSandbox?: boolean;
@@ -20,32 +21,16 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   shouldSandbox,
   ...props
 }) => {
-  const { update } = useBlockProtocolUpdate();
+  const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes(
+    props.accountId
+  );
+  const { update } = useBlockProtocolUpdate(props.accountId);
+  const { aggregate } = useBlockProtocolAggregate(props.accountId);
 
   const flattenedProperties = useMemo(
     () => cloneEntityTreeWithPropertiesMovedUp(props),
     [props]
   );
-
-  /**
-   * Temporary hack to provide the accountId for blocks.
-   * Assumes that the accountId of the block entity will be the same as
-   * all entities it is rendering / in its tree. Unsafe assumption.
-   * @todo Replace with a proper mapping of entities to accountIds.
-   */
-  const updateWithAccountId = (
-    updateData: BlockProtocolUpdatePayload<any>[]
-  ): Promise<any[]> => {
-    return update([
-      {
-        ...updateData[0],
-        accountId: props.accountId,
-      },
-    ]).catch((updateError) => {
-      console.error("Could not update entity: ", updateError);
-      throw updateError;
-    });
-  };
 
   const blockProperties = {
     ...flattenedProperties,
@@ -55,7 +40,9 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   };
 
   const functions = {
-    update: updateWithAccountId,
+    aggregateEntityTypes,
+    update,
+    aggregate,
     /** @todo pick one of getEmbedBlock or fetchEmbedCode */
     getEmbedBlock: fetchEmbedCode,
     uploadFile,

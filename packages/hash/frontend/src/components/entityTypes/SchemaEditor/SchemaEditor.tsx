@@ -38,7 +38,7 @@ export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
     <div>
       <header className={tw`mb-12`}>
         <h1>
-          <strong>{title ?? "No title."}</strong>
+          <strong>Schema: {title ?? "No title."}</strong>
         </h1>
         <p>{description ?? "No description."}</p>
       </header>

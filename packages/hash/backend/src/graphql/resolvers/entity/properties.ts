@@ -6,6 +6,7 @@ import { DbUnknownEntity } from "../../../types/dbTypes";
 import { aggregateEntity } from "./aggregateEntity";
 import { GraphQLContext } from "../../context";
 import { isRecord } from "../../../util";
+import { fileUrlResolver } from "../file/fileUrlResolver";
 
 /* eslint-disable no-param-reassign */
 
@@ -107,6 +108,15 @@ export const properties: Resolver<
   GraphQLContext
 > = async (entity, _, ctx, info) => {
   await resolveLinkedData(ctx, entity.accountId, entity.properties, info);
-
-  return entity.properties;
+  /**
+   * Hacky way to implement a custom resolver for file entities. Because `UnknownEntity`
+   * has properties as a `JsonObject`, we have to put this special code in the generic resolver
+   * */
+  // This avoids mutating the original, even if the above function does it should eventually be refactored not to
+  const props = { ...entity.properties };
+  if (props.key && props.contentMd5) {
+    // "Detecting" that it's a file entity
+    props.url = await fileUrlResolver(props, {}, ctx, info);
+  }
+  return props;
 };

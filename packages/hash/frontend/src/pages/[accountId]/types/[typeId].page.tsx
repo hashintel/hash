@@ -1,8 +1,11 @@
 import { useCallback, VoidFunctionComponent } from "react";
 import Link from "next/link";
+import pluralize from "pluralize";
 import { useQuery } from "@apollo/client";
 import { useRouter } from "next/router";
 
+import { tw } from "twind";
+import { Button } from "../../../components/forms/Button";
 import styles from "../../index.module.scss";
 import { PageSidebar } from "../../../components/layout/PageSidebar/PageSidebar";
 import {
@@ -14,12 +17,14 @@ import {
   SchemaEditor,
   SchemaSelectElementType,
 } from "../../../components/entityTypes/SchemaEditor/SchemaEditor";
+import { AccountEntityOfTypeList } from "../../../components/entityTypes/AccountEntityOfTypeList";
 
 export const EntityType: VoidFunctionComponent = () => {
   const router = useRouter();
   const { query } = router;
 
   const typeId = query.typeId as string;
+  const accountId = query.accountId as string;
 
   /** @see https://json-schema.org/understanding-json-schema/structuring.html#json-pointer */
   const subSchemaReference =
@@ -97,12 +102,30 @@ export const EntityType: VoidFunctionComponent = () => {
         {!data ? (
           <h1>Loading...</h1>
         ) : (
-          <SchemaEditor
-            entityId={data.getEntityType.entityId}
-            schema={data.getEntityType.properties}
-            SchemaSelect={schemaSelectElement}
-            subSchemaReference={subSchemaReference}
-          />
+          <>
+            <div className={tw`mb-12`}>
+              <div className={tw`mb-8`}>
+                <h1>
+                  <strong>{pluralize(schema.title)} in account</strong>
+                </h1>
+                <AccountEntityOfTypeList
+                  accountId={accountId}
+                  entityTypeId={typeId}
+                />
+              </div>
+              <Link href={`/${accountId}/entities/new?entityTypeId=${typeId}`}>
+                <a>
+                  <Button>New {schema.title}</Button>
+                </a>
+              </Link>
+            </div>
+            <SchemaEditor
+              entityId={data.getEntityType.entityId}
+              schema={schema}
+              SchemaSelect={schemaSelectElement}
+              subSchemaReference={subSchemaReference}
+            />
+          </>
         )}
       </main>
     </div>

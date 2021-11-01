@@ -95,6 +95,6 @@ export const EditableCell: VoidFunctionComponent<EditableCellProps> = ({
         }
       }}
       rows={1}
-    ></textarea>
+    />
   );
 };

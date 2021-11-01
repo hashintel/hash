@@ -1,52 +1,61 @@
-import { useLazyQuery } from "@apollo/client";
+import { useApolloClient } from "@apollo/client";
 
-import { BlockProtocolAggregateFn } from "@hashintel/block-protocol";
+import {
+  BlockProtocolAggregateFn,
+  BlockProtocolAggregateOperationOutput,
+} from "@hashintel/block-protocol";
 import { aggregateEntity } from "@hashintel/hash-shared/queries/entity.queries";
 import { useCallback } from "react";
+import { cloneEntityTreeWithPropertiesMovedUp } from "../../../lib/entities";
 import {
   AggregateEntityQuery,
   AggregateEntityQueryVariables,
 } from "../../../graphql/apiTypes.gen";
 
-export const useBlockProtocolAggregate = (): {
+export const useBlockProtocolAggregate = (
+  /** Providing accountId here saves blocks from having to know it */
+  accountId: string
+): {
   aggregate: BlockProtocolAggregateFn;
-  aggregateLoading: boolean;
-  aggregateError: any;
 } => {
-  const [aggregateFn, { loading: aggregateLoading, error: aggregateError }] =
-    useLazyQuery<AggregateEntityQuery, AggregateEntityQueryVariables>(
-      aggregateEntity
-    );
+  const client = useApolloClient();
 
   const aggregate: BlockProtocolAggregateFn = useCallback(
-    (action) => {
+    async (action) => {
+      if (!action.accountId) {
+        throw new Error("accountId not provided with aggregate action");
+      }
       /**
-       * Temporary hack while useLazyQuery doesn't return anything.
+       * Using client.query since useLazyQuery does not return anything
        * useLazyQuery should return a promise as of apollo-client 3.5
        * @see https://github.com/apollographql/apollo-client/issues/7714
+       * We can possibly revert once that happens
        */
-      return new Promise((resolve, reject) => {
-        try {
-          aggregateFn({
-            variables: {
-              operation: action.operation,
-              entityTypeId: action.entityTypeId,
-              entityTypeVersionId: action.entityTypeVersionId,
-              accountId: action.accountId,
-            },
-          });
-          resolve([]);
-        } catch (err) {
-          reject(err);
-        }
+      const response = await client.query<
+        AggregateEntityQuery,
+        AggregateEntityQueryVariables
+      >({
+        query: aggregateEntity,
+        variables: {
+          operation: action.operation,
+          entityTypeId: action.entityTypeId!,
+          entityTypeVersionId: action.entityTypeVersionId,
+          accountId,
+        },
       });
+      const { operation, results } = response.data.aggregateEntity;
+      const newResults = results.map((result) =>
+        cloneEntityTreeWithPropertiesMovedUp(result)
+      );
+      return {
+        operation,
+        results: newResults,
+      } as BlockProtocolAggregateOperationOutput;
     },
-    [aggregateFn]
+    [accountId, client]
   );
 
   return {
     aggregate,
-    aggregateLoading,
-    aggregateError,
   };
 };

@@ -24,7 +24,9 @@
     "ts-node": "node --max-old-space-size=2048 node_modules/.bin/ts-node --files --project tsconfig.json"
   },
   "dependencies": {
-    "redis": "3.1.2"
+    "redis": "3.1.2",
+    "slonik": "24.1.2",
+    "winston": "3.3.3"
   },
   "devDependencies": {
     "@types/node": "16.7.6",

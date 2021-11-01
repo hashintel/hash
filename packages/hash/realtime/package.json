@@ -15,14 +15,13 @@
     "lint": "prettier --check './src/**/*' && eslint --ext .ts ./src/ && tsc --noEmit # @hashintel/hash-realtime",
     "build": "yarn clean; tsc -b",
     "clean": "rimraf ./dist/ ./tsconfig.tsbuildinfo",
-    "dev": "NODE_ENV=development nodemon src/index.ts",
+    "dev": "NODE_ENV=development nodemon --config nodemon.json src/index.ts",
     "start": "NODE_ENV=production node dist/index.js",
     "ts-node": "node --max-old-space-size=2048 node_modules/.bin/ts-node --files --project tsconfig.json"
   },
   "dependencies": {
     "@hashintel/hash-backend-utils": "*",
-    "slonik": "24.0.1",
-    "winston": "3.3.3"
+    "slonik": "24.1.2"
   },
   "devDependencies": {
     "@types/node": "16.7.6",

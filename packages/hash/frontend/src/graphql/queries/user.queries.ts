@@ -1,5 +1,29 @@
 import { gql } from "@apollo/client";
 
+const userFieldsFragment = gql`
+  fragment UserFields on User {
+    __typename
+    id
+    entityId
+    createdById
+    accountId
+    entityTypeId
+    entityTypeVersionId
+    entityTypeName
+    visibility
+    accountSignupComplete
+    properties {
+      shortname
+      preferredName
+      emails {
+        address
+        primary
+        verified
+      }
+    }
+  }
+`;
+
 export const createUser = gql`
   mutation createUser($email: String!) {
     createUser(email: $email) {
@@ -8,6 +32,21 @@ export const createUser = gql`
       createdAt
     }
   }
+`;
+
+export const createUserWithOrgEmailInvitation = gql`
+  mutation createUserWithOrgEmailInvitation(
+    $orgEntityId: ID!
+    $invitationEmailToken: String!
+  ) {
+    createUserWithOrgEmailInvitation(
+      orgEntityId: $orgEntityId
+      invitationEmailToken: $invitationEmailToken
+    ) {
+      ...UserFields
+    }
+  }
+  ${userFieldsFragment}
 `;
 
 export const isShortnameTaken = gql`
@@ -19,26 +58,10 @@ export const isShortnameTaken = gql`
 export const updateUser = gql`
   mutation updateUser($userEntityId: ID!, $properties: UpdateUserProperties!) {
     updateUser(userEntityId: $userEntityId, properties: $properties) {
-      id
-      entityId
-      createdById
-      accountId
-      entityTypeId
-      entityTypeVersionId
-      entityTypeName
-      visibility
-      accountSignupComplete
-      properties {
-        shortname
-        preferredName
-        emails {
-          address
-          primary
-          verified
-        }
-      }
+      ...UserFields
     }
   }
+  ${userFieldsFragment}
 `;
 
 export const verifyEmail = gql`
@@ -48,25 +71,10 @@ export const verifyEmail = gql`
       verificationCode: $verificationCode
     ) {
       __typename
-      entityId
-      createdById
-      createdAt
-      updatedAt
-      accountId
-      entityTypeId
-      entityTypeVersionId
-      entityTypeName
-      visibility
-      properties {
-        shortname
-        emails {
-          address
-          primary
-          verified
-        }
-      }
+      ...UserFields
     }
   }
+  ${userFieldsFragment}
 `;
 
 export const sendLoginCode = gql`
@@ -89,26 +97,10 @@ export const loginWithLoginCode = gql`
       verificationCode: $verificationCode
     ) {
       __typename
-      id
-      createdById
-      createdAt
-      updatedAt
-      accountId
-      entityTypeId
-      entityTypeVersionId
-      entityTypeName
-      visibility
-      accountSignupComplete
-      properties {
-        shortname
-        emails {
-          address
-          primary
-          verified
-        }
-      }
+      ...UserFields
     }
   }
+  ${userFieldsFragment}
 `;
 
 export const logout = gql`
@@ -120,24 +112,8 @@ export const logout = gql`
 export const meQuery = gql`
   query me {
     me {
-      id
-      entityId
-      createdById
-      accountId
-      entityTypeId
-      entityTypeVersionId
-      entityTypeName
-      visibility
-      accountSignupComplete
-      properties {
-        shortname
-        preferredName
-        emails {
-          address
-          primary
-          verified
-        }
-      }
+      ...UserFields
     }
   }
+  ${userFieldsFragment}
 `;

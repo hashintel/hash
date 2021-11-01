@@ -2,6 +2,7 @@ import {
   BlockProtocolAggregateFn,
   BlockProtocolCreateFn,
   BlockProtocolUpdateFn,
+  BlockProtocolAggregateEntityTypesFn,
   JSONObject,
 } from "@hashintel/block-protocol";
 import { FetchEmbedCodeFn } from "../BlockLoader/fetchEmbedCode";
@@ -28,6 +29,10 @@ export type MessageFromFramedBlock = {
   | {
       type: "aggregate";
       payload: Parameters<BlockProtocolAggregateFn>;
+    }
+  | {
+      type: "aggregateEntityTypes";
+      payload: Parameters<BlockProtocolAggregateEntityTypesFn>;
     }
 );
 

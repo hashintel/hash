@@ -30,6 +30,7 @@ const fetchSource = memoizeFetchFunction((url) =>
 export const BlockFramer: VoidFunctionComponent<CrossFrameProxyProps> = ({
   sourceUrl,
   aggregate,
+  aggregateEntityTypes,
   create,
   getEmbedBlock,
   update,
@@ -140,6 +141,13 @@ export const BlockFramer: VoidFunctionComponent<CrossFrameProxyProps> = ({
         case "aggregate":
           asyncCallAndResponse(aggregate, data.payload, data.requestId);
           break;
+        case "aggregateEntityTypes":
+          asyncCallAndResponse(
+            aggregateEntityTypes,
+            data.payload,
+            data.requestId
+          );
+          break;
         case "create":
           asyncCallAndResponse(create, data.payload, data.requestId);
           break;
@@ -158,7 +166,14 @@ export const BlockFramer: VoidFunctionComponent<CrossFrameProxyProps> = ({
     window.addEventListener("message", msgHandler);
 
     return () => window.removeEventListener("message", msgHandler);
-  }, [aggregate, getEmbedBlock, asyncCallAndResponse, create, update]);
+  }, [
+    aggregate,
+    getEmbedBlock,
+    asyncCallAndResponse,
+    create,
+    update,
+    aggregateEntityTypes,
+  ]);
 
   const onLoad = useCallback(
     () => (!paramsIncludeProps ? sendBlockProperties(blockProperties) : null),

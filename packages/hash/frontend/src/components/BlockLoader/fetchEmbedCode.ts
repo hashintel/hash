@@ -1,4 +1,5 @@
 import { JSONObject } from "@hashintel/block-protocol";
+import { apiGraphQLEndpoint } from "@hashintel/hash-shared/environment";
 import { ProviderNames } from "../../../../blocks/embed/src/types";
 
 export type FetchEmbedCodeFn = (
@@ -7,7 +8,7 @@ export type FetchEmbedCodeFn = (
 ) => Promise<JSONObject>;
 
 export const fetchEmbedCode: FetchEmbedCodeFn = (url, type?) => {
-  return fetch("http://localhost:5001/graphql", {
+  return fetch(apiGraphQLEndpoint, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

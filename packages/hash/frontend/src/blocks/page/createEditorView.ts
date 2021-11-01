@@ -1,16 +1,16 @@
 import { ApolloClient } from "@apollo/client";
 import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
+import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
-import { EntityStore } from "@hashintel/hash-shared/entityStore";
-import { createProseMirrorState } from "@hashintel/hash-shared/prosemirror";
+import { apiOrigin } from "@hashintel/hash-shared/environment";
+import { entityStoreFromProsemirror } from "@hashintel/hash-shared/entityStorePlugin";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { updatePageMutation } from "@hashintel/hash-shared/save";
 import { Schema } from "prosemirror-model";
 import { Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
-import { createBlockSuggester } from "../../components/BlockSuggester";
+import { createBlockSuggester } from "../../components/BlockSuggester/createBlockSuggester";
 import { createMarksTooltip } from "../../components/MarksTooltip";
-import { AsyncView } from "./AsyncView";
 import { BlockView } from "./BlockView";
 import { EditorConnection } from "./collab/EditorConnection";
 import { Reporter } from "./collab/Reporter";
@@ -23,7 +23,6 @@ const createSavePlugin = (
   accountId: string,
   pageId: string,
   getLastSavedValue: () => BlockEntity[],
-  getEntityStore: () => EntityStore,
   client: ApolloClient<unknown>
 ) => {
   let saveQueue = Promise.resolve<unknown>(null);
@@ -41,7 +40,7 @@ const createSavePlugin = (
           pageId,
           view.state.doc,
           getLastSavedValue(),
-          getEntityStore(),
+          entityStoreFromProsemirror(view.state).store,
           client
         )
       );
@@ -89,47 +88,35 @@ export const createEditorView = (
   accountId: string,
   pageId: string,
   preloadedBlocks: BlockMeta[],
-  getEntityStore: () => EntityStore,
   getLastSavedValue: () => BlockEntity[],
   client: ApolloClient<unknown>
 ) => {
+  let manager: ProsemirrorSchemaManager;
+
   const plugins: Plugin<unknown, Schema>[] = [
-    createSavePlugin(
-      accountId,
-      pageId,
-      getLastSavedValue,
-      getEntityStore,
-      client
-    ),
+    createSavePlugin(accountId, pageId, getLastSavedValue, client),
     createMarksTooltip(renderPortal),
-    createBlockSuggester(renderPortal),
+    createBlockSuggester(renderPortal, () => manager),
   ];
 
   const state = createProseMirrorState({ plugins });
 
   let connection: EditorConnection | null = null;
-  let manager: ProsemirrorSchemaManager;
 
   const view = new EditorView<Schema>(renderNode, {
     state,
     nodeViews: {
-      async(currentNode, currentView, getPos) {
-        if (typeof getPos === "boolean") {
-          throw new Error("Invalid config for nodeview");
-        }
-        return new AsyncView(
-          currentNode,
-          currentView,
-          getPos,
-          manager,
-          getEntityStore
-        );
-      },
       block(currentNode, currentView, getPos) {
         if (typeof getPos === "boolean") {
           throw new Error("Invalid config for nodeview");
         }
-        return new BlockView(currentNode, currentView, getPos, renderPortal);
+        return new BlockView(
+          currentNode,
+          currentView,
+          getPos,
+          renderPortal,
+          manager
+        );
       },
     },
     dispatchTransaction: collabEnabled
@@ -152,7 +139,7 @@ export const createEditorView = (
   if (collabEnabled) {
     connection = new EditorConnection(
       new Reporter(),
-      `http://localhost:5001/collab-backend/${accountId}/${pageId}`,
+      `${apiOrigin}/collab-backend/${accountId}/${pageId}`,
       view.state.schema,
       view,
       manager,

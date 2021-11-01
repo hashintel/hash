@@ -2,104 +2,119 @@ insert into entity_types (
   entity_type_id, account_id, name, versioned,
   created_by, created_at, metadata_updated_at
 ) values (
-  '766ab052-f6b0-4264-9827-8999e637466c', 'bc2e14d1-36a2-47fc-aa97-99c6ab28d562', 'Block', true,
-  'bc2e14d1-36a2-47fc-aa97-99c6ab28d562', '2021-08-19T11:00:14.588Z', '2021-08-19T11:00:14.588Z'
+  '9d3c6d04-a2b9-444d-aef8-dfeab4e3db28', '46c75ba1-bef2-4d6d-b974-bacc0abac3c4', 'Block', true,
+  '46c75ba1-bef2-4d6d-b974-bacc0abac3c4', '2021-08-19T11:00:14.588Z', '2021-08-19T11:00:14.588Z'
 ) on conflict do nothing;
 insert into entity_type_versions (
   entity_type_id, entity_type_version_id, account_id,
   properties, created_by, created_at, updated_at
 ) values (
-  '766ab052-f6b0-4264-9827-8999e637466c', '821c8aa3-b5cb-4276-a550-342decc9a563', 'bc2e14d1-36a2-47fc-aa97-99c6ab28d562',
-  '{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"http://localhost:3000/bc2e14d1-36a2-47fc-aa97-99c6ab28d562/types/766ab052-f6b0-4264-9827-8999e637466c","title":"Block","type":"object"}',
-  'bc2e14d1-36a2-47fc-aa97-99c6ab28d562', '2021-08-19T11:00:14.588Z', '2021-08-19T11:00:14.588Z'
+  '9d3c6d04-a2b9-444d-aef8-dfeab4e3db28', '2e4891da-ea52-4546-aecb-bb88531b72af', '46c75ba1-bef2-4d6d-b974-bacc0abac3c4',
+  '{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"http://localhost:3000/46c75ba1-bef2-4d6d-b974-bacc0abac3c4/types/9d3c6d04-a2b9-444d-aef8-dfeab4e3db28","title":"Block","type":"object"}',
+  '46c75ba1-bef2-4d6d-b974-bacc0abac3c4', '2021-08-19T11:00:14.588Z', '2021-08-19T11:00:14.588Z'
 ) on conflict do nothing;
 insert into entity_types (
   entity_type_id, account_id, name, versioned,
   created_by, created_at, metadata_updated_at
 ) values (
-  'b9e57867-943a-4e84-88c5-5d5f7022d99a', 'bc2e14d1-36a2-47fc-aa97-99c6ab28d562', 'EntityType', true,
-  'bc2e14d1-36a2-47fc-aa97-99c6ab28d562', '2021-08-19T11:00:14.588Z', '2021-08-19T11:00:14.588Z'
+  '34def702-444f-43fd-b0dd-2ee16069ebdf', '46c75ba1-bef2-4d6d-b974-bacc0abac3c4', 'EntityType', true,
+  '46c75ba1-bef2-4d6d-b974-bacc0abac3c4', '2021-08-19T11:00:14.588Z', '2021-08-19T11:00:14.588Z'
 ) on conflict do nothing;
 insert into entity_type_versions (
   entity_type_id, entity_type_version_id, account_id,
   properties, created_by, created_at, updated_at
 ) values (
-  'b9e57867-943a-4e84-88c5-5d5f7022d99a', '10d08f4f-7215-4a52-ad44-a3bb2407a6ad', 'bc2e14d1-36a2-47fc-aa97-99c6ab28d562',
-  '{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"http://localhost:3000/bc2e14d1-36a2-47fc-aa97-99c6ab28d562/types/b9e57867-943a-4e84-88c5-5d5f7022d99a","title":"EntityType","type":"object"}',
-  'bc2e14d1-36a2-47fc-aa97-99c6ab28d562', '2021-08-19T11:00:14.588Z', '2021-08-19T11:00:14.588Z'
+  '34def702-444f-43fd-b0dd-2ee16069ebdf', 'ebb07067-f300-4504-be3f-b251c36ca06d', '46c75ba1-bef2-4d6d-b974-bacc0abac3c4',
+  '{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"http://localhost:3000/46c75ba1-bef2-4d6d-b974-bacc0abac3c4/types/34def702-444f-43fd-b0dd-2ee16069ebdf","title":"EntityType","type":"object"}',
+  '46c75ba1-bef2-4d6d-b974-bacc0abac3c4', '2021-08-19T11:00:14.588Z', '2021-08-19T11:00:14.588Z'
 ) on conflict do nothing;
 insert into entity_types (
   entity_type_id, account_id, name, versioned,
   created_by, created_at, metadata_updated_at
 ) values (
-  'dc1fac23-7b73-4076-a0f2-db766a763fce', 'bc2e14d1-36a2-47fc-aa97-99c6ab28d562', 'Page', true,
-  'bc2e14d1-36a2-47fc-aa97-99c6ab28d562', '2021-08-19T11:00:14.588Z', '2021-08-19T11:00:14.588Z'
+  'a1cbaead-637f-41ea-8ae4-073e4b0122bb', '46c75ba1-bef2-4d6d-b974-bacc0abac3c4', 'Page', true,
+  '46c75ba1-bef2-4d6d-b974-bacc0abac3c4', '2021-08-19T11:00:14.588Z', '2021-08-19T11:00:14.588Z'
 ) on conflict do nothing;
 insert into entity_type_versions (
   entity_type_id, entity_type_version_id, account_id,
   properties, created_by, created_at, updated_at
 ) values (
-  'dc1fac23-7b73-4076-a0f2-db766a763fce', '4fcaf862-f896-43c9-94f3-40af2ac3efaf', 'bc2e14d1-36a2-47fc-aa97-99c6ab28d562',
-  '{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"http://localhost:3000/bc2e14d1-36a2-47fc-aa97-99c6ab28d562/types/dc1fac23-7b73-4076-a0f2-db766a763fce","title":"Page","type":"object"}',
-  'bc2e14d1-36a2-47fc-aa97-99c6ab28d562', '2021-08-19T11:00:14.588Z', '2021-08-19T11:00:14.588Z'
+  'a1cbaead-637f-41ea-8ae4-073e4b0122bb', '4a858a90-b1fd-4412-9643-be470305a9eb', '46c75ba1-bef2-4d6d-b974-bacc0abac3c4',
+  '{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"http://localhost:3000/46c75ba1-bef2-4d6d-b974-bacc0abac3c4/types/a1cbaead-637f-41ea-8ae4-073e4b0122bb","title":"Page","type":"object"}',
+  '46c75ba1-bef2-4d6d-b974-bacc0abac3c4', '2021-08-19T11:00:14.588Z', '2021-08-19T11:00:14.588Z'
 ) on conflict do nothing;
 insert into entity_types (
   entity_type_id, account_id, name, versioned,
   created_by, created_at, metadata_updated_at
 ) values (
-  'fb82f307-ea4c-46fc-b447-c3441308e980', 'bc2e14d1-36a2-47fc-aa97-99c6ab28d562', 'Text', true,
-  'bc2e14d1-36a2-47fc-aa97-99c6ab28d562', '2021-08-19T11:00:14.588Z', '2021-08-19T11:00:14.588Z'
+  'd363a66a-f108-4b5c-86b5-b3233c32f12a', '46c75ba1-bef2-4d6d-b974-bacc0abac3c4', 'Text', true,
+  '46c75ba1-bef2-4d6d-b974-bacc0abac3c4', '2021-08-19T11:00:14.588Z', '2021-08-19T11:00:14.588Z'
 ) on conflict do nothing;
 insert into entity_type_versions (
   entity_type_id, entity_type_version_id, account_id,
   properties, created_by, created_at, updated_at
 ) values (
-  'fb82f307-ea4c-46fc-b447-c3441308e980', '106de286-9890-443e-808e-0564167b65b5', 'bc2e14d1-36a2-47fc-aa97-99c6ab28d562',
-  '{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"http://localhost:3000/bc2e14d1-36a2-47fc-aa97-99c6ab28d562/types/fb82f307-ea4c-46fc-b447-c3441308e980","title":"Text","type":"object"}',
-  'bc2e14d1-36a2-47fc-aa97-99c6ab28d562', '2021-08-19T11:00:14.588Z', '2021-08-19T11:00:14.588Z'
+  'd363a66a-f108-4b5c-86b5-b3233c32f12a', 'c959cafa-3ff6-45f4-b4ae-a936971d9081', '46c75ba1-bef2-4d6d-b974-bacc0abac3c4',
+  '{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"http://localhost:3000/46c75ba1-bef2-4d6d-b974-bacc0abac3c4/types/d363a66a-f108-4b5c-86b5-b3233c32f12a","title":"Text","type":"object"}',
+  '46c75ba1-bef2-4d6d-b974-bacc0abac3c4', '2021-08-19T11:00:14.588Z', '2021-08-19T11:00:14.588Z'
 ) on conflict do nothing;
 insert into entity_types (
   entity_type_id, account_id, name, versioned,
   created_by, created_at, metadata_updated_at
 ) values (
-  '947a1b54-5ec9-49f6-aae8-1c71ba722461', 'bc2e14d1-36a2-47fc-aa97-99c6ab28d562', 'User', true,
-  'bc2e14d1-36a2-47fc-aa97-99c6ab28d562', '2021-08-19T11:00:14.588Z', '2021-08-19T11:00:14.588Z'
+  '1f9e6df2-a4f2-407a-af07-ae5a9a4857fc', '46c75ba1-bef2-4d6d-b974-bacc0abac3c4', 'User', true,
+  '46c75ba1-bef2-4d6d-b974-bacc0abac3c4', '2021-08-19T11:00:14.588Z', '2021-08-19T11:00:14.588Z'
 ) on conflict do nothing;
 insert into entity_type_versions (
   entity_type_id, entity_type_version_id, account_id,
   properties, created_by, created_at, updated_at
 ) values (
-  '947a1b54-5ec9-49f6-aae8-1c71ba722461', '0452c7fc-2743-4e6e-8135-a9dcc094696b', 'bc2e14d1-36a2-47fc-aa97-99c6ab28d562',
-  '{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"http://localhost:3000/bc2e14d1-36a2-47fc-aa97-99c6ab28d562/types/947a1b54-5ec9-49f6-aae8-1c71ba722461","title":"User","type":"object","description":"A user with an account in a HASH.dev instance.","properties":{"emails":{"type":"array","description":"The email address(es) associated with a user","items":{"type":"object","description":"Information on a email address.","properties":{"email":{"description":"The email address itself","type":"string"},"primary":{"description":"Whether this email address is the primary one for the user","type":"boolean"},"verified":{"description":"Whether this email address has been verified","type":"boolean"}}}},"memberOf":{"$ref":"http://localhost:3000/bc2e14d1-36a2-47fc-aa97-99c6ab28d562/types/2684ab5a-c927-4c91-a49e-838bb75719b3"},"shortname":{"minLength":4,"maxLength":24,"type":"string","description":"A unique slug for the user."},"preferredName":{"description":"The name which the user prefers to go by","type":"string"}},"required":["emails"]}',
-  'bc2e14d1-36a2-47fc-aa97-99c6ab28d562', '2021-08-19T11:00:14.588Z', '2021-08-19T11:00:14.588Z'
+  '1f9e6df2-a4f2-407a-af07-ae5a9a4857fc', 'd796e0e4-1504-46a3-923e-da3252e9f566', '46c75ba1-bef2-4d6d-b974-bacc0abac3c4',
+  '{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"http://localhost:3000/46c75ba1-bef2-4d6d-b974-bacc0abac3c4/types/1f9e6df2-a4f2-407a-af07-ae5a9a4857fc","title":"User","type":"object","description":"A user with an account in a HASH.dev instance.","properties":{"emails":{"type":"array","description":"The email address(es) associated with a user","items":{"type":"object","description":"Information on a email address.","properties":{"email":{"description":"The email address itself","type":"string"},"primary":{"description":"Whether this email address is the primary one for the user","type":"boolean"},"verified":{"description":"Whether this email address has been verified","type":"boolean"}}}},"memberOf":{"$ref":"http://localhost:3000/46c75ba1-bef2-4d6d-b974-bacc0abac3c4/types/37790a78-9262-4e88-930e-f4685cf362cc"},"shortname":{"minLength":4,"maxLength":24,"type":"string","description":"A unique slug for the user."},"preferredName":{"description":"The name which the user prefers to go by","type":"string"}},"required":["emails"]}',
+  '46c75ba1-bef2-4d6d-b974-bacc0abac3c4', '2021-08-19T11:00:14.588Z', '2021-08-19T11:00:14.588Z'
 ) on conflict do nothing;
 insert into entity_types (
   entity_type_id, account_id, name, versioned,
   created_by, created_at, metadata_updated_at
 ) values (
-  '05f144cf-01f0-4bd6-a54d-d9ddc3db5d43', 'bc2e14d1-36a2-47fc-aa97-99c6ab28d562', 'OrgInvitationLink', true,
-  'bc2e14d1-36a2-47fc-aa97-99c6ab28d562', '2021-08-19T11:00:14.588Z', '2021-08-19T11:00:14.588Z'
+  '7d7dda68-3096-4698-96ea-2f80fe669157', '46c75ba1-bef2-4d6d-b974-bacc0abac3c4', 'File', true,
+  '46c75ba1-bef2-4d6d-b974-bacc0abac3c4', '2021-08-19T11:00:14.588Z', '2021-08-19T11:00:14.588Z'
 ) on conflict do nothing;
 insert into entity_type_versions (
   entity_type_id, entity_type_version_id, account_id,
   properties, created_by, created_at, updated_at
 ) values (
-  '05f144cf-01f0-4bd6-a54d-d9ddc3db5d43', 'b5b39548-ef9e-4c93-ac16-03c811edd488', 'bc2e14d1-36a2-47fc-aa97-99c6ab28d562',
-  '{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"http://localhost:3000/bc2e14d1-36a2-47fc-aa97-99c6ab28d562/types/05f144cf-01f0-4bd6-a54d-d9ddc3db5d43","title":"OrgInvitationLink","type":"object"}',
-  'bc2e14d1-36a2-47fc-aa97-99c6ab28d562', '2021-08-19T11:00:14.588Z', '2021-08-19T11:00:14.588Z'
+  '7d7dda68-3096-4698-96ea-2f80fe669157', '2642c824-1d1f-4071-8233-b5c2bf96a853', '46c75ba1-bef2-4d6d-b974-bacc0abac3c4',
+  '{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"http://localhost:3000/46c75ba1-bef2-4d6d-b974-bacc0abac3c4/types/7d7dda68-3096-4698-96ea-2f80fe669157","title":"File","type":"object"}',
+  '46c75ba1-bef2-4d6d-b974-bacc0abac3c4', '2021-08-19T11:00:14.588Z', '2021-08-19T11:00:14.588Z'
 ) on conflict do nothing;
 insert into entity_types (
   entity_type_id, account_id, name, versioned,
   created_by, created_at, metadata_updated_at
 ) values (
-  '394eb1aa-bb99-44d6-b3ca-a46524605d50', 'bc2e14d1-36a2-47fc-aa97-99c6ab28d562', 'OrgEmailInvitation', true,
-  'bc2e14d1-36a2-47fc-aa97-99c6ab28d562', '2021-08-19T11:00:14.588Z', '2021-08-19T11:00:14.588Z'
+  'b230213b-7620-493a-b7ae-8cf1dc7287ea', '46c75ba1-bef2-4d6d-b974-bacc0abac3c4', 'OrgInvitationLink', true,
+  '46c75ba1-bef2-4d6d-b974-bacc0abac3c4', '2021-08-19T11:00:14.588Z', '2021-08-19T11:00:14.588Z'
 ) on conflict do nothing;
 insert into entity_type_versions (
   entity_type_id, entity_type_version_id, account_id,
   properties, created_by, created_at, updated_at
 ) values (
-  '394eb1aa-bb99-44d6-b3ca-a46524605d50', '98802676-271a-43af-ba17-acc9298bf7d3', 'bc2e14d1-36a2-47fc-aa97-99c6ab28d562',
-  '{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"http://localhost:3000/bc2e14d1-36a2-47fc-aa97-99c6ab28d562/types/394eb1aa-bb99-44d6-b3ca-a46524605d50","title":"OrgEmailInvitation","type":"object"}',
-  'bc2e14d1-36a2-47fc-aa97-99c6ab28d562', '2021-08-19T11:00:14.588Z', '2021-08-19T11:00:14.588Z'
+  'b230213b-7620-493a-b7ae-8cf1dc7287ea', 'a5bfe6e4-e871-455d-beb9-a0fa1162d457', '46c75ba1-bef2-4d6d-b974-bacc0abac3c4',
+  '{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"http://localhost:3000/46c75ba1-bef2-4d6d-b974-bacc0abac3c4/types/b230213b-7620-493a-b7ae-8cf1dc7287ea","title":"OrgInvitationLink","type":"object"}',
+  '46c75ba1-bef2-4d6d-b974-bacc0abac3c4', '2021-08-19T11:00:14.588Z', '2021-08-19T11:00:14.588Z'
+) on conflict do nothing;
+insert into entity_types (
+  entity_type_id, account_id, name, versioned,
+  created_by, created_at, metadata_updated_at
+) values (
+  '15b65dfb-b4eb-45f6-9258-c443a5d56953', '46c75ba1-bef2-4d6d-b974-bacc0abac3c4', 'OrgEmailInvitation', true,
+  '46c75ba1-bef2-4d6d-b974-bacc0abac3c4', '2021-08-19T11:00:14.588Z', '2021-08-19T11:00:14.588Z'
+) on conflict do nothing;
+insert into entity_type_versions (
+  entity_type_id, entity_type_version_id, account_id,
+  properties, created_by, created_at, updated_at
+) values (
+  '15b65dfb-b4eb-45f6-9258-c443a5d56953', '22ce0f7a-88b8-4cfa-8bed-6d2310fcb971', '46c75ba1-bef2-4d6d-b974-bacc0abac3c4',
+  '{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"http://localhost:3000/46c75ba1-bef2-4d6d-b974-bacc0abac3c4/types/15b65dfb-b4eb-45f6-9258-c443a5d56953","title":"OrgEmailInvitation","type":"object"}',
+  '46c75ba1-bef2-4d6d-b974-bacc0abac3c4', '2021-08-19T11:00:14.588Z', '2021-08-19T11:00:14.588Z'
 ) on conflict do nothing;

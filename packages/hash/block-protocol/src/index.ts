@@ -35,8 +35,7 @@ export type BlockProtocolCreatePayload<T> = {
   entityTypeId: string;
   entityTypeVersionId?: string | null;
   data: T;
-  pageAccountId: string;
-  userId: string;
+  accountId?: string;
 };
 
 export type BlockProtocolFilterOperatorType =
@@ -51,23 +50,25 @@ export type BlockProtocolFilterOperatorType =
 
 export type BlockProtocolMultiFilterOperatorType = "AND" | "OR";
 
+export type BlockProtocolMultiFilter = {
+  filters: {
+    field: string;
+    operator: BlockProtocolFilterOperatorType;
+    value: string;
+  }[];
+  operator: BlockProtocolMultiFilterOperatorType;
+};
+
+export type BlockProtocolMultiSort = {
+  field: string;
+  desc?: boolean | undefined | null;
+}[];
+
 export type BlockProtocolAggregateOperationInput = {
   pageNumber?: number;
   itemsPerPage?: number;
-  multiSort?:
-    | {
-        field: string;
-        desc?: boolean | undefined | null;
-      }[]
-    | null;
-  multiFilter?: {
-    filters: {
-      field: string;
-      operator: BlockProtocolFilterOperatorType;
-      value: string;
-    }[];
-    operator: BlockProtocolMultiFilterOperatorType;
-  } | null;
+  multiSort?: BlockProtocolMultiSort | null;
+  multiFilter?: BlockProtocolMultiFilter | null;
 };
 
 export type BlockProtocolLinkedDataDefinition = {
@@ -77,10 +78,19 @@ export type BlockProtocolLinkedDataDefinition = {
 };
 
 export type BlockProtocolAggregatePayload = {
-  entityTypeId: string;
+  entityTypeId?: string;
   entityTypeVersionId?: string | null;
   operation: BlockProtocolAggregateOperationInput;
-  accountId: string;
+  accountId?: string;
+};
+
+export type BlockProtocolAggregateOperationOutput<T = unknown> = {
+  results: T[];
+  operation: BlockProtocolAggregateOperationInput & { pageCount: number };
+};
+
+export type BlockProtocolAggregateEntityTypesPayload = {
+  includeOtherTypesInUse: boolean;
 };
 
 export type BlockProtocolCreateFn = {
@@ -92,13 +102,31 @@ export type BlockProtocolUpdateFn = {
 };
 
 export type BlockProtocolAggregateFn = {
-  (action: BlockProtocolAggregatePayload): Promise<unknown[]>;
+  (
+    action: BlockProtocolAggregatePayload
+  ): Promise<BlockProtocolAggregateOperationOutput>;
+};
+
+export type BlockProtocolEntityType = {
+  entityTypeId: string;
+  $id: string;
+  $schema: string;
+  title: string;
+  type: string;
+  [key: string]: JSONValue;
+};
+
+export type BlockProtocolAggregateEntityTypesFn = {
+  (action: BlockProtocolAggregateEntityTypesPayload): Promise<
+    BlockProtocolAggregateOperationOutput<BlockProtocolEntityType>
+  >;
 };
 
 export type BlockProtocolFunction =
   | BlockProtocolAggregateFn
   | BlockProtocolCreateFn
-  | BlockProtocolUpdateFn;
+  | BlockProtocolUpdateFn
+  | BlockProtocolAggregateEntityTypesFn;
 
 export type JSONValue =
   | null
@@ -120,6 +148,7 @@ export type BlockProtocolProps = {
   aggregate?: BlockProtocolAggregateFn;
   aggregateLoading?: boolean;
   aggregateError?: Error;
+  aggregateEntityTypes?: BlockProtocolAggregateEntityTypesFn;
   create?: BlockProtocolCreateFn;
   createLoading?: boolean;
   createError?: Error;
