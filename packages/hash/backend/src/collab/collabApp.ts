@@ -1,3 +1,4 @@
+import { entityStoreFromProsemirror } from "@hashintel/hash-shared/entityStorePlugin";
 import { createApolloClient } from "@hashintel/hash-shared/graphql/createApolloClient";
 import { json } from "body-parser";
 import corsMiddleware from "cors";
@@ -25,6 +26,7 @@ const reqIP = (request: IncomingMessage): string | null =>
   null;
 
 const handleError = (resp: Response, err: any) => {
+  console.error(err);
   resp
     .status(err instanceof InvalidVersionError ? 400 : 500)
     .send(err.toString());
@@ -58,7 +60,8 @@ collabApp.get("/:accountId/:pageId", (req, resp) => {
     );
 
     resp.json({
-      doc: inst.doc.toJSON(),
+      doc: inst.state.doc.toJSON(),
+      store: entityStoreFromProsemirror(inst.state).store,
       users: inst.userCount,
       version: inst.version,
     });
@@ -117,10 +120,11 @@ collabApp.post("/:accountId/:pageId/events", (req, resp) => {
     const data: any = req.body;
     const version = nonNegInteger(data.version);
 
-    const result = inst.addJsonEvents(client)(
+    const result = await inst.addJsonEvents(client)(
       version,
       data.steps,
-      data.clientID
+      data.clientID,
+      data.blockIds
     );
     if (!result) {
       resp.status(409).send("Version not current");

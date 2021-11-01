@@ -49,9 +49,9 @@ export const isDraftBlockEntity = (
  * @todo we could store a map of entity id <-> draft id to make this easier
  */
 export const draftEntityForEntityId = (
-  store: EntityStore["draft"],
+  draft: EntityStore["draft"],
   entityId: string
-) => Object.values(store).find((entity) => entity.entityId === entityId);
+) => Object.values(draft).find((entity) => entity.entityId === entityId);
 
 const findEntitiesInValue = (value: unknown): EntityStoreType[] => {
   let entities: EntityStoreType[] = [];

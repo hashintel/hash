@@ -142,14 +142,29 @@ export class ProsemirrorSchemaManager {
    *
    * @todo support taking a signal
    */
-  async defineRemoteBlock(componentId: string): Promise<BlockMeta> {
+  async fetchAndDefineBlock(componentId: string): Promise<BlockMeta> {
     const meta = await fetchBlockMeta(componentId);
 
-    if (!componentId || !this.schema.nodes[componentId]) {
-      this.defineNewBlock(meta);
-    }
+    await this.defineRemoteBlock(componentId);
 
     return meta;
+  }
+
+  /**
+   * Defining a new type of block in prosemirror. Designed to be cached so
+   * doesn't need to request the block multiple times
+   *
+   * @todo support taking a signal
+   */
+  async defineRemoteBlock(
+    componentId: string,
+    metaPromise?: Promise<BlockMeta>
+  ) {
+    if (!this.schema.nodes[componentId]) {
+      const blockMetaPromise = metaPromise ?? fetchBlockMeta(componentId);
+
+      this.defineNewBlock(await blockMetaPromise);
+    }
   }
 
   /**
@@ -190,7 +205,7 @@ export class ProsemirrorSchemaManager {
     entityStore?: EntityStore,
     draftBlockId?: string
   ) {
-    const meta = await this.defineRemoteBlock(targetComponentId);
+    const meta = await this.fetchAndDefineBlock(targetComponentId);
     const requiresText = blockComponentRequiresText(meta.componentSchema);
     let blockEntity = draftBlockId ? entityStore?.draft[draftBlockId] : null;
 
