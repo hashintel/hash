@@ -58,7 +58,7 @@ Output packages are responsible for creating feedback to be given to the user ab
 
 Upon using the initialization packages to initialize the run, the main loop is started which consists of a pipeline going from context packages -> state packages -> output packages for every step.
 
-The packages utilize a [communication implementation](./src/simulation/comms) to interface with the [Workers](./src/worker/comms) mostly through the use of of defined types of [Tasks](./src/simulation/task). The communication therefore defines the control-flow of the Runner's executions. Any substantial data that isn't encapsulated within a message is shared that between Packages and Runners through the [DataStore](./src/datastore).
+The packages utilize a [communication implementation](./src/simulation/comms) to interface with the [Workers](./src/worker) mostly through the use of of defined types of [Tasks](./src/simulation/task). The communication therefore defines the control-flow of the Runner's executions. Any substantial data that isn't encapsulated within a message is shared that between Packages and Runners through the [DataStore](./src/datastore).
 
 #### DataStore
 
