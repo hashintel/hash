@@ -8,7 +8,7 @@ export type GQLLinkExternalResolvers = "__typename";
 
 export type UnresolvedGQLLink = Omit<GQLLink, GQLLinkExternalResolvers>;
 
-type CreateLinkArgs = {
+export type CreateLinkArgs = {
   path: string;
   source: Entity;
   destination: Entity;
@@ -81,6 +81,7 @@ class __Link {
 
   static isPathValid = (path: string): boolean => {
     try {
+      /** @todo: ensure JSON path only has one corresponding location (i.e. $.memberOf[*].org is currently a valid path when it shouldn't be) */
       jp.parse(path);
     } catch {
       return false;
@@ -99,7 +100,18 @@ class __Link {
     async (args: CreateLinkArgs): Promise<Link> => {
       const { path, source, destination, dstEntityVersionId } = args;
 
-      /** @todo: ensure destination entity has version where entityVersionId === dstEntityVersionId */
+      Link.validatePath(path);
+
+      if (source.metadata.versioned) {
+        /** @todo: implement a function dedicated to creating a new version of an entity and use it instead of this hack */
+        await source.updateEntityProperties(client)(source.properties);
+      }
+
+      /** @todo: check entity type to see if there is an inverse relatioship needs to be created */
+
+      if (dstEntityVersionId) {
+        /** @todo: ensure destination entity has version where entityVersionId === dstEntityVersionId */
+      }
 
       const { accountId: srcAccountId, entityId: srcEntityId } = source;
       const { accountId: dstAccountId, entityId: dstEntityId } = destination;
