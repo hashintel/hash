@@ -155,6 +155,11 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   useEffect(() => {
     const routeHash = router.asPath.split("#")[1];
 
+    // This code checks whether the DOM is done scrolling to the block.
+    // scrollTimerRef is reset every time the browser sends a "scroll" event,
+    // and if the DOM isn't scrolling in a 300ms duration, we clear the scroll interval
+    // and also remove the event listener. This is done so that we prevent an infinite scroll
+    // loop to the element.
     const scrollCheck = () => {
       if (scrollTimerRef.current) {
         clearTimeout(scrollTimerRef.current);
