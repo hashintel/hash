@@ -1,6 +1,12 @@
 import { JSONObject } from "@hashintel/block-protocol";
 import { merge } from "lodash";
-import { Account, Entity, EntityType, UnresolvedGQLEntityType, Link } from ".";
+import {
+  Account,
+  Entity,
+  EntityType,
+  UnresolvedGQLEntityType,
+  Link,
+} from ".";
 import { DBClient } from "../db";
 import {
   DBLinkedEntity,
@@ -333,6 +339,7 @@ class __Entity {
     const outgoingDBLinks = await client.getEntityOutgoingLinks({
       accountId: this.accountId,
       entityId: this.entityId,
+      entityVersionId: this.metadata.versioned ? this.entityVersionId : undefined,
     });
     return outgoingDBLinks.map((dbLink) => new Link(dbLink));
   };

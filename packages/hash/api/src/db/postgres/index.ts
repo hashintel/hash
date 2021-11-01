@@ -227,6 +227,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   getEntityOutgoingLinks(params: {
     accountId: string;
     entityId: string;
+    entityVersionId?: string;
   }): Promise<DBLink[]> {
     return this.query((adapter) => adapter.getEntityOutgoingLinks(params));
   }

@@ -385,6 +385,7 @@ export interface DBClient {
   getEntityOutgoingLinks(params: {
     accountId: string;
     entityId: string;
+    entityVersionId?: string;
   }): Promise<DBLink[]>;
 
   /** Create a verification code */

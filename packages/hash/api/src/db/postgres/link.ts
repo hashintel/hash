@@ -476,6 +476,7 @@ export const getEntityOutgoingLinks = async (
   params: {
     accountId: string;
     entityId: string;
+    entityVersionId?: string;
   },
 ) => {
   const rows = await conn.any(sql<DBLinkRow>`
@@ -485,8 +486,16 @@ export const getEntityOutgoingLinks = async (
       and links.link_id = outgoing_links.link_id
     )
     where
-      outgoing_links.source_account_id = ${params.accountId}
-      and outgoing_links.source_entity_id = ${params.entityId}
+    ${sql.join(
+      [
+        sql`outgoing_links.src_account_id = ${params.accountId}`,
+        sql`outgoing_links.src_entity_id = ${params.entityId}`,
+        params.entityVersionId !== undefined
+          ? sql`${params.entityVersionId} = ANY(links.src_entity_version_ids)`
+          : [],
+      ].flat(),
+      sql` and `,
+    )}
   `);
 
   return rows.map(mapDBLinkRowToDBLink);
@@ -556,10 +565,8 @@ export const getChildren = async (
   if (!(await getEntity(conn, params))) {
     throw new DbEntityNotFoundError(params);
   }
-  // @todo: could include this `filter` in the `where` clause of the query instead
-  const outgoing = (await getEntityOutgoingLinks(conn, params)).filter((link) =>
-    link.srcEntityVersionIds.has(params.entityVersionId),
-  );
+
+  const outgoing = await getEntityOutgoingLinks(conn, params);
 
   return Promise.all(
     outgoing.map(async (link) => {

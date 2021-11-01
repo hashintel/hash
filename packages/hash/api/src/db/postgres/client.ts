@@ -465,6 +465,7 @@ export class PostgresClient implements DBClient {
   async getEntityOutgoingLinks(params: {
     accountId: string;
     entityId: string;
+    entityVersionId?: string;
   }): Promise<DBLink[]> {
     return await getEntityOutgoingLinks(this.conn, params);
   }
