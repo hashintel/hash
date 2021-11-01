@@ -11,6 +11,7 @@ import {
 import {
   addEntityStoreAction,
   entityStoreFromProsemirror,
+  subscribeToEntityStore,
 } from "@hashintel/hash-shared/entityStorePlugin";
 import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 import { Schema } from "prosemirror-model";
@@ -50,6 +51,7 @@ export class ComponentView implements NodeView<Schema> {
   private readonly sourceName: string;
 
   private store: EntityStore;
+  private unsubscribe: Function;
 
   constructor(
     private node: ProsemirrorNode<Schema>,
@@ -84,25 +86,13 @@ export class ComponentView implements NodeView<Schema> {
     this.dom.appendChild(this.target);
 
     this.store = entityStoreFromProsemirror(view.state).store;
-
-    this.update(node);
-
-    const { tr } = view.state;
-
-    addEntityStoreAction(tr, {
-      type: "subscribe",
-      payload: this.listener,
-    });
-
-    view.dispatch(tr);
-  }
-
-  listener = (store: EntityStore) => {
-    if (this.node) {
+    this.unsubscribe = subscribeToEntityStore(this.view, (store) => {
       this.store = store;
       this.update(this.node);
-    }
-  };
+    });
+
+    this.update(this.node);
+  }
 
   update(node: any) {
     this.node = node;
@@ -148,15 +138,7 @@ export class ComponentView implements NodeView<Schema> {
   destroy() {
     this.dom.remove();
     this.renderPortal(null, this.target);
-    const { view } = this;
-    const { tr } = view.state;
-
-    addEntityStoreAction(tr, {
-      type: "unsubscribe",
-      payload: this.listener,
-    });
-
-    view.dispatch(tr);
+    this.unsubscribe();
   }
 
   // @todo type this

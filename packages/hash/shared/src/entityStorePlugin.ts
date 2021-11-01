@@ -1,6 +1,7 @@
 import { Draft, produce } from "immer";
 import { Schema } from "prosemirror-model";
 import { EditorState, Plugin, PluginKey, Transaction } from "prosemirror-state";
+import { EditorView } from "prosemirror-view";
 import { v4 as uuid } from "uuid";
 import { BlockEntity } from "./entity";
 import {
@@ -17,6 +18,7 @@ import {
   isEntityNode,
   nodeToEntityProperties,
 } from "./prosemirror";
+import { collect } from "./util";
 
 type EntityStorePluginStateListener = (store: EntityStore) => void;
 
@@ -55,6 +57,38 @@ export const addEntityStoreAction = (
   tr.setMeta(entityStorePluginKey, [...actions, action]);
 };
 
+const updateEntityStoreListeners = collect<
+  [
+    view: EditorView<Schema>,
+    listener: EntityStorePluginStateListener,
+    unsubscribe: boolean | undefined | void
+  ]
+>((updates) => {
+  const transactions = new Map<EditorView<Schema>, Transaction<Schema>>();
+
+  for (const [view, listener, unsubscribe] of updates) {
+    if (!transactions.has(view)) {
+      const { tr } = view.state;
+      tr.setMeta("addToHistory", false);
+      transactions.set(view, tr);
+    }
+
+    const tr = transactions.get(view)!;
+
+    addEntityStoreAction(tr, {
+      type: unsubscribe ? "unsubscribe" : "subscribe",
+      payload: listener,
+    });
+  }
+
+  for (const [view, transaction] of Array.from(transactions.entries())) {
+    view.dispatch(transaction);
+  }
+});
+
+/**
+ * @use subscribeToEntityStore if you need a live subscription
+ */
 export const entityStoreFromProsemirror = (state: EditorState<Schema>) => {
   const pluginState = entityStorePluginKey.getState(state);
 
@@ -64,6 +98,17 @@ export const entityStoreFromProsemirror = (state: EditorState<Schema>) => {
     );
   }
   return pluginState;
+};
+
+export const subscribeToEntityStore = (
+  view: EditorView<Schema>,
+  listener: EntityStorePluginStateListener
+) => {
+  updateEntityStoreListeners(view, listener);
+
+  return () => {
+    updateEntityStoreListeners(view, listener, true);
+  };
 };
 
 /**
@@ -234,8 +279,10 @@ export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
         initialState
       );
 
-      if (nextState.store !== initialState.store) {
-        nextState.listeners.forEach((listener) => listener(nextState.store));
+      if (nextState !== initialState) {
+        for (const listener of nextState.listeners) {
+          listener(nextState.store);
+        }
       }
 
       return nextState;
