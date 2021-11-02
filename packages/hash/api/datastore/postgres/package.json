@@ -2,7 +2,7 @@
   "name": "@hashintel/hash-postgres",
   "version": "0.1.0",
   "description": "Postgres migration script",
-  "repository": "github.com/hashintel/dev/packages/hash/backend/datastore/postgres",
+  "repository": "github.com/hashintel/dev/packages/hash/api/datastore/postgres",
   "license": "GPL-3.0",
   "type": "commonjs",
   "main": "migration.js",

@@ -59,7 +59,7 @@ psql -h localhost -p 5432 -U postgres -d postgres
 
 The password is "postgres".
 
-The API may report metrics in the StatsD format (see [backend/README](../packages/hash/backend/README.md) for details).
+The API may report metrics in the StatsD format (see [api/README](../packages/hash/api/README.md) for details).
 To enable a development StatsD server, instead of `yarn serve:hash-backend`,
 run:
 

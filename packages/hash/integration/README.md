@@ -8,8 +8,8 @@ Mock data may be inserted by running:
 yarn mock-data
 ```
 
-Ensure that the API and database are running (see the backend
-[README](../backend/README.md) for details).
+Ensure that the API and database are running (see the API [README](../api/README.md) for
+details).
 
 ## Integration tests
 

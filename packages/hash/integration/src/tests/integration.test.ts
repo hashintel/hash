@@ -4,10 +4,10 @@ import {
   OrgEmailInvitation,
   User,
   VerificationCode,
-} from "@hashintel/hash-backend/src/model";
-import { PostgresAdapter } from "@hashintel/hash-backend/src/db";
-import EmailTransporter from "@hashintel/hash-backend/src/email/transporter";
-import TestEmailTransporter from "@hashintel/hash-backend/src/email/transporter/testEmailTransporter";
+} from "@hashintel/hash-api/src/model";
+import { PostgresAdapter } from "@hashintel/hash-api/src/db";
+import EmailTransporter from "@hashintel/hash-api/src/email/transporter";
+import TestEmailTransporter from "@hashintel/hash-api/src/email/transporter/testEmailTransporter";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
 import { ClientError } from "graphql-request";

@@ -4,11 +4,11 @@ frontend:
   - packages/hash/frontend/**/*
   - packages/hash/frontend/**/.*
 
-backend:
-  - packages/hash/backend/*
-  - packages/hash/backend/.*
-  - packages/hash/backend/**/*
-  - packages/hash/backend/**/.*
+api:
+  - packages/hash/api/*
+  - packages/hash/api/.*
+  - packages/hash/api/**/*
+  - packages/hash/api/**/.*
 
 blocks:
   - packages/hash/blocks/*

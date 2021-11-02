@@ -1,5 +1,5 @@
 overwrite: true
-schema: ../backend/src/graphql/typeDefs/*.ts
+schema: ../api/src/graphql/typeDefs/*.ts
 generates:
   ./src/graphql/fragmentTypes.gen.json:
     plugins:

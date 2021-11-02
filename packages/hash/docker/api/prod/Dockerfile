@@ -2,7 +2,7 @@ FROM node:16 AS builder
 
 WORKDIR /app
 
-COPY packages/hash/backend packages/hash/backend
+COPY packages/hash/api packages/hash/api
 COPY packages/hash/shared packages/hash/shared
 COPY packages/hash/block-protocol packages/hash/block-protocol
 COPY packages/hash/frontend packages/hash/frontend
@@ -15,9 +15,9 @@ COPY yarn.lock .
 RUN --mount=type=cache,target=/yarn-cache \
   --mount=type=cache,target=/var/cache/apt \
   --mount=type=cache,target=/var/lib/apt \
-  yarn ws:hash-backend install --cache-folder /yarn-cache \
-  && yarn ws:hash-backend codegen && yarn ws:hash-frontend codegen && yarn ws:hash-shared codegen \
-  && yarn ws:hash-backend build \
+  yarn ws:hash-api install --cache-folder /yarn-cache \
+  && yarn ws:hash-api codegen && yarn ws:hash-frontend codegen && yarn ws:hash-shared codegen \
+  && yarn ws:hash-api build \
   && yarn install --production --ignore-scripts --prefer-offline --cache-folder /yarn-cache # Remove devDependencies
 
 #########################################################################################
@@ -35,4 +35,4 @@ RUN groupadd -g 999 appuser \
 
 USER appuser
 
-ENTRYPOINT ["node", "packages/hash/backend/dist/src/index.js"]
+ENTRYPOINT ["node", "packages/hash/api/dist/src/index.js"]
