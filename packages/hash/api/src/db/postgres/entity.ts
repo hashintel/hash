@@ -1,6 +1,6 @@
 import { sql, NotFoundError } from "slonik";
 
-import { Entity, EntityType, EntityVersion } from "../adapter";
+import { DBLink, Entity, EntityType, EntityVersion } from "../adapter";
 import { Connection } from "./types";
 import { EntityTypePGRow, mapPGRowToEntityType } from "./entitytypes";
 import { Visibility } from "../../graphql/apiTypes.gen";
@@ -604,12 +604,13 @@ export const acquireEntityLock = async (
  * @throws `DbInvalidLinksError` if the entity's new properties link to an entity which
  *          does not exist.
  */
-const updateVersionedEntity = async (
+export const updateVersionedEntity = async (
   conn: Connection,
   params: {
     entity: Entity;
     properties: any;
     updatedByAccountId: string;
+    omittedOutgoingLinks?: { accountId: string; linkId: string }[];
   },
 ) => {
   const { entity, properties } = params;
@@ -642,6 +643,11 @@ const updateVersionedEntity = async (
     deferred
   `);
 
+  const isDbLinkInNextVersion = (link: DBLink): boolean =>
+    params.omittedOutgoingLinks?.find(
+      ({ linkId }) => link.linkId === linkId,
+    ) === undefined;
+
   await Promise.all([
     insertEntityVersion(conn, newEntityVersion),
 
@@ -651,14 +657,16 @@ const updateVersionedEntity = async (
       entityVersionId: entity.entityVersionId,
     }).then((outgoingLinks) =>
       Promise.all(
-        outgoingLinks.map(({ accountId, linkId }) =>
-          addSrcEntityVersionIdToLink(conn, {
-            accountId,
-            linkId,
-            newSrcEntityVersionId: newEntityVersion.entityVersionId,
-          })
-        )
-      )
+        outgoingLinks
+          .filter(isDbLinkInNextVersion)
+          .map(({ accountId, linkId }) =>
+            addSrcEntityVersionIdToLink(conn, {
+              accountId,
+              linkId,
+              newSrcEntityVersionId: newEntityVersion.entityVersionId,
+            }),
+          ),
+      ),
     ),
 
     // Make a reference to this entity's account in the `entity_account` lookup table

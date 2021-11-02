@@ -3,8 +3,16 @@ import { uniq } from "lodash";
 
 import { Connection } from "./types";
 import { DBLink, Entity } from "../adapter";
-import { getEntity, getEntityLatestVersion } from "./entity";
-import { DbEntityNotFoundError } from "..";
+import {
+  getEntity,
+  acquireEntityLock,
+  getEntityLatestVersion,
+  updateVersionedEntity,
+} from "./entity";
+import { DbEntityNotFoundError, DbLinkNotFoundError } from "..";
+// import { gatherLinks } from "./util";
+// import { getEntityAccountIdMany } from "./account";
+// import { DbInvalidLinksError } from "../errors";
 
 // const ZERO_UUID = "00000000-0000-0000-0000-000000000000";
 
@@ -414,18 +422,6 @@ export const insertLink = async (
   `);
 };
 
-export const deleteLink = async (
-  conn: Connection,
-  params: { accountId: string; linkId: string },
-): Promise<void> => {
-  /** @todo: update postgres schema to cascade delete */
-  await conn.query(sql`
-    delete from outgoing_links where link_account_id = ${params.accountId} link_id = ${params.linkId};
-    delete from incoming_links where link_account_id = ${params.accountId} link_id = ${params.linkId};
-    delete from links where account_id = ${params.accountId} and link_id = ${params.linkId};
-  `);
-};
-
 type DBLinkRow = {
   account_id: string;
   link_id: string;
@@ -471,13 +467,61 @@ export const getLink = async (
   return row ? mapDBLinkRowToDBLink(row) : null;
 };
 
+const deleteNonVersionedLink = async (
+  conn: Connection,
+  params: { accountId: string; linkId: string },
+): Promise<void> => {
+  /** @todo: update postgres schema to cascade delete */
+  await conn.query(sql`
+    delete from outgoing_links where link_account_id = ${params.accountId} link_id = ${params.linkId};
+    delete from incoming_links where link_account_id = ${params.accountId} link_id = ${params.linkId};
+    delete from links where account_id = ${params.accountId} and link_id = ${params.linkId};
+  `);
+};
+
+export const deleteLink = async (
+  conn: Connection,
+  params: { accountId: string; linkId: string },
+): Promise<void> => {
+  const dbLink = await getLink(conn, params);
+
+  if (!dbLink) {
+    throw new DbLinkNotFoundError(params);
+  }
+
+  const { srcAccountId, srcEntityId } = dbLink;
+
+  await acquireEntityLock(conn, { entityId: srcEntityId });
+
+  const dbSourceEntity = await getEntityLatestVersion(conn, {
+    accountId: srcAccountId,
+    entityId: srcEntityId,
+  });
+
+  if (!dbSourceEntity) {
+    throw new DbEntityNotFoundError({
+      accountId: srcAccountId,
+      entityId: srcEntityId,
+    });
+  }
+
+  return dbSourceEntity.metadata.versioned
+    ? await updateVersionedEntity(conn, {
+        entity: dbSourceEntity,
+        /** @todo: re-implement method to not require updated `properties` */
+        properties: dbSourceEntity.properties,
+        omittedOutgoingLinks: [{ ...params }],
+      }).then(() => undefined)
+    : await deleteNonVersionedLink(conn, params);
+};
+
 export const addSrcEntityVersionIdToLink = async (
   conn: Connection,
   params: {
     accountId: string;
     linkId: string;
     newSrcEntityVersionId: string;
-  }
+  },
 ) => {
   await conn.one(
     sql`
@@ -487,7 +531,7 @@ export const addSrcEntityVersionIdToLink = async (
         account_id = ${params.accountId}
         and link_id = ${params.linkId}
         and not ${params.newSrcEntityVersionId} = ANY(links.src_entity_version_ids)
-    `
+    `,
   );
 };
 

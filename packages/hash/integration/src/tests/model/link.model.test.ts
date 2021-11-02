@@ -149,7 +149,7 @@ describe("Link model class ", () => {
     const intialSourceEntityId = sourceEntity.entityVersionId;
 
     const link = await Link.create(db)({
-      path: "test",
+      path: "$.linkName",
       source: sourceEntity,
       destination: destinationEntity,
     });
@@ -159,7 +159,7 @@ describe("Link model class ", () => {
     expect(sourceEntity.entityVersionId).toBe(intialSourceEntityId);
   });
 
-  it("can create outgoing link on versioned source entity", async () => {
+  it("can create and delete outgoing link on versioned source entity", async () => {
     const accountId = existingUser.accountId;
     const createdById = existingUser.entityId;
 
@@ -180,17 +180,23 @@ describe("Link model class ", () => {
       }),
     ]);
 
-    const entityVersionIds = [versionedSourceEntity.entityVersionId];
+    const entityVersionIds: string[] = [versionedSourceEntity.entityVersionId];
 
     const link = await Link.create(db)({
-      path: "test",
+      path: "$.linkName",
       source: versionedSourceEntity,
       destination: destinationEntity,
     });
 
+    expect(entityVersionIds[entityVersionIds.length - 1]).not.toBe(versionedSourceEntity.entityVersionId);
+
     entityVersionIds.push(versionedSourceEntity.entityVersionId);
 
-    expect(entityVersionIds[0]).not.toBe(entityVersionIds[1]);
+    await link.delete(db);
+
+    expect(entityVersionIds[entityVersionIds.length - 1]).not.toBe(versionedSourceEntity.entityVersionId);
+
+    entityVersionIds.push(versionedSourceEntity.entityVersionId);
 
     // The first version of the entity should have 0 outgoing links
 
@@ -218,6 +224,19 @@ describe("Link model class ", () => {
 
     expect(e2OutgoingLinks.length).toBe(1);
     expect(e2OutgoingLinks[0].linkId).toBe(link.linkId);
+
+    // The third version of the entity should have 0 outgoing links
+
+    const e3 = (await Entity.getEntity(db)({
+      accountId,
+      entityVersionId: entityVersionIds[2],
+    }))!;
+
+    expect(e3).not.toBeNull();
+
+    const e3OutgoingLinks = await e3.getOutgoingLinks(db);
+
+    expect(e3OutgoingLinks.length).toBe(0);
   });
 });
 

@@ -6,6 +6,7 @@ import {
   EntityType,
   UnresolvedGQLEntityType,
   Link,
+  CreateLinkArgs,
 } from ".";
 import { DBClient } from "../db";
 import {
@@ -335,11 +336,23 @@ class __Entity {
     return this;
   }
 
+  createOutgoingLink =
+    (client: DBClient) => async (args: Omit<CreateLinkArgs, "source">) => {
+      const link = await Link.create(client)({
+        ...args,
+        source: this,
+      });
+
+      return link;
+    };
+
   getOutgoingLinks = async (client: DBClient): Promise<Link[]> => {
     const outgoingDBLinks = await client.getEntityOutgoingLinks({
       accountId: this.accountId,
       entityId: this.entityId,
-      entityVersionId: this.metadata.versioned ? this.entityVersionId : undefined,
+      entityVersionId: this.metadata.versioned
+        ? this.entityVersionId
+        : undefined,
     });
     return outgoingDBLinks.map((dbLink) => new Link(dbLink));
   };

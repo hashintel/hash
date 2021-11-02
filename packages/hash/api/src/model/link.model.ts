@@ -142,6 +142,17 @@ class __Link {
       return dbLink ? new Link({ ...dbLink }) : null;
     };
 
+  async delete(client: DBClient) {
+    await client.deleteLink({
+      accountId: this.accountId,
+      linkId: this.linkId,
+    });
+
+    if (this.source) {
+      await this.source.refetchLatestVersion(client);
+    }
+  }
+
   private fetchSource = async (client: DBClient) => {
     const source = await Entity.getEntityLatestVersion(client, {
       accountId: this.accountId,
