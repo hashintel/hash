@@ -27,11 +27,6 @@ module.exports = {
       "Access-Control-Allow-Headers":
         "X-Requested-With, content-type, Authorization",
     },
-    // Context: https://app.asana.com/0/1200968466707513/1201285435524301/f
-    // static: {
-    //   directory: path.join(__dirname, "public"),
-    //   publicPath: "/public",
-    // },
   },
   resolve: {
     extensions: [

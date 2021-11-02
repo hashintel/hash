@@ -27,10 +27,6 @@ module.exports = {
       "Access-Control-Allow-Headers":
         "X-Requested-With, content-type, Authorization",
     },
-    static: {
-      directory: path.join(__dirname, "public"),
-      publicPath: "/public",
-    },
   },
   resolve: {
     extensions: [
