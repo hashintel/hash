@@ -2,7 +2,7 @@ use crate::proto::SimulationShortID;
 use serde_json::Value;
 
 use crate::config::PersistenceConfig;
-use crate::error::Result;
+use crate::output::error::Result;
 use crate::output::OutputPersistenceResultRepr;
 use crate::simulation::{
     packages::output::packages::OutputPackagesSimConfig, step_result::SimulationStepResult,

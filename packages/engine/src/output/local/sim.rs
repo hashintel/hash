@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use crate::proto::{ExperimentID, SimulationShortID};
 
-use crate::error::Result;
+use crate::output::error::Result;
 use crate::{
     output::{buffer::Buffers, SimulationOutputPersistenceRepr},
     simulation::{packages::output::packages::Output, step_result::SimulationStepResult},
@@ -26,6 +26,7 @@ impl SimulationOutputPersistenceRepr for LocalSimulationOutputPersistence {
     async fn add_step_output(&mut self, output: SimulationStepResult) -> Result<()> {
         output.package_outputs.into_iter().try_for_each(|output| {
             match output {
+                // TODO OS: Fix - Output destructure needs to work with the enum_dispatch
                 Output::AnalysisOutput(output) => {
                     self.buffers.analysis.add(output)?;
                 }

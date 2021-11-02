@@ -1,5 +1,6 @@
-use crate::simulation::{Error, Result};
 use std::path::PathBuf;
+
+use crate::output::error::{Error, Result};
 
 use super::RELATIVE_PARTS_FOLDER;
 

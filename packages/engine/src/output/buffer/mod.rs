@@ -1,22 +1,23 @@
-mod part;
-mod util;
-
-const RELATIVE_PARTS_FOLDER: &str = "./parts";
-
 use std::{collections::HashMap, sync::Arc};
 
-use crate::proto::SimulationShortID;
-use crate::simulation::packages::output;
+use serde::Serialize;
+
 pub use part::OutputPartBuffer;
 pub use util::cleanup_experiment;
 
+use crate::output::error::{Error, Result};
 use crate::proto::ExperimentID;
+use crate::proto::SimulationShortID;
+use crate::simulation::packages::output;
 use crate::simulation::packages::output::packages::{
     analysis::{AnalysisOutput, AnalysisSingleOutput},
     OutputPackagesSimConfig,
 };
-use crate::simulation::{Error, Result};
-use serde::Serialize;
+
+mod part;
+mod util;
+
+const RELATIVE_PARTS_FOLDER: &str = "./parts";
 
 #[derive(Default)]
 pub struct Buffers {

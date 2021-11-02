@@ -5,7 +5,7 @@ mod sim;
 use std::path::PathBuf;
 
 use crate::config::PersistenceConfig;
-use crate::error::Result;
+use crate::output::error::Result;
 use crate::proto::{ExperimentID, SimulationShortID};
 use crate::simulation::packages::output::packages::OutputPackagesSimConfig;
 

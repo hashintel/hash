@@ -1,14 +1,15 @@
+use serde::Serialize;
+
+use crate::proto::SimulationShortID;
+use crate::{config::PersistenceConfig, simulation::step_output::SimulationStepOutput};
+
 pub mod buffer;
 
+mod error;
 pub mod local;
 pub mod none;
 
-use crate::proto::SimulationShortID;
-use serde::Serialize;
-
-use crate::{
-    config::PersistenceConfig, error::Result, simulation::step_output::SimulationStepOutput,
-};
+pub use error::{Error, Result};
 
 pub trait OutputPersistenceCreatorRepr {
     type SimulationOutputPersistence: SimulationOutputPersistenceRepr;
@@ -16,16 +17,16 @@ pub trait OutputPersistenceCreatorRepr {
         &self,
         sim_id: SimulationShortID,
         persistence_config: &PersistenceConfig,
-    ) -> Result<Self::SimulationOutputPersistence>;
+    ) -> error::Result<Self::SimulationOutputPersistence>;
 }
 
 #[async_trait::async_trait]
 pub trait SimulationOutputPersistenceRepr {
     type OutputPersistenceResult: OutputPersistenceResultRepr;
-    async fn add_step_output(&mut self, output: SimulationStepOutput) -> Result<()>;
-    async fn finalize(self) -> Result<Self::OutputPersistenceResult>;
+    async fn add_step_output(&mut self, output: SimulationStepOutput) -> error::Result<()>;
+    async fn finalize(self) -> error::Result<Self::OutputPersistenceResult>;
 }
 
 pub trait OutputPersistenceResultRepr: Serialize {
-    fn as_value(self) -> Result<(&'static str, serde_json::Value)>;
+    fn as_value(self) -> error::Result<(&'static str, serde_json::Value)>;
 }

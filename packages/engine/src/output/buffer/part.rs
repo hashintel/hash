@@ -1,8 +1,10 @@
+use std::path::PathBuf;
+
+use serde::Serialize;
+
+use crate::output::error::{Error, Result};
 use crate::proto::ExperimentID;
 use crate::proto::SimulationShortID;
-use crate::simulation::{Error, Result};
-use serde::Serialize;
-use std::path::PathBuf;
 
 use super::RELATIVE_PARTS_FOLDER;
 
@@ -58,8 +60,10 @@ impl OutputPartBuffer {
     pub fn persist_current_on_disk(&mut self) -> Result<()> {
         let mut next_i = self.parts.len();
 
-        let current =
-            std::mem::replace(&mut self.current, String::with_capacity(IN_MEMORY_SIZE * 2));
+        let current = std::mem::replace(
+            &mut self.current,
+            Vec::from(String::with_capacity(IN_MEMORY_SIZE * 2)),
+        );
 
         let part_count = current.len() / MAX_BYTE_SIZE; // Number of parts we can make
 
