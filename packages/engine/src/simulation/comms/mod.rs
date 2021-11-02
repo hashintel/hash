@@ -92,7 +92,7 @@ impl Comms {
 // Datastore synchronization methods
 impl Comms {
     // TODO OS - COMPILE BLOCK - `await` is only allowed inside `async` functions and blocks
-    pub fn state_sync(&self, state: &State) -> Result<()> {
+    pub async fn state_sync(&self, state: &State) -> Result<()> {
         // Synchronize the state batches
         let agents = state.agent_pool().cloned_batch_pool();
         let agent_messages = state.message_pool().cloned_batch_pool();
@@ -106,7 +106,7 @@ impl Comms {
         Ok(())
     }
 
-    pub fn state_snapshot_sync(&self, state: &StateSnapshot) -> Result<()> {
+    pub async fn state_snapshot_sync(&self, state: &StateSnapshot) -> Result<()> {
         // Synchronize the state snapshot batches
         let agents = state.agent_pool().cloned_batch_pool();
         let agent_messages = state.message_pool().cloned_batch_pool();
@@ -120,7 +120,7 @@ impl Comms {
         Ok(())
     }
 
-    pub fn context_batch_sync(&self, context: &Context) -> Result<()> {
+    pub async fn context_batch_sync(&self, context: &Context) -> Result<()> {
         // Synchronize the context batch
         let batch = context.batch();
         let sync_msg = ContextBatchSync::new(batch);

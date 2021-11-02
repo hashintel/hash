@@ -86,6 +86,6 @@ fn new_task_handle<P: SimulationOutputPersistenceRepr>(
     );
 
     Ok(tokio::task::spawn_blocking(move || {
-        tokio::runtime::Handle::current().block_on(task)
-    }))
+        tokio::runtime::Handle::current().block_on(task)?
+    })?)
 }
