@@ -12,8 +12,8 @@ use crate::datastore::{
     schema::{FieldKey, FieldTypeVariant, PresetFieldType},
     UUID_V4_LEN,
 };
-use crate::simulation::packages::creator::PREVIOUS_INDEX_COLUMN_NAME;
 use crate::hash_types::state::{AgentStateField, BUILTIN_FIELDS};
+use crate::simulation::packages::creator::PREVIOUS_INDEX_COLUMN_NAME;
 use arrow::array::{self, Array, ArrayDataBuilder, ArrayRef, PrimitiveBuilder};
 use arrow::buffer::MutableBuffer;
 use arrow::datatypes::{

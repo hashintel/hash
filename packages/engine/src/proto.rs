@@ -259,7 +259,7 @@ pub struct ExtendedExperimentRun {
 }
 
 #[async_trait]
-pub trait ExperimentRunRepr: Clone + Serialize {
+pub trait ExperimentRunRepr: Clone + Serialize + for<'a> Deserialize<'a> {
     type PackageConfig;
     fn base(&self) -> &ExperimentRunBase;
     fn base_mut(&mut self) -> &mut ExperimentRunBase;

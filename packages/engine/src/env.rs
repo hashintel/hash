@@ -14,6 +14,12 @@ lazy_static! {
 pub enum Error {
     #[error("Env error: {0}")]
     Unique(String),
+
+    #[error("Nano error: {0}")]
+    Nano(#[from] nano::Error),
+
+    #[error("Unexpected message to the engine, expected an init message")]
+    UnexpectedEngineMsgExpectedInit,
 }
 
 impl From<&str> for Error {
@@ -68,9 +74,9 @@ pub struct Environment<E: ExperimentRunRepr> {
     pub dyn_payloads: serde_json::Map<String, serde_json::Value>,
 }
 
-pub async fn env<'de, E>(args: &Args) -> Result<Environment<E>>
+pub async fn env<E>(args: &Args) -> Result<Environment<E>>
 where
-    E: ExperimentRunRepr + Deserialize<'de>,
+    E: ExperimentRunRepr + for<'de> Deserialize<'de>,
 {
     log::info!("Persist data to S3: {}", args.persist);
     let mut orch_client = OrchClient::new(&args.orchestrator_url, &args.experiment_id)?;
@@ -104,11 +110,12 @@ where
 async fn recv_init_msg<E: ExperimentRunRepr>(
     orch_listener: &mut nano::Server,
 ) -> Result<InitMessage<E>> {
-    tokio::time::timeout(*INIT_MSG_RECV_TIMEOUT, orch_listener.recv::<EngineMsg<E>>())
+    let msg = tokio::time::timeout(*INIT_MSG_RECV_TIMEOUT, orch_listener.recv::<EngineMsg<E>>())
         .await
-        .map_err(|_| Error::from("receive init message timeout"))?
-        .and_then(|m| match m {
-            EngineMsg::Init(init) => Ok(init),
-            _ => Err(Error::UnexpectedEngineMsg),
-        })
+        .map_err(|_| Error::from("receive init message timeout"))??;
+
+    return match msg {
+        EngineMsg::Init(init) => Ok(init),
+        _ => Err(Error::UnexpectedEngineMsgExpectedInit),
+    };
 }

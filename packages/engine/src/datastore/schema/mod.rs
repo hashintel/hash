@@ -9,3 +9,5 @@ pub use field_spec::{
     FieldSpecMap, FieldType, FieldTypeVariant, PresetFieldType, PREVIOUS_INDEX_COLUMN_INDEX,
     PREVIOUS_INDEX_COLUMN_NAME,
 };
+
+pub(in crate::datastore) use field_spec::RootFieldSpec;

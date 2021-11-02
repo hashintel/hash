@@ -1,16 +1,16 @@
+use std::convert::TryInto;
 use std::sync::Arc;
 
-use hash_types::state::{Agent, AgentStateField};
+use crate::hash_types::state::{Agent, AgentStateField};
 use rand::{prelude::StdRng, Rng, SeedableRng};
-
-use crate::{
-    datastore::prelude::AgentSchema,
-    state::{Key, KeySet, KeyType, KeyTypeVariant},
-};
 
 use serde::{Deserialize, Serialize};
 
 use crate::datastore::error::Error;
+use crate::datastore::schema::state::AgentSchema;
+use crate::datastore::schema::{
+    FieldScope, FieldSource, FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant, RootFieldSpec,
+};
 
 lazy_static! {
     pub static ref JSON_KEYS: serde_json::Value = serde_json::json!({
@@ -100,7 +100,6 @@ fn make_dummy_agent(seed: u64) -> Result<Agent, Error> {
     // manually created agents only have f64
     agent.set("age", Some(rng.gen::<f64>()))?;
     agent.set(AgentStateField::AgentName.name(), rand_string(seed))?;
-    agent.set("behaviors", vec![rand_string(seed) + ".py"])?;
 
     let rand_vec1 = (0..rng.gen_range(0..14))
         .map(|_| rng.gen_range(-10_f64..13.5))
@@ -121,18 +120,25 @@ pub fn gen_schema_and_test_agents(
     num_agents: usize,
     seed: u64,
 ) -> Result<(Arc<AgentSchema>, Vec<Agent>), Error> {
-    let mut keys = KeySet::required_base()?;
-    keys.add(Key::new_mergeable(
-        "age",
-        KeyType::new(KeyTypeVariant::Number, false),
-    ))?;
-    keys.add_built_in(&AgentStateField::AgentId)?;
-    keys.add_built_in(&AgentStateField::AgentName)?;
-    keys.add_built_in(&AgentStateField::Behaviors)?;
+    let mut fields = FieldSpecMap::default();
+    fields.add(RootFieldSpec {
+        inner: FieldSpec {
+            name: "age".into(),
+            field_type: FieldType {
+                variant: FieldTypeVariant::Number,
+                nullable: false,
+            },
+        },
+        scope: FieldScope::Agent,
+        source: FieldSource::Engine,
+    });
 
-    keys.union(KeySet::from_short_json(JSON_KEYS.clone())?)?;
+    fields.add(AgentStateField::AgentId.try_into()?)?;
+    fields.add(AgentStateField::AgentName.try_into()?)?;
 
-    let schema = Arc::new(AgentSchema::from_key_set(keys.clone())?);
+    fields.union(FieldSpecMap::from_short_json(JSON_KEYS.clone())?)?;
+
+    let schema = Arc::new(AgentSchema::from_field_spec_map(fields)?);
 
     let mut agents = Vec::with_capacity(num_agents);
     for i in 0..num_agents {

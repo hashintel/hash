@@ -257,6 +257,21 @@ impl FieldSpecMap {
     }
 }
 
+impl TryInto<RootFieldSpec> for AgentStateField {
+    type Error = Error;
+
+    fn try_into(self) -> Result<RootFieldSpec> {
+        Ok(RootFieldSpec {
+            inner: FieldSpec {
+                name: self.name().into(),
+                field_type: self.try_into()?,
+            },
+            scope: FieldScope::Agent,
+            source: FieldSource::Engine,
+        })
+    }
+}
+
 // TODO remove dependency on legacy `AgentStateField` (contains references to package fields)
 impl TryInto<FieldType> for AgentStateField {
     type Error = Error;
