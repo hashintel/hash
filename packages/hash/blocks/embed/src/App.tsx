@@ -70,7 +70,10 @@ const reducer = (state: AppState, action: Actions): AppState => {
       };
 
     case "RESET_STATE":
-      return getInitialState();
+      return {
+        ...getInitialState(),
+        embedUrl: state.embedUrl,
+      };
 
     default:
       return state;
@@ -267,7 +270,8 @@ export const App: BlockComponent<AppProps> = ({
           bottomText={bottomText}
           placeholderText={placeholderText}
           onSubmit={handleGetEmbed}
-          onChangeEmbedUrl={(url) =>
+          embedUrl={embedUrl}
+          onChangeEmbedUrl={(url: string) =>
             dispatch({ type: "UPDATE_STATE", payload: { embedUrl: url } })
           }
         />
