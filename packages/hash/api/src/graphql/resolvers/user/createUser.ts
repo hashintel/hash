@@ -42,7 +42,6 @@ export const createUser: Resolver<
       (await User.createUser(client, {
         emails: [{ address: email, primary: true, verified: false }],
         infoProvidedAtSignup: {},
-        memberOf: [],
       }));
 
     /** @todo: rate limit creation of email verification codes */

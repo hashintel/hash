@@ -168,9 +168,9 @@ export const getImpliedEntityHistory = async (
             entityId: link.srcEntityId,
             entityVersionId: link.dstEntityVersionId,
             validForSrcEntityVersionIds: link.srcEntityVersionIds,
-          })
-        )
-      )
+          }),
+        ),
+      ),
     );
     for (const [i, links] of entityLinks.entries()) {
       graph.set(slice[i].entityId, links);

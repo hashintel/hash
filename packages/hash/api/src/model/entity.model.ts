@@ -336,17 +336,19 @@ class __Entity {
     return this;
   }
 
-  createOutgoingLink =
-    (client: DBClient) => async (args: Omit<CreateLinkArgs, "source">) => {
-      const link = await Link.create(client)({
-        ...args,
-        source: this,
-      });
+  async createOutgoingLink(
+    client: DBClient,
+    params: Omit<CreateLinkArgs, "source">,
+  ) {
+    const link = await Link.create(client, {
+      ...params,
+      source: this,
+    });
 
-      return link;
-    };
+    return link;
+  }
 
-  getOutgoingLinks = async (client: DBClient): Promise<Link[]> => {
+  async getOutgoingLinks(client: DBClient) {
     const outgoingDBLinks = await client.getEntityOutgoingLinks({
       accountId: this.accountId,
       entityId: this.entityId,
@@ -355,7 +357,7 @@ class __Entity {
         : undefined,
     });
     return outgoingDBLinks.map((dbLink) => new Link(dbLink));
-  };
+  }
 
   toGQLEntity(): Omit<UnresolvedGQLEntity, "properties"> {
     return {

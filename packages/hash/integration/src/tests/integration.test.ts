@@ -53,7 +53,6 @@ const createNewBobWithOrg = async () => {
         verified: true,
       },
     ],
-    memberOf: [],
     infoProvidedAtSignup: { usingHow: WayToUseHash.WithATeam },
   });
 
@@ -64,7 +63,6 @@ const createNewBobWithOrg = async () => {
     properties: {
       shortname: `${bobUser.properties.shortname}-org`,
       name: `${bobUser.properties.preferredName}'s Org`,
-      memberships: [],
     },
   });
 
@@ -98,7 +96,6 @@ beforeAll(async () => {
     shortname: "test-user",
     preferredName: "Alice",
     emails: [{ address: "alice@hash.test", primary: true, verified: true }],
-    memberOf: [],
     infoProvidedAtSignup: { usingHow: WayToUseHash.ByThemselves },
   });
 
@@ -107,7 +104,6 @@ beforeAll(async () => {
     properties: {
       shortname: "bigco",
       name: "Big Company",
-      memberships: [],
     },
   });
 
@@ -292,6 +288,7 @@ describe("logged in user ", () => {
     expect(gqlOrgProperties.invitationLink?.data.entityId).toEqual(
       invitationLink.entityId,
     );
+
     expect(
       gqlOrgProperties.invitationLink?.data.properties.accessToken,
     ).toEqual(invitationLink.properties.accessToken);
@@ -424,12 +421,7 @@ describe("logged in user ", () => {
 
     expect(gqlUser.entityId).toEqual(existingUser.entityId);
 
-    const gqlMemberOf = gqlUser.properties.memberOf.find(
-      ({ data }) => data.properties.org.data.entityId === bobOrg.entityId,
-    )!;
-
-    expect(gqlMemberOf).not.toBeUndefined();
-    expect(gqlMemberOf.data.properties.responsibility).toEqual(responsibility);
+    expect(await existingUser.isMemberOfOrg(db, bobOrg.entityId)).toBe(true);
 
     const { emails } = gqlUser.properties;
 
@@ -459,12 +451,7 @@ describe("logged in user ", () => {
 
     expect(gqlUser.entityId).toEqual(existingUser.entityId);
 
-    const gqlMemberOf = gqlUser.properties.memberOf.find(
-      ({ data }) => data.properties.org.data.entityId === bobOrg.entityId,
-    )!;
-
-    expect(gqlMemberOf).not.toBeUndefined();
-    expect(gqlMemberOf.data.properties.responsibility).toEqual(responsibility);
+    expect(await existingUser.isMemberOfOrg(db, bobOrg.entityId)).toBe(true);
   });
 
   describe("can create and update pages", () => {

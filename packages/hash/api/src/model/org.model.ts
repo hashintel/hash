@@ -107,24 +107,28 @@ class __Org extends Account {
   }
 
   async getOrgMemberships(client: DBClient): Promise<OrgMembership[]> {
+    const outgoingLinks = await this.getOutgoingLinks(client);
+
     return await Promise.all(
-      this.properties.memberships.map(async ({ __linkedData }) => {
-        const { entityId } = __linkedData;
-        const accountId = await client.getEntityAccountId({ entityId });
-
-        const orgMembership = await OrgMembership.getOrgMembershipById(client, {
-          accountId,
-          entityId,
-        });
-
-        if (!orgMembership) {
-          throw new Error(
-            `Org with entityId ${this.entityId} links to membership with entityId ${entityId} that cannot be found`,
+      outgoingLinks
+        .filter(({ path }) => path[0] === "membership")
+        .map(async ({ dstAccountId, dstEntityId }) => {
+          const orgMembership = await OrgMembership.getOrgMembershipById(
+            client,
+            {
+              accountId: dstAccountId,
+              entityId: dstEntityId,
+            },
           );
-        }
 
-        return orgMembership;
-      }),
+          if (!orgMembership) {
+            throw new Error(
+              `Org with entityId ${this.entityId} links to membership with entityId ${dstEntityId} that cannot be found`,
+            );
+          }
+
+          return orgMembership;
+        }),
     );
   }
 

@@ -5,6 +5,7 @@ import {
   Org,
   UpdatePropertiesPayload,
   Entity,
+  Link,
 } from ".";
 import { DBClient } from "../db";
 import { DBOrgMembershipProperties, EntityType } from "../db/adapter";
@@ -53,8 +54,6 @@ class __OrgMembership extends Entity {
     const id = genId();
 
     const properties: DBOrgMembershipProperties = {
-      org: org.convertToDBLink(),
-      user: user.convertToDBLink(),
       responsibility,
     };
 
@@ -68,6 +67,17 @@ class __OrgMembership extends Entity {
     });
 
     const orgMembership = new OrgMembership(entity);
+
+    await Promise.all([
+      orgMembership.createOutgoingLink(client, {
+        stringifiedPath: Link.stringifyPath(["user"]),
+        destination: user,
+      }),
+      orgMembership.createOutgoingLink(client, {
+        stringifiedPath: Link.stringifyPath(["org"]),
+        destination: org,
+      }),
+    ]);
 
     return orgMembership;
   }
@@ -83,15 +93,23 @@ class __OrgMembership extends Entity {
   }
 
   async getUser(client: DBClient): Promise<User> {
-    const { entityId } = this.properties.user.__linkedData;
+    const outgoingLinks = await this.getOutgoingLinks(client);
+
+    const userLink = outgoingLinks.find(({ path }) => path[0] === "user");
+
+    if (!userLink) {
+      throw new Error("");
+    }
+
+    const { dstEntityId } = userLink;
 
     const user = await User.getUserById(client, {
-      entityId,
+      entityId: dstEntityId,
     });
 
     if (!user) {
       throw new Error(
-        `OrgMembership with entityId ${this.entityId} links to user with entityId ${entityId} that cannot be found`,
+        `OrgMembership with entityId ${this.entityId} links to user with entityId ${dstEntityId} that cannot be found`,
       );
     }
 
@@ -99,15 +117,23 @@ class __OrgMembership extends Entity {
   }
 
   async getOrg(client: DBClient): Promise<Org> {
-    const { entityId } = this.properties.org.__linkedData;
+    const outgoingLinks = await this.getOutgoingLinks(client);
+
+    const orgLink = outgoingLinks.find(({ path }) => path[0] === "org");
+
+    if (!orgLink) {
+      throw new Error("");
+    }
+
+    const { dstEntityId } = orgLink;
 
     const org = await Org.getOrgById(client, {
-      entityId,
+      entityId: dstEntityId,
     });
 
     if (!org) {
       throw new Error(
-        `OrgMembership with entityId ${this.entityId} links to org with entityId ${entityId} that cannot be found`,
+        `OrgMembership with entityId ${this.entityId} links to org with entityId ${dstEntityId} that cannot be found`,
       );
     }
 

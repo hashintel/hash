@@ -100,23 +100,16 @@ export const joinOrg = gql`
     ) {
       entityId
       properties {
-        memberOf {
-          data {
-            properties {
-              responsibility
-              org {
-                data {
-                  entityId
-                }
-              }
-            }
-          }
-        }
         emails {
           address
           verified
           primary
         }
+      }
+      links {
+        path
+        sourceEntityId
+        destinationEntityId
       }
     }
   }

@@ -81,7 +81,6 @@ export const createUsers =
           const user = await User.createUser(client, {
             emails: [{ address: email, primary: true, verified: true }],
             infoProvidedAtSignup: { usingHow: WayToUseHash.WithATeam },
-            memberOf: [],
             ...remainingProperties,
           });
 

@@ -29,10 +29,10 @@ export const linkedEntities: Resolver<
           all.findIndex(
             ({ dstEntityId, dstEntityVersionId }) =>
               dstEntityId === link.dstEntityId &&
-              dstEntityVersionId === link.dstEntityVersionId
-          ) === i
+              dstEntityVersionId === link.dstEntityVersionId,
+          ) === i,
       )
-      .map((link) => link.getDestination(dataSources.db))
+      .map((link) => link.getDestination(dataSources.db)),
   );
 
   return entities.map((linkedEntity) => linkedEntity.toGQLUnknownEntity());

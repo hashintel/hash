@@ -8,6 +8,7 @@ import {
   OrgMembership,
   UpdatePropertiesPayload,
   PartialPropertiesUpdatePayload,
+  Link,
 } from ".";
 import { DBClient } from "../db";
 import {
@@ -388,36 +389,41 @@ class __User extends Account {
   }
 
   async getOrgMemberships(client: DBClient) {
+    const outgoingLinks = await this.getOutgoingLinks(client);
+
     return await Promise.all(
-      this.properties.memberOf.map(async ({ __linkedData }) => {
-        const { entityId } = __linkedData;
-        const accountId = await client.getEntityAccountId({ entityId });
-
-        const orgMembership = await OrgMembership.getOrgMembershipById(client, {
-          accountId,
-          entityId,
-        });
-
-        if (!orgMembership) {
-          throw new Error(
-            `User with entityId ${this.entityId} links to membership with entityId ${entityId} that cannot be found`,
+      outgoingLinks
+        .filter(({ path }) => path[0] === "memberOf")
+        .map(async ({ dstAccountId, dstEntityId }) => {
+          const orgMembership = await OrgMembership.getOrgMembershipById(
+            client,
+            {
+              accountId: dstAccountId,
+              entityId: dstEntityId,
+            },
           );
-        }
 
-        return orgMembership;
-      }),
+          if (!orgMembership) {
+            throw new Error(
+              `User with entityId ${this.entityId} links to membership with entityId ${dstEntityId} that cannot be found`,
+            );
+          }
+
+          return orgMembership;
+        }),
     );
   }
 
   async isMemberOfOrg(client: DBClient, orgEntityId: string) {
     const orgMemberships = await this.getOrgMemberships(client);
 
-    return (
-      orgMemberships.find(
-        ({ properties }) =>
-          properties.org.__linkedData.entityId === orgEntityId,
-      ) !== undefined
-    );
+    for (const orgMembership of orgMemberships) {
+      if ((await orgMembership.getOrg(client)).entityId === orgEntityId) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   /**
@@ -443,23 +449,13 @@ class __User extends Account {
     });
 
     await Promise.all([
-      this.partialPropertiesUpdate(client, {
-        updatedByAccountId: params.updatedByAccountId,
-        properties: {
-          memberOf: [
-            ...this.properties.memberOf,
-            orgMembership.convertToDBLink(),
-          ],
-        },
+      this.createOutgoingLink(client, {
+        stringifiedPath: Link.stringifyPath(["memberOf"]),
+        destination: orgMembership,
       }),
-      org.partialPropertiesUpdate(client, {
-        updatedByAccountId: params.updatedByAccountId,
-        properties: {
-          memberships: [
-            ...org.properties.memberships,
-            orgMembership.convertToDBLink(),
-          ],
-        },
+      org.createOutgoingLink(client, {
+        stringifiedPath: Link.stringifyPath(["membership"]),
+        destination: orgMembership,
       }),
     ]);
 

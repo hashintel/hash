@@ -1,13 +1,21 @@
 import "../loadTestEnv";
-import { PostgresAdapter } from "@hashintel/hash-backend/src/db";
+import { PostgresAdapter } from "@hashintel/hash-api/src/db";
 import {
   Entity,
   EntityType,
   Link,
   User,
-} from "@hashintel/hash-backend/src/model";
-import { WayToUseHash } from "@hashintel/hash-backend/src/graphql/apiTypes.gen";
+} from "@hashintel/hash-api/src/model";
+import { WayToUseHash } from "@hashintel/hash-api/src/graphql/apiTypes.gen";
+import { Logger } from "@hashintel/hash-backend-utils/logger";
+
 import { IntegrationTestsHandler } from "../setup";
+
+const logger = new Logger({
+  mode: "dev",
+  level: "debug",
+  serviceName: "integration-tests",
+});
 
 let handler: IntegrationTestsHandler;
 
@@ -21,23 +29,26 @@ beforeAll(async () => {
   handler = new IntegrationTestsHandler();
   await handler.init();
 
-  db = new PostgresAdapter({
-    host: "localhost",
-    user: "postgres",
-    port: 5432,
-    database: "integration_tests",
-    password: "postgres",
-  });
+  db = new PostgresAdapter(
+    {
+      host: "localhost",
+      user: "postgres",
+      port: 5432,
+      database: "integration_tests",
+      password: "postgres",
+      maxPoolSize: 10,
+    },
+    logger,
+  );
 
-  existingUser = await User.createUser(db)({
+  existingUser = await User.createUser(db, {
     shortname: "test-user",
     preferredName: "Alice",
     emails: [{ address: "alice@hash.test", primary: true, verified: true }],
-    memberOf: [],
     infoProvidedAtSignup: { usingHow: WayToUseHash.ByThemselves },
   });
 
-  dummyEntityType = await EntityType.create(db)({
+  dummyEntityType = await EntityType.create(db, {
     accountId: existingUser.accountId,
     createdById: existingUser.entityId,
     name: "Dummy",
@@ -47,7 +58,7 @@ beforeAll(async () => {
 describe("Link model class ", () => {
   it("static isPathValid method correctly validates JSON path correctly", () => {
     expect(Link.isPathValid("$.this[0].path['should'].be[\"supported\"]")).toBe(
-      true
+      true,
     );
     expect(Link.isPathValid("thispathisn'tsupported")).toBe(false);
     expect(Link.isPathValid("$.this.is.not.supported.")).toBe(false);
@@ -55,17 +66,19 @@ describe("Link model class ", () => {
   });
 
   it("static parsePath method correctly parses a suppported JSON path", () => {
-    expect(Link.parseStringifiedPath("$.this[0].path['should'].be[\"supported\"]")).toEqual(
-      ["this", 0, "path", "should", "be", "supported"]
-    );
-    expect(() => Link.parseStringifiedPath("$.this[*].path.is.not.supported")).toThrow(/Cannot parse unsupported JSON path/)
+    expect(
+      Link.parseStringifiedPath("$.this[0].path['should'].be[\"supported\"]"),
+    ).toEqual(["this", 0, "path", "should", "be", "supported"]);
+    expect(() =>
+      Link.parseStringifiedPath("$.this[*].path.is.not.supported"),
+    ).toThrow(/Cannot parse unsupported JSON path/);
   });
 
   it("static create method can create a link", async () => {
     const accountId = existingUser.accountId;
     const createdById = existingUser.entityId;
 
-    const entity1 = await Entity.create(db)({
+    const entity1 = await Entity.create(db, {
       accountId,
       createdById,
       versioned: true,
@@ -73,7 +86,7 @@ describe("Link model class ", () => {
       properties: {},
     });
 
-    const entity2 = await Entity.create(db)({
+    const entity2 = await Entity.create(db, {
       accountId,
       createdById,
       versioned: true,
@@ -81,8 +94,8 @@ describe("Link model class ", () => {
       properties: {},
     });
 
-    const link = await Link.create(db)({
-      path: "$.linkName",
+    const link = await Link.create(db, {
+      stringifiedPath: "$.linkName",
       source: entity1,
       destination: entity2,
     });
@@ -95,7 +108,7 @@ describe("Link model class ", () => {
     const accountId = existingUser.accountId;
     const createdById = existingUser.entityId;
 
-    const entity1 = await Entity.create(db)({
+    const entity1 = await Entity.create(db, {
       accountId,
       createdById,
       versioned: true,
@@ -103,7 +116,7 @@ describe("Link model class ", () => {
       properties: {},
     });
 
-    const entity2 = await Entity.create(db)({
+    const entity2 = await Entity.create(db, {
       accountId,
       createdById,
       versioned: true,
@@ -111,13 +124,13 @@ describe("Link model class ", () => {
       properties: {},
     });
 
-    const link = await Link.create(db)({
-      path: "$.linkName",
+    const link = await Link.create(db, {
+      stringifiedPath: "$.linkName",
       source: entity1,
       destination: entity2,
     });
 
-    const retrievedLink = (await Link.get(db)({
+    const retrievedLink = (await Link.get(db, {
       accountId,
       linkId: link.linkId,
     }))!;
@@ -138,14 +151,14 @@ describe("Link model class ", () => {
     const createdById = existingUser.entityId;
 
     const [sourceEntity, destinationEntity] = await Promise.all([
-      Entity.create(db)({
+      Entity.create(db, {
         accountId,
         createdById,
         versioned: false,
         entityTypeId: dummyEntityType.entityId,
         properties: {},
       }),
-      Entity.create(db)({
+      Entity.create(db, {
         accountId,
         createdById,
         versioned: false,
@@ -156,14 +169,16 @@ describe("Link model class ", () => {
 
     const intialSourceEntityId = sourceEntity.entityVersionId;
 
-    const link = await Link.create(db)({
-      path: "$.linkName",
+    const link = await Link.create(db, {
+      stringifiedPath: "$.linkName",
       source: sourceEntity,
       destination: destinationEntity,
     });
 
     expect(link.srcEntityId).toBe(sourceEntity.entityId);
-    expect(Array.from(link.srcEntityVersionIds)).toEqual([intialSourceEntityId]);
+    expect(Array.from(link.srcEntityVersionIds)).toEqual([
+      intialSourceEntityId,
+    ]);
     expect(sourceEntity.entityVersionId).toBe(intialSourceEntityId);
   });
 
@@ -172,14 +187,14 @@ describe("Link model class ", () => {
     const createdById = existingUser.entityId;
 
     const [versionedSourceEntity, destinationEntity] = await Promise.all([
-      Entity.create(db)({
+      Entity.create(db, {
         accountId,
         createdById,
         versioned: true,
         entityTypeId: dummyEntityType.entityId,
         properties: {},
       }),
-      Entity.create(db)({
+      Entity.create(db, {
         accountId,
         createdById,
         versioned: false,
@@ -190,25 +205,29 @@ describe("Link model class ", () => {
 
     const entityVersionIds: string[] = [versionedSourceEntity.entityVersionId];
 
-    const link = await Link.create(db)({
-      path: "$.linkName",
+    const link = await Link.create(db, {
+      stringifiedPath: "$.linkName",
       source: versionedSourceEntity,
       destination: destinationEntity,
     });
 
-    expect(entityVersionIds[entityVersionIds.length - 1]).not.toBe(versionedSourceEntity.entityVersionId);
+    expect(entityVersionIds[entityVersionIds.length - 1]).not.toBe(
+      versionedSourceEntity.entityVersionId,
+    );
 
     entityVersionIds.push(versionedSourceEntity.entityVersionId);
 
     await link.delete(db);
 
-    expect(entityVersionIds[entityVersionIds.length - 1]).not.toBe(versionedSourceEntity.entityVersionId);
+    expect(entityVersionIds[entityVersionIds.length - 1]).not.toBe(
+      versionedSourceEntity.entityVersionId,
+    );
 
     entityVersionIds.push(versionedSourceEntity.entityVersionId);
 
     // The first version of the entity should have 0 outgoing links
 
-    const e1 = (await Entity.getEntity(db)({
+    const e1 = (await Entity.getEntity(db, {
       accountId,
       entityVersionId: entityVersionIds[0],
     }))!;
@@ -221,7 +240,7 @@ describe("Link model class ", () => {
 
     // The second version of the entity should have 1 outgoing link
 
-    const e2 = (await Entity.getEntity(db)({
+    const e2 = (await Entity.getEntity(db, {
       accountId,
       entityVersionId: entityVersionIds[1],
     }))!;
@@ -235,7 +254,7 @@ describe("Link model class ", () => {
 
     // The third version of the entity should have 0 outgoing links
 
-    const e3 = (await Entity.getEntity(db)({
+    const e3 = (await Entity.getEntity(db, {
       accountId,
       entityVersionId: entityVersionIds[2],
     }))!;
