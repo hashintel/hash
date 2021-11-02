@@ -11,6 +11,7 @@ import { FRONTEND_URL } from "../lib/config";
 import { getInstance, Instance } from "./Instance";
 import { InvalidRequestPayloadError, InvalidVersionError } from "./errors";
 import { Waiting } from "./Waiting";
+import { queuePromise } from "./queue";
 
 export const collabApp = express();
 
@@ -66,7 +67,7 @@ collabApp.get("/:accountId/:pageEntityId", (request, response) => {
     // TODO: Replace with apollo client → me
     const userId = extractTempFakeUserId(request);
 
-    const instance = await getInstance(client)(
+    const instance = await getInstance(client, await queuePromise)(
       request.params.accountId,
       request.params.pageEntityId,
       userId,
@@ -91,7 +92,7 @@ collabApp.get("/:accountId/:pageEntityId/events", async (request, response) => {
     // TODO: Replace with apollo client → me
     const userId = extractTempFakeUserId(request);
 
-    const instance = await getInstance(client)(
+    const instance = await getInstance(client, await queuePromise)(
       request.params.accountId,
       request.params.pageEntityId,
       userId,
@@ -132,7 +133,7 @@ collabApp.post(
       // TODO: Replace with apollo client → me
       const userId = extractTempFakeUserId(request);
 
-      const instance = await getInstance(client)(
+      const instance = await getInstance(client, await queuePromise)(
         request.params.accountId,
         request.params.pageEntityId,
         userId,
@@ -173,7 +174,7 @@ collabApp.get(
         return;
       }
 
-      const instance = await getInstance(client)(
+      const instance = await getInstance(client, await queuePromise)(
         request.params.accountId,
         request.params.pageEntityId,
         userId,
@@ -211,7 +212,7 @@ collabApp.post(
         return;
       }
 
-      const instance = await getInstance(client)(
+      const instance = await getInstance(client, await queuePromise)(
         request.params.accountId,
         request.params.pageEntityId,
         userId,

@@ -26,6 +26,7 @@ import {
 } from "./storage";
 import { AwsS3StorageProvider } from "./storage/aws-s3-storage-provider";
 import { getRequiredEnv } from "./util";
+import { redisClientConfig, shutdownQueue } from "./collab/queue";
 
 const { FRONTEND_URL } = require("./lib/config");
 
@@ -62,11 +63,7 @@ const pgConfig = {
 };
 const db = new PostgresAdapter(pgConfig, logger, statsd);
 
-// Connect to Redis
-const redis = new RedisCache({
-  host: getRequiredEnv("HASH_REDIS_HOST"),
-  port: parseInt(getRequiredEnv("HASH_REDIS_PORT"), 10),
-});
+const redis = new RedisCache(redisClientConfig);
 
 // Set sensible default security headers: https://www.npmjs.com/package/helmet
 // Temporarily disable contentSecurityPolicy for the GraphQL playground
@@ -136,8 +133,6 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use("/collab-backend", collabApp);
-
 // Ensure the GraphQL server has started before starting the HTTP server
 apolloServer
   .start()
@@ -149,6 +144,8 @@ apolloServer
         origin: [/-hashintel\.vercel\.app$/, FRONTEND_URL],
       },
     });
+
+    app.use("/collab-backend", collabApp);
 
     const server = app.listen(port, () => {
       logger.info(`Listening on port ${port}`);
@@ -166,6 +163,8 @@ apolloServer
       server.close(() => {
         logger.info("Express server closed");
       });
+
+      shutdownQueue();
 
       logger.info("Closing database connection pool");
       db.close()

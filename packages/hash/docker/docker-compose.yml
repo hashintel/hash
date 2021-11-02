@@ -102,6 +102,7 @@ services:
       - HASH_REDIS_HOST=hash-dev-redis
       - HASH_REDIS_PORT=6379
       - HASH_SEARCH_QUEUE_NAME=search
+      - HASH_COLLAB_QUEUE_NAME=collab
     volumes:
       - ../realtime:/app/packages/hash/realtime
       - ../backend-utils:/app/packages/hash/backend-utils
@@ -122,6 +123,7 @@ services:
       - HASH_SEARCH_LOADER_PORT=3838
       # Value must match same envvar in hash-dev-realtime
       - HASH_SEARCH_QUEUE_NAME=search
+      - HASH_COLLAB_QUEUE_NAME=collab
       - HASH_OPENSEARCH_HOST=hash-dev-opensearch
       - HASH_OPENSEARCH_PORT=9200
       - HASH_OPENSEARCH_HTTPS_ENABLED=false

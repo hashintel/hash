@@ -9,6 +9,7 @@ import {
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
 import { updatePageMutation } from "@hashintel/hash-shared/save";
+import { RedisQueueExclusiveConsumer } from "@hashintel/hash-backend-utils/queue/redis";
 import { isEqual } from "lodash";
 import { Schema } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
@@ -54,6 +55,7 @@ export class Instance {
     public state: EditorState<Schema>,
     public manager: ProsemirrorSchemaManager,
     public savedContents: BlockEntity[],
+    private queue: RedisQueueExclusiveConsumer,
   ) {
     this.positionCleanupInterval = setInterval(() => {
       this.cleanupPositions();
@@ -339,7 +341,7 @@ let instanceCount = 0;
 const maxCount = 20;
 
 const newInstance =
-  (apolloClient: ApolloClient<unknown>) =>
+  (apolloClient: ApolloClient<unknown>, queue: RedisQueueExclusiveConsumer) =>
   async (accountId: string, pageEntityId: string) => {
     if (++instanceCount > maxCount) {
       let oldest = null;
@@ -384,17 +386,18 @@ const newInstance =
       newState,
       manager,
       data.page.properties.contents,
+      queue,
     );
 
     return instances[pageEntityId];
   };
 
 export const getInstance =
-  (apolloClient: ApolloClient<unknown>) =>
+  (apolloClient: ApolloClient<unknown>, queue: RedisQueueExclusiveConsumer) =>
   async (accountId: string, pageEntityId: string, userId: string | null) => {
     const inst =
       instances[pageEntityId] ||
-      (await newInstance(apolloClient)(accountId, pageEntityId));
+      (await newInstance(apolloClient, queue)(accountId, pageEntityId));
     if (userId) inst.registerUser(userId);
     inst.lastActive = Date.now();
     return inst;
