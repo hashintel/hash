@@ -56,7 +56,7 @@ pub struct WorkerController {
     js: JavaScriptRunner,
     rs: RustRunner,
     config: WorkerConfig,
-    worker_pool_comms: WorkerCommsWithWorkerPool,
+    worker_pool_comms: Option<WorkerCommsWithWorkerPool>,
     tasks: PendingWorkerTasks,
 }
 
@@ -72,7 +72,7 @@ impl WorkerController {
             js: JavaScriptRunner::new(config.spawn.javascript, exp_init.clone())?,
             rs: RustRunner::new(config.spawn.rust, exp_init.clone())?,
             config,
-            worker_pool_comms,
+            worker_pool_comms: Some(worker_pool_comms),
             tasks: PendingWorkerTasks::default(),
         })
     }
@@ -97,9 +97,10 @@ impl WorkerController {
     }
 
     async fn _run(&mut self) -> Result<()> {
+        let worker_pool_comms = self.worker_pool_comms.take().unwrap();
         loop {
             tokio::select! {
-                Some(msg) = self.recv_from_worker_pool_controller() => {
+                Some(msg) = worker_pool_comms.recv().await => {
                     self.handle_worker_pool_msg(msg).await?;
                 }
                 res = self.recv_from_runners() => {
@@ -108,6 +109,7 @@ impl WorkerController {
                 }
             }
         }
+        self.worker_pool_comms = Some(worker_pool_comms);
         Ok(())
     }
 

@@ -12,6 +12,7 @@ use std::{ops::Deref, sync::Arc};
 
 use super::{agent::AgentPool, BatchPool};
 
+#[derive(Clone)]
 pub struct MessagePool {
     batches: Vec<Arc<RwLock<MessageBatch>>>,
 }

@@ -6,7 +6,7 @@ use crate::{
     worker::runner::comms::inbound::InboundToRunnerMsgPayload,
 };
 
-#[derive(new)]
+#[derive(new, Clone)]
 pub struct StateSync {
     pub agent_pool: Box<dyn BatchPool<AgentBatch>>,
     pub message_pool: Box<dyn BatchPool<MessageBatch>>,
@@ -18,7 +18,7 @@ impl fmt::Debug for StateSync {
     }
 }
 
-#[derive(new)]
+#[derive(new, Clone)]
 pub struct ContextBatchSync {
     pub context_batch: Arc<ContextBatch>,
 }
@@ -29,6 +29,7 @@ impl fmt::Debug for ContextBatchSync {
     }
 }
 
+#[derive(Clone)]
 pub enum SyncPayload {
     // Agent state which is to be mutated within a step
     State(StateSync),

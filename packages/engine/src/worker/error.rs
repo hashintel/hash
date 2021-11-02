@@ -24,6 +24,9 @@ pub enum Error {
 
     #[error("Rust runner error: {0}")]
     Rust(#[from] RustError),
+
+    #[error("Simulation: {0}")]
+    Simulation(#[from] crate::simulation::Error),
 }
 
 impl From<&str> for Error {

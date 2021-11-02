@@ -44,6 +44,60 @@ use super::comms::{
     TargetedRunnerTaskMsg,
 };
 
+pub struct RustRunner {
+    outbound_sender: UnboundedSender<OutboundFromRunnerMsg>,
+    outbound_receiver: UnboundedReceiver<OutboundFromRunnerMsg>,
+    spawned: bool,
+}
+
+impl RustRunner {
+    pub fn new(spawn: bool, init_msg: ExperimentInitRunnerMsg) -> WorkerResult<Self> {
+        let (inbound_sender, inbound_receiver) = unbounded_channel();
+        let (outbound_sender, outbound_receiver) = unbounded_channel();
+        Ok(Self {
+            outbound_sender,
+            outbound_receiver,
+            spawned: spawn,
+        })
+    }
+
+    pub async fn send(
+        &self,
+        sim_id: Option<SimulationShortID>,
+        msg: InboundToRunnerMsgPayload,
+    ) -> WorkerResult<()> {
+        Ok(())
+    }
+
+    pub async fn send_if_spawned(
+        &self,
+        sim_id: Option<SimulationShortID>,
+        msg: InboundToRunnerMsgPayload,
+    ) -> WorkerResult<()> {
+        Ok(())
+    }
+
+    pub async fn recv(&mut self) -> WorkerResult<OutboundFromRunnerMsg> {
+        self.outbound_receiver
+            .recv()
+            .await
+            .ok_or(WorkerError::from("Rust outbound receive"))
+    }
+
+    pub async fn recv_now(&mut self) -> WorkerResult<Option<OutboundFromRunnerMsg>> {
+        self.recv().now_or_never().transpose()
+    }
+
+    pub fn spawned(&self) -> bool {
+        false
+    }
+
+    pub async fn run(&mut self) -> WorkerResult<()> {
+        Ok(())
+    }
+}
+
+/*
 mod behavior_execution;
 pub mod behaviors;
 mod context;
@@ -359,3 +413,4 @@ impl RustRunner {
         Ok(())
     }
 }
+*/
