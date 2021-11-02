@@ -56,13 +56,13 @@ Through simulation we can see identify an important principle, **increasing util
 
 Now that we know where the key constraint in the system is, we can re-engineer our process to alleviate the constraint.
 
-#### Improving the system design
+### Improving the system design
 
 One of the tricky parts of process modeling and process optimization is it can be non-obvious how different process designs impact process performance. Subtle differences can lead to dramatically different outcomes. The key to improving a system often comes from experimentation with different layouts; these can be guided by principled insights from operations research or through iteration, and trial and error. A benefit of using simulation as an aid in the design process is you can quickly experiment with different designs.
 
 In our example of the billing department senior_billers are used in `auditCustomerAccount`,  `verifyAndFixBills`, and in `registerARAndFinancials`. Regardless of the path the bills take in the process, they end up utilizing some of the senior_billers resource. A potential improvement might be to redesign the system such that the senior_billers are no longer used on all parts, and instead conserving their input until the end.
 
-#### Adding resources or buffers to a bottleneck
+### Adding resources or buffers to a bottleneck
 
 If time is lost at a non-bottleneck component, it probably won't impact the throughput or average time of the system, as there is slack within the system to make up for the loss. However, if items are delayed at the bottleneck component, it will almost certainly have a negative impact on the system performance.
 

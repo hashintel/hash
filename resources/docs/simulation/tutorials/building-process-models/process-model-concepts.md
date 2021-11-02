@@ -16,7 +16,7 @@ You can think of it like a flowchart - objects start at the source, travel throu
 
 When designing your own process models, your primary task is to factor the real world process into discrete steps, and then match those steps to elements in the process library \(or build your own!\)
 
-### Elements
+## Elements
 
 With the HASH process library, we provide ready made behaviors for implementing process models. Each corresponds with a common element for process models.
 

@@ -12,7 +12,7 @@ Having built thousands of simulations from scratch, and converted many more orig
 
 ## Planning the Build
 
-#### 1. Start by cataloguing and reviewing all the agents in the simulation
+### 1. Start by cataloguing and reviewing all the agents in the simulation
 
 Use a simple format for listing the agents and their behaviors, for instance:
 
@@ -26,7 +26,7 @@ Use a simple format for listing the agents and their behaviors, for instance:
 
 If the model is not an agent based model, identify the key processes that should be represented as an agent, and repeat the step above with each process.
 
-#### 2. Understand the main loop
+### 2. Understand the main loop
 
 The main loop is a broad concept meant to capture the general process of the simulation. While sophisticated simulations can and do evolve over time, there is always a process or set of processes that direct the agent interactions.
 

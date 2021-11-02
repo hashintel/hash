@@ -45,7 +45,7 @@ An model that calculates population levels might look something like this:
 }
 ```
 
-#### The `sd_definition` Property
+### The `sd_definition` Property
 
 The final step is to define the rates in your model. Each rate will have 3 or 4 properties defined:
 

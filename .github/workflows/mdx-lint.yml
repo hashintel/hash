@@ -16,6 +16,9 @@ jobs:
         with:
           node-version: '12'
 
+      - name: Lint for markdown correctness
+        run: cd .github/workflows/markdown-linting && sh lint.sh
+
       # Runs a single command using the runners shell
       - name: Lint for objectID
         run: cd .github/workflows/algolia && sh objectid_lint.sh

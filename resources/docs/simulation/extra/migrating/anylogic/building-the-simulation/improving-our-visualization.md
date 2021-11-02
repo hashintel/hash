@@ -32,7 +32,7 @@ We'll start by defining outputs that track metrics of interest, like the total q
 
 ## Advanced Agent Visualizations
 
-#### Visualizing Stocks
+### Visualizing Stocks
 
 Let's make it easier to tell how much stock our agents are holding. We'll link the height of the agents to their level of stock, and adjust their scale to improve visibility. We'll have to add these lines of code in different behaviors for each agent, and adjust the specific field names we're accessing.
 
@@ -40,7 +40,7 @@ Let's make it easier to tell how much stock our agents are holding. We'll link t
 state.set("height", state.get("crude") / 500);
 ```
 
-#### Adding Poly Models
+### Adding Poly Models
 
 HASH has built in poly models which allow you to more accurately represent many different types of agents. We'll create a dummy agent next to each one we edited in the previous section, and edit the actual **Tanker** and **Truck** agents with a `shape` and a `scale` to size them properly.
 
@@ -54,7 +54,7 @@ HASH has built in poly models which allow you to more accurately represent many 
 | Retailer | "store" |
 | Truck | "car" |
 
-#### Adding Edges
+### Adding Edges
 
 We'll also add edges to help visualize the flows between different agents. Take a look at the docs section on [visualizing networks](/docs/simulation/creating-simulations/anatomy-of-an-agent/visualization/networks) for implementation details.
 

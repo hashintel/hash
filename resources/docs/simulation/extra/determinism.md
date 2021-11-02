@@ -82,11 +82,11 @@ Currently, we only make the Mapbox API directly accessible from within both hCor
 
 HASH's [actor model](/wiki/actor-model) lets the engine execute agents in parallel. This allows us to run models across machines and ensure that they don't fall prey to sequencing problems, where the execution order of agents generates artifacts in your simulations. The current release of hEngine does **not** guarantee ordering of the agent interaction methods provided on the context of an agent.
 
-#### Neighbors
+### Neighbors
 
 Once all agents have computed their states for the next time step, hEngine calculates an agent's neighbors and delivers them to each agent's `context`. Neighbors are not calculated deterministically. This means that even in a simulation with identical initialization, globals, and behaviors, an agent will not necessarily see its neighbors in the same order every time. On the other hand, hEngine does not guarantee randomization either.
 
-#### Messages
+### Messages
 
 hEngine delivers messages once all agents have computed their next states. In current releases of HASH, messages are not collected or delivered deterministically. That means there is no guarantee that two identical agents in an otherwise identical simulation state will have inboxes that are sorted the same way.
 

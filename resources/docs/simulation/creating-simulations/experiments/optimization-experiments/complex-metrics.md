@@ -16,11 +16,11 @@ However, in setting up this optimization, we’ve ignored an important business 
 
 To do this, we’ll initialize a new agent whose task is to calculate this more complex metric. We'll follow these steps:
 
-#### 1. Define your complex metric
+### 1. Define your complex metric
 
 Before you start modifying your simulation, you should define how your complex metric will be calculated. It could be a ratio of two different values, the mean of all agents' specific field, etc. For instance, if the complex metric will be a weighted sum of various data produced by your simulation, you need to determine the values of those weights.
 
-#### 2. Create a new agent to calculate the complex metric
+### 2. Create a new agent to calculate the complex metric
 
 This agent must have a search radius that allows it to see all other agents in the simulation, and should be initialized in the center of the simulation. You can set the `state.hidden` field to `true` in order to remove it from the 3D Viewer
 
@@ -33,7 +33,7 @@ This agent must have a search radius that allows it to see all other agents in t
 }
 ```
 
-#### 3. Create a new behavior which calculates this metric
+### 3. Create a new behavior which calculates this metric
 
 ```javascript
 // calculate_metric.js
@@ -59,7 +59,7 @@ const behavior = () => {
 Metric weights can also be captured as global parameters for easy modification
 </Hint>
 
-#### 4. Create a new Analysis metric that collects the `state.metric` field on your agent
+### 4. Create a new Analysis metric that collects the `state.metric` field on your agent
 
 ![Defining the complex metric for use an optimization](https://cdn-us1.hash.ai/site/docs/image%20%2872%29.png)
 
@@ -71,11 +71,11 @@ An additional common use case for complex metrics is tuning a model. When we att
 
 Let's set up a slightly different complex metric:
 
-#### 1. Find and [upload a dataset](/docs/simulation/creating-simulations/datasets/)
+### 1. Find and [upload a dataset](/docs/simulation/creating-simulations/datasets/)
 
-#### 2. Create a "metric agent" set in the center of the simulation, with an appropriate search radius
+### 2. Create a "metric agent" set in the center of the simulation, with an appropriate search radius
 
-#### 3. Create a new behavior for gathering and comparing simulation data
+### 3. Create a new behavior for gathering and comparing simulation data
 
 ```javascript
 // gather_data.js
@@ -98,7 +98,7 @@ const behavior = () => {
 Sum of squares is the typical method for calculating the error between a sample datapoint and "predicted" or modeled datapoint: _Error =  Sum of \(agent_avg - data_avg\)^2_
 </Hint>
 
-#### 4. Now create a metric to capture the calculated error
+### 4. Now create a metric to capture the calculated error
 
 ![Define a metric to capture the cumulative error](https://cdn-us1.hash.ai/site/docs/image%20%2873%29.png)
 

@@ -1,5 +1,11 @@
 {
   "no-inline-html": false,
   "no-bare-urls": false,
-  "line-length": { "line_length": 100 }
+  "line-length": false,
+  "first-line-h1": false,
+  "single-h1": false,
+  "no-duplicate-header": false,
+  "no-alt-text": false,
+  "no-emphasis-as-header": false,
+  "ol-prefix": false
 }
