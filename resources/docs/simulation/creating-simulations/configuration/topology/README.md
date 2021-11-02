@@ -110,7 +110,7 @@ In addition to setting the search radius, it is also possible to set the distanc
 
 * `manhattan` or `taxicab`: L1 norm distance function that return the grid distance between two points
 * `euclidean`: L2 norm distance function that returns the direct distance between two points
-* `euclidean_squared`: Similar to euclidean but distances are left squared for performance reasons.
+* `euclidean_squared`: Similar to euclidean but distances are left squared for performance reasons
 * `chebyshev` or `conway`: L-infinity norm distance function that return the longest distance in **x**, **y**, and **z**
 
 ```javascript
