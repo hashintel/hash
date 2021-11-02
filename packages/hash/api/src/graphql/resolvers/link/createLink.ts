@@ -48,12 +48,8 @@ export const createLink: Resolver<
       throw new ApolloError(msg, "NOT_FOUND");
     }
 
-    const { path } = linkInput;
-
-    Link.validatePath(path);
-
-    const link = await Link.create(client)({
-      path,
+    const link = await Link.create(client, {
+      stringifiedPath: linkInput.path,
       source,
       destination,
       dstEntityVersionId: destinationEntityVersionId || undefined,

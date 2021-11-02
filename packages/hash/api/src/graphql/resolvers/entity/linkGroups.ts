@@ -13,7 +13,7 @@ const doesLinkBelongInGroup =
   (linkGroup: LinkGroup): boolean =>
     sourceEntity.entityId === linkGroup.sourceEntityId &&
     sourceEntity.entityVersionId === linkGroup.sourceEntityVersionId &&
-    link.path === linkGroup.path;
+    link.stringifiedPath === linkGroup.path;
 
 const mapLinkToLinkGroup = (
   sourceEntity: GQLEntity,
@@ -21,7 +21,7 @@ const mapLinkToLinkGroup = (
 ): LinkGroup => ({
   sourceEntityId: sourceEntity.entityId,
   sourceEntityVersionId: sourceEntity.entityVersionId,
-  path: link.path,
+  path: link.stringifiedPath,
   links: [link.toUnresolvedGQLLink()],
 });
 

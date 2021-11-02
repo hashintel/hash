@@ -9,7 +9,7 @@ export type GQLLinkExternalResolvers = "__typename";
 export type UnresolvedGQLLink = Omit<GQLLink, GQLLinkExternalResolvers>;
 
 export type CreateLinkArgs = {
-  path: string;
+  stringifiedPath: string;
   source: Entity;
   destination: Entity;
   dstEntityVersionId?: string;
@@ -27,13 +27,13 @@ type SupportedJSONPathComponentType =
 type JSONPathComponent = {
   expression: {
     type: string;
-    value: string;
+    value: string | number;
   };
 };
 
 const isUnsupportedJSONPathComponent = (component: JSONPathComponent) =>
   !SUPPORTED_JSONPATH_COMPONENT_TYPES.includes(
-    component.expression.type as SupportedJSONPathComponentType
+    component.expression.type as SupportedJSONPathComponentType,
   );
 
 const isUnupportedJSONPath = (components: JSONPathComponent[]) =>
@@ -59,7 +59,8 @@ type LinkConstructorArgs = {
 class __Link {
   accountId: string;
   linkId: string;
-  path: string;
+  stringifiedPath: string;
+  path: jp.PathComponent[];
 
   srcAccountId: string;
   srcEntityId: string;
@@ -89,7 +90,8 @@ class __Link {
   }: LinkConstructorArgs) {
     this.accountId = accountId;
     this.linkId = linkId;
-    this.path = path;
+    this.stringifiedPath = path;
+    this.path = Link.parseStringifiedPath(path);
     this.srcAccountId = srcAccountId;
     this.srcEntityId = srcEntityId;
     this.srcEntityVersionIds = srcEntityVersionIds;
@@ -105,7 +107,7 @@ class __Link {
     this.createdAt = createdAt;
   }
 
-  static isPathValid = (path: string): boolean => {
+  static isPathValid(path: string): boolean {
     try {
       const components = jp.parse(path) as JSONPathComponent[];
 
@@ -116,60 +118,75 @@ class __Link {
       return false;
     }
     return true;
-  };
+  }
 
-  static validatePath = (path: string) => {
-    if (!Link.isPathValid(path)) {
-      throw new UserInputError(`"${path}" is not a valid JSON path"`);
+  static parseStringifiedPath(stringifiedPath: string): jp.PathComponent[] {
+    const components = jp.parse(stringifiedPath) as JSONPathComponent[];
+
+    if (isUnupportedJSONPath(components)) {
+      throw new Error(
+        `Cannot parse unsupported JSON path "${stringifiedPath}""`,
+      );
     }
-  };
 
-  static create =
-    (client: DBClient) =>
-    async (args: CreateLinkArgs): Promise<Link> => {
-      const { path, source, destination, dstEntityVersionId } = args;
+    return components.slice(1).map(({ expression }) => expression.value);
+  }
 
-      Link.validatePath(path);
+  static stringifyPath(path: jp.PathComponent[]) {
+    return jp.stringify(path);
+  }
 
-      if (source.metadata.versioned) {
-        /** @todo: implement a function dedicated to creating a new version of an entity and use it instead of this hack */
-        await source.updateEntityProperties(client)(source.properties);
-      }
+  static validatePath(path: string) {
+    if (!Link.isPathValid(path)) {
+      throw new UserInputError(`"${path}" is not a valid JSON path`);
+    }
+  }
 
-      /** @todo: check entity type to see if there is an inverse relatioship needs to be created */
+  static async create(client: DBClient, params: CreateLinkArgs): Promise<Link> {
+    const { stringifiedPath, source, destination, dstEntityVersionId } = params;
 
-      if (dstEntityVersionId) {
-        /** @todo: ensure destination entity has version where entityVersionId === dstEntityVersionId */
-      }
+    Link.validatePath(stringifiedPath);
 
-      const { accountId: srcAccountId, entityId: srcEntityId } = source;
-      const { accountId: dstAccountId, entityId: dstEntityId } = destination;
+    if (source.metadata.versioned) {
+      /** @todo: implement a function dedicated to creating a new version of an entity and use it instead of this hack */
+      await source.updateEntityProperties(client, source.properties);
+    }
 
-      const dbLink = await client.createLink({
-        accountId: source.accountId,
-        path,
-        srcAccountId,
-        srcEntityId,
-        srcEntityVersionIds: new Set([source.entityVersionId]),
-        dstAccountId,
-        dstEntityId,
-        dstEntityVersionId,
-      });
+    /** @todo: check entity type to see if there is an inverse relatioship needs to be created */
 
-      const link = new Link({ ...dbLink, source, destination });
+    if (dstEntityVersionId) {
+      /** @todo: ensure destination entity has version where entityVersionId === dstEntityVersionId */
+    }
 
-      return link;
-    };
+    const { accountId: srcAccountId, entityId: srcEntityId } = source;
+    const { accountId: dstAccountId, entityId: dstEntityId } = destination;
 
-  static get =
-    (client: DBClient) =>
-    async (args: {
+    const dbLink = await client.createLink({
+      accountId: source.accountId,
+      path: stringifiedPath,
+      srcAccountId,
+      srcEntityId,
+      srcEntityVersionIds: new Set([source.entityVersionId]),
+      dstAccountId,
+      dstEntityId,
+      dstEntityVersionId,
+    });
+
+    const link = new Link({ ...dbLink, source, destination });
+
+    return link;
+  }
+
+  static async get(
+    client: DBClient,
+    params: {
       accountId: string;
       linkId: string;
-    }): Promise<Link | null> => {
-      const dbLink = await client.getLink(args);
-      return dbLink ? new Link({ ...dbLink }) : null;
-    };
+    },
+  ): Promise<Link | null> {
+    const dbLink = await client.getLink(params);
+    return dbLink ? new Link({ ...dbLink }) : null;
+  }
 
   async delete(client: DBClient) {
     await client.deleteLink({
@@ -182,25 +199,25 @@ class __Link {
     }
   }
 
-  private fetchSource = async (client: DBClient) => {
+  private async fetchSource(client: DBClient) {
     const source = await Entity.getEntityLatestVersion(client, {
       accountId: this.accountId,
       entityId: this.srcEntityId,
     });
     if (!source) {
       throw new Error(
-        `Critical: couldn't find source entity of link in account ${this.accountId} with link id ${this.linkId}`
+        `Critical: couldn't find source entity of link in account ${this.accountId} with link id ${this.linkId}`,
       );
     }
     return source;
-  };
+  }
 
-  getSource = async (client: DBClient) => {
+  async getSource(client: DBClient) {
     this.source = this.source || (await this.fetchSource(client));
     return this.source;
-  };
+  }
 
-  private fetchDestination = async (client: DBClient) => {
+  private async fetchDestination(client: DBClient) {
     const destination = this.dstEntityVersionId
       ? await Entity.getEntity(client, {
           accountId: this.accountId,
@@ -212,27 +229,29 @@ class __Link {
         });
     if (!destination) {
       throw new Error(
-        `Critical: couldn't find destination entity of link in account ${this.accountId} with link id ${this.linkId}`
+        `Critical: couldn't find destination entity of link in account ${this.accountId} with link id ${this.linkId}`,
       );
     }
     return destination;
-  };
+  }
 
-  getDestination = async (client: DBClient) => {
+  async getDestination(client: DBClient) {
     this.destination =
       this.destination || (await this.fetchDestination(client));
     return this.destination;
-  };
+  }
 
-  toUnresolvedGQLLink = (): UnresolvedGQLLink => ({
-    id: this.linkId,
-    sourceAccountId: this.srcAccountId,
-    sourceEntityId: this.srcEntityId,
-    destinationAccountId: this.dstAccountId,
-    destinationEntityId: this.dstEntityId,
-    destinationEntityVersionId: this.dstEntityVersionId,
-    path: this.path,
-  });
+  toUnresolvedGQLLink(): UnresolvedGQLLink {
+    return {
+      id: this.linkId,
+      sourceAccountId: this.srcAccountId,
+      sourceEntityId: this.srcEntityId,
+      destinationAccountId: this.dstAccountId,
+      destinationEntityId: this.dstEntityId,
+      destinationEntityVersionId: this.dstEntityVersionId,
+      path: this.stringifiedPath,
+    };
+  }
 }
 
 export default __Link;
