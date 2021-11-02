@@ -32,12 +32,14 @@ pub enum EngineStatus {
 
 /// The message type sent from the orchestrator to the engine.
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(bound = "E: Serialize, for<'a> E: Deserialize<'a>")]
 pub enum EngineMsg<E: ExperimentRunRepr> {
     Init(InitMessage<E>),
     SimRegistered(SimulationShortID, SimulationRegisteredID),
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(bound = "E: Serialize, for<'a> E: Deserialize<'a>")]
 pub struct InitMessage<E: ExperimentRunRepr> {
     pub experiment: E,
     pub env: ExecutionEnvironment,
