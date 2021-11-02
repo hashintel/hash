@@ -1,4 +1,5 @@
 use enum_dispatch::enum_dispatch;
+use serde::{Serialize, Deserialize};
 
 use crate::simulation::packages::PackageType;
 use crate::{
@@ -8,7 +9,7 @@ use crate::{
 use super::prelude::*;
 
 #[enum_dispatch]
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum TaskMessage {
     InitTaskMessage,
     ContextTaskMessage,

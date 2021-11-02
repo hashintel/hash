@@ -412,14 +412,14 @@ struct GroupSync {
 
 fn agent_pool_from_batches(
     batches: Vec<Arc<RwLock<AgentBatch>>>
-) -> Box<dyn BatchPool<AgentPool>> {
-    Box::new(AgentPool::new(batches)) as Box<dyn BatchPool<AgentPool>>
+) -> Box<dyn BatchPool<AgentBatch>> {
+    Box::new(AgentPool::new(batches)) as Box<dyn BatchPool<AgentBatch>>
 }
 
 fn msg_pool_from_batches(
     batches: Vec<Arc<RwLock<MessageBatch>>>
-) -> Box<dyn BatchPool<MessagePool>> {
-    Box::new(MessagePool::new(batches)) as Box<dyn BatchPool<MessagePool>>
+) -> Box<dyn BatchPool<MessageBatch>> {
+    Box::new(MessagePool::new(batches)) as Box<dyn BatchPool<MessageBatch>>
 }
 
 impl<'m> RunnerImpl<'m> {
@@ -484,7 +484,7 @@ impl<'m> RunnerImpl<'m> {
     }
 
     fn array_data_from_js(
-        &'m mut self,
+        &mut self,
         mv8: &'m MiniV8,
         data: &mv8::Value<'m>,
         dt: &DataType,
@@ -626,7 +626,7 @@ impl<'m> RunnerImpl<'m> {
     }
 
     fn flush_batch<B: DynamicBatch>(
-        &'m mut self,
+        &mut self,
         mv8: &'m MiniV8,
         changes: mv8::Array<'m>,
         batch: &Arc<RwLock<B>>,
@@ -658,7 +658,7 @@ impl<'m> RunnerImpl<'m> {
     }
 
     fn flush_group(
-        &'m mut self,
+        &mut self,
         mv8: &'m MiniV8,
         sim_run_id: SimulationShortID,
         group_index: u32,
@@ -674,13 +674,11 @@ impl<'m> RunnerImpl<'m> {
 
         let agent_changes = changes.get("agent")?;
         let agent_batch = state.agent_pool[group_index].clone();
-        let agent_ref = &agent_batch as &Arc<RwLock<dyn DynamicBatch>>;
-        self.flush_batch(mv8, agent_changes, agent_ref, &state.agent_schema)?;
+        self.flush_batch(mv8, agent_changes, &agent_batch, &state.agent_schema)?;
 
         let msg_changes = changes.get("msg")?;
         let message_batch = state.msg_pool[group_index as usize].clone();
-        let message_ref = &message_batch as &Arc<RwLock<dyn DynamicBatch>>;
-        self.flush_batch(mv8, msg_changes, message_ref, &state.msg_schema)?;
+        self.flush_batch(mv8, msg_changes, &message_batch, &state.msg_schema)?;
 
         Ok(GroupSync {
             group_index: group_index as usize,
@@ -690,7 +688,7 @@ impl<'m> RunnerImpl<'m> {
     }
 
     fn flush(
-        &'m mut self,
+        &mut self,
         mv8: &'m MiniV8,
         sim_run_id: SimulationShortID,
         group_index: Option<u32>,
@@ -793,7 +791,7 @@ impl<'m> RunnerImpl<'m> {
     }
 
     fn run_task(
-        &'m mut self,
+        &mut self,
         mv8: &'m MiniV8,
         sim_run_id: SimulationShortID,
         msg: RunnerTaskMsg,
@@ -846,7 +844,7 @@ impl<'m> RunnerImpl<'m> {
     }
 
     fn ctx_batch_sync(
-        &'m mut self,
+        &mut self,
         mv8: &'m MiniV8,
         sim_run_id: SimulationShortID,
         ctx_batch: ContextBatchSync,
@@ -865,7 +863,7 @@ impl<'m> RunnerImpl<'m> {
     }
 
     fn state_sync(
-        &'m mut self,
+        &mut self,
         mv8: &'m MiniV8,
         sim_run_id: SimulationShortID,
         msg: StateSync,
@@ -902,7 +900,7 @@ impl<'m> RunnerImpl<'m> {
     }
 
     fn state_interim_sync(
-        &'m mut self,
+        &mut self,
         mv8: &'m MiniV8,
         sim_run_id: SimulationShortID,
         msg: StateInterimSync,
@@ -941,7 +939,7 @@ impl<'m> RunnerImpl<'m> {
     }
 
     fn state_snapshot_sync(
-        &'m mut self,
+        &mut self,
         mv8: &'m MiniV8,
         sim_run_id: SimulationShortID,
         msg: StateSync,
