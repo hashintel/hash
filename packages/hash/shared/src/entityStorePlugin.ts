@@ -43,12 +43,12 @@ type EntityStorePluginAction =
 type EntityStorePluginMessage = EntityStorePluginAction[];
 
 const entityStorePluginKey = new PluginKey<EntityStorePluginState, Schema>(
-  "entityStore"
+  "entityStore",
 );
 
 export const addEntityStoreAction = (
   tr: Transaction<Schema>,
-  action: EntityStorePluginAction
+  action: EntityStorePluginAction,
 ) => {
   const actions: EntityStorePluginMessage =
     tr.getMeta(entityStorePluginKey) ?? [];
@@ -60,7 +60,7 @@ const updateEntityStoreListeners = collect<
   [
     view: EditorView<Schema>,
     listener: EntityStorePluginStateListener,
-    unsubscribe: boolean | undefined | void
+    unsubscribe: boolean | undefined | void,
   ]
 >((updates) => {
   const transactions = new Map<EditorView<Schema>, Transaction<Schema>>();
@@ -101,7 +101,7 @@ export const entityStoreFromProsemirror = (state: EditorState<Schema>) => {
 
 export const subscribeToEntityStore = (
   view: EditorView<Schema>,
-  listener: EntityStorePluginStateListener
+  listener: EntityStorePluginStateListener,
 ) => {
   updateEntityStoreListeners(view, listener);
 
@@ -260,7 +260,7 @@ export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
               return {
                 ...state,
                 listeners: Array.from(
-                  new Set([...state.listeners, action.payload])
+                  new Set([...state.listeners, action.payload]),
                 ),
               };
 
@@ -268,14 +268,14 @@ export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
               return {
                 ...state,
                 listeners: state.listeners.filter(
-                  (listener) => listener !== action.payload
+                  (listener) => listener !== action.payload,
                 ),
               };
           }
 
           return state;
         },
-        initialState
+        initialState,
       );
 
       if (nextState !== initialState) {

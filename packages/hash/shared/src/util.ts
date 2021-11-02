@@ -8,7 +8,7 @@ export type DistributiveOmit<T, K extends keyof any> = T extends any
  * This allows you to collect calls to a function to run at the end of a tick
  */
 export const collect = <P extends Array<any>>(
-  handler: (calls: P[]) => void
+  handler: (calls: P[]) => void,
 ): ((...args: P) => void) => {
   let id: ReturnType<typeof setImmediate> | null = null;
   let calls: P[] = [];
