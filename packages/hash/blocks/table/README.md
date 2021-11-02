@@ -65,14 +65,14 @@ module.exports = {
 There are a few important files, one set is used for the bundle, another set for local development.
 
 - `src/index.js` - Entrypoint of the Block Component. The component needs to be the `default` export.
-- `src/webpack-dev-server.js` - Entrypoint for `webpack-dev-server`. This is only used for development and will not be included in the final bundle.
-- `src/index.html` - HTML for `webpack-dev-server`. This is only used for development and will not be included in the final bundle.
+- `src/webpack-dev-server.js` - Entrypoint for `yarn dev`. This is only used for development and will not be included in the final bundle.
+- `src/index.html` - HTML for `yarn dev`. This is only used for development and will not be included in the final bundle.
 - `variants.json` - Defines named presets of block properties to be presented as
   separate or at least related block-types to the end-user.
 
 ## Debugging
 
-The component can be debugged locally by first starting `webpack-dev-server`.
+The component can be debugged locally by first starting `yarn dev`.
 
 ```bash
 npm run start
