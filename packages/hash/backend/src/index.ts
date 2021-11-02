@@ -112,7 +112,10 @@ apolloServer
   .then(() => {
     apolloServer.applyMiddleware({
       app,
-      cors: { credentials: true, origin: FRONTEND_URL },
+      cors: {
+        credentials: true,
+        origin: [/-hashintel\.vercel\.app$/, FRONTEND_URL],
+      },
     });
 
     const server = app.listen(port, () => {
