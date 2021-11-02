@@ -9,7 +9,7 @@ description: Adding and extending features in a simulation.
 
 In this tutorial we're going to augment one of our existing epidemiological simulations and add a hospital. Along the way you'll learn key features of hCore and how to use agent based modeling to simulate and answer complex questions.
 
-Start by opening our base template in either [JavaScript](/@hash/getting-started-base) or [Python](/@hash/getting-started-base-python)and copying it into your hDrive.
+Start by opening our base template in either [JavaScript](/@hash/getting-started-base) or [Python](/@hash/getting-started-base-python) and copying it into your hDrive.
 
 We've provided a number of agents and behaviors to simulate a virus spreading through a population. Look around at the files in the editor and click play to get a sense for how the simulation currently works.
 

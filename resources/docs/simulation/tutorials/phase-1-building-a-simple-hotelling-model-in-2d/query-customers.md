@@ -18,7 +18,7 @@ Query customers → Businesses will send their neighbors every possible position
 Collect customer responses → Businesses will collect and store all the customer responses to determine the position and item_price combination with the largest profit
 </Hint>
 
-This action can be split into three separate functions within business.js: _send_message_,_price_messaging_, _movement_messaging_.
+This action can be split into three separate functions within business.js: `send_message`, `price_messaging`, `movement_messaging`.
 
 Let’s start with sending the message. **`send_message()`** will add messages to state.messages with a neighbor agent_id, position, item_price, and rgb. Add this function to business.js.
 
