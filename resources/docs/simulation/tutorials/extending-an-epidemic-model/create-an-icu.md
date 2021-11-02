@@ -10,16 +10,16 @@ So now we can tell people they’re sick, and when they hear they’re sick they
 
 Let’s breakdown what we’ll need to modify in our existing model:
 
-1. **At risk.** Right now a person is infected or not infected, but we want to delineate between the mild and severe cases. 
+1. **At risk.** Right now a person is infected or not infected, but we want to delineate between the mild and severe cases.
 2. **ICU Capacity.** A hospital, so long as it has room in its intensive care unit, should treat severe cases. Instead of going home, the person will move to the hospital and stay there until they’re recovered.
 
 On your Hospital initialization \(in `init.json`\), add a value for `icu_beds`. This will represent the number of Intensive Care Unit beds that a hospital has.
 
-** init.json **
+**init.json**
+
 ```javascript
  "icu_beds": 10,
 ```
-
 
 In `init.json` , expand the hospital agent by adding a value for `icu_capacity`.
 
@@ -37,6 +37,7 @@ In `init.json` , expand the hospital agent by adding a value for `icu_capacity`.
   "type": "hospital"
 }
 ```
+
 </Tab>
 
 <Tab title="Python" >
@@ -52,6 +53,7 @@ In `init.json` , expand the hospital agent by adding a value for `icu_capacity`.
   "type": "hospital"
 }
 ```
+
 </Tab>
 </Tabs>
 
@@ -76,6 +78,7 @@ function check_hospital(){
     })
  }
 ```
+
 </Tab>
 
 <Tab title="Python" >
@@ -87,6 +90,7 @@ def check_hospital():
        'at_risk': state['at_risk']
     })
 ```
+
 </Tab>
 </Tabs>
 
@@ -314,6 +318,7 @@ if (state.infection_duration === 0) {
     }
 }
 ```
+
 </Tab>
 
 <Tab title="Python" >
@@ -333,6 +338,7 @@ if state.infection_duration == 0:
     state['destination'] = state['home']
     state['out'] = True
 ```
+
 </Tab>
 </Tabs>
 
@@ -367,4 +373,3 @@ for msg in recovered_messages:
 </Tabs>
 
 Congratulations! You've added a hospital and some basic behaviors to your simulation. You should now be starting to see how adding agents and behaviors can quickly create models that mirror the real world.
-

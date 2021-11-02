@@ -33,4 +33,3 @@ Cranes are able to pick up and place agents in a new location. Cranes are able t
 Racks are able to store objects or agents in them. This Library allows you to initialize racks, and give other agents the ability to place or pick from them. For instance, you can create forklifts using the "pick.js" and "place.js" behaviors in this library. You can learn more about the Rack Library at the link below:
 
 <Embed url="https://hash.ai/@hash/racks" caption="" />
-

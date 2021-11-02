@@ -36,7 +36,7 @@ The `behaviors` array of an agent running a process model must start with the [`
 This behavior provides the agent with a field that allows the other process behaviors to run. Without it the other Process Library behaviors will throw errors.
 </Hint>
 
-** init.json **
+**init.json**
 
 ```javascript
 {
@@ -128,4 +128,3 @@ The parameters for each block must be specified in the agent's fields. Each para
 ```
 
 On the next page you can learn more about the parameters needed for each type of **block**, and their specific functions.
-

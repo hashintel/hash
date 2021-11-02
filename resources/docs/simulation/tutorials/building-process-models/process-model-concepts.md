@@ -67,6 +67,3 @@ const behavior = (state, context) => {
 };
 
 ```
-
-
-

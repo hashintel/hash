@@ -55,7 +55,6 @@ const behavior = () => {
 }
 ```
 
-
 <Hint style="info">
 Metric weights can also be captured as global parameters for easy modification
 </Hint>
@@ -95,12 +94,11 @@ const behavior = () => {
 }
 ```
 
-
 <Hint style="info">
 Sum of squares is the typical method for calculating the error between a sample datapoint and "predicted" or modeled datapoint: _Error =  Sum of \(agent_avg - data_avg\)^2_
 </Hint>
 
-#### 4. Now create a metric to capture the calculated error:
+#### 4. Now create a metric to capture the calculated error
 
 ![Define a metric to capture the cumulative error](https://cdn-us1.hash.ai/site/docs/image%20%2873%29.png)
 
@@ -114,4 +112,3 @@ Now that we have the error captured in a metric, we can apply it. You can:
 By plotting your model output, and real-world values from the dataset, you should see the optimization experiment producing a well-calibrated model:
 
 ![Model output fitted to data](https://cdn-us1.hash.ai/site/docs/image%20%2870%29.png)
-

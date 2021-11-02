@@ -45,4 +45,3 @@ The storage agent is quite simple at this point. All we have to do is use the tw
 ## Distributor
 
 The distributor needs the `Flow In` behavior, and a custom behavior which will respond to order requests from **Retailers**. We'll wait until we've initialized a **Retailer** before writing that, so that we can test it properly.
-

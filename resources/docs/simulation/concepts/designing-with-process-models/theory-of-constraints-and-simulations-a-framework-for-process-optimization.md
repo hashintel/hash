@@ -30,7 +30,7 @@ It's ironic that when trying to improve a process, people have a tendency to foc
 
 > In a business case, the economic value of measuring a variable is usually inversely proportional to how much measurement attention it usually gets.
 
-For example, consider a [Billing Department](https://core.hash.ai/@hash/billing-department-process/stable), which needs to process, send out, and occasionally audit two types of bills. 
+For example, consider a [Billing Department](https://core.hash.ai/@hash/billing-department-process/stable), which needs to process, send out, and occasionally audit two types of bills.
 
 ![](https://lh4.googleusercontent.com/W6wazlGHPZVxkEuWCl8DIkw66P44qrgvMbIAUs0VfgGwiY-taiU1PgVnr5dhkeBTc-kpCzm5Xhajs7-VMhGsOaG6CcKhbQ6uQMXH-z-hCxf6zRtmEqeIel3_JyHRVjIxgObDla47)
 
@@ -103,4 +103,3 @@ In the example, we can take it and update the parameters as new data about the p
 ## Repeat
 
 Once you've improved your constraints, you'll find the system working better than before. But process optimization isn't a one-off process; it's a continuous process for creating continuous improvement. Once the first constraint is improved, a new part of the system will emerge as the bottleneck for performance, and you can reuse this framework \(and the simulation you've built\) to find, exploit, subordinate, and alleviate the constraints.
-

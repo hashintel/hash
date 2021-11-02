@@ -27,7 +27,6 @@ The associated tree growth behavior would follow:
 <Tabs>
 <Tab title="JavaScript" >
 
-
 ```javascript
 function behavior(state, context) {
     if (state.height + growth <= context.globals()["maxTreeHeight"]) {
@@ -35,16 +34,17 @@ function behavior(state, context) {
     }
 }
 ```
+
 </Tab>
 
 <Tab title="Python" >
-
 
 ```python
 def behavior(state, context):   
     if state['height'] + growth <= context.globals()['maxTreeHeight']):
         growtree()
 ```
+
 </Tab>
 </Tabs>
 
@@ -65,8 +65,7 @@ The type of field input for a simulation parameter can be varied by adding a "sc
 
 ### Color Picker
 
-** globals.json **
-
+**globals.json**
 
 ```javascript
 
@@ -106,4 +105,3 @@ The type of field input for a simulation parameter can be varied by adding a "sc
 ```
 
 ![Sliders for number parameters in the visual globals pane](https://cdn-us1.hash.ai/site/docs/image%20%2832%29.png)
-

@@ -1,0 +1,17 @@
+{
+  "name": "markdown-linting",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "fix:markdownlint": "markdownlint --fix ../../../resources",
+    "lint:markdownlint": "markdownlint ../../../resources"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "markdownlint-cli": "^0.29.0"
+  }
+}

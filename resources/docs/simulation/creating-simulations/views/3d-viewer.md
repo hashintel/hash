@@ -47,4 +47,3 @@ It's possible to hide agents from the viewer. Simply, set "hidden" to true on th
 The 3D stage and grid color can be changed and set by clicking on the gear icon in the top right.
 
 ![](https://cdn-us1.hash.ai/site/docs/image%20%2868%29.png)
-

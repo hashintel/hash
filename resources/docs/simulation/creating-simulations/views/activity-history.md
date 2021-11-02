@@ -13,4 +13,3 @@ When you make changes to files in a project, create a release, or run a simulati
 You can also filter within the activity panel to show only events matching a specific type.
 
 ![](https://cdn-us1.hash.ai/site/docs/image%20%2840%29.png)
-

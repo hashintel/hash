@@ -32,4 +32,3 @@ function behavior(state, context) {
     const num_new_agents = poisson.sample(10); // will return the same sample every run
 }
 ```
-

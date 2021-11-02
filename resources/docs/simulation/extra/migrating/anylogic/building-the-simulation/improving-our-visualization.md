@@ -12,7 +12,7 @@ Now let's add some more involved visualization to our simulation. Visualizations
 
 We'll start by defining outputs that track metrics of interest, like the total quantity of crude and refined oil, and the number of gas stations that are empty. We'll use those outputs to generate a few plots of interest.
 
-** analysis.json **
+**analysis.json**
 
 ```javascript
 "empty_stations": [
@@ -27,7 +27,6 @@ We'll start by defining outputs that track metrics of interest, like the total q
   }
 ]
 ```
-
 
 ![Plots for the Oil Supply Chain model](https://cdn-us1.hash.ai/site/docs/image%20%2827%29.png)
 
@@ -66,4 +65,3 @@ Both out truck agents and our tankers could look more realistic as they move alo
 ```javascript
 state.set("direction", new_lng_lat.map((c, i) => state.get("lng_lat")[i] - c));
 ```
-

@@ -16,7 +16,6 @@ The cost function will be as follows, where price is the Business’s `item_pric
 
 <Math formula="C(B_i)=price_i+D(position_i)" />
 
-
 <Math formula="D(p) = \sqrt{p_x^2+p_y^2}" />
 
 Create the function `calculate_cost()` in **`customer.js`**.
@@ -109,8 +108,8 @@ Define a `find_min()` function like the one below.
 
 <Hint style="info">
 
-* **overall_min →** store the data for the business position/price combination that yields the lowest cost across all businesses
-* **Individual_min →** store the data for the business position/price combination that yields the lowest cost across for each individual business
+- **overall_min →** store the data for the business position/price combination that yields the lowest cost across all businesses
+- **Individual_min →** store the data for the business position/price combination that yields the lowest cost across for each individual business
 
 </Hint>
 
@@ -312,6 +311,7 @@ const behavior = (state, context) => {
  find_min(businesses);
 }
 ```
+
 </Tab>
 
 <Tab title="init.json" >
@@ -359,6 +359,7 @@ const behavior = (state, context) => {
  }
 ]
 ```
+
 </Tab>
 
 <Tab title="business.js" >
@@ -399,5 +400,6 @@ const behavior = (state, context) => {
  }
 }
 ```
+
 </Tab>
 </Tabs>

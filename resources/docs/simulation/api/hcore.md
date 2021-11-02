@@ -93,7 +93,6 @@ Request that HASH send a message every time a file changes. If you send this to 
 
 <Tab title="Message" >
 
-
 ```javascript
 // initialize message example
 

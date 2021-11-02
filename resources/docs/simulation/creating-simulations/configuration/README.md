@@ -23,4 +23,3 @@ There are two types of global variables in HASH:
 
 * [simulation parameters](/docs/simulation/creating-simulations/configuration/basic-properties) - these capture truths or assumptions about the state of your world
 * [topological parameters](/docs/simulation/creating-simulations/configuration/topology/) - define the extent of the world using [bounds and wrapping](/docs/simulation/creating-simulations/configuration/topology/bounds-and-wrapping), determine how agents interact with the borders \(if any\) of spatial simulations using [wrapping presets and flags](/docs/simulation/creating-simulations/configuration/topology/wrapping-presets-and-flags), and configure how [distance calculations](/docs/simulation/creating-simulations/configuration/topology/distance-functions) are conducted across topologies
-

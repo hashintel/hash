@@ -15,7 +15,7 @@ Networks are often found in multi-agent models, and the ability to visualize the
 Network drawing can be toggled by accessing the menu in the top right of the 3D Viewer.
 </Hint>
 
-You can take this a step further and use the[ Networks Library](/@hash/networks) to provide agents easy access to their network neighbors.
+You can take this a step further and use the[Networks Library](/@hash/networks) to provide agents easy access to their network neighbors.
 
 ## Edges as Agents
 
@@ -63,4 +63,3 @@ Below are a few simulations which use network visualizations. Inspect the releva
 <Embed url="https://hash.ai/@hash/interconnected-call-center" caption="" />
 
 **"create_links.js"** in the Interconnected Call Center.
-

@@ -11,7 +11,7 @@ HASH currently provides access to the [jStat](http://jstat.github.io/distributio
 
 Currently only the functions and classes listed below are "fully supported". Others are available and will work, though we've left them undocumented as the interface/names might change.
 
-** [jStat Vectors](http://jstat.github.io/vector.html) **
+**[jStat Vectors](http://jstat.github.io/vector.html)**
 
 These functions operate on arrays \(or arrays of arrays\) to calculate typical statistical measures.
 
@@ -52,7 +52,7 @@ covariance(array1, array2)
 corrcoeff(array1, array2)
 ```
 
-** [jStat Distributions](http://jstat.github.io/distributions.html) **
+**[jStat Distributions](http://jstat.github.io/distributions.html)**
 
 All of the classes below have methods to calculate typical properties relating to the named distribution. Check the jStat documentation, or hCore's built-in autocomplete and tooltips for more information.
 
@@ -81,4 +81,3 @@ arcsine
 ```
 
 For an example that uses these statistics functions, see the example on the [Designing with Distributions](/docs/simulation/concepts/designing-with-distributions) page.
-

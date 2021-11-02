@@ -35,4 +35,3 @@ The default distance function is `conway` - make sure to change it depending on 
 </Hint>
 
 Currently, HASH doesn't support multiple distance functions in a single simulation.
-

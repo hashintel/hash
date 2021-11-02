@@ -1,0 +1,5 @@
+{
+  "no-inline-html": false,
+  "no-bare-urls": false,
+  "line-length": { "line_length": 100 }
+}

@@ -19,4 +19,3 @@ Merge requests are defined on the hIndex page of the simulation, where you can a
 ![](https://cdn-us1.hash.ai/site/docs/61476e8b-70f1-41a9-af83-094c21ad6db1-474-000087a10523f58e%20%281%29%20%281%29.png)
 
 Once a merge request is approved by the main sim owner, it will automatically merge in all of the changes.
-

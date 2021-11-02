@@ -25,7 +25,6 @@ To use these behaviors on an agent, you will need to both add it to the "behavio
 * [**Discrete Shape**](/@hash/display-shape-discrete)
 * [**Scaling "Scale"**](/@hash/display-scale-scaling)
 
-You can find a working demonstration of these behaviors in the [Published Display Behaviors ](/@hash/published-display-behaviors)simulation.
+You can find a working demonstration of these behaviors in the [Published Display Behaviors](/@hash/published-display-behaviors)simulation.
 
 We encourage you to develop and publish your own behaviors which can enable more complex visualization tasks.
-

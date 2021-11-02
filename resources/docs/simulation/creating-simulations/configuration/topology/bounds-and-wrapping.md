@@ -35,4 +35,3 @@ The wrapping presents we support out-of-the box are:
 | Reflection | Agents are simply bounced off the border and have their direction flipped |
 | Torus | Like the classic arcade games Asteroids and Pacman, agents will be wrapped continuously on both borders. This only applies to the X and Y axis |
 | Continuous | Like Torus, but applies in all three dimensions, X, Y, and Z. |
-

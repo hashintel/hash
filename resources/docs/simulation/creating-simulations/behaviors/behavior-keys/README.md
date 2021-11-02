@@ -27,4 +27,3 @@ If you type in the name of a behavior key that already exists in your simulation
 Behavior Keys are **optional** for in-browser simulation runs, but are **required** for cloud runs.
   
 </Hint>
-
