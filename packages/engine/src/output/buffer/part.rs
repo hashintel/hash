@@ -36,7 +36,7 @@ impl OutputPartBuffer {
     ) -> Result<OutputPartBuffer> {
         let mut base_path = PathBuf::from(RELATIVE_PARTS_FOLDER);
         base_path.push(experiment_id);
-        base_path.push(simulation_run_id);
+        base_path.push(simulation_run_id.to_string());
 
         std::fs::create_dir_all(&base_path)?;
 
@@ -87,6 +87,7 @@ impl OutputPartBuffer {
     }
 
     pub fn append_step<S: Serialize>(&mut self, step: S) -> Result<()> {
+        // TODO OS - COMPILE BLOCK - No finalized field on OutputPartBuffer
         if self.finalized {
             return Err(Error::from("Cannot append to finalized part buffer"));
         }

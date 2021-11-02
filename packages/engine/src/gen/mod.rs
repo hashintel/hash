@@ -18,8 +18,8 @@ pub mod sync_state_interim;
 pub mod target;
 
 impl From<crate::types::TaskID> for runner_msg::TaskID {
-    fn from(self) -> Self {
-        Self(self.to_ne_bytes())
+    fn from(task_id: crate::types::TaskID) -> Self {
+        Self(task_id.to_ne_bytes())
     }
 }
 

@@ -4,9 +4,7 @@ use serde_json::Value;
 use crate::config::PersistenceConfig;
 use crate::output::error::Result;
 use crate::output::OutputPersistenceResultRepr;
-use crate::simulation::{
-    packages::output::packages::OutputPackagesSimConfig, step_result::SimulationStepResult,
-};
+use crate::simulation::step_output::SimulationStepOutput;
 
 use super::{OutputPersistenceCreatorRepr, SimulationOutputPersistenceRepr};
 
@@ -36,7 +34,7 @@ struct NoSimulationOutputPersistence {}
 impl SimulationOutputPersistenceRepr for NoSimulationOutputPersistence {
     type OutputPersistenceResult = ();
 
-    async fn add_step_output(&mut self, output: SimulationStepResult) -> Result<()> {
+    async fn add_step_output(&mut self, output: SimulationStepOutput) -> Result<()> {
         Ok(())
     }
 

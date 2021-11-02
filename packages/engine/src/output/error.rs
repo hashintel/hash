@@ -6,6 +6,12 @@ pub type Result<T, E = Error> = std::result::Result<T, E>;
 pub enum Error {
     #[error("Output error: {0}")]
     Unique(String),
+
+    #[error("Deserialization error: {0}")]
+    FromSerde(#[from] serde_json::Error),
+
+    #[error("IO error: {0:?}")]
+    IO(#[from] std::io::Error),
 }
 
 impl From<&str> for Error {

@@ -19,7 +19,6 @@ mod util;
 
 const RELATIVE_PARTS_FOLDER: &str = "./parts";
 
-#[derive(Default)]
 pub struct Buffers {
     pub json_state: OutputPartBuffer,
     pub analysis: AnalysisBuffer,
@@ -57,7 +56,6 @@ impl AnalysisBuffer {
             buffers: config
                 .outputs
                 .keys()
-                .iter()
                 .map(|v| (Arc::new(v.clone()), vec![]))
                 .collect(),
         };

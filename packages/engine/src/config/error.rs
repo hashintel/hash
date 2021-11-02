@@ -9,6 +9,9 @@ pub enum Error {
 
     #[error("Simulation error: {0}")]
     Simulation(#[from] crate::simulation::Error),
+
+    #[error("Deserialization error: {0}")]
+    FromSerde(#[from] serde_json::Error),
 }
 
 impl From<&str> for Error {

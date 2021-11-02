@@ -1,9 +1,11 @@
+use serde::Serialize;
 use std::{collections::HashMap, sync::Arc};
 
 pub struct AnalysisOutput {
     pub inner: HashMap<Arc<String>, AnalysisSingleOutput>,
 }
 
+#[derive(Serialize)]
 pub enum AnalysisSingleOutput {
     Number(Option<f64>),
     Vec(Option<Vec<Option<f64>>>),
