@@ -11,6 +11,7 @@ pub struct RunnerError {
     pub line_number: Option<i32>,
 }
 
+#[derive(Debug)]
 pub enum OutboundFromRunnerMsgPayload {
     TaskMsg(TargetedRunnerTaskMsg),
     TaskCancelled(TaskID),
@@ -20,6 +21,7 @@ pub enum OutboundFromRunnerMsgPayload {
     RunnerWarnings(Vec<RunnerError>),
 }
 
+#[derive(Debug)]
 pub struct OutboundFromRunnerMsg {
     pub source: Language,
     pub sim_id: SimulationShortID,

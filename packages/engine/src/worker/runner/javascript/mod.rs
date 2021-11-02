@@ -42,6 +42,11 @@ use crate::{
     Language,
 };
 pub use error::{Error, Result};
+use crate::config::Globals;
+use crate::datastore::table::pool::agent::AgentPool;
+use crate::datastore::table::pool::message::MessagePool;
+use crate::datastore::table::pool::proxy::PoolReadProxy;
+use crate::hash_types::Agent;
 
 struct JSPackage<'m> {
     fns: mv8::Array<'m>,
@@ -279,35 +284,30 @@ fn mut_batch_to_js<'m>(
     metaversion: &Metaversion,
 ) -> mv8::Value<'m> {
     // TODO: Is `mem.data.len()` different from `mem.size`?
-    let mem = mv8.create_arraybuffer(mem.data.as_mut_ptr(), mem.size);
+    let mem = mv8.create_arraybuffer(mem.as_mut_ptr(), mem.size);
     mem_batch_to_js(mv8, mem, metaversion)
 }
 
 fn state_to_js<'m>(
     mv8: &'m MiniV8,
-    agent_batches: &dyn BatchPool<AgentBatch>,
-    msg_batches: &dyn BatchPool<MessageBatch>,
-) -> (mv8::Value<'m>, mv8::Value<'m>) {
-    let n_batches = agent_batches.batches().len();
-    assert_eq!(n_batches, msg_batches.batches().len());
-    let agent_batches = agent_batches.read_proxy()?;
-    let msg_batches = msg_batches.read_proxy()?;
-
+    agent_batches: &PoolReadProxy<AgentBatch>,
+    msg_batches: &PoolReadProxy<MessageBatch>,
+) -> Result<(mv8::Value<'m>, mv8::Value<'m>)> {
     let js_agent_batches = mv8.create_array();
     let js_msg_batches = mv8.create_array();
-    for i_batch in 0..n_batches {
+    for i_batch in 0..agent_batches.n_batches() {
         let agent_batch = agent_batches.batch(i_batch)?;
         let agent_batch = batch_to_js(mv8, agent_batch.memory(), agent_batch.metaversion());
         js_agent_batches.set(i_batch as u32, agent_batch)?;
 
         let msg_batch = msg_batches.batch(i_batch)?;
-        let msg_batch = batch_to_js(mv8, msg_batch.batch.memory(), msg_batch.batch.metaversion());
+        let msg_batch = batch_to_js(mv8, msg_batch.memory(), msg_batch.metaversion());
         js_msg_batches.set(i_batch as u32, msg_batch)?;
     }
-    (
+    Ok((
         mv8::Value::Array(js_agent_batches),
         mv8::Value::Array(js_msg_batches),
-    )
+    ))
 }
 
 fn bytes_to_js<'m>(mv8: &'m MiniV8, bytes: &mut [u8]) -> mv8::Value<'m> {
@@ -408,6 +408,18 @@ struct GroupSync {
     pub group_index: usize,
     pub agent_batch: Arc<RwLock<AgentBatch>>,
     pub message_batch: Arc<RwLock<MessageBatch>>,
+}
+
+fn agent_pool_from_batches(
+    batches: Vec<Arc<RwLock<AgentBatch>>>
+) -> Box<dyn BatchPool<AgentPool>> {
+    Box::new(AgentPool::new(batches)) as Box<dyn BatchPool<AgentPool>>
+}
+
+fn msg_pool_from_batches(
+    batches: Vec<Arc<RwLock<MessageBatch>>>
+) -> Box<dyn BatchPool<MessagePool>> {
+    Box::new(MessagePool::new(batches)) as Box<dyn BatchPool<MessagePool>>
 }
 
 impl<'m> RunnerImpl<'m> {
@@ -620,6 +632,7 @@ impl<'m> RunnerImpl<'m> {
         batch: &Arc<RwLock<B>>,
         schema: &Schema,
     ) -> Result<()> {
+        let mut batch = batch.write();
         for change in changes.elements() {
             let change: mv8::Object = change?;
 
@@ -629,7 +642,7 @@ impl<'m> RunnerImpl<'m> {
 
             let data: mv8::Value = change.get("data")?;
             let data = self.array_data_from_js(mv8, &data, field.data_type(), None)?;
-            (&*batch).push_change(ArrayChange {
+            batch.push_change(ArrayChange {
                 array: Arc::new(data),
                 index: i_field,
             })?;
@@ -651,6 +664,7 @@ impl<'m> RunnerImpl<'m> {
         group_index: u32,
         changes: mv8::Object<'m>,
     ) -> Result<GroupSync> {
+        let group_index = group_index as usize;
         // TODO: Currently look up simulation's state for each group, whereas
         //       could do it once for all groups.
         let state = self
@@ -660,11 +674,13 @@ impl<'m> RunnerImpl<'m> {
 
         let agent_changes = changes.get("agent")?;
         let agent_batch = state.agent_pool[group_index].clone();
-        self.flush_batch(mv8, agent_changes, &agent_batch, &state.agent_schema)?;
+        let agent_ref = &agent_batch as &Arc<RwLock<dyn DynamicBatch>>;
+        self.flush_batch(mv8, agent_changes, agent_ref, &state.agent_schema)?;
 
         let msg_changes = changes.get("msg")?;
-        let message_batch = state.msg_pool[group_index].clone();
-        self.flush_batch(mv8, msg_changes, &message_batch, &state.msg_schema)?;
+        let message_batch = state.msg_pool[group_index as usize].clone();
+        let message_ref = &message_batch as &Arc<RwLock<dyn DynamicBatch>>;
+        self.flush_batch(mv8, msg_changes, message_ref, &state.msg_schema)?;
 
         Ok(GroupSync {
             group_index: group_index as usize,
@@ -685,25 +701,27 @@ impl<'m> RunnerImpl<'m> {
             let group = self.flush_group(mv8, sim_run_id, group_index, changes)?;
             let sync = StateInterimSync {
                 group_indices: vec![group.group_index],
-                agent_batches: vec![group.agent_batch],
-                message_batches: vec![group.message_batch],
+                agent_batches: agent_pool_from_batches(vec![group.agent_batch]),
+                message_batches: msg_pool_from_batches(vec![group.message_batch]),
             };
             return Ok(sync);
         }
 
-        let mut sync = StateInterimSync {
-            group_indices: Vec::new(),
-            agent_batches: Vec::new(),
-            message_batches: Vec::new(),
-        };
-
+        let mut group_indices = Vec::new();
+        let mut agent_batches = Vec::new();
+        let mut message_batches = Vec::new();
         let groups_changes: mv8::Array = r.get("changes")?;
         for (i_group, changes) in groups_changes.elements().enumerate() {
             let group = self.flush_group(mv8, sim_run_id, i_group as u32, changes?)?;
-            sync.group_indices.push(group.group_index);
-            sync.agent_batches.push(group.agent_batch);
-            sync.message_batches.push(group.message_batch);
+            group_indices.push(group.group_index);
+            agent_batches.push(group.agent_batch);
+            message_batches.push(group.message_batch);
         }
+        let sync = StateInterimSync {
+            group_indices,
+            agent_batches: agent_pool_from_batches(agent_batches),
+            message_batches: msg_pool_from_batches(message_batches),
+        };
         Ok(sync)
     }
 
@@ -743,7 +761,9 @@ impl<'m> RunnerImpl<'m> {
             pkg_msgs.set(i_pkg, mv8.create_string(&payload))?;
         }
 
-        let globals = mv8.create_string(&serde_json::to_string(&run.globals).unwrap());
+        let globals: &Globals = &run.globals;
+        let globals = serde_json::to_string(globals).unwrap();
+        let globals = mv8.create_string(&globals);
 
         let args = mv8::Values::from_vec(vec![
             sim_id_to_js(mv8, run.short_id),
@@ -768,7 +788,7 @@ impl<'m> RunnerImpl<'m> {
         };
         self.sims_state
             .try_insert(run.short_id, state)
-            .map_err(|_| Error::DuplicateSimulationRun(run.id))?;
+            .map_err(|_| Error::DuplicateSimulationRun(run.short_id))?;
         Ok(())
     }
 
@@ -787,11 +807,14 @@ impl<'m> RunnerImpl<'m> {
             mv8::Value::Undefined
         };
 
+        let payload = serde_json::to_string(&msg.payload).unwrap();
+        let payload = mv8::Value::String(mv8.create_string(&payload));
+
         let args = mv8::Values::from_vec(vec![
             sim_id_to_js(mv8, sim_run_id),
             group_index,
             pkg_id_to_js(mv8, msg.package_id),
-            mv8::Value::String(mv8.create_string(&msg.payload.serialize())),
+            payload,
         ]);
         let r: mv8::Object = self
             .embedded
@@ -804,7 +827,7 @@ impl<'m> RunnerImpl<'m> {
         }
         let warnings = get_user_warnings(mv8, &r);
         // TODO: Send `r.print` (if any) to main loop to display to user.
-        let (next_target, next_task_payload) = get_next_task(mv8, &r);
+        let (next_target, next_task_payload) = get_next_task(mv8, &r)?;
 
         // TODO: Only flush if state writable
         let next_sync = self.flush(mv8, sim_run_id, msg.group_index, &r)?;
@@ -854,7 +877,14 @@ impl<'m> RunnerImpl<'m> {
         //       state in parallel with the mutation through those pointers).
 
         // Sync JS.
-        let (agent_pool, msg_pool) = state_to_js(mv8, &msg.agent_pool, msg.message_pool);
+        // let agent_pool = &msg.agent_pool as &dyn BatchPool<AgentBatch>;
+        // let msg_pool = &msg.message_pool as &dyn BatchPool<MessageBatch>;
+        let agent_pool = msg.agent_pool.read_proxy()?;
+        let msg_pool = msg.message_pool.read_proxy()?;
+
+        // Pass proxies by reference, because they shouldn't be
+        // dropped until entire sync is complete.
+        let (agent_pool, msg_pool) = state_to_js(mv8, &agent_pool, &msg_pool)?;
         let args = mv8::Values::from_vec(vec![sim_id_to_js(mv8, sim_run_id), agent_pool, msg_pool]);
         let _: mv8::Value = self
             .embedded
@@ -878,7 +908,9 @@ impl<'m> RunnerImpl<'m> {
         msg: StateInterimSync,
     ) -> Result<()> {
         // Sync JS.
-        let (agent_batches, msg_batches) = state_to_js(mv8, msg.agent_batches, msg.message_batches);
+        let agent_pool = msg.agent_batches.partial_read_proxy(&msg.group_indices)?;
+        let msg_pool = msg.message_batches.partial_read_proxy(&msg.group_indices)?;
+        let (agent_batches, msg_batches) = state_to_js(mv8, &agent_pool, &msg_pool)?;
         let args = mv8::Values::from_vec(vec![
             sim_id_to_js(mv8, sim_run_id),
             idxs_to_js(mv8, &msg.group_indices)?,
@@ -898,7 +930,9 @@ impl<'m> RunnerImpl<'m> {
         let iter = msg
             .group_indices
             .iter()
-            .zip(msg.agent_batches.iter().zip(msg.message_batches.iter()));
+            .zip(msg.agent_batches.cloned_batch_pool().iter().zip(
+                msg.message_batches.cloned_batch_pool().iter())
+            );
         for (i_group, (agent_batch, msg_batch)) in iter {
             state.agent_pool[*i_group] = agent_batch.clone();
             state.msg_pool[*i_group] = msg_batch.clone();
@@ -913,11 +947,13 @@ impl<'m> RunnerImpl<'m> {
         msg: StateSync,
     ) -> Result<()> {
         // TODO: Duplication with `state_sync`
+        let agent_pool = msg.agent_pool.read_proxy()?;
+        let msg_pool = msg.message_pool.read_proxy()?;
         let (agent_pool, msg_pool) = state_to_js(
             mv8,
-            msg.agent_pool.cloned_batch_pool(),
-            msg.message_pool.cloned_batch_pool(),
-        );
+            &agent_pool,
+            &msg_pool,
+        )?;
         let sim_run_id = sim_id_to_js(mv8, sim_run_id);
         let args = mv8::Values::from_vec(vec![sim_run_id, agent_pool, msg_pool]);
         let _: mv8::Value = self
@@ -1082,6 +1118,6 @@ impl JavaScriptRunner {
         };
 
         let local = tokio::task::LocalSet::new();
-        local.block_on(&runtime, impl_future);
+        local.block_on(&runtime, impl_future)
     }
 }

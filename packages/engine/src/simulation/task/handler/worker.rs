@@ -7,7 +7,7 @@ pub trait WorkerHandler {
     /// Given an initial message from the package in the
     /// main loop of the simulation, convert it to one
     /// that can be sent to a language runner
-    fn start_message(&self, _task: Task) -> Result<TargetedTaskMessage> {
+    fn start_message(&self) -> Result<TargetedTaskMessage> {
         Err(Error::WorkerNodeHandlerNotImplemented)
     }
 

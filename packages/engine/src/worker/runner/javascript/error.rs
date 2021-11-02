@@ -9,6 +9,7 @@ use tokio::sync::mpsc::error::SendError;
 use super::mini_v8 as mv8;
 use crate::proto::SimulationShortID;
 use thiserror::Error as ThisError;
+use crate::worker::runner::comms::outbound::OutboundFromRunnerMsg;
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -68,7 +69,10 @@ pub enum Error {
     UnknownTarget(String),
 
     #[error("Couldn't send inbound message to runner: {0}")]
-    InboundSend(SendError<(Option<SimulationShortID>, InboundToRunnerMsgPayload)>),
+    InboundSend(#[from] SendError<(Option<SimulationShortID>, InboundToRunnerMsgPayload)>),
+
+    #[error("Couldn't send outbound message from runner: {0}")]
+    OutboundSend(#[from] SendError<OutboundFromRunnerMsg>),
 
     #[error("Couldn't receive outbound message from runner")]
     OutboundReceive,

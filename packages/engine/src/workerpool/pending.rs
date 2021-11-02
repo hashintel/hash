@@ -12,11 +12,14 @@ use crate::{
             cancel::CancelTask,
             result::{TaskResult, TaskResultOrCancelled},
             Task,
+            handler::worker_pool::WorkerPoolHandler
         },
     },
     types::TaskID,
     worker::task::WorkerTaskResultOrCancelled,
 };
+
+type HasTerminated = bool;
 
 pub enum DistributionController {
     Distributed {
@@ -41,32 +44,36 @@ pub struct PendingWorkerPoolTask {
 impl PendingWorkerPoolTask {
     fn handle_result_state(
         &mut self,
-        worker_index: Worker,
+        worker: Worker,
         task_id: TaskID,
         result: TaskResult,
-    ) -> Result<bool> {
+    ) -> Result<HasTerminated> {
         if let DistributionController::Distributed {
             active_workers: active_workers_comms,
             received_results,
             reference_task,
-        } = &mut self.distribution_controller
-        {
-            received_results.insert(worker_index, result);
-            active_workers_comms.remove(worker_index);
+        } = &mut self.distribution_controller {
+
+            received_results.insert(worker.index(), (worker, result));
+            active_workers_comms.remove(worker.index());
             if active_workers_comms.is_empty() {
-                received_results.sort_by(|a, b| a.cmp(b));
+                received_results.sort_by(|a, b| a.cmp(&b));
                 let received_results = std::mem::replace(received_results, vec![]);
                 let results = received_results
                     .into_iter()
                     .map(|(index, res)| res)
                     .collect();
-                let combined_result =
-                    TaskResultOrCancelled::Result(reference_task.combine_messages(results)?);
+                let combined_result = TaskResultOrCancelled::Result(
+                    reference_task.combine_messages(results)?
+                );
                 self.comms.result_send.send(combined_result)?;
-                return Ok(true);
+                Ok(true)
+            } else {
+                Ok(false)
             }
-            return Ok(false);
+
         } else {
+
             self.comms
                 .result_send
                 .send(TaskResultOrCancelled::Result(result))?;
@@ -74,19 +81,49 @@ impl PendingWorkerPoolTask {
         }
     }
 
-    pub fn handle_result_or_cancel_and_maybe_complete(
+    fn handle_cancel_state(
         &mut self,
-        worker_index: Worker,
+        worker: Worker,
+        task_id: TaskID,
+    ) -> Result<HasTerminated> {
+        if let DistributionController::Distributed {
+            active_workers: active_workers_comms,
+            received_results,
+            reference_task,
+        } = &mut self.distribution_controller {
+
+            active_workers_comms.remove(worker.index());
+            if active_workers_comms.is_empty() {
+                let combined_result = TaskResultOrCancelled::Cancelled;
+                self.comms.result_send.send(combined_result)?;
+                Ok(true)
+            } else {
+                Ok(false)
+            }
+
+        } else {
+
+            self.comms
+                .result_send
+                .send(TaskResultOrCancelled::Cancelled)?;
+            Ok(true)
+        }
+    }
+
+
+    pub fn handle_result_or_cancel(
+        &mut self,
+        worker: Worker,
         result_or_cancelled: WorkerTaskResultOrCancelled,
-    ) -> Result<bool> {
+    ) -> Result<HasTerminated> {
         if self.cancelling || matches!(result_or_cancelled, TaskResultOrCancelled::Cancelled) {
-            return self.handle_cancel_state(worker_index, result_or_cancelled.task_id);
-        } else if let TaskResultOrCancelled::Result(result) = result_or_cancelled.inner {
-            return self.handle_result_state(worker_index, result_or_cancelled.task_id, result);
+            self.handle_cancel_state(worker, result_or_cancelled.task_id)
+        } else if let TaskResultOrCancelled::Result(result) = result_or_cancelled.payload {
+            self.handle_result_state(worker, result_or_cancelled.task_id, result)
         } else {
             Err(Error::from(
                 "Unexpected state when handling worker task result",
-            ));
+            ))
         }
     }
 
@@ -114,10 +151,10 @@ pub struct PendingWorkerPoolTasks {
 
 impl PendingWorkerPoolTasks {
     async fn run_cancel_check(&mut self) -> Result<Vec<TaskID>> {
-        let cancel_tasks = vec![];
+        let mut cancel_tasks = vec![];
         self.inner.iter_mut().for_each(|(id, task)| {
             // Ignore if closed
-            if let Ok(Some(c)) = task.recv_cancel() {
+            if let Ok(Some(_)) = task.recv_cancel() {
                 cancel_tasks.push(*id);
             }
         });

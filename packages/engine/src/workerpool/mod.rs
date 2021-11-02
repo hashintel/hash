@@ -63,7 +63,7 @@ impl WorkerPoolController {
         let WorkerPoolConfig {
             worker_base_config,
             num_workers,
-        } = config.worker_pool;
+        } = config.worker_pool.clone();
 
         let (comms, worker_comms) = comms::new_pool_comms(num_workers);
         let (sim_send_base, sim_recv) = comms::new_no_sim();
@@ -107,7 +107,7 @@ impl WorkerPoolController {
         Ok(())
     }
 
-    async fn register_simulation(&self, payload: NewSimulationRun) -> Result<()> {
+    async fn register_simulation(&mut self, payload: NewSimulationRun) -> Result<()> {
         // TODO simulation may not be registered to all workers
         self.send_to_all_workers(WorkerPoolToWorkerMsg::new_simulation_run(payload))
     }
@@ -123,7 +123,9 @@ impl WorkerPoolController {
             .ok_or_else(|| Error::MissingWorkerControllers)?;
 
         let fut = tokio::spawn(async move {
-            try_join_all(worker_controllers.into_iter().map(|c| c.run())).await
+            try_join_all(worker_controllers.into_iter().map(|mut c| {
+                c.run().await.map_err(Error::from)
+            })).await
         });
         return Ok(fut);
     }
@@ -205,7 +207,7 @@ impl WorkerPoolController {
 
     async fn handle_worker_msg(
         &mut self,
-        worker_index: WorkerIndex,
+        worker: Worker,
         worker_msg: WorkerToWorkerPoolMsg,
     ) -> Result<()> {
         match worker_msg {
@@ -215,7 +217,7 @@ impl WorkerPoolController {
                     .inner
                     .get_mut(&res.task_id)
                     .ok_or_else(|| Error::MissingPendingTask(res.task_id))?;
-                if pending_task.handle_result_or_cancel_and_maybe_complete(worker_index, res)? {
+                if pending_task.handle_result_or_cancel(worker, res)? {
                     // Remove pending task because it has terminated (completed OR cancelled)
                     // Unwrap must work, since we've checked the key exists in the hashmap
                     self.pending_tasks.inner.remove(&res.task_id).unwrap();
@@ -265,7 +267,7 @@ impl WorkerPoolController {
     }
 
     fn send_to_worker(&mut self, index: WorkerIndex, msg: WorkerPoolToWorkerMsg) -> Result<()> {
-        self.comms.send(index, msg)
+        self.comms.send(index, msg).map_err(Error::from)
     }
 
     fn send_to_all_workers(&mut self, msg: WorkerPoolToWorkerMsg) -> Result<()> {

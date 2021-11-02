@@ -26,9 +26,3 @@ pub struct TargetedTaskMessage {
     pub target: MessageTarget,
     pub payload: TaskMessage,
 }
-
-pub struct WrappedTaskMessage {
-    pub task_id: TaskID,
-    pub package_id: PackageId,
-    pub payload: TaskMessage,
-}

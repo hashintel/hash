@@ -1,5 +1,6 @@
 use super::WorkerConfig;
 
+#[derive(Clone)]
 pub struct Config {
     pub worker_base_config: WorkerConfig,
     /// Note that it is possible that this

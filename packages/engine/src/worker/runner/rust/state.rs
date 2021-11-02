@@ -22,7 +22,7 @@ use crate::{
             message::{outbound_messages_to_arrow_column, MESSAGE_COLUMN_INDEX},
             util::arrow_continuation,
         },
-        batch::{change::ArrayChange, ContextBatch},
+        batch::{change::ArrayChange, ContextBatch, DynamicBatch},
         table::sync::{ContextBatchSync, StateSync},
     },
     hash_types::Agent,

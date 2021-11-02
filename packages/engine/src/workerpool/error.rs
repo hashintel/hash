@@ -1,5 +1,7 @@
 use crate::proto;
 use thiserror::Error as ThisError;
+use tokio::sync::mpsc::error::SendError;
+use crate::simulation::task::result::TaskResultOrCancelled;
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -7,6 +9,9 @@ pub type Result<T, E = Error> = std::result::Result<T, E>;
 pub enum Error {
     #[error("{0}")]
     Unique(String),
+
+    #[error("Task result send error: {0}")]
+    TaskResultSend(SendError<TaskResultOrCancelled>),
 
     #[error("Missing worker with index {0}")]
     MissingWorkerWithIndex(crate::types::WorkerIndex),

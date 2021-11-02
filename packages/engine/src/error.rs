@@ -46,6 +46,12 @@ pub enum Error {
     #[error("Datastore error: {0}")]
     Datastore(#[from] datastore::error::Error),
 
+    #[error("Worker error: {0}")]
+    Worker(#[from] crate::worker::error::Error),
+
+    #[error("Worker pool error: {0}")]
+    WorkerPool(#[from] crate::workerpool::error::Error),
+
     #[error("Behavior language parse error: {0}")]
     ParseBehavior(String),
 

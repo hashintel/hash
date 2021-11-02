@@ -1,4 +1,4 @@
-use std::{convert::TryInto, sync::Arc};
+use std::{convert::TryInto, fmt, sync::Arc};
 
 use super::pool::BatchPool;
 use crate::{
@@ -12,9 +12,21 @@ pub struct StateSync {
     pub message_pool: Box<dyn BatchPool<MessageBatch>>,
 }
 
+impl fmt::Debug for StateSync {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+        f.write_str("StateSync(...)")
+    }
+}
+
 #[derive(new)]
 pub struct ContextBatchSync {
     pub context_batch: Arc<ContextBatch>,
+}
+
+impl fmt::Debug for ContextBatchSync {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+        f.write_str("ContextBatchSync(...)")
+    }
 }
 
 pub enum SyncPayload {

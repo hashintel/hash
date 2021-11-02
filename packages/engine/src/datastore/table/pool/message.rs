@@ -206,3 +206,13 @@ impl<'a> MessageReader<'a> {
         })
     }
 }
+
+impl BatchPool<MessageBatch> for MessagePool {
+    fn batches(&self) -> &[Arc<RwLock<MessageBatch>>] {
+        &self.batches
+    }
+
+    fn cloned_batch_pool(&self) -> Vec<Arc<RwLock<MessageBatch>>> {
+        todo!()
+    }
+}
