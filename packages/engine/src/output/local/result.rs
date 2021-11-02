@@ -1,4 +1,4 @@
-use crate::output::OutputPersistenceResultRepr;
+use crate::output::{OutputPersistenceResultRepr, Result};
 
 use serde::Serialize;
 
@@ -8,7 +8,7 @@ pub struct LocalPersistenceResult {
 }
 
 impl OutputPersistenceResultRepr for LocalPersistenceResult {
-    fn as_value(self) -> crate::Result<(&'static str, serde_json::Value)> {
+    fn as_value(self) -> Result<(&'static str, serde_json::Value)> {
         Ok(("local", serde_json::Value::String(self.persistence_path)))
     }
 }

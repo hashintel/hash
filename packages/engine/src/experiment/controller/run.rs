@@ -1,17 +1,22 @@
 use crate::experiment::package::ExperimentPackage;
-use crate::output::local::LocalOutputPersistence;
-use crate::proto::{EngineStatus, ExperimentRun, ExtendedExperimentRun};
+
+use crate::proto::{EngineStatus, ExperimentRun};
 use std::sync::Arc;
 
 use super::controller::ExperimentController;
 use super::id_store::SimIdStore;
 use super::{config, Error, Result};
 use crate::datastore::prelude::SharedStore;
-use crate::experiment::controller::config::OutputPersistenceConfig;
+use crate::experiment::Error as ExperimentError;
+use crate::Error as CrateError;
+
 use crate::experiment::controller::sim_configurer::SimConfigurer;
 use crate::output::buffer::cleanup_experiment;
-use crate::output::none::NoOutputPersistence;
-use crate::output::OutputPersistenceCreatorRepr;
+
+use crate::experiment::controller::config::OutputPersistenceConfig;
+use crate::output::{
+    local::LocalOutputPersistence, none::NoOutputPersistence, OutputPersistenceCreatorRepr,
+};
 use crate::simulation::packages::creator::PackageCreators;
 use crate::workerpool::WorkerPoolController;
 use crate::{workerpool, Environment, ExperimentConfig};
@@ -34,7 +39,7 @@ pub async fn run_experiment(
                     EngineStatus::Exit
                 }
                 Err(err) => {
-                    let err = err.user_facing_string();
+                    let err = CrateError::from(ExperimentError::from(err)).user_facing_string();
                     log::debug!("Terminating ({}) with error: {}", experiment_id, err);
                     EngineStatus::ProcessError(err)
                 }
@@ -47,13 +52,13 @@ pub async fn run_experiment(
                 experiment_id,
                 join_err
             );
-            if join_err.is_panic() {
+            return if join_err.is_panic() {
                 Err(Error::from(
                     "Error in the experiment runner, please contact support",
                 ))
             } else {
                 Err(Error::from(join_err.to_string()))
-            }
+            };
         }
     }
 
@@ -69,16 +74,17 @@ pub async fn run_local_experiment(
     exp_config: ExperimentConfig<ExperimentRun>,
     env: Environment<ExperimentRun>,
 ) -> Result<()> {
-    match &env.output_persistence {
+    match config::output_persistence(&env)? {
         OutputPersistenceConfig::Local(local) => {
-            let persistence = LocalOutputPersistence::new(exp_config.run_id.clone(), local.clone());
+            let persistence =
+                LocalOutputPersistence::new((*exp_config.run_id).clone(), local.clone());
             run_experiment_with_persistence(exp_config, env, persistence).await?;
         }
         OutputPersistenceConfig::None => {
             let persistence = NoOutputPersistence::new();
             run_experiment_with_persistence(exp_config, env, persistence).await?;
         }
-    }
+    };
     Ok(())
 }
 
@@ -110,11 +116,13 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
         )?;
 
     // Start up the experiment package (simple/single)
-    let experiment_package = ExperimentPackage::new(exp_config.clone()).await?;
+    let experiment_package = ExperimentPackage::new(exp_config.clone())
+        .await
+        .map_err(|experiment_err| Error::from(experiment_err.to_string()))?;
     let experiment_package_handle = experiment_package.join_handle;
 
     let sim_id_store = SimIdStore::default();
-    let worker_allocator = SimConfigurer::new_extended(
+    let worker_allocator = SimConfigurer::new(
         &exp_config.run.package_config,
         exp_config.worker_pool.num_workers,
     );
@@ -138,6 +146,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
     );
 
     // Get the experiment-level initialization payload for workers
+    // TODO OS - COMPILE BLOCK - No method named `runner_init_message` found for struct `ExperimentController`
     let runner_init_message = experiment_controller.runner_init_message().await?;
     worker_pool_controller
         .spawn_workers(runner_init_message)
@@ -148,9 +157,9 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
     let experiment_controller_handle =
         tokio::spawn(async move { experiment_controller.run().await });
 
-    let mut worker_pool_result: Option<crate::Result<()>> = None;
-    let mut experiment_package_result: Option<Result<()>> = None;
-    let mut experiment_controller_result: Option<super::super::Result<()>> = None;
+    let mut worker_pool_result: Option<crate::workerpool::Result<()>> = None;
+    let mut experiment_package_result: Option<crate::experiment::Result<()>> = None;
+    let mut experiment_controller_result: Option<Result<()>> = None;
 
     loop {
         tokio::select! {

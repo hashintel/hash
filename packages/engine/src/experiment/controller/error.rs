@@ -11,9 +11,6 @@ pub enum Error {
     #[error("Env error: {0}")]
     Env(#[from] crate::env::Error),
 
-    #[error("Experiment error: {0}")]
-    Experiment(#[from] crate::experiment::Error),
-
     #[error("Simulation error: {0}")]
     Simulation(#[from] crate::simulation::Error),
 
@@ -23,8 +20,11 @@ pub enum Error {
     #[error("Worker Pool error: {0}")]
     WorkerPool(#[from] crate::workerpool::Error),
 
-    #[error("Datastore: {0}")]
-    Datastore(#[from] crate::datastore::error::Error),
+    #[error("Datastore error: {0}")]
+    Datastore(#[from] crate::datastore::Error),
+
+    #[error("Config error: {0}")]
+    Config(#[from] crate::config::Error),
 
     #[error("Serialize/Deserialize error")]
     Serde(#[from] serde_json::Error),

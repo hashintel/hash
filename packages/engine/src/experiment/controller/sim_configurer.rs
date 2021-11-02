@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use super::{Error, Result};
+use super::Result;
 
 use crate::config::Globals;
 use crate::config::{
@@ -18,7 +18,7 @@ impl SimConfigurer {
         let num_workers_per_sim = match package_config {
             ExperimentPackageConfig::Simple(config) => {
                 let num_runs = config.changed_properties.len();
-                std::cmp::max(1, (num_workers as f64 / num_runs).ceil() as usize)
+                std::cmp::max(1, (num_workers as f64 / num_runs as f64).ceil() as usize)
             }
             ExperimentPackageConfig::SingleRun(config) => std::cmp::max(1, num_workers),
         };

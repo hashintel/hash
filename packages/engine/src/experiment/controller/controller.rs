@@ -143,10 +143,10 @@ impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController
         let output_request = self.experiment_package_comms.output_request.clone();
 
         // Create the `globals.json` for the simulation
-        let globals = Arc::new(apply_property_changes(
-            self.exp_base_config.base_globals.clone(),
-            &property_changes,
-        )?);
+        let globals = Arc::new(
+            apply_property_changes(self.exp_base_config.base_globals.clone(), &property_changes)
+                .map_err(|experiment_err| Error::from(experiment_err.to_string()))?,
+        );
 
         // Create the datastore configuration (requires schemas)
         let store_config =

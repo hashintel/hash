@@ -57,13 +57,13 @@ pub enum Error {
     #[error("Config error: {0}")]
     Config(#[from] crate::config::Error),
 
-    #[error("Behavior language parse error: {0}")]
-    ParseBehavior(String),
-
     // #[error("Worker handler error: {0}")]
     // WorkerHandler(#[from] crate::worker::Error),
     #[error("Experiment package error: {0}")]
     ExperimentPackage(#[from] super::experiment::Error),
+
+    #[error("Behavior language parse error: {0}")]
+    ParseBehavior(String),
 
     #[error("Uuid error: {0}")]
     Uuid(#[from] uuid::Error),
