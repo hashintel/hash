@@ -2,7 +2,7 @@ name: MDX Lint
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, aj/md-lint ]
   pull_request:
     branches: [ master ]
 
