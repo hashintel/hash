@@ -1,4 +1,4 @@
-use crate::Result;
+use super::Result;
 use serde::{Deserialize, Serialize};
 
 // TODO Go through code-base and verify that out-dated references to "properties" are now "globals"

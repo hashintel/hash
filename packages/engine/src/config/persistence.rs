@@ -1,3 +1,4 @@
+use super::Result;
 use crate::config::Globals;
 use crate::{
     proto::ExperimentRunBase,
@@ -14,7 +15,7 @@ impl Config {
         exp_config: &super::ExperimentConfig<ExperimentRunBase>,
         globals: &Globals,
         package_creators: &PackageCreators,
-    ) -> crate::simulation::Result<Config> {
+    ) -> Result<Config> {
         let output_config = package_creators.get_output_persistence_config(exp_config, globals)?;
         Ok(Config { output_config })
     }

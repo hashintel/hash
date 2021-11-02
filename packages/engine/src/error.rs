@@ -1,5 +1,4 @@
-use super::datastore;
-use super::simulation::{self, controller::sim_control::SimControl, status::SimStatus};
+use super::simulation::{controller::sim_control::SimControl, status::SimStatus};
 
 use crate::proto;
 use thiserror::Error as ThisError;
@@ -24,7 +23,7 @@ impl From<(&str, &str)> for SimulationRunError {
 
 impl Error {
     pub fn user_facing_string(self) -> String {
-        stringify_prime_error(self)
+        stringify_error(self)
     }
 }
 
@@ -44,19 +43,22 @@ pub enum Error {
     MissingSharedBehavior(String),
 
     #[error("Datastore error: {0}")]
-    Datastore(#[from] datastore::error::Error),
+    Datastore(#[from] crate::datastore::Error),
 
     #[error("Worker error: {0}")]
-    Worker(#[from] crate::worker::error::Error),
+    Worker(#[from] crate::worker::Error),
 
     #[error("Worker pool error: {0}")]
-    WorkerPool(#[from] crate::workerpool::error::Error),
+    WorkerPool(#[from] crate::workerpool::Error),
+
+    #[error("Simulation error: {0}")]
+    Simulation(#[from] crate::simulation::Error),
+
+    #[error("Config error: {0}")]
+    Config(#[from] crate::config::Error),
 
     #[error("Behavior language parse error: {0}")]
     ParseBehavior(String),
-
-    #[error("Simulation error: {0}")]
-    Simulation(#[from] simulation::Error),
 
     // #[error("Worker handler error: {0}")]
     // WorkerHandler(#[from] crate::worker::Error),
@@ -137,7 +139,8 @@ impl From<String> for Error {
     }
 }
 
-fn stringify_prime_error(error: Error) -> String {
+// TODO OS - revisit these "stringify" methods, they are messy and clearly WIP.
+fn stringify_error(error: Error) -> String {
     match &error {
         Error::Datastore(datastore_error) => stringify_datastore_error(datastore_error, &error),
         // Error::WorkerHandler(worker_handler_error) => {
@@ -147,9 +150,12 @@ fn stringify_prime_error(error: Error) -> String {
     }
 }
 
-fn stringify_datastore_error(error: &datastore::error::Error, original_error: &Error) -> String {
+fn stringify_datastore_error(
+    error: &crate::datastore::error::Error,
+    original_error: &Error,
+) -> String {
     match error {
-        datastore::error::Error::SharedMemory(shmem_error) => match shmem_error {
+        crate::datastore::error::Error::SharedMemory(shmem_error) => match shmem_error {
             shared_memory::ShmemError::DevShmOutOfMemory => {
                 // TODO: Use a static string instead of allocating a string here.
                 "Experiment has run out of memory.".into()

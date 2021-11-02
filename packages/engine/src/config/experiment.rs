@@ -3,10 +3,9 @@ use std::sync::Arc;
 use crate::config::globals::Globals;
 use crate::proto::{ExperimentRunBase, ExperimentRunRepr};
 
-use super::{package, worker, worker_pool};
+use super::{package, worker, worker_pool, Result};
 
 use crate::proto::ExperimentID;
-use crate::Result;
 
 #[derive(Clone)]
 /// Experiment level configuration

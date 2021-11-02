@@ -1,6 +1,6 @@
+use super::Result;
 use crate::config::globals::Globals;
 use crate::config::topology::functions::{conway, euclidean, euclidean_squared, manhattan};
-use crate::Result;
 use std::sync::Arc;
 
 // TODO OS - think about creating a system of ConfigProviders whereby packages can depend on them

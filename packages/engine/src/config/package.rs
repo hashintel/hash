@@ -1,10 +1,8 @@
 use std::{collections::HashSet, iter::FromIterator};
 
-use crate::simulation::{
-    packages::{context, init, output, state},
-    Error, Result,
-};
+use crate::simulation::packages::{context, init, output, state};
 
+use super::{Error, Result};
 use crate::simulation::packages::name::PackageName;
 use context::Name as ContextPackage;
 use init::Name as InitPackage;
