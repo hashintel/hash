@@ -4,9 +4,7 @@ use std::sync::Arc;
 
 use super::super::{Error, ExperimentControl, Result};
 use crate::config::ExperimentConfig;
-use crate::proto::{
-    ExperimentRun, ExperimentRunBase, SimulationShortID, SingleRunExperimentConfig,
-};
+use crate::proto::{ExperimentRunBase, SimulationShortID, SingleRunExperimentConfig};
 
 pub struct SingleRunExperiment {
     experiment_config: Arc<ExperimentConfig<ExperimentRunBase>>,
@@ -34,7 +32,7 @@ impl SingleRunExperiment {
             properties: self.experiment_config.base_globals.clone(),
             max_num_steps: self.config.num_steps,
         };
-        pkg_to_exp.send(msg)?;
+        pkg_to_exp.send(msg).await?;
 
         loop {
             let response = pkg_from_exp.recv().await.ok_or_else(|| {

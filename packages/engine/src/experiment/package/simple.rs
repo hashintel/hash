@@ -3,12 +3,10 @@ use crate::config::ExperimentConfig;
 use crate::experiment::controller::comms::exp_pkg_ctl::ExpPkgCtlSend;
 use crate::proto::SimulationShortID;
 use crate::{
-    experiment::controller::comms::exp_pkg_update::ExpPkgUpdateRecv,
-    proto::{ExperimentRunBase, SimpleExperimentConfig},
+    experiment::controller::comms::exp_pkg_update::ExpPkgUpdateRecv, proto::SimpleExperimentConfig,
 };
 
 use std::{collections::HashMap, sync::Arc};
-use tokio::sync::mpsc::UnboundedSender;
 
 pub struct SimpleExperiment {
     experiment_config: Arc<ExperimentConfig<ExperimentRun>>,
@@ -59,7 +57,7 @@ impl SimpleExperiment {
                 properties: properties.clone(),
                 max_num_steps,
             };
-            pkg_to_exp.send(msg)?;
+            pkg_to_exp.send(msg).await?;
         }
 
         // Use `isize` to avoid issues with decrementing zero.
@@ -73,8 +71,8 @@ impl SimpleExperiment {
 
             let mut maybe_step_progress = n_sims_steps.get_mut(&response.sim_id);
 
-            if response.error.is_some() || response.stop_signal {
-                if let Some(step_progress) = &mut maybe_step_progress {
+            if response.was_error || response.stop_signal {
+                if let Some(step_progress) = maybe_step_progress {
                     step_progress.stopped = true;
                 } else {
                     log::warn!("Stopped sim run with unknown id {}", &response.sim_id);
