@@ -22,7 +22,6 @@ use arrow::array;
 use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 
 use crate::datastore::schema::state::MessageSchema;
-use crate::proto::ExperimentID;
 use std::sync::Arc;
 
 // 1000 bytes per agent i.e. 10 MB for 10000 agents

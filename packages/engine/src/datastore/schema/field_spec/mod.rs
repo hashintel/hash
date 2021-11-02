@@ -1,12 +1,11 @@
 use std::collections::hash_map::Iter;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::convert::TryInto;
 
 use crate::hash_types::state::AgentStateField;
 use arrow::datatypes::DataType as ArrowDataType;
 
 use crate::datastore::error::{Error, Result};
-use crate::datastore::schema::IsRequired;
 
 use crate::simulation::packages::name::PackageName;
 
@@ -321,7 +320,7 @@ impl TryInto<FieldType> for AgentStateField {
 // TODO OS[6] - RUNTIME BLOCK - bring in line, need to decide what scopes and sources, if it matters at all
 #[cfg(test)]
 pub mod tests {
-    use super::*;
+    // use super::*;
 
     #[test]
     fn name_collision_built_in() {

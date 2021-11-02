@@ -5,11 +5,8 @@ use crate::hash_types::state::AgentStateField;
 pub const REQUIRED: [AgentStateField; 7] = [
     AgentStateField::AgentId,
     AgentStateField::AgentName,
-    AgentStateField::Behaviors,
     AgentStateField::Position,
     AgentStateField::Direction,
-    AgentStateField::SearchRadius,
-    AgentStateField::PositionWasCorrected,
 ];
 
 pub trait IsRequired {

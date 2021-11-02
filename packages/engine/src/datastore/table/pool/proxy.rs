@@ -27,7 +27,9 @@ impl<K: Batch> From<Vec<BatchReadProxy<K>>> for PoolReadProxy<K> {
 }
 
 impl<K: Batch> PoolWriteProxy<K> {
-    pub fn n_batches(&self) -> usize { self.batches.len() }
+    pub fn n_batches(&self) -> usize {
+        self.batches.len()
+    }
 
     pub fn batch(&self, index: usize) -> Result<&K> {
         let batch = self
@@ -46,7 +48,9 @@ impl<K: Batch> PoolWriteProxy<K> {
 }
 
 impl<K: Batch> PoolReadProxy<K> {
-    pub fn n_batches(&self) -> usize { self.batches.len() }
+    pub fn n_batches(&self) -> usize {
+        self.batches.len()
+    }
 
     pub fn batch(&self, index: usize) -> Result<&K> {
         let batch = self

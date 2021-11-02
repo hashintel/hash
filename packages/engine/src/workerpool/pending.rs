@@ -10,9 +10,9 @@ use crate::{
         comms::active::ActiveTaskExecutorComms,
         task::{
             cancel::CancelTask,
+            handler::worker_pool::WorkerPoolHandler,
             result::{TaskResult, TaskResultOrCancelled},
             Task,
-            handler::worker_pool::WorkerPoolHandler
         },
     },
     types::TaskID,
@@ -52,8 +52,8 @@ impl PendingWorkerPoolTask {
             active_workers: active_workers_comms,
             received_results,
             reference_task,
-        } = &mut self.distribution_controller {
-
+        } = &mut self.distribution_controller
+        {
             received_results.insert(worker.index(), (worker, result));
             active_workers_comms.remove(worker.index());
             if active_workers_comms.is_empty() {
@@ -63,17 +63,14 @@ impl PendingWorkerPoolTask {
                     .into_iter()
                     .map(|(index, res)| res)
                     .collect();
-                let combined_result = TaskResultOrCancelled::Result(
-                    reference_task.combine_messages(results)?
-                );
+                let combined_result =
+                    TaskResultOrCancelled::Result(reference_task.combine_messages(results)?);
                 self.comms.result_send.send(combined_result)?;
                 Ok(true)
             } else {
                 Ok(false)
             }
-
         } else {
-
             self.comms
                 .result_send
                 .send(TaskResultOrCancelled::Result(result))?;
@@ -81,17 +78,13 @@ impl PendingWorkerPoolTask {
         }
     }
 
-    fn handle_cancel_state(
-        &mut self,
-        worker: Worker,
-        task_id: TaskID,
-    ) -> Result<HasTerminated> {
+    fn handle_cancel_state(&mut self, worker: Worker, task_id: TaskID) -> Result<HasTerminated> {
         if let DistributionController::Distributed {
             active_workers: active_workers_comms,
             received_results,
             reference_task,
-        } = &mut self.distribution_controller {
-
+        } = &mut self.distribution_controller
+        {
             active_workers_comms.remove(worker.index());
             if active_workers_comms.is_empty() {
                 let combined_result = TaskResultOrCancelled::Cancelled;
@@ -100,16 +93,13 @@ impl PendingWorkerPoolTask {
             } else {
                 Ok(false)
             }
-
         } else {
-
             self.comms
                 .result_send
                 .send(TaskResultOrCancelled::Cancelled)?;
             Ok(true)
         }
     }
-
 
     pub fn handle_result_or_cancel(
         &mut self,

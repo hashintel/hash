@@ -1,5 +1,5 @@
 use enum_dispatch::enum_dispatch;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use crate::simulation::packages::PackageType;
 use crate::{

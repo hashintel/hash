@@ -19,14 +19,15 @@ use crate::datastore::arrow::{
 };
 use crate::datastore::schema::state::AgentSchema;
 use crate::datastore::{prelude::*, POSITION_DIM, UUID_V4_LEN};
-use crate::Language;
 
 use crate::hash_types::state::AgentStateField;
 use arrow::{array, datatypes::DataType};
 
 use crate::datastore::schema::FieldKey;
-use crate::datastore::schema::{PREVIOUS_INDEX_COLUMN_INDEX, PREVIOUS_INDEX_COLUMN_NAME};
 use crate::proto::ExperimentID;
+use crate::simulation::packages::creator::{
+    PREVIOUS_INDEX_COLUMN_INDEX, PREVIOUS_INDEX_COLUMN_NAME,
+};
 use arrow::array::ArrayRef;
 use std::borrow::Cow;
 use std::sync::Arc;

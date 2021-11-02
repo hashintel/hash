@@ -133,10 +133,10 @@ impl Batch {
 
         let current_data_size = self.memory.get_data_buffer_len()?;
         if current_data_size < dynamic.data_length {
-            self.reload_state
+            self.metaversion
                 .increment_with(&self.memory.set_data_length(dynamic.data_length)?);
         } else if current_data_size > UPPER_BOUND_DATA_SIZE_MULTIPLIER * dynamic.data_length {
-            self.reload_state.increment_with(
+            self.metaversion.increment_with(
                 &self
                     .memory
                     .shrink_memory_with_data_length(dynamic.data_length)?,

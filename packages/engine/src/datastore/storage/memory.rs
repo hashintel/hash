@@ -54,7 +54,9 @@ impl Memory {
     // TODO: `data.as_mut_ptr`, with `&mut self` argument, to avoid
     //       violating Rust's aliasing rules for pointers derived
     //       from const references.
-    pub fn as_mut_ptr(&mut self) -> *mut u8 { self.data.as_ptr() }
+    pub fn as_mut_ptr(&mut self) -> *mut u8 {
+        self.data.as_ptr()
+    }
 
     /// Resize the Shared Memory segment, also performs
     /// reloading

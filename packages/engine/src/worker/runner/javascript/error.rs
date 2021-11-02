@@ -8,8 +8,8 @@ use tokio::sync::mpsc::error::SendError;
 
 use super::mini_v8 as mv8;
 use crate::proto::SimulationShortID;
-use thiserror::Error as ThisError;
 use crate::worker::runner::comms::outbound::OutboundFromRunnerMsg;
+use thiserror::Error as ThisError;
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 

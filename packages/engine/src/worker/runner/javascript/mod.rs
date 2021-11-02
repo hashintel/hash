@@ -23,8 +23,13 @@ use super::comms::{
     ExperimentInitRunnerMsg, MessageTarget, NewSimulationRun, RunnerTaskMsg, StateInterimSync,
     TargetedRunnerTaskMsg,
 };
+use crate::config::Globals;
 use crate::datastore::batch::{ArrowBatch, DynamicBatch};
+use crate::datastore::table::pool::agent::AgentPool;
+use crate::datastore::table::pool::message::MessagePool;
+use crate::datastore::table::pool::proxy::PoolReadProxy;
 use crate::datastore::table::pool::BatchPool;
+use crate::hash_types::Agent;
 use crate::worker::{Error as WorkerError, Result as WorkerResult, TaskMessage};
 use crate::{
     datastore::prelude::SharedStore,
@@ -42,11 +47,6 @@ use crate::{
     Language,
 };
 pub use error::{Error, Result};
-use crate::config::Globals;
-use crate::datastore::table::pool::agent::AgentPool;
-use crate::datastore::table::pool::message::MessagePool;
-use crate::datastore::table::pool::proxy::PoolReadProxy;
-use crate::hash_types::Agent;
 
 struct JSPackage<'m> {
     fns: mv8::Array<'m>,
@@ -411,13 +411,13 @@ struct GroupSync {
 }
 
 fn agent_pool_from_batches(
-    batches: Vec<Arc<RwLock<AgentBatch>>>
+    batches: Vec<Arc<RwLock<AgentBatch>>>,
 ) -> Box<dyn BatchPool<AgentBatch>> {
     Box::new(AgentPool::new(batches)) as Box<dyn BatchPool<AgentBatch>>
 }
 
 fn msg_pool_from_batches(
-    batches: Vec<Arc<RwLock<MessageBatch>>>
+    batches: Vec<Arc<RwLock<MessageBatch>>>,
 ) -> Box<dyn BatchPool<MessageBatch>> {
     Box::new(MessagePool::new(batches)) as Box<dyn BatchPool<MessageBatch>>
 }
@@ -925,12 +925,12 @@ impl<'m> RunnerImpl<'m> {
             .sims_state
             .get_mut(&sim_run_id)
             .ok_or(Error::MissingSimulationRun(sim_run_id))?;
-        let iter = msg
-            .group_indices
-            .iter()
-            .zip(msg.agent_batches.cloned_batch_pool().iter().zip(
-                msg.message_batches.cloned_batch_pool().iter())
-            );
+        let iter = msg.group_indices.iter().zip(
+            msg.agent_batches
+                .cloned_batch_pool()
+                .iter()
+                .zip(msg.message_batches.cloned_batch_pool().iter()),
+        );
         for (i_group, (agent_batch, msg_batch)) in iter {
             state.agent_pool[*i_group] = agent_batch.clone();
             state.msg_pool[*i_group] = msg_batch.clone();
@@ -947,11 +947,7 @@ impl<'m> RunnerImpl<'m> {
         // TODO: Duplication with `state_sync`
         let agent_pool = msg.agent_pool.read_proxy()?;
         let msg_pool = msg.message_pool.read_proxy()?;
-        let (agent_pool, msg_pool) = state_to_js(
-            mv8,
-            &agent_pool,
-            &msg_pool,
-        )?;
+        let (agent_pool, msg_pool) = state_to_js(mv8, &agent_pool, &msg_pool)?;
         let sim_run_id = sim_id_to_js(mv8, sim_run_id);
         let args = mv8::Values::from_vec(vec![sim_run_id, agent_pool, msg_pool]);
         let _: mv8::Value = self
