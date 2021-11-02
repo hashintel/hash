@@ -51,6 +51,7 @@ describe("Link model class ", () => {
     );
     expect(Link.isPathValid("thispathisn'tvalid")).toBe(false);
     expect(Link.isPathValid("$.this.is.not.valid.")).toBe(false);
+    expect(Link.isPathValid("$.this[*].is.not.valid")).toBe(false);
   });
 
   it("static create method can create a link", async () => {

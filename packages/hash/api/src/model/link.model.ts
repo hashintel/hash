@@ -15,6 +15,32 @@ export type CreateLinkArgs = {
   dstEntityVersionId?: string;
 };
 
+const SUPPORTED_JSONPATH_COMPONENT_TYPES = [
+  "identifier", // e.g. .memberOf
+  "numeric_literal", // e.g. [0]
+  "string_literal", // e.g. ["memberOf"]
+] as const;
+
+type SupportedJSONPathComponentType =
+  typeof SUPPORTED_JSONPATH_COMPONENT_TYPES[number];
+
+type JSONPathComponent = {
+  expression: {
+    type: string;
+    value: string;
+  };
+};
+
+const isUnsupportedJSONPathComponent = (component: JSONPathComponent) =>
+  !SUPPORTED_JSONPATH_COMPONENT_TYPES.includes(
+    component.expression.type as SupportedJSONPathComponentType
+  );
+
+const isUnupportedJSONPath = (components: JSONPathComponent[]) =>
+  components.length < 2 ||
+  components[0].expression.type !== "root" ||
+  components.slice(1).find(isUnsupportedJSONPathComponent) !== undefined;
+
 type LinkConstructorArgs = {
   accountId: string;
   linkId: string;
@@ -81,8 +107,11 @@ class __Link {
 
   static isPathValid = (path: string): boolean => {
     try {
-      /** @todo: ensure JSON path only has one corresponding location (i.e. $.memberOf[*].org is currently a valid path when it shouldn't be) */
-      jp.parse(path);
+      const components = jp.parse(path) as JSONPathComponent[];
+
+      if (isUnupportedJSONPath(components)) {
+        return false;
+      }
     } catch {
       return false;
     }
