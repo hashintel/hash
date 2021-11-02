@@ -10,7 +10,7 @@ Multi-Agent Simulation approaches problem-solving from a stochastic lens. Instea
 
 ## Distributions
 
-Initializing agent properties using different types of distributions is a common practice in Multi-Agent models. In HASH, you can use the [jStats](http://jstat.github.io/distributions.html)library or the [NumPy](https://docs.scipy.org/doc/numpy-1.15.4/reference/routines.random.html)package for sampling distributions. Here's an example that uses a number of these distributions to create agents:
+Initializing agent properties using different types of distributions is a common practice in Multi-Agent models. In HASH, you can use the [jStats](http://jstat.github.io/distributions.html) library or the [NumPy](https://docs.scipy.org/doc/numpy-1.15.4/reference/routines.random.html) package for sampling distributions. Here's an example that uses a number of these distributions to create agents:
 
 * We've sampled a Poisson distribution to determine how many new birds arrive at each step.
 * We've sampled a uniform distribution to determine its `x` and `y` coordinates.
