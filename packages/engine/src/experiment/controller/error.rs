@@ -14,6 +14,18 @@ pub enum Error {
     #[error("Experiment error: {0}")]
     Experiment(#[from] crate::experiment::Error),
 
+    #[error("Simulation error: {0}")]
+    Simulation(#[from] crate::simulation::Error),
+
+    #[error("Output error: {0}")]
+    Output(#[from] crate::output::Error),
+
+    #[error("Worker Pool error: {0}")]
+    WorkerPool(#[from] crate::workerpool::Error),
+
+    #[error("Datastore: {0}")]
+    Datastore(#[from] crate::datastore::error::Error),
+
     #[error("Serialize/Deserialize error")]
     Serde(#[from] serde_json::Error),
 
@@ -23,11 +35,14 @@ pub enum Error {
     #[error("I/O Error: {0}")]
     IO(#[from] std::io::Error),
 
+    #[error("Tokio Time Elapsed Error: {0}")]
+    TokioTime(#[from] tokio::time::error::Elapsed),
+
+    #[error("Tokio oneshot recv: {0}")]
+    TokioOneshotRecv(#[from] tokio::sync::oneshot::error::RecvError),
+
     #[error("Missing configuration in dynamic payloads. Key: {0}")]
     MissingConfiguration(String),
-
-    #[error("Datastore: {0}")]
-    Datastore(#[from] crate::datastore::error::Error),
 }
 
 impl From<&str> for Error {

@@ -26,7 +26,7 @@ pub fn get_dynamic<'de, K: Deserialize<'de>, E: ExperimentRunRepr>(
 ) -> Result<K> {
     env.dyn_payloads
         .get(key)
-        // TODO OS: Fix - Investigate mismatched types
+        // TODO OS: Fix - Investigate trait bound `for<'de> K: experiment::_::_serde::Desieralize<'de>` is not satisifed
         .map(|value| serde_json::from_value(value.clone()).map_err(|e| Error::from(e)))
-        .ok_or_else(|| Error::MissingConfiguration(key.to_string()))
+        .ok_or_else(|| Error::MissingConfiguration(key.to_string()))?
 }

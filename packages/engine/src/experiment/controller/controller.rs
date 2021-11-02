@@ -26,6 +26,7 @@ use crate::proto::{
 use crate::simulation::controller::sim_control::SimControl;
 use crate::simulation::controller::SimulationController;
 use crate::simulation::status::SimStatus;
+use crate::simulation::Error as SimulationError;
 use crate::worker::runner::comms::DatastoreSimulationPayload;
 use crate::workerpool::runs::SimulationRuns;
 
@@ -96,18 +97,15 @@ impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController
     }
 
     async fn handle_sim_status(&mut self, status: SimStatus) -> Result<()> {
-        self.orch_client()
+        Ok(self
+            .orch_client()
             // TODO OS: Fix - No such enum variant RunnerStatus
             .send(EngineStatus::RunnerStatus(status.try_into()?))
-            .await
-            .into()
+            .await?)
     }
 
     async fn handle_sim_run_stop(&mut self, id: SimulationShortID) -> Result<()> {
-        self.orch_client()
-            .send(EngineStatus::SimStop(id))
-            .await
-            .into()
+        Ok(self.orch_client().send(EngineStatus::SimStop(id)).await?)
     }
 
     async fn handle_worker_pool_controller_msg(
@@ -187,7 +185,13 @@ impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController
         // Register the new simulation with the worker pool
         self.worker_pool_send
             .send(ExperimentToWorkerPoolMsg::NewSimulationRun(
-                NewSimulationRun::new(sim_short_id, &packages, datastore_payload).await?,
+                // TODO OS - RUNTIME BLOCK - Need to create a PackageMsgs object
+                NewSimulationRun {
+                    short_id: sim_short_id,
+                    packages: todo!(),
+                    datastore: datastore_payload,
+                    globals,
+                },
             ))
             .await?;
 
@@ -201,9 +205,11 @@ impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController
             output_request,
             output_sender,
             self.sim_status_send.clone(),
-        )?;
+        )
+        .map_err(|e| SimulationError::from(e))?;
         let sim_sender = sim_controller.sender;
         self.add_sim_sender(sim_short_id, sim_sender)?;
+        // TODO OS - COMPILE BLOCK - Fix, no method next found for struct SimulationRuns
         self.sim_run_tasks.new_run(sim_controller.task_handle);
 
         // Register run with the orchestrator
@@ -269,9 +275,11 @@ impl<E: ExperimentRunRepr, O: OutputPersistenceCreatorRepr> ExperimentController
                         return Ok(())
                     }
                 }
+                // TODO OS - COMPILE BLOCK - Fix, no method `next` found for struct SimulationRuns
                 Some(result) = self.sim_run_tasks.next() => {
                     self.handle_simulation_result(result).await?;
                 }
+                // TODO OS - COMPILE BLOCK - Fix, no method `handle_sim_status` found for struct ExperimentController
                 Some(msg) = self.sim_status_recv.recv() => {
                     self.handle_sim_status(msg).await?;
                 }
@@ -280,7 +288,7 @@ impl<E: ExperimentRunRepr, O: OutputPersistenceCreatorRepr> ExperimentController
                         self.handle_worker_pool_controller_msg(id, msg).await?;
                     }
                 }
-                Ok(msg) = self.env.orch_listener.recv::<EngineMsg>() => {
+                Ok(msg) = self.env.orch_listener.recv::<EngineMsg<E>>() => {
                     self.handle_orch_msg(msg).await?;
                 }
             }
