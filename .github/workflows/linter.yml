@@ -14,8 +14,11 @@ jobs:
 
       - run: yarn install
 
-      - run: yarn lint:prettier
+      - run: yarn lint:workspaces
         if: ${{ success() || failure() }}
 
-      - run: yarn lint:workspaces
+      - run: yarn lint:markdownlint
+        if: ${{ success() || failure() }}
+
+      - run: yarn lint:prettier
         if: ${{ success() || failure() }}
