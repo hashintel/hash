@@ -26,8 +26,10 @@ type AppProps = {
   entityId: string;
 };
 
+const defaultData: AppProps["data"] = { data: [] };
+
 export const App: BlockComponent<AppProps> = ({
-  data = { data: [] },
+  data = defaultData,
   initialState,
   schemas,
   update,
