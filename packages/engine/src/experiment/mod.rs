@@ -9,6 +9,7 @@ use crate::proto::{ExperimentPackageConfig, SimulationShortID};
 use crate::{config::ExperimentConfig, proto};
 pub use error::{Error, Result};
 use serde::{Deserialize, Serialize};
+use serde_json::Value as SerdeValue;
 use tokio::task::JoinHandle;
 
 use self::controller::comms::exp_pkg_update::ExpPkgUpdateRecv;
