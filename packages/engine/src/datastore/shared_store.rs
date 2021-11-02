@@ -1,17 +1,16 @@
+use super::Result;
+use crate::proto::ExperimentRunBase;
 use std::{collections::HashMap, sync::Arc};
 
-use crate::proto::ExperimentRunBase;
-
-use crate::{config::ExperimentConfig, Result};
-
-use super::prelude::*;
+use crate::config::ExperimentConfig;
+use crate::datastore::batch::Dataset;
 
 pub struct SharedStore {
     pub datasets: HashMap<String, Arc<Dataset>>,
 }
 
 impl SharedStore {
-    pub async fn new(config: &ExperimentConfig<ExperimentRunBase>) -> Result<SharedStore> {
+    pub fn new(config: &ExperimentConfig<ExperimentRunBase>) -> Result<SharedStore> {
         let datasets = &config.run.project_base.datasets;
         let mut dataset_batches = HashMap::with_capacity(datasets.len());
         for dataset in &config.run.project_base.datasets {

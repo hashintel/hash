@@ -15,6 +15,8 @@ pub mod test_utils;
 pub const UUID_V4_LEN: usize = 16;
 pub const POSITION_DIM: usize = 3;
 
+pub use error::{Error, Result};
+
 pub mod prelude {
     pub use super::{
         batch::migration::{CopyAction, CreateAction, RemoveAction, RowActions},
