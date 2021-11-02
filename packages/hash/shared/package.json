@@ -1,9 +1,9 @@
 {
   "name": "@hashintel/hash-shared",
-  "license": "SSPL-1.0",
-  "private": true,
   "version": "0.1.0",
+  "private": true,
   "description": "Temporary catchall place for shared code",
+  "license": "SSPL-1.0",
   "exports": {
     "./": "./dist/"
   },
@@ -15,13 +15,13 @@
     }
   },
   "scripts": {
-    "fix": "eslint --ext .js,.ts,.tsx --fix ./src/",
-    "lint": "eslint --ext .js,.ts,.tsx ./src/ && tsc --noEmit # @hashintel/hash-shared",
-    "codegen": "graphql-codegen --config codegen.yml",
     "build": "yarn clean; yarn codegen; tsc -b",
     "clean": "rimraf './src/**/*.gen.*' ./dist/ ./tsconfig.tsbuildinfo",
+    "codegen": "graphql-codegen --config codegen.yml",
+    "dev": "nodemon --watch ./src/ --ignore './src/**/*.gen.*' --ext js,ts,json --exec 'tsc -b'",
+    "fix": "eslint --ext .js,.ts,.tsx --fix ./src/",
     "postinstall": "yarn build",
-    "dev": "nodemon --watch ./src/ --ignore './src/**/*.gen.*' --ext js,ts,json --exec 'tsc -b'"
+    "lint": "eslint --ext .js,.ts,.tsx ./src/ && tsc --noEmit # @hashintel/hash-shared"
   },
   "dependencies": {
     "@apollo/client": "3.3.19",

@@ -92,7 +92,7 @@ export function createMarksTooltip(renderPortal: RenderPortal) {
             }
           }}
         />,
-        mountNode
+        mountNode,
       );
 
       const updateFns: Function[] = [];
@@ -131,7 +131,7 @@ export function createMarksTooltip(renderPortal: RenderPortal) {
           editorView.focus();
           toggleMark(editorView.state.schema.marks[name])(
             editorView.state,
-            editorView.dispatch
+            editorView.dispatch,
           );
           update();
         });

@@ -15,11 +15,11 @@ export const page: Resolver<
     {},
     { accountId, entityId, entityVersionId },
     ctx,
-    info
+    info,
   );
   if (ent.entityTypeName !== "Page") {
     throw new ApolloError(
-      `Entity ${ent.entityId} is type "${ent.entityTypeName}" not "Page"`
+      `Entity ${ent.entityId} is type "${ent.entityTypeName}" not "Page"`,
     );
   }
 

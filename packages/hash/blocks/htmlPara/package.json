@@ -2,10 +2,6 @@
   "name": "@hashintel/block-html-para",
   "version": "0.1.0",
   "license": "MIT",
-  "blockprotocol": {
-    "displayName": "Inline HTML",
-    "icon": "public/html.svg"
-  },
   "scripts": {
     "build": "echo \"@hashintel/block-html-para contains no resources to build\"",
     "build:dev": "echo \"@hashintel/block-html-para contains no resources to build\"",
@@ -25,5 +21,9 @@
     "eslint-plugin-no-restricted-imports": "0.0.0",
     "eslint-plugin-react": "^7.25.1",
     "eslint-plugin-react-hooks": "4.2.0"
+  },
+  "blockprotocol": {
+    "displayName": "Inline HTML",
+    "icon": "public/html.svg"
   }
 }

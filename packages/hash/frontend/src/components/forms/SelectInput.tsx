@@ -23,7 +23,7 @@ export const SelectInput = forwardRef<HTMLSelectElement, SelectInputProps>(
       value,
       ...props
     },
-    ref
+    ref,
   ) => {
     const [inputId, _] = useState(() => id ?? uniqueId());
 
@@ -35,7 +35,7 @@ export const SelectInput = forwardRef<HTMLSelectElement, SelectInputProps>(
           onChange?.(evt);
         }
       },
-      [onChange, onChangeValue]
+      [onChange, onChangeValue],
     );
 
     return (
@@ -72,5 +72,5 @@ export const SelectInput = forwardRef<HTMLSelectElement, SelectInputProps>(
         </select>
       </div>
     );
-  }
+  },
 );

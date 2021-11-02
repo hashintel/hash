@@ -9,9 +9,9 @@ COPY tsconfig.base.json .
 COPY yarn.lock .
 
 RUN --mount=type=cache,target=/yarn-cache \
-    --mount=type=cache,target=/var/cache/apt \
-    --mount=type=cache,target=/var/lib/apt \
-    yarn ws:hash-search-loader install \
-    && yarn ws:hash-search-loader build
+  --mount=type=cache,target=/var/cache/apt \
+  --mount=type=cache,target=/var/lib/apt \
+  yarn ws:hash-search-loader install \
+  && yarn ws:hash-search-loader build
 
 ENTRYPOINT [ "yarn", "ws:hash-search-loader", "dev" ]

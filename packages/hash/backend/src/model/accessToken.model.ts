@@ -41,7 +41,7 @@ abstract class __AccessToken extends Entity {
   revoke = (client: DBClient) => {
     if (this.hasBeenRevoked()) {
       throw new Error(
-        `${this.entityType.properties.title} access token with entityId ${this.entityId} has already been revoked`
+        `${this.entityType.properties.title} access token with entityId ${this.entityId} has already been revoked`,
       );
     }
     return this.updateProperties(client)({

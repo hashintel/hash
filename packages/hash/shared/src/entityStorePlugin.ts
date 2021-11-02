@@ -45,7 +45,7 @@ export const entityStoreFromProsemirror = (state: EditorState<Schema>) => {
 
   if (!pluginState) {
     throw new Error(
-      "Cannot process transaction when state does not have entity store plugin"
+      "Cannot process transaction when state does not have entity store plugin",
     );
   }
   return pluginState;
@@ -68,7 +68,7 @@ export const entityStoreFromProsemirror = (state: EditorState<Schema>) => {
  */
 export const entityStoreAndTransactionForEntities = (
   state: EditorState<Schema>,
-  entities: BlockEntity[]
+  entities: BlockEntity[],
 ) => {
   const { tr } = state;
 
@@ -116,7 +116,7 @@ const draftIdForNode = (
   tr: Transaction<Schema>,
   node: EntityNode,
   pos: number,
-  draftDraftEntityStore: Draft<EntityStore["draft"]>
+  draftDraftEntityStore: Draft<EntityStore["draft"]>,
 ) => {
   let draftId = node.attrs.draftId;
 
@@ -124,7 +124,7 @@ const draftIdForNode = (
     if (node.attrs.entityId) {
       const existingDraftId = draftEntityForEntityId(
         draftDraftEntityStore,
-        node.attrs.entityId
+        node.attrs.entityId,
       )?.draftId;
 
       if (!existingDraftId) {
@@ -236,7 +236,7 @@ export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
 
             if (!entity || !isBlockEntity(entity)) {
               throw new Error(
-                "Block entity node points at non-block entity in draft store"
+                "Block entity node points at non-block entity in draft store",
               );
             }
 

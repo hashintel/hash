@@ -16,7 +16,7 @@ export const verifyVerificationCode =
     if (!verificationCode) {
       throw new ApolloError(
         `A verification code with verification id '${id}' could not be found.`,
-        "LOGIN_CODE_NOT_FOUND"
+        "LOGIN_CODE_NOT_FOUND",
       );
     }
 
@@ -24,7 +24,7 @@ export const verifyVerificationCode =
     if (verificationCode.hasExceededMaximumAttempts()) {
       throw new ApolloError(
         `The maximum number of attempts for the verification code with id '${id}' has been exceeded.`,
-        "MAX_ATTEMPTS"
+        "MAX_ATTEMPTS",
       );
     }
 
@@ -32,7 +32,7 @@ export const verifyVerificationCode =
     if (verificationCode.hasExpired()) {
       throw new ApolloError(
         `The verification code with id '${id}' has expired.`,
-        "EXPIRED"
+        "EXPIRED",
       );
     }
 
@@ -40,7 +40,7 @@ export const verifyVerificationCode =
     if (verificationCode.hasBeenUsed()) {
       throw new ApolloError(
         `The verification code with id '${id}' has already been used.`,
-        "ALREADY_USED"
+        "ALREADY_USED",
       );
     }
 
@@ -50,7 +50,7 @@ export const verifyVerificationCode =
 
       throw new ApolloError(
         `The provided verification code does not match the verification code with id '${id}'.`,
-        "INCORRECT"
+        "INCORRECT",
       );
     }
 
@@ -66,7 +66,7 @@ export const verifyVerificationCode =
           if (!user) {
             throw new ApolloError(
               `A user with the id '${verificationCode.userId}' could not be found.`,
-              "USER_NOT_FOUND"
+              "USER_NOT_FOUND",
             );
           }
           return user;

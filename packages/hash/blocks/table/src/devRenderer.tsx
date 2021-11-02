@@ -48,18 +48,18 @@ const useMockData = () => {
         switch (entity.type) {
           case "Company":
             entity.location = entities.find(
-              (subEnt) => subEnt.entityId === entity.locationId
+              (subEnt) => subEnt.entityId === entity.locationId,
             ) as Location;
             break;
           case "Person":
             entity.employer = entities.find(
-              (subEnt) => subEnt.entityId === entity.employerId
+              (subEnt) => subEnt.entityId === entity.employerId,
             ) as Company;
         }
       }
 
       resolvedData = entities.filter(
-        ({ type }) => type === linkedData.entityTypeId
+        ({ type }) => type === linkedData.entityTypeId,
       ) as Person[];
 
       if (!linkedData.aggregate) {
@@ -106,7 +106,7 @@ const useMockData = () => {
         data: resolvedData,
       };
     },
-    [tableData, entities]
+    [tableData, entities],
   );
 
   const aggregateData: BlockProtocolAggregateFn = useCallback(
@@ -121,7 +121,7 @@ const useMockData = () => {
         operation: action.operation,
       } as BlockProtocolAggregateOperationOutput);
     },
-    []
+    [],
   );
 
   const updateData: BlockProtocolUpdateFn = useCallback(
@@ -129,7 +129,7 @@ const useMockData = () => {
       actions: BlockProtocolUpdatePayload<{
         data?: { __linkedData: BlockProtocolLinkedDataDefinition };
         initialState?: Record<string, any>;
-      }>[]
+      }>[],
     ) => {
       const newTableData = cloneDeep(tableData);
 
@@ -144,7 +144,7 @@ const useMockData = () => {
       setEntities((prevData) => {
         const newData = prevData.map((entity) => {
           const affectingAction = actions.find(
-            (action) => action.entityId === entity.entityId
+            (action) => action.entityId === entity.entityId,
           );
           if (affectingAction) {
             return {
@@ -160,7 +160,7 @@ const useMockData = () => {
 
       return [];
     },
-    [tableData]
+    [tableData],
   );
 
   return useMemo(
@@ -171,7 +171,7 @@ const useMockData = () => {
       updateData,
       aggregateData,
     }),
-    [tableData, getResolvedData, updateData, aggregateData]
+    [tableData, getResolvedData, updateData, aggregateData],
   );
 };
 

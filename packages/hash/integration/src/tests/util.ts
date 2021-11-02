@@ -75,7 +75,7 @@ export class ApiClient {
       throw new Error("No response errors found on client error");
     }
     return clientError.response.errors.map(
-      (error: any) => error.extensions.code
+      (error: any) => error.extensions.code,
     );
   };
 
@@ -89,12 +89,12 @@ export class ApiClient {
     this.client
       .request<CreateUserMutation, CreateUserMutationVariables>(
         createUser,
-        vars
+        vars,
       )
       .then((res) => res.createUser);
 
   createUserWithOrgEmailInvitation = async (
-    vars: CreateUserWithOrgEmailInvitationMutationVariables
+    vars: CreateUserWithOrgEmailInvitationMutationVariables,
   ) =>
     this.client
       .request<
@@ -138,7 +138,7 @@ export class ApiClient {
     this.client
       .request<UpdateEntityMutation, UpdateEntityMutationVariables>(
         updateEntity,
-        vars
+        vars,
       )
       .then((res) => res.updateEntity);
 
@@ -155,13 +155,13 @@ export class ApiClient {
     return (
       await this.client.request<CreateOrgMutation, CreateOrgMutationVariables>(
         createOrg,
-        vars
+        vars,
       )
     ).createOrg;
   }
 
   async createOrgEmailInvitation(
-    vars: CreateOrgEmailInvitationMutationVariables
+    vars: CreateOrgEmailInvitationMutationVariables,
   ) {
     return (
       await this.client.request<
@@ -193,7 +193,7 @@ export class ApiClient {
     return (
       await this.client.request<JoinOrgMutation, JoinOrgMutationVariables>(
         joinOrg,
-        vars
+        vars,
       )
     ).joinOrg;
   }
@@ -233,7 +233,7 @@ export class ApiClient {
     this.client
       .request<UpdatePageContentsMutation, UpdatePageContentsMutationVariables>(
         updatePageContents,
-        vars
+        vars,
       )
       .then((res) => res.updatePageContents);
 }

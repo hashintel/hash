@@ -15,7 +15,7 @@ export const requestFileUpload: Resolver<
 > = async (_, { name, contentMd5, size }, { user, dataSources }) => {
   const accountId = user.entityId;
   const { presignedPost, file } = await File.createFileEntityFromUploadRequest(
-    dataSources.db
+    dataSources.db,
   )({
     name,
     contentMd5,

@@ -78,8 +78,8 @@ export const createUsers =
             },
           ],
           ...remainingProperties,
-        })
-      )
+        }),
+      ),
     );
   };
 

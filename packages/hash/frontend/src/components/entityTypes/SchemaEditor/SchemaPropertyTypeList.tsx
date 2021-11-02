@@ -31,7 +31,7 @@ export const SchemaPropertyTypeList: VoidFunctionComponent<SchemaPropertyTypeLis
               <SchemaSelect schemaRef={propertyName} />
             ) : (
               <span>type</span>
-            )
+            ),
           )
           .reduce((prev, curr) => [prev, ", ", curr])}
       </>

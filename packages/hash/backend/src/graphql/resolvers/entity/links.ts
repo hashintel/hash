@@ -18,7 +18,7 @@ export const parseLinksFromPropertiesObject = (
   client: DBClient,
   propertiesObject: any,
   sourceEntityId: string,
-  path: jp.PathComponent[] = ["$"]
+  path: jp.PathComponent[] = ["$"],
 ): Promise<Link[]> =>
   Promise.all(
     Object.entries(propertiesObject).map(
@@ -32,9 +32,9 @@ export const parseLinksFromPropertiesObject = (
                   client,
                   arrayItem,
                   sourceEntityId,
-                  [...path, key, i]
-                )
-              )
+                  [...path, key, i],
+                ),
+              ),
           ).then((nestedLinks) => nestedLinks.flat());
         }
         if (isRecord(value)) {
@@ -49,7 +49,7 @@ export const parseLinksFromPropertiesObject = (
 
             if (!destinationEntityId) {
               throw new Error(
-                "Linked data is now requried to provide an entityId"
+                "Linked data is now requried to provide an entityId",
               );
             }
 
@@ -75,14 +75,14 @@ export const parseLinksFromPropertiesObject = (
               client,
               value,
               sourceEntityId,
-              [...path, key]
+              [...path, key],
             );
           }
         }
 
         return [];
-      }
-    )
+      },
+    ),
   ).then((nestedLinks) => nestedLinks.flat());
 
 export const links: Resolver<
@@ -93,7 +93,7 @@ export const links: Resolver<
   const parsedLinks = await parseLinksFromPropertiesObject(
     dataSources.db,
     entity.properties,
-    entity.entityId
+    entity.entityId,
   );
 
   return parsedLinks;

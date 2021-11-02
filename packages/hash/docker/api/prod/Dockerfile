@@ -13,13 +13,12 @@ COPY tsconfig.base.json .
 COPY yarn.lock .
 
 RUN --mount=type=cache,target=/yarn-cache \
-    --mount=type=cache,target=/var/cache/apt \
-    --mount=type=cache,target=/var/lib/apt \
-    yarn ws:hash-backend install --cache-folder /yarn-cache \
-    && yarn ws:hash-backend codegen && yarn ws:hash-frontend codegen && yarn ws:hash-shared codegen \
-    && yarn ws:hash-backend build \
-    # Removes devDependencies
-    && yarn install --production --ignore-scripts --prefer-offline --cache-folder /yarn-cache
+  --mount=type=cache,target=/var/cache/apt \
+  --mount=type=cache,target=/var/lib/apt \
+  yarn ws:hash-backend install --cache-folder /yarn-cache \
+  && yarn ws:hash-backend codegen && yarn ws:hash-frontend codegen && yarn ws:hash-shared codegen \
+  && yarn ws:hash-backend build \
+  && yarn install --production --ignore-scripts --prefer-offline --cache-folder /yarn-cache # Remove devDependencies
 
 #########################################################################################
 
@@ -32,7 +31,7 @@ WORKDIR /app
 
 # Run as a non-root user
 RUN groupadd -g 999 appuser \
-    && useradd -r -u 999 -g appuser appuser
+  && useradd -r -u 999 -g appuser appuser
 
 USER appuser
 

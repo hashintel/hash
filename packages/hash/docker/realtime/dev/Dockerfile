@@ -9,8 +9,8 @@ COPY tsconfig.base.json .
 COPY yarn.lock .
 
 RUN --mount=type=cache,target=/yarn-cache \
-    --mount=type=cache,target=/var/cache/apt \
-    --mount=type=cache,target=/var/lib/apt \
-    yarn ws:hash-realtime install
+  --mount=type=cache,target=/var/cache/apt \
+  --mount=type=cache,target=/var/lib/apt \
+  yarn ws:hash-realtime install
 
 ENTRYPOINT [ "yarn", "ws:hash-realtime", "dev" ]

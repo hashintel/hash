@@ -1,34 +1,26 @@
 {
   "name": "@hashintel/block-embed",
   "version": "0.1.0",
-  "description": "Embed external content",
   "private": true,
-  "browser": "dist/main.js",
-  "author": "hashintel",
+  "description": "Embed external content",
   "license": "MIT",
+  "author": "hashintel",
   "main": "src/index.ts",
-  "blockprotocol": {
-    "displayName": "Embed",
-    "icon": "public/embed.svg"
-  },
+  "browser": "dist/main.js",
   "scripts": {
-    "fix": "eslint --ext .ts,.tsx --fix ./src/",
-    "lint": "eslint --ext .ts,.tsx ./src/ && tsc --noEmit # @hashintel/block-embed",
-    "build:public": "mkdir -p ./dist; cp -a ./public ./dist",
     "build": "yarn clean; yarn build:public; cross-env NODE_ENV=production webpack --mode production && yarn schema",
     "build:dev": "yarn clean; yarn build:public; cross-env NODE_ENV=development webpack --mode development",
-    "schema": "typescript-json-schema tsconfig.json AppProps --required true --out dist/block-schema.json",
-    "webpack-dev-server": "cross-env NODE_ENV=development webpack-dev-server -d --port 3000 --config webpack-dev-server.config.js --open",
-    "start": "concurrently -n webpack,webpack-dev-server -c green,cyan \"yarn build:dev --watch --verbose\" \"yarn webpack-dev-server\"",
+    "build:public": "mkdir -p ./dist; cp -a ./public ./dist",
     "clean": "rimraf ./dist/",
-    "serve": "serve -C -l 62680 ./dist/"
+    "fix": "eslint --ext .ts,.tsx --fix ./src/",
+    "lint": "eslint --ext .ts,.tsx ./src/ && tsc --noEmit # @hashintel/block-embed",
+    "schema": "typescript-json-schema tsconfig.json AppProps --required true --out dist/block-schema.json",
+    "serve": "serve -C -l 62680 ./dist/",
+    "start": "concurrently -n webpack,webpack-dev-server -c green,cyan \"yarn build:dev --watch --verbose\" \"yarn webpack-dev-server\"",
+    "webpack-dev-server": "cross-env NODE_ENV=development webpack-dev-server -d --port 3000 --config webpack-dev-server.config.js --open"
   },
   "dependencies": {
     "@hashintel/block-protocol": "*"
-  },
-  "peerDependencies": {
-    "react": "17.0.2",
-    "twind": "0.16.16"
   },
   "devDependencies": {
     "@apollo/client": "3.3.21",
@@ -70,5 +62,13 @@
     "webpack-bundle-analyzer": "^3.9.0",
     "webpack-cli": "^3.3.12",
     "webpack-dev-server": "^3.11.0"
+  },
+  "peerDependencies": {
+    "react": "17.0.2",
+    "twind": "0.16.16"
+  },
+  "blockprotocol": {
+    "displayName": "Embed",
+    "icon": "public/embed.svg"
   }
 }

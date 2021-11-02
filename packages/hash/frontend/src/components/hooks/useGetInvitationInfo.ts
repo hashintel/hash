@@ -19,7 +19,7 @@ import {
 
 export const useGetInvitationInfo = () => {
   const [invitationInfo, setInvitationInfo] = useState<InvitationInfo | null>(
-    null
+    null,
   );
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
   const router = useRouter();

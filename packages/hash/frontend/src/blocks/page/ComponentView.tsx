@@ -50,7 +50,7 @@ export class ComponentView implements NodeView<Schema> {
     public view: EditorView<Schema>,
     public getPos: () => number,
     private renderPortal: RenderPortal,
-    private meta: BlockMeta
+    private meta: BlockMeta,
   ) {
     const { componentMetadata, componentSchema } = meta;
     const { source } = componentMetadata;
@@ -110,7 +110,7 @@ export class ComponentView implements NodeView<Schema> {
           editableRef={editableRef}
           shouldSandbox={!editableRef}
         />,
-        this.target
+        this.target,
       );
 
       return true;

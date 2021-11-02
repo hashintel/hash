@@ -29,7 +29,7 @@ export type SessionConfig = {
 export const setupSession = (
   app: Express,
   sessConfig: SessionConfig,
-  pgConfig: PgConfig
+  pgConfig: PgConfig,
 ) => {
   app.use(urlencoded({ extended: true }));
 
@@ -59,7 +59,7 @@ export const setupSession = (
       name: "hash-dev-session-id",
       resave: false,
       saveUninitialized: false,
-    })
+    }),
   );
 
   // parse additional session data middleware

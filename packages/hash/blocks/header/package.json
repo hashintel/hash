@@ -1,34 +1,26 @@
 {
   "name": "@hashintel/block-header",
   "version": "0.1.0",
-  "description": "Section headings of varying size",
   "private": true,
-  "browser": "dist/main.js",
-  "author": "Ciaran Morinan",
+  "description": "Section headings of varying size",
   "license": "MIT",
+  "author": "Ciaran Morinan",
   "main": "src/index.ts",
-  "blockprotocol": {
-    "displayName": "Heading",
-    "icon": "public/h1.svg"
-  },
+  "browser": "dist/main.js",
   "scripts": {
-    "fix": "eslint --ext .ts,.tsx --fix ./src/",
-    "lint": "eslint --ext .ts,.tsx ./src/ && tsc --noEmit # @hashintel/block-header",
-    "build:public": "mkdir -p ./dist; cp -a ./public ./dist",
     "build": "yarn clean; yarn build:public; cross-env NODE_ENV=production webpack --mode production && yarn schema",
     "build:dev": "yarn clean; yarn build:public; cross-env NODE_ENV=development webpack --mode development",
-    "schema": "typescript-json-schema tsconfig.json AppProps --required true --out dist/block-schema.json",
-    "webpack-dev-server": "cross-env NODE_ENV=development webpack-dev-server -d --port 9090 --config webpack-dev-server.config.js --open",
-    "start": "concurrently -n webpack,webpack-dev-server -c green,cyan \"yarn build:dev -- --watch --verbose\" \"yarn webpack-dev-server\"",
+    "build:public": "mkdir -p ./dist; cp -a ./public ./dist",
     "clean": "rimraf ./dist/",
-    "serve": "serve -C ./dist/"
+    "fix": "eslint --ext .ts,.tsx --fix ./src/",
+    "lint": "eslint --ext .ts,.tsx ./src/ && tsc --noEmit # @hashintel/block-header",
+    "schema": "typescript-json-schema tsconfig.json AppProps --required true --out dist/block-schema.json",
+    "serve": "serve -C ./dist/",
+    "start": "concurrently -n webpack,webpack-dev-server -c green,cyan \"yarn build:dev -- --watch --verbose\" \"yarn webpack-dev-server\"",
+    "webpack-dev-server": "cross-env NODE_ENV=development webpack-dev-server -d --port 9090 --config webpack-dev-server.config.js --open"
   },
   "dependencies": {
     "@hashintel/block-protocol": "*"
-  },
-  "peerDependencies": {
-    "react": "17.0.2",
-    "twind": "0.16.16"
   },
   "devDependencies": {
     "@babel/cli": "^7.12.10",
@@ -68,5 +60,13 @@
     "webpack-bundle-analyzer": "^3.9.0",
     "webpack-cli": "^3.3.12",
     "webpack-dev-server": "^3.11.0"
+  },
+  "peerDependencies": {
+    "react": "17.0.2",
+    "twind": "0.16.16"
+  },
+  "blockprotocol": {
+    "displayName": "Heading",
+    "icon": "public/h1.svg"
   }
 }

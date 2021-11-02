@@ -1,9 +1,9 @@
 {
   "name": "@hashintel/block-protocol",
-  "license": "SSPL-1.0",
-  "private": true,
   "version": "0.1.1",
+  "private": true,
   "description": "block-protocol",
+  "license": "SSPL-1.0",
   "exports": {
     "./*": "./dist/*"
   },
@@ -15,11 +15,11 @@
     }
   },
   "scripts": {
-    "fix": "eslint --ext .ts --fix ./src",
-    "lint": "eslint --ext .ts ./src && tsc --noEmit # @hashintel/block-protocol",
     "build": "yarn clean; tsc -b",
     "clean": "rimraf ./dist/ ./tsconfig.tsbuildinfo",
-    "postinstall": "yarn build"
+    "fix": "eslint --ext .ts --fix ./src",
+    "postinstall": "yarn build",
+    "lint": "eslint --ext .ts ./src && tsc --noEmit # @hashintel/block-protocol"
   },
   "devDependencies": {
     "@types/react": "17.0.7",

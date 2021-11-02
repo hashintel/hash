@@ -16,7 +16,7 @@ export const linkedEntities: Resolver<
   const parsedLinks = await parseLinksFromPropertiesObject(
     dataSources.db,
     entity.properties,
-    entity.entityId
+    entity.entityId,
   );
 
   return Promise.all(
@@ -30,12 +30,13 @@ export const linkedEntities: Resolver<
           accountId: destinationAccountId,
           entityId: destinationEntityId,
           entityVersionId: destinationEntityVersionId || undefined,
-        })
+        }),
       )
       // Remove duplicates
       .filter(
         (link, i, allLinks) =>
-          allLinks.findIndex(({ entityId }) => link.entityId === entityId) === i
+          allLinks.findIndex(({ entityId }) => link.entityId === entityId) ===
+          i,
       )
       .map(async ({ accountId, entityId, entityVersionId }) => {
         const linkedEntity = entityVersionId
@@ -51,11 +52,11 @@ export const linkedEntities: Resolver<
         if (!linkedEntity) {
           throw new ApolloError(
             `linked entity ${entityId} not found in account ${accountId}`,
-            "NOT_FOUND"
+            "NOT_FOUND",
           );
         }
 
         return linkedEntity.toGQLUnknownEntity();
-      })
+      }),
   );
 };

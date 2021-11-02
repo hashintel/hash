@@ -69,7 +69,7 @@ class __VerificationCode {
       db
         .getVerificationCode({ id })
         .then((dbVerificationCode) =>
-          dbVerificationCode ? new VerificationCode(dbVerificationCode) : null
+          dbVerificationCode ? new VerificationCode(dbVerificationCode) : null,
         );
 
   hasExceededMaximumAttempts = () => this.numberOfAttempts >= MAX_ATTEMPTS;

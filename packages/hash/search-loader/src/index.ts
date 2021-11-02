@@ -31,7 +31,7 @@ const STATSD_PORT = parseInt(process.env.STATSD_PORT || "8125", 10);
 const OPENSEARCH_HOST = getRequiredEnv("HASH_OPENSEARCH_HOST");
 const OPENSEARCH_PORT = parseInt(
   process.env.HASH_OPENSEARCH_PORT || "9200",
-  10
+  10,
 );
 const OPENSEARCH_USERNAME = getRequiredEnv("HASH_OPENSEARCH_USERNAME");
 const OPENSEARCH_PASSWORD = getRequiredEnv("HASH_OPENSEARCH_PASSWORD");
@@ -75,7 +75,7 @@ const createHttpServer = (callbacks: { isQueueAcquired: () => boolean }) => {
           msg: "Server is up",
           instanceId: INSTANCE_ID,
           queueAcquired: callbacks.isQueueAcquired(),
-        })
+        }),
       );
       return;
     } else if (req.method === "POST" && req.url === "/shutdown") {
@@ -134,7 +134,7 @@ class SearchLoader {
     private queue: QueueExclusiveConsumer,
     private search: SearchAdapter,
     // @todo(eadan): change this to be a generic database adapter
-    private pool: PgPool
+    private pool: PgPool,
   ) {}
 
   /** Start the loader process which reads messages from the ingestion queue and
@@ -161,7 +161,7 @@ class SearchLoader {
         await this.loadMsgIntoSearchIndex(wal2jsonMsg);
         logger.debug(item);
         return true;
-      }
+      },
     );
     if (processed) {
       statsd?.increment("messages_processed");
@@ -195,7 +195,7 @@ class SearchLoader {
         entityType.name === "Text"
       ) {
         indexedEntity.fullTextSearch = textEntityPropertiesToFTS(
-          entity.properties
+          entity.properties,
         );
       } else if (
         entityType.accountId === SYSTEM_ACCOUNT_ID &&
@@ -291,7 +291,7 @@ const main = async () => {
     const res = await queue.acquire(SEARCH_QUEUE_NAME, 5_000);
     if (!res) {
       logger.info(
-        "Queue is owned by another consumer. Attempting to acquire ownership again ..."
+        "Queue is owned by another consumer. Attempting to acquire ownership again ...",
       );
     }
     return res;

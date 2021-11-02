@@ -13,7 +13,7 @@ import {
 
 export const useBlockProtocolUpdate = (
   /** Providing accountId here saves blocks from having to know it */
-  accountId: string
+  accountId: string,
 ): {
   update: BlockProtocolUpdateFn;
   updateLoading: boolean;
@@ -28,7 +28,7 @@ export const useBlockProtocolUpdate = (
     apolloClient
       .reFetchObservableQueries()
       .catch((err: any) =>
-        console.error("Error when refetching all active queries: ", err)
+        console.error("Error when refetching all active queries: ", err),
       );
 
   const [
@@ -36,7 +36,7 @@ export const useBlockProtocolUpdate = (
     { loading: updateEntityLoading, error: updateEntityError },
   ] = useMutation<UpdateEntityMutation, UpdateEntityMutationVariables>(
     updateEntity,
-    { onCompleted }
+    { onCompleted },
   );
 
   const [updatePageFn, { loading: updatePageLoading, error: updatePageError }] =
@@ -57,11 +57,11 @@ export const useBlockProtocolUpdate = (
           }).then(
             ({ data }) =>
               data &&
-              ("updatePage" in data ? data.updatePage : data.updateEntity)
-          )
-        )
+              ("updatePage" in data ? data.updatePage : data.updateEntity),
+          ),
+        ),
       ),
-    [accountId, updateEntityFn, updatePageFn]
+    [accountId, updateEntityFn, updatePageFn],
   );
 
   const updateLoading = updateEntityLoading || updatePageLoading;

@@ -25,7 +25,7 @@ export class OpenSearch implements SearchAdapter {
   /** Connect to an OpenSearch cluster using the provided configuration. */
   static async connect(
     logger: Logger,
-    cfg: OpenSearchConfig
+    cfg: OpenSearchConfig,
   ): Promise<OpenSearch> {
     const protocol = cfg.httpsEnabled ? "https" : "http";
     const node = `${protocol}://${cfg.host}:${cfg.port}/`;

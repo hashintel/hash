@@ -37,7 +37,7 @@ export const mapPGRowToEntity = (row: QueryResultRowType): Entity => {
   // Pull out the entity type fields to also convert
   const dbEntityType: Record<string, any> = {};
   const dbEntityTypeFields = Object.keys(row).filter((key) =>
-    key.startsWith(entityTypeFieldPrefix)
+    key.startsWith(entityTypeFieldPrefix),
   );
   for (const field of dbEntityTypeFields) {
     dbEntityType[field.slice(entityTypeFieldPrefix.length)] = row[field];
@@ -134,7 +134,7 @@ const selectEntitiesByType = (params: {
   const whereConditions = [sql`type.entity_type_id = ${entityTypeId}`];
   if (entityTypeVersionId) {
     whereConditions.push(
-      sql`e.entity_type_version_id = ${entityTypeVersionId}`
+      sql`e.entity_type_version_id = ${entityTypeVersionId}`,
     );
   }
   if (accountId) {
@@ -152,7 +152,7 @@ const selectEntitiesByType = (params: {
 export const getEntity = async (
   conn: Connection,
   params: { accountId: string; entityVersionId: string },
-  lock: boolean = false
+  lock: boolean = false,
 ): Promise<Entity | undefined> => {
   const query = lock
     ? sql`${selectEntityVersion(params)} for update`
@@ -170,7 +170,7 @@ export const getEntityLatestVersion = async (
   params: {
     accountId: string;
     entityId: string;
-  }
+  },
 ): Promise<Entity | undefined> => {
   const row = await conn.maybeOne(
     sql`
@@ -178,7 +178,7 @@ export const getEntityLatestVersion = async (
       ${selectEntityAllVersions(params)}
     )
     select distinct on (entity_id) * from all_matches
-    order by entity_id, version_created_at desc`
+    order by entity_id, version_created_at desc`,
   );
   return row ? mapPGRowToEntity(row) : undefined;
 };
@@ -191,7 +191,7 @@ const getEntitiesLatestVersion = async (
   params: {
     accountId: string;
     entityIds: string[];
-  }
+  },
 ): Promise<Entity[]> => {
   const rows = await conn.any(sql`
     select * from (
@@ -213,7 +213,7 @@ const getEntityVersions = async (
   params: {
     accountId: string;
     entityVersionIds: string[];
-  }
+  },
 ): Promise<Entity[]> => {
   const rows = await conn.any(sql`
     with all_matches as (
@@ -235,7 +235,7 @@ export const getEntityLatestVersionId = async (
   params: {
     accountId: string;
     entityId: string;
-  }
+  },
 ): Promise<string | undefined> => {
   const id = await conn.maybeOneFirst(
     sql`
@@ -243,7 +243,7 @@ export const getEntityLatestVersionId = async (
       ${selectEntityAllVersions(params)}
     )
     select distinct on (entity_id) entity_version_id from all_matches
-    order by entity_id, version_created_at desc`
+    order by entity_id, version_created_at desc`,
   );
   return id ? (id as string) : undefined;
 };
@@ -260,7 +260,7 @@ export const getEntitiesByTypeLatestVersion = async (
     entityTypeId: string;
     entityTypeVersionId?: string;
     accountId: string;
-  }
+  },
 ): Promise<Entity[]> => {
   const rows = await conn.any(sql`
     with all_matches as (
@@ -284,7 +284,7 @@ export const getEntitiesByTypeAllVersions = async (
     entityTypeId: string;
     entityTypeVersionId?: string;
     accountId: string;
-  }
+  },
 ) => {
   const rows = await conn.any(selectEntitiesByType(params));
   return rows.map(mapPGRowToEntity);
@@ -313,7 +313,7 @@ export const insertEntityVersion = async (
     createdById: string;
     entityVersionCreatedAt: Date;
     entityVersionUpdatedAt: Date;
-  }
+  },
 ): Promise<void> => {
   await conn.query(sql`
     insert into entity_versions (
@@ -336,7 +336,7 @@ export const updateEntityVersionProperties = async (
     entityVersionId: string;
     properties: any;
     entityVersionUpdatedAt: Date;
-  }
+  },
 ) => {
   await conn.one(sql`
     update entity_versions set
@@ -355,7 +355,7 @@ export const getEntityHistory = async (
     accountId: string;
     entityId: string;
     order: "asc" | "desc";
-  }
+  },
 ): Promise<EntityVersion[]> => {
   const rows = await conn.any(sql`
     select
@@ -385,7 +385,7 @@ const getEntitiesInAccount = async (
   params: {
     accountId: string;
     ids: { entityId: string; entityVersionId?: string }[];
-  }
+  },
 ) => {
   const { accountId } = params;
 
@@ -411,7 +411,7 @@ const getEntitiesInAccount = async (
  */
 export const getEntities = async (
   conn: Connection,
-  ids: { accountId: string; entityId: string; entityVersionId?: string }[]
+  ids: { accountId: string; entityId: string; entityVersionId?: string }[],
 ): Promise<Entity[]> => {
   // Need to group by account ID to use the index
   const idsByAccount = new Map<
@@ -429,8 +429,8 @@ export const getEntities = async (
   const entities = (
     await Promise.all(
       Array.from(idsByAccount.entries()).map(([accountId, idsInAccount]) =>
-        getEntitiesInAccount(conn, { accountId, ids: idsInAccount })
-      )
+        getEntitiesInAccount(conn, { accountId, ids: idsInAccount }),
+      ),
     )
   ).flat();
 
@@ -450,7 +450,7 @@ export const getEntities = async (
     .map((id) =>
       id.entityVersionId
         ? versionLookup.get(id.entityVersionId!)
-        : latestLookup.get(id.entityId)
+        : latestLookup.get(id.entityId),
     )
     .filter((entity): entity is Entity => !!entity);
 };
@@ -478,7 +478,7 @@ const hashCode = (str: string) => {
  * */
 export const acquireEntityLock = async (
   conn: Connection,
-  params: { entityId: string }
+  params: { entityId: string },
 ) =>
   // pg_advisory_xact_lock requires an integer so pass it a hash of the entity ID.
   conn
@@ -495,7 +495,7 @@ const updateVersionedEntity = async (
   params: {
     entity: Entity;
     properties: any;
-  }
+  },
 ) => {
   const { entity, properties } = params;
   if (!params.entity.metadata.versioned) {
@@ -544,7 +544,7 @@ const updateNonVersionedEntity = async (
   params: {
     entity: Entity;
     properties: any;
-  }
+  },
 ): Promise<Entity> => {
   if (params.entity.metadata.versioned) {
     throw new Error("cannot mutate a versioned entity");
@@ -584,7 +584,7 @@ export const updateEntity = async (
     accountId: string;
     entityId: string;
     properties: any;
-  }
+  },
 ): Promise<Entity> => {
   const { accountId, entityId, properties } = params;
   const entity = await getEntityLatestVersion(conn, params);

@@ -137,7 +137,7 @@ export const getImpliedEntityHistory = async (
   params: {
     accountId: string;
     entityId: string;
-  }
+  },
 ) => {
   // Find the entityIds of all entities in the sub-graph reachable from the root node.
   // @todo: we may be able to turn this into a single recursive SQL query.
@@ -147,13 +147,13 @@ export const getImpliedEntityHistory = async (
   let slice = [root];
   while (slice.length > 0) {
     const entityLinks = await Promise.all(
-      slice.map((ref) => getEntityOutgoingLinks(conn, ref))
+      slice.map((ref) => getEntityOutgoingLinks(conn, ref)),
     );
     for (const [i, links] of entityLinks.entries()) {
       graph.set(slice[i].entityId, links);
     }
     slice = uniq(
-      entityLinks.flat().filter(({ entityId }) => !graph.has(entityId))
+      entityLinks.flat().filter(({ entityId }) => !graph.has(entityId)),
     );
     entityRefs.push(...slice);
   }
@@ -163,13 +163,13 @@ export const getImpliedEntityHistory = async (
     (
       await Promise.all(
         entityRefs.map((ref) =>
-          getEntityHistory(conn, { ...ref, order: "asc" })
-        )
+          getEntityHistory(conn, { ...ref, order: "asc" }),
+        ),
       )
     ).map((versions, i): [string, EntityVersion[]] => [
       entityRefs[i].entityId,
       versions,
-    ])
+    ]),
   );
 
   // A mapping from entityVersionId to its corresponding position in the entity timeline.
@@ -207,7 +207,7 @@ export const getImpliedEntityHistory = async (
       const refLinks = graph
         .get(ref.entityId)!
         .filter((link) =>
-          link.validForSrcEntityVersionIds.has(ref.entityVersionId)
+          link.validForSrcEntityVersionIds.has(ref.entityVersionId),
         );
 
       // For each link made by the reference entity, if it's a non-fixed link (i.e. it's
@@ -217,7 +217,7 @@ export const getImpliedEntityHistory = async (
         const linkedVersions = entityVersions.get(link.entityId)!;
         const linkedVersion = link.entityVersionId
           ? linkedVersions.find(
-              (ver) => ver.entityVersionId === link.entityVersionId
+              (ver) => ver.entityVersionId === link.entityVersionId,
             )!
           : linkedVersions[checkpoints.get(ref.entityId, link.entityId)];
 

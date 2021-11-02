@@ -24,14 +24,14 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
       inputClassName,
       ...props
     },
-    ref
+    ref,
   ) => {
     const _onChange = (evt: ChangeEvent<HTMLInputElement>) => {
       if (onChangeText) {
         onChangeText(
           disallowRegExp
             ? evt.target.value.replace(disallowRegExp, "")
-            : evt.target.value
+            : evt.target.value,
         );
       } else {
         onChange?.(evt);
@@ -62,5 +62,5 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
     }
 
     return <div className={`w-64 ${props.className}`}>{Input}</div>;
-  }
+  },
 );

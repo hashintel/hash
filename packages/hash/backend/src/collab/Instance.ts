@@ -36,7 +36,7 @@ export class Instance {
     public pageEntityId: string,
     public state: EditorState<Schema>,
     public manager: ProsemirrorSchemaManager,
-    public savedContents: BlockEntity[]
+    public savedContents: BlockEntity[],
   ) {}
 
   stop() {
@@ -92,7 +92,7 @@ export class Instance {
           this.savedContents,
           // @todo get this from this.state
           createEntityStore(this.savedContents, {}),
-          apolloClient
+          apolloClient,
         ).then((newPage) => {
           const componentNodes = findComponentNodes(this.state.doc);
 
@@ -123,7 +123,7 @@ export class Instance {
               this.addEvents(apolloClient)(
                 this.version,
                 transform.steps,
-                `${clientID}-server`
+                `${clientID}-server`,
               );
             }
           }
@@ -146,18 +146,18 @@ export class Instance {
       version: number,
       jsonSteps: any[],
       clientId: string,
-      blockIds: string[]
+      blockIds: string[],
     ) => {
       /**
        * This is a potential security risk as the frontend can instruct us
        * to make a web request
        */
       await Promise.all(
-        blockIds.map((id) => this.manager.defineRemoteBlock(id))
+        blockIds.map((id) => this.manager.defineRemoteBlock(id)),
       );
 
       const steps = jsonSteps.map((step) =>
-        Step.fromJSON(this.state.doc.type.schema, step)
+        Step.fromJSON(this.state.doc.type.schema, step),
       );
 
       return this.addEvents(apolloClient)(version, steps, clientId);
@@ -256,8 +256,8 @@ const newInstance =
     const newState = state.apply(
       await manager.createEntityUpdateTransaction(
         data.page.properties.contents,
-        state
-      )
+        state,
+      ),
     );
 
     // The instance may have been created whilst another user we were doing the above work
@@ -270,7 +270,7 @@ const newInstance =
       pageEntityId,
       newState,
       manager,
-      data.page.properties.contents
+      data.page.properties.contents,
     );
 
     return instances[pageEntityId];

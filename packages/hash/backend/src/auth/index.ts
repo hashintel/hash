@@ -8,7 +8,7 @@ const setupAuth = (
   app: Express,
   sessConfig: SessionConfig,
   pgConfig: PgConfig,
-  db: DBAdapter
+  db: DBAdapter,
 ) => {
   // setup session related middleware
   setupSession(app, sessConfig, pgConfig);

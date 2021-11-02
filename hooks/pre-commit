@@ -8,7 +8,7 @@ const main = () => {
   const diff = spawnSync(
     "git",
     ["diff", "--cached", "--name-only", "--diff-filter=ACM"],
-    { encoding: "utf8" }
+    { encoding: "utf8" },
   );
   if (diff.status !== 0) {
     throw new Error(diff.stderr);

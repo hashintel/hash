@@ -22,7 +22,7 @@ export const insertBlocksIntoPage: Resolver<
 > = async (
   _,
   { accountId, entityId, blocks, previousBlockId },
-  { dataSources, user }
+  { dataSources, user },
 ) => {
   return await dataSources.db.transaction(async (client) => {
     // Create the blocks
@@ -40,7 +40,7 @@ export const insertBlocksIntoPage: Resolver<
             entityTypeId,
             entityTypeVersionId,
             systemTypeName,
-          })
+          }),
         );
 
         // Create the block
@@ -57,7 +57,7 @@ export const insertBlocksIntoPage: Resolver<
           properties: blockProperties,
         });
         return newBlock;
-      })
+      }),
     );
 
     // Insert the blocks into the page
@@ -82,7 +82,7 @@ export const insertBlocksIntoPage: Resolver<
         type: "Block",
         accountId: blk.accountId,
         entityId: blk.entityId,
-      }))
+      })),
     );
 
     // Update the page

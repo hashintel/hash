@@ -19,7 +19,7 @@ const node = document.getElementById("app");
 
 async function getEmbedBlock(
   url: string,
-  type?: ProviderNames
+  type?: ProviderNames,
 ): Promise<{
   html: string;
   error?: string;
@@ -56,7 +56,7 @@ function AppComponent() {
   };
 
   const updateBlockData: BlockProtocolUpdateFn = async (
-    actions: BlockProtocolUpdatePayload<any>[]
+    actions: BlockProtocolUpdatePayload<any>[],
   ) => {
     if (actions[0]) {
       updateState(actions[0].data);

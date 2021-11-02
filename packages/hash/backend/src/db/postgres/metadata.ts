@@ -12,7 +12,7 @@ export const insertEntityMetadata = async (
     versioned: boolean;
     entityCreatedAt: Date;
     extra: any;
-  }
+  },
 ): Promise<EntityMeta> => {
   await conn.query(sql`
     insert into entities (
@@ -37,7 +37,7 @@ export const updateEntityMetadata = async (
     accountId: string;
     entityId: string;
     extra: any;
-  }
+  },
 ): Promise<EntityMeta> => {
   try {
     const row = await conn.one(sql`

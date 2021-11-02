@@ -19,7 +19,7 @@ export const blockEntity: Resolver<
   if (!entity) {
     throw new ApolloError(
       `Entity id ${entityId} not found in account ${accountId}`,
-      "NOT_FOUND"
+      "NOT_FOUND",
     );
   }
 

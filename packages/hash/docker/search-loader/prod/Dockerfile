@@ -13,8 +13,7 @@ RUN --mount=type=cache,target=/yarn-cache \
   --mount=type=cache,target=/var/lib/apt \
   yarn ws:hash-search-loader install \
   && yarn ws:hash-search-loader build \
-  # Remove devDependencies
-  && yarn ws:hash-search-loader install --production --ignore-scripts --prefer-offline
+  && yarn ws:hash-search-loader install --production --ignore-scripts --prefer-offline # Remove devDependencies
 
 #########################################################################################
 

@@ -19,7 +19,7 @@ export const entity: Resolver<
     if (!dbEntity) {
       throw new ApolloError(
         `Entity with version ID ${entityVersionId} not found in account ${accountId}`,
-        "NOT_FOUND"
+        "NOT_FOUND",
       );
     }
   } else if (entityId) {
@@ -29,12 +29,12 @@ export const entity: Resolver<
     });
     if (!dbEntity) {
       throw new ApolloError(
-        `Entity with fixed ID ${entityId} not found in account ${accountId}`
+        `Entity with fixed ID ${entityId} not found in account ${accountId}`,
       );
     }
   } else {
     throw new UserInputError(
-      "at least one of entityVersionId or entityId must be provided"
+      "at least one of entityVersionId or entityId must be provided",
     );
   }
 

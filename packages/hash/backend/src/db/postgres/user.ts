@@ -17,7 +17,7 @@ const matchesUserType = sql`
 //    might be better to have a separate "users" table.
 export const getUserByEmail = async (
   conn: Connection,
-  params: { email: string; verified?: boolean; primary?: boolean }
+  params: { email: string; verified?: boolean; primary?: boolean },
 ) => {
   const row = await conn.maybeOne(sql`
     ${selectEntities}
@@ -37,7 +37,7 @@ export const getUserByEmail = async (
                 ? sql`(email ->> 'primary')::boolean = ${params.primary}`
                 : [],
             ].flat(),
-            sql` and `
+            sql` and `,
           )}
         )
   `);
@@ -48,7 +48,7 @@ export const getUserByEmail = async (
 //    might be better to have a separate "users" table.
 export const getUserByShortname = async (
   conn: Connection,
-  params: { shortname: string }
+  params: { shortname: string },
 ) => {
   const row = await conn.maybeOne(sql`
     ${selectEntities}

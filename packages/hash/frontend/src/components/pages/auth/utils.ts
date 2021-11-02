@@ -36,7 +36,7 @@ type ParsedAuthQuery = {
 };
 
 export const isParsedAuthQuery = (
-  query: ParsedUrlQueryInput
+  query: ParsedUrlQueryInput,
 ): query is ParsedAuthQuery =>
   typeof query.verificationId === "string" &&
   typeof query.verificationCode === "string";
@@ -54,7 +54,7 @@ type ParsedInviteLinkQuery = {
 } & ParsedUrlQueryInput;
 
 export const isParsedInvitationEmailQuery = (
-  query: ParsedUrlQueryInput
+  query: ParsedUrlQueryInput,
 ): query is ParsedInviteEmailQuery =>
   typeof query.orgEntityId === "string" &&
   typeof query.invitationEmailToken === "string" &&
@@ -63,7 +63,7 @@ export const isParsedInvitationEmailQuery = (
   !!query.email;
 
 export const isParsedInvitationLinkQuery = (
-  query: ParsedUrlQueryInput
+  query: ParsedUrlQueryInput,
 ): query is ParsedInviteLinkQuery =>
   typeof query.orgEntityId === "string" &&
   typeof query.invitationLinkToken === "string" &&

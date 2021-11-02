@@ -17,7 +17,7 @@ const matchesOrgType = sql`
 //    might be better to have a separate "orgs" table.
 export const getOrgByShortname = async (
   conn: Connection,
-  params: { shortname: string }
+  params: { shortname: string },
 ) => {
   const row = await conn.maybeOne(sql`
     ${selectEntities}

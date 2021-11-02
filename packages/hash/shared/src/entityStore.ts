@@ -41,7 +41,7 @@ export const isBlockEntity = (entity: unknown): entity is BlockEntity =>
   isEntity(entity.properties.entity);
 
 export const isDraftBlockEntity = (
-  entity: unknown
+  entity: unknown,
 ): entity is DraftEntity<BlockEntity> =>
   isBlockEntity(entity) && "draftId" in entity;
 
@@ -50,7 +50,7 @@ export const isDraftBlockEntity = (
  */
 export const draftEntityForEntityId = (
   draft: EntityStore["draft"],
-  entityId: string
+  entityId: string,
 ) => Object.values(draft).find((entity) => entity.entityId === entityId);
 
 const findEntitiesInValue = (value: unknown): EntityStoreType[] => {
@@ -74,7 +74,7 @@ const findEntitiesInValue = (value: unknown): EntityStoreType[] => {
  */
 export const createEntityStore = (
   contents: EntityStoreType[],
-  draftData: Record<string, DraftEntity>
+  draftData: Record<string, DraftEntity>,
 ): EntityStore => {
   const saved: EntityStore["saved"] = {};
   const draft: EntityStore["draft"] = {};
@@ -116,7 +116,7 @@ export const createEntityStore = (
         if (draftData[draftId]) {
           Object.assign(draftEntity, draftData[draftId]);
         }
-      }
+      },
     );
 
     draft[draftId] = produce<DraftEntity>(
@@ -126,7 +126,7 @@ export const createEntityStore = (
           draftEntity.properties.entity.draftId =
             entityToDraft[draftEntity.properties.entity.entityId];
         }
-      }
+      },
     );
   }
 

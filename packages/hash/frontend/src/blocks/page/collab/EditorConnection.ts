@@ -32,7 +32,7 @@ const repeat = <T>(val: T, count: number): T[] => {
 class State {
   constructor(
     public edit: EditorState<Schema> | null,
-    public comm: string | null
+    public comm: string | null,
   ) {}
 }
 
@@ -72,7 +72,7 @@ export class EditorConnection {
     public schema: Schema,
     public view: EditorView<Schema>,
     public manager: ProsemirrorSchemaManager,
-    public additionalPlugins: Plugin<unknown, Schema>[]
+    public additionalPlugins: Plugin<unknown, Schema>[],
   ) {
     this.start();
   }
@@ -95,7 +95,7 @@ export class EditorConnection {
           editorState.tr.setMeta(entityStorePluginKey, {
             type: "store",
             payload: action.store,
-          })
+          }),
         );
         this.state = new State(result, "poll");
         this.poll();
@@ -208,7 +208,7 @@ export class EditorConnection {
           const tr = receiveTransaction(
             this.state.edit,
             data.steps.map((json: any) => Step.fromJSON(this.schema, json)),
-            data.clientIDs
+            data.clientIDs,
           );
           this.dispatch({
             type: "transaction",
@@ -228,7 +228,7 @@ export class EditorConnection {
         } else if (err) {
           this.dispatch({ type: "recover", error: err });
         }
-      }
+      },
     );
   }
 
@@ -240,7 +240,7 @@ export class EditorConnection {
   // Send the given steps to the server
   send(
     editState: EditorState<Schema>,
-    { steps }: { steps?: ReturnType<typeof sendableSteps> } = {}
+    { steps }: { steps?: ReturnType<typeof sendableSteps> } = {},
   ) {
     const json = JSON.stringify({
       version: getVersion(editState),
@@ -248,7 +248,7 @@ export class EditorConnection {
       clientID: steps ? steps.clientID : 0,
       // @todo do something smarter
       blockIds: Object.keys(editState.schema.nodes).filter((key) =>
-        key.startsWith("http")
+        key.startsWith("http"),
       ),
     });
     this.run(POST(`${this.url}/events`, json, "application/json")).then(
@@ -262,7 +262,7 @@ export class EditorConnection {
           ? receiveTransaction(
               this.state.edit,
               steps.steps,
-              repeat(steps.clientID, steps.steps.length)
+              repeat(steps.clientID, steps.steps.length),
             )
           : this.state.edit.tr;
         this.dispatch({
@@ -283,7 +283,7 @@ export class EditorConnection {
         } else {
           this.dispatch({ type: "recover", error: err });
         }
-      }
+      },
     );
   }
 

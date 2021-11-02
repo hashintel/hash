@@ -42,7 +42,7 @@ export class ProsemirrorSchemaManager {
   constructor(
     public schema: Schema,
     private view: EditorView<Schema> | null = null,
-    private componentNodeViewFactory: ComponentNodeViewFactory | null = null
+    private componentNodeViewFactory: ComponentNodeViewFactory | null = null,
   ) {}
 
   /**
@@ -158,7 +158,7 @@ export class ProsemirrorSchemaManager {
    */
   async defineRemoteBlock(
     componentId: string,
-    metaPromise?: Promise<BlockMeta>
+    metaPromise?: Promise<BlockMeta>,
   ) {
     if (!this.schema.nodes[componentId]) {
       const blockMetaPromise = metaPromise ?? fetchBlockMeta(componentId);
@@ -188,7 +188,7 @@ export class ProsemirrorSchemaManager {
       (docJson.content as any[]).map(async (block) => {
         const content = block.type === "block" ? block.content?.[0] : block;
         await this.ensureBlockLoaded(content);
-      })
+      }),
     );
   }
 
@@ -203,7 +203,7 @@ export class ProsemirrorSchemaManager {
   async createRemoteBlock(
     targetComponentId: string,
     entityStore?: EntityStore,
-    draftBlockId?: string
+    draftBlockId?: string,
   ) {
     const meta = await this.fetchAndDefineBlock(targetComponentId);
     const requiresText = blockComponentRequiresText(meta.componentSchema);
@@ -216,7 +216,7 @@ export class ProsemirrorSchemaManager {
 
       if (blockEntity.properties.componentId !== targetComponentId) {
         const blockMeta = await fetchBlockMeta(
-          blockEntity.properties.componentId
+          blockEntity.properties.componentId,
         );
 
         if (
@@ -250,11 +250,11 @@ export class ProsemirrorSchemaManager {
             [
               this.schema.nodes[targetComponentId].create(
                 componentNodeAttributes,
-                content
+                content,
               ),
-            ]
+            ],
           ),
-        ]
+        ],
       );
     } else {
       /**
@@ -273,10 +273,10 @@ export class ProsemirrorSchemaManager {
           [
             this.schema.nodes[targetComponentId].create(
               componentNodeAttributes,
-              []
+              [],
             ),
-          ]
-        )
+          ],
+        ),
       );
     }
   }
@@ -288,7 +288,7 @@ export class ProsemirrorSchemaManager {
    */
   async createEntityUpdateTransaction(
     entities: BlockEntity[],
-    state: EditorState<Schema>
+    state: EditorState<Schema>,
   ) {
     const { store, tr } = entityStoreAndTransactionForEntities(state, entities);
 
@@ -296,7 +296,7 @@ export class ProsemirrorSchemaManager {
       entities.map((blockEntity) => {
         const draftEntity = draftEntityForEntityId(
           store.draft,
-          blockEntity.entityId
+          blockEntity.entityId,
         );
 
         if (!draftEntity) {
@@ -306,9 +306,9 @@ export class ProsemirrorSchemaManager {
         return this.createRemoteBlock(
           blockEntity.properties.componentId,
           store,
-          draftEntity.draftId
+          draftEntity.draftId,
         );
-      })
+      }),
     );
 
     tr.replaceWith(0, state.doc.content.size, newNodes);
@@ -323,7 +323,7 @@ export class ProsemirrorSchemaManager {
     draftBlockId: string,
     targetComponentId: string,
     node: ProsemirrorNode<Schema>,
-    getPos: () => number
+    getPos: () => number,
   ) {
     const { view } = this;
 
@@ -335,7 +335,7 @@ export class ProsemirrorSchemaManager {
     const newNode = await this.createRemoteBlock(
       targetComponentId,
       entityStoreState.store,
-      draftBlockId
+      draftBlockId,
     );
 
     /**

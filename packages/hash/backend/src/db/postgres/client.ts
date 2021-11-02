@@ -138,7 +138,7 @@ export class PostgresClient implements DBClient {
 
       if (!exactlyOne(entityTypeId, entityTypeVersionId, systemTypeName)) {
         throw new Error(
-          "Exactly one of entityTypeId, entityTypeVersionId or systemTypeName must be provided"
+          "Exactly one of entityTypeId, entityTypeVersionId or systemTypeName must be provided",
         );
       }
 
@@ -156,7 +156,7 @@ export class PostgresClient implements DBClient {
               : entityTypeId
               ? `entityTypeId ${entityTypeId}.`
               : `systemTypeName '${systemTypeName}'`
-          }`
+          }`,
         );
       }
 
@@ -229,7 +229,7 @@ export class PostgresClient implements DBClient {
       accountId: string;
       entityVersionId: string;
     },
-    lock: boolean = false
+    lock: boolean = false,
   ): Promise<Entity | undefined> {
     return (await getEntity(this.conn, params, lock)) || undefined;
   }
@@ -287,7 +287,7 @@ export class PostgresClient implements DBClient {
     const { entityId, entityVersionId, newName, newSchema } = params;
     if (!newName && !newSchema) {
       throw new Error(
-        "At least one of params.name or params.schema must be provided."
+        "At least one of params.name or params.schema must be provided.",
       );
     }
 
@@ -300,7 +300,7 @@ export class PostgresClient implements DBClient {
     }
     if (entityVersionId && entityVersionId !== entity.entityVersionId) {
       throw new Error(
-        `Provided entityVersionId ${entityVersionId} does not match latest: ${entity.entityVersionId}`
+        `Provided entityVersionId ${entityVersionId} does not match latest: ${entity.entityVersionId}`,
       );
     }
 
@@ -354,7 +354,7 @@ export class PostgresClient implements DBClient {
     latestOnly?: boolean;
   }): Promise<Entity[]> {
     const { entity_type_id: entityTypeId } = await this.conn.one(
-      selectSystemEntityTypeIds(params)
+      selectSystemEntityTypeIds(params),
     );
     const queryParams = {
       entityTypeId: entityTypeId as string,
@@ -451,7 +451,7 @@ export class PostgresClient implements DBClient {
       accountId: string;
       entityId: string;
       entityVersionId?: string;
-    }[]
+    }[],
   ): Promise<Entity[]> {
     return await getEntities(this.conn, entities);
   }

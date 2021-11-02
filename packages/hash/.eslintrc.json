@@ -2,20 +2,14 @@
   "root": true,
   // this is the highest config lower ones will automatically extend
   "parser": "@typescript-eslint/parser",
-  "plugins": [
-    "@typescript-eslint",
-    "react-hooks",
-    "jest"
-  ],
+  "plugins": ["@typescript-eslint", "react-hooks", "jest"],
   "extends": [
     "plugin:@typescript-eslint/base",
     "airbnb",
     "prettier"
     // mutes eslint rules conflicting w/ prettier (requires eslint-config-prettier)
   ],
-  "ignorePatterns": [
-    "**/*.gen.*"
-  ],
+  "ignorePatterns": ["**/*.gen.*"],
   "globals": {
     "NodeJS": true,
     "React": true,
@@ -98,9 +92,7 @@
     "import/no-unresolved": [
       2,
       {
-        "ignore": [
-          "^@hashintel"
-        ]
+        "ignore": ["^@hashintel"]
       }
     ],
     "react/prop-types": "off",
@@ -110,12 +102,7 @@
     "react/jsx-filename-extension": [
       2,
       {
-        "extensions": [
-          ".js",
-          ".jsx",
-          ".ts",
-          ".tsx"
-        ]
+        "extensions": [".js", ".jsx", ".ts", ".tsx"]
       }
     ],
     "react/jsx-props-no-spreading": "off",
@@ -163,16 +150,12 @@
         "paths": [
           {
             "name": "@testing-library/react",
-            "importNames": [
-              "render"
-            ],
+            "importNames": ["render"],
             "message": "Please use ./src/tests/testUtils.tsx#render instead"
           },
           {
             "name": "prosemirror-model",
-            "importNames": [
-              "Node"
-            ],
+            "importNames": ["Node"],
             "message": "Please use ProsemirrorNode from @hashintel/shared/node"
           }
         ]
@@ -183,9 +166,7 @@
     // see https://github.com/typescript-eslint/typescript-eslint/issues/2483
     "@typescript-eslint/no-shadow": "error",
     "no-use-before-define": "off",
-    "@typescript-eslint/no-use-before-define": [
-      "error"
-    ],
+    "@typescript-eslint/no-use-before-define": ["error"],
     "eqeqeq": [
       "error",
       "always",
@@ -197,23 +178,12 @@
       "error",
       {
         "min": 2,
-        "exceptions": [
-          "_",
-          "x",
-          "y",
-          "z",
-          "a",
-          "b",
-          "i"
-        ],
+        "exceptions": ["_", "x", "y", "z", "a", "b", "i"],
         "properties": "never"
       }
     ],
     "no-unused-expressions": "error",
-    "curly": [
-      "error",
-      "multi-line"
-    ],
+    "curly": ["error", "multi-line"],
     "import/extensions": [
       "error",
       "ignorePackages",
@@ -225,9 +195,7 @@
       }
     ],
     "no-useless-constructor": "off",
-    "@typescript-eslint/no-useless-constructor": [
-      "error"
-    ],
+    "@typescript-eslint/no-useless-constructor": ["error"],
     "@typescript-eslint/ban-ts-comment": [
       "error",
       {
@@ -240,9 +208,7 @@
       "error",
       {
         "props": true,
-        "ignorePropertyModificationsForRegex": [
-          "^draft"
-        ],
+        "ignorePropertyModificationsForRegex": ["^draft"],
         "ignorePropertyModificationsFor": [
           "acc",
           "accumulator",
@@ -262,23 +228,13 @@
   "settings": {
     "import/resolver": {
       "node": {
-        "extensions": [
-          ".js",
-          ".jsx",
-          ".ts",
-          ".tsx"
-        ]
+        "extensions": [".js", ".jsx", ".ts", ".tsx"]
       }
     }
   },
   "overrides": [
     {
-      "files": [
-        "**/__mocks__/*",
-        "**/testUtils/*",
-        "*.test.ts",
-        "*.test.tsx"
-      ],
+      "files": ["**/__mocks__/*", "**/testUtils/*", "*.test.ts", "*.test.tsx"],
       "env": {
         "jest/globals": true
       },
@@ -292,10 +248,7 @@
       }
     },
     {
-      "files": [
-        "*.ts",
-        "*.tsx"
-      ],
+      "files": ["*.ts", "*.tsx"],
       "rules": {
         "no-unused-vars": "off",
         // replaced by @typescript-eslint/no-unused-vars

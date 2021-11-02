@@ -35,7 +35,7 @@ export const createApolloClient = (params?: {
 
     return ponyfilledFetch(
       operationName ? `${uri}?${operationName}` : uri,
-      options
+      options,
     );
   };
   const httpLink = new HttpLink({

@@ -41,7 +41,7 @@ const nonNegInteger = (str: Request["query"][string]) => {
 
 const jsonEvents = (
   inst: Instance,
-  data: Exclude<ReturnType<Instance["getEvents"]>, boolean>
+  data: Exclude<ReturnType<Instance["getEvents"]>, boolean>,
 ) => ({
   version: inst.version,
   steps: data.steps.map((step) => step.toJSON()),
@@ -56,7 +56,7 @@ collabApp.get("/:accountId/:pageId", (req, resp) => {
     const inst = await getInstance(client)(
       req.params.accountId,
       req.params.pageId,
-      reqIP(req)
+      reqIP(req),
     );
 
     resp.json({
@@ -78,7 +78,7 @@ collabApp.get("/:accountId/:pageId/events", (req, resp) => {
     const inst = await getInstance(client)(
       req.params.accountId,
       req.params.pageId,
-      reqIP(req)
+      reqIP(req),
     );
     const data = inst.getEvents(version);
 
@@ -113,7 +113,7 @@ collabApp.post("/:accountId/:pageId/events", (req, resp) => {
     const inst = await getInstance(client)(
       req.params.accountId,
       req.params.pageId,
-      reqIP(req)
+      reqIP(req),
     );
 
     // @todo type this
@@ -124,7 +124,7 @@ collabApp.post("/:accountId/:pageId/events", (req, resp) => {
       version,
       data.steps,
       data.clientID,
-      data.blockIds
+      data.blockIds,
     );
     if (!result) {
       resp.status(409).send("Version not current");

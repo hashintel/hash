@@ -88,7 +88,7 @@ const key = new PluginKey<SuggesterState, Schema>("suggester");
  */
 export const createBlockSuggester = (
   renderPortal: RenderPortal,
-  getManager: () => ProsemirrorSchemaManager
+  getManager: () => ProsemirrorSchemaManager,
 ) =>
   new Plugin<SuggesterState, Schema>({
     key,
@@ -170,7 +170,7 @@ export const createBlockSuggester = (
 
                 if (blockComponentRequiresText(meta.componentSchema)) {
                   tr.setSelection(
-                    TextSelection.create<Schema>(tr.doc, endPosition)
+                    TextSelection.create<Schema>(tr.doc, endPosition),
                   );
                 }
                 tr.replaceWith(from, to, []);

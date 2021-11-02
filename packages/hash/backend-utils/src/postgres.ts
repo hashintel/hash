@@ -14,7 +14,7 @@ export const createPostgresConnPool = (
     port: number;
     database: string;
     maxPoolSize: number;
-  }
+  },
 ): PgPool => {
   const { user, password, host, port, database } = params;
   const connStr = `postgresql://${user}:${password}@${host}:${port}/${database}`;
@@ -28,7 +28,7 @@ export const createPostgresConnPool = (
           { queryId, originalQuery, stackTrace, transactionId },
           _query,
           error,
-          _notices
+          _notices,
         ) => {
           logger.error({
             message: "sql_query_error",

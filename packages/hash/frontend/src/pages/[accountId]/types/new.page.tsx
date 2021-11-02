@@ -33,7 +33,7 @@ export const NewEntityType: VoidFunctionComponent = () => {
   const submit = (event: FormEvent) => {
     event.preventDefault();
     createEntityType({ variables: { description, name, accountId } }).catch(
-      (err) => console.error("Could not create EntityType: ", err)
+      (err) => console.error("Could not create EntityType: ", err),
     );
   };
 

@@ -22,7 +22,7 @@ describe("Signup page", () => {
     });
     const { getByPlaceholderText, getByText, getByTestId } = render(
       <Signup />,
-      { mocks: SIGNUP_MOCKS }
+      { mocks: SIGNUP_MOCKS },
     );
     const email = "test@hash.ai";
     const input = getByPlaceholderText("Enter your email address", {

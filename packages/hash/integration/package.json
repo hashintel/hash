@@ -1,24 +1,24 @@
 {
   "name": "@hashintel/hash-integration",
-  "license": "GPL-3.0",
-  "private": true,
   "version": "0.1.0",
+  "private": true,
   "description": "Integration tests for HASH.dev",
   "repository": {
     "url": "https://github.com/hashintel/dev/packages/hash/integration",
     "directory": "packages/hash/integration"
   },
+  "license": "GPL-3.0",
   "main": "src/index.ts",
   "scripts": {
-    "fix": "eslint --ext .ts --fix ./src/",
-    "lint": "eslint --ext .ts ./src/ && tsc --noEmit # @hashintel/hash-integration",
-    "codegen": "graphql-codegen --config codegen.yml",
     "build": "yarn clean; yarn codegen; tsc -b",
     "clean": "rimraf './src/**/*.gen.*' ./dist/ ./tsconfig.tsbuildinfo",
+    "codegen": "graphql-codegen --config codegen.yml",
+    "fix": "eslint --ext .ts --fix ./src/",
     "postinstall": "yarn codegen # required for linting",
-    "ts-node": "node --max-old-space-size=2048 node_modules/.bin/ts-node --files --project tsconfig.json",
+    "lint": "eslint --ext .ts ./src/ && tsc --noEmit # @hashintel/hash-integration",
     "mock-data": "yarn codegen && ts-node src/mockData/index.ts",
-    "test": "jest"
+    "test": "jest",
+    "ts-node": "node --max-old-space-size=2048 node_modules/.bin/ts-node --files --project tsconfig.json"
   },
   "dependencies": {
     "@hashintel/hash-backend": "*",

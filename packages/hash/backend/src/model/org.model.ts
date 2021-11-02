@@ -94,7 +94,7 @@ class __Org extends Account {
    * @returns all invitations associated with the organization
    */
   getInvitationLinks = async (
-    client: DBClient
+    client: DBClient,
   ): Promise<OrgInvitationLink[]> => {
     /** @todo: query for invitations with correct outgoing 'org' relationships */
     const dbEntities = await client.getEntitiesBySystemType({
@@ -119,7 +119,7 @@ class __Org extends Account {
       const invitationLinks = await this.getInvitationLinks(client);
 
       const invitationLink = invitationLinks.find(
-        ({ properties }) => properties.accessToken === invitationLinkToken
+        ({ properties }) => properties.accessToken === invitationLinkToken,
       );
 
       if (!invitationLink) {
@@ -136,7 +136,7 @@ class __Org extends Account {
    * @returns all email invitations associated with the organization.
    */
   getEmailInvitations = async (
-    client: DBClient
+    client: DBClient,
   ): Promise<OrgEmailInvitation[]> => {
     /** @todo: query for email invitations with correct outgoing 'org' relationships */
     const dbEntities = await client.getEntitiesBySystemType({
@@ -161,7 +161,7 @@ class __Org extends Account {
       const emailInvitations = await this.getEmailInvitations(client);
 
       const emailInvitation = emailInvitations.find(
-        ({ properties }) => properties.accessToken === invitationEmailToken
+        ({ properties }) => properties.accessToken === invitationEmailToken,
       );
 
       if (!emailInvitation) {

@@ -165,7 +165,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
               throw new ApolloError({ graphQLErrors });
             }
           }),
-      }
+      },
     );
 
   // handles when user clicks on the link sent to their email
@@ -199,7 +199,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
       });
       void sendLoginCodeFn({ variables: { emailOrShortname } });
     },
-    [sendLoginCodeFn]
+    [sendLoginCodeFn],
   );
 
   const defaultLoginIdentifier = useMemo(() => {
@@ -246,7 +246,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
           loginWithLoginCode({
             variables: { verificationId, verificationCode: providedCode },
           }),
-        SYNTHETIC_LOADING_TIME_MS
+        SYNTHETIC_LOADING_TIME_MS,
       );
     } else {
       void loginWithLoginCode({

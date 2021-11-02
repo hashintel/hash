@@ -1,5 +1,3 @@
-
-
 # Block Component Starter Kit
 
 Block component starter kit. This template adapted (quite heavily now) from https://github.com/Paciolan/remote-component-starter
@@ -7,9 +5,11 @@ Block component starter kit. This template adapted (quite heavily now) from http
 ## Step one: copy this template
 
 Run:
+
 - `yarn new:block <name>` from the root folder of this repo (the `dev` repo)
 
 The template will be copied into `blocks/<name>` and its `package.json` updated with:
+
 - `name` = `<name>`
 - `author` = your git name, or omitted if unknown
 - `description` = "`<name>` block component`
@@ -18,13 +18,15 @@ The template will be copied into `blocks/<name>` and its `package.json` updated 
 
 **All commands assume you're in your new block's folder.**
 
-Write a React component starting in `App.tsx`. 
+Write a React component starting in `App.tsx`.
 
 Test it during development:
+
 - edit `src/webpack-dev-server.js` to give your component some props to test with
 - run the dev server with `yarn start`
 
 When finished, run `yarn build`, which:
+
 - Bundles the component, without React, into a single source file
 - Generates a JSON schema from the `AppProps` type representing the data interface with the block
 - Generates a `metadata.json` file which:
@@ -34,6 +36,7 @@ When finished, run `yarn build`, which:
 - Once uploaded to a remote folder, embedding applications can access `metadata.json` to load a block and its schema.
 
 N.B.
+
 - The JSON schema generation assumes `AppProps` is the name of the type for the entry component's properties. If you change this name, update the `schema` script in `package.json`
 
 ## Step three: test your bundled block
@@ -54,10 +57,9 @@ In this example, `react` is added to `externals` in `webpack.config.js`. It will
 module.exports = {
   externals: {
     react: "react",
-  }
+  },
 };
 ```
-
 
 ## Files
 

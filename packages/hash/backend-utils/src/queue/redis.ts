@@ -68,7 +68,7 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
     }
     await this.client.expire(
       this.ownerKey(name),
-      QUEUE_CONSUMER_OWNERSHIP_TIMEOUT_MS / 1000
+      QUEUE_CONSUMER_OWNERSHIP_TIMEOUT_MS / 1000,
     );
     this.queueOwned!.lastUpdated = Date.now();
   }
@@ -88,7 +88,7 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
    */
   private async _acquire(
     name: string,
-    timeoutMs: number | null
+    timeoutMs: number | null,
   ): Promise<boolean> {
     const timeout = timeoutMs === null ? null : Math.min(timeoutMs, 1000);
     if (this.queueOwned && this.queueOwned!.name === name) {
@@ -114,7 +114,7 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
         // using `setnx` we can set the key only if it does not already have a value.
         const isSet = await this.client.setnx(
           this.ownerKey(name),
-          this.consumerId
+          this.consumerId,
         );
         if (!isSet) {
           continue;
@@ -158,7 +158,7 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
   private async _pop<T>(
     name: string,
     timeoutMs: number | null,
-    cb: (item: string) => Promise<T>
+    cb: (item: string) => Promise<T>,
   ): Promise<T | null> {
     if (timeoutMs !== null && timeoutMs < 0) {
       throw new Error("`timeoutMs` must be non-negative");
@@ -184,7 +184,7 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
             await this.client.brpoplpush(
               name,
               processingName,
-              timeoutMs / 1000
+              timeoutMs / 1000,
             );
     }
 
@@ -203,7 +203,7 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
 
   async popBlocking<T>(
     name: string,
-    cb: (item: string) => Promise<T>
+    cb: (item: string) => Promise<T>,
   ): Promise<T> {
     return (await this._pop(name, 0, cb))!;
   }
@@ -211,7 +211,7 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
   async pop<T>(
     name: string,
     timeoutMs: number | null,
-    cb: (item: string) => Promise<T>
+    cb: (item: string) => Promise<T>,
   ): Promise<T | null> {
     return this._pop(name, timeoutMs, cb);
   }

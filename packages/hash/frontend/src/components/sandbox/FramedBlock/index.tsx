@@ -6,5 +6,5 @@ ReactDOM.render(
   <React.StrictMode>
     <FramedBlock />
   </React.StrictMode>,
-  document.getElementById("root")
+  document.getElementById("root"),
 );

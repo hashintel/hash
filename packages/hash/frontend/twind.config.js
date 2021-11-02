@@ -7,8 +7,8 @@ module.exports = {
         standalone: { raw: "(display-mode:standalone)" },
       },
       animation: {
-        'spin-slow': 'spin 2s linear infinite'
-      }
+        "spin-slow": "spin 2s linear infinite",
+      },
     },
   },
   preflight: (preflight, { theme }) => ({

@@ -21,7 +21,7 @@ export const verifyEmail: Resolver<
       // Ensure the email address is associated with the user
       if (!email) {
         throw new ApolloError(
-          `The user associated with the verification code did not request to verify the email address associated with the verification code.`
+          `The user associated with the verification code did not request to verify the email address associated with the verification code.`,
         );
       }
 
@@ -29,7 +29,7 @@ export const verifyEmail: Resolver<
       if (email.verified) {
         throw new ApolloError(
           `The user with the id '${verificationCode.userId}' has already verified the email address '${verificationCode.emailAddress}'.`,
-          "ALREADY_VERIFIED"
+          "ALREADY_VERIFIED",
         );
       }
 
@@ -42,7 +42,7 @@ export const verifyEmail: Resolver<
       ) {
         throw new ApolloError(
           `The email address has already been verified by another user`,
-          "ALREADY_VERIFIED"
+          "ALREADY_VERIFIED",
         );
       }
 
@@ -51,9 +51,9 @@ export const verifyEmail: Resolver<
         [
           user.verifyExistingEmailAddress(client)(email.address),
           ctx.user ? undefined : passport.login(user, {}),
-        ].flat<(Promise<any> | undefined)[]>()
+        ].flat<(Promise<any> | undefined)[]>(),
       );
 
       return user.toGQLUnknownEntity();
-    })
+    }),
   );

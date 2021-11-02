@@ -34,7 +34,7 @@ module.exports = {
     react: "react",
     "react-dom": "react-dom",
     twind: "twind",
-    lodash: "lodash"
+    lodash: "lodash",
   },
   module: {
     rules: [

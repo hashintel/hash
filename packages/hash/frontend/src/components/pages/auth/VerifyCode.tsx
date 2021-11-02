@@ -107,7 +107,7 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
               }
               onPaste={({ clipboardData }) => {
                 const pastedCode = parseVerificationCodeInput(
-                  clipboardData.getData("Text")
+                  clipboardData.getData("Text"),
                 );
                 if (isVerificationCodeValid(pastedCode)) {
                   void handleSubmit(pastedCode, true);

@@ -18,7 +18,7 @@ export const createEntity: Resolver<
     systemTypeName,
     versioned,
   },
-  { dataSources, user }
+  { dataSources, user },
 ) => {
   /** @todo restrict creation of protected types, e.g. User, Org */
 
@@ -31,7 +31,7 @@ export const createEntity: Resolver<
       entityTypeId,
       entityTypeVersionId,
       systemTypeName,
-    })
+    }),
   );
 
   return entity.toGQLUnknownEntity();

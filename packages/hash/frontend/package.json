@@ -1,17 +1,17 @@
 {
   "name": "@hashintel/hash-frontend",
-  "license": "SSPL-1.0",
-  "private": true,
   "version": "0.1.0",
+  "private": true,
   "description": "Frontend for HASH.dev",
+  "license": "SSPL-1.0",
   "scripts": {
-    "fix": "eslint --ext .js,.ts,.tsx --fix ./src/",
-    "lint": "eslint --ext .js,.ts,.tsx ./src/ && tsc --noEmit # @hashintel/hash-frontend",
-    "codegen": "graphql-codegen --config codegen.yml",
     "build": "yarn clean; yarn codegen; next build",
     "clean": "rimraf './src/**/*.gen.*' ./.next/",
-    "postinstall": "yarn codegen # required for linting",
+    "codegen": "graphql-codegen --config codegen.yml",
     "dev": "next dev",
+    "fix": "eslint --ext .js,.ts,.tsx --fix ./src/",
+    "postinstall": "yarn codegen # required for linting",
+    "lint": "eslint --ext .js,.ts,.tsx ./src/ && tsc --noEmit # @hashintel/hash-frontend",
     "start": "next start",
     "test": "jest"
   },

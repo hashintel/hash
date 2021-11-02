@@ -17,5 +17,5 @@ export const loginWithLoginCode: Resolver<
       await passport.login(user, {});
 
       return user.toGQLUnknownEntity();
-    })
+    }),
   );

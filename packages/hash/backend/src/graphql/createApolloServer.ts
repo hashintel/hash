@@ -21,7 +21,7 @@ export const createApolloServer = (
   cache: CacheAdapter,
   emailTransporter: EmailTransporter,
   logger: Logger,
-  statsd?: StatsD
+  statsd?: StatsD,
 ) => {
   // go via makeExecutableSchema to set inheritResolversFromInterfaces
   const combinedSchema = makeExecutableSchema({
@@ -66,7 +66,7 @@ export const createApolloServer = (
               };
               if (willSendResponseCtx.errors) {
                 const stack = willSendResponseCtx.errors.map(
-                  (err) => err.stack
+                  (err) => err.stack,
                 );
                 willSendResponseCtx.logger.error({
                   ...msg,
@@ -81,7 +81,7 @@ export const createApolloServer = (
                     willSendResponseCtx.operationName,
                     elapsed,
                     1,
-                    ["graphql"]
+                    ["graphql"],
                   );
                 }
               }

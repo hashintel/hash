@@ -40,7 +40,7 @@ export const PageTitle: VoidFunctionComponent<PageTitleProps> = ({
   };
 
   const handleInputKeyDown: KeyboardEventHandler<HTMLInputElement> = (
-    event
+    event,
   ) => {
     if (event.key === "Enter" || event.key === "Escape") {
       event.currentTarget.blur();

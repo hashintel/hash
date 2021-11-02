@@ -62,7 +62,7 @@ class __File extends Entity {
       if (size > MAX_FILE_SIZE_BYTES) {
         throw new ApolloError(
           "The file is heavier than the maximum allowed file size",
-          "MAX_FILE_SIZE_EXCEEDED"
+          "MAX_FILE_SIZE_EXCEEDED",
         );
       }
       try {
@@ -96,7 +96,7 @@ class __File extends Entity {
       } catch (error) {
         throw new ApolloError(
           `There was an error requesting the file upload: ${error}`,
-          "INTERNAL_SERVER_ERROR"
+          "INTERNAL_SERVER_ERROR",
         );
       }
     };

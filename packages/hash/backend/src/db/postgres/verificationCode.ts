@@ -4,7 +4,7 @@ import { Connection } from "./types";
 import { VerificationCode } from "../adapter";
 
 const convertRowToVerificationCode = (
-  row: QueryResultRowType
+  row: QueryResultRowType,
 ): VerificationCode => {
   return {
     id: row.verification_id as string,
@@ -28,7 +28,7 @@ export const insertVerificationCode = async (
     code: string;
     emailAddress: string;
     createdAt: Date;
-  }
+  },
 ): Promise<void> => {
   await conn.query(sql`
     insert into verification_codes (
@@ -44,7 +44,7 @@ export const insertVerificationCode = async (
 
 export const getVerificationCode = async (
   conn: Connection,
-  params: { id: string }
+  params: { id: string },
 ): Promise<VerificationCode | null> => {
   const row = await conn.one(sql`
     select verification_id, account_id, user_id, verification_code,
@@ -60,7 +60,7 @@ export const getUserVerificationCodes = async (
   params: {
     userEntityId: string;
     createdAfter?: Date;
-  }
+  },
 ): Promise<VerificationCode[]> => {
   const queryConditions = sql.join(
     [
@@ -69,7 +69,7 @@ export const getUserVerificationCodes = async (
         ? sql`created_at > ${params.createdAfter.toISOString()}`
         : [],
     ].flat(),
-    sql` and `
+    sql` and `,
   );
   const rows = await conn.any(sql`
     select verification_id, account_id, user_id, verification_code,
@@ -85,7 +85,7 @@ export const incrementVerificationCodeAttempts = async (
   params: {
     id: string;
     userId: string;
-  }
+  },
 ): Promise<void> => {
   await conn.query(sql`
     update verification_codes
@@ -99,7 +99,7 @@ export const setVerificationCodeToUsed = async (
   params: {
     id: string;
     userId: string;
-  }
+  },
 ): Promise<void> => {
   await conn.query(sql`
     update verification_codes
@@ -112,7 +112,7 @@ export const pruneVerificationCodes = async (
   conn: Connection,
   params: {
     maxAgeInMs: number;
-  }
+  },
 ): Promise<number> => {
   const count = await conn.oneFirst(sql`
     with deleted as (

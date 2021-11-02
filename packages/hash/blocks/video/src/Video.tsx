@@ -74,7 +74,7 @@ export const Video: BlockComponent<AppProps> = (props) => {
         ...properties,
       }));
     },
-    []
+    [],
   );
 
   function displayError(errorString: string) {
@@ -103,7 +103,7 @@ export const Video: BlockComponent<AppProps> = (props) => {
         updateStateObject({ src });
       }
     },
-    [captionText, entityId, entityTypeId, update, updateStateObject]
+    [captionText, entityId, entityTypeId, update, updateStateObject],
   );
 
   const handleVideoUpload = useCallback(
@@ -120,10 +120,10 @@ export const Video: BlockComponent<AppProps> = (props) => {
           updateStateObject({
             errorString: error.message,
             loading: false,
-          })
+          }),
         );
     },
-    [updateData, updateStateObject, uploadFile]
+    [updateData, updateStateObject, uploadFile],
   );
 
   const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {

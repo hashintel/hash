@@ -42,7 +42,7 @@ void (async () => {
       port: parseInt(process.env.HASH_PG_PORT || "5432", 10),
       maxPoolSize: 10,
     },
-    logger
+    logger,
   );
 
   // Get the hash org - it's already been created as part of db migration
@@ -88,7 +88,7 @@ void (async () => {
       });
 
       newTypeIds[name] = entityType.entityId;
-    })
+    }),
   );
 
   type CreateEntityMapValue =
@@ -112,8 +112,8 @@ void (async () => {
         Entity.create(db)({
           ...val,
           versioned: val.versioned ?? true,
-        })
-      )
+        }),
+      ),
     );
     mutations.forEach((res, i) => {
       const name = names[i];
@@ -122,7 +122,7 @@ void (async () => {
   };
 
   const user = users.find(
-    ({ properties }) => properties.shortname === "ciaran"
+    ({ properties }) => properties.shortname === "ciaran",
   );
   if (!user) {
     throw new Error("user not found");
@@ -280,7 +280,7 @@ void (async () => {
           properties: {},
         },
       ],
-    ])
+    ]),
   );
 
   await createEntities(
@@ -321,7 +321,7 @@ void (async () => {
           createdById: user.entityId,
         },
       ],
-    ])
+    ]),
   );
 
   // People Entities
@@ -435,7 +435,7 @@ void (async () => {
           createdById: user.entityId,
         },
       ],
-    ])
+    ]),
   );
 
   await createEntities(
@@ -483,7 +483,7 @@ void (async () => {
           },
         },
       ],
-    ])
+    ]),
   );
 
   // Block Entities
@@ -736,7 +736,7 @@ void (async () => {
           systemTypeName: SystemTypeName.Block,
         },
       ],
-    ])
+    ]),
   );
 
   // Page Entities
@@ -850,7 +850,7 @@ void (async () => {
           // visibility: Visibility.Public,
         },
       ],
-    ])
+    ]),
   );
 
   console.log("Mock data created");

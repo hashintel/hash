@@ -13,10 +13,10 @@ export const setupCronJobs = (db: DBAdapter, logger: Logger) => [
         .pruneVerificationCodes({ maxAgeInMs: PRUNE_AGE_MS })
         .then((numberOfDeleted) =>
           logger.info(
-            `Cron Job: pruned ${numberOfDeleted} expired verification codes from the datastore.`
-          )
+            `Cron Job: pruned ${numberOfDeleted} expired verification codes from the datastore.`,
+          ),
         ),
     null,
-    true
+    true,
   ),
 ];

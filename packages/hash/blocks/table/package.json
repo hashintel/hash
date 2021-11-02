@@ -1,29 +1,25 @@
 {
   "name": "@hashintel/block-table",
   "version": "0.1.0",
-  "description": "Create a table for storing information in rows and columns",
   "private": true,
-  "browser": "dist/main.js",
-  "author": "Ciaran Morinan",
+  "description": "Create a table for storing information in rows and columns",
   "license": "MIT",
+  "author": "Ciaran Morinan",
   "main": "src/index.ts",
-  "blockprotocol": {
-    "displayName": "Table",
-    "icon": "public/table.svg"
-  },
+  "browser": "dist/main.js",
   "scripts": {
-    "fix": "eslint --ext .ts,.tsx --fix ./src/",
-    "lint": "eslint --ext .ts,.tsx ./src/ && tsc --noEmit # @hashintel/block-table",
-    "build:public": "mkdir -p ./dist; cp -a ./public ./dist",
     "build": "yarn clean; yarn build:public; cross-env NODE_ENV=production webpack --mode production && yarn schema",
     "build:dev": "yarn clean; yarn build:public; cross-env NODE_ENV=development webpack --mode development",
-    "schema": "typescript-json-schema tsconfig.json AppProps --required true --out dist/block-schema.json",
-    "type-schema": "node schemaGenerator",
-    "webpack-dev-server": "cross-env NODE_ENV=development webpack-dev-server -d --port 9090 --config webpack-dev-server.config.js --open",
-    "dev": "yarn start",
-    "start": "concurrently -n webpack,webpack-dev-server,schema -c green,cyan,orange \"yarn build:dev -- --watch --verbose\" \"yarn webpack-dev-server\" \"yarn schema\"",
+    "build:public": "mkdir -p ./dist; cp -a ./public ./dist",
     "clean": "rimraf ./dist/",
-    "serve": "serve -C -l 62678 ./dist/"
+    "dev": "yarn start",
+    "fix": "eslint --ext .ts,.tsx --fix ./src/",
+    "lint": "eslint --ext .ts,.tsx ./src/ && tsc --noEmit # @hashintel/block-table",
+    "schema": "typescript-json-schema tsconfig.json AppProps --required true --out dist/block-schema.json",
+    "serve": "serve -C -l 62678 ./dist/",
+    "start": "concurrently -n webpack,webpack-dev-server,schema -c green,cyan,orange \"yarn build:dev -- --watch --verbose\" \"yarn webpack-dev-server\" \"yarn schema\"",
+    "type-schema": "node schemaGenerator",
+    "webpack-dev-server": "cross-env NODE_ENV=development webpack-dev-server -d --port 9090 --config webpack-dev-server.config.js --open"
   },
   "dependencies": {
     "@hashintel/block-protocol": "*",
@@ -31,11 +27,6 @@
     "lodash": "4.17.21",
     "react-table": "7.7.0",
     "uuid": "8.3.2"
-  },
-  "peerDependencies": {
-    "lodash": "4.17.21",
-    "react": "17.0.2",
-    "twind": "0.16.16"
   },
   "devDependencies": {
     "@babel/cli": "^7.12.10",
@@ -81,5 +72,14 @@
     "webpack-bundle-analyzer": "^3.9.0",
     "webpack-cli": "^3.3.12",
     "webpack-dev-server": "^3.11.0"
+  },
+  "peerDependencies": {
+    "lodash": "4.17.21",
+    "react": "17.0.2",
+    "twind": "0.16.16"
+  },
+  "blockprotocol": {
+    "displayName": "Table",
+    "icon": "public/table.svg"
   }
 }

@@ -22,14 +22,14 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   ...props
 }) => {
   const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes(
-    props.accountId
+    props.accountId,
   );
   const { update } = useBlockProtocolUpdate(props.accountId);
   const { aggregate } = useBlockProtocolAggregate(props.accountId);
 
   const flattenedProperties = useMemo(
     () => cloneEntityTreeWithPropertiesMovedUp(props),
-    [props]
+    [props],
   );
 
   const blockProperties = {

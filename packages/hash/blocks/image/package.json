@@ -1,31 +1,27 @@
 {
   "name": "@hashintel/block-image",
   "version": "0.1.0",
-  "description": "Insert an image",
   "private": true,
-  "browser": "dist/main.js",
-  "author": "Akash Joshi",
+  "description": "Insert an image",
   "license": "MIT",
+  "author": "Akash Joshi",
   "main": "src/index.ts",
-  "blockprotocol": {
-    "displayName": "Image",
-    "icon": "public/picture.svg"
-  },
+  "browser": "dist/main.js",
   "scripts": {
-    "fix": "eslint --ext .ts,.tsx --fix ./src/",
-    "lint": "eslint --ext .ts,.tsx ./src/ && tsc --noEmit # @hashintel/block-image",
-    "build:public": "mkdir -p ./dist; cp -a ./public ./dist",
     "build": "yarn clean; yarn build:public; cross-env NODE_ENV=production webpack --mode production && yarn schema",
     "build:dev": "yarn clean; yarn build:public; cross-env NODE_ENV=development webpack --mode development",
-    "schema": "typescript-json-schema tsconfig.json AppProps --required true --out dist/block-schema.json",
-    "webpack-dev-server": "cross-env NODE_ENV=development webpack-dev-server -d --port 9090 --config webpack-dev-server.config.js --open",
-    "start": "concurrently -n webpack,webpack-dev-server -c green,cyan \"yarn build:dev -- --watch --verbose\" \"yarn webpack-dev-server\"",
+    "build:public": "mkdir -p ./dist; cp -a ./public ./dist",
     "clean": "rimraf ./dist/",
-    "serve": "serve -C -l 62677 ./dist/"
+    "fix": "eslint --ext .ts,.tsx --fix ./src/",
+    "lint": "eslint --ext .ts,.tsx ./src/ && tsc --noEmit # @hashintel/block-image",
+    "schema": "typescript-json-schema tsconfig.json AppProps --required true --out dist/block-schema.json",
+    "serve": "serve -C -l 62677 ./dist/",
+    "start": "concurrently -n webpack,webpack-dev-server -c green,cyan \"yarn build:dev -- --watch --verbose\" \"yarn webpack-dev-server\"",
+    "webpack-dev-server": "cross-env NODE_ENV=development webpack-dev-server -d --port 9090 --config webpack-dev-server.config.js --open"
   },
-  "peerDependencies": {
-    "react": "17.0.2",
-    "twind": "0.16.16"
+  "dependencies": {
+    "@hashintel/block-protocol": "*",
+    "uuid": "8.3.2"
   },
   "devDependencies": {
     "@babel/cli": "^7.12.10",
@@ -66,8 +62,12 @@
     "webpack-cli": "^3.3.12",
     "webpack-dev-server": "^3.11.0"
   },
-  "dependencies": {
-    "@hashintel/block-protocol": "*",
-    "uuid": "8.3.2"
+  "peerDependencies": {
+    "react": "17.0.2",
+    "twind": "0.16.16"
+  },
+  "blockprotocol": {
+    "displayName": "Image",
+    "icon": "public/picture.svg"
   }
 }

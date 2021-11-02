@@ -17,7 +17,7 @@ export const sendLoginCode: Resolver<
 > = async (
   _,
   { emailOrShortname, redirectPath },
-  { dataSources, emailTransporter }
+  { dataSources, emailTransporter },
 ) =>
   dataSources.db.transaction(async (client) => {
     const hasProvidedEmail = emailOrShortname.includes("@");
@@ -35,7 +35,7 @@ export const sendLoginCode: Resolver<
           if (!fetchedUser) {
             throw new ApolloError(
               `A user with the email '${emailOrShortname}' could not be found.`,
-              "NOT_FOUND"
+              "NOT_FOUND",
             );
           }
           return fetchedUser;
@@ -46,7 +46,7 @@ export const sendLoginCode: Resolver<
           if (!fetchedUser) {
             throw new ApolloError(
               `A user with the shortname '${emailOrShortname}' could not be found.`,
-              "NOT_FOUND"
+              "NOT_FOUND",
             );
           }
           return fetchedUser;
@@ -57,12 +57,12 @@ export const sendLoginCode: Resolver<
     return user
       .sendLoginVerificationCode(
         client,
-        emailTransporter
+        emailTransporter,
       )({
         alternateEmailAddress: hasProvidedEmail ? emailOrShortname : undefined,
         redirectPath: redirectPath || undefined,
       })
       .then((verificationCode) =>
-        verificationCode.toGQLVerificationCodeMetadata()
+        verificationCode.toGQLVerificationCodeMetadata(),
       );
   });

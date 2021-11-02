@@ -14,7 +14,7 @@ import {
 
 export const useBlockProtocolAggregate = (
   /** Providing accountId here saves blocks from having to know it */
-  accountId: string
+  accountId: string,
 ): {
   aggregate: BlockProtocolAggregateFn;
 } => {
@@ -45,14 +45,14 @@ export const useBlockProtocolAggregate = (
       });
       const { operation, results } = response.data.aggregateEntity;
       const newResults = results.map((result) =>
-        cloneEntityTreeWithPropertiesMovedUp(result)
+        cloneEntityTreeWithPropertiesMovedUp(result),
       );
       return {
         operation,
         results: newResults,
       } as BlockProtocolAggregateOperationOutput;
     },
-    [accountId, client]
+    [accountId, client],
   );
 
   return {

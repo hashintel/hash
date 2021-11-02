@@ -28,10 +28,10 @@ if (!name) {
     .finally(() => {
       fs.writeFileSync(
         packageJsonPath,
-        JSON.stringify(packageJson, undefined, 2)
+        JSON.stringify(packageJson, undefined, 2),
       );
       console.log(
-        `Your ${name} block is ready to code in the 'blocks/${name}' folder.`
+        `Your ${name} block is ready to code in the 'blocks/${name}' folder.`,
       );
       process.exit();
     });

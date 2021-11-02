@@ -93,7 +93,7 @@ export const selectEntityTypeAllVersions = (params: {
  */
 export const getSystemTypeLatestVersion = async (
   conn: Connection,
-  params: { systemTypeName: SystemType }
+  params: { systemTypeName: SystemType },
 ): Promise<EntityType | undefined> => {
   const { systemTypeName } = params;
   if (!SYSTEM_TYPES.includes(systemTypeName)) {
@@ -111,7 +111,7 @@ export const getSystemTypeLatestVersion = async (
 
 export const getAccountEntityTypes = async (
   conn: Connection,
-  params: { accountId: string; includeOtherTypesInUse?: boolean | null }
+  params: { accountId: string; includeOtherTypesInUse?: boolean | null },
 ): Promise<EntityType[]> => {
   const query = sql`
     ${selectEntityTypes}
@@ -139,7 +139,7 @@ export const getEntityType = async (
   params: {
     entityVersionId: string;
   },
-  lock: boolean = false
+  lock: boolean = false,
 ): Promise<EntityType | undefined> => {
   const query = lock
     ? sql`${selectEntityTypeVersion(params)} for update`
@@ -156,7 +156,7 @@ export const getEntityTypeLatestVersion = async (
   conn: Connection,
   params: {
     entityId: string;
-  }
+  },
 ): Promise<EntityType | null> => {
   const row = await conn.maybeOne(sql`
     with all_matches as (
@@ -177,7 +177,7 @@ export const insertEntityType = async (
     name: string;
     createdById: string;
     entityCreatedAt: Date;
-  }
+  },
 ): Promise<void> => {
   try {
     await conn.query(sql`
@@ -195,7 +195,7 @@ export const insertEntityType = async (
     if (err instanceof UniqueIntegrityConstraintViolationError) {
       const { name: entityTypeName, accountId } = params;
       throw new Error(
-        `Type name ${entityTypeName} is not unique in accountId ${accountId}`
+        `Type name ${entityTypeName} is not unique in accountId ${accountId}`,
       );
     }
     throw err;
@@ -213,7 +213,7 @@ export const updateEntityTypeMetadata = async (
   params: {
     entityId: string;
     name: string;
-  }
+  },
 ): Promise<void> => {
   try {
     await conn.query(sql`
@@ -240,7 +240,7 @@ export const insertEntityTypeVersion = async (
     createdById: string;
     entityVersionCreatedAt: Date;
     entityVersionUpdatedAt: Date;
-  }
+  },
 ): Promise<void> => {
   await conn.query(sql`
     insert into entity_type_versions (
@@ -267,7 +267,7 @@ export const updateVersionedEntityType = async (
     createdById: string;
     entityVersionCreatedAt: Date;
     entityVersionUpdatedAt: Date;
-  }
+  },
 ): Promise<void> => {
   /** @todo consider updating the name if it hasn't changed. */
   await updateEntityTypeMetadata(conn, params);

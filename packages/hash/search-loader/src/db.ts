@@ -47,7 +47,7 @@ const snakeToCamel = (str: string) => {
 /** Get an entity type by its version ID. */
 export const getEntityType = async (
   pool: PgPool,
-  params: { entityTypeVersionId: string }
+  params: { entityTypeVersionId: string },
 ): Promise<Record<string, any>> => {
   const key = params.entityTypeVersionId;
   let value = entityTypesCache.get(key);
@@ -75,7 +75,7 @@ export const getEntityType = async (
       ver.entity_type_version_id = ${params.entityTypeVersionId}
   `);
   value = Object.fromEntries(
-    Object.entries(row).map(([kk, vv]) => [snakeToCamel(kk), vv])
+    Object.entries(row).map(([kk, vv]) => [snakeToCamel(kk), vv]),
   );
   entityTypesCache.set(key, value);
   return value;

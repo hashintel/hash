@@ -20,7 +20,7 @@ export const updatePage: Resolver<
     if (!entity) {
       throw new ApolloError(
         `page with fixed ID ${entity} not found`,
-        "NOT_FOUND"
+        "NOT_FOUND",
       );
     }
 

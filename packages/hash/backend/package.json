@@ -1,26 +1,26 @@
 {
   "name": "@hashintel/hash-backend",
-  "license": "GPL-3.0",
-  "private": true,
   "version": "0.1.0",
+  "private": true,
   "description": "API and data store for HASH.dev",
   "repository": {
     "url": "https://github.com/hashintel/dev/packages/hash/backend",
     "directory": "packages/hash/backend"
   },
+  "license": "GPL-3.0",
   "main": "src/index.ts",
   "scripts": {
-    "fix": "eslint --ext .ts --fix ./src/; eslint --ext .ts --fix ./datastore/",
-    "lint": "eslint --ext .ts ./src/ && eslint --ext .ts ./datastore/ && tsc --noEmit # @hashintel/hash-backend",
-    "codegen": "graphql-codegen --config codegen.yml",
     "build": "yarn clean; yarn codegen; tsc -b",
     "clean": "rimraf './src/**/*.gen.*' ./dist/ ./tsconfig.tsbuildinfo",
-    "postinstall": "yarn codegen && yarn --cwd 'datastore/postgres/' install # required for linting",
-    "dev": "cross-env NODE_ENV=\"${NODE_ENV:-development}\" nodemon --config nodemon.json src/index.ts",
-    "start": "cross-env NODE_ENV=production node dist/index.js",
-    "ts-node": "node --max-old-space-size=2048 node_modules/.bin/ts-node --files --project tsconfig.json",
     "clear-pg": "cd datastore/postgres && yarn refresh",
-    "test": "jest"
+    "codegen": "graphql-codegen --config codegen.yml",
+    "dev": "cross-env NODE_ENV=\"${NODE_ENV:-development}\" nodemon --config nodemon.json src/index.ts",
+    "fix": "eslint --ext .ts --fix ./src/; eslint --ext .ts --fix ./datastore/",
+    "postinstall": "yarn codegen && yarn --cwd 'datastore/postgres/' install # required for linting",
+    "lint": "eslint --ext .ts ./src/ && eslint --ext .ts ./datastore/ && tsc --noEmit # @hashintel/hash-backend",
+    "start": "cross-env NODE_ENV=production node dist/index.js",
+    "test": "jest",
+    "ts-node": "node --max-old-space-size=2048 node_modules/.bin/ts-node --files --project tsconfig.json"
   },
   "dependencies": {
     "@apollo/client": "3.3.19",

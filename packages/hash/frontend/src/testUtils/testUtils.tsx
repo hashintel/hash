@@ -8,7 +8,7 @@ type CustomRenderOptions = RenderOptions & {
 
 const customRender = (
   ui: React.ReactElement,
-  options: CustomRenderOptions = {}
+  options: CustomRenderOptions = {},
 ) => {
   const { mocks = [] } = options;
   const Wrapper: React.FC = ({ children }) => (

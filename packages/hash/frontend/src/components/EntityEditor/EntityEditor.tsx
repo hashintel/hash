@@ -45,7 +45,7 @@ const typeIdFromSchemaRef = ($ref: string) =>
  * @todo support anyOf arrays that allow multiple $refs or $refs alongside other types
  */
 const splitSchema = (
-  schema: JSONObject
+  schema: JSONObject,
 ): {
   links: EntityLink[];
   schemaWithoutLinks: JSONObject;
@@ -117,7 +117,7 @@ export const EntityEditor: VoidFunctionComponent<EntityEditorProps> = ({
 
   const { links: _links, schemaWithoutLinks } = useMemo(
     () => splitSchema(schema),
-    [schema]
+    [schema],
   );
 
   const name = existingData

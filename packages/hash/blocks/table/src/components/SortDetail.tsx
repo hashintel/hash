@@ -8,7 +8,7 @@ import { AddIcon } from "./Icons";
 type SortDetailProps = {
   columns: ColumnInstance<{}>[];
   onSort: (
-    sortFields: NonNullable<BlockProtocolAggregateOperationInput["multiSort"]>
+    sortFields: NonNullable<BlockProtocolAggregateOperationInput["multiSort"]>,
   ) => void;
   multiSort: BlockProtocolAggregateOperationInput["multiSort"];
 };
@@ -59,7 +59,7 @@ export const SortDetail: React.VFC<SortDetailProps> = ({
 
   const updateField = (
     id: string,
-    property: { field?: string; desc?: boolean }
+    property: { field?: string; desc?: boolean },
   ) => {
     const updatedFields = fields.map((item) =>
       item.id === id
@@ -68,7 +68,7 @@ export const SortDetail: React.VFC<SortDetailProps> = ({
             field: property.field ?? item.field,
             desc: property.desc ?? item.desc,
           }
-        : item
+        : item,
     );
 
     setFields(updatedFields);

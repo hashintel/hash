@@ -1,10 +1,5 @@
 {
-  "ignoreRoot": [
-    ".git"
-  ],
-  "watch": [
-    ".",
-    "../../../node_modules/@hashintel/hash-backend-utils"
-  ],
+  "ignoreRoot": [".git"],
+  "watch": [".", "../../../node_modules/@hashintel/hash-backend-utils"],
   "ext": "js,ts"
 }

@@ -14,7 +14,7 @@ export const createOrgEmailInvitation: Resolver<
 > = async (
   _,
   { orgEntityId, inviteeEmailAddress },
-  { emailTransporter, dataSources, user }
+  { emailTransporter, dataSources, user },
 ) =>
   dataSources.db.transaction(async (client) => {
     const org = await Org.getOrgById(client)({ entityId: orgEntityId });
@@ -26,7 +26,7 @@ export const createOrgEmailInvitation: Resolver<
 
     if (!user.isMemberOfOrg(org)) {
       throw new ForbiddenError(
-        `User with entityId ${user.entityId} is not a member of the org with entityId ${org.entityId}`
+        `User with entityId ${user.entityId} is not a member of the org with entityId ${org.entityId}`,
       );
     }
 
@@ -38,7 +38,7 @@ export const createOrgEmailInvitation: Resolver<
       .filter((invitation) => invitation.isValid())
       .find(
         ({ properties }) =>
-          properties.inviteeEmailAddress === inviteeEmailAddress
+          properties.inviteeEmailAddress === inviteeEmailAddress,
       );
 
     if (matchingExistingEmailInvitation) {
@@ -48,7 +48,7 @@ export const createOrgEmailInvitation: Resolver<
 
     const emailInvitation = await OrgEmailInvitation.createOrgEmailInvitation(
       client,
-      emailTransporter
+      emailTransporter,
     )({ org, inviter: user, inviteeEmailAddress });
 
     return emailInvitation.toGQLUnknownEntity();

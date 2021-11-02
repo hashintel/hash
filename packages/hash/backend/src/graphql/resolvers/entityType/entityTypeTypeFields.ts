@@ -68,7 +68,7 @@ const entityTypeName: Resolver<
     return gqlEntityType.entityTypeName;
   }
   return getEntityTypeType(dataSources).then(
-    (type) => type.properties.title as string
+    (type) => type.properties.title as string,
   );
 };
 

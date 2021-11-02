@@ -1,4 +1,5 @@
 # HASH.dev frontend
+
 ## Getting Started
 
 ```bash

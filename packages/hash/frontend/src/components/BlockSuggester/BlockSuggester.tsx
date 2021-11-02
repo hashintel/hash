@@ -27,13 +27,13 @@ export const BlockSuggester: React.VFC<BlockSuggesterProps> = ({
       blockMeta.componentMetadata.variants.map((variant) => ({
         variant,
         meta: blockMeta,
-      }))
+      })),
     );
 
     return fuzzySearchBy(allOptions, search, (option) =>
       [option.variant.displayName, option.variant.description]
         .map((str) => str ?? "")
-        .join(" ")
+        .join(" "),
     );
   }, [search, blocksMeta]);
 
@@ -57,7 +57,7 @@ export const BlockSuggester: React.VFC<BlockSuggesterProps> = ({
   const selectedRef = useRef<HTMLLIElement>(null);
   useEffect(
     () => selectedRef.current?.scrollIntoView({ block: "nearest" }),
-    [selectedIndex]
+    [selectedIndex],
   );
 
   useKey(["Enter"], (event) => {

@@ -45,7 +45,7 @@ export const App: BlockComponent<AppProps> = ({
 
   const columns = useMemo(
     () => makeColumns(tableData.data?.[0] || {}, ""),
-    [tableData.data]
+    [tableData.data],
   );
   const [pageOptions, aggregateOptions] = useMemo(() => {
     const aggregate = tableData.__linkedData?.aggregate;
@@ -84,7 +84,7 @@ export const App: BlockComponent<AppProps> = ({
       updateData: update,
       manualSortBy: true,
     },
-    useSortBy
+    useSortBy,
   );
 
   /**
@@ -131,7 +131,7 @@ export const App: BlockComponent<AppProps> = ({
           // @todo properly handle error
         });
     },
-    [aggregateFn, tableData.__linkedData]
+    [aggregateFn, tableData.__linkedData],
   );
 
   const handleUpdate = useCallback(
@@ -179,7 +179,7 @@ export const App: BlockComponent<AppProps> = ({
         },
       ]);
     },
-    [update, tableData.__linkedData, entityId, initialState]
+    [update, tableData.__linkedData, entityId, initialState],
   );
 
   const updateRemoteHiddenColumns = (hiddenColumns: string[]) => {
@@ -204,14 +204,14 @@ export const App: BlockComponent<AppProps> = ({
     (index: number) => {
       handleAggregate({ pageNumber: index });
     },
-    [handleAggregate]
+    [handleAggregate],
   );
 
   const setPageSize = useCallback(
     (size: number) => {
       handleUpdate({ operation: "changePageSize", itemsPerPage: size });
     },
-    [handleUpdate]
+    [handleUpdate],
   );
 
   /**
@@ -264,7 +264,7 @@ export const App: BlockComponent<AppProps> = ({
         },
       ]);
     },
-    [update, data.__linkedData?.aggregate?.itemsPerPage, entityId]
+    [update, data.__linkedData?.aggregate?.itemsPerPage, entityId],
   );
 
   const entityTypeDropdown = entityTypes ? (
@@ -339,11 +339,11 @@ export const App: BlockComponent<AppProps> = ({
                   {row.cells.map((cell) => {
                     const { entity, property } = identityEntityAndProperty(
                       cell.row.original,
-                      cell.column.id
+                      cell.column.id,
                     );
                     const propertyDef = getSchemaPropertyDefinition(
                       (schemas ?? {})[entity.type],
-                      property
+                      property,
                     );
                     const readOnly = propertyDef?.readOnly;
                     const { key, ...restCellProps } = cell.getCellProps();

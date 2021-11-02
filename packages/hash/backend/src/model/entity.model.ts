@@ -150,7 +150,7 @@ class __Entity {
       client
         .getEntitiesByType(args)
         .then((dbEntities) =>
-          dbEntities.map((dbEntity) => new Entity(dbEntity))
+          dbEntities.map((dbEntity) => new Entity(dbEntity)),
         );
 
   static getEntitiesBySystemType =
@@ -163,7 +163,7 @@ class __Entity {
       client
         .getEntitiesBySystemType(args)
         .then((dbEntities) =>
-          dbEntities.map((dbEntity) => new Entity(dbEntity))
+          dbEntities.map((dbEntity) => new Entity(dbEntity)),
         );
 
   static getEntities =
@@ -173,7 +173,7 @@ class __Entity {
         accountId: string;
         entityId: string;
         entityVersionId?: string;
-      }[]
+      }[],
     ): Promise<Entity[]> => {
       const dbEntities = await client.getEntities(entities);
 
@@ -234,7 +234,7 @@ class __Entity {
 
     if (!refetchedDbEntity) {
       throw new Error(
-        `Could not find latest version of entity with entityId ${this.entityId} in the datastore`
+        `Could not find latest version of entity with entityId ${this.entityId} in the datastore`,
       );
     }
 

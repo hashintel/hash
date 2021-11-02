@@ -25,7 +25,7 @@ export const insertBlockIntoPage: Resolver<
     pageEntityId,
     ...args
   },
-  { dataSources, user }
+  { dataSources, user },
 ) => {
   return await dataSources.db.transaction(async (client) => {
     let entity;
@@ -41,7 +41,7 @@ export const insertBlockIntoPage: Resolver<
     } else if (entityProperties) {
       if (!entityTypeId && !entityTypeVersionId && !systemTypeName) {
         throw new UserInputError(
-          "One of entityTypeId, entityTypeVersionId, or systemTypeName must be provided"
+          "One of entityTypeId, entityTypeVersionId, or systemTypeName must be provided",
         );
       }
       // Create new entity
@@ -54,11 +54,11 @@ export const insertBlockIntoPage: Resolver<
           systemTypeName,
           properties: entityProperties,
           versioned: true,
-        })
+        }),
       );
     } else {
       throw new Error(
-        `One of entityId OR entityProperties and entityType must be provided`
+        `One of entityId OR entityProperties and entityType must be provided`,
       );
     }
 

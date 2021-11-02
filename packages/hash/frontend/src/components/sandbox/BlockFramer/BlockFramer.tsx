@@ -24,7 +24,7 @@ export type CrossFrameProxyProps = BlockProtocolProps & {
 };
 
 const fetchSource = memoizeFetchFunction((url) =>
-  fetch(url).then((resp) => resp.text())
+  fetch(url).then((resp) => resp.text()),
 );
 
 export const BlockFramer: VoidFunctionComponent<CrossFrameProxyProps> = ({
@@ -67,7 +67,7 @@ export const BlockFramer: VoidFunctionComponent<CrossFrameProxyProps> = ({
   const sendMessage = useCallback(
     (message: MessageFromBlockFramer, origin = "*") =>
       frameRef.current?.contentWindow?.postMessage(message, origin),
-    []
+    [],
   );
 
   const sendBlockProperties = useCallback(
@@ -77,7 +77,7 @@ export const BlockFramer: VoidFunctionComponent<CrossFrameProxyProps> = ({
         payload: properties,
         requestId: uuid(),
       }),
-    [sendMessage]
+    [sendMessage],
   );
 
   useEffect(() => {
@@ -91,7 +91,7 @@ export const BlockFramer: VoidFunctionComponent<CrossFrameProxyProps> = ({
     <T extends BlockProtocolFunction | typeof fetchSource | FetchEmbedCodeFn>(
       fn: T | undefined,
       args: Parameters<T>,
-      requestId: string
+      requestId: string,
     ) => {
       const responseMsg: MessageFromBlockFramer & { type: "response" } = {
         payload: {},
@@ -121,7 +121,7 @@ export const BlockFramer: VoidFunctionComponent<CrossFrameProxyProps> = ({
           });
         });
     },
-    [sendMessage]
+    [sendMessage],
   );
 
   useEffect(() => {
@@ -145,7 +145,7 @@ export const BlockFramer: VoidFunctionComponent<CrossFrameProxyProps> = ({
           asyncCallAndResponse(
             aggregateEntityTypes,
             data.payload,
-            data.requestId
+            data.requestId,
           );
           break;
         case "create":
@@ -177,7 +177,7 @@ export const BlockFramer: VoidFunctionComponent<CrossFrameProxyProps> = ({
 
   const onLoad = useCallback(
     () => (!paramsIncludeProps ? sendBlockProperties(blockProperties) : null),
-    [blockProperties, paramsIncludeProps, sendBlockProperties]
+    [blockProperties, paramsIncludeProps, sendBlockProperties],
   );
 
   return (

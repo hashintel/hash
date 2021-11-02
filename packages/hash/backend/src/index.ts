@@ -19,7 +19,7 @@ const { FRONTEND_URL } = require("./lib/config");
 // Request ID generator
 const nanoid = customAlphabet(
   "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
-  14
+  14,
 );
 
 // Configure the StatsD client for reporting metrics
@@ -69,7 +69,7 @@ setupAuth(
   app,
   { secret: getRequiredEnv("SESSION_SECRET") },
   { ...pgConfig, maxPoolSize: 10 },
-  db
+  db,
 );
 
 // Set up cron jobs

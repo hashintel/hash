@@ -21,6 +21,6 @@ module.exports = {
     "react/jsx-no-useless-fragment": "error",
     "react/self-closing-comp": "warn",
     curly: ["error", "multi-line"],
-    "import/no-extraneous-dependencies": ["error", { "devDependencies": true }]
+    "import/no-extraneous-dependencies": ["error", { devDependencies: true }],
   },
 };
