@@ -38,7 +38,7 @@ use self::{
     pending::{PendingWorkerPoolTask, PendingWorkerPoolTasks},
     runs::SimulationRuns,
 };
-use super::error::{Error, Result};
+pub use error::{Error, Result};
 
 pub struct WorkerPoolController {
     worker_controllers: Option<Vec<WorkerController>>,
@@ -123,9 +123,12 @@ impl WorkerPoolController {
             .ok_or_else(|| Error::MissingWorkerControllers)?;
 
         let fut = tokio::spawn(async move {
-            try_join_all(worker_controllers.into_iter().map(|mut c| {
-                c.run().await.map_err(Error::from)
-            })).await
+            try_join_all(
+                worker_controllers
+                    .into_iter()
+                    .map(|mut c| c.run().await.map_err(Error::from)),
+            )
+            .await
         });
         return Ok(fut);
     }

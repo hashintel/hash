@@ -9,6 +9,12 @@ pub struct WorkerPoolMsgRecv {
     pub inner: UnboundedReceiver<(Option<SimulationShortID>, WorkerPoolToExpCtlMsg)>,
 }
 
+impl WorkerPoolMsgRecv {
+    pub async fn recv(&mut self) -> Option<(Option<SimulationShortID>, WorkerPoolToExpCtlMsg)> {
+        self.inner.recv().await
+    }
+}
+
 pub struct WorkerPoolMsgSend {
     pub inner: UnboundedSender<(Option<SimulationShortID>, WorkerPoolToExpCtlMsg)>,
 }

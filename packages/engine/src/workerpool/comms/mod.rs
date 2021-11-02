@@ -3,6 +3,8 @@ pub mod kill;
 pub mod main;
 pub mod top;
 
+pub use super::{Error, Result};
+
 use crate::{
     datastore::table::sync::SyncPayload,
     types::{TaskID, WorkerIndex},
@@ -16,7 +18,6 @@ use crate::proto::SimulationShortID;
 use futures::future::try_join_all;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
-pub use super::error::{Error, Result};
 pub use experiment::ExpMsgRecv;
 pub use kill::KillRecv;
 pub use main::{new_no_sim, MainMsgRecv, MainMsgSend};

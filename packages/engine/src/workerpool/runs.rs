@@ -15,7 +15,8 @@ pub struct SimulationRuns {
 impl SimulationRuns {
     pub fn push(&mut self, sim_id: SimulationShortID, config: &SimulationConfig) -> Result<()> {
         self.worker_allocations
-            .try_insert(sim_id, config.engine.worker_allocation.clone())
+            .try_insert(sim_id, config.engine.worker_allocation.clone())?;
+        Ok(())
     }
 
     pub fn get_worker_allocation(&self, id: SimulationShortID) -> Result<&WorkerAllocation> {
