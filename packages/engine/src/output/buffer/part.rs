@@ -98,7 +98,7 @@ impl OutputPartBuffer {
             self.initial_step = false;
         }
 
-        let mut step_vec = serde_json::to_vec(step)?;
+        let mut step_vec = serde_json::to_vec(&step)?;
         self.current.append(&mut step_vec);
 
         Ok(())

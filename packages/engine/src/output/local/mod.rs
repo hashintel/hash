@@ -2,12 +2,9 @@ pub mod config;
 pub mod result;
 mod sim;
 
-use std::path::PathBuf;
-
 use crate::config::PersistenceConfig;
 use crate::output::error::Result;
 use crate::proto::{ExperimentID, SimulationShortID};
-use crate::simulation::packages::output::packages::OutputPackagesSimConfig;
 
 use self::{config::LocalPersistenceConfig, sim::LocalSimulationOutputPersistence};
 
@@ -31,7 +28,7 @@ impl OutputPersistenceCreatorRepr for LocalOutputPersistence {
             self.exp_id.clone(),
             sim_id.clone(),
             &persistence_config.output_config,
-        );
+        )?;
         Ok(LocalSimulationOutputPersistence::new(
             self.exp_id.clone(),
             sim_id,

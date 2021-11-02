@@ -3,6 +3,10 @@ use super::packages::output::packages::Output;
 pub struct SimulationStepOutput(Vec<Output>);
 
 impl SimulationStepOutput {
+    pub fn package_outputs(&self) -> &Vec<Output> {
+        &self.0
+    }
+
     pub fn with_capacity(capacity: usize) -> SimulationStepOutput {
         SimulationStepOutput(Vec::with_capacity(capacity))
     }
