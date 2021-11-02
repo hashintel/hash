@@ -20,10 +20,11 @@ pub fn output_persistence<E: ExperimentRunRepr>(
     get_dynamic(env, OUTPUT_PERSISTENCE_KEY)
 }
 
-pub fn get_dynamic<'de, K: Deserialize<'de>, E: ExperimentRunRepr>(
-    env: &Environment<E>,
-    key: &str,
-) -> Result<K> {
+pub fn get_dynamic<K, E>(env: &Environment<E>, key: &str) -> Result<K>
+where
+    K: for<'de> Deserialize<'de>,
+    E: ExperimentRunRepr,
+{
     env.dyn_payloads
         .get(key)
         // TODO OS: Fix - Investigate trait bound `for<'de> K: experiment::_::_serde::Desieralize<'de>` is not satisifed
