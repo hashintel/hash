@@ -14,6 +14,7 @@ pub struct SimStatus {
     pub early_stop: bool,
     pub stop_msg: Option<serde_json::Value>,
     pub stop_signal: bool,
+    // TODO OS - COMPILE BLOCK - Cannot infer an appropriate lifetime for lifetime parameter `'de` due to conflicting requirements
     pub persistence_result: Option<(&'static str, serde_json::Value)>,
     pub error: Option<RunnerError>,
     pub warnings: Vec<RunnerError>,
@@ -48,7 +49,7 @@ impl SimStatus {
     ) -> Result<SimStatus> {
         Ok(SimStatus {
             sim_id,
-            steps_taken: *steps_taken,
+            steps_taken,
             early_stop,
             stop_msg,
             persistence_result: Some(OutputPersistenceResultRepr::as_value(persistence_result)?), // TODO OS I (Alfie) wrapped this in a Some, do we want to make it None if as_value returns err
@@ -67,6 +68,7 @@ impl SimStatus {
             error: Some(error),
             steps_taken,
             running: false,
+            // TODO OS - COMPILE BLOCK - The trait bound `std::option::Option<P>: OutputPersistenceResultRepr` is not satisfied
             persistence_result: Some(OutputPersistenceResultRepr::as_value(persistence_result)?),
             ..SimStatus::default()
         }

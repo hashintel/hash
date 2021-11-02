@@ -17,16 +17,16 @@ pub trait OutputPersistenceCreatorRepr {
         &self,
         sim_id: SimulationShortID,
         persistence_config: &PersistenceConfig,
-    ) -> error::Result<Self::SimulationOutputPersistence>;
+    ) -> Result<Self::SimulationOutputPersistence>;
 }
 
 #[async_trait::async_trait]
 pub trait SimulationOutputPersistenceRepr {
     type OutputPersistenceResult: OutputPersistenceResultRepr;
-    async fn add_step_output(&mut self, output: SimulationStepOutput) -> error::Result<()>;
-    async fn finalize(self) -> error::Result<Self::OutputPersistenceResult>;
+    async fn add_step_output(&mut self, output: SimulationStepOutput) -> Result<()>;
+    async fn finalize(self) -> Result<Self::OutputPersistenceResult>;
 }
 
 pub trait OutputPersistenceResultRepr: Serialize {
-    fn as_value(self) -> error::Result<(&'static str, serde_json::Value)>;
+    fn as_value(self) -> Result<(&'static str, serde_json::Value)>;
 }

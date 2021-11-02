@@ -81,42 +81,43 @@ impl CreateRemoveCommands {
             refs.push(message_map.get_msg_refs(*hash_recipient))
         }
 
-        let res: CreateRemoveCommands =
-            refs.into_par_iter()
-                .map(|refs| {
-                    // TODO[5](optimization) see if collecting type information before (to avoid cache misses on large batches)
-                    // yields better results
-                    let hash_message_types = message_pool.type_iter(&message_reader, refs).map(
-                        |type_str| match type_str {
+        let res: CreateRemoveCommands = refs
+            .into_par_iter()
+            .map(|refs| {
+                // TODO[5](optimization) see if collecting type information before (to avoid cache misses on large batches)
+                // yields better results
+                let hash_message_types =
+                    message_reader
+                        .type_iter(refs)
+                        .map(|type_str| match type_str {
                             "create_agent" => Ok(HashMessageType::Create),
                             "remove_agent" => Ok(HashMessageType::Remove),
                             _ => Err(Error::UnexpectedSystemMessage {
                                 message_type: type_str.into(),
                             }),
-                        },
-                    );
-
-                    let res: Result<CreateRemoveCommands> = message_pool
-                        .data_iter(&message_reader, refs)
-                        .zip_eq(message_pool.from_iter(&message_reader, refs))
-                        .zip_eq(hash_message_types)
-                        .try_fold(
-                            CreateRemoveCommands::default,
-                            |mut cmds, ((data, from), message_type)| {
-                                handle_hash_message(&mut cmds, message_type?, data, from)?;
-                                Ok(cmds)
-                            },
-                        )
-                        .try_reduce(CreateRemoveCommands::default, |mut a, b| {
-                            a.merge(b);
-                            Ok(a)
                         });
-                    res
-                })
-                .try_reduce(CreateRemoveCommands::default, |mut a, b| {
-                    a.merge(b);
-                    Ok(a)
-                })?;
+
+                let res: Result<CreateRemoveCommands> = message_reader
+                    .data_iter(refs)
+                    .zip_eq(message_reader.from_iter(refs))
+                    .zip_eq(hash_message_types)
+                    .try_fold(
+                        CreateRemoveCommands::default,
+                        |mut cmds, ((data, from), message_type)| {
+                            handle_hash_message(&mut cmds, message_type?, data, from)?;
+                            Ok(cmds)
+                        },
+                    )
+                    .try_reduce(CreateRemoveCommands::default, |mut a, b| {
+                        a.merge(b);
+                        Ok(a)
+                    });
+                res
+            })
+            .try_reduce(CreateRemoveCommands::default, |mut a, b| {
+                a.merge(b);
+                Ok(a)
+            })?;
         Ok(res)
     }
 

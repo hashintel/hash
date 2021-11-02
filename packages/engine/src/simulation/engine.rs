@@ -64,6 +64,7 @@ impl Engine {
         self.run_context_packages().await?;
         self.run_state_packages().await?;
         let step_output = self.run_output_packages().await?;
+        // TODO OS - COMPILE BLOCK - No method named `create_step_result` found for mutable reference `&mut Engine` in the current scope
         self.create_step_result(step_output)
     }
 
@@ -86,14 +87,14 @@ impl Engine {
         let pre_context = context.into_pre_context();
 
         let state = Arc::new(state.downgrade());
-        self.comms.state_sync(&state).await?; // Synchronize state with workers
+        self.comms.state_sync(&state)?; // Synchronize state with workers
         let context = self
             .packages
             .step
             .run_context(state.clone(), snapshot, pre_context)
             .await?
             .downgrade();
-        self.comms.context_sync(&context).await?; // Synchronize context with workers
+        self.comms.context_batch_sync(&context)?; // Synchronize context with workers
         let state = Arc::try_unwrap(state)
             .map_err(|_| Error::from("Unable to unwrap state after context package execution"))?;
         self.store.set(state, context);
@@ -199,7 +200,7 @@ impl Engine {
     ) -> Result<AgentPool> {
         state.finalize_agent_pool(
             context,
-            &self.config.exp.store.agent_schema,
+            &self.config.sim.store.agent_schema,
             &self.config.exp.run_id,
         )?;
         Ok(context.take_agent_pool())

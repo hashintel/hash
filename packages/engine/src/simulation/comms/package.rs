@@ -1,7 +1,6 @@
 use crate::simulation::packages::{id::PackageId, PackageType};
 use crate::simulation::task::{active::ActiveTask, Task};
 
-use crate::datastore::table::state::ReadState;
 use crate::datastore::table::task_shared_store::TaskSharedStore;
 use crate::hash_types::Agent;
 use uuid::Uuid;
@@ -33,5 +32,6 @@ impl PackageComms {
     ) -> Result<ActiveTask> {
         self.inner
             .new_task(self.package_id.clone(), task, shared_store)
+            .await
     }
 }

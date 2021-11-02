@@ -12,8 +12,17 @@ pub enum Error {
     #[error("Controller error: {0}")]
     Env(#[from] super::controller::Error),
 
+    #[error("Output error: {0}")]
+    Output(#[from] crate::output::Error),
+
+    #[error("Datastore Error: {0}")]
+    DataStore(#[from] crate::datastore::Error),
+
+    #[error("Worker Pool error: {0}")]
+    WorkerPool(#[from] crate::workerpool::Error),
+
     #[error("Simulation (id: {0}) failed with error: {1:?}")]
-    SimulationRunWorkFailed(String, crate::worker::error::Error),
+    SimulationRunWorkFailed(String, crate::worker::Error),
 
     #[error("Kill signal sender for simulation (id: {0}) unexpectedly closed")]
     UnexpectedClosedKillSignalSender(String),
@@ -22,9 +31,6 @@ pub enum Error {
     // TokioUpstreamSend(#[from] tokio::sync::mpsc::error::SendError<Upstream>),
     #[error("Unexpected message to hash with type {message_type}")]
     UnexpectedSystemMessage { message_type: String },
-
-    #[error("{0}")]
-    DataStore(#[from] crate::datastore::error::Error),
 
     #[error("Serde Error: {0}")]
     Serde(#[from] serde_json::Error),
@@ -138,5 +144,17 @@ impl From<&str> for Error {
 impl From<String> for Error {
     fn from(s: String) -> Self {
         Error::Unique(s)
+    }
+}
+
+impl<'a, T> From<std::sync::TryLockError<std::sync::RwLockReadGuard<'a, T>>> for Error {
+    fn from(_: std::sync::TryLockError<std::sync::RwLockReadGuard<'a, T>>) -> Self {
+        Error::RwLock("RwLock read error for simulation".into())
+    }
+}
+
+impl<'a, T> From<std::sync::TryLockError<std::sync::RwLockWriteGuard<'a, T>>> for Error {
+    fn from(_: std::sync::TryLockError<std::sync::RwLockWriteGuard<'a, T>>) -> Self {
+        Error::RwLock("RwLock write error for simulation".into())
     }
 }

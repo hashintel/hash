@@ -22,8 +22,10 @@ impl MessagePool {
     }
 
     // Clone the arcs
-    pub fn cloned_batch_pool(&self) -> Vec<Arc<RwLock<MessageBatch>>> {
-        self.batches.clone()
+    pub fn cloned_batch_pool(&self) -> MessagePool {
+        Self {
+            batches: self.batches.clone(),
+        }
     }
 
     fn batches(&self) -> &Vec<Arc<RwLock<MessageBatch>>> {

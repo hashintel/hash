@@ -23,8 +23,10 @@ impl AgentPool {
         AgentPool { batches }
     }
     // Clone the arcs
-    pub fn cloned_batch_pool(&self) -> Vec<Arc<RwLock<AgentBatch>>> {
-        self.batches.clone()
+    pub fn cloned_batch_pool(&self) -> Self {
+        Self {
+            batches: self.batches.clone(),
+        }
     }
 
     pub fn read_batches(&self) -> Result<Vec<&AgentBatch>> {

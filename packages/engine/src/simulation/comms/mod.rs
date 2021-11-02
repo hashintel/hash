@@ -50,7 +50,7 @@ use self::message::{EngineToWorkerPoolMsg, WrappedTask};
 
 use super::{
     command::CreateRemoveCommands,
-    task::{active::ActiveTask, Task},
+    task::{access::StoreAccessVerify, active::ActiveTask, Task},
 };
 
 #[derive(Clone)]
@@ -91,15 +91,18 @@ impl Comms {
 
 // Datastore synchronization methods
 impl Comms {
+    // TODO OS - COMPILE BLOCK - `await` is only allowed inside `async` functions and blocks
     pub fn state_sync(&self, state: &State) -> Result<()> {
         // Synchronize the state batches
         let agents = state.agent_pool().cloned_batch_pool();
         let agent_messages = state.message_pool().cloned_batch_pool();
-        let sync_msg = StateSync::new(agents, agent_messages);
-        self.worker_pool_sender.send(EngineToWorkerPoolMsg::sync(
-            self.sim_id,
-            SyncPayload::State(sync_msg),
-        ))?;
+        let sync_msg = StateSync::new(Box::new(agents), Box::new(agent_messages));
+        self.worker_pool_sender
+            .send(EngineToWorkerPoolMsg::sync(
+                self.sim_id,
+                SyncPayload::State(sync_msg),
+            ))
+            .await?;
         Ok(())
     }
 
@@ -107,11 +110,13 @@ impl Comms {
         // Synchronize the state snapshot batches
         let agents = state.agent_pool().cloned_batch_pool();
         let agent_messages = state.message_pool().cloned_batch_pool();
-        let sync_msg = StateSync::new(agents, agent_messages);
-        self.worker_pool_sender.send(EngineToWorkerPoolMsg::sync(
-            self.sim_id,
-            SyncPayload::StateSnapshot(sync_msg),
-        ))?;
+        let sync_msg = StateSync::new(Box::new(agents), Box::new(agent_messages));
+        self.worker_pool_sender
+            .send(EngineToWorkerPoolMsg::sync(
+                self.sim_id,
+                SyncPayload::StateSnapshot(sync_msg),
+            ))
+            .await?;
         Ok(())
     }
 
@@ -119,10 +124,12 @@ impl Comms {
         // Synchronize the context batch
         let batch = context.batch();
         let sync_msg = ContextBatchSync::new(batch);
-        self.worker_pool_sender.send(EngineToWorkerPoolMsg::sync(
-            self.sim_id,
-            SyncPayload::ContextBatch(sync_msg),
-        ))?;
+        self.worker_pool_sender
+            .send(EngineToWorkerPoolMsg::sync(
+                self.sim_id,
+                SyncPayload::ContextBatch(sync_msg),
+            ))
+            .await?;
         Ok(())
     }
 }
@@ -135,7 +142,7 @@ impl Comms {
         shared_store: TaskSharedStore,
     ) -> Result<ActiveTask> {
         let task_id = uuid::Uuid::new_v4().as_u128();
-        let (wrapped, active) = wrap_task(task_id, package_id, task, shared_store);
+        let (wrapped, active) = wrap_task(task_id, package_id, task, shared_store)?;
         self.worker_pool_sender
             .send(EngineToWorkerPoolMsg::task(self.sim_id, wrapped))
             .await?;
@@ -148,11 +155,11 @@ fn wrap_task<T: Into<Task>>(
     package_id: PackageId,
     task: T,
     shared_store: TaskSharedStore,
-) -> (WrappedTask, ActiveTask) {
+) -> Result<(WrappedTask, ActiveTask)> {
     let task: Task = task.into();
-    task.verify_table_access(&shared_store)?;
+    task.verify_store_access(&shared_store)?;
     let (owner_channels, executor_channels) = active::comms();
     let wrapped = WrappedTask::new(task_id, package_id, task, executor_channels, shared_store);
     let active = ActiveTask::new(owner_channels);
-    (wrapped, active)
+    Ok((wrapped, active))
 }
