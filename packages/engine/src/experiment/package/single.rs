@@ -29,6 +29,7 @@ impl SingleRunExperiment {
     ) -> Result<()> {
         let msg = ExperimentControl::StartSim {
             sim_id: 0 as SimulationShortID,
+            // TODO OS - COMPILE BLOCK - mismatched types, should StartSim accept Globals object
             properties: self.experiment_config.base_globals.clone(),
             max_num_steps: self.config.num_steps,
         };
