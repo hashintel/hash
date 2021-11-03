@@ -17,7 +17,8 @@ import { EmbedDataType, initialEmbedData } from "./mockData/mockData";
 
 const node = document.getElementById("app");
 
-const apiGraphQLEndpoint = "http://localhost:5001/graphql"
+/** Temporarily leaving this here, till we fix importing it from hash-shared */
+const apiGraphQLEndpoint = "http://localhost:5001/graphql";
 
 async function getEmbedBlock(
   url: string,

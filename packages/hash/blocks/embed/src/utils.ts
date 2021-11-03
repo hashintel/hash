@@ -1,3 +1,4 @@
+import { kebabCase } from "lodash";
 import { ProviderNames } from "./types";
 
 export function getFormCopy(entityType?: ProviderNames): {
@@ -44,10 +45,20 @@ export function getFormCopy(entityType?: ProviderNames): {
   };
 }
 
-const kebabCase = (str: string) =>
-  str.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
+// const kebabCase = (str: string) =>
+//   str.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
 
 export const toCSSText = (styles: CSSStyleDeclaration): string =>
   Object.entries(styles)
     .map(([prop, value]) => `${kebabCase(prop)}:${value}`)
     .join(";");
+
+export const fromCSSTextToObj = (cssText: string) =>
+  Object.fromEntries(
+    cssText
+      .split(";")
+      .filter(Boolean)
+      .map((rule) => {
+        return rule.split(":").map((item) => item.trim());
+      })
+  ) as CSSStyleDeclaration;

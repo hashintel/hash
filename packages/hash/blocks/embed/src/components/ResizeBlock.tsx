@@ -148,7 +148,6 @@ export const ResizeBlock: React.FC<ResizeBlockProps> = ({
         default:
           break;
       }
-     
 
       let newDimensions = {};
 
