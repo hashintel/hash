@@ -5,8 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "fix:markdownlint": "markdownlint --fix ../../../resources",
-    "lint:markdownlint": "markdownlint ../../../resources"
+    "fix:markdownlint": "markdownlint --fix .",
+    "lint:markdownlint": "markdownlint ."
   },
   "keywords": [],
   "author": "",

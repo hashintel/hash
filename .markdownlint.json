@@ -7,5 +7,6 @@
   "no-duplicate-header": false,
   "no-alt-text": false,
   "no-emphasis-as-header": false,
-  "ol-prefix": false
+  "ol-prefix": false,
+  "no-trailing-punctuation": false
 }

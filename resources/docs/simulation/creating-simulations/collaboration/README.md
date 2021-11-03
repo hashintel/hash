@@ -27,7 +27,7 @@ Should you choose to allow it, projects in [hCore](/platform/core) can be shared
 
 To generate a share link, click the 'Share' button in the top-right hand corner of HASH. [Read more about sharing simulations &gt;](/docs/simulation/creating-simulations/collaboration/sharing-releasing)
 
-## Coming soon
+## Coming soon...
 
 Other features coming soon include:
 

@@ -2,9 +2,9 @@ name: MDX Lint
 
 on:
   push:
-    branches: [ master, aj/md-lint ]
+    branches: [ main, aj/md-lint ]
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
 
 jobs:
   build:
@@ -17,7 +17,7 @@ jobs:
           node-version: '12'
 
       - name: Lint for markdown correctness
-        run: cd .github/workflows/markdown-linting && sh lint.sh
+        run: npm i && npm run lint:markdownlint
 
       # Runs a single command using the runners shell
       - name: Lint for objectID
