@@ -141,9 +141,9 @@ impl Into<TaskResult> for FailedMessage {
 /// Common implementation of WorkerHandler trait "into_result" method to be used by JS and Py impls
 fn _into_result(msg: TaskMessage) -> SimulationResult<TaskResult> {
     let init_task_message = JsPyInitTaskMessage::try_from(InitTaskMessage::try_from(msg)?)?;
-    if let Ok(success_message) = init_task_message.try_into(): Result<SuccessMessage> {
+    if let Ok(success_message) = TryInto::<SuccessMessage>::try_into(init_task_message.clone()) {
         Ok(success_message.into())
-    } else if let Ok(_) = init_task_message.try_into(): Result<FailedMessage> {
+    } else if let Ok(_) = TryInto::<FailedMessage>::try_into(init_task_message) {
         Err(Error::from(format!(
             "Javascript State Initialisation Task failed"
         )))

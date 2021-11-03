@@ -410,16 +410,12 @@ struct GroupSync {
     pub message_batch: Arc<RwLock<MessageBatch>>,
 }
 
-fn agent_pool_from_batches(
-    batches: Vec<Arc<RwLock<AgentBatch>>>,
-) -> Box<dyn BatchPool<AgentBatch>> {
-    Box::new(AgentPool::new(batches)) as Box<dyn BatchPool<AgentBatch>>
+fn agent_pool_from_batches(batches: Vec<Arc<RwLock<AgentBatch>>>) -> AgentPool {
+    AgentPool::new(batches)
 }
 
-fn msg_pool_from_batches(
-    batches: Vec<Arc<RwLock<MessageBatch>>>,
-) -> Box<dyn BatchPool<MessageBatch>> {
-    Box::new(MessagePool::new(batches)) as Box<dyn BatchPool<MessageBatch>>
+fn msg_pool_from_batches(batches: Vec<Arc<RwLock<MessageBatch>>>) -> MessagePool {
+    MessagePool::new(batches)
 }
 
 impl<'m> RunnerImpl<'m> {

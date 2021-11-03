@@ -9,8 +9,8 @@ pub enum Error {
     #[error("{0}")]
     Unique(String),
 
-    #[error("Controller error: {0}")]
-    Env(#[from] super::controller::Error),
+    #[error("Env error: {0}")]
+    Env(#[from] crate::env::Error),
 
     #[error("Output error: {0}")]
     Output(#[from] crate::output::Error),
@@ -21,9 +21,8 @@ pub enum Error {
     #[error("Worker Pool error: {0}")]
     WorkerPool(#[from] crate::workerpool::Error),
 
-    #[error("Simulation (id: {0}) failed with error: {1:?}")]
-    SimulationRunWorkFailed(String, crate::worker::Error),
-
+    // #[error("Simulation (id: {0}) failed with error: {1:?}")]
+    // SimulationRunWorkFailed(String, crate::worker::Error),
     #[error("Kill signal sender for simulation (id: {0}) unexpectedly closed")]
     UnexpectedClosedKillSignalSender(String),
 

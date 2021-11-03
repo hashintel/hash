@@ -190,17 +190,20 @@ impl TryFrom<&ExperimentConfig<ExperimentRunBase>> for BehaviorMap {
 
                 // Need to check whether we're dealing with rust built-in keys,
                 // for which we always use the in-repo locally defined ones.
-                let rust_built_in_behavior_keys = if rust::behaviors::is_built_in(&b.name) {
-                    let behavior = rust::behaviors::get_named_behavior(&b.name)
-                        .expect(&format!("Built in behavior {} not found", &b.name));
-                    let behavior_keys_src = behavior.behavior_keys_src.expect(&format!(
-                        "Expected built in Rust behavior `{}` to contain behavior keys",
-                        &b.name
-                    ));
-                    Some(behavior_keys_src)
-                } else {
-                    None
-                };
+
+                // TODO[1] Re-enable Rust Behavior Runner
+                // let rust_built_in_behavior_keys = if rust::behaviors::is_built_in(&b.name) {
+                //     let behavior = rust::behaviors::get_named_behavior(&b.name)
+                //         .expect(&format!("Built in behavior {} not found", &b.name));
+                //     let behavior_keys_src = behavior.behavior_keys_src.expect(&format!(
+                //         "Expected built in Rust behavior `{}` to contain behavior keys",
+                //         &b.name
+                //     ));
+                //     Some(behavior_keys_src)
+                // } else {
+                //     None
+                // };
+                let rust_built_in_behavior_keys = None;
                 let keys = rust_built_in_behavior_keys
                     .or_else(|| b.behavior_keys_src.clone())
                     .map(|v| BehaviorKeys::from_json_str(v.as_ref()))

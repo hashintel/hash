@@ -5,6 +5,8 @@ use parking_lot::RwLock;
 use crate::config::Globals;
 use crate::datastore::schema::state::AgentSchema;
 use crate::datastore::shared_store::SharedStore;
+use crate::datastore::table::pool::agent::AgentPool;
+use crate::datastore::table::pool::message::MessagePool;
 use crate::datastore::table::pool::BatchPool;
 use crate::proto::{ExperimentID, SimulationShortID};
 use crate::simulation::packages::id::PackageId;
@@ -54,8 +56,8 @@ pub struct TargetedRunnerTaskMsg {
 
 pub struct StateInterimSync {
     pub group_indices: Vec<usize>,
-    pub agent_batches: Box<dyn BatchPool<AgentBatch>>,
-    pub message_batches: Box<dyn BatchPool<MessageBatch>>,
+    pub agent_batches: AgentPool,
+    pub message_batches: MessagePool,
     // shared state
 }
 

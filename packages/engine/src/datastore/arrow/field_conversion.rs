@@ -8,13 +8,14 @@ use std::collections::HashMap;
 
 use super::prelude::*;
 
-use crate::datastore::schema::{
-    FieldType, PREVIOUS_INDEX_COLUMN_INDEX, PREVIOUS_INDEX_COLUMN_NAME,
-};
+use crate::datastore::schema::FieldType;
 use crate::datastore::{
     error::Result,
     prelude::*,
     schema::{FieldSpec, FieldSpecMap, FieldTypeVariant, PresetFieldType},
+};
+use crate::simulation::packages::creator::{
+    PREVIOUS_INDEX_COLUMN_INDEX, PREVIOUS_INDEX_COLUMN_NAME,
 };
 
 impl PresetFieldType {

@@ -1,5 +1,7 @@
 use super::runner::{
-    javascript::Error as JavaScriptError, python::Error as PythonError, rust::Error as RustError,
+    javascript::Error as JavaScriptError,
+    python::Error as PythonError,
+    // rust::Error as RustError,
 };
 use thiserror::Error as ThisError;
 
@@ -22,9 +24,8 @@ pub enum Error {
     #[error("JavaScript runner error: {0}")]
     JavaScript(#[from] JavaScriptError),
 
-    #[error("Rust runner error: {0}")]
-    Rust(#[from] RustError),
-
+    // #[error("Rust runner error: {0}")]
+    // Rust(#[from] RustError),
     #[error("Simulation: {0}")]
     Simulation(#[from] crate::simulation::Error),
 }

@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use crate::proto::ExperimentRunBase;
 
-use crate::config::PackageConfig;
+use crate::config::{Globals, PackageConfig};
 use crate::datastore::schema::context::ContextSchema;
 use crate::datastore::schema::state::AgentSchema;
 use crate::datastore::schema::{
@@ -185,7 +185,7 @@ impl PackageCreators {
     pub fn get_output_persistence_config(
         &self,
         exp_config: &crate::ExperimentConfig<ExperimentRunBase>,
-        globals: &crate::hash_types::Properties,
+        globals: &Globals,
     ) -> Result<OutputPackagesSimConfig> {
         let mut map = HashMap::new();
         self.output.iter().for_each(|(id, name, creator)| {
@@ -198,7 +198,7 @@ impl PackageCreators {
     pub fn get_agent_schema(
         &self,
         exp_config: &crate::ExperimentConfig<ExperimentRunBase>,
-        globals: &crate::hash_types::Properties,
+        globals: &Globals,
     ) -> crate::datastore::prelude::Result<AgentSchema> {
         // TODO OS[24] - RUNTIME BLOCK - need to implement add_agent_state_fields for all packages
         // TODO, should we use enum_dispatch here to remove some duplication
@@ -240,7 +240,7 @@ impl PackageCreators {
     pub fn get_context_schema(
         &self,
         exp_config: &crate::ExperimentConfig<ExperimentRunBase>,
-        globals: &crate::hash_types::Properties,
+        globals: &Globals,
     ) -> std::result::Result<ContextSchema, crate::datastore::prelude::Error> {
         let mut field_builder = FieldSpecMapBuilder::new();
 
@@ -286,7 +286,7 @@ fn add_base_agent_fields(field_builder: &mut FieldSpecMapBuilder) -> Result<()> 
         // There are 2 indices for every agent: 1) Group index 2) Row (agent) index. This points
         // to the relevant old outbox (i.e. new inbox)
         FieldSpec::new_built_in(
-            crate::datastore::schema::PREVIOUS_INDEX_COLUMN_NAME,
+            PREVIOUS_INDEX_COLUMN_NAME,
             FieldType::new(
                 FieldTypeVariant::FixedLengthArray {
                     kind: Box::new(FieldType::new(

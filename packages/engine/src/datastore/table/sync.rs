@@ -1,15 +1,15 @@
 use std::{convert::TryInto, fmt, sync::Arc};
 
-use super::pool::BatchPool;
+use crate::datastore::table::pool::agent::AgentPool;
+use crate::datastore::table::pool::message::MessagePool;
 use crate::{
-    datastore::prelude::{AgentBatch, ContextBatch, MessageBatch},
-    worker::runner::comms::inbound::InboundToRunnerMsgPayload,
+    datastore::prelude::ContextBatch, worker::runner::comms::inbound::InboundToRunnerMsgPayload,
 };
 
 #[derive(new, Clone)]
 pub struct StateSync {
-    pub agent_pool: Box<dyn BatchPool<AgentBatch>>,
-    pub message_pool: Box<dyn BatchPool<MessageBatch>>,
+    pub agent_pool: AgentPool,
+    pub message_pool: MessagePool,
 }
 
 impl fmt::Debug for StateSync {

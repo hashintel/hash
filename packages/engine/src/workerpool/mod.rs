@@ -122,13 +122,15 @@ impl WorkerPoolController {
             .take()
             .ok_or_else(|| Error::MissingWorkerControllers)?;
 
+        let futs = worker_controllers
+            .into_iter()
+            .map(|mut c| tokio::spawn(async move { c.run().await.map_err(Error::from) }));
+
         let fut = tokio::spawn(async move {
-            try_join_all(
-                worker_controllers
-                    .into_iter()
-                    .map(|mut c| c.run().await.map_err(Error::from)),
-            )
-            .await
+            let res = try_join_all(futs)
+                .await?
+                .into_iter()
+                .collect::<Result<()>>();
         });
         return Ok(fut);
     }

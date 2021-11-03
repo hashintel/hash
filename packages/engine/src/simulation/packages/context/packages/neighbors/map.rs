@@ -93,7 +93,7 @@ fn gather_neighbors(
 impl NeighborMap {
     pub fn gather(
         states: Vec<NeighborRef>,
-        topology_config: &config::ToplogyConfig,
+        topology_config: &TopologyConfig,
     ) -> Result<NeighborMap> {
         let num_states = states.len();
         let adjacency_map = agents_adjacency_map(states)?;

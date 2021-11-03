@@ -193,7 +193,7 @@ impl TaskSharedStore {
                 .collect::<Result<_>>()? // TODO split config
         };
 
-        (split, config)
+        todo!();
     }
 }
 
