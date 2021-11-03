@@ -1,4 +1,3 @@
-const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const webpack = require("webpack");
 const config = require("./webpack.config");
@@ -26,10 +25,6 @@ module.exports = {
       "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
       "Access-Control-Allow-Headers":
         "X-Requested-With, content-type, Authorization",
-    },
-    static: {
-      directory: path.join(__dirname, "public"),
-      publicPath: "/public",
     },
   },
   resolve: {
