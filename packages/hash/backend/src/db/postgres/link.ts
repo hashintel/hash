@@ -18,7 +18,7 @@ export const insertOutgoingLinks = async (
     dstAccountId: string;
     dstEntityId: string;
     dstEntityVersionId?: string;
-  }[]
+  }[],
 ) => {
   const rows = links.map((link) => [
     link.srcAccountId,
@@ -69,7 +69,7 @@ export const insertIncomingLinks = async (
     dstEntityId: string;
     srcAccountId: string;
     srcEntityId: string;
-  }[]
+  }[],
 ) => {
   const rows = links.map((link) => [
     link.dstAccountId,
@@ -89,7 +89,7 @@ export const insertIncomingLinks = async (
 /** Get the fixed entity IDs of all entities which refrence a given entity. */
 export const getEntityParentIds = async (
   conn: Connection,
-  params: { accountId: string; entityVersionId: string }
+  params: { accountId: string; entityVersionId: string },
 ) => {
   const rows = await conn.any(sql`
     with p as (
@@ -130,7 +130,7 @@ export const insertLinks = async (conn: Connection, entity: Entity) => {
         const found = links.find(
           (link) =>
             link.entityId === entityId &&
-            link.entityVersionId === entityVersionId
+            link.entityVersionId === entityVersionId,
         );
         return found ? null : { entityId, entityVersionId };
       })
@@ -149,7 +149,7 @@ export const insertLinks = async (conn: Connection, entity: Entity) => {
         dstAccountId: link.accountId,
         dstEntityId: link.entityId,
         dstEntityVersionId: link.entityVersionId,
-      }))
+      })),
     ),
 
     insertIncomingLinks(
@@ -159,7 +159,7 @@ export const insertLinks = async (conn: Connection, entity: Entity) => {
         dstEntityId: link.entityId,
         srcAccountId: entity.accountId,
         srcEntityId: entity.entityId,
-      }))
+      })),
     ),
   ]);
 };
@@ -181,7 +181,7 @@ export type OutgoingLink = {
  */
 export const getEntityOutgoingLinks = async (
   conn: Connection,
-  params: { accountId: string; entityId: string }
+  params: { accountId: string; entityId: string },
 ): Promise<OutgoingLink[]> => {
   const rows = await conn.any(sql`
     select
@@ -201,7 +201,7 @@ export const getEntityOutgoingLinks = async (
         dstEntityVersionId === ZERO_UUID ? undefined : dstEntityVersionId,
       // The version IDs of `params.entityId` for which this link is valid
       validForSrcEntityVersionIds: new Set(
-        row.src_entity_version_ids as string[]
+        row.src_entity_version_ids as string[],
       ),
     };
   });

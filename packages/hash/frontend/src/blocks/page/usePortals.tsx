@@ -13,7 +13,7 @@ type PortalSet = Map<HTMLElement, { key: string; reactNode: ReactNode }>;
 
 export type RenderPortal = (
   reactNode: React.ReactNode | null,
-  node: HTMLElement | null
+  node: HTMLElement | null,
 ) => void;
 
 /**
@@ -36,7 +36,7 @@ export const usePortals = () => {
 
   const portalQueue = useRef<((set: PortalSet) => void)[]>([]);
   const portalQueueTimeout = useRef<ReturnType<typeof setImmediate> | null>(
-    null
+    null,
   );
 
   /**
@@ -92,7 +92,7 @@ export const usePortals = () => {
   const renderedPortals = Array.from(portals.entries()).map(
     ([target, { key, reactNode }]) => (
       <Fragment key={key}>{createPortal(reactNode, target)}</Fragment>
-    )
+    ),
   );
 
   return [renderedPortals, renderPortal, clearPortals] as const;

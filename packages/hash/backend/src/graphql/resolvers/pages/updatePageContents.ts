@@ -22,11 +22,11 @@ const validateActionsInput = (actions: UpdatePageAction[]) => {
         action.insertNewBlock,
         action.moveBlock,
         action.removeBlock,
-        action.updateEntity
+        action.updateEntity,
       )
     ) {
       throw new UserInputError(
-        `at action ${i}: exactly one of insertNewBlock, moveBlock, removeBlock or updateEntity must be specified`
+        `at action ${i}: exactly one of insertNewBlock, moveBlock, removeBlock or updateEntity must be specified`,
       );
     }
   }
@@ -36,7 +36,7 @@ const validateActionsInput = (actions: UpdatePageAction[]) => {
 const createBlock = async (
   client: DBClient,
   params: InsertNewBlock,
-  user: User
+  user: User,
 ) => {
   // @todo: if we generate the entity IDs up-front, the entity and the block may
   // be created concurrently.
@@ -50,7 +50,7 @@ const createBlock = async (
       entityTypeId: params.entityTypeId,
       entityTypeVersionId: params.entityTypeVersionId,
       systemTypeName: params.systemTypeName,
-    })
+    }),
   );
 
   // Create the block
@@ -74,7 +74,7 @@ const moveBlock = (properties: DbPageProperties, move: MoveBlock) => {
   const length = properties.contents.length;
   if (move.currentPosition < 0 || move.currentPosition >= length) {
     throw new UserInputError(
-      `invalid currentPosition: ${move.currentPosition}`
+      `invalid currentPosition: ${move.currentPosition}`,
     );
   }
   if (move.newPosition < 0 || move.newPosition >= length) {
@@ -87,7 +87,7 @@ const moveBlock = (properties: DbPageProperties, move: MoveBlock) => {
 
 const insertBlock = (
   properties: DbPageProperties,
-  insert: { accountId: string; entityId: string; position: number }
+  insert: { accountId: string; entityId: string; position: number },
 ) => {
   const length = properties.contents.length;
   if (insert.position < 0 || insert.position > length) {
@@ -130,15 +130,15 @@ export const updatePageContents: Resolver<
               throw new UserInputError(`action ${i}: ${err}`);
             }
             throw err;
-          })
-        )
+          }),
+        ),
     );
 
     // Perform any entity updates.
     await Promise.all(
       actions
         .filter((action) => action.updateEntity)
-        .map((action) => Entity.updateProperties(client)(action.updateEntity!))
+        .map((action) => Entity.updateProperties(client)(action.updateEntity!)),
     );
 
     // Lock the page so that no other concurrent call to this resolver will conflict

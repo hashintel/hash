@@ -71,7 +71,8 @@ export const sendOrgEmailInvitationToEmailAddress =
 
     const queryParams = new URLSearchParams({
       orgEntityId: org.entityId,
-      accessToken: emailInvitation.properties.accessToken,
+      invitationEmailToken: emailInvitation.properties.accessToken,
+      email: emailAddress,
       ...(isExistingUser ? { isExistingUser: "true" } : {}),
     }).toString();
 

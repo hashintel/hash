@@ -16,14 +16,14 @@ export const createUser: Resolver<
 > = async (
   _,
   { email, magicLinkQueryParams },
-  { dataSources, emailTransporter }
+  { dataSources, emailTransporter },
 ) =>
   dataSources.db.transaction(async (client) => {
     // Ensure the email address isn't already verified and associated with a user
     if (await User.getUserByEmail(client)({ email, verified: true })) {
       throw new ApolloError(
         `User with the email '${email}' already exists in the datastore`,
-        "ALREADY_EXISTS"
+        "ALREADY_EXISTS",
       );
     }
 
@@ -49,7 +49,7 @@ export const createUser: Resolver<
 
     const verificationCode = await user.sendEmailVerificationCode(
       client,
-      emailTransporter
+      emailTransporter,
     )({
       emailAddress: email,
       magicLinkQueryParams: magicLinkQueryParams || undefined,

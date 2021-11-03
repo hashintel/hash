@@ -4,11 +4,14 @@ module.exports = {
     extend: {
       colors: {},
       screens: {
-        standalone: {raw: "(display-mode:standalone)"},
+        standalone: { raw: "(display-mode:standalone)" },
+      },
+      animation: {
+        "spin-slow": "spin 2s linear infinite",
       },
     },
   },
-  preflight: (preflight, {theme}) => ({
+  preflight: (preflight, { theme }) => ({
     ...preflight,
     h1: {
       "font-size": "2rem",
@@ -20,14 +23,14 @@ module.exports = {
     },
     h3: {
       "font-size": "1.3rem",
-      "font-weight": "400"
-    }
+      "font-weight": "400",
+    },
   }),
   variants: {
     extend: {
       borderTopLeftRadius: ["first"],
       borderTopRightRadius: ["last"],
-      backgroundColor: ["odd", "even"]
-    }
-  }
+      backgroundColor: ["odd", "even"],
+    },
+  },
 };

@@ -8,12 +8,15 @@ only contains a config for a local development Postgres running on Docker.
 The Postgres schema definitions are stored in [`./postgres/schema`](./postgres/schema).
 
 To create the database schema, run:
+
 ```
 yarn migration
 ```
 
 To completely refresh the database (including removing all data), run:
+
 ```
 yarn refresh
 ```
+
 This command is valid only when the database is running on localhost.

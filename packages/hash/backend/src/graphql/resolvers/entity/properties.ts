@@ -22,7 +22,7 @@ export const resolveLinkedData = async (
   ctx: GraphQLContext,
   parentAccountId: string,
   object: Record<string, any>,
-  info: GraphQLResolveInfo
+  info: GraphQLResolveInfo,
 ) => {
   const db = ctx.dataSources.db;
   if (!isRecord(object)) {
@@ -35,7 +35,7 @@ export const resolveLinkedData = async (
         value
           .flat(Infinity)
           .filter(isRecord)
-          .map((obj) => resolveLinkedData(ctx, parentAccountId, obj, info))
+          .map((obj) => resolveLinkedData(ctx, parentAccountId, obj, info)),
       );
       continue;
     }
@@ -84,7 +84,7 @@ export const resolveLinkedData = async (
           operation: aggregate,
         },
         ctx,
-        info
+        info,
       );
 
       object.data = results;
@@ -96,7 +96,7 @@ export const resolveLinkedData = async (
       await Promise.all(
         object.data.map((entity: DbUnknownEntity) => {
           return resolveLinkedData(ctx, entity.accountId, entity, info);
-        })
+        }),
       );
     }
   }

@@ -41,7 +41,7 @@ const findLink = (params: {
     ({ src, dst, fixed }) =>
       src.entityVersionId === params.srcEntityVersionId &&
       dst.entityId === params.dstEntityId &&
-      fixed === params.fixed
+      fixed === params.fixed,
   );
 };
 
@@ -75,15 +75,15 @@ export const getImpliedEntityHistory: Resolver<
     impliedVersions.map(({ createdAt }, i) =>
       cache.set(
         impliedVersionKey({ accountId, entityId, createdAt }),
-        JSON.stringify(graphs[i])
-      )
-    )
+        JSON.stringify(graphs[i]),
+      ),
+    ),
   );
 
   // Cache the implied history timeline as a list.
   await cache.rpush(
     history.timelineId,
-    ...history.timeline.map((ver) => JSON.stringify(ver))
+    ...history.timeline.map((ver) => JSON.stringify(ver)),
   );
 
   return history;
@@ -96,7 +96,7 @@ const hydrateEntity = async (
   db: DBAdapter,
   entity: DbEntity,
   graph: Graph,
-  versionIdEntityMap: Map<string, DbEntity>
+  versionIdEntityMap: Map<string, DbEntity>,
 ): Promise<void> => {
   const stack: Record<string, any>[] = [entity.properties];
 
@@ -168,7 +168,7 @@ const hydrateEntity = async (
 const hydratePageEntity = (
   page: DbEntity,
   graph: Graph,
-  versionIdEntityMap: Map<string, DbEntity>
+  versionIdEntityMap: Map<string, DbEntity>,
 ) => {
   const pageProps = page.properties as DbPageProperties;
   // Hydrate each block in the page's "contents" property
@@ -208,7 +208,7 @@ const hydrateRootSubgraph = async (
   db: DBAdapter,
   rootEntityVersionId: string,
   graph: Graph,
-  entities: DbEntity[]
+  entities: DbEntity[],
 ): Promise<DbEntity> => {
   const entityVersionIdEntityMap = new Map<string, DbEntity>();
   for (const entity of entities) {
@@ -223,7 +223,7 @@ const hydrateRootSubgraph = async (
     graph.links.map(({ src, dst }): [string, string] => [
       src.entityVersionId,
       dst.entityVersionId,
-    ])
+    ]),
   ).reverse();
 
   for (const entityVersionId of sortedEntityVersionIds) {
@@ -246,7 +246,7 @@ export const getImpliedEntityVersion: Resolver<
 > = async (
   _,
   { accountId, entityId, impliedVersionCreatedAt },
-  { dataSources }
+  { dataSources },
 ) => {
   const { db, cache } = dataSources;
 
@@ -256,12 +256,12 @@ export const getImpliedEntityVersion: Resolver<
       accountId,
       entityId,
       createdAt: impliedVersionCreatedAt,
-    })
+    }),
   );
   if (!graphStr) {
     throw new ApolloError(
       `implied version for entity ${entityId} with createdAt time ${impliedVersionCreatedAt} does not exist`,
-      "NOT_FOUND"
+      "NOT_FOUND",
     );
   }
   const graph = JSON.parse(graphStr) as Graph;
@@ -271,13 +271,13 @@ export const getImpliedEntityVersion: Resolver<
 
   // Hydrate the root entity in the graph
   const root = entities.find(
-    (entity) => entity.entityVersionId === graph.rootEntityVersionId
+    (entity) => entity.entityVersionId === graph.rootEntityVersionId,
   )!;
   const hydratedRoot = await hydrateRootSubgraph(
     db,
     root.entityVersionId,
     graph,
-    entities
+    entities,
   );
 
   return new Entity(hydratedRoot).toGQLUnknownEntity();

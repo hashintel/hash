@@ -11,7 +11,7 @@ import { DBAdapter } from "../../../db";
 
 const sortEntities = (
   entities: Entity[],
-  multiSort: NonNullable<AggregateOperation["multiSort"]>
+  multiSort: NonNullable<AggregateOperation["multiSort"]>,
 ) => {
   return orderBy(
     entities,
@@ -28,7 +28,7 @@ const sortEntities = (
 
       return (entity) => entity.properties[field];
     }),
-    multiSort.map(({ desc }) => (desc ? "desc" : "asc"))
+    multiSort.map(({ desc }) => (desc ? "desc" : "asc")),
   );
 };
 

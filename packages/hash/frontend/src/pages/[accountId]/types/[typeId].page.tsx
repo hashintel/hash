@@ -32,7 +32,7 @@ export const EntityType: VoidFunctionComponent = () => {
 
   const { data } = useQuery<GetEntityTypeQuery, GetEntityTypeQueryVariables>(
     getEntityTypeQuery,
-    { variables: { entityTypeId: typeId } }
+    { variables: { entityTypeId: typeId } },
   );
 
   const schema = data?.getEntityType.properties;
@@ -68,7 +68,7 @@ export const EntityType: VoidFunctionComponent = () => {
          */
         if (!baseUrl) {
           throw new Error(
-            `Cannot resolve relative link ${schemaRef} against anonymous schema`
+            `Cannot resolve relative link ${schemaRef} against anonymous schema`,
           );
         }
         schemaLinkPath = baseUrl + schemaRef;
@@ -92,7 +92,7 @@ export const EntityType: VoidFunctionComponent = () => {
         </Link>
       );
     },
-    [schemaId, subSchemaReference]
+    [schemaId, subSchemaReference],
   );
 
   return (

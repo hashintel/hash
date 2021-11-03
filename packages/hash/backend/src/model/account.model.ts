@@ -24,14 +24,14 @@ abstract class __Account extends Entity {
     return accountDbEntities.map((dbEntity) =>
       dbEntity.entityTypeName === "User"
         ? new User(dbEntity)
-        : new Org(dbEntity)
+        : new Org(dbEntity),
     );
   };
 
   private static checkShortnameChars = (shortname: string) => {
     if (shortname.search(ALLOWED_SHORTNAME_CHARS)) {
       throw new UserInputError(
-        "Shortname may only contain letters, numbers, - or _"
+        "Shortname may only contain letters, numbers, - or _",
       );
     }
     if (shortname[0] === "-") {
@@ -67,12 +67,12 @@ abstract class __Account extends Entity {
       /** @todo: enable admins to have a shortname under 4 characters */
       if (shortname.length < 4) {
         throw new UserInputError(
-          "Shortname must be at least 4 characters long."
+          "Shortname must be at least 4 characters long.",
         );
       }
       if (shortname.length > 24) {
         throw new UserInputError(
-          "Shortname cannot be longer than 24 characters"
+          "Shortname cannot be longer than 24 characters",
         );
       }
     };

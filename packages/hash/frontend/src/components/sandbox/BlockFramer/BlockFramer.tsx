@@ -24,12 +24,13 @@ export type CrossFrameProxyProps = BlockProtocolProps & {
 };
 
 const fetchSource = memoizeFetchFunction((url) =>
-  fetch(url).then((resp) => resp.text())
+  fetch(url).then((resp) => resp.text()),
 );
 
 export const BlockFramer: VoidFunctionComponent<CrossFrameProxyProps> = ({
   sourceUrl,
   aggregate,
+  aggregateEntityTypes,
   create,
   getEmbedBlock,
   update,
@@ -66,7 +67,7 @@ export const BlockFramer: VoidFunctionComponent<CrossFrameProxyProps> = ({
   const sendMessage = useCallback(
     (message: MessageFromBlockFramer, origin = "*") =>
       frameRef.current?.contentWindow?.postMessage(message, origin),
-    []
+    [],
   );
 
   const sendBlockProperties = useCallback(
@@ -76,7 +77,7 @@ export const BlockFramer: VoidFunctionComponent<CrossFrameProxyProps> = ({
         payload: properties,
         requestId: uuid(),
       }),
-    [sendMessage]
+    [sendMessage],
   );
 
   useEffect(() => {
@@ -90,7 +91,7 @@ export const BlockFramer: VoidFunctionComponent<CrossFrameProxyProps> = ({
     <T extends BlockProtocolFunction | typeof fetchSource | FetchEmbedCodeFn>(
       fn: T | undefined,
       args: Parameters<T>,
-      requestId: string
+      requestId: string,
     ) => {
       const responseMsg: MessageFromBlockFramer & { type: "response" } = {
         payload: {},
@@ -120,7 +121,7 @@ export const BlockFramer: VoidFunctionComponent<CrossFrameProxyProps> = ({
           });
         });
     },
-    [sendMessage]
+    [sendMessage],
   );
 
   useEffect(() => {
@@ -140,6 +141,13 @@ export const BlockFramer: VoidFunctionComponent<CrossFrameProxyProps> = ({
         case "aggregate":
           asyncCallAndResponse(aggregate, data.payload, data.requestId);
           break;
+        case "aggregateEntityTypes":
+          asyncCallAndResponse(
+            aggregateEntityTypes,
+            data.payload,
+            data.requestId,
+          );
+          break;
         case "create":
           asyncCallAndResponse(create, data.payload, data.requestId);
           break;
@@ -158,11 +166,18 @@ export const BlockFramer: VoidFunctionComponent<CrossFrameProxyProps> = ({
     window.addEventListener("message", msgHandler);
 
     return () => window.removeEventListener("message", msgHandler);
-  }, [aggregate, getEmbedBlock, asyncCallAndResponse, create, update]);
+  }, [
+    aggregate,
+    getEmbedBlock,
+    asyncCallAndResponse,
+    create,
+    update,
+    aggregateEntityTypes,
+  ]);
 
   const onLoad = useCallback(
     () => (!paramsIncludeProps ? sendBlockProperties(blockProperties) : null),
-    [blockProperties, paramsIncludeProps, sendBlockProperties]
+    [blockProperties, paramsIncludeProps, sendBlockProperties],
   );
 
   return (

@@ -1,5 +1,3 @@
-
-
 # Block Component Starter Kit
 
 Block component starter kit. This template adapted (quite heavily now) from https://github.com/Paciolan/remote-component-starter
@@ -7,9 +5,11 @@ Block component starter kit. This template adapted (quite heavily now) from http
 ## Step one: copy this template
 
 Run:
+
 - `yarn new:block <name>` from the root folder of this repo (the `dev` repo)
 
 The template will be copied into `blocks/<name>` and its `package.json` updated with:
+
 - `name` = `<name>`
 - `author` = your git name, or omitted if unknown
 - `description` = "`<name>` block component`
@@ -19,10 +19,12 @@ The template will be copied into `blocks/<name>` and its `package.json` updated 
 1. Change into the folder: `cd packages/hash/blocks/<name>`
 
 2. Write a React component starting in `App.tsx`. To test it during development:
+
 - edit `src/webpack-dev-server.js` to give your component some props to test with
 - run the dev server with `yarn start`
 
 3. When finished, run `yarn build`, which:
+
 - Bundles the component, without React, into a single source file
 - Generates a JSON schema from the `AppProps` type representing the data interface with the block
 - Generates a `metadata.json` file which:
@@ -32,6 +34,7 @@ The template will be copied into `blocks/<name>` and its `package.json` updated 
 - Once uploaded to a remote folder, embedding applications can access `metadata.json` to load a block and its schema.
 
 N.B.
+
 - The JSON schema generation assumes `AppProps` is the name of the type for the entry component's properties. If you change this name, update the `schema` script in `package.json`
 - JSON schema offers more [validations](https://json-schema.org/draft/2019-09/json-schema-validation.html) than TypeScript - **TODO** a way of storing these (e.g maxLength) in an extra config file somewhere that doesn't involve manually editing the output schema file each time
 
@@ -53,24 +56,23 @@ In this example, `react` is added to `externals` in `webpack.config.js`. It will
 module.exports = {
   externals: {
     react: "react",
-  }
+  },
 };
 ```
-
 
 ## Files
 
 There are a few important files, one set is used for the bundle, another set for local development.
 
 - `src/index.js` - Entrypoint of the Block Component. The component needs to be the `default` export.
-- `src/webpack-dev-server.js` - Entrypoint for `webpack-dev-server`. This is only used for development and will not be included in the final bundle.
-- `src/index.html` - HTML for `webpack-dev-server`. This is only used for development and will not be included in the final bundle.
+- `src/webpack-dev-server.js` - Entrypoint for `yarn dev`. This is only used for development and will not be included in the final bundle.
+- `src/index.html` - HTML for `yarn dev`. This is only used for development and will not be included in the final bundle.
 - `variants.json` - Defines named presets of block properties to be presented as
   separate or at least related block-types to the end-user.
 
 ## Debugging
 
-The component can be debugged locally by first starting `webpack-dev-server`.
+The component can be debugged locally by first starting `yarn dev`.
 
 ```bash
 npm run start

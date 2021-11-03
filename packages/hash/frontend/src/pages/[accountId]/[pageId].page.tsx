@@ -39,7 +39,7 @@ export const getStaticPaths: GetStaticPaths<{ slug: string }> = async () => {
 export const getStaticProps: GetStaticProps = async () => {
   const preloadedBlockMeta = await Promise.all(
     preloadedComponentIds?.map((componentId) => fetchBlockMeta(componentId)) ??
-      []
+      [],
   );
 
   return { props: { preloadedBlockMeta } };
@@ -59,7 +59,7 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
       getPageQuery,
       {
         variables: { entityId: pageEntityId, accountId, versionId },
-      }
+      },
     );
 
     /**
@@ -90,11 +90,11 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
                 ? -1
                 : b.componentMetadata.name === "paragraph"
                 ? 1
-                : 0
+                : 0,
             )
-            .map((node) => [node.componentMetadata.componentId, node] as const)
+            .map((node) => [node.componentMetadata.componentId, node] as const),
         ),
-      [preloadedBlockMeta]
+      [preloadedBlockMeta],
     );
 
     if (error) {
@@ -131,7 +131,7 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
                     versions={data.page.history ?? []}
                     onChange={(changedVersionId) => {
                       void router.push(
-                        `/${accountId}/${pageEntityId}?version=${changedVersionId}`
+                        `/${accountId}/${pageEntityId}?version=${changedVersionId}`,
                       );
                     }}
                   />

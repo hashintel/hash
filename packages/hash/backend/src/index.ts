@@ -10,8 +10,10 @@ import { PostgresAdapter, setupCronJobs } from "./db";
 import AwsSesEmailTransporter from "./email/transporter/awsSesEmailTransporter";
 import TestTransporter from "./email/transporter/testEmailTransporter";
 import { createApolloServer } from "./graphql/createApolloServer";
+import { AWS_REGION, AWS_S3_BUCKET, AWS_S3_REGION } from "./lib/config";
 import { isProdEnv, isStatsDEnabled, isTestEnv, port } from "./lib/env-config";
 import { logger } from "./logger";
+import { AwsS3StorageProvider } from "./storage/aws-s3-storage-provider";
 import { getRequiredEnv } from "./util";
 
 const { FRONTEND_URL } = require("./lib/config");
@@ -19,7 +21,7 @@ const { FRONTEND_URL } = require("./lib/config");
 // Request ID generator
 const nanoid = customAlphabet(
   "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
-  14
+  14,
 );
 
 // Configure the StatsD client for reporting metrics
@@ -69,18 +71,29 @@ setupAuth(
   app,
   { secret: getRequiredEnv("SESSION_SECRET") },
   { ...pgConfig, maxPoolSize: 10 },
-  db
+  db,
 );
 
 // Set up cron jobs
 setupCronJobs(db, logger);
 
 // Create an email transporter
-const transporter = isTestEnv
+const emailTransporter = isTestEnv
   ? new TestTransporter()
-  : new AwsSesEmailTransporter();
+  : new AwsSesEmailTransporter(AWS_REGION);
 
-const apolloServer = createApolloServer(db, redis, transporter, logger, statsd);
+const storageProvider = new AwsS3StorageProvider({
+  bucket: AWS_S3_BUCKET,
+  region: AWS_S3_REGION,
+});
+const apolloServer = createApolloServer({
+  db,
+  cache: redis,
+  emailTransporter,
+  logger,
+  statsd,
+  storageProvider,
+});
 
 app.get("/", (_, res) => res.send("Hello World"));
 
@@ -112,7 +125,10 @@ apolloServer
   .then(() => {
     apolloServer.applyMiddleware({
       app,
-      cors: { credentials: true, origin: FRONTEND_URL },
+      cors: {
+        credentials: true,
+        origin: [/-hashintel\.vercel\.app$/, FRONTEND_URL],
+      },
     });
 
     const server = app.listen(port, () => {

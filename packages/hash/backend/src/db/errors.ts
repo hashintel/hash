@@ -14,7 +14,7 @@ export class DbEntityNotFoundError extends Error {
     super(
       `Entity ${entityId} ${
         entityVersionId ? `with version ID ${entityVersionId}` : ""
-      } not found in account ${accountId}`
+      } not found in account ${accountId}`,
     );
     this.accountId = accountId;
     this.entityId = entityId;
@@ -36,7 +36,7 @@ export class DbInvalidLinksError extends Error {
         entity.entityVersionId
       } and type "${
         entity.entityTypeName
-      }" links to unknown entities: ${JSON.stringify(invalid)}`
+      }" links to unknown entities: ${JSON.stringify(invalid)}`,
     );
     this.entity = entity;
     this.invalid = invalid;

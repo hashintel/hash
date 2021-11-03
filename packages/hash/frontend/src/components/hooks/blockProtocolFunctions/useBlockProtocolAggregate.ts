@@ -12,7 +12,10 @@ import {
   AggregateEntityQueryVariables,
 } from "../../../graphql/apiTypes.gen";
 
-export const useBlockProtocolAggregate = (): {
+export const useBlockProtocolAggregate = (
+  /** Providing accountId here saves blocks from having to know it */
+  accountId: string,
+): {
   aggregate: BlockProtocolAggregateFn;
 } => {
   const client = useApolloClient();
@@ -37,19 +40,19 @@ export const useBlockProtocolAggregate = (): {
           operation: action.operation,
           entityTypeId: action.entityTypeId!,
           entityTypeVersionId: action.entityTypeVersionId,
-          accountId: action.accountId,
+          accountId,
         },
       });
       const { operation, results } = response.data.aggregateEntity;
       const newResults = results.map((result) =>
-        cloneEntityTreeWithPropertiesMovedUp(result)
+        cloneEntityTreeWithPropertiesMovedUp(result),
       );
       return {
         operation,
         results: newResults,
       } as BlockProtocolAggregateOperationOutput;
     },
-    [client]
+    [accountId, client],
   );
 
   return {

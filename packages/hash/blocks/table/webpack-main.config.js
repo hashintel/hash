@@ -7,7 +7,7 @@
 const webpack = require("webpack");
 const WebpackAssetsManifest = require("webpack-assets-manifest");
 const { BundleAnalyzerPlugin } = require("webpack-bundle-analyzer");
-
+const CopyWebpackPlugin = require("copy-webpack-plugin");
 const { StatsPlugin } = require("./webpack-block-meta-plugin");
 
 module.exports = {
@@ -22,7 +22,9 @@ module.exports = {
     }),
     new WebpackAssetsManifest(),
     new StatsPlugin(),
+    new CopyWebpackPlugin([{ from: "./public/", to: "./public/" }]),
   ],
+
   entry: {
     main: "./src/index.ts",
   },
@@ -34,7 +36,7 @@ module.exports = {
     react: "react",
     "react-dom": "react-dom",
     twind: "twind",
-    lodash: "lodash"
+    lodash: "lodash",
   },
   module: {
     rules: [

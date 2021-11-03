@@ -1,6 +1,6 @@
 import { StatusError } from "./StatusError";
 
-const makePlain = (html?: string | null | void) => {
+const makePlain = (html?: string | null | undefined) => {
   const elt = document.createElement("div");
   elt.innerHTML = html ?? "";
   return elt.textContent?.replace(/\n[^]*|\s+$/g, "") ?? "";
@@ -46,7 +46,7 @@ export const req = (conf: {
           }
           const err = new StatusError(
             request.status,
-            `Request failed: ${request.statusText}${text ? `\n\n${text}` : ""}`
+            `Request failed: ${request.statusText}${text ? `\n\n${text}` : ""}`,
           );
           reject(err);
         }
@@ -68,7 +68,7 @@ export const req = (conf: {
           aborted = true;
         }
       },
-    }
+    },
   );
 };
 

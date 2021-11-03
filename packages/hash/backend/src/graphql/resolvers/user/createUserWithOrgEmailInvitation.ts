@@ -15,7 +15,7 @@ export const createUserWithOrgEmailInvitation: Resolver<
 > = async (
   _,
   { orgEntityId, invitationEmailToken },
-  { dataSources, passport }
+  { dataSources, passport },
 ) =>
   dataSources.db.transaction(async (client) => {
     const org = await Org.getOrgById(client)({ entityId: orgEntityId });
@@ -37,7 +37,7 @@ export const createUserWithOrgEmailInvitation: Resolver<
     if (await User.getUserByEmail(client)({ email, verified: true })) {
       throw new ApolloError(
         `User with the email '${email}' already exists in the datastore`,
-        "ALREADY_EXISTS"
+        "ALREADY_EXISTS",
       );
     }
 

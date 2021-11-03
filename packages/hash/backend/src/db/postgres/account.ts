@@ -7,7 +7,7 @@ import { DbEntityNotFoundError } from "../errors";
 
 export const insertAccount = async (
   conn: Connection,
-  params: { accountId: string }
+  params: { accountId: string },
 ): Promise<void> => {
   await conn.query(sql`
     insert into accounts (account_id) values (${params.accountId})
@@ -16,7 +16,7 @@ export const insertAccount = async (
 
 export const insertEntityAccount = async (
   conn: Connection,
-  params: { entityId: string; entityVersionId: string; accountId: string }
+  params: { entityId: string; entityVersionId: string; accountId: string },
 ): Promise<void> => {
   await conn.query(sql`
     insert into entity_account (entity_version_id, entity_id, account_id)
@@ -28,7 +28,7 @@ export const insertEntityAccount = async (
 /** Get the account ID of an entity. */
 export const getEntityAccountId = async (
   conn: Connection,
-  params: { entityId: string; entityVersionId?: string }
+  params: { entityId: string; entityVersionId?: string },
 ): Promise<string> => {
   const { entityId, entityVersionId } = params;
   try {
@@ -54,7 +54,7 @@ export const getEntityAccountId = async (
 /** Get the account ID of multiple entities. */
 export const getEntityAccountIdMany = async (
   conn: Connection,
-  params: { ids: { entityId: string; entityVersionId?: string }[] }
+  params: { ids: { entityId: string; entityVersionId?: string }[] },
 ): Promise<
   { entityId: string; entityVersionId?: string; accountId: string }[]
 > => {

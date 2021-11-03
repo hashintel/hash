@@ -17,7 +17,7 @@ type SerializedPassportUser = {
 
 export const setupPassport = (app: Express, db: DBAdapter) => {
   passport.serializeUser<SerializedPassportUser>((user, done) =>
-    done(null, { entityId: user.entityId })
+    done(null, { entityId: user.entityId }),
   );
 
   passport.deserializeUser<SerializedPassportUser>((serializedUser, done) =>
@@ -25,9 +25,9 @@ export const setupPassport = (app: Express, db: DBAdapter) => {
       // sets the 'user' field on the Express request object
       done(
         null,
-        user
+        user,
       ); /** @todo: pass error instead of null when user isn't found */
-    })
+    }),
   );
 
   app.use(passport.initialize());
@@ -39,13 +39,13 @@ export type PassportGraphQLMethods = {
   logout: () => void;
   authenticate: (
     strategyName: string,
-    options: AuthenticateOptions
+    options: AuthenticateOptions,
   ) => Promise<Express.User>;
 };
 
 /** attaches passport related functions to the express context */
 export const buildPassportGraphQLMethods = (
-  contextParams: ExpressContext
+  contextParams: ExpressContext,
 ): PassportGraphQLMethods => {
   const {
     req, // set for queries and mutations

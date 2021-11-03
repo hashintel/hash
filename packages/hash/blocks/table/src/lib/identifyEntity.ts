@@ -20,7 +20,7 @@ export const isRecord = (thing: unknown): thing is Record<string, any> => {
  */
 export const identityEntityAndProperty = (
   tree: Record<string, any>,
-  dotKey: string
+  dotKey: string,
 ) => {
   const accessorKeys = dotKey.split(".");
   let finalKeys = accessorKeys;

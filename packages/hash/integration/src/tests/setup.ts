@@ -40,7 +40,7 @@ export class IntegrationTestsHandler {
     });
     if (migration.status !== 0) {
       console.error(
-        `Error running database schema migration script:\n${migration.stderr}`
+        `Error running database schema migration script:\n${migration.stderr}`,
       );
       process.exit(1);
     }

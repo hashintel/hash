@@ -10,7 +10,7 @@ export const createEntityType: Resolver<
 > = async (
   _,
   { accountId, description, name, schema },
-  { dataSources, user }
+  { dataSources, user },
 ) =>
   dataSources.db.transaction(async (client) => {
     const entityType = await EntityType.create(client)({

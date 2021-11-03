@@ -11,7 +11,7 @@ export class Waiting {
     public resp: Response,
     public inst: Instance,
     public ip: string | null,
-    public finish: () => void
+    public finish: () => void,
   ) {
     this.inst = inst;
     this.ip = ip;

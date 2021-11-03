@@ -3,10 +3,7 @@ import { useQuery } from "@apollo/client";
 
 import { useRouter } from "next/router";
 
-import {
-  BlockProtocolAggregateFn,
-  BlockProtocolUpdateFn,
-} from "@hashintel/block-protocol";
+import { BlockProtocolUpdateFn } from "@hashintel/block-protocol";
 import { getEntity } from "@hashintel/hash-shared/queries/entity.queries";
 import styles from "../../index.module.scss";
 import { PageSidebar } from "../../../components/layout/PageSidebar/PageSidebar";
@@ -34,25 +31,16 @@ const Entity: VoidFunctionComponent = () => {
         accountId,
         entityId,
       },
-    }
+    },
   );
-  const { update } = useBlockProtocolUpdate();
-  const { aggregate } = useBlockProtocolAggregate();
+  const { update } = useBlockProtocolUpdate(accountId);
+  const { aggregate } = useBlockProtocolAggregate(accountId);
 
-  const aggregateFn: BlockProtocolAggregateFn = (args) =>
-    aggregate({
-      ...args,
-      accountId,
-    });
-
-  const updateFn: BlockProtocolUpdateFn = (args) => {
-    for (const action of args) {
-      action.accountId = accountId;
-    }
+  const updateAndNavigateToFirstEntity: BlockProtocolUpdateFn = (args) => {
     return update(args)
       .then((res) => {
         void router.push(
-          `/${accountId}/entities/${(res[0] as UnknownEntity).entityId}`
+          `/${accountId}/entities/${(res[0] as UnknownEntity).entityId}`,
         );
         return res;
       })
@@ -78,8 +66,8 @@ const Entity: VoidFunctionComponent = () => {
         <div>
           {entity && (
             <EntityEditor
-              aggregate={aggregateFn}
-              update={updateFn}
+              aggregate={aggregate}
+              update={updateAndNavigateToFirstEntity}
               entityProperties={entity.properties}
               entityId={entityId!}
               schema={entity.entityType.properties}

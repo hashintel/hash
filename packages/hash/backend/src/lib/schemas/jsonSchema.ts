@@ -22,11 +22,11 @@ export const jsonSchema = (
   title: string,
   accountId: string,
   maybeStringifiedSchema: string | JSONObject = {},
-  description?: string
+  description?: string,
 ) => {
   if (title[0] !== title[0].toUpperCase()) {
     throw new Error(
-      `Schema title should be in PascalCase, you passed '${title}'`
+      `Schema title should be in PascalCase, you passed '${title}'`,
     );
   }
 

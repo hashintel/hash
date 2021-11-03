@@ -1,5 +1,6 @@
 import { useEffect, useState, VoidFunctionComponent } from "react";
 import {
+  BlockProtocolAggregateEntityTypesFn,
   BlockProtocolAggregateFn,
   BlockProtocolCreateFn,
   BlockProtocolUpdateFn,
@@ -66,6 +67,14 @@ export const FramedBlock: VoidFunctionComponent = () => {
       type: "aggregate",
     });
 
+  const aggregateEntityTypes: BlockProtocolAggregateEntityTypesFn = (
+    ...payload
+  ) =>
+    sendMessage({
+      payload,
+      type: "aggregateEntityTypes",
+    });
+
   const create: BlockProtocolCreateFn = (...payload) =>
     sendMessage({
       payload,
@@ -81,6 +90,7 @@ export const FramedBlock: VoidFunctionComponent = () => {
   const props = {
     ...blockProperties,
     aggregate,
+    aggregateEntityTypes,
     create,
     getEmbedBlock,
     update,

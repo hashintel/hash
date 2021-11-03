@@ -22,7 +22,7 @@ module.exports = withBundleAnalyzer(
           "@hashintel/hash-shared": path.join(
             __dirname,
             "../../..",
-            "node_modules/@hashintel/hash-shared/dist"
+            "node_modules/@hashintel/hash-shared/dist",
           ),
         };
 
@@ -33,14 +33,14 @@ module.exports = withBundleAnalyzer(
             filename: "static/sandbox.html",
             template: path.join(__dirname, framedBlockFolder, "index.html"),
             chunks: ["sandbox"],
-          })
+          }),
         );
         return Object.assign({}, config, {
           entry: () =>
             config.entry().then((entry) =>
               Object.assign({}, entry, {
                 sandbox: path.join(__dirname, framedBlockFolder, "index.tsx"),
-              })
+              }),
             ),
         });
       },
@@ -55,6 +55,6 @@ module.exports = withBundleAnalyzer(
       $bright-blue: #2482ff;
       `,
       },
-    })
-  )
+    }),
+  ),
 );

@@ -72,7 +72,7 @@ export const gatherLinks = (entity: Entity): Link[] => {
 
   if (!isObject(entity.properties)) {
     throw new Error(
-      `entity version ${entity.entityVersionId} has invalid type for field "properties"`
+      `entity version ${entity.entityVersionId} has invalid type for field "properties"`,
     );
   }
 
@@ -107,7 +107,7 @@ export const gatherLinks = (entity: Entity): Link[] => {
         }
       } catch (err) {
         throw new Error(
-          `invalid __linkedData in entity version ${entity.entityVersionId}: ${err}`
+          `invalid __linkedData in entity version ${entity.entityVersionId}: ${err}`,
         );
       }
     } else {

@@ -12,7 +12,5 @@
   "include": ["./src"],
 
   // enables nodemon (yarn dev) to pick up live changes made to this dependency
-  "references": [
-    { "path": "../backend-utils/tsconfig.ref.json" }
-  ]
+  "references": [{ "path": "../backend-utils/tsconfig.ref.json" }]
 }

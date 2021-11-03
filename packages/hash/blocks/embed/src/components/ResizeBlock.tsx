@@ -64,7 +64,7 @@ export const ResizeBlock: React.FC<ResizeBlockProps> = ({
 
   const maxHeight = useMemo(
     () => (aspectRatio ? Math.ceil(maxWidth / aspectRatio) : undefined),
-    [aspectRatio, maxWidth]
+    [aspectRatio, maxWidth],
   );
 
   const updateLocalDimensions = useCallback(
@@ -88,7 +88,7 @@ export const ResizeBlock: React.FC<ResizeBlockProps> = ({
          */
         if (dimensions.aspectRatio) {
           divRef.current.style.height = `${Math.ceil(
-            dimensions.width / dimensions.aspectRatio
+            dimensions.width / dimensions.aspectRatio,
           )}px`;
           return;
         }
@@ -108,7 +108,7 @@ export const ResizeBlock: React.FC<ResizeBlockProps> = ({
          */
         if (dimensions.aspectRatio) {
           const derivedWidth = Math.ceil(
-            dimensions.height * dimensions.aspectRatio
+            dimensions.height * dimensions.aspectRatio,
           );
 
           if (
@@ -124,7 +124,7 @@ export const ResizeBlock: React.FC<ResizeBlockProps> = ({
         divRef.current.style.height = `${dimensions.height}px`;
       }
     },
-    [maxHeight, maxWidth]
+    [maxHeight, maxWidth],
   );
 
   useLayoutEffect(() => {
@@ -139,7 +139,7 @@ export const ResizeBlock: React.FC<ResizeBlockProps> = ({
 
   const handleResize = (
     evt: React.MouseEvent,
-    direction: typeof BLOCK_RESIZER_POSITIONS[number]["position"]
+    direction: typeof BLOCK_RESIZER_POSITIONS[number]["position"],
   ) => {
     if (!childrenWrapperRef.current) return;
 
@@ -213,9 +213,9 @@ export const ResizeBlock: React.FC<ResizeBlockProps> = ({
   const resizerPositions = useMemo(
     () =>
       BLOCK_RESIZER_POSITIONS.filter(({ position }) =>
-        aspectRatio ? !position.includes("bottom") : true
+        aspectRatio ? !position.includes("bottom") : true,
       ),
-    [aspectRatio]
+    [aspectRatio],
   );
 
   return (

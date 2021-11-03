@@ -9,6 +9,7 @@ import {
   BlockProtocolUpdateFn,
   BlockProtocolUpdatePayload,
 } from "@hashintel/block-protocol";
+import { apiGraphQLEndpoint } from "@hashintel/hash-shared/environment";
 
 import Component from "./index";
 import { ProviderNames } from "./types";
@@ -18,14 +19,14 @@ const node = document.getElementById("app");
 
 async function getEmbedBlock(
   url: string,
-  type?: ProviderNames
+  type?: ProviderNames,
 ): Promise<{
   html: string;
   error?: string;
   height?: number;
   width?: number;
 }> {
-  return fetch("http://localhost:5001/graphql", {
+  return fetch(apiGraphQLEndpoint, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -55,7 +56,7 @@ function AppComponent() {
   };
 
   const updateBlockData: BlockProtocolUpdateFn = async (
-    actions: BlockProtocolUpdatePayload<any>[]
+    actions: BlockProtocolUpdatePayload<any>[],
   ) => {
     if (actions[0]) {
       updateState(actions[0].data);

@@ -22,7 +22,7 @@ export const updateUser: Resolver<
     if (!shortname && !preferredName && !usingHow) {
       throw new ApolloError(
         "An updated 'shortname', 'preferredName' or 'usingHow' value  must be provided to update a user",
-        "NO_OP"
+        "NO_OP",
       );
     }
 
@@ -30,7 +30,7 @@ export const updateUser: Resolver<
       if (user.properties.shortname === shortname && !preferredName) {
         throw new ApolloError(
           `User with entityId '${user.entityId}' already has the shortname '${shortname}'`,
-          "NO_OP"
+          "NO_OP",
         );
       }
 
@@ -43,14 +43,14 @@ export const updateUser: Resolver<
       if (user.properties.preferredName === preferredName) {
         throw new ApolloError(
           `User with entityId '${user.entityId}' already has the preferredName '${preferredName}'`,
-          "NO_OP"
+          "NO_OP",
         );
       }
 
       if (!User.preferredNameIsValid(preferredName)) {
         throw new ApolloError(
           `The preferredName '${preferredName}' is invalid`,
-          "PREFERRED_NAME_INVALID"
+          "PREFERRED_NAME_INVALID",
         );
       }
 
@@ -61,7 +61,7 @@ export const updateUser: Resolver<
       if (user.properties.infoProvidedAtSignup.usingHow === usingHow) {
         throw new ApolloError(
           `User with entityId '${user.entityId}' already indicated how they are using HASH '${usingHow}'`,
-          "NO_OP"
+          "NO_OP",
         );
       }
 

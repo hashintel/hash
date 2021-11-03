@@ -14,7 +14,7 @@ export const contents: Resolver<
     properties.contents.map(({ accountId, entityId }) => ({
       accountId,
       entityId,
-    }))
+    })),
   );
 
   entities.forEach((entity, i) => {
@@ -22,7 +22,7 @@ export const contents: Resolver<
       const { accountId, entityId } = properties.contents[i];
       throw new ApolloError(
         `entity ${entityId} not found in account ${accountId}`,
-        "NOT_FOUND"
+        "NOT_FOUND",
       );
     }
   });

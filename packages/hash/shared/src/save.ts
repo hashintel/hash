@@ -2,46 +2,26 @@
 import { ApolloClient } from "@apollo/client";
 import { isEqual, uniqBy } from "lodash";
 import { Schema } from "prosemirror-model";
-import { BlockEntity, getTextEntityFromBlock } from "./entity";
-import { EntityStore, EntityStoreType, isBlockEntity } from "./entityStore";
+import {
+  BlockEntity,
+  blockEntityIdExists,
+  getTextEntityFromSavedBlock,
+} from "./entity";
+import { EntityStore, isBlockEntity } from "./entityStore";
 import {
   SystemTypeName,
-  TextPropertiesText,
   UpdatePageAction,
   UpdatePageContentsMutation,
   UpdatePageContentsMutationVariables,
 } from "./graphql/apiTypes.gen";
 import { ProsemirrorNode } from "./node";
-import { updatePageContents } from "./queries/page.queries";
 import {
-  entityIdExists,
-  EntityNode,
-  findEntityNodes,
-  nodeToComponentId,
-} from "./util";
-
-const nodeToEntityProperties = (node: ProsemirrorNode<Schema>) => {
-  if (node.type.isTextblock) {
-    const texts: TextPropertiesText[] = [];
-
-    node.content.descendants((child) => {
-      if (child.type.name === "text") {
-        const marks = new Set<string>(
-          child.marks.map((mark) => mark.type.name)
-        );
-
-        texts.push({
-          text: child.text ?? "",
-          ...(marks.has("strong") ? { bold: true } : {}),
-          ...(marks.has("em") ? { italics: true } : {}),
-          ...(marks.has("underlined") ? { underline: true } : {}),
-        });
-      }
-    });
-
-    return { texts };
-  }
-};
+  ComponentNode,
+  componentNodeToId,
+  findComponentNodes,
+  nodeToEntityProperties,
+} from "./prosemirror";
+import { updatePageContents } from "./queries/page.queries";
 
 /**
  * Our operations need to combine the actions from the previous operation,
@@ -54,7 +34,7 @@ const defineOperation =
     fn: (
       entities: BlockEntity[],
       ...args: T
-    ) => readonly [UpdatePageAction[], BlockEntity[]]
+    ) => readonly [UpdatePageAction[], BlockEntity[]],
   ) =>
   (
     existingActions: UpdatePageAction[],
@@ -67,9 +47,9 @@ const defineOperation =
   };
 
 const removeBlocks = defineOperation(
-  (entities: BlockEntity[], nodes: EntityNode[]) => {
+  (entities: BlockEntity[], nodes: ComponentNode[]) => {
     const draftBlockEntityIds = new Set(
-      nodes.map((node) => node.attrs.entityId)
+      nodes.map((node) => node.attrs.blockEntityId),
     );
 
     const removedBlockEntities = entities
@@ -79,8 +59,8 @@ const removeBlocks = defineOperation(
     const updatedEntities = entities.filter(
       (_, position) =>
         !removedBlockEntities.some(
-          ([, removedPosition]) => removedPosition === position
-        )
+          ([, removedPosition]) => removedPosition === position,
+        ),
     );
 
     const actions = removedBlockEntities.map(
@@ -91,17 +71,17 @@ const removeBlocks = defineOperation(
          * work this out
          */
         removeBlock: { position: position - idx },
-      })
+      }),
     );
 
     return [actions, updatedEntities] as const;
-  }
+  },
 );
 
 const moveBlocks = defineOperation(
-  (entities: BlockEntity[], nodes: EntityNode[]) => {
+  (entities: BlockEntity[], nodes: ComponentNode[]) => {
     const entitiesWithoutNewBlocks = nodes.filter(
-      (node) => !!node.attrs.entityId
+      (node) => !!node.attrs.blockEntityId,
     );
 
     const actions: UpdatePageAction[] = [];
@@ -110,12 +90,12 @@ const moveBlocks = defineOperation(
     for (let position = 0; position < entities.length; position++) {
       const block = entities[position];
       const positionInDoc = entitiesWithoutNewBlocks.findIndex(
-        (node) => node.attrs.entityId === block.entityId
+        (node) => node.attrs.blockEntityId === block.entityId,
       );
 
       if (positionInDoc < 0) {
         throw new Error(
-          "invariant: found removed block whilst calculating movements"
+          "invariant: found removed block whilst calculating movements",
         );
       }
 
@@ -137,7 +117,7 @@ const moveBlocks = defineOperation(
       }
     }
     return [actions, entities] as const;
-  }
+  },
 );
 
 /**
@@ -145,19 +125,19 @@ const moveBlocks = defineOperation(
  *          not necessary for the pipeline of calculations. Be wary of this.
  */
 const insertBlocks = defineOperation(
-  (entities: BlockEntity[], nodes: EntityNode[], accountId: string) => {
+  (entities: BlockEntity[], nodes: ComponentNode[], accountId: string) => {
     const actions: UpdatePageAction[] = [];
-    const exists = entityIdExists(entities);
+    const exists = blockEntityIdExists(entities);
 
     for (const [position, node] of Object.entries(nodes)) {
-      if (exists(node.attrs.entityId)) {
+      if (exists(node.attrs.blockEntityId)) {
         continue;
       }
 
       actions.push({
         insertNewBlock: {
           position: Number(position),
-          componentId: nodeToComponentId(node),
+          componentId: componentNodeToId(node),
           accountId,
           entityProperties: nodeToEntityProperties(node),
           // @todo support new non-text nodes
@@ -167,7 +147,7 @@ const insertBlocks = defineOperation(
     }
 
     return [actions, entities] as const;
-  }
+  },
 );
 
 /**
@@ -175,8 +155,12 @@ const insertBlocks = defineOperation(
  *          not necessary for the pipeline of calculations. Be wary of this.
  */
 const updateBlocks = defineOperation(
-  (entities: BlockEntity[], nodes: EntityNode[], entityStore: EntityStore) => {
-    const exists = entityIdExists(entities);
+  (
+    entities: BlockEntity[],
+    nodes: ComponentNode[],
+    entityStore: EntityStore,
+  ) => {
+    const exists = blockEntityIdExists(entities);
 
     /**
      * Currently when the same block exists on the page in multiple locations,
@@ -196,15 +180,12 @@ const updateBlocks = defineOperation(
          * GraphQL
          */
         .flatMap((node) => {
-          const { entityId } = node.attrs;
-
-          if (!exists(entityId)) {
+          const { blockEntityId } = node.attrs;
+          if (!exists(blockEntityId)) {
             return [];
           }
 
-          const savedEntity = (
-            entityStore as Record<string, EntityStoreType | undefined>
-          )[entityId];
+          const savedEntity = entityStore.saved[blockEntityId];
 
           if (!savedEntity) {
             throw new Error("Entity missing from entity store");
@@ -215,7 +196,7 @@ const updateBlocks = defineOperation(
           }
 
           const childEntityId = savedEntity.properties.entity.entityId;
-          const savedChildEntity = entityStore[childEntityId];
+          const savedChildEntity = entityStore.saved[childEntityId];
 
           if (!savedChildEntity) {
             throw new Error("Child entity missing from entity store");
@@ -223,7 +204,7 @@ const updateBlocks = defineOperation(
 
           // @todo could probably get this from entity store
           const existingBlock = entities.find(
-            (entity) => entity.entityId === entityId
+            (entity) => entity.entityId === blockEntityId,
           );
 
           if (!existingBlock) {
@@ -231,12 +212,12 @@ const updateBlocks = defineOperation(
           }
 
           const updates: UpdatePageAction[] = [];
-          const componentId = nodeToComponentId(node);
+          const componentId = componentNodeToId(node);
 
           if (componentId !== existingBlock.properties.componentId) {
             updates.push({
               updateEntity: {
-                entityId,
+                entityId: blockEntityId,
                 accountId: savedEntity.accountId,
                 properties: {
                   componentId,
@@ -248,18 +229,22 @@ const updateBlocks = defineOperation(
           }
 
           if (node.type.isTextblock) {
-            const textEntity = getTextEntityFromBlock(savedEntity);
+            const textEntity = getTextEntityFromSavedBlock(
+              blockEntityId,
+              entityStore,
+            );
 
             if (!textEntity) {
               throw new Error(
-                "invariant: text entity missing for updating text node"
+                "invariant: text entity missing for updating text node",
               );
             }
 
             const { texts } = textEntity.properties;
+            // @todo consider using draft entity store for this
             const entityProperties = nodeToEntityProperties(node);
 
-            if (!isEqual(texts, entityProperties?.texts)) {
+            if (!isEqual(texts, entityProperties.texts)) {
               updates.push({
                 updateEntity: {
                   entityId: textEntity.entityId,
@@ -272,11 +257,11 @@ const updateBlocks = defineOperation(
 
           return updates;
         }),
-      (action) => action.updateEntity?.entityId
+      (action) => action.updateEntity?.entityId,
     );
 
     return [actions, entities] as const;
-  }
+  },
 );
 
 /**
@@ -303,31 +288,29 @@ const calculateSaveActions = (
   accountId: string,
   doc: ProsemirrorNode<Schema>,
   blocks: BlockEntity[],
-  entityStore: EntityStore
+  entityStore: EntityStore,
 ) => {
-  const blockEntityNodes = findEntityNodes(doc).map(([node]) => node);
+  const componentNodes = findComponentNodes(doc).map(([node]) => node);
   let actions: UpdatePageAction[] = [];
 
   blocks = [...blocks];
-  [actions, blocks] = removeBlocks(actions, blocks, blockEntityNodes);
-  [actions, blocks] = moveBlocks(actions, blocks, blockEntityNodes);
-  [actions, blocks] = insertBlocks(
-    actions,
-    blocks,
-    blockEntityNodes,
-    accountId
-  );
-  [actions] = updateBlocks(actions, blocks, blockEntityNodes, entityStore);
+  [actions, blocks] = removeBlocks(actions, blocks, componentNodes);
+  [actions, blocks] = moveBlocks(actions, blocks, componentNodes);
+  [actions, blocks] = insertBlocks(actions, blocks, componentNodes, accountId);
+  [actions] = updateBlocks(actions, blocks, componentNodes, entityStore);
   return actions;
 };
 
+/**
+ * @todo use draft entity store for this
+ */
 export const updatePageMutation = async (
   accountId: string,
   entityId: string,
   doc: ProsemirrorNode<Schema>,
   blocks: BlockEntity[],
   entityStore: EntityStore,
-  client: ApolloClient<any>
+  client: ApolloClient<any>,
 ) => {
   const actions = calculateSaveActions(accountId, doc, blocks, entityStore);
 

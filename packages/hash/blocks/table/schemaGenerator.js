@@ -11,5 +11,5 @@ if (!type) {
 const filename = `${type}.schema.json`;
 
 exec(
-  `yarn run typescript-json-schema tsconfig.json ${type} --required true --out src/schemas/${filename}`
+  `yarn run typescript-json-schema tsconfig.json ${type} --required true --out src/schemas/${filename}`,
 ).then(() => console.log(`Created ${filename}`));

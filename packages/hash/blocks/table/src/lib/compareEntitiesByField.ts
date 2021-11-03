@@ -9,7 +9,7 @@ export const compareEntitiesByField = (
   entityA: any,
   entityB: any,
   propertyPath: string,
-  desc: boolean
+  desc: boolean,
 ): number => {
   let a;
   let b;

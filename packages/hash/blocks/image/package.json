@@ -1,32 +1,26 @@
 {
   "name": "@hashintel/block-image",
   "version": "0.1.0",
-  "description": "Insert an image",
   "private": true,
-  "browser": "dist/main.js",
-  "author": "Akash Joshi",
+  "description": "Insert an image",
   "license": "MIT",
+  "author": "Akash Joshi",
   "main": "src/index.ts",
-  "blockprotocol": {
-    "displayName": "Image",
-    "icon": "public/picture.svg"
-  },
-  "prettier": "@hashintel/prettier-config",
+  "browser": "dist/main.js",
   "scripts": {
-    "format": "eslint --ext .ts,.tsx --fix ./src/; prettier --write --list-different './src/**/*'",
-    "lint": "prettier --check './src/**/*' && eslint --ext .ts,.tsx ./src/ && tsc --noEmit # @hashintel/block-image",
-    "build:public": "mkdir -p ./dist; cp -a ./public ./dist",
-    "build": "yarn clean; yarn build:public; cross-env NODE_ENV=production webpack --mode production && yarn schema",
-    "build:dev": "yarn clean; yarn build:public; cross-env NODE_ENV=development webpack --mode development",
-    "schema": "typescript-json-schema tsconfig.json AppProps --required true --out dist/block-schema.json",
-    "webpack-dev-server": "cross-env NODE_ENV=development webpack-dev-server -d --port 9090 --config webpack-dev-server.config.js --open",
-    "start": "concurrently -n webpack,webpack-dev-server -c green,cyan \"yarn build:dev -- --watch --verbose\" \"yarn webpack-dev-server\"",
+    "build": "yarn clean; cross-env NODE_ENV=production webpack --mode production && yarn schema",
+    "build:dev": "yarn clean; cross-env NODE_ENV=development webpack --mode development",
     "clean": "rimraf ./dist/",
-    "serve": "serve -C -l 62677 ./dist/"
+    "dev": "cross-env NODE_ENV=development webpack-dev-server -d --port 9090 --config webpack-dev-server.config.js --open",
+    "fix": "eslint --ext .ts,.tsx --fix ./src/",
+    "lint": "eslint --ext .ts,.tsx ./src/ && tsc --noEmit # @hashintel/block-image",
+    "schema": "typescript-json-schema tsconfig.json AppProps --required true --out dist/block-schema.json",
+    "serve": "serve -C -l 62677 ./dist/",
+    "start": "concurrently -n webpack,webpack-dev-server -c green,cyan \"yarn build:dev -- --watch --verbose\" \"yarn dev\""
   },
-  "peerDependencies": {
-    "react": "17.0.2",
-    "twind": "0.16.16"
+  "dependencies": {
+    "@hashintel/block-protocol": "*",
+    "uuid": "8.3.2"
   },
   "devDependencies": {
     "@babel/cli": "^7.12.10",
@@ -37,11 +31,11 @@
     "@babel/preset-react": "^7.12.10",
     "@babel/preset-typescript": "7.13.0",
     "@babel/runtime": "^7.12.5",
-    "@hashintel/prettier-config": "*",
     "@typescript-eslint/eslint-plugin": "4.29.0",
     "@typescript-eslint/parser": "4.29.0",
     "babel-loader": "^8.2.2",
     "concurrently": "6.2.0",
+    "copy-webpack-plugin": "^4.6.0",
     "core-js": "^2.6.12",
     "cross-env": "^7.0.3",
     "eslint": "^7.32.0",
@@ -54,7 +48,6 @@
     "eslint-plugin-react": "^7.25.1",
     "eslint-plugin-react-hooks": "4.2.0",
     "html-webpack-plugin": "^4.5.0",
-    "prettier": "2.3.2",
     "react": "17.0.2",
     "react-dom": "17.0.2",
     "regenerator-runtime": "^0.13.7",
@@ -69,8 +62,12 @@
     "webpack-cli": "^3.3.12",
     "webpack-dev-server": "^3.11.0"
   },
-  "dependencies": {
-    "@hashintel/block-protocol": "*",
-    "uuid": "8.3.2"
+  "peerDependencies": {
+    "react": "17.0.2",
+    "twind": "0.16.16"
+  },
+  "blockprotocol": {
+    "displayName": "Image",
+    "icon": "public/picture.svg"
   }
 }

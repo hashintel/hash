@@ -36,7 +36,7 @@ const FILTER_OPERATORS_WITHOUT_VALUE: BlockProtocolFilterOperatorType[] = [
 type FilterDetailProps = {
   columns: ColumnInstance<{}>[];
   onFilter: (
-    multiFilter: BlockProtocolAggregateOperationInput["multiFilter"]
+    multiFilter: BlockProtocolAggregateOperationInput["multiFilter"],
   ) => void;
   multiFilter: BlockProtocolAggregateOperationInput["multiFilter"];
 };
@@ -62,7 +62,7 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
         value,
         operator,
         id: uuid(),
-      })
+      }),
     );
 
     unstable_batchedUpdates(() => {
@@ -106,7 +106,7 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
       field?: string;
       value?: string;
       operator?: BlockProtocolFilterOperatorType;
-    }
+    },
   ) => {
     const updatedFields = filters.map((item) =>
       item.id === id
@@ -114,7 +114,7 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
             ...item,
             ...data,
           }
-        : item
+        : item,
     );
 
     setFilters(updatedFields);
@@ -137,7 +137,7 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
                   value={combinatorFilterOperator}
                   onChange={(evt) => {
                     setCombinatorFilterOperator(
-                      evt.target.value as BlockProtocolMultiFilterOperatorType
+                      evt.target.value as BlockProtocolMultiFilterOperatorType,
                     );
                   }}
                 >

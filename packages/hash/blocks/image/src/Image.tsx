@@ -78,7 +78,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
         ...properties,
       }));
     },
-    []
+    [],
   );
 
   const updateData = useCallback(
@@ -109,14 +109,14 @@ export const Image: BlockComponent<AppProps> = (props) => {
         updateStateObject(width ? { src, width } : { src });
       }
     },
-    [captionText, entityId, entityTypeId, updateStateObject, update]
+    [captionText, entityId, entityTypeId, updateStateObject, update],
   );
 
   const updateWidth = useCallback(
     (width: number) => {
       updateData(stateObject.src, width);
     },
-    [stateObject.src, updateData]
+    [stateObject.src, updateData],
   );
 
   const displayError = (errorString: string) => {
@@ -137,10 +137,10 @@ export const Image: BlockComponent<AppProps> = (props) => {
           updateStateObject({
             errorString: error.message,
             loading: false,
-          })
+          }),
         );
     },
-    [updateData, updateStateObject, uploadFile]
+    [updateData, updateStateObject, uploadFile],
   );
 
   const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {

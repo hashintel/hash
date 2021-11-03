@@ -54,7 +54,7 @@ export const EditableCell: VoidFunctionComponent<EditableCellProps> = ({
     const accessorKey = column.id!;
     const { entity: objectToUpdate, property } = identityEntityAndProperty(
       row.original,
-      accessorKey
+      accessorKey,
     );
 
     const newEntity = JSON.parse(JSON.stringify(objectToUpdate));

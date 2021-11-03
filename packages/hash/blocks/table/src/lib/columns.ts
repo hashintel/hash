@@ -10,7 +10,7 @@ const DEFAULT_HIDDEN_COLUMNS = ["__linkedData", "entityType"];
 export const makeColumns = (
   data: Record<string, any>,
   parentAccessor?: string,
-  hiddenColumns: string[] = DEFAULT_HIDDEN_COLUMNS
+  hiddenColumns: string[] = DEFAULT_HIDDEN_COLUMNS,
 ) => {
   const columns: TableColumn[] = [];
 
@@ -37,11 +37,11 @@ export const makeColumns = (
       ? 1
       : b.columns && !a.columns
       ? -1
-      : (a.accessor as string).localeCompare(b.accessor as string)
+      : (a.accessor as string).localeCompare(b.accessor as string),
   );
 
   const flattenedColumns = columns.flatMap(
-    (column) => column.columns ?? column
+    (column) => column.columns ?? column,
   );
 
   return flattenedColumns;

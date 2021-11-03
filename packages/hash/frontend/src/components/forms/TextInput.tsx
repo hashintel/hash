@@ -5,34 +5,62 @@ import { InputLabelWrapper } from "./InputLabelWrapper";
 type TextInputProps = {
   disallowRegExp?: RegExp;
   label?: string;
-  onChange: (newText: string) => void;
-  value: string;
-} & Omit<React.HTMLProps<HTMLInputElement>, "label" | "onChange" | "value">;
+  onChangeText?: (newText: string) => void;
+  value?: string;
+  transparent?: boolean;
+  inputClassName?: string;
+} & Omit<React.HTMLProps<HTMLInputElement>, "label" | "value">;
 
 export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
-  ({ disallowRegExp, label, onChange, value, ...props }, ref) => {
-    const _onChange = ({ target }: ChangeEvent<HTMLInputElement>) =>
-      onChange(
-        disallowRegExp ? target.value.replace(disallowRegExp, "") : target.value
-      );
+  (
+    {
+      disallowRegExp,
+      label,
+      onChange,
+      onChangeText,
+      value,
+      transparent,
+      type,
+      inputClassName,
+      ...props
+    },
+    ref,
+  ) => {
+    const _onChange = (evt: ChangeEvent<HTMLInputElement>) => {
+      if (onChangeText) {
+        onChangeText(
+          disallowRegExp
+            ? evt.target.value.replace(disallowRegExp, "")
+            : evt.target.value,
+        );
+      } else {
+        onChange?.(evt);
+      }
+    };
 
     const Input = (
       <input
-        type="text"
+        type={type || "text"}
         {...props}
         className={tw`${
-          props.className ?? ""
-        } bg-gray-100  border(1 gray-300 hover:gray-500 focus:gray-500) focus:outline-none rounded-lg h-11 py-4 px-5 mb-2`}
+          transparent ? "" : "bg-gray-100"
+        } border(1 gray-300 hover:gray-400 focus:gray-500) focus:outline-none rounded-lg h-11 py-4 px-5 mb-2 w-full ${
+          inputClassName ?? ""
+        }`}
         onChange={_onChange}
         ref={ref}
-        value={value}
+        {...(value ? { value } : {})}
       />
     );
 
     if (label) {
-      return <InputLabelWrapper label={label}>{Input}</InputLabelWrapper>;
+      return (
+        <div className={`w-64 ${props.className}`}>
+          <InputLabelWrapper label={label}>{Input}</InputLabelWrapper>
+        </div>
+      );
     }
 
-    return Input;
-  }
+    return <div className={`w-64 ${props.className}`}>{Input}</div>;
+  },
 );

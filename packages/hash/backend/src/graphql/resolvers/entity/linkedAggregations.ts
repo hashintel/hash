@@ -21,7 +21,7 @@ import { DbUnknownEntity } from "../../../types/dbTypes";
 
 export const parseAggregationsFromPropertiesObject = (
   propertiesObject: any,
-  path: jp.PathComponent[] = ["$"]
+  path: jp.PathComponent[] = ["$"],
 ): {
   entityTypeId: string;
   operationInput: AggregateOperationInput;
@@ -42,7 +42,7 @@ export const parseAggregationsFromPropertiesObject = (
                 ...path,
                 key,
                 i,
-              ])
+              ]),
             )
             .flat();
         }
@@ -62,7 +62,7 @@ export const parseAggregationsFromPropertiesObject = (
         }
 
         return [];
-      }
+      },
     )
     .flat();
 
@@ -80,7 +80,7 @@ export const linkedAggregations: Resolver<
 > = (entity, _, ctx, info) => {
   // Temporarily obtain links by parsing the entity's properties object
   const parsedAggregations = parseAggregationsFromPropertiesObject(
-    entity.properties
+    entity.properties,
   );
 
   const { accountId } = entity;
@@ -91,10 +91,10 @@ export const linkedAggregations: Resolver<
         {},
         { accountId, entityTypeId, operation: operationInput },
         ctx,
-        info
+        info,
       );
 
       return { operation, results, path };
-    })
+    }),
   );
 };

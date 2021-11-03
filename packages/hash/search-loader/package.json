@@ -1,22 +1,21 @@
 {
   "name": "@hashintel/hash-search-loader",
-  "license": "GPL-3.0",
-  "private": true,
   "version": "0.1.0",
+  "private": true,
   "description": "Loads changes from the hash/realtime package stream into the search service",
-  "prettier": "@hashintel/prettier-config",
   "repository": {
     "url": "https://github.com/hashintel/dev/packages/hash/search-loader",
     "directory": "packages/hash/search-loader"
   },
+  "license": "GPL-3.0",
   "main": "src/index.ts",
   "scripts": {
-    "postinstall": "yarn build",
-    "format": "eslint --ext .ts --fix ./src/; prettier --write --list-different './src/**/*'",
-    "lint": "prettier --check './src/**/*' && eslint --ext .ts ./src/ && tsc --noEmit # @hashintel/hash-search-loader",
     "build": "yarn clean; tsc -b",
     "clean": "rimraf ./dist/ ./tsconfig.tsbuildinfo",
     "dev": "cross-env NODE_ENV=\"${NODE_ENV:-development}\" nodemon --config nodemon.json src/index.ts",
+    "fix": "eslint --ext .ts --fix ./src/",
+    "postinstall": "yarn build",
+    "lint": "eslint --ext .ts ./src/ && tsc --noEmit # @hashintel/hash-search-loader",
     "start": "NODE_ENV=production node dist/index.js",
     "ts-node": "node --max-old-space-size=2048 node_modules/.bin/ts-node --files --project tsconfig.json"
   },

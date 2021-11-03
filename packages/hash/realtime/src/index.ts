@@ -123,7 +123,7 @@ const pollChanges = async (pool: PgPool) => {
     }
     const changeStr = JSON.stringify(change as Wal2JsonMsg);
     await Promise.all(
-      QUEUES.map(({ name, producer }) => producer.push(name, changeStr))
+      QUEUES.map(({ name, producer }) => producer.push(name, changeStr)),
     );
   }
 };
@@ -136,7 +136,7 @@ const createHttpServer = () => {
       res.end(
         JSON.stringify({
           msg: "realtime server healthy",
-        })
+        }),
       );
       return;
     }

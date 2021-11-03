@@ -61,7 +61,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
    * the provided callback `fn` are executed within the same transaction.
    * */
   async transaction<T>(
-    fn: (adapter: PostgresClient) => Promise<T>
+    fn: (adapter: PostgresClient) => Promise<T>,
   ): Promise<T> {
     return await this.pool.connect(async (conn) => {
       return await conn.transaction(async (tx) => {
@@ -216,7 +216,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     userId: string;
   }): Promise<void> {
     return this.query((adapter) =>
-      adapter.incrementVerificationCodeAttempts(params)
+      adapter.incrementVerificationCodeAttempts(params),
     );
   }
 
@@ -244,7 +244,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       accountId: string;
       entityId: string;
       entityVersionId?: string;
-    }[]
+    }[],
   ): Promise<Entity[]> {
     return this.query((adapter) => adapter.getEntities(entities));
   }

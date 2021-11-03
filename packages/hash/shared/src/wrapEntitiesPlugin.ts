@@ -16,7 +16,7 @@ type WrapperNodesList = WrapperNodes[];
 const getRangeForNodeAtMappedPosition = (
   pos: number,
   node: ProsemirrorNode<Schema>,
-  tr: Transaction<Schema>
+  tr: Transaction<Schema>,
 ) => {
   const $start = tr.doc.resolve(tr.mapping.map(pos));
   const $end = tr.doc.resolve(tr.mapping.map(pos + node.nodeSize));
@@ -34,7 +34,7 @@ const getRangeForNodeAtMappedPosition = (
  */
 const ensureEntitiesAreWrapped = (
   state: EditorState<Schema>,
-  wrappers?: WrapperNodesList
+  wrappers?: WrapperNodesList,
 ) => {
   const { tr, schema, doc } = state;
 
@@ -45,7 +45,7 @@ const ensureEntitiesAreWrapped = (
      * This position may already be wrapped – due to blocks merging
      */
     if (
-      node.type !== schema.nodes.async &&
+      node.type !== schema.nodes.blank &&
       parent.type === schema.nodes.doc &&
       (wrapperNodes || node.type !== schema.nodes.block)
     ) {
@@ -56,19 +56,23 @@ const ensureEntitiesAreWrapped = (
       }
 
       /**
-       * @todo we won't need this once we remove entityId from the component
-       *       node
+       * @todo we won't need this once we remove blockEntityId from the
+       *       component node
        */
-      if (!wrapperNodes) {
+      if (wrappers && !wrapperNodes) {
         tr.setNodeMarkup(tr.mapping.map(position), undefined, {
-          entityId: null,
+          blockEntityId: null,
         });
       }
 
       const DEFAULT_WRAPPERS = [{ type: schema.nodes.block }];
 
-      if (node.type !== schema.nodes.enitity) {
-        DEFAULT_WRAPPERS.push({ type: schema.nodes.entity });
+      // @todo when would entity be at the top level?
+      if (node.type !== schema.nodes.entity) {
+        DEFAULT_WRAPPERS.push(
+          { type: schema.nodes.entity },
+          { type: schema.nodes.entity },
+        );
       }
 
       tr.wrap(
@@ -76,7 +80,7 @@ const ensureEntitiesAreWrapped = (
         wrapperNodes?.map((wrapperNode) => ({
           type: wrapperNode.type,
           attrs: wrapperNode.attrs,
-        })) ?? DEFAULT_WRAPPERS
+        })) ?? DEFAULT_WRAPPERS,
       );
     }
 
@@ -94,7 +98,7 @@ const ensureEntitiesAreWrapped = (
  */
 const stateWithTransaction = (
   state: EditorState<Schema>,
-  tr: Transaction<Schema>
+  tr: Transaction<Schema>,
 ) =>
   EditorState.create<Schema>({
     doc: tr.doc,
@@ -104,7 +108,7 @@ const stateWithTransaction = (
 
 const combineTransactions = (
   targetTransaction: Transaction<Schema>,
-  sourceTransaction: Transaction<Schema>
+  sourceTransaction: Transaction<Schema>,
 ) => {
   for (const step of sourceTransaction.steps) {
     targetTransaction.step(step);
@@ -187,8 +191,8 @@ const prepareCommandForWrappedEntities =
       tr,
       ensureEntitiesAreWrapped(
         stateWithTransaction(state, tr),
-        wrappers.map(([pos, nodes]) => [tr.mapping.map(pos), nodes])
-      )
+        wrappers.map(([pos, nodes]) => [tr.mapping.map(pos), nodes]),
+      ),
     );
 
     dispatch?.(tr);
@@ -210,7 +214,7 @@ const wrapEntitiesKeymap = (baseKeymap: Record<string, Command<Schema>>) =>
   });
 
 export const wrapEntitiesPlugin = (
-  baseKeymap: Record<string, Command<Schema>>
+  baseKeymap: Record<string, Command<Schema>>,
 ) => {
   const wrappedKeymapPlugin = wrapEntitiesKeymap(baseKeymap);
 

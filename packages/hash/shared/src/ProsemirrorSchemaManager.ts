@@ -6,9 +6,18 @@ import {
   BlockMeta,
   fetchBlockMeta,
 } from "./blockMeta";
-import { BlockEntity, getTextEntityFromBlock } from "./entity";
-import { childrenForTextEntity } from "./entityProsemirror";
-import { getProseMirrorNodeAttributes } from "./prosemirror";
+import { BlockEntity, getTextEntityFromDraftBlock } from "./entity";
+import {
+  draftEntityForEntityId,
+  EntityStore,
+  isBlockEntity,
+} from "./entityStore";
+import {
+  entityStoreAndTransactionForEntities,
+  entityStoreFromProsemirror,
+} from "./entityStorePlugin";
+import { ProsemirrorNode } from "./node";
+import { childrenForTextEntity, getComponentNodeAttrs } from "./prosemirror";
 
 declare interface OrderedMapPrivateInterface<T> {
   content: (string | T)[];
@@ -20,7 +29,8 @@ const createComponentNodeSpec = (spec: Partial<NodeSpec>): NodeSpec => ({
   group: "blockItem",
   attrs: {
     ...(spec.attrs ?? {}),
-    entityId: { default: "" },
+    // @todo remove this
+    blockEntityId: { default: "" },
   },
 });
 
@@ -32,7 +42,7 @@ export class ProsemirrorSchemaManager {
   constructor(
     public schema: Schema,
     private view: EditorView<Schema> | null = null,
-    private componentNodeViewFactory: ComponentNodeViewFactory | null = null
+    private componentNodeViewFactory: ComponentNodeViewFactory | null = null,
   ) {}
 
   /**
@@ -132,14 +142,29 @@ export class ProsemirrorSchemaManager {
    *
    * @todo support taking a signal
    */
-  async defineRemoteBlock(componentId: string): Promise<BlockMeta> {
+  async fetchAndDefineBlock(componentId: string): Promise<BlockMeta> {
     const meta = await fetchBlockMeta(componentId);
 
-    if (!componentId || !this.schema.nodes[componentId]) {
-      this.defineNewBlock(meta);
-    }
+    await this.defineRemoteBlock(componentId);
 
     return meta;
+  }
+
+  /**
+   * Defining a new type of block in prosemirror. Designed to be cached so
+   * doesn't need to request the block multiple times
+   *
+   * @todo support taking a signal
+   */
+  async defineRemoteBlock(
+    componentId: string,
+    metaPromise?: Promise<BlockMeta>,
+  ) {
+    if (!this.schema.nodes[componentId]) {
+      const blockMetaPromise = metaPromise ?? fetchBlockMeta(componentId);
+
+      this.defineNewBlock(await blockMetaPromise);
+    }
   }
 
   /**
@@ -163,7 +188,7 @@ export class ProsemirrorSchemaManager {
       (docJson.content as any[]).map(async (block) => {
         const content = block.type === "block" ? block.content?.[0] : block;
         await this.ensureBlockLoaded(content);
-      })
+      }),
     );
   }
 
@@ -172,70 +197,159 @@ export class ProsemirrorSchemaManager {
    * requested the block metadata yet.
    *
    * @todo support taking a signal
+   * @todo consider merging this into replaceNodeWithRemoteBlock as
+   *       realistically cannot use this without a node to replace
    */
-  async createRemoteBlockFromEntity(
-    blockEntity: BlockEntity,
-    targetComponentId: string = blockEntity.properties.componentId
+  async createRemoteBlock(
+    targetComponentId: string,
+    entityStore?: EntityStore,
+    draftBlockId?: string,
   ) {
-    const attrs = getProseMirrorNodeAttributes(blockEntity);
-    const meta = await this.defineRemoteBlock(targetComponentId);
+    const meta = await this.fetchAndDefineBlock(targetComponentId);
     const requiresText = blockComponentRequiresText(meta.componentSchema);
+    let blockEntity = draftBlockId ? entityStore?.draft[draftBlockId] : null;
 
-    if (requiresText) {
-      const textEntity = getTextEntityFromBlock(blockEntity);
-
-      if (!textEntity) {
-        throw new Error(
-          "Entity should contain text entity if used with text block"
-        );
+    if (blockEntity) {
+      if (!isBlockEntity(blockEntity)) {
+        throw new Error("Can only create remote block from block entity");
       }
 
-      return this.schema.nodes.entity.create({ entityId: attrs.entityId }, [
-        this.schema.nodes.entity.create({ entityId: textEntity.entityId }, [
-          this.schema.nodes[targetComponentId].create(
-            attrs,
-            childrenForTextEntity(textEntity, this.schema)
+      if (blockEntity.properties.componentId !== targetComponentId) {
+        const blockMeta = await fetchBlockMeta(
+          blockEntity.properties.componentId,
+        );
+
+        if (
+          blockComponentRequiresText(blockMeta.componentSchema) !== requiresText
+        ) {
+          blockEntity = null;
+        }
+      }
+    }
+
+    const componentNodeAttributes = getComponentNodeAttrs(blockEntity);
+
+    if (requiresText) {
+      const draftTextEntity =
+        draftBlockId && entityStore
+          ? getTextEntityFromDraftBlock(draftBlockId, entityStore)
+          : null;
+
+      const content = draftTextEntity
+        ? childrenForTextEntity(draftTextEntity, this.schema)
+        : [];
+
+      return this.schema.nodes.entity.create(
+        { entityId: blockEntity?.entityId, draftId: draftBlockId },
+        [
+          this.schema.nodes.entity.create(
+            {
+              entityId: draftTextEntity?.entityId,
+              draftId: draftTextEntity?.draftId,
+            },
+            [
+              this.schema.nodes[targetComponentId].create(
+                componentNodeAttributes,
+                content,
+              ),
+            ],
           ),
-        ]),
-      ]);
+        ],
+      );
     } else {
       /**
        * @todo arguably this doesn't need to be here – remove it if possible
        *   when working on switching blocks
        */
       return this.schema.nodes.entity.create(
-        { entityId: attrs.entityId },
-        this.schema.nodes[targetComponentId].create(attrs, [])
+        { entityId: blockEntity?.entityId, draftId: draftBlockId },
+        this.schema.nodes.entity.create(
+          {
+            // @todo add draftId
+            entityId: isBlockEntity(blockEntity)
+              ? blockEntity.properties.entity.entityId
+              : null,
+          },
+          [
+            this.schema.nodes[targetComponentId].create(
+              componentNodeAttributes,
+              [],
+            ),
+          ],
+        ),
       );
     }
   }
 
   /**
-   * @todo replace this with a prosemirror command
-   * @todo take a signal
    * @todo i think we need to put placeholders for the not-yet-fetched blocks
    *   immediately, and then have the actual blocks pop in – it being delayed
    *   too much will mess with collab
    */
   async createEntityUpdateTransaction(
     entities: BlockEntity[],
-    state: EditorState<Schema>
+    state: EditorState<Schema>,
   ) {
-    const manager = this;
+    const { store, tr } = entityStoreAndTransactionForEntities(state, entities);
 
     const newNodes = await Promise.all(
-      entities.map((entity) =>
-        // @todo pass signal through somehow
-        manager.createRemoteBlockFromEntity(entity)
-      )
+      entities.map((blockEntity) => {
+        const draftEntity = draftEntityForEntityId(
+          store.draft,
+          blockEntity.entityId,
+        );
+
+        if (!draftEntity) {
+          throw new Error("Missing draft entity");
+        }
+
+        return this.createRemoteBlock(
+          blockEntity.properties.componentId,
+          store,
+          draftEntity.draftId,
+        );
+      }),
     );
 
-    const { tr } = state;
-
-    // This creations a transaction to replace the entire content of the
-    // document
     tr.replaceWith(0, state.doc.content.size, newNodes);
 
     return tr;
+  }
+
+  /**
+   * @todo if these are both text nodes, look into using setNodeMarkup
+   */
+  async replaceNodeWithRemoteBlock(
+    draftBlockId: string,
+    targetComponentId: string,
+    node: ProsemirrorNode<Schema>,
+    getPos: () => number,
+  ) {
+    const { view } = this;
+
+    if (!view) {
+      throw new Error("Cannot trigger replaceNodeWithRemoteBlock without view");
+    }
+
+    const entityStoreState = entityStoreFromProsemirror(view.state);
+    const newNode = await this.createRemoteBlock(
+      targetComponentId,
+      entityStoreState.store,
+      draftBlockId,
+    );
+
+    /**
+     * The code below used to ensure the cursor was positioned
+     * within the new node, depending on its type, but because we
+     * now want to trigger saves when we change node type, and
+     * because triggering saves can mess up the cursor position,
+     * we're currently not re-focusing the editor view.
+     */
+
+    const pos = getPos();
+    const { tr } = view.state;
+
+    tr.replaceRangeWith(pos, pos + node.nodeSize, newNode);
+    view.dispatch(tr);
   }
 }

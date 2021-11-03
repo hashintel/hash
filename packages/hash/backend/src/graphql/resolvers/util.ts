@@ -44,11 +44,11 @@ export const createEntityArgsBuilder = (params: {
     !exactlyOne(
       params.entityTypeId,
       params.entityTypeVersionId,
-      params.systemTypeName
+      params.systemTypeName,
     )
   ) {
     throw new UserInputError(
-      "exactly one of entityTypeId, entityTypeVersionId or systemTypeName must be provided"
+      "exactly one of entityTypeId, entityTypeVersionId or systemTypeName must be provided",
     );
   }
 
@@ -66,7 +66,7 @@ export const createEntityArgsBuilder = (params: {
   } else if (params.systemTypeName) {
     if (!isSystemType(params.systemTypeName)) {
       throw new UserInputError(
-        `Invalid systemTypeName "${params.systemTypeName}"`
+        `Invalid systemTypeName "${params.systemTypeName}"`,
       );
     }
     args = { ..._args, systemTypeName: params.systemTypeName };

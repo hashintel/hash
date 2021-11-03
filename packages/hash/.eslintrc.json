@@ -1,11 +1,13 @@
 {
-  "root": true, // this is the highest config lower ones will automatically extend
+  "root": true,
+  // this is the highest config lower ones will automatically extend
   "parser": "@typescript-eslint/parser",
   "plugins": ["@typescript-eslint", "react-hooks", "jest"],
   "extends": [
     "plugin:@typescript-eslint/base",
     "airbnb",
-    "prettier" // mutes eslint rules conflicting w/ prettier (requires eslint-config-prettier)
+    "prettier"
+    // mutes eslint rules conflicting w/ prettier (requires eslint-config-prettier)
   ],
   "ignorePatterns": ["**/*.gen.*"],
   "globals": {
@@ -87,15 +89,29 @@
     "import/no-cycle": "warn",
     "import/prefer-default-export": "off",
     "no-await-in-loop": "off",
-    "import/no-unresolved": [2, { "ignore": ["^@hashintel"] }],
-    "react/prop-types": "off", // because we are using typescript this is redundant
-    "jsx-a11y/anchor-is-valid": "off", // because we use next.js empty anchor tags should be used when using the Link component
+    "import/no-unresolved": [
+      2,
+      {
+        "ignore": ["^@hashintel"]
+      }
+    ],
+    "react/prop-types": "off",
+    // because we are using typescript this is redundant
+    "jsx-a11y/anchor-is-valid": "off",
+    // because we use next.js empty anchor tags should be used when using the Link component
     "react/jsx-filename-extension": [
       2,
-      { "extensions": [".js", ".jsx", ".ts", ".tsx"] }
+      {
+        "extensions": [".js", ".jsx", ".ts", ".tsx"]
+      }
     ],
     "react/jsx-props-no-spreading": "off",
-    "no-void": ["error", { "allowAsStatement": true }],
+    "no-void": [
+      "error",
+      {
+        "allowAsStatement": true
+      }
+    ],
     "no-continue": "off",
     "react/react-in-jsx-scope": "off",
     "no-return-await": "off",
@@ -103,7 +119,9 @@
     "lines-between-class-members": [
       "error",
       "always",
-      { "exceptAfterSingleLine": true }
+      {
+        "exceptAfterSingleLine": true
+      }
     ],
     "consistent-return": "off",
     "default-case": "off",
@@ -144,7 +162,8 @@
       }
     ],
     "react/require-default-props": "off",
-    "no-shadow": "off", // see https://github.com/typescript-eslint/typescript-eslint/issues/2483
+    "no-shadow": "off",
+    // see https://github.com/typescript-eslint/typescript-eslint/issues/2483
     "@typescript-eslint/no-shadow": "error",
     "no-use-before-define": "off",
     "@typescript-eslint/no-use-before-define": ["error"],
@@ -184,7 +203,27 @@
         "minimumDescriptionLength": 10
       }
     ],
-    "no-empty-function": "off"
+    "no-empty-function": "off",
+    "no-param-reassign": [
+      "error",
+      {
+        "props": true,
+        "ignorePropertyModificationsForRegex": ["^draft"],
+        "ignorePropertyModificationsFor": [
+          "acc",
+          "accumulator",
+          "e",
+          "ctx",
+          "context",
+          "req",
+          "request",
+          "res",
+          "response",
+          "$scope",
+          "staticContext"
+        ]
+      }
+    ]
   },
   "settings": {
     "import/resolver": {
@@ -202,14 +241,17 @@
       "rules": {
         "import/no-extraneous-dependencies": [
           "error",
-          { "devDependencies": true }
+          {
+            "devDependencies": true
+          }
         ]
       }
     },
     {
       "files": ["*.ts", "*.tsx"],
       "rules": {
-        "no-unused-vars": "off", // replaced by @typescript-eslint/no-unused-vars
+        "no-unused-vars": "off",
+        // replaced by @typescript-eslint/no-unused-vars
         "@typescript-eslint/no-unused-vars": [
           "error",
           {

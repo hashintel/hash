@@ -28,7 +28,7 @@ export const createPage: Resolver<
         versioned: true,
       },
       ctx,
-      info
+      info,
     );
   };
 

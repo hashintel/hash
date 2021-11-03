@@ -19,7 +19,7 @@ import { isParsedJsonObject, isParsedJsonObjectOrArray } from "./json-utils";
  */
 const destructivelyMoveEntityPropertiesToRoot = (
   entity: Partial<UnknownEntity>,
-  preserveExtraMetadata: boolean = false
+  preserveExtraMetadata: boolean = false,
 ) => {
   if (!preserveExtraMetadata) {
     for (const key of Object.keys(entity)) {
@@ -48,7 +48,7 @@ const destructivelyMoveEntityPropertiesToRoot = (
  */
 const cloneEntityWithPropertiesAtRoot = (
   entity: Partial<UnknownEntity>,
-  preserveExtraMetadata: boolean = false
+  preserveExtraMetadata: boolean = false,
 ) => {
   const clone = cloneDeep(entity);
   destructivelyMoveEntityPropertiesToRoot(clone, preserveExtraMetadata);
@@ -59,7 +59,7 @@ const cloneEntityWithPropertiesAtRoot = (
  * Clones an entity tree, and for each entity within it,
  * moves the contents of its 'properties' to the root of that entity.
  *
- * Deletes existing root fields unless they relate to the entiy's id or type.
+ * Deletes existing root fields unless they relate to the entity's id or type.
  * To preserve all existing root fields, pass 'false' as the second argument.
  * @param entity The entity to clone
  * @param preserveExtraMetadata Whether to keep non-id and non-type metadata.
@@ -68,15 +68,15 @@ const cloneEntityWithPropertiesAtRoot = (
  */
 export const cloneEntityTreeWithPropertiesMovedUp = (
   entity: Partial<UnknownEntity>,
-  preserveExtraMetadata: boolean = false
+  preserveExtraMetadata: boolean = false,
 ) => {
   const clonedTree = cloneEntityWithPropertiesAtRoot(
     entity,
-    preserveExtraMetadata
+    preserveExtraMetadata,
   );
 
   const propertiesToCheck = Object.values(clonedTree).filter(
-    isParsedJsonObjectOrArray
+    isParsedJsonObjectOrArray,
   );
 
   while (propertiesToCheck.length > 0) {
@@ -94,13 +94,13 @@ export const cloneEntityTreeWithPropertiesMovedUp = (
     ) {
       // This is a non-entity object - it might have entities deeper in its tree
       propertiesToCheck.push(
-        ...Object.values(property).filter(isParsedJsonObjectOrArray)
+        ...Object.values(property).filter(isParsedJsonObjectOrArray),
       );
       continue;
     }
 
     propertiesToCheck.push(
-      ...Object.values(property.properties).filter(isParsedJsonObjectOrArray)
+      ...Object.values(property.properties).filter(isParsedJsonObjectOrArray),
     );
 
     destructivelyMoveEntityPropertiesToRoot(property, preserveExtraMetadata);
@@ -109,7 +109,7 @@ export const cloneEntityTreeWithPropertiesMovedUp = (
 };
 
 export const entityName = (
-  entity: Pick<UnknownEntity, "properties"> & { entityId?: string }
+  entity: Pick<UnknownEntity, "properties"> & { entityId?: string },
 ) =>
   entity.properties?.name ??
   entity.properties?.preferredName ??

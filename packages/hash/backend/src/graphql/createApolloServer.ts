@@ -15,14 +15,24 @@ import { CacheAdapter } from "../cache";
 import { buildPassportGraphQLMethods } from "../auth/passport";
 import { GraphQLContext } from "./context";
 import EmailTransporter from "../email/transporter";
+import { StorageProvider } from "../storage/storage-provider";
 
-export const createApolloServer = (
-  db: DBAdapter,
-  cache: CacheAdapter,
-  emailTransporter: EmailTransporter,
-  logger: Logger,
-  statsd?: StatsD
-) => {
+export interface CreateApolloServerParams {
+  db: DBAdapter;
+  cache: CacheAdapter;
+  emailTransporter: EmailTransporter;
+  storageProvider: StorageProvider;
+  logger: Logger;
+  statsd?: StatsD;
+}
+export const createApolloServer = ({
+  db,
+  cache,
+  emailTransporter,
+  storageProvider,
+  logger,
+  statsd,
+}: CreateApolloServerParams) => {
   // go via makeExecutableSchema to set inheritResolversFromInterfaces
   const combinedSchema = makeExecutableSchema({
     typeDefs: schema,
@@ -37,6 +47,7 @@ export const createApolloServer = (
       ...ctx,
       user: ctx.req.user,
       emailTransporter,
+      storageProvider,
       passport: buildPassportGraphQLMethods(ctx),
       logger: logger.child({ requestId: ctx.res.get("x-hash-request-id") }),
     }),
@@ -66,7 +77,7 @@ export const createApolloServer = (
               };
               if (willSendResponseCtx.errors) {
                 const stack = willSendResponseCtx.errors.map(
-                  (err) => err.stack
+                  (err) => err.stack,
                 );
                 willSendResponseCtx.logger.error({
                   ...msg,
@@ -81,7 +92,7 @@ export const createApolloServer = (
                     willSendResponseCtx.operationName,
                     elapsed,
                     1,
-                    ["graphql"]
+                    ["graphql"],
                   );
                 }
               }

@@ -6,17 +6,17 @@ import { isProdEnv } from "../../lib/env-config";
 import EmailTransporter from ".";
 import { logger } from "../../logger";
 
-const ses = new aws.SES({
-  apiVersion: "2010-12-01",
-  region: "us-east-1",
-});
-
 class AwsSesEmailTransporter implements EmailTransporter {
   private transporter: nodemailer.Transporter<SESTransport.SentMessageInfo>;
+  private ses: aws.SES;
 
-  constructor() {
+  constructor(region: string) {
+    this.ses = new aws.SES({
+      apiVersion: "2010-12-01",
+      region,
+    });
     this.transporter = nodemailer.createTransport({
-      SES: { ses, aws },
+      SES: { ses: this.ses, aws },
       sendingRate: 10,
     });
   }

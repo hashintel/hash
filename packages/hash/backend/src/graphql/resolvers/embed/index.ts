@@ -54,7 +54,7 @@ const getOembedEndpoint = (url: string, type?: string) => {
     }
     for (const endpoint of endpoints) {
       const isMatch = !!endpoint.schemes?.find((scheme) =>
-        scheme.split("*").every((substring) => url.search(substring) > -1)
+        scheme.split("*").every((substring) => url.search(substring) > -1),
       );
 
       if (isMatch) {
@@ -80,7 +80,7 @@ async function getEmbedResponse({
   }
 
   return await fetch(`${oembedEndpoint}?url=${url}&maxwidth=1000`).then(
-    (response) => response.json()
+    (response) => response.json(),
   );
 }
 
@@ -99,7 +99,7 @@ export const embedCode: Resolver<
         `Embed Code for URL ${url} not found${
           type?.trim() ? ` for type ${type}` : ""
         }`,
-        "NOT_FOUND"
+        "NOT_FOUND",
       );
     });
 
@@ -110,7 +110,7 @@ export const embedCode: Resolver<
       `Embed Code for URL ${url} not found${
         type?.trim() ? ` for type ${type}` : ""
       }`,
-      "NOT_FOUND"
+      "NOT_FOUND",
     );
   }
 

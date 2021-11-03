@@ -68,7 +68,7 @@ export const topologicalSort = <T>(edges: [T, T][]) => {
   // Find nodes with no incoming edge, i.e. the root node(s)
   const nonRootNodes = new Set(edges.map(([_, node]) => node));
   const rootNodes = uniq(
-    edges.map(([node, _]) => node).filter((node) => !nonRootNodes.has(node))
+    edges.map(([node, _]) => node).filter((node) => !nonRootNodes.has(node)),
   );
 
   // Pre-compute the incoming and outgoing edges for each node as an optimization

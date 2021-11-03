@@ -1,3 +1,4 @@
+import { entityStoreFromProsemirror } from "@hashintel/hash-shared/entityStorePlugin";
 import { createApolloClient } from "@hashintel/hash-shared/graphql/createApolloClient";
 import { json } from "body-parser";
 import corsMiddleware from "cors";
@@ -25,6 +26,7 @@ const reqIP = (request: IncomingMessage): string | null =>
   null;
 
 const handleError = (resp: Response, err: any) => {
+  console.error(err);
   resp
     .status(err instanceof InvalidVersionError ? 400 : 500)
     .send(err.toString());
@@ -39,7 +41,7 @@ const nonNegInteger = (str: Request["query"][string]) => {
 
 const jsonEvents = (
   inst: Instance,
-  data: Exclude<ReturnType<Instance["getEvents"]>, boolean>
+  data: Exclude<ReturnType<Instance["getEvents"]>, boolean>,
 ) => ({
   version: inst.version,
   steps: data.steps.map((step) => step.toJSON()),
@@ -54,11 +56,12 @@ collabApp.get("/:accountId/:pageId", (req, resp) => {
     const inst = await getInstance(client)(
       req.params.accountId,
       req.params.pageId,
-      reqIP(req)
+      reqIP(req),
     );
 
     resp.json({
-      doc: inst.doc.toJSON(),
+      doc: inst.state.doc.toJSON(),
+      store: entityStoreFromProsemirror(inst.state).store,
       users: inst.userCount,
       version: inst.version,
     });
@@ -75,7 +78,7 @@ collabApp.get("/:accountId/:pageId/events", (req, resp) => {
     const inst = await getInstance(client)(
       req.params.accountId,
       req.params.pageId,
-      reqIP(req)
+      reqIP(req),
     );
     const data = inst.getEvents(version);
 
@@ -110,17 +113,18 @@ collabApp.post("/:accountId/:pageId/events", (req, resp) => {
     const inst = await getInstance(client)(
       req.params.accountId,
       req.params.pageId,
-      reqIP(req)
+      reqIP(req),
     );
 
     // @todo type this
     const data: any = req.body;
     const version = nonNegInteger(data.version);
 
-    const result = inst.addJsonEvents(client)(
+    const result = await inst.addJsonEvents(client)(
       version,
       data.steps,
-      data.clientID
+      data.clientID,
+      data.blockIds,
     );
     if (!result) {
       resp.status(409).send("Version not current");

@@ -37,7 +37,7 @@ class __OrgInvitationLink extends AccessToken {
       .then((entityType) => {
         if (!entityType) {
           throw new Error(
-            "OrgInvitationLink system entity type not found in datastore"
+            "OrgInvitationLink system entity type not found in datastore",
           );
         }
 

@@ -1,27 +1,42 @@
 import React, { useEffect, useState, useRef, VFC } from "react";
 import { tw } from "twind";
 
+import { useRouter } from "next/router";
+import Link from "next/link";
 import Logo from "../../../../assets/svg/logo.svg";
-import { IconSpinner } from "../../../Icons/IconSpinner";
+import { SpinnerIcon } from "../../../Icons/SpinnerIcon";
 import { TextInput } from "../../../forms/TextInput";
+import { useUser } from "../../../hooks/useUser";
+import { InviteHeader } from "../InviteHeader";
+import { InvitationInfo } from "../utils";
 
 type SignupIntroProps = {
   handleSubmit: (email: string) => void;
   loading: boolean;
   errorMessage: string;
+  invitationInfo: InvitationInfo | null;
 };
 
 export const SignupIntro: VFC<SignupIntroProps> = ({
   handleSubmit,
   loading,
   errorMessage,
+  invitationInfo,
 }) => {
   const [email, setEmail] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const { user } = useUser();
+  const router = useRouter();
 
   useEffect(() => {
     inputRef.current?.select();
   }, []);
+
+  useEffect(() => {
+    if (user?.accountSignupComplete) {
+      void router.push(`/${user.accountId}`);
+    }
+  }, [user, router]);
 
   const onSubmit = (evt: React.FormEvent) => {
     evt.preventDefault();
@@ -29,7 +44,8 @@ export const SignupIntro: VFC<SignupIntroProps> = ({
   };
 
   return (
-    <div className={tw`flex flex-col items-center w-80`}>
+    <div className={tw`flex flex-col items-center pt-24`}>
+      {!!invitationInfo && <InviteHeader invitationInfo={invitationInfo} />}
       <div className={tw`mb-12 flex items-center`}>
         <Logo className={tw`mr-5`} />
         <h1 className={tw`text-2xl font-bold`}>Sign up</h1>
@@ -53,14 +69,16 @@ export const SignupIntro: VFC<SignupIntroProps> = ({
         <div className={tw`flex-1 h-px bg-gray-200`} />
       </div>
       */}
-      <form className={tw`flex flex-col w-64 items-center`} onSubmit={onSubmit}>
+      <form
+        className={tw`flex flex-col mb-14 w-64 items-center`}
+        onSubmit={onSubmit}
+      >
         <TextInput
           className={tw`w-64`}
           placeholder="Enter your email address.."
           type="email"
           ref={inputRef}
-          onChange={setEmail}
-          value={email}
+          onChangeText={setEmail}
         />
         {errorMessage && (
           <span className={tw`text-red-500 text-sm mb-4 text-center`}>
@@ -72,12 +90,28 @@ export const SignupIntro: VFC<SignupIntroProps> = ({
           className={tw`w-64 bg-white border-1 border(gray-300 hover:gray-500 focus:gray-500) focus:outline-none rounded-lg h-11 flex items-center justify-center text-sm font-bold`}
         >
           {loading ? (
-            <IconSpinner className={tw`h-4 w-4 animate-spin`} />
+            <SpinnerIcon className={tw`h-4 w-4 animate-spin`} />
           ) : (
             <span>Continue with email</span>
           )}
         </button>
       </form>
+      <p className={tw`text-sm  md:whitespace-nowrap text-center`}>
+        Alternatively if you already have a HASH account,
+        <Link
+          href={{
+            pathname: "/login",
+            query: router.query,
+          }}
+        >
+          <button
+            type="button"
+            className={tw`font-bold focus:outline-none ml-1`}
+          >
+            Click here to log in
+          </button>
+        </Link>
+      </p>
     </div>
   );
 };

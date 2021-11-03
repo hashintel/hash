@@ -4,10 +4,7 @@ import { tw } from "twind";
 
 import { useRouter } from "next/router";
 
-import {
-  BlockProtocolCreateFn,
-  BlockProtocolAggregateFn,
-} from "@hashintel/block-protocol";
+import { BlockProtocolCreateFn } from "@hashintel/block-protocol";
 import styles from "../../index.module.scss";
 import { PageSidebar } from "../../../components/layout/PageSidebar/PageSidebar";
 import { EntityEditor } from "../../../components/EntityEditor/EntityEditor";
@@ -28,26 +25,17 @@ const NewEntity: VoidFunctionComponent = () => {
   const entityTypeId = query.entityTypeId as string | undefined;
 
   const [selectedTypeId, setSelectedTypeId] = useState<string | undefined>(
-    entityTypeId
+    entityTypeId,
   );
 
-  const { create } = useBlockProtocolCreate();
-  const { aggregate } = useBlockProtocolAggregate();
+  const { create } = useBlockProtocolCreate(accountId);
+  const { aggregate } = useBlockProtocolAggregate(accountId);
 
-  const aggregateFn: BlockProtocolAggregateFn = (args) =>
-    aggregate({
-      ...args,
-      accountId,
-    });
-
-  const createFn: BlockProtocolCreateFn = (args) => {
-    for (const action of args) {
-      action.accountId = accountId;
-    }
+  const createAndNavigateToFirstEntity: BlockProtocolCreateFn = (args) => {
     return create(args)
       .then((res) => {
         void router.push(
-          `/${accountId}/entities/${(res[0] as UnknownEntity).entityId}`
+          `/${accountId}/entities/${(res[0] as UnknownEntity).entityId}`,
         );
         return res;
       })
@@ -79,7 +67,7 @@ const NewEntity: VoidFunctionComponent = () => {
   const typeOptions = data?.getAccountEntityTypes;
   const selectedType = useMemo(() => {
     return (typeOptions ?? []).find(
-      (option) => option.entityId === selectedTypeId
+      (option) => option.entityId === selectedTypeId,
     );
   }, [selectedTypeId, typeOptions]);
 
@@ -95,7 +83,7 @@ const NewEntity: VoidFunctionComponent = () => {
             className={tw`py-2 px-4 rounded-md border border-gray-300 w-40 text-sm`}
             onChange={(evt) =>
               router.push(
-                `/${accountId}/entities/new?entityTypeId=${evt.target.value}`
+                `/${accountId}/entities/new?entityTypeId=${evt.target.value}`,
               )
             }
             value={selectedTypeId ?? "none"}
@@ -112,8 +100,8 @@ const NewEntity: VoidFunctionComponent = () => {
         <div>
           {selectedType && (
             <EntityEditor
-              aggregate={aggregateFn}
-              create={createFn}
+              aggregate={aggregate}
+              create={createAndNavigateToFirstEntity}
               entityTypeId={selectedTypeId!}
               schema={selectedType.properties}
             />

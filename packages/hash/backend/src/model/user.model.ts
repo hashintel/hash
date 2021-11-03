@@ -152,12 +152,12 @@ class __User extends Account {
 
   getPrimaryEmail = (): Email => {
     const primaryEmail = this.properties.emails.find(
-      ({ primary }) => primary === true
+      ({ primary }) => primary === true,
     );
 
     if (!primaryEmail) {
       throw new Error(
-        `Critical: User with entityId ${this.entityId} does not have a primary email address`
+        `Critical: User with entityId ${this.entityId} does not have a primary email address`,
       );
     }
 
@@ -182,13 +182,13 @@ class __User extends Account {
         })
       ) {
         throw new Error(
-          "Cannot add email address that has already been verified by another user"
+          "Cannot add email address that has already been verified by another user",
         );
       }
 
       if (this.getEmail(email.address)) {
         throw new Error(
-          `User with entityId ${this.entityId} already has email address ${email.address}`
+          `User with entityId ${this.entityId} already has email address ${email.address}`,
         );
       }
 
@@ -207,14 +207,14 @@ class __User extends Account {
   verifyExistingEmailAddress = (client: DBClient) => (emailAddress: string) => {
     if (!this.getEmail(emailAddress)) {
       throw new Error(
-        `User with entityId ${this.entityId} does not have email address ${emailAddress}`
+        `User with entityId ${this.entityId} does not have email address ${emailAddress}`,
       );
     }
 
     return this.updateProperties(client)({
       ...this.properties,
       emails: this.properties.emails.map((email) =>
-        email.address === emailAddress ? { ...email, verified: true } : email
+        email.address === emailAddress ? { ...email, verified: true } : email,
       ),
     });
   };
@@ -231,12 +231,12 @@ class __User extends Account {
         const email = this.getEmail(alternateEmailAddress);
         if (!email) {
           throw new Error(
-            `User with entityId '${this.entityId}' does not have an email address '${alternateEmailAddress}'`
+            `User with entityId '${this.entityId}' does not have an email address '${alternateEmailAddress}'`,
           );
         }
         if (!email.verified) {
           throw new Error(
-            `User with entityId '${this.entityId}' hasn't verified the email address '${alternateEmailAddress}'`
+            `User with entityId '${this.entityId}' hasn't verified the email address '${alternateEmailAddress}'`,
           );
         }
       }
@@ -245,7 +245,7 @@ class __User extends Account {
       if (!allowed) {
         throw new ApolloError(
           `User with id ${this.entityId} has created too many verification codes recently.`,
-          "FORBIDDEN"
+          "FORBIDDEN",
         );
       }
 
@@ -274,13 +274,13 @@ class __User extends Account {
 
       if (!email) {
         throw new Error(
-          `User with entityId '${this.entityId}' does not have an email address '${emailAddress}'`
+          `User with entityId '${this.entityId}' does not have an email address '${emailAddress}'`,
         );
       }
 
       if (email.verified) {
         throw new Error(
-          `User with id '${this.entityId}' has already verified the email address '${emailAddress}'`
+          `User with id '${this.entityId}' has already verified the email address '${emailAddress}'`,
         );
       }
 
@@ -288,7 +288,7 @@ class __User extends Account {
       if (!allowed) {
         throw new ApolloError(
           `User with id ${this.entityId} has created too many verification codes recently.`,
-          "FORBIDDEN"
+          "FORBIDDEN",
         );
       }
 
@@ -319,7 +319,7 @@ class __User extends Account {
 
   isMemberOfOrg = ({ entityId }: Org) =>
     this.properties.memberOf.find(
-      ({ org }) => org.__linkedData.entityId === entityId
+      ({ org }) => org.__linkedData.entityId === entityId,
     ) !== undefined;
 
   /**
@@ -331,7 +331,7 @@ class __User extends Account {
     async (params: { org: Org; responsibility: string }) => {
       if (this.isMemberOfOrg(params.org)) {
         throw new Error(
-          `User with entityId '${this.entityId}' is already a member of the organization with entityId '${params.org.entityId}'`
+          `User with entityId '${this.entityId}' is already a member of the organization with entityId '${params.org.entityId}'`,
         );
       }
 

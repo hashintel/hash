@@ -1,3 +1,9 @@
+/**
+ * `import "./loadEnv";` has to come before importing anything from the backend,
+ * to ensure that required environment variables have been loaded.
+ */
+import "./loadEnv";
+
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { PostgresAdapter } from "@hashintel/hash-backend/src/db";
 import {
@@ -11,7 +17,6 @@ import {
 
 import { createOrgs, createUsers } from "./accounts";
 import { SystemTypeName } from "../graphql/apiTypes.gen";
-import "./loadEnv";
 
 export {};
 
@@ -37,7 +42,7 @@ void (async () => {
       port: parseInt(process.env.HASH_PG_PORT || "5432", 10),
       maxPoolSize: 10,
     },
-    logger
+    logger,
   );
 
   // Get the hash org - it's already been created as part of db migration
@@ -83,7 +88,7 @@ void (async () => {
       });
 
       newTypeIds[name] = entityType.entityId;
-    })
+    }),
   );
 
   type CreateEntityMapValue =
@@ -107,8 +112,8 @@ void (async () => {
         Entity.create(db)({
           ...val,
           versioned: val.versioned ?? true,
-        })
-      )
+        }),
+      ),
     );
     mutations.forEach((res, i) => {
       const name = names[i];
@@ -117,7 +122,7 @@ void (async () => {
   };
 
   const user = users.find(
-    ({ properties }) => properties.shortname === "ciaran"
+    ({ properties }) => properties.shortname === "ciaran",
   );
   if (!user) {
     throw new Error("user not found");
@@ -144,6 +149,17 @@ void (async () => {
           createdById: user.entityId,
           properties: {
             texts: [{ text: "My colleagues", bold: true }],
+          },
+        },
+      ],
+      [
+        "header2text",
+        {
+          systemTypeName: SystemTypeName.Text,
+          accountId: user.accountId,
+          createdById: user.entityId,
+          properties: {
+            texts: [{ text: "Two synced table blocks", bold: true }],
           },
         },
       ],
@@ -264,28 +280,11 @@ void (async () => {
           properties: {},
         },
       ],
-    ])
+    ]),
   );
 
   await createEntities(
     new Map<string, CreateEntityMapValue>([
-      [
-        "header1",
-        {
-          properties: {
-            level: 2,
-            text: {
-              __linkedData: {
-                entityTypeId: SystemTypeName.Text,
-                entityId: results.get("header1text")!.entityId,
-              },
-            },
-          },
-          entityTypeId: newTypeIds.Header,
-          accountId: user.accountId,
-          createdById: user.entityId,
-        },
-      ],
       [
         "place1",
         {
@@ -322,7 +321,7 @@ void (async () => {
           createdById: user.entityId,
         },
       ],
-    ])
+    ]),
   );
 
   // People Entities
@@ -436,7 +435,7 @@ void (async () => {
           createdById: user.entityId,
         },
       ],
-    ])
+    ]),
   );
 
   await createEntities(
@@ -473,7 +472,18 @@ void (async () => {
           },
         },
       ],
-    ])
+      [
+        "t2",
+        {
+          entityTypeId: newTypeIds.Table,
+          accountId: user.accountId,
+          createdById: user.entityId,
+          properties: {
+            data: {},
+          },
+        },
+      ],
+    ]),
   );
 
   // Block Entities
@@ -601,8 +611,8 @@ void (async () => {
         {
           properties: {
             componentId: "https://block.blockprotocol.org/header",
-            entityId: results.get("header1")!.entityId,
-            accountId: results.get("header1")!.accountId,
+            entityId: results.get("header1text")!.entityId,
+            accountId: results.get("header1text")!.accountId,
           },
           createdById: user.entityId,
           accountId: hashOrg.accountId,
@@ -687,7 +697,46 @@ void (async () => {
           systemTypeName: SystemTypeName.Block,
         },
       ],
-    ])
+      [
+        "b17",
+        {
+          properties: {
+            componentId: "https://block.blockprotocol.org/header",
+            entityId: results.get("header2text")!.entityId,
+            accountId: results.get("header2text")!.accountId,
+          },
+          createdById: user.entityId,
+          accountId: hashOrg.accountId,
+          systemTypeName: SystemTypeName.Block,
+        },
+      ],
+      [
+        "b18",
+        {
+          properties: {
+            componentId: "https://block.blockprotocol.org/table",
+            entityId: results.get("t2")!.entityId,
+            accountId: results.get("t2")!.accountId,
+          },
+          createdById: user.entityId,
+          accountId: user.accountId,
+          systemTypeName: SystemTypeName.Block,
+        },
+      ],
+      [
+        "b19",
+        {
+          properties: {
+            componentId: "https://block.blockprotocol.org/table",
+            entityId: results.get("t2")!.entityId,
+            accountId: results.get("t2")!.accountId,
+          },
+          createdById: user.entityId,
+          accountId: user.accountId,
+          systemTypeName: SystemTypeName.Block,
+        },
+      ],
+    ]),
   );
 
   // Page Entities
@@ -728,6 +777,18 @@ void (async () => {
               {
                 entityId: results.get("b4")!.entityId,
                 accountId: results.get("b4")!.accountId,
+              },
+              {
+                entityId: results.get("b17")!.entityId,
+                accountId: results.get("b17")!.accountId,
+              },
+              {
+                entityId: results.get("b18")!.entityId,
+                accountId: results.get("b18")!.accountId,
+              },
+              {
+                entityId: results.get("b19")!.entityId,
+                accountId: results.get("b19")!.accountId,
               },
               {
                 entityId: results.get("b12")!.entityId,
@@ -789,7 +850,7 @@ void (async () => {
           // visibility: Visibility.Public,
         },
       ],
-    ])
+    ]),
   );
 
   console.log("Mock data created");

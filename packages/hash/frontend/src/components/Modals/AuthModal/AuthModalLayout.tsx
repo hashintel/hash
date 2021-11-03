@@ -6,19 +6,23 @@ import { AuthLayout } from "../../layout/PageLayout/AuthLayout";
 export type AuthModalLayoutProps = {
   onClose?: () => void;
   show: boolean;
+  loading?: boolean;
 };
 
 export const AuthModalLayout: FC<AuthModalLayoutProps> = ({
-  onClose = () => {},
+  onClose,
   show,
   children,
+  loading,
 }) => (
   <Dialog
     as="div"
     open={show}
-    onClose={onClose}
+    onClose={onClose ?? (() => {})}
     className={tw`fixed z-10 inset-0 overflow-y-auto`}
   >
-    <AuthLayout onClose={onClose}>{children}</AuthLayout>
+    <AuthLayout onClose={onClose} loading={loading}>
+      {children}
+    </AuthLayout>
   </Dialog>
 );

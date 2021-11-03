@@ -43,7 +43,7 @@ class __OrgEmailInvitation extends AccessToken {
       .then((entityType) => {
         if (!entityType) {
           throw new Error(
-            "OrgEmailInvitation system entity type not found in datastore"
+            "OrgEmailInvitation system entity type not found in datastore",
           );
         }
 
@@ -113,7 +113,7 @@ class __OrgEmailInvitation extends AccessToken {
   use = (client: DBClient) => {
     if (this.hasBeenUsed()) {
       throw new Error(
-        `OrgEmailInvitation with entityId ${this.entityId} has already been used`
+        `OrgEmailInvitation with entityId ${this.entityId} has already been used`,
       );
     }
     return this.updateProperties(client)({

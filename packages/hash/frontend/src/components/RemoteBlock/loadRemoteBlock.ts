@@ -6,7 +6,7 @@ export type UnknownComponent = (...props: any[]) => JSX.Element;
 
 export type FetchSourceFn = (
   url: string,
-  signal?: AbortSignal | undefined
+  signal?: AbortSignal | undefined,
 ) => Promise<string>;
 
 /**
@@ -16,7 +16,7 @@ export type FetchSourceFn = (
 const requires = (name: string) => {
   if (!(name in blockDependencies)) {
     throw new Error(
-      `Could not require '${name}'. '${name}' does not exist in dependencies.`
+      `Could not require '${name}'. '${name}' does not exist in dependencies.`,
     );
   }
 
@@ -27,10 +27,10 @@ const defaultFetchFn: FetchSourceFn = (url, signal) =>
   fetch(url, { signal: signal ?? null }).then((data) => data.text());
 
 type FetchAndParseFn = (
-  fetchSourceFn: FetchSourceFn
+  fetchSourceFn: FetchSourceFn,
 ) => (
   url: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
 ) => Promise<string | Record<string, UnknownComponent>>;
 
 const fetchAndParseBlock: FetchAndParseFn = (fetchSourceFn) => (url, signal) =>
@@ -58,9 +58,9 @@ const fetchAndParseBlock: FetchAndParseFn = (fetchSourceFn) => (url, signal) =>
   });
 
 export const loadRemoteBlock = memoizeFetchFunction(
-  fetchAndParseBlock(defaultFetchFn)
+  fetchAndParseBlock(defaultFetchFn),
 );
 
 export const loadCrossFrameRemoteBlock = memoizeFetchFunction(
-  fetchAndParseBlock(crossFrameFetchFn)
+  fetchAndParseBlock(crossFrameFetchFn),
 );

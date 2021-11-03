@@ -19,9 +19,7 @@ const systemAccount = generatedIds.orgs[SYSTEM_ACCOUNT_SHORTNAME];
 
 let sqlString = "";
 
-for (const typeName of SYSTEM_TYPES.filter(
-  (name: string) => name !== "Org"
-)) {
+for (const typeName of SYSTEM_TYPES.filter((name: string) => name !== "Org")) {
   const type = types[typeName];
 
   sqlString += `insert into entity_types (

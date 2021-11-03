@@ -29,9 +29,14 @@ export type SessionConfig = {
 export const setupSession = (
   app: Express,
   sessConfig: SessionConfig,
-  pgConfig: PgConfig
+  pgConfig: PgConfig,
 ) => {
   app.use(urlencoded({ extended: true }));
+
+  const secure = !!process.env.HTTPS_ENABLED;
+  if (secure) {
+    app.set("trust proxy", 1);
+  }
 
   // `express-session` middleware
   app.use(
@@ -43,13 +48,18 @@ export const setupSession = (
         pruneSessionInterval: false,
       }),
       cookie: {
+        domain: process.env.FRONTEND_DOMAIN?.includes("hash.ai")
+          ? ".hash.ai"
+          : "localhost",
         maxAge: COOKIE_MAX_AGE_MS,
         httpOnly: true,
         sameSite: "lax",
+        secure,
       },
+      name: "hash-dev-session-id",
       resave: false,
       saveUninitialized: false,
-    })
+    }),
   );
 
   // parse additional session data middleware

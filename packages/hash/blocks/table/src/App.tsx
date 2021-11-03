@@ -1,8 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { TableOptions, useSortBy, useTable } from "react-table";
-import { BlockProtocolLinkedDataDefinition } from "@hashintel/block-protocol";
+import {
+  BlockProtocolEntityType,
+  BlockProtocolLinkedDataDefinition,
+} from "@hashintel/block-protocol";
 import { BlockComponent } from "@hashintel/block-protocol/react";
 import { tw } from "twind";
+import { orderBy } from "lodash";
 import { EditableCell } from "./components/EditableCell";
 import { makeColumns } from "./lib/columns";
 import { getSchemaPropertyDefinition } from "./lib/getSchemaProperty";
@@ -10,6 +14,7 @@ import { identityEntityAndProperty } from "./lib/identifyEntity";
 
 import { Pagination } from "./components/Pagination";
 import { Header, AggregateArgs } from "./components/Header";
+import { EntityTypeDropdown } from "./components/EntityTypeDropdown";
 import { omitTypenameDeep } from "./lib/omitTypenameDeep";
 
 type AppProps = {
@@ -21,13 +26,16 @@ type AppProps = {
   entityId: string;
 };
 
+const defaultData: AppProps["data"] = { data: [] };
+
 export const App: BlockComponent<AppProps> = ({
-  data = { data: [] },
+  data = defaultData,
   initialState,
   schemas,
   update,
   entityId,
   aggregate: aggregateFn,
+  aggregateEntityTypes,
 }) => {
   const [tableData, setTableData] = useState<AppProps["data"]>(data);
 
@@ -37,7 +45,7 @@ export const App: BlockComponent<AppProps> = ({
 
   const columns = useMemo(
     () => makeColumns(tableData.data?.[0] || {}, ""),
-    [tableData.data]
+    [tableData.data],
   );
   const [pageOptions, aggregateOptions] = useMemo(() => {
     const aggregate = tableData.__linkedData?.aggregate;
@@ -76,7 +84,7 @@ export const App: BlockComponent<AppProps> = ({
       updateData: update,
       manualSortBy: true,
     },
-    useSortBy
+    useSortBy,
   );
 
   /**
@@ -123,7 +131,7 @@ export const App: BlockComponent<AppProps> = ({
           // @todo properly handle error
         });
     },
-    [aggregateFn, tableData.__linkedData]
+    [aggregateFn, tableData.__linkedData],
   );
 
   const handleUpdate = useCallback(
@@ -171,7 +179,7 @@ export const App: BlockComponent<AppProps> = ({
         },
       ]);
     },
-    [update, tableData.__linkedData, entityId, initialState]
+    [update, tableData.__linkedData, entityId, initialState],
   );
 
   const updateRemoteHiddenColumns = (hiddenColumns: string[]) => {
@@ -196,14 +204,14 @@ export const App: BlockComponent<AppProps> = ({
     (index: number) => {
       handleAggregate({ pageNumber: index });
     },
-    [handleAggregate]
+    [handleAggregate],
   );
 
   const setPageSize = useCallback(
     (size: number) => {
       handleUpdate({ operation: "changePageSize", itemsPerPage: size });
     },
-    [handleUpdate]
+    [handleUpdate],
   );
 
   /**
@@ -225,6 +233,61 @@ export const App: BlockComponent<AppProps> = ({
     updateRemoteHiddenColumns(newColumns);
   };
 
+  const [entityTypes, setEntityTypes] = useState<BlockProtocolEntityType[]>();
+
+  useEffect(() => {
+    void aggregateEntityTypes?.({
+      includeOtherTypesInUse: true,
+    }).then(({ results }) => {
+      setEntityTypes(orderBy(results, (entityType) => entityType.title));
+    });
+  }, [aggregateEntityTypes]);
+
+  const handleEntityTypeChange = useCallback(
+    (entityTypeId: string | undefined) => {
+      void update?.([
+        {
+          data: {
+            data: {
+              __linkedData: entityTypeId
+                ? {
+                    entityTypeId,
+                    aggregate: {
+                      // There is scope to include other options if entity properties overlap
+                      itemsPerPage: data.__linkedData?.aggregate?.itemsPerPage,
+                    },
+                  }
+                : undefined,
+            },
+          },
+          entityId,
+        },
+      ]);
+    },
+    [update, data.__linkedData?.aggregate?.itemsPerPage, entityId],
+  );
+
+  const entityTypeDropdown = entityTypes ? (
+    <EntityTypeDropdown
+      options={entityTypes}
+      value={data?.__linkedData?.entityTypeId}
+      onChange={handleEntityTypeChange}
+    />
+  ) : null;
+
+  if (!data.__linkedData?.entityTypeId) {
+    if (!aggregateEntityTypes) {
+      return (
+        <div>
+          Table cannot be shown because entity type is not selected and the list
+          of entity types is unavailable
+        </div>
+      );
+    }
+
+    return <div>{entityTypeDropdown}</div>;
+  }
+
   /** @todo Fix keys in iterators below to not use the index */
   return (
     <div>
@@ -233,6 +296,7 @@ export const App: BlockComponent<AppProps> = ({
         toggleHideColumn={handleToggleColumn}
         onAggregate={handleUpdate}
         aggregateOptions={aggregateOptions}
+        entityTypeDropdown={entityTypeDropdown}
       />
       <div className={tw`max-w-full`}>
         <table
@@ -275,11 +339,11 @@ export const App: BlockComponent<AppProps> = ({
                   {row.cells.map((cell) => {
                     const { entity, property } = identityEntityAndProperty(
                       cell.row.original,
-                      cell.column.id
+                      cell.column.id,
                     );
                     const propertyDef = getSchemaPropertyDefinition(
                       (schemas ?? {})[entity.type],
-                      property
+                      property,
                     );
                     const readOnly = propertyDef?.readOnly;
                     const { key, ...restCellProps } = cell.getCellProps();

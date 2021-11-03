@@ -17,7 +17,7 @@ export class AsyncRedisClient {
   brpoplpush: (
     src: string,
     dst: string,
-    timeoutSecs: number
+    timeoutSecs: number,
   ) => Promise<string | null>;
 
   /** Pop an item from the right side of the `src` list, push it onto the left side of
@@ -62,7 +62,7 @@ export class AsyncRedisClient {
       retry_strategy: (options) => {
         if (options.total_retry_time > 30_000) {
           throw new Error(
-            "could not connect to Redis server within 30 seconds"
+            "could not connect to Redis server within 30 seconds",
           );
         }
         return 1_000;

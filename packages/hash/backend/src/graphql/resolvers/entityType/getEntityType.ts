@@ -17,7 +17,7 @@ export const getEntityType: Resolver<
   if (!entityType) {
     throw new ApolloError(
       `EntityType with entityId ${entityTypeId} not found`,
-      "NOT_FOUND"
+      "NOT_FOUND",
     );
   }
 

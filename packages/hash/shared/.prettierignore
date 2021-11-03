@@ -1,8 +1,0 @@
-# dependencies
-node_modules
-
-# build files
-dist
-
-# generated files
-**/*.gen.*

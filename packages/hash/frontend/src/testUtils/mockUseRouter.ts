@@ -6,7 +6,7 @@ jest.mock("next/router", () => ({
 }));
 
 export function mockUseRouter(
-  props?: Partial<Pick<NextRouter, "route" | "pathname" | "query" | "asPath">>
+  props?: Partial<Pick<NextRouter, "route" | "pathname" | "query" | "asPath">>,
 ) {
   const defaults = {
     push: jest.fn(),

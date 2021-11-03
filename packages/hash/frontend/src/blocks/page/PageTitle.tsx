@@ -28,7 +28,7 @@ export const PageTitle: VoidFunctionComponent<PageTitleProps> = ({
   accountId,
 }) => {
   // TODO: Display update error once expected UX is discussed
-  const { update, updateLoading /* updateError */ } = useBlockProtocolUpdate();
+  const { update, updateLoading } = useBlockProtocolUpdate(accountId);
   const [inputValue, setInputValue] = useState<string>(value);
 
   useEffect(() => {
@@ -40,7 +40,7 @@ export const PageTitle: VoidFunctionComponent<PageTitleProps> = ({
   };
 
   const handleInputKeyDown: KeyboardEventHandler<HTMLInputElement> = (
-    event
+    event,
   ) => {
     if (event.key === "Enter" || event.key === "Escape") {
       event.currentTarget.blur();
@@ -62,7 +62,6 @@ export const PageTitle: VoidFunctionComponent<PageTitleProps> = ({
       {
         entityId: metadataId,
         entityTypeId: "Page",
-        accountId,
         data: { title: valueToSave },
       },
     ]);

@@ -8,34 +8,34 @@ import {
   CreateEntityMutationVariables,
 } from "../../../graphql/apiTypes.gen";
 
-export const useBlockProtocolCreate = (): {
+export const useBlockProtocolCreate = (
+  /** Providing accountId here saves blocks from having to know it */
+  accountId: string,
+): {
   create: BlockProtocolCreateFn;
   createLoading: boolean;
   createError: any;
 } => {
   const [createFn, { loading: createLoading, error: createError }] =
     useMutation<CreateEntityMutation, CreateEntityMutationVariables>(
-      createEntity
+      createEntity,
     );
 
   const create: BlockProtocolCreateFn = useCallback(
     (actions) =>
       Promise.all(
         actions.map((action) => {
-          if (!action.accountId) {
-            throw new Error(`accountId was not provided for create action.`);
-          }
           return createFn({
             variables: {
               properties: action.data,
               entityTypeId: action.entityTypeId,
               entityTypeVersionId: action.entityTypeVersionId,
-              accountId: action.accountId,
+              accountId: action.accountId ?? accountId,
             },
           }).then(({ data }) => data?.createEntity);
-        })
+        }),
       ),
-    [createFn]
+    [accountId, createFn],
   );
 
   return {

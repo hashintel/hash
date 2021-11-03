@@ -5,7 +5,7 @@
 export const fuzzySearchBy = <T>(
   choices: T[],
   search: string,
-  getter: (choice: T) => string
+  getter: (choice: T) => string,
 ): T[] => {
   const lowerSearch = search.toLowerCase();
   const searchLength = search.length;

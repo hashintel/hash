@@ -3,11 +3,14 @@ import { PresignedPost } from "@aws-sdk/s3-presigned-post";
 import { DBClient } from "../db";
 import { CreateEntityArgs, Entity, EntityConstructorArgs, File } from ".";
 import { genId } from "../util";
-import { getFileEntityKey, presignS3FileUpload } from "../storage/s3";
 import { createEntityArgsBuilder } from "../graphql/resolvers/util";
 import { DBFileProperties } from "../db/adapter";
+import { StorageProvider } from "../storage/storage-provider";
 
 const MAX_FILE_SIZE_BYTES = 1000 * 1000 * 1000;
+const FILE_EXTENSION_REGEX = /\.[0-9a-z]+$/i;
+const DOWNLOAD_URL_EXPIRATION_SECONDS = 60 * 15;
+const UPLOAD_URL_EXPIRATION_SECONDS = 60 * 30;
 
 export type FileConstructorArgs = {
   properties: DBFileProperties;
@@ -45,8 +48,17 @@ class __File extends Entity {
       return new File(entity);
     };
 
+  static getFileDownloadURL =
+    (storage: StorageProvider) =>
+    async ({ key }: { key: string }): Promise<string> => {
+      return await storage.presignDownload({
+        key,
+        expiresInSeconds: DOWNLOAD_URL_EXPIRATION_SECONDS,
+      });
+    };
+
   static createFileEntityFromUploadRequest =
-    (client: DBClient) =>
+    (client: DBClient, storage: StorageProvider) =>
     async ({
       name,
       contentMd5,
@@ -54,7 +66,7 @@ class __File extends Entity {
       accountId,
     }: CreateUploadRequestArgs): Promise<CreateUploadRequestFileResponse> => {
       const entityVersionId = genId();
-      const key = getFileEntityKey({
+      const key = File.getFileEntityStorageKey({
         accountId,
         entityVersionId,
         fileName: name,
@@ -62,15 +74,14 @@ class __File extends Entity {
       if (size > MAX_FILE_SIZE_BYTES) {
         throw new ApolloError(
           "The file is heavier than the maximum allowed file size",
-          "MAX_FILE_SIZE_EXCEEDED"
+          "MAX_FILE_SIZE_EXCEEDED",
         );
       }
       try {
-        const presignedPost = await presignS3FileUpload({
-          accountId,
-          fileName: name,
-          contentMd5,
-          entityVersionId,
+        const presignedPost = await storage.presignUpload({
+          key,
+          fields: {},
+          expiresInSeconds: UPLOAD_URL_EXPIRATION_SECONDS,
         });
         const properties: DBFileProperties = {
           name,
@@ -96,10 +107,28 @@ class __File extends Entity {
       } catch (error) {
         throw new ApolloError(
           `There was an error requesting the file upload: ${error}`,
-          "INTERNAL_SERVER_ERROR"
+          "INTERNAL_SERVER_ERROR",
         );
       }
     };
+
+  static getFileEntityStorageKey({
+    accountId,
+    fileName,
+    entityVersionId,
+  }: {
+    accountId: string;
+    fileName: string;
+    entityVersionId: string;
+  }) {
+    let fileKey = `files/${accountId}/${entityVersionId}`;
+    // Find and add the file extension to the path if it exists
+    const extension = fileName.match(FILE_EXTENSION_REGEX);
+    if (extension) {
+      fileKey += extension[0];
+    }
+    return fileKey;
+  }
 }
 
 export default __File;

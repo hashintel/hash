@@ -43,7 +43,7 @@ export const App: BlockComponent<AppProps> = ({
   }, [caption, content, language]);
 
   const updateLocalData = (
-    newData: Partial<Pick<AppProps, "caption" | "language" | "content">>
+    newData: Partial<Pick<AppProps, "caption" | "language" | "content">>,
   ) => {
     setLocalData({
       ...localData,

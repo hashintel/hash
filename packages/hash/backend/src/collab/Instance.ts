@@ -1,16 +1,16 @@
 import { ApolloClient } from "@apollo/client";
+import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 import { createEntityStore } from "@hashintel/hash-shared/entityStore";
-import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 import {
-  createProseMirrorState,
-  getProseMirrorNodeAttributes,
+  findComponentNodes,
+  getComponentNodeAttrs,
 } from "@hashintel/hash-shared/prosemirror";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
 import { updatePageMutation } from "@hashintel/hash-shared/save";
-import { findEntityNodes } from "@hashintel/hash-shared/util";
 import { Schema } from "prosemirror-model";
+import { EditorState } from "prosemirror-state";
 import { Mapping, Step, Transform } from "prosemirror-transform";
 import { InvalidVersionError } from "./InvalidVersionError";
 import { Waiting } from "./Waiting";
@@ -34,8 +34,9 @@ export class Instance {
   constructor(
     public accountId: string,
     public pageEntityId: string,
-    public doc: ProsemirrorNode<Schema>,
-    public savedContents: BlockEntity[]
+    public state: EditorState<Schema>,
+    public manager: ProsemirrorSchemaManager,
+    public savedContents: BlockEntity[],
   ) {}
 
   stop() {
@@ -47,18 +48,21 @@ export class Instance {
     (version: number, steps: Step[], clientID: string) => {
       this.checkVersion(version);
       if (this.version !== version) return false;
-      let doc = this.doc;
+      const tr = this.state.tr;
+
       for (let i = 0; i < steps.length; i++) {
         this.clientIds.set(steps[i], clientID);
 
-        const result = steps[i].apply(doc);
+        const result = tr.maybeStep(steps[i]);
         if (!result.doc) return false;
+        // @todo look into whether this is needed now we use a tr
         if (this.saveMapping) {
           this.saveMapping.appendMap(steps[i].getMap());
         }
-        doc = result.doc;
       }
-      this.doc = doc;
+      this.state = this.state.apply(tr);
+
+      // this.doc = doc;
       this.version += steps.length;
       this.steps = this.steps.concat(steps);
       if (this.steps.length > MAX_STEP_HISTORY) {
@@ -84,17 +88,19 @@ export class Instance {
         return updatePageMutation(
           this.accountId,
           this.pageEntityId,
-          this.doc,
+          this.state.doc,
           this.savedContents,
-          createEntityStore(this.savedContents),
-          apolloClient
+          // @todo get this from this.state
+          createEntityStore(this.savedContents, {}),
+          apolloClient,
         ).then((newPage) => {
-          const entityNodes = findEntityNodes(this.doc);
+          const componentNodes = findComponentNodes(this.state.doc);
 
+          // @todo need to inform the prosemirror plugin of this
           this.savedContents = newPage.properties.contents;
 
-          for (let idx = 0; idx < entityNodes.length; idx++) {
-            const [entityNode, pos] = entityNodes[idx];
+          for (let idx = 0; idx < componentNodes.length; idx++) {
+            const [componentNode, pos] = componentNodes[idx];
 
             const entity = newPage.properties.contents[idx];
 
@@ -102,11 +108,11 @@ export class Instance {
               throw new Error("Could not find block in saved page");
             }
 
-            if (!entityNode.attrs.entityId) {
-              const transform = new Transform<Schema>(this.doc);
-              const attrs = getProseMirrorNodeAttributes(entity);
+            if (!componentNode.attrs.blockEntityId) {
+              const transform = new Transform<Schema>(this.state.doc);
+              const attrs = getComponentNodeAttrs(entity);
               const mappedPos = mapping.map(pos);
-              const blockWithAttrs = this.doc.childAfter(mappedPos).node;
+              const blockWithAttrs = this.state.doc.childAfter(mappedPos).node;
 
               // @todo use a custom step for this so we don't need to copy attrs – we may lose some
               transform.setNodeMarkup(mappedPos, undefined, {
@@ -117,7 +123,7 @@ export class Instance {
               this.addEvents(apolloClient)(
                 this.version,
                 transform.steps,
-                `${clientID}-server`
+                `${clientID}-server`,
               );
             }
           }
@@ -136,9 +142,22 @@ export class Instance {
 
   addJsonEvents =
     (apolloClient: ApolloClient<unknown>) =>
-    (version: number, jsonSteps: any[], clientId: string) => {
+    async (
+      version: number,
+      jsonSteps: any[],
+      clientId: string,
+      blockIds: string[],
+    ) => {
+      /**
+       * This is a potential security risk as the frontend can instruct us
+       * to make a web request
+       */
+      await Promise.all(
+        blockIds.map((id) => this.manager.defineRemoteBlock(id)),
+      );
+
       const steps = jsonSteps.map((step) =>
-        Step.fromJSON(this.doc.type.schema, step)
+        Step.fromJSON(this.state.doc.type.schema, step),
       );
 
       return this.addEvents(apolloClient)(version, steps, clientId);
@@ -231,11 +250,14 @@ const newInstance =
 
     const manager = new ProsemirrorSchemaManager(state.schema);
 
+    /**
+     * @todo check plugins
+     */
     const newState = state.apply(
       await manager.createEntityUpdateTransaction(
         data.page.properties.contents,
-        state
-      )
+        state,
+      ),
     );
 
     // The instance may have been created whilst another user we were doing the above work
@@ -246,8 +268,9 @@ const newInstance =
     instances[pageEntityId] = new Instance(
       accountId,
       pageEntityId,
-      newState.doc,
-      data.page.properties.contents
+      newState,
+      manager,
+      data.page.properties.contents,
     );
 
     return instances[pageEntityId];

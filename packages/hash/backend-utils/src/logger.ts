@@ -34,9 +34,9 @@ export class Logger {
           format: winston.format.combine(
             winston.format.json(),
             winston.format.colorize(),
-            winston.format.simple()
+            winston.format.simple(),
           ),
-        })
+        }),
       );
     } else {
       // TODO: add production logging transport here
@@ -48,9 +48,9 @@ export class Logger {
           format: winston.format.combine(
             winston.format.timestamp(),
             winston.format.json(),
-            winston.format.simple()
+            winston.format.simple(),
           ),
-        })
+        }),
       );
     }
     this.debug = logger.debug.bind(logger);

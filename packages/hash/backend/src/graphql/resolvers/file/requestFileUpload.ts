@@ -12,10 +12,15 @@ export const requestFileUpload: Resolver<
   {},
   LoggedInGraphQLContext,
   MutationRequestFileUploadArgs
-> = async (_, { name, contentMd5, size }, { user, dataSources }) => {
+> = async (
+  _,
+  { name, contentMd5, size },
+  { user, dataSources, storageProvider },
+) => {
   const accountId = user.entityId;
   const { presignedPost, file } = await File.createFileEntityFromUploadRequest(
-    dataSources.db
+    dataSources.db,
+    storageProvider,
   )({
     name,
     contentMd5,

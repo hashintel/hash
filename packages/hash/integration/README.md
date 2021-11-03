@@ -3,9 +3,11 @@
 ## Mock Data
 
 Mock data may be inserted by running:
+
 ```
 yarn mock-data
 ```
+
 Ensure that the API and database are running (see the backend
 [README](../backend/README.md) for details).
 
@@ -15,6 +17,7 @@ First, ensure that the API and database are running and connected to the test da
 Run `yarn serve:hash-backend-test` from the root to do this.
 
 Command:
+
 ```
 yarn test
 ```

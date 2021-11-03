@@ -101,7 +101,7 @@ class __EntityType {
     db
       .getEntityTypeLatestVersion(args)
       .then((dbEntityType) =>
-        dbEntityType ? new EntityType(dbEntityType) : null
+        dbEntityType ? new EntityType(dbEntityType) : null,
       );
 
   static getEntityTypeType = async (db: DBClient) =>
@@ -110,7 +110,7 @@ class __EntityType {
       .then((entityTypeType) => {
         if (!entityTypeType) {
           throw new Error(
-            "EntityType system entity type not found in datastore"
+            "EntityType system entity type not found in datastore",
           );
         }
 
@@ -123,7 +123,7 @@ class __EntityType {
       db
         .getAccountEntityTypes(args)
         .then((types) =>
-          types.map((dbType) => new EntityType(dbType).toGQLEntityType())
+          types.map((dbType) => new EntityType(dbType).toGQLEntityType()),
         );
 
   toGQLEntityType = (): UnresolvedGQLEntityType => ({
@@ -135,7 +135,7 @@ class __EntityType {
     properties: {
       ...this.properties,
       $id: schemaIdWithFrontendDomain(
-        this.properties.$id as string | undefined
+        this.properties.$id as string | undefined,
       ),
     },
     metadataId: this.entityId,

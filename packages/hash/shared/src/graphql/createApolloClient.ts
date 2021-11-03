@@ -1,5 +1,6 @@
 import { ApolloClient, HttpLink, InMemoryCache } from "@apollo/client";
 import { RequestInfo, RequestInit } from "node-fetch";
+import { apiGraphQLEndpoint } from "../environment";
 
 import possibleTypes from "./fragmentTypes.gen.json";
 
@@ -34,11 +35,11 @@ export const createApolloClient = (params?: {
 
     return ponyfilledFetch(
       operationName ? `${uri}?${operationName}` : uri,
-      options
+      options,
     );
   };
   const httpLink = new HttpLink({
-    uri: "http://localhost:5001/graphql",
+    uri: apiGraphQLEndpoint,
     credentials: "include",
     fetch: wrappedFetch,
     headers: params?.additionalHeaders,

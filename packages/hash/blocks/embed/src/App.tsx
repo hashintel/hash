@@ -28,7 +28,7 @@ import {
 type AppProps = {
   getEmbedBlock: (
     url: string,
-    type?: ProviderNames
+    type?: ProviderNames,
   ) => Promise<{
     html: string;
     error?: string;
@@ -106,7 +106,7 @@ export const App: BlockComponent<AppProps> = ({
       width: initialWidth,
       height: initialHeight,
       embedType: initialEmbedType,
-    })
+    }),
   );
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -147,7 +147,7 @@ export const App: BlockComponent<AppProps> = ({
         Pick<AppState, "html" | "width" | "height" | "embedType"> & {
           embedType: string;
         }
-      >
+      >,
     ) => {
       const data = {
         initialHtml: properties.html,
@@ -174,7 +174,7 @@ export const App: BlockComponent<AppProps> = ({
         void update<any>([updateAction]);
       }
     },
-    [entityId, entityTypeId, update]
+    [entityId, entityTypeId, update],
   );
 
   const handleGetEmbed = async () => {
@@ -217,7 +217,7 @@ export const App: BlockComponent<AppProps> = ({
     } else {
       defaultWidth = Math.min(
         Math.max(blockWidthRef.current ?? 0, defaultWidth),
-        maxWidth
+        maxWidth,
       );
 
       if (blockShouldRespectAspectRatio && embedHeight && embedWidth) {
@@ -251,7 +251,7 @@ export const App: BlockComponent<AppProps> = ({
     () => (newWidth: number, newHeight: number) => {
       updateRemoteData({ html, width: newWidth, height: newHeight });
     },
-    [html, updateRemoteData]
+    [html, updateRemoteData],
   );
 
   const renderContent = () => {

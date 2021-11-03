@@ -25,7 +25,7 @@ class StatsPlugin {
   apply(compiler) {
     compiler.hooks.done.tap(this.constructor.name, (stats) => {
       const main = Object.keys(stats.compilation.assets).find((asset) =>
-        asset.startsWith("main")
+        asset.startsWith("main"),
       );
 
       const blockMetadata = {

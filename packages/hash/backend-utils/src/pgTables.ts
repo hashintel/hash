@@ -13,7 +13,7 @@ export class EntityVersion {
     public properties: any,
     public createdBy: string,
     public createdAt: Date,
-    public updatedAt: Date
+    public updatedAt: Date,
   ) {}
 
   private static parseFromRow(row: Record<string, unknown>): EntityVersion {
@@ -37,7 +37,7 @@ export class EntityVersion {
       throw new Error(`invalid table "${msg.table}" for EntityVersion type`);
     }
     const obj = Object.fromEntries(
-      msg.columns.map(({ name, value }) => [name, value])
+      msg.columns.map(({ name, value }) => [name, value]),
     );
     return EntityVersion.parseFromRow(obj);
   }

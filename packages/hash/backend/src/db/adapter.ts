@@ -195,7 +195,7 @@ export interface DBClient {
       accountId: string;
       entityVersionId: string;
     },
-    lock?: boolean
+    lock?: boolean,
   ): Promise<Entity | undefined>;
 
   /**
@@ -367,7 +367,7 @@ export interface DBClient {
       accountId: string;
       entityId: string;
       entityVersionId?: string;
-    }[]
+    }[],
   ): Promise<Entity[]>;
 
   /**
