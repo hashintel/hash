@@ -23,14 +23,15 @@ export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
   subSchemaReference,
   update: _update,
 }) => {
-  const { description, required, title } = schema;
-
   /**
    * @todo deal with $anchors https://json-schema.org/understanding-json-schema/structuring.html#anchor
    */
   const selectedSchema = subSchemaReference
     ? get(schema, subSchemaReference.slice(2).replace(/\//g, "."))
     : schema;
+
+  const { title } = schema;
+  const { description, required } = selectedSchema;
 
   const requiredArray = required instanceof Array ? required : undefined;
 
@@ -40,7 +41,6 @@ export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
         <h1>
           <strong>Schema: {title ?? "No title."}</strong>
         </h1>
-        <p>{description ?? "No description."}</p>
       </header>
       <section>
         <div className={tw`flex items-center`}>
@@ -53,6 +53,7 @@ export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
               .pop()}`}</h3>
           )}
         </div>
+        <p className={tw`mb-4`}>{description ?? "No description."}</p>
         <div>
           <SchemaPropertiesTable
             requiredArray={requiredArray}
