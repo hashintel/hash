@@ -28,6 +28,7 @@ The following programs must be present on your development system:
 
 1. Make sure you have the `packages/hash/docker/.env` file present (found in 1Password)
 2. Ensure Docker is running.
+   If you use Docker for macOS or Windows, go to _Preferences_ → _Resources_ and ensure that Docker can use at least 4GB of RAM (8GB is recommended).
 3. Ensure port 5432 is not occupied (i.e. no other postgres service) - You can check with
    `lsof -n -i:5432`
 4. If it's your first time, run `docker volume create hash-dev-pg` to create the storage volume.

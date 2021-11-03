@@ -19,7 +19,7 @@ services:
     ports:
       - 6379:6379
   hash-dev-opensearch:
-    image: opensearchproject/opensearch:1.0.1
+    image: opensearchproject/opensearch:1.1.0
     ports:
       - 9200:9200
     environment:
