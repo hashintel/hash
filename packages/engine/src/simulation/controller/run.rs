@@ -19,7 +19,7 @@ use crate::simulation::status::SimStatus;
 use crate::simulation::step_result::SimulationStepResult;
 use crate::SimRunConfig;
 
-use super::Result;
+use super::{Error, Result};
 
 enum LoopControl {
     Continue,
@@ -41,6 +41,7 @@ fn create_update_for_exp_pkg(
     })
 }
 
+// TODO OS - Sort our error into/from to avoid so many explicit err conversions using to_string
 pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
     config: Arc<SimRunConfig<ExperimentRunBase>>,
     shared_store: Arc<SharedStore>,
@@ -55,7 +56,7 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
     //         exp package
     exp_pkg_update_request: Option<UpdateRequest>,
     exp_pkg_update_send: ExpPkgUpdateSend,
-) -> Result<()> {
+) -> Result<SimulationShortID> {
     let sim_run_id = config.sim.id;
     let max_num_steps = config.sim.max_num_steps;
     log::info!(
@@ -67,7 +68,9 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
     let uninitialized_store = Store::new_uninitialized(shared_store, &config);
 
     // TODO[1] add initial payload to persistence_service here (0th step)
-    let mut engine = Engine::new(packages, uninitialized_store, comms, config.clone()).await?;
+    let mut engine = Engine::new(packages, uninitialized_store, comms, config.clone())
+        .await
+        .map_err(|sim_err| Error::from(sim_err.to_string()))?;
 
     let now = std::time::Instant::now();
     let mut steps_taken = 0;
@@ -91,34 +94,63 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
             Err(error) => {
                 log::error!("Got error within the engine step process: {:?}", error);
                 // Try to persist before exiting
-                let persistence_result = persistence_service.finalize().await?;
+                let persistence_result = Some(persistence_service.finalize().await?);
                 sims_to_exp
                     .send(SimStatus::error(
                         sim_run_id,
                         steps_taken as isize,
+                        // TODO OS - COMPILE BLOCK - The trait bound `hash_types::worker::RunnerError: From<simulation::error::Error>` is not satisfied
                         error.into(),
                         persistence_result,
                     ))
-                    .await?;
+                    .await
+                    .map_err(|exp_controller_err| {
+                        Error::from(format!(
+                            "Experiment controller error: {}",
+                            exp_controller_err.to_string()
+                        ))
+                    })?;
                 exp_pkg_update_send
                     .send(StepUpdate {
                         sim_id: sim_run_id,
                         was_error: true,
                         ..StepUpdate::default()
                     })
-                    .await?;
-                return Err(error.into());
+                    .await
+                    .map_err(|exp_controller_err| {
+                        Error::from(format!(
+                            "Experiment controller error: {}",
+                            exp_controller_err.to_string()
+                        ))
+                    })?;
+                return Err(Error::from(format!(
+                    "Simulation error: {}",
+                    error.to_string()
+                )));
             }
         };
-        let step_result = engine.next().await?;
+        let step_result = engine
+            .next()
+            .await
+            .map_err(|sim_err| Error::from(format!("Simulation error: {}", sim_err.to_string())))?;
 
         // Send update to experiment package
         let output_response =
             create_update_for_exp_pkg(config.sim.id, &step_result, &exp_pkg_update_request)?;
-        exp_pkg_update_send.send(output_response).await?;
+        exp_pkg_update_send
+            .send(output_response)
+            .await
+            .map_err(|exp_controller_err| {
+                Error::from(format!(
+                    "Experiment controller error: {}",
+                    exp_controller_err.to_string()
+                ))
+            })?;
 
         // Persist the output
-        persistence_service.add_step_output(step_result.output)?;
+        persistence_service
+            .add_step_output(step_result.output)
+            .await?;
         if let AgentControl::Stop(msg) = step_result.agent_control {
             early_stop = true;
             stop_msg = Some(msg);
@@ -128,31 +160,66 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
                              // already sent on the previous step.
         }
 
-        sims_to_exp.send(SimStatus::running(config.sim.id, *steps_taken))?;
+        sims_to_exp
+            .send(SimStatus::running(config.sim.id, steps_taken as isize))
+            .await
+            .map_err(|exp_controller_err| {
+                Error::from(format!(
+                    "Experiment controller error: {}",
+                    exp_controller_err.to_string()
+                ))
+            })?;
 
-        *steps_taken += 1;
+        steps_taken += 1;
     }
     let main_loop_dur = now.elapsed().as_millis();
 
     // Tell the experiment controller that the sim is stopping
-    sims_to_exp.send(SimStatus::stop_signal(sim_run_id))?;
+    sims_to_exp
+        .send(SimStatus::stop_signal(sim_run_id))
+        .await
+        .map_err(|exp_controller_err| {
+            Error::from(format!(
+                "Experiment controller error: {}",
+                exp_controller_err.to_string()
+            ))
+        })?;
     // Also tell the package that the sim is stopping
-    exp_pkg_update_send.send(StepUpdate {
-        sim_id: sim_run_id,
-        payload: Default::default(),
-        was_error: false,
-        stop_signal: true,
-    });
+    exp_pkg_update_send
+        .send(StepUpdate {
+            sim_id: sim_run_id,
+            payload: Default::default(),
+            was_error: false,
+            stop_signal: true,
+        })
+        .await
+        .map_err(|exp_controller_err| {
+            Error::from(format!(
+                "Experiment controller error: {}",
+                exp_controller_err.to_string()
+            ))
+        })?;
 
     let now = std::time::Instant::now();
     let persistence_result = persistence_service.finalize().await?;
-    sims_to_exp.send(SimStatus::ended(
-        sim_run_id.clone(),
-        *steps_taken,
-        early_stop,
-        stop_msg,
-        persistence_result,
-    )?)?;
+    sims_to_exp
+        .send(
+            SimStatus::ended(
+                sim_run_id.clone(),
+                steps_taken as isize,
+                early_stop,
+                stop_msg,
+                persistence_result,
+            )
+            .map_err(|sim_err| Error::from(format!("Simulation error: {}", sim_err.to_string())))?,
+        )
+        .await
+        .map_err(|exp_controller_err| {
+            Error::from(format!(
+                "Experiment controller error: {}",
+                exp_controller_err.to_string()
+            ))
+        })?;
     let persistence_dur = now.elapsed().as_millis();
 
     log::info!(
@@ -163,7 +230,7 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
 
     // Allow experiment main loop to receive statuses.
     tokio::time::sleep(Duration::from_secs(1)).await;
-    Ok(())
+    Ok(config.sim.id)
 }
 
 async fn maybe_handle_sim_ctl_msg(sim_from_exp: &mut SimCtlRecv) -> Result<LoopControl> {

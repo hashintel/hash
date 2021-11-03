@@ -85,7 +85,8 @@ fn new_task_handle<P: SimulationOutputPersistenceRepr>(
         exp_pkg_output_send,
     );
 
+    // TODO OS - COMPILE BLOCK - P may not live long enough
     Ok(tokio::task::spawn_blocking(move || {
-        tokio::runtime::Handle::current().block_on(task)?
-    })?)
+        tokio::runtime::Handle::current().block_on(task)
+    }))
 }

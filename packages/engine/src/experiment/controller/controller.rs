@@ -23,12 +23,12 @@ use crate::{experiment::package::ExperimentPackageComms, Environment};
 use crate::proto::{
     EngineMsg, EngineStatus, ExperimentRunBase, ExperimentRunRepr, SimulationShortID,
 };
+use crate::simulation::controller::runs::SimulationRuns;
 use crate::simulation::controller::sim_control::SimControl;
 use crate::simulation::controller::SimulationController;
 use crate::simulation::status::SimStatus;
 use crate::simulation::Error as SimulationError;
 use crate::worker::runner::comms::DatastoreSimulationPayload;
-use crate::workerpool::runs::SimulationRuns;
 
 use super::comms::sim_status::SimStatusSend;
 use super::{
@@ -163,7 +163,7 @@ impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController
         let sim_config = Arc::new(self.sim_configurer.configure_next(
             &self.exp_base_config,
             sim_short_id,
-            *globals.clone(),
+            (*globals).clone(),
             store_config,
             persistence_config,
             max_num_steps,
@@ -209,7 +209,6 @@ impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController
         .map_err(|e| SimulationError::from(e))?;
         let sim_sender = sim_controller.sender;
         self.add_sim_sender(sim_short_id, sim_sender)?;
-        // TODO OS - COMPILE BLOCK - Fix, no method next found for struct SimulationRuns
         self.sim_run_tasks.new_run(sim_controller.task_handle);
 
         // Register run with the orchestrator
@@ -275,11 +274,12 @@ impl<E: ExperimentRunRepr, O: OutputPersistenceCreatorRepr> ExperimentController
                         return Ok(())
                     }
                 }
-                // TODO OS - COMPILE BLOCK - Fix, no method `next` found for struct SimulationRuns
-                Some(result) = self.sim_run_tasks.next() => {
-                    self.handle_simulation_result(result).await?;
+                result = self.sim_run_tasks.next() => {
+                    if let Some(result) = result? {
+                        // TODO OS - COMPILE BLOCK - No method named `handle_simulation_result` found for struct `ExperimentController` in the current scope
+                        self.handle_simulation_result(result).await?;
+                    }
                 }
-                // TODO OS - COMPILE BLOCK - Fix, no method `handle_sim_status` found for struct ExperimentController
                 Some(msg) = self.sim_status_recv.recv() => {
                     self.handle_sim_status(msg).await?;
                 }

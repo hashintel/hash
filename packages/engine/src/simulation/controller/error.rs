@@ -4,8 +4,14 @@ pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 #[derive(ThisError, Debug)]
 pub enum Error {
-    #[error("Experiment Controller error: {0}")]
+    #[error("Simulation Controller error: {0}")]
     Unique(String),
+
+    #[error("Output error: {0}")]
+    Output(#[from] crate::output::Error),
+
+    #[error("Tokio Join Error: {0}")]
+    TokioJoin(#[from] tokio::task::JoinError),
 }
 
 impl From<&str> for Error {

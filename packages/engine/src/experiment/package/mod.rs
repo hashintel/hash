@@ -69,7 +69,7 @@ pub struct StepOutputResponsePayload {
     pub analysis_output: Option<Option<f64>>,
 }
 
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub struct StepUpdate {
     pub sim_id: SimulationShortID,
     pub payload: StepOutputResponsePayload,

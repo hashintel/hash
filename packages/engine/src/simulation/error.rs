@@ -123,7 +123,7 @@ pub enum Error {
     #[error("Arrow Error: {0}")]
     Arrow(#[from] arrow::error::ArrowError),
 
-    // TODO error requires moving the objects
+    // TODO OS - COMPILE BLOCK - Error requires moving the objects, also SharedState and SharedContext need manual or derived Debug impls
     #[error("State or Context access not allowed for package (with type: {2}). StateAccess: {0}, ContextAccess: {1}.")]
     AccessNotAllowed(SharedState, SharedContext, String),
 
@@ -132,6 +132,9 @@ pub enum Error {
 
     #[error("Worker node handling is not implemented for this message type")]
     WorkerNodeHandlerNotImplemented,
+
+    #[error("{0}")]
+    RwLock(String),
 }
 
 impl From<&str> for Error {

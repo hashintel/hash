@@ -16,10 +16,10 @@ impl SimulationRuns {
         self.inner.push(handle);
     }
 
-    pub async fn next(&mut self) -> Option<Result<SimulationShortID>>
+    pub async fn next(&mut self) -> Result<Option<Result<SimulationShortID>>>
     where
         Self: Unpin,
     {
-        self.inner.next().await.transpose()?
+        Ok(self.inner.next().await.transpose()?)
     }
 }

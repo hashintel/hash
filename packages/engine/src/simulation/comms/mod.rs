@@ -110,7 +110,7 @@ impl Comms {
         // Synchronize the state snapshot batches
         let agents = state.agent_pool().cloned_batch_pool();
         let agent_messages = state.message_pool().cloned_batch_pool();
-        let sync_msg = StateSync::new(Box::new(agents), Box::new(agent_messages));
+        let sync_msg = StateSync::new(agents, agent_messages);
         self.worker_pool_sender
             .send(EngineToWorkerPoolMsg::sync(
                 self.sim_id,
