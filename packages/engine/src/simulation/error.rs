@@ -37,9 +37,6 @@ pub enum Error {
     #[error("Uuid error: {0}")]
     Uuid(#[from] uuid::Error),
 
-    #[error("HTTP error: {0}")]
-    Surf(http_types::StatusCode),
-
     #[error("Expected to have a migration command for this batch")]
     CommandExpected,
 

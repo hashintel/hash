@@ -57,6 +57,7 @@ impl EngineStatus {
     pub fn kind(&self) -> &'static str {
         match self {
             EngineStatus::Started => "Started",
+            // TODO OS - COMPILE BLOCK - No such enum variant RunnerStatus
             EngineStatus::RunnerStatus(_) => "RunnerStatus",
             EngineStatus::Exit => "Exit",
             EngineStatus::ProcessError(_) => "ProcessError",
@@ -261,7 +262,7 @@ pub struct ExtendedExperimentRun {
 }
 
 #[async_trait]
-pub trait ExperimentRunRepr: Clone + Serialize + for<'a> Deserialize<'a> {
+pub trait ExperimentRunRepr: Clone + Serialize + Send + for<'a> Deserialize<'a> {
     type PackageConfig;
     fn base(&self) -> &ExperimentRunBase;
     fn base_mut(&mut self) -> &mut ExperimentRunBase;

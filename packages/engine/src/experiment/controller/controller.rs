@@ -99,7 +99,7 @@ impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController
     async fn handle_sim_status(&mut self, status: SimStatus) -> Result<()> {
         Ok(self
             .orch_client()
-            // TODO OS: Fix - No such enum variant RunnerStatus
+            // TODO OS - COMPILE BLOCK - No such enum variant RunnerStatus
             .send(EngineStatus::RunnerStatus(status.try_into()?))
             .await?)
     }

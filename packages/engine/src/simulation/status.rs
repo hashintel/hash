@@ -7,7 +7,7 @@ use crate::proto::SimulationShortID;
 use serde::{Deserialize, Serialize};
 
 // Sent from sim runs to experiment main loop.
-#[derive(Default, Debug, Serialize, Deserialize)]
+#[derive(Default, Debug, Serialize, Deserialize, PartialEq)]
 pub struct SimStatus {
     pub sim_id: SimulationShortID,
     pub steps_taken: isize,

@@ -71,6 +71,9 @@ pub enum Error {
     #[error("Invalid number of external runtime language runners planned")]
     InvalidNumExternalLanguageRunners,
 
+    #[error("HTTP error: {0}")]
+    Surf(http_types::StatusCode),
+
     // #[error("Kill signal mpsc send error: {0:?}")]
     // KillSend(#[from] tokio::sync::mpsc::error::SendError<message::KillMessage>),
 

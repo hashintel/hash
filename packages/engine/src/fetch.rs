@@ -47,18 +47,20 @@ impl FetchDependencies for SharedDataset {
 #[async_trait]
 impl<E: ExperimentRunRepr> FetchDependencies for E {
     async fn fetch_deps(&mut self) -> Result<()> {
-        let mut datasets = std::mem::replace(&mut self.base().project_base.datasets, vec![]);
+        let mut datasets = std::mem::replace(&mut self.base_mut().project_base.datasets, vec![]);
 
         self.base_mut().project_base.datasets =
-            futures::stream::iter(datasets.into_iter().map(|dataset| {
-                dataset.fetch_deps()?;
-                Ok(dataset)
+            futures::stream::iter(datasets.into_iter().map(|mut dataset| {
+                tokio::spawn(async move {
+                    dataset.fetch_deps().await?;
+                    Ok::<SharedDataset, Error>(dataset)
+                })
             }))
             .buffer_unordered(100)
             .collect::<Vec<_>>()
             .await
             .into_iter()
-            .map(|result| result.map(|dataset| Arc::new(dataset)))
+            .flatten()
             .collect::<Result<Vec<_>>>()?;
 
         Ok(())
