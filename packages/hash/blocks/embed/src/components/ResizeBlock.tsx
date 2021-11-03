@@ -45,7 +45,7 @@ const BLOCK_RESIZER_POSITIONS = [
 const dimensionInRange = (
   value: number | undefined,
   minValue: number,
-  maxValue: number | undefined
+  maxValue: number | undefined,
 ) => {
   if (!value) return false;
   if (!maxValue) return value >= minValue;

@@ -60,5 +60,5 @@ export const fromCSSTextToObj = (cssText: string) =>
       .filter(Boolean)
       .map((rule) => {
         return rule.split(":").map((item) => item.trim());
-      })
+      }),
   ) as CSSStyleDeclaration;
