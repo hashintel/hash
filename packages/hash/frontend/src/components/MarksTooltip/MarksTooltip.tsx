@@ -8,6 +8,7 @@ interface MarksTooltipProps {
   updateLink: (href: string) => void;
   selectionHeight: number;
   closeTooltip: () => void;
+  focusEditorView: () => void;
 }
 
 const marks = [
@@ -35,15 +36,16 @@ export const MarksTooltip: React.VFC<MarksTooltipProps> = ({
   selectionHeight,
   updateLink,
   closeTooltip,
+  focusEditorView,
 }) => {
-  const [linkHref, setLinkHref] = useState("");
-  const linkModalRef = useRef<HTMLDivElement>(null);
-  const linkInputRef = useRef<HTMLInputElement>(null);
-
   const defaultLinkMarkHref = useMemo(
     () => activeMarks.find(({ name }) => name === "link")?.attrs?.href,
-    [activeMarks]
+    [activeMarks],
   );
+
+  const [linkHref, setLinkHref] = useState(defaultLinkMarkHref ?? "");
+  const linkModalRef = useRef<HTMLDivElement>(null);
+  const linkInputRef = useRef<HTMLInputElement>(null);
 
   const getMarkBtnClass = (name: string) => {
     const isActive = activeMarks.find((mark) => mark.name === name);
@@ -69,6 +71,8 @@ export const MarksTooltip: React.VFC<MarksTooltipProps> = ({
     } else {
       toggleMark(name);
     }
+
+    focusEditorView();
   };
 
   const handleUpdateLink = (evt: FormEvent) => {
@@ -94,8 +98,8 @@ export const MarksTooltip: React.VFC<MarksTooltipProps> = ({
         {marks.map(({ name, text }) => (
           <button
             className={tw`flex items-center ${getMarkBtnClass(
-              name
-            )} py-1 px-4 border-r-1 border-gray-300`}
+              name,
+            )} py-1 px-4 border-r-1 last:border-r-0 border-gray-300`}
             key={name}
             onClick={() => handleToggleMark(name)}
             type="button"

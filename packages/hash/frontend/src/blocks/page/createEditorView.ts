@@ -10,9 +10,8 @@ import { updatePageMutation } from "@hashintel/hash-shared/save";
 import { Schema } from "prosemirror-model";
 import { Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
-import { inputRules } from "prosemirror-inputrules";
 import { createBlockSuggester } from "../../components/BlockSuggester/createBlockSuggester";
-import { createMarksTooltip } from "../../components/MarksTooltip";
+import { createFormatPlugins } from "../../components/MarksTooltip";
 import { BlockView } from "./BlockView";
 import { EditorConnection } from "./collab/EditorConnection";
 import { Reporter } from "./collab/Reporter";
@@ -20,7 +19,6 @@ import { collabEnabled } from "./collabEnabled";
 import { ComponentView } from "./ComponentView";
 import styles from "./style.module.css";
 import { RenderPortal } from "./usePortals";
-import { linkInputRule } from "../../components/MarksTooltip/util";
 
 const createSavePlugin = (
   accountId: string,
@@ -98,11 +96,8 @@ export const createEditorView = (
 
   const plugins: Plugin<unknown, Schema>[] = [
     createSavePlugin(accountId, pageId, getLastSavedValue, client),
-    createMarksTooltip(renderPortal),
+    ...createFormatPlugins(renderPortal),
     createBlockSuggester(renderPortal, () => manager),
-    inputRules({
-      rules: [linkInputRule()],
-    }),
   ];
 
   const state = createProseMirrorState({ plugins });

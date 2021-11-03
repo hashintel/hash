@@ -1,7 +1,14 @@
 import { toggleMark } from "prosemirror-commands";
+import { inputRules } from "prosemirror-inputrules";
 import { Schema } from "prosemirror-model";
-import { NodeSelection, Plugin, PluginKey } from "prosemirror-state";
-import React, { CSSProperties } from "react";
+import {
+  EditorState,
+  NodeSelection,
+  Plugin,
+  PluginKey,
+} from "prosemirror-state";
+import { EditorView } from "prosemirror-view";
+import React from "react";
 import { tw } from "twind";
 import { RenderPortal } from "../../blocks/page/usePortals";
 import { ensureMounted } from "../../lib/dom";
@@ -10,7 +17,8 @@ import {
   getActiveMarksWithAttrs,
   updateLink,
   selectionContainsText,
-  validateLink,
+  isValidLink,
+  linkInputRule,
 } from "./util";
 
 const TOOLTIP_ID = "hash_marks_tooltip";
@@ -21,7 +29,9 @@ interface MarksTooltipState {
 
 const key = new PluginKey<MarksTooltipState, Schema>("markstooltip");
 
-export function createMarksTooltip(renderPortal: RenderPortal) {
+const tooltipRef = React.createRef<HTMLDivElement>();
+
+export function createFormatPlugins(renderPortal: RenderPortal) {
   let timeout: NodeJS.Timeout;
   const marksTooltip = new Plugin<MarksTooltipState, Schema>({
     key,
@@ -31,7 +41,7 @@ export function createMarksTooltip(renderPortal: RenderPortal) {
      */
     state: {
       init() {
-        return { isSelectionEmpty: true, focused: false };
+        return { focused: false };
       },
       apply(tr, state) {
         const action = tr.getMeta(key);
@@ -52,9 +62,7 @@ export function createMarksTooltip(renderPortal: RenderPortal) {
         blur(view) {
           clearTimeout(timeout);
           timeout = setTimeout(() => {
-            const toolTipEl = document.getElementById(TOOLTIP_ID);
-
-            if (toolTipEl?.contains(document.activeElement)) {
+            if (tooltipRef.current?.contains(document.activeElement)) {
               return false;
             }
 
@@ -73,44 +81,6 @@ export function createMarksTooltip(renderPortal: RenderPortal) {
     view(editorView: FixMeLater) {
       const mountNode = document.createElement("div");
 
-      const renderPortalFn = (dimensions: {
-        top: number;
-        left: number;
-        bottom: number;
-      }) => {
-        const activeMarks = getActiveMarksWithAttrs(editorView);
-
-        const style: CSSProperties = {
-          top: dimensions.top,
-          left: dimensions.left,
-        };
-
-        const jsx = (
-          <div className={tw`absolute z-50`} style={style} id={TOOLTIP_ID}>
-            <MarksTooltip
-              activeMarks={activeMarks}
-              toggleMark={(name, attrs) => {
-                toggleMark(editorView.state.schema.marks[name], attrs)(
-                  editorView.state,
-                  editorView.dispatch
-                );
-              }}
-              updateLink={(href) => {
-                updateLink(editorView, href);
-              }}
-              closeTooltip={() =>
-                editorView.dispatch(
-                  editorView.state.tr.setMeta(key, { type: "format-blur" })
-                )
-              }
-              selectionHeight={dimensions.bottom - dimensions.top}
-            />
-          </div>
-        );
-        ensureMounted(mountNode, document.body);
-        renderPortal(jsx, mountNode);
-      };
-
       const handlePaste = (evt: ClipboardEvent) => {
         if (!evt.clipboardData) {
           return;
@@ -120,13 +90,13 @@ export function createMarksTooltip(renderPortal: RenderPortal) {
         const html = evt.clipboardData.getData("text/html");
         const isPlainText = Boolean(text) && !html;
 
-        if (isPlainText && validateLink(text)) {
+        if (isPlainText && isValidLink(text)) {
           evt.preventDefault();
           updateLink(editorView, text);
         }
       };
 
-      document.addEventListener("paste", handlePaste);
+      // document.addEventListener("paste", handlePaste);
 
       return {
         destroy() {
@@ -134,7 +104,7 @@ export function createMarksTooltip(renderPortal: RenderPortal) {
           mountNode.remove();
           document.removeEventListener("paste", handlePaste);
         },
-        update: (view: FixMeLater, lastState?: FixMeLater) => {
+        update: (view: EditorView<Schema>, lastState?: EditorState<Schema>) => {
           const dragging = !!editorView.dragging;
 
           const state = view.state;
@@ -145,7 +115,6 @@ export function createMarksTooltip(renderPortal: RenderPortal) {
            * not within a paragraph
            *
            * @todo enable the format tooltip outside of a paragraph node
-           * @todo confirm if we need all these conditions
            */
           if (
             !key.getState(view.state)?.focused ||
@@ -178,11 +147,47 @@ export function createMarksTooltip(renderPortal: RenderPortal) {
             document.documentElement.scrollLeft;
           const bottom = end.bottom + document.documentElement.scrollTop;
 
-          renderPortalFn({ top, left, bottom });
+          const activeMarks = getActiveMarksWithAttrs(editorView);
+
+          const jsx = (
+            <div
+              className={tw`absolute z-50`}
+              style={{ top, left }}
+              ref={tooltipRef}
+              id={TOOLTIP_ID}
+            >
+              <MarksTooltip
+                activeMarks={activeMarks}
+                toggleMark={(name, attrs) => {
+                  toggleMark(editorView.state.schema.marks[name], attrs)(
+                    editorView.state,
+                    editorView.dispatch,
+                  );
+                }}
+                focusEditorView={() => editorView.focus()}
+                updateLink={(href) => {
+                  updateLink(editorView, href);
+                }}
+                closeTooltip={() =>
+                  editorView.dispatch(
+                    editorView.state.tr.setMeta(key, { type: "format-blur" }),
+                  )
+                }
+                selectionHeight={bottom - top}
+              />
+            </div>
+          );
+          ensureMounted(mountNode, document.body);
+          renderPortal(jsx, mountNode);
         },
       };
     },
   });
 
-  return marksTooltip as Plugin<unknown, Schema>;
+  return [
+    marksTooltip,
+    inputRules({
+      rules: [linkInputRule()],
+    }),
+  ] as Plugin<unknown, Schema>[];
 }
