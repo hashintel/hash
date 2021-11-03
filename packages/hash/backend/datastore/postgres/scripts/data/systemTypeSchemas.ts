@@ -25,6 +25,7 @@ type SchemaProperty = {
 };
 
 type PartialSchema = SchemaProperty & {
+  title?: string;
   required: string[];
   $defs?: Record<string, PartialSchema>;
 };
@@ -55,30 +56,14 @@ const systemTypeSchemas: {
         type: "array",
         description: "The email address(es) associated with a user",
         items: {
-          type: "object",
-          description: "Information on a email address.",
-          properties: {
-            email: {
-              description: "The email address itself",
-              type: "string",
-            },
-            primary: {
-              description:
-                "Whether this email address is the primary one for the user",
-              type: "boolean",
-            },
-            verified: {
-              description: "Whether this email address has been verified",
-              type: "boolean",
-            },
-          },
+          $ref: "#/$defs/Emails",
         },
       },
       memberOf: {
         description: "Details of org membership(s).",
         type: "array",
         items: {
-          $ref: "#/$defs/orgMembership",
+          $ref: "#/$defs/OrgMembership",
         },
       },
       shortname: {
@@ -93,7 +78,29 @@ const systemTypeSchemas: {
     required: ["emails"],
 
     $defs: {
-      orgMembership: {
+      Emails: {
+        title: "Email",
+        type: "object",
+        description: "Information on a email address.",
+        properties: {
+          address: {
+            description: "The email address itself",
+            type: "string",
+          },
+          primary: {
+            description:
+              "Whether this email address is the primary one for the user",
+            type: "boolean",
+          },
+          verified: {
+            description: "Whether this email address has been verified",
+            type: "boolean",
+          },
+        },
+        required: ["address"],
+      },
+      OrgMembership: {
+        title: "Org Membership",
         description: "Metadata on membership of an org.",
         type: "object",
         properties: {
