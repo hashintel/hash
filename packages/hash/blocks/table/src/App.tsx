@@ -6,7 +6,7 @@ import {
 } from "@hashintel/block-protocol";
 import { BlockComponent } from "@hashintel/block-protocol/react";
 import { tw } from "twind";
-import { orderBy } from "lodash";
+import { omit, orderBy } from "lodash";
 import { EditableCell } from "./components/EditableCell";
 import { makeColumns } from "./lib/columns";
 import { getSchemaPropertyDefinition } from "./lib/getSchemaProperty";
@@ -116,7 +116,7 @@ export const App: BlockComponent<AppProps> = ({
 
       aggregateFn({
         entityTypeId: linkedData.entityTypeId,
-        operation: linkedData.aggregate,
+        operation: omit(linkedData.aggregate, "entityTypeId"),
       })
         .then(({ operation, results }) => {
           setTableData({
