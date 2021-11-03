@@ -10,8 +10,10 @@ import { PostgresAdapter, setupCronJobs } from "./db";
 import AwsSesEmailTransporter from "./email/transporter/awsSesEmailTransporter";
 import TestTransporter from "./email/transporter/testEmailTransporter";
 import { createApolloServer } from "./graphql/createApolloServer";
+import { AWS_REGION, AWS_S3_BUCKET, AWS_S3_REGION } from "./lib/config";
 import { isProdEnv, isStatsDEnabled, isTestEnv, port } from "./lib/env-config";
 import { logger } from "./logger";
+import { AwsS3StorageProvider } from "./storage/aws-s3-storage-provider";
 import { getRequiredEnv } from "./util";
 
 const { FRONTEND_URL } = require("./lib/config");
@@ -76,11 +78,22 @@ setupAuth(
 setupCronJobs(db, logger);
 
 // Create an email transporter
-const transporter = isTestEnv
+const emailTransporter = isTestEnv
   ? new TestTransporter()
-  : new AwsSesEmailTransporter();
+  : new AwsSesEmailTransporter(AWS_REGION);
 
-const apolloServer = createApolloServer(db, redis, transporter, logger, statsd);
+const storageProvider = new AwsS3StorageProvider({
+  bucket: AWS_S3_BUCKET,
+  region: AWS_S3_REGION,
+});
+const apolloServer = createApolloServer({
+  db,
+  cache: redis,
+  emailTransporter,
+  logger,
+  statsd,
+  storageProvider,
+});
 
 app.get("/", (_, res) => res.send("Hello World"));
 
