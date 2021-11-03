@@ -21,8 +21,6 @@ import {
   linkInputRule,
 } from "./util";
 
-const TOOLTIP_ID = "hash_marks_tooltip";
-
 interface MarksTooltipState {
   focused: boolean;
 }
@@ -154,7 +152,6 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
               className={tw`absolute z-50`}
               style={{ top, left }}
               ref={tooltipRef}
-              id={TOOLTIP_ID}
             >
               <MarksTooltip
                 activeMarks={activeMarks}
