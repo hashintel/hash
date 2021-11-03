@@ -9,20 +9,22 @@ We have a [community Discord server](https://hash.ai/discord) and a [support for
 ## What belongs in the HASH Standard Library
 
 The HASH standard library is a collection of helper functions for building simulations. Standard library functions should be:
+
 - General Purpose - both in the use case they are solving for and in their interface.
 - Performant - if it's in the standard library it will be used in lots of simulations, and should be designed to be fast and memory efficient.
-- Pure functions - While there can be exceptions, the expectation is a standard library function should not store any state nor cause side effects. 
+- Pure functions - While there can be exceptions, the expectation is a standard library function should not store any state nor cause side effects.
 
 When in doubt, [ask](https://hash.ai/discord)!
 
 ## Pull Request Process
 
 1. Before opening a Pull Request, you must sign HASH's Contributor License Agreement available at [hash.ai/legal/cla](https://hash.ai/legal/cla).
-2. Once you've signed the CLA and finalized your PR, please ensure any install or build dependencies are removed before doing a 
+2. Once you've signed the CLA and finalized your PR, please ensure any install or build dependencies are removed before doing a
    build.
 3. After submitting your PR, it'll be reviewed by a HASH standard library maintainer. After you have the approval of a maintainer, you may merge the pull request.
 
 ## Contribution requirements
+
 1. All PRs should include tests.
 2. You may contribute functions in either Python or TypeScript, or both.
 
@@ -38,21 +40,21 @@ orientation. You can read more in our [community guidelines](https://hash.ai/leg
 Examples of behavior that contributes to creating a positive environment
 include:
 
-* Using welcoming and inclusive language
-* Being respectful of differing viewpoints and experiences
-* Gracefully accepting constructive criticism
-* Focusing on what is best for the community
-* Showing empathy towards other community members
+- Using welcoming and inclusive language
+- Being respectful of differing viewpoints and experiences
+- Gracefully accepting constructive criticism
+- Focusing on what is best for the community
+- Showing empathy towards other community members
 
 Examples of unacceptable behavior by participants include:
 
-* The use of sexualized language or imagery and unwelcome sexual attention or
+- The use of sexualized language or imagery and unwelcome sexual attention or
 advances
-* Trolling, insulting/derogatory comments, and personal or political attacks
-* Public or private harassment
-* Publishing others' private information, such as a physical or electronic
+- Trolling, insulting/derogatory comments, and personal or political attacks
+- Public or private harassment
+- Publishing others' private information, such as a physical or electronic
   address, without explicit permission
-* Other conduct which could reasonably be considered inappropriate in a
+- Other conduct which could reasonably be considered inappropriate in a
   professional setting
 
 [HASH](https://hash.ai/) reserves the right to remove, edit, or reject comments,
@@ -74,7 +76,6 @@ All complaints will be reviewed and investigated and will result in a response t
 is deemed necessary and appropriate to the circumstances. The project team is
 obligated to maintain confidentiality with regard to the reporter of an incident.
 Further details of specific enforcement policies may be posted separately.
-
 
 ### Attribution
 
