@@ -1,35 +1,36 @@
 use std::collections::HashMap;
 
 use crate::datastore::error::Result;
+use crate::datastore::schema::{FieldScope, FieldSource, RootFieldSpec};
 
 use super::{FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant};
 
 // TODO OS[7] - COMPILE BLOCK - Bring this whole file in line with new FieldSpecs
 
 #[derive(thiserror::Error, Debug)]
-pub enum BehaviorKeyShortJSONError {
-    #[error("Could not find 'keys' field in behavior keys object")]
-    MissingKeysField,
-    #[error("'keys' field in behavior keys object is not an object")]
-    KeysFieldNotObject,
-    #[error("Tried to parse KeySet from non valid json (was expecting Object)")]
-    InvalidBehaviorKeysObjectFormat,
-    #[error("Invalid behavior key value, expected {0}")]
-    InvalidKeyValue(ExpectedbehaviorKeyType),
+pub enum ShortJSONError {
+    #[error("Could not find 'fields' field in input")]
+    MissingFields,
+    #[error("'fields' field in input is not an object")]
+    FieldsIsNotObject,
+    #[error("Tried to parse `FieldSpec`s from invalid json (was expecting an object)")]
+    InvalidFormatForFieldsObject,
+    #[error("Invalid field type representation, expected {0}")]
+    InvalidFieldType(ExpectedFieldType),
     #[error("Any-types are only allowed at the top level")]
     InvalidAnyTypeLevel,
 }
 
 #[derive(Debug)]
-pub enum ExpectedbehaviorKeyType {
+pub enum ExpectedFieldType {
     StringOrCustom,
     String,
     Custom,
 }
 
-impl std::fmt::Display for ExpectedbehaviorKeyType {
+impl std::fmt::Display for ExpectedFieldType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        use ExpectedbehaviorKeyType::{Custom, String, StringOrCustom};
+        use ExpectedFieldType::{Custom, String, StringOrCustom};
         match self {
             StringOrCustom => write!(f, "string or custom type"),
             Custom => write!(f, "custom type"),
@@ -38,8 +39,8 @@ impl std::fmt::Display for ExpectedbehaviorKeyType {
     }
 }
 
-const BEHAVIOR_KEYS_DEFINED_KEY: &str = "defined";
-const BEHAVIOR_KEYS_KEYS_KEY: &str = "keys";
+const DEFINED_KEY: &str = "defined";
+const SPECS_KEY: &str = "keys";
 
 impl FieldType {
     fn from_short_string(
@@ -102,7 +103,7 @@ impl FieldType {
                 "string" => Ok(FieldType::new(FieldTypeVariant::String, is_nullable)),
                 "any" => {
                     if depth != 0 {
-                        return Err(BehaviorKeyShortJSONError::InvalidAnyTypeLevel.into());
+                        return Err(ShortJSONError::InvalidAnyTypeLevel.into());
                     }
                     Ok(FieldType::new(FieldTypeVariant::Serialized, is_nullable))
                 }
@@ -110,10 +111,9 @@ impl FieldType {
                     if let Some(ref key) = definitions.and_then(|defs| defs.get(name)) {
                         Ok(key.field_type.clone())
                     } else {
-                        return Err(BehaviorKeyShortJSONError::InvalidKeyValue(
-                            ExpectedbehaviorKeyType::String,
-                        )
-                        .into());
+                        return Err(
+                            ShortJSONError::InvalidFieldType(ExpectedFieldType::String).into()
+                        );
                     }
                 }
             }
@@ -134,14 +134,14 @@ impl FieldSpec {
                 for (key, value) in o.iter() {
                     struct_items.push(FieldSpec::from_short_json_value(key, value, definitions)?);
                 }
-                Ok(FieldSpec::new_mergeable(
-                    name,
-                    FieldType::new(FieldTypeVariant::Struct(struct_items), false),
-                ))
+
+                let spec = FieldSpec {
+                    name: name.into(),
+                    field_type: FieldType::new(FieldTypeVariant::Struct(struct_items), false),
+                };
+                Ok(spec)
             }
-            _ => Err(
-                BehaviorKeyShortJSONError::InvalidKeyValue(ExpectedbehaviorKeyType::Custom).into(),
-            ),
+            _ => Err(ShortJSONError::InvalidFieldType(ExpectedFieldType::Custom).into()),
         }
     }
 
@@ -154,26 +154,35 @@ impl FieldSpec {
         match value {
             // "key": "string", "key": "boolean?"
             Value::String(s) => {
-                let key_type = FieldType::from_short_string(s, definitions, 0)?;
-                Ok(FieldSpec::new_mergeable(name, key_type))
+                let field_type = FieldType::from_short_string(s, definitions, 0)?;
+                let spec = FieldSpec {
+                    name: name.into(),
+                    field_type,
+                };
+                Ok(spec)
             }
             Value::Object(_) => FieldSpec::from_short_json_object(name, value, definitions),
-            _ => Err(BehaviorKeyShortJSONError::InvalidKeyValue(
-                ExpectedbehaviorKeyType::StringOrCustom,
-            )
-            .into()),
+            _ => Err(ShortJSONError::InvalidFieldType(ExpectedFieldType::StringOrCustom).into()),
         }
     }
 }
 
+struct FieldRootSpec {
+    inner: FieldSpec,
+}
+
 impl FieldSpecMap {
-    pub fn from_short_json(json: serde_json::Value) -> Result<FieldSpecMap> {
+    pub(in crate::datastore) fn from_short_json(
+        json: serde_json::Value,
+        source: FieldSource,
+        scope: FieldScope,
+    ) -> Result<FieldSpecMap> {
         if let serde_json::Value::Object(object_map) = json {
             let mut field_spec_map = FieldSpecMap::default();
             let mut definitions = None;
             let mut map: HashMap<&str, FieldSpec> = HashMap::new();
             if let Some(defined_object_map) = object_map
-                .get(BEHAVIOR_KEYS_DEFINED_KEY)
+                .get(DEFINED_KEY)
                 .and_then(serde_json::Value::as_object)
             {
                 for (key, value) in defined_object_map.iter() {
@@ -184,25 +193,26 @@ impl FieldSpecMap {
                 }
                 definitions = Some(&map);
             }
-            if let Some(value) = object_map.get(BEHAVIOR_KEYS_KEYS_KEY) {
+            if let Some(value) = object_map.get(SPECS_KEY) {
                 if let serde_json::Value::Object(keys_object) = value {
                     for (key, value) in keys_object.iter() {
-                        // TODO use extender
-                        field_spec_map.add(FieldSpec::from_short_json_value(
-                            key,
-                            value,
-                            definitions,
-                        )?)?;
+                        let inner = FieldSpec::from_short_json_value(key, value, definitions)?;
+                        let root = RootFieldSpec {
+                            inner,
+                            scope: scope.clone(),
+                            source: source.clone(),
+                        };
+                        field_spec_map.add(root)?;
                     }
                     Ok(field_spec_map)
                 } else {
-                    Err(BehaviorKeyShortJSONError::KeysFieldNotObject.into())
+                    Err(ShortJSONError::FieldsIsNotObject.into())
                 }
             } else {
-                Err(BehaviorKeyShortJSONError::MissingKeysField.into())
+                Err(ShortJSONError::MissingFields.into())
             }
         } else {
-            Err(BehaviorKeyShortJSONError::InvalidBehaviorKeysObjectFormat.into())
+            Err(ShortJSONError::InvalidFormatForFieldsObject.into())
         }
     }
 }
@@ -237,7 +247,7 @@ mod tests {
                 "complexArrayQux": "[[[number]]]",
             }
         });
-        let key_set = FieldSpecMap::from_short_json(json)
+        let key_set = FieldSpecMap::from_short_json(json, FieldSource::Engine, FieldScope::Agent)
             .expect("KeySet should be able to be created from this JSON");
         // 10 not 9 because we have to special __previous_index field in there too
         assert_eq!(key_set.len(), 10);

@@ -6,6 +6,7 @@ use arrow::error::ArrowError;
 use crate::hash_types::state::AgentStateField;
 use thiserror::Error as ThisError;
 
+use crate::datastore::schema::ShortJSONError;
 use crate::hash_types;
 use std::fmt;
 
@@ -209,6 +210,9 @@ pub enum Error {
 
     #[error("Unexpected undefined command")]
     UnexpectedUndefinedCommand,
+
+    #[error("Field Spec Short JSON repr error: {0}")]
+    ShortJSONError(#[from] ShortJSONError),
 }
 
 impl From<&str> for Error {

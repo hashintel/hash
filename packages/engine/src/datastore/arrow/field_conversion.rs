@@ -8,7 +8,7 @@ use std::collections::HashMap;
 
 use super::prelude::*;
 
-use crate::datastore::schema::FieldType;
+use crate::datastore::schema::{FieldSource, FieldType, RootFieldSpec};
 use crate::datastore::{
     error::Result,
     prelude::*,
@@ -77,20 +77,41 @@ impl FieldType {
     }
 }
 
+impl RootFieldSpec {
+    pub(in crate::datastore) fn get_arrow_field(&self) -> Result<ArrowField> {
+        self.inner
+            .get_arrow_field_with_source(self.source == FieldSource::Engine)
+    }
+}
+
 impl FieldSpec {
     fn is_fixed_size(&self) -> bool {
         self.field_type.is_fixed_size()
     }
 
-    pub fn get_arrow_field(&self) -> Result<ArrowField> {
+    pub(in crate::datastore) fn get_arrow_field_with_source(
+        &self,
+        is_engine_spec: bool,
+    ) -> Result<ArrowField> {
         // This is required because non-nullable user-defined columns
         // are nullable in schemas (not every agent uses that col)
         // while non-nullable built-ins must be nullable
-        let base_nullability = if self.is_built_in() {
+        let base_nullability = if is_engine_spec {
             self.field_type.nullable
         } else {
             true
         };
+        Ok(ArrowField::new(
+            &self.name,
+            self.field_type.get_arrow_data_type()?,
+            base_nullability,
+        ))
+    }
+
+    pub fn get_arrow_field(&self) -> Result<ArrowField> {
+        // Direct calls convert nullability to true, since it's assumed they
+        // don't come from the core engine.
+        let base_nullability = true;
         Ok(ArrowField::new(
             &self.name,
             self.field_type.get_arrow_data_type()?,
@@ -107,27 +128,31 @@ impl FieldSpecMap {
         let mut any_types = vec![];
 
         for (_key, field_spec) in self.iter() {
-            if field_spec.is_fixed_size() {
-                partitioned_keys.insert(0, field_spec);
+            let key = field_spec.to_key()?.value().to_string();
+            if field_spec.inner.field_type.is_fixed_size() {
+                partitioned_keys.insert(0, (field_spec, key));
                 fixed_size_no += 1;
             } else {
-                partitioned_keys.push(field_spec);
+                partitioned_keys.push((field_spec, key));
             }
 
-            if matches!(field_spec.key_type.variant, FieldTypeVariant::Serialized) {
-                any_types.push(field_spec.name.clone())
+            if matches!(
+                field_spec.inner.field_type.variant,
+                FieldTypeVariant::Serialized
+            ) {
+                any_types.push(key.clone())
             }
         }
 
         // Sort both partitions by key names
-        let name_sort = |a: &&FieldSpec, b: &&FieldSpec| a.name.cmp(&b.name);
+        let name_sort = |a: &(&RootFieldSpec, String), b: &(&RootFieldSpec, String)| a.1.cmp(&b.1);
         partitioned_keys[0..fixed_size_no].sort_by(name_sort);
 
         // Ensure our special key is in the right place
-        if &partitioned_keys[PREVIOUS_INDEX_COLUMN_INDEX].name != PREVIOUS_INDEX_COLUMN_NAME {
+        if &partitioned_keys[PREVIOUS_INDEX_COLUMN_INDEX].1 != PREVIOUS_INDEX_COLUMN_NAME {
             if let Some(cur_index) = partitioned_keys[0..fixed_size_no]
                 .iter()
-                .position(|b| b.name == PREVIOUS_INDEX_COLUMN_NAME)
+                .position(|b| b.1 == PREVIOUS_INDEX_COLUMN_NAME)
             {
                 partitioned_keys[0..fixed_size_no].swap(cur_index, PREVIOUS_INDEX_COLUMN_INDEX)
             } else {
@@ -139,7 +164,7 @@ impl FieldSpecMap {
         partitioned_keys[fixed_size_no..].sort_by(name_sort);
         let nullabilities = partitioned_keys
             .iter()
-            .map(|key| (key.key_type.nullable as usize).to_string())
+            .map(|spec| (spec.0.inner.field_type.nullable as usize).to_string())
             .collect::<Vec<_>>();
 
         let mut metadata = HashMap::with_capacity(1);
@@ -148,7 +173,7 @@ impl FieldSpecMap {
         Ok(ArrowSchema::new_with_metadata(
             partitioned_keys
                 .iter()
-                .map(|k| k.get_arrow_field())
+                .map(|k| k.0.get_arrow_field())
                 .collect::<Result<_>>()?,
             metadata,
         ))
@@ -183,7 +208,7 @@ pub mod tests {
 
     #[test]
     fn get_schema() -> Result<()> {
-        let mut field_spec_map = FieldSpecMap::default()?;
+        let mut field_spec_map = FieldSpecMap::default();
         // TODO OS [3] - RUNTIME BLOCK - Bring in line with accessors
         panic!();
         // field_spec_map
@@ -251,8 +276,8 @@ pub mod tests {
         //     meta,
         // );
 
-        let schema = field_spec_map.get_arrow_schema().unwrap();
+        // let schema = field_spec_map.get_arrow_schema().unwrap();
         // assert_eq!(schema, target);
-        Ok(())
+        // Ok(())
     }
 }

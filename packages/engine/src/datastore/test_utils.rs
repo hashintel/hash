@@ -136,7 +136,11 @@ pub fn gen_schema_and_test_agents(
     fields.add(AgentStateField::AgentId.try_into()?)?;
     fields.add(AgentStateField::AgentName.try_into()?)?;
 
-    fields.union(FieldSpecMap::from_short_json(JSON_KEYS.clone())?)?;
+    fields.union(FieldSpecMap::from_short_json(
+        JSON_KEYS.clone(),
+        FieldSource::Engine,
+        FieldScope::Agent,
+    )?)?;
 
     let schema = Arc::new(AgentSchema::from_field_spec_map(fields)?);
 

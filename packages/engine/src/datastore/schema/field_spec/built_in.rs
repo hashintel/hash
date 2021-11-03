@@ -2,7 +2,7 @@ use crate::hash_types::state::AgentStateField;
 
 // These are columns that are included in the schema even if the user opts out
 
-pub const REQUIRED: [AgentStateField; 7] = [
+pub const REQUIRED: [AgentStateField; 4] = [
     AgentStateField::AgentId,
     AgentStateField::AgentName,
     AgentStateField::Position,

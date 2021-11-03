@@ -15,6 +15,9 @@ pub enum Error {
 
     #[error("Deserialization error: {0}")]
     FromSerde(#[from] serde_json::Error),
+
+    #[error("Datastore error: {0}")]
+    Datastore(#[from] crate::datastore::Error),
 }
 
 impl From<&str> for Error {
