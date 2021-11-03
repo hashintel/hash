@@ -45,9 +45,6 @@ export function getFormCopy(entityType?: ProviderNames): {
   };
 }
 
-// const kebabCase = (str: string) =>
-//   str.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
-
 export const toCSSText = (styles: CSSStyleDeclaration): string =>
   Object.entries(styles)
     .map(([prop, value]) => `${kebabCase(prop)}:${value}`)
@@ -62,3 +59,14 @@ export const fromCSSTextToObj = (cssText: string) =>
         return rule.split(":").map((item) => item.trim());
       }),
   ) as CSSStyleDeclaration;
+
+export const dimensionInRange = (
+  value: number | undefined,
+  minValue: number,
+  maxValue: number | undefined,
+) => {
+  if (!value) return false;
+  if (!maxValue) return value >= minValue;
+
+  return value >= minValue && value <= maxValue;
+};

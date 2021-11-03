@@ -3,7 +3,7 @@ import { tw } from "twind";
 import { throttle } from "lodash";
 import { MIN_WIDTH, MIN_HEIGHT } from "../constants";
 import { CornerResize } from "../svgs/CornerResize";
-import { fromCSSTextToObj, toCSSText } from "../utils";
+import { dimensionInRange, fromCSSTextToObj, toCSSText } from "../utils";
 
 type ResizeBlockProps = {
   width: number | undefined;
@@ -41,17 +41,6 @@ const BLOCK_RESIZER_POSITIONS = [
  * @todo this component is a candidate for the hash-ui package
  *  and should be imported from there
  */
-
-const dimensionInRange = (
-  value: number | undefined,
-  minValue: number,
-  maxValue: number | undefined,
-) => {
-  if (!value) return false;
-  if (!maxValue) return value >= minValue;
-
-  return value >= minValue && value <= maxValue;
-};
 
 export const ResizeBlock: React.FC<ResizeBlockProps> = ({
   children,
