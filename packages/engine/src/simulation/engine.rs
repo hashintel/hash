@@ -175,7 +175,7 @@ impl Engine {
         commands.merge(self.comms.take_create_remove_commands()?);
         commands.verify(&self.config.sim.store.agent_schema)?;
 
-        state.create_remove(commands, &mut self.config)?;
+        state.create_remove(commands, &self.config)?;
         Ok(())
     }
 

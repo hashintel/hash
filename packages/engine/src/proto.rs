@@ -57,8 +57,7 @@ impl EngineStatus {
     pub fn kind(&self) -> &'static str {
         match self {
             EngineStatus::Started => "Started",
-            // TODO OS - COMPILE BLOCK - No such enum variant RunnerStatus
-            EngineStatus::RunnerStatus(_) => "RunnerStatus",
+            EngineStatus::SimStatus(_) => "SimStatus",
             EngineStatus::Exit => "Exit",
             EngineStatus::ProcessError(_) => "ProcessError",
             EngineStatus::Stopping => "Stopping",

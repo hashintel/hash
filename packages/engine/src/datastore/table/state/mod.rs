@@ -195,12 +195,12 @@ impl ExState {
     pub fn create_remove(
         &mut self,
         commands: CreateRemoveCommands,
-        config: &SimRunConfig<ExperimentRunBase>,
+        config: &Arc<SimRunConfig<ExperimentRunBase>>,
     ) -> Result<()> {
         let mut planner = CreateRemovePlanner::new(commands, config.clone())?;
         let plan = planner.run(self)?;
         *self.num_agents_mut() = plan.num_agents_after_execution;
-        let removed_ids = plan.execute(self.agent_pool_mut(), &config.meta)?;
+        let removed_ids = plan.execute(self.agent_pool_mut(), &config)?;
 
         // Register all batches that were removed
         removed_ids

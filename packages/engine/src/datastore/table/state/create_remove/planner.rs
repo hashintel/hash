@@ -1,13 +1,13 @@
-use std::ops::Deref;
 use std::sync::Arc;
 
 use crate::datastore::table::pool::BatchPool;
+use crate::datastore::table::rwlock_ext::TryAcquire;
 use crate::proto::ExperimentRunBase;
 use crate::SimRunConfig;
 use crate::{
     datastore::{
         batch::migration::{BufferActions, IndexRange, RangeActions},
-        error::{Error, Result},
+        error::Result,
         prelude::*,
         table::{pool::agent::AgentPool, state::ReadState},
     },
@@ -55,10 +55,7 @@ impl CreateRemovePlanner {
             .map(|(batch_index, batch)| {
                 PendingBatch::from_batch(
                     batch_index,
-                    batch
-                        .try_read()
-                        .ok_or(|| Error::from("failed to acquire read lock"))?
-                        .deref(),
+                    batch.try_read_deref()?,
                     &mut self.commands.remove_ids,
                 )
             })

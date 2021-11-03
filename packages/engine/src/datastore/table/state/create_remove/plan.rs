@@ -1,16 +1,18 @@
-use std::sync::{Arc, RwLock};
+use parking_lot::RwLock;
+use std::sync::Arc;
 
 use rayon::prelude::*;
 
 use super::action::{CreateActions, ExistingGroupBufferActions};
 
-use crate::config::ExperimentConfig;
 use crate::datastore::{
     error::{Error, Result},
     prelude::*,
     table::pool::agent::AgentPool,
+    table::rwlock_ext::TryAcquire,
 };
 use crate::proto::ExperimentRunBase;
+use crate::SimRunConfig;
 
 #[derive(Debug)]
 pub struct MigrationPlan<'a> {
@@ -34,17 +36,15 @@ impl<'a> MigrationPlan<'a> {
     pub fn execute(
         self,
         state: &mut AgentPool,
-        meta: &ExperimentConfig<ExperimentRunBase>,
+        config: &SimRunConfig<ExperimentRunBase>,
     ) -> Result<Vec<String>> {
         // log::debug!("Updating");
-        let mut mut_batches = state.mut_batches();
+        let mut mut_batches: &mut Vec<Arc<parking_lot::RwLock<AgentBatch>>> = state.mut_batches();
         self.existing_mutations
             .par_iter()
             .zip_eq(mut_batches.par_iter_mut())
             .try_for_each::<_, Result<()>>(|(action, batch)| {
-                let write_batch = &mut batch
-                    .try_write()
-                    .ok_or(|| Error::from("failed to acquire write lock"))?;
+                let write_batch = batch.try_write_deref()?;
                 match action {
                     ExistingGroupBufferActions::Persist { affinity } => {
                         write_batch.set_affinity(*affinity);
@@ -53,7 +53,7 @@ impl<'a> MigrationPlan<'a> {
                         // Do nothing yet
                     }
                     ExistingGroupBufferActions::Update { actions, affinity } => {
-                        actions.flush(write_batch)?;
+                        actions.flush(&mut write_batch)?;
                         write_batch.set_affinity(*affinity);
                     }
                     ExistingGroupBufferActions::Undefined => {
@@ -77,7 +77,7 @@ impl<'a> MigrationPlan<'a> {
                             mut_batches
                                 .swap_remove(batch_index)
                                 .try_read()
-                                .ok_or(|| Error::from("failed to get read lock for batch"))?
+                                .ok_or_else(|| Error::from("failed to get read lock for batch"))?
                                 .get_batch_id()
                                 .to_string(),
                         );
@@ -94,8 +94,11 @@ impl<'a> MigrationPlan<'a> {
             .map(|action| {
                 let buffer_actions = action.actions;
                 let new_batch = buffer_actions
-                    // TODO OS: Fix - no field agent_schema
-                    .new_batch(&meta.agent_schema, &meta.run_id, action.affinity)
+                    .new_batch(
+                        &config.sim.store.agent_schema,
+                        &config.exp.run_id,
+                        action.affinity,
+                    )
                     .map_err(Error::from)?;
                 Ok(Arc::new(RwLock::new(new_batch)))
             })

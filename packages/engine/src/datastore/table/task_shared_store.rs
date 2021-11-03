@@ -173,27 +173,25 @@ impl TaskSharedStore {
     ) -> Result<(Vec<(Worker, Self)>, SplitConfig)> {
         let reads_state = self.reads_state();
         let writes_state = self.writes_state();
-
-        let split = if reads_state && distribution.single_read_access {
-            // We take read access to state, but need to distribute
-            // each batch to a single worker
-            // TODO
-            todo!()
-        } else if writes_state {
-            // We take write access to state so we need to distribute
-            // each batch to a single worker
-            // TODO
-            todo!()
-        } else {
-            // No access to state or duplicate read access to state, trivial split:
-            // Give every worker the same access
-            worker_list
-                .iter()
-                .map(|worker| Ok((worker.clone(), self.try_clone()?)))
-                .collect::<Result<_>>()? // TODO split config
-        };
-
         todo!();
+        // let split = if reads_state && distribution.single_read_access {
+        //     // We take read access to state, but need to distribute
+        //     // each batch to a single worker
+        //     // TODO
+        //     todo!()
+        // } else if writes_state {
+        //     // We take write access to state so we need to distribute
+        //     // each batch to a single worker
+        //     // TODO
+        //     todo!()
+        // } else {
+        //     // No access to state or duplicate read access to state, trivial split:
+        //     // Give every worker the same access
+        //     worker_list
+        //         .iter()
+        //         .map(|worker| Ok((worker.clone(), self.try_clone()?)))
+        //         .collect::<Result<_>>()? // TODO split config
+        // };
     }
 }
 

@@ -4,10 +4,7 @@ mod response;
 mod writer;
 
 use crate::{
-    datastore::{
-        batch::iterators,
-        table::{state::ReadState},
-    },
+    datastore::{batch::iterators, table::state::ReadState},
     simulation::comms::package::PackageComms,
 };
 

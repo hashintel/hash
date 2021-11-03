@@ -1,14 +1,14 @@
-use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
+use parking_lot::{RwLock, RwLockReadGuard};
 use rayon::iter::{
     IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,
 };
 
 use crate::datastore::{batch, prelude::*, table::references::AgentMessageReference, UUID_V4_LEN};
 
+use crate::datastore::table::rwlock_ext::TryAcquire;
 use crate::proto::ExperimentRunBase;
 use crate::SimRunConfig;
-use std::ops::DerefMut;
-use std::{ops::Deref, sync::Arc};
+use std::sync::Arc;
 
 use super::{agent::AgentPool, BatchPool};
 
@@ -38,7 +38,7 @@ impl MessagePool {
         let read_batches = self
             .batches()
             .iter()
-            .map(|batch| batch.try_read_deref())
+            .map(|batch| batch.try_read_res())
             .collect::<Result<_>>()?;
         Ok(MessagePoolRead {
             batches: read_batches,
@@ -90,39 +90,6 @@ impl MessagePool {
                 })?;
         }
         Ok(())
-    }
-}
-
-trait TryAcquire<K> {
-    fn try_read_deref(&self) -> Result<&K>;
-    fn try_write_deref(&mut self) -> Result<&mut K>;
-    fn try_read_res<'a>(&self) -> Result<RwLockReadGuard<'a, K>>;
-    fn try_write_res<'a>(&mut self) -> Result<RwLockWriteGuard<'a, K>>;
-}
-
-impl<K> TryAcquire<K> for RwLock<K> {
-    fn try_read_deref(&self) -> Result<&K> {
-        self.try_read()
-            .map(|res| res.deref())
-            .ok_or_else(|| Error::from("Failed to acquire read lock"))
-    }
-
-    fn try_write_deref(&mut self) -> Result<&mut K> {
-        self.try_write()
-            .map(|mut res| res.deref_mut())
-            .ok_or_else(|| Error::from("Failed to acquire write lock"))
-    }
-
-    fn try_read_res<'a>(&self) -> Result<RwLockReadGuard<'a, K>> {
-        // TODO OS: Fix - cannot infer an appropriate lifetime for autoref
-        self.try_read()
-            .ok_or_else(|| Error::from("Failed to acquire read lock"))
-    }
-
-    fn try_write_res<'a>(&mut self) -> Result<RwLockWriteGuard<'a, K>> {
-        // TODO OS: Fix - cannot infer an appropriate lifetime for autoref
-        self.try_write()
-            .ok_or_else(|| Error::from("Failed to acquire write lock"))
     }
 }
 

@@ -1,7 +1,6 @@
 use thiserror::Error as ThisError;
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
-// TODO OS - Add custom error types beyond unique
 #[derive(ThisError, Debug)]
 pub enum Error {
     #[error("Config error: {0}")]
@@ -15,9 +14,6 @@ pub enum Error {
 
     #[error("Deserialization error: {0}")]
     FromSerde(#[from] serde_json::Error),
-
-    #[error("Datastore error: {0}")]
-    Datastore(#[from] crate::datastore::Error),
 }
 
 impl From<&str> for Error {
