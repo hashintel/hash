@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use serde_json::Value;
 
-use crate::config;
 use crate::datastore::{
     batch::iterators,
     table::{pool::agent::AgentPool, state::ReadState},
@@ -37,11 +36,11 @@ impl PackageCreator for Creator {
         &self,
         config: &Arc<SimRunConfig<ExperimentRunBase>>,
         _comms: PackageComms,
-    ) -> Result<Box<dyn InitPackage>> {
+    ) -> Result<Box<dyn ContextPackage>> {
         let neighbors = Neighbors {
             topology: Arc::new(
                 TopologyConfig::create_from_globals(&config.sim.globals)
-                    .unwrap_or_else(|| TopologyConfig::default()),
+                    .unwrap_or_else(|_| TopologyConfig::default()),
             ),
         };
         Ok(Box::new(neighbors))

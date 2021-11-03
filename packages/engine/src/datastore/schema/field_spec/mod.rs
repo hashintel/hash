@@ -149,7 +149,7 @@ impl FieldKey {
 
 // TODO review pub declarations of struct members
 /// A single specification of a field
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(new, Clone, PartialEq, Eq, Hash)]
 pub struct FieldSpec {
     pub name: String,
     pub field_type: FieldType,

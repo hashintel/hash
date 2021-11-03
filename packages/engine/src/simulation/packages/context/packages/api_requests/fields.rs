@@ -4,9 +4,9 @@ use super::*;
 
 fn api_response_fields() -> Vec<FieldSpec> {
     vec![
-        FieldSpec::new("from", FieldType::new(String, false)),
-        FieldSpec::new("type", FieldType::new(String, false)),
-        FieldSpec::new("data", FieldType::new(String, true)),
+        FieldSpec::new("from".into(), FieldType::new(String, false)),
+        FieldSpec::new("type".into(), FieldType::new(String, false)),
+        FieldSpec::new("data".into(), FieldType::new(String, true)),
     ]
 }
 

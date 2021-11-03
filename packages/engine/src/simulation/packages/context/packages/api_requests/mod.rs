@@ -6,7 +6,7 @@ mod writer;
 use crate::{
     datastore::{
         batch::iterators,
-        table::{context::ReadContext, state::ReadState},
+        table::{state::ReadState},
     },
     simulation::comms::package::PackageComms,
 };
@@ -34,7 +34,7 @@ impl PackageCreator for Creator {
         &self,
         config: &Arc<SimRunConfig<ExperimentRunBase>>,
         _comms: PackageComms,
-    ) -> Result<Box<dyn InitPackage>> {
+    ) -> Result<Box<dyn ContextPackage>> {
         let custom_message_handlers = custom_message_handlers_from_properties(&config.sim.globals)?;
         let api_response_arrow_fields = fields::api_response_arrow_fields()?;
         Ok(Box::new(APIRequests {
