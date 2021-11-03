@@ -56,3 +56,15 @@ impl<E: ExperimentRunRepr> Config<E> {
         })
     }
 }
+
+impl<E: ExperimentRunRepr> From<&Config<E>> for Config<ExperimentRunBase> {
+    fn from(value: &Config<E>) -> Self {
+        Self {
+            run_id: value.run_id.clone(),
+            packages: value.packages.clone(),
+            run: Arc::new(value.run.as_ref().into()),
+            worker_pool: value.worker_pool.clone(),
+            base_globals: value.base_globals.clone(),
+        }
+    }
+}

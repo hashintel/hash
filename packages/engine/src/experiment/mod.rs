@@ -10,6 +10,7 @@ use crate::{config::ExperimentConfig, proto};
 pub use error::{Error, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as SerdeValue;
+use std::sync::Arc;
 use tokio::task::JoinHandle;
 
 use self::controller::comms::exp_pkg_update::ExpPkgUpdateRecv;
@@ -96,21 +97,22 @@ pub enum ExperimentControl {
 }
 
 pub fn init_exp_package(
-    experiment_config: &ExperimentConfig<ExperimentRun>,
+    experiment_config: Arc<ExperimentConfig<ExperimentRun>>,
     exp_package_config: ExperimentPackageConfig,
     pkg_to_exp: ExpPkgCtlSend,
     pkg_from_exp: ExpPkgUpdateRecv,
 ) -> Result<(JoinHandle<Result<()>>, Option<UpdateRequest>)> {
     let (future, request) = match exp_package_config {
         ExperimentPackageConfig::Simple(config) => {
-            // TODO OS: Fix - expected `&Arc<Config<ExperimentRun>>`, found `&&Config<ExperimentRun>`
             let pkg = package::simple::SimpleExperiment::new(&experiment_config, config)?;
             let future = tokio::spawn(async move { pkg.run(pkg_to_exp, pkg_from_exp).await });
             (future, None)
         }
         ExperimentPackageConfig::SingleRun(config) => {
-            // TODO OS: Fix - expected `&Arc<Config<ExperimentRun>>`, found `&&Config<ExperimentRun>`
-            let pkg = package::single::SingleRunExperiment::new(&experiment_config, config)?;
+            let pkg = package::single::SingleRunExperiment::new(
+                &Arc::new(experiment_config.as_ref().into()),
+                config,
+            )?;
             let future = tokio::spawn(async move { pkg.run(pkg_to_exp, pkg_from_exp).await });
             (future, None)
         }

@@ -34,7 +34,7 @@ impl MessagePool {
     }
 
     pub fn read(&self) -> Result<MessagePoolRead<'_>> {
-        // TODO OS: Fix - Cannot infer type for collect
+        // TODO OS - COMPILE BLOCK - A value of type `Vec<parking_lot::lock_api::RwLockReadGuard<'_, parking_lot::RawRwLock, datastore::batch::message::Batch>>` cannot be built from an iterator over elements of type `&datastore::batch::message::Batch`
         let read_batches = self
             .batches()
             .iter()

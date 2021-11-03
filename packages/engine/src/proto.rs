@@ -315,6 +315,12 @@ impl ExperimentRunRepr for ExtendedExperimentRun {
     }
 }
 
+impl<E: ExperimentRunRepr> From<&E> for ExperimentRunBase {
+    fn from(value: &E) -> Self {
+        value.base().clone()
+    }
+}
+
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct ProcessedExperimentRun {
     pub experiment: ExperimentRun,

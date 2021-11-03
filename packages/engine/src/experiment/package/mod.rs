@@ -34,7 +34,7 @@ impl ExperimentPackage {
         let (output_sender, exp_pkg_output_recv) =
             super::controller::comms::exp_pkg_update::new_pair();
         let (join_handle, output_request) = init_exp_package(
-            &exp_config,
+            exp_config.clone(),
             package_config.clone(),
             ctl_send,
             exp_pkg_output_recv,

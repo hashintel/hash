@@ -83,6 +83,7 @@ impl SimpleExperiment {
                 }
             }
 
+            // TODO OS - COMPILE BLOCK - use of partially moved value: `maybe_step_progress`
             let step_progress = maybe_step_progress
                 .ok_or_else(|| Error::MissingSimulationRun(response.sim_id.clone()))?;
 

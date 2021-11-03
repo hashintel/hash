@@ -18,6 +18,9 @@ pub enum Error {
     #[error("Datastore Error: {0}")]
     DataStore(#[from] crate::datastore::Error),
 
+    #[error("Controller Error: {0}")]
+    Controller(#[from] super::controller::Error),
+
     #[error("Worker Pool error: {0}")]
     WorkerPool(#[from] crate::workerpool::Error),
 
