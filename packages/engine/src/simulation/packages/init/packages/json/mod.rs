@@ -1,4 +1,5 @@
 use super::super::*;
+use crate::proto::InitialStateName;
 use crate::simulation::{Error, Result};
 use serde_json::Value;
 
@@ -16,9 +17,15 @@ impl PackageCreator for Creator {
         config: &Arc<SimRunConfig<ExperimentRunBase>>,
         _comms: PackageComms,
     ) -> Result<Box<dyn InitPackage>> {
-        Ok(Box::new(Package {
-            initial_state_src: config.exp.run.project_base.initial_state.src.clone(),
-        }) as Box<dyn InitPackage>)
+        match &config.exp.run.project_base.initial_state.name {
+            InitialStateName::InitJson | InitialStateName::InitJs => Ok(Box::new(Package {
+                initial_state_src: config.exp.run.project_base.initial_state.src.clone(),
+            })
+                as Box<dyn InitPackage>),
+            name => {
+                return Err(Error::from(format!("Trying to create a JSON init package but the init file didn't end in .json: {:?}", name)));
+            }
+        }
     }
 }
 

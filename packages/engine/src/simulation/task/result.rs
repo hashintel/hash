@@ -1,3 +1,4 @@
+use crate::simulation::packages::init::InitTaskResult;
 use enum_dispatch::enum_dispatch;
 
 use super::prelude::*;
@@ -10,7 +11,7 @@ pub enum TaskResult {
     OutputTaskResult,
 }
 
-// TODO Documentation
+// TODO OS - Documentation
 pub enum TaskResultOrCancelled {
     Result(TaskResult),
     Cancelled,

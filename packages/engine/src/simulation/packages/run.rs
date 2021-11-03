@@ -89,7 +89,7 @@ impl StepPackages {
 impl StepPackages {
     pub fn empty_context(
         &self,
-        experiment_config: &ExperimentConfig<ExperimentRunBase>,
+        experiment_config: &SimRunConfig<ExperimentRunBase>,
         num_agents: usize,
     ) -> Result<Context> {
         let columns = self
@@ -99,8 +99,8 @@ impl StepPackages {
             .collect::<Result<Vec<_>>>()?;
         let context = Context::new_from_columns(
             columns,
-            experiment_config.store.clone(),
-            &experiment_config.run_id,
+            experiment_config.sim.store.clone(),
+            &experiment_config.exp.run_id,
             vec![],
         )?;
         Ok(context)

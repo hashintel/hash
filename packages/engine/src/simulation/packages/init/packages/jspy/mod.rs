@@ -1,3 +1,4 @@
+use crate::proto::{InitialState, InitialStateName};
 use crate::simulation::packages::init::packages::jspy::js::JsInitTask;
 use crate::simulation::packages::init::packages::jspy::py::PyInitTask;
 use crate::simulation::task::msg::TaskMessage;
@@ -33,26 +34,21 @@ impl PackageCreator for Creator {
         config: &Arc<SimRunConfig<ExperimentRunBase>>,
         comms: PackageComms,
     ) -> Result<Box<dyn InitPackage>> {
-        // TODO: We're going to have to do some match at a higher level to decide if json or jspy, can this information be passed in
-        let initial_state_name = &config.exp.run.project_base.initial_state.name;
-        let language_target = if initial_state_name.ends_with(".js") {
-            LanguageTarget::Javascript
-        } else if initial_state_name.ends_with(".py") {
-            LanguageTarget::Python
-        } else {
-            return Err(Error::from(format!("Trying to create a JS/Python init package but the initial state source didn't end in '.js' or '.py': {:?}", initial_state_name)));
-        };
-        Ok(Box::new(Package {
-            language: language_target,
-            initial_state_src: config.exp.run.project_base.initial_state.src.clone(),
-            comms,
-        }) as Box<dyn InitPackage>)
+        match &config.exp.run.project_base.initial_state.name {
+            InitialStateName::InitPy | InitialStateName::InitJs => Ok(Box::new(Package {
+                initial_state: config.exp.run.project_base.initial_state.clone(),
+                comms,
+            })
+                as Box<dyn InitPackage>),
+            name => {
+                return Err(Error::from(format!("Trying to create a JS/Python init package but the initial state source didn't end in '.js' or '.py': {:?}", name)));
+            }
+        }
     }
 }
 
 pub struct Package {
-    language: LanguageTarget,
-    initial_state_src: String,
+    initial_state: InitialState,
     comms: PackageComms,
 }
 
@@ -72,19 +68,25 @@ impl GetWorkerStartMsg for Package {
 #[async_trait]
 impl InitPackage for Package {
     async fn run(&mut self) -> Result<Vec<Agent>> {
-        let task: InitTask = match self.language {
-            LanguageTarget::Python => PyInitTask {
-                initial_state_source: self.initial_state_src.clone(),
+        let task: InitTask = match &self.initial_state.name {
+            InitialStateName::InitPy => PyInitTask {
+                initial_state_source: self.initial_state.src.clone(),
             }
             .into(),
-            LanguageTarget::Javascript => JsInitTask {
-                initial_state_source: self.initial_state_src.clone(),
+            InitialStateName::InitJs => JsInitTask {
+                initial_state_source: self.initial_state.src.clone(),
             }
             .into(),
+            name => {
+                // should be unreachable
+                return Err(Error::from(format!("Trying to run an init package for JS/Py but the init source wasn't .js or .py: {:?}", name)));
+            }
         };
 
         let active_task = self.comms.new_task(task.into(), Default::default()).await?;
-        let task_result: JsPyInitTaskResult = active_task.drive_to_completion().await?.into();
+        let task_result = JsPyInitTaskResult::try_from(InitTaskResult::try_from(
+            active_task.drive_to_completion().await?,
+        )?)?;
         match task_result {
             JsPyInitTaskResult::Ok { agent_json } => {
                 serde_json::from_str(&agent_json).map_err(|e| {
@@ -140,10 +142,11 @@ impl Into<TaskResult> for FailedMessage {
 
 /// Common implementation of WorkerHandler trait "into_result" method to be used by JS and Py impls
 fn _into_result(msg: TaskMessage) -> SimulationResult<TaskResult> {
-    let init_task_message = JsPyInitTaskMessage::try_from(InitTaskMessage::try_from(msg)?)?;
-    if let Ok(success_message) = TryInto::<SuccessMessage>::try_into(init_task_message.clone()) {
+    let js_py_init_task_msg =
+        TryInto::<JsPyInitTaskMessage>::try_into(TryInto::<InitTaskMessage>::try_into(msg)?)?;
+    if let Ok(success_message) = TryInto::<SuccessMessage>::try_into(js_py_init_task_msg.clone()) {
         Ok(success_message.into())
-    } else if let Ok(_) = TryInto::<FailedMessage>::try_into(init_task_message) {
+    } else if let Ok(_) = TryInto::<FailedMessage>::try_into(js_py_init_task_msg) {
         Err(Error::from(format!(
             "Javascript State Initialisation Task failed"
         )))

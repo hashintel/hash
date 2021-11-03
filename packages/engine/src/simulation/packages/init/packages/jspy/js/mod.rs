@@ -10,6 +10,7 @@ use crate::simulation::task::Task;
 use crate::simulation::Result as SimulationResult;
 use crate::worker::runner::comms::MessageTarget;
 
+#[derive(Clone, Debug)]
 pub struct JsInitTask {
     pub initial_state_source: String,
 }
@@ -21,7 +22,7 @@ impl GetTaskArgs for JsInitTask {
 }
 
 impl WorkerHandler for JsInitTask {
-    fn start_message(&self, _task: Task) -> SimulationResult<TargetedTaskMessage> {
+    fn start_message(&self) -> SimulationResult<TargetedTaskMessage> {
         let init_task_msg: JsPyInitTaskMessage = StartMessage {
             initial_state_source: self.initial_state_source.clone(),
         }

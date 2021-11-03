@@ -12,6 +12,7 @@ use crate::simulation::packages::{
 use enum_dispatch::enum_dispatch;
 use lazy_static::lazy_static;
 use strum_macros::IntoStaticStr;
+use crate::simulation::packages::name::PackageName;
 
 /// All output package names are registered in this enum
 #[derive(Debug, Clone, PartialEq, Eq, Hash, IntoStaticStr)]
@@ -22,7 +23,7 @@ pub enum Name {
 
 #[derive(Clone)]
 pub struct OutputPackagesSimConfig {
-    pub map: HashMap<Name, serde_json::Value>,
+    pub map: HashMap<PackageName, serde_json::Value>,
 }
 
 #[enum_dispatch(OutputRepr)]

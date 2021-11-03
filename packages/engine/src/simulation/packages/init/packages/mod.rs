@@ -32,6 +32,7 @@ pub enum InitTask {
 }
 
 /// All init package task messages are registered in this enum
+#[enum_dispatch]
 pub enum InitTaskMessage {
     JsPyInitTaskMessage,
 }

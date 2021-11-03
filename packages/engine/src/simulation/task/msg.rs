@@ -1,12 +1,11 @@
 use enum_dispatch::enum_dispatch;
 use serde::{Deserialize, Serialize};
 
+use super::prelude::*;
 use crate::simulation::packages::PackageType;
 use crate::{
     simulation::packages::id::PackageId, types::TaskID, worker::runner::comms::MessageTarget,
 };
-
-use super::prelude::*;
 
 #[enum_dispatch]
 #[derive(Debug, Serialize, Deserialize)]

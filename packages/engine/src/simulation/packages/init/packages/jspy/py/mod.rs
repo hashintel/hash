@@ -19,7 +19,7 @@ impl GetTaskArgs for PyInitTask {
 }
 
 impl WorkerHandler for PyInitTask {
-    fn start_message(&self, _task: Task) -> SimulationResult<TargetedTaskMessage> {
+    fn start_message(&self) -> SimulationResult<TargetedTaskMessage> {
         SimulationResult::Ok(TargetedTaskMessage {
             target: MessageTarget::Python,
             payload: StartMessage {
