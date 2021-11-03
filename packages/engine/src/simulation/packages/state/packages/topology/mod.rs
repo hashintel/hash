@@ -27,6 +27,7 @@ impl PackageCreator for Creator {
         &self,
         config: &Arc<SimRunConfig<ExperimentRunBase>>,
         _comms: PackageComms,
+        accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn Package>> {
         let topology = Topology {
             config: Arc::new(

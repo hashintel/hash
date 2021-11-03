@@ -16,6 +16,7 @@ pub use crate::config::Globals;
 
 use super::{deps::Dependencies, ext_traits::GetWorkerStartMsg, prelude::*};
 
+use crate::datastore::schema::accessor::FieldSpecMapAccessor;
 use crate::proto::ExperimentRunBase;
 pub use packages::{Name, StateTask, StateTaskMessage, StateTaskResult, PACKAGES};
 
@@ -30,6 +31,7 @@ pub trait PackageCreator: Sync {
         &self,
         config: &Arc<SimRunConfig<ExperimentRunBase>>,
         comms: PackageComms,
+        accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn Package>>;
 
     /// Get the package names that this package depends on.

@@ -1,11 +1,18 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc};
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct AnalysisFinalOutput {
+    pub inner: HashMap<Arc<String>, Vec<AnalysisSingleOutput>>,
+}
+
+// Output for a single step
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct AnalysisOutput {
     pub inner: HashMap<Arc<String>, AnalysisSingleOutput>,
 }
 
-#[derive(Serialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum AnalysisSingleOutput {
     Number(Option<f64>),
     Vec(Option<Vec<Option<f64>>>),

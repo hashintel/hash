@@ -5,7 +5,7 @@ use float_cmp::approx_eq;
 use crate::datastore::batch::iterators::agent::{
     bool_iter, exists_iter, f64_iter, json_serialized_value_iter, json_value_iter_cols, str_iter,
 };
-use crate::datastore::schema::state::AgentSchema;
+use crate::datastore::schema::accessor::{FieldSpecMapAccessor, GetFieldSpec};
 use crate::datastore::schema::FieldTypeVariant;
 use crate::simulation::packages::output::packages::analysis::analyzer::{
     AnalysisOperationRepr, ComparisonRepr,
@@ -23,7 +23,7 @@ use super::{
 
 fn index_iterator_f64_filter(
     operations: &[AnalysisOperationRepr],
-    agent_schema: &AgentSchema,
+    accessor: &FieldSpecMapAccessor,
     field: String,
     comparison: &ComparisonRepr,
     float: f64,
@@ -31,42 +31,42 @@ fn index_iterator_f64_filter(
     match comparison {
         ComparisonRepr::Eq => apply_index_filter_f64!(
             operations,
-            agent_schema,
+            accessor,
             field,
             |v| approx_eq!(f64, v, float, ulps = ULPS),
             false
         ),
         ComparisonRepr::Neq => apply_index_filter_f64!(
             operations,
-            agent_schema,
+            accessor,
             field,
             |v| !approx_eq!(f64, v, float, ulps = ULPS),
             true
         ),
         ComparisonRepr::Lt => apply_index_filter_f64!(
             operations,
-            agent_schema,
+            accessor,
             field,
             |v| v < float && !approx_eq!(f64, v, float, ulps = ULPS),
             false
         ),
         ComparisonRepr::Lte => apply_index_filter_f64!(
             operations,
-            agent_schema,
+            accessor,
             field,
             |v| v < float || approx_eq!(f64, v, float, ulps = ULPS),
             false
         ),
         ComparisonRepr::Gt => apply_index_filter_f64!(
             operations,
-            agent_schema,
+            accessor,
             field,
             |v| v > float && !approx_eq!(f64, v, float, ulps = ULPS),
             false
         ),
         ComparisonRepr::Gte => apply_index_filter_f64!(
             operations,
-            agent_schema,
+            accessor,
             field,
             |v| v > float || approx_eq!(f64, v, float, ulps = ULPS),
             false
@@ -76,7 +76,7 @@ fn index_iterator_f64_filter(
 
 fn index_iterator_serialized_f64_filter(
     operations: &[AnalysisOperationRepr],
-    agent_schema: &AgentSchema,
+    accessor: &FieldSpecMapAccessor,
     field: String,
     comparison: &ComparisonRepr,
     float: f64,
@@ -84,7 +84,7 @@ fn index_iterator_serialized_f64_filter(
     match comparison {
         ComparisonRepr::Eq => apply_index_filter_serialized_json!(
             operations,
-            agent_schema,
+            accessor,
             field,
             |v| {
                 if let Some(as_float) = serde_json::from_str::<serde_json::Value>(v)
@@ -100,7 +100,7 @@ fn index_iterator_serialized_f64_filter(
         ),
         ComparisonRepr::Neq => apply_index_filter_serialized_json!(
             operations,
-            agent_schema,
+            accessor,
             field,
             |v| {
                 if let Some(as_float) = serde_json::from_str::<serde_json::Value>(v)
@@ -116,7 +116,7 @@ fn index_iterator_serialized_f64_filter(
         ),
         ComparisonRepr::Lt => apply_index_filter_serialized_json!(
             operations,
-            agent_schema,
+            accessor,
             field,
             |v| {
                 if let Some(as_float) = serde_json::from_str::<serde_json::Value>(v)
@@ -132,7 +132,7 @@ fn index_iterator_serialized_f64_filter(
         ),
         ComparisonRepr::Lte => apply_index_filter_serialized_json!(
             operations,
-            agent_schema,
+            accessor,
             field,
             |v| {
                 if let Some(as_float) = serde_json::from_str::<serde_json::Value>(v)
@@ -148,7 +148,7 @@ fn index_iterator_serialized_f64_filter(
         ),
         ComparisonRepr::Gt => apply_index_filter_serialized_json!(
             operations,
-            agent_schema,
+            accessor,
             field,
             |v| {
                 if let Some(as_float) = serde_json::from_str::<serde_json::Value>(v)
@@ -164,7 +164,7 @@ fn index_iterator_serialized_f64_filter(
         ),
         ComparisonRepr::Gte => apply_index_filter_serialized_json!(
             operations,
-            agent_schema,
+            accessor,
             field,
             |v| {
                 if let Some(as_float) = serde_json::from_str::<serde_json::Value>(v)
@@ -183,16 +183,16 @@ fn index_iterator_serialized_f64_filter(
 
 fn index_iterator_null_filter(
     operations: &[AnalysisOperationRepr],
-    agent_schema: &AgentSchema,
+    accessor: &FieldSpecMapAccessor,
     field: String,
     comparison: &ComparisonRepr,
 ) -> Result<OutputRunnerCreator> {
     match comparison {
         ComparisonRepr::Eq => {
-            apply_index_filter_null!(operations, agent_schema, field, exists, !exists)
+            apply_index_filter_null!(operations, accessor, field, exists, !exists)
         }
         ComparisonRepr::Neq => {
-            apply_index_filter_null!(operations, agent_schema, field, exists, exists)
+            apply_index_filter_null!(operations, accessor, field, exists, exists)
         }
         _ => {
             return Err(Error::from(
@@ -204,17 +204,17 @@ fn index_iterator_null_filter(
 
 fn index_iterator_boolean_filter(
     operations: &[AnalysisOperationRepr],
-    agent_schema: &AgentSchema,
+    accessor: &FieldSpecMapAccessor,
     field: String,
     comparison: &ComparisonRepr,
     boolean: bool,
 ) -> Result<OutputRunnerCreator> {
     match comparison {
         ComparisonRepr::Eq => {
-            apply_index_filter_bool!(operations, agent_schema, field, |v| v == boolean, false)
+            apply_index_filter_bool!(operations, accessor, field, |v| v == boolean, false)
         }
         ComparisonRepr::Neq => {
-            apply_index_filter_bool!(operations, agent_schema, field, |v| v != boolean, true)
+            apply_index_filter_bool!(operations, accessor, field, |v| v != boolean, true)
         }
         _ => {
             return Err(Error::from(
@@ -226,14 +226,14 @@ fn index_iterator_boolean_filter(
 
 fn index_iterator_serialized_null_filter(
     operations: &[AnalysisOperationRepr],
-    agent_schema: &AgentSchema,
+    accessor: &FieldSpecMapAccessor,
     field: String,
     comparison: &ComparisonRepr,
 ) -> Result<OutputRunnerCreator> {
     match comparison {
         ComparisonRepr::Eq => apply_index_filter_serialized_json!(
             operations,
-            agent_schema,
+            accessor,
             field,
             |v| {
                 if v == "null" {
@@ -246,7 +246,7 @@ fn index_iterator_serialized_null_filter(
         ),
         ComparisonRepr::Neq => apply_index_filter_serialized_json!(
             operations,
-            agent_schema,
+            accessor,
             field,
             |v| {
                 if v == "null" {
@@ -267,7 +267,7 @@ fn index_iterator_serialized_null_filter(
 
 fn index_iterator_serialized_boolean_filter(
     operations: &[AnalysisOperationRepr],
-    agent_schema: &AgentSchema,
+    accessor: &FieldSpecMapAccessor,
     field: String,
     comparison: &ComparisonRepr,
     boolean: bool,
@@ -275,7 +275,7 @@ fn index_iterator_serialized_boolean_filter(
     match comparison {
         ComparisonRepr::Eq => apply_index_filter_serialized_json!(
             operations,
-            agent_schema,
+            accessor,
             field,
             |v| {
                 if let Some(as_bool) = serde_json::from_str::<serde_json::Value>(v)
@@ -291,7 +291,7 @@ fn index_iterator_serialized_boolean_filter(
         ),
         ComparisonRepr::Neq => apply_index_filter_serialized_json!(
             operations,
-            agent_schema,
+            accessor,
             field,
             |v| {
                 if let Some(as_bool) = serde_json::from_str::<serde_json::Value>(v)
@@ -315,7 +315,7 @@ fn index_iterator_serialized_boolean_filter(
 
 fn index_iterator_string_filter(
     operations: &[AnalysisOperationRepr],
-    agent_schema: &AgentSchema,
+    accessor: &FieldSpecMapAccessor,
     field: String,
     comparison: &ComparisonRepr,
     string: String,
@@ -323,7 +323,7 @@ fn index_iterator_string_filter(
     match comparison {
         ComparisonRepr::Eq => apply_index_filter_str!(
             operations,
-            agent_schema,
+            accessor,
             field,
             string,
             cloned,
@@ -332,7 +332,7 @@ fn index_iterator_string_filter(
         ),
         ComparisonRepr::Neq => apply_index_filter_str!(
             operations,
-            agent_schema,
+            accessor,
             field,
             string,
             cloned,
@@ -341,7 +341,7 @@ fn index_iterator_string_filter(
         ),
         ComparisonRepr::Lt => apply_index_filter_str!(
             operations,
-            agent_schema,
+            accessor,
             field,
             string,
             cloned,
@@ -350,7 +350,7 @@ fn index_iterator_string_filter(
         ),
         ComparisonRepr::Lte => apply_index_filter_str!(
             operations,
-            agent_schema,
+            accessor,
             field,
             string,
             cloned,
@@ -365,7 +365,7 @@ fn index_iterator_string_filter(
         ),
         ComparisonRepr::Gt => apply_index_filter_str!(
             operations,
-            agent_schema,
+            accessor,
             field,
             string,
             cloned,
@@ -374,7 +374,7 @@ fn index_iterator_string_filter(
         ),
         ComparisonRepr::Gte => apply_index_filter_str!(
             operations,
-            agent_schema,
+            accessor,
             field,
             string,
             cloned,
@@ -392,7 +392,7 @@ fn index_iterator_string_filter(
 
 fn index_iterator_serialized_string_filter(
     operations: &[AnalysisOperationRepr],
-    agent_schema: &AgentSchema,
+    accessor: &FieldSpecMapAccessor,
     field: String,
     comparison: &ComparisonRepr,
     string: String,
@@ -400,7 +400,7 @@ fn index_iterator_serialized_string_filter(
     match comparison {
         ComparisonRepr::Eq => apply_index_filter_serialized_json_str!(
             operations,
-            agent_schema,
+            accessor,
             field,
             string,
             cloned,
@@ -418,7 +418,7 @@ fn index_iterator_serialized_string_filter(
         ),
         ComparisonRepr::Neq => apply_index_filter_serialized_json_str!(
             operations,
-            agent_schema,
+            accessor,
             field,
             string,
             cloned,
@@ -436,7 +436,7 @@ fn index_iterator_serialized_string_filter(
         ),
         ComparisonRepr::Lt => apply_index_filter_serialized_json_str!(
             operations,
-            agent_schema,
+            accessor,
             field,
             string,
             cloned,
@@ -454,7 +454,7 @@ fn index_iterator_serialized_string_filter(
         ),
         ComparisonRepr::Lte => apply_index_filter_serialized_json_str!(
             operations,
-            agent_schema,
+            accessor,
             field,
             string,
             cloned,
@@ -476,7 +476,7 @@ fn index_iterator_serialized_string_filter(
         ),
         ComparisonRepr::Gt => apply_index_filter_serialized_json_str!(
             operations,
-            agent_schema,
+            accessor,
             field,
             string,
             cloned,
@@ -494,7 +494,7 @@ fn index_iterator_serialized_string_filter(
         ),
         ComparisonRepr::Gte => apply_index_filter_serialized_json_str!(
             operations,
-            agent_schema,
+            accessor,
             field,
             string,
             cloned,
@@ -519,7 +519,7 @@ fn index_iterator_serialized_string_filter(
 
 fn index_iterator_serialized_filter(
     operations: &[AnalysisOperationRepr],
-    agent_schema: &AgentSchema,
+    accessor: &FieldSpecMapAccessor,
     field: String,
     comparison: &ComparisonRepr,
     value: &serde_json::Value,
@@ -528,29 +528,19 @@ fn index_iterator_serialized_filter(
         serde_json::Value::Bool(boolean) => {
             let boolean = *boolean;
             index_iterator_serialized_boolean_filter(
-                operations,
-                agent_schema,
-                field,
-                comparison,
-                boolean,
+                operations, accessor, field, comparison, boolean,
             )
         }
         serde_json::Value::Number(number) => {
             let float = number.as_f64().ok_or_else(|| Error::from("Expected f64"))?;
-            index_iterator_serialized_f64_filter(operations, agent_schema, field, comparison, float)
+            index_iterator_serialized_f64_filter(operations, accessor, field, comparison, float)
         }
         serde_json::Value::String(string) => {
             let string = string.clone();
-            index_iterator_serialized_string_filter(
-                operations,
-                agent_schema,
-                field,
-                comparison,
-                string,
-            )
+            index_iterator_serialized_string_filter(operations, accessor, field, comparison, string)
         }
         serde_json::Value::Null => {
-            index_iterator_serialized_null_filter(operations, agent_schema, field, comparison)
+            index_iterator_serialized_null_filter(operations, accessor, field, comparison)
         }
         _ => {
             return Err(Error::from(
@@ -631,16 +621,18 @@ fn f64_iter_aggregate(
 
 pub(super) fn index_iterator_filter_creator(
     operations: &[AnalysisOperationRepr],
-    agent_schema: &AgentSchema,
+    accessor: &FieldSpecMapAccessor,
     field: String,
     comparison: &ComparisonRepr,
     value: &serde_json::Value,
 ) -> Result<OutputRunnerCreator> {
-    // TODO OS [19] - COMPILE BLOCK - Needs updating to use FieldSpecMapAccessors
-    let field_type = &agent_schema.field_spec_map.get_key(&field)?.key_type;
+    let field_type = &accessor
+        .get_agent_scoped_field_spec(&field)?
+        .inner
+        .field_type;
 
     if value.is_null() && !matches!(&field_type.variant, FieldTypeVariant::Serialized) {
-        return index_iterator_null_filter(operations, agent_schema, field, comparison);
+        return index_iterator_null_filter(operations, accessor, field, comparison);
     }
 
     match &field_type.variant {
@@ -658,7 +650,7 @@ pub(super) fn index_iterator_filter_creator(
                 return Err(Error::from(format!("The agent field '{}' is of a number type, however the value given for comparison ('{}') is not", field, value.to_string())));
             };
 
-            index_iterator_f64_filter(operations, agent_schema, field, comparison, float)
+            index_iterator_f64_filter(operations, accessor, field, comparison, float)
         }
         FieldTypeVariant::Boolean => {
             let boolean = if value.is_string() {
@@ -674,7 +666,7 @@ pub(super) fn index_iterator_filter_creator(
                 return Err(Error::from(format!("The agent field '{}' is of a boolean type, however the value given for comparison ('{}') is not", field, value.to_string())));
             };
 
-            index_iterator_boolean_filter(operations, agent_schema, field, comparison, boolean)
+            index_iterator_boolean_filter(operations, accessor, field, comparison, boolean)
         }
         FieldTypeVariant::String => {
             let string = if value.is_string() {
@@ -683,10 +675,10 @@ pub(super) fn index_iterator_filter_creator(
                 return Err(Error::from(format!("The agent field '{}' is of a boolean type, however the value given for comparison ('{}') is not", field, value.to_string())));
             };
 
-            index_iterator_string_filter(operations, agent_schema, field, comparison, string)
+            index_iterator_string_filter(operations, accessor, field, comparison, string)
         }
         FieldTypeVariant::Serialized => {
-            index_iterator_serialized_filter(operations, agent_schema, field, comparison, value)
+            index_iterator_serialized_filter(operations, accessor, field, comparison, value)
         }
         _ => Err(Error::from(
             "Filtering can only be done on number, boolean or string values",
@@ -695,15 +687,15 @@ pub(super) fn index_iterator_filter_creator(
 }
 
 fn default_first_getter(
-    agent_schema: &AgentSchema,
+    accessor: &FieldSpecMapAccessor,
     first_field: &str,
 ) -> Result<ValueIteratorCreator> {
-    let data_type = agent_schema
-        .arrow
-        .field_with_name(first_field)
-        .map_err(|e| Error::from(e.to_string()))?
-        .data_type()
-        .clone();
+    let data_type = &accessor
+        .get_agent_scoped_field_spec(first_field)?
+        .inner
+        .field_type
+        .get_arrow_data_type()?;
+
     let first_field = first_field.to_string();
     let a: ValueIteratorCreator = Box::new(move |agents: &_| {
         let iterator = json_value_iter_cols(agents, &first_field, &data_type)?;
@@ -714,7 +706,7 @@ fn default_first_getter(
 
 pub(super) fn index_iterator_mapper_creator(
     operations: &[AnalysisOperationRepr],
-    agent_schema: &AgentSchema,
+    accessor: &FieldSpecMapAccessor,
 ) -> Result<OutputRunnerCreator> {
     // Aggregator logic:
     // All NaNs, Infs and -Infs get mapped to null
@@ -736,16 +728,19 @@ pub(super) fn index_iterator_mapper_creator(
         return Err(Error::from("Expected a getter"));
     };
 
-    let key_type = &agent_schema.key_set.get_key(&first_field)?.key_type;
+    let field_type = &accessor
+        .get_agent_scoped_field_spec(&first_field)?
+        .inner
+        .field_type;
 
-    let first_mapper = match &key_type.variant {
+    let first_mapper = match &field_type.variant {
         FieldTypeVariant::Number => {
             // We expect that an aggregator follows this "get" operation
             if operations.len() == 2 {
                 let aggregator = &operations[1];
                 return f64_iter_aggregate(aggregator, first_field);
             } else {
-                default_first_getter(agent_schema, &first_field)?
+                default_first_getter(accessor, &first_field)?
             }
         }
         FieldTypeVariant::Serialized => {
@@ -755,7 +750,7 @@ pub(super) fn index_iterator_mapper_creator(
             });
             a
         }
-        _ => default_first_getter(agent_schema, &first_field)?,
+        _ => default_first_getter(accessor, &first_field)?,
     };
 
     let is_aggregated = operations.last().unwrap().is_num_aggregator();

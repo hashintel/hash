@@ -3,6 +3,7 @@ pub mod packages;
 use std::sync::Arc;
 
 pub use crate::config::Globals;
+use crate::datastore::schema::accessor::FieldSpecMapAccessor;
 use crate::datastore::schema::FieldSpecMapBuilder;
 use crate::proto::ExperimentRunBase;
 use crate::simulation::comms::package::PackageComms;
@@ -23,6 +24,7 @@ pub trait PackageCreator: Sync {
         &self,
         config: &Arc<SimRunConfig<ExperimentRunBase>>,
         system: PackageComms,
+        accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn Package>>;
 
     fn get_dependencies(&self) -> Result<Dependencies> {
@@ -49,5 +51,5 @@ pub trait PackageCreator: Sync {
 
 #[async_trait]
 pub trait Package: MaybeCPUBound + GetWorkerStartMsg + Send + Sync {
-    async fn run<'s>(&mut self, state: Arc<State>, context: Arc<Context>) -> Result<Output>;
+    async fn run(&mut self, state: Arc<State>, context: Arc<Context>) -> Result<Output>;
 }

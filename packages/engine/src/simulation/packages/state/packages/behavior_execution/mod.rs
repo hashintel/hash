@@ -30,6 +30,7 @@ impl PackageCreator for Creator {
         &self,
         config: &Arc<SimRunConfig<ExperimentRunBase>>,
         comms: PackageComms,
+        accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn Package>> {
         todo!();
         // TODO[1] need to get scoped accessor here in order to get column index, etc.

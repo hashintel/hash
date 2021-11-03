@@ -3,6 +3,7 @@ use std::sync::Arc;
 pub use packages::{InitTask, InitTaskMessage, InitTaskResult, Name, PACKAGES};
 
 pub use crate::config::Globals;
+use crate::datastore::schema::accessor::FieldSpecMapAccessor;
 use crate::datastore::schema::FieldSpecMapBuilder;
 pub use crate::hash_types::Agent;
 use crate::proto::ExperimentRunBase;
@@ -27,6 +28,7 @@ pub trait PackageCreator: Sync {
         &self,
         config: &Arc<SimRunConfig<ExperimentRunBase>>,
         system: PackageComms,
+        accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn Package>>;
 
     fn get_dependencies(&self) -> Result<Dependencies> {

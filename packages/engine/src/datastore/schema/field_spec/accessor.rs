@@ -4,6 +4,7 @@ use std::sync::Arc;
 use crate::datastore::error::Result;
 use crate::datastore::schema::FieldKey;
 
+#[derive(new)]
 pub struct FieldSpecMapAccessor {
     accessor_source: FieldSource,
     field_spec_map: Arc<FieldSpecMap>,

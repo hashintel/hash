@@ -3,8 +3,11 @@ use std::{collections::HashMap, convert::TryFrom, sync::Arc};
 use serde::{Deserialize, Serialize};
 
 use crate::datastore::batch::AgentBatch;
+use crate::datastore::schema::accessor::FieldSpecMapAccessor;
 use crate::datastore::schema::state::AgentSchema;
-use crate::simulation::packages::output::packages::analysis::output::AnalysisSingleOutput;
+use crate::simulation::packages::output::packages::analysis::output::{
+    AnalysisFinalOutput, AnalysisSingleOutput,
+};
 
 use super::index_iter;
 use super::AnalysisOutput;
@@ -15,7 +18,7 @@ pub(crate) const ULPS: i64 = 2;
 type Agents<'a> = &'a [&'a AgentBatch];
 pub(crate) type IndexIterator<'a> = Box<dyn Iterator<Item = usize> + Send + Sync + 'a>;
 pub(crate) type OutputRunner<'agents> =
-    Box<dyn FnOnce(IndexIterator<'agents>) -> Result<AnalysisOutput> + Send + Sync + 'agents>;
+    Box<dyn FnOnce(IndexIterator<'agents>) -> Result<AnalysisSingleOutput> + Send + Sync + 'agents>;
 pub(crate) type OutputRunnerCreator =
     Box<dyn for<'agents> Fn(Agents<'agents>) -> Result<OutputRunner<'agents>> + Send + Sync>;
 
@@ -30,7 +33,7 @@ pub(crate) type MapIterator = Box<
 
 pub struct Analyzer {
     _repr: AnalysisSourceRepr,
-    pub outputs: Vec<(String, OutputCreator, Vec<AnalysisOutput>)>,
+    pub outputs: Vec<(Arc<String>, OutputCreator, Vec<AnalysisSingleOutput>)>,
     src: String,
 }
 
@@ -38,6 +41,7 @@ impl Analyzer {
     pub fn from_analysis_source(
         analysis_source: &str,
         agent_schema: &AgentSchema,
+        accessor: &FieldSpecMapAccessor,
     ) -> Result<Analyzer> {
         let repr = AnalysisSourceRepr::try_from(analysis_source)?;
         repr.validate_def()?;
@@ -46,8 +50,8 @@ impl Analyzer {
             .outputs
             .iter()
             .map(|(name, output)| {
-                let creator = OutputCreator::new(agent_schema, output)?;
-                Ok((name.to_string(), creator, Vec::new()))
+                let creator = OutputCreator::new(accessor, output)?;
+                Ok((Arc::new(name.to_string()), creator, Vec::new()))
             })
             .collect::<Result<_>>()?;
 
@@ -87,14 +91,14 @@ impl Analyzer {
                 .map(|(name, _, outputs)| {
                     // TODO revisit architecture, these clones seem unnecessary, having a single vec instead
                     //     of a HashMap seems like it would be a lot more efficient and just keep ordering
-                    (Arc::new(name.clone()), outputs.last().unwrap().clone())
+                    (name.clone(), outputs.last().unwrap().clone())
                 })
                 .collect(),
         }
     }
 
     pub fn last_output_scalar(&self, name: &str) -> Result<Option<f64>> {
-        fn invalid_value_convert<A, B>(output: &(A, B, Vec<AnalysisOutput>)) -> String {
+        fn invalid_value_convert<A, B>(output: &(A, B, Vec<AnalysisSingleOutput>)) -> String {
             if let Some(Ok(v)) = output.2.last().map(|v| serde_json::to_string(v)) {
                 v
             } else {
@@ -103,7 +107,7 @@ impl Analyzer {
         }
 
         for output in self.outputs.iter() {
-            if output.0 == name {
+            if &*output.0 == name {
                 return match output.2.last() {
                     None => Err(Error::EmptyAnalysisOutput(name.into())),
                     Some(AnalysisSingleOutput::Number(v)) => Ok(*v),
@@ -127,17 +131,18 @@ impl Analyzer {
                 map.insert(output_name.clone(), std::mem::replace(outputs, vec![]));
             });
         let src = std::mem::replace(&mut self.src, "".into());
+        let outputs = AnalysisFinalOutput { inner: map };
         Ok(AnalysisResult {
             manifest: src,
-            outputs: map,
+            outputs,
         })
     }
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, Default)]
-struct AnalysisSourceRepr {
+pub(super) struct AnalysisSourceRepr {
     #[serde(default = "HashMap::new")]
-    pub outputs: HashMap<String, Vec<AnalysisOperationRepr>>,
+    pub outputs: HashMap<Arc<String>, Vec<AnalysisOperationRepr>>,
     #[serde(default = "Vec::new")]
     plots: Vec<serde_json::Value>,
 }
@@ -169,20 +174,20 @@ pub struct OutputCreator {
 
 impl OutputCreator {
     fn new(
-        agent_schema: &AgentSchema,
+        accessor: &FieldSpecMapAccessor,
         operations: &[AnalysisOperationRepr],
     ) -> Result<OutputCreator> {
-        let creator = Self::index_creator(operations, agent_schema)?;
+        let creator = Self::index_creator(operations, accessor)?;
         Ok(OutputCreator { creator })
     }
 
-    fn run(&self, dynamic_pool: &[&AgentBatch], num_agents: usize) -> Result<AnalysisOutput> {
+    fn run(&self, dynamic_pool: &[&AgentBatch], num_agents: usize) -> Result<AnalysisSingleOutput> {
         ((&self.creator)(dynamic_pool)?)(Box::new(0..num_agents))
     }
 
-    fn index_creator(
+    pub(super) fn index_creator(
         operations: &[AnalysisOperationRepr],
-        agent_schema: &AgentSchema,
+        accessor: &FieldSpecMapAccessor,
     ) -> Result<OutputRunnerCreator> {
         match &operations[0] {
             AnalysisOperationRepr::Filter {
@@ -191,7 +196,7 @@ impl OutputCreator {
                 value,
             } => index_iter::index_iterator_filter_creator(
                 operations,
-                agent_schema,
+                accessor,
                 field
                     .as_str()
                     .ok_or_else(|| {
@@ -205,7 +210,7 @@ impl OutputCreator {
                 value,
             ),
             AnalysisOperationRepr::Get { field: _ } => {
-                index_iter::index_iterator_mapper_creator(operations, agent_schema)
+                index_iter::index_iterator_mapper_creator(operations, accessor)
             }
             AnalysisOperationRepr::Count => Ok(Box::new(move |_| {
                 Ok(Box::new(
@@ -279,5 +284,5 @@ impl AnalysisOperationRepr {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct AnalysisResult {
     manifest: String,
-    outputs: HashMap<String, Vec<AnalysisOutput>>,
+    outputs: AnalysisFinalOutput,
 }

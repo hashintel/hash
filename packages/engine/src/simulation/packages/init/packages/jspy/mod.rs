@@ -33,6 +33,7 @@ impl PackageCreator for Creator {
         &self,
         config: &Arc<SimRunConfig<ExperimentRunBase>>,
         comms: PackageComms,
+        accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn InitPackage>> {
         match &config.exp.run.project_base.initial_state.name {
             InitialStateName::InitPy | InitialStateName::InitJs => Ok(Box::new(Package {

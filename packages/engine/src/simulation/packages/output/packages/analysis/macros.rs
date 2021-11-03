@@ -136,9 +136,9 @@ macro_rules! value_filter_string_object_field {
 }
 
 macro_rules! apply_index_filter_f64 {
-    ($operations:ident, $agent_schema:expr, $field:expr, $comparison:expr, $default:expr) => {{
-        let following = OutputCreator::get_index_creator(&$operations[1..], $agent_schema)?
-            as OutputRunnerCreator;
+    ($operations:ident, $accessor:expr, $field:expr, $comparison:expr, $default:expr) => {{
+        let following =
+            OutputCreator::index_creator(&$operations[1..], $accessor)? as OutputRunnerCreator;
         let field = $field.clone();
         Ok(Box::new(move |agents| {
             let f64_iterator = f64_iter(agents, &field)?;
@@ -170,9 +170,9 @@ macro_rules! apply_index_filter_f64 {
 }
 
 macro_rules! apply_index_filter_str {
-    ($operations:ident, $agent_schema:expr, $field:expr, $string:ident, $cloned:ident, $comparison:expr, $default:expr) => {{
-        let following = OutputCreator::get_index_creator(&$operations[1..], $agent_schema)?
-            as OutputRunnerCreator;
+    ($operations:ident, $accessor:expr, $field:expr, $string:ident, $cloned:ident, $comparison:expr, $default:expr) => {{
+        let following =
+            OutputCreator::index_creator(&$operations[1..], $accessor)? as OutputRunnerCreator;
         let field = $field.clone();
         Ok(Box::new(move |agents| {
             let str_iterator = str_iter(agents, &field)?;
@@ -204,9 +204,9 @@ macro_rules! apply_index_filter_str {
 }
 
 macro_rules! apply_index_filter_serialized_json_str {
-    ($operations:ident, $agent_schema:expr, $field:expr, $string:ident, $cloned:ident, $comparison:expr, $default:expr) => {{
-        let following = OutputCreator::get_index_creator(&$operations[1..], $agent_schema)?
-            as OutputRunnerCreator;
+    ($operations:ident, $accessor:expr, $field:expr, $string:ident, $cloned:ident, $comparison:expr, $default:expr) => {{
+        let following =
+            OutputCreator::index_creator(&$operations[1..], $accessor)? as OutputRunnerCreator;
         let field = $field.clone();
         Ok(Box::new(move |agents| {
             let str_iterator = str_iter(agents, &field)?;
@@ -238,9 +238,9 @@ macro_rules! apply_index_filter_serialized_json_str {
 }
 
 macro_rules! apply_index_filter_serialized_json {
-    ($operations:ident, $agent_schema:expr, $field:expr, $comparison:expr, $default:expr) => {{
-        let following = OutputCreator::get_index_creator(&$operations[1..], $agent_schema)?
-            as OutputRunnerCreator;
+    ($operations:ident, $accessor:expr, $field:expr, $comparison:expr, $default:expr) => {{
+        let following =
+            OutputCreator::index_creator(&$operations[1..], $accessor)? as OutputRunnerCreator;
         let field = $field.clone();
         Ok(Box::new(move |agents| {
             let str_iterator = str_iter(agents, &field)?;
@@ -271,9 +271,9 @@ macro_rules! apply_index_filter_serialized_json {
 }
 
 macro_rules! apply_index_filter_null {
-    ($operations:ident, $agent_schema:ident, $field:ident, $exists:ident, $comparison:expr) => {{
-        let following = OutputCreator::get_index_creator(&$operations[1..], $agent_schema)?
-            as OutputRunnerCreator;
+    ($operations:ident, $accessor:ident, $field:ident, $exists:ident, $comparison:expr) => {{
+        let following =
+            OutputCreator::index_creator(&$operations[1..], $accessor)? as OutputRunnerCreator;
         let field = $field.clone();
         Ok(Box::new(move |agents| {
             let exists_iter = exists_iter(agents, &field)?;
@@ -302,9 +302,9 @@ macro_rules! apply_index_filter_null {
 }
 
 macro_rules! apply_index_filter_bool {
-    ($operations:ident, $agent_schema:expr, $field:expr, $comparison:expr, $default:expr) => {{
-        let following = OutputCreator::get_index_creator(&$operations[1..], $agent_schema)?
-            as OutputRunnerCreator;
+    ($operations:ident, $accessor:expr, $field:expr, $comparison:expr, $default:expr) => {{
+        let following =
+            OutputCreator::index_creator(&$operations[1..], $accessor)? as OutputRunnerCreator;
         let field = $field.clone();
         Ok(Box::new(move |agents| {
             let bool_iterator = bool_iter(agents, &field)?;

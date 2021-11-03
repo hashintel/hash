@@ -8,5 +8,5 @@ pub use field_spec::{
     FieldKey, FieldScope, FieldSource, FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant,
     PresetFieldType,
 };
-
+// TODO[2] move FieldSpecMap here
 pub(in crate::datastore) use field_spec::RootFieldSpec;

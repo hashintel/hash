@@ -8,7 +8,7 @@ use crate::experiment::SimPackageArgs;
 
 pub use self::config::AnalysisOutputConfig;
 
-use super::super::*;
+pub use super::super::*;
 
 #[macro_use]
 mod macros;
@@ -16,6 +16,7 @@ mod analyzer;
 mod config;
 mod index_iter;
 mod output;
+mod validation;
 mod value_iter;
 
 pub enum Task {}
@@ -33,13 +34,17 @@ impl PackageCreator for Creator {
         &self,
         config: &Arc<SimRunConfig<ExperimentRunBase>>,
         _comms: PackageComms,
+        accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn Package>> {
         // TODO, look at reworking signatures and package creation to make ownership clearer and make this unnecessary
         let analysis_src = get_analysis_source(&config.exp.run.project_base.packages)?;
-        let analyzer =
-            Analyzer::from_analysis_source(&analysis_src, &config.sim.store.agent_schema);
+        let analyzer = Analyzer::from_analysis_source(
+            &analysis_src,
+            &config.sim.store.agent_schema,
+            &accessor,
+        )?;
 
-        return Analysis { analyzer };
+        Ok(Box::new(Analysis { analyzer }))
     }
 
     fn persistence_config(
@@ -47,8 +52,8 @@ impl PackageCreator for Creator {
         config: &ExperimentConfig<ExperimentRunBase>,
         globals: &Globals,
     ) -> Result<serde_json::Value> {
-        let config = AnalysisOutputConfig::new(); // TODO[1]
-        Ok(serde_json::to_value(config));
+        let config = AnalysisOutputConfig::new(config)?;
+        Ok(serde_json::to_value(config)?)
     }
 }
 
@@ -70,37 +75,31 @@ impl GetWorkerStartMsg for Analysis {
 
 #[async_trait]
 impl Package for Analysis {
-    async fn run<'s>(
-        &mut self,
-        state: Arc<State>,
-        _context: Arc<Context>,
-    ) -> Result<AnalysisOutput> {
+    async fn run(&mut self, state: Arc<State>, _context: Arc<Context>) -> Result<Output> {
         // TODO use filtering to avoid exposing hidden values to users
         self.analyzer
             .run(&state.agent_pool().read_batches()?, state.num_agents())?;
-        return Ok(self.analyzer.get_latest_output_set());
+        // TODO why doesn't into work?
+        Ok(Output::AnalysisOutput(
+            self.analyzer.get_latest_output_set(),
+        ))
     }
 }
 
-fn get_analysis_source(sim_packages: &Vec<SimPackageArgs>) -> Result<String> {
-    let mut analysis_src = String::new();
+pub(self) fn get_analysis_source(sim_packages: &Vec<SimPackageArgs>) -> Result<String> {
     for args in sim_packages.iter() {
         match args.name.as_str() {
             "analysis" => {
                 // We currently assume that every analysis source is identical within the
                 // simulation runs of an experiment run.
                 if let Some(src) = args.data.as_str() {
-                    analysis_src = src.to_string();
+                    return Ok(src.to_string());
                 } else {
-                    return Err(crate::Error::SimPackageArgs(
-                        "Analysis source must be string.".into(),
-                    ));
+                    return Err(Error::from("Analysis source must be a string"));
                 }
             }
-            // TODO: Instead of error, send back warning if some simulation packages
-            //       are unknown or can't be initialized?
-            _ => return Err(crate::Error::UnknownSimPackage(args.name.clone())),
+            _ => (),
         }
     }
-    Ok(analysis_src)
+    Err(Error::from("Did not find analysis source"))
 }

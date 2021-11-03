@@ -31,6 +31,7 @@ impl PackageCreator for Creator {
         &self,
         config: &Arc<SimRunConfig<ExperimentRunBase>>,
         _comms: PackageComms,
+        accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn ContextPackage>> {
         let custom_message_handlers = custom_message_handlers_from_properties(&config.sim.globals)?;
         let api_response_arrow_fields = fields::api_response_arrow_fields()?;

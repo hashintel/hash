@@ -17,6 +17,7 @@ use super::{
     prelude::*,
 };
 pub use crate::config::Globals;
+use crate::datastore::schema::accessor::FieldSpecMapAccessor;
 use crate::proto::ExperimentRunBase;
 pub use packages::{ContextTask, ContextTaskMessage, ContextTaskResult, Name, PACKAGES};
 
@@ -38,6 +39,7 @@ pub trait PackageCreator: Sync {
         &self,
         config: &Arc<SimRunConfig<ExperimentRunBase>>,
         system: PackageComms,
+        accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn Package>>;
 
     fn get_dependencies(&self) -> Result<Dependencies> {

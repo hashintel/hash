@@ -20,6 +20,7 @@ impl PackageCreator for Creator {
         &self,
         _config: &Arc<SimRunConfig<ExperimentRunBase>>,
         _comms: PackageComms,
+        accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn Package>> {
         Box::new(JsonState {})
     }

@@ -5,6 +5,7 @@ use std::sync::Arc;
 use crate::proto::ExperimentRunBase;
 
 use crate::config::{Globals, PackageConfig};
+use crate::datastore::schema::accessor::FieldSpecMapAccessor;
 use crate::datastore::schema::context::ContextSchema;
 use crate::datastore::schema::state::AgentSchema;
 use crate::datastore::schema::{
@@ -135,6 +136,7 @@ impl PackageCreators {
         comms: Comms,
     ) -> Result<Packages> {
         // TODO generics
+        let field_spec_map = &config.sim.store.agent_schema.field_spec_map;
         let init = self
             .init
             .iter()
@@ -142,6 +144,10 @@ impl PackageCreators {
                 creator.create(
                     config,
                     PackageComms::new(comms.clone(), package_id.clone(), PackageType::Init),
+                    FieldSpecMapAccessor::new(
+                        FieldSource::Package(package_name.clone()),
+                        field_spec_map.clone(),
+                    ),
                 )
             })
             .collect::<Result<Vec<_>>>()?;
@@ -152,6 +158,10 @@ impl PackageCreators {
                 creator.create(
                     config,
                     PackageComms::new(comms.clone(), package_id.clone(), PackageType::Context),
+                    FieldSpecMapAccessor::new(
+                        FieldSource::Package(package_name.clone()),
+                        field_spec_map.clone(),
+                    ),
                 )
             })
             .collect::<Result<Vec<_>>>()?;
@@ -162,6 +172,10 @@ impl PackageCreators {
                 creator.create(
                     config,
                     PackageComms::new(comms.clone(), package_id.clone(), PackageType::State),
+                    FieldSpecMapAccessor::new(
+                        FieldSource::Package(package_name.clone()),
+                        field_spec_map.clone(),
+                    ),
                 )
             })
             .collect::<Result<Vec<_>>>()?;
@@ -172,6 +186,10 @@ impl PackageCreators {
                 creator.create(
                     config,
                     PackageComms::new(comms.clone(), package_id.clone(), PackageType::Output),
+                    FieldSpecMapAccessor::new(
+                        FieldSource::Package(package_name.clone()),
+                        field_spec_map.clone(),
+                    ),
                 )
             })
             .collect::<Result<Vec<_>>>()?;
