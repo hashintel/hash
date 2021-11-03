@@ -24,6 +24,7 @@
     "@material-ui/icons": "4.11.2",
     "@rjsf/core": "3.2.0",
     "@rjsf/material-ui": "3.2.0",
+    "@sentry/nextjs": "6.13.3",
     "@twind/next": "1.0.8",
     "ajv": "8.6.3",
     "date-fns": "2.22.1",

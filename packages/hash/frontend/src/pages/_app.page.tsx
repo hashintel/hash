@@ -23,6 +23,12 @@ function MyApp({ Component, pageProps }: AppProps) {
 
   const { user } = useUser({ client: apolloClient });
 
+  /**
+   * @todo make eslint pick up the definition for this
+   */
+  // eslint-disable-next-line no-undef
+  useEffect(() => console.log(`Build: ${WEBPACK_BUILD_STAMP}`), []);
+
   useEffect(() => {
     if (
       user &&
