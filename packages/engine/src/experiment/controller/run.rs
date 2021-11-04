@@ -1,7 +1,10 @@
-use crate::experiment::package::ExperimentPackage;
-
-use crate::proto::{EngineStatus, ExperimentRun};
 use std::sync::Arc;
+use std::time::Duration;
+
+use tokio::time::timeout;
+
+use crate::experiment::package::ExperimentPackage;
+use crate::proto::{EngineStatus, ExperimentRun};
 
 use super::controller::ExperimentController;
 use super::id_store::SimIdStore;
@@ -106,7 +109,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
         workerpool::comms::experiment::new_pair();
     let (worker_pool_controller_send, worker_pool_controller_recv) =
         workerpool::comms::top::new_pair();
-    let (worker_pool_kill_send, kill_recv) = workerpool::comms::kill::new_pair();
+    let (mut worker_pool_kill_send, kill_recv) = workerpool::comms::kill::new_pair();
     let (mut worker_pool_controller, worker_pool_send_base) =
         WorkerPoolController::new_with_sender(
             exp_config.clone(),
@@ -160,83 +163,71 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
     let mut worker_pool_result: Option<crate::workerpool::Result<()>> = None;
     let mut experiment_package_result: Option<crate::experiment::Result<()>> = None;
     let mut experiment_controller_result: Option<Result<()>> = None;
+    tokio::pin! { let mut exit_timeout = None; }
 
+    let mut successful_exit = true;
+    let mut err = String::new();
     loop {
         tokio::select! {
-            Ok(res) = &mut worker_pool_controller_handle => {
-                // The worker pool should not finish before the experiment controller or experiment package
-                log::warn!("Worker pool finished before experiment package and experiment controller");
-                worker_pool_result = Some(res);
+            _ = exit_timeout.as_mut().unwrap(), if exit_timeout.is_some() => {
+                log::warn!("Exit timed out");
+                successful_exit = false;
+                err = format!(
+                    "Timed out with experiment package {}, controller {}, worker pool {}",
+                    experiment_package_result.is_some(),
+                    experiment_controller_result.is_some(),
+                    worker_pool_result.is_some(),
+                );
                 break;
             }
-            Ok(res) = &mut experiment_package_handle => {
+            Ok(res) = &mut worker_pool_controller_handle, if worker_pool_result.is_none() => {
+                if exit_timeout.is_none() {
+                    exit_timeout = Some(tokio::time::sleep(Duration::from_secs(20)));
+                }
+                if experiment_package_result.is_none() && experiment_controller_result.is_none() {
+                    // The worker pool should not finish before the experiment controller or experiment package
+                    log::warn!("Worker pool finished before experiment package and experiment controller");
+                }
+                worker_pool_result = Some(res);
+                if experiment_package_result.is_some() && experiment_controller_result.is_some() {
+                    break;
+                }
+            }
+            Ok(res) = &mut experiment_package_handle, if experiment_package_result.is_none() => {
+                if exit_timeout.is_none() {
+                    exit_timeout = Some(tokio::time::sleep(Duration::from_secs(20)));
+                }
                 // The experiment package should finish first
                 experiment_package_result = Some(res);
-                break;
+                if worker_pool_result.is_some() && experiment_controller_result.is_some() {
+                    break;
+                }
             }
-            Ok(res) = &mut experiment_controller_handle => {
+            Ok(res) = &mut experiment_controller_handle, if experiment_controller_result.is_none() => {
+                if exit_timeout.is_none() {
+                    exit_timeout = Some(tokio::time::sleep(Duration::from_secs(20)));
+                }
                 // The experiment controller should ideally finish after the experiment package has finished
                 experiment_controller_result = Some(res);
-                break;
+                if worker_pool_result.is_some() && experiment_package_result.is_some() {
+                    break;
+                }
             }
             else => {
-                log::error!("Unexpected tokio select exit");
+                successful_exit = false;
+                err = "Unexpected tokio select exit".into();
+                log::error!(&err);
                 break;
             }
         }
     }
 
-    let mut successful_exit = false;
-    let mut err = String::new();
-    todo!();
-    // if let Some(res) = worker_pool_result {
-    //     // TODO[1] set `successful_exit` and `err` depending on `res` and how exiting for other handles works
-    //     let kill_send_res_experiment_controller = experiment_controller_kill_send.send().await;
-    //     let kill_send_res_experiment_package = experiment_package_kill_send.send().await;
+    let status = if successful_exit {
+        EngineStatus::Exit
+    } else {
+        EngineStatus::ProcessError(err)
+    };
+    env.orch_client.send(status).await?;
 
-    //     if let Ok(()) = kill_send_res_experiment_controller {
-    //         // TODO[1] await on experiment_controller_handle with timeout of 10s
-    //     }
-
-    //     if let Ok(()) = kill_send_res_experiment_package {
-    //         // TODO[1] await on experiment_package_handle with timeout of 10s
-    //     }
-    // } else if let Some(res) = experiment_package_result {
-    //     // TODO[1] set `successful_exit` and `err` depending on `res` and how exiting for other handles works
-    //     let kill_send_res_worker_pool = worker_pool_kill_send.send().await;
-    //     let kill_send_res_experiment_controller = experiment_controller_kill_send.send().await;
-
-    //     if let Ok(()) = kill_send_res_worker_pool {
-    //         // TODO[1] await on worker_pool_controller_handle with timeout of 10s
-    //     }
-
-    //     if let Ok(()) = kill_send_res_experiment_controller {
-    //         // TODO[1] await on experiment_controller_handle with timeout of 10s
-    //     }
-    // } else if experiment_controller_result.is_some() {
-    //     // TODO[1] set `successful_exit` and `err` depending on `res` and how exiting for other handles works
-    //     let kill_send_res_worker_pool = worker_pool_kill_send.send().await;
-    //     let kill_send_res_experiment_package = experiment_package_kill_send.send().await;
-    //     if let Ok(()) = kill_send_res_worker_pool {
-    //         // TODO[1] await on worker_pool_controller_handle with timeout of 10s
-    //     }
-
-    //     if let Ok(()) = kill_send_res_experiment_package {
-    //         // TODO[1] await on experiment_package_handle with timeout of 10s
-    //     }
-    // } else {
-    //     successful_exit = false;
-    //     err = "Unexpected exit".into();
-    // }
-
-    // // Successful exit
-
-    // let status = if successful_exit {
-    //     EngineStatus::Exit
-    // } else {
-    //     EngineStatus::ProcessError(err)
-    // };
-    // env.orch_client.send(status).await?;
-
-    // return Ok(());
+    Ok(())
 }
