@@ -1,11 +1,11 @@
-use enum_dispatch::enum_dispatch;
-use serde::{Deserialize, Serialize};
-use crate::types::PackageID;
 use super::{
     context::packages::ContextInitPayload, init::packages::InitInitPayload,
     initialized::PackageType, output::packages::OutputInitPayload,
     state::packages::StateInitPayload,
 };
+use crate::simulation::enum_dispatch::*;
+use crate::types::PackageID;
+use serde::{Deserialize, Serialize};
 
 pub trait GetLanguageSpecificPayload {
     // TODO 3 methods for getting the payload message specific
@@ -14,7 +14,8 @@ pub trait GetLanguageSpecificPayload {
 
 #[enum_dispatch(GetLanguageSpecificPayload)]
 #[derive(Clone, Serialize, Deserialize)]
-pub enum PackageInitPayloadForWorker { // Package-specific info
+pub enum PackageInitPayloadForWorker {
+    // Package-specific info
     InitInitPayload,
     ContextInitPayload,
     StateInitPayload,

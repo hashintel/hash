@@ -4,16 +4,14 @@ pub mod runner;
 pub mod task;
 
 use futures::future::try_join_all;
+use futures::SinkExt;
 
 use crate::worker::pending::CancelState;
 use crate::{
     config::WorkerConfig,
     datastore::table::sync::SyncPayload,
     proto::SimulationShortID,
-    simulation::task::{
-        prelude::{TaskMessage, WorkerHandler},
-        result::TaskResultOrCancelled,
-    },
+    simulation::task::result::TaskResultOrCancelled,
     types::TaskID,
     worker::{
         pending::PendingWorkerTask,
@@ -39,6 +37,8 @@ use self::{
     },
     task::{WorkerTask, WorkerTaskResultOrCancelled},
 };
+use crate::simulation::task::handler::WorkerHandler;
+use crate::simulation::task::msg::TaskMessage;
 pub use error::{Error, Result};
 
 /// A task worker.
@@ -210,7 +210,7 @@ impl WorkerController {
             self.worker_pool_comms
                 .send(WorkerToWorkerPoolMsg::TaskResultOrCancelled(
                     WorkerTaskResultOrCancelled {
-                        task_id: task_id,
+                        task_id,
                         payload: TaskResultOrCancelled::Result(task_result),
                     },
                 ))?;
@@ -283,7 +283,7 @@ impl WorkerController {
                 }
                 Dynamic => return Err(Error::UnexpectedTarget(next.target)),
                 Main => {
-                    drop(pending);
+                    drop(pending); // TODO OS - Call to std::mem::drop with a reference argument. Dropping a reference does nothing
                     self.finish_task(msg.task_id, source, next.payload, &sync)
                         .await?;
                 }
@@ -304,8 +304,8 @@ impl WorkerController {
                 task.cancelling = CancelState::Active(vec![source]);
             }
             if source == task.active_runner {
-                drop(task);
-                // Safe unwrap, since we know it must be in `tasks`
+                drop(task); // TODO OS - Call to std::mem::drop with a reference argument. Dropping a reference does nothing
+                            // Safe unwrap, since we know it must be in `tasks`
                 self.tasks.inner.remove(&task_id).unwrap();
                 self.worker_pool_comms
                     .send(WorkerToWorkerPoolMsg::TaskResultOrCancelled(

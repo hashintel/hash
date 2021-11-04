@@ -1,6 +1,8 @@
-use enum_dispatch::enum_dispatch;
+use crate::simulation::enum_dispatch::*;
 
-use crate::simulation::{task::prelude::*, Error, Result};
+use crate::simulation::task::result::TaskResult;
+use crate::simulation::task::Task;
+use crate::simulation::{Error, Result};
 
 pub struct SplitConfig {
     pub num_workers: usize,

@@ -6,7 +6,6 @@ use crate::simulation::task::args::GetTaskArgs;
 use crate::simulation::task::handler::WorkerHandler;
 use crate::simulation::task::msg::{TargetedTaskMessage, TaskMessage};
 use crate::simulation::task::result::TaskResult;
-use crate::simulation::task::Task;
 use crate::simulation::Result as SimulationResult;
 use crate::worker::runner::comms::MessageTarget;
 

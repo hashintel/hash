@@ -4,6 +4,7 @@ use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 use crate::config;
 use crate::datastore::batch::AgentIndex;
+use crate::simulation::Error;
 
 use super::*;
 

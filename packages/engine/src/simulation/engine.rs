@@ -35,9 +35,7 @@ impl Engine {
         let comms = Arc::new(comms);
 
         let state = packages.init.run(config.clone()).await?;
-        let context = packages
-            .step
-            .empty_context(&config.exp, state.num_agents())?;
+        let context = packages.step.empty_context(&config, state.num_agents())?;
         uninitialized_store.set(state, context);
         let store = uninitialized_store;
 

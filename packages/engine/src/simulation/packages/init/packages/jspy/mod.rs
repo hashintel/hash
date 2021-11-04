@@ -1,4 +1,5 @@
 use crate::proto::{InitialState, InitialStateName};
+use crate::simulation::enum_dispatch::*;
 use crate::simulation::packages::init::packages::jspy::js::JsInitTask;
 use crate::simulation::packages::init::packages::jspy::py::PyInitTask;
 use crate::simulation::task::msg::TaskMessage;
@@ -6,7 +7,7 @@ use crate::simulation::task::result::TaskResult;
 use crate::simulation::Result as SimulationResult;
 use crate::simulation::{Error, Result};
 use core::convert::TryFrom;
-use enum_dispatch::enum_dispatch;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::convert::TryInto;
 
@@ -109,17 +110,20 @@ pub enum JsPyInitTaskResult {
     Err,
 }
 
-#[enum_dispatch]
+#[enum_dispatch(RegisterWithoutTrait)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum JsPyInitTaskMessage {
     StartMessage, // TODO: Better names
     SuccessMessage,
     FailedMessage,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
 struct StartMessage {
     initial_state_source: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
 struct SuccessMessage {
     agent_json: String,
 }
@@ -133,6 +137,7 @@ impl Into<TaskResult> for SuccessMessage {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
 struct FailedMessage {}
 
 impl Into<TaskResult> for FailedMessage {

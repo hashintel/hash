@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::simulation::Result;
 use crate::{
     datastore::{
         meta::ColumnDynamicMetadata,

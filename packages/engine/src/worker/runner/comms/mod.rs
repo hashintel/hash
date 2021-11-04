@@ -1,18 +1,16 @@
 use std::{collections::HashMap, fmt, sync::Arc};
 
-use parking_lot::RwLock;
-
 use crate::config::Globals;
 use crate::datastore::schema::state::AgentSchema;
 use crate::datastore::shared_store::SharedStore;
 use crate::datastore::table::pool::agent::AgentPool;
 use crate::datastore::table::pool::message::MessagePool;
-use crate::datastore::table::pool::BatchPool;
 use crate::proto::{ExperimentID, SimulationShortID};
 use crate::simulation::packages::id::PackageId;
+use crate::simulation::task::msg::TaskMessage;
 use crate::{
-    datastore::prelude::{AgentBatch, ArrowSchema, Dataset, MessageBatch},
-    simulation::{packages::worker_init::PackageInitMsgForWorker, task::prelude::TaskMessage},
+    datastore::prelude::ArrowSchema,
+    simulation::packages::worker_init::PackageInitMsgForWorker,
     types::{TaskID, WorkerIndex},
     Language,
 };

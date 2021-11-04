@@ -1,5 +1,6 @@
 pub mod behavior_execution;
 pub mod topology;
+use serde::{Deserialize, Serialize};
 
 use std::collections::HashMap;
 
@@ -8,7 +9,7 @@ use crate::simulation::packages::{
     PackageType,
 };
 
-use enum_dispatch::enum_dispatch;
+use crate::simulation::enum_dispatch::*;
 use lazy_static::lazy_static;
 use strum_macros::IntoStaticStr;
 
@@ -32,12 +33,13 @@ pub enum StateTask {
 
 /// All state package task messages are registered in this enum
 #[enum_dispatch(Into<TaskResult>)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum StateTaskMessage {
     ExecuteBehaviorsTaskMessage,
 }
 
 /// All state package task results are registered in this enum
-#[enum_dispatch]
+#[enum_dispatch(RegisterWithoutTrait)]
 pub enum StateTaskResult {
     ExecuteBehaviorsTaskResult,
 }

@@ -1,9 +1,7 @@
+use crate::simulation::enum_dispatch::*;
 use crate::simulation::packages::init::InitTaskResult;
-use enum_dispatch::enum_dispatch;
 
-use super::prelude::*;
-
-#[enum_dispatch]
+#[enum_dispatch(RegisterWithoutTrait)]
 pub enum TaskResult {
     InitTaskResult,
     ContextTaskResult,

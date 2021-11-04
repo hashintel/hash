@@ -1,10 +1,12 @@
 use crate::config::TaskDistributionConfig;
-use crate::simulation::packages::init::packages::jspy::{StartMessage, _into_result};
+use crate::simulation::enum_dispatch::InitTaskMessage;
+use crate::simulation::packages::init::packages::jspy::{
+    JsPyInitTaskMessage, StartMessage, _into_result,
+};
 use crate::simulation::task::args::GetTaskArgs;
 use crate::simulation::task::handler::WorkerHandler;
 use crate::simulation::task::msg::{TargetedTaskMessage, TaskMessage};
 use crate::simulation::task::result::TaskResult;
-use crate::simulation::task::Task;
 use crate::simulation::Result as SimulationResult;
 use crate::worker::runner::comms::MessageTarget;
 
@@ -20,12 +22,14 @@ impl GetTaskArgs for PyInitTask {
 
 impl WorkerHandler for PyInitTask {
     fn start_message(&self) -> SimulationResult<TargetedTaskMessage> {
+        let start_msg = StartMessage {
+            initial_state_source: self.initial_state_source.clone(),
+        };
+        let jspy_task_msg: JsPyInitTaskMessage = start_msg.into();
+        let init_task_msg: InitTaskMessage = jspy_task_msg.into();
         SimulationResult::Ok(TargetedTaskMessage {
             target: MessageTarget::Python,
-            payload: StartMessage {
-                initial_state_source: self.initial_state_source.clone(),
-            }
-            .into(),
+            payload: init_task_msg.into(),
         })
     }
 

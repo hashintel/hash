@@ -25,8 +25,8 @@ pub fn new_no_sim() -> (MainMsgSendBase, MainMsgRecv) {
 }
 
 impl MainMsgSend {
-    pub(crate) async fn send(&self, msg: EngineToWorkerPoolMsg) -> Result<()> {
-        self.inner.send((self.sim_id, msg)).await?;
+    pub(crate) fn send(&self, msg: EngineToWorkerPoolMsg) -> Result<()> {
+        self.inner.send((self.sim_id, msg))?;
         Ok(())
     }
 }

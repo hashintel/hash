@@ -9,10 +9,11 @@ use crate::simulation::packages::{
     PackageType,
 };
 
-use enum_dispatch::enum_dispatch;
-use lazy_static::lazy_static;
-use strum_macros::IntoStaticStr;
+use crate::simulation::enum_dispatch::*;
 use crate::simulation::packages::name::PackageName;
+use lazy_static::lazy_static;
+use serde::{Deserialize, Serialize};
+use strum_macros::IntoStaticStr;
 
 /// All output package names are registered in this enum
 #[derive(Debug, Clone, PartialEq, Eq, Hash, IntoStaticStr)]
@@ -39,10 +40,11 @@ pub enum OutputTask {}
 
 /// All output package task messages are registered in this enum
 #[enum_dispatch(Into<TaskResult>)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum OutputTaskMessage {}
 
 /// All output package task results are registered in this enum
-#[enum_dispatch]
+#[enum_dispatch(RegisterWithoutTrait)]
 pub enum OutputTaskResult {}
 
 lazy_static! {

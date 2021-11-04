@@ -97,12 +97,10 @@ impl Comms {
         let agents = state.agent_pool().cloned_batch_pool();
         let agent_messages = state.message_pool().cloned_batch_pool();
         let sync_msg = StateSync::new(agents, agent_messages);
-        self.worker_pool_sender
-            .send(EngineToWorkerPoolMsg::sync(
-                self.sim_id,
-                SyncPayload::State(sync_msg),
-            ))
-            .await?;
+        self.worker_pool_sender.send(EngineToWorkerPoolMsg::sync(
+            self.sim_id,
+            SyncPayload::State(sync_msg),
+        ))?;
         Ok(())
     }
 
@@ -111,12 +109,10 @@ impl Comms {
         let agents = state.agent_pool().cloned_batch_pool();
         let agent_messages = state.message_pool().cloned_batch_pool();
         let sync_msg = StateSync::new(agents, agent_messages);
-        self.worker_pool_sender
-            .send(EngineToWorkerPoolMsg::sync(
-                self.sim_id,
-                SyncPayload::StateSnapshot(sync_msg),
-            ))
-            .await?;
+        self.worker_pool_sender.send(EngineToWorkerPoolMsg::sync(
+            self.sim_id,
+            SyncPayload::StateSnapshot(sync_msg),
+        ))?;
         Ok(())
     }
 
@@ -124,12 +120,10 @@ impl Comms {
         // Synchronize the context batch
         let batch = context.batch();
         let sync_msg = ContextBatchSync::new(batch);
-        self.worker_pool_sender
-            .send(EngineToWorkerPoolMsg::sync(
-                self.sim_id,
-                SyncPayload::ContextBatch(sync_msg),
-            ))
-            .await?;
+        self.worker_pool_sender.send(EngineToWorkerPoolMsg::sync(
+            self.sim_id,
+            SyncPayload::ContextBatch(sync_msg),
+        ))?;
         Ok(())
     }
 }
@@ -144,8 +138,7 @@ impl Comms {
         let task_id = uuid::Uuid::new_v4().as_u128();
         let (wrapped, active) = wrap_task(task_id, package_id, task, shared_store)?;
         self.worker_pool_sender
-            .send(EngineToWorkerPoolMsg::task(self.sim_id, wrapped))
-            .await?;
+            .send(EngineToWorkerPoolMsg::task(self.sim_id, wrapped))?;
         Ok(active)
     }
 }

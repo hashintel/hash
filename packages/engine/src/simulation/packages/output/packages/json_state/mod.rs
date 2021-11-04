@@ -22,7 +22,7 @@ impl PackageCreator for Creator {
         _comms: PackageComms,
         accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn Package>> {
-        Box::new(JsonState {})
+        Ok(Box::new(JsonState {}))
     }
 }
 

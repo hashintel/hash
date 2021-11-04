@@ -6,35 +6,7 @@ pub mod handler;
 pub mod msg;
 pub mod result;
 
-use enum_dispatch::enum_dispatch;
-
-pub mod prelude {
-    pub use super::super::packages::{
-        context::{ContextTask, ContextTaskMessage, ContextTaskResult},
-        init::{InitTask, InitTaskMessage, InitTaskResult},
-        output::{OutputTask, OutputTaskMessage, OutputTaskResult},
-        state::{
-            packages::behavior_execution::tasks::ExecuteBehaviorsTask, StateTask, StateTaskMessage,
-            StateTaskResult,
-        },
-    };
-
-    pub use super::{
-        access::StoreAccessVerify,
-        args::GetTaskArgs,
-        handler::{SplitConfig, WorkerHandler, WorkerPoolHandler},
-        msg::{TargetedTaskMessage, TaskMessage},
-        result::TaskResult,
-        Task,
-    };
-
-    pub use crate::config::*;
-
-    pub use crate::datastore::table::task_shared_store::TaskSharedStore;
-    pub use crate::simulation::{Error, Result};
-}
-
-use prelude::*;
+use crate::simulation::enum_dispatch::*;
 
 // All traits applied here apply to the enum.
 // Also we have automatically derived all

@@ -4,13 +4,13 @@ pub mod neighbors;
 
 use std::collections::HashMap;
 
+use crate::simulation::enum_dispatch::*;
 use crate::simulation::packages::{
     id::{PackageId, PackageIdCreator},
     PackageType,
 };
-
-use enum_dispatch::enum_dispatch;
 use lazy_static::lazy_static;
+use serde::{Deserialize, Serialize};
 use strum_macros::IntoStaticStr;
 
 /// All context package names are registered in this enum
@@ -28,10 +28,11 @@ pub enum ContextTask {}
 
 /// All context package task messages are registered in this enum
 #[enum_dispatch(Into<TaskResult>)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum ContextTaskMessage {}
 
 /// All context package task results are registered in this enum
-#[enum_dispatch]
+#[enum_dispatch(RegisterWithoutTrait)]
 pub enum ContextTaskResult {}
 
 lazy_static! {

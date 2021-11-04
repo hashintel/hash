@@ -12,7 +12,6 @@ use tokio::{pin, task::JoinHandle};
 
 use crate::config;
 use crate::datastore::table::task_shared_store::TaskSharedStore;
-use crate::simulation::task::prelude::*;
 
 use crate::types::{TaskID, WorkerIndex};
 use crate::worker::runner::comms::{ExperimentInitRunnerMsg, NewSimulationRun};
@@ -38,6 +37,8 @@ use self::{
     pending::{PendingWorkerPoolTask, PendingWorkerPoolTasks},
     runs::SimulationRuns,
 };
+use crate::config::{TaskDistributionConfig, Worker};
+use crate::simulation::task::Task;
 pub use error::{Error, Result};
 
 pub struct WorkerPoolController {

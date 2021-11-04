@@ -1,13 +1,10 @@
-use enum_dispatch::enum_dispatch;
+use crate::simulation::enum_dispatch::*;
 use serde::{Deserialize, Serialize};
 
-use super::prelude::*;
 use crate::simulation::packages::PackageType;
-use crate::{
-    simulation::packages::id::PackageId, types::TaskID, worker::runner::comms::MessageTarget,
-};
+use crate::worker::runner::comms::MessageTarget;
 
-#[enum_dispatch]
+#[enum_dispatch(RegisterWithoutTrait)]
 #[derive(Debug, Serialize, Deserialize)]
 pub enum TaskMessage {
     InitTaskMessage,

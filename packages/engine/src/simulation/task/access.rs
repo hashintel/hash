@@ -1,10 +1,12 @@
-use enum_dispatch::enum_dispatch;
+use crate::simulation::enum_dispatch::*;
 
 use crate::datastore::table::task_shared_store::{SharedContext, SharedState, TaskSharedStore};
+use crate::simulation::packages::context::ContextTask;
+use crate::simulation::packages::init::InitTask;
+use crate::simulation::packages::output::OutputTask;
+use crate::simulation::packages::state::StateTask;
 
-use super::super::{Error, Result};
-
-use super::prelude::*;
+use crate::simulation::{Error, Result};
 
 #[enum_dispatch]
 pub trait StoreAccessVerify {
@@ -12,7 +14,7 @@ pub trait StoreAccessVerify {
 }
 
 impl StoreAccessVerify for ContextTask {
-    fn verify_store_access(&self, access: &TaskSharedStore) -> bool {
+    fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()> {
         let state = access.state();
         let context = access.context();
         if (matches!(state, SharedState::Read(_)) || matches!(state, SharedState::None))

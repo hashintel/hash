@@ -1,17 +1,17 @@
 use std::collections::HashMap;
 
-use enum_dispatch::enum_dispatch;
+use crate::simulation::enum_dispatch::*;
 use lazy_static::lazy_static;
 use strum_macros::IntoStaticStr;
-
-use jspy::js::JsInitTask;
-use jspy::py::PyInitTask;
-use jspy::JsPyInitTaskResult;
 
 use crate::simulation::packages::{
     id::{PackageId, PackageIdCreator},
     PackageType,
 };
+use jspy::js::JsInitTask;
+use jspy::py::PyInitTask;
+use jspy::JsPyInitTaskResult;
+use serde::{Deserialize, Serialize};
 
 pub mod json;
 pub mod jspy;
@@ -32,13 +32,14 @@ pub enum InitTask {
 }
 
 /// All init package task messages are registered in this enum
-#[enum_dispatch]
+#[enum_dispatch(RegisterWithoutTrait)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum InitTaskMessage {
     JsPyInitTaskMessage,
 }
 
 /// All init package task results are registered in this enum
-#[enum_dispatch]
+#[enum_dispatch(RegisterWithoutTrait)]
 pub enum InitTaskResult {
     JsPyInitTaskResult,
 }
