@@ -9,6 +9,7 @@ import { useEffect } from "react";
 import { createApolloClient } from "@hashintel/hash-shared/graphql/createApolloClient";
 import withTwindApp from "@twind/next/app";
 import { ModalProvider } from "react-modal-hook";
+import { configureScope } from "@sentry/nextjs";
 import { PageLayout } from "../components/layout/PageLayout/PageLayout";
 
 import twindConfig from "../../twind.config";
@@ -22,6 +23,14 @@ function MyApp({ Component, pageProps }: AppProps) {
   const router = useRouter();
 
   const { user } = useUser({ client: apolloClient });
+
+  useEffect(
+    () =>
+      configureScope((scope) =>
+        console.log(`Build: ${scope.getSession()?.release ?? "not set"}`),
+      ),
+    [],
+  );
 
   useEffect(() => {
     if (

@@ -82,3 +82,6 @@ build
 **/*.gen.*
 
 **/*.tsbuildinfo
+
+# Sentry
+.sentryclirc
