@@ -11,7 +11,9 @@ export const SENTRY_CONFIG = {
   dsn,
   enabled: !!dsn,
   environment:
-    apiOrigin === "https://alpha.hash.ai" ? "production" : "development",
+    process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_REF === "main"
+      ? "production"
+      : "development",
   // release is set in next.config.js in the Sentry webpack plugin
   /** @todo reduce perf sample rate from 100% when we have more traffic */
   tracesSampleRate: 1.0,
