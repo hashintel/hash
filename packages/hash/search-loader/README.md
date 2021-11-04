@@ -10,6 +10,7 @@ The service listens for HTTP requests for administration purposes with endpoints
 
 - `GET /healthcheck`: responds with the health of the server. The response is of the
   form:
+
   ```json
   {
     "msg": "// a human-readable context specific message",
@@ -17,6 +18,7 @@ The service listens for HTTP requests for administration purposes with endpoints
     "queueAcquired": "// a boolean indicating if the instance has ownership of the search ingestion queue."
   }
   ```
+
 - `POST /shutdown`: gracefully shutdown the instance.
 
 ## Configuration

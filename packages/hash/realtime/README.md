@@ -30,13 +30,13 @@ in the `QUEUES` array.
 
 In dev mode, the service will automatically restart:
 
-```
+```sh
 yarn dev
 ```
 
 Production mode:
 
-```
+```sh
 yarn build && yarn start
 ```
 

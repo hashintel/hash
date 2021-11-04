@@ -41,11 +41,11 @@ N.B.
 
 ## Step three: test your bundled block
 
-1. Run `yarn serve`. Your block dist is now available at http://localhost:5000
+1.  Run `yarn serve`. Your block dist is now available at http://localhost:5000
 
-2. At the root folder of this repo, run `yarn serve:hash-frontend`.
+1.  At the root folder of this repo, run `yarn serve:hash-frontend`.
 
-3. Visit http://localhost:3000/playground and enter http://localhost:5000 as the URL
+1.  Visit http://localhost:3000/playground and enter http://localhost:5000 as the URL
 
 ## External Dependencies
 
@@ -75,7 +75,7 @@ There are a few important files, one set is used for the bundle, another set for
 
 The component can be debugged locally by first starting `yarn dev`.
 
-```bash
+```sh
 npm run start
 ```
 

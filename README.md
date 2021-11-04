@@ -4,17 +4,19 @@
 
 In order to run the app in its entirety, you will need to follow these steps:
 
-1. Add the following entry to your `/etc/hosts` file. This is to allow the docker container to reach
-   the blocks servers, which are hosted outside the container.
-   ```
-   127.0.0.1 host.docker.internal
-   ```
-2. Add the `packages/hash/docker/.env` file (found in the 1Password "HASH.dev/ai" vault with the
-   name "HASH.dev backend .env")
-3. Run `yarn install`
-4. Start the backend and seed the db if necessary (see instructions below)
-5. Install the frontend and blocks
-6. Start the frontend and blocks
+1.  Add the following entry to your `/etc/hosts` file. This is to allow the docker container to reach
+    the blocks servers, which are hosted outside the container.
+
+    ```txt
+    127.0.0.1 host.docker.internal
+    ```
+
+1.  Add the `packages/hash/docker/.env` file (found in the 1Password "HASH.dev/ai" vault with the
+    name "HASH.dev backend .env")
+1.  Run `yarn install`
+1.  Start the backend and seed the db if necessary (see instructions below)
+1.  Install the frontend and blocks
+1.  Start the frontend and blocks
 
 ## System requirements
 
@@ -26,22 +28,24 @@ The following programs must be present on your development system:
 
 ## Start the backend & database
 
-1. Make sure you have the `packages/hash/docker/.env` file present (found in 1Password)
-2. Ensure Docker is running.
-   If you use Docker for macOS or Windows, go to _Preferences_ → _Resources_ and ensure that Docker can use at least 4GB of RAM (8GB is recommended).
-3. Ensure port 5432 is not occupied (i.e. no other postgres service) - You can check with
-   `lsof -n -i:5432`
-4. If it's your first time, run `docker volume create hash-dev-pg` to create the storage volume.
-5. **To start the backend & Postgres Docker container**:
-   ```
-   yarn serve:hash-backend
-   ```
-6. **On first run**, or if you want to reset the database to the initial mock data, after starting
-   the backend, and having run `yarn install`, run:
+1.  Make sure you have the `packages/hash/docker/.env` file present (found in 1Password)
+1.  Ensure Docker is running.
+    If you use Docker for macOS or Windows, go to _Preferences_ → _Resources_ and ensure that Docker can use at least 4GB of RAM (8GB is recommended).
+1.  Ensure port 5432 is not occupied (i.e. no other postgres service) - You can check with
+    `lsof -n -i:5432`
+1.  If it's your first time, run `docker volume create hash-dev-pg` to create the storage volume.
+1.  **To start the backend & Postgres Docker container**:
 
-   ```
-   yarn seed-db
-   ```
+    ```sh
+    yarn serve:hash-backend
+    ```
+
+1.  **On first run**, or if you want to reset the database to the initial mock data, after starting
+    the backend, and having run `yarn install`, run:
+
+    ```sh
+    yarn seed-db
+    ```
 
 See the [docker/README](./docker) for further details.
 
@@ -68,8 +72,8 @@ build all blocks concurrently.
 
 ## Create a new block bundle from template
 
-1. `yarn new:block <name>`
-2. code in `packages/hash/blocks/<name>`
+1.  `yarn new:block <name>`
+1.  code in `packages/hash/blocks/<name>`
 
 ## Tests
 
@@ -77,7 +81,7 @@ Integration tests are located at [packages/hash/integration](./packages/hash/int
 these tests, ensure the API and database are running in test mode (`yarn serve:hash-backend-test`),
 which sets a test database name, and execute:
 
-```
+```sh
 yarn test-integration
 ```
 
@@ -90,7 +94,7 @@ We perform automated linting and formatting checks on pull requests using GitHub
 also run these checks using the git hooks provided in [./hooks](./hooks). To install these hooks,
 run:
 
-```
+```sh
 yarn install-hooks
 ```
 

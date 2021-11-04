@@ -2,7 +2,7 @@
 
 ## Getting Started
 
-```bash
+```sh
 npm run dev
 # or
 yarn dev

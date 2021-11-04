@@ -4,7 +4,7 @@
 
 Mock data may be inserted by running:
 
-```
+```sh
 yarn mock-data
 ```
 
@@ -18,7 +18,7 @@ Run `yarn serve:hash-backend-test` from the root to do this.
 
 Command:
 
-```
+```sh
 yarn test
 ```
 

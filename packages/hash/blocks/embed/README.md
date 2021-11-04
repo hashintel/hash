@@ -16,22 +16,22 @@ The template will be copied into `blocks/<name>` and its `package.json` updated 
 
 ## Step two: write and build a component
 
-1. Change into the folder: `cd packages/hash/blocks/<name>`
+1.  Change into the folder: `cd packages/hash/blocks/<name>`
 
-2. Write a React component starting in `App.tsx`. To test it during development:
+1.  Write a React component starting in `App.tsx`. To test it during development:
 
-- edit `src/webpack-dev-server.js` to give your component some props to test with
-- run the dev server with `yarn start`
+    - edit `src/webpack-dev-server.js` to give your component some props to test with
+    - run the dev server with `yarn start`
 
-3. When finished, run `yarn build`, which:
+1.  When finished, run `yarn build`, which:
 
-- Bundles the component, without React, into a single source file
-- Generates a JSON schema from the `AppProps` type representing the data interface with the block
-- Generates a `metadata.json` file which:
-  - points to the `schema` and `source` files
-  - brings in metadata from `package.json`, such as the block name and description
-  - lists the `externals` - libraries the block expects the host app to provide (React, unless modified)
-- Once uploaded to a remote folder, embedding applications can access `metadata.json` to load a block and its schema.
+    - Bundles the component, without React, into a single source file
+    - Generates a JSON schema from the `AppProps` type representing the data interface with the block
+    - Generates a `metadata.json` file which:
+      - points to the `schema` and `source` files
+      - brings in metadata from `package.json`, such as the block name and description
+      - lists the `externals` - libraries the block expects the host app to provide (React, unless modified)
+    - Once uploaded to a remote folder, embedding applications can access `metadata.json` to load a block and its schema.
 
 N.B.
 
@@ -40,11 +40,11 @@ N.B.
 
 ## Step three: test your bundled block
 
-1. Run `yarn serve` (when still in your `blocks/<name>` folder). Your block dist is now available at http://localhost:5000
+1.  Run `yarn serve` (when still in your `blocks/<name>` folder). Your block dist is now available at http://localhost:5000
 
-2. In a new shell, at the root folder of this repo, run `yarn serve:hash-frontend`.
+1.  In a new shell, at the root folder of this repo, run `yarn serve:hash-frontend`.
 
-3. Visit http://localhost:3000/playground and enter http://localhost:5000 as the URL
+1.  Visit http://localhost:3000/playground and enter http://localhost:5000 as the URL
 
 ## External Dependencies
 
@@ -72,7 +72,7 @@ There are a few important files, one set is used for the bundle, another set for
 
 The component can be debugged locally by first starting `yarn dev`.
 
-```bash
+```sh
 npm run start
 ```
 

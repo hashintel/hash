@@ -9,13 +9,13 @@ The Postgres schema definitions are stored in [`./postgres/schema`](./postgres/s
 
 To create the database schema, run:
 
-```
+```sh
 yarn migration
 ```
 
 To completely refresh the database (including removing all data), run:
 
-```
+```sh
 yarn refresh
 ```
 
