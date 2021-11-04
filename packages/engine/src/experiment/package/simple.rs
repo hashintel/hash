@@ -44,7 +44,7 @@ impl SimpleExperiment {
         let max_num_steps = self.config.num_steps;
         let mut n_sims_steps = HashMap::new();
         let num_sims = self.config.changed_properties.len();
-        for (sim_id, properties) in self.config.changed_properties.iter().enumerate() {
+        for (sim_id, changed_properties) in self.config.changed_properties.iter().enumerate() {
             n_sims_steps.insert(
                 sim_id as SimulationShortID,
                 StepProgress {
@@ -54,7 +54,7 @@ impl SimpleExperiment {
             );
             let msg = ExperimentControl::StartSim {
                 sim_id: sim_id as SimulationShortID,
-                properties: properties.clone(),
+                changed_properties: changed_properties.clone(),
                 max_num_steps,
             };
             pkg_to_exp.send(msg).await?;

@@ -1,4 +1,3 @@
-use std::convert::TryInto;
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{
@@ -82,10 +81,10 @@ impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController
         match msg {
             ExperimentControl::StartSim {
                 sim_id,
-                properties: property_changes,
+                changed_properties,
                 max_num_steps,
             } => {
-                self.start_new_sim_run(sim_id, property_changes, max_num_steps)
+                self.start_new_sim_run(sim_id, changed_properties, max_num_steps)
                     .await?;
             }
             ExperimentControl::PauseSim(sim_short_id) => self.pause_sim_run(sim_short_id).await?,
@@ -99,8 +98,7 @@ impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController
     async fn handle_sim_status(&mut self, status: SimStatus) -> Result<()> {
         Ok(self
             .orch_client()
-            // TODO OS - COMPILE BLOCK - No such enum variant RunnerStatus
-            .send(EngineStatus::RunnerStatus(status.try_into()?))
+            .send(EngineStatus::SimStatus(status))
             .await?)
     }
 
@@ -115,14 +113,12 @@ impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController
     ) -> Result<()> {
         let engine_status = match msg {
             WorkerPoolToExpCtlMsg::Errors(errors) => {
-                // TODO OS: Fix - no method named into_sendable for RunnerError
                 let runner_errors = errors.into_iter().map(|w| w.into_sendable(false)).collect();
-                EngineStatus::Warnings(id, runner_errors)
+                EngineStatus::Errors(id, runner_errors)
             }
             WorkerPoolToExpCtlMsg::Warnings(warnings) => {
                 let runner_warnings = warnings
                     .into_iter()
-                    // TODO OS: Fix - no method named into_sendable for RunnerError
                     .map(|w| w.into_sendable(true))
                     .collect();
                 EngineStatus::Warnings(id, runner_warnings)
@@ -135,7 +131,7 @@ impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController
     async fn start_new_sim_run(
         &mut self,
         sim_short_id: SimulationShortID,
-        property_changes: serde_json::Value,
+        changed_properties: serde_json::Value,
         max_num_steps: usize,
     ) -> Result<()> {
         let worker_pool_sender = self.worker_pool_send_base.sender_with_sim_id(sim_short_id);
@@ -144,8 +140,11 @@ impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController
 
         // Create the `globals.json` for the simulation
         let globals = Arc::new(
-            apply_property_changes(self.exp_base_config.base_globals.clone(), &property_changes)
-                .map_err(|experiment_err| Error::from(experiment_err.to_string()))?,
+            apply_property_changes(
+                self.exp_base_config.base_globals.clone(),
+                &changed_properties,
+            )
+            .map_err(|experiment_err| Error::from(experiment_err.to_string()))?,
         );
 
         // Create the datastore configuration (requires schemas)
@@ -197,7 +196,6 @@ impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController
 
         let sim_controller = SimulationController::new(
             sim_config,
-            property_changes.clone(),
             task_comms,
             packages,
             self.shared_store.clone(),
@@ -213,7 +211,10 @@ impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController
 
         // Register run with the orchestrator
         self.orch_client()
-            .send(EngineStatus::SimStart(sim_short_id, property_changes))
+            .send(EngineStatus::SimStart {
+                sim_id: sim_short_id,
+                globals: globals.0.clone(),
+            })
             .await?;
         Ok(())
     }
@@ -265,7 +266,7 @@ impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController
 }
 
 impl<E: ExperimentRunRepr, O: OutputPersistenceCreatorRepr> ExperimentController<E, O> {
-    pub async fn run(self) -> Result<()> {
+    pub async fn run(mut self) -> Result<()> {
         loop {
             tokio::select! {
                 Some(msg) = self.experiment_package_comms.ctl_recv.recv() => {
@@ -275,9 +276,8 @@ impl<E: ExperimentRunRepr, O: OutputPersistenceCreatorRepr> ExperimentController
                     }
                 }
                 result = self.sim_run_tasks.next() => {
-                    if let Some(result) = result? {
-                        // TODO OS - COMPILE BLOCK - No method named `handle_simulation_result` found for struct `ExperimentController` in the current scope
-                        self.handle_simulation_result(result).await?;
+                    if let Some(result) = result.map_err(|_| Error::from("Couldn't join `sim_run_tasks.next()`"))? {
+                        self.handle_sim_run_stop(result?).await?;
                     }
                 }
                 Some(msg) = self.sim_status_recv.recv() => {

@@ -24,7 +24,10 @@ pub enum EngineStatus {
     Exit,
     ProcessError(String),
     Stopping,
-    SimStart(SimulationShortID, serde_json::Value),
+    SimStart {
+        sim_id: SimulationShortID,
+        globals: serde_json::Value,
+    },
     SimStop(SimulationShortID),
     Errors(Option<SimulationShortID>, Vec<RunnerError>),
     Warnings(Option<SimulationShortID>, Vec<RunnerError>),
@@ -61,7 +64,10 @@ impl EngineStatus {
             EngineStatus::Exit => "Exit",
             EngineStatus::ProcessError(_) => "ProcessError",
             EngineStatus::Stopping => "Stopping",
-            EngineStatus::SimStart(_, _) => "SimStart",
+            EngineStatus::SimStart {
+                sim_id: _,
+                globals: _,
+            } => "SimStart",
             EngineStatus::SimStop(_) => "SimStop",
             EngineStatus::Errors(_, _) => "Errors",
             EngineStatus::Warnings(_, _) => "Warnings",

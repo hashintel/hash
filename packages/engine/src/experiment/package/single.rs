@@ -29,8 +29,7 @@ impl SingleRunExperiment {
     ) -> Result<()> {
         let msg = ExperimentControl::StartSim {
             sim_id: 0 as SimulationShortID,
-            // TODO OS - COMPILE BLOCK - mismatched types, should StartSim accept Globals object
-            properties: self.experiment_config.base_globals.clone(),
+            changed_properties: serde_json::Map::new().into(), // Don't change properties
             max_num_steps: self.config.num_steps,
         };
         pkg_to_exp.send(msg).await?;

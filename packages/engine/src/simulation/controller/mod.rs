@@ -31,7 +31,6 @@ pub struct SimulationController {
 impl SimulationController {
     pub fn new<P: SimulationOutputPersistenceRepr>(
         config: Arc<SimRunConfig<ExperimentRunBase>>,
-        property_changes: serde_json::Value,
         comms: Comms,
         packages: Packages,
         shared_store: Arc<SharedStore>,
@@ -44,7 +43,6 @@ impl SimulationController {
 
         let task_handle = new_task_handle(
             config,
-            property_changes,
             ctl_receiver,
             status_sender,
             comms,
@@ -63,7 +61,6 @@ impl SimulationController {
 
 fn new_task_handle<P: SimulationOutputPersistenceRepr>(
     config: Arc<SimRunConfig<ExperimentRunBase>>,
-    property_changes: serde_json::Value,
     receiver: SimCtlRecv,
     sender: SimStatusSend,
     comms: Comms,

@@ -64,7 +64,7 @@ pub use crate::datastore::table::task_shared_store::TaskSharedStore;
 pub use crate::simulation::{
     packages::{
         context::{ContextTask, ContextTaskMessage, ContextTaskResult},
-        init::{packages::jspy::JsPyInitTaskMessage, InitTask, InitTaskMessage},
+        init::{packages::jspy::JsPyInitTaskMessage, InitTask, InitTaskMessage, InitTaskResult},
         output::{OutputTask, OutputTaskMessage, OutputTaskResult},
         state::{
             packages::behavior_execution::tasks::ExecuteBehaviorsTask, StateTask, StateTaskMessage,

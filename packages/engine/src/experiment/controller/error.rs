@@ -14,6 +14,9 @@ pub enum Error {
     #[error("Simulation error: {0}")]
     Simulation(#[from] crate::simulation::Error),
 
+    #[error("Simulation controller error: {0}")]
+    SimulationController(#[from] crate::simulation::controller::Error),
+
     #[error("Output error: {0}")]
     Output(#[from] crate::output::Error),
 
