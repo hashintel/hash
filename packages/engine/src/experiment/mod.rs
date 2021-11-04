@@ -87,7 +87,7 @@ pub struct Initializer {
 pub enum ExperimentControl {
     StartSim {
         sim_id: SimulationShortID,
-        properties: SerdeValue,
+        properties: Globals,
         max_num_steps: usize,
     },
     PauseSim(SimulationShortID),

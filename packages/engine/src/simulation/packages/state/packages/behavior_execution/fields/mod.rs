@@ -72,8 +72,7 @@ pub(super) fn add_state(
     // of the behavior chain for a single step
     add_hidden_behavior_indices(builder)?;
     let behavior_map: BehaviorMap = config.try_into()?;
-    // TODO OS this is expecting BehaviorKeys not FieldSpecMap
-    add_fields_from_behavior_keys(config, builder, behavior_map.all_field_specs)?;
+    add_fields_from_behavior_keys(builder, behavior_map.all_field_specs)?;
     Ok(())
 }
 

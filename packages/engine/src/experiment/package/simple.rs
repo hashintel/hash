@@ -72,7 +72,7 @@ impl SimpleExperiment {
             let mut maybe_step_progress = n_sims_steps.get_mut(&response.sim_id);
 
             if response.was_error || response.stop_signal {
-                if let Some(step_progress) = maybe_step_progress {
+                if let Some(step_progress) = &mut maybe_step_progress {
                     step_progress.stopped = true;
                 } else {
                     log::warn!("Stopped sim run with unknown id {}", &response.sim_id);
@@ -83,7 +83,6 @@ impl SimpleExperiment {
                 }
             }
 
-            // TODO OS - COMPILE BLOCK - use of partially moved value: `maybe_step_progress`
             let step_progress = maybe_step_progress
                 .ok_or_else(|| Error::MissingSimulationRun(response.sim_id.clone()))?;
 

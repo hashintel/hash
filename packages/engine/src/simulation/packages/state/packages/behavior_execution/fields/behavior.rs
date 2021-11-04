@@ -2,7 +2,7 @@ use crate::datastore::schema::{FieldScope, FieldSpecMapBuilder};
 use crate::hash_types::state::AgentStateField;
 use crate::proto::ExperimentRunBase;
 
-use crate::worker::runner::rust;
+// use crate::worker::runner::rust;
 use crate::{
     config::ExperimentConfig,
     datastore::{
@@ -15,11 +15,10 @@ use crate::{
 use std::{collections::HashMap, convert::TryFrom};
 
 pub fn add_fields_from_behavior_keys(
-    config: &ExperimentConfig<ExperimentRunBase>,
     builder: &mut FieldSpecMapBuilder,
-    behavior_keys: BehaviorKeys,
+    field_specs: FieldSpecMap,
 ) -> Result<()> {
-    for (_key, spec) in behavior_keys.inner.iter() {
+    for (_key, spec) in field_specs.iter() {
         builder.add_field_spec(
             spec.inner.name.clone(),
             spec.inner.field_type.clone(),
@@ -63,7 +62,7 @@ impl BehaviorKeys {
                 for (k, v) in map {
                     builder.add_field_spec(
                         k.into(),
-                        FieldType::from_json(k.into(), v)?,
+                        FieldType::from_json(&k, v)?,
                         FieldScope::Agent,
                     )?;
                 }
@@ -95,7 +94,7 @@ impl BehaviorKeys {
                                         let mut res = None;
                                         for field in AgentStateField::FIELDS {
                                             if field.name() == string {
-                                                res = Some(field.clone());
+                                                res = Some(field.name().to_string());
                                                 break;
                                             }
                                         }
@@ -206,7 +205,7 @@ impl TryFrom<&ExperimentConfig<ExperimentRunBase>> for BehaviorMap {
                 let rust_built_in_behavior_keys = None;
                 let keys = rust_built_in_behavior_keys
                     .or_else(|| b.behavior_keys_src.clone())
-                    .map(|v| BehaviorKeys::from_json_str(v.as_ref()))
+                    .map(|v| BehaviorKeys::from_json_str(&v))
                     .unwrap_or_else(|| {
                         // The default is to use all built-in keys
                         Ok(BehaviorKeys::default())
@@ -260,6 +259,15 @@ impl TryFrom<&str> for BaseKeyType {
     }
 }
 
+impl FieldSpec {
+    fn from_json(name: &str, source: &serde_json::Value) -> Result<FieldSpec> {
+        Ok(FieldSpec {
+            name: name.to_string(),
+            field_type: FieldType::from_json(name, source)?,
+        })
+    }
+}
+
 impl FieldType {
     fn from_json(name: &str, source: &serde_json::Value) -> Result<FieldType> {
         match source {
@@ -294,8 +302,7 @@ impl FieldType {
                         })? {
                             serde_json::Value::Object(map) => {
                                 for (k, v) in map {
-                                    // Mergeability does not (as of writing this) matter in nested keys
-                                    children.push(FieldSpec::from_json(k.as_ref(), v, true)?);
+                                    children.push(FieldSpec::from_json(k.as_ref(), v)?);
                                 }
                                 Ok(())
                             }
@@ -347,8 +354,16 @@ impl FieldType {
     }
 }
 
+impl From<BehaviorKeyJSONError> for crate::datastore::error::Error {
+    fn from(err: BehaviorKeyJSONError) -> Self {
+        crate::datastore::error::Error::from(format!("Behavior Key Error {:?}", err))
+    }
+}
+
 #[derive(thiserror::Error, Debug)]
 pub enum BehaviorKeyJSONError {
+    #[error("{0}")]
+    Unique(String),
     #[error("Expected the top-level of behavior keys definition to be a JSON object")]
     ExpectedTopLevelMap,
     #[error("Expected \"keys\" field in top-level behavior keys definition")]
@@ -383,4 +398,16 @@ pub enum BehaviorKeyJSONError {
     InvalidBuiltInKeyName(String),
     #[error("Dynamic access flag must be boolean if present")]
     NonBoolDynamicAccess,
+}
+
+impl From<&str> for BehaviorKeyJSONError {
+    fn from(string: &str) -> Self {
+        BehaviorKeyJSONError::Unique(string.to_string())
+    }
+}
+
+impl From<String> for BehaviorKeyJSONError {
+    fn from(string: String) -> Self {
+        BehaviorKeyJSONError::Unique(string)
+    }
 }

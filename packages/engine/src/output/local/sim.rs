@@ -23,22 +23,18 @@ impl SimulationOutputPersistenceRepr for LocalSimulationOutputPersistence {
     type OutputPersistenceResult = LocalPersistenceResult;
 
     async fn add_step_output(&mut self, output: SimulationStepOutput) -> Result<()> {
-        output
-            .package_outputs()
-            .into_iter()
-            .try_for_each(|output| {
-                match output {
-                    // TODO OS: Fix - Output destructure needs to work with the enum_dispatch
-                    Output::AnalysisOutput(output) => {
-                        self.buffers.analysis.add(output)?;
-                    }
-                    Output::JSONStateOutput(output) => {
-                        self.buffers.json_state.append_step(output.inner)?;
-                    }
-                    _ => {}
+        output.0.into_iter().try_for_each(|output| {
+            match output {
+                Output::AnalysisOutput(output) => {
+                    self.buffers.analysis.add(output)?;
                 }
-                Ok(())
-            })?;
+                Output::JSONStateOutput(output) => {
+                    self.buffers.json_state.append_step(output.inner)?;
+                }
+                _ => {}
+            }
+            Ok(()) as Result<()>
+        })?;
         Ok(())
     }
 

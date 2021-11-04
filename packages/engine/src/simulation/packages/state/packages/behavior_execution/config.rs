@@ -1,7 +1,6 @@
-use crate::proto::{ExperimentRun, SharedBehavior};
+use crate::proto::{ExperimentRunBase, SharedBehavior};
 
-use crate::datastore::schema::FieldSpecMap;
-use crate::Language;
+use crate::{ExperimentConfig, Language};
 
 use super::fields::behavior::BehaviorMap;
 use super::{Error, Result};
@@ -30,16 +29,10 @@ pub struct BehaviorConfig {
 }
 
 impl BehaviorConfig {
-    pub fn new(experiment_run: &ExperimentRun) -> Result<BehaviorConfig> {
-        // TODO OS - swap try_from to accept ExperimentRun?
-        let behaviors = BehaviorMap::try_from(experiment_run)?;
+    pub fn new(exp_config: &ExperimentConfig<ExperimentRunBase>) -> Result<BehaviorConfig> {
+        let behaviors = BehaviorMap::try_from(exp_config)?;
         let indices = BehaviorIndices::from_behaviors(&behaviors)?;
         Ok(BehaviorConfig { behaviors, indices })
-    }
-
-    pub fn get_key_set(&self) -> Result<FieldSpecMap> {
-        let keys = FieldSpecMap::from_behaviors(&self.behaviors)?;
-        Ok(keys)
     }
 
     pub fn get_index_from_name<K: Deref<Target = [u8]>>(&self, key: &K) -> Option<&BehaviorIndex> {
@@ -135,7 +128,8 @@ pub fn init_message(
 ) -> Result<HashMap<Language, Vec<(SharedBehavior, SendableBehaviorKeys)>>> {
     let mut partitioned = HashMap::new();
     for (file_name, behavior) in &behavior_map.inner {
-        let lang = Language::from_file_name(file_name)?;
+        let lang = Language::from_file_name(file_name)
+            .map_err(|_| Error::from("Couldn't get language from behavior file name"))?;
         partitioned.entry(lang).or_insert_with(Vec::new);
 
         let shared = behavior.shared().clone();

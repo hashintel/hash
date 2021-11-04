@@ -1,6 +1,6 @@
 use super::packages::output::packages::Output;
 
-pub struct SimulationStepOutput(Vec<Output>);
+pub struct SimulationStepOutput(pub Vec<Output>);
 
 impl SimulationStepOutput {
     pub fn package_outputs(&self) -> &Vec<Output> {

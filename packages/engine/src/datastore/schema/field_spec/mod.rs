@@ -185,7 +185,7 @@ impl RootFieldSpec {
 
 /// A wrapper struct around a hashmap of field-keys (unique identifiers used to name/label Arrow
 /// data columns mapped to the specification of those fields
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Eq, PartialEq)]
 pub struct FieldSpecMap {
     field_specs: HashMap<FieldKey, RootFieldSpec>, // a mapping of field unique identifiers to the fields themselves
 }
@@ -238,7 +238,7 @@ impl FieldSpecMap {
         self.field_specs.contains_key(key)
     }
 
-    pub(in crate::datastore) fn iter(&self) -> Iter<FieldKey, RootFieldSpec> {
+    pub(crate) fn iter(&self) -> Iter<FieldKey, RootFieldSpec> {
         self.field_specs.iter()
     }
 

@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use serde::Serialize;
 
-use crate::output::error::{Error, Result};
+use crate::output::error::Result;
 use crate::proto::ExperimentID;
 use crate::proto::SimulationShortID;
 
@@ -87,11 +87,6 @@ impl OutputPartBuffer {
     }
 
     pub fn append_step<S: Serialize>(&mut self, step: S) -> Result<()> {
-        // TODO OS - COMPILE BLOCK - No finalized field on OutputPartBuffer
-        if self.finalized {
-            return Err(Error::from("Cannot append to finalized part buffer"));
-        }
-
         if !self.initial_step {
             self.current.push(CHAR_COMMA); // Previous step existed
         } else {

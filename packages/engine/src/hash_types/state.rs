@@ -126,14 +126,10 @@ impl AgentStateField {
     pub const FIELDS: &'static [AgentStateField] = &[
         AgentStateField::AgentId,
         AgentStateField::AgentName,
-        AgentStateField::Behaviors,
         AgentStateField::Messages,
         AgentStateField::Position,
         AgentStateField::Direction,
         AgentStateField::Velocity,
-        AgentStateField::SearchRadius,
-        AgentStateField::PositionWasCorrected,
-        AgentStateField::BehaviorIndex,
         AgentStateField::Shape,
         AgentStateField::Height,
         AgentStateField::Scale,
@@ -147,14 +143,10 @@ impl AgentStateField {
         match self {
             AgentStateField::AgentId => "agent_id",
             AgentStateField::AgentName => "agent_name",
-            AgentStateField::Behaviors => "behaviors",
             AgentStateField::Messages => "messages",
             AgentStateField::Position => "position",
             AgentStateField::Direction => "direction",
             AgentStateField::Velocity => "velocity",
-            AgentStateField::SearchRadius => "search_radius",
-            AgentStateField::PositionWasCorrected => "position_was_corrected",
-            AgentStateField::BehaviorIndex => "behavior_index",
 
             AgentStateField::Shape => "shape",
             AgentStateField::Height => "height",
@@ -291,9 +283,6 @@ impl<'de> Deserialize<'de> for Agent {
                         AgentStateField::AgentName => {
                             agent_state_buf.agent_name = Some(map.next_value()?);
                         }
-                        AgentStateField::Behaviors => {
-                            agent_state_buf.behaviors = map.next_value()?;
-                        }
                         AgentStateField::Messages => {
                             let messages_value: serde_json::Value = map.next_value()?;
                             if std::matches!(messages_value, serde_json::Value::Array(_)) {
@@ -316,15 +305,6 @@ impl<'de> Deserialize<'de> for Agent {
                         }
                         AgentStateField::Velocity => {
                             agent_state_buf.velocity = Some(map.next_value()?);
-                        }
-                        AgentStateField::SearchRadius => {
-                            agent_state_buf.search_radius = Some(map.next_value()?);
-                        }
-                        AgentStateField::PositionWasCorrected => {
-                            agent_state_buf.position_was_corrected = map.next_value()?;
-                        }
-                        AgentStateField::BehaviorIndex => {
-                            agent_state_buf.behavior_index = map.next_value()?;
                         }
                         AgentStateField::Shape => {
                             agent_state_buf.shape = Some(map.next_value()?);

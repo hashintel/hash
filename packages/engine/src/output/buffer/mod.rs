@@ -8,6 +8,7 @@ pub use util::cleanup_experiment;
 use crate::output::error::{Error, Result};
 use crate::proto::ExperimentID;
 use crate::proto::SimulationShortID;
+use crate::simulation::packages::name::PackageName;
 use crate::simulation::packages::output;
 use crate::simulation::packages::output::packages::{
     analysis::{AnalysisOutput, AnalysisSingleOutput},
@@ -47,17 +48,13 @@ impl AnalysisBuffer {
     pub fn new(output_packages_config: &OutputPackagesSimConfig) -> Result<AnalysisBuffer> {
         let value = output_packages_config
             .map
-            .get(&output::Name::Analysis)
+            .get(&PackageName::Output(output::Name::Analysis))
             .ok_or_else(|| Error::from("Missing analysis config"))?;
         let config: output::packages::analysis::AnalysisOutputConfig =
             serde_json::from_value(value.clone())?;
         let buffer = AnalysisBuffer {
             manifest: config.manifest.clone(),
-            buffers: config
-                .outputs
-                .keys()
-                .map(|v| (Arc::new(v.clone()), vec![]))
-                .collect(),
+            buffers: config.outputs.keys().map(|v| (v.clone(), vec![])).collect(),
         };
         Ok(buffer)
     }
