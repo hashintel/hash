@@ -1,7 +1,16 @@
 import { ApolloClient } from "@apollo/client";
+import { EntityVersion } from "@hashintel/hash-backend-utils/pgTables";
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
-import { createEntityStore } from "@hashintel/hash-shared/entityStore";
+import {
+  createEntityStore,
+  EntityStore,
+  walkValueForEntity,
+} from "@hashintel/hash-shared/entityStore";
+import {
+  addEntityStoreAction,
+  entityStoreFromProsemirror,
+} from "@hashintel/hash-shared/entityStorePlugin";
 import {
   findComponentNodes,
   getComponentNodeAttrs,
@@ -10,6 +19,7 @@ import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSche
 import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
 import { updatePageMutation } from "@hashintel/hash-shared/save";
 import { RedisQueueExclusiveConsumer } from "@hashintel/hash-backend-utils/queue/redis";
+import { Wal2JsonMsg } from "@hashintel/hash-backend-utils/wal2json";
 import { isEqual } from "lodash";
 import { Schema } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
@@ -19,6 +29,7 @@ import { Response } from "express";
 import { InvalidVersionError } from "./errors";
 import { CollabPositionPoller, TimedCollabPosition } from "./types";
 import { Waiting } from "./Waiting";
+import { COLLAB_QUEUE_NAME } from "./util";
 
 const MAX_STEP_HISTORY = 10000;
 
@@ -35,7 +46,7 @@ const isUnused = (response: Response): boolean => {
 export class Instance {
   // The version number of the document instance.
   version = 0;
-  steps: Step[] = [];
+  steps: (Step | null)[] = [];
   lastActive = Date.now();
   users: Record<string, boolean> = Object.create(null);
   userCount = 0;
@@ -49,6 +60,11 @@ export class Instance {
   timedPositions: TimedCollabPosition[] = [];
   positionCleanupInterval: ReturnType<typeof setInterval>;
 
+  private stopRequested = false;
+  private isStopped = true;
+
+  private entityStore: { version: number; store: EntityStore };
+
   constructor(
     public accountId: string,
     public pageEntityId: string,
@@ -61,6 +77,11 @@ export class Instance {
       this.cleanupPositions();
       this.cleanupPositionPollers();
     }, POSITION_CLEANUP_INTERVAL);
+
+    this.entityStore = {
+      version: this.version,
+      store: entityStoreFromProsemirror(state).store,
+    };
   }
 
   stop() {
@@ -73,6 +94,92 @@ export class Instance {
         response.status(410).send("Collab instance was stopped");
       }
     }
+  }
+
+  /** Start the loader process which reads messages from the ingestion queue and
+   * loads each into the search service.
+   */
+  async start(): Promise<void> {
+    this.stopRequested = false;
+    this.isStopped = false;
+    while (!this.stopRequested) {
+      await this.processNextQueueMsg(1000);
+    }
+    this.isStopped = true;
+  }
+
+  private async processNextQueueMsg(timeout: number): Promise<void> {
+    const processed = await this.queue.pop(
+      COLLAB_QUEUE_NAME,
+      timeout,
+      async (item: string) => {
+        const wal2jsonMsg = JSON.parse(item) as Wal2JsonMsg;
+        await this.processMessage(wal2jsonMsg);
+        return true;
+      },
+    );
+    if (processed) {
+      console.log("processed");
+    }
+  }
+
+  private async processMessage(msg: Wal2JsonMsg) {
+    if (msg.table !== "entity_versions") {
+      return;
+    }
+
+    // We probably only need to respond to inserted versions, right?...
+    // @todo check this
+    // if (msg.action !== "I") {
+    //   return;
+    // }
+
+    const entityVersion = EntityVersion.parseWal2JsonMsg(msg);
+
+    // @todo handle not processing own updates
+
+    const nextSavedContents = walkValueForEntity(
+      this.savedContents,
+      (entity) => {
+        if (entity.entityId === entityVersion.entityId) {
+          return {
+            ...entity,
+            accountId: entityVersion.accountId,
+            entityVersionId: entityVersion.entityTypeVersionId,
+            entityTypeVersionId: entityVersion.entityTypeVersionId,
+            // @todo what happens with links!?
+            properties: entityVersion.properties,
+            createdById: entityVersion.createdBy,
+            createdAt: entityVersion.createdAt,
+            updatedAt: entityVersion.updatedAt,
+          };
+        }
+
+        return entity;
+      },
+    );
+
+    this.updateSavedContents(nextSavedContents);
+    this.sendUpdates();
+  }
+
+  private updateSavedContents(nextSavedContents: BlockEntity[]) {
+    const { tr } = this.state;
+    addEntityStoreAction(tr, { type: "contents", payload: nextSavedContents });
+    this.state = this.state.apply(tr);
+    this.savedContents = nextSavedContents;
+
+    /**
+     * This is a hack to do with version number hacking
+     * @todo come up with something better
+     */
+    this.steps.push(null);
+    this.version++;
+
+    this.entityStore = {
+      version: this.version,
+      store: entityStoreFromProsemirror(this.state).store,
+    };
   }
 
   addEvents =
@@ -130,6 +237,8 @@ export class Instance {
 
           // @todo need to inform the prosemirror plugin of this
           this.savedContents = newPage.properties.contents;
+
+          this.updateSavedContents(this.savedContents);
 
           for (let idx = 0; idx < componentNodes.length; idx++) {
             const [componentNode, pos] = componentNodes[idx];
@@ -216,11 +325,23 @@ export class Instance {
     const startIndex = this.steps.length - (this.version - version);
     if (startIndex < 0) return false;
 
-    const steps = this.steps.slice(startIndex);
+    const steps = this.steps
+      .slice(startIndex)
+      .filter((step): step is Step => step !== null);
+
+    /**
+     * I think this may end up sending the store back when it isn't necessary
+     *
+     * @todo check this
+     */
+    const store =
+      this.entityStore.version >= version ? this.entityStore.store : null;
+
     return {
       steps,
       users: this.userCount,
       clientIDs: steps.map((step) => this.clientIds.get(step)),
+      store,
     };
   }
 
@@ -388,6 +509,8 @@ const newInstance =
       data.page.properties.contents,
       queue,
     );
+
+    await instances[pageEntityId].start();
 
     return instances[pageEntityId];
   };

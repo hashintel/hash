@@ -203,6 +203,13 @@ export class EditorConnection {
         this.report.success();
         const data = JSON.parse(stringifiedData);
         this.backOff = 0;
+
+        if (data.store && this.state.edit) {
+          const tr = this.state.edit.tr;
+          addEntityStoreAction(tr, { type: "store", payload: data.store });
+          this.dispatch({ type: "transaction", transaction: tr });
+        }
+
         if (data.steps && data.steps.length) {
           if (!this.state.edit) {
             throw new Error("Cannot receive transaction without state");

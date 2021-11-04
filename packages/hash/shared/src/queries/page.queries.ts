@@ -23,6 +23,7 @@ const pageFieldsFragment = gql`
         entityId
         accountId
         properties {
+          __typename
           componentId
           entity
         }

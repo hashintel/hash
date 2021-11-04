@@ -3,6 +3,7 @@ import { RedisQueueExclusiveConsumer } from "@hashintel/hash-backend-utils/queue
 import { Repeater } from "@hashintel/hash-backend-utils/timers";
 import { getRequiredEnv } from "../util";
 import { logger } from "../logger";
+import { COLLAB_QUEUE_NAME } from "./util";
 
 export const redisClientConfig = {
   host: getRequiredEnv("HASH_REDIS_HOST"),
@@ -11,13 +12,12 @@ export const redisClientConfig = {
 
 const collabRedisClient = new AsyncRedisClient(redisClientConfig);
 const queue = new RedisQueueExclusiveConsumer(collabRedisClient);
-export const QUEUE_NAME = getRequiredEnv("HASH_COLLAB_QUEUE_NAME");
 
 export const queuePromise = (async () => {
-  logger.info(`Acquiring read ownership on queue "${QUEUE_NAME}" ...`);
+  logger.info(`Acquiring read ownership on queue "${COLLAB_QUEUE_NAME}" ...`);
 
   const repeater = new Repeater(async () => {
-    const res = await queue.acquire(QUEUE_NAME, 5_000);
+    const res = await queue.acquire(COLLAB_QUEUE_NAME, 5_000);
     if (!res) {
       logger.info(
         "Queue is owned by another consumer. Attempting to acquire ownership again ...",

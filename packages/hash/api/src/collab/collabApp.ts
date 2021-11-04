@@ -12,6 +12,7 @@ import { getInstance, Instance } from "./Instance";
 import { InvalidRequestPayloadError, InvalidVersionError } from "./errors";
 import { Waiting } from "./Waiting";
 import { queuePromise } from "./queue";
+import { EntityStore } from "@hashintel/hash-shared/entityStore";
 
 export const collabApp = express();
 
@@ -46,6 +47,7 @@ const jsonEvents = (
   steps: data.steps.map((step) => step.toJSON()),
   clientIDs: data.clientIDs,
   users: data.users,
+  store: data.store,
 });
 
 const extractTempFakeUserId = (request: Request): string | null => {

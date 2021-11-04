@@ -63,6 +63,7 @@ services:
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - AWS_S3_UPLOADS_BUCKET=${AWS_S3_UPLOADS_BUCKET}
+      - HASH_COLLAB_QUEUE_NAME=collab
     # Wait until the database is running before starting the API
     command:
       [
@@ -123,7 +124,6 @@ services:
       - HASH_SEARCH_LOADER_PORT=3838
       # Value must match same envvar in hash-dev-realtime
       - HASH_SEARCH_QUEUE_NAME=search
-      - HASH_COLLAB_QUEUE_NAME=collab
       - HASH_OPENSEARCH_HOST=hash-dev-opensearch
       - HASH_OPENSEARCH_PORT=9200
       - HASH_OPENSEARCH_HTTPS_ENABLED=false

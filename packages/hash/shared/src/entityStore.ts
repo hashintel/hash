@@ -53,24 +53,70 @@ export const draftEntityForEntityId = (
   entityId: string,
 ) => Object.values(draft).find((entity) => entity.entityId === entityId);
 
-const findEntitiesInValue = (value: unknown): EntityStoreType[] => {
-  let entities: EntityStoreType[] = [];
-
-  if (isBlockEntity(value)) {
-    entities = [...entities, value, value.properties.entity];
+/**
+ * @todo work on performance
+ */
+export const walkValueForEntity = <T>(
+  value: T,
+  entityHandler: (entity: EntityStoreType) => EntityStoreType,
+): T => {
+  if (typeof value !== "object" || value === null) {
+    return value;
   }
 
-  if (typeof value === "object" && value !== null) {
-    for (const property of Object.values(value)) {
-      entities = [...entities, ...findEntitiesInValue(property)];
+  let valueCopy = (
+    Array.isArray(value) ? [...value] : { ...value }
+  ) as typeof value;
+
+  for (const [key, innerValue] of Object.entries(valueCopy)) {
+    // @todo this is type safe, but TS doesn't know it
+    // @ts-expect-error .................
+    valueCopy[key] = walkValueForEntity(innerValue, entityHandler);
+  }
+
+  if (isEntity(valueCopy)) {
+    // @todo this is type safe, but TS doesn't know it
+    valueCopy = entityHandler(valueCopy) as any;
+  }
+
+  return valueCopy;
+};
+
+// /**
+//  * @todo this only finds block entities and their immediate descendants
+//  */
+// const findEntitiesInValue = (value: unknown): EntityStoreType[] => {
+//   let entities: EntityStoreType[] = [];
+//
+//   if (isBlockEntity(value)) {
+//     entities = [...entities, value, value.properties.entity];
+//   }
+//
+//   if (typeof value === "object" && value !== null) {
+//     for (const property of Object.values(value)) {
+//       entities = [...entities, ...findEntitiesInValue(property)];
+//     }
+//   }
+//
+//   return entities;
+// };
+
+function findEntities(contents: EntityStoreType[]) {
+  const entities: EntityStoreType[] = [];
+
+  walkValueForEntity(contents, (entity) => {
+    if (isBlockEntity(entity)) {
+      entities.push(entity, entity.properties.entity);
     }
-  }
+    return entity;
+  });
 
   return entities;
-};
+}
 
 /**
  * @todo restore dealing with links
+ * @todo this should be flat – so that we don't have to traverse links
  */
 export const createEntityStore = (
   contents: EntityStoreType[],
@@ -88,8 +134,7 @@ export const createEntityStore = (
       entityToDraft[row.entityId] = row.draftId;
     }
   }
-
-  const entities = contents.flatMap(findEntitiesInValue);
+  const entities = findEntities(contents);
 
   for (const entity of entities) {
     if (!entityToDraft[entity.entityId]) {
