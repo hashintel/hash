@@ -19,7 +19,8 @@
     "start": "concurrently -n webpack,webpack-dev-server -c green,cyan \"yarn build:dev --watch --verbose\" \"yarn dev\""
   },
   "dependencies": {
-    "@hashintel/block-protocol": "*"
+    "@hashintel/block-protocol": "*",
+    "lodash": "4.17.21"
   },
   "devDependencies": {
     "@apollo/client": "3.3.21",

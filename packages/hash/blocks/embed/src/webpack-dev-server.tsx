@@ -9,13 +9,16 @@ import {
   BlockProtocolUpdateFn,
   BlockProtocolUpdatePayload,
 } from "@hashintel/block-protocol";
-import { apiGraphQLEndpoint } from "@hashintel/hash-shared/environment";
+// import { apiGraphQLEndpoint } from "@hashintel/hash-shared/environment";
 
 import Component from "./index";
 import { ProviderNames } from "./types";
 import { EmbedDataType, initialEmbedData } from "./mockData/mockData";
 
 const node = document.getElementById("app");
+
+/** Temporarily leaving this here, till we fix importing it from hash-shared */
+const apiGraphQLEndpoint = "http://localhost:5001/graphql";
 
 async function getEmbedBlock(
   url: string,

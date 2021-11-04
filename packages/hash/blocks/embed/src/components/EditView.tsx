@@ -11,6 +11,7 @@ type EditViewProps = {
   bottomText: string;
   placeholderText: string;
   onChangeEmbedUrl: (url: string) => void;
+  embedUrl: string;
   onSubmit: () => Promise<void>;
 };
 
@@ -22,6 +23,7 @@ export const EditView: React.VFC<EditViewProps> = ({
   bottomText,
   placeholderText,
   onChangeEmbedUrl,
+  embedUrl,
   onSubmit,
 }) => {
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -59,6 +61,7 @@ export const EditView: React.VFC<EditViewProps> = ({
               required
               className={tw`px-1.5 py-1 rounded-sm border-2 border-gray-200 bg-gray-50 focus:outline-none focus:ring focus:border-blue-300 w-full`}
               onChange={(event) => onChangeEmbedUrl(event.target.value)}
+              value={embedUrl}
               type="url"
               placeholder={placeholderText}
             />

@@ -70,7 +70,10 @@ const reducer = (state: AppState, action: Actions): AppState => {
       };
 
     case "RESET_STATE":
-      return getInitialState();
+      return {
+        ...getInitialState(),
+        embedUrl: state.embedUrl,
+      };
 
     default:
       return state;
@@ -248,7 +251,7 @@ export const App: BlockComponent<AppProps> = ({
   };
 
   const updateDimensions = useCallback(
-    () => (newWidth: number, newHeight: number) => {
+    (newWidth: number, newHeight: number) => {
       updateRemoteData({ html, width: newWidth, height: newHeight });
     },
     [html, updateRemoteData],
@@ -267,7 +270,8 @@ export const App: BlockComponent<AppProps> = ({
           bottomText={bottomText}
           placeholderText={placeholderText}
           onSubmit={handleGetEmbed}
-          onChangeEmbedUrl={(url) =>
+          embedUrl={embedUrl}
+          onChangeEmbedUrl={(url: string) =>
             dispatch({ type: "UPDATE_STATE", payload: { embedUrl: url } })
           }
         />
@@ -303,7 +307,7 @@ export const App: BlockComponent<AppProps> = ({
         <button
           onClick={resetData}
           type="button"
-          className={tw`bg-gray-100 p-1.5 ml-1 border-1 border-gray-300 rounded-sm self-start`}
+          className={tw`bg-gray-100 w-10 h-10 flex items-center justify-center ml-1 border-1 border-gray-300 rounded-sm self-start`}
         >
           <Pencil />
         </button>
