@@ -210,7 +210,7 @@ export class EditorConnection {
           this.dispatch({ type: "transaction", transaction: tr });
         }
 
-        if (data.steps && data.steps.length) {
+        if (data.steps) {
           if (!this.state.edit) {
             throw new Error("Cannot receive transaction without state");
           }

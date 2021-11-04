@@ -21,9 +21,9 @@ import { updatePageMutation } from "@hashintel/hash-shared/save";
 import { RedisQueueExclusiveConsumer } from "@hashintel/hash-backend-utils/queue/redis";
 import { Wal2JsonMsg } from "@hashintel/hash-backend-utils/wal2json";
 import { isEqual } from "lodash";
-import { Schema } from "prosemirror-model";
+import { Schema, Slice } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
-import { Mapping, Step, Transform } from "prosemirror-transform";
+import { Mapping, ReplaceStep, Step, Transform } from "prosemirror-transform";
 import { CollabPosition } from "@hashintel/hash-shared/collab";
 import { Response } from "express";
 import { InvalidVersionError } from "./errors";
@@ -46,7 +46,7 @@ const isUnused = (response: Response): boolean => {
 export class Instance {
   // The version number of the document instance.
   version = 0;
-  steps: (Step | null)[] = [];
+  steps: Step[] = [];
   lastActive = Date.now();
   users: Record<string, boolean> = Object.create(null);
   userCount = 0;
@@ -173,17 +173,20 @@ export class Instance {
      * This is a hack to do with version number hacking
      * @todo come up with something better
      */
-    this.steps.push(null);
-    this.version++;
+    this.addEvents()(
+      this.version,
+      [new ReplaceStep<Schema>(0, 0, Slice.empty)],
+      "graphql",
+    );
 
     this.entityStore = {
-      version: this.version,
+      version: this.steps.length,
       store: entityStoreFromProsemirror(this.state).store,
     };
   }
 
   addEvents =
-    (apolloClient: ApolloClient<unknown>) =>
+    (apolloClient?: ApolloClient<unknown>) =>
     (version: number, steps: Step[], clientID: string) => {
       this.checkVersion(version);
       if (this.version !== version) return false;
@@ -210,8 +213,10 @@ export class Instance {
 
       this.sendUpdates();
 
-      // @todo offload saves to a separate process / debounce them
-      this.save(apolloClient)(clientID);
+      if (apolloClient) {
+        // @todo offload saves to a separate process / debounce them
+        this.save(apolloClient)(clientID);
+      }
 
       return { version: this.version };
     };
@@ -325,9 +330,7 @@ export class Instance {
     const startIndex = this.steps.length - (this.version - version);
     if (startIndex < 0) return false;
 
-    const steps = this.steps
-      .slice(startIndex)
-      .filter((step): step is Step => step !== null);
+    const steps = this.steps.slice(startIndex);
 
     /**
      * I think this may end up sending the store back when it isn't necessary
