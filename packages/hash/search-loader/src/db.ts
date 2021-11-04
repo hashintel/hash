@@ -1,4 +1,4 @@
-// This module is temporary. If we move the DbAdapter from @hashintel/hash-backend to
+// This module is temporary. If we move the DbAdapter from @hashintel/hash-api to
 // @hashintel/hash-backend-utils we can use it here.
 import { PgPool } from "@hashintel/hash-backend-utils/postgres";
 import { sql } from "slonik";

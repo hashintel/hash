@@ -5,7 +5,7 @@
 import "./loadEnv";
 
 import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { PostgresAdapter } from "@hashintel/hash-backend/src/db";
+import { PostgresAdapter } from "@hashintel/hash-api/src/db";
 import {
   Org,
   Entity,
@@ -13,7 +13,7 @@ import {
   CreateEntityWithEntityTypeIdArgs,
   CreateEntityWithEntityTypeVersionIdArgs,
   CreateEntityWithSystemTypeArgs,
-} from "@hashintel/hash-backend/src/model";
+} from "@hashintel/hash-api/src/model";
 
 import { createOrgs, createUsers } from "./accounts";
 import { SystemTypeName } from "../graphql/apiTypes.gen";

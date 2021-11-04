@@ -36,7 +36,7 @@ export class IntegrationTestsHandler {
         ...process.env,
         HASH_PG_DATABASE: "integration_tests",
       },
-      cwd: path.join(__dirname, "../../../backend/datastore/postgres"),
+      cwd: path.join(__dirname, "../../../api/datastore/postgres"),
     });
     if (migration.status !== 0) {
       console.error(

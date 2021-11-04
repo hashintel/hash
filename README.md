@@ -156,6 +156,6 @@ plugin's settings:
 
 ```json
 "eslint.workingDirectories": [
-  { "directory": "packages/hash/backend", "!cwd": true }
+  { "directory": "packages/hash/api", "!cwd": true }
 ]
 ```

@@ -78,7 +78,7 @@ services:
         "./start.sh",
       ]
     volumes:
-      - ../backend/src:/app/packages/hash/backend/src
+      - ../api/src:/app/packages/hash/api/src
       - ../shared/src:/app/packages/hash/shared/src
       - ../backend-utils:/app/packages/hash/backend-utils
     stop_signal: SIGTERM

@@ -1,6 +1,6 @@
-import { DBAdapter } from "@hashintel/hash-backend/src/db";
-import { DBOrgProperties } from "@hashintel/hash-backend/src/db/adapter";
-import { User, Org } from "@hashintel/hash-backend/src/model";
+import { DBAdapter } from "@hashintel/hash-api/src/db";
+import { DBOrgProperties } from "@hashintel/hash-api/src/db/adapter";
+import { User, Org } from "@hashintel/hash-api/src/model";
 import { WayToUseHash } from "../graphql/apiTypes.gen";
 
 type CreateUserArgs = {
