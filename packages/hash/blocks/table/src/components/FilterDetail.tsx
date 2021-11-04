@@ -66,8 +66,6 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
       }),
     );
 
-    console.log("this got changed");
-
     unstable_batchedUpdates(() => {
       setFilters(fieldsWithId);
       setCombinatorFilterOperator(multiFilter.operator);

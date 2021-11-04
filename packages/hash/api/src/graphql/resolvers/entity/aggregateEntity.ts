@@ -101,7 +101,6 @@ export const dbAggregateEntity =
     const startIndex = pageNumber === 1 ? 0 : (pageNumber - 1) * itemsPerPage;
     const endIndex = Math.min(startIndex + itemsPerPage, entities.length);
 
-    // fix return type of filter entities
     const filteredEntities = filterEntities(entities, multiFilter);
 
     const results = sortEntities(filteredEntities, multiSort)

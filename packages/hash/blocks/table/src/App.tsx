@@ -188,32 +188,35 @@ export const App: BlockComponent<AppProps> = ({
     [update, tableData.__linkedData, entityId, initialState],
   );
 
-  const updateRemoteColumns = (properties: {
-    hiddenColumns?: string[];
-    columns?: { Header: string; accessor: string }[];
-  }) => {
-    if (!update) return;
+  const updateRemoteColumns = useCallback(
+    (properties: {
+      hiddenColumns?: string[];
+      columns?: { Header: string; accessor: string }[];
+    }) => {
+      if (!update) return;
 
-    const newState = {
-      ...initialState,
-      ...(properties.hiddenColumns && {
-        hiddenColumns: properties.hiddenColumns,
-      }),
-      ...(properties.columns && { columns: properties.columns }),
-    };
-    void update<{
-      data: { __linkedData: BlockProtocolLinkedDataDefinition };
-      initialState?: Record<string, any>;
-    }>([
-      {
-        data: {
-          data: { __linkedData: { ...data.__linkedData } },
-          initialState: newState,
+      const newState = {
+        ...initialState,
+        ...(properties.hiddenColumns && {
+          hiddenColumns: properties.hiddenColumns,
+        }),
+        ...(properties.columns && { columns: properties.columns }),
+      };
+      void update<{
+        data: { __linkedData: BlockProtocolLinkedDataDefinition };
+        initialState?: Record<string, any>;
+      }>([
+        {
+          data: {
+            data: { __linkedData: { ...tableData.__linkedData } },
+            initialState: newState,
+          },
+          entityId,
         },
-        entityId,
-      },
-    ]);
-  };
+      ]);
+    },
+    [entityId, initialState, tableData.__linkedData, update],
+  );
 
   useEffect(() => {
     /** Save the columns in initial state if not present. This helps in retaining
@@ -223,7 +226,7 @@ export const App: BlockComponent<AppProps> = ({
 
     const initialColumns = makeColumns(tableData.data[0] || {});
     updateRemoteColumns({ columns: initialColumns });
-  }, [initialState, tableData]);
+  }, [initialState, tableData, updateRemoteColumns]);
 
   const setPageIndex = useCallback(
     (index: number) => {
