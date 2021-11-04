@@ -50,7 +50,7 @@ export const toCSSText = (styles: CSSStyleDeclaration): string =>
     .map(([prop, value]) => `${kebabCase(prop)}:${value}`)
     .join(";");
 
-export const fromCSSTextToObj = (cssText: string) =>
+export const toCSSObject = (cssText: string) =>
   Object.fromEntries(
     cssText
       .split(";")
@@ -60,13 +60,10 @@ export const fromCSSTextToObj = (cssText: string) =>
       }),
   ) as CSSStyleDeclaration;
 
-export const dimensionInRange = (
-  value: number | undefined,
-  minValue: number,
-  maxValue: number | undefined,
+export const isInRange = (
+  value: number,
+  minValue: number = -Infinity,
+  maxValue: number = +Infinity,
 ) => {
-  if (!value) return false;
-  if (!maxValue) return value >= minValue;
-
   return value >= minValue && value <= maxValue;
 };

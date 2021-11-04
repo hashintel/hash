@@ -3,7 +3,7 @@ import { tw } from "twind";
 import { throttle } from "lodash";
 import { MIN_WIDTH, MIN_HEIGHT } from "../constants";
 import { CornerResize } from "../svgs/CornerResize";
-import { dimensionInRange, fromCSSTextToObj, toCSSText } from "../utils";
+import { isInRange, toCSSObject, toCSSText } from "../utils";
 
 type ResizeBlockProps = {
   width: number | undefined;
@@ -69,11 +69,16 @@ export const ResizeBlock: React.FC<ResizeBlockProps> = ({
       if (!divRef.current) return;
 
       const styles = {
-        ...fromCSSTextToObj(divRef.current.style.cssText),
-        ...(dimensionInRange(dimensions.width, MIN_WIDTH, maxWidth) && {
+        ...toCSSObject(divRef.current.style.cssText),
+        ...(Boolean(
+          dimensions.width && isInRange(dimensions.width, MIN_WIDTH, maxWidth),
+        ) && {
           width: `${dimensions.width}px`,
         }),
-        ...(dimensionInRange(dimensions.height, MIN_HEIGHT, maxHeight) && {
+        ...(Boolean(
+          dimensions.height &&
+            isInRange(dimensions.height, MIN_HEIGHT, maxHeight),
+        ) && {
           height: `${dimensions.height}px`,
         }),
       } as CSSStyleDeclaration;
@@ -83,7 +88,10 @@ export const ResizeBlock: React.FC<ResizeBlockProps> = ({
     [maxHeight, maxWidth],
   );
 
-  const throttledUpdateLocalDimensions = throttle(updateLocalDimensions, 16);
+  const throttledUpdateLocalDimensions = useCallback(
+    throttle(updateLocalDimensions, 16),
+    [updateLocalDimensions],
+  );
 
   useLayoutEffect(() => {
     if (!divRef.current) return;
