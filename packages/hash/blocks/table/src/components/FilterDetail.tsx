@@ -8,8 +8,8 @@ import {
   BlockProtocolFilterOperatorType,
 } from "@hashintel/block-protocol";
 import { unstable_batchedUpdates } from "react-dom";
-import { AddIcon } from "./Icons";
 import { debounce } from "lodash";
+import { AddIcon } from "./Icons";
 
 const MENU_WIDTH = 540;
 
@@ -66,6 +66,8 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
       }),
     );
 
+    console.log("this got changed");
+
     unstable_batchedUpdates(() => {
       setFilters(fieldsWithId);
       setCombinatorFilterOperator(multiFilter.operator);
@@ -74,7 +76,7 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
 
   const handleFilter = (
     filterFields?: FilterFieldsWithId,
-    newCombinatorFilterOperator?: BlockProtocolMultiFilterOperatorType
+    newCombinatorFilterOperator?: BlockProtocolMultiFilterOperatorType,
   ) => {
     const filtersWithoutId = (filterFields ?? filters)
       .filter(({ field }) => Boolean(field))
@@ -86,7 +88,7 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
     });
   };
 
-  const debouncedHandleFilter = debounce(handleFilter, 1000);
+  const debouncedHandleFilter = debounce(handleFilter, 500);
 
   const addField = () => {
     setFilters((prevFields) => [
@@ -103,7 +105,7 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
   const removeField = (id: string) => {
     const newFields = filters.filter((filter) => filter.id !== id);
     setFilters(newFields);
-    debouncedHandleFilter(newFields);
+    handleFilter(newFields);
   };
 
   const updateField = (
@@ -128,7 +130,7 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
   };
 
   const handleCombinatorFilterChange = (
-    value: BlockProtocolMultiFilterOperatorType
+    value: BlockProtocolMultiFilterOperatorType,
   ) => {
     setCombinatorFilterOperator(value);
     debouncedHandleFilter(filters, value);
@@ -150,7 +152,7 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
                   value={combinatorFilterOperator}
                   onChange={(evt) => {
                     handleCombinatorFilterChange(
-                      evt.target.value as BlockProtocolMultiFilterOperatorType
+                      evt.target.value as BlockProtocolMultiFilterOperatorType,
                     );
                   }}
                 >
@@ -201,7 +203,7 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
               <input
                 placeholder="Value"
                 className={tw`text-sm w-40 border(1 gray-300 focus:gray-500) focus:outline-none rounded h-8 px-2`}
-                onChange={(evt) =>
+                onBlur={(evt) =>
                   updateField(filter.id, { value: evt.target.value })
                 }
                 defaultValue={filter.value}

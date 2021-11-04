@@ -22,7 +22,9 @@ type AppProps = {
     data?: Record<string, any>[];
     __linkedData?: BlockProtocolLinkedDataDefinition;
   };
-  initialState?: TableOptions<{}>["initialState"];
+  initialState?: TableOptions<{}>["initialState"] & {
+    columns?: { Header: string; accessor: string }[];
+  };
   entityId: string;
 };
 
@@ -44,9 +46,10 @@ export const App: BlockComponent<AppProps> = ({
   }, [data]);
 
   const columns = useMemo(
-    () => makeColumns(tableData.data?.[0] || {}, ""),
-    [tableData.data],
+    () => initialState?.columns ?? makeColumns(tableData.data?.[0] || {}),
+    [tableData.data, initialState],
   );
+
   const [pageOptions, aggregateOptions] = useMemo(() => {
     const aggregate = tableData.__linkedData?.aggregate;
     return [
@@ -139,7 +142,10 @@ export const App: BlockComponent<AppProps> = ({
       if (!update || !tableData.__linkedData) return;
 
       const newLinkedData = omitTypenameDeep(tableData.__linkedData);
-      const newState = { hiddenColumns: initialState?.hiddenColumns };
+      const newState = {
+        hiddenColumns: initialState?.hiddenColumns,
+        columns: initialState?.columns,
+      };
 
       if (!newLinkedData.aggregate) {
         return;
@@ -182,10 +188,19 @@ export const App: BlockComponent<AppProps> = ({
     [update, tableData.__linkedData, entityId, initialState],
   );
 
-  const updateRemoteHiddenColumns = (hiddenColumns: string[]) => {
+  const updateRemoteColumns = (properties: {
+    hiddenColumns?: string[];
+    columns?: { Header: string; accessor: string }[];
+  }) => {
     if (!update) return;
 
-    const newState = { ...initialState, hiddenColumns };
+    const newState = {
+      ...initialState,
+      ...(properties.hiddenColumns && {
+        hiddenColumns: properties.hiddenColumns,
+      }),
+      ...(properties.columns && { columns: properties.columns }),
+    };
     void update<{
       data: { __linkedData: BlockProtocolLinkedDataDefinition };
       initialState?: Record<string, any>;
@@ -199,6 +214,16 @@ export const App: BlockComponent<AppProps> = ({
       },
     ]);
   };
+
+  useEffect(() => {
+    /** Save the columns in initial state if not present. This helps in retaining
+     * the headers when a filter operation returns an
+     */
+    if (initialState?.columns || !tableData.data?.length) return;
+
+    const initialColumns = makeColumns(tableData.data[0] || {});
+    updateRemoteColumns({ columns: initialColumns });
+  }, [initialState, tableData]);
 
   const setPageIndex = useCallback(
     (index: number) => {
@@ -219,18 +244,18 @@ export const App: BlockComponent<AppProps> = ({
    */
   const handleToggleColumn = (columnId: string, showColumn?: boolean) => {
     if (!state.hiddenColumns) return;
-    let newColumns: string[] = [];
+    let newHiddenColumns: string[] = [];
 
     if (state.hiddenColumns.includes(columnId) || !showColumn) {
-      newColumns = state.hiddenColumns.filter((id) => id !== columnId);
+      newHiddenColumns = state.hiddenColumns.filter((id) => id !== columnId);
     } else {
-      newColumns = state.hiddenColumns.concat(columnId);
+      newHiddenColumns = state.hiddenColumns.concat(columnId);
     }
 
-    setHiddenColumns(newColumns);
+    setHiddenColumns(newHiddenColumns);
 
     // @todo throttle this call
-    updateRemoteHiddenColumns(newColumns);
+    updateRemoteColumns({ hiddenColumns: newHiddenColumns });
   };
 
   const [entityTypes, setEntityTypes] = useState<BlockProtocolEntityType[]>();

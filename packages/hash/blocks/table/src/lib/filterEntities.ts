@@ -3,14 +3,14 @@ import { get } from "lodash";
 
 export const filterEntities = (
   data: any[],
-  multifilter: BlockProtocolMultiFilter
+  multiFilter?: BlockProtocolMultiFilter,
 ) => {
-  if (!multifilter) return data;
+  if (!multiFilter) return data;
 
-  const x = data.filter((x) => {
-    const o = multifilter.filters
+  return data.filter((entity) => {
+    const results = multiFilter.filters
       .map((filter) => {
-        const item = get(x, filter.field);
+        const item = get(entity, filter.field);
 
         if (typeof item !== "string") return null;
 
@@ -37,12 +37,8 @@ export const filterEntities = (
       })
       .filter((val) => val !== null);
 
-    if (multifilter.operator === "AND") {
-      return o.every(Boolean);
-    } else if (multifilter.operator === "OR") {
-      return o.some(Boolean);
-    }
+    return multiFilter.operator === "OR"
+      ? results.some(Boolean)
+      : results.every(Boolean);
   });
-  console.log(x);
-  return x;
 };

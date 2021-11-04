@@ -23,7 +23,6 @@ import {
   initialTableData,
   Person,
 } from "./mockData/mockData";
-import { resolvePath } from "./lib/compareEntitiesByField";
 import { sortEntities } from "./lib/sortEntities";
 import { filterEntities } from "./lib/filterEntities";
 
@@ -74,7 +73,7 @@ const useMockData = () => {
       if (linkedData.aggregate?.multiFilter) {
         resolvedData = filterEntities(
           resolvedData,
-          linkedData.aggregate.multiFilter
+          linkedData.aggregate.multiFilter,
         );
       }
 
@@ -131,7 +130,9 @@ const useMockData = () => {
         if (action.data.data?.__linkedData) {
           newTableData.data.__linkedData = action.data.data?.__linkedData;
         }
-        newTableData.initialState = action.data.initialState;
+        if (action.data.initialState) {
+          newTableData.initialState = action.data.initialState;
+        }
         setTableData(newTableData);
       });
 

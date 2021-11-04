@@ -1,4 +1,4 @@
-import { orderBy, filter, get } from "lodash";
+import { orderBy, get } from "lodash";
 import {
   QueryAggregateEntityArgs,
   Resolver,
@@ -34,45 +34,45 @@ const sortEntities = (
 
 const filterEntities = (
   data: Entity[],
-  multifilter: AggregateOperationInput["multiFilter"]
+  multiFilter: AggregateOperationInput["multiFilter"],
 ) => {
-  if (!multifilter) return data;
+  if (!multiFilter) return data;
 
-  return data.filter((x) => {
-    const o = multifilter.filters
-      .map((filter) => {
-        const item = get(x.properties, filter.field);
+  return data.filter((entity) => {
+    const results = multiFilter.filters
+      .map((filterItem) => {
+        const item = get(entity.properties, filterItem.field);
 
         if (typeof item !== "string") return null;
 
-        switch (filter.operator) {
+        switch (filterItem.operator) {
           case "CONTAINS":
-            return item.toLowerCase().includes(filter.value.toLowerCase());
+            return item.toLowerCase().includes(filterItem.value.toLowerCase());
           case "DOES_NOT_CONTAIN":
-            return !item.toLowerCase().includes(filter.value.toLowerCase());
+            return !item.toLowerCase().includes(filterItem.value.toLowerCase());
           case "STARTS_WITH":
-            return item.toLowerCase().startsWith(filter.value.toLowerCase());
+            return item
+              .toLowerCase()
+              .startsWith(filterItem.value.toLowerCase());
           case "ENDS_WITH":
-            return item.toLowerCase().endsWith(filter.value.toLowerCase());
+            return item.toLowerCase().endsWith(filterItem.value.toLowerCase());
           case "IS_EMPTY":
             return !item;
           case "IS_NOT_EMPTY":
             return !!item;
           case "IS":
-            return item === filter.value;
+            return item === filterItem.value;
           case "IS_NOT":
-            return item !== filter.value;
+            return item !== filterItem.value;
           default:
             return null;
         }
       })
       .filter((val) => val !== null);
 
-    if (multifilter.operator === "AND") {
-      return o.every(Boolean);
-    } else if (multifilter.operator === "OR") {
-      return o.some(Boolean);
-    }
+    return multiFilter.operator === "OR"
+      ? results.some(Boolean)
+      : results.every(Boolean);
   });
 };
 
