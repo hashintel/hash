@@ -348,12 +348,12 @@ fn add_base_agent_fields(field_builder: &mut FieldSpecMapBuilder) -> Result<()> 
     let last_state_index = last_state_index_key();
 
     field_builder.add_field_spec(
-        ctx_index.name().into(),
+        ctx_index.name.into(),
         ctx_index.field_type,
         FieldScope::Hidden,
     )?;
     field_builder.add_field_spec(
-        last_state_index.name().into(),
+        last_state_index.name.into(),
         last_state_index.field_type,
         FieldScope::Hidden,
     )?;

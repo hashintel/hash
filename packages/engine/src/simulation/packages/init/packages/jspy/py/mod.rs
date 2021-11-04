@@ -4,12 +4,13 @@ use crate::simulation::packages::init::packages::jspy::{
     JsPyInitTaskMessage, StartMessage, _into_result,
 };
 use crate::simulation::task::args::GetTaskArgs;
-use crate::simulation::task::handler::WorkerHandler;
+use crate::simulation::task::handler::{WorkerHandler, WorkerPoolHandler};
 use crate::simulation::task::msg::{TargetedTaskMessage, TaskMessage};
 use crate::simulation::task::result::TaskResult;
 use crate::simulation::Result as SimulationResult;
 use crate::worker::runner::comms::MessageTarget;
 
+#[derive(Clone, Debug)]
 pub struct PyInitTask {
     pub initial_state_source: String,
 }
@@ -37,3 +38,5 @@ impl WorkerHandler for PyInitTask {
         _into_result(msg)
     }
 }
+
+impl WorkerPoolHandler for PyInitTask {}

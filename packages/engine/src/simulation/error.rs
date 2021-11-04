@@ -27,6 +27,9 @@ pub enum Error {
     #[error("Tokio oneshot recv: {0}")]
     TokioOneshotRecv(#[from] tokio::sync::oneshot::error::RecvError),
 
+    #[error("Failed to convert: {0}")]
+    Convert(#[from] std::convert::Infallible),
+
     // #[error("Simulation (id: {0}) failed with error: {1:?}")]
     // SimulationRunWorkFailed(String, crate::worker::Error),
     #[error("Kill signal sender for simulation (id: {0}) unexpectedly closed")]

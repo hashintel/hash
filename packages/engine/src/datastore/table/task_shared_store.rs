@@ -43,6 +43,7 @@ pub struct PartialStateReadProxy {
     inner: StateReadProxy,
 }
 
+// TODO OS - COMPILE BLOCK - impl custom Debug and/or display
 pub enum SharedState {
     Partial(PartialSharedState),
     Write(StateWriteProxy),
@@ -50,6 +51,7 @@ pub enum SharedState {
     None,
 }
 
+#[derive(Debug, Display)]
 pub enum SharedContext {
     Read,
     None,

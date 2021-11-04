@@ -6,7 +6,6 @@ use crate::simulation::task::msg::TaskMessage;
 use crate::simulation::task::result::TaskResult;
 use crate::simulation::Result as SimulationResult;
 use crate::simulation::{Error, Result};
-use core::convert::TryFrom;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::convert::TryInto;
@@ -85,10 +84,10 @@ impl InitPackage for Package {
             }
         };
 
-        let active_task = self.comms.new_task(task.into(), Default::default()).await?;
-        let task_result = JsPyInitTaskResult::try_from(InitTaskResult::try_from(
-            active_task.drive_to_completion().await?,
-        )?)?;
+        let active_task = self.comms.new_task(task, Default::default()).await?;
+        let task_result = TryInto::<JsPyInitTaskResult>::try_into(
+            TryInto::<InitTaskResult>::try_into(active_task.drive_to_completion().await?)?,
+        )?;
         match task_result {
             JsPyInitTaskResult::Ok { agent_json } => {
                 serde_json::from_str(&agent_json).map_err(|e| {
@@ -111,38 +110,40 @@ pub enum JsPyInitTaskResult {
 }
 
 #[enum_dispatch(RegisterWithoutTrait)]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum JsPyInitTaskMessage {
     StartMessage, // TODO: Better names
     SuccessMessage,
     FailedMessage,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 struct StartMessage {
     initial_state_source: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 struct SuccessMessage {
     agent_json: String,
 }
 
 impl Into<TaskResult> for SuccessMessage {
     fn into(self) -> TaskResult {
-        JsPyInitTaskResult::Ok {
+        let init_task_res: InitTaskResult = JsPyInitTaskResult::Ok {
             agent_json: self.agent_json,
         }
-        .into()
+        .into();
+        init_task_res.into()
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 struct FailedMessage {}
 
 impl Into<TaskResult> for FailedMessage {
     fn into(self) -> TaskResult {
-        JsPyInitTaskResult::Err.into()
+        let init_task_res: InitTaskResult = JsPyInitTaskResult::Err.into();
+        init_task_res.into()
     }
 }
 
@@ -156,9 +157,10 @@ fn _into_result(msg: TaskMessage) -> SimulationResult<TaskResult> {
         Err(Error::from(format!(
             "Javascript State Initialisation Task failed"
         )))
+    } else {
+        Err(Error::from(format!(
+            "Unrecognised JS/Py Init Task message: {:?}",
+            msg
+        )))
     }
-    Err(Error::from(format!(
-        "Unrecognised JS/Py Init Task message: {:?}",
-        msg
-    )))
 }

@@ -5,6 +5,7 @@ use std::{collections::HashMap, sync::Arc};
 use crate::config::ExperimentConfig;
 use crate::datastore::batch::Dataset;
 
+#[derive(Clone)]
 pub struct SharedStore {
     pub datasets: HashMap<String, Arc<Dataset>>,
 }

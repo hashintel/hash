@@ -2,8 +2,9 @@ use crate::config::TaskDistributionConfig;
 use crate::simulation::packages::init::packages::jspy::{
     JsPyInitTaskMessage, StartMessage, _into_result,
 };
+use crate::simulation::packages::init::InitTaskMessage;
 use crate::simulation::task::args::GetTaskArgs;
-use crate::simulation::task::handler::WorkerHandler;
+use crate::simulation::task::handler::{WorkerHandler, WorkerPoolHandler};
 use crate::simulation::task::msg::{TargetedTaskMessage, TaskMessage};
 use crate::simulation::task::result::TaskResult;
 use crate::simulation::Result as SimulationResult;
@@ -22,10 +23,11 @@ impl GetTaskArgs for JsInitTask {
 
 impl WorkerHandler for JsInitTask {
     fn start_message(&self) -> SimulationResult<TargetedTaskMessage> {
-        let init_task_msg: JsPyInitTaskMessage = StartMessage {
+        let jspy_init_task_msg: JsPyInitTaskMessage = StartMessage {
             initial_state_source: self.initial_state_source.clone(),
         }
         .into();
+        let init_task_msg: InitTaskMessage = jspy_init_task_msg.into();
         SimulationResult::Ok(TargetedTaskMessage {
             target: MessageTarget::JavaScript,
             payload: init_task_msg.into(),
@@ -36,3 +38,5 @@ impl WorkerHandler for JsInitTask {
         _into_result(msg)
     }
 }
+
+impl WorkerPoolHandler for JsInitTask {}
