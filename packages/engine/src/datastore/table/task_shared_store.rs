@@ -1,3 +1,4 @@
+use std::fmt::{Debug, Formatter};
 use crate::{
     config::{Distribution, Worker, WorkerAllocation},
     datastore::prelude::Result,
@@ -15,6 +16,13 @@ use super::{
 pub struct TaskSharedStore {
     state: SharedState,
     context: SharedContext,
+}
+
+impl Debug for TaskSharedStore {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        // TODO more specific debug
+        f.write_str("TaskSharedStore(...)")
+    }
 }
 
 impl TaskSharedStore {

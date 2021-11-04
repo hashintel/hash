@@ -19,6 +19,7 @@ pub struct WorkerPoolMsgSend {
     pub inner: UnboundedSender<(Option<SimulationShortID>, WorkerPoolToExpCtlMsg)>,
 }
 
+#[derive(Debug)]
 pub enum WorkerPoolToExpCtlMsg {
     Errors(Vec<RunnerError>),
     Warnings(Vec<RunnerError>),

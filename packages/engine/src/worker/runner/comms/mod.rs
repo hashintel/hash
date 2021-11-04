@@ -1,3 +1,4 @@
+use std::fmt::{Debug, Formatter};
 use std::{collections::HashMap, fmt, sync::Arc};
 
 use crate::config::Globals;
@@ -75,9 +76,10 @@ pub struct DatastoreInit {
     pub shared_context: SharedStore,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct PackageMsgs(pub HashMap<PackageId, PackageInitMsgForWorker>);
 
+#[derive(Debug, Clone)]
 pub struct NewSimulationRun {
     pub short_id: SimulationShortID,
     pub packages: PackageMsgs,
@@ -85,12 +87,18 @@ pub struct NewSimulationRun {
     pub globals: Arc<Globals>,
 }
 
-#[derive(new)]
+#[derive(new, Clone)]
 pub struct DatastoreSimulationPayload {
     pub agent_batch_schema: Arc<AgentSchema>,
     pub message_batch_schema: Arc<ArrowSchema>,
     pub context_batch_schema: Arc<ArrowSchema>,
     pub shared_store: Arc<SharedStore>,
+}
+
+impl Debug for DatastoreSimulationPayload {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.write_str("DatastoreSimulationPayload")
+    }
 }
 
 #[derive(Clone)]

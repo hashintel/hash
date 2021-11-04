@@ -104,6 +104,7 @@ impl InitPackage for Package {
     }
 }
 
+#[derive(Debug, Clone)]
 pub enum JsPyInitTaskResult {
     Ok { agent_json: String },
     Err,

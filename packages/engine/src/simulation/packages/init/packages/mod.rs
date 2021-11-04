@@ -40,6 +40,7 @@ pub enum InitTaskMessage {
 
 /// All init package task results are registered in this enum
 #[enum_dispatch(RegisterWithoutTrait)]
+#[derive(Debug, Clone)]
 pub enum InitTaskResult {
     JsPyInitTaskResult,
 }

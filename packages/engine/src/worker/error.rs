@@ -4,6 +4,7 @@ use super::runner::{
     // rust::Error as RustError,
 };
 use thiserror::Error as ThisError;
+use tokio::sync::mpsc::error::SendError;
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -28,6 +29,9 @@ pub enum Error {
     // Rust(#[from] RustError),
     #[error("Simulation: {0}")]
     Simulation(#[from] crate::simulation::Error),
+
+    #[error("Tokio Join Error: {0}")]
+    TokioJoin(#[from] tokio::task::JoinError),
 }
 
 impl From<&str> for Error {
@@ -39,5 +43,14 @@ impl From<&str> for Error {
 impl From<String> for Error {
     fn from(s: String) -> Self {
         Error::Unique(s)
+    }
+}
+
+impl<T> From<SendError<T>> for Error
+where
+    T: std::fmt::Debug,
+{
+    fn from(e: SendError<T>) -> Self {
+        Error::Unique(format!("Tokio Send Error: {:?}", e))
     }
 }

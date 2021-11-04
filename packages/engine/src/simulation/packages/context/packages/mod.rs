@@ -33,6 +33,7 @@ pub enum ContextTaskMessage {}
 
 /// All context package task results are registered in this enum
 #[enum_dispatch(RegisterWithoutTrait)]
+#[derive(Debug, Clone)]
 pub enum ContextTaskResult {}
 
 lazy_static! {

@@ -10,14 +10,14 @@ use tokio::{
 pub struct KillMessage {}
 
 pub struct KillRecv {
-    inner: Receiver<KillMessage>,
+    inner: Option<Receiver<KillMessage>>,
     confirm: Option<Sender<()>>,
 }
 
 impl KillRecv {
-    pub async fn recv(&mut self) -> Result<KillMessage> {
-        let msg = self.inner.await?;
-        Ok(msg)
+    pub fn take_recv(&mut self) -> Result<Receiver<KillMessage>> {
+        let receiver = self.inner.take().ok_or_else(|| Error::from("Couldn't take kill receiver"))?;
+        Ok(receiver)
     }
 
     pub fn confirm_kill(&mut self) -> Result<()> {
@@ -25,14 +25,14 @@ impl KillRecv {
             .confirm
             .take()
             .ok_or_else(|| Error::KillConfirmAlreadySent)?;
-        confirm.send(())?;
+        confirm.send(()).map_err(|_| Error::from("Couldn't send kill confirm"))?;
         Ok(())
     }
 }
 
 pub struct KillSend {
     inner: Option<Sender<KillMessage>>,
-    confirm: Receiver<()>,
+    confirm: Option<Receiver<()>>,
 }
 
 impl KillSend {
@@ -41,23 +41,21 @@ impl KillSend {
             .inner
             .take()
             .ok_or_else(|| Error::KillMessageAlreadySent)?;
-        sender.send(KillMessage {})?;
+        sender.send(KillMessage {}).map_err(|_| Error::from("Couldn't send kill message"))?;
         Ok(())
     }
 
-    pub async fn recv_kill_confirmation(&mut self) -> Result<()> {
+    async fn recv_kill_confirmation(&mut self) -> Result<()> {
         if self.inner.is_some() {
             return Err(Error::KillMessageNotSent);
         }
-        self.confirm.await?;
+        let confirm = self.confirm.take().ok_or_else(|| Error::from("Already tried to recv kill confirmation"))?;
+        confirm.await.map_err(|err| Error::from(format!("Couldn't receive kill confirm: {:?}", err)))?;
         Ok(())
     }
 
     pub async fn recv_kill_confirmation_with_ms_timeout(&mut self, millis: usize) -> Result<bool> {
-        if self.inner.is_some() {
-            return Err(Error::KillMessageNotSent);
-        }
-        match timeout(Duration::from_millis(millis as u64), self.confirm.recv()).await {
+        match timeout(Duration::from_millis(millis as u64), self.recv_kill_confirmation()).await {
             Ok(res) => res?,
             Err(_) => return Ok(false),
         }
@@ -72,10 +70,10 @@ pub fn new_pair() -> (KillSend, KillRecv) {
     (
         KillSend {
             inner: Some(kill_send),
-            confirm: confirm_recv,
+            confirm: Some(confirm_recv),
         },
         KillRecv {
-            inner: kill_recv,
+            inner: Some(kill_recv),
             confirm: Some(confirm_send),
         },
     )

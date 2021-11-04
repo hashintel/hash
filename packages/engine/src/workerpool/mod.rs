@@ -6,8 +6,12 @@ pub mod runs;
 use std::sync::Arc;
 
 use crate::proto::{ExperimentRunRepr, SimulationShortID};
-use crate::simulation::packages::id::PackageId;
-use futures::{future::try_join_all, StreamExt};
+use crate::simulation::{
+    packages::id::PackageId,
+    task::{args::GetTaskArgs, handler::WorkerPoolHandler},
+};
+use futures::future::try_join_all;
+use rand::prelude::SliceRandom;
 use tokio::{pin, task::JoinHandle};
 
 use crate::config;
@@ -64,7 +68,7 @@ impl WorkerPoolController {
         let WorkerPoolConfig {
             worker_base_config,
             num_workers,
-        } = config.worker_pool.clone();
+        } = (*config.worker_pool).clone();
 
         let (comms, worker_comms) = comms::new_pool_comms(num_workers);
         let (sim_send_base, sim_recv) = comms::new_no_sim();
@@ -102,7 +106,8 @@ impl WorkerPoolController {
             try_join_all(worker_comms.into_iter().map(|comms| {
                 WorkerController::spawn(worker_base_config.clone(), comms, runner_init.clone())
             }))
-            .await?,
+            .await
+            .map_err(|e| Error::from(""))?,
         );
 
         Ok(())
@@ -128,36 +133,35 @@ impl WorkerPoolController {
             .map(|mut c| tokio::spawn(async move { c.run().await.map_err(Error::from) }));
 
         let fut = tokio::spawn(async move {
-            let res = try_join_all(futs)
-                .await?
+            try_join_all(futs)
+                .await
+                .map_err(|_| Error::from("Couldn't join!"))?
                 .into_iter()
-                .collect::<Result<()>>();
+                .collect::<Result<_>>()
         });
         return Ok(fut);
     }
 
     pub async fn run(mut self) -> Result<()> {
-        let mut pending_tasks = PendingWorkerPoolTasks::new();
         pin!(let workers = self.run_worker_controllers()?;);
+        pin!(let kill_recv = self.kill_recv.take_recv()?;);
         loop {
             tokio::select! {
-                msg = self.sim_recv.recv() => {
-                    let (id, core_msg) = msg?;
-                    self.handle_sim_msg(id, core_msg).await?;
+                Some(msg) = self.sim_recv.recv() => {
+                    self.handle_sim_msg(msg).await?;
                 }
-                msg = self.exp_recv.recv() => {
-                    let msg = msg?;
+                Some(msg) = self.exp_recv.recv() => {
                     self.handle_exp_msg(msg).await?;
                 }
-                msg = self.comms.recv() => {
-                    let (worker_index, msg): (WorkerIndex, WorkerToWorkerPoolMsg) = msg.ok_or_else(|| Error::UnexpectedWorkerCommsDrop)?;
-                    self.handle_worker_msg(worker_index, msg)?;
+                Some((worker_index, msg)) = self.comms.recv() => {
+                    self.handle_worker_msg(worker_index, msg).await?;
                 }
                 // Ignore if None, since this call does a cheap block
-                Ok(Some(res)) = self.pending_tasks.run_cancel_check() => {
-                    self.handle_cancel_msgs(res)?;
+                Ok(res) = self.pending_tasks.run_cancel_check() => {
+                    self.handle_cancel_msgs(res).await?;
                 }
-                kill_msg = self.kill_recv.recv() => {
+                kill_msg = &mut kill_recv => {
+                    kill_msg.map_err(|err| Error::from(format!("Couldn't receive kill: {:?}", err)))?;
                     // Propagate kill msg to all workers
                     self.comms.send_kill_all().await?;
                     // Send confirmation of success
@@ -172,11 +176,8 @@ impl WorkerPoolController {
         }
     }
 
-    async fn handle_sim_msg(
-        &mut self,
-        sim_id: SimulationShortID,
-        msg: EngineToWorkerPoolMsg,
-    ) -> Result<()> {
+    async fn handle_sim_msg(&mut self, msg: EngineToWorkerPoolMsg) -> Result<()> {
+        let sim_id = msg.sim_id;
         match msg.payload {
             EngineToWorkerPoolMsgPayload::Task(task_msg) => {
                 let task_id = task_msg.task_id;
@@ -213,31 +214,32 @@ impl WorkerPoolController {
 
     async fn handle_worker_msg(
         &mut self,
-        worker: Worker,
+        worker: WorkerIndex,
         worker_msg: WorkerToWorkerPoolMsg,
     ) -> Result<()> {
         match worker_msg {
             WorkerToWorkerPoolMsg::TaskResultOrCancelled(res) => {
+                let task_id = res.task_id.clone();
                 let pending_task = self
                     .pending_tasks
                     .inner
                     .get_mut(&res.task_id)
-                    .ok_or_else(|| Error::MissingPendingTask(res.task_id))?;
-                if pending_task.handle_result_or_cancel(worker, res)? {
+                    .ok_or_else(|| Error::MissingPendingTask(task_id))?;
+                if pending_task.handle_result_or_cancel(Worker::new(worker), res)? {
                     // Remove pending task because it has terminated (completed OR cancelled)
                     // Unwrap must work, since we've checked the key exists in the hashmap
-                    self.pending_tasks.inner.remove(&res.task_id).unwrap();
+                    self.pending_tasks.inner.remove(&task_id).unwrap();
                 }
             }
             WorkerToWorkerPoolMsg::RunnerErrors(errors) => {
                 self.top_send
                     .inner
-                    .send((None, WorkerPoolToExpCtlMsg::RunnerErrors(errors)))?;
+                    .send((None, WorkerPoolToExpCtlMsg::Errors(errors)))?;
             }
             WorkerToWorkerPoolMsg::RunnerWarnings(warnings) => {
                 self.top_send
                     .inner
-                    .send((None, WorkerPoolToExpCtlMsg::RunnerWarnings(warnings)))?;
+                    .send((None, WorkerPoolToExpCtlMsg::Warnings(warnings)))?;
             }
         }
         Ok(())
@@ -272,12 +274,12 @@ impl WorkerPoolController {
         Ok(())
     }
 
-    fn send_to_worker(&mut self, index: WorkerIndex, msg: WorkerPoolToWorkerMsg) -> Result<()> {
+    fn send_to_worker(&self, index: WorkerIndex, msg: WorkerPoolToWorkerMsg) -> Result<()> {
         self.comms.send(index, msg).map_err(Error::from)
     }
 
     fn send_to_all_workers(&mut self, msg: WorkerPoolToWorkerMsg) -> Result<()> {
-        self.comms.send_all(msg);
+        self.comms.send_all(msg)
     }
 
     fn new_worker_tasks(
@@ -294,7 +296,7 @@ impl WorkerPoolController {
             if let TaskDistributionConfig::Distributed(distribution) = task.distribution() {
                 let (distributed_tables, split_config) =
                     shared_store.distribute(&distribution, worker_list)?;
-                let tasks: Vec<Task> = task.split_task(&split_config);
+                let tasks: Vec<Task> = task.split_task(&split_config)?;
                 let num_active_workers: usize = tasks.len();
                 (
                     tasks
@@ -309,17 +311,24 @@ impl WorkerPoolController {
                     },
                 )
             } else {
+                let worker = worker_list
+                    .choose(&mut rand::thread_rng())
+                    .ok_or_else(|| Error::from("Unexpected: No Workers"))?;
                 // Pass the task to the worker controller, don't keep a local copy
                 (
-                    vec![(worker_list.random_worker(), task, shared_store)],
-                    DistributionController::None,
+                    vec![(worker.clone(), task, shared_store)],
+                    DistributionController::Single {
+                        active_worker: worker.clone(),
+                    },
                 )
             };
 
         Ok((
             triples
                 .into_iter()
-                .map(|(worker, task, store)| (worker, WorkerTask::new(task_id, task, store)))
+                .map(|(worker, task, store)| {
+                    (worker, WorkerTask::new(task_id, package_id, task, store))
+                })
                 .collect(),
             original_task,
         ))

@@ -1,6 +1,5 @@
-use crate::proto;
 use crate::simulation::task::result::TaskResultOrCancelled;
-use crate::workerpool::comms::experiment::ExperimentToWorkerPoolMsg;
+use crate::{proto, worker};
 use thiserror::Error as ThisError;
 use tokio::sync::mpsc::error::SendError;
 
@@ -10,6 +9,18 @@ pub type Result<T, E = Error> = std::result::Result<T, E>;
 pub enum Error {
     #[error("{0}")]
     Unique(String),
+
+    #[error("Worker error: {0}")]
+    Worker(#[from] worker::Error),
+
+    #[error("Simulation error: {0}")]
+    Simulation(#[from] crate::simulation::Error),
+
+    #[error("Datastore error: {0}")]
+    Datastore(#[from] crate::datastore::Error),
+
+    #[error("Tokio Join Error: {0}")]
+    TokioJoin(#[from] tokio::task::JoinError),
 
     #[error("Task result send error: {0}")]
     TaskResultSend(SendError<TaskResultOrCancelled>),
@@ -40,9 +51,6 @@ pub enum Error {
 
     #[error("Missing pending task with id {0}")]
     MissingPendingTask(crate::types::TaskID),
-
-    #[error("Error sending message to worker pool: {0:?}")]
-    ExperimentSend(#[from] tokio::sync::mpsc::error::SendError<ExperimentToWorkerPoolMsg>),
 }
 
 impl From<&str> for Error {
@@ -54,5 +62,14 @@ impl From<&str> for Error {
 impl From<String> for Error {
     fn from(s: String) -> Self {
         Error::Unique(s)
+    }
+}
+
+impl<T> From<SendError<T>> for Error
+where
+    T: std::fmt::Debug,
+{
+    fn from(e: SendError<T>) -> Self {
+        Error::Unique(format!("Tokio Send Error: {:?}", e))
     }
 }

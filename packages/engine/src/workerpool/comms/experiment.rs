@@ -4,7 +4,7 @@ use crate::worker::runner::comms::NewSimulationRun;
 
 use super::Result;
 
-// TODO OS - COMPILE BLOCK - either figure out how to derive Debug/Display or do custom impl
+#[derive(Debug)]
 pub enum ExperimentToWorkerPoolMsg {
     NewSimulationRun(NewSimulationRun),
 }
@@ -25,7 +25,7 @@ pub struct ExpMsgRecv {
 }
 
 impl ExpMsgRecv {
-    async fn recv(&mut self) -> Option<ExperimentToWorkerPoolMsg> {
+    pub(crate) async fn recv(&mut self) -> Option<ExperimentToWorkerPoolMsg> {
         self.inner.recv().await
     }
 }

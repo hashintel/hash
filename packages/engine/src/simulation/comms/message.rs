@@ -9,7 +9,7 @@ use crate::{
 
 use super::active::ActiveTaskExecutorComms;
 
-#[derive(new)]
+#[derive(new, Debug)]
 pub struct WrappedTask {
     pub task_id: TaskID,
     pub package_id: PackageId,
@@ -18,6 +18,7 @@ pub struct WrappedTask {
     pub shared_store: TaskSharedStore,
 }
 
+#[derive(Debug)]
 pub struct EngineToWorkerPoolMsg {
     pub sim_id: SimulationShortID,
     pub payload: EngineToWorkerPoolMsgPayload,
@@ -39,6 +40,7 @@ impl EngineToWorkerPoolMsg {
     }
 }
 
+#[derive(Debug)]
 pub enum EngineToWorkerPoolMsgPayload {
     Task(WrappedTask),
     Sync(SyncPayload),

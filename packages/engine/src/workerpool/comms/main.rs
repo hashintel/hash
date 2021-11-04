@@ -10,13 +10,13 @@ pub struct MainMsgRecv {
 }
 
 pub struct MainMsgSendBase {
-    inner: UnboundedSender<(SimulationShortID, EngineToWorkerPoolMsg)>,
+    inner: UnboundedSender<EngineToWorkerPoolMsg>,
 }
 
 #[derive(Clone)]
 pub struct MainMsgSend {
     sim_id: SimulationShortID,
-    inner: UnboundedSender<(SimulationShortID, EngineToWorkerPoolMsg)>,
+    inner: UnboundedSender<EngineToWorkerPoolMsg>,
 }
 
 pub fn new_no_sim() -> (MainMsgSendBase, MainMsgRecv) {
@@ -26,7 +26,7 @@ pub fn new_no_sim() -> (MainMsgSendBase, MainMsgRecv) {
 
 impl MainMsgSend {
     pub(crate) fn send(&self, msg: EngineToWorkerPoolMsg) -> Result<()> {
-        self.inner.send((self.sim_id, msg))?;
+        self.inner.send(msg)?;
         Ok(())
     }
 }
@@ -41,7 +41,7 @@ impl MainMsgSendBase {
 }
 
 impl MainMsgRecv {
-    async fn recv(&mut self) -> Option<EngineToWorkerPoolMsg> {
-        self.inner.recv()
+    pub(crate) async fn recv(&mut self) -> Option<EngineToWorkerPoolMsg> {
+        self.inner.recv().await
     }
 }

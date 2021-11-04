@@ -57,7 +57,7 @@ impl PendingWorkerPoolTask {
             received_results.insert(worker.index(), (worker, result));
             active_workers_comms.remove(worker.index());
             if active_workers_comms.is_empty() {
-                received_results.sort_by(|a, b| a.cmp(&b));
+                received_results.sort_by(|a, b| a.0.cmp(&b.0));
                 let received_results = std::mem::replace(received_results, vec![]);
                 let results = received_results
                     .into_iter()
@@ -65,7 +65,10 @@ impl PendingWorkerPoolTask {
                     .collect();
                 let combined_result =
                     TaskResultOrCancelled::Result(reference_task.combine_messages(results)?);
-                self.comms.result_send.send(combined_result)?;
+                self.comms
+                    .result_send
+                    .send(combined_result)
+                    .map_err(|_| Error::from("Couldn't send combined result"))?;
                 Ok(true)
             } else {
                 Ok(false)
@@ -73,7 +76,8 @@ impl PendingWorkerPoolTask {
         } else {
             self.comms
                 .result_send
-                .send(TaskResultOrCancelled::Result(result))?;
+                .send(TaskResultOrCancelled::Result(result))
+                .map_err(|_| Error::from("Couldn't send combined result"))?;
             Ok(true)
         }
     }
@@ -88,7 +92,10 @@ impl PendingWorkerPoolTask {
             active_workers_comms.remove(worker.index());
             if active_workers_comms.is_empty() {
                 let combined_result = TaskResultOrCancelled::Cancelled;
-                self.comms.result_send.send(combined_result)?;
+                self.comms
+                    .result_send
+                    .send(combined_result)
+                    .map_err(|_| Error::from("Couldn't send cancelled task result"))?;
                 Ok(true)
             } else {
                 Ok(false)
@@ -96,7 +103,8 @@ impl PendingWorkerPoolTask {
         } else {
             self.comms
                 .result_send
-                .send(TaskResultOrCancelled::Cancelled)?;
+                .send(TaskResultOrCancelled::Cancelled)
+                .map_err(|_| Error::from("Couldn't send cancelled task result"))?;
             Ok(true)
         }
     }
@@ -106,7 +114,12 @@ impl PendingWorkerPoolTask {
         worker: Worker,
         result_or_cancelled: WorkerTaskResultOrCancelled,
     ) -> Result<HasTerminated> {
-        if self.cancelling || matches!(result_or_cancelled, TaskResultOrCancelled::Cancelled) {
+        if self.cancelling
+            || matches!(
+                &result_or_cancelled.payload,
+                &TaskResultOrCancelled::Cancelled
+            )
+        {
             self.handle_cancel_state(worker, result_or_cancelled.task_id)
         } else if let TaskResultOrCancelled::Result(result) = result_or_cancelled.payload {
             self.handle_result_state(worker, result_or_cancelled.task_id, result)
@@ -140,7 +153,7 @@ pub struct PendingWorkerPoolTasks {
 }
 
 impl PendingWorkerPoolTasks {
-    async fn run_cancel_check(&mut self) -> Result<Vec<TaskID>> {
+    pub async fn run_cancel_check(&mut self) -> Result<Vec<TaskID>> {
         let mut cancel_tasks = vec![];
         self.inner.iter_mut().for_each(|(id, task)| {
             // Ignore if closed

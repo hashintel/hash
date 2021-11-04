@@ -29,7 +29,7 @@ impl fmt::Debug for ContextBatchSync {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum SyncPayload {
     // Agent state which is to be mutated within a step
     State(StateSync),

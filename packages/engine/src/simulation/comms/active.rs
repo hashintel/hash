@@ -1,3 +1,4 @@
+use std::fmt::{Debug, Formatter};
 use tokio::sync::oneshot::{channel, Receiver, Sender};
 
 use crate::simulation::task::{
@@ -13,6 +14,12 @@ pub struct ActiveTaskOwnerComms {
 pub struct ActiveTaskExecutorComms {
     pub result_send: Sender<TaskResultOrCancelled>,
     pub cancel_recv: Receiver<CancelTask>,
+}
+
+impl Debug for ActiveTaskExecutorComms {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str("ActiveTaskExecutorComms(...)")
+    }
 }
 
 // TODO OS[36] - COMPILE BLOCK - ActiveTaskOwnerComms expects a TaskResultOrCancelled but is getting a TaskResult

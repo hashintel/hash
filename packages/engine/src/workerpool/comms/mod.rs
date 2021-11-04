@@ -15,13 +15,13 @@ use crate::{
 };
 
 use crate::proto::SimulationShortID;
-use futures::future::try_join_all;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
 pub use experiment::ExpMsgRecv;
 pub use kill::KillRecv;
 pub use main::{new_no_sim, MainMsgRecv, MainMsgSend};
 
+#[derive(Debug)]
 pub enum WorkerPoolToWorkerMsgPayload {
     Task(WorkerTask),
     Sync(SyncPayload),
@@ -29,10 +29,28 @@ pub enum WorkerPoolToWorkerMsgPayload {
     NewSimulationRun(NewSimulationRun),
 }
 
+#[derive(Debug)]
 pub struct WorkerPoolToWorkerMsg {
     pub sim_id: Option<SimulationShortID>,
     pub payload: WorkerPoolToWorkerMsgPayload,
 }
+
+impl WorkerPoolToWorkerMsg {
+    pub fn try_clone(&self) -> Result<WorkerPoolToWorkerMsg> {
+        let payload = match &self.payload {
+            WorkerPoolToWorkerMsgPayload::Task(_) => Err(Error::from("Cannot clone worker task message")),
+            WorkerPoolToWorkerMsgPayload::Sync(inner) => Ok(WorkerPoolToWorkerMsgPayload::Sync(inner.clone())),
+            WorkerPoolToWorkerMsgPayload::CancelTask(inner) => Ok(WorkerPoolToWorkerMsgPayload::CancelTask(inner.clone())),
+            WorkerPoolToWorkerMsgPayload::NewSimulationRun(inner) => Ok(WorkerPoolToWorkerMsgPayload::NewSimulationRun(inner.clone())),
+        }?
+
+        Ok(WorkerPoolToWorkerMsg {
+            sim_id: self.sim_id.clone(),
+            payload
+        })
+    }
+}
+
 
 impl WorkerPoolToWorkerMsg {
     pub fn sync(sim_id: SimulationShortID, sync_payload: SyncPayload) -> WorkerPoolToWorkerMsg {
@@ -64,6 +82,7 @@ impl WorkerPoolToWorkerMsg {
     }
 }
 
+#[derive(Debug, Clone)]
 pub enum WorkerToWorkerPoolMsg {
     TaskResultOrCancelled(WorkerTaskResultOrCancelled),
     RunnerErrors(Vec<RunnerError>),
@@ -103,15 +122,18 @@ impl WorkerPoolCommsWithWorkers {
             .ok_or_else(|| Error::MissingWorkerWithIndex(worker_index))
     }
 
-    pub fn send(&mut self, worker_index: WorkerIndex, msg: WorkerPoolToWorkerMsg) -> Result<()> {
+    pub fn send(&self, worker_index: WorkerIndex, msg: WorkerPoolToWorkerMsg) -> Result<()> {
         let sender = &self.get_worker_senders(worker_index)?.0;
         sender.send(msg)?;
         Ok(())
     }
-    pub fn send_all(&mut self, msg: WorkerPoolToWorkerMsg) -> Result<()> {
+    pub fn send_all(&self, msg: WorkerPoolToWorkerMsg) -> Result<()> {
         self.send_to_w
-            .iter_mut()
-            .try_for_each(|(sender, _)| sender.send(msg.clone()))
+            .iter()
+            .try_for_each(|(sender, _)| {
+                let cloned = msg.try_clone()?;
+                sender.send(cloned).map_err(Error::from)
+            })
             .map_err(Error::from)
     }
 
@@ -123,13 +145,10 @@ impl WorkerPoolCommsWithWorkers {
     }
 
     pub async fn send_kill_all(&mut self) -> Result<()> {
-        let res = try_join_all(
-            self.send_to_w
-                .iter()
-                .enumerate()
-                .map(|(index, _)| self.send_kill_and_confirm(index)),
-        )
-        .await?;
+        // No need to join all as this is called on exit
+        for worker_index in 0..self.send_to_w.len() {
+            self.send_kill_and_confirm(worker_index).await?;
+        }
         Ok(())
     }
 
@@ -145,9 +164,9 @@ pub fn new_pool_comms(
     let mut send_to_w = Vec::with_capacity(num_workers);
     let worker_comms = (0..num_workers)
         .map(|index| {
-            let (send_to_w, recv_from_wp) = unbounded_channel();
+            let (sender, recv_from_wp) = unbounded_channel();
             let (kill_send, kill_recv) = kill::new_pair();
-            send_to_w.push((send_to_w, kill_send));
+            send_to_w.push((sender, kill_send));
             WorkerCommsWithWorkerPool {
                 index,
                 send_to_wp: send_to_wp.clone(),

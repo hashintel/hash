@@ -45,6 +45,7 @@ pub enum OutputTaskMessage {}
 
 /// All output package task results are registered in this enum
 #[enum_dispatch(RegisterWithoutTrait)]
+#[derive(Debug, Clone)]
 pub enum OutputTaskResult {}
 
 lazy_static! {
