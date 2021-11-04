@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{config::WorkerConfig, types::TaskID, Language};
+use crate::{types::TaskID, Language};
 
 use super::task::WorkerTask;
 
@@ -9,19 +9,18 @@ pub enum CancelState {
     None,
 }
 
+impl Default for CancelState {
+    fn default() -> Self {
+        CancelState::None
+    }
+}
+
 #[derive(new)]
 pub struct PendingWorkerTask {
     pub inner: WorkerTask,
     pub active_runner: Language,
     #[new(default)]
     pub cancelling: CancelState,
-}
-
-impl PendingWorkerTask {
-    pub fn initialize_cancelling(&mut self, config: &WorkerConfig) {
-        let mut languages = config.spawn.spawned_languages();
-        self.cancelling = CancelState::Active(languages);
-    }
 }
 
 #[derive(Default)]

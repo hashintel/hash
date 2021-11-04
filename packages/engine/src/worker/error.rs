@@ -16,6 +16,9 @@ pub enum Error {
     #[error("Unexpected target for a message {0:?}")]
     UnexpectedTarget(super::runner::comms::MessageTarget),
 
+    #[error("Datastore: {0}")]
+    Datastore(#[from] crate::datastore::Error),
+
     #[error("Task already exists (id: {0})")]
     TaskAlreadyExists(crate::types::TaskID),
 

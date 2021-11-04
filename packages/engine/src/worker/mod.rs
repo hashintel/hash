@@ -3,9 +3,6 @@ mod pending;
 pub mod runner;
 pub mod task;
 
-use futures::future::try_join_all;
-use futures::SinkExt;
-
 use crate::worker::pending::CancelState;
 use crate::{
     config::WorkerConfig,
@@ -56,7 +53,7 @@ pub struct WorkerController {
     js: JavaScriptRunner,
     rs: RustRunner,
     config: WorkerConfig,
-    worker_pool_comms: Option<WorkerCommsWithWorkerPool>,
+    worker_pool_comms: WorkerCommsWithWorkerPool,
     tasks: PendingWorkerTasks,
 }
 
@@ -72,7 +69,7 @@ impl WorkerController {
             js: JavaScriptRunner::new(config.spawn.javascript, exp_init.clone())?,
             rs: RustRunner::new(config.spawn.rust, exp_init.clone())?,
             config,
-            worker_pool_comms: Some(worker_pool_comms),
+            worker_pool_comms,
             tasks: PendingWorkerTasks::default(),
         })
     }
@@ -97,10 +94,10 @@ impl WorkerController {
     }
 
     async fn _run(&mut self) -> Result<()> {
-        let worker_pool_comms = self.worker_pool_comms.take().unwrap();
+        let mut wp_recv = self.worker_pool_comms.take_recv()?;
         loop {
             tokio::select! {
-                Some(msg) = worker_pool_comms.recv().await => {
+                Some(msg) = wp_recv.recv() => {
                     self.handle_worker_pool_msg(msg).await?;
                 }
                 res = self.recv_from_runners() => {
@@ -109,8 +106,6 @@ impl WorkerController {
                 }
             }
         }
-        self.worker_pool_comms = Some(worker_pool_comms);
-        Ok(())
     }
 
     async fn handle_worker_pool_msg(&mut self, msg: WorkerPoolToWorkerMsg) -> Result<()> {
@@ -234,11 +229,11 @@ impl WorkerController {
         sync: StateInterimSync,
     ) -> InboundToRunnerMsgPayload {
         InboundToRunnerMsgPayload::TaskMsg(RunnerTaskMsg {
-            task_id: pending.task_id,
+            task_id: pending.inner.task_id,
             package_id: pending.inner.package_id,
             group_index,
             sync,
-            payload: task_msg.payload,
+            payload: task_msg,
         })
     }
 
@@ -258,7 +253,7 @@ impl WorkerController {
                     self.rs
                         .send(
                             Some(sim_id),
-                            self.inbound_from_task_msg(next.payload, pending, group_index, sync),
+                            Self::inbound_from_task_msg(next.payload, pending, group_index, sync),
                         )
                         .await?;
                     pending.active_runner = Language::Rust;
@@ -267,7 +262,7 @@ impl WorkerController {
                     self.py
                         .send(
                             Some(sim_id),
-                            self.inbound_from_task_msg(next.payload, pending, group_index, sync),
+                            Self::inbound_from_task_msg(next.payload, pending, group_index, sync),
                         )
                         .await?;
                     pending.active_runner = Language::Python;
@@ -276,7 +271,7 @@ impl WorkerController {
                     self.js
                         .send(
                             Some(sim_id),
-                            self.inbound_from_task_msg(next.payload, pending, group_index, sync),
+                            Self::inbound_from_task_msg(next.payload, pending, group_index, sync),
                         )
                         .await?;
                     pending.active_runner = Language::JavaScript;
@@ -298,10 +293,13 @@ impl WorkerController {
         source: Language,
     ) -> Result<()> {
         if let Some(task) = self.tasks.inner.get_mut(&task_id) {
-            if task.cancelling == CancelState::None {
-                // TODO: Correct?
+            if let CancelState::None = task.cancelling {
                 log::warn!("Unexpected task cancelling");
                 task.cancelling = CancelState::Active(vec![source]);
+            } else if let CancelState::Active(langs) = &mut task.cancelling {
+                if !langs.contains(&source) {
+                    langs.push(source);
+                }
             }
             if source == task.active_runner {
                 drop(task); // TODO OS - Call to std::mem::drop with a reference argument. Dropping a reference does nothing
@@ -378,11 +376,10 @@ impl WorkerController {
         sync_msg: SyncPayload,
     ) -> Result<()> {
         tokio::try_join!(
-            self.py.send_if_spawned(sim_id, sync_msg.clone()),
-            self.js.send_if_spawned(sim_id, sync_msg.clone()),
-            self.rs.send_if_spawned(sim_id, sync_msg)
-        )
-        .await?;
+            self.py.send_if_spawned(sim_id, sync_msg.clone().into()),
+            self.js.send_if_spawned(sim_id, sync_msg.clone().into()),
+            self.rs.send_if_spawned(sim_id, sync_msg.into())
+        )?;
         Ok(())
     }
 
@@ -398,36 +395,40 @@ impl WorkerController {
                 .send_if_spawned(None, InboundToRunnerMsgPayload::CancelTask(task_id)),
             self.rs
                 .send_if_spawned(None, InboundToRunnerMsgPayload::CancelTask(task_id))
-        )
-        .await?;
+        )?;
         Ok(())
     }
 
     async fn cancel_task_except_for_runner(
-        &mut self,
+        &self,
         task_id: TaskID,
         runner_language: Language,
     ) -> Result<()> {
-        let mut tasks = vec![];
+        // TODO cleanup
         if !matches!(runner_language, Language::Python) {
-            tasks.append(
-                self.py
-                    .send_if_spawned(None, InboundToRunnerMsgPayload::CancelTask(task_id)),
-            );
+            self.js
+                .send_if_spawned(None, InboundToRunnerMsgPayload::CancelTask(task_id))
+                .await?;
+            self.rs
+                .send_if_spawned(None, InboundToRunnerMsgPayload::CancelTask(task_id))
+                .await?;
         }
         if !matches!(runner_language, Language::JavaScript) {
-            tasks.append(
-                self.js
-                    .send_if_spawned(None, InboundToRunnerMsgPayload::CancelTask(task_id)),
-            );
+            self.py
+                .send_if_spawned(None, InboundToRunnerMsgPayload::CancelTask(task_id))
+                .await?;
+            self.rs
+                .send_if_spawned(None, InboundToRunnerMsgPayload::CancelTask(task_id))
+                .await?;
         }
         if !matches!(runner_language, Language::Rust) {
-            tasks.append(
-                self.rs
-                    .send_if_spawned(None, InboundToRunnerMsgPayload::CancelTask(task_id)),
-            );
+            self.py
+                .send_if_spawned(None, InboundToRunnerMsgPayload::CancelTask(task_id))
+                .await?;
+            self.js
+                .send_if_spawned(None, InboundToRunnerMsgPayload::CancelTask(task_id))
+                .await?;
         }
-        try_join_all(tasks).await?;
         Ok(())
     }
 
@@ -435,7 +436,7 @@ impl WorkerController {
         tokio::try_join!(
             self.py.send_if_spawned(
                 None,
-                InboundToRunnerMsgPayload::NewSimulationRun(new_simulation_run)
+                InboundToRunnerMsgPayload::NewSimulationRun(new_simulation_run.clone())
             ),
             self.js.send_if_spawned(
                 None,
@@ -443,15 +444,10 @@ impl WorkerController {
             ),
             self.rs.send_if_spawned(
                 None,
-                InboundToRunnerMsgPayload::NewSimulationRun(new_simulation_run.clone())
+                InboundToRunnerMsgPayload::NewSimulationRun(new_simulation_run)
             )
-        )
-        .await?;
+        )?;
         Ok(())
-    }
-
-    async fn recv_from_worker_pool_controller(&mut self) -> Option<WorkerPoolToWorkerMsg> {
-        self.worker_pool_comms.recv().await
     }
 
     async fn recv_from_runners(&mut self) -> Result<OutboundFromRunnerMsg> {

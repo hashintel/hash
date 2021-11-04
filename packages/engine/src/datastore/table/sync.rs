@@ -40,14 +40,12 @@ pub enum SyncPayload {
     ContextBatch(ContextBatchSync),
 }
 
-impl TryInto<InboundToRunnerMsgPayload> for SyncPayload {
-    type Error = crate::error::Error;
-
-    fn try_into(self) -> Result<InboundToRunnerMsgPayload, Self::Error> {
-        Ok(match self {
+impl Into<InboundToRunnerMsgPayload> for SyncPayload {
+    fn into(self) -> InboundToRunnerMsgPayload {
+        match self {
             SyncPayload::State(s) => InboundToRunnerMsgPayload::StateSync(s),
             SyncPayload::StateSnapshot(s) => InboundToRunnerMsgPayload::StateSnapshotSync(s),
             SyncPayload::ContextBatch(c) => InboundToRunnerMsgPayload::ContextBatchSync(c),
-        })
+        }
     }
 }

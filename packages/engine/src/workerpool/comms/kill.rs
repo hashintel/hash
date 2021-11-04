@@ -16,7 +16,10 @@ pub struct KillRecv {
 
 impl KillRecv {
     pub fn take_recv(&mut self) -> Result<Receiver<KillMessage>> {
-        let receiver = self.inner.take().ok_or_else(|| Error::from("Couldn't take kill receiver"))?;
+        let receiver = self
+            .inner
+            .take()
+            .ok_or_else(|| Error::from("Couldn't take kill receiver"))?;
         Ok(receiver)
     }
 
@@ -25,7 +28,9 @@ impl KillRecv {
             .confirm
             .take()
             .ok_or_else(|| Error::KillConfirmAlreadySent)?;
-        confirm.send(()).map_err(|_| Error::from("Couldn't send kill confirm"))?;
+        confirm
+            .send(())
+            .map_err(|_| Error::from("Couldn't send kill confirm"))?;
         Ok(())
     }
 }
@@ -41,7 +46,9 @@ impl KillSend {
             .inner
             .take()
             .ok_or_else(|| Error::KillMessageAlreadySent)?;
-        sender.send(KillMessage {}).map_err(|_| Error::from("Couldn't send kill message"))?;
+        sender
+            .send(KillMessage {})
+            .map_err(|_| Error::from("Couldn't send kill message"))?;
         Ok(())
     }
 
@@ -49,13 +56,23 @@ impl KillSend {
         if self.inner.is_some() {
             return Err(Error::KillMessageNotSent);
         }
-        let confirm = self.confirm.take().ok_or_else(|| Error::from("Already tried to recv kill confirmation"))?;
-        confirm.await.map_err(|err| Error::from(format!("Couldn't receive kill confirm: {:?}", err)))?;
+        let confirm = self
+            .confirm
+            .take()
+            .ok_or_else(|| Error::from("Already tried to recv kill confirmation"))?;
+        confirm
+            .await
+            .map_err(|err| Error::from(format!("Couldn't receive kill confirm: {:?}", err)))?;
         Ok(())
     }
 
     pub async fn recv_kill_confirmation_with_ms_timeout(&mut self, millis: usize) -> Result<bool> {
-        match timeout(Duration::from_millis(millis as u64), self.recv_kill_confirmation()).await {
+        match timeout(
+            Duration::from_millis(millis as u64),
+            self.recv_kill_confirmation(),
+        )
+        .await
+        {
             Ok(res) => res?,
             Err(_) => return Ok(false),
         }

@@ -38,19 +38,26 @@ pub struct WorkerPoolToWorkerMsg {
 impl WorkerPoolToWorkerMsg {
     pub fn try_clone(&self) -> Result<WorkerPoolToWorkerMsg> {
         let payload = match &self.payload {
-            WorkerPoolToWorkerMsgPayload::Task(_) => Err(Error::from("Cannot clone worker task message")),
-            WorkerPoolToWorkerMsgPayload::Sync(inner) => Ok(WorkerPoolToWorkerMsgPayload::Sync(inner.clone())),
-            WorkerPoolToWorkerMsgPayload::CancelTask(inner) => Ok(WorkerPoolToWorkerMsgPayload::CancelTask(inner.clone())),
-            WorkerPoolToWorkerMsgPayload::NewSimulationRun(inner) => Ok(WorkerPoolToWorkerMsgPayload::NewSimulationRun(inner.clone())),
-        }?
+            WorkerPoolToWorkerMsgPayload::Task(_) => {
+                Err(Error::from("Cannot clone worker task message"))
+            }
+            WorkerPoolToWorkerMsgPayload::Sync(inner) => {
+                Ok(WorkerPoolToWorkerMsgPayload::Sync(inner.clone()))
+            }
+            WorkerPoolToWorkerMsgPayload::CancelTask(inner) => {
+                Ok(WorkerPoolToWorkerMsgPayload::CancelTask(inner.clone()))
+            }
+            WorkerPoolToWorkerMsgPayload::NewSimulationRun(inner) => Ok(
+                WorkerPoolToWorkerMsgPayload::NewSimulationRun(inner.clone()),
+            ),
+        }?;
 
         Ok(WorkerPoolToWorkerMsg {
             sim_id: self.sim_id.clone(),
-            payload
+            payload,
         })
     }
 }
-
 
 impl WorkerPoolToWorkerMsg {
     pub fn sync(sim_id: SimulationShortID, sync_payload: SyncPayload) -> WorkerPoolToWorkerMsg {
@@ -92,18 +99,23 @@ pub enum WorkerToWorkerPoolMsg {
 pub struct WorkerCommsWithWorkerPool {
     index: WorkerIndex,
     send_to_wp: UnboundedSender<(WorkerIndex, WorkerToWorkerPoolMsg)>,
-    recv_from_wp: UnboundedReceiver<WorkerPoolToWorkerMsg>,
+    recv_from_wp: Option<UnboundedReceiver<WorkerPoolToWorkerMsg>>,
     kill_recv: KillRecv,
 }
 
 impl WorkerCommsWithWorkerPool {
-    pub fn send(&self, msg: WorkerToWorkerPoolMsg) -> Result<()> {
+    pub fn send(&self, msg: WorkerToWorkerPoolMsg) -> crate::worker::error::Result<()> {
         self.send_to_wp.send((self.index, msg))?;
         Ok(())
     }
 
-    pub async fn recv(&mut self) -> Option<WorkerPoolToWorkerMsg> {
-        self.recv_from_wp.recv().await
+    // This should only be called once
+    pub fn take_recv(
+        &mut self,
+    ) -> crate::worker::error::Result<UnboundedReceiver<WorkerPoolToWorkerMsg>> {
+        self.recv_from_wp
+            .take()
+            .ok_or_else(|| crate::worker::error::Error::from("Couldn't take `recv_from_wp`"))
     }
 }
 
@@ -170,7 +182,7 @@ pub fn new_pool_comms(
             WorkerCommsWithWorkerPool {
                 index,
                 send_to_wp: send_to_wp.clone(),
-                recv_from_wp,
+                recv_from_wp: Some(recv_from_wp),
                 kill_recv,
             }
         })
