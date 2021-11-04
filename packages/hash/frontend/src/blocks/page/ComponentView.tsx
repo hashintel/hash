@@ -96,11 +96,9 @@ export class ComponentView implements NodeView<Schema> {
   update(node: any) {
     this.node = node;
 
-    const entityStore = this.store;
-
     if (node?.type.name === this.componentId) {
       const entityId = node.attrs.blockEntityId;
-      const entity = entityStore.saved[entityId];
+      const entity = this.store.saved[entityId];
       const remoteBlockProps = getRemoteBlockProps(entity);
 
       const editableRef = this.editable
