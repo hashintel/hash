@@ -8,6 +8,10 @@ type ErrorProps = {
   err: Error;
 } & NextErrorProps;
 
+/**
+ * This custom error page is based on the Sentry example, with added TypeScript
+ * @see https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
+ */
 const CustomError = ({
   statusCode,
   hasGetInitialPropsRun,

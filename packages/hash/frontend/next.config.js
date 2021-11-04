@@ -6,12 +6,11 @@ const withBundleAnalyzer = require("@next/bundle-analyzer")({
   enabled: process.env.ANALYZE === "true",
 });
 const { withSentryConfig } = require("@sentry/nextjs");
-const { DefinePlugin } = require("webpack");
 
-const { BUILD_STAMP } = require("./buildstamp");
+const { buildStamp } = require("./buildstamp");
 
 const sentryWebpackPluginOptions = {
-  release: BUILD_STAMP,
+  release: buildStamp,
   silent: true,
   // For all available options, see:
   // https://github.com/getsentry/sentry-webpack-plugin#options.
@@ -45,10 +44,6 @@ module.exports = withSentryConfig(
               filename: "static/sandbox.html",
               template: path.join(__dirname, framedBlockFolder, "index.html"),
               chunks: ["sandbox"],
-            }),
-            new DefinePlugin({
-              // inject this value into the build
-              WEBPACK_BUILD_STAMP: `"${BUILD_STAMP}"`,
             }),
           );
           return Object.assign({}, config, {

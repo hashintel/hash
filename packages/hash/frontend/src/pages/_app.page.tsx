@@ -9,6 +9,7 @@ import { useEffect } from "react";
 import { createApolloClient } from "@hashintel/hash-shared/graphql/createApolloClient";
 import withTwindApp from "@twind/next/app";
 import { ModalProvider } from "react-modal-hook";
+import { configureScope } from "@sentry/nextjs";
 import { PageLayout } from "../components/layout/PageLayout/PageLayout";
 
 import twindConfig from "../../twind.config";
@@ -23,11 +24,13 @@ function MyApp({ Component, pageProps }: AppProps) {
 
   const { user } = useUser({ client: apolloClient });
 
-  /**
-   * @todo make eslint pick up the definition for this
-   */
-  // eslint-disable-next-line no-undef
-  useEffect(() => console.log(`Build: ${WEBPACK_BUILD_STAMP}`), []);
+  useEffect(
+    () =>
+      configureScope((scope) =>
+        console.log(`Build: ${scope.getSession()?.release ?? "not set"}`),
+      ),
+    [],
+  );
 
   useEffect(() => {
     if (

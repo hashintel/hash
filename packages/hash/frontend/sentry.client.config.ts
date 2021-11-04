@@ -3,14 +3,16 @@
 
 import * as Sentry from "@sentry/nextjs";
 
-import { BUILD_STAMP } from "./buildstamp";
+import { apiOrigin } from "../shared/dist/environment";
 
 const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
 
 export const SENTRY_CONFIG = {
   dsn,
   enabled: !!dsn,
-  release: BUILD_STAMP,
+  environment:
+    apiOrigin === "https://alpha.hash.ai" ? "production" : "development",
+  // release is set in next.config.js in the Sentry webpack plugin
   /** @todo reduce perf sample rate from 100% when we have more traffic */
   tracesSampleRate: 1.0,
 };
