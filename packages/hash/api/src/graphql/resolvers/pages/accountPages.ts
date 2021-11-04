@@ -8,7 +8,7 @@ export const accountPages: Resolver<
   GraphQLContext,
   QueryAccountPagesArgs
 > = async (_, { accountId }, { dataSources }) => {
-  const pages = await Entity.getEntitiesBySystemType(dataSources.db)({
+  const pages = await Entity.getEntitiesBySystemType(dataSources.db, {
     accountId,
     systemTypeName: "Page",
     latestOnly: true,

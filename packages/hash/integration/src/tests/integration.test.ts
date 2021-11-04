@@ -42,7 +42,7 @@ let existingUser: User;
 let existingOrg: Org;
 
 const createNewBobWithOrg = async () => {
-  const bobUser = await User.createUser(db)({
+  const bobUser = await User.createUser(db, {
     shortname: `bob-${bobCounter}`,
     preferredName: `Bob-${bobCounter}`,
     emails: [
@@ -58,7 +58,7 @@ const createNewBobWithOrg = async () => {
 
   bobCounter += 1;
 
-  const bobOrg = await Org.createOrg(db)({
+  const bobOrg = await Org.createOrg(db, {
     createdById: bobUser.entityId,
     properties: {
       shortname: `${bobUser.properties.shortname}-org`,
@@ -66,7 +66,7 @@ const createNewBobWithOrg = async () => {
     },
   });
 
-  await bobUser.joinOrg(db)({ org: bobOrg, responsibility: "CEO" });
+  await bobUser.joinOrg(db, { org: bobOrg, responsibility: "CEO" });
 
   return { bobUser, bobOrg };
 };
@@ -89,7 +89,7 @@ beforeAll(async () => {
 
   transporter = new TestEmailTransporter();
 
-  existingUser = await User.createUser(db)({
+  existingUser = await User.createUser(db, {
     shortname: "test-user",
     preferredName: "Alice",
     emails: [{ address: "alice@hash.test", primary: true, verified: true }],
@@ -97,7 +97,7 @@ beforeAll(async () => {
     infoProvidedAtSignup: { usingHow: WayToUseHash.ByThemselves },
   });
 
-  existingOrg = await Org.createOrg(db)({
+  existingOrg = await Org.createOrg(db, {
     createdById: existingUser.entityId,
     properties: {
       shortname: "bigco",
@@ -105,7 +105,7 @@ beforeAll(async () => {
     },
   });
 
-  await existingUser.joinOrg(db)({ org: existingOrg, responsibility: "CEO" });
+  await existingUser.joinOrg(db, { org: existingOrg, responsibility: "CEO" });
 });
 
 afterAll(async () => {
@@ -121,7 +121,7 @@ it("can create user", async () => {
   const { id: verificationCodeId, createdAt: verificationCodeCreatedAt } =
     await client.createUser({ email });
 
-  const user = (await User.getUserByEmail(db)({
+  const user = (await User.getUserByEmail(db, {
     email,
     verified: false,
     primary: true,
@@ -135,7 +135,7 @@ it("can create user", async () => {
   expect(user.entityType.properties.title).toEqual("User");
 
   /** @todo: check whether the verification code was sent to the email address */
-  const verificationCode = (await VerificationCode.getById(db)({
+  const verificationCode = (await VerificationCode.getById(db, {
     id: verificationCodeId,
   }))!;
 
@@ -153,11 +153,12 @@ it("can create user with email verification code", async () => {
   const emailInvitation = await OrgEmailInvitation.createOrgEmailInvitation(
     db,
     transporter,
-  )({
-    org: existingOrg,
-    inviter: existingUser,
-    inviteeEmailAddress,
-  });
+    {
+      org: existingOrg,
+      inviter: existingUser,
+      inviteeEmailAddress,
+    },
+  );
 
   /** @todo: use test email transporter to obtain email invitation token */
   const invitationEmailToken = emailInvitation.properties.accessToken;
@@ -170,7 +171,7 @@ it("can create user with email verification code", async () => {
 
   expect(accountSignupComplete).toEqual(false);
 
-  const user = (await User.getUserById(db)({ entityId }))!;
+  const user = (await User.getUserById(db, { entityId }))!;
 
   expect(user).not.toBeNull();
   expect(user.getPrimaryEmail()).toEqual({
@@ -190,7 +191,7 @@ describe("can log in", () => {
       emailOrShortname: emailAddress,
     });
 
-    const verificationCodeOrNull = await VerificationCode.getById(db)({
+    const verificationCodeOrNull = await VerificationCode.getById(db, {
       id: verificationId,
     });
 
@@ -220,7 +221,7 @@ describe("logged in user ", () => {
       emailOrShortname: existingUser.getPrimaryEmail().address,
     });
 
-    const verificationCode = await VerificationCode.getById(db)({
+    const verificationCode = await VerificationCode.getById(db, {
       id: verificationId,
     });
 
@@ -263,7 +264,7 @@ describe("logged in user ", () => {
       variables,
     );
 
-    const org = (await Org.getOrgById(db)({ entityId }))!;
+    const org = (await Org.getOrgById(db, { entityId }))!;
 
     // Test the org has been created correctly
     expect(org).not.toBeNull();
@@ -290,7 +291,7 @@ describe("logged in user ", () => {
     ).toEqual(invitationLink.properties.accessToken);
 
     // Test the user is now a member of the org
-    const updatedExistingUser = (await User.getUserById(db)(existingUser))!;
+    const updatedExistingUser = (await User.getUserById(db, existingUser))!;
 
     expect(updatedExistingUser).not.toBeNull();
 
@@ -359,11 +360,12 @@ describe("logged in user ", () => {
     const emailInvitation = await OrgEmailInvitation.createOrgEmailInvitation(
       db,
       transporter,
-    )({
-      org: bobOrg,
-      inviter: bobUser,
-      inviteeEmailAddress,
-    });
+      {
+        org: bobOrg,
+        inviter: bobUser,
+        inviteeEmailAddress,
+      },
+    );
 
     const gqlEmailInvitation = await client.getOrgEmailInvitation({
       orgEntityId: bobOrg.entityId,
@@ -405,11 +407,12 @@ describe("logged in user ", () => {
     const emailInvitation = await OrgEmailInvitation.createOrgEmailInvitation(
       db,
       transporter,
-    )({
-      org: bobOrg,
-      inviter: bobUser,
-      inviteeEmailAddress,
-    });
+      {
+        org: bobOrg,
+        inviter: bobUser,
+        inviteeEmailAddress,
+      },
+    );
 
     const responsibility = "CTO";
 

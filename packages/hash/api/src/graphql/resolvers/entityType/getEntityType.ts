@@ -10,7 +10,7 @@ export const getEntityType: Resolver<
   GraphQLContext,
   QueryGetEntityTypeArgs
 > = async (_, { entityTypeId }, { dataSources }) => {
-  const entityType = await EntityType.getEntityType(dataSources.db)({
+  const entityType = await EntityType.getEntityType(dataSources.db, {
     entityTypeId,
   });
 

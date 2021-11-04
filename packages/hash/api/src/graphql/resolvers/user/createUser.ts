@@ -20,7 +20,7 @@ export const createUser: Resolver<
 ) =>
   dataSources.db.transaction(async (client) => {
     // Ensure the email address isn't already verified and associated with a user
-    if (await User.getUserByEmail(client)({ email, verified: true })) {
+    if (await User.getUserByEmail(client, { email, verified: true })) {
       throw new ApolloError(
         `User with the email '${email}' already exists in the datastore`,
         "ALREADY_EXISTS",
@@ -33,13 +33,13 @@ export const createUser: Resolver<
      */
     const user =
       // Either get an existing user with this primary un-verified email address, ...
-      (await User.getUserByEmail(client)({
+      (await User.getUserByEmail(client, {
         email,
         primary: true,
         verified: false,
       })) ||
       // ...or create this user
-      (await User.createUser(client)({
+      (await User.createUser(client, {
         emails: [{ address: email, primary: true, verified: false }],
         infoProvidedAtSignup: {},
         memberOf: [],
@@ -50,10 +50,11 @@ export const createUser: Resolver<
     const verificationCode = await user.sendEmailVerificationCode(
       client,
       emailTransporter,
-    )({
-      emailAddress: email,
-      magicLinkQueryParams: magicLinkQueryParams || undefined,
-    });
+      {
+        emailAddress: email,
+        magicLinkQueryParams: magicLinkQueryParams || undefined,
+      },
+    );
 
     return verificationCode.toGQLVerificationCodeMetadata();
   });

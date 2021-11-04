@@ -13,7 +13,7 @@ export const updatePage: Resolver<
   return await dataSources.db.transaction(async (client) => {
     // @todo: always get the latest version for now. This is a temporary measure.
     // return here when strict vs. optimistic entity mutation question is resolved.
-    const entity = await Entity.getEntityLatestVersion(client)({
+    const entity = await Entity.getEntityLatestVersion(client, {
       accountId,
       entityId,
     });
@@ -24,7 +24,7 @@ export const updatePage: Resolver<
       );
     }
 
-    await entity.updateEntityProperties(client)({
+    await entity.updateEntityProperties(client, {
       ...(entity.properties ?? {}),
       ...properties,
     });

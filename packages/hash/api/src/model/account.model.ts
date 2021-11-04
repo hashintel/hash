@@ -14,11 +14,11 @@ export type AccountConstructorArgs = {
 } & EntityConstructorArgs;
 
 abstract class __Account extends Entity {
-  protected updateProperties(client: DBClient) {
-    return (properties: any) => super.updateProperties(client)(properties);
+  protected updateProperties(client: DBClient, properties: any) {
+    return super.updateProperties(client, properties);
   }
 
-  static getAll = async (client: DBClient): Promise<(User | Org)[]> => {
+  static async getAll(client: DBClient): Promise<(User | Org)[]> {
     const accountDbEntities = await client.getAllAccounts();
 
     return accountDbEntities.map((dbEntity) =>
@@ -26,9 +26,9 @@ abstract class __Account extends Entity {
         ? new User(dbEntity)
         : new Org(dbEntity),
     );
-  };
+  }
 
-  private static checkShortnameChars = (shortname: string) => {
+  private static checkShortnameChars(shortname: string) {
     if (shortname.search(ALLOWED_SHORTNAME_CHARS)) {
       throw new UserInputError(
         "Shortname may only contain letters, numbers, - or _",
@@ -37,55 +37,53 @@ abstract class __Account extends Entity {
     if (shortname[0] === "-") {
       throw new UserInputError("Shortname cannot start with '-'");
     }
-  };
+  }
 
-  static isShortnameReserved = (shortname: string): boolean =>
-    RESTRICTED_SHORTNAMES.includes(shortname);
+  static isShortnameReserved(shortname: string): boolean {
+    return RESTRICTED_SHORTNAMES.includes(shortname);
+  }
 
-  static isShortnameTaken =
-    (client: DBClient) =>
-    async (shortname: string): Promise<boolean> => {
-      const [org, user] = await Promise.all([
-        await Org.getOrgByShortname(client)({ shortname }),
-        await User.getUserByShortname(client)({ shortname }),
-      ]);
+  static async isShortnameTaken(
+    client: DBClient,
+    shortname: string,
+  ): Promise<boolean> {
+    const [org, user] = await Promise.all([
+      await Org.getOrgByShortname(client, { shortname }),
+      await User.getUserByShortname(client, { shortname }),
+    ]);
 
-      return org !== null || user !== null;
-    };
+    return org !== null || user !== null;
+  }
 
-  static validateShortname =
-    (client: DBClient) => async (shortname: string) => {
-      Account.checkShortnameChars(shortname);
+  static async validateShortname(client: DBClient, shortname: string) {
+    Account.checkShortnameChars(shortname);
 
-      if (
-        Account.isShortnameReserved(shortname) ||
-        (await Account.isShortnameTaken(client)(shortname))
-      ) {
-        throw new ApolloError(`Shortname ${shortname} taken`, "NAME_TAKEN");
-      }
+    if (
+      Account.isShortnameReserved(shortname) ||
+      (await Account.isShortnameTaken(client, shortname))
+    ) {
+      throw new ApolloError(`Shortname ${shortname} taken`, "NAME_TAKEN");
+    }
 
-      /** @todo: enable admins to have a shortname under 4 characters */
-      if (shortname.length < 4) {
-        throw new UserInputError(
-          "Shortname must be at least 4 characters long.",
-        );
-      }
-      if (shortname.length > 24) {
-        throw new UserInputError(
-          "Shortname cannot be longer than 24 characters",
-        );
-      }
-    };
+    /** @todo: enable admins to have a shortname under 4 characters */
+    if (shortname.length < 4) {
+      throw new UserInputError("Shortname must be at least 4 characters long.");
+    }
+    if (shortname.length > 24) {
+      throw new UserInputError("Shortname cannot be longer than 24 characters");
+    }
+  }
 
   /**
    * Must occur in the same db transaction as when `this.properties` was fetched
    * to prevent overriding externally-updated properties
    */
-  updateShortname = (db: DBClient) => async (updatedShortname: string) =>
-    this.updateProperties(db)({
+  updateShortname(db: DBClient, updatedShortname: string) {
+    return this.updateProperties(db, {
       ...this.properties,
       shortname: updatedShortname,
     });
+  }
 }
 
 export default __Account;

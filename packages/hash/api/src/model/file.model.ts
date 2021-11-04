@@ -41,76 +41,77 @@ class __File extends Entity {
     this.properties = args.properties;
   }
 
-  static createFile =
-    (client: DBClient) =>
-    async (args: CreateFileArgs): Promise<File> => {
-      const entity = await client.createEntity(args);
-      return new File(entity);
-    };
+  static async createFile(
+    client: DBClient,
+    params: CreateFileArgs,
+  ): Promise<File> {
+    const dbEntity = await client.createEntity(params);
+    return new File(dbEntity);
+  }
 
-  static getFileDownloadURL =
-    (storage: StorageProvider) =>
-    async ({ key }: { key: string }): Promise<string> => {
-      return await storage.presignDownload({
-        key,
-        expiresInSeconds: DOWNLOAD_URL_EXPIRATION_SECONDS,
-      });
-    };
+  static async getFileDownloadURL(
+    storage: StorageProvider,
+    params: { key: string },
+  ): Promise<string> {
+    return await storage.presignDownload({
+      ...params,
+      expiresInSeconds: DOWNLOAD_URL_EXPIRATION_SECONDS,
+    });
+  }
 
-  static createFileEntityFromUploadRequest =
-    (client: DBClient, storage: StorageProvider) =>
-    async ({
-      name,
-      contentMd5,
-      size,
+  static async createFileEntityFromUploadRequest(
+    client: DBClient,
+    storage: StorageProvider,
+    params: CreateUploadRequestArgs,
+  ): Promise<CreateUploadRequestFileResponse> {
+    const { name, contentMd5, accountId, size } = params;
+
+    const entityVersionId = genId();
+    const key = File.getFileEntityStorageKey({
       accountId,
-    }: CreateUploadRequestArgs): Promise<CreateUploadRequestFileResponse> => {
-      const entityVersionId = genId();
-      const key = File.getFileEntityStorageKey({
-        accountId,
-        entityVersionId,
-        fileName: name,
+      entityVersionId,
+      fileName: name,
+    });
+    if (size > MAX_FILE_SIZE_BYTES) {
+      throw new ApolloError(
+        "The file is heavier than the maximum allowed file size",
+        "MAX_FILE_SIZE_EXCEEDED",
+      );
+    }
+    try {
+      const presignedPost = await storage.presignUpload({
+        key,
+        fields: {},
+        expiresInSeconds: UPLOAD_URL_EXPIRATION_SECONDS,
       });
-      if (size > MAX_FILE_SIZE_BYTES) {
-        throw new ApolloError(
-          "The file is heavier than the maximum allowed file size",
-          "MAX_FILE_SIZE_EXCEEDED",
-        );
-      }
-      try {
-        const presignedPost = await storage.presignUpload({
-          key,
-          fields: {},
-          expiresInSeconds: UPLOAD_URL_EXPIRATION_SECONDS,
-        });
-        const properties: DBFileProperties = {
-          name,
-          contentMd5,
-          size,
-          key,
-          // Not used yet, should be used eventually
-          mediaType: "",
-        };
-        const entityArgs = createEntityArgsBuilder({
-          accountId,
-          createdById: accountId,
-          systemTypeName: "File",
-          versioned: true,
-          properties,
-          entityVersionId,
-        }) as CreateFileArgs;
-        const fileEntity = await File.createFile(client)(entityArgs);
-        return {
-          presignedPost,
-          file: fileEntity,
-        };
-      } catch (error) {
-        throw new ApolloError(
-          `There was an error requesting the file upload: ${error}`,
-          "INTERNAL_SERVER_ERROR",
-        );
-      }
-    };
+      const properties: DBFileProperties = {
+        name,
+        contentMd5,
+        size,
+        key,
+        // Not used yet, should be used eventually
+        mediaType: "",
+      };
+      const entityArgs = createEntityArgsBuilder({
+        accountId,
+        createdById: accountId,
+        systemTypeName: "File",
+        versioned: true,
+        properties,
+        entityVersionId,
+      }) as CreateFileArgs;
+      const fileEntity = await File.createFile(client, entityArgs);
+      return {
+        presignedPost,
+        file: fileEntity,
+      };
+    } catch (error) {
+      throw new ApolloError(
+        `There was an error requesting the file upload: ${error}`,
+        "INTERNAL_SERVER_ERROR",
+      );
+    }
+  }
 
   static getFileEntityStorageKey({
     accountId,

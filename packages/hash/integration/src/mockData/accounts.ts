@@ -63,7 +63,7 @@ export const createUsers =
 
     return Promise.all(
       users.map(({ email, ...remainingProperties }) =>
-        User.createUser(db)({
+        User.createUser(db, {
           emails: [{ address: email, primary: true, verified: true }],
           infoProvidedAtSignup: { usingHow: WayToUseHash.WithATeam },
           memberOf: [
@@ -90,5 +90,5 @@ export const createUsers =
 export const createOrgs = async (db: DBAdapter): Promise<Org[]> => {
   const orgs: { properties: DBOrgProperties; createdById: string }[] = [];
 
-  return await Promise.all(orgs.map(Org.createOrg(db)));
+  return await Promise.all(orgs.map((params) => Org.createOrg(db, params)));
 };

@@ -31,7 +31,7 @@ export const insertBlockIntoPage: Resolver<
     let entity;
     if (entityId) {
       // Update
-      entity = await Entity.getEntityLatestVersion(client)({
+      entity = await Entity.getEntityLatestVersion(client, {
         accountId,
         entityId,
       });
@@ -45,7 +45,8 @@ export const insertBlockIntoPage: Resolver<
         );
       }
       // Create new entity
-      entity = await Entity.create(client)(
+      entity = await Entity.create(
+        client,
         createEntityArgsBuilder({
           accountId,
           createdById: user.entityId,
@@ -68,7 +69,7 @@ export const insertBlockIntoPage: Resolver<
       accountId: entity.accountId,
     };
 
-    const newBlock = await Entity.create(client)({
+    const newBlock = await Entity.create(client, {
       accountId,
       systemTypeName: "Block",
       createdById: user.entityId,
@@ -79,7 +80,7 @@ export const insertBlockIntoPage: Resolver<
     // Get and update the page.
     // @todo: always get the latest version for now. This is a temporary measure.
     // return here when strict vs. optimistic entity mutation question is resolved.
-    const page = await Entity.getEntityLatestVersion(client)({
+    const page = await Entity.getEntityLatestVersion(client, {
       accountId,
       entityId: pageEntityId,
     });
@@ -104,7 +105,7 @@ export const insertBlockIntoPage: Resolver<
       ...(page.properties as DbPageProperties).contents.slice(position),
     ];
 
-    await page.updateEntityProperties(client)(page.properties);
+    await page.updateEntityProperties(client, page.properties);
 
     // TODO: for now, all entities are non-versioned, so the list array only have a single
     // element. Return when versioned entities are implemented at the API layer.

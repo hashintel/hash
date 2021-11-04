@@ -35,7 +35,7 @@ export const verifyEmail: Resolver<
 
       // Ensure the email address is not already verified and associated with another user
       if (
-        await User.getUserByEmail(client)({
+        await User.getUserByEmail(client, {
           email: email.address,
           verified: true,
         })
@@ -49,7 +49,7 @@ export const verifyEmail: Resolver<
       // Otherwise the email address can be verified with the user
       await Promise.all(
         [
-          user.verifyExistingEmailAddress(client)(email.address),
+          user.verifyExistingEmailAddress(client, email.address),
           ctx.user ? undefined : passport.login(user, {}),
         ].flat<(Promise<any> | undefined)[]>(),
       );

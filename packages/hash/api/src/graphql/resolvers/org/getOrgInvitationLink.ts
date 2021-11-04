@@ -11,7 +11,7 @@ export const getOrgInvitationLink: Resolver<
   QueryGetOrgInvitationLinkArgs
 > = async (_, { orgEntityId, invitationLinkToken }, { dataSources }) =>
   dataSources.db.transaction(async (client) => {
-    const org = await Org.getOrgById(client)({ entityId: orgEntityId });
+    const org = await Org.getOrgById(client, { entityId: orgEntityId });
 
     if (!org) {
       const msg = `Org with entityId ${orgEntityId} not found in datastore`;

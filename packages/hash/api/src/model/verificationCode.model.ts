@@ -31,7 +31,9 @@ class __VerificationCode {
   used: boolean;
   createdAt: Date;
 
-  private static generateCode = () => (rword.generate(4) as string[]).join("-");
+  private static generateCode() {
+    return (rword.generate(4) as string[]).join("-");
+  }
 
   constructor({
     id,
@@ -53,46 +55,60 @@ class __VerificationCode {
     this.createdAt = createdAt;
   }
 
-  static create =
-    (db: DBClient) =>
-    (args: { accountId: string; userId: string; emailAddress: string }) =>
-      db
-        .createVerificationCode({
-          ...args,
-          code: VerificationCode.generateCode(),
-        })
-        .then((dbVerificationCode) => new VerificationCode(dbVerificationCode));
+  static async create(
+    client: DBClient,
+    params: { accountId: string; userId: string; emailAddress: string },
+  ) {
+    const dbVerificationCode = await client.createVerificationCode({
+      ...params,
+      code: VerificationCode.generateCode(),
+    });
 
-  static getById =
-    (db: DBClient) =>
-    ({ id }: { id: string }): Promise<VerificationCode | null> =>
-      db
-        .getVerificationCode({ id })
-        .then((dbVerificationCode) =>
-          dbVerificationCode ? new VerificationCode(dbVerificationCode) : null,
-        );
+    return new VerificationCode(dbVerificationCode);
+  }
 
-  hasExceededMaximumAttempts = () => this.numberOfAttempts >= MAX_ATTEMPTS;
+  static async getById(
+    client: DBClient,
+    params: { id: string },
+  ): Promise<VerificationCode | null> {
+    const dbVerificationCode = await client.getVerificationCode(params);
 
-  hasExpired = () =>
-    this.createdAt.getTime() < new Date().getTime() - MAX_AGE_MS;
+    return dbVerificationCode ? new VerificationCode(dbVerificationCode) : null;
+  }
 
-  hasBeenUsed = () => this.used;
+  hasExceededMaximumAttempts() {
+    return this.numberOfAttempts >= MAX_ATTEMPTS;
+  }
 
-  incrementAttempts = (db: DBClient) =>
-    db.incrementVerificationCodeAttempts({ id: this.id, userId: this.userId });
+  hasExpired() {
+    return this.createdAt.getTime() < new Date().getTime() - MAX_AGE_MS;
+  }
 
-  setToUsed = (db: DBClient) =>
-    db
-      .setVerificationCodeToUsed({ id: this.id, userId: this.userId })
-      .then(() => {
-        this.used = true;
-      });
+  hasBeenUsed() {
+    return this.used;
+  }
 
-  toGQLVerificationCodeMetadata = (): GQLVerificationCodeMetadata => ({
-    id: this.id,
-    createdAt: this.createdAt,
-  });
+  async incrementAttempts(client: DBClient) {
+    await client.incrementVerificationCodeAttempts({
+      id: this.id,
+      userId: this.userId,
+    });
+  }
+
+  async setToUsed(client: DBClient) {
+    await client.setVerificationCodeToUsed({
+      id: this.id,
+      userId: this.userId,
+    });
+    this.used = true;
+  }
+
+  toGQLVerificationCodeMetadata(): GQLVerificationCodeMetadata {
+    return {
+      id: this.id,
+      createdAt: this.createdAt,
+    };
+  }
 }
 
 export default __VerificationCode;

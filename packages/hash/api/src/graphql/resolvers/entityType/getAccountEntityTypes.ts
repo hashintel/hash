@@ -10,7 +10,7 @@ export const getAccountEntityTypes: Resolver<
   GraphQLContext,
   QueryGetAccountEntityTypesArgs
 > = async (_, { accountId, includeOtherTypesInUse }, { dataSources }) =>
-  EntityType.getAccountEntityTypes(dataSources.db)({
+  EntityType.getAccountEntityTypes(dataSources.db, {
     accountId,
     includeOtherTypesInUse,
   });

@@ -21,12 +21,13 @@ export const requestFileUpload: Resolver<
   const { presignedPost, file } = await File.createFileEntityFromUploadRequest(
     dataSources.db,
     storageProvider,
-  )({
-    name,
-    contentMd5,
-    size,
-    accountId,
-  });
+    {
+      name,
+      contentMd5,
+      size,
+      accountId,
+    },
+  );
   return {
     presignedPost,
     file: file.toGQLUnknownEntity() as GQLFile,

@@ -26,68 +26,75 @@ class __Org extends Account {
     this.properties = properties;
   }
 
-  static getEntityType = async (client: DBClient): Promise<EntityType> =>
-    client
-      .getSystemTypeLatestVersion({ systemTypeName: "Org" })
-      .then((OrgEntityType) => {
-        if (!OrgEntityType) {
-          throw new Error("Org system entity type not found in datastore");
-        }
+  static async getEntityType(client: DBClient): Promise<EntityType> {
+    const orgEntityType = await client.getSystemTypeLatestVersion({
+      systemTypeName: "Org",
+    });
 
-        return OrgEntityType;
-      });
+    if (!orgEntityType) {
+      throw new Error("Org system entity type not found in datastore");
+    }
 
-  static getOrgById =
-    (client: DBClient) =>
-    ({ entityId }: { entityId: string }): Promise<Org | null> =>
-      client
-        .getEntityLatestVersion({ accountId: entityId, entityId })
-        .then((dbOrg) => (dbOrg ? new Org(dbOrg) : null));
+    return orgEntityType;
+  }
 
-  static getOrgByShortname =
-    (client: DBClient) =>
-    ({ shortname }: { shortname: string }): Promise<Org | null> =>
-      client
-        .getOrgByShortname({ shortname })
-        .then((dbUser) => (dbUser ? new Org(dbUser) : null));
+  static async getOrgById(
+    client: DBClient,
+    params: { entityId: string },
+  ): Promise<Org | null> {
+    const { entityId } = params;
+    const dbOrg = await client.getEntityLatestVersion({
+      accountId: entityId,
+      entityId,
+    });
 
-  static createOrg =
-    (client: DBClient) =>
-    async (params: {
+    return dbOrg ? new Org(dbOrg) : null;
+  }
+
+  static async getOrgByShortname(
+    client: DBClient,
+    params: { shortname: string },
+  ): Promise<Org | null> {
+    const { shortname } = params;
+    const dbUser = await client.getOrgByShortname({ shortname });
+
+    return dbUser ? new Org(dbUser) : null;
+  }
+
+  static async createOrg(
+    client: DBClient,
+    params: {
       createdById: string;
       properties: DBOrgProperties;
-    }): Promise<Org> => {
-      const { properties, createdById } = params;
+    },
+  ): Promise<Org> {
+    const { properties, createdById } = params;
 
-      const id = genId();
+    const id = genId();
 
-      const entity = await client.createEntity({
-        accountId: id,
-        entityId: id,
-        createdById,
-        properties,
-        entityTypeId: (await Org.getEntityType(client)).entityId,
-        versioned: false, // @todo: should Org's be versioned?
-      });
+    const entity = await client.createEntity({
+      accountId: id,
+      entityId: id,
+      createdById,
+      properties,
+      entityTypeId: (await Org.getEntityType(client)).entityId,
+      versioned: false, // @todo: should Org's be versioned?
+    });
 
-      const org = new Org(entity);
+    const org = new Org(entity);
 
-      await OrgInvitationLink.createOrgInvitationLink(client)({
-        org,
-        createdById,
-      });
+    await OrgInvitationLink.createOrgInvitationLink(client, {
+      org,
+      createdById,
+    });
 
-      return org;
-    };
+    return org;
+  }
 
-  updateProperties(client: DBClient) {
-    return (properties: DBOrgProperties) =>
-      super
-        .updateProperties(client)(properties)
-        .then(() => {
-          this.properties = properties;
-          return properties;
-        });
+  async updateProperties(client: DBClient, properties: DBOrgProperties) {
+    await super.updateProperties(client, properties);
+    this.properties = properties;
+    return properties;
   }
 
   /**

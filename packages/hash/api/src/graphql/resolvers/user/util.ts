@@ -11,7 +11,7 @@ export const verifyVerificationCode =
     id: string;
     code: string;
   }): Promise<{ user: User; verificationCode: VerificationCode }> => {
-    const verificationCode = await VerificationCode.getById(client)({ id });
+    const verificationCode = await VerificationCode.getById(client, { id });
 
     if (!verificationCode) {
       throw new ApolloError(
@@ -59,7 +59,7 @@ export const verifyVerificationCode =
 
     return {
       verificationCode,
-      user: await User.getUserById(client)({
+      user: await User.getUserById(client, {
         entityId: verificationCode.userId,
       })
         .then((user) => {

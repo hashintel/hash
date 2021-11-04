@@ -68,82 +68,85 @@ class __EntityType {
     this.entityVersionUpdatedAt = entityVersionUpdatedAt;
   }
 
-  static create =
-    (db: DBClient) =>
-    async (args: {
+  static async create(
+    client: DBClient,
+    params: {
       accountId: string;
       createdById: string;
       description?: string | null;
       name: string;
       schema?: JSONObject | null;
-    }): Promise<EntityType> => {
-      const { accountId, createdById, description, schema, name } = args;
+    },
+  ): Promise<EntityType> {
+    const { accountId, createdById, description, schema, name } = params;
 
-      const entityType = await db
-        .createEntityType({
-          accountId,
-          createdById,
-          description,
-          name,
-          schema,
-        })
-        .catch((err) => {
-          if (err.message.includes("not unique")) {
-            throw new ApolloError(err.message, "NAME_NOT_UNIQUE");
-          }
-          throw err;
-        });
-
-      return new EntityType(entityType);
-    };
-
-  static getEntityType = (db: DBClient) => (args: { entityTypeId: string }) =>
-    db
-      .getEntityTypeLatestVersion(args)
-      .then((dbEntityType) =>
-        dbEntityType ? new EntityType(dbEntityType) : null,
-      );
-
-  static getEntityTypeType = async (db: DBClient) =>
-    db
-      .getSystemTypeLatestVersion({ systemTypeName: "EntityType" })
-      .then((entityTypeType) => {
-        if (!entityTypeType) {
-          throw new Error(
-            "EntityType system entity type not found in datastore",
-          );
+    const entityType = await client
+      .createEntityType({
+        accountId,
+        createdById,
+        description,
+        name,
+        schema,
+      })
+      .catch((err) => {
+        if (err.message.includes("not unique")) {
+          throw new ApolloError(err.message, "NAME_NOT_UNIQUE");
         }
-
-        return new EntityType(entityTypeType);
+        throw err;
       });
 
-  static getAccountEntityTypes =
-    (db: DBClient) =>
-    (args: { accountId: string; includeOtherTypesInUse?: boolean | null }) =>
-      db
-        .getAccountEntityTypes(args)
-        .then((types) =>
-          types.map((dbType) => new EntityType(dbType).toGQLEntityType()),
-        );
+    return new EntityType(entityType);
+  }
 
-  toGQLEntityType = (): UnresolvedGQLEntityType => ({
-    id: this.entityVersionId,
-    entityId: this.entityId,
-    entityVersionId: this.entityVersionId,
-    createdById: this.createdById,
-    accountId: this.accountId,
-    properties: {
-      ...this.properties,
-      $id: schemaIdWithFrontendDomain(
-        this.properties.$id as string | undefined,
-      ),
-    },
-    metadataId: this.entityId,
-    createdAt: this.entityCreatedAt,
-    entityVersionCreatedAt: this.entityVersionCreatedAt,
-    updatedAt: this.entityVersionUpdatedAt,
-    visibility: Visibility.Public /** @todo: get from entity metadata */,
-  });
+  static async getEntityType(
+    client: DBClient,
+    params: { entityTypeId: string },
+  ) {
+    const dbEntityType = await client.getEntityTypeLatestVersion(params);
+
+    return dbEntityType ? new EntityType(dbEntityType) : null;
+  }
+
+  static async getEntityTypeType(client: DBClient) {
+    const dbEntityTypeEntityType = await client.getSystemTypeLatestVersion({
+      systemTypeName: "EntityType",
+    });
+    if (!dbEntityTypeEntityType) {
+      throw new Error("EntityType system entity type not found in datastore");
+    }
+
+    return new EntityType(dbEntityTypeEntityType);
+  }
+
+  static async getAccountEntityTypes(
+    client: DBClient,
+    params: { accountId: string; includeOtherTypesInUse?: boolean | null },
+  ) {
+    const dbTypes = await client.getAccountEntityTypes(params);
+
+    return dbTypes.map((dbType) => new EntityType(dbType).toGQLEntityType());
+  }
+
+  toGQLEntityType(): UnresolvedGQLEntityType {
+    return {
+      id: this.entityVersionId,
+      entityId: this.entityId,
+      entityVersionId: this.entityVersionId,
+      createdById: this.createdById,
+      accountId: this.accountId,
+      properties: {
+        ...this.properties,
+        $id: schemaIdWithFrontendDomain(
+          this.properties.$id as string | undefined,
+        ),
+      },
+      metadataId: this.entityId,
+      createdAt: this.entityCreatedAt,
+      entityVersionCreatedAt: this.entityVersionCreatedAt,
+      updatedAt: this.entityVersionUpdatedAt,
+      visibility: Visibility.Public /** @todo: get from entity metadata */,
+    };
+  }
 }
 
 export default __EntityType;

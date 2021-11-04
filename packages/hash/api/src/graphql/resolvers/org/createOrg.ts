@@ -11,9 +11,9 @@ export const createOrg: Resolver<
   dataSources.db.transaction(async (client) => {
     const { shortname, name, orgSize } = orgInput;
 
-    await Account.validateShortname(client)(shortname);
+    await Account.validateShortname(client, shortname);
 
-    const org = await Org.createOrg(dataSources.db)({
+    const org = await Org.createOrg(dataSources.db, {
       properties: {
         shortname,
         name,
@@ -24,7 +24,7 @@ export const createOrg: Resolver<
       createdById: user.entityId,
     });
 
-    await user.joinOrg(client)({ org, responsibility });
+    await user.joinOrg(client, { org, responsibility });
 
     return org.toGQLUnknownEntity();
   });

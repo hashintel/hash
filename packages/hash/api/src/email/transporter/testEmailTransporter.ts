@@ -17,13 +17,13 @@ class TestEmailTransporter implements EmailTransporter {
     this.inbox = [];
   }
 
-  sendMail = async ({
+  async sendMail({
     from = "HASH <support@hash.ai>",
     to,
     subject,
     text,
     html,
-  }: SendMailOptions) => {
+  }: SendMailOptions) {
     this.inbox.push({
       from,
       to,
@@ -31,7 +31,7 @@ class TestEmailTransporter implements EmailTransporter {
       text: !text && typeof html === "string" ? convert(html) : text,
       html,
     });
-  };
+  }
 }
 
 export default TestEmailTransporter;
