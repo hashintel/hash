@@ -51,7 +51,7 @@ pub enum SharedState {
     None,
 }
 
-#[derive(Debug, Display)]
+#[derive(Debug)]
 pub enum SharedContext {
     Read,
     None,

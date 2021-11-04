@@ -1,5 +1,6 @@
 use crate::proto;
 use crate::simulation::task::result::TaskResultOrCancelled;
+use crate::workerpool::comms::experiment::ExperimentToWorkerPoolMsg;
 use thiserror::Error as ThisError;
 use tokio::sync::mpsc::error::SendError;
 
@@ -39,6 +40,9 @@ pub enum Error {
 
     #[error("Missing pending task with id {0}")]
     MissingPendingTask(crate::types::TaskID),
+
+    #[error("Error sending message to worker pool: {0:?}")]
+    ExperimentSend(#[from] tokio::sync::mpsc::error::SendError<ExperimentToWorkerPoolMsg>),
 }
 
 impl From<&str> for Error {

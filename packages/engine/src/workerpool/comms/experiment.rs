@@ -2,8 +2,9 @@ use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
 use crate::worker::runner::comms::NewSimulationRun;
 
-use super::{Error, Result};
+use super::Result;
 
+// TODO OS - COMPILE BLOCK - either figure out how to derive Debug/Display or do custom impl
 pub enum ExperimentToWorkerPoolMsg {
     NewSimulationRun(NewSimulationRun),
 }
