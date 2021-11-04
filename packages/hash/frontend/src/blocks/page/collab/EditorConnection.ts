@@ -1,6 +1,6 @@
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
 import { EntityStore } from "@hashintel/hash-shared/entityStore";
-import { entityStorePluginKey } from "@hashintel/hash-shared/entityStorePlugin";
+import { addEntityStoreAction } from "@hashintel/hash-shared/entityStorePlugin";
 import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import {
@@ -91,12 +91,14 @@ export class EditorConnection {
           ],
         });
         // @todo clear history?
-        const result = editorState.apply(
-          editorState.tr.setMeta(entityStorePluginKey, {
-            type: "store",
-            payload: action.store,
-          }),
-        );
+        const { tr } = editorState;
+
+        addEntityStoreAction(tr, {
+          type: "store",
+          payload: action.store,
+        });
+
+        const result = editorState.apply(tr);
         this.state = new State(result, "poll");
         this.poll();
         break;

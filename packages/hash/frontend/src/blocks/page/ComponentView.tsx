@@ -4,10 +4,14 @@ import {
   componentIdToUrl,
 } from "@hashintel/hash-shared/blockMeta";
 import {
+  EntityStore,
   EntityStoreType,
   isBlockEntity,
 } from "@hashintel/hash-shared/entityStore";
-import { entityStoreFromProsemirror } from "@hashintel/hash-shared/entityStorePlugin";
+import {
+  entityStoreFromProsemirror,
+  subscribeToEntityStore,
+} from "@hashintel/hash-shared/entityStorePlugin";
 import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 import { Schema } from "prosemirror-model";
 import { EditorView, NodeView } from "prosemirror-view";
@@ -45,8 +49,11 @@ export class ComponentView implements NodeView<Schema> {
   private readonly componentId: string;
   private readonly sourceName: string;
 
+  private store: EntityStore;
+  private unsubscribe: Function;
+
   constructor(
-    node: ProsemirrorNode<Schema>,
+    private node: ProsemirrorNode<Schema>,
     public view: EditorView<Schema>,
     public getPos: () => number,
     private renderPortal: RenderPortal,
@@ -77,15 +84,21 @@ export class ComponentView implements NodeView<Schema> {
 
     this.dom.appendChild(this.target);
 
-    this.update(node);
+    this.store = entityStoreFromProsemirror(view.state).store;
+    this.unsubscribe = subscribeToEntityStore(this.view, (store) => {
+      this.store = store;
+      this.update(this.node);
+    });
+
+    this.update(this.node);
   }
 
   update(node: any) {
-    const entityStore = entityStoreFromProsemirror(this.view.state).store;
+    this.node = node;
 
     if (node?.type.name === this.componentId) {
       const entityId = node.attrs.blockEntityId;
-      const entity = entityStore.saved[entityId];
+      const entity = this.store.saved[entityId];
       const remoteBlockProps = getRemoteBlockProps(entity);
 
       const editableRef = this.editable
@@ -122,6 +135,7 @@ export class ComponentView implements NodeView<Schema> {
   destroy() {
     this.dom.remove();
     this.renderPortal(null, this.target);
+    this.unsubscribe();
   }
 
   // @todo type this
