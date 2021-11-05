@@ -18,6 +18,7 @@ use crate::simulation::Result;
 use crate::{ExperimentConfig, SimRunConfig};
 use async_trait::async_trait;
 use serde_json::Value;
+use crate::datastore::batch::AgentBatch;
 
 use self::map::{NeighborMap, NeighborRef};
 
@@ -81,11 +82,10 @@ struct Neighbors {
 }
 
 impl Neighbors {
-    fn neighbor_vec(agent_pool: &AgentPool) -> Result<Vec<NeighborRef>> {
-        let batches = agent_pool.read_batches()?;
-        Ok(iterators::agent::position_iter(&batches)?
-            .zip(iterators::agent::index_iter(&batches))
-            .zip(iterators::agent::search_radius_iter(&batches)?)
+    fn neighbor_vec<'a>(batches: &'a Vec<&AgentBatch>) -> Result<Vec<NeighborRef<'a>>> {
+        Ok(iterators::agent::position_iter(batches)?
+            .zip(iterators::agent::index_iter(batches))
+            .zip(iterators::agent::search_radius_iter(batches)?)
             .collect())
     }
 }
@@ -110,7 +110,8 @@ impl Package for Neighbors {
         snapshot: Arc<StateSnapshot>,
     ) -> Result<ContextColumn> {
         let agent_pool = state.agent_pool();
-        let states = Self::neighbor_vec(agent_pool)?;
+        let batches = agent_pool.read_batches()?;
+        let states = Self::neighbor_vec(&batches)?;
         let map = NeighborMap::gather(states, &self.topology)?;
 
         Ok(ContextColumn {
