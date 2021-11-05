@@ -7,11 +7,12 @@ pub mod manifest;
 pub mod process;
 
 use crate::exsrv::create_server;
+use argh::FromArgs;
 use error::Result;
 use experiment::run_experiment;
 
 /// Arguments for the experiment run
-#[derive(argh::FromArgs, Debug)]
+#[derive(FromArgs, Debug)]
 pub struct Args {
     /// project path folder
     #[argh(option, short = 'p', default = "default_project_path()")]

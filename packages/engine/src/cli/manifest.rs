@@ -1,19 +1,18 @@
-use hash_prime::fetch::parse_raw_csv_into_json;
-use rand_distr::{Beta, Distribution, LogNormal, Normal, Poisson};
-use serde_json::{Map as SerdeMap, Value as SerdeValue};
-use std::collections::HashMap;
-use std::convert::TryInto;
-use std::fs::read_to_string;
-use std::io::Read;
-use std::path::{Path, PathBuf};
-
 use crate::{ExperimentType, SimpleExperimentArgs};
-use hash_prime::proto::ExperimentPackageConfig::Simple;
+use hash_prime::fetch::parse_raw_csv_into_json;
 use hash_prime::proto::{
     ExperimentPackageConfig, ExperimentRun, ExperimentRunBase, InitialState, InitialStateName,
     ProjectBase, SharedBehavior, SharedDataset, SimPackageArgs, SimpleExperimentConfig,
     SingleRunExperimentConfig,
 };
+use rand_distr::{Beta, Distribution, LogNormal, Normal, Poisson};
+use serde;
+use serde::{Deserialize, Serialize};
+use serde_json::{Map as SerdeMap, Value as SerdeValue};
+use std::collections::HashMap;
+use std::fs::read_to_string;
+use std::io::Read;
+use std::path::{Path, PathBuf};
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
