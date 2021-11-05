@@ -660,7 +660,8 @@ impl<'m> RunnerImpl<'m> {
         group_index: Option<u32>,
         r: &mv8::Object<'m>,
     ) -> Result<StateInterimSync> {
-        let state = self.sims_state
+        let state = self
+            .sims_state
             .get_mut(&sim_run_id)
             .ok_or(Error::MissingSimulationRun(sim_run_id))?;
 
@@ -674,7 +675,7 @@ impl<'m> RunnerImpl<'m> {
 
         let (mut agent_proxy, mut msg_proxy) = (
             state.agent_pool.partial_write_proxy(&group_indices)?,
-            state.msg_pool.partial_write_proxy(&group_indices)?
+            state.msg_pool.partial_write_proxy(&group_indices)?,
         );
         let changes: mv8::Value = r.get("changes")?;
 
@@ -684,7 +685,7 @@ impl<'m> RunnerImpl<'m> {
                 state,
                 agent_proxy.batch_mut(0)?,
                 msg_proxy.batch_mut(0)?,
-                changes
+                changes,
             )?;
         } else {
             let changes = changes.as_array().unwrap();
@@ -696,7 +697,7 @@ impl<'m> RunnerImpl<'m> {
                     state,
                     agent_proxy.batch_mut(i_proxy)?,
                     msg_proxy.batch_mut(i_proxy)?,
-                    group_changes
+                    group_changes,
                 )?;
             }
         }
@@ -910,8 +911,12 @@ impl<'m> RunnerImpl<'m> {
             .sims_state
             .get_mut(&sim_run_id)
             .ok_or(Error::MissingSimulationRun(sim_run_id))?;
-        state.agent_pool.update(&msg.agent_batches, &msg.group_indices);
-        state.msg_pool.update(&msg.message_batches, &msg.group_indices);
+        state
+            .agent_pool
+            .update(&msg.agent_batches, &msg.group_indices);
+        state
+            .msg_pool
+            .update(&msg.message_batches, &msg.group_indices);
         Ok(())
     }
 

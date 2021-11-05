@@ -11,7 +11,7 @@ pub mod none;
 
 pub use error::{Error, Result};
 
-pub trait OutputPersistenceCreatorRepr {
+pub trait OutputPersistenceCreatorRepr: Send + Sync + 'static {
     type SimulationOutputPersistence: SimulationOutputPersistenceRepr;
     fn new_simulation(
         &self,
@@ -21,12 +21,12 @@ pub trait OutputPersistenceCreatorRepr {
 }
 
 #[async_trait::async_trait]
-pub trait SimulationOutputPersistenceRepr {
+pub trait SimulationOutputPersistenceRepr: Send + Sync {
     type OutputPersistenceResult: OutputPersistenceResultRepr;
     async fn add_step_output(&mut self, output: SimulationStepOutput) -> Result<()>;
     async fn finalize(self) -> Result<Self::OutputPersistenceResult>;
 }
 
-pub trait OutputPersistenceResultRepr: Serialize {
-    fn as_value(self) -> Result<(&'static str, serde_json::Value)>;
+pub trait OutputPersistenceResultRepr: Serialize + Send + Sync {
+    fn into_value(self) -> Result<(&'static str, serde_json::Value)>;
 }

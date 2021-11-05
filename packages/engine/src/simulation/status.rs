@@ -52,7 +52,7 @@ impl SimStatus {
             steps_taken,
             early_stop,
             stop_msg,
-            persistence_result: Some(OutputPersistenceResultRepr::as_value(persistence_result)?), // TODO OS I (Alfie) wrapped this in a Some, do we want to make it None if as_value returns err
+            persistence_result: Some(OutputPersistenceResultRepr::into_value(persistence_result)?), // TODO OS I (Alfie) wrapped this in a Some, do we want to make it None if as_value returns err
             ..SimStatus::default()
         })
     }
@@ -69,7 +69,7 @@ impl SimStatus {
             steps_taken,
             running: false,
             // TODO OS - COMPILE BLOCK - The trait bound `std::option::Option<P>: OutputPersistenceResultRepr` is not satisfied
-            persistence_result: Some(OutputPersistenceResultRepr::as_value(persistence_result)?),
+            persistence_result: Some(OutputPersistenceResultRepr::into_value(persistence_result)?),
             ..SimStatus::default()
         }
     }

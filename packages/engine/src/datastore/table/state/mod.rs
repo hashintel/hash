@@ -5,13 +5,13 @@ pub mod view;
 
 use crate::proto::{ExperimentID, ExperimentRunBase};
 
+use crate::datastore::table::pool::BatchPool;
 use crate::{
     datastore::{batch::DynamicBatch, prelude::*, schema::state::AgentSchema},
     simulation::{command::CreateRemoveCommands, packages::state::StateColumn},
     SimRunConfig,
 };
 use std::sync::Arc;
-use crate::datastore::table::pool::BatchPool;
 
 use self::create_remove::CreateRemovePlanner;
 

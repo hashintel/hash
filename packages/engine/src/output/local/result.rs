@@ -8,7 +8,7 @@ pub struct LocalPersistenceResult {
 }
 
 impl OutputPersistenceResultRepr for LocalPersistenceResult {
-    fn as_value(self) -> Result<(&'static str, serde_json::Value)> {
+    fn into_value(self) -> Result<(&'static str, serde_json::Value)> {
         Ok(("local", serde_json::Value::String(self.persistence_path)))
     }
 }

@@ -89,5 +89,7 @@ impl BatchPool<AgentBatch> for AgentPool {
     fn batches(&self) -> &[Arc<RwLock<AgentBatch>>] {
         &self.batches
     }
-    fn mut_batches(&mut self) -> &mut Vec<Arc<RwLock<AgentBatch>>> { &mut self.batches }
+    fn mut_batches(&mut self) -> &mut Vec<Arc<RwLock<AgentBatch>>> {
+        &mut self.batches
+    }
 }

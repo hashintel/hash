@@ -1,3 +1,4 @@
+use futures::future::{BoxFuture, OptionFuture};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -91,7 +92,7 @@ pub async fn run_local_experiment(
 
 async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
     exp_config: ExperimentConfig<ExperimentRun>,
-    mut env: Environment<ExperimentRun>,
+    env: Environment<ExperimentRun>,
     output_persistence_service_creator: P,
 ) -> Result<()> {
     let exp_config = Arc::new(exp_config);
@@ -107,7 +108,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
         workerpool::comms::experiment::new_pair();
     let (worker_pool_controller_send, worker_pool_controller_recv) =
         workerpool::comms::top::new_pair();
-    let (mut worker_pool_kill_send, kill_recv) = workerpool::comms::kill::new_pair();
+    let (worker_pool_kill_send, kill_recv) = workerpool::comms::kill::new_pair();
     let (mut worker_pool_controller, worker_pool_send_base) =
         WorkerPoolController::new_with_sender(
             exp_config.clone(),
@@ -120,7 +121,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
     let experiment_package = ExperimentPackage::new(exp_config.clone())
         .await
         .map_err(|experiment_err| Error::from(experiment_err.to_string()))?;
-    let experiment_package_handle = experiment_package.join_handle;
+    let mut experiment_package_handle = experiment_package.join_handle;
 
     let sim_id_store = SimIdStore::default();
     let worker_allocator = SimConfigurer::new(
@@ -129,6 +130,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
     );
     let package_creators = PackageCreators::from_config(&exp_config.packages)?;
     let (sim_status_send, sim_status_recv) = super::comms::sim_status::new_pair();
+    let mut orch_client = env.orch_client.try_clone()?;
     let experiment_controller = ExperimentController::new(
         exp_config,
         exp_base_config,
@@ -147,27 +149,26 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
     );
 
     // Get the experiment-level initialization payload for workers
-    // TODO OS - COMPILE BLOCK - No method named `runner_init_message` found for struct `ExperimentController`
     let runner_init_message = experiment_controller.runner_init_message().await?;
     worker_pool_controller
         .spawn_workers(runner_init_message)
         .await?;
 
-    let worker_pool_controller_handle =
+    let mut worker_pool_controller_handle =
         tokio::spawn(async move { worker_pool_controller.run().await });
-    let experiment_controller_handle =
+    let mut experiment_controller_handle =
         tokio::spawn(async move { experiment_controller.run().await });
 
     let mut worker_pool_result: Option<crate::workerpool::Result<()>> = None;
     let mut experiment_package_result: Option<crate::experiment::Result<()>> = None;
     let mut experiment_controller_result: Option<Result<()>> = None;
-    let mut exit_timeout = Box::pin(None);
+    let mut exit_timeout = None;
 
     let mut successful_exit = true;
     let mut err = String::new();
     loop {
         tokio::select! {
-            _ = exit_timeout.as_mut().unwrap(), if exit_timeout.is_some() => {
+            _ = async { exit_timeout.take().expect("must be some").await }, if exit_timeout.is_some() => {
                 log::warn!("Exit timed out");
                 successful_exit = false;
                 err = format!(
@@ -180,7 +181,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
             }
             Ok(res) = &mut worker_pool_controller_handle, if worker_pool_result.is_none() => {
                 if exit_timeout.is_none() {
-                    exit_timeout = Box::pin(Some(tokio::time::sleep(Duration::from_secs(20))));
+                    exit_timeout = Some(Box::pin(tokio::time::sleep(Duration::from_secs(20))));
                 }
                 if experiment_package_result.is_none() && experiment_controller_result.is_none() {
                     // The worker pool should not finish before the experiment controller or experiment package
@@ -193,7 +194,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
             }
             Ok(res) = &mut experiment_package_handle, if experiment_package_result.is_none() => {
                 if exit_timeout.is_none() {
-                    exit_timeout = Box::pin(Some(tokio::time::sleep(Duration::from_secs(20))));
+                    exit_timeout = Some(Box::pin(tokio::time::sleep(Duration::from_secs(20))));
                 }
                 // The experiment package should finish first
                 experiment_package_result = Some(res);
@@ -203,7 +204,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
             }
             Ok(res) = &mut experiment_controller_handle, if experiment_controller_result.is_none() => {
                 if exit_timeout.is_none() {
-                    exit_timeout = Box::pin(Some(tokio::time::sleep(Duration::from_secs(20))));
+                    exit_timeout = Some(Box::pin(tokio::time::sleep(Duration::from_secs(20))));
                 }
                 // The experiment controller should ideally finish after the experiment package has finished
                 experiment_controller_result = Some(res);
@@ -225,7 +226,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
     } else {
         EngineStatus::ProcessError(err)
     };
-    env.orch_client.send(status).await?;
+    orch_client.send(status).await?;
 
     Ok(())
 }

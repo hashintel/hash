@@ -27,7 +27,7 @@ use crate::simulation::controller::sim_control::SimControl;
 use crate::simulation::controller::SimulationController;
 use crate::simulation::status::SimStatus;
 use crate::simulation::Error as SimulationError;
-use crate::worker::runner::comms::DatastoreSimulationPayload;
+use crate::worker::runner::comms::{DatastoreSimulationPayload, ExperimentInitRunnerMsg};
 
 use super::comms::sim_status::SimStatusSend;
 use super::{
@@ -246,6 +246,10 @@ impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController
         }
     }
 
+    pub async fn runner_init_message(&self) -> Result<ExperimentInitRunnerMsg> {
+        todo!()
+    }
+
     fn add_sim_sender(
         &mut self,
         sim_short_id: SimulationShortID,
@@ -265,7 +269,7 @@ impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController
     }
 }
 
-impl<E: ExperimentRunRepr, O: OutputPersistenceCreatorRepr> ExperimentController<E, O> {
+impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController<E, P> {
     pub async fn run(mut self) -> Result<()> {
         loop {
             tokio::select! {

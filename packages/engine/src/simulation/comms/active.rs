@@ -7,8 +7,8 @@ use crate::simulation::task::{
 };
 
 pub struct ActiveTaskOwnerComms {
-    pub result_recv: Receiver<TaskResultOrCancelled>,
-    pub cancel_send: Sender<CancelTask>,
+    pub result_recv: Option<Receiver<TaskResultOrCancelled>>,
+    pub cancel_send: Option<Sender<CancelTask>>,
 }
 
 pub struct ActiveTaskExecutorComms {
@@ -22,14 +22,13 @@ impl Debug for ActiveTaskExecutorComms {
     }
 }
 
-// TODO OS[36] - COMPILE BLOCK - ActiveTaskOwnerComms expects a TaskResultOrCancelled but is getting a TaskResult
 pub fn comms() -> (ActiveTaskOwnerComms, ActiveTaskExecutorComms) {
-    let (result_send, result_recv) = channel::<TaskResult>();
+    let (result_send, result_recv) = channel::<TaskResultOrCancelled>();
     let (cancel_send, cancel_recv) = channel::<CancelTask>();
     (
         ActiveTaskOwnerComms {
-            result_recv,
-            cancel_send,
+            result_recv: Some(result_recv),
+            cancel_send: Some(cancel_send),
         },
         ActiveTaskExecutorComms {
             result_send,

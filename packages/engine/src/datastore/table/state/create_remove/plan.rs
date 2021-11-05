@@ -5,13 +5,13 @@ use rayon::prelude::*;
 
 use super::action::{CreateActions, ExistingGroupBufferActions};
 
+use crate::datastore::table::pool::BatchPool;
 use crate::datastore::{
     error::{Error, Result},
     prelude::*,
     table::pool::agent::AgentPool,
     table::rwlock_ext::TryAcquire,
 };
-use crate::datastore::table::pool::BatchPool;
 use crate::proto::ExperimentRunBase;
 use crate::SimRunConfig;
 

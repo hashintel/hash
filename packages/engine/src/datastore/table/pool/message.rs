@@ -174,5 +174,7 @@ impl BatchPool<MessageBatch> for MessagePool {
     fn batches(&self) -> &[Arc<RwLock<MessageBatch>>] {
         &self.batches
     }
-    fn mut_batches(&mut self) -> &mut Vec<Arc<RwLock<MessageBatch>>> { &mut self.batches }
+    fn mut_batches(&mut self) -> &mut Vec<Arc<RwLock<MessageBatch>>> {
+        &mut self.batches
+    }
 }

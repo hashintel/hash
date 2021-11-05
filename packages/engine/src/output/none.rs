@@ -44,7 +44,7 @@ impl SimulationOutputPersistenceRepr for NoSimulationOutputPersistence {
 }
 
 impl OutputPersistenceResultRepr for () {
-    fn as_value(self) -> Result<(&'static str, Value)> {
+    fn into_value(self) -> Result<(&'static str, Value)> {
         Ok(("none", Value::Null))
     }
 }
