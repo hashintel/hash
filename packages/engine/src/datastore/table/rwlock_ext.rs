@@ -5,8 +5,8 @@ use std::ops::{Deref, DerefMut};
 pub trait TryAcquire<K> {
     fn try_read_deref(&self) -> Result<&K>;
     fn try_write_deref(&mut self) -> Result<&mut K>;
-    fn try_read_res<'a>(&self) -> Result<RwLockReadGuard<'a, K>>;
-    fn try_write_res<'a>(&mut self) -> Result<RwLockWriteGuard<'a, K>>;
+    fn try_read_res(&self) -> Result<RwLockReadGuard<'_, K>>;
+    fn try_write_res(&mut self) -> Result<RwLockWriteGuard<'_, K>>;
 }
 
 impl<K> TryAcquire<K> for RwLock<K> {

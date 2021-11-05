@@ -49,7 +49,7 @@ pub mod prelude {
 
 // TODO[1] rename module to `package`
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum PackageType {
     Init,
     Context,

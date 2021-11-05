@@ -94,8 +94,8 @@ impl Comms {
     // TODO OS - COMPILE BLOCK - `await` is only allowed inside `async` functions and blocks
     pub async fn state_sync(&self, state: &State) -> Result<()> {
         // Synchronize the state batches
-        let agents = state.agent_pool().cloned_batch_pool();
-        let agent_messages = state.message_pool().cloned_batch_pool();
+        let agents = state.agent_pool().clone();
+        let agent_messages = state.message_pool().clone();
         let sync_msg = StateSync::new(agents, agent_messages);
         self.worker_pool_sender.send(EngineToWorkerPoolMsg::sync(
             self.sim_id,
@@ -106,8 +106,8 @@ impl Comms {
 
     pub async fn state_snapshot_sync(&self, state: &StateSnapshot) -> Result<()> {
         // Synchronize the state snapshot batches
-        let agents = state.agent_pool().cloned_batch_pool();
-        let agent_messages = state.message_pool().cloned_batch_pool();
+        let agents = state.agent_pool().clone();
+        let agent_messages = state.message_pool().clone();
         let sync_msg = StateSync::new(agents, agent_messages);
         self.worker_pool_sender.send(EngineToWorkerPoolMsg::sync(
             self.sim_id,

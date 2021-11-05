@@ -244,11 +244,11 @@ struct RunnerImpl<'m> {
     sims_state: HashMap<SimulationShortID, SimState>,
 }
 
-fn sim_id_to_js<'m>(mv8: &'m MiniV8, sim_run_id: SimulationShortID) -> mv8::Value<'m> {
+fn sim_id_to_js(_mv8: &MiniV8, sim_run_id: SimulationShortID) -> mv8::Value {
     mv8::Value::Number(sim_run_id as f64)
 }
 
-fn pkg_id_to_js<'m>(mv8: &'m MiniV8, pkg_id: PackageId) -> mv8::Value<'m> {
+fn pkg_id_to_js(_mv8: &MiniV8, pkg_id: PackageId) -> mv8::Value {
     mv8::Value::Number(pkg_id.as_usize() as f64)
 }
 
@@ -348,7 +348,7 @@ fn array_to_errors(array: mv8::Value<'_>) -> Vec<RunnerError> {
     }]
 }
 
-fn get_js_error<'m>(mv8: &'m MiniV8, r: &'m mv8::Object) -> Option<Error> {
+fn get_js_error(_mv8: &MiniV8, r: &mv8::Object) -> Option<Error> {
     if let Ok(errors) = r.get("user_errors") {
         let errors = array_to_errors(errors);
         if errors.len() > 0 {
@@ -367,7 +367,7 @@ fn get_js_error<'m>(mv8: &'m MiniV8, r: &'m mv8::Object) -> Option<Error> {
     None
 }
 
-fn get_user_warnings<'m>(mv8: &'m MiniV8, r: &'m mv8::Object) -> Option<Vec<RunnerError>> {
+fn get_user_warnings(_mv8: &MiniV8, r: &mv8::Object) -> Option<Vec<RunnerError>> {
     if let Ok(warnings) = r.get("user_warnings") {
         let warnings = array_to_errors(warnings);
         if warnings.len() > 0 {
@@ -377,7 +377,7 @@ fn get_user_warnings<'m>(mv8: &'m MiniV8, r: &'m mv8::Object) -> Option<Vec<Runn
     None
 }
 
-fn get_next_task<'m>(mv8: &'m MiniV8, r: &'m mv8::Object) -> Result<(MessageTarget, TaskMessage)> {
+fn get_next_task(_mv8: &MiniV8, r: &mv8::Object) -> Result<(MessageTarget, TaskMessage)> {
     let target = if let Ok(mv8::Value::String(target)) = r.get("target") {
         let target = target.to_string();
         match target.as_str() {
@@ -402,20 +402,6 @@ fn get_next_task<'m>(mv8: &'m MiniV8, r: &'m mv8::Object) -> Result<(MessageTarg
     let pkg_type = todo!();
     let next_task_payload = TaskMessage::from((next_task_payload, pkg_type));
     Ok((target, next_task_payload))
-}
-
-struct GroupSync {
-    pub group_index: usize,
-    pub agent_batch: Arc<RwLock<AgentBatch>>,
-    pub message_batch: Arc<RwLock<MessageBatch>>,
-}
-
-fn agent_pool_from_batches(batches: Vec<Arc<RwLock<AgentBatch>>>) -> AgentPool {
-    AgentPool::new(batches)
-}
-
-fn msg_pool_from_batches(batches: Vec<Arc<RwLock<MessageBatch>>>) -> MessagePool {
-    MessagePool::new(batches)
 }
 
 impl<'m> RunnerImpl<'m> {
@@ -696,7 +682,7 @@ impl<'m> RunnerImpl<'m> {
         );
         let changes: mv8::Value = r.get("changes")?;
 
-        if let Some(group_index) = group_index {
+        if group_index.is_some() {
             self.flush_group(
                 mv8,
                 state,
@@ -720,9 +706,9 @@ impl<'m> RunnerImpl<'m> {
         }
 
         Ok(StateInterimSync {
+            group_indices,
             agent_batches: state.agent_pool.clone(),
             message_batches: state.msg_pool.clone(),
-            group_indices,
         })
     }
 

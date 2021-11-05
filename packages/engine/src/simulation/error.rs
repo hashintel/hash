@@ -129,7 +129,7 @@ pub enum Error {
     Arrow(#[from] arrow::error::ArrowError),
 
     // TODO OS - COMPILE BLOCK - Error requires moving the objects, also SharedState and SharedContext need manual or derived Debug impls
-    #[error("State or Context access not allowed for package (with type: {2}). StateAccess: {0}, ContextAccess: {1}.")]
+    #[error("State or Context access not allowed for package (with type: {2}). StateAccess: {0:?}, ContextAccess: {1:?}.")]
     AccessNotAllowed(SharedState, SharedContext, String),
 
     #[error("Distribution node handling is not implemented for this message type")]
