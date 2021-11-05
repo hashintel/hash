@@ -21,7 +21,7 @@ lazy_static::lazy_static! {
 /// last run is done, or if there is an error.
 pub async fn run_experiment(args: Args, handler: Handler) -> Result<()> {
     let absolute_project_path = PathBuf::from(&args.project).canonicalize()?;
-    let experiment_run = read_manifest(absolute_project_path, &args.experiment_name)?;
+    let experiment_run = read_manifest(absolute_project_path, &args.r#type)?;
     run_experiment_with_manifest(args, experiment_run, handler).await?;
     Ok(())
 }
@@ -75,7 +75,7 @@ async fn run_experiment_with_manifest(
     // Now we can send the init message
     let init_message = proto::InitMessage {
         experiment: experiment_run.clone(),
-        env: args.environment.clone().into(),
+        env: args.environment.clone().into(), // TODO OS - COMPILE BLOCK - No mention of type ExecutionEnvironment in args
         dyn_payloads: Default::default(),
     };
     engine_process

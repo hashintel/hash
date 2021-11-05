@@ -13,7 +13,7 @@ async fn main() -> hash_prime::Result<()> {
         &args.experiment_id
     );
 
-    let mut env = hash_prime::env::<'_, ExperimentRun>(&args).await?;
+    let mut env = hash_prime::env::<ExperimentRun>(&args).await?;
     // Fetch all dependencies of the experiment run such as datasets
     env.experiment.fetch_deps().await?;
     // Generate the configuration for packages from the environment

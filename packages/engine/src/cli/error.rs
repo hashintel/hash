@@ -12,6 +12,12 @@ pub enum Error {
 
     #[error("Error parsing manifest: {0}")]
     Manifest(#[from] super::manifest::Error),
+
+    #[error("CLI Process error: {0}")]
+    Process(#[from] super::process::Error),
+
+    #[error("I/O Error: {0}")]
+    IO(#[from] std::io::Error),
 }
 
 impl From<&str> for Error {

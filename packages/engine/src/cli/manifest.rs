@@ -5,11 +5,13 @@ use hash_prime::proto::{
     ProjectBase, SharedBehavior, SharedDataset, SimPackageArgs, SimpleExperimentConfig,
     SingleRunExperimentConfig,
 };
+use rand::{Rng, RngCore};
 use rand_distr::{Beta, Distribution, LogNormal, Normal, Poisson};
 use serde;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map as SerdeMap, Value as SerdeValue};
 use std::collections::HashMap;
+use std::ffi::OsStr;
 use std::fs::read_to_string;
 use std::io::Read;
 use std::path::{Path, PathBuf};
@@ -29,6 +31,9 @@ pub enum Error {
 
     #[error("Expected an `experiments.json` file")]
     ExpectedExperimentsManifest,
+
+    #[error("I/O Error: {0}")]
+    IO(#[from] std::io::Error),
 }
 
 impl From<String> for Error {
@@ -63,7 +68,6 @@ pub fn read_manifest(
 }
 
 fn create_experiment_run_id(experiment_type: &ExperimentType) -> String {
-    use rand::Rng;
     // Generates a 6-digit hexadecimal and concats with the experiment name
     // by {experiment_name}-{6-digit hex}
     let mut rng = rand::thread_rng();
@@ -118,7 +122,7 @@ fn read_local_project(project_path: &Path) -> Result<Project> {
         analysis_json: get_file_contents(&analysis_json),
         experiments_json: get_file_contents(&experiments_json),
         dependencies_json: get_file_contents(&dependencies_json),
-        datasets: read_local_datasets(data_folder),
+        datasets: read_local_datasets(data_folder)?,
     };
 
     Ok(project)
@@ -195,7 +199,7 @@ fn read_local_behaviors(behaviors_folder: &Path) -> Result<Vec<SharedBehavior>> 
     for entry in std::fs::read_dir(behaviors_folder)? {
         let path = entry?.path();
         let extension = path.extension();
-        if extension == Some("js") || extension == Some("py") {
+        if extension == Some(OsStr::new("js")) || extension == Some(OsStr::new("py")) {
             behavior_files.push(path);
         }
     }
@@ -285,7 +289,10 @@ fn read_project(project_path: PathBuf) -> Result<ProjectBase> {
     let behaviors_deps_folders = local_dependencies_folders(&local_project);
     let dep_projects = behaviors_deps_folders
         .into_iter()
-        .map(|path| (path, read_local_project(&path)))
+        .map(|path| match read_local_project(&path) {
+            Ok(project) => Ok((path, project)),
+            Err(err) => Err(err),
+        })
         .collect::<Result<HashMap<PathBuf, Project>>>()?;
     add_dependencies_to_project(&mut local_project, dep_projects)?;
 
@@ -320,7 +327,9 @@ fn get_package_config(
                 num_steps: single.num_steps,
             },
         )),
-        ExperimentType::SimpleExperiment(simple) => get_simple_experiment_config(base, simple),
+        ExperimentType::SimpleExperiment(simple) => Ok(ExperimentPackageConfig::Simple(
+            get_simple_experiment_config(base, simple)?,
+        )),
     }
 }
 
@@ -334,11 +343,15 @@ fn get_simple_experiment_config(
         .clone()
         .ok_or_else(|| Error::ExpectedExperimentsManifest)?;
     let parsed = serde_json::from_str::<SerdeMap<String, SerdeValue>>(&experiments_manifest)
-        .map_err(|| Error::Serde("Expected experiments.json to contain a json object".into()))?;
+        .map_err(|_| Error::Serde("Expected experiments.json to contain a json object".into()))?; // TODO OS - why not just use derived from
     let plan = create_experiment_plan(&parsed, &args.experiment_name)?;
     let config = SimpleExperimentConfig {
         experiment_name: args.experiment_name.clone(),
-        changed_properties: plan.inner.iter().map(|v| v.fields.into()).collect(),
+        changed_properties: plan
+            .inner
+            .into_iter()
+            .flat_map(|mut v| v.fields.into_values())
+            .collect(),
         num_steps: plan.num_steps,
     };
     Ok(config)
@@ -348,16 +361,16 @@ fn create_experiment_plan(
     experiments: &SerdeMap<String, SerdeValue>,
     experiment_name: &str,
 ) -> Result<SimpleExperimentPlan> {
-    let selected_experiment = experiments.get(experiment_name).ok_or_else(Error::Serde(format!("Expected experiments.json to contain the specified experiment definition for experiment with name: {}", &experiment_name)))?;
+    let selected_experiment = experiments.get(experiment_name).ok_or_else(|| Error::Serde(format!("Expected experiments.json to contain the specified experiment definition for experiment with name: {}", &experiment_name)))?;
     let experiment_type = selected_experiment
         .get("type")
-        .ok_or_else(Error::Serde(
-            "Expected experiment definition to contain an experiment type".into(),
-        ))?
+        .ok_or_else(|| {
+            Error::Serde("Expected experiment definition to contain an experiment type".into())
+        })?
         .as_str()
-        .ok_or_else(Error::Serde(
-            "Expected experiment definition type to have a string value".into(),
-        ))?;
+        .ok_or_else(|| {
+            Error::Serde("Expected experiment definition type to have a string value".into())
+        })?;
     return match experiment_type {
         "group" => create_group_variant(selected_experiment, &experiments),
         "multiparameter" => create_multiparameter_variant(selected_experiment, &experiments),
@@ -382,14 +395,14 @@ fn create_multiparameter_variant(
 
     let var: MultiparameterVariant = serde_json::from_value(selected_experiment.clone())?;
     let subplans = var.runs.iter().map(|run_name| {
-        let selected = experiments.get(run_name).ok_or_else(Error::Serde(format!("Expected experiments.json to contain the specified experiment definition for experiment with name: {}", run_name)))?;
+        let selected = experiments.get(run_name).ok_or_else(|| Error::Serde(format!("Expected experiments.json to contain the specified experiment definition for experiment with name: {}", run_name)))?;
         create_basic_variant(selected, run_name)
     }).collect::<Result<Vec<_>>>()?;
 
     let mut variant_list: Vec<ExperimentPlanEntry> = vec![];
     for (i, subplan) in subplans.into_iter().enumerate() {
         if i == 0 {
-            variant_list = subplan.inner.into_iter().map(|v| v.fields).collect();
+            variant_list = subplan.inner;
         } else {
             let mut new_variant_list: Vec<ExperimentPlanEntry> = vec![];
             for entry in subplan.inner.into_iter().map(|v| v.fields) {
@@ -419,21 +432,20 @@ fn create_group_variant(
         // TODO move ALL variants to proto, experiment plan creation to simple exp controller def
         #[serde(rename = "type")]
         _type: String,
-        steps: f64,
+        steps: f64, // TODO OS - Why is steps an f64 instead of usize
         runs: Vec<String>,
     }
     let var: GroupVariant = serde_json::from_value(selected_experiment.clone())?;
-    let plan = var
-        .runs
-        .iter()
-        .fold(SimpleExperimentPlan::new(var.steps), |mut acc, name| {
+    var.runs.iter().try_fold(
+        SimpleExperimentPlan::new(var.steps as usize),
+        |mut acc, name| {
             let variants = create_experiment_plan(experiments, name)?;
             variants.inner.into_iter().for_each(|v| {
                 acc.push(v);
             });
-            acc
-        });
-    Ok(plan)
+            Ok(acc)
+        },
+    )
 }
 
 fn create_basic_variant(
@@ -465,7 +477,7 @@ fn create_variant_with_mapped_value(
         SimpleExperimentPlan::new(num_steps),
         |mut acc, (index, val)| {
             let mapped_value = mapper(val.clone(), index);
-            acc.push(HashMap::from([(field.clone(), mapped_value)]).into());
+            acc.push(HashMap::from([(field.to_string(), mapped_value)]).into());
             acc
         },
     );
@@ -495,30 +507,63 @@ fn create_monte_carlo_variant_plan(
         scale: Option<f64>,
     }
 
+    // Needed trait objects of distributions, solution from: https://users.rust-lang.org/t/vec-of-rand-distribution-trait-objects/58727/2
+    pub trait DynDistribution<T> {
+        fn sample_(&self, rng: &mut dyn RngCore) -> T;
+    }
+
+    impl<D, T> DynDistribution<T> for D
+    where
+        D: Distribution<T>,
+    {
+        fn sample_(&self, rng: &mut dyn RngCore) -> T {
+            <Self as Distribution<T>>::sample(self, rng)
+        }
+    }
+
+    impl<T> Distribution<T> for dyn DynDistribution<T> + '_ {
+        fn sample<R: Rng + ?Sized>(&self, mut rng: &mut R) -> T {
+            self.sample_(&mut rng)
+        }
+    }
+
     impl MonteCarloVariant {
-        fn sample_distrubtion_fn(&self) -> Mapper {
+        fn sample_distribution_fn(&self) -> Result<Mapper> {
             let distribution = match self.distribution.as_str() {
-                "normal" => Box::new(Normal::new(
-                    self.mean.unwrap_or(1.0),
-                    self.std.unwrap_or(1.0),
-                )?) as Box<dyn Distribution<f64>>,
-                "log-normal" => Box::new(LogNormal::new(
-                    self.mu.unwrap_or(1.0),
-                    self.sigma.unwrap_or(1.0),
-                )?),
-                "poisson" => Box::new(Poisson::new(self.rate.unwrap_or(1.0))?),
-                "beta" => Box::new(Beta::new(
-                    self.alpha.unwrap_or(1.0),
-                    self.beta.unwrap_or(1.0),
-                )?),
-                "gamma" => Box::new(rand_distr::Gamma::new(
-                    self.shape.unwrap_or(1.0),
-                    self.scale.unwrap_or(1.0),
-                )?),
-                _ => || Box::new(Normal::new(1.0, 1.0)?),
+                "normal" => Box::new(
+                    Normal::new(self.mean.unwrap_or(1.0), self.std.unwrap_or(1.0)).map_err(
+                        |e| Error::from(format!("failed to create distribution: {:?}", e)),
+                    )?,
+                ) as Box<dyn DynDistribution<f64>>,
+                "log-normal" => Box::new(
+                    LogNormal::new(self.mu.unwrap_or(1.0), self.sigma.unwrap_or(1.0)).map_err(
+                        |e| Error::from(format!("failed to create distribution: {:?}", e)),
+                    )?,
+                ),
+                "poisson" => {
+                    Box::new(Poisson::new(self.rate.unwrap_or(1.0)).map_err(|e| {
+                        Error::from(format!("failed to create distribution: {:?}", e))
+                    })?)
+                }
+                "beta" => Box::new(
+                    Beta::new(self.alpha.unwrap_or(1.0), self.beta.unwrap_or(1.0)).map_err(
+                        |e| Error::from(format!("failed to create distribution: {:?}", e)),
+                    )?,
+                ),
+                "gamma" => Box::new(
+                    rand_distr::Gamma::new(self.shape.unwrap_or(1.0), self.scale.unwrap_or(1.0))
+                        .map_err(|e| {
+                            Error::from(format!("failed to create distribution: {:?}", e))
+                        })?,
+                ),
+                _ => {
+                    Box::new(Normal::new(1.0, 1.0).map_err(|e| {
+                        Error::from(format!("failed to create distribution: {:?}", e))
+                    })?)
+                }
             };
             let mut rng = rand::thread_rng();
-            Box::new(move || distribution.sample(&mut rng).into())
+            Ok(Box::new(move || distribution.sample(&mut rng).into()))
         }
     }
 
@@ -527,7 +572,7 @@ fn create_monte_carlo_variant_plan(
     create_variant_with_mapped_value(
         &var.field,
         &values,
-        &var.sample_distrubtion_fn(),
+        &var.sample_distribution_fn()?,
         var.steps as usize,
     )
 }
