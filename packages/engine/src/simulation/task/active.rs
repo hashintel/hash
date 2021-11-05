@@ -27,9 +27,7 @@ impl ActiveTask {
             let result = recv.await?;
             self.running = false;
             match result {
-                TaskResultOrCancelled::Result(result) => {
-                    Ok(result)
-                }
+                TaskResultOrCancelled::Result(result) => Ok(result),
                 TaskResultOrCancelled::Cancelled => {
                     log::warn!("Driving to completion yielded a cancel result");
                     // TODO create a variant for this error
