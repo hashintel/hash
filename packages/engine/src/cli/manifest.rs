@@ -432,7 +432,7 @@ fn create_group_variant(
         // TODO move ALL variants to proto, experiment plan creation to simple exp controller def
         #[serde(rename = "type")]
         _type: String,
-        steps: f64, // TODO OS - Why is steps an f64 instead of usize
+        steps: f64,
         runs: Vec<String>,
     }
     let var: GroupVariant = serde_json::from_value(selected_experiment.clone())?;
@@ -563,7 +563,7 @@ fn create_monte_carlo_variant_plan(
                 }
             };
             let mut rng = rand::thread_rng();
-            Ok(Box::new(move || distribution.sample(&mut rng).into()))
+            Ok(Box::new(move |_, _| distribution.sample(&mut rng).into()))
         }
     }
 
@@ -588,12 +588,8 @@ fn create_value_variant_plan(selected_experiment: &SerdeValue) -> Result<SimpleE
     }
 
     let var: ValueVariant = serde_json::from_value(selected_experiment.clone())?;
-    create_variant_with_mapped_value(
-        &var.field,
-        &var.values,
-        &Box::new(|val, index| val),
-        var.steps as usize,
-    )
+    let mapper: Mapper = Box::new(|val, index| val);
+    create_variant_with_mapped_value(&var.field, &var.values, &mapper, var.steps as usize)
 }
 
 fn create_linspace_variant_plan(selected_experiment: &SerdeValue) -> Result<SimpleExperimentPlan> {
@@ -609,15 +605,11 @@ fn create_linspace_variant_plan(selected_experiment: &SerdeValue) -> Result<Simp
     }
     let var: LinspaceVariant = serde_json::from_value(selected_experiment.clone())?;
     let values = (0..var.samples as usize).map(|_| 0.into()).collect();
-    create_variant_with_mapped_value(
-        &var.field,
-        &values,
-        &Box::new(|val, index| {
-            (var.start + (index as f64 * (var.stop - var.start)) / ((var.samples - 1) as f64))
-                .into()
-        }),
-        var.steps as usize,
-    )
+    let mapper: Mapper = Box::new(|val, index| {
+        (var.start + (index as f64 * (var.stop - var.start)) / ((var.samples - 1 as f64) as f64))
+            .into()
+    });
+    create_variant_with_mapped_value(&var.field, &values, &mapper, var.steps as usize)
 }
 
 fn create_arange_variant_plan(selected_experiment: &SerdeValue) -> Result<SimpleExperimentPlan> {
@@ -638,12 +630,8 @@ fn create_arange_variant_plan(selected_experiment: &SerdeValue) -> Result<Simple
         values.push(cur.into());
         cur += var.increment;
     }
-    create_variant_with_mapped_value(
-        &var.field,
-        &values,
-        &Box::new(|val, index| val),
-        var.steps as usize,
-    )
+    let mapper: Mapper = Box::new(|val, index| val);
+    create_variant_with_mapped_value(&var.field, &values, &mapper, var.steps as usize)
 }
 
 fn create_meshgrid_variant_plan(selected_experiment: &SerdeValue) -> Result<SimpleExperimentPlan> {
@@ -667,7 +655,7 @@ fn create_meshgrid_variant_plan(selected_experiment: &SerdeValue) -> Result<Simp
         for y_val in y_space {
             let entry = HashMap::from([
                 (var.x_field.clone(), x_val.into()),
-                (var.y_field.clon(), y_val.into()),
+                (var.y_field.clone(), y_val.into()),
             ])
             .into();
             plan.push(entry);
