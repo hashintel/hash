@@ -1,3 +1,4 @@
+import "./loadTestEnv";
 import AwsSesEmailTransporter from "@hashintel/hash-api/src/email/transporter/awsSesEmailTransporter";
 import { AWS_REGION } from "@hashintel/hash-api/src/lib/config";
 
