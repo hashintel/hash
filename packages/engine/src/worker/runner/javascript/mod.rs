@@ -1,10 +1,8 @@
 mod error;
 mod mini_v8;
 
-use std::ops::Deref;
 use std::{collections::HashMap, fs, sync::Arc};
 
-use arrow::record_batch::RecordBatch;
 use arrow::{
     array::{ArrayData, ArrayDataRef},
     buffer::{Buffer, MutableBuffer},
@@ -14,7 +12,6 @@ use arrow::{
 use futures::FutureExt;
 use mini_v8 as mv8;
 use mv8::MiniV8;
-use parking_lot::RwLock;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
 use super::comms::{
@@ -24,12 +21,11 @@ use super::comms::{
     TargetedRunnerTaskMsg,
 };
 use crate::config::Globals;
-use crate::datastore::batch::{ArrowBatch, DynamicBatch};
+use crate::datastore::batch::DynamicBatch;
 use crate::datastore::table::pool::agent::AgentPool;
 use crate::datastore::table::pool::message::MessagePool;
 use crate::datastore::table::pool::proxy::PoolReadProxy;
 use crate::datastore::table::pool::BatchPool;
-use crate::hash_types::Agent;
 use crate::worker::{Error as WorkerError, Result as WorkerResult, TaskMessage};
 use crate::{
     datastore::prelude::SharedStore,

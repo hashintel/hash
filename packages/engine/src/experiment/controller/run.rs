@@ -1,8 +1,6 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use tokio::time::timeout;
-
 use crate::experiment::package::ExperimentPackage;
 use crate::proto::{EngineStatus, ExperimentRun};
 
@@ -163,7 +161,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
     let mut worker_pool_result: Option<crate::workerpool::Result<()>> = None;
     let mut experiment_package_result: Option<crate::experiment::Result<()>> = None;
     let mut experiment_controller_result: Option<Result<()>> = None;
-    tokio::pin! { let mut exit_timeout = None; }
+    let mut exit_timeout = Box::pin(None);
 
     let mut successful_exit = true;
     let mut err = String::new();
@@ -182,7 +180,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
             }
             Ok(res) = &mut worker_pool_controller_handle, if worker_pool_result.is_none() => {
                 if exit_timeout.is_none() {
-                    exit_timeout = Some(tokio::time::sleep(Duration::from_secs(20)));
+                    exit_timeout = Box::pin(Some(tokio::time::sleep(Duration::from_secs(20))));
                 }
                 if experiment_package_result.is_none() && experiment_controller_result.is_none() {
                     // The worker pool should not finish before the experiment controller or experiment package
@@ -195,7 +193,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
             }
             Ok(res) = &mut experiment_package_handle, if experiment_package_result.is_none() => {
                 if exit_timeout.is_none() {
-                    exit_timeout = Some(tokio::time::sleep(Duration::from_secs(20)));
+                    exit_timeout = Box::pin(Some(tokio::time::sleep(Duration::from_secs(20))));
                 }
                 // The experiment package should finish first
                 experiment_package_result = Some(res);
@@ -205,7 +203,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
             }
             Ok(res) = &mut experiment_controller_handle, if experiment_controller_result.is_none() => {
                 if exit_timeout.is_none() {
-                    exit_timeout = Some(tokio::time::sleep(Duration::from_secs(20)));
+                    exit_timeout = Box::pin(Some(tokio::time::sleep(Duration::from_secs(20))));
                 }
                 // The experiment controller should ideally finish after the experiment package has finished
                 experiment_controller_result = Some(res);
@@ -216,7 +214,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
             else => {
                 successful_exit = false;
                 err = "Unexpected tokio select exit".into();
-                log::error!(&err);
+                log::error!("Unexpected tokio select exit");
                 break;
             }
         }
