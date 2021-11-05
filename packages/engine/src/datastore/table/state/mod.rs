@@ -8,7 +8,7 @@ use crate::proto::{ExperimentID, ExperimentRunBase};
 use crate::datastore::table::pool::BatchPool;
 use crate::{
     datastore::{batch::DynamicBatch, prelude::*, schema::state::AgentSchema},
-    simulation::{command::CreateRemoveCommands, packages::state::StateColumn},
+    simulation::{command::CreateRemoveCommands, package::state::StateColumn},
     SimRunConfig,
 };
 use std::sync::Arc;

@@ -2,7 +2,7 @@ use super::Result;
 use crate::config::Globals;
 use crate::{
     proto::ExperimentRunBase,
-    simulation::packages::{creator::PackageCreators, output::packages::OutputPackagesSimConfig},
+    simulation::package::{creator::PackageCreators, output::packages::OutputPackagesSimConfig},
 };
 
 #[derive(Clone)]

@@ -10,7 +10,7 @@ use crate::{
         ipc::{read_record_batch, static_record_batch_to_bytes},
         meta_conversion::get_dynamic_meta_flatbuffers,
     },
-    simulation::packages::context::ContextColumn,
+    simulation::package::context::ContextColumn,
 };
 
 use super::Batch as BatchRepr;
@@ -25,8 +25,6 @@ const UPPER_BOUND_DATA_SIZE_MULTIPLIER: usize = 3;
 
 pub type AgentIndex = (u32, u32);
 pub type MessageIndex = (u32, u32, u32);
-
-// TODO OS[31] - COMPILE BLOCK - Needs updating, refers to old ways of context, and some bits in neighbors, and some other small struct changes
 
 pub struct Batch {
     pub(crate) memory: Memory,

@@ -6,7 +6,7 @@ use crate::{
     env::OrchClient,
     experiment::{apply_property_changes, ExperimentControl},
     output::OutputPersistenceCreatorRepr,
-    simulation::{comms::Comms, packages::creator::PackageCreators},
+    simulation::{comms::Comms, package::creator::PackageCreators},
     worker::runner::comms::NewSimulationRun,
     workerpool::{
         self,
@@ -184,7 +184,7 @@ impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController
         // Register the new simulation with the worker pool
         self.worker_pool_send
             .send(ExperimentToWorkerPoolMsg::NewSimulationRun(
-                // TODO OS - RUNTIME BLOCK - Need to create a PackageMsgs object
+                // TODO OS - Need to create a PackageMsgs object
                 NewSimulationRun {
                     short_id: sim_short_id,
                     packages: todo!(),
@@ -246,6 +246,7 @@ impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController
         }
     }
 
+    // TODO OS - runner_init_message is unimplemented for ExperimentController
     pub async fn runner_init_message(&self) -> Result<ExperimentInitRunnerMsg> {
         todo!()
     }

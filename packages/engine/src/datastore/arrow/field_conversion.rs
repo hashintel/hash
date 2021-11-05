@@ -14,7 +14,7 @@ use crate::datastore::{
     prelude::*,
     schema::{FieldSpec, FieldSpecMap, FieldTypeVariant, PresetFieldType},
 };
-use crate::simulation::packages::creator::{
+use crate::simulation::package::creator::{
     PREVIOUS_INDEX_COLUMN_INDEX, PREVIOUS_INDEX_COLUMN_NAME,
 };
 
@@ -209,7 +209,7 @@ pub mod tests {
     #[test]
     fn get_schema() -> Result<()> {
         // let field_spec_map = FieldSpecMap::default();
-        // TODO OS [3] - RUNTIME BLOCK - Bring in line with accessors
+        // TODO OS - Alfie - Bring in line with accessors
         panic!();
         // field_spec_map
         //     .add(FieldSpec::new_mergeable(

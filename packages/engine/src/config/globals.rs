@@ -1,7 +1,7 @@
 use super::Result;
 use serde::{Deserialize, Serialize};
 
-// TODO Go through code-base and verify that out-dated references to "properties" are now "globals"
+// TODO OS - Go through code-base and verify that out-dated references to "properties" are now "globals"
 // We also have some consts that come in along with our initial world state.
 // These, we call 'Globals', and store them in context.
 // For now, they're... you guessed it, JSON.

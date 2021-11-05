@@ -4,7 +4,7 @@ use crate::output::error::{Error, Result};
 use crate::simulation::step_output::SimulationStepOutput;
 use crate::{
     output::{buffer::Buffers, SimulationOutputPersistenceRepr},
-    simulation::packages::output::packages::Output,
+    simulation::package::output::packages::Output,
 };
 
 use super::config::LocalPersistenceConfig;
@@ -25,7 +25,6 @@ impl SimulationOutputPersistenceRepr for LocalSimulationOutputPersistence {
     async fn add_step_output(&mut self, output: SimulationStepOutput) -> Result<()> {
         output.0.into_iter().try_for_each(|output| {
             match output {
-                // TODO OS - COMPILE BLOCK - Output destructure needs to work with the enum_dispatch
                 Output::AnalysisOutput(output) => {
                     self.buffers.analysis.add(output)?;
                 }

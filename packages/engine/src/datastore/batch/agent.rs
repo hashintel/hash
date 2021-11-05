@@ -25,7 +25,7 @@ use arrow::{array, datatypes::DataType};
 
 use crate::datastore::schema::FieldKey;
 use crate::proto::ExperimentID;
-use crate::simulation::packages::creator::{
+use crate::simulation::package::creator::{
     PREVIOUS_INDEX_COLUMN_INDEX, PREVIOUS_INDEX_COLUMN_NAME,
 };
 use arrow::array::ArrayRef;
@@ -162,7 +162,6 @@ impl Batch {
         schema: &AgentSchema,
         experiment_run_id: &ExperimentID,
     ) -> Result<Batch> {
-        // TODO OS
         let memory = Memory::duplicate_from(&batch.memory, experiment_run_id)?;
         Self::from_memory(memory, Some(schema), Some(batch.affinity))
     }
@@ -785,7 +784,7 @@ mod tests {
 
     #[test]
     fn bench() -> Result<()> {
-        // TODO OS[28] - RUNTIME BLOCK - Benchmark needs to be updated to use new FieldSpecMap stuff, requires built_in methods to be figured out
+        // TODO OS - Alfie - Benchmark needs to be updated to use new FieldSpecMap stuff, requires built_in methods to be figured out
         todo!()
         // let num_agents = 100;
         // let (schema, agents) = gen_schema_and_test_agents(num_agents, 0).unwrap();

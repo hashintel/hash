@@ -8,7 +8,6 @@ use crate::datastore::{batch::Batch, prelude::Result};
 use parking_lot::RwLock;
 use std::sync::Arc;
 
-// TODO OS[36] - COMPILE BLOCK - Result needs another generic argument, probably need to import the relevant Result from somewhere
 pub trait BatchPool<K: Batch>: Send + Sync {
     fn batches(&self) -> &[Arc<RwLock<K>>];
     fn mut_batches(&mut self) -> &mut Vec<Arc<RwLock<K>>>;

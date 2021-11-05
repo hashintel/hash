@@ -169,8 +169,7 @@ fn create_array(
 
             // read the arrays for each field
             let mut struct_arrays = vec![];
-            // TODO investigate whether just knowing the number of buffers could
-            // still work
+            // TODO investigate whether just knowing the number of buffers could still work
             for struct_field in struct_fields {
                 let triple = create_array(
                     nodes,

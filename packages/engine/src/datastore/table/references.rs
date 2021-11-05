@@ -41,14 +41,13 @@ pub struct MessageMap {
 
 impl MessageMap {
     pub fn new(pool: &MessagePoolRead<'_>) -> Result<MessageMap> {
-        // TODO OS [12] - COMPILE BLOCK - Unneeded param, why is there a reader
         let iter = pool.recipient_iter_all();
         let inner = iter
             .fold(
                 HashMap::<String, Vec<AgentMessageReference>>::new,
                 |mut acc, (recipients, message_ref)| {
                     recipients.iter().for_each(|recipient| {
-                        // TODO[3](decide) currently if message has duplicate recipients then agents can get duplicate messages (filtering is expensive)
+                        // TODO OS - (decide) currently if message has duplicate recipients then agents can get duplicate messages (filtering is expensive)
                         if let Some(entry) = acc.get_mut(*recipient) {
                             entry.push(message_ref.clone())
                         } else {

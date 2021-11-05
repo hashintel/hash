@@ -5,8 +5,6 @@ use crate::datastore::schema::{FieldScope, FieldSource, RootFieldSpec};
 
 use super::{FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant};
 
-// TODO OS[7] - COMPILE BLOCK - Bring this whole file in line with new FieldSpecs
-
 #[derive(thiserror::Error, Debug)]
 pub enum ShortJSONError {
     #[error("Could not find 'fields' field in input")]

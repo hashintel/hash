@@ -16,7 +16,7 @@ use super::{
     command::CreateRemoveCommands, step_output::SimulationStepOutput,
     step_result::SimulationStepResult, Error, Result,
 };
-use super::{comms::Comms, packages::run::Packages};
+use super::{comms::Comms, package::run::Packages};
 
 pub struct Engine {
     packages: Packages,

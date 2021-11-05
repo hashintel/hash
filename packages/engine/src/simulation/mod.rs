@@ -5,7 +5,7 @@ pub mod controller;
 pub mod engine;
 pub mod enum_dispatch;
 mod error;
-pub mod packages;
+pub mod package;
 pub mod status;
 pub mod step_output;
 pub mod step_result;

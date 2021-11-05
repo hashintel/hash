@@ -121,7 +121,7 @@ impl CreateRemoveCommands {
         Ok(res)
     }
 
-    // TODO OS[27] - RUNTIME BLOCK - Unimplemented methods
+    // TODO OS - Implement get_agent_batch and get_remove_ids for CreateRemoveCommands
     pub fn get_agent_batch(&self) -> DataStoreResult<Option<RecordBatch>> {
         todo!();
     }

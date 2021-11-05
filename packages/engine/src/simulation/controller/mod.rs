@@ -14,7 +14,7 @@ use crate::experiment::controller::comms::{
 use crate::experiment::package::UpdateRequest;
 use crate::output::SimulationOutputPersistenceRepr;
 use crate::proto::{ExperimentRunBase, SimulationShortID};
-use crate::simulation::packages::run::Packages;
+use crate::simulation::package::run::Packages;
 use crate::SimRunConfig;
 use tokio::task::JoinHandle;
 
@@ -82,7 +82,6 @@ fn new_task_handle<P: SimulationOutputPersistenceRepr>(
         exp_pkg_output_send,
     ));
 
-    // TODO OS - COMPILE BLOCK - P may not live long enough
     Ok(tokio::task::spawn_blocking(move || {
         tokio::runtime::Handle::current().block_on(task)
     }))

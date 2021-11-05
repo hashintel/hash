@@ -7,11 +7,11 @@ use crate::datastore::shared_store::SharedStore;
 use crate::datastore::table::pool::agent::AgentPool;
 use crate::datastore::table::pool::message::MessagePool;
 use crate::proto::{ExperimentID, SimulationShortID};
-use crate::simulation::packages::id::PackageId;
+use crate::simulation::package::id::PackageId;
 use crate::simulation::task::msg::TaskMessage;
 use crate::{
     datastore::prelude::ArrowSchema,
-    simulation::packages::worker_init::PackageInitMsgForWorker,
+    simulation::package::worker_init::PackageInitMsgForWorker,
     types::{TaskID, WorkerIndex},
     Language,
 };

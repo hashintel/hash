@@ -1,4 +1,4 @@
-use crate::simulation::packages::{id::PackageId, PackageType};
+use crate::simulation::package::{id::PackageId, PackageType};
 use crate::simulation::task::{active::ActiveTask, Task};
 
 use crate::datastore::table::task_shared_store::TaskSharedStore;

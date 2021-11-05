@@ -195,31 +195,3 @@ pub mod agent {
         Ok(iterables.into_iter().flatten())
     }
 }
-
-pub mod message {
-    use crate::datastore::prelude::*;
-
-    // TODO deprecate
-    pub fn message_index_iter<'a>(
-        message_pool: &'a [MessageBatch],
-    ) -> impl Iterator<Item = MessageIndex> + 'a {
-        message_pool
-            .iter()
-            .enumerate()
-            .flat_map(|(i, g)| g.message_index_iter(i))
-    }
-
-    pub fn message_recipients_iter(
-        message_pool: &[MessageBatch],
-    ) -> impl Iterator<Item = Vec<&str>> {
-        message_pool
-            .iter()
-            .flat_map(MessageBatch::message_recipients_iter)
-    }
-
-    pub fn index_recipient_iter(
-        message_pool: &[MessageBatch],
-    ) -> impl Iterator<Item = (MessageIndex, Vec<&str>)> {
-        message_index_iter(message_pool).zip(message_recipients_iter(message_pool))
-    }
-}

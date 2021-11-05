@@ -30,7 +30,7 @@ use crate::worker::{Error as WorkerError, Result as WorkerResult, TaskMessage};
 use crate::{
     datastore::prelude::SharedStore,
     proto::SimulationShortID,
-    simulation::packages::{id::PackageId, PackageType},
+    simulation::package::{id::PackageId, PackageType},
 };
 use crate::{
     datastore::{
@@ -50,7 +50,7 @@ struct JSPackage<'m> {
 
 fn get_pkg_path(name: &str, pkg_type: PackageType) -> String {
     format!(
-        "../../simulation/packages/{}/packages/{}/package.js",
+        "../../simulation/package/{}/packages/{}/package.js",
         pkg_type.as_str(),
         name
     )

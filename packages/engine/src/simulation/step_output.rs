@@ -1,4 +1,4 @@
-use super::packages::output::packages::Output;
+use super::package::output::packages::Output;
 
 pub struct SimulationStepOutput(pub Vec<Output>);
 

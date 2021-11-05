@@ -15,7 +15,7 @@ use crate::simulation::agent_control::AgentControl;
 use crate::simulation::comms::Comms;
 use crate::simulation::controller::sim_control::SimControl;
 use crate::simulation::engine::Engine;
-use crate::simulation::packages::run::Packages;
+use crate::simulation::package::run::Packages;
 use crate::simulation::status::SimStatus;
 use crate::simulation::step_result::SimulationStepResult;
 use crate::SimRunConfig;
@@ -27,20 +27,13 @@ enum LoopControl {
     Stop,
 }
 
-// TODO OS - Do we need these unused args?
 fn create_update_for_exp_pkg(
     sim_id: SimulationShortID,
-    _step_result: &SimulationStepResult,
-    _exp_pkg_update_request: &Option<UpdateRequest>,
+    step_result: &SimulationStepResult,
+    exp_pkg_update_request: &Option<UpdateRequest>,
 ) -> Result<StepUpdate> {
-    Ok(StepUpdate {
-        sim_id,
-        payload: StepOutputResponsePayload {
-            analysis_output: None,
-        },
-        was_error: false,
-        stop_signal: false,
-    })
+    // TODO OS - Create a StepUpdate
+    todo!();
 }
 
 // TODO OS - Sort our error into/from to avoid so many explicit err conversions using to_string
@@ -52,7 +45,7 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
     mut sim_from_exp: SimCtlRecv,
     mut sims_to_exp: SimStatusSend,
     mut persistence_service: P,
-    // TODO[2] remove this and stop using it, add a step_update
+    // TODO OS - remove this and stop using it, add a step_update
     //         field to SimStatus, whereby on receiving the SimStatus,
     //         the exp controller would pass on the step_update to the
     //         exp package

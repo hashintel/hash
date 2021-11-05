@@ -25,7 +25,7 @@ class Package:
         self.sims = {}
 
 def get_pkg_path(pkg_name, pkg_type):
-    return "../../simulation/packages/{}/packages/{}/package.py".format(
+    return "../../simulation/package/{}/packages/{}/package.py".format(
         pkg_type, pkg_name
     )
 

@@ -105,7 +105,7 @@ async fn run_experiment_with_manifest(
             }
             proto::EngineStatus::SimStatus(status) => {
                 log::debug!("Got runner status: {:?}", status);
-                // TODO[1] handle status fields
+                // TODO OS - handle status fields
             }
             proto::EngineStatus::Exit => {
                 log::debug!(
@@ -122,6 +122,7 @@ async fn run_experiment_with_manifest(
                 log::error!("Received unexpected message type {}", msg.kind());
                 break;
             }
+            // TODO OS - Status enums are unimplemented
             proto::EngineStatus::SimStop(_) => todo!(),
             proto::EngineStatus::Errors(_, _) => todo!(),
             proto::EngineStatus::Warnings(_, _) => todo!(),

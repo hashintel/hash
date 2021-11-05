@@ -45,7 +45,7 @@ fn set_nested_property(
         let _ = map.insert(name.to_string(), new_value);
         Ok(())
     } else {
-        // TODO[3]: Uninitialized nested properties
+        // TODO OS - Uninitialized nested properties (JV)
         let property = map
             .get_mut(name)
             .ok_or_else(|| Error::MissingChangedGlobalProperty(name.to_string()))?;

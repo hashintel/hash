@@ -62,7 +62,7 @@ pub use enum_dispatch::enum_dispatch;
 pub use crate::config::TaskDistributionConfig;
 pub use crate::datastore::table::task_shared_store::TaskSharedStore;
 pub use crate::simulation::{
-    packages::{
+    package::{
         context::{ContextTask, ContextTaskMessage, ContextTaskResult},
         init::{packages::jspy::JsPyInitTaskMessage, InitTask, InitTaskMessage, InitTaskResult},
         output::{OutputTask, OutputTaskMessage, OutputTaskResult},

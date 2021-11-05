@@ -1,7 +1,6 @@
 use thiserror::Error as ThisError;
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
-// TODO OS - Add custom error types beyond unique
 #[derive(ThisError, Debug)]
 pub enum Error {
     #[error("Output error: {0}")]

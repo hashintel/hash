@@ -18,7 +18,7 @@ use crate::experiment::controller::config::OutputPersistenceConfig;
 use crate::output::{
     local::LocalOutputPersistence, none::NoOutputPersistence, OutputPersistenceCreatorRepr,
 };
-use crate::simulation::packages::creator::PackageCreators;
+use crate::simulation::package::creator::PackageCreators;
 use crate::workerpool::WorkerPoolController;
 use crate::{workerpool, Environment, ExperimentConfig};
 

@@ -14,7 +14,6 @@ pub struct SimStatus {
     pub early_stop: bool,
     pub stop_msg: Option<serde_json::Value>,
     pub stop_signal: bool,
-    // TODO OS - COMPILE BLOCK - Cannot infer an appropriate lifetime for lifetime parameter `'de` due to conflicting requirements
     pub persistence_result: Option<(String, serde_json::Value)>,
     pub error: Option<RunnerError>,
     pub warnings: Vec<RunnerError>,

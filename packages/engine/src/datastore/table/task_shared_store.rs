@@ -37,6 +37,7 @@ impl TaskSharedStore {
     /// Update the metaversions of all the write
     /// batches in this shared store instance.
     pub fn update_metaversioning(&mut self, sync: &StateInterimSync) -> Result<()> {
+        // TODO OS - implement update_metaversioning for task_shared_store
         todo!()
     }
 }
@@ -178,7 +179,7 @@ impl TaskSharedStore {
             )
     }
 
-    // TODO OS [14] - RUNTIME BLOCK - multiple branches are unimplemented
+    // TODO OS - implement distribute for task_shared_store
     pub fn distribute(
         self,
         distribution: &Distribution,
@@ -190,12 +191,10 @@ impl TaskSharedStore {
         // let split = if reads_state && distribution.single_read_access {
         //     // We take read access to state, but need to distribute
         //     // each batch to a single worker
-        //     // TODO
         //     todo!()
         // } else if writes_state {
         //     // We take write access to state so we need to distribute
         //     // each batch to a single worker
-        //     // TODO
         //     todo!()
         // } else {
         //     // No access to state or duplicate read access to state, trivial split:
@@ -211,7 +210,7 @@ impl TaskSharedStore {
 impl TaskSharedStore {
     /// Fallible clone. Fails with write access to state.
     fn try_clone(&self) -> Result<Self> {
-        // TODO OS [15] - RUNTIME BLOCK - try_clone is unimplemented
+        // TODO OS - try_clone is unimplemented for TaskSharedStore
         todo!()
     }
 }

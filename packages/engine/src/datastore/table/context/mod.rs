@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use crate::proto::ExperimentID;
 use crate::{
-    config::StoreConfig, datastore::prelude::*, simulation::packages::context::ContextColumn,
+    config::StoreConfig, datastore::prelude::*, simulation::package::context::ContextColumn,
 };
 
 use super::{

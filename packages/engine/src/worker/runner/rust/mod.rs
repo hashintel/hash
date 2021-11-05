@@ -29,7 +29,7 @@ use crate::{
     datastore::{batch::Metaversion, storage::memory::Memory},
     hash_types::{message::Outbound as OutboundMessage, Agent},
     proto::SimulationShortID,
-    simulation::packages::{
+    simulation::package::{
         state::packages::behavior_execution::config::BehaviorDescription,
         worker_init::PackageInitMsgForWorker,
     },

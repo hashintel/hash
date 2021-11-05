@@ -7,7 +7,7 @@ use arrow::datatypes::DataType as ArrowDataType;
 
 use crate::datastore::error::{Error, Result};
 
-use crate::simulation::packages::name::PackageName;
+use crate::simulation::package::name::PackageName;
 
 pub mod accessor;
 pub mod builder;
@@ -147,7 +147,6 @@ impl FieldKey {
     }
 }
 
-// TODO review pub declarations of struct members
 /// A single specification of a field
 #[derive(new, Clone, PartialEq, Eq, Hash)]
 pub struct FieldSpec {
@@ -317,7 +316,7 @@ impl TryInto<FieldType> for AgentStateField {
     }
 }
 
-// TODO OS[6] - RUNTIME BLOCK - bring in line, need to decide what scopes and sources, if it matters at all
+// TODO OS - Alfie - bring in line, need to decide what scopes and sources, if it matters at all
 #[cfg(test)]
 pub mod tests {
     // use super::*;

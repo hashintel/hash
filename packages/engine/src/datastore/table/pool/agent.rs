@@ -1,6 +1,6 @@
 use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-use crate::{datastore::prelude::*, simulation::packages::state::StateColumn};
+use crate::{datastore::prelude::*, simulation::package::state::StateColumn};
 
 use crate::datastore::batch::DynamicBatch;
 use std::sync::Arc;

@@ -1,7 +1,7 @@
 use crate::{
     datastore::table::task_shared_store::TaskSharedStore,
     simulation::{
-        packages::id::PackageId,
+        package::id::PackageId,
         task::{result::TaskResultOrCancelled, Task},
     },
     types::TaskID,

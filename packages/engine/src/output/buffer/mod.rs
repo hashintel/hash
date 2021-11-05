@@ -8,9 +8,9 @@ pub use util::cleanup_experiment;
 use crate::output::error::{Error, Result};
 use crate::proto::ExperimentID;
 use crate::proto::SimulationShortID;
-use crate::simulation::packages::name::PackageName;
-use crate::simulation::packages::output;
-use crate::simulation::packages::output::packages::{
+use crate::simulation::package::name::PackageName;
+use crate::simulation::package::output;
+use crate::simulation::package::output::packages::{
     analysis::{AnalysisOutput, AnalysisSingleOutput},
     OutputPackagesSimConfig,
 };

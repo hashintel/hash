@@ -1,6 +1,6 @@
 use crate::proto::SimulationShortID;
 
-use crate::simulation::packages::id::PackageId;
+use crate::simulation::package::id::PackageId;
 use crate::{
     datastore::table::{sync::SyncPayload, task_shared_store::TaskSharedStore},
     simulation::task::Task,

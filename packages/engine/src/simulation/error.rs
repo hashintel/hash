@@ -116,7 +116,7 @@ pub enum Error {
 
     #[error("{0}")]
     CustomAPIMessageError(
-        #[from] super::packages::context::packages::api_requests::CustomAPIMessageError,
+        #[from] super::package::context::packages::api_requests::CustomAPIMessageError,
     ),
 
     #[error("Tokio Join Error: {0}")]

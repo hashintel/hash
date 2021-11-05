@@ -20,13 +20,13 @@ main package definition can be agnostic of how work was distributed.
 */
 
 pub mod active;
-pub mod init;
+
 pub mod message;
 pub mod package;
 
 use std::sync::{Arc, RwLock};
 
-use super::packages::id::PackageId;
+use super::package::id::PackageId;
 pub use super::{Error, Result};
 use crate::hash_types::Agent;
 use crate::proto::SimulationShortID;
@@ -91,7 +91,6 @@ impl Comms {
 
 // Datastore synchronization methods
 impl Comms {
-    // TODO OS - COMPILE BLOCK - `await` is only allowed inside `async` functions and blocks
     pub async fn state_sync(&self, state: &State) -> Result<()> {
         // Synchronize the state batches
         let agents = state.agent_pool().clone();

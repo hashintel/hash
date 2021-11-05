@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use crate::proto::{ExperimentRunRepr, SimulationShortID};
 use crate::simulation::{
-    packages::id::PackageId,
+    package::id::PackageId,
     task::{args::GetTaskArgs, handler::WorkerPoolHandler},
 };
 use futures::future::try_join_all;

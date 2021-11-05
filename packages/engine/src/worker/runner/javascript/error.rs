@@ -1,5 +1,5 @@
 use crate::{
-    simulation::packages::id::PackageId,
+    simulation::package::id::PackageId,
     worker::runner::comms::{inbound::InboundToRunnerMsgPayload, outbound::RunnerError},
 };
 use arrow::datatypes::DataType;

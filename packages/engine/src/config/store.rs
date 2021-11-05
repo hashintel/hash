@@ -7,7 +7,7 @@ use crate::{
         context::ContextSchema,
         state::{AgentSchema, MessageSchema},
     },
-    simulation::packages::creator::PackageCreators,
+    simulation::package::creator::PackageCreators,
 };
 use std::sync::Arc;
 

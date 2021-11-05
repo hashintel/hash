@@ -62,7 +62,7 @@ version = "0.4.11"
 features = ["derive"]
 version = "1.0.111"
 
-# TODO OS rename hash_prime and prime
+# TODO OS - Rename hash_prime and prime
 [lib]
 crate-type = ["lib", "cdylib"]
 name = "hash_prime"

@@ -13,7 +13,7 @@ use crate::datastore::{
     UUID_V4_LEN,
 };
 use crate::hash_types::state::{AgentStateField, BUILTIN_FIELDS};
-use crate::simulation::packages::creator::PREVIOUS_INDEX_COLUMN_NAME;
+use crate::simulation::package::creator::PREVIOUS_INDEX_COLUMN_NAME;
 use arrow::array::{self, Array, ArrayDataBuilder, ArrayRef, PrimitiveBuilder};
 use arrow::buffer::MutableBuffer;
 use arrow::datatypes::{
@@ -609,7 +609,6 @@ fn get_i_col(field: AgentStateField, rb: &RecordBatch) -> Result<Option<usize>> 
     match rb.schema().column_with_name(field.name()) {
         Some((i, _)) => Ok(Some(i)),
         None => {
-            // TODO OS [2] - RUNTIME BLOCK Agent field required, how did this work
             if field.is_required() {
                 Err(Error::BuiltInColumnMissing(field))
             } else {

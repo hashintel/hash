@@ -23,7 +23,7 @@ pub enum Error {
     #[error("Error in `experiments.json`: {0}")]
     Unique(String),
 
-    #[error("Deserialization error for `experiments.json`: {0}")]
+    #[error("{0}")]
     Serde(String),
 
     #[error("Deserialization error for `experiments.json`: {0}")]
@@ -262,7 +262,7 @@ fn _try_read_local_dependencies(local_project: &Project) -> std::io::Result<Vec<
 }
 
 fn local_dependencies_folders(local_project: &Project) -> Vec<PathBuf> {
-    // TODO do we want this wrapper to provide a default, or should we just unwrap
+    // TODO OS - do we want this wrapper to provide a default, or should we just unwrap
     _try_read_local_dependencies(local_project).unwrap_or(vec![])
 }
 
@@ -343,7 +343,12 @@ fn get_simple_experiment_config(
         .clone()
         .ok_or_else(|| Error::ExpectedExperimentsManifest)?;
     let parsed = serde_json::from_str::<SerdeMap<String, SerdeValue>>(&experiments_manifest)
-        .map_err(|_| Error::Serde("Expected experiments.json to contain a json object".into()))?; // TODO OS - why not just use derived from
+        .map_err(|e| {
+            Error::Serde(format!(
+                "Expected experiments.json to contain a json object: {:?}",
+                e
+            ))
+        })?;
     let plan = create_experiment_plan(&parsed, &args.experiment_name)?;
     let config = SimpleExperimentConfig {
         experiment_name: args.experiment_name.clone(),
