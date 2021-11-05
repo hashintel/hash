@@ -133,44 +133,35 @@ impl ConfigBuilder {
     }
 
     pub fn add_init_package(mut self, init_package: InitPackage) -> ConfigBuilder {
-        let new = if let Some(mut pkgs) = self.init {
-            pkgs.insert(init_package);
-            pkgs
-        } else {
-            unit_hash_set(init_package)
+        match self.init {
+            Some(ref mut pkgs) => { pkgs.insert(init_package); }
+            None => { self.init = Some(unit_hash_set(init_package)); }
         };
-        self.set_init_packages(&new)
+        self
     }
 
-    pub fn add_context_package(self, context_package: ContextPackage) -> ConfigBuilder {
-        let new = if let Some(mut pkgs) = self.context {
-            pkgs.insert(context_package);
-            pkgs
-        } else {
-            unit_hash_set(context_package)
+    pub fn add_context_package(mut self, context_package: ContextPackage) -> ConfigBuilder {
+        match self.context {
+            Some(ref mut pkgs) => { pkgs.insert(context_package); },
+            None => { self.context = Some(unit_hash_set(context_package)); }
         };
-        self.set_context_packages(&new)
+        self
     }
 
-    pub fn add_state_package(self, state_package: StatePackage) -> ConfigBuilder {
-        let new = self
-            .state
-            .map(|mut pkgs| {
-                pkgs.push(state_package);
-                pkgs
-            })
-            .unwrap_or_else(|| vec![state_package]);
-        self.set_state_packages(new)
+    pub fn add_state_package(mut self, state_package: StatePackage) -> ConfigBuilder {
+        match self.state {
+            Some(ref mut pkgs) => { pkgs.push(state_package); },
+            None => { self.state = Some(vec![state_package]); }
+        };
+        self
     }
 
-    pub fn add_output_package(self, output_package: OutputPackage) -> ConfigBuilder {
-        let new = if let Some(mut pkgs) = self.output {
-            pkgs.insert(output_package);
-            pkgs
-        } else {
-            unit_hash_set(output_package)
+    pub fn add_output_package(mut self, output_package: OutputPackage) -> ConfigBuilder {
+        match self.output {
+            Some(ref mut pkgs) => { pkgs.insert(output_package); },
+            None => { self.output = Some(unit_hash_set(output_package)); }
         };
-        self.set_output_packages(&new)
+        self
     }
 
     pub fn build(self) -> Result<Config> {
