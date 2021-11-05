@@ -70,7 +70,7 @@ fn new_task_handle<P: SimulationOutputPersistenceRepr>(
     exp_pkg_output_request: Option<UpdateRequest>,
     exp_pkg_output_send: ExpPkgUpdateSend,
 ) -> Result<JoinHandle<Result<SimulationShortID>>> {
-    let task = run::sim_run(
+    let task = Box::pin(run::sim_run(
         config,
         shared_store,
         comms,
@@ -80,7 +80,7 @@ fn new_task_handle<P: SimulationOutputPersistenceRepr>(
         persistence_service,
         exp_pkg_output_request,
         exp_pkg_output_send,
-    );
+    ));
 
     // TODO OS - COMPILE BLOCK - P may not live long enough
     Ok(tokio::task::spawn_blocking(move || {
