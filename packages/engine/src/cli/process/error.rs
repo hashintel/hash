@@ -1,3 +1,4 @@
+use hash_prime::nano;
 use thiserror::Error as ThisError;
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;

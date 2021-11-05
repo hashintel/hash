@@ -1,6 +1,7 @@
 use super::error::{Error, Result};
 use super::process;
 use async_trait::async_trait;
+use hash_prime::nano;
 use hash_prime::proto::{EngineMsg, ExperimentRunRepr};
 
 #[cfg(debug_assertions)]
