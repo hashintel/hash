@@ -31,7 +31,7 @@ impl ActiveTask {
                 TaskResultOrCancelled::Cancelled => {
                     log::warn!("Driving to completion yielded a cancel result");
                     // TODO create a variant for this error
-                    Err(Error::from("Couldn't drive to completion, task cancelled"));
+                    Err(Error::from("Couldn't drive to completion, task cancelled"))
                 }
             };
         } else {
