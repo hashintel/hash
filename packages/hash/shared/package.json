@@ -26,7 +26,7 @@
   "dependencies": {
     "@apollo/client": "3.3.19",
     "@hashintel/block-protocol": "*",
-    "@sentry/browser": "6.14.0",
+    "@sentry/browser": "6.14.1",
     "graphql-tag": "2.12.5",
     "immer": "9.0.6",
     "jsonschema": "1.4.0",
