@@ -311,9 +311,9 @@ fn add_base_agent_fields(field_builder: &mut FieldSpecMapBuilder) -> Result<()> 
     pub fn last_state_index_key() -> FieldSpec {
         // There are 2 indices for every agent: 1) Group index 2) Row (agent) index. This points
         // to the relevant old outbox (i.e. new inbox)
-        FieldSpec::new_built_in(
-            PREVIOUS_INDEX_COLUMN_NAME,
-            FieldType::new(
+        FieldSpec {
+            name: PREVIOUS_INDEX_COLUMN_NAME.to_string(),
+            field_type: FieldType::new(
                 FieldTypeVariant::FixedLengthArray {
                     kind: Box::new(FieldType::new(
                         FieldTypeVariant::Preset(PresetFieldType::Index),
@@ -325,7 +325,7 @@ fn add_base_agent_fields(field_builder: &mut FieldSpecMapBuilder) -> Result<()> 
                 // do not get an index (their outboxes are empty by default)
                 true,
             ),
-        )
+        }
     }
 
     // This key is required for agents to access their context. Since agent
@@ -334,14 +334,14 @@ fn add_base_agent_fields(field_builder: &mut FieldSpecMapBuilder) -> Result<()> 
     #[must_use]
     // TODO migrate this to be logic handled by the Engine
     pub fn context_index_key() -> FieldSpec {
-        FieldSpec::new_built_in(
-            CONTEXT_INDEX_COLUMN_NAME,
-            FieldType::new(
+        FieldSpec {
+            name: CONTEXT_INDEX_COLUMN_NAME.to_string(),
+            field_type: FieldType::new(
                 FieldTypeVariant::Preset(PresetFieldType::Index),
                 // This key is not nullable because all agents have a context
                 false,
             ),
-        )
+        }
     }
 
     let ctx_index = context_index_key();

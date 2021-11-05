@@ -21,7 +21,7 @@ pub trait OutputPersistenceCreatorRepr: Send + Sync + 'static {
 }
 
 #[async_trait::async_trait]
-pub trait SimulationOutputPersistenceRepr: Send + Sync {
+pub trait SimulationOutputPersistenceRepr: Send + Sync + 'static {
     type OutputPersistenceResult: OutputPersistenceResultRepr;
     async fn add_step_output(&mut self, output: SimulationStepOutput) -> Result<()>;
     async fn finalize(self) -> Result<Self::OutputPersistenceResult>;
