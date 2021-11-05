@@ -40,11 +40,11 @@ export const linkedEntities: Resolver<
       )
       .map(async ({ accountId, entityId, entityVersionId }) => {
         const linkedEntity = entityVersionId
-          ? await Entity.getEntity(db)({
+          ? await Entity.getEntity(db, {
               accountId,
               entityVersionId,
             })
-          : await Entity.getEntityLatestVersion(db)({
+          : await Entity.getEntityLatestVersion(db, {
               accountId,
               entityId,
             });

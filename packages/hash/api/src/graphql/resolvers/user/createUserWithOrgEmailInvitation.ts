@@ -18,7 +18,7 @@ export const createUserWithOrgEmailInvitation: Resolver<
   { dataSources, passport },
 ) =>
   dataSources.db.transaction(async (client) => {
-    const org = await Org.getOrgById(client)({ entityId: orgEntityId });
+    const org = await Org.getOrgById(client, { entityId: orgEntityId });
 
     if (!org) {
       const msg = `Org with entityId ${orgEntityId} not found in datastore`;
@@ -34,14 +34,14 @@ export const createUserWithOrgEmailInvitation: Resolver<
     const { inviteeEmailAddress: email } = emailInvitation.properties;
 
     // Ensure the email address isn't already verified and associated with a user.
-    if (await User.getUserByEmail(client)({ email, verified: true })) {
+    if (await User.getUserByEmail(client, { email, verified: true })) {
       throw new ApolloError(
         `User with the email '${email}' already exists in the datastore`,
         "ALREADY_EXISTS",
       );
     }
 
-    const danglingExistingUser = await User.getUserByEmail(client)({
+    const danglingExistingUser = await User.getUserByEmail(client, {
       email,
       primary: true,
       verified: false,
@@ -50,7 +50,7 @@ export const createUserWithOrgEmailInvitation: Resolver<
     // If an existing User entity was found with the primary un-verified email...
     if (danglingExistingUser) {
       // ...we can verify it now and re-use it instead of creating a new user entity.
-      await danglingExistingUser.verifyExistingEmailAddress(client)(email);
+      await danglingExistingUser.verifyExistingEmailAddress(client, email);
     }
 
     /**
@@ -59,7 +59,7 @@ export const createUserWithOrgEmailInvitation: Resolver<
      */
     const user =
       danglingExistingUser ||
-      (await User.createUser(client)({
+      (await User.createUser(client, {
         emails: [{ address: email, primary: true, verified: true }],
         infoProvidedAtSignup: {},
         memberOf: [],

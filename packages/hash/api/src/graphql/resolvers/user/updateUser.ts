@@ -34,9 +34,9 @@ export const updateUser: Resolver<
         );
       }
 
-      await Account.validateShortname(client)(shortname);
+      await Account.validateShortname(client, shortname);
 
-      await user.updateShortname(client)(shortname);
+      await user.updateShortname(client, shortname);
     }
 
     if (preferredName) {
@@ -54,7 +54,7 @@ export const updateUser: Resolver<
         );
       }
 
-      await user.updatePreferredName(client)(preferredName);
+      await user.updatePreferredName(client, preferredName);
     }
 
     if (usingHow) {
@@ -65,7 +65,7 @@ export const updateUser: Resolver<
         );
       }
 
-      await user.updateInfoProvidedAtSignup(client)({ usingHow });
+      await user.updateInfoProvidedAtSignup(client, { usingHow });
     }
 
     return user.toGQLUnknownEntity();

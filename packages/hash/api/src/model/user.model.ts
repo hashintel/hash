@@ -39,118 +39,136 @@ class __User extends Account {
     this.properties = properties;
   }
 
-  static getEntityType = async (client: DBClient): Promise<EntityType> =>
-    client
-      .getSystemTypeLatestVersion({ systemTypeName: "User" })
-      .then((userEntityType) => {
-        if (!userEntityType) {
-          throw new Error("User system entity type not found in datastore");
-        }
+  static async getEntityType(client: DBClient): Promise<EntityType> {
+    const userEntityType = await client.getSystemTypeLatestVersion({
+      systemTypeName: "User",
+    });
 
-        return userEntityType;
-      });
+    if (!userEntityType) {
+      throw new Error("User system entity type not found in datastore");
+    }
 
-  static getUserById =
-    (client: DBClient) =>
-    ({ entityId }: { entityId: string }): Promise<User | null> =>
-      client
-        .getEntityLatestVersion({ accountId: entityId, entityId })
-        .then((dbUser) => (dbUser ? new User(dbUser) : null));
+    return userEntityType;
+  }
 
-  static getUserByEmail =
-    (client: DBClient) =>
-    ({
-      email,
-      verified = true,
-      primary,
-    }: {
+  static async getUserById(
+    client: DBClient,
+    params: { entityId: string },
+  ): Promise<User | null> {
+    const { entityId } = params;
+    const dbUser = await client.getEntityLatestVersion({
+      accountId: entityId,
+      entityId,
+    });
+
+    return dbUser ? new User(dbUser) : null;
+  }
+
+  static async getUserByEmail(
+    client: DBClient,
+    params: {
       email: string;
       verified?: boolean;
       primary?: boolean;
-    }): Promise<User | null> =>
-      client
-        .getUserByEmail({ email, verified, primary })
-        .then((dbUser) => (dbUser ? new User(dbUser) : null));
+    },
+  ): Promise<User | null> {
+    const { verified } = params;
+    const dbUser = await client.getUserByEmail({
+      ...params,
+      verified: verified === undefined ? true : verified,
+    });
 
-  static getUserByShortname =
-    (client: DBClient) =>
-    ({ shortname }: { shortname: string }): Promise<User | null> =>
-      client
-        .getUserByShortname({ shortname })
-        .then((dbUser) => (dbUser ? new User(dbUser) : null));
+    return dbUser ? new User(dbUser) : null;
+  }
 
-  static createUser =
-    (client: DBClient) =>
-    async (properties: DBUserProperties): Promise<User> => {
-      const id = genId();
+  static async getUserByShortname(
+    client: DBClient,
+    params: { shortname: string },
+  ): Promise<User | null> {
+    const dbUser = await client.getUserByShortname(params);
+    return dbUser ? new User(dbUser) : null;
+  }
 
-      const entity = await client.createEntity({
-        accountId: id,
-        entityId: id,
-        createdById: id, // Users "create" themselves
-        entityTypeId: (await User.getEntityType(client)).entityId,
-        properties,
-        versioned: false, // @todo: should user's be versioned?
-      });
+  static async createUser(
+    client: DBClient,
+    properties: DBUserProperties,
+  ): Promise<User> {
+    const id = genId();
 
-      return new User({ ...entity, properties });
-    };
+    const entity = await client.createEntity({
+      accountId: id,
+      entityId: id,
+      createdById: id, // Users "create" themselves
+      entityTypeId: (await User.getEntityType(client)).entityId,
+      properties,
+      versioned: false, // @todo: should user's be versioned?
+    });
 
-  updateProperties(client: DBClient) {
-    return (properties: DBUserProperties) =>
-      super
-        .updateProperties(client)(properties)
-        .then(() => {
-          this.properties = properties;
-          return properties;
-        });
+    return new User({ ...entity, properties });
+  }
+
+  async updateProperties(client: DBClient, properties: DBUserProperties) {
+    await super.updateProperties(client, properties);
+    this.properties = properties;
+
+    return properties;
   }
 
   /**
    * Must occur in the same db transaction as when `this.properties` was fetched
    * to prevent overriding externally-updated properties
    */
-  updateShortname = (client: DBClient) => async (updatedShortname: string) =>
-    this.updateProperties(client)({
+  updateShortname(client: DBClient, updatedShortname: string) {
+    return this.updateProperties(client, {
       ...this.properties,
       shortname: updatedShortname,
     });
+  }
 
-  static preferredNameIsValid = (preferredName: string) => preferredName !== "";
+  static preferredNameIsValid(preferredName: string) {
+    return preferredName !== "";
+  }
 
   /**
    * Must occur in the same db transaction as when `this.properties` was fetched
    * to prevent overriding externally-updated properties
    */
-  updatePreferredName = (client: DBClient) => (updatedPreferredName: string) =>
-    this.updateProperties(client)({
+  updatePreferredName(client: DBClient, updatedPreferredName: string) {
+    return this.updateProperties(client, {
       ...this.properties,
       preferredName: updatedPreferredName,
     });
+  }
 
   /**
    * Must occur in the same db transaction as when `this.properties` was fetched
    * to prevent overriding externally-updated properties
    */
-  updateInfoProvidedAtSignup =
-    (client: DBClient) => (updatedInfo: UserInfoProvidedAtSignup) =>
-      this.updateProperties(client)({
-        ...this.properties,
-        infoProvidedAtSignup: {
-          ...this.properties.infoProvidedAtSignup,
-          ...updatedInfo,
-        },
-      });
+  updateInfoProvidedAtSignup(
+    client: DBClient,
+    updatedInfo: UserInfoProvidedAtSignup,
+  ) {
+    return this.updateProperties(client, {
+      ...this.properties,
+      infoProvidedAtSignup: {
+        ...this.properties.infoProvidedAtSignup,
+        ...updatedInfo,
+      },
+    });
+  }
 
-  static isAccountSignupComplete = (params: {
+  static isAccountSignupComplete(params: {
     shortname?: string | null;
     preferredName?: string | null;
-  }): boolean => !!params.shortname && !!params.preferredName;
+  }): boolean {
+    return !!params.shortname && !!params.preferredName;
+  }
 
-  isAccountSignupComplete = (): boolean =>
-    User.isAccountSignupComplete(this.properties);
+  isAccountSignupComplete(): boolean {
+    return User.isAccountSignupComplete(this.properties);
+  }
 
-  getPrimaryEmail = (): Email => {
+  getPrimaryEmail(): Email {
     const primaryEmail = this.properties.emails.find(
       ({ primary }) => primary === true,
     );
@@ -162,150 +180,155 @@ class __User extends Account {
     }
 
     return primaryEmail;
-  };
+  }
 
-  getEmail = (emailAddress: string): Email | null =>
-    this.properties.emails.find(({ address }) => address === emailAddress) ||
-    null;
-
-  /**
-   * Must occur in the same db transaction as when `this.properties` was fetched
-   * to prevent overriding externally-updated properties
-   */
-  addEmailAddress =
-    (client: DBClient) =>
-    async (email: Email): Promise<User> => {
-      if (
-        await User.getUserByEmail(client)({
-          email: email.address,
-          verified: true,
-        })
-      ) {
-        throw new Error(
-          "Cannot add email address that has already been verified by another user",
-        );
-      }
-
-      if (this.getEmail(email.address)) {
-        throw new Error(
-          `User with entityId ${this.entityId} already has email address ${email.address}`,
-        );
-      }
-
-      await this.updateProperties(client)({
-        ...this.properties,
-        emails: [...this.properties.emails, email],
-      });
-
-      return this;
-    };
+  getEmail(emailAddress: string): Email | null {
+    return (
+      this.properties.emails.find(({ address }) => address === emailAddress) ||
+      null
+    );
+  }
 
   /**
    * Must occur in the same db transaction as when `this.properties` was fetched
    * to prevent overriding externally-updated properties
    */
-  verifyExistingEmailAddress = (client: DBClient) => (emailAddress: string) => {
+  async addEmailAddress(client: DBClient, email: Email): Promise<User> {
+    if (
+      await User.getUserByEmail(client, {
+        email: email.address,
+        verified: true,
+      })
+    ) {
+      throw new Error(
+        "Cannot add email address that has already been verified by another user",
+      );
+    }
+
+    if (this.getEmail(email.address)) {
+      throw new Error(
+        `User with entityId ${this.entityId} already has email address ${email.address}`,
+      );
+    }
+
+    await this.updateProperties(client, {
+      ...this.properties,
+      emails: [...this.properties.emails, email],
+    });
+
+    return this;
+  }
+
+  /**
+   * Must occur in the same db transaction as when `this.properties` was fetched
+   * to prevent overriding externally-updated properties
+   */
+  verifyExistingEmailAddress(client: DBClient, emailAddress: string) {
     if (!this.getEmail(emailAddress)) {
       throw new Error(
         `User with entityId ${this.entityId} does not have email address ${emailAddress}`,
       );
     }
 
-    return this.updateProperties(client)({
+    return this.updateProperties(client, {
       ...this.properties,
       emails: this.properties.emails.map((email) =>
         email.address === emailAddress ? { ...email, verified: true } : email,
       ),
     });
-  };
+  }
 
-  sendLoginVerificationCode =
-    (client: DBClient, tp: EmailTransporter) =>
-    async (params: {
+  async sendLoginVerificationCode(
+    client: DBClient,
+    tp: EmailTransporter,
+    params: {
       alternateEmailAddress?: string;
       redirectPath?: string;
-    }) => {
-      const { alternateEmailAddress, redirectPath } = params;
-      // Check the supplied email address can be used for sending login codes
-      if (alternateEmailAddress) {
-        const email = this.getEmail(alternateEmailAddress);
-        if (!email) {
-          throw new Error(
-            `User with entityId '${this.entityId}' does not have an email address '${alternateEmailAddress}'`,
-          );
-        }
-        if (!email.verified) {
-          throw new Error(
-            `User with entityId '${this.entityId}' hasn't verified the email address '${alternateEmailAddress}'`,
-          );
-        }
-      }
-
-      const allowed = await this.canCreateVerificationCode(client)();
-      if (!allowed) {
-        throw new ApolloError(
-          `User with id ${this.entityId} has created too many verification codes recently.`,
-          "FORBIDDEN",
-        );
-      }
-
-      const emailAddress =
-        alternateEmailAddress || this.getPrimaryEmail().address;
-
-      const verificationCode = await VerificationCode.create(client)({
-        accountId: this.accountId,
-        userId: this.entityId,
-        emailAddress,
-      });
-
-      return sendLoginCodeToEmailAddress(tp)({
-        verificationCode,
-        emailAddress,
-        redirectPath,
-      }).then(() => verificationCode);
-    };
-
-  sendEmailVerificationCode =
-    (client: DBClient, tp: EmailTransporter) =>
-    async (params: { emailAddress: string; magicLinkQueryParams?: string }) => {
-      const { emailAddress, magicLinkQueryParams } = params;
-
-      const email = this.getEmail(emailAddress);
-
+    },
+  ) {
+    const { alternateEmailAddress, redirectPath } = params;
+    // Check the supplied email address can be used for sending login codes
+    if (alternateEmailAddress) {
+      const email = this.getEmail(alternateEmailAddress);
       if (!email) {
         throw new Error(
-          `User with entityId '${this.entityId}' does not have an email address '${emailAddress}'`,
+          `User with entityId '${this.entityId}' does not have an email address '${alternateEmailAddress}'`,
         );
       }
-
-      if (email.verified) {
+      if (!email.verified) {
         throw new Error(
-          `User with id '${this.entityId}' has already verified the email address '${emailAddress}'`,
+          `User with entityId '${this.entityId}' hasn't verified the email address '${alternateEmailAddress}'`,
         );
       }
+    }
 
-      const allowed = await this.canCreateVerificationCode(client)();
-      if (!allowed) {
-        throw new ApolloError(
-          `User with id ${this.entityId} has created too many verification codes recently.`,
-          "FORBIDDEN",
-        );
-      }
+    const allowed = await this.canCreateVerificationCode(client);
+    if (!allowed) {
+      throw new ApolloError(
+        `User with id ${this.entityId} has created too many verification codes recently.`,
+        "FORBIDDEN",
+      );
+    }
 
-      const verificationCode = await VerificationCode.create(client)({
-        accountId: this.accountId,
-        userId: this.entityId,
-        emailAddress,
-      });
+    const emailAddress =
+      alternateEmailAddress || this.getPrimaryEmail().address;
 
-      return sendEmailVerificationCodeToEmailAddress(tp)({
-        verificationCode,
-        emailAddress,
-        magicLinkQueryParams,
-      }).then(() => verificationCode);
-    };
+    const verificationCode = await VerificationCode.create(client, {
+      accountId: this.accountId,
+      userId: this.entityId,
+      emailAddress,
+    });
 
-  canCreateVerificationCode = (client: DBClient) => async () => {
+    return sendLoginCodeToEmailAddress(tp)({
+      verificationCode,
+      emailAddress,
+      redirectPath,
+    }).then(() => verificationCode);
+  }
+
+  async sendEmailVerificationCode(
+    client: DBClient,
+    tp: EmailTransporter,
+    params: { emailAddress: string; magicLinkQueryParams?: string },
+  ) {
+    const { emailAddress, magicLinkQueryParams } = params;
+
+    const email = this.getEmail(emailAddress);
+
+    if (!email) {
+      throw new Error(
+        `User with entityId '${this.entityId}' does not have an email address '${emailAddress}'`,
+      );
+    }
+
+    if (email.verified) {
+      throw new Error(
+        `User with id '${this.entityId}' has already verified the email address '${emailAddress}'`,
+      );
+    }
+
+    const allowed = await this.canCreateVerificationCode(client);
+    if (!allowed) {
+      throw new ApolloError(
+        `User with id ${this.entityId} has created too many verification codes recently.`,
+        "FORBIDDEN",
+      );
+    }
+
+    const verificationCode = await VerificationCode.create(client, {
+      accountId: this.accountId,
+      userId: this.entityId,
+      emailAddress,
+    });
+
+    return sendEmailVerificationCodeToEmailAddress(tp)({
+      verificationCode,
+      emailAddress,
+      magicLinkQueryParams,
+    }).then(() => verificationCode);
+  }
+
+  async canCreateVerificationCode(client: DBClient) {
     const createdAfter = getEmailRateLimitQueryTime();
     const verificationCodes = await client.getUserVerificationCodes({
       userEntityId: this.entityId,
@@ -315,39 +338,43 @@ class __User extends Account {
       return false;
     }
     return true;
-  };
+  }
 
-  isMemberOfOrg = ({ entityId }: Org) =>
-    this.properties.memberOf.find(
-      ({ org }) => org.__linkedData.entityId === entityId,
-    ) !== undefined;
+  isMemberOfOrg({ entityId }: Org) {
+    return (
+      this.properties.memberOf.find(
+        ({ org }) => org.__linkedData.entityId === entityId,
+      ) !== undefined
+    );
+  }
 
   /**
    * Must occur in the same db transaction as when `this.properties` was fetched
    * to prevent overriding externally-updated properties
    */
-  joinOrg =
-    (client: DBClient) =>
-    async (params: { org: Org; responsibility: string }) => {
-      if (this.isMemberOfOrg(params.org)) {
-        throw new Error(
-          `User with entityId '${this.entityId}' is already a member of the organization with entityId '${params.org.entityId}'`,
-        );
-      }
+  async joinOrg(
+    client: DBClient,
+    params: { org: Org; responsibility: string },
+  ) {
+    if (this.isMemberOfOrg(params.org)) {
+      throw new Error(
+        `User with entityId '${this.entityId}' is already a member of the organization with entityId '${params.org.entityId}'`,
+      );
+    }
 
-      await this.updateProperties(client)({
-        ...this.properties,
-        memberOf: [
-          ...this.properties.memberOf,
-          {
-            org: params.org.convertToDBLink(),
-            responsibility: params.responsibility,
-          },
-        ],
-      });
+    await this.updateProperties(client, {
+      ...this.properties,
+      memberOf: [
+        ...this.properties.memberOf,
+        {
+          org: params.org.convertToDBLink(),
+          responsibility: params.responsibility,
+        },
+      ],
+    });
 
-      return this;
-    };
+    return this;
+  }
 }
 
 export default __User;

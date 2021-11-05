@@ -22,7 +22,8 @@ export const createEntity: Resolver<
 ) => {
   /** @todo restrict creation of protected types, e.g. User, Org */
 
-  const entity = await Entity.create(dataSources.db)(
+  const entity = await Entity.create(
+    dataSources.db,
     createEntityArgsBuilder({
       accountId,
       createdById: user.entityId,

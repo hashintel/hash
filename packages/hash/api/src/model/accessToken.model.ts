@@ -23,37 +23,37 @@ abstract class __AccessToken extends Entity {
    * Generates a cryptographically secure access token.
    * @returns the access token
    */
-  static generateAccessToken = () => crypto.randomBytes(16).toString("hex");
+  static generateAccessToken() {
+    return crypto.randomBytes(16).toString("hex");
+  }
 
-  protected updateProperties(client: DBClient) {
-    return (properties: any) =>
-      super
-        .updateProperties(client)(properties)
-        .then(() => {
-          this.properties = properties;
-          return properties;
-        });
+  protected async updateProperties(client: DBClient, properties: any) {
+    await super.updateProperties(client, properties);
+    this.properties = properties;
+    return properties;
   }
 
   /**
    * Revokes the access token, so that it can no longer be used.
    */
-  revoke = (client: DBClient) => {
+  revoke(client: DBClient) {
     if (this.hasBeenRevoked()) {
       throw new Error(
         `${this.entityType.properties.title} access token with entityId ${this.entityId} has already been revoked`,
       );
     }
-    return this.updateProperties(client)({
+    return this.updateProperties(client, {
       ...this.properties,
       revokedAt: new Date().toISOString(),
     });
-  };
+  }
 
   /**
    * @returns whether or not the access token has been revoked.
    */
-  hasBeenRevoked = (): boolean => !!this.properties.revokedAt;
+  hasBeenRevoked(): boolean {
+    return !!this.properties.revokedAt;
+  }
 }
 
 export default __AccessToken;

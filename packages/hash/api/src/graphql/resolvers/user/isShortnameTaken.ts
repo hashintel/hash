@@ -11,5 +11,5 @@ export const isShortnameTaken: Resolver<
   dataSources.db.transaction(
     async (client) =>
       User.isShortnameReserved(shortname) ||
-      (await User.isShortnameTaken(client)(shortname)),
+      (await User.isShortnameTaken(client, shortname)),
   );

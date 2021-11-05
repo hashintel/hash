@@ -17,7 +17,7 @@ export const createOrgEmailInvitation: Resolver<
   { emailTransporter, dataSources, user },
 ) =>
   dataSources.db.transaction(async (client) => {
-    const org = await Org.getOrgById(client)({ entityId: orgEntityId });
+    const org = await Org.getOrgById(client, { entityId: orgEntityId });
 
     if (!org) {
       const msg = `Org with entityId ${orgEntityId} not found in datastore`;
@@ -49,7 +49,8 @@ export const createOrgEmailInvitation: Resolver<
     const emailInvitation = await OrgEmailInvitation.createOrgEmailInvitation(
       client,
       emailTransporter,
-    )({ org, inviter: user, inviteeEmailAddress });
+      { org, inviter: user, inviteeEmailAddress },
+    );
 
     return emailInvitation.toGQLUnknownEntity();
   });

@@ -46,7 +46,7 @@ void (async () => {
   );
 
   // Get the hash org - it's already been created as part of db migration
-  const hashOrg = await Org.getOrgByShortname(db)({ shortname: "hash" });
+  const hashOrg = await Org.getOrgByShortname(db, { shortname: "hash" });
 
   if (!hashOrg) {
     throw new Error(`
@@ -80,7 +80,7 @@ void (async () => {
 
   await Promise.all(
     requiredTypes.map(async (name) => {
-      const entityType = await EntityType.create(db)({
+      const entityType = await EntityType.create(db, {
         accountId: hashOrg.accountId,
         createdById: hashOrg.entityId, // TODO
         name,
@@ -109,7 +109,7 @@ void (async () => {
     const names = Array.from(items.keys());
     const mutations = await Promise.all(
       Array.from(items.values()).map((val) =>
-        Entity.create(db)({
+        Entity.create(db, {
           ...val,
           versioned: val.versioned ?? true,
         }),

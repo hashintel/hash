@@ -23,7 +23,7 @@ export const sendLoginCode: Resolver<
     const hasProvidedEmail = emailOrShortname.includes("@");
 
     const user = hasProvidedEmail
-      ? await User.getUserByEmail(client)({
+      ? await User.getUserByEmail(client, {
           email: emailOrShortname,
           verified: true,
         }).then((fetchedUser) => {
@@ -40,7 +40,7 @@ export const sendLoginCode: Resolver<
           }
           return fetchedUser;
         })
-      : await User.getUserByShortname(client)({
+      : await User.getUserByShortname(client, {
           shortname: emailOrShortname,
         }).then((fetchedUser) => {
           if (!fetchedUser) {
@@ -55,10 +55,7 @@ export const sendLoginCode: Resolver<
     /** @todo: rate limit login codes sent to the user */
 
     return user
-      .sendLoginVerificationCode(
-        client,
-        emailTransporter,
-      )({
+      .sendLoginVerificationCode(client, emailTransporter, {
         alternateEmailAddress: hasProvidedEmail ? emailOrShortname : undefined,
         redirectPath: redirectPath || undefined,
       })

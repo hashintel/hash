@@ -12,7 +12,7 @@ export const deleteLink: Resolver<
 > = async (_, args, { dataSources }) =>
   dataSources.db.transaction(async (client) => {
     const { sourceAccountId, sourceEntityId } = args;
-    const sourceEntity = await Entity.getEntityLatestVersion(client)({
+    const sourceEntity = await Entity.getEntityLatestVersion(client, {
       accountId: sourceAccountId,
       entityId: sourceEntityId,
     });
@@ -38,7 +38,7 @@ export const deleteLink: Resolver<
 
     jp.value(sourceEntity.properties, path, undefined);
 
-    await sourceEntity.updateEntityProperties(client)(sourceEntity.properties);
+    await sourceEntity.updateEntityProperties(client, sourceEntity.properties);
 
     return true;
   });

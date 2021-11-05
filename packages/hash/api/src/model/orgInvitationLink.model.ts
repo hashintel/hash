@@ -31,85 +31,87 @@ class __OrgInvitationLink extends AccessToken {
     this.errorMsgPrefix = `The invitation link with entityId ${this.entityId} associated with org with entityId ${this.properties.org.__linkedData.entityId}`;
   }
 
-  static getEntityType = async (client: DBClient): Promise<EntityType> =>
-    client
-      .getSystemTypeLatestVersion({ systemTypeName: "OrgInvitationLink" })
-      .then((entityType) => {
-        if (!entityType) {
-          throw new Error(
-            "OrgInvitationLink system entity type not found in datastore",
-          );
-        }
+  static async getEntityType(client: DBClient): Promise<EntityType> {
+    const dbEntityType = await client.getSystemTypeLatestVersion({
+      systemTypeName: "OrgInvitationLink",
+    });
 
-        return entityType;
-      });
+    if (!dbEntityType) {
+      throw new Error(
+        "OrgInvitationLink system entity type not found in datastore",
+      );
+    }
+
+    return dbEntityType;
+  }
 
   /**
    * Create an org invitation.
    * @param {Org} org - The organisation the invitation is associated with.
    */
-  static createOrgInvitationLink =
-    (client: DBClient) =>
-    async (params: {
+  static async createOrgInvitationLink(
+    client: DBClient,
+    params: {
       org: Org;
       createdById: string;
-    }): Promise<OrgInvitationLink> => {
-      const { org, createdById } = params;
+    },
+  ): Promise<OrgInvitationLink> {
+    const { org, createdById } = params;
 
-      const properties: DBOrgInvitationLinkProperties = {
-        useCount: 0,
-        accessToken: AccessToken.generateAccessToken(),
-        org: org.convertToDBLink(),
-      };
-
-      const entity = await client.createEntity({
-        accountId: org.accountId,
-        createdById,
-        entityTypeId: (await OrgInvitationLink.getEntityType(client)).entityId,
-        properties,
-        versioned: false,
-      });
-
-      const orgInvitationLink = new OrgInvitationLink({
-        ...entity,
-        properties,
-      });
-
-      /**
-       * @todo: remove this when we have a way of resolving the inverse
-       * relationship of (OrgInvitationLink)-[org]->(Org)
-       */
-
-      org.properties.invitationLink = orgInvitationLink.convertToDBLink();
-
-      return orgInvitationLink;
+    const properties: DBOrgInvitationLinkProperties = {
+      useCount: 0,
+      accessToken: AccessToken.generateAccessToken(),
+      org: org.convertToDBLink(),
     };
 
-  updateProperties(client: DBClient) {
-    return (properties: DBOrgInvitationLinkProperties) =>
-      super
-        .updateProperties(client)(properties)
-        .then(() => {
-          this.properties = properties;
-          return properties;
-        });
+    const entity = await client.createEntity({
+      accountId: org.accountId,
+      createdById,
+      entityTypeId: (await OrgInvitationLink.getEntityType(client)).entityId,
+      properties,
+      versioned: false,
+    });
+
+    const orgInvitationLink = new OrgInvitationLink({
+      ...entity,
+      properties,
+    });
+
+    /**
+     * @todo: remove this when we have a way of resolving the inverse
+     * relationship of (OrgInvitationLink)-[org]->(Org)
+     */
+
+    org.properties.invitationLink = orgInvitationLink.convertToDBLink();
+
+    return orgInvitationLink;
+  }
+
+  async updateProperties(
+    client: DBClient,
+    properties: DBOrgInvitationLinkProperties,
+  ) {
+    await super.updateProperties(client, properties);
+    this.properties = properties;
+    return properties;
   }
 
   /**
    * Increments the use count of the invitation.
    */
-  use = (client: DBClient) =>
-    this.updateProperties(client)({
+  use(client: DBClient) {
+    return this.updateProperties(client, {
       ...this.properties,
       useCount: this.properties.useCount + 1,
     });
+  }
 
-  validate = (errorCodePrefix?: string) => {
+  validate(errorCodePrefix?: string) {
     if (this.hasBeenRevoked()) {
       const msg = `${this.errorMsgPrefix} has been revoked.`;
       throw new ApolloError(msg, `${errorCodePrefix}REVOKED`);
     }
-  };
+  }
 }
 
 export default __OrgInvitationLink;

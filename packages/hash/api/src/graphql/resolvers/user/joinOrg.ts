@@ -16,7 +16,7 @@ export const joinOrg: Resolver<
 
     await user.refetchLatestVersion(client);
 
-    const org = await Org.getOrgById(client)({ entityId: orgEntityId });
+    const org = await Org.getOrgById(client, { entityId: orgEntityId });
 
     if (!org) {
       const msg = `Org with entityId ${orgEntityId} not found in datastore`;
@@ -44,7 +44,7 @@ export const joinOrg: Resolver<
 
     /** @todo: verify the invitation hasn't expired */
 
-    await user.joinOrg(client)({ org, responsibility });
+    await user.joinOrg(client, { org, responsibility });
 
     await invitation.use(client);
 
@@ -55,7 +55,7 @@ export const joinOrg: Resolver<
       // If the user doesn't have an email with the inviteeEmailAddress...
       if (!existingUserEmail) {
         // ...we can create it.
-        await user.addEmailAddress(client)({
+        await user.addEmailAddress(client, {
           address: inviteeEmailAddress,
           primary: false,
           verified: true,
@@ -63,7 +63,7 @@ export const joinOrg: Resolver<
         // If the user has an email with the inviteeEmailAddress that isn't verified...
       } else if (!existingUserEmail.verified) {
         // ...we can verify it.
-        await user.verifyExistingEmailAddress(client)(inviteeEmailAddress);
+        await user.verifyExistingEmailAddress(client, inviteeEmailAddress);
       }
     }
 

@@ -41,7 +41,8 @@ const createBlock = async (
   // @todo: if we generate the entity IDs up-front, the entity and the block may
   // be created concurrently.
 
-  const newEntity = await Entity.create(client)(
+  const newEntity = await Entity.create(
+    client,
     createEntityArgsBuilder({
       accountId: params.accountId,
       createdById: user.entityId,
@@ -59,7 +60,7 @@ const createBlock = async (
     accountId: params.accountId,
     componentId: params.componentId,
   };
-  const newBlock = await Entity.create(client)({
+  const newBlock = await Entity.create(client, {
     accountId: params.accountId,
     createdById: user.entityId,
     systemTypeName: "Block",
@@ -138,14 +139,14 @@ export const updatePageContents: Resolver<
     await Promise.all(
       actions
         .filter((action) => action.updateEntity)
-        .map((action) => Entity.updateProperties(client)(action.updateEntity!)),
+        .map((action) => Entity.updateProperties(client, action.updateEntity!)),
     );
 
     // Lock the page so that no other concurrent call to this resolver will conflict
     // with the page update.
-    await Entity.acquireLock(client)({ entityId });
+    await Entity.acquireLock(client, { entityId });
 
-    const page = await Entity.getEntityLatestVersion(client)({
+    const page = await Entity.getEntityLatestVersion(client, {
       accountId,
       entityId,
     });
@@ -183,11 +184,11 @@ export const updatePageContents: Resolver<
       }
     }
     if (propertiesChanged) {
-      await page.updateEntityProperties(client)(pageProperties);
+      await page.updateEntityProperties(client, pageProperties);
     }
 
     // Return the new state of the page
-    const updatedPage = await Entity.getEntityLatestVersion(client)({
+    const updatedPage = await Entity.getEntityLatestVersion(client, {
       accountId,
       entityId,
     });

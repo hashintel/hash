@@ -10,7 +10,8 @@ export const contents: Resolver<
   DbPage["properties"],
   GraphQLContext
 > = async (properties, _, { dataSources }) => {
-  const entities = await Entity.getEntities(dataSources.db)(
+  const entities = await Entity.getEntities(
+    dataSources.db,
     properties.contents.map(({ accountId, entityId }) => ({
       accountId,
       entityId,

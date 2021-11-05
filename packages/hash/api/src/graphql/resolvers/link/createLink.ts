@@ -17,7 +17,7 @@ export const createLink: Resolver<
 > = async (_, args, { dataSources }) =>
   dataSources.db.transaction(async (client) => {
     const { sourceAccountId, sourceEntityId } = args;
-    const sourceEntity = await Entity.getEntityLatestVersion(client)({
+    const sourceEntity = await Entity.getEntityLatestVersion(client, {
       accountId: sourceAccountId,
       entityId: sourceEntityId,
     });
@@ -35,11 +35,11 @@ export const createLink: Resolver<
       destinationEntityVersionId,
     } = args;
     const destinationEntity = destinationEntityVersionId
-      ? await Entity.getEntity(client)({
+      ? await Entity.getEntity(client, {
           accountId: destinationAccountId,
           entityVersionId: destinationEntityVersionId,
         })
-      : await Entity.getEntityLatestVersion(client)({
+      : await Entity.getEntityLatestVersion(client, {
           accountId: destinationAccountId,
           entityId: destinationEntityId,
         });
@@ -62,7 +62,7 @@ export const createLink: Resolver<
       },
     });
 
-    await sourceEntity.updateEntityProperties(client)(sourceEntity.properties);
+    await sourceEntity.updateEntityProperties(client, sourceEntity.properties);
 
     return { ...args, id: genId() };
   });

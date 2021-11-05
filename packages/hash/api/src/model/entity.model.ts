@@ -112,113 +112,119 @@ class __Entity {
     this.entityVersionUpdatedAt = entityVersionUpdatedAt;
   }
 
-  static create =
-    (client: DBClient) =>
-    async (args: CreateEntityArgs): Promise<Entity> =>
-      client.createEntity(args).then((dbEntity) => new Entity(dbEntity));
+  static async create(
+    client: DBClient,
+    params: CreateEntityArgs,
+  ): Promise<Entity> {
+    const dbEntity = await client.createEntity(params);
 
-  static getEntity =
-    (client: DBClient) =>
-    async (args: {
+    return new Entity(dbEntity);
+  }
+
+  static async getEntity(
+    client: DBClient,
+    params: {
       accountId: string;
       entityVersionId: string;
-    }): Promise<Entity | null> => {
-      const dbEntity = await client.getEntity(args);
+    },
+  ): Promise<Entity | null> {
+    const dbEntity = await client.getEntity(params);
 
-      return dbEntity ? new Entity(dbEntity) : null;
-    };
+    return dbEntity ? new Entity(dbEntity) : null;
+  }
 
-  static getEntityLatestVersion =
-    (client: DBClient) =>
-    async (args: {
+  static async getEntityLatestVersion(
+    client: DBClient,
+    params: {
       accountId: string;
       entityId: string;
-    }): Promise<Entity | null> => {
-      const dbEntity = await client.getEntityLatestVersion(args);
+    },
+  ): Promise<Entity | null> {
+    const dbEntity = await client.getEntityLatestVersion(params);
 
-      return dbEntity ? new Entity(dbEntity) : null;
-    };
+    return dbEntity ? new Entity(dbEntity) : null;
+  }
 
-  static getEntitiesByType =
-    (client: DBClient) =>
-    async (args: {
+  static async getEntitiesByType(
+    client: DBClient,
+    params: {
       accountId: string;
       entityTypeId: string;
       entityTypeVersionId?: string;
       latestOnly: boolean;
-    }): Promise<Entity[]> =>
-      client
-        .getEntitiesByType(args)
-        .then((dbEntities) =>
-          dbEntities.map((dbEntity) => new Entity(dbEntity)),
-        );
+    },
+  ): Promise<Entity[]> {
+    const dbEntities = await client.getEntitiesByType(params);
 
-  static getEntitiesBySystemType =
-    (client: DBClient) =>
-    async (args: {
+    return dbEntities.map((dbEntity) => new Entity(dbEntity));
+  }
+
+  static async getEntitiesBySystemType(
+    client: DBClient,
+    params: {
       accountId: string;
       latestOnly: boolean;
       systemTypeName: SystemType;
-    }): Promise<Entity[]> =>
-      client
-        .getEntitiesBySystemType(args)
-        .then((dbEntities) =>
-          dbEntities.map((dbEntity) => new Entity(dbEntity)),
-        );
-
-  static getEntities =
-    (client: DBClient) =>
-    async (
-      entities: {
-        accountId: string;
-        entityId: string;
-        entityVersionId?: string;
-      }[],
-    ): Promise<Entity[]> => {
-      const dbEntities = await client.getEntities(entities);
-
-      return dbEntities.map((dbEntity) => new Entity(dbEntity));
-    };
-
-  static updateProperties =
-    (client: DBClient) =>
-    (args: { accountId: string; entityId: string; properties: string }) =>
-      client
-        .updateEntity(args)
-        .then((updatedDbEntity) => new Entity(updatedDbEntity));
-
-  convertToDBLink = (): DBLinkedEntity => ({
-    __linkedData: {
-      entityId: this.entityId,
-      entityTypeId: this.entityType.entityId,
     },
-  });
+  ): Promise<Entity[]> {
+    const dbEntities = await client.getEntitiesBySystemType(params);
 
-  protected updateProperties(client: DBClient) {
-    return (properties: any) =>
-      client
-        .updateEntity({
-          accountId: this.accountId,
-          entityId: this.entityId,
-          properties,
-        })
-        .then((updatedDbEntity) => {
-          merge(this, new Entity(updatedDbEntity));
-
-          return this.properties;
-        });
+    return dbEntities.map((dbEntity) => new Entity(dbEntity));
   }
 
-  updateEntityProperties(client: DBClient) {
-    return (properties: JSONObject) =>
-      this.updateProperties(client)(properties);
+  static async getEntities(
+    client: DBClient,
+    entities: {
+      accountId: string;
+      entityId: string;
+      entityVersionId?: string;
+    }[],
+  ): Promise<Entity[]> {
+    const dbEntities = await client.getEntities(entities);
+
+    return dbEntities.map((dbEntity) => new Entity(dbEntity));
   }
 
-  static acquireLock = (client: DBClient) => (args: { entityId: string }) =>
-    client.acquireEntityLock(args);
+  static async updateProperties(
+    client: DBClient,
+    params: { accountId: string; entityId: string; properties: string },
+  ) {
+    const updatedDbEntity = await client.updateEntity(params);
 
-  acquireLock = (client: DBClient) =>
-    Entity.acquireLock(client)({ entityId: this.entityId });
+    return new Entity(updatedDbEntity);
+  }
+
+  convertToDBLink(): DBLinkedEntity {
+    return {
+      __linkedData: {
+        entityId: this.entityId,
+        entityTypeId: this.entityType.entityId,
+      },
+    };
+  }
+
+  protected async updateProperties(client: DBClient, properties: any) {
+    const updatedDbEntity = await client.updateEntity({
+      accountId: this.accountId,
+      entityId: this.entityId,
+      properties,
+    });
+    merge(this, new Entity(updatedDbEntity));
+
+    return this.properties;
+  }
+
+  updateEntityProperties(client: DBClient, properties: JSONObject) {
+    return this.updateProperties(client, properties);
+  }
+
+  static acquireLock(client: DBClient, params: { entityId: string }) {
+    return client.acquireEntityLock(params);
+  }
+
+  acquireLock(client: DBClient) {
+    return Entity.acquireLock(client, { entityId: this.entityId });
+  }
 
   /**
    * Refetches the entity's latest version, updating the entity's properties
@@ -226,7 +232,7 @@ class __Entity {
    *
    * This may update the `entityVersionId` if the entity is versioned.
    */
-  refetchLatestVersion = async (client: DBClient) => {
+  async refetchLatestVersion(client: DBClient) {
     const refetchedDbEntity = await client.getEntityLatestVersion({
       accountId: this.accountId,
       entityId: this.entityId,
@@ -241,30 +247,34 @@ class __Entity {
     merge(this, new Entity(refetchedDbEntity));
 
     return this;
-  };
+  }
 
-  toGQLEntity = (): Omit<UnresolvedGQLEntity, "properties"> => ({
-    id: this.entityVersionId,
-    entityId: this.entityId,
-    entityVersionId: this.entityVersionId,
-    createdById: this.createdById,
-    accountId: this.accountId,
-    entityTypeId: this.entityType.entityId,
-    entityTypeVersionId: this.entityType.entityVersionId,
-    /** @todo: stop casting this */
-    entityTypeName: this.entityType.properties.title as string,
-    entityType: this.entityType.toGQLEntityType(),
-    metadataId: this.entityId,
-    createdAt: this.entityCreatedAt,
-    entityVersionCreatedAt: this.entityVersionCreatedAt,
-    updatedAt: this.entityVersionUpdatedAt,
-    visibility: this.visibility,
-  });
+  toGQLEntity(): Omit<UnresolvedGQLEntity, "properties"> {
+    return {
+      id: this.entityVersionId,
+      entityId: this.entityId,
+      entityVersionId: this.entityVersionId,
+      createdById: this.createdById,
+      accountId: this.accountId,
+      entityTypeId: this.entityType.entityId,
+      entityTypeVersionId: this.entityType.entityVersionId,
+      /** @todo: stop casting this */
+      entityTypeName: this.entityType.properties.title as string,
+      entityType: this.entityType.toGQLEntityType(),
+      metadataId: this.entityId,
+      createdAt: this.entityCreatedAt,
+      entityVersionCreatedAt: this.entityVersionCreatedAt,
+      updatedAt: this.entityVersionUpdatedAt,
+      visibility: this.visibility,
+    };
+  }
 
-  toGQLUnknownEntity = (): UnresolvedGQLUnknownEntity => ({
-    ...this.toGQLEntity(),
-    properties: this.properties,
-  });
+  toGQLUnknownEntity(): UnresolvedGQLUnknownEntity {
+    return {
+      ...this.toGQLEntity(),
+      properties: this.properties,
+    };
+  }
 }
 
 export default __Entity;

@@ -21,14 +21,14 @@ class AwsSesEmailTransporter implements EmailTransporter {
     });
   }
 
-  sendMail = ({
+  sendMail({
     from = "HASH <support@hash.ai>",
     to,
     subject,
     text,
     html,
-  }: SendMailOptions) =>
-    this.transporter
+  }: SendMailOptions) {
+    return this.transporter
       .sendMail({
         from,
         to,
@@ -40,6 +40,7 @@ class AwsSesEmailTransporter implements EmailTransporter {
       .catch((err) => {
         logger.error("Error sending email: ", err);
       });
+  }
 }
 
 export default AwsSesEmailTransporter;
