@@ -26,14 +26,16 @@ impl ActiveTask {
                 .ok_or_else(|| Error::from("Couldn't take result recv"))?;
             let result = recv.await?;
             self.running = false;
-            return match result {
-                TaskResultOrCancelled::Result(result) => Ok(result),
+            match result {
+                TaskResultOrCancelled::Result(result) => {
+                    Ok(result)
+                }
                 TaskResultOrCancelled::Cancelled => {
                     log::warn!("Driving to completion yielded a cancel result");
                     // TODO create a variant for this error
                     Err(Error::from("Couldn't drive to completion, task cancelled"))
                 }
-            };
+            }
         } else {
             Err(Error::from("Task is not running"))
         }
