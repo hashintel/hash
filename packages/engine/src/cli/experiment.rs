@@ -6,6 +6,7 @@ use crate::{
     Args,
 };
 use hash_prime::proto;
+use hash_prime::proto::ExecutionEnvironment;
 use std::path::PathBuf;
 use std::time::Duration;
 use tokio::time::{self, timeout};
@@ -75,7 +76,7 @@ async fn run_experiment_with_manifest(
     // Now we can send the init message
     let init_message = proto::InitMessage {
         experiment: experiment_run.clone(),
-        env: args.environment.clone().into(), // TODO OS - COMPILE BLOCK - No mention of type ExecutionEnvironment in args
+        env: ExecutionEnvironment::None, // We don't connect to the API
         dyn_payloads: Default::default(),
     };
     engine_process
