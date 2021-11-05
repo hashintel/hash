@@ -76,7 +76,7 @@ impl GetWorkerStartMsg for Topology {
 impl Package for Topology {
     async fn run(&mut self, state: &mut ExState, context: &Context) -> Result<()> {
         if self.config.move_wrapped_agents {
-            for mut_table in state.agent_pool_mut().write_batches()? {
+            for mut mut_table in state.agent_pool_mut().write_batches()? {
                 if self.topology_correction(&mut mut_table)? {
                     // TODO inplace changes and metaversioning should happen at a deeper level.
                     mut_table.metaversion.increment_batch();
