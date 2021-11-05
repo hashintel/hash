@@ -25,6 +25,7 @@ impl SimulationOutputPersistenceRepr for LocalSimulationOutputPersistence {
     async fn add_step_output(&mut self, output: SimulationStepOutput) -> Result<()> {
         output.0.into_iter().try_for_each(|output| {
             match output {
+                // TODO OS - COMPILE BLOCK - Output destructure needs to work with the enum_dispatch
                 Output::AnalysisOutput(output) => {
                     self.buffers.analysis.add(output)?;
                 }
@@ -43,7 +44,7 @@ impl SimulationOutputPersistenceRepr for LocalSimulationOutputPersistence {
         self.buffers.json_state.persist_current_on_disk()?;
         let mut path = self.config.output_folder.clone();
         path.extend(["/", &self.exp_id]);
-        std::fs::create_dir(path)?;
+        std::fs::create_dir(&path)?;
         self.buffers
             .json_state
             .parts

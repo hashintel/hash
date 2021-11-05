@@ -28,7 +28,7 @@ pub fn comms() -> (ActiveTaskOwnerComms, ActiveTaskExecutorComms) {
             cancel_send: Some(cancel_send),
         },
         ActiveTaskExecutorComms {
-            result_send,
+            result_send: Some(result_send),
             cancel_recv,
         },
     )
