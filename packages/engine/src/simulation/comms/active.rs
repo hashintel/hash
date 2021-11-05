@@ -1,10 +1,7 @@
 use std::fmt::{Debug, Formatter};
 use tokio::sync::oneshot::{channel, Receiver, Sender};
 
-use crate::simulation::task::{
-    cancel::CancelTask,
-    result::{TaskResult, TaskResultOrCancelled},
-};
+use crate::simulation::task::{cancel::CancelTask, result::TaskResultOrCancelled};
 
 pub struct ActiveTaskOwnerComms {
     pub result_recv: Option<Receiver<TaskResultOrCancelled>>,

@@ -1,4 +1,3 @@
-use futures::future::{BoxFuture, OptionFuture};
 use std::sync::Arc;
 use std::time::Duration;
 
