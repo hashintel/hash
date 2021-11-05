@@ -25,7 +25,8 @@ export type LinkedDataDefinition = {
   entityVersionId?: string;
 };
 
-/** Builds the argument object for the createEntity function. It checks that exactly
+/**
+ * Builds the argument object for the createEntity function. It checks that exactly
  * one of entityTypeId, entityTypeVersionId or systemTypeName is set, and returns
  * the correct variant of CreateEntityArgs.
  */

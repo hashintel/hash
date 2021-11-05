@@ -5,6 +5,7 @@ import {
   AccountConstructorArgs,
   VerificationCode,
   Org,
+  OrgMembership,
 } from ".";
 import { DBClient } from "../db";
 import {
@@ -340,10 +341,32 @@ class __User extends Account {
     return true;
   }
 
-  isMemberOfOrg({ entityId }: Org) {
+  async getOrgMemberships(client: DBClient) {
+    return await Promise.all(
+      this.properties.memberOf.map(async ({ __linkedData }) => {
+        const { entityId } = __linkedData;
+        const accountId = await client.getEntityAccountId({ entityId });
+
+        const orgMembership = await OrgMembership.getOrgMembershipById(client, {
+          accountId,
+          entityId,
+        });
+
+        if (!orgMembership) {
+          throw new Error(`User with entityId ${this.entityId} links to membership with entityId ${entityId} that cannot be found`);
+        }
+
+        return orgMembership;
+      }),
+    );
+  }
+
+  async isMemberOfOrg(client: DBClient, { entityId }: Org) {
+    const orgMemberships = await this.getOrgMemberships(client);
+
     return (
-      this.properties.memberOf.find(
-        ({ org }) => org.__linkedData.entityId === entityId,
+      orgMemberships.find(
+        ({ properties }) => properties.org.__linkedData.entityId === entityId,
       ) !== undefined
     );
   }
@@ -356,22 +379,36 @@ class __User extends Account {
     client: DBClient,
     params: { org: Org; responsibility: string },
   ) {
-    if (this.isMemberOfOrg(params.org)) {
+    if (await this.isMemberOfOrg(client, params.org)) {
       throw new Error(
         `User with entityId '${this.entityId}' is already a member of the organization with entityId '${params.org.entityId}'`,
       );
     }
 
-    await this.updateProperties(client, {
-      ...this.properties,
-      memberOf: [
-        ...this.properties.memberOf,
-        {
-          org: params.org.convertToDBLink(),
-          responsibility: params.responsibility,
-        },
-      ],
+    const { org, responsibility } = params;
+
+    const orgMembership = await OrgMembership.createOrgMembership(client, {
+      responsibility,
+      org,
+      user: this,
     });
+
+    await Promise.all([
+      this.updateProperties(client, {
+        ...this.properties,
+        memberOf: [
+          ...this.properties.memberOf,
+          orgMembership.convertToDBLink(),
+        ],
+      }),
+      org.updateProperties(client, {
+        ...org.properties,
+        memberships: [
+          ...org.properties.memberships,
+          orgMembership.convertToDBLink(),
+        ],
+      }),
+    ]);
 
     return this;
   }

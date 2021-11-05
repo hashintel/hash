@@ -62,24 +62,18 @@ export const createUsers =
     ];
 
     return Promise.all(
-      users.map(({ email, ...remainingProperties }) =>
-        User.createUser(db, {
+      users.map(async ({ email, ...remainingProperties }) => {
+        const user = await User.createUser(db, {
           emails: [{ address: email, primary: true, verified: true }],
           infoProvidedAtSignup: { usingHow: WayToUseHash.WithATeam },
-          memberOf: [
-            {
-              responsibility: "Developer",
-              org: {
-                __linkedData: {
-                  entityId: org.entityId,
-                  entityTypeId: org.entityType.entityId,
-                },
-              },
-            },
-          ],
+          memberOf: [],
           ...remainingProperties,
-        }),
-      ),
+        });
+
+        await user.joinOrg(db, { org, responsibility: "Developer" });
+
+        return user;
+      }),
     );
   };
 

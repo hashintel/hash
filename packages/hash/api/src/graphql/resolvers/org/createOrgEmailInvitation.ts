@@ -24,7 +24,7 @@ export const createOrgEmailInvitation: Resolver<
       throw new ApolloError(msg, "NOT_FOUND");
     }
 
-    if (!user.isMemberOfOrg(org)) {
+    if (!(await user.isMemberOfOrg(client, org))) {
       throw new ForbiddenError(
         `User with entityId ${user.entityId} is not a member of the org with entityId ${org.entityId}`,
       );

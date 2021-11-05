@@ -43,12 +43,16 @@ export const joinOrg = gql`
       entityId
       properties {
         memberOf {
-          org {
-            data {
-              entityId
+          data {
+            properties {
+              responsibility
+              org {
+                data {
+                  entityId
+                }
+              }
             }
           }
-          responsibility
         }
         emails {
           address

@@ -1,8 +1,8 @@
 import { gql } from "apollo-server-express";
 
-export const orgTypedef = gql`
-  type Org implements Entity {
-    properties: OrgProperties!
+export const orgMembershipTypedef = gql`
+  type OrgMembership implements Entity {
+    properties: OrgMembershipProperties!
 
     # ENTITY INTERFACE FIELDS BEGIN #
     """
@@ -81,45 +81,13 @@ export const orgTypedef = gql`
     # ENTITY INTERFACE FIELDS END #
   }
 
-  enum OrgSize {
-    ONE_TO_TEN
-    ELEVEN_TO_FIFTY
-    FIFTY_ONE_TO_TWO_HUNDRED_AND_FIFTY
-    TWO_HUNDRED_AND_FIFTY_PLUS
+  type LinkedOrgMembership {
+    data: OrgMembership!
   }
 
-  type LinkedOrgInvitationLink {
-    data: OrgInvitationLink!
-  }
-
-  type LinkedOrg {
-    data: Org!
-  }
-
-  type OrgProperties {
-    shortname: String
-    name: String!
-    memberships: [LinkedOrgMembership!]!
-    invitationLink: LinkedOrgInvitationLink
-  }
-
-  input CreateOrgInput {
-    shortname: String!
-    name: String!
-    orgSize: OrgSize!
-  }
-
-  extend type Mutation {
-    """
-    Create a new organization. The user that calls this mutation is automatically added
-    as a member with the provided 'role'.
-    """
-    createOrg(
-      org: CreateOrgInput!
-      """
-      The 'responsibility' of the user at the organization.
-      """
-      responsibility: String!
-    ): Org!
+  type OrgMembershipProperties {
+    org: LinkedOrg!
+    user: LinkedUser!
+    responsibility: String!
   }
 `;
