@@ -148,6 +148,7 @@ impl WorkerPoolCommsWithWorkers {
         sender.send(msg)?;
         Ok(())
     }
+
     pub fn send_all(&self, msg: WorkerPoolToWorkerMsg) -> Result<()> {
         self.send_to_w
             .iter()

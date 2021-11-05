@@ -63,10 +63,12 @@ impl PendingWorkerPoolTask {
                     .into_iter()
                     .map(|(index, res)| res)
                     .collect();
-                let combined_result =
-                    TaskResultOrCancelled::Result(reference_task.combine_messages(results)?);
-                self.comms
-                    .result_send
+                let combined_result = TaskResultOrCancelled::Result(
+                    reference_task.combine_messages(results)?
+                );
+                self.comms.result_send
+                    .take()
+                    .ok_or(Error::NoResultSender)?
                     .send(combined_result)
                     .map_err(|_| Error::from("Couldn't send combined result"))?;
                 Ok(true)
@@ -74,8 +76,9 @@ impl PendingWorkerPoolTask {
                 Ok(false)
             }
         } else {
-            self.comms
-                .result_send
+            self.comms.result_send
+                .take()
+                .ok_or(Error::NoResultSender)?
                 .send(TaskResultOrCancelled::Result(result))
                 .map_err(|_| Error::from("Couldn't send combined result"))?;
             Ok(true)
@@ -92,8 +95,9 @@ impl PendingWorkerPoolTask {
             active_workers_comms.remove(worker.index());
             if active_workers_comms.is_empty() {
                 let combined_result = TaskResultOrCancelled::Cancelled;
-                self.comms
-                    .result_send
+                self.comms.result_send
+                    .take()
+                    .ok_or(Error::NoResultSender)?
                     .send(combined_result)
                     .map_err(|_| Error::from("Couldn't send cancelled task result"))?;
                 Ok(true)
@@ -101,8 +105,9 @@ impl PendingWorkerPoolTask {
                 Ok(false)
             }
         } else {
-            self.comms
-                .result_send
+            self.comms.result_send
+                .take()
+                .ok_or(Error::NoResultSender)?
                 .send(TaskResultOrCancelled::Cancelled)
                 .map_err(|_| Error::from("Couldn't send cancelled task result"))?;
             Ok(true)

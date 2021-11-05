@@ -9,7 +9,7 @@ pub struct ActiveTaskOwnerComms {
 }
 
 pub struct ActiveTaskExecutorComms {
-    pub result_send: Sender<TaskResultOrCancelled>,
+    pub result_send: Option<Sender<TaskResultOrCancelled>>,
     pub cancel_recv: Receiver<CancelTask>,
 }
 
