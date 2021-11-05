@@ -132,7 +132,7 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
         let step_result = engine
             .next()
             .await
-            .map_err(|sim_err| Error::from(format!("Simulation error: {}", sim_err.to_string())))?;
+            .map_err(|sim_err| Error::from(format!("Simulation error: {:?}", sim_err)))?;
 
         // Send update to experiment package
         let output_response =
@@ -142,8 +142,8 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
             .await
             .map_err(|exp_controller_err| {
                 Error::from(format!(
-                    "Experiment controller error: {}",
-                    exp_controller_err.to_string()
+                    "Experiment controller error: {:?}",
+                    exp_controller_err
                 ))
             })?;
 
@@ -165,8 +165,8 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
             .await
             .map_err(|exp_controller_err| {
                 Error::from(format!(
-                    "Experiment controller error: {}",
-                    exp_controller_err.to_string()
+                    "Experiment controller error: {:?}",
+                    exp_controller_err
                 ))
             })?;
 
@@ -180,8 +180,8 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
         .await
         .map_err(|exp_controller_err| {
             Error::from(format!(
-                "Experiment controller error: {}",
-                exp_controller_err.to_string()
+                "Experiment controller error: {:?}",
+                exp_controller_err
             ))
         })?;
     // Also tell the package that the sim is stopping
@@ -195,8 +195,8 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
         .await
         .map_err(|exp_controller_err| {
             Error::from(format!(
-                "Experiment controller error: {}",
-                exp_controller_err.to_string()
+                "Experiment controller error: {:?}",
+                exp_controller_err
             ))
         })?;
 
@@ -211,13 +211,13 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
                 stop_msg,
                 persistence_result,
             )
-            .map_err(|sim_err| Error::from(format!("Simulation error: {}", sim_err.to_string())))?,
+            .map_err(|sim_err| Error::from(format!("Simulation error: {:?}", sim_err)))?,
         )
         .await
         .map_err(|exp_controller_err| {
             Error::from(format!(
-                "Experiment controller error: {}",
-                exp_controller_err.to_string()
+                "Experiment controller error: {:?}",
+                exp_controller_err
             ))
         })?;
     let persistence_dur = now.elapsed().as_millis();

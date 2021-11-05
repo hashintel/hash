@@ -27,7 +27,7 @@ pub mod package;
 use std::sync::{Arc, RwLock};
 
 use super::packages::id::PackageId;
-pub use super::Result;
+pub use super::{Error, Result};
 use crate::hash_types::Agent;
 use crate::proto::SimulationShortID;
 use uuid::Uuid;
@@ -97,10 +97,12 @@ impl Comms {
         let agents = state.agent_pool().clone();
         let agent_messages = state.message_pool().clone();
         let sync_msg = StateSync::new(agents, agent_messages);
-        self.worker_pool_sender.send(EngineToWorkerPoolMsg::sync(
-            self.sim_id,
-            SyncPayload::State(sync_msg),
-        ))?;
+        self.worker_pool_sender
+            .send(EngineToWorkerPoolMsg::sync(
+                self.sim_id,
+                SyncPayload::State(sync_msg),
+            ))
+            .map_err(|e| Error::from(format!("Workerpool error: {:?}", e)))?;
         Ok(())
     }
 
@@ -109,10 +111,12 @@ impl Comms {
         let agents = state.agent_pool().clone();
         let agent_messages = state.message_pool().clone();
         let sync_msg = StateSync::new(agents, agent_messages);
-        self.worker_pool_sender.send(EngineToWorkerPoolMsg::sync(
-            self.sim_id,
-            SyncPayload::StateSnapshot(sync_msg),
-        ))?;
+        self.worker_pool_sender
+            .send(EngineToWorkerPoolMsg::sync(
+                self.sim_id,
+                SyncPayload::StateSnapshot(sync_msg),
+            ))
+            .map_err(|e| Error::from(format!("Workerpool error: {:?}", e)))?;
         Ok(())
     }
 
@@ -120,10 +124,12 @@ impl Comms {
         // Synchronize the context batch
         let batch = context.batch();
         let sync_msg = ContextBatchSync::new(batch);
-        self.worker_pool_sender.send(EngineToWorkerPoolMsg::sync(
-            self.sim_id,
-            SyncPayload::ContextBatch(sync_msg),
-        ))?;
+        self.worker_pool_sender
+            .send(EngineToWorkerPoolMsg::sync(
+                self.sim_id,
+                SyncPayload::ContextBatch(sync_msg),
+            ))
+            .map_err(|e| Error::from(format!("Workerpool error: {:?}", e)))?;
         Ok(())
     }
 }
@@ -138,7 +144,8 @@ impl Comms {
         let task_id = uuid::Uuid::new_v4().as_u128();
         let (wrapped, active) = wrap_task(task_id, package_id, task, shared_store)?;
         self.worker_pool_sender
-            .send(EngineToWorkerPoolMsg::task(self.sim_id, wrapped))?;
+            .send(EngineToWorkerPoolMsg::task(self.sim_id, wrapped))
+            .map_err(|e| Error::from(format!("Workerpool error: {:?}", e)))?;
         Ok(active)
     }
 }

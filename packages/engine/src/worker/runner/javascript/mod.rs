@@ -103,7 +103,7 @@ impl<'m> JSPackage<'m> {
         let fn_names = ["start_experiment", "start_sim", "run_task"];
         for (elem, fn_name) in fns.elements().zip(fn_names) {
             let elem: mv8::Value = elem.map_err(|e| {
-                Error::PackageImport(path.into(), format!("Couldn't index array: {}", e))
+                Error::PackageImport(path.into(), format!("Couldn't index array: {:?}", e))
             })?;
             if !(elem.is_function() || elem.is_undefined()) {
                 return Err(Error::PackageImport(

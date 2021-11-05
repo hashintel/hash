@@ -20,7 +20,7 @@ pub enum Error {
 
     #[error("Controller Error: {0}")]
     Controller(#[from] super::controller::Error),
-    //
+
     // #[error("Worker Pool error: {0}")]
     // WorkerPool(#[from] crate::workerpool::Error),
     #[error("Tokio oneshot recv: {0}")]

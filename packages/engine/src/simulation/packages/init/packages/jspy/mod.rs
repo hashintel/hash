@@ -92,7 +92,7 @@ impl InitPackage for Package {
             JsPyInitTaskResult::Ok { agent_json } => {
                 serde_json::from_str(&agent_json).map_err(|e| {
                     Error::from(format!(
-                        "Failed to parse agent state JSON to Vec<Agent>: {}",
+                        "Failed to parse agent state JSON to Vec<Agent>: {:?}",
                         e
                     ))
                 })

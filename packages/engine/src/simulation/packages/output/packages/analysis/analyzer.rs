@@ -72,9 +72,8 @@ impl Analyzer {
             .try_for_each(|(output_name, creator, outputs)| {
                 let output = creator.run(dynamic_pool, num_agents).map_err(|e| {
                     Error::from(format!(
-                        "Error in the analysis output \"{}\": {}",
-                        output_name,
-                        e.to_string()
+                        "Error in the analysis output \"{}\": {:?}",
+                        output_name, e
                     ))
                 })?;
                 outputs.push(output);
