@@ -12,7 +12,7 @@ pub const ACTIVE_REQUESTS: usize = 10;
 
 type Request = ([u8; UUID_V4_LEN], serde_json::Value);
 
-struct Requests {
+pub struct Requests {
     inner: Vec<Request>,
 }
 

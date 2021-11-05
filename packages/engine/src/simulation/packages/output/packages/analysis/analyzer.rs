@@ -233,7 +233,7 @@ impl OutputCreator {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
-pub(crate) enum ComparisonRepr {
+pub enum ComparisonRepr {
     Eq,
     Neq,
     Lt,

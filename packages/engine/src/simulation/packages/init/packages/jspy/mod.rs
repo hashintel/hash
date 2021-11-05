@@ -119,12 +119,12 @@ pub enum JsPyInitTaskMessage {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-struct StartMessage {
+pub struct StartMessage {
     initial_state_source: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-struct SuccessMessage {
+pub struct SuccessMessage {
     agent_json: String,
 }
 
@@ -139,7 +139,7 @@ impl Into<TaskResult> for SuccessMessage {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-struct FailedMessage {}
+pub struct FailedMessage {}
 
 impl Into<TaskResult> for FailedMessage {
     fn into(self) -> TaskResult {
