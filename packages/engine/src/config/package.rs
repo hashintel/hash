@@ -134,32 +134,48 @@ impl ConfigBuilder {
 
     pub fn add_init_package(mut self, init_package: InitPackage) -> ConfigBuilder {
         match self.init {
-            Some(ref mut pkgs) => { pkgs.insert(init_package); }
-            None => { self.init = Some(unit_hash_set(init_package)); }
+            Some(ref mut pkgs) => {
+                pkgs.insert(init_package);
+            }
+            None => {
+                self.init = Some(unit_hash_set(init_package));
+            }
         };
         self
     }
 
     pub fn add_context_package(mut self, context_package: ContextPackage) -> ConfigBuilder {
         match self.context {
-            Some(ref mut pkgs) => { pkgs.insert(context_package); },
-            None => { self.context = Some(unit_hash_set(context_package)); }
+            Some(ref mut pkgs) => {
+                pkgs.insert(context_package);
+            }
+            None => {
+                self.context = Some(unit_hash_set(context_package));
+            }
         };
         self
     }
 
     pub fn add_state_package(mut self, state_package: StatePackage) -> ConfigBuilder {
         match self.state {
-            Some(ref mut pkgs) => { pkgs.push(state_package); },
-            None => { self.state = Some(vec![state_package]); }
+            Some(ref mut pkgs) => {
+                pkgs.push(state_package);
+            }
+            None => {
+                self.state = Some(vec![state_package]);
+            }
         };
         self
     }
 
     pub fn add_output_package(mut self, output_package: OutputPackage) -> ConfigBuilder {
         match self.output {
-            Some(ref mut pkgs) => { pkgs.insert(output_package); },
-            None => { self.output = Some(unit_hash_set(output_package)); }
+            Some(ref mut pkgs) => {
+                pkgs.insert(output_package);
+            }
+            None => {
+                self.output = Some(unit_hash_set(output_package));
+            }
         };
         self
     }
@@ -179,16 +195,29 @@ impl ConfigBuilder {
             .output
             .unwrap_or_else(|| Config::default_output_packages());
 
-        let init_as_deps = init.iter().cloned().map(|n| PackageName::Init(n));
-        let context_as_deps = context.iter().cloned().map(|n| PackageName::Context(n));
-        let state_as_deps = state.iter().cloned().map(|n| PackageName::State(n));
-        let output_as_deps = output.iter().cloned().map(|n| PackageName::Output(n));
+        let init_as_deps = init
+            .iter()
+            .map(|n| PackageName::Init(n.clone()))
+            .collect::<Vec<_>>();
+        let context_as_deps = context
+            .iter()
+            .map(|n| PackageName::Context(n.clone()))
+            .collect::<Vec<_>>();
+        let state_as_deps = state
+            .iter()
+            .map(|n| PackageName::State(n.clone()))
+            .collect::<Vec<_>>();
+        let output_as_deps = output
+            .iter()
+            .map(|n| PackageName::Output(n.clone()))
+            .collect::<Vec<_>>();
 
         // Gather all dependencies and insert
         for dependency in init_as_deps
-            .chain(context_as_deps)
-            .chain(state_as_deps)
-            .chain(output_as_deps)
+            .iter()
+            .chain(context_as_deps.iter())
+            .chain(state_as_deps.iter())
+            .chain(output_as_deps.iter())
         {
             let deps = dependency.get_all_dependencies()?;
             for dep in deps.into_iter_deps() {

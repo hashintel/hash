@@ -32,15 +32,6 @@ pub trait Batch: Sized {
     fn get_batch_id(&self) -> &str {
         self.memory().get_message()
     }
-
-    // TODO OS[33] - RUNTIME BLOCK - Refers to Old MessageBatch, only has two members instead of the new one
-    fn get_batch_message(&self) -> Result<MessageBatch> {
-        todo!()
-        // Ok(MessageBatch {
-        //     msg: self.memory().get_message().to_string(),
-        //     reload: self.metaversion().clone(),
-        // })
-    }
 }
 
 pub trait ArrowBatch: Batch {

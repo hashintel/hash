@@ -87,7 +87,8 @@ impl<'a> APIResponses<'a> {
 }
 
 impl<'a> From<Vec<Vec<APIResponseToAnonymous>>> for APIResponses<'a> {
-    fn from(v: Vec<Vec<APIResponseToAnonymous>>) -> Self { // TODO - performance: into_iter to access fields at same time and avoid clones
+    fn from(v: Vec<Vec<APIResponseToAnonymous>>) -> Self {
+        // TODO - performance: into_iter to access fields at same time and avoid clones
         APIResponses {
             from: SizedStaticStringColumn {
                 data: v

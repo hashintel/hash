@@ -28,7 +28,7 @@ impl OutputPersistenceCreatorRepr for NoOutputPersistence {
     }
 }
 
-struct NoSimulationOutputPersistence {}
+pub struct NoSimulationOutputPersistence {}
 
 #[async_trait::async_trait]
 impl SimulationOutputPersistenceRepr for NoSimulationOutputPersistence {

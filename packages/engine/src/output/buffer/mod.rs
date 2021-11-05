@@ -39,7 +39,7 @@ impl Buffers {
 }
 
 #[derive(Serialize)]
-struct AnalysisBuffer {
+pub struct AnalysisBuffer {
     pub manifest: String,
     pub buffers: HashMap<Arc<String>, Vec<AnalysisSingleOutput>>,
 }
