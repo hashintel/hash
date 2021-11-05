@@ -18,15 +18,19 @@ impl Creator {
 impl PackageCreator for Creator {
     fn create(
         &self,
-        _config: &Arc<SimRunConfig<ExperimentRunBase>>,
+        config: &Arc<SimRunConfig<ExperimentRunBase>>,
         _comms: PackageComms,
         accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn Package>> {
-        Ok(Box::new(JsonState {}))
+        Ok(Box::new(JsonState {
+            config: config.clone(),
+        }))
     }
 }
 
-struct JsonState {}
+struct JsonState {
+    config: Arc<SimRunConfig<ExperimentRunBase>>,
+}
 
 impl MaybeCPUBound for JsonState {
     fn cpu_bound(&self) -> bool {
@@ -42,26 +46,23 @@ impl GetWorkerStartMsg for JsonState {
 
 #[async_trait]
 impl Package for JsonState {
-    async fn run(
-        &mut self,
-        state: Arc<State>,
-        _context: Arc<Context>,
-    ) -> Result<JSONStateOutput> {
+    async fn run(&mut self, state: Arc<State>, _context: Arc<Context>) -> Result<Output> {
         let agent_states: std::result::Result<Vec<_>, crate::datastore::error::Error> = state
             .agent_pool()
             .read_batches()?
             .into_iter()
-            .map(|batch| batch.record_batch().into_agent_states())
+            .map(|batch| {
+                batch
+                    .record_batch()
+                    .into_agent_states(Some(&self.config.sim.store.agent_schema))
+            })
             .collect();
 
-        let agent_states: Vec<_> = agent_states?
-            .into_iter()
-            .flatten()
-            .collect();
+        let agent_states: Vec<_> = agent_states?.into_iter().flatten().collect();
 
-        JSONStateOutput {
+        Ok(Output::JSONStateOutput(JSONStateOutput {
             inner: agent_states,
-        }
+        }))
     }
 }
 
