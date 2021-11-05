@@ -1,4 +1,5 @@
 use hash_prime::experiment::controller::run::run_experiment;
+use hash_prime::experiment::Error as ExperimentError;
 use hash_prime::fetch::FetchDependencies;
 use hash_prime::proto::ExperimentRun;
 
@@ -18,6 +19,8 @@ async fn main() -> hash_prime::Result<()> {
     // Generate the configuration for packages from the environment
     let config = hash_prime::experiment_config(&args, &env).await?;
 
-    run_experiment(config, env).await?;
+    run_experiment(config, env)
+        .await
+        .map_err(|exp_controller_err| ExperimentError::from(exp_controller_err))?;
     Ok(())
 }

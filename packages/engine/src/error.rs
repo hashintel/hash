@@ -60,7 +60,10 @@ pub enum Error {
     // #[error("Worker handler error: {0}")]
     // WorkerHandler(#[from] crate::worker::Error),
     #[error("Experiment package error: {0}")]
-    ExperimentPackage(#[from] super::experiment::Error),
+    ExperimentPackage(#[from] crate::experiment::Error),
+
+    #[error("Env error: {0}")]
+    Env(#[from] crate::env::Error),
 
     #[error("Behavior language parse error: {0}")]
     ParseBehavior(String),
