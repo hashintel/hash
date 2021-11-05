@@ -36,6 +36,14 @@ export const TagsInput: React.VFC<TagsInputProps> = ({
     }
   };
 
+  const handleBlur = () => {
+    const inputValue = inputRef.current?.value;
+    if (inputValue && !tags.includes(inputValue)) {
+      setTags([...tags, inputValue]);
+      inputRef.current.value = "";
+    }
+  };
+
   const handleRemove = (tagToRemove: string) => {
     const newTags = tags.filter((tag) => tag !== tagToRemove);
     setTags(newTags);
@@ -77,6 +85,7 @@ export const TagsInput: React.VFC<TagsInputProps> = ({
         className={tw`flex-1 focus:outline-none bg-transparent text-sm py-1 px-1`}
         placeholder={placeholder}
         onKeyDown={handleKeyDown}
+        onBlur={handleBlur}
       />
     </div>
   );
