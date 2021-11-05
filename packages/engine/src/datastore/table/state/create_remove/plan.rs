@@ -11,6 +11,7 @@ use crate::datastore::{
     table::pool::agent::AgentPool,
     table::rwlock_ext::TryAcquire,
 };
+use crate::datastore::table::pool::BatchPool;
 use crate::proto::ExperimentRunBase;
 use crate::SimRunConfig;
 
@@ -39,7 +40,7 @@ impl<'a> MigrationPlan<'a> {
         config: &SimRunConfig<ExperimentRunBase>,
     ) -> Result<Vec<String>> {
         // log::debug!("Updating");
-        let mut mut_batches: &mut Vec<Arc<parking_lot::RwLock<AgentBatch>>> = state.mut_batches();
+        let mut mut_batches = state.mut_batches();
         self.existing_mutations
             .par_iter()
             .zip_eq(mut_batches.par_iter_mut())

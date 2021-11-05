@@ -234,8 +234,8 @@ impl<'m> Embedded<'m> {
 struct SimState {
     agent_schema: Arc<Schema>,
     msg_schema: Arc<Schema>,
-    agent_pool: Vec<Arc<RwLock<AgentBatch>>>,
-    msg_pool: Vec<Arc<RwLock<MessageBatch>>>,
+    agent_pool: AgentPool,
+    msg_pool: MessagePool,
 }
 
 struct RunnerImpl<'m> {
@@ -625,10 +625,9 @@ impl<'m> RunnerImpl<'m> {
         &mut self,
         mv8: &'m MiniV8,
         changes: mv8::Array<'m>,
-        batch: &Arc<RwLock<B>>,
+        batch: &mut B,
         schema: &Schema,
     ) -> Result<()> {
-        let mut batch = batch.write();
         for change in changes.elements() {
             let change: mv8::Object = change?;
 
@@ -656,31 +655,20 @@ impl<'m> RunnerImpl<'m> {
     fn flush_group(
         &mut self,
         mv8: &'m MiniV8,
-        sim_run_id: SimulationShortID,
-        group_index: u32,
-        changes: mv8::Object<'m>,
-    ) -> Result<GroupSync> {
-        let group_index = group_index as usize;
-        // TODO: Currently look up simulation's state for each group, whereas
-        //       could do it once for all groups.
-        let state = self
-            .sims_state
-            .get_mut(&sim_run_id)
-            .ok_or(Error::MissingSimulationRun(sim_run_id))?;
+        state: &SimState,
+        agent_batch: &mut AgentBatch,
+        msg_batch: &mut MessageBatch,
+        changes: mv8::Value<'m>,
+    ) -> Result<()> {
+        let changes = changes.as_object().unwrap();
 
         let agent_changes = changes.get("agent")?;
-        let agent_batch = state.agent_pool[group_index].clone();
-        self.flush_batch(mv8, agent_changes, &agent_batch, &state.agent_schema)?;
+        self.flush_batch(mv8, agent_changes, agent_batch, &state.agent_schema)?;
 
         let msg_changes = changes.get("msg")?;
-        let message_batch = state.msg_pool[group_index as usize].clone();
-        self.flush_batch(mv8, msg_changes, &message_batch, &state.msg_schema)?;
+        self.flush_batch(mv8, msg_changes, msg_batch, &state.msg_schema)?;
 
-        Ok(GroupSync {
-            group_index: group_index as usize,
-            agent_batch,
-            message_batch,
-        })
+        Ok(())
     }
 
     fn flush(
@@ -690,33 +678,52 @@ impl<'m> RunnerImpl<'m> {
         group_index: Option<u32>,
         r: &mv8::Object<'m>,
     ) -> Result<StateInterimSync> {
+        let state = self.sims_state
+            .get_mut(&sim_run_id)
+            .ok_or(Error::MissingSimulationRun(sim_run_id))?;
+
+        // Currently only either a single group or all groups is flushed,
+        // but distinguish between group and proxy indices as future-proofing.
+        let group_indices = if let Some(group_index) = group_index {
+            vec![group_index as usize]
+        } else {
+            (0..state.agent_pool.batches().len()).collect()
+        };
+
+        let (mut agent_proxy, mut msg_proxy) = (
+            state.agent_pool.partial_write_proxy(&group_indices)?,
+            state.msg_pool.partial_write_proxy(&group_indices)?
+        );
+        let changes: mv8::Value = r.get("changes")?;
+
         if let Some(group_index) = group_index {
-            let changes: mv8::Object = r.get("changes")?;
-            let group = self.flush_group(mv8, sim_run_id, group_index, changes)?;
-            let sync = StateInterimSync {
-                group_indices: vec![group.group_index],
-                agent_batches: agent_pool_from_batches(vec![group.agent_batch]),
-                message_batches: msg_pool_from_batches(vec![group.message_batch]),
-            };
-            return Ok(sync);
+            self.flush_group(
+                mv8,
+                state,
+                agent_proxy.batch_mut(0)?,
+                msg_proxy.batch_mut(0)?,
+                changes
+            )?;
+        } else {
+            let changes = changes.as_array().unwrap();
+            for i_proxy in 0..group_indices.len() {
+                // In principle, `i_proxy` and `group_indices[i_proxy]` can differ.
+                let group_changes = changes.get(i_proxy as u32)?;
+                self.flush_group(
+                    mv8,
+                    state,
+                    agent_proxy.batch_mut(i_proxy)?,
+                    msg_proxy.batch_mut(i_proxy)?,
+                    group_changes
+                )?;
+            }
         }
 
-        let mut group_indices = Vec::new();
-        let mut agent_batches = Vec::new();
-        let mut message_batches = Vec::new();
-        let groups_changes: mv8::Array = r.get("changes")?;
-        for (i_group, changes) in groups_changes.elements().enumerate() {
-            let group = self.flush_group(mv8, sim_run_id, i_group as u32, changes?)?;
-            group_indices.push(group.group_index);
-            agent_batches.push(group.agent_batch);
-            message_batches.push(group.message_batch);
-        }
-        let sync = StateInterimSync {
+        Ok(StateInterimSync {
+            agent_batches: state.agent_pool.clone(),
+            message_batches: state.msg_pool.clone(),
             group_indices,
-            agent_batches: agent_pool_from_batches(agent_batches),
-            message_batches: msg_pool_from_batches(message_batches),
-        };
-        Ok(sync)
+        })
     }
 
     /// Sim start:
@@ -777,8 +784,8 @@ impl<'m> RunnerImpl<'m> {
         let state = SimState {
             agent_schema: run.datastore.agent_batch_schema.arrow.clone(),
             msg_schema: run.datastore.message_batch_schema.clone(),
-            agent_pool: Vec::new(),
-            msg_pool: Vec::new(),
+            agent_pool: AgentPool::empty(),
+            msg_pool: MessagePool::empty(),
         };
         self.sims_state
             .try_insert(run.short_id, state)
@@ -890,8 +897,8 @@ impl<'m> RunnerImpl<'m> {
             .sims_state
             .get_mut(&sim_run_id)
             .ok_or(Error::MissingSimulationRun(sim_run_id))?;
-        state.agent_pool = msg.agent_pool.cloned_batch_pool();
-        state.msg_pool = msg.message_pool.cloned_batch_pool();
+        state.agent_pool = msg.agent_pool;
+        state.msg_pool = msg.message_pool;
         Ok(())
     }
 
@@ -921,16 +928,8 @@ impl<'m> RunnerImpl<'m> {
             .sims_state
             .get_mut(&sim_run_id)
             .ok_or(Error::MissingSimulationRun(sim_run_id))?;
-        let iter = msg.group_indices.iter().zip(
-            msg.agent_batches
-                .cloned_batch_pool()
-                .iter()
-                .zip(msg.message_batches.cloned_batch_pool().iter()),
-        );
-        for (i_group, (agent_batch, msg_batch)) in iter {
-            state.agent_pool[*i_group] = agent_batch.clone();
-            state.msg_pool[*i_group] = msg_batch.clone();
-        }
+        state.agent_pool.update(&msg.agent_batches, &msg.group_indices);
+        state.msg_pool.update(&msg.message_batches, &msg.group_indices);
         Ok(())
     }
 

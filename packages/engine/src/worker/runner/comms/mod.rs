@@ -38,6 +38,7 @@ impl From<Language> for MessageTarget {
     }
 }
 
+// TODO: Group indices have type u32 in RunnerTaskMsg, but usize in StateInterimSync.
 #[derive(Debug)]
 pub struct RunnerTaskMsg {
     pub package_id: PackageId,

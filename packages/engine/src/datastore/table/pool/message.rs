@@ -22,13 +22,6 @@ impl MessagePool {
         MessagePool { batches }
     }
 
-    // Clone the arcs
-    pub fn cloned_batch_pool(&self) -> MessagePool {
-        Self {
-            batches: self.batches.clone(),
-        }
-    }
-
     fn batches(&self) -> &Vec<Arc<RwLock<MessageBatch>>> {
         &self.batches
     }
@@ -181,8 +174,5 @@ impl BatchPool<MessageBatch> for MessagePool {
     fn batches(&self) -> &[Arc<RwLock<MessageBatch>>] {
         &self.batches
     }
-
-    fn cloned_batch_pool(&self) -> Vec<Arc<RwLock<MessageBatch>>> {
-        todo!()
-    }
+    fn mut_batches(&mut self) -> &mut Vec<Arc<RwLock<MessageBatch>>> { &mut self.batches }
 }

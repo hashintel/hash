@@ -22,12 +22,6 @@ impl AgentPool {
     pub fn new(batches: Vec<Arc<RwLock<AgentBatch>>>) -> AgentPool {
         AgentPool { batches }
     }
-    // Clone the arcs
-    pub fn cloned_batch_pool(&self) -> Self {
-        Self {
-            batches: self.batches.clone(),
-        }
-    }
 
     pub fn read_batches(&self) -> Result<Vec<&AgentBatch>> {
         self.batches()
@@ -49,10 +43,6 @@ impl AgentPool {
                     .ok_or_else(|| Error::from("failed to write batches"))
             })
             .collect::<Result<_>>()
-    }
-
-    pub fn mut_batches(&mut self) -> &mut Vec<Arc<RwLock<AgentBatch>>> {
-        &mut self.batches
     }
 
     pub fn len(&self) -> usize {
@@ -95,13 +85,9 @@ impl AgentPool {
     }
 }
 
-// TODO OS[35] - RUNTIME BLOCK - cloned_batch_pool isn't implemented for AgentPool
 impl BatchPool<AgentBatch> for AgentPool {
     fn batches(&self) -> &[Arc<RwLock<AgentBatch>>] {
         &self.batches
     }
-
-    fn cloned_batch_pool(&self) -> Vec<Arc<RwLock<AgentBatch>>> {
-        todo!()
-    }
+    fn mut_batches(&mut self) -> &mut Vec<Arc<RwLock<AgentBatch>>> { &mut self.batches }
 }

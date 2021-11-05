@@ -52,7 +52,6 @@ pub struct RustRunner {
 
 impl RustRunner {
     pub fn new(spawn: bool, init_msg: ExperimentInitRunnerMsg) -> WorkerResult<Self> {
-        let (inbound_sender, inbound_receiver) = unbounded_channel();
         let (outbound_sender, outbound_receiver) = unbounded_channel();
         Ok(Self {
             outbound_sender,

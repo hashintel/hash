@@ -11,6 +11,7 @@ use crate::{
     SimRunConfig,
 };
 use std::sync::Arc;
+use crate::datastore::table::pool::BatchPool;
 
 use self::create_remove::CreateRemovePlanner;
 

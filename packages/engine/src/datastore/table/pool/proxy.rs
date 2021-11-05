@@ -38,6 +38,7 @@ impl<K: Batch> PoolWriteProxy<K> {
             .ok_or_else(|| Error::from(format!("No batch with index {}", index)))?;
         Ok(batch.inner())
     }
+
     pub fn batch_mut(&mut self, index: usize) -> Result<&mut K> {
         let batch = self
             .batches
