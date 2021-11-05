@@ -2,7 +2,7 @@ use super::error::{Error, Result};
 use super::process;
 use async_trait::async_trait;
 use hash_prime::nano;
-use hash_prime::proto::{EngineMsg, ExperimentRunRepr};
+use hash_prime::proto::{EngineMsg, ExperimentRun, ExperimentRunRepr};
 
 #[cfg(debug_assertions)]
 const PROCESS_PATH_DEFAULT: &str = "./target/debug/prime_engine";
@@ -32,7 +32,7 @@ impl process::Process for LocalProcess {
         Ok(())
     }
 
-    async fn send<E: ExperimentRunRepr>(&mut self, msg: &EngineMsg<E>) -> Result<()> {
+    async fn send(&mut self, msg: &EngineMsg<ExperimentRun>) -> Result<()> {
         // We create the client on the first call here, rather than when the LocalCommand
         // is run, because the engine process needs some time before it's ready to accept
         // NNG connections.

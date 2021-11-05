@@ -60,7 +60,6 @@ pub struct SingleExperimentArgs {
 /// Simple Experiment
 #[argh(subcommand, name = "single_run")]
 pub struct SimpleExperimentArgs {
-    #[argh(option)]
     /// experiment name to be run
     #[argh(option, short = 'n')]
     experiment_name: String,
@@ -74,7 +73,7 @@ impl std::default::Default for Args {
 }
 
 #[tokio::main]
-fn main() -> Result<()> {
+async fn main() -> Result<()> {
     // TODO project conversion into manifest...
     // TODO persist output
     //      1) send absolute path to engine process

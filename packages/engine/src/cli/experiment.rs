@@ -75,7 +75,7 @@ async fn run_experiment_with_manifest(
     // Now we can send the init message
     let init_message = proto::InitMessage {
         experiment: experiment_run.clone(),
-        env: context.environment.clone().into(),
+        env: args.environment.clone().into(),
         dyn_payloads: Default::default(),
     };
     engine_process
@@ -97,16 +97,16 @@ async fn run_experiment_with_manifest(
 
         match msg {
             proto::EngineStatus::Stopping => {
-                console.log("Stopping experiment");
+                log::debug!("Stopping experiment");
             }
-            proto::EngineStatus::SimStart(short_id, property_changes) => {
-                console.log("Started simulation: {}", short_id);
+            proto::EngineStatus::SimStart { sim_id, globals: _ } => {
+                log::debug!("Started simulation: {}", sim_id);
             }
             proto::EngineStatus::SimStatus(status) => {
                 log::debug!("Got runner status: {:?}", status);
                 // TODO[1] handle status fields
             }
-            proto::EngineStatus::Exit() => {
+            proto::EngineStatus::Exit => {
                 log::debug!(
                     "Process exited successfully for experiment run with id {}",
                     experiment_id

@@ -39,7 +39,7 @@ impl From<String> for Error {
 
 impl From<&str> for Error {
     fn from(s: &str) -> Self {
-        Error::Unique(s.to_stirng())
+        Error::Unique(s.to_string())
     }
 }
 
@@ -105,12 +105,12 @@ fn read_local_project(project_path: &Path) -> Result<Project> {
     let init_json = src_folder.join("init.json");
     let init_js = src_folder.join("init.js");
     let init_py = src_folder.join("init.py");
-    let globals_json = src_folder.json("globals.json");
+    let globals_json = src_folder.join("globals.json");
     let views_folder = project_path.join("views");
     let analysis_json = views_folder.join("analysis.json");
     let data_folder = project_path.join("data");
 
-    project = Project {
+    let project = Project {
         path: project_path.into(),
         behaviors: read_local_behaviors(&behaviors_folder)?,
         initial_state: read_local_init_file(init_json, init_js, init_py),
@@ -162,8 +162,8 @@ fn read_local_init_file(
     })
 }
 
-fn read_local_datasets(data_folder: PathBuf) -> Vec<SharedDataset> {
-    data_folder
+fn read_local_datasets(data_folder: PathBuf) -> Result<Vec<SharedDataset>> {
+    Ok(data_folder
         .read_dir()?
         .filter_map(|entry| {
             if let Ok(entry) = entry {
@@ -187,7 +187,7 @@ fn read_local_datasets(data_folder: PathBuf) -> Vec<SharedDataset> {
             }
             None
         })
-        .collect::<Vec<_>>()
+        .collect::<Vec<_>>())
 }
 
 fn read_local_behaviors(behaviors_folder: &Path) -> Result<Vec<SharedBehavior>> {
@@ -406,7 +406,7 @@ fn create_multiparameter_variant(
     }
 
     let mut plan = SimpleExperimentPlan::new(var.steps);
-    plan.inner = variant;
+    plan.inner = variant_list;
     Ok(plan)
 }
 
@@ -497,7 +497,7 @@ fn create_monte_carlo_variant_plan(
 
     impl MonteCarloVariant {
         fn sample_distrubtion_fn(&self) -> Mapper {
-            let distribution = match &self.distribution {
+            let distribution = match self.distribution.as_str() {
                 "normal" => Box::new(Normal::new(
                     self.mean.unwrap_or(1.0),
                     self.std.unwrap_or(1.0),
@@ -523,7 +523,7 @@ fn create_monte_carlo_variant_plan(
     }
 
     let var: MonteCarloVariant = serde_json::from_value(selected_experiment.clone())?;
-    let values = (0..samples as usize).map(|_| 0.into()).collect();
+    let values = (0..var.samples as usize).map(|_| 0.into()).collect();
     create_variant_with_mapped_value(
         &var.field,
         &values,
@@ -563,12 +563,13 @@ fn create_linspace_variant_plan(selected_experiment: &SerdeValue) -> Result<Simp
         stop: f64,
     }
     let var: LinspaceVariant = serde_json::from_value(selected_experiment.clone())?;
-    let values = (0..samples as usize).map(|_| 0.into()).collect();
+    let values = (0..var.samples as usize).map(|_| 0.into()).collect();
     create_variant_with_mapped_value(
         &var.field,
         &values,
         &Box::new(|val, index| {
-            (var.start + (idx as f64 * (var.stop - var.start)) / ((var.samples - 1) as f64)).into()
+            (var.start + (index as f64 * (var.stop - var.start)) / ((var.samples - 1) as f64))
+                .into()
         }),
         var.steps as usize,
     )
@@ -614,8 +615,8 @@ fn create_meshgrid_variant_plan(selected_experiment: &SerdeValue) -> Result<Simp
     let var: MeshgridVariant = serde_json::from_value(selected_experiment.clone())?;
 
     let mut plan = SimpleExperimentPlan::new(var.steps as usize);
-    let x_space = linspace(x[0], x[1], x[2] as usize);
-    let y_space = linspace(y[0], y[1], y[2] as suzie);
+    let x_space = linspace(var.x[0], var.x[1], var.x[2] as usize);
+    let y_space = linspace(var.y[0], var.y[1], var.y[2] as usize);
 
     for x_val in x_space {
         for y_val in y_space {
