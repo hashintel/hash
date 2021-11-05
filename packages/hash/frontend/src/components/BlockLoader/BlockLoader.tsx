@@ -3,11 +3,11 @@ import React, { useMemo, VoidFunctionComponent } from "react";
 import { useBlockProtocolUpdate } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdate";
 import { cloneEntityTreeWithPropertiesMovedUp } from "../../lib/entities";
 import { fetchEmbedCode } from "./fetchEmbedCode";
-import { uploadFile } from "./uploadFile";
 import { BlockFramer } from "../sandbox/BlockFramer/BlockFramer";
 import { RemoteBlock } from "../RemoteBlock/RemoteBlock";
 import { useBlockProtocolAggregateEntityTypes } from "../hooks/blockProtocolFunctions/useBlockProtocolAggregateEntityTypes";
 import { useBlockProtocolAggregate } from "../hooks/blockProtocolFunctions/useBlockProtocolAggregate";
+import { useFileUpload } from "../hooks/useFileUpload";
 
 type BlockLoaderProps = {
   shouldSandbox?: boolean;
@@ -26,6 +26,7 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   );
   const { update } = useBlockProtocolUpdate(props.accountId);
   const { aggregate } = useBlockProtocolAggregate(props.accountId);
+  const { uploadFile } = useFileUpload(props.accountId);
 
   const flattenedProperties = useMemo(
     () => cloneEntityTreeWithPropertiesMovedUp(props),
