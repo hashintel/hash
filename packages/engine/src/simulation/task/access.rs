@@ -22,7 +22,7 @@ impl StoreAccessVerify for ContextTask {
         {
             Ok(())
         } else {
-            Err(Error::AccessNotAllowed(state, context, "Context".into()))
+            Err(Error::access_not_allowed(state, context, "Context".into()))
         }
     }
 }
@@ -34,7 +34,7 @@ impl StoreAccessVerify for InitTask {
         if matches!(state, SharedState::None) && matches!(context, SharedContext::None) {
             Ok(())
         } else {
-            Err(Error::AccessNotAllowed(state, context, "Init".into()))
+            Err(Error::access_not_allowed(state, context, "Init".into()))
         }
     }
 }
@@ -51,9 +51,8 @@ impl StoreAccessVerify for StateTask {
         {
             Ok(())
         } else {
-            Err(Error::AccessNotAllowed(state, context, "State".into()))
+            Err(Error::access_not_allowed(state, context, "State".into()))
         }
-        Ok(())
     }
 }
 
@@ -66,7 +65,7 @@ impl StoreAccessVerify for OutputTask {
         {
             Ok(())
         } else {
-            Err(Error::AccessNotAllowed(state, context, "Output".into()))
+            Err(Error::access_not_allowed(state, context, "Output".into()))
         }
     }
 }

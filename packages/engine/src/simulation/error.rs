@@ -128,9 +128,8 @@ pub enum Error {
     #[error("Arrow Error: {0}")]
     Arrow(#[from] arrow::error::ArrowError),
 
-    // TODO OS - COMPILE BLOCK - Error requires moving the objects
-    #[error("State or Context access not allowed for package (with type: {2}). StateAccess: {0:?}, ContextAccess: {1:?}.")]
-    AccessNotAllowed(SharedState, SharedContext, String),
+    #[error("State or Context access not allowed for package (with type: {2}). StateAccess: {0}, ContextAccess: {1}.")]
+    AccessNotAllowed(String, String, String),
 
     #[error("Distribution node handling is not implemented for this message type")]
     DistributionNodeHandlerNotImplemented,
@@ -140,6 +139,16 @@ pub enum Error {
 
     #[error("{0}")]
     RwLock(String),
+}
+
+impl Error {
+    pub fn access_not_allowed(
+        state: &SharedState,
+        ctx: &SharedContext,
+        package_type: String,
+    ) -> Error {
+        Error::AccessNotAllowed(format!("{:?}", state), format!("{:?}", ctx), package_type)
+    }
 }
 
 impl From<&str> for Error {
