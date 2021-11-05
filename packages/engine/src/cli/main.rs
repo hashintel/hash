@@ -9,7 +9,6 @@ pub mod process;
 use crate::exsrv::create_server;
 use crate::ExperimentType::SingleRunExperiment;
 use argh::FromArgs;
-use derive_more::FromStr;
 use error::Result;
 use experiment::run_experiment;
 
@@ -25,7 +24,7 @@ pub struct Args {
     output: String,
 
     /// experiment type to be run
-    #[argh(option, short = 't')]
+    #[argh(subcommand, short = 't')]
     r#type: ExperimentType,
 
     /// max number of parallel workers (must be power of 2)
@@ -49,20 +48,7 @@ pub enum ExperimentType {
     SimpleExperiment(SimpleExperimentArgs),
 }
 
-// TODO OS - COMPILE BLOCK - What error type, or do we even want to impl this at all
-impl std::str::FromStr for ExperimentType {
-    type Err = ();
-
-    fn from_str(s: &str) -> core::result::Result<Self, Self::Err> {
-        if let Ok(args) = SingleExperimentArgs::from_str(s) {
-            Ok(Self::SingleRunExperiment(args))
-        } else {
-            Ok(SimpleExperimentArgs::from_str(s)?)
-        }
-    }
-}
-
-#[derive(FromStr, FromArgs, PartialEq, Debug)]
+#[derive(FromArgs, PartialEq, Debug)]
 /// Single Run Experiment
 #[argh(subcommand, name = "single_run")]
 pub struct SingleExperimentArgs {
@@ -71,7 +57,7 @@ pub struct SingleExperimentArgs {
     num_steps: usize,
 }
 
-#[derive(FromStr, FromArgs, PartialEq, Debug)]
+#[derive(FromArgs, PartialEq, Debug)]
 /// Simple Experiment
 #[argh(subcommand, name = "single_run")]
 pub struct SimpleExperimentArgs {
