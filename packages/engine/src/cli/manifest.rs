@@ -217,8 +217,8 @@ fn read_local_behaviors(behaviors_folder: &Path) -> Result<Vec<SharedBehavior>> 
 
         let behavior = SharedBehavior {
             // `id`, `name` and `shortnames` may be updated later if this behavior is a dependency
-            id: behavior_file_name,
-            name: behavior_file_name.clone(),
+            id: behavior_file_name.clone(),
+            name: behavior_file_name,
             shortnames: vec![], // if this is a dependency, then these will be updated later
             behavior_src: get_file_contents(&behavior_file_path),
             // this may not return anything if file doesn't exist
@@ -562,8 +562,10 @@ fn create_monte_carlo_variant_plan(
                     })?)
                 }
             };
-            let mut rng = rand::thread_rng();
-            Ok(Box::new(move |_, _| distribution.sample(&mut rng).into()))
+            Ok(Box::new(move |_, _| {
+                let mut rng = rand::thread_rng();
+                distribution.sample(&mut rng).into()
+            }))
         }
     }
 
@@ -593,7 +595,7 @@ fn create_value_variant_plan(selected_experiment: &SerdeValue) -> Result<SimpleE
 }
 
 fn create_linspace_variant_plan(selected_experiment: &SerdeValue) -> Result<SimpleExperimentPlan> {
-    #[derive(Serialize, Deserialize)]
+    #[derive(Clone, Serialize, Deserialize)]
     struct LinspaceVariant {
         #[serde(rename = "type")]
         _type: String,
@@ -605,10 +607,15 @@ fn create_linspace_variant_plan(selected_experiment: &SerdeValue) -> Result<Simp
     }
     let var: LinspaceVariant = serde_json::from_value(selected_experiment.clone())?;
     let values = (0..var.samples as usize).map(|_| 0.into()).collect();
-    let mapper: Mapper = Box::new(|val, index| {
-        (var.start + (index as f64 * (var.stop - var.start)) / ((var.samples - 1 as f64) as f64))
+
+    let closure_var = var.clone();
+    let mapper: Mapper = Box::new(move |val, index| {
+        (closure_var.start
+            + (index as f64 * (closure_var.stop - closure_var.start))
+                / ((closure_var.samples - 1 as f64) as f64))
             .into()
     });
+
     create_variant_with_mapped_value(&var.field, &values, &mapper, var.steps as usize)
 }
 
@@ -652,10 +659,10 @@ fn create_meshgrid_variant_plan(selected_experiment: &SerdeValue) -> Result<Simp
     let y_space = linspace(var.y[0], var.y[1], var.y[2] as usize);
 
     for x_val in x_space {
-        for y_val in y_space {
+        for y_val in &y_space {
             let entry = HashMap::from([
                 (var.x_field.clone(), x_val.into()),
-                (var.y_field.clone(), y_val.into()),
+                (var.y_field.clone(), (*y_val).into()),
             ])
             .into();
             plan.push(entry);
