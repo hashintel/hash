@@ -69,23 +69,45 @@ export const useFileUpload = (accountId: string) => {
 
     formData.append("file", file);
 
-    const response = await fetch(url, {
+    await fetch(url, {
       method: "POST",
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
       body: formData,
     });
-    return await response.json();
   };
 
   //   @todo ask how we handle urls. Do we just save that to db?
   const uploadFile = useCallback(
-    async ({ file }: { file?: File; url?: string; mime?: string }) => {
-      // should this always expect a file
-      if (!file) return;
+    async (args: { file?: File; url?: string; mime?: string }) => {
+      const { file, url, mime } = args;
+
+      /**
+       * For external urls, we temporarily return the url for now
+       * The proper flow will be addressed in
+       * https://app.asana.com/0/1201214243372255/1201329437863863/f
+       */
+      if (url?.trim()) {
+        return { src: url };
+      }
+
+      if (!file) {
+        let fileType = "";
+
+        if (mime?.includes("image")) {
+          fileType = "Image";
+        }
+
+        if (mime?.includes("video")) {
+          fileType = "Video";
+        }
+
+        throw new Error(
+          `Please enter a valid  ${
+            fileType ? `${fileType} ` : ""
+          }URL or select a file below`,
+        );
+      }
+
       try {
-        //
         const contentMd5 = await computeChecksumMd5(file);
 
         const { data } = await requestFileUploadFn({
@@ -96,12 +118,13 @@ export const useFileUpload = (accountId: string) => {
           },
         });
 
-        // @todo handle errors
         if (!data) {
-          return;
+          throw new Error("An error occured");
         }
 
-        //
+        /**
+         * Upload file with presignedPost data to S3
+         */
         const {
           requestFileUpload: {
             presignedPost,
@@ -111,6 +134,9 @@ export const useFileUpload = (accountId: string) => {
 
         await uploadFileToS3(presignedPost, file);
 
+        /**
+         * Fetch File Entity to get Url
+         */
         const response = await client.query<
           GetEntityQuery,
           GetEntityQueryVariables
@@ -123,10 +149,8 @@ export const useFileUpload = (accountId: string) => {
         });
 
         const { properties } = response.data.entity;
-        console.log("properties ==> ", properties);
         return { src: properties.url };
       } catch (err) {
-        console.log("err ==> ", err);
         throw err;
       }
     },
