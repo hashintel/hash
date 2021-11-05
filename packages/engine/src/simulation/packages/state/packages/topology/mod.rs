@@ -32,7 +32,7 @@ impl PackageCreator for Creator {
         let topology = Topology {
             config: Arc::new(
                 TopologyConfig::create_from_globals(&config.sim.globals)
-                    .unwrap_or_else(|| TopologyConfig::default()),
+                    .unwrap_or_else(|_| TopologyConfig::default()), // TODO OS - do we want to make a default if topology config is missing in Globals, or do we want to error
             ),
         };
         Ok(Box::new(topology))

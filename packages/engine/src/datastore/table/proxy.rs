@@ -1,3 +1,4 @@
+use std::fmt::{Debug, Formatter};
 use std::sync::Arc;
 
 use parking_lot::{lock_api::RawRwLock, RwLock};
@@ -91,6 +92,12 @@ pub struct StateReadProxy {
     message_pool_proxy: PoolReadProxy<MessageBatch>,
 }
 
+impl Debug for StateReadProxy {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str("StateReadProxy(...)")
+    }
+}
+
 impl StateReadProxy {
     pub fn new<K: ReadState>(state: &K) -> Result<Self> {
         Ok(StateReadProxy {
@@ -119,6 +126,12 @@ impl StateReadProxy {
 pub struct StateWriteProxy {
     agent_pool_proxy: PoolWriteProxy<AgentBatch>,
     message_pool_proxy: PoolWriteProxy<MessageBatch>,
+}
+
+impl Debug for StateWriteProxy {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str("StateWriteProxy(...)")
+    }
 }
 
 impl StateWriteProxy {

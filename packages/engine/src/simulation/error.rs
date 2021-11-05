@@ -128,7 +128,7 @@ pub enum Error {
     #[error("Arrow Error: {0}")]
     Arrow(#[from] arrow::error::ArrowError),
 
-    // TODO OS - COMPILE BLOCK - Error requires moving the objects, also SharedState and SharedContext need manual or derived Debug impls
+    // TODO OS - COMPILE BLOCK - Error requires moving the objects
     #[error("State or Context access not allowed for package (with type: {2}). StateAccess: {0:?}, ContextAccess: {1:?}.")]
     AccessNotAllowed(SharedState, SharedContext, String),
 

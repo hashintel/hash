@@ -41,17 +41,19 @@ impl TaskSharedStore {
     }
 }
 
+#[derive(Debug)]
 pub struct PartialStateWriteProxy {
     indices: Vec<usize>,
     inner: StateWriteProxy,
 }
 
+#[derive(Debug)]
 pub struct PartialStateReadProxy {
     indices: Vec<usize>,
     inner: StateReadProxy,
 }
 
-// TODO OS - COMPILE BLOCK - impl custom Debug and/or display
+#[derive(Debug)]
 pub enum SharedState {
     Partial(PartialSharedState),
     Write(StateWriteProxy),
@@ -135,6 +137,7 @@ impl TaskSharedStoreBuilder {
 // of the data store. Can have both write
 // and read access to different (non-overlapping)
 // subsets of the state pool
+#[derive(Debug)]
 pub enum PartialSharedState {
     Write(PartialStateWriteProxy),
     Read(PartialStateReadProxy),
