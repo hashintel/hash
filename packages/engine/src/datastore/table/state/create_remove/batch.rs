@@ -57,7 +57,7 @@ impl PendingBatch {
                 };
                 Ok(())
             })?;
-
+        let remove_indices_len = remove_indices.len();
         let old_batch = BaseBatch {
             index: batch_index,
             worker: batch.affinity,
@@ -68,7 +68,7 @@ impl PendingBatch {
         Ok(PendingBatch {
             base: Some(old_batch),
             num_inbound: 0,
-            num_agents: batch.num_agents() - remove_indices.len(),
+            num_agents: batch.num_agents() - remove_indices_len,
         })
     }
 
@@ -113,7 +113,7 @@ impl PendingBatch {
     }
 
     pub fn old_batch_index(&self) -> Option<usize> {
-        self.base.map(|b| b.index)
+        self.base.as_ref().map(|b| b.index)
     }
 
     pub fn wraps_batch(&self) -> bool {

@@ -1,3 +1,4 @@
+use parking_lot::RwLock;
 use std::{fmt, sync::Arc};
 
 use crate::datastore::table::pool::agent::AgentPool;
@@ -20,7 +21,7 @@ impl fmt::Debug for StateSync {
 
 #[derive(new, Clone)]
 pub struct ContextBatchSync {
-    pub context_batch: Arc<ContextBatch>,
+    pub context_batch: Arc<RwLock<ContextBatch>>,
 }
 
 impl fmt::Debug for ContextBatchSync {

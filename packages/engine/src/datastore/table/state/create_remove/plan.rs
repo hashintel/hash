@@ -10,7 +10,6 @@ use crate::datastore::{
     error::{Error, Result},
     prelude::*,
     table::pool::agent::AgentPool,
-    table::rwlock_ext::TryAcquire,
 };
 use crate::proto::ExperimentRunBase;
 use crate::SimRunConfig;
@@ -40,12 +39,14 @@ impl<'a> MigrationPlan<'a> {
         config: &SimRunConfig<ExperimentRunBase>,
     ) -> Result<Vec<String>> {
         // log::debug!("Updating");
-        let mut mut_batches = state.mut_batches();
+        let mut_batches = state.mut_batches();
         self.existing_mutations
             .par_iter()
             .zip_eq(mut_batches.par_iter_mut())
             .try_for_each::<_, Result<()>>(|(action, batch)| {
-                let write_batch = batch.try_write_deref()?;
+                let mut write_batch = batch
+                    .try_write()
+                    .ok_or_else(|| Error::from("Failed to acquire write lock"))?;
                 match action {
                     ExistingGroupBufferActions::Persist { affinity } => {
                         write_batch.set_affinity(*affinity);

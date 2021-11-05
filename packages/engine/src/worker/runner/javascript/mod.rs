@@ -848,7 +848,10 @@ impl<'m> RunnerImpl<'m> {
         sim_run_id: SimulationShortID,
         ctx_batch: ContextBatchSync,
     ) -> Result<()> {
-        let ctx_batch = &ctx_batch.context_batch;
+        let ctx_batch = &ctx_batch
+            .context_batch
+            .try_read()
+            .ok_or_else(|| Error::from("Couldn't read context batch"))?;
         let args = mv8::Values::from_vec(vec![
             sim_id_to_js(mv8, sim_run_id),
             batch_to_js(mv8, ctx_batch.memory(), ctx_batch.metaversion()),

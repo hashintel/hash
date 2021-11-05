@@ -156,7 +156,7 @@ impl Dynamic {
         for metadata in cols {
             for buffer in &metadata.buffers {
                 let new_buffer = Buffer::new(next_offset, buffer.length, buffer.padding);
-                let next_offset = new_buffer.get_next_offset();
+                next_offset = new_buffer.get_next_offset();
                 buffers.push(new_buffer);
             }
         }

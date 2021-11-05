@@ -8,6 +8,7 @@ use crate::datastore::batch::AgentBatch;
 use crate::datastore::prelude::*;
 use crate::datastore::schema::state::AgentSchema;
 use crate::proto::ExperimentID;
+use std::ops::Deref;
 use std::{borrow::Cow, mem, sync::Arc};
 
 type Offset = i32;
@@ -444,7 +445,7 @@ impl<'a> BufferActions<'a> {
     }
 
     #[allow(clippy::too_many_lines, clippy::too_many_arguments)]
-    fn traverse_nodes<'b, B: AsRef<AgentBatch>>(
+    fn traverse_nodes<'b, B: Deref<Target = AgentBatch>>(
         mut next_state: NextState,
         children_meta: &NodeMapping,
         column_meta: &ColumnMeta,
@@ -1002,7 +1003,7 @@ impl<'a> BufferActions<'a> {
     }
 
     #[allow(clippy::too_many_lines)]
-    pub fn from<B: AsRef<AgentBatch>>(
+    pub fn from<B: Deref<Target = AgentBatch>>(
         batches: &[B],
         batch_index: Option<usize>,
         base_range_actions: RangeActions,

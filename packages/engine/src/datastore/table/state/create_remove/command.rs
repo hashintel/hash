@@ -25,6 +25,6 @@ impl ProcessedCommands {
     }
 
     pub fn get_number_inbound(&self) -> usize {
-        self.new_agents.map(|b| b.num_rows()).unwrap_or(0)
+        self.new_agents.as_ref().map(|b| b.num_rows()).unwrap_or(0)
     }
 }

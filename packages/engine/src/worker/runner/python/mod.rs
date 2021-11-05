@@ -1,10 +1,10 @@
 mod error;
 
-use tokio::process::Command;
 use futures::FutureExt;
 use nng::options::Options;
 use nng::{Aio, Socket};
-use tokio::sync::mpsc::{Receiver, Sender, unbounded_channel, UnboundedReceiver, UnboundedSender};
+use tokio::process::Command;
+use tokio::sync::mpsc::{unbounded_channel, Receiver, Sender, UnboundedReceiver, UnboundedSender};
 
 use super::comms::{
     inbound::InboundToRunnerMsgPayload, outbound::OutboundFromRunnerMsg, ExperimentInitRunnerMsg,

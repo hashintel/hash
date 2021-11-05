@@ -204,7 +204,7 @@ impl Batch {
         schema: Option<&AgentSchema>,
         affinity: Option<usize>,
     ) -> Result<Batch> {
-        let (schema_buffer, header_buffer, meta_buffer, data_buffer) =
+        let (schema_buffer, _header_buffer, meta_buffer, data_buffer) =
             memory.get_batch_buffers()?;
         let (schema, static_meta) = if let Some(s) = schema {
             (s.arrow.clone(), s.static_meta.clone())

@@ -69,8 +69,8 @@ impl Package for AgentMessages {
     ) -> Result<ContextColumn> {
         let agent_pool = state.agent_pool();
         let batches = agent_pool.read_batches()?;
-        let id_name_iter = iterators::agent::agent_id_iter_ref(&batches)?
-            .zip(iterators::agent::agent_name_iter_ref(&batches)?);
+        let id_name_iter = iterators::agent::agent_id_iter(&batches)?
+            .zip(iterators::agent::agent_name_iter(&batches)?);
 
         let messages = Messages::gather(snapshot.message_map(), id_name_iter, state.num_agents())?;
 

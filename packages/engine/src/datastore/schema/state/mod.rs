@@ -34,7 +34,7 @@ impl AgentSchema {
         Ok(index)
     }
 
-    pub fn from_field_spec_map(field_spec_map: FieldSpecMap) -> Result<AgentSchema> {
+    pub fn from_field_spec_map(_field_spec_map: FieldSpecMap) -> Result<AgentSchema> {
         todo!();
     }
 }

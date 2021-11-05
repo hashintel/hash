@@ -127,20 +127,20 @@ impl FieldSpecMap {
 
         let mut any_types = vec![];
 
-        for (_key, field_spec) in self.iter() {
-            let key = field_spec.to_key()?.value().to_string();
+        for (key, field_spec) in self.iter() {
+            let key = key.value().to_string();
             if field_spec.inner.field_type.is_fixed_size() {
-                partitioned_keys.insert(0, (field_spec, key));
+                partitioned_keys.insert(0, (field_spec, key.clone()));
                 fixed_size_no += 1;
             } else {
-                partitioned_keys.push((field_spec, key));
+                partitioned_keys.push((field_spec, key.clone()));
             }
 
             if matches!(
                 field_spec.inner.field_type.variant,
                 FieldTypeVariant::Serialized
             ) {
-                any_types.push(key.clone())
+                any_types.push(key)
             }
         }
 
@@ -208,7 +208,7 @@ pub mod tests {
 
     #[test]
     fn get_schema() -> Result<()> {
-        let mut field_spec_map = FieldSpecMap::default();
+        // let field_spec_map = FieldSpecMap::default();
         // TODO OS [3] - RUNTIME BLOCK - Bring in line with accessors
         panic!();
         // field_spec_map

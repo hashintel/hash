@@ -201,8 +201,8 @@ impl FieldSpecMap {
         let field_key = new_field.to_key()?;
         if let Some(existing_field) = self.field_specs.get(&field_key) {
             if existing_field.scope == FieldScope::Agent
-                && new_field.scope == FieldScope::Agent
-                && existing_field.inner.field_type == new_field.inner.field_type
+                && &new_field.scope == &FieldScope::Agent
+                && &existing_field.inner.field_type == &new_field.inner.field_type
             {
                 if existing_field.source == new_field.source {
                     return Err(Error::from(format!(
@@ -210,7 +210,7 @@ impl FieldSpecMap {
                         field_key, new_field.inner.field_type, existing_field.inner.field_type
                     )));
                 } else {
-                    if let FieldSource::Package(package_src) = new_field.source {
+                    if let FieldSource::Package(_package_src) = &new_field.source {
                         if existing_field.source == FieldSource::Engine {
                             log::warn!("Key clash when a package attempted to insert a new agent-scoped field with key: {:?}, the existing field was created by the engine, the new field will be ignored", field_key);
                             return Ok(());
@@ -301,7 +301,7 @@ impl TryInto<FieldType> for AgentStateField {
 
                 FieldType::new(FieldTypeVariant::Boolean, false)
             }
-
+            AgentStateField::Height => FieldType::new(FieldTypeVariant::Number, true),
             // Note `Messages` and `Extra` and 'BehaviorIndex' are not included in here:
             // 1) `Messages` as they are in a separate batch
             // 2) `Extra` as they are not yet implemented

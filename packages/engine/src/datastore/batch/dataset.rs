@@ -38,7 +38,11 @@ impl super::Batch for Batch {
 impl Batch {
     pub fn new_from_dataset(dataset: &SharedDataset, experiment_run_id: &str) -> Result<Batch> {
         let dataset_name = dataset.shortname.clone();
-        let dataset_size = dataset.data.map(|data| data.len()).unwrap_or_default();
+        let dataset_size = dataset
+            .data
+            .as_ref()
+            .map(|data| data.len())
+            .unwrap_or_default();
         let mut memory = Memory::from_sizes(
             experiment_run_id,
             0,
@@ -50,7 +54,13 @@ impl Batch {
         let reload_state = Metaversion::default();
         memory.set_header(&dataset_name)?;
         let buffer = memory.get_mut_data_buffer()?;
-        buffer.copy_from_slice(dataset.data.map(|data| data.as_bytes()).unwrap_or_default());
+        buffer.copy_from_slice(
+            dataset
+                .data
+                .as_ref()
+                .map(|data| data.as_bytes())
+                .unwrap_or_default(),
+        );
         Ok(Batch {
             memory,
             reload_state,

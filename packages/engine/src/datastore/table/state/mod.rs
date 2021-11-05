@@ -139,14 +139,14 @@ impl ExState {
         agent_schema: &AgentSchema,
         experiment_run_id: &ExperimentID,
     ) -> Result<()> {
-        let static_pool = context.inner_mut().agent_pool_mut().write_batches()?;
+        let mut static_pool = context.inner_mut().agent_pool_mut().write_batches()?;
         let dynamic_pool = self.agent_pool().read_batches()?;
 
         (0..dynamic_pool.len().min(static_pool.len())).try_for_each::<_, Result<()>>(
             |batch_index| {
-                let dynamic_batch = dynamic_pool[batch_index];
-                let static_batch = static_pool[batch_index];
-                static_batch.sync(dynamic_batch)?;
+                let dynamic_batch = &dynamic_pool[batch_index];
+                let static_batch = &mut static_pool[batch_index];
+                static_batch.sync(&dynamic_batch)?;
                 Ok(())
             },
         )?;

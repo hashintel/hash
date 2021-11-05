@@ -1,3 +1,4 @@
+use parking_lot::RwLock;
 use std::sync::Arc;
 
 use crate::proto::ExperimentID;
@@ -12,7 +13,7 @@ use super::{
 };
 
 struct Inner {
-    batch: Arc<ContextBatch>,
+    batch: Arc<RwLock<ContextBatch>>,
     /// Pool which contains all Static Agent Batches
     agent_pool: AgentPool,
     /// Pool which contains all Inbox Batches
@@ -26,7 +27,7 @@ pub struct Context {
 }
 
 impl Context {
-    pub fn batch(&self) -> Arc<ContextBatch> {
+    pub fn batch(&self) -> Arc<RwLock<ContextBatch>> {
         self.inner.batch.clone()
     }
 
@@ -45,7 +46,7 @@ impl Context {
             group_start_indices,
         )?;
         let inner = Inner {
-            batch: Arc::new(context_batch),
+            batch: Arc::new(RwLock::new(context_batch)),
             agent_pool: AgentPool::empty(),
             message_pool: MessagePool::empty(),
             local_meta: Meta::default(),
@@ -93,6 +94,8 @@ impl ExContext {
     pub fn write_batch(&mut self, datas: &[ContextColumn], num_elements: usize) -> Result<()> {
         self.inner
             .batch
+            .try_write()
+            .ok_or_else(|| Error::from("Expected to be able to write"))?
             .write_from_context_datas(datas, num_elements)
     }
 
@@ -105,7 +108,7 @@ impl ExContext {
 }
 
 pub struct PreContext {
-    batch: Arc<ContextBatch>,
+    batch: Arc<RwLock<ContextBatch>>,
     /// Local metadata
     local_meta: Meta,
 }

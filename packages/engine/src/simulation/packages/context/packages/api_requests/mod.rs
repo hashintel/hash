@@ -105,7 +105,7 @@ impl Package for APIRequests {
 
         let agent_pool = state.agent_pool();
         let batches = agent_pool.read_batches()?;
-        let responses_per_agent = iterators::agent::agent_id_iter_ref(&batches)?
+        let responses_per_agent = iterators::agent::agent_id_iter(&batches)?
             .map(move |agent_id| {
                 let mut ext_responses = vec![];
                 api_response_maps

@@ -15,7 +15,6 @@ impl BatchDistribution {
     pub fn new(num_workers: usize, current_batches: Vec<PendingBatch>) -> BatchDistribution {
         let mut inner = vec![vec![]; num_workers];
 
-        let num_current_batches = current_batches.len();
         for batch in current_batches {
             inner[batch.old_worker_unchecked()].push(batch);
         }

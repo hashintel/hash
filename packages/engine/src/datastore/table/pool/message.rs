@@ -2,10 +2,10 @@ use parking_lot::{RwLock, RwLockReadGuard};
 use rayon::iter::{
     IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,
 };
+use std::ops::Deref;
 
 use crate::datastore::{batch, prelude::*, table::references::AgentMessageReference, UUID_V4_LEN};
 
-use crate::datastore::table::rwlock_ext::TryAcquire;
 use crate::proto::ExperimentRunBase;
 use crate::SimRunConfig;
 use std::sync::Arc;
@@ -26,12 +26,19 @@ impl MessagePool {
         &self.batches
     }
 
+    fn batches_mut(&mut self) -> &mut Vec<Arc<RwLock<MessageBatch>>> {
+        &mut self.batches
+    }
+
     pub fn read(&self) -> Result<MessagePoolRead<'_>> {
-        // TODO OS - COMPILE BLOCK - A value of type `Vec<parking_lot::lock_api::RwLockReadGuard<'_, parking_lot::RawRwLock, datastore::batch::message::Batch>>` cannot be built from an iterator over elements of type `&datastore::batch::message::Batch`
         let read_batches = self
             .batches()
             .iter()
-            .map(|batch| batch.try_read_res())
+            .map(|batch| {
+                batch
+                    .try_read()
+                    .ok_or_else(|| Error::from("Failed to acquire read lock"))
+            })
             .collect::<Result<_>>()?;
         Ok(MessagePoolRead {
             batches: read_batches,
@@ -60,10 +67,15 @@ impl MessagePool {
             .rev()
             .try_for_each::<_, Result<()>>(|batch_index| {
                 if let Some(dynamic_batch) = agent_pool.get_batch_at_index(batch_index)? {
-                    let inbox_batch = &mut self.batches[batch_index].try_write_deref()?;
-                    inbox_batch.reset(dynamic_batch)?
+                    let inbox_batch = &mut self.batches[batch_index]
+                        .try_write()
+                        .ok_or_else(|| Error::from("Failed to acquire write lock"))?;
+                    inbox_batch.reset(&dynamic_batch)?
                 } else {
-                    let batch = self.batches.remove(batch_index).try_read_deref()?;
+                    let batch_arc = self.batches.remove(batch_index);
+                    let batch = batch_arc
+                        .try_read()
+                        .ok_or_else(|| Error::from("Failed to acquire read lock"))?;
                     removed.push(batch.get_batch_id().to_string());
                 }
                 Ok(())
@@ -73,12 +85,15 @@ impl MessagePool {
                 .iter()
                 .try_for_each::<_, Result<()>>(|batch| {
                     let inbox = MessageBatch::empty_from_agent_batch(
-                        batch.try_read_deref()?,
+                        batch
+                            .try_read()
+                            .ok_or_else(|| Error::from("Failed to acquire read lock"))?
+                            .deref(),
                         &message_schema.arrow,
                         message_schema.static_meta.clone(),
                         &experiment_run_id,
                     )?;
-                    self.batches().push(Arc::new(RwLock::new(inbox)));
+                    self.batches_mut().push(Arc::new(RwLock::new(inbox)));
                     Ok(())
                 })?;
         }

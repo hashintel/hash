@@ -52,7 +52,7 @@ impl BatchRepr for Batch {
         &mut self.metaversion
     }
 
-    fn maybe_reload(&mut self, metaversion: Metaversion) -> Result<()> {
+    fn maybe_reload(&mut self, _metaversion: Metaversion) -> Result<()> {
         Err(Error::from("`maybe_reload` is not implemented"))
     }
 
@@ -144,14 +144,16 @@ impl Batch {
         }
 
         debug_assert!(self.memory.get_data_buffer_len()? >= dynamic.data_length);
-        let mut data = self.memory.get_mut_data_buffer()?;
+        let data = self.memory.get_mut_data_buffer()?;
 
         let mut next_offset = 0;
         let writable_datas = column_dynamic_meta_list
             .iter()
-            .map(|column_meta| {
+            .map(move |column_meta| {
                 let length = column_meta.byte_length();
-                &mut data[next_offset..next_offset + length]
+                let old_offset = next_offset;
+                next_offset = old_offset + length; // TODO check this is correct
+                unsafe { std::slice::from_raw_parts_mut(*&data[old_offset] as *mut _, length) }
             })
             .collect::<Vec<_>>();
 
