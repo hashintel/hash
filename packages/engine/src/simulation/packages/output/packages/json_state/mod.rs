@@ -42,16 +42,21 @@ impl GetWorkerStartMsg for JsonState {
 
 #[async_trait]
 impl Package for JsonState {
-    async fn run<'s>(
+    async fn run(
         &mut self,
         state: Arc<State>,
         _context: Arc<Context>,
     ) -> Result<JSONStateOutput> {
-        let agent_states: Vec<_> = state
+        let agent_states: std::result::Result<Vec<_>, crate::datastore::error::Error> = state
             .agent_pool()
             .read_batches()?
             .into_iter()
-            .flat_map(|batch| batch.record_batch().into_agent_states()?)
+            .map(|batch| batch.record_batch().into_agent_states())
+            .collect();
+
+        let agent_states: Vec<_> = agent_states?
+            .into_iter()
+            .flatten()
             .collect();
 
         JSONStateOutput {
