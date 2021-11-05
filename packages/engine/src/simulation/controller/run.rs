@@ -8,6 +8,7 @@ use crate::experiment::controller::comms::exp_pkg_update::ExpPkgUpdateSend;
 use crate::experiment::controller::comms::sim_status::SimStatusSend;
 use crate::experiment::controller::comms::simulation::SimCtlRecv;
 use crate::experiment::package::{StepOutputResponsePayload, StepUpdate, UpdateRequest};
+use crate::hash_types::worker::RunnerError;
 use crate::output::SimulationOutputPersistenceRepr;
 use crate::proto::{ExperimentRunBase, SimulationShortID};
 use crate::simulation::agent_control::AgentControl;
@@ -95,14 +96,25 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
                 log::error!("Got error within the engine step process: {:?}", error);
                 // Try to persist before exiting
                 let persistence_result = Some(persistence_service.finalize().await?);
+                let runner_error = RunnerError {
+                    message: Some(format!("{:?}", error)),
+                    code: None,
+                    line_number: None,
+                    file_name: None,
+                    details: None,
+                    is_warning: false,
+                    is_internal: true, // TODO is this always internal?
+                };
                 sims_to_exp
-                    .send(SimStatus::error(
-                        sim_run_id,
-                        steps_taken as isize,
-                        // TODO OS - COMPILE BLOCK - The trait bound `hash_types::worker::RunnerError: From<simulation::error::Error>` is not satisfied
-                        error.into(),
-                        persistence_result,
-                    ))
+                    .send(
+                        SimStatus::error(
+                            sim_run_id,
+                            steps_taken as isize,
+                            runner_error,
+                            persistence_result,
+                        )
+                        .map_err(|err| Error::from(format!("{:?}", err)))?,
+                    )
                     .await
                     .map_err(|exp_controller_err| {
                         Error::from(format!(

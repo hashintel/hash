@@ -61,9 +61,16 @@ impl Engine {
     pub async fn next(&mut self) -> Result<SimulationStepResult> {
         self.run_context_packages().await?;
         self.run_state_packages().await?;
-        let step_output = self.run_output_packages().await?;
-        // TODO OS - COMPILE BLOCK - No method named `create_step_result` found for mutable reference `&mut Engine` in the current scope
-        self.create_step_result(step_output)
+        let output = self.run_output_packages().await?;
+        let result = SimulationStepResult {
+            sim_id: self.config.sim.id,
+            output,
+            errors: vec![],
+            warnings: vec![],
+            agent_control: todo!(), // TODO[1] Need to pick up from messages
+            stop_signal: false,
+        };
+        Ok(result)
     }
 
     /// Finalize state (see [`SimulationEngine::finalize_state`]) and create a new context

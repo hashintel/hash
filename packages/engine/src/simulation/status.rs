@@ -15,7 +15,7 @@ pub struct SimStatus {
     pub stop_msg: Option<serde_json::Value>,
     pub stop_signal: bool,
     // TODO OS - COMPILE BLOCK - Cannot infer an appropriate lifetime for lifetime parameter `'de` due to conflicting requirements
-    pub persistence_result: Option<(&'static str, serde_json::Value)>,
+    pub persistence_result: Option<(String, serde_json::Value)>,
     pub error: Option<RunnerError>,
     pub warnings: Vec<RunnerError>,
     pub running: bool,
@@ -47,12 +47,14 @@ impl SimStatus {
         stop_msg: Option<serde_json::Value>,
         persistence_result: P,
     ) -> Result<SimStatus> {
+        let persistence_result = OutputPersistenceResultRepr::into_value(persistence_result)
+            .map(|(a, b)| (a.to_string(), b))?;
         Ok(SimStatus {
             sim_id,
             steps_taken,
             early_stop,
             stop_msg,
-            persistence_result: Some(OutputPersistenceResultRepr::into_value(persistence_result)?), // TODO OS I (Alfie) wrapped this in a Some, do we want to make it None if as_value returns err
+            persistence_result: Some(persistence_result),
             ..SimStatus::default()
         })
     }
@@ -62,15 +64,19 @@ impl SimStatus {
         steps_taken: isize,
         error: RunnerError,
         persistence_result: Option<P>,
-    ) -> SimStatus {
-        SimStatus {
+    ) -> Result<SimStatus> {
+        let persistence_result = persistence_result
+            .map(|res| {
+                OutputPersistenceResultRepr::into_value(res).map(|(a, b)| (a.to_string(), b))
+            })
+            .transpose()?;
+        Ok(SimStatus {
             sim_id,
             error: Some(error),
             steps_taken,
             running: false,
-            // TODO OS - COMPILE BLOCK - The trait bound `std::option::Option<P>: OutputPersistenceResultRepr` is not satisfied
-            persistence_result: Some(OutputPersistenceResultRepr::into_value(persistence_result)?),
+            persistence_result,
             ..SimStatus::default()
-        }
+        })
     }
 }

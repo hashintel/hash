@@ -70,7 +70,7 @@ impl Comms {
         })
     }
 
-    pub fn take_create_remove_commands(&mut self) -> Result<CreateRemoveCommands> {
+    pub fn take_create_remove_commands(&self) -> Result<CreateRemoveCommands> {
         let mut cmds = self.cmds.try_write()?;
         let taken = std::mem::replace(&mut *cmds, CreateRemoveCommands::default());
         Ok(taken)
