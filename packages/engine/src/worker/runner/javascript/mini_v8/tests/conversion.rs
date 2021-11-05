@@ -64,7 +64,7 @@ fn tuple() {
     type VariadicOver = (bool, bool, bool, bool, Variadic<bool>);
     let (a, b, c, d, var): VariadicOver = FromValues::from_values(values.clone(), &mv8).unwrap();
     assert_eq!((true, false, true, false), (a, b, c, d));
-    assert_eq!(*var, vec![]);
+    assert_eq!(*var, vec![] as Vec<bool>);
 }
 
 #[test]
