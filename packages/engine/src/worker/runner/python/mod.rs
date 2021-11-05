@@ -1,9 +1,10 @@
 mod error;
 
+use tokio::process::Command;
 use futures::FutureExt;
 use nng::options::Options;
 use nng::{Aio, Socket};
-use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
+use tokio::sync::mpsc::{Receiver, Sender, unbounded_channel, UnboundedReceiver, UnboundedSender};
 
 use super::comms::{
     inbound::InboundToRunnerMsgPayload, outbound::OutboundFromRunnerMsg, ExperimentInitRunnerMsg,
@@ -34,7 +35,7 @@ struct NngSender {
 
     // Sends the results of operations (i.e. results of trying to
     // send nng messages) in the aio.
-    aio_result_sender: UnboundedSender<Result<()>>,
+    // aio_result_sender: UnboundedSender<Result<()>>,
 
     // Receives the results of operations from the aio.
     aio_result_receiver: UnboundedReceiver<Result<()>>,
@@ -85,7 +86,6 @@ impl NngSender {
             route,
             to_py,
             aio,
-            aio_result_sender,
             aio_result_receiver,
         })
     }
@@ -124,7 +124,7 @@ struct NngReceiver {
 
     // Sends the results of operations (i.e. results of trying to
     // receive nng messages) in the aio.
-    aio_result_sender: UnboundedSender<nng::Message>,
+    // aio_result_sender: UnboundedSender<nng::Message>,
 
     // Receives the results of operations from the aio.
     aio_result_receiver: UnboundedReceiver<nng::Message>,
@@ -153,7 +153,6 @@ impl NngReceiver {
             route,
             from_py,
             aio,
-            aio_result_sender,
             aio_result_receiver,
         })
     }
@@ -188,6 +187,8 @@ pub struct PythonRunner {
     init_msg: ExperimentInitRunnerMsg,
     nng_sender: NngSender,
     nng_receiver: NngReceiver,
+    kill_sender: Sender<()>,
+    kill_receiver: Receiver<()>,
     spawned: bool,
 }
 
@@ -195,12 +196,14 @@ impl PythonRunner {
     pub fn new(spawn: bool, init: ExperimentInitRunnerMsg) -> WorkerResult<Self> {
         let nng_sender = NngSender::new(init.experiment_id.clone(), init.worker_index)?;
         let nng_receiver = NngReceiver::new(init.experiment_id.clone(), init.worker_index)?;
-        // TODO: kill_sender size 1 bounded channel
+        let (kill_sender, kill_receiver) = tokio::sync::mpsc::channel(2);
         Ok(Self {
             init_msg: init,
+            spawned: spawn,
             nng_sender,
             nng_receiver,
-            spawned: spawn,
+            kill_sender,
+            kill_receiver,
         })
     }
 
@@ -209,8 +212,11 @@ impl PythonRunner {
         sim_id: Option<SimulationShortID>,
         msg: InboundToRunnerMsgPayload,
     ) -> WorkerResult<()> {
-        // TODO: If KillRunner message, also send with `kill_sender`
-        self.nng_sender.send(sim_id, msg).map_err(WorkerError::from)
+        self.nng_sender.send(sim_id, msg)?;
+        // if matches!(msg, InboundToRunnerMsgPayload::KillRunner) {
+        //     self.kill_sender.send(()).await.map_err(|e| Error::KillSend(e))?;
+        // }
+        Ok(())
     }
 
     // TODO: Duplication with other runners (move into worker?)
@@ -248,15 +254,39 @@ impl PythonRunner {
             return Ok(());
         }
 
+        // Spawn Python process.
+        // let mut cmd = Command::new("sh");
+        // cmd.arg("./packages/engine/src/worker/runner/python/run.sh")
+        //     .arg(&self.init_msg.experiment_id)
+        //     .arg(&self.init_msg.worker_index.to_string());
+        // let mut process = cmd.spawn()?;
+
+        // Send messages to Python process.
         self.nng_receiver.init(&self.init_msg)?;
         loop {
             tokio::select! {
                 Some(nng_send_result) = self.nng_sender.get_send_result() => {
                     nng_send_result?;
                 }
-                // TODO: `kill_receiver`
+                Some(_) = self.kill_receiver.recv() => {
+                    break;
+                }
             }
         }
+
+        // // TODO: Drop nng_sender/nng_receiver before killing process?
+        // match await_timeout(process.wait(), std::time::Duration::from_secs(10))? {
+        //     None => {
+        //         log::info!("Python process has failed to exit; killing.");
+        //         process.kill().await?;
+        //     }
+        //     Some(status) => {
+        //         log::info!(
+        //             "Python runner has successfully exited with status: {:?}.",
+        //             status.code().unwrap_or(-1)
+        //         );
+        //     }
+        // }
         Ok(())
     }
 }

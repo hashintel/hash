@@ -64,7 +64,7 @@ impl<'m> JSPackage<'m> {
         pkg_type: PackageType,
     ) -> Result<Self> {
         let path = get_pkg_path(name, pkg_type);
-        let code = match fs::read_to_string(path) {
+        let code = match fs::read_to_string(path.clone()) {
             Ok(s) => s,
             Err(_) => {
                 // Packages don't have to use JS.
@@ -83,7 +83,7 @@ impl<'m> JSPackage<'m> {
         );
         let pkg: mv8::Function = mv8
             .eval(wrapped_code)
-            .map_err(|e| Error::PackageImport(path.into(), e.into()))?;
+            .map_err(|e| Error::PackageImport(path.clone(), e.into()))?;
 
         let args = mv8::Values::from_vec(vec![
             embedded.hash_util.clone(),
@@ -94,20 +94,20 @@ impl<'m> JSPackage<'m> {
 
         let fns: mv8::Array = pkg
             .call(args)
-            .map_err(|e| Error::PackageImport(path.into(), e.into()))?;
+            .map_err(|e| Error::PackageImport(path.clone(), e.into()))?;
         if fns.len() != 3 {
-            return Err(Error::PackageImport(path.into(), "Stray return".into()));
+            return Err(Error::PackageImport(path.clone(), "Stray return".into()));
         }
 
         // Validate returned array.
         let fn_names = ["start_experiment", "start_sim", "run_task"];
-        for (elem, fn_name) in fns.elements().zip(fn_names) {
+        for (elem, fn_name) in fns.clone().elements().zip(fn_names) {
             let elem: mv8::Value = elem.map_err(|e| {
-                Error::PackageImport(path.into(), format!("Couldn't index array: {:?}", e))
+                Error::PackageImport(path.clone(), format!("Couldn't index array: {:?}", e))
             })?;
             if !(elem.is_function() || elem.is_undefined()) {
                 return Err(Error::PackageImport(
-                    path.into(),
+                    path.clone(),
                     format!("{} should be a function, not {:?}", fn_name, elem),
                 ));
             }
@@ -151,9 +151,10 @@ fn eval_file<'m>(mv8: &'m MiniV8, path: &str) -> Result<mv8::Value<'m>> {
 fn import_file<'m>(
     mv8: &'m MiniV8,
     path: &str,
-    args: Vec<&'m mv8::Value<'m>>,
+    args: Vec<&mv8::Value<'m>>,
 ) -> Result<mv8::Value<'m>> {
-    let f = eval_file(mv8, path)?
+    let f = eval_file(mv8, path)?;
+    let f = f
         .as_function()
         .ok_or_else(|| Error::FileImport(path.into(), "Failed to wrap file".into()))?;
 
@@ -319,6 +320,7 @@ fn schema_to_stream_bytes(schema: &Schema) -> Vec<u8> {
 
 fn array_to_errors(array: mv8::Value<'_>) -> Vec<RunnerError> {
     // TODO: Extract optional line numbers
+    let fallback = format!("Unparsed: {:?}", array);
 
     if let mv8::Value::Array(array) = array {
         let errors = array
@@ -339,7 +341,7 @@ fn array_to_errors(array: mv8::Value<'_>) -> Vec<RunnerError> {
     } // else unparsed
 
     vec![RunnerError {
-        message: Some(format!("Unparsed: {:?}", array)),
+        message: Some(fallback),
         ..RunnerError::default()
     }]
 }
@@ -637,7 +639,8 @@ impl<'m> RunnerImpl<'m> {
     fn flush_group(
         &mut self,
         mv8: &'m MiniV8,
-        state: &SimState,
+        agent_schema: &Arc<Schema>,
+        msg_schema: &Arc<Schema>,
         agent_batch: &mut AgentBatch,
         msg_batch: &mut MessageBatch,
         changes: mv8::Value<'m>,
@@ -645,10 +648,10 @@ impl<'m> RunnerImpl<'m> {
         let changes = changes.as_object().unwrap();
 
         let agent_changes = changes.get("agent")?;
-        self.flush_batch(mv8, agent_changes, agent_batch, &state.agent_schema)?;
+        self.flush_batch(mv8, agent_changes, agent_batch, agent_schema)?;
 
         let msg_changes = changes.get("msg")?;
-        self.flush_batch(mv8, msg_changes, msg_batch, &state.msg_schema)?;
+        self.flush_batch(mv8, msg_changes, msg_batch, msg_schema)?;
 
         Ok(())
     }
@@ -662,27 +665,36 @@ impl<'m> RunnerImpl<'m> {
     ) -> Result<StateInterimSync> {
         let state = self
             .sims_state
-            .get_mut(&sim_run_id)
+            .get(&sim_run_id)
             .ok_or(Error::MissingSimulationRun(sim_run_id))?;
+
+        let agent_batches = state.agent_pool.clone();
+        let message_batches = state.msg_pool.clone();
+
+        // Assuming cloning an Arc once is faster than looking up `state` in
+        // the `sims_state` HashMap in every `flush_group` call.
+        let agent_schema = state.agent_schema.clone();
+        let msg_schema = state.msg_schema.clone();
 
         // Currently only either a single group or all groups is flushed,
         // but distinguish between group and proxy indices as future-proofing.
         let group_indices = if let Some(group_index) = group_index {
             vec![group_index as usize]
         } else {
-            (0..state.agent_pool.batches().len()).collect()
+            (0..agent_batches.batches().len()).collect()
         };
 
         let (mut agent_proxy, mut msg_proxy) = (
-            state.agent_pool.partial_write_proxy(&group_indices)?,
-            state.msg_pool.partial_write_proxy(&group_indices)?,
+            agent_batches.partial_write_proxy(&group_indices)?,
+            message_batches.partial_write_proxy(&group_indices)?,
         );
         let changes: mv8::Value = r.get("changes")?;
 
         if group_index.is_some() {
             self.flush_group(
                 mv8,
-                state,
+                &agent_schema,
+                &msg_schema,
                 agent_proxy.batch_mut(0)?,
                 msg_proxy.batch_mut(0)?,
                 changes,
@@ -694,7 +706,8 @@ impl<'m> RunnerImpl<'m> {
                 let group_changes = changes.get(i_proxy as u32)?;
                 self.flush_group(
                     mv8,
-                    state,
+                    &agent_schema,
+                    &msg_schema,
                     agent_proxy.batch_mut(i_proxy)?,
                     msg_proxy.batch_mut(i_proxy)?,
                     group_changes,
@@ -704,8 +717,8 @@ impl<'m> RunnerImpl<'m> {
 
         Ok(StateInterimSync {
             group_indices,
-            agent_batches: state.agent_pool.clone(),
-            message_batches: state.msg_pool.clone(),
+            agent_batches,
+            message_batches,
         })
     }
 
