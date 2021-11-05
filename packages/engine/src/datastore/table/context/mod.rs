@@ -12,7 +12,7 @@ use super::{
     state::view::StateSnapshot,
 };
 
-struct Inner {
+pub struct Inner {
     batch: Arc<RwLock<ContextBatch>>,
     /// Pool which contains all Static Agent Batches
     agent_pool: AgentPool,
@@ -128,7 +128,7 @@ impl PreContext {
             local_meta: self.local_meta,
         };
         let mut context = ExContext { inner };
-        context.write_batch(datas, num_elements);
+        context.write_batch(datas, num_elements)?;
         Ok(context)
     }
 }

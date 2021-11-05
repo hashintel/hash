@@ -22,7 +22,7 @@ use super::{
     references::MessageMap,
 };
 
-struct Inner {
+pub struct Inner {
     /// Pool which contains all Dynamic Agent Batches
     agent_pool: AgentPool,
     /// Pool which contains all Outbox Batches
