@@ -34,7 +34,7 @@ impl ContextColumnWriter for NeighborMap {
         Ok(builder.finish())
     }
 
-    fn write(&self, data: &mut [u8], meta: &ColumnDynamicMetadata) -> DatastoreResult<()> {
+    fn write(&self, mut data: &mut [u8], meta: &ColumnDynamicMetadata) -> DatastoreResult<()> {
         // TODO[6](optimization)
         // we can leave these null buffers out (length = 0) if Rust does not need to read them.
 

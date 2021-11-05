@@ -87,7 +87,7 @@ impl<'a> APIResponses<'a> {
 }
 
 impl<'a> From<Vec<Vec<APIResponseToAnonymous>>> for APIResponses<'a> {
-    fn from(v: Vec<Vec<APIResponseToAnonymous>>) -> Self {
+    fn from(v: Vec<Vec<APIResponseToAnonymous>>) -> Self { // TODO - performance: into_iter to access fields at same time and avoid clones
         APIResponses {
             from: SizedStaticStringColumn {
                 data: v
@@ -110,7 +110,7 @@ impl<'a> From<Vec<Vec<APIResponseToAnonymous>>> for APIResponses<'a> {
             data: SizedStringColumn {
                 data: v
                     .iter()
-                    .map(|v| v.iter().map(|v| v.data).collect())
+                    .map(|v| v.iter().map(|v| v.data.clone()).collect())
                     .collect(),
                 char_count: v.iter().fold(0, |acc, elem| {
                     acc + elem.iter().map(|e| e.data.len()).sum::<usize>()

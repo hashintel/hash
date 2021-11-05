@@ -31,7 +31,7 @@ impl<'s> ContextColumnWriter for APIResponses<'s> {
         Ok(builder.finish())
     }
 
-    fn write(&self, data: &mut [u8], meta: &ColumnDynamicMetadata) -> DatastoreResult<()> {
+    fn write(&self, mut data: &mut [u8], meta: &ColumnDynamicMetadata) -> DatastoreResult<()> {
         // Null buffer
         data.from_offset(&meta.buffers[0]).fill_with_ones();
 

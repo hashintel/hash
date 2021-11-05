@@ -157,8 +157,7 @@ impl Engine {
         context: &mut ExContext,
     ) -> Result<StateSnapshot> {
         let message_map = state.message_map()?;
-        let message_pool = state.message_pool();
-        self.add_remove_agents(state, &message_map, message_pool)?;
+        self.add_remove_agents(state, &message_map)?;
         let message_pool = self.finalize_agent_messages(state, context)?;
         let agent_pool = self.finalize_agent_state(state, context)?;
         Ok(StateSnapshot::new(agent_pool, message_pool, message_map))
@@ -169,13 +168,8 @@ impl Engine {
     /// Operates based on the "create_agent" and "remove_agent"
     /// messages sent to "hash" through agent inboxes. Also creates
     /// and removes agents that have been requested by State packages.
-    fn add_remove_agents(
-        &mut self,
-        state: &mut ExState,
-        message_map: &MessageMap,
-        message_pool: &MessagePool,
-    ) -> Result<()> {
-        let read = message_pool.read()?;
+    fn add_remove_agents(&mut self, state: &mut ExState, message_map: &MessageMap) -> Result<()> {
+        let read = state.message_pool().read()?;
         let mut commands = CreateRemoveCommands::from_hash_messages(&message_map, &read)?;
         commands.merge(self.comms.take_create_remove_commands()?);
         commands.verify(&self.config.sim.store.agent_schema)?;
