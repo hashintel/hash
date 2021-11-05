@@ -132,14 +132,14 @@ impl ConfigBuilder {
         self
     }
 
-    pub fn add_init_package(self, init_package: InitPackage) -> ConfigBuilder {
-        let new = if let Some(ref mut pkgs) = self.init {
+    pub fn add_init_package(mut self, init_package: InitPackage) -> ConfigBuilder {
+        let new = if let Some(mut pkgs) = self.init {
             pkgs.insert(init_package);
             pkgs
         } else {
-            &mut unit_hash_set(init_package)
+            unit_hash_set(init_package)
         };
-        self.set_init_packages(new.iter())
+        self.set_init_packages(&new)
     }
 
     pub fn add_context_package(self, context_package: ContextPackage) -> ConfigBuilder {

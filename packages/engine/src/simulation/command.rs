@@ -70,9 +70,9 @@ impl CreateRemoveCommands {
         self.merged.push(other);
     }
 
-    pub fn from_hash_messages<'a>(
+    pub fn from_hash_messages(
         message_map: &MessageMap,
-        message_pool: &MessagePoolRead<'a>,
+        message_pool: MessagePoolRead,
     ) -> Result<CreateRemoveCommands> {
         let message_reader = message_pool.get_reader();
 
