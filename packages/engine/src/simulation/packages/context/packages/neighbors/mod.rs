@@ -17,6 +17,7 @@ use crate::simulation::packages::prelude::{ArrowArray, ContextPackage};
 use crate::simulation::Result;
 use crate::{ExperimentConfig, SimRunConfig};
 use async_trait::async_trait;
+use parking_lot::RwLockReadGuard;
 use serde_json::Value;
 use crate::datastore::batch::AgentBatch;
 
@@ -82,7 +83,7 @@ struct Neighbors {
 }
 
 impl Neighbors {
-    fn neighbor_vec<'a>(batches: &'a Vec<&AgentBatch>) -> Result<Vec<NeighborRef<'a>>> {
+    fn neighbor_vec<'a>(batches: &'a Vec<RwLockReadGuard<AgentBatch>>) -> Result<Vec<NeighborRef<'a>>> {
         Ok(iterators::agent::position_iter(batches)?
             .zip(iterators::agent::index_iter(batches))
             .zip(iterators::agent::search_radius_iter(batches)?)
