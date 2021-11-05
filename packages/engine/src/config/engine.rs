@@ -8,7 +8,7 @@ pub struct Config {
 
 pub type WorkerAllocation = Vec<Worker>;
 
-#[derive(Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord)]
 pub struct Worker(WorkerIndex);
 
 impl Worker {

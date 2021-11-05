@@ -126,6 +126,15 @@ pub struct WorkerPoolCommsWithWorkers {
 
 impl WorkerPoolCommsWithWorkers {
     fn get_worker_senders(
+        &self,
+        worker_index: WorkerIndex,
+    ) -> Result<&(UnboundedSender<WorkerPoolToWorkerMsg>, kill::KillSend)> {
+        self.send_to_w
+            .get(worker_index)
+            .ok_or_else(|| Error::MissingWorkerWithIndex(worker_index))
+    }
+
+    fn get_mut_worker_senders(
         &mut self,
         worker_index: WorkerIndex,
     ) -> Result<&mut (UnboundedSender<WorkerPoolToWorkerMsg>, kill::KillSend)> {
@@ -150,7 +159,7 @@ impl WorkerPoolCommsWithWorkers {
     }
 
     pub async fn send_kill_and_confirm(&mut self, worker_index: WorkerIndex) -> Result<()> {
-        let sender = &mut self.get_worker_senders(worker_index)?.1;
+        let sender = &mut self.get_mut_worker_senders(worker_index)?.1;
         sender.send()?;
         sender.recv_kill_confirmation_with_ms_timeout(100).await?;
         Ok(())
