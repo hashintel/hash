@@ -22,13 +22,24 @@ pub enum Name {
 }
 
 /// All context package tasks are registered in this enum
-#[enum_dispatch(WorkerHandler, WorkerPoolHandler, GetTaskArgs)]
+// #[enum_dispatch(WorkerHandler, WorkerPoolHandler, GetTaskArgs)]
 #[derive(Clone, Debug)]
-pub enum ContextTask {}
+pub struct ContextTask {}
+
+// Empty impls to satisfy constraints enum_dispatch while there are no task variants
+impl WorkerHandler for ContextTask {}
+
+impl WorkerPoolHandler for ContextTask {}
+
+impl GetTaskArgs for ContextTask {
+    fn distribution(&self) -> TaskDistributionConfig {
+        unimplemented!()
+    }
+}
 
 /// All context package task messages are registered in this enum
 #[enum_dispatch(Into<TaskResult>)]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum ContextTaskMessage {}
 
 /// All context package task results are registered in this enum
@@ -49,7 +60,7 @@ lazy_static! {
 
     pub static ref IDS: HashMap<Name, PackageId> = {
         use Name::*;
-        let creator = PackageIdCreator::new(PackageType::Context);
+        let mut creator = PackageIdCreator::new(PackageType::Context);
         let mut m = HashMap::new();
         m.insert(AgentMessages, creator.next());
         m.insert(APIRequests, creator.next());

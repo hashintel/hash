@@ -33,7 +33,7 @@ pub enum InitTask {
 
 /// All init package task messages are registered in this enum
 #[enum_dispatch(RegisterWithoutTrait)]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum InitTaskMessage {
     JsPyInitTaskMessage,
 }
@@ -57,7 +57,7 @@ lazy_static! {
 
     pub static ref IDS: HashMap<Name, PackageId> = {
         use Name::*;
-        let creator = PackageIdCreator::new(PackageType::Init);
+        let mut creator = PackageIdCreator::new(PackageType::Init);
         let mut m = HashMap::new();
         m.insert(JSON, creator.next());
         m.insert(JSPY, creator.next());

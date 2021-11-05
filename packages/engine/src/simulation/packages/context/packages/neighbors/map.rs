@@ -27,7 +27,7 @@ pub type NeighborRef<'a> = ((Option<&'a [f64; 3]>, (u32, u32)), Option<f64>);
 
 /// # Errors
 /// This function will not fail
-fn agents_adjacency_map<'a>(agents: Vec<NeighborRef<'a>>) -> Result<Tree<'a>> {
+fn agents_adjacency_map<'a>(agents: &'a Vec<NeighborRef>) -> Result<Tree<'a>> {
     let mut tree = kdtree::kdtree::KdTree::new(3);
     agents.iter().try_for_each(|((pos, idx), _)| {
         pos.map_or(Ok(()), |unwrapped| {
@@ -97,7 +97,7 @@ impl NeighborMap {
         topology_config: &TopologyConfig,
     ) -> Result<NeighborMap> {
         let num_states = states.len();
-        let adjacency_map = agents_adjacency_map(states)?;
+        let adjacency_map = agents_adjacency_map(&states)?;
         states
             .par_iter()
             .try_fold(

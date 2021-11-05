@@ -113,7 +113,7 @@ impl PackageName {
     pub fn get_all_dependencies(&self) -> simulation::Result<Dependencies> {
         let mut merged = Dependencies::new();
         for dependency in self.get_child_dependencies()?.into_iter_deps() {
-            merged.add_dependency_with_ignore(dependency)?;
+            merged.add_dependency_with_ignore(dependency.clone())?;
             let deps = dependency.get_all_dependencies()?;
             for dep in deps.into_iter_deps() {
                 merged.add_dependency_with_ignore(dep)?;

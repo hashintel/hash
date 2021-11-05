@@ -34,13 +34,25 @@ pub enum Output {
 }
 
 /// All output package tasks are registered in this enum
-#[enum_dispatch(WorkerHandler, WorkerPoolHandler, GetTaskArgs)]
+// #[enum_dispatch(WorkerHandler, WorkerPoolHandler, GetTaskArgs)]
 #[derive(Clone, Debug)]
 pub enum OutputTask {}
 
+// Empty impls to satisfy constraints enum_dispatch while there are no task variants
+impl WorkerHandler for OutputTask {}
+
+impl WorkerPoolHandler for OutputTask {}
+
+impl GetTaskArgs for OutputTask {
+    fn distribution(&self) -> TaskDistributionConfig {
+        unimplemented!()
+    }
+}
+
 /// All output package task messages are registered in this enum
+// TODO OS - Does this actually do anything? doesn't the trait need to be annotated with enum_dispatch
 #[enum_dispatch(Into<TaskResult>)]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum OutputTaskMessage {}
 
 /// All output package task results are registered in this enum
@@ -60,7 +72,7 @@ lazy_static! {
 
     pub static ref IDS: HashMap<Name, PackageId> = {
         use Name::*;
-        let creator = PackageIdCreator::new(PackageType::Output);
+        let mut creator = PackageIdCreator::new(PackageType::Output);
         let mut m = HashMap::new();
         m.insert(Analysis, creator.next());
         m.insert(JSONState, creator.next());

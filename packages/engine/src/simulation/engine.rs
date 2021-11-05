@@ -154,7 +154,7 @@ impl Engine {
     fn prepare_for_context_packages(
         &mut self,
         state: &mut ExState,
-        mut context: &mut ExContext,
+        context: &mut ExContext,
     ) -> Result<StateSnapshot> {
         let message_map = state.message_map()?;
         let message_pool = state.message_pool();

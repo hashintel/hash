@@ -30,7 +30,7 @@ impl PackageCreator for Creator {
         &self,
         _config: &Arc<SimRunConfig<ExperimentRunBase>>,
         _comms: PackageComms,
-        accesor: FieldSpecMapAccessor,
+        accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn ContextPackage>> {
         Ok(Box::new(AgentMessages {}))
     }

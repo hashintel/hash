@@ -27,10 +27,11 @@ enum LoopControl {
     Stop,
 }
 
+// TODO OS - Do we need these unused args?
 fn create_update_for_exp_pkg(
     sim_id: SimulationShortID,
-    step_result: &SimulationStepResult,
-    exp_pkg_update_request: &Option<UpdateRequest>,
+    _step_result: &SimulationStepResult,
+    _exp_pkg_update_request: &Option<UpdateRequest>,
 ) -> Result<StepUpdate> {
     Ok(StepUpdate {
         sim_id,

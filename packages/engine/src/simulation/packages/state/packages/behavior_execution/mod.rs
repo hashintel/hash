@@ -70,7 +70,7 @@ impl BehaviorExecution {
     /// Iterates over all "behaviors" fields of agents and writes them into their "__behaviors" field.
     /// This fixation guarantees that all behaviors that were there in the beginning of behavior execution
     /// will be executed accordingly
-    fn fix_behavior_chains(&mut self, state: &mut ExState, system: &PackageComms) -> Result<()> {
+    fn fix_behavior_chains(&mut self, state: &mut ExState) -> Result<()> {
         let behavior_indices = chain::gather_behavior_chains(
             state,
             &self.behavior_config,
@@ -83,12 +83,12 @@ impl BehaviorExecution {
     }
 
     /// Sends out behavior execution commands to workers
-    async fn begin_execution(&mut self, state: &ExState, system: &PackageComms) -> Result<()> {
+    async fn begin_execution(&mut self, state: &ExState) -> Result<()> {
         todo!()
     }
 
     /// Wait for all workers to notify of finished execution
-    async fn wait_results(&mut self, system: &PackageComms) -> Result<()> {
+    async fn wait_results(&mut self) -> Result<()> {
         todo!()
         // TODO update update reload state as well
     }
@@ -104,9 +104,9 @@ impl GetWorkerStartMsg for BehaviorExecution {
 #[async_trait]
 impl Package for BehaviorExecution {
     async fn run(&mut self, state: &mut ExState, context: &Context) -> Result<()> {
-        self.fix_behavior_chains(state, &self.comms)?;
-        self.begin_execution(state, &self.comms).await?;
-        self.wait_results(&self.comms).await?;
+        self.fix_behavior_chains(state)?;
+        self.begin_execution(state).await?;
+        self.wait_results().await?;
         Ok(())
     }
 }

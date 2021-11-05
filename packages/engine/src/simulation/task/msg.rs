@@ -5,7 +5,7 @@ use crate::simulation::packages::PackageType;
 use crate::worker::runner::comms::MessageTarget;
 
 #[enum_dispatch(RegisterWithoutTrait)]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum TaskMessage {
     InitTaskMessage,
     ContextTaskMessage,

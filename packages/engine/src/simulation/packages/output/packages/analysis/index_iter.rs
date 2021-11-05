@@ -690,7 +690,7 @@ fn default_first_getter(
     accessor: &FieldSpecMapAccessor,
     first_field: &str,
 ) -> Result<ValueIteratorCreator> {
-    let data_type = &accessor
+    let data_type = accessor
         .get_agent_scoped_field_spec(first_field)?
         .inner
         .field_type

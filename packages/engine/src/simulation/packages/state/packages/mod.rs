@@ -33,7 +33,7 @@ pub enum StateTask {
 
 /// All state package task messages are registered in this enum
 #[enum_dispatch(Into<TaskResult>)]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum StateTaskMessage {
     ExecuteBehaviorsTaskMessage,
 }
@@ -57,7 +57,7 @@ lazy_static! {
 
     pub static ref IDS: HashMap<Name, PackageId> = {
         use Name::*;
-        let creator = PackageIdCreator::new(PackageType::State);
+        let mut creator = PackageIdCreator::new(PackageType::State);
         let mut m = HashMap::new();
         m.insert(BehaviorExecution, creator.next());
         m.insert(Topology, creator.next());
