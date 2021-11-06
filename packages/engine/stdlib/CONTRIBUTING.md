@@ -19,8 +19,7 @@ When in doubt, [ask](https://hash.ai/discord)!
 ## Pull Request Process
 
 1. Before opening a Pull Request, you must sign HASH's Contributor License Agreement available at [hash.ai/legal/cla](https://hash.ai/legal/cla).
-2. Once you've signed the CLA and finalized your PR, please ensure any install or build dependencies are removed before doing a
-   build.
+2. Once you've signed the CLA and finalized your PR, please ensure any install or build dependencies are removed before doing a build.
 3. After submitting your PR, it'll be reviewed by a HASH standard library maintainer. After you have the approval of a maintainer, you may merge the pull request.
 
 ## Contribution requirements

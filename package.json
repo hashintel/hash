@@ -1,12 +1,10 @@
 {
-  "name": "markdown-linting",
-  "version": "1.0.0",
-  "description": "",
+  "private": true,
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "fix:markdownlint": "markdownlint --fix .",
-    "lint:markdownlint": "markdownlint ."
+    "fix:markdownlint": "markdownlint --fix **/*.md, **/*.mdx",
+    "lint:markdownlint": "markdownlint **/*.md, **/*.mdx"
   },
   "keywords": [],
   "author": "",
