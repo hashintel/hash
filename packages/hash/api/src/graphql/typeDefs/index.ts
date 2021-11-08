@@ -18,6 +18,7 @@ import { impliedHistoryTypedef } from "./impliedHistory.typedef";
 const baseSchema = gql`
   scalar Date
   scalar JSONObject
+  scalar TextToken
 
   """
   The queries available in this schema

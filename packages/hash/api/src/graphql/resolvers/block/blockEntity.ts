@@ -26,6 +26,28 @@ export const blockEntity: Resolver<
   const mappedEntity = entity.toGQLUnknownEntity();
 
   /**
+   * We changed the shape of Text entity properties on 2021-11-04.
+   * This was necessary to enable hard breaks and other custom tokens.
+   *
+   * Before: { texts: [{ text: "hello" }]}
+   * After: { tokens: [{ tokenType: "text" text: "hello" }, { tokenType: "hardBreak" }]}
+   *
+   * Legacy data structure is converted on the fly to avoid disturbance in local development.
+   * This code can be removed after 2022-01-01 – it is safe to assume that every dev has
+   * reset their database at least one, so all properties have the new structure.
+   */
+  if (Array.isArray(mappedEntity.properties?.texts)) {
+    const { texts, ...otherProperties } = mappedEntity.properties;
+    mappedEntity.properties = {
+      ...otherProperties,
+      tokens: texts.map((legacyTextToken: any) => ({
+        tokenType: "text",
+        ...legacyTextToken,
+      })),
+    };
+  }
+
+  /**
    * `Block.entity` is typed in GraphQL as JSONData. This is because
    * Entity.properties (in some cases) is typed as JSONData too, which can
    * contain entities, which will then by typed as JSONData, which means if we

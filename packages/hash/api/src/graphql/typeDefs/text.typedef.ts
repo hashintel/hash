@@ -82,13 +82,6 @@ export const textTypedef = gql`
   }
 
   type TextProperties {
-    texts: [TextPropertiesText!]!
-  }
-
-  type TextPropertiesText {
-    text: String!
-    bold: Boolean
-    underline: Boolean
-    italics: Boolean
+    tokens: [TextToken!]!
   }
 `;

@@ -137,7 +137,10 @@ void (async () => {
           accountId: user.accountId,
           createdById: user.entityId,
           properties: {
-            texts: [{ text: "About me", bold: true }],
+            tokens: [
+              { tokenType: "text", text: "About me", bold: true },
+              { tokenType: "hardBreak" },
+            ],
           },
         },
       ],
@@ -148,7 +151,7 @@ void (async () => {
           accountId: user.accountId,
           createdById: user.entityId,
           properties: {
-            texts: [{ text: "My colleagues", bold: true }],
+            tokens: [{ tokenType: "text", text: "My colleagues", bold: true }],
           },
         },
       ],
@@ -159,7 +162,13 @@ void (async () => {
           accountId: user.accountId,
           createdById: user.entityId,
           properties: {
-            texts: [{ text: "Two synced table blocks", bold: true }],
+            tokens: [
+              {
+                tokenType: "text",
+                text: "Two synced table blocks",
+                bold: true,
+              },
+            ],
           },
         },
       ],
@@ -179,16 +188,26 @@ void (async () => {
           accountId: user.accountId,
           createdById: user.entityId,
           properties: {
-            texts: [
-              { text: "A paragraph of regular text " },
-              { text: "with", bold: true },
-              { text: " " },
-              { text: "some", italics: true },
-              { text: " " },
-              { text: "formatting", underline: true },
-              { text: " " },
-              { text: "included", bold: true, italics: true, underline: true },
-              { text: "." },
+            tokens: [
+              { tokenType: "text", text: "A paragraph of regular text " },
+              { tokenType: "text", text: "with", bold: true },
+              { tokenType: "text", text: " " },
+              { tokenType: "text", text: "some", italics: true },
+              { tokenType: "text", text: " " },
+              { tokenType: "text", text: "formatting", underline: true },
+              { tokenType: "hardBreak" },
+              { tokenType: "text", text: "and" },
+              { tokenType: "hardBreak" },
+              { tokenType: "text", text: "line breaks" },
+              { tokenType: "hardBreak" },
+              {
+                tokenType: "text",
+                text: "included",
+                bold: true,
+                italics: true,
+                underline: true,
+              },
+              { tokenType: "text", text: "." },
             ],
           },
         },
@@ -200,7 +219,13 @@ void (async () => {
           accountId: user.accountId,
           createdById: user.entityId,
           properties: {
-            texts: [{ text: "A paragraph of italic text", italics: true }],
+            tokens: [
+              {
+                tokenType: "text",
+                text: "A paragraph of italic text",
+                italics: true,
+              },
+            ],
           },
         },
       ],
@@ -211,7 +236,13 @@ void (async () => {
           accountId: user.accountId,
           createdById: user.entityId,
           properties: {
-            texts: [{ text: "A paragraph of underline text", underline: true }],
+            tokens: [
+              {
+                tokenType: "text",
+                text: "A paragraph of underline text",
+                underline: true,
+              },
+            ],
           },
         },
       ],
@@ -222,7 +253,9 @@ void (async () => {
           accountId: hashOrg.accountId,
           createdById: user.entityId,
           properties: {
-            texts: [{ text: "HASH's Header Text", bold: true }],
+            tokens: [
+              { tokenType: "text", text: "HASH's Header Text", bold: true },
+            ],
           },
         },
       ],

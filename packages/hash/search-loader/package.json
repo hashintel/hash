@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@hashintel/hash-backend-utils": "*",
+    "@hashintel/hash-shared": "*",
     "@opensearch-project/opensearch": "1.0.0",
     "hot-shots": "8.5.0",
     "slonik": "24.1.2"

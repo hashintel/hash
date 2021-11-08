@@ -24,7 +24,7 @@ export type BlockEntity = Omit<ContentsEntity, "properties"> & {
 
 export const isTextEntity = (
   entity: EntityStoreType | DraftEntity,
-): entity is Text => "properties" in entity && "texts" in entity.properties;
+): entity is Text => "properties" in entity && "tokens" in entity.properties;
 
 /**
  * @todo reimplement links

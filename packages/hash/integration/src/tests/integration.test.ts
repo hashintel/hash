@@ -483,7 +483,9 @@ describe("logged in user ", () => {
 
     let textEntityId: string;
     it("can add a block to the page", async () => {
-      const textProperties = { texts: [{ text: "Hello World!" }] };
+      const textProperties = {
+        tokens: [{ tokenType: "text", text: "Hello World!" }],
+      };
       const updatedPage = await client.insertBlocksIntoPage({
         accountId: existingUser.accountId,
         entityId: page.entityId,
@@ -532,7 +534,9 @@ describe("logged in user ", () => {
 
     it("should create a new page version when a block is updated", async () => {
       // Update the text block inside the page
-      const newTextProperties = { texts: [{ text: "Hello HASH!" }] };
+      const newTextProperties = {
+        tokens: [{ tokenType: "text", text: "Hello HASH!" }],
+      };
       const { entityVersionId, entityId } = await client.updateEntity({
         accountId: existingUser.accountId,
         entityId: textEntityId,
@@ -558,7 +562,9 @@ describe("logged in user ", () => {
       );
 
       // Update the header block text entity (2nd block)
-      const newHeaderTextProperties = { texts: [{ text: "Header Text" }] };
+      const newHeaderTextProperties = {
+        tokens: [{ tokenType: "text", text: "Header Text" }],
+      };
       const headerBlock = updatedPage.properties.contents[1];
       const headerUpdate = await client.updateEntity({
         accountId: existingUser.accountId,
@@ -587,10 +593,12 @@ describe("logged in user ", () => {
     // The page currently has 2 blocks: an empty title block and an empty paragraph block
     expect(page.properties.contents).toHaveLength(2);
 
-    const textPropertiesA = { texts: [{ text: "A" }] };
-    const textPropertiesB = { texts: [{ text: "B" }] };
-    const textPropertiesC = { texts: [{ text: "C" }] };
-    const titleProperties = { texts: [{ text: "Hello HASH!" }] };
+    const textPropertiesA = { tokens: [{ tokenType: "text", text: "A" }] };
+    const textPropertiesB = { tokens: [{ tokenType: "text", text: "B" }] };
+    const textPropertiesC = { tokens: [{ tokenType: "text", text: "C" }] };
+    const titleProperties = {
+      tokens: [{ tokenType: "text", text: "Hello HASH!" }],
+    };
     const updatedPage = await client.updatePageContents({
       accountId: page.accountId,
       entityId: page.entityId,
@@ -639,10 +647,10 @@ describe("logged in user ", () => {
     const pageEntities = updatedPage.properties.contents.map(
       (block) => block.properties.entity as any,
     );
-    expect(pageEntities[0].textProperties).toMatchObject(titleProperties);
-    expect(pageEntities[1].textProperties).toMatchObject(textPropertiesA);
-    expect(pageEntities[2].textProperties).toMatchObject(textPropertiesB);
-    expect(pageEntities[3].textProperties).toMatchObject(textPropertiesC);
+    expect(pageEntities[0].properties).toMatchObject(titleProperties);
+    expect(pageEntities[1].properties).toMatchObject(textPropertiesA);
+    expect(pageEntities[2].properties).toMatchObject(textPropertiesB);
+    expect(pageEntities[3].properties).toMatchObject(textPropertiesC);
   });
 
   describe("can create entity types", () => {

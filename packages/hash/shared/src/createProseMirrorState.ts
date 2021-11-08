@@ -36,6 +36,14 @@ export const createProseMirrorState = ({
     "Mod-b": toggleMark(doc.type.schema.marks.strong),
     "Mod-i": toggleMark(doc.type.schema.marks.em),
     "Ctrl-u": toggleMark(doc.type.schema.marks.underlined),
+    "Shift-Enter": (state, dispatch) => {
+      dispatch?.(
+        state.tr
+          .replaceSelectionWith(doc.type.schema.nodes.hardBreak.create())
+          .scrollIntoView(),
+      );
+      return true;
+    },
   });
 
   return EditorState.create<Schema>({

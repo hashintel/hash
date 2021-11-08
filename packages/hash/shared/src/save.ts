@@ -240,11 +240,11 @@ const updateBlocks = defineOperation(
               );
             }
 
-            const { texts } = textEntity.properties;
+            const { tokens } = textEntity.properties;
             // @todo consider using draft entity store for this
             const entityProperties = nodeToEntityProperties(node);
 
-            if (!isEqual(texts, entityProperties.texts)) {
+            if (!isEqual(tokens, entityProperties.tokens)) {
               updates.push({
                 updateEntity: {
                   entityId: textEntity.entityId,

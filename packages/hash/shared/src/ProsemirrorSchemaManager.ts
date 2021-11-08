@@ -114,7 +114,7 @@ export class ProsemirrorSchemaManager {
        */
       ...(blockComponentRequiresText(componentSchema)
         ? {
-            content: "text*",
+            content: "inline*",
             marks: "_",
           }
         : {}),

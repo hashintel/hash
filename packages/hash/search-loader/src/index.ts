@@ -1,6 +1,7 @@
 import * as http from "http";
 import { promisify } from "util";
 
+import { TextToken } from "@hashintel/hash-shared/graphql/types";
 import { AsyncRedisClient } from "@hashintel/hash-backend-utils/redis";
 import { QueueExclusiveConsumer } from "@hashintel/hash-backend-utils/queue/adapter";
 import { RedisQueueExclusiveConsumer } from "@hashintel/hash-backend-utils/queue/redis";
@@ -113,14 +114,23 @@ type IndexedEntity = {
  * the entity of the type are created?
  *
  * Example:
- *   {"texts": [{"text": "Hello World!", "underline": true}, {"text": "Welcome to HASH!"}]}
+ *   {"tokens": [{"type": "text", "text": "Hello World!", "underline": true}, {"type": "text", "text": "Welcome to HASH!"}]}
  *
  * Returns:
  *  "Hello World! Welcome to HASH!"
  */
 const textEntityPropertiesToFTS = (properties: any): string => {
-  return properties.texts
-    .map((obj: any) => (obj.text || "") as string)
+  return properties.tokens
+    .map((token: TextToken) => {
+      switch (token.tokenType) {
+        case "text":
+          return token.text;
+        case "hardBreak":
+          return "\n";
+        default:
+          return " ";
+      }
+    })
     .join(" ");
 };
 

@@ -130,6 +130,7 @@ export const resolvers = {
   },
 
   JSONObject: GraphQLJSON,
+  TextToken: GraphQLJSON,
 
   BlockProperties: {
     entity: blockFields.entity,

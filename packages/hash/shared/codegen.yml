@@ -10,4 +10,6 @@ generates:
       - "typescript-operations"
     config:
       skipTypename: true
+      scalars:
+        TextToken: ./types#TextToken
     documents: ./src/queries/*.ts

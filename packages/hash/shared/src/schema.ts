@@ -47,7 +47,18 @@ export const createSchema = () =>
           },
         ],
       },
-      text: {},
+      text: {
+        group: "inline",
+      },
+      hardBreak: {
+        inline: true,
+        group: "inline",
+        selectable: false,
+        parseDOM: [{ tag: "br" }],
+        toDOM() {
+          return ["br"];
+        },
+      },
     },
     marks: {
       strong: {
