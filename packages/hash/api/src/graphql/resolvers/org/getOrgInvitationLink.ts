@@ -18,7 +18,7 @@ export const getOrgInvitationLink: Resolver<
       throw new ApolloError(msg, "ORG_NOT_FOUND");
     }
 
-    const invitation = await org.getInvitationLinkWithToken(client)({
+    const invitation = await org.getInvitationLinkWithToken(client, {
       invitationLinkToken,
     });
 

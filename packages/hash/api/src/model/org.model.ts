@@ -100,9 +100,9 @@ class __Org extends Account {
   /**
    * @returns all invitations associated with the organization
    */
-  getInvitationLinks = async (
+  async getInvitationLinks(
     client: DBClient,
-  ): Promise<OrgInvitationLink[]> => {
+  ): Promise<OrgInvitationLink[]> {
     /** @todo: query for invitations with correct outgoing 'org' relationships */
     const dbEntities = await client.getEntitiesBySystemType({
       accountId: this.accountId,
@@ -115,12 +115,10 @@ class __Org extends Account {
   /**
    * @returns the invitation associated with the organization that has a matching token, or null.
    */
-  getInvitationLinkWithToken =
-    (client: DBClient) =>
-    async (params: {
+  async getInvitationLinkWithToken(client: DBClient, params: {
       invitationLinkToken: string;
       errorCodePrefix?: string;
-    }): Promise<OrgInvitationLink> => {
+    }): Promise<OrgInvitationLink> {
       const { invitationLinkToken, errorCodePrefix } = params;
 
       const invitationLinks = await this.getInvitationLinks(client);
@@ -142,9 +140,9 @@ class __Org extends Account {
   /**
    * @returns all email invitations associated with the organization.
    */
-  getEmailInvitations = async (
+  async getEmailInvitations(
     client: DBClient,
-  ): Promise<OrgEmailInvitation[]> => {
+  ): Promise<OrgEmailInvitation[]> {
     /** @todo: query for email invitations with correct outgoing 'org' relationships */
     const dbEntities = await client.getEntitiesBySystemType({
       accountId: this.accountId,
@@ -157,12 +155,10 @@ class __Org extends Account {
   /**
    * @returns the email invitation associated with the organization that has a matching token, or null.
    */
-  getEmailInvitationWithToken =
-    (client: DBClient) =>
-    async (params: {
+  async getEmailInvitationWithToken(client: DBClient, params: {
       invitationEmailToken: string;
       errorCodePrefix?: string;
-    }): Promise<OrgEmailInvitation> => {
+    }): Promise<OrgEmailInvitation> {
       const { invitationEmailToken, errorCodePrefix } = params;
 
       const emailInvitations = await this.getEmailInvitations(client);

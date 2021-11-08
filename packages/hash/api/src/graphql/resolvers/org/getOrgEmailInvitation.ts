@@ -18,7 +18,7 @@ export const getOrgEmailInvitation: Resolver<
       throw new ApolloError(msg, "ORG_NOT_FOUND");
     }
 
-    const emailInvitation = await org.getEmailInvitationWithToken(client)({
+    const emailInvitation = await org.getEmailInvitationWithToken(client, {
       invitationEmailToken,
     });
 

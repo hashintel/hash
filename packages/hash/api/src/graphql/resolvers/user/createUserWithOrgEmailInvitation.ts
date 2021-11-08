@@ -26,7 +26,7 @@ export const createUserWithOrgEmailInvitation: Resolver<
     }
 
     // Retrieve the valid email invitation with a matching token associated with the org.
-    const emailInvitation = await org.getEmailInvitationWithToken(client)({
+    const emailInvitation = await org.getEmailInvitationWithToken(client, {
       invitationEmailToken,
       errorCodePrefix: "INVITATION_",
     });
