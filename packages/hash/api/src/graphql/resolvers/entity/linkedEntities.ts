@@ -21,17 +21,11 @@ export const linkedEntities: Resolver<
 
   return Promise.all(
     parsedLinks
-      .map(
-        ({
-          destinationAccountId,
-          destinationEntityId,
-          destinationEntityVersionId,
-        }) => ({
-          accountId: destinationAccountId,
-          entityId: destinationEntityId,
-          entityVersionId: destinationEntityVersionId || undefined,
-        }),
-      )
+      .map(({ dstAccountId, dstEntityId, dstEntityVersionId }) => ({
+        accountId: dstAccountId,
+        entityId: dstEntityId,
+        entityVersionId: dstEntityVersionId || undefined,
+      }))
       // Remove duplicates
       .filter(
         (link, i, allLinks) =>

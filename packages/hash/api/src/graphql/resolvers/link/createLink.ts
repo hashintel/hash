@@ -16,40 +16,34 @@ export const createLink: Resolver<
   MutationCreateLinkArgs
 > = async (_, args, { dataSources }) =>
   dataSources.db.transaction(async (client) => {
-    const { sourceAccountId, sourceEntityId } = args;
+    const { srcAccountId, srcEntityId } = args;
     const sourceEntity = await Entity.getEntityLatestVersion(client, {
-      accountId: sourceAccountId,
-      entityId: sourceEntityId,
+      accountId: srcAccountId,
+      entityId: srcEntityId,
     });
 
     /** @todo: lock the entity on retrieval */
 
     if (!sourceEntity) {
-      const msg = `entity with fixed ID ${sourceEntityId} not found in account ${sourceAccountId}`;
+      const msg = `entity with fixed ID ${srcEntityId} not found in account ${srcAccountId}`;
       throw new ApolloError(msg, "NOT_FOUND");
     }
 
-    const {
-      destinationAccountId,
-      destinationEntityId,
-      destinationEntityVersionId,
-    } = args;
-    const destinationEntity = destinationEntityVersionId
+    const { dstAccountId, dstEntityId, dstEntityVersionId } = args;
+    const dstEntity = dstEntityVersionId
       ? await Entity.getEntity(client, {
-          accountId: destinationAccountId,
-          entityVersionId: destinationEntityVersionId,
+          accountId: dstAccountId,
+          entityVersionId: dstEntityVersionId,
         })
       : await Entity.getEntityLatestVersion(client, {
-          accountId: destinationAccountId,
-          entityId: destinationEntityId,
+          accountId: dstAccountId,
+          entityId: dstEntityId,
         });
 
-    if (!destinationEntity) {
-      const msg = `entity with fixed ID ${destinationEntityId}${
-        destinationEntityVersionId
-          ? ` and version ID ${destinationEntityVersionId}`
-          : ""
-      } not found in account ${destinationAccountId}`;
+    if (!dstEntity) {
+      const msg = `entity with fixed ID ${dstEntityId}${
+        dstEntityVersionId ? ` and version ID ${dstEntityVersionId}` : ""
+      } not found in account ${dstAccountId}`;
       throw new ApolloError(msg, "NOT_FOUND");
     }
 
@@ -57,8 +51,8 @@ export const createLink: Resolver<
 
     jp.value(sourceEntity.properties, stringifiedPath, {
       __linkedData: {
-        entityId: destinationEntityId,
-        entityVersionId: destinationEntityVersionId,
+        entityId: dstEntityId,
+        entityVersionId: dstEntityVersionId,
       },
     });
 

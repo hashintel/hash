@@ -17,7 +17,7 @@ import { DBClient } from "../../../db";
 export const parseLinksFromPropertiesObject = (
   client: DBClient,
   propertiesObject: any,
-  sourceEntityId: string,
+  srcEntityId: string,
   path: jp.PathComponent[] = ["$"],
 ): Promise<Link[]> =>
   Promise.all(
@@ -28,12 +28,11 @@ export const parseLinksFromPropertiesObject = (
             value
               .filter(isRecord)
               .map((arrayItem, i) =>
-                parseLinksFromPropertiesObject(
-                  client,
-                  arrayItem,
-                  sourceEntityId,
-                  [...path, key, i],
-                ),
+                parseLinksFromPropertiesObject(client, arrayItem, srcEntityId, [
+                  ...path,
+                  key,
+                  i,
+                ]),
               ),
           ).then((nestedLinks) => nestedLinks.flat());
         }
@@ -43,40 +42,38 @@ export const parseLinksFromPropertiesObject = (
             !(value as LinkedDataDefinition).aggregate
           ) {
             const {
-              entityId: destinationEntityId,
-              entityVersionId: destinationEntityVersionId,
+              entityId: dstEntityId,
+              entityVersionId: dstEntityVersionId,
             } = value as LinkedDataDefinition;
 
-            if (!destinationEntityId) {
+            if (!dstEntityId) {
               throw new Error(
                 "Linked data is now requried to provide an entityId",
               );
             }
 
             /** @todo: stop looking up accountId */
-            const [sourceAccountId, destinationAccountId] = await Promise.all([
-              client.getEntityAccountId({ entityId: sourceEntityId }),
-              client.getEntityAccountId({ entityId: destinationEntityId }),
+            const [srcAccountId, dstAccountId] = await Promise.all([
+              client.getEntityAccountId({ entityId: srcEntityId }),
+              client.getEntityAccountId({ entityId: dstEntityId }),
             ]);
 
             return [
               {
                 id: genId(),
-                sourceAccountId,
-                sourceEntityId,
-                destinationAccountId,
-                destinationEntityId,
-                destinationEntityVersionId,
+                srcAccountId,
+                srcEntityId,
+                dstAccountId,
+                dstEntityId,
+                dstEntityVersionId,
                 path: jp.stringify(path),
               },
             ];
           } else {
-            return parseLinksFromPropertiesObject(
-              client,
-              value,
-              sourceEntityId,
-              [...path, key],
-            );
+            return parseLinksFromPropertiesObject(client, value, srcEntityId, [
+              ...path,
+              key,
+            ]);
           }
         }
 
