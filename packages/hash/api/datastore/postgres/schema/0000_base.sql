@@ -50,6 +50,7 @@ create table if not exists entity_type_versions (
     -- updated_at column changes when a mutation is made.';
     updated_at              timestamp with time zone not null
 );
+create index if not exists entity_type_versions_entity_type_id on entity_type_versions (entity_type_id);
 
 /**
 The entities table stores metadata which is shared across all versions of an entity.
@@ -103,7 +104,6 @@ create table if not exists entity_versions (
 );
 
 create index if not exists entity_versions_entity_id on entity_versions (account_id, entity_id);
-
 
 /** For entityId : accountId lookups or entityVersionId : accountId lookups */
 create table if not exists entity_account (
