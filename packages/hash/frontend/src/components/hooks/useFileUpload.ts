@@ -1,3 +1,4 @@
+import { BlockProtocolLinkedDataDefinition } from "@hashintel/block-protocol/src/index";
 import {
   GetEntityQuery,
   GetEntityQueryVariables,
@@ -69,15 +70,26 @@ export const useFileUpload = (accountId: string) => {
 
     formData.append("file", file);
 
-    await fetch(url, {
+    return await fetch(url, {
       method: "POST",
       body: formData,
     });
   };
 
-  //   @todo ask how we handle urls. Do we just save that to db?
   const uploadFile = useCallback(
-    async (args: { file?: File; url?: string; mime?: string }) => {
+    async (args: {
+      file?: File;
+      url?: string;
+      mime?: string;
+    }): Promise<{
+      src: string;
+      file?: {
+        __linkedData: Pick<
+          BlockProtocolLinkedDataDefinition,
+          "entityId" | "entityTypeId"
+        >;
+      };
+    }> => {
       const { file, url, mime } = args;
 
       /**
@@ -107,54 +119,54 @@ export const useFileUpload = (accountId: string) => {
         );
       }
 
-      try {
-        const contentMd5 = await computeChecksumMd5(file);
+      const contentMd5 = await computeChecksumMd5(file);
 
-        const { data } = await requestFileUploadFn({
-          variables: {
-            name: file.name,
-            size: file.size,
-            contentMd5,
-          },
-        });
+      const { data } = await requestFileUploadFn({
+        variables: {
+          name: file.name,
+          size: file.size,
+          contentMd5,
+        },
+      });
 
-        if (!data) {
-          throw new Error("An error occured");
-        }
-
-        /**
-         * Upload file with presignedPost data to S3
-         */
-        const {
-          requestFileUpload: {
-            presignedPost,
-            file: { entityId },
-          },
-        } = data;
-
-        await uploadFileToS3(presignedPost, file);
-
-        /**
-         * Fetch File Entity to get Url
-         */
-        const response = await client.query<
-          GetEntityQuery,
-          GetEntityQueryVariables
-        >({
-          query: getEntity,
-          variables: {
-            accountId,
-            entityId,
-          },
-        });
-
-        const { properties } = response.data.entity;
-        return { src: properties.url };
-      } catch (err) {
-        throw err;
+      if (!data) {
+        throw new Error("An error occured");
       }
+
+      /**
+       * Upload file with presignedPost data to S3
+       */
+      const {
+        requestFileUpload: {
+          presignedPost,
+          file: { entityId, entityTypeId },
+        },
+      } = data;
+
+      await uploadFileToS3(presignedPost, file);
+
+      /**
+       * Fetch File Entity to get Url
+       */
+      const response = await client.query<
+        GetEntityQuery,
+        GetEntityQueryVariables
+      >({
+        query: getEntity,
+        variables: {
+          accountId,
+          entityId,
+        },
+      });
+
+      const { properties } = response.data.entity;
+
+      return {
+        src: properties.url,
+        file: { __linkedData: { entityId, entityTypeId } },
+      };
     },
-    [],
+    [accountId, client, requestFileUploadFn],
   );
 
   return {

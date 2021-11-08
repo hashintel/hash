@@ -4,7 +4,10 @@ import { unstable_batchedUpdates } from "react-dom";
 import { v4 as uuid } from "uuid";
 import { tw } from "twind";
 import { BlockComponent } from "@hashintel/block-protocol/react";
-import { BlockProtocolUpdatePayload } from "@hashintel/block-protocol";
+import {
+  BlockProtocolLinkedDataDefinition,
+  BlockProtocolUpdatePayload,
+} from "@hashintel/block-protocol";
 
 import { ResizeImageBlock } from "./components/ResizeImageBlock";
 
@@ -18,12 +21,20 @@ type UploadFileParamsType = {
   mime?: string;
 };
 
+type FileLink = {
+  __linkedData: Pick<
+    BlockProtocolLinkedDataDefinition,
+    "entityId" | "entityTypeId"
+  >;
+};
+
 type AppProps = {
   initialSrc?: string;
   initialCaption?: string;
   initialWidth?: number;
   uploadFile: (uploadFileParams: UploadFileParamsType) => Promise<{
     src?: string;
+    file?: FileLink;
   }>;
   entityId: string;
   entityTypeId?: string;
@@ -82,11 +93,13 @@ export const Image: BlockComponent<AppProps> = (props) => {
   );
 
   const updateData = useCallback(
-    (src: string | undefined, width?: number) => {
+    (src: string | undefined, width?: number, file?: FileLink) => {
       if (src?.trim()) {
         if (update) {
           const updateAction: BlockProtocolUpdatePayload<
-            Pick<AppProps, "initialSrc" | "initialCaption" | "initialWidth">
+            Pick<AppProps, "initialSrc" | "initialCaption" | "initialWidth"> & {
+              file?: FileLink;
+            }
           > = {
             data: {
               initialSrc: src,
@@ -97,6 +110,10 @@ export const Image: BlockComponent<AppProps> = (props) => {
 
           if (width) {
             updateAction.data.initialWidth = width;
+          }
+
+          if (file) {
+            updateAction.data.file = file;
           }
 
           if (entityTypeId) {
@@ -127,10 +144,10 @@ export const Image: BlockComponent<AppProps> = (props) => {
     (imageProp: { url: string } | { file: FileList[number] }) => {
       updateStateObject({ loading: true });
       uploadFile({ ...imageProp, mime: IMG_MIME_TYPE })
-        .then(({ src }: { src?: string }) => {
+        .then(({ src, file }) => {
           if (isMounted.current) {
             updateStateObject({ loading: false });
-            updateData(src);
+            updateData(src, undefined, file);
           }
         })
         .catch((error: Error) =>

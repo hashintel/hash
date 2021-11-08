@@ -9,57 +9,57 @@ import Component from "./index";
 
 const node = document.getElementById("app");
 
-const uploadFile = async ({
-  file,
-  url,
-  mime,
-}: {
-  file?: File;
-  url?: string;
-  mime?: string;
-}): Promise<{
-  src?: string;
-}> => {
-  if (url?.trim()) {
-    return { src: url };
-  }
-
-  if (!file) {
-    let fileType = "";
-
-    if (mime) {
-      if (mime.includes("image")) {
-        fileType = "Image";
-      }
-
-      if (mime.includes("video")) {
-        fileType = "Video";
-      }
+const App = () => {
+  const uploadFile = async ({
+    file,
+    url,
+    mime,
+  }: {
+    file?: File;
+    url?: string;
+    mime?: string;
+  }): Promise<{
+    src?: string;
+  }> => {
+    if (url?.trim()) {
+      return { src: url };
     }
 
-    throw new Error(
-      `Please enter a valid  ${
-        fileType ? `${fileType} ` : ""
-      }URL or select a file below`,
-    );
-  }
+    if (!file) {
+      let fileType = "";
 
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
+      if (mime) {
+        if (mime.includes("image")) {
+          fileType = "Image";
+        }
 
-    reader.onload = (event) => {
-      if (event.target?.result) {
-        resolve({ src: event.target.result.toString() });
-      } else {
-        reject(new Error("Couldn't read your file"));
+        if (mime.includes("video")) {
+          fileType = "Video";
+        }
       }
-    };
 
-    reader.readAsDataURL(file);
-  });
-};
+      throw new Error(
+        `Please enter a valid  ${
+          fileType ? `${fileType} ` : ""
+        }URL or select a file below`,
+      );
+    }
 
-const App = () => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          resolve({ src: event.target.result.toString() });
+        } else {
+          reject(new Error("Couldn't read your file"));
+        }
+      };
+
+      reader.readAsDataURL(file);
+    });
+  };
+
   return (
     <div className={tw`mt-5`}>
       <Component

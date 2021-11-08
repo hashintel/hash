@@ -13,6 +13,7 @@ export const requestFileUpload = gql`
       }
       file {
         entityId
+        entityTypeId
       }
     }
   }

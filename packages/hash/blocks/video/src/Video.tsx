@@ -4,7 +4,10 @@ import { tw } from "twind";
 import { BlockComponent } from "@hashintel/block-protocol/react";
 
 import { unstable_batchedUpdates } from "react-dom";
-import { BlockProtocolUpdatePayload } from "@hashintel/block-protocol";
+import {
+  BlockProtocolLinkedDataDefinition,
+  BlockProtocolUpdatePayload,
+} from "@hashintel/block-protocol";
 import Loader from "./svgs/Loader";
 import Pencil from "./svgs/Pencil";
 import Cross from "./svgs/Cross";
@@ -15,12 +18,19 @@ type UploadFileParamsType = {
   mime?: string;
 };
 
+type FileLink = {
+  __linkedData: Pick<
+    BlockProtocolLinkedDataDefinition,
+    "entityId" | "entityTypeId"
+  >;
+};
+
 type AppProps = {
   initialSrc?: string;
   initialCaption?: string;
   uploadFile: (uploadFileParams: UploadFileParamsType) => Promise<{
     src?: string;
-    error?: string;
+    file?: FileLink;
   }>;
   entityId: string;
   entityTypeId?: string;
@@ -82,16 +92,24 @@ export const Video: BlockComponent<AppProps> = (props) => {
   }
 
   const updateData = useCallback(
-    (src: string | undefined) => {
+    (src: string | undefined, file?: FileLink) => {
       if (src?.trim()) {
         if (update) {
-          const updateAction: BlockProtocolUpdatePayload<{
-            initialSrc: string;
-            initialCaption: string;
-          }> = {
-            data: { initialSrc: src, initialCaption: captionText },
+          const updateAction: BlockProtocolUpdatePayload<
+            Pick<AppProps, "initialSrc" | "initialCaption"> & {
+              file?: FileLink;
+            }
+          > = {
+            data: {
+              initialSrc: src,
+              initialCaption: captionText,
+            },
             entityId,
           };
+
+          if (file) {
+            updateAction.data.file = file;
+          }
 
           if (entityTypeId) {
             updateAction.entityTypeId = entityTypeId;
@@ -103,17 +121,17 @@ export const Video: BlockComponent<AppProps> = (props) => {
         updateStateObject({ src });
       }
     },
-    [captionText, entityId, entityTypeId, update, updateStateObject],
+    [captionText, entityId, entityTypeId, updateStateObject, update],
   );
 
   const handleVideoUpload = useCallback(
-    (imageProp: { url: string } | { file: FileList[number] }) => {
+    (videoProp: { url: string } | { file: FileList[number] }) => {
       updateStateObject({ loading: true });
-      uploadFile({ ...imageProp, mime: VIDEO_MIME_TYPE })
-        .then(({ src }: { src?: string }) => {
+      uploadFile({ ...videoProp, mime: VIDEO_MIME_TYPE })
+        .then(({ src, file }) => {
           if (isMounted.current) {
             updateStateObject({ loading: false });
-            updateData(src);
+            updateData(src, file);
           }
         })
         .catch((error: Error) =>
