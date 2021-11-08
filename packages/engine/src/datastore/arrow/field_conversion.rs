@@ -28,13 +28,13 @@ impl PresetFieldType {
     }
 
     #[must_use]
-    pub const fn get_arrow_data_type(&self) -> ArrowDataType {
+    pub fn get_arrow_data_type(&self) -> ArrowDataType {
         match self {
             PresetFieldType::Index => ArrowDataType::UInt32,
             PresetFieldType::Id => {
                 ArrowDataType::FixedSizeBinary(crate::datastore::UUID_V4_LEN as i32)
             }
-            PresetFieldType::Arrow(_) => todo!(),
+            PresetFieldType::Arrow(dt) => dt.clone(),
         }
     }
 }
