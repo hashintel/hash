@@ -353,7 +353,9 @@ class __User extends Account {
         });
 
         if (!orgMembership) {
-          throw new Error(`User with entityId ${this.entityId} links to membership with entityId ${entityId} that cannot be found`);
+          throw new Error(
+            `User with entityId ${this.entityId} links to membership with entityId ${entityId} that cannot be found`,
+          );
         }
 
         return orgMembership;

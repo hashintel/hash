@@ -80,6 +80,38 @@ class __OrgMembership extends Account {
     this.properties = properties;
     return properties;
   }
+
+  async getUser(client: DBClient): Promise<User> {
+    const { entityId } = this.properties.user.__linkedData;
+
+    const user = await User.getUserById(client, {
+      entityId,
+    });
+
+    if (!user) {
+      throw new Error(
+        `OrgMembership with entityId ${this.entityId} links to user with entityId ${entityId} that cannot be found`,
+      );
+    }
+
+    return user;
+  }
+
+  async getOrg(client: DBClient): Promise<Org> {
+    const { entityId } = this.properties.org.__linkedData;
+
+    const org = await Org.getOrgById(client, {
+      entityId,
+    });
+
+    if (!org) {
+      throw new Error(
+        `OrgMembership with entityId ${this.entityId} links to org with entityId ${entityId} that cannot be found`,
+      );
+    }
+
+    return org;
+  }
 }
 
 export default __OrgMembership;
