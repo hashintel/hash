@@ -3,7 +3,7 @@ use crate::config::globals::Globals;
 use crate::config::topology::functions::{conway, euclidean, euclidean_squared, manhattan};
 use std::sync::Arc;
 
-// TODO OS - think about creating a system of ConfigProviders whereby packages can depend on them
+// TODO - think about creating a system of ConfigProviders whereby packages can depend on them
 //   and decrease the amount of assumptions the core engine has to make, for example position
 //   correction and neighbour search depend on this config, but this config is useless if those
 //   packages are not run

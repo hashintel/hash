@@ -221,8 +221,7 @@ impl PackageCreators {
         exp_config: &crate::ExperimentConfig<ExperimentRunBase>,
         globals: &Globals,
     ) -> Result<AgentSchema> {
-        // TODO OS - need to implement add_agent_state_fields for all packages
-        // TODO OS - should we use enum_dispatch here to remove some duplication
+        // TODO - should we use enum_dispatch here to remove some duplication
         let mut field_builder = FieldSpecMapBuilder::new();
         self.init
             .iter()

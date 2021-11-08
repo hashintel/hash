@@ -101,7 +101,7 @@ impl MessagePool {
     }
 }
 
-// TODO OS - (clarity) Replace with MessageReader<'a> or rename ?
+// TODO - (clarity) Replace with MessageReader<'a> or rename ?
 pub struct MessagePoolRead<'a> {
     batches: Vec<RwLockReadGuard<'a, MessageBatch>>,
 }

@@ -36,7 +36,7 @@ fn create_update_for_exp_pkg(
     todo!();
 }
 
-// TODO OS - Sort our error into/from to avoid so many explicit err conversions using to_string
+// TODO - Sort out error into/from to avoid so many explicit err conversions using to_string
 pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
     config: Arc<SimRunConfig<ExperimentRunBase>>,
     shared_store: Arc<SharedStore>,
@@ -62,7 +62,7 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
 
     let uninitialized_store = Store::new_uninitialized(shared_store, &config);
 
-    // TODO[1] add initial payload to persistence_service here (0th step)
+    // TODO OS - add initial payload to persistence_service here (0th step)
     let mut engine = Engine::new(packages, uninitialized_store, comms, config.clone())
         .await
         .map_err(|sim_err| Error::from(sim_err.to_string()))?;
