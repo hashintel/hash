@@ -1,0 +1,39 @@
+name: Check codebase
+on: pull_request
+
+jobs:
+  linting:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: ./.github/actions/warm-up-repo
+
+      - run: yarn lint:workspaces
+        if: ${{ success() || failure() }}
+
+      - run: yarn lint:markdownlint
+        if: ${{ success() || failure() }}
+
+      - run: yarn lint:prettier
+        if: ${{ success() || failure() }}
+
+  docker-compose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: ./.github/actions/warm-up-repo
+
+      - run: yarn rebuild:backend
+        if: ${{ success() || failure() }}
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: ./.github/actions/warm-up-repo
+
+      - run: yarn test-frontend
+        if: ${{ success() || failure() }}
