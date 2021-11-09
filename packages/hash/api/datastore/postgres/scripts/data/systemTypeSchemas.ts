@@ -46,8 +46,15 @@ const systemTypeSchemas: {
         type: "string",
         description: "A display name for the organization.",
       },
+      memberships: {
+        description: "The membership(s) of the organization.",
+        type: "array",
+        items: {
+          $ref: schemaId("OrgMembership"),
+        },
+      },
     },
-    required: ["shortname"],
+    required: ["shortname", "memberships"],
   },
   User: {
     description: "A user with an account in a HASH.dev instance.",
@@ -60,10 +67,10 @@ const systemTypeSchemas: {
         },
       },
       memberOf: {
-        description: "Details of org membership(s).",
+        description: "The organization membership(s) of the user.",
         type: "array",
         items: {
-          $ref: "#/$defs/OrgMembership",
+          $ref: schemaId("OrgMembership"),
         },
       },
       shortname: {
@@ -75,7 +82,7 @@ const systemTypeSchemas: {
         type: "string",
       },
     },
-    required: ["emails"],
+    required: ["emails", "memberOf"],
 
     $defs: {
       Emails: {
@@ -97,25 +104,30 @@ const systemTypeSchemas: {
             type: "boolean",
           },
         },
-        required: ["address"],
-      },
-      OrgMembership: {
-        title: "Org Membership",
-        description: "Metadata on membership of an org.",
-        type: "object",
-        properties: {
-          org: {
-            description: "A reference to the org itself.",
-            $ref: schemaId("Org"),
-          },
-          role: {
-            description: "The role of the user in the org",
-            type: "string",
-          },
-        },
-        required: ["org", "role"],
+        required: ["address", "primary", "verified"],
       },
     },
+  },
+  OrgMembership: {
+    title: "OrgMembership",
+    description: "The membership of a user at an organization.",
+    type: "object",
+    properties: {
+      user: {
+        description: "A reference to the user associated with the membership.",
+        $ref: schemaId("User"),
+      },
+      org: {
+        description:
+          "A reference to the organization associated with the membership.",
+        $ref: schemaId("Org"),
+      },
+      responsibility: {
+        description: "The responsibility of the user in the organization",
+        type: "string",
+      },
+    },
+    required: ["org", "user", "responsibility"],
   },
 };
 

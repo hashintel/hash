@@ -101,10 +101,13 @@ export type DBUserProperties = {
   shortname?: string;
   preferredName?: string;
   infoProvidedAtSignup: UserInfoProvidedAtSignup;
-  memberOf: {
-    org: DBLinkedEntity;
-    responsibility?: string;
-  }[];
+  memberOf: DBLinkedEntity[];
+};
+
+export type DBOrgMembershipProperties = {
+  org: DBLinkedEntity;
+  user: DBLinkedEntity;
+  responsibility: string;
 };
 
 export type DBFileProperties = {
@@ -122,6 +125,7 @@ export type OrgInfoProvidedAtCreation = {
 export type DBOrgProperties = {
   shortname: string;
   name: string;
+  memberships: DBLinkedEntity[];
   infoProvidedAtCreation?: OrgInfoProvidedAtCreation;
 };
 

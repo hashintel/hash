@@ -26,12 +26,12 @@ export const joinOrg: Resolver<
     const { invitationLinkToken, invitationEmailToken } = verification;
 
     const invitation = invitationLinkToken
-      ? await org.getInvitationLinkWithToken(client)({
+      ? await org.getInvitationLinkWithToken(client, {
           invitationLinkToken,
           errorCodePrefix: "INVITATION_",
         })
       : invitationEmailToken
-      ? await org.getEmailInvitationWithToken(client)({
+      ? await org.getEmailInvitationWithToken(client, {
           invitationEmailToken,
           errorCodePrefix: "INVITATION_",
         })

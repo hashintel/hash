@@ -70,7 +70,22 @@ insert into entity_type_versions (
   properties, created_by, created_at, updated_at
 ) values (
   '1f9e6df2-a4f2-407a-af07-ae5a9a4857fc', 'd796e0e4-1504-46a3-923e-da3252e9f566', '46c75ba1-bef2-4d6d-b974-bacc0abac3c4',
-  '{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"http://localhost:3000/46c75ba1-bef2-4d6d-b974-bacc0abac3c4/types/1f9e6df2-a4f2-407a-af07-ae5a9a4857fc","title":"User","type":"object","description":"A user with an account in a HASH.dev instance.","properties":{"emails":{"type":"array","description":"The email address(es) associated with a user","items":{"$ref":"#/$defs/Emails"}},"memberOf":{"description":"Details of org membership(s).","type":"array","items":{"$ref":"#/$defs/OrgMembership"}},"shortname":{"minLength":4,"maxLength":24,"type":"string","description":"A unique slug for the user."},"preferredName":{"description":"The name which the user prefers to go by","type":"string"}},"required":["emails"],"$defs":{"Emails":{"title":"Email","type":"object","description":"Information on a email address.","properties":{"address":{"description":"The email address itself","type":"string"},"primary":{"description":"Whether this email address is the primary one for the user","type":"boolean"},"verified":{"description":"Whether this email address has been verified","type":"boolean"}},"required":["address"]},"OrgMembership":{"title":"Org Membership","description":"Metadata on membership of an org.","type":"object","properties":{"org":{"description":"A reference to the org itself.","$ref":"http://localhost:3000/46c75ba1-bef2-4d6d-b974-bacc0abac3c4/types/37790a78-9262-4e88-930e-f4685cf362cc"},"role":{"description":"The role of the user in the org","type":"string"}},"required":["org","role"]}}}',
+  '{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"http://localhost:3000/46c75ba1-bef2-4d6d-b974-bacc0abac3c4/types/1f9e6df2-a4f2-407a-af07-ae5a9a4857fc","title":"User","type":"object","description":"A user with an account in a HASH.dev instance.","properties":{"emails":{"type":"array","description":"The email address(es) associated with a user","items":{"$ref":"#/$defs/Emails"}},"memberOf":{"description":"The organization membership(s) of the user.","type":"array","items":{"$ref":"http://localhost:3000/46c75ba1-bef2-4d6d-b974-bacc0abac3c4/types/75aa1211-96b9-40b7-84e6-0118790ed520"}},"shortname":{"minLength":4,"maxLength":24,"type":"string","description":"A unique slug for the user."},"preferredName":{"description":"The name which the user prefers to go by","type":"string"}},"required":["emails","memberOf"],"$defs":{"Emails":{"title":"Email","type":"object","description":"Information on a email address.","properties":{"address":{"description":"The email address itself","type":"string"},"primary":{"description":"Whether this email address is the primary one for the user","type":"boolean"},"verified":{"description":"Whether this email address has been verified","type":"boolean"}},"required":["address","primary","verified"]}}}',
+  '46c75ba1-bef2-4d6d-b974-bacc0abac3c4', '2021-08-19T11:00:14.588Z', '2021-08-19T11:00:14.588Z'
+) on conflict do nothing;
+insert into entity_types (
+  entity_type_id, account_id, name, versioned,
+  created_by, created_at, metadata_updated_at
+) values (
+  '75aa1211-96b9-40b7-84e6-0118790ed520', '46c75ba1-bef2-4d6d-b974-bacc0abac3c4', 'OrgMembership', true,
+  '46c75ba1-bef2-4d6d-b974-bacc0abac3c4', '2021-08-19T11:00:14.588Z', '2021-08-19T11:00:14.588Z'
+) on conflict do nothing;
+insert into entity_type_versions (
+  entity_type_id, entity_type_version_id, account_id,
+  properties, created_by, created_at, updated_at
+) values (
+  '75aa1211-96b9-40b7-84e6-0118790ed520', '7a68b6b3-cab2-4f6e-abb7-2fe4abb070b2', '46c75ba1-bef2-4d6d-b974-bacc0abac3c4',
+  '{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"http://localhost:3000/46c75ba1-bef2-4d6d-b974-bacc0abac3c4/types/75aa1211-96b9-40b7-84e6-0118790ed520","title":"OrgMembership","type":"object","description":"The membership of a user at an organization.","properties":{"user":{"description":"A reference to the user associated with the membership.","$ref":"http://localhost:3000/46c75ba1-bef2-4d6d-b974-bacc0abac3c4/types/1f9e6df2-a4f2-407a-af07-ae5a9a4857fc"},"org":{"description":"A reference to the organization associated with the membership.","$ref":"http://localhost:3000/46c75ba1-bef2-4d6d-b974-bacc0abac3c4/types/37790a78-9262-4e88-930e-f4685cf362cc"},"responsibility":{"description":"The responsibility of the user in the organization","type":"string"}},"required":["org","user","responsibility"]}',
   '46c75ba1-bef2-4d6d-b974-bacc0abac3c4', '2021-08-19T11:00:14.588Z', '2021-08-19T11:00:14.588Z'
 ) on conflict do nothing;
 insert into entity_types (

@@ -16,6 +16,7 @@ const systemAccount = generatedIds.orgs[SYSTEM_ACCOUNT_SHORTNAME];
 const systemAccountPropertiesStringified = JSON.stringify({
   shortname: SYSTEM_ACCOUNT_SHORTNAME,
   name: SYSTEM_ACCOUNT_NAME,
+  memberships: [],
 });
 
 const sqlString = `

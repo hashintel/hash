@@ -23,6 +23,7 @@ export const resolveLinkedData = async (
   parentAccountId: string,
   object: Record<string, any>,
   info: GraphQLResolveInfo,
+  resolvedEntities: { entityId: string; entityVersionId: string }[] = [],
 ) => {
   const db = ctx.dataSources.db;
   if (!isRecord(object)) {
@@ -35,13 +36,27 @@ export const resolveLinkedData = async (
         value
           .flat(Infinity)
           .filter(isRecord)
-          .map((obj) => resolveLinkedData(ctx, parentAccountId, obj, info)),
+          .map((obj) =>
+            resolveLinkedData(
+              ctx,
+              parentAccountId,
+              obj,
+              info,
+              resolvedEntities,
+            ),
+          ),
       );
       continue;
     }
 
     if (isRecord(value)) {
-      await resolveLinkedData(ctx, parentAccountId, value, info);
+      await resolveLinkedData(
+        ctx,
+        parentAccountId,
+        value,
+        info,
+        resolvedEntities,
+      );
     }
 
     // We're only interested in properties which link to other data
@@ -73,7 +88,21 @@ export const resolveLinkedData = async (
         throw new Error(`entity ${entityId} in account ${accountId} not found`);
       }
       object.data = entity;
-      await resolveLinkedData(ctx, entity.accountId, object.data, info);
+      if (
+        resolvedEntities.find(
+          (resolvedEntity) =>
+            resolvedEntity.entityVersionId === entity.entityVersionId &&
+            resolvedEntity.entityId === entity.entityId,
+        ) === undefined
+      ) {
+        await resolveLinkedData(ctx, entity.accountId, object.data, info, [
+          ...resolvedEntities,
+          {
+            entityId: entity.entityId,
+            entityVersionId: entity.entityVersionId,
+          },
+        ]);
+      }
     } else if (aggregate) {
       // Fetch an array of entities
       const { results, operation } = await aggregateEntity(

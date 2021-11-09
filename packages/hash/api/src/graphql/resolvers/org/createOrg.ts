@@ -11,6 +11,10 @@ export const createOrg: Resolver<
   dataSources.db.transaction(async (client) => {
     const { shortname, name, orgSize } = orgInput;
 
+    await user.acquireLock(client);
+
+    await user.refetchLatestVersion(client);
+
     await Account.validateShortname(client, shortname);
 
     const org = await Org.createOrg(dataSources.db, {
@@ -20,6 +24,7 @@ export const createOrg: Resolver<
         infoProvidedAtCreation: {
           orgSize,
         },
+        memberships: [],
       },
       createdById: user.entityId,
     });

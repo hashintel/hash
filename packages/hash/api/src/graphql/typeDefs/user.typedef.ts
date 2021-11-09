@@ -95,20 +95,11 @@ export const userTypedef = gql`
     WITH_A_TEAM
   }
 
-  type LinkedOrg {
-    data: Org!
-  }
-
-  type MemberOfOrg {
-    org: LinkedOrg!
-    responsibility: String
-  }
-
   type UserProperties {
     emails: [Email!]!
     shortname: String
     preferredName: String
-    memberOf: [MemberOfOrg!]!
+    memberOf: [LinkedOrgMembership!]!
   }
 
   type VerificationCodeMetadata {

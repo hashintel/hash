@@ -5,6 +5,8 @@ import {
   AccountConstructorArgs,
   OrgInvitationLink,
   OrgEmailInvitation,
+  OrgMembership,
+  User,
 } from ".";
 import { DBClient } from "../db";
 import { DBLinkedEntity, DBOrgProperties, EntityType } from "../db/adapter";
@@ -97,12 +99,40 @@ class __Org extends Account {
     return properties;
   }
 
+  async getOrgMemberships(client: DBClient): Promise<OrgMembership[]> {
+    return await Promise.all(
+      this.properties.memberships.map(async ({ __linkedData }) => {
+        const { entityId } = __linkedData;
+        const accountId = await client.getEntityAccountId({ entityId });
+
+        const orgMembership = await OrgMembership.getOrgMembershipById(client, {
+          accountId,
+          entityId,
+        });
+
+        if (!orgMembership) {
+          throw new Error(
+            `Org with entityId ${this.entityId} links to membership with entityId ${entityId} that cannot be found`,
+          );
+        }
+
+        return orgMembership;
+      }),
+    );
+  }
+
+  async getOrgMembers(client: DBClient): Promise<User[]> {
+    const orgMemberships = await this.getOrgMemberships(client);
+
+    return Promise.all(
+      orgMemberships.map((orgMembership) => orgMembership.getUser(client)),
+    );
+  }
+
   /**
    * @returns all invitations associated with the organization
    */
-  getInvitationLinks = async (
-    client: DBClient,
-  ): Promise<OrgInvitationLink[]> => {
+  async getInvitationLinks(client: DBClient): Promise<OrgInvitationLink[]> {
     /** @todo: query for invitations with correct outgoing 'org' relationships */
     const dbEntities = await client.getEntitiesBySystemType({
       accountId: this.accountId,
@@ -110,41 +140,40 @@ class __Org extends Account {
     });
 
     return dbEntities.map((entity) => new OrgInvitationLink(entity));
-  };
+  }
 
   /**
    * @returns the invitation associated with the organization that has a matching token, or null.
    */
-  getInvitationLinkWithToken =
-    (client: DBClient) =>
-    async (params: {
+  async getInvitationLinkWithToken(
+    client: DBClient,
+    params: {
       invitationLinkToken: string;
       errorCodePrefix?: string;
-    }): Promise<OrgInvitationLink> => {
-      const { invitationLinkToken, errorCodePrefix } = params;
+    },
+  ): Promise<OrgInvitationLink> {
+    const { invitationLinkToken, errorCodePrefix } = params;
 
-      const invitationLinks = await this.getInvitationLinks(client);
+    const invitationLinks = await this.getInvitationLinks(client);
 
-      const invitationLink = invitationLinks.find(
-        ({ properties }) => properties.accessToken === invitationLinkToken,
-      );
+    const invitationLink = invitationLinks.find(
+      ({ properties }) => properties.accessToken === invitationLinkToken,
+    );
 
-      if (!invitationLink) {
-        const msg = `The invitation with token ${invitationLinkToken} associated with org with entityId ${this.entityId} could not be found in the datastore.`;
-        throw new ApolloError(msg, `${errorCodePrefix}NOT_FOUND`);
-      }
+    if (!invitationLink) {
+      const msg = `The invitation with token ${invitationLinkToken} associated with org with entityId ${this.entityId} could not be found in the datastore.`;
+      throw new ApolloError(msg, `${errorCodePrefix}NOT_FOUND`);
+    }
 
-      invitationLink.validate(errorCodePrefix);
+    invitationLink.validate(errorCodePrefix);
 
-      return invitationLink;
-    };
+    return invitationLink;
+  }
 
   /**
    * @returns all email invitations associated with the organization.
    */
-  getEmailInvitations = async (
-    client: DBClient,
-  ): Promise<OrgEmailInvitation[]> => {
+  async getEmailInvitations(client: DBClient): Promise<OrgEmailInvitation[]> {
     /** @todo: query for email invitations with correct outgoing 'org' relationships */
     const dbEntities = await client.getEntitiesBySystemType({
       accountId: this.accountId,
@@ -152,34 +181,35 @@ class __Org extends Account {
     });
 
     return dbEntities.map((entity) => new OrgEmailInvitation(entity));
-  };
+  }
 
   /**
    * @returns the email invitation associated with the organization that has a matching token, or null.
    */
-  getEmailInvitationWithToken =
-    (client: DBClient) =>
-    async (params: {
+  async getEmailInvitationWithToken(
+    client: DBClient,
+    params: {
       invitationEmailToken: string;
       errorCodePrefix?: string;
-    }): Promise<OrgEmailInvitation> => {
-      const { invitationEmailToken, errorCodePrefix } = params;
+    },
+  ): Promise<OrgEmailInvitation> {
+    const { invitationEmailToken, errorCodePrefix } = params;
 
-      const emailInvitations = await this.getEmailInvitations(client);
+    const emailInvitations = await this.getEmailInvitations(client);
 
-      const emailInvitation = emailInvitations.find(
-        ({ properties }) => properties.accessToken === invitationEmailToken,
-      );
+    const emailInvitation = emailInvitations.find(
+      ({ properties }) => properties.accessToken === invitationEmailToken,
+    );
 
-      if (!emailInvitation) {
-        const msg = `The email invitation with token ${invitationEmailToken} associated with org with entityId ${this.entityId} could not be found in the datastore.`;
-        throw new ApolloError(msg, `${errorCodePrefix}NOT_FOUND`);
-      }
+    if (!emailInvitation) {
+      const msg = `The email invitation with token ${invitationEmailToken} associated with org with entityId ${this.entityId} could not be found in the datastore.`;
+      throw new ApolloError(msg, `${errorCodePrefix}NOT_FOUND`);
+    }
 
-      emailInvitation.validate(errorCodePrefix);
+    emailInvitation.validate(errorCodePrefix);
 
-      return emailInvitation;
-    };
+    return emailInvitation;
+  }
 }
 
 export default __Org;

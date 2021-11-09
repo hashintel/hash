@@ -63,6 +63,7 @@ const createNewBobWithOrg = async () => {
     properties: {
       shortname: `${bobUser.properties.shortname}-org`,
       name: `${bobUser.properties.preferredName}'s Org`,
+      memberships: [],
     },
   });
 
@@ -102,6 +103,7 @@ beforeAll(async () => {
     properties: {
       shortname: "bigco",
       name: "Big Company",
+      memberships: [],
     },
   });
 
@@ -273,7 +275,7 @@ describe("logged in user ", () => {
     expect(org.properties.infoProvidedAtCreation?.orgSize).toEqual(
       variables.org.orgSize,
     );
-    expect(org.entityCreatedAt).toEqual(org.entityVersionUpdatedAt);
+
     expect(org.entityType.properties.title).toEqual("Org");
 
     // Test an invitaiton link has been created for the org
@@ -295,19 +297,7 @@ describe("logged in user ", () => {
 
     expect(updatedExistingUser).not.toBeNull();
 
-    const orgMembership = updatedExistingUser.properties.memberOf.find(
-      ({ org: linkedOrg }) => linkedOrg.__linkedData.entityId === org.entityId,
-    );
-
-    expect(orgMembership).toEqual({
-      org: {
-        __linkedData: {
-          entityId: org.entityId,
-          entityTypeId: org.entityType.entityId,
-        },
-      },
-      responsibility: variables.responsibility,
-    });
+    expect(await updatedExistingUser.isMemberOfOrg(db, org)).toBe(true);
   });
 
   it("can create an org email invitation", async () => {
@@ -427,11 +417,11 @@ describe("logged in user ", () => {
     expect(gqlUser.entityId).toEqual(existingUser.entityId);
 
     const gqlMemberOf = gqlUser.properties.memberOf.find(
-      ({ org }) => org.data.entityId === bobOrg.entityId,
+      ({ data }) => data.properties.org.data.entityId === bobOrg.entityId,
     )!;
 
     expect(gqlMemberOf).not.toBeUndefined();
-    expect(gqlMemberOf.responsibility).toEqual(responsibility);
+    expect(gqlMemberOf.data.properties.responsibility).toEqual(responsibility);
 
     const { emails } = gqlUser.properties;
 
@@ -462,11 +452,11 @@ describe("logged in user ", () => {
     expect(gqlUser.entityId).toEqual(existingUser.entityId);
 
     const gqlMemberOf = gqlUser.properties.memberOf.find(
-      ({ org }) => org.data.entityId === bobOrg.entityId,
+      ({ data }) => data.properties.org.data.entityId === bobOrg.entityId,
     )!;
 
     expect(gqlMemberOf).not.toBeUndefined();
-    expect(gqlMemberOf.responsibility).toEqual(responsibility);
+    expect(gqlMemberOf.data.properties.responsibility).toEqual(responsibility);
   });
 
   describe("can create and update pages", () => {

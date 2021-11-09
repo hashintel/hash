@@ -19,6 +19,7 @@ export const SYSTEM_TYPES = [
   "Page",
   "Text",
   "User",
+  "OrgMembership",
   "File",
   "OrgInvitationLink",
   "OrgEmailInvitation",

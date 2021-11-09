@@ -14,6 +14,7 @@ import { userTypedef } from "./user.typedef";
 import { embedTypeDef } from "./embed.typedef";
 import { fileTypedef } from "./file.typedef";
 import { impliedHistoryTypedef } from "./impliedHistory.typedef";
+import { orgMembershipTypedef } from "./orgMembership.typedef";
 
 const baseSchema = gql`
   scalar Date
@@ -49,6 +50,7 @@ export const schema = [
   orgEmailInvitationTypedef,
   orgInvitationLinkTypedef,
   orgTypedef,
+  orgMembershipTypedef,
   pageTypedef,
   textTypedef,
   userTypedef,
