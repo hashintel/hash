@@ -81,7 +81,7 @@ Some rates will only have one of "to" or "from" if they are coming from a sink, 
 
 ### Globals
 
-As a final step, set the resolution of your time step in **`globals.json`** with a `dt` property. The smaller the value, the finer the resolution of your model will be \(but the more time steps it will take to run\).
+As a final step, set the resolution of your time step in `globals.json` with a `dt` property. The smaller the value, the finer the resolution of your model will be \(but the more time steps it will take to run\).
 
 ```javascript
 {
