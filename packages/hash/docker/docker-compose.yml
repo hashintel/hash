@@ -133,8 +133,10 @@ services:
       - HASH_PG_DATABASE=postgres
       - HASH_PG_PASSWORD=postgres
     volumes:
-      - ../search-loader:/app/packages/hash/search-loader
       - ../backend-utils:/app/packages/hash/backend-utils
+      - ../block-protocol:/app/packages/hash/block-protocol
+      - ../search-loader:/app/packages/hash/search-loader
+      - ../shared:/app/packages/hash/shared
     stop_signal: SIGTERM
 volumes:
   # Make sure you have created this volume: docker volume create hash-dev-pg
