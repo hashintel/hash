@@ -34,7 +34,7 @@ impl CreateRemovePlanner {
         config: Arc<SimRunConfig<ExperimentRunBase>>,
     ) -> Result<CreateRemovePlanner> {
         Ok(CreateRemovePlanner {
-            commands: ProcessedCommands::new(commands)?,
+            commands: ProcessedCommands::new(commands, &config.sim.store.agent_schema)?,
             config,
         })
     }

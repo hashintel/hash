@@ -9,6 +9,7 @@ use uuid::Uuid;
 
 use super::{Error, Result};
 
+use crate::datastore::arrow::batch_conversion::IntoRecordBatch;
 use crate::datastore::schema::{state::AgentSchema, FieldKey};
 use crate::datastore::{
     error::Result as DataStoreResult,
@@ -121,13 +122,26 @@ impl CreateRemoveCommands {
         Ok(res)
     }
 
-    // TODO OS - Implement get_agent_batch and get_remove_ids for CreateRemoveCommands
-    pub fn get_agent_batch(&self) -> DataStoreResult<Option<RecordBatch>> {
-        todo!();
+    pub fn get_agent_batch(
+        &self,
+        schema: &Arc<AgentSchema>,
+    ) -> DataStoreResult<Option<RecordBatch>> {
+        let agent_state = self
+            .create
+            .into_iter()
+            .map(|create_cmd| create_cmd.agent)
+            .collect::<Vec<_>>();
+        Ok(Some(agent_state.as_slice().into_agent_batch(schema)?))
     }
 
-    pub fn get_remove_ids(&self) -> DataStoreResult<HashSet<[u8; UUID_V4_LEN]>> {
-        todo!();
+    pub fn get_remove_ids(&self) -> HashSet<[u8; UUID_V4_LEN]> {
+        self.remove
+            .into_iter()
+            .map(|remove_cmd| {
+                let Uuid(bytes) = remove_cmd.uuid;
+                bytes
+            })
+            .collect::<HashSet<_>>()
     }
 }
 

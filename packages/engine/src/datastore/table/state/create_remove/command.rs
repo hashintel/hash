@@ -1,7 +1,9 @@
 use std::collections::HashSet;
+use std::sync::Arc;
 
 use arrow::record_batch::RecordBatch;
 
+use crate::datastore::schema::state::AgentSchema;
 use crate::{
     datastore::{prelude::*, UUID_V4_LEN},
     simulation::command::CreateRemoveCommands,
@@ -14,9 +16,12 @@ pub struct ProcessedCommands {
 }
 
 impl ProcessedCommands {
-    pub fn new(commands: CreateRemoveCommands) -> Result<ProcessedCommands> {
-        let new_agents = commands.get_agent_batch()?;
-        let remove_ids = commands.get_remove_ids()?;
+    pub fn new(
+        commands: CreateRemoveCommands,
+        schema: &Arc<AgentSchema>,
+    ) -> Result<ProcessedCommands> {
+        let new_agents = commands.get_agent_batch(schema)?;
+        let remove_ids = commands.get_remove_ids();
 
         Ok(ProcessedCommands {
             new_agents,
