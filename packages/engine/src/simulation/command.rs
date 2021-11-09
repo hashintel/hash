@@ -123,24 +123,21 @@ impl CreateRemoveCommands {
     }
 
     pub fn get_agent_batch(
-        &self,
+        &mut self,
         schema: &Arc<AgentSchema>,
     ) -> DataStoreResult<Option<RecordBatch>> {
         let agent_state = self
             .create
-            .into_iter()
+            .drain(..)
             .map(|create_cmd| create_cmd.agent)
             .collect::<Vec<_>>();
         Ok(Some(agent_state.as_slice().into_agent_batch(schema)?))
     }
 
-    pub fn get_remove_ids(&self) -> HashSet<[u8; UUID_V4_LEN]> {
+    pub fn get_remove_ids(&mut self) -> HashSet<[u8; UUID_V4_LEN]> {
         self.remove
-            .into_iter()
-            .map(|remove_cmd| {
-                let Uuid(bytes) = remove_cmd.uuid;
-                bytes
-            })
+            .drain(..)
+            .map(|remove_cmd| *remove_cmd.uuid.as_bytes())
             .collect::<HashSet<_>>()
     }
 }

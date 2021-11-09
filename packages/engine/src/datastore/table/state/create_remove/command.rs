@@ -17,7 +17,7 @@ pub struct ProcessedCommands {
 
 impl ProcessedCommands {
     pub fn new(
-        commands: CreateRemoveCommands,
+        mut commands: CreateRemoveCommands,
         schema: &Arc<AgentSchema>,
     ) -> Result<ProcessedCommands> {
         let new_agents = commands.get_agent_batch(schema)?;
