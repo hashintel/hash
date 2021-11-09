@@ -14,9 +14,9 @@ export const createLink: Resolver<
   {},
   LoggedInGraphQLContext,
   MutationCreateLinkArgs
-> = async (_, args, { dataSources }) =>
+> = async (_, { link }, { dataSources }) =>
   dataSources.db.transaction(async (client) => {
-    const { srcAccountId, srcEntityId } = args;
+    const { srcAccountId, srcEntityId } = link;
     const sourceEntity = await Entity.getEntityLatestVersion(client, {
       accountId: srcAccountId,
       entityId: srcEntityId,
@@ -29,7 +29,7 @@ export const createLink: Resolver<
       throw new ApolloError(msg, "NOT_FOUND");
     }
 
-    const { dstAccountId, dstEntityId, dstEntityVersionId } = args;
+    const { dstAccountId, dstEntityId, dstEntityVersionId } = link;
     const dstEntity = dstEntityVersionId
       ? await Entity.getEntity(client, {
           accountId: dstAccountId,
@@ -47,7 +47,7 @@ export const createLink: Resolver<
       throw new ApolloError(msg, "NOT_FOUND");
     }
 
-    const { path: stringifiedPath } = args;
+    const { path: stringifiedPath } = link;
 
     jp.value(sourceEntity.properties, stringifiedPath, {
       __linkedData: {
@@ -58,5 +58,5 @@ export const createLink: Resolver<
 
     await sourceEntity.updateEntityProperties(client, sourceEntity.properties);
 
-    return { ...args, id: genId() };
+    return { ...link, id: genId() };
   });

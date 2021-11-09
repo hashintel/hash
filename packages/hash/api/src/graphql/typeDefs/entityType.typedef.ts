@@ -127,11 +127,11 @@ export const entityTypeTypedef = gql`
     """
     The outgoing links of the entity.
     """
-    links: [Link!]!
+    links: [LinkGroup!]!
     """
     The linked entities of the entity.
     """
-    linkedEntities: [Entity!]!
+    linkedEntities: [UnknownEntity!]!
     """
     The linked aggregations of the entity.
     """

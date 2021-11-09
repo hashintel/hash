@@ -74,15 +74,40 @@ export const entityTypedef = gql`
     """
     The outgoing links of the entity.
     """
-    links: [Link!]!
+    links: [LinkGroup!]!
     """
     The linked entities of the entity.
     """
-    linkedEntities: [Entity!]!
+    linkedEntities: [UnknownEntity!]!
     """
     The linked aggregations of the entity.
     """
     linkedAggregations: [LinkedAggregation!]!
+  }
+
+  """
+  A grouping of links with the same:
+    - source entity entityId
+    - source entity entityVersionId
+    - path
+  """
+  type LinkGroup {
+    """
+    The source entity's entityId of the link group.
+    """
+    srcEntityId: ID!
+    """
+    The source entity's entityVersionId of the link group.
+    """
+    srcEntityVersionId: ID!
+    """
+    The path of the link group.
+    """
+    path: String!
+    """
+    The complete collection of links in the link group.
+    """
+    links: [Link!]!
   }
 
   type UnknownEntity implements Entity {
@@ -153,11 +178,11 @@ export const entityTypedef = gql`
     """
     The outgoing links of the entity.
     """
-    links: [Link!]!
+    links: [LinkGroup!]!
     """
     The linked entities of the entity.
     """
-    linkedEntities: [Entity!]!
+    linkedEntities: [UnknownEntity!]!
     """
     The linked aggregations of the entity.
     """
