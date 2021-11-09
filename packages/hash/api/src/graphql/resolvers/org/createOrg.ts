@@ -11,13 +11,13 @@ export const createOrg: Resolver<
   dataSources.db.transaction(async (client) => {
     const { shortname, name, orgSize } = orgInput;
 
-    await user.acquireLock(client);
-
-    await user.refetchLatestVersion(client);
+    await user
+      .acquireLock(client)
+      .then(() => user.refetchLatestVersion(client));
 
     await Account.validateShortname(client, shortname);
 
-    const org = await Org.createOrg(dataSources.db, {
+    const org = await Org.createOrg(client, {
       properties: {
         shortname,
         name,
@@ -28,6 +28,8 @@ export const createOrg: Resolver<
       },
       createdById: user.entityId,
     });
+
+    await org.acquireLock(client).then(() => org.refetchLatestVersion(client));
 
     await user.joinOrg(client, { org, responsibility });
 

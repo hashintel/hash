@@ -13,7 +13,7 @@ type CreateUserArgs = {
 export const createUsers =
   (db: DBAdapter) =>
   async (org: Org): Promise<User[]> => {
-    const users: CreateUserArgs[] = [
+    const createUserArgs: CreateUserArgs[] = [
       {
         email: "aj@hash.ai",
         shortname: "akash",
@@ -62,18 +62,24 @@ export const createUsers =
     ];
 
     return Promise.all(
-      users.map(async ({ email, ...remainingProperties }) => {
-        const user = await User.createUser(db, {
-          emails: [{ address: email, primary: true, verified: true }],
-          infoProvidedAtSignup: { usingHow: WayToUseHash.WithATeam },
-          memberOf: [],
-          ...remainingProperties,
-        });
+      createUserArgs.map(({ email, ...remainingProperties }) =>
+        db.transaction(async (client) => {
+          await org
+            .acquireLock(client)
+            .then(() => org.refetchLatestVersion(client));
 
-        await user.joinOrg(db, { org, responsibility: "Developer" });
+          const user = await User.createUser(client, {
+            emails: [{ address: email, primary: true, verified: true }],
+            infoProvidedAtSignup: { usingHow: WayToUseHash.WithATeam },
+            memberOf: [],
+            ...remainingProperties,
+          });
 
-        return user;
-      }),
+          await user.joinOrg(client, { org, responsibility: "Developer" });
+
+          return user;
+        }),
+      ),
     );
   };
 
