@@ -72,6 +72,7 @@ jobs:
         run: |
           for URL in \
             http://${DOCKER_HOST}:5001 \
+            http://172.17.0.1:5001 \
             http://host.docker.internal:5001 \
             http://gateway.docker.internal:5001 \
             http://172.17.0.1:5001 \
