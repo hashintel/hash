@@ -62,14 +62,19 @@ pub mod prelude {
 }
 
 #[cfg(test)]
-// TODO OS[29] - Alfie,  Unit-tests are broken, need updating for FieldSpecStuff
+// TODO OS - Unit-tests are broken, need updating for new Store read and write approach
 pub mod tests {
     use super::prelude::*;
     // use super::schema::{FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant};
-
-    // use crate::hash_types::state::AgentStateField;
+    //
     // use rand::Rng;
-
+    // use std::borrow::Cow;
+    // use std::convert::TryInto;
+    //
+    // use crate::datastore::batch::DynamicBatch;
+    // use crate::datastore::schema::{FieldScope, FieldSource, RootFieldSpec};
+    // use crate::datastore::test_utils::gen_schema_and_test_agents;
+    // use crate::hash_types::state::AgentStateField;
     // use std::sync::Arc;
 
     #[test]
@@ -109,33 +114,13 @@ pub mod tests {
         //     sb.flush_changes()?;
         //     Ok(targets)
         // }
-        // let mut keys = FieldSpecMap::required_base()?;
-        // keys.add(FieldSpec::new_mergeable(
-        //     "age",
-        //     FieldType::new(FieldTypeVariant::Number, true),
-        // ))?;
-        // keys.add_built_in(&AgentStateField::AgentId)?;
-        // keys.add_built_in(&AgentStateField::AgentName)?;
-        // keys.union(FieldSpecMap::from_short_json(
-        //     serde_json::json!({"keys": {"num": "[[number]]"}}),
-        // )?)?;
-        //
-        // let store = Store::new(Arc::new("".into()), keys)?;
         //
         // let num_agents = 1000;
         //
-        // let mut agents = Vec::with_capacity(num_agents);
+        // let (schema, agents) = gen_schema_and_test_agents(num_agents, 0).unwrap();
         //
-        // for i in 0..num_agents {
-        //     let mut agent = AgentState::empty();
-        //     agent.set("age", Some(i))?;
-        //     agent.set("behaviors", vec!["age.py"])?;
-        //     if i % 2 == 0 {
-        //         agent.set("agent_name", "Test")?;
-        //     }
-        //     agent.set("num", vec![vec![0.1_f64, 0.2, 0.3]; 20])?;
-        //     agents.push(agent);
-        // }
+        // let store = Store::new(Arc::new("".into()), field_spec_map)?;
+        //
         // // Create a new simulation
         // let table_ref = store.new_table(&agents)?;
         //
