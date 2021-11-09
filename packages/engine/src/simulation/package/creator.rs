@@ -281,13 +281,14 @@ impl PackageCreators {
     }
 }
 
+// TODO OS - Should __previous_index and __context_index have the `__` prefix
 pub const PREVIOUS_INDEX_COLUMN_NAME: &str = "__previous_index";
 pub const PREVIOUS_INDEX_COLUMN_INDEX: usize = 0;
 
 pub const CONTEXT_INDEX_COLUMN_NAME: &str = "__context_index";
 pub const CONTEXT_INDEX_COLUMN_INDEX: usize = 1;
 
-fn add_base_agent_fields(field_builder: &mut FieldSpecMapBuilder) -> Result<()> {
+pub fn add_base_agent_fields(field_builder: &mut FieldSpecMapBuilder) -> Result<()> {
     field_builder.source(FieldSource::Engine);
     use crate::hash_types::state::AgentStateField::*;
     let used = [

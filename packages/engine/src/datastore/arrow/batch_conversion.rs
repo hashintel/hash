@@ -561,6 +561,7 @@ impl IntoRecordBatch for &[&AgentState] {
                 json_vals_to_bool(vals)
             } else if name.eq(PREVIOUS_INDEX_COLUMN_NAME) {
                 agents_index_to_empty_col(self.len(), field.data_type())
+            // TODO do we need a special case for CONTEXT_INDEX_COLUMN_INDEX like we have for PREVIOUS_INDEX_COLUMN_NAME
             } else if matches!(
                 schema
                     .field_spec_map
