@@ -45,6 +45,9 @@ jobs:
 
       - uses: ./.github/actions/warm-up-repo
 
+      - run: yarn codegen
+        if: ${{ success() || failure() }}
+
       - name: Launch containers
         run: |
           docker volume create --name=hash-dev-pg
@@ -57,9 +60,6 @@ jobs:
           AWS_ACCESS_KEY_ID: na
           AWS_SECRET_ACCESS_KEY: na
           AWS_S3_UPLOADS_BUCKET: na
-
-      - run: yarn codegen
-        if: ${{ success() || failure() }}
 
       - run: docker ps -a
         if: ${{ success() || failure() }}
