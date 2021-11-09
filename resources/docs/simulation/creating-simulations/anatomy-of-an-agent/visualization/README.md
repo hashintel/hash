@@ -11,7 +11,7 @@ Once you've developed and tested the logic and functioning of your model, it can
 **Agents have some predefined properties that allow you to modify their display in hCore's 3D spatial view:**
 
 - `"shape": string` - if provided overrides the default "box" visualization for the agent.
-  - There are built-in geometric shapes and 3D models. See the [Shapes ](/docs/simulation/creating-simulations/anatomy-of-an-agent/visualization/shapes)page for more information
+  - There are built-in geometric shapes and 3D models. See the [Shapes](/docs/simulation/creating-simulations/anatomy-of-an-agent/visualization/shapes) page for more information
 - `"height": number` - if provided \(and agent is rendering on a 2d grid\), will set the display height of the agent.
 - `"scale": [number, number, number]` - if provided, will re-render the agent in 3d space with the new scale, with \[1, 1, 1\] being the default. The position of the agent will remain the same \(e.g. for neighbor calculations\).
 - `"direction": [number, number, number]` - if an agent's shape is a 3D model, or asymmetric, the direction given will affect the agent's visualization.

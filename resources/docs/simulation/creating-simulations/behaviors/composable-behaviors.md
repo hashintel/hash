@@ -39,4 +39,3 @@ When publishing components such as behaviors and datasets we encourage you to ma
 <Hint style="info">
 **Things** are types in a schema that -- in the context of behaviors -- may represent actions which agents take, or types of agents themselves \(e.g. individuals, households, or companies\).
 </Hint>
-

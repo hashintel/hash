@@ -73,7 +73,7 @@ So we'll add buttons:
 
 Each button will be associated with a function, `setGlobals()`, that will trigger the **globals.json** file to update.
 
-Next, let's define the different scenarios. We'll explore combinations of parameters that determine the likelihood of a lightning strike and the likelihood of a tree regrowing. The first scenario will set the parameters for `lightningChance`and `regrowthChance` to 0.01 and 0.1, and the second to 0.0001 and 0.0001. 
+Next, let's define the different scenarios. We'll explore combinations of parameters that determine the likelihood of a lightning strike and the likelihood of a tree regrowing. The first scenario will set the parameters for `lightningChance`and `regrowthChance` to 0.01 and 0.1, and the second to 0.0001 and 0.0001.
 
 We'll do this in a new file called `script.js`.
 
@@ -128,7 +128,7 @@ const scenarios = {
 }
 ```
 
-When the user clicks scenario 1, we want the globals file to have the data of the value of the dictionary "one". And when the user clicks scenario 2, the data from two. 
+When the user clicks scenario 1, we want the globals file to have the data of the value of the dictionary "one". And when the user clicks scenario 2, the data from two.
 
 We'll write the `setGlobals()` function that will post a message to the iframe telling the simulation to update `globals.json` with the value of the corresponding scenario.
 
@@ -279,4 +279,3 @@ setTimeout(poll, 1000);
 You can see a [completed version of the dashboard here](https://DamagedCircularDimension.bengoldhaber1.repl.co). As soon as you run the simulation it will update the heatmap every five seconds. Click a scenario button and then reset/run the simulation to reload the simulations with the new parameters.
 
 [You can see the completed files, and fork and modify the REPL, here.](https://replit.com/@BenGoldhaber1/DamagedCircularDimension)
-

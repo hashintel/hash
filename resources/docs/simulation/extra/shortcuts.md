@@ -47,4 +47,3 @@ objectId: d3b822a4-2329-4bde-b3bb-a05b1d6819a6
 | Command | Windows | Mac |
 | :--- | :--- | :--- |
 | Project-wide search | `Ctrl` + `F` | `Command` + `F` |
-

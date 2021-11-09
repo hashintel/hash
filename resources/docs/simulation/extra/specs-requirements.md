@@ -38,4 +38,3 @@ Local simulations run in hCore typically scale easily to ~2,000 agents, but if y
 ### Mobile Support
 
 While hCore will run on Safari and Chrome mobile browsers, it is not officially supported.
-

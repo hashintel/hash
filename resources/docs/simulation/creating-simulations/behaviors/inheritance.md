@@ -41,4 +41,3 @@ There is no limit to the number of types that may be attached to an agent, and t
 <Hint style="info">
 As part of these changes, we'll be allowing users to publish their own schema definitions to hIndex, and attach arrays of hIndex-published behaviors to these schemas.
 </Hint>
-

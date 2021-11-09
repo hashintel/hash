@@ -1,10 +1,10 @@
 # HASH Resources
 
-This folder contains our platform [documentation](https://hash.ai/docs?utm_medium=organic&utm_source=github_readme_resources) (`docs`) and [glossary](https://hash.ai/glossary?utm_medium=organic&utm_source=github_readme_resources) (`glossary`). We welcome user submissions to these, in line with our public monorepo [contributing guidelines](../CONTRIBUTING.md). 
+This folder contains our platform [documentation](https://hash.ai/docs?utm_medium=organic&utm_source=github_readme_resources) (`docs`) and [glossary](https://hash.ai/glossary?utm_medium=organic&utm_source=github_readme_resources) (`glossary`). We welcome user submissions to these, in line with our public monorepo [contributing guidelines](../CONTRIBUTING.md).
 
 ## MDX file format
 
-Our resources are written in [MDX](https://mdxjs.com/), a format which allows for using JSX tags in Markdown documents. 
+Our resources are written in [MDX](https://mdxjs.com/), a format which allows for using JSX tags in Markdown documents.
 
 This has the same syntax as Markdown documents, except for special tags we use to highlight certain elements, which you can see examples of in existing documents.
 

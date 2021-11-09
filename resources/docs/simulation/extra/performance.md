@@ -32,7 +32,7 @@ In the future we'll be bringing support for much larger datasets to both the cli
 
 Each agent runs its array of behaviors every time step - if a behavior is performing very complex calculations, it can slow down the simulation as a whole.
 
-The most common expensive behavior we see is using many agents with large `"search_radius"`. If an agent has a [search radius](/docs/simulation/creating-simulations/anatomy-of-an-agent/context#neighbors), the HASH engine will calculate the neighbors for the agent, which is how`context.neighbors()` will return the agents neighbors. Calculating neighbors involves searching over the simulation state, which can be expensive when many agents are calling neighbors. 
+The most common expensive behavior we see is using many agents with large `"search_radius"`. If an agent has a [search radius](/docs/simulation/creating-simulations/anatomy-of-an-agent/context#neighbors), the HASH engine will calculate the neighbors for the agent, which is how`context.neighbors()` will return the agents neighbors. Calculating neighbors involves searching over the simulation state, which can be expensive when many agents are calling neighbors.
 
 Often you can use messages to communicate between agents and request information instead of relying on retrieving many neighbors. Alternatively you might consider creating a manager agent that has a search radius which calls `context.neighbors()` and stores the results which other agents can retrieve by messaging the manager agent.
 
@@ -59,4 +59,3 @@ MS and FPS reflect the total time from state _t_ to state _t_+1. If this is taki
 MB reflects the size of the simulation - each simulation run is stored locally. If a simulation has been run for tens of thousands of time steps, or if there are many agents, it might become too large for your browser.
 
 ![Stats window for debugging](https://cdn-us1.hash.ai/site/docs/kapture-2020-12-17-at-10.26.05.gif)
-

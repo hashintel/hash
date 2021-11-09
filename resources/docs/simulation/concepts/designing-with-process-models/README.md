@@ -34,4 +34,3 @@ Example simulation built with the process model library:
 
 * [Billing Department simulation](https://core.hash.ai/@hash/billing-department-process/stable)
 * [Call Center simulation](https://core.hash.ai/@hash/interconnected-call-center-single-agent/stable)
-

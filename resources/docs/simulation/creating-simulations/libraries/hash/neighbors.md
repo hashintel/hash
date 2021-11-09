@@ -78,4 +78,3 @@ function behavior(state, context) {
     ...
 }
 ```
-

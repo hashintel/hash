@@ -20,4 +20,3 @@ In this simulation it’s the process of delivering oil from tankers, through th
 ![](https://lh6.googleusercontent.com/smDMCG9NqVz4Hg3VFdiQr95oNibC9mvxEYmxugc2ckHSkZ1vOd8qrUyodV3___N3UzSXpuVI9UpnYr6uOSmrN_DoOAvAOPfjl7-xYyIRUzEwHSg6GaBdQizKsLRWdj6i2F3NcSgy)
 
 It looks like we don’t have to initialize a special agent to handle any high-level functions here. The Main agent in AnyLogic is only responsible for initialization, which our creator agent will take care of.
-

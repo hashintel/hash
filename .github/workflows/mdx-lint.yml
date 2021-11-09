@@ -2,9 +2,9 @@ name: MDX Lint
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
 
 jobs:
   build:
@@ -15,6 +15,9 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           node-version: '12'
+
+      - name: Lint for markdown correctness
+        run: npm i && npm run lint:markdownlint
 
       # Runs a single command using the runners shell
       - name: Lint for objectID

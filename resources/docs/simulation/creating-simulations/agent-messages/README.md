@@ -17,7 +17,6 @@ Agents can create a message to send to either another agent or the simulation en
 <Tabs>
 <Tab title="JavaScript" >
 
-
 ```javascript
 const behavior = (state, context) => {
     state.messages.push({
@@ -33,7 +32,6 @@ const behavior = (state, context) => {
 </Tab >
 
 <Tab title="Python" >
-
 
 ```python
 def behavior(state, context):  
@@ -66,7 +64,6 @@ You can use the helper function state.addMessage\(to&lt;String&gt;, type&lt;Stri
 <Tabs>
 <Tab title="JavaScript" >
 
-
 ```javascript
 const behavior = (state, context) => {
     state.addMessage("foo", "bar", {msg: "hello"});
@@ -76,7 +73,6 @@ const behavior = (state, context) => {
 </Tab >
 
 <Tab title="Python" >
-
 
 ```python
 def behavior(state, context):
@@ -89,5 +85,3 @@ def behavior(state, context):
 Messages are produced during a step, but are not delivered and processed until the next step.
 
 ![Data flow for a single simulation step in HASH](https://cdn-us1.hash.ai/site/docs/image%20%2824%29.png)
-
-

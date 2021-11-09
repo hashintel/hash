@@ -108,6 +108,3 @@ Datasets can be used to calibrate a model to find the parameters that best match
 <Hint style="success">
 Read more and see an example in the [Complex Metrics section on Validating and Calibrating.](/docs/simulation/creating-simulations/experiments/optimization-experiments/complex-metrics#validating-and-calibrating)
 </Hint>
-
-
-

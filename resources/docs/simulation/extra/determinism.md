@@ -26,6 +26,7 @@ Often you'll create simulations with probabilities, where an agent takes an acti
 ```javascript
 state.foo = hstd.random() > 0.5 ? true : false
 ```
+
 </Tab>
 </Tabs>
 
@@ -34,24 +35,23 @@ or by using one of the [Statistic libraries](/docs/simulation/creating-simulatio
 <Tabs>
 <Tab title="JavaScript" >
 
-
 ```javascript
   const { poisson, uniform, triangular, normal } = hstd.stats;
   ...
 
   let foo = triangular.sample(0, 100, 50)
 ```
+
 </Tab>
 </Tabs>
 
 To ensure the same numbers are generated every execution run, you can **set the seed** of the random number generator.
 
-1. Call `hstd.setSeed(str: s)` to set a seed at the beginning of your simulation run. 
+1. Call `hstd.setSeed(str: s)` to set a seed at the beginning of your simulation run.
 2. Use `hstd` functions for stochasticity. They'll return the same random number every simulation run.
 
 <Tabs>
 <Tab title="JavaScript" >
-
 
 ```javascript
 if (state.timestep == 1) {
@@ -62,6 +62,7 @@ if (state.timestep == 1) {
 // will return the same sample every run
 const num_new_agents = poisson.sample(10);
 ```
+
 </Tab>
 </Tabs>
 
@@ -81,11 +82,11 @@ Currently, we only make the Mapbox API directly accessible from within both hCor
 
 HASH's [actor model](/wiki/actor-model) lets the engine execute agents in parallel. This allows us to run models across machines and ensure that they don't fall prey to sequencing problems, where the execution order of agents generates artifacts in your simulations. The current release of hEngine does **not** guarantee ordering of the agent interaction methods provided on the context of an agent.
 
-#### Neighbors
+### Neighbors
 
 Once all agents have computed their states for the next time step, hEngine calculates an agent's neighbors and delivers them to each agent's `context`. Neighbors are not calculated deterministically. This means that even in a simulation with identical initialization, globals, and behaviors, an agent will not necessarily see its neighbors in the same order every time. On the other hand, hEngine does not guarantee randomization either.
 
-#### Messages
+### Messages
 
 hEngine delivers messages once all agents have computed their next states. In current releases of HASH, messages are not collected or delivered deterministically. That means there is no guarantee that two identical agents in an otherwise identical simulation state will have inboxes that are sorted the same way.
 
@@ -94,4 +95,3 @@ Like with neighbors, randomization is not guaranteed. Shuffling messages before 
 <Hint style="info">
 If your simulation relies upon the order of the messages and neighbors array, consider adding a sorting function to the simulation that will return the agents in a predictable manner. For example, sort based on an `agent_name` field you specify in the initialization of the simulation.
 </Hint>
-
