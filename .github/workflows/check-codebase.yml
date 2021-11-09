@@ -68,7 +68,9 @@ jobs:
 
       - name: Try reaching the API
         run: |
+          const DOCKER_IP=$(ip addr show docker0)
           for URL in \
+            http://${DOCKER_IP}:5001 \
             http://host.docker.internal:5001 \
             http://gateway.docker.internal:5001 \
             http://172.17.0.1:5001 \
