@@ -41,6 +41,8 @@ jobs:
   integration-tests:
     runs-on: ubuntu-latest
     steps:
+      - run: ip addr show docker0
+
       - uses: actions/checkout@v2
 
       - uses: ./.github/actions/warm-up-repo
