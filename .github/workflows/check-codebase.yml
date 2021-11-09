@@ -37,3 +37,74 @@ jobs:
 
       - run: yarn test-frontend
         if: ${{ success() || failure() }}
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: ./.github/actions/warm-up-repo
+
+      - name: Launch containers
+        run: |
+          docker volume create --name=hash-dev-pg
+          yarn serve:hash-backend-test & ## & enables background mode
+          npx wait-on --timeout 600000 tcp:localhost:5001 ## wait for API server (10 mins max)
+          yarn seed-db
+        if: ${{ success() || failure() }}
+        env:
+          AWS_REGION: na
+          AWS_ACCESS_KEY_ID: na
+          AWS_SECRET_ACCESS_KEY: na
+          AWS_S3_UPLOADS_BUCKET: na
+
+      - run: yarn codegen
+        if: ${{ success() || failure() }}
+
+      - run: docker ps -a
+        if: ${{ success() || failure() }}
+
+      - run: curl http://localhost:5001
+        if: ${{ success() || failure() }}
+
+      - run: curl http://0.0.0.0:5001
+        if: ${{ success() || failure() }}
+
+      - run: curl http://127.0.0.1:5001
+        if: ${{ success() || failure() }}
+
+      - run: curl http://localhost:5001/graphql
+        if: ${{ success() || failure() }}
+
+      - run: curl http://0.0.0.0:5001/graphql
+        if: ${{ success() || failure() }}
+
+      - run: curl http://127.0.0.1:5001/graphql
+        if: ${{ success() || failure() }}
+
+      - run: yarn test-integration
+        if: ${{ success() || failure() }}
+
+      - run: docker logs docker_hash-dev-api_1
+        if: ${{ success() || failure() }}
+
+      - run: docker logs docker_hash-dev-search-loader_1
+        if: ${{ success() || failure() }}
+
+      - run: docker logs docker_hash-dev-opensearch_1
+        if: ${{ success() || failure() }}
+
+      - run: docker logs docker_hash-dev-realtime_1
+        if: ${{ success() || failure() }}
+
+      - run: docker logs docker_hash-dev-pg_1
+        if: ${{ success() || failure() }}
+
+      - run: docker logs docker_hash-dev-redis_1
+        if: ${{ success() || failure() }}
+
+      - run: docker ps -a
+        if: ${{ success() || failure() }}
+
+      - run: curl http://localhost:5001/graphql
+        if: ${{ success() || failure() }}
