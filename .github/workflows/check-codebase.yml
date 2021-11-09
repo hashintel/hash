@@ -93,6 +93,11 @@ jobs:
           exit 1; # for extra attention
         if: ${{ success() || failure() }}
 
+      - run: |
+          docker run --network container:docker_hash-dev-api_1 appropriate/curl -s --retry 10 --retry-connrefused http://localhost:5001
+          docker run --network container:docker_hash-dev-api_1 appropriate/curl -s --retry 10 --retry-connrefused http://localhost:5001/graphql
+        if: ${{ success() || failure() }}
+
       - run: yarn test-integration
         if: ${{ success() || failure() }}
 
