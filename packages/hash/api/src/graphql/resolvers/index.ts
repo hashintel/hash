@@ -11,7 +11,7 @@ import {
   updateEntity,
 } from "./entity";
 import { createLink } from "./link/createLink";
-import { deleteLink } from "./link/deleteLink";
+import { deleteLinkByPath } from "./link/deleteLinkByPath";
 import { blockFields } from "./block";
 import {
   createPage,
@@ -115,7 +115,7 @@ export const resolvers = {
     updateEntity: loggedInAndSignedUp(updateEntity),
     updatePage: loggedInAndSignedUp(updatePage),
     updatePageContents: loggedInAndSignedUp(updatePageContents),
-    deleteLink: loggedInAndSignedUp(deleteLink),
+    deleteLinkByPath: loggedInAndSignedUp(deleteLinkByPath),
     joinOrg: loggedInAndSignedUp(joinOrg),
     requestFileUpload: loggedInAndSignedUp(requestFileUpload),
     // Logged in users only

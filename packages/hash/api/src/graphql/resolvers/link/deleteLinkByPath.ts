@@ -1,14 +1,14 @@
 import { ApolloError } from "apollo-server-errors";
 import jp from "jsonpath";
-import { MutationDeleteLinkArgs, Resolver } from "../../apiTypes.gen";
+import { MutationDeleteLinkByPathArgs, Resolver } from "../../apiTypes.gen";
 import { Entity } from "../../../model";
 import { LoggedInGraphQLContext } from "../../context";
 
-export const deleteLink: Resolver<
+export const deleteLinkByPath: Resolver<
   Promise<boolean>,
   {},
   LoggedInGraphQLContext,
-  MutationDeleteLinkArgs
+  MutationDeleteLinkByPathArgs
 > = async (_, args, { dataSources }) =>
   dataSources.db.transaction(async (client) => {
     const { srcAccountId, srcEntityId } = args;
