@@ -142,7 +142,7 @@ pub fn gen_schema_and_test_agents(
         FieldScope::Agent,
     )?)?;
 
-    let schema = Arc::new(AgentSchema::from_field_spec_map(fields)?);
+    let schema = Arc::new(AgentSchema::new(fields)?);
 
     let mut agents = Vec::with_capacity(num_agents);
     for i in 0..num_agents {

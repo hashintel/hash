@@ -779,25 +779,18 @@ mod tests {
     extern crate test;
 
     use super::*;
+    use test::Bencher;
 
-    // use crate::datastore::test_utils::gen_schema_and_test_agents;
+    use crate::datastore::test_utils::gen_schema_and_test_agents;
 
-    #[test]
-    fn bench() -> Result<()> {
-        // TODO OS - Alfie - Benchmark needs to be updated to use new FieldSpecMap stuff, requires built_in methods to be figured out
-        todo!()
-        // let num_agents = 100;
-        // let (schema, agents) = gen_schema_and_test_agents(num_agents, 0).unwrap();
+    #[bench]
+    fn agent_batch_from_states(b: &mut Bencher) {
+        let num_agents = 100;
+        let (schema, agents) = gen_schema_and_test_agents(num_agents, 0).unwrap();
 
-        // b.iter(|| {
-        //     let agent_batch =
-        //         AgentBatch::from_agent_states(&[], agents.as_slice(), &schema, "").unwrap();
-        // });
-        // let now = std::time::Instant::now();
-        // let agents = AgentBatch::from_agent_states(&[], agents.as_slice(), &Arc::new(schema), "")?;
-        // println!("PASSED: {} ms", now.elapsed().as_millis());
-        //
-        // println!("{}", agents.num_agents());
-        // Ok(())
+        b.iter(|| {
+            let agent_batch =
+                AgentBatch::from_agent_states(agents.as_slice(), &schema, &"".to_string()).unwrap();
+        });
     }
 }

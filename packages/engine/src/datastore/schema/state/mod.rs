@@ -33,9 +33,4 @@ impl AgentSchema {
         let index = self.arrow.index_of(name)?;
         Ok(index)
     }
-
-    // TODO OS - implement from_field_spec_map for AgentSchema
-    pub fn from_field_spec_map(_field_spec_map: FieldSpecMap) -> Result<AgentSchema> {
-        todo!();
-    }
 }
