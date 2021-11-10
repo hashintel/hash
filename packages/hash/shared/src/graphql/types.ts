@@ -5,5 +5,6 @@ export type TextToken =
       bold?: boolean;
       italics?: boolean;
       underline?: boolean;
+      link?: string;
     }
   | { tokenType: "hardBreak" };
