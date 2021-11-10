@@ -110,8 +110,8 @@ const mapLinkToLinkGroup = (
   links: [link],
 });
 
-export const links: Resolver<
-  GQLEntity["links"],
+export const linkGroups: Resolver<
+  GQLEntity["linkGroups"],
   DbUnknownEntity,
   GraphQLContext
 > = async (sourceEntity, _, { dataSources }) => {

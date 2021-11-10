@@ -16,7 +16,7 @@ import { SystemType } from "../types/entityTypes";
 
 export type EntityExternalResolvers =
   | "entityType" // resolved in resolvers/entityTypeTypeFields
-  | "links" // resolved in resolvers/links
+  | "linkGroups" // resolved in resolvers/linkGroups
   | "linkedEntities" // resolved in resolvers/linkedEntities
   | "linkedAggregations" // resovled in resolvers/linkedAggregations
   | "__typename";

@@ -177,7 +177,7 @@ export const resolvers = {
       return "UnknownEntity";
     },
     history: entityFields.history,
-    links: entityFields.links,
+    linkGroups: entityFields.linkGroups,
     linkedEntities: entityFields.linkedEntities,
     linkedAggregations: entityFields.linkedAggregations,
   },

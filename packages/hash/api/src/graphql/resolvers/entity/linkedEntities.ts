@@ -2,7 +2,7 @@ import { ApolloError } from "apollo-server-errors";
 import { Resolver } from "../../apiTypes.gen";
 import { DbUnknownEntity } from "../../../types/dbTypes";
 import { GraphQLContext } from "../../context";
-import { parseLinksFromPropertiesObject } from "./links";
+import { parseLinksFromPropertiesObject } from "./linkGroups";
 import { Entity, UnresolvedGQLUnknownEntity } from "../../../model";
 
 export const linkedEntities: Resolver<

@@ -74,7 +74,7 @@ export const entityTypedef = gql`
     """
     The outgoing links of the entity.
     """
-    links: [LinkGroup!]!
+    linkGroups: [LinkGroup!]!
     """
     The linked entities of the entity.
     """
@@ -93,11 +93,11 @@ export const entityTypedef = gql`
   """
   type LinkGroup {
     """
-    The source entity's entityId of the link group.
+    The entityId of the source entity for the link group.
     """
     srcEntityId: ID!
     """
-    The source entity's entityVersionId of the link group.
+    The entityVersionId of the source entity for the link group.
     """
     srcEntityVersionId: ID!
     """
@@ -178,7 +178,7 @@ export const entityTypedef = gql`
     """
     The outgoing links of the entity.
     """
-    links: [LinkGroup!]!
+    linkGroups: [LinkGroup!]!
     """
     The linked entities of the entity.
     """

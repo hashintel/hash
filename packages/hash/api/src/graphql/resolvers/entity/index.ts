@@ -1,13 +1,13 @@
 import { properties } from "./properties";
 import { history } from "./history";
-import { links } from "./links";
+import { linkGroups } from "./linkGroups";
 import { linkedEntities } from "./linkedEntities";
 import { linkedAggregations } from "./linkedAggregations";
 
 export const entityFields = {
   properties,
   history,
-  links,
+  linkGroups,
   linkedEntities,
   linkedAggregations,
 };

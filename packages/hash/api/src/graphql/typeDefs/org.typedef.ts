@@ -69,7 +69,7 @@ export const orgTypedef = gql`
     """
     The outgoing links of the entity.
     """
-    links: [LinkGroup!]!
+    linkGroups: [LinkGroup!]!
     """
     The linked entities of the entity.
     """
