@@ -89,19 +89,23 @@ class CheckpointManager {
   }
 
   /** Get the value of a checkpoint. */
-  get = (srcEntityId: string, dstEntityId: string) => {
-    return this.checkpoints.get(srcEntityId).get(dstEntityId) || 0;
+  get = (sourceEntityId: string, destinationEntityId: string) => {
+    return this.checkpoints.get(sourceEntityId).get(destinationEntityId) || 0;
   };
 
   /** Set the value of a checkpoint. */
-  set = (srcEntityId: string, dstEntityId: string, checkpoint: number) => {
-    this.checkpoints.get(srcEntityId).set(dstEntityId, checkpoint);
+  set = (
+    sourceEntityId: string,
+    destinationEntityId: string,
+    checkpoint: number,
+  ) => {
+    this.checkpoints.get(sourceEntityId).set(destinationEntityId, checkpoint);
   };
 
   /** Increment and return the new value of a checkpoint. */
-  increment = (srcEntityId: string, dstEntityId: string) => {
-    const checkpoint = this.get(srcEntityId, dstEntityId);
-    this.set(srcEntityId, dstEntityId, checkpoint + 1);
+  increment = (sourceEntityId: string, destinationEntityId: string) => {
+    const checkpoint = this.get(sourceEntityId, destinationEntityId);
+    this.set(sourceEntityId, destinationEntityId, checkpoint + 1);
     return checkpoint + 1;
   };
 
@@ -207,7 +211,7 @@ export const getImpliedEntityHistory = async (
       const refLinks = graph
         .get(ref.entityId)!
         .filter((link) =>
-          link.validForSrcEntityVersionIds.has(ref.entityVersionId),
+          link.validForsourceEntityVersionIds.has(ref.entityVersionId),
         );
 
       // For each link made by the reference entity, if it's a non-fixed link (i.e. it's

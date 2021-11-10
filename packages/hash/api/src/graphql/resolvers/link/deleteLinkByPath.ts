@@ -11,16 +11,16 @@ export const deleteLinkByPath: Resolver<
   MutationDeleteLinkByPathArgs
 > = async (_, args, { dataSources }) =>
   dataSources.db.transaction(async (client) => {
-    const { srcAccountId, srcEntityId } = args;
+    const { sourceAccountId, sourceEntityId } = args;
     const sourceEntity = await Entity.getEntityLatestVersion(client, {
-      accountId: srcAccountId,
-      entityId: srcEntityId,
+      accountId: sourceAccountId,
+      entityId: sourceEntityId,
     });
 
     /** @todo: lock the entity on retrieval */
 
     if (!sourceEntity) {
-      const msg = `entity with fixed ID ${srcEntityId} not found in account ${srcAccountId}`;
+      const msg = `entity with fixed ID ${sourceEntityId} not found in account ${sourceAccountId}`;
       throw new ApolloError(msg, "NOT_FOUND");
     }
 

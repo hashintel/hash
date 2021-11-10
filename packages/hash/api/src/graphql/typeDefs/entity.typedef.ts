@@ -95,11 +95,11 @@ export const entityTypedef = gql`
     """
     The entityId of the source entity for the link group.
     """
-    srcEntityId: ID!
+    sourceEntityId: ID!
     """
     The entityVersionId of the source entity for the link group.
     """
-    srcEntityVersionId: ID!
+    sourceEntityVersionId: ID!
     """
     The path of the link group.
     """

@@ -17,35 +17,35 @@ export const linkTypedef = gql`
     """
     The accountId of the link's source entity.
     """
-    srcAccountId: ID!
+    sourceAccountId: ID!
     """
     The entityId of the link's source entity.
     """
-    srcEntityId: ID!
+    sourceEntityId: ID!
     """
     The accountId of the link's source entity.
     """
-    dstAccountId: ID!
+    destinationAccountId: ID!
     """
     The entityId of the link's destination entity.
     """
-    dstEntityId: ID!
+    destinationEntityId: ID!
     """
     The entityVersionId of a specific version of the link's destination entity - defined
     if this link is pinned to a specific version of the destination entity. If omitted,
     the link is to the latest version of the destination entity.
     """
-    dstEntityVersionId: ID
+    destinationEntityVersionId: ID
   }
 
   input CreateLinkInput {
     path: String!
     index: Int
-    srcAccountId: ID!
-    srcEntityId: ID!
-    dstAccountId: ID!
-    dstEntityId: ID!
-    dstEntityVersionId: ID
+    sourceAccountId: ID!
+    sourceEntityId: ID!
+    destinationAccountId: ID!
+    destinationEntityId: ID!
+    destinationEntityVersionId: ID
   }
 
   extend type Mutation {
@@ -57,8 +57,8 @@ export const linkTypedef = gql`
     Delete a link using its path
     """
     deleteLinkByPath(
-      srcAccountId: ID!
-      srcEntityId: ID!
+      sourceAccountId: ID!
+      sourceEntityId: ID!
       path: String!
     ): Boolean!
   }

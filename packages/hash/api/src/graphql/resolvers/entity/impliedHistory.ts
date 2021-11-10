@@ -33,14 +33,14 @@ const impliedVersionKey = (params: {
 /** Find a link in a graph. */
 const findLink = (params: {
   graph: Graph;
-  srcEntityVersionId: string;
-  dstEntityId: string;
+  sourceEntityVersionId: string;
+  destinationEntityId: string;
   fixed: boolean;
 }) => {
   return params.graph.links.find(
     ({ src, dst, fixed }) =>
-      src.entityVersionId === params.srcEntityVersionId &&
-      dst.entityId === params.dstEntityId &&
+      src.entityVersionId === params.sourceEntityVersionId &&
+      dst.entityId === params.destinationEntityId &&
       fixed === params.fixed,
   );
 };
@@ -130,8 +130,8 @@ const hydrateEntity = async (
     }
     const link = findLink({
       graph,
-      srcEntityVersionId: entity.entityVersionId,
-      dstEntityId: ld.entityId,
+      sourceEntityVersionId: entity.entityVersionId,
+      destinationEntityId: ld.entityId,
       fixed: false,
     })!;
     const linkedEntity = versionIdEntityMap.get(link.dst.entityVersionId)!;
@@ -175,8 +175,8 @@ const hydratePageEntity = (
   const blocks: DbEntity[] = pageProps.contents.map((content) => {
     const blkLink = findLink({
       graph,
-      srcEntityVersionId: page.entityVersionId,
-      dstEntityId: content.entityId,
+      sourceEntityVersionId: page.entityVersionId,
+      destinationEntityId: content.entityId,
       fixed: false,
     })!;
     const block = versionIdEntityMap.get(blkLink.dst.entityVersionId)!;
@@ -185,8 +185,8 @@ const hydratePageEntity = (
     const blkProps = block.properties as DbBlockProperties;
     const entityLink = findLink({
       graph,
-      srcEntityVersionId: block.entityVersionId,
-      dstEntityId: blkProps.entityId,
+      sourceEntityVersionId: block.entityVersionId,
+      destinationEntityId: blkProps.entityId,
       fixed: false,
     })!;
     const entity = versionIdEntityMap.get(entityLink.dst.entityVersionId);
