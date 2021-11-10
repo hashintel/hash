@@ -20,13 +20,9 @@ impl ProcessedCommands {
         mut commands: CreateRemoveCommands,
         schema: &Arc<AgentSchema>,
     ) -> Result<ProcessedCommands> {
-        let new_agents = commands.get_agent_batch(schema)?;
-        let remove_ids = commands.get_remove_ids();
-
-        Ok(ProcessedCommands {
-            new_agents,
-            remove_ids,
-        })
+        Ok(commands
+            .try_into_processed_commands(schema)
+            .map_err(|e| Error::from(format!("Error processing CreateRemoveCommands: {:?}", e)))?)
     }
 
     pub fn get_number_inbound(&self) -> usize {

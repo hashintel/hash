@@ -6,6 +6,7 @@ mod inbound;
 mod plan;
 mod planner;
 
+pub use command::ProcessedCommands;
 pub use plan::MigrationPlan;
 pub use planner::CreateRemovePlanner;
 

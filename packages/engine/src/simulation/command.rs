@@ -13,7 +13,10 @@ use crate::datastore::arrow::batch_conversion::IntoRecordBatch;
 use crate::datastore::schema::{state::AgentSchema, FieldKey};
 use crate::datastore::{
     error::Result as DataStoreResult,
-    table::{pool::message::MessagePoolRead, references::MessageMap},
+    table::{
+        pool::message::MessagePoolRead, references::MessageMap,
+        state::create_remove::ProcessedCommands,
+    },
     UUID_V4_LEN,
 };
 
@@ -37,7 +40,6 @@ struct RemoveCommand {
 pub struct CreateRemoveCommands {
     create: Vec<CreateCommand>,
     remove: Vec<RemoveCommand>,
-    merged: Vec<CreateRemoveCommands>,
 }
 
 impl CreateRemoveCommands {
@@ -61,14 +63,12 @@ impl CreateRemoveCommands {
                 }
             }
         }
-        self.merged
-            .par_iter()
-            .try_for_each(|cmds| cmds.verify(schema))?;
         Ok(())
     }
 
-    pub fn merge(&mut self, other: CreateRemoveCommands) {
-        self.merged.push(other);
+    pub fn merge(&mut self, mut other: CreateRemoveCommands) {
+        self.create.append(&mut other.create);
+        self.remove.append(&mut other.remove);
     }
 
     pub fn from_hash_messages(
@@ -122,23 +122,33 @@ impl CreateRemoveCommands {
         Ok(res)
     }
 
-    pub fn get_agent_batch(
-        &mut self,
+    pub fn try_into_processed_commands(
+        mut self,
         schema: &Arc<AgentSchema>,
-    ) -> DataStoreResult<Option<RecordBatch>> {
-        let agent_state = self
-            .create
-            .drain(..)
-            .map(|create_cmd| create_cmd.agent)
-            .collect::<Vec<_>>();
-        Ok(Some(agent_state.as_slice().into_agent_batch(schema)?))
-    }
+    ) -> Result<ProcessedCommands> {
+        let new_agents = if self.create.len() > 0 {
+            Some(
+                self.create
+                    .drain(..)
+                    .map(|create_cmd| create_cmd.agent)
+                    .collect::<Vec<_>>()
+                    .as_slice()
+                    .into_agent_batch(schema)?,
+            )
+        } else {
+            None
+        };
 
-    pub fn get_remove_ids(&mut self) -> HashSet<[u8; UUID_V4_LEN]> {
-        self.remove
+        let remove_ids: HashSet<[u8; UUID_V4_LEN]> = self
+            .remove
             .drain(..)
             .map(|remove_cmd| *remove_cmd.uuid.as_bytes())
-            .collect::<HashSet<_>>()
+            .collect::<HashSet<_>>();
+
+        Ok(ProcessedCommands {
+            new_agents,
+            remove_ids,
+        })
     }
 }
 
