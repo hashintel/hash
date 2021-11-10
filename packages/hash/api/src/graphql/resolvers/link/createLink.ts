@@ -8,6 +8,7 @@ import {
 import { Entity } from "../../../model";
 import { LoggedInGraphQLContext } from "../../context";
 import { genId } from "../../../util";
+import { removeArrayNulls } from "./deleteLinkByPath";
 
 export const createLink: Resolver<
   Promise<GQLLink>,
@@ -66,6 +67,8 @@ export const createLink: Resolver<
         entityVersionId: destinationEntityVersionId,
       },
     });
+
+    removeArrayNulls(sourceEntity.properties);
 
     await sourceEntity.updateEntityProperties(client, sourceEntity.properties);
 

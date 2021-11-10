@@ -3,6 +3,23 @@ import jp from "jsonpath";
 import { MutationDeleteLinkByPathArgs, Resolver } from "../../apiTypes.gen";
 import { Entity } from "../../../model";
 import { LoggedInGraphQLContext } from "../../context";
+import { isRecord } from "../../../util";
+
+export const removeArrayNulls = (thing: unknown) => {
+  if (typeof thing === "object") {
+    if (Array.isArray(thing)) {
+      for (const [i, arrayItem] of thing.entries()) {
+        if (arrayItem === undefined || arrayItem === null) {
+          thing.splice(i, 1);
+        } else {
+          removeArrayNulls(arrayItem);
+        }
+      }
+    } else if (isRecord(thing)) {
+      Object.values(thing).forEach(removeArrayNulls);
+    }
+  }
+};
 
 export const deleteLinkByPath: Resolver<
   Promise<boolean>,
@@ -24,19 +41,29 @@ export const deleteLinkByPath: Resolver<
       throw new ApolloError(msg, "NOT_FOUND");
     }
 
-    const { path } = args;
+    const { path: stringifiedPathWithoutIndex, index } = args;
 
-    const pathMatches = jp.query(sourceEntity.properties, path);
+    const stringifiedPath =
+      typeof index === "number"
+        ? `${stringifiedPathWithoutIndex}[${index}]`
+        : stringifiedPathWithoutIndex;
+
+    const pathMatches = jp
+      .query(sourceEntity.properties, stringifiedPath)
+      .flat()
+      .filter((item) => !!item);
 
     if (pathMatches.length === 0) {
-      const msg = `link with path ${path} not found on source entity with entityId ${sourceEntity.entityId}`;
+      const msg = `link with path ${stringifiedPath} not found on source entity with entityId ${sourceEntity.entityId}`;
       throw new ApolloError(msg, `NOT_FOUND`);
     } else if (pathMatches.length > 1) {
-      const msg = `multiple links with path ${path} found on source entity with entityId ${sourceEntity.entityId}`;
+      const msg = `multiple links with path ${stringifiedPath} found on source entity with entityId ${sourceEntity.entityId}`;
       throw new ApolloError(msg, `NOT_FOUND`);
     }
 
-    jp.value(sourceEntity.properties, path, undefined);
+    jp.value(sourceEntity.properties, stringifiedPath, null);
+
+    removeArrayNulls(sourceEntity.properties);
 
     await sourceEntity.updateEntityProperties(client, sourceEntity.properties);
 

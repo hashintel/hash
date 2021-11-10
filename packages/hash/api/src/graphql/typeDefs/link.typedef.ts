@@ -60,6 +60,7 @@ export const linkTypedef = gql`
       sourceAccountId: ID!
       sourceEntityId: ID!
       path: String!
+      index: Int
     ): Boolean!
   }
 `;
