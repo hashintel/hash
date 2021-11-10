@@ -278,7 +278,6 @@ impl WorkerController {
                 }
                 Dynamic => return Err(Error::UnexpectedTarget(next.target)),
                 Main => {
-                    drop(pending); // TODO OS - Call to std::mem::drop with a reference argument. Dropping a reference does nothing
                     self.finish_task(msg.task_id, source, next.payload, &sync)
                         .await?;
                 }
@@ -294,7 +293,7 @@ impl WorkerController {
     ) -> Result<()> {
         if let Some(task) = self.tasks.inner.get_mut(&task_id) {
             if let CancelState::None = task.cancelling {
-                log::warn!("Unexpected task cancelling");
+                log::warn!("Unexpected task cancelling confirmation");
                 task.cancelling = CancelState::Active(vec![source]);
             } else if let CancelState::Active(langs) = &mut task.cancelling {
                 if !langs.contains(&source) {
@@ -302,9 +301,9 @@ impl WorkerController {
                 }
             }
             if source == task.active_runner {
-                drop(task); // TODO OS - Call to std::mem::drop with a reference argument. Dropping a reference does nothing
-                            // Safe unwrap, since we know it must be in `tasks`
-                self.tasks.inner.remove(&task_id).unwrap();
+                // Safe unwrap, since we know it must be in `tasks`
+                // We want to drop so we lose the locks on the datastore
+                drop(self.tasks.inner.remove(&task_id).unwrap());
                 self.worker_pool_comms
                     .send(WorkerToWorkerPoolMsg::TaskResultOrCancelled(
                         WorkerTaskResultOrCancelled {
