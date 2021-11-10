@@ -47,7 +47,12 @@ export const createLink: Resolver<
       throw new ApolloError(msg, "NOT_FOUND");
     }
 
-    const { path: stringifiedPath } = link;
+    const { path: stringifiedPathWithoutIndex, index } = link;
+
+    const stringifiedPath =
+      typeof index === "number"
+        ? `${stringifiedPathWithoutIndex}[${index}]`
+        : stringifiedPathWithoutIndex;
 
     jp.value(sourceEntity.properties, stringifiedPath, {
       __linkedData: {

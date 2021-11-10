@@ -73,7 +73,11 @@ export const parseLinksFromPropertiesObject = (
                 dstAccountId,
                 dstEntityId,
                 dstEntityVersionId,
-                path: jp.stringify(path),
+                path: jp.stringify(
+                  typeof finalPathComponent === "number"
+                    ? path.slice(0, -1)
+                    : path,
+                ),
                 index:
                   typeof finalPathComponent === "number"
                     ? finalPathComponent

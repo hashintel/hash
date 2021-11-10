@@ -40,7 +40,7 @@ export const linkTypedef = gql`
 
   input CreateLinkInput {
     path: String!
-    position: Int
+    index: Int
     srcAccountId: ID!
     srcEntityId: ID!
     dstAccountId: ID!
