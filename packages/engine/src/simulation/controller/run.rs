@@ -62,11 +62,16 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
 
     let uninitialized_store = Store::new_uninitialized(shared_store, &config);
 
-    // TODO OS - add initial payload to persistence_service here (0th step)
     let mut engine = Engine::new(packages, uninitialized_store, comms, config.clone())
         .await
         .map_err(|sim_err| Error::from(sim_err.to_string()))?;
 
+    // We also store the initial state in the persistence service
+    let initial_output = engine
+        .run_output_packages()
+        .await
+        .map_err(|e| Error::from(e.to_string()))?;
+    persistence_service.add_step_output(initial_output).await?;
     let now = std::time::Instant::now();
     let mut steps_taken = 0;
     let mut early_stop = false;

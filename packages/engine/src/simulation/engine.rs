@@ -117,7 +117,7 @@ impl Engine {
         Ok(())
     }
 
-    async fn run_output_packages(&mut self) -> Result<SimulationStepOutput> {
+    pub async fn run_output_packages(&mut self) -> Result<SimulationStepOutput> {
         let (state, context) = self.store.take()?;
         let state = Arc::new(state);
         let context = Arc::new(context);
