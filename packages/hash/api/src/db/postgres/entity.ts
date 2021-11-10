@@ -520,10 +520,10 @@ const updateVersionedEntity = async (
   await conn.query(sql`
     set constraints
       entity_account_account_id_entity_version_id_fkey,
-      outgoing_links_src_account_id_src_entity_id_fkey,
-      outgoing_links_dst_account_id_dst_entity_id_fkey,
-      incoming_links_dst_account_id_dst_entity_id_fkey,
-      incoming_links_src_account_id_src_entity_id_fkey
+      outgoing_links_source_account_id_source_entity_id_fkey,
+      outgoing_links_destination_account_id_destination_entity_id_fkey,
+      incoming_links_destination_account_id_destination_entity_id_fkey,
+      incoming_links_source_account_id_source_entity_id_fkey
     deferred
   `);
 

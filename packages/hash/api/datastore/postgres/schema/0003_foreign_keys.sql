@@ -9,9 +9,9 @@ select create_fk_if_not_exists(
 
 -- FK from outgoing_links --> entity_versions
 select create_fk_if_not_exists(
-  'outgoing_links_src_account_id_src_entity_id_fkey', --constraint_name
+  'outgoing_links_source_account_id_source_entity_id_fkey', --constraint_name
   'outgoing_links',                                   --from_table
-  '(src_account_id, src_entity_id)',                  --from_columns
+  '(source_account_id, source_entity_id)',                  --from_columns
   'entities',                                         --to_table
   '(account_id, entity_id)'                           --to_columns
 );
@@ -21,9 +21,9 @@ select create_fk_if_not_exists(
 do $$ begin
   if not is_citus_enabled() then
     perform create_fk_if_not_exists(
-      'outgoing_links_dst_account_id_dst_entity_id_fkey', --constraint_name
+      'outgoing_links_destination_account_id_destination_entity_id_fkey', --constraint_name
       'outgoing_links',                                   --from_table
-      '(dst_account_id, dst_entity_id)',                  --from_columns
+      '(destination_account_id, destination_entity_id)',                  --from_columns
       'entities',                                         --to_table
       '(account_id, entity_id)'                           --to_columns
     );
@@ -32,9 +32,9 @@ end; $$;
 
 -- FK from incoming_links --> entity_versions
 select create_fk_if_not_exists(
-  'incoming_links_dst_account_id_dst_entity_id_fkey', --constraint_name
+  'incoming_links_destination_account_id_destination_entity_id_fkey', --constraint_name
   'incoming_links',                                   --from_table
-  '(dst_account_id, dst_entity_id)',                  --from_columns
+  '(destination_account_id, destination_entity_id)',                  --from_columns
   'entities',                                         --to_table
   '(account_id, entity_id)'                           --to_columns
 );
@@ -44,9 +44,9 @@ select create_fk_if_not_exists(
 do $$ begin
   if not is_citus_enabled() then
     perform create_fk_if_not_exists(
-      'incoming_links_src_account_id_src_entity_id_fkey', --constraint_name
+      'incoming_links_source_account_id_source_entity_id_fkey', --constraint_name
       'incoming_links',                                   --from_table
-      '(src_account_id, src_entity_id)',                  --from_columns
+      '(source_account_id, source_entity_id)',                  --from_columns
       'entities',                                         --to_table
       '(account_id, entity_id)'                           --to_columns
     );

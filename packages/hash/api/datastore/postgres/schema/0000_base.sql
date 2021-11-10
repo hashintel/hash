@@ -116,31 +116,31 @@ create index if not exists entity_account_entity_id on entity_account (entity_id
 
 /** Stores parent --> child link references */
 create table if not exists outgoing_links (
-    src_account_id              uuid not null,
-    src_entity_id               uuid not null,
-    dst_account_id              uuid not null,
-    dst_entity_id               uuid not null,
-    -- dst_entity_version_id is part of the primary key, which means it cannot be null,
+    source_account_id              uuid not null,
+    source_entity_id               uuid not null,
+    destination_account_id              uuid not null,
+    destination_entity_id               uuid not null,
+    -- destination_entity_version_id is part of the primary key, which means it cannot be null,
     -- so we just set it to the zero UUID. We're not currently using outgoing_links for
     -- anything, but when we do, we will need to be aware of this.
-    dst_entity_version_id       uuid not null default '00000000-0000-0000-0000-000000000000'::uuid,
-    src_entity_version_ids      uuid[] not null,
+    destination_entity_version_id       uuid not null default '00000000-0000-0000-0000-000000000000'::uuid,
+    source_entity_version_ids      uuid[] not null,
 
     constraint outgoing_links_pk primary key (
-      src_account_id, src_entity_id, dst_entity_id, dst_entity_version_id
+      source_account_id, source_entity_id, destination_entity_id, destination_entity_version_id
     )
 );
 
 
 /** Stores reverse child --> parent link references */
 create table if not exists incoming_links (
-    dst_account_id              uuid not null,
-    dst_entity_id               uuid not null,
-    src_account_id              uuid not null,
-    src_entity_id               uuid not null,
+    destination_account_id              uuid not null,
+    destination_entity_id               uuid not null,
+    source_account_id              uuid not null,
+    source_entity_id               uuid not null,
 
     constraint incoming_links_pk primary key (
-      dst_account_id, dst_entity_id, src_entity_id
+      destination_account_id, destination_entity_id, source_entity_id
     )
 );
 

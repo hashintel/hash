@@ -12,34 +12,34 @@ const ZERO_UUID = "00000000-0000-0000-0000-000000000000";
 export const insertOutgoingLinks = async (
   conn: Connection,
   links: {
-    srcAccountId: string;
-    srcEntityId: string;
-    srcEntityVersionId: string;
-    dstAccountId: string;
-    dstEntityId: string;
-    dstEntityVersionId?: string;
+    sourceAccountId: string;
+    sourceEntityId: string;
+    sourceEntityVersionId: string;
+    destinationAccountId: string;
+    destinationEntityId: string;
+    destinationEntityVersionId?: string;
   }[],
 ) => {
   const rows = links.map((link) => [
-    link.srcAccountId,
-    link.srcEntityId,
-    link.dstAccountId,
-    link.dstEntityId,
-    link.dstEntityVersionId ?? ZERO_UUID,
-    link.srcEntityVersionId,
+    link.sourceAccountId,
+    link.sourceEntityId,
+    link.destinationAccountId,
+    link.destinationEntityId,
+    link.destinationEntityVersionId ?? ZERO_UUID,
+    link.sourceEntityVersionId,
   ]);
   await conn.query(sql`
     insert into outgoing_links as l (
-      src_account_id, src_entity_id, dst_account_id, dst_entity_id,
-      dst_entity_version_id, src_entity_version_ids
+      source_account_id, source_entity_id, destination_account_id, destination_entity_id,
+      destination_entity_version_id, source_entity_version_ids
     )
     select
-      src_account_id,
-      src_entity_id,
-      dst_account_id,
-      dst_entity_id,
-      dst_entity_version_id,
-      array[src_entity_version_id] as src_entity_version_ids
+      source_account_id,
+      source_entity_id,
+      destination_account_id,
+      destination_entity_id,
+      destination_entity_version_id,
+      array[source_entity_version_id] as source_entity_version_ids
     from (
       select * from ${sql.unnest(rows, [
         "uuid",
@@ -49,15 +49,15 @@ export const insertOutgoingLinks = async (
         "uuid",
         "uuid",
       ])} as rows (
-        src_account_id, src_entity_id, dst_account_id, dst_entity_id,
-        dst_entity_version_id, src_entity_version_id
+        source_account_id, source_entity_id, destination_account_id, destination_entity_id,
+        destination_entity_version_id, source_entity_version_id
       )
     ) as rows
     on conflict on constraint outgoing_links_pk do update
     set
-      src_entity_version_ids = l.src_entity_version_ids || EXCLUDED.src_entity_version_ids
+      source_entity_version_ids = l.source_entity_version_ids || EXCLUDED.source_entity_version_ids
     where
-      not l.src_entity_version_ids @> EXCLUDED.src_entity_version_ids
+      not l.source_entity_version_ids @> EXCLUDED.source_entity_version_ids
   `);
 };
 
@@ -65,21 +65,21 @@ export const insertOutgoingLinks = async (
 export const insertIncomingLinks = async (
   conn: Connection,
   links: {
-    dstAccountId: string;
-    dstEntityId: string;
-    srcAccountId: string;
-    srcEntityId: string;
+    destinationAccountId: string;
+    destinationEntityId: string;
+    sourceAccountId: string;
+    sourceEntityId: string;
   }[],
 ) => {
   const rows = links.map((link) => [
-    link.dstAccountId,
-    link.dstEntityId,
-    link.srcAccountId,
-    link.srcEntityId,
+    link.destinationAccountId,
+    link.destinationEntityId,
+    link.sourceAccountId,
+    link.sourceEntityId,
   ]);
   await conn.query(sql`
     insert into incoming_links as l (
-      dst_account_id, dst_entity_id, src_account_id, src_entity_id
+      destination_account_id, destination_entity_id, source_account_id, source_entity_id
     )
     select * from ${sql.unnest(rows, ["uuid", "uuid", "uuid", "uuid"])}
     on conflict on constraint incoming_links_pk do nothing
@@ -143,22 +143,22 @@ export const insertLinks = async (conn: Connection, entity: Entity) => {
     insertOutgoingLinks(
       conn,
       links.map((link) => ({
-        srcAccountId: entity.accountId,
-        srcEntityId: entity.entityId,
-        srcEntityVersionId: entity.entityVersionId,
-        dstAccountId: link.accountId,
-        dstEntityId: link.entityId,
-        dstEntityVersionId: link.entityVersionId,
+        sourceAccountId: entity.accountId,
+        sourceEntityId: entity.entityId,
+        sourceEntityVersionId: entity.entityVersionId,
+        destinationAccountId: link.accountId,
+        destinationEntityId: link.entityId,
+        destinationEntityVersionId: link.entityVersionId,
       })),
     ),
 
     insertIncomingLinks(
       conn,
       links.map((link) => ({
-        dstAccountId: link.accountId,
-        dstEntityId: link.entityId,
-        srcAccountId: entity.accountId,
-        srcEntityId: entity.entityId,
+        destinationAccountId: link.accountId,
+        destinationEntityId: link.entityId,
+        sourceAccountId: entity.accountId,
+        sourceEntityId: entity.entityId,
       })),
     ),
   ]);
@@ -168,7 +168,7 @@ export type OutgoingLink = {
   accountId: string;
   entityId: string;
   entityVersionId?: string;
-  validForSrcEntityVersionIds: Set<string>;
+  validForsourceEntityVersionIds: Set<string>;
 };
 
 /** Get the outgoing links made by an entity. Returns an array of objects with the
@@ -176,7 +176,7 @@ export type OutgoingLink = {
  *   1. `accountId`: the account ID of the linked entity
  *   2. `entityId`: the entity ID of the linked entity
  *   3. `entityVersionId`: `undefined` if the link does not specify a specific version ID
- *   4. `validForSrcEntityVersionIds`: a `Set` of version IDs for `params.entityId` for
+ *   4. `validForsourceEntityVersionIds`: a `Set` of version IDs for `params.entityId` for
  *       which the link is valid.
  */
 export const getEntityOutgoingLinks = async (
@@ -185,23 +185,26 @@ export const getEntityOutgoingLinks = async (
 ): Promise<OutgoingLink[]> => {
   const rows = await conn.any(sql`
     select
-      dst_account_id, dst_entity_id, dst_entity_version_id, src_entity_version_ids
+      destination_account_id, destination_entity_id, destination_entity_version_id, source_entity_version_ids
     from
       outgoing_links
     where
-      src_account_id = ${params.accountId}
-      and src_entity_id = ${params.entityId}
+      source_account_id = ${params.accountId}
+      and source_entity_id = ${params.entityId}
   `);
   return rows.map((row) => {
-    const dstEntityVersionId = row.dst_entity_version_id as string;
+    const destinationEntityVersionId =
+      row.destination_entity_version_id as string;
     return {
-      accountId: row.dst_account_id as string,
-      entityId: row.dst_entity_id as string,
+      accountId: row.destination_account_id as string,
+      entityId: row.destination_entity_id as string,
       entityVersionId:
-        dstEntityVersionId === ZERO_UUID ? undefined : dstEntityVersionId,
+        destinationEntityVersionId === ZERO_UUID
+          ? undefined
+          : destinationEntityVersionId,
       // The version IDs of `params.entityId` for which this link is valid
-      validForSrcEntityVersionIds: new Set(
-        row.src_entity_version_ids as string[],
+      validForsourceEntityVersionIds: new Set(
+        row.source_entity_version_ids as string[],
       ),
     };
   });
