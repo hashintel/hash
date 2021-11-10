@@ -4,6 +4,7 @@
     clippy::for_kv_map
 )]
 
+use arrow::datatypes::DataType;
 use std::collections::HashMap;
 
 use super::prelude::*;
@@ -18,12 +19,48 @@ use crate::simulation::package::creator::{
     PREVIOUS_INDEX_COLUMN_INDEX, PREVIOUS_INDEX_COLUMN_NAME,
 };
 
+fn arrow_data_type_is_fixed_size(data_type: &ArrowDataType) -> bool {
+    match data_type {
+        // ArrowNativeTypes (primitive types)
+        DataType::Boolean => true,
+        DataType::Int8 | DataType::Int16 | DataType::Int32 | DataType::Int64 => true,
+        DataType::UInt8 | DataType::UInt16 | DataType::UInt32 | DataType::UInt64 => true,
+        DataType::Float16 | DataType::Float32 | DataType::Float64 => true,
+        // Other values that can be represented as primitive types
+        DataType::Null => true,
+        DataType::Date32(_) | DataType::Date64(_) => true,
+        DataType::Time32(_) | DataType::Time64(_) => true,
+        DataType::Timestamp(_, _) => true,
+        DataType::Interval(_) => true,
+        DataType::Duration(_) => true,
+        // Variable length types
+        DataType::List(_) => false,
+        DataType::LargeList(_) => false,
+        DataType::Utf8 => false,
+        DataType::LargeUtf8 => false,
+        DataType::Binary => false,
+        DataType::LargeBinary => false,
+        // Composite types
+        DataType::FixedSizeBinary(_len) => true, // the nested binary data is fixed size so the list is too
+        DataType::FixedSizeList(data_type, _len) => arrow_data_type_is_fixed_size(data_type),
+        DataType::Struct(inner) => inner
+            .iter()
+            .all(|field| arrow_data_type_is_fixed_size(field.data_type())),
+        DataType::Union(_) => {
+            unimplemented!()
+        }
+        DataType::Dictionary(_, _) => {
+            unimplemented!()
+        }
+    }
+}
+
 impl PresetFieldType {
-    const fn is_fixed_size(&self) -> bool {
+    fn is_fixed_size(&self) -> bool {
         match self {
             PresetFieldType::Index => true,
             PresetFieldType::Id => true,
-            PresetFieldType::Arrow(_) => todo!(),
+            PresetFieldType::Arrow(data_type) => arrow_data_type_is_fixed_size(data_type),
         }
     }
 
