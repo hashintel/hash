@@ -12,7 +12,7 @@ export type CreateLinkArgs = {
   stringifiedPath: string;
   source: Entity;
   destination: Entity;
-  dstEntityVersionId?: string;
+  destinationEntityVersionId?: string;
 };
 
 const SUPPORTED_JSONPATH_COMPONENT_TYPES = [
@@ -44,12 +44,12 @@ const isUnupportedJSONPath = (components: JSONPathComponent[]) =>
 type LinkConstructorArgs = {
   linkId: string;
   path: string;
-  srcAccountId: string;
-  srcEntityId: string;
-  srcEntityVersionIds: Set<string>;
-  dstAccountId: string;
-  dstEntityId: string;
-  dstEntityVersionId?: string;
+  sourceAccountId: string;
+  sourceEntityId: string;
+  sourceEntityVersionIds: Set<string>;
+  destinationAccountId: string;
+  destinationEntityId: string;
+  destinationEntityVersionId?: string;
   createdAt: Date;
   source?: Entity;
   destination?: Entity;
@@ -60,14 +60,14 @@ class __Link {
   stringifiedPath: string;
   path: jp.PathComponent[];
 
-  srcAccountId: string;
-  srcEntityId: string;
-  srcEntityVersionIds: Set<string>;
+  sourceAccountId: string;
+  sourceEntityId: string;
+  sourceEntityVersionIds: Set<string>;
   private source?: Entity;
 
-  dstAccountId: string;
-  dstEntityId: string;
-  dstEntityVersionId?: string;
+  destinationAccountId: string;
+  destinationEntityId: string;
+  destinationEntityVersionId?: string;
   private destination?: Entity;
 
   createdAt: Date;
@@ -75,12 +75,12 @@ class __Link {
   constructor({
     linkId,
     path,
-    srcAccountId,
-    srcEntityId,
-    srcEntityVersionIds,
-    dstAccountId,
-    dstEntityId,
-    dstEntityVersionId,
+    sourceAccountId,
+    sourceEntityId,
+    sourceEntityVersionIds,
+    destinationAccountId,
+    destinationEntityId,
+    destinationEntityVersionId,
     source,
     destination,
     createdAt,
@@ -88,12 +88,12 @@ class __Link {
     this.linkId = linkId;
     this.stringifiedPath = path;
     this.path = Link.parseStringifiedPath(path);
-    this.srcAccountId = srcAccountId;
-    this.srcEntityId = srcEntityId;
-    this.srcEntityVersionIds = srcEntityVersionIds;
-    this.dstAccountId = dstAccountId;
-    this.dstEntityId = dstEntityId;
-    this.dstEntityVersionId = dstEntityVersionId;
+    this.sourceAccountId = sourceAccountId;
+    this.sourceEntityId = sourceEntityId;
+    this.sourceEntityVersionIds = sourceEntityVersionIds;
+    this.destinationAccountId = destinationAccountId;
+    this.destinationEntityId = destinationEntityId;
+    this.destinationEntityVersionId = destinationEntityVersionId;
     if (source) {
       this.source = source;
     }
@@ -139,7 +139,8 @@ class __Link {
   }
 
   static async create(client: DBClient, params: CreateLinkArgs): Promise<Link> {
-    const { stringifiedPath, source, destination, dstEntityVersionId } = params;
+    const { stringifiedPath, source, destination, destinationEntityVersionId } =
+      params;
 
     Link.validatePath(stringifiedPath);
 
@@ -150,21 +151,22 @@ class __Link {
 
     /** @todo: check entity type to see if there is an inverse relatioship needs to be created */
 
-    if (dstEntityVersionId) {
-      /** @todo: ensure destination entity has version where entityVersionId === dstEntityVersionId */
+    if (destinationEntityVersionId) {
+      /** @todo: ensure destination entity has version where entityVersionId === destinationEntityVersionId */
     }
 
-    const { accountId: srcAccountId, entityId: srcEntityId } = source;
-    const { accountId: dstAccountId, entityId: dstEntityId } = destination;
+    const { accountId: sourceAccountId, entityId: sourceEntityId } = source;
+    const { accountId: destinationAccountId, entityId: destinationEntityId } =
+      destination;
 
     const dbLink = await client.createLink({
       path: stringifiedPath,
-      srcAccountId,
-      srcEntityId,
-      srcEntityVersionIds: new Set([source.entityVersionId]),
-      dstAccountId,
-      dstEntityId,
-      dstEntityVersionId,
+      sourceAccountId,
+      sourceEntityId,
+      sourceEntityVersionIds: new Set([source.entityVersionId]),
+      destinationAccountId,
+      destinationEntityId,
+      destinationEntityVersionId,
     });
 
     const link = new Link({ ...dbLink, source, destination });
@@ -175,7 +177,7 @@ class __Link {
   static async get(
     client: DBClient,
     params: {
-      srcAccountId: string;
+      sourceAccountId: string;
       linkId: string;
     },
   ): Promise<Link | null> {
@@ -185,7 +187,7 @@ class __Link {
 
   async delete(client: DBClient) {
     await client.deleteLink({
-      srcAccountId: this.srcAccountId,
+      sourceAccountId: this.sourceAccountId,
       linkId: this.linkId,
     });
 
@@ -196,8 +198,8 @@ class __Link {
 
   private async fetchSource(client: DBClient) {
     const source = await Entity.getEntityLatestVersion(client, {
-      accountId: this.srcAccountId,
-      entityId: this.srcEntityId,
+      accountId: this.sourceAccountId,
+      entityId: this.sourceEntityId,
     });
     if (!source) {
       throw new Error(
@@ -213,14 +215,14 @@ class __Link {
   }
 
   private async fetchDestination(client: DBClient) {
-    const destination = this.dstEntityVersionId
+    const destination = this.destinationEntityVersionId
       ? await Entity.getEntity(client, {
-          accountId: this.dstAccountId,
-          entityVersionId: this.dstEntityVersionId,
+          accountId: this.destinationAccountId,
+          entityVersionId: this.destinationEntityVersionId,
         })
       : await Entity.getEntityLatestVersion(client, {
-          accountId: this.dstAccountId,
-          entityId: this.dstEntityId,
+          accountId: this.destinationAccountId,
+          entityId: this.destinationEntityId,
         });
     if (!destination) {
       throw new Error(
@@ -239,11 +241,11 @@ class __Link {
   toUnresolvedGQLLink(): UnresolvedGQLLink {
     return {
       id: this.linkId,
-      sourceAccountId: this.srcAccountId,
-      sourceEntityId: this.srcEntityId,
-      destinationAccountId: this.dstAccountId,
-      destinationEntityId: this.dstEntityId,
-      destinationEntityVersionId: this.dstEntityVersionId,
+      sourceAccountId: this.sourceAccountId,
+      sourceEntityId: this.sourceEntityId,
+      destinationAccountId: this.destinationAccountId,
+      destinationEntityId: this.destinationEntityId,
+      destinationEntityVersionId: this.destinationEntityVersionId,
       path: this.stringifiedPath,
     };
   }

@@ -95,8 +95,8 @@ describe("Link model class ", () => {
       destination: entity2,
     });
 
-    expect(link.srcEntityId).toBe(entity1.entityId);
-    expect(link.dstEntityId).toBe(entity2.entityId);
+    expect(link.sourceEntityId).toBe(entity1.entityId);
+    expect(link.destinationEntityId).toBe(entity2.entityId);
   });
 
   it("static get method can retrieve a link from the datastore", async () => {
@@ -133,12 +133,16 @@ describe("Link model class ", () => {
     expect(retrievedLink).not.toBeNull();
     expect(retrievedLink.linkId).toBe(link.linkId);
     expect(retrievedLink.createdAt).toEqual(link.createdAt);
-    expect(retrievedLink.srcAccountId).toBe(link.srcAccountId);
-    expect(retrievedLink.srcEntityId).toBe(link.srcEntityId);
-    expect(retrievedLink.srcEntityVersionIds).toEqual(link.srcEntityVersionIds);
-    expect(retrievedLink.dstAccountId).toBe(link.dstAccountId);
-    expect(retrievedLink.dstEntityId).toBe(link.dstEntityId);
-    expect(retrievedLink.dstEntityVersionId).toBe(link.dstEntityVersionId);
+    expect(retrievedLink.sourceAccountId).toBe(link.sourceAccountId);
+    expect(retrievedLink.sourceEntityId).toBe(link.sourceEntityId);
+    expect(retrievedLink.sourceEntityVersionIds).toEqual(
+      link.sourceEntityVersionIds,
+    );
+    expect(retrievedLink.destinationAccountId).toBe(link.destinationAccountId);
+    expect(retrievedLink.destinationEntityId).toBe(link.destinationEntityId);
+    expect(retrievedLink.destinationEntityVersionId).toBe(
+      link.destinationEntityVersionId,
+    );
   });
 
   it("can create outgoing link on non-versioned entity", async () => {
@@ -170,8 +174,8 @@ describe("Link model class ", () => {
       destination: destinationEntity,
     });
 
-    expect(link.srcEntityId).toBe(sourceEntity.entityId);
-    expect(Array.from(link.srcEntityVersionIds)).toEqual([
+    expect(link.sourceEntityId).toBe(sourceEntity.entityId);
+    expect(Array.from(link.sourceEntityVersionIds)).toEqual([
       intialSourceEntityId,
     ]);
     expect(sourceEntity.entityVersionId).toBe(intialSourceEntityId);

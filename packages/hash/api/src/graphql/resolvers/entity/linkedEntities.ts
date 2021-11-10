@@ -27,9 +27,9 @@ export const linkedEntities: Resolver<
       .filter(
         (link, i, all) =>
           all.findIndex(
-            ({ dstEntityId, dstEntityVersionId }) =>
-              dstEntityId === link.dstEntityId &&
-              dstEntityVersionId === link.dstEntityVersionId,
+            ({ destinationEntityId, destinationEntityVersionId }) =>
+              destinationEntityId === link.destinationEntityId &&
+              destinationEntityVersionId === link.destinationEntityVersionId,
           ) === i,
       )
       .map((link) => link.getDestination(dataSources.db)),

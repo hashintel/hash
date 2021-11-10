@@ -112,18 +112,18 @@ class __Org extends Account {
     return await Promise.all(
       outgoingLinks
         .filter(({ path }) => path[0] === "membership")
-        .map(async ({ dstAccountId, dstEntityId }) => {
+        .map(async ({ destinationAccountId, destinationEntityId }) => {
           const orgMembership = await OrgMembership.getOrgMembershipById(
             client,
             {
-              accountId: dstAccountId,
-              entityId: dstEntityId,
+              accountId: destinationAccountId,
+              entityId: destinationEntityId,
             },
           );
 
           if (!orgMembership) {
             throw new Error(
-              `Org with entityId ${this.entityId} links to membership with entityId ${dstEntityId} that cannot be found`,
+              `Org with entityId ${this.entityId} links to membership with entityId ${destinationEntityId} that cannot be found`,
             );
           }
 

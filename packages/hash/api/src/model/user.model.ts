@@ -394,18 +394,18 @@ class __User extends Account {
     return await Promise.all(
       outgoingLinks
         .filter(({ path }) => path[0] === "memberOf")
-        .map(async ({ dstAccountId, dstEntityId }) => {
+        .map(async ({ destinationAccountId, destinationEntityId }) => {
           const orgMembership = await OrgMembership.getOrgMembershipById(
             client,
             {
-              accountId: dstAccountId,
-              entityId: dstEntityId,
+              accountId: destinationAccountId,
+              entityId: destinationEntityId,
             },
           );
 
           if (!orgMembership) {
             throw new Error(
-              `User with entityId ${this.entityId} links to membership with entityId ${dstEntityId} that cannot be found`,
+              `User with entityId ${this.entityId} links to membership with entityId ${destinationEntityId} that cannot be found`,
             );
           }
 

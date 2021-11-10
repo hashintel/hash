@@ -52,7 +52,7 @@ export const createLink: Resolver<
       stringifiedPath: linkInput.path,
       source,
       destination,
-      dstEntityVersionId: destinationEntityVersionId || undefined,
+      destinationEntityVersionId: destinationEntityVersionId || undefined,
     });
 
     return link.toUnresolvedGQLLink();

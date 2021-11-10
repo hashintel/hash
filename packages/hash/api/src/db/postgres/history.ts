@@ -84,7 +84,7 @@ type OutgoingLink = {
   accountId: string;
   entityId: string;
   entityVersionId?: string;
-  validForSrcEntityVersionIds: Set<string>;
+  validForSourceEntityVersionIds: Set<string>;
 };
 
 class CheckpointManager {
@@ -164,10 +164,10 @@ export const getImpliedEntityHistory = async (
       nestedLinks.map((links) =>
         links.map(
           (link): OutgoingLink => ({
-            accountId: link.srcAccountId,
-            entityId: link.srcEntityId,
-            entityVersionId: link.dstEntityVersionId,
-            validForSrcEntityVersionIds: link.srcEntityVersionIds,
+            accountId: link.sourceAccountId,
+            entityId: link.sourceEntityId,
+            entityVersionId: link.destinationEntityVersionId,
+            validForSourceEntityVersionIds: link.sourceEntityVersionIds,
           }),
         ),
       ),

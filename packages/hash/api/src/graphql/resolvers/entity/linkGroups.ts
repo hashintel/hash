@@ -1,9 +1,5 @@
 import { ApolloError } from "apollo-server-errors";
-import {
-  Resolver,
-  Entity as GQLEntity,
-  LinkGroup,
-} from "../../apiTypes.gen";
+import { Resolver, Entity as GQLEntity, LinkGroup } from "../../apiTypes.gen";
 import { DbUnknownEntity } from "../../../types/dbTypes";
 import { GraphQLContext } from "../../context";
 import { Entity, Link } from "../../../model";
@@ -54,7 +50,10 @@ export const linkGroups: Resolver<
           ...prevLinkGroups.slice(0, existingGroupIndex),
           {
             ...prevLinkGroups[existingGroupIndex],
-            links: [...prevLinkGroups[existingGroupIndex].links, currentLink.toUnresolvedGQLLink()],
+            links: [
+              ...prevLinkGroups[existingGroupIndex].links,
+              currentLink.toUnresolvedGQLLink(),
+            ],
           },
           ...prevLinkGroups.slice(existingGroupIndex + 1),
         ];

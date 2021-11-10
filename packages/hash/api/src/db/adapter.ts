@@ -52,12 +52,12 @@ export type Entity = {
 export type DBLink = {
   linkId: string;
   path: string;
-  srcAccountId: string;
-  srcEntityId: string;
-  srcEntityVersionIds: Set<string>;
-  dstAccountId: string;
-  dstEntityId: string;
-  dstEntityVersionId?: string;
+  sourceAccountId: string;
+  sourceEntityId: string;
+  sourceEntityVersionIds: Set<string>;
+  destinationAccountId: string;
+  destinationEntityId: string;
+  destinationEntityVersionId?: string;
   createdAt: Date;
 };
 
@@ -361,20 +361,23 @@ export interface DBClient {
   /** Create a link */
   createLink(params: {
     path: string;
-    srcAccountId: string;
-    srcEntityId: string;
-    srcEntityVersionIds: Set<string>;
-    dstAccountId: string;
-    dstEntityId: string;
-    dstEntityVersionId?: string;
+    sourceAccountId: string;
+    sourceEntityId: string;
+    sourceEntityVersionIds: Set<string>;
+    destinationAccountId: string;
+    destinationEntityId: string;
+    destinationEntityVersionId?: string;
   }): Promise<DBLink>;
 
   getLink(params: {
-    srcAccountId: string;
+    sourceAccountId: string;
     linkId: string;
   }): Promise<DBLink | null>;
 
-  deleteLink(params: { srcAccountId: string; linkId: string }): Promise<void>;
+  deleteLink(params: {
+    sourceAccountId: string;
+    linkId: string;
+  }): Promise<void>;
 
   getEntityOutgoingLinks(params: {
     accountId: string;

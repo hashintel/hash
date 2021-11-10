@@ -410,12 +410,12 @@ export class PostgresClient implements DBClient {
 
   async createLink(params: {
     path: string;
-    srcAccountId: string;
-    srcEntityId: string;
-    srcEntityVersionIds: Set<string>;
-    dstAccountId: string;
-    dstEntityId: string;
-    dstEntityVersionId?: string;
+    sourceAccountId: string;
+    sourceEntityId: string;
+    sourceEntityVersionIds: Set<string>;
+    destinationAccountId: string;
+    destinationEntityId: string;
+    destinationEntityVersionId?: string;
   }): Promise<DBLink> {
     return await this.conn.transaction(async (conn) => {
       const linkId = genId();
@@ -424,8 +424,8 @@ export class PostgresClient implements DBClient {
       // Defer FKs until end of transaction so we can insert concurrently
       await conn.query(sql`
         set constraints
-          outgoing_links_src_account_id_link_id_fkey,
-          incoming_links_src_account_id_link_id_fkey
+          outgoing_links_source_account_id_link_id_fkey,
+          incoming_links_source_account_id_link_id_fkey
         deferred
       `);
 
@@ -446,14 +446,14 @@ export class PostgresClient implements DBClient {
   }
 
   async getLink(params: {
-    srcAccountId: string;
+    sourceAccountId: string;
     linkId: string;
   }): Promise<DBLink | null> {
     return await getLink(this.conn, params);
   }
 
   async deleteLink(params: {
-    srcAccountId: string;
+    sourceAccountId: string;
     linkId: string;
   }): Promise<void> {
     return await deleteLink(this.conn, params);

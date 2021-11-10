@@ -101,15 +101,15 @@ class __OrgMembership extends Entity {
       throw new Error("");
     }
 
-    const { dstEntityId } = userLink;
+    const { destinationEntityId } = userLink;
 
     const user = await User.getUserById(client, {
-      entityId: dstEntityId,
+      entityId: destinationEntityId,
     });
 
     if (!user) {
       throw new Error(
-        `OrgMembership with entityId ${this.entityId} links to user with entityId ${dstEntityId} that cannot be found`,
+        `OrgMembership with entityId ${this.entityId} links to user with entityId ${destinationEntityId} that cannot be found`,
       );
     }
 
@@ -125,15 +125,15 @@ class __OrgMembership extends Entity {
       throw new Error("");
     }
 
-    const { dstEntityId } = orgLink;
+    const { destinationEntityId } = orgLink;
 
     const org = await Org.getOrgById(client, {
-      entityId: dstEntityId,
+      entityId: destinationEntityId,
     });
 
     if (!org) {
       throw new Error(
-        `OrgMembership with entityId ${this.entityId} links to org with entityId ${dstEntityId} that cannot be found`,
+        `OrgMembership with entityId ${this.entityId} links to org with entityId ${destinationEntityId} that cannot be found`,
       );
     }
 
