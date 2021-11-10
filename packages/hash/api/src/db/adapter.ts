@@ -50,7 +50,6 @@ export type Entity = {
 };
 
 export type DBLink = {
-  accountId: string;
   linkId: string;
   path: string;
   srcAccountId: string;
@@ -361,7 +360,6 @@ export interface DBClient {
 
   /** Create a link */
   createLink(params: {
-    accountId: string;
     path: string;
     srcAccountId: string;
     srcEntityId: string;
@@ -372,11 +370,11 @@ export interface DBClient {
   }): Promise<DBLink>;
 
   getLink(params: {
-    accountId: string;
+    srcAccountId: string;
     linkId: string;
   }): Promise<DBLink | null>;
 
-  deleteLink(params: { accountId: string; linkId: string }): Promise<void>;
+  deleteLink(params: { srcAccountId: string; linkId: string }): Promise<void>;
 
   getEntityOutgoingLinks(params: {
     accountId: string;

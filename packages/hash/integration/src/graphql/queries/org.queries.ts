@@ -106,10 +106,12 @@ export const joinOrg = gql`
           primary
         }
       }
-      links {
+      linkGroups {
         path
         sourceEntityId
-        destinationEntityId
+        links {
+          destinationEntityId
+        }
       }
     }
   }

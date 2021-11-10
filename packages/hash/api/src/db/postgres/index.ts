@@ -214,13 +214,13 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   }
 
   getLink(params: {
-    accountId: string;
+    srcAccountId: string;
     linkId: string;
   }): Promise<DBLink | null> {
     return this.query((adapter) => adapter.getLink(params));
   }
 
-  deleteLink(params: { accountId: string; linkId: string }): Promise<void> {
+  deleteLink(params: { srcAccountId: string; linkId: string }): Promise<void> {
     return this.query((adapter) => adapter.deleteLink(params));
   }
 

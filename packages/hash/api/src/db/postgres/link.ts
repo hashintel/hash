@@ -304,12 +304,7 @@ const mapColumnNamesToSQL = (columnNames: string[], prefix?: string) =>
     sql`, `,
   );
 
-const outgoingLinksColumnNames = [
-  "src_account_id",
-  "src_entity_id",
-  "link_account_id",
-  "link_id",
-];
+const outgoingLinksColumnNames = ["src_account_id", "src_entity_id", "link_id"];
 
 const outgoingLinksColumnNamesSQL = mapColumnNamesToSQL(
   outgoingLinksColumnNames,
@@ -320,19 +315,13 @@ export const insertOutgoingLink = async (
   params: {
     srcAccountId: string;
     srcEntityId: string;
-    linkAccountId: string;
     linkId: string;
   },
 ): Promise<void> => {
   await conn.query(sql`
     insert into outgoing_links (${outgoingLinksColumnNamesSQL})
     values (${sql.join(
-      [
-        params.srcAccountId,
-        params.srcEntityId,
-        params.linkAccountId,
-        params.linkId,
-      ],
+      [params.srcAccountId, params.srcEntityId, params.linkId],
       sql`, `,
     )})
   `);
@@ -341,7 +330,7 @@ export const insertOutgoingLink = async (
 const incomingLinksColumnNames = [
   "dst_account_id",
   "dst_entity_id",
-  "link_account_id",
+  "src_account_id",
   "link_id",
 ];
 
@@ -354,7 +343,7 @@ export const insertIncomingLink = async (
   params: {
     dstAccountId: string;
     dstEntityId: string;
-    linkAccountId: string;
+    srcAccountId: string;
     linkId: string;
   },
 ): Promise<void> => {
@@ -364,7 +353,7 @@ export const insertIncomingLink = async (
       [
         params.dstAccountId,
         params.dstEntityId,
-        params.linkAccountId,
+        params.srcAccountId,
         params.linkId,
       ],
       sql`, `,
@@ -373,7 +362,6 @@ export const insertIncomingLink = async (
 };
 
 const linksColumnNames = [
-  "account_id",
   "link_id",
   "path",
   "src_account_id",
@@ -390,7 +378,6 @@ const linksColumnNamesSQL = mapColumnNamesToSQL(linksColumnNames);
 export const insertLink = async (
   conn: Connection,
   params: {
-    accountId: string;
     linkId: string;
     path: string;
     srcAccountId: string;
@@ -406,7 +393,6 @@ export const insertLink = async (
     insert into links (${linksColumnNamesSQL})
     values (${sql.join(
       [
-        params.accountId,
         params.linkId,
         params.path,
         params.srcAccountId,
@@ -423,7 +409,6 @@ export const insertLink = async (
 };
 
 type DBLinkRow = {
-  account_id: string;
   link_id: string;
   path: string;
   src_account_id: string;
@@ -436,7 +421,6 @@ type DBLinkRow = {
 };
 
 const mapDBLinkRowToDBLink = (row: DBLinkRow): DBLink => ({
-  accountId: row.account_id,
   linkId: row.link_id,
   path: row.path,
   srcAccountId: row.src_account_id,
@@ -455,12 +439,12 @@ export const selectLinks = sql<DBLinkRow>`
 
 export const getLink = async (
   conn: Connection,
-  params: { accountId: string; linkId: string },
+  params: { srcAccountId: string; linkId: string },
 ) => {
   const row = await conn.maybeOne(sql<DBLinkRow>`
     ${selectLinks}
     where
-      account_id = ${params.accountId}
+      src_account_id = ${params.srcAccountId}
       and link_id = ${params.linkId}
   `);
 
@@ -469,19 +453,19 @@ export const getLink = async (
 
 const deleteNonVersionedLink = async (
   conn: Connection,
-  params: { accountId: string; linkId: string },
+  params: { srcAccountId: string; linkId: string },
 ): Promise<void> => {
   /** @todo: update postgres schema to cascade delete */
   await conn.query(sql`
-    delete from outgoing_links where link_account_id = ${params.accountId} link_id = ${params.linkId};
-    delete from incoming_links where link_account_id = ${params.accountId} link_id = ${params.linkId};
-    delete from links where account_id = ${params.accountId} and link_id = ${params.linkId};
+    delete from outgoing_links where src_account_id = ${params.srcAccountId} link_id = ${params.linkId};
+    delete from incoming_links where src_account_id = ${params.srcAccountId} link_id = ${params.linkId};
+    delete from links where src_account_id = ${params.srcAccountId} and link_id = ${params.linkId};
   `);
 };
 
 export const deleteLink = async (
   conn: Connection,
-  params: { accountId: string; linkId: string },
+  params: { srcAccountId: string; linkId: string },
 ): Promise<void> => {
   const dbLink = await getLink(conn, params);
 
@@ -518,7 +502,7 @@ export const deleteLink = async (
 export const addSrcEntityVersionIdToLink = async (
   conn: Connection,
   params: {
-    accountId: string;
+    srcAccountId: string;
     linkId: string;
     newSrcEntityVersionId: string;
   },
@@ -528,7 +512,7 @@ export const addSrcEntityVersionIdToLink = async (
       update links
       set src_entity_version_ids = array_append(links.src_entity_version_ids, ${params.newSrcEntityVersionId})
       where
-        account_id = ${params.accountId}
+        src_account_id = ${params.srcAccountId}
         and link_id = ${params.linkId}
         and not ${params.newSrcEntityVersionId} = ANY(links.src_entity_version_ids)
     `,
@@ -546,7 +530,7 @@ export const getEntityOutgoingLinks = async (
   const rows = await conn.any(sql<DBLinkRow>`
     select ${mapColumnNamesToSQL(linksColumnNames, "links")}
     from links inner join outgoing_links on (
-      links.account_id = outgoing_links.link_account_id
+      links.src_account_id = outgoing_links.src_account_id
       and links.link_id = outgoing_links.link_id
     )
     where

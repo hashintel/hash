@@ -42,7 +42,6 @@ const isUnupportedJSONPath = (components: JSONPathComponent[]) =>
   components.slice(1).find(isUnsupportedJSONPathComponent) !== undefined;
 
 type LinkConstructorArgs = {
-  accountId: string;
   linkId: string;
   path: string;
   srcAccountId: string;
@@ -57,7 +56,6 @@ type LinkConstructorArgs = {
 };
 
 class __Link {
-  accountId: string;
   linkId: string;
   stringifiedPath: string;
   path: jp.PathComponent[];
@@ -75,7 +73,6 @@ class __Link {
   createdAt: Date;
 
   constructor({
-    accountId,
     linkId,
     path,
     srcAccountId,
@@ -88,7 +85,6 @@ class __Link {
     destination,
     createdAt,
   }: LinkConstructorArgs) {
-    this.accountId = accountId;
     this.linkId = linkId;
     this.stringifiedPath = path;
     this.path = Link.parseStringifiedPath(path);
@@ -162,7 +158,6 @@ class __Link {
     const { accountId: dstAccountId, entityId: dstEntityId } = destination;
 
     const dbLink = await client.createLink({
-      accountId: source.accountId,
       path: stringifiedPath,
       srcAccountId,
       srcEntityId,
@@ -180,7 +175,7 @@ class __Link {
   static async get(
     client: DBClient,
     params: {
-      accountId: string;
+      srcAccountId: string;
       linkId: string;
     },
   ): Promise<Link | null> {
@@ -190,7 +185,7 @@ class __Link {
 
   async delete(client: DBClient) {
     await client.deleteLink({
-      accountId: this.accountId,
+      srcAccountId: this.srcAccountId,
       linkId: this.linkId,
     });
 
@@ -201,12 +196,12 @@ class __Link {
 
   private async fetchSource(client: DBClient) {
     const source = await Entity.getEntityLatestVersion(client, {
-      accountId: this.accountId,
+      accountId: this.srcAccountId,
       entityId: this.srcEntityId,
     });
     if (!source) {
       throw new Error(
-        `Critical: couldn't find source entity of link in account ${this.accountId} with link id ${this.linkId}`,
+        `Critical: couldn't find source entity of link with link id ${this.linkId}`,
       );
     }
     return source;
@@ -220,16 +215,16 @@ class __Link {
   private async fetchDestination(client: DBClient) {
     const destination = this.dstEntityVersionId
       ? await Entity.getEntity(client, {
-          accountId: this.accountId,
+          accountId: this.dstAccountId,
           entityVersionId: this.dstEntityVersionId,
         })
       : await Entity.getEntityLatestVersion(client, {
-          accountId: this.accountId,
-          entityId: this.srcEntityId,
+          accountId: this.dstAccountId,
+          entityId: this.dstEntityId,
         });
     if (!destination) {
       throw new Error(
-        `Critical: couldn't find destination entity of link in account ${this.accountId} with link id ${this.linkId}`,
+        `Critical: couldn't find destination entity of link with link id ${this.linkId}`,
       );
     }
     return destination;

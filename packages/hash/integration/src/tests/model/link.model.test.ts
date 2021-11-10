@@ -1,11 +1,6 @@
 import "../loadTestEnv";
 import { PostgresAdapter } from "@hashintel/hash-api/src/db";
-import {
-  Entity,
-  EntityType,
-  Link,
-  User,
-} from "@hashintel/hash-api/src/model";
+import { Entity, EntityType, Link, User } from "@hashintel/hash-api/src/model";
 import { WayToUseHash } from "@hashintel/hash-api/src/graphql/apiTypes.gen";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
@@ -131,7 +126,7 @@ describe("Link model class ", () => {
     });
 
     const retrievedLink = (await Link.get(db, {
-      accountId,
+      sourceAccountId: accountId,
       linkId: link.linkId,
     }))!;
 

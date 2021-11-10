@@ -610,7 +610,7 @@ export const updateVersionedEntity = async (
     entity: Entity;
     properties: any;
     updatedByAccountId: string;
-    omittedOutgoingLinks?: { accountId: string; linkId: string }[];
+    omittedOutgoingLinks?: { srcAccountId: string; linkId: string }[];
   },
 ) => {
   const { entity, properties } = params;
@@ -637,9 +637,9 @@ export const updateVersionedEntity = async (
     set constraints
       entity_account_account_id_entity_version_id_fk,
       outgoing_links_source_account_id_source_entity_id_fk,
-      outgoing_links_link_account_id_link_id_fk,
+      outgoing_links_source_account_id_link_id_fk,
       incoming_links_destination_account_id_destination_entity_id_fk,
-      incoming_links_link_account_id_link_id_fk
+      incoming_links_source_account_id_link_id_fk
     deferred
   `);
 
@@ -659,9 +659,9 @@ export const updateVersionedEntity = async (
       Promise.all(
         outgoingLinks
           .filter(isDbLinkInNextVersion)
-          .map(({ accountId, linkId }) =>
+          .map(({ srcAccountId, linkId }) =>
             addSrcEntityVersionIdToLink(conn, {
-              accountId,
+              srcAccountId,
               linkId,
               newSrcEntityVersionId: newEntityVersion.entityVersionId,
             }),

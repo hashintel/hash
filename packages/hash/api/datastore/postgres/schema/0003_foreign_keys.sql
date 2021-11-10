@@ -21,11 +21,11 @@ select create_fk_if_not_exists(
 do $$ begin
   if not is_citus_enabled() then
     perform create_fk_if_not_exists(
-      'outgoing_links_link_account_id_link_id_fk',   --constraint_name
+      'outgoing_links_src_account_id_link_id_fk',  --constraint_name
       'outgoing_links',                              --from_table
-      '(link_account_id, link_id)',                  --from_columns
+      '(src_account_id, link_id)',                   --from_columns
       'links',                                       --to_table
-      '(account_id, link_id)'                        --to_columns
+      '(src_account_id, link_id)'                    --to_columns
     );
   end if;
 end; $$;
@@ -44,11 +44,11 @@ select create_fk_if_not_exists(
 do $$ begin
   if not is_citus_enabled() then
     perform create_fk_if_not_exists(
-      'incoming_links_link_account_id_link_id_fk',   --constraint_name
-      'incoming_links',                              --from_table
-      '(link_account_id, link_id)',                  --from_columns
-      'links',                                       --to_table
-      '(account_id, link_id)'                        --to_columns
+      'incoming_links_source_account_id_link_id_fk',  --constraint_name
+      'incoming_links',                                 --from_table
+      '(source_account_id, link_id)',                   --from_columns
+      'links',                                          --to_table
+      '(source_account_id, link_id)'                    --to_columns
     );
   end if;
 end; $$;

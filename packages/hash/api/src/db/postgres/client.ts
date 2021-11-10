@@ -201,9 +201,9 @@ export class PostgresClient implements DBClient {
           entity_versions_account_id_entity_id_fk,
           entity_account_account_id_entity_version_id_fk,
           outgoing_links_source_account_id_source_entity_id_fk,
-          outgoing_links_link_account_id_link_id_fk,
+          outgoing_links_source_account_id_link_id_fk,
           incoming_links_destination_account_id_destination_entity_id_fk,
-          incoming_links_link_account_id_link_id_fk
+          incoming_links_source_account_id_link_id_fk
         deferred
       `);
 
@@ -409,7 +409,6 @@ export class PostgresClient implements DBClient {
   }
 
   async createLink(params: {
-    accountId: string;
     path: string;
     srcAccountId: string;
     srcEntityId: string;
@@ -425,8 +424,8 @@ export class PostgresClient implements DBClient {
       // Defer FKs until end of transaction so we can insert concurrently
       await conn.query(sql`
         set constraints
-          outgoing_links_link_account_id_link_id_fkey,
-          incoming_links_link_account_id_link_id_fkey
+          outgoing_links_src_account_id_link_id_fkey,
+          incoming_links_src_account_id_link_id_fkey
         deferred
       `);
 
@@ -434,12 +433,10 @@ export class PostgresClient implements DBClient {
         insertLink(conn, { ...params, linkId, createdAt }),
         insertOutgoingLink(conn, {
           ...params,
-          linkAccountId: params.accountId,
           linkId,
         }),
         insertIncomingLink(conn, {
           ...params,
-          linkAccountId: params.accountId,
           linkId,
         }),
       ]);
@@ -449,14 +446,14 @@ export class PostgresClient implements DBClient {
   }
 
   async getLink(params: {
-    accountId: string;
+    srcAccountId: string;
     linkId: string;
   }): Promise<DBLink | null> {
     return await getLink(this.conn, params);
   }
 
   async deleteLink(params: {
-    accountId: string;
+    srcAccountId: string;
     linkId: string;
   }): Promise<void> {
     return await deleteLink(this.conn, params);

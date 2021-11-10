@@ -120,8 +120,6 @@ create index if not exists entity_account_entity_id on entity_account (entity_id
 
 /** Stores links between entities */
 create table if not exists links (
-    -- The account id of the link
-    account_id                  uuid not null,
     -- The UUID of the link
     link_id                     uuid not null,
     -- The JSON path of the link on the source entity's properties JSON blob
@@ -145,7 +143,7 @@ create table if not exists links (
     created_at                  timestamp with time zone not null,
 
     constraint links_pk primary key (
-      account_id, -- included in the primary key so it can be used as a sharding key
+      src_account_id, -- included in the primary key so it can be used as a sharding key
       link_id
     )
 );
@@ -154,7 +152,6 @@ create table if not exists links (
 create table if not exists outgoing_links (
     source_account_id           uuid not null,
     source_entity_id            uuid not null,
-    link_account_id             uuid not null,
     link_id                     uuid not null,
 
     constraint outgoing_links_pk primary key (
@@ -169,7 +166,7 @@ create table if not exists outgoing_links (
 create table if not exists incoming_links (
     destination_account_id      uuid not null,
     destination_entity_id       uuid not null,
-    link_account_id             uuid not null,
+    source_account_id           uuid not null,
     link_id                     uuid not null,
 
     constraint incoming_links_pk primary key (
