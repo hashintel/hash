@@ -26,20 +26,6 @@ use std::sync::Arc;
 
 // This file is here mostly to convert between RecordBatch and Vec<AgentState>.
 
-lazy_static! {
-    // TODO: Minimal perfect hashing, since `BUILTIN_FIELDS` is a compile-time constant.
-    // TODO: Trying to avoid cloning to a `String` gives `lazy_static` lifetime error.
-    pub static ref SPECIAL_FIELD_SET: HashSet<String> = {
-        let mut hash_set: HashSet<String> = HashSet::new();
-        for field in &BUILTIN_FIELDS {
-            hash_set.insert(String::from(*field));
-        }
-        // Hidden column which won't be exposed to users
-        hash_set.insert(PREVIOUS_INDEX_COLUMN_NAME.to_string());
-        hash_set
-    };
-}
-
 /// Conversion into Arrow `RecordBatch`
 pub trait IntoRecordBatch {
     fn into_message_batch(&self, schema: &Arc<ArrowSchema>) -> Result<RecordBatch>;
