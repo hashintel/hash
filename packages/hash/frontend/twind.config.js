@@ -9,6 +9,9 @@ module.exports = {
       animation: {
         "spin-slow": "spin 2s linear infinite",
       },
+      fontSize: {
+        xxs: "0.685rem",
+      },
     },
   },
   preflight: (preflight, { theme }) => ({

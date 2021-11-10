@@ -5,12 +5,6 @@ import { EditorState } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import urlRegexSafe from "url-regex-safe";
 
-// const LINK_REGEX =
-//   /((https?:\/\/)(www\.)?[-a-zA-Z0-9@:%._+~#=]{2,256}\.[a-z]{2,4}\b([-a-zA-Z0-9@:%_+.~#?&//=]*))\s$/;
-
-// const LINK_REGEX_WITHOUT_SPACE =
-//   /((https?:\/\/)(www\.)?[-a-zA-Z0-9@:%._+~#=]{2,256}\.[a-z]{2,4}\b([-a-zA-Z0-9@:%_+.~#?&//=]*))/;
-
 export const selectionContainsText = (state: EditorState<Schema>) => {
   const content = state.selection.content().content;
   let containsText = false;
@@ -114,25 +108,25 @@ export function updateLink(editorView: EditorView<Schema>, href: string) {
 }
 
 export function linkInputRule() {
-  // @todo fix broken behavior, regex should be validated when there's a trailing space
-  return new InputRule<Schema>(urlRegexSafe(), (state, match, start, end) => {
-    const attrs = { href: match[0].slice(0, -1) };
-    const tr = state.tr;
-    let newEnd = end;
+  return new InputRule<Schema>(
+    new RegExp(`${urlRegexSafe({ returnString: true })}\\s$`),
+    (state, match, start, end) => {
+      const attrs = { href: match[0].slice(0, -1) };
+      const tr = state.tr;
+      let newEnd = end;
 
-    console.log(match);
+      if (match[1]) {
+        const textStart = start + match[0].indexOf(match[1]);
+        const textEnd = textStart + match[1].length;
+        if (textEnd < newEnd) tr.delete(textEnd, newEnd);
+        if (textStart > start) tr.delete(start, textStart);
+        newEnd = start + match[1].length;
+      }
 
-    if (match[1]) {
-      const textStart = start + match[0].indexOf(match[1]);
-      const textEnd = textStart + match[1].length;
-      if (textEnd < newEnd) tr.delete(textEnd, newEnd);
-      if (textStart > start) tr.delete(start, textStart);
-      newEnd = start + match[1].length;
-    }
-
-    tr.addMark(start, newEnd, state.schema.marks.link.create(attrs));
-    // insert space at the end
-    // tr.insertText(" ", newEnd);
-    return tr;
-  });
+      tr.addMark(start, newEnd, state.schema.marks.link.create(attrs));
+      // insert space at the end
+      tr.insertText(" ", newEnd);
+      return tr;
+    },
+  );
 }

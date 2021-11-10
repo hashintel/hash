@@ -142,7 +142,7 @@ export class ComponentView implements NodeView<Schema> {
       event.preventDefault();
     }
 
-    return true;
+    return !blockComponentRequiresText(this.meta.componentSchema);
   }
 
   // This condition is designed to check that the event isn’t coming from React-handled code.

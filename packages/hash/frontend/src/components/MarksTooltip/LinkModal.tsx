@@ -1,4 +1,4 @@
-import React, { FormEvent, useMemo, useRef, useState } from "react";
+import React, { FormEvent, useRef, useState } from "react";
 import { tw } from "twind";
 import LanguageIcon from "@material-ui/icons/Language";
 import DeleteIcon from "@material-ui/icons/Delete";
@@ -21,13 +21,14 @@ export const LinkModal: React.VFC<LinkModalProps> = ({
   const handleUpdateLink = (evt: FormEvent) => {
     evt.preventDefault();
     updateLink(linkHref);
-    // closeTooltip();
   };
 
   const handleRemoveLink = () => {
     removeLink();
+  };
 
-    // closeTooltip();
+  const openUrl = () => {
+    window.open(linkHref, "_blank");
   };
 
   if (!linkHref && defaultLinkMarkHref) {
@@ -54,15 +55,15 @@ export const LinkModal: React.VFC<LinkModalProps> = ({
           <div className={tw`text-xs`}>
             <p className={tw`text-xxs px-4 uppercase mb-2`}>Linked To</p>
             <button
-              className={tw`flex hover:bg-gray-200 text-left w-full px-4 py-1.5`}
+              className={tw`flex hover:bg-gray-200 text-left w-full px-4 py-1.5 focus:outline-none`}
+              onClick={openUrl}
+              type="button"
             >
               <LanguageIcon className={tw`!text-base mr-1`} />
-              <a href={linkHref} target="_blank">
-                <p className={tw`text-sm leading-none mb-0.5`}>
-                  {linkHref}
-                </p>
+              <div>
+                <p className={tw`text-sm leading-none mb-0.5`}>{linkHref}</p>
                 <span className={tw`font-light`}>Web page</span>
-              </a>
+              </div>
             </button>
           </div>
           <hr className={tw`h-px bg-gray-100`} />
