@@ -53,16 +53,17 @@ pub struct Package {
     comms: PackageComms,
 }
 
-// TODO OS - cpu_bound and get_worker_start_msg need defining for Js/Py Init Package
 impl MaybeCPUBound for Package {
     fn cpu_bound(&self) -> bool {
-        todo!()
+        false
     }
 }
 
 impl GetWorkerStartMsg for Package {
     fn get_worker_start_msg(&self) -> Result<Value> {
-        todo!()
+        // We don't send payloads here,
+        // we send them out for each simulation
+        Ok(Value::Null)
     }
 }
 
