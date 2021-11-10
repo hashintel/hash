@@ -27,7 +27,11 @@ pub(super) fn api_response_arrow_fields() -> Result<Vec<arrow::datatypes::Field>
 }
 
 pub(super) fn add_context(field_spec_map_builder: &mut FieldSpecMapBuilder) -> Result<()> {
-    let neighbors = api_responses();
-    field_spec_map_builder.add_field_spec("api_responses".into(), neighbors, FieldScope::Hidden)?;
+    let api_responses = api_responses();
+    field_spec_map_builder.add_field_spec(
+        "api_responses".into(),
+        api_responses,
+        FieldScope::Hidden,
+    )?;
     Ok(())
 }

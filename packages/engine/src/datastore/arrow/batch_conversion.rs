@@ -12,7 +12,7 @@ use crate::datastore::{
     schema::{FieldKey, FieldTypeVariant, PresetFieldType},
     UUID_V4_LEN,
 };
-use crate::hash_types::state::{AgentStateField, BUILTIN_FIELDS};
+use crate::hash_types::state::AgentStateField;
 use crate::simulation::package::creator::PREVIOUS_INDEX_COLUMN_NAME;
 use arrow::array::{self, Array, ArrayDataBuilder, ArrayRef, PrimitiveBuilder};
 use arrow::buffer::MutableBuffer;
@@ -560,8 +560,6 @@ impl IntoRecordBatch for &[&AgentState] {
                 // Any-type (JSON string) column
                 json_vals_to_any_type_col(vals, field.data_type())
             } else {
-                // Assertion will fail if new built-in fields are added in the future.
-                debug_assert!(!SPECIAL_FIELD_SET.contains(name.as_str()), "{}", name);
                 json_vals_to_col(vals, field.data_type(), field.is_nullable())
             })?;
             cols.push(col);
@@ -1156,10 +1154,6 @@ impl IntoAgentStates for RecordBatch {
             });
 
         for (i_field, field) in agents.schema().fields().iter().enumerate() {
-            if SPECIAL_FIELD_SET.contains(field.name()) {
-                continue; // Skip builtins, because they were already
-            } // set in `set_states_builtins`.
-
             if any_types.contains(field.name()) {
                 // We need to use "from_str" and not "to_value" when converting to serde_json::Value
                 set_states_serialized(&mut states, agents, i_field, field)?;
