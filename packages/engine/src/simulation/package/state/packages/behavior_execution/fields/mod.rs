@@ -9,7 +9,7 @@ use arrow::datatypes::DataType;
 
 use self::behavior::BehaviorMap;
 
-use super::{BEHAVIOR_INDEX_INNER_COUNT, BEHAVIOR_INDEX_INNER_DATATYPE};
+use super::BEHAVIOR_INDEX_INNER_COUNT;
 
 use crate::config::ExperimentConfig;
 use crate::datastore::schema::{
@@ -33,10 +33,7 @@ fn add_behavior_index(builder: &mut FieldSpecMapBuilder) -> Result<()> {
 }
 
 fn behavior_inner_index_field_type() -> FieldType {
-    FieldType::new(
-        FTV::Preset(PresetFieldType::Arrow(BEHAVIOR_INDEX_INNER_DATATYPE)),
-        false,
-    )
+    FieldType::new(FTV::Preset(PresetFieldType::UInt16), false)
 }
 
 fn behavior_index_field_type() -> FieldType {

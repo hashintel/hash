@@ -284,11 +284,11 @@ impl PackageCreators {
 pub const PREVIOUS_INDEX_FIELD_NAME: &str = "previous_index";
 // TODO this should be deleted, i.e. if this value is required use
 //      something like `get_hidden_column_name(PREVIOUS_INDEX_FIELD_NAME)`
-pub const PREVIOUS_INDEX_COLUMN_NAME: &str = "_HIDDEN__previous_index";
-pub const PREVIOUS_INDEX_COLUMN_INDEX: usize = 0;
+pub const PREVIOUS_INDEX_FIELD_KEY: &str = "_HIDDEN_0_previous_index";
 
 // TODO OS - __context_index should not have the `__` prefix
-pub const CONTEXT_INDEX_FIELD_NAME: &str = "__context_index";
+pub const CONTEXT_INDEX_FIELD_NAME: &str = "context_index";
+pub const CONTEXT_INDEX_FIELD_KEY: &str = "_HIDDEN_0_context_index";
 
 pub fn add_base_agent_fields(field_builder: &mut FieldSpecMapBuilder) -> Result<()> {
     field_builder.source(FieldSource::Engine);
@@ -317,7 +317,7 @@ pub fn add_base_agent_fields(field_builder: &mut FieldSpecMapBuilder) -> Result<
             field_type: FieldType::new(
                 FieldTypeVariant::FixedLengthArray {
                     kind: Box::new(FieldType::new(
-                        FieldTypeVariant::Preset(PresetFieldType::Index),
+                        FieldTypeVariant::Preset(PresetFieldType::UInt32),
                         false,
                     )),
                     len: 2,
@@ -338,7 +338,7 @@ pub fn add_base_agent_fields(field_builder: &mut FieldSpecMapBuilder) -> Result<
         FieldSpec {
             name: CONTEXT_INDEX_FIELD_NAME.to_string(),
             field_type: FieldType::new(
-                FieldTypeVariant::Preset(PresetFieldType::Index),
+                FieldTypeVariant::Preset(PresetFieldType::UInt32),
                 // This key is not nullable because all agents have a context
                 false,
             ),
@@ -364,6 +364,7 @@ pub fn add_base_agent_fields(field_builder: &mut FieldSpecMapBuilder) -> Result<
 
 fn add_base_context_fields(field_builder: &mut FieldSpecMapBuilder) -> Result<()> {
     field_builder.source(FieldSource::Engine);
+    // TODO previous index and other fields that make sense
     // Doesn't do anything for now
     Ok(())
 }

@@ -12,8 +12,8 @@ use crate::datastore::{
     schema::{FieldKey, FieldTypeVariant, PresetFieldType},
     UUID_V4_LEN,
 };
-use crate::hash_types::state::AgentStateField;
-use crate::simulation::package::creator::PREVIOUS_INDEX_COLUMN_NAME;
+use crate::hash_types::state::{AgentStateField, BUILTIN_FIELDS};
+use crate::simulation::package::creator::{CONTEXT_INDEX_FIELD_KEY, PREVIOUS_INDEX_FIELD_KEY};
 use arrow::array::{self, Array, ArrayDataBuilder, ArrayRef, PrimitiveBuilder};
 use arrow::buffer::MutableBuffer;
 use arrow::datatypes::{
@@ -440,23 +440,46 @@ fn json_vals_to_any_type_col(vals: Vec<Value>, dt: &DataType) -> Result<ArrayRef
     Ok(res)
 }
 
-fn agents_index_to_empty_col(num_agents: usize, dt: &ArrowDataType) -> Result<ArrayRef> {
-    let data_byte_size = 2 * num_agents * std::mem::size_of::<u32>();
+fn previous_index_to_empty_col(num_agents: usize, dt: &ArrowDataType) -> Result<ArrayRef> {
+    if let ArrowDataType::FixedSizeList(inner_type, inner_len) = dt.clone() {
+        debug_assert!(matches!(*inner_type, DataType::UInt32));
+        let data_byte_size = inner_len as usize * num_agents * std::mem::size_of::<u32>();
+        let mut buffer = MutableBuffer::new(data_byte_size);
+        buffer.resize(data_byte_size).unwrap();
+
+        let builder = ArrayDataBuilder::new(dt.clone())
+            .len(num_agents)
+            .null_count(0)
+            .add_child_data(
+                ArrayDataBuilder::new(*inner_type)
+                    .null_count(0)
+                    .len(num_agents * inner_len as usize)
+                    .add_buffer(buffer.freeze())
+                    .build(),
+            )
+            .build();
+        let array = arrow::array::FixedSizeListArray::from(builder);
+        Ok(Arc::new(array))
+    } else {
+        Err(Error::from(format!(
+            "previous_index_to_empty_col was called on the wrong datatype: {:?}",
+            dt
+        )))
+    }
+}
+
+fn context_index_to_empty_col(num_agents: usize, dt: &ArrowDataType) -> Result<ArrayRef> {
+    debug_assert!(matches!(dt, DataType::UInt32));
+    let data_byte_size = num_agents * std::mem::size_of::<u32>();
     let mut buffer = MutableBuffer::new(data_byte_size);
     buffer.resize(data_byte_size).unwrap();
 
     let builder = ArrayDataBuilder::new(dt.clone())
-        .len(num_agents)
         .null_count(0)
-        .add_child_data(
-            ArrayDataBuilder::new(PresetFieldType::Index.get_arrow_data_type())
-                .null_count(0)
-                .len(num_agents * 2)
-                .add_buffer(buffer.freeze())
-                .build(),
-        )
+        .len(num_agents as usize)
+        .add_buffer(buffer.freeze())
         .build();
-    let array = arrow::array::FixedSizeListArray::from(builder);
+    let array = arrow::array::UInt32Array::from(builder);
     Ok(Arc::new(array))
 }
 
@@ -545,9 +568,10 @@ impl IntoRecordBatch for &[&AgentState] {
                 agents_to_rgb_col(*self)
             } else if name.eq(AgentStateField::Hidden.name()) {
                 json_vals_to_bool(vals)
-            } else if name.eq(PREVIOUS_INDEX_COLUMN_NAME) {
-                agents_index_to_empty_col(self.len(), field.data_type())
-            // TODO do we need a special case for CONTEXT_INDEX_COLUMN_INDEX like we have for PREVIOUS_INDEX_COLUMN_NAME
+            } else if name.eq(PREVIOUS_INDEX_FIELD_KEY) {
+                previous_index_to_empty_col(self.len(), field.data_type())
+            } else if name.eq(CONTEXT_INDEX_FIELD_KEY) {
+                context_index_to_empty_col(self.len(), field.data_type())
             } else if matches!(
                 schema
                     .field_spec_map
@@ -787,7 +811,7 @@ fn set_states_hidden(states: &mut Vec<AgentState>, rb: &RecordBatch) -> Result<(
 fn set_states_previous_index(states: &mut Vec<AgentState>, rb: &RecordBatch) -> Result<()> {
     let index = rb
         .schema()
-        .column_with_name(PREVIOUS_INDEX_COLUMN_NAME)
+        .column_with_name(PREVIOUS_INDEX_FIELD_KEY)
         .map(|v| v.0);
     if let Some(i_col) = index {
         let vec2_array = rb
@@ -795,7 +819,7 @@ fn set_states_previous_index(states: &mut Vec<AgentState>, rb: &RecordBatch) -> 
             .as_any()
             .downcast_ref::<arrow::array::FixedSizeListArray>()
             .ok_or(Error::InvalidArrowDowncast {
-                name: PREVIOUS_INDEX_COLUMN_NAME.into(),
+                name: PREVIOUS_INDEX_FIELD_KEY.into(),
             })?;
 
         let coord_col = vec2_array.values();
@@ -803,7 +827,7 @@ fn set_states_previous_index(states: &mut Vec<AgentState>, rb: &RecordBatch) -> 
             .as_any()
             .downcast_ref::<array::UInt32Array>()
             .ok_or(Error::InvalidArrowDowncast {
-                name: format!("[inside {}]", PREVIOUS_INDEX_COLUMN_NAME),
+                name: format!("[inside {}]", PREVIOUS_INDEX_FIELD_KEY),
             })?;
 
         for (i_state, state) in states.iter_mut().enumerate() {
@@ -815,7 +839,7 @@ fn set_states_previous_index(states: &mut Vec<AgentState>, rb: &RecordBatch) -> 
             } else {
                 None
             };
-            state.set(PREVIOUS_INDEX_COLUMN_NAME, opt_vec2)?;
+            state.set(PREVIOUS_INDEX_FIELD_KEY, opt_vec2)?;
         }
     }
     Ok(())
@@ -830,7 +854,6 @@ fn set_states_messages(states: &mut Vec<AgentState>, messages: &RecordBatch) -> 
 }
 
 fn set_states_builtins(states: &mut Vec<AgentState>, agents: &RecordBatch) -> Result<()> {
-    // TODO make this dependent on `SPECIAL_FIELD_SET`
     set_states_agent_id(states, agents)?;
     set_states_agent_name(states, agents)?;
 
@@ -1154,6 +1177,10 @@ impl IntoAgentStates for RecordBatch {
             });
 
         for (i_field, field) in agents.schema().fields().iter().enumerate() {
+            // TODO - remove the need for this
+            if BUILTIN_FIELDS.contains(&field.name().as_str()) {
+                continue; // Skip builtins, because they were already
+            } // set in `set_states_builtins`.
             if any_types.contains(field.name()) {
                 // We need to use "from_str" and not "to_value" when converting to serde_json::Value
                 set_states_serialized(&mut states, agents, i_field, field)?;
@@ -1223,12 +1250,14 @@ pub mod tests {
             let mut returned_agents =
                 (&agent_batch, &message_batch).into_agent_states(Some(&schema))?;
 
-            agents
-                .iter_mut()
-                .for_each(|v| v.delete_custom(PREVIOUS_INDEX_COLUMN_NAME));
-            returned_agents
-                .iter_mut()
-                .for_each(|v| v.delete_custom(PREVIOUS_INDEX_COLUMN_NAME));
+            agents.iter_mut().for_each(|v| {
+                v.delete_custom(PREVIOUS_INDEX_FIELD_KEY);
+                v.delete_custom(CONTEXT_INDEX_FIELD_KEY)
+            });
+            returned_agents.iter_mut().for_each(|v| {
+                v.delete_custom(PREVIOUS_INDEX_FIELD_KEY);
+                v.delete_custom(CONTEXT_INDEX_FIELD_KEY)
+            });
 
             agents
                 .iter()

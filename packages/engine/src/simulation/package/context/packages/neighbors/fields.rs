@@ -1,14 +1,12 @@
 use super::*;
 use crate::datastore::schema::{FieldScope, FieldType, FieldTypeVariant::*, PresetFieldType};
 use crate::simulation::package::prelude::ArrowDataType;
+use arrow::datatypes::DataType::UInt32;
 
 fn neighbors() -> FieldType {
     let variant = VariableLengthArray(Box::new(FieldType::new(
         FixedLengthArray {
-            kind: Box::new(FieldType::new(
-                Preset(PresetFieldType::Arrow(ArrowDataType::UInt32)),
-                false,
-            )),
+            kind: Box::new(FieldType::new(Preset(PresetFieldType::UInt32), false)),
             len: NEIGHBOR_INDEX_COUNT,
         },
         false,

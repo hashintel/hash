@@ -9,8 +9,10 @@ use serde::{Deserialize, Serialize};
 use crate::datastore::error::Error;
 use crate::datastore::schema::state::AgentSchema;
 use crate::datastore::schema::{
-    FieldScope, FieldSource, FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant, RootFieldSpec,
+    FieldScope, FieldSource, FieldSpec, FieldSpecMap, FieldSpecMapBuilder, FieldType,
+    FieldTypeVariant, RootFieldSpec,
 };
+use crate::simulation::package::creator::add_base_agent_fields;
 
 lazy_static! {
     pub static ref JSON_KEYS: serde_json::Value = serde_json::json!({
@@ -115,34 +117,31 @@ fn make_dummy_agent(seed: u64) -> Result<Agent, Error> {
     Ok(agent)
 }
 
-/// Creates a vec of dummy Agent states for testing and accompanying Agent schema
+/// Creates a FieldSpecMap, vec of dummy Agent states for testing, and accompanying AgentSchema
 pub fn gen_schema_and_test_agents(
     num_agents: usize,
     seed: u64,
 ) -> Result<(Arc<AgentSchema>, Vec<Agent>), Error> {
-    let mut fields = FieldSpecMap::default();
-    fields.add(RootFieldSpec {
-        inner: FieldSpec {
-            name: "age".into(),
-            field_type: FieldType {
-                variant: FieldTypeVariant::Number,
-                nullable: false,
-            },
+    let mut builder = FieldSpecMapBuilder::new();
+    builder.source(FieldSource::Engine);
+    builder.add_field_spec(
+        "age".to_string(),
+        FieldType {
+            variant: FieldTypeVariant::Number,
+            nullable: false,
         },
-        scope: FieldScope::Agent,
-        source: FieldSource::Engine,
-    });
+        FieldScope::Agent,
+    );
+    add_base_agent_fields(&mut builder);
+    let mut field_spec_map = builder.build();
 
-    fields.add(AgentStateField::AgentId.try_into()?)?;
-    fields.add(AgentStateField::AgentName.try_into()?)?;
-
-    fields.union(FieldSpecMap::from_short_json(
+    field_spec_map.union(FieldSpecMap::from_short_json(
         JSON_KEYS.clone(),
         FieldSource::Engine,
         FieldScope::Agent,
     )?)?;
 
-    let schema = Arc::new(AgentSchema::new(fields)?);
+    let schema = Arc::new(AgentSchema::new(field_spec_map)?);
 
     let mut agents = Vec::with_capacity(num_agents);
     for i in 0..num_agents {

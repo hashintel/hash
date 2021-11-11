@@ -13,7 +13,6 @@ use serde_json::Value;
 use super::super::*;
 
 pub const BEHAVIOR_INDEX_INNER_COUNT: usize = 2;
-pub const BEHAVIOR_INDEX_INNER_DATATYPE: ArrowDataType = ArrowDataType::UInt16;
 pub type BehaviorIndexInnerDataType = u16;
 
 pub struct Creator {}

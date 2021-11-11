@@ -95,7 +95,11 @@ impl StepPackages {
         let columns = self
             .context
             .iter()
-            .map(|package| package.get_empty_arrow_column(num_agents))
+            // TODO remove the need for this creating a method to generate empty arrow columns from schema
+            .map(|package| {
+                package
+                    .get_empty_arrow_column(num_agents, &experiment_config.sim.store.context_schema)
+            })
             .collect::<Result<Vec<_>>>()?;
         let context = Context::new_from_columns(
             columns,

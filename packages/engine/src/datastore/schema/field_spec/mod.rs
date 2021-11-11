@@ -18,18 +18,25 @@ pub mod short_json;
 const HIDDEN_PREFIX: &str = "_HIDDEN_";
 const PRIVATE_PREFIX: &str = "_PRIVATE_";
 
-/// Special built-in field types
+// TODO - better encapsulate the supported underlying field types, and the selection of those that
+//   we expose to the user compared to this thing where we have a variant and an 'extension'. So
+//   it would probably be better as a FieldType and UserFieldType enum or something similar,
+//   rather than PresetFieldType and FieldTypeVariant
+
+/// PresetFieldTypes represent an extension of types of fields that can be set by the engine, this
+/// gives greater control over underlying arrow datatype such as integer sizes compared to the
+/// field types we allow users to set
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum PresetFieldType {
+    UInt16,
     // Used to refer to an agent from the previous state
-    Index,
+    UInt32,
     // Represents AgentId
     Id,
-    // Represents any Arrow type
-    Arrow(ArrowDataType),
 }
 
-/// Allowed field types
+/// These represent the types of fields that users can set. This is more restrictive than the total
+/// field types we support (see PresetFieldType for an extension of types not visible to the user)
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub enum FieldTypeVariant {
     Number,
@@ -80,7 +87,7 @@ impl FieldSource {
     /// A unique static identifier of the package source, used in building Keys for fields
     pub fn unique_id(&self) -> Result<String> {
         match self {
-            FieldSource::Engine => Ok("_".into()),
+            FieldSource::Engine => Ok("0".into()),
             FieldSource::Package(package_name) => Ok(package_name
                 .get_id()
                 .map_err(|err| Error::from(err.to_string()))?
@@ -130,11 +137,9 @@ impl FieldKey {
         match scope {
             FieldScope::Private => {
                 key.push_str(PRIVATE_PREFIX);
-                key.push_str(&source.unique_id()?);
             }
             FieldScope::Hidden => {
                 key.push_str(HIDDEN_PREFIX);
-                key.push_str(&source.unique_id()?);
             }
             FieldScope::Agent => {
                 return Err(Error::from(
@@ -142,6 +147,8 @@ impl FieldKey {
                 ))
             }
         }
+        key.push_str(&source.unique_id()?);
+        key.push_str("_");
         key.push_str(name);
         Ok(FieldKey(key))
     }
@@ -316,10 +323,10 @@ impl TryInto<FieldType> for AgentStateField {
     }
 }
 
-// TODO OS - Alfie - bring in line, need to decide what scopes and sources, if it matters at all
+// TODO OS - Alfie - Update remaining tests when built-in fields for FieldSpecMaps is decided
 #[cfg(test)]
 pub mod tests {
-    // use super::*;
+    use super::*;
 
     #[test]
     fn name_collision_built_in() {

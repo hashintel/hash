@@ -19,6 +19,7 @@ use super::{
 };
 pub use crate::config::Globals;
 use crate::datastore::schema::accessor::FieldSpecMapAccessor;
+use crate::datastore::schema::context::ContextSchema;
 use crate::proto::ExperimentRunBase;
 pub use packages::{ContextTask, ContextTaskMessage, ContextTaskResult, Name, PACKAGES};
 
@@ -31,7 +32,11 @@ pub trait Package: MaybeCPUBound + GetWorkerStartMsg + Send + Sync {
         state: Arc<State>,
         snapshot: Arc<StateSnapshot>,
     ) -> Result<ContextColumn>;
-    fn get_empty_arrow_column(&self, num_agents: usize) -> Result<Arc<dyn arrow::array::Array>>;
+    fn get_empty_arrow_column(
+        &self,
+        num_agents: usize,
+        context_schema: &ContextSchema,
+    ) -> Result<Arc<dyn arrow::array::Array>>;
 }
 
 pub trait PackageCreator: Sync {

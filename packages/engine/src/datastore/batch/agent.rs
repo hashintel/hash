@@ -25,9 +25,7 @@ use arrow::{array, datatypes::DataType};
 
 use crate::datastore::schema::FieldKey;
 use crate::proto::ExperimentID;
-use crate::simulation::package::creator::{
-    PREVIOUS_INDEX_COLUMN_INDEX, PREVIOUS_INDEX_COLUMN_NAME,
-};
+use crate::simulation::package::creator::PREVIOUS_INDEX_FIELD_KEY;
 use arrow::array::ArrayRef;
 use std::borrow::Cow;
 use std::sync::Arc;
@@ -310,7 +308,7 @@ impl Batch {
     pub fn write_agent_indices(&mut self, batch_index: usize) -> Result<()> {
         let batch_index = batch_index as u32;
 
-        let column_name = PREVIOUS_INDEX_COLUMN_NAME;
+        let column_name = PREVIOUS_INDEX_FIELD_KEY;
         let column = self.get_arrow_column(column_name)?;
 
         let data = column.data_ref();
@@ -364,8 +362,9 @@ impl Batch {
         self.get_arrow_column(key.value())
     }
 
+    // TODO - Use in Rust runner, and look up column without using PREVIOUS_INDEX_COLUMN_INDEX
     pub fn get_old_message_index(&self, row_index: usize) -> Result<Option<&[u32; 2]>> {
-        let col = self.batch.column(PREVIOUS_INDEX_COLUMN_INDEX);
+        let col = self.batch.column(todo!());
         let data_ref = col.data_ref();
         let nulls = data_ref.null_buffer();
 

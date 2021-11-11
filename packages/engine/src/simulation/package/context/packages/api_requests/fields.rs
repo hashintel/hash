@@ -1,8 +1,9 @@
+use crate::datastore::schema::context::ContextSchema;
 use crate::datastore::schema::{FieldScope, FieldType, FieldTypeVariant::*};
 
 use super::*;
 
-fn api_response_fields() -> Vec<FieldSpec> {
+pub fn api_response_fields() -> Vec<FieldSpec> {
     vec![
         FieldSpec::new("from".into(), FieldType::new(String, false)),
         FieldSpec::new("type".into(), FieldType::new(String, false)),
@@ -16,14 +17,6 @@ fn api_responses() -> FieldType {
         false,
     )));
     FieldType::new(variant, false)
-}
-
-pub(super) fn api_response_arrow_fields() -> Result<Vec<arrow::datatypes::Field>> {
-    let fields = api_response_fields()
-        .into_iter()
-        .map(|key| key.get_arrow_field())
-        .collect::<crate::datastore::error::Result<_>>()?;
-    Ok(fields)
 }
 
 pub(super) fn add_context(field_spec_map_builder: &mut FieldSpecMapBuilder) -> Result<()> {

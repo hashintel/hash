@@ -14,6 +14,7 @@ use futures::{stream::FuturesUnordered, StreamExt};
 use response::{APIResponseMap, APIResponses};
 use serde_json::Value;
 
+use crate::simulation::package::context::packages::api_requests::fields::api_response_fields;
 pub use handlers::CustomAPIMessageError;
 
 const CPU_BOUND: bool = false;
@@ -34,10 +35,8 @@ impl PackageCreator for Creator {
         accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn ContextPackage>> {
         let custom_message_handlers = custom_message_handlers_from_properties(&config.sim.globals)?;
-        let api_response_arrow_fields = fields::api_response_arrow_fields()?;
         Ok(Box::new(APIRequests {
             custom_message_handlers,
-            api_response_arrow_fields,
         }))
     }
 
@@ -54,7 +53,6 @@ impl PackageCreator for Creator {
 
 struct APIRequests {
     custom_message_handlers: Option<Vec<String>>,
-    api_response_arrow_fields: Vec<arrow::datatypes::Field>,
 }
 
 impl MaybeCPUBound for APIRequests {
@@ -123,12 +121,26 @@ impl Package for APIRequests {
         })
     }
 
-    fn get_empty_arrow_column(&self, num_agents: usize) -> Result<Arc<dyn arrow::array::Array>> {
+    fn get_empty_arrow_column(
+        &self,
+        num_agents: usize,
+        context_schema: &ContextSchema,
+    ) -> Result<Arc<dyn arrow::array::Array>> {
         let from_builder = Box::new(arrow::array::StringBuilder::new(1024));
         let type_builder = Box::new(arrow::array::StringBuilder::new(1024));
         let data_builder = Box::new(arrow::array::StringBuilder::new(1024));
+        let arrow_fields = api_response_fields()
+            .into_iter()
+            .map(|field| {
+                context_schema
+                    .arrow
+                    .field_with_name(&field.name)
+                    .map(Clone::clone)
+                    .map_err(|err| err.into())
+            })
+            .collect::<Result<Vec<_>>>()?;
         let api_response_builder = arrow::array::StructBuilder::new(
-            self.api_response_arrow_fields.clone(),
+            arrow_fields,
             vec![from_builder, type_builder, data_builder],
         );
         let mut api_response_list_builder = arrow::array::ListBuilder::new(api_response_builder);

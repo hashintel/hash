@@ -5,10 +5,7 @@ use super::*;
 fn agent_messages() -> FieldType {
     let variant = VariableLengthArray(Box::new(FieldType::new(
         FixedLengthArray {
-            kind: Box::new(FieldType::new(
-                Preset(PresetFieldType::Arrow(ArrowDataType::UInt32)),
-                false,
-            )),
+            kind: Box::new(FieldType::new(Preset(PresetFieldType::UInt32), false)),
             len: MESSAGE_INDEX_COUNT,
         },
         false,

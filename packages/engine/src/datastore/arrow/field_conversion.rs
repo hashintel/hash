@@ -9,69 +9,31 @@ use std::collections::HashMap;
 
 use super::prelude::*;
 
-use crate::datastore::schema::{FieldSource, FieldType, RootFieldSpec};
+use crate::datastore::schema::{FieldKey, FieldSource, FieldType, RootFieldSpec};
 use crate::datastore::{
     error::Result,
     prelude::*,
     schema::{FieldSpec, FieldSpecMap, FieldTypeVariant, PresetFieldType},
 };
-use crate::simulation::package::creator::{
-    PREVIOUS_INDEX_COLUMN_INDEX, PREVIOUS_INDEX_COLUMN_NAME,
-};
-
-fn arrow_data_type_is_fixed_size(data_type: &ArrowDataType) -> bool {
-    match data_type {
-        // ArrowNativeTypes (primitive types)
-        DataType::Boolean => true,
-        DataType::Int8 | DataType::Int16 | DataType::Int32 | DataType::Int64 => true,
-        DataType::UInt8 | DataType::UInt16 | DataType::UInt32 | DataType::UInt64 => true,
-        DataType::Float16 | DataType::Float32 | DataType::Float64 => true,
-        // Other values that can be represented as primitive types
-        DataType::Null => true,
-        DataType::Date32(_) | DataType::Date64(_) => true,
-        DataType::Time32(_) | DataType::Time64(_) => true,
-        DataType::Timestamp(_, _) => true,
-        DataType::Interval(_) => true,
-        DataType::Duration(_) => true,
-        // Variable length types
-        DataType::List(_) => false,
-        DataType::LargeList(_) => false,
-        DataType::Utf8 => false,
-        DataType::LargeUtf8 => false,
-        DataType::Binary => false,
-        DataType::LargeBinary => false,
-        // Composite types
-        DataType::FixedSizeBinary(_len) => true, // the nested binary data is fixed size so the list is too
-        DataType::FixedSizeList(data_type, _len) => arrow_data_type_is_fixed_size(data_type),
-        DataType::Struct(inner) => inner
-            .iter()
-            .all(|field| arrow_data_type_is_fixed_size(field.data_type())),
-        DataType::Union(_) => {
-            unimplemented!()
-        }
-        DataType::Dictionary(_, _) => {
-            unimplemented!()
-        }
-    }
-}
+use crate::simulation::package::creator::PREVIOUS_INDEX_FIELD_KEY;
 
 impl PresetFieldType {
     fn is_fixed_size(&self) -> bool {
         match self {
-            PresetFieldType::Index => true,
+            PresetFieldType::UInt32 => true,
+            PresetFieldType::UInt16 => true,
             PresetFieldType::Id => true,
-            PresetFieldType::Arrow(data_type) => arrow_data_type_is_fixed_size(data_type),
         }
     }
 
     #[must_use]
     pub fn get_arrow_data_type(&self) -> ArrowDataType {
         match self {
-            PresetFieldType::Index => ArrowDataType::UInt32,
+            PresetFieldType::UInt32 => ArrowDataType::UInt32,
+            PresetFieldType::UInt16 => ArrowDataType::UInt16,
             PresetFieldType::Id => {
                 ArrowDataType::FixedSizeBinary(crate::datastore::UUID_V4_LEN as i32)
             }
-            PresetFieldType::Arrow(dt) => dt.clone(),
         }
     }
 }
@@ -106,7 +68,12 @@ impl FieldType {
             FieldTypeVariant::Struct(inner) => Ok(ArrowDataType::Struct(
                 inner
                     .iter()
-                    .map(FieldSpec::get_arrow_field)
+                    // TODO - Enforce nullability of fields at initialisation.
+                    // These structs are necessarily nested within another arrow field. We cannot guarantee non-nullability for certain root-level arrow-fields due
+                    // to how we initialise data currently. Because these _are_ nested, we can guarantee nullability/non-nullability for all inner structs as this
+                    // is enforced in the runners, that is, when setting that top-level object, it's enforced that users set all nested data within that object at
+                    // the same time.
+                    .map(|field_spec| field_spec.get_arrow_field_with_source(true, None))
                     .collect::<Result<Vec<_>>>()?,
             )),
             FieldTypeVariant::Preset(inner) => Ok(inner.get_arrow_data_type()),
@@ -117,7 +84,7 @@ impl FieldType {
 impl RootFieldSpec {
     pub(in crate::datastore) fn get_arrow_field(&self) -> Result<ArrowField> {
         self.inner
-            .get_arrow_field_with_source(self.source == FieldSource::Engine)
+            .get_arrow_field_with_source(self.source == FieldSource::Engine, Some(self.to_key()?))
     }
 }
 
@@ -128,38 +95,37 @@ impl FieldSpec {
 
     pub(in crate::datastore) fn get_arrow_field_with_source(
         &self,
-        is_engine_spec: bool,
+        can_guarantee_non_null: bool,
+        field_key: Option<FieldKey>,
     ) -> Result<ArrowField> {
-        // This is required because non-nullable user-defined columns
-        // are nullable in schemas (not every agent uses that col)
-        // while non-nullable built-ins must be nullable
-        let base_nullability = if is_engine_spec {
+        // We cannot guarantee non-nullability for certain root-level arrow-fields due to how we initialise data currently.
+        // As this is an impl on FieldSpec we need the calling context to provide the guarantee that the nullablity is
+        // enforced.
+        let base_nullability = if can_guarantee_non_null {
             self.field_type.nullable
         } else {
             true
         };
-        Ok(ArrowField::new(
-            &self.name,
-            self.field_type.get_arrow_data_type()?,
-            base_nullability,
-        ))
-    }
 
-    pub fn get_arrow_field(&self) -> Result<ArrowField> {
-        // Direct calls convert nullability to true, since it's assumed they
-        // don't come from the core engine.
-        let base_nullability = true;
-        Ok(ArrowField::new(
-            &self.name,
-            self.field_type.get_arrow_data_type()?,
-            base_nullability,
-        ))
+        if let Some(key) = field_key {
+            Ok(ArrowField::new(
+                key.value(),
+                self.field_type.get_arrow_data_type()?,
+                base_nullability,
+            ))
+        } else {
+            Ok(ArrowField::new(
+                &self.name,
+                self.field_type.get_arrow_data_type()?,
+                base_nullability,
+            ))
+        }
     }
 }
 
 impl FieldSpecMap {
     pub fn get_arrow_schema(&self) -> Result<ArrowSchema> {
-        let mut partitioned_keys = Vec::with_capacity(self.len());
+        let mut partitioned_fields = Vec::with_capacity(self.len());
         let mut fixed_size_no = 0;
 
         let mut any_types = vec![];
@@ -167,10 +133,10 @@ impl FieldSpecMap {
         for (key, field_spec) in self.iter() {
             let key = key.value().to_string();
             if field_spec.inner.field_type.is_fixed_size() {
-                partitioned_keys.insert(0, (field_spec, key.clone()));
+                partitioned_fields.insert(0, (field_spec, key.clone()));
                 fixed_size_no += 1;
             } else {
-                partitioned_keys.push((field_spec, key.clone()));
+                partitioned_fields.push((field_spec, key.clone()));
             }
 
             if matches!(
@@ -181,34 +147,21 @@ impl FieldSpecMap {
             }
         }
 
-        // Sort both partitions by key names
-        let name_sort = |a: &(&RootFieldSpec, String), b: &(&RootFieldSpec, String)| a.1.cmp(&b.1);
-        partitioned_keys[0..fixed_size_no].sort_by(name_sort);
-
-        // Ensure our special key is in the right place
-        if &partitioned_keys[PREVIOUS_INDEX_COLUMN_INDEX].1 != PREVIOUS_INDEX_COLUMN_NAME {
-            if let Some(cur_index) = partitioned_keys[0..fixed_size_no]
-                .iter()
-                .position(|b| b.1 == PREVIOUS_INDEX_COLUMN_NAME)
-            {
-                partitioned_keys[0..fixed_size_no].swap(cur_index, PREVIOUS_INDEX_COLUMN_INDEX)
-            } else {
-                return Err(Error::SpecialKeyMissing(
-                    PREVIOUS_INDEX_COLUMN_NAME.to_string(),
-                ));
-            }
-        }
-        partitioned_keys[fixed_size_no..].sort_by(name_sort);
-        let nullabilities = partitioned_keys
+        // Sort both partitions by field keys
+        let key_sort = |a: &(&RootFieldSpec, String), b: &(&RootFieldSpec, String)| a.1.cmp(&b.1);
+        partitioned_fields[0..fixed_size_no].sort_by(key_sort);
+        partitioned_fields[fixed_size_no..].sort_by(key_sort);
+        let nullabilities = partitioned_fields
             .iter()
             .map(|spec| (spec.0.inner.field_type.nullable as usize).to_string())
             .collect::<Vec<_>>();
 
         let mut metadata = HashMap::with_capacity(1);
+        // TODO - Rename serialized to any_types
         metadata.insert("serialized".into(), any_types.join(","));
         metadata.insert("nullable".into(), nullabilities.join(","));
         Ok(ArrowSchema::new_with_metadata(
-            partitioned_keys
+            partitioned_fields
                 .iter()
                 .map(|k| k.0.get_arrow_field())
                 .collect::<Result<_>>()?,
