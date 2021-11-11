@@ -460,11 +460,18 @@ const deleteNonVersionedLink = async (
   params: { sourceAccountId: string; linkId: string },
 ): Promise<void> => {
   /** @todo: update postgres schema to cascade delete */
-  await conn.query(sql`
-    delete from outgoing_links where source_account_id = ${params.sourceAccountId} link_id = ${params.linkId};
-    delete from incoming_links where source_account_id = ${params.sourceAccountId} link_id = ${params.linkId};
+
+  await Promise.all([
+    conn.query(sql`
+    delete from outgoing_links where source_account_id = ${params.sourceAccountId} and link_id = ${params.linkId};
+  `),
+    conn.query(sql`
+    delete from incoming_links where source_account_id = ${params.sourceAccountId} and link_id = ${params.linkId};
+  `),
+    conn.query(sql`
     delete from links where source_account_id = ${params.sourceAccountId} and link_id = ${params.linkId};
-  `);
+  `),
+  ]);
 };
 
 export const deleteLink = async (

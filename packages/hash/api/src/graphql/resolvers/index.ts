@@ -11,6 +11,7 @@ import {
   transferEntity,
 } from "./entity";
 import { createLink } from "./link/createLink";
+import { deleteLink } from "./link/deleteLink";
 import { deleteLinkByPath } from "./link/deleteLinkByPath";
 import { blockFields } from "./block";
 import {
@@ -88,6 +89,8 @@ export const resolvers = {
     // Logged in and signed up users only
     createEntity: loggedInAndSignedUp(createEntity),
     createLink: loggedInAndSignedUp(createLink),
+    deleteLink: loggedInAndSignedUp(deleteLink),
+    deleteLinkByPath: loggedInAndSignedUp(deleteLinkByPath),
     createEntityType: loggedInAndSignedUp(createEntityType),
     createFileFromLink: loggedInAndSignedUp(createFileFromLink),
     createPage: loggedInAndSignedUp(createPage),
@@ -100,7 +103,6 @@ export const resolvers = {
     updateEntityType: loggedInAndSignedUp(updateEntityType),
     updatePage: loggedInAndSignedUp(updatePage),
     updatePageContents: loggedInAndSignedUp(updatePageContents),
-    deleteLinkByPath: loggedInAndSignedUp(deleteLinkByPath),
     joinOrg: loggedInAndSignedUp(joinOrg),
     requestFileUpload: loggedInAndSignedUp(requestFileUpload),
     // Logged in users only

@@ -1,6 +1,6 @@
 import { ApolloError } from "apollo-server-errors";
 import { MutationCreateLinkArgs, Resolver } from "../../apiTypes.gen";
-import { Entity, Link, UnresolvedGQLLink } from "../../../model";
+import { Entity, UnresolvedGQLLink } from "../../../model";
 import { LoggedInGraphQLContext } from "../../context";
 
 export const createLink: Resolver<
@@ -48,9 +48,8 @@ export const createLink: Resolver<
       throw new ApolloError(msg, "NOT_FOUND");
     }
 
-    const link = await Link.create(client, {
+    const link = await source.createOutgoingLink(client, {
       stringifiedPath: linkInput.path,
-      source,
       destination,
       destinationEntityVersionId: destinationEntityVersionId || undefined,
     });

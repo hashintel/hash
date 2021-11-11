@@ -1,4 +1,5 @@
 import { JSONObject } from "@hashintel/block-protocol";
+import { ApolloError } from "apollo-server-errors";
 import { merge } from "lodash";
 import {
   Account,
@@ -336,6 +337,31 @@ class __Entity {
     return this;
   }
 
+  async getOutgoingLinks(client: DBClient) {
+    const outgoingDBLinks = await client.getEntityOutgoingLinks({
+      accountId: this.accountId,
+      entityId: this.entityId,
+      entityVersionId: this.metadata.versioned
+        ? this.entityVersionId
+        : undefined,
+    });
+    return outgoingDBLinks.map((dbLink) => new Link(dbLink));
+  }
+
+  async getOutgoingLink(
+    client: DBClient,
+    params: {
+      linkId: string;
+    },
+  ) {
+    const link = await Link.get(client, {
+      ...params,
+      sourceAccountId: this.accountId,
+    });
+
+    return link;
+  }
+
   async createOutgoingLink(
     client: DBClient,
     params: Omit<CreateLinkArgs, "source">,
@@ -348,15 +374,22 @@ class __Entity {
     return link;
   }
 
-  async getOutgoingLinks(client: DBClient) {
-    const outgoingDBLinks = await client.getEntityOutgoingLinks({
-      accountId: this.accountId,
-      entityId: this.entityId,
-      entityVersionId: this.metadata.versioned
-        ? this.entityVersionId
-        : undefined,
-    });
-    return outgoingDBLinks.map((dbLink) => new Link(dbLink));
+  async deleteOutgoingLink(
+    client: DBClient,
+    params: { linkId: string },
+  ): Promise<void> {
+    const link = await this.getOutgoingLink(client, params);
+
+    if (!link) {
+      throw new ApolloError(
+        `Link with sourceAccountId ${this.accountId}, sourceEntityId ${this.entityId} and linkId ${params.linkId} not found`,
+        "NOT_FOUND",
+      );
+    }
+
+    /** @todo: check source entity type whether this link can be deleted */
+
+    await link.delete(client);
   }
 
   toGQLEntity(): Omit<UnresolvedGQLEntity, "properties"> {
