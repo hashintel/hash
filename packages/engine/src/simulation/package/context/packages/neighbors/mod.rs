@@ -3,6 +3,7 @@ use std::sync::Arc;
 use crate::config::{Globals, TopologyConfig};
 use crate::datastore::batch::AgentBatch;
 use crate::datastore::schema::accessor::FieldSpecMapAccessor;
+use crate::datastore::schema::context::ContextSchema;
 use crate::datastore::schema::FieldSpecMapBuilder;
 use crate::datastore::table::state::view::StateSnapshot;
 use crate::datastore::table::state::State;
@@ -122,7 +123,11 @@ impl Package for Neighbors {
         })
     }
 
-    fn get_empty_arrow_column(&self, num_agents: usize) -> Result<Arc<dyn arrow::array::Array>> {
+    fn get_empty_arrow_column(
+        &self,
+        num_agents: usize,
+        _schema: &ContextSchema,
+    ) -> Result<Arc<dyn arrow::array::Array>> {
         let index_builder = ArrowIndexBuilder::new(1024);
 
         let neighbor_index_builder = arrow::array::FixedSizeListBuilder::new(index_builder, 2);

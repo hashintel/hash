@@ -79,7 +79,11 @@ impl Package for AgentMessages {
         })
     }
 
-    fn get_empty_arrow_column(&self, num_agents: usize) -> Result<Arc<dyn ArrowArray>> {
+    fn get_empty_arrow_column(
+        &self,
+        num_agents: usize,
+        _schema: &ContextSchema,
+    ) -> Result<Arc<dyn ArrowArray>> {
         let index_builder = ArrowIndexBuilder::new(1024);
 
         let neighbor_index_builder = arrow::array::FixedSizeListBuilder::new(index_builder, 3);
