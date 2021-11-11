@@ -6,6 +6,7 @@ import { apiOrigin } from "@hashintel/hash-shared/environment";
 import { entityStoreFromProsemirror } from "@hashintel/hash-shared/entityStorePlugin";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { updatePageMutation } from "@hashintel/hash-shared/save";
+// import applyDevTools from "prosemirror-dev-tools";
 import { Schema } from "prosemirror-model";
 import { Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
