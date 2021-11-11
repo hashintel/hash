@@ -52,6 +52,7 @@ export type Entity = {
 export type DBLink = {
   linkId: string;
   path: string;
+  index?: number;
   sourceAccountId: string;
   sourceEntityId: string;
   sourceEntityVersionIds: Set<string>;
@@ -361,6 +362,7 @@ export interface DBClient {
   /** Create a link */
   createLink(params: {
     path: string;
+    index?: number;
     sourceAccountId: string;
     sourceEntityId: string;
     sourceEntityVersionIds: Set<string>;

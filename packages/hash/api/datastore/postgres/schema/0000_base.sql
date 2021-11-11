@@ -124,6 +124,8 @@ create table if not exists links (
     link_id                       uuid not null,
     -- The JSON path of the link on the source entity's properties JSON blob
     path                          text not null,
+    -- The index of the link
+    index                         integer default null,
     -- The account id of the source entity
     source_account_id             uuid not null,
     -- The entity id of the source entity.
@@ -147,6 +149,8 @@ create table if not exists links (
       link_id
     )
 );
+
+/** @todo: create link table index */
 
 /** Stores parent --> child link references for looking up the outgoing links for a given entity */
 create table if not exists outgoing_links (

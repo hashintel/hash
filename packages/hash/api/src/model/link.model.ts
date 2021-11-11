@@ -10,14 +10,22 @@ export type UnresolvedGQLLink = Omit<GQLLink, GQLLinkExternalResolvers>;
 
 export type CreateLinkArgs = {
   stringifiedPath: string;
+  index?: number;
   source: Entity;
   destination: Entity;
   destinationEntityVersionId?: string;
 };
 
+/**
+ * The supported JSON path component types of a JSON path
+ * associated with a link.
+ *
+ * Note: indices are not valid component types for the JSON path,
+ * a single index can be associated with a link using the dedicated
+ * `index` field
+ */
 const SUPPORTED_JSONPATH_COMPONENT_TYPES = [
   "identifier", // e.g. .memberOf
-  "numeric_literal", // e.g. [0]
   "string_literal", // e.g. ["memberOf"]
 ] as const;
 
@@ -44,6 +52,7 @@ const isUnupportedJSONPath = (components: JSONPathComponent[]) =>
 type LinkConstructorArgs = {
   linkId: string;
   path: string;
+  index?: number;
   sourceAccountId: string;
   sourceEntityId: string;
   sourceEntityVersionIds: Set<string>;
@@ -59,6 +68,7 @@ class __Link {
   linkId: string;
   stringifiedPath: string;
   path: jp.PathComponent[];
+  index?: number;
 
   sourceAccountId: string;
   sourceEntityId: string;
@@ -75,6 +85,7 @@ class __Link {
   constructor({
     linkId,
     path,
+    index,
     sourceAccountId,
     sourceEntityId,
     sourceEntityVersionIds,
@@ -88,6 +99,7 @@ class __Link {
     this.linkId = linkId;
     this.stringifiedPath = path;
     this.path = Link.parseStringifiedPath(path);
+    this.index = index;
     this.sourceAccountId = sourceAccountId;
     this.sourceEntityId = sourceEntityId;
     this.sourceEntityVersionIds = sourceEntityVersionIds;
@@ -144,12 +156,7 @@ class __Link {
 
     Link.validatePath(stringifiedPath);
 
-    if (source.metadata.versioned) {
-      /** @todo: implement a function dedicated to creating a new version of an entity and use it instead of this hack */
-      await source.updateEntityProperties(client, source.properties);
-    }
-
-    /** @todo: check entity type to see if there is an inverse relatioship needs to be created */
+    /** @todo: check entity type to see if there is an inverse relationship needs to be created */
 
     if (destinationEntityVersionId) {
       /** @todo: ensure destination entity has version where entityVersionId === destinationEntityVersionId */
@@ -160,6 +167,7 @@ class __Link {
       destination;
 
     const dbLink = await client.createLink({
+      ...params,
       path: stringifiedPath,
       sourceAccountId,
       sourceEntityId,
@@ -190,10 +198,6 @@ class __Link {
       sourceAccountId: this.sourceAccountId,
       linkId: this.linkId,
     });
-
-    if (this.source) {
-      await this.source.refetchLatestVersion(client);
-    }
   }
 
   private async fetchSource(client: DBClient) {
@@ -247,6 +251,7 @@ class __Link {
       destinationEntityId: this.destinationEntityId,
       destinationEntityVersionId: this.destinationEntityVersionId,
       path: this.stringifiedPath,
+      index: this.index,
     };
   }
 }

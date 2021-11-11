@@ -366,10 +366,17 @@ class __Entity {
     client: DBClient,
     params: Omit<CreateLinkArgs, "source">,
   ) {
+    /** @todo: check entity type whether this link can be created */
+
     const link = await Link.create(client, {
       ...params,
       source: this,
     });
+
+    // If this is a versioned entity, fetch the updated entityVersionId
+    if (this.metadata.versioned) {
+      await this.refetchLatestVersion(client);
+    }
 
     return link;
   }
@@ -387,9 +394,13 @@ class __Entity {
       );
     }
 
-    /** @todo: check source entity type whether this link can be deleted */
+    /** @todo: check entity type whether this link can be deleted */
 
     await link.delete(client);
+
+    if (this.metadata.versioned) {
+      await this.refetchLatestVersion(client);
+    }
   }
 
   toGQLEntity(): Omit<UnresolvedGQLEntity, "properties"> {

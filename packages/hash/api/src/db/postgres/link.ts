@@ -10,6 +10,7 @@ import {
   updateVersionedEntity,
 } from "./entity";
 import { DbEntityNotFoundError, DbLinkNotFoundError } from "..";
+import { genId } from "../../util";
 // import { gatherLinks } from "./util";
 // import { getEntityAccountIdMany } from "./account";
 // import { DbInvalidLinksError } from "../errors";
@@ -368,6 +369,7 @@ export const insertIncomingLink = async (
 const linksColumnNames = [
   "link_id",
   "path",
+  "index",
   "source_account_id",
   "source_entity_id",
   "source_entity_version_ids",
@@ -379,11 +381,43 @@ const linksColumnNames = [
 
 const linksColumnNamesSQL = mapColumnNamesToSQL(linksColumnNames);
 
+type DBLinkRow = {
+  link_id: string;
+  path: string;
+  index: number | null;
+  source_account_id: string;
+  source_entity_id: string;
+  source_entity_version_ids: string[];
+  destination_account_id: string;
+  destination_entity_id: string;
+  destination_entity_version_id: string | null;
+  created_at: string;
+};
+
+const mapDBLinkRowToDBLink = (row: DBLinkRow): DBLink => ({
+  linkId: row.link_id,
+  path: row.path,
+  index: row.index === null ? undefined : row.index,
+  sourceAccountId: row.source_account_id,
+  sourceEntityId: row.source_entity_id,
+  sourceEntityVersionIds: new Set(row.source_entity_version_ids),
+  destinationAccountId: row.destination_account_id,
+  destinationEntityId: row.destination_entity_id,
+  destinationEntityVersionId: row.destination_entity_version_id || undefined,
+  createdAt: new Date(row.created_at),
+});
+
+export const selectLinks = sql<DBLinkRow>`
+  select ${linksColumnNamesSQL}
+  from links
+`;
+
 export const insertLink = async (
   conn: Connection,
   params: {
     linkId: string;
     path: string;
+    index?: number;
     sourceAccountId: string;
     sourceEntityId: string;
     sourceEntityVersionIds: Set<string>;
@@ -399,6 +433,7 @@ export const insertLink = async (
       [
         params.linkId,
         params.path,
+        params.index === undefined ? null : params.index,
         params.sourceAccountId,
         params.sourceEntityId,
         sql.array(Array.from(params.sourceEntityVersionIds), "uuid"),
@@ -412,34 +447,29 @@ export const insertLink = async (
   `);
 };
 
-type DBLinkRow = {
-  link_id: string;
-  path: string;
-  source_account_id: string;
-  source_entity_id: string;
-  source_entity_version_ids: string[];
-  destination_account_id: string;
-  destination_entity_id: string;
-  destination_entity_version_id: string | null;
-  created_at: string;
+const updateLinkIndices = async (
+  conn: Connection,
+  params: {
+    sourceAccountId: string;
+    sourceEntityId: string;
+    path: string;
+    minimumIndex: number;
+    operation: "increment" | "decrement";
+  },
+): Promise<void> => {
+  const { operation } = params;
+  await conn.query(sql`
+    update links
+    set index = index + ${operation === "increment" ? 1 : -1}
+    where (
+      source_account_id = ${params.sourceAccountId}
+      and source_entity_id = ${params.sourceEntityId}
+      and path = ${params.path}
+      and index is not null
+      and index >= ${params.minimumIndex}
+    );
+  `);
 };
-
-const mapDBLinkRowToDBLink = (row: DBLinkRow): DBLink => ({
-  linkId: row.link_id,
-  path: row.path,
-  sourceAccountId: row.source_account_id,
-  sourceEntityId: row.source_entity_id,
-  sourceEntityVersionIds: new Set(row.source_entity_version_ids),
-  destinationAccountId: row.destination_account_id,
-  destinationEntityId: row.destination_entity_id,
-  destinationEntityVersionId: row.destination_entity_version_id || undefined,
-  createdAt: new Date(row.created_at),
-});
-
-export const selectLinks = sql<DBLinkRow>`
-  select ${linksColumnNamesSQL}
-  from links
-`;
 
 export const getLink = async (
   conn: Connection,
@@ -454,6 +484,188 @@ export const getLink = async (
 
   return row ? mapDBLinkRowToDBLink(row) : null;
 };
+
+const getLinksWithMinimumIndex = async (
+  conn: Connection,
+  params: {
+    sourceAccountId: string;
+    sourceEntityId: string;
+    sourceEntityVersionId: string;
+    path: string;
+    minimumIndex: number;
+  },
+): Promise<DBLink[]> => {
+  const linkRows = await conn.any(sql<DBLinkRow>`
+      ${selectLinks}
+      where
+        source_account_id = ${params.sourceAccountId}
+        and source_entity_id = ${params.sourceEntityId}
+        and ${params.sourceEntityVersionId} = ANY(source_entity_version_ids)
+        and path = ${params.path}
+        and index is not null
+        and index >= ${params.minimumIndex}
+  `);
+
+  return linkRows.map(mapDBLinkRowToDBLink);
+};
+
+export const createLink = async (
+  existingConnection: Connection,
+  params: {
+    path: string;
+    index?: number;
+    sourceAccountId: string;
+    sourceEntityId: string;
+    destinationAccountId: string;
+    destinationEntityId: string;
+    destinationEntityVersionId?: string;
+  },
+): Promise<DBLink> =>
+  existingConnection.transaction(async (conn) => {
+    const now = new Date();
+
+    // Defer FKs until end of transaction so we can insert concurrently
+    await conn.query(sql`
+      set constraints
+        outgoing_links_source_account_id_link_id_fkey,
+        incoming_links_source_account_id_link_id_fkey
+      deferred
+    `);
+
+    const { sourceAccountId, sourceEntityId } = params;
+
+    await acquireEntityLock(conn, { entityId: sourceEntityId });
+
+    let dbSourceEntity = await getEntityLatestVersion(conn, {
+      accountId: sourceAccountId,
+      entityId: sourceEntityId,
+    }).then((dbEntity) => {
+      if (!dbEntity) {
+        throw new DbEntityNotFoundError({
+          accountId: sourceAccountId,
+          entityId: sourceEntityId,
+        });
+      }
+      return dbEntity;
+    });
+
+    const { index, path } = params;
+    /** @todo: check index isn't out of bounds */
+
+    if (dbSourceEntity.metadata.versioned) {
+      /**
+       * When the source entity is versioned, we have to create a new version
+       * of the entity (with an updated entityVerisonId).
+       *
+       * Note when the new link also has an index, we have to re-create all
+       * links whose index has to be incremented, which are the links that:
+       *  - are outgoing links of the previous entity's version
+       *  - have the same path
+       *  - have an index which is greater than or equal to the index of the new link's index
+       */
+
+      const affectedOutgoingLinks =
+        index !== undefined
+          ? await getLinksWithMinimumIndex(conn, {
+              sourceAccountId,
+              sourceEntityId,
+              sourceEntityVersionId: dbSourceEntity.entityVersionId,
+              minimumIndex: index,
+              path,
+            })
+          : [];
+
+      dbSourceEntity = await updateVersionedEntity(conn, {
+        entity: dbSourceEntity,
+        /** @todo: re-implement method to not require updated `properties` */
+        properties: dbSourceEntity.properties,
+        /**
+         * When the new link is indexed, we have to omit all links whose index
+         * have to be changed from the new entity version
+         */
+        omittedOutgoingLinks: affectedOutgoingLinks,
+      });
+
+      if (index !== undefined) {
+        /** @todo: implement insertLinks and use that instead of many insertLink queries */
+
+        await Promise.all(
+          affectedOutgoingLinks
+            .map((previousLink) => {
+              const linkId = genId();
+              return [
+                insertLink(conn, {
+                  ...previousLink,
+                  linkId,
+                  index: previousLink.index! + 1,
+                  sourceEntityVersionIds: new Set([
+                    dbSourceEntity.entityVersionId,
+                  ]),
+                  createdAt: now,
+                }),
+                insertOutgoingLink(conn, {
+                  sourceAccountId,
+                  sourceEntityId,
+                  linkId,
+                }),
+                insertIncomingLink(conn, {
+                  destinationAccountId: previousLink.destinationAccountId,
+                  destinationEntityId: previousLink.destinationEntityId,
+                  sourceAccountId,
+                  linkId,
+                }),
+              ];
+            })
+            .flat(),
+        );
+      }
+    } else if (index !== undefined) {
+      /**
+       * When the source entity is not versioned and the new link has an index,
+       * we can directly updated the links that:
+       *  - are outgoing links of the source entity
+       *  - have the same path
+       *  - have an index which is greater than or equal to the index of the new link's index
+       */
+      await updateLinkIndices(conn, {
+        sourceAccountId,
+        sourceEntityId,
+        path,
+        minimumIndex: index,
+        operation: "increment",
+      });
+    }
+
+    const { destinationAccountId, destinationEntityId } = params;
+
+    const linkId = genId();
+    const sourceEntityVersionIds: Set<string> = new Set([
+      dbSourceEntity.entityVersionId,
+    ]);
+    const createdAt = now;
+
+    await Promise.all([
+      insertLink(conn, {
+        ...params,
+        sourceEntityVersionIds,
+        linkId,
+        createdAt,
+      }),
+      insertOutgoingLink(conn, {
+        sourceAccountId,
+        sourceEntityId,
+        linkId,
+      }),
+      insertIncomingLink(conn, {
+        destinationAccountId,
+        destinationEntityId,
+        sourceAccountId,
+        linkId,
+      }),
+    ]);
+
+    return { ...params, sourceEntityVersionIds, linkId, createdAt };
+  });
 
 const deleteNonVersionedLink = async (
   conn: Connection,
@@ -475,42 +687,120 @@ const deleteNonVersionedLink = async (
 };
 
 export const deleteLink = async (
-  conn: Connection,
+  existingConnection: Connection,
   params: { sourceAccountId: string; linkId: string },
-): Promise<void> => {
-  const dbLink = await getLink(conn, params);
+): Promise<void> =>
+  existingConnection.transaction(async (conn) => {
+    const dbLink = await getLink(conn, params);
 
-  if (!dbLink) {
-    throw new DbLinkNotFoundError(params);
-  }
+    if (!dbLink) {
+      throw new DbLinkNotFoundError(params);
+    }
 
-  const { sourceAccountId, sourceEntityId } = dbLink;
+    const { sourceAccountId, sourceEntityId, path, index } = dbLink;
 
-  await acquireEntityLock(conn, { entityId: sourceEntityId });
+    await acquireEntityLock(conn, { entityId: sourceEntityId });
 
-  const dbSourceEntity = await getEntityLatestVersion(conn, {
-    accountId: sourceAccountId,
-    entityId: sourceEntityId,
-  });
-
-  if (!dbSourceEntity) {
-    throw new DbEntityNotFoundError({
+    let dbSourceEntity = await getEntityLatestVersion(conn, {
       accountId: sourceAccountId,
       entityId: sourceEntityId,
-    });
-  }
+    }).then((dbEntity) => {
+      if (!dbEntity) {
+        throw new DbEntityNotFoundError({
+          accountId: sourceAccountId,
+          entityId: sourceEntityId,
+        });
+      }
 
-  return dbSourceEntity.metadata.versioned
-    ? await updateVersionedEntity(conn, {
+      return dbEntity;
+    });
+
+    if (dbSourceEntity.metadata.versioned) {
+      /**
+       * When the source entity is versioned, we have to create a new version
+       * of the entity.
+       *
+       * Note when the deleted link also has an index, we have to re-create all
+       * links whose index has to be decremented, which are the links that:
+       *  - are outgoing links of the previous entity's version
+       *  - have the same path
+       *  - have an index which is greater than the index of the deleted link's index
+       */
+
+      const affectedOutgoingLinks =
+        index !== undefined
+          ? await getLinksWithMinimumIndex(conn, {
+              sourceAccountId,
+              sourceEntityId,
+              sourceEntityVersionId: dbSourceEntity.entityVersionId,
+              minimumIndex: index + 1,
+              path,
+            })
+          : [];
+
+      dbSourceEntity = await updateVersionedEntity(conn, {
         entity: dbSourceEntity,
         /** @todo: re-implement method to not require updated `properties` */
         properties: dbSourceEntity.properties,
-        omittedOutgoingLinks: [{ ...params }],
-      }).then(() => undefined)
-    : await deleteNonVersionedLink(conn, params);
-};
+        omittedOutgoingLinks: [
+          ...affectedOutgoingLinks,
+          { sourceAccountId, linkId: params.linkId },
+        ],
+      });
 
-export const addsourceEntityVersionIdToLink = async (
+      if (index !== undefined) {
+        /** @todo: implement insertLinks and use that instead of many insertLink queries */
+        const now = new Date();
+
+        await Promise.all(
+          affectedOutgoingLinks
+            .map((previousLink) => {
+              const linkId = genId();
+              return [
+                insertLink(conn, {
+                  ...previousLink,
+                  linkId,
+                  index: previousLink.index! - 1,
+                  sourceEntityVersionIds: new Set([
+                    dbSourceEntity.entityVersionId,
+                  ]),
+                  createdAt: now,
+                }),
+                insertOutgoingLink(conn, {
+                  sourceAccountId,
+                  sourceEntityId,
+                  linkId,
+                }),
+                insertIncomingLink(conn, {
+                  destinationAccountId: previousLink.destinationAccountId,
+                  destinationEntityId: previousLink.destinationEntityId,
+                  sourceAccountId,
+                  linkId,
+                }),
+              ];
+            })
+            .flat(),
+        );
+      }
+    } else {
+      await Promise.all(
+        [
+          index !== undefined
+            ? updateLinkIndices(conn, {
+                sourceAccountId,
+                sourceEntityId,
+                path,
+                minimumIndex: index + 1,
+                operation: "decrement",
+              })
+            : [],
+          deleteNonVersionedLink(conn, params),
+        ].flat(),
+      );
+    }
+  });
+
+export const addSourceEntityVersionIdToLink = async (
   conn: Connection,
   params: {
     sourceAccountId: string;
@@ -518,7 +808,7 @@ export const addsourceEntityVersionIdToLink = async (
     newsourceEntityVersionId: string;
   },
 ) => {
-  await conn.one(
+  await conn.many(
     sql`
       update links
       set source_entity_version_ids = array_append(links.source_entity_version_ids, ${params.newsourceEntityVersionId})
@@ -526,6 +816,7 @@ export const addsourceEntityVersionIdToLink = async (
         source_account_id = ${params.sourceAccountId}
         and link_id = ${params.linkId}
         and not ${params.newsourceEntityVersionId} = ANY(links.source_entity_version_ids)
+      returning link_id
     `,
   );
 };
@@ -555,6 +846,7 @@ export const getEntityOutgoingLinks = async (
       ].flat(),
       sql` and `,
     )}
+    order by index
   `);
 
   return rows.map(mapDBLinkRowToDBLink);

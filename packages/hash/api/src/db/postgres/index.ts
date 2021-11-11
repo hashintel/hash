@@ -203,6 +203,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   createLink(params: {
     accountId: string;
     path: string;
+    index?: number;
     sourceAccountId: string;
     sourceEntityId: string;
     sourceEntityVersionIds: Set<string>;

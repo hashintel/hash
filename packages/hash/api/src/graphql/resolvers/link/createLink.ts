@@ -50,6 +50,7 @@ export const createLink: Resolver<
 
     const link = await source.createOutgoingLink(client, {
       stringifiedPath: linkInput.path,
+      index: typeof linkInput.index === "number" ? linkInput.index : undefined,
       destination,
       destinationEntityVersionId: destinationEntityVersionId || undefined,
     });

@@ -45,12 +45,10 @@ import {
 import {
   getAncestorReferences,
   getChildren,
-  deleteLink,
   getEntityOutgoingLinks,
   getLink,
-  insertIncomingLink,
-  insertLink,
-  insertOutgoingLink,
+  createLink,
+  deleteLink,
 } from "./link";
 import { getUserByEmail, getUserByShortname } from "./user";
 import {
@@ -410,6 +408,7 @@ export class PostgresClient implements DBClient {
 
   async createLink(params: {
     path: string;
+    index?: number;
     sourceAccountId: string;
     sourceEntityId: string;
     sourceEntityVersionIds: Set<string>;
@@ -417,32 +416,7 @@ export class PostgresClient implements DBClient {
     destinationEntityId: string;
     destinationEntityVersionId?: string;
   }): Promise<DBLink> {
-    return await this.conn.transaction(async (conn) => {
-      const linkId = genId();
-      const createdAt = new Date();
-
-      // Defer FKs until end of transaction so we can insert concurrently
-      await conn.query(sql`
-        set constraints
-          outgoing_links_source_account_id_link_id_fkey,
-          incoming_links_source_account_id_link_id_fkey
-        deferred
-      `);
-
-      await Promise.all([
-        insertLink(conn, { ...params, linkId, createdAt }),
-        insertOutgoingLink(conn, {
-          ...params,
-          linkId,
-        }),
-        insertIncomingLink(conn, {
-          ...params,
-          linkId,
-        }),
-      ]);
-
-      return { ...params, linkId, createdAt };
-    });
+    return await createLink(this.conn, params);
   }
 
   async getLink(params: {

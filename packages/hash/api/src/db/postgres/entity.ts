@@ -7,7 +7,7 @@ import { Visibility } from "../../graphql/apiTypes.gen";
 import { genId } from "../../util";
 import { insertEntityAccount } from "./account";
 import { DbEntityNotFoundError } from "../errors";
-import { addsourceEntityVersionIdToLink, getEntityOutgoingLinks } from "./link";
+import { addSourceEntityVersionIdToLink, getEntityOutgoingLinks } from "./link";
 
 /** Prefix to distinguish identical fields when joining with a type record */
 const entityTypeFieldPrefix = "type.";
@@ -660,7 +660,7 @@ export const updateVersionedEntity = async (
         outgoingLinks
           .filter(isDbLinkInNextVersion)
           .map(({ sourceAccountId, linkId }) =>
-            addsourceEntityVersionIdToLink(conn, {
+            addSourceEntityVersionIdToLink(conn, {
               sourceAccountId,
               linkId,
               newsourceEntityVersionId: newEntityVersion.entityVersionId,

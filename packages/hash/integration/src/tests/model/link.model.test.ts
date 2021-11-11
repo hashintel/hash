@@ -52,9 +52,12 @@ beforeAll(async () => {
 
 describe("Link model class ", () => {
   it("static isPathValid method correctly validates JSON path correctly", () => {
-    expect(Link.isPathValid("$.this[0].path['should'].be[\"supported\"]")).toBe(
+    expect(Link.isPathValid("$.this.path['should'].be[\"supported\"]")).toBe(
       true,
     );
+    expect(Link.isPathValid("$.this.path.is.not.supported[0]")).toBe(false);
+    expect(Link.isPathValid("$")).toBe(false);
+    expect(Link.isPathValid("$.")).toBe(false);
     expect(Link.isPathValid("thispathisn'tsupported")).toBe(false);
     expect(Link.isPathValid("$.this.is.not.supported.")).toBe(false);
     expect(Link.isPathValid("$.this[*].is.not.supported")).toBe(false);
@@ -62,8 +65,8 @@ describe("Link model class ", () => {
 
   it("static parsePath method correctly parses a suppported JSON path", () => {
     expect(
-      Link.parseStringifiedPath("$.this[0].path['should'].be[\"supported\"]"),
-    ).toEqual(["this", 0, "path", "should", "be", "supported"]);
+      Link.parseStringifiedPath("$.this.path['should'].be[\"supported\"]"),
+    ).toEqual(["this", "path", "should", "be", "supported"]);
     expect(() =>
       Link.parseStringifiedPath("$.this[*].path.is.not.supported"),
     ).toThrow(/Cannot parse unsupported JSON path/);
@@ -91,6 +94,37 @@ describe("Link model class ", () => {
 
     const link = await Link.create(db, {
       stringifiedPath: "$.linkName",
+      source: entity1,
+      destination: entity2,
+    });
+
+    expect(link.sourceEntityId).toBe(entity1.entityId);
+    expect(link.destinationEntityId).toBe(entity2.entityId);
+  });
+
+  it("static create method can create a link with an index", async () => {
+    const accountId = existingUser.accountId;
+    const createdById = existingUser.entityId;
+
+    const entity1 = await Entity.create(db, {
+      accountId,
+      createdById,
+      versioned: true,
+      entityTypeId: dummyEntityType.entityId,
+      properties: {},
+    });
+
+    const entity2 = await Entity.create(db, {
+      accountId,
+      createdById,
+      versioned: true,
+      entityTypeId: dummyEntityType.entityId,
+      properties: {},
+    });
+
+    const link = await Link.create(db, {
+      stringifiedPath: "$.linkName",
+      index: 0,
       source: entity1,
       destination: entity2,
     });
