@@ -34,11 +34,11 @@ const key = new PluginKey<MarksTooltipState, Schema>("markstooltip");
 
 const linkPluginKey = new PluginKey<LinkPluginState, Schema>("linkPlugin");
 
-const tooltipRef = React.createRef<HTMLDivElement>();
-const linkModalRef = React.createRef<HTMLDivElement>();
-
 export function createFormatPlugins(renderPortal: RenderPortal) {
   let timeout: NodeJS.Timeout;
+
+  const linkModalRef = React.createRef<HTMLDivElement>();
+
   const marksTooltip = new Plugin<MarksTooltipState, Schema>({
     key,
     /**
@@ -104,7 +104,6 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
            * you're got an entire node selection, or the text selected is
            * not within a paragraph
            *
-           * @todo enable the format tooltip outside of a paragraph node
            */
           if (
             !key.getState(view.state)?.focused ||
@@ -139,11 +138,7 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
           const activeMarks = getActiveMarksWithAttrs(editorView);
 
           const jsx = (
-            <div
-              className={tw`absolute z-30`}
-              style={{ top, left }}
-              ref={tooltipRef}
-            >
+            <div className={tw`absolute z-30`} style={{ top, left }}>
               <MarksTooltip
                 activeMarks={activeMarks}
                 toggleMark={(name, attrs) => {
