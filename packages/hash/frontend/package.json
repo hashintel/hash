@@ -60,6 +60,7 @@
     "rooks": "5.7.1",
     "setimmediate": "1.0.5",
     "twind": "0.16.16",
+    "url-regex-safe": "2.0.2",
     "uuid": "8.3.2"
   },
   "devDependencies": {
@@ -93,6 +94,7 @@
     "@types/prosemirror-view": "1.19.1",
     "@types/react": "17.0.7",
     "@types/react-dom": "17.0.8",
+    "@types/url-regex-safe": "1.0.0",
     "@types/uuid": "8.3.0",
     "@typescript-eslint/eslint-plugin": "4.29.0",
     "@typescript-eslint/parser": "4.29.0",

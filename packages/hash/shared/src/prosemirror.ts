@@ -20,9 +20,14 @@ export const childrenForTextEntity = (
               ["strong", token.bold] as const,
               ["underlined", token.underline] as const,
               ["em", token.italics] as const,
+              [
+                "link",
+                Boolean(token.link),
+                token.link ? { href: token.link } : undefined,
+              ] as const,
             ]
               .filter(([, include]) => include)
-              .map(([mark]) => schema.mark(mark)),
+              .map(([mark, _, attrs]) => schema.mark(mark, attrs)),
           );
         }
       }
@@ -45,6 +50,12 @@ export const nodeToEntityProperties = (node: ProsemirrorNode<Schema>) => {
             ...(marks.has("strong") ? { bold: true } : {}),
             ...(marks.has("em") ? { italics: true } : {}),
             ...(marks.has("underlined") ? { underline: true } : {}),
+            ...(marks.has("link")
+              ? {
+                  link: child.marks.find((mark) => mark.type.name === "link")
+                    ?.attrs?.href,
+                }
+              : {}),
           });
           break;
         }

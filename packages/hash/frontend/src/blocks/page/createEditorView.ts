@@ -11,7 +11,7 @@ import { Schema } from "prosemirror-model";
 import { Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { createBlockSuggester } from "../../components/BlockSuggester/createBlockSuggester";
-import { createMarksTooltip } from "../../components/MarksTooltip";
+import { createFormatPlugins } from "../../components/MarksTooltip";
 import { BlockView } from "./BlockView";
 import { EditorConnection } from "./collab/EditorConnection";
 import { Reporter } from "./collab/Reporter";
@@ -96,7 +96,7 @@ export const createEditorView = (
 
   const plugins: Plugin<unknown, Schema>[] = [
     createSavePlugin(accountId, pageId, getLastSavedValue, client),
-    createMarksTooltip(renderPortal),
+    ...createFormatPlugins(renderPortal),
     createBlockSuggester(renderPortal, () => manager),
   ];
 
