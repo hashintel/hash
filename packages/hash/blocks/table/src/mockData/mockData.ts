@@ -133,7 +133,9 @@ export const initialTableData = {
       "employer.location.entityId",
       "employer.location.type",
     ],
-  } as TableOptions<{}>["initialState"],
+  } as TableOptions<{}>["initialState"] & {
+    columns?: { Header: string; accessor: string }[];
+  },
   data: {
     __linkedData: {
       entityTypeId: "Person",
