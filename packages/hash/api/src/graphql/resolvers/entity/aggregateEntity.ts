@@ -61,9 +61,9 @@ const filterEntities = (
           case "IS_NOT_EMPTY":
             return !!item;
           case "IS":
-            return item === filterItem.value;
+            return item.toLowerCase() === filterItem.value.toLowerCase();
           case "IS_NOT":
-            return item !== filterItem.value;
+            return item.toLowerCase() !== filterItem.value.toLowerCase();
           default:
             return null;
         }

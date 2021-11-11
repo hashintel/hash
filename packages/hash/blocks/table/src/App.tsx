@@ -220,7 +220,7 @@ export const App: BlockComponent<AppProps> = ({
 
   useEffect(() => {
     /** Save the columns in initial state if not present. This helps in retaining
-     * the headers when a filter operation returns an
+     * the headers when a filter operation returns an empty results set
      */
     if (initialState?.columns || !tableData.data?.length) return;
 

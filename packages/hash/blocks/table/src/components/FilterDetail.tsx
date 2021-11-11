@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { tw } from "twind";
 import { v4 as uuid } from "uuid";
 import { ColumnInstance } from "react-table";
@@ -54,39 +54,28 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
   const [combinatorFilterOperator, setCombinatorFilterOperator] =
     useState<BlockProtocolMultiFilterOperatorType>("AND");
   const [filters, setFilters] = useState<FilterFieldsWithId>([]);
+  const isMounted = useRef(false);
 
-  useEffect(() => {
-    if (!multiFilter) return;
-    const fieldsWithId = (multiFilter.filters ?? []).map(
-      ({ field, value, operator }) => ({
-        field,
-        value,
-        operator,
-        id: uuid(),
-      }),
-    );
+  const handleFilter = useCallback(
+    (
+      filterFields?: FilterFieldsWithId,
+      newCombinatorFilterOperator?: BlockProtocolMultiFilterOperatorType,
+    ) => {
+      const filtersWithoutId = (filterFields ?? filters)
+        .filter(({ field }) => Boolean(field))
+        .map(({ field, operator, value }) => ({ field, operator, value }));
 
-    unstable_batchedUpdates(() => {
-      setFilters(fieldsWithId);
-      setCombinatorFilterOperator(multiFilter.operator);
-    });
-  }, [multiFilter]);
+      onFilter({
+        operator: newCombinatorFilterOperator ?? combinatorFilterOperator,
+        filters: filtersWithoutId,
+      });
+    },
+    [filters, combinatorFilterOperator],
+  );
 
-  const handleFilter = (
-    filterFields?: FilterFieldsWithId,
-    newCombinatorFilterOperator?: BlockProtocolMultiFilterOperatorType,
-  ) => {
-    const filtersWithoutId = (filterFields ?? filters)
-      .filter(({ field }) => Boolean(field))
-      .map(({ field, operator, value }) => ({ field, operator, value }));
-
-    onFilter({
-      operator: newCombinatorFilterOperator ?? combinatorFilterOperator,
-      filters: filtersWithoutId,
-    });
-  };
-
-  const debouncedHandleFilter = debounce(handleFilter, 500);
+  const debouncedHandleFilter = useCallback(debounce(handleFilter, 500), [
+    handleFilter,
+  ]);
 
   const addField = () => {
     setFilters((prevFields) => [
@@ -134,6 +123,23 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
     debouncedHandleFilter(filters, value);
   };
 
+  if (multiFilter && !filters.length && !isMounted.current) {
+    isMounted.current = true;
+    const fieldsWithId = (multiFilter.filters ?? []).map(
+      ({ field, value, operator }) => ({
+        field,
+        value,
+        operator,
+        id: uuid(),
+      }),
+    );
+
+    unstable_batchedUpdates(() => {
+      setFilters(fieldsWithId);
+      setCombinatorFilterOperator(multiFilter.operator);
+    });
+  }
+
   return (
     <div style={{ width: MENU_WIDTH }} className={tw`pt-4 px-4 pb-2`}>
       <p className={tw`text-sm mb-3`}>Filters For </p>
@@ -147,7 +153,7 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
               ) : (
                 <select
                   className={tw`text-sm border(1 gray-300 focus:gray-500) focus:outline-none rounded h-8 px-1`}
-                  value={combinatorFilterOperator}
+                  defaultValue={combinatorFilterOperator}
                   onChange={(evt) => {
                     handleCombinatorFilterChange(
                       evt.target.value as BlockProtocolMultiFilterOperatorType,
@@ -170,7 +176,7 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
               onChange={(evt) =>
                 updateField(filter.id, { field: evt.target.value })
               }
-              value={filter.field}
+              defaultValue={filter.field}
             >
               <option value="">---</option>
               {columns.map((column) => (
@@ -186,7 +192,7 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
                   operator: evt.target.value as BlockProtocolFilterOperatorType,
                 })
               }
-              value={filter.operator}
+              defaultValue={filter.operator}
             >
               {FILTER_OPERATORS.map((operator) => {
                 const label = operator.replaceAll("_", " ").toLowerCase();
@@ -201,7 +207,7 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
               <input
                 placeholder="Value"
                 className={tw`text-sm w-40 border(1 gray-300 focus:gray-500) focus:outline-none rounded h-8 px-2`}
-                onBlur={(evt) =>
+                onChange={(evt) =>
                   updateField(filter.id, { value: evt.target.value })
                 }
                 defaultValue={filter.value}
