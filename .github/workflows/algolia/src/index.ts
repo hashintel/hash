@@ -41,66 +41,29 @@ const getAllFiles = function (
   return arrayOfFiles;
 };
 
-export const checkObjectIds = () => {
-  const objectIds = [];
-
-  const checkObjectId = (matterData: DocsFrontMatter, type) => {
-    if (!matterData.data.objectId) {
-      throw new Error(
-        `objectId missing on file ${type}/${matterData.data.slug}.`
-      );
-    }
-
-    if (objectIds.includes(matterData.data.objectId)) {
-      throw new Error(`objectId ${matterData.data.objectId} appeared twice.`);
-    }
-
-    objectIds.push(matterData.data.objectId);
-  };
-
-  const glossaryFiles = getAllFiles("../../../resources/glossary", [], "glossary");
-  const docsFiles = getAllFiles("../../../resources/docs/simulation", [], "docs");
-
-  const files = [...glossaryFiles, ...docsFiles];
-
-  files.forEach((filePath) => {
-    const file = fs.readFileSync(filePath.inputPath, "utf8");
-
-    const grayMatterData = matter(file) as unknown as DocsFrontMatter;
-
-    checkObjectId(grayMatterData, filePath.type);
-  });
-};
-
 export const generateAlgoliaJson = () => {
-  const objectIds = [];
-
   const getFormattedData = (matterData: DocsFrontMatter, type) => {
-    if (!matterData.data.objectId) {
-      throw new Error(
-        `objectId missing on file ${type}/${matterData.data.slug}.`
-      );
-    }
-
-    if (objectIds.includes(matterData.data.objectId)) {
-      throw new Error(`objectId ${matterData.data.objectId} appeared twice.`);
-    }
-
-    objectIds.push(matterData.data.objectId);
-
     const appendData = {
       ...matterData.data,
       objectId: undefined,
       content: matterData.content,
-      objectID: matterData.data.objectId,
+      objectID: `${type}/${matterData.data.slug}`,
       type,
     };
 
     return appendData;
   };
 
-  const glossaryFiles = getAllFiles("../../../resources/glossary", [], "glossary");
-  const docsFiles = getAllFiles("../../../resources/docs/simulation", [], "docs");
+  const glossaryFiles = getAllFiles(
+    "../../../resources/glossary",
+    [],
+    "glossary"
+  );
+  const docsFiles = getAllFiles(
+    "../../../resources/docs/simulation",
+    [],
+    "docs"
+  );
 
   const files = [...glossaryFiles, ...docsFiles];
 
@@ -121,9 +84,22 @@ export const uploadAlgoliaData = async (records) => {
     process.env.AGOLIA_WRITE_KEY
   );
 
-  const index = client.initIndex("hash_learn");
+  const index = client.initIndex("hash_learn_testing1");
 
   return await index
     .saveObjects(records, { autoGenerateObjectIDIfNotExist: true })
+    .catch(console.error);
+};
+
+export const deleteDocsIndex = async () => {
+  const client = algoliasearch(
+    process.env.ALGOLIA_PROJECT,
+    process.env.AGOLIA_WRITE_KEY
+  );
+
+  const index = client.initIndex("hash_learn_testing1");
+
+  return await index
+    .deleteBy({ filters: "type:docs OR type:glossary" })
     .catch(console.error);
 };
