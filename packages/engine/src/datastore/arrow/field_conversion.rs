@@ -191,83 +191,76 @@ impl IsFixedSize for ArrowDataType {
 
 #[cfg(test)]
 pub mod tests {
-    // use crate::datastore::schema::FieldType;
-
     use super::*;
-    // use crate::hash_types::state::AgentStateField;
+    use crate::datastore::schema::{FieldScope, FieldSpecMapBuilder};
+    use crate::hash_types::state::AgentStateField;
+    use crate::simulation::package::creator::add_base_agent_fields;
+    use std::convert::TryInto;
 
     #[test]
     fn get_schema() -> Result<()> {
-        // let field_spec_map = FieldSpecMap::default();
-        // TODO OS - Alfie - Bring in line with accessors
-        panic!();
-        // field_spec_map
-        //     .add(FieldSpec::new_mergeable(
-        //         "test1",
-        //         FieldType::new(FieldTypeVariant::Boolean, true),
-        //     ))
-        //     .unwrap();
-        // field_spec_map
-        //     .add(FieldSpec::new_mergeable(
-        //         "test2",
-        //         FieldType::new(
-        //             FieldTypeVariant::VariableLengthArray(Box::new(FieldType::new(
-        //                 FieldTypeVariant::Number,
-        //                 false,
-        //             ))),
-        //             true,
-        //         ),
-        //     ))
-        //     .unwrap();
-        // field_spec_map
-        //     .add(FieldSpec::new_mergeable(
-        //         "test3",
-        //         FieldType::new(
-        //             FieldTypeVariant::FixedLengthArray {
-        //                 kind: Box::new(FieldType::new(FieldTypeVariant::Number, false)),
-        //                 len: 3,
-        //             },
-        //             true,
-        //         ),
-        //     ))
-        //     .unwrap();
-        //
-        // field_spec_map
-        //     .add_built_in(&AgentStateField::AgentId)
-        //     .unwrap();
-        //
-        // let mut meta = HashMap::new();
-        // meta.insert("serialized".into(), "".into());
-        // meta.insert("nullable".into(), "1,0,1,1,1".into());
-        // let target = ArrowSchema::new_with_metadata(
-        //     vec![
-        //         ArrowField::new(
-        //             PREVIOUS_INDEX_COLUMN_NAME,
-        //             ArrowDataType::FixedSizeList(Box::new(ArrowDataType::UInt32), 2),
-        //             true,
-        //         ),
-        //         ArrowField::new(
-        //             "agent_id",
-        //             ArrowDataType::FixedSizeBinary(crate::datastore::UUID_V4_LEN as i32),
-        //             false,
-        //         ),
-        //         ArrowField::new("test1", ArrowDataType::Boolean, true),
-        //         ArrowField::new(
-        //             "test3",
-        //             ArrowDataType::FixedSizeList(Box::new(ArrowDataType::Float64), 3),
-        //             true,
-        //         ),
-        //         ArrowField::new(
-        //             "test2",
-        //             ArrowDataType::List(Box::new(ArrowDataType::Float64)),
-        //             true,
-        //         ),
-        //     ],
-        //     meta,
-        // );
+        let mut builder = FieldSpecMapBuilder::new();
+        builder.source(FieldSource::Engine);
+        builder.add_field_spec(
+            "test1".to_string(),
+            FieldType::new(FieldTypeVariant::Boolean, true),
+            FieldScope::Private,
+        );
 
-        // let schema = field_spec_map.get_arrow_schema().unwrap();
-        // assert_eq!(schema, target);
-        // Ok(())
+        builder.add_field_spec(
+            "test2".to_string(),
+            FieldType::new(
+                FieldTypeVariant::VariableLengthArray(Box::new(FieldType::new(
+                    FieldTypeVariant::Number,
+                    false,
+                ))),
+                true,
+            ),
+            FieldScope::Private,
+        );
+
+        builder.add_field_spec(
+            "test3".to_string(),
+            FieldType::new(
+                FieldTypeVariant::FixedLengthArray {
+                    kind: Box::new(FieldType::new(FieldTypeVariant::Number, false)),
+                    len: 3,
+                },
+                true,
+            ),
+            FieldScope::Private,
+        );
+
+        let mut field_spec_map = builder.build();
+        field_spec_map.add(AgentStateField::AgentId.try_into()?)?;
+
+        let mut meta = HashMap::new();
+        meta.insert("serialized".into(), "".into());
+        meta.insert("nullable".into(), "1,1,0,1".into());
+        let target = ArrowSchema::new_with_metadata(
+            vec![
+                ArrowField::new("_PRIVATE_0_test1", ArrowDataType::Boolean, true),
+                ArrowField::new(
+                    "_PRIVATE_0_test3",
+                    ArrowDataType::FixedSizeList(Box::new(ArrowDataType::Float64), 3),
+                    true,
+                ),
+                ArrowField::new(
+                    "agent_id",
+                    ArrowDataType::FixedSizeBinary(crate::datastore::UUID_V4_LEN as i32),
+                    false,
+                ),
+                ArrowField::new(
+                    "_PRIVATE_0_test2",
+                    ArrowDataType::List(Box::new(ArrowDataType::Float64)),
+                    true,
+                ),
+            ],
+            meta,
+        );
+
+        let schema = field_spec_map.get_arrow_schema().unwrap();
+        assert_eq!(schema, target);
+        Ok(())
     }
 }
