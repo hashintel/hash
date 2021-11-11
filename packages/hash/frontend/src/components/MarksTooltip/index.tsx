@@ -6,6 +6,7 @@ import {
   NodeSelection,
   Plugin,
   PluginKey,
+  TextSelection,
 } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import React from "react";
@@ -16,11 +17,12 @@ import { MarksTooltip } from "./MarksTooltip";
 import { LinkModal } from "./LinkModal";
 import {
   getActiveMarksWithAttrs,
-  updateLink,
-  selectionContainsText,
   isValidLink,
   linkInputRule,
+  selectionContainsText,
+  updateLink,
 } from "./util";
+import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 
 interface MarksTooltipState {
   focused: boolean;
@@ -28,10 +30,10 @@ interface MarksTooltipState {
 
 interface LinkPluginState {
   linkModalVisible: boolean | undefined;
+  linkUrl: null | string;
 }
 
-const key = new PluginKey<MarksTooltipState, Schema>("markstooltip");
-
+const markPluginKey = new PluginKey<MarksTooltipState, Schema>("markPlugin");
 const linkPluginKey = new PluginKey<LinkPluginState, Schema>("linkPlugin");
 
 export function createFormatPlugins(renderPortal: RenderPortal) {
@@ -40,7 +42,7 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
   const linkModalRef = React.createRef<HTMLDivElement>();
 
   const marksTooltip = new Plugin<MarksTooltipState, Schema>({
-    key,
+    key: markPluginKey,
     /**
      * This allows us to keep track of whether the view is focused, which
      * is important for knowing whether to show the format tooltip
@@ -50,7 +52,7 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
         return { focused: false };
       },
       apply(tr, state) {
-        const action = tr.getMeta(key);
+        const action = tr.getMeta(markPluginKey);
 
         switch (action?.type) {
           case "format-blur":
@@ -73,13 +75,17 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
               return false;
             }
 
-            view.dispatch(view.state.tr.setMeta(key, { type: "format-blur" }));
+            view.dispatch(
+              view.state.tr.setMeta(markPluginKey, { type: "format-blur" }),
+            );
           }, 300);
           return false;
         },
         focus(view) {
           clearTimeout(timeout);
-          view.dispatch(view.state.tr.setMeta(key, { type: "format-focus" }));
+          view.dispatch(
+            view.state.tr.setMeta(markPluginKey, { type: "format-focus" }),
+          );
           return false;
         },
       },
@@ -106,7 +112,7 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
            *
            */
           if (
-            !key.getState(view.state)?.focused ||
+            !markPluginKey.getState(view.state)?.focused ||
             dragging ||
             state.selection instanceof NodeSelection ||
             !selectionContainsText(state) ||
@@ -135,7 +141,7 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
             (end.right - start.left) / 2 +
             document.documentElement.scrollLeft;
 
-          const activeMarks = getActiveMarksWithAttrs(editorView);
+          const activeMarks = getActiveMarksWithAttrs(editorView.state);
 
           const jsx = (
             <div className={tw`absolute z-30`} style={{ top, left }}>
@@ -171,19 +177,63 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
     state: {
       init() {
         /** Should use a better name, since this only gets changed when user clicks on link button in tooltip */
-        return { linkModalVisible: undefined };
+        return {
+          linkModalVisible: undefined,
+          linkUrl: null,
+        };
       },
-      apply(tr, state) {
+      apply(tr, pluginState, prevEditorState, nextEditorState) {
+        // if (
+        //   !markPluginKey.getState(nextEditorState)?.focused ||
+        //   nextEditorState.selection instanceof NodeSelection
+        // ) {
+        //   renderPortal(null, mountNode);
+        //   return;
+        // }
+
+        let linkUrl: string | null = null;
+        const linkMark = nextEditorState.schema.marks.link;
+
+        // If cursor is within link
+        if (
+          nextEditorState.selection.empty &&
+          linkMark.isInSet(nextEditorState.selection.$from.marks())
+        ) {
+          linkUrl = nextEditorState.selection.$from
+            .marks()
+            ?.find((mark: Mark) => mark.type.name === "link")?.attrs.href;
+        }
+        // If link is in text selection
+        else if (
+          nextEditorState.doc.rangeHasMark(
+            nextEditorState.selection.$from.pos,
+            nextEditorState.selection.$to.pos,
+            linkMark,
+          )
+        ) {
+          linkUrl =
+            getActiveMarksWithAttrs(nextEditorState).find(
+              ({ name }) => name === "link",
+            )?.attrs?.href ?? null;
+        }
+
+        const nextPluginState: LinkPluginState = { ...pluginState, linkUrl };
+
+        // @todo tye this action
         const action = tr.getMeta(linkPluginKey);
 
         switch (action?.type) {
           case "closeLinkModal":
-            return { linkModalVisible: false };
+            return { ...nextPluginState, linkModalVisible: false };
           case "openLinkModal":
-            return { linkModalVisible: true };
-          default:
-            return state;
+            return { ...nextPluginState, linkModalVisible: true };
         }
+
+        if (!prevEditorState.selection.eq(nextEditorState.selection)) {
+          return { ...nextPluginState, linkModalVisible: false };
+        }
+
+        return nextPluginState;
       },
     },
 
@@ -220,93 +270,140 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
           ensureMounted(mountNode, document.body);
           const state = view.state;
 
-          /**
-           * Fix flow
-           * 1. Link modal persisting
-           *    - open link modal from mark tooltip,
-           *    - put the cursor on a different text without a link mark.
-           *    - link modal persists instead of going off
-           * 2. When the modal comes up as a result of the cursor being within a link, remove link doesn't work
-           */
+          const linkPluginState = linkPluginKey.getState(view.state);
+          const linkUrl = linkPluginState?.linkUrl;
 
           if (
-            !key.getState(editorView.state)?.focused ||
-            state.selection instanceof NodeSelection
+            !markPluginKey.getState(editorView.state)?.focused ||
+            (!linkUrl && !linkPluginState?.linkModalVisible)
           ) {
             renderPortal(null, mountNode);
             return;
           }
 
-          let linkUrl;
-          const linkMark = state.schema.marks.link;
+          const { from, to } = state.selection;
+          const start = view.coordsAtPos(from);
+          const end = view.coordsAtPos(to);
 
-          // If cursor is within link
-          if (
-            state.selection.empty &&
-            linkMark.isInSet(state.selection.$from.marks())
-          ) {
-            linkUrl = state.selection.$from
-              .marks()
-              ?.find((mark: Mark) => mark.type.name === "link")?.attrs.href;
-          }
-          // If link is in text selection
-          else if (
-            state.doc.rangeHasMark(
-              state.selection.$from.pos,
-              state.selection.$to.pos,
-              linkMark,
-            )
-          ) {
-            linkUrl = getActiveMarksWithAttrs(editorView).find(
-              ({ name }) => name === "link",
-            )?.attrs?.href;
-          }
+          const left =
+            start.left +
+            (end.right - start.left) / 2 +
+            document.documentElement.scrollLeft;
+          const bottom = end.bottom + document.documentElement.scrollTop;
 
-          if (linkUrl || linkPluginKey.getState(view.state)?.linkModalVisible) {
-            const { from, to } = state.selection;
-            const start = view.coordsAtPos(from);
-            const end = view.coordsAtPos(to);
+          renderPortal(
+            <div
+              style={{ left, top: bottom }}
+              className={tw`absolute z-50`}
+              ref={linkModalRef}
+            >
+              <LinkModal
+                defaultLinkMarkHref={linkUrl ?? undefined}
+                updateLink={(href) => {
+                  updateLink(editorView, href);
+                  editorView.dispatch(
+                    editorView.state.tr.setMeta(linkPluginKey, {
+                      type: "closeLinkModal",
+                    }),
+                  );
+                }}
+                removeLink={() => {
+                  const editorState = editorView.state;
+                  const { selection, tr, schema } = editorState;
+                  const linkMarkType = schema.marks.link;
 
-            const left =
-              start.left +
-              (end.right - start.left) / 2 +
-              document.documentElement.scrollLeft;
-            const bottom = end.bottom + document.documentElement.scrollTop;
+                  tr.setMeta(linkPluginKey, { type: "closeLinkModal " });
 
-            renderPortal(
-              <div
-                style={{ left, top: bottom }}
-                className={tw`absolute z-50`}
-                ref={linkModalRef}
-              >
-                <LinkModal
-                  defaultLinkMarkHref={linkUrl}
-                  updateLink={(href) => {
-                    updateLink(editorView, href);
-                    editorView.dispatch(
-                      editorView.state.tr.setMeta(linkPluginKey, {
-                        type: "closeLinkModal",
-                      }),
-                    );
-                  }}
-                  removeLink={() => {
-                    toggleMark(editorView.state.schema.marks.link)(
-                      editorView.state,
-                      editorView.dispatch,
-                    );
-                    editorView.dispatch(
-                      editorView.state.tr.setMeta(linkPluginKey, {
-                        type: "closeLinkModal",
-                      }),
-                    );
-                  }}
-                />
-              </div>,
-              mountNode,
-            );
-          } else {
-            renderPortal(null, mountNode);
-          }
+                  if (selection instanceof TextSelection) {
+                    const textSelection: TextSelection<Schema> = selection;
+                    const { $cursor } = textSelection;
+
+                    if ($cursor) {
+                      const nodesBefore: [number, ProsemirrorNode<Schema>][] =
+                        [];
+                      const nodesAfter: [number, ProsemirrorNode<Schema>][] =
+                        [];
+
+                      $cursor.parent.nodesBetween(
+                        0,
+                        $cursor.parentOffset,
+                        (node, pos) => {
+                          nodesBefore.push([pos, node]);
+                        },
+                      );
+
+                      $cursor.parent.nodesBetween(
+                        $cursor.parentOffset,
+                        $cursor.parent.content.size,
+                        (node, pos) => {
+                          nodesAfter.push([pos, node]);
+                        },
+                      );
+
+                      let startPosition = textSelection.$from.pos;
+                      let endPosition = textSelection.$to.pos;
+
+                      let targetMark: Mark<Schema> | null = null;
+
+                      for (let idx = nodesBefore.length - 1; idx > 0; idx--) {
+                        const [pos, node] = nodesBefore[idx];
+
+                        const linkMark = targetMark
+                          ? node.marks.includes(targetMark)
+                            ? targetMark
+                            : null
+                          : node.marks.find(
+                              (mark) => mark.type === linkMarkType,
+                            );
+
+                        if (linkMark) {
+                          targetMark = linkMark;
+                          startPosition = pos;
+                        } else {
+                          break;
+                        }
+                      }
+
+                      for (let idx = 0; idx < nodesAfter.length; idx++) {
+                        const [pos, node] = nodesAfter[idx];
+
+                        const linkMark = targetMark
+                          ? node.marks.includes(targetMark)
+                            ? targetMark
+                            : null
+                          : node.marks.find(
+                              (mark) => mark.type === linkMarkType,
+                            );
+
+                        if (linkMark) {
+                          targetMark = linkMark;
+                          endPosition = pos + node.nodeSize;
+                        } else {
+                          break;
+                        }
+                      }
+
+                      startPosition += $cursor.start($cursor.depth);
+
+                      endPosition += $cursor.start($cursor.depth);
+
+                      tr.removeMark(startPosition, endPosition, linkMarkType);
+                    } else {
+                      tr.removeMark(
+                        textSelection.from,
+                        textSelection.to,
+                        linkMarkType,
+                      );
+                    }
+                  }
+
+                  editorView.dispatch(tr);
+                  editorView.focus();
+                }}
+              />
+            </div>,
+            mountNode,
+          );
         },
       };
     },
