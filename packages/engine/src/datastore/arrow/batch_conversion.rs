@@ -1252,11 +1252,11 @@ pub mod tests {
 
             agents.iter_mut().for_each(|v| {
                 v.delete_custom(PREVIOUS_INDEX_FIELD_KEY);
-                v.delete_custom(CONTEXT_INDEX_FIELD_KEY)
+                v.delete_custom(CONTEXT_INDEX_FIELD_KEY);
             });
             returned_agents.iter_mut().for_each(|v| {
                 v.delete_custom(PREVIOUS_INDEX_FIELD_KEY);
-                v.delete_custom(CONTEXT_INDEX_FIELD_KEY)
+                v.delete_custom(CONTEXT_INDEX_FIELD_KEY);
             });
 
             agents
