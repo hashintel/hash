@@ -4,13 +4,13 @@ export const createSchema = () =>
   new Schema({
     nodes: {
       doc: {
-        content: "((block|blockItem)+)|blank",
+        content: "((block|blockItem|entity)+)|blank",
       },
       blank: {
         toDOM: () => ["div", 0] as const,
       },
       block: {
-        content: "entity",
+        content: "entity*",
         /**
          * These properties are necessary for copy and paste (which is
          * necessary for drag and drop)
@@ -32,9 +32,10 @@ export const createSchema = () =>
           },
         ],
       },
+      // @todo perhaps we shouldn't use a nested structure here, but draftId / entityId should be arrays
       entity: {
         group: "blockItem",
-        content: "blockItem",
+        content: "blockItem*",
         attrs: {
           entityId: { default: null },
           draftId: { default: null },

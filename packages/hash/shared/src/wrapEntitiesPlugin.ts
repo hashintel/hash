@@ -3,13 +3,20 @@ import { Command } from "prosemirror-commands";
 import { keymap } from "prosemirror-keymap";
 import { Schema } from "prosemirror-model";
 import {
+  AllSelection,
   EditorState,
   NodeSelection,
   Plugin,
+  TextSelection,
   Transaction,
 } from "prosemirror-state";
 import { Mapping } from "prosemirror-transform";
 import { ProsemirrorNode } from "./node";
+import {
+  isComponentNode,
+  isComponentNodeType,
+  isEntityNode,
+} from "./prosemirror";
 
 type WrapperNodes = [number, ProsemirrorNode<Schema>[]];
 type WrapperNodesList = WrapperNodes[];
@@ -37,9 +44,9 @@ const ensureEntitiesAreWrapped = (
   state: EditorState<Schema>,
   wrappers?: WrapperNodesList,
 ) => {
-  const { tr, schema, doc } = state;
+  const { tr, schema } = state;
 
-  doc.descendants((node, position, parent) => {
+  tr.doc.descendants((node, position, parent) => {
     const wrapperNodes = wrappers?.find(([pos]) => position === pos)?.[1];
 
     /**
@@ -48,50 +55,97 @@ const ensureEntitiesAreWrapped = (
      *    2. non-text entities are not unwrapped (and all blocks are wrapped on creation)
      * Where positions have been unwrapped, wrapperNodes _should_ be provided to re-wrap them.
      */
-    if (
-      node.type !== schema.nodes.blank &&
-      parent.type === schema.nodes.doc &&
+    if (node.type !== schema.nodes.blank && parent.type === schema.nodes.doc) {
+      const isBlock = node.type === schema.nodes.block;
+
       // a block node is the outermost wrapping layer, and therefore already wrapped
-      node.type !== schema.nodes.block
-    ) {
-      const range = getRangeForNodeAtMappedPosition(position, node, tr);
+      if (!isBlock) {
+        const range = getRangeForNodeAtMappedPosition(position, node, tr);
 
-      if (!range) {
-        throw new Error("Cannot rewrap");
-      }
+        if (!range) {
+          throw new Error("Cannot rewrap");
+        }
 
-      /**
-       * @todo we won't need this once we remove blockEntityId from the
-       *       component node
-       */
-      if (wrappers && !wrapperNodes) {
-        tr.setNodeMarkup(tr.mapping.map(position), undefined, {
-          blockEntityId: null,
-        });
-      }
+        /**
+         * @todo we won't need this once we remove blockEntityId from the
+         *       component node
+         */
+        if (wrappers && !wrapperNodes) {
+          tr.setNodeMarkup(tr.mapping.map(position), undefined, {
+            blockEntityId: null,
+          });
+        }
 
-      /**
-       * In the event that a block is not fully wrapped (i.e. is _not_ a block node), we provide a fallback
-       *    in case wrapperNodes were not provided.
-       * We need to ensure that the layers match those provided in ProsemirrorSchemaManager
-       * @see ProsemirrorSchemaManager, createRemoteBlock
-       * @todo this should never happen, can we remove it?
-       */
-      const DEFAULT_WRAPPERS = [{ type: schema.nodes.block }];
-      if (node.type !== schema.nodes.entity) {
-        DEFAULT_WRAPPERS.push(
-          { type: schema.nodes.entity },
-          { type: schema.nodes.entity },
+        /**
+         * In the event that a block is not fully wrapped (i.e. is _not_ a block node), we provide a fallback
+         *    in case wrapperNodes were not provided.
+         * We need to ensure that the layers match those provided in ProsemirrorSchemaManager
+         * @see ProsemirrorSchemaManager, createRemoteBlock
+         * @todo this should never happen, can we remove it?
+         */
+        const DEFAULT_WRAPPERS = [{ type: schema.nodes.block }];
+
+        if (node.type !== schema.nodes.entity) {
+          DEFAULT_WRAPPERS.push(
+            { type: schema.nodes.entity },
+            { type: schema.nodes.entity },
+          );
+        }
+
+        tr.wrap(
+          range,
+          wrapperNodes?.map((wrapperNode) => ({
+            type: wrapperNode.type,
+            attrs: wrapperNode.attrs,
+          })) ?? DEFAULT_WRAPPERS,
         );
-      }
+      } else if (node.firstChild) {
+        if (!isEntityNode(node.firstChild)) {
+          const pos = position + 1;
+          const $start = tr.doc.resolve(tr.mapping.map(pos));
+          const $end = tr.doc.resolve(
+            tr.mapping.map(pos + node.firstChild.nodeSize),
+          );
+          const $blockRange = $start.blockRange($end);
 
-      tr.wrap(
-        range,
-        wrapperNodes?.map((wrapperNode) => ({
-          type: wrapperNode.type,
-          attrs: wrapperNode.attrs,
-        })) ?? DEFAULT_WRAPPERS,
-      );
+          if ($blockRange) {
+            tr.wrap($blockRange, [
+              { type: schema.nodes.entity },
+              { type: schema.nodes.entity },
+            ]);
+          } else {
+            throw new Error("Cannot fix structure of prosemirror document");
+          }
+        }
+      } else {
+        const firstComponentNodeType = Object.values(state.schema.nodes).find(
+          (type) => isComponentNodeType(type),
+        );
+
+        if (firstComponentNodeType) {
+          // @todo would be nice to not have to duplicate the necessary structure here
+          tr.replaceRangeWith(
+            tr.mapping.map(position),
+            tr.mapping.map(position + node.nodeSize),
+            state.schema.nodes.block.create({}, [
+              state.schema.nodes.entity.create({}, [
+                state.schema.nodes.entity.create({}, [
+                  firstComponentNodeType.create(),
+                ]),
+              ]),
+            ]),
+          );
+
+          if (tr.selection instanceof AllSelection) {
+            tr.setSelection(
+              TextSelection.create<Schema>(
+                tr.doc,
+                tr.mapping.map(position + node.nodeSize) - 1,
+              ),
+            );
+          }
+        }
+      }
     }
 
     return false;
