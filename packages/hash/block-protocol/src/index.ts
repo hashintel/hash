@@ -116,6 +116,49 @@ export type BlockProtocolEntityType = {
   [key: string]: JSONValue;
 };
 
+export type BlockProtocolEntity = {
+  accountId: string;
+  entityId: string;
+  entityTypeId: string;
+  [key: string]: JSONValue;
+};
+
+export type BlockProtocolLink = {
+  sourceEntityId: string;
+  destinationEntityId: string;
+  destinationEntityVersionId?: string | null;
+  index?: number | null;
+  path: string;
+};
+
+export type BlockProtocolLinkGroup = {
+  sourceEntityId: string;
+  sourceEntityVersionId: string;
+  path: string;
+  links: BlockProtocolLink[];
+};
+
+export type BlockProtocolCreateLinkFn = {
+  (payload: {
+    sourceEntityAccountId?: string | null;
+    sourceEntityId: string;
+    destinationEntityAccountId?: string | null;
+    destinationEntityId: string;
+    destinationEntityVersionId?: string | null;
+    index?: number | null;
+    path: string;
+  }): Promise<BlockProtocolLink>;
+};
+
+export type BlockProtocolDeleteLinkFn = {
+  (payload: {
+    sourceEntityAccountId?: string | null;
+    sourceEntityId: string;
+    index?: number | null;
+    path: string;
+  }): Promise<boolean>;
+};
+
 export type BlockProtocolAggregateEntityTypesFn = {
   (action: BlockProtocolAggregateEntityTypesPayload): Promise<
     BlockProtocolAggregateOperationOutput<BlockProtocolEntityType>
@@ -152,8 +195,16 @@ export type BlockProtocolProps = {
   create?: BlockProtocolCreateFn;
   createLoading?: boolean;
   createError?: Error;
+  createLink?: BlockProtocolCreateLinkFn;
+  createLinkLoading?: boolean;
+  createLinkError?: Error;
+  deleteLink?: BlockProtocolDeleteLinkFn;
+  deleteLinkLoading?: boolean;
+  deleteLinkError?: Error;
   entityId?: string;
   entityTypeId?: string;
+  linkedEntities?: BlockProtocolEntity[];
+  linkGroups?: BlockProtocolLinkGroup[];
   id?: string;
   schemas?: Record<string, JSONObject>;
   type?: string;

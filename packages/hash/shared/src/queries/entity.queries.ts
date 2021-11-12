@@ -10,6 +10,26 @@ export const getEntity = gql`
       entityTypeId
       entityTypeVersionId
       entityTypeName
+      linkGroups {
+        links {
+          id
+          destinationAccountId
+          destinationEntityId
+          sourceAccountId
+          sourceEntityId
+          path
+          index
+        }
+        sourceEntityId
+        sourceEntityVersionId
+        path
+      }
+      linkedEntities {
+        accountId
+        entityId
+        entityTypeId
+        properties
+      }
       updatedAt
       accountId
       ... on UnknownEntity {
@@ -100,6 +120,7 @@ export const aggregateEntity = gql`
       results {
         __typename
         id
+        accountId
         entityId
         entityTypeId
         entityTypeVersionId

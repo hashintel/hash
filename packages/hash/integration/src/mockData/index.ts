@@ -17,6 +17,7 @@ import {
 
 import { createOrgs, createUsers } from "./accounts";
 import { SystemTypeName } from "../graphql/apiTypes.gen";
+import { createEntityTypes } from "./entityTypes";
 
 export {};
 
@@ -59,6 +60,11 @@ void (async () => {
   const [users, _orgs] = await Promise.all([
     createUsers(db)(hashOrg),
     createOrgs(db),
+  ]);
+
+  await createEntityTypes(db)([
+    hashOrg.accountId,
+    ...users.map((user) => user.accountId),
   ]);
 
   const results = new Map<string, Entity>();

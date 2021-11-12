@@ -133,7 +133,7 @@ const systemTypeSchemas: {
 
 export const entityTypeJson = (name: SYSTEM_TYPE) =>
   JSON.stringify({
-    $schema: "https://json-schema.org/draft/2020-12/schema",
+    $schema: "https://json-schema.org/draft/2019-09/schema",
     $id: schemaId(name),
     title: name,
     type: "object",

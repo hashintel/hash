@@ -16,7 +16,7 @@ type AccountEntityOfTypeListProps = {
 
 export const AccountEntityOfTypeList: VoidFunctionComponent<AccountEntityOfTypeListProps> =
   ({ accountId, entityTypeId }) => {
-    const { data } = useQuery<
+    const { data, loading } = useQuery<
       AggregateEntityQuery,
       AggregateEntityQueryVariables
     >(aggregateEntity, {
@@ -28,6 +28,10 @@ export const AccountEntityOfTypeList: VoidFunctionComponent<AccountEntityOfTypeL
         },
       },
     });
+
+    if (loading) {
+      return <em>Loading...</em>;
+    }
 
     if (!data) {
       return null;
