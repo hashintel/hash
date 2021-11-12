@@ -7,6 +7,14 @@ export const linkTypedef = gql`
     """
     id: ID!
     """
+    The JSON path where the link occurs on its source entity's properties.
+    """
+    path: String!
+    """
+    The index of the link (if any)
+    """
+    index: Int
+    """
     The accountId of the link's source entity.
     """
     sourceAccountId: ID!
@@ -28,31 +36,31 @@ export const linkTypedef = gql`
     the link is to the latest version of the destination entity.
     """
     destinationEntityVersionId: ID
-    """
-    The JSON path where the link occurs on its source entity's properties.
-    """
+  }
+
+  input CreateLinkInput {
     path: String!
+    index: Int
+    sourceAccountId: ID!
+    sourceEntityId: ID!
+    destinationAccountId: ID!
+    destinationEntityId: ID!
+    destinationEntityVersionId: ID
   }
 
   extend type Mutation {
     """
     Create a link
     """
-    createLink(
-      path: String!
-      sourceAccountId: ID!
-      sourceEntityId: ID!
-      destinationAccountId: ID!
-      destinationEntityId: ID!
-      destinationEntityVersionId: ID
-    ): Link!
+    createLink(link: CreateLinkInput!): Link!
     """
-    Delete a link
+    Delete a link using its path
     """
-    deleteLink(
+    deleteLinkByPath(
       sourceAccountId: ID!
       sourceEntityId: ID!
       path: String!
+      index: Int
     ): Boolean!
   }
 `;

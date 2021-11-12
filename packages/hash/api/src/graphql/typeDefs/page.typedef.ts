@@ -69,11 +69,11 @@ export const pageTypedef = gql`
     """
     The outgoing links of the entity.
     """
-    links: [Link!]!
+    linkGroups: [LinkGroup!]!
     """
     The linked entities of the entity.
     """
-    linkedEntities: [Entity!]!
+    linkedEntities: [UnknownEntity!]!
     """
     The linked aggregations of the entity.
     """

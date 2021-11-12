@@ -8,15 +8,16 @@ import {
 import { Entity } from "../../../model";
 import { LoggedInGraphQLContext } from "../../context";
 import { genId } from "../../../util";
+import { removeArrayNulls } from "./deleteLinkByPath";
 
 export const createLink: Resolver<
   Promise<GQLLink>,
   {},
   LoggedInGraphQLContext,
   MutationCreateLinkArgs
-> = async (_, args, { dataSources }) =>
+> = async (_, { link }, { dataSources }) =>
   dataSources.db.transaction(async (client) => {
-    const { sourceAccountId, sourceEntityId } = args;
+    const { sourceAccountId, sourceEntityId } = link;
     const sourceEntity = await Entity.getEntityLatestVersion(client, {
       accountId: sourceAccountId,
       entityId: sourceEntityId,
@@ -33,7 +34,7 @@ export const createLink: Resolver<
       destinationAccountId,
       destinationEntityId,
       destinationEntityVersionId,
-    } = args;
+    } = link;
     const destinationEntity = destinationEntityVersionId
       ? await Entity.getEntity(client, {
           accountId: destinationAccountId,
@@ -53,7 +54,12 @@ export const createLink: Resolver<
       throw new ApolloError(msg, "NOT_FOUND");
     }
 
-    const { path: stringifiedPath } = args;
+    const { path: stringifiedPathWithoutIndex, index } = link;
+
+    const stringifiedPath =
+      typeof index === "number"
+        ? `${stringifiedPathWithoutIndex}[${index}]`
+        : stringifiedPathWithoutIndex;
 
     jp.value(sourceEntity.properties, stringifiedPath, {
       __linkedData: {
@@ -62,7 +68,9 @@ export const createLink: Resolver<
       },
     });
 
+    removeArrayNulls(sourceEntity.properties);
+
     await sourceEntity.updateEntityProperties(client, sourceEntity.properties);
 
-    return { ...args, id: genId() };
+    return { ...link, id: genId() };
   });

@@ -1,5 +1,10 @@
 import jp from "jsonpath";
-import { Resolver, Entity as GQLEntity, Link } from "../../apiTypes.gen";
+import {
+  Resolver,
+  Entity as GQLEntity,
+  Link,
+  LinkGroup,
+} from "../../apiTypes.gen";
 import { DbUnknownEntity } from "../../../types/dbTypes";
 import { GraphQLContext } from "../../context";
 import { isRecord, genId } from "../../../util";
@@ -59,6 +64,8 @@ export const parseLinksFromPropertiesObject = (
               client.getEntityAccountId({ entityId: destinationEntityId }),
             ]);
 
+            const finalPathComponent = path[path.length - 1];
+
             return [
               {
                 id: genId(),
@@ -67,7 +74,15 @@ export const parseLinksFromPropertiesObject = (
                 destinationAccountId,
                 destinationEntityId,
                 destinationEntityVersionId,
-                path: jp.stringify(path),
+                path: jp.stringify(
+                  typeof finalPathComponent === "number"
+                    ? path.slice(0, -1)
+                    : path,
+                ),
+                index:
+                  typeof finalPathComponent === "number"
+                    ? finalPathComponent
+                    : undefined,
               },
             ];
           } else {
@@ -85,16 +100,48 @@ export const parseLinksFromPropertiesObject = (
     ),
   ).then((nestedLinks) => nestedLinks.flat());
 
-export const links: Resolver<
-  GQLEntity["links"],
+const doesLinkBelongInGroup =
+  (sourceEntity: GQLEntity, link: Link) =>
+  (linkGroup: LinkGroup): boolean =>
+    sourceEntity.entityId === linkGroup.sourceEntityId &&
+    sourceEntity.entityVersionId === linkGroup.sourceEntityVersionId &&
+    link.path === linkGroup.path;
+
+const mapLinkToLinkGroup = (
+  sourceEntity: GQLEntity,
+  link: Link,
+): LinkGroup => ({
+  sourceEntityId: sourceEntity.entityId,
+  sourceEntityVersionId: sourceEntity.entityVersionId,
+  path: link.path,
+  links: [link],
+});
+
+export const linkGroups: Resolver<
+  GQLEntity["linkGroups"],
   DbUnknownEntity,
   GraphQLContext
-> = async (entity, _, { dataSources }) => {
+> = async (sourceEntity, _, { dataSources }) => {
   const parsedLinks = await parseLinksFromPropertiesObject(
     dataSources.db,
-    entity.properties,
-    entity.entityId,
+    sourceEntity.properties,
+    sourceEntity.entityId,
   );
 
-  return parsedLinks;
+  return parsedLinks.reduce<LinkGroup[]>((prevLinkGroups, currentLink) => {
+    const existingGroupIndex = prevLinkGroups.findIndex(
+      doesLinkBelongInGroup(sourceEntity, currentLink),
+    );
+
+    return existingGroupIndex < 0
+      ? [...prevLinkGroups, mapLinkToLinkGroup(sourceEntity, currentLink)]
+      : [
+          ...prevLinkGroups.slice(0, existingGroupIndex),
+          {
+            ...prevLinkGroups[existingGroupIndex],
+            links: [...prevLinkGroups[existingGroupIndex].links, currentLink],
+          },
+          ...prevLinkGroups.slice(existingGroupIndex + 1),
+        ];
+  }, []);
 };

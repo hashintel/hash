@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@hashintel/block-protocol": "*",
-    "prismjs": "1.24.1"
+    "prismjs": "1.25.0"
   },
   "devDependencies": {
     "@babel/cli": "^7.12.10",

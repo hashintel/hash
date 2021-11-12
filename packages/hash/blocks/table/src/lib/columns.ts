@@ -1,7 +1,6 @@
-import { Column } from "react-table";
 import { isRecord } from "./identifyEntity";
 
-type TableColumn = Column<Record<string, any>> & {
+type TableColumn = { Header: string; accessor: string } & {
   columns?: TableColumn[];
 };
 
@@ -11,7 +10,7 @@ export const makeColumns = (
   data: Record<string, any>,
   parentAccessor?: string,
   hiddenColumns: string[] = DEFAULT_HIDDEN_COLUMNS,
-) => {
+): Pick<TableColumn, "Header" | "accessor">[] => {
   const columns: TableColumn[] = [];
 
   for (const [key, value] of Object.entries(data)) {

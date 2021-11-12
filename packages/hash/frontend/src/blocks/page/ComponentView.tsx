@@ -15,7 +15,6 @@ import {
 import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 import { Schema } from "prosemirror-model";
 import { EditorView, NodeView } from "prosemirror-view";
-import React from "react";
 import { BlockLoader } from "../../components/BlockLoader/BlockLoader";
 import { RenderPortal } from "./usePortals";
 
@@ -138,19 +137,35 @@ export class ComponentView implements NodeView<Schema> {
     this.unsubscribe();
   }
 
-  // @todo type this
-  stopEvent(evt: any) {
-    if (evt.type === "dragstart") {
-      evt.preventDefault();
+  stopEvent(event: Event) {
+    if (event.type === "dragstart") {
+      event.preventDefault();
     }
 
-    return true;
+    return !blockComponentRequiresText(this.meta.componentSchema);
   }
 
-  ignoreMutation(evt: any) {
-    return !(
-      !evt.target ||
-      (evt.target !== this.contentDOM && this.contentDOM?.contains(evt.target))
-    );
+  // This condition is designed to check that the event isn’t coming from React-handled code.
+  // Not doing so leads to cycles of mutation records.
+  ignoreMutation(
+    event:
+      | MutationRecord
+      | {
+          type: "selection";
+          target: Element;
+        },
+  ) {
+    // We still want ProseMirror to know about all selection events to track cursor moves
+    if (event.type === "selection") {
+      return false;
+    }
+
+    const targetIsInsideContentDOM =
+      this.contentDOM?.contains(event.target) &&
+      event.target !== this.contentDOM;
+
+    const eventIsHandledByReact = !targetIsInsideContentDOM;
+
+    return eventIsHandledByReact;
   }
 }
