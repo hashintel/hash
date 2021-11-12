@@ -38,8 +38,6 @@ jobs:
         run: |
           docker volume create --name=hash-dev-pg
           yarn serve:hash-backend-test & ## & enables background mode
-          # npx wait-on --timeout 600000 tcp:localhost:5001 ## wait for API server (10 mins max)
-          # yarn seed-db
         if: ${{ success() || failure() }}
         env:
           AWS_REGION: na
@@ -47,8 +45,8 @@ jobs:
           AWS_SECRET_ACCESS_KEY: na
           AWS_S3_UPLOADS_BUCKET: na
 
-      - name: Wait for http://localhost:5001
-        run: npx wait-on --timeout 600000 http://localhost:5001
+      - name: Wait on http://localhost:5001
+        run: npx wait-on --timeout $(expr 1000 \* 60 \* 3) http://localhost:5001
         if: ${{ success() }}
 
       - run: docker ps -a
@@ -79,7 +77,7 @@ jobs:
         if: ${{ success() || failure() }}
 
   unit-tests:
-    name: Unit tests (frontend)
+    name: Unit tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
