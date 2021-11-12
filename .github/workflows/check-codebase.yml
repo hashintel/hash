@@ -68,6 +68,8 @@ jobs:
       - run: docker ps -a
         if: ${{ success() || failure() }}
 
+      - run: npx wait-on --timeout 600000 http://localhost:5001
+
       - name: Try reaching the API
         run: |
           for URL in \
