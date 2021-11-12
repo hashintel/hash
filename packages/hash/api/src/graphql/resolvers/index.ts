@@ -53,6 +53,7 @@ import { getOrgInvitationLink } from "./org/getOrgInvitationLink";
 import { joinOrg } from "./user/joinOrg";
 import { fileFields } from "./file";
 import { requestFileUpload } from "./file/requestFileUpload";
+import { createFileFromLink } from "./file/createFileFromLink";
 
 const loggedIn =
   (next: any) => (obj: any, args: any, ctx: GraphQLContext, info: any) => {
@@ -107,6 +108,7 @@ export const resolvers = {
     createEntity: loggedInAndSignedUp(createEntity),
     createLink: loggedInAndSignedUp(createLink),
     createEntityType: loggedInAndSignedUp(createEntityType),
+    createFileFromLink: loggedInAndSignedUp(createFileFromLink),
     createPage: loggedInAndSignedUp(createPage),
     createOrg: loggedInAndSignedUp(createOrg),
     createOrgEmailInvitation: loggedInAndSignedUp(createOrgEmailInvitation),

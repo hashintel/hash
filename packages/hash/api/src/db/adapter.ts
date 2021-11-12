@@ -6,7 +6,12 @@ import { SystemType } from "../types/entityTypes";
  * @todo should probably store this enum in a non-generated file somewhere
  *    to revisit in light of fuller auth spec
  */
-import { OrgSize, Visibility, WayToUseHash } from "../graphql/apiTypes.gen";
+import {
+  StorageType,
+  OrgSize,
+  Visibility,
+  WayToUseHash,
+} from "../graphql/apiTypes.gen";
 
 /**
  * Fields we handle via a field resolver to avoid recursion problems when getting them from the db.
@@ -113,9 +118,10 @@ export type DBOrgMembershipProperties = {
 export type DBFileProperties = {
   name: string;
   key: string;
-  contentMd5: string;
   size: number;
+  storageType: StorageType;
   mediaType: string;
+  contentMd5?: string;
 };
 
 export type OrgInfoProvidedAtCreation = {

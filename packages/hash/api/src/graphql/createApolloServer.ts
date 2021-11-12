@@ -15,13 +15,19 @@ import { CacheAdapter } from "../cache";
 import { buildPassportGraphQLMethods } from "../auth/passport";
 import { GraphQLContext } from "./context";
 import EmailTransporter from "../email/transporter";
-import { StorageProvider } from "../storage/storage-provider";
+import {
+  StorageProviders,
+  UploadableStorageProvider,
+} from "../storage/storage-provider";
 
 export interface CreateApolloServerParams {
   db: DBAdapter;
   cache: CacheAdapter;
   emailTransporter: EmailTransporter;
-  storageProvider: StorageProvider;
+  /** All available storage providers to retrieve files from */
+  storageProviders: StorageProviders;
+  /** The storage provider to use for new file uploads */
+  uploadProvider: UploadableStorageProvider;
   logger: Logger;
   statsd?: StatsD;
 }
@@ -29,7 +35,8 @@ export const createApolloServer = ({
   db,
   cache,
   emailTransporter,
-  storageProvider,
+  storageProviders,
+  uploadProvider,
   logger,
   statsd,
 }: CreateApolloServerParams) => {
@@ -47,7 +54,8 @@ export const createApolloServer = ({
       ...ctx,
       user: ctx.req.user,
       emailTransporter,
-      storageProvider,
+      storageProviders,
+      uploadProvider,
       passport: buildPassportGraphQLMethods(ctx),
       logger: logger.child({ requestId: ctx.res.get("x-hash-request-id") }),
     }),

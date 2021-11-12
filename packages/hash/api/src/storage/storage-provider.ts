@@ -1,19 +1,24 @@
+import { StorageType } from "../graphql/apiTypes.gen";
+
 /** Interface describing a generic storage provider
  * used for allowing the download and upload files via presigned request.
  * The storage provider doesn't upload the file itself, instead it returns a URL
  * and form-data fields for the client to upload their file to.
  */
 export interface StorageProvider {
-  /** Presigns a file upload request for a client to later upload a file
-   * @return {Promise<PresignedPostUpload>} Object containing the data and url needed to POST the file
-   */
-  presignUpload(params: PresignedStorageRequest): Promise<PresignedPostUpload>;
+  storageType: StorageType;
   /** Presigns a file download request for a client to later download a file
    * @return {string} The download URL to access the file
    */
   presignDownload(params: PresignedDownloadRequest): Promise<string>;
 }
 
+export interface UploadableStorageProvider extends StorageProvider {
+  /** Presigns a file upload request for a client to later upload a file
+   * @return {Promise<PresignedPostUpload>} Object containing the data and url needed to POST the file
+   */
+  presignUpload(params: PresignedStorageRequest): Promise<PresignedPostUpload>;
+}
 /** Parameters needed to allow the storage of a file */
 export interface PresignedStorageRequest {
   /** Key (or path) of the file in the storage */
@@ -45,3 +50,9 @@ export interface PresignedPostUpload {
     [key: string]: string;
   };
 }
+
+/** Helper type to create a typed "dictionary" of storage types to their storage provider instance */
+export type StorageProviders = Record<
+  StorageType,
+  StorageProvider | UploadableStorageProvider | undefined
+>;

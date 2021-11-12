@@ -5,7 +5,11 @@ import { CreateEntityArgs, Entity, EntityConstructorArgs, File } from ".";
 import { genId } from "../util";
 import { createEntityArgsBuilder } from "../graphql/resolvers/util";
 import { DBFileProperties } from "../db/adapter";
-import { StorageProvider } from "../storage/storage-provider";
+import {
+  StorageProvider,
+  UploadableStorageProvider,
+} from "../storage/storage-provider";
+import { StorageType } from "../graphql/apiTypes.gen";
 
 const MAX_FILE_SIZE_BYTES = 1000 * 1000 * 1000;
 const FILE_EXTENSION_REGEX = /\.[0-9a-z]+$/i;
@@ -18,7 +22,7 @@ export type FileConstructorArgs = {
 
 export type CreateFileArgs = {
   properties: DBFileProperties;
-  entityVersionId: string;
+  entityVersionId?: string;
 } & CreateEntityArgs;
 
 export type CreateUploadRequestArgs = {
@@ -26,6 +30,13 @@ export type CreateUploadRequestArgs = {
   contentMd5: string;
   size: number;
   accountId: string;
+};
+
+export type CreateFileFromLinkArgs = {
+  name: string;
+  accountId: string;
+  createdById: string;
+  url: string;
 };
 
 export interface CreateUploadRequestFileResponse {
@@ -59,9 +70,46 @@ class __File extends Entity {
     });
   }
 
+  /** Creation of a file entity with no file upload, instead
+   * setting its storage to `EXTERNAL_LINK` and keeping the link in the `key` property.
+   */
+  static async createFileEntityFromLink(
+    client: DBClient,
+    params: CreateFileFromLinkArgs,
+  ): Promise<File> {
+    const { name, accountId, url, createdById } = params;
+    // We set the `key` of the file to be the URL for external links
+    // The external file storage will know to use the key to retrieve the url.
+    const key = url;
+    try {
+      const properties: DBFileProperties = {
+        name,
+        size: 0,
+        key,
+        /** @todo: Not used yet, should be used eventually */
+        mediaType: "",
+        storageType: StorageType.ExternalLink,
+      };
+      const entityArgs = createEntityArgsBuilder({
+        accountId,
+        createdById,
+        systemTypeName: "File",
+        versioned: true,
+        properties,
+      }) as CreateFileArgs;
+      const fileEntity = await File.createFile(client, entityArgs);
+      return fileEntity;
+    } catch (error) {
+      throw new ApolloError(
+        `There was an error creating the file entity from a link: ${error}`,
+        "INTERNAL_SERVER_ERROR",
+      );
+    }
+  }
+
   static async createFileEntityFromUploadRequest(
     client: DBClient,
-    storage: StorageProvider,
+    storage: UploadableStorageProvider,
     params: CreateUploadRequestArgs,
   ): Promise<CreateUploadRequestFileResponse> {
     const { name, contentMd5, accountId, size } = params;
@@ -91,6 +139,7 @@ class __File extends Entity {
         key,
         // Not used yet, should be used eventually
         mediaType: "",
+        storageType: storage.storageType,
       };
       const entityArgs = createEntityArgsBuilder({
         accountId,
@@ -99,7 +148,7 @@ class __File extends Entity {
         versioned: true,
         properties,
         entityVersionId,
-      }) as CreateFileArgs;
+      });
       const fileEntity = await File.createFile(client, entityArgs);
       return {
         presignedPost,

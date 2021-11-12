@@ -89,6 +89,11 @@ export const fileTypedef = gql`
     # ENTITY INTERFACE FIELDS END #
   }
 
+  enum StorageType {
+    AWS_S3
+    EXTERNAL_LINK
+  }
+
   type FileProperties {
     """
     Name of the file
@@ -99,10 +104,6 @@ export const fileTypedef = gql`
     """
     key: String!
     """
-    md5 hash of the file
-    """
-    contentMd5: String!
-    """
     Size of the file in bytes
     """
     size: Int!
@@ -110,6 +111,14 @@ export const fileTypedef = gql`
     url to download the file. Not statically present but generated at query time (presigned S3 GET url)
     """
     url: String!
+    """
+    Type of storage used for this file. Necessary to know how to retrieve the file
+    """
+    storageType: StorageType!
+    """
+    md5 hash of the file
+    """
+    contentMd5: String
     """
     Optional media type, unused for now
     """
@@ -141,6 +150,8 @@ export const fileTypedef = gql`
   }
 
   extend type Mutation {
+    # Requests to upload a file, returning the url and data needed
+    # for a client to POST a file to afterwards
     requestFileUpload(
       """
       The name of the file
@@ -155,5 +166,22 @@ export const fileTypedef = gql`
       """
       contentMd5: String!
     ): RequestFileUploadResponse!
+
+    # Creates a file entity from an external link. The file entity
+    # will just have a reference to the link (the file isn't fetched by our server in this current version)
+    createFileFromLink(
+      """
+      Account id under which to associate the file
+      """
+      accountId: ID!
+      """
+      The name of the file
+      """
+      name: String!
+      """
+      url of the external file
+      """
+      url: String!
+    ): File!
   }
 `;

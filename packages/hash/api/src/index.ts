@@ -9,10 +9,21 @@ import { collabApp } from "./collab/collabApp";
 import { PostgresAdapter, setupCronJobs } from "./db";
 import AwsSesEmailTransporter from "./email/transporter/awsSesEmailTransporter";
 import TestTransporter from "./email/transporter/testEmailTransporter";
+import { StorageType } from "./graphql/apiTypes.gen";
 import { createApolloServer } from "./graphql/createApolloServer";
-import { AWS_REGION, AWS_S3_BUCKET, AWS_S3_REGION } from "./lib/config";
+import {
+  AWS_REGION,
+  AWS_S3_BUCKET,
+  AWS_S3_REGION,
+  FILE_UPLOAD_PROVIDER,
+} from "./lib/config";
 import { isProdEnv, isStatsDEnabled, isTestEnv, port } from "./lib/env-config";
 import { logger } from "./logger";
+import {
+  ExternalStorageProvider,
+  StorageProviders,
+  UploadableStorageProvider,
+} from "./storage";
 import { AwsS3StorageProvider } from "./storage/aws-s3-storage-provider";
 import { getRequiredEnv } from "./util";
 
@@ -82,17 +93,25 @@ const emailTransporter = isTestEnv
   ? new TestTransporter()
   : new AwsSesEmailTransporter(AWS_REGION);
 
-const storageProvider = new AwsS3StorageProvider({
-  bucket: AWS_S3_BUCKET,
-  region: AWS_S3_REGION,
-});
+/** All storage providers usable by the API should be added here */
+const storageProviders: StorageProviders = {
+  [StorageType.AwsS3]: new AwsS3StorageProvider({
+    bucket: AWS_S3_BUCKET,
+    region: AWS_S3_REGION,
+  }),
+  [StorageType.ExternalLink]: new ExternalStorageProvider(),
+};
+
 const apolloServer = createApolloServer({
   db,
   cache: redis,
   emailTransporter,
   logger,
   statsd,
-  storageProvider,
+  storageProviders,
+  uploadProvider: storageProviders[
+    FILE_UPLOAD_PROVIDER
+  ] as UploadableStorageProvider,
 });
 
 app.get("/", (_, res) => res.send("Hello World"));
