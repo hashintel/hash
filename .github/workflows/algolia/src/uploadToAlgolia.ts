@@ -1,10 +1,7 @@
-import { generateAlgoliaJson, uploadAlgoliaData, deleteDocsIndex } from ".";
+import { syncAlgoliaIndex } from ".";
 
 const main = async () => {
-  const records = generateAlgoliaJson();
-  await deleteDocsIndex();
-  console.log("Old Index Deleted.");
-  await uploadAlgoliaData(records);
+  await syncAlgoliaIndex();
   console.log("Algolia Indexes Updated.");
 };
 

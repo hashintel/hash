@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import matter from "gray-matter";
-import algoliasearch from "algoliasearch";
+import algoliasearch, { SearchIndex } from "algoliasearch";
 
 type DocsFrontMatter = {
   content: string;
@@ -41,7 +41,7 @@ const getAllFiles = function (
   return arrayOfFiles;
 };
 
-export const generateAlgoliaJson = () => {
+const generateAlgoliaJson = () => {
   const getFormattedData = (matterData: DocsFrontMatter, type) => {
     const appendData = {
       ...matterData.data,
@@ -78,18 +78,11 @@ export const generateAlgoliaJson = () => {
   return jsonData;
 };
 
-export const uploadAlgoliaData = async (records) => {
-  const client = algoliasearch(
-    process.env.ALGOLIA_PROJECT,
-    process.env.AGOLIA_WRITE_KEY
-  );
-
-  const index = client.initIndex("hash_learn_testing1");
-
+const uploadAlgoliaData = async (index: SearchIndex, records) => {
   return await index.saveObjects(records).catch(console.error);
 };
 
-export const deleteDocsIndex = async () => {
+export const syncAlgoliaIndex = async () => {
   const client = algoliasearch(
     process.env.ALGOLIA_PROJECT,
     process.env.AGOLIA_WRITE_KEY
@@ -97,7 +90,24 @@ export const deleteDocsIndex = async () => {
 
   const index = client.initIndex("hash_learn_testing1");
 
-  return await index
-    .deleteBy({ filters: "type:docs OR type:glossary" })
+  let hits: Array<{ objectID: string }> = [];
+
+  await index
+    .browseObjects({
+      query: "", // Empty query will match all records
+      filters: "type:docs OR type:glossary",
+      attributesToRetrieve: ["objectID"],
+      batch: (batch) => {
+        hits = hits.concat(batch);
+      },
+    })
     .catch(console.error);
+
+  const objectIds = hits.map((hit) => hit.objectID);
+
+  index.deleteObjects(objectIds);
+
+  const records = generateAlgoliaJson();
+
+  return uploadAlgoliaData(index, records);
 };
