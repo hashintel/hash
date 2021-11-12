@@ -3,6 +3,7 @@ on: pull_request
 
 jobs:
   linting:
+    name: Linting
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -18,33 +19,10 @@ jobs:
       - run: yarn lint:prettier
         if: ${{ success() || failure() }}
 
-  docker-compose:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-
-      - uses: ./.github/actions/warm-up-repo
-
-      - run: yarn rebuild:backend
-        if: ${{ success() || failure() }}
-
-  unit-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-
-      - uses: ./.github/actions/warm-up-repo
-
-      - run: yarn test-frontend
-        if: ${{ success() || failure() }}
-
   integration-tests:
+    name: Integration tests
     runs-on: ubuntu-latest
     steps:
-      - run: echo $DOCKER_HOST
-
-      - run: ip addr show docker0
-
       - uses: actions/checkout@v2
 
       - uses: ./.github/actions/warm-up-repo
@@ -52,12 +30,16 @@ jobs:
       - run: yarn codegen
         if: ${{ success() || failure() }}
 
+      - name: Build containers
+        run: yarn rebuild:backend
+        if: ${{ success() || failure() }}
+
       - name: Launch containers
         run: |
           docker volume create --name=hash-dev-pg
           yarn serve:hash-backend-test & ## & enables background mode
-          npx wait-on --timeout 600000 tcp:localhost:5001 ## wait for API server (10 mins max)
-          yarn seed-db
+          # npx wait-on --timeout 600000 tcp:localhost:5001 ## wait for API server (10 mins max)
+          # yarn seed-db
         if: ${{ success() || failure() }}
         env:
           AWS_REGION: na
@@ -65,39 +47,11 @@ jobs:
           AWS_SECRET_ACCESS_KEY: na
           AWS_S3_UPLOADS_BUCKET: na
 
+      - name: Wait for http://localhost:5001
+        run: npx wait-on --timeout 600000 http://localhost:5001
+        if: ${{ success() }}
+
       - run: docker ps -a
-        if: ${{ success() || failure() }}
-
-      - run: npx wait-on --timeout 600000 http://localhost:5001
-
-      - name: Try reaching the API
-        run: |
-          for URL in \
-            http://${DOCKER_HOST}:5001 \
-            http://172.17.0.1:5001 \
-            http://host.docker.internal:5001 \
-            http://gateway.docker.internal:5001 \
-            http://172.17.0.1:5001 \
-            http://localhost:5001 \
-            http://0.0.0.0:5001 \
-            http://127.0.0.1:5001 \
-            http://localhost:5001/graphql \
-            http://0.0.0.0:5001/graphql \
-            http://127.0.0.0:5001/graphql \
-          ; do
-            echo "========="
-            echo $URL
-            echo "========="
-            curl --max-time 3 $URL --include || true
-            echo ""
-            echo ""
-          done
-          exit 1; # for extra attention
-        if: ${{ success() || failure() }}
-
-      - run: |
-          docker run --network container:docker_hash-dev-api_1 appropriate/curl -s --retry 10 --retry-connrefused http://localhost:5001
-          docker run --network container:docker_hash-dev-api_1 appropriate/curl -s --retry 10 --retry-connrefused http://localhost:5001/graphql
         if: ${{ success() || failure() }}
 
       - run: yarn test-integration
@@ -124,25 +78,13 @@ jobs:
       - run: docker ps -a
         if: ${{ success() || failure() }}
 
-      - name: Try reaching the API
-        run: |
-          for URL in \
-            http://host.docker.internal:5001 \
-            http://gateway.docker.internal:5001 \
-            http://172.17.0.1:5001 \
-            http://localhost:5001 \
-            http://0.0.0.0:5001 \
-            http://127.0.0.1:5001 \
-            http://localhost:5001/graphql \
-            http://0.0.0.0:5001/graphql \
-            http://127.0.0.0:5001/graphql \
-          ; do
-            echo "========="
-            echo $URL
-            echo "========="
-            curl --max-time 3 $URL --include || true
-            echo ""
-            echo ""
-          done
-          exit 1; # for extra attention
+  unit-tests:
+    name: Unit tests (frontend)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: ./.github/actions/warm-up-repo
+
+      - run: yarn test-frontend
         if: ${{ success() || failure() }}
