@@ -6,7 +6,7 @@ use arrow::error::ArrowError;
 use crate::hash_types::state::AgentStateField;
 use thiserror::Error as ThisError;
 
-use crate::datastore::schema::ShortJSONError;
+use crate::datastore::schema::{FieldKey, FieldType, RootFieldSpec, ShortJSONError};
 use crate::hash_types;
 use std::fmt;
 
@@ -213,6 +213,12 @@ pub enum Error {
 
     #[error("Field Spec Short JSON repr error: {0}")]
     ShortJSONError(#[from] ShortJSONError),
+
+    #[error("Key clash when attempting to insert a new agent-scoped field with key: {0:?}. The new field has a differing type: {1:?} to the existing field: {2:?}")]
+    AgentScopedFieldKeyClash(FieldKey, FieldType, FieldType),
+
+    #[error("Attempting to insert a new field under key:{0:?} which clashes. New field: {1:?} Existing field: {2:?}")]
+    FieldKeyClash(FieldKey, RootFieldSpec, RootFieldSpec),
 }
 
 impl From<&str> for Error {

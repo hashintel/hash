@@ -1,6 +1,7 @@
 use std::collections::hash_map::Iter;
 use std::collections::HashMap;
 use std::convert::TryInto;
+use std::fmt::{Display, Formatter};
 
 use crate::hash_types::state::AgentStateField;
 use arrow::datatypes::DataType as ArrowDataType;
@@ -154,6 +155,12 @@ impl FieldKey {
     }
 }
 
+impl Display for FieldKey {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.value())
+    }
+}
+
 /// A single specification of a field
 #[derive(new, Clone, PartialEq, Eq, Hash)]
 pub struct FieldSpec {
@@ -163,19 +170,11 @@ pub struct FieldSpec {
 
 /// A single specification of a root field, for instance in the case of a struct field it's the top
 /// level struct field and the children are all FieldSpec
-#[derive(Clone, Debug, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct RootFieldSpec {
     pub inner: FieldSpec,
     pub scope: FieldScope,
     pub source: FieldSource,
-}
-
-impl PartialEq for RootFieldSpec {
-    // Key collision if just `built_in` differs
-    // TODO scope, source, etc.
-    fn eq(&self, other: &Self) -> bool {
-        self.inner.name == other.inner.name && self.inner.field_type == other.inner.field_type
-    }
 }
 
 impl RootFieldSpec {
@@ -206,15 +205,23 @@ impl FieldSpecMap {
     pub(in crate::datastore) fn add(&mut self, new_field: RootFieldSpec) -> Result<()> {
         let field_key = new_field.to_key()?;
         if let Some(existing_field) = self.field_specs.get(&field_key) {
+            if existing_field == &new_field {
+                log::warn!(
+                    "FieldSpec: [{}], already exists within the FieldSpecMap",
+                    field_key
+                );
+                return Ok(());
+            }
             if existing_field.scope == FieldScope::Agent
                 && &new_field.scope == &FieldScope::Agent
                 && &existing_field.inner.field_type == &new_field.inner.field_type
             {
                 if existing_field.source == new_field.source {
-                    return Err(Error::from(format!(
-                        "Key clash when attempting to insert a new agent-scoped field with key: {:?}. The new field has a differing type: {:?} to the existing field: {:?}",
-                        field_key, new_field.inner.field_type, existing_field.inner.field_type
-                    )));
+                    return Err(Error::AgentScopedFieldKeyClash(
+                        field_key,
+                        new_field.inner.field_type,
+                        existing_field.inner.field_type.clone(),
+                    ));
                 } else {
                     if let FieldSource::Package(_package_src) = &new_field.source {
                         if existing_field.source == FieldSource::Engine {
@@ -225,8 +232,10 @@ impl FieldSpecMap {
                 }
             }
 
-            Err(Error::from(
-                format!("Attempting to insert a new field under key:{:?} which clashes. New field: {:?} Existing field: {:?}", field_key, new_field, existing_field)
+            Err(Error::FieldKeyClash(
+                field_key,
+                new_field,
+                existing_field.clone(),
             ))
         } else {
             self.field_specs.insert(field_key, new_field);
@@ -323,80 +332,90 @@ impl TryInto<FieldType> for AgentStateField {
     }
 }
 
-// TODO OS - Alfie - Update remaining tests when built-in fields for FieldSpecMaps is decided
+// TODO - Expand unit tests to cover more cases, such as the AgentScopedFieldKeyClash branch, and possibly split across modules
 #[cfg(test)]
 pub mod tests {
     use super::*;
+    use crate::datastore::schema::FieldSpecMapBuilder;
+    use crate::simulation::package::creator::add_base_agent_fields;
 
     #[test]
     fn name_collision_built_in() {
-        todo!()
-        // let mut key_set = FieldSpecMap::with_all_agent_batch_fields().unwrap();
-        // assert!(key_set
-        //     .add(FieldSpec::new_non_mergeable(
-        //         "agent_id",
-        //         FieldType::new(FieldTypeVariant::Number, true)
-        //     ))
-        //     .is_err());
+        let mut builder = FieldSpecMapBuilder::new();
+        builder.source(FieldSource::Engine);
+        add_base_agent_fields(&mut builder).unwrap();
+
+        let err = builder
+            .add_field_spec(
+                "agent_id".to_string(),
+                FieldType::new(FieldTypeVariant::Number, true),
+                FieldScope::Agent,
+            )
+            .unwrap_err();
+        assert!(matches!(err, Error::FieldKeyClash(..)))
     }
 
     #[test]
     fn name_collision_custom() {
-        todo!()
-        // let mut key_set = FieldSpecMap::default().unwrap();
-        // key_set
-        //     .add(FieldSpec::new_non_mergeable(
-        //         "test",
-        //         FieldType::new(FieldTypeVariant::String, false),
-        //     ))
-        //     .unwrap();
-        // assert!(key_set
-        //     .add(FieldSpec::new_non_mergeable(
-        //         "test",
-        //         FieldType::new(FieldTypeVariant::String, true)
-        //     ))
-        //     .is_err());
+        let mut builder = FieldSpecMapBuilder::new();
+        builder.source(FieldSource::Engine);
+        add_base_agent_fields(&mut builder).unwrap();
+
+        builder.add_field_spec(
+            "test".to_string(),
+            FieldType::new(FieldTypeVariant::String, false),
+            FieldScope::Private,
+        );
+
+        let err = builder
+            .add_field_spec(
+                "test".to_string(),
+                FieldType::new(FieldTypeVariant::String, true),
+                FieldScope::Private,
+            )
+            .unwrap_err();
+        assert!(matches!(err, Error::FieldKeyClash(..)));
     }
 
     #[test]
     fn unchanged_size_built_in() {
-        todo!()
-        // let mut field_spec_map = FieldSpecMap::with_all_agent_batch_fields().unwrap();
-        // let before = field_spec_map.len();
-        // field_spec_map
-        //     .add_built_in(&AgentStateField::AgentId)
-        //     .unwrap();
-        // assert_eq!(before, field_spec_map.len());
+        let mut builder = FieldSpecMapBuilder::new();
+        builder.source(FieldSource::Engine);
+        add_base_agent_fields(&mut builder).unwrap();
+        let mut field_spec_map = builder.build();
+
+        let len_before = field_spec_map.len();
+
+        field_spec_map
+            .add(AgentStateField::AgentId.try_into().unwrap())
+            .unwrap();
+
+        assert_eq!(len_before, field_spec_map.len());
     }
 
     #[test]
     fn unchanged_size_custom() {
-        todo!()
-        // let mut field_spec_map = FieldSpecMap::default().unwrap();
-        // field_spec_map
-        //     .add(FieldSpec::new_non_mergeable(
-        //         "test",
-        //         FieldType::new(FieldTypeVariant::String, false),
-        //     ))
-        //     .unwrap();
-        // field_spec_map
-        //     .add(FieldSpec::new_non_mergeable(
-        //         "test",
-        //         FieldType::new(FieldTypeVariant::String, false),
-        //     ))
-        //     .unwrap();
-        // field_spec_map
-        //     .add(FieldSpec::new_non_mergeable(
-        //         "test",
-        //         FieldType::new(FieldTypeVariant::String, false),
-        //     ))
-        //     .unwrap();
-        // field_spec_map
-        //     .add(FieldSpec::new_non_mergeable(
-        //         "test",
-        //         FieldType::new(FieldTypeVariant::String, false),
-        //     ))
-        //     .unwrap();
-        // assert_eq!(field_spec_map.field_specs.len(), 2);
+        let mut builder = FieldSpecMapBuilder::new();
+        builder.source(FieldSource::Engine);
+
+        builder.add_field_spec(
+            "test".to_string(),
+            FieldType::new(FieldTypeVariant::String, false),
+            FieldScope::Agent,
+        );
+        builder.add_field_spec(
+            "test".to_string(),
+            FieldType::new(FieldTypeVariant::String, false),
+            FieldScope::Agent,
+        );
+        builder.add_field_spec(
+            "test".to_string(),
+            FieldType::new(FieldTypeVariant::String, false),
+            FieldScope::Agent,
+        );
+
+        let field_spec_map = builder.build();
+
+        assert_eq!(field_spec_map.len(), 1);
     }
 }
