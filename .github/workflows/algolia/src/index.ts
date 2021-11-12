@@ -86,9 +86,7 @@ export const uploadAlgoliaData = async (records) => {
 
   const index = client.initIndex("hash_learn_testing1");
 
-  return await index
-    .saveObjects(records, { autoGenerateObjectIDIfNotExist: true })
-    .catch(console.error);
+  return await index.saveObjects(records).catch(console.error);
 };
 
 export const deleteDocsIndex = async () => {
