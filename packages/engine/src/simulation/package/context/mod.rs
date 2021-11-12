@@ -14,19 +14,20 @@ use crate::{
 
 use super::{
     deps::Dependencies,
-    ext_traits::{GetWorkerStartMsg, MaybeCPUBound},
+    ext_traits::{GetWorkerSimStartMsg, MaybeCPUBound},
     prelude::*,
 };
 pub use crate::config::Globals;
 use crate::datastore::schema::accessor::FieldSpecMapAccessor;
 use crate::datastore::schema::context::ContextSchema;
 use crate::proto::ExperimentRunBase;
+use crate::simulation::package::ext_traits::GetWorkerExpStartMsg;
 pub use packages::{ContextTask, ContextTaskMessage, ContextTaskResult, Name, PACKAGES};
 
 pub mod packages;
 
 #[async_trait]
-pub trait Package: MaybeCPUBound + GetWorkerStartMsg + Send + Sync {
+pub trait Package: MaybeCPUBound + GetWorkerSimStartMsg + Send + Sync {
     async fn run<'s>(
         &mut self,
         state: Arc<State>,
@@ -39,7 +40,7 @@ pub trait Package: MaybeCPUBound + GetWorkerStartMsg + Send + Sync {
     ) -> Result<Arc<dyn arrow::array::Array>>;
 }
 
-pub trait PackageCreator: Sync {
+pub trait PackageCreator: GetWorkerExpStartMsg + Sync {
     /// Create the package.
     fn create(
         &self,

@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 // We also have some consts that come in along with our initial world state.
 // These, we call 'Globals', and store them in context.
 // For now, they're... you guessed it, JSON.
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Globals(pub serde_json::Value);
 
 impl Globals {

@@ -58,6 +58,12 @@ impl PackageCreator for Creator {
     }
 }
 
+impl GetWorkerExpStartMsg for Creator {
+    fn get_worker_exp_start_msg(&self) -> Result<Value> {
+        Ok(Value::Null)
+    }
+}
+
 struct Analysis {
     analyzer: Analyzer,
 }
@@ -68,8 +74,8 @@ impl MaybeCPUBound for Analysis {
     }
 }
 
-impl GetWorkerStartMsg for Analysis {
-    fn get_worker_start_msg(&self) -> Result<Value> {
+impl GetWorkerSimStartMsg for Analysis {
+    fn get_worker_sim_start_msg(&self) -> Result<Value> {
         Ok(Value::Null)
     }
 }

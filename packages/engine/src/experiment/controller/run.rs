@@ -148,9 +148,9 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
     );
 
     // Get the experiment-level initialization payload for workers
-    let runner_init_message = experiment_controller.runner_init_message().await?;
+    let exp_init_msg_base = experiment_controller.exp_init_msg_base().await?;
     worker_pool_controller
-        .spawn_workers(runner_init_message)
+        .spawn_workers(exp_init_msg_base)
         .await?;
 
     let mut worker_pool_controller_handle =

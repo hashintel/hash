@@ -55,6 +55,14 @@ impl PackageCreator for Creator {
     }
 }
 
+impl GetWorkerExpStartMsg for Creator {
+    // TODO OS send out behavior source code here
+    //         as it does not change per-simulation
+    fn get_worker_exp_start_msg(&self) -> Result<Value> {
+        todo!()
+    }
+}
+
 struct BehaviorExecution {
     behavior_config: Arc<BehaviorConfig>,
     index_column_index: usize, // TODO[3] this shouldn't be using such a low-level tool (should use FieldKey)
@@ -92,8 +100,8 @@ impl BehaviorExecution {
     }
 }
 
-impl GetWorkerStartMsg for BehaviorExecution {
-    fn get_worker_start_msg(&self) -> Result<Value> {
+impl GetWorkerSimStartMsg for BehaviorExecution {
+    fn get_worker_sim_start_msg(&self) -> Result<Value> {
         let msg = init_message(&self.behavior_map)?;
         Ok(serde_json::to_value(msg)?)
     }

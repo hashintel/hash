@@ -1,3 +1,4 @@
+use crate::config::Globals;
 use crate::hash_types::worker::RunnerError;
 use crate::simulation::status::SimStatus;
 use async_trait::async_trait;
@@ -26,7 +27,7 @@ pub enum EngineStatus {
     Stopping,
     SimStart {
         sim_id: SimulationShortID,
-        globals: serde_json::Value,
+        globals: Globals,
     },
     SimStop(SimulationShortID),
     Errors(Option<SimulationShortID>, Vec<RunnerError>),

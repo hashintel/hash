@@ -103,9 +103,35 @@ impl Debug for DatastoreSimulationPayload {
 }
 
 #[derive(Clone)]
+pub struct ExperimentInitRunnerMsgBase {
+    pub experiment_id: ExperimentID,
+    pub shared_context: Arc<SharedStore>,
+    pub package_config: Arc<PackageMsgs>,
+}
+
+#[derive(Clone)]
 pub struct ExperimentInitRunnerMsg {
     pub experiment_id: ExperimentID,
     pub worker_index: WorkerIndex,
-    pub shared_context: SharedStore,
-    pub package_config: PackageMsgs,
+    pub shared_context: Arc<SharedStore>,
+    pub package_config: Arc<PackageMsgs>,
+}
+
+impl ExperimentInitRunnerMsg {
+    pub fn new(
+        base: &ExperimentInitRunnerMsgBase,
+        worker_index: WorkerIndex,
+    ) -> ExperimentInitRunnerMsg {
+        let ExperimentInitRunnerMsgBase {
+            experiment_id,
+            shared_context,
+            package_config,
+        } = base.clone();
+        ExperimentInitRunnerMsg {
+            experiment_id,
+            worker_index,
+            shared_context,
+            package_config,
+        }
+    }
 }

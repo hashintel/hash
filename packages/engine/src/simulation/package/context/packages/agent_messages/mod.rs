@@ -46,6 +46,12 @@ impl PackageCreator for Creator {
     }
 }
 
+impl GetWorkerExpStartMsg for Creator {
+    fn get_worker_exp_start_msg(&self) -> Result<Value> {
+        Ok(Value::Null)
+    }
+}
+
 struct AgentMessages {}
 
 impl MaybeCPUBound for AgentMessages {
@@ -54,8 +60,8 @@ impl MaybeCPUBound for AgentMessages {
     }
 }
 
-impl GetWorkerStartMsg for AgentMessages {
-    fn get_worker_start_msg(&self) -> Result<Value> {
+impl GetWorkerSimStartMsg for AgentMessages {
+    fn get_worker_sim_start_msg(&self) -> Result<Value> {
         Ok(Value::Null)
     }
 }

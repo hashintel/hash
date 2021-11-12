@@ -7,6 +7,7 @@ use crate::datastore::schema::accessor::FieldSpecMapAccessor;
 use crate::datastore::schema::FieldSpecMapBuilder;
 use crate::proto::ExperimentRunBase;
 use crate::simulation::comms::package::PackageComms;
+use crate::simulation::package::ext_traits::GetWorkerExpStartMsg;
 use crate::SimRunConfig;
 pub use packages::{Name, OutputTask, OutputTaskMessage, OutputTaskResult, PACKAGES};
 
@@ -15,10 +16,10 @@ use self::packages::Output;
 use super::prelude::*;
 use super::{
     deps::Dependencies,
-    ext_traits::{GetWorkerStartMsg, MaybeCPUBound},
+    ext_traits::{GetWorkerSimStartMsg, MaybeCPUBound},
 };
 
-pub trait PackageCreator: Sync {
+pub trait PackageCreator: GetWorkerExpStartMsg + Sync {
     /// Create the package.
     fn create(
         &self,
@@ -50,6 +51,6 @@ pub trait PackageCreator: Sync {
 }
 
 #[async_trait]
-pub trait Package: MaybeCPUBound + GetWorkerStartMsg + Send + Sync {
+pub trait Package: MaybeCPUBound + GetWorkerSimStartMsg + Send + Sync {
     async fn run(&mut self, state: Arc<State>, context: Arc<Context>) -> Result<Output>;
 }

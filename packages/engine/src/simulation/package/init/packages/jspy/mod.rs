@@ -48,6 +48,15 @@ impl PackageCreator for Creator {
     }
 }
 
+impl GetWorkerExpStartMsg for Creator {
+    // TODO Since the init.js/py file is the same for the whole experiment
+    //      consider sending it out here instead of inside `PyInitTask`
+    //      and `JsInitTask`
+    fn get_worker_exp_start_msg(&self) -> Result<Value> {
+        Ok(Value::Null)
+    }
+}
+
 pub struct Package {
     initial_state: InitialState,
     comms: PackageComms,
@@ -59,10 +68,8 @@ impl MaybeCPUBound for Package {
     }
 }
 
-impl GetWorkerStartMsg for Package {
-    fn get_worker_start_msg(&self) -> Result<Value> {
-        // We don't send payloads here,
-        // we send them out for each simulation
+impl GetWorkerSimStartMsg for Package {
+    fn get_worker_sim_start_msg(&self) -> Result<Value> {
         Ok(Value::Null)
     }
 }

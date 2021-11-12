@@ -28,6 +28,12 @@ impl PackageCreator for Creator {
     }
 }
 
+impl GetWorkerExpStartMsg for Creator {
+    fn get_worker_exp_start_msg(&self) -> Result<Value> {
+        Ok(Value::Null)
+    }
+}
+
 struct JsonState {
     config: Arc<SimRunConfig<ExperimentRunBase>>,
 }
@@ -38,8 +44,8 @@ impl MaybeCPUBound for JsonState {
     }
 }
 
-impl GetWorkerStartMsg for JsonState {
-    fn get_worker_start_msg(&self) -> Result<Value> {
+impl GetWorkerSimStartMsg for JsonState {
+    fn get_worker_sim_start_msg(&self) -> Result<Value> {
         Ok(Value::Null)
     }
 }

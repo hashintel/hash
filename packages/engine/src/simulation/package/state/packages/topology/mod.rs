@@ -49,6 +49,12 @@ impl PackageCreator for Creator {
     }
 }
 
+impl GetWorkerExpStartMsg for Creator {
+    fn get_worker_exp_start_msg(&self) -> Result<Value> {
+        Ok(Value::Null)
+    }
+}
+
 pub struct Topology {
     config: Arc<config::TopologyConfig>,
 }
@@ -66,9 +72,9 @@ impl Topology {
     }
 }
 
-impl GetWorkerStartMsg for Topology {
-    fn get_worker_start_msg(&self) -> Result<Value> {
-        todo!()
+impl GetWorkerSimStartMsg for Topology {
+    fn get_worker_sim_start_msg(&self) -> Result<Value> {
+        Ok(Value::Null)
     }
 }
 

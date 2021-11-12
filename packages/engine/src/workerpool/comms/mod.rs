@@ -104,6 +104,10 @@ pub struct WorkerCommsWithWorkerPool {
 }
 
 impl WorkerCommsWithWorkerPool {
+    pub fn index(&self) -> &WorkerIndex {
+        &self.index
+    }
+
     pub fn send(&self, msg: WorkerToWorkerPoolMsg) -> crate::worker::error::Result<()> {
         self.send_to_wp.send((self.index, msg))?;
         Ok(())

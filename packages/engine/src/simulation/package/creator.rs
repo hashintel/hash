@@ -14,6 +14,8 @@ use crate::datastore::schema::{
 };
 use crate::simulation::comms::package::PackageComms;
 use crate::simulation::package::name::PackageName;
+use crate::simulation::package::worker_init::PackageInitMsgForWorker;
+use crate::worker::runner::comms::PackageMsgs;
 use crate::{
     config::SimRunConfig,
     simulation::{Error, Result},
@@ -130,74 +132,161 @@ impl PackageCreators {
         })
     }
 
-    pub fn new_init(
+    pub fn get_worker_exp_start_msgs(&self) -> Result<PackageMsgs> {
+        // TODO generics to avoid code duplication
+        let mut msgs = HashMap::new();
+        for (id, name, creator) in &self.init {
+            let payload = creator.get_worker_exp_start_msg()?;
+            let wrapped = PackageInitMsgForWorker {
+                name: name.clone(),
+                r#type: PackageType::Init,
+                id: id.clone(),
+                payload,
+            };
+            msgs.insert(id.clone(), wrapped);
+        }
+
+        for (id, name, creator) in &self.context {
+            let payload = creator.get_worker_exp_start_msg()?;
+            let wrapped = PackageInitMsgForWorker {
+                name: name.clone(),
+                r#type: PackageType::Context,
+                id: id.clone(),
+                payload,
+            };
+            msgs.insert(id.clone(), wrapped);
+        }
+
+        for (id, name, creator) in &self.state {
+            let payload = creator.get_worker_exp_start_msg()?;
+            let wrapped = PackageInitMsgForWorker {
+                name: name.clone(),
+                r#type: PackageType::Context,
+                id: id.clone(),
+                payload,
+            };
+            msgs.insert(id.clone(), wrapped);
+        }
+
+        for (id, name, creator) in &self.output {
+            let payload = creator.get_worker_exp_start_msg()?;
+            let wrapped = PackageInitMsgForWorker {
+                name: name.clone(),
+                r#type: PackageType::Context,
+                id: id.clone(),
+                payload,
+            };
+            msgs.insert(id.clone(), wrapped);
+        }
+
+        Ok(PackageMsgs(msgs))
+    }
+
+    pub fn new_packages_for_sim(
         &self,
         config: &Arc<SimRunConfig<ExperimentRunBase>>,
         comms: Comms,
-    ) -> Result<Packages> {
-        // TODO generics
+    ) -> Result<(Packages, PackageMsgs)> {
+        // TODO generics to avoid code duplication
         let field_spec_map = &config.sim.store.agent_schema.field_spec_map;
+        let mut messages = HashMap::new();
         let init = self
             .init
             .iter()
             .map(|(package_id, package_name, creator)| {
-                creator.create(
+                let package = creator.create(
                     config,
                     PackageComms::new(comms.clone(), package_id.clone(), PackageType::Init),
                     FieldSpecMapAccessor::new(
                         FieldSource::Package(package_name.clone()),
                         field_spec_map.clone(),
                     ),
-                )
+                )?;
+                let start_msg = package.get_worker_sim_start_msg()?;
+                let wrapped_msg = PackageInitMsgForWorker {
+                    name: package_name.clone(),
+                    r#type: PackageType::Init,
+                    id: package_id.clone(),
+                    payload: start_msg,
+                };
+                messages.insert(package_id.clone(), wrapped_msg);
+                Ok(package)
             })
             .collect::<Result<Vec<_>>>()?;
         let context = self
             .context
             .iter()
             .map(|(package_id, package_name, creator)| {
-                creator.create(
+                let package = creator.create(
                     config,
                     PackageComms::new(comms.clone(), package_id.clone(), PackageType::Context),
                     FieldSpecMapAccessor::new(
                         FieldSource::Package(package_name.clone()),
                         field_spec_map.clone(),
                     ),
-                )
+                )?;
+                let start_msg = package.get_worker_sim_start_msg()?;
+                let wrapped_msg = PackageInitMsgForWorker {
+                    name: package_name.clone(),
+                    r#type: PackageType::Context,
+                    id: package_id.clone(),
+                    payload: start_msg,
+                };
+                messages.insert(package_id.clone(), wrapped_msg);
+                Ok(package)
             })
             .collect::<Result<Vec<_>>>()?;
         let state = self
             .state
             .iter()
             .map(|(package_id, package_name, creator)| {
-                creator.create(
+                let package = creator.create(
                     config,
                     PackageComms::new(comms.clone(), package_id.clone(), PackageType::State),
                     FieldSpecMapAccessor::new(
                         FieldSource::Package(package_name.clone()),
                         field_spec_map.clone(),
                     ),
-                )
+                )?;
+                let start_msg = package.get_worker_sim_start_msg()?;
+                let wrapped_msg = PackageInitMsgForWorker {
+                    name: package_name.clone(),
+                    r#type: PackageType::State,
+                    id: package_id.clone(),
+                    payload: start_msg,
+                };
+                messages.insert(package_id.clone(), wrapped_msg);
+                Ok(package)
             })
             .collect::<Result<Vec<_>>>()?;
         let output = self
             .output
             .iter()
             .map(|(package_id, package_name, creator)| {
-                creator.create(
+                let package = creator.create(
                     config,
                     PackageComms::new(comms.clone(), package_id.clone(), PackageType::Output),
                     FieldSpecMapAccessor::new(
                         FieldSource::Package(package_name.clone()),
                         field_spec_map.clone(),
                     ),
-                )
+                )?;
+                let start_msg = package.get_worker_sim_start_msg()?;
+                let wrapped_msg = PackageInitMsgForWorker {
+                    name: package_name.clone(),
+                    r#type: PackageType::State,
+                    id: package_id.clone(),
+                    payload: start_msg,
+                };
+                messages.insert(package_id.clone(), wrapped_msg);
+                Ok(package)
             })
             .collect::<Result<Vec<_>>>()?;
 
         let init = InitPackages::new(init);
         let step = StepPackages::new(context, state, output);
 
-        Ok(Packages { init, step })
+        Ok((Packages { init, step }, PackageMsgs(messages)))
     }
 
     pub fn get_output_persistence_config(

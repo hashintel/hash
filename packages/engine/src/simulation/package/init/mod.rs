@@ -7,22 +7,23 @@ use crate::datastore::schema::accessor::FieldSpecMapAccessor;
 use crate::datastore::schema::FieldSpecMapBuilder;
 pub use crate::hash_types::Agent;
 use crate::proto::ExperimentRunBase;
+use crate::simulation::package::ext_traits::GetWorkerExpStartMsg;
 use crate::{simulation::comms::package::PackageComms, SimRunConfig};
 
 use super::{
     deps::Dependencies,
-    ext_traits::{GetWorkerStartMsg, MaybeCPUBound},
+    ext_traits::{GetWorkerSimStartMsg, MaybeCPUBound},
     prelude::*,
 };
 
 pub mod packages;
 
 #[async_trait]
-pub trait Package: MaybeCPUBound + GetWorkerStartMsg + Send + Sync {
+pub trait Package: MaybeCPUBound + GetWorkerSimStartMsg + Send + Sync {
     async fn run(&mut self) -> Result<Vec<Agent>>;
 }
 
-pub trait PackageCreator: Sync {
+pub trait PackageCreator: GetWorkerExpStartMsg + Sync {
     /// Create the package.
     fn create(
         &self,

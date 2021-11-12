@@ -51,6 +51,12 @@ impl PackageCreator for Creator {
     }
 }
 
+impl GetWorkerExpStartMsg for Creator {
+    fn get_worker_exp_start_msg(&self) -> Result<Value> {
+        Ok(Value::Null)
+    }
+}
+
 struct APIRequests {
     custom_message_handlers: Option<Vec<String>>,
 }
@@ -61,10 +67,9 @@ impl MaybeCPUBound for APIRequests {
     }
 }
 
-impl GetWorkerStartMsg for APIRequests {
-    // TODO OS - implement get_worker_start_msg for APIRequests
-    fn get_worker_start_msg(&self) -> Result<Value> {
-        todo!()
+impl GetWorkerSimStartMsg for APIRequests {
+    fn get_worker_sim_start_msg(&self) -> Result<Value> {
+        Ok(Value::Null)
     }
 }
 

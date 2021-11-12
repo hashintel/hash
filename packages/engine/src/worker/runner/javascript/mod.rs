@@ -432,7 +432,12 @@ impl<'m> RunnerImpl<'m> {
         let pkg_init_msgs = mv8.create_array();
         for (i_pkg, pkg_id) in init.package_config.0.keys().enumerate() {
             let pkg_init = init.package_config.0.get(pkg_id).unwrap();
-            let pkg = JSPackage::import(mv8, &embedded, &pkg_init.name, pkg_init.r#type)?;
+            let pkg = JSPackage::import(
+                mv8,
+                &embedded,
+                pkg_init.name.clone().into(),
+                pkg_init.r#type,
+            )?;
 
             let i_pkg = i_pkg as u32;
             pkg_ids.set(i_pkg, pkg_id_to_js(mv8, *pkg_id))?;

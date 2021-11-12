@@ -14,7 +14,9 @@ use crate::datastore::{
 use crate::proto::ExperimentRunBase;
 use crate::simulation::comms::package::PackageComms;
 use crate::simulation::package::context::{ContextColumn, Package, PackageCreator};
-use crate::simulation::package::ext_traits::{GetWorkerStartMsg, MaybeCPUBound};
+use crate::simulation::package::ext_traits::{
+    GetWorkerExpStartMsg, GetWorkerSimStartMsg, MaybeCPUBound,
+};
 use crate::simulation::package::prelude::{ArrowArray, ContextPackage};
 use crate::simulation::Result;
 use crate::{ExperimentConfig, SimRunConfig};
@@ -79,6 +81,12 @@ impl PackageCreator for Creator {
     }
 }
 
+impl GetWorkerExpStartMsg for Creator {
+    fn get_worker_exp_start_msg(&self) -> Result<Value> {
+        Ok(Value::Null)
+    }
+}
+
 struct Neighbors {
     topology: Arc<TopologyConfig>,
 }
@@ -100,8 +108,8 @@ impl MaybeCPUBound for Neighbors {
     }
 }
 
-impl GetWorkerStartMsg for Neighbors {
-    fn get_worker_start_msg(&self) -> Result<Value> {
+impl GetWorkerSimStartMsg for Neighbors {
+    fn get_worker_sim_start_msg(&self) -> Result<Value> {
         Ok(Value::Null)
     }
 }

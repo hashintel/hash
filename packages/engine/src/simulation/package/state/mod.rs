@@ -14,18 +14,19 @@ use crate::{
 
 pub use crate::config::Globals;
 
-use super::{deps::Dependencies, ext_traits::GetWorkerStartMsg, prelude::*};
+use super::{deps::Dependencies, ext_traits::GetWorkerSimStartMsg, prelude::*};
 
 use crate::datastore::schema::accessor::FieldSpecMapAccessor;
 use crate::proto::ExperimentRunBase;
+use crate::simulation::package::ext_traits::GetWorkerExpStartMsg;
 pub use packages::{Name, StateTask, StateTaskMessage, StateTaskResult, PACKAGES};
 
 #[async_trait]
-pub trait Package: GetWorkerStartMsg + Send + Sync {
+pub trait Package: GetWorkerSimStartMsg + Send + Sync {
     async fn run(&mut self, state: &mut ExState, context: &Context) -> Result<()>;
 }
 
-pub trait PackageCreator: Sync {
+pub trait PackageCreator: GetWorkerExpStartMsg + Sync {
     /// Create the package.
     fn create(
         &self,
