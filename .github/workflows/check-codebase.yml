@@ -3,7 +3,6 @@ on: pull_request
 
 jobs:
   linting:
-    name: Linting
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -20,7 +19,6 @@ jobs:
         if: ${{ success() || failure() }}
 
   integration-tests:
-    name: Integration tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -74,7 +72,6 @@ jobs:
         if: ${{ success() || failure() }}
 
   unit-tests:
-    name: Unit tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
