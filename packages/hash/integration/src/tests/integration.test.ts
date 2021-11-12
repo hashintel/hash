@@ -21,8 +21,6 @@ import {
   WayToUseHash,
 } from "../graphql/apiTypes.gen";
 
-jest.setTimeout(60000);
-
 const logger = new Logger({
   mode: "dev",
   level: "debug",
