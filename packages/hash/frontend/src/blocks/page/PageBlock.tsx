@@ -2,7 +2,6 @@ import { useApolloClient } from "@apollo/client";
 import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
-import { useRouter } from "next/router";
 import { Schema } from "prosemirror-model";
 import { EditorView } from "prosemirror-view";
 import "prosemirror-view/style/prosemirror.css";
@@ -32,7 +31,6 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   accountId,
   entityId,
 }) => {
-  const router = useRouter();
   const root = useRef<HTMLDivElement>(null);
   const client = useApolloClient();
 

@@ -48,7 +48,7 @@ export const BlockHandle = forwardRef<HTMLDivElement, BlockHandleProps>(
         )}
       </div>
     );
-  }
+  },
 );
 
 /**

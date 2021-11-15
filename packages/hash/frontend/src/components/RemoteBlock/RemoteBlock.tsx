@@ -23,7 +23,7 @@ export const RemoteBlock: VoidFunctionComponent<
   const [loading, err, Component] = useRemoteBlock(
     sourceUrl,
     crossFrame,
-    onBlockLoaded
+    onBlockLoaded,
   );
 
   if (loading) {

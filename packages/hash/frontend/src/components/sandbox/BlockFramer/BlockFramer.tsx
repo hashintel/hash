@@ -176,7 +176,7 @@ export const BlockFramer: VoidFunctionComponent<CrossFrameProxyProps> = ({
     update,
     aggregateEntityTypes,
   ]);
-      
+
   const onLoad = useCallback(() => {
     onBlockLoaded();
     return !paramsIncludeProps ? sendBlockProperties(blockProperties) : null;

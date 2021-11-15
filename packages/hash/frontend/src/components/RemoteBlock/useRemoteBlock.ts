@@ -29,7 +29,7 @@ const remoteModuleCache: Record<string, UseRemoteComponentState> = {};
 export const useRemoteBlock: UseRemoteBlockHook = (
   url,
   crossFrame,
-  onBlockLoaded
+  onBlockLoaded,
 ) => {
   if (crossFrame && isTopWindow()) {
     throw new Error(
@@ -69,20 +69,18 @@ export const useRemoteBlock: UseRemoteBlockHook = (
       : loadRemoteBlock;
 
     blockLoaderFn(url, signal)
-      .then(
-        (module) => {
-          update({
-            loading: false,
-            err: undefined,
-            component: typeof module === "string" ? module : module.default,
-            url,
-          });
+      .then((module) => {
+        update({
+          loading: false,
+          err: undefined,
+          component: typeof module === "string" ? module : module.default,
+          url,
+        });
 
-          if (onBlockLoaded && !signal.aborted) {
-            onBlockLoaded();
-          }
+        if (onBlockLoaded && !signal.aborted) {
+          onBlockLoaded();
         }
-      )
+      })
       .catch((newErr) =>
         update({
           loading: false,
