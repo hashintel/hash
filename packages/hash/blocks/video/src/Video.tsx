@@ -36,6 +36,13 @@ type AppProps = {
   entityTypeId?: string;
 };
 
+type BlockProtocolUpdatePayloadData = Pick<
+  AppProps,
+  "initialSrc" | "initialCaption"
+> & {
+  file?: FileLink;
+};
+
 const placeholderText = "Enter Video URL";
 const buttonText = "Embed Video";
 const bottomText = "Works with web-supported video formats";
@@ -92,20 +99,17 @@ export const Video: BlockComponent<AppProps> = (props) => {
   }
 
   const updateData = useCallback(
-    (src: string | undefined, file?: FileLink) => {
+    ({ src, file }: { src: string | undefined; file?: FileLink }) => {
       if (src?.trim()) {
         if (update) {
-          const updateAction: BlockProtocolUpdatePayload<
-            Pick<AppProps, "initialSrc" | "initialCaption"> & {
-              file?: FileLink;
-            }
-          > = {
-            data: {
-              initialSrc: src,
-              initialCaption: captionText,
-            },
-            entityId,
-          };
+          const updateAction: BlockProtocolUpdatePayload<BlockProtocolUpdatePayloadData> =
+            {
+              data: {
+                initialSrc: src,
+                initialCaption: captionText,
+              },
+              entityId,
+            };
 
           if (file) {
             updateAction.data.file = file;
@@ -131,7 +135,7 @@ export const Video: BlockComponent<AppProps> = (props) => {
         .then(({ src, file }) => {
           if (isMounted.current) {
             updateStateObject({ loading: false });
-            updateData(src, file);
+            updateData({ src, file });
           }
         })
         .catch((error: Error) =>
@@ -201,7 +205,7 @@ export const Video: BlockComponent<AppProps> = (props) => {
             value={captionText}
             onChange={(event) => setCaptionText(event.target.value)}
             onBlur={() => {
-              updateData(stateObject.src);
+              updateData({ src: stateObject.src });
             }}
           />
         </div>

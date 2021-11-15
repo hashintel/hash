@@ -40,6 +40,13 @@ type AppProps = {
   entityTypeId?: string;
 };
 
+type BlockProtocolUpdatePayloadData = Pick<
+  AppProps,
+  "initialSrc" | "initialCaption" | "initialWidth"
+> & {
+  file?: FileLink;
+};
+
 const placeholderText = "Enter Image URL";
 const buttonText = "Embed Image";
 const bottomText = "Works with web-supported image formats";
@@ -93,20 +100,25 @@ export const Image: BlockComponent<AppProps> = (props) => {
   );
 
   const updateData = useCallback(
-    (src: string | undefined, width?: number, file?: FileLink) => {
+    ({
+      src,
+      width,
+      file,
+    }: {
+      src: string | undefined;
+      width?: number;
+      file?: FileLink;
+    }) => {
       if (src?.trim()) {
         if (update) {
-          const updateAction: BlockProtocolUpdatePayload<
-            Pick<AppProps, "initialSrc" | "initialCaption" | "initialWidth"> & {
-              file?: FileLink;
-            }
-          > = {
-            data: {
-              initialSrc: src,
-              initialCaption: captionText,
-            },
-            entityId,
-          };
+          const updateAction: BlockProtocolUpdatePayload<BlockProtocolUpdatePayloadData> =
+            {
+              data: {
+                initialSrc: src,
+                initialCaption: captionText,
+              },
+              entityId,
+            };
 
           if (width) {
             updateAction.data.initialWidth = width;
@@ -131,7 +143,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
 
   const updateWidth = useCallback(
     (width: number) => {
-      updateData(stateObject.src, width);
+      updateData({ src: stateObject.src, width });
     },
     [stateObject.src, updateData],
   );
@@ -147,7 +159,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
         .then(({ src, file }) => {
           if (isMounted.current) {
             updateStateObject({ loading: false });
-            updateData(src, undefined, file);
+            updateData({ src, file });
           }
         })
         .catch((error: Error) =>
@@ -212,7 +224,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
             type="text"
             value={captionText}
             onChange={(event) => setCaptionText(event.target.value)}
-            onBlur={() => updateData(stateObject.src)}
+            onBlur={() => updateData({ src: stateObject.src })}
           />
         </div>
         <button

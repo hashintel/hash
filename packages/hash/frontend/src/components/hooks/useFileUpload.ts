@@ -1,4 +1,4 @@
-import { BlockProtocolLinkedDataDefinition } from "@hashintel/block-protocol/src/index";
+import { BlockProtocolFileUploadFn } from "@hashintel/block-protocol/src/index";
 import {
   GetEntityQuery,
   GetEntityQueryVariables,
@@ -42,7 +42,11 @@ function computeChecksumMd5(file: File): Promise<string> {
     };
 
     fileReader.onerror = () => {
-      reject(new Error("An error occured"));
+      reject(
+        new Error(
+          "An error occurred generating the md5 checksum during file upload",
+        ),
+      );
     };
 
     processChunk(0);
@@ -57,7 +61,7 @@ export const useFileUpload = (accountId: string) => {
     RequestFileUploadMutationVariables
   >(requestFileUpload);
 
-  const uploadFileToS3 = async (
+  const uploadFileToStorageProvider = async (
     presignedPostData: RequestFileUploadResponse["presignedPost"],
     file: File,
   ) => {
@@ -76,22 +80,8 @@ export const useFileUpload = (accountId: string) => {
     });
   };
 
-  const uploadFile = useCallback(
-    async (args: {
-      file?: File;
-      url?: string;
-      mime?: string;
-    }): Promise<{
-      src: string;
-      file?: {
-        __linkedData: Pick<
-          BlockProtocolLinkedDataDefinition,
-          "entityId" | "entityTypeId"
-        >;
-      };
-    }> => {
-      const { file, url, mime } = args;
-
+  const uploadFile: BlockProtocolFileUploadFn = useCallback(
+    async ({ file, url, mime }) => {
       /**
        * For external urls, we temporarily return the url for now
        * The proper flow will be addressed in
@@ -139,11 +129,11 @@ export const useFileUpload = (accountId: string) => {
       const {
         requestFileUpload: {
           presignedPost,
-          file: { entityId, entityTypeId },
+          file: { entityId },
         },
       } = data;
 
-      await uploadFileToS3(presignedPost, file);
+      await uploadFileToStorageProvider(presignedPost, file);
 
       /**
        * Fetch File Entity to get Url
@@ -162,8 +152,8 @@ export const useFileUpload = (accountId: string) => {
       const { properties } = response.data.entity;
 
       return {
-        src: properties.url,
-        file: { __linkedData: { entityId, entityTypeId } },
+        entityId,
+        url: properties.url,
       };
     },
     [accountId, client, requestFileUploadFn],
