@@ -2,7 +2,7 @@ import { uniq } from "lodash";
 
 import { Connection } from "./types";
 import { getEntityHistory } from "./entity";
-import { getEntityOutgoingLinks } from "./link";
+import { getEntityOutgoingLinks } from "./link/getEntityOutgoingLinks";
 import { EntityVersion, Graph } from "../adapter";
 import { DefaultMap } from "../../util";
 

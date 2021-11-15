@@ -1,4 +1,5 @@
 import { sql, NotFoundError } from "slonik";
+import { uniq } from "lodash";
 
 import { DBLink, Entity, EntityType, EntityVersion } from "../adapter";
 import { Connection } from "./types";
@@ -7,7 +8,9 @@ import { Visibility } from "../../graphql/apiTypes.gen";
 import { genId } from "../../util";
 import { insertEntityAccount } from "./account";
 import { DbEntityNotFoundError } from "../errors";
-import { addSourceEntityVersionIdToLink, getEntityOutgoingLinks } from "./link";
+import { getEntityOutgoingLinks } from "./link/getEntityOutgoingLinks";
+import { addSourceEntityVersionIdToLink } from "./link/util";
+import { getEntityIncomingLinks } from "./link/getEntityIncomingLinks";
 
 /** Prefix to distinguish identical fields when joining with a type record */
 const entityTypeFieldPrefix = "type.";
@@ -737,4 +740,72 @@ export const updateEntity = async (
   return entity.metadata.versioned
     ? updateVersionedEntity(conn, updateData)
     : updateNonVersionedEntity(conn, updateData);
+};
+
+export const getAncestorReferences = async (
+  conn: Connection,
+  params: {
+    accountId: string;
+    entityId: string;
+    depth?: number;
+  },
+) => {
+  // @todo: this implementation cannot handle cycles in the graph.
+  if (params.depth !== undefined && params.depth < 1) {
+    throw new Error("parameter depth must be at least 1");
+  }
+  const depth = params.depth || 1;
+  let refs = [{ accountId: params.accountId, entityId: params.entityId }];
+  for (let i = 0; i < depth; i++) {
+    const incomingLinks = await Promise.all(
+      refs.map((ref) => getEntityIncomingLinks(conn, ref)),
+    );
+
+    const incomingRefs = incomingLinks
+      .flat()
+      .map(({ sourceAccountId, sourceEntityId }) => ({
+        accountId: sourceAccountId,
+        entityId: sourceEntityId,
+      }));
+
+    refs = uniq(incomingRefs.flat());
+  }
+  return refs;
+};
+
+export const getChildren = async (
+  conn: Connection,
+  params: {
+    accountId: string;
+    entityId: string;
+    entityVersionId: string;
+  },
+): Promise<Entity[]> => {
+  if (!(await getEntity(conn, params))) {
+    throw new DbEntityNotFoundError(params);
+  }
+
+  const outgoing = await getEntityOutgoingLinks(conn, params);
+
+  return Promise.all(
+    outgoing.map(async (link) => {
+      const entity = link.destinationEntityVersionId
+        ? await getEntity(conn, {
+            accountId: link.destinationAccountId,
+            entityVersionId: link.destinationEntityVersionId,
+          })
+        : await getEntityLatestVersion(conn, {
+            accountId: link.destinationAccountId,
+            entityId: link.destinationEntityId,
+          });
+      if (!entity) {
+        throw new DbEntityNotFoundError({
+          accountId: link.destinationAccountId,
+          entityId: link.destinationEntityId,
+          entityVersionId: link.destinationEntityVersionId,
+        });
+      }
+      return entity;
+    }),
+  );
 };

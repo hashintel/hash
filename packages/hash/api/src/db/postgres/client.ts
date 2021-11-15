@@ -37,19 +37,17 @@ import {
   getEntity,
   getEntityHistory,
   getEntityLatestVersion,
+  getAncestorReferences,
+  getChildren,
   insertEntityVersion,
   acquireEntityLock,
   updateEntity,
   updateEntityAccountId,
 } from "./entity";
-import {
-  getAncestorReferences,
-  getChildren,
-  getEntityOutgoingLinks,
-  getLink,
-  createLink,
-  deleteLink,
-} from "./link";
+import { getEntityOutgoingLinks } from "./link/getEntityOutgoingLinks";
+import { getLink } from "./link/getLink";
+import { createLink } from "./link/createLink";
+import { deleteLink } from "./link/deleteLink";
 import { getUserByEmail, getUserByShortname } from "./user";
 import {
   insertVerificationCode,
