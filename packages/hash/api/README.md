@@ -1,0 +1,45 @@
+# HASH.dev backend
+
+You will need to add `host.docker.internal` to your `/etc/hosts` file to point to `127.0.0.1`. This is to allow the
+docker container to reach the blocks servers, which are hosted outside the container.
+
+## Configuration
+
+The backend API service is configured using the following environment variables:
+
+- `NODE_ENV`: ("development" or "production") the runtime environment. Controls
+  default logging levels and output formatting.
+- `PORT`: the port number the API will listen on.
+- `SESSION_SECRET`: a secret used to sign login sessions.
+- `AWS_REGION`: the AWS region to use for the Simple Email Service (SES) provider.
+- S3 file uploads:
+  - `AWS_S3_REGION`: (optional) the AWS region where the file uploads bucket is located. If not
+    provided, `AWS_REGION` is assumed.
+  - `AWS_S3_UPLOADS_BUCKET`: the name of the S3 bucket for file uploads.
+- Postgres
+  - `HASH_PG_HOST`: Postgres hostname.
+  - `HASH_PG_PORT`: Postgres connection port.
+  - `HASH_PG_DATABASE`: Postgres database name.
+  - `HASH_PG_PASSWORD`: Postgres user password.
+  - `HASH_PG_USER`: Postgres username.
+- Redis
+  - `HASH_REDIS_HOST`: the hostname for the Redis server.
+  - `HASH_REDIS_PORT`: the port number of the Redis server.
+- `FRONTEND_DOMAIN`: The domain the frontend is hosted on.
+- `HTTPS_ENABLED`: (optional) Set to `"1"` if HTTPS is enabled on the frontend host.
+- `STATSD_ENABLED`: (optional) set to "1" if the service should report metrics to a
+  StatsD server. If enabled, the following variables must be set:
+  - `STATSD_HOST`: the hostname of the StatsD server.
+  - `STATSD_PORT`: (default: 8125) the port number the StatsD server is listening on.
+
+## Metrics
+
+The API may output StatsD metrics to a location set by the `STATSD_HOST` and
+`STATSD_PORT` environment variables. Metrics are not reported to the console
+and require an external service to which they may be sent to. For development
+purposes, our [Docker config](../../../docker/README.md) includes a bare-bones StatsD server which just outputs metrics to the console. To run the API with
+this enabled, from the root of the repo, execute:
+
+```sh
+yarn serve:hash-backend-statsd
+```

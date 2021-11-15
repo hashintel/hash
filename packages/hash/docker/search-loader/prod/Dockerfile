@@ -2,9 +2,10 @@ FROM node:16 AS builder
 
 WORKDIR /app
 
-COPY packages/hash/search-loader packages/hash/search-loader
-COPY packages/hash/prettier-config packages/hash/prettier-config
 COPY packages/hash/backend-utils packages/hash/backend-utils
+COPY packages/hash/block-protocol packages/hash/block-protocol
+COPY packages/hash/search-loader packages/hash/search-loader
+COPY packages/hash/shared packages/hash/shared
 COPY package.json .
 COPY tsconfig.base.json .
 COPY yarn.lock .
@@ -14,8 +15,7 @@ RUN --mount=type=cache,target=/yarn-cache \
   --mount=type=cache,target=/var/lib/apt \
   yarn ws:hash-search-loader install \
   && yarn ws:hash-search-loader build \
-  # Remove devDependencies
-  && yarn ws:hash-search-loader install --production --ignore-scripts --prefer-offline
+  && yarn ws:hash-search-loader install --production --ignore-scripts --prefer-offline # Remove devDependencies
 
 #########################################################################################
 

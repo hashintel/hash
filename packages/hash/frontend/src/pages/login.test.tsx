@@ -9,7 +9,7 @@ describe("Login page", () => {
     mockUseRouter();
     const { getByText } = render(<Login />);
     expect(
-      getByText("Sign in to your account", { exact: false })
+      getByText("Sign in to your account", { exact: false }),
     ).toBeVisible();
   });
 });

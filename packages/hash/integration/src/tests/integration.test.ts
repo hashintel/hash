@@ -4,10 +4,10 @@ import {
   OrgEmailInvitation,
   User,
   VerificationCode,
-} from "@hashintel/hash-backend/src/model";
-import { PostgresAdapter } from "@hashintel/hash-backend/src/db";
-import EmailTransporter from "@hashintel/hash-backend/src/email/transporter";
-import TestEmailTransporter from "@hashintel/hash-backend/src/email/transporter/testEmailTransporter";
+} from "@hashintel/hash-api/src/model";
+import { PostgresAdapter } from "@hashintel/hash-api/src/db";
+import EmailTransporter from "@hashintel/hash-api/src/email/transporter";
+import TestEmailTransporter from "@hashintel/hash-api/src/email/transporter/testEmailTransporter";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
 import { ClientError } from "graphql-request";
@@ -20,6 +20,8 @@ import {
   SystemTypeName,
   WayToUseHash,
 } from "../graphql/apiTypes.gen";
+
+jest.setTimeout(60000);
 
 const logger = new Logger({
   mode: "dev",
@@ -42,7 +44,7 @@ let existingUser: User;
 let existingOrg: Org;
 
 const createNewBobWithOrg = async () => {
-  const bobUser = await User.createUser(db)({
+  const bobUser = await User.createUser(db, {
     shortname: `bob-${bobCounter}`,
     preferredName: `Bob-${bobCounter}`,
     emails: [
@@ -58,15 +60,16 @@ const createNewBobWithOrg = async () => {
 
   bobCounter += 1;
 
-  const bobOrg = await Org.createOrg(db)({
+  const bobOrg = await Org.createOrg(db, {
     createdById: bobUser.entityId,
     properties: {
       shortname: `${bobUser.properties.shortname}-org`,
       name: `${bobUser.properties.preferredName}'s Org`,
+      memberships: [],
     },
   });
 
-  await bobUser.joinOrg(db)({ org: bobOrg, responsibility: "CEO" });
+  await bobUser.joinOrg(db, { org: bobOrg, responsibility: "CEO" });
 
   return { bobUser, bobOrg };
 };
@@ -84,12 +87,12 @@ beforeAll(async () => {
       password: "postgres",
       maxPoolSize: 10,
     },
-    logger
+    logger,
   );
 
   transporter = new TestEmailTransporter();
 
-  existingUser = await User.createUser(db)({
+  existingUser = await User.createUser(db, {
     shortname: "test-user",
     preferredName: "Alice",
     emails: [{ address: "alice@hash.test", primary: true, verified: true }],
@@ -97,15 +100,16 @@ beforeAll(async () => {
     infoProvidedAtSignup: { usingHow: WayToUseHash.ByThemselves },
   });
 
-  existingOrg = await Org.createOrg(db)({
+  existingOrg = await Org.createOrg(db, {
     createdById: existingUser.entityId,
     properties: {
       shortname: "bigco",
       name: "Big Company",
+      memberships: [],
     },
   });
 
-  await existingUser.joinOrg(db)({ org: existingOrg, responsibility: "CEO" });
+  await existingUser.joinOrg(db, { org: existingOrg, responsibility: "CEO" });
 });
 
 afterAll(async () => {
@@ -121,7 +125,7 @@ it("can create user", async () => {
   const { id: verificationCodeId, createdAt: verificationCodeCreatedAt } =
     await client.createUser({ email });
 
-  const user = (await User.getUserByEmail(db)({
+  const user = (await User.getUserByEmail(db, {
     email,
     verified: false,
     primary: true,
@@ -135,13 +139,13 @@ it("can create user", async () => {
   expect(user.entityType.properties.title).toEqual("User");
 
   /** @todo: check whether the verification code was sent to the email address */
-  const verificationCode = (await VerificationCode.getById(db)({
+  const verificationCode = (await VerificationCode.getById(db, {
     id: verificationCodeId,
   }))!;
 
   expect(verificationCode).not.toBeNull();
   expect(verificationCode.createdAt.toISOString()).toBe(
-    verificationCodeCreatedAt
+    verificationCodeCreatedAt,
   );
 
   /** @todo: cleanup created user in datastore */
@@ -152,12 +156,13 @@ it("can create user with email verification code", async () => {
 
   const emailInvitation = await OrgEmailInvitation.createOrgEmailInvitation(
     db,
-    transporter
-  )({
-    org: existingOrg,
-    inviter: existingUser,
-    inviteeEmailAddress,
-  });
+    transporter,
+    {
+      org: existingOrg,
+      inviter: existingUser,
+      inviteeEmailAddress,
+    },
+  );
 
   /** @todo: use test email transporter to obtain email invitation token */
   const invitationEmailToken = emailInvitation.properties.accessToken;
@@ -170,7 +175,7 @@ it("can create user with email verification code", async () => {
 
   expect(accountSignupComplete).toEqual(false);
 
-  const user = (await User.getUserById(db)({ entityId }))!;
+  const user = (await User.getUserById(db, { entityId }))!;
 
   expect(user).not.toBeNull();
   expect(user.getPrimaryEmail()).toEqual({
@@ -190,7 +195,7 @@ describe("can log in", () => {
       emailOrShortname: emailAddress,
     });
 
-    const verificationCodeOrNull = await VerificationCode.getById(db)({
+    const verificationCodeOrNull = await VerificationCode.getById(db, {
       id: verificationId,
     });
 
@@ -220,7 +225,7 @@ describe("logged in user ", () => {
       emailOrShortname: existingUser.getPrimaryEmail().address,
     });
 
-    const verificationCode = await VerificationCode.getById(db)({
+    const verificationCode = await VerificationCode.getById(db, {
       id: verificationId,
     });
 
@@ -260,19 +265,19 @@ describe("logged in user ", () => {
     };
 
     const { entityId, properties: gqlOrgProperties } = await client.createOrg(
-      variables
+      variables,
     );
 
-    const org = (await Org.getOrgById(db)({ entityId }))!;
+    const org = (await Org.getOrgById(db, { entityId }))!;
 
     // Test the org has been created correctly
     expect(org).not.toBeNull();
     expect(org.properties.name).toEqual(variables.org.name);
     expect(org.properties.shortname).toEqual(variables.org.shortname);
     expect(org.properties.infoProvidedAtCreation?.orgSize).toEqual(
-      variables.org.orgSize
+      variables.org.orgSize,
     );
-    expect(org.entityCreatedAt).toEqual(org.entityVersionUpdatedAt);
+
     expect(org.entityType.properties.title).toEqual("Org");
 
     // Test an invitaiton link has been created for the org
@@ -283,30 +288,18 @@ describe("logged in user ", () => {
 
     // Test the invitation link has been returned in the createOrg GraphQL mutation
     expect(gqlOrgProperties.invitationLink?.data.entityId).toEqual(
-      invitationLink.entityId
+      invitationLink.entityId,
     );
     expect(
-      gqlOrgProperties.invitationLink?.data.properties.accessToken
+      gqlOrgProperties.invitationLink?.data.properties.accessToken,
     ).toEqual(invitationLink.properties.accessToken);
 
     // Test the user is now a member of the org
-    const updatedExistingUser = (await User.getUserById(db)(existingUser))!;
+    const updatedExistingUser = (await User.getUserById(db, existingUser))!;
 
     expect(updatedExistingUser).not.toBeNull();
 
-    const orgMembership = updatedExistingUser.properties.memberOf.find(
-      ({ org: linkedOrg }) => linkedOrg.__linkedData.entityId === org.entityId
-    );
-
-    expect(orgMembership).toEqual({
-      org: {
-        __linkedData: {
-          entityId: org.entityId,
-          entityTypeId: org.entityType.entityId,
-        },
-      },
-      responsibility: variables.responsibility,
-    });
+    expect(await updatedExistingUser.isMemberOfOrg(db, org)).toBe(true);
   });
 
   it("can create an org email invitation", async () => {
@@ -320,10 +313,10 @@ describe("logged in user ", () => {
     });
 
     expect(response.properties.inviter.data.entityId).toEqual(
-      existingUser.entityId
+      existingUser.entityId,
     );
     expect(response.properties.inviteeEmailAddress).toEqual(
-      inviteeEmailAddress
+      inviteeEmailAddress,
     );
 
     /** @todo: cleanup created email invitations */
@@ -345,8 +338,8 @@ describe("logged in user ", () => {
       .catch((error: ClientError) => {
         expect(
           ApiClient.getErrorCodesFromClientError(error).includes(
-            "ALREADY_INVITED"
-          )
+            "ALREADY_INVITED",
+          ),
         ).toBe(true);
       });
   });
@@ -358,12 +351,13 @@ describe("logged in user ", () => {
 
     const emailInvitation = await OrgEmailInvitation.createOrgEmailInvitation(
       db,
-      transporter
-    )({
-      org: bobOrg,
-      inviter: bobUser,
-      inviteeEmailAddress,
-    });
+      transporter,
+      {
+        org: bobOrg,
+        inviter: bobUser,
+        inviteeEmailAddress,
+      },
+    );
 
     const gqlEmailInvitation = await client.getOrgEmailInvitation({
       orgEntityId: bobOrg.entityId,
@@ -372,10 +366,10 @@ describe("logged in user ", () => {
 
     expect(gqlEmailInvitation.entityId).toEqual(emailInvitation.entityId);
     expect(gqlEmailInvitation.properties.inviteeEmailAddress).toEqual(
-      inviteeEmailAddress
+      inviteeEmailAddress,
     );
     expect(gqlEmailInvitation.properties.inviter.data.entityId).toEqual(
-      bobUser.entityId
+      bobUser.entityId,
     );
 
     /** @todo: cleanup created bob user and org */
@@ -404,12 +398,13 @@ describe("logged in user ", () => {
 
     const emailInvitation = await OrgEmailInvitation.createOrgEmailInvitation(
       db,
-      transporter
-    )({
-      org: bobOrg,
-      inviter: bobUser,
-      inviteeEmailAddress,
-    });
+      transporter,
+      {
+        org: bobOrg,
+        inviter: bobUser,
+        inviteeEmailAddress,
+      },
+    );
 
     const responsibility = "CTO";
 
@@ -424,16 +419,16 @@ describe("logged in user ", () => {
     expect(gqlUser.entityId).toEqual(existingUser.entityId);
 
     const gqlMemberOf = gqlUser.properties.memberOf.find(
-      ({ org }) => org.data.entityId === bobOrg.entityId
+      ({ data }) => data.properties.org.data.entityId === bobOrg.entityId,
     )!;
 
     expect(gqlMemberOf).not.toBeUndefined();
-    expect(gqlMemberOf.responsibility).toEqual(responsibility);
+    expect(gqlMemberOf.data.properties.responsibility).toEqual(responsibility);
 
     const { emails } = gqlUser.properties;
 
     const addedEmail = emails.find(
-      ({ address }) => address === inviteeEmailAddress
+      ({ address }) => address === inviteeEmailAddress,
     )!;
 
     expect(addedEmail).not.toBeUndefined();
@@ -459,11 +454,11 @@ describe("logged in user ", () => {
     expect(gqlUser.entityId).toEqual(existingUser.entityId);
 
     const gqlMemberOf = gqlUser.properties.memberOf.find(
-      ({ org }) => org.data.entityId === bobOrg.entityId
+      ({ data }) => data.properties.org.data.entityId === bobOrg.entityId,
     )!;
 
     expect(gqlMemberOf).not.toBeUndefined();
-    expect(gqlMemberOf.responsibility).toEqual(responsibility);
+    expect(gqlMemberOf.data.properties.responsibility).toEqual(responsibility);
   });
 
   describe("can create and update pages", () => {
@@ -480,7 +475,9 @@ describe("logged in user ", () => {
 
     let textEntityId: string;
     it("can add a block to the page", async () => {
-      const textProperties = { texts: [{ text: "Hello World!" }] };
+      const textProperties = {
+        tokens: [{ tokenType: "text", text: "Hello World!" }],
+      };
       const updatedPage = await client.insertBlocksIntoPage({
         accountId: existingUser.accountId,
         entityId: page.entityId,
@@ -510,10 +507,10 @@ describe("logged in user ", () => {
       // We inserted a block at the beginning of the page. The remaining blocks should
       // be the same.
       expect(updatedPage.properties.contents.length).toEqual(
-        page.properties.contents.length + 1
+        page.properties.contents.length + 1,
       );
       expect(updatedPage.properties.contents.slice(1)).toEqual(
-        page.properties.contents
+        page.properties.contents,
       );
 
       // Get the text entity we just inserted and make sure it matches
@@ -529,7 +526,9 @@ describe("logged in user ", () => {
 
     it("should create a new page version when a block is updated", async () => {
       // Update the text block inside the page
-      const newTextProperties = { texts: [{ text: "Hello HASH!" }] };
+      const newTextProperties = {
+        tokens: [{ tokenType: "text", text: "Hello HASH!" }],
+      };
       const { entityVersionId, entityId } = await client.updateEntity({
         accountId: existingUser.accountId,
         entityId: textEntityId,
@@ -551,11 +550,13 @@ describe("logged in user ", () => {
         entityId: page.entityId,
       });
       expect(updatedPage.properties.contents[0].properties.entity.id).toEqual(
-        newTextEntity.entityVersionId
+        newTextEntity.entityVersionId,
       );
 
       // Update the header block text entity (2nd block)
-      const newHeaderTextProperties = { texts: [{ text: "Header Text" }] };
+      const newHeaderTextProperties = {
+        tokens: [{ tokenType: "text", text: "Header Text" }],
+      };
       const headerBlock = updatedPage.properties.contents[1];
       const headerUpdate = await client.updateEntity({
         accountId: existingUser.accountId,
@@ -569,7 +570,7 @@ describe("logged in user ", () => {
         entityId: page.entityId,
       });
       expect(updatedPage.properties.contents[1].properties.entity.id).toEqual(
-        headerUpdate.entityVersionId
+        headerUpdate.entityVersionId,
       );
     });
   });
@@ -584,10 +585,12 @@ describe("logged in user ", () => {
     // The page currently has 2 blocks: an empty title block and an empty paragraph block
     expect(page.properties.contents).toHaveLength(2);
 
-    const textPropertiesA = { texts: [{ text: "A" }] };
-    const textPropertiesB = { texts: [{ text: "B" }] };
-    const textPropertiesC = { texts: [{ text: "C" }] };
-    const titleProperties = { texts: [{ text: "Hello HASH!" }] };
+    const textPropertiesA = { tokens: [{ tokenType: "text", text: "A" }] };
+    const textPropertiesB = { tokens: [{ tokenType: "text", text: "B" }] };
+    const textPropertiesC = { tokens: [{ tokenType: "text", text: "C" }] };
+    const titleProperties = {
+      tokens: [{ tokenType: "text", text: "Hello HASH!" }],
+    };
     const updatedPage = await client.updatePageContents({
       accountId: page.accountId,
       entityId: page.entityId,
@@ -634,12 +637,12 @@ describe("logged in user ", () => {
     });
 
     const pageEntities = updatedPage.properties.contents.map(
-      (block) => block.properties.entity as any
+      (block) => block.properties.entity as any,
     );
-    expect(pageEntities[0].textProperties).toMatchObject(titleProperties);
-    expect(pageEntities[1].textProperties).toMatchObject(textPropertiesA);
-    expect(pageEntities[2].textProperties).toMatchObject(textPropertiesB);
-    expect(pageEntities[3].textProperties).toMatchObject(textPropertiesC);
+    expect(pageEntities[0].properties).toMatchObject(titleProperties);
+    expect(pageEntities[1].properties).toMatchObject(textPropertiesA);
+    expect(pageEntities[2].properties).toMatchObject(textPropertiesB);
+    expect(pageEntities[3].properties).toMatchObject(textPropertiesC);
   });
 
   describe("can create entity types", () => {
@@ -662,7 +665,7 @@ describe("logged in user ", () => {
       });
       expect(entityType.properties.title).toEqual(validSchemaInput.name);
       expect(entityType.properties.description).toEqual(
-        validSchemaInput.description
+        validSchemaInput.description,
       );
     });
 
@@ -671,7 +674,7 @@ describe("logged in user ", () => {
         client.createEntityType({
           accountId: existingUser.accountId,
           ...validSchemaInput,
-        })
+        }),
       ).rejects.toThrowError(/name.+is not unique/i);
     });
 
@@ -684,7 +687,7 @@ describe("logged in user ", () => {
             properties: [],
           },
           name: schemaName + 1,
-        })
+        }),
       ).rejects.toThrowError(/properties must be object/);
 
       await expect(
@@ -696,7 +699,7 @@ describe("logged in user ", () => {
             },
           },
           name: schemaName + 2,
-        })
+        }),
       ).rejects.toThrowError(/testField must be object,boolean/);
 
       await expect(
@@ -706,7 +709,7 @@ describe("logged in user ", () => {
             invalidKeyword: true,
           },
           name: schemaName + 3,
-        })
+        }),
       ).rejects.toThrowError(/unknown keyword/);
     });
   });
@@ -718,7 +721,7 @@ describe("logged in user ", () => {
       await expect(
         client.sendLoginCode({
           emailOrShortname: emailAddress,
-        })
+        }),
       ).resolves.not.toThrow();
     }
 
@@ -726,7 +729,7 @@ describe("logged in user ", () => {
     await expect(
       client.sendLoginCode({
         emailOrShortname: emailAddress,
-      })
+      }),
     ).rejects.toThrowError(/has created too many verification codes recently/);
   });
 });

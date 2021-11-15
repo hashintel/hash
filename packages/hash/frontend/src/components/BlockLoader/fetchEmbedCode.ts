@@ -4,7 +4,7 @@ import { ProviderNames } from "../../../../blocks/embed/src/types";
 
 export type FetchEmbedCodeFn = (
   url: string,
-  type?: ProviderNames
+  type?: ProviderNames,
 ) => Promise<JSONObject>;
 
 export const fetchEmbedCode: FetchEmbedCodeFn = (url, type?) => {

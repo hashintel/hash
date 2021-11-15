@@ -50,7 +50,7 @@ export interface QueueExclusiveConsumer {
   pop<T>(
     name: string,
     timeoutMs: number | null,
-    cb: (item: string) => Promise<T>
+    cb: (item: string) => Promise<T>,
   ): Promise<T | null>;
 
   /**

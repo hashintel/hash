@@ -8,7 +8,7 @@ const requestMap = new Map<string, { resolve: PromiseFn; reject: PromiseFn }>();
 
 export function sendMessage<T = unknown>(
   message: Omit<MessageFromFramedBlock, "requestId">,
-  origin: string = "*"
+  origin: string = "*",
 ) {
   const requestId = uuid();
   const promise = new Promise<T>((resolve, reject) => {
@@ -20,8 +20,8 @@ export function sendMessage<T = unknown>(
         new Error(
           `Cross-frame request ${requestId} unresolved in ${
             timeout / 1000
-          } seconds.`
-        )
+          } seconds.`,
+        ),
       );
     }, timeout);
   });
@@ -32,7 +32,7 @@ export function sendMessage<T = unknown>(
 }
 
 export const settlePromiseFromResponse = (
-  response: MessageFromBlockFramer & { type: "response" }
+  response: MessageFromBlockFramer & { type: "response" },
 ) => {
   const { payload, requestId } = response;
   const promiseSettlerFns = requestMap.get(requestId);
@@ -43,7 +43,7 @@ export const settlePromiseFromResponse = (
     promiseSettlerFns.resolve(payload.data);
   } else {
     promiseSettlerFns.reject(
-      new Error(payload.error || "Request could not be fulfilled.")
+      new Error(payload.error || "Request could not be fulfilled."),
     );
   }
   requestMap.delete(requestId);

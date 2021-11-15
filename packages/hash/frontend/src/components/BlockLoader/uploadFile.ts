@@ -34,7 +34,7 @@ export const uploadFile = async ({
     throw new Error(
       `Please enter a valid  ${
         fileType ? `${fileType} ` : ""
-      }URL or select a file below`
+      }URL or select a file below`,
     );
   }
 

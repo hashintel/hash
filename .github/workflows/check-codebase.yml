@@ -1,0 +1,85 @@
+name: Check codebase
+on: pull_request
+
+jobs:
+  linting:
+    name: Linting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: ./.github/actions/warm-up-repo
+
+      - run: yarn lint:workspaces
+        if: ${{ success() || failure() }}
+
+      - run: yarn lint:markdownlint
+        if: ${{ success() || failure() }}
+
+      - run: yarn lint:prettier
+        if: ${{ success() || failure() }}
+
+  integration-tests:
+    name: Integration tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: ./.github/actions/warm-up-repo
+
+      - run: yarn codegen
+        if: ${{ success() || failure() }}
+
+      - name: Build backend images
+        run: yarn rebuild:backend
+        if: ${{ success() || failure() }}
+
+      - name: Launch backend in test mode
+        run: |
+          docker volume create --name=hash-dev-pg
+          yarn serve:hash-backend-test & ## & enables background mode
+          npx wait-on --timeout $(expr 1000 \* 60 \* 3) http://localhost:5001
+        if: ${{ success() || failure() }}
+        env:
+          AWS_REGION: na
+          AWS_ACCESS_KEY_ID: na
+          AWS_SECRET_ACCESS_KEY: na
+          AWS_S3_UPLOADS_BUCKET: na
+
+      - run: docker ps --all
+        if: ${{ success() || failure() }}
+
+      - run: yarn test-integration
+        if: ${{ success() || failure() }}
+
+      - run: docker logs docker_hash-dev-api_1
+        if: ${{ success() || failure() }}
+
+      - run: docker logs docker_hash-dev-opensearch_1
+        if: ${{ success() || failure() }}
+
+      - run: docker logs docker_hash-dev-pg_1
+        if: ${{ success() || failure() }}
+
+      - run: docker logs docker_hash-dev-realtime_1
+        if: ${{ success() || failure() }}
+
+      - run: docker logs docker_hash-dev-redis_1
+        if: ${{ success() || failure() }}
+
+      - run: docker logs docker_hash-dev-search-loader_1
+        if: ${{ success() || failure() }}
+
+      - run: docker ps --all
+        if: ${{ success() || failure() }}
+
+  unit-tests:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: ./.github/actions/warm-up-repo
+
+      - run: yarn test-frontend
+        if: ${{ success() || failure() }}

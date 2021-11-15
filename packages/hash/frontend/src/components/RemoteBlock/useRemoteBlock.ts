@@ -10,7 +10,7 @@ type UseRemoteBlockHook = {
   (url: string, crossFrame?: boolean, onBlockLoaded?: () => void): [
     boolean,
     Error | undefined,
-    UnknownComponent | string | undefined
+    UnknownComponent | string | undefined,
   ];
 };
 
@@ -33,7 +33,7 @@ export const useRemoteBlock: UseRemoteBlockHook = (
 ) => {
   if (crossFrame && isTopWindow()) {
     throw new Error(
-      "crossFrame passed to useRemoteBlock from top window. This should be set from framed windows only."
+      "crossFrame passed to useRemoteBlock from top window. This should be set from framed windows only.",
     );
   }
 
@@ -44,7 +44,7 @@ export const useRemoteBlock: UseRemoteBlockHook = (
         err: undefined,
         component: undefined,
         url: null,
-      }
+      },
     );
 
   useEffect(() => {
@@ -82,10 +82,14 @@ export const useRemoteBlock: UseRemoteBlockHook = (
             onBlockLoaded();
           }
         }
-        // add isloaded callback here
       )
       .catch((newErr) =>
-        update({ loading: false, err: newErr, component: undefined, url: null })
+        update({
+          loading: false,
+          err: newErr,
+          component: undefined,
+          url: null,
+        }),
       );
 
     return () => {

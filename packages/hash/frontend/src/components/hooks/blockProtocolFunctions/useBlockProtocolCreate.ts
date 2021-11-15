@@ -10,7 +10,7 @@ import {
 
 export const useBlockProtocolCreate = (
   /** Providing accountId here saves blocks from having to know it */
-  accountId: string
+  accountId: string,
 ): {
   create: BlockProtocolCreateFn;
   createLoading: boolean;
@@ -18,7 +18,7 @@ export const useBlockProtocolCreate = (
 } => {
   const [createFn, { loading: createLoading, error: createError }] =
     useMutation<CreateEntityMutation, CreateEntityMutationVariables>(
-      createEntity
+      createEntity,
     );
 
   const create: BlockProtocolCreateFn = useCallback(
@@ -33,9 +33,9 @@ export const useBlockProtocolCreate = (
               accountId: action.accountId ?? accountId,
             },
           }).then(({ data }) => data?.createEntity);
-        })
+        }),
       ),
-    [accountId, createFn]
+    [accountId, createFn],
   );
 
   return {

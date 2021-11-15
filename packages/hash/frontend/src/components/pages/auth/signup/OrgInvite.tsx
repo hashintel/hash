@@ -46,8 +46,8 @@ export const OrgInvite: VFC<OrgInviteProps> = ({
             orgEntityId: createOrgInfo.orgEntityId,
             inviteeEmailAddress: email,
           },
-        })
-      )
+        }),
+      ),
     );
     setSendingInvitations(false);
     navigateToHome();

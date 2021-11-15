@@ -1,10 +1,12 @@
 import { Draft, produce } from "immer";
 import { Schema } from "prosemirror-model";
 import { EditorState, Plugin, PluginKey, Transaction } from "prosemirror-state";
+import { EditorView } from "prosemirror-view";
 import { v4 as uuid } from "uuid";
 import { BlockEntity } from "./entity";
 import {
   createEntityStore,
+  draftEntityForEntityId,
   EntityStore,
   isBlockEntity,
   isDraftBlockEntity,
@@ -16,10 +18,16 @@ import {
   isEntityNode,
   nodeToEntityProperties,
 } from "./prosemirror";
+import { collect } from "./util";
 
-type EntityStorePluginState = { store: EntityStore };
+type EntityStorePluginStateListener = (store: EntityStore) => void;
 
-type EntityStorePluginMessage =
+type EntityStorePluginState = {
+  store: EntityStore;
+  listeners: EntityStorePluginStateListener[];
+};
+
+type EntityStorePluginAction =
   | {
       type: "contents";
       payload: BlockEntity[];
@@ -28,21 +36,78 @@ type EntityStorePluginMessage =
       type: "draft";
       payload: EntityStore["draft"];
     }
-  | { type: "store"; payload: EntityStore };
+  | { type: "store"; payload: EntityStore }
+  | { type: "subscribe"; payload: EntityStorePluginStateListener }
+  | { type: "unsubscribe"; payload: EntityStorePluginStateListener };
+
+type EntityStorePluginMessage = EntityStorePluginAction[];
 
 const entityStorePluginKey = new PluginKey<EntityStorePluginState, Schema>(
-  "entityStore"
+  "entityStore",
 );
 
+export const addEntityStoreAction = (
+  tr: Transaction<Schema>,
+  action: EntityStorePluginAction,
+) => {
+  const actions: EntityStorePluginMessage =
+    tr.getMeta(entityStorePluginKey) ?? [];
+
+  tr.setMeta(entityStorePluginKey, [...actions, action]);
+};
+
+const updateEntityStoreListeners = collect<
+  [
+    view: EditorView<Schema>,
+    listener: EntityStorePluginStateListener,
+    unsubscribe: boolean | undefined | void,
+  ]
+>((updates) => {
+  const transactions = new Map<EditorView<Schema>, Transaction<Schema>>();
+
+  for (const [view, listener, unsubscribe] of updates) {
+    if (!transactions.has(view)) {
+      const { tr } = view.state;
+      tr.setMeta("addToHistory", false);
+      transactions.set(view, tr);
+    }
+
+    const tr = transactions.get(view)!;
+
+    addEntityStoreAction(tr, {
+      type: unsubscribe ? "unsubscribe" : "subscribe",
+      payload: listener,
+    });
+  }
+
+  for (const [view, transaction] of Array.from(transactions.entries())) {
+    view.dispatch(transaction);
+  }
+});
+
+/**
+ * @use subscribeToEntityStore if you need a live subscription
+ */
 export const entityStoreFromProsemirror = (state: EditorState<Schema>) => {
   const pluginState = entityStorePluginKey.getState(state);
 
   if (!pluginState) {
     throw new Error(
-      "Cannot process transaction when state does not have entity store plugin"
+      "Cannot process transaction when state does not have entity store plugin",
     );
   }
   return pluginState;
+};
+
+export const subscribeToEntityStore = (
+  view: EditorView<Schema>,
+  listener: EntityStorePluginStateListener,
+) => {
+  updateEntityStoreListeners(view, listener);
+
+  return () => {
+    updateEntityStoreListeners(view, listener, true);
+  };
 };
 
 /**
@@ -62,11 +127,16 @@ export const entityStoreFromProsemirror = (state: EditorState<Schema>) => {
  */
 export const entityStoreAndTransactionForEntities = (
   state: EditorState<Schema>,
-  entities: BlockEntity[]
+  entities: BlockEntity[],
 ) => {
   const { tr } = state;
 
-  tr.setMeta(entityStorePluginKey, { type: "contents", payload: entities });
+  /**
+   * @todo we should remove this action once its been applied
+   * @todo this is a pretty crude way of getting a store – why not just call
+   *       it directly?
+   */
+  addEntityStoreAction(tr, { type: "contents", payload: entities });
 
   /**
    * We need to remove the draft ids were previously generated for nodes
@@ -101,7 +171,7 @@ export const entityStoreAndTransactionForEntities = (
    * Prosemirror, as the use of state.apply above does not actually replace the
    * store inside Prosemirror
    */
-  tr.setMeta(entityStorePluginKey, { type: "store", payload: store });
+  addEntityStoreAction(tr, { type: "store", payload: store });
 
   return { store, tr };
 };
@@ -110,14 +180,15 @@ const draftIdForNode = (
   tr: Transaction<Schema>,
   node: EntityNode,
   pos: number,
-  draftDraftEntityStore: Draft<EntityStore["draft"]>
+  draftDraftEntityStore: Draft<EntityStore["draft"]>,
 ) => {
   let draftId = node.attrs.draftId;
 
-  if (!draftId) {
+  if (draftId && draftDraftEntityStore[draftId]) {
     if (node.attrs.entityId) {
-      const existingDraftId = Object.values(draftDraftEntityStore).find(
-        (entity) => entity.entityId === node.attrs.entityId
+      const existingDraftId = draftEntityForEntityId(
+        draftDraftEntityStore,
+        node.attrs.entityId,
       )?.draftId;
 
       if (!existingDraftId) {
@@ -125,19 +196,22 @@ const draftIdForNode = (
       }
 
       draftId = existingDraftId;
-    } else {
-      draftId = uuid();
-      /**
-       * @todo how do we ensure this is the same on frontend and on
-       *       collab
-       */
-      draftDraftEntityStore[draftId] = {
-        draftId,
-        entityId: null,
-        properties: {},
-      };
     }
+  } else {
+    /**
+     * @todo this will lead to the frontend setting draft id uuids for new
+     *       blocks – this is potentially insecure and needs considering
+     */
+    draftId ??= uuid();
 
+    draftDraftEntityStore[draftId] = {
+      draftId,
+      entityId: null,
+      properties: {},
+    };
+  }
+
+  if (draftId !== node.attrs.draftId) {
     tr.setNodeMarkup(pos, undefined, {
       ...node.attrs,
       draftId,
@@ -150,35 +224,67 @@ const draftIdForNode = (
 export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
   key: entityStorePluginKey,
   state: {
-    init() {
+    init(_): EntityStorePluginState {
       return {
         store: createEntityStore([], {}),
+        listeners: [],
       };
     },
-    apply(tr, state) {
-      const action: EntityStorePluginMessage | undefined =
-        tr.getMeta(entityStorePluginKey);
+    apply(tr, initialState): EntityStorePluginState {
+      const actions: EntityStorePluginMessage =
+        tr.getMeta(entityStorePluginKey) ?? [];
 
-      switch (action?.type) {
-        case "contents":
-          return {
-            store: createEntityStore(action.payload, state.store.draft),
-          };
+      const nextState = actions.reduce(
+        (state, action): EntityStorePluginState => {
+          switch (action.type) {
+            case "contents":
+              return {
+                ...state,
+                store: createEntityStore(action.payload, state.store.draft),
+              };
 
-        case "draft":
-          return {
-            store: {
-              ...state.store,
-              draft: action.payload,
-            },
-          };
+            case "draft":
+              return {
+                ...state,
+                store: {
+                  ...state.store,
+                  draft: action.payload,
+                },
+              };
 
-        case "store": {
-          return { store: action.payload };
+            case "store": {
+              return { ...state, store: action.payload };
+            }
+
+            case "subscribe":
+              return {
+                ...state,
+                listeners: Array.from(
+                  new Set([...state.listeners, action.payload]),
+                ),
+              };
+
+            case "unsubscribe":
+              return {
+                ...state,
+                listeners: state.listeners.filter(
+                  (listener) => listener !== action.payload,
+                ),
+              };
+          }
+
+          return state;
+        },
+        initialState,
+      );
+
+      if (nextState !== initialState) {
+        for (const listener of nextState.listeners) {
+          listener(nextState.store);
         }
       }
 
-      return state;
+      return nextState;
     },
   },
 
@@ -226,7 +332,7 @@ export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
 
             if (!entity || !isBlockEntity(entity)) {
               throw new Error(
-                "Block entity node points at non-block entity in draft store"
+                "Block entity node points at non-block entity in draft store",
               );
             }
 
@@ -286,7 +392,7 @@ export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
       });
     });
 
-    tr.setMeta(entityStorePluginKey, { type: "draft", payload: nextDraft });
+    addEntityStoreAction(tr, { type: "draft", payload: nextDraft });
 
     return tr;
   },

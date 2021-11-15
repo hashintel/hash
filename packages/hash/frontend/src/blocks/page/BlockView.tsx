@@ -72,7 +72,7 @@ export class BlockView implements NodeView<Schema> {
     public view: EditorView<Schema>,
     public getPos: () => number,
     public renderPortal: RenderPortal,
-    public manager: ProsemirrorSchemaManager
+    public manager: ProsemirrorSchemaManager,
   ) {
     const entityId = (node.content as any).content[0].attrs.entityId;
 
@@ -136,7 +136,7 @@ export class BlockView implements NodeView<Schema> {
    * @todo find a more generalised alternative
    */
   ignoreMutation(
-    record: Parameters<NonNullable<NodeView<Schema>["ignoreMutation"]>>[0]
+    record: Parameters<NonNullable<NodeView<Schema>["ignoreMutation"]>>[0],
   ) {
     return (
       (record.type === "attributes" &&
@@ -204,7 +204,7 @@ export class BlockView implements NodeView<Schema> {
              * starts
              */
             tr.setSelection(
-              NodeSelection.create<Schema>(this.view.state.doc, this.getPos())
+              NodeSelection.create<Schema>(this.view.state.doc, this.getPos()),
             );
 
             this.view.dispatch(tr);
@@ -219,7 +219,7 @@ export class BlockView implements NodeView<Schema> {
           onTypeChange={this.onBlockChange}
         />
       </>,
-      this.selectContainer
+      this.selectContainer,
     );
 
     return true;
@@ -250,7 +250,7 @@ export class BlockView implements NodeView<Schema> {
         draftId,
         meta.componentMetadata.componentId,
         node,
-        getPos
+        getPos,
       )
       .catch((err) => {
         console.error(err);

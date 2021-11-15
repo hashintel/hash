@@ -1,8 +1,32 @@
-import { ApolloClient, HttpLink, InMemoryCache } from "@apollo/client";
+import {
+  ApolloClient,
+  ApolloLink,
+  HttpLink,
+  InMemoryCache,
+} from "@apollo/client";
+import { onError } from "@apollo/client/link/error";
+import * as Sentry from "@sentry/browser";
 import { RequestInfo, RequestInit } from "node-fetch";
+
 import { apiGraphQLEndpoint } from "../environment";
 
 import possibleTypes from "./fragmentTypes.gen.json";
+
+const errorLink = onError(({ graphQLErrors, operation }) => {
+  if (graphQLErrors) {
+    graphQLErrors.forEach(({ message, extensions, path }) => {
+      Sentry.withScope((scope) => {
+        const error = new Error(`GraphQL Error: ${path?.[0].toString()}`);
+        scope.setExtra("Exception", extensions?.exception);
+        scope.setExtra("Location", path);
+        scope.setExtra("Query", operation.query?.loc?.source?.body);
+        scope.setExtra("Variables", operation.variables);
+        error.message = `GraphQL error - ${path?.[0].toString()} - ${message}`;
+        Sentry.captureException(error);
+      });
+    });
+  }
+});
 
 // @todo update references
 export const createApolloClient = (params?: {
@@ -27,7 +51,6 @@ export const createApolloClient = (params?: {
     if (typeof options?.body === "string") {
       try {
         ({ operationName } = JSON.parse(options.body));
-        // eslint-disable-next-line no-empty
       } catch (err) {
         console.error(err);
       }
@@ -35,9 +58,10 @@ export const createApolloClient = (params?: {
 
     return ponyfilledFetch(
       operationName ? `${uri}?${operationName}` : uri,
-      options
+      options,
     );
   };
+
   const httpLink = new HttpLink({
     uri: apiGraphQLEndpoint,
     credentials: "include",
@@ -45,10 +69,12 @@ export const createApolloClient = (params?: {
     headers: params?.additionalHeaders,
   });
 
+  const link = ApolloLink.from([errorLink, httpLink]);
+
   return new ApolloClient({
     cache: new InMemoryCache({ possibleTypes: possibleTypes.possibleTypes }),
     credentials: "include",
-    link: httpLink,
+    link,
     name: params?.name,
   });
 };

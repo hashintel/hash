@@ -4,14 +4,17 @@ import {
   componentIdToUrl,
 } from "@hashintel/hash-shared/blockMeta";
 import {
+  EntityStore,
   EntityStoreType,
   isBlockEntity,
 } from "@hashintel/hash-shared/entityStore";
-import { entityStoreFromProsemirror } from "@hashintel/hash-shared/entityStorePlugin";
+import {
+  entityStoreFromProsemirror,
+  subscribeToEntityStore,
+} from "@hashintel/hash-shared/entityStorePlugin";
 import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 import { Schema } from "prosemirror-model";
 import { EditorView, NodeView } from "prosemirror-view";
-import React from "react";
 import { BlockLoader } from "../../components/BlockLoader/BlockLoader";
 import { RenderPortal } from "./usePortals";
 
@@ -45,12 +48,15 @@ export class ComponentView implements NodeView<Schema> {
   private readonly componentId: string;
   private readonly sourceName: string;
 
+  private store: EntityStore;
+  private unsubscribe: Function;
+
   constructor(
-    node: ProsemirrorNode<Schema>,
+    private node: ProsemirrorNode<Schema>,
     public view: EditorView<Schema>,
     public getPos: () => number,
     private renderPortal: RenderPortal,
-    private meta: BlockMeta
+    private meta: BlockMeta,
   ) {
     const { componentMetadata, componentSchema } = meta;
     const { source } = componentMetadata;
@@ -77,15 +83,21 @@ export class ComponentView implements NodeView<Schema> {
 
     this.dom.appendChild(this.target);
 
-    this.update(node);
+    this.store = entityStoreFromProsemirror(view.state).store;
+    this.unsubscribe = subscribeToEntityStore(this.view, (store) => {
+      this.store = store;
+      this.update(this.node);
+    });
+
+    this.update(this.node);
   }
 
   update(node: any) {
-    const entityStore = entityStoreFromProsemirror(this.view.state).store;
+    this.node = node;
 
     if (node?.type.name === this.componentId) {
       const entityId = node.attrs.blockEntityId;
-      const entity = entityStore.saved[entityId];
+      const entity = this.store.saved[entityId];
       const remoteBlockProps = getRemoteBlockProps(entity);
 
       const editableRef = this.editable
@@ -111,7 +123,7 @@ export class ComponentView implements NodeView<Schema> {
           shouldSandbox={!editableRef}
           entityId={entityId}
         />,
-        this.target
+        this.target,
       );
 
       return true;
@@ -123,21 +135,38 @@ export class ComponentView implements NodeView<Schema> {
   destroy() {
     this.dom.remove();
     this.renderPortal(null, this.target);
+    this.unsubscribe();
   }
 
-  // @todo type this
-  stopEvent(evt: any) {
-    if (evt.type === "dragstart") {
-      evt.preventDefault();
+  stopEvent(event: Event) {
+    if (event.type === "dragstart") {
+      event.preventDefault();
     }
 
-    return true;
+    return !blockComponentRequiresText(this.meta.componentSchema);
   }
 
-  ignoreMutation(evt: any) {
-    return !(
-      !evt.target ||
-      (evt.target !== this.contentDOM && this.contentDOM?.contains(evt.target))
-    );
+  // This condition is designed to check that the event isn’t coming from React-handled code.
+  // Not doing so leads to cycles of mutation records.
+  ignoreMutation(
+    event:
+      | MutationRecord
+      | {
+          type: "selection";
+          target: Element;
+        },
+  ) {
+    // We still want ProseMirror to know about all selection events to track cursor moves
+    if (event.type === "selection") {
+      return false;
+    }
+
+    const targetIsInsideContentDOM =
+      this.contentDOM?.contains(event.target) &&
+      event.target !== this.contentDOM;
+
+    const eventIsHandledByReact = !targetIsInsideContentDOM;
+
+    return eventIsHandledByReact;
   }
 }

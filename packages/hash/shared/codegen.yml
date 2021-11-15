@@ -1,5 +1,5 @@
 overwrite: true
-schema: ../backend/src/graphql/typeDefs/*.ts
+schema: ../api/src/graphql/typeDefs/*.ts
 generates:
   ./src/graphql/fragmentTypes.gen.json:
     plugins:
@@ -10,4 +10,6 @@ generates:
       - "typescript-operations"
     config:
       skipTypename: true
+      scalars:
+        TextToken: ./types#TextToken
     documents: ./src/queries/*.ts

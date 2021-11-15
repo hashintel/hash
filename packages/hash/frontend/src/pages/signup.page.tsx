@@ -195,7 +195,7 @@ const SignupPage: NextPage = () => {
       await refetchUser();
       const createdEmail =
         createUserWithOrgEmailInvitation.properties.emails.find(
-          ({ primary, verified }) => primary && verified
+          ({ primary, verified }) => primary && verified,
         );
 
       dispatch({
@@ -383,7 +383,7 @@ const SignupPage: NextPage = () => {
 
   const handleVerifyEmail = (
     providedCode: string,
-    withSyntheticLoading?: boolean
+    withSyntheticLoading?: boolean,
   ) => {
     if (!verificationCodeMetadata) return;
 
@@ -396,7 +396,7 @@ const SignupPage: NextPage = () => {
           verifyEmail({
             variables: { verificationId, verificationCode: providedCode },
           }),
-        SYNTHETIC_LOADING_TIME_MS
+        SYNTHETIC_LOADING_TIME_MS,
       );
     } else {
       void verifyEmail({

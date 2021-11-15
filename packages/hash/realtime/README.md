@@ -10,16 +10,16 @@ change messages onto pre-specified queues.
 
 The `realtime` service uses the following environment variables:
 
-  - `NODE_ENV`: controls the logging level & formatting. Must be either "development"
-     or "production".
-  - `HASH_PG_DATABASE`: Postgres database name.
-  - `HASH_PG_PASSWORD`: Postgres user password.
-  - `HASH_PG_USER`:  Postgres username.
-  - `HASH_PG_HOST`: Postgres hostname.
-  - `HASH_PG_PORT`: Postgres connection port.
-  - `HASH_REALTIME_PORT`: (default: 3333) Service listening port.
-  - `HASH_SEARCH_QUEUE_NAME`: The name of the queue to push changes for the
-    [`search-loader`](../search-loader) service.
+- `NODE_ENV`: controls the logging level & formatting. Must be either "development"
+  or "production".
+- `HASH_PG_DATABASE`: Postgres database name.
+- `HASH_PG_PASSWORD`: Postgres user password.
+- `HASH_PG_USER`: Postgres username.
+- `HASH_PG_HOST`: Postgres hostname.
+- `HASH_PG_PORT`: Postgres connection port.
+- `HASH_REALTIME_PORT`: (default: 3333) Service listening port.
+- `HASH_SEARCH_QUEUE_NAME`: The name of the queue to push changes for the
+  [`search-loader`](../search-loader) service.
 
 Configuration for the tables to monitor and the queues to push messages to is defined
 in [`src/config.ts`](./src/config.ts). The service will push all insert/update/delete
@@ -29,12 +29,14 @@ in the `QUEUES` array.
 ## Getting started
 
 In dev mode, the service will automatically restart:
-```
+
+```sh
 yarn dev
 ```
 
 Production mode:
-```
+
+```sh
 yarn build && yarn start
 ```
 

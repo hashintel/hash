@@ -25,7 +25,7 @@ const NewEntity: VoidFunctionComponent = () => {
   const entityTypeId = query.entityTypeId as string | undefined;
 
   const [selectedTypeId, setSelectedTypeId] = useState<string | undefined>(
-    entityTypeId
+    entityTypeId,
   );
 
   const { create } = useBlockProtocolCreate(accountId);
@@ -35,7 +35,7 @@ const NewEntity: VoidFunctionComponent = () => {
     return create(args)
       .then((res) => {
         void router.push(
-          `/${accountId}/entities/${(res[0] as UnknownEntity).entityId}`
+          `/${accountId}/entities/${(res[0] as UnknownEntity).entityId}`,
         );
         return res;
       })
@@ -67,7 +67,7 @@ const NewEntity: VoidFunctionComponent = () => {
   const typeOptions = data?.getAccountEntityTypes;
   const selectedType = useMemo(() => {
     return (typeOptions ?? []).find(
-      (option) => option.entityId === selectedTypeId
+      (option) => option.entityId === selectedTypeId,
     );
   }, [selectedTypeId, typeOptions]);
 
@@ -83,7 +83,7 @@ const NewEntity: VoidFunctionComponent = () => {
             className={tw`py-2 px-4 rounded-md border border-gray-300 w-40 text-sm`}
             onChange={(evt) =>
               router.push(
-                `/${accountId}/entities/new?entityTypeId=${evt.target.value}`
+                `/${accountId}/entities/new?entityTypeId=${evt.target.value}`,
               )
             }
             value={selectedTypeId ?? "none"}

@@ -1,0 +1,26 @@
+{
+  "name": "@hashintel/hash-postgres",
+  "version": "0.1.0",
+  "description": "Postgres migration script",
+  "repository": "github.com/hashintel/dev/packages/hash/api/datastore/postgres",
+  "license": "GPL-3.0",
+  "type": "commonjs",
+  "main": "migration.js",
+  "scripts": {
+    "generate-ids": "ts-node scripts/generateIds.ts",
+    "generate-migration": "ts-node scripts/0004_system_account_generate.ts && ts-node scripts/0005_system_types_generate.ts",
+    "migration": "ts-node migration.ts",
+    "refresh": "ts-node migration.ts refresh"
+  },
+  "dependencies": {
+    "id128": "1.6.6",
+    "node-postgres": "0.6.2",
+    "pg": "8.7.1",
+    "prompts": "2.4.1",
+    "ts-node": "10.3.0",
+    "yargs": "17.1.1"
+  },
+  "devDependencies": {
+    "@types/prompts": "2.0.14"
+  }
+}

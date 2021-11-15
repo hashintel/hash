@@ -72,7 +72,7 @@ typings/
 build
 
 # vscode config
-.vscode 
+.vscode/settings.json
 
 # Python compiled files and package metadata
 **/__pycache__
@@ -82,3 +82,6 @@ build
 **/*.gen.*
 
 **/*.tsbuildinfo
+
+# Sentry
+.sentryclirc

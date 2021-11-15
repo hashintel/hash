@@ -1,36 +1,26 @@
 {
   "name": "@hashintel/block-code",
   "version": "0.1.0",
-  "description": "Capture a code snippet",
   "private": true,
-  "browser": "dist/main.js",
-  "author": "teenoh",
+  "description": "Capture a code snippet",
   "license": "MIT",
+  "author": "teenoh",
   "main": "src/index.ts",
-  "blockprotocol": {
-    "displayName": "Code",
-    "icon": "public/code.svg"
-  },
-  "prettier": "@hashintel/prettier-config",
+  "browser": "dist/main.js",
   "scripts": {
-    "format": "eslint --ext .ts,.tsx,.js --fix ./src/; prettier --write --list-different './src/**/*'",
-    "lint": "prettier --check './src/**/*' && eslint --ext .ts,.tsx ./src/ && tsc --noEmit # @hashintel/block-code",
-    "build:public": "mkdir -p ./dist; cp -a ./public ./dist",
-    "build": "yarn clean; yarn build:public; cross-env NODE_ENV=production webpack --mode production && yarn schema",
-    "build:dev": "yarn clean; yarn build:public; cross-env NODE_ENV=development webpack --mode development",
-    "schema": "typescript-json-schema tsconfig.json AppProps --required true --out dist/block-schema.json",
-    "webpack-dev-server": "cross-env NODE_ENV=development webpack-dev-server -d --port 9090 --config webpack-dev-server.config.js --open",
-    "start": "concurrently -n webpack,webpack-dev-server -c green,cyan \"yarn build:dev -- --watch --verbose\" \"yarn webpack-dev-server\"",
+    "build": "yarn clean; cross-env NODE_ENV=production webpack --mode production && yarn schema",
+    "build:dev": "yarn clean; cross-env NODE_ENV=development webpack --mode development",
     "clean": "rimraf ./dist/",
-    "serve": "serve -C -l 62681 ./dist/"
+    "dev": "cross-env NODE_ENV=development webpack-dev-server -d --port 9090 --config webpack-dev-server.config.js --open",
+    "fix": "eslint --ext .ts,.tsx,.js --fix ./src/",
+    "lint": "eslint --ext .ts,.tsx ./src/ && tsc --noEmit # @hashintel/block-code",
+    "schema": "typescript-json-schema tsconfig.json AppProps --required true --out dist/block-schema.json",
+    "serve": "serve -C -l 62681 ./dist/",
+    "start": "concurrently -n webpack,webpack-dev-server -c green,cyan \"yarn build:dev -- --watch --verbose\" \"yarn dev\""
   },
   "dependencies": {
     "@hashintel/block-protocol": "*",
-    "prismjs": "1.24.1"
-  },
-  "peerDependencies": {
-    "react": "17.0.2",
-    "twind": "0.16.16"
+    "prismjs": "1.25.0"
   },
   "devDependencies": {
     "@babel/cli": "^7.12.10",
@@ -41,13 +31,13 @@
     "@babel/preset-react": "^7.12.10",
     "@babel/preset-typescript": "7.13.0",
     "@babel/runtime": "^7.12.5",
-    "@hashintel/prettier-config": "*",
     "@types/prismjs": "1.16.5",
     "@typescript-eslint/eslint-plugin": "4.29.0",
     "@typescript-eslint/parser": "4.29.0",
     "babel-loader": "^8.2.2",
     "babel-plugin-prismjs": "2.0.1",
     "concurrently": "6.2.0",
+    "copy-webpack-plugin": "^4.6.0",
     "core-js": "^2.6.12",
     "cross-env": "^7.0.3",
     "css-loader": "5.2.6",
@@ -56,7 +46,6 @@
     "eslint-plugin-react": "7.24.0",
     "eslint-plugin-react-hooks": "4.2.0",
     "html-webpack-plugin": "^4.5.0",
-    "prettier": "2.3.2",
     "react": "17.0.2",
     "react-dom": "17.0.2",
     "regenerator-runtime": "^0.13.7",
@@ -73,5 +62,13 @@
     "webpack-bundle-analyzer": "^3.9.0",
     "webpack-cli": "^3.3.12",
     "webpack-dev-server": "^3.11.0"
+  },
+  "peerDependencies": {
+    "react": "17.0.2",
+    "twind": "0.16.16"
+  },
+  "blockprotocol": {
+    "displayName": "Code",
+    "icon": "public/code.svg"
   }
 }

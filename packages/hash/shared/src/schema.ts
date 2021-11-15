@@ -47,7 +47,18 @@ export const createSchema = () =>
           },
         ],
       },
-      text: {},
+      text: {
+        group: "inline",
+      },
+      hardBreak: {
+        inline: true,
+        group: "inline",
+        selectable: false,
+        parseDOM: [{ tag: "br" }],
+        toDOM() {
+          return ["br"];
+        },
+      },
     },
     marks: {
       strong: {
@@ -58,6 +69,30 @@ export const createSchema = () =>
       },
       underlined: {
         toDOM: () => ["u", 0] as const,
+      },
+      link: {
+        attrs: {
+          href: { default: "" },
+        },
+        inclusive: false,
+        toDOM(node) {
+          const { href } = node.attrs;
+          return [
+            "a",
+            { href, style: "color: blue; text-decoration: underline" },
+            0,
+          ] as const;
+        },
+        parseDOM: [
+          {
+            tag: "a[href]",
+            getAttrs(dom) {
+              return {
+                href: dom.getAttribute("href"),
+              };
+            },
+          },
+        ],
       },
     },
   });

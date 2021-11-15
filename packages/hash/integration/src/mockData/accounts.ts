@@ -1,6 +1,6 @@
-import { DBAdapter } from "@hashintel/hash-backend/src/db";
-import { DBOrgProperties } from "@hashintel/hash-backend/src/db/adapter";
-import { User, Org } from "@hashintel/hash-backend/src/model";
+import { DBAdapter } from "@hashintel/hash-api/src/db";
+import { DBOrgProperties } from "@hashintel/hash-api/src/db/adapter";
+import { User, Org } from "@hashintel/hash-api/src/model";
 import { WayToUseHash } from "../graphql/apiTypes.gen";
 
 type CreateUserArgs = {
@@ -13,7 +13,7 @@ type CreateUserArgs = {
 export const createUsers =
   (db: DBAdapter) =>
   async (org: Org): Promise<User[]> => {
-    const users: CreateUserArgs[] = [
+    const createUserArgs: CreateUserArgs[] = [
       {
         email: "aj@hash.ai",
         shortname: "akash",
@@ -62,24 +62,24 @@ export const createUsers =
     ];
 
     return Promise.all(
-      users.map(({ email, ...remainingProperties }) =>
-        User.createUser(db)({
-          emails: [{ address: email, primary: true, verified: true }],
-          infoProvidedAtSignup: { usingHow: WayToUseHash.WithATeam },
-          memberOf: [
-            {
-              responsibility: "Developer",
-              org: {
-                __linkedData: {
-                  entityId: org.entityId,
-                  entityTypeId: org.entityType.entityId,
-                },
-              },
-            },
-          ],
-          ...remainingProperties,
-        })
-      )
+      createUserArgs.map(({ email, ...remainingProperties }) =>
+        db.transaction(async (client) => {
+          await org
+            .acquireLock(client)
+            .then(() => org.refetchLatestVersion(client));
+
+          const user = await User.createUser(client, {
+            emails: [{ address: email, primary: true, verified: true }],
+            infoProvidedAtSignup: { usingHow: WayToUseHash.WithATeam },
+            memberOf: [],
+            ...remainingProperties,
+          });
+
+          await user.joinOrg(client, { org, responsibility: "Developer" });
+
+          return user;
+        }),
+      ),
     );
   };
 
@@ -90,5 +90,5 @@ export const createUsers =
 export const createOrgs = async (db: DBAdapter): Promise<Org[]> => {
   const orgs: { properties: DBOrgProperties; createdById: string }[] = [];
 
-  return await Promise.all(orgs.map(Org.createOrg(db)));
+  return await Promise.all(orgs.map((params) => Org.createOrg(db, params)));
 };

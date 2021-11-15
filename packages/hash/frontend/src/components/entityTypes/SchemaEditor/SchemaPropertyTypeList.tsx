@@ -30,8 +30,8 @@ export const SchemaPropertyTypeList: VoidFunctionComponent<SchemaPropertyTypeLis
             type === "object" && hasSubSchema ? (
               <SchemaSelect schemaRef={propertyName} />
             ) : (
-              <span>type</span>
-            )
+              <span>{type}</span>
+            ),
           )
           .reduce((prev, curr) => [prev, ", ", curr])}
       </>

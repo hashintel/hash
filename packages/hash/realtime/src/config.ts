@@ -15,7 +15,7 @@ export const QUEUES: { name: string; producer: QueueProducer }[] = [
       new AsyncRedisClient({
         host: getRequiredEnv("HASH_REDIS_HOST"),
         port: parseInt(getRequiredEnv("HASH_REDIS_PORT"), 10),
-      })
+      }),
     ),
   },
 ];

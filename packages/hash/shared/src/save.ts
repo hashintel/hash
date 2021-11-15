@@ -34,7 +34,7 @@ const defineOperation =
     fn: (
       entities: BlockEntity[],
       ...args: T
-    ) => readonly [UpdatePageAction[], BlockEntity[]]
+    ) => readonly [UpdatePageAction[], BlockEntity[]],
   ) =>
   (
     existingActions: UpdatePageAction[],
@@ -49,7 +49,7 @@ const defineOperation =
 const removeBlocks = defineOperation(
   (entities: BlockEntity[], nodes: ComponentNode[]) => {
     const draftBlockEntityIds = new Set(
-      nodes.map((node) => node.attrs.blockEntityId)
+      nodes.map((node) => node.attrs.blockEntityId),
     );
 
     const removedBlockEntities = entities
@@ -59,8 +59,8 @@ const removeBlocks = defineOperation(
     const updatedEntities = entities.filter(
       (_, position) =>
         !removedBlockEntities.some(
-          ([, removedPosition]) => removedPosition === position
-        )
+          ([, removedPosition]) => removedPosition === position,
+        ),
     );
 
     const actions = removedBlockEntities.map(
@@ -71,17 +71,17 @@ const removeBlocks = defineOperation(
          * work this out
          */
         removeBlock: { position: position - idx },
-      })
+      }),
     );
 
     return [actions, updatedEntities] as const;
-  }
+  },
 );
 
 const moveBlocks = defineOperation(
   (entities: BlockEntity[], nodes: ComponentNode[]) => {
     const entitiesWithoutNewBlocks = nodes.filter(
-      (node) => !!node.attrs.blockEntityId
+      (node) => !!node.attrs.blockEntityId,
     );
 
     const actions: UpdatePageAction[] = [];
@@ -90,12 +90,12 @@ const moveBlocks = defineOperation(
     for (let position = 0; position < entities.length; position++) {
       const block = entities[position];
       const positionInDoc = entitiesWithoutNewBlocks.findIndex(
-        (node) => node.attrs.blockEntityId === block.entityId
+        (node) => node.attrs.blockEntityId === block.entityId,
       );
 
       if (positionInDoc < 0) {
         throw new Error(
-          "invariant: found removed block whilst calculating movements"
+          "invariant: found removed block whilst calculating movements",
         );
       }
 
@@ -117,7 +117,7 @@ const moveBlocks = defineOperation(
       }
     }
     return [actions, entities] as const;
-  }
+  },
 );
 
 /**
@@ -147,7 +147,7 @@ const insertBlocks = defineOperation(
     }
 
     return [actions, entities] as const;
-  }
+  },
 );
 
 /**
@@ -158,7 +158,7 @@ const updateBlocks = defineOperation(
   (
     entities: BlockEntity[],
     nodes: ComponentNode[],
-    entityStore: EntityStore
+    entityStore: EntityStore,
   ) => {
     const exists = blockEntityIdExists(entities);
 
@@ -204,7 +204,7 @@ const updateBlocks = defineOperation(
 
           // @todo could probably get this from entity store
           const existingBlock = entities.find(
-            (entity) => entity.entityId === blockEntityId
+            (entity) => entity.entityId === blockEntityId,
           );
 
           if (!existingBlock) {
@@ -231,20 +231,20 @@ const updateBlocks = defineOperation(
           if (node.type.isTextblock) {
             const textEntity = getTextEntityFromSavedBlock(
               blockEntityId,
-              entityStore
+              entityStore,
             );
 
             if (!textEntity) {
               throw new Error(
-                "invariant: text entity missing for updating text node"
+                "invariant: text entity missing for updating text node",
               );
             }
 
-            const { texts } = textEntity.properties;
+            const { tokens } = textEntity.properties;
             // @todo consider using draft entity store for this
             const entityProperties = nodeToEntityProperties(node);
 
-            if (!isEqual(texts, entityProperties.texts)) {
+            if (!isEqual(tokens, entityProperties.tokens)) {
               updates.push({
                 updateEntity: {
                   entityId: textEntity.entityId,
@@ -257,11 +257,11 @@ const updateBlocks = defineOperation(
 
           return updates;
         }),
-      (action) => action.updateEntity?.entityId
+      (action) => action.updateEntity?.entityId,
     );
 
     return [actions, entities] as const;
-  }
+  },
 );
 
 /**
@@ -288,7 +288,7 @@ const calculateSaveActions = (
   accountId: string,
   doc: ProsemirrorNode<Schema>,
   blocks: BlockEntity[],
-  entityStore: EntityStore
+  entityStore: EntityStore,
 ) => {
   const componentNodes = findComponentNodes(doc).map(([node]) => node);
   let actions: UpdatePageAction[] = [];
@@ -310,7 +310,7 @@ export const updatePageMutation = async (
   doc: ProsemirrorNode<Schema>,
   blocks: BlockEntity[],
   entityStore: EntityStore,
-  client: ApolloClient<any>
+  client: ApolloClient<any>,
 ) => {
   const actions = calculateSaveActions(accountId, doc, blocks, entityStore);
 

@@ -1,7 +1,6 @@
-import { Column } from "react-table";
 import { isRecord } from "./identifyEntity";
 
-type TableColumn = Column<Record<string, any>> & {
+type TableColumn = { Header: string; accessor: string } & {
   columns?: TableColumn[];
 };
 
@@ -10,8 +9,8 @@ const DEFAULT_HIDDEN_COLUMNS = ["__linkedData", "entityType"];
 export const makeColumns = (
   data: Record<string, any>,
   parentAccessor?: string,
-  hiddenColumns: string[] = DEFAULT_HIDDEN_COLUMNS
-) => {
+  hiddenColumns: string[] = DEFAULT_HIDDEN_COLUMNS,
+): Pick<TableColumn, "Header" | "accessor">[] => {
   const columns: TableColumn[] = [];
 
   for (const [key, value] of Object.entries(data)) {
@@ -37,11 +36,11 @@ export const makeColumns = (
       ? 1
       : b.columns && !a.columns
       ? -1
-      : (a.accessor as string).localeCompare(b.accessor as string)
+      : (a.accessor as string).localeCompare(b.accessor as string),
   );
 
   const flattenedColumns = columns.flatMap(
-    (column) => column.columns ?? column
+    (column) => column.columns ?? column,
   );
 
   return flattenedColumns;

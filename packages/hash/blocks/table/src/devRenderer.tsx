@@ -23,8 +23,8 @@ import {
   initialTableData,
   Person,
 } from "./mockData/mockData";
-import { resolvePath } from "./lib/compareEntitiesByField";
 import { sortEntities } from "./lib/sortEntities";
+import { filterEntities } from "./lib/filterEntities";
 
 const DEFAULT_PAGE_SIZE = 3;
 
@@ -48,18 +48,18 @@ const useMockData = () => {
         switch (entity.type) {
           case "Company":
             entity.location = entities.find(
-              (subEnt) => subEnt.entityId === entity.locationId
+              (subEnt) => subEnt.entityId === entity.locationId,
             ) as Location;
             break;
           case "Person":
             entity.employer = entities.find(
-              (subEnt) => subEnt.entityId === entity.employerId
+              (subEnt) => subEnt.entityId === entity.employerId,
             ) as Company;
         }
       }
 
       resolvedData = entities.filter(
-        ({ type }) => type === linkedData.entityTypeId
+        ({ type }) => type === linkedData.entityTypeId,
       ) as Person[];
 
       if (!linkedData.aggregate) {
@@ -71,17 +71,10 @@ const useMockData = () => {
 
       // FILTERING
       if (linkedData.aggregate?.multiFilter) {
-        const combinatorFilter = linkedData.aggregate.multiFilter;
-        // This assumes the operator for each field is Contains and
-        // the combinator operator is AND
-        // @todo update to handle all filter scenarios
-        combinatorFilter.filters.forEach(({ field, value }) => {
-          resolvedData = resolvedData.filter((entity) => {
-            const property = resolvePath(entity, field);
-            if (typeof property !== "string" || !property) return;
-            return property.toLowerCase().includes(value.toLowerCase());
-          });
-        });
+        resolvedData = filterEntities(
+          resolvedData,
+          linkedData.aggregate.multiFilter,
+        );
       }
 
       // SORTING
@@ -106,7 +99,7 @@ const useMockData = () => {
         data: resolvedData,
       };
     },
-    [tableData, entities]
+    [tableData, entities],
   );
 
   const aggregateData: BlockProtocolAggregateFn = useCallback(
@@ -121,7 +114,7 @@ const useMockData = () => {
         operation: action.operation,
       } as BlockProtocolAggregateOperationOutput);
     },
-    []
+    [],
   );
 
   const updateData: BlockProtocolUpdateFn = useCallback(
@@ -129,7 +122,7 @@ const useMockData = () => {
       actions: BlockProtocolUpdatePayload<{
         data?: { __linkedData: BlockProtocolLinkedDataDefinition };
         initialState?: Record<string, any>;
-      }>[]
+      }>[],
     ) => {
       const newTableData = cloneDeep(tableData);
 
@@ -137,14 +130,16 @@ const useMockData = () => {
         if (action.data.data?.__linkedData) {
           newTableData.data.__linkedData = action.data.data?.__linkedData;
         }
-        newTableData.initialState = action.data.initialState;
+        if (action.data.initialState) {
+          newTableData.initialState = action.data.initialState;
+        }
         setTableData(newTableData);
       });
 
       setEntities((prevData) => {
         const newData = prevData.map((entity) => {
           const affectingAction = actions.find(
-            (action) => action.entityId === entity.entityId
+            (action) => action.entityId === entity.entityId,
           );
           if (affectingAction) {
             return {
@@ -160,7 +155,7 @@ const useMockData = () => {
 
       return [];
     },
-    [tableData]
+    [tableData],
   );
 
   return useMemo(
@@ -171,7 +166,7 @@ const useMockData = () => {
       updateData,
       aggregateData,
     }),
-    [tableData, getResolvedData, updateData, aggregateData]
+    [tableData, getResolvedData, updateData, aggregateData],
   );
 };
 

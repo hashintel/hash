@@ -10,7 +10,7 @@ import { getAccountEntityTypes } from "../../../graphql/queries/account.queries"
 
 export const useBlockProtocolAggregateEntityTypes = (
   /** Providing accountId here saves blocks from having to know it */
-  accountId: string
+  accountId: string,
 ): {
   aggregateEntityTypes: BlockProtocolAggregateEntityTypesFn;
 } => {
@@ -42,7 +42,7 @@ export const useBlockProtocolAggregateEntityTypes = (
         },
       };
     },
-    [accountId, apolloClient]
+    [accountId, apolloClient],
   );
 
   return { aggregateEntityTypes };

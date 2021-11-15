@@ -86,14 +86,14 @@ export const Editor = ({
 
         newContent = `${content.substring(
           0,
-          selectionStart - 1
+          selectionStart - 1,
         )}${content.substring(selectionStart)}`;
 
         newCursorPos = selectionStart - 1;
       } else {
         newContent = `${content.substring(
           0,
-          selectionStart
+          selectionStart,
         )}\t${content.substring(selectionStart)}`;
         newCursorPos = selectionStart + 1;
       }

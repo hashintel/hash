@@ -6,7 +6,7 @@ interface MemoizableFetchFunction<T> {
  * Memoize a fetch function by its URL.
  */
 export function memoizeFetchFunction<T>(
-  fetchFunction: MemoizableFetchFunction<T>
+  fetchFunction: MemoizableFetchFunction<T>,
 ): MemoizableFetchFunction<T> {
   const cache: Record<string, Promise<any>> = {};
 

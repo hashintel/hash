@@ -1,4 +1,4 @@
 #!/bin/bash
-yarn ws:hash-backend build
-yarn ws:hash-backend codegen
-yarn ws:hash-backend dev
+yarn ws:hash-api build
+yarn ws:hash-api codegen
+yarn ws:hash-api dev

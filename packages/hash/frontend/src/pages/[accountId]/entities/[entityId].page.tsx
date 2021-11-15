@@ -31,7 +31,7 @@ const Entity: VoidFunctionComponent = () => {
         accountId,
         entityId,
       },
-    }
+    },
   );
   const { update } = useBlockProtocolUpdate(accountId);
   const { aggregate } = useBlockProtocolAggregate(accountId);
@@ -40,7 +40,7 @@ const Entity: VoidFunctionComponent = () => {
     return update(args)
       .then((res) => {
         void router.push(
-          `/${accountId}/entities/${(res[0] as UnknownEntity).entityId}`
+          `/${accountId}/entities/${(res[0] as UnknownEntity).entityId}`,
         );
         return res;
       })

@@ -1,6 +1,6 @@
 module.exports = {
   roots: ["<rootDir>"],
-  rootDir: "./src", 
+  rootDir: "./src",
   setupFilesAfterEnv: ["../jest.setup.ts"],
   testEnvironment: "jsdom",
   moduleFileExtensions: ["ts", "tsx", "js", "json", "jsx"],

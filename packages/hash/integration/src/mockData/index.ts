@@ -5,7 +5,7 @@
 import "./loadEnv";
 
 import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { PostgresAdapter } from "@hashintel/hash-backend/src/db";
+import { PostgresAdapter } from "@hashintel/hash-api/src/db";
 import {
   Org,
   Entity,
@@ -13,7 +13,7 @@ import {
   CreateEntityWithEntityTypeIdArgs,
   CreateEntityWithEntityTypeVersionIdArgs,
   CreateEntityWithSystemTypeArgs,
-} from "@hashintel/hash-backend/src/model";
+} from "@hashintel/hash-api/src/model";
 
 import { createOrgs, createUsers } from "./accounts";
 import { SystemTypeName } from "../graphql/apiTypes.gen";
@@ -42,11 +42,11 @@ void (async () => {
       port: parseInt(process.env.HASH_PG_PORT || "5432", 10),
       maxPoolSize: 10,
     },
-    logger
+    logger,
   );
 
   // Get the hash org - it's already been created as part of db migration
-  const hashOrg = await Org.getOrgByShortname(db)({ shortname: "hash" });
+  const hashOrg = await Org.getOrgByShortname(db, { shortname: "hash" });
 
   if (!hashOrg) {
     throw new Error(`
@@ -80,7 +80,7 @@ void (async () => {
 
   await Promise.all(
     requiredTypes.map(async (name) => {
-      const entityType = await EntityType.create(db)({
+      const entityType = await EntityType.create(db, {
         accountId: hashOrg.accountId,
         createdById: hashOrg.entityId, // TODO
         name,
@@ -88,7 +88,7 @@ void (async () => {
       });
 
       newTypeIds[name] = entityType.entityId;
-    })
+    }),
   );
 
   type CreateEntityMapValue =
@@ -109,11 +109,11 @@ void (async () => {
     const names = Array.from(items.keys());
     const mutations = await Promise.all(
       Array.from(items.values()).map((val) =>
-        Entity.create(db)({
+        Entity.create(db, {
           ...val,
           versioned: val.versioned ?? true,
-        })
-      )
+        }),
+      ),
     );
     mutations.forEach((res, i) => {
       const name = names[i];
@@ -122,7 +122,7 @@ void (async () => {
   };
 
   const user = users.find(
-    ({ properties }) => properties.shortname === "ciaran"
+    ({ properties }) => properties.shortname === "ciaran",
   );
   if (!user) {
     throw new Error("user not found");
@@ -137,7 +137,10 @@ void (async () => {
           accountId: user.accountId,
           createdById: user.entityId,
           properties: {
-            texts: [{ text: "About me", bold: true }],
+            tokens: [
+              { tokenType: "text", text: "About me", bold: true },
+              { tokenType: "hardBreak" },
+            ],
           },
         },
       ],
@@ -148,7 +151,7 @@ void (async () => {
           accountId: user.accountId,
           createdById: user.entityId,
           properties: {
-            texts: [{ text: "My colleagues", bold: true }],
+            tokens: [{ tokenType: "text", text: "My colleagues", bold: true }],
           },
         },
       ],
@@ -159,7 +162,13 @@ void (async () => {
           accountId: user.accountId,
           createdById: user.entityId,
           properties: {
-            texts: [{ text: "Two synced table blocks", bold: true }],
+            tokens: [
+              {
+                tokenType: "text",
+                text: "Two synced table blocks",
+                bold: true,
+              },
+            ],
           },
         },
       ],
@@ -179,16 +188,26 @@ void (async () => {
           accountId: user.accountId,
           createdById: user.entityId,
           properties: {
-            texts: [
-              { text: "A paragraph of regular text " },
-              { text: "with", bold: true },
-              { text: " " },
-              { text: "some", italics: true },
-              { text: " " },
-              { text: "formatting", underline: true },
-              { text: " " },
-              { text: "included", bold: true, italics: true, underline: true },
-              { text: "." },
+            tokens: [
+              { tokenType: "text", text: "A paragraph of regular text " },
+              { tokenType: "text", text: "with", bold: true },
+              { tokenType: "text", text: " " },
+              { tokenType: "text", text: "some", italics: true },
+              { tokenType: "text", text: " " },
+              { tokenType: "text", text: "formatting", underline: true },
+              { tokenType: "hardBreak" },
+              { tokenType: "text", text: "and" },
+              { tokenType: "hardBreak" },
+              { tokenType: "text", text: "line breaks" },
+              { tokenType: "hardBreak" },
+              {
+                tokenType: "text",
+                text: "included",
+                bold: true,
+                italics: true,
+                underline: true,
+              },
+              { tokenType: "text", text: "." },
             ],
           },
         },
@@ -200,7 +219,13 @@ void (async () => {
           accountId: user.accountId,
           createdById: user.entityId,
           properties: {
-            texts: [{ text: "A paragraph of italic text", italics: true }],
+            tokens: [
+              {
+                tokenType: "text",
+                text: "A paragraph of italic text",
+                italics: true,
+              },
+            ],
           },
         },
       ],
@@ -211,7 +236,13 @@ void (async () => {
           accountId: user.accountId,
           createdById: user.entityId,
           properties: {
-            texts: [{ text: "A paragraph of underline text", underline: true }],
+            tokens: [
+              {
+                tokenType: "text",
+                text: "A paragraph of underline text",
+                underline: true,
+              },
+            ],
           },
         },
       ],
@@ -222,7 +253,9 @@ void (async () => {
           accountId: hashOrg.accountId,
           createdById: user.entityId,
           properties: {
-            texts: [{ text: "HASH's Header Text", bold: true }],
+            tokens: [
+              { tokenType: "text", text: "HASH's Header Text", bold: true },
+            ],
           },
         },
       ],
@@ -280,7 +313,7 @@ void (async () => {
           properties: {},
         },
       ],
-    ])
+    ]),
   );
 
   await createEntities(
@@ -321,7 +354,7 @@ void (async () => {
           createdById: user.entityId,
         },
       ],
-    ])
+    ]),
   );
 
   // People Entities
@@ -435,7 +468,7 @@ void (async () => {
           createdById: user.entityId,
         },
       ],
-    ])
+    ]),
   );
 
   await createEntities(
@@ -483,7 +516,7 @@ void (async () => {
           },
         },
       ],
-    ])
+    ]),
   );
 
   // Block Entities
@@ -736,7 +769,7 @@ void (async () => {
           systemTypeName: SystemTypeName.Block,
         },
       ],
-    ])
+    ]),
   );
 
   // Page Entities
@@ -850,7 +883,7 @@ void (async () => {
           // visibility: Visibility.Public,
         },
       ],
-    ])
+    ]),
   );
 
   console.log("Mock data created");

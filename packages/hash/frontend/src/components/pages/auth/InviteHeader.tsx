@@ -19,5 +19,5 @@ export const InviteHeader: React.VFC<InviteHeaderProps> = React.memo(
           : ` You have been invited you to join ${invitationInfo?.orgName}`}
       </p>
     );
-  }
+  },
 );

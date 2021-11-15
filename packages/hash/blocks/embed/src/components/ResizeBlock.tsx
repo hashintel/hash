@@ -1,7 +1,9 @@
 import React, { useCallback, useLayoutEffect, useMemo, useRef } from "react";
 import { tw } from "twind";
+import { throttle } from "lodash";
 import { MIN_WIDTH, MIN_HEIGHT } from "../constants";
 import { CornerResize } from "../svgs/CornerResize";
+import { isInRange, toCSSObject, toCSSText } from "../utils";
 
 type ResizeBlockProps = {
   width: number | undefined;
@@ -11,11 +13,6 @@ type ResizeBlockProps = {
   shouldRespectAspectRatio: boolean;
 };
 
-/**
- * @todo distinguish between embeds that need
- * - all resizer blocks (horizontal && vertical)
- * - horizontal resizer blocks
- */
 const BLOCK_RESIZER_POSITIONS = [
   {
     position: "left",
@@ -64,67 +61,36 @@ export const ResizeBlock: React.FC<ResizeBlockProps> = ({
 
   const maxHeight = useMemo(
     () => (aspectRatio ? Math.ceil(maxWidth / aspectRatio) : undefined),
-    [aspectRatio, maxWidth]
+    [aspectRatio, maxWidth],
   );
 
   const updateLocalDimensions = useCallback(
-    (dimensions: { width?: number; height?: number; aspectRatio?: number }) => {
+    (dimensions: { width?: number; height?: number }) => {
       if (!divRef.current) return;
 
-      if (dimensions.width) {
-        /**
-         * ensure width is within boundary
-         */
-        if (
-          (maxWidth && dimensions.width > maxWidth) ||
-          dimensions.width < MIN_WIDTH
-        ) {
-          return;
-        }
-        divRef.current.style.width = `${dimensions.width}px`;
+      const styles = {
+        ...toCSSObject(divRef.current.style.cssText),
+        ...(Boolean(
+          dimensions.width && isInRange(dimensions.width, MIN_WIDTH, maxWidth),
+        ) && {
+          width: `${dimensions.width}px`,
+        }),
+        ...(Boolean(
+          dimensions.height &&
+            isInRange(dimensions.height, MIN_HEIGHT, maxHeight),
+        ) && {
+          height: `${dimensions.height}px`,
+        }),
+      } as CSSStyleDeclaration;
 
-        /**
-         * update height if there's an aspect ratio
-         */
-        if (dimensions.aspectRatio) {
-          divRef.current.style.height = `${Math.ceil(
-            dimensions.width / dimensions.aspectRatio
-          )}px`;
-          return;
-        }
-      }
-
-      if (dimensions.height) {
-        if (
-          (maxHeight && dimensions.height > maxHeight) ||
-          dimensions.height < MIN_HEIGHT
-        ) {
-          return;
-        }
-
-        /**
-         * update width if there's an aspect ratio and the derived
-         * width is within boundary
-         */
-        if (dimensions.aspectRatio) {
-          const derivedWidth = Math.ceil(
-            dimensions.height * dimensions.aspectRatio
-          );
-
-          if (
-            (maxWidth && derivedWidth > maxWidth) ||
-            derivedWidth < MIN_WIDTH
-          ) {
-            return;
-          }
-
-          divRef.current.style.width = `${derivedWidth}px`;
-        }
-
-        divRef.current.style.height = `${dimensions.height}px`;
-      }
+      divRef.current.style.cssText = toCSSText(styles);
     },
-    [maxHeight, maxWidth]
+    [maxHeight, maxWidth],
+  );
+
+  const throttledUpdateLocalDimensions = useCallback(
+    throttle(updateLocalDimensions, 16),
+    [updateLocalDimensions],
   );
 
   useLayoutEffect(() => {
@@ -133,15 +99,16 @@ export const ResizeBlock: React.FC<ResizeBlockProps> = ({
       divRef.current.getBoundingClientRect();
 
     if (localWidth !== width || localHeight !== height) {
-      updateLocalDimensions({ width, height, aspectRatio });
+      updateLocalDimensions({ width, height });
     }
-  }, [width, height, aspectRatio, updateLocalDimensions]);
+  }, [width, height, updateLocalDimensions]);
 
   const handleResize = (
     evt: React.MouseEvent,
-    direction: typeof BLOCK_RESIZER_POSITIONS[number]["position"]
+    direction: typeof BLOCK_RESIZER_POSITIONS[number]["position"],
   ) => {
     if (!childrenWrapperRef.current) return;
+    let isResizing = false;
 
     function onMouseMove(mouseMoveEvt: MouseEvent) {
       if (!divRef.current) return;
@@ -155,54 +122,73 @@ export const ResizeBlock: React.FC<ResizeBlockProps> = ({
       let newWidth;
       let newHeight;
       const { left, right, top } = divRef.current.getBoundingClientRect();
+      isResizing = true;
 
       switch (direction) {
         case "right":
-          newWidth = Math.ceil(mouseMoveEvt.pageX - left);
+          newWidth = Math.ceil(mouseMoveEvt.clientX - left);
           break;
         case "left":
-          newWidth = Math.ceil(right - mouseMoveEvt.pageX);
+          newWidth = Math.ceil(right - mouseMoveEvt.clientX);
           break;
         case "bottom":
-          newHeight = Math.ceil(mouseMoveEvt.pageY - top);
+          newHeight = Math.ceil(mouseMoveEvt.clientY - top);
           break;
         case "bottom-right":
-          newHeight = Math.ceil(mouseMoveEvt.pageY - top);
-          newWidth = Math.ceil(mouseMoveEvt.pageX - left);
+          newHeight = Math.ceil(mouseMoveEvt.clientY - top);
+          newWidth = Math.ceil(mouseMoveEvt.clientX - left);
           break;
         case "bottom-left":
-          newHeight = Math.ceil(mouseMoveEvt.pageY - top);
-          newWidth = Math.ceil(right - mouseMoveEvt.pageX);
+          newHeight = Math.ceil(mouseMoveEvt.clientY - top);
+          newWidth = Math.ceil(right - mouseMoveEvt.clientX);
           break;
         default:
           break;
       }
 
+      let newDimensions = {};
+
       if (newWidth && newHeight) {
-        updateLocalDimensions({ width: newWidth, height: newHeight });
-        return;
+        newDimensions = {
+          width: newWidth,
+          height: newHeight,
+        };
+      } else {
+        if (newWidth) {
+          newDimensions = {
+            width: newWidth,
+            ...(aspectRatio && { height: Math.ceil(newWidth / aspectRatio) }),
+          };
+        }
+
+        if (newHeight) {
+          newDimensions = {
+            height: newHeight,
+            ...(aspectRatio && { height: Math.ceil(newHeight * aspectRatio) }),
+          };
+        }
       }
 
-      if (newWidth) {
-        updateLocalDimensions({ width: newWidth, aspectRatio });
-        return;
-      }
+      throttledUpdateLocalDimensions(newDimensions);
 
-      if (newHeight) {
-        updateLocalDimensions({ height: newHeight, aspectRatio });
-      }
+      // @todo scroll Embedding Application to the bottom when vertical resizing close
+      // to the bottom of the page
     }
 
     function onMouseUp() {
       if (!childrenWrapperRef.current) return;
       childrenWrapperRef.current.style.pointerEvents = "auto";
+      isResizing = false;
       document.removeEventListener("mousemove", onMouseMove);
 
       setTimeout(() => {
         if (!divRef.current) return;
         const { width: newWidth, height: newHeight } =
           divRef.current.getBoundingClientRect();
-        updateDimensions(newWidth, newHeight);
+
+        if (!isResizing) {
+          updateDimensions(newWidth, newHeight);
+        }
       }, 500);
     }
 
@@ -213,9 +199,9 @@ export const ResizeBlock: React.FC<ResizeBlockProps> = ({
   const resizerPositions = useMemo(
     () =>
       BLOCK_RESIZER_POSITIONS.filter(({ position }) =>
-        aspectRatio ? !position.includes("bottom") : true
+        aspectRatio ? !position.includes("bottom") : true,
       ),
-    [aspectRatio]
+    [aspectRatio],
   );
 
   return (
@@ -230,6 +216,7 @@ export const ResizeBlock: React.FC<ResizeBlockProps> = ({
         if (["bottom-left", "bottom-right"].includes(position)) {
           return (
             <button
+              key={position}
               type="button"
               className={tw`transition-all absolute z-10 opacity-0 group-hover:opacity-100 focus:outline-none ${className}`}
               onMouseDown={(evt) => handleResize(evt, position)}

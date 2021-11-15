@@ -1,131 +1,145 @@
 version: "3.9"
 services:
-    hash-dev-pg:
-        build:
-            context: ../../../
-            dockerfile: packages/hash/docker/postgres/Dockerfile
-        ports:
-            - 5432:5432
-        environment:
-            - PGDATA=/pgdata
-            - POSTGRES_USER=postgres
-            - POSTGRES_PASSWORD=postgres
-        volumes:
-            - hash-dev-pg:/pgdata
-            - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf
-        command: ["-c", "config_file=/etc/postgresql/postgresql.conf"]
-    hash-dev-redis:
-        image: redis:6.2
-        ports:
-            - 6379:6379
-    hash-dev-opensearch:
-        image: opensearchproject/opensearch:1.0.1
-        ports:
-            - 9200:9200
-        environment:
-          # Tell OpenSearch that it's operating in single-node mode
-          - discovery.type=single-node
-          # Disable the security module for development so we can connect over plain HTTP
-          - plugins.security.disabled=true
-          # Docker volumes are ~10GB by default which is typically much smaller than the
-          # host's drive size. This can cause OpenSearch to shutdown if it thinks disk
-          # space is running low. Set the disk high watermark to 100% to ignore this.
-          - cluster.routing.allocation.disk.watermark.high=100%
-          - cluster.routing.allocation.disk.watermark.flood_stage=100%
-        ulimits:
-          nofile:
-            soft: 65536
-            hard: 65536
-        volumes:
-          - hash-dev-opensearch:/usr/share/opensearch/data
-    hash-dev-api:
-        build:
-            context: ../../../
-            dockerfile: packages/hash/docker/api/dev/Dockerfile
-        depends_on:
-            - hash-dev-pg
-            - hash-dev-redis
-        ports:
-            - 5001:5001
-        environment:
-            - HASH_PG_HOST=hash-dev-pg
-            - HASH_PG_USER=postgres
-            - HASH_PG_PORT=5432
-            - HASH_PG_DATABASE=${HASH_PG_DATABASE:-postgres}
-            - HASH_PG_PASSWORD=postgres
-            - HASH_REDIS_HOST=hash-dev-redis
-            - HASH_REDIS_PORT=6379
-            - SESSION_SECRET=secret
-            - FRONTEND_DOMAIN=localhost:3000
-            - NEXT_PUBLIC_API_ORIGIN=http://localhost:5001
-            - NODE_ENV=${NODE_ENV:-development}
-            - AWS_REGION=${AWS_REGION}
-            - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-            - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-            - AWS_S3_UPLOADS_BUCKET=${AWS_S3_UPLOADS_BUCKET}
-        # Wait until the database is running before starting the API
-        command: ["wait-for-it", "-h", "hash-dev-pg", "-p", "5432", "-s", "-t", "30", "--", "./start.sh"]
-        volumes:
-            - ../backend/src:/app/packages/hash/backend/src
-            - ../shared/src:/app/packages/hash/shared/src
-            - ../backend-utils:/app/packages/hash/backend-utils
-        stop_signal: SIGTERM
-    hash-dev-realtime:
-        build:
-            context: ../../../
-            dockerfile: packages/hash/docker/realtime/dev/Dockerfile
-        depends_on:
-            - hash-dev-pg
-            - hash-dev-redis
-        ports:
-            - 3333:3333
-        environment:
-            - NODE_ENV=${NODE_ENV:-development}
-            - HASH_PG_HOST=hash-dev-pg
-            - HASH_PG_USER=postgres
-            - HASH_PG_PORT=5432
-            - HASH_PG_DATABASE=postgres
-            - HASH_PG_PASSWORD=postgres
-            - HASH_REALTIME_PORT=3333
-            - HASH_REDIS_HOST=hash-dev-redis
-            - HASH_REDIS_PORT=6379
-            - HASH_SEARCH_QUEUE_NAME=search
-        volumes:
-          - ../realtime:/app/packages/hash/realtime
-          - ../backend-utils:/app/packages/hash/backend-utils
-        stop_signal: SIGTERM
-    hash-dev-search-loader:
-        build:
-            context: ../../../
-            dockerfile: packages/hash/docker/search-loader/dev/Dockerfile
-        depends_on:
-            - hash-dev-redis
-            - hash-dev-opensearch
-        ports:
-            - 3838:3838
-        environment:
-            - NODE_ENV=${NODE_ENV:-development}
-            - HASH_REDIS_HOST=hash-dev-redis
-            - HASH_REDIS_PORT=6379
-            - HASH_SEARCH_LOADER_PORT=3838
-            # Value must match same envvar in hash-dev-realtime
-            - HASH_SEARCH_QUEUE_NAME=search
-            - HASH_OPENSEARCH_HOST=hash-dev-opensearch
-            - HASH_OPENSEARCH_PORT=9200
-            - HASH_OPENSEARCH_HTTPS_ENABLED=false
-            - HASH_OPENSEARCH_USERNAME=admin
-            - HASH_OPENSEARCH_PASSWORD=admin
-            - HASH_PG_HOST=hash-dev-pg
-            - HASH_PG_USER=postgres
-            - HASH_PG_PORT=5432
-            - HASH_PG_DATABASE=postgres
-            - HASH_PG_PASSWORD=postgres
-        volumes:
-          - ../search-loader:/app/packages/hash/search-loader
-          - ../backend-utils:/app/packages/hash/backend-utils
-        stop_signal: SIGTERM
+  hash-dev-pg:
+    build:
+      context: ../../../
+      dockerfile: packages/hash/docker/postgres/Dockerfile
+    ports:
+      - 5432:5432
+    environment:
+      - PGDATA=/pgdata
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - hash-dev-pg:/pgdata
+      - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf
+    command: ["-c", "config_file=/etc/postgresql/postgresql.conf"]
+  hash-dev-redis:
+    image: redis:6.2
+    ports:
+      - 6379:6379
+  hash-dev-opensearch:
+    image: opensearchproject/opensearch:1.1.0
+    ports:
+      - 9200:9200
+    environment:
+      # Tell OpenSearch that it's operating in single-node mode
+      - discovery.type=single-node
+      # Disable the security module for development so we can connect over plain HTTP
+      - plugins.security.disabled=true
+      # Docker volumes are ~10GB by default which is typically much smaller than the
+      # host's drive size. This can cause OpenSearch to shutdown if it thinks disk
+      # space is running low. Set the disk high watermark to 100% to ignore this.
+      - cluster.routing.allocation.disk.watermark.high=100%
+      - cluster.routing.allocation.disk.watermark.flood_stage=100%
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - hash-dev-opensearch:/usr/share/opensearch/data
+  hash-dev-api:
+    build:
+      context: ../../../
+      dockerfile: packages/hash/docker/api/dev/Dockerfile
+    depends_on:
+      - hash-dev-pg
+      - hash-dev-redis
+    ports:
+      - 5001:5001
+    environment:
+      - HASH_PG_HOST=hash-dev-pg
+      - HASH_PG_USER=postgres
+      - HASH_PG_PORT=5432
+      - HASH_PG_DATABASE=${HASH_PG_DATABASE:-postgres}
+      - HASH_PG_PASSWORD=postgres
+      - HASH_REDIS_HOST=hash-dev-redis
+      - HASH_REDIS_PORT=6379
+      - SESSION_SECRET=secret
+      - FRONTEND_DOMAIN=localhost:3000
+      - NEXT_PUBLIC_API_ORIGIN=http://localhost:5001
+      - NODE_ENV=${NODE_ENV:-development}
+      - AWS_REGION=${AWS_REGION}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_S3_UPLOADS_BUCKET=${AWS_S3_UPLOADS_BUCKET}
+    # Wait until the database is running before starting the API
+    command:
+      [
+        "wait-for-it",
+        "-h",
+        "hash-dev-pg",
+        "-p",
+        "5432",
+        "-s",
+        "-t",
+        "30",
+        "--",
+        "./start.sh",
+      ]
+    volumes:
+      - ../api/src:/app/packages/hash/api/src
+      - ../shared/src:/app/packages/hash/shared/src
+      - ../backend-utils:/app/packages/hash/backend-utils
+    stop_signal: SIGTERM
+  hash-dev-realtime:
+    build:
+      context: ../../../
+      dockerfile: packages/hash/docker/realtime/dev/Dockerfile
+    depends_on:
+      - hash-dev-pg
+      - hash-dev-redis
+    ports:
+      - 3333:3333
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - HASH_PG_HOST=hash-dev-pg
+      - HASH_PG_USER=postgres
+      - HASH_PG_PORT=5432
+      - HASH_PG_DATABASE=postgres
+      - HASH_PG_PASSWORD=postgres
+      - HASH_REALTIME_PORT=3333
+      - HASH_REDIS_HOST=hash-dev-redis
+      - HASH_REDIS_PORT=6379
+      - HASH_SEARCH_QUEUE_NAME=search
+    volumes:
+      - ../realtime:/app/packages/hash/realtime
+      - ../backend-utils:/app/packages/hash/backend-utils
+    stop_signal: SIGTERM
+  hash-dev-search-loader:
+    build:
+      context: ../../../
+      dockerfile: packages/hash/docker/search-loader/dev/Dockerfile
+    depends_on:
+      - hash-dev-redis
+      - hash-dev-opensearch
+    ports:
+      - 3838:3838
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - HASH_REDIS_HOST=hash-dev-redis
+      - HASH_REDIS_PORT=6379
+      - HASH_SEARCH_LOADER_PORT=3838
+      # Value must match same envvar in hash-dev-realtime
+      - HASH_SEARCH_QUEUE_NAME=search
+      - HASH_OPENSEARCH_HOST=hash-dev-opensearch
+      - HASH_OPENSEARCH_PORT=9200
+      - HASH_OPENSEARCH_HTTPS_ENABLED=false
+      - HASH_OPENSEARCH_USERNAME=admin
+      - HASH_OPENSEARCH_PASSWORD=admin
+      - HASH_PG_HOST=hash-dev-pg
+      - HASH_PG_USER=postgres
+      - HASH_PG_PORT=5432
+      - HASH_PG_DATABASE=postgres
+      - HASH_PG_PASSWORD=postgres
+    volumes:
+      - ../backend-utils:/app/packages/hash/backend-utils
+      - ../block-protocol:/app/packages/hash/block-protocol
+      - ../search-loader:/app/packages/hash/search-loader
+      - ../shared:/app/packages/hash/shared
+    stop_signal: SIGTERM
 volumes:
-    # Make sure you have created this volume: docker volume create hash-dev-pg
-    hash-dev-pg:
-        external: true
-    hash-dev-opensearch:
+  # Make sure you have created this volume: docker volume create hash-dev-pg
+  hash-dev-pg:
+    external: true
+  hash-dev-opensearch:

@@ -51,7 +51,7 @@ export const ResizingIFrame = forwardRef<
      * */
     iFrameResizer(
       { checkOrigin: false, warningTimeout: 20_000 } as FixMeLater,
-      iframe
+      iframe,
     );
 
     return () => (iframe as IFrameWithResizer).iFrameResizer.removeListeners();

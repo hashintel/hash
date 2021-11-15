@@ -1,44 +1,72 @@
 import { Schema } from "prosemirror-model";
-import { Text, TextPropertiesText } from "./graphql/apiTypes.gen";
+import { Text } from "./graphql/apiTypes.gen";
+import { TextToken } from "./graphql/types";
 import { ProsemirrorNode } from "./node";
 
 export const childrenForTextEntity = (
   entity: Pick<Text, "properties">,
-  schema: Schema
+  schema: Schema,
 ): ProsemirrorNode<Schema>[] =>
-  entity.properties.texts.map((text) =>
-    schema.text(
-      text.text,
-      [
-        ["strong", text.bold] as const,
-        ["underlined", text.underline] as const,
-        ["em", text.italics] as const,
-      ]
-        .filter(([, include]) => include)
-        .map(([mark]) => schema.mark(mark))
-    )
-  );
-
-export const nodeToEntityProperties = (node: ProsemirrorNode<Schema>) => {
-  if (node.type.isTextblock) {
-    const texts: TextPropertiesText[] = [];
-
-    node.content.descendants((child) => {
-      if (child.type.name === "text") {
-        const marks = new Set<string>(
-          child.marks.map((mark) => mark.type.name)
-        );
-
-        texts.push({
-          text: child.text ?? "",
-          ...(marks.has("strong") ? { bold: true } : {}),
-          ...(marks.has("em") ? { italics: true } : {}),
-          ...(marks.has("underlined") ? { underline: true } : {}),
-        });
+  entity.properties.tokens
+    // eslint-disable-next-line array-callback-return -- TODO: disable the rule because it’s not aware of TS
+    .map((token) => {
+      switch (token.tokenType) {
+        case "hardBreak":
+          return schema.node("hardBreak");
+        case "text": {
+          return schema.text(
+            token.text,
+            [
+              ["strong", token.bold] as const,
+              ["underlined", token.underline] as const,
+              ["em", token.italics] as const,
+              [
+                "link",
+                Boolean(token.link),
+                token.link ? { href: token.link } : undefined,
+              ] as const,
+            ]
+              .filter(([, include]) => include)
+              .map(([mark, _, attrs]) => schema.mark(mark, attrs)),
+          );
+        }
       }
     });
 
-    return { texts };
+export const nodeToEntityProperties = (node: ProsemirrorNode<Schema>) => {
+  if (node.type.isTextblock) {
+    const tokens: TextToken[] = [];
+
+    node.content.descendants((child) => {
+      switch (child.type.name) {
+        case "text": {
+          const marks = new Set<string>(
+            child.marks.map((mark) => mark.type.name),
+          );
+
+          tokens.push({
+            tokenType: "text",
+            text: child.text ?? "",
+            ...(marks.has("strong") ? { bold: true } : {}),
+            ...(marks.has("em") ? { italics: true } : {}),
+            ...(marks.has("underlined") ? { underline: true } : {}),
+            ...(marks.has("link")
+              ? {
+                  link: child.marks.find((mark) => mark.type.name === "link")
+                    ?.attrs?.href,
+                }
+              : {}),
+          });
+          break;
+        }
+        case "hardBreak": {
+          tokens.push({ tokenType: "hardBreak" });
+          break;
+        }
+      }
+    });
+
+    return { tokens };
   }
 
   return {};
@@ -59,14 +87,14 @@ export type EntityNode = NodeWithAttrs<{
 }>;
 
 export const isEntityNode = (
-  node: ProsemirrorNode<Schema> | null
+  node: ProsemirrorNode<Schema> | null,
 ): node is EntityNode => !!node && node.type === node.type.schema.nodes.entity;
 
 /**
  * @todo use group name for this
  */
 export const isComponentNode = (
-  node: ProsemirrorNode<Schema>
+  node: ProsemirrorNode<Schema>,
 ): node is ComponentNode =>
   !!node.type.spec.attrs && "blockEntityId" in node.type.spec.attrs;
 
@@ -85,7 +113,7 @@ export const findComponentNodes = (doc: ProsemirrorNode<Schema>) => {
 };
 
 export const getComponentNodeAttrs = (
-  entity?: { entityId?: string | null } | null
+  entity?: { entityId?: string | null } | null,
 ) => ({
   blockEntityId: entity?.entityId ?? "",
 });

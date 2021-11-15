@@ -23,8 +23,8 @@ export type BlockEntity = Omit<ContentsEntity, "properties"> & {
 };
 
 export const isTextEntity = (
-  entity: EntityStoreType | DraftEntity
-): entity is Text => "properties" in entity && "texts" in entity.properties;
+  entity: EntityStoreType | DraftEntity,
+): entity is Text => "properties" in entity && "tokens" in entity.properties;
 
 /**
  * @todo reimplement links
@@ -32,7 +32,7 @@ export const isTextEntity = (
  */
 export const getTextEntityFromDraftBlock = (
   draftBlockId: string,
-  entityStore: EntityStore
+  entityStore: EntityStore,
 ): DraftEntity<Text> | null => {
   const blockEntity = entityStore.draft[draftBlockId];
 
@@ -60,7 +60,7 @@ export const getTextEntityFromDraftBlock = (
  */
 export const getTextEntityFromSavedBlock = (
   blockId: string,
-  entityStore: EntityStore
+  entityStore: EntityStore,
 ): Text | null => {
   const blockEntity = entityStore.saved[blockId];
 

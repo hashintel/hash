@@ -4,9 +4,15 @@
 import { ProviderNames } from "./types";
 
 /**
+ * This helps ensure there's space for the edit button
+ * when resizing.
+ */
+const EDIT_BTN_ALLOWANCE = 40;
+
+/**
  * max width of block
  */
-export const MAX_WIDTH = 900;
+export const MAX_WIDTH = 900 - EDIT_BTN_ALLOWANCE;
 
 /**
  * When embeds are loaded, they should take up the default block width. This value acts as a fallback

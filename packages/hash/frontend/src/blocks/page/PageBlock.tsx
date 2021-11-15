@@ -73,7 +73,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       entityId,
       Array.from(blocksMeta.values()),
       () => currentContents.current,
-      client
+      client,
     );
 
     prosemirrorSetup.current = {
@@ -105,7 +105,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     if (!collabEnabled) {
       (async function updateContents(
         updatedContents: BlockEntity[],
-        signal?: AbortSignal
+        signal?: AbortSignal,
       ): Promise<void> {
         const setup = prosemirrorSetup.current;
         if (!setup) {
@@ -114,7 +114,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
         const { state } = setup.view;
         const tr = await setup.manager.createEntityUpdateTransaction(
           updatedContents,
-          state
+          state,
         );
 
         if (signal?.aborted) {
@@ -133,7 +133,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
 
         setup.view.dispatch(tr);
       })(contents, controller.signal).catch((err) =>
-        console.error("Could not update page contents: ", err)
+        console.error("Could not update page contents: ", err),
       );
     }
 

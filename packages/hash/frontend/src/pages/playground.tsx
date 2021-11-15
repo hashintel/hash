@@ -30,7 +30,7 @@ const BlockPlayground = () => {
   });
   const [metadata, setMetadata] = useState<BlockMetadata>({});
   const [schema, setSchema] = useState<Record<string, any> | undefined>(
-    undefined
+    undefined,
   );
 
   const fetchUrl = (folderUrl: string) => {
@@ -51,7 +51,7 @@ const BlockPlayground = () => {
       })
       .catch((err) => {
         setError(
-          err.message.includes("token < in JSON") ? undefined : err.message
+          err.message.includes("token < in JSON") ? undefined : err.message,
         );
         setMetadata({});
         setSchema(undefined);

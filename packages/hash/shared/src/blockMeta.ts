@@ -58,7 +58,7 @@ export const componentIdToUrl = (componentId: string) =>
  */
 const toBlockConfig = (
   options: BlockMetadata,
-  componentId: string
+  componentId: string,
 ): BlockConfig => {
   const defaultVariant: BlockVariant = {
     description: options.description,
@@ -84,7 +84,7 @@ const toBlockConfig = (
 
 // @todo deal with errors, loading, abort etc.
 export const fetchBlockMeta = async (
-  componentId: string
+  componentId: string,
 ): Promise<BlockMeta> => {
   const url = componentIdToUrl(componentId);
 
@@ -118,6 +118,6 @@ export const fetchBlockMeta = async (
 };
 
 export const blockComponentRequiresText = (
-  componentSchema: BlockMeta["componentSchema"]
+  componentSchema: BlockMeta["componentSchema"],
 ) =>
   !!componentSchema.properties && "editableRef" in componentSchema.properties;

@@ -6,7 +6,7 @@ import {
 } from "@hashintel/block-protocol";
 import { BlockComponent } from "@hashintel/block-protocol/react";
 import { tw } from "twind";
-import { orderBy } from "lodash";
+import { omit, orderBy } from "lodash";
 import { EditableCell } from "./components/EditableCell";
 import { makeColumns } from "./lib/columns";
 import { getSchemaPropertyDefinition } from "./lib/getSchemaProperty";
@@ -22,12 +22,16 @@ type AppProps = {
     data?: Record<string, any>[];
     __linkedData?: BlockProtocolLinkedDataDefinition;
   };
-  initialState?: TableOptions<{}>["initialState"];
+  initialState?: TableOptions<{}>["initialState"] & {
+    columns?: { Header: string; accessor: string }[];
+  };
   entityId: string;
 };
 
+const defaultData: AppProps["data"] = { data: [] };
+
 export const App: BlockComponent<AppProps> = ({
-  data = { data: [] },
+  data = defaultData,
   initialState,
   schemas,
   update,
@@ -42,9 +46,10 @@ export const App: BlockComponent<AppProps> = ({
   }, [data]);
 
   const columns = useMemo(
-    () => makeColumns(tableData.data?.[0] || {}, ""),
-    [tableData.data]
+    () => initialState?.columns ?? makeColumns(tableData.data?.[0] || {}),
+    [tableData.data, initialState],
   );
+
   const [pageOptions, aggregateOptions] = useMemo(() => {
     const aggregate = tableData.__linkedData?.aggregate;
     return [
@@ -82,7 +87,7 @@ export const App: BlockComponent<AppProps> = ({
       updateData: update,
       manualSortBy: true,
     },
-    useSortBy
+    useSortBy,
   );
 
   /**
@@ -114,7 +119,7 @@ export const App: BlockComponent<AppProps> = ({
 
       aggregateFn({
         entityTypeId: linkedData.entityTypeId,
-        operation: linkedData.aggregate,
+        operation: omit(linkedData.aggregate, "entityTypeId"),
       })
         .then(({ operation, results }) => {
           setTableData({
@@ -129,7 +134,7 @@ export const App: BlockComponent<AppProps> = ({
           // @todo properly handle error
         });
     },
-    [aggregateFn, tableData.__linkedData]
+    [aggregateFn, tableData.__linkedData],
   );
 
   const handleUpdate = useCallback(
@@ -137,7 +142,10 @@ export const App: BlockComponent<AppProps> = ({
       if (!update || !tableData.__linkedData) return;
 
       const newLinkedData = omitTypenameDeep(tableData.__linkedData);
-      const newState = { hiddenColumns: initialState?.hiddenColumns };
+      const newState = {
+        hiddenColumns: initialState?.hiddenColumns,
+        columns: initialState?.columns,
+      };
 
       if (!newLinkedData.aggregate) {
         return;
@@ -177,39 +185,61 @@ export const App: BlockComponent<AppProps> = ({
         },
       ]);
     },
-    [update, tableData.__linkedData, entityId, initialState]
+    [update, tableData.__linkedData, entityId, initialState],
   );
 
-  const updateRemoteHiddenColumns = (hiddenColumns: string[]) => {
-    if (!update) return;
+  const updateRemoteColumns = useCallback(
+    (properties: {
+      hiddenColumns?: string[];
+      columns?: { Header: string; accessor: string }[];
+    }) => {
+      if (!update) return;
 
-    const newState = { ...initialState, hiddenColumns };
-    void update<{
-      data: { __linkedData: BlockProtocolLinkedDataDefinition };
-      initialState?: Record<string, any>;
-    }>([
-      {
-        data: {
-          data: { __linkedData: { ...data.__linkedData } },
-          initialState: newState,
+      const newState = {
+        ...initialState,
+        ...(properties.hiddenColumns && {
+          hiddenColumns: properties.hiddenColumns,
+        }),
+        ...(properties.columns && { columns: properties.columns }),
+      };
+      void update<{
+        data: { __linkedData: BlockProtocolLinkedDataDefinition };
+        initialState?: Record<string, any>;
+      }>([
+        {
+          data: {
+            data: { __linkedData: { ...tableData.__linkedData } },
+            initialState: newState,
+          },
+          entityId,
         },
-        entityId,
-      },
-    ]);
-  };
+      ]);
+    },
+    [entityId, initialState, tableData.__linkedData, update],
+  );
+
+  useEffect(() => {
+    /** Save the columns in initial state if not present. This helps in retaining
+     * the headers when a filter operation returns an empty results set
+     */
+    if (initialState?.columns || !tableData.data?.length) return;
+
+    const initialColumns = makeColumns(tableData.data[0] || {});
+    updateRemoteColumns({ columns: initialColumns });
+  }, [initialState, tableData, updateRemoteColumns]);
 
   const setPageIndex = useCallback(
     (index: number) => {
       handleAggregate({ pageNumber: index });
     },
-    [handleAggregate]
+    [handleAggregate],
   );
 
   const setPageSize = useCallback(
     (size: number) => {
       handleUpdate({ operation: "changePageSize", itemsPerPage: size });
     },
-    [handleUpdate]
+    [handleUpdate],
   );
 
   /**
@@ -217,18 +247,18 @@ export const App: BlockComponent<AppProps> = ({
    */
   const handleToggleColumn = (columnId: string, showColumn?: boolean) => {
     if (!state.hiddenColumns) return;
-    let newColumns: string[] = [];
+    let newHiddenColumns: string[] = [];
 
     if (state.hiddenColumns.includes(columnId) || !showColumn) {
-      newColumns = state.hiddenColumns.filter((id) => id !== columnId);
+      newHiddenColumns = state.hiddenColumns.filter((id) => id !== columnId);
     } else {
-      newColumns = state.hiddenColumns.concat(columnId);
+      newHiddenColumns = state.hiddenColumns.concat(columnId);
     }
 
-    setHiddenColumns(newColumns);
+    setHiddenColumns(newHiddenColumns);
 
     // @todo throttle this call
-    updateRemoteHiddenColumns(newColumns);
+    updateRemoteColumns({ hiddenColumns: newHiddenColumns });
   };
 
   const [entityTypes, setEntityTypes] = useState<BlockProtocolEntityType[]>();
@@ -262,7 +292,7 @@ export const App: BlockComponent<AppProps> = ({
         },
       ]);
     },
-    [update, data.__linkedData?.aggregate?.itemsPerPage, entityId]
+    [update, data.__linkedData?.aggregate?.itemsPerPage, entityId],
   );
 
   const entityTypeDropdown = entityTypes ? (
@@ -337,11 +367,11 @@ export const App: BlockComponent<AppProps> = ({
                   {row.cells.map((cell) => {
                     const { entity, property } = identityEntityAndProperty(
                       cell.row.original,
-                      cell.column.id
+                      cell.column.id,
                     );
                     const propertyDef = getSchemaPropertyDefinition(
                       (schemas ?? {})[entity.type],
-                      property
+                      property,
                     );
                     const readOnly = propertyDef?.readOnly;
                     const { key, ...restCellProps } = cell.getCellProps();
