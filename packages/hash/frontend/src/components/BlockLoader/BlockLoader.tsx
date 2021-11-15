@@ -5,6 +5,7 @@ import React, {
   useState,
   VoidFunctionComponent,
 } from "react";
+import router from "next/router";
 
 import { useBlockProtocolUpdate } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdate";
 import { cloneEntityTreeWithPropertiesMovedUp } from "../../lib/entities";
@@ -14,12 +15,11 @@ import { BlockFramer } from "../sandbox/BlockFramer/BlockFramer";
 import { RemoteBlock } from "../RemoteBlock/RemoteBlock";
 import { useBlockProtocolAggregateEntityTypes } from "../hooks/blockProtocolFunctions/useBlockProtocolAggregateEntityTypes";
 import { useBlockProtocolAggregate } from "../hooks/blockProtocolFunctions/useBlockProtocolAggregate";
-import router from "next/router";
 
 type BlockLoaderProps = {
   shouldSandbox?: boolean;
   sourceUrl: string;
-  entityId: string;
+  entityId?: string;
 } & Record<string, any>;
 
 const sandboxingEnabled = !!process.env.NEXT_PUBLIC_SANDBOX;
@@ -70,6 +70,8 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   };
 
   useEffect(() => {
+    const routeHash = router.asPath.split("#")[1];
+
     function frame() {
       const routeElement = document.getElementById(routeHash);
 
@@ -93,8 +95,6 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
         scrollFrameRequestIdRef.current = null;
       }
     }
-
-    const routeHash = router.asPath.split("#")[1];
 
     console.log({
       scrollingComplete,
