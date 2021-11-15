@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import matter from "gray-matter";
-import algoliasearch, { SearchIndex } from "algoliasearch";
+import algoliasearch from "algoliasearch";
 
 type DocsFrontMatter = {
   content: string;
@@ -78,10 +78,6 @@ const generateAlgoliaJson = () => {
   return jsonData;
 };
 
-const uploadAlgoliaData = async (index: SearchIndex, records) => {
-  return await index.saveObjects(records).catch(console.error);
-};
-
 export const syncAlgoliaIndex = async () => {
   const client = algoliasearch(
     process.env.ALGOLIA_PROJECT,
@@ -105,9 +101,14 @@ export const syncAlgoliaIndex = async () => {
 
   const objectIds = hits.map((hit) => hit.objectID);
 
-  index.deleteObjects(objectIds);
-
   const records = generateAlgoliaJson();
 
-  return uploadAlgoliaData(index, records);
+  // delete moved/removed records from index
+  records.forEach((record) => {
+    if (!objectIds.includes(record.objectID)) {
+      index.deleteObject(record.objectID);
+    }
+  });
+
+  return index.saveObjects(records).catch(console.error);
 };

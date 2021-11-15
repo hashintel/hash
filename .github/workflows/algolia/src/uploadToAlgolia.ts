@@ -1,4 +1,4 @@
-import { syncAlgoliaIndex } from ".";
+import { syncAlgoliaIndex } from "./syncAlgoliaIndex";
 
 const main = async () => {
   await syncAlgoliaIndex();
