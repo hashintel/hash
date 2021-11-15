@@ -6,8 +6,15 @@ import { findComponentNodes } from "@hashintel/hash-shared/prosemirror";
 import { Schema } from "prosemirror-model";
 import { NodeSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
-import React, { createRef, forwardRef, useEffect, useState } from "react";
+import React, {
+  createRef,
+  forwardRef,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { tw } from "twind";
+import { BlockContextMenu } from "../../components/BlockContextMenu/BlockContextMenu";
 import {
   BlockSuggester,
   BlockSuggesterProps,
@@ -24,33 +31,42 @@ type BlockHandleProps = {
 /**
  * specialized block-type/-variant select field
  */
-export const BlockHandle = forwardRef<HTMLDivElement, BlockHandleProps>(
-  (props, ref) => {
-    const { entityId, onTypeChange } = props;
+export const BlockHandle = forwardRef<
+  HTMLDivElement,
+  BlockHandleProps
+>(({ entityId, onTypeChange }, ref) => {
+  const [isPopoverVisible, setPopoverVisible] = useState(false);
+  const contextMenuRef = useRef<HTMLDivElement>(null);
 
-    const [isPopoverVisible, setPopoverVisible] = useState(false);
+  const closePopover = () => setPopoverVisible(false);
 
-    useEffect(() => {
-      const closePopover = () => setPopoverVisible(false);
-      document.addEventListener("click", closePopover);
-      return () => document.removeEventListener("click", closePopover);
-    }, []);
+  useEffect(() => {
+    const handleClick = (evt: MouseEvent) => {
+      if (
+        evt.target &&
+        evt.target !== ref?.current &&
+        !ref?.current?.contains(evt.target)
+      ) {
+        closePopover();
+      }
+    };
+    document.addEventListener("click", handleClick);
+    return () => document.removeEventListener("click", handleClick);
+  }, []);
 
-    return (
-      <div ref={ref} className={tw`relative cursor-pointer`}>
-        <DragVertical
-          onClick={(evt: MouseEvent) => {
-            evt.stopPropagation(); // skips closing handler
-            setPopoverVisible(true);
-          }}
-        />
-        {isPopoverVisible && (
-          <BlockSuggester onChange={onTypeChange} entityId={entityId} />
-        )}
-      </div>
-    );
-  },
-);
+  return (
+    <div ref={ref} className={tw`relative cursor-pointer`}>
+      <DragVertical
+        onClick={(evt: MouseEvent) => {
+          setPopoverVisible(true);
+        }}
+      />
+      {isPopoverVisible ? (
+        <BlockContextMenu ref={contextMenuRef} onChange={onTypeChange} />
+      ) : null}
+    </div>
+  );
+});
 
 /**
  * This is the node view that wraps every one of our blocks in order to inject
