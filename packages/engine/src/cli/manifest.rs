@@ -48,6 +48,13 @@ impl From<&str> for Error {
     }
 }
 
+lazy_static! {
+    static ref BEHAVIOR_FILE_EXTENSIONS: [&'static OsStr; 3] =
+        [OsStr::new("js"), OsStr::new("py"), OsStr::new("rs")];
+    static ref DATASET_FILE_EXTENSIONS: [&'static OsStr; 2] =
+        [OsStr::new("csv"), OsStr::new("json")];
+}
+
 pub fn read_manifest(
     project_path: PathBuf,
     experiment_type: &ExperimentType,
@@ -79,6 +86,7 @@ fn create_experiment_run_id(experiment_type: &ExperimentType) -> String {
     return format!("{}-{:06x}", name, num);
 }
 
+#[derive(Debug)]
 struct Project {
     path: PathBuf,
     behaviors: Vec<SharedBehavior>,
@@ -91,6 +99,7 @@ struct Project {
 }
 
 fn get_file_contents(path: &Path) -> Option<String> {
+    log::debug!("Reading contents at path: {:?}", path);
     let res = std::fs::File::open(&path).map(|mut file| {
         let mut contents = String::new();
         file.read_to_string(&mut contents).map(|_| contents)
@@ -102,6 +111,7 @@ fn get_file_contents(path: &Path) -> Option<String> {
 }
 
 fn read_local_project(project_path: &Path) -> Result<Project> {
+    debug!("Reading local project at: {:?}", &project_path);
     let experiments_json = project_path.join("experiments.json");
     let dependencies_json = project_path.join("dependencies.json");
     let src_folder = project_path.join("src");
@@ -136,6 +146,7 @@ fn read_local_init_file(
     let mut init_path: PathBuf;
     let state_name: InitialStateName;
 
+    log::debug!("Reading local init files");
     if init_js.is_file() {
         init_path = init_js;
         state_name = InitialStateName::InitJs;
@@ -167,41 +178,60 @@ fn read_local_init_file(
 }
 
 fn read_local_datasets(data_folder: PathBuf) -> Result<Vec<SharedDataset>> {
-    Ok(data_folder
-        .read_dir()?
-        .filter_map(|entry| {
-            if let Ok(entry) = entry {
-                if entry.path().is_file() {
-                    let file_name = entry.file_name().to_str().unwrap().to_string();
-                    if file_name.ends_with(".json") || file_name.ends_with(".csv") {
-                        let mut data = read_to_string(entry.path()).unwrap();
-                        if file_name.ends_with(".csv") {
-                            data = parse_raw_csv_into_json(data).unwrap()
+    log::debug!("Reading local datasets in {:?}", &data_folder);
+    if !data_folder.is_dir() {
+        Ok(vec![])
+    } else {
+        Ok(data_folder
+            .read_dir()?
+            .filter_map(|entry| {
+                if let Ok(entry) = entry {
+                    if entry.path().is_file() {
+                        let file_name = entry.file_name().to_str().unwrap().to_string();
+                        if file_name.ends_with(".json") || file_name.ends_with(".csv") {
+                            let mut data = read_to_string(entry.path()).unwrap();
+                            if file_name.ends_with(".csv") {
+                                data = parse_raw_csv_into_json(data).unwrap()
+                            }
+                            return Some(SharedDataset {
+                                name: Some(file_name.clone()),
+                                shortname: file_name.clone(),
+                                filename: file_name.clone(),
+                                url: None,
+                                raw_csv: file_name.ends_with(".csv"),
+                                data: Some(data),
+                            });
                         }
-                        return Some(SharedDataset {
-                            name: Some(file_name.clone()),
-                            shortname: file_name.clone(),
-                            filename: file_name.clone(),
-                            url: None,
-                            raw_csv: file_name.ends_with(".csv"),
-                            data: Some(data),
-                        });
                     }
                 }
-            }
-            None
-        })
-        .collect::<Vec<_>>())
+                None
+            })
+            .collect::<Vec<_>>())
+    }
 }
 
 fn read_local_behaviors(behaviors_folder: &Path) -> Result<Vec<SharedBehavior>> {
+    log::debug!("Reading local behaviors");
     let mut behavior_files = vec![];
+
+    if !behaviors_folder.is_dir() {
+        return Ok(vec![]);
+    }
+
     for entry in std::fs::read_dir(behaviors_folder)? {
         let path = entry?.path();
-        let extension = path.extension();
-        if extension == Some(OsStr::new("js")) || extension == Some(OsStr::new("py")) {
-            behavior_files.push(path);
-        }
+        if let Some(extension) = path.extension() {
+            if BEHAVIOR_FILE_EXTENSIONS.contains(&extension) {
+                if extension == OsStr::new(".rs") {
+                    warn!(
+                        "Custom Rust behaviors are currently unsupported, ignoring {:?}",
+                        &path
+                    );
+                } else {
+                    behavior_files.push(path);
+                }
+            }
+        };
     }
 
     let mut behaviors = Vec::with_capacity(behavior_files.len());
@@ -232,6 +262,7 @@ fn read_local_behaviors(behaviors_folder: &Path) -> Result<Vec<SharedBehavior>> 
 fn _try_read_local_dependencies(local_project: &Project) -> std::io::Result<Vec<PathBuf>> {
     let mut dependency_path = local_project.path.clone();
     dependency_path.push("dependencies/");
+    debug!("Parsing the dependencies folder: {:?}", &dependency_path);
 
     let mut entries = dependency_path
         .read_dir()?
@@ -266,22 +297,205 @@ fn local_dependencies_folders(local_project: &Project) -> Vec<PathBuf> {
     _try_read_local_dependencies(local_project).unwrap_or(vec![])
 }
 
+// TODO - Should these Strings be swapped with their own enums like BehaviorType::JavaScript
+enum DependencyType {
+    Behavior(String),
+    Dataset(String),
+}
+
+fn get_dependency_type_from_name(dependency_name: &str) -> Result<DependencyType> {
+    // TODO - dependency names aren't real paths, is this safe?
+    let extension = std::path::Path::new(dependency_name)
+        .extension()
+        .ok_or(Error::from(format!(
+            "Dependency: [{}], didn't have a file extension",
+            dependency_name
+        )))?;
+
+    if BEHAVIOR_FILE_EXTENSIONS.contains(&extension) {
+        Ok(DependencyType::Behavior(
+            extension.to_str().unwrap().to_string(),
+        ))
+    } else if DATASET_FILE_EXTENSIONS.contains(&extension) {
+        Ok(DependencyType::Dataset(
+            extension.to_str().unwrap().to_string(),
+        ))
+    } else {
+        Err(Error::from(format!(
+            "Unknown file extension: [{:?}] for dependency: [{}]",
+            extension, dependency_name,
+        )))
+    }
+}
+
+fn get_behavior_from_dependency_projects(
+    dependency_name: &str,
+    dependency_projects: &HashMap<PathBuf, Project>,
+) -> Result<SharedBehavior> {
+    let mut name = dependency_name.to_string();
+    let mut possible_names = Vec::with_capacity(4);
+
+    // is a Hash behavior
+    // TODO - Could be cleaned up
+    if name.starts_with("@hash") {
+        let full_parts = name.split("/").collect::<Vec<_>>();
+        let file_name = full_parts[full_parts.len() - 1];
+        let file_parts = file_name.split(".").collect::<Vec<_>>();
+        if file_parts.len() != 2 {
+            // return Err("Expected shared behavior name to have a file extension".into());
+            panic!();
+        }
+
+        let name_root = file_parts[0];
+        let file_extension = file_parts[1];
+        let dir = if full_parts.len() == 3 {
+            full_parts[1].to_string()
+        } else {
+            name_root.replace("_", "-")
+        };
+        let full_name = "@hash/".to_string() + &dir + "/" + file_name;
+
+        if file_extension == "rs" {
+            possible_names.push(name_root.to_string());
+        }
+        possible_names.push(file_name.to_string());
+        possible_names.push("@hash/".to_string() + file_name);
+
+        // Unfortunately, sometimes the longest name from the API is
+        // not actually the full name, so set it manually here.
+        name = full_name;
+    }
+
+    let mut dependency_path = PathBuf::from(&name);
+    dependency_path.pop();
+
+    match dependency_projects
+        .iter()
+        .find(|(path, proj)| path.ends_with(&dependency_path))
+        .map(|(path, proj)| {
+            proj.behaviors.iter().find(|behavior| {
+                // TODO - Are all of these checks necessary
+                behavior.name == name
+                    || behavior.shortnames.contains(&name)
+                    || possible_names.contains(&behavior.name)
+                    || possible_names
+                        .iter()
+                        .find(|possible_name| behavior.shortnames.contains(possible_name))
+                        .is_some()
+            })
+        })
+        .flatten()
+    {
+        None => Err(Error::from(format!(
+            "Couldn't find specified dependency: `{}` in the project dependencies",
+            &name
+        ))),
+        Some(behavior) => {
+            let mut behavior = behavior.clone();
+            behavior.name = name;
+            behavior.shortnames = possible_names;
+
+            Ok(behavior)
+        }
+    }
+}
+
+fn get_dataset_from_dependency_projects(
+    dependency_name: &str,
+    dependency_projects: &HashMap<PathBuf, Project>,
+) -> Result<SharedDataset> {
+    let mut dependency_path = PathBuf::from(&dependency_name);
+    let file_name = dependency_path
+        .file_name()
+        .ok_or(Error::from(format!(
+            "Expected there to be a filename component of the dataset dependency path: {:?}",
+            &dependency_path
+        )))?
+        .to_os_string()
+        .into_string()
+        .unwrap();
+    dependency_path.pop();
+    let name = dependency_name.to_string();
+
+    match dependency_projects
+        .iter()
+        .find(|(path, proj)| path.ends_with(&dependency_path))
+        .map(|(path, proj)| {
+            proj.datasets.iter().find(|dataset| {
+                // TODO - Are all of these checks necessary
+                dataset.name == Some(name.clone())
+                    || dataset.shortname == name.clone()
+                    || dataset.filename == name.clone()
+                    || dataset.name == Some(file_name.clone())
+                    || dataset.filename == file_name.clone()
+                    || dataset.shortname == file_name.clone()
+            })
+        })
+        .flatten()
+    {
+        None => Err(Error::from(format!(
+            "Couldn't find specified dependency: `{}` in the project dependencies",
+            &name
+        ))),
+        Some(dataset) => {
+            let mut dataset = dataset.clone();
+            // Using these, because locally they are not in the right format
+            dataset.name = Some(name.clone());
+            dataset.shortname = name.clone;
+            dataset.filename = name.clone;
+
+            Ok(dataset)
+        }
+    }
+}
+
 fn add_dependencies_to_project(
     local_project: &mut Project,
     dependency_projects: HashMap<PathBuf, Project>,
 ) -> Result<()> {
-    // This is a bit complex to write down -- easier for me (joh) to implement myself
-    // need to special merge behaviors
-    // need to special merge datasets too
-    // projects don't contain rust behaviors by default,
-    //      if dependencies.json has a rust dep, add it as a rust behavior shell
+    if let Some(dependencies_str) = &local_project.dependencies_json {
+        let dependencies_map = match serde_json::from_str(dependencies_str)? {
+            serde_json::Value::Object(dependencies_map) => dependencies_map,
+            unexpected @ _ => {
+                return Err(Error::from(format!(
+                    "Unexpected serde value type for dependencies.json: {:?}",
+                    unexpected
+                )))
+            }
+        };
 
-    // iter over dependencies in local_project.dependencies_json
-    // for each dep path
-    //   find dependency project within dependency_projects
-    //   @user/*.js depth search for the *.js within behaviors folders
-    // packages/apiclient/src/client.rs:295
-    todo!()
+        // TODO - How to handle versions
+        for (dependency_name, _version) in dependencies_map {
+            match get_dependency_type_from_name(&dependency_name)? {
+                DependencyType::Behavior(extension) => {
+                    let mut behavior = if &extension == ".rs" {
+                        SharedBehavior {
+                            id: dependency_name.to_string(),
+                            name: dependency_name.to_string(),
+                            shortnames: vec![],
+                            behavior_src: None,
+                            behavior_keys_src: None,
+                        }
+                    } else {
+                        get_behavior_from_dependency_projects(
+                            &dependency_name,
+                            &dependency_projects,
+                        )?
+                    };
+
+                    local_project.behaviors.push(behavior);
+                }
+                DependencyType::Dataset(_extension) => {
+                    let dataset = get_dataset_from_dependency_projects(
+                        &dependency_name,
+                        &dependency_projects,
+                    )?;
+                    local_project.datasets.push(dataset)
+                }
+            }
+        }
+    };
+    Ok(())
 }
 
 fn read_project(project_path: PathBuf) -> Result<ProjectBase> {

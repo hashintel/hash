@@ -4,6 +4,7 @@ use crate::simulation::status::SimStatus;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as SerdeValue;
+use std::fmt::{Debug, Formatter};
 
 pub type SerdeMap = serde_json::Map<String, SerdeValue>;
 
@@ -83,7 +84,7 @@ impl EngineStatus {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct SharedDataset {
     pub name: Option<String>,
     pub shortname: String,
@@ -94,6 +95,19 @@ pub struct SharedDataset {
     pub data: Option<String>,
 }
 
+impl Debug for SharedDataset {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SharedDataset")
+            .field("name", &self.name)
+            .field("shortname", &self.shortname)
+            .field("filename", &self.filename)
+            .field("url", &self.url)
+            .field("raw_csv", &self.raw_csv)
+            .field("data", &CleanOption(&self.data))
+            .finish()
+    }
+}
+
 // #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct FetchedDataset {
     pub name: Option<String>,
@@ -102,7 +116,7 @@ pub struct FetchedDataset {
     pub contents: String,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct SharedBehavior {
     /// This is the unique identifier (also the file/path) that, in the case of Cloud runs, is used by the HASH API
     pub id: String,
@@ -113,6 +127,18 @@ pub struct SharedBehavior {
     pub shortnames: Vec<String>,
     pub behavior_src: Option<String>, // Source code for the behaviors
     pub behavior_keys_src: Option<String>, // Behavior key definition for this behavior
+}
+
+impl Debug for SharedBehavior {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SharedBehavior")
+            .field("id", &self.id)
+            .field("name", &self.name)
+            .field("shortnames", &self.shortnames)
+            .field("behavior_src", &CleanOption(&self.behavior_src))
+            .field("behavior_keys_src", &CleanOption(&self.behavior_keys_src))
+            .finish()
+    }
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -344,3 +370,16 @@ pub struct ProcessedExperimentRun {
 }
 
 pub type ExperimentID = String;
+
+/// A wrapper around an Option to avoid displaying the inner for Debug outputs,
+/// i.e. debug::Debug now outputs: `Some(..)`
+struct CleanOption<'a, T>(&'a Option<T>);
+
+impl<T> Debug for CleanOption<'_, T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self.0 {
+            Some(_) => f.write_str("Some(..)"),
+            None => f.write_str("None"),
+        }
+    }
+}

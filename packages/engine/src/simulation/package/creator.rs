@@ -375,6 +375,7 @@ pub const PREVIOUS_INDEX_FIELD_NAME: &str = "previous_index";
 //      something like `get_hidden_column_name(PREVIOUS_INDEX_FIELD_NAME)`
 pub const PREVIOUS_INDEX_FIELD_KEY: &str = "_HIDDEN_0_previous_index";
 
+// TODO is this actually used or remnants of a hopeful design
 pub const CONTEXT_INDEX_FIELD_NAME: &str = "context_index";
 pub const CONTEXT_INDEX_FIELD_KEY: &str = "_HIDDEN_0_context_index";
 

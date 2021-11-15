@@ -1,4 +1,8 @@
+#[macro_use]
 extern crate lazy_static;
+#[macro_use]
+extern crate log;
+extern crate pretty_env_logger;
 
 pub mod error;
 pub mod experiment;
@@ -59,7 +63,7 @@ pub struct SingleExperimentArgs {
 
 #[derive(FromArgs, PartialEq, Debug)]
 /// Simple Experiment
-#[argh(subcommand, name = "single_run")]
+#[argh(subcommand, name = "simple")]
 pub struct SimpleExperimentArgs {
     /// experiment name to be run
     #[argh(option, short = 'n')]
@@ -74,11 +78,14 @@ impl std::default::Default for Args {
 }
 
 #[tokio::main]
+// TODO fix ordering of args being so inflexible and unintuitive, and also error messages being unhelpful
+//   for example try putting `-p` after `single_run`
 async fn main() -> Result<()> {
     // TODO project conversion into manifest...
     // TODO persist output
     //      1) send absolute path to engine process
     //      2) within engine process, save to folder
+    pretty_env_logger::init();
     let args = Args::default();
 
     let nng_listen_url = {

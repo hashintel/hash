@@ -53,6 +53,7 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync {
         Ok(Dependencies::empty())
     }
 
+    // TODO - Limit context packages to only add one field as long as we only allow one column from "get_empty_arrow_column"
     fn add_context_field_specs(
         &self,
         _config: &ExperimentConfig<ExperimentRunBase>,
