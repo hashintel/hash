@@ -12,6 +12,7 @@ import { useBlockProtocolAggregate } from "../hooks/blockProtocolFunctions/useBl
 type BlockLoaderProps = {
   shouldSandbox?: boolean;
   sourceUrl: string;
+  onBlockLoaded?: () => void;
 } & Record<string, any>;
 
 const sandboxingEnabled = !!process.env.NEXT_PUBLIC_SANDBOX;
@@ -19,6 +20,7 @@ const sandboxingEnabled = !!process.env.NEXT_PUBLIC_SANDBOX;
 export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   sourceUrl,
   shouldSandbox,
+  onBlockLoaded,
   ...props
 }) => {
   const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes(
@@ -50,6 +52,7 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
 
   if (sandboxingEnabled && (shouldSandbox || sourceUrl.endsWith(".html"))) {
     return (
+      // @todo implement for BlockFramer
       <BlockFramer
         sourceUrl={sourceUrl}
         blockProperties={blockProperties}
@@ -59,6 +62,11 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   }
 
   return (
-    <RemoteBlock {...blockProperties} {...functions} sourceUrl={sourceUrl} />
+    <RemoteBlock
+      {...blockProperties}
+      {...functions}
+      onBlockLoaded={onBlockLoaded}
+      sourceUrl={sourceUrl}
+    />
   );
 };

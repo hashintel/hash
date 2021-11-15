@@ -7,7 +7,7 @@ import {
 import { isTopWindow } from "./util";
 
 type UseRemoteBlockHook = {
-  (url: string, crossFrame?: boolean): [
+  (url: string, crossFrame?: boolean, onBlockLoaded?: () => void): [
     boolean,
     Error | undefined,
     UnknownComponent | string | undefined
@@ -26,7 +26,11 @@ const remoteModuleCache: Record<string, UseRemoteComponentState> = {};
 /**
  * @see https://github.com/Paciolan/remote-component/blob/master/src/hooks/useRemoteComponent.ts
  */
-export const useRemoteBlock: UseRemoteBlockHook = (url, crossFrame) => {
+export const useRemoteBlock: UseRemoteBlockHook = (
+  url,
+  crossFrame,
+  onBlockLoaded
+) => {
   if (crossFrame && isTopWindow()) {
     throw new Error(
       "crossFrame passed to useRemoteBlock from top window. This should be set from framed windows only."
@@ -65,13 +69,20 @@ export const useRemoteBlock: UseRemoteBlockHook = (url, crossFrame) => {
       : loadRemoteBlock;
 
     blockLoaderFn(url, signal)
-      .then((module) =>
-        update({
-          loading: false,
-          err: undefined,
-          component: typeof module === "string" ? module : module.default,
-          url,
-        })
+      .then(
+        (module) => {
+          update({
+            loading: false,
+            err: undefined,
+            component: typeof module === "string" ? module : module.default,
+            url,
+          });
+
+          if (onBlockLoaded && !signal.aborted) {
+            onBlockLoaded();
+          }
+        }
+        // add isloaded callback here
       )
       .catch((newErr) =>
         update({ loading: false, err: newErr, component: undefined, url: null })
