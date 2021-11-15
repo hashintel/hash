@@ -115,7 +115,6 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
 
   if (sandboxingEnabled && (shouldSandbox || sourceUrl.endsWith(".html"))) {
     return (
-      // @todo implement for BlockFramer
       <BlockFramer
         sourceUrl={sourceUrl}
         blockProperties={blockProperties}
