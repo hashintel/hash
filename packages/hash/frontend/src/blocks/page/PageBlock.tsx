@@ -6,13 +6,7 @@ import { useRouter } from "next/router";
 import { Schema } from "prosemirror-model";
 import { EditorView } from "prosemirror-view";
 import "prosemirror-view/style/prosemirror.css";
-import React, {
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  VoidFunctionComponent,
-} from "react";
+import React, { useLayoutEffect, useRef, VoidFunctionComponent } from "react";
 import { BlockMetaContext } from "../blockMeta";
 import { EditorConnection } from "./collab/EditorConnection";
 import { collabEnabled } from "./collabEnabled";

@@ -21,6 +21,7 @@ export type CrossFrameProxyProps = BlockProtocolProps & {
   blockProperties: JSONObject;
   getEmbedBlock?: FetchEmbedCodeFn;
   sourceUrl: string;
+  onBlockLoaded: () => void;
 };
 
 const fetchSource = memoizeFetchFunction((url) =>
@@ -35,6 +36,7 @@ export const BlockFramer: VoidFunctionComponent<CrossFrameProxyProps> = ({
   getEmbedBlock,
   update,
   blockProperties,
+  onBlockLoaded,
 }) => {
   const frameRef = useRef<HTMLIFrameElement>(null);
 
@@ -175,10 +177,10 @@ export const BlockFramer: VoidFunctionComponent<CrossFrameProxyProps> = ({
     aggregateEntityTypes,
   ]);
 
-  const onLoad = useCallback(
-    () => (!paramsIncludeProps ? sendBlockProperties(blockProperties) : null),
-    [blockProperties, paramsIncludeProps, sendBlockProperties]
-  );
+  const onLoad = useCallback(() => {
+    onBlockLoaded();
+    return !paramsIncludeProps ? sendBlockProperties(blockProperties) : null;
+  }, [blockProperties, paramsIncludeProps, sendBlockProperties]);
 
   return (
     <ResizingIFrame

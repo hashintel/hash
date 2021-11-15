@@ -1,4 +1,10 @@
-import React, { useMemo, VoidFunctionComponent } from "react";
+import React, {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  VoidFunctionComponent,
+} from "react";
 
 import { useBlockProtocolUpdate } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdate";
 import { cloneEntityTreeWithPropertiesMovedUp } from "../../lib/entities";
@@ -8,11 +14,12 @@ import { BlockFramer } from "../sandbox/BlockFramer/BlockFramer";
 import { RemoteBlock } from "../RemoteBlock/RemoteBlock";
 import { useBlockProtocolAggregateEntityTypes } from "../hooks/blockProtocolFunctions/useBlockProtocolAggregateEntityTypes";
 import { useBlockProtocolAggregate } from "../hooks/blockProtocolFunctions/useBlockProtocolAggregate";
+import router from "next/router";
 
 type BlockLoaderProps = {
   shouldSandbox?: boolean;
   sourceUrl: string;
-  onBlockLoaded?: () => void;
+  entityId: string;
 } & Record<string, any>;
 
 const sandboxingEnabled = !!process.env.NEXT_PUBLIC_SANDBOX;
@@ -20,7 +27,7 @@ const sandboxingEnabled = !!process.env.NEXT_PUBLIC_SANDBOX;
 export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   sourceUrl,
   shouldSandbox,
-  onBlockLoaded,
+  entityId,
   ...props
 }) => {
   const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes(
@@ -50,12 +57,69 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
     uploadFile,
   };
 
+  const [scrollingComplete, setScrollingComplete] = useState(false);
+  const scrollIntervalRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const scrollFrameRequestIdRef = useRef<ReturnType<
+    typeof requestAnimationFrame
+  > | null>(null);
+
+  const [blockLoaded, setBlockLoaded] = useState(false);
+
+  const onBlockLoaded = () => {
+    setBlockLoaded(true);
+  };
+
+  useEffect(() => {
+    function frame() {
+      const routeElement = document.getElementById(routeHash);
+
+      if (routeElement) {
+        console.log("scrolling");
+        routeElement.scrollIntoView();
+        setScrollingComplete(true);
+      }
+
+      // Do we need to do this if we've scrolled into view
+      scrollFrameRequestIdRef.current = requestAnimationFrame(frame);
+    }
+
+    function clearScrollInterval() {
+      if (scrollIntervalRef.current) {
+        clearInterval(scrollIntervalRef.current);
+      }
+
+      if (scrollFrameRequestIdRef.current !== null) {
+        cancelAnimationFrame(scrollFrameRequestIdRef.current);
+        scrollFrameRequestIdRef.current = null;
+      }
+    }
+
+    const routeHash = router.asPath.split("#")[1];
+
+    console.log({
+      scrollingComplete,
+      router,
+      blockLoaded,
+    });
+
+    if (routeHash === entityId && !scrollingComplete && blockLoaded) {
+      console.log("scrollRef set");
+      clearScrollInterval();
+      scrollFrameRequestIdRef.current = requestAnimationFrame(frame);
+    }
+
+    return () => {
+      clearScrollInterval();
+    };
+  }, [scrollingComplete, router, blockLoaded]);
+
   if (sandboxingEnabled && (shouldSandbox || sourceUrl.endsWith(".html"))) {
     return (
       // @todo implement for BlockFramer
       <BlockFramer
         sourceUrl={sourceUrl}
         blockProperties={blockProperties}
+        onBlockLoaded={onBlockLoaded}
         {...functions}
       />
     );

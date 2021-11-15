@@ -103,62 +103,13 @@ export class ComponentView implements NodeView<Schema> {
 
       const mappedUrl = componentIdToUrl(this.componentId);
 
-      const onBlockLoaded = () => {
-        console.log("block loaded");
-      };
-
-      const [scrollingComplete, setScrollingComplete] = useState(false);
-      const scrollIntervalRef = useRef<NodeJS.Timeout | undefined>(undefined);
-      const scrollFrameRequestIdRef = useRef<ReturnType<
-        typeof requestAnimationFrame
-      > | null>(null);
-
-      useEffect(() => {
-        const routeHash = router.asPath.split("#")[1];
-
-        function frame() {
-          const routeElement = document.getElementById(routeHash);
-
-          if (routeElement) {
-            routeElement.scrollIntoView();
-            setScrollingComplete(true);
-          }
-          // Do we need to do this if we've scrolled into view
-          scrollFrameRequestIdRef.current = requestAnimationFrame(frame);
-        }
-
-        if (routeHash && !scrollingComplete) {
-          scrollFrameRequestIdRef.current = requestAnimationFrame(frame);
-
-          // scrollIntervalRef.current = setInterval(() => {
-          //   const routeElement = document.getElementById(routeHash);
-
-          //   if (routeElement) {
-          //     routeElement.scrollIntoView();
-          //     setScrollingComplete(true);
-          //   }
-          // }, 100);
-        }
-
-        return () => {
-          if (scrollIntervalRef.current) {
-            clearInterval(scrollIntervalRef.current);
-          }
-
-          if (scrollFrameRequestIdRef.current !== null) {
-            cancelAnimationFrame(scrollFrameRequestIdRef.current);
-            scrollFrameRequestIdRef.current = null;
-          }
-        };
-      }, [scrollingComplete, router]);
-
       this.renderPortal(
         <BlockLoader
           {...remoteBlockProps}
           sourceUrl={`${mappedUrl}/${this.sourceName}`}
           editableRef={editableRef}
           shouldSandbox={!editableRef}
-          onBlockLoaded={onBlockLoaded}
+          entityId={entityId}
         />,
         this.target
       );
