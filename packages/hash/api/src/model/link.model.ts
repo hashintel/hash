@@ -60,8 +60,6 @@ type LinkConstructorArgs = {
   destinationEntityId: string;
   destinationEntityVersionId?: string;
   createdAt: Date;
-  source?: Entity;
-  destination?: Entity;
 };
 
 class __Link {
@@ -73,12 +71,10 @@ class __Link {
   sourceAccountId: string;
   sourceEntityId: string;
   sourceEntityVersionIds: Set<string>;
-  private source?: Entity;
 
   destinationAccountId: string;
   destinationEntityId: string;
   destinationEntityVersionId?: string;
-  private destination?: Entity;
 
   createdAt: Date;
 
@@ -92,8 +88,6 @@ class __Link {
     destinationAccountId,
     destinationEntityId,
     destinationEntityVersionId,
-    source,
-    destination,
     createdAt,
   }: LinkConstructorArgs) {
     this.linkId = linkId;
@@ -106,12 +100,6 @@ class __Link {
     this.destinationAccountId = destinationAccountId;
     this.destinationEntityId = destinationEntityId;
     this.destinationEntityVersionId = destinationEntityVersionId;
-    if (source) {
-      this.source = source;
-    }
-    if (destination) {
-      this.destination = destination;
-    }
     this.createdAt = createdAt;
   }
 
@@ -177,7 +165,7 @@ class __Link {
       destinationEntityVersionId,
     });
 
-    const link = new Link({ ...dbLink, source, destination });
+    const link = new Link(dbLink);
 
     return link;
   }
@@ -214,8 +202,7 @@ class __Link {
   }
 
   async getSource(client: DBClient) {
-    this.source = this.source || (await this.fetchSource(client));
-    return this.source;
+    return await this.fetchSource(client);
   }
 
   private async fetchDestination(client: DBClient) {
@@ -237,9 +224,7 @@ class __Link {
   }
 
   async getDestination(client: DBClient) {
-    this.destination =
-      this.destination || (await this.fetchDestination(client));
-    return this.destination;
+    return await this.fetchDestination(client);
   }
 
   toUnresolvedGQLLink(): UnresolvedGQLLink {
