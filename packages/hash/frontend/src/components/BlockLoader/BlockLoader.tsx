@@ -76,7 +76,6 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
       const routeElement = document.getElementById(routeHash);
 
       if (routeElement) {
-        console.log("scrolling");
         routeElement.scrollIntoView();
         setScrollingComplete(true);
       }
@@ -96,14 +95,7 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
       }
     }
 
-    console.log({
-      scrollingComplete,
-      router,
-      blockLoaded,
-    });
-
     if (routeHash === entityId && !scrollingComplete && blockLoaded) {
-      console.log("scrollRef set");
       clearScrollInterval();
       scrollFrameRequestIdRef.current = requestAnimationFrame(frame);
     }
