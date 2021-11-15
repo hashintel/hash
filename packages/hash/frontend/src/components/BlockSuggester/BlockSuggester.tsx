@@ -104,26 +104,29 @@ export const BlockSuggester: React.VFC<BlockSuggesterProps> = ({
           </div>
         </li>
       ))}
-      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */}
+
       {entityId && (
-        <li
-          className={tw`flex border border-gray-100 bg-gray-50 hover:bg-gray-100`}
-          onClick={() => {
-            const url = new URL(document.location.href);
-            url.hash = entityId;
-            void navigator.clipboard.writeText(url.toString());
-          }}
-        >
-          <div className={tw`flex w-16 items-center justify-center`}>
-            <LinkIcon className={tw`w-6 h-6`} />
-          </div>
-          <div className={tw`py-3`}>
-            <p className={tw`text-sm font-bold`}>Copy link</p>
-            <p className={tw`text-xs text-opacity-60 text-black`}>
-              Copy link to current block
-            </p>
-          </div>
-        </li>
+        <>
+          {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */}
+          <li
+            className={tw`flex border border-gray-100 bg-gray-50 hover:bg-gray-100`}
+            onClick={() => {
+              const url = new URL(document.location.href);
+              url.hash = entityId;
+              void navigator.clipboard.writeText(url.toString());
+            }}
+          >
+            <div className={tw`flex w-16 items-center justify-center`}>
+              <LinkIcon className={tw`w-6 h-6`} />
+            </div>
+            <div className={tw`py-3`}>
+              <p className={tw`text-sm font-bold`}>Copy link</p>
+              <p className={tw`text-xs text-opacity-60 text-black`}>
+                Copy link to current block
+              </p>
+            </div>
+          </li>
+        </>
       )}
     </ul>
   );
