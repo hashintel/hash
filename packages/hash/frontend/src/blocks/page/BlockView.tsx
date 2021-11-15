@@ -2,6 +2,7 @@ import { BlockVariant } from "@hashintel/block-protocol";
 import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
+import { findComponentNodes } from "@hashintel/hash-shared/prosemirror";
 import { Schema } from "prosemirror-model";
 import { NodeSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
@@ -16,7 +17,7 @@ import styles from "./style.module.css";
 import { RenderPortal } from "./usePortals";
 
 type BlockHandleProps = {
-  entityId: string;
+  entityId: string | null;
   onTypeChange: BlockSuggesterProps["onChange"];
 };
 
@@ -67,6 +68,17 @@ export class BlockView implements NodeView<Schema> {
   /** used to hide node-view specific events from prosemirror */
   blockHandleRef = createRef<HTMLDivElement>();
 
+  getBlockEntityIdFromNode = (node: ProsemirrorNode<Schema>) => {
+    const componentNodes = findComponentNodes(node);
+    if (componentNodes.length !== 1) {
+      return null;
+    }
+    const { blockEntityId } = componentNodes[0][0].attrs;
+
+    // The current default for this is an empty string, not null.
+    return blockEntityId === "" ? null : blockEntityId;
+  };
+
   constructor(
     public node: ProsemirrorNode<Schema>,
     public view: EditorView<Schema>,
@@ -74,10 +86,14 @@ export class BlockView implements NodeView<Schema> {
     public renderPortal: RenderPortal,
     public manager: ProsemirrorSchemaManager,
   ) {
-    const entityId = (node.content as any).content[0].attrs.entityId;
+    const entityId = this.getBlockEntityIdFromNode(node);
 
     this.dom = document.createElement("div");
-    this.dom.id = entityId;
+
+    if (entityId) {
+      this.dom.id = entityId;
+    }
+
     this.dom.classList.add(styles.Block);
 
     this.selectContainer = document.createElement("div");
@@ -170,7 +186,11 @@ export class BlockView implements NodeView<Schema> {
       this.dom.classList.remove(styles["Block--dragging"]);
     }
 
-    const entityId = (this.node.content as any).content[0].attrs.entityId;
+    const entityId = this.getBlockEntityIdFromNode(this.node);
+
+    if (entityId) {
+      this.dom.id = entityId;
+    }
 
     this.renderPortal(
       <>
@@ -252,7 +272,7 @@ export class BlockView implements NodeView<Schema> {
         node,
         getPos,
       )
-      .catch((err) => {
+      .catch((err: Error) => {
         console.error(err);
       });
   };
