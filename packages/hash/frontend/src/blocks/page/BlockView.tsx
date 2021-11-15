@@ -9,16 +9,13 @@ import { EditorView, NodeView } from "prosemirror-view";
 import React, {
   createRef,
   forwardRef,
+  RefObject,
   useEffect,
-  useRef,
   useState,
 } from "react";
 import { tw } from "twind";
 import { BlockContextMenu } from "../../components/BlockContextMenu/BlockContextMenu";
-import {
-  BlockSuggester,
-  BlockSuggesterProps,
-} from "../../components/BlockSuggester/BlockSuggester";
+import { BlockSuggesterProps } from "../../components/BlockSuggester/BlockSuggester";
 import DragVertical from "../../components/Icons/DragVertical";
 import styles from "./style.module.css";
 import { RenderPortal } from "./usePortals";
@@ -36,16 +33,16 @@ export const BlockHandle = forwardRef<
   BlockHandleProps
 >(({ entityId, onTypeChange }, ref) => {
   const [isPopoverVisible, setPopoverVisible] = useState(false);
-  const contextMenuRef = useRef<HTMLDivElement>(null);
 
   const closePopover = () => setPopoverVisible(false);
 
   useEffect(() => {
     const handleClick = (evt: MouseEvent) => {
+      const blockHandleRef = ref as RefObject<HTMLDivElement>;
       if (
         evt.target &&
-        evt.target !== ref?.current &&
-        !ref?.current?.contains(evt.target)
+        evt.target !== blockHandleRef.current &&
+        !blockHandleRef.current?.contains(evt.target as Node)
       ) {
         closePopover();
       }
@@ -54,15 +51,23 @@ export const BlockHandle = forwardRef<
     return () => document.removeEventListener("click", handleClick);
   }, []);
 
+  const onBlockSuggesterChange: BlockSuggesterProps["onChange"] = (
+    variant,
+    block,
+  ) => {
+    onTypeChange(variant, block);
+    closePopover();
+  };
+
   return (
     <div ref={ref} className={tw`relative cursor-pointer`}>
       <DragVertical
-        onClick={(evt: MouseEvent) => {
+        onClick={() => {
           setPopoverVisible(true);
         }}
       />
       {isPopoverVisible ? (
-        <BlockContextMenu ref={contextMenuRef} onChange={onTypeChange} />
+        <BlockContextMenu onBlockSuggesterChange={onBlockSuggesterChange} />
       ) : null}
     </div>
   );

@@ -1,24 +1,94 @@
-import React, { forwardRef } from "react";
+import React, { useState } from "react";
 import { tw } from "twind";
-import DeleteOutlineIcon from "@material-ui/icons/DeleteOutline";
-import CopyIcon from "@material-ui/icons/FileCopy";
+import DeleteIcon from "@material-ui/icons/DeleteOutline";
+import CopyIcon from "@material-ui/icons/FileCopyOutlined";
+import LoopIcon from "@material-ui/icons/LoopOutlined";
+import LinkIcon from "@material-ui/icons/LinkOutlined";
+import { useKey } from "rooks";
 import {
   BlockSuggester,
   BlockSuggesterProps,
 } from "../BlockSuggester/BlockSuggester";
 
 type BlockContextMenuProps = {
-  onChange: any;
+  onBlockSuggesterChange: BlockSuggesterProps["onChange"];
 };
 
-export const BlockContextMenu = forwardRef<
-  HTMLDivElement,
-  BlockContextMenuProps
->(({ onChange }, ref) => {
+const MENU_ITEMS = [
+  {
+    key: "delete",
+    title: "Delete",
+    icon: <DeleteIcon className={tw`!text-inherit mr-1`} />,
+  },
+  {
+    key: "duplicate",
+    title: "Duplicate",
+    icon: <CopyIcon className={tw`!text-inherit mr-1`} />,
+  },
+  {
+    key: "copyLink",
+    title: "Copy Link",
+    icon: <LinkIcon className={tw`!text-inherit mr-1`} />,
+  },
+  {
+    key: "switchBlock",
+    title: "Turn into",
+    icon: <LoopIcon className={tw`!text-inherit mr-1`} />,
+  },
+] as const;
+
+export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
+  onBlockSuggesterChange,
+}) => {
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [subMenuVisible, setSubMenuVisible] = useState(false);
+
+  useKey(["ArrowUp", "ArrowDown"], (event) => {
+    event.preventDefault();
+    if (subMenuVisible) {
+      return;
+    }
+    let index = selectedIndex + (event.key === "ArrowUp" ? -1 : 1);
+    index += MENU_ITEMS.length;
+    index %= MENU_ITEMS.length;
+    setSelectedIndex(index);
+  });
+
+  useKey(["ArrowLeft", "ArrowRight"], (event) => {
+    switch (event.key) {
+      case "ArrowRight":
+        if (
+          !subMenuVisible &&
+          MENU_ITEMS[selectedIndex]?.key === "switchBlock"
+        ) {
+          setSubMenuVisible(true);
+        }
+        break;
+      case "ArrowLeft":
+        if (
+          subMenuVisible &&
+          MENU_ITEMS[selectedIndex]?.key === "switchBlock"
+        ) {
+          setSubMenuVisible(false);
+        }
+        break;
+    }
+  });
+
+  const handleClick = (key: typeof MENU_ITEMS[number]["key"]) => {
+    // handle menu item click here
+    switch (key) {
+      case "delete":
+        break;
+      case "switchBlock":
+        setSubMenuVisible(!subMenuVisible);
+        break;
+    }
+  };
+
   return (
     <div
       className={tw`absolute z-10 w-60 bg-white border-gray-200 border-1 shadow-xl rounded`}
-      ref={ref}
     >
       <div className={tw`px-4 pt-3 mb-2 `}>
         <input
@@ -27,25 +97,38 @@ export const BlockContextMenu = forwardRef<
         />
       </div>
       <ul className={tw`text-sm mb-4`}>
-        <li className={tw`hover:bg-gray-100 flex items-center py-1 px-4`}>
-          <DeleteOutlineIcon className={tw`!text-inherit mr-1`} />
-          <span>Delete</span>
-        </li>
-        <li className={tw`hover:bg-gray-100 flex items-center py-1  px-4`}>
-          <CopyIcon className={tw`!text-inherit mr-1`} />
-          <span>Duplicate</span>
-        </li>
-        <li
-          className={tw`hover:bg-gray-100 flex items-center py-1 px-4 relative group`}
-        >
-          <DeleteOutlineIcon className={tw`!text-inherit mr-1`} />
-          <span>Turn into</span>
-          <span className={tw`ml-auto`}>&rarr;</span>
-          <BlockSuggester
-            className={"left-full ml-0.5 mt-2 hidden hover:block group-hover:block shadow-xl"}
-            onChange={onChange}
-          />
-        </li>
+        {MENU_ITEMS.map(({ title, icon, key }, index) => (
+          <li key={key} className={tw`flex`}>
+            <button
+              className={tw`flex-1 hover:bg-gray-100 ${
+                index === selectedIndex ? "bg-gray-100" : ""
+              }  flex items-center py-1 px-4 group`}
+              onFocus={() => setSelectedIndex(index)}
+              onMouseOver={() => setSelectedIndex(index)}
+              onClick={() => handleClick(key)}
+              onKeyDown={(evt) => {
+                if (evt.key === "Enter") {
+                  handleClick(key);
+                }
+              }}
+              type="button"
+            >
+              {icon}
+              <span>{title}</span>
+              {key === "switchBlock" && (
+                <span className={tw`ml-auto`}>&rarr;</span>
+              )}
+              {key === "switchBlock" && index === selectedIndex && (
+                <BlockSuggester
+                  className={`left-full ml-0.5 mt-2 ${
+                    subMenuVisible ? "block" : "hidden"
+                  } text-left hover:block group-hover:block shadow-xl`}
+                  onChange={onBlockSuggesterChange}
+                />
+              )}
+            </button>
+          </li>
+        ))}
       </ul>
       <div
         className={tw`border-t-1 border-gray-200 px-4 py-2 text-xs text-gray-400`}
@@ -55,4 +138,4 @@ export const BlockContextMenu = forwardRef<
       </div>
     </div>
   );
-});
+};

@@ -77,7 +77,9 @@ export const BlockSuggester: React.VFC<BlockSuggesterProps> = ({
 
   return (
     <ul
-      className={tw`absolute z-10 w-96 max-h-60 overflow-auto border border-gray-100 rounded-lg shadow-md ${className ?? ""}`}
+      className={tw`absolute z-10 w-96 max-h-60 overflow-auto border border-gray-100 rounded-lg shadow-md ${
+        className ?? ""
+      }`}
     >
       {options.map((option, index) => (
         /* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */
