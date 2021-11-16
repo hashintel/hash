@@ -1,4 +1,5 @@
 use futures::FutureExt;
+use nix::sys::ptrace::step;
 use std::sync::Arc;
 use tokio::time::Duration;
 
@@ -7,7 +8,7 @@ use crate::datastore::prelude::{SharedStore, Store};
 use crate::experiment::controller::comms::exp_pkg_update::ExpPkgUpdateSend;
 use crate::experiment::controller::comms::sim_status::SimStatusSend;
 use crate::experiment::controller::comms::simulation::SimCtlRecv;
-use crate::experiment::package::{StepOutputResponsePayload, StepUpdate, UpdateRequest};
+use crate::experiment::package::StepUpdate;
 use crate::hash_types::worker::RunnerError;
 use crate::output::SimulationOutputPersistenceRepr;
 use crate::proto::{ExperimentRunBase, SimulationShortID};
@@ -27,15 +28,6 @@ enum LoopControl {
     Stop,
 }
 
-fn create_update_for_exp_pkg(
-    sim_id: SimulationShortID,
-    step_result: &SimulationStepResult,
-    exp_pkg_update_request: &Option<UpdateRequest>,
-) -> Result<StepUpdate> {
-    // TODO OS - Create a StepUpdate
-    todo!();
-}
-
 // TODO - Sort out error into/from to avoid so many explicit err conversions using to_string
 pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
     config: Arc<SimRunConfig<ExperimentRunBase>>,
@@ -45,12 +37,6 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
     mut sim_from_exp: SimCtlRecv,
     mut sims_to_exp: SimStatusSend,
     mut persistence_service: P,
-    // TODO OS - remove this and stop using it, add a step_update
-    //         field to SimStatus, whereby on receiving the SimStatus,
-    //         the exp controller would pass on the step_update to the
-    //         exp package
-    exp_pkg_update_request: Option<UpdateRequest>,
-    exp_pkg_update_send: ExpPkgUpdateSend,
 ) -> Result<SimulationShortID> {
     let sim_run_id = config.sim.id;
     let max_num_steps = config.sim.max_num_steps;
@@ -121,19 +107,6 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
                             exp_controller_err
                         ))
                     })?;
-                exp_pkg_update_send
-                    .send(StepUpdate {
-                        sim_id: sim_run_id,
-                        was_error: true,
-                        ..StepUpdate::default()
-                    })
-                    .await
-                    .map_err(|exp_controller_err| {
-                        Error::from(format!(
-                            "Experiment controller error: {:?}",
-                            exp_controller_err
-                        ))
-                    })?;
                 return Err(Error::from(format!("Simulation error: {:?}", error)));
             }
         };
@@ -141,19 +114,6 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
             .next()
             .await
             .map_err(|sim_err| Error::from(format!("Simulation error: {:?}", sim_err)))?;
-
-        // Send update to experiment package
-        let output_response =
-            create_update_for_exp_pkg(config.sim.id, &step_result, &exp_pkg_update_request)?;
-        exp_pkg_update_send
-            .send(output_response)
-            .await
-            .map_err(|exp_controller_err| {
-                Error::from(format!(
-                    "Experiment controller error: {:?}",
-                    exp_controller_err
-                ))
-            })?;
 
         // Persist the output
         persistence_service
@@ -185,21 +145,6 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
     // Tell the experiment controller that the sim is stopping
     sims_to_exp
         .send(SimStatus::stop_signal(sim_run_id))
-        .await
-        .map_err(|exp_controller_err| {
-            Error::from(format!(
-                "Experiment controller error: {:?}",
-                exp_controller_err
-            ))
-        })?;
-    // Also tell the package that the sim is stopping
-    exp_pkg_update_send
-        .send(StepUpdate {
-            sim_id: sim_run_id,
-            payload: Default::default(),
-            was_error: false,
-            stop_signal: true,
-        })
         .await
         .map_err(|exp_controller_err| {
             Error::from(format!(

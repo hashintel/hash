@@ -39,7 +39,7 @@ impl SimpleExperiment {
     pub async fn run(
         self,
         mut pkg_to_exp: ExpPkgCtlSend,
-        mut pkg_from_exp: ExpPkgUpdateRecv,
+        mut exp_pkg_update_recv: ExpPkgUpdateRecv,
     ) -> Result<()> {
         let max_num_steps = self.config.num_steps;
         let mut n_sims_steps = HashMap::new();
@@ -63,7 +63,7 @@ impl SimpleExperiment {
         // Use `isize` to avoid issues with decrementing zero.
         let mut n_remaining = num_sims as isize;
         loop {
-            let response = pkg_from_exp.recv().await.ok_or_else(|| {
+            let response = exp_pkg_update_recv.recv().await.ok_or_else(|| {
                 Error::ExperimentRecv(
                     "Experiment main loop closed when experiment package was still running".into(),
                 )

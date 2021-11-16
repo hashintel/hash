@@ -1,5 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
+use crate::experiment::controller::comms::exp_pkg_update::ExpPkgUpdateSend;
+use crate::experiment::package::StepUpdate;
 use crate::{
     config::{PersistenceConfig, StoreConfig},
     datastore::prelude::SharedStore,
@@ -95,6 +97,23 @@ impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController
     }
 
     async fn handle_sim_status(&mut self, status: SimStatus) -> Result<()> {
+        // Send Step update to experiment package
+        self.experiment_package_comms
+            .step_update_sender
+            .send(StepUpdate {
+                sim_id: status.sim_id.clone(),
+                was_error: status.error.is_some(),
+                stop_signal: status.stop_signal,
+            })
+            .await
+            .map_err(|exp_controller_err| {
+                Error::from(format!(
+                    "Experiment controller error: {:?}",
+                    exp_controller_err
+                ))
+            })?;
+
+        // Send Sim Status to the orchestration client
         Ok(self
             .orch_client()
             .send(EngineStatus::SimStatus(status))
@@ -134,8 +153,7 @@ impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController
         max_num_steps: usize,
     ) -> Result<()> {
         let worker_pool_sender = self.worker_pool_send_base.sender_with_sim_id(sim_short_id);
-        let output_sender = self.experiment_package_comms.output_sender.clone();
-        let output_request = self.experiment_package_comms.output_request.clone();
+        let output_sender = self.experiment_package_comms.step_update_sender.clone();
 
         // Create the `globals.json` for the simulation
         let globals = Arc::new(
@@ -198,8 +216,6 @@ impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController
             packages,
             self.shared_store.clone(),
             persistence_service,
-            output_request,
-            output_sender,
             self.sim_status_send.clone(),
         )
         .map_err(|e| SimulationError::from(e))?;

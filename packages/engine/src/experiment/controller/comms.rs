@@ -95,6 +95,8 @@ pub mod exp_pkg_ctl {
     }
 }
 
+/// Handles communication between the Experiment Controller and the Experiment Packages for updates
+/// at each simulation step
 pub mod exp_pkg_update {
     use crate::experiment::package::StepUpdate;
 

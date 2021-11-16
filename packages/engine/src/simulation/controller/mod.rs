@@ -11,7 +11,6 @@ use crate::experiment::controller::comms::{
     exp_pkg_update::ExpPkgUpdateSend,
     simulation::{new_pair, SimCtlRecv, SimCtlSend},
 };
-use crate::experiment::package::UpdateRequest;
 use crate::output::SimulationOutputPersistenceRepr;
 use crate::proto::{ExperimentRunBase, SimulationShortID};
 use crate::simulation::package::run::Packages;
@@ -35,8 +34,6 @@ impl SimulationController {
         packages: Packages,
         shared_store: Arc<SharedStore>,
         persistence_service: P,
-        exp_pkg_output_request: Option<UpdateRequest>,
-        exp_pkg_output_send: ExpPkgUpdateSend,
         status_sender: SimStatusSend,
     ) -> Result<SimulationController> {
         let (ctl_sender, ctl_receiver) = new_pair();
@@ -49,8 +46,6 @@ impl SimulationController {
             packages,
             shared_store,
             persistence_service,
-            exp_pkg_output_request,
-            exp_pkg_output_send,
         )?;
         Ok(SimulationController {
             sender: ctl_sender,
@@ -67,8 +62,6 @@ fn new_task_handle<P: SimulationOutputPersistenceRepr>(
     packages: Packages,
     shared_store: Arc<SharedStore>,
     persistence_service: P,
-    exp_pkg_output_request: Option<UpdateRequest>,
-    exp_pkg_output_send: ExpPkgUpdateSend,
 ) -> Result<JoinHandle<Result<SimulationShortID>>> {
     let task = Box::pin(run::sim_run(
         config,
@@ -78,8 +71,6 @@ fn new_task_handle<P: SimulationOutputPersistenceRepr>(
         receiver,
         sender,
         persistence_service,
-        exp_pkg_output_request,
-        exp_pkg_output_send,
     ));
 
     Ok(tokio::task::spawn_blocking(move || {

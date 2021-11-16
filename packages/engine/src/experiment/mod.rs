@@ -3,8 +3,9 @@ mod error;
 pub mod package;
 
 use crate::config::Globals;
-use crate::experiment::controller::comms::exp_pkg_ctl::ExpPkgCtlSend;
-use crate::experiment::package::UpdateRequest;
+use crate::experiment::controller::comms::{
+    exp_pkg_ctl::ExpPkgCtlSend, exp_pkg_update::ExpPkgUpdateRecv,
+};
 use crate::proto::{ExperimentPackageConfig, SimulationShortID};
 use crate::{config::ExperimentConfig, proto};
 pub use error::{Error, Result};
@@ -12,8 +13,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value as SerdeValue;
 use std::sync::Arc;
 use tokio::task::JoinHandle;
-
-use self::controller::comms::exp_pkg_update::ExpPkgUpdateRecv;
 
 pub type SharedDataset = proto::SharedDataset;
 pub type SharedBehavior = proto::SharedBehavior;
@@ -100,22 +99,20 @@ pub fn init_exp_package(
     experiment_config: Arc<ExperimentConfig<ExperimentRun>>,
     exp_package_config: ExperimentPackageConfig,
     pkg_to_exp: ExpPkgCtlSend,
-    pkg_from_exp: ExpPkgUpdateRecv,
-) -> Result<(JoinHandle<Result<()>>, Option<UpdateRequest>)> {
-    let (future, request) = match exp_package_config {
+    exp_pkg_update_recv: ExpPkgUpdateRecv,
+) -> Result<JoinHandle<Result<()>>> {
+    let future = match exp_package_config {
         ExperimentPackageConfig::Simple(config) => {
             let pkg = package::simple::SimpleExperiment::new(&experiment_config, config)?;
-            let future = tokio::spawn(async move { pkg.run(pkg_to_exp, pkg_from_exp).await });
-            (future, None)
+            tokio::spawn(async move { pkg.run(pkg_to_exp, exp_pkg_update_recv).await })
         }
         ExperimentPackageConfig::SingleRun(config) => {
             let pkg = package::single::SingleRunExperiment::new(
                 &Arc::new(experiment_config.as_ref().into()),
                 config,
             )?;
-            let future = tokio::spawn(async move { pkg.run(pkg_to_exp, pkg_from_exp).await });
-            (future, None)
+            tokio::spawn(async move { pkg.run(pkg_to_exp, exp_pkg_update_recv).await })
         }
     };
-    Ok((future, request))
+    Ok(future)
 }
