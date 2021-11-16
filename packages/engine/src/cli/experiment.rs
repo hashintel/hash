@@ -107,6 +107,31 @@ async fn run_experiment_with_manifest(
                 log::debug!("Got runner status: {:?}", status);
                 // TODO OS - handle status fields
             }
+            proto::EngineStatus::SimStop(sim_id) => {
+                log::debug!("Simulation stopped: {}", sim_id);
+            }
+            proto::EngineStatus::Errors(sim_id, errs) => {
+                if let Some(sim_id) = sim_id {
+                    log::debug!(
+                        "There were errors when running simulation [{}]: {:?}",
+                        sim_id,
+                        errs
+                    );
+                } else {
+                    log::debug!("Errors occurred within the engine: {:?}", errs);
+                }
+            }
+            proto::EngineStatus::Warnings(sim_id, warnings) => {
+                if let Some(sim_id) = sim_id {
+                    log::debug!(
+                        "There were warnings when running simulation [{}]: {:?}",
+                        sim_id,
+                        warnings
+                    );
+                } else {
+                    log::debug!("Warnings occurred within the engine: {:?}", warnings);
+                }
+            }
             proto::EngineStatus::Exit => {
                 log::debug!(
                     "Process exited successfully for experiment run with id {}",
@@ -119,13 +144,9 @@ async fn run_experiment_with_manifest(
                 break;
             }
             proto::EngineStatus::Started => {
-                log::error!("Received unexpected message type {}", msg.kind());
+                log::error!("Received unexpected engine started message after engine had already started: {}", msg.kind());
                 break;
             }
-            // TODO OS - Status enums are unimplemented
-            proto::EngineStatus::SimStop(_) => todo!(),
-            proto::EngineStatus::Errors(_, _) => todo!(),
-            proto::EngineStatus::Warnings(_, _) => todo!(),
         }
     }
     log::debug!("Performing cleanup");

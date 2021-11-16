@@ -16,6 +16,7 @@ pub struct SimStatus {
     pub stop_msg: Option<serde_json::Value>,
     pub stop_signal: bool,
     pub persistence_result: Option<(String, serde_json::Value)>,
+    // TODO - OS do we need these within SimStatus or should they be handled elsewhere, such as WorkerPoolToExpCtlMsg::Errors and WorkerPoolToExpCtlMsg::Warnings
     pub error: Option<RunnerError>,
     pub warnings: Vec<RunnerError>,
     pub running: bool,

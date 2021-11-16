@@ -31,6 +31,7 @@ pub enum EngineStatus {
         globals: Globals,
     },
     SimStop(SimulationShortID),
+    // TODO OS - Confirm are these only Runner/Simulation errors, if so rename
     Errors(Option<SimulationShortID>, Vec<RunnerError>),
     Warnings(Option<SimulationShortID>, Vec<RunnerError>),
 }
