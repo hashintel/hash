@@ -79,7 +79,13 @@ export class PostgresClient implements DBClient {
       const entityTypeVersionId = genId();
 
       const now = new Date();
-      const properties = await jsonSchema(name, accountId, schema, description);
+      const properties = await jsonSchema(
+        name,
+        accountId,
+        entityTypeId,
+        schema,
+        description,
+      );
       const entityType: EntityType = {
         accountId,
         entityId: entityTypeId,
@@ -310,6 +316,7 @@ export class PostgresClient implements DBClient {
     const schemaToSet = await jsonSchema(
       nameToSet,
       entity.accountId,
+      entityId,
       baseSchema,
     );
 

@@ -13,7 +13,7 @@ export const createEntityTypes =
       description: "A task, ticket, job, etc",
       schema: {
         properties: {
-          assignee: { $ref: userTypeUri },
+          assignee: { $ref: userTypeUri }, // @todo make this a relative rather than absolute URL
           collaborators: { type: "array", items: { $ref: userTypeUri } },
           completed: { type: "boolean" },
           completedAt: { type: "string", format: "date-time" },

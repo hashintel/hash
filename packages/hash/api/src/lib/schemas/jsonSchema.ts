@@ -1,6 +1,7 @@
 import { JSONObject } from "@hashintel/block-protocol";
 import Ajv2019 from "ajv/dist/2019";
 import addFormats from "ajv-formats";
+import { FRONTEND_URL } from "../config";
 
 /**
  * When compiling a schema AJV wants to resolve $refs to other schemas.
@@ -16,16 +17,28 @@ const checkExternalSchemaExists = async (_uri: string) => {
 export const ajv = new Ajv2019({ loadSchema: checkExternalSchemaExists });
 addFormats(ajv);
 
+export const jsonSchemaVersion = "https://json-schema.org/draft/2019-09/schema";
+
 /**
- * @todo read server name from server config or environment variable
- * @todo amend $schema strings when served from API to use current server host
+ * Generates a URI for a schema in a HASH instance.
+ * $ids should use absolute URIs, and will need to be re-written if the origin changes.
+ * $refs should use relative URIs, which can be resolved relative to the $id's origin.
+ * If $refs used absolute URIs, they would need to be re-written if the origin changes also,
+ *    which would be (a) more writes, and (b) more complex if a schema has $refs to external URIs.
+ * @todo rewrite schema $ids when FRONTEND_URL config is changed.
+ *    ideally this URL would be configurable in an admin panel and stored in the db.
  * */
-const TEMPORARY_HOST_NAME = "https://hash.ai";
+export const generateSchema$id = (
+  accountId: string,
+  entityTypeId: string,
+  relative: boolean = false,
+) => `${relative ? "" : FRONTEND_URL}/${accountId}/types/${entityTypeId}`;
 
 /**
  * Create a JSON schema
  * @param title the name of the schema, e.g. Person
  * @param accountId the account it belongs to
+ * @param entityTypeId the entityId of this entityType
  * @param maybeStringifiedSchema schema definition fields (in either a JSON string or JS object)
  *    (e.g. 'properties', 'definition', 'description')
  * @param description optional description for the type
@@ -34,6 +47,7 @@ const TEMPORARY_HOST_NAME = "https://hash.ai";
 export const jsonSchema = async (
   title: string,
   accountId: string,
+  entityTypeId: string,
   maybeStringifiedSchema: string | JSONObject = {},
   description?: string,
 ) => {
@@ -50,8 +64,8 @@ export const jsonSchema = async (
 
   const schema = {
     ...partialSchema,
-    $schema: "https://json-schema.org/draft/2019-09/schema",
-    $id: `${TEMPORARY_HOST_NAME}/${accountId}/${title.toLowerCase()}.schema.json`,
+    $schema: jsonSchemaVersion,
+    $id: generateSchema$id(accountId, entityTypeId),
     title,
     type: partialSchema.type ?? "object",
     description: partialSchema.description ?? description,
