@@ -12,7 +12,6 @@ import {
 } from "./entity";
 import { createLink } from "./link/createLink";
 import { deleteLink } from "./link/deleteLink";
-import { deleteLinkByPath } from "./link/deleteLinkByPath";
 import { blockFields } from "./block";
 import {
   createPage,
@@ -90,7 +89,6 @@ export const resolvers = {
     createEntity: loggedInAndSignedUp(createEntity),
     createLink: loggedInAndSignedUp(createLink),
     deleteLink: loggedInAndSignedUp(deleteLink),
-    deleteLinkByPath: loggedInAndSignedUp(deleteLinkByPath),
     createEntityType: loggedInAndSignedUp(createEntityType),
     createFileFromLink: loggedInAndSignedUp(createFileFromLink),
     createPage: loggedInAndSignedUp(createPage),
