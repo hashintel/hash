@@ -158,7 +158,7 @@ export const createBlockSuggester = (
            * @todo actually create and insert an instance of the selected block
            *   type variant
            */
-          const onChange = (variant: BlockVariant, meta: BlockMeta) => {
+          const onChange = (_variant: BlockVariant, meta: BlockMeta) => {
             getManager()
               .createRemoteBlock(meta.componentMetadata.componentId)
               .then((node) => {

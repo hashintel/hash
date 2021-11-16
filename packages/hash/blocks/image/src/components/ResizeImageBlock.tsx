@@ -36,7 +36,10 @@ export const ResizeImageBlock: React.VFC<ResizeBlockProps> = ({
     }
   }, [width, imageSrc, updateWidth]);
 
-  const handleResize = (evt: React.MouseEvent, direction: "left" | "right") => {
+  const handleResize = (
+    _evt: React.MouseEvent,
+    direction: "left" | "right",
+  ) => {
     function onMouseMove(mouseMoveEvt: MouseEvent) {
       if (!imageRef.current) return;
       let newWidth;
