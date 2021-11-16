@@ -51,7 +51,7 @@ beforeAll(async () => {
 });
 
 describe("Link model class ", () => {
-  it("static isPathValid method correctly validates JSON path correctly", () => {
+  it("static isPathValid method correctly validates JSON path", () => {
     expect(Link.isPathValid("$.this.path['should'].be[\"supported\"]")).toBe(
       true,
     );
@@ -79,7 +79,7 @@ describe("Link model class ", () => {
     const entity1 = await Entity.create(db, {
       accountId,
       createdById,
-      versioned: true,
+      versioned: false,
       entityTypeId: dummyEntityType.entityId,
       properties: {},
     });
@@ -87,7 +87,7 @@ describe("Link model class ", () => {
     const entity2 = await Entity.create(db, {
       accountId,
       createdById,
-      versioned: true,
+      versioned: false,
       entityTypeId: dummyEntityType.entityId,
       properties: {},
     });
@@ -102,11 +102,11 @@ describe("Link model class ", () => {
     expect(link.destinationEntityId).toBe(entity2.entityId);
   });
 
-  it("static create method can create a link with an index", async () => {
+  it("static create method can create a link on a versioned source entity", async () => {
     const accountId = existingUser.accountId;
     const createdById = existingUser.entityId;
 
-    const entity1 = await Entity.create(db, {
+    const entityA = await Entity.create(db, {
       accountId,
       createdById,
       versioned: true,
@@ -114,23 +114,52 @@ describe("Link model class ", () => {
       properties: {},
     });
 
-    const entity2 = await Entity.create(db, {
+    const entityAVersionId1 = entityA.entityVersionId;
+
+    const entityB = await Entity.create(db, {
       accountId,
       createdById,
-      versioned: true,
+      versioned: false,
       entityTypeId: dummyEntityType.entityId,
       properties: {},
     });
 
     const link = await Link.create(db, {
       stringifiedPath: "$.linkName",
-      index: 0,
-      source: entity1,
-      destination: entity2,
+      source: entityA,
+      destination: entityB,
     });
 
-    expect(link.sourceEntityId).toBe(entity1.entityId);
-    expect(link.destinationEntityId).toBe(entity2.entityId);
+    await entityA.refetchLatestVersion(db);
+
+    const entityAVersionId2 = entityA.entityVersionId;
+
+    expect(entityAVersionId1).not.toBe(entityAVersionId2);
+
+    const entityAVersion1 = (await Entity.getEntity(db, {
+      accountId: entityA.accountId,
+      entityVersionId: entityAVersionId1,
+    }))!;
+
+    expect(entityAVersion1).not.toBe(null);
+
+    const entityAVersionId1OutgoingLinks =
+      await entityAVersion1.getOutgoingLinks(db);
+
+    expect(entityAVersionId1OutgoingLinks).toHaveLength(0);
+
+    const entityAVersion2 = (await Entity.getEntity(db, {
+      accountId: entityA.accountId,
+      entityVersionId: entityAVersionId2,
+    }))!;
+
+    expect(entityAVersion1).not.toBe(null);
+
+    const entityAVersionId2OutgoingLinks =
+      await entityAVersion2.getOutgoingLinks(db);
+
+    expect(entityAVersionId2OutgoingLinks).toHaveLength(1);
+    expect(entityAVersionId2OutgoingLinks[0]).toEqual(link);
   });
 
   it("static get method can retrieve a link from the datastore", async () => {
@@ -179,51 +208,25 @@ describe("Link model class ", () => {
     );
   });
 
-  it("can create outgoing link on non-versioned entity", async () => {
+  it("static create/delete methods can create/delete indexed links on versioned source entity", async () => {
     const accountId = existingUser.accountId;
     const createdById = existingUser.entityId;
 
-    const [sourceEntity, destinationEntity] = await Promise.all([
-      Entity.create(db, {
-        accountId,
-        createdById,
-        versioned: false,
-        entityTypeId: dummyEntityType.entityId,
-        properties: {},
-      }),
-      Entity.create(db, {
-        accountId,
-        createdById,
-        versioned: false,
-        entityTypeId: dummyEntityType.entityId,
-        properties: {},
-      }),
-    ]);
-
-    const intialSourceEntityId = sourceEntity.entityVersionId;
-
-    const link = await Link.create(db, {
-      stringifiedPath: "$.linkName",
-      source: sourceEntity,
-      destination: destinationEntity,
+    const entityA = await Entity.create(db, {
+      accountId,
+      createdById,
+      versioned: true,
+      entityTypeId: dummyEntityType.entityId,
+      properties: {},
     });
 
-    expect(link.sourceEntityId).toBe(sourceEntity.entityId);
-    expect(Array.from(link.sourceEntityVersionIds)).toEqual([
-      intialSourceEntityId,
-    ]);
-    expect(sourceEntity.entityVersionId).toBe(intialSourceEntityId);
-  });
+    const entityAVersionId1 = entityA.entityVersionId;
 
-  it("can create and delete outgoing link on versioned source entity", async () => {
-    const accountId = existingUser.accountId;
-    const createdById = existingUser.entityId;
-
-    const [versionedSourceEntity, destinationEntity] = await Promise.all([
+    const [entityB, entityC] = await Promise.all([
       Entity.create(db, {
         accountId,
         createdById,
-        versioned: true,
+        versioned: false,
         entityTypeId: dummyEntityType.entityId,
         properties: {},
       }),
@@ -236,67 +239,113 @@ describe("Link model class ", () => {
       }),
     ]);
 
-    const entityVersionIds: string[] = [versionedSourceEntity.entityVersionId];
-
-    const link = await Link.create(db, {
-      stringifiedPath: "$.linkName",
-      source: versionedSourceEntity,
-      destination: destinationEntity,
+    const linkAToB = await Link.create(db, {
+      source: entityA,
+      destination: entityB,
+      stringifiedPath: "$.test",
+      index: 0,
     });
 
-    expect(entityVersionIds[entityVersionIds.length - 1]).not.toBe(
-      versionedSourceEntity.entityVersionId,
+    await entityA.refetchLatestVersion(db);
+
+    const entityAVersionId2 = entityA.entityVersionId;
+
+    expect(entityAVersionId1).not.toBe(entityAVersionId2);
+
+    const linkAToC = await Link.create(db, {
+      source: entityA,
+      destination: entityC,
+      stringifiedPath: "$.test",
+      index: 0,
+    });
+
+    await entityA.refetchLatestVersion(db);
+
+    const entityAVersionId3 = entityA.entityVersionId;
+
+    expect(entityAVersionId2).not.toBe(entityAVersionId3);
+
+    await entityA.deleteOutgoingLink(db, linkAToC);
+
+    const entityAVersionId4 = entityA.entityVersionId;
+
+    expect(entityAVersionId3).not.toBe(entityAVersionId4);
+
+    const entityAVersion1 = (await Entity.getEntity(db, {
+      accountId,
+      entityVersionId: entityAVersionId1,
+    }))!;
+
+    expect(entityAVersion1).not.toBe(null);
+
+    const entityAVersion1OutgoingLinks = await entityAVersion1.getOutgoingLinks(
+      db,
     );
 
-    entityVersionIds.push(versionedSourceEntity.entityVersionId);
+    expect(entityAVersion1OutgoingLinks.length).toBe(0);
 
-    await link.delete(db);
+    const entityAVersion2 = (await Entity.getEntity(db, {
+      accountId,
+      entityVersionId: entityAVersionId2,
+    }))!;
 
-    expect(entityVersionIds[entityVersionIds.length - 1]).not.toBe(
-      versionedSourceEntity.entityVersionId,
+    expect(entityAVersion2).not.toBe(null);
+
+    const entityAVersion2OutgoingLinks = await entityAVersion2.getOutgoingLinks(
+      db,
     );
 
-    entityVersionIds.push(versionedSourceEntity.entityVersionId);
+    expect(entityAVersion2OutgoingLinks.length).toBe(1);
+    expect(entityAVersion2OutgoingLinks[0].linkId).toBe(linkAToB.linkId);
+    expect(entityAVersion2OutgoingLinks[0].index).toBe(0);
 
-    // The first version of the entity should have 0 outgoing links
-
-    const e1 = (await Entity.getEntity(db, {
+    const entityAVersion3 = (await Entity.getEntity(db, {
       accountId,
-      entityVersionId: entityVersionIds[0],
+      entityVersionId: entityAVersionId3,
     }))!;
 
-    expect(e1).not.toBeNull();
+    expect(entityAVersion3).not.toBe(null);
 
-    const e1OutgoingLinks = await e1.getOutgoingLinks(db);
+    const entityAVersion3OutgoingLinks = await entityAVersion3.getOutgoingLinks(
+      db,
+    );
 
-    expect(e1OutgoingLinks.length).toBe(0);
+    expect(entityAVersion3OutgoingLinks.length).toBe(2);
+    expect(entityAVersion3OutgoingLinks[0].linkId).toBe(linkAToC.linkId);
+    expect(entityAVersion3OutgoingLinks[0].index).toBe(0);
 
-    // The second version of the entity should have 1 outgoing link
+    expect(entityAVersion3OutgoingLinks[1].linkId).not.toBe(linkAToB.linkId);
+    expect(entityAVersion3OutgoingLinks[1].sourceEntityId).toBe(
+      linkAToB.sourceEntityId,
+    );
+    expect(entityAVersion3OutgoingLinks[1].destinationEntityId).toBe(
+      linkAToB.destinationEntityId,
+    );
+    expect(entityAVersion3OutgoingLinks[1].destinationEntityVersionId).toBe(
+      linkAToB.destinationEntityVersionId,
+    );
+    expect(entityAVersion3OutgoingLinks[1].index).toBe(1);
 
-    const e2 = (await Entity.getEntity(db, {
+    const entityAVersion4 = (await Entity.getEntity(db, {
       accountId,
-      entityVersionId: entityVersionIds[1],
+      entityVersionId: entityAVersionId4,
     }))!;
 
-    expect(e2).not.toBeNull();
+    expect(entityAVersion4).not.toBe(null);
 
-    const e2OutgoingLinks = await e2.getOutgoingLinks(db);
+    const entityAVersion4OutgoingLinks = await entityAVersion4.getOutgoingLinks(
+      db,
+    );
 
-    expect(e2OutgoingLinks.length).toBe(1);
-    expect(e2OutgoingLinks[0].linkId).toBe(link.linkId);
+    expect(entityAVersion4OutgoingLinks.length).toBe(1);
 
-    // The third version of the entity should have 0 outgoing links
-
-    const e3 = (await Entity.getEntity(db, {
-      accountId,
-      entityVersionId: entityVersionIds[2],
-    }))!;
-
-    expect(e3).not.toBeNull();
-
-    const e3OutgoingLinks = await e3.getOutgoingLinks(db);
-
-    expect(e3OutgoingLinks.length).toBe(0);
+    expect(entityAVersion4OutgoingLinks[0].sourceEntityId).toBe(
+      entityA.entityId,
+    );
+    expect(entityAVersion4OutgoingLinks[0].destinationEntityId).toBe(
+      entityB.entityId,
+    );
+    expect(entityAVersion4OutgoingLinks[0].index).toBe(0);
   });
 });
 
