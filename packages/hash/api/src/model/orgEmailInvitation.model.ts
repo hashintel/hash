@@ -1,6 +1,6 @@
 import { ApolloError } from "apollo-server-errors";
 import { DBClient } from "../db";
-import { DBLinkedEntity, EntityType } from "../db/adapter";
+import { EntityType } from "../db/adapter";
 import {
   AccessToken,
   OrgEmailInvitation,
@@ -9,15 +9,14 @@ import {
   Org,
   User,
   UpdatePropertiesPayload,
+  Entity,
 } from ".";
 import { sendOrgEmailInvitationToEmailAddress } from "../email";
 import { EmailTransporter } from "../email/transporters";
 
 export type DBOrgEmailInvitationProperties = {
-  inviter: DBLinkedEntity;
   inviteeEmailAddress: string;
   usedAt?: string;
-  org: DBLinkedEntity;
 } & DBAccessTokenProperties;
 
 type OrgEmailInvitationConstructorArgs = {
@@ -35,7 +34,7 @@ class __OrgEmailInvitation extends AccessToken {
   }: OrgEmailInvitationConstructorArgs) {
     super({ ...remainingArgs, properties });
     this.properties = properties;
-    this.errorMsgPrefix = `The email invitation with entityId ${this.entityId} associated with org with entityId ${this.properties.org.__linkedData.entityId}`;
+    this.errorMsgPrefix = `The email invitation with entityId ${this.entityId} `;
   }
 
   static async getEntityType(client: DBClient): Promise<EntityType> {
@@ -65,17 +64,30 @@ class __OrgEmailInvitation extends AccessToken {
     const properties: DBOrgEmailInvitationProperties = {
       inviteeEmailAddress /** @todo: validate email address */,
       accessToken: AccessToken.generateAccessToken(),
-      org: org.convertToDBLink(),
-      inviter: inviter.convertToDBLink(),
     };
 
-    const entity = await client.createEntity({
+    const entity = await Entity.create(client, {
       accountId: org.accountId,
       createdByAccountId: org.entityId,
       entityTypeId: (await OrgEmailInvitation.getEntityType(client)).entityId,
       properties,
       versioned: false,
     });
+
+    await Promise.all([
+      entity.createOutgoingLink(client, {
+        destination: org,
+        stringifiedPath: "$.org",
+      }),
+      org.createOutgoingLink(client, {
+        destination: entity,
+        stringifiedPath: "$.emailInvitationLink",
+      }),
+      entity.createOutgoingLink(client, {
+        destination: inviter,
+        stringifiedPath: "$.inviter",
+      }),
+    ]);
 
     const emailInvitation = new OrgEmailInvitation({ ...entity, properties });
 

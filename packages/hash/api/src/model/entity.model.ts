@@ -10,11 +10,7 @@ import {
   CreateLinkArgs,
 } from ".";
 import { DBClient } from "../db";
-import {
-  DBLinkedEntity,
-  EntityMeta,
-  EntityType as DbEntityType,
-} from "../db/adapter";
+import { EntityMeta, EntityType as DbEntityType } from "../db/adapter";
 import {
   Visibility,
   Entity as GQLEntity,
@@ -243,15 +239,6 @@ class __Entity {
     const updatedDbEntity = await client.updateEntity(params);
 
     return new Entity(updatedDbEntity);
-  }
-
-  convertToDBLink(): DBLinkedEntity {
-    return {
-      __linkedData: {
-        entityId: this.entityId,
-        entityTypeId: this.entityType.entityId,
-      },
-    };
   }
 
   protected async partialPropertiesUpdate(

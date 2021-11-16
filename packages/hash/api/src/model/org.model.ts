@@ -11,19 +11,15 @@ import {
   PartialPropertiesUpdatePayload,
 } from ".";
 import { DBClient } from "../db";
-import { DBLinkedEntity, DBOrgProperties, EntityType } from "../db/adapter";
+import { DBOrgProperties, EntityType } from "../db/adapter";
 import { genId } from "../util";
 
-type OrgModelProperties = {
-  invitationLink?: DBLinkedEntity;
-} & DBOrgProperties;
-
 type OrgConstructorArgs = {
-  properties: OrgModelProperties;
+  properties: DBOrgProperties;
 } & Omit<AccountConstructorArgs, "type">;
 
 class __Org extends Account {
-  properties: OrgModelProperties;
+  properties: DBOrgProperties;
 
   constructor({ properties, ...remainingArgs }: OrgConstructorArgs) {
     super({ ...remainingArgs, properties });

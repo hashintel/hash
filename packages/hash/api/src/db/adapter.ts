@@ -97,13 +97,6 @@ export type VerificationCode = {
   createdAt: Date;
 };
 
-export type DBLinkedEntity = {
-  __linkedData: {
-    entityTypeId: string;
-    entityId: string;
-  };
-};
-
 export type DBUserEmail = {
   address: string;
   verified: boolean;

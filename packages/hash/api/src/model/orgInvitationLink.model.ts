@@ -1,6 +1,6 @@
 import { ApolloError } from "apollo-server-errors";
 import { DBClient } from "../db";
-import { DBLinkedEntity, EntityType } from "../db/adapter";
+import { EntityType } from "../db/adapter";
 import {
   AccessToken,
   OrgInvitationLink,
@@ -8,11 +8,11 @@ import {
   AccessTokenConstructorArgs,
   Org,
   UpdatePropertiesPayload,
+  Entity,
 } from ".";
 
 export type DBOrgInvitationLinkProperties = {
   useCount: number;
-  org: DBLinkedEntity;
 } & DBAccessTokenProperties;
 
 type OrgInvitationLinkConstructorArgs = {
@@ -29,7 +29,7 @@ class __OrgInvitationLink extends AccessToken {
   }: OrgInvitationLinkConstructorArgs) {
     super({ ...remainingArgs, properties });
     this.properties = properties;
-    this.errorMsgPrefix = `The invitation link with entityId ${this.entityId} associated with org with entityId ${this.properties.org.__linkedData.entityId}`;
+    this.errorMsgPrefix = `The invitation link with entityId ${this.entityId}`;
   }
 
   static async getEntityType(client: DBClient): Promise<EntityType> {
@@ -55,10 +55,9 @@ class __OrgInvitationLink extends AccessToken {
     const properties: DBOrgInvitationLinkProperties = {
       useCount: 0,
       accessToken: AccessToken.generateAccessToken(),
-      org: org.convertToDBLink(),
     };
 
-    const entity = await client.createEntity({
+    const entity = await Entity.create(client, {
       accountId: org.accountId,
       createdByAccountId,
       entityTypeId: (await OrgInvitationLink.getEntityType(client)).entityId,
@@ -66,17 +65,21 @@ class __OrgInvitationLink extends AccessToken {
       versioned: false,
     });
 
+    await Promise.all([
+      entity.createOutgoingLink(client, {
+        destination: org,
+        stringifiedPath: "$.org",
+      }),
+      org.createOutgoingLink(client, {
+        destination: entity,
+        stringifiedPath: "$.invitationLink",
+      }),
+    ]);
+
     const orgInvitationLink = new OrgInvitationLink({
       ...entity,
       properties,
     });
-
-    /**
-     * @todo: remove this when we have a way of resolving the inverse
-     * relationship of (OrgInvitationLink)-[org]->(Org)
-     */
-
-    org.properties.invitationLink = orgInvitationLink.convertToDBLink();
 
     return orgInvitationLink;
   }
