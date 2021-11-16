@@ -36,6 +36,8 @@ export const linkGroups: Resolver<
     throw new ApolloError(msg, "NOT_FOUND");
   }
 
+  /** @todo: resolve multiple layers of outgoing links */
+
   const outgoingLinks = await source.getOutgoingLinks(dataSources.db);
 
   /** @todo: use a more efficient data-structure to produce `outgoingLinks` (https://github.com/hashintel/dev/pull/341#discussion_r746635315) */
