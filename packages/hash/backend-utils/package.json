@@ -5,7 +5,7 @@
   "description": "HASH backend utilities",
   "license": "SSPL-1.0",
   "exports": {
-    "./": "./dist/"
+    "./*": "./dist/*.js"
   },
   "typesVersions": {
     "*": {
