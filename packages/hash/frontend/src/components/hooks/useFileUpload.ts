@@ -136,10 +136,7 @@ export const useFileUpload = (accountId: string) => {
        * Upload file with presignedPost data to S3
        */
       const {
-        requestFileUpload: {
-          presignedPost,
-          file: uploadedFileEntity,
-        },
+        requestFileUpload: { presignedPost, file: uploadedFileEntity },
       } = data;
 
       await uploadFileToStorageProvider(presignedPost, file);
