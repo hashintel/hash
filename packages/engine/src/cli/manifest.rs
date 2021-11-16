@@ -441,8 +441,8 @@ fn get_dataset_from_dependency_projects(
             let mut dataset = dataset.clone();
             // Using these, because locally they are not in the right format
             dataset.name = Some(name.clone());
-            dataset.shortname = name.clone;
-            dataset.filename = name.clone;
+            dataset.shortname = name.clone();
+            dataset.filename = name.clone();
 
             Ok(dataset)
         }
