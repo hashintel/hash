@@ -5,7 +5,7 @@ import { v4 as uuid } from "uuid";
 import { tw } from "twind";
 import { BlockComponent } from "@hashintel/block-protocol/react";
 import {
-  BlockProtocolLinkedDataDefinition,
+  BlockProtocolFileUploadFn,
   BlockProtocolUpdatePayload,
 } from "@hashintel/block-protocol";
 
@@ -15,27 +15,16 @@ import Loader from "./svgs/Loader";
 import Pencil from "./svgs/Pencil";
 import Cross from "./svgs/Cross";
 
-type UploadFileParamsType = {
-  file?: File;
-  url?: string;
-  mime?: string;
-};
+// https://www.typescriptlang.org/docs/handbook/release-notes/overview.html#recursive-conditional-types
+type Awaited<T> = T extends PromiseLike<infer U> ? Awaited<U> : T;
 
-type FileLink = {
-  __linkedData: Pick<
-    BlockProtocolLinkedDataDefinition,
-    "entityId" | "entityTypeId"
-  >;
-};
+type FileType = Awaited<ReturnType<BlockProtocolFileUploadFn>>;
 
 type AppProps = {
   initialSrc?: string;
   initialCaption?: string;
   initialWidth?: number;
-  uploadFile: (uploadFileParams: UploadFileParamsType) => Promise<{
-    src?: string;
-    file?: FileLink;
-  }>;
+  uploadFile: BlockProtocolFileUploadFn;
   entityId: string;
   entityTypeId?: string;
 };
@@ -44,7 +33,7 @@ type BlockProtocolUpdatePayloadData = Pick<
   AppProps,
   "initialSrc" | "initialCaption" | "initialWidth"
 > & {
-  file?: FileLink;
+  file?: FileType;
 };
 
 const placeholderText = "Enter Image URL";
@@ -101,13 +90,13 @@ export const Image: BlockComponent<AppProps> = (props) => {
 
   const updateData = useCallback(
     ({
-      src,
       width,
       file,
+      src,
     }: {
       src: string | undefined;
       width?: number;
-      file?: FileLink;
+      file?: FileType;
     }) => {
       if (src?.trim()) {
         if (update) {
@@ -155,11 +144,12 @@ export const Image: BlockComponent<AppProps> = (props) => {
   const handleImageUpload = useCallback(
     (imageProp: { url: string } | { file: FileList[number] }) => {
       updateStateObject({ loading: true });
-      uploadFile({ ...imageProp, mime: IMG_MIME_TYPE })
-        .then(({ src, file }) => {
+
+      uploadFile({ ...imageProp, mediaType: "image" })
+        .then((file) => {
           if (isMounted.current) {
             updateStateObject({ loading: false });
-            updateData({ src, file });
+            updateData({ src: file.url, file });
           }
         })
         .catch((error: Error) =>

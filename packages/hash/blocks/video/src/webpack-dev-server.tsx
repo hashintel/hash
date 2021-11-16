@@ -2,6 +2,7 @@
  * webpack-dev-server entry point for debugging.
  * This file is not bundled with the library during the build process.
  */
+import { BlockProtocolFileUploadFn } from "@hashintel/block-protocol";
 import React from "react";
 import ReactDOM from "react-dom";
 import Component from "./index";
@@ -9,53 +10,47 @@ import Component from "./index";
 const node = document.getElementById("app");
 
 const App = () => {
-  const uploadFile = async ({
+  const uploadFile: BlockProtocolFileUploadFn = async ({
     file,
     url,
-    mime,
-  }: {
-    file?: File;
-    url?: string;
-    mime?: string;
-  }): Promise<{
-    src?: string;
-  }> => {
-    if (url?.trim()) {
-      return { src: url };
-    }
-
-    if (!file) {
-      let fileType = "";
-
-      if (mime) {
-        if (mime.includes("image")) {
-          fileType = "Image";
-        }
-
-        if (mime.includes("video")) {
-          fileType = "Video";
-        }
+    mediaType,
+  }) => {
+    return new Promise((resolve, reject) => {
+      if (!file && !url) {
+        reject(
+          new Error(
+            `Please enter a valid ${mediaType} URL or select a file below`,
+          ),
+        );
+        return;
       }
 
-      throw new Error(
-        `Please enter a valid  ${
-          fileType ? `${fileType} ` : ""
-        }URL or select a file below`,
-      );
-    }
+      if (url?.trim()) {
+        resolve({
+          entityId: "xxx",
+          url,
+          mediaType,
+        });
+        return;
+      }
 
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
+      if (file) {
+        const reader = new FileReader();
 
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          resolve({ src: event.target.result.toString() });
-        } else {
-          reject(new Error("Couldn't read your file"));
-        }
-      };
+        reader.onload = (event) => {
+          if (event.target?.result) {
+            resolve({
+              entityId: "xxx",
+              url: event.target.result.toString(),
+              mediaType,
+            });
+          } else {
+            reject(new Error("Couldn't read your file"));
+          }
+        };
 
-      reader.readAsDataURL(file);
+        reader.readAsDataURL(file);
+      }
     });
   };
 

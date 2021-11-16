@@ -13,7 +13,17 @@ export const requestFileUpload = gql`
       }
       file {
         entityId
-        entityTypeId
+      }
+    }
+  }
+`;
+
+export const createFileFromLink = gql`
+  mutation createFileFromLink($accountId: ID!, $name: String!, $url: String!) {
+    createFileFromLink(accountId: $accountId, name: $name, url: $url) {
+      entityId
+      properties {
+        url
       }
     }
   }

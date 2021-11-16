@@ -107,11 +107,17 @@ export type BlockProtocolAggregateFn = {
   ): Promise<BlockProtocolAggregateOperationOutput>;
 };
 
+export type BlockProtocolFileMediaType = "image" | "video";
+
 export type BlockProtocolFileUploadFn = {
-  (action: { file?: File; url?: string; mime?: string }): Promise<{
-    entityId?: string;
+  (action: {
+    file?: File;
+    url?: string;
+    mediaType: BlockProtocolFileMediaType;
+  }): Promise<{
+    entityId: string;
     url: string;
-    mediaType?: string;
+    mediaType: BlockProtocolFileMediaType;
   }>;
 };
 

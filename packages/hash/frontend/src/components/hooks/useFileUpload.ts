@@ -8,11 +8,16 @@ import { useApolloClient, useMutation } from "@apollo/client";
 import { useCallback } from "react";
 import * as SparkMD5 from "spark-md5";
 import {
+  CreateFileFromLinkMutationVariables,
+  CreateFileFromLinkMutation,
   RequestFileUploadMutation,
   RequestFileUploadMutationVariables,
   RequestFileUploadResponse,
 } from "../../graphql/apiTypes.gen";
-import { requestFileUpload } from "../../graphql/queries/file.queries";
+import {
+  createFileFromLink,
+  requestFileUpload,
+} from "../../graphql/queries/file.queries";
 
 // https://dev.to/qortex/compute-md5-checksum-for-a-file-in-typescript-59a4
 
@@ -61,6 +66,11 @@ export const useFileUpload = (accountId: string) => {
     RequestFileUploadMutationVariables
   >(requestFileUpload);
 
+  const [createFileFromLinkFn] = useMutation<
+    CreateFileFromLinkMutation,
+    CreateFileFromLinkMutationVariables
+  >(createFileFromLink);
+
   const uploadFileToStorageProvider = async (
     presignedPostData: RequestFileUploadResponse["presignedPost"],
     file: File,
@@ -81,31 +91,30 @@ export const useFileUpload = (accountId: string) => {
   };
 
   const uploadFile: BlockProtocolFileUploadFn = useCallback(
-    async ({ file, url, mime }) => {
-      /**
-       * For external urls, we temporarily return the url for now
-       * The proper flow will be addressed in
-       * https://app.asana.com/0/1201214243372255/1201329437863863/f
-       */
+    async ({ file, url, mediaType }) => {
       if (url?.trim()) {
-        return { src: url };
+        const result = await createFileFromLinkFn({
+          variables: {
+            accountId,
+            name: url,
+            url,
+          },
+        });
+
+        if (!result.data) {
+          throw new Error("An error occured while uploading the file ");
+        }
+
+        const {
+          createFileFromLink: { entityId, properties },
+        } = result.data;
+
+        return { entityId, url: properties.url as string, mediaType };
       }
 
       if (!file) {
-        let fileType = "";
-
-        if (mime?.includes("image")) {
-          fileType = "Image";
-        }
-
-        if (mime?.includes("video")) {
-          fileType = "Video";
-        }
-
         throw new Error(
-          `Please enter a valid  ${
-            fileType ? `${fileType} ` : ""
-          }URL or select a file below`,
+          `Please enter a valid ${mediaType} URL or select a file below`,
         );
       }
 
@@ -120,7 +129,7 @@ export const useFileUpload = (accountId: string) => {
       });
 
       if (!data) {
-        throw new Error("An error occured");
+        throw new Error("An error occured while uploading the file ");
       }
 
       /**
@@ -153,7 +162,8 @@ export const useFileUpload = (accountId: string) => {
 
       return {
         entityId,
-        url: properties.url,
+        url: properties.url as string,
+        mediaType,
       };
     },
     [accountId, client, requestFileUploadFn],

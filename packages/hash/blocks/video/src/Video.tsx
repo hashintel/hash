@@ -5,33 +5,22 @@ import { BlockComponent } from "@hashintel/block-protocol/react";
 
 import { unstable_batchedUpdates } from "react-dom";
 import {
-  BlockProtocolLinkedDataDefinition,
+  BlockProtocolFileUploadFn,
   BlockProtocolUpdatePayload,
 } from "@hashintel/block-protocol";
 import Loader from "./svgs/Loader";
 import Pencil from "./svgs/Pencil";
 import Cross from "./svgs/Cross";
 
-type UploadFileParamsType = {
-  file?: File;
-  url?: string;
-  mime?: string;
-};
+// https://www.typescriptlang.org/docs/handbook/release-notes/overview.html#recursive-conditional-types
+type Awaited<T> = T extends PromiseLike<infer U> ? Awaited<U> : T;
 
-type FileLink = {
-  __linkedData: Pick<
-    BlockProtocolLinkedDataDefinition,
-    "entityId" | "entityTypeId"
-  >;
-};
+type FileType = Awaited<ReturnType<BlockProtocolFileUploadFn>>;
 
 type AppProps = {
   initialSrc?: string;
   initialCaption?: string;
-  uploadFile: (uploadFileParams: UploadFileParamsType) => Promise<{
-    src?: string;
-    file?: FileLink;
-  }>;
+  uploadFile: BlockProtocolFileUploadFn;
   entityId: string;
   entityTypeId?: string;
 };
@@ -40,7 +29,7 @@ type BlockProtocolUpdatePayloadData = Pick<
   AppProps,
   "initialSrc" | "initialCaption"
 > & {
-  file?: FileLink;
+  file?: FileType;
 };
 
 const placeholderText = "Enter Video URL";
@@ -99,7 +88,7 @@ export const Video: BlockComponent<AppProps> = (props) => {
   }
 
   const updateData = useCallback(
-    ({ src, file }: { src: string | undefined; file?: FileLink }) => {
+    ({ file, src }: { src: string | undefined; file?: FileType }) => {
       if (src?.trim()) {
         if (update) {
           const updateAction: BlockProtocolUpdatePayload<BlockProtocolUpdatePayloadData> =
@@ -131,11 +120,11 @@ export const Video: BlockComponent<AppProps> = (props) => {
   const handleVideoUpload = useCallback(
     (videoProp: { url: string } | { file: FileList[number] }) => {
       updateStateObject({ loading: true });
-      uploadFile({ ...videoProp, mime: VIDEO_MIME_TYPE })
-        .then(({ src, file }) => {
+      uploadFile({ ...videoProp, mediaType: "video" })
+        .then((file) => {
           if (isMounted.current) {
             updateStateObject({ loading: false });
-            updateData({ src, file });
+            updateData({ file, src: file.url });
           }
         })
         .catch((error: Error) =>
