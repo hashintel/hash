@@ -6,7 +6,6 @@ import {
   NodeSelection,
   Plugin,
   PluginKey,
-  TextSelection,
 } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import React from "react";
@@ -19,17 +18,17 @@ import {
   getActiveMarksWithAttrs,
   isValidLink,
   linkInputRule,
+  removeLink,
   selectionContainsText,
   updateLink,
 } from "./util";
-import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 
 interface MarksTooltipState {
   focused: boolean;
 }
 
 interface LinkPluginState {
-  linkModalVisible: boolean | undefined;
+  linkModalVisible: boolean;
   linkUrl: null | string;
 }
 
@@ -176,21 +175,12 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
     key: linkPluginKey,
     state: {
       init() {
-        /** Should use a better name, since this only gets changed when user clicks on link button in tooltip */
         return {
-          linkModalVisible: undefined,
+          linkModalVisible: false,
           linkUrl: null,
         };
       },
       apply(tr, pluginState, prevEditorState, nextEditorState) {
-        // if (
-        //   !markPluginKey.getState(nextEditorState)?.focused ||
-        //   nextEditorState.selection instanceof NodeSelection
-        // ) {
-        //   renderPortal(null, mountNode);
-        //   return;
-        // }
-
         let linkUrl: string | null = null;
         const linkMark = nextEditorState.schema.marks.link;
 
@@ -201,7 +191,8 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
         ) {
           linkUrl = nextEditorState.selection.$from
             .marks()
-            ?.find((mark: Mark) => mark.type.name === "link")?.attrs.href;
+            ?.find((mark: Mark) => mark.type.name === linkMark.name)
+            ?.attrs.href;
         }
         // If link is in text selection
         else if (
@@ -213,7 +204,7 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
         ) {
           linkUrl =
             getActiveMarksWithAttrs(nextEditorState).find(
-              ({ name }) => name === "link",
+              ({ name }) => name === linkMark.name,
             )?.attrs?.href ?? null;
         }
 
@@ -298,7 +289,7 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
               ref={linkModalRef}
             >
               <LinkModal
-                defaultLinkMarkHref={linkUrl ?? undefined}
+                savedLinkMarkHref={linkUrl ?? undefined}
                 updateLink={(href) => {
                   updateLink(editorView, href);
                   editorView.dispatch(
@@ -308,96 +299,7 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
                   );
                 }}
                 removeLink={() => {
-                  const editorState = editorView.state;
-                  const { selection, tr, schema } = editorState;
-                  const linkMarkType = schema.marks.link;
-
-                  tr.setMeta(linkPluginKey, { type: "closeLinkModal " });
-
-                  if (selection instanceof TextSelection) {
-                    const textSelection: TextSelection<Schema> = selection;
-                    const { $cursor } = textSelection;
-
-                    if ($cursor) {
-                      const nodesBefore: [number, ProsemirrorNode<Schema>][] =
-                        [];
-                      const nodesAfter: [number, ProsemirrorNode<Schema>][] =
-                        [];
-
-                      $cursor.parent.nodesBetween(
-                        0,
-                        $cursor.parentOffset,
-                        (node, pos) => {
-                          nodesBefore.push([pos, node]);
-                        },
-                      );
-
-                      $cursor.parent.nodesBetween(
-                        $cursor.parentOffset,
-                        $cursor.parent.content.size,
-                        (node, pos) => {
-                          nodesAfter.push([pos, node]);
-                        },
-                      );
-
-                      let startPosition = textSelection.$from.pos;
-                      let endPosition = textSelection.$to.pos;
-
-                      let targetMark: Mark<Schema> | null = null;
-
-                      for (let idx = nodesBefore.length - 1; idx > 0; idx--) {
-                        const [pos, node] = nodesBefore[idx];
-
-                        const linkMark = targetMark
-                          ? node.marks.includes(targetMark)
-                            ? targetMark
-                            : null
-                          : node.marks.find(
-                              (mark) => mark.type === linkMarkType,
-                            );
-
-                        if (linkMark) {
-                          targetMark = linkMark;
-                          startPosition = pos;
-                        } else {
-                          break;
-                        }
-                      }
-
-                      for (let idx = 0; idx < nodesAfter.length; idx++) {
-                        const [pos, node] = nodesAfter[idx];
-
-                        const linkMark = targetMark
-                          ? node.marks.includes(targetMark)
-                            ? targetMark
-                            : null
-                          : node.marks.find(
-                              (mark) => mark.type === linkMarkType,
-                            );
-
-                        if (linkMark) {
-                          targetMark = linkMark;
-                          endPosition = pos + node.nodeSize;
-                        } else {
-                          break;
-                        }
-                      }
-
-                      startPosition += $cursor.start($cursor.depth);
-
-                      endPosition += $cursor.start($cursor.depth);
-
-                      tr.removeMark(startPosition, endPosition, linkMarkType);
-                    } else {
-                      tr.removeMark(
-                        textSelection.from,
-                        textSelection.to,
-                        linkMarkType,
-                      );
-                    }
-                  }
-
-                  editorView.dispatch(tr);
+                  removeLink(editorView);
                   editorView.focus();
                 }}
               />
