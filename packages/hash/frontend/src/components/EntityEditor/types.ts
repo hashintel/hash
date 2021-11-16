@@ -13,7 +13,7 @@ export type CreateLinkFnWithFixedSource = {
   (
     payload: Omit<
       Parameters<BlockProtocolCreateLinkFn>[0],
-      "sourceEntityAccountId" | "sourceEntityId"
+      "sourceAccountId" | "sourceEntityId"
     >,
   ): ReturnType<BlockProtocolCreateLinkFn>;
 };
@@ -22,7 +22,7 @@ export type DeleteLinkFnWithFixedSource = {
   (
     payload: Omit<
       Parameters<BlockProtocolDeleteLinkFn>[0],
-      "sourceEntityAccountId" | "sourceEntityId"
+      "sourceAccountId" | "sourceEntityId"
     >,
   ): ReturnType<BlockProtocolDeleteLinkFn>;
 };

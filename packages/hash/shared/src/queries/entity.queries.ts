@@ -1,4 +1,5 @@
 import gql from "graphql-tag";
+import { linkFieldsFragment } from "./link.queries";
 
 export const getEntity = gql`
   query getEntity($accountId: ID!, $entityId: ID!) {
@@ -12,13 +13,7 @@ export const getEntity = gql`
       entityTypeName
       linkGroups {
         links {
-          id
-          destinationAccountId
-          destinationEntityId
-          sourceAccountId
-          sourceEntityId
-          path
-          index
+          ...LinkFields
         }
         sourceEntityId
         sourceEntityVersionId
@@ -41,6 +36,7 @@ export const getEntity = gql`
       visibility
     }
   }
+  ${linkFieldsFragment}
 `;
 
 export const createEntity = gql`

@@ -198,7 +198,7 @@ export const EntityEditor: VoidFunctionComponent<EntityEditorProps> = ({
       ? (payload) =>
           createLink({
             ...payload,
-            sourceEntityAccountId: accountId,
+            sourceAccountId: accountId,
             sourceEntityId: entityId,
           })
       : undefined;
@@ -208,7 +208,7 @@ export const EntityEditor: VoidFunctionComponent<EntityEditorProps> = ({
       ? (payload) =>
           deleteLink({
             ...payload,
-            sourceEntityAccountId: accountId,
+            sourceAccountId: accountId,
             sourceEntityId: entityId,
           })
       : undefined;

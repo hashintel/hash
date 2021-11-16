@@ -140,9 +140,9 @@ export type BlockProtocolLinkGroup = {
 
 export type BlockProtocolCreateLinkFn = {
   (payload: {
-    sourceEntityAccountId?: string | null;
+    sourceAccountId?: string | null;
     sourceEntityId: string;
-    destinationEntityAccountId?: string | null;
+    destinationAccountId?: string | null;
     destinationEntityId: string;
     destinationEntityVersionId?: string | null;
     index?: number | null;
@@ -152,7 +152,7 @@ export type BlockProtocolCreateLinkFn = {
 
 export type BlockProtocolDeleteLinkFn = {
   (payload: {
-    sourceEntityAccountId?: string | null;
+    sourceAccountId?: string | null;
     sourceEntityId: string;
     index?: number | null;
     path: string;

@@ -29,7 +29,7 @@ const destructivelyMoveEntityPropertiesToRoot = (
         key !== "accountId" &&
         key !== "entityId" &&
         key !== "entityType" &&
-        key !== "links" &&
+        key !== "linkGroups" &&
         key !== "linkedEntities" &&
         key !== "linkedAggregations" &&
         key !== "properties"

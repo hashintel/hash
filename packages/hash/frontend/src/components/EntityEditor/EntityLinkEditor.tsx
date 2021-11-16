@@ -44,12 +44,13 @@ export const EntityLinkEditor: VoidFunctionComponent<EntityLinkEditorProps> = ({
         // @todo associate link index with these when updating for link pagination.
         linkedEntities:
           existingLinkGroups
-            .find(({ path }) => path === link.path.join("."))
+            .find(({ path }) => path === pathToString(link.path))
             ?.links.map(({ destinationEntityId, destinationEntityVersionId }) =>
               linkedEntities.find(
                 ({ entityId, entityVersionId }) =>
                   destinationEntityId === entityId &&
-                  destinationEntityVersionId === entityVersionId,
+                  (destinationEntityVersionId == null ||
+                    destinationEntityVersionId === entityVersionId),
               ),
             )
             .filter(isNonNullable) ?? [],

@@ -25,9 +25,11 @@ export const useBlockProtocolCreateLink = (
     (payload) =>
       createFn({
         variables: {
-          ...payload,
-          sourceAccountId,
-          destinationAccountId: sourceAccountId, // @todo handle cross-account links
+          link: {
+            ...payload,
+            sourceAccountId,
+            destinationAccountId: sourceAccountId, // @todo handle cross-account links
+          },
         },
       }).then(({ data, errors }) => {
         if (!data) {

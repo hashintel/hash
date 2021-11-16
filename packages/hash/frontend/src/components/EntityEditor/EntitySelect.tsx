@@ -88,7 +88,7 @@ export const EntitySelect: VoidFunctionComponent<EntitySelectProps> = ({
       );
   }, [aggregate, entityTypeId, selectedEntities]);
 
-  const removeLink = (entityIdToRemove: string, index: number) => {
+  const removeLink = (index: number) => {
     const newSelection: MinimalEntity[] = [
       ...selectedEntities.slice(0, index),
       ...selectedEntities.slice(index + 1),
@@ -154,7 +154,7 @@ export const EntitySelect: VoidFunctionComponent<EntitySelectProps> = ({
               </div>
               <button
                 className={tw`text-red-500 text-sm`}
-                onClick={() => removeLink(entityId, index)}
+                onClick={() => removeLink(index)}
                 type="button"
               >
                 Remove
