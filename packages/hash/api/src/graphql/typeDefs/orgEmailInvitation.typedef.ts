@@ -1,13 +1,7 @@
 import { gql } from "apollo-server-express";
 
 export const orgEmailInvitationTypedef = gql`
-  type LinkedUser {
-    data: User!
-  }
-
   type OrgEmailInvitationProperties {
-    org: LinkedOrg!
-    inviter: LinkedUser!
     inviteeEmailAddress: String!
   }
 

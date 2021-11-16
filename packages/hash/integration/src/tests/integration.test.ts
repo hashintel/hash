@@ -14,6 +14,7 @@ import { ApiClient } from "./util";
 import { recreateDbAndRunSchemaMigrations } from "./setup";
 import {
   CreateOrgMutationVariables,
+  OrgInvitationLinkProperties,
   OrgSize,
   PageFieldsFragment,
   SystemTypeName,
@@ -262,11 +263,9 @@ describe("logged in user ", () => {
       responsibility: "CEO",
     };
 
-    const { entityId, properties: gqlOrgProperties } = await client.createOrg(
-      variables,
-    );
+    const gqlOrg = await client.createOrg(variables);
 
-    const org = (await Org.getOrgById(db, { entityId }))!;
+    const org = (await Org.getOrgById(db, gqlOrg))!;
 
     // Test the org has been created correctly
     expect(org).not.toBeNull();
@@ -284,14 +283,27 @@ describe("logged in user ", () => {
     const [invitationLink] = invitationLinks;
     expect(invitationLink).not.toBeUndefined();
 
-    // Test the invitation link has been returned in the createOrg GraphQL mutation
-    expect(gqlOrgProperties.invitationLink?.data.entityId).toEqual(
+    // Test a linked invitationLink has been returned in the createOrg GraphQL mutation
+
+    const invitationLinkLinkGroup = gqlOrg.linkGroups.find(
+      ({ sourceEntityId, path }) =>
+        sourceEntityId === org.entityId && path === "$.invitationLink",
+    )!;
+
+    expect(invitationLinkLinkGroup).not.toBeUndefined();
+    expect(invitationLinkLinkGroup.links).toHaveLength(1);
+    expect(invitationLinkLinkGroup.links[0].destinationEntityId).toBe(
       invitationLink.entityId,
     );
 
+    const gqlInvitationLink = gqlOrg.linkedEntities.find(
+      ({ entityId }) => entityId === invitationLink.entityId,
+    )!;
+
+    expect(gqlInvitationLink).not.toBeUndefined();
     expect(
-      gqlOrgProperties.invitationLink?.data.properties.accessToken,
-    ).toEqual(invitationLink.properties.accessToken);
+      (gqlInvitationLink.properties as OrgInvitationLinkProperties).accessToken,
+    ).toBe(invitationLink.properties.accessToken);
 
     // Test the user is now a member of the org
     const updatedExistingUser = (await User.getUserById(db, existingUser))!;
@@ -308,15 +320,35 @@ describe("logged in user ", () => {
 
     bobCounter += 1;
 
-    const response = await client.createOrgEmailInvitation({
+    const gqlOrgEmailInvitation = await client.createOrgEmailInvitation({
       orgEntityId: existingOrg.entityId,
       inviteeEmailAddress,
     });
 
-    expect(response.properties.inviter.data.entityId).toEqual(
+    const inviterLinkGroup = gqlOrgEmailInvitation.linkGroups.find(
+      ({ sourceEntityId, path }) =>
+        sourceEntityId === gqlOrgEmailInvitation.entityId &&
+        path === "$.inviter",
+    )!;
+
+    expect(inviterLinkGroup).not.toBeUndefined();
+    expect(inviterLinkGroup.links).toHaveLength(1);
+    expect(inviterLinkGroup.links[0].destinationEntityId).toBe(
       existingUser.entityId,
     );
-    expect(response.properties.inviteeEmailAddress).toEqual(
+
+    const orgLinkGroup = gqlOrgEmailInvitation.linkGroups.find(
+      ({ sourceEntityId, path }) =>
+        sourceEntityId === gqlOrgEmailInvitation.entityId && path === "$.org",
+    )!;
+
+    expect(orgLinkGroup).not.toBeUndefined();
+    expect(orgLinkGroup.links).toHaveLength(1);
+    expect(orgLinkGroup.links[0].destinationEntityId).toBe(
+      existingOrg.entityId,
+    );
+
+    expect(gqlOrgEmailInvitation.properties.inviteeEmailAddress).toEqual(
       inviteeEmailAddress,
     );
 
@@ -373,7 +405,15 @@ describe("logged in user ", () => {
     expect(gqlEmailInvitation.properties.inviteeEmailAddress).toEqual(
       inviteeEmailAddress,
     );
-    expect(gqlEmailInvitation.properties.inviter.data.entityId).toEqual(
+
+    const inviterLinkGroup = gqlEmailInvitation.linkGroups.find(
+      ({ sourceEntityId, path }) =>
+        sourceEntityId === gqlEmailInvitation.entityId && path === "$.inviter",
+    )!;
+
+    expect(inviterLinkGroup).not.toBeUndefined();
+    expect(inviterLinkGroup.links).toHaveLength(1);
+    expect(inviterLinkGroup.links[0].destinationEntityId).toBe(
       bobUser.entityId,
     );
 
@@ -391,7 +431,14 @@ describe("logged in user ", () => {
     });
 
     expect(gqlInvitation.entityId).toEqual(invitation.entityId);
-    expect(gqlInvitation.properties.org.data.entityId).toEqual(bobOrg.entityId);
+    const orgLinkGroup = gqlInvitation.linkGroups.find(
+      ({ sourceEntityId, path }) =>
+        sourceEntityId === gqlInvitation.entityId && path === "$.org",
+    )!;
+
+    expect(orgLinkGroup).not.toBeUndefined();
+    expect(orgLinkGroup.links).toHaveLength(1);
+    expect(orgLinkGroup.links[0].destinationEntityId).toBe(bobOrg.entityId);
 
     /** @todo: cleanup created bob user and org */
   });

@@ -81,13 +81,7 @@ export const orgMembershipTypedef = gql`
     # ENTITY INTERFACE FIELDS END #
   }
 
-  type LinkedOrgMembership {
-    data: OrgMembership!
-  }
-
   type OrgMembershipProperties {
-    org: LinkedOrg!
-    user: LinkedUser!
     responsibility: String!
   }
 `;

@@ -99,7 +99,6 @@ export const userTypedef = gql`
     emails: [Email!]!
     shortname: String
     preferredName: String
-    memberOf: [LinkedOrgMembership!]!
   }
 
   type VerificationCodeMetadata {

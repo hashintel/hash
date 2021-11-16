@@ -2,7 +2,6 @@ import { gql } from "apollo-server-express";
 
 export const orgInvitationLinkTypedef = gql`
   type OrgInvitationLinkProperties {
-    org: LinkedOrg!
     accessToken: String
   }
 
