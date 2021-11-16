@@ -28,6 +28,8 @@ export const createLink = async (
   },
 ): Promise<DBLink> =>
   existingConnection.transaction(async (conn) => {
+    const promises: Promise<void>[] = [];
+
     const now = new Date();
 
     // Defer FKs until end of transaction so we can insert concurrently
@@ -95,22 +97,17 @@ export const createLink = async (
       if (index !== undefined) {
         /** @todo: implement insertLinks and use that instead of many insertLink queries */
 
-        await Promise.all(
-          affectedOutgoingLinks
-            .map((previousLink) => {
-              const linkId = genId();
-              return insertLink(conn, {
-                ...previousLink,
-                linkId,
-                index: previousLink.index! + 1,
-                sourceEntityVersionIds: new Set([
-                  dbSourceEntity.entityVersionId,
-                ]),
-                createdAt: now,
-              });
-            })
-            .flat(),
-        );
+        for (const previousLink of affectedOutgoingLinks) {
+          promises.push(
+            insertLink(conn, {
+              ...previousLink,
+              linkId: genId(),
+              index: previousLink.index! + 1,
+              sourceEntityVersionIds: new Set([dbSourceEntity.entityVersionId]),
+              createdAt: now,
+            }),
+          );
+        }
       }
     } else if (index !== undefined) {
       /**
@@ -120,13 +117,15 @@ export const createLink = async (
        *  - have the same path
        *  - have an index which is greater than or equal to the index of the new link's index
        */
-      await updateLinkIndices(conn, {
-        sourceAccountId,
-        sourceEntityId,
-        path,
-        minimumIndex: index,
-        operation: "increment",
-      });
+      promises.push(
+        updateLinkIndices(conn, {
+          sourceAccountId,
+          sourceEntityId,
+          path,
+          minimumIndex: index,
+          operation: "increment",
+        }),
+      );
     }
 
     const linkId = genId();
@@ -135,12 +134,16 @@ export const createLink = async (
     ]);
     const createdAt = now;
 
-    await insertLink(conn, {
-      ...params,
-      sourceEntityVersionIds,
-      linkId,
-      createdAt,
-    });
+    promises.push(
+      insertLink(conn, {
+        ...params,
+        sourceEntityVersionIds,
+        linkId,
+        createdAt,
+      }),
+    );
+
+    await Promise.all(promises);
 
     return { ...params, sourceEntityVersionIds, linkId, createdAt };
   });
