@@ -138,7 +138,7 @@ export const useFileUpload = (accountId: string) => {
       const {
         requestFileUpload: {
           presignedPost,
-          file: { entityId },
+          file: uploadedFileEntity,
         },
       } = data;
 
@@ -153,15 +153,15 @@ export const useFileUpload = (accountId: string) => {
       >({
         query: getEntity,
         variables: {
-          accountId,
-          entityId,
+          accountId: uploadedFileEntity.accountId,
+          entityId: uploadedFileEntity.entityId,
         },
       });
 
       const { properties } = response.data.entity;
 
       return {
-        entityId,
+        entityId: uploadedFileEntity.entityId,
         url: properties.url as string,
         mediaType,
       };

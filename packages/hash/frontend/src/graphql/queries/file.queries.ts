@@ -12,6 +12,7 @@ export const requestFileUpload = gql`
         fields
       }
       file {
+        accountId
         entityId
       }
     }
