@@ -6,7 +6,7 @@ import { entityTypedef } from "./entity.typedef";
 import { linkTypedef } from "./link.typedef";
 import { entityTypeTypedef } from "./entityType.typedef";
 import { orgEmailInvitationTypedef } from "./orgEmailInvitation.typedef";
-import { orgInvitationLinkTypedef } from "./orgInvitationLink.typdef";
+import { orgInvitationLinkTypedef } from "./orgInvitationLink.typedef";
 import { orgTypedef } from "./org.typedef";
 import { pageTypedef } from "./page.typedef";
 import { textTypedef } from "./text.typedef";
