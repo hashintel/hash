@@ -299,7 +299,9 @@ describe("logged in user ", () => {
 
     expect(updatedExistingUser).not.toBeNull();
 
-    expect(await updatedExistingUser.isMemberOfOrg(db, org)).toBe(true);
+    expect(await updatedExistingUser.isMemberOfOrg(db, org.entityId)).toBe(
+      true,
+    );
   });
 
   it("can create an org email invitation", async () => {

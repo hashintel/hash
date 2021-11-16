@@ -363,12 +363,13 @@ class __User extends Account {
     );
   }
 
-  async isMemberOfOrg(client: DBClient, { entityId }: Org) {
+  async isMemberOfOrg(client: DBClient, orgEntityId: string) {
     const orgMemberships = await this.getOrgMemberships(client);
 
     return (
       orgMemberships.find(
-        ({ properties }) => properties.org.__linkedData.entityId === entityId,
+        ({ properties }) =>
+          properties.org.__linkedData.entityId === orgEntityId,
       ) !== undefined
     );
   }
@@ -381,7 +382,7 @@ class __User extends Account {
     client: DBClient,
     params: { org: Org; responsibility: string },
   ) {
-    if (await this.isMemberOfOrg(client, params.org)) {
+    if (await this.isMemberOfOrg(client, params.org.entityId)) {
       throw new Error(
         `User with entityId '${this.entityId}' is already a member of the organization with entityId '${params.org.entityId}'`,
       );

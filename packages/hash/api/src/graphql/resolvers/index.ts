@@ -1,6 +1,5 @@
 import GraphQLJSON from "graphql-type-json";
 
-import { ForbiddenError } from "apollo-server-express";
 import { Entity } from "../apiTypes.gen";
 
 import {
@@ -38,7 +37,6 @@ import {
   getImpliedEntityVersion,
 } from "./entity/impliedHistory";
 
-import { GraphQLContext, LoggedInGraphQLContext } from "../context";
 import { logout } from "./user/logout";
 import { me } from "./user/me";
 import { isShortnameTaken } from "./user/isShortnameTaken";
@@ -54,30 +52,9 @@ import { joinOrg } from "./user/joinOrg";
 import { fileFields } from "./file";
 import { requestFileUpload } from "./file/requestFileUpload";
 import { createFileFromLink } from "./file/createFileFromLink";
-
-const loggedIn =
-  (next: any) => (obj: any, args: any, ctx: GraphQLContext, info: any) => {
-    if (!ctx.user) {
-      throw new ForbiddenError("You must be logged in to perform this action.");
-    }
-    return next(obj, args, ctx, info);
-  };
-
-const signedUp =
-  (next: any) =>
-  (obj: any, args: any, ctx: LoggedInGraphQLContext, info: any) => {
-    if (!ctx.user.isAccountSignupComplete()) {
-      throw new ForbiddenError(
-        "You must complete the sign-up process to perform this action.",
-      );
-    }
-    return next(obj, args, ctx, info);
-  };
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const loggedInAndSignedUp =
-  (next: any) => (obj: any, args: any, ctx: GraphQLContext, info: any) =>
-    loggedIn(signedUp(next))(obj, args, ctx, info);
+import { loggedIn } from "./middlewares/loggedIn";
+import { loggedInAndSignedUp } from "./middlewares/loggedInAndSignedUp";
+import { canAccessAccount } from "./middlewares/canAccessAccount";
 
 export const resolvers = {
   Query: {
@@ -91,7 +68,7 @@ export const resolvers = {
     getAccountEntityTypes: loggedInAndSignedUp(getAccountEntityTypes),
     entity: loggedInAndSignedUp(entity),
     getEntityType: loggedInAndSignedUp(getEntityType),
-    page: loggedInAndSignedUp(page),
+    page: canAccessAccount(page),
     getImpliedEntityHistory: loggedInAndSignedUp(getImpliedEntityHistory),
     getImpliedEntityVersion: loggedInAndSignedUp(getImpliedEntityVersion),
     // Logged in users only
