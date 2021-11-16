@@ -104,7 +104,7 @@ export const ResizeBlock: React.FC<ResizeBlockProps> = ({
   }, [width, height, updateLocalDimensions]);
 
   const handleResize = (
-    evt: React.MouseEvent,
+    _evt: React.MouseEvent,
     direction: typeof BLOCK_RESIZER_POSITIONS[number]["position"],
   ) => {
     if (!childrenWrapperRef.current) return;

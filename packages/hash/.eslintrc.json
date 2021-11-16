@@ -255,6 +255,7 @@
         "@typescript-eslint/no-unused-vars": [
           "error",
           {
+            "args": "all", // check all args, not just those after-used
             "argsIgnorePattern": "^_+",
             "varsIgnorePattern": "^_+"
           }

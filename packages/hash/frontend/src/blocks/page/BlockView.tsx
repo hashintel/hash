@@ -220,7 +220,7 @@ export class BlockView implements NodeView<Schema> {
   /**
    * @todo restore the ability to load in new block types here
    */
-  onBlockChange = (variant: BlockVariant, meta: BlockMeta) => {
+  onBlockChange = (_variant: BlockVariant, meta: BlockMeta) => {
     const { node, view, getPos } = this;
 
     const state = view.state;
