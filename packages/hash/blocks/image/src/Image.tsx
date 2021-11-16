@@ -4,7 +4,10 @@ import { unstable_batchedUpdates } from "react-dom";
 import { v4 as uuid } from "uuid";
 import { tw } from "twind";
 import { BlockComponent } from "@hashintel/block-protocol/react";
-import { BlockProtocolUpdatePayload } from "@hashintel/block-protocol";
+import {
+  BlockProtocolFileUploadFn,
+  BlockProtocolUpdatePayload,
+} from "@hashintel/block-protocol";
 
 import { ResizeImageBlock } from "./components/ResizeImageBlock";
 
@@ -12,21 +15,25 @@ import Loader from "./svgs/Loader";
 import Pencil from "./svgs/Pencil";
 import Cross from "./svgs/Cross";
 
-type UploadFileParamsType = {
-  file?: File;
-  url?: string;
-  mime?: string;
-};
+// https://www.typescriptlang.org/docs/handbook/release-notes/overview.html#recursive-conditional-types
+type Awaited<T> = T extends PromiseLike<infer U> ? Awaited<U> : T;
+
+type FileType = Awaited<ReturnType<BlockProtocolFileUploadFn>>;
 
 type AppProps = {
   initialSrc?: string;
   initialCaption?: string;
   initialWidth?: number;
-  uploadFile: (uploadFileParams: UploadFileParamsType) => Promise<{
-    src?: string;
-  }>;
+  uploadFile: BlockProtocolFileUploadFn;
   entityId: string;
   entityTypeId?: string;
+};
+
+type BlockProtocolUpdatePayloadData = Pick<
+  AppProps,
+  "initialSrc" | "initialCaption" | "initialWidth"
+> & {
+  file?: FileType;
 };
 
 const placeholderText = "Enter Image URL";
@@ -82,21 +89,32 @@ export const Image: BlockComponent<AppProps> = (props) => {
   );
 
   const updateData = useCallback(
-    (src: string | undefined, width?: number) => {
+    ({
+      width,
+      file,
+      src,
+    }: {
+      src: string | undefined;
+      width?: number;
+      file?: FileType;
+    }) => {
       if (src?.trim()) {
         if (update) {
-          const updateAction: BlockProtocolUpdatePayload<
-            Pick<AppProps, "initialSrc" | "initialCaption" | "initialWidth">
-          > = {
-            data: {
-              initialSrc: src,
-              initialCaption: captionText,
-            },
-            entityId,
-          };
+          const updateAction: BlockProtocolUpdatePayload<BlockProtocolUpdatePayloadData> =
+            {
+              data: {
+                initialSrc: src,
+                initialCaption: captionText,
+              },
+              entityId,
+            };
 
           if (width) {
             updateAction.data.initialWidth = width;
+          }
+
+          if (file) {
+            updateAction.data.file = file;
           }
 
           if (entityTypeId) {
@@ -114,7 +132,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
 
   const updateWidth = useCallback(
     (width: number) => {
-      updateData(stateObject.src, width);
+      updateData({ src: stateObject.src, width });
     },
     [stateObject.src, updateData],
   );
@@ -126,11 +144,12 @@ export const Image: BlockComponent<AppProps> = (props) => {
   const handleImageUpload = useCallback(
     (imageProp: { url: string } | { file: FileList[number] }) => {
       updateStateObject({ loading: true });
-      uploadFile({ ...imageProp, mime: IMG_MIME_TYPE })
-        .then(({ src }: { src?: string }) => {
+
+      uploadFile({ ...imageProp, mediaType: "image" })
+        .then((file) => {
           if (isMounted.current) {
             updateStateObject({ loading: false });
-            updateData(src);
+            updateData({ src: file.url, file });
           }
         })
         .catch((error: Error) =>
@@ -195,7 +214,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
             type="text"
             value={captionText}
             onChange={(event) => setCaptionText(event.target.value)}
-            onBlur={() => updateData(stateObject.src)}
+            onBlur={() => updateData({ src: stateObject.src })}
           />
         </div>
         <button

@@ -13,7 +13,7 @@ import { StorageType } from "../graphql/apiTypes.gen";
 
 const MAX_FILE_SIZE_BYTES = 1000 * 1000 * 1000;
 const FILE_EXTENSION_REGEX = /\.[0-9a-z]+$/i;
-const DOWNLOAD_URL_EXPIRATION_SECONDS = 60 * 15;
+const DOWNLOAD_URL_EXPIRATION_SECONDS = 60 * 60 * 24 * 7;
 const UPLOAD_URL_EXPIRATION_SECONDS = 60 * 30;
 
 export type FileConstructorArgs = {

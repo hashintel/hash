@@ -281,7 +281,7 @@ void (async () => {
         "img1",
         {
           entityTypeId: newTypeIds.Image,
-          accountId: hashOrg.accountId,
+          accountId: user.accountId,
           createdById: user.entityId,
           properties: {},
         },
@@ -290,7 +290,7 @@ void (async () => {
         "img2",
         {
           entityTypeId: newTypeIds.Image,
-          accountId: hashOrg.accountId,
+          accountId: user.accountId,
           createdById: user.entityId,
           properties: {},
         },
@@ -308,7 +308,7 @@ void (async () => {
         "video1",
         {
           entityTypeId: newTypeIds.Video,
-          accountId: hashOrg.accountId,
+          accountId: user.accountId,
           createdById: user.entityId,
           properties: {},
         },
