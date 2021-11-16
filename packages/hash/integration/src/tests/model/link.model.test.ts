@@ -52,9 +52,10 @@ beforeAll(async () => {
 
 describe("Link model class ", () => {
   it("static isPathValid method correctly validates JSON path", () => {
-    expect(Link.isPathValid("$.this.path['should'].be[\"supported\"]")).toBe(
-      true,
-    );
+    expect(Link.isPathValid("$.this.path.should.be.supported")).toBe(true);
+    expect(
+      Link.isPathValid("$.this.path['should'].not.be[\"supported\"]"),
+    ).toBe(false);
     expect(Link.isPathValid("$.this.path.is.not.supported[0]")).toBe(false);
     expect(Link.isPathValid("$")).toBe(false);
     expect(Link.isPathValid("$.")).toBe(false);
@@ -65,7 +66,7 @@ describe("Link model class ", () => {
 
   it("static parsePath method correctly parses a suppported JSON path", () => {
     expect(
-      Link.parseStringifiedPath("$.this.path['should'].be[\"supported\"]"),
+      Link.parseStringifiedPath("$.this.path.should.be.supported"),
     ).toEqual(["this", "path", "should", "be", "supported"]);
     expect(() =>
       Link.parseStringifiedPath("$.this[*].path.is.not.supported"),

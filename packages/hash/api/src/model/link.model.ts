@@ -26,7 +26,6 @@ export type CreateLinkArgs = {
  */
 const SUPPORTED_JSONPATH_COMPONENT_TYPES = [
   "identifier", // e.g. .memberOf
-  "string_literal", // e.g. ["memberOf"]
 ] as const;
 
 type SupportedJSONPathComponentType =
