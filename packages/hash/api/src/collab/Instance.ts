@@ -513,7 +513,10 @@ const newInstance =
       queue,
     );
 
-    await instances[pageEntityId].start();
+    // @todo need to handle this
+    instances[pageEntityId].start().catch((err) => {
+      console.error("Error starting instance", err);
+    });
 
     return instances[pageEntityId];
   };
