@@ -1,4 +1,5 @@
 import React, {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -57,17 +58,16 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
     uploadFile,
   };
 
-  const [scrollingComplete, setScrollingComplete] = useState(false);
-  const scrollIntervalRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const scrollingComplete = useRef(false);
   const scrollFrameRequestIdRef = useRef<ReturnType<
     typeof requestAnimationFrame
   > | null>(null);
 
   const [blockLoaded, setBlockLoaded] = useState(false);
 
-  const onBlockLoaded = () => {
+  const onBlockLoaded = useCallback(() => {
     setBlockLoaded(true);
-  };
+  }, []);
 
   useEffect(() => {
     const routeHash = router.asPath.split("#")[1];
@@ -77,7 +77,7 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
 
       if (routeElement) {
         routeElement.scrollIntoView();
-        setScrollingComplete(true);
+        scrollingComplete.current = true;
       }
 
       // Do we need to do this if we've scrolled into view
@@ -85,17 +85,13 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
     }
 
     function clearScrollInterval() {
-      if (scrollIntervalRef.current) {
-        clearInterval(scrollIntervalRef.current);
-      }
-
       if (scrollFrameRequestIdRef.current !== null) {
         cancelAnimationFrame(scrollFrameRequestIdRef.current);
         scrollFrameRequestIdRef.current = null;
       }
     }
 
-    if (routeHash === entityId && !scrollingComplete && blockLoaded) {
+    if (routeHash === entityId && !scrollingComplete.current && blockLoaded) {
       clearScrollInterval();
       scrollFrameRequestIdRef.current = requestAnimationFrame(frame);
     }
@@ -103,7 +99,7 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
     return () => {
       clearScrollInterval();
     };
-  }, [scrollingComplete, router, blockLoaded]);
+  }, [router, blockLoaded]);
 
   if (sandboxingEnabled && (shouldSandbox || sourceUrl.endsWith(".html"))) {
     return (

@@ -180,7 +180,7 @@ export const BlockFramer: VoidFunctionComponent<CrossFrameProxyProps> = ({
   const onLoad = useCallback(() => {
     onBlockLoaded();
     return !paramsIncludeProps ? sendBlockProperties(blockProperties) : null;
-  }, [blockProperties, paramsIncludeProps, sendBlockProperties]);
+  }, [onBlockLoaded, blockProperties, paramsIncludeProps, sendBlockProperties]);
 
   return (
     <ResizingIFrame
