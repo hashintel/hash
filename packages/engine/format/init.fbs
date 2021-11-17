@@ -1,7 +1,7 @@
 include "shared_context.fbs";
 include "package_config.fbs";
 
-// Experiment UUID
+// Experiment UUID as bytes
 struct ExperimentID {
   inner:[byte:16];
 }
@@ -13,7 +13,7 @@ struct ExperimentID {
 //                             experiment run 
 table Init {
   experiment_id:ExperimentID;
-  worker_index:usize;
+  worker_index:uint64;
   shared_context:SharedContext;
   package_config:PackageConfig (required);
 }

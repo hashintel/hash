@@ -6,7 +6,7 @@ Saves Python files to packages/engine/runner/py/fbs.
 
 Example:
     cd packages/engine
-    python3 gen-fbs.py
+    python3 genfbs.py
 """
 import os
 import os.path
@@ -37,28 +37,17 @@ RUST_HEADER = """#![allow(
 def process_rust_file(filename, target_dir):
     with open(filename) as f:
         contents = f.read()
-    
+
     # Fixes imports. Example:
     # use crate::batch_generated::*;  -->  use super::batch::*;
-    new_contents = re.sub(r"crate::(\w+)_generated", r"super::\1", contents)
+    new_contents = re.sub(r"crate::(\w+)_generated", r"super::\1_generated", contents)
 
-    # Need to make this substitution for compatibility with the flatbuffers 0.6.1 crate
-    # Revisit this if the crate is upgraded
-    new_contents = re.sub(
-        r"self\.body\(\).map\(\|u\| (\w+)::init_from_table\(u\)\)",
-        r"Some(\1::init_from_table(self.body()))",
-        new_contents,
-    )
-
-    # Remove the "_generated" part from the filename
-    new_filename = re.sub(r"(\w+)_generated.rs", r"\1.rs", filename)
-
-    with open(new_filename, "w") as f:
+    with open(filename, "w") as f:
         f.write(RUST_HEADER)
         f.write(new_contents)
     
-    new_filepath = os.path.join(target_dir, new_filename)
-    os.rename(new_filename, new_filepath)
+    new_filepath = os.path.join(target_dir, filename)
+    os.rename(filename, new_filepath)
     print("Generated", os.path.realpath(new_filepath))
 
 

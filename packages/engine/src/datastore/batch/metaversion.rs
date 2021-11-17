@@ -58,8 +58,8 @@ impl Metaversion {
     }
 }
 
-impl<'a> From<gen::metaversion::Metaversion<'a>> for Metaversion {
-    fn from(state: gen::metaversion::Metaversion) -> Metaversion {
+impl<'a> From<gen::Metaversion<'a>> for Metaversion {
+    fn from(state: gen::Metaversion) -> Metaversion {
         Metaversion {
             memory: state.memory(),
             batch: state.batch(),

@@ -2,6 +2,9 @@ include "runner_error.fbs";
 include "runner_errors.fbs";
 include "runner_warning.fbs";
 include "runner_warnings.fbs";
+include "package_error.fbs";
+include "user_errors.fbs";
+include "user_warnings.fbs";
 include "serialized.fbs";
 include "sync_state_interim.fbs";
 include "target.fbs";
@@ -12,7 +15,7 @@ include "target.fbs";
 // and cannot be a root type.
 //
 // fields:
-//    `inner` : the uuid as bytes 
+//    `inner` : the uuid as bytes
 struct TaskID {
   inner:[byte:16];
 }
@@ -21,7 +24,7 @@ struct TaskID {
 // which is outbound from a worker.
 //
 // fields:
-//    `package_sid`    : the short id for the packge
+//    `package_sid`    : the short id for the package
 //    `task_id`        : the uuid for the task
 //    `metaversioning` : included when any batches have changed
 //                       (possibly since the last `StateSync`)

@@ -10,4 +10,7 @@ class RunnerOutboundMsgPayload(object):
     RunnerErrors = 4
     RunnerWarning = 5
     RunnerWarnings = 6
+    PackageError = 7
+    UserErrors = 8
+    UserWarnings = 9
 

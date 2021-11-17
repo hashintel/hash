@@ -25,8 +25,26 @@ class Init(object):
         self._tab = flatbuffers.table.Table(buf, pos)
 
     # Init
-    def SharedContext(self):
+    def ExperimentId(self):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(4))
+        if o != 0:
+            x = o + self._tab.Pos
+            from ExperimentID import ExperimentID
+            obj = ExperimentID()
+            obj.Init(self._tab.Bytes, x)
+            return obj
+        return None
+
+    # Init
+    def WorkerIndex(self):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(6))
+        if o != 0:
+            return self._tab.Get(flatbuffers.number_types.Uint64Flags, o + self._tab.Pos)
+        return 0
+
+    # Init
+    def SharedContext(self):
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(8))
         if o != 0:
             x = self._tab.Indirect(o + self._tab.Pos)
             from SharedContext import SharedContext
@@ -37,7 +55,7 @@ class Init(object):
 
     # Init
     def PackageConfig(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(6))
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(10))
         if o != 0:
             x = self._tab.Indirect(o + self._tab.Pos)
             from PackageConfig import PackageConfig
@@ -46,15 +64,23 @@ class Init(object):
             return obj
         return None
 
-def Start(builder): builder.StartObject(2)
+def Start(builder): builder.StartObject(4)
 def InitStart(builder):
     """This method is deprecated. Please switch to Start."""
     return Start(builder)
-def AddSharedContext(builder, sharedContext): builder.PrependUOffsetTRelativeSlot(0, flatbuffers.number_types.UOffsetTFlags.py_type(sharedContext), 0)
+def AddExperimentId(builder, experimentId): builder.PrependStructSlot(0, flatbuffers.number_types.UOffsetTFlags.py_type(experimentId), 0)
+def InitAddExperimentId(builder, experimentId):
+    """This method is deprecated. Please switch to AddExperimentId."""
+    return AddExperimentId(builder, experimentId)
+def AddWorkerIndex(builder, workerIndex): builder.PrependUint64Slot(1, workerIndex, 0)
+def InitAddWorkerIndex(builder, workerIndex):
+    """This method is deprecated. Please switch to AddWorkerIndex."""
+    return AddWorkerIndex(builder, workerIndex)
+def AddSharedContext(builder, sharedContext): builder.PrependUOffsetTRelativeSlot(2, flatbuffers.number_types.UOffsetTFlags.py_type(sharedContext), 0)
 def InitAddSharedContext(builder, sharedContext):
     """This method is deprecated. Please switch to AddSharedContext."""
     return AddSharedContext(builder, sharedContext)
-def AddPackageConfig(builder, packageConfig): builder.PrependUOffsetTRelativeSlot(1, flatbuffers.number_types.UOffsetTFlags.py_type(packageConfig), 0)
+def AddPackageConfig(builder, packageConfig): builder.PrependUOffsetTRelativeSlot(3, flatbuffers.number_types.UOffsetTFlags.py_type(packageConfig), 0)
 def InitAddPackageConfig(builder, packageConfig):
     """This method is deprecated. Please switch to AddPackageConfig."""
     return AddPackageConfig(builder, packageConfig)
