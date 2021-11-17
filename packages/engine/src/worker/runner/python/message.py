@@ -1,6 +1,9 @@
+import logging
 from json import loads as json_loads
 
 # Inbound
+import flatbuffers
+
 from fbs.Init import Init
 from fbs.RunnerInboundMsg import RunnerInboundMsg
 from fbs.RunnerInboundMsgPayload import RunnerInboundMsgPayload
@@ -14,17 +17,21 @@ from fbs.TerminateSimulationRun import TerminateSimulationRun
 from fbs.KillRunner import KillRunner
 from fbs.NewSimulationRun import NewSimulationRun
 from fbs.PackageType import PackageType
+
 PACKAGE_TYPE = PackageType
 MESSAGE_TYPE = RunnerInboundMsgPayload
 
 # Outbound
-import fbs.RunnerError
-import fbs.PackageError
-import fbs.UserErrors
-import fbs.UserWarnings
+from fbs import RunnerError
+from fbs import PackageError
+from fbs import UserError
+from fbs import UserErrors
+from fbs import UserWarnings
+
 
 def assert_eq(a, b):
     assert a == b, (a, b)
+
 
 class PyInit:
     def __init__(self, fbs_bytes):
@@ -35,6 +42,7 @@ class PyInit:
         self.package_config = [
             PyPackage(config.Packages(i)) for i in range(config.PackagesLength())
         ]
+
 
 class PySharedContext:
     def __init__(self, fb):
@@ -49,12 +57,14 @@ class PySharedContext:
     def data(self):
         return self.__datasets
 
+
 class PyPackage:
     def __init__(self, fb):
         self.type = fb.Type()
         self.name = fb.Name()
         self.sid = fb.Sid()
         self.payload = json_loads(fb.InitPayload().Inner())
+
 
 class PyBatchSync:
     def __init__(self, fb):
@@ -63,10 +73,12 @@ class PyBatchSync:
         self.mem_version = m.Memory()
         self.batch_version = m.Batch()
 
+
 class PyMetaversion:
     def __init__(self, fb):
         self.mem = fb.Memory()
         self.batch = fb.Batch()
+
 
 class PyTaskMsg:
     def __init__(self, sim_sid, fb):
@@ -75,6 +87,7 @@ class PyTaskMsg:
         self.task_id = fb.TaskId()
         self.sync = PyStateInterimSync(fb.Metaversioning())
         self.payload = json_loads(fb.Payload().Inner())
+
 
 class PyStateInterimSync:
     def __init__(self, sim_sid, fb):
@@ -93,11 +106,13 @@ class PyStateInterimSync:
             PyMetaversion(fb.messagePoolMetaversions(i)) for i in range(n_batches)
         ]
 
+
 class PyContextBatchSync:
     def __init__(self, sim_sid, fb):
         self.sim_sid = sim_sid
         self.batch = PyBatchSync(fb.ContextBatch())
         self.cur_step = fb.CurrentStep()
+
 
 class Messenger:
     def __init__(self, experiment_id, worker_index):
@@ -125,14 +140,14 @@ class Messenger:
     # Receive experiment init message.
     def recv_init(self):
         # Notify Rust process that the Python runner has opened the socket.
-        self.to_rust.send(b'\x00') # Arbitrary message
+        self.to_rust.send(b'\x00')  # Arbitrary message
         logging.debug("Waiting for init")
 
         # Get reply from Rust process with init message.
         fbs_bytes = self.to_rust.recv()
         logging.debug("Received init message")
 
-        self.orch_socket.send(b'\x00') # Arbitrary message
+        self.orch_socket.send(b'\x00')  # Arbitrary message
         return PyInit(fbs_bytes)
 
     def recv(self):
@@ -165,7 +180,7 @@ class Messenger:
             return PyTerminateSim(sim_sid, TerminateSimulationRun().Init(p.Bytes, p.Pos)), t
 
         if t == MESSAGE_TYPE.KillRunner:
-            return None, t # KillRunner payload is empty.
+            return None, t  # KillRunner payload is empty.
 
         if t == MESSAGE_TYPE.NewSimulationRun:
             return PyStartSim(sim_sid, NewSimulationRun().Init(p.Bytes, p.Pos)), t
@@ -203,6 +218,7 @@ class Messenger:
         fbs_bytes = user_warnings_to_fbs_bytes(warnings)
         self.to_rust.send(fbs_bytes)
 
+
 def runner_error_to_fbs_bytes(error):
     # `initialSize` only affects performance (slightly), not correctness.
     builder = flatbuffers.Builder(initialSize=len(error))
@@ -215,6 +231,7 @@ def runner_error_to_fbs_bytes(error):
 
     builder.Finish(runner_error_offset)
     return bytes(builder.Output())
+
 
 def pkg_error_to_fbs_bytes(error):
     # `initialSize` only affects performance (slightly), not correctness.
@@ -229,6 +246,7 @@ def pkg_error_to_fbs_bytes(error):
     builder.Finish(pkg_error_offset)
     return bytes(builder.Output())
 
+
 def user_error_to_fbs(builder, error):
     msg_offset = builder.CreateString(error)
 
@@ -238,6 +256,7 @@ def user_error_to_fbs(builder, error):
 
     builder.Finish(user_error_offset)
     return bytes(builder.Output())
+
 
 def user_errors_to_fbs_bytes(errors):
     # `initialSize` only affects performance (slightly), not correctness.
@@ -256,6 +275,7 @@ def user_errors_to_fbs_bytes(errors):
     builder.Finish(user_errors_offset)
     return bytes(builder.Output())
 
+
 def user_warning_to_fbs(builder, warning):
     msg_offset = builder.CreateString(warning)
 
@@ -265,6 +285,7 @@ def user_warning_to_fbs(builder, warning):
 
     builder.Finish(user_warning_offset)
     return bytes(builder.Output())
+
 
 def user_warnings_to_fbs_bytes(warnings):
     # `initialSize` only affects performance (slightly), not correctness.

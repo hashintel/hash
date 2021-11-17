@@ -1,5 +1,9 @@
-import os, sys, logging
+import logging
+import os
+import sys
+
 from runner import Runner
+
 
 def get_logging_level(value):
     value = value.lower()
@@ -12,6 +16,7 @@ def get_logging_level(value):
     elif value == "error":
         return logging.ERROR
     return None
+
 
 def logging_setup():
     # Use the same logging levels as Rust
@@ -29,6 +34,7 @@ def logging_setup():
                     level = possible_level
                     break
     logging.basicConfig(level=level)
+
 
 if __name__ == "__main__":
     logging_setup()

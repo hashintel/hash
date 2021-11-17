@@ -3,11 +3,14 @@ import pyarrow as pa
 from pyarrow.types import is_primitive
 from wrappers import np_force_writable
 
+
 def json_deepcopy(x):
     return deepcopy(x)
 
+
 def load_shallow(vector):
     return [elem for elem in vector]
+
 
 def _writable_in_place(typ):
     if is_primitive(typ):
@@ -17,9 +20,10 @@ def _writable_in_place(typ):
     if isinstance(typ, pa.FixedSizeListType):
         return _writable_in_place(typ.value_type)
 
-    return False # TODO: Struct? Union? FixedSizeBinary?
+    return False  # TODO: Struct? Union? FixedSizeBinary?
 
-def load_full(vector)
+
+def load_full(vector):
     if vector.type.is_any:
         # `any` type fields are expensive
         return [loads(any_obj.as_buffer().to_pybytes()) for any_obj in vector]

@@ -1,7 +1,12 @@
+from copy import deepcopy
+from uuid import UUID
+
 import hash_util
+import json
 
 def raise_missing_field(field_name):
     raise RuntimeError("Missing field (behavior keys?): " + field_name)
+
 
 class AgentState:
     def __init__(self, group_state, i_agent_in_group):
@@ -29,7 +34,7 @@ class AgentState:
     def _hasattr(self, field):
         return field == "messages" or field in self.__cols
 
-    def __getattr__(self, field): # Can raise AttributeError.
+    def __getattr__(self, field):  # Can raise AttributeError.
         idx = self.__dict__['__idx_in_group']
         if field == "messages":
             msgs = self.__dict__['__msgs'][idx]
@@ -41,10 +46,10 @@ class AgentState:
             return msgs
 
         if field == "agent_id":
-            return str(UUID(bytes = self.__dict__['__cols']["agent_id"][idx]))
+            return str(UUID(bytes=self.__dict__['__cols']["agent_id"][idx]))
 
         col = self.__dict__['__cols'].get(field)
-        if col is None: # Slow path -- unlikely branch
+        if col is None:  # Slow path -- unlikely branch
             if self.__dict__['__dyn_access']:
                 self.__dict__['__cols'][field] = col = self.__group_state.load(field)
             else:
@@ -52,7 +57,7 @@ class AgentState:
 
         return col[idx]
 
-    def __setattr__(self, field, value): # Can raise AttributeError.
+    def __setattr__(self, field, value):  # Can raise AttributeError.
         idx = self.__dict__['__idx_in_group']
         if field == "messages":
             self.__dict__['__msgs'][idx] = value
@@ -63,7 +68,7 @@ class AgentState:
         #       (Throw exception -- maybe ValueError or AttributeError.)
 
         col = self.__dict__['__cols'].get(field)
-        if col is None: # Slow path -- unlikely branch
+        if col is None:  # Slow path -- unlikely branch
             self.__dict__['__cols'][field] = col = self.__group_state.load(field)
 
         col[idx] = value
@@ -84,7 +89,7 @@ class AgentState:
     # it must be a single agent id or name. If it's a list, it must
     # be a list of agent ids and/or names. `to` is automatically
     # converted to a list if it's not one already.
-    
+
     # `data` is an optional argument. `data` must be JSON-serializable.
     def add_message(self, to, msg_type, data=None):
         idx = self.__idx
@@ -93,10 +98,11 @@ class AgentState:
             "type": msg_type,
             "data": deepcopy(data) if self.__dict__['__msgs_native'][idx] else json.dumps(data)
         })
-    
+
     # Returns the index of the currently executing behavior in the agent's behavior chain.
     def behavior_index(self):
         return self.__i_behavior
+
 
 class GroupState:
     def __init__(self, agent_batch, msg_batch, loaders):
@@ -109,14 +115,14 @@ class GroupState:
     def set_batches(self, agent_batch, msg_batch):
         self.__agent_batch = agent_batch
         self.__msg_batch = msg_batch
-    
+
     def to_json(self):
         raise RuntimeError("Group state shouldn't be copied to JSON.")
 
     def load(self, field_name):
         if self.__agent_batch.rb.schema.get_field_index(field_name) < 0:
-            raise_missing_field(field_name) # Missing even with dynamic access
-        
+            raise_missing_field(field_name)  # Missing even with dynamic access
+
         return self.__agent_batch.load_col(field_name, self.__loaders.get(field_name))
 
     # Returns the number of agents in this group.
@@ -135,13 +141,13 @@ class GroupState:
         #       (Set written flag in `state.set` and `state.addMessage`.)
         # TODO: Only flush columns that can't be written to in-place.
         # TODO: Don't flush columns that only need to be read, not written.
-        
+
         # `msgs_native[i] == 0` doesn't mean that the i-th agent's
         # outbox wasn't written to -- `state.addMessage` can convert
         # a message's data to JSON and add it without converting existing
         # messages to native JavaScript objects.
 
-        skip = { 'agent_id': True }
+        skip = {'agent_id': True}
         agent_changes = self.__agent_batch.flush_changes(schema.agent, skip)
 
         # Convert any native message objects to JSON before flushing message batch.
@@ -151,7 +157,7 @@ class GroupState:
         for i_agent, agent_msgs in enumerate(group_msgs):
             if self.__msgs_native[i_agent]:
                 for msg in agent_msgs:
-                    msg.data = JSON.dumps(msg.data)
+                    msg.data = json.dumps(msg.data)
 
         msg_changes = self.__msg_batch.flush_changes(schema.msg, {})
 
@@ -159,6 +165,7 @@ class GroupState:
             "agent": agent_changes,
             "msg": msg_changes
         }
+
 
 class SimState:
     def __init__(self, getters):

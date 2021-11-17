@@ -6,9 +6,10 @@ from wrappers import dynamic_meta_from_c_memory
 from wrappers import static_meta_from_schema
 from wrappers import flush
 
+
 def load_markers(mem):
-    n_marker_bytes = 8 # Markers are all u64s.
-    n_markers = 8      # NUMBER_OF_MARKERS in datastore/memory.rs.
+    n_marker_bytes = 8  # Markers are all u64s.
+    n_markers = 8  # NUMBER_OF_MARKERS in datastore/memory.rs.
     n_markers_bytes = n_marker_bytes * n_markers
     markers_bytes = mem[:n_markers_bytes].to_pybytes()
 
@@ -21,13 +22,13 @@ def load_markers(mem):
     # Same order as `struct Offsets` in datastore/memory.rs.
     # Units are all numbers of bytes.
     schema_offset = markers[0]
-    schema_size   = markers[1]
-    header_offset = markers[2] 
-    header_size   = markers[3]
-    meta_offset   = markers[4]
-    meta_size     = markers[5]
-    data_offset   = markers[6]
-    data_size     = markers[7]
+    schema_size = markers[1]
+    header_offset = markers[2]
+    header_size = markers[3]
+    meta_offset = markers[4]
+    meta_size = markers[5]
+    data_offset = markers[6]
+    data_size = markers[7]
 
     # The "meta bytes" here do *not* contain the schema's key-value metadata.
     # They contain what is officially called a "RecordBatch message data header", but
@@ -35,23 +36,25 @@ def load_markers(mem):
     # https://arrow.apache.org/docs/format/Columnar.html#recordbatch-message
 
     # Schema comes immediately after markers.
-    assert schema_offset == n_markers_bytes, "schema_offset: {}, n_markers_bytes: {}".format(schema_offset, n_markers_bytes)
+    assert schema_offset == n_markers_bytes, "schema_offset: {}, n_markers_bytes: {}".format(schema_offset,
+                                                                                             n_markers_bytes)
     assert schema_offset + schema_size <= header_offset
     assert header_offset + header_size <= meta_offset
-    assert meta_offset   + meta_size   <= data_offset
-    assert data_offset   + data_size   <= mem.size
+    assert meta_offset + meta_size <= data_offset
+    assert data_offset + data_size <= mem.size
     return schema_offset, schema_size, header_offset, header_size, meta_offset, meta_size, data_offset, data_size
+
 
 def load_record_batch(mem, schema=None):
     schema_offset, schema_size, header_offset, header_size, \
-        meta_offset, _, data_offset, data_size = load_markers(mem)
+    meta_offset, _, data_offset, data_size = load_markers(mem)
     # Pyarrow exposes a function for parsing the record batch message data header and
     # record batch data together, but not functions for parsing them separately, so
     # they should be contiguous in memory. (Or have to use a hack to pretend that
     # what is between them is padding.)
     if schema is None:
-        schema_buf = mem[schema_offset : schema_offset + schema_size]
-    rb_buf = mem[meta_offset : data_offset + data_size]
+        schema_buf = mem[schema_offset: schema_offset + schema_size]
+    rb_buf = mem[meta_offset: data_offset + data_size]
 
     if schema is None:
         schema = pa.ipc.read_schema(schema_buf)
@@ -66,11 +69,12 @@ def load_record_batch(mem, schema=None):
 
     return rb
 
+
 class Batch:
     def __init__(self):
         self.mem_version = -1
         self.batch_version = -1
-        self.mem = None # After loading, `mem` will be a shared buffer.
+        self.mem = None  # After loading, `mem` will be a shared buffer.
         self.rb = None  # After loading, `rb` will be a record batch.
         self.cols = {}  # Syncing erases columns that have become invalid.
 
@@ -108,7 +112,7 @@ class Batch:
             col = hash_util.load_shallow(vector)
         else:
             col = hash_util.load_full(vector)
-        
+
         self.cols[name] = col
         return col
 
@@ -125,23 +129,23 @@ class Batch:
         changes = []
         for field_name, col in self.cols.items():
             if type(col) is not list or skip[field_name]:
-                continue # Column wasn't written to or was writable in place.
-            
+                continue  # Column wasn't written to or was writable in place.
+
             i_field = schema.get_field_index(field_name)
             if i_field < 0:
-                continue # Not supposed to have this column in `cols`?
+                continue  # Not supposed to have this column in `cols`?
 
             field = schema.field(i_field)
             if field.metadata[b'is_any'].decode():
                 c = [json.dumps(elem) for elem in col]
             else:
                 c = col
-            
+
             changes.append({
                 'i_field': i_field,
                 'data': pa.array(c, type=field.type)
             })
-        
+
         if len(changes) == 0:
             return
 
@@ -179,6 +183,7 @@ class Batch:
             outbox["mem_version"] += 1
             outbox["shared_buf"] = shared_buf_from_c_memory(outbox["c_memory"])
 
+
 class Batches:
     def __init__(self):
         self.batches = {}
@@ -190,7 +195,7 @@ class Batches:
         loaded_batch = self.batches.get(latest_batch.id)
         if loaded_batch is None:
             self.batches[latest_batch.id] = loaded_batch = Batch()
-    
+
         # `loaded_batch` is changed in-place. Return is for convenience.
         loaded_batch.sync(latest_batch)
         return loaded_batch

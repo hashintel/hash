@@ -1,24 +1,25 @@
 import hash_util
 
+
 class AgentContext:
     def __init__(self, sim_ctx, ctx_batch, state_snapshot, i_agent_in_sim):
         # The context batch is sim-wide, so hide it from the user.
         # (The user should only see one current agent through an AgentContext object.)
         self.__sim_ctx = sim_ctx
-        self.__getters = sim_ctx.getters # Used often
+        self.__getters = sim_ctx.getters  # Used often
         self.__cols = ctx_batch.cols
         self.state_snapshot = state_snapshot
-        self.__idx_in_sim = i_agent_in_sim # (As opposed to agent index in its group)
+        self.__idx_in_sim = i_agent_in_sim  # (As opposed to agent index in its group)
 
     def to_json(self):
         r = {}
         for field_name in self.__cols:
             r[field_name] = hash_util.json_deepcopy(self.__getattr__(field_name))
         return r
-    
+
     def globals(self):
         return self.__sim_ctx.globals()
-    
+
     def data(self):
         return self.__sim_ctx.data()
 
@@ -29,6 +30,7 @@ class AgentContext:
 
     # Context is immutable, so there's no `__setattr__`.
 
+
 class GroupContext:
     def __init__(self, sim_ctx, ctx_batch, state_snapshot, group_start_idx):
         # The context batch is sim-wide, so hide it from the user.
@@ -37,22 +39,23 @@ class GroupContext:
         self.__ctx_batch = ctx_batch
         self.state_snapshot = state_snapshot
         self.__start_idx = group_start_idx
-    
+
     def get_agent(self, i_agent_in_group, old_agent_ctx=None):
         idx_in_sim = i_agent_in_group + self.__start_idx
-        if old_agent_ctx is not None: # Reuse AgentContext object for performance.
+        if old_agent_ctx is not None:  # Reuse AgentContext object for performance.
             old_agent_ctx.__AgentContext_idx_in_sim = idx_in_sim
             return old_agent_ctx
-        }
+
         return AgentContext(
             self.__sim_ctx, self.__ctx_batch, self.state_snapshot, idx_in_sim
         )
 
     def globals(self):
         return self.__sim_ctx.globals()
-    
+
     def data(self):
         return self.__sim_ctx.data()
+
 
 class SimContext:
     def __init__(self, getters, experiment_ctx, sim_globals):
@@ -81,7 +84,7 @@ class SimContext:
         )
 
     def get_agent(self, i_agent_in_sim, old_agent_ctx=None):
-        if old_agent_ctx is not None: # Reuse AgentContext object for performance.
+        if old_agent_ctx is not None:  # Reuse AgentContext object for performance.
             old_agent_ctx.__AgentContext_idx_in_sim = i_agent_in_sim
             return old_agent_ctx
 
@@ -91,14 +94,15 @@ class SimContext:
 
     def globals(self):
         return self.__globals
-    
+
     def data(self):
         return self.__experiment_ctx.data()
+
 
 class SimInitContext:
     def __init__(self, experiment_ctx, sim_globals, agent_schema):
         self.__experiment_ctx = experiment_ctx
-        self.__globals = sim_globals # TODO: Freeze somehow
+        self.__globals = sim_globals  # TODO: Freeze somehow
         self.agent_schema = agent_schema
 
     def globals(self):
@@ -107,9 +111,10 @@ class SimInitContext:
     def data(self):
         return self.__experiment_ctx.data()
 
+
 class ExperimentContext:
     def __init__(self, datasets):
-        self.__datasets = datasets # TODO: Freeze somehow
+        self.__datasets = datasets  # TODO: Freeze somehow
 
     def data(self):
         return self.__datasets
