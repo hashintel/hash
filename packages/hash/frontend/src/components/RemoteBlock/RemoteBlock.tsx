@@ -7,6 +7,7 @@ import { HtmlBlock } from "../HtmlBlock/HtmlBlock";
 type RemoteBlockProps = {
   crossFrame?: boolean;
   sourceUrl: string;
+  onBlockLoaded?: () => void;
 } & BlockProtocolProps;
 
 export const BlockLoadingIndicator: VoidFunctionComponent = () => (
@@ -18,8 +19,12 @@ export const BlockLoadingIndicator: VoidFunctionComponent = () => (
  */
 export const RemoteBlock: VoidFunctionComponent<
   RemoteBlockProps & Record<string, any>
-> = ({ crossFrame, sourceUrl, ...props }) => {
-  const [loading, err, Component] = useRemoteBlock(sourceUrl, crossFrame);
+> = ({ crossFrame, sourceUrl, onBlockLoaded, ...props }) => {
+  const [loading, err, Component] = useRemoteBlock(
+    sourceUrl,
+    crossFrame,
+    onBlockLoaded,
+  );
 
   if (loading) {
     return <BlockLoadingIndicator />;

@@ -2,6 +2,7 @@ import { BlockVariant } from "@hashintel/block-protocol";
 import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
+import { findComponentNodes } from "@hashintel/hash-shared/prosemirror";
 import { Schema } from "prosemirror-model";
 import { NodeSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
@@ -15,33 +16,41 @@ import DragVertical from "../../components/Icons/DragVertical";
 import styles from "./style.module.css";
 import { RenderPortal } from "./usePortals";
 
+type BlockHandleProps = {
+  entityId: string | null;
+  onTypeChange: BlockSuggesterProps["onChange"];
+};
+
 /**
  * specialized block-type/-variant select field
  */
-export const BlockHandle = forwardRef<
-  HTMLDivElement,
-  { onTypeChange: BlockSuggesterProps["onChange"] }
->(({ onTypeChange }, ref) => {
-  const [isPopoverVisible, setPopoverVisible] = useState(false);
+export const BlockHandle = forwardRef<HTMLDivElement, BlockHandleProps>(
+  (props, ref) => {
+    const { entityId, onTypeChange } = props;
 
-  useEffect(() => {
-    const closePopover = () => setPopoverVisible(false);
-    document.addEventListener("click", closePopover);
-    return () => document.removeEventListener("click", closePopover);
-  }, []);
+    const [isPopoverVisible, setPopoverVisible] = useState(false);
 
-  return (
-    <div ref={ref} className={tw`relative cursor-pointer`}>
-      <DragVertical
-        onClick={(evt: MouseEvent) => {
-          evt.stopPropagation(); // skips closing handler
-          setPopoverVisible(true);
-        }}
-      />
-      {isPopoverVisible ? <BlockSuggester onChange={onTypeChange} /> : null}
-    </div>
-  );
-});
+    useEffect(() => {
+      const closePopover = () => setPopoverVisible(false);
+      document.addEventListener("click", closePopover);
+      return () => document.removeEventListener("click", closePopover);
+    }, []);
+
+    return (
+      <div ref={ref} className={tw`relative cursor-pointer`}>
+        <DragVertical
+          onClick={(evt: MouseEvent) => {
+            evt.stopPropagation(); // skips closing handler
+            setPopoverVisible(true);
+          }}
+        />
+        {isPopoverVisible && (
+          <BlockSuggester onChange={onTypeChange} entityId={entityId} />
+        )}
+      </div>
+    );
+  },
+);
 
 /**
  * This is the node view that wraps every one of our blocks in order to inject
@@ -59,6 +68,17 @@ export class BlockView implements NodeView<Schema> {
   /** used to hide node-view specific events from prosemirror */
   blockHandleRef = createRef<HTMLDivElement>();
 
+  getBlockEntityIdFromNode = (node: ProsemirrorNode<Schema>) => {
+    const componentNodes = findComponentNodes(node);
+    if (componentNodes.length !== 1) {
+      return null;
+    }
+    const { blockEntityId } = componentNodes[0][0].attrs;
+
+    // The current default for this is an empty string, not null.
+    return blockEntityId === "" ? null : blockEntityId;
+  };
+
   constructor(
     public node: ProsemirrorNode<Schema>,
     public view: EditorView<Schema>,
@@ -66,7 +86,14 @@ export class BlockView implements NodeView<Schema> {
     public renderPortal: RenderPortal,
     public manager: ProsemirrorSchemaManager,
   ) {
+    const entityId = this.getBlockEntityIdFromNode(node);
+
     this.dom = document.createElement("div");
+
+    if (entityId) {
+      this.dom.id = entityId;
+    }
+
     this.dom.classList.add(styles.Block);
 
     this.selectContainer = document.createElement("div");
@@ -159,6 +186,12 @@ export class BlockView implements NodeView<Schema> {
       this.dom.classList.remove(styles["Block--dragging"]);
     }
 
+    const entityId = this.getBlockEntityIdFromNode(this.node);
+
+    if (entityId) {
+      this.dom.id = entityId;
+    }
+
     this.renderPortal(
       <>
         {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
@@ -202,6 +235,7 @@ export class BlockView implements NodeView<Schema> {
         />
         <BlockHandle
           ref={this.blockHandleRef}
+          entityId={entityId}
           onTypeChange={this.onBlockChange}
         />
       </>,
@@ -238,7 +272,7 @@ export class BlockView implements NodeView<Schema> {
         node,
         getPos,
       )
-      .catch((err) => {
+      .catch((err: Error) => {
         console.error(err);
       });
   };

@@ -121,6 +121,7 @@ export class ComponentView implements NodeView<Schema> {
           sourceUrl={`${mappedUrl}/${this.sourceName}`}
           editableRef={editableRef}
           shouldSandbox={!editableRef}
+          entityId={entityId}
         />,
         this.target,
       );
