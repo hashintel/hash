@@ -1,4 +1,5 @@
 import gql from "graphql-tag";
+import { linkFieldsFragment } from "./link.queries";
 
 export const getEntity = gql`
   query getEntity($accountId: ID!, $entityId: ID!) {
@@ -10,6 +11,20 @@ export const getEntity = gql`
       entityTypeId
       entityTypeVersionId
       entityTypeName
+      linkGroups {
+        links {
+          ...LinkFields
+        }
+        sourceEntityId
+        sourceEntityVersionId
+        path
+      }
+      linkedEntities {
+        accountId
+        entityId
+        entityTypeId
+        properties
+      }
       updatedAt
       accountId
       ... on UnknownEntity {
@@ -21,6 +36,7 @@ export const getEntity = gql`
       visibility
     }
   }
+  ${linkFieldsFragment}
 `;
 
 export const createEntity = gql`
@@ -100,6 +116,7 @@ export const aggregateEntity = gql`
       results {
         __typename
         id
+        accountId
         entityId
         entityTypeId
         entityTypeVersionId

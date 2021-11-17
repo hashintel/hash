@@ -100,6 +100,7 @@ const NewEntity: VoidFunctionComponent = () => {
         <div>
           {selectedType && (
             <EntityEditor
+              accountId={accountId}
               aggregate={aggregate}
               create={createAndNavigateToFirstEntity}
               entityTypeId={selectedTypeId!}

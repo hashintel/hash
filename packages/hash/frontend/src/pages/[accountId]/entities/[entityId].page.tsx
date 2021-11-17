@@ -17,6 +17,8 @@ import {
 import { useBlockProtocolUpdate } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdate";
 import { entityName } from "../../../lib/entities";
 import { useBlockProtocolAggregate } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolAggregate";
+import { useBlockProtocolDeleteLink } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolDeleteLink";
+import { useBlockProtocolCreateLink } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolCreateLink";
 
 const Entity: VoidFunctionComponent = () => {
   const router = useRouter();
@@ -24,15 +26,17 @@ const Entity: VoidFunctionComponent = () => {
   const accountId = query.accountId as string;
   const entityId = query.entityId as string;
 
-  const { data } = useQuery<GetEntityQuery, GetEntityQueryVariables>(
-    getEntity,
-    {
-      variables: {
-        accountId,
-        entityId,
-      },
+  const { data, refetch: refetchEntity } = useQuery<
+    GetEntityQuery,
+    GetEntityQueryVariables
+  >(getEntity, {
+    variables: {
+      accountId,
+      entityId,
     },
-  );
+  });
+  const { createLink } = useBlockProtocolCreateLink(accountId);
+  const { deleteLink } = useBlockProtocolDeleteLink(accountId);
   const { update } = useBlockProtocolUpdate(accountId);
   const { aggregate } = useBlockProtocolAggregate(accountId);
 
@@ -59,7 +63,7 @@ const Entity: VoidFunctionComponent = () => {
         <header>
           <h1>
             <strong>
-              {entity ? `Editing ${entityName(entity)}` : "Loading..."}
+              {entity ? `Editing '${entityName(entity)}'` : "Loading..."}
             </strong>
           </h1>
         </header>
@@ -67,10 +71,13 @@ const Entity: VoidFunctionComponent = () => {
           {entity && (
             <EntityEditor
               aggregate={aggregate}
+              createLink={createLink}
+              deleteLink={deleteLink}
               update={updateAndNavigateToFirstEntity}
               entityProperties={entity.properties}
-              entityId={entityId!}
               schema={entity.entityType.properties}
+              refetchEntity={refetchEntity}
+              {...entity}
             />
           )}
         </div>

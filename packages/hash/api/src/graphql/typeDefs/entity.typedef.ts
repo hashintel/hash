@@ -192,7 +192,7 @@ export const entityTypedef = gql`
 
   type LinkedAggregation {
     operation: AggregateOperation!
-    results: [Entity!]!
+    results: [UnknownEntity!]!
     path: String!
   }
 
