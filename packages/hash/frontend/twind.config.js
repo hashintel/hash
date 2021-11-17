@@ -11,6 +11,7 @@ module.exports = {
       },
       fontSize: {
         xxs: "0.685rem",
+        inherit: "inherit",
       },
     },
   },
