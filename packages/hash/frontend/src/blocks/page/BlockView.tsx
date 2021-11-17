@@ -26,43 +26,38 @@ type BlockHandleProps = {
   onTypeChange: BlockSuggesterProps["onChange"];
 };
 
-/**
- * specialized block-type/-variant select field
- */
-export const BlockHandle = forwardRef<
-  HTMLDivElement,
-  BlockHandleProps
->(({ entityId, onTypeChange }, ref) => {
-  const [isPopoverVisible, setPopoverVisible] = useState(false);
+export const BlockHandle = forwardRef<HTMLDivElement, BlockHandleProps>(
+  ({ entityId, onTypeChange }, ref) => {
+    const [isPopoverVisible, setPopoverVisible] = useState(false);
 
-  const closePopover = () => setPopoverVisible(false);
+    useOutsideClick(ref as RefObject<HTMLDivElement>, () =>
+      setPopoverVisible(false),
+    );
 
-  useOutsideClick(ref as RefObject<HTMLDivElement>, () =>
-    setPopoverVisible(false),
-  );
+    const blockSuggesterProps: BlockSuggesterProps = useMemo(
+      () => ({
+        onChange: (variant, block) => {
+          onTypeChange(variant, block);
+          setPopoverVisible(false);
+        },
+      }),
+      [onTypeChange],
+    );
 
-  const blockSuggesterProps: BlockSuggesterProps = useMemo(
-    () => ({
-      onChange: (variant, block) => {
-        onTypeChange(variant, block);
-        closePopover();
-      },
-    }),
-    [onTypeChange, closePopover],
-  );
-
-  return (
-    <div ref={ref} className={tw`relative cursor-pointer`}>
-      <DragVertical onClick={() => setPopoverVisible(true)} />
-      {isPopoverVisible && (
-        <BlockContextMenu
-          blockSuggesterProps={blockSuggesterProps}
-          closeMenu={() => setPopoverVisible(false)}
-        />
-      )}
-    </div>
-  );
-});
+    return (
+      <div ref={ref} className={tw`relative cursor-pointer`}>
+        <DragVertical onClick={() => setPopoverVisible(true)} />
+        {isPopoverVisible && (
+          <BlockContextMenu
+            entityId={entityId}
+            blockSuggesterProps={blockSuggesterProps}
+            closeMenu={() => setPopoverVisible(false)}
+          />
+        )}
+      </div>
+    );
+  },
+);
 
 /**
  * This is the node view that wraps every one of our blocks in order to inject
