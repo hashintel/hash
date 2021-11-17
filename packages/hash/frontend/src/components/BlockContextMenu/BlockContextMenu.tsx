@@ -11,7 +11,8 @@ import {
 } from "../BlockSuggester/BlockSuggester";
 
 type BlockContextMenuProps = {
-  onBlockSuggesterChange: BlockSuggesterProps["onChange"];
+  blockSuggesterProps: BlockSuggesterProps;
+  closeMenu: () => void;
 };
 
 const MENU_ITEMS = [
@@ -38,16 +39,16 @@ const MENU_ITEMS = [
 ] as const;
 
 export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
-  onBlockSuggesterChange,
+  blockSuggesterProps,
+  closeMenu,
 }) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [subMenuVisible, setSubMenuVisible] = useState(false);
 
   useKey(["ArrowUp", "ArrowDown"], (event) => {
     event.preventDefault();
-    if (subMenuVisible) {
-      return;
-    }
+    if (subMenuVisible) return;
+
     let index = selectedIndex + (event.key === "ArrowUp" ? -1 : 1);
     index += MENU_ITEMS.length;
     index %= MENU_ITEMS.length;
@@ -55,23 +56,8 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
   });
 
   useKey(["ArrowLeft", "ArrowRight"], (event) => {
-    switch (event.key) {
-      case "ArrowRight":
-        if (
-          !subMenuVisible &&
-          MENU_ITEMS[selectedIndex]?.key === "switchBlock"
-        ) {
-          setSubMenuVisible(true);
-        }
-        break;
-      case "ArrowLeft":
-        if (
-          subMenuVisible &&
-          MENU_ITEMS[selectedIndex]?.key === "switchBlock"
-        ) {
-          setSubMenuVisible(false);
-        }
-        break;
+    if (MENU_ITEMS[selectedIndex]?.key === "switchBlock") {
+      setSubMenuVisible(event.key === "ArrowRight");
     }
   });
 
@@ -83,6 +69,10 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
       case "switchBlock":
         setSubMenuVisible(!subMenuVisible);
         break;
+    }
+
+    if (key !== "switchBlock") {
+      closeMenu();
     }
   };
 
@@ -123,7 +113,7 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
                   className={`left-full ml-0.5 mt-2 ${
                     subMenuVisible ? "block" : "hidden"
                   } text-left hover:block group-hover:block shadow-xl`}
-                  onChange={onBlockSuggesterChange}
+                  {...blockSuggesterProps}
                 />
               )}
             </button>

@@ -10,9 +10,10 @@ import React, {
   createRef,
   forwardRef,
   RefObject,
-  useEffect,
+  useMemo,
   useState,
 } from "react";
+import { useOutsideClick } from "rooks";
 import { tw } from "twind";
 import { BlockContextMenu } from "../../components/BlockContextMenu/BlockContextMenu";
 import { BlockSuggesterProps } from "../../components/BlockSuggester/BlockSuggester";
@@ -36,39 +37,29 @@ export const BlockHandle = forwardRef<
 
   const closePopover = () => setPopoverVisible(false);
 
-  useEffect(() => {
-    const handleClick = (evt: MouseEvent) => {
-      const blockHandleRef = ref as RefObject<HTMLDivElement>;
-      if (
-        evt.target &&
-        evt.target !== blockHandleRef.current &&
-        !blockHandleRef.current?.contains(evt.target as Node)
-      ) {
-        closePopover();
-      }
-    };
-    document.addEventListener("click", handleClick);
-    return () => document.removeEventListener("click", handleClick);
-  }, []);
+  useOutsideClick(ref as RefObject<HTMLDivElement>, () =>
+    setPopoverVisible(false),
+  );
 
-  const onBlockSuggesterChange: BlockSuggesterProps["onChange"] = (
-    variant,
-    block,
-  ) => {
-    onTypeChange(variant, block);
-    closePopover();
-  };
+  const blockSuggesterProps: BlockSuggesterProps = useMemo(
+    () => ({
+      onChange: (variant, block) => {
+        onTypeChange(variant, block);
+        closePopover();
+      },
+    }),
+    [onTypeChange, closePopover],
+  );
 
   return (
     <div ref={ref} className={tw`relative cursor-pointer`}>
-      <DragVertical
-        onClick={() => {
-          setPopoverVisible(true);
-        }}
-      />
-      {isPopoverVisible ? (
-        <BlockContextMenu onBlockSuggesterChange={onBlockSuggesterChange} />
-      ) : null}
+      <DragVertical onClick={() => setPopoverVisible(true)} />
+      {isPopoverVisible && (
+        <BlockContextMenu
+          blockSuggesterProps={blockSuggesterProps}
+          closeMenu={() => setPopoverVisible(false)}
+        />
+      )}
     </div>
   );
 });
