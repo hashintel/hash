@@ -80,7 +80,7 @@ fn experiment_init_to_nng(init: &ExperimentInitRunnerMsg) -> Result<nng::Message
                 &gen::PackageArgs {
                     type_: init_msg.r#type.into(),
                     name: Some(package_name),
-                    sid: package_id.as_usize() as u64, // TODO is this a safe cast down
+                    sid: package_id.as_usize() as u64,
                     init_payload: Some(payload),
                 },
             ))
@@ -350,11 +350,11 @@ impl PythonRunner {
         }
 
         // Spawn Python process.
-        // let mut cmd = Command::new("sh");
-        // cmd.arg("./packages/engine/src/worker/runner/python/run.sh")
-        //     .arg(&self.init_msg.experiment_id)
-        //     .arg(&self.init_msg.worker_index.to_string());
-        // let mut process = cmd.spawn()?;
+        let mut cmd = Command::new("sh");
+        cmd.arg(".src/worker/runner/python/run.sh")
+            .arg(&self.init_msg.experiment_id)
+            .arg(&self.init_msg.worker_index.to_string());
+        let mut process = cmd.spawn()?;
 
         // Send messages to Python process.
         self.nng_receiver.init(&self.init_msg)?;
