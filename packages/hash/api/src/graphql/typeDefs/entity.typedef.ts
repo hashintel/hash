@@ -310,5 +310,23 @@ export const entityTypedef = gql`
       entityId: ID!
       properties: JSONObject!
     ): Entity!
+
+    """
+    Transfers an entity from an account to another
+    """
+    transferEntity(
+      """
+      id of the original account the entity currently belongs to
+      """
+      originalAccountId: ID!
+      """
+      id of the entity to transfer
+      """
+      entityId: ID!
+      """
+      id of the new account to transfer the entity to
+      """
+      newAccountId: ID!
+    ): Entity!
   }
 `;

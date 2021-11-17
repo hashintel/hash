@@ -349,6 +349,92 @@ export const updateEntityVersionProperties = async (
   `);
 };
 
+/** Updates the account id of an entity and its versions for a given entity id.
+ * Note: All the versions will be mutated.
+ * This query also updates account id in the related links
+ */
+export const updateEntityAccountId = async (
+  conn: Connection,
+  {
+    originalAccountId,
+    entityId,
+    newAccountId,
+  }: {
+    originalAccountId: string;
+    entityId: string;
+    newAccountId: string;
+  },
+) => {
+  await conn.transaction(async (transaction) => {
+    await Promise.all([
+      // Deffer constraints on foreign keys so we can update them without issues
+      transaction.query(sql`
+        set constraints
+          entity_versions_account_id_entity_id_fkey,
+          entity_account_account_id_entity_version_id_fkey,
+          outgoing_links_source_account_id_source_entity_id_fkey,
+          outgoing_links_destination_account_id_destination_entity_id_fkey,
+          incoming_links_destination_account_id_destination_entity_id_fkey,
+          incoming_links_source_account_id_source_entity_id_fkey
+        deferred
+      `),
+      /** Update the account id in all the entity tables:
+       * entity_versions, entity_account, entities
+       */
+      transaction.query(sql`
+        update entity_versions set
+          account_id = ${newAccountId}
+        where
+          account_id = ${originalAccountId}
+          and entity_id = ${entityId}
+      `),
+      transaction.query(sql`
+        update entity_account set
+          account_id = ${newAccountId}
+        where
+          account_id = ${originalAccountId}
+          and entity_id = ${entityId}
+      `),
+      transaction.query(sql`
+        update entities set
+          account_id = ${newAccountId}
+        where
+          account_id = ${originalAccountId}
+          and entity_id = ${entityId}
+      `),
+      /** Update incoming_links and outgoing_links account ids */
+      transaction.query(sql`
+        update incoming_links set
+          source_account_id = ${newAccountId}
+        where
+          source_account_id = ${originalAccountId}
+          and source_entity_id = ${entityId}
+      `),
+      transaction.query(sql`
+        update incoming_links set
+          destination_account_id = ${newAccountId}
+        where
+          destination_account_id = ${originalAccountId}
+          and destination_entity_id = ${entityId}
+      `),
+      transaction.query(sql`
+        update outgoing_links set
+          source_account_id = ${newAccountId}
+        where
+          source_account_id = ${originalAccountId}
+          and source_entity_id = ${entityId}
+      `),
+      transaction.query(sql`
+        update outgoing_links set
+          destination_account_id = ${newAccountId}
+        where
+          destination_account_id = ${originalAccountId}
+          and destination_entity_id = ${entityId}
+      `),
+    ]);
+  });
+};
+
 export const getEntityHistory = async (
   conn: Connection,
   params: {

@@ -59,6 +59,11 @@ export const createUsers =
         shortname: "valentino",
         preferredName: "Valentino",
       },
+      {
+        email: "lp@hash.ai",
+        shortname: "liana",
+        preferredName: "Liana",
+      },
     ];
 
     return Promise.all(

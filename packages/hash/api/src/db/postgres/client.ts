@@ -11,6 +11,7 @@ import {
 import { genId, exactlyOne } from "../../util";
 import { Connection } from "./types";
 import {
+  accountExists,
   getEntityAccountId,
   insertAccount,
   insertEntityAccount,
@@ -37,6 +38,7 @@ import {
   insertEntityVersion,
   acquireEntityLock,
   updateEntity,
+  updateEntityAccountId,
 } from "./entity";
 import { insertLinks } from "./link";
 import { getUserByEmail, getUserByShortname } from "./user";
@@ -274,6 +276,14 @@ export class PostgresClient implements DBClient {
     properties: any;
   }): Promise<Entity> => updateEntity(this.conn, params);
 
+  async updateEntityAccountId(params: {
+    originalAccountId: string;
+    entityId: string;
+    newAccountId: string;
+  }): Promise<void> {
+    await updateEntityAccountId(this.conn, params);
+  }
+
   /**
    * Update an entity type, either its name, schema, or both.
    * Creates a new version of the entity type for any update.
@@ -389,6 +399,10 @@ export class PostgresClient implements DBClient {
     return params.latestOnly
       ? await getEntitiesByTypeLatestVersion(this.conn, params)
       : await getEntitiesByTypeAllVersions(this.conn, params);
+  }
+
+  async accountExists(params: { accountId: string }): Promise<boolean> {
+    return await accountExists(this.conn, params);
   }
 
   /**  Get all account type entities (User or Org). */

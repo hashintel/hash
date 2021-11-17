@@ -144,6 +144,14 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return this.query((adapter) => adapter.updateEntity(params));
   }
 
+  updateEntityAccountId(params: {
+    originalAccountId: string;
+    entityId: string;
+    newAccountId: string;
+  }): Promise<void> {
+    return this.query((adapter) => adapter.updateEntityAccountId(params));
+  }
+
   getUserByEmail(params: {
     email: string;
     verified?: boolean;
@@ -175,6 +183,10 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     latestOnly?: boolean;
   }): Promise<Entity[]> {
     return this.query((adapter) => adapter.getEntitiesBySystemType(params));
+  }
+
+  accountExists(params: { accountId: string }): Promise<boolean> {
+    return this.query((adapter) => adapter.accountExists(params));
   }
 
   getAllAccounts(): Promise<Entity[]> {
