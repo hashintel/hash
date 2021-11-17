@@ -104,7 +104,10 @@ export class Instance {
     const nextSavedContents = walkValueForEntity(
       this.savedContents,
       (entity) => {
-        if (entity.entityId === entityVersion.entityId) {
+        if (
+          entity.entityId === entityVersion.entityId &&
+          entity.updatedAt !== entityVersion.updatedAt.toISOString()
+        ) {
           return {
             ...entity,
             accountId: entityVersion.accountId,
@@ -113,8 +116,8 @@ export class Instance {
             // @todo what happens with links!?
             properties: entityVersion.properties,
             createdById: entityVersion.createdBy,
-            createdAt: entityVersion.createdAt,
-            updatedAt: entityVersion.updatedAt,
+            createdAt: entityVersion.createdAt.toISOString(),
+            updatedAt: entityVersion.updatedAt.toISOString(),
           };
         }
 
@@ -122,6 +125,7 @@ export class Instance {
       },
     );
 
+    // @todo don't do this if nextSavedContents === this.savedContents
     this.updateSavedContents(nextSavedContents);
   }
 

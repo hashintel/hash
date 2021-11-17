@@ -106,7 +106,7 @@ class __VerificationCode {
   toGQLVerificationCodeMetadata(): GQLVerificationCodeMetadata {
     return {
       id: this.id,
-      createdAt: this.createdAt,
+      createdAt: this.createdAt.toISOString(),
     };
   }
 }
