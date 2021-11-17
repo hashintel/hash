@@ -160,7 +160,6 @@ export class Instance {
     );
 
     this.updateSavedContents(nextSavedContents);
-    this.sendUpdates();
   }
 
   private updateSavedContents(nextSavedContents: BlockEntity[]) {
@@ -168,6 +167,11 @@ export class Instance {
     addEntityStoreAction(tr, { type: "contents", payload: nextSavedContents });
     this.state = this.state.apply(tr);
     this.savedContents = nextSavedContents;
+
+    this.entityStore = {
+      version: this.version + 1,
+      store: entityStoreFromProsemirror(this.state).store,
+    };
 
     /**
      * This is a hack to do with version number hacking
@@ -178,11 +182,6 @@ export class Instance {
       [new ReplaceStep<Schema>(0, 0, Slice.empty)],
       "graphql",
     );
-
-    this.entityStore = {
-      version: this.steps.length,
-      store: entityStoreFromProsemirror(this.state).store,
-    };
   }
 
   addEvents =
@@ -266,6 +265,7 @@ export class Instance {
                 ...attrs,
               });
 
+              // @todo need to do this outside the loop
               this.addEvents(apolloClient)(
                 this.version,
                 transform.steps,
