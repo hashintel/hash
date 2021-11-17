@@ -1,21 +1,116 @@
 mod error;
 
+use crate::gen;
 use futures::FutureExt;
 use nng::options::Options;
 use nng::{Aio, Socket};
+use std::str::FromStr;
 use tokio::process::Command;
 use tokio::sync::mpsc::{unbounded_channel, Receiver, Sender, UnboundedReceiver, UnboundedSender};
+use uuid::Uuid;
 
 use super::comms::{
     inbound::InboundToRunnerMsgPayload, outbound::OutboundFromRunnerMsg, ExperimentInitRunnerMsg,
 };
+use crate::datastore::batch::Batch;
 use crate::proto::{ExperimentID, SimulationShortID};
 use crate::types::WorkerIndex;
 use crate::worker::{Error as WorkerError, Result as WorkerResult};
 pub use error::{Error, Result};
 
-fn experiment_init_to_nng(init: &ExperimentInitRunnerMsg) -> nng::Message {
-    todo!()
+fn experiment_init_to_nng(init: &ExperimentInitRunnerMsg) -> Result<nng::Message> {
+    // TODO - initial buffer size
+    let mut fbb = flatbuffers::FlatBufferBuilder::new();
+    let experiment_id = gen::ExperimentID(*(Uuid::from_str(&init.experiment_id)?.as_bytes()));
+
+    // Build the SharedContext Flatbuffer Batch objects and collect their offsets in a vec
+    let batch_offsets = init
+        .shared_context
+        .datasets
+        .iter()
+        .map(|(dataset_name, dataset)| {
+            let dataset_metaversion = dataset.metaversion();
+
+            let batch_id_offset = fbb.create_string(dataset_name);
+            let metaversion_offset = gen::Metaversion::create(
+                &mut fbb,
+                &gen::MetaversionArgs {
+                    memory: dataset_metaversion.memory(),
+                    batch: dataset_metaversion.batch(),
+                },
+            );
+
+            return gen::Batch::create(
+                &mut fbb,
+                &gen::BatchArgs {
+                    batch_id: Some(batch_id_offset),
+                    metaversion: Some(metaversion_offset),
+                },
+            );
+        })
+        .collect::<Vec<_>>();
+    let batch_fbs_vec = fbb.create_vector(&batch_offsets);
+
+    // Build the SharedContext using the vec
+    let shared_context = gen::SharedContext::create(
+        &mut fbb,
+        &gen::SharedContextArgs {
+            datasets: Some(batch_fbs_vec),
+        },
+    );
+
+    // Build the Flatbuffer Package objects and collect their offsets in a vec
+    let packages = init
+        .package_config
+        .0
+        .iter()
+        .map(|(package_id, init_msg)| {
+            let package_name = fbb.create_string(init_msg.name.clone().into());
+
+            let serialized_payload = fbb.create_vector(&serde_json::to_vec(&init_msg.payload)?);
+            let payload = gen::Serialized::create(
+                &mut fbb,
+                &gen::SerializedArgs {
+                    inner: Some(serialized_payload),
+                },
+            );
+
+            Ok(gen::Package::create(
+                &mut fbb,
+                &gen::PackageArgs {
+                    type_: init_msg.r#type.into(),
+                    name: Some(package_name),
+                    sid: package_id.as_usize() as u16, // TODO is this a safe cast down
+                    init_payload: Some(payload),
+                },
+            ))
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let packages_fbs_vec = fbb.create_vector(&packages);
+
+    let package_config = gen::PackageConfig::create(
+        &mut fbb,
+        &gen::PackageConfigArgs {
+            packages: Some(packages_fbs_vec),
+        },
+    );
+    let msg = gen::Init::create(
+        &mut fbb,
+        &gen::InitArgs {
+            experiment_id: Some(&experiment_id),
+            worker_index: init.worker_index as u64,
+            shared_context: Some(shared_context),
+            package_config: Some(package_config),
+        },
+    );
+
+    fbb.finish(msg, None);
+    let bytes = fbb.finished_data();
+
+    let mut nanomsg = nng::Message::with_capacity(bytes.len());
+    nanomsg.push_front(bytes);
+
+    Ok(nanomsg)
 }
 
 fn inbound_to_nng(
@@ -163,7 +258,7 @@ impl NngReceiver {
         let listener = nng::Listener::new(&self.from_py, &self.route)?;
         let _init_request = self.from_py.recv()?;
         self.from_py // Only case where `from_py` is used for sending
-            .send(experiment_init_to_nng(init_msg))
+            .send(experiment_init_to_nng(init_msg)?)
             .map_err(|(msg, err)| Error::NngSend(msg, err))?;
 
         let _init_ack = self.from_py.recv()?;

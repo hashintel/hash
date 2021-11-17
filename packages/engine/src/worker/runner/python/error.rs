@@ -21,6 +21,12 @@ pub enum Error {
 
     #[error("Couldn't receive outbound message from runner")]
     OutboundReceive,
+
+    #[error("UUID error: {0}")]
+    Uuid(#[from] uuid::Error),
+
+    #[error("Serde JSON error: {0}")]
+    SerdeJson(#[from] serde_json::Error),
 }
 
 impl From<&str> for Error {

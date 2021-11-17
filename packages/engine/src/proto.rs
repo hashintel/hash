@@ -370,6 +370,7 @@ pub struct ProcessedExperimentRun {
     pub compute_usage_remaining: i64,
 }
 
+// TODO - Replace with UUID?
 pub type ExperimentID = String;
 
 /// A wrapper around an Option to avoid displaying the inner for Debug outputs,

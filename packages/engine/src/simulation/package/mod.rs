@@ -47,6 +47,8 @@ pub mod prelude {
     pub use async_trait::async_trait;
 }
 
+use crate::gen;
+
 #[derive(Clone, Copy, Debug)]
 pub enum PackageType {
     Init,
@@ -62,6 +64,17 @@ impl PackageType {
             PackageType::Context => "context",
             PackageType::State => "state",
             PackageType::Output => "output",
+        }
+    }
+}
+
+impl From<PackageType> for gen::PackageType {
+    fn from(package_type: PackageType) -> Self {
+        match package_type {
+            PackageType::Init => gen::PackageType::Init,
+            PackageType::Context => gen::PackageType::Context,
+            PackageType::State => gen::PackageType::State,
+            PackageType::Output => gen::PackageType::Output,
         }
     }
 }
