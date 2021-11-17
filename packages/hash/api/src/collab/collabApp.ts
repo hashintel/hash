@@ -8,12 +8,26 @@ import { IncomingMessage } from "http";
 // eslint-disable-next-line import/no-extraneous-dependencies
 import UAParser from "ua-parser-js";
 import { FRONTEND_URL } from "../lib/config";
+import { EntityWatcher } from "./EntityWatcher";
 import { getInstance, Instance } from "./Instance";
 import { InvalidRequestPayloadError, InvalidVersionError } from "./errors";
 import { Waiting } from "./Waiting";
 import { queuePromise } from "./queue";
 
 export const collabApp = express();
+
+const entityWatcherPromise = (async () => {
+  const entityWatcher = new EntityWatcher(await queuePromise);
+
+  /**
+   * @todo handle this
+   */
+  entityWatcher.start().catch((err) => {
+    console.error("Error in entity watcher", err);
+  });
+
+  return entityWatcher;
+})();
 
 collabApp.use(json({ limit: "16mb" }));
 collabApp.use(corsMiddleware({ credentials: true, origin: FRONTEND_URL }));
@@ -68,7 +82,7 @@ collabApp.get("/:accountId/:pageEntityId", (request, response) => {
     // TODO: Replace with apollo client → me
     const userId = extractTempFakeUserId(request);
 
-    const instance = await getInstance(client, await queuePromise)(
+    const instance = await getInstance(client, await entityWatcherPromise)(
       request.params.accountId,
       request.params.pageEntityId,
       userId,
@@ -93,7 +107,7 @@ collabApp.get("/:accountId/:pageEntityId/events", async (request, response) => {
     // TODO: Replace with apollo client → me
     const userId = extractTempFakeUserId(request);
 
-    const instance = await getInstance(client, await queuePromise)(
+    const instance = await getInstance(client, await entityWatcherPromise)(
       request.params.accountId,
       request.params.pageEntityId,
       userId,
@@ -134,7 +148,7 @@ collabApp.post(
       // TODO: Replace with apollo client → me
       const userId = extractTempFakeUserId(request);
 
-      const instance = await getInstance(client, await queuePromise)(
+      const instance = await getInstance(client, await entityWatcherPromise)(
         request.params.accountId,
         request.params.pageEntityId,
         userId,
@@ -175,7 +189,7 @@ collabApp.get(
         return;
       }
 
-      const instance = await getInstance(client, await queuePromise)(
+      const instance = await getInstance(client, await entityWatcherPromise)(
         request.params.accountId,
         request.params.pageEntityId,
         userId,
@@ -213,7 +227,7 @@ collabApp.post(
         return;
       }
 
-      const instance = await getInstance(client, await queuePromise)(
+      const instance = await getInstance(client, await entityWatcherPromise)(
         request.params.accountId,
         request.params.pageEntityId,
         userId,

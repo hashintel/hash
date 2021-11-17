@@ -1,5 +1,6 @@
 import { ApolloClient } from "@apollo/client";
 import { EntityVersion } from "@hashintel/hash-backend-utils/pgTables";
+import { CollabPosition } from "@hashintel/hash-shared/collab";
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 import {
@@ -18,18 +19,15 @@ import {
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
 import { updatePageMutation } from "@hashintel/hash-shared/save";
-import { RedisQueueExclusiveConsumer } from "@hashintel/hash-backend-utils/queue/redis";
-import { Wal2JsonMsg } from "@hashintel/hash-backend-utils/wal2json";
+import { Response } from "express";
 import { isEqual } from "lodash";
 import { Schema, Slice } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
 import { Mapping, ReplaceStep, Step, Transform } from "prosemirror-transform";
-import { CollabPosition } from "@hashintel/hash-shared/collab";
-import { Response } from "express";
+import { EntityWatcher } from "./EntityWatcher";
 import { InvalidVersionError } from "./errors";
 import { CollabPositionPoller, TimedCollabPosition } from "./types";
 import { Waiting } from "./Waiting";
-import { COLLAB_QUEUE_NAME } from "./util";
 
 const MAX_STEP_HISTORY = 10000;
 
@@ -60,10 +58,9 @@ export class Instance {
   timedPositions: TimedCollabPosition[] = [];
   positionCleanupInterval: ReturnType<typeof setInterval>;
 
-  private stopRequested = false;
-  private isStopped = true;
-
   private entityStore: { version: number; store: EntityStore };
+
+  private readonly unsubscribeFromEntityWatcher: () => void;
 
   constructor(
     public accountId: string,
@@ -71,7 +68,7 @@ export class Instance {
     public state: EditorState<Schema>,
     public manager: ProsemirrorSchemaManager,
     public savedContents: BlockEntity[],
-    private queue: RedisQueueExclusiveConsumer,
+    private entityWatcher: EntityWatcher,
   ) {
     this.positionCleanupInterval = setInterval(() => {
       this.cleanupPositions();
@@ -82,6 +79,10 @@ export class Instance {
       version: this.version,
       store: entityStoreFromProsemirror(state).store,
     };
+
+    this.unsubscribeFromEntityWatcher = this.entityWatcher.subscribe(
+      (version) => this.processEntityVersion(version),
+    );
   }
 
   stop() {
@@ -94,48 +95,10 @@ export class Instance {
         response.status(410).send("Collab instance was stopped");
       }
     }
+    this.unsubscribeFromEntityWatcher();
   }
 
-  /** Start the loader process which reads messages from the ingestion queue and
-   * loads each into the search service.
-   */
-  async start(): Promise<void> {
-    this.stopRequested = false;
-    this.isStopped = false;
-    while (!this.stopRequested) {
-      await this.processNextQueueMsg(1000);
-    }
-    this.isStopped = true;
-  }
-
-  private async processNextQueueMsg(timeout: number): Promise<void> {
-    const processed = await this.queue.pop(
-      COLLAB_QUEUE_NAME,
-      timeout,
-      async (item: string) => {
-        const wal2jsonMsg = JSON.parse(item) as Wal2JsonMsg;
-        await this.processMessage(wal2jsonMsg);
-        return true;
-      },
-    );
-    if (processed) {
-      console.log("processed");
-    }
-  }
-
-  private async processMessage(msg: Wal2JsonMsg) {
-    if (msg.table !== "entity_versions") {
-      return;
-    }
-
-    // We probably only need to respond to inserted versions, right?...
-    // @todo check this
-    // if (msg.action !== "I") {
-    //   return;
-    // }
-
-    const entityVersion = EntityVersion.parseWal2JsonMsg(msg);
-
+  private async processEntityVersion(entityVersion: EntityVersion) {
     // @todo handle not processing own updates
 
     const nextSavedContents = walkValueForEntity(
@@ -465,7 +428,7 @@ let instanceCount = 0;
 const maxCount = 20;
 
 const newInstance =
-  (apolloClient: ApolloClient<unknown>, queue: RedisQueueExclusiveConsumer) =>
+  (apolloClient: ApolloClient<unknown>, entityWatcher: EntityWatcher) =>
   async (accountId: string, pageEntityId: string) => {
     if (++instanceCount > maxCount) {
       let oldest = null;
@@ -510,23 +473,18 @@ const newInstance =
       newState,
       manager,
       data.page.properties.contents,
-      queue,
+      entityWatcher,
     );
-
-    // @todo need to handle this
-    instances[pageEntityId].start().catch((err) => {
-      console.error("Error starting instance", err);
-    });
 
     return instances[pageEntityId];
   };
 
 export const getInstance =
-  (apolloClient: ApolloClient<unknown>, queue: RedisQueueExclusiveConsumer) =>
+  (apolloClient: ApolloClient<unknown>, entityWatcher: EntityWatcher) =>
   async (accountId: string, pageEntityId: string, userId: string | null) => {
     const inst =
       instances[pageEntityId] ||
-      (await newInstance(apolloClient, queue)(accountId, pageEntityId));
+      (await newInstance(apolloClient, entityWatcher)(accountId, pageEntityId));
     if (userId) inst.registerUser(userId);
     inst.lastActive = Date.now();
     return inst;
