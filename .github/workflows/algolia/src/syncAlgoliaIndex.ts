@@ -105,8 +105,8 @@ export const syncAlgoliaIndex = async () => {
 
   // delete moved/removed records from index
   generatedRecords.forEach((generatedRecord) => {
-    // we know that includes inside forEach this generally a bad idea, 
-    // but we have deal with 1K × 1K so it’s really quick
+    // we know that includes inside forEach is generally a bad idea, 
+    // but we have to only deal with 1K × 1K items so it’s really quick
     // https://github.com/hashintel/hash/pull/49#discussion_r750236459
     if (!indexedObjectIds.includes(generatedRecord.objectID)) {
       index.deleteObject(generatedRecord.objectID);
