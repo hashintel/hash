@@ -9,6 +9,7 @@ import {
   Org,
   UpdatePropertiesPayload,
   Entity,
+  Link,
 } from ".";
 
 export type DBOrgInvitationLinkProperties = {
@@ -68,12 +69,12 @@ class __OrgInvitationLink extends AccessToken {
     await Promise.all([
       entity.createOutgoingLink(client, {
         destination: org,
-        stringifiedPath: "$.org",
+        stringifiedPath: Link.stringifyPath(["org"]),
       }),
       /** @todo: remove this when inverse relationships are automatically created */
       org.createOutgoingLink(client, {
         destination: entity,
-        stringifiedPath: "$.invitationLink",
+        stringifiedPath: Link.stringifyPath(["invitationLink"]),
       }),
     ]);
 

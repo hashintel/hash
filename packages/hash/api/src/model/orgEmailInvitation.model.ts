@@ -10,6 +10,7 @@ import {
   User,
   UpdatePropertiesPayload,
   Entity,
+  Link,
 } from ".";
 import { sendOrgEmailInvitationToEmailAddress } from "../email";
 import { EmailTransporter } from "../email/transporters";
@@ -77,16 +78,16 @@ class __OrgEmailInvitation extends AccessToken {
     await Promise.all([
       entity.createOutgoingLink(client, {
         destination: org,
-        stringifiedPath: "$.org",
+        stringifiedPath: Link.stringifyPath(["org"]),
       }),
       /** @todo: remove this when inverse relationships are automatically created */
       org.createOutgoingLink(client, {
         destination: entity,
-        stringifiedPath: "$.emailInvitationLink",
+        stringifiedPath: Link.stringifyPath(["emailInvitationLink"]),
       }),
       entity.createOutgoingLink(client, {
         destination: inviter,
-        stringifiedPath: "$.inviter",
+        stringifiedPath: Link.stringifyPath(["inviter"]),
       }),
     ]);
 
