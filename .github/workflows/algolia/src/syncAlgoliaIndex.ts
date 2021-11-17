@@ -14,11 +14,11 @@ type DocsFrontMatter = {
   };
 };
 
-const getAllFiles = function (
+const getAllFiles = (
   dirPath,
   arrayOfFiles: Array<{ inputPath: string; outputPath: string; type: string }>,
   type
-) {
+) => {
   const files = fs.readdirSync(dirPath);
 
   arrayOfFiles = arrayOfFiles || [];
@@ -99,16 +99,16 @@ export const syncAlgoliaIndex = async () => {
     })
     .catch(console.error);
 
-  const objectIds = hits.map((hit) => hit.objectID);
+  const indexedObjectIds = hits.map((hit) => hit.objectID);
 
-  const records = generateAlgoliaJson();
+  const generatedRecords = generateAlgoliaJson();
 
   // delete moved/removed records from index
-  records.forEach((record) => {
-    if (!objectIds.includes(record.objectID)) {
-      index.deleteObject(record.objectID);
+  generatedRecords.forEach((generatedRecord) => {
+    if (!indexedObjectIds.includes(generatedRecord.objectID)) {
+      index.deleteObject(generatedRecord.objectID);
     }
   });
 
-  return index.saveObjects(records).catch(console.error);
+  await index.saveObjects(generatedRecords).catch(console.error);
 };
