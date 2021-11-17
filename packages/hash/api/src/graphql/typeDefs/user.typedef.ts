@@ -7,6 +7,8 @@ export const userTypedef = gql`
 
     properties: UserProperties!
 
+    memberOf: [OrgMembership!]!
+
     # ENTITY INTERFACE FIELDS BEGIN #
     """
     The id of the entity - alias of 'entityId'

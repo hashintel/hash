@@ -17,6 +17,12 @@ export const createOrg = gql`
       properties {
         shortname
       }
+      invitationLinks {
+        id
+        properties {
+          accessToken
+        }
+      }
     }
   }
 `;
@@ -73,6 +79,18 @@ export const getOrgEmailInvitation = gql`
       properties {
         inviteeEmailAddress
       }
+      org {
+        id
+        properties {
+          name
+        }
+      }
+      inviter {
+        id
+        properties {
+          preferredName
+        }
+      }
     }
   }
 `;
@@ -84,6 +102,13 @@ export const getOrgInvitationLink = gql`
       invitationLinkToken: $invitationLinkToken
     ) {
       entityId
+
+      org {
+        id
+        properties {
+          name
+        }
+      }
     }
   }
 `;

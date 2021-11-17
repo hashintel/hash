@@ -45,6 +45,17 @@ class __OrgEmailInvitation extends AccessToken {
     return dbEntityType;
   }
 
+  static async getOrgEmailInvitation(
+    client: DBClient,
+    params: { accountId: string; entityId: string },
+  ): Promise<OrgEmailInvitation | null> {
+    const dbOrgEmailInvitation = await client.getEntityLatestVersion(params);
+
+    return dbOrgEmailInvitation
+      ? new OrgEmailInvitation(dbOrgEmailInvitation)
+      : null;
+  }
+
   /**
    * Creates an email invitation for an organization, and sends an invitation email to the invitee.
    * @param {Org} org - The organisation the invitation is associated with.
@@ -115,6 +126,62 @@ class __OrgEmailInvitation extends AccessToken {
     await super.updateProperties(client, params);
     this.properties = params.properties;
     return params.properties;
+  }
+
+  async getOrg(client: DBClient): Promise<Org> {
+    const outgoingOrgLinks = await this.getOutgoingLinks(client, {
+      path: ["org"],
+    });
+
+    const orgLink = outgoingOrgLinks[0];
+
+    if (!orgLink) {
+      throw new Error(
+        `OrgEmailInvitation with entityId ${this.entityId} does not have an outgoing org link`,
+      );
+    }
+
+    const { destinationEntityId } = orgLink;
+
+    const org = await Org.getOrgById(client, {
+      entityId: destinationEntityId,
+    });
+
+    if (!org) {
+      throw new Error(
+        `OrgEmailInvitation with entityId ${this.entityId} links to org with entityId ${destinationEntityId} that cannot be found`,
+      );
+    }
+
+    return org;
+  }
+
+  async getInviter(client: DBClient): Promise<User> {
+    const outgoingInviterLinks = await this.getOutgoingLinks(client, {
+      path: ["inviter"],
+    });
+
+    const inviterLink = outgoingInviterLinks[0];
+
+    if (!inviterLink) {
+      throw new Error(
+        `OrgEmailInvitation with entityId ${this.entityId} does not have an outgoing inviter link`,
+      );
+    }
+
+    const { destinationEntityId } = inviterLink;
+
+    const inviter = await User.getUserById(client, {
+      entityId: destinationEntityId,
+    });
+
+    if (!inviter) {
+      throw new Error(
+        `OrgEmailInvitation with entityId ${this.entityId} links to org with entityId ${destinationEntityId} that cannot be found`,
+      );
+    }
+
+    return inviter;
   }
 
   /**

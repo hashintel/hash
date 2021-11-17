@@ -8,6 +8,8 @@ export const orgInvitationLinkTypedef = gql`
   type OrgInvitationLink implements Entity {
     properties: OrgInvitationLinkProperties!
 
+    org: Org!
+
     # ENTITY INTERFACE FIELDS BEGIN #
     """
     The id of the entity - alias of 'entityId'

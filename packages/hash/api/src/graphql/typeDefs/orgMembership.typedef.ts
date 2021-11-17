@@ -1,8 +1,16 @@
 import { gql } from "apollo-server-express";
 
 export const orgMembershipTypedef = gql`
+  type OrgMembershipProperties {
+    responsibility: String!
+  }
+
   type OrgMembership implements Entity {
     properties: OrgMembershipProperties!
+
+    user: User!
+
+    org: Org!
 
     # ENTITY INTERFACE FIELDS BEGIN #
     """
@@ -79,9 +87,5 @@ export const orgMembershipTypedef = gql`
     """
     linkedAggregations: [LinkedAggregation!]!
     # ENTITY INTERFACE FIELDS END #
-  }
-
-  type OrgMembershipProperties {
-    responsibility: String!
   }
 `;

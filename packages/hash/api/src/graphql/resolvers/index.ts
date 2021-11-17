@@ -29,10 +29,13 @@ import { createUser } from "./user/createUser";
 import { createUserWithOrgEmailInvitation } from "./user/createUserWithOrgEmailInvitation";
 import { updateUser } from "./user/updateUser";
 import { createOrg } from "./org/createOrg";
+import { orgLinkedEntities } from "./org/linkedEntities";
 import { accountSignupComplete } from "./user/accountSignupComplete";
 import { verifyEmail } from "./user/verifyEmail";
 import { sendLoginCode } from "./user/sendLoginCode";
 import { loginWithLoginCode } from "./user/loginWithLoginCode";
+import { userLinkedEntities } from "./user/linkedEntities";
+import { orgMembershipLinkedEntities } from "./orgMembership/linkedEntities";
 import { embedCode } from "./embed";
 import {
   getImpliedEntityHistory,
@@ -128,10 +131,17 @@ export const resolvers = {
   User: {
     accountSignupComplete,
     properties: entityFields.properties,
+    ...userLinkedEntities,
   },
 
   Org: {
     properties: entityFields.properties,
+    ...orgLinkedEntities,
+  },
+
+  OrgMembership: {
+    properties: entityFields.properties,
+    ...orgMembershipLinkedEntities,
   },
 
   FileProperties: {

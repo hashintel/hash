@@ -40,6 +40,17 @@ class __OrgInvitationLink extends AccessToken {
     return dbEntityType;
   }
 
+  static async getOrgInvitationLink(
+    client: DBClient,
+    params: { accountId: string; entityId: string },
+  ): Promise<OrgInvitationLink | null> {
+    const dbOrgInvitationLink = await client.getEntityLatestVersion(params);
+
+    return dbOrgInvitationLink
+      ? new OrgInvitationLink(dbOrgInvitationLink)
+      : null;
+  }
+
   /**
    * Create an org invitation.
    * @param {Org} org - The organisation the invitation is associated with.
@@ -84,6 +95,34 @@ class __OrgInvitationLink extends AccessToken {
     });
 
     return orgInvitationLink;
+  }
+
+  async getOrg(client: DBClient): Promise<Org> {
+    const outgoingOrgLinks = await this.getOutgoingLinks(client, {
+      path: ["org"],
+    });
+
+    const orgLink = outgoingOrgLinks[0];
+
+    if (!orgLink) {
+      throw new Error(
+        `OrgInvitationLink with entityId ${this.entityId} does not have an outgoing org link`,
+      );
+    }
+
+    const { destinationEntityId } = orgLink;
+
+    const org = await Org.getOrgById(client, {
+      entityId: destinationEntityId,
+    });
+
+    if (!org) {
+      throw new Error(
+        `OrgInvitationLink with entityId ${this.entityId} links to org with entityId ${destinationEntityId} that cannot be found`,
+      );
+    }
+
+    return org;
   }
 
   async updateProperties(

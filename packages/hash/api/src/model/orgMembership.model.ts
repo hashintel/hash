@@ -100,7 +100,9 @@ class __OrgMembership extends Entity {
     const userLink = outgoingUserLinks[0];
 
     if (!userLink) {
-      throw new Error("");
+      throw new Error(
+        `OrgMembership with entityId ${this.entityId} does not have an outgoing user link`,
+      );
     }
 
     const { destinationEntityId } = userLink;
@@ -126,7 +128,9 @@ class __OrgMembership extends Entity {
     const orgLink = outgoingOrgLinks[0];
 
     if (!orgLink) {
-      throw new Error("");
+      throw new Error(
+        `OrgMembership with entityId ${this.entityId} does not have an outgoing org link`,
+      );
     }
 
     const { destinationEntityId } = orgLink;
