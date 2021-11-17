@@ -14,6 +14,7 @@ export const getEntityOutgoingLinks = async (
     accountId: string;
     entityId: string;
     entityVersionId?: string;
+    path?: string;
   },
 ) => {
   const rows = await conn.any(sql<DBLinkRow>`
@@ -30,6 +31,7 @@ export const getEntityOutgoingLinks = async (
         params.entityVersionId !== undefined
           ? sql`${params.entityVersionId} = ANY(links.source_entity_version_ids)`
           : [],
+        params.path !== undefined ? sql`path = ${params.path}` : [],
       ].flat(),
       sql` and `,
     )}

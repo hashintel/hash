@@ -70,7 +70,7 @@ class __OrgInvitationLink extends AccessToken {
         destination: org,
         stringifiedPath: "$.org",
       }),
-      /** @todo: remove this when inverse relationships are automatically created */  
+      /** @todo: remove this when inverse relationships are automatically created */
       org.createOutgoingLink(client, {
         destination: entity,
         stringifiedPath: "$.invitationLink",

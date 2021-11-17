@@ -103,12 +103,13 @@ class __Org extends Account {
   }
 
   async getOrgMemberships(client: DBClient): Promise<OrgMembership[]> {
-    const outgoingLinks = await this.getOutgoingLinks(client);
+    const outgoingMembershipLinks = await this.getOutgoingLinks(client, {
+      path: ["membership"],
+    });
 
     return await Promise.all(
-      outgoingLinks
-        .filter(({ path }) => path[0] === "membership")
-        .map(async ({ destinationAccountId, destinationEntityId }) => {
+      outgoingMembershipLinks.map(
+        async ({ destinationAccountId, destinationEntityId }) => {
           const orgMembership = await OrgMembership.getOrgMembershipById(
             client,
             {
@@ -124,7 +125,8 @@ class __Org extends Account {
           }
 
           return orgMembership;
-        }),
+        },
+      ),
     );
   }
 

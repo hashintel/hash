@@ -389,12 +389,13 @@ class __User extends Account {
   }
 
   async getOrgMemberships(client: DBClient) {
-    const outgoingLinks = await this.getOutgoingLinks(client);
+    const outgoingMemberOfLinks = await this.getOutgoingLinks(client, {
+      path: ["memberOf"],
+    });
 
     return await Promise.all(
-      outgoingLinks
-        .filter(({ path }) => path[0] === "memberOf")
-        .map(async ({ destinationAccountId, destinationEntityId }) => {
+      outgoingMemberOfLinks.map(
+        async ({ destinationAccountId, destinationEntityId }) => {
           const orgMembership = await OrgMembership.getOrgMembershipById(
             client,
             {
@@ -410,7 +411,8 @@ class __User extends Account {
           }
 
           return orgMembership;
-        }),
+        },
+      ),
     );
   }
 
@@ -448,7 +450,7 @@ class __User extends Account {
       user: this,
     });
 
-    /** @todo: remove this when inverse relationships are automatically created */  
+    /** @todo: remove this when inverse relationships are automatically created */
     await Promise.all([
       this.createOutgoingLink(client, {
         stringifiedPath: Link.stringifyPath(["memberOf"]),

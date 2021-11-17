@@ -93,9 +93,11 @@ class __OrgMembership extends Entity {
   }
 
   async getUser(client: DBClient): Promise<User> {
-    const outgoingLinks = await this.getOutgoingLinks(client);
+    const outgoingUserLinks = await this.getOutgoingLinks(client, {
+      path: ["user"],
+    });
 
-    const userLink = outgoingLinks.find(({ path }) => path[0] === "user");
+    const userLink = outgoingUserLinks[0];
 
     if (!userLink) {
       throw new Error("");
@@ -117,9 +119,11 @@ class __OrgMembership extends Entity {
   }
 
   async getOrg(client: DBClient): Promise<Org> {
-    const outgoingLinks = await this.getOutgoingLinks(client);
+    const outgoingOrgLinks = await this.getOutgoingLinks(client, {
+      path: ["org"],
+    });
 
-    const orgLink = outgoingLinks.find(({ path }) => path[0] === "org");
+    const orgLink = outgoingOrgLinks[0];
 
     if (!orgLink) {
       throw new Error("");

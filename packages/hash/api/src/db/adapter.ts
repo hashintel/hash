@@ -378,6 +378,7 @@ export interface DBClient {
     accountId: string;
     entityId: string;
     entityVersionId?: string;
+    path?: string;
   }): Promise<DBLink[]>;
 
   /** Create a verification code */

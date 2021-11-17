@@ -1,5 +1,6 @@
 import { JSONObject } from "@hashintel/block-protocol";
 import { ApolloError } from "apollo-server-errors";
+import { PathComponent } from "jsonpath";
 import { merge } from "lodash";
 import {
   Account,
@@ -324,13 +325,22 @@ class __Entity {
     return this;
   }
 
-  async getOutgoingLinks(client: DBClient) {
+  async getOutgoingLinks(
+    client: DBClient,
+    params?: {
+      stringifiedPath?: string;
+      path?: PathComponent[];
+    },
+  ) {
     const outgoingDBLinks = await client.getEntityOutgoingLinks({
       accountId: this.accountId,
       entityId: this.entityId,
       entityVersionId: this.metadata.versioned
         ? this.entityVersionId
         : undefined,
+      path:
+        params?.stringifiedPath ??
+        (params?.path ? Link.stringifyPath(params.path) : undefined),
     });
     return outgoingDBLinks.map((dbLink) => new Link(dbLink));
   }
