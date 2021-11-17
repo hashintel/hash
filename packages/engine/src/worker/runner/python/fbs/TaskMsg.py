@@ -28,7 +28,7 @@ class TaskMsg(object):
     def PackageSid(self):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(4))
         if o != 0:
-            return self._tab.Get(flatbuffers.number_types.Uint16Flags, o + self._tab.Pos)
+            return self._tab.Get(flatbuffers.number_types.Uint64Flags, o + self._tab.Pos)
         return 0
 
     # TaskMsg
@@ -75,7 +75,7 @@ def Start(builder): builder.StartObject(5)
 def TaskMsgStart(builder):
     """This method is deprecated. Please switch to Start."""
     return Start(builder)
-def AddPackageSid(builder, packageSid): builder.PrependUint16Slot(0, packageSid, 0)
+def AddPackageSid(builder, packageSid): builder.PrependUint64Slot(0, packageSid, 0)
 def TaskMsgAddPackageSid(builder, packageSid):
     """This method is deprecated. Please switch to AddPackageSid."""
     return AddPackageSid(builder, packageSid)

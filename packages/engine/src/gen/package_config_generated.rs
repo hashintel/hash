@@ -147,13 +147,13 @@ impl<'a> Package<'a> {
         args: &'args PackageArgs<'args>,
     ) -> flatbuffers::WIPOffset<Package<'bldr>> {
         let mut builder = PackageBuilder::new(_fbb);
+        builder.add_sid(args.sid);
         if let Some(x) = args.init_payload {
             builder.add_init_payload(x);
         }
         if let Some(x) = args.name {
             builder.add_name(x);
         }
-        builder.add_sid(args.sid);
         builder.add_type_(args.type_);
         builder.finish()
     }
@@ -176,8 +176,8 @@ impl<'a> Package<'a> {
             .unwrap()
     }
     #[inline]
-    pub fn sid(&self) -> u16 {
-        self._tab.get::<u16>(Package::VT_SID, Some(0)).unwrap()
+    pub fn sid(&self) -> u64 {
+        self._tab.get::<u64>(Package::VT_SID, Some(0)).unwrap()
     }
     #[inline]
     pub fn init_payload(&self) -> Option<Serialized<'a>> {
@@ -196,7 +196,7 @@ impl flatbuffers::Verifiable for Package<'_> {
         v.visit_table(pos)?
             .visit_field::<PackageType>(&"type_", Self::VT_TYPE_, false)?
             .visit_field::<flatbuffers::ForwardsUOffset<&str>>(&"name", Self::VT_NAME, true)?
-            .visit_field::<u16>(&"sid", Self::VT_SID, false)?
+            .visit_field::<u64>(&"sid", Self::VT_SID, false)?
             .visit_field::<flatbuffers::ForwardsUOffset<Serialized>>(
                 &"init_payload",
                 Self::VT_INIT_PAYLOAD,
@@ -209,7 +209,7 @@ impl flatbuffers::Verifiable for Package<'_> {
 pub struct PackageArgs<'a> {
     pub type_: PackageType,
     pub name: Option<flatbuffers::WIPOffset<&'a str>>,
-    pub sid: u16,
+    pub sid: u64,
     pub init_payload: Option<flatbuffers::WIPOffset<Serialized<'a>>>,
 }
 impl<'a> Default for PackageArgs<'a> {
@@ -239,8 +239,8 @@ impl<'a: 'b, 'b> PackageBuilder<'a, 'b> {
             .push_slot_always::<flatbuffers::WIPOffset<_>>(Package::VT_NAME, name);
     }
     #[inline]
-    pub fn add_sid(&mut self, sid: u16) {
-        self.fbb_.push_slot::<u16>(Package::VT_SID, sid, 0);
+    pub fn add_sid(&mut self, sid: u64) {
+        self.fbb_.push_slot::<u64>(Package::VT_SID, sid, 0);
     }
     #[inline]
     pub fn add_init_payload(&mut self, init_payload: flatbuffers::WIPOffset<Serialized<'b>>) {

@@ -80,7 +80,7 @@ fn experiment_init_to_nng(init: &ExperimentInitRunnerMsg) -> Result<nng::Message
                 &gen::PackageArgs {
                     type_: init_msg.r#type.into(),
                     name: Some(package_name),
-                    sid: package_id.as_usize() as u16, // TODO is this a safe cast down
+                    sid: package_id.as_usize() as u64, // TODO is this a safe cast down
                     init_payload: Some(payload),
                 },
             ))

@@ -42,7 +42,7 @@ class Package(object):
     def Sid(self):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(8))
         if o != 0:
-            return self._tab.Get(flatbuffers.number_types.Uint16Flags, o + self._tab.Pos)
+            return self._tab.Get(flatbuffers.number_types.Uint64Flags, o + self._tab.Pos)
         return 0
 
     # Package
@@ -68,7 +68,7 @@ def AddName(builder, name): builder.PrependUOffsetTRelativeSlot(1, flatbuffers.n
 def PackageAddName(builder, name):
     """This method is deprecated. Please switch to AddName."""
     return AddName(builder, name)
-def AddSid(builder, sid): builder.PrependUint16Slot(2, sid, 0)
+def AddSid(builder, sid): builder.PrependUint64Slot(2, sid, 0)
 def PackageAddSid(builder, sid):
     """This method is deprecated. Please switch to AddSid."""
     return AddSid(builder, sid)

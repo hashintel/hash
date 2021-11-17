@@ -268,6 +268,7 @@ impl<'a> TaskMsg<'a> {
         args: &'args TaskMsgArgs<'args>,
     ) -> flatbuffers::WIPOffset<TaskMsg<'bldr>> {
         let mut builder = TaskMsgBuilder::new(_fbb);
+        builder.add_package_sid(args.package_sid);
         if let Some(x) = args.payload {
             builder.add_payload(x);
         }
@@ -277,7 +278,6 @@ impl<'a> TaskMsg<'a> {
         if let Some(x) = args.task_id {
             builder.add_task_id(x);
         }
-        builder.add_package_sid(args.package_sid);
         builder.finish()
     }
 
@@ -287,9 +287,9 @@ impl<'a> TaskMsg<'a> {
     pub const VT_PAYLOAD: flatbuffers::VOffsetT = 10;
 
     #[inline]
-    pub fn package_sid(&self) -> u16 {
+    pub fn package_sid(&self) -> u64 {
         self._tab
-            .get::<u16>(TaskMsg::VT_PACKAGE_SID, Some(0))
+            .get::<u64>(TaskMsg::VT_PACKAGE_SID, Some(0))
             .unwrap()
     }
     #[inline]
@@ -317,7 +317,7 @@ impl flatbuffers::Verifiable for TaskMsg<'_> {
     ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
         use self::flatbuffers::Verifiable;
         v.visit_table(pos)?
-            .visit_field::<u16>(&"package_sid", Self::VT_PACKAGE_SID, false)?
+            .visit_field::<u64>(&"package_sid", Self::VT_PACKAGE_SID, false)?
             .visit_field::<TaskID>(&"task_id", Self::VT_TASK_ID, false)?
             .visit_field::<flatbuffers::ForwardsUOffset<StateInterimSync>>(
                 &"metaversioning",
@@ -334,7 +334,7 @@ impl flatbuffers::Verifiable for TaskMsg<'_> {
     }
 }
 pub struct TaskMsgArgs<'a> {
-    pub package_sid: u16,
+    pub package_sid: u64,
     pub task_id: Option<&'a TaskID>,
     pub metaversioning: Option<flatbuffers::WIPOffset<StateInterimSync<'a>>>,
     pub payload: Option<flatbuffers::WIPOffset<Serialized<'a>>>,
@@ -356,9 +356,9 @@ pub struct TaskMsgBuilder<'a: 'b, 'b> {
 }
 impl<'a: 'b, 'b> TaskMsgBuilder<'a, 'b> {
     #[inline]
-    pub fn add_package_sid(&mut self, package_sid: u16) {
+    pub fn add_package_sid(&mut self, package_sid: u64) {
         self.fbb_
-            .push_slot::<u16>(TaskMsg::VT_PACKAGE_SID, package_sid, 0);
+            .push_slot::<u64>(TaskMsg::VT_PACKAGE_SID, package_sid, 0);
     }
     #[inline]
     pub fn add_task_id(&mut self, task_id: &TaskID) {

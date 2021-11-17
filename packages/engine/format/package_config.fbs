@@ -19,7 +19,7 @@ enum PackageType : byte {
 table Package {
   type:PackageType;
   name:string (required);
-  sid:ushort;
+  sid:uint64;
   init_payload:Serialized;
 }
 

@@ -30,7 +30,7 @@ struct TaskID {
 //                       (possibly since the last `StateSync`)
 //    `payload`        : payload for the task message (json)
 table TaskMsg {
-  package_sid:ushort;
+  package_sid:uint64;
   task_id:TaskID;
   target:Target;
   metaversioning:StateInterimSync;
