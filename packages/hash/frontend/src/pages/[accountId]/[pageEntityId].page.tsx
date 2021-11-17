@@ -6,15 +6,33 @@ import { GetStaticPaths, GetStaticProps } from "next";
 
 import { useRouter } from "next/router";
 import { useMemo, VoidFunctionComponent } from "react";
+import { useCollabPositions } from "../../blocks/page/collab/useCollabPositions";
+import { useReportCollabPosition } from "../../blocks/page/collab/useReportCollabPosition";
 import { PageBlock } from "../../blocks/page/PageBlock";
 import { PageTitle } from "../../blocks/page/PageTitle";
 import { VersionDropdown } from "../../components/Dropdowns/VersionDropdown";
+import { Button } from "../../components/forms/Button";
 import { PageSidebar } from "../../components/layout/PageSidebar/PageSidebar";
 import {
   GetPageQuery,
   GetPageQueryVariables,
 } from "../../graphql/apiTypes.gen";
 import styles from "../index.module.scss";
+
+/**
+ * @todo Remove when position tracking is fully implemented.
+ * @example
+ *
+ *    localStorage.setItem("debug.collabToolbar", true); window.location.reload();
+ */
+const isCollabPositionDebugToolbarEnabled = (): boolean => {
+  try {
+    const rawValue = localStorage.getItem("debug.collabToolbar");
+    return rawValue === "true" || rawValue === "1";
+  } catch {
+    return false;
+  }
+};
 
 /**
  * preload all configured blocks for now. in the future these will be loaded
@@ -50,7 +68,7 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
     const router = useRouter();
 
     // entityId is the consistent identifier for pages (across all versions)
-    const pageEntityId = router.query.pageId as string;
+    const pageEntityId = router.query.pageEntityId as string;
     const accountId = router.query.accountId as string;
     // versionId is an optional param for requesting a specific page version
     const versionId = router.query.version as string | undefined;
@@ -97,6 +115,12 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
       [preloadedBlockMeta],
     );
 
+    const collabPositions = useCollabPositions(accountId, pageEntityId);
+    const reportCollabPosition = useReportCollabPosition(
+      accountId,
+      pageEntityId,
+    );
+
     if (error) {
       return <h1>Error: {error.message}</h1>;
     }
@@ -111,6 +135,46 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
       <div className={styles.MainWrapper}>
         <PageSidebar />
         <div className={styles.MainContent}>
+          {isCollabPositionDebugToolbarEnabled() ? (
+            <div
+              style={{
+                background: "#eee",
+                padding: 20,
+                borderRadius: 5,
+                marginBottom: 10,
+                minHeight: 180,
+              }}
+            >
+              <div>
+                <Button
+                  onClick={() => {
+                    reportCollabPosition(
+                      `${Math.round(Math.random() * 10000)}`.padStart(5, "0"),
+                    );
+                  }}
+                >
+                  report random block id
+                </Button>{" "}
+                <Button
+                  type="submit"
+                  onClick={() => {
+                    reportCollabPosition(undefined);
+                  }}
+                >
+                  report empty block id
+                </Button>
+              </div>
+              <h3 style={{ marginTop: 10 }}>Collaborator positions</h3>
+              <ul>
+                {collabPositions.map(({ userShortname, userId, blockId }) => (
+                  <li key={userId}>
+                    <b>{userShortname}:</b> block #{blockId}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
           <header>
             <div className={styles.PageHeader}>
               <div>

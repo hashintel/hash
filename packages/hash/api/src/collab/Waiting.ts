@@ -10,11 +10,11 @@ export class Waiting {
   constructor(
     public resp: Response,
     public inst: Instance,
-    public ip: string | null,
+    public userId: string | null,
     public finish: () => void,
   ) {
     this.inst = inst;
-    this.ip = ip;
+    this.userId = userId;
     this.finish = finish;
     resp.setTimeout(1000 * 60 * 5, () => {
       this.abort();

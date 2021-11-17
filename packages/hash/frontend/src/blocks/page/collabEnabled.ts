@@ -1,2 +1,1 @@
-export const collabEnabled =
-  typeof window !== "undefined" && window.location.search.includes("collab");
+export const collabEnabled = !!process.env.NEXT_PUBLIC_COLLAB;

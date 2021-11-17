@@ -22,7 +22,7 @@ import { RenderPortal } from "./usePortals";
 
 const createSavePlugin = (
   accountId: string,
-  pageId: string,
+  pageEntityId: string,
   getLastSavedValue: () => BlockEntity[],
   client: ApolloClient<unknown>,
 ) => {
@@ -38,7 +38,7 @@ const createSavePlugin = (
       .then(() =>
         updatePageMutation(
           accountId,
-          pageId,
+          pageEntityId,
           view.state.doc,
           getLastSavedValue(),
           entityStoreFromProsemirror(view.state).store,
@@ -87,7 +87,7 @@ export const createEditorView = (
   renderNode: HTMLElement,
   renderPortal: RenderPortal,
   accountId: string,
-  pageId: string,
+  pageEntityId: string,
   preloadedBlocks: BlockMeta[],
   getLastSavedValue: () => BlockEntity[],
   client: ApolloClient<unknown>,
@@ -95,7 +95,7 @@ export const createEditorView = (
   let manager: ProsemirrorSchemaManager;
 
   const plugins: Plugin<unknown, Schema>[] = [
-    createSavePlugin(accountId, pageId, getLastSavedValue, client),
+    createSavePlugin(accountId, pageEntityId, getLastSavedValue, client),
     ...createFormatPlugins(renderPortal),
     createBlockSuggester(renderPortal, () => manager),
   ];
@@ -140,7 +140,7 @@ export const createEditorView = (
   if (collabEnabled) {
     connection = new EditorConnection(
       new Reporter(),
-      `${apiOrigin}/collab-backend/${accountId}/${pageId}`,
+      `${apiOrigin}/collab-backend/${accountId}/${pageEntityId}`,
       view.state.schema,
       view,
       manager,

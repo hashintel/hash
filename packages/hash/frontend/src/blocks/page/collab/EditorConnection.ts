@@ -203,7 +203,7 @@ export class EditorConnection {
         this.report.success();
         const data = JSON.parse(stringifiedData);
         this.backOff = 0;
-        if (data.steps && (data.steps.length || data.comment.length)) {
+        if (data.steps && data.steps.length) {
           if (!this.state.edit) {
             throw new Error("Cannot receive transaction without state");
           }
