@@ -5,5 +5,5 @@ export interface CollabPosition {
   userId: string;
   userShortname: string;
   userPreferredName: string;
-  blockId: string;
+  entityId: string;
 }

@@ -7,7 +7,8 @@ import { GetStaticPaths, GetStaticProps } from "next";
 import { useRouter } from "next/router";
 import { useMemo, VoidFunctionComponent } from "react";
 import { useCollabPositions } from "../../blocks/page/collab/useCollabPositions";
-import { useReportCollabPosition } from "../../blocks/page/collab/useReportCollabPosition";
+import { useCollabPositionTracking } from "../../blocks/page/collab/useCollabPositionTracking";
+import { useCollabPositionReporter } from "../../blocks/page/collab/useCollabPositionReporter";
 import { PageBlock } from "../../blocks/page/PageBlock";
 import { PageTitle } from "../../blocks/page/PageTitle";
 import { VersionDropdown } from "../../components/Dropdowns/VersionDropdown";
@@ -116,10 +117,8 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
     );
 
     const collabPositions = useCollabPositions(accountId, pageEntityId);
-    const reportCollabPosition = useReportCollabPosition(
-      accountId,
-      pageEntityId,
-    );
+    const reportPosition = useCollabPositionReporter(accountId, pageEntityId);
+    useCollabPositionTracking(reportPosition);
 
     if (error) {
       return <h1>Error: {error.message}</h1>;
@@ -148,7 +147,7 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
               <div>
                 <Button
                   onClick={() => {
-                    reportCollabPosition(
+                    reportPosition(
                       `${Math.round(Math.random() * 10000)}`.padStart(5, "0"),
                     );
                   }}
@@ -158,7 +157,7 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
                 <Button
                   type="submit"
                   onClick={() => {
-                    reportCollabPosition(undefined);
+                    reportPosition(null);
                   }}
                 >
                   report empty block id
@@ -166,9 +165,9 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
               </div>
               <h3 style={{ marginTop: 10 }}>Collaborator positions</h3>
               <ul>
-                {collabPositions.map(({ userShortname, userId, blockId }) => (
+                {collabPositions.map(({ userShortname, userId, entityId }) => (
                   <li key={userId}>
-                    <b>{userShortname}:</b> block #{blockId}
+                    <b>{userShortname}:</b> block #{entityId}
                   </li>
                 ))}
               </ul>

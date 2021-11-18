@@ -217,11 +217,11 @@ collabApp.post(
         userId,
       );
 
-      const { blockId } = request.body;
+      const { entityId } = request.body;
 
-      if (typeof blockId !== "string" && typeof blockId !== "undefined") {
+      if (typeof entityId !== "string" && entityId !== null) {
         throw new InvalidRequestPayloadError(
-          "Expected blockId to be a string or undefined",
+          "Expected entityId to be a string or null",
         );
       }
 
@@ -232,7 +232,7 @@ collabApp.post(
         userId,
         userShortname,
         userPreferredName,
-        blockId,
+        entityId,
       });
 
       response.status(200).send("OK");
