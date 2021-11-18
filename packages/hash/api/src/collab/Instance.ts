@@ -99,8 +99,6 @@ export class Instance {
   }
 
   private async processEntityVersion(entityVersion: EntityVersion) {
-    // @todo handle not processing own updates
-
     const nextSavedContents = walkValueForEntity(
       this.savedContents,
       (entity) => {
@@ -126,30 +124,45 @@ export class Instance {
       },
     );
 
-    // @todo don't do this if nextSavedContents === this.savedContents
-    this.updateSavedContents(nextSavedContents);
+    /**
+     * We should know not to notify consumers of changes they've already been
+     * notified of, but because of a race condition between saves triggered by
+     * collab and saves triggered by frontend blocks, this doesn't necessarily
+     * work, so unfortunately we need to notify on every notification from
+     * realtime right now. This means clients will be notified about prosemirror
+     * changes twice right now. There are no known downsides to this other than
+     * performance.
+     *
+     * If nextSavedContents === this.savedContents, then we're likely notifying
+     * of changes the client is possibly already aware of
+     *
+     * @todo fix this
+     */
+    this.updateSavedContents(nextSavedContents, true);
   }
 
-  private updateSavedContents(nextSavedContents: BlockEntity[]) {
+  private updateSavedContents(nextSavedContents: BlockEntity[], notify = true) {
     const { tr } = this.state;
     addEntityStoreAction(tr, { type: "contents", payload: nextSavedContents });
     this.state = this.state.apply(tr);
     this.savedContents = nextSavedContents;
 
     this.entityStore = {
-      version: this.version + 1,
+      version: notify ? this.version + 1 : this.version,
       store: entityStoreFromProsemirror(this.state).store,
     };
 
-    /**
-     * This is a hack to do with version number hacking
-     * @todo come up with something better
-     */
-    this.addEvents()(
-      this.version,
-      [new ReplaceStep<Schema>(0, 0, Slice.empty)],
-      "graphql",
-    );
+    if (notify) {
+      /**
+       * This is a hack to do with version number hacking
+       * @todo come up with something better
+       */
+      this.addEvents()(
+        this.version,
+        [new ReplaceStep<Schema>(0, 0, Slice.empty)],
+        "graphql",
+      );
+    }
   }
 
   addEvents =
@@ -207,10 +220,7 @@ export class Instance {
         ).then((newPage) => {
           const componentNodes = findComponentNodes(this.state.doc);
 
-          // @todo need to inform the prosemirror plugin of this
-          this.savedContents = newPage.properties.contents;
-
-          this.updateSavedContents(this.savedContents);
+          this.updateSavedContents(newPage.properties.contents, false);
 
           for (let idx = 0; idx < componentNodes.length; idx++) {
             const [componentNode, pos] = componentNodes[idx];
