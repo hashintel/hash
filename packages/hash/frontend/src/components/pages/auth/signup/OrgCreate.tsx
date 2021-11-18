@@ -1,4 +1,4 @@
-import React, { VFC } from "react";
+import React, { useMemo, VFC } from "react";
 import { RegisterOptions, useForm, Controller } from "react-hook-form";
 import { tw } from "twind";
 import { OrgSize } from "../../../../graphql/apiTypes.gen";
@@ -7,10 +7,18 @@ import { TextInput } from "../../../forms/TextInput";
 import { PictureIcon } from "../../../Icons/PictureIcon";
 import { SpinnerIcon } from "../../../Icons/SpinnerIcon";
 import { ORG_ROLES, ORG_SIZES } from "../utils";
+import { useMutation } from "@apollo/client";
+import {
+  CreateOrgMutation,
+  CreateOrgMutationVariables,
+} from "../../../../graphql/apiTypes.gen";
+import { createOrg as createOrgMutation } from "../../../../graphql/queries/org.queries";
 
 type OrgCreateProps = {
-  createOrg: (info: Inputs) => void;
-  loading: boolean;
+  onCreateOrgSuccess: (data: {
+    invitationLinkToken: string;
+    orgEntityId: string;
+  }) => void;
 };
 
 const FORM_INPUTS: FormInputsType = [
@@ -18,6 +26,7 @@ const FORM_INPUTS: FormInputsType = [
     name: "name",
     label: "Workspace Name",
     inputType: "textInput",
+    placeholder: "Acme",
     fieldOptions: {
       required: true,
     },
@@ -26,6 +35,7 @@ const FORM_INPUTS: FormInputsType = [
     name: "shortname",
     label: "Org Username",
     inputType: "textInput",
+    placeholder: "acme-corp",
     fieldOptions: {
       required: true,
       minLength: {
@@ -87,7 +97,7 @@ const getInitials = (name: string) => {
   if (initials.length > 1) return initials[0][0] + initials[1][0];
 };
 
-export const OrgCreate: VFC<OrgCreateProps> = ({ createOrg, loading }) => {
+export const OrgCreate: VFC<OrgCreateProps> = ({ onCreateOrgSuccess }) => {
   const {
     register,
     watch,
@@ -101,7 +111,40 @@ export const OrgCreate: VFC<OrgCreateProps> = ({ createOrg, loading }) => {
       orgSize: undefined,
     },
   });
-  const onSubmit = handleSubmit(createOrg);
+
+  const [createOrg, { loading, error }] = useMutation<
+    CreateOrgMutation,
+    CreateOrgMutationVariables
+  >(createOrgMutation, {
+    onCompleted: (res) => {
+      const accessToken =
+        res.createOrg.properties.invitationLink?.data.properties.accessToken;
+      if (accessToken && res.createOrg.accountId) {
+        onCreateOrgSuccess({
+          orgEntityId: res.createOrg.accountId,
+          invitationLinkToken: accessToken,
+        });
+      }
+    },
+    onError: () => {},
+  });
+
+  const createOrgErrorMessage = useMemo(() => {
+    return error?.graphQLErrors?.[0]?.message ?? "";
+  }, [error]);
+
+  const onSubmit = handleSubmit((values) =>
+    createOrg({
+      variables: {
+        org: {
+          shortname: values.shortname,
+          name: values.name,
+          orgSize: values.orgSize,
+        },
+        responsibility: values.responsibility,
+      },
+    }),
+  );
   const nameWatcher = watch("name", "");
 
   return (
@@ -121,9 +164,18 @@ export const OrgCreate: VFC<OrgCreateProps> = ({ createOrg, loading }) => {
         )}
         <span className={tw`text-sm font-bold text-gray-500`}>Add a logo</span>
       </div>
-      <div>
+      <form
+        className={tw`flex flex-col items-center`}
+        onSubmit={(evt) => {
+          evt.preventDefault();
+          onSubmit();
+        }}
+      >
         {FORM_INPUTS.map(
-          ({ name, label, inputType, options, placeholder, fieldOptions }) => {
+          (
+            { name, label, inputType, options, placeholder, fieldOptions },
+            index,
+          ) => {
             return (
               <React.Fragment key={name}>
                 {inputType === "selectInput" ? (
@@ -148,18 +200,24 @@ export const OrgCreate: VFC<OrgCreateProps> = ({ createOrg, loading }) => {
                     label={label}
                     transparent
                     {...register(name, fieldOptions)}
+                    {...(placeholder && { placeholder })}
                   />
                 )}
                 <span className={tw`text-red-500 text-sm`}>
                   {errors?.[name]?.message}
                 </span>
-                <div className={tw`mb-6`} />
+                {index != FORM_INPUTS.length - 1 && (
+                  <div className={tw`mb-6`} />
+                )}
               </React.Fragment>
             );
           },
         )}
+        {createOrgErrorMessage && (
+          <p className={tw`text-red-500 mt-3`}>{createOrgErrorMessage}</p>
+        )}
         <button
-          className={tw`group w-64 bg-gradient-to-r from-blue-400 via-blue-500 to-pink-500 rounded-lg h-11 transition-all disabled:opacity-50 flex items-center justify-center text-white text-sm font-bold mx-auto`}
+          className={tw`group w-64 bg-gradient-to-r from-blue-400 via-blue-500 to-pink-500 rounded-lg h-11 transition-all disabled:opacity-50 flex items-center justify-center text-white text-sm font-bold mx-auto mt-6`}
           onClick={onSubmit}
           disabled={loading || !isValid}
           type="submit"
@@ -177,7 +235,7 @@ export const OrgCreate: VFC<OrgCreateProps> = ({ createOrg, loading }) => {
             </>
           )}
         </button>
-      </div>
+      </form>
     </div>
   );
 };
