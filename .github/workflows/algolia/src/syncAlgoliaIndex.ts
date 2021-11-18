@@ -41,7 +41,18 @@ const getAllFiles = (
   return arrayOfFiles;
 };
 
-const generateAlgoliaJson = () => {
+type AlgoliaRecord = {
+  objectId: any;
+  content: string;
+  objectID: string;
+  type: any;
+  title?: string;
+  description?: string;
+  slug?: string;
+  tags?: Array<string>;
+};
+
+const generateAlgoliaJson: () => AlgoliaRecord[] = () => {
   const getFormattedData = (matterData: DocsFrontMatter, type) => {
     const appendData = {
       ...matterData.data,
@@ -86,32 +97,34 @@ export const syncAlgoliaIndex = async () => {
 
   const index = client.initIndex("hash_learn_testing1");
 
-  let hits: Array<{ objectID: string }> = [];
+  let oldIndexObjects: Array<{ objectID: string }> = [];
 
-  await index
-    .browseObjects({
-      query: "", // Empty query will match all records
-      filters: "type:docs OR type:glossary",
-      attributesToRetrieve: ["objectID"],
-      batch: (batch) => {
-        hits = hits.concat(batch);
-      },
-    })
-    .catch(console.error);
+  await index.browseObjects({
+    query: "", // Empty query will match all records
+    filters: "type:docs OR type:glossary",
+    attributesToRetrieve: ["objectID"],
+    batch: (batch) => {
+      oldIndexObjects = oldIndexObjects.concat(batch);
+    },
+  });
 
-  const indexedObjectIds = hits.map((hit) => hit.objectID);
+  const indexObjects: AlgoliaRecord[] = generateAlgoliaJson();
 
-  const generatedRecords = generateAlgoliaJson();
+  const indexObjectLookup: Record<string, AlgoliaRecord> = {};
 
-  // delete moved/removed records from index
-  generatedRecords.forEach((generatedRecord) => {
-    // we know that includes inside forEach is generally a bad idea, 
-    // but we have to only deal with 1K × 1K items so it’s really quick
-    // https://github.com/hashintel/hash/pull/49#discussion_r750236459
-    if (!indexedObjectIds.includes(generatedRecord.objectID)) {
-      index.deleteObject(generatedRecord.objectID);
+  indexObjects.forEach((indexObject) => {
+    indexObjectLookup[indexObject.objectID] = indexObject;
+  });
+
+  const objectIDsToDelete: string[] = [];
+
+  oldIndexObjects.forEach(({ objectID }) => {
+    if (!indexObjectLookup[objectID]) {
+      objectIDsToDelete.push(objectID);
     }
   });
 
-  await index.saveObjects(generatedRecords).catch(console.error);
+  await index.deleteObjects(objectIDsToDelete);
+
+  await index.saveObjects(indexObjects);
 };

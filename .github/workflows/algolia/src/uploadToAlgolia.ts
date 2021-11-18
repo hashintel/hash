@@ -1,8 +1,12 @@
 import { syncAlgoliaIndex } from "./syncAlgoliaIndex";
 
 const main = async () => {
-  await syncAlgoliaIndex();
-  console.log("Algolia Indexes Updated.");
+  try {
+    await syncAlgoliaIndex();
+    console.log("Algolia Indexes Updated.");
+  } catch (error) {
+    throw new Error(`Algolia Indexing Failed: ${error}`);
+  }
 };
 
 main();
