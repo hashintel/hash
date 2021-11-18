@@ -45,7 +45,11 @@ export class EntityWatcher {
       const entityVersion = EntityVersion.parseWal2JsonMsg(msg);
 
       for (const subscriber of this.subscriptions) {
-        await subscriber(entityVersion);
+        try {
+          await subscriber(entityVersion);
+        } catch (err) {
+          console.error("Error in notifying of entity change", err);
+        }
       }
     }
   }
