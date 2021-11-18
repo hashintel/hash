@@ -17,6 +17,11 @@ type OrgInviteProps = {
   };
 };
 
+const isValidEmail = (email: string) => {
+  const regex = /^\S+@\S+\.\S+$/;
+  return regex.test(email);
+};
+
 export const OrgInvite: VFC<OrgInviteProps> = ({
   navigateToHome,
   createOrgInfo,
@@ -112,6 +117,8 @@ export const OrgInvite: VFC<OrgInviteProps> = ({
             tags={emails}
             setTags={setEmails}
             placeholder="Enter Email"
+            validate={isValidEmail}
+            delimiters={[',']}
           />
           {error && <p className={tw`text-red-500 text-sm mt-5 `}>{error}</p>}
         </div>

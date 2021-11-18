@@ -6,6 +6,8 @@ type TagsInputProps = {
   tags: string[];
   setTags: (tags: string[]) => void;
   placeholder: string;
+  validate?: (text: string) => boolean;
+  delimiters?: string[];
 };
 
 export const TagsInput: React.VFC<TagsInputProps> = ({
@@ -13,6 +15,8 @@ export const TagsInput: React.VFC<TagsInputProps> = ({
   tags,
   setTags,
   placeholder,
+  validate,
+  delimiters = [],
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -20,8 +24,9 @@ export const TagsInput: React.VFC<TagsInputProps> = ({
     if (!inputRef.current) return;
     const text = inputRef.current.value;
 
-    if (evt.key === "Enter" && text) {
+    if ([...delimiters, "Enter"].includes(evt.key) && text) {
       evt.preventDefault();
+      if (!validate?.(text)) return;
       if (!tags.includes(text)) {
         setTags([...tags, text]);
       }
