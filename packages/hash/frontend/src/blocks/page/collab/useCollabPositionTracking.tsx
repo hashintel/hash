@@ -1,7 +1,9 @@
 import { useDocumentEventListener, useWindowEventListener } from "rooks";
-import { findParent } from "../../../lib/dom";
-import { isComponentViewTarget } from "../ComponentView";
+import { componentViewTargetSelector } from "../ComponentView";
 import type { CollabPositionReporter } from "./useCollabPositionReporter";
+
+const closestElement = (node: Node | null | undefined): Element | null =>
+  !node ? null : node.nodeType === 1 ? (node as Element) : node.parentElement;
 
 /**
  * used to capture and report user focus. this requires toplevel blocks (ComponentView instances)
@@ -20,11 +22,11 @@ export const useCollabPositionTracking = (report: CollabPositionReporter) => {
    * @see https://stackoverflow.com/a/28932220/1675431
    */
   useWindowEventListener("blur", () => {
-    setTimeout(() => {
+    setImmediate(() => {
       const activeElement = document.activeElement;
 
       if (activeElement?.nodeName === "IFRAME") {
-        const target = findParent(activeElement, isComponentViewTarget);
+        const target = activeElement.closest(componentViewTargetSelector);
         if (target) return report(target.getAttribute("data-entity-id"));
       }
 
@@ -36,9 +38,9 @@ export const useCollabPositionTracking = (report: CollabPositionReporter) => {
    * capture caret movements
    */
   useDocumentEventListener("selectionchange", () => {
-    const focusNode = document.getSelection()?.focusNode;
-    const target = findParent(focusNode, isComponentViewTarget);
-    report(target ? target.getAttribute("data-entity-id") : null);
+    const focusElement = closestElement(document.getSelection()?.focusNode);
+    const target = focusElement?.closest(componentViewTargetSelector);
+    report(target?.getAttribute("data-entity-id") ?? null);
   });
 
   /**

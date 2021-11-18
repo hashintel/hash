@@ -16,7 +16,6 @@ import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 import { Schema } from "prosemirror-model";
 import { EditorView, NodeView } from "prosemirror-view";
 import { BlockLoader } from "../../components/BlockLoader/BlockLoader";
-import { isElement } from "../../lib/dom";
 import { RenderPortal } from "./usePortals";
 
 // @todo we need to type this such that we're certain we're passing through all
@@ -39,16 +38,21 @@ const getRemoteBlockProps = (entity: EntityStoreType | null | undefined) => {
   return { properties: {} };
 };
 
-/** @returns a target-/mount-node for a ComponentView instance */
+/**
+ * @sync `componentViewTargetSelector`
+ * @returns a target-/mount-node for a ComponentView instance
+ */
 const createComponentViewTarget = () => {
   const el = document.createElement("div");
   el.setAttribute("data-target", "true");
   return el;
 };
 
-/** @returns whether or not it's a target-/mount-node for a ComponentView instance */
-export const isComponentViewTarget = (node: Node) =>
-  isElement(node) && !!node.getAttribute("data-target");
+/**
+ * used to match target-/mount-nodes of ComponentView instances
+ * @sync `createComponentViewTarget`
+ */
+export const componentViewTargetSelector = "div[data-target=true]";
 
 export class ComponentView implements NodeView<Schema> {
   dom: HTMLDivElement = document.createElement("div");
