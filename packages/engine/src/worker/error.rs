@@ -35,6 +35,9 @@ pub enum Error {
 
     #[error("Tokio Join Error: {0}")]
     TokioJoin(#[from] tokio::task::JoinError),
+
+    #[error("Io Error: {0}")]
+    Io(#[from] std::io::Error),
 }
 
 impl From<&str> for Error {
