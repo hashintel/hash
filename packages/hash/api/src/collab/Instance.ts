@@ -99,46 +99,52 @@ export class Instance {
   }
 
   private async processEntityVersion(entityVersion: EntityVersion) {
+    let foundOnPage = false;
+
     const nextSavedContents = walkValueForEntity(
       this.savedContents,
       (entity) => {
-        if (
-          entity.entityId === entityVersion.entityId &&
-          new Date(entityVersion.updatedAt).getTime() >
+        if (entity.entityId === entityVersion.entityId) {
+          foundOnPage = true;
+          if (
+            new Date(entityVersion.updatedAt).getTime() >
             new Date(entity.updatedAt).getTime()
-        ) {
-          return {
-            ...entity,
-            accountId: entityVersion.accountId,
-            entityVersionId: entityVersion.entityTypeVersionId,
-            entityTypeVersionId: entityVersion.entityTypeVersionId,
-            // @todo what happens with links!?
-            properties: entityVersion.properties,
-            createdById: entityVersion.createdBy,
-            createdAt: entityVersion.createdAt.toISOString(),
-            updatedAt: entityVersion.updatedAt.toISOString(),
-          };
+          ) {
+            return {
+              ...entity,
+              accountId: entityVersion.accountId,
+              entityVersionId: entityVersion.entityTypeVersionId,
+              entityTypeVersionId: entityVersion.entityTypeVersionId,
+              // @todo what happens with links!?
+              properties: entityVersion.properties,
+              createdById: entityVersion.createdBy,
+              createdAt: entityVersion.createdAt.toISOString(),
+              updatedAt: entityVersion.updatedAt.toISOString(),
+            };
+          }
         }
 
         return entity;
       },
     );
 
-    /**
-     * We should know not to notify consumers of changes they've already been
-     * notified of, but because of a race condition between saves triggered by
-     * collab and saves triggered by frontend blocks, this doesn't necessarily
-     * work, so unfortunately we need to notify on every notification from
-     * realtime right now. This means clients will be notified about prosemirror
-     * changes twice right now. There are no known downsides to this other than
-     * performance.
-     *
-     * If nextSavedContents === this.savedContents, then we're likely notifying
-     * of changes the client is possibly already aware of
-     *
-     * @todo fix this
-     */
-    this.updateSavedContents(nextSavedContents, true);
+    if (foundOnPage) {
+      /**
+       * We should know not to notify consumers of changes they've already been
+       * notified of, but because of a race condition between saves triggered by
+       * collab and saves triggered by frontend blocks, this doesn't necessarily
+       * work, so unfortunately we need to notify on every notification from
+       * realtime right now. This means clients will be notified about prosemirror
+       * changes twice right now. There are no known downsides to this other than
+       * performance.
+       *
+       * If nextSavedContents === this.savedContents, then we're likely notifying
+       * of changes the client is possibly already aware of
+       *
+       * @todo fix this
+       */
+      this.updateSavedContents(nextSavedContents, true);
+    }
   }
 
   private updateSavedContents(nextSavedContents: BlockEntity[], notify = true) {
