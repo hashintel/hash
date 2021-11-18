@@ -166,9 +166,9 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
               </div>
               <h3 style={{ marginTop: 10 }}>Collaborator positions</h3>
               <ul>
-                {collabPositions.map(({ userShortname, userId, blockId }) => (
+                {collabPositions.map(({ userShortname, userId, entityId }) => (
                   <li key={userId}>
-                    <b>{userShortname}:</b> block #{blockId}
+                    <b>{userShortname}:</b> block #{entityId}
                   </li>
                 ))}
               </ul>

@@ -261,12 +261,12 @@ export class Instance {
     userId,
     userShortname,
     userPreferredName,
-    blockId,
+    entityId,
   }: {
     userId: string;
     userShortname: string;
     userPreferredName: string;
-    blockId?: string;
+    entityId: string | null;
   }): void {
     const currentTimestamp = Date.now();
 
@@ -275,19 +275,19 @@ export class Instance {
     );
 
     if (timedPositionIndex !== -1) {
-      if (blockId) {
+      if (entityId) {
         const existingPosition = this.timedPositions[timedPositionIndex];
-        existingPosition.blockId = blockId;
+        existingPosition.entityId = entityId;
         existingPosition.reportedAt = currentTimestamp;
       } else {
         this.timedPositions.splice(timedPositionIndex, 1);
       }
-    } else if (blockId) {
+    } else if (entityId) {
       this.timedPositions.push({
         userId,
         userShortname,
         userPreferredName,
-        blockId,
+        entityId,
         reportedAt: currentTimestamp,
       });
     }
