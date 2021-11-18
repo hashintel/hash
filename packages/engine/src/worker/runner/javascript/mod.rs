@@ -775,10 +775,15 @@ impl<'m> RunnerImpl<'m> {
         // undefined behavior, because the pointer to the schema comes from
         // an immutable reference.
         // ---> Do *not* mutate the schema bytes in `runner.js`.
-        let mut agent_schema_bytes =
-            schema_to_stream_bytes(&run.datastore.agent_batch_schema.arrow);
-        let mut msg_schema_bytes = schema_to_stream_bytes(&run.datastore.message_batch_schema);
-        let mut ctx_schema_bytes = schema_to_stream_bytes(&run.datastore.context_batch_schema);
+        let mut agent_schema_bytes = schema_to_stream_bytes(
+            &run.datastore.agent_batch_schema.arrow
+        );
+        let mut msg_schema_bytes = schema_to_stream_bytes(
+            &run.datastore.message_batch_schema
+        );
+        let mut ctx_schema_bytes = schema_to_stream_bytes(
+            &run.datastore.context_batch_schema
+        );
         // run.shared_context.datasets?
 
         // Keep schema vecs alive while bytes are passed to V8.

@@ -219,6 +219,9 @@ pub enum Error {
 
     #[error("Attempting to insert a new field under key:{0:?} which clashes. New field: {1:?} Existing field: {2:?}")]
     FieldKeyClash(FieldKey, RootFieldSpec, RootFieldSpec),
+
+    #[error("Can't take multiple write access to shared state, e.g. by cloning writable task shared store")]
+    MultipleWriteSharedState,
 }
 
 impl From<&str> for Error {

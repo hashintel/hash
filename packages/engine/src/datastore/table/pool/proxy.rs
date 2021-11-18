@@ -14,6 +14,14 @@ pub struct PoolReadProxy<K: Batch> {
     batches: Vec<BatchReadProxy<K>>,
 }
 
+impl<K: Batch> Clone for PoolReadProxy<K> {
+    fn clone(&self) -> Self {
+        Self {
+            batches: self.batches.iter().map(|batch| batch.clone()).collect()
+        }
+    }
+}
+
 impl<K: Batch> From<Vec<BatchWriteProxy<K>>> for PoolWriteProxy<K> {
     fn from(batches: Vec<BatchWriteProxy<K>>) -> Self {
         Self { batches }
@@ -27,6 +35,8 @@ impl<K: Batch> From<Vec<BatchReadProxy<K>>> for PoolReadProxy<K> {
 }
 
 impl<K: Batch> PoolWriteProxy<K> {
+    pub fn deconstruct(self) -> Vec<BatchWriteProxy<K>> { self.batches }
+
     pub fn n_batches(&self) -> usize {
         self.batches.len()
     }
@@ -56,6 +66,8 @@ impl<K: Batch> PoolWriteProxy<K> {
 }
 
 impl<K: Batch> PoolReadProxy<K> {
+    pub fn deconstruct(self) -> Vec<BatchReadProxy<K>> { self.batches }
+
     pub fn n_batches(&self) -> usize {
         self.batches.len()
     }

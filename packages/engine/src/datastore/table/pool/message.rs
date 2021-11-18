@@ -30,6 +30,16 @@ impl MessagePool {
         &mut self.batches
     }
 
+    pub fn read_batches(&self) -> Result<Vec<RwLockReadGuard<MessageBatch>>> {
+        self.batches()
+            .iter()
+            .map(|a| {
+                a.try_read()
+                    .ok_or_else(|| Error::from("failed to read batches"))
+            })
+            .collect::<Result<_>>()
+    }
+
     pub fn read(&self) -> Result<MessagePoolRead<'_>> {
         let read_batches = self
             .batches()

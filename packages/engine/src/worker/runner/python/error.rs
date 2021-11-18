@@ -7,6 +7,9 @@ pub enum Error {
     #[error("{0}")]
     Unique(String),
 
+    #[error("Datastore: {0}")]
+    Datastore(#[from] crate::datastore::Error),
+
     #[error("Couldn't import package {0}: {1}")]
     PackageImport(String, String), // First element is path/name.
 

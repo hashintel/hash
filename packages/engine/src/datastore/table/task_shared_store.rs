@@ -5,6 +5,9 @@ use crate::{
     worker::runner::comms::StateInterimSync,
 };
 use std::fmt::{Debug, Formatter};
+use futures::future::Shared;
+use regex::internal::Inst::Split;
+use crate::datastore::Error;
 
 use super::{
     context::ReadContext,
@@ -37,7 +40,7 @@ pub struct PartialStateWriteProxy {
     pub inner: StateWriteProxy,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PartialStateReadProxy {
     pub indices: Vec<usize>,
     pub inner: StateReadProxy,
@@ -51,7 +54,7 @@ pub enum SharedState {
     None,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum SharedContext {
     Read,
     None,
@@ -151,7 +154,60 @@ impl PartialSharedState {
     }
 }
 
+fn distribute_batches<A, M>(
+    worker_list: &WorkerAllocation,
+    agent_batches: Vec<A>,
+    msg_batches: Vec<M>,
+    group_indices: Vec<usize>,
+    group_sizes: Vec<usize>, // Number of agents in each group
+) -> (Vec<(Worker, Vec<A>, Vec<M>, Vec<usize>)>, SplitConfig) {
+    // Initialize with empty distribution.
+    let num_workers = worker_list.len();
+    let mut agent_distribution = Vec::with_capacity(num_workers);
+    let mut stores = Vec::with_capacity(num_workers);
+    for i_worker in 0..num_workers {
+        agent_distribution.push(0);
+        stores.push((worker_list[i_worker], vec![], vec![], vec![]));
+    }
+
+    // Distribute batches.
+    let iter = agent_batches.into_iter().zip(msg_batches.into_iter()).enumerate();
+    for (i_group, (agent_batch, msg_batch)) in iter {
+        let i_worker = i_group % num_workers;
+        agent_distribution[i_group] += group_sizes[i_worker];
+
+        let store = &mut stores[i_worker];
+        store.1.push(agent_batch);
+        store.2.push(msg_batch);
+        store.3.push(group_indices[i_group]);
+    }
+
+    // Wrap into correct format.
+    let split_config = SplitConfig {
+        num_workers,
+        agent_distribution: Some(agent_distribution)
+    };
+    (stores, split_config)
+}
+
 impl TaskSharedStore {
+    /// Number of agents in the sim that can be accessed through this store
+    fn n_accessible_agents(&self) -> usize {
+        match &self.state {
+            SharedState::None => 0,
+            SharedState::Write(state) => state.n_accessible_agents(),
+            SharedState::Read(state) => state.n_accessible_agents(),
+            SharedState::Partial(partial) => match partial {
+                PartialSharedState::Read(partial) => {
+                    partial.inner.n_accessible_agents()
+                }
+                PartialSharedState::Write(partial) => {
+                    partial.inner.n_accessible_agents()
+                }
+            }
+        }
+    }
+
     fn reads_state(&self) -> bool {
         matches!(&self.state, SharedState::Read(_))
             || matches!(
@@ -168,7 +224,6 @@ impl TaskSharedStore {
             )
     }
 
-    // TODO OS - implement distribute for task_shared_store
     pub fn distribute(
         self,
         distribution: &Distribution,
@@ -176,30 +231,135 @@ impl TaskSharedStore {
     ) -> Result<(Vec<(Worker, Self)>, SplitConfig)> {
         let reads_state = self.reads_state();
         let writes_state = self.writes_state();
-        todo!();
-        // let split = if reads_state && distribution.single_read_access {
-        //     // We take read access to state, but need to distribute
-        //     // each batch to a single worker
-        //     todo!()
-        // } else if writes_state {
-        //     // We take write access to state so we need to distribute
-        //     // each batch to a single worker
-        //     todo!()
-        // } else {
-        //     // No access to state or duplicate read access to state, trivial split:
-        //     // Give every worker the same access
-        //     worker_list
-        //         .iter()
-        //         .map(|worker| Ok((worker.clone(), self.try_clone()?)))
-        //         .collect::<Result<_>>()? // TODO split config
-        // };
+        let context = self.context.clone();
+
+        // TODO: Code duplication between read and write
+        let split = if writes_state {
+            // We take write access to state, but need to distribute
+            // each batch to a single worker.
+            // Note: This doesn't mean that each worker gets a single batch.
+            //       A worker can also get multiple batches or zero batches.
+            let ((agent_batches, msg_batches), group_indices) = match self.state {
+                 SharedState::Write(state) => {
+                     let indices = (0..state.agent_pool().n_batches()).collect();
+                     (state.deconstruct(), indices)
+                 }
+                SharedState::Partial(partial) => match partial {
+                    PartialSharedState::Write(partial) => {
+                        let (state, indices) = (partial.inner, partial.indices);
+                        (state.deconstruct(), indices)
+                    }
+                    _ => unreachable!()
+                }
+                _ => unreachable!()
+            };
+            let group_sizes = agent_batches
+                .iter()
+                .map(|batch| batch.inner().num_agents())
+                .collect();
+            let (stores, split_config) = distribute_batches(
+                worker_list, agent_batches, msg_batches, group_indices, group_sizes
+            );
+            let stores: Vec<_> = stores
+                .into_iter()
+                .map(|(worker, agent_batches, msg_batches, indices)| {
+                    let store = Self {
+                        state: SharedState::Partial(PartialSharedState::Write(PartialStateWriteProxy {
+                            indices,
+                            inner: StateWriteProxy::from((agent_batches, msg_batches))
+                        })),
+                        context: context.clone()
+                    };
+                    (worker, store)
+                })
+                .collect();
+            (stores, split_config)
+        } else if reads_state && distribution.single_read_access {
+            // We take read access to state so we need to distribute
+            // each batch to a single worker.
+            // Note: This doesn't mean that each worker gets a single batch.
+            //       A worker can also get multiple batches or zero batches.
+            let ((agent_batches, msg_batches), group_indices) = match self.state {
+                SharedState::Read(state) => {
+                    let indices = (0..state.agent_pool().n_batches()).collect();
+                    (state.deconstruct(), indices)
+                }
+                SharedState::Partial(partial) => match partial {
+                    PartialSharedState::Read(partial) => {
+                        let (state, indices) = (partial.inner, partial.indices);
+                        (state.deconstruct(), indices)
+                    }
+                    _ => unreachable!()
+                }
+                _ => unreachable!()
+            };
+            let group_sizes = agent_batches
+                .iter()
+                .map(|batch| batch.inner().num_agents())
+                .collect();
+            let (stores, split_config) = distribute_batches(
+                worker_list, agent_batches, msg_batches, group_indices, group_sizes
+            );
+            let stores: Vec<_> = stores
+                .into_iter()
+                .map(|(worker, agent_batches, msg_batches, indices)| {
+                    let store = Self {
+                        state: SharedState::Partial(PartialSharedState::Read(PartialStateReadProxy {
+                            indices,
+                            inner: StateReadProxy::from((agent_batches, msg_batches))
+                        })),
+                        context: context.clone()
+                    };
+                    (worker, store)
+                })
+                .collect();
+            (stores, split_config)
+        } else {
+            // No access to state or duplicate read access to state, trivial split:
+            // Give every worker the same access.
+            let stores = worker_list
+                .iter()
+                .map(|worker| Ok((worker.clone(), self.try_clone()?)))
+                .collect::<Result<_>>()?;
+
+            let num_workers = worker_list.len();
+            let agent_distribution = std::iter::repeat(self.n_accessible_agents())
+                .take(num_workers)
+                .collect();
+            let split_config = SplitConfig {
+                num_workers,
+                agent_distribution: Some(agent_distribution)
+            };
+
+            (stores, split_config)
+        };
+        Ok(split)
     }
 }
 
 impl TaskSharedStore {
     /// Fallible clone. Fails with write access to state.
     fn try_clone(&self) -> Result<Self> {
-        // TODO OS - try_clone is unimplemented for TaskSharedStore
-        todo!()
+        let state = match &self.state {
+            SharedState::Write(_) => {
+                return Err(Error::MultipleWriteSharedState);
+            }
+            SharedState::Partial(partial) => match partial {
+                PartialSharedState::Write(_) => {
+                    return Err(Error::MultipleWriteSharedState);
+                }
+                PartialSharedState::Read(partial) => {
+                    SharedState::Partial(PartialSharedState::Read(partial.clone()))
+                }
+            }
+            SharedState::Read(state) => {
+                SharedState::Read(state.clone())
+            }
+            SharedState::None => SharedState::None
+        };
+        Ok(Self {
+            state,
+            context: self.context.clone()
+        })
     }
 }

@@ -39,6 +39,17 @@ impl<K: Batch> BatchReadProxy<K> {
     }
 }
 
+impl<K: Batch> Clone for BatchReadProxy<K> {
+    fn clone(&self) -> Self {
+        // SAFETY: Since a BatchReadProxy already exists, the existing BatchReadProxy
+        //         must already have the shared lock, so no writer can currently have
+        //         the lock, so it must be possible to take the shared lock again.
+        let locked = unsafe { self.arc.raw() }.try_lock_shared();
+        assert!(locked, "Clone BatchReadProxy");
+        Self { arc: self.arc.clone() }
+    }
+}
+
 impl<K: Batch> Drop for BatchReadProxy<K> {
     fn drop(&mut self) {
         unsafe { self.arc.raw().unlock_shared() }
@@ -92,6 +103,24 @@ pub struct StateReadProxy {
     message_pool_proxy: PoolReadProxy<MessageBatch>,
 }
 
+impl Clone for StateReadProxy {
+    fn clone(&self) -> Self {
+        Self {
+            agent_pool_proxy: self.agent_pool_proxy.clone(),
+            message_pool_proxy: self.message_pool_proxy.clone()
+        }
+    }
+}
+
+impl From<(Vec<BatchReadProxy<AgentBatch>>, Vec<BatchReadProxy<MessageBatch>>)> for StateReadProxy {
+    fn from(batches: (Vec<BatchReadProxy<AgentBatch>>, Vec<BatchReadProxy<MessageBatch>>)) -> Self {
+        Self {
+            agent_pool_proxy: PoolReadProxy::from(batches.0),
+            message_pool_proxy: PoolReadProxy::from(batches.1)
+        }
+    }
+}
+
 impl Debug for StateReadProxy {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.write_str("StateReadProxy(...)")
@@ -113,12 +142,22 @@ impl StateReadProxy {
         })
     }
 
+    pub fn deconstruct(
+        self
+    ) -> (Vec<BatchReadProxy<AgentBatch>>, Vec<BatchReadProxy<MessageBatch>>) {
+        (self.agent_pool_proxy.deconstruct(), self.message_pool_proxy.deconstruct())
+    }
+
     pub fn agent_pool(&self) -> &PoolReadProxy<AgentBatch> {
         &self.agent_pool_proxy
     }
 
     pub fn message_pool(&self) -> &PoolReadProxy<MessageBatch> {
         &self.message_pool_proxy
+    }
+
+    pub fn n_accessible_agents(&self) -> usize {
+        self.agent_pool_proxy.batches().into_iter().map(|batch| batch.num_agents()).sum()
     }
 }
 
@@ -130,6 +169,15 @@ pub struct StateWriteProxy {
 impl Debug for StateWriteProxy {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.write_str("StateWriteProxy(...)")
+    }
+}
+
+impl From<(Vec<BatchWriteProxy<AgentBatch>>, Vec<BatchWriteProxy<MessageBatch>>)> for StateWriteProxy {
+    fn from(batches: (Vec<BatchWriteProxy<AgentBatch>>, Vec<BatchWriteProxy<MessageBatch>>)) -> Self {
+        Self {
+            agent_pool_proxy: PoolWriteProxy::from(batches.0),
+            message_pool_proxy: PoolWriteProxy::from(batches.1)
+        }
     }
 }
 
@@ -148,6 +196,12 @@ impl StateWriteProxy {
         })
     }
 
+    pub fn deconstruct(
+        self
+    ) -> (Vec<BatchWriteProxy<AgentBatch>>, Vec<BatchWriteProxy<MessageBatch>>) {
+        (self.agent_pool_proxy.deconstruct(), self.message_pool_proxy.deconstruct())
+    }
+
     pub fn agent_pool(&self) -> &PoolWriteProxy<AgentBatch> {
         &self.agent_pool_proxy
     }
@@ -162,5 +216,9 @@ impl StateWriteProxy {
 
     pub fn message_pool_mut(&mut self) -> &mut PoolWriteProxy<MessageBatch> {
         &mut self.message_pool_proxy
+    }
+
+    pub fn n_accessible_agents(&self) -> usize {
+        self.agent_pool_proxy.batches().into_iter().map(|batch| batch.num_agents()).sum()
     }
 }
