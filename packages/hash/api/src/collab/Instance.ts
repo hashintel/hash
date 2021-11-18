@@ -315,14 +315,8 @@ export class Instance {
     if (startIndex < 0) return false;
 
     const steps = this.steps.slice(startIndex);
-
-    /**
-     * I think this may end up sending the store back when it isn't necessary
-     *
-     * @todo check this
-     */
     const store =
-      this.entityStore.version >= version ? this.entityStore.store : null;
+      this.entityStore.version > version ? this.entityStore.store : null;
 
     return {
       steps,
