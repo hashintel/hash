@@ -1,7 +1,7 @@
 import { Draft, produce } from "immer";
 import { v4 as uuid } from "uuid";
 import { AnyEntity, BlockEntity } from "./entity";
-import { DistributiveOmit } from "./util";
+import { DistributiveOmit, typeSafeEntries } from "./util";
 
 // @todo should AnyEntity include BlockEntity, and should this just be AnyEntity
 export type EntityStoreType = BlockEntity | AnyEntity;
@@ -53,55 +53,54 @@ export const draftEntityForEntityId = (
   entityId: string,
 ) => Object.values(draft).find((entity) => entity.entityId === entityId);
 
+export const walkObjectValueForEntity = <T extends {}>(
+  value: T,
+  entityHandler: <E extends EntityStoreType>(entity: E) => E,
+): T => {
+  let changed = false;
+  let result = value;
+
+  for (const [key, innerValue] of typeSafeEntries(value)) {
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
+    const nextValue = walkValueForEntity(innerValue, entityHandler);
+
+    if (nextValue !== innerValue) {
+      if (!changed) {
+        result = (Array.isArray(value) ? [...value] : { ...value }) as T;
+      }
+
+      changed = true;
+      result[key] = nextValue;
+    }
+  }
+
+  if (isEntity(value)) {
+    const nextValue = entityHandler(value);
+
+    if (nextValue !== value) {
+      changed = true;
+      result = nextValue;
+    }
+  }
+
+  return changed ? result : value;
+};
+
 /**
  * @todo work on performance
  */
 export const walkValueForEntity = <T>(
   value: T,
-  entityHandler: (entity: EntityStoreType) => EntityStoreType,
+  entityHandler: <E extends EntityStoreType>(entity: E) => E,
 ): T => {
   if (typeof value !== "object" || value === null) {
     return value;
   }
 
-  let valueCopy = (
-    Array.isArray(value) ? [...value] : { ...value }
-  ) as typeof value;
-
-  for (const [key, innerValue] of Object.entries(valueCopy)) {
-    // @todo this is type safe, but TS doesn't know it
-    // @ts-expect-error .................
-    valueCopy[key] = walkValueForEntity(innerValue, entityHandler);
-  }
-
-  if (isEntity(valueCopy)) {
-    // @todo this is type safe, but TS doesn't know it
-    valueCopy = entityHandler(valueCopy) as any;
-  }
-
-  return valueCopy;
+  return walkObjectValueForEntity(value, entityHandler);
 };
 
-// /**
-//  * @todo this only finds block entities and their immediate descendants
-//  */
-// const findEntitiesInValue = (value: unknown): EntityStoreType[] => {
-//   let entities: EntityStoreType[] = [];
-//
-//   if (isBlockEntity(value)) {
-//     entities = [...entities, value, value.properties.entity];
-//   }
-//
-//   if (typeof value === "object" && value !== null) {
-//     for (const property of Object.values(value)) {
-//       entities = [...entities, ...findEntitiesInValue(property)];
-//     }
-//   }
-//
-//   return entities;
-// };
-
-function findEntities(contents: EntityStoreType[]) {
+const findEntities = (contents: EntityStoreType[]) => {
   const entities: EntityStoreType[] = [];
 
   walkValueForEntity(contents, (entity) => {
@@ -112,7 +111,7 @@ function findEntities(contents: EntityStoreType[]) {
   });
 
   return entities;
-}
+};
 
 /**
  * @todo restore dealing with links
