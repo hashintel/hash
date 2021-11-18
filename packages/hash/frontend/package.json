@@ -30,6 +30,7 @@
     "@twind/next": "1.0.8",
     "ajv": "8.6.3",
     "date-fns": "2.22.1",
+    "framer-motion": "^4.1.0",
     "graphql": "15.5.0",
     "html-webpack-plugin": "4.5.1",
     "iframe-resizer": "4.3.2",
