@@ -5,8 +5,11 @@ use crate::{
     error::{Error, Result},
     Args,
 };
+use hash_prime::experiment::controller::config::{OutputPersistenceConfig, OUTPUT_PERSISTENCE_KEY};
 use hash_prime::proto;
 use hash_prime::proto::ExecutionEnvironment;
+use serde_json::json;
+use std::iter::FromIterator;
 use std::path::PathBuf;
 use std::time::Duration;
 use tokio::time::{self, timeout};
@@ -73,11 +76,15 @@ async fn run_experiment_with_manifest(
     };
     log::debug!("Received start message from {}", &experiment_id);
 
+    let map_iter = [(
+        OUTPUT_PERSISTENCE_KEY.to_string(),
+        json!(OutputPersistenceConfig::None),
+    )];
     // Now we can send the init message
     let init_message = proto::InitMessage {
         experiment: experiment_run.clone(),
         env: ExecutionEnvironment::None, // We don't connect to the API
-        dyn_payloads: Default::default(),
+        dyn_payloads: serde_json::Map::from_iter(map_iter), // TODO
     };
     engine_process
         .send(&proto::EngineMsg::Init(init_message))
