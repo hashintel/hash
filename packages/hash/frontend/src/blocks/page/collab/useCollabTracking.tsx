@@ -1,9 +1,8 @@
+import { useRouter } from "next/router";
 import { useDocumentEventListener, useWindowEventListener } from "rooks";
 import { findParent } from "../../../lib/dom";
 import { isComponentViewTarget } from "../ComponentView";
-
-const reportPosition = (entityId: string | null) =>
-  console.log("focussing", entityId);
+import { useReportCollabPosition } from "./useReportCollabPosition";
 
 /**
  * used to capture and report user focus. this requires toplevel blocks (ComponentView instances)
@@ -14,7 +13,10 @@ const reportPosition = (entityId: string | null) =>
  *   a) focus[in|out] events do not fire on any [contenteditable] elements and
  *   b) cross-origin policies restrict interactions w/ iframes
  */
-export const FocusTracker = () => {
+export const useCollabTracking = () => {
+  const { accountId, pageEntityId } = useRouter().query;
+  const reportPosition = useReportCollabPosition(accountId as string, pageEntityId as string);
+
   /**
    * capture focus on sandboxed blocks (iframe)
    *
@@ -27,7 +29,9 @@ export const FocusTracker = () => {
 
       if (activeElement?.nodeName === "IFRAME") {
         const target = findParent(activeElement, isComponentViewTarget);
-        if (target) reportPosition(target.getAttribute("data-entity-id"));
+        reportPosition(target?.getAttribute("data-entity-id") ?? undefined);
+      } else {
+        reportPosition(undefined);
       }
     });
   });
@@ -38,13 +42,11 @@ export const FocusTracker = () => {
   useDocumentEventListener("selectionchange", () => {
     const focusNode = document.getSelection()?.focusNode;
     const target = findParent(focusNode, isComponentViewTarget);
-    if (target) reportPosition(target.getAttribute("data-entity-id"));
+    reportPosition(target?.getAttribute("data-entity-id") ?? undefined);
   });
 
   /**
    * @todo capture tabindex movements
    * @see https://app.asana.com/0/1200211978612931/1201373663718971/f
    */
-
-  return null;
 };
