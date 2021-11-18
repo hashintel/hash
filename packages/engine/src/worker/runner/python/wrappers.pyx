@@ -2,6 +2,7 @@ from libc.stdint cimport uint32_t, int32_t, uint64_t, int64_t, intptr_t, uintptr
 from libc.stdlib cimport malloc, free
 from cython cimport view
 
+# TODO: shared.pyx
 from shared cimport *
 
 import pyarrow as pa
