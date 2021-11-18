@@ -16,6 +16,7 @@ import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 import { Schema } from "prosemirror-model";
 import { EditorView, NodeView } from "prosemirror-view";
 import { BlockLoader } from "../../components/BlockLoader/BlockLoader";
+import { isElement } from "../../lib/dom";
 import { RenderPortal } from "./usePortals";
 
 // @todo we need to type this such that we're certain we're passing through all
@@ -38,12 +39,23 @@ const getRemoteBlockProps = (entity: EntityStoreType | null | undefined) => {
   return { properties: {} };
 };
 
+/** @returns a target-/mount-node for a ComponentView instance */
+const createComponentViewTarget = () => {
+  const el = document.createElement("div");
+  el.setAttribute("data-target", "true");
+  return el;
+};
+
+/** @returns whether or not it's a target-/mount-node for a ComponentView instance */
+export const isComponentViewTarget = (node: Node) =>
+  isElement(node) && !!node.getAttribute("data-target");
+
 export class ComponentView implements NodeView<Schema> {
   dom: HTMLDivElement = document.createElement("div");
   contentDOM: HTMLElement | undefined = undefined;
   editable: boolean;
 
-  private target = document.createElement("div");
+  private target = createComponentViewTarget();
 
   private readonly componentId: string;
   private readonly sourceName: string;
@@ -79,8 +91,6 @@ export class ComponentView implements NodeView<Schema> {
       this.dom.appendChild(this.contentDOM);
     }
 
-    this.target.setAttribute("data-target", "true");
-
     this.dom.appendChild(this.target);
 
     this.store = entityStoreFromProsemirror(view.state).store;
@@ -114,6 +124,9 @@ export class ComponentView implements NodeView<Schema> {
         : undefined;
 
       const mappedUrl = componentIdToUrl(this.componentId);
+
+      /** used by collaborative editing feature `FocusTracker` */
+      this.target.setAttribute("data-entity-id", entityId);
 
       this.renderPortal(
         <BlockLoader
