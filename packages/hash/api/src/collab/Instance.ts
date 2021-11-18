@@ -106,7 +106,8 @@ export class Instance {
       (entity) => {
         if (
           entity.entityId === entityVersion.entityId &&
-          entity.updatedAt !== entityVersion.updatedAt.toISOString()
+          new Date(entityVersion.updatedAt).getTime() >
+            new Date(entity.updatedAt).getTime()
         ) {
           return {
             ...entity,
