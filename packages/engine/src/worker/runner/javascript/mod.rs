@@ -24,7 +24,7 @@ use crate::config::Globals;
 use crate::datastore::batch::DynamicBatch;
 use crate::datastore::table::pool::agent::AgentPool;
 use crate::datastore::table::pool::message::MessagePool;
-use crate::datastore::table::pool::proxy::PoolReadProxy;
+use crate::datastore::table::pool::proxy::{PoolReadProxy, PoolWriteProxy};
 use crate::datastore::table::pool::BatchPool;
 use crate::worker::{Error as WorkerError, Result as WorkerResult, TaskMessage};
 use crate::{
@@ -43,6 +43,9 @@ use crate::{
     Language,
 };
 pub use error::{Error, Result};
+use crate::datastore::table::proxy::StateWriteProxy;
+use crate::datastore::table::task_shared_store::{PartialSharedState, SharedState};
+use crate::simulation::enum_dispatch::TaskSharedStore;
 
 struct JSPackage<'m> {
     fns: mv8::Array<'m>,
@@ -257,6 +260,39 @@ fn idxs_to_js<'m>(mv8: &'m MiniV8, idxs: &[usize]) -> Result<mv8::Value<'m>> {
     Ok(mv8::Value::Array(a))
 }
 
+fn batches_from_shared_store(
+    shared_store: &TaskSharedStore
+) -> Result<(Vec<&AgentBatch>, Vec<&MessageBatch>, Vec<usize>)> {
+    // TODO: Remove duplication between read and write access
+    Ok(match &shared_store.state {
+        SharedState::None => (vec![], vec![], vec![]),
+        SharedState::Write(state) => (
+            state.agent_pool().batches(),
+            state.message_pool().batches(),
+            (0..state.agent_pool().n_batches()).collect()
+        ),
+        SharedState::Read(state) => (
+            state.agent_pool().batches(),
+            state.message_pool().batches(),
+            (0..state.agent_pool().n_batches()).collect()
+        ),
+        SharedState::Partial(partial) => {
+            match partial {
+                PartialSharedState::Read(partial) => (
+                    partial.inner.agent_pool().batches(),
+                    partial.inner.message_pool().batches(),
+                    partial.indices.clone() // TODO: Avoid cloning?
+                ),
+                PartialSharedState::Write(partial) => (
+                    partial.inner.agent_pool().batches(),
+                    partial.inner.message_pool().batches(),
+                    partial.indices.clone() // TODO: Avoid cloning?
+                ),
+            }
+        }
+    })
+}
+
 fn mem_batch_to_js<'m>(
     mv8: &'m MiniV8,
     mem: mv8::Object<'m>,
@@ -287,17 +323,16 @@ fn mut_batch_to_js<'m>(
 
 fn state_to_js<'m>(
     mv8: &'m MiniV8,
-    agent_batches: &PoolReadProxy<AgentBatch>,
-    msg_batches: &PoolReadProxy<MessageBatch>,
+    agent_batches: &[&AgentBatch],
+    msg_batches: &[&MessageBatch],
 ) -> Result<(mv8::Value<'m>, mv8::Value<'m>)> {
     let js_agent_batches = mv8.create_array();
     let js_msg_batches = mv8.create_array();
-    for i_batch in 0..agent_batches.n_batches() {
-        let agent_batch = agent_batches.batch(i_batch)?;
+    for x in agent_batches.iter().zip(msg_batches.iter()).enumerate() {
+        let (i_batch, (agent_batch, msg_batch)) = x;
         let agent_batch = batch_to_js(mv8, agent_batch.memory(), agent_batch.metaversion());
         js_agent_batches.set(i_batch as u32, agent_batch)?;
 
-        let msg_batch = msg_batches.batch(i_batch)?;
         let msg_batch = batch_to_js(mv8, msg_batch.memory(), msg_batch.metaversion());
         js_msg_batches.set(i_batch as u32, msg_batch)?;
     }
@@ -646,17 +681,21 @@ impl<'m> RunnerImpl<'m> {
         mv8: &'m MiniV8,
         agent_schema: &Arc<Schema>,
         msg_schema: &Arc<Schema>,
-        agent_batch: &mut AgentBatch,
-        msg_batch: &mut MessageBatch,
+        proxy: &mut StateWriteProxy,
+        i_proxy: usize,
         changes: mv8::Value<'m>,
     ) -> Result<()> {
         let changes = changes.as_object().unwrap();
 
         let agent_changes = changes.get("agent")?;
-        self.flush_batch(mv8, agent_changes, agent_batch, agent_schema)?;
+        self.flush_batch(
+            mv8, agent_changes, proxy.agent_pool_mut().batch_mut(i_proxy)?, agent_schema
+        )?;
 
         let msg_changes = changes.get("msg")?;
-        self.flush_batch(mv8, msg_changes, msg_batch, msg_schema)?;
+        self.flush_batch(
+            mv8, msg_changes, proxy.message_pool_mut().batch_mut(0)?, msg_schema
+        )?;
 
         Ok(())
     }
@@ -665,43 +704,41 @@ impl<'m> RunnerImpl<'m> {
         &mut self,
         mv8: &'m MiniV8,
         sim_run_id: SimulationShortID,
-        group_index: Option<u32>,
+        shared_store: &mut TaskSharedStore,
         r: &mv8::Object<'m>,
-    ) -> Result<StateInterimSync> {
+    ) -> Result<()> {
+        let (proxy, group_indices) = match &mut shared_store.state {
+            SharedState::None | SharedState::Read(_) => return Ok(()),
+            SharedState::Write(state) => {
+                let indices = (0..state.agent_pool().n_batches()).collect();
+                (state, indices)
+            },
+            SharedState::Partial(partial) => match partial {
+                PartialSharedState::Read(_) => return Ok(()),
+                PartialSharedState::Write(state) => {
+                    let indices = state.indices.clone();
+                    (&mut state.inner, indices)
+                }
+            }
+        };
+
         let state = self
             .sims_state
             .get(&sim_run_id)
             .ok_or(Error::MissingSimulationRun(sim_run_id))?;
-
-        let agent_batches = state.agent_pool.clone();
-        let message_batches = state.msg_pool.clone();
-
         // Assuming cloning an Arc once is faster than looking up `state` in
         // the `sims_state` HashMap in every `flush_group` call.
         let agent_schema = state.agent_schema.clone();
         let msg_schema = state.msg_schema.clone();
 
-        // Currently only either a single group or all groups is flushed,
-        // but distinguish between group and proxy indices as future-proofing.
-        let group_indices = if let Some(group_index) = group_index {
-            vec![group_index as usize]
-        } else {
-            (0..agent_batches.batches().len()).collect()
-        };
-
-        let (mut agent_proxy, mut msg_proxy) = (
-            agent_batches.partial_write_proxy(&group_indices)?,
-            message_batches.partial_write_proxy(&group_indices)?,
-        );
         let changes: mv8::Value = r.get("changes")?;
-
-        if group_index.is_some() {
+        if group_indices.len() == 1 {
             self.flush_group(
                 mv8,
                 &agent_schema,
                 &msg_schema,
-                agent_proxy.batch_mut(0)?,
-                msg_proxy.batch_mut(0)?,
+                proxy,
+                0,
                 changes,
             )?;
         } else {
@@ -713,18 +750,13 @@ impl<'m> RunnerImpl<'m> {
                     mv8,
                     &agent_schema,
                     &msg_schema,
-                    agent_proxy.batch_mut(i_proxy)?,
-                    msg_proxy.batch_mut(i_proxy)?,
+                    proxy,
+                    i_proxy,
                     group_changes,
                 )?;
             }
         }
-
-        Ok(StateInterimSync {
-            group_indices,
-            agent_batches,
-            message_batches,
-        })
+        Ok(())
     }
 
     /// Sim start:
@@ -798,15 +830,26 @@ impl<'m> RunnerImpl<'m> {
         &mut self,
         mv8: &'m MiniV8,
         sim_run_id: SimulationShortID,
-        msg: RunnerTaskMsg,
+        mut msg: RunnerTaskMsg,
     ) -> Result<(TargetedRunnerTaskMsg, Option<Vec<RunnerError>>)> {
         // TODO: Move JS part of sync into `run_task` function in JS for better performance.
-        self.state_interim_sync(mv8, sim_run_id, msg.sync)?;
+        self.state_interim_sync(mv8, sim_run_id, &msg.shared_store)?;
 
-        let group_index = if let Some(i) = msg.group_index {
-            mv8::Value::Number(i as f64)
-        } else {
-            mv8::Value::Undefined
+        let group_index = match &msg.shared_store.state {
+            SharedState::None | SharedState::Write(_) | SharedState::Read(_) => mv8::Value::Undefined,
+            SharedState::Partial(partial) => match partial {
+                // TODO: Code duplication between read and write
+                PartialSharedState::Read(partial) => if partial.indices.len() == 1 {
+                    mv8::Value::Number(partial.indices[0] as f64)
+                } else {
+                    todo!() // Running on strict subset of groups with more than one group
+                }
+                PartialSharedState::Write(partial) => if partial.indices.len() == 1 {
+                    mv8::Value::Number(partial.indices[0] as f64)
+                } else {
+                    todo!() // Running on strict subset of groups with more than one group
+                }
+            }
         };
 
         let payload = serde_json::to_string(&msg.payload).unwrap();
@@ -831,17 +874,16 @@ impl<'m> RunnerImpl<'m> {
         // TODO: Send `r.print` (if any) to main loop to display to user.
         let (next_target, next_task_payload) = get_next_task(mv8, &r)?;
 
-        // TODO: Only flush if state writable
-        let next_sync = self.flush(mv8, sim_run_id, msg.group_index, &r)?;
+        // Only flushes if state writable
+        self.flush(mv8, sim_run_id, &mut msg.shared_store, &r)?;
 
         let next_task_msg = TargetedRunnerTaskMsg {
             target: next_target,
             msg: RunnerTaskMsg {
                 package_id: msg.package_id,
                 task_id: msg.task_id,
-                sync: next_sync,
+                shared_store: msg.shared_store,
                 payload: next_task_payload,
-                group_index: msg.group_index,
             },
         };
         Ok((next_task_msg, warnings))
@@ -882,10 +924,9 @@ impl<'m> RunnerImpl<'m> {
         //       state in parallel with the mutation through those pointers).
 
         // Sync JS.
-        // let agent_pool = &msg.agent_pool as &dyn BatchPool<AgentBatch>;
-        // let msg_pool = &msg.message_pool as &dyn BatchPool<MessageBatch>;
         let agent_pool = msg.agent_pool.read_proxy()?;
         let msg_pool = msg.message_pool.read_proxy()?;
+        let (agent_pool, msg_pool) = (agent_pool.batches(), msg_pool.batches());
 
         // Pass proxies by reference, because they shouldn't be
         // dropped until entire sync is complete.
@@ -910,15 +951,14 @@ impl<'m> RunnerImpl<'m> {
         &mut self,
         mv8: &'m MiniV8,
         sim_run_id: SimulationShortID,
-        msg: StateInterimSync,
+        shared_store: &TaskSharedStore,
     ) -> Result<()> {
         // Sync JS.
-        let agent_pool = msg.agent_batches.partial_read_proxy(&msg.group_indices)?;
-        let msg_pool = msg.message_batches.partial_read_proxy(&msg.group_indices)?;
-        let (agent_batches, msg_batches) = state_to_js(mv8, &agent_pool, &msg_pool)?;
+        let (agent_batches, msg_batches, group_indices) = batches_from_shared_store(shared_store)?;
+        let (agent_batches, msg_batches) = state_to_js(mv8, &agent_batches, &msg_batches)?;
         let args = mv8::Values::from_vec(vec![
             sim_id_to_js(mv8, sim_run_id),
-            idxs_to_js(mv8, &msg.group_indices)?,
+            idxs_to_js(mv8, &group_indices)?,
             agent_batches,
             msg_batches,
         ]);
@@ -928,16 +968,10 @@ impl<'m> RunnerImpl<'m> {
             .call_method(self.this.clone(), args)?;
 
         // Sync Rust.
-        let state = self
-            .sims_state
-            .get_mut(&sim_run_id)
-            .ok_or(Error::MissingSimulationRun(sim_run_id))?;
-        state
-            .agent_pool
-            .update(&msg.agent_batches, &msg.group_indices);
-        state
-            .msg_pool
-            .update(&msg.message_batches, &msg.group_indices);
+        // let state = self
+        //     .sims_state
+        //     .get_mut(&sim_run_id)
+        //     .ok_or(Error::MissingSimulationRun(sim_run_id))?;
         Ok(())
     }
 
@@ -950,6 +984,7 @@ impl<'m> RunnerImpl<'m> {
         // TODO: Duplication with `state_sync`
         let agent_pool = msg.agent_pool.read_proxy()?;
         let msg_pool = msg.message_pool.read_proxy()?;
+        let (agent_pool, msg_pool) = (agent_pool.batches(), msg_pool.batches());
         let (agent_pool, msg_pool) = state_to_js(mv8, &agent_pool, &msg_pool)?;
         let sim_run_id = sim_id_to_js(mv8, sim_run_id);
         let args = mv8::Values::from_vec(vec![sim_run_id, agent_pool, msg_pool]);
@@ -991,7 +1026,7 @@ impl<'m> RunnerImpl<'m> {
             }
             InboundToRunnerMsgPayload::StateInterimSync(interim_msg) => {
                 let sim_id = sim_id.ok_or(Error::SimulationIDRequired("interim sync"))?;
-                self.state_interim_sync(mv8, sim_id, interim_msg)?;
+                self.state_interim_sync(mv8, sim_id, &interim_msg.shared_store)?;
             }
             InboundToRunnerMsgPayload::StateSnapshotSync(state_msg) => {
                 let sim_id = sim_id.ok_or(Error::SimulationIDRequired("snapshot sync"))?;

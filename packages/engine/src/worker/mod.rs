@@ -3,6 +3,7 @@ mod pending;
 pub mod runner;
 pub mod task;
 
+use crate::simulation::package::id::PackageId;
 use crate::worker::pending::CancelState;
 use crate::{
     config::WorkerConfig,
@@ -37,6 +38,7 @@ use self::{
 use crate::simulation::task::handler::WorkerHandler;
 use crate::simulation::task::msg::TaskMessage;
 pub use error::{Error, Result};
+use crate::simulation::enum_dispatch::TaskSharedStore;
 
 /// A task worker.
 ///
@@ -187,18 +189,14 @@ impl WorkerController {
         task_id: TaskID,
         source: Language,
         message: TaskMessage,
-        metaversioning: &StateInterimSync,
+        shared_store: TaskSharedStore,
     ) -> Result<()> {
-        if let Some(mut task) = self.tasks.inner.remove(&task_id) {
-            // Important to update metaversioning as the metaversioning is not passed to worker pool
-            task.inner
-                .shared_store
-                .update_metaversioning(metaversioning)?;
-
-            let task_result = WorkerHandler::into_result(&task.inner.inner, message)?;
-            // Important to drop here since we then lose the access to
-            // the shared store
-            drop(task);
+        // `shared_store` metaversioning should have been kept updated
+        // by the runners, so it doesn't need to be updated at this point.
+        if let Some(task) = self.tasks.inner.remove(&task_id) {
+            let task_result = WorkerHandler::into_result(&task.inner, message)?;
+            // Important to drop here since we then lose the access to the shared store
+            drop(shared_store);
 
             self.cancel_task_except_for_runner(task_id, source).await?;
 
@@ -218,21 +216,19 @@ impl WorkerController {
         msg: RunnerTaskMsg,
         source: Language,
     ) -> Result<()> {
-        self.finish_task(msg.task_id, source, msg.payload, &msg.sync)
-            .await
+        self.finish_task(msg.task_id, source, msg.payload, msg.shared_store).await
     }
 
     fn inbound_from_task_msg(
+        task_id: TaskID,
+        package_id: PackageId,
+        shared_store: TaskSharedStore,
         task_msg: TaskMessage,
-        pending: &PendingWorkerTask,
-        group_index: Option<u32>,
-        sync: StateInterimSync,
     ) -> InboundToRunnerMsgPayload {
         InboundToRunnerMsgPayload::TaskMsg(RunnerTaskMsg {
-            task_id: pending.inner.task_id,
-            package_id: pending.inner.package_id,
-            group_index,
-            sync,
+            task_id,
+            package_id,
+            shared_store,
             payload: task_msg,
         })
     }
@@ -244,43 +240,32 @@ impl WorkerController {
         source: Language,
     ) -> Result<()> {
         use MessageTarget::*;
-        let group_index = msg.group_index;
-        let sync = msg.sync;
         if let Some(pending) = self.tasks.inner.get_mut(&msg.task_id) {
-            let next = WorkerHandler::handle_worker_message(&mut pending.inner.inner, msg.payload)?;
+            let next = WorkerHandler::handle_worker_message(&mut pending.inner, msg.payload)?;
             match next.target {
                 Rust => {
-                    self.rs
-                        .send(
-                            Some(sim_id),
-                            Self::inbound_from_task_msg(next.payload, pending, group_index, sync),
-                        )
-                        .await?;
+                    let inbound = Self::inbound_from_task_msg(
+                        msg.task_id, msg.package_id, msg.shared_store, next.payload
+                    );
+                    self.rs.send(Some(sim_id), inbound).await?;
                     pending.active_runner = Language::Rust;
                 }
                 Python => {
-                    self.py
-                        .send(
-                            Some(sim_id),
-                            Self::inbound_from_task_msg(next.payload, pending, group_index, sync),
-                        )
-                        .await?;
+                    let inbound = Self::inbound_from_task_msg(
+                        msg.task_id, msg.package_id, msg.shared_store, next.payload
+                    );
+                    self.py.send(Some(sim_id), inbound).await?;
                     pending.active_runner = Language::Python;
                 }
                 JavaScript => {
-                    self.js
-                        .send(
-                            Some(sim_id),
-                            Self::inbound_from_task_msg(next.payload, pending, group_index, sync),
-                        )
-                        .await?;
+                    let inbound = Self::inbound_from_task_msg(
+                        msg.task_id, msg.package_id, msg.shared_store, next.payload
+                    );
+                    self.js.send(Some(sim_id), inbound).await?;
                     pending.active_runner = Language::JavaScript;
                 }
                 Dynamic => return Err(Error::UnexpectedTarget(next.target)),
-                Main => {
-                    self.finish_task(msg.task_id, source, next.payload, &sync)
-                        .await?;
-                }
+                Main => self.finish_task(msg.task_id, source, next.payload, msg.shared_store).await?,
             }
         }
         Ok(())
@@ -336,8 +321,7 @@ impl WorkerController {
         let runner_msg = InboundToRunnerMsgPayload::TaskMsg(RunnerTaskMsg {
             task_id,
             package_id: task.package_id,
-            sync: todo!(),        // TODO: From `task.shared_store?`
-            group_index: todo!(), // TODO: Should be getting this from workercontroller in `task`?
+            shared_store: task.shared_store,
             payload: init_msg.payload,
         });
         let active_runner = match init_msg.target {
@@ -361,7 +345,7 @@ impl WorkerController {
         if self
             .tasks
             .inner
-            .insert(task_id, PendingWorkerTask::new(task, active_runner))
+            .insert(task_id, PendingWorkerTask::new(task.inner, active_runner))
             .is_some()
         {
             return Err(Error::TaskAlreadyExists(task_id));

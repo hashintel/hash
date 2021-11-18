@@ -12,24 +12,13 @@ use super::{
     state::{ReadState, WriteState},
 };
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct TaskSharedStore {
-    state: SharedState,
+    pub state: SharedState,
     context: SharedContext,
 }
 
-impl Debug for TaskSharedStore {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        // TODO more specific debug
-        f.write_str("TaskSharedStore(...)")
-    }
-}
-
 impl TaskSharedStore {
-    pub fn state(&self) -> &SharedState {
-        &self.state
-    }
-
     pub fn context(&self) -> &SharedContext {
         &self.context
     }
@@ -44,14 +33,14 @@ impl TaskSharedStore {
 
 #[derive(Debug)]
 pub struct PartialStateWriteProxy {
-    indices: Vec<usize>,
-    inner: StateWriteProxy,
+    pub indices: Vec<usize>,
+    pub inner: StateWriteProxy,
 }
 
 #[derive(Debug)]
 pub struct PartialStateReadProxy {
-    indices: Vec<usize>,
-    inner: StateReadProxy,
+    pub indices: Vec<usize>,
+    pub inner: StateReadProxy,
 }
 
 #[derive(Debug)]

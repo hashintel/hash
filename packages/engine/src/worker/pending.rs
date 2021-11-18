@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{types::TaskID, Language};
+use crate::simulation::task::Task;
 
 use super::task::WorkerTask;
 
@@ -17,7 +18,7 @@ impl Default for CancelState {
 
 #[derive(new)]
 pub struct PendingWorkerTask {
-    pub inner: WorkerTask,
+    pub inner: Task,
     pub active_runner: Language,
     #[new(default)]
     pub cancelling: CancelState,

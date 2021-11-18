@@ -15,6 +15,7 @@ use crate::{
     types::{TaskID, WorkerIndex},
     Language,
 };
+use crate::simulation::enum_dispatch::TaskSharedStore;
 
 pub mod inbound;
 pub mod outbound;
@@ -43,9 +44,8 @@ impl From<Language> for MessageTarget {
 pub struct RunnerTaskMsg {
     pub package_id: PackageId,
     pub task_id: TaskID,
-    pub sync: StateInterimSync,
     pub payload: TaskMessage,
-    pub group_index: Option<u32>,
+    pub shared_store: TaskSharedStore
 }
 
 #[derive(Debug)]
@@ -54,20 +54,9 @@ pub struct TargetedRunnerTaskMsg {
     pub msg: RunnerTaskMsg,
 }
 
+#[derive(Debug)]
 pub struct StateInterimSync {
-    pub group_indices: Vec<usize>,
-    pub agent_batches: AgentPool,
-    pub message_batches: MessagePool,
-    // shared state
-}
-
-impl fmt::Debug for StateInterimSync {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        f.write_str(&format!(
-            "StateInterimSync ( group_indices: {:?}, ... )",
-            self.group_indices,
-        ))
-    }
+    pub shared_store: TaskSharedStore
 }
 
 pub struct DatastoreInit {

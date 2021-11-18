@@ -13,6 +13,9 @@ pub enum Error {
     #[error("Missing simulation run with id {0}")]
     MissingSimRun(crate::proto::SimulationShortID),
 
+    #[error("Couldn't spawn Python child process: {0:?}")]
+    Spawn(std::io::Error),
+
     #[error("Couldn't send message {0:?} to Python process: {1:?}")]
     NngSend(nng::Message, nng::Error),
 

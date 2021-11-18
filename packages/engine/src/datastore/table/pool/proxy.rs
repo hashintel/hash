@@ -46,6 +46,13 @@ impl<K: Batch> PoolWriteProxy<K> {
             .ok_or_else(|| Error::from(format!("No batch with index {}", index)))?;
         Ok(batch.inner_mut())
     }
+
+    pub fn batches(&self) -> Vec<&K> {
+        self.batches
+            .iter()
+            .map(|b| b.inner())
+            .collect()
+    }
 }
 
 impl<K: Batch> PoolReadProxy<K> {
@@ -59,5 +66,12 @@ impl<K: Batch> PoolReadProxy<K> {
             .get(index)
             .ok_or_else(|| Error::from(format!("No batch with index {}", index)))?;
         Ok(batch.inner())
+    }
+
+    pub fn batches(&self) -> Vec<&K> {
+        self.batches
+            .iter()
+            .map(|b| b.inner())
+            .collect()
     }
 }

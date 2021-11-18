@@ -15,7 +15,7 @@ pub trait StoreAccessVerify {
 
 impl StoreAccessVerify for ContextTask {
     fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()> {
-        let state = access.state();
+        let state = &access.state;
         let context = access.context();
         if (matches!(state, SharedState::Read(_)) || matches!(state, SharedState::None))
             && matches!(context, SharedContext::None)
@@ -29,7 +29,7 @@ impl StoreAccessVerify for ContextTask {
 
 impl StoreAccessVerify for InitTask {
     fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()> {
-        let state = access.state();
+        let state = &access.state;
         let context = access.context();
         if matches!(state, SharedState::None) && matches!(context, SharedContext::None) {
             Ok(())
@@ -41,7 +41,7 @@ impl StoreAccessVerify for InitTask {
 
 impl StoreAccessVerify for StateTask {
     fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()> {
-        let state = access.state();
+        let state = &access.state;
         let context = access.context();
         // All combinations (as of now) are allowed (but still being explicit)
         if (matches!(state, SharedState::Write(_))
@@ -58,7 +58,7 @@ impl StoreAccessVerify for StateTask {
 
 impl StoreAccessVerify for OutputTask {
     fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()> {
-        let state = access.state();
+        let state = &access.state;
         let context = access.context();
         if (matches!(state, SharedState::Read(_)) || matches!(state, SharedState::None))
             && (matches!(context, SharedContext::Read) || matches!(context, SharedContext::None))

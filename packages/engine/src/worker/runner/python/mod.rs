@@ -354,7 +354,7 @@ impl PythonRunner {
         cmd.arg(".src/worker/runner/python/run.sh")
             .arg(&self.init_msg.experiment_id)
             .arg(&self.init_msg.worker_index.to_string());
-        let mut process = cmd.spawn()?;
+        let mut process = cmd.spawn().map_err(|e| Error::Spawn(e))?;
 
         // Send messages to Python process.
         self.nng_receiver.init(&self.init_msg)?;

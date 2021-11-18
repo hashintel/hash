@@ -9,6 +9,7 @@ use crate::simulation::{Error, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::convert::TryInto;
+use crate::datastore::table::task_shared_store::TaskSharedStoreBuilder;
 
 use super::super::*;
 
@@ -92,7 +93,8 @@ impl InitPackage for Package {
             }
         };
 
-        let active_task = self.comms.new_task(task, Default::default()).await?;
+        let shared_store = TaskSharedStore::default();
+        let active_task = self.comms.new_task(task, shared_store).await?;
         let task_result = TryInto::<JsPyInitTaskResult>::try_into(
             TryInto::<InitTaskResult>::try_into(active_task.drive_to_completion().await?)?,
         )?;

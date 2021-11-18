@@ -1,6 +1,5 @@
 use crate::hash_types::worker;
-use crate::{proto::SimulationShortID, types::TaskID, Language};
-use nng::Message;
+use crate::{proto::SimulationShortID, types::TaskID, Language, gen};
 
 use super::TargetedRunnerTaskMsg;
 
@@ -45,7 +44,8 @@ pub struct OutboundFromRunnerMsg {
 }
 
 impl From<nng::Message> for OutboundFromRunnerMsg {
-    fn from(_: Message) -> Self {
+    fn from(msg: nng::Message) -> Self {
+        let bytes = msg.as_slice();
         todo!()
     }
 }

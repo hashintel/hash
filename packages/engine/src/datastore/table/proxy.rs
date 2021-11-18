@@ -152,7 +152,7 @@ impl StateWriteProxy {
         &self.agent_pool_proxy
     }
 
-    pub fn agent_pool_mut(&mut self) -> &PoolWriteProxy<AgentBatch> {
+    pub fn agent_pool_mut(&mut self) -> &mut PoolWriteProxy<AgentBatch> {
         &mut self.agent_pool_proxy
     }
 
@@ -160,7 +160,7 @@ impl StateWriteProxy {
         &self.message_pool_proxy
     }
 
-    pub fn message_pool_mut(&mut self) -> &PoolWriteProxy<MessageBatch> {
+    pub fn message_pool_mut(&mut self) -> &mut PoolWriteProxy<MessageBatch> {
         &mut self.message_pool_proxy
     }
 }
