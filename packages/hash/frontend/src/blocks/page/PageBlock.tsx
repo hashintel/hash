@@ -7,7 +7,6 @@ import { EditorView } from "prosemirror-view";
 import "prosemirror-view/style/prosemirror.css";
 import React, { useLayoutEffect, useRef, VoidFunctionComponent } from "react";
 import { BlockMetaContext } from "../blockMeta";
-import { useCollabTracking } from "./collab/useCollabTracking";
 import { EditorConnection } from "./collab/EditorConnection";
 import { collabEnabled } from "./collabEnabled";
 import { createEditorView } from "./createEditorView";
@@ -140,8 +139,6 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       controller.abort();
     };
   }, [contents]);
-
-  useCollabTracking();
 
   return (
     <BlockMetaContext.Provider value={blocksMeta}>

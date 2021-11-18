@@ -1,8 +1,7 @@
-import { useRouter } from "next/router";
 import { useDocumentEventListener, useWindowEventListener } from "rooks";
 import { findParent } from "../../../lib/dom";
 import { isComponentViewTarget } from "../ComponentView";
-import { useReportCollabPosition } from "./useReportCollabPosition";
+import type { CollabPositionReporter } from "./useCollabPositionReporter";
 
 /**
  * used to capture and report user focus. this requires toplevel blocks (ComponentView instances)
@@ -13,10 +12,7 @@ import { useReportCollabPosition } from "./useReportCollabPosition";
  *   a) focus[in|out] events do not fire on any [contenteditable] elements and
  *   b) cross-origin policies restrict interactions w/ iframes
  */
-export const useCollabTracking = () => {
-  const { accountId, pageEntityId } = useRouter().query;
-  const reportPosition = useReportCollabPosition(accountId as string, pageEntityId as string);
-
+export const useCollabPositionTracking = (report: CollabPositionReporter) => {
   /**
    * capture focus on sandboxed blocks (iframe)
    *
@@ -29,10 +25,10 @@ export const useCollabTracking = () => {
 
       if (activeElement?.nodeName === "IFRAME") {
         const target = findParent(activeElement, isComponentViewTarget);
-        reportPosition(target?.getAttribute("data-entity-id") ?? undefined);
-      } else {
-        reportPosition(undefined);
+        if (target) return report(target.getAttribute("data-entity-id"));
       }
+
+      report(null);
     });
   });
 
@@ -42,7 +38,7 @@ export const useCollabTracking = () => {
   useDocumentEventListener("selectionchange", () => {
     const focusNode = document.getSelection()?.focusNode;
     const target = findParent(focusNode, isComponentViewTarget);
-    reportPosition(target?.getAttribute("data-entity-id") ?? undefined);
+    report(target ? target.getAttribute("data-entity-id") : null);
   });
 
   /**
