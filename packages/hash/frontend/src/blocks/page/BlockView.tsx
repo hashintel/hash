@@ -15,6 +15,7 @@ import {
 import DragVertical from "../../components/Icons/DragVertical";
 import styles from "./style.module.css";
 import { RenderPortal } from "./usePortals";
+import PresenceIndicators from "./PresenceIndicators";
 
 type BlockHandleProps = {
   entityId: string | null;
@@ -194,6 +195,7 @@ export class BlockView implements NodeView<Schema> {
 
     this.renderPortal(
       <>
+        <PresenceIndicators entityId={entityId} />
         {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
         <div
           className={styles.Block__Handle}

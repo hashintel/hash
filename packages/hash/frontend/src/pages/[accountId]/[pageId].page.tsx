@@ -10,6 +10,7 @@ import { PageBlock } from "../../blocks/page/PageBlock";
 import { PageTitle } from "../../blocks/page/PageTitle";
 import { VersionDropdown } from "../../components/Dropdowns/VersionDropdown";
 import { PageSidebar } from "../../components/layout/PageSidebar/PageSidebar";
+import { PageProvider } from "../../contexts/PageContext";
 import {
   GetPageQuery,
   GetPageQueryVariables,
@@ -108,48 +109,50 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
     const { title, contents } = data.page.properties;
 
     return (
-      <div className={styles.MainWrapper}>
-        <PageSidebar />
-        <div className={styles.MainContent}>
-          <header>
-            <div className={styles.PageHeader}>
-              <div>
-                {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
-                <label>Title</label>
-                <PageTitle
-                  value={title}
-                  accountId={data.page.accountId}
-                  metadataId={data.page.entityId}
-                />
-              </div>
-              <div>
-                {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
-                <label>Version</label>
+      <PageProvider>
+        <div className={styles.MainWrapper}>
+          <PageSidebar />
+          <div className={styles.MainContent}>
+            <header>
+              <div className={styles.PageHeader}>
                 <div>
-                  <VersionDropdown
-                    value={data.page.entityVersionId}
-                    versions={data.page.history ?? []}
-                    onChange={(changedVersionId) => {
-                      void router.push(
-                        `/${accountId}/${pageEntityId}?version=${changedVersionId}`,
-                      );
-                    }}
+                  {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
+                  <label>Title</label>
+                  <PageTitle
+                    value={title}
+                    accountId={data.page.accountId}
+                    metadataId={data.page.entityId}
                   />
                 </div>
+                <div>
+                  {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
+                  <label>Version</label>
+                  <div>
+                    <VersionDropdown
+                      value={data.page.entityVersionId}
+                      versions={data.page.history ?? []}
+                      onChange={(changedVersionId) => {
+                        void router.push(
+                          `/${accountId}/${pageEntityId}?version=${changedVersionId}`,
+                        );
+                      }}
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
-          </header>
+            </header>
 
-          <main>
-            <PageBlock
-              accountId={data.page.accountId}
-              contents={contents}
-              blocksMeta={preloadedBlocks}
-              entityId={data.page.entityId}
-            />
-          </main>
+            <main>
+              <PageBlock
+                accountId={data.page.accountId}
+                contents={contents}
+                blocksMeta={preloadedBlocks}
+                entityId={data.page.entityId}
+              />
+            </main>
+          </div>
         </div>
-      </div>
+      </PageProvider>
     );
   };
 
