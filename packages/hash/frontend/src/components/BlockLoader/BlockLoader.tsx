@@ -83,7 +83,7 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
       }
 
       // Do we need to do this if we've scrolled into view
-      // scrollFrameRequestIdRef.current = requestAnimationFrame(frame);
+      scrollFrameRequestIdRef.current = requestAnimationFrame(frame);
     }
 
     function clearScrollInterval() {
