@@ -80,7 +80,7 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
    * @todo handle this
    */
   entityWatcher.start().catch((err) => {
-    console.error("Error in entity watcher", err);
+    logger.error("Error in entity watcher", err);
   });
 
   const collabApp = express();

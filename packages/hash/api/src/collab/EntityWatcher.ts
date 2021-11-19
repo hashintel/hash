@@ -1,6 +1,7 @@
 import { EntityVersion } from "@hashintel/hash-backend-utils/pgTables";
 import { QueueExclusiveConsumer } from "@hashintel/hash-backend-utils/queue/adapter";
 import { Wal2JsonMsg } from "@hashintel/hash-backend-utils/wal2json";
+import { logger } from "../logger";
 import { COLLAB_QUEUE_NAME } from "./util";
 
 type EntityWatcherSubscription = (entity: EntityVersion) => void;
@@ -56,7 +57,7 @@ export class EntityWatcher {
         try {
           await subscriber(entityVersion);
         } catch (err) {
-          console.error("Error in notifying of entity change", err);
+          logger.error("Error in notifying of entity change", err);
         }
       }
     }
