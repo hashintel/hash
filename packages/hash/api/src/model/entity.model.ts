@@ -1,6 +1,6 @@
 import { JSONObject } from "@hashintel/block-protocol";
 import { merge } from "lodash";
-import { Entity, EntityType, UnresolvedGQLEntityType } from ".";
+import { Account, Entity, EntityType, UnresolvedGQLEntityType } from ".";
 import { DBClient } from "../db";
 import {
   DBLinkedEntity,
@@ -11,6 +11,7 @@ import {
   Visibility,
   Entity as GQLEntity,
   UnknownEntity as GQLUnknownEntity,
+  EntityVersion,
 } from "../graphql/apiTypes.gen";
 import { SystemType } from "../types/entityTypes";
 
@@ -133,6 +134,27 @@ class __Entity {
     return dbEntity ? new Entity(dbEntity) : null;
   }
 
+  /** Gets all versions of a single entity */
+  static async getEntityHistory(
+    client: DBClient,
+    {
+      accountId,
+      entityId,
+      order,
+    }: {
+      accountId: string;
+      entityId: string;
+      order: "asc" | "desc";
+    },
+  ): Promise<EntityVersion[]> {
+    const entities = await client.getEntityHistory({
+      accountId,
+      entityId,
+      order,
+    });
+    return entities;
+  }
+
   static async getEntityLatestVersion(
     client: DBClient,
     params: {
@@ -216,6 +238,26 @@ class __Entity {
 
   updateEntityProperties(client: DBClient, properties: JSONObject) {
     return this.updateProperties(client, properties);
+  }
+
+  async transferEntity(client: DBClient, newAccountId: string) {
+    if (Account.isEntityAnAccount(this)) {
+      throw new Error(
+        `Trying to transfer entity ${this.entityId} which is an account. Accounts can't be transferred.`,
+      );
+    }
+    const exists = await Account.accountExists(client, newAccountId);
+    if (!exists) {
+      throw new Error(
+        `Trying to transfer entity to new account ${newAccountId} which doesn't exist.`,
+      );
+    }
+    await client.updateEntityAccountId({
+      originalAccountId: this.accountId,
+      entityId: this.entityId,
+      newAccountId,
+    });
+    this.accountId = newAccountId;
   }
 
   static acquireLock(client: DBClient, params: { entityId: string }) {

@@ -8,6 +8,7 @@ import {
   entity,
   entityFields,
   updateEntity,
+  transferEntity,
 } from "./entity";
 import { createLink } from "./link/createLink";
 import { deleteLinkByPath } from "./link/deleteLinkByPath";
@@ -91,6 +92,7 @@ export const resolvers = {
     createOrgEmailInvitation: loggedInAndSignedUp(createOrgEmailInvitation),
     insertBlockIntoPage: loggedInAndSignedUp(insertBlockIntoPage),
     insertBlocksIntoPage: loggedInAndSignedUp(insertBlocksIntoPage),
+    transferEntity: loggedInAndSignedUp(transferEntity),
     updateEntity: loggedInAndSignedUp(updateEntity),
     updatePage: loggedInAndSignedUp(updatePage),
     updatePageContents: loggedInAndSignedUp(updatePageContents),

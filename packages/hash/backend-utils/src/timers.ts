@@ -1,4 +1,8 @@
-/** Wait for `ms` milliseconds. */
+/**
+ * Wait for `ms` milliseconds.
+ *
+ * @todo Consider replacing with `sleep-promise`, which is already used in the frontend package
+ */
 export const waitFor = (ms: number) =>
   new Promise<"TIMEOUT">((resolve) => setTimeout(() => resolve("TIMEOUT"), ms));
 

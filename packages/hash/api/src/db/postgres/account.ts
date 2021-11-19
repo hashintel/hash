@@ -25,6 +25,18 @@ export const insertEntityAccount = async (
   `);
 };
 
+/** Checks whether an account exists on the account table.
+ * Returns true if it exists or false if not */
+export const accountExists = async (
+  conn: Connection,
+  params: { accountId: string },
+): Promise<boolean> => {
+  return await conn.exists(sql`
+    select account_id from accounts
+    where account_id = ${params.accountId} limit 1
+  `);
+};
+
 /** Get the account ID of an entity. */
 export const getEntityAccountId = async (
   conn: Connection,

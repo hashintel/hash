@@ -1,14 +1,25 @@
 import {
   SYSTEM_ACCOUNT_SHORTNAME,
   SYSTEM_TYPE,
-  FRONTEND_URL,
 } from "../../../../src/lib/config";
 import generatedIds from "./generatedIds.json";
+import {
+  generateSchema$id,
+  jsonSchemaVersion,
+} from "../../../../src/lib/schemas/jsonSchema";
 
 const systemAccount = generatedIds.orgs[SYSTEM_ACCOUNT_SHORTNAME];
 
-const schemaId = (name: SYSTEM_TYPE) =>
-  `${FRONTEND_URL}/${systemAccount.fixedId}/types/${generatedIds.types[name].fixedId}`;
+/**
+ * Generate the URI for a schema.
+ * Use relative for $refs to other schemas in the same system.
+ */
+const schemaId = (name: SYSTEM_TYPE, relative: boolean = false) =>
+  generateSchema$id(
+    systemAccount.fixedId,
+    generatedIds.types[name].fixedId,
+    relative,
+  );
 
 const shortnameConstraints = {
   minLength: 4,
@@ -29,6 +40,7 @@ type PartialSchema = SchemaProperty & {
   required: string[];
   $defs?: Record<string, PartialSchema>;
 };
+
 // @todo add the remaining schemas for each system type
 //    the EntityType schema will probably be the general purpose JSON meta schema
 //    https://json-schema.org/specification.html
@@ -50,7 +62,7 @@ const systemTypeSchemas: {
         description: "The membership(s) of the organization.",
         type: "array",
         items: {
-          $ref: schemaId("OrgMembership"),
+          $ref: schemaId("OrgMembership", true),
         },
       },
     },
@@ -70,7 +82,7 @@ const systemTypeSchemas: {
         description: "The organization membership(s) of the user.",
         type: "array",
         items: {
-          $ref: schemaId("OrgMembership"),
+          $ref: schemaId("OrgMembership", true),
         },
       },
       shortname: {
@@ -115,12 +127,12 @@ const systemTypeSchemas: {
     properties: {
       user: {
         description: "A reference to the user associated with the membership.",
-        $ref: schemaId("User"),
+        $ref: schemaId("User", true),
       },
       org: {
         description:
           "A reference to the organization associated with the membership.",
-        $ref: schemaId("Org"),
+        $ref: schemaId("Org", true),
       },
       responsibility: {
         description: "The responsibility of the user in the organization",
@@ -133,7 +145,7 @@ const systemTypeSchemas: {
 
 export const entityTypeJson = (name: SYSTEM_TYPE) =>
   JSON.stringify({
-    $schema: "https://json-schema.org/draft/2020-12/schema",
+    $schema: jsonSchemaVersion,
     $id: schemaId(name),
     title: name,
     type: "object",

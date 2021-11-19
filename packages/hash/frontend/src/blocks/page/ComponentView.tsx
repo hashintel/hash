@@ -38,12 +38,28 @@ const getRemoteBlockProps = (entity: EntityStoreType | null | undefined) => {
   return { properties: {} };
 };
 
+/**
+ * @sync `componentViewTargetSelector`
+ * @returns a target-/mount-node for a ComponentView instance
+ */
+const createComponentViewTarget = () => {
+  const el = document.createElement("div");
+  el.setAttribute("data-target", "true");
+  return el;
+};
+
+/**
+ * used to match target-/mount-nodes of ComponentView instances
+ * @sync `createComponentViewTarget`
+ */
+export const componentViewTargetSelector = "div[data-target=true]";
+
 export class ComponentView implements NodeView<Schema> {
   dom: HTMLDivElement = document.createElement("div");
   contentDOM: HTMLElement | undefined = undefined;
   editable: boolean;
 
-  private target = document.createElement("div");
+  private target = createComponentViewTarget();
 
   private readonly componentId: string;
   private readonly sourceName: string;
@@ -79,8 +95,6 @@ export class ComponentView implements NodeView<Schema> {
       this.dom.appendChild(this.contentDOM);
     }
 
-    this.target.setAttribute("data-target", "true");
-
     this.dom.appendChild(this.target);
 
     this.store = entityStoreFromProsemirror(view.state).store;
@@ -114,6 +128,9 @@ export class ComponentView implements NodeView<Schema> {
         : undefined;
 
       const mappedUrl = componentIdToUrl(this.componentId);
+
+      /** used by collaborative editing feature `FocusTracker` */
+      this.target.setAttribute("data-entity-id", entityId);
 
       this.renderPortal(
         <BlockLoader

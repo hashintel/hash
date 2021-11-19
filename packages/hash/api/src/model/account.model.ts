@@ -28,6 +28,19 @@ abstract class __Account extends Entity {
     );
   }
 
+  static async accountExists(
+    client: DBClient,
+    accountId: string,
+  ): Promise<boolean> {
+    return await client.accountExists({
+      accountId,
+    });
+  }
+
+  static isEntityAnAccount(entity: Entity): boolean {
+    return entity.accountId === entity.entityId;
+  }
+
   private static checkShortnameChars(shortname: string) {
     if (shortname.search(ALLOWED_SHORTNAME_CHARS)) {
       throw new UserInputError(

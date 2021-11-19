@@ -1,4 +1,5 @@
 import { cloneDeep } from "lodash";
+import { JSONObject } from "@hashintel/block-protocol";
 
 import { UnknownEntity } from "../graphql/apiTypes.gen";
 import { isParsedJsonObject, isParsedJsonObjectOrArray } from "./json-utils";
@@ -25,9 +26,12 @@ const destructivelyMoveEntityPropertiesToRoot = (
     for (const key of Object.keys(entity)) {
       if (
         key !== "id" &&
+        key !== "accountId" &&
         key !== "entityId" &&
         key !== "entityType" &&
-        key !== "type" &&
+        key !== "linkGroups" &&
+        key !== "linkedEntities" &&
+        key !== "linkedAggregations" &&
         key !== "properties"
       ) {
         delete entity[key as keyof UnknownEntity];
@@ -108,14 +112,17 @@ export const cloneEntityTreeWithPropertiesMovedUp = (
   return clonedTree;
 };
 
-export const entityName = (
-  entity: Pick<UnknownEntity, "properties"> & { entityId?: string },
-) =>
-  entity.properties?.name ??
-  entity.properties?.preferredName ??
-  entity.properties?.displayName ??
-  entity.properties?.title ??
-  entity.properties?.shortname ??
-  entity.properties?.legalName ??
-  entity.entityId ??
-  "Entity";
+export const entityName = (entity: JSONObject) => {
+  const { name, preferredName, displayName, title, shortname, legalName } =
+    isParsedJsonObject(entity.properties) ? entity.properties : entity;
+  return (
+    name ??
+    preferredName ??
+    displayName ??
+    title ??
+    shortname ??
+    legalName ??
+    entity.entityId ??
+    "Entity"
+  ).toString();
+};

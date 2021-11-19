@@ -1,7 +1,7 @@
 import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 import { InputRule } from "prosemirror-inputrules";
-import { Schema } from "prosemirror-model";
-import { EditorState } from "prosemirror-state";
+import { Mark, Schema } from "prosemirror-model";
+import { EditorState, TextSelection } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import urlRegexSafe from "url-regex-safe";
 
@@ -29,9 +29,9 @@ export function isValidLink(text: string) {
   return urlRegexSafe().test(text);
 }
 
-export function getActiveMarksWithAttrs(editorView: EditorView<Schema>) {
+export function getActiveMarksWithAttrs(editorState: EditorState<Schema>) {
   const activeMarks: { name: string; attrs?: Record<string, string> }[] = [];
-  editorView.state.selection
+  editorState.selection
     .content()
     .content.descendants((node: ProsemirrorNode<Schema>) => {
       for (const mark of node.marks) {
@@ -45,39 +45,6 @@ export function getActiveMarksWithAttrs(editorView: EditorView<Schema>) {
     });
 
   return activeMarks;
-}
-
-export function setLink(
-  editorView: EditorView<Schema>,
-  from: number,
-  to: number,
-  href: string,
-) {
-  const { state, dispatch } = editorView;
-  const linkUrl = href && href.trim();
-  const linkMark = state.schema.marks.link;
-  const tr = state.tr.removeMark(from, to, linkMark);
-  if (linkUrl && isValidLink(linkUrl)) {
-    const mark = state.schema.marks.link.create({
-      href: linkUrl,
-    });
-
-    if (!state.selection.empty) {
-      tr.addMark(from, to, mark);
-    } else {
-      tr.insertText(href, from);
-      tr.addMark(from, to + linkUrl.length, mark);
-    }
-  }
-
-  dispatch?.(tr);
-}
-
-export function createLink(editorView: EditorView<Schema>, href: string) {
-  const { state } = editorView;
-  const from = state.selection.$from.pos;
-  const to = state.selection.$to.pos;
-  setLink(editorView, from, to, href);
 }
 
 export function updateLink(editorView: EditorView<Schema>, href: string) {
@@ -105,6 +72,94 @@ export function updateLink(editorView: EditorView<Schema>, href: string) {
   }
 
   dispatch?.(tr);
+}
+
+export function removeLink(editorView: EditorView<Schema>) {
+  const {
+    state: { selection, tr, schema },
+    dispatch,
+  } = editorView;
+
+  const linkMarkType = schema.marks.link;
+
+  if (selection instanceof TextSelection) {
+    const textSelection: TextSelection<Schema> = selection;
+    const { $cursor } = textSelection;
+
+    // For empty selection
+    if ($cursor) {
+      const nodesBefore: [number, ProsemirrorNode<Schema>][] = [];
+      const nodesAfter: [number, ProsemirrorNode<Schema>][] = [];
+
+      // Get sibling nodes to the left/right of the cursor
+      $cursor.parent.nodesBetween(0, $cursor.parentOffset, (node, pos) => {
+        nodesBefore.push([pos, node]);
+      });
+      $cursor.parent.nodesBetween(
+        $cursor.parentOffset,
+        $cursor.parent.content.size,
+        (node, pos) => {
+          nodesAfter.push([pos, node]);
+        },
+      );
+
+      let startPosition = textSelection.$from.pos;
+      let endPosition = textSelection.$to.pos;
+
+      let targetMark: Mark<Schema> | null = null;
+
+      for (let idx = nodesBefore.length - 1; idx >= 0; idx--) {
+        const [pos, node] = nodesBefore[idx];
+
+        let linkMark: Mark<Schema<any, any>> | null;
+
+        if (targetMark && node.marks.includes(targetMark)) {
+          linkMark = targetMark;
+        } else {
+          // We are only concerned with nodes that have the same attributes(url)
+          linkMark =
+            node.marks.find((mark) => mark.type === linkMarkType) ?? null;
+        }
+
+        if (linkMark) {
+          targetMark = linkMark;
+          startPosition = pos;
+        } else {
+          break;
+        }
+      }
+
+      for (let idx = 0; idx < nodesAfter.length; idx++) {
+        const [pos, node] = nodesAfter[idx];
+
+        let linkMark: Mark<Schema<any, any>> | null;
+
+        if (targetMark && node.marks.includes(targetMark)) {
+          linkMark = targetMark;
+        } else {
+          linkMark =
+            node.marks.find((mark) => mark.type === linkMarkType) ?? null;
+        }
+
+        if (linkMark) {
+          targetMark = linkMark;
+          endPosition = pos + node.nodeSize;
+        } else {
+          break;
+        }
+      }
+
+      startPosition += $cursor.start($cursor.depth);
+      endPosition += $cursor.start($cursor.depth);
+
+      tr.removeMark(startPosition, endPosition, linkMarkType);
+    } else {
+      // For non empty selection
+      tr.removeMark(textSelection.from, textSelection.to, linkMarkType);
+    }
+
+    dispatch(tr);
+  }
 }
 
 export function linkInputRule() {

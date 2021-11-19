@@ -266,6 +266,18 @@ export interface DBClient {
   }): Promise<Entity>;
 
   /**
+   * Update an entity's account id, on all versions
+   * @param params.originalAccountId the account ID the entity belongs to.
+   * @param params.entityId the entity's fixed ID.
+   * @param params.newAccountId the new account id to transfer the entity to
+   */
+  updateEntityAccountId(params: {
+    originalAccountId: string;
+    entityId: string;
+    newAccountId: string;
+  }): Promise<void>;
+
+  /**
    * Get the user by their email address.
    * @param params.email the email address
    * @param params.verified whether the email address is verified or not (when undefined the email can be either)
@@ -315,6 +327,12 @@ export interface DBClient {
    * Get all account type entities (User or Account).
    */
   getAllAccounts(): Promise<Entity[]>;
+
+  /** Checks whether an account exists on the account table.
+   * @param params.accountId the account id to check
+   * @returns true if the account exists, false if not
+   * */
+  accountExists(params: { accountId: string }): Promise<boolean>;
 
   /**
    * Update the metadata shared across all versions of an entity. Throws a

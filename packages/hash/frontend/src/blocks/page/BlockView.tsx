@@ -6,12 +6,17 @@ import { findComponentNodes } from "@hashintel/hash-shared/prosemirror";
 import { Schema } from "prosemirror-model";
 import { NodeSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
-import React, { createRef, forwardRef, useEffect, useState } from "react";
+import React, {
+  createRef,
+  forwardRef,
+  RefObject,
+  useMemo,
+  useState,
+} from "react";
+import { useOutsideClick } from "rooks";
 import { tw } from "twind";
-import {
-  BlockSuggester,
-  BlockSuggesterProps,
-} from "../../components/BlockSuggester/BlockSuggester";
+import { BlockContextMenu } from "../../components/BlockContextMenu/BlockContextMenu";
+import { BlockSuggesterProps } from "../../components/BlockSuggester/BlockSuggester";
 import DragVertical from "../../components/Icons/DragVertical";
 import styles from "./style.module.css";
 import { RenderPortal } from "./usePortals";
@@ -22,31 +27,33 @@ type BlockHandleProps = {
   onTypeChange: BlockSuggesterProps["onChange"];
 };
 
-/**
- * specialized block-type/-variant select field
- */
 export const BlockHandle = forwardRef<HTMLDivElement, BlockHandleProps>(
-  (props, ref) => {
-    const { entityId, onTypeChange } = props;
-
+  ({ entityId, onTypeChange }, ref) => {
     const [isPopoverVisible, setPopoverVisible] = useState(false);
 
-    useEffect(() => {
-      const closePopover = () => setPopoverVisible(false);
-      document.addEventListener("click", closePopover);
-      return () => document.removeEventListener("click", closePopover);
-    }, []);
+    useOutsideClick(ref as RefObject<HTMLDivElement>, () =>
+      setPopoverVisible(false),
+    );
+
+    const blockSuggesterProps: BlockSuggesterProps = useMemo(
+      () => ({
+        onChange: (variant, block) => {
+          onTypeChange(variant, block);
+          setPopoverVisible(false);
+        },
+      }),
+      [onTypeChange],
+    );
 
     return (
       <div ref={ref} className={tw`relative cursor-pointer`}>
-        <DragVertical
-          onClick={(evt: MouseEvent) => {
-            evt.stopPropagation(); // skips closing handler
-            setPopoverVisible(true);
-          }}
-        />
+        <DragVertical onClick={() => setPopoverVisible(true)} />
         {isPopoverVisible && (
-          <BlockSuggester onChange={onTypeChange} entityId={entityId} />
+          <BlockContextMenu
+            entityId={entityId}
+            blockSuggesterProps={blockSuggesterProps}
+            closeMenu={() => setPopoverVisible(false)}
+          />
         )}
       </div>
     );

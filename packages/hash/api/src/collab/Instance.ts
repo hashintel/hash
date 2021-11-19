@@ -9,13 +9,26 @@ import {
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
 import { updatePageMutation } from "@hashintel/hash-shared/save";
+import { isEqual } from "lodash";
 import { Schema } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
 import { Mapping, Step, Transform } from "prosemirror-transform";
-import { InvalidVersionError } from "./InvalidVersionError";
+import { CollabPosition } from "@hashintel/hash-shared/collab";
+import { Response } from "express";
+import { InvalidVersionError } from "./errors";
+import { CollabPositionPoller, TimedCollabPosition } from "./types";
 import { Waiting } from "./Waiting";
 
 const MAX_STEP_HISTORY = 10000;
+
+const POSITION_EXPIRY_TIMEOUT = 1000 * 60;
+const POSITION_CLEANUP_INTERVAL = 1000 * 10;
+
+const isUnused = (response: Response): boolean => {
+  return (
+    !response.headersSent && !response.destroyed && !response.writableEnded
+  );
+};
 
 // A collaborative editing document instance.
 export class Instance {
@@ -28,8 +41,12 @@ export class Instance {
   waiting: Waiting[] = [];
   saveChain = Promise.resolve();
   saveMapping: Mapping | null = null;
-  collecting: ReturnType<typeof setInterval> | null = null;
+  collecting: ReturnType<typeof setTimeout> | null = null;
   clientIds = new WeakMap<Step, string>();
+
+  positionPollers: CollabPositionPoller[] = [];
+  timedPositions: TimedCollabPosition[] = [];
+  positionCleanupInterval: ReturnType<typeof setInterval>;
 
   constructor(
     public accountId: string,
@@ -37,10 +54,23 @@ export class Instance {
     public state: EditorState<Schema>,
     public manager: ProsemirrorSchemaManager,
     public savedContents: BlockEntity[],
-  ) {}
+  ) {
+    this.positionCleanupInterval = setInterval(() => {
+      this.cleanupPositions();
+      this.cleanupPositionPollers();
+    }, POSITION_CLEANUP_INTERVAL);
+  }
 
   stop() {
-    if (this.collecting != null) clearInterval(this.collecting);
+    if (this.collecting != null) clearTimeout(this.collecting);
+
+    clearInterval(this.positionCleanupInterval);
+
+    for (const { response } of this.positionPollers) {
+      if (isUnused(response)) {
+        response.status(410).send("Collab instance was stopped");
+      }
+    }
   }
 
   addEvents =
@@ -198,7 +228,7 @@ export class Instance {
     this.userCount = 0;
     this.collecting = null;
     for (let i = 0; i < this.waiting.length; i++) {
-      this._registerUser(this.waiting[i].ip);
+      this._registerUser(this.waiting[i].userId);
     }
     if (this.userCount !== oldUserCount) this.sendUpdates();
   }
@@ -218,6 +248,89 @@ export class Instance {
         this.collecting = setTimeout(() => this.collectUsers(), 5000);
       }
     }
+  }
+
+  extractPositions(userIdToExclude: string | null): CollabPosition[] {
+    return this.timedPositions
+      .filter((timedPosition) => timedPosition.userId !== userIdToExclude)
+      .sort((a, b) => (a.userId < b.userId ? -1 : 1))
+      .map(({ reportedAt: _, ...position }) => position);
+  }
+
+  registerPosition({
+    userId,
+    userShortname,
+    userPreferredName,
+    entityId,
+  }: {
+    userId: string;
+    userShortname: string;
+    userPreferredName: string;
+    entityId: string | null;
+  }): void {
+    const currentTimestamp = Date.now();
+
+    const timedPositionIndex = this.timedPositions.findIndex(
+      (timedPosition) => timedPosition.userId === userId,
+    );
+
+    if (timedPositionIndex !== -1) {
+      if (entityId) {
+        const existingPosition = this.timedPositions[timedPositionIndex];
+        existingPosition.entityId = entityId;
+        existingPosition.reportedAt = currentTimestamp;
+      } else {
+        this.timedPositions.splice(timedPositionIndex, 1);
+      }
+    } else if (entityId) {
+      this.timedPositions.push({
+        userId,
+        userShortname,
+        userPreferredName,
+        entityId,
+        reportedAt: currentTimestamp,
+      });
+    }
+
+    this.notifyPositionPollers();
+  }
+
+  cleanupPositions() {
+    const previousNumberOfPositions = this.timedPositions.length;
+    const currentTimestamp = Date.now();
+
+    this.timedPositions = this.timedPositions.filter(
+      ({ reportedAt }) =>
+        reportedAt + POSITION_EXPIRY_TIMEOUT >= currentTimestamp,
+    );
+
+    if (this.timedPositions.length !== previousNumberOfPositions) {
+      this.notifyPositionPollers();
+    }
+  }
+
+  addPositionPoller(positionPoller: CollabPositionPoller) {
+    this.positionPollers.push(positionPoller);
+  }
+
+  notifyPositionPollers() {
+    for (const { baselinePositions, userIdToExclude, response } of this
+      .positionPollers) {
+      const positions = this.extractPositions(userIdToExclude);
+      if (!isEqual(baselinePositions, positions) && isUnused(response)) {
+        response.json(positions);
+      }
+    }
+
+    setImmediate(() => {
+      this.cleanupPositionPollers();
+    });
+  }
+
+  cleanupPositionPollers() {
+    this.positionPollers = this.positionPollers.filter(({ response }) =>
+      isUnused(response),
+    );
   }
 }
 
@@ -278,11 +391,11 @@ const newInstance =
 
 export const getInstance =
   (apolloClient: ApolloClient<unknown>) =>
-  async (accountId: string, pageEntityId: string, ip: string | null) => {
+  async (accountId: string, pageEntityId: string, userId: string | null) => {
     const inst =
       instances[pageEntityId] ||
       (await newInstance(apolloClient)(accountId, pageEntityId));
-    if (ip) inst.registerUser(ip);
+    if (userId) inst.registerUser(userId);
     inst.lastActive = Date.now();
     return inst;
   };

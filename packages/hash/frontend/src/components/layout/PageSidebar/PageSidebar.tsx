@@ -9,7 +9,7 @@ import { AccountEntityTypeList } from "./AccountEntityTypeList";
 
 export const PageSidebar: VoidFunctionComponent = () => {
   const router = useRouter();
-  const { accountId, pageId } = router.query as Record<string, string>;
+  const { accountId, pageEntityId } = router.query as Record<string, string>;
 
   const goToAccount = (id: string) => router.push(`/${id}`);
 
@@ -24,7 +24,10 @@ export const PageSidebar: VoidFunctionComponent = () => {
       <div className={styles.PageSidebar__Section}>
         <header className={styles.PageSidebar__Section__Header}>
           <h2>Pages</h2>
-          <AccountPageList currentPageEntityId={pageId} accountId={accountId} />
+          <AccountPageList
+            currentPageEntityId={pageEntityId}
+            accountId={accountId}
+          />
         </header>
       </div>
       <div className={styles.PageSidebar__Section}>

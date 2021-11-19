@@ -1,26 +1,53 @@
 import { JSONObject } from "@hashintel/block-protocol";
 import Ajv2019 from "ajv/dist/2019";
-
-export const ajv = new Ajv2019();
+import addFormats from "ajv-formats";
+import { FRONTEND_URL } from "../config";
 
 /**
- * @todo read server name from server config or environment variable
- * @todo amend $schema strings when served from API to use current server host
+ * When compiling a schema AJV wants to resolve $refs to other schemas.
+ * For now we can just give it empty schemas as the resolution for those $refs.
+ * @todo check that $refs point to URIs which return at least valid JSON.
+ *    We might not want to check each is a valid schema as they might link on to many more.
+ *    For schemas stored in HASH, we know they're valid (since each is checked on insert).
+ */
+const checkExternalSchemaExists = async (_uri: string) => {
+  return {};
+};
+
+export const ajv = new Ajv2019({ loadSchema: checkExternalSchemaExists });
+addFormats(ajv);
+
+export const jsonSchemaVersion = "https://json-schema.org/draft/2019-09/schema";
+
+/**
+ * Generates a URI for a schema in a HASH instance.
+ * $ids should use absolute URIs, and will need to be re-written if the origin changes.
+ * $refs should use relative URIs, which can be resolved relative to the $id's origin.
+ * If $refs used absolute URIs, they would need to be re-written if the origin changes also,
+ *    which would be (a) more writes, and (b) more complex if a schema has $refs to external URIs.
+ * @todo rewrite schema $ids when FRONTEND_URL config is changed.
+ *    ideally this URL would be configurable in an admin panel and stored in the db.
  * */
-const TEMPORARY_HOST_NAME = "https://hash.ai";
+export const generateSchema$id = (
+  accountId: string,
+  entityTypeId: string,
+  relative: boolean = false,
+) => `${relative ? "" : FRONTEND_URL}/${accountId}/types/${entityTypeId}`;
 
 /**
  * Create a JSON schema
  * @param title the name of the schema, e.g. Person
  * @param accountId the account it belongs to
- * @param schema schema definition fields
+ * @param entityTypeId the entityId of this entityType
+ * @param maybeStringifiedSchema schema definition fields (in either a JSON string or JS object)
  *    (e.g. 'properties', 'definition', 'description')
  * @param description optional description for the type
  * @returns schema the complete JSON schema object
  */
-export const jsonSchema = (
+export const jsonSchema = async (
   title: string,
   accountId: string,
+  entityTypeId: string,
   maybeStringifiedSchema: string | JSONObject = {},
   description?: string,
 ) => {
@@ -30,23 +57,30 @@ export const jsonSchema = (
     );
   }
 
-  const schema: JSONObject =
+  const partialSchema: JSONObject =
     typeof maybeStringifiedSchema === "string"
       ? JSON.parse(maybeStringifiedSchema)
       : maybeStringifiedSchema;
 
+  const schema = {
+    ...partialSchema,
+    $schema: jsonSchemaVersion,
+    $id: generateSchema$id(accountId, entityTypeId),
+    title,
+    type: partialSchema.type ?? "object",
+    description: partialSchema.description ?? description,
+  };
+
   try {
-    ajv.compile(schema);
+    await ajv.compileAsync(schema);
   } catch (err: any) {
-    throw new Error(`Error in provided schema: ${(err as Error).message}`);
+    if (err.message.match(/key.+already exists/)) {
+      throw new Error(
+        `Type name ${title} is not unique in accountId ${accountId}`,
+      );
+    }
+    throw new Error(`Error in provided type schema: ${(err as Error).message}`);
   }
 
-  return {
-    ...(schema as JSONObject),
-    $schema: "https://json-schema.org/draft/2020-12/schema",
-    $id: `${TEMPORARY_HOST_NAME}/${accountId}/${title.toLowerCase()}.schema.json`,
-    title,
-    type: "object",
-    description,
-  };
+  return schema;
 };
