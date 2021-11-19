@@ -1,12 +1,13 @@
+import { RedisQueueExclusiveConsumer } from "@hashintel/hash-backend-utils/queue/redis";
+import { AsyncRedisClient } from "@hashintel/hash-backend-utils/redis";
 import { json } from "body-parser";
 import express from "express";
 import helmet from "helmet";
 import { StatsD } from "hot-shots";
 import { customAlphabet } from "nanoid";
-import { RedisQueueExclusiveConsumer } from "@hashintel/hash-backend-utils/queue/redis";
-import { AsyncRedisClient } from "@hashintel/hash-backend-utils/redis";
 import setupAuth from "./auth";
 import { RedisCache } from "./cache";
+import { createCollabApp } from "./collab/collabApp";
 import { PostgresAdapter, setupCronJobs } from "./db";
 import AwsSesEmailTransporter from "./email/transporter/awsSesEmailTransporter";
 import TestTransporter from "./email/transporter/testEmailTransporter";
@@ -16,6 +17,7 @@ import {
   AWS_REGION,
   AWS_S3_BUCKET,
   AWS_S3_REGION,
+  CORS_CONFIG,
   FILE_UPLOAD_PROVIDER,
 } from "./lib/config";
 import { isProdEnv, isStatsDEnabled, isTestEnv, port } from "./lib/env-config";
@@ -27,9 +29,6 @@ import {
 } from "./storage";
 import { AwsS3StorageProvider } from "./storage/aws-s3-storage-provider";
 import { getRequiredEnv } from "./util";
-import { createCollabApp } from "./collab/collabApp";
-
-const { FRONTEND_URL } = require("./lib/config");
 
 // Request ID generator
 const nanoid = customAlphabet(
@@ -151,10 +150,7 @@ apolloServer
   .then(async () => {
     apolloServer.applyMiddleware({
       app,
-      cors: {
-        credentials: true,
-        origin: [/-hashintel\.vercel\.app$/, FRONTEND_URL],
-      },
+      cors: CORS_CONFIG,
     });
 
     app.use("/collab-backend", await collabAppPromise);

@@ -1,7 +1,7 @@
-import { entityStoreFromProsemirror } from "@hashintel/hash-shared/entityStorePlugin";
-import { createApolloClient } from "@hashintel/hash-shared/graphql/createApolloClient";
 import { RedisQueueExclusiveConsumer } from "@hashintel/hash-backend-utils/queue/redis";
 import { Repeater } from "@hashintel/hash-backend-utils/timers";
+import { entityStoreFromProsemirror } from "@hashintel/hash-shared/entityStorePlugin";
+import { createApolloClient } from "@hashintel/hash-shared/graphql/createApolloClient";
 import { json } from "body-parser";
 import corsMiddleware from "cors";
 import express, { Request, Response } from "express";
@@ -9,13 +9,13 @@ import { IncomingMessage } from "http";
 // @ts-expect-error -- temp import with no types
 // eslint-disable-next-line import/no-extraneous-dependencies
 import UAParser from "ua-parser-js";
-import { FRONTEND_URL } from "../lib/config";
-import { EntityWatcher } from "./EntityWatcher";
-import { getInstance, Instance } from "./Instance";
-import { InvalidRequestPayloadError, InvalidVersionError } from "./errors";
-import { Waiting } from "./Waiting";
+import { CORS_CONFIG } from "../lib/config";
 import { logger } from "../logger";
+import { EntityWatcher } from "./EntityWatcher";
+import { InvalidRequestPayloadError, InvalidVersionError } from "./errors";
+import { getInstance, Instance } from "./Instance";
 import { COLLAB_QUEUE_NAME } from "./util";
+import { Waiting } from "./Waiting";
 
 const createCollabApolloClient = (request: IncomingMessage) =>
   createApolloClient({
@@ -86,7 +86,7 @@ export const createCollabApp = async (queue: RedisQueueExclusiveConsumer) => {
   const collabApp = express();
 
   collabApp.use(json({ limit: "16mb" }));
-  collabApp.use(corsMiddleware({ credentials: true, origin: FRONTEND_URL }));
+  collabApp.use(corsMiddleware(CORS_CONFIG));
 
   collabApp.get("/:accountId/:pageEntityId", (request, response) => {
     (async () => {
