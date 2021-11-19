@@ -31,6 +31,7 @@ The backend API service is configured using the following environment variables:
   StatsD server. If enabled, the following variables must be set:
   - `STATSD_HOST`: the hostname of the StatsD server.
   - `STATSD_PORT`: (default: 8125) the port number the StatsD server is listening on.
+- `HASH_COLLAB_QUEUE_NAME` The name of the Redis queue which updates to entities are published to, which collab can then respond to
 
 ## Metrics
 
