@@ -93,8 +93,6 @@ export class BlockView implements NodeView<Schema> {
     public getPos: () => number,
     public renderPortal: RenderPortal,
     public manager: ProsemirrorSchemaManager,
-    public accountId: string,
-    public pageEntityId: string,
   ) {
     const entityId = this.getBlockEntityIdFromNode(node);
 
@@ -196,18 +194,16 @@ export class BlockView implements NodeView<Schema> {
       this.dom.classList.remove(styles["Block--dragging"]);
     }
 
-    const entityId = this.getBlockEntityIdFromNode(this.node);
+    const blockEntityId = this.getBlockEntityIdFromNode(this.node);
 
-    if (entityId) {
-      this.dom.id = `entity-${entityId}`;
+    if (blockEntityId) {
+      this.dom.id = `entity-${blockEntityId}`;
     }
 
     this.renderPortal(
       <>
         <CollabPositionIndicators
-          entityId={entityId}
-          accountId={this.accountId}
-          pageEntityId={this.pageEntityId}
+          blockEntityId={blockEntityId}
         />
         {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
         <div
@@ -250,7 +246,7 @@ export class BlockView implements NodeView<Schema> {
         />
         <BlockHandle
           ref={this.blockHandleRef}
-          entityId={entityId}
+          entityId={blockEntityId}
           onTypeChange={this.onBlockChange}
         />
       </>,

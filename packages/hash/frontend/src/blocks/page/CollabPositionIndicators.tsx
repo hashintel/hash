@@ -1,9 +1,9 @@
 import { tw } from "twind";
 import { motion, AnimatePresence } from "framer-motion";
+import { useMemo } from "react";
 
 import { CollabPosition } from "@hashintel/hash-shared/collab";
-import { useCollabPositions } from "./collab/useCollabPositions";
-import { useMemo } from "react";
+import { useCollabPositionContext } from "../../contexts/CollabPositionContext";
 
 function pickColor(inputString: string) {
   let hash = 0;
@@ -15,29 +15,21 @@ function pickColor(inputString: string) {
   return `hsl(${hash % 360}, 100%, 80%)`;
 }
 export function CollabPositionIndicators({
-  entityId,
-  accountId,
-  pageEntityId,
+  blockEntityId,
 }: {
-  entityId: string | null;
-  accountId: string;
-  pageEntityId: string;
+  blockEntityId: string | null;
 }) {
-  const collabPositions = useCollabPositions(accountId, pageEntityId);
+  const collabPositions = useCollabPositionContext();
 
-  const relevantPresenceIndicators: CollabPosition[] = useMemo(() => {
-    return (
-      collabPositions?.filter(
-        (collabPosition) => collabPosition.entityId === entityId,
-      ) ?? []
-    );
-  }, [collabPositions]);
+  console.log({ collabPositions });
 
-  console.log({ collabPositions, relevantPresenceIndicators });
-
-  if (relevantPresenceIndicators.length > 0) {
-    console.log(entityId);
-  }
+  const relevantPresenceIndicators: CollabPosition[] = useMemo(
+    () =>
+      collabPositions.filter(
+        (collabPosition) => collabPosition.entityId === blockEntityId,
+      ),
+    [collabPositions],
+  );
 
   return (
     <motion.div

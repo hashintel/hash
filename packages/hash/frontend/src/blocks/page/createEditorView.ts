@@ -117,8 +117,6 @@ export const createEditorView = (
           getPos,
           renderPortal,
           manager,
-          accountId,
-          pageEntityId
         );
       },
     },

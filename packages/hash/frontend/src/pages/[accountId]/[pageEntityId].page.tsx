@@ -19,7 +19,7 @@ import {
   GetPageQueryVariables,
 } from "../../graphql/apiTypes.gen";
 import styles from "../index.module.scss";
-import { PageProvider } from "../../contexts/PageContext";
+import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
 
 /**
  * @todo Remove when position tracking is fully implemented.
@@ -132,7 +132,7 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
     const { title, contents } = data.page.properties;
 
     return (
-      <PageProvider>
+      <CollabPositionProvider value={collabPositions}>
         <div className={styles.MainWrapper}>
           <PageSidebar />
           <div className={styles.MainContent}>
@@ -217,7 +217,7 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
             </main>
           </div>
         </div>
-      </PageProvider>
+      </CollabPositionProvider>
     );
   };
 
