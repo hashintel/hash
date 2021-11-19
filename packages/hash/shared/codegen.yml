@@ -8,7 +8,7 @@ generates:
     plugins:
       - "typescript"
       - "typescript-operations"
-      - "@hashintel/hash-graphql-scalar-codegen-plugin"
+      - "@hashintel/hash-shared/graphql/scalarPlugin"
     config:
       skipTypename: true
       scalars:
