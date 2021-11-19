@@ -1,13 +1,13 @@
 import React, { VFC, useMemo } from "react";
 import { tw } from "twind";
 
+import { useForm, Controller } from "react-hook-form";
 import Logo from "../../../../assets/svg/logo.svg";
 import IconInfo from "../../../Icons/IconInfo";
 import { SpinnerIcon } from "../../../Icons/SpinnerIcon";
 import { useShortnameInput } from "../../../hooks/useShortnameInput";
 import { SelectInput } from "../../../forms/SelectInput";
 import { ORG_ROLES, InvitationInfo } from "../utils";
-import { RegisterOptions, useForm, Controller } from "react-hook-form";
 
 type AccountSetupProps = {
   onSubmit: (details: {
@@ -39,7 +39,7 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
     handleSubmit,
     watch,
     control,
-    formState: { errors, isValid, touchedFields, dirtyFields },
+    formState: { errors, isValid, dirtyFields },
   } = useForm<Inputs>({
     mode: "onChange",
     defaultValues: {
@@ -84,7 +84,6 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
   const displayShortnameError =
     dirtyFields.shortname && Boolean(errors?.shortname?.message);
 
-
   return (
     <div className={tw`w-9/12 max-w-3xl`}>
       <Logo className={tw`mb-16`} />
@@ -114,9 +113,12 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
                   render={({ field }) => (
                     <input
                       id="shortname"
-                      onChange={(e) => {
-                        e.target.value = parseShortnameInput(e.target.value);
-                        field.onChange(e);
+                      onChange={(evt) => {
+                        const newEvt = { ...evt };
+                        newEvt.target.value = parseShortnameInput(
+                          newEvt.target.value,
+                        );
+                        field.onChange(newEvt);
                       }}
                       onBlur={field.onBlur}
                       autoFocus

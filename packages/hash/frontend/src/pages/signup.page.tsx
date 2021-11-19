@@ -32,9 +32,7 @@ import {
   verifyEmail as verifyEmailMutation,
   createUserWithOrgEmailInvitation as createUserWithOrgEmailInvitationMutation,
 } from "../graphql/queries/user.queries";
-import {
-  joinOrg as joinOrgMutation,
-} from "../graphql/queries/org.queries";
+import { joinOrg as joinOrgMutation } from "../graphql/queries/org.queries";
 import {
   AUTH_ERROR_CODES,
   isParsedAuthQuery,
@@ -76,7 +74,7 @@ type Actions =
   | Action<"CREATE_ORG_SUCCESS", Pick<State, "createOrgInfo">>;
 
 const initialState: State = {
-  activeScreen: Screen.OrgCreate,
+  activeScreen: Screen.Intro,
   email: "",
   verificationCodeMetadata: undefined,
   verificationCode: "",
@@ -123,7 +121,6 @@ function reducer(state: State, action: Actions): State {
       return state;
   }
 }
-
 
 const SignupPage: NextPage = () => {
   const { user, refetch: refetchUser } = useUser();
@@ -306,7 +303,6 @@ const SignupPage: NextPage = () => {
     JoinOrgMutationVariables
   >(joinOrgMutation, {
     onCompleted: (_) => {
-      // redirect to home page
       void router.push("/");
     },
     onError: ({ graphQLErrors }) => {
@@ -386,7 +382,6 @@ const SignupPage: NextPage = () => {
 
   const updateUserDetails = (updatedProperties: UpdateUserProperties) => {
     if (!user) {
-      // @todo handle error in the ui
       throw new Error("The user must be logged in to update themselves");
     }
 
@@ -398,14 +393,18 @@ const SignupPage: NextPage = () => {
     });
   };
 
-  const updateWayToUseHash = (usingHow?: WayToUseHash) => {
-    if (usingHow) {
+  const updateWayToUseHash = (usingHow: WayToUseHash) => {
+    try {
       accountUsageType.current = usingHow;
+      void updateUserDetails({
+        usingHow,
+      });
+    } catch (err) {
+      dispatch({
+        type: "SET_ERROR",
+        payload: err instanceof Error ? err.message : "An error occured",
+      });
     }
-
-    void updateUserDetails({
-      usingHow,
-    });
   };
 
   const handleAccountSetup = async ({
@@ -417,28 +416,35 @@ const SignupPage: NextPage = () => {
     preferredName?: string;
     responsibility?: string;
   }) => {
-    await updateUserDetails({
-      shortname,
-      preferredName,
-      ...(invitationInfo && { usingHow: WayToUseHash.WithATeam }),
-    });
+    try {
+      await updateUserDetails({
+        shortname,
+        preferredName,
+        ...(invitationInfo && { usingHow: WayToUseHash.WithATeam }),
+      });
 
-    /** join organization once update user details has been completed  */
+      /** join organization once update user details has been completed  */
 
-    if (responsibility && invitationInfo) {
-      void joinOrg({
-        variables: {
-          orgEntityId: invitationInfo.orgEntityId,
-          verification: {
-            ...("invitationEmailToken" in invitationInfo && {
-              invitationEmailToken: invitationInfo.invitationEmailToken,
-            }),
-            ...("invitationLinkToken" in invitationInfo && {
-              invitationLinkToken: invitationInfo.invitationLinkToken,
-            }),
+      if (responsibility && invitationInfo) {
+        void joinOrg({
+          variables: {
+            orgEntityId: invitationInfo.orgEntityId,
+            verification: {
+              ...("invitationEmailToken" in invitationInfo && {
+                invitationEmailToken: invitationInfo.invitationEmailToken,
+              }),
+              ...("invitationLinkToken" in invitationInfo && {
+                invitationLinkToken: invitationInfo.invitationLinkToken,
+              }),
+            },
+            responsibility,
           },
-          responsibility,
-        },
+        });
+      }
+    } catch (err) {
+      dispatch({
+        type: "SET_ERROR",
+        payload: err instanceof Error ? err.message : "An error occured",
       });
     }
   };
@@ -484,7 +490,9 @@ const SignupPage: NextPage = () => {
           handleSubmit={handleVerifyEmail}
           errorMessage={errorMessage}
           requestCodeLoading={createUserLoading}
-          requestCode={() => void requestVerificationCode(email)}
+          requestCode={() => {
+            void requestVerificationCode(email);
+          }}
           invitationInfo={invitationInfo}
         />
       )}

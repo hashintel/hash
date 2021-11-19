@@ -118,7 +118,7 @@ export const OrgInvite: VFC<OrgInviteProps> = ({
             setTags={setEmails}
             placeholder="Enter Email"
             validate={isValidEmail}
-            delimiters={[',']}
+            delimiters={[","]}
           />
           {error && <p className={tw`text-red-500 text-sm mt-5 `}>{error}</p>}
         </div>

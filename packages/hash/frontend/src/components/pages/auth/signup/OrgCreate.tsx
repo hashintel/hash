@@ -1,17 +1,17 @@
 import React, { useMemo, VFC } from "react";
-import { RegisterOptions, useForm, Controller } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { tw } from "twind";
-import { OrgSize } from "../../../../graphql/apiTypes.gen";
+import { useMutation } from "@apollo/client";
+import {
+  OrgSize,
+  CreateOrgMutation,
+  CreateOrgMutationVariables,
+} from "../../../../graphql/apiTypes.gen";
 import { SelectInput } from "../../../forms/SelectInput";
 import { TextInput } from "../../../forms/TextInput";
 import { PictureIcon } from "../../../Icons/PictureIcon";
 import { SpinnerIcon } from "../../../Icons/SpinnerIcon";
 import { ORG_ROLES, ORG_SIZES } from "../utils";
-import { useMutation } from "@apollo/client";
-import {
-  CreateOrgMutation,
-  CreateOrgMutationVariables,
-} from "../../../../graphql/apiTypes.gen";
 import { createOrg as createOrgMutation } from "../../../../graphql/queries/org.queries";
 import { useShortnameInput } from "../../../hooks/useShortnameInput";
 
@@ -75,7 +75,6 @@ const getInitials = (name: string) => {
 
 export const OrgCreate: VFC<OrgCreateProps> = ({ onCreateOrgSuccess }) => {
   const {
-    register,
     watch,
     handleSubmit,
     formState: { errors, isValid },
@@ -172,13 +171,14 @@ export const OrgCreate: VFC<OrgCreateProps> = ({ onCreateOrgSuccess }) => {
                         className={tw`w-64 mb-2`}
                         label={label}
                         transparent
-                        onChange={(e) => {
+                        onChange={(evt) => {
+                          const newEvt = { ...evt };
                           if (name === "shortname") {
-                            e.target.value = parseShortnameInput(
-                              e.target.value
+                            newEvt.target.value = parseShortnameInput(
+                              newEvt.target.value,
                             );
                           }
-                          onChange(e);
+                          onChange(newEvt);
                         }}
                         onBlur={onBlur}
                         {...(placeholder && { placeholder })}
@@ -190,7 +190,7 @@ export const OrgCreate: VFC<OrgCreateProps> = ({ onCreateOrgSuccess }) => {
                 <span className={tw`text-red-500 text-sm`}>
                   {errors?.[name]?.message}
                 </span>
-                {index != FORM_INPUTS.length - 1 && (
+                {index !== FORM_INPUTS.length - 1 && (
                   <div className={tw`mb-6`} />
                 )}
               </React.Fragment>

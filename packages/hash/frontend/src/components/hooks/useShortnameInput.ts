@@ -1,4 +1,4 @@
-import { useApolloClient, useQuery } from "@apollo/client";
+import { useApolloClient } from "@apollo/client";
 import { useState } from "react";
 import {
   IsShortnameTakenQuery,
@@ -6,13 +6,12 @@ import {
 } from "../../graphql/apiTypes.gen";
 import { isShortnameTaken as isShortnameTakenQuery } from "../../graphql/queries/user.queries";
 
-
 export const useShortnameInput = () => {
   const [loading, setLoading] = useState(false);
   const client = useApolloClient();
 
   const parseShortnameInput = (input: string) =>
-  input.replaceAll(/[^a-zA-Z0-9-_]/g, "");
+    input.replaceAll(/[^a-zA-Z0-9-_]/g, "");
 
   const validateShortname = async (shortname: string) => {
     if (shortname === "") {
@@ -49,6 +48,6 @@ export const useShortnameInput = () => {
   return {
     validateShortname,
     validateShortnameLoading: loading,
-    parseShortnameInput
+    parseShortnameInput,
   };
 };
