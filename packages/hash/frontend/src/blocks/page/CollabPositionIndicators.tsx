@@ -30,7 +30,7 @@ export const CollabPositionIndicators: VFC<CollabPositionIndicatorsProps> = ({
       collabPositions.filter(
         (collabPosition) => collabPosition.entityId === blockEntityId,
       ),
-    [collabPositions],
+    [blockEntityId, collabPositions],
   );
 
   return (
