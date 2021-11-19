@@ -25,6 +25,40 @@ type BlockLoaderProps = {
 
 const sandboxingEnabled = !!process.env.NEXT_PUBLIC_SANDBOX;
 
+type SerializeDates<T> = T extends Date
+  ? string
+  : T extends [...any[]]
+  ? {
+      [I in keyof T]: SerializeDates<T[I]>;
+    }
+  : T extends {}
+  ? {
+      [K in keyof T]: SerializeDates<T[K]>;
+    }
+  : T;
+
+/**
+ * This ensures dates we pass through to blocks are strings, as the block
+ * protocol expects properties to be JSON
+ */
+function mutateSerializeDates<T extends {}>(value: T): SerializeDates<T> {
+  const anyValue = value as unknown;
+
+  if (anyValue instanceof Date) {
+    return anyValue.toJSON() as any;
+  }
+
+  if (typeof anyValue !== "object" || !anyValue) {
+    return anyValue as any;
+  }
+
+  for (const innerValue of Object.values(anyValue)) {
+    mutateSerializeDates(innerValue);
+  }
+
+  return anyValue as any;
+}
+
 export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   sourceUrl,
   shouldSandbox,
@@ -39,7 +73,7 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   const { uploadFile } = useFileUpload(props.accountId);
 
   const flattenedProperties = useMemo(
-    () => cloneEntityTreeWithPropertiesMovedUp(props),
+    () => mutateSerializeDates(cloneEntityTreeWithPropertiesMovedUp(props)),
     [props],
   );
 
