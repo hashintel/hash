@@ -370,12 +370,12 @@ export const updateEntityAccountId = async (
       // Deffer constraints on foreign keys so we can update them without issues
       transaction.query(sql`
         set constraints
-          entity_versions_account_id_entity_id_fkey,
-          entity_account_account_id_entity_version_id_fkey,
-          outgoing_links_source_account_id_source_entity_id_fkey,
-          outgoing_links_destination_account_id_destination_entity_id_fkey,
-          incoming_links_destination_account_id_destination_entity_id_fkey,
-          incoming_links_source_account_id_source_entity_id_fkey
+          entity_versions_account_id_entity_id_fk,
+          entity_account_account_id_entity_version_id_fk,
+          outgoing_links_source_account_id_source_entity_id_fk,
+          outgoing_links_destination_account_id_destination_entity_id_fk,
+          incoming_links_destination_account_id_destination_entity_id_fk,
+          incoming_links_source_account_id_source_entity_id_fk
         deferred
       `),
       /** Update the account id in all the entity tables:
@@ -605,11 +605,11 @@ const updateVersionedEntity = async (
   // Defer FKs until end of transaction so we can insert concurrently
   await conn.query(sql`
     set constraints
-      entity_account_account_id_entity_version_id_fkey,
-      outgoing_links_source_account_id_source_entity_id_fkey,
-      outgoing_links_destination_account_id_destination_entity_id_fkey,
-      incoming_links_destination_account_id_destination_entity_id_fkey,
-      incoming_links_source_account_id_source_entity_id_fkey
+      entity_account_account_id_entity_version_id_fk,
+      outgoing_links_source_account_id_source_entity_id_fk,
+      outgoing_links_destination_account_id_destination_entity_id_fk,
+      incoming_links_destination_account_id_destination_entity_id_fk,
+      incoming_links_source_account_id_source_entity_id_fk
     deferred
   `);
 
