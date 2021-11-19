@@ -202,9 +202,7 @@ export class BlockView implements NodeView<Schema> {
 
     this.renderPortal(
       <>
-        <CollabPositionIndicators
-          blockEntityId={blockEntityId}
-        />
+        <CollabPositionIndicators blockEntityId={blockEntityId} />
         {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
         <div
           className={styles.Block__Handle}

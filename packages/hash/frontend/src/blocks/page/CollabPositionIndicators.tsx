@@ -7,7 +7,8 @@ import { useCollabPositionContext } from "../../contexts/CollabPositionContext";
 
 function pickColor(inputString: string) {
   let hash = 0;
-  for (var i = 0; i < inputString.length; i++) {
+  for (let i = 0; i < inputString.length; i++) {
+    // eslint-disable-next-line no-bitwise
     hash = inputString.charCodeAt(i) + ((hash << 5) - hash);
   }
 
@@ -61,7 +62,7 @@ export function CollabPositionIndicators({
                 backgroundColor: pickColor(presenceIndicator.userPreferredName),
               }}
               className={tw`rounded-full flex justify-center mr-2 font-medium`}
-              key={index}
+              key={presenceIndicator.userId}
               title={presenceIndicator.userPreferredName}
             >
               {presenceIndicator.userPreferredName.charAt(0).toUpperCase()}
