@@ -45,7 +45,7 @@ export const CollabPositionIndicators: VFC<CollabPositionIndicatorsProps> = ({
       <AnimatePresence>
         {relevantPresenceIndicators
           // only display first 2 indicators
-          .slice(0, 2)
+          .slice(0, relevantPresenceIndicators.length === 3 ? 3 : 2)
           .map((presenceIndicator) => (
             <CollabPositionIndicator
               backgroundColor={pickColor(presenceIndicator.userPreferredName)}
@@ -56,7 +56,7 @@ export const CollabPositionIndicators: VFC<CollabPositionIndicatorsProps> = ({
             </CollabPositionIndicator>
           ))}
 
-        {relevantPresenceIndicators.length > 2 && (
+        {relevantPresenceIndicators.length > 3 && (
           <CollabPositionIndicator
             backgroundColor={pickColor(
               `+${relevantPresenceIndicators.length - 2}`,
