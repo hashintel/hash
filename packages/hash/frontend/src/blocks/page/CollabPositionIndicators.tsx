@@ -1,9 +1,9 @@
-import { tw } from "twind";
-import { motion, AnimatePresence } from "framer-motion";
-import { useMemo } from "react";
-
 import { CollabPosition } from "@hashintel/hash-shared/collab";
+import { AnimatePresence, motion } from "framer-motion";
+import { useMemo, VFC } from "react";
+import { tw } from "twind";
 import { useCollabPositionContext } from "../../contexts/CollabPositionContext";
+import { CollabPositionIndicator } from "./CollabPositionIndicator";
 
 function pickColor(inputString: string) {
   let hash = 0;
@@ -15,11 +15,14 @@ function pickColor(inputString: string) {
   // reduce the last number to get a darker color
   return `hsl(${hash % 360}, 100%, 80%)`;
 }
-export function CollabPositionIndicators({
-  blockEntityId,
-}: {
+
+interface CollabPositionIndicatorsProps {
   blockEntityId: string | null;
-}) {
+}
+
+export const CollabPositionIndicators: VFC<CollabPositionIndicatorsProps> = ({
+  blockEntityId,
+}) => {
   const collabPositions = useCollabPositionContext();
 
   const relevantPresenceIndicators: CollabPosition[] = useMemo(
@@ -44,52 +47,20 @@ export function CollabPositionIndicators({
           // only display first 2 indicators
           .slice(0, 2)
           .map((presenceIndicator) => (
-            <motion.div
-              initial={{
-                opacity: 0,
-                x: "100%",
-              }}
-              animate={{
-                opacity: 1,
-                x: 0,
-              }}
-              exit={{
-                opacity: 0,
-              }}
-              style={{
-                height: "1.5em",
-                width: "1.5em",
-                backgroundColor: pickColor(presenceIndicator.userPreferredName),
-              }}
-              className={tw`rounded-full flex justify-center mr-2 font-medium`}
+            <CollabPositionIndicator
+              backgroundColor={pickColor(presenceIndicator.userPreferredName)}
               key={presenceIndicator.userId}
               title={presenceIndicator.userPreferredName}
             >
               {presenceIndicator.userPreferredName.charAt(0).toUpperCase()}
-            </motion.div>
+            </CollabPositionIndicator>
           ))}
 
         {relevantPresenceIndicators.length > 2 && (
-          <motion.div
-            initial={{
-              opacity: 0,
-              x: "100%",
-            }}
-            animate={{
-              opacity: 1,
-              x: 0,
-            }}
-            exit={{
-              opacity: 0,
-            }}
-            style={{
-              height: "1.5em",
-              width: "1.5em",
-              backgroundColor: pickColor(
-                `+${relevantPresenceIndicators.length - 2}`,
-              ),
-            }}
-            className={tw`rounded-full flex justify-center mr-2 font-medium`}
+          <CollabPositionIndicator
+            backgroundColor={pickColor(
+              `+${relevantPresenceIndicators.length - 2}`,
+            )}
             title={`${relevantPresenceIndicators
               .slice(2)
               .map((presenceIndicator) => presenceIndicator.userPreferredName)
@@ -104,9 +75,9 @@ export function CollabPositionIndicators({
                 }em`,
               }}
             >{`+${relevantPresenceIndicators.length - 2}`}</span>
-          </motion.div>
+          </CollabPositionIndicator>
         )}
       </AnimatePresence>
     </motion.div>
   );
-}
+};
