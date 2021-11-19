@@ -6,7 +6,7 @@ pub mod task;
 use crate::simulation::package::id::PackageId;
 use crate::worker::pending::CancelState;
 use crate::{
-    config::{WorkerSpawnConfig, WorkerConfig},
+    config::{WorkerConfig, WorkerSpawnConfig},
     datastore::table::sync::SyncPayload,
     proto::SimulationShortID,
     simulation::task::result::TaskResultOrCancelled,
@@ -35,10 +35,10 @@ use self::{
     },
     task::{WorkerTask, WorkerTaskResultOrCancelled},
 };
+use crate::simulation::enum_dispatch::TaskSharedStore;
 use crate::simulation::task::handler::WorkerHandler;
 use crate::simulation::task::msg::TaskMessage;
 pub use error::{Error, Result};
-use crate::simulation::enum_dispatch::TaskSharedStore;
 
 /// A task worker.-
 ///
@@ -67,7 +67,11 @@ impl WorkerController {
         exp_init: ExperimentInitRunnerMsg,
     ) -> Result<WorkerController> {
         log::debug!("Spawning worker controller");
-        let WorkerSpawnConfig { python, javascript, rust } = config.spawn;
+        let WorkerSpawnConfig {
+            python,
+            javascript,
+            rust,
+        } = config.spawn;
         // TODO: Rust, JS
         Ok(WorkerController {
             py: PythonRunner::new(python, exp_init.clone())?,
@@ -225,7 +229,8 @@ impl WorkerController {
         msg: RunnerTaskMsg,
         source: Language,
     ) -> Result<()> {
-        self.finish_task(msg.task_id, source, msg.payload, msg.shared_store).await
+        self.finish_task(msg.task_id, source, msg.payload, msg.shared_store)
+            .await
     }
 
     fn inbound_from_task_msg(
@@ -254,27 +259,39 @@ impl WorkerController {
             match next.target {
                 Rust => {
                     let inbound = Self::inbound_from_task_msg(
-                        msg.task_id, msg.package_id, msg.shared_store, next.payload
+                        msg.task_id,
+                        msg.package_id,
+                        msg.shared_store,
+                        next.payload,
                     );
                     self.rs.send(Some(sim_id), inbound).await?;
                     pending.active_runner = Language::Rust;
                 }
                 Python => {
                     let inbound = Self::inbound_from_task_msg(
-                        msg.task_id, msg.package_id, msg.shared_store, next.payload
+                        msg.task_id,
+                        msg.package_id,
+                        msg.shared_store,
+                        next.payload,
                     );
                     self.py.send(Some(sim_id), inbound).await?;
                     pending.active_runner = Language::Python;
                 }
                 JavaScript => {
                     let inbound = Self::inbound_from_task_msg(
-                        msg.task_id, msg.package_id, msg.shared_store, next.payload
+                        msg.task_id,
+                        msg.package_id,
+                        msg.shared_store,
+                        next.payload,
                     );
                     self.js.send(Some(sim_id), inbound).await?;
                     pending.active_runner = Language::JavaScript;
                 }
                 Dynamic => return Err(Error::UnexpectedTarget(next.target)),
-                Main => self.finish_task(msg.task_id, source, next.payload, msg.shared_store).await?,
+                Main => {
+                    self.finish_task(msg.task_id, source, next.payload, msg.shared_store)
+                        .await?
+                }
             }
         }
         Ok(())

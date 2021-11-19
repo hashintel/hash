@@ -116,20 +116,6 @@ def flush(c_memory, dynamic_meta, static_meta, changes):
 
     return result == 1 # Was memory resized?
 
-def get_ctx_schema():
-    cdef CMemory c_memory = get_context_schema_bytes()
-    address = int(<intptr_t> c_memory.ptr)
-    size = int(<int64_t> c_memory.len)
-    schema_buf = pa.foreign_buffer(address, size)
-    return pa.ipc.read_schema(schema_buf)
-
-def get_msg_schema():
-    cdef CMemory c_memory = get_message_schema_bytes()
-    address = int(<intptr_t> c_memory.ptr)
-    size = int(<int64_t> c_memory.len)
-    schema_buf = pa.foreign_buffer(address, size)
-    return pa.ipc.read_schema(schema_buf)
-
 def load_list_offsets(list_array):
     buffer = list_array.buffers()[1]
     size = buffer.size >> 2

@@ -137,7 +137,8 @@ impl WorkerPoolController {
 
         let futs = worker_controllers
             .into_iter()
-            .map(|mut c| tokio::spawn(async move { c.run().await.map_err(Error::from) }));
+            .map(|mut c| tokio::spawn(async move { c.run().await.map_err(Error::from) }))
+            .collect::<Vec<_>>();
 
         let fut = tokio::spawn(async move {
             try_join_all(futs)
@@ -150,25 +151,32 @@ impl WorkerPoolController {
     }
 
     pub async fn run(mut self) -> Result<()> {
+        log::debug!("Running Worker Pool Controller");
         pin!(let workers = self.run_worker_controllers()?;);
         pin!(let kill_recv = self.kill_recv.take_recv()?;);
         loop {
             tokio::select! {
                 Some(msg) = self.sim_recv.recv() => {
+                    log::debug!("Handle simulation message: {:?}", msg);
                     self.handle_sim_msg(msg).await?;
                 }
                 Some(msg) = self.exp_recv.recv() => {
+                    log::debug!("Handle experiment message: {:?}", msg);
                     self.handle_exp_msg(msg).await?;
                 }
                 Some((worker_index, msg)) = self.comms.recv() => {
+                    log::debug!("Handle comms message for worker [{}]: {:?}", worker_index, msg);
                     self.handle_worker_msg(worker_index, msg).await?;
                 }
-                // Ignore if None, since this call does a cheap block
-                Ok(res) = self.pending_tasks.run_cancel_check() => {
-                    self.handle_cancel_msgs(res).await?;
-                }
+                // TODO - Revisit this
+                // cancel_msgs = self.pending_tasks.run_cancel_check() => {
+                //     if !cancel_msgs.is_empty() {
+                //         self.handle_cancel_msgs(cancel_msgs).await?;
+                //     }
+                // }
                 kill_msg = &mut kill_recv => {
                     kill_msg.map_err(|err| Error::from(format!("Couldn't receive kill: {:?}", err)))?;
+                    log::debug!("Sending kill msg to all workers");
                     // Propagate kill msg to all workers
                     self.comms.send_kill_all().await?;
                     // Send confirmation of success
@@ -176,6 +184,7 @@ impl WorkerPoolController {
                     return Ok(())
                 }
                 work_res = &mut workers => {
+                    log::debug!("Worker result: {:?}", &work_res);
                     work_res?;
                     return Ok(())
                 }

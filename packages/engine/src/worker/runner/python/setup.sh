@@ -46,12 +46,11 @@ echo "Activating virtual environment"
 echo "Running $(python --version) from $(which python)"
 
 echo "Installing python dependencies"
-${PYTHON} -m pip install --upgrade pip
-${PYTHON} -m pip install -r "${SCRIPT_DIR}/requirements.txt"
+python -m pip install --upgrade pip
+python -m pip install -r "${SCRIPT_DIR}/requirements.txt"
 
 echo "Running setup.py"
-exit
-
 # Also compile Cython. Can be done either after
 # or before compiling Rust.
-${PYTHON} "${SCRIPT_DIR}/setup.py" build_ext --inplace "${SCRIPT_DIR}"
+python "${SCRIPT_DIR}/setup.py" build_ext --inplace "${SCRIPT_DIR}"
+exit

@@ -3,6 +3,7 @@ from json import loads as json_loads
 
 # Inbound
 import flatbuffers
+from pynng import Pair0
 
 from fbs.Init import Init
 from fbs.RunnerInboundMsg import RunnerInboundMsg

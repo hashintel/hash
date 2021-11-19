@@ -51,7 +51,7 @@ lazy_static! {
         ArrowDataType::List(Box::new(MESSAGE_ARROW_TYPE.clone())),
         false
     );
-    // It is imporant to keep this order unchanged. If changed
+    // It is important to keep this order unchanged. If changed
     // then the consts above must be updated
     pub static ref MESSAGE_BATCH_SCHEMA: ArrowSchema = ArrowSchema::new(vec![
         SENDER_ARROW_FIELD.clone(),

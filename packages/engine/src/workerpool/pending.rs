@@ -161,15 +161,17 @@ pub struct PendingWorkerPoolTasks {
 }
 
 impl PendingWorkerPoolTasks {
-    pub async fn run_cancel_check(&mut self) -> Result<Vec<TaskID>> {
-        let mut cancel_tasks = vec![];
-        self.inner.iter_mut().for_each(|(id, task)| {
-            // Ignore if closed
-            if let Ok(Some(_)) = task.recv_cancel() {
-                cancel_tasks.push(*id);
-            }
-        });
-
-        Ok(cancel_tasks)
+    pub async fn run_cancel_check(&mut self) -> Vec<TaskID> {
+        self.inner
+            .iter_mut()
+            .filter_map(|(id, task)| {
+                // Ignore if closed
+                if let Ok(Some(_)) = task.recv_cancel() {
+                    Some(*id)
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>()
     }
 }
