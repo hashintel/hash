@@ -1,12 +1,13 @@
 import { EntityVersion } from "@hashintel/hash-backend-utils/pgTables";
-import { RedisQueueExclusiveConsumer } from "@hashintel/hash-backend-utils/queue/redis";
+import { QueueExclusiveConsumer } from "@hashintel/hash-backend-utils/queue/adapter";
 import { Wal2JsonMsg } from "@hashintel/hash-backend-utils/wal2json";
 import { COLLAB_QUEUE_NAME } from "./util";
 
 export class EntityWatcher {
+  private started = false;
   private subscriptions: ((entity: EntityVersion) => void)[] = [];
 
-  constructor(private queue: RedisQueueExclusiveConsumer) {}
+  constructor(private queue: QueueExclusiveConsumer) {}
 
   subscribe(subscriber: (entity: EntityVersion) => void) {
     this.subscriptions.push(subscriber);
@@ -17,9 +18,14 @@ export class EntityWatcher {
   }
 
   async start() {
-    while (true) {
+    this.started = true;
+    while (this.started) {
       await this.processNextQueueMsg(1000);
     }
+  }
+
+  stop() {
+    this.started = false;
   }
 
   private async processNextQueueMsg(timeout: number) {

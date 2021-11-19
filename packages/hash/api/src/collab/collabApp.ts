@@ -1,4 +1,4 @@
-import { RedisQueueExclusiveConsumer } from "@hashintel/hash-backend-utils/queue/redis";
+import { QueueExclusiveConsumer } from "@hashintel/hash-backend-utils/queue/adapter";
 import { Repeater } from "@hashintel/hash-backend-utils/timers";
 import { entityStoreFromProsemirror } from "@hashintel/hash-shared/entityStorePlugin";
 import { createApolloClient } from "@hashintel/hash-shared/graphql/createApolloClient";
@@ -60,7 +60,7 @@ const extractTempFakeUserId = (request: Request): string | null => {
   return `${ipAddress ?? "0.0.0.0"}/${browserName ?? "unknown browser"}`;
 };
 
-export const createCollabApp = async (queue: RedisQueueExclusiveConsumer) => {
+export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
   logger.info(`Acquiring read ownership on queue "${COLLAB_QUEUE_NAME}" ...`);
 
   const repeater = new Repeater(async () => {
@@ -275,5 +275,10 @@ export const createCollabApp = async (queue: RedisQueueExclusiveConsumer) => {
     },
   );
 
-  return collabApp;
+  return {
+    router: collabApp,
+    stop() {
+      entityWatcher.stop();
+    },
+  };
 };

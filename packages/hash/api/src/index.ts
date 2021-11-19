@@ -153,7 +153,8 @@ apolloServer
       cors: CORS_CONFIG,
     });
 
-    app.use("/collab-backend", await collabAppPromise);
+    const collabApp = await collabAppPromise;
+    app.use("/collab-backend", collabApp.router);
 
     const server = app.listen(port, () => {
       logger.info(`Listening on port ${port}`);
@@ -177,6 +178,8 @@ apolloServer
         .then(() => collabRedisClient.close())
         .then(() => logger.info("Collab redis connection closed"))
         .catch((err) => logger.error(err));
+
+      collabApp.stop();
 
       logger.info("Closing database connection pool");
       db.close()
