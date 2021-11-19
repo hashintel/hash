@@ -21,8 +21,6 @@ export function CollabPositionIndicators({
 }) {
   const collabPositions = useCollabPositionContext();
 
-  console.log({ collabPositions });
-
   const relevantPresenceIndicators: CollabPosition[] = useMemo(
     () =>
       collabPositions.filter(
