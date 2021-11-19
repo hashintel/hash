@@ -115,7 +115,14 @@ export class Instance {
               accountId: entityVersion.accountId,
               entityVersionId: entityVersion.entityTypeVersionId,
               entityTypeVersionId: entityVersion.entityTypeVersionId,
-              // @todo what happens with links!?
+              /**
+               * This could overwrite any updates applied to entities inside of
+               * this properties field, but not a lot we can do about that, and
+               * unlikely to actually cause an issue as we process entity
+               * updates one at a time.
+               *
+               * @todo remove this comment when we have flat entities
+               */
               properties: entityVersion.properties,
               createdById: entityVersion.createdBy,
               createdAt: entityVersion.createdAt.toISOString(),
