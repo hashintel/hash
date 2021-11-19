@@ -295,6 +295,7 @@ impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController
                 Some(msg) = self.experiment_package_comms.ctl_recv.recv() => {
                     let stop_experiment = self.handle_experiment_control_msg(msg).await?;
                     if stop_experiment {
+                        log::debug!("Stopping experiment controller");
                         return Ok(())
                     }
                 }

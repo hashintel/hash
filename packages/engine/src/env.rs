@@ -78,7 +78,7 @@ pub async fn env<E>(args: &Args) -> Result<Environment<E>>
 where
     E: ExperimentRunRepr + for<'de> Deserialize<'de>,
 {
-    log::info!("Persist data to S3: {}", args.persist);
+    log::info!("Persist data to S3: {}", args.persist); // TODO - Doesn't look like it does anything
     let mut orch_client = OrchClient::new(&args.orchestrator_url, &args.experiment_id)?;
     log::debug!("Connected to orchestrator at {}", &args.orchestrator_url);
 

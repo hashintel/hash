@@ -24,10 +24,12 @@ struct Worker {
 }
 
 impl Worker {
-    fn new(socket: &nng::Socket, sender: MsgSender) -> Result<Self> {
+    fn new(socket: &nng::Socket, sender: MsgSender, url: &str) -> Result<Self> {
         let ctx_orig = nng::Context::new(socket)?;
         let ctx = ctx_orig.clone();
 
+        let socket_url = url.to_string();
+        log::debug!("Creating nng worker listening on socket: {}", socket_url);
         // The unwraps in the Aio callback here are fine. If they panic, then it's a logic
         // error, and not something which can be recovered from.
         let aio = nng::Aio::new(move |aio, res| match res {
@@ -42,7 +44,7 @@ impl Worker {
             }
             nng::AioResult::Recv(Err(e)) => match e {
                 nng::Error::Closed => {
-                    log::info!("aio context closed");
+                    log::debug!("aio context closed for socket listening on: {}", socket_url);
                     return;
                 }
                 _ => {
@@ -70,7 +72,7 @@ impl Server {
         let (sender, receiver) = mpsc::unbounded_channel();
 
         let workers = (0..NUM_WORKERS)
-            .map(|_| Worker::new(&socket, sender.clone()))
+            .map(|_| Worker::new(&socket, sender.clone(), url))
             .collect::<Result<Vec<_>>>()?;
 
         Ok(Server {

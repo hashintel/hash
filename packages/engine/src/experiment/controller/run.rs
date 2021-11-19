@@ -78,11 +78,13 @@ pub async fn run_local_experiment(
 ) -> Result<()> {
     match config::output_persistence(&env)? {
         OutputPersistenceConfig::Local(local) => {
+            log::debug!("Running experiment with local persistence");
             let persistence =
                 LocalOutputPersistence::new((*exp_config.run_id).clone(), local.clone());
             run_experiment_with_persistence(exp_config, env, persistence).await?;
         }
         OutputPersistenceConfig::None => {
+            log::debug!("Running experiment without output persistence");
             let persistence = NoOutputPersistence::new();
             run_experiment_with_persistence(exp_config, env, persistence).await?;
         }
@@ -180,36 +182,65 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
                 break;
             }
             Ok(res) = &mut worker_pool_controller_handle, if worker_pool_result.is_none() => {
-                if exit_timeout.is_none() {
-                    exit_timeout = Some(Box::pin(tokio::time::sleep(Duration::from_secs(20))));
-                }
+                if let Err(ref inner_err) = res {
+                    log::error!("Error from worker pool: {}", inner_err);
+                    successful_exit = false;
+                    if err.is_empty() {
+                        err = inner_err.to_string();
+                    };
+                };
+
+                worker_pool_result = Some(res);
                 if experiment_package_result.is_none() && experiment_controller_result.is_none() {
                     // The worker pool should not finish before the experiment controller or experiment package
                     log::warn!("Worker pool finished before experiment package and experiment controller");
                 }
-                worker_pool_result = Some(res);
+
                 if experiment_package_result.is_some() && experiment_controller_result.is_some() {
                     break;
                 }
-            }
-            Ok(res) = &mut experiment_package_handle, if experiment_package_result.is_none() => {
+
+                log::debug!("Result from experiment package, starting timeout");
                 if exit_timeout.is_none() {
                     exit_timeout = Some(Box::pin(tokio::time::sleep(Duration::from_secs(20))));
                 }
+            }
+            Ok(res) = &mut experiment_package_handle, if experiment_package_result.is_none() => {
+                if let Err(ref inner_err) = res {
+                    log::error!("Error from experiment package: {}", inner_err);
+                    successful_exit = false;
+                    if err.is_empty() {
+                        err = inner_err.to_string();
+                    };
+                };
+
                 // The experiment package should finish first
                 experiment_package_result = Some(res);
                 if worker_pool_result.is_some() && experiment_controller_result.is_some() {
                     break;
                 }
-            }
-            Ok(res) = &mut experiment_controller_handle, if experiment_controller_result.is_none() => {
+                log::debug!("Result from experiment package, starting timeout");
                 if exit_timeout.is_none() {
                     exit_timeout = Some(Box::pin(tokio::time::sleep(Duration::from_secs(20))));
                 }
+            }
+            Ok(res) = &mut experiment_controller_handle, if experiment_controller_result.is_none() => {
+                if let Err(ref inner_err) = res {
+                    log::error!("Error from experiment controller: {}", inner_err);
+                    successful_exit = false;
+                    if err.is_empty() {
+                        err = inner_err.to_string();
+                    };
+                };
+
                 // The experiment controller should ideally finish after the experiment package has finished
                 experiment_controller_result = Some(res);
                 if worker_pool_result.is_some() && experiment_package_result.is_some() {
                     break;
+                }
+                log::debug!("Result from experiment controller, starting timeout");
+                if exit_timeout.is_none() {
+                    exit_timeout = Some(Box::pin(tokio::time::sleep(Duration::from_secs(20))));
                 }
             }
             else => {
