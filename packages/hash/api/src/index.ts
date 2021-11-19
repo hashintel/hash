@@ -1,3 +1,5 @@
+import { RedisQueueExclusiveConsumer } from "@hashintel/hash-backend-utils/queue/redis";
+import { AsyncRedisClient } from "@hashintel/hash-backend-utils/redis";
 import { json } from "body-parser";
 import express from "express";
 import helmet from "helmet";
@@ -5,7 +7,7 @@ import { StatsD } from "hot-shots";
 import { customAlphabet } from "nanoid";
 import setupAuth from "./auth";
 import { RedisCache } from "./cache";
-import { collabApp } from "./collab/collabApp";
+import { createCollabApp } from "./collab/collabApp";
 import { PostgresAdapter, setupCronJobs } from "./db";
 import AwsSesEmailTransporter from "./email/transporter/awsSesEmailTransporter";
 import TestTransporter from "./email/transporter/testEmailTransporter";
@@ -15,6 +17,7 @@ import {
   AWS_REGION,
   AWS_S3_BUCKET,
   AWS_S3_REGION,
+  CORS_CONFIG,
   FILE_UPLOAD_PROVIDER,
 } from "./lib/config";
 import { isProdEnv, isStatsDEnabled, isTestEnv, port } from "./lib/env-config";
@@ -26,8 +29,6 @@ import {
 } from "./storage";
 import { AwsS3StorageProvider } from "./storage/aws-s3-storage-provider";
 import { getRequiredEnv } from "./util";
-
-const { FRONTEND_URL } = require("./lib/config");
 
 // Request ID generator
 const nanoid = customAlphabet(
@@ -62,11 +63,16 @@ const pgConfig = {
 };
 const db = new PostgresAdapter(pgConfig, logger, statsd);
 
-// Connect to Redis
-const redis = new RedisCache({
+const redisClientConfig = {
   host: getRequiredEnv("HASH_REDIS_HOST"),
   port: parseInt(getRequiredEnv("HASH_REDIS_PORT"), 10),
-});
+};
+// Connect to Redis
+const redis = new RedisCache(redisClientConfig);
+
+// Connect to Redis queue for collab
+const collabRedisClient = new AsyncRedisClient(redisClientConfig);
+const collabRedisQueue = new RedisQueueExclusiveConsumer(collabRedisClient);
 
 // Set sensible default security headers: https://www.npmjs.com/package/helmet
 // Temporarily disable contentSecurityPolicy for the GraphQL playground
@@ -136,19 +142,14 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use("/collab-backend", collabApp);
-
-// Ensure the GraphQL server has started before starting the HTTP server
-apolloServer
-  .start()
-  .then(() => {
+Promise.all([createCollabApp(collabRedisQueue), apolloServer.start()])
+  .then(([collabApp]) => {
     apolloServer.applyMiddleware({
       app,
-      cors: {
-        credentials: true,
-        origin: [/-hashintel\.vercel\.app$/, FRONTEND_URL],
-      },
+      cors: CORS_CONFIG,
     });
+
+    app.use("/collab-backend", collabApp.router);
 
     const server = app.listen(port, () => {
       logger.info(`Listening on port ${port}`);
@@ -166,6 +167,14 @@ apolloServer
       server.close(() => {
         logger.info("Express server closed");
       });
+
+      collabRedisQueue
+        .release()
+        .then(() => collabRedisClient.close())
+        .then(() => logger.info("Collab redis connection closed"))
+        .catch((err) => logger.error(err));
+
+      collabApp.stop();
 
       logger.info("Closing database connection pool");
       db.close()

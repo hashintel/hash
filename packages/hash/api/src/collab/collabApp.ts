@@ -1,3 +1,5 @@
+import { QueueExclusiveConsumer } from "@hashintel/hash-backend-utils/queue/adapter";
+import { Repeater } from "@hashintel/hash-backend-utils/timers";
 import { entityStoreFromProsemirror } from "@hashintel/hash-shared/entityStorePlugin";
 import { createApolloClient } from "@hashintel/hash-shared/graphql/createApolloClient";
 import { json } from "body-parser";
@@ -7,15 +9,13 @@ import { IncomingMessage } from "http";
 // @ts-expect-error -- temp import with no types
 // eslint-disable-next-line import/no-extraneous-dependencies
 import UAParser from "ua-parser-js";
-import { FRONTEND_URL } from "../lib/config";
-import { getInstance, Instance } from "./Instance";
+import { CORS_CONFIG } from "../lib/config";
+import { logger } from "../logger";
+import { EntityWatcher } from "./EntityWatcher";
 import { InvalidRequestPayloadError, InvalidVersionError } from "./errors";
+import { getInstance, Instance } from "./Instance";
+import { COLLAB_QUEUE_NAME } from "./util";
 import { Waiting } from "./Waiting";
-
-export const collabApp = express();
-
-collabApp.use(json({ limit: "16mb" }));
-collabApp.use(corsMiddleware({ credentials: true, origin: FRONTEND_URL }));
 
 const createCollabApolloClient = (request: IncomingMessage) =>
   createApolloClient({
@@ -45,6 +45,7 @@ const jsonEvents = (
   steps: data.steps.map((step) => step.toJSON()),
   clientIDs: data.clientIDs,
   users: data.users,
+  store: data.store,
 });
 
 const extractTempFakeUserId = (request: Request): string | null => {
@@ -59,185 +60,225 @@ const extractTempFakeUserId = (request: Request): string | null => {
   return `${ipAddress ?? "0.0.0.0"}/${browserName ?? "unknown browser"}`;
 };
 
-collabApp.get("/:accountId/:pageEntityId", (request, response) => {
-  (async () => {
-    const client = createCollabApolloClient(request);
+export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
+  logger.info(`Acquiring read ownership on queue "${COLLAB_QUEUE_NAME}" ...`);
 
-    // TODO: Replace with apollo client → me
-    const userId = extractTempFakeUserId(request);
-
-    const instance = await getInstance(client)(
-      request.params.accountId,
-      request.params.pageEntityId,
-      userId,
-    );
-
-    response.json({
-      doc: instance.state.doc.toJSON(),
-      store: entityStoreFromProsemirror(instance.state).store,
-      users: instance.userCount,
-      version: instance.version,
-    });
-  })().catch((err) => {
-    handleError(response, err);
+  const repeater = new Repeater(async () => {
+    const res = await queue.acquire(COLLAB_QUEUE_NAME, 5_000);
+    if (!res) {
+      logger.info(
+        "Queue is owned by another consumer. Attempting to acquire ownership again ...",
+      );
+    }
+    return res;
   });
-});
+  await repeater.start();
 
-collabApp.get("/:accountId/:pageEntityId/events", async (request, response) => {
-  try {
-    const client = createCollabApolloClient(request);
-    const version = nonNegInteger(request.query.version);
+  const entityWatcher = new EntityWatcher(queue);
 
-    // TODO: Replace with apollo client → me
-    const userId = extractTempFakeUserId(request);
+  /**
+   * @todo handle this
+   */
+  entityWatcher.start().catch((err) => {
+    logger.error("Error in entity watcher", err);
+  });
 
-    const instance = await getInstance(client)(
-      request.params.accountId,
-      request.params.pageEntityId,
-      userId,
-    );
-    const data = instance.getEvents(version);
+  const collabApp = express();
 
-    if (data === false) {
-      response.status(410).send("History no longer available");
-      return;
-    }
-    // If the server version is greater than the given version,
-    // return the data immediately.
-    if (data.steps.length) return response.json(jsonEvents(instance, data));
-    // If the server version matches the given version,
-    // wait until a new version is published to return the event data.
-    const wait = new Waiting(response, instance, userId, () => {
-      const events = instance.getEvents(version);
-      if (events === false) {
-        response.status(410).send("History no longer available");
-        return;
-      }
+  collabApp.use(json({ limit: "16mb" }));
+  collabApp.use(corsMiddleware(CORS_CONFIG));
 
-      wait.send(jsonEvents(instance, events));
+  collabApp.get("/:accountId/:pageEntityId", (request, response) => {
+    (async () => {
+      const client = createCollabApolloClient(request);
+
+      // TODO: Replace with apollo client → me
+      const userId = extractTempFakeUserId(request);
+
+      const instance = await getInstance(client, entityWatcher)(
+        request.params.accountId,
+        request.params.pageEntityId,
+        userId,
+      );
+
+      response.json({
+        doc: instance.state.doc.toJSON(),
+        store: entityStoreFromProsemirror(instance.state).store,
+        users: instance.userCount,
+        version: instance.version,
+      });
+    })().catch((err) => {
+      handleError(response, err);
     });
-    instance.waiting.push(wait);
-    response.on("close", () => wait.abort());
-  } catch (error) {
-    handleError(response, error);
-  }
-});
+  });
 
-collabApp.post(
-  "/:accountId/:pageEntityId/events",
-  async (request, response) => {
-    try {
-      const client = createCollabApolloClient(request);
+  collabApp.get(
+    "/:accountId/:pageEntityId/events",
+    async (request, response) => {
+      try {
+        const client = createCollabApolloClient(request);
+        const version = nonNegInteger(request.query.version);
 
-      // TODO: Replace with apollo client → me
-      const userId = extractTempFakeUserId(request);
+        // TODO: Replace with apollo client → me
+        const userId = extractTempFakeUserId(request);
 
-      const instance = await getInstance(client)(
-        request.params.accountId,
-        request.params.pageEntityId,
-        userId,
-      );
-
-      // @todo type this
-      const data: any = request.body;
-      const version = nonNegInteger(data.version);
-
-      const result = await instance.addJsonEvents(client)(
-        version,
-        data.steps,
-        data.clientID,
-        data.blockIds,
-      );
-      if (!result) {
-        response.status(409).send("Version not current");
-      } else {
-        response.json(result);
-      }
-    } catch (error) {
-      handleError(response, error);
-    }
-  },
-);
-
-collabApp.get(
-  "/:accountId/:pageEntityId/positions",
-  async (request, response) => {
-    try {
-      const client = createCollabApolloClient(request);
-
-      // TODO: Replace with apollo client → me
-      const userId = extractTempFakeUserId(request);
-
-      if (!userId) {
-        response.status(401).send("Authentication required");
-        return;
-      }
-
-      const instance = await getInstance(client)(
-        request.params.accountId,
-        request.params.pageEntityId,
-        userId,
-      );
-
-      const poll = request.query.poll === "true" || request.query.poll === "1";
-
-      if (!poll) {
-        response.json(instance.extractPositions(userId));
-        return;
-      }
-
-      instance.addPositionPoller({
-        baselinePositions: instance.extractPositions(userId),
-        userIdToExclude: userId,
-        response,
-      });
-    } catch (error) {
-      handleError(response, error);
-    }
-  },
-);
-
-collabApp.post(
-  "/:accountId/:pageEntityId/report-position",
-  async (request, response) => {
-    try {
-      const client = createCollabApolloClient(request);
-
-      // TODO: Replace with apollo client → me
-      const userId = extractTempFakeUserId(request);
-
-      if (!userId) {
-        response.status(401).send("Authentication required");
-        return;
-      }
-
-      const instance = await getInstance(client)(
-        request.params.accountId,
-        request.params.pageEntityId,
-        userId,
-      );
-
-      const { entityId } = request.body;
-
-      if (typeof entityId !== "string" && entityId !== null) {
-        throw new InvalidRequestPayloadError(
-          "Expected entityId to be a string or null",
+        const instance = await getInstance(client, entityWatcher)(
+          request.params.accountId,
+          request.params.pageEntityId,
+          userId,
         );
+        const data = instance.getEvents(version);
+
+        if (data === false) {
+          response.status(410).send("History no longer available");
+          return;
+        }
+        // If the server version is greater than the given version,
+        // return the data immediately.
+        if (data.steps.length) return response.json(jsonEvents(instance, data));
+        // If the server version matches the given version,
+        // wait until a new version is published to return the event data.
+        const wait = new Waiting(response, instance, userId, () => {
+          const events = instance.getEvents(version);
+          if (events === false) {
+            response.status(410).send("History no longer available");
+            return;
+          }
+
+          wait.send(jsonEvents(instance, events));
+        });
+        instance.waiting.push(wait);
+        response.on("close", () => wait.abort());
+      } catch (error) {
+        handleError(response, error);
       }
+    },
+  );
 
-      const userShortname = userId;
-      const userPreferredName = userShortname;
+  collabApp.post(
+    "/:accountId/:pageEntityId/events",
+    async (request, response) => {
+      try {
+        const client = createCollabApolloClient(request);
 
-      instance.registerPosition({
-        userId,
-        userShortname,
-        userPreferredName,
-        entityId,
-      });
+        // TODO: Replace with apollo client → me
+        const userId = extractTempFakeUserId(request);
 
-      response.status(200).send("OK");
-    } catch (error) {
-      handleError(response, error);
-    }
-  },
-);
+        const instance = await getInstance(client, entityWatcher)(
+          request.params.accountId,
+          request.params.pageEntityId,
+          userId,
+        );
+
+        // @todo type this
+        const data: any = request.body;
+        const version = nonNegInteger(data.version);
+
+        const result = await instance.addJsonEvents(client)(
+          version,
+          data.steps,
+          data.clientID,
+          data.blockIds,
+        );
+        if (!result) {
+          response.status(409).send("Version not current");
+        } else {
+          response.json(result);
+        }
+      } catch (error) {
+        handleError(response, error);
+      }
+    },
+  );
+
+  collabApp.get(
+    "/:accountId/:pageEntityId/positions",
+    async (request, response) => {
+      try {
+        const client = createCollabApolloClient(request);
+
+        // TODO: Replace with apollo client → me
+        const userId = extractTempFakeUserId(request);
+
+        if (!userId) {
+          response.status(401).send("Authentication required");
+          return;
+        }
+
+        const instance = await getInstance(client, entityWatcher)(
+          request.params.accountId,
+          request.params.pageEntityId,
+          userId,
+        );
+
+        const poll =
+          request.query.poll === "true" || request.query.poll === "1";
+
+        if (!poll) {
+          response.json(instance.extractPositions(userId));
+          return;
+        }
+
+        instance.addPositionPoller({
+          baselinePositions: instance.extractPositions(userId),
+          userIdToExclude: userId,
+          response,
+        });
+      } catch (error) {
+        handleError(response, error);
+      }
+    },
+  );
+
+  collabApp.post(
+    "/:accountId/:pageEntityId/report-position",
+    async (request, response) => {
+      try {
+        const client = createCollabApolloClient(request);
+
+        // TODO: Replace with apollo client → me
+        const userId = extractTempFakeUserId(request);
+
+        if (!userId) {
+          response.status(401).send("Authentication required");
+          return;
+        }
+
+        const instance = await getInstance(client, entityWatcher)(
+          request.params.accountId,
+          request.params.pageEntityId,
+          userId,
+        );
+
+        const { entityId } = request.body;
+
+        if (typeof entityId !== "string" && entityId !== null) {
+          throw new InvalidRequestPayloadError(
+            "Expected entityId to be a string or null",
+          );
+        }
+
+        const userShortname = userId;
+        const userPreferredName = userShortname;
+
+        instance.registerPosition({
+          userId,
+          userShortname,
+          userPreferredName,
+          entityId,
+        });
+
+        response.status(200).send("OK");
+      } catch (error) {
+        handleError(response, error);
+      }
+    },
+  );
+
+  return {
+    router: collabApp,
+    stop() {
+      entityWatcher.stop();
+    },
+  };
+};

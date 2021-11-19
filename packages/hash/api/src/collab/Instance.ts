@@ -1,7 +1,17 @@
 import { ApolloClient } from "@apollo/client";
+import { EntityVersion } from "@hashintel/hash-backend-utils/pgTables";
+import { CollabPosition } from "@hashintel/hash-shared/collab";
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
-import { createEntityStore } from "@hashintel/hash-shared/entityStore";
+import {
+  createEntityStore,
+  EntityStore,
+  walkValueForEntity,
+} from "@hashintel/hash-shared/entityStore";
+import {
+  addEntityStoreAction,
+  entityStoreFromProsemirror,
+} from "@hashintel/hash-shared/entityStorePlugin";
 import {
   findComponentNodes,
   getComponentNodeAttrs,
@@ -9,12 +19,12 @@ import {
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
 import { updatePageMutation } from "@hashintel/hash-shared/save";
-import { isEqual } from "lodash";
-import { Schema } from "prosemirror-model";
-import { EditorState } from "prosemirror-state";
-import { Mapping, Step, Transform } from "prosemirror-transform";
-import { CollabPosition } from "@hashintel/hash-shared/collab";
 import { Response } from "express";
+import { isEqual } from "lodash";
+import { Schema, Slice } from "prosemirror-model";
+import { EditorState } from "prosemirror-state";
+import { Mapping, ReplaceStep, Step, Transform } from "prosemirror-transform";
+import { EntityWatcher } from "./EntityWatcher";
 import { InvalidVersionError } from "./errors";
 import { CollabPositionPoller, TimedCollabPosition } from "./types";
 import { Waiting } from "./Waiting";
@@ -48,17 +58,31 @@ export class Instance {
   timedPositions: TimedCollabPosition[] = [];
   positionCleanupInterval: ReturnType<typeof setInterval>;
 
+  private entityStore: { version: number; store: EntityStore };
+
+  private readonly unsubscribeFromEntityWatcher: () => void;
+
   constructor(
     public accountId: string,
     public pageEntityId: string,
     public state: EditorState<Schema>,
     public manager: ProsemirrorSchemaManager,
     public savedContents: BlockEntity[],
+    private entityWatcher: EntityWatcher,
   ) {
     this.positionCleanupInterval = setInterval(() => {
       this.cleanupPositions();
       this.cleanupPositionPollers();
     }, POSITION_CLEANUP_INTERVAL);
+
+    this.entityStore = {
+      version: this.version,
+      store: entityStoreFromProsemirror(state).store,
+    };
+
+    this.unsubscribeFromEntityWatcher = this.entityWatcher.subscribe(
+      (entityVersion) => this.processEntityVersion(entityVersion),
+    );
   }
 
   stop() {
@@ -71,10 +95,91 @@ export class Instance {
         response.status(410).send("Collab instance was stopped");
       }
     }
+    this.unsubscribeFromEntityWatcher();
+  }
+
+  private async processEntityVersion(entityVersion: EntityVersion) {
+    let foundOnPage = false;
+
+    const nextSavedContents = walkValueForEntity(
+      this.savedContents,
+      (entity) => {
+        if (entity.entityId === entityVersion.entityId) {
+          foundOnPage = true;
+          if (
+            new Date(entityVersion.updatedAt).getTime() >
+            new Date(entity.updatedAt).getTime()
+          ) {
+            return {
+              ...entity,
+              accountId: entityVersion.accountId,
+              entityVersionId: entityVersion.entityTypeVersionId,
+              entityTypeVersionId: entityVersion.entityTypeVersionId,
+              /**
+               * This could overwrite any updates applied to entities inside of
+               * this properties field, but not a lot we can do about that, and
+               * unlikely to actually cause an issue as we process entity
+               * updates one at a time.
+               *
+               * @todo remove this comment when we have flat entities
+               */
+              properties: entityVersion.properties,
+              createdById: entityVersion.createdBy,
+              createdAt: entityVersion.createdAt.toISOString(),
+              updatedAt: entityVersion.updatedAt.toISOString(),
+            };
+          }
+        }
+
+        return entity;
+      },
+    );
+
+    if (foundOnPage) {
+      /**
+       * We should know not to notify consumers of changes they've already been
+       * notified of, but because of a race condition between saves triggered by
+       * collab and saves triggered by frontend blocks, this doesn't necessarily
+       * work, so unfortunately we need to notify on every notification from
+       * realtime right now. This means clients will be notified about prosemirror
+       * changes twice right now. There are no known downsides to this other than
+       * performance.
+       *
+       * If nextSavedContents === this.savedContents, then we're likely notifying
+       * of changes the client is possibly already aware of
+       *
+       * @todo fix this
+       */
+      this.updateSavedContents(nextSavedContents, true);
+    }
+  }
+
+  private updateSavedContents(nextSavedContents: BlockEntity[], notify = true) {
+    const { tr } = this.state;
+    addEntityStoreAction(tr, { type: "contents", payload: nextSavedContents });
+    this.state = this.state.apply(tr);
+    this.savedContents = nextSavedContents;
+
+    this.entityStore = {
+      version: notify ? this.version + 1 : this.version,
+      store: entityStoreFromProsemirror(this.state).store,
+    };
+
+    if (notify) {
+      /**
+       * This is a hack to do with version number hacking
+       * @todo come up with something better
+       */
+      this.addEvents()(
+        this.version,
+        [new ReplaceStep<Schema>(0, 0, Slice.empty)],
+        "graphql",
+      );
+    }
   }
 
   addEvents =
-    (apolloClient: ApolloClient<unknown>) =>
+    (apolloClient?: ApolloClient<unknown>) =>
     (version: number, steps: Step[], clientID: string) => {
       this.checkVersion(version);
       if (this.version !== version) return false;
@@ -101,8 +206,10 @@ export class Instance {
 
       this.sendUpdates();
 
-      // @todo offload saves to a separate process / debounce them
-      this.save(apolloClient)(clientID);
+      if (apolloClient) {
+        // @todo offload saves to a separate process / debounce them
+        this.save(apolloClient)(clientID);
+      }
 
       return { version: this.version };
     };
@@ -126,8 +233,7 @@ export class Instance {
         ).then((newPage) => {
           const componentNodes = findComponentNodes(this.state.doc);
 
-          // @todo need to inform the prosemirror plugin of this
-          this.savedContents = newPage.properties.contents;
+          this.updateSavedContents(newPage.properties.contents, false);
 
           for (let idx = 0; idx < componentNodes.length; idx++) {
             const [componentNode, pos] = componentNodes[idx];
@@ -150,6 +256,7 @@ export class Instance {
                 ...attrs,
               });
 
+              // @todo need to do this outside the loop
               this.addEvents(apolloClient)(
                 this.version,
                 transform.steps,
@@ -215,10 +322,14 @@ export class Instance {
     if (startIndex < 0) return false;
 
     const steps = this.steps.slice(startIndex);
+    const store =
+      this.entityStore.version > version ? this.entityStore.store : null;
+
     return {
       steps,
       users: this.userCount,
       clientIDs: steps.map((step) => this.clientIds.get(step)),
+      store,
     };
   }
 
@@ -339,7 +450,7 @@ let instanceCount = 0;
 const maxCount = 20;
 
 const newInstance =
-  (apolloClient: ApolloClient<unknown>) =>
+  (apolloClient: ApolloClient<unknown>, entityWatcher: EntityWatcher) =>
   async (accountId: string, pageEntityId: string) => {
     if (++instanceCount > maxCount) {
       let oldest = null;
@@ -384,17 +495,18 @@ const newInstance =
       newState,
       manager,
       data.page.properties.contents,
+      entityWatcher,
     );
 
     return instances[pageEntityId];
   };
 
 export const getInstance =
-  (apolloClient: ApolloClient<unknown>) =>
+  (apolloClient: ApolloClient<unknown>, entityWatcher: EntityWatcher) =>
   async (accountId: string, pageEntityId: string, userId: string | null) => {
     const inst =
       instances[pageEntityId] ||
-      (await newInstance(apolloClient)(accountId, pageEntityId));
+      (await newInstance(apolloClient, entityWatcher)(accountId, pageEntityId));
     if (userId) inst.registerUser(userId);
     inst.lastActive = Date.now();
     return inst;

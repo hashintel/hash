@@ -63,6 +63,7 @@ services:
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - AWS_S3_UPLOADS_BUCKET=${AWS_S3_UPLOADS_BUCKET}
+      - HASH_COLLAB_QUEUE_NAME=collab
     # Wait until the database is running before starting the API
     command:
       [
@@ -102,6 +103,7 @@ services:
       - HASH_REDIS_HOST=hash-dev-redis
       - HASH_REDIS_PORT=6379
       - HASH_SEARCH_QUEUE_NAME=search
+      - HASH_COLLAB_QUEUE_NAME=collab
     volumes:
       - ../realtime:/app/packages/hash/realtime
       - ../backend-utils:/app/packages/hash/backend-utils

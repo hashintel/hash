@@ -12,4 +12,5 @@ generates:
       skipTypename: true
       scalars:
         TextToken: ./types#TextToken
+        Date: string
     documents: ./src/queries/*.ts

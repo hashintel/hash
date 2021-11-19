@@ -18,4 +18,13 @@ export const QUEUES: { name: string; producer: QueueProducer }[] = [
       }),
     ),
   },
+  {
+    name: getRequiredEnv("HASH_COLLAB_QUEUE_NAME"),
+    producer: new RedisQueueProducer(
+      new AsyncRedisClient({
+        host: getRequiredEnv("HASH_REDIS_HOST"),
+        port: parseInt(getRequiredEnv("HASH_REDIS_PORT"), 10),
+      }),
+    ),
+  },
 ];

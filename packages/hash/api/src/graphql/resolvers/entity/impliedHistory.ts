@@ -60,7 +60,8 @@ export const getImpliedEntityHistory: Resolver<
   const impliedVersions: ImpliedEntityVersion[] = graphs.map((graph) => ({
     createdAt: graph.entities
       .map((ver) => ver.createdAt)
-      .reduce((acc, time) => (acc < time ? acc : time)),
+      .reduce((acc, time) => (acc < time ? acc : time))
+      .toISOString(),
   }));
 
   const history: ImpliedEntityHistory = {
@@ -74,7 +75,11 @@ export const getImpliedEntityHistory: Resolver<
   await Promise.all(
     impliedVersions.map(({ createdAt }, i) =>
       cache.set(
-        impliedVersionKey({ accountId, entityId, createdAt }),
+        impliedVersionKey({
+          accountId,
+          entityId,
+          createdAt: new Date(createdAt),
+        }),
         JSON.stringify(graphs[i]),
       ),
     ),
@@ -255,7 +260,7 @@ export const getImpliedEntityVersion: Resolver<
     impliedVersionKey({
       accountId,
       entityId,
-      createdAt: impliedVersionCreatedAt,
+      createdAt: new Date(impliedVersionCreatedAt),
     }),
   );
   if (!graphStr) {

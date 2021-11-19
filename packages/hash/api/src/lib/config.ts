@@ -1,3 +1,4 @@
+import corsMiddleware from "cors";
 import { StorageType } from "../graphql/apiTypes.gen";
 import { getRequiredEnv } from "../util";
 
@@ -43,3 +44,8 @@ export const SYSTEM_TYPES = [
   "OrgEmailInvitation",
 ] as const;
 export type SYSTEM_TYPE = typeof SYSTEM_TYPES[number];
+
+export const CORS_CONFIG: corsMiddleware.CorsOptions = {
+  credentials: true,
+  origin: [/-hashintel\.vercel\.app$/, FRONTEND_URL],
+};

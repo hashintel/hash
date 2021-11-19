@@ -1,7 +1,7 @@
 import { Draft, produce } from "immer";
 import { v4 as uuid } from "uuid";
 import { AnyEntity, BlockEntity } from "./entity";
-import { DistributiveOmit } from "./util";
+import { DistributiveOmit, typeSafeEntries } from "./util";
 
 // @todo should AnyEntity include BlockEntity, and should this just be AnyEntity
 export type EntityStoreType = BlockEntity | AnyEntity;
@@ -53,24 +53,69 @@ export const draftEntityForEntityId = (
   entityId: string,
 ) => Object.values(draft).find((entity) => entity.entityId === entityId);
 
-const findEntitiesInValue = (value: unknown): EntityStoreType[] => {
-  let entities: EntityStoreType[] = [];
+export const walkObjectValueForEntity = <T extends {}>(
+  value: T,
+  entityHandler: <E extends EntityStoreType>(entity: E) => E,
+): T => {
+  let changed = false;
+  let result = value;
 
-  if (isBlockEntity(value)) {
-    entities = [...entities, value, value.properties.entity];
-  }
+  for (const [key, innerValue] of typeSafeEntries(value)) {
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
+    const nextValue = walkValueForEntity(innerValue, entityHandler);
 
-  if (typeof value === "object" && value !== null) {
-    for (const property of Object.values(value)) {
-      entities = [...entities, ...findEntitiesInValue(property)];
+    if (nextValue !== innerValue) {
+      if (!changed) {
+        result = (Array.isArray(value) ? [...value] : { ...value }) as T;
+      }
+
+      changed = true;
+      result[key] = nextValue;
     }
   }
+
+  if (isEntity(value)) {
+    const nextValue = entityHandler(value);
+
+    if (nextValue !== value) {
+      changed = true;
+      result = nextValue;
+    }
+  }
+
+  return changed ? result : value;
+};
+
+/**
+ * @todo work on performance
+ */
+export const walkValueForEntity = <T>(
+  value: T,
+  entityHandler: <E extends EntityStoreType>(entity: E) => E,
+): T => {
+  if (typeof value !== "object" || value === null) {
+    return value;
+  }
+
+  return walkObjectValueForEntity(value, entityHandler);
+};
+
+const findEntities = (contents: EntityStoreType[]) => {
+  const entities: EntityStoreType[] = [];
+
+  walkValueForEntity(contents, (entity) => {
+    if (isBlockEntity(entity)) {
+      entities.push(entity, entity.properties.entity);
+    }
+    return entity;
+  });
 
   return entities;
 };
 
 /**
  * @todo restore dealing with links
+ * @todo this should be flat – so that we don't have to traverse links
  */
 export const createEntityStore = (
   contents: EntityStoreType[],
@@ -88,8 +133,7 @@ export const createEntityStore = (
       entityToDraft[row.entityId] = row.draftId;
     }
   }
-
-  const entities = contents.flatMap(findEntitiesInValue);
+  const entities = findEntities(contents);
 
   for (const entity of entities) {
     if (!entityToDraft[entity.entityId]) {
