@@ -60,6 +60,8 @@ export const BlockHandle = forwardRef<HTMLDivElement, BlockHandleProps>(
   },
 );
 
+export const blockDomId = (blockEntityId: string) => `entity-${blockEntityId}`;
+
 /**
  * This is the node view that wraps every one of our blocks in order to inject
  * custom UI like the <select> to change type and the drag handles
@@ -94,14 +96,7 @@ export class BlockView implements NodeView<Schema> {
     public renderPortal: RenderPortal,
     public manager: ProsemirrorSchemaManager,
   ) {
-    const entityId = this.getBlockEntityIdFromNode(node);
-
     this.dom = document.createElement("div");
-
-    if (entityId) {
-      this.dom.id = `entity-${entityId}`;
-    }
-
     this.dom.classList.add(styles.Block);
 
     this.selectContainer = document.createElement("div");
@@ -197,7 +192,7 @@ export class BlockView implements NodeView<Schema> {
     const blockEntityId = this.getBlockEntityIdFromNode(this.node);
 
     if (blockEntityId) {
-      this.dom.id = `entity-${blockEntityId}`;
+      this.dom.id = blockDomId(blockEntityId);
     }
 
     this.renderPortal(
