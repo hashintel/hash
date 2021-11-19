@@ -1,7 +1,9 @@
 import { tw } from "twind";
 import { motion, AnimatePresence } from "framer-motion";
 
-import { CollabPositions, usePageContext } from "../../contexts/PageContext";
+import { CollabPosition } from "@hashintel/hash-shared/collab";
+import { useCollabPositions } from "./collab/useCollabPositions";
+import { useMemo } from "react";
 
 function pickColor(inputString: string) {
   let hash = 0;
@@ -14,20 +16,35 @@ function pickColor(inputString: string) {
 }
 export default function PresenceIndicators({
   entityId,
+  accountId,
+  pageEntityId,
 }: {
   entityId: string | null;
+  accountId: string;
+  pageEntityId: string;
 }) {
-  const { collabPositions } = usePageContext().state;
+  const collabPositions = useCollabPositions(accountId, pageEntityId);
 
-  const relevantPresenceIndicators: CollabPositions =
-    collabPositions?.filter(
-      (collabPosition) => collabPosition.blockId === entityId,
-    ) ?? [];
+  // const { collabPositions } = usePageContext().state;
+
+  const relevantPresenceIndicators: CollabPosition[] = useMemo(() => {
+    return (
+      collabPositions?.filter(
+        (collabPosition) => collabPosition.entityId === entityId,
+      ) ?? []
+    );
+  }, [collabPositions]);
+
+  console.log({ collabPositions, relevantPresenceIndicators });
+
+  if (relevantPresenceIndicators.length > 0) {
+    console.log(entityId);
+  }
 
   return (
     <motion.div
       animate={{
-        // only account for 3 indicators
+        // only display upto 3 indicators
         left: `-${relevantPresenceIndicators.slice(0, 3).length * 33.5}px`,
       }}
       id="presence-indicators"

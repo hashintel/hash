@@ -113,8 +113,6 @@ const PageProvider: React.FC = ({ children, ...props }) => {
     };
   }, [collabPositions]);
 
-  console.log(state);
-
   return (
     <Provider value={state} {...props}>
       {children}

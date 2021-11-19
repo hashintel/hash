@@ -93,6 +93,8 @@ export class BlockView implements NodeView<Schema> {
     public getPos: () => number,
     public renderPortal: RenderPortal,
     public manager: ProsemirrorSchemaManager,
+    public accountId: string,
+    public pageEntityId: string,
   ) {
     const entityId = this.getBlockEntityIdFromNode(node);
 
@@ -202,7 +204,11 @@ export class BlockView implements NodeView<Schema> {
 
     this.renderPortal(
       <>
-        <PresenceIndicators entityId={entityId} />
+        <PresenceIndicators
+          entityId={entityId}
+          accountId={this.accountId}
+          pageEntityId={this.pageEntityId}
+        />
         {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
         <div
           className={styles.Block__Handle}

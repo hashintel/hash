@@ -73,7 +73,7 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
         break;
       case "copyLink": {
         const url = new URL(document.location.href);
-        url.hash = entityId!;
+        url.hash = `entity-${entityId}`!;
         void navigator.clipboard.writeText(url.toString());
         break;
       }
