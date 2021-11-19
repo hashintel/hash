@@ -161,7 +161,12 @@ impl Memory {
 
     fn generate_shmem_id(experiment_run_id: &str) -> String {
         loop {
-            let cur_id = format!("/shm_{}_{:X}", experiment_run_id, rand::random::<u64>());
+            // MacOS shmem seems to be limited to 31 chars, probably remnants of HFS
+            let mut cur_id = format!(
+                "/shm_{:.20}_{:.6}",
+                experiment_run_id,
+                rand::random::<u16>()
+            );
             if !Path::new(&format!("/dev/shm{}", cur_id)).exists() {
                 return cur_id;
             }
