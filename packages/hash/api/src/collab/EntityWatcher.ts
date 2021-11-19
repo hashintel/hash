@@ -3,17 +3,19 @@ import { QueueExclusiveConsumer } from "@hashintel/hash-backend-utils/queue/adap
 import { Wal2JsonMsg } from "@hashintel/hash-backend-utils/wal2json";
 import { COLLAB_QUEUE_NAME } from "./util";
 
+type EntityWatcherSubscription = (entity: EntityVersion) => void;
+
 export class EntityWatcher {
   private started = false;
-  private subscriptions: ((entity: EntityVersion) => void)[] = [];
+  private subscriptions = new Set<EntityWatcherSubscription>();
 
   constructor(private queue: QueueExclusiveConsumer) {}
 
-  subscribe(subscriber: (entity: EntityVersion) => void) {
-    this.subscriptions.push(subscriber);
+  subscribe(subscriber: EntityWatcherSubscription) {
+    this.subscriptions.add(subscriber);
 
     return () => {
-      this.subscriptions.splice(this.subscriptions.indexOf(subscriber), 1);
+      this.subscriptions.delete(subscriber);
     };
   }
 
