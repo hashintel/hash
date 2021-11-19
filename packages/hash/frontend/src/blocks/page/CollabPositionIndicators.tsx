@@ -43,7 +43,7 @@ export function CollabPositionIndicators({
         {relevantPresenceIndicators
           // only display first 2 indicators
           .slice(0, 2)
-          .map((presenceIndicator, index) => (
+          .map((presenceIndicator) => (
             <motion.div
               initial={{
                 opacity: 0,
