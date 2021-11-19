@@ -80,7 +80,7 @@ export const OrgCreate: VFC<OrgCreateProps> = ({ onCreateOrgSuccess }) => {
     formState: { errors, isValid },
     control,
   } = useForm<Inputs>({
-    mode: "onChange",
+    mode: "onTouched",
     defaultValues: {
       responsibility: undefined,
       orgSize: undefined,
@@ -150,7 +150,7 @@ export const OrgCreate: VFC<OrgCreateProps> = ({ onCreateOrgSuccess }) => {
                   control={control}
                   name={name}
                   rules={{
-                    required: true,
+                    required: name !== "shortname", // we don't need to pass required rule for shortname since validateShortname checks for that
                     ...(name === "shortname" && {
                       validate: validateShortname,
                     }),
@@ -181,6 +181,7 @@ export const OrgCreate: VFC<OrgCreateProps> = ({ onCreateOrgSuccess }) => {
                           onChange(newEvt);
                         }}
                         onBlur={onBlur}
+                        autoComplete="off"
                         {...(placeholder && { placeholder })}
                       />
                     )

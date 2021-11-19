@@ -42,6 +42,7 @@ export const TagsInput: React.VFC<TagsInputProps> = ({
   };
 
   const handleBlur = () => {
+    if (!inputRef.current) return;
     const inputValue = inputRef.current?.value;
     if (inputValue && !tags.includes(inputValue)) {
       setTags([...tags, inputValue]);

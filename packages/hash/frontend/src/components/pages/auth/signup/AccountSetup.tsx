@@ -39,9 +39,9 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
     handleSubmit,
     watch,
     control,
-    formState: { errors, isValid, dirtyFields },
+    formState: { errors, isValid },
   } = useForm<Inputs>({
-    mode: "onChange",
+    mode: "onTouched",
     defaultValues: {
       shortname: "",
       preferredName: "",
@@ -81,8 +81,7 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
     ];
   }, [invitationInfo, email]);
 
-  const displayShortnameError =
-    dirtyFields.shortname && Boolean(errors?.shortname?.message);
+  const displayShortnameError = Boolean(errors?.shortname?.message);
 
   return (
     <div className={tw`w-9/12 max-w-3xl`}>
@@ -109,7 +108,7 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
                 <Controller
                   control={control}
                   name="shortname"
-                  rules={{ required: true, validate: validateShortname }}
+                  rules={{ validate: validateShortname }}
                   render={({ field }) => (
                     <input
                       id="shortname"
@@ -141,11 +140,7 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
               </div>
               <div
                 style={{ minHeight: 50 }}
-                className={tw`transition-opacity ${
-                  !dirtyFields.shortname || displayShortnameError
-                    ? "opacity-100"
-                    : "opacity-0"
-                } max-w-sm flex items-center border-1 ${
+                className={tw`transition-opacity max-w-sm flex items-center border-1 ${
                   displayShortnameError ? "border-red-300" : "border-blue-300"
                 } rounded-md px-3.5`}
               >
