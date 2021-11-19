@@ -11,6 +11,7 @@ import { RequestInfo, RequestInit } from "node-fetch";
 import { apiGraphQLEndpoint } from "../environment";
 
 import possibleTypes from "./fragmentTypes.gen.json";
+import { scalarTypePolicies } from "./apiTypes.gen";
 
 const errorLink = onError(({ graphQLErrors, operation }) => {
   if (graphQLErrors) {
@@ -72,7 +73,10 @@ export const createApolloClient = (params?: {
   const link = ApolloLink.from([errorLink, httpLink]);
 
   return new ApolloClient({
-    cache: new InMemoryCache({ possibleTypes: possibleTypes.possibleTypes }),
+    cache: new InMemoryCache({
+      possibleTypes: possibleTypes.possibleTypes,
+      typePolicies: scalarTypePolicies,
+    }),
     credentials: "include",
     link,
     name: params?.name,

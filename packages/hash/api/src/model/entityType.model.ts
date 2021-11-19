@@ -141,9 +141,9 @@ class __EntityType {
         ),
       },
       metadataId: this.entityId,
-      createdAt: this.entityCreatedAt.toISOString(),
-      entityVersionCreatedAt: this.entityVersionCreatedAt.toISOString(),
-      updatedAt: this.entityVersionUpdatedAt.toISOString(),
+      createdAt: this.entityCreatedAt,
+      entityVersionCreatedAt: this.entityVersionCreatedAt,
+      updatedAt: this.entityVersionUpdatedAt,
       visibility: Visibility.Public /** @todo: get from entity metadata */,
     };
   }

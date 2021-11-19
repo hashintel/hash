@@ -1,5 +1,6 @@
 import GraphQLJSON from "graphql-type-json";
 
+import { GraphQLScalarType, Kind } from "graphql";
 import { Entity } from "../apiTypes.gen";
 
 import {
@@ -57,6 +58,33 @@ import { loggedIn } from "./middlewares/loggedIn";
 import { loggedInAndSignedUp } from "./middlewares/loggedInAndSignedUp";
 import { canAccessAccount } from "./middlewares/canAccessAccount";
 
+const dateScalar = new GraphQLScalarType({
+  name: "Date",
+  description: "Date custom scalar type",
+  serialize(value) {
+    return (value instanceof Date ? value : new Date(value)).toISOString();
+  },
+  parseValue(value) {
+    return new Date(value);
+  },
+  parseLiteral(ast) {
+    switch (ast.kind) {
+      case Kind.STRING: {
+        const potentialDate = new Date(ast.value);
+        if (potentialDate.toISOString() === ast.value) {
+          return potentialDate;
+        }
+        break;
+      }
+
+      case Kind.INT:
+        return new Date(parseInt(ast.value, 10));
+    }
+
+    return null;
+  },
+});
+
 export const resolvers = {
   Query: {
     // Logged in and signed up users only
@@ -112,6 +140,7 @@ export const resolvers = {
 
   JSONObject: GraphQLJSON,
   TextToken: GraphQLJSON,
+  Date: dateScalar,
 
   BlockProperties: {
     entity: blockFields.entity,

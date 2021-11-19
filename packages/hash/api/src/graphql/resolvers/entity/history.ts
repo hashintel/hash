@@ -17,6 +17,6 @@ export const history: Resolver<
 
   return versions?.map((ver) => ({
     entityVersionId: ver.entityVersionId,
-    createdAt: ver.createdAt.toISOString(),
+    createdAt: ver.createdAt,
   }));
 };

@@ -106,10 +106,7 @@ export class Instance {
       (entity) => {
         if (entity.entityId === entityVersion.entityId) {
           foundOnPage = true;
-          if (
-            new Date(entityVersion.updatedAt).getTime() >
-            new Date(entity.updatedAt).getTime()
-          ) {
+          if (entityVersion.updatedAt.getTime() > entity.updatedAt.getTime()) {
             return {
               ...entity,
               accountId: entityVersion.accountId,
@@ -125,8 +122,8 @@ export class Instance {
                */
               properties: entityVersion.properties,
               createdById: entityVersion.createdBy,
-              createdAt: entityVersion.createdAt.toISOString(),
-              updatedAt: entityVersion.updatedAt.toISOString(),
+              createdAt: entityVersion.createdAt,
+              updatedAt: entityVersion.updatedAt,
             };
           }
         }

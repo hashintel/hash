@@ -21,4 +21,4 @@ generates:
         Page: ../types/dbTypes#DbPage
       scalars:
         TextToken: "@hashintel/hash-shared/graphql/types#TextToken"
-        Date: string
+        Date: Date

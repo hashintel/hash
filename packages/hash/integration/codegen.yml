@@ -12,5 +12,5 @@ generates:
       skipTypename: true
       scalars:
         TextToken: "@hashintel/hash-shared/graphql/types#TextToken"
-        Date: string
+        Date: Date
     documents: ./src/graphql/queries/*.ts
