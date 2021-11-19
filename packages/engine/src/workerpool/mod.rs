@@ -129,6 +129,7 @@ impl WorkerPoolController {
     }
 
     fn run_worker_controllers(&mut self) -> Result<JoinHandle<Result<Vec<()>>>> {
+        log::debug!("Running workers");
         let worker_controllers = self
             .worker_controllers
             .take()

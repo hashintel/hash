@@ -50,7 +50,7 @@ lazy_static! {
     pub static ref PACKAGES: HashMap<Name, Box<dyn super::PackageCreator>> = {
         use Name::*;
         let mut m = HashMap::new();
-        m.insert(BehaviorExecution, behavior_execution::Creator::new());
+        // m.insert(BehaviorExecution, behavior_execution::Creator::new());
         m.insert(Topology, topology::Creator::new());
         m
     };
@@ -59,7 +59,7 @@ lazy_static! {
         use Name::*;
         let mut creator = PackageIdCreator::new(PackageType::State);
         let mut m = HashMap::new();
-        m.insert(BehaviorExecution, creator.next());
+        // m.insert(BehaviorExecution, creator.next());
         m.insert(Topology, creator.next());
         m
     };

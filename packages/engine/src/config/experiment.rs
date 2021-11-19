@@ -28,8 +28,9 @@ impl<E: ExperimentRunRepr> Config<E> {
 
         let run = Arc::new(experiment_run);
 
-        let worker_base_config = worker::Config::default(); // TODO ask packages for what language execution they require
-                                                            // this would mean that Rust will not be in them
+        // TODO ask packages for what language execution they require
+        // this would mean that Rust will not be in them
+        let worker_base_config = worker::Config::default();
         let worker_pool = Arc::new(worker_pool::Config::new(
             worker_base_config,
             max_num_workers,

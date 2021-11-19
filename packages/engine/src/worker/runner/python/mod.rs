@@ -1,6 +1,8 @@
 mod error;
 
+use std::future::Future;
 use std::ops::Deref;
+use std::pin::Pin;
 use crate::gen;
 use futures::FutureExt;
 use nng::options::Options;
@@ -9,7 +11,7 @@ use std::str::FromStr;
 use arrow::datatypes::Schema;
 use arrow::ipc::writer::schema_to_bytes;
 use flatbuffers::{FlatBufferBuilder, ForwardsUOffset, Vector, WIPOffset};
-use tokio::process::Command;
+use tokio::process::{Child, Command};
 use tokio::sync::mpsc::{unbounded_channel, Receiver, Sender, UnboundedReceiver, UnboundedSender};
 use uuid::Uuid;
 
@@ -409,23 +411,22 @@ struct NngSender {
     // Used in the aio to send nng messages to the Python process.
     to_py: Socket,
     aio: Aio,
-
-    // Sends the results of operations (i.e. results of trying to
-    // send nng messages) in the aio.
-    // aio_result_sender: UnboundedSender<Result<()>>,
-
-    // Receives the results of operations from the aio.
-    aio_result_receiver: UnboundedReceiver<Result<()>>,
 }
 
 impl NngSender {
-    fn new(experiment_id: ExperimentID, worker_index: WorkerIndex) -> Result<Self> {
+    fn new(
+        experiment_id: ExperimentID, worker_index: WorkerIndex
+    ) -> Result<(Self, UnboundedReceiver<Result<()>>)> {
         let route = format!("ipc://{}-topy{}", experiment_id, worker_index);
         let to_py = Socket::new(nng::Protocol::Pair0)?;
         to_py.set_opt::<nng::options::SendBufferSize>(30)?;
         // TODO: Stress test to determine whether send buffer size is sufficiently large
 
+        // `aio_result_sender` sends the results of operations (i.e. results of trying to
+        // send nng messages) in the aio. `aio_result_receiver` receives the results of
+        // operations from the aio.
         let (aio_result_sender, aio_result_receiver) = unbounded_channel();
+
         let aio = Aio::new(move |_aio, res| match res {
             nng::AioResult::Send(res) => {
                 match res {
@@ -459,12 +460,7 @@ impl NngSender {
         })?;
         aio.set_timeout(Some(std::time::Duration::new(5, 0)))?;
 
-        Ok(Self {
-            route,
-            to_py,
-            aio,
-            aio_result_receiver,
-        })
+        Ok((Self { route, to_py, aio, }, aio_result_receiver))
     }
 
     fn send(
@@ -482,10 +478,6 @@ impl NngSender {
                 Error::NngSend(msg, err)
             })?;
         Ok(())
-    }
-
-    async fn get_send_result(&mut self) -> Option<Result<()>> {
-        self.aio_result_receiver.recv().await
     }
 }
 
@@ -563,24 +555,61 @@ impl NngReceiver {
 pub struct PythonRunner {
     init_msg: ExperimentInitRunnerMsg,
     nng_sender: NngSender,
+    send_result_receiver: Option<UnboundedReceiver<Result<()>>>,
     nng_receiver: NngReceiver,
     kill_sender: Sender<()>,
-    kill_receiver: Receiver<()>,
+    kill_receiver: Option<Receiver<()>>,
     spawned: bool,
+}
+
+async fn _run(
+    mut process: Child,
+    mut send_result_receiver: UnboundedReceiver<Result<()>>,
+    mut kill_receiver: Receiver<()>,
+) -> WorkerResult<()> {
+    log::debug!("Waiting for messages to Python runner");
+    loop {
+        tokio::select! {
+                Some(nng_send_result) = send_result_receiver.recv() => {
+                    nng_send_result?;
+                }
+                Some(_) = kill_receiver.recv() => {
+                    break;
+                }
+            }
+    }
+    // // TODO: Drop nng_sender/nng_receiver before killing process?
+    // match await_timeout(process.wait(), std::time::Duration::from_secs(10))? {
+    //     None => {
+    //         log::info!("Python process has failed to exit; killing.");
+    //         process.kill().await?;
+    //     }
+    //     Some(status) => {
+    //         log::info!(
+    //             "Python runner has successfully exited with status: {:?}.",
+    //             status.code().unwrap_or(-1)
+    //         );
+    //     }
+    // }
+    Ok(())
 }
 
 impl PythonRunner {
     pub fn new(spawn: bool, init: ExperimentInitRunnerMsg) -> WorkerResult<Self> {
-        let nng_sender = NngSender::new(init.experiment_id.clone(), init.worker_index)?;
+        log::debug!("Creating Python runner {}", spawn);
+        let (nng_sender, send_result_reciever) = NngSender::new(
+            init.experiment_id.clone(), init.worker_index
+        )?;
         let nng_receiver = NngReceiver::new(init.experiment_id.clone(), init.worker_index)?;
         let (kill_sender, kill_receiver) = tokio::sync::mpsc::channel(2);
         Ok(Self {
             init_msg: init,
             spawned: spawn,
             nng_sender,
+            send_result_receiver: Some(send_result_reciever),
             nng_receiver,
             kill_sender,
-            kill_receiver,
+            kill_receiver: Some(kill_receiver),
         })
     }
 
@@ -589,10 +618,10 @@ impl PythonRunner {
         sim_id: Option<SimulationShortID>,
         msg: InboundToRunnerMsgPayload,
     ) -> WorkerResult<()> {
+        if matches!(msg, InboundToRunnerMsgPayload::KillRunner) {
+            self.kill_sender.send(()).await.map_err(|e| Error::KillSend(e))?;
+        }
         self.nng_sender.send(sim_id, msg)?;
-        // if matches!(msg, InboundToRunnerMsgPayload::KillRunner) {
-        //     self.kill_sender.send(()).await.map_err(|e| Error::KillSend(e))?;
-        // }
         Ok(())
     }
 
@@ -625,10 +654,15 @@ impl PythonRunner {
         self.spawned
     }
 
-    pub async fn run(&mut self) -> WorkerResult<()> {
+    pub async fn run(
+        &mut self
+    ) -> WorkerResult<Pin<Box<
+        dyn Future<Output = std::result::Result<WorkerResult<()>, tokio::task::JoinError>> + Send
+    >>> {
+        log::debug!("Running Python runner");
         // TODO: Duplication with other runners (move into worker?)
         if !self.spawned {
-            return Ok(());
+            return Ok(Box::pin(async move { Ok(Ok(())) }) as _);
         }
 
         // Spawn Python process.
@@ -637,33 +671,19 @@ impl PythonRunner {
             .arg(&self.init_msg.experiment_id)
             .arg(&self.init_msg.worker_index.to_string());
         let mut process = cmd.spawn().map_err(|e| Error::Spawn(e))?;
+        log::debug!("Started Python process {}", self.init_msg.worker_index);
 
-        // Send messages to Python process.
+        // Send init message to Python process.
         self.nng_receiver.init(&self.init_msg)?;
-        loop {
-            tokio::select! {
-                Some(nng_send_result) = self.nng_sender.get_send_result() => {
-                    nng_send_result?;
-                }
-                Some(_) = self.kill_receiver.recv() => {
-                    break;
-                }
-            }
-        }
 
-        // // TODO: Drop nng_sender/nng_receiver before killing process?
-        // match await_timeout(process.wait(), std::time::Duration::from_secs(10))? {
-        //     None => {
-        //         log::info!("Python process has failed to exit; killing.");
-        //         process.kill().await?;
-        //     }
-        //     Some(status) => {
-        //         log::info!(
-        //             "Python runner has successfully exited with status: {:?}.",
-        //             status.code().unwrap_or(-1)
-        //         );
-        //     }
-        // }
-        Ok(())
+        let send_result_receiver = self.send_result_receiver
+            .take()
+            .ok_or(Error::AlreadyRunning)?;
+        let kill_receiver = self.kill_receiver
+            .take()
+            .ok_or(Error::AlreadyRunning)?;
+        Ok(Box::pin(tokio::spawn(async move {
+            _run(process, send_result_receiver, kill_receiver).await
+        })) as _)
     }
 }

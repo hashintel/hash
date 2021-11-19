@@ -54,7 +54,7 @@ impl Config {
     }
 
     fn default_state_packages() -> Vec<StatePackage> {
-        vec![StatePackage::BehaviorExecution, StatePackage::Topology]
+        vec![/*StatePackage::BehaviorExecution*/ StatePackage::Topology]
     }
 
     fn default_output_packages() -> HashSet<OutputPackage> {

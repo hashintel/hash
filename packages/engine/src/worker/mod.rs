@@ -6,7 +6,7 @@ pub mod task;
 use crate::simulation::package::id::PackageId;
 use crate::worker::pending::CancelState;
 use crate::{
-    config::WorkerConfig,
+    config::{WorkerSpawnConfig, WorkerConfig},
     datastore::table::sync::SyncPayload,
     proto::SimulationShortID,
     simulation::task::result::TaskResultOrCancelled,
@@ -40,7 +40,7 @@ use crate::simulation::task::msg::TaskMessage;
 pub use error::{Error, Result};
 use crate::simulation::enum_dispatch::TaskSharedStore;
 
-/// A task worker.
+/// A task worker.-
 ///
 /// Represents three dedicated language workers.
 ///
@@ -66,10 +66,13 @@ impl WorkerController {
         worker_pool_comms: WorkerCommsWithWorkerPool,
         exp_init: ExperimentInitRunnerMsg,
     ) -> Result<WorkerController> {
+        log::debug!("Spawning worker controller");
+        let WorkerSpawnConfig { python, javascript, rust } = config.spawn;
+        // TODO: Rust, JS
         Ok(WorkerController {
-            py: PythonRunner::new(config.spawn.python, exp_init.clone())?,
-            js: JavaScriptRunner::new(config.spawn.javascript, exp_init.clone())?,
-            rs: RustRunner::new(config.spawn.rust, exp_init.clone())?,
+            py: PythonRunner::new(python, exp_init.clone())?,
+            js: JavaScriptRunner::new(javascript, exp_init.clone())?,
+            rs: RustRunner::new(rust, exp_init.clone())?,
             config,
             worker_pool_comms,
             tasks: PendingWorkerTasks::default(),
@@ -96,6 +99,9 @@ impl WorkerController {
     }
 
     async fn _run(&mut self) -> Result<()> {
+        // TODO: Rust, JS
+        tokio::pin! { let py_handle = self.py.run().await?; }
+
         let mut wp_recv = self.worker_pool_comms.take_recv()?;
         loop {
             tokio::select! {
@@ -108,6 +114,9 @@ impl WorkerController {
                 }
             }
         }
+        // TODO: Worker exit
+        py_handle.await??;
+        Ok(())
     }
 
     async fn handle_worker_pool_msg(&mut self, msg: WorkerPoolToWorkerMsg) -> Result<()> {

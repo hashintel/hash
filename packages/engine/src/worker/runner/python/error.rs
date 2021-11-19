@@ -10,6 +10,9 @@ pub enum Error {
     #[error("Datastore: {0}")]
     Datastore(#[from] crate::datastore::Error),
 
+    #[error("Can't start Python runner again when it is already running")]
+    AlreadyRunning,
+
     #[error("Couldn't import package {0}: {1}")]
     PackageImport(String, String), // First element is path/name.
 
@@ -18,6 +21,9 @@ pub enum Error {
 
     #[error("Couldn't spawn Python child process: {0:?}")]
     Spawn(std::io::Error),
+
+    #[error("Couldn't send kill message to Python: {0}")]
+    KillSend(tokio::sync::mpsc::error::SendError<()>),
 
     #[error("Couldn't send message {0:?} to Python process: {1:?}")]
     NngSend(nng::Message, nng::Error),

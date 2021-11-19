@@ -1072,7 +1072,7 @@ pub struct JavaScriptRunner {
     inbound_receiver: UnboundedReceiver<(Option<SimulationShortID>, InboundToRunnerMsgPayload)>,
     outbound_sender: UnboundedSender<OutboundFromRunnerMsg>,
     outbound_receiver: UnboundedReceiver<OutboundFromRunnerMsg>,
-    spawned: bool,
+    spawn: bool,
 }
 
 impl JavaScriptRunner {
@@ -1085,7 +1085,7 @@ impl JavaScriptRunner {
             inbound_receiver,
             outbound_sender,
             outbound_receiver,
-            spawned: spawn,
+            spawn,
         })
     }
 
@@ -1104,7 +1104,7 @@ impl JavaScriptRunner {
         sim_id: Option<SimulationShortID>,
         msg: InboundToRunnerMsgPayload,
     ) -> WorkerResult<()> {
-        if self.spawned {
+        if self.spawned() {
             self.send(sim_id, msg).await?;
         }
         Ok(())
@@ -1122,13 +1122,12 @@ impl JavaScriptRunner {
     }
 
     pub fn spawned(&self) -> bool {
-        self.spawned
+        self.spawn
     }
 
     pub async fn run(&mut self) -> WorkerResult<()> {
-        if !self.spawned {
-            return Ok(());
-        }
+        log::debug!("Running JavaScript runner");
+        if !self.spawn { return Ok(()); }
 
         // Single threaded runtime only
         let runtime = tokio::runtime::Builder::new_current_thread()
