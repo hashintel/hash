@@ -13,6 +13,7 @@ import {
   CreateOrgMutationVariables,
 } from "../../../../graphql/apiTypes.gen";
 import { createOrg as createOrgMutation } from "../../../../graphql/queries/org.queries";
+import { useShortnameInput } from "../../../hooks/useShortnameInput";
 
 type OrgCreateProps = {
   onCreateOrgSuccess: (data: {
@@ -27,39 +28,18 @@ const FORM_INPUTS: FormInputsType = [
     label: "Workspace Name",
     inputType: "textInput",
     placeholder: "Acme",
-    fieldOptions: {
-      required: true,
-    },
   },
   {
     name: "shortname",
     label: "Org Username",
     inputType: "textInput",
     placeholder: "acme-corp",
-    fieldOptions: {
-      required: true,
-      minLength: {
-        value: 4,
-        message: "Must be at least 4 characters",
-      },
-      maxLength: {
-        value: 24,
-        message: "Must be shorter than 24 characters",
-      },
-      pattern: {
-        value: /[a-zA-Z0-9-_]+/,
-        message: "Must only take alphanumeric characters",
-      },
-    },
   },
   {
     name: "orgSize",
     label: "Org Size",
     inputType: "selectInput",
     options: ORG_SIZES,
-    fieldOptions: {
-      required: true,
-    },
     placeholder: "Number of People",
   },
   {
@@ -67,9 +47,6 @@ const FORM_INPUTS: FormInputsType = [
     label: "Your Role",
     inputType: "selectInput",
     options: ORG_ROLES,
-    fieldOptions: {
-      required: true,
-    },
     placeholder: "Current Position",
   },
 ];
@@ -79,7 +56,6 @@ type FormInputsType = {
   label: string;
   inputType: "textInput" | "selectInput";
   options?: { label: string; value: string }[];
-  fieldOptions: RegisterOptions;
   placeholder?: string;
 }[];
 
@@ -111,6 +87,8 @@ export const OrgCreate: VFC<OrgCreateProps> = ({ onCreateOrgSuccess }) => {
       orgSize: undefined,
     },
   });
+
+  const { parseShortnameInput, validateShortname } = useShortnameInput();
 
   const [createOrg, { loading, error }] = useMutation<
     CreateOrgMutation,
@@ -164,45 +142,51 @@ export const OrgCreate: VFC<OrgCreateProps> = ({ onCreateOrgSuccess }) => {
         )}
         <span className={tw`text-sm font-bold text-gray-500`}>Add a logo</span>
       </div>
-      <form
-        className={tw`flex flex-col items-center`}
-        onSubmit={(evt) => {
-          evt.preventDefault();
-          onSubmit();
-        }}
-      >
+      <form className={tw`flex flex-col items-center`} onSubmit={onSubmit}>
         {FORM_INPUTS.map(
-          (
-            { name, label, inputType, options, placeholder, fieldOptions },
-            index,
-          ) => {
+          ({ name, label, inputType, options, placeholder }, index) => {
             return (
               <React.Fragment key={name}>
-                {inputType === "selectInput" ? (
-                  <Controller
-                    control={control}
-                    name={name}
-                    rules={{ required: true }}
-                    render={({ field: { onChange, value } }) => (
+                <Controller
+                  control={control}
+                  name={name}
+                  rules={{
+                    required: true,
+                    ...(name === "shortname" && {
+                      validate: validateShortname,
+                    }),
+                  }}
+                  render={({ field: { onChange, onBlur, value } }) =>
+                    inputType === "selectInput" ? (
                       <SelectInput
                         className={tw`w-64`}
                         label={label}
                         options={options as { label: string; value: string }[]}
                         onChange={onChange}
+                        onBlur={onBlur}
                         value={value}
                         {...(placeholder && { placeholder })}
                       />
-                    )}
-                  />
-                ) : (
-                  <TextInput
-                    className={tw`w-64 mb-2`}
-                    label={label}
-                    transparent
-                    {...register(name, fieldOptions)}
-                    {...(placeholder && { placeholder })}
-                  />
-                )}
+                    ) : (
+                      <TextInput
+                        className={tw`w-64 mb-2`}
+                        label={label}
+                        transparent
+                        onChange={(e) => {
+                          if (name === "shortname") {
+                            e.target.value = parseShortnameInput(
+                              e.target.value
+                            );
+                          }
+                          onChange(e);
+                        }}
+                        onBlur={onBlur}
+                        {...(placeholder && { placeholder })}
+                      />
+                    )
+                  }
+                />
+
                 <span className={tw`text-red-500 text-sm`}>
                   {errors?.[name]?.message}
                 </span>

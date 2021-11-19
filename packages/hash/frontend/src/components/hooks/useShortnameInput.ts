@@ -1,4 +1,4 @@
-import { useQuery } from "@apollo/client";
+import { useApolloClient, useQuery } from "@apollo/client";
 import { useState } from "react";
 import {
   IsShortnameTakenQuery,
@@ -6,47 +6,49 @@ import {
 } from "../../graphql/apiTypes.gen";
 import { isShortnameTaken as isShortnameTakenQuery } from "../../graphql/queries/user.queries";
 
-export const ALLOWED_SHORTNAME_CHARS = /^[a-zA-Z0-9-_]+$/;
-
-const parseShortnameInput = (input: string) =>
-  input.replaceAll(/[^a-zA-Z0-9-_]/g, "");
 
 export const useShortnameInput = () => {
-  const [shortname, setShortname] = useState("");
+  const [loading, setLoading] = useState(false);
+  const client = useApolloClient();
 
-  const isEmpty = shortname === "";
+  const parseShortnameInput = (input: string) =>
+  input.replaceAll(/[^a-zA-Z0-9-_]/g, "");
 
-  const isTooLong = shortname.length > 24;
-  const isTooShort = shortname.length < 4;
+  const validateShortname = async (shortname: string) => {
+    if (shortname === "") {
+      return "You must choose a username";
+    }
+    if (shortname.length > 24) {
+      return "Must be shorter than 24 characters";
+    }
+    if (shortname.length < 4) {
+      return "Must be at least 4 characters";
+    }
 
-  const isShortnameValid = !isEmpty && !isTooLong && !isTooShort;
+    setLoading(true);
 
-  const { data, loading } = useQuery<
-    IsShortnameTakenQuery,
-    QueryIsShortnameTakenArgs
-  >(isShortnameTakenQuery, {
-    variables: { shortname },
-    skip: !isShortnameValid,
-  });
+    const { data } = await client.query<
+      IsShortnameTakenQuery,
+      QueryIsShortnameTakenArgs
+    >({
+      query: isShortnameTakenQuery,
+      variables: {
+        shortname,
+      },
+    });
 
-  const isShortnameTaken = data?.isShortnameTaken;
+    setLoading(false);
+
+    if (data?.isShortnameTaken) {
+      return "This user has already been taken";
+    }
+
+    return true;
+  };
 
   return {
-    shortname,
-    setShortname: (updatedShortname: string) =>
-      setShortname(parseShortnameInput(updatedShortname)),
-    isShortnameValid: isShortnameValid && isShortnameTaken !== true,
-    isShortnameTaken,
-    isshortnameTakenLoading: loading,
-    shortnameErrorMessage: isEmpty
-      ? "You must choose a username"
-      : isTooLong
-      ? "Must be shorter than 24 characters"
-      : isTooShort
-      ? "Must be at least 4 characters"
-      : isShortnameTaken
-      ? "This username has already been taken"
-      : undefined,
-    isShortnameTooShort: isTooShort,
+    validateShortname,
+    validateShortnameLoading: loading,
+    parseShortnameInput
   };
 };

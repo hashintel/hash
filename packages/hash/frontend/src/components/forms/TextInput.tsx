@@ -5,11 +5,12 @@ import { InputLabelWrapper } from "./InputLabelWrapper";
 type TextInputProps = {
   disallowRegExp?: RegExp;
   label?: string;
+  onChange?: (evt: ChangeEvent<HTMLInputElement>) => void;
   onChangeText?: (newText: string) => void;
   value?: string;
   transparent?: boolean;
   inputClassName?: string;
-} & Omit<React.HTMLProps<HTMLInputElement>, "label" | "value">;
+} & Omit<React.HTMLProps<HTMLInputElement>, "label" | "value" | "onChange">;
 
 export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
   (

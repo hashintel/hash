@@ -12,11 +12,8 @@ import { OrgCreate as OrgCreateScreen } from "../components/pages/auth/signup/Or
 import { OrgInvite as OrgInviteScreen } from "../components/pages/auth/signup/OrgInvite";
 
 import {
-  CreateOrgMutation,
-  CreateOrgMutationVariables,
   CreateUserMutation,
   CreateUserMutationVariables,
-  OrgSize,
   UpdateUserMutation,
   UpdateUserMutationVariables,
   UpdateUserProperties,
@@ -36,7 +33,6 @@ import {
   createUserWithOrgEmailInvitation as createUserWithOrgEmailInvitationMutation,
 } from "../graphql/queries/user.queries";
 import {
-  createOrg as createOrgMutation,
   joinOrg as joinOrgMutation,
 } from "../graphql/queries/org.queries";
 import {
@@ -80,7 +76,7 @@ type Actions =
   | Action<"CREATE_ORG_SUCCESS", Pick<State, "createOrgInfo">>;
 
 const initialState: State = {
-  activeScreen: Screen.Intro,
+  activeScreen: Screen.OrgCreate,
   email: "",
   verificationCodeMetadata: undefined,
   verificationCode: "",
@@ -128,11 +124,6 @@ function reducer(state: State, action: Actions): State {
   }
 }
 
-/**
- * @todo
- * Error states for entire flow
- *
- */
 
 const SignupPage: NextPage = () => {
   const { user, refetch: refetchUser } = useUser();
@@ -170,16 +161,24 @@ const SignupPage: NextPage = () => {
       });
     },
     onError: ({ graphQLErrors }) => {
-      graphQLErrors.forEach(({ extensions, message }) => {
-        const { code } = extensions as { code?: keyof typeof AUTH_ERROR_CODES };
-        if (code === "ALREADY_EXISTS") {
-          void router.push({ pathname: "/login", query: { email } });
-        } else {
-          dispatch({
-            type: "SET_ERROR",
-            payload: code ? AUTH_ERROR_CODES[code] : message,
-          });
-        }
+      if (!graphQLErrors.length) return;
+
+      if (
+        graphQLErrors.find(
+          ({ extensions }) => extensions?.code === "ALREADY_EXISTS",
+        )
+      ) {
+        void router.push({ pathname: "/login", query: { email } });
+        return;
+      }
+
+      const errorCode = graphQLErrors[0]?.extensions
+        ?.code as keyof typeof AUTH_ERROR_CODES;
+      const message = graphQLErrors[0]?.extensions?.message;
+
+      dispatch({
+        type: "SET_ERROR",
+        payload: errorCode ? AUTH_ERROR_CODES[errorCode] : message,
       });
     },
   });
@@ -207,16 +206,24 @@ const SignupPage: NextPage = () => {
       });
     },
     onError: ({ graphQLErrors }) => {
-      graphQLErrors.forEach(({ extensions, message }) => {
-        const { code } = extensions as { code?: keyof typeof AUTH_ERROR_CODES };
-        if (code === "ALREADY_EXISTS") {
-          void router.push({ pathname: "/login", query: router.query });
-        } else {
-          dispatch({
-            type: "SET_ERROR",
-            payload: code ? AUTH_ERROR_CODES[code] : message,
-          });
-        }
+      if (!graphQLErrors.length) return;
+
+      if (
+        graphQLErrors.find(
+          ({ extensions }) => extensions?.code === "ALREADY_EXISTS",
+        )
+      ) {
+        void router.push({ pathname: "/login", query: router.query });
+        return;
+      }
+
+      const errorCode = graphQLErrors[0]?.extensions
+        ?.code as keyof typeof AUTH_ERROR_CODES;
+      const message = graphQLErrors[0]?.extensions?.message;
+
+      dispatch({
+        type: "SET_ERROR",
+        payload: errorCode ? AUTH_ERROR_CODES[errorCode] : message,
       });
     },
   });
@@ -232,12 +239,15 @@ const SignupPage: NextPage = () => {
       });
     },
     onError: ({ graphQLErrors }) => {
-      graphQLErrors.forEach(({ extensions, message }) => {
-        const { code } = extensions as { code?: keyof typeof AUTH_ERROR_CODES };
-        dispatch({
-          type: "SET_ERROR",
-          payload: code ? AUTH_ERROR_CODES[code] : message,
-        });
+      if (!graphQLErrors.length) return;
+
+      const errorCode = graphQLErrors[0]?.extensions
+        ?.code as keyof typeof AUTH_ERROR_CODES;
+      const message = graphQLErrors[0]?.extensions?.message;
+
+      dispatch({
+        type: "SET_ERROR",
+        payload: errorCode ? AUTH_ERROR_CODES[errorCode] : message,
       });
     },
   });
@@ -281,40 +291,12 @@ const SignupPage: NextPage = () => {
       }
     },
     onError: ({ graphQLErrors }) => {
-      graphQLErrors.forEach(({ message }) => {
-        dispatch({
-          type: "SET_ERROR",
-          payload: message,
-        });
-      });
-    },
-  });
+      if (!graphQLErrors.length) return;
+      const message = graphQLErrors[0]?.extensions?.message;
 
-  const [createOrg, { loading: createOrgLoading }] = useMutation<
-    CreateOrgMutation,
-    CreateOrgMutationVariables
-  >(createOrgMutation, {
-    onCompleted: (res) => {
-      const accessToken =
-        res.createOrg.properties.invitationLink?.data.properties.accessToken;
-      if (accessToken && res.createOrg.accountId) {
-        dispatch({
-          type: "CREATE_ORG_SUCCESS",
-          payload: {
-            createOrgInfo: {
-              orgEntityId: res.createOrg.accountId,
-              invitationLinkToken: accessToken,
-            },
-          },
-        });
-      }
-    },
-    onError: ({ graphQLErrors }) => {
-      graphQLErrors.forEach(({ message }) => {
-        dispatch({
-          type: "SET_ERROR",
-          payload: message,
-        });
+      dispatch({
+        type: "SET_ERROR",
+        payload: message,
       });
     },
   });
@@ -328,11 +310,12 @@ const SignupPage: NextPage = () => {
       void router.push("/");
     },
     onError: ({ graphQLErrors }) => {
-      graphQLErrors.forEach(({ message }) => {
-        dispatch({
-          type: "SET_ERROR",
-          payload: message,
-        });
+      if (!graphQLErrors.length) return;
+      const message = graphQLErrors[0]?.extensions?.message;
+
+      dispatch({
+        type: "SET_ERROR",
+        payload: message,
       });
     },
   });
@@ -375,10 +358,6 @@ const SignupPage: NextPage = () => {
     void createUser({
       variables: { email: providedEmail },
     });
-  };
-
-  const resendVerificationCode = () => {
-    void requestVerificationCode(email);
   };
 
   const handleVerifyEmail = (
@@ -464,35 +443,6 @@ const SignupPage: NextPage = () => {
     }
   };
 
-  const handleCreateOrganization = ({
-    responsibility,
-    shortname,
-    name,
-    orgSize,
-  }: {
-    responsibility: string;
-    shortname: string;
-    name: string;
-    orgSize: OrgSize;
-  }) => {
-    void createOrg({
-      variables: {
-        org: {
-          shortname,
-          name,
-          orgSize,
-        },
-        responsibility,
-      },
-    });
-  };
-
-  const goBack = () => {
-    if (activeScreen === Screen.VerifyCode) {
-      updateState({ activeScreen: Screen.Intro });
-    }
-  };
-
   const navigateToHome = () => {
     void router.push(user ? `/${user.accountId}` : "/");
   };
@@ -528,13 +478,13 @@ const SignupPage: NextPage = () => {
       {activeScreen === Screen.VerifyCode && (
         <VerifyCodeScreen
           loginIdentifier={email}
-          goBack={goBack}
+          goBack={() => updateState({ activeScreen: Screen.Intro })}
           defaultCode={verificationCode}
           loading={verifyEmailLoading || syntheticLoading}
           handleSubmit={handleVerifyEmail}
           errorMessage={errorMessage}
           requestCodeLoading={createUserLoading}
-          requestCode={resendVerificationCode}
+          requestCode={() => void requestVerificationCode(email)}
           invitationInfo={invitationInfo}
         />
       )}
@@ -556,8 +506,14 @@ const SignupPage: NextPage = () => {
       )}
       {activeScreen === Screen.OrgCreate && (
         <OrgCreateScreen
-          createOrg={handleCreateOrganization}
-          loading={createOrgLoading}
+          onCreateOrgSuccess={(data: any) => {
+            dispatch({
+              type: "CREATE_ORG_SUCCESS",
+              payload: {
+                createOrgInfo: data,
+              },
+            });
+          }}
         />
       )}
       {activeScreen === Screen.OrgInvite && createOrgInfo && (
