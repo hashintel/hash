@@ -8,12 +8,9 @@ generates:
     plugins:
       - "typescript"
       - "typescript-operations"
-      - "@hashintel/hash-shared/graphql/scalarPlugin"
     config:
       skipTypename: true
       scalars:
         TextToken: ./types#TextToken
-        Date: Date
-      scalarTypePolicies:
-        Date: ./dateFieldPolicy#dateFieldPolicy
+        Date: string
     documents: ./src/queries/*.ts

@@ -60,7 +60,8 @@ export const getImpliedEntityHistory: Resolver<
   const impliedVersions: ImpliedEntityVersion[] = graphs.map((graph) => ({
     createdAt: graph.entities
       .map((ver) => ver.createdAt)
-      .reduce((acc, time) => (acc < time ? acc : time)),
+      .reduce((acc, time) => (acc < time ? acc : time))
+      .toISOString(),
   }));
 
   const history: ImpliedEntityHistory = {

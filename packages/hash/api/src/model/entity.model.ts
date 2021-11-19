@@ -154,7 +154,7 @@ class __Entity {
     });
     return entities.map((entity) => ({
       ...entity,
-      createdAt: entity.createdAt,
+      createdAt: entity.createdAt.toISOString(),
     }));
   }
 
@@ -307,9 +307,9 @@ class __Entity {
       entityTypeName: this.entityType.properties.title as string,
       entityType: this.entityType.toGQLEntityType(),
       metadataId: this.entityId,
-      createdAt: this.entityCreatedAt,
-      entityVersionCreatedAt: this.entityVersionCreatedAt,
-      updatedAt: this.entityVersionUpdatedAt,
+      createdAt: this.entityCreatedAt.toISOString(),
+      entityVersionCreatedAt: this.entityVersionCreatedAt.toISOString(),
+      updatedAt: this.entityVersionUpdatedAt.toISOString(),
       visibility: this.visibility,
     };
   }
