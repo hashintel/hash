@@ -18,7 +18,7 @@ interface IPageContext {
   collabPositions: CollabPositions;
 }
 
-const Page = createContext<Partial<IPageContext>>({});
+const Page = createContext<IPageContext | null>(null);
 const { Provider, Consumer } = Page;
 
 const PageProvider: React.FC = ({ children, ...props }) => {
@@ -126,9 +126,7 @@ const usePageContext = () => {
     throw new Error("usePageContext must be called within PageProvider");
   }
 
-  return {
-    state,
-  };
+  return state;
 };
 
 export { PageProvider, Consumer as PageConsumer, usePageContext };
