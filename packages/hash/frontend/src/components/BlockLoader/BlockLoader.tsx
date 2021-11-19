@@ -94,7 +94,7 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
     }
 
     if (
-      routeHash === blockDomId(entityId) &&
+      routeHash === blockDomId(entityId ?? "") &&
       !scrollingComplete.current &&
       blockLoaded
     ) {
