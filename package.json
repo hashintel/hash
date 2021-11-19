@@ -8,6 +8,7 @@
     "packages/hash/blocks/*",
     "packages/hash/frontend",
     "packages/hash/integration",
+    "packages/hash/graphql-scalar-codegen-plugin",
     "packages/hash/realtime",
     "packages/hash/shared",
     "packages/hash/search-loader"

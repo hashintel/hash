@@ -1,32 +1,24 @@
 {
-  "name": "@hashintel/hash-shared",
+  "name": "@hashintel/hash-graphql-scalar-codegen-plugin",
   "version": "0.1.0",
   "private": true,
-  "description": "Temporary catchall place for shared code",
+  "main": "./dist/scalarPlugin.js",
+  "description": "Plugin to generate a fieldPolicy for every use of a scalar",
   "license": "SSPL-1.0",
-  "exports": {
-    "./": "./dist/"
-  },
-  "typesVersions": {
-    "*": {
-      "*": [
-        "dist/*"
-      ]
-    }
-  },
   "scripts": {
-    "build": "yarn clean; yarn codegen; tsc -b",
+    "build": "yarn clean; tsc -b",
     "clean": "rimraf './src/**/*.gen.*' ./dist/ ./tsconfig.tsbuildinfo",
-    "codegen": "graphql-codegen --config codegen.yml",
     "dev": "nodemon --watch ./src/ --ignore './src/**/*.gen.*' --ext js,ts,json --exec 'tsc -b'",
     "fix": "eslint --ext .js,.ts,.tsx --fix ./src/",
     "postinstall": "yarn build",
-    "lint": "eslint --ext .js,.ts,.tsx ./src/ && tsc --noEmit # @hashintel/hash-shared"
+    "lint": "eslint --ext .js,.ts,.tsx ./src/ && tsc --noEmit # @hashintel/hash-graphql-scalar-codegen-plugin"
   },
   "dependencies": {
     "@apollo/client": "3.3.19",
+    "@graphql-codegen/plugin-helpers": "2.3.1",
     "@hashintel/block-protocol": "*",
     "@sentry/browser": "6.14.1",
+    "graphql": "16.0.1",
     "graphql-tag": "2.12.5",
     "immer": "9.0.6",
     "jsonschema": "1.4.0",
@@ -48,7 +40,6 @@
     "uuid": "8.3.2"
   },
   "devDependencies": {
-    "@hashintel/hash-graphql-scalar-codegen-plugin": "*",
     "@graphql-codegen/cli": "1.21.5",
     "@graphql-codegen/fragment-matcher": "2.0.1",
     "@graphql-codegen/typescript": "1.22.1",
@@ -82,6 +73,7 @@
     "nodemon": "2.0.12",
     "react": "17.0.2",
     "rimraf": "^3.0.2",
+    "ts-poet": "4.6.1",
     "typescript": "4.3.5"
   }
 }
