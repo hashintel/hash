@@ -142,18 +142,13 @@ app.use((req, res, next) => {
   next();
 });
 
-const collabAppPromise = createCollabApp(collabRedisQueue);
-
-// Ensure the GraphQL server has started before starting the HTTP server
-apolloServer
-  .start()
-  .then(async () => {
+Promise.all([createCollabApp(collabRedisQueue), apolloServer.start()])
+  .then(([collabApp]) => {
     apolloServer.applyMiddleware({
       app,
       cors: CORS_CONFIG,
     });
 
-    const collabApp = await collabAppPromise;
     app.use("/collab-backend", collabApp.router);
 
     const server = app.listen(port, () => {
