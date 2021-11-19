@@ -132,92 +132,90 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
     const { title, contents } = data.page.properties;
 
     return (
-      <CollabPositionProvider value={collabPositions}>
-        <div className={styles.MainWrapper}>
-          <PageSidebar />
-          <div className={styles.MainContent}>
-            {isCollabPositionDebugToolbarEnabled() ? (
-              <div
-                style={{
-                  background: "#eee",
-                  padding: 20,
-                  borderRadius: 5,
-                  marginBottom: 10,
-                  minHeight: 180,
-                }}
-              >
+      <div className={styles.MainWrapper}>
+        <PageSidebar />
+        <div className={styles.MainContent}>
+          {isCollabPositionDebugToolbarEnabled() ? (
+            <div
+              style={{
+                background: "#eee",
+                padding: 20,
+                borderRadius: 5,
+                marginBottom: 10,
+                minHeight: 180,
+              }}
+            >
+              <div>
+                <Button
+                  onClick={() => {
+                    reportPosition(
+                      `${Math.round(Math.random() * 10000)}`.padStart(5, "0"),
+                    );
+                  }}
+                >
+                  report random block id
+                </Button>{" "}
+                <Button
+                  type="submit"
+                  onClick={() => {
+                    reportPosition(null);
+                  }}
+                >
+                  report empty block id
+                </Button>
+              </div>
+              <h3 style={{ marginTop: 10 }}>Collaborator positions</h3>
+              <ul>
+                {collabPositions.map(({ userShortname, userId, entityId }) => (
+                  <li key={userId}>
+                    <b>{userShortname}:</b> block #{entityId}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          <header>
+            <div className={styles.PageHeader}>
+              <div>
+                {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
+                <label>Title</label>
+                <PageTitle
+                  value={title}
+                  accountId={data.page.accountId}
+                  metadataId={data.page.entityId}
+                />
+              </div>
+              <div>
+                {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
+                <label>Version</label>
                 <div>
-                  <Button
-                    onClick={() => {
-                      reportPosition(
-                        `${Math.round(Math.random() * 10000)}`.padStart(5, "0"),
+                  <VersionDropdown
+                    value={data.page.entityVersionId}
+                    versions={data.page.history ?? []}
+                    onChange={(changedVersionId) => {
+                      void router.push(
+                        `/${accountId}/${pageEntityId}?version=${changedVersionId}`,
                       );
                     }}
-                  >
-                    report random block id
-                  </Button>{" "}
-                  <Button
-                    type="submit"
-                    onClick={() => {
-                      reportPosition(null);
-                    }}
-                  >
-                    report empty block id
-                  </Button>
-                </div>
-                <h3 style={{ marginTop: 10 }}>Collaborator positions</h3>
-                <ul>
-                  {collabPositions.map(
-                    ({ userShortname, userId, entityId }) => (
-                      <li key={userId}>
-                        <b>{userShortname}:</b> block #{entityId}
-                      </li>
-                    ),
-                  )}
-                </ul>
-              </div>
-            ) : null}
-
-            <header>
-              <div className={styles.PageHeader}>
-                <div>
-                  {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
-                  <label>Title</label>
-                  <PageTitle
-                    value={title}
-                    accountId={data.page.accountId}
-                    metadataId={data.page.entityId}
                   />
                 </div>
-                <div>
-                  {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
-                  <label>Version</label>
-                  <div>
-                    <VersionDropdown
-                      value={data.page.entityVersionId}
-                      versions={data.page.history ?? []}
-                      onChange={(changedVersionId) => {
-                        void router.push(
-                          `/${accountId}/${pageEntityId}?version=${changedVersionId}`,
-                        );
-                      }}
-                    />
-                  </div>
-                </div>
               </div>
-            </header>
+            </div>
+          </header>
 
-            <main>
+          <main>
+            <CollabPositionProvider value={collabPositions}>
               <PageBlock
                 accountId={data.page.accountId}
                 contents={contents}
                 blocksMeta={preloadedBlocks}
                 entityId={data.page.entityId}
               />
-            </main>
-          </div>
+            </CollabPositionProvider>
+          </main>
         </div>
-      </CollabPositionProvider>
+      </div>
     );
   };
 
