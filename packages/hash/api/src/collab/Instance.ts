@@ -81,7 +81,7 @@ export class Instance {
     };
 
     this.unsubscribeFromEntityWatcher = this.entityWatcher.subscribe(
-      (version) => this.processEntityVersion(version),
+      (entityVersion) => this.processEntityVersion(entityVersion),
     );
   }
 
