@@ -112,7 +112,7 @@ export const BlockSuggester: React.VFC<BlockSuggesterProps> = ({
             className={tw`flex border border-gray-100 bg-gray-50 hover:bg-gray-100`}
             onClick={() => {
               const url = new URL(document.location.href);
-              url.hash = entityId;
+              url.hash = `entity-${entityId}`;
               void navigator.clipboard.writeText(url.toString());
             }}
           >

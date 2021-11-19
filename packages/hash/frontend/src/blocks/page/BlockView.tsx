@@ -92,7 +92,7 @@ export class BlockView implements NodeView<Schema> {
     this.dom = document.createElement("div");
 
     if (entityId) {
-      this.dom.id = entityId;
+      this.dom.id = `entity-${entityId}`;
     }
 
     this.dom.classList.add(styles.Block);
@@ -190,7 +190,7 @@ export class BlockView implements NodeView<Schema> {
     const entityId = this.getBlockEntityIdFromNode(this.node);
 
     if (entityId) {
-      this.dom.id = entityId;
+      this.dom.id = `entity-${entityId}`;
     }
 
     this.renderPortal(
