@@ -20,6 +20,7 @@ import { BlockSuggesterProps } from "../../components/BlockSuggester/BlockSugges
 import DragVertical from "../../components/Icons/DragVertical";
 import styles from "./style.module.css";
 import { RenderPortal } from "./usePortals";
+import { CollabPositionIndicators } from "./CollabPositionIndicators";
 
 type BlockHandleProps = {
   entityId: string | null;
@@ -59,6 +60,8 @@ export const BlockHandle = forwardRef<HTMLDivElement, BlockHandleProps>(
   },
 );
 
+export const blockDomId = (blockEntityId: string) => `entity-${blockEntityId}`;
+
 /**
  * This is the node view that wraps every one of our blocks in order to inject
  * custom UI like the <select> to change type and the drag handles
@@ -93,14 +96,7 @@ export class BlockView implements NodeView<Schema> {
     public renderPortal: RenderPortal,
     public manager: ProsemirrorSchemaManager,
   ) {
-    const entityId = this.getBlockEntityIdFromNode(node);
-
     this.dom = document.createElement("div");
-
-    if (entityId) {
-      this.dom.id = entityId;
-    }
-
     this.dom.classList.add(styles.Block);
 
     this.selectContainer = document.createElement("div");
@@ -193,14 +189,15 @@ export class BlockView implements NodeView<Schema> {
       this.dom.classList.remove(styles["Block--dragging"]);
     }
 
-    const entityId = this.getBlockEntityIdFromNode(this.node);
+    const blockEntityId = this.getBlockEntityIdFromNode(this.node);
 
-    if (entityId) {
-      this.dom.id = entityId;
+    if (blockEntityId) {
+      this.dom.id = blockDomId(blockEntityId);
     }
 
     this.renderPortal(
       <>
+        <CollabPositionIndicators blockEntityId={blockEntityId} />
         {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
         <div
           className={styles.Block__Handle}
@@ -242,7 +239,7 @@ export class BlockView implements NodeView<Schema> {
         />
         <BlockHandle
           ref={this.blockHandleRef}
-          entityId={entityId}
+          entityId={blockEntityId}
           onTypeChange={this.onBlockChange}
         />
       </>,

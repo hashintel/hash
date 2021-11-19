@@ -7,6 +7,7 @@ import React, {
   VoidFunctionComponent,
 } from "react";
 import router from "next/router";
+import { blockDomId } from "../../blocks/page/BlockView";
 
 import { useBlockProtocolUpdate } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdate";
 import { cloneEntityTreeWithPropertiesMovedUp } from "../../lib/entities";
@@ -92,7 +93,11 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
       }
     }
 
-    if (routeHash === entityId && !scrollingComplete.current && blockLoaded) {
+    if (
+      routeHash === blockDomId(entityId ?? "") &&
+      !scrollingComplete.current &&
+      blockLoaded
+    ) {
       clearScrollInterval();
       scrollFrameRequestIdRef.current = requestAnimationFrame(frame);
     }

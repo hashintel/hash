@@ -5,6 +5,7 @@ import CopyIcon from "@material-ui/icons/FileCopyOutlined";
 import LoopIcon from "@material-ui/icons/LoopOutlined";
 import LinkIcon from "@material-ui/icons/LinkOutlined";
 import { useKey } from "rooks";
+import { blockDomId } from "../../blocks/page/BlockView";
 import {
   BlockSuggester,
   BlockSuggesterProps,
@@ -73,7 +74,7 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
         break;
       case "copyLink": {
         const url = new URL(document.location.href);
-        url.hash = entityId!;
+        url.hash = blockDomId(entityId!);
         void navigator.clipboard.writeText(url.toString());
         break;
       }
