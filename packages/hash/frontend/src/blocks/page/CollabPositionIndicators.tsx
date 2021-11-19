@@ -14,7 +14,7 @@ function pickColor(inputString: string) {
   // reduce the last number to get a darker color
   return `hsl(${hash % 360}, 100%, 80%)`;
 }
-export default function PresenceIndicators({
+export function CollabPositionIndicators({
   entityId,
   accountId,
   pageEntityId,
@@ -24,8 +24,6 @@ export default function PresenceIndicators({
   pageEntityId: string;
 }) {
   const collabPositions = useCollabPositions(accountId, pageEntityId);
-
-  // const { collabPositions } = usePageContext().state;
 
   const relevantPresenceIndicators: CollabPosition[] = useMemo(() => {
     return (

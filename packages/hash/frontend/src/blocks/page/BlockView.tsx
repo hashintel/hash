@@ -20,7 +20,7 @@ import { BlockSuggesterProps } from "../../components/BlockSuggester/BlockSugges
 import DragVertical from "../../components/Icons/DragVertical";
 import styles from "./style.module.css";
 import { RenderPortal } from "./usePortals";
-import PresenceIndicators from "./PresenceIndicators";
+import { CollabPositionIndicators } from "./CollabPositionIndicators";
 
 type BlockHandleProps = {
   entityId: string | null;
@@ -204,7 +204,7 @@ export class BlockView implements NodeView<Schema> {
 
     this.renderPortal(
       <>
-        <PresenceIndicators
+        <CollabPositionIndicators
           entityId={entityId}
           accountId={this.accountId}
           pageEntityId={this.pageEntityId}
