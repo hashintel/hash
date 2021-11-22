@@ -22,9 +22,12 @@ impl<'s> ContextColumnWriter for APIResponses<'s> {
         builder.add_static_bit_buffer(num_agents); // Null buffer for List of structs
         builder.add_static_byte_buffer((num_agents + 1) * 4); // Offsets for List of structs
 
+        // Struct
         let num_messages = self.msg_count;
+        builder.add_node(num_messages, 0);
+        builder.add_static_bit_buffer(num_messages); // Null buffer for Struct
 
-        // Struct & Fields
+        // Fields
         builder.add_string_array_dynamic_meta(num_messages, self.from.char_count);
         builder.add_string_array_dynamic_meta(num_messages, self.r#type.char_count);
         builder.add_string_array_dynamic_meta(num_messages, self.data.char_count);
