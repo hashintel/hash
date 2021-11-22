@@ -98,7 +98,8 @@ impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController
 
     async fn handle_sim_status(&mut self, status: SimStatus) -> Result<()> {
         // Send Step update to experiment package
-        self.experiment_package_comms
+        let send_step_update = self
+            .experiment_package_comms
             .step_update_sender
             .send(StepUpdate {
                 sim_id: status.sim_id.clone(),
@@ -111,7 +112,20 @@ impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController
                     "Experiment controller error: {:?}",
                     exp_controller_err
                 ))
-            })?;
+            });
+
+        if let Err(err) = send_step_update {
+            if !status.running || status.stop_signal {
+                // non-fatal error if the sim is stopping
+                log::debug!(
+                    "Failed to send the step update to the experiment package, logging rather than \
+                    error as simulation has been marked as ending this step: {}",
+                    err.to_string()
+                )
+            } else {
+                return Err(err);
+            }
+        }
 
         // Send Sim Status to the orchestration client
         Ok(self
