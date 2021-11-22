@@ -410,7 +410,7 @@ fn get_user_warnings(_mv8: &MiniV8, r: &mv8::Object) -> Option<Vec<RunnerError>>
     None
 }
 
-fn get_next_task(_mv8: &MiniV8, r: &mv8::Object) -> Result<(MessageTarget, TaskMessage)> {
+fn get_next_task(_mv8: &MiniV8, r: &mv8::Object) -> Result<(MessageTarget, String)> {
     let target = if let Ok(mv8::Value::String(target)) = r.get("target") {
         let target = target.to_string();
         match target.as_str() {
@@ -431,9 +431,6 @@ fn get_next_task(_mv8: &MiniV8, r: &mv8::Object) -> Result<(MessageTarget, TaskM
     } else {
         "".to_string()
     };
-    // TODO: Construct task message from string and package type.
-    let pkg_type = todo!();
-    let next_task_payload = TaskMessage::from((next_task_payload, pkg_type));
     Ok((target, next_task_payload))
 }
 
@@ -857,14 +854,25 @@ impl<'m> RunnerImpl<'m> {
             },
         };
 
-        let payload = serde_json::to_string(&msg.payload).unwrap();
-        let payload = mv8::Value::String(mv8.create_string(&payload));
+        let (payload, wrapper) = msg.payload.extract_inner_msg_with_wrapper().map_err(|e| {
+            Error::from(format!(
+                "Failed to extract the inner task message: {}",
+                e.to_string()
+            ))
+        })?;
+        let payload_str = mv8::Value::String(
+            mv8.create_string(
+                payload
+                    .as_str()
+                    .ok_or(Error::from(format!("Failed to serialize TaskMessage")))?,
+            ),
+        );
 
         let args = mv8::Values::from_vec(vec![
             sim_id_to_js(mv8, sim_run_id),
             group_index,
             pkg_id_to_js(mv8, msg.package_id),
-            payload,
+            payload_str,
         ]);
         let r: mv8::Object = self
             .embedded
@@ -878,6 +886,16 @@ impl<'m> RunnerImpl<'m> {
         let warnings = get_user_warnings(mv8, &r);
         // TODO: Send `r.print` (if any) to main loop to display to user.
         let (next_target, next_task_payload) = get_next_task(mv8, &r)?;
+
+        let next_inner_task_msg = serde_json::to_value(&next_task_payload)?;
+        let next_task_payload =
+            TaskMessage::try_from_inner_msg_and_wrapper(next_inner_task_msg, wrapper).map_err(|e| {
+                Error::from(format!(
+                    "Failed to wrap and create a new TaskMessage, perhaps the inner: {}, was formatted incorrectly. Underlying error: {}",
+                    next_task_payload,
+                    e.to_string()
+                ))
+            })?;
 
         // Only flushes if state writable
         self.flush(mv8, sim_run_id, &mut msg.shared_store, &r)?;

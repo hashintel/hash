@@ -79,6 +79,9 @@ pub enum Error {
 
     #[error("Message type '{0}' must have a simulation run id")]
     SimulationIDRequired(&'static str),
+
+    #[error("serde: {0:?}")]
+    Serde(#[from] serde_json::Error),
 }
 
 impl From<mv8::Error<'_>> for Error {
