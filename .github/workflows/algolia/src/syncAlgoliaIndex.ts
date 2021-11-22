@@ -99,7 +99,7 @@ const syncAlgoliaIndex = async () => {
     process.env.AGOLIA_WRITE_KEY
   );
 
-  const index = client.initIndex("hash_learn_testing1");
+  const index = client.initIndex("hash_learn");
 
   let oldIndexObjects: Array<{ objectID: string }> = [];
 
