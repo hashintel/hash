@@ -175,13 +175,13 @@ export const fileTypedef = gql`
       """
       accountId: ID!
       """
-      The name of the file
-      """
-      name: String!
-      """
       url of the external file
       """
       url: String!
+      """
+      The name of the file (optional, will guess from the URL if not provided)
+      """
+      name: String
     ): File!
   }
 `;
