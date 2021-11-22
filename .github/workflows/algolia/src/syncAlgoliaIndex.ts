@@ -14,18 +14,22 @@ type DocsFrontMatter = {
   };
 };
 
-const getAllFiles = (
-  dirPath,
+const getFileInfos = (
+  dirPath: string,
   arrayOfFiles: Array<{ inputPath: string; outputPath: string; type: string }>,
-  type
-) => {
+  type: string
+): {
+  inputPath: string;
+  outputPath: string;
+  type: string;
+}[] => {
   const files = fs.readdirSync(dirPath);
 
   arrayOfFiles = arrayOfFiles || [];
 
   files.forEach(function (file) {
     if (fs.statSync(dirPath + "/" + file).isDirectory()) {
-      arrayOfFiles = getAllFiles(dirPath + "/" + file, arrayOfFiles, type);
+      arrayOfFiles = getFileInfos(dirPath + "/" + file, arrayOfFiles, type);
     } else {
       const inputPath = path.join(dirPath, "/", file);
       const outputPath = `.\\output\\${path.join(
@@ -42,17 +46,17 @@ const getAllFiles = (
 };
 
 type AlgoliaRecord = {
-  objectId: any;
+  objectId: string;
   content: string;
   objectID: string;
-  type: any;
+  type: string;
   title?: string;
   description?: string;
   slug?: string;
   tags?: Array<string>;
 };
 
-const generateAlgoliaJson: () => AlgoliaRecord[] = () => {
+const generateAlgoliaRecords: () => AlgoliaRecord[] = () => {
   const getFormattedData = (matterData: DocsFrontMatter, type) => {
     const appendData = {
       ...matterData.data,
@@ -65,20 +69,20 @@ const generateAlgoliaJson: () => AlgoliaRecord[] = () => {
     return appendData;
   };
 
-  const glossaryFiles = getAllFiles(
+  const glossaryFiles = getFileInfos(
     "../../../resources/glossary",
     [],
     "glossary"
   );
-  const docsFiles = getAllFiles(
+  const docsFiles = getFileInfos(
     "../../../resources/docs/simulation",
     [],
     "docs"
   );
 
-  const files = [...glossaryFiles, ...docsFiles];
+  const fileInfos = [...glossaryFiles, ...docsFiles];
 
-  const jsonData = files.map((filePath) => {
+  const jsonData = fileInfos.map((filePath) => {
     const file = fs.readFileSync(filePath.inputPath, "utf8");
 
     const grayMatterData = matter(file) as unknown as DocsFrontMatter;
@@ -89,7 +93,7 @@ const generateAlgoliaJson: () => AlgoliaRecord[] = () => {
   return jsonData;
 };
 
-export const syncAlgoliaIndex = async () => {
+const syncAlgoliaIndex = async () => {
   const client = algoliasearch(
     process.env.ALGOLIA_PROJECT,
     process.env.AGOLIA_WRITE_KEY
@@ -108,7 +112,7 @@ export const syncAlgoliaIndex = async () => {
     },
   });
 
-  const indexObjects: AlgoliaRecord[] = generateAlgoliaJson();
+  const indexObjects: AlgoliaRecord[] = generateAlgoliaRecords();
 
   const indexObjectLookup: Record<string, AlgoliaRecord> = {};
 
@@ -128,3 +132,14 @@ export const syncAlgoliaIndex = async () => {
 
   await index.saveObjects(indexObjects);
 };
+
+const main = async () => {
+  try {
+    await syncAlgoliaIndex();
+    console.log("Algolia Indexes Updated.");
+  } catch (error) {
+    throw new Error(`Algolia Indexing Failed: ${error}`);
+  }
+};
+
+main();
