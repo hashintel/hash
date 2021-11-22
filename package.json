@@ -67,10 +67,12 @@
     "fix:workspaces": "yarn workspaces run fix",
     "fix:markdownlint": "markdownlint --fix \"**/*\"",
     "fix:prettier": "prettier --write  --ignore-unknown \"**/*\"",
+    "fix:yarn-deduplicate": "yarn install && yarn-deduplicate --strategy=fewer && yarn install",
     "lint": "npm-run-all --continue-on-error \"lint:*\"",
     "lint:workspaces": "yarn workspaces run lint",
     "lint:markdownlint": "markdownlint \"**/*\"",
     "lint:prettier": "prettier --check --ignore-unknown \"**/*\"",
+    "lint:yarn-deduplicate": "yarn-deduplicate --fail --list --strategy=fewer",
     "install-hooks": "bash hooks/install.sh",
     "// 09": "",
     "// --------------- Tests ---------------": "",
@@ -86,6 +88,7 @@
     "prettier": "2.3.2",
     "prettier-plugin-packagejson": "2.2.13",
     "prettier-plugin-sh": "0.7.1",
-    "serve": "12.0.1"
+    "serve": "12.0.1",
+    "yarn-deduplicate": "3.1.0"
   }
 }
