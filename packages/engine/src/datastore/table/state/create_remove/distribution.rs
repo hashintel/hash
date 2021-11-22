@@ -73,7 +73,11 @@ impl BatchDistribution {
                     batches.iter().map(|b| b.num_agents()).collect::<Vec<_>>();
                 let current_num_agents: usize = current_distribution.iter().sum();
                 let total_num_agents = current_num_agents + number_inbound;
-                let average_total_num_agents_per_batch = total_num_agents / batches.len();
+                let average_total_num_agents_per_batch = if !batches.is_empty() {
+                    total_num_agents / batches.len()
+                } else {
+                    0
+                };
                 if average_total_num_agents_per_batch > UPPER_BOUND {
                     // Create more pending batches, as inbound count is large
                     let target_number_batches =
