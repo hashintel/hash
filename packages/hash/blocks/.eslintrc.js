@@ -22,6 +22,6 @@ module.exports = {
     "react/self-closing-comp": "warn",
     curly: ["error", "multi-line"],
     "import/no-extraneous-dependencies": ["error", { devDependencies: true }],
-    "react/jsx-curly-brace-presence": 0
+    "react/jsx-curly-brace-presence": 0,
   },
 };
