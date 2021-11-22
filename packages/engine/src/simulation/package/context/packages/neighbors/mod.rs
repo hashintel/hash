@@ -2,9 +2,9 @@ use std::sync::Arc;
 
 use crate::config::{Globals, TopologyConfig};
 use crate::datastore::batch::AgentBatch;
-use crate::datastore::schema::accessor::FieldSpecMapAccessor;
+use crate::datastore::schema::accessor::{FieldSpecMapAccessor, GetFieldSpec};
 use crate::datastore::schema::context::ContextSchema;
-use crate::datastore::schema::FieldSpecMapBuilder;
+use crate::datastore::schema::{FieldKey, FieldSpecMapBuilder};
 use crate::datastore::table::state::view::StateSnapshot;
 use crate::datastore::table::state::State;
 use crate::datastore::{
@@ -49,13 +49,15 @@ impl PackageCreator for Creator {
         &self,
         config: &Arc<SimRunConfig<ExperimentRunBase>>,
         _comms: PackageComms,
-        accessor: FieldSpecMapAccessor,
+        _state_field_spec_accessor: FieldSpecMapAccessor,
+        context_field_spec_accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn ContextPackage>> {
         let neighbors = Neighbors {
             topology: Arc::new(
                 TopologyConfig::create_from_globals(&config.sim.globals)
                     .unwrap_or_else(|_| TopologyConfig::default()),
             ),
+            context_field_spec_accessor,
         };
         Ok(Box::new(neighbors))
     }
@@ -89,6 +91,7 @@ impl GetWorkerExpStartMsg for Creator {
 
 struct Neighbors {
     topology: Arc<TopologyConfig>,
+    context_field_spec_accessor: FieldSpecMapAccessor,
 }
 
 impl Neighbors {
@@ -135,7 +138,7 @@ impl Package for Neighbors {
         &self,
         num_agents: usize,
         _schema: &ContextSchema,
-    ) -> Result<Arc<dyn arrow::array::Array>> {
+    ) -> Result<(FieldKey, Arc<dyn arrow::array::Array>)> {
         let index_builder = ArrowIndexBuilder::new(1024);
 
         let neighbor_index_builder = arrow::array::FixedSizeListBuilder::new(index_builder, 2);
@@ -143,6 +146,16 @@ impl Package for Neighbors {
 
         (0..num_agents).try_for_each(|_| neighbors_builder.append(true))?;
 
-        Ok(Arc::new(neighbors_builder.finish()) as Arc<dyn ArrowArray>)
+        // TODO, this is unclean, we won't have to do this if we move empty arrow
+        //   initialisation to be done per schema instead of per package
+        let field_key = self
+            .context_field_spec_accessor
+            .get_local_hidden_scoped_field_spec("neighbors")?
+            .to_key()?;
+
+        Ok((
+            field_key,
+            Arc::new(neighbors_builder.finish()) as Arc<dyn ArrowArray>,
+        ))
     }
 }

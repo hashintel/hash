@@ -1,8 +1,10 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::proto::ExperimentRunBase;
 use futures::{executor::block_on, stream::FuturesUnordered, StreamExt};
 
+use crate::datastore::schema::FieldKey;
 use crate::worker::runner::comms::PackageMsgs;
 use crate::{
     datastore::table::{
@@ -93,13 +95,33 @@ impl StepPackages {
         experiment_config: &SimRunConfig<ExperimentRunBase>,
         num_agents: usize,
     ) -> Result<Context> {
-        let columns = self
+        let mut keys_and_columns = self
             .context
             .iter()
             // TODO remove the need for this creating a method to generate empty arrow columns from schema
             .map(|package| {
                 package
                     .get_empty_arrow_column(num_agents, &experiment_config.sim.store.context_schema)
+                    .map(|(field_key, col)| (field_key.value().to_string(), col))
+            })
+            .collect::<Result<HashMap<String, Arc<dyn arrow::array::Array>>>>()?;
+
+        // because we aren't generating the columns from the schema, we need to reorder the cols from the packages to match
+        //   this is another reason to move column creation to be done per schema instead of per package, because this is
+        //   very messy.
+        let schema = &experiment_config.sim.store.context_schema;
+        let columns = schema
+            .arrow
+            .fields()
+            .iter()
+            .map(|arrow_field| {
+                keys_and_columns
+                    .get(arrow_field.name())
+                    .ok_or(Error::from(format!(
+                        "Expected to find an arrow column for key: {}",
+                        arrow_field.name()
+                    )))
+                    .map(|field_name| field_name.clone())
             })
             .collect::<Result<Vec<_>>>()?;
         let context = Context::new_from_columns(

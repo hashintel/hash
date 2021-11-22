@@ -4,6 +4,7 @@ mod indices;
 mod writer;
 
 use self::collected::Messages;
+use crate::datastore::schema::accessor::GetFieldSpec;
 use crate::{
     datastore::{batch::iterators, table::state::ReadState},
     simulation::comms::package::PackageComms,
@@ -30,9 +31,12 @@ impl PackageCreator for Creator {
         &self,
         _config: &Arc<SimRunConfig<ExperimentRunBase>>,
         _comms: PackageComms,
-        accessor: FieldSpecMapAccessor,
+        _state_field_spec_accessor: FieldSpecMapAccessor,
+        context_field_spec_accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn ContextPackage>> {
-        Ok(Box::new(AgentMessages {}))
+        Ok(Box::new(AgentMessages {
+            context_field_spec_accessor,
+        }))
     }
 
     fn add_context_field_specs(
@@ -52,7 +56,9 @@ impl GetWorkerExpStartMsg for Creator {
     }
 }
 
-struct AgentMessages {}
+struct AgentMessages {
+    context_field_spec_accessor: FieldSpecMapAccessor,
+}
 
 impl MaybeCPUBound for AgentMessages {
     fn cpu_bound(&self) -> bool {
@@ -89,7 +95,7 @@ impl Package for AgentMessages {
         &self,
         num_agents: usize,
         _schema: &ContextSchema,
-    ) -> Result<Arc<dyn ArrowArray>> {
+    ) -> Result<(FieldKey, Arc<dyn ArrowArray>)> {
         let index_builder = ArrowIndexBuilder::new(1024);
 
         let neighbor_index_builder = arrow::array::FixedSizeListBuilder::new(index_builder, 3);
@@ -97,6 +103,16 @@ impl Package for AgentMessages {
 
         (0..num_agents).try_for_each(|_| messages_builder.append(true))?;
 
-        Ok(Arc::new(messages_builder.finish()) as Arc<dyn ArrowArray>)
+        // TODO, this is unclean, we won't have to do this if we move empty arrow
+        //   initialisation to be done per schema instead of per package
+        let field_key = self
+            .context_field_spec_accessor
+            .get_local_hidden_scoped_field_spec("agent_messages")?
+            .to_key()?;
+
+        Ok((
+            field_key,
+            Arc::new(messages_builder.finish()) as Arc<dyn ArrowArray>,
+        ))
     }
 }

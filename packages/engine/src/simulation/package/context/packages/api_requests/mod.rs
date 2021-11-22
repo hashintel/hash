@@ -7,6 +7,7 @@ use crate::{
     datastore::{batch::iterators, table::state::ReadState},
     simulation::comms::package::PackageComms,
 };
+use arrow::datatypes::DataType;
 
 use super::super::*;
 use crate::config::Globals;
@@ -14,7 +15,10 @@ use futures::{stream::FuturesUnordered, StreamExt};
 use response::{APIResponseMap, APIResponses};
 use serde_json::Value;
 
+use crate::datastore::schema::accessor::GetFieldSpec;
+use crate::datastore::schema::{FieldKey, FieldScope, FieldSource, FieldSpecMap};
 use crate::simulation::package::context::packages::api_requests::fields::api_response_fields;
+use crate::simulation::package::name::PackageName;
 pub use handlers::CustomAPIMessageError;
 
 const CPU_BOUND: bool = false;
@@ -32,11 +36,13 @@ impl PackageCreator for Creator {
         &self,
         config: &Arc<SimRunConfig<ExperimentRunBase>>,
         _comms: PackageComms,
-        accessor: FieldSpecMapAccessor,
+        _state_field_spec_accessor: FieldSpecMapAccessor,
+        context_field_spec_accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn ContextPackage>> {
         let custom_message_handlers = custom_message_handlers_from_properties(&config.sim.globals)?;
         Ok(Box::new(APIRequests {
             custom_message_handlers,
+            context_field_spec_accessor,
         }))
     }
 
@@ -59,6 +65,7 @@ impl GetWorkerExpStartMsg for Creator {
 
 struct APIRequests {
     custom_message_handlers: Option<Vec<String>>,
+    context_field_spec_accessor: FieldSpecMapAccessor,
 }
 
 impl MaybeCPUBound for APIRequests {
@@ -130,20 +137,28 @@ impl Package for APIRequests {
         &self,
         num_agents: usize,
         context_schema: &ContextSchema,
-    ) -> Result<Arc<dyn arrow::array::Array>> {
+    ) -> Result<(FieldKey, Arc<dyn arrow::array::Array>)> {
         let from_builder = Box::new(arrow::array::StringBuilder::new(1024));
         let type_builder = Box::new(arrow::array::StringBuilder::new(1024));
         let data_builder = Box::new(arrow::array::StringBuilder::new(1024));
-        let arrow_fields = api_response_fields()
-            .into_iter()
-            .map(|field| {
-                context_schema
-                    .arrow
-                    .field_with_name(&field.name)
-                    .map(Clone::clone)
-                    .map_err(|err| err.into())
-            })
-            .collect::<Result<Vec<_>>>()?;
+
+        // TODO, this is unclean, we won't have to do this if we move empty arrow
+        //   initialisation to be done per schema instead of per package
+        let field_key = self
+            .context_field_spec_accessor
+            .get_local_hidden_scoped_field_spec("api_responses")?
+            .to_key()?;
+        let arrow_fields = context_schema
+            .arrow
+            .field_with_name(field_key.value())
+            .map(|field| match field.data_type() {
+                DataType::List(box DataType::Struct(sub_fields)) => sub_fields,
+                _ => {
+                    unreachable!()
+                }
+            })?
+            .clone();
+
         let api_response_builder = arrow::array::StructBuilder::new(
             arrow_fields,
             vec![from_builder, type_builder, data_builder],
@@ -152,7 +167,10 @@ impl Package for APIRequests {
 
         (0..num_agents).try_for_each(|_| api_response_list_builder.append(true))?;
 
-        Ok(Arc::new(api_response_list_builder.finish()) as Arc<dyn ArrowArray>)
+        Ok((
+            field_key,
+            Arc::new(api_response_list_builder.finish()) as Arc<dyn ArrowArray>,
+        ))
     }
 }
 

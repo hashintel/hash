@@ -188,7 +188,8 @@ impl PackageCreators {
         comms: Comms,
     ) -> Result<(Packages, PackageMsgs)> {
         // TODO generics to avoid code duplication
-        let field_spec_map = &config.sim.store.agent_schema.field_spec_map;
+        let state_field_spec_map = &config.sim.store.agent_schema.field_spec_map;
+        let context_field_spec_map = &config.sim.store.context_schema.field_spec_map;
         let mut messages = HashMap::new();
         let init = self
             .init
@@ -199,7 +200,7 @@ impl PackageCreators {
                     PackageComms::new(comms.clone(), package_id.clone(), PackageType::Init),
                     FieldSpecMapAccessor::new(
                         FieldSource::Package(package_name.clone()),
-                        field_spec_map.clone(),
+                        state_field_spec_map.clone(),
                     ),
                 )?;
                 let start_msg = package.get_worker_sim_start_msg()?;
@@ -222,7 +223,11 @@ impl PackageCreators {
                     PackageComms::new(comms.clone(), package_id.clone(), PackageType::Context),
                     FieldSpecMapAccessor::new(
                         FieldSource::Package(package_name.clone()),
-                        field_spec_map.clone(),
+                        Arc::clone(state_field_spec_map),
+                    ),
+                    FieldSpecMapAccessor::new(
+                        FieldSource::Package(package_name.clone()),
+                        Arc::clone(context_field_spec_map),
                     ),
                 )?;
                 let start_msg = package.get_worker_sim_start_msg()?;
@@ -245,7 +250,7 @@ impl PackageCreators {
                     PackageComms::new(comms.clone(), package_id.clone(), PackageType::State),
                     FieldSpecMapAccessor::new(
                         FieldSource::Package(package_name.clone()),
-                        field_spec_map.clone(),
+                        Arc::clone(state_field_spec_map),
                     ),
                 )?;
                 let start_msg = package.get_worker_sim_start_msg()?;
@@ -268,7 +273,7 @@ impl PackageCreators {
                     PackageComms::new(comms.clone(), package_id.clone(), PackageType::Output),
                     FieldSpecMapAccessor::new(
                         FieldSource::Package(package_name.clone()),
-                        field_spec_map.clone(),
+                        Arc::clone(state_field_spec_map),
                     ),
                 )?;
                 let start_msg = package.get_worker_sim_start_msg()?;

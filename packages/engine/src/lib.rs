@@ -1,5 +1,6 @@
 #![feature(test)]
 #![feature(map_try_insert)]
+#![feature(box_patterns)]
 #[macro_use]
 extern crate lazy_static;
 extern crate derivative;

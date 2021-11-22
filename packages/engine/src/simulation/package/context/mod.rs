@@ -20,6 +20,7 @@ use super::{
 pub use crate::config::Globals;
 use crate::datastore::schema::accessor::FieldSpecMapAccessor;
 use crate::datastore::schema::context::ContextSchema;
+use crate::datastore::schema::FieldKey;
 use crate::proto::ExperimentRunBase;
 use crate::simulation::package::ext_traits::GetWorkerExpStartMsg;
 pub use packages::{ContextTask, ContextTaskMessage, ContextTaskResult, Name, PACKAGES};
@@ -37,7 +38,7 @@ pub trait Package: MaybeCPUBound + GetWorkerSimStartMsg + Send + Sync {
         &self,
         num_agents: usize,
         context_schema: &ContextSchema,
-    ) -> Result<Arc<dyn arrow::array::Array>>;
+    ) -> Result<(FieldKey, Arc<dyn arrow::array::Array>)>;
 }
 
 pub trait PackageCreator: GetWorkerExpStartMsg + Sync {
@@ -46,7 +47,8 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync {
         &self,
         config: &Arc<SimRunConfig<ExperimentRunBase>>,
         system: PackageComms,
-        accessor: FieldSpecMapAccessor,
+        state_field_spec_accessor: FieldSpecMapAccessor,
+        context_field_spec_accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn Package>>;
 
     fn get_dependencies(&self) -> Result<Dependencies> {
