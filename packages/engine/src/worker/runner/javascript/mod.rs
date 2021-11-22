@@ -26,6 +26,9 @@ use crate::datastore::table::pool::agent::AgentPool;
 use crate::datastore::table::pool::message::MessagePool;
 use crate::datastore::table::pool::proxy::{PoolReadProxy, PoolWriteProxy};
 use crate::datastore::table::pool::BatchPool;
+use crate::datastore::table::proxy::StateWriteProxy;
+use crate::datastore::table::task_shared_store::{PartialSharedState, SharedState};
+use crate::simulation::enum_dispatch::TaskSharedStore;
 use crate::worker::{Error as WorkerError, Result as WorkerResult, TaskMessage};
 use crate::{
     datastore::prelude::SharedStore,
@@ -43,9 +46,6 @@ use crate::{
     Language,
 };
 pub use error::{Error, Result};
-use crate::datastore::table::proxy::StateWriteProxy;
-use crate::datastore::table::task_shared_store::{PartialSharedState, SharedState};
-use crate::simulation::enum_dispatch::TaskSharedStore;
 
 struct JSPackage<'m> {
     fns: mv8::Array<'m>,
@@ -261,7 +261,7 @@ fn idxs_to_js<'m>(mv8: &'m MiniV8, idxs: &[usize]) -> Result<mv8::Value<'m>> {
 }
 
 fn batches_from_shared_store(
-    shared_store: &TaskSharedStore
+    shared_store: &TaskSharedStore,
 ) -> Result<(Vec<&AgentBatch>, Vec<&MessageBatch>, Vec<usize>)> {
     // TODO: Remove duplication between read and write access
     Ok(match &shared_store.state {
@@ -269,24 +269,24 @@ fn batches_from_shared_store(
         SharedState::Write(state) => (
             state.agent_pool().batches(),
             state.message_pool().batches(),
-            (0..state.agent_pool().n_batches()).collect()
+            (0..state.agent_pool().n_batches()).collect(),
         ),
         SharedState::Read(state) => (
             state.agent_pool().batches(),
             state.message_pool().batches(),
-            (0..state.agent_pool().n_batches()).collect()
+            (0..state.agent_pool().n_batches()).collect(),
         ),
         SharedState::Partial(partial) => {
             match partial {
                 PartialSharedState::Read(partial) => (
                     partial.inner.agent_pool().batches(),
                     partial.inner.message_pool().batches(),
-                    partial.indices.clone() // TODO: Avoid cloning?
+                    partial.indices.clone(), // TODO: Avoid cloning?
                 ),
                 PartialSharedState::Write(partial) => (
                     partial.inner.agent_pool().batches(),
                     partial.inner.message_pool().batches(),
-                    partial.indices.clone() // TODO: Avoid cloning?
+                    partial.indices.clone(), // TODO: Avoid cloning?
                 ),
             }
         }
@@ -689,12 +689,18 @@ impl<'m> RunnerImpl<'m> {
 
         let agent_changes = changes.get("agent")?;
         self.flush_batch(
-            mv8, agent_changes, proxy.agent_pool_mut().batch_mut(i_proxy)?, agent_schema
+            mv8,
+            agent_changes,
+            proxy.agent_pool_mut().batch_mut(i_proxy)?,
+            agent_schema,
         )?;
 
         let msg_changes = changes.get("msg")?;
         self.flush_batch(
-            mv8, msg_changes, proxy.message_pool_mut().batch_mut(0)?, msg_schema
+            mv8,
+            msg_changes,
+            proxy.message_pool_mut().batch_mut(0)?,
+            msg_schema,
         )?;
 
         Ok(())
@@ -712,14 +718,14 @@ impl<'m> RunnerImpl<'m> {
             SharedState::Write(state) => {
                 let indices = (0..state.agent_pool().n_batches()).collect();
                 (state, indices)
-            },
+            }
             SharedState::Partial(partial) => match partial {
                 PartialSharedState::Read(_) => return Ok(()),
                 PartialSharedState::Write(state) => {
                     let indices = state.indices.clone();
                     (&mut state.inner, indices)
                 }
-            }
+            },
         };
 
         let state = self
@@ -733,14 +739,7 @@ impl<'m> RunnerImpl<'m> {
 
         let changes: mv8::Value = r.get("changes")?;
         if group_indices.len() == 1 {
-            self.flush_group(
-                mv8,
-                &agent_schema,
-                &msg_schema,
-                proxy,
-                0,
-                changes,
-            )?;
+            self.flush_group(mv8, &agent_schema, &msg_schema, proxy, 0, changes)?;
         } else {
             let changes = changes.as_array().unwrap();
             for i_proxy in 0..group_indices.len() {
@@ -775,15 +774,10 @@ impl<'m> RunnerImpl<'m> {
         // undefined behavior, because the pointer to the schema comes from
         // an immutable reference.
         // ---> Do *not* mutate the schema bytes in `runner.js`.
-        let mut agent_schema_bytes = schema_to_stream_bytes(
-            &run.datastore.agent_batch_schema.arrow
-        );
-        let mut msg_schema_bytes = schema_to_stream_bytes(
-            &run.datastore.message_batch_schema
-        );
-        let mut ctx_schema_bytes = schema_to_stream_bytes(
-            &run.datastore.context_batch_schema
-        );
+        let mut agent_schema_bytes =
+            schema_to_stream_bytes(&run.datastore.agent_batch_schema.arrow);
+        let mut msg_schema_bytes = schema_to_stream_bytes(&run.datastore.message_batch_schema);
+        let mut ctx_schema_bytes = schema_to_stream_bytes(&run.datastore.context_batch_schema);
         // run.shared_context.datasets?
 
         // Keep schema vecs alive while bytes are passed to V8.
@@ -841,20 +835,26 @@ impl<'m> RunnerImpl<'m> {
         self.state_interim_sync(mv8, sim_run_id, &msg.shared_store)?;
 
         let group_index = match &msg.shared_store.state {
-            SharedState::None | SharedState::Write(_) | SharedState::Read(_) => mv8::Value::Undefined,
+            SharedState::None | SharedState::Write(_) | SharedState::Read(_) => {
+                mv8::Value::Undefined
+            }
             SharedState::Partial(partial) => match partial {
                 // TODO: Code duplication between read and write
-                PartialSharedState::Read(partial) => if partial.indices.len() == 1 {
-                    mv8::Value::Number(partial.indices[0] as f64)
-                } else {
-                    todo!() // Running on strict subset of groups with more than one group
+                PartialSharedState::Read(partial) => {
+                    if partial.indices.len() == 1 {
+                        mv8::Value::Number(partial.indices[0] as f64)
+                    } else {
+                        todo!() // Running on strict subset of groups with more than one group
+                    }
                 }
-                PartialSharedState::Write(partial) => if partial.indices.len() == 1 {
-                    mv8::Value::Number(partial.indices[0] as f64)
-                } else {
-                    todo!() // Running on strict subset of groups with more than one group
+                PartialSharedState::Write(partial) => {
+                    if partial.indices.len() == 1 {
+                        mv8::Value::Number(partial.indices[0] as f64)
+                    } else {
+                        todo!() // Running on strict subset of groups with more than one group
+                    }
                 }
-            }
+            },
         };
 
         let payload = serde_json::to_string(&msg.payload).unwrap();
@@ -1127,7 +1127,9 @@ impl JavaScriptRunner {
 
     pub async fn run(&mut self) -> WorkerResult<()> {
         log::debug!("Running JavaScript runner");
-        if !self.spawn { return Ok(()); }
+        if !self.spawn {
+            return Ok(());
+        }
 
         // Single threaded runtime only
         let runtime = tokio::runtime::Builder::new_current_thread()

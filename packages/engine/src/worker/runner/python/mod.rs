@@ -497,6 +497,11 @@ impl NngSender {
         Ok((Self { route, to_py, aio }, aio_result_receiver))
     }
 
+    fn init(&self) -> Result<()> {
+        self.to_py.dial(&self.route)?;
+        Ok(())
+    }
+
     fn send(
         &self,
         sim_id: Option<SimulationShortID>,
@@ -512,6 +517,13 @@ impl NngSender {
                 Error::NngSend(msg, err)
             })?;
         Ok(())
+    }
+}
+
+impl Drop for NngSender {
+    fn drop(&mut self) {
+        // TODO: Check whether nng already does this when a socket is dropped
+        self.to_py.close();
     }
 }
 
@@ -563,14 +575,14 @@ impl NngReceiver {
     pub fn init(&self, init_msg: &ExperimentInitRunnerMsg) -> Result<()> {
         self.from_py.listen(&self.route)?;
 
-        let listener = nng::Listener::new(&self.from_py, &self.route)?;
+        // let listener = nng::Listener::new(&self.from_py, &self.route)?;
         let _init_request = self.from_py.recv()?;
         self.from_py // Only case where `from_py` is used for sending
             .send(experiment_init_to_nng(init_msg)?)
             .map_err(|(msg, err)| Error::NngSend(msg, err))?;
 
         let _init_ack = self.from_py.recv()?;
-        listener.close();
+        // listener.close();
         Ok(())
     }
 
@@ -583,6 +595,13 @@ impl NngReceiver {
 
         self.from_py.recv_async(&self.aio)?;
         Ok(OutboundFromRunnerMsg::from(nng_msg))
+    }
+}
+
+impl Drop for NngReceiver {
+    fn drop(&mut self) {
+        // TODO: Check whether nng already does this when a socket is dropped
+        self.from_py.close();
     }
 }
 
@@ -716,6 +735,9 @@ impl PythonRunner {
 
         // Send init message to Python process.
         self.nng_receiver.init(&self.init_msg)?;
+        // We waited for Python init message handling to finish,
+        // so we know that sender init can be done now.
+        self.nng_sender.init()?;
 
         let send_result_receiver = self
             .send_result_receiver

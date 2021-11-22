@@ -1,13 +1,13 @@
+use crate::datastore::Error;
 use crate::{
     config::{Distribution, Worker, WorkerAllocation},
     datastore::prelude::Result,
     simulation::task::handler::worker_pool::SplitConfig,
     worker::runner::comms::StateInterimSync,
 };
-use std::fmt::{Debug, Formatter};
 use futures::future::Shared;
 use regex::internal::Inst::Split;
-use crate::datastore::Error;
+use std::fmt::{Debug, Formatter};
 
 use super::{
     context::ReadContext,
@@ -171,7 +171,10 @@ fn distribute_batches<A, M>(
     }
 
     // Distribute batches.
-    let iter = agent_batches.into_iter().zip(msg_batches.into_iter()).enumerate();
+    let iter = agent_batches
+        .into_iter()
+        .zip(msg_batches.into_iter())
+        .enumerate();
     for (i_group, (agent_batch, msg_batch)) in iter {
         let i_worker = i_group % num_workers;
         agent_distribution[i_group] += group_sizes[i_worker];
@@ -185,7 +188,7 @@ fn distribute_batches<A, M>(
     // Wrap into correct format.
     let split_config = SplitConfig {
         num_workers,
-        agent_distribution: Some(agent_distribution)
+        agent_distribution: Some(agent_distribution),
     };
     (stores, split_config)
 }
@@ -198,13 +201,9 @@ impl TaskSharedStore {
             SharedState::Write(state) => state.n_accessible_agents(),
             SharedState::Read(state) => state.n_accessible_agents(),
             SharedState::Partial(partial) => match partial {
-                PartialSharedState::Read(partial) => {
-                    partial.inner.n_accessible_agents()
-                }
-                PartialSharedState::Write(partial) => {
-                    partial.inner.n_accessible_agents()
-                }
-            }
+                PartialSharedState::Read(partial) => partial.inner.n_accessible_agents(),
+                PartialSharedState::Write(partial) => partial.inner.n_accessible_agents(),
+            },
         }
     }
 
@@ -240,35 +239,41 @@ impl TaskSharedStore {
             // Note: This doesn't mean that each worker gets a single batch.
             //       A worker can also get multiple batches or zero batches.
             let ((agent_batches, msg_batches), group_indices) = match self.state {
-                 SharedState::Write(state) => {
-                     let indices = (0..state.agent_pool().n_batches()).collect();
-                     (state.deconstruct(), indices)
-                 }
+                SharedState::Write(state) => {
+                    let indices = (0..state.agent_pool().n_batches()).collect();
+                    (state.deconstruct(), indices)
+                }
                 SharedState::Partial(partial) => match partial {
                     PartialSharedState::Write(partial) => {
                         let (state, indices) = (partial.inner, partial.indices);
                         (state.deconstruct(), indices)
                     }
-                    _ => unreachable!()
-                }
-                _ => unreachable!()
+                    _ => unreachable!(),
+                },
+                _ => unreachable!(),
             };
             let group_sizes = agent_batches
                 .iter()
                 .map(|batch| batch.inner().num_agents())
                 .collect();
             let (stores, split_config) = distribute_batches(
-                worker_list, agent_batches, msg_batches, group_indices, group_sizes
+                worker_list,
+                agent_batches,
+                msg_batches,
+                group_indices,
+                group_sizes,
             );
             let stores: Vec<_> = stores
                 .into_iter()
                 .map(|(worker, agent_batches, msg_batches, indices)| {
                     let store = Self {
-                        state: SharedState::Partial(PartialSharedState::Write(PartialStateWriteProxy {
-                            indices,
-                            inner: StateWriteProxy::from((agent_batches, msg_batches))
-                        })),
-                        context: context.clone()
+                        state: SharedState::Partial(PartialSharedState::Write(
+                            PartialStateWriteProxy {
+                                indices,
+                                inner: StateWriteProxy::from((agent_batches, msg_batches)),
+                            },
+                        )),
+                        context: context.clone(),
                     };
                     (worker, store)
                 })
@@ -289,26 +294,32 @@ impl TaskSharedStore {
                         let (state, indices) = (partial.inner, partial.indices);
                         (state.deconstruct(), indices)
                     }
-                    _ => unreachable!()
-                }
-                _ => unreachable!()
+                    _ => unreachable!(),
+                },
+                _ => unreachable!(),
             };
             let group_sizes = agent_batches
                 .iter()
                 .map(|batch| batch.inner().num_agents())
                 .collect();
             let (stores, split_config) = distribute_batches(
-                worker_list, agent_batches, msg_batches, group_indices, group_sizes
+                worker_list,
+                agent_batches,
+                msg_batches,
+                group_indices,
+                group_sizes,
             );
             let stores: Vec<_> = stores
                 .into_iter()
                 .map(|(worker, agent_batches, msg_batches, indices)| {
                     let store = Self {
-                        state: SharedState::Partial(PartialSharedState::Read(PartialStateReadProxy {
-                            indices,
-                            inner: StateReadProxy::from((agent_batches, msg_batches))
-                        })),
-                        context: context.clone()
+                        state: SharedState::Partial(PartialSharedState::Read(
+                            PartialStateReadProxy {
+                                indices,
+                                inner: StateReadProxy::from((agent_batches, msg_batches)),
+                            },
+                        )),
+                        context: context.clone(),
                     };
                     (worker, store)
                 })
@@ -328,7 +339,7 @@ impl TaskSharedStore {
                 .collect();
             let split_config = SplitConfig {
                 num_workers,
-                agent_distribution: Some(agent_distribution)
+                agent_distribution: Some(agent_distribution),
             };
 
             (stores, split_config)
@@ -351,15 +362,13 @@ impl TaskSharedStore {
                 PartialSharedState::Read(partial) => {
                     SharedState::Partial(PartialSharedState::Read(partial.clone()))
                 }
-            }
-            SharedState::Read(state) => {
-                SharedState::Read(state.clone())
-            }
-            SharedState::None => SharedState::None
+            },
+            SharedState::Read(state) => SharedState::Read(state.clone()),
+            SharedState::None => SharedState::None,
         };
         Ok(Self {
             state,
-            context: self.context.clone()
+            context: self.context.clone(),
         })
     }
 }

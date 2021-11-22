@@ -46,7 +46,9 @@ impl<K: Batch> Clone for BatchReadProxy<K> {
         //         the lock, so it must be possible to take the shared lock again.
         let locked = unsafe { self.arc.raw() }.try_lock_shared();
         assert!(locked, "Clone BatchReadProxy");
-        Self { arc: self.arc.clone() }
+        Self {
+            arc: self.arc.clone(),
+        }
     }
 }
 
@@ -107,16 +109,26 @@ impl Clone for StateReadProxy {
     fn clone(&self) -> Self {
         Self {
             agent_pool_proxy: self.agent_pool_proxy.clone(),
-            message_pool_proxy: self.message_pool_proxy.clone()
+            message_pool_proxy: self.message_pool_proxy.clone(),
         }
     }
 }
 
-impl From<(Vec<BatchReadProxy<AgentBatch>>, Vec<BatchReadProxy<MessageBatch>>)> for StateReadProxy {
-    fn from(batches: (Vec<BatchReadProxy<AgentBatch>>, Vec<BatchReadProxy<MessageBatch>>)) -> Self {
+impl
+    From<(
+        Vec<BatchReadProxy<AgentBatch>>,
+        Vec<BatchReadProxy<MessageBatch>>,
+    )> for StateReadProxy
+{
+    fn from(
+        batches: (
+            Vec<BatchReadProxy<AgentBatch>>,
+            Vec<BatchReadProxy<MessageBatch>>,
+        ),
+    ) -> Self {
         Self {
             agent_pool_proxy: PoolReadProxy::from(batches.0),
-            message_pool_proxy: PoolReadProxy::from(batches.1)
+            message_pool_proxy: PoolReadProxy::from(batches.1),
         }
     }
 }
@@ -143,9 +155,15 @@ impl StateReadProxy {
     }
 
     pub fn deconstruct(
-        self
-    ) -> (Vec<BatchReadProxy<AgentBatch>>, Vec<BatchReadProxy<MessageBatch>>) {
-        (self.agent_pool_proxy.deconstruct(), self.message_pool_proxy.deconstruct())
+        self,
+    ) -> (
+        Vec<BatchReadProxy<AgentBatch>>,
+        Vec<BatchReadProxy<MessageBatch>>,
+    ) {
+        (
+            self.agent_pool_proxy.deconstruct(),
+            self.message_pool_proxy.deconstruct(),
+        )
     }
 
     pub fn agent_pool(&self) -> &PoolReadProxy<AgentBatch> {
@@ -157,7 +175,11 @@ impl StateReadProxy {
     }
 
     pub fn n_accessible_agents(&self) -> usize {
-        self.agent_pool_proxy.batches().into_iter().map(|batch| batch.num_agents()).sum()
+        self.agent_pool_proxy
+            .batches()
+            .into_iter()
+            .map(|batch| batch.num_agents())
+            .sum()
     }
 }
 
@@ -172,11 +194,21 @@ impl Debug for StateWriteProxy {
     }
 }
 
-impl From<(Vec<BatchWriteProxy<AgentBatch>>, Vec<BatchWriteProxy<MessageBatch>>)> for StateWriteProxy {
-    fn from(batches: (Vec<BatchWriteProxy<AgentBatch>>, Vec<BatchWriteProxy<MessageBatch>>)) -> Self {
+impl
+    From<(
+        Vec<BatchWriteProxy<AgentBatch>>,
+        Vec<BatchWriteProxy<MessageBatch>>,
+    )> for StateWriteProxy
+{
+    fn from(
+        batches: (
+            Vec<BatchWriteProxy<AgentBatch>>,
+            Vec<BatchWriteProxy<MessageBatch>>,
+        ),
+    ) -> Self {
         Self {
             agent_pool_proxy: PoolWriteProxy::from(batches.0),
-            message_pool_proxy: PoolWriteProxy::from(batches.1)
+            message_pool_proxy: PoolWriteProxy::from(batches.1),
         }
     }
 }
@@ -197,9 +229,15 @@ impl StateWriteProxy {
     }
 
     pub fn deconstruct(
-        self
-    ) -> (Vec<BatchWriteProxy<AgentBatch>>, Vec<BatchWriteProxy<MessageBatch>>) {
-        (self.agent_pool_proxy.deconstruct(), self.message_pool_proxy.deconstruct())
+        self,
+    ) -> (
+        Vec<BatchWriteProxy<AgentBatch>>,
+        Vec<BatchWriteProxy<MessageBatch>>,
+    ) {
+        (
+            self.agent_pool_proxy.deconstruct(),
+            self.message_pool_proxy.deconstruct(),
+        )
     }
 
     pub fn agent_pool(&self) -> &PoolWriteProxy<AgentBatch> {
@@ -219,6 +257,10 @@ impl StateWriteProxy {
     }
 
     pub fn n_accessible_agents(&self) -> usize {
-        self.agent_pool_proxy.batches().into_iter().map(|batch| batch.num_agents()).sum()
+        self.agent_pool_proxy
+            .batches()
+            .into_iter()
+            .map(|batch| batch.num_agents())
+            .sum()
     }
 }

@@ -7,6 +7,7 @@ use crate::datastore::shared_store::SharedStore;
 use crate::datastore::table::pool::agent::AgentPool;
 use crate::datastore::table::pool::message::MessagePool;
 use crate::proto::{ExperimentID, SimulationShortID};
+use crate::simulation::enum_dispatch::TaskSharedStore;
 use crate::simulation::package::id::PackageId;
 use crate::simulation::task::msg::TaskMessage;
 use crate::{
@@ -15,7 +16,6 @@ use crate::{
     types::{TaskID, WorkerIndex},
     Language,
 };
-use crate::simulation::enum_dispatch::TaskSharedStore;
 
 pub mod inbound;
 pub mod outbound;
@@ -45,7 +45,7 @@ pub struct RunnerTaskMsg {
     pub package_id: PackageId,
     pub task_id: TaskID,
     pub payload: TaskMessage,
-    pub shared_store: TaskSharedStore
+    pub shared_store: TaskSharedStore,
 }
 
 #[derive(Debug)]
@@ -56,7 +56,7 @@ pub struct TargetedRunnerTaskMsg {
 
 #[derive(Debug)]
 pub struct StateInterimSync {
-    pub shared_store: TaskSharedStore
+    pub shared_store: TaskSharedStore,
 }
 
 pub struct DatastoreInit {

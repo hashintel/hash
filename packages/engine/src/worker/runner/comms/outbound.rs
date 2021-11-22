@@ -1,5 +1,5 @@
 use crate::hash_types::worker;
-use crate::{proto::SimulationShortID, types::TaskID, Language, gen};
+use crate::{gen, proto::SimulationShortID, types::TaskID, Language};
 
 use super::TargetedRunnerTaskMsg;
 

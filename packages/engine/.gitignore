@@ -1,2 +1,5 @@
 target/
 runner_venv/
+*-topy*
+*-frompy*
+*hash-orchestrator-*

@@ -88,6 +88,7 @@ impl WorkerController {
     /// Runs a loop which allows the worker to receive/register tasks,
     /// drive tasks to completion and send back completed tasks.
     pub async fn run(&mut self) -> Result<()> {
+        log::debug!("Running worker");
         match self._run().await {
             Ok(()) => self.shutdown(),
             Err(e) => self.shutdown_with_error(e),
@@ -104,7 +105,7 @@ impl WorkerController {
 
     async fn _run(&mut self) -> Result<()> {
         // TODO: Rust, JS
-        tokio::pin! { let py_handle = self.py.run().await?; }
+        let py_handle = self.py.run().await?;
 
         let mut wp_recv = self.worker_pool_comms.take_recv()?;
         loop {

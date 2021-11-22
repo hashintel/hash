@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use crate::{types::TaskID, Language};
 use crate::simulation::task::Task;
+use crate::{types::TaskID, Language};
 
 use super::task::WorkerTask;
 
