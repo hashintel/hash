@@ -26,6 +26,7 @@
     "@apollo/client": "3.3.19",
     "@aws-sdk/client-s3": "3.38.0",
     "@aws-sdk/client-ses": "3.25.0",
+    "@aws-sdk/credential-provider-node": "3.41.0",
     "@aws-sdk/s3-presigned-post": "3.38.0",
     "@aws-sdk/s3-request-presigner": "3.38.0",
     "@hashintel/block-protocol": "*",

@@ -2,6 +2,8 @@ import nodemailer, { SendMailOptions } from "nodemailer";
 import SESTransport from "nodemailer/lib/ses-transport";
 import * as aws from "@aws-sdk/client-ses";
 import { convert } from "html-to-text";
+import { defaultProvider } from "@aws-sdk/credential-provider-node";
+
 import { isProdEnv } from "../../lib/env-config";
 import EmailTransporter from ".";
 import { logger } from "../../logger";
@@ -14,6 +16,7 @@ class AwsSesEmailTransporter implements EmailTransporter {
     this.ses = new aws.SES({
       apiVersion: "2010-12-01",
       region,
+      credentialDefaultProvider: defaultProvider,
     });
     this.transporter = nodemailer.createTransport({
       SES: { ses: this.ses, aws },
