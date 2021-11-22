@@ -250,7 +250,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
             }}
             onClick={() => updateStateObject({ errorString: null })}
             className={tw`absolute top-0 bottom-0 right-0 px-4 py-3`}
-            role={"button"}
+            role="button"
             tabIndex={0}
           >
             <Cross />
