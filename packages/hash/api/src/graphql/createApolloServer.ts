@@ -59,6 +59,8 @@ export const createApolloServer = ({
       passport: buildPassportGraphQLMethods(ctx),
       logger: logger.child({ requestId: ctx.res.get("x-hash-request-id") }),
     }),
+    // @todo: we may want to disable introspection at some point for production
+    introspection: true,
     debug: true, // required for stack traces to be captured
     plugins: [
       {
