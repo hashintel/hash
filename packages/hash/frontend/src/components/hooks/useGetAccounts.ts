@@ -1,6 +1,6 @@
 import { useMemo } from "react";
+import { GetAccountsQuery } from "./../../graphql/apiTypes.gen";
 import { useQuery } from "@apollo/client";
-import { GetAccountsQuery } from "../../graphql/apiTypes.gen";
 import { getAccounts } from "../../graphql/queries/account.queries";
 
 export const useGetAccounts = () => {

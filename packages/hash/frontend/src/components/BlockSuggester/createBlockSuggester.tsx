@@ -15,8 +15,10 @@ import React, { CSSProperties } from "react";
 import { RenderPortal } from "../../blocks/page/usePortals";
 import { ensureMounted } from "../../lib/dom";
 import { BlockSuggester } from "./BlockSuggester";
+import { MentionSuggester } from "./MentionSuggester";
 
 interface Trigger {
+  triggerChar: string;
   /** matched search string including its leading slash */
   search: string;
   /** starting prosemirror document position */
@@ -42,8 +44,19 @@ const findTrigger = (state: EditorState<Schema>): Trigger | null => {
   // the parent's position relative to the document root
   const parentPos = cursor.pos - cursorPos;
 
-  // see if we can find a slash looking backwards
-  const slashMatch = text.substring(0, cursorPos).match(/\/\S*$/);
+  let triggerChar: string = "";
+  let slashMatch: RegExpMatchArray | null = null;
+
+  const triggerChars = ["@", "/"];
+
+  for (let item of triggerChars) {
+    slashMatch = text.substring(0, cursorPos).match(new RegExp(`${item}\\S*$`));
+    triggerChar = item;
+    if (slashMatch) break;
+  }
+
+  // see if we can find the trigger character looking backwards
+  // const slashMatch = text.substring(0, cursorPos).match(/\/\S*$/);
   if (!slashMatch) return null;
 
   const from = slashMatch.index!;
@@ -55,6 +68,7 @@ const findTrigger = (state: EditorState<Schema>): Trigger | null => {
     search: text.substring(from, to),
     from: parentPos + from,
     to: parentPos + to,
+    triggerChar,
   };
 };
 
@@ -145,7 +159,7 @@ export const createBlockSuggester = (
 
           if (!state.isOpen()) return this.destroy!();
 
-          const { from, to, search } = state.trigger!;
+          const { from, to, search, triggerChar } = state.trigger!;
           const coords = view.coordsAtPos(from);
 
           const style: CSSProperties = {
@@ -158,7 +172,10 @@ export const createBlockSuggester = (
            * @todo actually create and insert an instance of the selected block
            *   type variant
            */
-          const onChange = (_variant: BlockVariant, meta: BlockMeta) => {
+          const onBlockSuggesterChange = (
+            _variant: BlockVariant,
+            meta: BlockMeta,
+          ) => {
             getManager()
               .createRemoteBlock(meta.componentMetadata.componentId)
               .then((node) => {
@@ -182,17 +199,55 @@ export const createBlockSuggester = (
               });
           };
 
-          const jsx = (
-            <div style={style}>
-              <BlockSuggester
-                search={search.substring(1)}
-                onChange={onChange}
-              />
-            </div>
-          );
+          const onMentionChange = (entityId: string, name: string) => {
+            const $end = view.state.doc.resolve(to);
+            const { tr } = view.state;
+            const endPosition = $end.end(1);
 
-          ensureMounted(mountNode, document.body);
-          renderPortal(jsx, mountNode);
+            const mentionNode = view.state.schema.nodes.mention.create({
+              "data-mention-type": "user",
+              "data-mentionId": entityId,
+              entityId
+            });
+
+            mentionNode.text = name
+
+            console.log(mentionNode);
+            
+
+            tr.insert(endPosition, mentionNode);
+
+            // view.dispatch(tr);
+          };
+
+          let jsx: JSX.Element | null = null;
+
+          switch (triggerChar) {
+            case "/":
+              jsx = (
+                <div style={style}>
+                  <BlockSuggester
+                    search={search.substring(1)}
+                    onChange={onBlockSuggesterChange}
+                  />
+                </div>
+              );
+              break;
+            case "@":
+              jsx = (
+                <div style={style}>
+                  <MentionSuggester
+                    search={search.substring(1)}
+                    onChange={onMentionChange}
+                  />
+                </div>
+              );
+          }
+
+          if (jsx) {
+            ensureMounted(mountNode, document.body);
+            renderPortal(jsx, mountNode);
+          }
         },
         destroy() {
           renderPortal(null, mountNode);

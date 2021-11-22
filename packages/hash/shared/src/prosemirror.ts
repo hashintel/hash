@@ -7,12 +7,24 @@ export const childrenForTextEntity = (
   entity: Pick<Text, "properties">,
   schema: Schema,
 ): ProsemirrorNode<Schema>[] =>
-  entity.properties.tokens
+  [
+    ...entity.properties.tokens,
+    {
+      tokenType: "mention",
+      mentionType: "user",
+      entityId: "1223434",
+    } as TextToken,
+  ]
     // eslint-disable-next-line array-callback-return -- TODO: disable the rule because it’s not aware of TS
     .map((token) => {
       switch (token.tokenType) {
         case "hardBreak":
           return schema.node("hardBreak");
+        case "mention":
+          return schema.node("mention", {
+            mentionType: "user",
+            entityId: "some stuff",
+          });
         case "text": {
           return schema.text(
             token.text,
@@ -56,6 +68,14 @@ export const nodeToEntityProperties = (node: ProsemirrorNode<Schema>) => {
                     ?.attrs?.href,
                 }
               : {}),
+          });
+          break;
+        }
+        case "mention": {
+          tokens.push({
+            tokenType: "mention",
+            mentionType: "user",
+            entityId: child.attrs["data-entity-id"],
           });
           break;
         }

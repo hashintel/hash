@@ -63,7 +63,7 @@ export const createSchema = () =>
         inline: true,
         group: "inline",
         atom: true,
-        attrs: { mention: { default: "" } },
+        attrs: { mentionType: { default: null }, entityId: { default: null } },
         toDOM: (node) => {
           const { mentionType, entityId } = node.attrs;
           return [
