@@ -158,6 +158,7 @@ class Runner:
             group_state.msg_batch = self.batches.sync(message_batches[i], sim.schema.msg)
             group_state.msg_batch.load_missing_cols(sim.schema.msg, {})
 
+    # TODO: rename to terminate?
     def kill(self):
         self.batches.free()
         del self.messenger
@@ -184,7 +185,7 @@ class Runner:
         try:
             while True:
                 msg, t = self.messenger.recv()
-                if t == MESSAGE_TYPE.KillRunner:
+                if t == MESSAGE_TYPE.TerminateRunner:
                     self.kill()
                     break
 

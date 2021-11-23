@@ -77,9 +77,6 @@ pub enum Error {
     #[error("HTTP error: {0}")]
     Surf(http_types::StatusCode),
 
-    // #[error("Kill signal mpsc send error: {0:?}")]
-    // KillSend(#[from] tokio::sync::mpsc::error::SendError<message::KillMessage>),
-
     // #[error("Experiment main loop to handler send error: {0:?}")]
     // HandlerSend(#[from] tokio::sync::mpsc::error::SendError<message::HandlerTopLevel>),
     #[error("Sim status send error: {0:?}")]

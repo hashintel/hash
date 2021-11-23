@@ -15,7 +15,7 @@ from fbs.StateSnapshotSync import StateSnapshotSync
 from fbs.ContextBatchSync import ContextBatchSync
 from fbs.StateInterimSync import StateInterimSync
 from fbs.TerminateSimulationRun import TerminateSimulationRun
-from fbs.KillRunner import KillRunner
+from fbs.TerminateRunner import TerminateRunner
 from fbs.NewSimulationRun import NewSimulationRun
 from fbs.PackageType import PackageType
 
@@ -180,8 +180,8 @@ class Messenger:
         if t == MESSAGE_TYPE.TerminateSimulationRun:
             return PyTerminateSim(sim_sid, TerminateSimulationRun().Init(p.Bytes, p.Pos)), t
 
-        if t == MESSAGE_TYPE.KillRunner:
-            return None, t  # KillRunner payload is empty.
+        if t == MESSAGE_TYPE.TerminateRunner:
+            return None, t  # TerminateRunner payload is empty.
 
         if t == MESSAGE_TYPE.NewSimulationRun:
             return PyStartSim(sim_sid, NewSimulationRun().Init(p.Bytes, p.Pos)), t

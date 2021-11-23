@@ -11,6 +11,6 @@ class RunnerInboundMsgPayload(object):
     ContextBatchSync = 5
     StateInterimSync = 6
     TerminateSimulationRun = 7
-    KillRunner = 8
+    TerminateRunner = 8
     NewSimulationRun = 9
 

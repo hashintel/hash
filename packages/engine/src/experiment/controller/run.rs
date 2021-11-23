@@ -110,12 +110,12 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
         workerpool::comms::experiment::new_pair();
     let (worker_pool_controller_send, worker_pool_controller_recv) =
         workerpool::comms::top::new_pair();
-    let (worker_pool_kill_send, kill_recv) = workerpool::comms::kill::new_pair();
+    let (worker_pool_terminate_send, terminate_recv) = workerpool::comms::terminate::new_pair();
     let (mut worker_pool_controller, worker_pool_send_base) =
         WorkerPoolController::new_with_sender(
             exp_config.clone(),
             experiment_control_recv,
-            kill_recv,
+            terminate_recv,
             worker_pool_controller_send,
         )?;
 

@@ -215,7 +215,7 @@ impl RustRunner {
         outbound_sender: &UnboundedSender<OutboundFromRunnerMsg>,
     ) -> Result<KeepRunning> {
         match msg {
-            InboundToRunnerMsgPayload::KillRunner => {
+            InboundToRunnerMsgPayload::TerminateRunner => {
                 return Ok(false); // Don't continue running.
             }
             InboundToRunnerMsgPayload::NewSimulationRun(new_run) => {

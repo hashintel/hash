@@ -51,7 +51,7 @@ pub const ENUM_VALUES_RUNNER_INBOUND_MSG_PAYLOAD: [RunnerInboundMsgPayload; 10] 
     RunnerInboundMsgPayload::ContextBatchSync,
     RunnerInboundMsgPayload::StateInterimSync,
     RunnerInboundMsgPayload::TerminateSimulationRun,
-    RunnerInboundMsgPayload::KillRunner,
+    RunnerInboundMsgPayload::TerminateRunner,
     RunnerInboundMsgPayload::NewSimulationRun,
 ];
 
@@ -68,7 +68,7 @@ impl RunnerInboundMsgPayload {
     pub const ContextBatchSync: Self = Self(5);
     pub const StateInterimSync: Self = Self(6);
     pub const TerminateSimulationRun: Self = Self(7);
-    pub const KillRunner: Self = Self(8);
+    pub const TerminateRunner: Self = Self(8);
     pub const NewSimulationRun: Self = Self(9);
 
     pub const ENUM_MIN: u8 = 0;
@@ -82,7 +82,7 @@ impl RunnerInboundMsgPayload {
         Self::ContextBatchSync,
         Self::StateInterimSync,
         Self::TerminateSimulationRun,
-        Self::KillRunner,
+        Self::TerminateRunner,
         Self::NewSimulationRun,
     ];
     /// Returns the variant's name or "" if unknown.
@@ -96,7 +96,7 @@ impl RunnerInboundMsgPayload {
             Self::ContextBatchSync => Some("ContextBatchSync"),
             Self::StateInterimSync => Some("StateInterimSync"),
             Self::TerminateSimulationRun => Some("TerminateSimulationRun"),
-            Self::KillRunner => Some("KillRunner"),
+            Self::TerminateRunner => Some("TerminateRunner"),
             Self::NewSimulationRun => Some("NewSimulationRun"),
             _ => None,
         }
@@ -503,15 +503,15 @@ impl std::fmt::Debug for CancelTask<'_> {
         ds.finish()
     }
 }
-pub enum KillRunnerOffset {}
+pub enum TerminateRunnerOffset {}
 #[derive(Copy, Clone, PartialEq)]
 
-pub struct KillRunner<'a> {
+pub struct TerminateRunner<'a> {
     pub _tab: flatbuffers::Table<'a>,
 }
 
-impl<'a> flatbuffers::Follow<'a> for KillRunner<'a> {
-    type Inner = KillRunner<'a>;
+impl<'a> flatbuffers::Follow<'a> for TerminateRunner<'a> {
+    type Inner = TerminateRunner<'a>;
     #[inline]
     fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
         Self {
@@ -520,22 +520,22 @@ impl<'a> flatbuffers::Follow<'a> for KillRunner<'a> {
     }
 }
 
-impl<'a> KillRunner<'a> {
+impl<'a> TerminateRunner<'a> {
     #[inline]
     pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
-        KillRunner { _tab: table }
+        TerminateRunner { _tab: table }
     }
     #[allow(unused_mut)]
     pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
         _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
-        _args: &'args KillRunnerArgs,
-    ) -> flatbuffers::WIPOffset<KillRunner<'bldr>> {
-        let mut builder = KillRunnerBuilder::new(_fbb);
+        _args: &'args TerminateRunnerArgs,
+    ) -> flatbuffers::WIPOffset<TerminateRunner<'bldr>> {
+        let mut builder = TerminateRunnerBuilder::new(_fbb);
         builder.finish()
     }
 }
 
-impl flatbuffers::Verifiable for KillRunner<'_> {
+impl flatbuffers::Verifiable for TerminateRunner<'_> {
     #[inline]
     fn run_verifier(
         v: &mut flatbuffers::Verifier,
@@ -546,36 +546,36 @@ impl flatbuffers::Verifiable for KillRunner<'_> {
         Ok(())
     }
 }
-pub struct KillRunnerArgs {}
-impl<'a> Default for KillRunnerArgs {
+pub struct TerminateRunnerArgs {}
+impl<'a> Default for TerminateRunnerArgs {
     #[inline]
     fn default() -> Self {
-        KillRunnerArgs {}
+        TerminateRunnerArgs {}
     }
 }
-pub struct KillRunnerBuilder<'a: 'b, 'b> {
+pub struct TerminateRunnerBuilder<'a: 'b, 'b> {
     fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
     start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b> KillRunnerBuilder<'a, 'b> {
+impl<'a: 'b, 'b> TerminateRunnerBuilder<'a, 'b> {
     #[inline]
-    pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> KillRunnerBuilder<'a, 'b> {
+    pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> TerminateRunnerBuilder<'a, 'b> {
         let start = _fbb.start_table();
-        KillRunnerBuilder {
+        TerminateRunnerBuilder {
             fbb_: _fbb,
             start_: start,
         }
     }
     #[inline]
-    pub fn finish(self) -> flatbuffers::WIPOffset<KillRunner<'a>> {
+    pub fn finish(self) -> flatbuffers::WIPOffset<TerminateRunner<'a>> {
         let o = self.fbb_.end_table(self.start_);
         flatbuffers::WIPOffset::new(o.value())
     }
 }
 
-impl std::fmt::Debug for KillRunner<'_> {
+impl std::fmt::Debug for TerminateRunner<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut ds = f.debug_struct("KillRunner");
+        let mut ds = f.debug_struct("TerminateRunner");
         ds.finish()
     }
 }
@@ -800,10 +800,10 @@ impl<'a> RunnerInboundMsg<'a> {
 
     #[inline]
     #[allow(non_snake_case)]
-    pub fn payload_as_kill_runner(&self) -> Option<KillRunner<'a>> {
-        if self.payload_type() == RunnerInboundMsgPayload::KillRunner {
+    pub fn payload_as_terminate_runner(&self) -> Option<TerminateRunner<'a>> {
+        if self.payload_type() == RunnerInboundMsgPayload::TerminateRunner {
             let u = self.payload();
-            Some(KillRunner::init_from_table(u))
+            Some(TerminateRunner::init_from_table(u))
         } else {
             None
         }
@@ -874,9 +874,9 @@ impl flatbuffers::Verifiable for RunnerInboundMsg<'_> {
                         "RunnerInboundMsgPayload::TerminateSimulationRun",
                         pos,
                     ),
-                    RunnerInboundMsgPayload::KillRunner => v
-                        .verify_union_variant::<flatbuffers::ForwardsUOffset<KillRunner>>(
-                            "RunnerInboundMsgPayload::KillRunner",
+                    RunnerInboundMsgPayload::TerminateRunner => v
+                        .verify_union_variant::<flatbuffers::ForwardsUOffset<TerminateRunner>>(
+                            "RunnerInboundMsgPayload::TerminateRunner",
                             pos,
                         ),
                     RunnerInboundMsgPayload::NewSimulationRun => v
@@ -1024,8 +1024,8 @@ impl std::fmt::Debug for RunnerInboundMsg<'_> {
                     )
                 }
             }
-            RunnerInboundMsgPayload::KillRunner => {
-                if let Some(x) = self.payload_as_kill_runner() {
+            RunnerInboundMsgPayload::TerminateRunner => {
+                if let Some(x) = self.payload_as_terminate_runner() {
                     ds.field("payload", &x)
                 } else {
                     ds.field(

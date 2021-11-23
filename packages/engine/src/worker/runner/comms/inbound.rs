@@ -17,7 +17,7 @@ pub enum InboundToRunnerMsgPayload {
     ContextBatchSync(ContextBatchSync),
     StateInterimSync(StateInterimSync),
     TerminateSimulationRun,
-    KillRunner,
+    TerminateRunner,
     NewSimulationRun(NewSimulationRun),
 }
 
@@ -31,7 +31,7 @@ impl fmt::Debug for InboundToRunnerMsgPayload {
             InboundToRunnerMsgPayload::ContextBatchSync(_) => "ContextBatchSync",
             InboundToRunnerMsgPayload::StateInterimSync(_) => "StateInterimSync",
             InboundToRunnerMsgPayload::TerminateSimulationRun => "TerminateSimulationRun",
-            InboundToRunnerMsgPayload::KillRunner => "KillRunner",
+            InboundToRunnerMsgPayload::TerminateRunner => "TerminateRunner",
             InboundToRunnerMsgPayload::NewSimulationRun(_) => "NewSimulationRun",
         };
         f.write_str(variant)

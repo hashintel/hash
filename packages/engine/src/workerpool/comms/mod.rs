@@ -1,6 +1,6 @@
 pub mod experiment;
-pub mod kill;
 pub mod main;
+pub mod terminate;
 pub mod top;
 
 pub use super::{Error, Result};
@@ -18,8 +18,8 @@ use crate::proto::SimulationShortID;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
 pub use experiment::ExpMsgRecv;
-pub use kill::KillRecv;
 pub use main::{new_no_sim, MainMsgRecv, MainMsgSend};
+pub use terminate::TerminateRecv;
 
 #[derive(Debug)]
 pub enum WorkerPoolToWorkerMsgPayload {
@@ -100,7 +100,7 @@ pub struct WorkerCommsWithWorkerPool {
     index: WorkerIndex,
     send_to_wp: UnboundedSender<(WorkerIndex, WorkerToWorkerPoolMsg)>,
     recv_from_wp: Option<UnboundedReceiver<WorkerPoolToWorkerMsg>>,
-    kill_recv: KillRecv,
+    terminate_recv: TerminateRecv,
 }
 
 impl WorkerCommsWithWorkerPool {
@@ -124,7 +124,10 @@ impl WorkerCommsWithWorkerPool {
 }
 
 pub struct WorkerPoolCommsWithWorkers {
-    send_to_w: Vec<(UnboundedSender<WorkerPoolToWorkerMsg>, kill::KillSend)>,
+    send_to_w: Vec<(
+        UnboundedSender<WorkerPoolToWorkerMsg>,
+        terminate::TerminateSend,
+    )>,
     recv_from_w: UnboundedReceiver<(WorkerIndex, WorkerToWorkerPoolMsg)>,
 }
 
@@ -132,7 +135,10 @@ impl WorkerPoolCommsWithWorkers {
     fn get_worker_senders(
         &self,
         worker_index: WorkerIndex,
-    ) -> Result<&(UnboundedSender<WorkerPoolToWorkerMsg>, kill::KillSend)> {
+    ) -> Result<&(
+        UnboundedSender<WorkerPoolToWorkerMsg>,
+        terminate::TerminateSend,
+    )> {
         self.send_to_w
             .get(worker_index)
             .ok_or_else(|| Error::MissingWorkerWithIndex(worker_index))
@@ -141,7 +147,10 @@ impl WorkerPoolCommsWithWorkers {
     fn get_mut_worker_senders(
         &mut self,
         worker_index: WorkerIndex,
-    ) -> Result<&mut (UnboundedSender<WorkerPoolToWorkerMsg>, kill::KillSend)> {
+    ) -> Result<&mut (
+        UnboundedSender<WorkerPoolToWorkerMsg>,
+        terminate::TerminateSend,
+    )> {
         self.send_to_w
             .get_mut(worker_index)
             .ok_or_else(|| Error::MissingWorkerWithIndex(worker_index))
@@ -163,17 +172,19 @@ impl WorkerPoolCommsWithWorkers {
             .map_err(Error::from)
     }
 
-    pub async fn send_kill_and_confirm(&mut self, worker_index: WorkerIndex) -> Result<()> {
+    pub async fn send_terminate_and_confirm(&mut self, worker_index: WorkerIndex) -> Result<()> {
         let sender = &mut self.get_mut_worker_senders(worker_index)?.1;
         sender.send()?;
-        sender.recv_kill_confirmation_with_ms_timeout(100).await?;
+        sender
+            .recv_terminate_confirmation_with_ms_timeout(100)
+            .await?;
         Ok(())
     }
 
-    pub async fn send_kill_all(&mut self) -> Result<()> {
+    pub async fn send_terminate_all(&mut self) -> Result<()> {
         // No need to join all as this is called on exit
         for worker_index in 0..self.send_to_w.len() {
-            self.send_kill_and_confirm(worker_index).await?;
+            self.send_terminate_and_confirm(worker_index).await?;
         }
         Ok(())
     }
@@ -191,13 +202,13 @@ pub fn new_pool_comms(
     let worker_comms = (0..num_workers)
         .map(|index| {
             let (sender, recv_from_wp) = unbounded_channel();
-            let (kill_send, kill_recv) = kill::new_pair();
-            send_to_w.push((sender, kill_send));
+            let (terminate_send, terminate_recv) = terminate::new_pair();
+            send_to_w.push((sender, terminate_send));
             WorkerCommsWithWorkerPool {
                 index,
                 send_to_wp: send_to_wp.clone(),
                 recv_from_wp: Some(recv_from_wp),
-                kill_recv,
+                terminate_recv,
             }
         })
         .collect();

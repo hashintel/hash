@@ -28,14 +28,14 @@ pub enum Error {
     #[error("Missing worker with index {0}")]
     MissingWorkerWithIndex(crate::types::WorkerIndex),
 
-    #[error("Kill message already sent")]
-    KillMessageAlreadySent,
+    #[error("Terminate message already sent")]
+    TerminateMessageAlreadySent,
 
-    #[error("Kill message not sent")]
-    KillMessageNotSent,
+    #[error("Terminate message not sent")]
+    TerminateMessageNotSent,
 
-    #[error("Kill confirm already sent")]
-    KillConfirmAlreadySent,
+    #[error("Terminate confirm already sent")]
+    TerminateConfirmAlreadySent,
 
     #[error("Missing simulation with id {0}")]
     MissingSimulationWithID(proto::SimulationShortID),

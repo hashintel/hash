@@ -37,7 +37,7 @@ use self::comms::WorkerCommsWithWorkerPool;
 use self::pending::DistributionController;
 use self::{
     comms::{
-        experiment::ExperimentToWorkerPoolMsg, ExpMsgRecv, KillRecv, MainMsgRecv,
+        experiment::ExperimentToWorkerPoolMsg, ExpMsgRecv, MainMsgRecv, TerminateRecv,
         WorkerPoolCommsWithWorkers,
     },
     pending::{PendingWorkerPoolTask, PendingWorkerPoolTasks},
@@ -54,7 +54,7 @@ pub struct WorkerPoolController {
     pending_tasks: PendingWorkerPoolTasks,
     sim_recv: MainMsgRecv,
     exp_recv: ExpMsgRecv,
-    kill_recv: KillRecv,
+    terminate_recv: TerminateRecv,
     top_send: WorkerPoolMsgSend,
     worker_comms: Option<Vec<WorkerCommsWithWorkerPool>>,
     worker_base_config: Option<config::WorkerConfig>,
@@ -64,7 +64,7 @@ impl WorkerPoolController {
     pub fn new_with_sender<E: ExperimentRunRepr>(
         config: Arc<config::ExperimentConfig<E>>,
         experiment_control_recv: ExpMsgRecv,
-        kill_recv: KillRecv,
+        terminate_recv: TerminateRecv,
         worker_pool_controller_send: WorkerPoolMsgSend,
     ) -> Result<(Self, MainMsgSendBase)> {
         let WorkerPoolConfig {
@@ -86,7 +86,7 @@ impl WorkerPoolController {
                 pending_tasks,
                 sim_recv,
                 exp_recv: experiment_control_recv,
-                kill_recv,
+                terminate_recv,
                 top_send: worker_pool_controller_send,
                 worker_comms: Some(worker_comms),
                 worker_base_config: Some(worker_base_config),
@@ -153,7 +153,7 @@ impl WorkerPoolController {
     pub async fn run(mut self) -> Result<()> {
         log::debug!("Running Worker Pool Controller");
         pin!(let workers = self.run_worker_controllers()?;);
-        pin!(let kill_recv = self.kill_recv.take_recv()?;);
+        pin!(let terminate_recv = self.terminate_recv.take_recv()?;);
         loop {
             tokio::select! {
                 Some(msg) = self.sim_recv.recv() => {
@@ -174,13 +174,13 @@ impl WorkerPoolController {
                 //         self.handle_cancel_msgs(cancel_msgs).await?;
                 //     }
                 // }
-                kill_msg = &mut kill_recv => {
-                    kill_msg.map_err(|err| Error::from(format!("Couldn't receive kill: {:?}", err)))?;
-                    log::debug!("Sending kill msg to all workers");
-                    // Propagate kill msg to all workers
-                    self.comms.send_kill_all().await?;
+                terminate_msg = &mut terminate_recv => {
+                    terminate_msg.map_err(|err| Error::from(format!("Couldn't receive terminate: {:?}", err)))?;
+                    log::debug!("Sending terminate msg to all workers");
+                    // Propagate terminate msg to all workers
+                    self.comms.send_terminate_all().await?;
                     // Send confirmation of success
-                    self.kill_recv.confirm_kill()?;
+                    self.terminate_recv.confirm_terminate()?;
                     return Ok(())
                 }
                 work_res = &mut workers => {

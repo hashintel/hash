@@ -31,8 +31,6 @@ pub enum Error {
 
     // #[error("Simulation (id: {0}) failed with error: {1:?}")]
     // SimulationRunWorkFailed(String, crate::worker::Error),
-    #[error("Kill signal sender for simulation (id: {0}) unexpectedly closed")]
-    UnexpectedClosedKillSignalSender(String),
 
     // #[error("Main Loop Tokio upstream mpsc send error: {0:?}")]
     // TokioUpstreamSend(#[from] tokio::sync::mpsc::error::SendError<Upstream>),

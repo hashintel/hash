@@ -367,14 +367,14 @@ fn inbound_to_nng(
                 crate::gen::RunnerInboundMsgPayload::TerminateSimulationRun,
             )
         }
-        InboundToRunnerMsgPayload::KillRunner => {
-            let msg = crate::gen::runner_inbound_msg_generated::KillRunner::create(
+        InboundToRunnerMsgPayload::TerminateRunner => {
+            let msg = crate::gen::runner_inbound_msg_generated::TerminateRunner::create(
                 fbb,
-                &crate::gen::KillRunnerArgs {},
+                &crate::gen::TerminateRunnerArgs {},
             );
             (
                 msg.as_union_value(),
-                crate::gen::RunnerInboundMsgPayload::KillRunner,
+                crate::gen::RunnerInboundMsgPayload::TerminateRunner,
             )
         }
         InboundToRunnerMsgPayload::NewSimulationRun(msg) => {
@@ -610,15 +610,15 @@ pub struct PythonRunner {
     nng_sender: NngSender,
     send_result_receiver: Option<UnboundedReceiver<Result<()>>>,
     nng_receiver: NngReceiver,
-    kill_sender: Sender<()>,
-    kill_receiver: Option<Receiver<()>>,
+    terminate_sender: Sender<()>,
+    terminate_receiver: Option<Receiver<()>>,
     spawned: bool,
 }
 
 async fn _run(
     mut process: Child,
     mut send_result_receiver: UnboundedReceiver<Result<()>>,
-    mut kill_receiver: Receiver<()>,
+    mut terminate_receiver: Receiver<()>,
 ) -> WorkerResult<()> {
     log::debug!("Waiting for messages to Python runner");
     loop {
@@ -626,7 +626,7 @@ async fn _run(
             Some(nng_send_result) = send_result_receiver.recv() => {
                 nng_send_result?;
             }
-            Some(_) = kill_receiver.recv() => {
+            Some(_) = terminate_receiver.recv() => {
                 break;
             }
         }
@@ -653,15 +653,15 @@ impl PythonRunner {
         let (nng_sender, send_result_reciever) =
             NngSender::new(init.experiment_id.clone(), init.worker_index)?;
         let nng_receiver = NngReceiver::new(init.experiment_id.clone(), init.worker_index)?;
-        let (kill_sender, kill_receiver) = tokio::sync::mpsc::channel(2);
+        let (terminate_sender, terminate_receiver) = tokio::sync::mpsc::channel(2);
         Ok(Self {
             init_msg: init,
             spawned: spawn,
             nng_sender,
             send_result_receiver: Some(send_result_reciever),
             nng_receiver,
-            kill_sender,
-            kill_receiver: Some(kill_receiver),
+            terminate_sender,
+            terminate_receiver: Some(terminate_receiver),
         })
     }
 
@@ -670,11 +670,11 @@ impl PythonRunner {
         sim_id: Option<SimulationShortID>,
         msg: InboundToRunnerMsgPayload,
     ) -> WorkerResult<()> {
-        if matches!(msg, InboundToRunnerMsgPayload::KillRunner) {
-            self.kill_sender
+        if matches!(msg, InboundToRunnerMsgPayload::TerminateRunner) {
+            self.terminate_sender
                 .send(())
                 .await
-                .map_err(|e| Error::KillSend(e))?;
+                .map_err(|e| Error::TerminateSend(e))?;
         }
         self.nng_sender.send(sim_id, msg)?;
         Ok(())
@@ -743,9 +743,12 @@ impl PythonRunner {
             .send_result_receiver
             .take()
             .ok_or(Error::AlreadyRunning)?;
-        let kill_receiver = self.kill_receiver.take().ok_or(Error::AlreadyRunning)?;
+        let terminate_receiver = self
+            .terminate_receiver
+            .take()
+            .ok_or(Error::AlreadyRunning)?;
         Ok(Box::pin(tokio::spawn(async move {
-            _run(process, send_result_receiver, kill_receiver).await
+            _run(process, send_result_receiver, terminate_receiver).await
         })) as _)
     }
 }

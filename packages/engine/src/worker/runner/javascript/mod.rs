@@ -1029,7 +1029,7 @@ impl<'m> RunnerImpl<'m> {
         outbound_sender: &UnboundedSender<OutboundFromRunnerMsg>,
     ) -> Result<bool> {
         match msg {
-            InboundToRunnerMsgPayload::KillRunner => {
+            InboundToRunnerMsgPayload::TerminateRunner => {
                 return Ok(false); // Don't continue running.
             }
             InboundToRunnerMsgPayload::NewSimulationRun(new_run) => {

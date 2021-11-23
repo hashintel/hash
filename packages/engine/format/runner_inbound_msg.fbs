@@ -40,10 +40,10 @@ table CancelTask {
   task_id:TaskID;
 }
 
-// `KillRunner` Message Body Type.
+// `TerminateRunner` Message Body Type.
 //
 // Used by the engine process to signal language runners to exit their process
-table KillRunner {}
+table TerminateRunner {}
 
 // `TerminateSimulationRun` Message Body Type.
 //
@@ -64,7 +64,7 @@ union RunnerInboundMsgPayload {
   ContextBatchSync,
   StateInterimSync,
   TerminateSimulationRun,
-  KillRunner,
+  TerminateRunner,
   NewSimulationRun
 }
 
