@@ -7,15 +7,15 @@ import CopyIcon from "@material-ui/icons/FileCopyOutlined";
 import LoopIcon from "@material-ui/icons/LoopOutlined";
 import LinkIcon from "@material-ui/icons/LinkOutlined";
 import { useKey } from "rooks";
+import { BlockEntity } from "@hashintel/hash-shared/entity";
+import { useQuery } from "@apollo/client";
+
 import { blockDomId } from "../../blocks/page/BlockView";
 import {
   BlockSuggester,
   BlockSuggesterProps,
 } from "../BlockSuggester/BlockSuggester";
-
-import { BlockEntity } from "@hashintel/hash-shared/entity";
 import { getAccounts } from "../../graphql/queries/account.queries";
-import { useQuery } from "@apollo/client";
 import { GetAccountsQuery } from "../../graphql/apiTypes.gen";
 
 type BlockContextMenuProps = {
@@ -59,7 +59,7 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
 
   const { data } = useQuery<GetAccountsQuery>(getAccounts);
 
-  const blockData = getLastSavedValue().find(
+  const blockData: BlockEntity | undefined = getLastSavedValue().find(
     (block) => block.entityId === entityId,
   );
 
@@ -157,16 +157,16 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
           {
             data?.accounts.find(
               (account) =>
-                account.entityId === blockData.properties.entity.createdById,
+                account.entityId === blockData?.properties.entity.createdById,
             )?.properties.shortname
           }
         </p>
         <p>
-          {dayjs(blockData.properties.entity.entityVersionCreatedAt).format(
+          {dayjs(blockData?.properties.entity.entityVersionCreatedAt).format(
             "HH.mm a",
           )}
           {", "}
-          {dayjs(blockData.properties.entity.entityVersionCreatedAt).format(
+          {dayjs(blockData?.properties.entity.entityVersionCreatedAt).format(
             "DD/MM/YYYY",
           )}
         </p>
