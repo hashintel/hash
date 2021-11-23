@@ -27,6 +27,7 @@ export const resolveLinkedData = async (
   info: GraphQLResolveInfo,
   resolvedEntities: { entityId: string; entityVersionId: string }[] = [],
 ) => {
+  const db = ctx.dataSources.db;
   if (!isRecord(object)) {
     return;
   }
@@ -65,9 +66,46 @@ export const resolveLinkedData = async (
       continue;
     }
 
-    const { aggregate, entityTypeId } = value as LinkedDataDefinition;
+    const { aggregate, entityId, entityVersionId, entityTypeId } =
+      value as LinkedDataDefinition;
 
-    if (entityTypeId && aggregate) {
+    // We need a type and one of an aggregation operation or id
+    if (!entityTypeId || (!aggregate && !entityId)) {
+      continue;
+    }
+
+    if (entityId || entityVersionId) {
+      if (!entityId) {
+        throw new Error('__linkedData field "entityId" must be provided.');
+      }
+      // Fetch a single entity and resolve any linked data in it
+      const accountId = await db.getEntityAccountId({
+        entityId,
+        entityVersionId,
+      });
+      const entity = entityVersionId
+        ? await db.getEntity({ accountId, entityVersionId })
+        : await db.getEntityLatestVersion({ accountId, entityId });
+      if (!entity) {
+        throw new Error(`entity ${entityId} in account ${accountId} not found`);
+      }
+      object.data = entity;
+      if (
+        resolvedEntities.find(
+          (resolvedEntity) =>
+            resolvedEntity.entityVersionId === entity.entityVersionId &&
+            resolvedEntity.entityId === entity.entityId,
+        ) === undefined
+      ) {
+        await resolveLinkedData(ctx, entity.accountId, object.data, info, [
+          ...resolvedEntities,
+          {
+            entityId: entity.entityId,
+            entityVersionId: entity.entityVersionId,
+          },
+        ]);
+      }
+    } else if (aggregate) {
       // Fetch an array of entities
       const { results, operation } = await aggregateEntity(
         {},
