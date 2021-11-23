@@ -117,6 +117,7 @@ export const createEditorView = (
           getPos,
           renderPortal,
           manager,
+          getLastSavedValue
         );
       },
     },

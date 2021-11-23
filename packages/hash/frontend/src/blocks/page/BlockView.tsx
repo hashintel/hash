@@ -3,6 +3,7 @@ import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { findComponentNodes } from "@hashintel/hash-shared/prosemirror";
+import { BlockEntity } from "@hashintel/hash-shared/entity";
 import { Schema } from "prosemirror-model";
 import { NodeSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
@@ -25,10 +26,11 @@ import { CollabPositionIndicators } from "./CollabPositionIndicators";
 type BlockHandleProps = {
   entityId: string | null;
   onTypeChange: BlockSuggesterProps["onChange"];
+  getLastSavedValue: () => BlockEntity[];
 };
 
 export const BlockHandle = forwardRef<HTMLDivElement, BlockHandleProps>(
-  ({ entityId, onTypeChange }, ref) => {
+  ({ entityId, onTypeChange, getLastSavedValue }, ref) => {
     const [isPopoverVisible, setPopoverVisible] = useState(false);
 
     useOutsideClick(ref as RefObject<HTMLDivElement>, () =>
@@ -53,6 +55,7 @@ export const BlockHandle = forwardRef<HTMLDivElement, BlockHandleProps>(
             entityId={entityId}
             blockSuggesterProps={blockSuggesterProps}
             closeMenu={() => setPopoverVisible(false)}
+            getLastSavedValue={getLastSavedValue}
           />
         )}
       </div>
@@ -95,6 +98,7 @@ export class BlockView implements NodeView<Schema> {
     public getPos: () => number,
     public renderPortal: RenderPortal,
     public manager: ProsemirrorSchemaManager,
+    public getLastSavedValue: () => BlockEntity[],
   ) {
     this.dom = document.createElement("div");
     this.dom.classList.add(styles.Block);
@@ -241,6 +245,7 @@ export class BlockView implements NodeView<Schema> {
           ref={this.blockHandleRef}
           entityId={blockEntityId}
           onTypeChange={this.onBlockChange}
+          getLastSavedValue={this.getLastSavedValue}
         />
       </>,
       this.selectContainer,

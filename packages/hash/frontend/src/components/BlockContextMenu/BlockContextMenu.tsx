@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { tw } from "twind";
+import dayjs from "dayjs";
+
 import DeleteIcon from "@material-ui/icons/DeleteOutline";
 import CopyIcon from "@material-ui/icons/FileCopyOutlined";
 import LoopIcon from "@material-ui/icons/LoopOutlined";
@@ -11,10 +13,16 @@ import {
   BlockSuggesterProps,
 } from "../BlockSuggester/BlockSuggester";
 
+import { BlockEntity } from "@hashintel/hash-shared/entity";
+import { getAccounts } from "../../graphql/queries/account.queries";
+import { useQuery } from "@apollo/client";
+import { GetAccountsQuery } from "../../graphql/apiTypes.gen";
+
 type BlockContextMenuProps = {
   blockSuggesterProps: BlockSuggesterProps;
   closeMenu: () => void;
   entityId: string | null;
+  getLastSavedValue: () => BlockEntity[];
 };
 
 const MENU_ITEMS = [
@@ -44,9 +52,16 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
   blockSuggesterProps,
   closeMenu,
   entityId,
+  getLastSavedValue,
 }) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [subMenuVisible, setSubMenuVisible] = useState(false);
+
+  const { data } = useQuery<GetAccountsQuery>(getAccounts);
+
+  const blockData = getLastSavedValue().find(
+    (block) => block.entityId === entityId,
+  );
 
   useKey(["ArrowUp", "ArrowDown"], (event) => {
     event.preventDefault();
@@ -137,8 +152,24 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
       <div
         className={tw`border-t-1 border-gray-200 px-4 py-2 text-xs text-gray-400`}
       >
-        <p>Last edited by Valentino Ugbala</p>
-        <p>11/03/2021</p>
+        <p>
+          Last edited by {/* @todo use lastedited value when available */}
+          {
+            data?.accounts.find(
+              (account) =>
+                account.entityId === blockData.properties.entity.createdById,
+            )?.properties.shortname
+          }
+        </p>
+        <p>
+          {dayjs(blockData.properties.entity.entityVersionCreatedAt).format(
+            "HH.mm a",
+          )}
+          {", "}
+          {dayjs(blockData.properties.entity.entityVersionCreatedAt).format(
+            "DD/MM/YYYY",
+          )}
+        </p>
       </div>
     </div>
   );
