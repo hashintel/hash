@@ -165,7 +165,6 @@ create table if not exists outgoing_links (
     )
 );
 
-
 /** Stores reverse child --> parent link references for looking up the incoming links for a given entity */
 create table if not exists incoming_links (
     destination_account_id      uuid not null,
@@ -177,6 +176,32 @@ create table if not exists incoming_links (
       destination_account_id, -- included in the primary key so it can be used as a sharding key
       destination_entity_id,
       link_id
+    )
+);
+
+/** Stores aggregations of entities */
+create table if not exists aggregations (
+    -- The account id of the source entity
+    source_account_id             uuid not null,
+    -- The entity id of the source entity.
+    source_entity_id              uuid not null,
+    -- The JSON path of the aggregation on the source entity's properties JSON blob
+    path                          text not null,
+    -- The entity version ids of the source entity's versions where
+    -- this aggregation exists.
+    source_entity_version_ids     uuid[] not null,
+    -- The aggregation operation
+    operation                     jsonb not null,
+    -- The account that created this aggregation
+    created_by                    uuid not null,
+    -- The time at which the first version of this type was created
+    created_at                    timestamp with time zone not null,
+
+    constraint aggregations_pk primary key (
+      source_account_id, -- included in the primary key so it can be used as a sharding key
+      source_entity_id,
+      path,
+			source_entity_version_ids
     )
 );
 
