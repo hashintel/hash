@@ -8,7 +8,7 @@ pub fn gather_behavior_chains(
     state: &ExState,
     config: &BehaviorConfig,
     data_types: [arrow::datatypes::DataType; 3],
-    column_index: usize,
+    column_key: FieldKey,
 ) -> Result<StateColumn> {
     let batches = state.agent_pool().read_batches()?;
 
@@ -17,7 +17,7 @@ pub fn gather_behavior_chains(
         .collect::<Result<Vec<_>>>()?;
     Ok(StateColumn::new(Box::new(ChainList {
         inner,
-        column_index,
+        column_key,
         data_types,
     })))
 }
@@ -54,7 +54,7 @@ impl Chain {
 
 pub struct ChainList {
     inner: Vec<Chain>,
-    column_index: usize,
+    column_key: FieldKey,
     data_types: [arrow::datatypes::DataType; 3],
 }
 
@@ -109,6 +109,8 @@ impl IntoArrowChange for ChainList {
             .buffers(vec![offsets.freeze()])
             .add_child_data(child_data)
             .build();
-        Ok(ArrayChange::new(data, self.column_index))
+
+        let column_index = todo!();
+        Ok(ArrayChange::new(data, column_index))
     }
 }

@@ -1,6 +1,6 @@
 import sys
 
-# `behavior_descs` should have fields `id`, `name`, `source`, `columns`,
+# `behavior_descs` should be a list of objects that have fields `id`, `name`, `source`, `columns`,
 # `language` and `dyn_access`.
 def load_behaviors(behavior_descs):
     behaviors = {}
@@ -86,7 +86,7 @@ def postprocess(agent_state):
         while len(direction) < 3:
             direction.append(0.0)
 
-def run_task(experiment, sim, task_message, group_state, group_context):    
+def run_task(experiment, sim, _task_message, group_state, group_context):
     next_lang = None
     agent_state = None
     agent_context = None
@@ -126,7 +126,7 @@ def run_task(experiment, sim, task_message, group_state, group_context):
             i_behavior += 1
 
         agent_state.__i_behavior = i_behavior
-    
+
     return {
-        "target": next_lang || "main" # TODO: What is this syntax? It doesn't look right
+        "target": next_lang if next_lang is not None else "main"
     }

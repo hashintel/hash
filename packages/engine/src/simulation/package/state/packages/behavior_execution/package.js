@@ -196,6 +196,6 @@ const run_task = (experiment, sim, task_message, group_state, group_context) => 
     
     return {
         "print": experiment.logged,
-        "target": next_lang || "main"
+        "target": next_lang || "main",
     };
 }

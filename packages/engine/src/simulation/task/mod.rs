@@ -22,6 +22,8 @@ pub enum Task {
     OutputTask,
 }
 
+// TODO: Is there an important differentiation between Task and TaskMessage
+
 // Notes:
 
 // Each operation that a package wants to do must be declared as a Task

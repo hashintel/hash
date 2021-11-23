@@ -7,7 +7,7 @@
 /// will have read access to all of agent state.
 #[derive(Default, Debug)]
 pub struct Distribution {
-    pub single_read_access: bool,
+    pub single_read_access: bool, // TODO rename this, it seems misleading
 }
 
 pub enum Config {

@@ -32,7 +32,7 @@ pub enum StateTask {
 }
 
 /// All state package task messages are registered in this enum
-#[enum_dispatch(Into<TaskResult>)]
+#[enum_dispatch(RegisterWithoutTrait)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum StateTaskMessage {
     ExecuteBehaviorsTaskMessage,

@@ -7,7 +7,9 @@ use self::{
     config::{init_message, BehaviorConfig},
     fields::behavior::BehaviorMap,
 };
+use crate::datastore::schema::FieldKey;
 use crate::datastore::table::state::ReadState;
+use crate::simulation::task::active::ActiveTask;
 use serde_json::Value;
 
 use super::super::*;
@@ -32,12 +34,11 @@ impl PackageCreator for Creator {
         accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn Package>> {
         todo!();
-        // let index_column_index = config.sim.store.agent_schema.column_index_of()?;
         // let index_column_data_types = fields::index_column_data_types()?;
         // let behavior_map = BehaviorMap::try_from(&config.exp)?;
         // Ok(Box::new(BehaviorExecution {
         //     behavior_config,
-        //     index_column_index,
+        //     index_column_field_key,
         //     index_column_data_types,
         //     comms,
         //     behavior_map,
@@ -65,7 +66,7 @@ impl GetWorkerExpStartMsg for Creator {
 
 struct BehaviorExecution {
     behavior_config: Arc<BehaviorConfig>,
-    index_column_index: usize, // TODO[3] this shouldn't be using such a low-level tool (should use FieldKey)
+    index_column_field_key: FieldKey,
     index_column_data_types: [arrow::datatypes::DataType; 3],
     comms: PackageComms,
     behavior_map: BehaviorMap,
@@ -73,6 +74,7 @@ struct BehaviorExecution {
 
 // TODO OS - Needs implementing
 impl BehaviorExecution {
+    // TODO update doc with correct key, not __behaviors
     /// Iterates over all "behaviors" fields of agents and writes them into their "__behaviors" field.
     /// This fixation guarantees that all behaviors that were there in the beginning of behavior execution
     /// will be executed accordingly
@@ -81,7 +83,7 @@ impl BehaviorExecution {
             state,
             &self.behavior_config,
             self.index_column_data_types.clone(),
-            self.index_column_index,
+            self.index_column_field_key.clone(),
         )?;
         state.set_pending_column(behavior_indices)?;
         state.flush_pending_columns()?;
@@ -89,14 +91,15 @@ impl BehaviorExecution {
     }
 
     /// Sends out behavior execution commands to workers
-    async fn begin_execution(&mut self, state: &ExState) -> Result<()> {
+    async fn begin_execution(&mut self, state: &ExState) -> Result<ActiveTask> {
+        // let active_task = self.comms.new_task(task, _).await?;
+        // check language of behavior
+        // for batch in state.agent_pool().read_batches()? {
+        //     for agent in batch {
+        //         for behavior in agent.behaviors
+        //     }
+        // }
         todo!()
-    }
-
-    /// Wait for all workers to notify of finished execution
-    async fn wait_results(&mut self) -> Result<()> {
-        todo!()
-        // TODO update update reload state as well
     }
 }
 
@@ -111,8 +114,11 @@ impl GetWorkerSimStartMsg for BehaviorExecution {
 impl Package for BehaviorExecution {
     async fn run(&mut self, state: &mut ExState, context: &Context) -> Result<()> {
         self.fix_behavior_chains(state)?;
-        self.begin_execution(state).await?;
-        self.wait_results().await?;
+        let active_task = self.begin_execution(state).await?;
+        // wait for results
+        active_task.drive_to_completion().await?;
+
+        // TODO update update reload state as well
         Ok(())
     }
 }

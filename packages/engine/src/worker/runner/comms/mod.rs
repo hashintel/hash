@@ -20,7 +20,7 @@ use crate::{
 pub mod inbound;
 pub mod outbound;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum MessageTarget {
     Rust,
     Python,
