@@ -207,17 +207,19 @@ export const createBlockSuggester = (
             const mentionNode = view.state.schema.nodes.mention.create({
               "data-mention-type": "user",
               "data-mentionId": entityId,
-              entityId
+              entityId,
             });
 
-            mentionNode.text = name
+            // const mentionNode = view.state.schema.text(
+            //   `@${name}`);
+
+            // mentionNode.text = name
 
             console.log(mentionNode);
-            
 
             tr.insert(endPosition, mentionNode);
 
-            // view.dispatch(tr);
+            view.dispatch(tr);
           };
 
           let jsx: JSX.Element | null = null;

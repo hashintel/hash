@@ -1,5 +1,3 @@
-import { BlockVariant } from "@hashintel/block-protocol";
-import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useKey } from "rooks";
 import { tw } from "twind";
@@ -79,7 +77,7 @@ export const MentionSuggester: React.VFC<MentionSuggesterProps> = ({
             className={tw`flex items-center border border-gray-100 ${
               index !== selectedIndex ? "bg-gray-50" : "bg-gray-100"
             } hover:bg-gray-100 px-2 py-1`}
-            onClick={() => {}}
+            onClick={() => onChange(option.entityId, option.name)}
           >
             <div
               className={tw`w-6 h-6 flex items-center justify-center text-sm rounded-full bg-gray-200 mr-2`}

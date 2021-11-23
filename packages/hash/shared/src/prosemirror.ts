@@ -7,14 +7,7 @@ export const childrenForTextEntity = (
   entity: Pick<Text, "properties">,
   schema: Schema,
 ): ProsemirrorNode<Schema>[] =>
-  [
-    ...entity.properties.tokens,
-    {
-      tokenType: "mention",
-      mentionType: "user",
-      entityId: "1223434",
-    } as TextToken,
-  ]
+  entity.properties.tokens
     // eslint-disable-next-line array-callback-return -- TODO: disable the rule because it’s not aware of TS
     .map((token) => {
       switch (token.tokenType) {

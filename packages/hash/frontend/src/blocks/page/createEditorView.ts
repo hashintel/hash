@@ -1,3 +1,4 @@
+import { MentionView } from "./MentionView";
 import { ApolloClient } from "@apollo/client";
 import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
@@ -112,6 +113,19 @@ export const createEditorView = (
           throw new Error("Invalid config for nodeview");
         }
         return new BlockView(
+          currentNode,
+          currentView,
+          getPos,
+          renderPortal,
+          manager,
+        );
+      },
+      mention(currentNode, currentView, getPos) {
+        if (typeof getPos === "boolean") {
+          throw new Error("Invalid config for nodeview");
+        }
+
+        return new MentionView(
           currentNode,
           currentView,
           getPos,
