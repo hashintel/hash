@@ -92,7 +92,6 @@ pub enum ExperimentControl {
     PauseSim(SimulationShortID),
     ResumeSim(SimulationShortID),
     StopSim(SimulationShortID),
-    StopExperiment,
 }
 
 pub fn init_exp_package(

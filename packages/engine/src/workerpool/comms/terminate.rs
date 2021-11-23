@@ -7,6 +7,12 @@ use tokio::{
     time::timeout,
 };
 
+// TODO: Make the termination logic more cohesive, one implementation can probably be shared across
+//   runners, workers, workerpool, and possibly others too. An example of the disconnect right now
+//   is the difference between TerminateMessage that's separate from workerpool <-> worker messages,
+//   but the runner has a variant of its payload to indicate a termination signal:
+//   crate::worker::runner::comms::inbound::InboundToRunnerMsgPayload::TerminateRunner
+
 pub struct TerminateMessage {}
 
 pub struct TerminateRecv {
@@ -48,7 +54,7 @@ impl TerminateSend {
             .ok_or_else(|| Error::TerminateMessageAlreadySent)?;
         sender
             .send(TerminateMessage {})
-            .map_err(|_| Error::from("Couldn't send terminate message"))?;
+            .map_err(|err| Error::from("Couldn't send terminate message"))?;
         Ok(())
     }
 
@@ -62,7 +68,7 @@ impl TerminateSend {
             .ok_or_else(|| Error::from("Already tried to recv terminate confirmation"))?;
         confirm
             .await
-            .map_err(|err| Error::from(format!("Couldn't receive terminate confirm: {:?}", err)))?;
+            .map_err(|_| Error::from("Couldn't send terminate message"))?;
         Ok(())
     }
 

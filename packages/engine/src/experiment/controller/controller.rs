@@ -32,6 +32,7 @@ use crate::simulation::Error as SimulationError;
 use crate::worker::runner::comms::{
     DatastoreSimulationPayload, ExperimentInitRunnerMsg, ExperimentInitRunnerMsgBase,
 };
+use crate::workerpool::comms::TerminateRecv;
 
 use super::comms::sim_status::SimStatusSend;
 use super::{
@@ -60,6 +61,7 @@ pub struct ExperimentController<E: ExperimentRunRepr, P: OutputPersistenceCreato
     sim_configurer: SimConfigurer,
     sim_status_send: SimStatusSend,
     sim_status_recv: SimStatusRecv,
+    terminate_recv: TerminateRecv,
 }
 
 impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController<E, P> {
@@ -75,10 +77,7 @@ impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController
         }
     }
 
-    async fn handle_experiment_control_msg(
-        &mut self,
-        msg: ExperimentControl,
-    ) -> Result<StopExperiment> {
+    async fn handle_experiment_control_msg(&mut self, msg: ExperimentControl) -> Result<()> {
         match msg {
             ExperimentControl::StartSim {
                 sim_id,
@@ -91,9 +90,8 @@ impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController
             ExperimentControl::PauseSim(sim_short_id) => self.pause_sim_run(sim_short_id).await?,
             ExperimentControl::ResumeSim(sim_short_id) => self.resume_sim_run(sim_short_id).await?,
             ExperimentControl::StopSim(sim_short_id) => self.stop_sim_run(sim_short_id).await?,
-            ExperimentControl::StopExperiment => return Ok(true),
         }
-        Ok(false)
+        Ok(())
     }
 
     async fn handle_sim_status(&mut self, status: SimStatus) -> Result<()> {
@@ -304,14 +302,11 @@ impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController
 
 impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController<E, P> {
     pub async fn run(mut self) -> Result<()> {
+        let mut terminate_recv = self.terminate_recv.take_recv()?;
         loop {
             tokio::select! {
                 Some(msg) = self.experiment_package_comms.ctl_recv.recv() => {
-                    let stop_experiment = self.handle_experiment_control_msg(msg).await?;
-                    if stop_experiment {
-                        log::debug!("Stopping experiment controller");
-                        return Ok(())
-                    }
+                    self.handle_experiment_control_msg(msg).await?;
                 }
                 result = self.sim_run_tasks.next() => {
                     if let Some(result) = result.map_err(|_| Error::from("Couldn't join `sim_run_tasks.next()`"))? {
@@ -328,6 +323,11 @@ impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController
                 }
                 Ok(msg) = self.env.orch_listener.recv::<EngineMsg<E>>() => {
                     self.handle_orch_msg(msg).await?;
+                }
+                terminate_res = &mut terminate_recv => {
+                    terminate_res.map_err(|err| Error::from(format!("Couldn't receive terminate: {:?}", err)))?;
+                    log::debug!("Stopping experiment controller");
+                    return Ok(())
                 }
             }
         }
@@ -350,6 +350,7 @@ impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController
         sim_configurer: SimConfigurer,
         sim_status_send: SimStatusSend,
         sim_status_recv: SimStatusRecv,
+        terminate_recv: TerminateRecv,
     ) -> Self {
         ExperimentController {
             exp_config,
@@ -368,6 +369,7 @@ impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController
             sim_configurer,
             sim_status_send,
             sim_status_recv,
+            terminate_recv,
         }
     }
 }

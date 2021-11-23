@@ -108,6 +108,15 @@ impl WorkerController {
         let py_handle = self.py.run().await?;
 
         let mut wp_recv = self.worker_pool_comms.take_recv()?;
+        let mut terminate_recv = self
+            .worker_pool_comms
+            .take_terminate_recv()
+            .map_err(|err| {
+                Error::from(format!(
+                    "Failed to take terminate_recv: {}",
+                    err.to_string()
+                ))
+            })?;
         loop {
             tokio::select! {
                 Some(msg) = wp_recv.recv() => {
@@ -116,6 +125,15 @@ impl WorkerController {
                 res = self.recv_from_runners() => {
                     let msg = res?;
                     self.handle_runner_msg(msg).await?;
+                }
+                terminate_res = &mut terminate_recv => {
+                    terminate_res.map_err(|err| Error::from(format!("Couldn't receive terminate: {:?}", err)))?;
+                    log::debug!("Sending terminate msg to all workers");
+                    // Tell runners to terminate
+                    self.terminate_runners().await?;
+                    // Send confirmation of success
+                    self.worker_pool_comms.confirm_terminate().map_err(|err| Error::from(format!("Failed to send confirmation of terminating workers: {:?}", err)))?;
+                    break;
                 }
             }
         }
@@ -195,6 +213,18 @@ impl WorkerController {
             RunnerWarning(warning) => self.handle_warnings(vec![warning]).await?,
             RunnerWarnings(warnings) => self.handle_warnings(warnings).await?,
         }
+        Ok(())
+    }
+
+    async fn terminate_runners(&mut self) -> Result<()> {
+        tokio::try_join!(
+            self.py
+                .send_if_spawned(None, InboundToRunnerMsgPayload::TerminateRunner),
+            self.js
+                .send_if_spawned(None, InboundToRunnerMsgPayload::TerminateRunner),
+            self.rs
+                .send_if_spawned(None, InboundToRunnerMsgPayload::TerminateRunner)
+        )?;
         Ok(())
     }
 

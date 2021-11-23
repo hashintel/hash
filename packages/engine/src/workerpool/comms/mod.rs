@@ -16,7 +16,9 @@ use crate::{
 
 use crate::proto::SimulationShortID;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
+use tokio::sync::oneshot::Receiver;
 
+use crate::workerpool::comms::terminate::TerminateMessage;
 pub use experiment::ExpMsgRecv;
 pub use main::{new_no_sim, MainMsgRecv, MainMsgSend};
 pub use terminate::TerminateRecv;
@@ -113,13 +115,28 @@ impl WorkerCommsWithWorkerPool {
         Ok(())
     }
 
-    // This should only be called once
+    /// Returns the receiver for messages from the WorkerPool.
+    /// Note: This should only be called once
+    /// It's necessary as receives require mutable borrows and the WorkerCommsWithWorkerPool struct
+    /// will cause issues with immutable borrows at the same time, when used in a Tokio select! loop
     pub fn take_recv(
         &mut self,
     ) -> crate::worker::error::Result<UnboundedReceiver<WorkerPoolToWorkerMsg>> {
         self.recv_from_wp
             .take()
             .ok_or_else(|| crate::worker::error::Error::from("Couldn't take `recv_from_wp`"))
+    }
+
+    /// Returns the receiver for termination signals from the WorkerPool.
+    /// Note: This should only be called once
+    /// It's necessary as receives require mutable borrows and the WorkerCommsWithWorkerPool struct
+    /// will cause issues with immutable borrows at the same time, when used in a Tokio select! loop
+    pub fn take_terminate_recv(&mut self) -> Result<Receiver<TerminateMessage>> {
+        self.terminate_recv.take_recv()
+    }
+
+    pub fn confirm_terminate(&mut self) -> Result<()> {
+        self.terminate_recv.confirm_terminate()
     }
 }
 

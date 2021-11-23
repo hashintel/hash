@@ -1030,6 +1030,7 @@ impl<'m> RunnerImpl<'m> {
     ) -> Result<bool> {
         match msg {
             InboundToRunnerMsgPayload::TerminateRunner => {
+                log::debug!("Stopping execution on Javascript runner");
                 return Ok(false); // Don't continue running.
             }
             InboundToRunnerMsgPayload::NewSimulationRun(new_run) => {

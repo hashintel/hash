@@ -179,6 +179,7 @@ impl WorkerPoolController {
                     log::debug!("Sending terminate msg to all workers");
                     // Propagate terminate msg to all workers
                     self.comms.send_terminate_all().await?;
+                    log::debug!("Confirming termination of workers");
                     // Send confirmation of success
                     self.terminate_recv.confirm_terminate()?;
                     return Ok(())

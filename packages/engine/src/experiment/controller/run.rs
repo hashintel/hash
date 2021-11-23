@@ -1,3 +1,4 @@
+use std::pin::Pin;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -19,6 +20,7 @@ use crate::output::{
     local::LocalOutputPersistence, none::NoOutputPersistence, OutputPersistenceCreatorRepr,
 };
 use crate::simulation::package::creator::PackageCreators;
+use crate::workerpool::comms::terminate::TerminateSend;
 use crate::workerpool::WorkerPoolController;
 use crate::{workerpool, Environment, ExperimentConfig};
 
@@ -92,6 +94,10 @@ pub async fn run_local_experiment(
     Ok(())
 }
 
+type ExperimentPackageResult = Option<crate::experiment::Result<()>>;
+type ExperimentControllerResult = Option<Result<()>>;
+type WorkerPoolResult = Option<crate::workerpool::Result<()>>;
+
 async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
     exp_config: ExperimentConfig<ExperimentRun>,
     env: Environment<ExperimentRun>,
@@ -106,16 +112,17 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
     let shared_store = Arc::new(SharedStore::new(&exp_base_config)?);
 
     // Set up the worker pool controller and all communications with it
-    let (experiment_control_send, experiment_control_recv) =
+    let (experiment_to_worker_pool_send, experiment_to_worker_pool_recv) =
         workerpool::comms::experiment::new_pair();
     let (worker_pool_controller_send, worker_pool_controller_recv) =
         workerpool::comms::top::new_pair();
-    let (worker_pool_terminate_send, terminate_recv) = workerpool::comms::terminate::new_pair();
+    let (mut worker_pool_terminate_send, worker_pool_terminate_recv) =
+        workerpool::comms::terminate::new_pair();
     let (mut worker_pool_controller, worker_pool_send_base) =
         WorkerPoolController::new_with_sender(
             exp_config.clone(),
-            experiment_control_recv,
-            terminate_recv,
+            experiment_to_worker_pool_recv,
+            worker_pool_terminate_recv,
             worker_pool_controller_send,
         )?;
 
@@ -133,12 +140,14 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
     let package_creators = PackageCreators::from_config(&exp_config.packages)?;
     let (sim_status_send, sim_status_recv) = super::comms::sim_status::new_pair();
     let mut orch_client = env.orch_client.try_clone()?;
+    let (mut experiment_controller_terminate_send, experiment_controller_terminate_recv) =
+        workerpool::comms::terminate::new_pair();
     let experiment_controller = ExperimentController::new(
         exp_config,
         exp_base_config,
         env,
         shared_store,
-        experiment_control_send,
+        experiment_to_worker_pool_send,
         worker_pool_controller_recv,
         experiment_package.comms,
         output_persistence_service_creator,
@@ -148,6 +157,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
         worker_allocator,
         sim_status_send,
         sim_status_recv,
+        experiment_controller_terminate_recv,
     );
 
     // Get the experiment-level initialization payload for workers
@@ -161,9 +171,9 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
     let mut experiment_controller_handle =
         tokio::spawn(async move { experiment_controller.run().await });
 
-    let mut worker_pool_result: Option<crate::workerpool::Result<()>> = None;
-    let mut experiment_package_result: Option<crate::experiment::Result<()>> = None;
-    let mut experiment_controller_result: Option<Result<()>> = None;
+    let mut worker_pool_result: WorkerPoolResult = None;
+    let mut experiment_package_result: ExperimentPackageResult = None;
+    let mut experiment_controller_result: ExperimentControllerResult = None;
     let mut exit_timeout = None;
 
     let mut successful_exit = true;
@@ -173,6 +183,8 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
             _ = async { exit_timeout.take().expect("must be some").await }, if exit_timeout.is_some() => {
                 log::warn!("Exit timed out");
                 successful_exit = false;
+                // TODO should we have an additional timeout and send terminate signals to all 3
+
                 err = format!(
                     "Timed out with experiment package {}, controller {}, worker pool {}",
                     experiment_package_result.is_some(),
@@ -180,30 +192,6 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
                     worker_pool_result.is_some(),
                 );
                 break;
-            }
-            Ok(res) = &mut worker_pool_controller_handle, if worker_pool_result.is_none() => {
-                if let Err(ref inner_err) = res {
-                    log::error!("Error from worker pool: {}", inner_err);
-                    successful_exit = false;
-                    if err.is_empty() {
-                        err = inner_err.to_string();
-                    };
-                };
-
-                worker_pool_result = Some(res);
-                if experiment_package_result.is_none() && experiment_controller_result.is_none() {
-                    // The worker pool should not finish before the experiment controller or experiment package
-                    log::warn!("Worker pool finished before experiment package and experiment controller");
-                }
-
-                if experiment_package_result.is_some() && experiment_controller_result.is_some() {
-                    break;
-                }
-
-                log::debug!("Result from experiment package, starting timeout");
-                if exit_timeout.is_none() {
-                    exit_timeout = Some(Box::pin(tokio::time::sleep(Duration::from_secs(20))));
-                }
             }
             Ok(res) = &mut experiment_package_handle, if experiment_package_result.is_none() => {
                 if let Err(ref inner_err) = res {
@@ -216,12 +204,13 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
 
                 // The experiment package should finish first
                 experiment_package_result = Some(res);
-                if worker_pool_result.is_some() && experiment_controller_result.is_some() {
+                if experiment_package_exit_logic(
+                    &experiment_controller_result,
+                    &worker_pool_result,
+                    &mut experiment_controller_terminate_send,
+                    &mut exit_timeout
+                )? {
                     break;
-                }
-                log::debug!("Result from experiment package, starting timeout");
-                if exit_timeout.is_none() {
-                    exit_timeout = Some(Box::pin(tokio::time::sleep(Duration::from_secs(20))));
                 }
             }
             Ok(res) = &mut experiment_controller_handle, if experiment_controller_result.is_none() => {
@@ -235,12 +224,29 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
 
                 // The experiment controller should ideally finish after the experiment package has finished
                 experiment_controller_result = Some(res);
-                if worker_pool_result.is_some() && experiment_package_result.is_some() {
+
+                if experiment_controller_exit_logic(
+                    &experiment_package_result,
+                    &worker_pool_result,
+                    &mut worker_pool_terminate_send,
+                    &mut exit_timeout
+                )? {
                     break;
                 }
-                log::debug!("Result from experiment controller, starting timeout");
-                if exit_timeout.is_none() {
-                    exit_timeout = Some(Box::pin(tokio::time::sleep(Duration::from_secs(20))));
+            }
+            Ok(res) = &mut worker_pool_controller_handle, if worker_pool_result.is_none() => {
+                if let Err(ref inner_err) = res {
+                    log::error!("Error from worker pool: {}", inner_err);
+                    successful_exit = false;
+                    if err.is_empty() {
+                        err = inner_err.to_string();
+                    };
+                };
+
+                worker_pool_result = Some(res);
+
+                if worker_pool_exit_logic(&experiment_package_result, &experiment_controller_result, &mut exit_timeout) {
+                    break;
                 }
             }
             else => {
@@ -260,4 +266,85 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
     orch_client.send(status).await?;
 
     Ok(())
+}
+
+#[inline]
+fn experiment_package_exit_logic(
+    experiment_controller_result: &ExperimentControllerResult,
+    worker_pool_result: &WorkerPoolResult,
+    experiment_controller_terminate_send: &mut TerminateSend,
+    exit_timeout: &mut Option<Pin<Box<tokio::time::Sleep>>>,
+) -> Result<(bool)> {
+    log::debug!("Result from experiment package");
+
+    // The experiment package should finish before the controller and worker pool
+    if experiment_controller_result.is_some() {
+        log::warn!("Experiment controller finished before experiment package");
+    } else {
+        experiment_controller_terminate_send.send()?;
+    }
+    if worker_pool_result.is_some() {
+        log::warn!("Worker pool finished before experiment experiment package");
+    }
+
+    // If both have finished something has gone wrong but loop should break
+    if worker_pool_result.is_some() && experiment_controller_result.is_some() {
+        return Ok(true);
+    }
+
+    if exit_timeout.is_none() {
+        log::debug!("Starting timeout");
+        *exit_timeout = Some(Box::pin(tokio::time::sleep(Duration::from_secs(20))));
+    };
+
+    Ok(false)
+}
+
+#[inline]
+fn experiment_controller_exit_logic(
+    experiment_package_result: &ExperimentPackageResult,
+    worker_pool_result: &WorkerPoolResult,
+    worker_pool_terminate_send: &mut TerminateSend,
+    exit_timeout: &mut Option<Pin<Box<tokio::time::Sleep>>>,
+) -> Result<(bool)> {
+    log::debug!("Result from experiment controller");
+
+    // Controller should finish before the Worker Pool
+    if worker_pool_result.is_some() {
+        log::warn!("Worker pool finished before experiment controller");
+    }
+
+    // If both have finished something has gone wrong but loop should break
+    if worker_pool_result.is_some() && experiment_package_result.is_some() {
+        return Ok(true);
+    } else {
+        worker_pool_terminate_send.send()?;
+    }
+
+    if exit_timeout.is_none() {
+        log::debug!("Starting timeout");
+        *exit_timeout = Some(Box::pin(tokio::time::sleep(Duration::from_secs(20))));
+    };
+
+    Ok(false)
+}
+
+#[inline]
+fn worker_pool_exit_logic(
+    experiment_package_result: &ExperimentPackageResult,
+    experiment_controller_result: &ExperimentControllerResult,
+    exit_timeout: &mut Option<Pin<Box<tokio::time::Sleep>>>,
+) -> bool {
+    log::debug!("Result from worker pool");
+
+    if experiment_package_result.is_some() && experiment_controller_result.is_some() {
+        return true;
+    }
+
+    if exit_timeout.is_none() {
+        log::debug!("Starting timeout");
+        *exit_timeout = Some(Box::pin(tokio::time::sleep(Duration::from_secs(20))));
+    };
+
+    false
 }

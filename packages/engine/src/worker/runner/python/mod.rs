@@ -610,6 +610,7 @@ pub struct PythonRunner {
     nng_sender: NngSender,
     send_result_receiver: Option<UnboundedReceiver<Result<()>>>,
     nng_receiver: NngReceiver,
+    // TODO replace with crate::workerpool::comms:terminate::terminate ?
     terminate_sender: Sender<()>,
     terminate_receiver: Option<Receiver<()>>,
     spawned: bool,
@@ -671,6 +672,7 @@ impl PythonRunner {
         msg: InboundToRunnerMsgPayload,
     ) -> WorkerResult<()> {
         if matches!(msg, InboundToRunnerMsgPayload::TerminateRunner) {
+            log::debug!("Sending terminate signal to Python runner");
             self.terminate_sender
                 .send(())
                 .await
