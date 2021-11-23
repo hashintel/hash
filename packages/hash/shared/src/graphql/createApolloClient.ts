@@ -3,6 +3,7 @@ import {
   ApolloLink,
   HttpLink,
   InMemoryCache,
+  NormalizedCacheObject,
 } from "@apollo/client";
 import { onError } from "@apollo/client/link/error";
 import * as Sentry from "@sentry/browser";
@@ -32,7 +33,7 @@ const errorLink = onError(({ graphQLErrors, operation }) => {
 export const createApolloClient = (params?: {
   name?: string;
   additionalHeaders?: { [key: string]: string | undefined };
-}) => {
+}): ApolloClient<NormalizedCacheObject> => {
   const ponyfilledFetch =
     typeof (globalThis as any).fetch === "undefined"
       ? // eslint-disable-next-line global-require

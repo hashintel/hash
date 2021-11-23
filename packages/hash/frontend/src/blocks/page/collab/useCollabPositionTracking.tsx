@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { useDocumentEventListener, useWindowEventListener } from "rooks";
 import { componentViewTargetSelector } from "../ComponentView";
 import type { CollabPositionReporter } from "./useCollabPositionReporter";
@@ -37,11 +38,13 @@ export const useCollabPositionTracking = (report: CollabPositionReporter) => {
   /**
    * capture caret movements
    */
-  useDocumentEventListener("selectionchange", () => {
+  const handleInteraction = useCallback(() => {
     const focusElement = closestElement(document.getSelection()?.focusNode);
     const target = focusElement?.closest(componentViewTargetSelector);
     report(target?.getAttribute("data-entity-id") ?? null);
-  });
+  }, [report]);
+  useWindowEventListener("focus", handleInteraction);
+  useDocumentEventListener("selectionchange", handleInteraction);
 
   /**
    * @todo capture tabindex movements
