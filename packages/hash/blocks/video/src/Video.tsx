@@ -225,19 +225,13 @@ export const Video: BlockComponent<AppProps> = (props) => {
             </span>
           </div>
 
-          <span
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                updateStateObject({ errorString: null });
-              }
-            }}
+          <button
+            type="button"
             onClick={() => updateStateObject({ errorString: null })}
             className={tw`absolute top-0 bottom-0 right-0 px-4 py-3`}
-            role="button"
-            tabIndex={0}
           >
             <Cross />
-          </span>
+          </button>
         </div>
       )}
 
