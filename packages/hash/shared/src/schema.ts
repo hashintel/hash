@@ -72,9 +72,7 @@ export const createSchema = () =>
               "data-hash-type": "mention",
               "data-mention-type": mentionType,
               "data-mentionId": entityId,
-              style: "font-weight: bold; text-decoration: underline",
             },
-            0,
           ] as const;
         },
         parseDOM: [

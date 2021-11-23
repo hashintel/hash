@@ -17,8 +17,10 @@ import { ensureMounted } from "../../lib/dom";
 import { BlockSuggester } from "./BlockSuggester";
 import { MentionSuggester } from "./MentionSuggester";
 
+const TRIGGER_CHARS = ["/", "@"] as const;
+
 interface Trigger {
-  triggerChar: string;
+  triggerChar: typeof TRIGGER_CHARS[number];
   /** matched search string including its leading slash */
   search: string;
   /** starting prosemirror document position */
@@ -31,8 +33,8 @@ interface Trigger {
  * used to find a string triggering the suggester plugin
  */
 const findTrigger = (state: EditorState<Schema>): Trigger | null => {
-  // @ts-expect-error: only empty TextSelection has a $cursor
-  const cursor: ResolvedPos = state.selection.$cursor;
+  // Only empty TextSelection has a $cursor
+  const cursor = (state.selection as TextSelection).$cursor;
   if (!cursor) return null;
 
   // the cursor's parent is the node that contains it
@@ -44,12 +46,10 @@ const findTrigger = (state: EditorState<Schema>): Trigger | null => {
   // the parent's position relative to the document root
   const parentPos = cursor.pos - cursorPos;
 
-  let triggerChar: string = "";
+  let triggerChar: typeof TRIGGER_CHARS[number] | null = null;
   let slashMatch: RegExpMatchArray | null = null;
 
-  const triggerChars = ["@", "/"];
-
-  for (let item of triggerChars) {
+  for (let item of TRIGGER_CHARS) {
     slashMatch = text.substring(0, cursorPos).match(new RegExp(`${item}\\S*$`));
     triggerChar = item;
     if (slashMatch) break;
@@ -57,7 +57,7 @@ const findTrigger = (state: EditorState<Schema>): Trigger | null => {
 
   // see if we can find the trigger character looking backwards
   // const slashMatch = text.substring(0, cursorPos).match(/\/\S*$/);
-  if (!slashMatch) return null;
+  if (!slashMatch || !triggerChar) return null;
 
   const from = slashMatch.index!;
 
@@ -93,7 +93,7 @@ const key = new PluginKey<SuggesterState, Schema>("suggester");
  * Suggester plugin factory
  *
  * Behaviour:
- * Typing a slash followed by any number of non-whitespace characters will
+ * Typing one of the trigger characters followed by any number of non-whitespace characters will
  * activate the plugin and open a popup right under the "textual trigger".
  * Moving the cursor outside the trigger will close the popup. Pressing the
  * Escape-key while inside the trigger will disable the plugin until a trigger
@@ -199,25 +199,15 @@ export const createBlockSuggester = (
               });
           };
 
-          const onMentionChange = (entityId: string, name: string) => {
-            const $end = view.state.doc.resolve(to);
+          const onMentionChange = (entityId: string, mentionType: string) => {
             const { tr } = view.state;
-            const endPosition = $end.end(1);
 
             const mentionNode = view.state.schema.nodes.mention.create({
-              "data-mention-type": "user",
-              "data-mentionId": entityId,
+              mentionType,
               entityId,
             });
 
-            // const mentionNode = view.state.schema.text(
-            //   `@${name}`);
-
-            // mentionNode.text = name
-
-            console.log(mentionNode);
-
-            tr.insert(endPosition, mentionNode);
+            tr.replaceWith(from, to, mentionNode);
 
             view.dispatch(tr);
           };

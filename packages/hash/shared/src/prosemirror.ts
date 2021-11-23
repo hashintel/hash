@@ -15,8 +15,8 @@ export const childrenForTextEntity = (
           return schema.node("hardBreak");
         case "mention":
           return schema.node("mention", {
-            mentionType: "user",
-            entityId: "some stuff",
+            mentionType: token.mentionType,
+            entityId: token.entityId,
           });
         case "text": {
           return schema.text(
@@ -67,8 +67,8 @@ export const nodeToEntityProperties = (node: ProsemirrorNode<Schema>) => {
         case "mention": {
           tokens.push({
             tokenType: "mention",
-            mentionType: "user",
-            entityId: child.attrs["data-entity-id"],
+            mentionType: child.attrs.mentionType,
+            entityId: child.attrs.entityId,
           });
           break;
         }

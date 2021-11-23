@@ -3,6 +3,7 @@ import { EditorView, NodeView } from "prosemirror-view";
 import { ProsemirrorNode } from "../../../../shared/dist/node";
 import { RenderPortal } from "./usePortals";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
+import { MentionDisplay } from "../../components/Mention/MentionDisplay";
 
 export class MentionView implements NodeView<Schema> {
   dom: HTMLSpanElement;
@@ -25,11 +26,15 @@ export class MentionView implements NodeView<Schema> {
       return false;
     }
 
-    this.node = node
+    this.node = node;
 
-    console.log("node ==> ", node)
-
-    this.renderPortal(<>@mention!</>, this.dom);
+    this.renderPortal(
+      <MentionDisplay
+        entityId={node.attrs.entityId}
+        mentionType={node.attrs.mentionType}
+      />,
+      this.dom,
+    );
 
     return true;
   }

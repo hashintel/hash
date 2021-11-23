@@ -56,7 +56,7 @@ export const MentionSuggester: React.VFC<MentionSuggesterProps> = ({
 
     const option = options[selectedIndex];
     if (option) {
-      onChange(option.entityId, option.name);
+      onChange(option.entityId, "user");
     }
   });
 
