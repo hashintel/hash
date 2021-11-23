@@ -22,15 +22,18 @@ import DragVertical from "../../components/Icons/DragVertical";
 import styles from "./style.module.css";
 import { RenderPortal } from "./usePortals";
 import { CollabPositionIndicators } from "./CollabPositionIndicators";
+import { EntityStore } from "@hashintel/hash-shared/entityStore";
+import { entityStoreFromProsemirror, subscribeToEntityStore } from "@hashintel/hash-shared/entityStorePlugin";
 
 type BlockHandleProps = {
   entityId: string | null;
   onTypeChange: BlockSuggesterProps["onChange"];
-  getLastSavedValue: () => BlockEntity[];
+  contents: BlockEntity[];
+  entityStore: EntityStore;
 };
 
 export const BlockHandle = forwardRef<HTMLDivElement, BlockHandleProps>(
-  ({ entityId, onTypeChange, getLastSavedValue }, ref) => {
+  ({ entityId, onTypeChange, contents, entityStore }, ref) => {
     const [isPopoverVisible, setPopoverVisible] = useState(false);
 
     useOutsideClick(ref as RefObject<HTMLDivElement>, () =>
@@ -55,7 +58,8 @@ export const BlockHandle = forwardRef<HTMLDivElement, BlockHandleProps>(
             entityId={entityId}
             blockSuggesterProps={blockSuggesterProps}
             closeMenu={() => setPopoverVisible(false)}
-            getLastSavedValue={getLastSavedValue}
+            contents={contents}
+            entityStore={entityStore}
           />
         )}
       </div>
@@ -81,6 +85,9 @@ export class BlockView implements NodeView<Schema> {
   /** used to hide node-view specific events from prosemirror */
   blockHandleRef = createRef<HTMLDivElement>();
 
+  private store: EntityStore;
+  private unsubscribe: Function;
+
   getBlockEntityIdFromNode = (node: ProsemirrorNode<Schema>) => {
     const componentNodes = findComponentNodes(node);
     if (componentNodes.length !== 1) {
@@ -98,7 +105,7 @@ export class BlockView implements NodeView<Schema> {
     public getPos: () => number,
     public renderPortal: RenderPortal,
     public manager: ProsemirrorSchemaManager,
-    public getLastSavedValue: () => BlockEntity[],
+    public contents: BlockEntity[],
   ) {
     this.dom = document.createElement("div");
     this.dom.classList.add(styles.Block);
@@ -113,6 +120,12 @@ export class BlockView implements NodeView<Schema> {
     this.contentDOM = document.createElement("div");
     this.dom.appendChild(this.contentDOM);
     this.contentDOM.classList.add(styles.Block__Content);
+
+    this.store = entityStoreFromProsemirror(view.state).store;
+    this.unsubscribe = subscribeToEntityStore(this.view, (store) => {
+      this.store = store;
+      this.update(this.node);
+    });
 
     this.update(node);
   }
@@ -161,12 +174,13 @@ export class BlockView implements NodeView<Schema> {
   ignoreMutation(
     record: Parameters<NonNullable<NodeView<Schema>["ignoreMutation"]>>[0],
   ) {
-    return (
-      (record.type === "attributes" &&
-        record.attributeName === "class" &&
-        record.target === this.dom) ||
-      this.selectContainer.contains(record.target)
-    );
+    if (record.target === this.dom && record.type === "attributes") {
+      return record.attributeName === "class" || record.attributeName === "id";
+    } else if (this.selectContainer.contains(record.target)) {
+      return true;
+    }
+
+    return false;
   }
 
   update(blockNode: ProsemirrorNode<Schema>) {
@@ -245,7 +259,8 @@ export class BlockView implements NodeView<Schema> {
           ref={this.blockHandleRef}
           entityId={blockEntityId}
           onTypeChange={this.onBlockChange}
-          getLastSavedValue={this.getLastSavedValue}
+          contents={this.contents}
+          entityStore={this.store}
         />
       </>,
       this.selectContainer,
@@ -255,6 +270,7 @@ export class BlockView implements NodeView<Schema> {
   }
 
   destroy() {
+    this.unsubscribe();
     this.renderPortal(null, this.selectContainer);
     this.dom.remove();
     document.removeEventListener("dragend", this.onDragEnd);

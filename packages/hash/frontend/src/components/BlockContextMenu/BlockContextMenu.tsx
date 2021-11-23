@@ -17,12 +17,14 @@ import {
 } from "../BlockSuggester/BlockSuggester";
 import { getAccounts } from "../../graphql/queries/account.queries";
 import { GetAccountsQuery } from "../../graphql/apiTypes.gen";
+import { EntityStore, isBlockEntity } from "@hashintel/hash-shared/entityStore";
 
 type BlockContextMenuProps = {
   blockSuggesterProps: BlockSuggesterProps;
   closeMenu: () => void;
   entityId: string | null;
-  getLastSavedValue: () => BlockEntity[];
+  contents: BlockEntity[];
+  entityStore: EntityStore;
 };
 
 const MENU_ITEMS = [
@@ -52,16 +54,21 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
   blockSuggesterProps,
   closeMenu,
   entityId,
-  getLastSavedValue,
+  contents,
+  entityStore,
 }) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [subMenuVisible, setSubMenuVisible] = useState(false);
 
   const { data } = useQuery<GetAccountsQuery>(getAccounts);
 
-  const blockData: BlockEntity | undefined = getLastSavedValue().find(
-    (block) => block.entityId === entityId,
-  );
+  const blockData = entityId ? entityStore.saved[entityId] : null;
+
+  if (blockData && !isBlockEntity(blockData)) {
+    throw new Error("BlockContextMenu linked to non-block entity");
+  }
+
+  console.log({ blockData });
 
   useKey(["ArrowUp", "ArrowDown"], (event) => {
     event.preventDefault();
@@ -163,7 +170,7 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
         </p>
         <p>
           {dayjs(blockData?.properties.entity.entityVersionCreatedAt).format(
-            "HH.mm a",
+            "hh.mm a",
           )}
           {", "}
           {dayjs(blockData?.properties.entity.entityVersionCreatedAt).format(

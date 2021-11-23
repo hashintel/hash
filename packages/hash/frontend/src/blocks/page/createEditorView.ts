@@ -90,6 +90,7 @@ export const createEditorView = (
   pageEntityId: string,
   preloadedBlocks: BlockMeta[],
   getLastSavedValue: () => BlockEntity[],
+  contents: BlockEntity[],
   client: ApolloClient<unknown>,
 ) => {
   let manager: ProsemirrorSchemaManager;
@@ -117,7 +118,7 @@ export const createEditorView = (
           getPos,
           renderPortal,
           manager,
-          getLastSavedValue
+          contents
         );
       },
     },

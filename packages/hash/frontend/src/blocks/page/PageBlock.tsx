@@ -71,6 +71,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       entityId,
       Array.from(blocksMeta.values()),
       () => currentContents.current,
+      contents,
       client,
     );
 
