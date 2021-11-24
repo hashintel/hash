@@ -7,23 +7,20 @@ import CopyIcon from "@material-ui/icons/FileCopyOutlined";
 import LoopIcon from "@material-ui/icons/LoopOutlined";
 import LinkIcon from "@material-ui/icons/LinkOutlined";
 import { useKey } from "rooks";
-import { BlockEntity } from "@hashintel/hash-shared/entity";
-import { useQuery } from "@apollo/client";
 
+import { EntityStore, isBlockEntity } from "@hashintel/hash-shared/entityStore";
 import { blockDomId } from "../../blocks/page/BlockView";
 import {
   BlockSuggester,
   BlockSuggesterProps,
 } from "../BlockSuggester/BlockSuggester";
-import { getAccounts } from "../../graphql/queries/account.queries";
-import { GetAccountsQuery } from "../../graphql/apiTypes.gen";
-import { EntityStore, isBlockEntity } from "@hashintel/hash-shared/entityStore";
+
+import { useGetAccounts } from "../hooks/useGetAccounts";
 
 type BlockContextMenuProps = {
   blockSuggesterProps: BlockSuggesterProps;
   closeMenu: () => void;
   entityId: string | null;
-  contents: BlockEntity[];
   entityStore: EntityStore;
 };
 
@@ -54,21 +51,18 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
   blockSuggesterProps,
   closeMenu,
   entityId,
-  contents,
   entityStore,
 }) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [subMenuVisible, setSubMenuVisible] = useState(false);
 
-  const { data } = useQuery<GetAccountsQuery>(getAccounts);
+  const { data: accounts } = useGetAccounts();
 
   const blockData = entityId ? entityStore.saved[entityId] : null;
 
   if (blockData && !isBlockEntity(blockData)) {
     throw new Error("BlockContextMenu linked to non-block entity");
   }
-
-  console.log({ blockData });
 
   useKey(["ArrowUp", "ArrowDown"], (event) => {
     event.preventDefault();
@@ -162,20 +156,16 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
         <p>
           Last edited by {/* @todo use lastedited value when available */}
           {
-            data?.accounts.find(
+            accounts.find(
               (account) =>
                 account.entityId === blockData?.properties.entity.createdById,
-            )?.properties.shortname
+            )?.name
           }
         </p>
         <p>
-          {dayjs(blockData?.properties.entity.entityVersionCreatedAt).format(
-            "hh.mm a",
-          )}
+          {dayjs(blockData?.properties.entity.updatedAt).format("hh.mm a")}
           {", "}
-          {dayjs(blockData?.properties.entity.entityVersionCreatedAt).format(
-            "DD/MM/YYYY",
-          )}
+          {dayjs(blockData?.properties.entity.updatedAt).format("DD/MM/YYYY")}
         </p>
       </div>
     </div>

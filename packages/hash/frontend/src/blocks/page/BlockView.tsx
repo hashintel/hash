@@ -3,7 +3,6 @@ import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { findComponentNodes } from "@hashintel/hash-shared/prosemirror";
-import { BlockEntity } from "@hashintel/hash-shared/entity";
 import { Schema } from "prosemirror-model";
 import { NodeSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
@@ -16,24 +15,26 @@ import React, {
 } from "react";
 import { useOutsideClick } from "rooks";
 import { tw } from "twind";
+import { EntityStore } from "@hashintel/hash-shared/entityStore";
+import {
+  entityStoreFromProsemirror,
+  subscribeToEntityStore,
+} from "@hashintel/hash-shared/entityStorePlugin";
 import { BlockContextMenu } from "../../components/BlockContextMenu/BlockContextMenu";
 import { BlockSuggesterProps } from "../../components/BlockSuggester/BlockSuggester";
 import DragVertical from "../../components/Icons/DragVertical";
 import styles from "./style.module.css";
 import { RenderPortal } from "./usePortals";
 import { CollabPositionIndicators } from "./CollabPositionIndicators";
-import { EntityStore } from "@hashintel/hash-shared/entityStore";
-import { entityStoreFromProsemirror, subscribeToEntityStore } from "@hashintel/hash-shared/entityStorePlugin";
 
 type BlockHandleProps = {
   entityId: string | null;
   onTypeChange: BlockSuggesterProps["onChange"];
-  contents: BlockEntity[];
   entityStore: EntityStore;
 };
 
 export const BlockHandle = forwardRef<HTMLDivElement, BlockHandleProps>(
-  ({ entityId, onTypeChange, contents, entityStore }, ref) => {
+  ({ entityId, onTypeChange, entityStore }, ref) => {
     const [isPopoverVisible, setPopoverVisible] = useState(false);
 
     useOutsideClick(ref as RefObject<HTMLDivElement>, () =>
@@ -58,7 +59,6 @@ export const BlockHandle = forwardRef<HTMLDivElement, BlockHandleProps>(
             entityId={entityId}
             blockSuggesterProps={blockSuggesterProps}
             closeMenu={() => setPopoverVisible(false)}
-            contents={contents}
             entityStore={entityStore}
           />
         )}
@@ -105,7 +105,6 @@ export class BlockView implements NodeView<Schema> {
     public getPos: () => number,
     public renderPortal: RenderPortal,
     public manager: ProsemirrorSchemaManager,
-    public contents: BlockEntity[],
   ) {
     this.dom = document.createElement("div");
     this.dom.classList.add(styles.Block);
@@ -259,7 +258,6 @@ export class BlockView implements NodeView<Schema> {
           ref={this.blockHandleRef}
           entityId={blockEntityId}
           onTypeChange={this.onBlockChange}
-          contents={this.contents}
           entityStore={this.store}
         />
       </>,
