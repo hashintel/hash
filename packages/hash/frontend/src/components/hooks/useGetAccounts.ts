@@ -13,16 +13,17 @@ export const useGetAccounts = () => {
      * org accounts do not have "preferredName" in their properties object
      */
     const userAccounts = data.accounts.filter(
-      (account) => account.__typename === "User",
+      (account) => "preferredName" in account.properties,
     );
-
-    console.log({ userAccounts });
 
     return userAccounts.map((account) => {
       return {
         entityId: account.entityId,
         shortname: account.properties.shortname!,
-        name: account.properties.preferredName ?? account.properties.shortname,
+        name:
+          "preferredName" in account.properties
+            ? account.properties.preferredName
+            : account.properties.shortname,
       };
     });
   }, [data]);
