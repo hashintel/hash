@@ -624,6 +624,47 @@ export const acquireEntityLock = async (
     .query(sql`select pg_advisory_xact_lock(${hashCode(params.entityId)})`)
     .then((_) => null);
 
+const addSourceEntityVersionIdToAggregations = async (
+  conn: Connection,
+  params: {
+    entity: Entity;
+    omittedAggregations?: {
+      sourceAccountId: string;
+      sourceEntityId: string;
+      path: string;
+    }[];
+    newSourceEntityVersionId: string;
+  },
+) => {
+  const { entity } = params;
+
+  const aggregations = await getEntityAggregations(conn, {
+    sourceAccountId: entity.accountId,
+    sourceEntityId: entity.entityId,
+    sourceEntityVersionId: entity.entityVersionId,
+  });
+
+  const isDbAggregationInNextVersion = (aggregation: DBAggregation): boolean =>
+    params.omittedAggregations?.find(
+      ({ path }) => path === aggregation.path,
+    ) === undefined;
+
+  const { newSourceEntityVersionId } = params;
+
+  await Promise.all(
+    aggregations
+      .filter(isDbAggregationInNextVersion)
+      .map(({ sourceAccountId, sourceEntityId, path }) =>
+        addSourceEntityVersionIdToAggregation(conn, {
+          sourceAccountId,
+          sourceEntityId,
+          path,
+          newSourceEntityVersionId,
+        }),
+      ),
+  );
+};
+
 const addSourceEntityVersionIdToOutgoingLinks = async (
   conn: Connection,
   params: {
@@ -709,12 +750,7 @@ export const updateVersionedEntity = async (
     deferred
   `);
 
-  const { omittedOutgoingLinks } = params;
-
-  const isDbAggregationInNextVersion = (aggregation: DBAggregation): boolean =>
-    params.omittedAggregations?.find(
-      ({ path }) => path === aggregation.path,
-    ) === undefined;
+  const { omittedOutgoingLinks, omittedAggregations } = params;
 
   await Promise.all([
     insertEntityVersion(conn, newEntityVersion),
@@ -724,25 +760,11 @@ export const updateVersionedEntity = async (
       omittedOutgoingLinks,
       newSourceEntityVersionId: newEntityVersion.entityVersionId,
     }),
-
-    getEntityAggregations(conn, {
-      sourceAccountId: entity.accountId,
-      sourceEntityId: entity.entityId,
-      sourceEntityVersionId: entity.entityVersionId,
-    }).then((aggregations) =>
-      Promise.all(
-        aggregations
-          .filter(isDbAggregationInNextVersion)
-          .map(({ sourceAccountId, sourceEntityId, path }) =>
-            addSourceEntityVersionIdToAggregation(conn, {
-              sourceAccountId,
-              sourceEntityId,
-              path,
-              newsourceEntityVersionId: newEntityVersion.entityVersionId,
-            }),
-          ),
-      ),
-    ),
+    addSourceEntityVersionIdToAggregations(conn, {
+      entity,
+      omittedAggregations,
+      newSourceEntityVersionId: newEntityVersion.entityVersionId,
+    }),
 
     // Make a reference to this entity's account in the `entity_account` lookup table
     insertEntityAccount(conn, newEntityVersion),

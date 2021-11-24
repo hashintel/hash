@@ -135,18 +135,18 @@ export const addSourceEntityVersionIdToAggregation = async (
     sourceAccountId: string;
     sourceEntityId: string;
     path: string;
-    newsourceEntityVersionId: string;
+    newSourceEntityVersionId: string;
   },
 ) => {
   await conn.one(
     sql`
       update aggregations
-      set source_entity_version_ids = array_append(aggregations.source_entity_version_ids, ${params.newsourceEntityVersionId})
+      set source_entity_version_ids = array_append(aggregations.source_entity_version_ids, ${params.newSourceEntityVersionId})
       where
         source_account_id = ${params.sourceAccountId}
         and source_entity_id = ${params.sourceEntityId}
         and path = ${params.path}
-        and not ${params.newsourceEntityVersionId} = ANY(aggregations.source_entity_version_ids)
+        and not ${params.newSourceEntityVersionId} = ANY(aggregations.source_entity_version_ids)
       returning *;
     `,
   );
