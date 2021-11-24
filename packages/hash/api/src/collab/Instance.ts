@@ -13,10 +13,15 @@ import {
   entityStoreFromProsemirror,
 } from "@hashintel/hash-shared/entityStorePlugin";
 import {
+  GetEntityQuery,
+  GetEntityQueryVariables,
+} from "@hashintel/hash-shared/graphql/apiTypes.gen";
+import {
   findComponentNodes,
   getComponentNodeAttrs,
 } from "@hashintel/hash-shared/prosemirror";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
+import { getEntity } from "@hashintel/hash-shared/queries/entity.queries";
 import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
 import { updatePageMutation } from "@hashintel/hash-shared/save";
 import { Response } from "express";
@@ -39,6 +44,21 @@ const isUnused = (response: Response): boolean => {
   return (
     !response.headersSent && !response.destroyed && !response.writableEnded
   );
+};
+
+const findLinks = (value: unknown, path = ""): Record<string, unknown> => {
+  if (typeof value !== "object" || !value) {
+    return {};
+  }
+
+  const potentialLink: unknown = (value as any | undefined)?.__linkedData;
+  let links = potentialLink ? { [path.slice(1)]: potentialLink } : {};
+
+  for (const [key, property] of Object.entries(value)) {
+    links = { ...links, ...findLinks(property, `${path}.${key}`) };
+  }
+
+  return links;
 };
 
 // A collaborative editing document instance.
@@ -70,6 +90,15 @@ export class Instance {
     public manager: ProsemirrorSchemaManager,
     public savedContents: BlockEntity[],
     private entityWatcher: EntityWatcher,
+
+    /**
+     * Occasionally we need an apollo client when not in the process of
+     * handling a request from a user, so we require a fallback client when
+     * creating an Instance.
+     *
+     * @todo replace this with a machine user
+     */
+    private fallbackClient: ApolloClient<unknown>,
   ) {
     this.positionCleanupInterval = setInterval(() => {
       this.cleanupPositions();
@@ -101,57 +130,92 @@ export class Instance {
 
   private async processEntityVersion(entityVersion: EntityVersion) {
     let foundOnPage = false;
+    const targetEntityVersionIds = new Set<string>();
 
-    const nextSavedContents = walkValueForEntity(
-      this.savedContents,
-      (entity) => {
-        if (entity.entityId === entityVersion.entityId) {
-          foundOnPage = true;
-          if (
-            new Date(entityVersion.updatedAt).getTime() >
-            new Date(entity.updatedAt).getTime()
-          ) {
-            return {
-              ...entity,
-              accountId: entityVersion.accountId,
-              entityVersionId: entityVersion.entityTypeVersionId,
-              entityTypeVersionId: entityVersion.entityTypeVersionId,
-              /**
-               * This could overwrite any updates applied to entities inside of
-               * this properties field, but not a lot we can do about that, and
-               * unlikely to actually cause an issue as we process entity
-               * updates one at a time.
-               *
-               * @todo remove this comment when we have flat entities
-               */
-              properties: entityVersion.properties,
-              createdById: entityVersion.createdBy,
-              createdAt: entityVersion.createdAt.toISOString(),
-              updatedAt: entityVersion.updatedAt.toISOString(),
-            };
-          }
+    walkValueForEntity(this.savedContents, (entity) => {
+      if (entity.entityId === entityVersion.entityId) {
+        foundOnPage = true;
+
+        if (
+          new Date(entityVersion.updatedAt).getTime() >
+          new Date(entity.updatedAt).getTime()
+        ) {
+          targetEntityVersionIds.add(entity.id);
         }
+      }
 
-        return entity;
-      },
-    );
+      return entity;
+    });
 
     if (foundOnPage) {
-      /**
-       * We should know not to notify consumers of changes they've already been
-       * notified of, but because of a race condition between saves triggered by
-       * collab and saves triggered by frontend blocks, this doesn't necessarily
-       * work, so unfortunately we need to notify on every notification from
-       * realtime right now. This means clients will be notified about prosemirror
-       * changes twice right now. There are no known downsides to this other than
-       * performance.
-       *
-       * If nextSavedContents === this.savedContents, then we're likely notifying
-       * of changes the client is possibly already aware of
-       *
-       * @todo fix this
-       */
-      this.updateSavedContents(nextSavedContents, true);
+      if (targetEntityVersionIds.size > 0) {
+        const nextLinks = findLinks(entityVersion.properties);
+
+        let properties: any;
+
+        if (Object.keys(nextLinks).length > 0) {
+          const { data } = await this.fallbackClient.query<
+            GetEntityQuery,
+            GetEntityQueryVariables
+          >({
+            query: getEntity,
+            variables: {
+              entityId: entityVersion.entityId,
+              accountId: entityVersion.accountId,
+            },
+          });
+
+          properties = data.entity.properties;
+        } else {
+          properties = entityVersion.properties;
+        }
+
+        const nextSavedContents = walkValueForEntity(
+          this.savedContents,
+          (entity) => {
+            if (targetEntityVersionIds.has(entity.id)) {
+              return {
+                ...entity,
+                accountId: entityVersion.accountId,
+                entityVersionId: entityVersion.entityTypeVersionId,
+                entityTypeVersionId: entityVersion.entityTypeVersionId,
+                /**
+                 * This could overwrite any updates applied to entities inside of
+                 * this properties field, but not a lot we can do about that, and
+                 * unlikely to actually cause an issue as we process entity
+                 * updates one at a time.
+                 *
+                 * @todo remove this comment when we have flat entities
+                 */
+                properties,
+                createdById: entityVersion.createdBy,
+                createdAt: entityVersion.createdAt.toISOString(),
+                updatedAt: entityVersion.updatedAt.toISOString(),
+              };
+            }
+
+            return entity;
+          },
+        );
+
+        /**
+         * We should know not to notify consumers of changes they've already been
+         * notified of, but because of a race condition between saves triggered
+         * by
+         * collab and saves triggered by frontend blocks, this doesn't
+         * necessarily
+         * work, so unfortunately we need to notify on every notification from
+         * realtime right now. This means clients will be notified about
+         * prosemirror changes twice right now. There are no known downsides to
+         * this other than performance.
+         *
+         * If nextSavedContents === this.savedContents, then we're likely
+         * notifying of changes the client is possibly already aware of
+         *
+         * @todo fix this
+         */
+        this.updateSavedContents(nextSavedContents, true);
+      }
     }
   }
 
@@ -497,6 +561,7 @@ const newInstance =
       manager,
       data.page.properties.contents,
       entityWatcher,
+      apolloClient,
     );
 
     return instances[pageEntityId];
