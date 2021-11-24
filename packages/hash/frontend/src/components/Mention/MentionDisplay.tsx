@@ -1,6 +1,7 @@
 import { useMemo } from "react";
-import { useGetAccounts } from "../hooks/useGetAccounts";
 import { tw } from "twind";
+import Link from "next/link";
+import { useGetAccounts } from "../hooks/useGetAccounts";
 
 interface MentionDisplayProps {
   entityId: string;
@@ -16,13 +17,17 @@ export const MentionDisplay: React.VFC<MentionDisplayProps> = ({
   const title = useMemo(() => {
     switch (mentionType) {
       case "user":
-        return (
-          data.find((item) => item.entityId == entityId)?.name ?? ""
-        );
+        return data.find((item) => item.entityId === entityId)?.name ?? "";
       default:
         return "";
     }
   }, [entityId, mentionType, data]);
 
-  return <span className={tw`text-gray-400 font-medium`}>@{title}</span>;
+  return (
+    <Link href={`/${entityId}`}>
+      <span className={tw`text-gray-400 font-medium cursor-pointer`}>
+        @{title}
+      </span>
+    </Link>
+  );
 };

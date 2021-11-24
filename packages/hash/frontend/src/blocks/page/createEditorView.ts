@@ -1,4 +1,3 @@
-import { MentionView } from "./MentionView";
 import { ApolloClient } from "@apollo/client";
 import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
@@ -11,7 +10,8 @@ import { updatePageMutation } from "@hashintel/hash-shared/save";
 import { Schema } from "prosemirror-model";
 import { Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
-import { createBlockSuggester } from "../../components/BlockSuggester/createBlockSuggester";
+import { MentionView } from "./MentionView";
+import { createSuggester } from "../../components/Suggester/createSuggester";
 import { createFormatPlugins } from "../../components/MarksTooltip";
 import { BlockView } from "./BlockView";
 import { EditorConnection } from "./collab/EditorConnection";
@@ -98,7 +98,7 @@ export const createEditorView = (
   const plugins: Plugin<unknown, Schema>[] = [
     createSavePlugin(accountId, pageEntityId, getLastSavedValue, client),
     ...createFormatPlugins(renderPortal),
-    createBlockSuggester(renderPortal, () => manager),
+    createSuggester(renderPortal, () => manager),
   ];
 
   const state = createProseMirrorState({ plugins });

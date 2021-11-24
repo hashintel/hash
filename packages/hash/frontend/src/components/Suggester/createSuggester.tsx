@@ -4,7 +4,7 @@ import {
   BlockMeta,
 } from "@hashintel/hash-shared/blockMeta";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
-import { ResolvedPos, Schema } from "prosemirror-model";
+import { Schema } from "prosemirror-model";
 import {
   EditorState,
   Plugin,
@@ -49,7 +49,7 @@ const findTrigger = (state: EditorState<Schema>): Trigger | null => {
   let triggerChar: typeof TRIGGER_CHARS[number] | null = null;
   let slashMatch: RegExpMatchArray | null = null;
 
-  for (let item of TRIGGER_CHARS) {
+  for (const item of TRIGGER_CHARS) {
     slashMatch = text.substring(0, cursorPos).match(new RegExp(`${item}\\S*$`));
     triggerChar = item;
     if (slashMatch) break;
@@ -100,7 +100,7 @@ const key = new PluginKey<SuggesterState, Schema>("suggester");
  * is newly encountered (e.g. by leaving/deleting and reentering/retyping a
  * trigger).
  */
-export const createBlockSuggester = (
+export const createSuggester = (
   renderPortal: RenderPortal,
   getManager: () => ProsemirrorSchemaManager,
 ) =>

@@ -13,7 +13,7 @@ import { blockDomId } from "../../blocks/page/BlockView";
 import {
   BlockSuggester,
   BlockSuggesterProps,
-} from "../BlockSuggester/BlockSuggester";
+} from "../Suggester/BlockSuggester";
 
 import { useGetAccounts } from "../hooks/useGetAccounts";
 

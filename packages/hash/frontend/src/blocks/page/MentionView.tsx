@@ -1,8 +1,8 @@
 import { Schema } from "prosemirror-model";
 import { EditorView, NodeView } from "prosemirror-view";
+import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { ProsemirrorNode } from "../../../../shared/dist/node";
 import { RenderPortal } from "./usePortals";
-import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { MentionDisplay } from "../../components/Mention/MentionDisplay";
 
 export class MentionView implements NodeView<Schema> {
