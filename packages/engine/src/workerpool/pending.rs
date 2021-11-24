@@ -41,7 +41,7 @@ impl PendingWorkerPoolTask {
     fn handle_result_state(
         &mut self,
         worker: Worker,
-        task_id: TaskID,
+        _task_id: TaskID,
         result: TaskMessage,
     ) -> Result<HasTerminated> {
         if let DistributionController::Distributed {
@@ -55,10 +55,7 @@ impl PendingWorkerPoolTask {
             if active_workers_comms.is_empty() {
                 received_results.sort_by(|a, b| a.0.cmp(&b.0));
                 let received_results = std::mem::replace(received_results, vec![]);
-                let results = received_results
-                    .into_iter()
-                    .map(|(index, res)| res)
-                    .collect();
+                let results = received_results.into_iter().map(|(_, res)| res).collect();
                 let combined_result =
                     TaskResultOrCancelled::Result(reference_task.combine_messages(results)?);
                 self.comms
@@ -82,11 +79,11 @@ impl PendingWorkerPoolTask {
         }
     }
 
-    fn handle_cancel_state(&mut self, worker: Worker, task_id: TaskID) -> Result<HasTerminated> {
+    fn handle_cancel_state(&mut self, worker: Worker, _task_id: TaskID) -> Result<HasTerminated> {
         if let DistributionController::Distributed {
             active_workers: active_workers_comms,
-            received_results,
-            reference_task,
+            received_results: _,
+            reference_task: _,
         } = &mut self.distribution_controller
         {
             active_workers_comms.remove(worker.index());

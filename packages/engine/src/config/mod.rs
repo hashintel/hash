@@ -75,7 +75,7 @@ fn simulation_config<E: ExperimentRunRepr>(
     id: SimulationShortID,
     globals: Globals,
     engine: EngineConfig,
-    global: &ExperimentConfig<E>,
+    _global: &ExperimentConfig<E>,
     store: StoreConfig,
     persistence: PersistenceConfig,
     max_num_steps: usize,

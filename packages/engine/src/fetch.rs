@@ -47,7 +47,7 @@ impl FetchDependencies for SharedDataset {
 #[async_trait]
 impl<E: ExperimentRunRepr> FetchDependencies for E {
     async fn fetch_deps(&mut self) -> Result<()> {
-        let mut datasets = std::mem::replace(&mut self.base_mut().project_base.datasets, vec![]);
+        let datasets = std::mem::replace(&mut self.base_mut().project_base.datasets, vec![]);
 
         self.base_mut().project_base.datasets =
             futures::stream::iter(datasets.into_iter().map(|mut dataset| {

@@ -1,7 +1,5 @@
 use super::*;
 use crate::datastore::schema::{FieldScope, FieldType, FieldTypeVariant::*, PresetFieldType};
-use crate::simulation::package::prelude::ArrowDataType;
-use arrow::datatypes::DataType::UInt32;
 
 fn neighbors() -> FieldType {
     let variant = VariableLengthArray(Box::new(FieldType::new(

@@ -3,7 +3,6 @@ use crate::output::OutputPersistenceResultRepr;
 
 use super::Result;
 
-use crate::experiment::package::StepUpdate;
 use crate::proto::SimulationShortID;
 use serde::{Deserialize, Serialize};
 

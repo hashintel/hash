@@ -1,11 +1,5 @@
-use std::{
-    collections::{HashMap, HashSet},
-    sync::Arc,
-};
-
-use arrow::{array::ArrayData, datatypes::Schema};
 use futures::FutureExt;
-use parking_lot::{RwLock, RwLockWriteGuard};
+
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 /*
 use behavior_execution::BehaviorPackage;
@@ -14,34 +8,14 @@ use context::{AgentContext, GroupContext, SimContext};
 pub use error::{Error, Result};
 use state::{AgentState, GroupState, SimState, StateSnapshot};
 */
-use crate::config::Globals;
-use crate::datastore::schema::state::AgentSchema;
+
 use crate::{
-    datastore::prelude::{AgentBatch, MessageBatch},
-    datastore::{
-        arrow::{
-            message::{outbound_messages_to_arrow_column, MESSAGE_COLUMN_INDEX},
-            util::arrow_continuation,
-        },
-        batch::{change::ArrayChange, ContextBatch},
-        table::sync::{ContextBatchSync, StateSync},
-    },
-    datastore::{batch::Metaversion, storage::memory::Memory},
-    hash_types::{message::Outbound as OutboundMessage, Agent},
     proto::SimulationShortID,
-    simulation::package::{
-        state::packages::behavior_execution::config::BehaviorDescription,
-        worker_init::PackageInitMsgForWorker,
-    },
-    worker::{Error as WorkerError, Result as WorkerResult, TaskMessage},
-    Language,
+    worker::{Error as WorkerError, Result as WorkerResult},
 };
 
 use super::comms::{
-    inbound::{InboundToRunnerMsg, InboundToRunnerMsgPayload},
-    outbound::{OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload, RunnerError},
-    ExperimentInitRunnerMsg, MessageTarget, NewSimulationRun, RunnerTaskMsg, StateInterimSync,
-    TargetedRunnerTaskMsg,
+    inbound::InboundToRunnerMsgPayload, outbound::OutboundFromRunnerMsg, ExperimentInitRunnerMsg,
 };
 
 pub struct RustRunner {
@@ -51,7 +25,7 @@ pub struct RustRunner {
 }
 
 impl RustRunner {
-    pub fn new(spawn: bool, init_msg: ExperimentInitRunnerMsg) -> WorkerResult<Self> {
+    pub fn new(spawn: bool, _init_msg: ExperimentInitRunnerMsg) -> WorkerResult<Self> {
         let (outbound_sender, outbound_receiver) = unbounded_channel();
         Ok(Self {
             outbound_sender,
@@ -62,16 +36,16 @@ impl RustRunner {
 
     pub async fn send(
         &self,
-        sim_id: Option<SimulationShortID>,
-        msg: InboundToRunnerMsgPayload,
+        _sim_id: Option<SimulationShortID>,
+        _msg: InboundToRunnerMsgPayload,
     ) -> WorkerResult<()> {
         Ok(())
     }
 
     pub async fn send_if_spawned(
         &self,
-        sim_id: Option<SimulationShortID>,
-        msg: InboundToRunnerMsgPayload,
+        _sim_id: Option<SimulationShortID>,
+        _msg: InboundToRunnerMsgPayload,
     ) -> WorkerResult<()> {
         Ok(())
     }

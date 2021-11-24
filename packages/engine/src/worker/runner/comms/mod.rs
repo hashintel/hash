@@ -4,8 +4,6 @@ use std::{collections::HashMap, fmt, sync::Arc};
 use crate::config::Globals;
 use crate::datastore::schema::state::AgentSchema;
 use crate::datastore::shared_store::SharedStore;
-use crate::datastore::table::pool::agent::AgentPool;
-use crate::datastore::table::pool::message::MessagePool;
 use crate::proto::{ExperimentID, SimulationShortID};
 use crate::simulation::enum_dispatch::TaskSharedStore;
 use crate::simulation::package::id::PackageId;

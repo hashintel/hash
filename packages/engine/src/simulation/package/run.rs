@@ -4,8 +4,6 @@ use std::sync::Arc;
 use crate::proto::ExperimentRunBase;
 use futures::{executor::block_on, stream::FuturesUnordered, StreamExt};
 
-use crate::datastore::schema::FieldKey;
-use crate::worker::runner::comms::PackageMsgs;
 use crate::{
     datastore::table::{
         context::PreContext,
@@ -95,7 +93,7 @@ impl StepPackages {
         experiment_config: &SimRunConfig<ExperimentRunBase>,
         num_agents: usize,
     ) -> Result<Context> {
-        let mut keys_and_columns = self
+        let keys_and_columns = self
             .context
             .iter()
             // TODO remove the need for this creating a method to generate empty arrow columns from schema

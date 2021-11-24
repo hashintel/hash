@@ -143,7 +143,7 @@ fn read_local_init_file(
     init_js: PathBuf,
     init_py: PathBuf,
 ) -> Option<InitialState> {
-    let mut init_path: PathBuf;
+    let init_path: PathBuf;
     let state_name: InitialStateName;
 
     log::debug!("Reading local init files");
@@ -371,8 +371,8 @@ fn get_behavior_from_dependency_projects(
 
     match dependency_projects
         .iter()
-        .find(|(path, proj)| path.ends_with(&dependency_path))
-        .map(|(path, proj)| {
+        .find(|(path, _proj)| path.ends_with(&dependency_path))
+        .map(|(_path, proj)| {
             proj.behaviors.iter().find(|behavior| {
                 // TODO - Are all of these checks necessary
                 behavior.name == name
@@ -419,8 +419,8 @@ fn get_dataset_from_dependency_projects(
 
     match dependency_projects
         .iter()
-        .find(|(path, proj)| path.ends_with(&dependency_path))
-        .map(|(path, proj)| {
+        .find(|(path, _proj)| path.ends_with(&dependency_path))
+        .map(|(_path, proj)| {
             proj.datasets.iter().find(|dataset| {
                 // TODO - Are all of these checks necessary
                 dataset.name == Some(name.clone())
@@ -468,7 +468,7 @@ fn add_dependencies_to_project(
         for (dependency_name, _version) in dependencies_map {
             match get_dependency_type_from_name(&dependency_name)? {
                 DependencyType::Behavior(extension) => {
-                    let mut behavior = if &extension == ".rs" {
+                    let behavior = if &extension == ".rs" {
                         SharedBehavior {
                             id: dependency_name.to_string(),
                             name: dependency_name.to_string(),
@@ -569,7 +569,7 @@ fn get_simple_experiment_config(
         changed_properties: plan
             .inner
             .into_iter()
-            .flat_map(|mut v| v.fields.into_values())
+            .flat_map(|v| v.fields.into_values())
             .collect(),
         num_steps: plan.num_steps,
     };
@@ -809,7 +809,7 @@ fn create_value_variant_plan(selected_experiment: &SerdeValue) -> Result<SimpleE
     }
 
     let var: ValueVariant = serde_json::from_value(selected_experiment.clone())?;
-    let mapper: Mapper = Box::new(|val, index| val);
+    let mapper: Mapper = Box::new(|val, _index| val);
     create_variant_with_mapped_value(&var.field, &var.values, &mapper, var.steps as usize)
 }
 
@@ -828,7 +828,7 @@ fn create_linspace_variant_plan(selected_experiment: &SerdeValue) -> Result<Simp
     let values = (0..var.samples as usize).map(|_| 0.into()).collect();
 
     let closure_var = var.clone();
-    let mapper: Mapper = Box::new(move |val, index| {
+    let mapper: Mapper = Box::new(move |_val, index| {
         (closure_var.start
             + (index as f64 * (closure_var.stop - closure_var.start))
                 / ((closure_var.samples - 1 as f64) as f64))
@@ -856,7 +856,7 @@ fn create_arange_variant_plan(selected_experiment: &SerdeValue) -> Result<Simple
         values.push(cur.into());
         cur += var.increment;
     }
-    let mapper: Mapper = Box::new(|val, index| val);
+    let mapper: Mapper = Box::new(|val, _index| val);
     create_variant_with_mapped_value(&var.field, &values, &mapper, var.steps as usize)
 }
 

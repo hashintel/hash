@@ -1,4 +1,4 @@
-use super::{Error, Result};
+use super::Result;
 use crate::config::{Distribution, TaskDistributionConfig};
 use crate::simulation::enum_dispatch::{StateTaskMessage, WorkerHandler};
 use crate::simulation::task::args::GetTaskArgs;

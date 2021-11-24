@@ -14,9 +14,6 @@ pub enum PackageName {
 
 impl PackageName {
     pub fn get_id(&self) -> Result<PackageId> {
-        let err = || {
-            Error::from(format!("Package Id not registered: {}", self));
-        };
         let id = match self {
             PackageName::Context(name) => super::context::packages::IDS.get(name),
             PackageName::Init(name) => super::init::packages::IDS.get(name),

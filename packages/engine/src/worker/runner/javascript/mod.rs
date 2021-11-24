@@ -17,14 +17,12 @@ use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 use super::comms::{
     inbound::InboundToRunnerMsgPayload,
     outbound::{OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload, RunnerError},
-    ExperimentInitRunnerMsg, MessageTarget, NewSimulationRun, RunnerTaskMsg, StateInterimSync,
-    TargetedRunnerTaskMsg,
+    ExperimentInitRunnerMsg, MessageTarget, NewSimulationRun, RunnerTaskMsg, TargetedRunnerTaskMsg,
 };
 use crate::config::Globals;
 use crate::datastore::batch::DynamicBatch;
 use crate::datastore::table::pool::agent::AgentPool;
 use crate::datastore::table::pool::message::MessagePool;
-use crate::datastore::table::pool::proxy::{PoolReadProxy, PoolWriteProxy};
 use crate::datastore::table::pool::BatchPool;
 use crate::datastore::table::proxy::StateWriteProxy;
 use crate::datastore::table::task_shared_store::{PartialSharedState, SharedState};
@@ -990,7 +988,7 @@ impl<'m> RunnerImpl<'m> {
             .state_interim_sync
             .call_method(self.this.clone(), args)?;
 
-        // Sync Rust.
+        // TODO: Sync Rust.
         // let state = self
         //     .sims_state
         //     .get_mut(&sim_run_id)

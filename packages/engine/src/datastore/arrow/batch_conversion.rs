@@ -9,7 +9,7 @@ use crate::datastore::schema::state::AgentSchema;
 use crate::datastore::schema::{FieldScope, IsRequired};
 use crate::datastore::{
     prelude::*,
-    schema::{FieldKey, FieldTypeVariant, PresetFieldType},
+    schema::{FieldKey, FieldTypeVariant},
     UUID_V4_LEN,
 };
 use crate::hash_types::state::{AgentStateField, BUILTIN_FIELDS};

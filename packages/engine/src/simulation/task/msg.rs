@@ -2,11 +2,9 @@ use crate::simulation::enum_dispatch::*;
 use serde::{Deserialize, Serialize};
 use std::hint::unreachable_unchecked;
 
-use crate::simulation::package::PackageType;
 use crate::worker::runner::comms::MessageTarget;
 
-// TODO OS - We want to do enum_dispatch(Into<TaskResult>) but cannot as the trait itself isn't marked with enum_dispatch,
-//  We therefore need to make a wrapper trait that forces/wraps Into<TaskResult> and then use that
+// TODO - Possibly come up with a better interface for distinguishing between types of TaskMessages
 #[enum_dispatch(RegisterWithoutTrait)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum TaskMessage {
@@ -132,7 +130,7 @@ fn _swap_doubly_nested_val(
         .entry(key)
         .and_modify(|val| std::mem::swap(val, &mut value_to_swap));
 
-    ((object_map, value_to_swap))
+    (object_map, value_to_swap)
 }
 
 pub struct TargetedTaskMessage {

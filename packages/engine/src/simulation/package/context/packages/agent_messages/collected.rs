@@ -14,7 +14,6 @@ impl Messages {
     pub fn gather<'a>(
         message_map: &MessageMap,
         ids_and_names: impl Iterator<Item = (&'a [u8; UUID_V4_LEN], Option<&'a str>)>,
-        num_agents: usize,
     ) -> Result<Messages> {
         let mut total_count = 0;
         //TODO[4](optimization) parallelism

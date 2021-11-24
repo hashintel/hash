@@ -1,4 +1,3 @@
-use parking_lot::RwLockReadGuard;
 use std::{collections::HashMap, convert::TryFrom, sync::Arc};
 
 use serde::{Deserialize, Serialize};
@@ -41,7 +40,7 @@ pub struct Analyzer {
 impl Analyzer {
     pub fn from_analysis_source(
         analysis_source: &str,
-        agent_schema: &AgentSchema,
+        _agent_schema: &AgentSchema,
         accessor: &FieldSpecMapAccessor,
     ) -> Result<Analyzer> {
         let repr = AnalysisSourceRepr::try_from(analysis_source)?;

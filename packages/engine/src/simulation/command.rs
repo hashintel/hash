@@ -1,10 +1,8 @@
 use std::{collections::HashSet, sync::Arc};
 
 use crate::hash_types::{message::RemoveAgentPayload, Agent};
-use arrow::record_batch::RecordBatch;
-use rayon::iter::{
-    IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,
-};
+
+use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 use uuid::Uuid;
 
 use super::{Error, Result};
@@ -12,7 +10,6 @@ use super::{Error, Result};
 use crate::datastore::arrow::batch_conversion::IntoRecordBatch;
 use crate::datastore::schema::{state::AgentSchema, FieldKey};
 use crate::datastore::{
-    error::Result as DataStoreResult,
     table::{
         pool::message::MessagePoolRead, references::MessageMap,
         state::create_remove::ProcessedCommands,

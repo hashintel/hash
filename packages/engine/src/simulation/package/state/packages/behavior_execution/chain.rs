@@ -86,7 +86,7 @@ impl IntoArrowChange for ChainList {
         }
 
         // Indices
-        let mut builder = arrow::array::ArrayDataBuilder::new(self.data_types[2].clone());
+        let builder = arrow::array::ArrayDataBuilder::new(self.data_types[2].clone());
         let child_data = builder
             .len(num_indices)
             .null_count(0)
@@ -94,7 +94,7 @@ impl IntoArrowChange for ChainList {
             .build();
 
         // Fixed-length lists
-        let mut builder = arrow::array::ArrayDataBuilder::new(self.data_types[1].clone());
+        let builder = arrow::array::ArrayDataBuilder::new(self.data_types[1].clone());
         let child_data = builder
             .len(num_behavior_indices)
             .null_count(0)
@@ -102,7 +102,7 @@ impl IntoArrowChange for ChainList {
             .build();
 
         // Variable-length lists
-        let mut builder = arrow::array::ArrayDataBuilder::new(self.data_types[0].clone());
+        let builder = arrow::array::ArrayDataBuilder::new(self.data_types[0].clone());
         let data = builder
             .len(num_agents)
             .null_count(0)

@@ -1,4 +1,3 @@
-use std::convert::TryInto;
 use std::sync::Arc;
 
 use crate::hash_types::state::{Agent, AgentStateField};
@@ -9,8 +8,7 @@ use serde::{Deserialize, Serialize};
 use crate::datastore::error::Error;
 use crate::datastore::schema::state::AgentSchema;
 use crate::datastore::schema::{
-    FieldScope, FieldSource, FieldSpec, FieldSpecMap, FieldSpecMapBuilder, FieldType,
-    FieldTypeVariant, RootFieldSpec,
+    FieldScope, FieldSource, FieldSpecMap, FieldSpecMapBuilder, FieldType, FieldTypeVariant,
 };
 use crate::simulation::package::creator::add_base_agent_fields;
 

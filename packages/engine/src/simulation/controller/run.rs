@@ -1,14 +1,13 @@
 use futures::FutureExt;
-use nix::sys::ptrace::step;
+
 use std::sync::Arc;
 use tokio::time::Duration;
 
 use crate::datastore::prelude::{SharedStore, Store};
 
-use crate::experiment::controller::comms::exp_pkg_update::ExpPkgUpdateSend;
 use crate::experiment::controller::comms::sim_status::SimStatusSend;
 use crate::experiment::controller::comms::simulation::SimCtlRecv;
-use crate::experiment::package::StepUpdate;
+
 use crate::hash_types::worker::RunnerError;
 use crate::output::SimulationOutputPersistenceRepr;
 use crate::proto::{ExperimentRunBase, SimulationShortID};
@@ -18,7 +17,7 @@ use crate::simulation::controller::sim_control::SimControl;
 use crate::simulation::engine::Engine;
 use crate::simulation::package::run::Packages;
 use crate::simulation::status::SimStatus;
-use crate::simulation::step_result::SimulationStepResult;
+
 use crate::SimRunConfig;
 
 use super::{Error, Result};
@@ -75,7 +74,8 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
         }
 
         // Take a step in the simulation
-        let result = match engine.next().await {
+        // TODO - do we do nothing with this result?
+        let _result = match engine.next().await {
             Ok(step_result) => step_result,
             Err(error) => {
                 log::error!("Got error within the engine step process: {:?}", error);

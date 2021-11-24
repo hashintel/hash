@@ -17,7 +17,6 @@ pub struct Requests {
 }
 
 pub fn gather_requests<'a>(
-    name: &str,
     reader: &MessageReader<'a>,
     messages: &[AgentMessageReference],
 ) -> Result<Requests> {

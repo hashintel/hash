@@ -27,7 +27,7 @@ impl PackageCreator for Creator {
         &self,
         config: &Arc<SimRunConfig<ExperimentRunBase>>,
         _comms: PackageComms,
-        accessor: FieldSpecMapAccessor,
+        _accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn Package>> {
         let topology = Topology {
             config: Arc::new(
@@ -80,7 +80,7 @@ impl GetWorkerSimStartMsg for Topology {
 
 #[async_trait]
 impl Package for Topology {
-    async fn run(&mut self, state: &mut ExState, context: &Context) -> Result<()> {
+    async fn run(&mut self, state: &mut ExState, _context: &Context) -> Result<()> {
         if self.config.move_wrapped_agents {
             for mut mut_table in state.agent_pool_mut().write_batches()? {
                 if self.topology_correction(&mut mut_table)? {

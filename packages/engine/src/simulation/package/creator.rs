@@ -59,8 +59,7 @@ impl PackageCreators {
         let init = config
             .init_packages()
             .iter()
-            .enumerate()
-            .map(|(index, package_name)| {
+            .map(|package_name| {
                 let package_creator = init::PACKAGES.get(package_name).ok_or_else(|| {
                     Error::from(format!(
                         "Could not find init creator package: {}",
@@ -76,8 +75,7 @@ impl PackageCreators {
         let context = config
             .context_packages()
             .iter()
-            .enumerate()
-            .map(|(index, package_name)| {
+            .map(|package_name| {
                 let package_creator = context::PACKAGES.get(package_name).ok_or_else(|| {
                     Error::from(format!(
                         "Could not find context creator package: {}",
@@ -93,8 +91,7 @@ impl PackageCreators {
         let state = config
             .state_packages()
             .iter()
-            .enumerate()
-            .map(|(index, package_name)| {
+            .map(|package_name| {
                 let package_creator = state::PACKAGES.get(package_name).ok_or_else(|| {
                     Error::from(format!(
                         "Could not find state creator package: {}",
@@ -110,8 +107,7 @@ impl PackageCreators {
         let output = config
             .output_packages()
             .iter()
-            .enumerate()
-            .map(|(index, package_name)| {
+            .map(|package_name| {
                 let package_creator = output::PACKAGES.get(package_name).ok_or_else(|| {
                     Error::from(format!(
                         "Could not find output creator package: {}",
@@ -302,7 +298,7 @@ impl PackageCreators {
         let mut map = HashMap::new();
         self.output
             .iter()
-            .try_for_each::<_, Result<()>>(|(id, name, creator)| {
+            .try_for_each::<_, Result<()>>(|(_id, name, creator)| {
                 let config = creator.persistence_config(exp_config, globals)?;
                 map.insert(name.clone(), config);
                 Ok(())
@@ -317,25 +313,25 @@ impl PackageCreators {
     ) -> Result<AgentSchema> {
         // TODO - should we use enum_dispatch here to remove some duplication
         let mut field_builder = FieldSpecMapBuilder::new();
-        self.init
-            .iter()
-            .try_for_each::<_, Result<()>>(|(package_id, package_name, creator)| {
+        self.init.iter().try_for_each::<_, Result<()>>(
+            |(_package_id, package_name, creator)| {
                 field_builder.source(FieldSource::Package(package_name.clone()));
                 creator.add_state_field_specs(exp_config, globals, &mut field_builder)?;
                 Ok(())
-            })?;
+            },
+        )?;
 
-        self.context
-            .iter()
-            .try_for_each::<_, Result<()>>(|(package_id, package_name, creator)| {
+        self.context.iter().try_for_each::<_, Result<()>>(
+            |(_package_id, package_name, creator)| {
                 field_builder.source(FieldSource::Package(package_name.clone()));
                 creator.add_state_field_specs(exp_config, globals, &mut field_builder)?;
                 Ok(())
-            });
+            },
+        );
 
         self.state
             .iter()
-            .try_for_each::<_, Result<()>>(|(package_id, package_name, creator)| {
+            .try_for_each::<_, Result<()>>(|(_package_id, package_name, creator)| {
                 field_builder.source(FieldSource::Package(package_name.clone()));
                 creator.add_state_field_specs(exp_config, globals, &mut field_builder)?;
                 Ok(())
@@ -343,7 +339,7 @@ impl PackageCreators {
 
         self.output
             .iter()
-            .try_for_each::<_, Result<()>>(|(package_id, package_name, creator)| {
+            .try_for_each::<_, Result<()>>(|(_package_id, package_name, creator)| {
                 field_builder.source(FieldSource::Package(package_name.clone()));
                 creator.add_state_field_specs(exp_config, globals, &mut field_builder)?;
                 Ok(())
@@ -361,13 +357,13 @@ impl PackageCreators {
     ) -> std::result::Result<ContextSchema, crate::datastore::prelude::Error> {
         let mut field_builder = FieldSpecMapBuilder::new();
 
-        self.context
-            .iter()
-            .try_for_each::<_, Result<()>>(|(package_id, package_name, creator)| {
+        self.context.iter().try_for_each::<_, Result<()>>(
+            |(_package_id, package_name, creator)| {
                 field_builder.source(FieldSource::Package(package_name.clone()));
                 creator.add_context_field_specs(exp_config, globals, &mut field_builder)?;
                 Ok(())
-            });
+            },
+        );
 
         add_base_context_fields(&mut field_builder);
 

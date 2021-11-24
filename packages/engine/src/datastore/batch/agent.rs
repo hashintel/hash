@@ -391,7 +391,7 @@ impl Batch {
     }
 
     // TODO no set_id, but ID must have null bytes if too short
-    pub fn agent_id_iter<'a>(&'a self) -> Result<impl Iterator<Item = &'a [u8; UUID_V4_LEN]>> {
+    pub fn agent_id_iter(&self) -> Result<impl Iterator<Item = &[u8; UUID_V4_LEN]>> {
         let column_name = AgentStateField::AgentId.name();
         let column = self.get_arrow_column(column_name)?;
         // FixedSizeBinary has a single buffer (no offsets)
@@ -406,7 +406,7 @@ impl Batch {
         }))
     }
 
-    pub fn agent_name_iter<'a>(&'a self) -> Result<impl Iterator<Item = Option<&'a str>>> {
+    pub fn agent_name_iter(&self) -> Result<impl Iterator<Item = Option<&str>>> {
         let column_name = AgentStateField::AgentName.name();
         self.str_iter(column_name)
     }

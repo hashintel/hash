@@ -12,7 +12,7 @@ use std::ops::Deref;
 use std::pin::Pin;
 use std::str::FromStr;
 use tokio::process::{Child, Command};
-use tokio::sync::mpsc::{unbounded_channel, Receiver, Sender, UnboundedReceiver, UnboundedSender};
+use tokio::sync::mpsc::{unbounded_channel, Receiver, Sender, UnboundedReceiver};
 use uuid::Uuid;
 
 use super::comms::{
@@ -22,12 +22,12 @@ use crate::datastore::arrow::util::arrow_continuation;
 use crate::datastore::batch::Batch;
 use crate::datastore::prelude::SharedStore;
 use crate::datastore::table::sync::StateSync;
-use crate::datastore::table::task_shared_store::{PartialSharedState, SharedContext, SharedState};
-use crate::gen::{Metaversion, StateInterimSyncArgs};
+use crate::datastore::table::task_shared_store::{PartialSharedState, SharedState};
+use crate::gen::StateInterimSyncArgs;
 use crate::proto::{ExperimentID, SimulationShortID};
 use crate::simulation::enum_dispatch::TaskSharedStore;
 use crate::types::WorkerIndex;
-use crate::worker::runner::comms::inbound::InboundToRunnerMsgPayload::StateInterimSync;
+
 use crate::worker::runner::comms::PackageMsgs;
 use crate::worker::{Error as WorkerError, Result as WorkerResult};
 pub use error::{Error, Result};
@@ -387,10 +387,10 @@ fn inbound_to_nng(
             let package_config = pkgs_to_fbs(fbb, &msg.packages)?;
 
             let shared_ctx = shared_ctx_to_fbs(fbb, &msg.datastore.shared_store);
-            let mut agent_schema_bytes =
+            let agent_schema_bytes =
                 schema_to_stream_bytes(&msg.datastore.agent_batch_schema.arrow);
-            let mut msg_schema_bytes = schema_to_stream_bytes(&msg.datastore.message_batch_schema);
-            let mut ctx_schema_bytes = schema_to_stream_bytes(&msg.datastore.context_batch_schema);
+            let msg_schema_bytes = schema_to_stream_bytes(&msg.datastore.message_batch_schema);
+            let ctx_schema_bytes = schema_to_stream_bytes(&msg.datastore.context_batch_schema);
             let agent_schema_bytes = fbb.create_vector(&agent_schema_bytes);
             let msg_schema_bytes = fbb.create_vector(&msg_schema_bytes);
             let ctx_schema_bytes = fbb.create_vector(&ctx_schema_bytes);
@@ -617,7 +617,7 @@ pub struct PythonRunner {
 }
 
 async fn _run(
-    mut process: Child,
+    _process: Child,
     mut send_result_receiver: UnboundedReceiver<Result<()>>,
     mut terminate_receiver: Receiver<()>,
 ) -> WorkerResult<()> {
@@ -732,7 +732,7 @@ impl PythonRunner {
         cmd.arg("./src/worker/runner/python/run.sh")
             .arg(&self.init_msg.experiment_id)
             .arg(&self.init_msg.worker_index.to_string());
-        let mut process = cmd.spawn().map_err(|e| Error::Spawn(e))?;
+        let process = cmd.spawn().map_err(|e| Error::Spawn(e))?;
         log::debug!("Started Python process {}", self.init_msg.worker_index);
 
         // Send init message to Python process.

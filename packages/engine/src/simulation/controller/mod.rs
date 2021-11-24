@@ -7,10 +7,8 @@ use std::sync::Arc;
 
 use crate::datastore::prelude::SharedStore;
 use crate::experiment::controller::comms::sim_status::SimStatusSend;
-use crate::experiment::controller::comms::{
-    exp_pkg_update::ExpPkgUpdateSend,
-    simulation::{new_pair, SimCtlRecv, SimCtlSend},
-};
+use crate::experiment::controller::comms::simulation::{new_pair, SimCtlRecv, SimCtlSend};
+
 use crate::output::SimulationOutputPersistenceRepr;
 use crate::proto::{ExperimentRunBase, SimulationShortID};
 use crate::simulation::package::run::Packages;

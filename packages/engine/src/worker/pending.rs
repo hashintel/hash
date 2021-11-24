@@ -3,8 +3,6 @@ use std::collections::HashMap;
 use crate::simulation::task::Task;
 use crate::{types::TaskID, Language};
 
-use super::task::WorkerTask;
-
 pub enum CancelState {
     Active(Vec<Language>),
     None,

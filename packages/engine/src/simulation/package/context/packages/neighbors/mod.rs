@@ -7,10 +7,7 @@ use crate::datastore::schema::context::ContextSchema;
 use crate::datastore::schema::{FieldKey, FieldSpecMapBuilder};
 use crate::datastore::table::state::view::StateSnapshot;
 use crate::datastore::table::state::State;
-use crate::datastore::{
-    batch::iterators,
-    table::{pool::agent::AgentPool, state::ReadState},
-};
+use crate::datastore::{batch::iterators, table::state::ReadState};
 use crate::proto::ExperimentRunBase;
 use crate::simulation::comms::package::PackageComms;
 use crate::simulation::package::context::{ContextColumn, Package, PackageCreator};
@@ -122,7 +119,7 @@ impl Package for Neighbors {
     async fn run<'s>(
         &mut self,
         state: Arc<State>,
-        snapshot: Arc<StateSnapshot>,
+        _snapshot: Arc<StateSnapshot>,
     ) -> Result<ContextColumn> {
         let agent_pool = state.agent_pool();
         let batches = agent_pool.read_batches()?;

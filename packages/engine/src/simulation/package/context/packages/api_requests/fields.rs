@@ -1,4 +1,3 @@
-use crate::datastore::schema::context::ContextSchema;
 use crate::datastore::schema::{FieldScope, FieldType, FieldTypeVariant::*};
 
 use super::*;

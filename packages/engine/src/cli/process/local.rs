@@ -2,7 +2,7 @@ use super::error::{Error, Result};
 use super::process;
 use async_trait::async_trait;
 use hash_prime::nano;
-use hash_prime::proto::{EngineMsg, ExperimentRun, ExperimentRunRepr};
+use hash_prime::proto::{EngineMsg, ExperimentRun};
 
 #[cfg(debug_assertions)]
 const PROCESS_PATH_DEFAULT: &str = "./target/debug/prime_engine";

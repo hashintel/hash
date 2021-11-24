@@ -26,7 +26,7 @@ use self::{
     runner::{
         comms::{
             outbound::{OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload, RunnerError},
-            ExperimentInitRunnerMsg, NewSimulationRun, RunnerTaskMsg, StateInterimSync,
+            ExperimentInitRunnerMsg, NewSimulationRun, RunnerTaskMsg,
         },
         javascript::JavaScriptRunner,
         python::PythonRunner,

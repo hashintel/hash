@@ -3,7 +3,6 @@
 #![feature(box_patterns)]
 #[macro_use]
 extern crate lazy_static;
-extern crate derivative;
 
 #[macro_use]
 extern crate derive_new;

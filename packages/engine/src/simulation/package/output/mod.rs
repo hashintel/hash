@@ -34,17 +34,17 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync {
 
     fn persistence_config(
         &self,
-        config: &ExperimentConfig<ExperimentRunBase>,
-        globals: &Globals,
+        _config: &ExperimentConfig<ExperimentRunBase>,
+        _globals: &Globals,
     ) -> Result<serde_json::Value> {
         Ok(serde_json::Value::Null)
     }
 
     fn add_state_field_specs(
         &self,
-        config: &ExperimentConfig<ExperimentRunBase>,
-        globals: &Globals,
-        field_spec_map_builder: &mut FieldSpecMapBuilder,
+        _config: &ExperimentConfig<ExperimentRunBase>,
+        _globals: &Globals,
+        _field_spec_map_builder: &mut FieldSpecMapBuilder,
     ) -> Result<()> {
         Ok(())
     }

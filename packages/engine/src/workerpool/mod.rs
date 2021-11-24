@@ -268,8 +268,8 @@ impl WorkerPoolController {
                 match &task.distribution_controller {
                     DistributionController::Distributed {
                         active_workers,
-                        received_results,
-                        reference_task,
+                        received_results: _,
+                        reference_task: _,
                     } => {
                         for worker in active_workers {
                             self.send_to_worker(
@@ -314,7 +314,6 @@ impl WorkerPoolController {
                 let (distributed_tables, split_config) =
                     shared_store.distribute(&distribution, worker_list)?;
                 let tasks: Vec<Task> = task.split_task(&split_config)?;
-                let num_active_workers: usize = tasks.len();
                 (
                     tasks
                         .into_iter()

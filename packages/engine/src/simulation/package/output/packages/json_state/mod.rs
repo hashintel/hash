@@ -20,7 +20,7 @@ impl PackageCreator for Creator {
         &self,
         config: &Arc<SimRunConfig<ExperimentRunBase>>,
         _comms: PackageComms,
-        accessor: FieldSpecMapAccessor,
+        _accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn Package>> {
         Ok(Box::new(JsonState {
             config: config.clone(),

@@ -20,7 +20,7 @@ impl SimConfigurer {
                 let num_runs = config.changed_properties.len();
                 std::cmp::max(1, (num_workers as f64 / num_runs as f64).ceil() as usize)
             }
-            ExperimentPackageConfig::SingleRun(config) => std::cmp::max(1, num_workers),
+            ExperimentPackageConfig::SingleRun(_) => std::cmp::max(1, num_workers),
         };
 
         SimConfigurer {

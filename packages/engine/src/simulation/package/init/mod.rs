@@ -38,9 +38,9 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync {
 
     fn add_state_field_specs(
         &self,
-        config: &ExperimentConfig<ExperimentRunBase>,
-        globals: &Globals,
-        field_spec_map_builder: &mut FieldSpecMapBuilder,
+        _config: &ExperimentConfig<ExperimentRunBase>,
+        _globals: &Globals,
+        _field_spec_map_builder: &mut FieldSpecMapBuilder,
     ) -> Result<()> {
         Ok(())
     }

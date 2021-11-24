@@ -1,6 +1,5 @@
 use std::{collections::HashMap, sync::Arc};
 
-use crate::experiment::controller::comms::exp_pkg_update::ExpPkgUpdateSend;
 use crate::experiment::package::StepUpdate;
 use crate::{
     config::{PersistenceConfig, StoreConfig},
@@ -29,9 +28,7 @@ use crate::simulation::controller::sim_control::SimControl;
 use crate::simulation::controller::SimulationController;
 use crate::simulation::status::SimStatus;
 use crate::simulation::Error as SimulationError;
-use crate::worker::runner::comms::{
-    DatastoreSimulationPayload, ExperimentInitRunnerMsg, ExperimentInitRunnerMsgBase,
-};
+use crate::worker::runner::comms::{DatastoreSimulationPayload, ExperimentInitRunnerMsgBase};
 use crate::workerpool::comms::TerminateRecv;
 
 use super::comms::sim_status::SimStatusSend;
@@ -68,7 +65,7 @@ impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController
     /// Handle an inbound message from the orchestrator (or CLI)
     async fn handle_orch_msg(&mut self, orch_msg: EngineMsg<E>) -> Result<()> {
         match orch_msg {
-            EngineMsg::Init(init) => Err(Error::from("Unexpected init message")),
+            EngineMsg::Init(_) => Err(Error::from("Unexpected init message")),
             EngineMsg::SimRegistered(short_id, registered_id) => self
                 .sim_id_store
                 .set_registered_id(short_id, registered_id)
@@ -165,7 +162,6 @@ impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController
         max_num_steps: usize,
     ) -> Result<()> {
         let worker_pool_sender = self.worker_pool_send_base.sender_with_sim_id(sim_short_id);
-        let output_sender = self.experiment_package_comms.step_update_sender.clone();
 
         // Create the `globals.json` for the simulation
         let globals = Arc::new(

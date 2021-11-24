@@ -1,7 +1,6 @@
-use crate::hash_types::worker;
-use crate::{gen, proto::SimulationShortID, types::TaskID, Language};
-
 use super::TargetedRunnerTaskMsg;
+use crate::hash_types::worker;
+use crate::{proto::SimulationShortID, types::TaskID, Language};
 
 #[derive(Debug, Default, Clone)]
 pub struct RunnerError {
@@ -45,7 +44,7 @@ pub struct OutboundFromRunnerMsg {
 
 impl From<nng::Message> for OutboundFromRunnerMsg {
     fn from(msg: nng::Message) -> Self {
-        let bytes = msg.as_slice();
+        let _bytes = msg.as_slice();
         todo!()
     }
 }

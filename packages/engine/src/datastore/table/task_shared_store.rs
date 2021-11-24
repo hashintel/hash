@@ -5,9 +5,8 @@ use crate::{
     simulation::task::handler::worker_pool::SplitConfig,
     worker::runner::comms::StateInterimSync,
 };
-use futures::future::Shared;
-use regex::internal::Inst::Split;
-use std::fmt::{Debug, Formatter};
+
+use std::fmt::Debug;
 
 use super::{
     context::ReadContext,
@@ -24,13 +23,6 @@ pub struct TaskSharedStore {
 impl TaskSharedStore {
     pub fn context(&self) -> &SharedContext {
         &self.context
-    }
-
-    /// Update the metaversions of all the write
-    /// batches in this shared store instance.
-    pub fn update_metaversioning(&mut self, sync: &StateInterimSync) -> Result<()> {
-        // TODO OS - implement update_metaversioning for task_shared_store
-        todo!()
     }
 }
 
@@ -120,7 +112,7 @@ impl TaskSharedStoreBuilder {
     }
 
     /// Allow the task runners to have read access to the context object
-    pub fn read_context<K: ReadContext>(mut self, context: &K) -> Result<Self> {
+    pub fn read_context<K: ReadContext>(mut self, _context: &K) -> Result<Self> {
         self.inner.context = SharedContext::Read;
         Ok(self)
     }

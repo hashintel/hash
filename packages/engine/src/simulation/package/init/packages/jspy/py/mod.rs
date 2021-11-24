@@ -3,7 +3,7 @@ use crate::simulation::enum_dispatch::InitTaskMessage;
 use crate::simulation::package::init::packages::jspy::{JsPyInitTaskMessage, StartMessage};
 use crate::simulation::task::args::GetTaskArgs;
 use crate::simulation::task::handler::{WorkerHandler, WorkerPoolHandler};
-use crate::simulation::task::msg::{TargetedTaskMessage, TaskMessage};
+use crate::simulation::task::msg::TargetedTaskMessage;
 use crate::simulation::Result as SimulationResult;
 use crate::worker::runner::comms::MessageTarget;
 

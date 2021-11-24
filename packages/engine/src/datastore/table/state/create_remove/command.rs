@@ -17,7 +17,7 @@ pub struct ProcessedCommands {
 
 impl ProcessedCommands {
     pub fn new(
-        mut commands: CreateRemoveCommands,
+        commands: CreateRemoveCommands,
         schema: &Arc<AgentSchema>,
     ) -> Result<ProcessedCommands> {
         Ok(commands

@@ -29,9 +29,8 @@ pub async fn run_experiment(
     env: Environment<ExperimentRun>,
 ) -> Result<()> {
     let experiment_id = exp_config.run.base.id.clone();
-    // Get cloud-specific configuration from `env`
-    // TODO - on
-    let output_persistence_config = config::output_persistence(&env)?;
+    // TODO - Get cloud-specific configuration from `env`
+    let _output_persistence_config = config::output_persistence(&env)?;
 
     // Keep another orchestrator client at the top level to send the final result
     let mut orch_client = env.orch_client.try_clone()?;
@@ -274,7 +273,7 @@ fn experiment_package_exit_logic(
     worker_pool_result: &WorkerPoolResult,
     experiment_controller_terminate_send: &mut TerminateSend,
     exit_timeout: &mut Option<Pin<Box<tokio::time::Sleep>>>,
-) -> Result<(bool)> {
+) -> Result<bool> {
     log::debug!("Result from experiment package");
 
     // The experiment package should finish before the controller and worker pool
@@ -306,7 +305,7 @@ fn experiment_controller_exit_logic(
     worker_pool_result: &WorkerPoolResult,
     worker_pool_terminate_send: &mut TerminateSend,
     exit_timeout: &mut Option<Pin<Box<tokio::time::Sleep>>>,
-) -> Result<(bool)> {
+) -> Result<bool> {
     log::debug!("Result from experiment controller");
 
     // Controller should finish before the Worker Pool

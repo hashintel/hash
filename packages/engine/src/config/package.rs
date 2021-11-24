@@ -189,7 +189,7 @@ impl ConfigBuilder {
             .context
             .unwrap_or_else(|| Config::default_context_packages());
 
-        let mut state = self
+        let state = self
             .state
             .unwrap_or_else(|| Config::default_state_packages());
 

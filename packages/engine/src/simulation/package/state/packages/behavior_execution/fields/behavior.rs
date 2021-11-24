@@ -41,11 +41,12 @@ impl BehaviorKeys {
         Self::_from_json_str(json_str.as_ref(), true)
     }
 
+    // TODO: remove reference to mergeable
     pub fn from_json_str_non_mergeable<K: AsRef<str>>(json_str: K) -> Result<BehaviorKeys> {
         Self::_from_json_str(json_str.as_ref(), false)
     }
 
-    pub fn _from_json_str(json_str: &str, is_mergeable: bool) -> Result<BehaviorKeys> {
+    pub fn _from_json_str(json_str: &str, _is_mergeable: bool) -> Result<BehaviorKeys> {
         let json: serde_json::Value = serde_json::from_str(json_str)?;
         let map = match json {
             serde_json::Value::Object(m) => m,

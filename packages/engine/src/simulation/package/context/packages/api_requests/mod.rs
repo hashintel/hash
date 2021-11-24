@@ -16,9 +16,8 @@ use response::{APIResponseMap, APIResponses};
 use serde_json::Value;
 
 use crate::datastore::schema::accessor::GetFieldSpec;
-use crate::datastore::schema::{FieldKey, FieldScope, FieldSource, FieldSpecMap};
-use crate::simulation::package::context::packages::api_requests::fields::api_response_fields;
-use crate::simulation::package::name::PackageName;
+use crate::datastore::schema::FieldKey;
+
 pub use handlers::CustomAPIMessageError;
 
 const CPU_BOUND: bool = false;
@@ -99,7 +98,7 @@ impl Package for APIRequests {
                 handlers.iter().try_for_each::<_, Result<()>>(|handler| {
                     let messages = snapshot.message_map().get_msg_refs(handler);
                     if messages.len() > 0 {
-                        let messages = handlers::gather_requests(handler, &reader, messages)?;
+                        let messages = handlers::gather_requests(&reader, messages)?;
                         futs.push(handlers::run_custom_message_handler(handler, messages))
                     }
                     Ok(())

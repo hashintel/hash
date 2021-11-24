@@ -8,7 +8,7 @@ use self::{
     fields::behavior::BehaviorMap,
 };
 use crate::datastore::schema::accessor::GetFieldSpec;
-use crate::datastore::schema::FieldKey;
+
 use crate::datastore::table::state::ReadState;
 use crate::simulation::task::active::ActiveTask;
 use serde_json::Value;
@@ -102,7 +102,7 @@ impl BehaviorExecution {
     }
 
     /// Sends out behavior execution commands to workers
-    async fn begin_execution(&mut self, state: &ExState) -> Result<ActiveTask> {
+    async fn begin_execution(&mut self, _state: &ExState) -> Result<ActiveTask> {
         // let active_task = self.comms.new_task(task, _).await?;
         // check language of behavior
         // for batch in state.agent_pool().read_batches()? {
@@ -123,7 +123,7 @@ impl GetWorkerSimStartMsg for BehaviorExecution {
 
 #[async_trait]
 impl Package for BehaviorExecution {
-    async fn run(&mut self, state: &mut ExState, context: &Context) -> Result<()> {
+    async fn run(&mut self, state: &mut ExState, _context: &Context) -> Result<()> {
         self.fix_behavior_chains(state)?;
         let active_task = self.begin_execution(state).await?;
         // wait for results

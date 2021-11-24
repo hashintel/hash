@@ -84,7 +84,7 @@ impl Package for AgentMessages {
         let id_name_iter = iterators::agent::agent_id_iter(&batches)?
             .zip(iterators::agent::agent_name_iter(&batches)?);
 
-        let messages = Messages::gather(snapshot.message_map(), id_name_iter, state.num_agents())?;
+        let messages = Messages::gather(snapshot.message_map(), id_name_iter)?;
 
         Ok(ContextColumn {
             inner: Box::new(messages),

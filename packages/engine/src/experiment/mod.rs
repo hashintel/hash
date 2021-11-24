@@ -59,7 +59,7 @@ fn set_nested_property(
     }
 }
 
-pub fn apply_property_changes(mut base: Globals, changes: &SerdeValue) -> Result<Globals> {
+pub fn apply_property_changes(base: Globals, changes: &SerdeValue) -> Result<Globals> {
     let mut map = base
         .0
         .as_object()

@@ -3,8 +3,6 @@
     clippy::cast_possible_wrap,
     clippy::for_kv_map
 )]
-
-use arrow::datatypes::DataType;
 use std::collections::HashMap;
 
 use super::prelude::*;
@@ -15,7 +13,6 @@ use crate::datastore::{
     prelude::*,
     schema::{FieldSpec, FieldSpecMap, FieldTypeVariant, PresetFieldType},
 };
-use crate::simulation::package::creator::PREVIOUS_INDEX_FIELD_KEY;
 
 impl PresetFieldType {
     fn is_fixed_size(&self) -> bool {
@@ -194,7 +191,6 @@ pub mod tests {
     use super::*;
     use crate::datastore::schema::{FieldScope, FieldSpecMapBuilder};
     use crate::hash_types::state::AgentStateField;
-    use crate::simulation::package::creator::add_base_agent_fields;
     use std::convert::TryInto;
 
     #[test]

@@ -4,7 +4,6 @@ use std::convert::TryInto;
 use std::fmt::{Display, Formatter};
 
 use crate::hash_types::state::AgentStateField;
-use arrow::datatypes::DataType as ArrowDataType;
 
 use crate::datastore::error::{Error, Result};
 

@@ -21,8 +21,8 @@ impl OutputPersistenceCreatorRepr for NoOutputPersistence {
 
     fn new_simulation(
         &self,
-        sim_id: SimulationShortID,
-        persistence_config: &PersistenceConfig,
+        _sim_id: SimulationShortID,
+        _persistence_config: &PersistenceConfig,
     ) -> Result<Self::SimulationOutputPersistence> {
         Ok(NoSimulationOutputPersistence {})
     }
@@ -34,7 +34,7 @@ pub struct NoSimulationOutputPersistence {}
 impl SimulationOutputPersistenceRepr for NoSimulationOutputPersistence {
     type OutputPersistenceResult = ();
 
-    async fn add_step_output(&mut self, output: SimulationStepOutput) -> Result<()> {
+    async fn add_step_output(&mut self, _output: SimulationStepOutput) -> Result<()> {
         Ok(())
     }
 

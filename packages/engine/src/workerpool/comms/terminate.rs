@@ -54,7 +54,7 @@ impl TerminateSend {
             .ok_or_else(|| Error::TerminateMessageAlreadySent)?;
         sender
             .send(TerminateMessage {})
-            .map_err(|err| Error::from("Couldn't send terminate message"))?;
+            .map_err(|_| Error::from("Couldn't send terminate message"))?;
         Ok(())
     }
 
