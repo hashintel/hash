@@ -23,7 +23,7 @@ use crate::datastore::schema::context::ContextSchema;
 use crate::datastore::schema::FieldKey;
 use crate::proto::ExperimentRunBase;
 use crate::simulation::package::ext_traits::GetWorkerExpStartMsg;
-pub use packages::{ContextTask, ContextTaskMessage, ContextTaskResult, Name, PACKAGES};
+pub use packages::{ContextTask, ContextTaskMessage, Name, PACKAGES};
 
 pub mod packages;
 

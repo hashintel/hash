@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use tokio::time::timeout;
 
-use crate::simulation::task::result::{TaskResult, TaskResultOrCancelled};
+use crate::simulation::task::msg::{TaskMessage, TaskResultOrCancelled};
 use crate::simulation::{comms::active::ActiveTaskOwnerComms, Error, Result};
 
 use super::cancel::CancelTask;
@@ -17,7 +17,7 @@ pub struct ActiveTask {
 }
 
 impl ActiveTask {
-    pub async fn drive_to_completion(mut self) -> Result<TaskResult> {
+    pub async fn drive_to_completion(mut self) -> Result<TaskMessage> {
         if self.running {
             let recv = self
                 .comms

@@ -9,7 +9,6 @@ use crate::{
     config::{WorkerConfig, WorkerSpawnConfig},
     datastore::table::sync::SyncPayload,
     proto::SimulationShortID,
-    simulation::task::result::TaskResultOrCancelled,
     types::TaskID,
     worker::{
         pending::PendingWorkerTask,
@@ -37,7 +36,7 @@ use self::{
 };
 use crate::simulation::enum_dispatch::TaskSharedStore;
 use crate::simulation::task::handler::WorkerHandler;
-use crate::simulation::task::msg::TaskMessage;
+use crate::simulation::task::msg::{TaskMessage, TaskResultOrCancelled};
 pub use error::{Error, Result};
 
 /// A task worker.-
@@ -237,8 +236,7 @@ impl WorkerController {
     ) -> Result<()> {
         // `shared_store` metaversioning should have been kept updated
         // by the runners, so it doesn't need to be updated at this point.
-        if let Some(task) = self.tasks.inner.remove(&task_id) {
-            let task_result = WorkerHandler::into_result(&task.inner, message)?;
+        if let Some(_task) = self.tasks.inner.remove(&task_id) {
             // Important to drop here since we then lose the access to the shared store
             drop(shared_store);
 
@@ -248,7 +246,7 @@ impl WorkerController {
                 .send(WorkerToWorkerPoolMsg::TaskResultOrCancelled(
                     WorkerTaskResultOrCancelled {
                         task_id,
-                        payload: TaskResultOrCancelled::Result(task_result),
+                        payload: TaskResultOrCancelled::Result(message),
                     },
                 ))?;
         }

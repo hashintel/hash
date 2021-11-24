@@ -4,7 +4,6 @@ use crate::simulation::enum_dispatch::{StateTaskMessage, WorkerHandler};
 use crate::simulation::task::args::GetTaskArgs;
 use crate::simulation::task::handler::{SplitConfig, WorkerPoolHandler};
 use crate::simulation::task::msg::{TargetedTaskMessage, TaskMessage};
-use crate::simulation::task::result::TaskResult;
 use crate::simulation::task::Task;
 use crate::simulation::Result as SimulationResult;
 use crate::worker::runner::comms::MessageTarget;
@@ -39,7 +38,7 @@ impl WorkerPoolHandler for ExecuteBehaviorsTask {
         todo!()
     }
 
-    fn combine_messages(&self, _split_tasks: Vec<TaskResult>) -> Result<TaskResult> {
+    fn combine_messages(&self, _split_tasks: Vec<TaskMessage>) -> Result<TaskMessage> {
         todo!()
     }
 }
@@ -48,8 +47,3 @@ impl WorkerPoolHandler for ExecuteBehaviorsTask {
 // This is an empty struct, as the runners have access to all the information through Arrow,
 // the task finishes by returning to the "main" target
 pub struct ExecuteBehaviorsTaskMessage {}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct ExecuteBehaviorsTaskResult {
-    // TODO
-}

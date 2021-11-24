@@ -1,6 +1,5 @@
 use crate::simulation::enum_dispatch::*;
 
-use crate::simulation::task::result::TaskResult;
 use crate::simulation::task::Task;
 use crate::simulation::{Error, Result};
 
@@ -24,7 +23,7 @@ pub trait WorkerPoolHandler {
     /// When work is done in multiple worker nodes,
     /// this function is called to compute the
     /// single message that is returned to the package
-    fn combine_messages(&self, _split_tasks: Vec<TaskResult>) -> Result<TaskResult> {
+    fn combine_messages(&self, _split_tasks: Vec<TaskMessage>) -> Result<TaskMessage> {
         Err(Error::DistributionNodeHandlerNotImplemented)
     }
 }

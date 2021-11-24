@@ -63,12 +63,11 @@ pub use crate::config::TaskDistributionConfig;
 pub use crate::datastore::table::task_shared_store::TaskSharedStore;
 pub use crate::simulation::{
     package::{
-        context::{ContextTask, ContextTaskMessage, ContextTaskResult},
-        init::{packages::jspy::JsPyInitTaskMessage, InitTask, InitTaskMessage, InitTaskResult},
-        output::{OutputTask, OutputTaskMessage, OutputTaskResult},
+        context::{ContextTask, ContextTaskMessage},
+        init::{packages::jspy::JsPyInitTaskMessage, InitTask, InitTaskMessage},
+        output::{OutputTask, OutputTaskMessage},
         state::{
             packages::behavior_execution::tasks::ExecuteBehaviorsTask, StateTask, StateTaskMessage,
-            StateTaskResult,
         },
     },
     task::{
@@ -76,7 +75,6 @@ pub use crate::simulation::{
         args::GetTaskArgs,
         handler::{SplitConfig, WorkerHandler, WorkerPoolHandler},
         msg::{TargetedTaskMessage, TaskMessage},
-        result::TaskResult,
     },
     // TODO OS - enum_dispatch is obfuscating the error, but somewhere a std Result is being used instead of a
     //   wrapped result giving an error about expected 2 generic arguments. The compiler shows this error as

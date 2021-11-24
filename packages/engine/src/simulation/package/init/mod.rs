@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-pub use packages::{InitTask, InitTaskMessage, InitTaskResult, Name, PACKAGES};
+pub use packages::{InitTask, InitTaskMessage, Name, PACKAGES};
 
 pub use crate::config::Globals;
 use crate::datastore::schema::accessor::FieldSpecMapAccessor;

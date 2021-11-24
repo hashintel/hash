@@ -1,4 +1,4 @@
-use crate::simulation::task::result::TaskResultOrCancelled;
+use crate::simulation::task::msg::TaskResultOrCancelled;
 use crate::{proto, worker};
 use thiserror::Error as ThisError;
 use tokio::sync::mpsc::error::SendError;

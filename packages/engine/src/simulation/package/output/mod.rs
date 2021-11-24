@@ -9,7 +9,7 @@ use crate::proto::ExperimentRunBase;
 use crate::simulation::comms::package::PackageComms;
 use crate::simulation::package::ext_traits::GetWorkerExpStartMsg;
 use crate::SimRunConfig;
-pub use packages::{Name, OutputTask, OutputTaskMessage, OutputTaskResult, PACKAGES};
+pub use packages::{Name, OutputTask, OutputTaskMessage, PACKAGES};
 
 use self::packages::Output;
 

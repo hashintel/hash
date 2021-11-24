@@ -139,3 +139,10 @@ pub struct TargetedTaskMessage {
     pub target: MessageTarget,
     pub payload: TaskMessage,
 }
+
+/// Marks either the final TaskMessage of a task's execution chain, or indicates a cancellation
+#[derive(Debug, Clone)]
+pub enum TaskResultOrCancelled {
+    Result(TaskMessage),
+    Cancelled,
+}

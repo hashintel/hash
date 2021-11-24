@@ -1,9 +1,7 @@
+use crate::simulation::task::msg::TaskResultOrCancelled;
 use crate::{
     datastore::table::task_shared_store::TaskSharedStore,
-    simulation::{
-        package::id::PackageId,
-        task::{result::TaskResultOrCancelled, Task},
-    },
+    simulation::{package::id::PackageId, task::Task},
     types::TaskID,
 };
 

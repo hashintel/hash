@@ -53,11 +53,6 @@ impl GetTaskArgs for OutputTask {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum OutputTaskMessage {}
 
-/// All output package task results are registered in this enum
-#[enum_dispatch(RegisterWithoutTrait)]
-#[derive(Debug, Clone)]
-pub enum OutputTaskResult {}
-
 lazy_static! {
     /// All output package creators are registered in this hashmap
     pub static ref PACKAGES: HashMap<Name, Box<dyn super::PackageCreator>> = {

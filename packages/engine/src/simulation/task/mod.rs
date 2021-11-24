@@ -4,7 +4,6 @@ pub mod args;
 pub mod cancel;
 pub mod handler;
 pub mod msg;
-pub mod result;
 
 use crate::simulation::enum_dispatch::*;
 
@@ -24,6 +23,7 @@ pub enum Task {
 
 // TODO: Is there an important differentiation between Task and TaskMessage
 
+// TODO update these notes
 // Notes:
 
 // Each operation that a package wants to do must be declared as a Task

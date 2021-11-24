@@ -38,14 +38,9 @@ impl GetTaskArgs for ContextTask {
 }
 
 /// All context package task messages are registered in this enum
-#[enum_dispatch(Into<TaskResult>)]
+#[enum_dispatch(RegisterWithoutTrait)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum ContextTaskMessage {}
-
-/// All context package task results are registered in this enum
-#[enum_dispatch(RegisterWithoutTrait)]
-#[derive(Debug, Clone)]
-pub enum ContextTaskResult {}
 
 lazy_static! {
     /// All context package creators are registered in this hashmap

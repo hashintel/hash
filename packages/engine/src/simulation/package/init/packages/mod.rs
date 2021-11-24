@@ -10,7 +10,6 @@ use crate::simulation::package::{
 };
 use jspy::js::JsInitTask;
 use jspy::py::PyInitTask;
-use jspy::JsPyInitTaskResult;
 use serde::{Deserialize, Serialize};
 
 pub mod json;
@@ -36,13 +35,6 @@ pub enum InitTask {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum InitTaskMessage {
     JsPyInitTaskMessage,
-}
-
-/// All init package task results are registered in this enum
-#[enum_dispatch(RegisterWithoutTrait)]
-#[derive(Debug, Clone)]
-pub enum InitTaskResult {
-    JsPyInitTaskResult,
 }
 
 lazy_static! {

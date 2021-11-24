@@ -4,16 +4,12 @@ use tokio::sync::oneshot;
 
 use super::error::{Error, Result};
 
+use crate::simulation::task::msg::{TaskMessage, TaskResultOrCancelled};
 use crate::{
     config::Worker,
     simulation::{
         comms::active::ActiveTaskExecutorComms,
-        task::{
-            cancel::CancelTask,
-            handler::worker_pool::WorkerPoolHandler,
-            result::{TaskResult, TaskResultOrCancelled},
-            Task,
-        },
+        task::{cancel::CancelTask, handler::worker_pool::WorkerPoolHandler, Task},
     },
     types::TaskID,
     worker::task::WorkerTaskResultOrCancelled,
@@ -24,7 +20,7 @@ type HasTerminated = bool;
 pub enum DistributionController {
     Distributed {
         active_workers: Vec<Worker>,
-        received_results: Vec<(Worker, TaskResult)>,
+        received_results: Vec<(Worker, TaskMessage)>,
         reference_task: Task,
     },
     Single {
@@ -46,7 +42,7 @@ impl PendingWorkerPoolTask {
         &mut self,
         worker: Worker,
         task_id: TaskID,
-        result: TaskResult,
+        result: TaskMessage,
     ) -> Result<HasTerminated> {
         if let DistributionController::Distributed {
             active_workers: active_workers_comms,

@@ -4,7 +4,6 @@ use crate::simulation::enum_dispatch::*;
 use crate::simulation::package::init::packages::jspy::js::JsInitTask;
 use crate::simulation::package::init::packages::jspy::py::PyInitTask;
 use crate::simulation::task::msg::TaskMessage;
-use crate::simulation::task::result::TaskResult;
 use crate::simulation::Result as SimulationResult;
 use crate::simulation::{Error, Result};
 use serde::{Deserialize, Serialize};
@@ -95,29 +94,23 @@ impl InitPackage for Package {
 
         let shared_store = TaskSharedStore::default();
         let active_task = self.comms.new_task(task, shared_store).await?;
-        let task_result = TryInto::<JsPyInitTaskResult>::try_into(
-            TryInto::<InitTaskResult>::try_into(active_task.drive_to_completion().await?)?,
+        let task_message = TryInto::<JsPyInitTaskMessage>::try_into(
+            TryInto::<InitTaskMessage>::try_into(active_task.drive_to_completion().await?)?,
         )?;
-        match task_result {
-            JsPyInitTaskResult::Ok { agent_json } => {
-                serde_json::from_str(&agent_json).map_err(|e| {
-                    Error::from(format!(
-                        "Failed to parse agent state JSON to Vec<Agent>: {:?}",
-                        e
-                    ))
-                })
-            }
-            JsPyInitTaskResult::Err => {
-                Err(Error::from(format!("Init Task failed"))) // TODO Get better error information
-            }
+
+        match TryInto::<SuccessMessage>::try_into(task_message) {
+            Ok(SuccessMessage { agent_json }) => serde_json::from_str(&agent_json).map_err(|e| {
+                Error::from(format!(
+                    "Failed to parse agent state JSON to Vec<Agent>: {:?}",
+                    e
+                ))
+            }),
+            Err(err) => Err(Error::from(format!(
+                "Init Task failed: {}",
+                err.to_string()
+            ))),
         }
     }
-}
-
-#[derive(Debug, Clone)]
-pub enum JsPyInitTaskResult {
-    Ok { agent_json: String },
-    Err,
 }
 
 #[enum_dispatch(RegisterWithoutTrait)]
@@ -138,41 +131,5 @@ pub struct SuccessMessage {
     agent_json: String,
 }
 
-impl Into<TaskResult> for SuccessMessage {
-    fn into(self) -> TaskResult {
-        let init_task_res: InitTaskResult = JsPyInitTaskResult::Ok {
-            agent_json: self.agent_json,
-        }
-        .into();
-        init_task_res.into()
-    }
-}
-
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct FailedMessage {}
-
-impl Into<TaskResult> for FailedMessage {
-    fn into(self) -> TaskResult {
-        let init_task_res: InitTaskResult = JsPyInitTaskResult::Err.into();
-        init_task_res.into()
-    }
-}
-
-/// Common implementation of WorkerHandler trait "into_result" method to be used by JS and Py impls
-fn _into_result(msg: TaskMessage) -> SimulationResult<TaskResult> {
-    let js_py_init_task_msg = TryInto::<JsPyInitTaskMessage>::try_into(
-        TryInto::<InitTaskMessage>::try_into(msg.clone())?,
-    )?;
-    if let Ok(success_message) = TryInto::<SuccessMessage>::try_into(js_py_init_task_msg.clone()) {
-        Ok(success_message.into())
-    } else if let Ok(_) = TryInto::<FailedMessage>::try_into(js_py_init_task_msg) {
-        Err(Error::from(format!(
-            "Javascript State Initialisation Task failed"
-        )))
-    } else {
-        Err(Error::from(format!(
-            "Unrecognised JS/Py Init Task message: {:?}",
-            msg
-        )))
-    }
-}
