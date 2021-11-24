@@ -1,6 +1,7 @@
 import { sql } from "slonik";
 
 import {
+  DBAggregation,
   DBClient,
   DBLink,
   Entity,
@@ -63,6 +64,11 @@ import { SystemType } from "../../types/entityTypes";
 import { Visibility } from "../../graphql/apiTypes.gen";
 import { getOrgByShortname } from "./org";
 import { DbEntityTypeNotFoundError } from "../errors";
+import { createAggregation } from "./aggregation/createAggregation";
+import { getEntityAggregations } from "./aggregation/getEntityAggregations";
+import { updateAggregationOperation } from "./aggregation/updateAggregationOperation";
+import { deleteAggregation } from "./aggregation/deleteAggregation";
+import { getEntityAggregation } from "./aggregation/getEntityAggregation";
 
 export class PostgresClient implements DBClient {
   private conn: Connection;
@@ -431,6 +437,36 @@ export class PostgresClient implements DBClient {
     linkId: string;
   }): Promise<void> {
     return await deleteLink(this.conn, params);
+  }
+
+  async createAggregation(
+    params: Parameters<DBClient["createAggregation"]>[0],
+  ): Promise<DBAggregation> {
+    return await createAggregation(this.conn, params);
+  }
+
+  async updateAggregationOperation(
+    params: Parameters<DBClient["updateAggregationOperation"]>[0],
+  ): Promise<DBAggregation> {
+    return await updateAggregationOperation(this.conn, params);
+  }
+
+  async getEntityAggregation(
+    params: Parameters<DBClient["getEntityAggregation"]>[0],
+  ): Promise<DBAggregation | null> {
+    return await getEntityAggregation(this.conn, params);
+  }
+
+  async getEntityAggregations(
+    params: Parameters<DBClient["getEntityAggregations"]>[0],
+  ): Promise<DBAggregation[]> {
+    return await getEntityAggregations(this.conn, params);
+  }
+
+  async deleteAggregation(
+    params: Parameters<DBClient["deleteAggregation"]>[0],
+  ): Promise<void> {
+    return await deleteAggregation(this.conn, params);
   }
 
   async getEntityOutgoingLinks(params: {

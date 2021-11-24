@@ -9,6 +9,7 @@ import {
 import { PostgresClient } from "./client";
 import {
   DBAdapter,
+  DBAggregation,
   DBClient,
   DBLink,
   Entity,
@@ -237,6 +238,36 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     path?: string;
   }): Promise<DBLink[]> {
     return this.query((adapter) => adapter.getEntityOutgoingLinks(params));
+  }
+
+  createAggregation(
+    params: Parameters<DBClient["createAggregation"]>[0],
+  ): Promise<DBAggregation> {
+    return this.query((adapter) => adapter.createAggregation(params));
+  }
+
+  updateAggregationOperation(
+    params: Parameters<DBClient["updateAggregationOperation"]>[0],
+  ): Promise<DBAggregation> {
+    return this.query((adapter) => adapter.updateAggregationOperation(params));
+  }
+
+  getEntityAggregation(
+    params: Parameters<DBClient["getEntityAggregation"]>[0],
+  ): Promise<DBAggregation | null> {
+    return this.query((adapter) => adapter.getEntityAggregation(params));
+  }
+
+  getEntityAggregations(
+    params: Parameters<DBClient["getEntityAggregations"]>[0],
+  ): Promise<DBAggregation[]> {
+    return this.query((adapter) => adapter.getEntityAggregations(params));
+  }
+
+  deleteAggregation(
+    params: Parameters<DBClient["deleteAggregation"]>[0],
+  ): Promise<void> {
+    return this.query((adapter) => adapter.deleteAggregation(params));
   }
 
   createVerificationCode(params: {

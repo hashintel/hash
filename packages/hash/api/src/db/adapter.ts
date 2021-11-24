@@ -62,6 +62,16 @@ export type DBLink = {
   createdAt: Date;
 };
 
+export type DBAggregation = {
+  sourceAccountId: string;
+  sourceEntityId: string;
+  sourceEntityVersionIds: Set<string>;
+  path: string;
+  operation: object;
+  createdById: string;
+  createdAt: Date;
+};
+
 export type EntityType = Omit<Entity, EntityTypeTypeFields> & {
   /**
    *  @todo make these non-optional if we figure a way of getting the EntityType entityType
@@ -309,7 +319,6 @@ export interface DBClient {
    * @param params.entityTypeId the fixed entityTypeId
    * @param params.entityTypeVersionId optionally limit results to entities of a specific version of the type
    * @param params.latestOnly optionally limit results to the latest version of each entity
-
    * */
   getEntitiesByType(params: {
     accountId: string;
@@ -390,6 +399,40 @@ export interface DBClient {
     code: string;
     emailAddress: string;
   }): Promise<VerificationCode>;
+
+  createAggregation(params: {
+    sourceAccountId: string;
+    sourceEntityId: string;
+    path: string;
+    operation: object;
+    createdById: string;
+  }): Promise<DBAggregation>;
+
+  updateAggregationOperation(params: {
+    sourceAccountId: string;
+    sourceEntityId: string;
+    path: string;
+    operation: object;
+  }): Promise<DBAggregation>;
+
+  getEntityAggregation(params: {
+    sourceAccountId: string;
+    sourceEntityId: string;
+    sourceEntityVersionId?: string;
+    path: string;
+  }): Promise<DBAggregation | null>;
+
+  getEntityAggregations(params: {
+    sourceAccountId: string;
+    sourceEntityId: string;
+    sourceEntityVersionId?: string;
+  }): Promise<DBAggregation[]>;
+
+  deleteAggregation(params: {
+    sourceAccountId: string;
+    sourceEntityId: string;
+    path: string;
+  }): Promise<void>;
 
   /** Get a verification code (it may be invalid!) */
   getVerificationCode(params: { id: string }): Promise<VerificationCode | null>;

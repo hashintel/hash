@@ -2,14 +2,7 @@ import { sql } from "slonik";
 
 import { Connection } from "../types";
 import { DBLink } from "../../adapter";
-
-export const mapColumnNamesToSQL = (columnNames: string[], prefix?: string) =>
-  sql.join(
-    columnNames.map((columnName) =>
-      sql.identifier([prefix || [], columnName].flat()),
-    ),
-    sql`, `,
-  );
+import { mapColumnNamesToSQL } from "../util";
 
 const outgoingLinksColumnNames = [
   "source_account_id",

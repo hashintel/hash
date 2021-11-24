@@ -1,7 +1,13 @@
 import { sql, NotFoundError } from "slonik";
 import { uniq } from "lodash";
 
-import { DBLink, Entity, EntityType, EntityVersion } from "../adapter";
+import {
+  DBAggregation,
+  DBLink,
+  Entity,
+  EntityType,
+  EntityVersion,
+} from "../adapter";
 import { Connection } from "./types";
 import { EntityTypePGRow, mapPGRowToEntityType } from "./entitytypes";
 import { Visibility } from "../../graphql/apiTypes.gen";
@@ -11,6 +17,8 @@ import { DbEntityNotFoundError } from "../errors";
 import { getEntityOutgoingLinks } from "./link/getEntityOutgoingLinks";
 import { addSourceEntityVersionIdToLink } from "./link/util";
 import { getEntityIncomingLinks } from "./link/getEntityIncomingLinks";
+import { getEntityAggregations } from "./aggregation/getEntityAggregations";
+import { addSourceEntityVersionIdToAggregation } from "./aggregation/util";
 
 /** Prefix to distinguish identical fields when joining with a type record */
 const entityTypeFieldPrefix = "type.";
@@ -664,6 +672,11 @@ export const updateVersionedEntity = async (
     properties: any;
     updatedByAccountId: string;
     omittedOutgoingLinks?: { sourceAccountId: string; linkId: string }[];
+    omittedAggregations?: {
+      sourceAccountId: string;
+      sourceEntityId: string;
+      path: string;
+    }[];
   },
 ) => {
   const { entity, properties } = params;
@@ -698,6 +711,11 @@ export const updateVersionedEntity = async (
 
   const { omittedOutgoingLinks } = params;
 
+  const isDbAggregationInNextVersion = (aggregation: DBAggregation): boolean =>
+    params.omittedAggregations?.find(
+      ({ path }) => path === aggregation.path,
+    ) === undefined;
+
   await Promise.all([
     insertEntityVersion(conn, newEntityVersion),
 
@@ -706,6 +724,25 @@ export const updateVersionedEntity = async (
       omittedOutgoingLinks,
       newSourceEntityVersionId: newEntityVersion.entityVersionId,
     }),
+
+    getEntityAggregations(conn, {
+      sourceAccountId: entity.accountId,
+      sourceEntityId: entity.entityId,
+      sourceEntityVersionId: entity.entityVersionId,
+    }).then((aggregations) =>
+      Promise.all(
+        aggregations
+          .filter(isDbAggregationInNextVersion)
+          .map(({ sourceAccountId, sourceEntityId, path }) =>
+            addSourceEntityVersionIdToAggregation(conn, {
+              sourceAccountId,
+              sourceEntityId,
+              path,
+              newsourceEntityVersionId: newEntityVersion.entityVersionId,
+            }),
+          ),
+      ),
+    ),
 
     // Make a reference to this entity's account in the `entity_account` lookup table
     insertEntityAccount(conn, newEntityVersion),
