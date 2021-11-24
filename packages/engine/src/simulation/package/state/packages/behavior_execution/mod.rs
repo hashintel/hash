@@ -7,10 +7,12 @@ use self::{
     config::{init_message, BehaviorConfig},
     fields::behavior::BehaviorMap,
 };
+use crate::datastore::schema::accessor::GetFieldSpec;
 use crate::datastore::schema::FieldKey;
 use crate::datastore::table::state::ReadState;
 use crate::simulation::task::active::ActiveTask;
 use serde_json::Value;
+use std::convert::TryFrom;
 
 use super::super::*;
 
@@ -33,22 +35,31 @@ impl PackageCreator for Creator {
         comms: PackageComms,
         accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn Package>> {
-        todo!();
-        // let index_column_data_types = fields::index_column_data_types()?;
-        // let behavior_map = BehaviorMap::try_from(&config.exp)?;
-        // Ok(Box::new(BehaviorExecution {
-        //     behavior_config,
-        //     index_column_field_key,
-        //     index_column_data_types,
-        //     comms,
-        //     behavior_map,
-        // }))
+        let index_column_data_types = fields::index_column_data_types()?;
+        let index_column_key = accessor
+            .get_agent_scoped_field_spec("behavior_index")?
+            .to_key()?;
+        let index_column_index = config
+            .sim
+            .store
+            .agent_schema
+            .arrow
+            .index_of(index_column_key.value())?;
+        let behavior_map = BehaviorMap::try_from(config.exp.as_ref())?;
+
+        Ok(Box::new(BehaviorExecution {
+            behavior_config: todo!(),
+            index_column_index,
+            index_column_data_types,
+            comms,
+            behavior_map,
+        }))
     }
 
     fn add_state_field_specs(
         &self,
         config: &ExperimentConfig<ExperimentRunBase>,
-        globals: &Globals,
+        _globals: &Globals,
         field_spec_map_builder: &mut FieldSpecMapBuilder,
     ) -> Result<()> {
         fields::add_state(config, field_spec_map_builder)?;
@@ -66,7 +77,7 @@ impl GetWorkerExpStartMsg for Creator {
 
 struct BehaviorExecution {
     behavior_config: Arc<BehaviorConfig>,
-    index_column_field_key: FieldKey,
+    index_column_index: usize,
     index_column_data_types: [arrow::datatypes::DataType; 3],
     comms: PackageComms,
     behavior_map: BehaviorMap,
@@ -83,7 +94,7 @@ impl BehaviorExecution {
             state,
             &self.behavior_config,
             self.index_column_data_types.clone(),
-            self.index_column_field_key.clone(),
+            self.index_column_index,
         )?;
         state.set_pending_column(behavior_indices)?;
         state.flush_pending_columns()?;
