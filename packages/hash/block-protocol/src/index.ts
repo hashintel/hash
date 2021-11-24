@@ -139,6 +139,7 @@ export type BlockProtocolEntity = {
 };
 
 export type BlockProtocolLink = {
+  id: string;
   sourceEntityId: string;
   destinationEntityId: string;
   destinationEntityVersionId?: string | null;
@@ -170,8 +171,7 @@ export type BlockProtocolCreateLinksFunction = {
 export type BlockProtocolDeleteLinksAction = {
   sourceAccountId?: string | null;
   sourceEntityId: string;
-  index?: number | null;
-  path: string;
+  linkId: string;
 };
 
 export type BlockProtocolDeleteLinksFunction = {

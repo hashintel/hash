@@ -9,10 +9,15 @@ import React, {
 import {
   BlockProtocolAggregateEntitiesFunction,
   BlockProtocolEntity,
+  BlockProtocolLink,
 } from "@hashintel/block-protocol";
 import { tw } from "twind";
 import Link from "next/link";
 
+import {
+  CreateLinkFnWithFixedSource,
+  DeleteLinkFnWithFixedSource,
+} from "./types";
 import { entityName } from "../../lib/entities";
 
 // @todo make this not need to know about accountId
@@ -21,10 +26,17 @@ type MinimalEntity = { accountId: string; entityId: string; name: string };
 type EntitySelectProps = {
   aggregateEntities: BlockProtocolAggregateEntitiesFunction;
   allowsMultipleSelections: boolean;
+  createLinkFromEntity: CreateLinkFnWithFixedSource;
+  deleteLinkFromEntity: DeleteLinkFnWithFixedSource;
   entityTypeId: string;
-  selectedEntities: MinimalEntity[];
-  setSelectedEntities: (entities: MinimalEntity[]) => void;
+  linksOnField: {
+    linkedEntity: BlockProtocolEntity;
+    link: BlockProtocolLink;
+  }[];
+  path: string;
 };
+
+const noSelectionValue = "__none";
 
 const SelectInput: VoidFunctionComponent<
   Required<Pick<HTMLProps<HTMLSelectElement>, "onChange" | "value">> & {
@@ -37,7 +49,7 @@ const SelectInput: VoidFunctionComponent<
     value={value}
     onChange={onChange}
   >
-    <option value="__remove">{defaultLabel}</option>
+    <option value={noSelectionValue}>{defaultLabel}</option>
     {options.map(({ entityId, name }) => (
       <option key={entityId} value={entityId}>
         {name}
@@ -49,12 +61,16 @@ const SelectInput: VoidFunctionComponent<
 /**
  * Allows a user to select one or more entities of a given type
  */
-export const EntitySelect: VoidFunctionComponent<EntitySelectProps> = ({
+export const EntityFieldLinkEditor: VoidFunctionComponent<
+  EntitySelectProps
+> = ({
   aggregateEntities,
   allowsMultipleSelections,
+  createLinkFromEntity,
+  deleteLinkFromEntity,
   entityTypeId,
-  selectedEntities,
-  setSelectedEntities,
+  linksOnField,
+  path,
 }) => {
   const [entityOptions, setEntityOptions] = useState<MinimalEntity[]>([]);
 
@@ -87,15 +103,7 @@ export const EntitySelect: VoidFunctionComponent<EntitySelectProps> = ({
           `Error fetching entities to populate select options: ${err.message}`,
         ),
       );
-  }, [aggregateEntities, entityTypeId, selectedEntities]);
-
-  const removeLink = (index: number) => {
-    const newSelection: MinimalEntity[] = [
-      ...selectedEntities.slice(0, index),
-      ...selectedEntities.slice(index + 1),
-    ];
-    setSelectedEntities(newSelection);
-  };
+  }, [aggregateEntities, entityTypeId]);
 
   const onSelectNew = useCallback(
     (evt: ChangeEvent<HTMLSelectElement>) => {
@@ -105,25 +113,42 @@ export const EntitySelect: VoidFunctionComponent<EntitySelectProps> = ({
       );
       if (
         !newlySelectedEntity &&
-        !(!allowsMultipleSelections && selectedEntityId === "__remove")
+        !(!allowsMultipleSelections && selectedEntityId === noSelectionValue)
       ) {
         throw new Error(
           `Could not find entity with id ${selectedEntityId} in options.`,
         );
       }
-      let newSelection: MinimalEntity[];
+      /**
+       * @todo needs updating when link pagination introduced, to find the last index to insert after
+       *    or a way of telling the API 'insert at the end of the list' (omitting index?)
+       */
+      const lastLinkData = linksOnField[linksOnField.length - 1];
       if (allowsMultipleSelections) {
-        newSelection = [...selectedEntities, newlySelectedEntity!];
+        void createLinkFromEntity({
+          destinationEntityId: selectedEntityId,
+          path,
+          index: (lastLinkData?.link.index ?? -1) + 1,
+        });
       } else {
-        newSelection = newlySelectedEntity ? [newlySelectedEntity] : [];
+        if (lastLinkData) {
+          void deleteLinkFromEntity({ linkId: linksOnField[0].link.id });
+        }
+        if (selectedEntityId !== noSelectionValue) {
+          void createLinkFromEntity({
+            destinationEntityId: selectedEntityId,
+            path,
+          });
+        }
       }
-      setSelectedEntities(newSelection);
     },
     [
       allowsMultipleSelections,
+      createLinkFromEntity,
+      deleteLinkFromEntity,
       entityOptions,
-      selectedEntities,
-      setSelectedEntities,
+      linksOnField,
+      path,
     ],
   );
 
@@ -137,25 +162,29 @@ export const EntitySelect: VoidFunctionComponent<EntitySelectProps> = ({
         }
         onChange={onSelectNew}
         options={entityOptions}
-        value={allowsMultipleSelections ? "" : selectedEntities[0]?.entityId}
+        value={
+          allowsMultipleSelections
+            ? ""
+            : linksOnField[0]?.linkedEntity.entityId ?? noSelectionValue
+        }
       />
       {allowsMultipleSelections
-        ? selectedEntities.map(({ accountId, entityId, name }, index) => (
-            // @todo use link position instead of index when dealing with link pagination
-            // eslint-disable-next-line react/no-array-index-key
-            <div className={tw`flex my-6`} key={`${entityId}-${index}`}>
+        ? linksOnField.map(({ link, linkedEntity }) => (
+            <div className={tw`flex my-6`} key={link.id}>
               <div className={tw`font-bold w-32`}>
                 {/*
                  * @todo remove the need for this component to know about links and accountId
                  *    e.g. pass a GoToEntity component into it
                  */}
-                <Link href={`/${accountId}/entities/${entityId}`}>
-                  <a>{name}</a>
+                <Link
+                  href={`/${linkedEntity.accountId}/entities/${linkedEntity.entityId}`}
+                >
+                  <a>{entityName(linkedEntity)}</a>
                 </Link>
               </div>
               <button
                 className={tw`text-red-500 text-sm`}
-                onClick={() => removeLink(index)}
+                onClick={() => deleteLinkFromEntity({ linkId: link.id })}
                 type="button"
               >
                 Remove
