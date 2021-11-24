@@ -1,18 +1,18 @@
-import { useMemo } from "react";
+import { useMemo, VFC } from "react";
 import { tw } from "twind";
 import Link from "next/link";
-import { useGetAccounts } from "../hooks/useGetAccounts";
+import { useAccountInfos } from "../../../components/hooks/useAccountInfos";
 
 interface MentionDisplayProps {
   entityId: string;
   mentionType: string;
 }
 
-export const MentionDisplay: React.VFC<MentionDisplayProps> = ({
+export const MentionDisplay: VFC<MentionDisplayProps> = ({
   entityId,
   mentionType,
 }) => {
-  const { data } = useGetAccounts();
+  const { data } = useAccountInfos();
 
   const title = useMemo(() => {
     switch (mentionType) {

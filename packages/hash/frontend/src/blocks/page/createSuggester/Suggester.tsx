@@ -1,7 +1,7 @@
 import React, { ReactElement, useEffect, useRef, useState } from "react";
 import { useKey } from "rooks";
 import { tw } from "twind";
-import { SpinnerIcon } from "../Icons/SpinnerIcon";
+import { SpinnerIcon } from "../../../components/Icons/SpinnerIcon";
 
 export interface SuggesterProps<T> {
   className?: string;
@@ -9,17 +9,19 @@ export interface SuggesterProps<T> {
   renderItem(item: T): ReactElement;
   onChange(item: T): void;
   loading?: boolean;
+  itemKey(option: T): string;
 }
 
 /**
- * used to present list of blocks to choose from to the user
+ * used to present list of suggestions to choose from to the user
  */
-export const Suggester = <T extends { key: string }>({
+export const Suggester = <T,>({
   onChange,
   className,
   options,
   renderItem,
   loading,
+  itemKey,
 }: SuggesterProps<T>): ReactElement => {
   const [selectedIndex, setSelectedIndex] = useState(0);
 
@@ -68,7 +70,7 @@ export const Suggester = <T extends { key: string }>({
         /* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */
         <li
           ref={index === selectedIndex ? selectedRef : undefined}
-          key={`${option.key}`}
+          key={itemKey(option)}
           className={tw`flex border border-gray-100 ${
             index !== selectedIndex ? "bg-gray-50" : "bg-gray-100"
           } hover:bg-gray-100`}

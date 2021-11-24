@@ -44,6 +44,18 @@ export const nodeToEntityProperties = (node: ProsemirrorNode<Schema>) => {
 
     node.content.descendants((child) => {
       switch (child.type.name) {
+        case "hardBreak": {
+          tokens.push({ tokenType: "hardBreak" });
+          break;
+        }
+        case "mention": {
+          tokens.push({
+            tokenType: "mention",
+            mentionType: child.attrs.mentionType,
+            entityId: child.attrs.entityId,
+          });
+          break;
+        }
         case "text": {
           const marks = new Set<string>(
             child.marks.map((mark) => mark.type.name),
@@ -62,18 +74,6 @@ export const nodeToEntityProperties = (node: ProsemirrorNode<Schema>) => {
                 }
               : {}),
           });
-          break;
-        }
-        case "mention": {
-          tokens.push({
-            tokenType: "mention",
-            mentionType: child.attrs.mentionType,
-            entityId: child.attrs.entityId,
-          });
-          break;
-        }
-        case "hardBreak": {
-          tokens.push({ tokenType: "hardBreak" });
           break;
         }
       }

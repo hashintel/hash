@@ -1,9 +1,9 @@
 import { BlockVariant } from "@hashintel/block-protocol";
 import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
-import React, { useContext, useMemo } from "react";
+import { useContext, useMemo, VFC } from "react";
 import { tw } from "twind";
 
-import { BlockMetaContext } from "../../blocks/blockMeta";
+import { BlockMetaContext } from "../../blockMeta";
 import { fuzzySearchBy } from "./fuzzySearchBy";
 import { Suggester } from "./Suggester";
 
@@ -18,7 +18,7 @@ export interface BlockSuggesterProps {
  *
  * @todo highlight variant of the prosemirror-node this suggester is attached to.
  */
-export const BlockSuggester: React.VFC<BlockSuggesterProps> = ({
+export const BlockSuggester: VFC<BlockSuggesterProps> = ({
   search = "",
   onChange,
   className,
@@ -30,7 +30,6 @@ export const BlockSuggester: React.VFC<BlockSuggesterProps> = ({
       blockMeta.componentMetadata.variants.map((variant) => ({
         variant,
         meta: blockMeta,
-        key: `${blockMeta.componentMetadata.name}/${variant.displayName}`,
       })),
     );
 
@@ -63,6 +62,9 @@ export const BlockSuggester: React.VFC<BlockSuggesterProps> = ({
           </div>
         </>
       )}
+      itemKey={({ meta, variant }) =>
+        `${meta.componentMetadata.name}/${variant.displayName}`
+      }
       onChange={(option) => onChange(option.variant, option.meta)}
       className={className}
     />

@@ -71,7 +71,7 @@ export const createSchema = () =>
             {
               "data-hash-type": "mention",
               "data-mention-type": mentionType,
-              "data-mentionId": entityId,
+              "data-entity-id": entityId,
             },
           ] as const;
         },
@@ -81,7 +81,7 @@ export const createSchema = () =>
             getAttrs(dom) {
               return {
                 mentionType: dom.getAttribute("data-mention-type"),
-                entityId: dom.getAttribute("data-mention-id"),
+                entityId: dom.getAttribute("data-entity-id"),
               };
             },
           },

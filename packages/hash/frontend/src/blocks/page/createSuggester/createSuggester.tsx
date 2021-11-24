@@ -12,16 +12,14 @@ import {
   TextSelection,
 } from "prosemirror-state";
 import React, { CSSProperties } from "react";
-import { RenderPortal } from "../../blocks/page/usePortals";
-import { ensureMounted } from "../../lib/dom";
+import { RenderPortal } from "../usePortals";
+import { ensureMounted } from "../../../lib/dom";
 import { BlockSuggester } from "./BlockSuggester";
 import { MentionSuggester } from "./MentionSuggester";
 
-const TRIGGER_CHARS = ["/", "@"] as const;
-
 interface Trigger {
-  triggerChar: typeof TRIGGER_CHARS[number];
-  /** matched search string including its leading slash */
+  char: "@" | "/";
+  /** matched search string including its leading trigger-char */
   search: string;
   /** starting prosemirror document position */
   from: number;
@@ -46,20 +44,10 @@ const findTrigger = (state: EditorState<Schema>): Trigger | null => {
   // the parent's position relative to the document root
   const parentPos = cursor.pos - cursorPos;
 
-  let triggerChar: typeof TRIGGER_CHARS[number] | null = null;
-  let slashMatch: RegExpMatchArray | null = null;
+  const match = text.substring(0, cursorPos).match(/(@|\/)\S*$/);
+  if (!match) return null;
 
-  for (const item of TRIGGER_CHARS) {
-    slashMatch = text.substring(0, cursorPos).match(new RegExp(`${item}\\S*$`));
-    triggerChar = item;
-    if (slashMatch) break;
-  }
-
-  // see if we can find the trigger character looking backwards
-  // const slashMatch = text.substring(0, cursorPos).match(/\/\S*$/);
-  if (!slashMatch || !triggerChar) return null;
-
-  const from = slashMatch.index!;
+  const from = match.index!;
 
   // match upto the first whitespace character or the end of the node
   const to = cursorPos + text.substring(cursorPos).search(/\s|$/g);
@@ -68,7 +56,7 @@ const findTrigger = (state: EditorState<Schema>): Trigger | null => {
     search: text.substring(from, to),
     from: parentPos + from,
     to: parentPos + to,
-    triggerChar,
+    char: match[1] as Trigger["char"],
   };
 };
 
@@ -159,7 +147,7 @@ export const createSuggester = (
 
           if (!state.isOpen()) return this.destroy!();
 
-          const { from, to, search, triggerChar } = state.trigger!;
+          const { from, to, search, char: triggerChar } = state.trigger!;
           const coords = view.coordsAtPos(from);
 
           const style: CSSProperties = {
@@ -217,28 +205,24 @@ export const createSuggester = (
           switch (triggerChar) {
             case "/":
               jsx = (
-                <div style={style}>
-                  <BlockSuggester
-                    search={search.substring(1)}
-                    onChange={onBlockSuggesterChange}
-                  />
-                </div>
+                <BlockSuggester
+                  search={search.substring(1)}
+                  onChange={onBlockSuggesterChange}
+                />
               );
               break;
             case "@":
               jsx = (
-                <div style={style}>
-                  <MentionSuggester
-                    search={search.substring(1)}
-                    onChange={onMentionChange}
-                  />
-                </div>
+                <MentionSuggester
+                  search={search.substring(1)}
+                  onChange={onMentionChange}
+                />
               );
           }
 
           if (jsx) {
             ensureMounted(mountNode, document.body);
-            renderPortal(jsx, mountNode);
+            renderPortal(<div style={style}>{jsx}</div>, mountNode);
           }
         },
         destroy() {
