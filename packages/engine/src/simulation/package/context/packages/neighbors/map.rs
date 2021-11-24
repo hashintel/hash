@@ -2,17 +2,13 @@ use std::collections::HashSet;
 
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
+use super::*;
 use crate::config;
 use crate::datastore::batch::AgentIndex;
 use crate::simulation::Error;
 
-use super::*;
-
 pub(super) type PositionSubType = f64;
 pub(super) type Position = [PositionSubType; 3];
-
-pub(super) type DirectionSubType = f64;
-pub(super) type Direction = [DirectionSubType; 3];
 
 pub type Tree<'a> = kdtree::kdtree::KdTree<PositionSubType, AgentIndex, &'a Position>;
 

@@ -124,10 +124,6 @@ impl WorkerPoolController {
         self.send_to_all_workers(WorkerPoolToWorkerMsg::new_simulation_run(payload))
     }
 
-    fn sim_runs(&mut self) -> &mut SimulationRuns {
-        &mut self.simulation_runs
-    }
-
     fn run_worker_controllers(&mut self) -> Result<JoinHandle<Result<Vec<()>>>> {
         log::debug!("Running workers");
         let worker_controllers = self
@@ -186,7 +182,7 @@ impl WorkerPoolController {
                 }
                 work_res = &mut workers => {
                     log::debug!("Worker result: {:?}", &work_res);
-                    work_res?;
+                    work_res??;
                     return Ok(())
                 }
             }
@@ -262,6 +258,8 @@ impl WorkerPoolController {
         Ok(())
     }
 
+    // TODO: delete or use when cancel is revisited
+    #[allow(dead_code)]
     async fn handle_cancel_msgs(&mut self, cancel_msgs: Vec<TaskID>) -> Result<()> {
         for id in cancel_msgs {
             if let Some(task) = self.pending_tasks.inner.get(&id) {

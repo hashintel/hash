@@ -15,7 +15,7 @@ pub struct MainMsgSendBase {
 
 #[derive(Clone)]
 pub struct MainMsgSend {
-    sim_id: SimulationShortID,
+    _sim_id: SimulationShortID, // TODO - field never read, delete?
     inner: UnboundedSender<EngineToWorkerPoolMsg>,
 }
 
@@ -34,7 +34,7 @@ impl MainMsgSend {
 impl MainMsgSendBase {
     pub fn sender_with_sim_id(&self, sim_id: SimulationShortID) -> MainMsgSend {
         MainMsgSend {
-            sim_id,
+            _sim_id: sim_id,
             inner: self.inner.clone(),
         }
     }

@@ -39,29 +39,11 @@ pub struct SizedStaticStringColumn {
     pub char_count: usize,
 }
 
-impl SizedStaticStringColumn {
-    pub fn empty() -> SizedStaticStringColumn {
-        SizedStaticStringColumn {
-            data: Vec::with_capacity(0),
-            char_count: 0,
-        }
-    }
-}
-
 /// String column representation for API messages
 pub struct SizedStringColumn {
     pub data: Vec<Vec<String>>,
     /// Sum of string lengths
     pub char_count: usize,
-}
-
-impl SizedStringColumn {
-    pub fn empty() -> SizedStringColumn {
-        SizedStringColumn {
-            data: Vec::with_capacity(0),
-            char_count: 0,
-        }
-    }
 }
 
 /// Columnar native representation of external API responses
@@ -72,18 +54,6 @@ pub struct APIResponses<'a> {
     /// Number of messages in total
     pub msg_count: usize,
     phantom: PhantomData<&'a ()>,
-}
-
-impl<'a> APIResponses<'a> {
-    pub fn empty() -> APIResponses<'a> {
-        APIResponses {
-            from: SizedStaticStringColumn::empty(),
-            r#type: SizedStaticStringColumn::empty(),
-            data: SizedStringColumn::empty(),
-            msg_count: 0,
-            phantom: PhantomData,
-        }
-    }
 }
 
 impl<'a> From<Vec<Vec<APIResponseToAnonymous>>> for APIResponses<'a> {

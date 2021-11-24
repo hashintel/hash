@@ -69,11 +69,15 @@ pub struct RootFieldSpecMapAccessor {
 }
 
 impl RootFieldSpecMapAccessor {
+    // TODO: We're allowing dead code on these during development, if the engine doesn't
+    //   end up needing these it might be worth removing
+    #[allow(dead_code)]
     fn get_agent_scoped_field_spec(&self, field_name: &str) -> Result<&RootFieldSpec> {
         let key = FieldKey::new_agent_scoped(field_name)?;
         self.field_spec_map._get_field_spec(&key)
     }
 
+    #[allow(dead_code)]
     fn get_private_or_hidden_scoped_field_spec(
         &self,
         field_name: &str,

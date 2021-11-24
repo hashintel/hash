@@ -9,7 +9,7 @@ use crate::{
 use std::{collections::HashMap, sync::Arc};
 
 pub struct SimpleExperiment {
-    experiment_config: Arc<ExperimentConfig<ExperimentRun>>,
+    _experiment_config: Arc<ExperimentConfig<ExperimentRun>>, // TODO: unused, remove?
     config: SimpleExperimentConfig,
 }
 
@@ -31,7 +31,7 @@ impl SimpleExperiment {
         config: SimpleExperimentConfig,
     ) -> Result<SimpleExperiment> {
         Ok(SimpleExperiment {
-            experiment_config: experiment_config.clone(),
+            _experiment_config: experiment_config.clone(),
             config,
         })
     }

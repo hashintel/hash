@@ -53,7 +53,7 @@ pub struct WorkerController {
     py: PythonRunner,
     js: JavaScriptRunner,
     rs: RustRunner,
-    config: WorkerConfig,
+    _config: WorkerConfig, // TODO: unused, remove?
     worker_pool_comms: WorkerCommsWithWorkerPool,
     tasks: PendingWorkerTasks,
 }
@@ -76,7 +76,7 @@ impl WorkerController {
             py: PythonRunner::new(python, exp_init.clone())?,
             js: JavaScriptRunner::new(javascript, exp_init.clone())?,
             rs: RustRunner::new(rust, exp_init.clone())?,
-            config,
+            _config: config,
             worker_pool_comms,
             tasks: PendingWorkerTasks::default(),
         })

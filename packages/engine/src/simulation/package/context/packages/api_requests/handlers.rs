@@ -79,13 +79,13 @@ pub mod mapbox {
     impl CustomError for MapboxError {}
 
     async fn get_<'a>(request: Request) -> Result<([u8; UUID_V4_LEN], String)> {
-        let (from, data) = request;
-        let transportation_method = data
+        let (_from, data) = request;
+        let _transportation_method = data
             .get("transportation_method")
             .and_then(|v| v.as_str())
             .ok_or_else(|| MapboxError::TransporationMethod(data.clone()).conv())?;
 
-        let request_route = data
+        let _request_route = data
             .get("request_route")
             .and_then(|v| v.as_str())
             .ok_or_else(|| MapboxError::RequestRoute(data.clone()).conv())?;

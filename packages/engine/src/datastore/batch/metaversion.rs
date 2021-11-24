@@ -1,11 +1,5 @@
 use crate::{datastore::storage::BufferChange, gen};
 
-pub struct Metaversioning {
-    group_ids: Vec<usize>,
-    agent_batch_metaversions: Vec<Metaversion>,
-    outbox_batch_metaversions: Vec<Metaversion>,
-}
-
 // Simple way for every component (language-runner + engine)
 // using the datastore to track whether it has to reload memory
 // or reload the recordbatch

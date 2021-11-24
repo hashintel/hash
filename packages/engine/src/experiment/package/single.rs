@@ -7,7 +7,7 @@ use crate::config::ExperimentConfig;
 use crate::proto::{ExperimentRunBase, SimulationShortID, SingleRunExperimentConfig};
 
 pub struct SingleRunExperiment {
-    experiment_config: Arc<ExperimentConfig<ExperimentRunBase>>,
+    _experiment_config: Arc<ExperimentConfig<ExperimentRunBase>>, // TODO: unused, remove?
     config: SingleRunExperimentConfig,
 }
 
@@ -17,7 +17,7 @@ impl SingleRunExperiment {
         config: SingleRunExperimentConfig,
     ) -> Result<SingleRunExperiment> {
         Ok(SingleRunExperiment {
-            experiment_config: experiment_config.clone(),
+            _experiment_config: experiment_config.clone(),
             config,
         })
     }

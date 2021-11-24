@@ -16,9 +16,10 @@ use crate::{
 pub struct Store {
     state: Option<State>,
     context: Option<Context>,
-    shared_store: Arc<SharedStore>,
-    global_config: Arc<ExperimentConfig<ExperimentRunBase>>,
-    local_config: Arc<SimulationConfig>,
+    // TODO: all three of these are unused, are they necessary?
+    _shared_store: Arc<SharedStore>,
+    _global_config: Arc<ExperimentConfig<ExperimentRunBase>>,
+    _local_config: Arc<SimulationConfig>,
 }
 
 impl Store {
@@ -29,9 +30,9 @@ impl Store {
         Store {
             state: None,
             context: None,
-            shared_store,
-            global_config: config.exp.clone(),
-            local_config: config.sim.clone(),
+            _shared_store: shared_store,
+            _global_config: config.exp.clone(),
+            _local_config: config.sim.clone(),
         }
     }
 

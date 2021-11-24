@@ -25,7 +25,7 @@ pub struct Args {
 
     /// project output path folder (will create if missing)
     #[argh(option, short = 'o', default = "default_output_path()")]
-    output: String,
+    _output: String, // TODO - unused
 
     /// experiment type to be run
     #[argh(subcommand, short = 't')]

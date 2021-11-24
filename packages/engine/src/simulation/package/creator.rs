@@ -327,23 +327,23 @@ impl PackageCreators {
                 creator.add_state_field_specs(exp_config, globals, &mut field_builder)?;
                 Ok(())
             },
-        );
+        )?;
 
-        self.state
-            .iter()
-            .try_for_each::<_, Result<()>>(|(_package_id, package_name, creator)| {
+        self.state.iter().try_for_each::<_, Result<()>>(
+            |(_package_id, package_name, creator)| {
                 field_builder.source(FieldSource::Package(package_name.clone()));
                 creator.add_state_field_specs(exp_config, globals, &mut field_builder)?;
                 Ok(())
-            });
+            },
+        )?;
 
-        self.output
-            .iter()
-            .try_for_each::<_, Result<()>>(|(_package_id, package_name, creator)| {
+        self.output.iter().try_for_each::<_, Result<()>>(
+            |(_package_id, package_name, creator)| {
                 field_builder.source(FieldSource::Package(package_name.clone()));
                 creator.add_state_field_specs(exp_config, globals, &mut field_builder)?;
                 Ok(())
-            });
+            },
+        )?;
 
         add_base_agent_fields(&mut field_builder)?;
 
@@ -354,7 +354,7 @@ impl PackageCreators {
         &self,
         exp_config: &crate::ExperimentConfig<ExperimentRunBase>,
         globals: &Globals,
-    ) -> std::result::Result<ContextSchema, crate::datastore::prelude::Error> {
+    ) -> std::result::Result<ContextSchema, Error> {
         let mut field_builder = FieldSpecMapBuilder::new();
 
         self.context.iter().try_for_each::<_, Result<()>>(
@@ -363,11 +363,11 @@ impl PackageCreators {
                 creator.add_context_field_specs(exp_config, globals, &mut field_builder)?;
                 Ok(())
             },
-        );
+        )?;
 
-        add_base_context_fields(&mut field_builder);
+        add_base_context_fields(&mut field_builder)?;
 
-        ContextSchema::new(field_builder.build())
+        Ok(ContextSchema::new(field_builder.build())?)
     }
 }
 

@@ -165,7 +165,7 @@ impl<'mv8> Ref<'mv8> {
         let value_ptr = unsafe { desc.payload.value_ptr };
         // `Ref` has taken ownership of the `value_ptr`, so there's no need to run `ValueDesc`'s
         // drop:
-        ManuallyDrop::new(desc);
+        let _ = ManuallyDrop::new(desc);
         Ref { mv8, value_ptr }
     }
 }

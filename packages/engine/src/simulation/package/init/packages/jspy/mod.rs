@@ -13,11 +13,6 @@ use super::super::*;
 pub mod js;
 pub mod py;
 
-enum LanguageTarget {
-    Python,
-    Javascript,
-}
-
 pub struct Creator {}
 
 impl Creator {

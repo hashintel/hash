@@ -1,7 +1,7 @@
 use crate::config::topology::{AxisBoundary, WrappingBehavior};
 use crate::config::TopologyConfig;
 
-use super::map::{Direction, Position};
+use super::map::Position;
 
 /// Performs all the bounds checking and shifts points over depending on the topology config
 /// Takes in a single position and returns a vector containing all the possible wrapping
@@ -27,30 +27,6 @@ pub fn wrapped_positions(pos: &Position, topology: &TopologyConfig) -> Vec<Posit
     }
 
     all_points
-}
-
-/// Wrap the position if the agent is out of bounds
-pub fn correct_agent(
-    mut pos: Option<&mut Position>,
-    mut dir: Option<&mut Direction>,
-    topology: &TopologyConfig,
-) -> bool {
-    let mut position_was_corrected = false;
-
-    if let Some(ref mut pos) = pos {
-        for i in 0..=2 {
-            let bounds = get_bounds(i, topology);
-            if pos[i] < bounds.min || pos[i] >= bounds.max {
-                wrap_pos_coord(pos, i, topology);
-                if let Some(ref mut dir) = dir {
-                    wrap_dir_coord(dir, i, topology);
-                }
-                position_was_corrected = true;
-            }
-        }
-    }
-
-    return position_was_corrected;
 }
 
 fn wrap_pos_coord(pos: &mut Position, i: usize, config: &TopologyConfig) {
@@ -87,16 +63,6 @@ fn wrap_pos_coord(pos: &mut Position, i: usize, config: &TopologyConfig) {
             }
         }
         NoWrap => (),
-    }
-}
-
-fn wrap_dir_coord(dir: &mut Direction, i: usize, config: &TopologyConfig) {
-    use crate::config::topology::WrappingBehavior::{OffsetReflection, Reflection};
-    match get_wrap_mode(i, config) {
-        Reflection | OffsetReflection => {
-            dir[i] = -dir[i];
-        }
-        _ => (),
     }
 }
 

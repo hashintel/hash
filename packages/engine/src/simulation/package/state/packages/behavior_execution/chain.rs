@@ -110,7 +110,6 @@ impl IntoArrowChange for ChainList {
             .add_child_data(child_data)
             .build();
 
-        let column_index = todo!();
-        Ok(ArrayChange::new(data, column_index))
+        Ok(ArrayChange::new(data, self.index_column_index))
     }
 }

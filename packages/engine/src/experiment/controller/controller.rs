@@ -39,10 +39,8 @@ use super::{
     Error, Result,
 };
 
-type StopExperiment = bool;
-
 pub struct ExperimentController<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> {
-    exp_config: Arc<ExperimentConfig<E>>,
+    _exp_config: Arc<ExperimentConfig<E>>, // TODO: unused, remove?
     exp_base_config: Arc<ExperimentConfig<ExperimentRunBase>>,
     env: Environment<E>,
     shared_store: Arc<SharedStore>,
@@ -349,7 +347,7 @@ impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController
         terminate_recv: TerminateRecv,
     ) -> Self {
         ExperimentController {
-            exp_config,
+            _exp_config: exp_config,
             exp_base_config,
             env,
             shared_store,

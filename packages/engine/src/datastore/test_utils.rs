@@ -129,8 +129,13 @@ pub fn gen_schema_and_test_agents(
             nullable: false,
         },
         FieldScope::Agent,
-    );
-    add_base_agent_fields(&mut builder);
+    )?;
+    add_base_agent_fields(&mut builder).map_err(|err| {
+        Error::from(format!(
+            "Failed to add base agent field specs: {}",
+            err.to_string()
+        ))
+    })?;
     let mut field_spec_map = builder.build();
 
     field_spec_map.union(FieldSpecMap::from_short_json(

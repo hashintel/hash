@@ -131,6 +131,8 @@ impl PendingWorkerPoolTask {
         }
     }
 
+    // TODO: delete or use when cancel is revisited
+    #[allow(dead_code)]
     pub fn recv_cancel(&mut self) -> Result<Option<CancelTask>> {
         use oneshot::error::TryRecvError;
         if !self.cancelling {
@@ -154,6 +156,8 @@ pub struct PendingWorkerPoolTasks {
 }
 
 impl PendingWorkerPoolTasks {
+    // TODO: delete or use when cancel is revisited
+    #[allow(dead_code)]
     pub async fn run_cancel_check(&mut self) -> Vec<TaskID> {
         self.inner
             .iter_mut()

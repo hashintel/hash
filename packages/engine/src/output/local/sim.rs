@@ -13,7 +13,7 @@ use super::result::LocalPersistenceResult;
 #[derive(new)]
 pub struct LocalSimulationOutputPersistence {
     exp_id: ExperimentID,
-    sim_id: SimulationShortID,
+    _sim_id: SimulationShortID, // TODO - Should this be unused? If so remove
     buffers: Buffers,
     config: LocalPersistenceConfig,
 }
@@ -31,7 +31,6 @@ impl SimulationOutputPersistenceRepr for LocalSimulationOutputPersistence {
                 Output::JSONStateOutput(output) => {
                     self.buffers.json_state.append_step(output.inner)?;
                 }
-                _ => {}
             }
             Ok(()) as Result<()>
         })?;

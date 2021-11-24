@@ -2,32 +2,6 @@ use crate::config::topology::{AxisBoundary, Config as TopologyConfig, WrappingBe
 
 use super::{Direction, Position};
 
-/// Performs all the bounds checking and shifts points over depending on the topology config
-/// Takes in a single position and returns a vector containing all the possible wrapping
-/// of that position around the boundaries.
-#[must_use]
-pub fn wrapped_positions(pos: &Position, topology: &TopologyConfig) -> Vec<Position> {
-    let mut all_points = Vec::with_capacity(topology.wrapping_combinations);
-    all_points.push(*pos);
-
-    for coord in 0..=2 {
-        for i in 0..all_points.len() {
-            // Go from z to x: we have to go backward to handle
-            // the OffsetReflection case. Look at cfg.rs for more
-            // details.
-            //
-            // Only add to the array if the position will be wrapped.
-            if get_wrap_mode(2 - coord, topology) != WrappingBehavior::NoWrap {
-                let mut pos = all_points[i];
-                wrap_pos_coord(&mut pos, 2 - coord, topology);
-                all_points.push(pos);
-            }
-        }
-    }
-
-    all_points
-}
-
 /// Wrap the position if the agent is out of bounds
 pub fn correct_agent(
     mut pos: Option<&mut Position>,

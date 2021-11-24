@@ -165,10 +165,6 @@ impl FieldSpec {
     }
 }
 
-struct FieldRootSpec {
-    inner: FieldSpec,
-}
-
 impl FieldSpecMap {
     pub(in crate::datastore) fn from_short_json(
         json: serde_json::Value,

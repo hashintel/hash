@@ -11,7 +11,7 @@ use super::{Comms, Result};
 pub struct PackageComms {
     inner: Comms,
     package_id: PackageId,
-    package_type: PackageType,
+    _package_type: PackageType, // TODO: unused, remove?
 }
 
 impl PackageComms {

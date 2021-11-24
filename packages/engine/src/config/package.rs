@@ -30,15 +30,6 @@ pub struct Config {
 }
 
 impl Config {
-    fn new() -> Config {
-        Config {
-            init: HashSet::new(),
-            context: HashSet::new(),
-            state: vec![],
-            output: HashSet::new(),
-        }
-    }
-
     fn default_init_packages() -> HashSet<InitPackage> {
         let default = [InitPackage::JSON];
         HashSet::from_iter(default.iter().cloned())

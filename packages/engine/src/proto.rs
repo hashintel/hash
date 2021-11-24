@@ -176,12 +176,6 @@ pub struct ProjectBase {
     pub packages: Vec<SimPackageArgs>,
 }
 
-// This default value is only required for integration tests created prior to the
-// init.js / init.py feature.
-fn default_init_name() -> String {
-    "init.json".to_string()
-}
-
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 pub struct PackageDataField {
     pub name: String,

@@ -115,38 +115,6 @@ fn agents_to_id_col(agents: &[&AgentState]) -> Result<ArrayRef> {
     Ok(Arc::new(builder.finish()))
 }
 
-fn agents_to_behaviors_col(agents: &[&AgentState]) -> Result<ArrayRef> {
-    let dt = ArrowDataType::List(Box::new(ArrowDataType::Utf8));
-    let builder = ArrayDataBuilder::new(dt).len(agents.len());
-
-    let mut offsets = new_offsets_buffer(agents.len());
-    // TODO `typed_data_mut` has assertions which could be avoided for performance
-    let mut_offsets = offsets.typed_data_mut::<i32>();
-    debug_assert!(mut_offsets.iter().all(|v| *v == 0));
-
-    let mut flattened_strs = vec![];
-
-    for (i_agent, agent) in agents.iter().enumerate() {
-        let mut strs: Vec<&str> = agent.behaviors.iter().map(String::as_str).collect();
-
-        let prev_offset = mut_offsets[i_agent];
-        mut_offsets[i_agent + 1] = prev_offset + strs.len() as i32;
-        flattened_strs.append(&mut strs);
-    }
-
-    let child_data = array::StringArray::from(flattened_strs).data();
-
-    let list_data = builder
-        .null_count(0)
-        .null_bit_buffer(new_one_bits(agents.len()).freeze())
-        .buffers(vec![offsets.freeze()])
-        .child_data(vec![child_data])
-        .build();
-
-    let list: array::ListArray = list_data.into();
-    Ok(Arc::new(list))
-}
-
 macro_rules! agents_to_vec_col_gen {
     ($field_name:ident, $function_name:ident) => {
         fn $function_name(agents: &[&AgentState]) -> Result<ArrayRef> {

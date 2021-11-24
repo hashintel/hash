@@ -3,7 +3,6 @@ use crate::{
     config::{Distribution, Worker, WorkerAllocation},
     datastore::prelude::Result,
     simulation::task::handler::worker_pool::SplitConfig,
-    worker::runner::comms::StateInterimSync,
 };
 
 use std::fmt::Debug;

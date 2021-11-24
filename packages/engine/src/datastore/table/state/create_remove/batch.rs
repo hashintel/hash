@@ -1,11 +1,6 @@
-use std::{
-    collections::{HashMap, HashSet},
-    ops::Deref,
-};
+use std::{collections::HashSet, ops::Deref};
 
-use bimap::BiHashMap;
-
-use super::{AgentIndex, BatchIndex, ChainIndex, Error, Result, WorkerIndex};
+use super::{AgentIndex, BatchIndex, Result, WorkerIndex};
 
 use crate::datastore::{batch::agent::Batch as AgentBatch, UUID_V4_LEN};
 
@@ -17,7 +12,7 @@ pub struct BaseBatch {
     worker: WorkerIndex,
     remove_indices: Vec<AgentIndex>,
     /// Number of agents in the batch (before any changes)
-    num_agents: usize,
+    _num_agents: usize, // TODO: unused, delete?
 }
 
 /// Represents a batch of agents from the dynamic pool
@@ -62,7 +57,7 @@ impl PendingBatch {
             index: batch_index,
             worker: batch.affinity,
             remove_indices,
-            num_agents: batch.num_agents(),
+            _num_agents: batch.num_agents(),
         };
 
         Ok(PendingBatch {
@@ -87,10 +82,6 @@ impl PendingBatch {
 
     pub fn num_inbound(&self) -> usize {
         self.num_inbound
-    }
-
-    pub fn old_num_agents_unchecked(&self) -> usize {
-        self.base.as_ref().unwrap().num_agents
     }
 
     pub fn num_delete_unchecked(&self) -> usize {
@@ -118,25 +109,5 @@ impl PendingBatch {
 
     pub fn wraps_batch(&self) -> bool {
         self.base.is_some()
-    }
-}
-
-fn get_behavior_string_vec(
-    chain_index: ChainIndex,
-    bimap: &BiHashMap<Vec<u16>, usize>,
-    index_behavior_map: &HashMap<u16, Vec<u8>>,
-) -> Result<Vec<String>> {
-    if let Some(values) = bimap.get_by_right(&chain_index) {
-        values
-            .iter()
-            .map(|x| {
-                index_behavior_map
-                    .get(x)
-                    .expect("Cannot fail as values are sourced from `index_behavior_map`")
-            })
-            .map(|a| String::from_utf8(a.clone()).map_err(Error::from))
-            .collect::<Result<_>>()
-    } else {
-        Err(Error::from("Invalid chain index"))
     }
 }

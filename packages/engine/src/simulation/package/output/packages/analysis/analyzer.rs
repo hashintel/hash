@@ -32,9 +32,10 @@ pub(crate) type MapIterator = Box<
 >;
 
 pub struct Analyzer {
+    // TODO: unused fields, either remove or add docs
     _repr: AnalysisSourceRepr,
     pub outputs: Vec<(Arc<String>, OutputCreator, Vec<AnalysisSingleOutput>)>,
-    src: String,
+    _src: String,
 }
 
 impl Analyzer {
@@ -58,12 +59,8 @@ impl Analyzer {
         Ok(Analyzer {
             _repr: repr,
             outputs,
-            src: analysis_source.to_string(),
+            _src: analysis_source.to_string(),
         })
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.outputs.is_empty()
     }
 
     pub fn run(&mut self, dynamic_pool: &[&AgentBatch], num_agents: usize) -> Result<()> {
@@ -94,47 +91,6 @@ impl Analyzer {
                 })
                 .collect(),
         }
-    }
-
-    pub fn last_output_scalar(&self, name: &str) -> Result<Option<f64>> {
-        fn invalid_value_convert<A, B>(output: &(A, B, Vec<AnalysisSingleOutput>)) -> String {
-            if let Some(Ok(v)) = output.2.last().map(|v| serde_json::to_string(v)) {
-                v
-            } else {
-                "null".into()
-            }
-        }
-
-        for output in self.outputs.iter() {
-            if &*output.0 == name {
-                return match output.2.last() {
-                    None => Err(Error::EmptyAnalysisOutput(name.into())),
-                    Some(AnalysisSingleOutput::Number(v)) => Ok(*v),
-                    _ => Err(Error::InvalidAnalysisOutputForOptimization {
-                        name: name.into(),
-                        value: invalid_value_convert(output),
-                    }),
-                };
-            }
-        }
-
-        Err(Error::MissingAnalysisOutput(name.into()))
-    }
-
-    // TODO: Rename to `take` to make it obvious that can't finalize multiple times?
-    pub fn finalize(&mut self) -> Result<AnalysisResult> {
-        let mut map = HashMap::with_capacity(self.outputs.len());
-        self.outputs
-            .iter_mut()
-            .for_each(|(output_name, _, outputs)| {
-                map.insert(output_name.clone(), std::mem::replace(outputs, vec![]));
-            });
-        let src = std::mem::replace(&mut self.src, "".into());
-        let outputs = AnalysisFinalOutput { inner: map };
-        Ok(AnalysisResult {
-            manifest: src,
-            outputs,
-        })
     }
 }
 

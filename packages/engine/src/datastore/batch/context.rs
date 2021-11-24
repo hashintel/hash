@@ -15,7 +15,6 @@ use crate::{
 
 use super::Batch as BatchRepr;
 
-use crate::datastore::arrow::util::DataSliceUtils;
 use crate::proto::ExperimentID;
 use std::sync::Arc;
 
@@ -176,66 +175,4 @@ impl Batch {
 
         Ok(())
     }
-}
-
-fn write_string_list_inner_column_unchecked<'a>(
-    data: impl Iterator<Item = &'a Vec<&'a str>>,
-    offsets: impl Iterator<Item = usize>,
-    mut data_slice: &mut [u8],
-    buffers: &[Buffer],
-    start_index: usize,
-) {
-    // Null buffer
-    data_slice
-        .from_offset(&buffers[start_index])
-        .fill_with_ones();
-    // Offsets
-    data_slice
-        .from_offset(&buffers[start_index + 1])
-        .write_i32_offsets_from_iter(offsets);
-    // Data
-    let dest = data_slice.from_offset(&buffers[start_index + 2]);
-
-    let mut offset = 0;
-    data.flat_map(|v| v.iter()).for_each(|v| {
-        let string_size = v.len();
-        dest[offset..offset + string_size].copy_from_slice(v.as_bytes());
-        offset += string_size;
-    });
-}
-
-fn calc_ext_message_string_array_dynamic_meta(
-    nodes: &mut Vec<Node>,
-    mut buffers: &mut Vec<Buffer>,
-    char_count: usize,
-    msg_count: usize,
-    list_offset_null_buf_len: usize,
-) {
-    nodes.push(Node::new(msg_count, 0));
-    let strings_list_offset_null_buf_len = list_offset_null_buf_len;
-    let strings_list_offset_null_buf_padding =
-        padding::get_static_buffer_pad(list_offset_null_buf_len);
-    add_new_buffer_to_non_empty(
-        &mut buffers,
-        strings_list_offset_null_buf_len,
-        strings_list_offset_null_buf_padding,
-    );
-    let strings_list_offset_buf_len = (msg_count + 1) * 4;
-    let strings_list_offset_buf_padding =
-        padding::get_static_buffer_pad(strings_list_offset_buf_len);
-    add_new_buffer_to_non_empty(
-        &mut buffers,
-        strings_list_offset_buf_len,
-        strings_list_offset_buf_padding,
-    );
-    let strings_buf_len = char_count;
-    let strings_buf_padding = padding::get_static_buffer_pad(strings_buf_len);
-    add_new_buffer_to_non_empty(&mut buffers, strings_buf_len, strings_buf_padding);
-}
-
-fn add_new_buffer_to_non_empty(buffers: &mut Vec<Buffer>, length: usize, padding: usize) {
-    assert!(!buffers.is_empty());
-    let prev_buffer = buffers.last().unwrap();
-    let new_offset = prev_buffer.get_next_offset();
-    buffers.push(Buffer::new(new_offset, length, padding));
 }

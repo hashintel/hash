@@ -46,7 +46,9 @@ impl ActiveTask {
                 .cancel_send
                 .take()
                 .ok_or_else(|| Error::from("Couldn't take cancel send"))?;
-            cancel_send.send(CancelTask::new());
+            cancel_send
+                .send(CancelTask::new())
+                .map_err(|_| Error::from("Failed to send Cancel Task"))?;
             self.cancel_sent = true;
             let recv = self
                 .comms
@@ -78,7 +80,8 @@ impl Drop for ActiveTask {
             if !self.cancel_sent {
                 log::warn!("Sent cancel message");
                 if let Some(cancel_send) = self.comms.cancel_send.take() {
-                    cancel_send.send(CancelTask::new());
+                    #[allow(unused_results)]
+                    cancel_send.send(CancelTask::new()); // TODO: .expect()?
                     self.cancel_sent = true;
                 } else {
                     log::warn!("Cancel not sent, but no `cancel_send`")
