@@ -116,7 +116,7 @@ export const createEditorView = (
           currentView,
           getPos,
           renderPortal,
-          manager
+          manager,
         );
       },
     },
