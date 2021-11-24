@@ -64,6 +64,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
     loading: false,
     errorString: null,
   });
+
   const [inputText, setInputText] = useState("");
   const [captionText, setCaptionText] = useState(initialCaption ?? "");
   const [randomId] = useState(() => `image-input-${uuid()}`);
@@ -87,6 +88,20 @@ export const Image: BlockComponent<AppProps> = (props) => {
     },
     [],
   );
+
+  useEffect(() => {
+    if (stateObject.src !== initialSrc) {
+      updateStateObject({ src: initialSrc });
+    }
+
+    if (stateObject.width !== initialWidth) {
+      updateStateObject({ width: initialWidth });
+    }
+
+    if (initialCaption && captionText !== initialCaption) {
+      setCaptionText(initialCaption);
+    }
+  }, [initialSrc, initialWidth, initialCaption]);
 
   const updateData = useCallback(
     ({
@@ -284,7 +299,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
           </div>
           <div>
             {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
-            <label htmlFor={randomId}>
+            <label>
               <div
                 className={tw`my-4 bg-gray-50 border-2 border-dashed border-gray-200 py-4 text-sm text-gray-400 cursor-pointer`}
               >
@@ -293,7 +308,6 @@ export const Image: BlockComponent<AppProps> = (props) => {
             </label>
 
             <input
-              id={randomId}
               className={tw`hidden`}
               type="file"
               accept={IMG_MIME_TYPE}

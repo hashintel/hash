@@ -44,6 +44,8 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
     [props],
   );
 
+  console.log({ flattenedProperties });
+
   const blockProperties = {
     ...flattenedProperties,
     editableRef: props.editableRef,
