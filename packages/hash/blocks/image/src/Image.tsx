@@ -255,13 +255,14 @@ export const Image: BlockComponent<AppProps> = (props) => {
               {stateObject.errorString}
             </span>
           </div>
-          {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
-          <span
+
+          <button
+            type="button"
             onClick={() => updateStateObject({ errorString: null })}
             className={tw`absolute top-0 bottom-0 right-0 px-4 py-3`}
           >
             <Cross />
-          </span>
+          </button>
         </div>
       )}
 
@@ -304,14 +305,14 @@ export const Image: BlockComponent<AppProps> = (props) => {
               >
                 Choose a File. <br /> (or Drop it Here)
               </div>
-            </label>
 
-            <input
-              className={tw`hidden`}
-              type="file"
-              accept={IMG_MIME_TYPE}
-              onChange={onFileSelect}
-            />
+              <input
+                className={tw`hidden`}
+                type="file"
+                accept={IMG_MIME_TYPE}
+                onChange={onFileSelect}
+              />
+            </label>
           </div>
           <div className={tw`mt-4`}>
             <button
