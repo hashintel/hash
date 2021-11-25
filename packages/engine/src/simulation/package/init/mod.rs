@@ -30,6 +30,18 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync {
     where
         Self: Sized;
 
+    /// A per-experiment initialization step that provide the creator with experiment config.
+    /// This step is called when packages are loaded by the experiment controller.
+    ///
+    /// A default implementation is provided as most packages don't need to store the config and
+    /// can get it from the simulation config when calling `create`.
+    fn initialize_for_experiment(
+        &mut self,
+        _experiment_config: &Arc<ExperimentConfig>,
+    ) -> Result<()> {
+        Ok(())
+    }
+
     /// Create the package.
     fn create(
         &self,
