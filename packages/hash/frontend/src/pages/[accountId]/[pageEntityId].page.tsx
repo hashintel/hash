@@ -65,158 +65,159 @@ export const getStaticProps: GetStaticProps = async () => {
   return { props: { preloadedBlockMeta } };
 };
 
-export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
-  ({ preloadedBlockMeta }) => {
-    const router = useRouter();
+export const Page: VoidFunctionComponent<{
+  preloadedBlockMeta: BlockMeta[];
+}> = ({ preloadedBlockMeta }) => {
+  const router = useRouter();
 
-    // entityId is the consistent identifier for pages (across all versions)
-    const pageEntityId = router.query.pageEntityId as string;
-    const accountId = router.query.accountId as string;
-    // versionId is an optional param for requesting a specific page version
-    const versionId = router.query.version as string | undefined;
+  // entityId is the consistent identifier for pages (across all versions)
+  const pageEntityId = router.query.pageEntityId as string;
+  const accountId = router.query.accountId as string;
+  // versionId is an optional param for requesting a specific page version
+  const versionId = router.query.version as string | undefined;
 
-    const { data, error } = useQuery<GetPageQuery, GetPageQueryVariables>(
-      getPageQuery,
-      {
-        variables: { entityId: pageEntityId, accountId, versionId },
-      },
-    );
+  const { data, error } = useQuery<GetPageQuery, GetPageQueryVariables>(
+    getPageQuery,
+    {
+      variables: { entityId: pageEntityId, accountId, versionId },
+    },
+  );
 
-    /**
-     * This is to ensure that certain blocks are always contained within the
-     * "select type" dropdown even if the document does not yet contain those
-     * blocks. This is important for paragraphs especially, as the first text
-     * block in the schema is what prosemirror defaults to when creating a new
-     * paragraph. We need to change it so the order of blocks in the dropdown
-     * is not determinned by the order in the prosemirror schema, and also so
-     * that items can be in that dropdown without having be loaded into the
-     * schema.
-     *
-     * @todo this doesn't need to be a map.
-     */
-    const preloadedBlocks = useMemo(
-      () =>
-        new Map(
-          preloadedBlockMeta
-            /**
-             * Paragraph must be first for now, as it'll bw the first loaded
-             * into prosemirror and therefore the block chosen when you
-             * press enter.
-             *
-             * @todo remove need for this
-             */
-            .sort((a, b) =>
-              a.componentMetadata.name === "paragraph"
-                ? -1
-                : b.componentMetadata.name === "paragraph"
-                ? 1
-                : 0,
-            )
-            .map((node) => [node.componentMetadata.componentId, node] as const),
-        ),
-      [preloadedBlockMeta],
-    );
+  /**
+   * This is to ensure that certain blocks are always contained within the
+   * "select type" dropdown even if the document does not yet contain those
+   * blocks. This is important for paragraphs especially, as the first text
+   * block in the schema is what prosemirror defaults to when creating a new
+   * paragraph. We need to change it so the order of blocks in the dropdown
+   * is not determinned by the order in the prosemirror schema, and also so
+   * that items can be in that dropdown without having be loaded into the
+   * schema.
+   *
+   * @todo this doesn't need to be a map.
+   */
+  const preloadedBlocks = useMemo(
+    () =>
+      new Map(
+        preloadedBlockMeta
+          /**
+           * Paragraph must be first for now, as it'll bw the first loaded
+           * into prosemirror and therefore the block chosen when you
+           * press enter.
+           *
+           * @todo remove need for this
+           */
+          .sort((a, b) =>
+            a.componentMetadata.name === "paragraph"
+              ? -1
+              : b.componentMetadata.name === "paragraph"
+              ? 1
+              : 0,
+          )
+          .map((node) => [node.componentMetadata.componentId, node] as const),
+      ),
+    [preloadedBlockMeta],
+  );
 
-    const collabPositions = useCollabPositions(accountId, pageEntityId);
-    const reportPosition = useCollabPositionReporter(accountId, pageEntityId);
-    useCollabPositionTracking(reportPosition);
+  const collabPositions = useCollabPositions(accountId, pageEntityId);
+  const reportPosition = useCollabPositionReporter(accountId, pageEntityId);
+  useCollabPositionTracking(reportPosition);
 
-    if (error) {
-      return <h1>Error: {error.message}</h1>;
-    }
+  if (error) {
+    return <h1>Error: {error.message}</h1>;
+  }
 
-    if (!data) {
-      return <h1>No data loaded.</h1>;
-    }
+  if (!data) {
+    return <h1>No data loaded.</h1>;
+  }
 
-    const { title, contents } = data.page.properties;
+  const { title, contents } = data.page.properties;
 
-    return (
-      <div className={styles.MainWrapper}>
-        <PageSidebar />
-        <div className={styles.MainContent}>
-          {isCollabPositionDebugToolbarEnabled() ? (
-            <div
-              style={{
-                background: "#eee",
-                padding: 20,
-                borderRadius: 5,
-                marginBottom: 10,
-                minHeight: 180,
-              }}
-            >
+  return (
+    <div className={styles.MainWrapper}>
+      <PageSidebar />
+      <div className={styles.MainContent}>
+        {isCollabPositionDebugToolbarEnabled() ? (
+          <div
+            style={{
+              background: "#eee",
+              padding: 20,
+              borderRadius: 5,
+              marginBottom: 10,
+              minHeight: 180,
+            }}
+          >
+            <div>
+              <Button
+                onClick={() => {
+                  reportPosition(
+                    `${Math.round(Math.random() * 10000)}`.padStart(5, "0"),
+                  );
+                }}
+              >
+                report random block id
+              </Button>{" "}
+              <Button
+                type="submit"
+                onClick={() => {
+                  reportPosition(null);
+                }}
+              >
+                report empty block id
+              </Button>
+            </div>
+            <h3 style={{ marginTop: 10 }}>Collaborator positions</h3>
+            <ul>
+              {collabPositions.map(({ userShortname, userId, entityId }) => (
+                <li key={userId}>
+                  <b>{userShortname}:</b> block #{entityId}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+
+        <header>
+          <div className={styles.PageHeader}>
+            <div>
+              {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
+              <label>Title</label>
+              <PageTitle
+                value={title}
+                accountId={data.page.accountId}
+                metadataId={data.page.entityId}
+              />
+            </div>
+            <div>
+              {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
+              <label>Version</label>
               <div>
-                <Button
-                  onClick={() => {
-                    reportPosition(
-                      `${Math.round(Math.random() * 10000)}`.padStart(5, "0"),
+                <VersionDropdown
+                  value={data.page.entityVersionId}
+                  versions={data.page.history ?? []}
+                  onChange={(changedVersionId) => {
+                    void router.push(
+                      `/${accountId}/${pageEntityId}?version=${changedVersionId}`,
                     );
                   }}
-                >
-                  report random block id
-                </Button>{" "}
-                <Button
-                  type="submit"
-                  onClick={() => {
-                    reportPosition(null);
-                  }}
-                >
-                  report empty block id
-                </Button>
-              </div>
-              <h3 style={{ marginTop: 10 }}>Collaborator positions</h3>
-              <ul>
-                {collabPositions.map(({ userShortname, userId, entityId }) => (
-                  <li key={userId}>
-                    <b>{userShortname}:</b> block #{entityId}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-
-          <header>
-            <div className={styles.PageHeader}>
-              <div>
-                {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
-                <label>Title</label>
-                <PageTitle
-                  value={title}
-                  accountId={data.page.accountId}
-                  metadataId={data.page.entityId}
                 />
               </div>
-              <div>
-                {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
-                <label>Version</label>
-                <div>
-                  <VersionDropdown
-                    value={data.page.entityVersionId}
-                    versions={data.page.history ?? []}
-                    onChange={(changedVersionId) => {
-                      void router.push(
-                        `/${accountId}/${pageEntityId}?version=${changedVersionId}`,
-                      );
-                    }}
-                  />
-                </div>
-              </div>
             </div>
-          </header>
+          </div>
+        </header>
 
-          <main>
-            <CollabPositionProvider value={collabPositions}>
-              <PageBlock
-                accountId={data.page.accountId}
-                contents={contents}
-                blocksMeta={preloadedBlocks}
-                entityId={data.page.entityId}
-              />
-            </CollabPositionProvider>
-          </main>
-        </div>
+        <main>
+          <CollabPositionProvider value={collabPositions}>
+            <PageBlock
+              accountId={data.page.accountId}
+              contents={contents}
+              blocksMeta={preloadedBlocks}
+              entityId={data.page.entityId}
+            />
+          </CollabPositionProvider>
+        </main>
       </div>
-    );
-  };
+    </div>
+  );
+};
 
 export default Page;
