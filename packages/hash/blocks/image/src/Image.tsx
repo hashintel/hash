@@ -90,13 +90,12 @@ export const Image: BlockComponent<AppProps> = (props) => {
   );
 
   useEffect(() => {
-    if (stateObject.src !== initialSrc) {
-      updateStateObject({ src: initialSrc });
-    }
+    let newStateObject = {
+      ...(stateObject.src !== initialSrc && { src: initialSrc }),
+      ...(stateObject.width !== initialWidth && { width: initialWidth }),
+    };
 
-    if (stateObject.width !== initialWidth) {
-      updateStateObject({ width: initialWidth });
-    }
+    updateStateObject(newStateObject);
 
     if (initialCaption && captionText !== initialCaption) {
       setCaptionText(initialCaption);
