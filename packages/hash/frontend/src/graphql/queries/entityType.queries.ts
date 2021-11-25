@@ -34,3 +34,19 @@ export const createEntityTypeMutation = gql`
     }
   }
 `;
+
+export const transferEntityMutation = gql`
+  mutation transferEntity(
+    $originalAccountId: ID!
+    $entityId: ID!
+    $newAccountId: ID!
+  ) {
+    transferEntity(
+      originalAccountId: $originalAccountId
+      entityId: $entityId
+      newAccountId: $newAccountId
+    ) {
+      accountId
+    }
+  }
+`;

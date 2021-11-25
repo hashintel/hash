@@ -3,8 +3,9 @@ import { BlockMeta, fetchBlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { blockPaths } from "@hashintel/hash-shared/paths";
 import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
 import { GetStaticPaths, GetStaticProps } from "next";
-
 import { useRouter } from "next/router";
+import { tw } from "twind";
+
 import { useMemo, VoidFunctionComponent } from "react";
 import { useCollabPositions } from "../../blocks/page/collab/useCollabPositions";
 import { useCollabPositionTracking } from "../../blocks/page/collab/useCollabPositionTracking";
@@ -20,6 +21,7 @@ import {
 } from "../../graphql/apiTypes.gen";
 import styles from "../index.module.scss";
 import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
+import { PageTransferDropdown } from "../../components/Dropdowns/PageTransferDropdown";
 
 /**
  * @todo Remove when position tracking is fully implemented.
@@ -186,7 +188,7 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
                   metadataId={data.page.entityId}
                 />
               </div>
-              <div>
+              <div className={tw`mr-4`}>
                 {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
                 <label>Version</label>
                 <div>
@@ -199,6 +201,13 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
                       );
                     }}
                   />
+                </div>
+              </div>
+              <div>
+                {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
+                <label>Transfer Page</label>
+                <div>
+                  <PageTransferDropdown />
                 </div>
               </div>
             </div>
