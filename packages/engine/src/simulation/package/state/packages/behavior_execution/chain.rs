@@ -1,21 +1,19 @@
 use crate::datastore::arrow::batch_conversion::{new_buffer, new_offsets_buffer};
 use crate::datastore::batch::iterators;
-use crate::simulation::package::state::packages::behavior_execution::config::{
-    BehaviorConfig, BehaviorIndex,
-};
+use crate::simulation::package::state::packages::behavior_execution::config::BehaviorIndex;
 
 use super::*;
 
 pub fn gather_behavior_chains(
     state: &ExState,
-    config: &BehaviorConfig,
+    behavior_indices: &BehaviorIndices,
     data_types: [arrow::datatypes::DataType; 3],
     index_column_index: usize,
 ) -> Result<StateColumn> {
     let batches = state.agent_pool().read_batches()?;
 
     let inner = iterators::agent::behavior_list_bytes_iter(&batches)?
-        .map(|v| Chain::from_behaviors(&v, config))
+        .map(|v| Chain::from_behaviors(&v, behavior_indices))
         .collect::<Result<Vec<_>>>()?;
     Ok(StateColumn::new(Box::new(ChainList {
         inner,
@@ -29,13 +27,13 @@ pub struct Chain {
 }
 
 impl Chain {
-    pub fn from_behaviors(behaviors: &[&[u8]], config: &BehaviorConfig) -> Result<Self> {
+    pub fn from_behaviors(behaviors: &[&[u8]], behavior_indices: &BehaviorIndices) -> Result<Self> {
         Ok(Chain {
             inner: behaviors
                 .iter()
                 .map(|bytes| {
                     let index =
-                        config.get_index_from_name(bytes).ok_or_else(
+                        behavior_indices.get_index(bytes).ok_or_else(
                             || match std::str::from_utf8(bytes) {
                                 Ok(res) => Error::from(format!(
                                     "Could not find behavior with name {}",

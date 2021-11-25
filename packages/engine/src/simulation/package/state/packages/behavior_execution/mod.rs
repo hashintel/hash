@@ -4,13 +4,11 @@ pub mod config;
 pub mod fields;
 pub mod tasks;
 
-use self::fields::behavior::BehaviorMap;
+use self::{config::exp_init_message, fields::behavior::BehaviorMap};
 use crate::datastore::schema::accessor::GetFieldSpec;
 
 use crate::datastore::table::state::ReadState;
-use crate::simulation::package::state::packages::behavior_execution::config::{
-    init_message, BehaviorConfig,
-};
+use crate::simulation::package::state::packages::behavior_execution::config::BehaviorIndices;
 use crate::simulation::task::active::ActiveTask;
 use serde_json::Value;
 use std::convert::TryFrom;
@@ -20,14 +18,41 @@ use super::super::*;
 pub const BEHAVIOR_INDEX_INNER_COUNT: usize = 2;
 pub type BehaviorIndexInnerDataType = u16;
 
-pub struct Creator {}
+pub struct Creator {
+    experiment_config: Option<Arc<ExperimentConfig>>,
+    behavior_indices: Option<Arc<BehaviorIndices>>,
+    behavior_map: Option<Arc<BehaviorMap>>,
+}
 
-impl Creator {}
+impl Creator {
+    fn get_behavior_indices(&self) -> Result<&Arc<BehaviorIndices>> {
+        Ok(self.behavior_indices.as_ref().ok_or(
+            Error::from("BehaviorExecution Package Creator didn't have behavior indices, maybe `initialize_for_experiment` wasn't called."))?)
+    }
 
-// TODO OS - needs implementing
+    fn get_behavior_map(&self) -> Result<&Arc<BehaviorMap>> {
+        Ok(self.behavior_map.as_ref().ok_or(
+            Error::from("BehaviorExecution Package Creator didn't have behavior map, maybe `initialize_for_experiment` wasn't called."))?)
+    }
+}
+
+impl GetWorkerExpStartMsg for Creator {
+    fn get_worker_exp_start_msg(&self) -> Result<Value> {
+        let msg = exp_init_message(self.get_behavior_indices()?, self.get_behavior_map()?)?;
+        Ok(serde_json::to_value(msg)?)
+    }
+}
+
 impl PackageCreator for Creator {
     fn new(experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn PackageCreator>> {
-        Ok(Box::new(Creator {}))
+        let behavior_map = BehaviorMap::try_from(experiment_config.as_ref())?;
+        let behavior_indices = BehaviorIndices::from_behaviors(&behavior_map)?;
+
+        Ok(Box::new(Creator {
+            experiment_config: Some(Arc::clone(experiment_config)),
+            behavior_indices: Some(Arc::new(behavior_indices)),
+            behavior_map: Some(Arc::new(behavior_map)),
+        }))
     }
 
     fn create(
@@ -46,14 +71,13 @@ impl PackageCreator for Creator {
             .agent_schema
             .arrow
             .index_of(index_column_key.value())?;
-        let behavior_map = BehaviorMap::try_from(config.exp.as_ref())?;
 
         Ok(Box::new(BehaviorExecution {
-            behavior_config: todo!(),
+            behavior_map: Arc::clone(self.get_behavior_map()?),
+            behavior_indices: Arc::clone(self.get_behavior_indices()?),
             index_column_index,
             index_column_data_types,
             comms,
-            behavior_map,
         }))
     }
 
@@ -68,20 +92,18 @@ impl PackageCreator for Creator {
     }
 }
 
-impl GetWorkerExpStartMsg for Creator {
-    // TODO OS send out behavior source code here
-    //         as it does not change per-simulation
-    fn get_worker_exp_start_msg(&self) -> Result<Value> {
-        todo!()
-    }
-}
-
 struct BehaviorExecution {
-    behavior_config: Arc<BehaviorConfig>,
+    behavior_map: Arc<BehaviorMap>,
+    behavior_indices: Arc<BehaviorIndices>,
     index_column_index: usize,
     index_column_data_types: [arrow::datatypes::DataType; 3],
     comms: PackageComms,
-    behavior_map: BehaviorMap,
+}
+
+impl GetWorkerSimStartMsg for BehaviorExecution {
+    fn get_worker_sim_start_msg(&self) -> Result<Value> {
+        Ok(Value::Null)
+    }
 }
 
 // TODO OS - Needs implementing
@@ -93,7 +115,7 @@ impl BehaviorExecution {
     fn fix_behavior_chains(&mut self, state: &mut ExState) -> Result<()> {
         let behavior_indices = chain::gather_behavior_chains(
             state,
-            &self.behavior_config,
+            &self.behavior_indices,
             self.index_column_data_types.clone(),
             self.index_column_index,
         )?;
@@ -112,13 +134,6 @@ impl BehaviorExecution {
         //     }
         // }
         todo!()
-    }
-}
-
-impl GetWorkerSimStartMsg for BehaviorExecution {
-    fn get_worker_sim_start_msg(&self) -> Result<Value> {
-        let msg = init_message(&self.behavior_map)?;
-        Ok(serde_json::to_value(msg)?)
     }
 }
 

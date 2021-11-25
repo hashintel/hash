@@ -175,10 +175,10 @@ pub struct BehaviorMap {
 impl TryFrom<&ExperimentConfig> for BehaviorMap {
     type Error = Error;
 
-    fn try_from(experiment_run: &ExperimentConfig) -> Result<Self> {
+    fn try_from(experiment_config: &ExperimentConfig) -> Result<Self> {
         let mut builder = FieldSpecMapBuilder::new();
         let mut meta = HashMap::new();
-        experiment_run
+        experiment_config
             .run
             .base()
             .project_base

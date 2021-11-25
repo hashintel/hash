@@ -15,36 +15,16 @@ use std::ops::Deref;
 //       Vec of behavior descriptions in `behavior_descs`.
 #[derive(Serialize, Deserialize)]
 pub struct BehaviorDescription {
-    pub id: u32,
+    pub index: BehaviorIndex,
     pub name: String,
+    pub short_names: Vec<String>,
     pub source: String,
-    pub columns: Vec<String>,
+    pub required_field_keys: Vec<String>,
     pub language: Language, // serde serialized to "Python", "JavaScript" or "Rust"
     pub dyn_access: bool,
 }
 
-pub struct BehaviorConfig {
-    behaviors: BehaviorMap,
-    indices: BehaviorIndices,
-}
-
-impl BehaviorConfig {
-    pub fn new(exp_config: &ExperimentConfig) -> Result<BehaviorConfig> {
-        let behaviors = BehaviorMap::try_from(exp_config)?;
-        let indices = BehaviorIndices::from_behaviors(&behaviors)?;
-        Ok(BehaviorConfig { behaviors, indices })
-    }
-
-    pub fn get_index_from_name<K: Deref<Target = [u8]>>(&self, key: &K) -> Option<&BehaviorIndex> {
-        self.indices.get_index(key)
-    }
-
-    pub fn get_name_from_index(&self, behavior_index: &BehaviorIndex) -> Option<&String> {
-        self.indices.get_name(behavior_index)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct BehaviorIndex(u16, u16);
 
 impl BehaviorIndex {
@@ -63,7 +43,7 @@ pub struct BehaviorIndices {
 }
 
 impl BehaviorIndices {
-    fn from_behaviors(behaviors: &BehaviorMap) -> Result<BehaviorIndices> {
+    pub(crate) fn from_behaviors(behaviors: &BehaviorMap) -> Result<BehaviorIndices> {
         let mut lang_counts = [0_u16; Language::NUM];
 
         let mut index_to_name = HashMap::new();
@@ -123,28 +103,49 @@ pub struct SendableBehaviorKeys {
     built_in_key_use: Option<Vec<String>>,
 }
 
-pub fn init_message(
+pub fn exp_init_message(
+    behavior_indices: &BehaviorIndices,
     behavior_map: &BehaviorMap,
-) -> Result<HashMap<Language, Vec<(SharedBehavior, SendableBehaviorKeys)>>> {
-    let mut partitioned = HashMap::new();
-    for (file_name, behavior) in &behavior_map.inner {
-        let lang = Language::from_file_name(file_name)
-            .map_err(|_| Error::from("Couldn't get language from behavior file name"))?;
-        partitioned.entry(lang).or_insert_with(Vec::new);
+) -> Result<Vec<BehaviorDescription>> {
+    let behavior_descriptions = behavior_map
+        .inner
+        .iter()
+        .map(|(file_name, behavior)| {
+            let shared = behavior.shared();
+            let keys = behavior.keys();
 
-        let shared = behavior.shared().clone();
-        let keys = behavior.keys();
-        let sendable = SendableBehaviorKeys {
-            field_names: keys
+            let language = Language::from_file_name(file_name)
+                .map_err(|_| Error::from("Couldn't get language from behavior file name"))?;
+            let index = behavior_indices
+                .name_to_index
+                .get(shared.name.as_bytes())
+                .ok_or(Error::from("Couldn't get index from behavior name"))?
+                .clone();
+            let source = shared
+                .behavior_src
+                .clone()
+                .ok_or(Error::from("SharedBehavior didn't have an attached source"))?;
+            let required_field_keys = keys
                 .inner
                 .iter()
-                .map(|(_key, spec)| spec.inner.name.clone())
-                .collect(),
-            dyn_access: keys.dyn_access,
-            built_in_key_use: keys.built_in_key_use.clone(),
-        };
-        // Unwrap cannot fail
-        partitioned.get_mut(&lang).unwrap().push((shared, sendable));
-    }
-    Ok(partitioned)
+                .map(|(key, _)| key.value().to_string())
+                .chain(
+                    keys.built_in_key_use
+                        .iter()
+                        .flat_map(|keys| keys.into_iter().cloned()),
+                )
+                .collect::<Vec<_>>();
+
+            Ok(BehaviorDescription {
+                index,
+                name: shared.name.to_string(),
+                short_names: shared.shortnames.clone(),
+                source,
+                required_field_keys,
+                language,
+                dyn_access: keys.dyn_access,
+            })
+        })
+        .collect::<Result<Vec<_>>>()?;
+    Ok(behavior_descriptions)
 }

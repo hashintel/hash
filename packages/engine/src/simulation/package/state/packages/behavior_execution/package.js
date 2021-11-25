@@ -38,7 +38,7 @@ const prepare_user_trace = (error, trace) => {
     };
 }
 
-/// `behavior_descs` should have fields `id`, `name`, `source`, `columns`,
+/// `behavior_descs` should be a list of objects with fields `id`, `name`, `source`, `columns`,
 /// `language` and `dyn_access`.
 const load_behaviors = (experiment, behavior_descs) => {
     experiment.logged = "";
