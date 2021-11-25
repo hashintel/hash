@@ -20,10 +20,16 @@ use super::{
 };
 
 pub trait PackageCreator: GetWorkerExpStartMsg + Sync {
+    /// We can't derive a default as that returns Self which implies Sized which in turn means we
+    /// can't create Trait Objects out of PackageCreator
+    fn new() -> Box<dyn PackageCreator>
+    where
+        Self: Sized;
+
     /// Create the package.
     fn create(
         &self,
-        config: &Arc<SimRunConfig<ExperimentRunBase>>,
+        config: &Arc<SimRunConfig>,
         system: PackageComms,
         accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn Package>>;
@@ -34,7 +40,7 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync {
 
     fn persistence_config(
         &self,
-        _config: &ExperimentConfig<ExperimentRunBase>,
+        _config: &ExperimentConfig,
         _globals: &Globals,
     ) -> Result<serde_json::Value> {
         Ok(serde_json::Value::Null)
@@ -42,7 +48,7 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync {
 
     fn add_state_field_specs(
         &self,
-        _config: &ExperimentConfig<ExperimentRunBase>,
+        _config: &ExperimentConfig,
         _globals: &Globals,
         _field_spec_map_builder: &mut FieldSpecMapBuilder,
     ) -> Result<()> {

@@ -58,7 +58,7 @@ fn add_hidden_behavior_indices(builder: &mut FieldSpecMapBuilder) -> Result<()> 
 }
 
 pub(super) fn add_state(
-    config: &ExperimentConfig<ExperimentRunBase>,
+    config: &ExperimentConfig,
     builder: &mut FieldSpecMapBuilder,
 ) -> Result<()> {
     // "behaviors" field that agents can modify

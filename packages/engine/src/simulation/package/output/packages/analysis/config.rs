@@ -5,6 +5,7 @@ use std::convert::TryFrom;
 use std::sync::Arc;
 
 use crate::proto::ExperimentRunBase;
+use crate::proto::ExperimentRunTrait;
 use crate::simulation::package::output::packages::analysis::analyzer::AnalysisSourceRepr;
 use crate::simulation::package::output::packages::analysis::get_analysis_source;
 use crate::ExperimentConfig;
@@ -17,8 +18,8 @@ pub struct AnalysisOutputConfig {
 }
 
 impl AnalysisOutputConfig {
-    pub fn new(config: &ExperimentConfig<ExperimentRunBase>) -> Result<AnalysisOutputConfig> {
-        let manifest = get_analysis_source(&config.run.project_base.packages)?;
+    pub fn new(config: &ExperimentConfig) -> Result<AnalysisOutputConfig> {
+        let manifest = get_analysis_source(&config.run.base().project_base.packages)?;
         let analysis_src_repr = AnalysisSourceRepr::try_from(&manifest as &str)?;
         Ok(AnalysisOutputConfig {
             outputs: analysis_src_repr.outputs,

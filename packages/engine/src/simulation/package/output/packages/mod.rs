@@ -2,12 +2,12 @@ pub mod analysis;
 pub mod json_state;
 
 use self::{analysis::AnalysisOutput, json_state::JSONStateOutput};
-use std::collections::HashMap;
-
+use super::PackageCreator;
 use crate::simulation::package::{
     id::{PackageId, PackageIdCreator},
     PackageType,
 };
+use std::collections::HashMap;
 
 use crate::simulation::enum_dispatch::*;
 use crate::simulation::package::name::PackageName;

@@ -16,16 +16,14 @@ type Direction = [DirectionSubType; 3];
 
 pub struct Creator {}
 
-impl Creator {
-    pub fn new() -> Box<dyn PackageCreator> {
+impl PackageCreator for Creator {
+    fn new() -> Box<dyn PackageCreator> {
         Box::new(Creator {})
     }
-}
 
-impl PackageCreator for Creator {
     fn create(
         &self,
-        config: &Arc<SimRunConfig<ExperimentRunBase>>,
+        config: &Arc<SimRunConfig>,
         _comms: PackageComms,
         _accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn Package>> {
@@ -40,7 +38,7 @@ impl PackageCreator for Creator {
 
     fn add_state_field_specs(
         &self,
-        _config: &ExperimentConfig<ExperimentRunBase>,
+        _config: &ExperimentConfig,
         _globals: &Globals,
         field_spec_map_builder: &mut FieldSpecMapBuilder,
     ) -> Result<()> {

@@ -21,7 +21,8 @@ use crate::{
 use crate::{experiment::package::ExperimentPackageComms, Environment};
 
 use crate::proto::{
-    EngineMsg, EngineStatus, ExperimentRunBase, ExperimentRunRepr, SimulationShortID,
+    EngineMsg, EngineStatus, ExperimentRunBase, ExperimentRunRepr, ExperimentRunTrait,
+    SimulationShortID,
 };
 use crate::simulation::controller::runs::SimulationRuns;
 use crate::simulation::controller::sim_control::SimControl;
@@ -39,10 +40,10 @@ use super::{
     Error, Result,
 };
 
-pub struct ExperimentController<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> {
-    _exp_config: Arc<ExperimentConfig<E>>, // TODO: unused, remove?
-    exp_base_config: Arc<ExperimentConfig<ExperimentRunBase>>,
-    env: Environment<E>,
+pub struct ExperimentController<P: OutputPersistenceCreatorRepr> {
+    _exp_config: Arc<ExperimentConfig>, // TODO: unused, remove?
+    exp_base_config: Arc<ExperimentConfig>,
+    env: Environment,
     shared_store: Arc<SharedStore>,
     worker_pool_send: ExpMsgSend,
     worker_pool_controller_recv: WorkerPoolMsgRecv,
@@ -59,9 +60,9 @@ pub struct ExperimentController<E: ExperimentRunRepr, P: OutputPersistenceCreato
     terminate_recv: TerminateRecv,
 }
 
-impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController<E, P> {
+impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
     /// Handle an inbound message from the orchestrator (or CLI)
-    async fn handle_orch_msg(&mut self, orch_msg: EngineMsg<E>) -> Result<()> {
+    async fn handle_orch_msg(&mut self, orch_msg: EngineMsg) -> Result<()> {
         match orch_msg {
             EngineMsg::Init(_) => Err(Error::from("Unexpected init message")),
             EngineMsg::SimRegistered(short_id, registered_id) => self
@@ -294,7 +295,7 @@ impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController
     }
 }
 
-impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController<E, P> {
+impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
     pub async fn run(mut self) -> Result<()> {
         let mut terminate_recv = self.terminate_recv.take_recv()?;
         loop {
@@ -315,7 +316,7 @@ impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController
                         self.handle_worker_pool_controller_msg(id, msg).await?;
                     }
                 }
-                Ok(msg) = self.env.orch_listener.recv::<EngineMsg<E>>() => {
+                Ok(msg) = self.env.orch_listener.recv::<EngineMsg>() => {
                     self.handle_orch_msg(msg).await?;
                 }
                 terminate_res = &mut terminate_recv => {
@@ -328,11 +329,11 @@ impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController
     }
 }
 
-impl<E: ExperimentRunRepr, P: OutputPersistenceCreatorRepr> ExperimentController<E, P> {
+impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
     pub fn new(
-        exp_config: Arc<ExperimentConfig<E>>,
-        exp_base_config: Arc<ExperimentConfig<ExperimentRunBase>>,
-        env: Environment<E>,
+        exp_config: Arc<ExperimentConfig>,
+        exp_base_config: Arc<ExperimentConfig>,
+        env: Environment,
         shared_store: Arc<SharedStore>,
         worker_pool_send: ExpMsgSend,
         worker_pool_controller_recv: WorkerPoolMsgRecv,

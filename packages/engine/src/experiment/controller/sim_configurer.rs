@@ -34,13 +34,13 @@ impl SimConfigurer {
 
     pub fn configure_next(
         &mut self,
-        exp_config: &Arc<ExperimentConfig<ExperimentRunBase>>,
+        exp_config: &Arc<ExperimentConfig>,
         id: SimulationShortID,
         globals: Globals,
         store_config: StoreConfig,
         persistence_config: PersistenceConfig,
         max_num_steps: usize,
-    ) -> Result<SimRunConfig<ExperimentRunBase>> {
+    ) -> Result<SimRunConfig> {
         let worker_allocation = self.worker_allocator.next();
         let num_workers = worker_allocation.len();
         let engine = EngineConfig {

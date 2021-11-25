@@ -29,7 +29,7 @@ pub struct BehaviorConfig {
 }
 
 impl BehaviorConfig {
-    pub fn new(exp_config: &ExperimentConfig<ExperimentRunBase>) -> Result<BehaviorConfig> {
+    pub fn new(exp_config: &ExperimentConfig) -> Result<BehaviorConfig> {
         let behaviors = BehaviorMap::try_from(exp_config)?;
         let indices = BehaviorIndices::from_behaviors(&behaviors)?;
         Ok(BehaviorConfig { behaviors, indices })

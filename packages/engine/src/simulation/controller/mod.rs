@@ -27,7 +27,7 @@ pub struct SimulationController {
 
 impl SimulationController {
     pub fn new<P: SimulationOutputPersistenceRepr>(
-        config: Arc<SimRunConfig<ExperimentRunBase>>,
+        config: Arc<SimRunConfig>,
         comms: Comms,
         packages: Packages,
         shared_store: Arc<SharedStore>,
@@ -53,7 +53,7 @@ impl SimulationController {
 }
 
 fn new_task_handle<P: SimulationOutputPersistenceRepr>(
-    config: Arc<SimRunConfig<ExperimentRunBase>>,
+    config: Arc<SimRunConfig>,
     receiver: SimCtlRecv,
     sender: SimStatusSend,
     comms: Comms,

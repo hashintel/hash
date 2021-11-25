@@ -37,7 +37,7 @@ impl Inner {
     fn from_agent_states(
         agent_state_batches: &[&[AgentState]],
         num_agents: usize,
-        sim_config: &SimRunConfig<ExperimentRunBase>,
+        sim_config: &SimRunConfig,
     ) -> Result<Inner> {
         let mut agent_batches = Vec::with_capacity(agent_state_batches.len());
         let mut message_batches = Vec::with_capacity(agent_state_batches.len());
@@ -71,13 +71,13 @@ impl Inner {
 
 pub struct State {
     inner: Inner,
-    sim_config: Arc<SimRunConfig<ExperimentRunBase>>,
+    sim_config: Arc<SimRunConfig>,
 }
 
 impl State {
     pub fn from_agent_states(
         agent_states: Vec<AgentState>,
-        sim_config: Arc<SimRunConfig<ExperimentRunBase>>,
+        sim_config: Arc<SimRunConfig>,
     ) -> Result<State> {
         let num_workers = sim_config.sim.engine.num_workers;
         let num_agents = agent_states.len();
@@ -110,7 +110,7 @@ impl ReadState for State {
         &self.inner
     }
 
-    fn sim_config(&self) -> &Arc<SimRunConfig<ExperimentRunBase>> {
+    fn sim_config(&self) -> &Arc<SimRunConfig> {
         &self.sim_config
     }
 }
@@ -118,7 +118,7 @@ impl ReadState for State {
 /// Exclusive (write) access to State
 pub struct ExState {
     inner: Inner,
-    global_meta: Arc<SimRunConfig<ExperimentRunBase>>,
+    global_meta: Arc<SimRunConfig>,
 }
 
 impl ExState {
@@ -196,7 +196,7 @@ impl ExState {
     pub fn create_remove(
         &mut self,
         commands: CreateRemoveCommands,
-        config: &Arc<SimRunConfig<ExperimentRunBase>>,
+        config: &Arc<SimRunConfig>,
     ) -> Result<()> {
         let mut planner = CreateRemovePlanner::new(commands, config.clone())?;
         let plan = planner.run(self)?;
@@ -225,7 +225,7 @@ impl ReadState for ExState {
         &self.inner
     }
 
-    fn sim_config(&self) -> &Arc<SimRunConfig<ExperimentRunBase>> {
+    fn sim_config(&self) -> &Arc<SimRunConfig> {
         &self.global_meta
     }
 }
@@ -256,7 +256,7 @@ pub trait WriteState: ReadState {
     fn reset_messages(
         &mut self,
         mut old_context_message_pool: MessagePool,
-        sim_config: &SimRunConfig<ExperimentRunBase>,
+        sim_config: &SimRunConfig,
     ) -> Result<MessagePool> {
         let inner = self.inner_mut();
         let agent_pool = &inner.agent_pool;
@@ -275,7 +275,7 @@ pub trait WriteState: ReadState {
 pub trait ReadState {
     fn inner(&self) -> &Inner;
 
-    fn sim_config(&self) -> &Arc<SimRunConfig<ExperimentRunBase>>;
+    fn sim_config(&self) -> &Arc<SimRunConfig>;
 
     fn message_pool(&self) -> &MessagePool {
         &self.inner().message_pool

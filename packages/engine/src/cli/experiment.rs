@@ -82,7 +82,7 @@ async fn run_experiment_with_manifest(
     )];
     // Now we can send the init message
     let init_message = proto::InitMessage {
-        experiment: experiment_run.clone(),
+        experiment: experiment_run.clone().into(),
         env: ExecutionEnvironment::None, // We don't connect to the API
         dyn_payloads: serde_json::Map::from_iter(map_iter), // TODO
     };

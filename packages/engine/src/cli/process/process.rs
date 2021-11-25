@@ -5,7 +5,7 @@ use hash_prime::proto::{EngineMsg, ExperimentRun};
 #[async_trait]
 pub trait Process {
     async fn exit_and_cleanup(self: Box<Self>) -> Result<()>;
-    async fn send(&mut self, msg: &EngineMsg<ExperimentRun>) -> Result<()>;
+    async fn send(&mut self, msg: &EngineMsg) -> Result<()>;
 }
 
 #[async_trait]

@@ -65,11 +65,7 @@ impl MessagePool {
         self.batches.len()
     }
 
-    pub fn reset(
-        &mut self,
-        agent_pool: &AgentPool,
-        sim_config: &SimRunConfig<ExperimentRunBase>,
-    ) -> Result<()> {
+    pub fn reset(&mut self, agent_pool: &AgentPool, sim_config: &SimRunConfig) -> Result<()> {
         let message_schema = &sim_config.sim.store.message_schema;
         let experiment_run_id = &sim_config.exp.run_id;
         let mut removed = vec![];

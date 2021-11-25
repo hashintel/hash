@@ -2,12 +2,12 @@ pub mod behavior_execution;
 pub mod topology;
 use serde::{Deserialize, Serialize};
 
-use std::collections::HashMap;
-
+use super::PackageCreator;
 use crate::simulation::package::{
     id::{PackageId, PackageIdCreator},
     PackageType,
 };
+use std::collections::HashMap;
 
 use crate::simulation::enum_dispatch::*;
 use lazy_static::lazy_static;

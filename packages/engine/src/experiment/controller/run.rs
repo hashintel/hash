@@ -3,7 +3,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use crate::experiment::package::ExperimentPackage;
-use crate::proto::{EngineStatus, ExperimentRun};
+use crate::proto::{EngineStatus, ExperimentPackageConfig, ExperimentRun, PackageConfig};
 
 use super::controller::ExperimentController;
 use super::id_store::SimIdStore;
@@ -19,16 +19,14 @@ use crate::experiment::controller::config::OutputPersistenceConfig;
 use crate::output::{
     local::LocalOutputPersistence, none::NoOutputPersistence, OutputPersistenceCreatorRepr,
 };
+use crate::proto::ExperimentRunTrait;
 use crate::simulation::package::creator::PackageCreators;
 use crate::workerpool::comms::terminate::TerminateSend;
 use crate::workerpool::WorkerPoolController;
 use crate::{workerpool, Environment, ExperimentConfig};
 
-pub async fn run_experiment(
-    exp_config: ExperimentConfig<ExperimentRun>,
-    env: Environment<ExperimentRun>,
-) -> Result<()> {
-    let experiment_id = exp_config.run.base.id.clone();
+pub async fn run_experiment(exp_config: ExperimentConfig, env: Environment) -> Result<()> {
+    let experiment_id = exp_config.run.base().id.clone();
     // TODO - Get cloud-specific configuration from `env`
     let _output_persistence_config = config::output_persistence(&env)?;
 
@@ -73,10 +71,7 @@ pub async fn run_experiment(
     Ok(())
 }
 
-pub async fn run_local_experiment(
-    exp_config: ExperimentConfig<ExperimentRun>,
-    env: Environment<ExperimentRun>,
-) -> Result<()> {
+pub async fn run_local_experiment(exp_config: ExperimentConfig, env: Environment) -> Result<()> {
     match config::output_persistence(&env)? {
         OutputPersistenceConfig::Local(local) => {
             log::debug!("Running experiment with local persistence");
@@ -98,8 +93,8 @@ type ExperimentControllerResult = Option<Result<()>>;
 type WorkerPoolResult = Option<crate::workerpool::Result<()>>;
 
 async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
-    exp_config: ExperimentConfig<ExperimentRun>,
-    env: Environment<ExperimentRun>,
+    exp_config: ExperimentConfig,
+    env: Environment,
     output_persistence_service_creator: P,
 ) -> Result<()> {
     let exp_config = Arc::new(exp_config);
@@ -132,10 +127,11 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
     let mut experiment_package_handle = experiment_package.join_handle;
 
     let sim_id_store = SimIdStore::default();
-    let worker_allocator = SimConfigurer::new(
-        &exp_config.run.package_config,
-        exp_config.worker_pool.num_workers,
-    );
+    let package_config = match exp_config.run.package_config() {
+        PackageConfig::ExperimentPackageConfig(package_config) => package_config,
+        _ => unreachable!(),
+    };
+    let worker_allocator = SimConfigurer::new(package_config, exp_config.worker_pool.num_workers);
     let package_creators = PackageCreators::from_config(&exp_config.packages)?;
     let (sim_status_send, sim_status_recv) = super::comms::sim_status::new_pair();
     let mut orch_client = env.orch_client.try_clone()?;

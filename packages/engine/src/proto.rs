@@ -12,6 +12,8 @@ pub type ExperimentRegisteredID = String;
 pub type SimulationRegisteredID = String;
 pub type SimulationShortID = u32;
 
+use crate::simulation::enum_dispatch::*;
+
 /// The message type sent from the engine to the orchestrator.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct OrchestratorMsg {
@@ -38,16 +40,14 @@ pub enum EngineStatus {
 
 /// The message type sent from the orchestrator to the engine.
 #[derive(Serialize, Deserialize, Debug)]
-#[serde(bound = "E: Serialize, for<'a> E: Deserialize<'a>")]
-pub enum EngineMsg<E: ExperimentRunRepr> {
-    Init(InitMessage<E>),
+pub enum EngineMsg {
+    Init(InitMessage),
     SimRegistered(SimulationShortID, SimulationRegisteredID),
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-#[serde(bound = "E: Serialize, for<'a> E: Deserialize<'a>")]
-pub struct InitMessage<E: ExperimentRunRepr> {
-    pub experiment: E,
+pub struct InitMessage {
+    pub experiment: ExperimentRunRepr,
     pub env: ExecutionEnvironment,
     pub dyn_payloads: serde_json::Map<String, serde_json::Value>,
 }
@@ -193,7 +193,7 @@ pub enum MetricObjective {
 }
 
 impl Serialize for MetricObjective {
-    fn serialize<S: serde::Serializer>(&self, ser: S) -> Result<S::Ok, S::Error> {
+    fn serialize<S: serde::Serializer>(&self, ser: S) -> std::result::Result<S::Ok, S::Error> {
         ser.serialize_str(match *self {
             MetricObjective::Max => "max",
             MetricObjective::Min => "min",
@@ -203,7 +203,9 @@ impl Serialize for MetricObjective {
 }
 
 impl<'de> Deserialize<'de> for MetricObjective {
-    fn deserialize<D: ::serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+    fn deserialize<D: ::serde::Deserializer<'de>>(
+        deserializer: D,
+    ) -> std::result::Result<Self, D::Error> {
         let s = <String>::deserialize(deserializer)?;
         match s.as_str() {
             "max" => Ok(MetricObjective::Max),
@@ -265,6 +267,13 @@ pub struct OptimizationExperimentConfig {
     pub num_parallel_runs: usize,
 }
 
+#[derive(Serialize, Eq, PartialEq, Debug, Clone)]
+pub enum PackageConfig<'a> {
+    EmptyPackageConfig,
+    ExperimentPackageConfig(&'a ExperimentPackageConfig),
+    ExtendedExperimentPackageConfig(&'a ExtendedExperimentPackageConfig),
+}
+
 #[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Clone)]
 pub enum ExperimentPackageConfig {
     Simple(SimpleExperimentConfig),
@@ -295,32 +304,46 @@ pub struct ExtendedExperimentRun {
     pub package_config: ExtendedExperimentPackageConfig,
 }
 
-#[async_trait]
-pub trait ExperimentRunRepr: Clone + Serialize + Send + for<'a> Deserialize<'a> {
-    type PackageConfig;
+#[enum_dispatch(ExperimentRunTrait)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub enum ExperimentRunRepr {
+    ExperimentRunBase,
+    ExperimentRun,
+    ExtendedExperimentRun,
+}
+
+#[enum_dispatch]
+pub trait ExperimentRunTrait: Clone + for<'a> Deserialize<'a> + Serialize {
     fn base(&self) -> &ExperimentRunBase;
     fn base_mut(&mut self) -> &mut ExperimentRunBase;
-    fn package_config(&self) -> Option<&Self::PackageConfig>;
+    fn package_config(&self) -> PackageConfig;
 }
 
-impl ExperimentRunRepr for ExperimentRunBase {
-    type PackageConfig = ();
+impl ExperimentRunTrait for ExperimentRunBase {
     fn base(&self) -> &ExperimentRunBase {
         self
     }
-
     fn base_mut(&mut self) -> &mut ExperimentRunBase {
         self
     }
-
-    fn package_config(&self) -> Option<&Self::PackageConfig> {
-        None
+    fn package_config(&self) -> PackageConfig {
+        PackageConfig::EmptyPackageConfig
     }
 }
 
-impl ExperimentRunRepr for ExperimentRun {
-    type PackageConfig = ExperimentPackageConfig;
+impl ExperimentRunTrait for ExperimentRun {
+    fn base(&self) -> &ExperimentRunBase {
+        &self.base
+    }
+    fn base_mut(&mut self) -> &mut ExperimentRunBase {
+        &mut self.base
+    }
+    fn package_config(&self) -> PackageConfig {
+        PackageConfig::ExperimentPackageConfig(&self.package_config)
+    }
+}
 
+impl ExperimentRunTrait for ExtendedExperimentRun {
     fn base(&self) -> &ExperimentRunBase {
         &self.base
     }
@@ -329,28 +352,12 @@ impl ExperimentRunRepr for ExperimentRun {
         &mut self.base
     }
 
-    fn package_config(&self) -> Option<&Self::PackageConfig> {
-        Some(&self.package_config)
+    fn package_config(&self) -> PackageConfig {
+        PackageConfig::ExtendedExperimentPackageConfig(&self.package_config)
     }
 }
 
-impl ExperimentRunRepr for ExtendedExperimentRun {
-    type PackageConfig = ExtendedExperimentPackageConfig;
-
-    fn base(&self) -> &ExperimentRunBase {
-        &self.base
-    }
-
-    fn base_mut(&mut self) -> &mut ExperimentRunBase {
-        &mut self.base
-    }
-
-    fn package_config(&self) -> Option<&Self::PackageConfig> {
-        Some(&self.package_config)
-    }
-}
-
-impl<E: ExperimentRunRepr> From<&E> for ExperimentRunBase {
+impl<E: ExperimentRunTrait> From<&E> for ExperimentRunBase {
     fn from(value: &E) -> Self {
         value.base().clone()
     }

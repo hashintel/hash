@@ -9,28 +9,27 @@ use serde_json::Value;
 use std::convert::TryInto;
 
 use super::super::*;
+use crate::proto::ExperimentRunTrait;
 
 pub mod js;
 pub mod py;
 
 pub struct Creator {}
 
-impl Creator {
-    pub fn new() -> Box<dyn PackageCreator> {
+impl PackageCreator for Creator {
+    fn new() -> Box<dyn PackageCreator> {
         Box::new(Creator {})
     }
-}
 
-impl PackageCreator for Creator {
     fn create(
         &self,
-        config: &Arc<SimRunConfig<ExperimentRunBase>>,
+        config: &Arc<SimRunConfig>,
         comms: PackageComms,
         _accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn InitPackage>> {
-        match &config.exp.run.project_base.initial_state.name {
+        match &config.exp.run.base().project_base.initial_state.name {
             InitialStateName::InitPy | InitialStateName::InitJs => Ok(Box::new(Package {
-                initial_state: config.exp.run.project_base.initial_state.clone(),
+                initial_state: config.exp.run.base().project_base.initial_state.clone(),
                 comms,
             })
                 as Box<dyn InitPackage>),

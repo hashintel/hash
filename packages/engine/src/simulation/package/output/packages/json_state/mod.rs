@@ -9,16 +9,14 @@ pub enum Task {}
 
 pub struct Creator {}
 
-impl Creator {
-    pub fn new() -> Box<dyn PackageCreator> {
+impl PackageCreator for Creator {
+    fn new() -> Box<dyn PackageCreator> {
         Box::new(Creator {})
     }
-}
 
-impl PackageCreator for Creator {
     fn create(
         &self,
-        config: &Arc<SimRunConfig<ExperimentRunBase>>,
+        config: &Arc<SimRunConfig>,
         _comms: PackageComms,
         _accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn Package>> {
@@ -35,7 +33,7 @@ impl GetWorkerExpStartMsg for Creator {
 }
 
 struct JsonState {
-    config: Arc<SimRunConfig<ExperimentRunBase>>,
+    config: Arc<SimRunConfig>,
 }
 
 impl MaybeCPUBound for JsonState {

@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{Error, Result};
 
-use crate::proto::ExperimentRunRepr;
+use crate::proto::{ExperimentRunRepr, ExperimentRunTrait};
 
 pub const OUTPUT_PERSISTENCE_KEY: &'static str = "output_persistence";
 
@@ -14,16 +14,13 @@ pub enum OutputPersistenceConfig {
     None,
 }
 
-pub fn output_persistence<E: ExperimentRunRepr>(
-    env: &Environment<E>,
-) -> Result<OutputPersistenceConfig> {
+pub fn output_persistence(env: &Environment) -> Result<OutputPersistenceConfig> {
     get_dynamic(env, OUTPUT_PERSISTENCE_KEY)
 }
 
-pub fn get_dynamic<K, E>(env: &Environment<E>, key: &str) -> Result<K>
+pub fn get_dynamic<K>(env: &Environment, key: &str) -> Result<K>
 where
     K: for<'de> Deserialize<'de>,
-    E: ExperimentRunRepr,
 {
     env.dyn_payloads
         .get(key)

@@ -32,7 +32,7 @@ impl process::Process for LocalProcess {
         Ok(())
     }
 
-    async fn send(&mut self, msg: &EngineMsg<ExperimentRun>) -> Result<()> {
+    async fn send(&mut self, msg: &EngineMsg) -> Result<()> {
         // We create the client on the first call here, rather than when the LocalCommand
         // is run, because the engine process needs some time before it's ready to accept
         // NNG connections.

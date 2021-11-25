@@ -23,7 +23,7 @@ pub struct Engine {
     packages: Packages,
     store: Store,
     comms: Arc<Comms>,
-    config: Arc<SimRunConfig<ExperimentRunBase>>,
+    config: Arc<SimRunConfig>,
 }
 
 impl Engine {
@@ -31,7 +31,7 @@ impl Engine {
         mut packages: Packages,
         mut uninitialized_store: Store,
         comms: Comms,
-        config: Arc<SimRunConfig<ExperimentRunBase>>,
+        config: Arc<SimRunConfig>,
     ) -> Result<Engine> {
         let comms = Arc::new(comms);
 

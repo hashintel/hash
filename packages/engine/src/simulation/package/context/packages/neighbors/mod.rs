@@ -35,16 +35,14 @@ pub type ArrowIndexBuilder = arrow::array::UInt32Builder;
 
 pub struct Creator {}
 
-impl Creator {
-    pub fn new() -> Box<dyn PackageCreator> {
+impl PackageCreator for Creator {
+    fn new() -> Box<dyn PackageCreator> {
         Box::new(Creator {})
     }
-}
 
-impl PackageCreator for Creator {
     fn create(
         &self,
-        config: &Arc<SimRunConfig<ExperimentRunBase>>,
+        config: &Arc<SimRunConfig>,
         _comms: PackageComms,
         _state_field_spec_accessor: FieldSpecMapAccessor,
         context_field_spec_accessor: FieldSpecMapAccessor,
@@ -61,7 +59,7 @@ impl PackageCreator for Creator {
 
     fn add_context_field_specs(
         &self,
-        _config: &ExperimentConfig<ExperimentRunBase>,
+        _config: &ExperimentConfig,
         _globals: &Globals,
         field_spec_map_builder: &mut FieldSpecMapBuilder,
     ) -> Result<()> {
@@ -71,7 +69,7 @@ impl PackageCreator for Creator {
 
     fn add_state_field_specs(
         &self,
-        _config: &ExperimentConfig<ExperimentRunBase>,
+        _config: &ExperimentConfig,
         _globals: &Globals,
         field_spec_map_builder: &mut FieldSpecMapBuilder,
     ) -> Result<()> {

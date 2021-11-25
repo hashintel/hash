@@ -30,7 +30,7 @@ impl InitPackages {
         InitPackages { inner }
     }
 
-    pub async fn run(&mut self, sim_config: Arc<SimRunConfig<ExperimentRunBase>>) -> Result<State> {
+    pub async fn run(&mut self, sim_config: Arc<SimRunConfig>) -> Result<State> {
         // Execute packages in parallel and collect the data
         let futs = FuturesUnordered::new();
 
@@ -90,7 +90,7 @@ impl StepPackages {
 impl StepPackages {
     pub fn empty_context(
         &self,
-        experiment_config: &SimRunConfig<ExperimentRunBase>,
+        experiment_config: &SimRunConfig,
         num_agents: usize,
     ) -> Result<Context> {
         let keys_and_columns = self

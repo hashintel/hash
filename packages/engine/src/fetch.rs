@@ -1,3 +1,4 @@
+use crate::proto::ExperimentRunTrait;
 use crate::{
     error::{Error, Result},
     proto::{ExperimentRunRepr, FetchedDataset, SharedDataset},
@@ -45,7 +46,7 @@ impl FetchDependencies for SharedDataset {
 }
 
 #[async_trait]
-impl<E: ExperimentRunRepr> FetchDependencies for E {
+impl FetchDependencies for ExperimentRunRepr {
     async fn fetch_deps(&mut self) -> Result<()> {
         let datasets = std::mem::replace(&mut self.base_mut().project_base.datasets, vec![]);
 

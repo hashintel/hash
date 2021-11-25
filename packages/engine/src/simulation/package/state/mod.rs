@@ -26,11 +26,17 @@ pub trait Package: GetWorkerSimStartMsg + Send + Sync {
     async fn run(&mut self, state: &mut ExState, context: &Context) -> Result<()>;
 }
 
-pub trait PackageCreator: GetWorkerExpStartMsg + Sync {
+pub trait PackageCreator: GetWorkerExpStartMsg + Send + Sync {
+    /// We can't derive a default as that returns Self which implies Sized which in turn means we
+    /// can't create Trait Objects out of PackageCreator
+    fn new() -> Box<dyn PackageCreator>
+    where
+        Self: Sized;
+
     /// Create the package.
     fn create(
         &self,
-        config: &Arc<SimRunConfig<ExperimentRunBase>>,
+        config: &Arc<SimRunConfig>,
         comms: PackageComms,
         accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn Package>>;
@@ -42,7 +48,7 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync {
 
     fn add_state_field_specs(
         &self,
-        _config: &ExperimentConfig<ExperimentRunBase>,
+        _config: &ExperimentConfig,
         _globals: &Globals,
         _field_spec_map_builder: &mut FieldSpecMapBuilder,
     ) -> Result<()> {

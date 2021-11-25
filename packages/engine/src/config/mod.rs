@@ -13,7 +13,7 @@ mod worker_pool;
 
 use std::sync::Arc;
 
-use crate::proto::{ExperimentRunRepr, SimulationShortID};
+use crate::proto::{ExperimentRunRepr, ExperimentRunTrait, SimulationShortID};
 pub use engine::{Config as EngineConfig, Worker, WorkerAllocation};
 pub use error::{Error, Result};
 pub use experiment::Config as ExperimentConfig;
@@ -30,31 +30,28 @@ pub use worker_pool::Config as WorkerPoolConfig;
 use crate::{Args, Environment};
 
 #[derive(Clone)]
-pub struct SimRunConfig<E: ExperimentRunRepr> {
-    pub exp: Arc<ExperimentConfig<E>>,
+pub struct SimRunConfig {
+    pub exp: Arc<ExperimentConfig>,
     pub sim: Arc<SimulationConfig>,
 }
 
-pub async fn experiment_config<E: ExperimentRunRepr>(
-    args: &Args,
-    env: &Environment<E>,
-) -> Result<ExperimentConfig<E>> {
+pub async fn experiment_config(args: &Args, env: &Environment) -> Result<ExperimentConfig> {
     ExperimentConfig::new(
         env.experiment.clone(),
         args.max_workers.unwrap_or_else(num_cpus::get),
     )
 }
 
-impl<E: ExperimentRunRepr> SimRunConfig<E> {
+impl SimRunConfig {
     pub fn new(
-        global: &Arc<ExperimentConfig<E>>,
+        global: &Arc<ExperimentConfig>,
         id: SimulationShortID,
         globals: Globals,
         engine: EngineConfig,
         store: StoreConfig,
         persistence: PersistenceConfig,
         max_num_steps: usize,
-    ) -> Result<SimRunConfig<E>> {
+    ) -> Result<SimRunConfig> {
         let local = simulation_config(
             id,
             globals,
@@ -71,11 +68,11 @@ impl<E: ExperimentRunRepr> SimRunConfig<E> {
     }
 }
 
-fn simulation_config<E: ExperimentRunRepr>(
+fn simulation_config(
     id: SimulationShortID,
     globals: Globals,
     engine: EngineConfig,
-    _global: &ExperimentConfig<E>,
+    _global: &ExperimentConfig,
     store: StoreConfig,
     persistence: PersistenceConfig,
     max_num_steps: usize,

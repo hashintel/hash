@@ -3,6 +3,7 @@ pub mod single;
 
 use std::sync::Arc;
 
+use crate::proto::{ExperimentPackageConfig, PackageConfig};
 use crate::{
     config::ExperimentConfig,
     init_exp_package,
@@ -12,6 +13,7 @@ use tokio::task::JoinHandle;
 
 use super::controller::comms::{exp_pkg_ctl::ExpPkgCtlRecv, exp_pkg_update::ExpPkgUpdateSend};
 use super::Result;
+use crate::proto::ExperimentRunTrait;
 
 pub struct ExperimentPackageComms {
     pub step_update_sender: ExpPkgUpdateSend,
@@ -24,11 +26,12 @@ pub struct ExperimentPackage {
 }
 
 impl ExperimentPackage {
-    pub async fn new(
-        exp_config: Arc<ExperimentConfig<ExperimentRun>>,
-    ) -> Result<ExperimentPackage> {
+    pub async fn new(exp_config: Arc<ExperimentConfig>) -> Result<ExperimentPackage> {
         let (ctl_send, ctl_recv) = super::controller::comms::exp_pkg_ctl::new_pair();
-        let package_config = &exp_config.run.package_config;
+        let package_config = match exp_config.run.package_config() {
+            PackageConfig::ExperimentPackageConfig(package_config) => package_config,
+            _ => unreachable!(),
+        };
         let (step_update_sender, exp_pkg_update_recv) =
             super::controller::comms::exp_pkg_update::new_pair();
         let join_handle = init_exp_package(

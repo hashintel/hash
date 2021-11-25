@@ -33,11 +33,7 @@ impl<'a> MigrationPlan<'a> {
         }
     }
 
-    pub fn execute(
-        self,
-        state: &mut AgentPool,
-        config: &SimRunConfig<ExperimentRunBase>,
-    ) -> Result<Vec<String>> {
+    pub fn execute(self, state: &mut AgentPool, config: &SimRunConfig) -> Result<Vec<String>> {
         // log::debug!("Updating");
         let mut_batches = state.mut_batches();
         self.existing_mutations

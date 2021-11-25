@@ -18,15 +18,12 @@ pub struct Store {
     context: Option<Context>,
     // TODO: all three of these are unused, are they necessary?
     _shared_store: Arc<SharedStore>,
-    _global_config: Arc<ExperimentConfig<ExperimentRunBase>>,
+    _global_config: Arc<ExperimentConfig>,
     _local_config: Arc<SimulationConfig>,
 }
 
 impl Store {
-    pub fn new_uninitialized(
-        shared_store: Arc<SharedStore>,
-        config: &SimRunConfig<ExperimentRunBase>,
-    ) -> Store {
+    pub fn new_uninitialized(shared_store: Arc<SharedStore>, config: &SimRunConfig) -> Store {
         Store {
             state: None,
             context: None,

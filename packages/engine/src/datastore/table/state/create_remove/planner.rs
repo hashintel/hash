@@ -25,13 +25,13 @@ use super::{
 
 pub struct CreateRemovePlanner {
     commands: ProcessedCommands,
-    config: Arc<SimRunConfig<ExperimentRunBase>>,
+    config: Arc<SimRunConfig>,
 }
 
 impl CreateRemovePlanner {
     pub fn new(
         commands: CreateRemoveCommands,
-        config: Arc<SimRunConfig<ExperimentRunBase>>,
+        config: Arc<SimRunConfig>,
     ) -> Result<CreateRemovePlanner> {
         Ok(CreateRemovePlanner {
             commands: ProcessedCommands::new(commands, &config.sim.store.agent_schema)?,
@@ -90,7 +90,7 @@ impl PendingPlan {
         &mut self,
         state: &impl ReadState,
         new_agents: Option<&'b RecordBatch>,
-        config: &Arc<SimRunConfig<ExperimentRunBase>>,
+        config: &Arc<SimRunConfig>,
     ) -> Result<MigrationPlan<'b>> {
         let dynamic_pool = state.agent_pool().read_batches()?;
         let mut existing_mutations = (0..dynamic_pool.len())

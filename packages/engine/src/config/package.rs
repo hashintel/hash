@@ -12,7 +12,7 @@ use state::Name as StatePackage;
 /// Configuration of packages used in the engine.
 /// Contains the names of all packages used.
 /// If a name of a package is included,
-/// then the respsective package creator will use
+/// then the respective package creator will use
 /// the global and local configurations to create
 /// the package instance for a simulation run.
 /// Unless a default config is required, use
@@ -46,7 +46,7 @@ impl Config {
 
     fn default_state_packages() -> Vec<StatePackage> {
         vec![
-            /*StatePackage::BehaviorExecution*/ StatePackage::Topology,
+            /*StatePackage::BehaviorExecution,*/ StatePackage::Topology,
         ]
     }
 

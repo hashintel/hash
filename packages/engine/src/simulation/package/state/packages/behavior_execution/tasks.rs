@@ -9,7 +9,6 @@ use crate::simulation::Result as SimulationResult;
 use crate::worker::runner::comms::MessageTarget;
 use serde::{Deserialize, Serialize};
 
-// TODO OS - Tasks, Messages, and Results are unimplemented
 #[derive(Clone, Debug)]
 pub struct ExecuteBehaviorsTask {
     target: MessageTarget,

@@ -61,8 +61,8 @@ pub struct WorkerPoolController {
 }
 
 impl WorkerPoolController {
-    pub fn new_with_sender<E: ExperimentRunRepr>(
-        config: Arc<config::ExperimentConfig<E>>,
+    pub fn new_with_sender(
+        config: Arc<config::ExperimentConfig>,
         experiment_control_recv: ExpMsgRecv,
         terminate_recv: TerminateRecv,
         worker_pool_controller_send: WorkerPoolMsgSend,

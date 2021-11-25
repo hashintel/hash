@@ -2,8 +2,7 @@ pub mod agent_messages;
 pub mod api_requests;
 pub mod neighbors;
 
-use std::collections::HashMap;
-
+use super::PackageCreator;
 use crate::simulation::enum_dispatch::*;
 use crate::simulation::package::{
     id::{PackageId, PackageIdCreator},
@@ -11,6 +10,7 @@ use crate::simulation::package::{
 };
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use strum_macros::IntoStaticStr;
 
 /// All context package names are registered in this enum

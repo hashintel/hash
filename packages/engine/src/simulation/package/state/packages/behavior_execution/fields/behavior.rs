@@ -12,6 +12,7 @@ use crate::{
     experiment::SharedBehavior,
 };
 
+use crate::proto::ExperimentRunTrait;
 use std::{collections::HashMap, convert::TryFrom};
 
 pub fn add_fields_from_behavior_keys(
@@ -150,6 +151,7 @@ impl BehaviorKeys {
     }
 }
 
+#[derive(Clone)]
 pub struct Behavior {
     shared: SharedBehavior,
     keys: BehaviorKeys,
@@ -165,19 +167,21 @@ impl Behavior {
     }
 }
 
+#[derive(Clone)]
 pub struct BehaviorMap {
     pub(in super::super) inner: HashMap<String, Behavior>,
     pub(in super::super) all_field_specs: FieldSpecMap,
 }
 
-impl TryFrom<&ExperimentConfig<ExperimentRunBase>> for BehaviorMap {
+impl TryFrom<&ExperimentConfig> for BehaviorMap {
     type Error = Error;
 
-    fn try_from(experiment_run: &ExperimentConfig<ExperimentRunBase>) -> Result<Self> {
+    fn try_from(experiment_run: &ExperimentConfig) -> Result<Self> {
         let mut builder = FieldSpecMapBuilder::new();
         let mut meta = HashMap::new();
         experiment_run
             .run
+            .base()
             .project_base
             .behaviors
             .iter()

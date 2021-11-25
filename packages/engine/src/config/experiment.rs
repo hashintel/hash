@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::config::globals::Globals;
-use crate::proto::{ExperimentRunBase, ExperimentRunRepr};
+use crate::proto::{ExperimentRunBase, ExperimentRunRepr, ExperimentRunTrait};
 
 use super::{package, worker, worker_pool, Result};
 
@@ -9,16 +9,16 @@ use crate::proto::ExperimentID;
 
 #[derive(Clone)]
 /// Experiment level configuration
-pub struct Config<E: ExperimentRunRepr> {
+pub struct Config {
     pub run_id: Arc<ExperimentID>, // we need this only for non-pod runs TODO remove and create random internal ids?
     pub packages: Arc<package::Config>,
-    pub run: Arc<E>,
+    pub run: Arc<ExperimentRunRepr>,
     pub worker_pool: Arc<worker_pool::Config>,
     pub base_globals: Globals,
 }
 
-impl<E: ExperimentRunRepr> Config<E> {
-    pub(super) fn new(experiment_run: E, max_num_workers: usize) -> Result<Config<E>> {
+impl Config {
+    pub(super) fn new(experiment_run: ExperimentRunRepr, max_num_workers: usize) -> Result<Config> {
         // For differentiation purposes when multiple experiment runs are active in the same system
         let run_id = uuid::Uuid::new_v4().to_string();
         let packages = Arc::new(package::ConfigBuilder::new().build()?);
@@ -46,24 +46,24 @@ impl<E: ExperimentRunRepr> Config<E> {
     }
 
     // Downcast this config
-    pub fn to_base(&self) -> Result<Config<ExperimentRunBase>> {
+    pub fn to_base(&self) -> Result<Config> {
         let run_base = self.run.base().clone();
         Ok(Config {
             run_id: self.run_id.clone(),
             packages: self.packages.clone(),
-            run: Arc::new(run_base),
+            run: Arc::new(run_base.into()),
             worker_pool: self.worker_pool.clone(),
             base_globals: self.base_globals.clone(),
         })
     }
 }
 
-impl<E: ExperimentRunRepr> From<&Config<E>> for Config<ExperimentRunBase> {
-    fn from(value: &Config<E>) -> Self {
+impl From<&Config> for Config {
+    fn from(value: &Config) -> Self {
         Self {
             run_id: value.run_id.clone(),
             packages: value.packages.clone(),
-            run: Arc::new(value.run.as_ref().into()),
+            run: Arc::clone(&value.run),
             worker_pool: value.worker_pool.clone(),
             base_globals: value.base_globals.clone(),
         }

@@ -1,8 +1,8 @@
-use serde_json::Value;
-use std::ops::Deref;
-
+use crate::proto::ExperimentRunTrait;
 use analyzer::Analyzer;
 pub use output::{AnalysisOutput, AnalysisSingleOutput};
+use serde_json::Value;
+use std::ops::Deref;
 
 use crate::datastore::table::state::ReadState;
 use crate::experiment::SimPackageArgs;
@@ -24,21 +24,19 @@ pub enum Task {}
 
 pub struct Creator {}
 
-impl Creator {
-    pub fn new() -> Box<dyn PackageCreator> {
+impl PackageCreator for Creator {
+    fn new() -> Box<dyn PackageCreator> {
         Box::new(Creator {})
     }
-}
 
-impl PackageCreator for Creator {
     fn create(
         &self,
-        config: &Arc<SimRunConfig<ExperimentRunBase>>,
+        config: &Arc<SimRunConfig>,
         _comms: PackageComms,
         accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn Package>> {
         // TODO, look at reworking signatures and package creation to make ownership clearer and make this unnecessary
-        let analysis_src = get_analysis_source(&config.exp.run.project_base.packages)?;
+        let analysis_src = get_analysis_source(&config.exp.run.base().project_base.packages)?;
         let analyzer = Analyzer::from_analysis_source(
             &analysis_src,
             &config.sim.store.agent_schema,
@@ -50,7 +48,7 @@ impl PackageCreator for Creator {
 
     fn persistence_config(
         &self,
-        config: &ExperimentConfig<ExperimentRunBase>,
+        config: &ExperimentConfig,
         _globals: &Globals,
     ) -> Result<serde_json::Value> {
         let config = AnalysisOutputConfig::new(config)?;

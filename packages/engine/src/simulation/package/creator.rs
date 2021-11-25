@@ -180,7 +180,7 @@ impl PackageCreators {
 
     pub fn new_packages_for_sim(
         &self,
-        config: &Arc<SimRunConfig<ExperimentRunBase>>,
+        config: &Arc<SimRunConfig>,
         comms: Comms,
     ) -> Result<(Packages, PackageMsgs)> {
         // TODO generics to avoid code duplication
@@ -292,7 +292,7 @@ impl PackageCreators {
 
     pub fn get_output_persistence_config(
         &self,
-        exp_config: &crate::ExperimentConfig<ExperimentRunBase>,
+        exp_config: &crate::ExperimentConfig,
         globals: &Globals,
     ) -> Result<OutputPackagesSimConfig> {
         let mut map = HashMap::new();
@@ -308,7 +308,7 @@ impl PackageCreators {
 
     pub fn get_agent_schema(
         &self,
-        exp_config: &crate::ExperimentConfig<ExperimentRunBase>,
+        exp_config: &crate::ExperimentConfig,
         globals: &Globals,
     ) -> Result<AgentSchema> {
         // TODO - should we use enum_dispatch here to remove some duplication
@@ -352,7 +352,7 @@ impl PackageCreators {
 
     pub fn get_context_schema(
         &self,
-        exp_config: &crate::ExperimentConfig<ExperimentRunBase>,
+        exp_config: &crate::ExperimentConfig,
         globals: &Globals,
     ) -> std::result::Result<ContextSchema, Error> {
         let mut field_builder = FieldSpecMapBuilder::new();

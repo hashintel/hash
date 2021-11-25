@@ -95,7 +95,7 @@ pub enum ExperimentControl {
 }
 
 pub fn init_exp_package(
-    experiment_config: Arc<ExperimentConfig<ExperimentRun>>,
+    experiment_config: Arc<ExperimentConfig>,
     exp_package_config: ExperimentPackageConfig,
     pkg_to_exp: ExpPkgCtlSend,
     exp_pkg_update_recv: ExpPkgUpdateRecv,

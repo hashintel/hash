@@ -12,7 +12,7 @@ pub struct Config {
 
 impl Config {
     pub fn new_sim(
-        exp_config: &super::ExperimentConfig<ExperimentRunBase>,
+        exp_config: &super::ExperimentConfig,
         globals: &Globals,
         package_creators: &PackageCreators,
     ) -> Result<Config> {
