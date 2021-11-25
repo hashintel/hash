@@ -1,6 +1,8 @@
 #![feature(test)]
 #![feature(map_try_insert)]
 #![feature(box_patterns)]
+#![feature(once_cell)]
+
 #[macro_use]
 extern crate lazy_static;
 

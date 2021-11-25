@@ -285,6 +285,14 @@ pub enum ExtendedExperimentPackageConfig {
     Optimization(OptimizationExperimentConfig),
 }
 
+#[enum_dispatch(ExperimentRunTrait)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub enum ExperimentRunRepr {
+    ExperimentRunBase,
+    ExperimentRun,
+    ExtendedExperimentRun,
+}
+
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct ExperimentRunBase {
     pub id: ExperimentRegisteredID,
@@ -301,14 +309,6 @@ pub struct ExperimentRun {
 pub struct ExtendedExperimentRun {
     pub base: ExperimentRunBase,
     pub package_config: ExtendedExperimentPackageConfig,
-}
-
-#[enum_dispatch(ExperimentRunTrait)]
-#[derive(Clone, Serialize, Deserialize, Debug)]
-pub enum ExperimentRunRepr {
-    ExperimentRunBase,
-    ExperimentRun,
-    ExtendedExperimentRun,
 }
 
 #[enum_dispatch]

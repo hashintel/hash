@@ -21,8 +21,8 @@ pub type ArrowIndexBuilder = arrow::array::UInt32Builder;
 pub struct Creator {}
 
 impl PackageCreator for Creator {
-    fn new() -> Box<dyn PackageCreator> {
-        Box::new(Creator {})
+    fn new(_experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn PackageCreator>> {
+        Ok(Box::new(Creator {}))
     }
 
     fn create(

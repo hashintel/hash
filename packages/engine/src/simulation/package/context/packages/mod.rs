@@ -5,12 +5,17 @@ pub mod neighbors;
 use super::PackageCreator;
 use crate::simulation::enum_dispatch::*;
 use crate::simulation::package::{
-    id::{PackageId, PackageIdCreator},
+    id::{PackageId, PackageIdGenerator},
     PackageType,
 };
+use crate::simulation::{Error, Result};
+use crate::ExperimentConfig;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
+use std::collections::hash_map::Iter;
 use std::collections::HashMap;
+use std::lazy::SyncOnceCell;
+use std::sync::Arc;
 use strum_macros::IntoStaticStr;
 
 /// All context package names are registered in this enum
@@ -42,20 +47,60 @@ impl GetTaskArgs for ContextTask {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum ContextTaskMessage {}
 
-lazy_static! {
-    /// All context package creators are registered in this hashmap
-    pub static ref PACKAGES: HashMap<Name, Box<dyn super::PackageCreator>> = {
+pub struct PackageCreators(SyncOnceCell<HashMap<Name, Box<dyn super::PackageCreator>>>);
+
+pub static PACKAGE_CREATORS: PackageCreators = PackageCreators(SyncOnceCell::new());
+
+impl PackageCreators {
+    pub(crate) fn initialize_for_experiment_run(
+        &self,
+        experiment_config: &Arc<ExperimentConfig>,
+    ) -> Result<()> {
         use Name::*;
         let mut m = HashMap::new();
-        m.insert(AgentMessages, agent_messages::Creator::new());
-        m.insert(APIRequests, api_requests::Creator::new());
-        m.insert(Neighbors, neighbors::Creator::new());
-        m
-    };
+        m.insert(
+            AgentMessages,
+            agent_messages::Creator::new(experiment_config)?,
+        );
+        m.insert(APIRequests, api_requests::Creator::new(experiment_config)?);
+        m.insert(Neighbors, neighbors::Creator::new(experiment_config)?);
+        self.0
+            .set(m)
+            .map_err(|_| Error::from("Failed to initialize Context Package Creators"))?;
+        Ok(())
+    }
 
+    pub(crate) fn get_checked(&self, name: &Name) -> Result<&Box<dyn super::PackageCreator>> {
+        Ok(self
+            .0
+            .get()
+            .ok_or_else(|| Error::from("Context Package Creators weren't initialized"))?
+            .get(name)
+            .ok_or_else(|| {
+                let pkg_name: &str = name.into();
+                Error::from(format!(
+                    "Package creator: {} wasn't within the Context Package Creators map",
+                    pkg_name
+                ))
+            })?)
+    }
+
+    #[allow(dead_code)] // It is used in a test in deps.rs but the compiler fails to pick it up
+    pub(crate) fn iter_checked(&self) -> Result<Iter<Name, Box<dyn super::PackageCreator>>> {
+        Ok(self
+            .0
+            .get()
+            .ok_or_else(|| Error::from("Context Package Creators weren't initialized"))?
+            .iter())
+    }
+}
+
+lazy_static! {
+    /// All context package creators are registered in this hashmap
     pub static ref IDS: HashMap<Name, PackageId> = {
         use Name::*;
-        let mut creator = PackageIdCreator::new(PackageType::Context);
+        // TODO RENAME
+        let mut creator = PackageIdGenerator::new(PackageType::Context);
         let mut m = HashMap::new();
         m.insert(AgentMessages, creator.next());
         m.insert(APIRequests, creator.next());

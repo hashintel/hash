@@ -17,6 +17,7 @@ use crate::worker::runner::comms::PackageMsgs;
 use crate::{
     config::SimRunConfig,
     simulation::{Error, Result},
+    ExperimentConfig,
 };
 
 use super::id::PackageId;
@@ -53,65 +54,54 @@ pub struct PackageCreators {
 }
 
 impl PackageCreators {
-    pub fn from_config(config: &PackageConfig) -> Result<PackageCreators> {
-        let init = config
+    pub fn from_config(
+        package_config: &PackageConfig,
+        experiment_config: &Arc<ExperimentConfig>,
+    ) -> Result<PackageCreators> {
+        init::PACKAGE_CREATORS.initialize_for_experiment_run(experiment_config)?;
+        context::PACKAGE_CREATORS.initialize_for_experiment_run(experiment_config)?;
+        output::PACKAGE_CREATORS.initialize_for_experiment_run(experiment_config)?;
+        state::PACKAGE_CREATORS.initialize_for_experiment_run(experiment_config)?;
+
+        let init = package_config
             .init_packages()
             .iter()
             .map(|package_name| {
-                let package_creator = init::PACKAGES.get(package_name).ok_or_else(|| {
-                    Error::from(format!(
-                        "Could not find init creator package: {}",
-                        Into::<&str>::into(package_name)
-                    ))
-                })?;
+                let package_creator = init::PACKAGE_CREATORS.get_checked(package_name)?;
                 let package_name = PackageName::Init(package_name.clone());
                 let id = package_name.get_id()?;
+
                 Ok((id, package_name, package_creator))
             })
             .collect::<Result<_>>()?;
 
-        let context = config
+        let context = package_config
             .context_packages()
             .iter()
             .map(|package_name| {
-                let package_creator = context::PACKAGES.get(package_name).ok_or_else(|| {
-                    Error::from(format!(
-                        "Could not find context creator package: {}",
-                        Into::<&str>::into(package_name)
-                    ))
-                })?;
+                let package_creator = context::PACKAGE_CREATORS.get_checked(package_name)?;
                 let package_name = PackageName::Context(package_name.clone());
                 let id = package_name.get_id()?;
                 Ok((id, package_name, package_creator))
             })
             .collect::<Result<_>>()?;
 
-        let state = config
+        let state = package_config
             .state_packages()
             .iter()
             .map(|package_name| {
-                let package_creator = state::PACKAGES.get(package_name).ok_or_else(|| {
-                    Error::from(format!(
-                        "Could not find state creator package: {}",
-                        Into::<&str>::into(package_name)
-                    ))
-                })?;
+                let package_creator = state::PACKAGE_CREATORS.get_checked(package_name)?;
                 let package_name = PackageName::State(package_name.clone());
                 let id = package_name.get_id()?;
                 Ok((id, package_name, package_creator))
             })
             .collect::<Result<_>>()?;
 
-        let output = config
+        let output = package_config
             .output_packages()
             .iter()
             .map(|package_name| {
-                let package_creator = output::PACKAGES.get(package_name).ok_or_else(|| {
-                    Error::from(format!(
-                        "Could not find output creator package: {}",
-                        Into::<&str>::into(package_name)
-                    ))
-                })?;
+                let package_creator = output::PACKAGE_CREATORS.get_checked(package_name)?;
                 let package_name = PackageName::Output(package_name.clone());
                 let id = package_name.get_id()?;
                 Ok((id, package_name, package_creator))

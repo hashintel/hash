@@ -4,7 +4,6 @@ use std::convert::TryInto;
 
 use behavior::add_fields_from_behavior_keys;
 
-use crate::proto::ExperimentRunBase;
 use arrow::datatypes::DataType;
 
 use self::behavior::BehaviorMap;

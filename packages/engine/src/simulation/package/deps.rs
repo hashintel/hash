@@ -1,9 +1,8 @@
 use super::{context, init, output, state};
 
-use crate::simulation::{Error, Result};
-
 use crate::simulation;
 use crate::simulation::package::name::PackageName;
+use crate::simulation::{Error, Result};
 
 pub struct Dependencies {
     inner: Vec<PackageName>,
@@ -79,32 +78,21 @@ impl Dependencies {
 
 impl PackageName {
     pub fn get_child_dependencies(&self) -> simulation::Result<Dependencies> {
-        fn error(name: &str) -> Error {
-            Error::from(format!("Cannot find package with name {}", name))
-        }
         match self {
             PackageName::Context(name) => {
-                let pkg = context::packages::PACKAGES
-                    .get(name)
-                    .ok_or_else(|| error(name.into()))?;
+                let pkg = context::packages::PACKAGE_CREATORS.get_checked(name)?;
                 pkg.get_dependencies()
             }
             PackageName::Init(name) => {
-                let pkg = init::packages::PACKAGES
-                    .get(name)
-                    .ok_or_else(|| error(name.into()))?;
+                let pkg = init::packages::PACKAGE_CREATORS.get_checked(name)?;
                 pkg.get_dependencies()
             }
             PackageName::State(name) => {
-                let pkg = state::packages::PACKAGES
-                    .get(name)
-                    .ok_or_else(|| error(name.into()))?;
+                let pkg = state::packages::PACKAGE_CREATORS.get_checked(name)?;
                 pkg.get_dependencies()
             }
             PackageName::Output(name) => {
-                let pkg = output::packages::PACKAGES
-                    .get(name)
-                    .ok_or_else(|| error(name.into()))?;
+                let pkg = output::packages::PACKAGE_CREATORS.get_checked(name)?;
                 pkg.get_dependencies()
             }
         }
@@ -126,7 +114,13 @@ impl PackageName {
 #[cfg(test)]
 pub mod tests {
     use super::*;
+    use crate::config::WorkerPoolConfig;
+    use crate::proto::{
+        ExperimentRunBase, ExperimentRunRepr, InitialState, InitialStateName, ProjectBase,
+    };
     use crate::simulation::{Error, Result};
+    use crate::ExperimentConfig;
+    use std::sync::Arc;
 
     fn validate(mut parents: Vec<PackageName>, src_dep: PackageName) -> Result<()> {
         let cycle_found = parents.contains(&src_dep);
@@ -147,19 +141,47 @@ pub mod tests {
     }
 
     macro_rules! validate {
-        ($module:ident, $var:expr) => {
-            for (name, creator) in $module::PACKAGES.iter() {
-                validate(vec![], $var(name.clone()))?;
+        ($module:ident, $config:expr, $pkg_name:expr) => {
+            $module::PACKAGE_CREATORS.initialize_for_experiment_run($config);
+            for (name, creator) in $module::PACKAGE_CREATORS.iter_checked()? {
+                validate(vec![], $pkg_name(name.clone()))?;
             }
         };
     }
 
     #[test]
     fn validate_dependencies() -> Result<()> {
-        validate!(context, PackageName::Context);
-        validate!(init, PackageName::Init);
-        validate!(state, PackageName::State);
-        validate!(output, PackageName::Output);
+        let experiment_config = &Arc::new(ExperimentConfig {
+            run_id: Arc::new("".to_string()),
+            packages: Arc::new(Default::default()),
+            run: Arc::new(
+                ExperimentRunBase {
+                    id: "".to_string(),
+                    project_base: ProjectBase {
+                        initial_state: InitialState {
+                            name: InitialStateName::InitJson,
+                            src: "".to_string(),
+                        },
+                        globals_src: "".to_string(),
+                        dependencies_src: None,
+                        experiments_src: None,
+                        behaviors: vec![],
+                        datasets: vec![],
+                        packages: vec![],
+                    },
+                }
+                .into(),
+            ),
+            worker_pool: Arc::new(WorkerPoolConfig {
+                worker_base_config: Default::default(),
+                num_workers: 0,
+            }),
+            base_globals: Default::default(),
+        });
+        validate!(context, experiment_config, PackageName::Context);
+        validate!(init, experiment_config, PackageName::Init);
+        validate!(state, experiment_config, PackageName::State);
+        validate!(output, experiment_config, PackageName::Output);
         Ok(())
     }
 }

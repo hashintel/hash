@@ -1,4 +1,4 @@
-use crate::proto::{ExperimentRunBase, SharedBehavior};
+use crate::proto::SharedBehavior;
 
 use crate::{ExperimentConfig, Language};
 

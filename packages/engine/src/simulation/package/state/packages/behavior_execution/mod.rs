@@ -1,16 +1,16 @@
 mod chain;
+// TODO: better name for config
 pub mod config;
 pub mod fields;
 pub mod tasks;
 
-use self::{
-    config::{init_message, BehaviorConfig},
-    fields::behavior::BehaviorMap,
-};
+use self::fields::behavior::BehaviorMap;
 use crate::datastore::schema::accessor::GetFieldSpec;
 
 use crate::datastore::table::state::ReadState;
-use crate::proto::ExperimentRunRepr;
+use crate::simulation::package::state::packages::behavior_execution::config::{
+    init_message, BehaviorConfig,
+};
 use crate::simulation::task::active::ActiveTask;
 use serde_json::Value;
 use std::convert::TryFrom;
@@ -26,8 +26,8 @@ impl Creator {}
 
 // TODO OS - needs implementing
 impl PackageCreator for Creator {
-    fn new() -> Box<dyn PackageCreator> {
-        Box::new(Creator {})
+    fn new(experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn PackageCreator>> {
+        Ok(Box::new(Creator {}))
     }
 
     fn create(

@@ -1,6 +1,5 @@
 use crate::datastore::schema::{FieldScope, FieldSpecMapBuilder};
 use crate::hash_types::state::AgentStateField;
-use crate::proto::ExperimentRunBase;
 
 // use crate::worker::runner::rust;
 use crate::{

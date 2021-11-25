@@ -1,6 +1,8 @@
 use crate::datastore::arrow::batch_conversion::{new_buffer, new_offsets_buffer};
 use crate::datastore::batch::iterators;
-use crate::simulation::package::state::packages::behavior_execution::config::BehaviorIndex;
+use crate::simulation::package::state::packages::behavior_execution::config::{
+    BehaviorConfig, BehaviorIndex,
+};
 
 use super::*;
 

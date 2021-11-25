@@ -14,13 +14,13 @@ impl PackageId {
     }
 }
 
-pub struct PackageIdCreator {
+pub struct PackageIdGenerator {
     cur: usize,
     multiplier: usize,
 }
 
-impl PackageIdCreator {
-    pub fn new(package_group: PackageType) -> PackageIdCreator {
+impl PackageIdGenerator {
+    pub fn new(package_group: PackageType) -> PackageIdGenerator {
         let multiplier = match package_group {
             PackageType::Init => 3,
             PackageType::Context => 5,
@@ -28,7 +28,7 @@ impl PackageIdCreator {
             PackageType::Output => 11,
         };
 
-        PackageIdCreator { cur: 0, multiplier }
+        PackageIdGenerator { cur: 0, multiplier }
     }
 
     pub fn next(&mut self) -> PackageId {

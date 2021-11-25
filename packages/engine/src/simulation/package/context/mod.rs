@@ -22,7 +22,7 @@ use crate::datastore::schema::accessor::FieldSpecMapAccessor;
 use crate::datastore::schema::context::ContextSchema;
 use crate::datastore::schema::FieldKey;
 use crate::simulation::package::ext_traits::GetWorkerExpStartMsg;
-pub use packages::{ContextTask, ContextTaskMessage, Name, PACKAGES};
+pub use packages::{ContextTask, ContextTaskMessage, Name, PACKAGE_CREATORS};
 
 pub mod packages;
 
@@ -40,24 +40,18 @@ pub trait Package: MaybeCPUBound + GetWorkerSimStartMsg + Send + Sync {
     ) -> Result<(FieldKey, Arc<dyn arrow::array::Array>)>;
 }
 
-pub trait PackageCreator: GetWorkerExpStartMsg + Sync {
-    /// We can't derive a default as that returns Self which implies Sized which in turn means we
-    /// can't create Trait Objects out of PackageCreator
-    fn new() -> Box<dyn PackageCreator>
-    where
-        Self: Sized;
-
+pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
+    // TODO TODO
     /// A per-experiment initialization step that provide the creator with experiment config.
     /// This step is called when packages are loaded by the experiment controller.
     ///
     /// A default implementation is provided as most packages don't need to store the config and
-    /// can get it from the simulation config when calling `create`.
-    fn initialize_for_experiment(
-        &mut self,
-        _experiment_config: &Arc<ExperimentConfig>,
-    ) -> Result<()> {
-        Ok(())
-    }
+    /// can get it from the simulation config when calling `create`
+    /// We can't derive a default as that returns Self which implies Sized which in turn means we
+    /// can't create Trait Objects out of PackageCreator
+    fn new(experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn PackageCreator>>
+    where
+        Self: Sized;
 
     /// Create the package.
     fn create(

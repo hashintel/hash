@@ -86,3 +86,15 @@ pub enum Error {
     #[error("Property is not object, but is supposed to contain a varying property: {0}")]
     NestedPropertyNotObject(String),
 }
+
+impl From<&str> for Error {
+    fn from(s: &str) -> Self {
+        Error::Unique(s.to_string())
+    }
+}
+
+impl From<String> for Error {
+    fn from(s: String) -> Self {
+        Error::Unique(s)
+    }
+}
