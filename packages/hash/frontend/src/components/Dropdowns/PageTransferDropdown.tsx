@@ -1,8 +1,8 @@
 import { useEffect, useState, VoidFunctionComponent } from "react";
 import { useRouter } from "next/router";
+import { useMutation } from "@apollo/client";
 
 import { AccountSelect } from "../layout/PageSidebar/AccountSelect";
-import { useMutation } from "@apollo/client";
 import { MutationTransferEntityArgs } from "../../graphql/apiTypes.gen";
 import { transferEntityMutation } from "../../graphql/queries/entityType.queries";
 
