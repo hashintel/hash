@@ -276,22 +276,21 @@ export const Video: BlockComponent<AppProps> = (props) => {
             />
           </div>
           <div>
-            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
             <label htmlFor={randomId}>
               <div
                 className={tw`my-4 bg-gray-50 border-2 border-dashed border-gray-200 py-4 text-sm text-gray-400 cursor-pointer`}
               >
                 Choose a File. <br /> (or Drop it Here)
               </div>
-            </label>
 
-            <input
-              id={randomId}
-              className={tw`hidden`}
-              type="file"
-              accept={VIDEO_MIME_TYPE}
-              onChange={onFileSelect}
-            />
+              <input
+                id={randomId}
+                className={tw`hidden`}
+                type="file"
+                accept={VIDEO_MIME_TYPE}
+                onChange={onFileSelect}
+              />
+            </label>
           </div>
           <div className={tw`mt-4`}>
             <button
