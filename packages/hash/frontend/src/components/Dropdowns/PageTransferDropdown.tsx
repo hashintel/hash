@@ -23,7 +23,7 @@ export const PageTransferDropdown: VoidFunctionComponent = () => {
   );
 
   const transferAccount = (newAccountId: string) => {
-    transferEntity({
+    void transferEntity({
       variables: {
         originalAccountId: accountId,
         entityId: pageEntityId,
