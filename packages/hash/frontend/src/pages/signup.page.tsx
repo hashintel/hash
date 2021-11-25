@@ -512,8 +512,9 @@ const SignupPage: NextPage = () => {
           errorMessage={errorMessage}
         />
       )}
-      {activeScreen === Screen.OrgCreate && (
+      {activeScreen === Screen.OrgCreate && user?.accountId && (
         <OrgCreateScreen
+          // accountId={user.accountId}
           onCreateOrgSuccess={(data: any) => {
             dispatch({
               type: "CREATE_ORG_SUCCESS",

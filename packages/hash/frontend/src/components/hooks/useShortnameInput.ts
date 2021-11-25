@@ -13,15 +13,15 @@ export const useShortnameInput = () => {
   const parseShortnameInput = (input: string) =>
     input.replaceAll(/[^a-zA-Z0-9-_]/g, "");
 
-  const validateShortname = async (shortname: string) => {
-    if (shortname === "") {
-      return "You must choose a username";
+  const validateShortname = async (shortname?: string) => {
+    if (!shortname) {
+      return "IS_EMPTY";
     }
     if (shortname.length > 24) {
-      return "Must be shorter than 24 characters";
+      return "IS_TOO_LONG";
     }
     if (shortname.length < 4) {
-      return "Must be at least 4 characters";
+      return "IS_TOO_SHORT";
     }
 
     setLoading(true);
@@ -39,15 +39,31 @@ export const useShortnameInput = () => {
     setLoading(false);
 
     if (data?.isShortnameTaken) {
-      return "This user has already been taken";
+      return "IS_TAKEN";
     }
 
     return true;
+  };
+
+  const getShortnameError = (error: string | undefined, isTouched: boolean) => {
+    switch (error) {
+      case "IS_EMPTY":
+        return isTouched && "You must choose a username";
+      case "IS_TOO_SHORT":
+        return isTouched && "Must be at least 4 characters";
+      case "IS_TOO_LONG":
+        return "Must be shorter than 24 characters";
+      case "IS_TAKEN":
+        return "This user has already been taken";
+      default:
+        return null;
+    }
   };
 
   return {
     validateShortname,
     validateShortnameLoading: loading,
     parseShortnameInput,
+    getShortnameError,
   };
 };

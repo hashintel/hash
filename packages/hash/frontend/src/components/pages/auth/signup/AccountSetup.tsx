@@ -39,9 +39,9 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
     handleSubmit,
     watch,
     control,
-    formState: { errors, isValid },
+    formState: { errors, isValid, touchedFields },
   } = useForm<Inputs>({
-    mode: "onTouched",
+    mode: "all",
     defaultValues: {
       shortname: "",
       preferredName: "",
@@ -53,7 +53,8 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
   const preferredNameWatcher = watch("preferredName", "");
   const responsibilityWatcher = watch("responsibility", "");
 
-  const { validateShortname, parseShortnameInput } = useShortnameInput();
+  const { validateShortname, parseShortnameInput, getShortnameError } =
+    useShortnameInput();
 
   const onSubmit = handleSubmit(
     ({ shortname, preferredName, responsibility }) => {
@@ -81,7 +82,10 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
     ];
   }, [invitationInfo, email]);
 
-  const displayShortnameError = Boolean(errors?.shortname?.message);
+  const shortnameError = getShortnameError(
+    errors?.shortname?.message,
+    Boolean(touchedFields.shortname),
+  );
 
   return (
     <div className={tw`w-9/12 max-w-3xl`}>
@@ -122,7 +126,7 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
                       onBlur={field.onBlur}
                       autoFocus
                       className={tw`w-64 border-1 ${
-                        displayShortnameError
+                        shortnameError
                           ? "border-red-300 focus:border-red-500"
                           : "border-gray-300 focus:border-blue-500"
                       } focus:outline-none rounded-lg h-11 py-6 pl-9 pr-5 mr-7`}
@@ -141,24 +145,22 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
               <div
                 style={{ minHeight: 50 }}
                 className={tw`transition-opacity max-w-sm flex items-center border-1 ${
-                  displayShortnameError ? "border-red-300" : "border-blue-300"
+                  shortnameError ? "border-red-300" : "border-blue-300"
                 } rounded-md px-3.5`}
               >
                 <IconInfo
                   className={tw`h-6 w-6 mr-3 ${
-                    displayShortnameError ? "text-red-500" : "text-blue-500"
+                    shortnameError ? "text-red-500" : "text-blue-500"
                   }`}
                 />
                 <span
                   className={tw`flex-1 ${
-                    displayShortnameError
+                    shortnameError
                       ? "text-red-500 text-sm"
                       : "text-black text-opacity-60 text-xs"
                   }`}
                 >
-                  {displayShortnameError ? (
-                    errors?.shortname?.message
-                  ) : (
+                  {shortnameError || (
                     <>
                       If you’re using HASH for work or a team, you’ll be able to
                       choose a separate org username later.

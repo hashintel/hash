@@ -1,4 +1,4 @@
-import React, { useMemo, VFC } from "react";
+import React, { ChangeEvent, useMemo, VFC, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { tw } from "twind";
 import { useMutation } from "@apollo/client";
@@ -14,8 +14,10 @@ import { SpinnerIcon } from "../../../Icons/SpinnerIcon";
 import { ORG_ROLES, ORG_SIZES } from "../utils";
 import { createOrg as createOrgMutation } from "../../../../graphql/queries/org.queries";
 import { useShortnameInput } from "../../../hooks/useShortnameInput";
+// import { useFileUpload } from "../../../hooks/useFileUpload";
 
 type OrgCreateProps = {
+  // accountId: string;
   onCreateOrgSuccess: (data: {
     invitationLinkToken: string;
     orgEntityId: string;
@@ -73,21 +75,27 @@ const getInitials = (name: string) => {
   if (initials.length > 1) return initials[0][0] + initials[1][0];
 };
 
-export const OrgCreate: VFC<OrgCreateProps> = ({ onCreateOrgSuccess }) => {
+export const OrgCreate: VFC<OrgCreateProps> = ({
+  // accountId,
+  onCreateOrgSuccess,
+}) => {
+  const [avatarImg, setAvatarImg] = useState("");
   const {
     watch,
     handleSubmit,
-    formState: { errors, isValid },
+    formState: { errors, isValid, touchedFields },
     control,
   } = useForm<Inputs>({
-    mode: "onTouched",
+    mode: "all",
     defaultValues: {
       responsibility: undefined,
       orgSize: undefined,
     },
   });
+  // const { uploadFile } = useFileUpload(accountId);
 
-  const { parseShortnameInput, validateShortname } = useShortnameInput();
+  const { parseShortnameInput, validateShortname, getShortnameError } =
+    useShortnameInput();
 
   const [createOrg, { loading, error }] = useMutation<
     CreateOrgMutation,
@@ -110,6 +118,27 @@ export const OrgCreate: VFC<OrgCreateProps> = ({ onCreateOrgSuccess }) => {
     return error?.graphQLErrors?.[0]?.message ?? "";
   }, [error]);
 
+  const handleAvatarUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+
+      reader.onload = (evt) => {
+        if (evt.target?.result) {
+          setAvatarImg(evt.target.result.toString());
+        }
+      };
+
+      reader.readAsDataURL(file);
+
+      // @todo this should be delayed till org creation
+      // await uploadFile({
+      //   file: file,
+      //   mediaType: "image",
+      // });
+    }
+  };
+
   const onSubmit = handleSubmit((values) =>
     createOrg({
       variables: {
@@ -122,24 +151,47 @@ export const OrgCreate: VFC<OrgCreateProps> = ({ onCreateOrgSuccess }) => {
       },
     }),
   );
+
   const nameWatcher = watch("name", "");
+
+  const shortnameError = getShortnameError(
+    errors?.shortname?.message,
+    Boolean(touchedFields.shortname),
+  );
 
   return (
     <div className={tw`flex flex-col items-center`}>
       <h1 className={tw`text-3xl font-bold mb-12`}>Create a team workspace</h1>
       <div className={tw`text-center mb-6`}>
-        {nameWatcher ? (
-          <div
-            className={tw`relative w-24 h-24 border-1 border-gray-200 rounded-lg flex justify-center items-center mb-2`}
-          >
-            <p className={tw`text-4xl font-bold text-gray-200 uppercase`}>
-              {getInitials(nameWatcher)}
-            </p>
-          </div>
-        ) : (
-          <PictureIcon className={tw`w-24 h-24 mb-2`} viewBox="0 0 45 45" />
-        )}
-        <span className={tw`text-sm font-bold text-gray-500`}>Add a logo</span>
+        {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
+        <label className={tw`cursor-pointer`}>
+          {avatarImg ? (
+            <img
+              className={tw`w-24 h-24 mb-2 rounded-md`}
+              src={avatarImg}
+              alt="Organization avatar"
+            />
+          ) : nameWatcher ? (
+            <div
+              className={tw`relative w-24 h-24 border-1 border-gray-200 rounded-lg flex justify-center items-center mb-2`}
+            >
+              <p className={tw`text-4xl font-bold text-gray-200 uppercase`}>
+                {getInitials(nameWatcher)}
+              </p>
+            </div>
+          ) : (
+            <PictureIcon className={tw`w-24 h-24 mb-2 `} viewBox="0 0 45 45" />
+          )}
+          <input
+            type="file"
+            onChange={handleAvatarUpload}
+            accept="image/*"
+            className={tw`hidden`}
+          />
+          <span className={tw`text-sm font-bold text-gray-500`}>
+            Add a logo
+          </span>
+        </label>
       </div>
       <form className={tw`flex flex-col items-center`} onSubmit={onSubmit}>
         {FORM_INPUTS.map(
@@ -189,7 +241,9 @@ export const OrgCreate: VFC<OrgCreateProps> = ({ onCreateOrgSuccess }) => {
                 />
 
                 <span className={tw`text-red-500 text-sm`}>
-                  {errors?.[name]?.message}
+                  {name === "shortname"
+                    ? shortnameError
+                    : errors?.[name]?.message}
                 </span>
                 {index !== FORM_INPUTS.length - 1 && (
                   <div className={tw`mb-6`} />
