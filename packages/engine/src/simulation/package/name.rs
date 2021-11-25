@@ -1,7 +1,8 @@
 use std::fmt::Display;
 use strum_macros::IntoStaticStr;
 
-use crate::simulation::package::{context, init, output, state};
+use crate::simulation::package::deps::Dependencies;
+use crate::simulation::package::{context, init, output, state, PackageMetadata};
 use crate::simulation::{package::id::PackageId, Error, Result};
 
 #[derive(Debug, Clone, PartialEq, Eq, IntoStaticStr, Hash)]
@@ -13,15 +14,29 @@ pub enum PackageName {
 }
 
 impl PackageName {
-    pub fn get_id(&self) -> Result<PackageId> {
-        let id = match self {
-            PackageName::Context(name) => super::context::packages::IDS.get(name),
-            PackageName::Init(name) => super::init::packages::IDS.get(name),
-            PackageName::State(name) => super::state::packages::IDS.get(name),
-            PackageName::Output(name) => super::output::packages::IDS.get(name),
+    fn get_metadata(&self) -> Result<&PackageMetadata> {
+        Ok(match self {
+            PackageName::Context(name) => super::context::packages::METADATA.get(name),
+            PackageName::Init(name) => super::init::packages::METADATA.get(name),
+            PackageName::State(name) => super::state::packages::METADATA.get(name),
+            PackageName::Output(name) => super::output::packages::METADATA.get(name),
         }
-        .ok_or_else(|| Error::from(format!("Package Id not registered: {}", self)))?;
+        .ok_or_else(|| {
+            Error::from(format!(
+                "Package Metadata not registered for package: {}",
+                self
+            ))
+        })?)
+    }
+
+    pub fn get_id(&self) -> Result<PackageId> {
+        let id = &self.get_metadata()?.id;
         Ok(id.clone())
+    }
+
+    pub fn get_dependencies(&self) -> Result<Dependencies> {
+        let dependencies = &self.get_metadata()?.dependencies;
+        Ok(dependencies.clone())
     }
 }
 

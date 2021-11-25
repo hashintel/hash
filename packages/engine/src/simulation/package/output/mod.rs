@@ -33,8 +33,11 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
         accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn Package>>;
 
-    fn get_dependencies(&self) -> Result<Dependencies> {
-        Ok(Dependencies::empty())
+    fn dependencies() -> Dependencies
+    where
+        Self: Sized,
+    {
+        Dependencies::empty()
     }
 
     fn persistence_config(

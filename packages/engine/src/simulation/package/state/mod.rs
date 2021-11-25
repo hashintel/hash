@@ -41,8 +41,11 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Send + Sync {
     ) -> Result<Box<dyn Package>>;
 
     /// Get the package names that this package depends on.
-    fn get_dependencies(&self) -> Result<Dependencies> {
-        Ok(Dependencies::empty())
+    fn dependencies() -> Dependencies
+    where
+        Self: Sized,
+    {
+        Dependencies::empty()
     }
 
     fn add_state_field_specs(

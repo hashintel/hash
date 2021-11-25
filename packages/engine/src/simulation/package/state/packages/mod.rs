@@ -5,14 +5,12 @@ use serde::{Deserialize, Serialize};
 use std::collections::hash_map::Iter;
 
 use super::PackageCreator;
-use crate::simulation::package::{
-    id::{PackageId, PackageIdGenerator},
-    PackageType,
-};
+use crate::simulation::package::{id::PackageIdGenerator, PackageType};
 use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::simulation::enum_dispatch::*;
+use crate::simulation::package::PackageMetadata;
 use crate::simulation::{Error, Result};
 use crate::ExperimentConfig;
 use lazy_static::lazy_static;
@@ -51,6 +49,7 @@ impl PackageCreators {
         &self,
         experiment_config: &Arc<ExperimentConfig>,
     ) -> Result<()> {
+        log::debug!("Initializing State Package Creators");
         use Name::*;
         let mut m = HashMap::new();
         m.insert(
@@ -90,12 +89,24 @@ impl PackageCreators {
 }
 
 lazy_static! {
-    pub static ref IDS: HashMap<Name, PackageId> = {
+    pub static ref METADATA: HashMap<Name, PackageMetadata> = {
         use Name::*;
-        let mut creator = PackageIdGenerator::new(PackageType::State);
+        let mut id_creator = PackageIdGenerator::new(PackageType::State);
         let mut m = HashMap::new();
-        m.insert(BehaviorExecution, creator.next());
-        m.insert(Topology, creator.next());
+        m.insert(
+            BehaviorExecution,
+            PackageMetadata {
+                id: id_creator.next(),
+                dependencies: behavior_execution::Creator::dependencies(),
+            },
+        );
+        m.insert(
+            Topology,
+            PackageMetadata {
+                id: id_creator.next(),
+                dependencies: topology::Creator::dependencies(),
+            },
+        );
         m
     };
 }

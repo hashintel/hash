@@ -48,6 +48,8 @@ pub mod prelude {
 }
 
 use crate::gen;
+use crate::simulation::package::deps::Dependencies;
+use crate::simulation::package::id::PackageId;
 
 #[derive(Clone, Copy, Debug)]
 pub enum PackageType {
@@ -77,4 +79,9 @@ impl From<PackageType> for gen::PackageType {
             PackageType::Output => gen::PackageType::Output,
         }
     }
+}
+
+pub struct PackageMetadata {
+    id: PackageId,
+    dependencies: Dependencies,
 }

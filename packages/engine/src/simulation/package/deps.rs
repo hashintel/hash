@@ -4,6 +4,7 @@ use crate::simulation;
 use crate::simulation::package::name::PackageName;
 use crate::simulation::{Error, Result};
 
+#[derive(Clone)]
 pub struct Dependencies {
     inner: Vec<PackageName>,
 }
@@ -77,30 +78,9 @@ impl Dependencies {
 }
 
 impl PackageName {
-    pub fn get_child_dependencies(&self) -> simulation::Result<Dependencies> {
-        match self {
-            PackageName::Context(name) => {
-                let pkg = context::packages::PACKAGE_CREATORS.get_checked(name)?;
-                pkg.get_dependencies()
-            }
-            PackageName::Init(name) => {
-                let pkg = init::packages::PACKAGE_CREATORS.get_checked(name)?;
-                pkg.get_dependencies()
-            }
-            PackageName::State(name) => {
-                let pkg = state::packages::PACKAGE_CREATORS.get_checked(name)?;
-                pkg.get_dependencies()
-            }
-            PackageName::Output(name) => {
-                let pkg = output::packages::PACKAGE_CREATORS.get_checked(name)?;
-                pkg.get_dependencies()
-            }
-        }
-    }
-
     pub fn get_all_dependencies(&self) -> simulation::Result<Dependencies> {
         let mut merged = Dependencies::new();
-        for dependency in self.get_child_dependencies()?.into_iter_deps() {
+        for dependency in self.get_dependencies()?.into_iter_deps() {
             merged.add_dependency_with_ignore(dependency.clone())?;
             let deps = dependency.get_all_dependencies()?;
             for dep in deps.into_iter_deps() {
@@ -132,7 +112,7 @@ pub mod tests {
             )));
         } else {
             // Safe unwrap as we've added an element to `parents`
-            let deps = parents.last().unwrap().get_child_dependencies()?;
+            let deps = parents.last().unwrap().get_dependencies()?;
             for dep in deps.into_iter_deps() {
                 validate(parents.clone(), dep)?;
             }

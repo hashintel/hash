@@ -62,8 +62,11 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
         context_field_spec_accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn Package>>;
 
-    fn get_dependencies(&self) -> Result<Dependencies> {
-        Ok(Dependencies::empty())
+    fn dependencies() -> Dependencies
+    where
+        Self: Sized,
+    {
+        Dependencies::empty()
     }
 
     // TODO - Limit context packages to only add one field as long as we only allow one column from "get_empty_arrow_column"
