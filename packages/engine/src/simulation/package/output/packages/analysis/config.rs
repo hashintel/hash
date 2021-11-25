@@ -4,7 +4,6 @@ use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::sync::Arc;
 
-use crate::proto::ExperimentRunBase;
 use crate::proto::ExperimentRunTrait;
 use crate::simulation::package::output::packages::analysis::analyzer::AnalysisSourceRepr;
 use crate::simulation::package::output::packages::analysis::get_analysis_source;

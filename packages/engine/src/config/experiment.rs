@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::config::globals::Globals;
-use crate::proto::{ExperimentRunBase, ExperimentRunRepr, ExperimentRunTrait};
+use crate::proto::{ExperimentRunRepr, ExperimentRunTrait};
 
 use super::{package, worker, worker_pool, Result};
 

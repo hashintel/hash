@@ -8,7 +8,6 @@ use crate::datastore::schema::{FieldKey, FieldSpecMapBuilder};
 use crate::datastore::table::state::view::StateSnapshot;
 use crate::datastore::table::state::State;
 use crate::datastore::{batch::iterators, table::state::ReadState};
-use crate::proto::ExperimentRunBase;
 use crate::simulation::comms::package::PackageComms;
 use crate::simulation::package::context::{ContextColumn, Package, PackageCreator};
 use crate::simulation::package::ext_traits::{

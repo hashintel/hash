@@ -5,7 +5,7 @@ pub mod runs;
 
 use std::sync::Arc;
 
-use crate::proto::{ExperimentRunRepr, SimulationShortID};
+use crate::proto::SimulationShortID;
 use crate::simulation::{
     package::id::PackageId,
     task::{args::GetTaskArgs, handler::WorkerPoolHandler},

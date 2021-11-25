@@ -1,6 +1,6 @@
 use super::error::Result;
 use async_trait::async_trait;
-use hash_prime::proto::{EngineMsg, ExperimentRun};
+use hash_prime::proto::EngineMsg;
 
 #[async_trait]
 pub trait Process {

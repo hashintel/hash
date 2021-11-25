@@ -13,7 +13,7 @@ mod worker_pool;
 
 use std::sync::Arc;
 
-use crate::proto::{ExperimentRunRepr, ExperimentRunTrait, SimulationShortID};
+use crate::proto::SimulationShortID;
 pub use engine::{Config as EngineConfig, Worker, WorkerAllocation};
 pub use error::{Error, Result};
 pub use experiment::Config as ExperimentConfig;

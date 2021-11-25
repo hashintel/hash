@@ -6,7 +6,7 @@ use crate::config::Globals;
 use crate::config::{
     EngineConfig, ExperimentConfig, PersistenceConfig, StoreConfig, WorkerAllocation,
 };
-use crate::proto::{ExperimentPackageConfig, ExperimentRunBase, SimulationShortID};
+use crate::proto::{ExperimentPackageConfig, SimulationShortID};
 use crate::SimRunConfig;
 
 pub struct SimConfigurer {

@@ -21,7 +21,6 @@ pub use crate::config::Globals;
 use crate::datastore::schema::accessor::FieldSpecMapAccessor;
 use crate::datastore::schema::context::ContextSchema;
 use crate::datastore::schema::FieldKey;
-use crate::proto::ExperimentRunBase;
 use crate::simulation::package::ext_traits::GetWorkerExpStartMsg;
 pub use packages::{ContextTask, ContextTaskMessage, Name, PACKAGES};
 

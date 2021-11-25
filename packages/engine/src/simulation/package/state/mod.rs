@@ -17,7 +17,6 @@ pub use crate::config::Globals;
 use super::{deps::Dependencies, ext_traits::GetWorkerSimStartMsg, prelude::*};
 
 use crate::datastore::schema::accessor::FieldSpecMapAccessor;
-use crate::proto::ExperimentRunBase;
 use crate::simulation::package::ext_traits::GetWorkerExpStartMsg;
 pub use packages::{Name, StateTask, StateTaskMessage, PACKAGES};
 

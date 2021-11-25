@@ -3,7 +3,7 @@ pub mod hash_message;
 pub mod message;
 pub mod view;
 
-use crate::proto::{ExperimentID, ExperimentRunBase};
+use crate::proto::ExperimentID;
 
 use crate::datastore::table::pool::BatchPool;
 use crate::{

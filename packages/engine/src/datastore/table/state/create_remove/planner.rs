@@ -2,7 +2,6 @@ use std::ops::Deref;
 use std::sync::Arc;
 
 use crate::datastore::table::pool::BatchPool;
-use crate::proto::ExperimentRunBase;
 use crate::SimRunConfig;
 use crate::{
     datastore::{

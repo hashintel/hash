@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use crate::proto::ExperimentRunBase;
 use futures::{executor::block_on, stream::FuturesUnordered, StreamExt};
 
 use crate::{

@@ -1,4 +1,4 @@
-use super::super::{Error, ExperimentControl, ExperimentRun, Result};
+use super::super::{Error, ExperimentControl, Result};
 use crate::config::ExperimentConfig;
 use crate::experiment::controller::comms::exp_pkg_ctl::ExpPkgCtlSend;
 use crate::proto::SimulationShortID;

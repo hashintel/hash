@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use super::super::{Error, ExperimentControl, Result};
 use crate::config::ExperimentConfig;
-use crate::proto::{ExperimentRunBase, SimulationShortID, SingleRunExperimentConfig};
+use crate::proto::{SimulationShortID, SingleRunExperimentConfig};
 
 pub struct SingleRunExperiment {
     _experiment_config: Arc<ExperimentConfig>, // TODO: unused, remove?

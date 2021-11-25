@@ -2,8 +2,6 @@ use std::collections::HashMap;
 use std::convert::TryInto;
 use std::sync::Arc;
 
-use crate::proto::ExperimentRunBase;
-
 use crate::config::{Globals, PackageConfig};
 use crate::datastore::schema::accessor::FieldSpecMapAccessor;
 use crate::datastore::schema::context::ContextSchema;

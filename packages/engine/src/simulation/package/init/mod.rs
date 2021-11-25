@@ -6,7 +6,6 @@ pub use crate::config::Globals;
 use crate::datastore::schema::accessor::FieldSpecMapAccessor;
 use crate::datastore::schema::FieldSpecMapBuilder;
 pub use crate::hash_types::Agent;
-use crate::proto::ExperimentRunBase;
 use crate::simulation::package::ext_traits::GetWorkerExpStartMsg;
 use crate::{simulation::comms::package::PackageComms, SimRunConfig};
 

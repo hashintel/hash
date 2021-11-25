@@ -4,8 +4,6 @@ use serde::{Deserialize, Serialize};
 
 use super::{Error, Result};
 
-use crate::proto::{ExperimentRunRepr, ExperimentRunTrait};
-
 pub const OUTPUT_PERSISTENCE_KEY: &'static str = "output_persistence";
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

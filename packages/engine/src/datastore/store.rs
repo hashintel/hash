@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use crate::proto::ExperimentRunBase;
-
 use super::{
     prelude::*,
     table::{context::ExContext, state::ExState},

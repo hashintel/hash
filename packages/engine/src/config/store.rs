@@ -1,5 +1,4 @@
 use crate::config::globals::Globals;
-use crate::proto::ExperimentRunBase;
 
 use super::Result;
 use crate::{

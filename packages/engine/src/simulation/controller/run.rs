@@ -10,7 +10,7 @@ use crate::experiment::controller::comms::simulation::SimCtlRecv;
 
 use crate::hash_types::worker::RunnerError;
 use crate::output::SimulationOutputPersistenceRepr;
-use crate::proto::{ExperimentRunBase, SimulationShortID};
+use crate::proto::SimulationShortID;
 use crate::simulation::agent_control::AgentControl;
 use crate::simulation::comms::Comms;
 use crate::simulation::controller::sim_control::SimControl;

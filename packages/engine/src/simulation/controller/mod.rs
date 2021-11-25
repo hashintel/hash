@@ -10,7 +10,7 @@ use crate::experiment::controller::comms::sim_status::SimStatusSend;
 use crate::experiment::controller::comms::simulation::{new_pair, SimCtlRecv, SimCtlSend};
 
 use crate::output::SimulationOutputPersistenceRepr;
-use crate::proto::{ExperimentRunBase, SimulationShortID};
+use crate::proto::SimulationShortID;
 use crate::simulation::package::run::Packages;
 use crate::SimRunConfig;
 use tokio::task::JoinHandle;

@@ -6,7 +6,6 @@ use std::ops::Deref;
 
 use crate::datastore::{batch, prelude::*, table::references::AgentMessageReference, UUID_V4_LEN};
 
-use crate::proto::ExperimentRunBase;
 use crate::SimRunConfig;
 use std::sync::Arc;
 

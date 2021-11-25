@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use crate::proto::ExperimentRunBase;
-
 use crate::datastore::{
     prelude::Store,
     table::{context::ExContext, pool::message::MessagePool, state::ExState},

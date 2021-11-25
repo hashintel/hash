@@ -1,5 +1,4 @@
 use super::Result;
-use crate::proto::ExperimentRunBase;
 use std::{collections::HashMap, sync::Arc};
 
 use crate::config::ExperimentConfig;

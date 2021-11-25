@@ -3,12 +3,8 @@ pub mod single;
 
 use std::sync::Arc;
 
-use crate::proto::{ExperimentPackageConfig, PackageConfig};
-use crate::{
-    config::ExperimentConfig,
-    init_exp_package,
-    proto::{ExperimentRun, SimulationShortID},
-};
+use crate::proto::PackageConfig;
+use crate::{config::ExperimentConfig, init_exp_package, proto::SimulationShortID};
 use tokio::task::JoinHandle;
 
 use super::controller::comms::{exp_pkg_ctl::ExpPkgCtlRecv, exp_pkg_update::ExpPkgUpdateSend};

@@ -5,7 +5,6 @@ use std::sync::Arc;
 pub use crate::config::Globals;
 use crate::datastore::schema::accessor::FieldSpecMapAccessor;
 use crate::datastore::schema::FieldSpecMapBuilder;
-use crate::proto::ExperimentRunBase;
 use crate::simulation::comms::package::PackageComms;
 use crate::simulation::package::ext_traits::GetWorkerExpStartMsg;
 use crate::SimRunConfig;

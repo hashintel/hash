@@ -20,10 +20,7 @@ use crate::{
 };
 use crate::{experiment::package::ExperimentPackageComms, Environment};
 
-use crate::proto::{
-    EngineMsg, EngineStatus, ExperimentRunBase, ExperimentRunRepr, ExperimentRunTrait,
-    SimulationShortID,
-};
+use crate::proto::{EngineMsg, EngineStatus, SimulationShortID};
 use crate::simulation::controller::runs::SimulationRuns;
 use crate::simulation::controller::sim_control::SimControl;
 use crate::simulation::controller::SimulationController;

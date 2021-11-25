@@ -11,7 +11,6 @@ use crate::datastore::{
     prelude::*,
     table::pool::agent::AgentPool,
 };
-use crate::proto::ExperimentRunBase;
 use crate::SimRunConfig;
 
 #[derive(Debug)]

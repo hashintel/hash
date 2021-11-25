@@ -1,7 +1,6 @@
 use crate::config::Globals;
 use crate::hash_types::worker::RunnerError;
 use crate::simulation::status::SimStatus;
-use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as SerdeValue;
 use std::fmt::{Debug, Formatter};
