@@ -222,3 +222,7 @@ plugin's settings:
   { "directory": "packages/hash/api", "!cwd": true }
 ]
 ```
+
+### ECONNREFUSED: Refused to connect to your block
+
+The backend Docker instance may not be able to reach your locally hosted block. In that case, you can use [Cloudflare Tunnels](https://developers.cloudflare.com/pages/how-to/preview-with-cloudflare-tunnel) to serve your localhost port via a URL, and use that in `blockPaths.json`.

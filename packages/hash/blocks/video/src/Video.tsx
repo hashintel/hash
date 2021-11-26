@@ -83,6 +83,16 @@ export const Video: BlockComponent<AppProps> = (props) => {
     [],
   );
 
+  useEffect(() => {
+    if (stateObject.src !== initialSrc) {
+      updateStateObject({ src: initialSrc });
+    }
+
+    if (initialCaption && captionText !== initialCaption) {
+      setCaptionText(initialCaption);
+    }
+  }, [initialSrc, initialCaption]);
+
   function displayError(errorString: string) {
     updateStateObject({ errorString });
   }
