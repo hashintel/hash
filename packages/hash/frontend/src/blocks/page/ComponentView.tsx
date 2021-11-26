@@ -139,6 +139,7 @@ export class ComponentView implements NodeView<Schema> {
           editableRef={editableRef}
           shouldSandbox={!editableRef}
           entityId={entityId}
+          entityNode={this.target}
         />,
         this.target,
       );

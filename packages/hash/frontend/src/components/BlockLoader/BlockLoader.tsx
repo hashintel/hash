@@ -8,7 +8,6 @@ import React, {
 } from "react";
 import router from "next/router";
 import { blockDomId } from "../../blocks/page/BlockView";
-
 import { useBlockProtocolUpdate } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdate";
 import { cloneEntityTreeWithPropertiesMovedUp } from "../../lib/entities";
 import { fetchEmbedCode } from "./fetchEmbedCode";
@@ -30,6 +29,7 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   sourceUrl,
   shouldSandbox,
   entityId,
+  entityNode,
   ...props
 }) => {
   const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes(
@@ -38,6 +38,21 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   const { update } = useBlockProtocolUpdate(props.accountId);
   const { aggregate } = useBlockProtocolAggregate(props.accountId);
   const { uploadFile } = useFileUpload(props.accountId);
+
+  const intersectionRatio = React.useRef<number | null>(null);
+
+  const intersection = new IntersectionObserver(
+    (entries) => {
+      if (entries.length) {
+        intersectionRatio.current = entries[0].intersectionRatio;
+      }
+    },
+    {
+      root: null,
+      rootMargin: "0px",
+      threshold: 0.1,
+    },
+  );
 
   const flattenedProperties = useMemo(
     () => cloneEntityTreeWithPropertiesMovedUp(props),
@@ -82,8 +97,10 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
         scrollingComplete.current = true;
       }
 
-      // Do we need to do this if we've scrolled into view
-      scrollFrameRequestIdRef.current = requestAnimationFrame(frame);
+      // Scroll only if element is out of view
+      if (intersectionRatio.current === 0) {
+        scrollFrameRequestIdRef.current = requestAnimationFrame(frame);
+      }
     }
 
     function clearScrollInterval() {
@@ -99,6 +116,7 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
       blockLoaded
     ) {
       clearScrollInterval();
+      intersection.observe(entityNode);
       scrollFrameRequestIdRef.current = requestAnimationFrame(frame);
     }
 
