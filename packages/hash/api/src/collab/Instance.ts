@@ -177,7 +177,7 @@ export class Instance {
               return {
                 ...entity,
                 accountId: entityVersion.accountId,
-                entityVersionId: entityVersion.entityTypeVersionId,
+                entityVersionId: entityVersion.entityVersionId,
                 entityTypeVersionId: entityVersion.entityTypeVersionId,
                 /**
                  * This could overwrite any updates applied to entities inside of
