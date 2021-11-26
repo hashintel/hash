@@ -8,14 +8,14 @@ use self::{config::exp_init_message, fields::behavior::BehaviorMap};
 use crate::datastore::schema::accessor::GetFieldSpec;
 
 use crate::datastore::table::state::ReadState;
+use crate::datastore::table::task_shared_store::TaskSharedStoreBuilder;
 use crate::simulation::package::state::packages::behavior_execution::config::BehaviorIndices;
+use crate::simulation::package::state::packages::behavior_execution::tasks::ExecuteBehaviorsTask;
 use crate::simulation::task::active::ActiveTask;
+use crate::simulation::task::Task;
+use crate::Language;
 use serde_json::Value;
 use std::convert::TryFrom;
-use crate::datastore::table::task_shared_store::TaskSharedStoreBuilder;
-use crate::Language;
-use crate::simulation::task::Task;
-// use crate::simulation::enum_dispatch::TaskSharedStore;
 
 use super::super::*;
 
@@ -129,16 +129,16 @@ impl BehaviorExecution {
     }
 
     /// Iterate over languages of first behaviors to choose first language runner to send task to
-    fn get_first_lang(
-        &self,
-        state: &ExState,
-    ) -> Result<Option<Language>> {
+    fn get_first_lang(&self, state: &ExState) -> Result<Option<Language>> {
         for batch in state.agent_pool().read_batches()? {
             for agent_behaviors in batch.behavior_list_bytes_iter()? {
-                if agent_behaviors.len() == 0 { continue; }
+                if agent_behaviors.len() == 0 {
+                    continue;
+                }
 
                 let first_behavior = agent_behaviors[0];
-                let behavior_lang = self.behavior_indices
+                let behavior_lang = self
+                    .behavior_indices
                     .get_index(&first_behavior)
                     .ok_or_else(|| {
                         let bytes = Vec::from(first_behavior);
@@ -163,7 +163,11 @@ impl BehaviorExecution {
             .write_state(state)?
             .read_context(context)?
             .build();
-        let task: Task = todo!(); // Put lang in task
+        let state_task: StateTask = ExecuteBehaviorsTask {
+            target: lang.into(),
+        }
+        .into();
+        let task: Task = state_task.into();
         let active_task = self.comms.new_task(task, shared_store).await?;
         Ok(active_task)
     }
@@ -175,11 +179,11 @@ impl Package for BehaviorExecution {
         self.fix_behavior_chains(state)?;
         let lang = match self.get_first_lang(state)? {
             Some(lang) => lang,
-            None => return Ok(()) // No behaviors to execute
+            None => return Ok(()), // No behaviors to execute
         };
         let active_task = self.begin_execution(state, context, lang).await?;
-        let msg = active_task.drive_to_completion().await?;   // Wait for results
-        // TODO: Get latest metaversions from message and reload state if necessary.
+        let msg = active_task.drive_to_completion().await?; // Wait for results
+                                                            // TODO: Get latest metaversions from message and reload state if necessary.
         Ok(())
     }
 }

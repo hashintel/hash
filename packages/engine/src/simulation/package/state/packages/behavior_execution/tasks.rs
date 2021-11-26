@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug)]
 pub struct ExecuteBehaviorsTask {
-    target: MessageTarget,
+    pub target: MessageTarget,
 }
 
 impl GetTaskArgs for ExecuteBehaviorsTask {
