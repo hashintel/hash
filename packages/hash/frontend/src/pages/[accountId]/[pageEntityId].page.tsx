@@ -14,7 +14,6 @@ import { PageBlock } from "../../blocks/page/PageBlock";
 import { PageTitle } from "../../blocks/page/PageTitle";
 import { VersionDropdown } from "../../components/Dropdowns/VersionDropdown";
 import { Button } from "../../components/forms/Button";
-import { PageSidebar } from "../../components/layout/PageSidebar/PageSidebar";
 import {
   GetPageQuery,
   GetPageQueryVariables,
@@ -259,5 +258,4 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
       </MainComponentWithSidebar>
     );
   };
-
 export default Page;
