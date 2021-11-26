@@ -1,2 +1,2 @@
 npm i
-npx ts-node ./src/uploadToAlgolia.ts
+npx ts-node ./src/syncAlgoliaIndex.ts

@@ -19,6 +19,3 @@ jobs:
       - name: Lint for markdown correctness
         run: npm i && npm run lint:markdownlint
 
-      # Runs a single command using the runners shell
-      - name: Lint for objectID
-        run: cd .github/workflows/algolia && sh objectid_lint.sh
