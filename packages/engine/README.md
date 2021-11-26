@@ -16,13 +16,70 @@
 ## Issue Tracking
 We use [GitHub Issues](https://github.com/hashintel/engine/issues) to help prioritize and track bugs and feature requests for HASH. This includes hEngine, as well as our **hCore** IDE, and the [**HASH.ai site**](https://hash.ai/platform/index?utm_medium=organic&utm_source=github_readme_engine). You can also report issues and get support on our public [Discord server](https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_engine). Please submit any issues you encounter.
 
-## Documentation
+## Additional Documentation
 Our [simulation docs](https://hash.ai/docs/simulation?utm_medium=organic&utm_source=github_readme_engine) contain beginner guides and in-depth tutorials for **hCore** today.
 
 The [HASH glossary](https://hash.ai/glossary?utm_medium=organic&utm_source=github_readme_engine) contains helpful explainers around key modeling, simulation and AI-related terms and concepts.
 
 ## Questions & Support
 We're building a community of people who care about enabling better decision-making through modeling and simulation. Our [support forum](https://hash.community/?utm_medium=organic&utm_source=github_readme_engine) and [HASH community Discord server](https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_engine) (requires login) are both great places to meet other modelers and get help.
+
+## Building and Testing
+
+### Dependencies
+Building this project requires the following:
+* The Rust Compiler
+  * We recommend installing and using rustup, following the [instructions on the Rust-Lang website](https://www.rust-lang.org/tools/install)
+  * hEngine runs on the Nightly toolchain. The version is managed by the [rust-toolchain.toml](./rust-toolchain.toml) file. To verify, run `rustup show` from the [engine](.) directory.
+* CMake [3.X.X >= 3.21.2]
+  * CMake installation guidance from the [CMake page](https://cmake.org/install/) or if on MacOS through [brew](https://brew.sh/)
+* Python [3.X >= 3.7]
+  * Python installation guidance from [their website](https://www.python.org/downloads/)
+* Flatbuffers [2.0.0]
+  * Flatbuffers installation guidance from [their website](https://google.github.io/flatbuffers/flatbuffers_guide_building.html)
+    * It's necessary to match the version (2.0.0) with the Rust crate, so build (or otherwise acquire a compiled flatc binary of) the commit associated with the [2.0.0 release](https://github.com/google/flatbuffers/releases/tag/v2.0.0)
+      * One way of checking out the right commit is running the following from within the flatbuffers repository:
+      
+        ```shell
+        latestTag=$(git describe --tags `git rev-list --tags --max-count=1`)
+        git checkout $latestTag
+        ```
+* For now, you need a pre-compiled libv8_monolith.a accessible under the `$V8_PATH` environment variable
+  * The following will produce the necessary files under `~/.v8/vendor` by downloading a precompiled library from a Ruby Gem. The `<URL TO GEM>` should be the link to the relevant gem on the [rubyjs/libv8 releases page](https://github.com/rubyjs/libv8/releases/tag/v8.4.255.0)
+    ```shell
+    mkdir -p ~/.v8/tmp # Create the .v8 directory and a tmp folder
+    cd ~/.v8/tmp
+    curl -L -o libv8.tar.gz <URL TO GEM> # Download the Ruby gem
+    tar xf libv8.tar.gz # Extract the gem
+    tar xf data.tar.gz # Extract the data folder
+    mv -v vendor/v8/* .. # Move out the wanted files
+    cd ..
+    rm -rf tmp # Delete the tmp folder
+    ```
+  * With the V8 folder containing `include` and `out.gn` you can then set the variable for your terminal session with `export V8_PATH=<path to folder>` or you can set it permanently by [adding it to your shell's environment](https://unix.stackexchange.com/questions/117467/how-to-permanently-set-environmental-variables)
+
+#### Possible Dependencies and Debugging
+Depending on how lightweight your OS install is, you may be missing some low level dependencies, so try the following (examples given for Ubuntu/Debian-based Unix systems):
+* `apt-get install build-essentials` - Includes the GCC/g++ compilers, libraries, and some other utilities
+* `apt-get install pkg-config` - A helper tool used when compiling applications and libraries
+* `apt-get install libssl-dev` - A development package of OpenSSL
+* `apt-get install python3-dev` - A collection of developer utilities for Python such as header files (e.g. needed when seeing `fatal error: Python.h: No such file or directory`)
+      
+### Project Setup / Building
+* Run `cargo build`
+* Run `./src/worker/runner/python/setup.sh` (following the instructions from the help)
+
+### Running for development
+> **WIP** - This section is a work-in-progress. More detailed documentation of the CLI's API will be provided. For now, it's easiest to test by running _single runs_ rather than _simple_ experiments.
+
+The CLI binary handles parsing a HASH project, and the lifetime of the engine for an experiment. To use it, download a project by **TODO: Instructions are WIP, coming shortly**.
+
+Then, run the CLI using:
+* `cargo run --bin cli -- -p  "<PATH TO HASH PROJECT DIR>" single_run --num-steps 5`
+
+## Usage
+
+> **WIP** - This section is a work-in-progress. Guidance on production usage will appear here.
 
 ## Main Concepts
 
