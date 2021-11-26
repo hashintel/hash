@@ -129,3 +129,15 @@ export const selectSystemAccountIds = sql`
   where account_id = entity_id
     and properties->>'shortname' = ${SYSTEM_ACCOUNT_SHORTNAME}
 `;
+
+// The system account ID never changes, so we can cache it here.
+let cachedSystemAccountId: string | undefined;
+
+export const getSystemAccountId = async (conn: Connection) => {
+  if (cachedSystemAccountId) {
+    return cachedSystemAccountId;
+  }
+  const res = await conn.oneFirst(selectSystemAccountIds);
+  cachedSystemAccountId = res as string;
+  return cachedSystemAccountId;
+};

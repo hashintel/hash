@@ -63,6 +63,10 @@ services:
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - AWS_S3_UPLOADS_BUCKET=${AWS_S3_UPLOADS_BUCKET}
+      - HASH_OPENSEARCH_HOST=hash-dev-opensearch
+      - HASH_OPENSEARCH_PORT=9200
+      - HASH_OPENSEARCH_USERNAME=admin
+      - HASH_OPENSEARCH_PASSWORD=admin
       - HASH_COLLAB_QUEUE_NAME=collab
     # Wait until the database is running before starting the API
     command:
@@ -126,7 +130,6 @@ services:
       - HASH_SEARCH_QUEUE_NAME=search
       - HASH_OPENSEARCH_HOST=hash-dev-opensearch
       - HASH_OPENSEARCH_PORT=9200
-      - HASH_OPENSEARCH_HTTPS_ENABLED=false
       - HASH_OPENSEARCH_USERNAME=admin
       - HASH_OPENSEARCH_PASSWORD=admin
       - HASH_PG_HOST=hash-dev-pg
@@ -144,4 +147,4 @@ volumes:
   # Make sure you have created this volume: docker volume create hash-dev-pg
   hash-dev-pg:
     external: true
-  hash-dev-opensearch:
+  hash-dev-opensearch: null

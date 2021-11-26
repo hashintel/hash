@@ -41,13 +41,6 @@ class __OrgEmailInvitation extends AccessToken {
     const dbEntityType = await client.getSystemTypeLatestVersion({
       systemTypeName: "OrgEmailInvitation",
     });
-
-    if (!dbEntityType) {
-      throw new Error(
-        "OrgEmailInvitation system entity type not found in datastore",
-      );
-    }
-
     return dbEntityType;
   }
 

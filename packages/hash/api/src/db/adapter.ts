@@ -232,7 +232,7 @@ export interface DBClient {
    * */
   getSystemTypeLatestVersion(params: {
     systemTypeName: SystemType;
-  }): Promise<EntityType | undefined>;
+  }): Promise<EntityType>;
 
   /**
    * Update an entity type.
@@ -415,4 +415,31 @@ export interface DBClient {
     accountId: string;
     entityId: string;
   }): Promise<Graph[]>;
+
+  /**
+   * Get all ancestors of a given entity at a specified depth.
+   * @param params.accountId: the account ID of the reference entity.
+   * @param params.entityId: the ID of the reference entity.
+   * @param params.depth: the length of the path from the ancestor to the reference.
+   * */
+  getAncestorReferences(params: {
+    accountId: string;
+    entityId: string;
+    depth?: number;
+  }): Promise<{ accountId: string; entityId: string }[]>;
+
+  /** Get the accountId of the system account. */
+  getSystemAccountId(): Promise<string>;
+
+  /**
+   * Get all entities which the given entity links to.
+   * @param params.accountId: the account ID of the reference entity.
+   * @param params.entityId: the ID of the reference entity.
+   * @param params.entityVersionId: the version ID of the reference entity.
+   * */
+  getChildren(params: {
+    accountId: string;
+    entityId: string;
+    entityVersionId: string;
+  }): Promise<Entity[]>;
 }

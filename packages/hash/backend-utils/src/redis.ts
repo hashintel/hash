@@ -1,6 +1,7 @@
 import { promisify } from "util";
 
 import { createClient } from "redis";
+import { DataSource } from "apollo-datasource";
 
 export type RedisConfig = {
   host: string;
@@ -8,7 +9,7 @@ export type RedisConfig = {
 };
 
 /** An async-await compatible wrapper around a `RedisClient`. */
-export class AsyncRedisClient {
+export class AsyncRedisClient extends DataSource {
   /** Pop an item from the right side of the `src` list, push it onto the left side
    * of the `dst` list, and return the item. If the `src` list is empty, and
    * `timeoutSecs` is `0`, the function blocks indefinitely until an item arrives,
@@ -57,6 +58,7 @@ export class AsyncRedisClient {
   private quit: () => Promise<"OK">;
 
   constructor(cfg: RedisConfig) {
+    super();
     const client = createClient({
       ...cfg,
       retry_strategy: (options) => {

@@ -44,11 +44,6 @@ class __User extends Account {
     const userEntityType = await client.getSystemTypeLatestVersion({
       systemTypeName: "User",
     });
-
-    if (!userEntityType) {
-      throw new Error("User system entity type not found in datastore");
-    }
-
     return userEntityType;
   }
 

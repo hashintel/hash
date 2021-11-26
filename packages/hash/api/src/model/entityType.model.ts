@@ -111,10 +111,6 @@ class __EntityType {
     const dbEntityTypeEntityType = await client.getSystemTypeLatestVersion({
       systemTypeName: "EntityType",
     });
-    if (!dbEntityTypeEntityType) {
-      throw new Error("EntityType system entity type not found in datastore");
-    }
-
     return new EntityType(dbEntityTypeEntityType);
   }
 

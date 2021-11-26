@@ -94,19 +94,19 @@ export const selectEntityTypeAllVersions = (params: {
 export const getSystemTypeLatestVersion = async (
   conn: Connection,
   params: { systemTypeName: SystemType },
-): Promise<EntityType | undefined> => {
+): Promise<EntityType> => {
   const { systemTypeName } = params;
   if (!SYSTEM_TYPES.includes(systemTypeName)) {
     throw new Error(`Provided type ${systemTypeName} is not a system type.`);
   }
-  const row = await conn.maybeOne(sql`
+  const row = await conn.one(sql`
     with all_matches as (
       ${selectSystemEntityTypes(params)}
     )
     select distinct on (entity_type_id) * from all_matches
     order by entity_type_id, version_created_at desc
   `);
-  return row ? mapPGRowToEntityType(row) : undefined;
+  return mapPGRowToEntityType(row);
 };
 
 export const getAccountEntityTypes = async (
@@ -119,7 +119,7 @@ export const getAccountEntityTypes = async (
       ${
         params.includeOtherTypesInUse
           ? sql`or ver.entity_type_version_id in (
-                  select distinct entity_type_version_id 
+                  select distinct entity_type_version_id
                   from entity_versions where account_id = ${params.accountId}
                 )`
           : sql``

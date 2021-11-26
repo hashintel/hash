@@ -13,6 +13,7 @@ import { Connection } from "./types";
 import {
   accountExists,
   getEntityAccountId,
+  getSystemAccountId,
   insertAccount,
   insertEntityAccount,
 } from "./account";
@@ -40,7 +41,7 @@ import {
   updateEntity,
   updateEntityAccountId,
 } from "./entity";
-import { insertLinks } from "./link";
+import { insertLinks, getAncestorReferences, getChildren } from "./link";
 import { getUserByEmail, getUserByShortname } from "./user";
 import {
   insertVerificationCode,
@@ -55,6 +56,7 @@ import { jsonSchema } from "../../lib/schemas/jsonSchema";
 import { SystemType } from "../../types/entityTypes";
 import { Visibility } from "../../graphql/apiTypes.gen";
 import { getOrgByShortname } from "./org";
+import { DbEntityTypeNotFoundError } from "../errors";
 
 export class PostgresClient implements DBClient {
   private conn: Connection;
@@ -117,7 +119,7 @@ export class PostgresClient implements DBClient {
 
   async getSystemTypeLatestVersion(params: {
     systemTypeName: SystemType;
-  }): Promise<EntityType | undefined> {
+  }): Promise<EntityType> {
     return getSystemTypeLatestVersion(this.conn, params);
   }
 
@@ -155,17 +157,8 @@ export class PostgresClient implements DBClient {
         : entityTypeVersionId
         ? await getEntityType(conn, { entityVersionId: entityTypeVersionId })
         : await getEntityTypeLatestVersion(conn, { entityId: entityTypeId! });
-
       if (!entityType) {
-        throw new Error(
-          `Entity type not found with ${
-            entityTypeVersionId
-              ? `entityTypeVersionId ${entityTypeVersionId}.`
-              : entityTypeId
-              ? `entityTypeId ${entityTypeId}.`
-              : `systemTypeName '${systemTypeName}'`
-          }`,
-        );
+        throw new DbEntityTypeNotFoundError(params);
       }
 
       // @todo: if versionId is provided, check that it's a UUID
@@ -497,5 +490,21 @@ export class PostgresClient implements DBClient {
     entityId: string;
   }) {
     return getImpliedEntityHistory(this.conn, params);
+  }
+
+  async getAncestorReferences(params: { accountId: string; entityId: string }) {
+    return getAncestorReferences(this.conn, params);
+  }
+
+  async getSystemAccountId() {
+    return getSystemAccountId(this.conn);
+  }
+
+  async getChildren(params: {
+    accountId: string;
+    entityId: string;
+    entityVersionId: string;
+  }) {
+    return getChildren(this.conn, params);
   }
 }

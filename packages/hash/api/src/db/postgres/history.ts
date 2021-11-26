@@ -211,7 +211,7 @@ export const getImpliedEntityHistory = async (
       const refLinks = graph
         .get(ref.entityId)!
         .filter((link) =>
-          link.validForsourceEntityVersionIds.has(ref.entityVersionId),
+          link.validForSourceEntityVersionIds.has(ref.entityVersionId),
         );
 
       // For each link made by the reference entity, if it's a non-fixed link (i.e. it's

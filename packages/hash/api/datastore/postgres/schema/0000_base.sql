@@ -118,12 +118,12 @@ create index if not exists entity_account_entity_id on entity_account (entity_id
 create table if not exists outgoing_links (
     source_account_id              uuid not null,
     source_entity_id               uuid not null,
-    destination_account_id              uuid not null,
-    destination_entity_id               uuid not null,
+    destination_account_id         uuid not null,
+    destination_entity_id          uuid not null,
     -- destination_entity_version_id is part of the primary key, which means it cannot be null,
     -- so we just set it to the zero UUID. We're not currently using outgoing_links for
     -- anything, but when we do, we will need to be aware of this.
-    destination_entity_version_id       uuid not null default '00000000-0000-0000-0000-000000000000'::uuid,
+    destination_entity_version_id  uuid not null default '00000000-0000-0000-0000-000000000000'::uuid,
     source_entity_version_ids      uuid[] not null,
 
     constraint outgoing_links_pk primary key (
