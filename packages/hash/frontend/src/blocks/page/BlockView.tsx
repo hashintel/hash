@@ -21,7 +21,7 @@ import {
   subscribeToEntityStore,
 } from "@hashintel/hash-shared/entityStorePlugin";
 import { BlockContextMenu } from "../../components/BlockContextMenu/BlockContextMenu";
-import { BlockSuggesterProps } from "../../components/BlockSuggester/BlockSuggester";
+import { BlockSuggesterProps } from "./createSuggester/BlockSuggester";
 import DragVertical from "../../components/Icons/DragVertical";
 import styles from "./style.module.css";
 import { RenderPortal } from "./usePortals";

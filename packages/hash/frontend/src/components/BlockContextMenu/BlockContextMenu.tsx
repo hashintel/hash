@@ -13,9 +13,9 @@ import { blockDomId } from "../../blocks/page/BlockView";
 import {
   BlockSuggester,
   BlockSuggesterProps,
-} from "../BlockSuggester/BlockSuggester";
+} from "../../blocks/page/createSuggester/BlockSuggester";
 
-import { useGetAccounts } from "../hooks/useGetAccounts";
+import { useAccountInfos } from "../hooks/useAccountInfos";
 
 type BlockContextMenuProps = {
   blockSuggesterProps: BlockSuggesterProps;
@@ -56,7 +56,7 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [subMenuVisible, setSubMenuVisible] = useState(false);
 
-  const { data: accounts } = useGetAccounts();
+  const { data: accounts } = useAccountInfos();
 
   const blockData = entityId ? entityStore.saved[entityId] : null;
 

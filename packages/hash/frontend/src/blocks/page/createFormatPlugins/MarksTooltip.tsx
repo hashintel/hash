@@ -1,6 +1,6 @@
 import React from "react";
 import { tw } from "twind";
-import IconDropdown from "../Icons/IconDropdown";
+import IconDropdown from "../../../components/Icons/IconDropdown";
 
 interface MarksTooltipProps {
   activeMarks: { name: string; attrs?: Record<string, string> }[];

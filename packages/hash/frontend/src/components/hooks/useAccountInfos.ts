@@ -3,7 +3,10 @@ import { useQuery } from "@apollo/client";
 import { GetAccountsQuery } from "../../graphql/apiTypes.gen";
 import { getAccounts } from "../../graphql/queries/account.queries";
 
-export const useGetAccounts = () => {
+export const useAccountInfos = (): {
+  loading: boolean;
+  data: { entityId: string; shortname: string; name: string }[];
+} => {
   const { data, loading } = useQuery<GetAccountsQuery>(getAccounts);
 
   const accounts = useMemo(() => {
@@ -22,8 +25,8 @@ export const useGetAccounts = () => {
         shortname: account.properties.shortname!,
         name:
           "preferredName" in account.properties
-            ? account.properties.preferredName
-            : account.properties.shortname,
+            ? account.properties.preferredName!
+            : account.properties.shortname!,
       };
     });
   }, [data]);

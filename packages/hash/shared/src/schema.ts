@@ -59,6 +59,34 @@ export const createSchema = () =>
           return ["br"];
         },
       },
+      mention: {
+        inline: true,
+        group: "inline",
+        atom: true,
+        attrs: { mentionType: { default: null }, entityId: { default: null } },
+        toDOM: (node) => {
+          const { mentionType, entityId } = node.attrs;
+          return [
+            "span",
+            {
+              "data-hash-type": "mention",
+              "data-mention-type": mentionType,
+              "data-entity-id": entityId,
+            },
+          ] as const;
+        },
+        parseDOM: [
+          {
+            tag: 'span[data-hash-type="mention"]',
+            getAttrs(dom) {
+              return {
+                mentionType: dom.getAttribute("data-mention-type"),
+                entityId: dom.getAttribute("data-entity-id"),
+              };
+            },
+          },
+        ],
+      },
     },
     marks: {
       strong: {
