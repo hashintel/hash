@@ -1,20 +1,27 @@
 import React, { useState } from "react";
 import { tw } from "twind";
+import { format } from "date-fns";
+
 import DeleteIcon from "@material-ui/icons/DeleteOutline";
 import CopyIcon from "@material-ui/icons/FileCopyOutlined";
 import LoopIcon from "@material-ui/icons/LoopOutlined";
 import LinkIcon from "@material-ui/icons/LinkOutlined";
 import { useKey } from "rooks";
+
+import { EntityStore, isBlockEntity } from "@hashintel/hash-shared/entityStore";
 import { blockDomId } from "../../blocks/page/BlockView";
 import {
   BlockSuggester,
   BlockSuggesterProps,
 } from "../BlockSuggester/BlockSuggester";
 
+import { useGetAccounts } from "../hooks/useGetAccounts";
+
 type BlockContextMenuProps = {
   blockSuggesterProps: BlockSuggesterProps;
   closeMenu: () => void;
   entityId: string | null;
+  entityStore: EntityStore;
 };
 
 const MENU_ITEMS = [
@@ -44,9 +51,18 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
   blockSuggesterProps,
   closeMenu,
   entityId,
+  entityStore,
 }) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [subMenuVisible, setSubMenuVisible] = useState(false);
+
+  const { data: accounts } = useGetAccounts();
+
+  const blockData = entityId ? entityStore.saved[entityId] : null;
+
+  if (blockData && !isBlockEntity(blockData)) {
+    throw new Error("BlockContextMenu linked to non-block entity");
+  }
 
   useKey(["ArrowUp", "ArrowDown"], (event) => {
     event.preventDefault();
@@ -137,8 +153,25 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
       <div
         className={tw`border-t-1 border-gray-200 px-4 py-2 text-xs text-gray-400`}
       >
-        <p>Last edited by Valentino Ugbala</p>
-        <p>11/03/2021</p>
+        <p>
+          Last edited by {/* @todo use lastedited value when available */}
+          {
+            accounts.find(
+              (account) =>
+                account.entityId === blockData?.properties.entity.createdById,
+            )?.name
+          }
+        </p>
+        {typeof blockData?.properties.entity.updatedAt === "string" && (
+          <p>
+            {format(new Date(blockData.properties.entity.updatedAt), "hh.mm a")}
+            {", "}
+            {format(
+              new Date(blockData.properties.entity.updatedAt),
+              "dd/MM/yyyy",
+            )}
+          </p>
+        )}
       </div>
     </div>
   );

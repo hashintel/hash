@@ -11,6 +11,7 @@ export const getAccounts = gql`
       ... on User {
         properties {
           shortname
+          preferredName
           emails {
             address
             primary
@@ -21,6 +22,7 @@ export const getAccounts = gql`
       ... on Org {
         properties {
           shortname
+          name
         }
       }
     }
