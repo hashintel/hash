@@ -1,4 +1,4 @@
-import { useEffect, useState, VoidFunctionComponent } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { useMutation } from "@apollo/client";
 
