@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { tw } from "twind";
-import dayjs from "dayjs";
+import { format } from "date-fns";
 
 import DeleteIcon from "@material-ui/icons/DeleteOutline";
 import CopyIcon from "@material-ui/icons/FileCopyOutlined";
@@ -162,11 +162,16 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
             )?.name
           }
         </p>
-        <p>
-          {dayjs(blockData?.properties.entity.updatedAt).format("hh.mm a")}
-          {", "}
-          {dayjs(blockData?.properties.entity.updatedAt).format("DD/MM/YYYY")}
-        </p>
+        {typeof blockData?.properties.entity.updatedAt === "string" && (
+          <p>
+            {format(new Date(blockData.properties.entity.updatedAt), "hh.mm a")}
+            {", "}
+            {format(
+              new Date(blockData.properties.entity.updatedAt),
+              "dd/MM/yyyy",
+            )}
+          </p>
+        )}
       </div>
     </div>
   );

@@ -30,7 +30,6 @@
     "@twind/next": "1.0.8",
     "ajv": "8.7.1",
     "date-fns": "2.22.1",
-    "dayjs": "1.10.7",
     "framer-motion": "^4.1.0",
     "graphql": "15.5.0",
     "html-webpack-plugin": "4.5.1",
