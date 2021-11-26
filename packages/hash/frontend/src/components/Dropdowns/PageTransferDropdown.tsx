@@ -7,7 +7,11 @@ import { MutationTransferEntityArgs } from "../../graphql/apiTypes.gen";
 import { transferEntityMutation } from "../../graphql/queries/entityType.queries";
 import { getAccountPages } from "../../graphql/queries/account.queries";
 
-export const PageTransferDropdown: VoidFunctionComponent = () => {
+export default function PageTransferDropdown({
+  setPageState,
+}: {
+  setPageState: React.Dispatch<React.SetStateAction<"normal" | "transferring">>;
+}) {
   const router = useRouter();
 
   const pageEntityId = router.query.pageEntityId as string;
@@ -36,10 +40,11 @@ export const PageTransferDropdown: VoidFunctionComponent = () => {
       ],
     })
       .then(() => {
-        router.replace(`/${newAccountId}/${pageEntityId}`);
+        setPageState("transferring");
+        void router.replace(`/${newAccountId}/${pageEntityId}`);
       })
       .catch(console.error);
   };
 
   return <AccountSelect value={selectedPage} onChange={transferAccount} />;
-};
+}

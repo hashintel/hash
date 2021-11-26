@@ -6,7 +6,7 @@ import { GetStaticPaths, GetStaticProps } from "next";
 import { useRouter } from "next/router";
 import { tw } from "twind";
 
-import { useMemo, VoidFunctionComponent } from "react";
+import { useEffect, useMemo, useState, VoidFunctionComponent } from "react";
 import { useCollabPositions } from "../../blocks/page/collab/useCollabPositions";
 import { useCollabPositionTracking } from "../../blocks/page/collab/useCollabPositionTracking";
 import { useCollabPositionReporter } from "../../blocks/page/collab/useCollabPositionReporter";
@@ -21,7 +21,8 @@ import {
 } from "../../graphql/apiTypes.gen";
 import styles from "../index.module.scss";
 import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
-import { PageTransferDropdown } from "../../components/Dropdowns/PageTransferDropdown";
+import PageTransferDropdown from "../../components/Dropdowns/PageTransferDropdown";
+import MainComponentWithSidebar from "../../components/pages/MainComponentWithSidebar";
 
 /**
  * @todo Remove when position tracking is fully implemented.
@@ -77,12 +78,16 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
     // versionId is an optional param for requesting a specific page version
     const versionId = router.query.version as string | undefined;
 
-    const { data, error } = useQuery<GetPageQuery, GetPageQueryVariables>(
-      getPageQuery,
-      {
-        variables: { entityId: pageEntityId, accountId, versionId },
-      },
+    const [pageState, setPageState] = useState<"normal" | "transferring">(
+      "normal",
     );
+
+    const { data, error, loading } = useQuery<
+      GetPageQuery,
+      GetPageQueryVariables
+    >(getPageQuery, {
+      variables: { entityId: pageEntityId, accountId, versionId },
+    });
 
     /**
      * This is to ensure that certain blocks are always contained within the
@@ -123,108 +128,135 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
     const reportPosition = useCollabPositionReporter(accountId, pageEntityId);
     useCollabPositionTracking(reportPosition);
 
+    useEffect(() => {
+      if (pageState !== "normal") {
+        setPageState("normal");
+      }
+    }, [router.asPath]);
+
+    if (pageState === "transferring") {
+      return (
+        <MainComponentWithSidebar>
+          <h1>Transferring you to the new page...</h1>
+        </MainComponentWithSidebar>
+      );
+    }
+
+    if (loading) {
+      return (
+        <MainComponentWithSidebar>
+          <h1>Loading...</h1>
+        </MainComponentWithSidebar>
+      );
+    }
+
     if (error) {
-      return <h1>Error: {error.message}</h1>;
+      return (
+        <MainComponentWithSidebar>
+          <h1>Error: {error.message}</h1>
+        </MainComponentWithSidebar>
+      );
     }
 
     if (!data) {
-      return <h1>No data loaded.</h1>;
+      return (
+        <MainComponentWithSidebar>
+          <h1>No data loaded.</h1>
+        </MainComponentWithSidebar>
+      );
     }
 
     const { title, contents } = data.page.properties;
 
     return (
-      <div className={styles.MainWrapper}>
-        <PageSidebar />
-        <div className={styles.MainContent}>
-          {isCollabPositionDebugToolbarEnabled() ? (
-            <div
-              style={{
-                background: "#eee",
-                padding: 20,
-                borderRadius: 5,
-                marginBottom: 10,
-                minHeight: 180,
-              }}
-            >
+      <MainComponentWithSidebar>
+        {isCollabPositionDebugToolbarEnabled() ? (
+          <div
+            style={{
+              background: "#eee",
+              padding: 20,
+              borderRadius: 5,
+              marginBottom: 10,
+              minHeight: 180,
+            }}
+          >
+            <div>
+              <Button
+                onClick={() => {
+                  reportPosition(
+                    `${Math.round(Math.random() * 10000)}`.padStart(5, "0"),
+                  );
+                }}
+              >
+                report random block id
+              </Button>{" "}
+              <Button
+                type="submit"
+                onClick={() => {
+                  reportPosition(null);
+                }}
+              >
+                report empty block id
+              </Button>
+            </div>
+            <h3 style={{ marginTop: 10 }}>Collaborator positions</h3>
+            <ul>
+              {collabPositions.map(({ userShortname, userId, entityId }) => (
+                <li key={userId}>
+                  <b>{userShortname}:</b> block #{entityId}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+
+        <header>
+          <div className={styles.PageHeader}>
+            <div>
+              {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
+              <label>Title</label>
+              <PageTitle
+                value={title}
+                accountId={data.page.accountId}
+                metadataId={data.page.entityId}
+              />
+            </div>
+            <div className={tw`mr-4`}>
+              {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
+              <label>Version</label>
               <div>
-                <Button
-                  onClick={() => {
-                    reportPosition(
-                      `${Math.round(Math.random() * 10000)}`.padStart(5, "0"),
+                <VersionDropdown
+                  value={data.page.entityVersionId}
+                  versions={data.page.history ?? []}
+                  onChange={(changedVersionId) => {
+                    void router.push(
+                      `/${accountId}/${pageEntityId}?version=${changedVersionId}`,
                     );
                   }}
-                >
-                  report random block id
-                </Button>{" "}
-                <Button
-                  type="submit"
-                  onClick={() => {
-                    reportPosition(null);
-                  }}
-                >
-                  report empty block id
-                </Button>
-              </div>
-              <h3 style={{ marginTop: 10 }}>Collaborator positions</h3>
-              <ul>
-                {collabPositions.map(({ userShortname, userId, entityId }) => (
-                  <li key={userId}>
-                    <b>{userShortname}:</b> block #{entityId}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-
-          <header>
-            <div className={styles.PageHeader}>
-              <div>
-                {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
-                <label>Title</label>
-                <PageTitle
-                  value={title}
-                  accountId={data.page.accountId}
-                  metadataId={data.page.entityId}
                 />
               </div>
-              <div className={tw`mr-4`}>
-                {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
-                <label>Version</label>
-                <div>
-                  <VersionDropdown
-                    value={data.page.entityVersionId}
-                    versions={data.page.history ?? []}
-                    onChange={(changedVersionId) => {
-                      void router.push(
-                        `/${accountId}/${pageEntityId}?version=${changedVersionId}`,
-                      );
-                    }}
-                  />
-                </div>
-              </div>
+            </div>
+            <div>
+              {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
+              <label>Transfer Page</label>
               <div>
-                {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
-                <label>Transfer Page</label>
-                <div>
-                  <PageTransferDropdown />
-                </div>
+                <PageTransferDropdown setPageState={setPageState} />
               </div>
             </div>
-          </header>
+          </div>
+        </header>
 
-          <main>
-            <CollabPositionProvider value={collabPositions}>
-              <PageBlock
-                accountId={data.page.accountId}
-                contents={contents}
-                blocksMeta={preloadedBlocks}
-                entityId={data.page.entityId}
-              />
-            </CollabPositionProvider>
-          </main>
-        </div>
-      </div>
+        <main>
+          <CollabPositionProvider value={collabPositions}>
+            <PageBlock
+              accountId={data.page.accountId}
+              contents={contents}
+              blocksMeta={preloadedBlocks}
+              entityId={data.page.entityId}
+            />
+          </CollabPositionProvider>
+        </main>
+      </MainComponentWithSidebar>
     );
   };
 
