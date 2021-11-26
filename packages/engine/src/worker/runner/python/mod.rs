@@ -25,11 +25,11 @@ use crate::datastore::batch::Batch;
 use crate::datastore::prelude::SharedStore;
 use crate::datastore::table::sync::StateSync;
 use crate::datastore::table::task_shared_store::{PartialSharedState, SharedState};
-use crate::gen::StateInterimSyncArgs;
 use crate::proto::{ExperimentID, SimulationShortID};
 use crate::simulation::enum_dispatch::TaskSharedStore;
 use crate::types::WorkerIndex;
 
+use crate::gen::sync_state_interim_generated::StateInterimSyncArgs;
 use crate::worker::runner::comms::PackageMsgs;
 use crate::worker::{Error as WorkerError, Result as WorkerResult};
 pub use error::{Error, Result};
@@ -37,7 +37,7 @@ pub use error::{Error, Result};
 fn pkgs_to_fbs<'f>(
     fbb: &mut FlatBufferBuilder<'f>,
     pkgs: &PackageMsgs,
-) -> Result<WIPOffset<crate::gen::PackageConfig<'f>>> {
+) -> Result<WIPOffset<crate::gen::package_config_generated::PackageConfig<'f>>> {
     let pkgs = pkgs
         .0
         .iter()
@@ -45,16 +45,16 @@ fn pkgs_to_fbs<'f>(
             let package_name = fbb.create_string(init_msg.name.clone().into());
 
             let serialized_payload = fbb.create_vector(&serde_json::to_vec(&init_msg.payload)?);
-            let payload = gen::Serialized::create(
+            let payload = gen::serialized_generated::Serialized::create(
                 fbb,
-                &gen::SerializedArgs {
+                &gen::serialized_generated::SerializedArgs {
                     inner: Some(serialized_payload),
                 },
             );
 
-            Ok(gen::Package::create(
+            Ok(gen::package_config_generated::Package::create(
                 fbb,
-                &gen::PackageArgs {
+                &gen::package_config_generated::PackageArgs {
                     type_: init_msg.r#type.into(),
                     name: Some(package_name),
                     sid: package_id.as_usize() as u64,
@@ -65,9 +65,9 @@ fn pkgs_to_fbs<'f>(
         .collect::<Result<Vec<_>>>()?;
 
     let pkgs = fbb.create_vector(&pkgs);
-    Ok(gen::PackageConfig::create(
+    Ok(gen::package_config_generated::PackageConfig::create(
         fbb,
-        &gen::PackageConfigArgs {
+        &gen::package_config_generated::PackageConfigArgs {
             packages: Some(pkgs),
         },
     ))
@@ -76,7 +76,7 @@ fn pkgs_to_fbs<'f>(
 fn shared_ctx_to_fbs<'f>(
     fbb: &mut FlatBufferBuilder<'f>,
     shared_ctx: &SharedStore,
-) -> WIPOffset<crate::gen::SharedContext<'f>> {
+) -> WIPOffset<crate::gen::shared_context_generated::SharedContext<'f>> {
     let mut batch_offsets = Vec::new();
     for (_, dataset) in shared_ctx.datasets.iter() {
         batch_offsets.push(batch_to_fbs(fbb, dataset));
@@ -88,9 +88,9 @@ fn shared_ctx_to_fbs<'f>(
     let batch_fbs_vec = fbb.create_vector(&batch_offsets);
 
     // Build the SharedContext using the vec
-    gen::SharedContext::create(
+    gen::shared_context_generated::SharedContext::create(
         fbb,
-        &gen::SharedContextArgs {
+        &gen::shared_context_generated::SharedContextArgs {
             datasets: Some(batch_fbs_vec),
         },
     )
@@ -99,16 +99,17 @@ fn shared_ctx_to_fbs<'f>(
 fn experiment_init_to_nng(init: &ExperimentInitRunnerMsg) -> Result<nng::Message> {
     // TODO - initial buffer size
     let mut fbb = flatbuffers::FlatBufferBuilder::new();
-    let experiment_id = gen::ExperimentID(*(Uuid::from_str(&init.experiment_id)?.as_bytes()));
+    let experiment_id =
+        gen::init_generated::ExperimentID(*(Uuid::from_str(&init.experiment_id)?.as_bytes()));
 
     // Build the SharedContext Flatbuffer Batch objects and collect their offsets in a vec
     let shared_context = shared_ctx_to_fbs(&mut fbb, &init.shared_context);
 
     // Build the Flatbuffer Package objects and collect their offsets in a vec
     let package_config = pkgs_to_fbs(&mut fbb, &init.package_config)?;
-    let msg = gen::Init::create(
+    let msg = gen::init_generated::Init::create(
         &mut fbb,
-        &crate::gen::InitArgs {
+        &crate::gen::init_generated::InitArgs {
             experiment_id: Some(&experiment_id),
             worker_index: init.worker_index as u64,
             shared_context: Some(shared_context),
@@ -128,10 +129,10 @@ fn experiment_init_to_nng(init: &ExperimentInitRunnerMsg) -> Result<nng::Message
 fn metaversion_to_fbs<'f>(
     fbb: &mut FlatBufferBuilder<'f>,
     metaversion: &crate::datastore::batch::metaversion::Metaversion,
-) -> WIPOffset<crate::gen::Metaversion<'f>> {
-    gen::Metaversion::create(
+) -> WIPOffset<crate::gen::metaversion_generated::Metaversion<'f>> {
+    gen::metaversion_generated::Metaversion::create(
         fbb,
-        &gen::MetaversionArgs {
+        &gen::metaversion_generated::MetaversionArgs {
             memory: metaversion.memory(),
             batch: metaversion.batch(),
         },
@@ -141,12 +142,12 @@ fn metaversion_to_fbs<'f>(
 fn batch_to_fbs<'f, B: Batch, T: Deref<Target = B>>(
     fbb: &mut FlatBufferBuilder<'f>,
     batch: &T,
-) -> WIPOffset<crate::gen::Batch<'f>> {
+) -> WIPOffset<crate::gen::batch_generated::Batch<'f>> {
     let batch_id_offset = fbb.create_string(batch.get_batch_id());
     let metaversion_offset = metaversion_to_fbs(fbb, batch.metaversion());
-    gen::Batch::create(
+    gen::batch_generated::Batch::create(
         fbb,
-        &gen::BatchArgs {
+        &gen::batch_generated::BatchArgs {
             batch_id: Some(batch_id_offset),
             metaversion: Some(metaversion_offset),
         },
@@ -156,10 +157,8 @@ fn batch_to_fbs<'f, B: Batch, T: Deref<Target = B>>(
 fn shared_store_to_fbs<'f>(
     fbb: &mut FlatBufferBuilder<'f>,
     shared_store: TaskSharedStore,
-) -> WIPOffset<crate::gen::StateInterimSync<'f>> {
-    let (
-        agent_batches, msg_batches, indices
-    ) = match shared_store.state {
+) -> WIPOffset<crate::gen::sync_state_interim_generated::StateInterimSync<'f>> {
+    let (agent_batches, msg_batches, indices) = match shared_store.state {
         SharedState::None => (vec![], vec![], vec![]),
         SharedState::Read(state) => {
             let a: Vec<_> = state
@@ -234,23 +233,26 @@ fn shared_store_to_fbs<'f>(
         agent_batches: Some(fbb.create_vector(&agmsg_batches)),
         message_batches: Some(fbb.create_vector(&msg_batches)),
     };
-    crate::gen::StateInterimSync::create(fbb, &args)
+    crate::gen::sync_state_interim_generated::StateInterimSync::create(fbb, &args)
 }
 
 fn str_to_serialized<'f>(
     fbb: &mut FlatBufferBuilder<'f>,
     s: &str,
-) -> WIPOffset<crate::gen::Serialized<'f>> {
+) -> WIPOffset<crate::gen::serialized_generated::Serialized<'f>> {
     let inner = fbb.create_vector(s.as_bytes());
-    crate::gen::Serialized::create(fbb, &crate::gen::SerializedArgs { inner: Some(inner) })
+    crate::gen::serialized_generated::Serialized::create(
+        fbb,
+        &crate::gen::serialized_generated::SerializedArgs { inner: Some(inner) },
+    )
 }
 
 fn state_sync_to_fbs<'f>(
     fbb: &mut FlatBufferBuilder<'f>,
     msg: StateSync,
 ) -> Result<(
-    WIPOffset<Vector<'f, ForwardsUOffset<crate::gen::Batch<'f>>>>,
-    WIPOffset<Vector<'f, ForwardsUOffset<crate::gen::Batch<'f>>>>,
+    WIPOffset<Vector<'f, ForwardsUOffset<crate::gen::batch_generated::Batch<'f>>>>,
+    WIPOffset<Vector<'f, ForwardsUOffset<crate::gen::batch_generated::Batch<'f>>>>,
 )> {
     let agent_pool = msg.agent_pool.read_batches()?;
     let agent_pool: Vec<_> = agent_pool
@@ -305,15 +307,15 @@ fn inbound_to_nng(
             );
             (
                 msg.as_union_value(),
-                crate::gen::RunnerInboundMsgPayload::TaskMsg,
+                crate::gen::runner_inbound_msg_generated::RunnerInboundMsgPayload::TaskMsg,
             )
         }
         InboundToRunnerMsgPayload::CancelTask(_) => todo!(), // Unused for now
         InboundToRunnerMsgPayload::StateSync(msg) => {
             let (agent_pool, message_pool) = state_sync_to_fbs(fbb, msg)?;
-            let msg = crate::gen::StateSync::create(
+            let msg = crate::gen::sync_state_generated::StateSync::create(
                 fbb,
-                &crate::gen::StateSyncArgs {
+                &crate::gen::sync_state_generated::StateSyncArgs {
                     agent_pool: Some(agent_pool),
                     message_pool: Some(message_pool),
                     current_step: -1, // TODO: current_step shouldn't be propagated here
@@ -321,14 +323,14 @@ fn inbound_to_nng(
             );
             (
                 msg.as_union_value(),
-                crate::gen::RunnerInboundMsgPayload::StateSync,
+                crate::gen::runner_inbound_msg_generated::RunnerInboundMsgPayload::StateSync,
             )
         }
         InboundToRunnerMsgPayload::StateSnapshotSync(msg) => {
             let (agent_pool, message_pool) = state_sync_to_fbs(fbb, msg)?;
-            let msg = crate::gen::StateSnapshotSync::create(
+            let msg = crate::gen::sync_state_snapshot_generated::StateSnapshotSync::create(
                 fbb,
-                &crate::gen::StateSnapshotSyncArgs {
+                &crate::gen::sync_state_snapshot_generated::StateSnapshotSyncArgs {
                     agent_pool: Some(agent_pool),
                     message_pool: Some(message_pool),
                     current_step: -1, // TODO: current_step shouldn't be propagated here
@@ -336,49 +338,49 @@ fn inbound_to_nng(
             );
             (
                 msg.as_union_value(),
-                crate::gen::RunnerInboundMsgPayload::StateSnapshotSync,
+                crate::gen::runner_inbound_msg_generated::RunnerInboundMsgPayload::StateSnapshotSync,
             )
         }
         InboundToRunnerMsgPayload::ContextBatchSync(msg) => {
             let batch = msg.context_batch.read();
             let batch = batch_to_fbs(fbb, &batch);
-            let msg = crate::gen::ContextBatchSync::create(
+            let msg = crate::gen::sync_context_batch_generated::ContextBatchSync::create(
                 fbb,
-                &crate::gen::ContextBatchSyncArgs {
+                &crate::gen::sync_context_batch_generated::ContextBatchSyncArgs {
                     context_batch: Some(batch),
                     current_step: -1, // TODO: Should have current_step in ContextBatchSync
                 },
             );
             (
                 msg.as_union_value(),
-                crate::gen::RunnerInboundMsgPayload::ContextBatchSync,
+                crate::gen::runner_inbound_msg_generated::RunnerInboundMsgPayload::ContextBatchSync,
             )
         }
         InboundToRunnerMsgPayload::StateInterimSync(msg) => {
             let msg = shared_store_to_fbs(fbb, msg.shared_store);
             (
                 msg.as_union_value(),
-                crate::gen::RunnerInboundMsgPayload::StateInterimSync,
+                crate::gen::runner_inbound_msg_generated::RunnerInboundMsgPayload::StateInterimSync,
             )
         }
         InboundToRunnerMsgPayload::TerminateSimulationRun => {
             let msg = crate::gen::runner_inbound_msg_generated::TerminateSimulationRun::create(
                 fbb,
-                &crate::gen::TerminateSimulationRunArgs {},
+                &crate::gen::runner_inbound_msg_generated::TerminateSimulationRunArgs {},
             );
             (
                 msg.as_union_value(),
-                crate::gen::RunnerInboundMsgPayload::TerminateSimulationRun,
+                crate::gen::runner_inbound_msg_generated::RunnerInboundMsgPayload::TerminateSimulationRun,
             )
         }
         InboundToRunnerMsgPayload::TerminateRunner => {
             let msg = crate::gen::runner_inbound_msg_generated::TerminateRunner::create(
                 fbb,
-                &crate::gen::TerminateRunnerArgs {},
+                &crate::gen::runner_inbound_msg_generated::TerminateRunnerArgs {},
             );
             (
                 msg.as_union_value(),
-                crate::gen::RunnerInboundMsgPayload::TerminateRunner,
+                crate::gen::runner_inbound_msg_generated::RunnerInboundMsgPayload::TerminateRunner,
             )
         }
         InboundToRunnerMsgPayload::NewSimulationRun(msg) => {
@@ -398,9 +400,9 @@ fn inbound_to_nng(
             let agent_schema_bytes = fbb.create_vector(&agent_schema_bytes);
             let msg_schema_bytes = fbb.create_vector(&msg_schema_bytes);
             let ctx_schema_bytes = fbb.create_vector(&ctx_schema_bytes);
-            let datastore_init = crate::gen::DatastoreInit::create(
+            let datastore_init = crate::gen::new_simulation_run_generated::DatastoreInit::create(
                 fbb,
-                &crate::gen::DatastoreInitArgs {
+                &crate::gen::new_simulation_run_generated::DatastoreInitArgs {
                     agent_batch_schema: Some(agent_schema_bytes),
                     message_batch_schema: Some(msg_schema_bytes),
                     context_batch_schema: Some(ctx_schema_bytes),
@@ -408,9 +410,9 @@ fn inbound_to_nng(
                 },
             );
 
-            let msg = crate::gen::NewSimulationRun::create(
+            let msg = crate::gen::new_simulation_run_generated::NewSimulationRun::create(
                 fbb,
-                &crate::gen::NewSimulationRunArgs {
+                &crate::gen::new_simulation_run_generated::NewSimulationRunArgs {
                     sim_id: Some(_sim_id),
                     sid: msg.short_id,
                     properties: Some(globals),
@@ -420,14 +422,14 @@ fn inbound_to_nng(
             );
             (
                 msg.as_union_value(),
-                crate::gen::RunnerInboundMsgPayload::NewSimulationRun,
+                crate::gen::runner_inbound_msg_generated::RunnerInboundMsgPayload::NewSimulationRun,
             )
         }
     };
 
-    let msg = crate::gen::RunnerInboundMsg::create(
+    let msg = crate::gen::runner_inbound_msg_generated::RunnerInboundMsg::create(
         fbb,
-        &crate::gen::RunnerInboundMsgArgs {
+        &crate::gen::runner_inbound_msg_generated::RunnerInboundMsgArgs {
             sim_sid: sim_id.unwrap_or(0),
             payload_type: msg_type,
             payload: Some(msg),
@@ -717,7 +719,8 @@ impl PythonRunner {
 
     pub async fn run(
         &mut self,
-    ) -> WorkerResult<Pin<Box<dyn Future<Output=StdResult<WorkerResult<()>, JoinError>> + Send>>> {
+    ) -> WorkerResult<Pin<Box<dyn Future<Output = StdResult<WorkerResult<()>, JoinError>> + Send>>>
+    {
         log::debug!("Running Python runner");
         // TODO: Duplication with other runners (move into worker?)
         if !self.spawned {

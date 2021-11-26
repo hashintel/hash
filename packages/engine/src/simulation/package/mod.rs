@@ -70,13 +70,13 @@ impl PackageType {
     }
 }
 
-impl From<PackageType> for gen::PackageType {
+impl From<PackageType> for gen::package_config_generated::PackageType {
     fn from(package_type: PackageType) -> Self {
         match package_type {
-            PackageType::Init => gen::PackageType::Init,
-            PackageType::Context => gen::PackageType::Context,
-            PackageType::State => gen::PackageType::State,
-            PackageType::Output => gen::PackageType::Output,
+            PackageType::Init => gen::package_config_generated::PackageType::Init,
+            PackageType::Context => gen::package_config_generated::PackageType::Context,
+            PackageType::State => gen::package_config_generated::PackageType::State,
+            PackageType::Output => gen::package_config_generated::PackageType::Output,
         }
     }
 }
