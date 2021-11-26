@@ -82,6 +82,9 @@ pub enum Error {
     #[error("The number of parallel workers should be a power of 2")]
     NumParallelWorkers,
 
+    #[error("Invalid behavior bytes: {0:?} ({1:?})")]
+    InvalidBehaviorBytes(Vec<u8>, std::result::Result<String, std::string::FromUtf8Error>),
+
     #[error("Invalid behavior name: \"{0}\"")]
     InvalidBehaviorName(String),
 

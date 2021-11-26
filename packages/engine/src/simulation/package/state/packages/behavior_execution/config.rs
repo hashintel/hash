@@ -1,15 +1,12 @@
-use crate::proto::SharedBehavior;
-
-use crate::{ExperimentConfig, Language};
-
-use super::fields::behavior::BehaviorMap;
-use super::{Error, Result};
+use std::collections::HashMap;
+// use std::convert::TryFrom;
+use std::ops::Deref;
 
 use serde::{Deserialize, Serialize};
 
-use std::collections::HashMap;
-use std::convert::TryFrom;
-use std::ops::Deref;
+use crate::Language;
+use super::fields::behavior::BehaviorMap;
+use super::{Error, Result};
 
 // TODO: Package's experiment init message should have payload with
 //       Vec of behavior descriptions in `behavior_descs`.
@@ -52,7 +49,7 @@ impl BehaviorIndices {
             let shared = behavior.shared();
             let lang_index = Language::from_file_name(&shared.name)
                 .map_err(|_| Error::from(format!("Invalid behavior name: \"{}\"", &shared.name)))?
-                as usize;
+                .as_index();
             let behavior_index = BehaviorIndex(lang_index as u16, lang_counts[lang_index]);
             lang_counts[lang_index] += 1;
 

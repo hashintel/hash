@@ -12,6 +12,10 @@ use crate::simulation::package::state::packages::behavior_execution::config::Beh
 use crate::simulation::task::active::ActiveTask;
 use serde_json::Value;
 use std::convert::TryFrom;
+use crate::datastore::table::task_shared_store::TaskSharedStoreBuilder;
+use crate::Language;
+use crate::simulation::task::Task;
+// use crate::simulation::enum_dispatch::TaskSharedStore;
 
 use super::super::*;
 
@@ -124,28 +128,58 @@ impl BehaviorExecution {
         Ok(())
     }
 
+    /// Iterate over languages of first behaviors to choose first language runner to send task to
+    fn get_first_lang(
+        &self,
+        state: &ExState,
+    ) -> Result<Option<Language>> {
+        for batch in state.agent_pool().read_batches()? {
+            for agent_behaviors in batch.behavior_list_bytes_iter()? {
+                if agent_behaviors.len() == 0 { continue; }
+
+                let first_behavior = agent_behaviors[0];
+                let behavior_lang = self.behavior_indices
+                    .get_index(&first_behavior)
+                    .ok_or_else(|| {
+                        let bytes = Vec::from(first_behavior);
+                        let utf8 = String::from_utf8(bytes.clone());
+                        Error::InvalidBehaviorBytes(bytes, utf8)
+                    })?
+                    .lang_index();
+                return Ok(Some(Language::from_index(behavior_lang as usize)));
+            }
+        }
+        Ok(None)
+    }
+
     /// Sends out behavior execution commands to workers
-    async fn begin_execution(&mut self, _state: &ExState) -> Result<ActiveTask> {
-        // let active_task = self.comms.new_task(task, _).await?;
-        // check language of behavior
-        // for batch in state.agent_pool().read_batches()? {
-        //     for agent in batch {
-        //         for behavior in agent.behaviors
-        //     }
-        // }
-        todo!()
+    async fn begin_execution(
+        &mut self,
+        state: &mut ExState,
+        context: &Context,
+        lang: Language,
+    ) -> Result<ActiveTask> {
+        let shared_store = TaskSharedStoreBuilder::new()
+            .write_state(state)?
+            .read_context(context)?
+            .build();
+        let task: Task = todo!(); // Put lang in task
+        let active_task = self.comms.new_task(task, shared_store).await?;
+        Ok(active_task)
     }
 }
 
 #[async_trait]
 impl Package for BehaviorExecution {
-    async fn run(&mut self, state: &mut ExState, _context: &Context) -> Result<()> {
+    async fn run(&mut self, state: &mut ExState, context: &Context) -> Result<()> {
         self.fix_behavior_chains(state)?;
-        let active_task = self.begin_execution(state).await?;
-        // wait for results
-        active_task.drive_to_completion().await?;
-
-        // TODO update update reload state as well
+        let lang = match self.get_first_lang(state)? {
+            Some(lang) => lang,
+            None => return Ok(()) // No behaviors to execute
+        };
+        let active_task = self.begin_execution(state, context, lang).await?;
+        let msg = active_task.drive_to_completion().await?;   // Wait for results
+        // TODO: Get latest metaversions from message and reload state if necessary.
         Ok(())
     }
 }

@@ -13,7 +13,7 @@ use std::pin::Pin;
 use std::result::Result as StdResult;
 use std::str::FromStr;
 use tokio::process::{Child, Command};
-use tokio::sync::mpsc::{unbounded_channel, Receiver, Sender, UnboundedReceiver, UnboundedSender};
+use tokio::sync::mpsc::{unbounded_channel, Receiver, Sender, UnboundedReceiver};
 use tokio::task::JoinError;
 use uuid::Uuid;
 
@@ -230,7 +230,7 @@ fn shared_store_to_fbs<'f>(
     let indices: Vec<_> = indices.into_iter().map(|i| i as u32).collect();
     let args = StateInterimSyncArgs {
         group_idx: Some(fbb.create_vector(&indices)),
-        agent_batches: Some(fbb.create_vector(&agmsg_batches)),
+        agent_batches: Some(fbb.create_vector(&agent_batches)),
         message_batches: Some(fbb.create_vector(&msg_batches)),
     };
     crate::gen::sync_state_interim_generated::StateInterimSync::create(fbb, &args)
