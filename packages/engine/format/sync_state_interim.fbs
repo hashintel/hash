@@ -1,4 +1,4 @@
-include "metaversion.fbs";
+include "batch.fbs";
 
 // `StateInterimSync` Message
 //
@@ -6,13 +6,13 @@ include "metaversion.fbs";
 // to signal about the state of the State object.
 //
 // fields:
-//    `group_idx`                 : indices of the groups that are updated
-//    `agent_pool_metaversions`   : list of metaversion of respective group agent batch
-//    `message_pool_metaversions` : list of metaversion of respective group message batch
+//    `group_idx`       : indices of the groups that are updated
+//    `agent_batches`   : list of respective group agent batches
+//    `message_batches` : list of respective group message batches
 table StateInterimSync {
   group_idx:[uint] (required);
-  agent_pool_metaversions:[Metaversion] (required);
-  message_pool_metaversions:[Metaversion] (required);
+  agent_batches:[Batch] (required);
+  message_batches:[Batch] (required);
 }
 
 root_type StateInterimSync;

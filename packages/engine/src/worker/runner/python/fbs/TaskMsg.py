@@ -43,15 +43,8 @@ class TaskMsg(object):
         return None
 
     # TaskMsg
-    def Target(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(8))
-        if o != 0:
-            return self._tab.Get(flatbuffers.number_types.Int8Flags, o + self._tab.Pos)
-        return 0
-
-    # TaskMsg
     def Metaversioning(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(10))
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(8))
         if o != 0:
             x = self._tab.Indirect(o + self._tab.Pos)
             from StateInterimSync import StateInterimSync
@@ -62,7 +55,7 @@ class TaskMsg(object):
 
     # TaskMsg
     def Payload(self):
-        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(12))
+        o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(10))
         if o != 0:
             x = self._tab.Indirect(o + self._tab.Pos)
             from Serialized import Serialized
@@ -71,7 +64,7 @@ class TaskMsg(object):
             return obj
         return None
 
-def Start(builder): builder.StartObject(5)
+def Start(builder): builder.StartObject(4)
 def TaskMsgStart(builder):
     """This method is deprecated. Please switch to Start."""
     return Start(builder)
@@ -83,15 +76,11 @@ def AddTaskId(builder, taskId): builder.PrependStructSlot(1, flatbuffers.number_
 def TaskMsgAddTaskId(builder, taskId):
     """This method is deprecated. Please switch to AddTaskId."""
     return AddTaskId(builder, taskId)
-def AddTarget(builder, target): builder.PrependInt8Slot(2, target, 0)
-def TaskMsgAddTarget(builder, target):
-    """This method is deprecated. Please switch to AddTarget."""
-    return AddTarget(builder, target)
-def AddMetaversioning(builder, metaversioning): builder.PrependUOffsetTRelativeSlot(3, flatbuffers.number_types.UOffsetTFlags.py_type(metaversioning), 0)
+def AddMetaversioning(builder, metaversioning): builder.PrependUOffsetTRelativeSlot(2, flatbuffers.number_types.UOffsetTFlags.py_type(metaversioning), 0)
 def TaskMsgAddMetaversioning(builder, metaversioning):
     """This method is deprecated. Please switch to AddMetaversioning."""
     return AddMetaversioning(builder, metaversioning)
-def AddPayload(builder, payload): builder.PrependUOffsetTRelativeSlot(4, flatbuffers.number_types.UOffsetTFlags.py_type(payload), 0)
+def AddPayload(builder, payload): builder.PrependUOffsetTRelativeSlot(3, flatbuffers.number_types.UOffsetTFlags.py_type(payload), 0)
 def TaskMsgAddPayload(builder, payload):
     """This method is deprecated. Please switch to AddPayload."""
     return AddPayload(builder, payload)

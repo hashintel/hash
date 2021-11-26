@@ -11,11 +11,10 @@ include "batch.fbs";
 //                         refers to
 //    `message_pool`     : the pool of message batches to which the context batch
 //                         refers to
-//    `current_step`     : the current step index
 table StateSnapshotSync {
   agent_pool: [Batch] (required);
   message_pool: [Batch] (required);
-  current_step:int64;
+  current_step:int64; // TODO: Remove `current_step` field
 }
 
 root_type StateSnapshotSync;

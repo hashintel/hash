@@ -115,6 +115,7 @@ class GroupState:
     def set_batches(self, agent_batch, msg_batch):
         self.__agent_batch = agent_batch
         self.__msg_batch = msg_batch
+        self.__msgs_native = [False * len(agent_batch.cols['agent_id'])]
 
     def to_json(self):
         raise RuntimeError("Group state shouldn't be copied to JSON.")
@@ -148,7 +149,7 @@ class GroupState:
         # messages to native JavaScript objects.
 
         skip = {'agent_id': True}
-        agent_changes = self.__agent_batch.flush_changes(schema.agent, skip)
+        self.__agent_batch.flush_changes(schema.agent, skip)
 
         # Convert any native message objects to JSON before flushing message batch.
         # Note that this is distinct from (though analogous to) 'any'-type handling
@@ -159,11 +160,11 @@ class GroupState:
                 for msg in agent_msgs:
                     msg.data = json.dumps(msg.data)
 
-        msg_changes = self.__msg_batch.flush_changes(schema.msg, {})
+        self.__msg_batch.flush_changes(schema.message, {})
 
         return {
-            "agent": agent_changes,
-            "msg": msg_changes
+            "agent": self.__agent_batch,
+            "message": self.__msg_batch
         }
 
 
@@ -172,15 +173,30 @@ class SimState:
         self.getters = getters
         self.groups = []
 
-    def sync(self, agent_pool, msg_pool, loaders):
-        self.groups = [
-            GroupState(ab, mb, loaders) for ab, mb in zip(agent_pool, msg_pool)
-        ]
+    def n_groups(self):
+        return len(self.groups)
+
+    def set_pools(self, agent_pool, msg_pool, loaders):
+        for i_group in range(min(len(self.groups), len(agent_pool))):
+            self.groups[i_group].set_batches(agent_pool[i_group], msg_pool[i_group])
+
+        if len(self.groups) > len(agent_pool):
+            for _ in range(len(agent_pool), len(self.groups)):
+                self.groups.pop()
+
+        elif len(self.groups) < len(agent_pool):
+            for i_group in range(len(self.groups), len(agent_pool)):
+                self.groups.append(
+                    GroupState(agent_pool[i_group], msg_pool[i_group], loaders)
+                )
 
     def get_group(self, i_group):
         return self.groups[i_group]
 
     def flush_changes(self, schema):
-        return [
-            group.flush_changes(schema) for group in self.groups
-        ]
+        r = []
+        for i_group, group in enumerate(self.groups):
+            changes = group.flush_changes(schema)
+            changes["i_group"] = i_group
+            r.append(changes)
+        return r

@@ -57,30 +57,42 @@ class GroupContext:
         return self.__sim_ctx.data()
 
 
+class Snapshot:
+    def __init__(self, agent_pool, message_pool):
+        self.agent_pool = agent_pool
+        self.message_pool = message_pool
+
+
 class SimContext:
     def __init__(self, getters, experiment_ctx, sim_globals):
         self.getters = getters
+        self.__step = 0
         self.__experiment_ctx = experiment_ctx
         self.__globals = sim_globals
         self.__ctx_batch = None
-        self.__group_start_idxs = None
-        self.state_snapshot = None
+        self.state_snapshot = Snapshot(None, None)
 
     # Invalidates existing `GroupContext` and `AgentContext` objects.
-    def set_batch(self, ctx_batch, group_start_idxs):
+    def set_batch(self, ctx_batch):
         self.__ctx_batch = ctx_batch
-        self.__group_start_idxs = group_start_idxs
+        # TODO: group state agent index --> sim context agent index
 
     # Invalidates existing `GroupContext` and `AgentContext` objects.
-    def sync_snapshot(self, state_snapshot):
-        self.state_snapshot = state_snapshot
+    def set_snapshot(self, agent_pool, message_pool):
+        self.state_snapshot.agent_pool = agent_pool
+        self.state_snapshot.message_pool = message_pool
+
+    def set_step(self, cur_step):
+        self.__step = cur_step
+
+    # TODO: step getter method
 
     def get_group(self, i_group):
         return GroupContext(
             self,
             self.__ctx_batch,
             self.state_snapshot,
-            self.__group_start_idxs[i_group]
+            i_group
         )
 
     def get_agent(self, i_agent_in_sim, old_agent_ctx=None):

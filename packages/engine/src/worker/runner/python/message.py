@@ -1,59 +1,65 @@
 import logging
-from json import loads as json_loads
+import json
 
-# Inbound
 import flatbuffers
+import pyarrow as pa
 from pynng import Pair0
 
+# Inbound
 from fbs.Init import Init
 from fbs.RunnerInboundMsg import RunnerInboundMsg
 from fbs.RunnerInboundMsgPayload import RunnerInboundMsgPayload
 from fbs.TaskMsg import TaskMsg
-from fbs.CancelTask import CancelTask
 from fbs.StateSync import StateSync
 from fbs.StateSnapshotSync import StateSnapshotSync
 from fbs.ContextBatchSync import ContextBatchSync
 from fbs.StateInterimSync import StateInterimSync
-from fbs.TerminateSimulationRun import TerminateSimulationRun
-from fbs.TerminateRunner import TerminateRunner
 from fbs.NewSimulationRun import NewSimulationRun
 from fbs.PackageType import PackageType
+from fbs.Target import Target
 
 PACKAGE_TYPE = PackageType
 MESSAGE_TYPE = RunnerInboundMsgPayload
 
 # Outbound
+import fbs
 from fbs import RunnerError
 from fbs import PackageError
 from fbs import UserError
 from fbs import UserErrors
 from fbs import UserWarnings
 
+from batch import load_dataset
+
 
 def assert_eq(a, b):
     assert a == b, (a, b)
 
 
+def pkgs_from_config(config):
+    pkgs = {}
+    for i_pkg in range(config.PackagesLength()):
+        fb = config.Packages(i_pkg)
+        pkgs[fb.Sid()] = PyPackage(fb)
+    return pkgs
+
+
 class PyInit:
     def __init__(self, fbs_bytes):
+        # TODO: Remove `experiment_id` and `worker_index` from fbs,
+        #       since they're already passed as process args.
         msg = Init.GetRootAs(fbs_bytes, 0)
         self.shared_ctx = PySharedContext(msg.SharedContext())
-
-        config = msg.PackageConfig()
-        self.package_config = [
-            PyPackage(config.Packages(i)) for i in range(config.PackagesLength())
-        ]
+        self.pkgs = pkgs_from_config(msg.PackageConfig())
 
 
 class PySharedContext:
     def __init__(self, fb):
-        for batch_msg in datasets:
-            shmem = load_shared_mem(batch_msg["id"])
-            buffer = shared_buf_from_c_memory(shmem)
-            name, data, did_parse = parse_dataset(buffer)
-        self.__datasets = [
-            json_loads(fb.Datasets(i)) for i in range(fb.DatasetsLength())
-        ]
+        self.__datasets = {}
+        for i_dataset in range(fb.DatasetsLength()):
+            name, data, _did_parse = load_dataset(fb.Datasets(i_dataset).BatchId())
+            # TODO: Use `did_parse` to show warnings to user?
+            self.__datasets[name] = data
 
     def data(self):
         return self.__datasets
@@ -63,11 +69,10 @@ class PyPackage:
     def __init__(self, fb):
         self.type = fb.Type()
         self.name = fb.Name()
-        self.sid = fb.Sid()
-        self.payload = json_loads(fb.InitPayload().Inner())
+        self.payload = json.loads(fb.InitPayload().Inner().decode('utf-8'))
 
 
-class PyBatchSync:
+class PyBatchMsg:
     def __init__(self, fb):
         self.id = fb.BatchId()
         m = fb.Metaversion()
@@ -82,52 +87,86 @@ class PyMetaversion:
 
 
 class PyTaskMsg:
-    def __init__(self, sim_sid, fb):
-        self.sim_sid = sim_sid
-        self.pkg_sid = fb.PackageSid()
+    def __init__(self, sim_id, fb):
+        self.sim_id = sim_id
+        self.pkg_id = fb.PackageSid()
         self.task_id = fb.TaskId()
         self.sync = PyStateInterimSync(fb.Metaversioning())
-        self.payload = json_loads(fb.Payload().Inner())
+        self.payload = json.loads(fb.Payload().Inner().decode('utf-8'))
 
 
 class PyStateInterimSync:
-    def __init__(self, sim_sid, fb):
-        self.sim_sid = sim_sid
+    def __init__(self, sim_id, fb):
+        self.sim_id = sim_id
 
         n_batches = fb.GroupIdxLength()
         self.group_idxs = [fb.GroupIdx(i) for i in range(n_batches)]
 
-        assert_eq(fb.AgentPoolMetaversionsLength(), n_batches)
+        assert_eq(fb.AgentBatchesLength(), n_batches)
         self.agent_batches = [
-            PyMetaversion(fb.AgentPoolMetaversions(i)) for i in range(n_batches)
+            PyBatchMsg(fb.AgentBatches(i)) for i in range(n_batches)
         ]
 
-        assert_eq(fb.MessagePoolMetaversionsLength(), n_batches)
-        self.msg_batches = [
-            PyMetaversion(fb.messagePoolMetaversions(i)) for i in range(n_batches)
+        assert_eq(fb.MessageBatchesLength(), n_batches)
+        self.message_batches = [
+            PyBatchMsg(fb.MessageBatches(i)) for i in range(n_batches)
         ]
 
 
 class PyContextBatchSync:
-    def __init__(self, sim_sid, fb):
-        self.sim_sid = sim_sid
-        self.batch = PyBatchSync(fb.ContextBatch())
+    def __init__(self, sim_id, fb):
+        self.sim_id = sim_id
+        self.batch = PyBatchMsg(fb.ContextBatch())
         self.cur_step = fb.CurrentStep()
+
+
+class PyStateSync:
+    def __init__(self, sim_id, fb):
+        self.sim_id = sim_id
+        self.agent_pool = [
+            PyBatchMsg(fb.AgentPool(i)) for i in range(fb.AgentPoolLength())
+        ]
+        self.message_pool = [
+            PyBatchMsg(fb.MessagePool(i)) for i in range(fb.MessagePoolLength())
+        ]
+
+
+class PySimRun:
+    def __init__(self, fb):
+        self.sim_id = fb.Sid()
+        self.pkgs = pkgs_from_config(fb.PackageConfig())
+        self.globals = json.loads(fb.Properties().decode('utf-8'))
+        self.schema = PySchema(fb.DatastoreInit())
+        # TODO: DatastoreInit datasets per sim run?
+
+
+class PySchema:
+    def __init__(self, fb):
+        self.agent = pa.ipc.read_schema(fb.AgentBatchSchema())
+        self.context = pa.ipc.read_schema(fb.ContextBatchSchema())
+        self.message = pa.ipc.read_schema(fb.MessageBatchSchema())
+
+
+class PyTerminateSim:
+    def __init__(self, sim_id):
+        self.sim_id = sim_id
 
 
 class Messenger:
     def __init__(self, experiment_id, worker_index):
         prefix = 'ipc://' + experiment_id
+        worker_index = str(worker_index)
 
-        # For sending messages to the Rust process,
-        # e.g. requesting init message and sending
-        # task results
-        send_address = prefix + '-frompy' + str(worker_index)
+        # `to_rust` is for sending messages to the Rust process,
+        # e.g. requesting init message and sending task results.
+        # `send_address` format must match format in nng receiver
+        # in `python/mod.rs`.
+        send_address = prefix + '-frompy' + worker_index
         self.to_rust = Pair0(dial=send_address)
-        # logging.debug("Opened socket to Rust")
+        logging.debug("Opened socket to Rust")
 
-        # For recieving messages from the Rust process
-        recv_address = prefix + '-topy' + str(worker_index)
+        # For receiving messages from the Rust process
+        recv_address = prefix + '-topy' + worker_index
         self.from_rust = Pair0(listen=recv_address)
 
     def __del__(self):
@@ -145,10 +184,11 @@ class Messenger:
         logging.debug("Waiting for init")
 
         # Get reply from Rust process with init message.
+        # This is the only case in which `to_rust` is used for receiving.
         fbs_bytes = self.to_rust.recv()
         logging.debug("Received init message")
 
-        self.orch_socket.send(b'\x00')  # Arbitrary message
+        self.to_rust.send(b'\x00')  # Arbitrary message
         return PyInit(fbs_bytes)
 
     def recv(self):
@@ -163,13 +203,15 @@ class Messenger:
             return PyTaskMsg(sim_sid, TaskMsg().Init(p.Bytes, p.Pos)), t
 
         if t == MESSAGE_TYPE.CancelTask:
-            return PyCancelTask(sim_sid, CancelTask().Init(p.Bytes, p.Pos)), t
+            # TODO: CancelTask isn't used for now
+            return None, t
 
         if t == MESSAGE_TYPE.StateSync:
             return PyStateSync(sim_sid, StateSync().Init(p.Bytes, p.Pos)), t
 
         if t == MESSAGE_TYPE.StateSnapshotSync:
-            return PyStateSnapshotSync(sim_sid, StateSnapshotSync().Init(p.Bytes, p.Pos)), t
+            # Only message type is different from state sync
+            return PyStateSync(sim_sid, StateSnapshotSync().Init(p.Bytes, p.Pos)), t
 
         if t == MESSAGE_TYPE.ContextBatchSync:
             return PyContextBatchSync(sim_sid, ContextBatchSync().Init(p.Bytes, p.Pos)), t
@@ -178,24 +220,33 @@ class Messenger:
             return PyStateInterimSync(sim_sid, StateInterimSync().Init(p.Bytes, p.Pos)), t
 
         if t == MESSAGE_TYPE.TerminateSimulationRun:
-            return PyTerminateSim(sim_sid, TerminateSimulationRun().Init(p.Bytes, p.Pos)), t
+            return PyTerminateSim(sim_sid), t
 
         if t == MESSAGE_TYPE.TerminateRunner:
             return None, t  # TerminateRunner payload is empty.
 
         if t == MESSAGE_TYPE.NewSimulationRun:
-            return PyStartSim(sim_sid, NewSimulationRun().Init(p.Bytes, p.Pos)), t
+            return PySimRun(NewSimulationRun().Init(p.Bytes, p.Pos)), t
 
         raise RuntimeError(
             "Unknown message type {} from sim {}".format(t, sim_sid)
         )
 
-    def send_task_continuation(self, continuation):
-        # TODO: Combine target, user warnings and user errors
-        #       into single message.
+    def send_task_continuation(
+        self,
+        sim_id,
+        changes,
+        pkg_id,
+        task_id,
+        continuation
+    ):
+        # TODO: Combine args into single message.
         self.send_user_warnings(continuation.get("warnings", []))
-        self.send_user_errors(continuation.get("errors"), [])
+        self.send_user_errors(continuation.get("errors", []))
         target = continuation.get("target", "main")
+        task_msg = continuation.get("task", "")
+        fbs_bytes = task_to_fbs_bytes(sim_id, changes, pkg_id, task_id, target, task_msg)
+        self.to_rust.send(fbs_bytes)
 
     def send_runner_error(self, error):
         fbs_bytes = runner_error_to_fbs_bytes(error)
@@ -280,9 +331,9 @@ def user_errors_to_fbs_bytes(errors):
 def user_warning_to_fbs(builder, warning):
     msg_offset = builder.CreateString(warning)
 
-    UserWarning.Start(builder)
-    UserWarning.AddMsg(builder, msg_offset)
-    user_warning_offset = UserWarning.End(builder)
+    fbs.UserWarning.Start(builder)
+    fbs.UserWarning.AddMsg(builder, msg_offset)
+    user_warning_offset = fbs.UserWarning.End(builder)
 
     builder.Finish(user_warning_offset)
     return bytes(builder.Output())
@@ -304,3 +355,93 @@ def user_warnings_to_fbs_bytes(warnings):
 
     builder.Finish(user_warnings_offset)
     return bytes(builder.Output())
+
+def target_to_fbs(target):
+    if target == "py":
+        return Target.Python
+
+    if target == "js":
+        return Target.JavaScript
+
+    if target == "rs":
+        return Target.Rust
+
+    if target == "dyn":
+        return Target.Dynamic
+
+    if target == "main":
+        return Target.Main
+
+    raise RuntimeError("Unknown target " + str(target))
+
+
+def metaversion_to_fbs(builder, batch):
+    fbs.Metaversion.Start(builder)
+    fbs.Metaversion.AddBatch(builder, batch.batch_version)
+    fbs.Metaversion.AddMemory(builder, batch.mem_version)
+    return fbs.Metaversion.End(builder)
+
+
+def batch_to_fbs(builder, batch):
+    batch_id = builder.CreateString(batch.id)
+    metaversion = metaversion_to_fbs(batch)
+    fbs.Batch.Start(builder)
+    fbs.Batch.AddBatchId(builder, batch_id)
+    fbs.Batch.AddMetaversion(builder, metaversion)
+    batch_offset = fbs.Batch.End(builder)
+    return batch_offset
+
+
+def interim_sync_to_fbs(builder, changes):
+    group_idxs = []
+    agent_offsets = []
+    message_offsets = []
+    for c in changes:
+        group_idxs.append(c['i_group'])
+    for c in changes:
+        agent_offsets.append(batch_to_fbs(builder, c['agent']))
+    for c in changes:
+        message_offsets.append(batch_to_fbs(builder, c['message']))
+
+    fbs.StateInterimSync.StartGroupIdxVector(len(group_idxs))
+    for i in reversed(group_idxs):
+        builder.PrependUint32(i)
+    idxs_vector = builder.EndVector(len(group_idxs))
+
+    fbs.StateInterimSync.StartAgentBatchesVector(len(agent_offsets))
+    for o in reversed(agent_offsets):
+        builder.PrependUOffsetTRelative(o)
+    agent_vector = builder.EndVector(len(agent_offsets))
+
+    fbs.StateInterimSync.StartMessageBatchesVector(len(message_offsets))
+    for o in reversed(message_offsets):
+        builder.PrependUOffsetTRelative(o)
+    message_vector = builder.EndVector(len(message_offsets))
+
+    fbs.StateInterimSync.Start(builder)
+    fbs.StateInterimSync.AddGroupIdx(builder, idxs_vector)
+    fbs.StateInterimSync.AddAgentBatches(builder, agent_vector)
+    fbs.StateInterimSync.AddMessageBatches(builder, message_vector)
+    sync_offset = fbs.StateInterimSync.End(builder)
+    return sync_offset
+
+
+def task_to_fbs_bytes(sim_id, changes, pkd_id, task_id, target, task_msg):
+    builder = flatbuffers.Builder(initialSize=0)
+
+    sync_offset = interim_sync_to_fbs(builder, changes)
+    payload_offset = builder.CreateString(task_msg)
+
+    fbs.TaskMsg.Start(builder)
+    fbs.TaskMsg.AddPackageSid(builder, pkd_id)
+    fbs.TaskMsg.AddTaskId(builder, task_id)
+    fbs.TaskMsg.AddTarget(builder, target_to_fbs(target))
+    fbs.TaskMsg.AddMetaversioning(builder, sync_offset)
+    fbs.TaskMsg.AddPayload(builder, payload_offset)
+    task_msg_offset = fbs.TaskMsg.End(builder)
+
+    builder.Finish(task_msg_offset)
+    return bytes(builder.Output())
+
+
+

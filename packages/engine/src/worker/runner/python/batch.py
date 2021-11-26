@@ -1,4 +1,8 @@
+import json
+import struct
+
 import pyarrow as pa
+
 import hash_util
 from wrappers import load_shared_mem
 from wrappers import shared_buf_from_c_memory
@@ -19,16 +23,10 @@ def load_markers(mem):
     markers = struct.unpack_from(markers_fmt, markers_bytes)
     assert len(markers) == n_markers, markers
 
-    # Same order as `struct Offsets` in datastore/memory.rs.
+    # Same order as in `datastore/storage/markers.rs`.
     # Units are all numbers of bytes.
-    schema_offset = markers[0]
-    schema_size = markers[1]
-    header_offset = markers[2]
-    header_size = markers[3]
-    meta_offset = markers[4]
-    meta_size = markers[5]
-    data_offset = markers[6]
-    data_size = markers[7]
+    (schema_offset, schema_size, header_offset, header_size,
+     meta_offset, meta_size, data_offset, data_size) = markers
 
     # The "meta bytes" here do *not* contain the schema's key-value metadata.
     # They contain what is officially called a "RecordBatch message data header", but
@@ -36,18 +34,17 @@ def load_markers(mem):
     # https://arrow.apache.org/docs/format/Columnar.html#recordbatch-message
 
     # Schema comes immediately after markers.
-    assert schema_offset == n_markers_bytes, "schema_offset: {}, n_markers_bytes: {}".format(schema_offset,
-                                                                                             n_markers_bytes)
+    assert schema_offset == n_markers_bytes, \
+        "schema_offset: {}, n_markers_bytes: {}".format(schema_offset, n_markers_bytes)
     assert schema_offset + schema_size <= header_offset
     assert header_offset + header_size <= meta_offset
     assert meta_offset + meta_size <= data_offset
     assert data_offset + data_size <= mem.size
-    return schema_offset, schema_size, header_offset, header_size, meta_offset, meta_size, data_offset, data_size
+    return markers
 
 
 def load_record_batch(mem, schema=None):
-    schema_offset, schema_size, header_offset, header_size, \
-    meta_offset, _, data_offset, data_size = load_markers(mem)
+    (schema_offset, schema_size, _, _, meta_offset, _, data_offset, data_size) = load_markers(mem)
     # Pyarrow exposes a function for parsing the record batch message data header and
     # record batch data together, but not functions for parsing them separately, so
     # they should be contiguous in memory. (Or have to use a hack to pretend that
@@ -70,8 +67,29 @@ def load_record_batch(mem, schema=None):
     return rb
 
 
+# Returns dataset name, dataset contents and whether JSON could be loaded.
+def load_dataset(batch_id):
+    mem = load_shared_mem(shared_buf_from_c_memory(batch_id))
+    (_, _, header_offset, header_size, _, _, data_offset, data_size) = load_markers(mem)
+
+    # The header has the shortname of the dataset
+    header_buf = mem[header_offset: header_offset + header_size]
+    dataset_name = str(header_buf.to_pybytes().decode('utf-8'))
+
+    # This data buffer has the dataset as a JSON string
+    data_buf = mem[data_offset: data_offset + data_size]
+    dataset_utf8 = data_buf.to_pybytes().decode('utf8')
+    try:
+        return dataset_name, json.loads(dataset_utf8), True
+    except: # TODO: Only catch exact JSON parsing error.
+            # TODO: Extract parsing error line number from exception.
+        return dataset_name, dataset_utf8, False
+
+
 class Batch:
-    def __init__(self):
+    def __init__(self, batch_id):
+        self.id = batch_id
+
         self.mem_version = -1
         self.batch_version = -1
         self.mem = None  # After loading, `mem` will be a shared buffer.
@@ -91,14 +109,14 @@ class Batch:
 
             # `load_shared_mem` throws an exception if loading fails,
             # but otherwise the returned pointer to shared memory is non-null.
-            self.c_memory = load_shared_mem(batch_id)
+            self.c_memory = load_shared_mem(latest_batch.id)
             self.mem = shared_buf_from_c_memory(self.c_memory)
             self.dynamic_meta = dynamic_meta_from_c_memory(self.c_memory)
 
         if should_load:
             self.batch_version = latest_batch.batch_version
             self.rb = load_record_batch(self.mem, schema)
-            self.cols = {}
+            self.cols = {}  # Avoid using obsolete column data.
             self.static_meta = static_meta_from_schema(self.rb.schema)
 
     def load_col(self, name, loader=None):
@@ -108,7 +126,7 @@ class Batch:
 
         if loader is not None:
             col = loader(vector)
-        elif name[:2] == '__':
+        elif len(name) >= 2 and name[:2] == '__':
             col = hash_util.load_shallow(vector)
         else:
             col = hash_util.load_full(vector)
@@ -150,7 +168,7 @@ class Batch:
             return
 
         self.batch_version += 1
-        did_resize = _flush_changes(
+        did_resize = flush(
             self.c_memory, self.dynamic_meta, self.static_meta, changes
         )
         if did_resize:
@@ -158,30 +176,6 @@ class Batch:
             self.mem_version += 1
             self.mem = shared_buf_from_c_memory(self.c_memory)
             self.dynamic_meta = dynamic_meta_from_c_memory(self.c_memory)
-
-    def flush_messages():
-        for i_agent, agent_msgs in enumerate(outbox["messages"]):
-            if are_msgs_native[i_agent]:
-                for m in agent_msgs:
-                    m["data"] = json_dumps(m["data"])
-                # No need to set `are_msgs_native[i_agent] = False`, because
-                # it won't be used anymore -- messages are flushed below.
-
-        # TODO: Only flush changes if there are changed messages.
-        msgs_index = self.msg_schema.get_field_index("messages")
-        field = self.msg_schema.field(msgs_index)
-        outbox_changes = {
-            msgs_index: pa.array(outbox["messages"], type=field.type)
-        }
-        resized_outbox = flush(
-            outbox["c_memory"],
-            outbox["dynamic_meta"],
-            self.msg_static_meta,
-            outbox_changes
-        )
-        if resized_outbox:
-            outbox["mem_version"] += 1
-            outbox["shared_buf"] = shared_buf_from_c_memory(outbox["c_memory"])
 
 
 class Batches:
@@ -191,11 +185,15 @@ class Batches:
     def get(self, batch_id):
         return self.batches[batch_id]
 
-    def sync(self, latest_batch):
+    def sync(self, latest_batch, schema=None):
         loaded_batch = self.batches.get(latest_batch.id)
         if loaded_batch is None:
-            self.batches[latest_batch.id] = loaded_batch = Batch()
+            self.batches[latest_batch.id] = loaded_batch = Batch(latest_batch.id)
 
         # `loaded_batch` is changed in-place. Return is for convenience.
-        loaded_batch.sync(latest_batch)
+        loaded_batch.sync(latest_batch, schema)
         return loaded_batch
+
+    def free(self):
+        # TODO: Check that this releases references to shared memory
+        self.batches = {}

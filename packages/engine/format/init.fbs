@@ -14,6 +14,6 @@ struct ExperimentID {
 table Init {
   experiment_id:ExperimentID;
   worker_index:uint64;
-  shared_context:SharedContext;
+  shared_context:SharedContext (required);
   package_config:PackageConfig (required);
 }

@@ -161,9 +161,10 @@ impl<'a> Init<'a> {
             .unwrap()
     }
     #[inline]
-    pub fn shared_context(&self) -> Option<SharedContext<'a>> {
+    pub fn shared_context(&self) -> SharedContext<'a> {
         self._tab
             .get::<flatbuffers::ForwardsUOffset<SharedContext>>(Init::VT_SHARED_CONTEXT, None)
+            .unwrap()
     }
     #[inline]
     pub fn package_config(&self) -> PackageConfig<'a> {
@@ -186,7 +187,7 @@ impl flatbuffers::Verifiable for Init<'_> {
             .visit_field::<flatbuffers::ForwardsUOffset<SharedContext>>(
                 &"shared_context",
                 Self::VT_SHARED_CONTEXT,
-                false,
+                true,
             )?
             .visit_field::<flatbuffers::ForwardsUOffset<PackageConfig>>(
                 &"package_config",
@@ -209,7 +210,7 @@ impl<'a> Default for InitArgs<'a> {
         InitArgs {
             experiment_id: None,
             worker_index: 0,
-            shared_context: None,
+            shared_context: None, // required field
             package_config: None, // required field
         }
     }
@@ -262,6 +263,8 @@ impl<'a: 'b, 'b> InitBuilder<'a, 'b> {
     #[inline]
     pub fn finish(self) -> flatbuffers::WIPOffset<Init<'a>> {
         let o = self.fbb_.end_table(self.start_);
+        self.fbb_
+            .required(o, Init::VT_SHARED_CONTEXT, "shared_context");
         self.fbb_
             .required(o, Init::VT_PACKAGE_CONFIG, "package_config");
         flatbuffers::WIPOffset::new(o.value())

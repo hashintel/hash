@@ -10,9 +10,11 @@ use nng::{Aio, Socket};
 use std::future::Future;
 use std::ops::Deref;
 use std::pin::Pin;
+use std::result::Result as StdResult;
 use std::str::FromStr;
 use tokio::process::{Child, Command};
-use tokio::sync::mpsc::{unbounded_channel, Receiver, Sender, UnboundedReceiver};
+use tokio::sync::mpsc::{unbounded_channel, Receiver, Sender, UnboundedReceiver, UnboundedSender};
+use tokio::task::JoinError;
 use uuid::Uuid;
 
 use super::comms::{
@@ -155,20 +157,22 @@ fn shared_store_to_fbs<'f>(
     fbb: &mut FlatBufferBuilder<'f>,
     shared_store: TaskSharedStore,
 ) -> WIPOffset<crate::gen::StateInterimSync<'f>> {
-    let (agent_mv, msg_mv, indices) = match shared_store.state {
+    let (
+        agent_batches, msg_batches, indices
+    ) = match shared_store.state {
         SharedState::None => (vec![], vec![], vec![]),
         SharedState::Read(state) => {
             let a: Vec<_> = state
                 .agent_pool()
                 .batches()
                 .iter()
-                .map(|b| metaversion_to_fbs(fbb, b.metaversion()))
+                .map(|b| batch_to_fbs(fbb, b))
                 .collect();
             let m: Vec<_> = state
                 .message_pool()
                 .batches()
                 .iter()
-                .map(|b| metaversion_to_fbs(fbb, b.metaversion()))
+                .map(|b| batch_to_fbs(fbb, b))
                 .collect();
             let indices = (0..a.len()).collect();
             (a, m, indices)
@@ -178,13 +182,13 @@ fn shared_store_to_fbs<'f>(
                 .agent_pool()
                 .batches()
                 .iter()
-                .map(|b| metaversion_to_fbs(fbb, b.metaversion()))
+                .map(|b| batch_to_fbs(fbb, b))
                 .collect();
             let m: Vec<_> = state
                 .message_pool()
                 .batches()
                 .iter()
-                .map(|b| metaversion_to_fbs(fbb, b.metaversion()))
+                .map(|b| batch_to_fbs(fbb, b))
                 .collect();
             let indices = (0..a.len()).collect();
             (a, m, indices)
@@ -196,13 +200,13 @@ fn shared_store_to_fbs<'f>(
                     .agent_pool()
                     .batches()
                     .iter()
-                    .map(|b| metaversion_to_fbs(fbb, b.metaversion()))
+                    .map(|b| batch_to_fbs(fbb, b))
                     .collect();
                 let m: Vec<_> = state
                     .message_pool()
                     .batches()
                     .iter()
-                    .map(|b| metaversion_to_fbs(fbb, b.metaversion()))
+                    .map(|b| batch_to_fbs(fbb, b))
                     .collect();
                 (a, m, partial.indices)
             }
@@ -212,13 +216,13 @@ fn shared_store_to_fbs<'f>(
                     .agent_pool()
                     .batches()
                     .iter()
-                    .map(|b| metaversion_to_fbs(fbb, b.metaversion()))
+                    .map(|b| batch_to_fbs(fbb, b))
                     .collect();
                 let m: Vec<_> = state
                     .message_pool()
                     .batches()
                     .iter()
-                    .map(|b| metaversion_to_fbs(fbb, b.metaversion()))
+                    .map(|b| batch_to_fbs(fbb, b))
                     .collect();
                 (a, m, partial.indices)
             }
@@ -227,8 +231,8 @@ fn shared_store_to_fbs<'f>(
     let indices: Vec<_> = indices.into_iter().map(|i| i as u32).collect();
     let args = StateInterimSyncArgs {
         group_idx: Some(fbb.create_vector(&indices)),
-        agent_pool_metaversions: Some(fbb.create_vector(&agent_mv)),
-        message_pool_metaversions: Some(fbb.create_vector(&msg_mv)),
+        agent_batches: Some(fbb.create_vector(&agmsg_batches)),
+        message_batches: Some(fbb.create_vector(&msg_batches)),
     };
     crate::gen::StateInterimSync::create(fbb, &args)
 }
@@ -713,14 +717,7 @@ impl PythonRunner {
 
     pub async fn run(
         &mut self,
-    ) -> WorkerResult<
-        Pin<
-            Box<
-                dyn Future<Output = std::result::Result<WorkerResult<()>, tokio::task::JoinError>>
-                    + Send,
-            >,
-        >,
-    > {
+    ) -> WorkerResult<Pin<Box<dyn Future<Output=StdResult<WorkerResult<()>, JoinError>> + Send>>> {
         log::debug!("Running Python runner");
         // TODO: Duplication with other runners (move into worker?)
         if !self.spawned {

@@ -18,6 +18,9 @@ pub enum Error {
     #[error("{0}")]
     Unique(String),
 
+    #[error("Can't start JavaScript runner again when it is already running")]
+    AlreadyRunning,
+
     #[error("Arrow: {0}")]
     Arrow(#[from] ArrowError),
 

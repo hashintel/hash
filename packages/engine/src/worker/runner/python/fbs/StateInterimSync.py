@@ -52,52 +52,52 @@ class StateInterimSync(object):
         return o == 0
 
     # StateInterimSync
-    def AgentPoolMetaversions(self, j):
+    def AgentBatches(self, j):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(6))
         if o != 0:
             x = self._tab.Vector(o)
             x += flatbuffers.number_types.UOffsetTFlags.py_type(j) * 4
             x = self._tab.Indirect(x)
-            from Metaversion import Metaversion
-            obj = Metaversion()
+            from Batch import Batch
+            obj = Batch()
             obj.Init(self._tab.Bytes, x)
             return obj
         return None
 
     # StateInterimSync
-    def AgentPoolMetaversionsLength(self):
+    def AgentBatchesLength(self):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(6))
         if o != 0:
             return self._tab.VectorLen(o)
         return 0
 
     # StateInterimSync
-    def AgentPoolMetaversionsIsNone(self):
+    def AgentBatchesIsNone(self):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(6))
         return o == 0
 
     # StateInterimSync
-    def MessagePoolMetaversions(self, j):
+    def MessageBatches(self, j):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(8))
         if o != 0:
             x = self._tab.Vector(o)
             x += flatbuffers.number_types.UOffsetTFlags.py_type(j) * 4
             x = self._tab.Indirect(x)
-            from Metaversion import Metaversion
-            obj = Metaversion()
+            from Batch import Batch
+            obj = Batch()
             obj.Init(self._tab.Bytes, x)
             return obj
         return None
 
     # StateInterimSync
-    def MessagePoolMetaversionsLength(self):
+    def MessageBatchesLength(self):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(8))
         if o != 0:
             return self._tab.VectorLen(o)
         return 0
 
     # StateInterimSync
-    def MessagePoolMetaversionsIsNone(self):
+    def MessageBatchesIsNone(self):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(8))
         return o == 0
 
@@ -113,22 +113,22 @@ def StartGroupIdxVector(builder, numElems): return builder.StartVector(4, numEle
 def StateInterimSyncStartGroupIdxVector(builder, numElems):
     """This method is deprecated. Please switch to Start."""
     return StartGroupIdxVector(builder, numElems)
-def AddAgentPoolMetaversions(builder, agentPoolMetaversions): builder.PrependUOffsetTRelativeSlot(1, flatbuffers.number_types.UOffsetTFlags.py_type(agentPoolMetaversions), 0)
-def StateInterimSyncAddAgentPoolMetaversions(builder, agentPoolMetaversions):
-    """This method is deprecated. Please switch to AddAgentPoolMetaversions."""
-    return AddAgentPoolMetaversions(builder, agentPoolMetaversions)
-def StartAgentPoolMetaversionsVector(builder, numElems): return builder.StartVector(4, numElems, 4)
-def StateInterimSyncStartAgentPoolMetaversionsVector(builder, numElems):
+def AddAgentBatches(builder, agentBatches): builder.PrependUOffsetTRelativeSlot(1, flatbuffers.number_types.UOffsetTFlags.py_type(agentBatches), 0)
+def StateInterimSyncAddAgentBatches(builder, agentBatches):
+    """This method is deprecated. Please switch to AddAgentBatches."""
+    return AddAgentBatches(builder, agentBatches)
+def StartAgentBatchesVector(builder, numElems): return builder.StartVector(4, numElems, 4)
+def StateInterimSyncStartAgentBatchesVector(builder, numElems):
     """This method is deprecated. Please switch to Start."""
-    return StartAgentPoolMetaversionsVector(builder, numElems)
-def AddMessagePoolMetaversions(builder, messagePoolMetaversions): builder.PrependUOffsetTRelativeSlot(2, flatbuffers.number_types.UOffsetTFlags.py_type(messagePoolMetaversions), 0)
-def StateInterimSyncAddMessagePoolMetaversions(builder, messagePoolMetaversions):
-    """This method is deprecated. Please switch to AddMessagePoolMetaversions."""
-    return AddMessagePoolMetaversions(builder, messagePoolMetaversions)
-def StartMessagePoolMetaversionsVector(builder, numElems): return builder.StartVector(4, numElems, 4)
-def StateInterimSyncStartMessagePoolMetaversionsVector(builder, numElems):
+    return StartAgentBatchesVector(builder, numElems)
+def AddMessageBatches(builder, messageBatches): builder.PrependUOffsetTRelativeSlot(2, flatbuffers.number_types.UOffsetTFlags.py_type(messageBatches), 0)
+def StateInterimSyncAddMessageBatches(builder, messageBatches):
+    """This method is deprecated. Please switch to AddMessageBatches."""
+    return AddMessageBatches(builder, messageBatches)
+def StartMessageBatchesVector(builder, numElems): return builder.StartVector(4, numElems, 4)
+def StateInterimSyncStartMessageBatchesVector(builder, numElems):
     """This method is deprecated. Please switch to Start."""
-    return StartMessagePoolMetaversionsVector(builder, numElems)
+    return StartMessageBatchesVector(builder, numElems)
 def End(builder): return builder.EndObject()
 def StateInterimSyncEnd(builder):
     """This method is deprecated. Please switch to End."""
