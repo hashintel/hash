@@ -37,7 +37,7 @@ export const MentionSuggester: VFC<MentionSuggesterProps> = ({
           <p className={tw`text-sm`}>{option.name}</p>
         </div>
       )}
-      itemKey={option => option.shortname}
+      itemKey={(option) => option.shortname}
       onChange={(option) => onChange(option.entityId, "user")}
       className={className}
       loading={loading}
