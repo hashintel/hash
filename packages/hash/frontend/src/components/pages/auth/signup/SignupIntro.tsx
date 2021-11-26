@@ -97,17 +97,14 @@ export const SignupIntro: VFC<SignupIntroProps> = ({
         </button>
       </form>
       <p className={tw`text-sm  md:whitespace-nowrap text-center`}>
-        Alternatively if you already have a HASH account,
+        Alternatively if you already have a HASH account,{" "}
         <Link
           href={{
             pathname: "/login",
             query: router.query,
           }}
         >
-          <button
-            type="button"
-            className={tw`font-bold focus:outline-none ml-1`}
-          >
+          <button type="button" className={tw`font-bold focus:outline-none`}>
             Click here to log in
           </button>
         </Link>
