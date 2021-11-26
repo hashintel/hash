@@ -1,3 +1,4 @@
+use std::convert::TryFrom;
 use std::fmt::{Debug, Formatter};
 use std::{collections::HashMap, fmt, sync::Arc};
 
@@ -8,6 +9,7 @@ use crate::proto::{ExperimentID, SimulationShortID};
 use crate::simulation::enum_dispatch::TaskSharedStore;
 use crate::simulation::package::id::PackageId;
 use crate::simulation::task::msg::TaskMessage;
+use crate::worker::Error;
 use crate::{
     datastore::prelude::ArrowSchema,
     simulation::package::worker_init::PackageInitMsgForWorker,
@@ -37,6 +39,18 @@ impl From<Language> for MessageTarget {
     }
 }
 
+impl From<crate::gen::target_generated::Target> for MessageTarget {
+    fn from(target: crate::gen::target_generated::Target) -> Self {
+        match target {
+            crate::gen::target_generated::Target::Rust => Self::Rust,
+            crate::gen::target_generated::Target::Python => Self::Python,
+            crate::gen::target_generated::Target::JavaScript => Self::JavaScript,
+            crate::gen::target_generated::Target::Dynamic => Self::Dynamic,
+            crate::gen::target_generated::Target::Main => Self::Main,
+        }
+    }
+}
+
 // TODO: Group indices have type u32 in RunnerTaskMsg, but usize in StateInterimSync.
 #[derive(Debug)]
 pub struct RunnerTaskMsg {
@@ -50,6 +64,29 @@ pub struct RunnerTaskMsg {
 pub struct TargetedRunnerTaskMsg {
     pub target: MessageTarget,
     pub msg: RunnerTaskMsg,
+}
+
+impl TryFrom<crate::gen::runner_outbound_msg_generated::TaskMsg<'_>> for TargetedRunnerTaskMsg {
+    type Error = Error;
+
+    fn try_from(
+        task_msg: crate::gen::runner_outbound_msg_generated::TaskMsg,
+    ) -> Result<Self, Self::Error> {
+        let task_id = task_msg.task_id().ok_or_else(|| {
+            Error::from("The TaskMessage from the runner didn't have a required task_id field")
+        })?;
+
+        let task_msg = serde_json::to_value(task_msg.payload().inner())?;
+        Ok(Self {
+            target: task_msg.target().into(),
+            msg: RunnerTaskMsg {
+                package_id: (task_msg.package_sid() as usize).into(),
+                task_id: uuid::Uuid::from_slice(&task_id.0)?.as_u128(),
+                payload: task_msg.into()?, // TODO is this going to need wrapping like `extract_inner_msg_with_wrapper`
+                shared_store: todo!(),     // use metaversioning somehow?,
+            },
+        })
+    }
 }
 
 #[derive(Debug)]

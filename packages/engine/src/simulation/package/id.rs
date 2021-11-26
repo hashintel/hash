@@ -14,6 +14,12 @@ impl PackageId {
     }
 }
 
+impl From<usize> for PackageId {
+    fn from(id: usize) -> Self {
+        Self(id)
+    }
+}
+
 pub struct PackageIdGenerator {
     cur: usize,
     multiplier: usize,

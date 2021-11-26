@@ -38,6 +38,12 @@ pub enum Error {
 
     #[error("Io Error: {0}")]
     Io(#[from] std::io::Error),
+
+    #[error("serde: {0:?}")]
+    Serde(#[from] serde_json::Error),
+
+    #[error("Uuid error: {0}")]
+    Uuid(#[from] uuid::Error),
 }
 
 impl From<&str> for Error {

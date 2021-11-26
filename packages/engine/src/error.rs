@@ -183,12 +183,12 @@ fn stringify_datastore_error(
 
 impl<'a, T> From<std::sync::TryLockError<std::sync::RwLockReadGuard<'a, T>>> for Error {
     fn from(_: std::sync::TryLockError<std::sync::RwLockReadGuard<'a, T>>) -> Self {
-        Error::RwLock("RwLock read error for hPrime Engine".into())
+        Error::RwLock("RwLock read error".into())
     }
 }
 
 impl<'a, T> From<std::sync::TryLockError<std::sync::RwLockWriteGuard<'a, T>>> for Error {
     fn from(_: std::sync::TryLockError<std::sync::RwLockWriteGuard<'a, T>>) -> Self {
-        Error::RwLock("RwLock write error for hPrime Engine".into())
+        Error::RwLock("RwLock write error".into())
     }
 }

@@ -7,6 +7,7 @@ use flatbuffers::{FlatBufferBuilder, ForwardsUOffset, Vector, WIPOffset};
 use futures::FutureExt;
 use nng::options::Options;
 use nng::{Aio, Socket};
+use std::convert::TryFrom;
 use std::future::Future;
 use std::ops::Deref;
 use std::pin::Pin;
@@ -600,7 +601,12 @@ impl NngReceiver {
             .ok_or(Error::OutboundReceive)?;
 
         self.from_py.recv_async(&self.aio)?;
-        Ok(OutboundFromRunnerMsg::from(nng_msg))
+        Ok(OutboundFromRunnerMsg::try_from(nng_msg).map_err(|err| {
+            Error::from(format!(
+                "Failed to convert nng message to OutboundFromRunnerMsg: {}",
+                err.to_string()
+            ))
+        })?)
     }
 }
 
