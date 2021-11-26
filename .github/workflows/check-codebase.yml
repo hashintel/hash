@@ -83,8 +83,8 @@ jobs:
             exit 1;
           fi
 
-  integration-tests:
-    name: Integration tests
+  backend-integration-tests:
+    name: Backend integration tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -101,8 +101,8 @@ jobs:
       - name: Launch backend in test mode
         run: |
           docker volume create --name=hash-dev-pg
-          yarn serve:hash-backend-test & ## & enables background mode
-          npx wait-on --timeout $(expr 1000 \* 60 \* 3) http://localhost:5001
+          yarn serve:hash-backend-test & ## ampersand enables background mode
+          npx wait-on --timeout $(expr 1000 \* 60 \* 2) http://localhost:5001
         if: ${{ success() || failure() }}
         env:
           AWS_REGION: na
@@ -113,8 +113,80 @@ jobs:
       - run: docker ps --all
         if: ${{ success() || failure() }}
 
-      - run: yarn test-integration
+      - run: yarn test:backend-integration
         if: ${{ success() || failure() }}
+
+      - run: docker logs docker_hash-dev-api_1
+        if: ${{ success() || failure() }}
+
+      - run: docker logs docker_hash-dev-opensearch_1
+        if: ${{ success() || failure() }}
+
+      - run: docker logs docker_hash-dev-pg_1
+        if: ${{ success() || failure() }}
+
+      - run: docker logs docker_hash-dev-realtime_1
+        if: ${{ success() || failure() }}
+
+      - run: docker logs docker_hash-dev-redis_1
+        if: ${{ success() || failure() }}
+
+      - run: docker logs docker_hash-dev-search-loader_1
+        if: ${{ success() || failure() }}
+
+      - run: docker ps --all
+        if: ${{ success() || failure() }}
+
+  playwright-tests:
+    name: Playwright tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: ./.github/actions/warm-up-repo
+
+      - run: yarn codegen
+        if: ${{ success() || failure() }}
+
+      - name: Build backend images
+        run: yarn rebuild:backend
+        if: ${{ success() || failure() }}
+
+      - name: Launch backend
+        run: |
+          docker volume create --name=hash-dev-pg
+          yarn serve:hash-backend & ## ampersand enables background mode
+          npx wait-on --timeout $(expr 1000 \* 60 \* 2) tcp:localhost:5001
+          yarn seed-db & ## ampersand enables background mode
+          npx wait-on --timeout $(expr 1000 \* 60 \* 2) http://localhost:5001
+        if: ${{ success() || failure() }}
+        env:
+          AWS_REGION: na
+          AWS_ACCESS_KEY_ID: na
+          AWS_SECRET_ACCESS_KEY: na
+          AWS_S3_UPLOADS_BUCKET: na
+          HASH_PG_DATABASE: integration_tests
+
+      - run: docker ps --all
+        if: ${{ success() || failure() }}
+
+      - name: Build and launch frontend
+        if: ${{ success() || failure() }}
+        run: |
+          yarn workspace @hashintel/hash-frontend next build ## not using plain build script to skip codegen call
+          yarn workspace @hashintel/hash-frontend start & ## ampersand enables background mode
+          npx wait-on --timeout $(expr 1000 \* 60 \* 2) http://localhost:3000
+
+      - run: yarn playwright install-deps
+        if: ${{ success() || failure() }}
+
+      - run: yarn test:playwright
+        if: ${{ success() || failure() }}
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: playwright-report
+          path: playwright-report
 
       - run: docker logs docker_hash-dev-api_1
         if: ${{ success() || failure() }}
@@ -145,5 +217,5 @@ jobs:
 
       - uses: ./.github/actions/warm-up-repo
 
-      - run: yarn test-frontend
+      - run: yarn test:unit
         if: ${{ success() || failure() }}

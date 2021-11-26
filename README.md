@@ -75,18 +75,77 @@ build all blocks concurrently.
 1.  `yarn new:block <name>`
 1.  code in `packages/hash/blocks/<name>`
 
-## Tests
+## Testing
 
-Integration tests are located at [packages/hash/integration](./packages/hash/integration). To run
+### Backend integration tests
+
+Backend integration tests are located at [packages/hash/integration](./packages/hash/integration). To run
 these tests, ensure the API and database are running in test mode (`yarn serve:hash-backend-test`),
 which sets a test database name, and execute:
 
 ```sh
-yarn test-integration
+yarn test:backend-integration
 ```
 
 **N.B.** Don't forget to re-start the backend in regular mode (`yarn serve:hash-backend`) for normal
 development.
+
+### Playwright tests
+
+[Playwright](https://playwright.dev) tests are browser-based integration and end-to-end tests.
+They apply to the monorepo as a whole, so are located in the top-level [tests](./tests) folder.
+To run these tests locally, you will need to have both backend and frontend running.
+
+To ensure that your local changes are unaffected by the tests, it is recommended to use another database instance (`HASH_PG_DATABASE=integration_tests`).
+The database needs to be re-seeded before each test run.
+
+If you run a local instance of the app, please stop it before running the tests to free network ports.
+
+#### Terminal 1
+
+```sh
+yarn rebuild:backend
+HASH_PG_DATABASE=integration_tests yarn serve:hash-backend
+```
+
+#### Terminal 2
+
+```sh
+HASH_PG_DATABASE=integration_tests yarn seed-db
+
+## option 1: frontend in dev mode
+yarn serve:hash-frontend
+
+## option 2: frontend in prod mode
+yarn workspace @hashintel/hash-frontend build
+yarn workspace @hashintel/hash-frontend start
+```
+
+#### Terminal 3
+
+```sh
+yarn test:playwright
+```
+
+You can add extra arguments to configure how Playwright runs, e.g.:
+
+```sh
+yarn test:playwright --headed --workers=1
+```
+
+See `yarn test:playwright --help` for more info.
+
+### Unit tests
+
+Unit tests are executed by [Jest](https://jestjs.io) and use [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/) to cover the UI.
+They can be launched at any time with this command:
+
+```sh
+yarn test:unit
+```
+
+Going forward, consider using Playwright if you want to test the UI.
+Your tests will be less wired to the implementation details and thus be closer to what real users see and do.
 
 ## Code quality
 

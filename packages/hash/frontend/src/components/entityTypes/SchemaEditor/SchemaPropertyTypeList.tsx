@@ -11,29 +11,30 @@ type SchemaPropertyTypeListProps = {
   $ref?: Schema["$ref"];
 };
 
-export const SchemaPropertyTypeList: VoidFunctionComponent<SchemaPropertyTypeListProps> =
-  ({
-    hasSubSchema,
-    propertyName,
-    SchemaSelect,
-    type: typeMaybeArray,
-    $ref,
-  }) => {
-    if ($ref) {
-      return <SchemaSelect schemaRef={$ref} />;
-    }
+export const SchemaPropertyTypeList: VoidFunctionComponent<
+  SchemaPropertyTypeListProps
+> = ({
+  hasSubSchema,
+  propertyName,
+  SchemaSelect,
+  type: typeMaybeArray,
+  $ref,
+}) => {
+  if ($ref) {
+    return <SchemaSelect schemaRef={$ref} />;
+  }
 
-    return (
-      <>
-        {(typeMaybeArray instanceof Array ? typeMaybeArray : [typeMaybeArray])
-          .map<React.ReactNode>((type) =>
-            type === "object" && hasSubSchema ? (
-              <SchemaSelect schemaRef={propertyName} />
-            ) : (
-              <span>{type}</span>
-            ),
-          )
-          .reduce((prev, curr) => [prev, ", ", curr])}
-      </>
-    );
-  };
+  return (
+    <>
+      {(typeMaybeArray instanceof Array ? typeMaybeArray : [typeMaybeArray])
+        .map<React.ReactNode>((type) =>
+          type === "object" && hasSubSchema ? (
+            <SchemaSelect schemaRef={propertyName} />
+          ) : (
+            <span>{type}</span>
+          ),
+        )
+        .reduce((prev, curr) => [prev, ", ", curr])}
+    </>
+  );
+};

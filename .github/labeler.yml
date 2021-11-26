@@ -28,6 +28,13 @@ docker:
   - packages/hash/docker/**/*
   - packages/hash/docker/**/.*
 
+playwright:
+  - playwright.config.ts
+  - tests/*
+  - tests/.*
+  - tests/**/*
+  - tests/**/.*
+
 realtime:
   - packages/hash/realtime/*
   - packages/hash/realtime/.*

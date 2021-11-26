@@ -10,6 +10,7 @@ const { withSentryConfig } = require("@sentry/nextjs");
 const { buildStamp } = require("./buildstamp");
 
 const sentryWebpackPluginOptions = {
+  dryRun: !process.env.SENTRY_AUTH_TOKEN,
   release: buildStamp,
   silent: true,
   // For all available options, see:

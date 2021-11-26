@@ -14,38 +14,39 @@ type AccountEntityOfTypeListProps = {
   entityTypeId: string;
 };
 
-export const AccountEntityOfTypeList: VoidFunctionComponent<AccountEntityOfTypeListProps> =
-  ({ accountId, entityTypeId }) => {
-    const { data, loading } = useQuery<
-      AggregateEntityQuery,
-      AggregateEntityQueryVariables
-    >(aggregateEntity, {
-      variables: {
-        accountId,
-        entityTypeId,
-        operation: {
-          itemsPerPage: 100, // @todo paginate properly
-        },
+export const AccountEntityOfTypeList: VoidFunctionComponent<
+  AccountEntityOfTypeListProps
+> = ({ accountId, entityTypeId }) => {
+  const { data, loading } = useQuery<
+    AggregateEntityQuery,
+    AggregateEntityQueryVariables
+  >(aggregateEntity, {
+    variables: {
+      accountId,
+      entityTypeId,
+      operation: {
+        itemsPerPage: 100, // @todo paginate properly
       },
-    });
+    },
+  });
 
-    if (loading) {
-      return <em>Loading...</em>;
-    }
+  if (loading) {
+    return <em>Loading...</em>;
+  }
 
-    if (!data) {
-      return null;
-    }
+  if (!data) {
+    return null;
+  }
 
-    return (
-      <ul>
-        {data.aggregateEntity.results.map((entity) => (
-          <li className={tw`mb-2`} key={entity.entityId}>
-            <Link href={`/${accountId}/entities/${entity.entityId}`}>
-              <a>{entityName(entity)}</a>
-            </Link>
-          </li>
-        ))}
-      </ul>
-    );
-  };
+  return (
+    <ul>
+      {data.aggregateEntity.results.map((entity) => (
+        <li className={tw`mb-2`} key={entity.entityId}>
+          <Link href={`/${accountId}/entities/${entity.entityId}`}>
+            <a>{entityName(entity)}</a>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+};

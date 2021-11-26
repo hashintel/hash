@@ -259,5 +259,4 @@ export const Page: VoidFunctionComponent<{ preloadedBlockMeta: BlockMeta[] }> =
       </MainComponentWithSidebar>
     );
   };
-
 export default Page;
