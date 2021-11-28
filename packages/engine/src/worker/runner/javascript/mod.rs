@@ -1,10 +1,10 @@
 mod error;
 mod mini_v8;
 
-use std::{collections::HashMap, fs, sync::Arc};
 use std::future::Future;
 use std::pin::Pin;
 use std::result::Result as StdResult;
+use std::{collections::HashMap, fs, sync::Arc};
 
 use arrow::{
     array::{ArrayData, ArrayDataRef},
@@ -1090,7 +1090,8 @@ pub struct JavaScriptRunner {
     // V8 Isolate inside RunnerImpl can't be sent between threads.
     init_msg: Arc<ExperimentInitRunnerMsg>, // Args to RunnerImpl::new
     inbound_sender: UnboundedSender<(Option<SimulationShortID>, InboundToRunnerMsgPayload)>,
-    inbound_receiver: Option<UnboundedReceiver<(Option<SimulationShortID>, InboundToRunnerMsgPayload)>>,
+    inbound_receiver:
+        Option<UnboundedReceiver<(Option<SimulationShortID>, InboundToRunnerMsgPayload)>>,
     outbound_sender: Option<UnboundedSender<OutboundFromRunnerMsg>>,
     outbound_receiver: UnboundedReceiver<OutboundFromRunnerMsg>,
     spawn: bool,
@@ -1180,8 +1181,9 @@ impl JavaScriptRunner {
     }
 
     pub async fn run(
-        &mut self
-    ) -> WorkerResult<Pin<Box<dyn Future<Output=StdResult<WorkerResult<()>, JoinError>> + Send>>> {
+        &mut self,
+    ) -> WorkerResult<Pin<Box<dyn Future<Output = StdResult<WorkerResult<()>, JoinError>> + Send>>>
+    {
         // TODO: Move tokio spawn into worker?
         log::debug!("Running JavaScript runner");
         if !self.spawn {
@@ -1189,12 +1191,8 @@ impl JavaScriptRunner {
         }
 
         let init_msg = Arc::clone(&self.init_msg);
-        let inbound_receiver = self.inbound_receiver
-            .take()
-            .ok_or(Error::AlreadyRunning)?;
-        let outbound_sender = self.outbound_sender
-            .take()
-            .ok_or(Error::AlreadyRunning)?;
+        let inbound_receiver = self.inbound_receiver.take().ok_or(Error::AlreadyRunning)?;
+        let outbound_sender = self.outbound_sender.take().ok_or(Error::AlreadyRunning)?;
 
         let f = || _run(init_msg, inbound_receiver, outbound_sender);
         Ok(Box::pin(tokio::task::spawn_blocking(f)) as _)

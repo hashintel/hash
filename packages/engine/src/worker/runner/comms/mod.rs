@@ -47,6 +47,7 @@ impl From<crate::gen::target_generated::Target> for MessageTarget {
             crate::gen::target_generated::Target::JavaScript => Self::JavaScript,
             crate::gen::target_generated::Target::Dynamic => Self::Dynamic,
             crate::gen::target_generated::Target::Main => Self::Main,
+            _ => unreachable!(),
         }
     }
 }
@@ -76,14 +77,19 @@ impl TryFrom<crate::gen::runner_outbound_msg_generated::TaskMsg<'_>> for Targete
             Error::from("The TaskMessage from the runner didn't have a required task_id field")
         })?;
 
-        let task_msg = serde_json::to_value(task_msg.payload().inner())?;
+        let target = task_msg.target().into();
+        let package_id = (task_msg.package_sid() as usize).into();
+
+        let payload: serde_json::Value = serde_json::from_slice(task_msg.payload().inner())?;
+        let payload = serde_json::from_value(payload)?;
+
         Ok(Self {
-            target: task_msg.target().into(),
+            target,
             msg: RunnerTaskMsg {
-                package_id: (task_msg.package_sid() as usize).into(),
+                package_id,
                 task_id: uuid::Uuid::from_slice(&task_id.0)?.as_u128(),
-                payload: task_msg.into()?, // TODO is this going to need wrapping like `extract_inner_msg_with_wrapper`
-                shared_store: todo!(),     // use metaversioning somehow?,
+                payload, // TODO is this going to need wrapping like `extract_inner_msg_with_wrapper`
+                shared_store: todo!(), // use metaversioning somehow?,
             },
         })
     }

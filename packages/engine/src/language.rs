@@ -16,9 +16,13 @@ impl Language {
     pub const ORDERED: [Language; Self::NUM] =
         [Language::JavaScript, Language::Python, Language::Rust];
 
-    pub fn as_index(self) -> usize { self as usize}
+    pub fn as_index(self) -> usize {
+        self as usize
+    }
 
-    pub fn from_index(i: usize) -> Self { Self::ORDERED[i] }
+    pub fn from_index(i: usize) -> Self {
+        Self::ORDERED[i]
+    }
 
     pub fn from_file_name(file_name: &str) -> Result<Language> {
         if !(file_name.contains(".") || file_name.contains("/")) {

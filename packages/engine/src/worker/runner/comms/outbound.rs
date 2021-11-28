@@ -164,6 +164,7 @@ impl TryFrom<crate::gen::runner_outbound_msg_generated::RunnerOutboundMsg<'_>>
 
                 todo!() // TODO: there is no Self::UserWarnings
             }
+            _ => return Err(Error::from("Invalid outbound flatbuffers message payload")),
         })
     }
 }

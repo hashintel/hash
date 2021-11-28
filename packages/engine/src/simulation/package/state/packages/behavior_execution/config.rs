@@ -4,9 +4,9 @@ use std::ops::Deref;
 
 use serde::{Deserialize, Serialize};
 
-use crate::Language;
 use super::fields::behavior::BehaviorMap;
 use super::{Error, Result};
+use crate::Language;
 
 // TODO: Package's experiment init message should have payload with
 //       Vec of behavior descriptions in `behavior_descs`.
