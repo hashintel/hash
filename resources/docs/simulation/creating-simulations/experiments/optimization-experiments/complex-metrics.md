@@ -59,7 +59,7 @@ const behavior = () => {
 Metric weights can also be captured as global parameters for easy modification
 </Hint>
 
-### 4. Create a new Analysis metric that collects the `state.metric` field on your agent
+### 4. Create a new Analysis metric that collects the 'state.metric' field on your agent
 
 ![Defining the complex metric for use an optimization](https://cdn-us1.hash.ai/site/docs/image%20%2872%29.png)
 
