@@ -32,7 +32,7 @@ It's ironic that when trying to improve a process, people have a tendency to foc
 
 For example, consider a [Billing Department](https://core.hash.ai/@hash/billing-department-process/stable), which needs to process, send out, and occasionally audit two types of bills.
 
-![](https://lh4.googleusercontent.com/W6wazlGHPZVxkEuWCl8DIkw66P44qrgvMbIAUs0VfgGwiY-taiU1PgVnr5dhkeBTc-kpCzm5Xhajs7-VMhGsOaG6CcKhbQ6uQMXH-z-hCxf6zRtmEqeIel3_JyHRVjIxgObDla47)
+![](https://s3.amazonaws.com/cdn-us1.hash.ai/site/docs/billing-department-flow.png)
 
 <Hint style="info">
 [Learn how to build a process model simulation using a visual interface.](/docs/simulation/tutorials/building-process-models/using-the-process-model-builder)
@@ -40,13 +40,13 @@ For example, consider a [Billing Department](https://core.hash.ai/@hash/billing-
 
 Once we've represented the department as a process model and generated a simulation, we can use the Analysis view to inspect the process models to identify bottlenecks based on resource utilization or through times. There are four different resources in use in model: senior_billers, account_billers, billing_clerks, and printers. Visualizing the average utilization of these resources will allow us to determine which, if any, are responsible for any bottlenecks:
 
-![Percent of a resource being utilized](https://lh4.googleusercontent.com/4TECbNGY8Cumj3fY8fBvne8etXwC75T-9AiXbUqyuuXbqRM5jh4LzxMD65aTjfw-IOumLH9W8lCTU4Bprq5cyQ5FSfJBU_ODEPGurWDs81Fmi-qs4gIGUgsRS6ehRW3h7w1lrElU)
+![Percent of a resource being utilized](https://s3.amazonaws.com/cdn-us1.hash.ai/site/docs/billng-department-resource-utilization.png)
 
 We can see that Senior Billers are almost constantly occupied, compared to other resources, which have more reasonable usage rates.
 
 Paradoxically, having a resource fully occupied implies that a system is not running effectively. We can confirm that by looking at the average time it is taking to process a bill:
 
-![](https://lh4.googleusercontent.com/IvqcW9PjBSvBiRcYhZavyzeJoqOMZsKeWLUgGuqWFxn-1YweXxew7K5djCYRW1Zk9mTkLTVIsIhnV0QqQvbvctp9hGjxwd5N7uFjJhm3cL-NwSZKFANZPCNmtDZ4hyh78GyJhYSr)
+![](https://s3.amazonaws.com/cdn-us1.hash.ai/site/docs/avg-process-time-increases.png)
 
 The average time continues to increase as the model runs, instead of reaching a stable value. This means that eventually the system will take infinitely long to process a bill!
 

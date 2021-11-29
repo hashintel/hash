@@ -61,7 +61,7 @@ _Note: Your init.json might look different if you used `create_stacks or create_
 
 If you reset the simulation and click on the hospital agent the inspect modal will now display the value for `icu_beds`. Click the inverted pyramid to select/deselect displayed attributes.
 
-![](https://lh4.googleusercontent.com/PqbkGFIaaymIjL1HVPBW6Ca1abWdk_VAS46jf5hFyUlCGu6wAcPy7v0oZtApKkSP_ewJjWj3yg4YDJ0bQCGQGFuSMJ7T_Cd_RLu8Px8gbFoVmhhsLClTrSe_GlDHIFFx-Ps8tVME)
+![](https://s3.amazonaws.com/cdn-us1.hash.ai/site/docs/tutorial-extending-epidemic-icu-beds.png)
 
 Open the `check_infected` file. A person agent is sending a request to the hospital to test them; now they should also send personal information to the hospital. In particular we want to know how likely it is they're `at_risk` of complications from the disease. It’s a little bit of a hand-wave that they are directly sending their `at_risk` level - you can imagine they’re sending a blood/spit sample and don’t know what it contains, or providing demographic info like their age or pre-existing conditions. In a more complicated model we'd likely determine their `at_risk` degree from a variety of different measures.
 

@@ -12,7 +12,7 @@ Process models, when built with the process library, are represented as a flowch
 
 You can think of it like a flowchart - objects start at the source, travel through elements, and end at the sink.
 
-![A process model diagram](https://lh3.googleusercontent.com/k_z-PgMKN4gVmoQ2NKQQaLmUUI9dHI-zqQeHQ3EqJ6MtqLdo0omkikAaPKG7puxStikT5fpk9FBKCfiheTXvDbSo9FxkHMKrH95O5pfRXYQ5naqQuiegg9hxkj9U_jghjRCvVSam)
+![A process model diagram](https://s3.amazonaws.com/cdn-us1.hash.ai/site/docs/hash-bpmn-example.png)
 
 When designing your own process models, your primary task is to factor the real world process into discrete steps, and then match those steps to elements in the process library \(or build your own!\)
 
