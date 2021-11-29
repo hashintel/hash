@@ -236,7 +236,7 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
         const data: any = request.body;
         const version = parseVersion(data.version);
 
-        const result = instance.addJsonEvents(apolloClient)(
+        const result = await instance.addJsonEvents(apolloClient)(
           version,
           data.steps,
           data.clientID,
