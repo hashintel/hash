@@ -253,11 +253,6 @@ fn create_primitive_array(
     data_type: &DataType,
     buffers: Vec<Buffer>,
 ) -> ArrayRef {
-    log::debug!(
-        "Creating Primitive array for field_node with length: {} and datatype: {:?}",
-        field_node.length(),
-        data_type
-    );
     let length = field_node.length() as usize;
     let null_count = field_node.null_count() as usize;
     let array_data = match data_type {
@@ -468,13 +463,6 @@ pub(crate) fn read_record_batch(
 
     // keep track of index as lists require more than one node
     for field in schema.fields() {
-        log::debug!(
-            "Creating array for field: {}, node_index: {}, data_type: {:?}",
-            field.name(),
-            node_index,
-            field.data_type()
-        );
-        log::debug!("FieldNode has length: {}", field_nodes[node_index].length());
         let triple = create_array(
             field_nodes,
             field.data_type(),

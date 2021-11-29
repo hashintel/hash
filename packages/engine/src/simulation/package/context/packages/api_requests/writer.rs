@@ -55,7 +55,6 @@ impl<'s> ContextColumnWriter for APIResponses<'s> {
             &meta.buffers,
             3,
         );
-
         // Type
         write_string_list_inner_column_unchecked(
             self.r#type.data.iter(),
@@ -67,7 +66,6 @@ impl<'s> ContextColumnWriter for APIResponses<'s> {
             &meta.buffers,
             6,
         );
-
         // Data
         write_string_list_inner_column_unchecked(
             self.data.data.iter(),
