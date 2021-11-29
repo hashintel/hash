@@ -96,11 +96,6 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
         routeElement.scrollIntoView();
         scrollingComplete.current = true;
       }
-
-      // Scroll only if element is out of view
-      if (intersectionRatio.current === 0) {
-        scrollFrameRequestIdRef.current = requestAnimationFrame(frame);
-      }
     }
 
     function clearScrollInterval() {
