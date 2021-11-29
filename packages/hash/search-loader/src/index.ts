@@ -14,10 +14,11 @@ import {
   createPostgresConnPool,
   PgPool,
 } from "@hashintel/hash-backend-utils/postgres";
+import { SearchAdapter } from "@hashintel/hash-backend-utils/search/adapter";
+import { OpenSearch } from "@hashintel/hash-backend-utils/search/opensearch";
+import { EntitiesDocument } from "@hashintel/hash-backend-utils/search/doc-types";
 import { StatsD } from "hot-shots";
 
-import { OpenSearch } from "./search/opensearch";
-import { SearchAdapter } from "./search/adapter";
 import { getSystemAccountId, getEntityType } from "./db";
 import { logger, INSTANCE_ID } from "./config";
 
@@ -34,8 +35,6 @@ const OPENSEARCH_PORT = parseInt(
   process.env.HASH_OPENSEARCH_PORT || "9200",
   10,
 );
-const OPENSEARCH_USERNAME = getRequiredEnv("HASH_OPENSEARCH_USERNAME");
-const OPENSEARCH_PASSWORD = getRequiredEnv("HASH_OPENSEARCH_PASSWORD");
 const OPENSEARCH_HTTPS_ENABLED =
   process.env.HASH_OPENSEARCH_HTTPS_ENABLED === "1";
 const PG_HOST = getRequiredEnv("HASH_PG_HOST");
@@ -91,21 +90,6 @@ const createHttpServer = (callbacks: { isQueueAcquired: () => boolean }) => {
   });
 
   return server;
-};
-
-/** Type representing an indexed entity in the search index. */
-type IndexedEntity = {
-  accountId: string;
-  entityId: string;
-  entityVersionId: string;
-  entityTypeId: string;
-  entityTypeVersionId: string;
-  entityTypeName: string;
-  createdBy: string;
-  createdAt: Date;
-  updatedAt: Date;
-  // Entity-type specific content to enable full-text search on.
-  fullTextSearch?: string;
 };
 
 /** Convert a Text entities properties to a string which may be indexed for the
@@ -187,15 +171,15 @@ class SearchLoader {
       const entityType = await getEntityType(this.pool, {
         entityTypeVersionId: entity.entityTypeVersionId,
       });
-      const indexedEntity: IndexedEntity = {
+      const indexedEntity: EntitiesDocument = {
         accountId: entity.accountId,
         entityId: entity.entityId,
         entityVersionId: entity.entityVersionId,
         entityTypeId: entityType.entityTypeId,
         entityTypeVersionId: entity.entityTypeVersionId,
         entityTypeName: entityType.name,
-        createdAt: entity.createdAt,
-        updatedAt: entity.updatedAt,
+        createdAt: entity.createdAt.toISOString(),
+        updatedAt: entity.updatedAt.toISOString(),
         createdBy: entity.createdBy,
       };
       // @todo: could move the `SYSTEM_TYPES` definition from the backend to backend-utils
@@ -276,11 +260,17 @@ const main = async () => {
   SYSTEM_ACCOUNT_ID = await getSystemAccountId(pg);
 
   // Connect to Opensearch
+  const searchAuth =
+    process.env.HASH_OPENSEARCH_USERNAME === undefined
+      ? undefined
+      : {
+          username: process.env.HASH_OPENSEARCH_USERNAME,
+          password: process.env.HASH_OPENSEARCH_PASSWORD || "",
+        };
   const search = await OpenSearch.connect(logger, {
     host: OPENSEARCH_HOST,
     port: OPENSEARCH_PORT,
-    username: OPENSEARCH_USERNAME,
-    password: OPENSEARCH_PASSWORD,
+    auth: searchAuth,
     httpsEnabled: OPENSEARCH_HTTPS_ENABLED,
   });
   shutdown.addCleanup("OpenSearch", async () => search.close());
@@ -288,7 +278,7 @@ const main = async () => {
   // Create the `ENTITIES_INDEX` search index if it does not already exist.
   if (!(await search.indexExists({ index: ENTITIES_INDEX }))) {
     await search.createIndex({ index: ENTITIES_INDEX });
-    logger.info(`Created search index "${ENTITIES_INDEX}""`);
+    logger.info(`Created search index "${ENTITIES_INDEX}"`);
   } else {
     logger.info(`Search index "${ENTITIES_INDEX}" already exists`);
   }

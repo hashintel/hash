@@ -88,6 +88,37 @@ export const pageTypedef = gql`
     title: String!
   }
 
+  type EntityRef {
+    accountId: ID!
+    entityId: ID!
+    entityVersionId: ID!
+  }
+
+  type PageSearchResult {
+    """
+    The accuracy of the search result. A number in the range [0, 1]
+    """
+    score: Float!
+    """
+    A reference to the page where the search result was found.
+    """
+    page: EntityRef!
+    """
+    A reference to the block in the page where the search result was found. This is
+    null if the search match corresponds to a page title.
+    """
+    block: EntityRef
+    """
+    A reference to the text entity in the block where the search result was found. This
+    is null if the search match corresponds to a page title.
+    """
+    text: EntityRef
+    """
+    The content of the search match.
+    """
+    content: String!
+  }
+
   extend type Query {
     """
     Return a page by its id
@@ -98,6 +129,12 @@ export const pageTypedef = gql`
     Return a list of pages belonging to an account
     """
     accountPages(accountId: ID!): [Page!]!
+
+    """
+    Search for pages matching a query string.
+    Returns a BAD_USER_INPUT error if the query string is empty.
+    """
+    searchPages(accountId: ID!, query: String!): [PageSearchResult!]!
   }
 
   input PageCreationData {

@@ -108,3 +108,14 @@ export const topologicalSort = <T>(edges: [T, T][]) => {
 
   return sort;
 };
+
+/** Returns the set intersection of `left` and `right`. */
+export const intersection = <T>(left: Set<T>, right: Set<T>): Set<T> => {
+  const result = new Set<T>();
+  for (const item of left) {
+    if (right.has(item)) {
+      result.add(item);
+    }
+  }
+  return result;
+};

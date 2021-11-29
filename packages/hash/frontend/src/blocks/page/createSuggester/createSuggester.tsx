@@ -4,7 +4,7 @@ import {
   BlockMeta,
 } from "@hashintel/hash-shared/blockMeta";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
-import { ResolvedPos, Schema } from "prosemirror-model";
+import { Schema } from "prosemirror-model";
 import {
   EditorState,
   Plugin,
@@ -12,12 +12,14 @@ import {
   TextSelection,
 } from "prosemirror-state";
 import React, { CSSProperties } from "react";
-import { RenderPortal } from "../../blocks/page/usePortals";
-import { ensureMounted } from "../../lib/dom";
+import { RenderPortal } from "../usePortals";
+import { ensureMounted } from "../../../lib/dom";
 import { BlockSuggester } from "./BlockSuggester";
+import { MentionSuggester } from "./MentionSuggester";
 
 interface Trigger {
-  /** matched search string including its leading slash */
+  char: "@" | "/";
+  /** matched search string including its leading trigger-char */
   search: string;
   /** starting prosemirror document position */
   from: number;
@@ -29,8 +31,8 @@ interface Trigger {
  * used to find a string triggering the suggester plugin
  */
 const findTrigger = (state: EditorState<Schema>): Trigger | null => {
-  // @ts-expect-error: only empty TextSelection has a $cursor
-  const cursor: ResolvedPos = state.selection.$cursor;
+  // Only empty TextSelection has a $cursor
+  const cursor = (state.selection as TextSelection).$cursor;
   if (!cursor) return null;
 
   // the cursor's parent is the node that contains it
@@ -42,11 +44,10 @@ const findTrigger = (state: EditorState<Schema>): Trigger | null => {
   // the parent's position relative to the document root
   const parentPos = cursor.pos - cursorPos;
 
-  // see if we can find a slash looking backwards
-  const slashMatch = text.substring(0, cursorPos).match(/\/\S*$/);
-  if (!slashMatch) return null;
+  const match = text.substring(0, cursorPos).match(/(@|\/)\S*$/);
+  if (!match) return null;
 
-  const from = slashMatch.index!;
+  const from = match.index!;
 
   // match upto the first whitespace character or the end of the node
   const to = cursorPos + text.substring(cursorPos).search(/\s|$/g);
@@ -55,6 +56,7 @@ const findTrigger = (state: EditorState<Schema>): Trigger | null => {
     search: text.substring(from, to),
     from: parentPos + from,
     to: parentPos + to,
+    char: match[1] as Trigger["char"],
   };
 };
 
@@ -79,14 +81,14 @@ const key = new PluginKey<SuggesterState, Schema>("suggester");
  * Suggester plugin factory
  *
  * Behaviour:
- * Typing a slash followed by any number of non-whitespace characters will
+ * Typing one of the trigger characters followed by any number of non-whitespace characters will
  * activate the plugin and open a popup right under the "textual trigger".
  * Moving the cursor outside the trigger will close the popup. Pressing the
  * Escape-key while inside the trigger will disable the plugin until a trigger
  * is newly encountered (e.g. by leaving/deleting and reentering/retyping a
  * trigger).
  */
-export const createBlockSuggester = (
+export const createSuggester = (
   renderPortal: RenderPortal,
   getManager: () => ProsemirrorSchemaManager,
 ) =>
@@ -145,7 +147,7 @@ export const createBlockSuggester = (
 
           if (!state.isOpen()) return this.destroy!();
 
-          const { from, to, search } = state.trigger!;
+          const { from, to, search, char: triggerChar } = state.trigger!;
           const coords = view.coordsAtPos(from);
 
           const style: CSSProperties = {
@@ -158,7 +160,10 @@ export const createBlockSuggester = (
            * @todo actually create and insert an instance of the selected block
            *   type variant
            */
-          const onChange = (_variant: BlockVariant, meta: BlockMeta) => {
+          const onBlockSuggesterChange = (
+            _variant: BlockVariant,
+            meta: BlockMeta,
+          ) => {
             getManager()
               .createRemoteBlock(meta.componentMetadata.componentId)
               .then((node) => {
@@ -182,17 +187,43 @@ export const createBlockSuggester = (
               });
           };
 
-          const jsx = (
-            <div style={style}>
-              <BlockSuggester
-                search={search.substring(1)}
-                onChange={onChange}
-              />
-            </div>
-          );
+          const onMentionChange = (entityId: string, mentionType: string) => {
+            const { tr } = view.state;
 
-          ensureMounted(mountNode, document.body);
-          renderPortal(jsx, mountNode);
+            const mentionNode = view.state.schema.nodes.mention.create({
+              mentionType,
+              entityId,
+            });
+
+            tr.replaceWith(from, to, mentionNode);
+
+            view.dispatch(tr);
+          };
+
+          let jsx: JSX.Element | null = null;
+
+          switch (triggerChar) {
+            case "/":
+              jsx = (
+                <BlockSuggester
+                  search={search.substring(1)}
+                  onChange={onBlockSuggesterChange}
+                />
+              );
+              break;
+            case "@":
+              jsx = (
+                <MentionSuggester
+                  search={search.substring(1)}
+                  onChange={onMentionChange}
+                />
+              );
+          }
+
+          if (jsx) {
+            ensureMounted(mountNode, document.body);
+            renderPortal(<div style={style}>{jsx}</div>, mountNode);
+          }
         },
         destroy() {
           renderPortal(null, mountNode);

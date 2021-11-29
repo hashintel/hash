@@ -10,8 +10,8 @@ import {
 import { EditorView } from "prosemirror-view";
 import React from "react";
 import { tw } from "twind";
-import { RenderPortal } from "../../blocks/page/usePortals";
-import { ensureMounted } from "../../lib/dom";
+import { RenderPortal } from "../usePortals";
+import { ensureMounted } from "../../../lib/dom";
 import { MarksTooltip } from "./MarksTooltip";
 import { LinkModal } from "./LinkModal";
 import {

@@ -19,4 +19,8 @@ export class RedisCache extends DataSource implements CacheAdapter {
     this.set = this.client.set;
     this.rpush = this.client.rpush;
   }
+
+  async close() {
+    await this.client.close();
+  }
 }

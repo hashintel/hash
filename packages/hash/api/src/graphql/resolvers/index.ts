@@ -22,6 +22,7 @@ import {
   pageFields,
   updatePage,
   updatePageContents,
+  searchPages,
 } from "./pages";
 import { accounts } from "./account/accounts";
 import { createUser } from "./user/createUser";
@@ -72,6 +73,7 @@ export const resolvers = {
     page: canAccessAccount(page),
     getImpliedEntityHistory: loggedInAndSignedUp(getImpliedEntityHistory),
     getImpliedEntityVersion: loggedInAndSignedUp(getImpliedEntityVersion),
+    searchPages: loggedInAndSignedUp(searchPages),
     // Logged in users only
     me: loggedIn(me),
     // Any user

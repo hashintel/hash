@@ -23,6 +23,9 @@
     "ts-node": "node --max-old-space-size=2048 node_modules/.bin/ts-node --files --project tsconfig.json"
   },
   "dependencies": {
+    "@hashintel/block-protocol": "*",
+    "@opensearch-project/opensearch": "1.0.0",
+    "apollo-datasource": "3.3.0",
     "redis": "3.1.2",
     "slonik": "24.1.2",
     "winston": "3.3.3"

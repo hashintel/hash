@@ -21,13 +21,6 @@ class __OrgMembership extends Account {
     const orgMembershipEntityType = await client.getSystemTypeLatestVersion({
       systemTypeName: "OrgMembership",
     });
-
-    if (!orgMembershipEntityType) {
-      throw new Error(
-        "OrgMembership system entity type not found in datastore",
-      );
-    }
-
     return orgMembershipEntityType;
   }
 

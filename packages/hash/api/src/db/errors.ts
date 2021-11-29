@@ -11,14 +11,45 @@ export class DbEntityNotFoundError extends Error {
     entityVersionId?: string;
   }) {
     const { accountId, entityId, entityVersionId } = params;
-    super(
-      `Entity ${entityId} ${
-        entityVersionId ? `with version ID ${entityVersionId}` : ""
-      } not found in account ${accountId}`,
-    );
+    const ver = entityVersionId ? ` with versionID ${entityVersionId}` : "";
+    super(`Entity ${entityId}${ver} not found in account ${accountId}`);
     this.accountId = accountId;
     this.entityId = entityId;
     this.entityVersionId = entityVersionId;
+  }
+}
+
+export class DbEntityTypeNotFoundError extends Error {
+  accountId?: string;
+  entityTypeId?: string;
+  entityTypeVersionId?: string;
+  systemTypeName?: string;
+
+  constructor(params: {
+    accountId?: string;
+    entityTypeId?: string;
+    entityTypeVersionId?: string;
+    systemTypeName?: string;
+  }) {
+    const { accountId, entityTypeId, entityTypeVersionId, systemTypeName } =
+      params;
+    if (params.systemTypeName) {
+      super(
+        `Critical: system entity type "${params.systemTypeName}" not found`,
+      );
+    } else {
+      const ver = entityTypeVersionId
+        ? ` with versionID ${entityTypeVersionId}`
+        : "";
+      const name = systemTypeName ? ` "${systemTypeName}"` : "";
+      super(
+        `Entity type${name} with ID ${entityTypeId}${ver} not found in account ${accountId}`,
+      );
+    }
+    this.accountId = accountId;
+    this.entityTypeId = entityTypeId;
+    this.entityTypeVersionId = entityTypeVersionId;
+    this.systemTypeName = params.systemTypeName;
   }
 }
 

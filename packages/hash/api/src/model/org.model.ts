@@ -32,11 +32,6 @@ class __Org extends Account {
     const orgEntityType = await client.getSystemTypeLatestVersion({
       systemTypeName: "Org",
     });
-
-    if (!orgEntityType) {
-      throw new Error("Org system entity type not found in datastore");
-    }
-
     return orgEntityType;
   }
 

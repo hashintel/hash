@@ -1,10 +1,13 @@
 import { sql } from "slonik";
+import { uniq } from "lodash";
 
 import { Connection } from "./types";
 import { Entity } from "../adapter";
 import { gatherLinks } from "./util";
 import { getEntityAccountIdMany } from "./account";
 import { DbInvalidLinksError } from "../errors";
+import { getEntity, getEntityLatestVersion } from "./entity";
+import { DbEntityNotFoundError } from "..";
 
 const ZERO_UUID = "00000000-0000-0000-0000-000000000000";
 
@@ -86,33 +89,6 @@ export const insertIncomingLinks = async (
   `);
 };
 
-/** Get the fixed entity IDs of all entities which refrence a given entity. */
-export const getEntityParentIds = async (
-  conn: Connection,
-  params: { accountId: string; entityVersionId: string },
-) => {
-  const rows = await conn.any(sql`
-    with p as (
-      select parent_account_id, parent_version_id
-      from incoming_links
-      where
-        account_id = ${params.accountId}
-        and entity_version_id = ${params.entityVersionId}
-    )
-    select distinct e.account_id, e.entity_id
-    from
-      p
-      join entity_versions as e on
-        e.account_id = p.parent_account_id
-        and e.entity_version_id = p.parent_version_id
-  `);
-
-  return rows.map((row) => ({
-    accountId: row.account_id as string,
-    entityId: row.entity_id as string,
-  }));
-};
-
 /** Insert the link references made by the provided `entity` into the
  * `incoming_links` and `outgoing_links` tables. Throws a `DbInalidLinksError` if `entity`
  * contains a link to another entity which does not exist. */
@@ -168,7 +144,7 @@ export type OutgoingLink = {
   accountId: string;
   entityId: string;
   entityVersionId?: string;
-  validForsourceEntityVersionIds: Set<string>;
+  validForSourceEntityVersionIds: Set<string>;
 };
 
 /** Get the outgoing links made by an entity. Returns an array of objects with the
@@ -176,7 +152,7 @@ export type OutgoingLink = {
  *   1. `accountId`: the account ID of the linked entity
  *   2. `entityId`: the entity ID of the linked entity
  *   3. `entityVersionId`: `undefined` if the link does not specify a specific version ID
- *   4. `validForsourceEntityVersionIds`: a `Set` of version IDs for `params.entityId` for
+ *   4. `validForSourceEntityVersionIds`: a `Set` of version IDs for `params.entityId` for
  *       which the link is valid.
  */
 export const getEntityOutgoingLinks = async (
@@ -203,9 +179,87 @@ export const getEntityOutgoingLinks = async (
           ? undefined
           : destinationEntityVersionId,
       // The version IDs of `params.entityId` for which this link is valid
-      validForsourceEntityVersionIds: new Set(
+      validForSourceEntityVersionIds: new Set(
         row.source_entity_version_ids as string[],
       ),
     };
   });
+};
+
+/** Get the accountId and entityId of all entities which link to a given entity. */
+const getEntityIncomingLinks = async (
+  conn: Connection,
+  params: {
+    accountId: string;
+    entityId: string;
+  },
+) => {
+  const rows = await conn.any(sql`
+    select
+      source_account_id, source_entity_id
+    from
+      incoming_links
+    where
+      destination_account_id = ${params.accountId}
+      and destination_entity_id = ${params.entityId}
+  `);
+  return rows.map((row) => ({
+    accountId: row.source_account_id as string,
+    entityId: row.source_entity_id as string,
+  }));
+};
+
+export const getAncestorReferences = async (
+  conn: Connection,
+  params: {
+    accountId: string;
+    entityId: string;
+    depth?: number;
+  },
+) => {
+  // @todo: this implementation cannot handle cycles in the graph.
+  if (params.depth !== undefined && params.depth < 1) {
+    throw new Error("parameter depth must be at least 1");
+  }
+  const depth = params.depth || 1;
+  let refs = [{ accountId: params.accountId, entityId: params.entityId }];
+  for (let i = 0; i < depth; i++) {
+    const incoming = await Promise.all(
+      refs.map((ref) => getEntityIncomingLinks(conn, ref)),
+    );
+    refs = uniq(incoming.flat());
+  }
+  return refs;
+};
+
+export const getChildren = async (
+  conn: Connection,
+  params: {
+    accountId: string;
+    entityId: string;
+    entityVersionId: string;
+  },
+): Promise<Entity[]> => {
+  if (!(await getEntity(conn, params))) {
+    throw new DbEntityNotFoundError(params);
+  }
+  // @todo: could include this `filter` in the `where` clause of the query instead
+  const outgoing = (await getEntityOutgoingLinks(conn, params)).filter((link) =>
+    link.validForSourceEntityVersionIds.has(params.entityVersionId),
+  );
+
+  return Promise.all(
+    outgoing.map(async (link) => {
+      const entity = link.entityVersionId
+        ? await getEntity(conn, {
+            accountId: link.accountId,
+            entityVersionId: link.entityVersionId!,
+          })
+        : await getEntityLatestVersion(conn, link);
+      if (!entity) {
+        throw new DbEntityNotFoundError(link);
+      }
+      return entity;
+    }),
+  );
 };

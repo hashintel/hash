@@ -1,4 +1,4 @@
-import { topologicalSort } from "./util";
+import { topologicalSort, intersection } from "./util";
 
 it("can do topological sort", () => {
   // ┌────── A ─────┐
@@ -50,4 +50,15 @@ it("throws an error on topological sort on a graph with cycles", () => {
   ];
 
   expect(() => topologicalSort(edges)).toThrow("graph is not acyclic");
+});
+
+it("can compute intersection of sets", () => {
+  const setA = new Set([1, 2, 3]);
+  const setB = new Set([2, 3, 4]);
+  const setC = new Set([]);
+  const setD = new Set([5, 6, 7]);
+
+  expect(intersection(setA, setB)).toEqual(new Set([2, 3]));
+  expect(intersection(setA, setC)).toEqual(new Set([]));
+  expect(intersection(setB, setD)).toEqual(new Set([]));
 });

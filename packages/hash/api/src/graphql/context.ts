@@ -1,4 +1,5 @@
 import { Logger } from "@hashintel/hash-backend-utils/logger";
+import { SearchAdapter } from "@hashintel/hash-backend-utils/search/adapter";
 
 import { PassportGraphQLMethods } from "../auth/passport";
 import { User } from "../model";
@@ -15,6 +16,7 @@ export interface GraphQLContext {
   dataSources: {
     db: DBAdapter;
     cache: CacheAdapter;
+    search: SearchAdapter;
   };
   emailTransporter: EmailTransporter;
   storageProviders: StorageProviders;

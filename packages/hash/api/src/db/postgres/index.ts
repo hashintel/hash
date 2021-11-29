@@ -122,7 +122,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
 
   getSystemTypeLatestVersion(params: {
     systemTypeName: SystemType;
-  }): Promise<EntityType | undefined> {
+  }): Promise<EntityType> {
     return this.query((adapter) => adapter.getSystemTypeLatestVersion(params));
   }
 
@@ -278,4 +278,24 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   }) => {
     return this.query((adapter) => adapter.getImpliedEntityHistory(params));
   };
+
+  getAncestorReferences(params: {
+    accountId: string;
+    entityId: string;
+    depth?: number;
+  }) {
+    return this.query((adapter) => adapter.getAncestorReferences(params));
+  }
+
+  getSystemAccountId() {
+    return this.query((adapter) => adapter.getSystemAccountId());
+  }
+
+  getChildren(params: {
+    accountId: string;
+    entityId: string;
+    entityVersionId: string;
+  }) {
+    return this.query((adapter) => adapter.getChildren(params));
+  }
 }

@@ -10,8 +10,9 @@ import { updatePageMutation } from "@hashintel/hash-shared/save";
 import { Schema } from "prosemirror-model";
 import { Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
-import { createBlockSuggester } from "../../components/BlockSuggester/createBlockSuggester";
-import { createFormatPlugins } from "../../components/MarksTooltip";
+import { MentionView } from "./MentionView/MentionView";
+import { createSuggester } from "./createSuggester/createSuggester";
+import { createFormatPlugins } from "./createFormatPlugins";
 import { BlockView } from "./BlockView";
 import { EditorConnection } from "./collab/EditorConnection";
 import { Reporter } from "./collab/Reporter";
@@ -97,7 +98,7 @@ export const createEditorView = (
   const plugins: Plugin<unknown, Schema>[] = [
     createSavePlugin(accountId, pageEntityId, getLastSavedValue, client),
     ...createFormatPlugins(renderPortal),
-    createBlockSuggester(renderPortal, () => manager),
+    createSuggester(renderPortal, () => manager),
   ];
 
   const state = createProseMirrorState({ plugins });
@@ -112,6 +113,19 @@ export const createEditorView = (
           throw new Error("Invalid config for nodeview");
         }
         return new BlockView(
+          currentNode,
+          currentView,
+          getPos,
+          renderPortal,
+          manager,
+        );
+      },
+      mention(currentNode, currentView, getPos) {
+        if (typeof getPos === "boolean") {
+          throw new Error("Invalid config for nodeview");
+        }
+
+        return new MentionView(
           currentNode,
           currentView,
           getPos,

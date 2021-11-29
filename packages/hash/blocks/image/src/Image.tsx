@@ -64,6 +64,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
     loading: false,
     errorString: null,
   });
+
   const [inputText, setInputText] = useState("");
   const [captionText, setCaptionText] = useState(initialCaption ?? "");
   const [randomId] = useState(() => `image-input-${uuid()}`);
@@ -87,6 +88,19 @@ export const Image: BlockComponent<AppProps> = (props) => {
     },
     [],
   );
+
+  useEffect(() => {
+    const newStateObject = {
+      ...(stateObject.src !== initialSrc && { src: initialSrc }),
+      ...(stateObject.width !== initialWidth && { width: initialWidth }),
+    };
+
+    updateStateObject(newStateObject);
+
+    if (initialCaption && captionText !== initialCaption) {
+      setCaptionText(initialCaption);
+    }
+  }, [initialSrc, initialWidth, initialCaption]);
 
   const updateData = useCallback(
     ({
@@ -292,11 +306,11 @@ export const Image: BlockComponent<AppProps> = (props) => {
               </div>
 
               <input
-                id={randomId}
                 className={tw`hidden`}
                 type="file"
                 accept={IMG_MIME_TYPE}
                 onChange={onFileSelect}
+                id={randomId}
               />
             </label>
           </div>

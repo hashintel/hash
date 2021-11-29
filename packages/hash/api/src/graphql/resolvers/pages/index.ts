@@ -7,6 +7,7 @@ export { page } from "./page";
 export { updatePage } from "./updatePage";
 export { insertBlocksIntoPage } from "./insertBlocksIntoPage";
 export { updatePageContents } from "./updatePageContents";
+export { searchPages } from "./searchPages";
 
 export const pageFields = {
   contents,

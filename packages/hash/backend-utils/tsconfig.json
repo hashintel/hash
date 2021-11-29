@@ -11,5 +11,7 @@
     "lib": ["es2020"],
     "target": "es2020"
   },
-  "include": ["./src/"]
+  "include": ["./src/"],
+
+  "references": [{ "path": "../block-protocol/tsconfig.ref.json" }]
 }

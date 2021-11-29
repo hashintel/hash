@@ -55,6 +55,29 @@ The following environment variables are used to configure the service:
   - `STATSD_HOST`: the hostname of the StatsD server.
   - `STATSD_PORT`: (default: 8125) the port number the StatsD server is listening on.
 
+## Search index
+
+The service sends all entities it reads from the `realtime` queue to the OpenSearch
+search index. It indexes the following entity fields in a search index named
+`"entities"`:
+
+- `accountId`
+- `entityId`
+- `entityVersionId`
+- `entityTypeId`
+- `entityTypeVersionId`
+- `entityTypeName`
+- `createdAt`
+- `updatedAt`
+- `createdBy`
+
+An additional field named `fullTextSearch` is indexed for entities of system type `Text`
+and `Page`. For `Text` entities, this contains a sanitized form of the entities
+properties which strips all formatting identifiers and concatenates all items in the
+`text` array into a single string separated by a space. For `Page` entities,
+`fullTextSearch` is simply the page title. For all other entities, this field is currently
+empty.
+
 ## Metrics
 
 If StatsD is enabled (`STATSD_ENABLED=1`), the service will report the following metrics,

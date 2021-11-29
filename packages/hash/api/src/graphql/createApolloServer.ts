@@ -7,6 +7,7 @@ import {
 } from "apollo-server-express";
 import { StatsD } from "hot-shots";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
+import { SearchAdapter } from "@hashintel/hash-backend-utils/search/adapter";
 
 import { schema } from "./typeDefs";
 import { resolvers } from "./resolvers";
@@ -23,6 +24,7 @@ import {
 export interface CreateApolloServerParams {
   db: DBAdapter;
   cache: CacheAdapter;
+  search: SearchAdapter;
   emailTransporter: EmailTransporter;
   /** All available storage providers to retrieve files from */
   storageProviders: StorageProviders;
@@ -34,6 +36,7 @@ export interface CreateApolloServerParams {
 export const createApolloServer = ({
   db,
   cache,
+  search,
   emailTransporter,
   storageProviders,
   uploadProvider,
@@ -49,7 +52,7 @@ export const createApolloServer = ({
 
   return new ApolloServer({
     schema: combinedSchema,
-    dataSources: () => ({ db, cache }),
+    dataSources: () => ({ db, cache, search }),
     context: (ctx): Omit<GraphQLContext, "dataSources"> => ({
       ...ctx,
       user: ctx.req.user,

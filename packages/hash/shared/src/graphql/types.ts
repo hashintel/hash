@@ -7,4 +7,5 @@ export type TextToken =
       underline?: boolean;
       link?: string;
     }
-  | { tokenType: "hardBreak" };
+  | { tokenType: "hardBreak" }
+  | { tokenType: "mention"; mentionType: "user"; entityId: string };

@@ -35,13 +35,6 @@ class __OrgInvitationLink extends AccessToken {
     const dbEntityType = await client.getSystemTypeLatestVersion({
       systemTypeName: "OrgInvitationLink",
     });
-
-    if (!dbEntityType) {
-      throw new Error(
-        "OrgInvitationLink system entity type not found in datastore",
-      );
-    }
-
     return dbEntityType;
   }
 

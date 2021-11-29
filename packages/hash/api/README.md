@@ -27,6 +27,14 @@ The backend API service is configured using the following environment variables:
   - `HASH_REDIS_PORT`: the port number of the Redis server.
 - `FRONTEND_DOMAIN`: The domain the frontend is hosted on.
 - `HTTPS_ENABLED`: (optional) Set to `"1"` if HTTPS is enabled on the frontend host.
+- OpenSearch:
+  - `HASH_OPENSEARCH_HOST`: the hostname of the OpenSearch cluster to connect to.
+  - `HASH_OPENSEARCH_PORT`: (default: 9200) the port number that the cluster accepts
+    connections on.
+  - `HASH_OPENSEARCH_USERNAME`: the username to connect to the cluster as.
+  - `HASH_OPENSEARCH_PASSWORD`: the password to use when making the connection.
+  - `HASH_OPENSEARCH_HTTPS_ENABLED`: (optional) set to "1" to connect to the cluster
+    over an HTTPS connection.
 - `STATSD_ENABLED`: (optional) set to "1" if the service should report metrics to a
   StatsD server. If enabled, the following variables must be set:
   - `STATSD_HOST`: the hostname of the StatsD server.

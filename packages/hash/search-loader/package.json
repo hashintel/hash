@@ -12,6 +12,7 @@
   "scripts": {
     "build": "yarn clean; tsc -b",
     "clean": "rimraf ./dist/ ./tsconfig.tsbuildinfo",
+    "clear-opensearch": "ts-node ./src/scripts/clear-opensearch.ts",
     "dev": "cross-env NODE_ENV=\"${NODE_ENV:-development}\" nodemon --config nodemon.json src/index.ts",
     "fix": "eslint --ext .ts --fix ./src/",
     "postinstall": "yarn build",
