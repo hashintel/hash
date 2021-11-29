@@ -543,7 +543,7 @@ impl IntoRecordBatch for &[&AgentState] {
             } else if matches!(
                 schema
                     .field_spec_map
-                    ._get_field_spec(&FieldKey::new_agent_scoped(&name)?)?
+                    ._get_field_spec(&FieldKey::from_key_as_str(&name))?
                     .inner
                     .field_type
                     .variant,

@@ -104,13 +104,17 @@ impl FieldKey {
         &self.0
     }
 
+    pub(in super::super) fn from_key_as_str(key_as_str: &str) -> Self {
+        Self(key_as_str.to_string())
+    }
+
     // TODO do we want these checks to only be present on debug builds
     #[inline]
     pub fn new_agent_scoped(name: &str) -> Result<FieldKey> {
         if name.starts_with(PRIVATE_PREFIX) || name.starts_with(HIDDEN_PREFIX) {
             return Err(Error::from(format!(
-                "Field names cannot start with the protected prefixes: ['{}', '{}']",
-                PRIVATE_PREFIX, HIDDEN_PREFIX
+                "Field names cannot start with the protected prefixes: ['{}', '{}'], received field name: '{}'",
+                PRIVATE_PREFIX, HIDDEN_PREFIX, name
             )));
         }
         if name == "messages" {

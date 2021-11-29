@@ -1,4 +1,4 @@
-use crate::datastore::schema::{FieldScope, FieldSpecMapBuilder};
+use crate::datastore::schema::{FieldScope, FieldSource, FieldSpecMapBuilder};
 use crate::hash_types::state::AgentStateField;
 
 // use crate::worker::runner::rust;
@@ -12,6 +12,7 @@ use crate::{
 };
 
 use crate::proto::ExperimentRunTrait;
+use crate::simulation::package::name::PackageName;
 use std::{collections::HashMap, convert::TryFrom};
 
 pub fn add_fields_from_behavior_keys(
@@ -57,6 +58,10 @@ impl BehaviorKeys {
             .get("keys")
             .ok_or_else(|| BehaviorKeyJSONError::ExpectedKeys)?;
         let mut builder = FieldSpecMapBuilder::new();
+        // TODO: Packages shouldn't have to set the source
+        builder.source(FieldSource::Package(PackageName::State(
+            super::super::Name::BehaviorExecution,
+        )));
         match key_json {
             serde_json::Value::Object(map) => {
                 for (k, v) in map {
@@ -177,6 +182,10 @@ impl TryFrom<&ExperimentConfig> for BehaviorMap {
 
     fn try_from(experiment_config: &ExperimentConfig) -> Result<Self> {
         let mut builder = FieldSpecMapBuilder::new();
+        // TODO: A package shouldn't have to manually set the source
+        builder.source(FieldSource::Package(PackageName::State(
+            super::super::Name::BehaviorExecution,
+        )));
         let mut meta = HashMap::new();
         experiment_config
             .run

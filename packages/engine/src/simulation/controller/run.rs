@@ -37,6 +37,7 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
     mut sims_to_exp: SimStatusSend,
     mut persistence_service: P,
 ) -> Result<SimulationShortID> {
+    // TODO: This is (sometimes?) 0, why?
     let sim_run_id = config.sim.id;
     let max_num_steps = config.sim.max_num_steps;
     log::info!(
