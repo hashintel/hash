@@ -1097,39 +1097,6 @@ pub struct JavaScriptRunner {
     spawn: bool,
 }
 
-fn _run(
-    init_msg: Arc<ExperimentInitRunnerMsg>,
-    mut inbound_receiver: UnboundedReceiver<(Option<SimulationShortID>, InboundToRunnerMsgPayload)>,
-    outbound_sender: UnboundedSender<OutboundFromRunnerMsg>,
-) -> WorkerResult<()> {
-    // Single threaded runtime only
-    let runtime = tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .map_err(|e| Error::IO("Local tokio runtime".into(), e))?;
-
-    tokio::pin! {
-        let impl_future = async {
-            let mv8 = MiniV8::new();
-            let mut impl_ = RunnerImpl::new(&mv8, &init_msg)?;
-            loop {
-                tokio::select! {
-                    Some((sim_id, msg)) = inbound_receiver.recv() => {
-                        // TODO: Send errors instead of immediately stopping?
-                        if !impl_.handle_msg(&mv8, sim_id, msg, &outbound_sender)? {
-                            break;
-                        }
-                    }
-                }
-            }
-            Ok(())
-        };
-    };
-
-    let local = tokio::task::LocalSet::new();
-    local.block_on(&runtime, impl_future)
-}
-
 impl JavaScriptRunner {
     pub fn new(spawn: bool, init_msg: ExperimentInitRunnerMsg) -> WorkerResult<Self> {
         let (inbound_sender, inbound_receiver) = unbounded_channel();
@@ -1197,4 +1164,37 @@ impl JavaScriptRunner {
         let f = || _run(init_msg, inbound_receiver, outbound_sender);
         Ok(Box::pin(tokio::task::spawn_blocking(f)) as _)
     }
+}
+
+fn _run(
+    init_msg: Arc<ExperimentInitRunnerMsg>,
+    mut inbound_receiver: UnboundedReceiver<(Option<SimulationShortID>, InboundToRunnerMsgPayload)>,
+    outbound_sender: UnboundedSender<OutboundFromRunnerMsg>,
+) -> WorkerResult<()> {
+    // Single threaded runtime only
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .map_err(|e| Error::IO("Local tokio runtime".into(), e))?;
+
+    tokio::pin! {
+        let impl_future = async {
+            let mv8 = MiniV8::new();
+            let mut impl_ = RunnerImpl::new(&mv8, &init_msg)?;
+            loop {
+                tokio::select! {
+                    Some((sim_id, msg)) = inbound_receiver.recv() => {
+                        // TODO: Send errors instead of immediately stopping?
+                        if !impl_.handle_msg(&mv8, sim_id, msg, &outbound_sender)? {
+                            break;
+                        }
+                    }
+                }
+            }
+            Ok(())
+        };
+    };
+
+    let local = tokio::task::LocalSet::new();
+    local.block_on(&runtime, impl_future)
 }

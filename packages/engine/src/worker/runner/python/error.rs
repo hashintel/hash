@@ -1,4 +1,7 @@
+use crate::proto::SimulationShortID;
+use crate::worker::runner::comms::inbound::InboundToRunnerMsgPayload;
 use thiserror::Error as ThisError;
+use tokio::sync::mpsc::error::SendError;
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -24,6 +27,9 @@ pub enum Error {
 
     #[error("Couldn't send terminate message to Python: {0}")]
     TerminateSend(tokio::sync::mpsc::error::SendError<()>),
+
+    #[error("Couldn't send inbound message to runner: {0}")]
+    InboundSend(#[from] SendError<(Option<SimulationShortID>, InboundToRunnerMsgPayload)>),
 
     #[error("Couldn't send message {0:?} to Python process: {1:?}")]
     NngSend(nng::Message, nng::Error),

@@ -46,16 +46,9 @@ fn experiment_init_to_nng(init: &ExperimentInitRunnerMsg) -> Result<nng::Message
 /// except for the init message, which is sent once in response
 /// to an init message request
 pub struct NngReceiver {
-    route: String,
-
     // Used in the aio to receive nng messages from the Python process.
     from_py: Socket,
     aio: Aio,
-
-    // Sends the results of operations (i.e. results of trying to
-    // receive nng messages) in the aio.
-    // aio_result_sender: UnboundedSender<nng::Message>,
-
     // Receives the results of operations from the aio.
     aio_result_receiver: UnboundedReceiver<nng::Message>,
 }
@@ -64,7 +57,10 @@ impl NngReceiver {
     pub fn new(experiment_id: ExperimentID, worker_index: WorkerIndex) -> Result<Self> {
         let route = format!("ipc://{}-frompy{}", experiment_id, worker_index);
         let from_py = Socket::new(nng::Protocol::Pair0)?;
+        from_py.listen(&route)?;
 
+        // `aio_result_sender` sends the results of operations (i.e. results of trying to
+        // receive nng messages) in the aio.
         let (aio_result_sender, aio_result_receiver) = unbounded_channel();
         let aio = Aio::new(move |_aio, res| match res {
             nng::AioResult::Recv(Ok(m)) => {
@@ -80,7 +76,6 @@ impl NngReceiver {
         })?;
 
         Ok(Self {
-            route,
             from_py,
             aio,
             aio_result_receiver,
@@ -88,20 +83,17 @@ impl NngReceiver {
     }
 
     pub fn init(&self, init_msg: &ExperimentInitRunnerMsg) -> Result<()> {
-        self.from_py.listen(&self.route)?;
-
-        // let listener = nng::Listener::new(&self.from_py, &self.route)?;
         let _init_request = self.from_py.recv()?;
         self.from_py // Only case where `from_py` is used for sending
             .send(experiment_init_to_nng(init_msg)?)
             .map_err(|(msg, err)| Error::NngSend(msg, err))?;
 
         let _init_ack = self.from_py.recv()?;
-        // listener.close();
         Ok(())
     }
 
     pub async fn get_recv_result(&mut self) -> Result<OutboundFromRunnerMsg> {
+        // TODO: Return `Option::None` instead of using ok_or to convert to an Err?
         let nng_msg = self
             .aio_result_receiver
             .recv()
