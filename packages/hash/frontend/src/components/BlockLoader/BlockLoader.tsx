@@ -29,7 +29,6 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   sourceUrl,
   shouldSandbox,
   entityId,
-  entityNode,
   ...props
 }) => {
   const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes(
@@ -38,21 +37,6 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   const { update } = useBlockProtocolUpdate(props.accountId);
   const { aggregate } = useBlockProtocolAggregate(props.accountId);
   const { uploadFile } = useFileUpload(props.accountId);
-
-  const intersectionRatio = React.useRef<number | null>(null);
-
-  const intersection = new IntersectionObserver(
-    (entries) => {
-      if (entries.length) {
-        intersectionRatio.current = entries[0].intersectionRatio;
-      }
-    },
-    {
-      root: null,
-      rootMargin: "0px",
-      threshold: 0.1,
-    },
-  );
 
   const flattenedProperties = useMemo(
     () => cloneEntityTreeWithPropertiesMovedUp(props),
@@ -96,11 +80,6 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
         routeElement.scrollIntoView();
         scrollingComplete.current = true;
       }
-
-      // Scroll only if element is out of view
-      if (intersectionRatio.current === 0) {
-        scrollFrameRequestIdRef.current = requestAnimationFrame(frame);
-      }
     }
 
     function clearScrollInterval() {
@@ -116,7 +95,6 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
       blockLoaded
     ) {
       clearScrollInterval();
-      intersection.observe(entityNode);
       scrollFrameRequestIdRef.current = requestAnimationFrame(frame);
     }
 
