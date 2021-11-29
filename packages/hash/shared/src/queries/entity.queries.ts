@@ -8,6 +8,7 @@ export const getEntity = gql`
       createdById
       createdAt
       entityId
+      entityVersionId
       entityTypeId
       entityTypeVersionId
       entityTypeName

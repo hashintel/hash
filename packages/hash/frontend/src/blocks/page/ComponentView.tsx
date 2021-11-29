@@ -13,6 +13,7 @@ import {
   subscribeToEntityStore,
 } from "@hashintel/hash-shared/entityStorePlugin";
 import { ProsemirrorNode } from "@hashintel/hash-shared/node";
+import memoizeOne from "memoize-one";
 import { Schema } from "prosemirror-model";
 import { EditorView, NodeView } from "prosemirror-view";
 import { BlockLoader } from "../../components/BlockLoader/BlockLoader";
@@ -20,14 +21,18 @@ import { RenderPortal } from "./usePortals";
 
 // @todo we need to type this such that we're certain we're passing through all
 // the props required
-const getRemoteBlockProps: (
+const getRemoteBlockProps = (
   entity: EntityStoreType | null | undefined,
+  editableRef: unknown,
   fallbackAccountId: string,
-) => {
+): {
   accountId: string;
-  properties: Record<string, string>;
+  // @todo type this
+  properties: unknown;
   childEntityId?: string;
-} = (entity: EntityStoreType | null | undefined, fallbackAccountId: string) => {
+  // @todo type this
+  editableRef: unknown;
+} => {
   if (entity) {
     if (!isBlockEntity(entity)) {
       throw new Error("Cannot prepare non-block entity for prosemirrior");
@@ -39,10 +44,11 @@ const getRemoteBlockProps: (
       accountId: childEntity.accountId,
       childEntityId: childEntity.entityId,
       properties: "properties" in childEntity ? childEntity.properties : {},
+      editableRef,
     };
   }
 
-  return { accountId: fallbackAccountId, properties: {} };
+  return { accountId: fallbackAccountId, properties: {}, editableRef };
 };
 
 /**
@@ -73,6 +79,16 @@ export class ComponentView implements NodeView<Schema> {
 
   private store: EntityStore;
   private unsubscribe: Function;
+
+  getBlockProps = memoizeOne(
+    (entity: EntityStoreType, fallbackAccountId: string, editable: boolean) => {
+      return getRemoteBlockProps(
+        entity,
+        editable ? this.editableRef : undefined,
+        fallbackAccountId,
+      );
+    },
+  );
 
   constructor(
     private node: ProsemirrorNode<Schema>,
@@ -120,34 +136,22 @@ export class ComponentView implements NodeView<Schema> {
     if (node?.type.name === this.componentId) {
       const entityId = node.attrs.blockEntityId;
       const entity = this.store.saved[entityId];
-
-      const remoteBlockProps = getRemoteBlockProps(entity, this.accountId);
-
-      const editableRef = this.editable
-        ? (editableNode: HTMLElement) => {
-            if (
-              this.contentDOM &&
-              editableNode &&
-              !editableNode.contains(this.contentDOM)
-            ) {
-              editableNode.appendChild(this.contentDOM);
-              this.contentDOM.style.display = "";
-            }
-          }
-        : undefined;
+      const remoteBlockProps = this.getBlockProps(
+        entity,
+        this.accountId,
+        this.editable,
+      );
 
       const mappedUrl = componentIdToUrl(this.componentId);
 
       /** used by collaborative editing feature `FocusTracker` */
       this.target.setAttribute("data-entity-id", entityId);
-
       this.renderPortal(
         <BlockLoader
-          {...remoteBlockProps}
           sourceUrl={`${mappedUrl}/${this.sourceName}`}
-          editableRef={editableRef}
-          shouldSandbox={!editableRef}
           entityId={entityId}
+          shouldSandbox={!remoteBlockProps.editableRef}
+          blockProperties={remoteBlockProps}
         />,
         this.target,
       );
@@ -157,6 +161,17 @@ export class ComponentView implements NodeView<Schema> {
       return false;
     }
   }
+
+  editableRef = (editableNode: HTMLElement) => {
+    if (
+      this.contentDOM &&
+      editableNode &&
+      !editableNode.contains(this.contentDOM)
+    ) {
+      editableNode.appendChild(this.contentDOM);
+      this.contentDOM.style.display = "";
+    }
+  };
 
   destroy() {
     this.dom.remove();

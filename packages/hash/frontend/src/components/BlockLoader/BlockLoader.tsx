@@ -21,8 +21,9 @@ type BlockLoaderProps = {
   shouldSandbox?: boolean;
   sourceUrl: string;
   entityId: string;
-  accountId: string;
-} & Record<string, any>;
+  // @todo type this properly
+  blockProperties: Record<string, any>;
+};
 
 const sandboxingEnabled = !!process.env.NEXT_PUBLIC_SANDBOX;
 
@@ -30,7 +31,8 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   sourceUrl,
   shouldSandbox,
   entityId,
-  ...props
+  // @todo remove this alias
+  blockProperties: props,
 }) => {
   const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes(
     props.accountId,

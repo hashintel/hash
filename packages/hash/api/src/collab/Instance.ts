@@ -163,6 +163,7 @@ export class Instance {
               entityId: entityVersion.entityId,
               accountId: entityVersion.accountId,
             },
+            fetchPolicy: "network-only",
           });
 
           properties = data.entity.properties;
