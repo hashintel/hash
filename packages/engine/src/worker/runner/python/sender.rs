@@ -71,12 +71,12 @@ impl NngSender {
         })?;
         aio.set_timeout(Some(std::time::Duration::new(5, 0)))?;
 
-        Ok((Self {
+        Ok(Self {
             route,
             to_py,
             aio,
             aio_result_receiver,
-        }))
+        })
     }
 
     pub fn init(&self) -> Result<()> {
@@ -88,9 +88,10 @@ impl NngSender {
         &self,
         sim_id: Option<SimulationShortID>,
         msg: &InboundToRunnerMsgPayload,
+        task_payload_json: &Option<serde_json::Value>,
     ) -> Result<()> {
         // TODO: (option<SimId>, inbound payload) --> flatbuffers --> nng
-        let msg = inbound_to_nng(sim_id, msg)?;
+        let msg = inbound_to_nng(sim_id, msg, task_payload_json)?;
         self.aio.wait();
         self.to_py
             .send_async(&self.aio, msg)
@@ -117,6 +118,7 @@ impl Drop for NngSender {
 fn inbound_to_nng(
     sim_id: Option<SimulationShortID>,
     msg: &InboundToRunnerMsgPayload,
+    task_payload_json: &Option<serde_json::Value>,
 ) -> Result<nng::Message> {
     let mut fbb = flatbuffers::FlatBufferBuilder::new();
     let fbb = &mut fbb;
@@ -125,7 +127,10 @@ fn inbound_to_nng(
         InboundToRunnerMsgPayload::TaskMsg(msg) => {
             let shared_store = shared_store_to_fbs(fbb, &msg.shared_store);
 
-            let payload = serde_json::to_string(&msg.payload).unwrap();
+            // unwrap: TaskMsg variant, so must have serialized payload earlier (and
+            // propagated it here).
+            let payload = task_payload_json.as_ref().unwrap();
+            let payload = serde_json::to_string(payload)?;
             let payload = str_to_serialized(fbb, &payload);
 
             let task_id =

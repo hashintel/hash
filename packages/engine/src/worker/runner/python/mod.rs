@@ -3,23 +3,26 @@ mod fbs;
 mod receiver;
 mod sender;
 
+use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
 use std::result::Result as StdResult;
 use std::sync::Arc;
 
 use futures::FutureExt;
-use tokio::process::{Child, Command};
+use tokio::process::Command;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 use tokio::task::JoinError;
 
 use super::comms::{
     inbound::InboundToRunnerMsgPayload, outbound::OutboundFromRunnerMsg, ExperimentInitRunnerMsg,
+    RunnerTaskMsg, SentTask,
 };
 use crate::proto::SimulationShortID;
 use crate::worker::{Error as WorkerError, Result as WorkerResult};
 
-use crate::simulation::enum_dispatch::TaskSharedStore;
+use crate::types::TaskID;
+use crate::Language;
 pub use error::{Error, Result};
 use receiver::NngReceiver;
 use sender::NngSender;
@@ -131,6 +134,7 @@ async fn _run(
     nng_sender.init()?;
 
     log::debug!("Waiting for messages to Python runner");
+    let mut sent_tasks: HashMap<TaskID, SentTask> = HashMap::new();
     'select_loop: loop {
         // TODO: Send errors instead of immediately stopping?
         tokio::select! {
@@ -138,14 +142,61 @@ async fn _run(
                 nng_send_result?;
             }
             Some((sim_id, inbound)) = inbound_receiver.recv() => {
-                nng_sender.send(sim_id, &inbound)?;
+                let (task_payload_json, task_wrapper) = match &inbound {
+                    InboundToRunnerMsgPayload::TaskMsg(msg) => {
+                        // TODO: Error message duplication with JS runner
+                        let (payload, wrapper) = msg.payload
+                            .clone()
+                            .extract_inner_msg_with_wrapper()
+                            .map_err(|e| {
+                                Error::from(format!(
+                                    "Failed to extract the inner task message: {}",
+                                    e.to_string()
+                                ))
+                            })?;
+                        (Some(payload), Some(wrapper))
+                    }
+                    _ => (None, None)
+                };
+
+                // Send nng first, because need inbound by reference for nng,
+                // but by value for saving sent task.
+                nng_sender.send(sim_id, &inbound, &task_payload_json)?;
+
                 match inbound {
                     InboundToRunnerMsgPayload::TerminateRunner => break 'select_loop,
+                    InboundToRunnerMsgPayload::TaskMsg(RunnerTaskMsg {
+                        task_id,
+                        shared_store,
+                        ..
+                    }) => {
+                        // unwrap: TaskMsg variant, so must have serialized payload earlier.
+                        let sent = SentTask {
+                            task_wrapper: task_wrapper.unwrap(),
+                            shared_store
+                        };
+                        sent_tasks
+                            .try_insert(task_id, sent)
+                            .map_err(|_| Error::from(format!(
+                                "Inbound message w/o sent task id {:?}", task_id
+                            )))?;
+                    }
                     _ => {}
                 }
             }
             outbound = nng_receiver.get_recv_result() => {
                 let outbound = outbound.map_err(WorkerError::from)?;
+                let outbound = OutboundFromRunnerMsg::try_from_nng(
+                    outbound,
+                    Language::Python,
+                    &mut sent_tasks,
+                );
+                let outbound = outbound.map_err(|err| {
+                    Error::from(format!(
+                        "Failed to convert nng message to OutboundFromRunnerMsg: {}",
+                        err.to_string()
+                    ))
+                })?;
                 outbound_sender.send(outbound)?;
             }
         }

@@ -1,9 +1,11 @@
 use super::TargetedRunnerTaskMsg;
+use crate::gen::runner_outbound_msg_generated::root_as_runner_outbound_msg;
 use crate::hash_types::worker;
-use crate::worker::Error;
+use crate::worker::runner::comms::{RunnerTaskMsg, SentTask};
+use crate::worker::{Error, Result};
 use crate::{proto::SimulationShortID, types::TaskID, Language};
-use nng::Message;
-use std::convert::{TryFrom, TryInto};
+use std::collections::HashMap;
+use std::convert::TryInto;
 
 #[derive(Debug, Default, Clone)]
 pub struct RunnerError {
@@ -65,14 +67,11 @@ pub enum OutboundFromRunnerMsgPayload {
     // UserWarnings
 }
 
-impl TryFrom<crate::gen::runner_outbound_msg_generated::RunnerOutboundMsg<'_>>
-    for OutboundFromRunnerMsgPayload
-{
-    type Error = Error;
-
-    fn try_from(
+impl OutboundFromRunnerMsgPayload {
+    pub fn try_from_fbs(
         parsed_msg: crate::gen::runner_outbound_msg_generated::RunnerOutboundMsg,
-    ) -> Result<Self, Self::Error> {
+        sent_tasks: &mut HashMap<TaskID, SentTask>,
+    ) -> Result<Self> {
         Ok(match parsed_msg.payload_type() {
             crate::gen::runner_outbound_msg_generated::RunnerOutboundMsgPayload::NONE => {
                 return Err(Error::from("Message from runner had no payload"))
@@ -83,12 +82,12 @@ impl TryFrom<crate::gen::runner_outbound_msg_generated::RunnerOutboundMsg<'_>>
                         "Message from runner should have had a TaskMsg payload but it was missing",
                     )
                 })?;
-                Self::TaskMsg(payload.try_into()?)
+                Self::TaskMsg(TargetedRunnerTaskMsg::try_from_fbs(payload, sent_tasks)?)
             }
             crate::gen::runner_outbound_msg_generated::RunnerOutboundMsgPayload::TaskCancelled => {
                 let payload = parsed_msg.payload_as_task_cancelled().ok_or_else(|| Error::from(
-                        "Message from runner should have had a TaskCancelled payload but it was missing",
-                    ))?;
+                    "Message from runner should have had a TaskCancelled payload but it was missing",
+                ))?;
 
                 let task_id = payload.task_id().ok_or_else(|| {
                     Error::from("Message from runner should have had a task_id but it was missing")
@@ -177,24 +176,25 @@ pub struct OutboundFromRunnerMsg {
     // shared state
 }
 
-impl TryFrom<nng::Message> for OutboundFromRunnerMsg {
-    type Error = Error;
-
-    fn try_from(message: Message) -> Result<Self, Self::Error> {
-        let bytes = message.as_slice();
-        let parsed_msg = crate::gen::runner_outbound_msg_generated::root_as_runner_outbound_msg(
-            bytes,
-        )
-        .map_err(|err| {
+impl OutboundFromRunnerMsg {
+    pub fn try_from_nng(
+        msg: nng::Message,
+        source: Language,
+        sent_tasks: &mut HashMap<TaskID, SentTask>,
+    ) -> Result<Self> {
+        let msg = msg.as_slice();
+        let msg = root_as_runner_outbound_msg(msg);
+        let msg = msg.map_err(|err| {
             Error::from(format!(
                 "Flatbuffers failed to parse message bytes as a RunnerOutboundMsg: {}",
                 err.to_string()
             ))
         })?;
+        let payload = OutboundFromRunnerMsgPayload::try_from_fbs(msg, sent_tasks)?;
         Ok(Self {
-            source: Language::Python,
-            sim_id: parsed_msg.sim_sid(),
-            payload: parsed_msg.try_into()?,
+            source,
+            sim_id: msg.sim_sid(),
+            payload,
         })
     }
 }

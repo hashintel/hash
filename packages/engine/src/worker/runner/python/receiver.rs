@@ -1,4 +1,3 @@
-use std::convert::TryFrom;
 use std::str::FromStr;
 
 use nng::{Aio, Socket};
@@ -10,7 +9,7 @@ use super::fbs::{pkgs_to_fbs, shared_ctx_to_fbs};
 use crate::gen;
 use crate::proto::ExperimentID;
 use crate::types::WorkerIndex;
-use crate::worker::runner::comms::{outbound::OutboundFromRunnerMsg, ExperimentInitRunnerMsg};
+use crate::worker::runner::comms::ExperimentInitRunnerMsg;
 
 fn experiment_init_to_nng(init: &ExperimentInitRunnerMsg) -> Result<nng::Message> {
     // TODO - initial buffer size
@@ -92,7 +91,7 @@ impl NngReceiver {
         Ok(())
     }
 
-    pub async fn get_recv_result(&mut self) -> Result<OutboundFromRunnerMsg> {
+    pub async fn get_recv_result(&mut self) -> Result<nng::Message> {
         // TODO: Return `Option::None` instead of using ok_or to convert to an Err?
         let nng_msg = self
             .aio_result_receiver
@@ -101,12 +100,7 @@ impl NngReceiver {
             .ok_or(Error::OutboundReceive)?;
 
         self.from_py.recv_async(&self.aio)?;
-        Ok(OutboundFromRunnerMsg::try_from(nng_msg).map_err(|err| {
-            Error::from(format!(
-                "Failed to convert nng message to OutboundFromRunnerMsg: {}",
-                err.to_string()
-            ))
-        })?)
+        Ok(nng_msg)
     }
 }
 

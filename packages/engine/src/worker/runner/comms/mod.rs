@@ -1,4 +1,3 @@
-use std::convert::TryFrom;
 use std::fmt::{Debug, Formatter};
 use std::{collections::HashMap, fmt, sync::Arc};
 
@@ -9,7 +8,7 @@ use crate::proto::{ExperimentID, SimulationShortID};
 use crate::simulation::enum_dispatch::TaskSharedStore;
 use crate::simulation::package::id::PackageId;
 use crate::simulation::task::msg::TaskMessage;
-use crate::worker::Error;
+use crate::worker::{Error, Result};
 use crate::{
     datastore::prelude::ArrowSchema,
     simulation::package::worker_init::PackageInitMsgForWorker,
@@ -19,6 +18,19 @@ use crate::{
 
 pub mod inbound;
 pub mod outbound;
+
+/// Contains some data about an inbound task that was sent to a runner's external process,
+/// but for which the runner hasn't yet gotten back the corresponding outbound task.
+/// This data is useful for reconstructing the outbound message struct later (i.e.
+/// converting the outbound flatbuffers message into a Rust struct).
+///
+/// Fields:
+/// `shared_store`: Task shared store from inbound task message
+/// `task_wrapper`: Top two levels of nesting of task (when serialized as JSON)
+pub struct SentTask {
+    pub shared_store: TaskSharedStore,
+    pub task_wrapper: serde_json::Value,
+}
 
 #[derive(Debug, Clone, Copy)]
 pub enum MessageTarget {
@@ -67,29 +79,39 @@ pub struct TargetedRunnerTaskMsg {
     pub msg: RunnerTaskMsg,
 }
 
-impl TryFrom<crate::gen::runner_outbound_msg_generated::TaskMsg<'_>> for TargetedRunnerTaskMsg {
-    type Error = Error;
-
-    fn try_from(
+impl TargetedRunnerTaskMsg {
+    pub fn try_from_fbs(
         task_msg: crate::gen::runner_outbound_msg_generated::TaskMsg,
-    ) -> Result<Self, Self::Error> {
+        sent_tasks: &mut HashMap<TaskID, SentTask>,
+    ) -> Result<Self> {
         let task_id = task_msg.task_id().ok_or_else(|| {
             Error::from("The TaskMessage from the runner didn't have a required task_id field")
+        })?;
+        let task_id = uuid::Uuid::from_slice(&task_id.0)?.as_u128();
+
+        let sent = sent_tasks.remove(&task_id).ok_or_else(|| {
+            Error::from(format!("Outbound message w/o sent task id {:?}", task_id))
         })?;
 
         let target = task_msg.target().into();
         let package_id = (task_msg.package_sid() as usize).into();
 
-        let payload: serde_json::Value = serde_json::from_slice(task_msg.payload().inner())?;
-        let payload = serde_json::from_value(payload)?;
+        let inner_msg: serde_json::Value = serde_json::from_slice(task_msg.payload().inner())?;
+        let payload = TaskMessage::try_from_inner_msg_and_wrapper(inner_msg, sent.task_wrapper);
+        // TODO: Error message duplication with JS runner
+        let payload = payload.map_err(|e| Error::from(format!(
+            "Failed to wrap and create a new TaskMessage, perhaps the inner: {:?}, was formatted incorrectly. Underlying error: {}",
+            std::str::from_utf8(task_msg.payload().inner()),
+            e.to_string()
+        )))?;
 
         Ok(Self {
             target,
             msg: RunnerTaskMsg {
                 package_id,
-                task_id: uuid::Uuid::from_slice(&task_id.0)?.as_u128(),
-                payload, // TODO is this going to need wrapping like `extract_inner_msg_with_wrapper`
-                shared_store: todo!(), // use metaversioning somehow?,
+                task_id,
+                payload,
+                shared_store: sent.shared_store,
             },
         })
     }
