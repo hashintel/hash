@@ -7,20 +7,21 @@ import { MutationTransferEntityArgs } from "../../graphql/apiTypes.gen";
 import { transferEntityMutation } from "../../graphql/queries/entityType.queries";
 import { getAccountPages } from "../../graphql/queries/account.queries";
 
-export default function PageTransferDropdown({
-  setPageState,
-}: {
+type PageTransferDropdownType = {
+  pageEntityId: string;
+  accountId: string;
   setPageState: React.Dispatch<React.SetStateAction<"normal" | "transferring">>;
-}) {
+};
+
+const PageTransferDropdown: React.FunctionComponent<
+  PageTransferDropdownType
+> = ({ pageEntityId, accountId, setPageState }) => {
   const router = useRouter();
 
-  const pageEntityId = router.query.pageEntityId as string;
-  const accountId = router.query.accountId as string;
-
-  const [selectedPage, setSelectedPage] = useState(accountId);
+  const [selectedAccountId, setSelectedAccountId] = useState(accountId);
 
   useEffect(() => {
-    setSelectedPage(accountId);
+    setSelectedAccountId(accountId);
   }, [accountId]);
 
   const [transferEntity] = useMutation<MutationTransferEntityArgs>(
@@ -28,6 +29,8 @@ export default function PageTransferDropdown({
   );
 
   const transferAccount = (newAccountId: string) => {
+    setPageState("transferring");
+
     void transferEntity({
       variables: {
         originalAccountId: accountId,
@@ -40,11 +43,15 @@ export default function PageTransferDropdown({
       ],
     })
       .then(() => {
-        setPageState("transferring");
         void router.replace(`/${newAccountId}/${pageEntityId}`);
       })
-      .catch(console.error);
+      .catch((err) => {
+        console.error(err);
+        setPageState("normal");
+      });
   };
 
-  return <AccountSelect value={selectedPage} onChange={transferAccount} />;
-}
+  return <AccountSelect value={selectedAccountId} onChange={transferAccount} />;
+};
+
+export default PageTransferDropdown;

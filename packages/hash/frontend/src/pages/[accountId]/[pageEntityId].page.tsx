@@ -21,7 +21,7 @@ import {
 import styles from "../index.module.scss";
 import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
 import PageTransferDropdown from "../../components/Dropdowns/PageTransferDropdown";
-import MainComponentWithSidebar from "../../components/pages/MainComponentWithSidebar";
+import { MainComponentWrapper } from "../../components/pages/MainComponentWrapper";
 
 /**
  * @todo Remove when position tracking is fully implemented.
@@ -136,40 +136,40 @@ export const Page: VoidFunctionComponent<{
 
   if (pageState === "transferring") {
     return (
-      <MainComponentWithSidebar>
+      <MainComponentWrapper>
         <h1>Transferring you to the new page...</h1>
-      </MainComponentWithSidebar>
+      </MainComponentWrapper>
     );
   }
 
   if (loading) {
     return (
-      <MainComponentWithSidebar>
+      <MainComponentWrapper>
         <h1>Loading...</h1>
-      </MainComponentWithSidebar>
+      </MainComponentWrapper>
     );
   }
 
   if (error) {
     return (
-      <MainComponentWithSidebar>
+      <MainComponentWrapper>
         <h1>Error: {error.message}</h1>
-      </MainComponentWithSidebar>
+      </MainComponentWrapper>
     );
   }
 
   if (!data) {
     return (
-      <MainComponentWithSidebar>
+      <MainComponentWrapper>
         <h1>No data loaded.</h1>
-      </MainComponentWithSidebar>
+      </MainComponentWrapper>
     );
   }
 
   const { title, contents } = data.page.properties;
 
   return (
-    <MainComponentWithSidebar>
+    <MainComponentWrapper>
       {isCollabPositionDebugToolbarEnabled() ? (
         <div
           style={{
@@ -240,7 +240,11 @@ export const Page: VoidFunctionComponent<{
             {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
             <label>Transfer Page</label>
             <div>
-              <PageTransferDropdown setPageState={setPageState} />
+              <PageTransferDropdown
+                accountId={accountId}
+                pageEntityId={pageEntityId}
+                setPageState={setPageState}
+              />
             </div>
           </div>
         </div>
@@ -256,7 +260,7 @@ export const Page: VoidFunctionComponent<{
           />
         </CollabPositionProvider>
       </main>
-    </MainComponentWithSidebar>
+    </MainComponentWrapper>
   );
 };
 export default Page;
