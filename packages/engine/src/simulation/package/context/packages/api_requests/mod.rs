@@ -11,7 +11,7 @@ use arrow::datatypes::DataType;
 
 use super::super::*;
 use crate::config::Globals;
-use futures::{stream::FuturesUnordered, StreamExt};
+use futures::{stream::FuturesOrdered, StreamExt};
 use response::{APIResponseMap, APIResponses};
 use serde_json::Value;
 
@@ -85,7 +85,7 @@ impl Package for APIRequests {
         snapshot: Arc<StateSnapshot>,
     ) -> Result<ContextColumn> {
         let mut api_response_maps = if let Some(ref handlers) = self.custom_message_handlers {
-            let futs = FuturesUnordered::new();
+            let mut futs = FuturesOrdered::new();
             {
                 let message_pool = snapshot.message_pool();
                 let message_pool_read = message_pool

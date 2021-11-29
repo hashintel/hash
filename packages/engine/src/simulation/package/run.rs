@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use futures::{executor::block_on, stream::FuturesUnordered, StreamExt};
+use futures::{executor::block_on, stream::FuturesOrdered, StreamExt};
 
 use crate::{
     datastore::table::{
@@ -31,7 +31,7 @@ impl InitPackages {
 
     pub async fn run(&mut self, sim_config: Arc<SimRunConfig>) -> Result<State> {
         // Execute packages in parallel and collect the data
-        let futs = FuturesUnordered::new();
+        let mut futs = FuturesOrdered::new();
 
         let pkgs = std::mem::replace(&mut self.inner, vec![]);
         let num_packages = pkgs.len();
@@ -137,7 +137,7 @@ impl StepPackages {
         pre_context: PreContext,
     ) -> Result<ExContext> {
         // Execute packages in parallel and collect the data
-        let futs = FuturesUnordered::new();
+        let mut futs = FuturesOrdered::new();
 
         let pkgs = std::mem::replace(&mut self.context, vec![]);
         let num_packages = pkgs.len();
@@ -200,7 +200,7 @@ impl StepPackages {
         context: Arc<Context>,
     ) -> Result<SimulationStepOutput> {
         // Execute packages in parallel and collect the data
-        let futs = FuturesUnordered::new();
+        let mut futs = FuturesOrdered::new();
 
         let num_pkgs = self.output.len();
         let pkgs = std::mem::replace(&mut self.output, vec![]);

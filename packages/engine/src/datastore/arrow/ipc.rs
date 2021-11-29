@@ -90,11 +90,8 @@ fn create_array(
     mut buffer_index: usize,
 ) -> (ArrayRef, usize, usize) {
     use DataType::{Dictionary, FixedSizeList, List, Null, Struct};
-    log::debug!("Node Index: {}", node_index);
-    log::debug!("Data buf pointer: {:?}", data.as_ptr());
     let array = match data_type {
         Utf8 | Binary => {
-            log::debug!("Creating String Array");
             let array = create_primitive_array(
                 &nodes[node_index],
                 data_type,
@@ -108,7 +105,6 @@ fn create_array(
             array
         }
         FixedSizeBinary(_) => {
-            log::debug!("Creating Fixed Sized Binary Array");
             let array = create_primitive_array(
                 &nodes[node_index],
                 data_type,
@@ -122,7 +118,6 @@ fn create_array(
             array
         }
         List(ref list_data_type) => {
-            log::debug!("Creating List Array");
             let list_node = &nodes[node_index];
             let list_buffers: Vec<Buffer> = buffers[buffer_index..buffer_index + 2]
                 .iter()
@@ -145,7 +140,6 @@ fn create_array(
             create_list_array(list_node, data_type, &list_buffers[..], triple.0)
         }
         FixedSizeList(ref list_data_type, _) => {
-            log::debug!("Creating Fized Size List Array");
             let list_node = &nodes[node_index];
             let list_buffers: Vec<Buffer> = buffers[buffer_index..=buffer_index]
                 .iter()
@@ -168,13 +162,7 @@ fn create_array(
             create_list_array(list_node, data_type, &list_buffers[..], triple.0)
         }
         Struct(struct_fields) => {
-            log::debug!("Creating Struct Array");
             let struct_node = &nodes[node_index];
-            log::debug!(
-                "Struct node at index: {}, has length: {}",
-                node_index,
-                struct_node.length(),
-            );
             let null_buffer: Buffer = read_buffer(&buffers[buffer_index], data);
             node_index += 1;
             buffer_index += 1;

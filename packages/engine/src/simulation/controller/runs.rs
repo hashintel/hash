@@ -1,6 +1,6 @@
 use tokio::task::JoinHandle;
 
-use futures::stream::{FuturesUnordered, StreamExt};
+use futures::stream::{FuturesOrdered, StreamExt};
 
 use crate::proto::SimulationShortID;
 
@@ -8,7 +8,7 @@ use super::Result;
 
 #[derive(Default)]
 pub struct SimulationRuns {
-    inner: FuturesUnordered<JoinHandle<Result<SimulationShortID>>>,
+    inner: FuturesOrdered<JoinHandle<Result<SimulationShortID>>>,
 }
 
 impl SimulationRuns {

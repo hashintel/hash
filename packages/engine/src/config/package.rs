@@ -17,43 +17,38 @@ use state::Name as StatePackage;
 /// the package instance for a simulation run.
 /// Unless a default config is required, use
 /// `ConfigBuilder`.
-///
-/// For the different package types, `HashSet`
-/// collections indicate parallel execution
-/// while `Vec` collections indicate sequential
-/// execution.
 pub struct Config {
-    pub init: HashSet<InitPackage>,
-    pub context: HashSet<ContextPackage>,
+    pub init: Vec<InitPackage>,
+    pub context: Vec<ContextPackage>,
     pub state: Vec<StatePackage>,
-    pub output: HashSet<OutputPackage>,
+    pub output: Vec<OutputPackage>,
 }
 
 impl Config {
-    fn default_init_packages() -> HashSet<InitPackage> {
+    fn default_init_packages() -> Vec<InitPackage> {
         let default = [InitPackage::JSON];
-        HashSet::from_iter(default.iter().cloned())
+        Vec::from_iter(default.iter().cloned())
     }
 
-    fn default_context_packages() -> HashSet<ContextPackage> {
+    fn default_context_packages() -> Vec<ContextPackage> {
         let default = [
             ContextPackage::AgentMessages,
             ContextPackage::Neighbors,
             ContextPackage::APIRequests,
         ];
-        HashSet::from_iter(default.iter().cloned())
+        Vec::from_iter(default.iter().cloned())
     }
 
     fn default_state_packages() -> Vec<StatePackage> {
         vec![StatePackage::BehaviorExecution, StatePackage::Topology]
     }
 
-    fn default_output_packages() -> HashSet<OutputPackage> {
+    fn default_output_packages() -> Vec<OutputPackage> {
         let default = [OutputPackage::JSONState, OutputPackage::Analysis];
-        HashSet::from_iter(default.iter().cloned())
+        Vec::from_iter(default.iter().cloned())
     }
 
-    pub fn init_packages(&self) -> &HashSet<InitPackage> {
+    pub fn init_packages(&self) -> &Vec<InitPackage> {
         &self.init
     }
 
@@ -61,11 +56,11 @@ impl Config {
         &self.state
     }
 
-    pub fn context_packages(&self) -> &HashSet<ContextPackage> {
+    pub fn context_packages(&self) -> &Vec<ContextPackage> {
         &self.context
     }
 
-    pub fn output_packages(&self) -> &HashSet<OutputPackage> {
+    pub fn output_packages(&self) -> &Vec<OutputPackage> {
         &self.output
     }
 }
@@ -83,10 +78,10 @@ impl Default for Config {
 
 #[derive(Debug, Default)]
 pub struct ConfigBuilder {
-    init: Option<HashSet<InitPackage>>,
-    context: Option<HashSet<ContextPackage>>,
+    init: Option<Vec<InitPackage>>,
+    context: Option<Vec<ContextPackage>>,
     state: Option<Vec<StatePackage>>,
-    output: Option<HashSet<OutputPackage>>,
+    output: Option<Vec<OutputPackage>>,
 }
 
 impl ConfigBuilder {
@@ -98,7 +93,7 @@ impl ConfigBuilder {
         mut self,
         init_packages: K,
     ) -> ConfigBuilder {
-        self.init = Some(HashSet::from_iter(init_packages.into_iter().cloned()));
+        self.init = Some(Vec::from_iter(init_packages.into_iter().cloned()));
         self
     }
 
@@ -106,7 +101,7 @@ impl ConfigBuilder {
         mut self,
         context_packages: K,
     ) -> ConfigBuilder {
-        self.context = Some(HashSet::from_iter(context_packages.into_iter().cloned()));
+        self.context = Some(Vec::from_iter(context_packages.into_iter().cloned()));
         self
     }
 
@@ -119,17 +114,17 @@ impl ConfigBuilder {
         mut self,
         output_packages: K,
     ) -> ConfigBuilder {
-        self.output = Some(HashSet::from_iter(output_packages.into_iter().cloned()));
+        self.output = Some(Vec::from_iter(output_packages.into_iter().cloned()));
         self
     }
 
     pub fn add_init_package(mut self, init_package: InitPackage) -> ConfigBuilder {
         match self.init {
             Some(ref mut pkgs) => {
-                pkgs.insert(init_package);
+                pkgs.push(init_package);
             }
             None => {
-                self.init = Some(unit_hash_set(init_package));
+                self.init = Some(vec![init_package]);
             }
         };
         self
@@ -138,10 +133,10 @@ impl ConfigBuilder {
     pub fn add_context_package(mut self, context_package: ContextPackage) -> ConfigBuilder {
         match self.context {
             Some(ref mut pkgs) => {
-                pkgs.insert(context_package);
+                pkgs.push(context_package);
             }
             None => {
-                self.context = Some(unit_hash_set(context_package));
+                self.context = Some(vec![context_package]);
             }
         };
         self
@@ -162,10 +157,10 @@ impl ConfigBuilder {
     pub fn add_output_package(mut self, output_package: OutputPackage) -> ConfigBuilder {
         match self.output {
             Some(ref mut pkgs) => {
-                pkgs.insert(output_package);
+                pkgs.push(output_package);
             }
             None => {
-                self.output = Some(unit_hash_set(output_package));
+                self.output = Some(vec![output_package]);
             }
         };
         self
@@ -214,10 +209,10 @@ impl ConfigBuilder {
             for dep in deps.into_iter_deps() {
                 match dep {
                     PackageName::Context(dep_name) => {
-                        context.insert(dep_name);
+                        context.push(dep_name);
                     }
                     PackageName::Init(dep_name) => {
-                        init.insert(dep_name);
+                        init.push(dep_name);
                     }
                     PackageName::State(dep_name) => {
                         if !state.contains(&dep_name) {
@@ -232,7 +227,7 @@ impl ConfigBuilder {
                         }
                     }
                     PackageName::Output(dep_name) => {
-                        output.insert(dep_name);
+                        output.push(dep_name);
                     }
                 }
             }
@@ -247,10 +242,4 @@ impl ConfigBuilder {
 
         Ok(config)
     }
-}
-
-fn unit_hash_set<T: Eq + std::hash::Hash>(element: T) -> HashSet<T> {
-    let mut hash_set = HashSet::new();
-    hash_set.insert(element);
-    hash_set
 }
