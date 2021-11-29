@@ -123,7 +123,6 @@ export const Page: VoidFunctionComponent<{
         <header>
           <div className={styles.PageHeader}>
             <div>
-              {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
               <label>Title</label>
               <PageTitle
                 value={title}
@@ -132,7 +131,6 @@ export const Page: VoidFunctionComponent<{
               />
             </div>
             <div>
-              {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
               <label>Version</label>
               <div>
                 <VersionDropdown
