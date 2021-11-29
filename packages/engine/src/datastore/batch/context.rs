@@ -150,7 +150,7 @@ impl Batch {
                 let length = column_meta.byte_length();
                 let old_offset = next_offset;
                 next_offset = old_offset + length; // TODO check this is correct
-                unsafe { std::slice::from_raw_parts_mut(*&data[old_offset] as *mut _, length) }
+                unsafe { std::slice::from_raw_parts_mut(&mut data[old_offset] as *mut _, length) }
             })
             .collect::<Vec<_>>();
 
