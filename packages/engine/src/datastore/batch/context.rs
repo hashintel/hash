@@ -168,6 +168,7 @@ impl Batch {
         let rb_msg = &arrow_ipc::get_root_as_message(meta_buffer)
             .header_as_record_batch()
             .ok_or(Error::InvalidRecordBatchIPCMessage)?;
+        log::debug!("Reading record batch");
         self.batch = match read_record_batch(data_buffer, rb_msg, self.batch.schema(), &[]) {
             Ok(rb) => rb.unwrap(),
             Err(e) => return Err(Error::from(e)),

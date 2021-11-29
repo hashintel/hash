@@ -1,5 +1,6 @@
 use crate::datastore::table::task_shared_store::{SharedContext, SharedState};
 use crate::hash_types::Agent;
+use std::backtrace::Backtrace;
 use thiserror::Error as ThisError;
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -15,8 +16,12 @@ pub enum Error {
     #[error("Output error: {0}")]
     Output(#[from] crate::output::Error),
 
-    #[error("Datastore Error: {0}")]
-    DataStore(#[from] crate::datastore::Error),
+    #[error("Datastore Error: {source} : {backtrace}")]
+    DataStore {
+        #[from]
+        source: crate::datastore::Error,
+        backtrace: Backtrace,
+    },
 
     #[error("Controller Error: {0}")]
     Controller(#[from] super::controller::Error),

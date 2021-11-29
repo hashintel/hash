@@ -105,6 +105,7 @@ impl WorkerController {
     async fn _run(&mut self) -> Result<()> {
         // TODO: Rust, JS
         let py_handle = self.py.run().await?;
+        // let js_handle = self.js.run().await?;
 
         let mut wp_recv = self.worker_pool_comms.take_recv()?;
         let mut terminate_recv = self
@@ -138,6 +139,7 @@ impl WorkerController {
         }
         // TODO: Worker exit
         py_handle.await??;
+        // js_handle.await??;
         Ok(())
     }
 

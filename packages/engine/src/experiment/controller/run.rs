@@ -338,7 +338,7 @@ fn worker_pool_exit_logic(
 
     if exit_timeout.is_none() {
         log::debug!("Starting timeout");
-        *exit_timeout = Some(Box::pin(tokio::time::sleep(Duration::from_secs(20))));
+        *exit_timeout = Some(Box::pin(tokio::time::sleep(Duration::from_secs(3600))));
     };
 
     false

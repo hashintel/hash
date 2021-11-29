@@ -1,3 +1,4 @@
+use std::backtrace::Backtrace;
 use thiserror::Error as ThisError;
 use tokio::sync::mpsc::error::SendError;
 
@@ -14,8 +15,12 @@ pub enum Error {
     #[error("Simulation error: {0}")]
     Simulation(#[from] crate::simulation::Error),
 
-    #[error("Simulation controller error: {0}")]
-    SimulationController(#[from] crate::simulation::controller::Error),
+    #[error("Simulation controller error: {source} : {backtrace}")]
+    SimulationController {
+        #[from]
+        source: crate::simulation::controller::Error,
+        backtrace: Backtrace,
+    },
 
     #[error("Output error: {0}")]
     Output(#[from] crate::output::Error),

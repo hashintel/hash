@@ -94,7 +94,7 @@ async fn run_experiment_with_manifest(
     loop {
         let msg: Option<proto::EngineStatus>;
         tokio::select! {
-            _ = time::sleep(Duration::from_secs(60)) => {
+            _ = time::sleep(Duration::from_secs(3600)) => {
                 log::error!("Did not receive status from experiment {} for over 60 seconds. Exiting now.", &experiment_id);
                 break;
             }

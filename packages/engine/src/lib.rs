@@ -2,6 +2,7 @@
 #![feature(map_try_insert)]
 #![feature(box_patterns)]
 #![feature(once_cell)]
+#![feature(backtrace)]
 
 #[macro_use]
 extern crate lazy_static;

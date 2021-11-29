@@ -44,6 +44,7 @@ impl<'s> ContextColumnWriter for APIResponses<'s> {
         // Null buffer
         data.from_offset(&meta.buffers[2]).fill_with_ones();
 
+        dbg!(&self.from.data);
         // From
         write_string_list_inner_column_unchecked(
             self.from.data.iter(),
@@ -55,6 +56,8 @@ impl<'s> ContextColumnWriter for APIResponses<'s> {
             &meta.buffers,
             3,
         );
+
+        dbg!(&self.r#type.data);
         // Type
         write_string_list_inner_column_unchecked(
             self.r#type.data.iter(),
@@ -66,6 +69,7 @@ impl<'s> ContextColumnWriter for APIResponses<'s> {
             &meta.buffers,
             6,
         );
+        dbg!(&self.data.data);
         // Data
         write_string_list_inner_column_unchecked(
             self.data.data.iter(),
