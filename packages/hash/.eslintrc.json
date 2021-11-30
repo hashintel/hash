@@ -136,7 +136,7 @@
     // Other rule changes
     "react-hooks/rules-of-hooks": "error",
     "react-hooks/exhaustive-deps": [
-      "warn",
+      "error",
       {
         "additionalHooks": "(^useModal$)|(^useUserGatedEffect$)"
       }

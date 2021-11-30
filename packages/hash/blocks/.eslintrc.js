@@ -16,7 +16,7 @@ module.exports = {
   plugins: ["@typescript-eslint", "react-hooks", "react"],
   rules: {
     "react-hooks/rules-of-hooks": "error",
-    "react-hooks/exhaustive-deps": "warn",
+    "react-hooks/exhaustive-deps": "error",
     "react/jsx-key": "error",
     "react/jsx-no-useless-fragment": "error",
     "react/self-closing-comp": "warn",
