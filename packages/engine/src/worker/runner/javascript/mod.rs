@@ -1187,7 +1187,7 @@ fn _run(
                     Some((sim_id, msg)) = inbound_receiver.recv() => {
                         // TODO: Send errors instead of immediately stopping?
                         if !impl_.handle_msg(&mv8, sim_id, msg, &outbound_sender)? {
-                            log::debug!("JavaScript Runner has finished execution, stopping")
+                            log::debug!("JavaScript Runner has finished execution, stopping");
                             break;
                         }
                     }
