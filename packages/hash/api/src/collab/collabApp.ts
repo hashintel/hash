@@ -1,39 +1,26 @@
+import { ApolloClient, NormalizedCacheObject } from "@apollo/client";
 import { QueueExclusiveConsumer } from "@hashintel/hash-backend-utils/queue/adapter";
 import { Repeater } from "@hashintel/hash-backend-utils/timers";
 import { entityStoreFromProsemirror } from "@hashintel/hash-shared/entityStorePlugin";
 import { createApolloClient } from "@hashintel/hash-shared/graphql/createApolloClient";
+import { getBasicWhoAmI } from "@hashintel/hash-shared/queries/auth.queries";
+import { ApolloError } from "apollo-server-express";
 import { json } from "body-parser";
 import corsMiddleware from "cors";
-import express, { Request, Response } from "express";
-import { ApolloClient, NormalizedCacheObject } from "@apollo/client";
-import { ApolloError } from "apollo-server-express";
+import { NextFunction, Request, Response, Router } from "express";
 import LRU from "lru-cache";
-import { getBasicWhoAmI } from "@hashintel/hash-shared/queries/auth.queries";
 import nocache from "nocache";
+import { CORS_CONFIG } from "../lib/config";
+import { logger } from "../logger";
+import { EntityWatcher } from "./EntityWatcher";
 import {
   AuthenticationError,
   InvalidRequestPayloadError,
   InvalidVersionError,
 } from "./errors";
-import { CORS_CONFIG } from "../lib/config";
-import { logger } from "../logger";
-import { EntityWatcher } from "./EntityWatcher";
 import { getInstance, Instance } from "./Instance";
 import { COLLAB_QUEUE_NAME } from "./util";
 import { Waiting } from "./Waiting";
-
-const handleError = (response: Response, error: unknown) => {
-  console.error(error);
-  response
-    .status(
-      error instanceof AuthenticationError
-        ? 401
-        : error instanceof InvalidRequestPayloadError
-        ? 400
-        : 500,
-    )
-    .send(`${error}`);
-};
 
 const parseVersion = (rawValue: Request["query"][string]) => {
   const num = Number(rawValue);
@@ -168,30 +155,33 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
     };
   };
 
-  const collabApp = express();
+  const collabApp = Router();
 
   collabApp.use(json({ limit: "16mb" }));
   collabApp.use(corsMiddleware(CORS_CONFIG));
   collabApp.use(nocache());
 
-  collabApp.get("/:accountId/:pageEntityId", async (request, response) => {
-    try {
-      const { instance } = await prepareSessionSupportWithInstance(request);
+  collabApp.get(
+    "/:accountId/:pageEntityId",
+    async (request, response, next) => {
+      try {
+        const { instance } = await prepareSessionSupportWithInstance(request);
 
-      response.json({
-        doc: instance.state.doc.toJSON(),
-        store: entityStoreFromProsemirror(instance.state).store,
-        users: instance.userCount,
-        version: instance.version,
-      });
-    } catch (error) {
-      handleError(response, error);
-    }
-  });
+        response.json({
+          doc: instance.state.doc.toJSON(),
+          store: entityStoreFromProsemirror(instance.state).store,
+          users: instance.userCount,
+          version: instance.version,
+        });
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
 
   collabApp.get(
     "/:accountId/:pageEntityId/events",
-    async (request, response) => {
+    async (request, response, next) => {
       try {
         const { instance, userInfo } = await prepareSessionSupportWithInstance(
           request,
@@ -220,14 +210,14 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
         instance.waiting.push(wait);
         response.on("close", () => wait.abort());
       } catch (error) {
-        handleError(response, error);
+        next(error);
       }
     },
   );
 
   collabApp.post(
     "/:accountId/:pageEntityId/events",
-    async (request, response) => {
+    async (request, response, next) => {
       try {
         const { apolloClient, instance } =
           await prepareSessionSupportWithInstance(request);
@@ -236,7 +226,7 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
         const data: any = request.body;
         const version = parseVersion(data.version);
 
-        const result = instance.addJsonEvents(apolloClient)(
+        const result = await instance.addJsonEvents(apolloClient)(
           version,
           data.steps,
           data.clientID,
@@ -248,14 +238,14 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
           response.json(result);
         }
       } catch (error) {
-        handleError(response, error);
+        next(error);
       }
     },
   );
 
   collabApp.get(
     "/:accountId/:pageEntityId/positions",
-    async (request, response) => {
+    async (request, response, next) => {
       try {
         const { instance, userInfo } = await prepareSessionSupportWithInstance(
           request,
@@ -274,14 +264,14 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
           response,
         });
       } catch (error) {
-        handleError(response, error);
+        next(error);
       }
     },
   );
 
   collabApp.post(
     "/:accountId/:pageEntityId/report-position",
-    async (request, response) => {
+    async (request, response, next) => {
       try {
         const { instance, userInfo } = await prepareSessionSupportWithInstance(
           request,
@@ -304,7 +294,31 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
 
         response.status(200).send("OK");
       } catch (error) {
-        handleError(response, error);
+        next(error);
+      }
+    },
+  );
+
+  collabApp.use(
+    (
+      error: unknown,
+      _request: Request,
+      response: Response,
+      next: NextFunction,
+    ) => {
+      if (error) {
+        logger.error(error);
+        response
+          .status(
+            error instanceof AuthenticationError
+              ? 401
+              : error instanceof InvalidRequestPayloadError
+              ? 400
+              : 500,
+          )
+          .send(`${error}`);
+      } else {
+        next(error);
       }
     },
   );
