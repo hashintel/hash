@@ -27,7 +27,9 @@ impl FieldSpecMapBuilder {
         self.field_spec_map
     }
 
-    // TODO this shouldn't be accessible to packages
+    // TODO: This function shouldn't be accessible to packages -- have each package
+    //       return a Vec of field specs instead of adding them? This would also
+    //       make it easier to get the fields owned by the package.
     pub fn source(&mut self, fields_source: FieldSource) -> &mut Self {
         self.fields_source = Some(fields_source);
         self
