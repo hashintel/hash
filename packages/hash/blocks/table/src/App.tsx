@@ -258,6 +258,13 @@ export const App: BlockComponent<AppProps> = ({
     defaultColumnDataRef.current = defaultColumnData;
   });
 
+  /**
+   * This effect is a bad way of handling this, because it can end up being
+   * triggered by multiple clients simultaneously during collab, and it also
+   * results in more calls to updateEntity than is necessary.
+   *
+   * @todo find a better approach
+   */
   useEffect(() => {
     /** Save the columns in initial state if not present. This helps in retaining
      * the headers when a filter operation returns an empty results set
