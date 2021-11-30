@@ -129,12 +129,12 @@ const BlockLoaderBody: VoidFunctionComponent<BlockLoaderBodyProps> = ({
   );
 };
 
-export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
-  props,
-}) => {
-  if (!props.accountId) {
+export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = (props) => {
+  const { accountId } = props;
+
+  if (!accountId) {
     return <BlockLoadingIndicator />;
   }
 
-  return <BlockLoaderBody {...props} />;
+  return <BlockLoaderBody accountId={accountId} {...props} />;
 };
