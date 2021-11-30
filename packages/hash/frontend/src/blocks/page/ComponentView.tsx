@@ -20,7 +20,14 @@ import { RenderPortal } from "./usePortals";
 
 // @todo we need to type this such that we're certain we're passing through all
 // the props required
-const getRemoteBlockProps = (entity: EntityStoreType | null | undefined) => {
+const getRemoteBlockProps: (
+  entity: EntityStoreType | null | undefined,
+  fallbackAccountId: string,
+) => {
+  accountId: string;
+  properties: Record<string, string>;
+  childEntityId?: string;
+} = (entity: EntityStoreType | null | undefined, fallbackAccountId: string) => {
   if (entity) {
     if (!isBlockEntity(entity)) {
       throw new Error("Cannot prepare non-block entity for prosemirrior");
@@ -35,7 +42,7 @@ const getRemoteBlockProps = (entity: EntityStoreType | null | undefined) => {
     };
   }
 
-  return { properties: {} };
+  return { accountId: fallbackAccountId, properties: {} };
 };
 
 /**
@@ -73,6 +80,7 @@ export class ComponentView implements NodeView<Schema> {
     public getPos: () => number,
     private renderPortal: RenderPortal,
     private meta: BlockMeta,
+    public accountId: string,
   ) {
     const { componentMetadata, componentSchema } = meta;
     const { source } = componentMetadata;
@@ -112,7 +120,8 @@ export class ComponentView implements NodeView<Schema> {
     if (node?.type.name === this.componentId) {
       const entityId = node.attrs.blockEntityId;
       const entity = this.store.saved[entityId];
-      const remoteBlockProps = getRemoteBlockProps(entity);
+
+      const remoteBlockProps = getRemoteBlockProps(entity, this.accountId);
 
       const editableRef = this.editable
         ? (editableNode: HTMLElement) => {

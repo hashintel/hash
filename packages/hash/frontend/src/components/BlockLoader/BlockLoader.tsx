@@ -21,16 +21,12 @@ type BlockLoaderProps = {
   shouldSandbox?: boolean;
   sourceUrl: string;
   entityId?: string;
-  accountId?: string;
-} & Record<string, any>;
-
-type BlockLoaderBodyProps = BlockLoaderProps & {
   accountId: string;
-};
+} & Record<string, any>;
 
 const sandboxingEnabled = !!process.env.NEXT_PUBLIC_SANDBOX;
 
-const BlockLoaderBody: VoidFunctionComponent<BlockLoaderBodyProps> = ({
+export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   sourceUrl,
   shouldSandbox,
   entityId,
@@ -127,14 +123,4 @@ const BlockLoaderBody: VoidFunctionComponent<BlockLoaderBodyProps> = ({
       sourceUrl={sourceUrl}
     />
   );
-};
-
-export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = (props) => {
-  const { accountId } = props;
-
-  if (!accountId) {
-    return <BlockLoadingIndicator />;
-  }
-
-  return <BlockLoaderBody accountId={accountId} {...props} />;
 };
