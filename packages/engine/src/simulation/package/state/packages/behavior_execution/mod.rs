@@ -65,22 +65,23 @@ impl PackageCreator for Creator {
         comms: PackageComms,
         accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn Package>> {
-        let index_column_data_types = fields::index_column_data_types()?;
-        let index_column_key = accessor
-            .get_agent_scoped_field_spec("behavior_index")?
+        let behavior_ids_col_data_types = fields::index_column_data_types()?;
+        // TODO - probably just rename the actual field key to behavior_ids (rather than behavior indices) to avoid confusion with "behavior_index" col
+        let behavior_ids_col = accessor
+            .get_local_private_scoped_field_spec("behavior_indices")?
             .to_key()?;
-        let index_column_index = config
+        let behavior_ids_col_index = config
             .sim
             .store
             .agent_schema
             .arrow
-            .index_of(index_column_key.value())?;
+            .index_of(behavior_ids_col.value())?;
 
         Ok(Box::new(BehaviorExecution {
             behavior_map: Arc::clone(self.get_behavior_map()?),
             behavior_indices: Arc::clone(self.get_behavior_indices()?),
-            index_column_index,
-            index_column_data_types,
+            behavior_ids_col_index,
+            behavior_ids_col_data_types,
             comms,
         }))
     }
@@ -99,8 +100,8 @@ impl PackageCreator for Creator {
 struct BehaviorExecution {
     behavior_map: Arc<BehaviorMap>,
     behavior_indices: Arc<BehaviorIndices>,
-    index_column_index: usize,
-    index_column_data_types: [arrow::datatypes::DataType; 3],
+    behavior_ids_col_index: usize,
+    behavior_ids_col_data_types: [arrow::datatypes::DataType; 3],
     comms: PackageComms,
 }
 
@@ -120,8 +121,8 @@ impl BehaviorExecution {
         let behavior_indices = chain::gather_behavior_chains(
             state,
             &self.behavior_indices,
-            self.index_column_data_types.clone(),
-            self.index_column_index,
+            self.behavior_ids_col_data_types.clone(),
+            self.behavior_ids_col_index,
         )?;
         state.set_pending_column(behavior_indices)?;
         state.flush_pending_columns()?;

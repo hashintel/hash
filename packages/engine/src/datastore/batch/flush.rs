@@ -31,7 +31,7 @@ pub trait GrowableBatch<C: GrowableColumn<D>, D: GrowableArrayData> {
         // Sort the changes by the order in which the columns are
         changes.sort_by_key(|a| a.get_column_index());
 
-        let indices = self.static_meta().get_column_meta();
+        let column_metas = self.static_meta().get_column_meta();
 
         let mut buffer_actions = Vec::with_capacity(self.dynamic_meta().buffers.len());
         let mut node_changes = vec![];
@@ -45,7 +45,8 @@ pub trait GrowableBatch<C: GrowableColumn<D>, D: GrowableArrayData> {
             let column_index = array_data.get_column_index();
             // `meta` contains the information about where to look in `self.dynamic_meta` for
             // current offset/node information
-            let meta = &indices[column_index];
+            let meta = &column_metas[column_index];
+
             let buffer_start = meta.buffer_start;
             // Depth-first is required, because this is the order in which
             // nodes are written into memory, see `write_static_array_data` in ./arrow/ipc.rs
@@ -121,7 +122,7 @@ pub trait GrowableBatch<C: GrowableColumn<D>, D: GrowableArrayData> {
                 }
 
                 // Go over offset/data buffers (these are not null buffers)
-                // Have to do `meta.offset_counts[i] - 1` because the null buffer is separate
+                // Have to do `meta.buffer_counts[i] - 1` because the null buffer is separate
                 debug_assert_eq!(
                     meta.buffer_counts[i] - 1,
                     array_data._get_non_null_buffer_count()

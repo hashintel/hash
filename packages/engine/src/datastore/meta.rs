@@ -203,7 +203,7 @@ pub struct Column {
     pub root_node_mapping: NodeMapping,
     /// Number of buffers per node,
     /// i.e. `node_count` == `buffer_counts.len()`
-    pub buffer_counts: Vec<usize>,
+    pub buffer_counts: Vec<usize>, // TODO rename to something like num_buffers_per_node
 }
 
 #[derive(Debug, Clone, PartialEq)]

@@ -10,7 +10,7 @@ pub use message::MessageSchema;
 /// agent-containing `SharedBatch` in a datastore. It contains
 /// the dual representation of both the
 /// field_spec and the Arrow schema.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct AgentSchema {
     pub arrow: Arc<ArrowSchema>,
     pub static_meta: Arc<StaticMeta>,
