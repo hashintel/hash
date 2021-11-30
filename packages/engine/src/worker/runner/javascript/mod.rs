@@ -158,10 +158,13 @@ fn import_file<'m>(
     path: &str,
     args: Vec<&mv8::Value<'m>>,
 ) -> Result<mv8::Value<'m>> {
-    let f = eval_file(mv8, path)?;
-    let f = f
+    let v = eval_file(mv8, path)?;
+    let f = v
         .as_function()
-        .ok_or_else(|| Error::FileImport(path.into(), "Failed to wrap file".into()))?;
+        .ok_or_else(|| Error::FileImport(
+            path.into(),
+            format!("Failed to wrap file: {:?}", &v)
+        ))?;
 
     let args = {
         let mut a = Vec::new();
@@ -454,23 +457,20 @@ fn get_next_task(_mv8: &MiniV8, r: &mv8::Object) -> Result<(MessageTarget, Strin
 
 impl<'m> RunnerImpl<'m> {
     fn load_datasets(mv8: &'m MiniV8, shared_ctx: &SharedStore) -> Result<mv8::Value<'m>> {
-        let js_dataset_names = mv8.create_array();
-        for (dataset_name, _dataset) in shared_ctx.datasets.iter() {
+        let js_datasets = mv8.create_object();
+        for (dataset_name, dataset) in shared_ctx.datasets.iter() {
             let js_name = mv8.create_string(dataset_name.as_str());
-            js_dataset_names.push(js_name)?;
-        }
 
-        let js_datasets = mv8.create_array(); // Array of JSON strings.
-        for (_dataset_name, dataset) in shared_ctx.datasets.iter() {
             let json = dataset.memory().get_data_buffer()?;
             // TODO: Use `from_utf8_unchecked` instead here?
             //       (Since datasets' json can be quite large.)
             let json =
                 std::str::from_utf8(json).map_err(|_| Error::Unique("Dataset not utf8".into()))?;
             let json = mv8.create_string(json);
-            js_datasets.push(json)?;
+
+            js_datasets.set(js_name, json)?;
         }
-        Ok(mv8::Value::Array(js_datasets))
+        Ok(mv8::Value::Object(js_datasets))
     }
 
     pub fn new(mv8: &'m MiniV8, init: &ExperimentInitRunnerMsg) -> Result<Self> {
@@ -480,30 +480,28 @@ impl<'m> RunnerImpl<'m> {
         let pkg_ids = mv8.create_array();
         let pkg_fns = mv8.create_array();
         let pkg_init_msgs = mv8.create_array();
-        for (i_pkg, pkg_id) in init.package_config.0.keys().enumerate() {
-            let pkg_init = init.package_config.0.get(pkg_id).unwrap();
+        let pkg_config = &init.package_config.0;
+        for (i_pkg, pkg_init) in pkg_config.values().enumerate() {
+            let i_pkg = i_pkg as u32;
+
             let pkg = JSPackage::import(
                 mv8,
                 &embedded,
                 pkg_init.name.clone().into(),
                 pkg_init.r#type,
             )?;
-
-            let i_pkg = i_pkg as u32;
-            pkg_ids.set(i_pkg, pkg_id_to_js(mv8, *pkg_id))?;
             pkg_fns.set(i_pkg, pkg.fns)?;
 
-            let payload = serde_json::to_string(&pkg_init.payload).unwrap();
-            let pkg_init_msg = mv8.create_string(&payload);
-            pkg_init_msgs.set(i_pkg, pkg_init_msg)?;
+            let pkg_init = serde_json::to_string(&pkg_init).unwrap();
+            let pkg_init = mv8.create_string(&pkg_init);
+            pkg_init_msgs.set(i_pkg, pkg_init)?;
         }
 
         let this = mv8::Value::Object(mv8.create_object());
         let args = mv8::Values::from_vec(vec![
             datasets,
-            mv8::Value::Array(pkg_ids),
-            mv8::Value::Array(pkg_fns),
             mv8::Value::Array(pkg_init_msgs),
+            mv8::Value::Array(pkg_fns),
         ]);
         embedded.start_experiment.call_method(this.clone(), args)?;
         Ok(Self {

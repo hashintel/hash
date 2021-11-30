@@ -7,27 +7,28 @@ const make_hash_set = fields => {
     return set;
 }
 
-function start_experiment(datasets, pkg_ids, pkg_fns, pkg_init_msgs) {
+function start_experiment(datasets, pkg_init_msgs, pkg_fns) {
     this.batches = new Batches();
-    this.experiment_ctx = new ExperimentContext(JSON.parse(datasets));
+    for (var dataset_name in datasets) datasets[dataset_name] = JSON.parse(datasets[dataset_name]);
+    this.experiment_ctx = new ExperimentContext(datasets);
     this.sims = {}
     
     this.pkgs = {};
-    for (var i_pkg = 0; i_pkg < pkg_ids.length; ++i_pkg) {
+    for (var i_pkg = 0; i_pkg < pkg_init_msgs.length; ++i_pkg) {
         const msg = JSON.parse(pkg_init_msgs[i_pkg]);
+        const pkg_owned_fields = []; // TODO: Get from `start_experiment` fn args.
 
-        const pkg_id = pkgs_ids[i_pkg];
-        if (this.pkgs[pkg_id]) {
-            throw new Error("Duplicate package (id, name): " + pkg_id + ", " + msg.name);
+        if (this.pkgs[msg.id]) {
+            throw new Error("Duplicate package (id, name): " + msg.id + ", " + msg.name);
         }
 
-        const fns = pkgs_fns[i_pkg];
+        const fns = pkg_fns[i_pkg];
         const pkg_start_experiment = fns[0];
 
-        const pkg = this.pkgs[pkg_id] = {
+        const pkg = this.pkgs[msg.id] = {
             "name": msg.name,
             "type": msg.type,
-            "owns_field": make_hash_set(msg.owned_fields),
+            "owns_field": make_hash_set(pkg_owned_fields),
     
             "start_experiment": pkg_start_experiment,
             "start_sim": fns[1],
@@ -52,12 +53,13 @@ const maybe_add_custom_fns = (custom_fns, to_add, custom_property, pkg) => {
     if (!to_add) return;
 
     for (var field_name in to_add) {
-        if (!pkg.owns_field[field_name]) {
-            throw new Error(
-                "Packages can only specify " + custom_property + " for fields they own, not '" +
-                field_name + "' in " + pkg.name
-            );
-        }
+        // TODO: Uncomment after propagating owned_fields:
+        // if (!pkg.owns_field[field_name]) {
+        //     throw new Error(
+        //         "Packages can only specify " + custom_property + " for fields they own, not '" +
+        //         field_name + "' in " + pkg.name
+        //     );
+        // }
         if (custom_fns[field_name]) {
             throw new Error(
                 "Duplicate '" + field_name + "' in " + pkg.name + " " + custom_property 
@@ -258,4 +260,4 @@ return [
     state_interim_sync,
     state_snapshot_sync
 ];
-})()
+})

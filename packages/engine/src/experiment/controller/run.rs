@@ -279,7 +279,7 @@ fn experiment_package_exit_logic(
         experiment_controller_terminate_send.send()?;
     }
     if worker_pool_result.is_some() {
-        log::warn!("Worker pool finished before experiment experiment package");
+        log::warn!("Worker pool finished before experiment package");
     }
 
     // If both have finished something has gone wrong but loop should break
