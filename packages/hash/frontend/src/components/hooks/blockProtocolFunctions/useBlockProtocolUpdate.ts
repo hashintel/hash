@@ -25,11 +25,10 @@ export const useBlockProtocolUpdate = (
   // TODO: make caching of entities outside of GraphQL schema work
   // so that updates to those entities are reflected w/o doing this
   const onCompleted = () =>
-    apolloClient
-      .reFetchObservableQueries()
-      .catch((err: any) =>
-        console.error("Error when refetching all active queries: ", err),
-      );
+    apolloClient.reFetchObservableQueries().catch((err: unknown) =>
+      // eslint-disable-next-line no-console -- TODO: consider using logger
+      console.error("Error when refetching all active queries: ", err),
+    );
 
   const [
     updateEntityFn,

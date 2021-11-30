@@ -25,6 +25,7 @@ export const CreatePage: VoidFunctionComponent<CreatePageProps> = ({
     create({
       variables: { accountId, properties: { title } },
     })
+      // eslint-disable-next-line no-console -- TODO: consider using logger
       .catch((err) => console.error("Could not create page: ", err))
       .finally(() => {
         setLoading(false);

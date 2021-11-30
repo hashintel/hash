@@ -79,6 +79,7 @@ export const EditableCell: VoidFunctionComponent<EditableCellProps> = ({
         // @todo shouldn't need this – hash.dev should know it
         accountId: objectToUpdate.accountId,
       },
+      // eslint-disable-next-line no-console -- TODO: consider using logger
     ])?.catch((err) => console.error("Could not update table data: ", err));
   };
 

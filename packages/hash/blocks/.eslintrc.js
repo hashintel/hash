@@ -19,7 +19,7 @@ module.exports = {
     "react-hooks/exhaustive-deps": "error",
     "react/jsx-key": "error",
     "react/jsx-no-useless-fragment": "error",
-    "react/self-closing-comp": "warn",
+    "react/self-closing-comp": "error",
     curly: ["error", "multi-line"],
     "import/no-extraneous-dependencies": ["error", { devDependencies: true }],
     "jsx-a11y/label-has-associated-control": "off",

@@ -131,6 +131,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
 
         setup.view.dispatch(tr);
       })(contents, controller.signal).catch((err) =>
+        // eslint-disable-next-line no-console -- TODO: consider using logger
         console.error("Could not update page contents: ", err),
       );
     }

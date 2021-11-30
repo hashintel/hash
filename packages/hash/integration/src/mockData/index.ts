@@ -892,6 +892,7 @@ void (async () => {
     ]),
   );
 
+  // eslint-disable-next-line no-console -- TODO: consider moving this file to /scripts/ so that no-console rule is autodisabled
   console.log("Mock data created");
 
   await db.close();
