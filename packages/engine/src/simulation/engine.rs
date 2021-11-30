@@ -1,3 +1,4 @@
+use chrono::Duration;
 use std::sync::Arc;
 
 use crate::datastore::{
@@ -58,6 +59,7 @@ impl Engine {
     /// output packages are run only once, context and state packages
     /// can technically be run any number of times.
     pub async fn next(&mut self) -> Result<SimulationStepResult> {
+        log::debug!("Running next step");
         self.run_context_packages().await?;
         self.run_state_packages().await?;
         let output = self.run_output_packages().await?;
@@ -88,10 +90,12 @@ impl Engine {
     async fn run_context_packages(&mut self) -> Result<()> {
         let (mut state, mut context) = self.store.take_upgraded()?;
         let snapshot = self.prepare_for_context_packages(&mut state, &mut context)?;
+        self.comms.state_snapshot_sync(&snapshot); // Synchronize snapshot with workers
         let pre_context = context.into_pre_context();
 
         let state = Arc::new(state.downgrade());
-        self.comms.state_sync(&state).await?; // Synchronize state with workers
+        // TODO do we want to remove this, at the moment we expect task messages to cause sync of state
+        // self.comms.state_sync(&state).await?; // Synchronize state with workers
         let context = self
             .packages
             .step
