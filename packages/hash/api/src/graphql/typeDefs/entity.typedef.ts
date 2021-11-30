@@ -192,12 +192,6 @@ export const entityTypedef = gql`
     # ENTITY INTERFACE FIELDS END #
   }
 
-  type LinkedAggregation {
-    operation: AggregateOperation!
-    results: [UnknownEntity!]!
-    path: String!
-  }
-
   enum Visibility {
     PRIVATE
     PUBLIC
@@ -216,69 +210,6 @@ export const entityTypedef = gql`
 
   extend type Query {
     entity(accountId: ID!, entityVersionId: ID, entityId: ID): UnknownEntity!
-
-    """
-    Aggregate an entity
-    """
-    aggregateEntity(
-      accountId: ID!
-      entityTypeId: ID!
-      entityTypeVersionId: ID
-      operation: AggregateOperationInput
-    ): AggregationResponse!
-  }
-
-  input AggregateOperationInput {
-    multiFilter: MultiFilterOperationInput
-    itemsPerPage: Int = 10
-    pageNumber: Int = 1
-    multiSort: [SortOperationInput!]
-  }
-
-  input SortOperationInput {
-    field: String!
-    desc: Boolean = false
-  }
-
-  input MultiFilterOperationInput {
-    filters: [FilterOperationInput!]!
-    operator: String!
-  }
-
-  input FilterOperationInput {
-    field: String!
-    value: String!
-    operator: String!
-  }
-
-  type AggregateOperation {
-    entityTypeId: ID!
-    multiFilter: MultiFilterOperation
-    multiSort: [SortOperation!]!
-    itemsPerPage: Int!
-    pageNumber: Int!
-    pageCount: Int!
-  }
-
-  type SortOperation {
-    field: String!
-    desc: Boolean
-  }
-
-  type MultiFilterOperation {
-    filters: [FilterOperation!]!
-    operator: String!
-  }
-
-  type FilterOperation {
-    field: String!
-    value: String!
-    operator: String!
-  }
-
-  type AggregationResponse {
-    operation: AggregateOperation
-    results: [UnknownEntity!]!
   }
 
   extend type Mutation {

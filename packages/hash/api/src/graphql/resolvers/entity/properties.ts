@@ -111,8 +111,7 @@ export const resolveLinkedData = async (
         {},
         {
           accountId: parentAccountId,
-          entityTypeId,
-          operation: aggregate,
+          operation: { ...aggregate, entityTypeId },
         },
         ctx,
         info,

@@ -61,6 +61,10 @@ import { loggedIn } from "./middlewares/loggedIn";
 import { loggedInAndSignedUp } from "./middlewares/loggedInAndSignedUp";
 import { canAccessAccount } from "./middlewares/canAccessAccount";
 import { updateEntityType } from "./entityType/updateEntityType";
+import { deleteLinkedAggregation } from "./linkedAggregation/deleteLinkedAggregation";
+import { updateLinkedAggregationOperation } from "./linkedAggregation/updateLinkedAggregationOperation";
+import { createLinkedAggregation } from "./linkedAggregation/createLinkedAggregation";
+import { linkedAggregationResults } from "./linkedAggregation/linkedAggregationResults";
 
 export const resolvers = {
   Query: {
@@ -92,6 +96,11 @@ export const resolvers = {
     createEntity: loggedInAndSignedUp(createEntity),
     createLink: loggedInAndSignedUp(createLink),
     deleteLink: loggedInAndSignedUp(deleteLink),
+    createLinkedAggregation: loggedInAndSignedUp(createLinkedAggregation),
+    updateLinkedAggregationOperation: loggedInAndSignedUp(
+      updateLinkedAggregationOperation,
+    ),
+    deleteLinkedAggregation: loggedInAndSignedUp(deleteLinkedAggregation),
     createEntityType: loggedInAndSignedUp(createEntityType),
     createFileFromLink: loggedInAndSignedUp(createFileFromLink),
     createPage: loggedInAndSignedUp(createPage),
@@ -175,6 +184,10 @@ export const resolvers = {
     linkGroups: entityFields.linkGroups,
     linkedEntities: entityFields.linkedEntities,
     linkedAggregations: entityFields.linkedAggregations,
+  },
+
+  LinkedAggregation: {
+    results: linkedAggregationResults,
   },
 
   EntityType: {

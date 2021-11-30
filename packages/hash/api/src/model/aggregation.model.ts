@@ -13,10 +13,16 @@ import {
 import {
   LinkedAggregation as GQLLinkedAggregation,
   AggregateOperation,
+  AggregateOperationInput,
 } from "../graphql/apiTypes.gen";
 import { DBAggregation } from "../db/adapter";
 
 export type GQLLinkedAggregationExternalResolvers = "__typename" | "results";
+
+export type UnresolvedGQLAggregateOperation = Omit<
+  AggregateOperation,
+  "pageCount"
+>;
 
 export type UnresolvedGQLLinkedAggregation = Omit<
   GQLLinkedAggregation,
@@ -25,7 +31,7 @@ export type UnresolvedGQLLinkedAggregation = Omit<
 
 export type CreateAggregationArgs = {
   stringifiedPath: string;
-  operation: AggregateOperation;
+  operation: AggregateOperationInput;
   source: Entity;
   createdBy: User;
 };
@@ -37,7 +43,7 @@ export type AggregationConstructorArgs = {
   sourceEntityId: string;
   sourceEntityVersionIds: Set<string>;
 
-  operation: AggregateOperation;
+  operation: UnresolvedGQLAggregateOperation;
 
   createdById: string;
   createdAt: Date;
@@ -47,7 +53,7 @@ const mapDBAggregationToModel = (dbAggregation: DBAggregation) =>
   new Aggregation({
     ...dbAggregation,
     stringifiedPath: dbAggregation.path,
-    operation: dbAggregation.operation as AggregateOperation,
+    operation: dbAggregation.operation as UnresolvedGQLAggregateOperation,
   });
 
 class __Aggregation {
@@ -58,7 +64,7 @@ class __Aggregation {
   sourceEntityId: string;
   sourceEntityVersionIds: Set<string>;
 
-  operation: AggregateOperation;
+  operation: UnresolvedGQLAggregateOperation;
 
   createdById: string;
   createdAt: Date;
@@ -192,7 +198,18 @@ class __Aggregation {
     client: DBClient,
     params: CreateAggregationArgs,
   ): Promise<Aggregation> {
-    const { stringifiedPath, source, operation, createdBy } = params;
+    const {
+      stringifiedPath,
+      source,
+      operation: operationInput,
+      createdBy,
+    } = params;
+
+    const operation: UnresolvedGQLAggregateOperation = {
+      ...operationInput,
+      itemsPerPage: operationInput.itemsPerPage ?? 10,
+      pageNumber: operationInput.pageNumber ?? 1,
+    };
 
     Link.validatePath(stringifiedPath);
 
@@ -265,16 +282,21 @@ class __Aggregation {
   async updateOperation(
     client: DBClient,
     params: {
-      operation: AggregateOperation;
+      operation: AggregateOperationInput;
     },
   ): Promise<Aggregation> {
+    const operation: UnresolvedGQLAggregateOperation = {
+      ...params.operation,
+      itemsPerPage: params.operation.itemsPerPage ?? 10,
+      pageNumber: params.operation.pageNumber ?? 1,
+    };
     const { sourceEntityVersionIds } = await client.updateAggregationOperation({
       sourceAccountId: this.sourceAccountId,
       sourceEntityId: this.sourceEntityId,
       path: this.stringifiedPath,
-      operation: params.operation,
+      operation,
     });
-    this.operation = params.operation;
+    this.operation = operation;
     this.sourceEntityVersionIds = sourceEntityVersionIds;
 
     return this;
@@ -327,10 +349,25 @@ class __Aggregation {
     });
   }
 
-  toGQLLinkedAggregation(): UnresolvedGQLLinkedAggregation {
+  async toGQLLinkedAggregation(
+    client: DBClient,
+  ): Promise<UnresolvedGQLLinkedAggregation> {
+    const { itemsPerPage } = this.operation;
+
     return {
+      sourceAccountId: this.sourceAccountId,
+      sourceEntityId: this.sourceEntityId,
       path: this.stringifiedPath,
-      operation: this.operation,
+      operation: {
+        ...this.operation,
+        /**
+         * @todo: move this into a field resolver so that it is only
+         * calculated when the field is requested
+         */
+        pageCount: Math.ceil(
+          (await this.getResults(client)).length / itemsPerPage,
+        ),
+      },
     };
   }
 }

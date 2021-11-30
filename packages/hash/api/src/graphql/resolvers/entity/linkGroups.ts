@@ -38,10 +38,33 @@ export const linkGroups: Resolver<
 
   /** @todo: resolve multiple layers of outgoing links */
 
-  const outgoingLinks = await source.getOutgoingLinks(dataSources.db);
+  const entityOutgoingLinks = await source.getOutgoingLinks(dataSources.db);
 
-  /** @todo: use a more efficient data-structure to produce `outgoingLinks` (https://github.com/hashintel/dev/pull/341#discussion_r746635315) */
-  return outgoingLinks.reduce<LinkGroup[]>((prevLinkGroups, currentLink) => {
+  const aggregations = await source.getAggregations(dataSources.db);
+
+  const allAggregationResults = (
+    await Promise.all(
+      aggregations.map((aggregation) => aggregation.getResults(dataSources.db)),
+    )
+  )
+    .flat()
+    .filter((entity, i, all) => all.findIndex(entity.isEquivalentTo) === i);
+
+  const allAggregationResultsOutgoingLinks = (
+    await Promise.all(
+      allAggregationResults.map((entity) =>
+        entity.getOutgoingLinks(dataSources.db),
+      ),
+    )
+  ).flat();
+
+  const allLinks = [
+    ...entityOutgoingLinks,
+    ...allAggregationResultsOutgoingLinks,
+  ];
+
+  /** @todo: use a more efficient data-structure to produce `linkGroups` (https://github.com/hashintel/dev/pull/341#discussion_r746635315) */
+  return allLinks.reduce<LinkGroup[]>((prevLinkGroups, currentLink) => {
     const existingGroupIndex = prevLinkGroups.findIndex(
       doesLinkBelongInGroup(sourceEntity, currentLink),
     );
