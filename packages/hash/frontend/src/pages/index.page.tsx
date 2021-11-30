@@ -36,15 +36,6 @@ export default function Home() {
           ))}
         </ul>
       </section>
-
-      <section>
-        <h2>Block playground</h2>
-        <p>
-          <Link href="/playground">
-            <a>Click here to visit the block playground</a>
-          </Link>
-        </p>
-      </section>
     </main>
   );
 }

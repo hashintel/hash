@@ -20,7 +20,7 @@ import { useFileUpload } from "../hooks/useFileUpload";
 type BlockLoaderProps = {
   shouldSandbox?: boolean;
   sourceUrl: string;
-  entityId?: string;
+  entityId: string;
   accountId: string;
 } & Record<string, any>;
 
