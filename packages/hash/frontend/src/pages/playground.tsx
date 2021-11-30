@@ -102,7 +102,6 @@ const BlockPlayground = () => {
   return (
     <div className={styles.PlaygroundWrapper}>
       <div className={`${styles.PlaygroundSection} ${styles.UrlEntry}`}>
-        {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
         <label>URL to block folder</label>
         <input
           type="text"
@@ -118,7 +117,6 @@ const BlockPlayground = () => {
       <div className={`${styles.BlockDisplay} ${styles.PlaygroundSection}`}>
         <div className={styles.BlockInterface}>
           <div className={styles.BlockDataInput}>
-            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
             <label>Data to send block</label>
             <textarea
               className="language-json"
@@ -142,7 +140,6 @@ const BlockPlayground = () => {
           </div>
 
           <div className="language-json">
-            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
             <label>Block interface schema</label>
             <pre>
               <code>{JSON.stringify(schema, undefined, 2)}</code>
@@ -150,7 +147,6 @@ const BlockPlayground = () => {
           </div>
 
           <div className="language-json">
-            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
             <label>Block variants</label>
             <pre>
               <code>
@@ -161,7 +157,6 @@ const BlockPlayground = () => {
         </div>
 
         <div className={styles.RenderedBlock}>
-          {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
           <label>Rendered block {metadata?.name && `- ${metadata.name}`}</label>
           <div>
             {!metadata.source ? (

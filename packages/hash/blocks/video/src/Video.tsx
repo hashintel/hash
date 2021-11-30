@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { v4 as uuid } from "uuid";
 import { tw } from "twind";
 import { BlockComponent } from "@hashintel/block-protocol/react";
 
@@ -62,8 +61,6 @@ export const Video: BlockComponent<AppProps> = (props) => {
 
   const [inputText, setInputText] = useState("");
   const [captionText, setCaptionText] = useState(initialCaption ?? "");
-
-  const [randomId] = useState(() => `video-input-${uuid()}`);
 
   useEffect(() => {
     isMounted.current = true;
@@ -277,7 +274,7 @@ export const Video: BlockComponent<AppProps> = (props) => {
             />
           </div>
           <div>
-            <label htmlFor={randomId}>
+            <label>
               <div
                 className={tw`my-4 bg-gray-50 border-2 border-dashed border-gray-200 py-4 text-sm text-gray-400 cursor-pointer`}
               >
@@ -285,7 +282,6 @@ export const Video: BlockComponent<AppProps> = (props) => {
               </div>
 
               <input
-                id={randomId}
                 className={tw`hidden`}
                 type="file"
                 accept={VIDEO_MIME_TYPE}

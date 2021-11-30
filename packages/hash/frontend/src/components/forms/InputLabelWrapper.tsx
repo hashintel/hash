@@ -6,7 +6,6 @@ export const InputLabelWrapper: FunctionComponent<{
   label: string;
   className?: string;
 }> = ({ label, children, className = "" }) => (
-  // eslint-disable-next-line jsx-a11y/label-has-associated-control
   <label>
     <div
       className={tw`mb-1 uppercase text-sm font-semibold ${className || ""}`}

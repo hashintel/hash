@@ -19,8 +19,7 @@
     "start": "concurrently -n webpack,webpack-dev-server -c green,cyan \"yarn build:dev -- --watch --verbose\" \"yarn dev\""
   },
   "dependencies": {
-    "@hashintel/block-protocol": "*",
-    "uuid": "^8.3.2"
+    "@hashintel/block-protocol": "*"
   },
   "devDependencies": {
     "@babel/cli": "^7.12.10",

@@ -8,7 +8,6 @@ import React, {
 } from "react";
 import router from "next/router";
 import { blockDomId } from "../../blocks/page/BlockView";
-
 import { useBlockProtocolUpdate } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdate";
 import { cloneEntityTreeWithPropertiesMovedUp } from "../../lib/entities";
 import { fetchEmbedCode } from "./fetchEmbedCode";
@@ -81,9 +80,6 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
         routeElement.scrollIntoView();
         scrollingComplete.current = true;
       }
-
-      // Do we need to do this if we've scrolled into view
-      scrollFrameRequestIdRef.current = requestAnimationFrame(frame);
     }
 
     function clearScrollInterval() {
