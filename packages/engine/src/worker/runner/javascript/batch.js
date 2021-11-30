@@ -28,7 +28,7 @@ const get_u64 = (dataview, offset) => {
         throw new RangeError(combined + ' exceeds MAX_SAFE_INTEGER.');
     }
     return combined;
-};
+}
 
 const load_vectors = (rb_bytes, schema) => {
     const reader = new arrow.MessageReader(rb_bytes);
@@ -50,7 +50,7 @@ const load_vectors = (rb_bytes, schema) => {
         vectors[field.name] = vector;
     }
     return vectors;
-};
+}
 
 const load_markers = shared_bytes => { // `shared_bytes` should be ArrayBuffer.
     const dataview = new DataView(shared_bytes);
@@ -81,14 +81,14 @@ const load_markers = shared_bytes => { // `shared_bytes` should be ArrayBuffer.
         throw new RangeError("data marker");
     }
     return m;
-};
+}
 
 const load_marked_vectors = (shared_bytes, schema) => {
     const m = load_markers(shared_bytes); // Record batch bytes are subset of all shared.
     const n_rb_bytes = m.data_offset + m.data_size - m.meta_offset;
     const rb_bytes = new Uint8Array(shared_bytes, m.meta_offset, n_rb_bytes);
     return load_vectors(rb_bytes, schema);
-};
+}
 
 /// `latest_batch` should have `batch_version` (number), `mem_version` (number) and
 /// `mem` (ArrayBuffer) fields. 
@@ -224,7 +224,7 @@ Batch.prototype.flush_changes = function(schema, skip) {
 
 const Batches = function() {
     this.batches = {};
-};
+}
 
 Batches.prototype.get = function(batch_id) {
     return this.batches[batch_id];

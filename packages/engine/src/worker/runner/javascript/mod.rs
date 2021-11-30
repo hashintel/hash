@@ -854,14 +854,16 @@ impl<'m> RunnerImpl<'m> {
                     if partial.indices.len() == 1 {
                         mv8::Value::Number(partial.indices[0] as f64)
                     } else {
-                        todo!() // Running on strict subset of groups with more than one group
+                        // Iterate over the subset of groups (since there's more than one group)
+                        todo!()
                     }
                 }
                 PartialSharedState::Write(partial) => {
                     if partial.indices.len() == 1 {
                         mv8::Value::Number(partial.indices[0] as f64)
                     } else {
-                        todo!() // Running on strict subset of groups with more than one group
+                        // Iterate over the subset of groups (since there's more than one group)
+                        todo!()
                     }
                 }
             },
@@ -1197,7 +1199,11 @@ fn _run(
                 tokio::select! {
                     Some((sim_id, msg)) = inbound_receiver.recv() => {
                         // TODO: Send errors instead of immediately stopping?
-                        if !impl_.handle_msg(&mv8, sim_id, msg, &outbound_sender)? {
+                        let msg_str = msg.as_str();
+                        log::debug!("JS runner got sim `{:?}` inbound {}", &sim_id, msg_str);
+                        let keep_running = impl_.handle_msg(&mv8, sim_id, msg, &outbound_sender)?;
+                        log::debug!("JS runner handled sim `{:?}` inbound {}", sim_id, msg_str);
+                        if !keep_running {
                             log::debug!("JavaScript Runner has finished execution, stopping");
                             break;
                         }

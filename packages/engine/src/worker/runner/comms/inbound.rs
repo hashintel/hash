@@ -21,9 +21,9 @@ pub enum InboundToRunnerMsgPayload {
     NewSimulationRun(NewSimulationRun),
 }
 
-impl fmt::Debug for InboundToRunnerMsgPayload {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let variant = match self {
+impl InboundToRunnerMsgPayload {
+    pub fn as_str(&self) -> &'static str {
+        match self {
             InboundToRunnerMsgPayload::TaskMsg(_) => "TaskMsg",
             InboundToRunnerMsgPayload::CancelTask(_) => "CancelTask",
             InboundToRunnerMsgPayload::StateSync(_) => "StateSync",
@@ -33,8 +33,13 @@ impl fmt::Debug for InboundToRunnerMsgPayload {
             InboundToRunnerMsgPayload::TerminateSimulationRun => "TerminateSimulationRun",
             InboundToRunnerMsgPayload::TerminateRunner => "TerminateRunner",
             InboundToRunnerMsgPayload::NewSimulationRun(_) => "NewSimulationRun",
-        };
-        f.write_str(variant)
+        }
+    }
+}
+
+impl fmt::Debug for InboundToRunnerMsgPayload {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
     }
 }
 
