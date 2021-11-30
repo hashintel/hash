@@ -307,7 +307,7 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
       next: NextFunction,
     ) => {
       if (error) {
-        console.error(error);
+        logger.error(error);
         response
           .status(
             error instanceof AuthenticationError
