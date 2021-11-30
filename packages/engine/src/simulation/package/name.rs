@@ -1,4 +1,6 @@
 use std::fmt::Display;
+
+use serde::Serialize;
 use strum_macros::IntoStaticStr;
 
 use crate::simulation::package::deps::Dependencies;
@@ -11,6 +13,14 @@ pub enum PackageName {
     Init(init::Name),
     State(state::Name),
     Output(output::Name),
+}
+
+impl Serialize for PackageName {
+    fn serialize<S>(
+        &self, serializer: S
+    ) -> std::result::Result<S::Ok, S::Error> where S: serde::Serializer {
+        format!("{}", self).serialize(serializer)
+    }
 }
 
 impl PackageName {

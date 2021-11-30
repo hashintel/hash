@@ -47,6 +47,8 @@ pub mod prelude {
     pub use async_trait::async_trait;
 }
 
+use serde::Serialize;
+
 use crate::gen;
 use crate::simulation::package::deps::Dependencies;
 use crate::simulation::package::id::PackageId;
@@ -67,6 +69,14 @@ impl PackageType {
             PackageType::State => "state",
             PackageType::Output => "output",
         }
+    }
+}
+
+impl Serialize for PackageType {
+    fn serialize<S>(
+        &self, serializer: S
+    ) -> std::result::Result<S::Ok, S::Error> where S: serde::Serializer {
+        self.as_str().serialize(serializer)
     }
 }
 

@@ -1,6 +1,8 @@
+use serde::Serialize;
+
 use crate::simulation::package::PackageType;
 
-#[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Hash, PartialEq, Eq, Serialize)]
 pub struct PackageId(usize);
 
 impl PackageId {
