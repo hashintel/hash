@@ -56,6 +56,7 @@ impl PythonRunner {
         sim_id: Option<SimulationShortID>,
         msg: InboundToRunnerMsgPayload,
     ) -> WorkerResult<()> {
+        log::trace!("Sending message to Python: {:?}", &msg);
         self.inbound_sender
             .send((sim_id, msg))
             .map_err(|e| WorkerError::Python(Error::InboundSend(e)))

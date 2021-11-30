@@ -120,10 +120,12 @@ impl WorkerController {
         loop {
             tokio::select! {
                 Some(msg) = wp_recv.recv() => {
+                    log::debug!("Handle worker pool message: {:?}", &msg);
                     self.handle_worker_pool_msg(msg).await?;
                 }
                 res = self.recv_from_runners() => {
                     let msg = res?;
+                    log::debug!("Handle message from runners: {:?}", &msg);
                     self.handle_runner_msg(msg).await?;
                 }
                 terminate_res = &mut terminate_recv => {
@@ -136,13 +138,17 @@ impl WorkerController {
                     break;
                 }
                 py_res = &mut py_handle => {
-                    js_handle.await??;
+                    log::debug!("Python runner finished unexpectedly");
                     py_res??;
+                    // TODO send termination to js_handle
+                    js_handle.await??;
                     return Ok(());
                 }
                 js_res = &mut js_handle => {
-                    py_handle.await??;
+                    log::debug!("Javascript runner finished unexpectedly");
                     js_res??;
+                    // TODO send termination to py_handle
+                    py_handle.await??;
                     return Ok(());
                 }
             }
@@ -393,14 +399,17 @@ impl WorkerController {
         });
         let active_runner = match init_msg.target {
             Python => {
+                log::debug!("Sending task message to Python");
                 self.py.send(Some(sim_id), runner_msg).await?;
                 Language::Python
             }
             JavaScript => {
+                log::debug!("Sending task message to JavaScript");
                 self.js.send(Some(sim_id), runner_msg).await?;
                 Language::JavaScript
             }
             Rust => {
+                log::debug!("Sending task message to Rust");
                 self.rs.send(Some(sim_id), runner_msg).await?;
                 Language::Rust
             }

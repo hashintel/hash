@@ -111,7 +111,7 @@ async fn run_experiment_with_manifest(
                 log::debug!("Started simulation: {}", sim_id);
             }
             proto::EngineStatus::SimStatus(status) => {
-                log::debug!("Got runner status: {:?}", status);
+                log::debug!("Got simulation run status: {:?}", status);
                 // TODO OS - handle status fields
             }
             proto::EngineStatus::SimStop(sim_id) => {
