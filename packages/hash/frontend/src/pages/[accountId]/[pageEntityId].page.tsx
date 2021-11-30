@@ -3,9 +3,10 @@ import { BlockMeta, fetchBlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { blockPaths } from "@hashintel/hash-shared/paths";
 import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
 import { GetStaticPaths, GetStaticProps } from "next";
-
+import { tw } from "twind";
 import { useRouter } from "next/router";
 import { useMemo, VoidFunctionComponent } from "react";
+
 import { useCollabPositions } from "../../blocks/page/collab/useCollabPositions";
 import { useCollabPositionTracking } from "../../blocks/page/collab/useCollabPositionTracking";
 import { useCollabPositionReporter } from "../../blocks/page/collab/useCollabPositionReporter";
@@ -19,7 +20,6 @@ import {
 } from "../../graphql/apiTypes.gen";
 import styles from "../index.module.scss";
 import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
-import { tw } from "twind";
 
 /**
  * preload all configured blocks for now. in the future these will be loaded
