@@ -1,5 +1,5 @@
 import React, { ChangeEvent, useMemo, VFC, useState } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, RegisterOptions } from "react-hook-form";
 import { tw } from "twind";
 import { useMutation } from "@apollo/client";
 import {
@@ -30,12 +30,21 @@ const FORM_INPUTS: FormInputsType = [
     label: "Workspace Name",
     inputType: "textInput",
     placeholder: "Acme",
+    fieldOptions: {
+      required: {
+        value: true,
+        message: "You must choose a workspace name",
+      },
+    },
   },
   {
     name: "shortname",
     label: "Org Username",
     inputType: "textInput",
     placeholder: "acme-corp",
+    fieldOptions: {
+      required: false, // we don't need to pass required rule for shortname since validateShortname checks for that
+    },
   },
   {
     name: "orgSize",
@@ -43,6 +52,12 @@ const FORM_INPUTS: FormInputsType = [
     inputType: "selectInput",
     options: ORG_SIZES,
     placeholder: "Number of People",
+    fieldOptions: {
+      required: {
+        value: true,
+        message: "You must choose the org size",
+      },
+    },
   },
   {
     name: "responsibility",
@@ -50,6 +65,12 @@ const FORM_INPUTS: FormInputsType = [
     inputType: "selectInput",
     options: ORG_ROLES,
     placeholder: "Current Position",
+    fieldOptions: {
+      required: {
+        value: true,
+        message: "You must choose your role",
+      },
+    },
   },
 ];
 
@@ -59,6 +80,7 @@ type FormInputsType = {
   inputType: "textInput" | "selectInput";
   options?: { label: string; value: string }[];
   placeholder?: string;
+  fieldOptions: RegisterOptions;
 }[];
 
 type Inputs = {
@@ -101,17 +123,17 @@ export const OrgCreate: VFC<OrgCreateProps> = ({
     CreateOrgMutation,
     CreateOrgMutationVariables
   >(createOrgMutation, {
+    errorPolicy: "ignore",
     onCompleted: (res) => {
       const accessToken =
         res.createOrg.properties.invitationLink?.data.properties.accessToken;
-      if (accessToken && res.createOrg.accountId) {
+      if (accessToken) {
         onCreateOrgSuccess({
           orgEntityId: res.createOrg.accountId,
           invitationLinkToken: accessToken,
         });
       }
     },
-    onError: () => {},
   });
 
   const createOrgErrorMessage = useMemo(() => {
@@ -195,14 +217,17 @@ export const OrgCreate: VFC<OrgCreateProps> = ({
       </div>
       <form className={tw`flex flex-col items-center`} onSubmit={onSubmit}>
         {FORM_INPUTS.map(
-          ({ name, label, inputType, options, placeholder }, index) => {
+          (
+            { name, label, inputType, options, placeholder, fieldOptions },
+            index,
+          ) => {
             return (
               <React.Fragment key={name}>
                 <Controller
                   control={control}
                   name={name}
                   rules={{
-                    required: name !== "shortname", // we don't need to pass required rule for shortname since validateShortname checks for that
+                    ...fieldOptions,
                     ...(name === "shortname" && {
                       validate: validateShortname,
                     }),

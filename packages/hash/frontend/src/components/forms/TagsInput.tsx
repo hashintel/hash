@@ -6,7 +6,7 @@ type TagsInputProps = {
   tags: string[];
   setTags: (tags: string[]) => void;
   placeholder: string;
-  validate?: (text: string) => boolean;
+  isValid?: (text: string) => boolean;
   delimiters?: string[];
 };
 
@@ -15,7 +15,7 @@ export const TagsInput: React.VFC<TagsInputProps> = ({
   tags,
   setTags,
   placeholder,
-  validate,
+  isValid,
   delimiters = [],
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -24,13 +24,16 @@ export const TagsInput: React.VFC<TagsInputProps> = ({
     if (!inputRef.current) return;
     const text = inputRef.current.value;
 
-    if ([...delimiters, "Enter"].includes(evt.key) && text) {
+    if ([...delimiters, "Enter"].includes(evt.key)) {
       evt.preventDefault();
-      if (!validate?.(text)) return;
-      if (!tags.includes(text)) {
+      if (
+        text &&
+        (isValid === undefined || isValid(text)) &&
+        !tags.includes(text)
+      ) {
         setTags([...tags, text]);
+        inputRef.current.value = "";
       }
-      inputRef.current.value = "";
     } else if (evt.key === "Backspace" || evt.key === "Delete") {
       if (inputRef.current.value === "" && tags.length > 0) {
         evt.preventDefault();
@@ -44,7 +47,11 @@ export const TagsInput: React.VFC<TagsInputProps> = ({
   const handleBlur = () => {
     if (!inputRef.current) return;
     const inputValue = inputRef.current?.value;
-    if (inputValue && !tags.includes(inputValue)) {
+    if (
+      inputValue &&
+      !tags.includes(inputValue) &&
+      (isValid === undefined || isValid(inputValue))
+    ) {
       setTags([...tags, inputValue]);
       inputRef.current.value = "";
     }

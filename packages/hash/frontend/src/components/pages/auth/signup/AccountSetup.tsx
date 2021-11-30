@@ -201,7 +201,7 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
                 rules={{ required: true }}
                 render={({ field: { onChange, value } }) => (
                   <SelectInput
-                    className={"w-64"}
+                    className="w-64"
                     label={`Your Role at ${invitationInfo.orgName}`}
                     labelClass="font-bold text-base mb-4"
                     id="responsibility"

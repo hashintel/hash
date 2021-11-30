@@ -34,11 +34,11 @@ import {
 } from "../graphql/queries/user.queries";
 import { joinOrg as joinOrgMutation } from "../graphql/queries/org.queries";
 import {
-  AUTH_ERROR_CODES,
   isParsedAuthQuery,
   SYNTHETIC_LOADING_TIME_MS,
   Action,
   InvitationInfo,
+  parseGraphQLError,
 } from "../components/pages/auth/utils";
 import { AuthLayout } from "../components/layout/PageLayout/AuthLayout";
 import { useGetInvitationInfo } from "../components/hooks/useGetInvitationInfo";
@@ -160,22 +160,19 @@ const SignupPage: NextPage = () => {
     onError: ({ graphQLErrors }) => {
       if (!graphQLErrors.length) return;
 
-      if (
-        graphQLErrors.find(
-          ({ extensions }) => extensions?.code === "ALREADY_EXISTS",
-        )
-      ) {
+      const { errorCode, message } = parseGraphQLError(
+        [...graphQLErrors],
+        "ALREADY_EXISTS",
+      );
+
+      if (errorCode === "ALREADY_EXISTS") {
         void router.push({ pathname: "/login", query: { email } });
         return;
       }
 
-      const errorCode = graphQLErrors[0]?.extensions
-        ?.code as keyof typeof AUTH_ERROR_CODES;
-      const message = graphQLErrors[0]?.extensions?.message;
-
       dispatch({
         type: "SET_ERROR",
-        payload: errorCode ? AUTH_ERROR_CODES[errorCode] : message,
+        payload: message,
       });
     },
   });
@@ -205,22 +202,19 @@ const SignupPage: NextPage = () => {
     onError: ({ graphQLErrors }) => {
       if (!graphQLErrors.length) return;
 
-      if (
-        graphQLErrors.find(
-          ({ extensions }) => extensions?.code === "ALREADY_EXISTS",
-        )
-      ) {
+      const { errorCode, message } = parseGraphQLError(
+        [...graphQLErrors],
+        "ALREADY_EXISTS",
+      );
+
+      if (errorCode === "ALREADY_EXISTS") {
         void router.push({ pathname: "/login", query: router.query });
         return;
       }
 
-      const errorCode = graphQLErrors[0]?.extensions
-        ?.code as keyof typeof AUTH_ERROR_CODES;
-      const message = graphQLErrors[0]?.extensions?.message;
-
       dispatch({
         type: "SET_ERROR",
-        payload: errorCode ? AUTH_ERROR_CODES[errorCode] : message,
+        payload: message,
       });
     },
   });
@@ -238,13 +232,11 @@ const SignupPage: NextPage = () => {
     onError: ({ graphQLErrors }) => {
       if (!graphQLErrors.length) return;
 
-      const errorCode = graphQLErrors[0]?.extensions
-        ?.code as keyof typeof AUTH_ERROR_CODES;
-      const message = graphQLErrors[0]?.extensions?.message;
+      const { message } = parseGraphQLError([...graphQLErrors]);
 
       dispatch({
         type: "SET_ERROR",
-        payload: errorCode ? AUTH_ERROR_CODES[errorCode] : message,
+        payload: message,
       });
     },
   });
@@ -289,8 +281,7 @@ const SignupPage: NextPage = () => {
     },
     onError: ({ graphQLErrors }) => {
       if (!graphQLErrors.length) return;
-      const message = graphQLErrors[0]?.extensions?.message;
-
+      const { message } = parseGraphQLError([...graphQLErrors]);
       dispatch({
         type: "SET_ERROR",
         payload: message,
@@ -307,7 +298,7 @@ const SignupPage: NextPage = () => {
     },
     onError: ({ graphQLErrors }) => {
       if (!graphQLErrors.length) return;
-      const message = graphQLErrors[0]?.extensions?.message;
+      const { message } = parseGraphQLError([...graphQLErrors]);
 
       dispatch({
         type: "SET_ERROR",
@@ -382,7 +373,11 @@ const SignupPage: NextPage = () => {
 
   const updateUserDetails = (updatedProperties: UpdateUserProperties) => {
     if (!user) {
-      throw new Error("The user must be logged in to update themselves");
+      dispatch({
+        type: "SET_ERROR",
+        payload: "The user must be logged in to update themselves",
+      });
+      return;
     }
 
     return updateUser({
@@ -394,17 +389,10 @@ const SignupPage: NextPage = () => {
   };
 
   const updateWayToUseHash = (usingHow: WayToUseHash) => {
-    try {
-      accountUsageType.current = usingHow;
-      void updateUserDetails({
-        usingHow,
-      });
-    } catch (err) {
-      dispatch({
-        type: "SET_ERROR",
-        payload: err instanceof Error ? err.message : "An error occured",
-      });
-    }
+    accountUsageType.current = usingHow;
+    void updateUserDetails({
+      usingHow,
+    });
   };
 
   const handleAccountSetup = async ({
@@ -416,35 +404,28 @@ const SignupPage: NextPage = () => {
     preferredName?: string;
     responsibility?: string;
   }) => {
-    try {
-      await updateUserDetails({
-        shortname,
-        preferredName,
-        ...(invitationInfo && { usingHow: WayToUseHash.WithATeam }),
-      });
+    await updateUserDetails({
+      shortname,
+      preferredName,
+      ...(invitationInfo && { usingHow: WayToUseHash.WithATeam }),
+    });
 
-      /** join organization once update user details has been completed  */
+    /** join organization once update user details has been completed  */
 
-      if (responsibility && invitationInfo) {
-        void joinOrg({
-          variables: {
-            orgEntityId: invitationInfo.orgEntityId,
-            verification: {
-              ...("invitationEmailToken" in invitationInfo && {
-                invitationEmailToken: invitationInfo.invitationEmailToken,
-              }),
-              ...("invitationLinkToken" in invitationInfo && {
-                invitationLinkToken: invitationInfo.invitationLinkToken,
-              }),
-            },
-            responsibility,
+    if (user && responsibility && invitationInfo) {
+      void joinOrg({
+        variables: {
+          orgEntityId: invitationInfo.orgEntityId,
+          verification: {
+            ...("invitationEmailToken" in invitationInfo && {
+              invitationEmailToken: invitationInfo.invitationEmailToken,
+            }),
+            ...("invitationLinkToken" in invitationInfo && {
+              invitationLinkToken: invitationInfo.invitationLinkToken,
+            }),
           },
-        });
-      }
-    } catch (err) {
-      dispatch({
-        type: "SET_ERROR",
-        payload: err instanceof Error ? err.message : "An error occured",
+          responsibility,
+        },
       });
     }
   };
@@ -515,7 +496,10 @@ const SignupPage: NextPage = () => {
       {activeScreen === Screen.OrgCreate && user?.accountId && (
         <OrgCreateScreen
           // accountId={user.accountId}
-          onCreateOrgSuccess={(data: any) => {
+          onCreateOrgSuccess={(data: {
+            invitationLinkToken: string;
+            orgEntityId: string;
+          }) => {
             dispatch({
               type: "CREATE_ORG_SUCCESS",
               payload: {
