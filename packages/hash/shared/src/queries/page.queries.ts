@@ -20,6 +20,7 @@ const pageFieldsFragment = gql`
       contents {
         __typename
         id
+        entityVersionId
         entityId
         accountId
         updatedAt

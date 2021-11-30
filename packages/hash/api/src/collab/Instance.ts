@@ -113,85 +113,87 @@ export class Instance {
     this.unsubscribeFromEntityWatcher();
   }
 
+  /**
+   * This has a non-ideal implementation as we have to walk the entity tree
+   * twice – the first time to work out if the entity version we've received is
+   * relevant to this document, and the second to apply the update to our
+   * entities. This is because in the middle of those two things, we need to
+   * talk to the GraphQL server to resolve links on the incoming entity, and
+   * walkValueForEntity cannot handle async operations
+   */
   private async processEntityVersion(entityVersion: EntityVersion) {
     let foundOnPage = false;
-    const targetEntityVersionIds = new Set<string>();
+    const entityVersionsToUpdate = new Set<string>();
+    const entityVersionTime = new Date(entityVersion.updatedAt).getTime();
 
     walkValueForEntity(this.savedContents, (entity) => {
       if (entity.entityId === entityVersion.entityId) {
         foundOnPage = true;
 
-        if (
-          new Date(entityVersion.updatedAt).getTime() >
-          new Date(entity.updatedAt).getTime()
-        ) {
-          targetEntityVersionIds.add(entity.id);
+        if (entityVersionTime > new Date(entity.updatedAt).getTime()) {
+          entityVersionsToUpdate.add(entity.entityVersionId);
         }
       }
 
       return entity;
     });
 
-    if (foundOnPage) {
-      if (targetEntityVersionIds.size > 0) {
-        const { data } = await this.fallbackClient.query<
-          GetEntityQuery,
-          GetEntityQueryVariables
-        >({
-          query: getEntity,
-          variables: {
-            entityId: entityVersion.entityId,
-            accountId: entityVersion.accountId,
-          },
-          fetchPolicy: "network-only",
-        });
+    if (foundOnPage && entityVersionsToUpdate.size > 0) {
+      const { data } = await this.fallbackClient.query<
+        GetEntityQuery,
+        GetEntityQueryVariables
+      >({
+        query: getEntity,
+        variables: {
+          entityId: entityVersion.entityId,
+          accountId: entityVersion.accountId,
+        },
+        fetchPolicy: "network-only",
+      });
 
-        const nextSavedContents = walkValueForEntity(
-          this.savedContents,
-          (entity) => {
-            if (targetEntityVersionIds.has(entity.id)) {
-              return {
-                ...entity,
-                accountId: entityVersion.accountId,
-                entityVersionId: entityVersion.entityVersionId,
-                entityTypeVersionId: entityVersion.entityTypeVersionId,
-                /**
-                 * This could overwrite any updates applied to entities inside of
-                 * this properties field, but not a lot we can do about that, and
-                 * unlikely to actually cause an issue as we process entity
-                 * updates one at a time.
-                 *
-                 * @todo remove this comment when we have flat entities
-                 */
-                properties: data.entity.properties,
-                createdById: entityVersion.createdBy,
-                createdAt: entityVersion.createdAt.toISOString(),
-                updatedAt: entityVersion.updatedAt.toISOString(),
-              };
-            }
+      const nextSavedContents = walkValueForEntity(
+        this.savedContents,
+        (entity) => {
+          if (entityVersionsToUpdate.has(entity.entityVersionId)) {
+            return {
+              ...entity,
+              accountId: entityVersion.accountId,
+              entityVersionId: entityVersion.entityVersionId,
+              entityTypeVersionId: entityVersion.entityTypeVersionId,
+              /**
+               * This could overwrite any updates applied to entities inside of
+               * this properties field, but not a lot we can do about that, and
+               * unlikely to actually cause an issue as we process entity
+               * updates one at a time.
+               *
+               * @todo remove this comment when we have flat entities
+               */
+              properties: data.entity.properties,
+              createdById: entityVersion.createdBy,
+              createdAt: entityVersion.createdAt.toISOString(),
+              updatedAt: entityVersion.updatedAt.toISOString(),
+            };
+          }
 
-            return entity;
-          },
-        );
+          return entity;
+        },
+      );
 
-        /**
-         * We should know not to notify consumers of changes they've already been
-         * notified of, but because of a race condition between saves triggered
-         * by
-         * collab and saves triggered by frontend blocks, this doesn't
-         * necessarily
-         * work, so unfortunately we need to notify on every notification from
-         * realtime right now. This means clients will be notified about
-         * prosemirror changes twice right now. There are no known downsides to
-         * this other than performance.
-         *
-         * If nextSavedContents === this.savedContents, then we're likely
-         * notifying of changes the client is possibly already aware of
-         *
-         * @todo fix this
-         */
-        this.updateSavedContents(nextSavedContents, true);
-      }
+      /**
+       * We should know not to notify consumers of changes they've already been
+       * notified of, but because of a race condition between saves triggered
+       * by collab and saves triggered by frontend blocks, this doesn't
+       * necessarily work, so unfortunately we need to notify on every
+       * notification from realtime right now. This means clients will be
+       * notified about prosemirror changes twice right now. There are no known
+       * downsides to this other than performance.
+       *
+       * If nextSavedContents === this.savedContents, then we're likely
+       * notifying of changes the client is possibly already aware of
+       *
+       * @todo fix this
+       */
+      this.updateSavedContents(nextSavedContents, true);
     }
   }
 
