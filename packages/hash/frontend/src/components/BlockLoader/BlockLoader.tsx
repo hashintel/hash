@@ -12,7 +12,7 @@ import { useBlockProtocolUpdate } from "../hooks/blockProtocolFunctions/useBlock
 import { cloneEntityTreeWithPropertiesMovedUp } from "../../lib/entities";
 import { fetchEmbedCode } from "./fetchEmbedCode";
 import { BlockFramer } from "../sandbox/BlockFramer/BlockFramer";
-import { BlockLoadingIndicator, RemoteBlock } from "../RemoteBlock/RemoteBlock";
+import { RemoteBlock } from "../RemoteBlock/RemoteBlock";
 import { useBlockProtocolAggregateEntityTypes } from "../hooks/blockProtocolFunctions/useBlockProtocolAggregateEntityTypes";
 import { useBlockProtocolAggregate } from "../hooks/blockProtocolFunctions/useBlockProtocolAggregate";
 import { useFileUpload } from "../hooks/useFileUpload";
