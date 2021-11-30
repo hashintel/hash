@@ -716,6 +716,44 @@ describe("logged in user ", () => {
     });
   });
 
+  describe("can update entity types", () => {
+    const validSchemaInput = {
+      description: "Another test description",
+      schema: {
+        properties: {
+          testProperty: {
+            type: "string",
+          },
+        },
+      },
+      name: "A schema to update",
+    };
+
+    it("can update an entity type's schema", async () => {
+      const entityType = await client.createEntityType({
+        accountId: existingUser.accountId,
+        ...validSchemaInput,
+      });
+      expect(entityType.properties.description).toEqual(
+        validSchemaInput.description,
+      );
+
+      const newDescription = "Now this is updated";
+
+      const updatedEntityType = await client.updateEntityType({
+        accountId: existingUser.accountId,
+        entityId: entityType.entityId,
+        schema: {
+          ...validSchemaInput.schema,
+          description: newDescription,
+        },
+      });
+
+      expect(updatedEntityType.properties.title).toEqual(validSchemaInput.name);
+      expect(updatedEntityType.properties.description).toEqual(newDescription);
+    });
+  });
+
   it("Can only create 5 login codes before being rate limited", async () => {
     // The first code is the one when the account was created, so we should fail at the fourth one
     const { address: emailAddress } = existingUser.getPrimaryEmail();
