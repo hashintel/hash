@@ -234,7 +234,7 @@ export class Instance {
         ).then((newPage) => {
           const componentNodes = findComponentNodes(this.state.doc);
 
-          this.updateSavedContents(newPage.properties.contents, false);
+          this.updateSavedContents(newPage.properties.contents, true);
 
           for (let idx = 0; idx < componentNodes.length; idx++) {
             const [componentNode, pos] = componentNodes[idx];
