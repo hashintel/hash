@@ -133,6 +133,7 @@ export const OrgCreate: VFC<OrgCreateProps> = ({ createOrg, loading }) => {
                     rules={{ required: true }}
                     render={({ field: { onChange, value } }) => (
                       <SelectInput
+                        className={tw`w-64`}
                         label={label}
                         options={options as { label: string; value: string }[]}
                         onChange={onChange}
@@ -143,6 +144,7 @@ export const OrgCreate: VFC<OrgCreateProps> = ({ createOrg, loading }) => {
                   />
                 ) : (
                   <TextInput
+                    className={tw`w-64 mb-2`}
                     label={label}
                     transparent
                     {...register(name, fieldOptions)}

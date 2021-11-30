@@ -77,7 +77,9 @@ const splitSchema = (
     .filter((ref) => !ref.value.startsWith("#"))
     .map(({ path, value }) => {
       // drop the final $ref. convert array indices to strings for lodash methods
-      const pathToField = path.slice(0, -1).map((part) => part.toString());
+      const pathToField = path
+        .slice(0, -1)
+        .map((part) => `['${part.toString()}']`);
 
       let array = false;
       /**

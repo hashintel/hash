@@ -18,6 +18,8 @@ import {
   SchemaSelectElementType,
 } from "../../../components/entityTypes/SchemaEditor/SchemaEditor";
 import { AccountEntityOfTypeList } from "../../../components/entityTypes/AccountEntityOfTypeList";
+import { useBlockProtocolUpdateEntityType } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdateEntityType";
+import { useBlockProtocolAggregateEntityTypes } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolAggregateEntityTypes";
 
 export const EntityType: VoidFunctionComponent = () => {
   const router = useRouter();
@@ -26,9 +28,15 @@ export const EntityType: VoidFunctionComponent = () => {
   const typeId = query.typeId as string;
   const accountId = query.accountId as string;
 
+  const { updateEntityType } = useBlockProtocolUpdateEntityType(accountId);
+  const { aggregateEntityTypes } =
+    useBlockProtocolAggregateEntityTypes(accountId);
+
   /** @see https://json-schema.org/understanding-json-schema/structuring.html#json-pointer */
   const subSchemaReference =
-    typeof window !== "undefined" ? window.location.hash : undefined;
+    typeof window !== "undefined"
+      ? decodeURIComponent(window.location.hash)
+      : undefined;
 
   const { data } = useQuery<GetEntityTypeQuery, GetEntityTypeQueryVariables>(
     getEntityTypeQuery,
@@ -87,7 +95,7 @@ export const EntityType: VoidFunctionComponent = () => {
       return (
         <Link href={schemaLinkPath}>
           <a>
-            <strong>{schemaRef}</strong>
+            <strong>{schemaRef.replace(/#\/\$defs\//g, "")}</strong>
           </a>
         </Link>
       );
@@ -120,10 +128,12 @@ export const EntityType: VoidFunctionComponent = () => {
               </Link>
             </div>
             <SchemaEditor
+              aggregateEntityTypes={aggregateEntityTypes}
               entityId={data.getEntityType.entityId}
               schema={schema}
-              SchemaSelect={schemaSelectElement}
+              GoToSchemaElement={schemaSelectElement}
               subSchemaReference={subSchemaReference}
+              updateEntityType={updateEntityType}
             />
           </>
         )}
