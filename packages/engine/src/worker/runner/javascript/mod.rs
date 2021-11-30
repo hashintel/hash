@@ -180,14 +180,26 @@ fn import_file<'m>(
 
 impl<'m> Embedded<'m> {
     fn import(mv8: &'m MiniV8) -> Result<Self> {
-        let arrow = eval_file(mv8, "./arrow.js")?;
-        let hash_util = import_file(mv8, "./hash_util.js", vec![&arrow])?;
-        let batches_prototype = import_file(mv8, "./batch.js", vec![&arrow, &hash_util])?;
+        let arrow = eval_file(mv8, "./src/worker/runner/javascript/bundle_arrow.js")?;
+        let hash_util = import_file(
+            mv8,
+            "./src/worker/runner/javascript/hash_util.js",
+            vec![&arrow],
+        )?;
+        let batches_prototype = import_file(
+            mv8,
+            "./src/worker/runner/javascript/batch.js",
+            vec![&arrow, &hash_util],
+        )?;
 
-        let ctx_import = import_file(mv8, "./context.js", vec![&hash_util])?;
+        let ctx_import = import_file(
+            mv8,
+            "./src/worker/runner/javascript/context.js",
+            vec![&hash_util],
+        )?;
         let ctx_import = ctx_import.as_array().ok_or_else(|| {
             Error::FileImport(
-                "./context.js".into(),
+                "./src/worker/runner/javascript/context.js".into(),
                 "Couldn't get array (of functions) from 'context.js'".into(),
             )
         })?;
@@ -195,10 +207,14 @@ impl<'m> Embedded<'m> {
         let sim_init_ctx_prototype = ctx_import.get(1)?;
         let gen_ctx = ctx_import.get(2)?;
 
-        let gen_state = import_file(mv8, "./state.js", vec![&hash_util])?;
+        let gen_state = import_file(
+            mv8,
+            "./src/worker/runner/javascript/state.js",
+            vec![&hash_util],
+        )?;
         let fns = import_file(
             mv8,
-            "./runner.js",
+            "./src/worker/runner/javascript/runner.js",
             vec![
                 &arrow,
                 &batches_prototype,
@@ -210,7 +226,7 @@ impl<'m> Embedded<'m> {
         )?;
         let fns = fns.as_array().ok_or_else(|| {
             Error::FileImport(
-                "./runner.js".into(),
+                "./src/worker/runner/javascript/runner.js".into(),
                 "Couldn't get array (of functions) from 'runner.js'".into(),
             )
         })?;
