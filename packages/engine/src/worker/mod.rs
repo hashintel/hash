@@ -3,6 +3,15 @@ mod pending;
 pub mod runner;
 pub mod task;
 
+use std::time::Duration;
+
+use futures::stream::FuturesOrdered;
+use futures::StreamExt;
+use tokio::time::{timeout, Timeout};
+
+use crate::simulation::enum_dispatch::TaskSharedStore;
+use crate::simulation::task::handler::WorkerHandler;
+use crate::simulation::task::msg::{TaskMessage, TaskResultOrCancelled};
 use crate::simulation::package::id::PackageId;
 use crate::worker::pending::CancelState;
 use crate::{
@@ -34,9 +43,6 @@ use self::{
     },
     task::{WorkerTask, WorkerTaskResultOrCancelled},
 };
-use crate::simulation::enum_dispatch::TaskSharedStore;
-use crate::simulation::task::handler::WorkerHandler;
-use crate::simulation::task::msg::{TaskMessage, TaskResultOrCancelled};
 pub use error::{Error, Result};
 
 /// A task worker.-
@@ -124,9 +130,37 @@ impl WorkerController {
                     self.handle_worker_pool_msg(msg).await?;
                 }
                 res = self.recv_from_runners() => {
-                    let msg = res?;
-                    log::debug!("Handle message from runners: {:?}", &msg);
-                    self.handle_runner_msg(msg).await?;
+                    match res {
+                        Ok(msg) => {
+                            log::debug!("Handle message from runners: {:?}", &msg);
+                            self.handle_runner_msg(msg).await?;
+                        }
+                        Err(recv_err) => {
+                            // Check whether the root cause is actually a problem
+                            // with receiving or simply that the runner exited
+                            // already, so we can't receive from it.
+                            let duration = Duration::from_millis(500);
+                            let mut runner_futs = FuturesOrdered::new();
+                            runner_futs.push(timeout(duration, py_handle));
+                            runner_futs.push(timeout(duration, js_handle));
+                            let timeout_results: Vec<_> = runner_futs.collect().await;
+                            for timeout_result in timeout_results {
+                                // If any of the runners exited with an error,
+                                // return that error instead of `recv_err`.
+                                if let Ok(runner_result) = timeout_result {
+                                    // Runner finished -- didn't time out
+                                    match runner_result {
+                                        Err(e) => return Err(e.into()),
+                                        Ok(Err(e)) => return Err(e.into()),
+                                        Ok(Ok(_)) => {}
+                                    }
+                                }
+                            }
+                            // Either none of the runners exited or none of
+                            // them returned an error, so return `recv_err`.
+                            return Err(recv_err);
+                        }
+                    }
                 }
                 terminate_res = &mut terminate_recv => {
                     terminate_res.map_err(|err| Error::from(format!("Couldn't receive terminate: {:?}", err)))?;
