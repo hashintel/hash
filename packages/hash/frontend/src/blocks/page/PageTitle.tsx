@@ -70,6 +70,7 @@ export const PageTitle: VoidFunctionComponent<PageTitleProps> = ({
   // TODO: Assign appropriate a11y attributes
   return (
     <input
+      placeholder="TITLE"
       disabled={updateLoading}
       onChange={handleInputChange}
       onKeyDown={handleInputKeyDown}

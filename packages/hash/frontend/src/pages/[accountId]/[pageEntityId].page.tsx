@@ -19,6 +19,7 @@ import {
 } from "../../graphql/apiTypes.gen";
 import styles from "../index.module.scss";
 import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
+import { tw } from "twind";
 
 /**
  * preload all configured blocks for now. in the future these will be loaded
@@ -122,8 +123,7 @@ export const Page: VoidFunctionComponent<{
       <div className={styles.MainContent}>
         <header>
           <div className={styles.PageHeader}>
-            <div>
-              <label>Title</label>
+            <div className={tw`flex flex-col-reverse`}>
               <PageTitle
                 value={title}
                 accountId={data.page.accountId}
