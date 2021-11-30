@@ -94,7 +94,8 @@ impl Engine {
         let pre_context = context.into_pre_context();
 
         let state = Arc::new(state.downgrade());
-        // TODO do we want to remove this, at the moment we expect task messages to cause sync of state
+        // TODO: Do we want to sync state here? At the moment we expect
+        //       task messages to cause sync of state
         // self.comms.state_sync(&state).await?; // Synchronize state with workers
         let context = self
             .packages
@@ -102,6 +103,7 @@ impl Engine {
             .run_context(state.clone(), snapshot, pre_context)
             .await?
             .downgrade();
+
         self.comms.context_batch_sync(&context).await?; // Synchronize context with workers
         let state = Arc::try_unwrap(state)
             .map_err(|_| Error::from("Unable to unwrap state after context package execution"))?;

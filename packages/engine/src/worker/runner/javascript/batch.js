@@ -30,8 +30,30 @@ const get_u64 = (dataview, offset) => {
     return combined;
 };
 
-const load_markers = bytes => { // `bytes` should be ArrayBuffer.
-    const dataview = new DataView(bytes);
+const load_vectors = (rb_bytes, schema) => {
+    const reader = new arrow.MessageReader(rb_bytes);
+    const msg = reader.readMessage();
+    const header = msg.header();
+    const body = reader.readMessageBody(msg.bodyLength);
+    const dicts = new Map();
+    const loader = new reader.VectorLoader(body, header.nodes, header.buffers, dicts);
+    const vector_list = loader.visitMany(schema.fields);
+    // Unnecessary:
+    // const rb = new arrow.RecordBatch(schema, header.length, vector_list);
+
+    const vectors = {}; // Field name --> vector.
+    for (var i = 0; i < vector_list.length; ++i) {
+        // `VectorLoader` doesn't actually return instances of `Vector` for some reason.
+        const vector = arrow.Vector.new(vector_list[i]);
+        const field = schema.fields[i];
+        vector.type.is_any = field.metadata.get('is_any');
+        vectors[field.name] = vector;
+    }
+    return vectors;
+};
+
+const load_markers = shared_bytes => { // `shared_bytes` should be ArrayBuffer.
+    const dataview = new DataView(shared_bytes);
     const m = {
         // TODO: Use Uint32Array instead of Dataview, both
         //       here and in `get_u64`.
@@ -55,32 +77,17 @@ const load_markers = bytes => { // `bytes` should be ArrayBuffer.
     if (m.meta_offset + m.meta_size > m.data_offset) {
         throw new RangeError("meta marker");
     }
-    if (m.data_offset + m.data_size > bytes.length) {
+    if (m.data_offset + m.data_size > shared_bytes.length) {
         throw new RangeError("data marker");
     }
     return m;
 };
 
-const load_vectors = (bytes, schema) => {
-    const reader = new arrow.MessageReader(bytes);
-    const msg = reader.readMessage();
-    const header = msg.header();
-    const body = reader.readMessageBody(msg.bodyLength);
-    const dicts = new Map();
-    const loader = new reader.VectorLoader(body, header.nodes, header.buffers, dicts);
-    const vector_list = loader.visitMany(schema.fields);
-    // Unnecessary:
-    // const rb = new arrow.RecordBatch(schema, header.length, vector_list);
-
-    const vectors = {}; // Field name --> vector.
-    for (var i = 0; i < vector_list.length; ++i) {
-        // `VectorLoader` doesn't actually return instances of `Vector` for some reason.
-        const vector = arrow.Vector.new(vector_list[i]);
-        const field = schema.fields[i];
-        vector.type.is_any = field.metadata.get('is_any');
-        vectors[field.name] = vector;
-    }
-    return vectors;
+const load_marked_vectors = (shared_bytes, schema) => {
+    const m = load_markers(shared_bytes); // Record batch bytes are subset of all shared.
+    const n_rb_bytes = m.data_offset + m.data_size - m.meta_offset;
+    const rb_bytes = new Uint8Array(shared_bytes, m.meta_offset, n_rb_bytes);
+    return load_vectors(rb_bytes, schema);
 };
 
 /// `latest_batch` should have `batch_version` (number), `mem_version` (number) and
@@ -96,7 +103,7 @@ Batch.prototype.sync = function(latest_batch, schema) {
         this.mem_version = latest_batch.mem_version;
     }
     if (should_load) {
-        this.vectors = load_vectors(this.mem, schema);
+        this.vectors = load_marked_vectors(this.mem, schema);
         this.cols = {}; // Reset columns because they might be invalid due to vectors changing.
         this.batch_version = latest_batch.batch_version;
     }
@@ -223,12 +230,12 @@ Batches.prototype.get = function(batch_id) {
     return this.batches[batch_id];
 }
 
-Batches.prototype.sync = function(latest_batch) {
+Batches.prototype.sync = function(latest_batch, schema) {
     let loaded_batch = this.batches[latest_batch.id];
     if (!loaded_batch) {
         this.batches[latest_batch.id] = loaded_batch = new Batch();
     }
-    loaded_batch.sync(latest_batch);
+    loaded_batch.sync(latest_batch, schema);
     return loaded_batch;
 }
 
