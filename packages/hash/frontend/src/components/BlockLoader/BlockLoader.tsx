@@ -12,7 +12,7 @@ import { useBlockProtocolUpdate } from "../hooks/blockProtocolFunctions/useBlock
 import { cloneEntityTreeWithPropertiesMovedUp } from "../../lib/entities";
 import { fetchEmbedCode } from "./fetchEmbedCode";
 import { BlockFramer } from "../sandbox/BlockFramer/BlockFramer";
-import { RemoteBlock } from "../RemoteBlock/RemoteBlock";
+import { BlockLoadingIndicator, RemoteBlock } from "../RemoteBlock/RemoteBlock";
 import { useBlockProtocolAggregateEntityTypes } from "../hooks/blockProtocolFunctions/useBlockProtocolAggregateEntityTypes";
 import { useBlockProtocolAggregate } from "../hooks/blockProtocolFunctions/useBlockProtocolAggregate";
 import { useFileUpload } from "../hooks/useFileUpload";
@@ -21,6 +21,7 @@ type BlockLoaderProps = {
   shouldSandbox?: boolean;
   sourceUrl: string;
   entityId?: string;
+  accountId?: string;
 } & Record<string, any>;
 
 const sandboxingEnabled = !!process.env.NEXT_PUBLIC_SANDBOX;
@@ -31,6 +32,10 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   entityId,
   ...props
 }) => {
+  if (!props.accountId) {
+    return <BlockLoadingIndicator />;
+  }
+
   const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes(
     props.accountId,
   );
