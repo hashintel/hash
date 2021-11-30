@@ -110,7 +110,7 @@ impl WorkerController {
 
     async fn _run(&mut self) -> Result<()> {
         // TODO: Rust, JS
-        let mut py_handle = self.py.run().await?;
+        // let mut py_handle = self.py.run().await?;
         let mut js_handle = self.js.run().await?;
 
         let mut wp_recv = self.worker_pool_comms.take_recv()?;
@@ -141,7 +141,7 @@ impl WorkerController {
                             // already, so we can't receive from it.
                             let duration = Duration::from_millis(500);
                             let mut runner_futs = FuturesOrdered::new();
-                            runner_futs.push(timeout(duration, py_handle));
+                            // runner_futs.push(timeout(duration, py_handle));
                             runner_futs.push(timeout(duration, js_handle));
                             let timeout_results: Vec<_> = runner_futs.collect().await;
                             for timeout_result in timeout_results {
@@ -171,25 +171,24 @@ impl WorkerController {
                     self.worker_pool_comms.confirm_terminate().map_err(|err| Error::from(format!("Failed to send confirmation of terminating workers: {:?}", err)))?;
                     break;
                 }
-                py_res = &mut py_handle => {
-                    log::debug!("Python runner finished unexpectedly");
-                    py_res??;
-                    // TODO send termination to js_handle
-                    js_handle.await??;
-                    return Ok(());
-                }
+                // py_res = &mut py_handle => {
+                //     log::debug!("Python runner finished unexpectedly");
+                //     py_res??;
+                //     // TODO send termination to js_handle
+                //     js_handle.await??;
+                //     return Ok(());
+                // }
                 js_res = &mut js_handle => {
                     log::debug!("Javascript runner finished unexpectedly: {:?}", js_res);
                     js_res??;
                     // TODO send termination to py_handle
-                    py_handle.await??;
+                    // py_handle.await??;
                     return Ok(());
                 }
             }
         }
-        let (py_res, js_res) = (py_handle.await, js_handle.await);
-        py_res??;
-        js_res??;
+        // py_handle.await??;
+        js_handle.await??;
         Ok(())
     }
 
