@@ -32,7 +32,7 @@ const SUPPORTED_JSONPATH_COMPONENT_TYPES = [
 type SupportedJSONPathComponentType =
   typeof SUPPORTED_JSONPATH_COMPONENT_TYPES[number];
 
-type JSONPathComponent = {
+export type JSONPathComponent = {
   expression: {
     type: string;
     value: string | number;
@@ -44,7 +44,7 @@ const isUnsupportedJSONPathComponent = (component: JSONPathComponent) =>
     component.expression.type as SupportedJSONPathComponentType,
   );
 
-const isUnupportedJSONPath = (components: JSONPathComponent[]) =>
+export const isUnupportedJSONPath = (components: JSONPathComponent[]) =>
   components.length < 2 ||
   components[0].expression.type !== "root" ||
   components.slice(1).find(isUnsupportedJSONPathComponent) !== undefined;

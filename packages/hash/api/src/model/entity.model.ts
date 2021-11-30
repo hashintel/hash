@@ -9,6 +9,8 @@ import {
   UnresolvedGQLEntityType,
   Link,
   CreateLinkArgs,
+  Aggregation,
+  CreateAggregationArgs,
 } from ".";
 import { DBClient } from "../db";
 import { EntityMeta, EntityType as DbEntityType } from "../db/adapter";
@@ -323,6 +325,59 @@ class __Entity {
     merge(this, new Entity(refetchedDbEntity));
 
     return this;
+  }
+
+  isEquivalentTo(otherEntity: Entity): boolean {
+    return (
+      this.accountId === otherEntity.accountId &&
+      this.entityId === otherEntity.entityId &&
+      this.entityVersionId === otherEntity.entityVersionId
+    );
+  }
+
+  async getHistory(client: DBClient, params?: { order: "desc" | "asc" }) {
+    const history = await Entity.getEntityHistory(client, {
+      accountId: this.accountId,
+      entityId: this.entityId,
+      order: params?.order ?? "desc",
+    });
+
+    return history;
+  }
+
+  async createAggregation(
+    client: DBClient,
+    params: Omit<CreateAggregationArgs, "source">,
+  ): Promise<Aggregation> {
+    const aggregation = await Aggregation.create(client, {
+      ...params,
+      source: this,
+    });
+
+    return aggregation;
+  }
+
+  async getAggregations(client: DBClient) {
+    const aggregations = await Aggregation.getAllEntityAggregations(client, {
+      source: this,
+    });
+
+    return aggregations;
+  }
+
+  async getAggregation(
+    client: DBClient,
+    params: {
+      stringifiedPath: string;
+    },
+  ) {
+    const { stringifiedPath } = params;
+    const aggregation = await Aggregation.getEntityAggregation(client, {
+      source: this,
+      stringifiedPath,
+    });
+
+    return aggregation;
   }
 
   async getOutgoingLinks(
