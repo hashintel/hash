@@ -20,7 +20,8 @@ import { useFileUpload } from "../hooks/useFileUpload";
 type BlockLoaderProps = {
   shouldSandbox?: boolean;
   sourceUrl: string;
-  entityId?: string;
+  entityId: string;
+  accountId: string;
 } & Record<string, any>;
 
 const sandboxingEnabled = !!process.env.NEXT_PUBLIC_SANDBOX;
