@@ -3,6 +3,7 @@
 #include <libplatform/libplatform.h>
 #include <v8.h>
 
+#include <iostream>
 #include <cassert>
 
 // The main interface that gets passed across the FFI that corresponds to a
@@ -207,12 +208,23 @@ static v8::Local<v8::String> string_new(
 
 // Returns an error `TryCatchDesc` with the `v8::TryCatch`'s exception.
 static TryCatchDesc try_catch_err(
-  v8::Isolate* const isolate,
-  const v8::Local<v8::Context> context,
-  const v8::TryCatch* const try_catch
+        v8::Isolate* const isolate,
+        const v8::Local<v8::Context> context,
+        const v8::TryCatch* const try_catch
 ) {
-  auto value = try_catch->Exception();
+  auto maybe_trace = try_catch->StackTrace(context);
+  if (maybe_trace.IsEmpty()) {
+    std::cout << "CC trace empty" << std::endl;
+    auto msg = try_catch->Message()->Get();
+    v8::String::Utf8Value u(isolate, msg);
+    std::cout << "CC err msg: " << *u << std::endl;
+  } else {
+    auto trace = maybe_trace.ToLocalChecked();
+    v8::String::Utf8Value u(isolate, trace);
+    std::cout << "CC trace: " << *u << std::endl;
+  }
 
+  auto value = try_catch->Exception();
   if (try_catch->HasTerminated()) {
     value = v8::Exception::Error(string_new(
       isolate,
@@ -220,7 +232,6 @@ static TryCatchDesc try_catch_err(
       sizeof(EXECUTION_TIMEOUT_MESSAGE) - 1
     ));
   }
-
   return {
     .value_desc = value_to_desc(isolate, context, value),
     .is_exception = 1

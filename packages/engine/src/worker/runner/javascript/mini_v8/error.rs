@@ -93,7 +93,7 @@ impl<'mv8> fmt::Display for Error<'mv8> {
             Error::RecursiveMutCallback => write!(fmt, "mutable callback called recursively"),
             Error::InvalidTimeout => write!(fmt, "invalid request for evaluation timeout"),
             Error::ExternalError(ref err) => err.fmt(fmt),
-            Error::Value(v) => write!(fmt, "JavaScript runtime error ({})", v.type_name()),
+            Error::Value(v) => write!(fmt, "JavaScript runtime error ({:?})", v),
         }
     }
 }
