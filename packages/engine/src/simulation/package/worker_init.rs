@@ -1,8 +1,8 @@
 use serde::Serialize;
 
+use super::id::PackageId;
 use crate::simulation::package::name::PackageName;
 use crate::simulation::package::PackageType;
-use super::id::PackageId;
 
 /// Initialization message for language runners
 /// These can be sent out for experiment and simulation

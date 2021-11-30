@@ -219,7 +219,8 @@ impl WorkerPoolController {
     async fn handle_exp_msg(&mut self, msg: ExperimentToWorkerPoolMsg) -> Result<()> {
         match msg {
             ExperimentToWorkerPoolMsg::NewSimulationRun(payload) => {
-                self.simulation_runs.push(payload.short_id, &payload.engine_config.worker_allocation)?;
+                self.simulation_runs
+                    .push(payload.short_id, &payload.engine_config.worker_allocation)?;
                 self.register_simulation(payload).await?
             }
         }

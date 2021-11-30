@@ -16,9 +16,10 @@ pub enum PackageName {
 }
 
 impl Serialize for PackageName {
-    fn serialize<S>(
-        &self, serializer: S
-    ) -> std::result::Result<S::Ok, S::Error> where S: serde::Serializer {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
         format!("{}", self).serialize(serializer)
     }
 }

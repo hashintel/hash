@@ -13,7 +13,11 @@ pub struct SimulationRuns {
 }
 
 impl SimulationRuns {
-    pub fn push(&mut self, sim_id: SimulationShortID, worker_allocation: &WorkerAllocation) -> Result<()> {
+    pub fn push(
+        &mut self,
+        sim_id: SimulationShortID,
+        worker_allocation: &WorkerAllocation,
+    ) -> Result<()> {
         self.worker_allocations
             .try_insert(sim_id, worker_allocation.clone())
             .map_err(|_| Error::from("Occupied hashmap key"))?;

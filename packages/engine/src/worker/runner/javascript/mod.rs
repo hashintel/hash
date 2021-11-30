@@ -161,10 +161,7 @@ fn import_file<'m>(
     let v = eval_file(mv8, path)?;
     let f = v
         .as_function()
-        .ok_or_else(|| Error::FileImport(
-            path.into(),
-            format!("Failed to wrap file: {:?}", &v)
-        ))?;
+        .ok_or_else(|| Error::FileImport(path.into(), format!("Failed to wrap file: {:?}", &v)))?;
 
     let args = {
         let mut a = Vec::new();

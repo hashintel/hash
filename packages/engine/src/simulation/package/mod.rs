@@ -73,9 +73,10 @@ impl PackageType {
 }
 
 impl Serialize for PackageType {
-    fn serialize<S>(
-        &self, serializer: S
-    ) -> std::result::Result<S::Ok, S::Error> where S: serde::Serializer {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
         self.as_str().serialize(serializer)
     }
 }
