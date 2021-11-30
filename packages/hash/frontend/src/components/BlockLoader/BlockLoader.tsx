@@ -24,18 +24,18 @@ type BlockLoaderProps = {
   accountId?: string;
 } & Record<string, any>;
 
+type BlockLoaderBodyProps = BlockLoaderProps & {
+  accountId: string;
+};
+
 const sandboxingEnabled = !!process.env.NEXT_PUBLIC_SANDBOX;
 
-export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
+const BlockLoaderBody: VoidFunctionComponent<BlockLoaderBodyProps> = ({
   sourceUrl,
   shouldSandbox,
   entityId,
   ...props
 }) => {
-  if (!props.accountId) {
-    return <BlockLoadingIndicator />;
-  }
-
   const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes(
     props.accountId,
   );
@@ -127,4 +127,14 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
       sourceUrl={sourceUrl}
     />
   );
+};
+
+export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
+  props,
+}) => {
+  if (!props.accountId) {
+    return <BlockLoadingIndicator />;
+  }
+
+  return <BlockLoaderBody {...props} />;
 };
