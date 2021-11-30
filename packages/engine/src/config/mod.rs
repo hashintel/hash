@@ -80,7 +80,7 @@ fn simulation_config(
     Ok(SimulationConfig {
         id,
         globals: Arc::new(globals),
-        engine,
+        engine: Arc::new(engine),
         store: Arc::new(store),
         persistence,
         max_num_steps,

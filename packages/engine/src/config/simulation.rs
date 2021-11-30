@@ -9,7 +9,7 @@ pub struct Config {
     pub id: SimulationShortID,
     pub globals: Arc<Globals>,
     pub store: Arc<StoreConfig>,
-    pub engine: EngineConfig,
+    pub engine: Arc<EngineConfig>,
     pub max_num_steps: usize,
     pub persistence: PersistenceConfig,
 }

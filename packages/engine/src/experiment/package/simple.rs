@@ -44,7 +44,8 @@ impl SimpleExperiment {
         let max_num_steps = self.config.num_steps;
         let mut n_sims_steps = HashMap::new();
         let num_sims = self.config.changed_properties.len();
-        for (sim_id, changed_properties) in self.config.changed_properties.iter().enumerate() {
+        for (sim_index, changed_properties) in self.config.changed_properties.iter().enumerate() {
+            let sim_id = sim_index + 1; // We sometimes use 0 as a default/null value, therefore it's not a valid SimulationShortID
             n_sims_steps.insert(
                 sim_id as SimulationShortID,
                 StepProgress {

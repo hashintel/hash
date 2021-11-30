@@ -1,7 +1,7 @@
 use std::fmt::{Debug, Formatter};
 use std::{collections::HashMap, fmt, sync::Arc};
 
-use crate::config::Globals;
+use crate::config::{EngineConfig, Globals};
 use crate::datastore::schema::state::AgentSchema;
 use crate::datastore::shared_store::SharedStore;
 use crate::proto::{ExperimentID, SimulationShortID};
@@ -13,7 +13,7 @@ use crate::{
     datastore::prelude::ArrowSchema,
     simulation::package::worker_init::PackageInitMsgForWorker,
     types::{TaskID, WorkerIndex},
-    Language,
+    Language, SimulationConfig,
 };
 
 pub mod inbound;
@@ -135,6 +135,7 @@ pub struct PackageMsgs(pub HashMap<PackageId, PackageInitMsgForWorker>);
 #[derive(Debug, Clone)]
 pub struct NewSimulationRun {
     pub short_id: SimulationShortID,
+    pub engine_config: Arc<EngineConfig>,
     pub packages: PackageMsgs,
     pub datastore: DatastoreSimulationPayload,
     pub globals: Arc<Globals>,

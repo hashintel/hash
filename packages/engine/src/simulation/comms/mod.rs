@@ -91,6 +91,7 @@ impl Comms {
 
 // Datastore synchronization methods
 impl Comms {
+    // TODO: Docstring, explain why and how this would be used. As it is not currently.
     pub async fn state_sync(&self, state: &State) -> Result<()> {
         // Synchronize the state batches
         let agents = state.agent_pool().clone();
@@ -101,7 +102,7 @@ impl Comms {
                 self.sim_id,
                 SyncPayload::State(sync_msg),
             ))
-            .map_err(|e| Error::from(format!("Workerpool error: {:?}", e)))?;
+            .map_err(|e| Error::from(format!("Worker pool error: {:?}", e)))?;
         Ok(())
     }
 
@@ -115,7 +116,7 @@ impl Comms {
                 self.sim_id,
                 SyncPayload::StateSnapshot(sync_msg),
             ))
-            .map_err(|e| Error::from(format!("Workerpool error: {:?}", e)))?;
+            .map_err(|e| Error::from(format!("Worker pool error: {:?}", e)))?;
         Ok(())
     }
 
@@ -128,7 +129,7 @@ impl Comms {
                 self.sim_id,
                 SyncPayload::ContextBatch(sync_msg),
             ))
-            .map_err(|e| Error::from(format!("Workerpool error: {:?}", e)))?;
+            .map_err(|e| Error::from(format!("Worker pool error: {:?}", e)))?;
         Ok(())
     }
 }
@@ -144,7 +145,7 @@ impl Comms {
         let (wrapped, active) = wrap_task(task_id, package_id, task, shared_store)?;
         self.worker_pool_sender
             .send(EngineToWorkerPoolMsg::task(self.sim_id, wrapped))
-            .map_err(|e| Error::from(format!("Workerpool error: {:?}", e)))?;
+            .map_err(|e| Error::from(format!("Worker pool error: {:?}", e)))?;
         Ok(active)
     }
 }

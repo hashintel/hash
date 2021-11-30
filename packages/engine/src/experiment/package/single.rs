@@ -28,7 +28,7 @@ impl SingleRunExperiment {
         mut pkg_from_exp: ExpPkgUpdateRecv,
     ) -> Result<()> {
         let msg = ExperimentControl::StartSim {
-            sim_id: 0 as SimulationShortID,
+            sim_id: 1 as SimulationShortID,
             changed_properties: serde_json::Map::new().into(), // Don't change properties
             max_num_steps: self.config.num_steps,
         };

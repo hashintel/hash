@@ -25,6 +25,7 @@ impl ActiveTask {
                 .take()
                 .ok_or_else(|| Error::from("Couldn't take result recv"))?;
             let result = recv.await?;
+            log::trace!("Got result from task: {:?}", result);
             self.running = false;
             match result {
                 TaskResultOrCancelled::Result(result) => Ok(result),

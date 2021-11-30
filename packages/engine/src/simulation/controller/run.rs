@@ -76,7 +76,7 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
 
         // Take a step in the simulation
         // TODO - do we do nothing with this result?
-        let _result = match engine.next().await {
+        let step_result = match engine.next().await {
             Ok(step_result) => step_result,
             Err(error) => {
                 log::error!("Got error within the engine step process: {:?}", error);
@@ -111,10 +111,6 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
                 return Err(Error::from(format!("Simulation error: {:?}", error)));
             }
         };
-        let step_result = engine
-            .next()
-            .await
-            .map_err(|sim_err| Error::from(format!("Simulation error: {:?}", sim_err)))?;
 
         // Persist the output
         persistence_service

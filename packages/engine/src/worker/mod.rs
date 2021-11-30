@@ -10,9 +10,9 @@ use futures::StreamExt;
 use tokio::time::{timeout, Timeout};
 
 use crate::simulation::enum_dispatch::TaskSharedStore;
+use crate::simulation::package::id::PackageId;
 use crate::simulation::task::handler::WorkerHandler;
 use crate::simulation::task::msg::{TaskMessage, TaskResultOrCancelled};
-use crate::simulation::package::id::PackageId;
 use crate::worker::pending::CancelState;
 use crate::{
     config::{WorkerConfig, WorkerSpawnConfig},
@@ -179,7 +179,7 @@ impl WorkerController {
                     return Ok(());
                 }
                 js_res = &mut js_handle => {
-                    log::debug!("Javascript runner finished unexpectedly");
+                    log::debug!("Javascript runner finished unexpectedly: {:?}", js_res);
                     js_res??;
                     // TODO send termination to py_handle
                     py_handle.await??;

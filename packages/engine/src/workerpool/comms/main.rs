@@ -26,6 +26,7 @@ pub fn new_no_sim() -> (MainMsgSendBase, MainMsgRecv) {
 
 impl MainMsgSend {
     pub(crate) fn send(&self, msg: EngineToWorkerPoolMsg) -> Result<()> {
+        log::trace!("Sending msg to worker pool: {:?}", &msg);
         self.inner.send(msg)?;
         Ok(())
     }

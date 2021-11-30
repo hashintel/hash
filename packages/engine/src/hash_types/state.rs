@@ -24,10 +24,9 @@ pub type DatasetMap = serde_json::Map<String, serde_json::Value>;
 
 // NOTE: This is used in conjunction with the custom deserializaer
 // PLEASE UPDATE THIS LIST WHEN YOU ADD ANOTHER BUILT IN FIELD
-pub const BUILTIN_FIELDS: [&str; 15] = [
+pub const BUILTIN_FIELDS: [&str; 14] = [
     "agent_id",
     "agent_name",
-    "behaviors",
     "messages",
     "position",
     "direction",
@@ -62,9 +61,6 @@ pub struct Agent {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub agent_name: Option<Name>,
 
-    #[serde(default)]
-    pub behaviors: Vec<String>,
-
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub messages: Vec<message::Outbound>,
 
@@ -78,13 +74,6 @@ pub struct Agent {
     pub search_radius: Option<f64>,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub position_was_corrected: bool,
-
-    // `behavior_index` is a private field and *should not* be included in BUILTIN_FIELDS,
-    // nor should it be possible to access it through the `get_as_json` or the
-    // `set_known_field` methods of `Agent`. This is to prevent the user from accessing
-    // the field directly.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    behavior_index: Option<usize>,
 
     // Visualizer-specific
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -521,8 +510,6 @@ impl Agent {
             agent_id: String::new(),
             agent_name: None,
 
-            behaviors: vec![],
-
             messages: vec![],
 
             position: None,
@@ -530,8 +517,6 @@ impl Agent {
             velocity: None,
             search_radius: None,
             position_was_corrected: false,
-
-            behavior_index: None,
 
             shape: None,
             height: None,
@@ -642,8 +627,6 @@ impl Agent {
             agent_id: self.agent_id.clone(),
             agent_name: self.agent_name.clone(),
 
-            behaviors: self.behaviors.clone(),
-
             // the working copy doesn't have the old messages
             messages: vec![],
 
@@ -652,8 +635,6 @@ impl Agent {
             velocity: self.velocity,
             search_radius: self.search_radius,
             position_was_corrected: self.position_was_corrected,
-
-            behavior_index: self.behavior_index,
 
             shape: self.shape.clone(),
             height: self.height,
@@ -673,9 +654,6 @@ impl Agent {
             agent_id: generate_agent_id(),
             // children do not get the same name
             agent_name: None,
-
-            behaviors: self.behaviors.clone(),
-
             // children do not inherit messages
             messages: vec![],
 
@@ -684,8 +662,6 @@ impl Agent {
             velocity: self.velocity,
             search_radius: self.search_radius,
             position_was_corrected: false,
-
-            behavior_index: self.behavior_index,
 
             shape: self.shape.clone(),
             height: self.height,
@@ -707,7 +683,6 @@ impl Agent {
         match key {
             "agent_id" => serde_json::to_value(&self.agent_id),
             "agent_name" => serde_json::to_value(&self.agent_name),
-            "behaviors" => serde_json::to_value(&self.behaviors),
             "messages" => serde_json::to_value(&self.messages),
             "position" => serde_json::to_value(&self.position),
             "direction" => serde_json::to_value(&self.direction),
@@ -735,7 +710,6 @@ impl Agent {
         match key {
             "agent_id" => self.agent_id = serde_json::from_value(value)?,
             "agent_name" => self.agent_name = serde_json::from_value(value)?,
-            "behaviors" => self.behaviors = serde_json::from_value(value)?,
             "messages" => {
                 self.messages = message::Outbound::from_json_array_with_state(value, self)?
             }
@@ -767,19 +741,6 @@ impl Agent {
         }
 
         self.custom.get(key).is_some()
-    }
-
-    pub fn set_behavior_index(&mut self, value: usize) {
-        self.behavior_index = Some(value);
-    }
-
-    #[must_use]
-    pub fn get_behavior_index(&self) -> Option<usize> {
-        self.behavior_index
-    }
-
-    pub fn clear_behavior_index(&mut self) {
-        self.behavior_index = None;
     }
 }
 
@@ -953,47 +914,6 @@ mod tests {
         assert!(serde_json::from_str::<Agent>(&json).is_err());
     }
 
-    #[test]
-    fn test_behavior_index() {
-        let json = r#"{ "behavior_index": 1}"#;
-        let agent: Agent = serde_json::from_str(&json).unwrap();
-        assert_eq!(agent.behavior_index, Some(1));
-
-        match serde_json::to_value(&agent).unwrap() {
-            serde_json::Value::Object(map) => assert!(map["behavior_index"] == 1),
-            _ => panic!("`serde_json::Value::Object` expected"),
-        }
-    }
-
-    #[test]
-    fn test_behavior_index_ignored() {
-        let agent = Agent::default();
-
-        match serde_json::to_value(&agent).unwrap() {
-            serde_json::Value::Object(map) => assert!(!map.contains_key("behavior_index")),
-            _ => panic!("`serde_json::Value::Object` expected"),
-        }
-    }
-
-    #[test]
-    fn test_behavior_index_get_as_json() {
-        // Should not be able to access the behavior_index field throug get_as_json
-        let mut agent = Agent::default();
-        agent.behavior_index = Some(123);
-        assert_eq!(
-            agent.get_as_json("behavior_index").unwrap(),
-            serde_json::Value::Null
-        );
-    }
-
-    #[test]
-    fn test_behavior_index_set_known_field() {
-        // Should not be able to set the behavior_index field from set_known_field
-        let mut agent = Agent::default();
-        let num = serde_json::Value::Number(serde_json::Number::from_f64(123.0).unwrap());
-        agent.set_known_field("behavior_index", num).unwrap();
-        assert_eq!(agent.behavior_index, None);
-    }
     #[test]
     #[should_panic]
     fn test_from_invalid_json() {

@@ -207,6 +207,7 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
             .send(ExperimentToWorkerPoolMsg::NewSimulationRun(
                 NewSimulationRun {
                     short_id: sim_short_id,
+                    engine_config: Arc::clone(&sim_config.sim.engine),
                     packages: sim_start_msgs,
                     datastore: datastore_payload,
                     globals: globals.clone(),
@@ -298,6 +299,7 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
         loop {
             tokio::select! {
                 Some(msg) = self.experiment_package_comms.ctl_recv.recv() => {
+                    log::debug!("Handling experiment control message: {:?}", &msg);
                     self.handle_experiment_control_msg(msg).await?;
                 }
                 result = self.sim_run_tasks.next() => {

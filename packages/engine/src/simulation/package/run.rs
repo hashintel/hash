@@ -136,6 +136,7 @@ impl StepPackages {
         snapshot: StateSnapshot,
         pre_context: PreContext,
     ) -> Result<ExContext> {
+        log::debug!("Running context packages");
         // Execute packages in parallel and collect the data
         let mut futs = FuturesOrdered::new();
 
@@ -180,15 +181,13 @@ impl StepPackages {
     }
 
     pub async fn run_state(&mut self, mut state: ExState, context: &Context) -> Result<ExState> {
+        log::debug!("Running state packages");
         // Design-choices:
         // Cannot use trait bounds as dyn Package won't be object-safe
         // Traits are tricky anyway for working with iterators
         // Will instead use state.upgrade() and exstate.downgrade() and respectively for context
-        let num_pkgs = self.state.len();
-        let pkgs = std::mem::replace(&mut self.state, Vec::with_capacity(num_pkgs));
-        for mut pkg in pkgs {
-            pkg.run(&mut state, context).await?;
-            self.state.push(pkg);
+        for mut pkg in self.state.iter_mut() {
+            let res = pkg.run(&mut state, context).await?;
         }
 
         Ok(state)
