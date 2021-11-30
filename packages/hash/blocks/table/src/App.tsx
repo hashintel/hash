@@ -5,7 +5,6 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { unstable_batchedUpdates } from "react-dom";
 import { TableOptions, useSortBy, useTable } from "react-table";
 import {
   BlockProtocolEntityType,
@@ -20,7 +19,7 @@ import { getSchemaPropertyDefinition } from "./lib/getSchemaProperty";
 import { identityEntityAndProperty } from "./lib/identifyEntity";
 
 import { Pagination } from "./components/Pagination";
-import { Header, AggregateArgs } from "./components/Header";
+import { AggregateArgs, Header } from "./components/Header";
 import { EntityTypeDropdown } from "./components/EntityTypeDropdown";
 import { omitTypenameDeep } from "./lib/omitTypenameDeep";
 
@@ -37,6 +36,31 @@ type AppProps = {
 
 const defaultData: AppProps["data"] = { data: [] };
 
+const useTableData = (data: AppProps["data"]) => {
+  const defaultAggregateData = {
+    tableData: data,
+    prevTableData: data,
+  };
+
+  const [{ prevTableData, tableData }, setAggregateTableData] =
+    useState(defaultAggregateData);
+
+  const setTableData = useCallback(
+    (nextData: AppProps["data"]) =>
+      setAggregateTableData((existing) => ({
+        ...existing,
+        tableData: nextData,
+      })),
+    [],
+  );
+
+  if (data !== prevTableData) {
+    setAggregateTableData(defaultAggregateData);
+  }
+
+  return [tableData, setTableData] as const;
+};
+
 export const App: BlockComponent<AppProps> = ({
   data = defaultData,
   initialState,
@@ -46,15 +70,7 @@ export const App: BlockComponent<AppProps> = ({
   aggregate: aggregateFn,
   aggregateEntityTypes,
 }) => {
-  const [prevData, setPrevData] = useState<AppProps["data"]>(data);
-  const [tableData, setTableData] = useState<AppProps["data"]>(data);
-
-  if (prevData !== data) {
-    unstable_batchedUpdates(() => {
-      setPrevData(data);
-      setTableData(data);
-    });
-  }
+  const [tableData, setTableData] = useTableData(data);
 
   const columns = useMemo(
     () => initialState?.columns ?? makeColumns(tableData.data?.[0] || {}),
@@ -145,7 +161,7 @@ export const App: BlockComponent<AppProps> = ({
           // @todo properly handle error
         });
     },
-    [aggregateFn, tableData.__linkedData],
+    [aggregateFn, setTableData, tableData.__linkedData],
   );
 
   const handleUpdate = useCallback(
