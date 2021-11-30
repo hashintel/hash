@@ -13,42 +13,29 @@ import {
   subscribeToEntityStore,
 } from "@hashintel/hash-shared/entityStorePlugin";
 import { ProsemirrorNode } from "@hashintel/hash-shared/node";
-import memoizeOne from "memoize-one";
 import { Schema } from "prosemirror-model";
 import { EditorView, NodeView } from "prosemirror-view";
 import { BlockLoader } from "../../components/BlockLoader/BlockLoader";
 import { RenderPortal } from "./usePortals";
 
-// @todo we need to type this such that we're certain we're passing through all
-// the props required
-const getRemoteBlockProps = (
+/**
+ * Allows us to have a stable reference for properties where we do not yet
+ * have a saved entity
+ */
+const BLANK_PROPERTIES = {};
+
+const getChildEntity = (
   entity: EntityStoreType | null | undefined,
-  editableRef: unknown,
-  fallbackAccountId: string,
-): {
-  accountId: string;
-  // @todo type this
-  properties: unknown;
-  childEntityId?: string;
-  // @todo type this
-  editableRef: unknown;
-} => {
+): EntityStoreType | null => {
   if (entity) {
     if (!isBlockEntity(entity)) {
       throw new Error("Cannot prepare non-block entity for prosemirrior");
     }
 
-    const childEntity = entity.properties.entity;
-
-    return {
-      accountId: childEntity.accountId,
-      childEntityId: childEntity.entityId,
-      properties: "properties" in childEntity ? childEntity.properties : {},
-      editableRef,
-    };
+    return entity.properties.entity;
   }
 
-  return { accountId: fallbackAccountId, properties: {}, editableRef };
+  return null;
 };
 
 /**
@@ -79,16 +66,6 @@ export class ComponentView implements NodeView<Schema> {
 
   private store: EntityStore;
   private unsubscribe: Function;
-
-  getBlockProps = memoizeOne(
-    (entity: EntityStoreType, fallbackAccountId: string, editable: boolean) => {
-      return getRemoteBlockProps(
-        entity,
-        editable ? this.editableRef : undefined,
-        fallbackAccountId,
-      );
-    },
-  );
 
   constructor(
     private node: ProsemirrorNode<Schema>,
@@ -136,22 +113,26 @@ export class ComponentView implements NodeView<Schema> {
     if (node?.type.name === this.componentId) {
       const entityId = node.attrs.blockEntityId;
       const entity = this.store.saved[entityId];
-      const remoteBlockProps = this.getBlockProps(
-        entity,
-        this.accountId,
-        this.editable,
-      );
-
       const mappedUrl = componentIdToUrl(this.componentId);
 
       /** used by collaborative editing feature `FocusTracker` */
       this.target.setAttribute("data-entity-id", entityId);
+
+      const childEntity = getChildEntity(entity);
+
       this.renderPortal(
         <BlockLoader
           sourceUrl={`${mappedUrl}/${this.sourceName}`}
-          entityId={entityId}
-          shouldSandbox={!remoteBlockProps.editableRef}
-          blockProperties={remoteBlockProps}
+          blockEntityId={entityId}
+          shouldSandbox={!this.editable}
+          editableRef={this.editable ? this.editableRef : undefined}
+          accountId={childEntity?.accountId ?? this.accountId}
+          entityId={childEntity?.entityId}
+          entityProperties={
+            childEntity && "properties" in childEntity
+              ? childEntity.properties
+              : BLANK_PROPERTIES
+          }
         />,
         this.target,
       );
