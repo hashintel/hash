@@ -46,21 +46,6 @@ const isUnused = (response: Response): boolean => {
   );
 };
 
-const findLinks = (value: unknown, path = ""): Record<string, unknown> => {
-  if (typeof value !== "object" || !value) {
-    return {};
-  }
-
-  const potentialLink: unknown = (value as any | undefined)?.__linkedData;
-  let links = potentialLink ? { [path.slice(1)]: potentialLink } : {};
-
-  for (const [key, property] of Object.entries(value)) {
-    links = { ...links, ...findLinks(property, `${path}.${key}`) };
-  }
-
-  return links;
-};
-
 // A collaborative editing document instance.
 export class Instance {
   // The version number of the document instance.
@@ -149,27 +134,17 @@ export class Instance {
 
     if (foundOnPage) {
       if (targetEntityVersionIds.size > 0) {
-        const nextLinks = findLinks(entityVersion.properties);
-
-        let properties: any;
-
-        if (Object.keys(nextLinks).length > 0) {
-          const { data } = await this.fallbackClient.query<
-            GetEntityQuery,
-            GetEntityQueryVariables
-          >({
-            query: getEntity,
-            variables: {
-              entityId: entityVersion.entityId,
-              accountId: entityVersion.accountId,
-            },
-            fetchPolicy: "network-only",
-          });
-
-          properties = data.entity.properties;
-        } else {
-          properties = entityVersion.properties;
-        }
+        const { data } = await this.fallbackClient.query<
+          GetEntityQuery,
+          GetEntityQueryVariables
+        >({
+          query: getEntity,
+          variables: {
+            entityId: entityVersion.entityId,
+            accountId: entityVersion.accountId,
+          },
+          fetchPolicy: "network-only",
+        });
 
         const nextSavedContents = walkValueForEntity(
           this.savedContents,
@@ -188,7 +163,7 @@ export class Instance {
                  *
                  * @todo remove this comment when we have flat entities
                  */
-                properties,
+                properties: data.entity.properties,
                 createdById: entityVersion.createdBy,
                 createdAt: entityVersion.createdAt.toISOString(),
                 updatedAt: entityVersion.updatedAt.toISOString(),
