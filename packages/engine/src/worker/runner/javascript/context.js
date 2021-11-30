@@ -133,4 +133,4 @@ SimInitContext.prototype.globals = function() {
 }
 
 return [ExperimentContext, SimInitContext, gen_sim_ctx];
-})()
+})

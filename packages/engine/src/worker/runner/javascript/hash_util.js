@@ -1,10 +1,6 @@
 ((arrow)=>{
-'use strict;'
+'use strict';
 // TODO: Add this file to hash_stdlib instead?
-
-const Array = Array; // TODO: Benchmark vs not having this
-const isArray = Array.isArray;
-const json_parse = JSON.parse;
 
 /// Only values `x` that are JSON-serializable or have a `to_json` method are supported.
 /// `_depth` is an optional argument.
@@ -33,7 +29,7 @@ const json_deepcopy = (x, _depth) => {
         return x.to_json();
     }
 
-    if (isArray(x)) {
+    if (Array.isArray(x)) {
         // TODO: Benchmark vs `new x.constructor(length)` and vs `const copy = [];`.
         const length = x.length;
         const copy = new Array(length);
@@ -115,7 +111,7 @@ const load_full = vector => {
         const json_strs = vector.toArray(); // Shallow load
         const array = [];
         for (var j = 0; j < json_strs.length; ++j) {
-            array[j] = json_parse(json_strs[j]);
+            array[j] = JSON.parse(json_strs[j]);
             return array;
         }
     }
@@ -132,8 +128,8 @@ const load_elem = (elem, type) => {
     if (type.is_any) { // Can only have top-level `any`.
         // `elem` must be a string containing JSON.
         // TODO: Double-check that nulls in any-type arrays are serialized into JSON.
-        //       Otherwise would need `return elem ? json_parse(elem) : null`;
-        return json_parse(elem);
+        //       Otherwise would need `return elem ? JSON.parse(elem) : null`;
+        return JSON.parse(elem);
     }
     
     const children = type.children;
@@ -148,4 +144,4 @@ return {
     "load_full":    load_full,
     "load_elem":    load_elem,
 }
-})()
+})

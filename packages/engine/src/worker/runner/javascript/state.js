@@ -231,4 +231,4 @@ const gen_group_state = (agent_schema, getters) => {
 }
 
 return gen_group_state;
-})()
+})

@@ -224,7 +224,7 @@ Batches.prototype.get = function(batch_id) {
 }
 
 Batches.prototype.sync = function(latest_batch) {
-    const loaded_batch = this.batches[latest_batch.id];
+    let loaded_batch = this.batches[latest_batch.id];
     if (!loaded_batch) {
         this.batches[latest_batch.id] = loaded_batch = new Batch();
     }
@@ -233,4 +233,4 @@ Batches.prototype.sync = function(latest_batch) {
 }
 
 return Batches;
-})()
+})
