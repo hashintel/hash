@@ -4,8 +4,6 @@ test("guest user navigation to login and signup pages", async ({ page }) => {
   await page.goto("/");
   await expect(page).toHaveTitle("HASH Workspace");
 
-  await page.click("text=Sign in");
-
   await expect(page.locator("text=Sign in to your account")).toBeVisible();
   await expect(page.locator("text=No account? No problem")).toBeVisible();
 
