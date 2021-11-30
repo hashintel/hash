@@ -104,8 +104,8 @@ impl WorkerController {
 
     async fn _run(&mut self) -> Result<()> {
         // TODO: Rust, JS
-        let py_handle = self.py.run().await?;
-        let js_handle = self.js.run().await?;
+        let mut py_handle = self.py.run().await?;
+        let mut js_handle = self.js.run().await?;
 
         let mut wp_recv = self.worker_pool_comms.take_recv()?;
         let mut terminate_recv = self
@@ -135,11 +135,21 @@ impl WorkerController {
                     self.worker_pool_comms.confirm_terminate().map_err(|err| Error::from(format!("Failed to send confirmation of terminating workers: {:?}", err)))?;
                     break;
                 }
+                py_res = &mut py_handle => {
+                    js_handle.await??;
+                    py_res??;
+                    return Ok(());
+                }
+                js_res = &mut js_handle => {
+                    py_handle.await??;
+                    js_res??;
+                    return Ok(());
+                }
             }
         }
-        // TODO: Worker exit
-        py_handle.await??;
-        js_handle.await??;
+        let (py_res, js_res) = (py_handle.await, js_handle.await);
+        py_res??;
+        js_res??;
         Ok(())
     }
 
