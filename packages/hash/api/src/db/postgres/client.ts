@@ -295,8 +295,7 @@ export class PostgresClient implements DBClient {
       );
     }
 
-    const baseSchema = schema ?? entity.properties;
-    const nameToSet = schema.title || entity.properties.title;
+    const nameToSet = entity.properties.title;
 
     if (typeof nameToSet !== "string" || nameToSet === "") {
       throw new Error("Schema requires a name set via a 'title' property");
@@ -306,7 +305,7 @@ export class PostgresClient implements DBClient {
       nameToSet,
       entity.accountId,
       entityId,
-      baseSchema,
+      schema,
     );
 
     const now = new Date();
