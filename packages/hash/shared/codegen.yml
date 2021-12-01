@@ -13,4 +13,5 @@ generates:
       scalars:
         TextToken: ./types#TextToken
         Date: string
+        UnknownEntityProperties: ./types#UnknownEntityProperties
     documents: ./src/queries/*.ts

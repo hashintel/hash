@@ -9,3 +9,5 @@ export type TextToken =
     }
   | { tokenType: "hardBreak" }
   | { tokenType: "mention"; mentionType: "user"; entityId: string };
+
+export type UnknownEntityProperties = {};

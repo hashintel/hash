@@ -1,7 +1,7 @@
 import { GraphQLResolveInfo } from "graphql";
 
 import { LinkedDataDefinition } from "../util";
-import { Resolver, UnknownEntity } from "../../apiTypes.gen";
+import { FileProperties, Resolver, UnknownEntity } from "../../apiTypes.gen";
 import { DbUnknownEntity } from "../../../types/dbTypes";
 import { aggregateEntity } from "./aggregateEntity";
 import { GraphQLContext } from "../../context";
@@ -131,6 +131,9 @@ export const resolveLinkedData = async (
   }
 };
 
+const isFileProperties = (props: {}): props is FileProperties =>
+  "key" in props && "contentMd5" in props;
+
 export const properties: Resolver<
   UnknownEntity["properties"],
   DbUnknownEntity,
@@ -143,7 +146,7 @@ export const properties: Resolver<
    * */
   // This avoids mutating the original, even if the above function does it should eventually be refactored not to
   const props = { ...entity.properties };
-  if (props.key && props.contentMd5) {
+  if (isFileProperties(props)) {
     // "Detecting" that it's a file entity
     props.url = await fileUrlResolver(props, {}, ctx, info);
   }

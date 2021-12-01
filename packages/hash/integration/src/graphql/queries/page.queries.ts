@@ -17,11 +17,29 @@ const pageFieldsFragment = gql`
       summary
       title
       contents {
+        __typename
         id
+        entityVersionId
+        entityId
         accountId
+        updatedAt
+        createdAt
+        entityVersionCreatedAt
+        createdById
         properties {
           componentId
-          entity
+          entity {
+            __typename
+            id
+            entityVersionId
+            entityId
+            accountId
+            updatedAt
+            createdAt
+            entityVersionCreatedAt
+            createdById
+            properties
+          }
         }
       }
     }

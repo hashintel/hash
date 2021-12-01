@@ -4,6 +4,10 @@ export type DistributiveOmit<T, K extends keyof any> = T extends any
   ? Omit<T, K>
   : never;
 
+export type DistributivePick<T, K extends keyof T> = T extends unknown
+  ? Pick<T, K>
+  : never;
+
 /**
  * This allows you to collect calls to a function to run at the end of a tick
  */
