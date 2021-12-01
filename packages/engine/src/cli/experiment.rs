@@ -13,6 +13,7 @@ use std::iter::FromIterator;
 use std::path::PathBuf;
 use std::time::Duration;
 use tokio::time::{self, timeout};
+use hash_prime::output::local::config::LocalPersistenceConfig;
 
 lazy_static::lazy_static! {
     static ref ENGINE_START_TIMEOUT: Duration = Duration::from_secs(180);
@@ -78,7 +79,10 @@ async fn run_experiment_with_manifest(
 
     let map_iter = [(
         OUTPUT_PERSISTENCE_KEY.to_string(),
-        json!(OutputPersistenceConfig::None),
+        // TODO: Make this a CLI arg:
+        json!(OutputPersistenceConfig::Local(LocalPersistenceConfig {
+            output_folder: PathBuf::from(r"./output")
+        })),
     )];
     // Now we can send the init message
     let init_message = proto::InitMessage {

@@ -70,6 +70,7 @@ impl Package for JsonState {
     }
 }
 
+#[derive(Debug)]
 pub struct JSONStateOutput {
     pub inner: Vec<Agent>,
 }

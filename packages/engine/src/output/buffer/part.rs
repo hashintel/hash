@@ -8,8 +8,8 @@ use crate::proto::SimulationShortID;
 
 use super::RELATIVE_PARTS_FOLDER;
 
-/// Minimum size of a string kept in memory.
-/// Corresponds to the minimum size of a non-terminal part (see multipart uploading)
+/// Maximum size of a string kept in memory.
+/// Corresponds to the maximum size of a non-terminal part (see multipart uploading)
 const MAX_BYTE_SIZE: usize = 5242880;
 const IN_MEMORY_SIZE: usize = MAX_BYTE_SIZE * 2;
 
@@ -40,7 +40,7 @@ impl OutputPartBuffer {
 
         std::fs::create_dir_all(&base_path)?;
 
-        // Twice the size so we rarerly exceed it
+        // Twice the size so we rarely exceed it
         let mut current = Vec::with_capacity(IN_MEMORY_SIZE * 2);
         current.push(CHAR_OPEN_LEFT_SQUARE_BRACKET); // New step array
 
@@ -65,7 +65,11 @@ impl OutputPartBuffer {
             Vec::from(String::with_capacity(IN_MEMORY_SIZE * 2)),
         );
 
-        let part_count = current.len() / MAX_BYTE_SIZE; // Number of parts we can make
+        let trailing_part = if current.len() % MAX_BYTE_SIZE != 0 { 1 } else { 0 };
+        // Number of parts we can make / number of parts we need to fit output
+        let part_count = trailing_part + current.len() / MAX_BYTE_SIZE;
+        dbg!(&current);
+        dbg!(part_count);
 
         for i in 0..part_count {
             let mut path = self.base_path.clone();
