@@ -81,11 +81,11 @@ export const SearchBar: React.VFC = () => {
         <ul className={tw`${resultList}`}>
           {isLoading ? (
             <li className={tw`${resultItem}`}>
-              Loading results for <b>{submittedQuery}</b>.
+              Loading results for&nbsp;<b>{submittedQuery}</b>.
             </li>
           ) : !data || !data.searchPages.length ? (
             <li className={tw`${resultItem}`}>
-              No results found for <b>{submittedQuery}</b>.
+              No results found for&nbsp;<b>{submittedQuery}</b>.
             </li>
           ) : (
             data.searchPages.map((searchPage: PageSearchResult) => (
