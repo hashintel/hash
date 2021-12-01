@@ -183,6 +183,7 @@ export const createSuggester = (
                 view.dispatch(tr);
               })
               .catch((err) => {
+                // eslint-disable-next-line no-console -- TODO: consider using logger
                 console.error(err);
               });
           };

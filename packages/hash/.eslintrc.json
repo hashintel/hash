@@ -86,9 +86,10 @@
       }
     ],
     "camelcase": "off",
-    "import/no-cycle": "warn",
+    "import/no-cycle": "error",
     "import/prefer-default-export": "off",
     "no-await-in-loop": "off",
+    "no-console": "error",
     "import/no-unresolved": [
       2,
       {
@@ -136,14 +137,14 @@
     // Other rule changes
     "react-hooks/rules-of-hooks": "error",
     "react-hooks/exhaustive-deps": [
-      "warn",
+      "error",
       {
         "additionalHooks": "(^useModal$)|(^useUserGatedEffect$)"
       }
     ],
     "react/jsx-key": "error",
     "react/jsx-no-useless-fragment": "error",
-    "react/self-closing-comp": "warn",
+    "react/self-closing-comp": "error",
     "no-restricted-imports": [
       "error",
       {
@@ -261,6 +262,12 @@
           }
         ],
         "@typescript-eslint/no-floating-promises": "error"
+      }
+    },
+    {
+      "files": ["**/scripts/**"],
+      "rules": {
+        "no-console": "off"
       }
     }
   ]

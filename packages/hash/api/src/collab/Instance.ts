@@ -24,6 +24,7 @@ import { isEqual } from "lodash";
 import { Schema, Slice } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
 import { Mapping, ReplaceStep, Step, Transform } from "prosemirror-transform";
+import { logger } from "../logger";
 import { EntityWatcher } from "./EntityWatcher";
 import { InvalidVersionError } from "./errors";
 import { CollabPositionPoller, TimedCollabPosition } from "./types";
@@ -267,7 +268,7 @@ export class Instance {
         });
       })
       .catch((err) => {
-        console.error("could not save", err);
+        logger.error("could not save", err);
       })
 
       .finally(() => {

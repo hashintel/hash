@@ -40,6 +40,7 @@ const NewEntity: VoidFunctionComponent = () => {
         return res;
       })
       .catch((err) => {
+        // eslint-disable-next-line no-console -- TODO: consider using logger
         console.error(`Error creating entity: ${err.message}`);
         throw err;
       });

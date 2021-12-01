@@ -174,12 +174,14 @@ export const EntityEditor: VoidFunctionComponent<EntityEditorProps> = ({
             entityId: entityProps.entityId,
           },
         ])
+        // eslint-disable-next-line no-console -- TODO: consider using logger
         .catch((err) => console.error(`Error creating entity: ${err.message}`));
     } else {
       entityProps
         .create([
           { data: args.formData, entityTypeId: entityProps.entityTypeId },
         ])
+        // eslint-disable-next-line no-console -- TODO: consider using logger
         .catch((err) => console.error(`Error updating entity: ${err.message}`));
     }
   };

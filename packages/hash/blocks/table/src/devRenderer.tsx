@@ -114,7 +114,7 @@ const useMockData = () => {
         operation: action.operation,
       } as BlockProtocolAggregateOperationOutput);
     },
-    [],
+    [getResolvedData],
   );
 
   const updateData: BlockProtocolUpdateFn = useCallback(

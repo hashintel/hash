@@ -20,7 +20,8 @@ import { useFileUpload } from "../hooks/useFileUpload";
 type BlockLoaderProps = {
   shouldSandbox?: boolean;
   sourceUrl: string;
-  entityId?: string;
+  entityId: string;
+  accountId: string;
 } & Record<string, any>;
 
 const sandboxingEnabled = !!process.env.NEXT_PUBLIC_SANDBOX;
@@ -101,7 +102,7 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
     return () => {
       clearScrollInterval();
     };
-  }, [router, blockLoaded]);
+  }, [blockLoaded, entityId]);
 
   if (sandboxingEnabled && (shouldSandbox || sourceUrl.endsWith(".html"))) {
     return (

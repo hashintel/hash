@@ -88,6 +88,7 @@ export const Video: BlockComponent<AppProps> = (props) => {
     if (initialCaption && captionText !== initialCaption) {
       setCaptionText(initialCaption);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- The list does not include stateObject on purpose. To be refactored with refs
   }, [initialSrc, initialCaption]);
 
   function displayError(errorString: string) {

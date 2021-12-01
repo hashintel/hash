@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   loadCrossFrameRemoteBlock,
   loadRemoteBlock,
@@ -53,6 +53,11 @@ export const useRemoteBlock: UseRemoteBlockHook = (
     }
   });
 
+  const onBlockLoadedRef = useRef<() => void>();
+  useEffect(() => {
+    onBlockLoadedRef.current = onBlockLoaded;
+  });
+
   useEffect(() => {
     if (url === loadedUrl && !loading && !err) {
       return;
@@ -77,8 +82,8 @@ export const useRemoteBlock: UseRemoteBlockHook = (
           url,
         });
 
-        if (onBlockLoaded && !signal.aborted) {
-          onBlockLoaded();
+        if (onBlockLoadedRef.current && !signal.aborted) {
+          onBlockLoadedRef.current();
         }
       })
       .catch((newErr) =>

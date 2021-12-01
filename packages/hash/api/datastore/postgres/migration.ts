@@ -1,3 +1,4 @@
+/* eslint-disable no-console -- OK for CLI scripts */
 /**
  * Apply the schema migration files. If "refresh" is passed as the first argument
  * then the script will drop everything in the database before applying the schema.
