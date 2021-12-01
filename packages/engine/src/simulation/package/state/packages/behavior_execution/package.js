@@ -32,6 +32,7 @@ const prepare_user_trace = (error, trace) => {
             "fn": t.getFunctionName()
         };
     }
+
     return {
         "msg": error.toString(),
         "frames": frames
@@ -61,7 +62,7 @@ const load_behaviors = (experiment, behavior_descs) => {
     const behaviors = {};
     for (var i = 0; i < behavior_descs.length; ++i) {
         const desc = behavior_descs[i];
-        if (desc.language !== "js") {
+        if (desc.language !== "JavaScript") {
             behaviors[desc.id] = {
                 "language": desc.language
             };
@@ -82,7 +83,7 @@ const load_behaviors = (experiment, behavior_descs) => {
                 console
             );
         } catch (e) { // Catch behavior code syntax errors and rethrow.
-            Error.prepareStackTrace = prepare_user_trace;
+            // Error.prepareStackTrace = prepare_user_trace; // TODO
             const trace = e.stack;
             trace.msg = "Couldn't load behavior (NAME " + desc.name +
                         ", SOURCE " + code + "):" + trace.msg;
@@ -180,7 +181,7 @@ const run_task = (experiment, sim, task_message, group_state, group_context) => 
             agent_state.__i_behavior = i_behavior;
             
             const behavior = experiment.behaviors[behavior_ids.get(i_behavior)];
-            if (behavior.language !== "js") {
+            if (behavior.language !== "JavaScript") {
                 // TODO: A simple optimization would be to count the number of
                 //       next-up behaviors in each language (other than JS) and
                 //       (ignoring ties) choose the language with the most. This
@@ -192,7 +193,7 @@ const run_task = (experiment, sim, task_message, group_state, group_context) => 
             
             agent_state.set_dynamic_access(behavior.dyn_access);
             behavior.fn(agent_state, agent_ctx);
-            postprocess(agent_state)
+            postprocess(agent_state);
         }
         agent_state.__i_behavior = i_behavior;
     }

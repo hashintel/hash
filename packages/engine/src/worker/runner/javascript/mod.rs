@@ -86,7 +86,7 @@ impl<'m> JSPackage<'m> {
         // Avoid JS ReferenceError by wrapping potentially undeclared variables with `typeof`.
         // (Double braces like `{{` are Rust's escape string for a single literal `{`.)
         let wrapped_code = format!(
-            "((hash_util)=>{{{}
+            "((hash_util, hash_stdlib)=>{{{}
             return [
                 typeof start_experiment === 'undefined' ? undefined : start_experiment,
                 typeof start_sim === 'undefined' ? undefined : start_sim,
@@ -99,6 +99,7 @@ impl<'m> JSPackage<'m> {
             .map_err(|e| Error::PackageImport(path.clone(), e.into()))?;
         let args = mv8::Values::from_vec(vec![
             embedded.hash_util.clone(),
+            embedded.hash_stdlib.clone(),
         ]);
 
         let fns: mv8::Array = pkg
@@ -129,6 +130,7 @@ impl<'m> JSPackage<'m> {
 
 /// Embedded JS of runner itself (from hardcoded paths)
 struct Embedded<'m> {
+    hash_stdlib: mv8::Value<'m>,
     hash_util: mv8::Value<'m>,
     batches_prototype: mv8::Value<'m>,
     experiment_ctx_prototype: mv8::Value<'m>,
@@ -185,6 +187,7 @@ fn import_file<'m>(
 impl<'m> Embedded<'m> {
     fn import(mv8: &'m MiniV8) -> Result<Self> {
         let arrow = eval_file(mv8, "./src/worker/runner/javascript/bundle_arrow.js")?;
+        let hash_stdlib = eval_file(mv8, "./src/worker/runner/javascript/hash_stdlib.js")?;
         let hash_util = import_file(
             mv8,
             "./src/worker/runner/javascript/hash_util.js",
@@ -235,6 +238,7 @@ impl<'m> Embedded<'m> {
             )
         })?;
         Ok(Self {
+            hash_stdlib,
             hash_util,
             batches_prototype,
             experiment_ctx_prototype,
@@ -502,12 +506,7 @@ impl<'m> RunnerImpl<'m> {
             let i_pkg = i_pkg as u32;
 
             let pkg_name = format!("{}", &pkg_init.name);
-            let pkg = JSPackage::import(
-                mv8,
-                &embedded,
-                &pkg_name,
-                pkg_init.r#type,
-            )?;
+            let pkg = JSPackage::import(mv8, &embedded, &pkg_name, pkg_init.r#type)?;
             log::trace!(
                 "pkg experiment init name {:?}, type {}, fns {:?}",
                 &pkg_init.name,
@@ -938,7 +937,11 @@ impl<'m> RunnerImpl<'m> {
         let (next_target, next_task_payload) = get_next_task(mv8, &r)?;
 
         let next_inner_task_msg: serde_json::Value = serde_json::from_str(&next_task_payload)?;
-        log::trace!("Wrapper: {:?}, next_inner: {:?}", &wrapper, &next_inner_task_msg);
+        log::trace!(
+            "Wrapper: {:?}, next_inner: {:?}",
+            &wrapper,
+            &next_inner_task_msg
+        );
         let next_task_payload =
             TaskMessage::try_from_inner_msg_and_wrapper(next_inner_task_msg, wrapper).map_err(|e| {
                 Error::from(format!(

@@ -65,11 +65,13 @@ impl OutputPartBuffer {
             Vec::from(String::with_capacity(IN_MEMORY_SIZE * 2)),
         );
 
-        let trailing_part = if current.len() % MAX_BYTE_SIZE != 0 { 1 } else { 0 };
+        let trailing_part = if current.len() % MAX_BYTE_SIZE != 0 {
+            1
+        } else {
+            0
+        };
         // Number of parts we can make / number of parts we need to fit output
         let part_count = trailing_part + current.len() / MAX_BYTE_SIZE;
-        dbg!(&current);
-        dbg!(part_count);
 
         for i in 0..part_count {
             let mut path = self.base_path.clone();
