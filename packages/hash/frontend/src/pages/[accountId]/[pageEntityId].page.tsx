@@ -3,7 +3,7 @@ import { BlockMeta, fetchBlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { blockPaths } from "@hashintel/hash-shared/paths";
 import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
 import { GetStaticPaths, GetStaticProps } from "next";
-import { useRouter } from "next/router";
+import { Router, useRouter } from "next/router";
 import { tw } from "twind";
 
 import { useEffect, useMemo, useState, VoidFunctionComponent } from "react";
@@ -114,10 +114,18 @@ export const Page: VoidFunctionComponent<{
   useCollabPositionTracking(reportPosition);
 
   useEffect(() => {
-    if (pageState !== "normal") {
-      setPageState("normal");
-    }
-  }, [router.asPath, pageState]);
+    const handleRouteChange = () => {
+      if (pageState !== "normal") {
+        setPageState("normal");
+      }
+    };
+
+    Router.events.on("routeChangeComplete", handleRouteChange);
+
+    return () => {
+      Router.events.off("routeChangeComplete", handleRouteChange);
+    };
+  }, [pageState]);
 
   if (pageState === "transferring") {
     return (
