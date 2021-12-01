@@ -16,9 +16,10 @@ pub fn pkgs_to_fbs<'f>(
         .0
         .iter()
         .map(|(package_id, init_msg)| {
-            let package_name = fbb.create_string(init_msg.name.clone().into());
+            let package_name = fbb.create_string(&format!("{}", &init_msg.name));
 
-            let serialized_payload = fbb.create_vector(&serde_json::to_vec(&init_msg.payload)?);
+            let payload_bytes = serde_json::to_vec(&init_msg.payload)?;
+            let serialized_payload = fbb.create_vector(&payload_bytes);
             let payload = gen::serialized_generated::Serialized::create(
                 fbb,
                 &gen::serialized_generated::SerializedArgs {

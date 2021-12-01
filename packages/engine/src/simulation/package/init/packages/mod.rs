@@ -19,10 +19,17 @@ pub mod json;
 pub mod jspy;
 
 /// All init package names are registered in this enum
-#[derive(Debug, Clone, PartialEq, Eq, Hash, IntoStaticStr)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
+#[serde(rename_all="snake_case")]
 pub enum Name {
     JSON,
     JSPY,
+}
+
+impl std::fmt::Display for Name {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", serde_json::to_string(self).map_err(|_| std::fmt::Error)?)
+    }
 }
 
 /// All init package tasks are registered in this enum
@@ -67,10 +74,9 @@ impl PackageCreators {
             .ok_or_else(|| Error::from("Init Package Creators weren't initialized"))?
             .get(name)
             .ok_or_else(|| {
-                let pkg_name: &str = name.into();
                 Error::from(format!(
                     "Package creator: {} wasn't within the Init Package Creators map",
-                    pkg_name
+                    name
                 ))
             })?)
     }

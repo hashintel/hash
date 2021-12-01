@@ -55,7 +55,7 @@ struct JSPackage<'m> {
 
 fn get_pkg_path(name: &str, pkg_type: PackageType) -> String {
     format!(
-        "../../simulation/package/{}/packages/{}/package.js",
+        "./src/simulation/package/{}/packages/{}/package.js",
         pkg_type.as_str(),
         name
     )
@@ -69,9 +69,11 @@ impl<'m> JSPackage<'m> {
         pkg_type: PackageType,
     ) -> Result<Self> {
         let path = get_pkg_path(name, pkg_type);
+        log::debug!("Importing package from path `{}`", &path);
         let code = match fs::read_to_string(path.clone()) {
             Ok(s) => s,
             Err(_) => {
+                log::debug!("Couldn't read package file. It might intentionally not exist.");
                 // Packages don't have to use JS.
                 let fns = mv8.create_array();
                 fns.set(0, mv8::Value::Undefined)?;
@@ -491,12 +493,19 @@ impl<'m> RunnerImpl<'m> {
         for (i_pkg, pkg_init) in pkg_config.values().enumerate() {
             let i_pkg = i_pkg as u32;
 
+            let pkg_name = format!("{}", &pkg_init.name);
             let pkg = JSPackage::import(
                 mv8,
                 &embedded,
-                pkg_init.name.clone().into(),
+                &pkg_name,
                 pkg_init.r#type,
             )?;
+            log::trace!(
+                "pkg experiment init name {:?}, type {}, fns {:?}",
+                &pkg_init.name,
+                &pkg_init.r#type.as_str(),
+                &pkg.fns,
+            );
             pkg_fns.set(i_pkg, pkg.fns)?;
 
             let pkg_init = serde_json::to_string(&pkg_init).unwrap();
