@@ -15,7 +15,7 @@ insert into entity_type_versions (
   properties, created_by, created_at, updated_at
 ) values (
   '37790a78-9262-4e88-930e-f4685cf362cc', 'ba214c8a-965d-4154-bcba-8fa81f92e3dd', '46c75ba1-bef2-4d6d-b974-bacc0abac3c4',
-  '{"$schema":"https://json-schema.org/draft/2019-09/schema","$id":"http://localhost:3000/46c75ba1-bef2-4d6d-b974-bacc0abac3c4/types/37790a78-9262-4e88-930e-f4685cf362cc","title":"Org","type":"object","description":"An organization account in a HASH.dev instance.","properties":{"shortname":{"minLength":4,"maxLength":24,"type":"string","description":"A unique slug for the organization."},"name":{"type":"string","description":"A display name for the organization."},"memberships":{"description":"The membership(s) of the organization.","type":"array","items":{"$ref":"/46c75ba1-bef2-4d6d-b974-bacc0abac3c4/types/75aa1211-96b9-40b7-84e6-0118790ed520"}}},"required":["shortname","memberships"]}',
+  '{"$schema":"https://json-schema.org/draft/2019-09/schema","$id":"http://localhost:3000/46c75ba1-bef2-4d6d-b974-bacc0abac3c4/types/37790a78-9262-4e88-930e-f4685cf362cc","title":"Org","type":"object","description":"An organization account in a HASH instance.","properties":{"shortname":{"minLength":4,"maxLength":24,"type":"string","description":"A unique slug for the organization."},"name":{"type":"string","description":"A display name for the organization."},"memberships":{"description":"The membership(s) of the organization.","type":"array","items":{"$ref":"/46c75ba1-bef2-4d6d-b974-bacc0abac3c4/types/75aa1211-96b9-40b7-84e6-0118790ed520"}}},"required":["shortname","memberships"]}',
   '46c75ba1-bef2-4d6d-b974-bacc0abac3c4', '2021-08-19T11:00:14.587Z', '2021-08-19T11:00:14.587Z'
 ) on conflict do nothing;
 
