@@ -39,6 +39,7 @@ export class IntegrationTestsHandler {
       cwd: path.join(__dirname, "../../../api/datastore/postgres"),
     });
     if (migration.status !== 0) {
+      // eslint-disable-next-line no-console -- this will be only shown in Jest output
       console.error(
         `Error running database schema migration script:\n${migration.stderr}`,
       );

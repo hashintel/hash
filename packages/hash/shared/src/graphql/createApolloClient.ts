@@ -53,6 +53,7 @@ export const createApolloClient = (params?: {
       try {
         ({ operationName } = JSON.parse(options.body));
       } catch (err) {
+        // eslint-disable-next-line no-console -- TODO: consider using logger
         console.error(err);
       }
     }

@@ -88,8 +88,8 @@ export const ResizeBlock: React.FC<ResizeBlockProps> = ({
     [maxHeight, maxWidth],
   );
 
-  const throttledUpdateLocalDimensions = useCallback(
-    throttle(updateLocalDimensions, 16),
+  const throttledUpdateLocalDimensions = useMemo(
+    () => throttle(updateLocalDimensions, 16),
     [updateLocalDimensions],
   );
 

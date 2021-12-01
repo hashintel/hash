@@ -82,6 +82,7 @@ export const EntitySelect: VoidFunctionComponent<EntitySelectProps> = ({
         ),
       )
       .catch((err) =>
+        // eslint-disable-next-line no-console -- TODO: consider using logger
         console.error(
           `Error fetching entities to populate select options: ${err.message}`,
         ),

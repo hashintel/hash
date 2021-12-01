@@ -82,6 +82,7 @@ export const App: BlockComponent<AppProps> = ({
         }
       }
     } catch (err) {
+      // eslint-disable-next-line no-console -- TODO: consider using logger
       console.error(err);
     }
   };

@@ -184,6 +184,7 @@ export class EditorConnection {
         });
       })
       .catch((err) => {
+        // eslint-disable-next-line no-console -- TODO: consider using logger
         console.error(err);
         this.report.failure(err);
       });

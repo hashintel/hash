@@ -49,6 +49,7 @@ const Entity: VoidFunctionComponent = () => {
         return res;
       })
       .catch((err) => {
+        // eslint-disable-next-line no-console -- TODO: consider using logger
         console.error(`Error updating entity: ${err.message}`);
         throw err;
       });
