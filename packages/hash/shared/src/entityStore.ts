@@ -87,7 +87,8 @@ export const walkObjectValueForEntity = <T extends {}>(
 };
 
 /**
- * @todo work on performance
+ * @deprecated
+ * @todo remove this when we have a flat entity store
  */
 export const walkValueForEntity = <T>(
   value: T,
