@@ -313,30 +313,39 @@ fn batches_from_shared_store(
 
 fn mem_batch_to_js<'m>(
     mv8: &'m MiniV8,
+    batch_id: &str,
     mem: mv8::Object<'m>,
     metaversion: &Metaversion,
-) -> mv8::Value<'m> {
+) -> Result<mv8::Value<'m>> {
     let batch = mv8.create_object();
-    batch.set("mem", mem);
-    batch.set("mem_version", metaversion.memory());
-    batch.set("batch_version", metaversion.batch());
-    mv8::Value::Object(batch)
+    let batch_id = mv8.create_string(batch_id);
+    batch.set("id", mv8::Value::String(batch_id))?;
+    batch.set("mem", mem)?;
+    batch.set("mem_version", metaversion.memory())?;
+    batch.set("batch_version", metaversion.batch())?;
+    Ok(mv8::Value::Object(batch))
 }
 
-fn batch_to_js<'m>(mv8: &'m MiniV8, mem: &Memory, metaversion: &Metaversion) -> mv8::Value<'m> {
+fn batch_to_js<'m>(
+    mv8: &'m MiniV8,
+    mem: &Memory,
+    metaversion: &Metaversion,
+) -> Result<mv8::Value<'m>> {
     // TODO: Is `mem.data.len()` different from `mem.size`? (like Vec capacity vs len?)
-    let mem = mv8.create_arraybuffer(mem.data.as_ptr(), mem.size);
-    mem_batch_to_js(mv8, mem, metaversion)
+    let arraybuffer = mv8.create_arraybuffer(mem.data.as_ptr(), mem.size);
+    let batch_id = mem.get_id();
+    mem_batch_to_js(mv8, batch_id, arraybuffer, metaversion)
 }
 
 fn mut_batch_to_js<'m>(
     mv8: &'m MiniV8,
     mem: &mut Memory,
     metaversion: &Metaversion,
-) -> mv8::Value<'m> {
+) -> Result<mv8::Value<'m>> {
     // TODO: Is `mem.data.len()` different from `mem.size`?
-    let mem = mv8.create_arraybuffer(mem.as_mut_ptr(), mem.size);
-    mem_batch_to_js(mv8, mem, metaversion)
+    let arraybuffer = mv8.create_arraybuffer(mem.as_mut_ptr(), mem.size);
+    let batch_id = mem.get_id();
+    mem_batch_to_js(mv8, batch_id, arraybuffer, metaversion)
 }
 
 fn state_to_js<'m>(
@@ -346,12 +355,18 @@ fn state_to_js<'m>(
 ) -> Result<(mv8::Value<'m>, mv8::Value<'m>)> {
     let js_agent_batches = mv8.create_array();
     let js_msg_batches = mv8.create_array();
+
     for x in agent_batches.iter().zip(msg_batches.iter()).enumerate() {
         let (i_batch, (agent_batch, msg_batch)) = x;
-        let agent_batch = batch_to_js(mv8, agent_batch.memory(), agent_batch.metaversion());
+
+        let agent_batch = batch_to_js(
+            mv8, agent_batch.memory(), agent_batch.metaversion()
+        )?;
         js_agent_batches.set(i_batch as u32, agent_batch)?;
 
-        let msg_batch = batch_to_js(mv8, msg_batch.memory(), msg_batch.metaversion());
+        let msg_batch = batch_to_js(
+            mv8, msg_batch.memory(), msg_batch.metaversion()
+        )?;
         js_msg_batches.set(i_batch as u32, msg_batch)?;
     }
     Ok((
@@ -474,7 +489,6 @@ impl<'m> RunnerImpl<'m> {
         let embedded = Embedded::import(mv8)?;
         let datasets = Self::load_datasets(mv8, &init.shared_context)?;
 
-        let pkg_ids = mv8.create_array();
         let pkg_fns = mv8.create_array();
         let pkg_init_msgs = mv8.create_array();
         let pkg_config = &init.package_config.0;
@@ -822,10 +836,9 @@ impl<'m> RunnerImpl<'m> {
             .call_method(self.this.clone(), args)?;
 
         // Initialize Rust.
-
         let state = SimState {
-            agent_schema: run.datastore.agent_batch_schema.arrow.clone(),
-            msg_schema: run.datastore.message_batch_schema.clone(),
+            agent_schema: Arc::clone(&run.datastore.agent_batch_schema.arrow),
+            msg_schema: Arc::clone(&run.datastore.message_batch_schema),
             agent_pool: AgentPool::empty(),
             msg_pool: MessagePool::empty(),
         };
@@ -841,9 +854,11 @@ impl<'m> RunnerImpl<'m> {
         sim_run_id: SimulationShortID,
         mut msg: RunnerTaskMsg,
     ) -> Result<(TargetedRunnerTaskMsg, Option<Vec<RunnerError>>)> {
+        log::debug!("Starting state interim sync before running task");
         // TODO: Move JS part of sync into `run_task` function in JS for better performance.
         self.state_interim_sync(mv8, sim_run_id, &msg.shared_store)?;
 
+        log::debug!("Setting up run_task function call");
         let group_index = match &msg.shared_store.state {
             SharedState::None | SharedState::Write(_) | SharedState::Read(_) => {
                 mv8::Value::Undefined
@@ -876,11 +891,7 @@ impl<'m> RunnerImpl<'m> {
             ))
         })?;
         let payload_str = mv8::Value::String(
-            mv8.create_string(
-                payload
-                    .as_str()
-                    .ok_or(Error::from(format!("Failed to serialize TaskMessage")))?,
-            ),
+            mv8.create_string(&serde_json::to_string(&payload)?)
         );
 
         let args = mv8::Values::from_vec(vec![
@@ -889,11 +900,13 @@ impl<'m> RunnerImpl<'m> {
             pkg_id_to_js(mv8, msg.package_id),
             payload_str,
         ]);
+        log::debug!("Calling JS run_task");
         let r: mv8::Object = self
             .embedded
             .run_task
             .call_method(self.this.clone(), args)?;
 
+        log::debug!("Post-processing run_task result");
         if let Some(error) = get_js_error(mv8, &r) {
             // All types of errors are fatal (user, package, runner errors).
             return Err(error);
@@ -939,7 +952,7 @@ impl<'m> RunnerImpl<'m> {
             .ok_or_else(|| Error::from("Couldn't read context batch"))?;
         let args = mv8::Values::from_vec(vec![
             sim_id_to_js(mv8, sim_run_id),
-            batch_to_js(mv8, ctx_batch.memory(), ctx_batch.metaversion()),
+            batch_to_js(mv8, ctx_batch.memory(), ctx_batch.metaversion())?,
             idxs_to_js(mv8, &ctx_batch.group_start_indices)?,
         ]);
         let _: mv8::Value = self
@@ -1004,12 +1017,6 @@ impl<'m> RunnerImpl<'m> {
             .embedded
             .state_interim_sync
             .call_method(self.this.clone(), args)?;
-
-        // TODO: Sync Rust.
-        // let state = self
-        //     .sims_state
-        //     .get_mut(&sim_run_id)
-        //     .ok_or(Error::MissingSimulationRun(sim_run_id))?;
         Ok(())
     }
 

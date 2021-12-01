@@ -30,7 +30,7 @@ pub trait Batch: Sized {
     fn reload(&mut self) -> Result<()>;
 
     fn get_batch_id(&self) -> &str {
-        self.memory().get_message()
+        self.memory().get_id()
     }
 }
 

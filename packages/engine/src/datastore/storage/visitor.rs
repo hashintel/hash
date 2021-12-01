@@ -164,7 +164,7 @@ impl<'mem: 'v, 'v> VisitorMut<'mem> {
         let markers = self.markers_mut();
         if size >= markers.data_size() {
             return Err(Error::ExpectedSmallerNewDataSize(
-                self.memory.get_message().into(),
+                self.memory.get_id().into(),
             ));
         }
         markers[Val::DataSize] = size as u64;

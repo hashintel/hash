@@ -38,6 +38,7 @@ const load_vectors = (rb_bytes, schema) => {
     const dicts = new Map();
     const loader = new reader.VectorLoader(body, header.nodes, header.buffers, dicts);
     const vector_list = loader.visitMany(schema.fields);
+
     // Unnecessary:
     // const rb = new arrow.RecordBatch(schema, header.length, vector_list);
 
@@ -90,8 +91,8 @@ const load_marked_vectors = (shared_bytes, schema) => {
     return load_vectors(rb_bytes, schema);
 }
 
-/// `latest_batch` should have `batch_version` (number), `mem_version` (number) and
-/// `mem` (ArrayBuffer) fields. 
+/// `latest_batch` should have `id` (string), `batch_version` (number),
+/// `mem_version` (number) and `mem` (ArrayBuffer) fields.
 Batch.prototype.sync = function(latest_batch, schema) {
     const should_load = this.batch_version < latest_batch.batch_version;
     if (this.mem_version < latest_batch.mem_version) {
@@ -230,6 +231,8 @@ Batches.prototype.get = function(batch_id) {
     return this.batches[batch_id];
 }
 
+/// `latest_batch` should have `id` (string), `batch_version` (number),
+/// `mem_version` (number) and `mem` (ArrayBuffer) fields.
 Batches.prototype.sync = function(latest_batch, schema) {
     let loaded_batch = this.batches[latest_batch.id];
     if (!loaded_batch) {
