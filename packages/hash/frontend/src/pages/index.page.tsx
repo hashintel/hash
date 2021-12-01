@@ -7,16 +7,20 @@ import { useUser } from "../components/hooks/useUser";
 
 export default function Home() {
   const router = useRouter();
-  const { user } = useUser();
+  const { user, loading } = useUser();
 
   useEffect(() => {
+    if (loading) {
+      return;
+    }
+
     if (user) {
       // Temporarily redirect logged in user to their account page
       void router.push(`/${user.accountId}`);
     } else {
       void router.push("/login");
     }
-  }, [router, user]);
+  }, [loading, router, user]);
 
   return (
     <main className={styles.Main}>
