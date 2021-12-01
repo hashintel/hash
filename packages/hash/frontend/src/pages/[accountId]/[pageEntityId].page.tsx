@@ -117,7 +117,7 @@ export const Page: VoidFunctionComponent<{
     if (pageState !== "normal") {
       setPageState("normal");
     }
-  }, [router.asPath]);
+  }, [router.asPath, pageState]);
 
   if (pageState === "transferring") {
     return (

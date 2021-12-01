@@ -48,6 +48,7 @@ const PageTransferDropdown: VoidFunctionComponent<PageTransferDropdownType> = ({
         return router.replace(`/${newAccountId}/${pageEntityId}`);
       })
       .catch((err) => {
+        // eslint-disable-next-line no-console
         console.error(err);
         setPageState("normal");
       });
