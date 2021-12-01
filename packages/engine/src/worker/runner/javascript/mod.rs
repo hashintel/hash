@@ -416,17 +416,22 @@ fn array_to_errors(array: mv8::Value<'_>) -> Vec<RunnerError> {
 
 fn get_js_error(_mv8: &MiniV8, r: &mv8::Object) -> Option<Error> {
     if let Ok(errors) = r.get("user_errors") {
-        let errors = array_to_errors(errors);
-        if errors.len() > 0 {
-            return Some(Error::User(errors));
+        if !matches!(errors, mv8::Value::Undefined) && !matches!(errors, mv8::Value::Null) {
+            let errors = array_to_errors(errors);
+            if errors.len() > 0 {
+                return Some(Error::User(errors));
+            }
         }
     }
 
     if let Ok(mv8::Value::String(e)) = r.get("pkg_error") {
+        // TODO: Don't silently ignore non-string, non-null-or-undefined errors
+        //       (try to convert error value to JSON string and return as error?).
         return Some(Error::Package(e.to_string()));
     }
 
     if let Ok(mv8::Value::String(e)) = r.get("runner_error") {
+        // TODO: Don't ignore non-string, non-null-or-undefined errors
         return Some(Error::Embedded(e.to_string()));
     }
 
@@ -462,7 +467,8 @@ fn get_next_task(_mv8: &MiniV8, r: &mv8::Object) -> Result<(MessageTarget, Strin
     let next_task_payload = if let Ok(mv8::Value::String(s)) = r.get("task") {
         s.to_string()
     } else {
-        "".to_string()
+        // TODO: Don't silently ignore non-string, non-null-or-undefined payloads
+        "{}".to_string()
     };
     Ok((target, next_task_payload))
 }
@@ -931,7 +937,8 @@ impl<'m> RunnerImpl<'m> {
         // TODO: Send `r.print` (if any) to main loop to display to user.
         let (next_target, next_task_payload) = get_next_task(mv8, &r)?;
 
-        let next_inner_task_msg = serde_json::to_value(&next_task_payload)?;
+        let next_inner_task_msg: serde_json::Value = serde_json::from_str(&next_task_payload)?;
+        log::trace!("Wrapper: {:?}, next_inner: {:?}", &wrapper, &next_inner_task_msg);
         let next_task_payload =
             TaskMessage::try_from_inner_msg_and_wrapper(next_inner_task_msg, wrapper).map_err(|e| {
                 Error::from(format!(
