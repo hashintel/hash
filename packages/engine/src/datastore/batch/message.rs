@@ -149,6 +149,7 @@ impl GrowableBatch<ArrayChange, Arc<array::ArrayData>> for Batch {
 
 impl Batch {
     pub fn reset(&mut self, agents: &AgentBatch) -> Result<()> {
+        log::trace!("Resetting batch");
         let agent_count = agents.batch.num_rows();
         let column_name = AgentStateField::AgentId.name();
         let id_column = agents.get_arrow_column(column_name)?;
@@ -163,17 +164,20 @@ impl Batch {
         let (meta_buffer, data_len) = simulate_record_batch_to_bytes(&batch);
 
         // Perform some light bound checks
-        if self.memory.size > LOWER_BOUND {
-            let upper_bound = agent_count * UPPER_MULTIPLIER;
-            if self.memory.size > upper_bound
-                && self
-                    .memory
-                    .target_total_size_accommodates_data_size(upper_bound, data_len)
-            {
-                self.memory.resize(upper_bound)?;
-                self.memory.set_data_length(data_len)?;
-                // Always increment when resizing
-                self.metaversion.increment();
+        // we can't release memory on mac because we can't resize the segment
+        if cfg!(not(target_os = "macos")) {
+            if self.memory.size > LOWER_BOUND {
+                let upper_bound = agent_count * UPPER_MULTIPLIER;
+                if self.memory.size > upper_bound
+                    && self
+                        .memory
+                        .target_total_size_accommodates_data_size(upper_bound, data_len)
+                {
+                    self.memory.resize(upper_bound)?;
+                    self.memory.set_data_length(data_len)?;
+                    // Always increment when resizing
+                    self.metaversion.increment();
+                }
             }
         }
 

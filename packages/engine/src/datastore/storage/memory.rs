@@ -6,8 +6,7 @@ use super::{ptr::MemoryPtr, visitor::Visit, visitor::Visitor, visitor::VisitorMu
 
 use crate::datastore::prelude::*;
 
-use std::{os::unix::io::RawFd, path::Path};
-
+use std::{env, os::unix::io::RawFd, path::Path};
 pub type Buffers<'a> = (&'a [u8], &'a [u8], &'a [u8], &'a [u8]);
 
 /// A memory-mapped shared memory segment wrapper.
@@ -62,6 +61,7 @@ impl Memory {
     /// reloading
     pub fn resize(&mut self, mut new_size: usize) -> Result<()> {
         new_size = Self::calculate_total_size(new_size, self.include_terminal_padding)?;
+        log::trace!("Trying to resize memory to: {}", new_size);
         self.data.resize(new_size)?;
         self.size = new_size;
         Ok(())
@@ -217,6 +217,13 @@ impl Memory {
         self.visitor_mut().set_data_length(data_length)
     }
 
+    // We can't resize memory on macos
+    #[cfg(target_os = "macos")]
+    pub fn shrink_memory_with_data_length(&mut self, data_length: usize) -> Result<BufferChange> {
+        Ok(BufferChange(false, false))
+    }
+
+    #[cfg(not(target_os = "macos"))]
     pub fn shrink_memory_with_data_length(&mut self, data_length: usize) -> Result<BufferChange> {
         self.visitor_mut().shrink_with_data_length(data_length)
     }
@@ -292,10 +299,26 @@ impl Memory {
         include_terminal_padding: bool,
     ) -> Result<Memory> {
         let markers = Visitor::markers_from_sizes(schema_size, header_size, meta_size, data_size);
-        let size = Self::calculate_total_size(
+        let mut size = Self::calculate_total_size(
             markers.get_total_contents_size(),
             include_terminal_padding,
         )?;
+
+        if cfg!(target_os = "macos") {
+            match env::var("OS_MEMORY_ALLOC_OVERRIDE") {
+                Ok(val) => {
+                    size = val.parse().expect(&format!(
+                        "OS_MEMORY_ALLOC_OVERRIDE was an invalid value: {}",
+                        val
+                    ));
+                    log::debug!(
+                        "Memory size was overridden by value set in envvar, set to: {}",
+                        size
+                    );
+                }
+                Err(_) => {}
+            }
+        }
 
         let mut memory =
             Memory::shared_memory(experiment_run_id, size, true, include_terminal_padding)?;
@@ -322,10 +345,26 @@ impl Memory {
         let markers =
             Visitor::markers_from_sizes(schema.len(), header.len(), meta.len(), data.len());
 
-        let size = Self::calculate_total_size(
+        let mut size = Self::calculate_total_size(
             markers.get_total_contents_size(),
             include_terminal_padding,
         )?;
+
+        if cfg!(target_os = "macos") {
+            match env::var("OS_MEMORY_ALLOC_OVERRIDE") {
+                Ok(val) => {
+                    size = val.parse().expect(&format!(
+                        "OS_MEMORY_ALLOC_OVERRIDE was an invalid value: {}",
+                        val
+                    ));
+                    log::debug!(
+                        "Memory size was overridden by value set in envvar, set to: {}",
+                        size
+                    );
+                }
+                Err(_) => {}
+            }
+        }
 
         let mut memory =
             Memory::shared_memory(experiment_run_id, size, true, include_terminal_padding)?;
