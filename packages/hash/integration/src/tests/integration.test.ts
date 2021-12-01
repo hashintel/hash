@@ -651,6 +651,7 @@ describe("logged in user ", () => {
     const validSchemaInput = {
       description: "Test description",
       schema: {
+        title: "Test schema",
         properties: {
           testProperty: {
             type: "string",
@@ -720,6 +721,7 @@ describe("logged in user ", () => {
     const validSchemaInput = {
       description: "Another test description",
       schema: {
+        title: "A schema to update",
         properties: {
           testProperty: {
             type: "string",

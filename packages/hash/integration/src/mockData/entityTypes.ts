@@ -13,6 +13,7 @@ export const createEntityTypes =
       name: "Task",
       description: "A task, ticket, job, etc",
       schema: {
+        title: "Task",
         description: "A task, ticket, job, etc",
         properties: {
           assignee: {
