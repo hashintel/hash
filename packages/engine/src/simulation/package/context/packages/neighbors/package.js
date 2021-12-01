@@ -78,7 +78,7 @@ const loaders = {
     // and doesn't need a custom loader due to the double underscores.
 }
 
-const start_sim = (experiment, sim, init_message, init_context) => {
+const start_sim = (_experiment, _sim, _init_message, init_context) => {
     const Neighbor = gen_neighbor(init_context.agent_schema);
     const getters = {
         "neighbors": gen_neighbor_getter(Neighbor)

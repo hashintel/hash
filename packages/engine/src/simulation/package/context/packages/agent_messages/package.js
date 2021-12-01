@@ -1,7 +1,4 @@
 
-const Array = Array;
-const json_parse = JSON.parse;
-
 const InboxMessage = function(ctx_msg_pool, msg_loc) {
     this.__pool = ctx_msg_pool;
     this.__loc = msg_loc; // i_group, i_agent, i_msg
@@ -27,7 +24,7 @@ Object.defineProperty(InboxMessage.prototype, "data", {
     get: function() {
         if (this.__data === null) {
             const l = this.__loc;
-            this.__data = json_parse(
+            this.__data = JSON.parse(
                 this.__pool[l.get(0)].cols.messages[l.get(1)][l.get(2)].data
             );
         }

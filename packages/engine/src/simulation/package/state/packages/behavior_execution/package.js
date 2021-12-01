@@ -121,7 +121,7 @@ const load_behaviors = (experiment, behavior_descs) => {
 // }
 
 const start_experiment = (experiment, init_message, experiment_context) => {
-    load_behaviors(experiment, init_message.behavior_descs);
+    load_behaviors(experiment, init_message);
 }
 
 // Fill an array with a default value until its length is 3
@@ -163,15 +163,18 @@ const run_task = (experiment, sim, task_message, group_state, group_context) => 
     let next_lang = null;
     let agent_state = null;
     let agent_ctx = null;
-    
+
+    // TODO: Propagate field specs to runners and use in state and context objects
+    const behavior_ids_field_key = '_PRIVATE_14_behavior_indices';
+
     const n_agents_in_group = group_state.n_agents();
     for (var i_agent = 0; i_agent < n_agents_in_group; ++i_agent) {
         
         // Reuse `agent_state` and `agent_ctx` objects.
         agent_state = group_state.get_agent(i_agent, agent_state);
         agent_ctx = group_context.get_agent(i_agent, agent_ctx);
-        
-        const behavior_ids = agent_state.__behaviors;
+
+        const behavior_ids = agent_state[behavior_ids_field_key];
         const n_behaviors = behavior_ids.length;
         for (var i_behavior = agent_state.__i_behavior; i_behavior < n_behaviors; ++i_behavior) {
             agent_state.__i_behavior = i_behavior;
@@ -197,5 +200,6 @@ const run_task = (experiment, sim, task_message, group_state, group_context) => 
     return {
         "print": experiment.logged,
         "target": next_lang || "main",
+        "task": "{}" // TODO: Maybe this shouldn't be necessary
     };
 }
