@@ -110,7 +110,7 @@ function start_sim(
         // GroupState initialized below
     };
  
-    const init_ctx = SimInitContext(this.experiment_ctx, globals, agent_schema);
+    const init_ctx = new SimInitContext(this.experiment_ctx, globals, agent_schema);
     for (var i_pkg = 0; i_pkg < pkg_ids.length; ++i_pkg) {
         const msg = JSON.parse(pkg_msgs[i_pkg]);
         
@@ -119,7 +119,7 @@ function start_sim(
         
         const pkg_start_sim = pkg.start_sim;
         if (pkg_start_sim) {
-            const r = pkg_start_sim(pkg.experiment, pkg_sim, msg.payload, init_ctx);
+            const r = pkg_start_sim(pkg.experiment, pkg_sim, msg, init_ctx);
             if (r && (pkg.type === "ctx" || pkg.type === "state")) {
                 // Init and output packages can't specify loaders or getters.
                 maybe_add_custom_fns(sim[pkg.type + "_loaders"], r, "loaders", pkg);

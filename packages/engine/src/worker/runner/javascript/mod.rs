@@ -83,20 +83,22 @@ impl<'m> JSPackage<'m> {
             }
         };
 
+        // Avoid JS ReferenceError by wrapping potentially undeclared variables with `typeof`.
+        // (Double braces like `{{` are Rust's escape string for a single literal `{`.)
         let wrapped_code = format!(
-            "((hash_util, start_experiment, start_sim, run_task)=>{{{}
-            return [start_experiment, start_sim, run_task]}})",
+            "((hash_util)=>{{{}
+            return [
+                typeof start_experiment === 'undefined' ? undefined : start_experiment,
+                typeof start_sim === 'undefined' ? undefined : start_sim,
+                typeof run_task === 'undefined' ? undefined : run_task
+            ]}})",
             code
         );
         let pkg: mv8::Function = mv8
             .eval(wrapped_code)
             .map_err(|e| Error::PackageImport(path.clone(), e.into()))?;
-
         let args = mv8::Values::from_vec(vec![
             embedded.hash_util.clone(),
-            mv8::Value::Undefined,
-            mv8::Value::Undefined,
-            mv8::Value::Undefined,
         ]);
 
         let fns: mv8::Array = pkg
