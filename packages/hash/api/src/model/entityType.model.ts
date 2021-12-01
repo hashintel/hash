@@ -98,6 +98,20 @@ class __EntityType {
     return new EntityType(entityType);
   }
 
+  static async updateSchema(
+    client: DBClient,
+    params: {
+      accountId: string;
+      createdById: string;
+      entityId: string;
+      schema: JSONObject;
+    },
+  ) {
+    const updatedDbEntityType = await client.updateEntityType(params);
+
+    return new EntityType(updatedDbEntityType);
+  }
+
   static async getEntityType(
     client: DBClient,
     params: { entityTypeId: string },

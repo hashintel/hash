@@ -14,7 +14,10 @@ const checkExternalSchemaExists = async (_uri: string) => {
   return {};
 };
 
-export const ajv = new Ajv2019({ loadSchema: checkExternalSchemaExists });
+export const ajv = new Ajv2019({
+  addUsedSchema: false, // stop AJV trying to add compiled schemas to the instance
+  loadSchema: checkExternalSchemaExists,
+});
 addFormats(ajv);
 
 export const jsonSchemaVersion = "https://json-schema.org/draft/2019-09/schema";
@@ -74,11 +77,6 @@ export const jsonSchema = async (
   try {
     await ajv.compileAsync(schema);
   } catch (err: any) {
-    if (err.message.match(/key.+already exists/)) {
-      throw new Error(
-        `Type name ${title} is not unique in accountId ${accountId}`,
-      );
-    }
     throw new Error(`Error in provided type schema: ${(err as Error).message}`);
   }
 

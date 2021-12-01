@@ -26,6 +26,8 @@ import {
   UpdatePageContentsMutationVariables,
   CreateEntityTypeMutation,
   CreateEntityTypeMutationVariables,
+  UpdateEntityTypeMutation,
+  UpdateEntityTypeMutationVariables,
   CreateOrgEmailInvitationMutationVariables,
   CreateOrgEmailInvitationMutation,
   CreateUserWithOrgEmailInvitationMutationVariables,
@@ -42,6 +44,7 @@ import {
   createEntityType,
   getUnknownEntity,
   updateEntity,
+  updateEntityType,
 } from "../graphql/queries/entity.queries";
 import {
   createOrg,
@@ -214,6 +217,15 @@ export class ApiClient {
         CreateEntityTypeMutationVariables
       >(createEntityType, vars)
     ).createEntityType;
+  }
+
+  async updateEntityType(vars: UpdateEntityTypeMutationVariables) {
+    return (
+      await this.client.request<
+        UpdateEntityTypeMutation,
+        UpdateEntityTypeMutationVariables
+      >(updateEntityType, vars)
+    ).updateEntityType;
   }
 
   insertBlocksIntoPage = async (vars: InsertBlocksIntoPageMutationVariables) =>

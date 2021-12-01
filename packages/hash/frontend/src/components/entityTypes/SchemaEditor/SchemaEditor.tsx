@@ -1,39 +1,170 @@
-import { BlockProtocolProps } from "@hashintel/block-protocol";
+import {
+  BlockProtocolEntityType,
+  BlockProtocolUpdateEntityTypeFn,
+  BlockProtocolProps,
+  JSONObject,
+} from "@hashintel/block-protocol";
 import Link from "next/link";
-import { Schema as JsonSchema } from "jsonschema";
-import { VoidFunctionComponent } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useState,
+  VoidFunctionComponent,
+} from "react";
 import { tw } from "twind";
-import { get } from "lodash";
+import { debounce, get } from "lodash";
 
 import { SchemaPropertiesTable } from "./SchemaPropertiesTable";
+import { JsonSchema } from "../../../lib/json-utils";
+import { TextInputOrDisplay } from "./Inputs";
+import { schemaEditorReducer } from "./schemaEditorReducer";
 
 export type SchemaSelectElementType = VoidFunctionComponent<{
   schemaRef: string;
 }>;
 
+export const SchemaOptionsContext = createContext<{
+  availableEntityTypes: BlockProtocolEntityType[];
+  subSchemas: [string, JsonSchema][];
+} | null>(null);
+
 type JsonSchemaEditorProps = {
+  GoToSchemaElement: SchemaSelectElementType;
   schema: JsonSchema;
-  SchemaSelect: SchemaSelectElementType;
   subSchemaReference?: string;
-} & Pick<BlockProtocolProps, "entityId" | "update">;
+} & Pick<
+  BlockProtocolProps,
+  "aggregateEntityTypes" | "entityId" | "updateEntityType"
+>;
 
 export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
-  schema,
-  SchemaSelect,
+  aggregateEntityTypes,
+  entityId,
+  GoToSchemaElement,
+  schema: possiblyStaleDbSchema,
   subSchemaReference,
-  update: _update,
+  updateEntityType,
 }) => {
+  const [availableEntityTypes, setAvailableEntityTypes] = useState<
+    BlockProtocolEntityType[] | undefined
+  >(undefined);
+
+  useEffect(() => {
+    if (aggregateEntityTypes) {
+      aggregateEntityTypes({ includeOtherTypesInUse: true })
+        .then((response) => setAvailableEntityTypes(response.results))
+        .catch((err) =>
+          // eslint-disable-next-line no-console -- TODO: consider using logger
+          console.error(`Error fetching entity type options: ${err.message}`),
+        );
+    }
+  }, [aggregateEntityTypes]);
+
+  // The user will be working with a draft in local state, to enable optimistic UI and handle fast/competing updates
+  const [workingSchemaDraft, dispatch] = useReducer(
+    schemaEditorReducer,
+    possiblyStaleDbSchema,
+  );
+
+  const debouncedUpdate = useMemo(
+    () =>
+      debounce<BlockProtocolUpdateEntityTypeFn>((...args) => {
+        if (!updateEntityType) {
+          throw new Error(
+            "updateEntityType function not provided. Schema cannot be updated.",
+          );
+        }
+        return updateEntityType(...args);
+      }, 800),
+    [updateEntityType],
+  );
+
+  useEffect(() => {
+    if (!entityId) {
+      throw new Error("entityId not provided. Schema cannot be updated.");
+    }
+    if (
+      JSON.stringify(workingSchemaDraft) ===
+      JSON.stringify(possiblyStaleDbSchema)
+    ) {
+      return;
+    }
+    // Send updates to the API periodically when the draft is updated
+    debouncedUpdate({
+      entityId,
+      schema: workingSchemaDraft as JSONObject,
+    })?.catch((err) => {
+      // eslint-disable-next-line no-console -- TODO: consider using logger
+      console.error(`Error updating schema: ${err.message}`);
+      throw err;
+    });
+  }, [debouncedUpdate, entityId, possiblyStaleDbSchema, workingSchemaDraft]);
+
+  useEffect(
+    () => () => {
+      // fire off any pending updates
+      debouncedUpdate.flush()?.catch((err) => {
+        // eslint-disable-next-line no-console -- TODO: consider using logger
+        console.error(`Error updating schema: ${err.message}`);
+        throw err;
+      });
+    },
+    [debouncedUpdate],
+  );
+
+  // Strip the leading #/ and replace namespace separator / with dots, for use in lodash get/set methods
+  const pathToSubSchema = subSchemaReference
+    ?.replace(/^#\//, "")
+    .replace(/\//g, ".");
+
+  const dispatchSchemaUpdate = useCallback(
+    (action: Parameters<typeof dispatch>[0]) => {
+      if (pathToSubSchema && action.type !== "addSubSchema") {
+        // don't support sub-schemas with their own sub-schemas for now. the UI doesn't handle it
+        // eslint-disable-next-line no-param-reassign
+        action.payload.pathToSubSchema = pathToSubSchema;
+      }
+      dispatch(action);
+    },
+    [dispatch, pathToSubSchema],
+  );
+
+  const subSchemas = Object.entries(workingSchemaDraft.$defs ?? []);
+
+  const schemaOptions = useMemo(
+    () => ({
+      availableEntityTypes: availableEntityTypes ?? [],
+      subSchemas,
+    }),
+    [availableEntityTypes, subSchemas],
+  );
+
   /**
    * @todo deal with $anchors https://json-schema.org/understanding-json-schema/structuring.html#anchor
    */
-  const selectedSchema = subSchemaReference
-    ? get(schema, subSchemaReference.slice(2).replace(/\//g, "."))
-    : schema;
+  const selectedSchema: JsonSchema = pathToSubSchema
+    ? get(workingSchemaDraft, pathToSubSchema)
+    : workingSchemaDraft;
 
-  const { title } = schema;
-  const { description, required } = selectedSchema;
+  const { title } = workingSchemaDraft;
+  const { description } = selectedSchema;
 
-  const requiredArray = required instanceof Array ? required : undefined;
+  const readonly = !updateEntityType || !entityId;
+
+  const addSubSchema = (newSubSchemaName: string) =>
+    dispatchSchemaUpdate({
+      type: "addSubSchema",
+      payload: { newSubSchemaName },
+    });
+
+  const updateSchemaDescription = (newSchemaDescription: string) =>
+    dispatchSchemaUpdate({
+      type: "updateSchemaDescription",
+      payload: { newSchemaDescription },
+    });
 
   return (
     <div>
@@ -42,26 +173,69 @@ export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
           <strong>Schema: {title ?? "No title."}</strong>
         </h1>
       </header>
+
       <section>
         <div className={tw`flex items-center`}>
           <h2>
-            Properties of <Link href={schema.$id ?? "#"}>{title}</Link>
+            Properties of{" "}
+            <Link href={workingSchemaDraft.$id ?? "#"}>{title}</Link>
           </h2>
-          {subSchemaReference && (
+          {subSchemaReference ? (
             <h3 className={tw`mb-7 ml-2`}>{` > ${subSchemaReference
               .split("/")
               .pop()}`}</h3>
-          )}
+          ) : null}
         </div>
-        <p className={tw`mb-4`}>{description ?? "No description."}</p>
-        <div>
-          <SchemaPropertiesTable
-            requiredArray={requiredArray}
-            schema={selectedSchema}
-            SchemaSelect={SchemaSelect}
+        <div className={tw`mb-4`}>
+          <TextInputOrDisplay
+            className={tw`max-w-3xl`}
+            placeholder="Describe your schema"
+            readonly={readonly}
+            updateText={updateSchemaDescription}
+            value={description ?? ""}
           />
         </div>
+        <div>
+          {!availableEntityTypes ? (
+            "Loading..."
+          ) : (
+            <SchemaOptionsContext.Provider value={schemaOptions}>
+              <SchemaPropertiesTable
+                selectedSchema={selectedSchema}
+                GoToSchemaElement={GoToSchemaElement}
+                readonly={readonly}
+                dispatchSchemaUpdate={dispatchSchemaUpdate}
+              />
+            </SchemaOptionsContext.Provider>
+          )}
+        </div>
       </section>
+
+      {updateEntityType || subSchemas.length > 0 ? (
+        <section className={tw`mt-8`}>
+          <h2>Sub-schemas in {title}</h2>
+          {subSchemas.map((subSchema) => (
+            <div className={tw`mb-4`} key={subSchema[0]}>
+              <GoToSchemaElement schemaRef={`#/$defs/${subSchema[0]}`} />
+            </div>
+          ))}
+          {updateEntityType ? (
+            <div className={tw`mt-8`}>
+              <div className={tw`text-uppercase font-bold text-sm mr-12 mb-1`}>
+                New sub-schema
+              </div>
+              <TextInputOrDisplay
+                className={tw`w-64`}
+                clearOnUpdate
+                placeholder="MySubSchema"
+                readonly={false}
+                updateText={addSubSchema}
+                value=""
+              />
+            </div>
+          ) : null}
+        </section>
+      ) : null}
     </div>
   );
 };

@@ -74,7 +74,7 @@ export const SignupIntro: VFC<SignupIntroProps> = ({
         onSubmit={onSubmit}
       >
         <TextInput
-          className={tw`w-64`}
+          className={tw`w-64 mb-2`}
           placeholder="Enter your email address.."
           type="email"
           ref={inputRef}

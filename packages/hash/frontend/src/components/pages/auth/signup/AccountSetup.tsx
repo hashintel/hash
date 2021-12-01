@@ -182,6 +182,7 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
           {!!invitationInfo && (
             <div className={tw`mt-8`}>
               <SelectInput
+                className={tw`w-64`}
                 label={`Your Role at ${invitationInfo.orgName}`}
                 labelClass="font-bold text-base mb-4"
                 id="responsibility"

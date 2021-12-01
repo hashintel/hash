@@ -277,28 +277,10 @@ export class PostgresClient implements DBClient {
     await updateEntityAccountId(this.conn, params);
   }
 
-  /**
-   * Update an entity type, either its name, schema, or both.
-   * Creates a new version of the entity type for any update.
-   * @param params.entityId the fixed id of the entityType
-   * @param params.entityVersionId optionally provide the version the update is based on.
-   *   the function will throw an error if this does not match the latest in the database.
-   * @param params.newName update the entity type's name (must be unique in the account)
-   * @param params.newSchema update the entity type's schema
-   */
-  async updateEntityType(params: {
-    createdById: string;
-    entityId: string;
-    entityVersionId?: string;
-    newName?: string;
-    newSchema?: Record<string, any>;
-  }): Promise<EntityType> {
-    const { entityId, entityVersionId, newName, newSchema } = params;
-    if (!newName && !newSchema) {
-      throw new Error(
-        "At least one of params.name or params.schema must be provided.",
-      );
-    }
+  async updateEntityType(
+    params: Parameters<DBClient["updateEntityType"]>[0],
+  ): ReturnType<DBClient["updateEntityType"]> {
+    const { entityId, entityVersionId, schema } = params;
 
     const entity = entityVersionId
       ? await getEntityType(this.conn, { entityVersionId })
@@ -313,14 +295,17 @@ export class PostgresClient implements DBClient {
       );
     }
 
-    const baseSchema = newSchema ?? entity.properties;
-    const nameToSet = newName ?? baseSchema.title;
+    const nameToSet = schema.title;
+
+    if (typeof nameToSet !== "string" || nameToSet === "") {
+      throw new Error("Schema requires a name set via a 'title' property");
+    }
 
     const schemaToSet = await jsonSchema(
       nameToSet,
       entity.accountId,
       entityId,
-      baseSchema,
+      schema,
     );
 
     const now = new Date();

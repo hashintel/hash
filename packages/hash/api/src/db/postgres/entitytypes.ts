@@ -114,16 +114,20 @@ export const getAccountEntityTypes = async (
   params: { accountId: string; includeOtherTypesInUse?: boolean | null },
 ): Promise<EntityType[]> => {
   const query = sql`
-    ${selectEntityTypes}
-    where type.account_id = ${params.accountId}
-      ${
-        params.includeOtherTypesInUse
-          ? sql`or ver.entity_type_version_id in (
-                  select distinct entity_type_version_id
-                  from entity_versions where account_id = ${params.accountId}
-                )`
-          : sql``
-      }
+    with all_matches as (
+      ${selectEntityTypes}
+      where type.account_id = ${params.accountId}
+        ${
+          params.includeOtherTypesInUse
+            ? sql`or ver.entity_type_version_id in (
+                    select distinct entity_type_version_id 
+                    from entity_versions where account_id = ${params.accountId}
+                  )`
+            : sql``
+        }
+    ) 
+    select distinct on (entity_type_id) * from all_matches
+    order by entity_type_id, version_created_at desc
   `;
   const rows = await conn.any(query);
   return rows.map(mapPGRowToEntityType);
