@@ -94,20 +94,21 @@ export const SearchBar: React.VFC = () => {
             </li>
           ) : (
             data.searchPages.map((searchPage: PageSearchResult) => (
-              <Link
-                href={toBlockUrl(searchPage)}
+              <li
                 key={searchPage.block?.entityId}
+                className={tw`${resultItem}`}
               >
-                <li
-                  className={tw`${resultItem}`}
-                  dangerouslySetInnerHTML={{
-                    __html: highlightFindings(
-                      submittedQuery,
-                      searchPage.content,
-                    ),
-                  }}
-                ></li>
-              </Link>
+                <Link href={toBlockUrl(searchPage)}>
+                  <a
+                    dangerouslySetInnerHTML={{
+                      __html: highlightFindings(
+                        submittedQuery,
+                        searchPage.content,
+                      ),
+                    }}
+                  />
+                </Link>
+              </li>
             ))
           )}
         </ul>
