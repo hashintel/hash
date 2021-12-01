@@ -75,7 +75,6 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
         }
 
         // Take a step in the simulation
-        // TODO - do we do nothing with this result?
         let step_result = match engine.next().await {
             Ok(step_result) => step_result,
             Err(error) => {
@@ -89,7 +88,7 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
                     file_name: None,
                     details: None,
                     is_warning: false,
-                    is_internal: true, // TODO is this always internal?
+                    is_internal: true, // The error is from within the engine step process.
                 };
                 sims_to_exp
                     .send(

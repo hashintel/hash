@@ -149,6 +149,8 @@ pub struct RunnerStatus {
 
 #[derive(Deserialize, Serialize, Clone, Debug, Default, PartialEq)]
 pub struct RunnerError {
+    // TODO: Rename, because "runner errors" should always be internal,
+    //       but this might not be.
     pub message: Option<String>,
     pub code: Option<i32>,
     pub line_number: Option<i32>,
