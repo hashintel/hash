@@ -151,7 +151,7 @@ impl ExState {
             },
         )?;
 
-        drop(static_pool);
+        drop(static_pool); // Release RwLock write access.
         let static_pool = context.inner_mut().agent_pool_mut().mut_batches();
 
         if dynamic_pool.len() > static_pool.len() {

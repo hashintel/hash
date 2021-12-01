@@ -1,4 +1,3 @@
-use chrono::Duration;
 use std::sync::Arc;
 
 use crate::datastore::{
@@ -96,7 +95,7 @@ impl Engine {
         let state = Arc::new(state.downgrade());
         // TODO: Do we want to sync state here? At the moment we expect
         //       task messages to cause sync of state
-        // self.comms.state_sync(&state).await?; // Synchronize state with workers
+        self.comms.state_sync(&state).await?; // Synchronize state with workers
         let context = self
             .packages
             .step
@@ -105,6 +104,21 @@ impl Engine {
             .downgrade();
 
         self.comms.context_batch_sync(&context).await?; // Synchronize context with workers
+
+        // TODO: Previously we didn't need responses from state syncs, because
+        //       we could guarantee that no writes to state would happen before
+        //       a task was first sent to a worker (after which we could just
+        //       wait for that task to complete, instead of waiting for the
+        //       sync explicitly), but now we should either (1) put a one-shot
+        //       channel in inbound StateSync messages and wait for a response
+        //       here (like for active tasks) or (2) let an inbound RunTask
+        //       message contain a StateSync (rather than a StateInterimSync)
+        //       message if it is the first RunTask / StateSync message on that
+        //       step (i.e. no StateSync message has yet been sent on that step).
+        //       This sleep should be removed, but for now it can only fail with
+        //       a panic, not a silent data race, due to the `Arc::try_unwrap` below.
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+
         let state = Arc::try_unwrap(state)
             .map_err(|_| Error::from("Unable to unwrap state after context package execution"))?;
         self.store.set(state, context);
