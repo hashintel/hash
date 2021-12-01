@@ -10,7 +10,7 @@ import { getAccountPages } from "../../graphql/queries/account.queries";
 type PageTransferDropdownType = {
   pageEntityId: string;
   accountId: string;
-  setPageState: React.Dispatch<React.SetStateAction<"normal" | "transferring">>;
+  setPageState: (state: "normal" | "transferring") => void;
 };
 
 const PageTransferDropdown: React.FunctionComponent<
@@ -31,7 +31,7 @@ const PageTransferDropdown: React.FunctionComponent<
   const transferAccount = (newAccountId: string) => {
     setPageState("transferring");
 
-    void transferEntity({
+    transferEntity({
       variables: {
         originalAccountId: accountId,
         entityId: pageEntityId,
@@ -43,7 +43,7 @@ const PageTransferDropdown: React.FunctionComponent<
       ],
     })
       .then(() => {
-        void router.replace(`/${newAccountId}/${pageEntityId}`);
+        return router.replace(`/${newAccountId}/${pageEntityId}`);
       })
       .catch((err) => {
         console.error(err);
