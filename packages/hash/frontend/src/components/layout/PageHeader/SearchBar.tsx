@@ -52,6 +52,7 @@ export const SearchBar: React.VFC = () => {
   >(searchPages, {
     variables: { accountId: user?.accountId!, query: submittedQuery },
     skip: !user?.accountId || !submittedQuery,
+    fetchPolicy: "network-only"
   });
 
   if (error) console.error(error);
