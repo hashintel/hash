@@ -3,9 +3,10 @@ import { BlockMeta, fetchBlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { blockPaths } from "@hashintel/hash-shared/paths";
 import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
 import { GetStaticPaths, GetStaticProps } from "next";
-
+import { tw } from "twind";
 import { useRouter } from "next/router";
 import { useMemo, VoidFunctionComponent } from "react";
+
 import { useCollabPositions } from "../../blocks/page/collab/useCollabPositions";
 import { useCollabPositionTracking } from "../../blocks/page/collab/useCollabPositionTracking";
 import { useCollabPositionReporter } from "../../blocks/page/collab/useCollabPositionReporter";
@@ -122,8 +123,7 @@ export const Page: VoidFunctionComponent<{
       <div className={styles.MainContent}>
         <header>
           <div className={styles.PageHeader}>
-            <div>
-              <label>Title</label>
+            <div className={tw`flex flex-col-reverse`}>
               <PageTitle
                 value={title}
                 accountId={data.page.accountId}
