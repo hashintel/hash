@@ -145,7 +145,7 @@ impl PackageCreators {
             let payload = creator.get_worker_exp_start_msg()?;
             let wrapped = PackageInitMsgForWorker {
                 name: name.clone(),
-                r#type: PackageType::Context,
+                r#type: PackageType::State,
                 id: id.clone(),
                 payload,
             };
@@ -156,7 +156,7 @@ impl PackageCreators {
             let payload = creator.get_worker_exp_start_msg()?;
             let wrapped = PackageInitMsgForWorker {
                 name: name.clone(),
-                r#type: PackageType::Context,
+                r#type: PackageType::Output,
                 id: id.clone(),
                 payload,
             };
