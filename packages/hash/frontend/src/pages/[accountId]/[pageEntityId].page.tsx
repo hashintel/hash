@@ -13,7 +13,7 @@ import { useCollabPositionReporter } from "../../blocks/page/collab/useCollabPos
 import { PageBlock } from "../../blocks/page/PageBlock";
 import { PageTitle } from "../../blocks/page/PageTitle";
 import { VersionDropdown } from "../../components/Dropdowns/VersionDropdown";
-import { Button } from "../../components/forms/Button";
+
 import {
   GetPageQuery,
   GetPageQueryVariables,
@@ -22,21 +22,6 @@ import styles from "../index.module.scss";
 import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
 import PageTransferDropdown from "../../components/Dropdowns/PageTransferDropdown";
 import { MainComponentWrapper } from "../../components/pages/MainComponentWrapper";
-
-/**
- * @todo Remove when position tracking is fully implemented.
- * @example
- *
- *    localStorage.setItem("debug.collabToolbar", true); window.location.reload();
- */
-const isCollabPositionDebugToolbarEnabled = (): boolean => {
-  try {
-    const rawValue = localStorage.getItem("debug.collabToolbar");
-    return rawValue === "true" || rawValue === "1";
-  } catch {
-    return false;
-  }
-};
 
 /**
  * preload all configured blocks for now. in the future these will be loaded
@@ -170,50 +155,9 @@ export const Page: VoidFunctionComponent<{
 
   return (
     <MainComponentWrapper>
-      {isCollabPositionDebugToolbarEnabled() ? (
-        <div
-          style={{
-            background: "#eee",
-            padding: 20,
-            borderRadius: 5,
-            marginBottom: 10,
-            minHeight: 180,
-          }}
-        >
-          <div>
-            <Button
-              onClick={() => {
-                reportPosition(
-                  `${Math.round(Math.random() * 10000)}`.padStart(5, "0"),
-                );
-              }}
-            >
-              report random block id
-            </Button>{" "}
-            <Button
-              type="submit"
-              onClick={() => {
-                reportPosition(null);
-              }}
-            >
-              report empty block id
-            </Button>
-          </div>
-          <h3 style={{ marginTop: 10 }}>Collaborator positions</h3>
-          <ul>
-            {collabPositions.map(({ userShortname, userId, entityId }) => (
-              <li key={userId}>
-                <b>{userShortname}:</b> block #{entityId}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
       <header>
         <div className={styles.PageHeader}>
           <div>
-            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
             <label>Title</label>
             <PageTitle
               value={title}
@@ -222,7 +166,6 @@ export const Page: VoidFunctionComponent<{
             />
           </div>
           <div className={tw`mr-4`}>
-            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
             <label>Version</label>
             <div>
               <VersionDropdown
@@ -237,7 +180,6 @@ export const Page: VoidFunctionComponent<{
             </div>
           </div>
           <div>
-            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
             <label>Transfer Page</label>
             <div>
               <PageTransferDropdown

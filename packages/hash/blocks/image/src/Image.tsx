@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { unstable_batchedUpdates } from "react-dom";
 
-import { v4 as uuid } from "uuid";
 import { tw } from "twind";
 import { BlockComponent } from "@hashintel/block-protocol/react";
 import {
@@ -67,7 +66,6 @@ export const Image: BlockComponent<AppProps> = (props) => {
 
   const [inputText, setInputText] = useState("");
   const [captionText, setCaptionText] = useState(initialCaption ?? "");
-  const [randomId] = useState(() => `image-input-${uuid()}`);
 
   const isMounted = useRef(false);
 
@@ -298,7 +296,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
             />
           </div>
           <div>
-            <label htmlFor={randomId}>
+            <label>
               <div
                 className={tw`my-4 bg-gray-50 border-2 border-dashed border-gray-200 py-4 text-sm text-gray-400 cursor-pointer`}
               >
@@ -310,7 +308,6 @@ export const Image: BlockComponent<AppProps> = (props) => {
                 type="file"
                 accept={IMG_MIME_TYPE}
                 onChange={onFileSelect}
-                id={randomId}
               />
             </label>
           </div>

@@ -37,7 +37,6 @@ export const CreatePage: VoidFunctionComponent<CreatePageProps> = ({
       <form className={styles.CreatePage} onSubmit={createPage}>
         <h2>Don't be afraid of a blank page...</h2>
 
-        {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
         <label>Title</label>
         <input
           onChange={(event) => setTitle(event.target.value)}

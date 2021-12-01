@@ -2,5 +2,8 @@
   "parserOptions": {
     "project": ["./tsconfig.json"]
   },
-  "plugins": ["@typescript-eslint"]
+  "plugins": ["@typescript-eslint"],
+  "rules": {
+    "jsx-a11y/label-has-associated-control": "off"
+  }
 }

@@ -22,5 +22,6 @@ module.exports = {
     "react/self-closing-comp": "warn",
     curly: ["error", "multi-line"],
     "import/no-extraneous-dependencies": ["error", { devDependencies: true }],
+    "jsx-a11y/label-has-associated-control": "off",
   },
 };

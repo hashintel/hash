@@ -27,6 +27,13 @@ module.exports = withSentryConfig(
       withTM({
         pageExtensions: ["page.tsx", "page.ts", "page.jsx", "page.jsx"],
         webpack5: false,
+
+        // We call linters in GitHub Actions for all pull requests. By not linting
+        // again during `next build`, we save CI minutes and unlock more feedback.
+        // Thus, we can get Playwright test results and Preview releases for WIP PRs.
+        eslint: { ignoreDuringBuilds: true },
+        typescript: { ignoreBuildErrors: true },
+
         webpack: (config) => {
           // help out nextjs plugin next-transpile-modules to correctly resolve monorepo dependencies
           config.resolve.alias = {
@@ -47,14 +54,14 @@ module.exports = withSentryConfig(
               chunks: ["sandbox"],
             }),
           );
-          return Object.assign({}, config, {
+          return {
+            ...config,
             entry: () =>
-              config.entry().then((entry) =>
-                Object.assign({}, entry, {
-                  sandbox: path.join(__dirname, framedBlockFolder, "index.tsx"),
-                }),
-              ),
-          });
+              config.entry().then((entry) => ({
+                ...entry,
+                sandbox: path.join(__dirname, framedBlockFolder, "index.tsx"),
+              })),
+          };
         },
         sassOptions: {
           prependData: `
