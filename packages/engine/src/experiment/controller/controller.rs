@@ -136,10 +136,12 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
     ) -> Result<()> {
         let engine_status = match msg {
             WorkerPoolToExpCtlMsg::Errors(errors) => {
+                log::debug!("Received Errors Experiment Control Message from Worker Pool");
                 let runner_errors = errors.into_iter().map(|w| w.into_sendable(false)).collect();
                 EngineStatus::Errors(id, runner_errors)
             }
             WorkerPoolToExpCtlMsg::Warnings(warnings) => {
+                log::debug!("Received Warnings Experiment Control Message from Worker Pool");
                 let runner_warnings = warnings
                     .into_iter()
                     .map(|w| w.into_sendable(true))

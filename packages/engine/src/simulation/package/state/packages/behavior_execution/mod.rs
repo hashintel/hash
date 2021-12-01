@@ -1,4 +1,5 @@
 mod chain;
+mod reset_index_col;
 // TODO: better name for config
 pub mod config;
 pub mod fields;
@@ -14,6 +15,7 @@ use crate::simulation::package::state::packages::behavior_execution::tasks::Exec
 use crate::simulation::task::active::ActiveTask;
 use crate::simulation::task::Task;
 use crate::Language;
+use reset_index_col::reset_index_col;
 use serde_json::Value;
 use std::convert::TryFrom;
 
@@ -21,6 +23,7 @@ use super::super::*;
 
 pub const BEHAVIOR_INDEX_INNER_COUNT: usize = 2;
 pub type BehaviorIdInnerDataType = u16;
+pub type BehaviorIndexInnerDataType = f64;
 
 pub struct Creator {
     experiment_config: Option<Arc<ExperimentConfig>>,
@@ -65,11 +68,12 @@ impl PackageCreator for Creator {
         comms: PackageComms,
         accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn Package>> {
-        let behavior_ids_col_data_types = fields::index_column_data_types()?;
+        let behavior_ids_col_data_types = fields::id_column_data_types()?;
         // TODO - probably just rename the actual field key to behavior_ids (rather than behavior indices) to avoid confusion with "behavior_index" col
         let behavior_ids_col = accessor
             .get_local_private_scoped_field_spec("behavior_ids")?
             .to_key()?;
+
         let behavior_ids_col_index = config
             .sim
             .store
@@ -77,11 +81,22 @@ impl PackageCreator for Creator {
             .arrow
             .index_of(behavior_ids_col.value())?;
 
+        let behavior_index_col = accessor
+            .get_agent_scoped_field_spec("behavior_index")?
+            .to_key()?;
+        let behavior_index_col_index = config
+            .sim
+            .store
+            .agent_schema
+            .arrow
+            .index_of(behavior_index_col.value())?;
+
         Ok(Box::new(BehaviorExecution {
             behavior_map: Arc::clone(self.get_behavior_map()?),
             behavior_ids: Arc::clone(self.get_behavior_ids()?),
             behavior_ids_col_index,
             behavior_ids_col_data_types,
+            behavior_index_col_index,
             comms,
         }))
     }
@@ -102,6 +117,7 @@ struct BehaviorExecution {
     behavior_ids: Arc<BehaviorIds>,
     behavior_ids_col_index: usize,
     behavior_ids_col_data_types: [arrow::datatypes::DataType; 3],
+    behavior_index_col_index: usize,
     comms: PackageComms,
 }
 
@@ -126,6 +142,13 @@ impl BehaviorExecution {
         )?;
 
         state.set_pending_column(behavior_ids)?;
+        Ok(())
+    }
+
+    fn reset_behavior_index_col(&mut self, state: &mut ExState) -> Result<()> {
+        let behavior_index_col = reset_index_col(state, self.behavior_index_col_index)?;
+        state.set_pending_column(behavior_index_col)?;
+
         Ok(())
     }
 
@@ -179,6 +202,7 @@ impl Package for BehaviorExecution {
     async fn run(&mut self, state: &mut ExState, context: &Context) -> Result<()> {
         log::trace!("Running BehaviorExecution");
         self.fix_behavior_chains(state)?;
+        self.reset_behavior_index_col(state)?;
         state.flush_pending_columns()?;
 
         let lang = match self.get_first_lang(state)? {

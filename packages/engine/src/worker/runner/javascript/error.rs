@@ -68,7 +68,7 @@ pub enum Error {
     #[error("Error in embedded JavaScript: {0}")]
     Embedded(String),
 
-    #[error("Task target must be py, js, rs, dyn or main, not {0}")]
+    #[error("Task target must be Python, JavaScript, Rust, Dynamic or Main, not {0}")]
     UnknownTarget(String),
 
     #[error("Couldn't send inbound message to runner: {0}")]

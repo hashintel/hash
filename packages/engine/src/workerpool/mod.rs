@@ -247,11 +247,13 @@ impl WorkerPoolController {
                 }
             }
             WorkerToWorkerPoolMsg::RunnerErrors(errors) => {
+                log::debug!("Received RunnerErrors Message from Worker");
                 self.top_send
                     .inner
                     .send((None, WorkerPoolToExpCtlMsg::Errors(errors)))?;
             }
             WorkerToWorkerPoolMsg::RunnerWarnings(warnings) => {
+                log::debug!("Received RunnerWarnings Message from Worker");
                 self.top_send
                     .inner
                     .send((None, WorkerPoolToExpCtlMsg::Warnings(warnings)))?;
@@ -264,6 +266,7 @@ impl WorkerPoolController {
     #[allow(dead_code)]
     async fn handle_cancel_msgs(&mut self, cancel_msgs: Vec<TaskID>) -> Result<()> {
         for id in cancel_msgs {
+            log::trace!("Handling cancel msg for task with id: {}", id);
             if let Some(task) = self.pending_tasks.inner.get(&id) {
                 match &task.distribution_controller {
                     DistributionController::Distributed {

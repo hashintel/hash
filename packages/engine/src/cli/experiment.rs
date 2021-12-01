@@ -6,6 +6,7 @@ use crate::{
     Args,
 };
 use hash_prime::experiment::controller::config::{OutputPersistenceConfig, OUTPUT_PERSISTENCE_KEY};
+use hash_prime::output::local::config::LocalPersistenceConfig;
 use hash_prime::proto;
 use hash_prime::proto::ExecutionEnvironment;
 use serde_json::json;
@@ -13,7 +14,6 @@ use std::iter::FromIterator;
 use std::path::PathBuf;
 use std::time::Duration;
 use tokio::time::{self, timeout};
-use hash_prime::output::local::config::LocalPersistenceConfig;
 
 lazy_static::lazy_static! {
     static ref ENGINE_START_TIMEOUT: Duration = Duration::from_secs(180);

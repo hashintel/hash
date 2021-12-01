@@ -12,7 +12,7 @@ use crate::Language;
 //       Vec of behavior descriptions in `behavior_descs`.
 #[derive(Serialize, Deserialize)]
 pub struct BehaviorDescription {
-    pub index: BehaviorId,
+    pub id: BehaviorId,
     pub name: String,
     pub short_names: Vec<String>,
     pub source: String,
@@ -113,7 +113,7 @@ pub fn exp_init_message(
 
             let language = Language::from_file_name(file_name)
                 .map_err(|_| Error::from("Couldn't get language from behavior file name"))?;
-            let index = behavior_ids
+            let id = behavior_ids
                 .name_to_index
                 .get(shared.name.as_bytes())
                 .ok_or(Error::from("Couldn't get index from behavior name"))?
@@ -134,7 +134,7 @@ pub fn exp_init_message(
                 .collect::<Vec<_>>();
 
             Ok(BehaviorDescription {
-                index,
+                id,
                 name: shared.name.to_string(),
                 short_names: shared.shortnames.clone(),
                 source,

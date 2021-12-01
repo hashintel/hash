@@ -18,13 +18,18 @@ const gen_agent_ctx_getter = (name, getter) => {
 // TODO: agent view? (__sim_ctx field, this.__cols = sim_ctx.ctx_batch.cols,
 //       defineProperty(..., "state_snapshot", ... __sim_ctx.state_snapshot))
 const gen_agent_ctx = (ctx_schema, getters) => {
-    const AgentContext = function(ctx_batch, state_snapshot, i_agent_in_sim) {
+    const AgentContext = function(ctx_batch, state_snapshot, i_agent_in_sim, globals) {
         // The context batch is sim-wide, so hide it from the user.
         // (The user should only see one current agent through an AgentContext object.)
         this.__ctx_batch = ctx_batch;
         this.__cols = ctx_batch.cols; // Used often
         this.state_snapshot = state_snapshot;
         this.__idx_in_sim = i_agent_in_sim; // (As opposed to agent index in its group)
+        this.__globals = globals;
+    }
+
+    AgentContext.prototype.globals = function() {
+        return this.__globals;
     }
     
     for (var i_field = 0; i_field < ctx_schema.fields.length; ++i_field) {
@@ -38,14 +43,19 @@ const gen_agent_ctx = (ctx_schema, getters) => {
 }
 
 const gen_group_ctx = (AgentContext) => {
-    const GroupContext = function(ctx_batch, state_snapshot, group_start_idx) {
+    const GroupContext = function(ctx_batch, state_snapshot, group_start_idx, globals)  {
         // The context batch is sim-wide, so hide it from the user.
         // (The user should only see one current group through a GroupContext object.)
         this.__ctx_batch = ctx_batch;
         this.state_snapshot = state_snapshot;
         this.__start_idx = group_start_idx;
+        this.__globals = globals;
     }
-    
+
+    GroupContext.prototype.globals = function() {
+        return this.__globals;
+    }
+
     GroupContext.prototype.get_agent = function(i_agent_in_group, old_agent_ctx) {
         const idx_in_sim = i_agent_in_group + this.__start_idx;
         if (old_agent_ctx) { // Reuse AgentContext object for performance.
@@ -53,7 +63,7 @@ const gen_group_ctx = (AgentContext) => {
             return old_agent_ctx;
         }
         return Object.seal(new AgentContext(
-            this.__ctx_batch, this.state_snapshot, idx_in_sim
+            this.__ctx_batch, this.state_snapshot, idx_in_sim, this.__globals
         ));
     }
     
@@ -93,7 +103,7 @@ const gen_sim_ctx = (ctx_schema, getters) => {
 
     SimContext.prototype.get_group = function(i_group) {
         return Object.seal(new GroupContext(
-            this.__ctx_batch, this.state_snapshot, this.__group_start_idxs[i_group]
+            this.__ctx_batch, this.state_snapshot, this.__group_start_idxs[i_group], this.__globals
         ));
     }
 
@@ -103,7 +113,7 @@ const gen_sim_ctx = (ctx_schema, getters) => {
             return old_agent_ctx;
         }
         return Object.seal(new AgentContext(
-            this.__ctx_batch, this.state_snapshot, i_agent_in_sim
+            this.__ctx_batch, this.state_snapshot, i_agent_in_sim, this.__globals
         ));
     }
     
@@ -125,7 +135,7 @@ const SimInitContext = function(experiment_ctx, globals, agent_schema) {
 }
 
 SimInitContext.prototype.data = function() {
-    return this.__experiment_ctx.datasets();
+    return this.__experiment_ctx.data();
 }
 
 SimInitContext.prototype.globals = function() {

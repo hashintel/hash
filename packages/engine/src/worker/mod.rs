@@ -206,6 +206,7 @@ impl WorkerController {
                 self.sync_runners(msg.sim_id, sync_msg).await?;
             }
             WorkerPoolToWorkerMsgPayload::CancelTask(task_id) => {
+                log::trace!("Received cancel task msg from Worker Pool");
                 self.cancel_task(task_id).await?;
             }
             WorkerPoolToWorkerMsgPayload::NewSimulationRun(new_simulation_run) => {
@@ -249,6 +250,7 @@ impl WorkerController {
                             .await?;
                     }
                     Main => {
+                        log::trace!("Task message came back to main, finishing task");
                         self.finish_task_from_runner_msg(task.msg, msg.source)
                             .await?;
                     }
@@ -291,6 +293,7 @@ impl WorkerController {
             // Important to drop here since we then lose the access to the shared store
             drop(shared_store);
 
+            log::trace!("Cancelling tasks on the other runners");
             self.cancel_task_except_for_runner(task_id, source).await?;
 
             self.worker_pool_comms
@@ -344,6 +347,10 @@ impl WorkerController {
                         msg.shared_store,
                         next.payload,
                     );
+                    log::trace!(
+                        "Task resulted in a new message from Runner, sending new one to Rust: {:?}",
+                        &inbound
+                    );
                     self.rs.send(Some(sim_id), inbound).await?;
                     pending.active_runner = Language::Rust;
                 }
@@ -354,6 +361,7 @@ impl WorkerController {
                         msg.shared_store,
                         next.payload,
                     );
+                    log::trace!("Task resulted in a new message from Runner, sending new one to Python: {:?}", &inbound);
                     self.py.send(Some(sim_id), inbound).await?;
                     pending.active_runner = Language::Python;
                 }
@@ -364,11 +372,13 @@ impl WorkerController {
                         msg.shared_store,
                         next.payload,
                     );
+                    log::trace!("Task resulted in a new message from Runner, sending new one to JavaScript: {:?}", &inbound);
                     self.js.send(Some(sim_id), inbound).await?;
                     pending.active_runner = Language::JavaScript;
                 }
                 Dynamic => return Err(Error::UnexpectedTarget(next.target)),
                 Main => {
+                    log::trace!("Task message came back to main, finishing task");
                     self.finish_task(msg.task_id, source, next.payload, msg.shared_store)
                         .await?
                 }
@@ -496,8 +506,7 @@ impl WorkerController {
         task_id: TaskID,
         runner_language: Language,
     ) -> Result<()> {
-        // TODO cleanup
-        if !matches!(runner_language, Language::Python) {
+        if matches!(runner_language, Language::Python) {
             self.js
                 .send_if_spawned(None, InboundToRunnerMsgPayload::CancelTask(task_id))
                 .await?;
@@ -505,7 +514,7 @@ impl WorkerController {
                 .send_if_spawned(None, InboundToRunnerMsgPayload::CancelTask(task_id))
                 .await?;
         }
-        if !matches!(runner_language, Language::JavaScript) {
+        if matches!(runner_language, Language::JavaScript) {
             self.py
                 .send_if_spawned(None, InboundToRunnerMsgPayload::CancelTask(task_id))
                 .await?;
@@ -513,7 +522,7 @@ impl WorkerController {
                 .send_if_spawned(None, InboundToRunnerMsgPayload::CancelTask(task_id))
                 .await?;
         }
-        if !matches!(runner_language, Language::Rust) {
+        if matches!(runner_language, Language::Rust) {
             self.py
                 .send_if_spawned(None, InboundToRunnerMsgPayload::CancelTask(task_id))
                 .await?;

@@ -72,7 +72,7 @@ pub(super) fn add_state(
     Ok(())
 }
 
-pub(super) fn index_column_data_types() -> Result<[DataType; 3]> {
+pub(super) fn id_column_data_types() -> Result<[DataType; 3]> {
     let data_type_1 = behavior_ids_field_type().get_arrow_data_type()?;
     let data_type_2 = behavior_id_field_type().get_arrow_data_type()?;
     let data_type_3 = behavior_id_inner_field_type().get_arrow_data_type()?;

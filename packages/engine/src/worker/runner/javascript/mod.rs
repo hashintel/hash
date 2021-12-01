@@ -443,10 +443,12 @@ fn get_js_error(_mv8: &MiniV8, r: &mv8::Object) -> Option<Error> {
 }
 
 fn get_user_warnings(_mv8: &MiniV8, r: &mv8::Object) -> Option<Vec<RunnerError>> {
-    if let Ok(warnings) = r.get("user_warnings") {
-        let warnings = array_to_errors(warnings);
-        if warnings.len() > 0 {
-            return Some(warnings);
+    if let Ok(warnings) = r.get::<&str, mv8::Value>("user_warnings") {
+        if !(warnings.is_undefined() || warnings.is_null()) {
+            let warnings = array_to_errors(warnings);
+            if warnings.len() > 0 {
+                return Some(warnings);
+            }
         }
     }
     None
@@ -456,11 +458,11 @@ fn get_next_task(_mv8: &MiniV8, r: &mv8::Object) -> Result<(MessageTarget, Strin
     let target = if let Ok(mv8::Value::String(target)) = r.get("target") {
         let target = target.to_string();
         match target.as_str() {
-            "js" => MessageTarget::JavaScript,
-            "py" => MessageTarget::Python,
-            "rs" => MessageTarget::Rust,
-            "dyn" => MessageTarget::Dynamic,
-            "main" => MessageTarget::Main,
+            "JavaScript" => MessageTarget::JavaScript,
+            "Python" => MessageTarget::Python,
+            "Rust" => MessageTarget::Rust,
+            "Dynamic" => MessageTarget::Dynamic,
+            "Main" => MessageTarget::Main,
             _ => return Err(Error::UnknownTarget(target)),
         }
     } else {
@@ -1174,6 +1176,7 @@ impl JavaScriptRunner {
         msg: InboundToRunnerMsgPayload,
     ) -> WorkerResult<()> {
         if self.spawned() {
+            log::trace!("JavaScript is spawned, sending message: {:?}", &msg);
             self.send(sim_id, msg).await?;
         }
         Ok(())
