@@ -13,9 +13,11 @@ type PageTransferDropdownType = {
   setPageState: (state: "normal" | "transferring") => void;
 };
 
-const PageTransferDropdown: VoidFunctionComponent<
-  PageTransferDropdownType
-> = ({ pageEntityId, accountId, setPageState }) => {
+const PageTransferDropdown: VoidFunctionComponent<PageTransferDropdownType> = ({
+  pageEntityId,
+  accountId,
+  setPageState,
+}) => {
   const router = useRouter();
 
   const [selectedAccountId, setSelectedAccountId] = useState(accountId);
