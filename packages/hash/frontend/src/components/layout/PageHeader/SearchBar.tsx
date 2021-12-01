@@ -5,6 +5,7 @@ import Link from "next/link";
 import React, { useRef, useState } from "react";
 import { useDebounce, useKey, useKeys } from "rooks";
 import { apply, tw } from "twind";
+import { blockDomId } from "../../../blocks/page/BlockView";
 import {
   SearchPagesQuery,
   SearchPagesQueryVariables,
@@ -27,6 +28,11 @@ const highlightFindings = (query: string, result: string) => {
     .map((str, i) => (i % 2 === 1 ? `<b>${escape(str)}</b>` : escape(str)))
     .join("");
 };
+
+const toBlockUrl = (searchPage: PageSearchResult): string =>
+  `/${searchPage.page.accountId}/${searchPage.page.entityId}${
+    searchPage.block ? "#" + blockDomId(searchPage.block.entityId) : ""
+  }`;
 
 const resultList = apply`absolute z-10 w-1/2 max-h-60 overflow-auto border border-gray-100 rounded-lg shadow-md`;
 const resultItem = apply`flex border border-gray-100 bg-gray-50 p-2 hover:bg-gray-100 cursor-pointer overflow-ellipsis overflow-hidden`;
@@ -90,7 +96,7 @@ export const SearchBar: React.VFC = () => {
           ) : (
             data.searchPages.map((searchPage: PageSearchResult) => (
               <Link
-                href={`/${searchPage.page.accountId}/${searchPage.page.entityId}`}
+                href={toBlockUrl(searchPage)}
                 key={searchPage.block?.entityId}
               >
                 <li
