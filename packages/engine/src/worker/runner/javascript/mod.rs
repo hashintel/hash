@@ -610,11 +610,22 @@ impl<'m> RunnerImpl<'m> {
 
         match dt.clone() {
             DataType::Float64 => {
-                buffer_lens.push(target_len * 8);
+                buffer_lens.push(target_len * 8); // 8 bytes per f64
+                Ok(())
+            }
+            DataType::UInt32 => {
+                buffer_lens.push(target_len * 4); // 4 bytes per u32
+                Ok(())
+            }
+            DataType::UInt16 => {
+                buffer_lens.push(target_len * 2); // 2 bytes per u16
                 Ok(())
             }
             DataType::Utf8 => {
-                // Use data.len or target_len? TODO
+                // TODO: Use `data.len` or target_len?
+                //       (In practice, target_len has worked for a long time,
+                //       though that's not an ideal reason to use it. Maybe
+                //       `data.len` would also work.)
                 let offsets = unsafe {
                     std::slice::from_raw_parts(data.buffer_ptrs[0] as *const i32, target_len + 1)
                 };

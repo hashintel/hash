@@ -148,11 +148,15 @@ const builder_from_col = (col, field_type) => {
     
     // TODO: Is there a way to add the whole column all at once to `builder`? 
     try {
-        for (var i_agent = 0; i_agent < n_agents; ++i_agent) {
+        for (var i_agent = 0; i_agent < col.length; ++i_agent) {
             builder.append(col[i_agent]);
         }
     } catch (e) {
-        throw new Error("Flushing error: " + JSON.stringify(col[i_agent]));
+        throw new Error(
+            "Flushing error: " + JSON.stringify(
+                [i_agent, col[i_agent], field_type, String(e)]
+            )
+        );
     }
 
     // JS Arrow doesn't really document what `builder.finish` does, but
@@ -209,8 +213,8 @@ Batch.prototype.flush_changes = function(schema, skip) {
                             // are in `cols` should always be in schema too.)
 
         if (field.metadata.get('is_any')) {
-            for (var i_agent = 0; i_agent < n_agents; ++i_agent) {
-                col[i_agent] = json_stringify(col[i_agent]);
+            for (var i_agent = 0; i_agent < col.length; ++i_agent) {
+                col[i_agent] = JSON.stringify(col[i_agent]);
             }
         }
         const builder = builder_from_col(col, field.type);

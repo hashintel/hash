@@ -146,6 +146,7 @@ function run_task(sim_id, i_group, pkg_id, task_message) {
     }
 
     var ret;
+    const sim = this.sims[sim_id];
     try {
         if (i_group === null || i_group === undefined) {
             ret = pkg_run_task(
@@ -156,9 +157,11 @@ function run_task(sim_id, i_group, pkg_id, task_message) {
                 sim.ctx
             ) || {};
 
+            // TODO: Move iteration over groups into `sim.flush_changes`
+            //       (create this function for sim-level state, not just group-level).
             ret.changes = [];
             for (var j_group = 0; j_group < sim.state.length; ++j_group) {
-                ret.changes[j_group] = sim.state[j_group].flush_changes();
+                ret.changes[j_group] = sim.state[j_group].flush_changes(sim.schema);
             }
         } else {
             const group_ctx = sim.ctx.get_group(i_group);
@@ -169,11 +172,11 @@ function run_task(sim_id, i_group, pkg_id, task_message) {
                 sim.state[i_group],
                 group_ctx
             ) || {};
-            ret.changes = sim.state[i_group].flush_changes();
+            ret.changes = sim.state[i_group].flush_changes(sim.schema);
         }
     } catch(e) {
         return {
-            "pkg_error": e.message // TODO: `e.toString()`?
+            "pkg_error": String(e.stack) // `.stack` is V8 built-in; TODO: `e.toString()`?
         };
     }
     return ret;
