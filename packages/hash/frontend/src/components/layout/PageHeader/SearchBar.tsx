@@ -1,44 +1,35 @@
-import React, { useLayoutEffect, useRef, useState } from "react";
+import { useQuery } from "@apollo/client";
+import { PageSearchResult } from "@hashintel/hash-shared/graphql/apiTypes.gen";
+import { escapeRegExp, escape } from "lodash";
+import Link from "next/link";
+import React, { useRef, useState } from "react";
 import { useDebounce, useKey, useKeys } from "rooks";
-import { tw, apply } from "twind";
-
+import { apply, tw } from "twind";
+import {
+  SearchPagesQuery,
+  SearchPagesQueryVariables,
+} from "../../../graphql/apiTypes.gen";
+import { searchPages } from "../../../graphql/queries/search.queries";
+import { useUser } from "../../hooks/useUser";
 import SearchIcon from "../../Icons/Search";
 
-/** mock service response interface */
-interface SearchResponse {
-  query: string;
-  matches: Array<{ pageEntityVersionId?: string; pageTitle: string }>;
-}
+const highlightFindings = (query: string, result: string) => {
+  const toBeMatched = query
+    .split(/\s+/g)
+    .sort((a, b) => b.length - a.length)
+    .map(escapeRegExp)
+    .join("|");
 
-/** mock service response instance */
-const mockResponse: SearchResponse = {
-  query: "query",
-  matches: [{ pageTitle: "First Result" }, { pageTitle: "Second Result" }],
-};
+  const re = new RegExp(`(${toBeMatched})`, "gi");
 
-/** mock implementation of "@apollo/client" useQuery */
-const useQuery: (...args: any[]) => {
-  data: SearchResponse | null;
-  loading: boolean;
-} = (_, options) => {
-  const query = options.variables.query;
-  const [data, setData] = useState<SearchResponse | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  // using layout-effect to avoid glitches
-  useLayoutEffect(() => {
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      setData(query === "prettyplease" ? mockResponse : null);
-    }, 700);
-  }, [query]);
-
-  return { data, loading };
+  return result
+    .split(re)
+    .map((str, i) => (i % 2 === 1 ? `<b>${escape(str)}</b>` : escape(str)))
+    .join("");
 };
 
 const resultList = apply`absolute z-10 w-1/2 max-h-60 overflow-auto border border-gray-100 rounded-lg shadow-md`;
-const resultItem = apply`flex border border-gray-100 bg-gray-50 p-2 hover:bg-gray-100 cursor-pointer`;
+const resultItem = apply`flex border border-gray-100 bg-gray-50 p-2 hover:bg-gray-100 cursor-pointer overflow-ellipsis overflow-hidden`;
 
 export const SearchBar: React.VFC = () => {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -47,9 +38,17 @@ export const SearchBar: React.VFC = () => {
   const [submittedQuery, setSubmittedQuery_] = useState("");
   const setSubmittedQuery = useDebounce(setSubmittedQuery_, 300);
 
-  const { data, loading } = useQuery("yet irrelevant", {
-    variables: { query: submittedQuery },
+  const { user } = useUser();
+
+  const { data, loading, error } = useQuery<
+    SearchPagesQuery,
+    SearchPagesQueryVariables
+  >(searchPages, {
+    variables: { accountId: user?.accountId!, query: submittedQuery },
+    skip: !user?.accountId || !submittedQuery,
   });
+
+  if (error) console.error(error);
 
   useKeys(["AltLeft", "KeyK"], () => inputRef.current?.focus());
 
@@ -61,7 +60,7 @@ export const SearchBar: React.VFC = () => {
   return (
     <div className={tw`relative h-full w-full`}>
       <div className={tw`absolute h-full flex flex-row items-center`}>
-        <SearchIcon className={tw`m-2 scale-150`}/>
+        <SearchIcon className={tw`m-2 scale-150`} />
       </div>
       <input
         className={tw`p-2 pl-10 w-1/2 border border-gray-200 rounded-lg focus:outline-none`}
@@ -82,17 +81,28 @@ export const SearchBar: React.VFC = () => {
         <ul className={tw`${resultList}`}>
           {isLoading ? (
             <li className={tw`${resultItem}`}>
-              Loading results for {displayedQuery}
+              Loading results for <b>{submittedQuery}</b>.
             </li>
-          ) : !data ? (
+          ) : !data || !data.searchPages.length ? (
             <li className={tw`${resultItem}`}>
-              No results for {displayedQuery}, try "prettyplease"
+              No results found for <b>{submittedQuery}</b>.
             </li>
           ) : (
-            data.matches.map((match) => (
-              <li key={match.pageTitle} className={tw`${resultItem}`}>
-                {match.pageTitle}
-              </li>
+            data.searchPages.map((searchPage: PageSearchResult) => (
+              <Link
+                href={`/${searchPage.page.accountId}/${searchPage.page.entityId}`}
+                key={searchPage.block?.entityId}
+              >
+                <li
+                  className={tw`${resultItem}`}
+                  dangerouslySetInnerHTML={{
+                    __html: highlightFindings(
+                      submittedQuery,
+                      searchPage.content,
+                    ),
+                  }}
+                ></li>
+              </Link>
             ))
           )}
         </ul>
