@@ -102,18 +102,8 @@ export const updateEntity = gql`
 `;
 
 export const aggregateEntity = gql`
-  query aggregateEntity(
-    $accountId: ID!
-    $entityTypeId: ID!
-    $entityTypeVersionId: ID
-    $operation: AggregateOperationInput
-  ) {
-    aggregateEntity(
-      accountId: $accountId
-      entityTypeId: $entityTypeId
-      entityTypeVersionId: $entityTypeVersionId
-      operation: $operation
-    ) {
+  query aggregateEntity($accountId: ID!, $operation: AggregateOperationInput!) {
+    aggregateEntity(accountId: $accountId, operation: $operation) {
       __typename
       results {
         __typename
