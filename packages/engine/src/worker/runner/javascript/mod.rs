@@ -359,14 +359,10 @@ fn state_to_js<'m>(
     for x in agent_batches.iter().zip(msg_batches.iter()).enumerate() {
         let (i_batch, (agent_batch, msg_batch)) = x;
 
-        let agent_batch = batch_to_js(
-            mv8, agent_batch.memory(), agent_batch.metaversion()
-        )?;
+        let agent_batch = batch_to_js(mv8, agent_batch.memory(), agent_batch.metaversion())?;
         js_agent_batches.set(i_batch as u32, agent_batch)?;
 
-        let msg_batch = batch_to_js(
-            mv8, msg_batch.memory(), msg_batch.metaversion()
-        )?;
+        let msg_batch = batch_to_js(mv8, msg_batch.memory(), msg_batch.metaversion())?;
         js_msg_batches.set(i_batch as u32, msg_batch)?;
     }
     Ok((
@@ -890,9 +886,7 @@ impl<'m> RunnerImpl<'m> {
                 e.to_string()
             ))
         })?;
-        let payload_str = mv8::Value::String(
-            mv8.create_string(&serde_json::to_string(&payload)?)
-        );
+        let payload_str = mv8::Value::String(mv8.create_string(&serde_json::to_string(&payload)?));
 
         let args = mv8::Values::from_vec(vec![
             sim_id_to_js(mv8, sim_run_id),

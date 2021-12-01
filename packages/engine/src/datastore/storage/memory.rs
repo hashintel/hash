@@ -187,8 +187,7 @@ impl Memory {
     }
 
     pub fn validate_markers(&self) -> bool {
-        self.visitor()
-            .validate_markers(self.get_id(), self.size)
+        self.visitor().validate_markers(self.get_id(), self.size)
     }
 
     /// Get the bytes which contain relevant batch data/metadata
