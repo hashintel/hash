@@ -55,8 +55,6 @@ export const SearchBar: React.VFC = () => {
     fetchPolicy: "network-only"
   });
 
-  if (error) console.error(error);
-
   useKeys(["AltLeft", "KeyK"], () => inputRef.current?.focus());
 
   useKey(["Escape"], () => setFocused(false));
