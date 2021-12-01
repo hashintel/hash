@@ -138,10 +138,76 @@ const load_elem = (elem, type) => {
     return _struct_to_obj(elem, children);
 }
 
+const uuid_to_bytes = uuid => {
+    let v;
+    const bytes = new Uint8Array(16);
+
+    // Parse ########-....-....-....-............
+    bytes[0] = (v = parseInt(uuid.slice(0, 8), 16)) >>> 24;
+    bytes[1] = (v >>> 16) & 0xff;
+    bytes[2] = (v >>> 8) & 0xff;
+    bytes[3] = v & 0xff;
+
+    // Parse ........-####-....-....-............
+    bytes[4] = (v = parseInt(uuid.slice(9, 13), 16)) >>> 8;
+    bytes[5] = v & 0xff;
+
+    // Parse ........-....-####-....-............
+    bytes[6] = (v = parseInt(uuid.slice(14, 18), 16)) >>> 8;
+    bytes[7] = v & 0xff;
+
+    // Parse ........-....-....-####-............
+    bytes[8] = (v = parseInt(uuid.slice(19, 23), 16)) >>> 8;
+    bytes[9] = v & 0xff;
+
+    // Parse ........-....-....-....-############
+    // (Use "/" to avoid 32-bit truncation when bit-shifting high-order bytes)
+    bytes[10] = ((v = parseInt(uuid.slice(24, 36), 16)) / 0x10000000000) & 0xff;
+    bytes[11] = (v / 0x100000000) & 0xff;
+    bytes[12] = (v >>> 24) & 0xff;
+    bytes[13] = (v >>> 16) & 0xff;
+    bytes[14] = (v >>> 8) & 0xff;
+    bytes[15] = v & 0xff;
+
+    return bytes;
+}
+
+const byte_to_hex = [];
+for (let i = 0; i < 256; ++i) {
+    byte_to_hex.push((i + 0x100).toString(16).substr(1));
+}
+
+const uuid_to_str = bytes => {
+    const uuid = (
+        byte_to_hex[bytes[0]] +
+        byte_to_hex[bytes[1]] +
+        byte_to_hex[bytes[2]] +
+        byte_to_hex[bytes[3]] +
+        '-' +
+        byte_to_hex[bytes[4]] +
+        byte_to_hex[bytes[5]] +
+        '-' +
+        byte_to_hex[bytes[6]] +
+        byte_to_hex[bytes[7]] +
+        '-' +
+        byte_to_hex[bytes[8]] +
+        byte_to_hex[bytes[9]] +
+        '-' +
+        byte_to_hex[bytes[10]] +
+        byte_to_hex[bytes[11]] +
+        byte_to_hex[bytes[12]] +
+        byte_to_hex[bytes[13]] +
+        byte_to_hex[bytes[14]] +
+        byte_to_hex[bytes[15]]
+    ).toLowerCase();
+    return uuid;
+}
+
 return {
     "json_deepcopy": json_deepcopy,
     "load_shallow": load_shallow,
     "load_full":    load_full,
     "load_elem":    load_elem,
+    "uuid_to_str":  uuid_to_str
 }
 })
