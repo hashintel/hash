@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useContext, useMemo, useState } from "react";
 import { tw } from "twind";
 import { format } from "date-fns";
 
@@ -16,6 +16,9 @@ import {
 } from "../../blocks/page/createSuggester/BlockSuggester";
 
 import { useAccountInfos } from "../hooks/useAccountInfos";
+import { BlockMetaContext } from "../../blocks/blockMeta";
+import { BlockVariant } from "@hashintel/block-protocol";
+import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 
 type BlockContextMenuProps = {
   blockSuggesterProps: BlockSuggesterProps;
@@ -24,7 +27,13 @@ type BlockContextMenuProps = {
   entityStore: EntityStore;
 };
 
-const MENU_ITEMS = [
+type MenuItemType = {
+  key: string;
+  title: string;
+  icon: JSX.Element;
+};
+
+const MENU_ITEMS: Array<MenuItemType> = [
   {
     key: "delete",
     title: "Delete",
@@ -45,7 +54,11 @@ const MENU_ITEMS = [
     title: "Turn into",
     icon: <LoopIcon className={tw`!text-inherit mr-1`} />,
   },
-] as const;
+];
+
+const searchableActions = MENU_ITEMS.filter(
+  (item) => item.key !== "switchBlock",
+);
 
 export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
   blockSuggesterProps,
@@ -64,19 +77,97 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
     throw new Error("BlockContextMenu linked to non-block entity");
   }
 
+  const [menuState, setMenuState] = useState<"normal" | "search">("normal");
+  const [searchText, setSearchText] = useState("");
+  const [filteredMenuItems, setFilteredMenuItems] = useState<{
+    actions: Array<MenuItemType>;
+    blocks: Array<{
+      variant: BlockVariant;
+      meta: BlockMeta;
+    }>;
+  }>({
+    actions: [],
+    blocks: [],
+  });
+
+  const blocksMeta = useContext(BlockMetaContext);
+
+  const blockOptions = useMemo(() => {
+    return Array.from(blocksMeta.values()).flatMap((blockMeta) =>
+      blockMeta.componentMetadata.variants.map((variant) => ({
+        variant,
+        meta: blockMeta,
+      })),
+    );
+  }, [blocksMeta]);
+
+  const search = (newSearchText: string) => {
+    setSearchText(newSearchText);
+
+    if (!newSearchText) {
+      if (menuState !== "normal") {
+        setMenuState("normal");
+        setSelectedIndex(0);
+      }
+    } else {
+      if (menuState !== "search") {
+        setMenuState("search");
+        setSelectedIndex(0);
+      }
+
+      const filteredActions = searchableActions.filter((item) =>
+        item.title
+          .toLocaleLowerCase()
+          .includes(newSearchText.toLocaleLowerCase()),
+      );
+
+      const filteredBlocks = blockOptions.filter((block) =>
+        block.variant.displayName
+          ?.toLocaleLowerCase()
+          .includes(newSearchText.toLocaleLowerCase()),
+      );
+
+      setFilteredMenuItems({
+        actions: filteredActions,
+        blocks: filteredBlocks,
+      });
+    }
+  };
+
   useKey(["ArrowUp", "ArrowDown"], (event) => {
     event.preventDefault();
     if (subMenuVisible) return;
 
-    let index = selectedIndex + (event.key === "ArrowUp" ? -1 : 1);
-    index += MENU_ITEMS.length;
-    index %= MENU_ITEMS.length;
-    setSelectedIndex(index);
+    if (menuState === "normal") {
+      let index = selectedIndex + (event.key === "ArrowUp" ? -1 : 1);
+      index += MENU_ITEMS.length;
+      index %= MENU_ITEMS.length;
+      setSelectedIndex(index);
+    } else {
+      const filteredItemsLength =
+        filteredMenuItems.actions.length + filteredMenuItems.blocks.length;
+
+      let index = selectedIndex + (event.key === "ArrowUp" ? -1 : 1);
+      index += filteredItemsLength;
+      index %= filteredItemsLength;
+      setSelectedIndex(index);
+    }
   });
 
   useKey(["ArrowLeft", "ArrowRight"], (event) => {
     if (MENU_ITEMS[selectedIndex]?.key === "switchBlock") {
       setSubMenuVisible(event.key === "ArrowRight");
+    }
+  });
+
+  useKey(["Escape"], () => {
+    closeMenu();
+  });
+
+  useKey(["Enter"], (event) => {
+    if (menuState === "normal") {
+      handleClick(MENU_ITEMS[selectedIndex].key);
+      event.stopPropagation();
     }
   });
 
@@ -107,72 +198,163 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
     >
       <div className={tw`px-4 pt-3 mb-2`}>
         <input
+          autoFocus
+          value={searchText}
+          onChange={(event) => search(event.target.value)}
           className={tw`block w-full px-2 py-1 bg-gray-50 border-1 text-sm rounded-sm `}
           placeholder="Filter actions..."
         />
       </div>
-      <ul className={tw`text-sm mb-4`}>
-        {MENU_ITEMS.map(({ title, icon, key }, index) => {
-          if (key === "copyLink" && !entityId) {
-            return null;
-          }
-          return (
-            <li key={key} className={tw`flex`}>
-              <button
-                className={tw`flex-1 hover:bg-gray-100 ${
-                  index === selectedIndex ? "bg-gray-100" : ""
-                }  flex items-center py-1 px-4 group`}
-                onFocus={() => setSelectedIndex(index)}
-                onMouseOver={() => setSelectedIndex(index)}
-                onClick={() => handleClick(key)}
-                onKeyDown={(evt) => {
-                  if (evt.key === "Enter") {
-                    handleClick(key);
-                  }
-                }}
-                type="button"
-              >
-                {icon}
-                <span>{title}</span>
-                {key === "switchBlock" && (
-                  <span className={tw`ml-auto`}>&rarr;</span>
+      {menuState === "normal" ? (
+        <>
+          <ul className={tw`text-sm mb-4`}>
+            {MENU_ITEMS.map(({ title, icon, key }, index) => {
+              if (key === "copyLink" && !entityId) {
+                return null;
+              }
+              return (
+                <li key={key} className={tw`flex`}>
+                  <button
+                    className={tw`flex-1 hover:bg-gray-100 ${
+                      index === selectedIndex ? "bg-gray-100" : ""
+                    }  flex items-center py-1 px-4 group`}
+                    onFocus={() => setSelectedIndex(index)}
+                    onMouseOver={() => setSelectedIndex(index)}
+                    onClick={() => handleClick(key)}
+                    type="button"
+                  >
+                    {icon}
+                    <span>{title}</span>
+                    {key === "switchBlock" && (
+                      <span className={tw`ml-auto`}>&rarr;</span>
+                    )}
+                    {key === "switchBlock" && index === selectedIndex && (
+                      <BlockSuggester
+                        className={`left-full ml-0.5 mt-2 ${
+                          subMenuVisible ? "block" : "hidden"
+                        } text-left hover:block group-hover:block shadow-xl`}
+                        {...blockSuggesterProps}
+                      />
+                    )}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+          <div
+            className={tw`border-t-1 border-gray-200 px-4 py-2 text-xs text-gray-400`}
+          >
+            <p>
+              Last edited by {/* @todo use lastedited value when available */}
+              {
+                accounts.find(
+                  (account) =>
+                    account.entityId ===
+                    blockData?.properties.entity.createdById,
+                )?.name
+              }
+            </p>
+            {typeof blockData?.properties.entity.updatedAt === "string" && (
+              <p>
+                {format(
+                  new Date(blockData.properties.entity.updatedAt),
+                  "hh.mm a",
                 )}
-                {key === "switchBlock" && index === selectedIndex && (
-                  <BlockSuggester
-                    className={`left-full ml-0.5 mt-2 ${
-                      subMenuVisible ? "block" : "hidden"
-                    } text-left hover:block group-hover:block shadow-xl`}
-                    {...blockSuggesterProps}
-                  />
+                {", "}
+                {format(
+                  new Date(blockData.properties.entity.updatedAt),
+                  "dd/MM/yyyy",
                 )}
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-      <div
-        className={tw`border-t-1 border-gray-200 px-4 py-2 text-xs text-gray-400`}
-      >
-        <p>
-          Last edited by {/* @todo use lastedited value when available */}
-          {
-            accounts.find(
-              (account) =>
-                account.entityId === blockData?.properties.entity.createdById,
-            )?.name
-          }
-        </p>
-        {typeof blockData?.properties.entity.updatedAt === "string" && (
-          <p>
-            {format(new Date(blockData.properties.entity.updatedAt), "hh.mm a")}
-            {", "}
-            {format(
-              new Date(blockData.properties.entity.updatedAt),
-              "dd/MM/yyyy",
+              </p>
             )}
-          </p>
-        )}
-      </div>
+          </div>
+        </>
+      ) : (
+        <>
+          {!!filteredMenuItems.actions.length && (
+            <>
+              <div className={tw`text-sm px-4 mb-1`}>Actions</div>
+              <ul className={tw`text-sm mb-4`}>
+                {filteredMenuItems.actions.map(
+                  ({ title, icon, key }, index) => {
+                    if (key === "copyLink" && !entityId) {
+                      return null;
+                    }
+                    return (
+                      <li key={key} className={tw`flex`}>
+                        <button
+                          className={tw`flex-1 hover:bg-gray-100 ${
+                            index === selectedIndex ? "bg-gray-100" : ""
+                          }  flex items-center py-1 px-4 group`}
+                          onFocus={() => setSelectedIndex(index)}
+                          onMouseOver={() => setSelectedIndex(index)}
+                          onClick={() => handleClick(key)}
+                          type="button"
+                        >
+                          {icon}
+                          <span>{title}</span>
+                          {key === "switchBlock" && (
+                            <span className={tw`ml-auto`}>&rarr;</span>
+                          )}
+                          {key === "switchBlock" && index === selectedIndex && (
+                            <BlockSuggester
+                              className={`left-full ml-0.5 mt-2 ${
+                                subMenuVisible ? "block" : "hidden"
+                              } text-left hover:block group-hover:block shadow-xl`}
+                              {...blockSuggesterProps}
+                            />
+                          )}
+                        </button>
+                      </li>
+                    );
+                  },
+                )}
+              </ul>
+            </>
+          )}
+
+          {!!filteredMenuItems.blocks.length && (
+            <>
+              <div className={tw`text-sm px-4 mb-1`}>Turn Into</div>
+              <ul className={tw`text-sm mb-4`}>
+                {filteredMenuItems.blocks.map((option, index) => {
+                  const {
+                    variant: { displayName, icon },
+                  } = option;
+
+                  const key = index;
+
+                  return (
+                    <li key={key} className={tw`flex`}>
+                      <button
+                        className={tw`flex-1 hover:bg-gray-100 ${
+                          index === selectedIndex ? "bg-gray-100" : ""
+                        }  flex items-center py-1 px-4 group`}
+                        onFocus={() => setSelectedIndex(index)}
+                        onMouseOver={() => setSelectedIndex(index)}
+                        onClick={() =>
+                          blockSuggesterProps.onChange(
+                            option.variant,
+                            option.meta,
+                          )
+                        }
+                        type="button"
+                      >
+                        <img src={icon} className={tw`!text-inherit mr-1`} />
+                        <span>{displayName}</span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          )}
+
+          {!filteredMenuItems.actions && !filteredMenuItems.blocks && (
+            <div className={tw`text-sm px-4 mb-1`}>No Results</div>
+          )}
+        </>
+      )}
     </div>
   );
 };
