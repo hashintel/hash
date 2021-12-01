@@ -13,7 +13,7 @@ use crate::{
     datastore::prelude::ArrowSchema,
     simulation::package::worker_init::PackageInitMsgForWorker,
     types::{TaskID, WorkerIndex},
-    Language, SimulationConfig,
+    Language,
 };
 
 pub mod inbound;

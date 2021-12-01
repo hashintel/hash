@@ -1,11 +1,10 @@
 use super::TargetedRunnerTaskMsg;
 use crate::gen::runner_outbound_msg_generated::root_as_runner_outbound_msg;
 use crate::hash_types::worker;
-use crate::worker::runner::comms::{RunnerTaskMsg, SentTask};
+use crate::worker::runner::comms::SentTask;
 use crate::worker::{Error, Result};
 use crate::{proto::SimulationShortID, types::TaskID, Language};
 use std::collections::HashMap;
-use std::convert::TryInto;
 
 #[derive(Debug, Default, Clone)]
 pub struct RunnerError {

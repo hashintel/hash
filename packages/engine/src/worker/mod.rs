@@ -7,7 +7,7 @@ use std::time::Duration;
 
 use futures::stream::FuturesOrdered;
 use futures::StreamExt;
-use tokio::time::{timeout, Timeout};
+use tokio::time::timeout;
 
 use crate::simulation::enum_dispatch::TaskSharedStore;
 use crate::simulation::package::id::PackageId;

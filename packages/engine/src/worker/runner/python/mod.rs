@@ -204,7 +204,7 @@ async fn _run(
     }
 
     // // TODO: Drop nng_sender/nng_receiver before killing process?
-    // match await_timeout(process.wait(), std::time::Duration::from_secs(10))? {
+    // match tokio::time::timeout(std::time::Duration::from_secs(10), process.wait()).await? {
     //     None => {
     //         log::info!("Python process has failed to exit; killing.");
     //         process.kill().await?;

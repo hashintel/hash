@@ -186,8 +186,8 @@ impl StepPackages {
         // Cannot use trait bounds as dyn Package won't be object-safe
         // Traits are tricky anyway for working with iterators
         // Will instead use state.upgrade() and exstate.downgrade() and respectively for context
-        for mut pkg in self.state.iter_mut() {
-            let res = pkg.run(&mut state, context).await?;
+        for pkg in self.state.iter_mut() {
+            pkg.run(&mut state, context).await?;
         }
 
         Ok(state)

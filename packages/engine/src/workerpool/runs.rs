@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use crate::proto::SimulationShortID;
 
-use crate::config::{SimulationConfig, WorkerAllocation};
+use crate::config::WorkerAllocation;
 
 #[derive(Default)]
 pub struct SimulationRuns {

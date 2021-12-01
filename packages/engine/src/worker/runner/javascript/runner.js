@@ -227,7 +227,6 @@ function state_sync(sim_id, agent_pool, message_pool) {
 
 function state_interim_sync(sim_id, group_idxs, agent_batches, message_batches) {
     const sim = this.sims[sim_id];
-
     for (var i = 0; i < group_idxs.length; ++i) {
         const group_state = sim.state[group_idxs[i]];
         
