@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, VoidFunctionComponent } from "react";
 import { useRouter } from "next/router";
 import { useMutation } from "@apollo/client";
 
@@ -13,7 +13,7 @@ type PageTransferDropdownType = {
   setPageState: (state: "normal" | "transferring") => void;
 };
 
-const PageTransferDropdown: React.FunctionComponent<
+const PageTransferDropdown: VoidFunctionComponent<
   PageTransferDropdownType
 > = ({ pageEntityId, accountId, setPageState }) => {
   const router = useRouter();
