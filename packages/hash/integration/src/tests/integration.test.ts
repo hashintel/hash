@@ -1,5 +1,7 @@
 import "./loadTestEnv";
 import {
+  Entity,
+  EntityType,
   Org,
   OrgEmailInvitation,
   User,
@@ -42,6 +44,26 @@ let emailTransporter: DummyEmailTransporter;
 let existingUser: User;
 
 let existingOrg: Org;
+
+const createEntity = (params: { entityTypeId: string }) =>
+  Entity.create(db, {
+    ...params,
+    accountId: existingUser.accountId,
+    createdById: existingUser.entityId,
+    versioned: false,
+    properties: {},
+  });
+
+let entityTypeCounter = 0;
+
+const createEntityType = async () => {
+  entityTypeCounter += 1;
+  return EntityType.create(db, {
+    accountId: existingUser.accountId,
+    createdById: existingUser.entityId,
+    name: `Dummy-${entityTypeCounter}`,
+  });
+};
 
 const createNewBobWithOrg = async () => {
   const bobUser = await User.createUser(db, {
@@ -785,7 +807,7 @@ describe("logged in user ", () => {
     });
   });
 
-  it("Can only create 5 login codes before being rate limited", async () => {
+  it("can only create 5 login codes before being rate limited", async () => {
     // The first code is the one when the account was created, so we should fail at the fourth one
     const { address: emailAddress } = existingUser.getPrimaryEmail();
     for (let i = 0; i < 3; i++) {
@@ -802,5 +824,137 @@ describe("logged in user ", () => {
         emailOrShortname: emailAddress,
       }),
     ).rejects.toThrowError(/has created too many verification codes recently/);
+  });
+
+  it("can create linked aggregation for an entity", async () => {
+    const sourceEntityType = await createEntityType();
+
+    const sourceEntity = await createEntity({
+      entityTypeId: sourceEntityType.entityId,
+    });
+
+    const aggregateEntityType = await createEntityType();
+
+    const numberOfAggregateEntities = 3;
+
+    await Promise.all(
+      [...Array(numberOfAggregateEntities).keys()].map(() =>
+        createEntity({ entityTypeId: aggregateEntityType.entityId }),
+      ),
+    );
+
+    const variables = {
+      sourceAccountId: sourceEntity.accountId,
+      sourceEntityId: sourceEntity.entityId,
+      path: "$.test",
+      operation: {
+        entityTypeId: aggregateEntityType.entityId,
+        itemsPerPage: 10,
+        pageNumber: 1,
+      },
+    };
+
+    const gqlAggregation = await client.createLinkedAggregation(variables);
+
+    expect(gqlAggregation.path).toBe(variables.path);
+    expect(gqlAggregation.sourceAccountId).toBe(variables.sourceAccountId);
+    expect(gqlAggregation.sourceEntityId).toBe(variables.sourceEntityId);
+    expect(gqlAggregation.operation).toEqual({
+      ...variables.operation,
+      pageCount: 1,
+    });
+    expect(gqlAggregation.results).toHaveLength(numberOfAggregateEntities);
+
+    const aggregation = (await sourceEntity.getAggregation(db, {
+      stringifiedPath: variables.path,
+    }))!;
+
+    expect(aggregation).not.toBeNull();
+    expect(aggregation.stringifiedPath).toBe(variables.path);
+  });
+
+  it("can update operation of existing linked aggregation for an entity", async () => {
+    const sourceEntityType = await createEntityType();
+
+    const sourceEntity = await createEntity({
+      entityTypeId: sourceEntityType.entityId,
+    });
+
+    const aggregateEntityType1 = await createEntityType();
+
+    const stringifiedPath = "$.test";
+
+    await sourceEntity.createAggregation(db, {
+      stringifiedPath,
+      createdBy: existingUser,
+      operation: {
+        entityTypeId: aggregateEntityType1.entityId,
+        itemsPerPage: 10,
+        pageNumber: 1,
+      },
+    });
+
+    const aggregateEntityType2 = await createEntityType();
+
+    const updatedOperation = {
+      entityTypeId: aggregateEntityType2.entityId,
+      itemsPerPage: 10,
+      pageNumber: 1,
+    };
+
+    const updatedGQLAggregation = await client.updateLinkedAggregationOperation(
+      {
+        sourceAccountId: sourceEntity.accountId,
+        sourceEntityId: sourceEntity.entityId,
+        path: stringifiedPath,
+        updatedOperation,
+      },
+    );
+
+    expect(updatedGQLAggregation.operation).toEqual({
+      ...updatedOperation,
+      pageCount: 0,
+    });
+
+    const aggregation = (await sourceEntity.getAggregation(db, {
+      stringifiedPath,
+    }))!;
+
+    expect(aggregation).not.toBeNull();
+    expect(aggregation.operation).toEqual(updatedOperation);
+  });
+
+  it("can delete existing linked aggregation for an entity", async () => {
+    const sourceEntityType = await createEntityType();
+
+    const sourceEntity = await createEntity({
+      entityTypeId: sourceEntityType.entityId,
+    });
+
+    const aggregateEntityType = await createEntityType();
+
+    const stringifiedPath = "$.test";
+
+    await sourceEntity.createAggregation(db, {
+      stringifiedPath,
+      createdBy: existingUser,
+      operation: {
+        entityTypeId: aggregateEntityType.entityId,
+        itemsPerPage: 10,
+        pageNumber: 1,
+      },
+    });
+
+    await client.deleteLinkedAggregation({
+      sourceAccountId: sourceEntity.accountId,
+      sourceEntityId: sourceEntity.entityId,
+      path: stringifiedPath,
+    });
+
+    const aggregation = await sourceEntity.getAggregation(db, {
+      stringifiedPath,
+    });
+
+    expect(aggregation).toBeNull();
   });
 });

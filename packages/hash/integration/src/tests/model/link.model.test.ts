@@ -153,7 +153,7 @@ describe("Link model class ", () => {
       entityVersionId: entityAVersionId2,
     }))!;
 
-    expect(entityAVersion1).not.toBe(null);
+    expect(entityAVersion2).not.toBe(null);
 
     const entityAVersionId2OutgoingLinks =
       await entityAVersion2.getOutgoingLinks(db);
