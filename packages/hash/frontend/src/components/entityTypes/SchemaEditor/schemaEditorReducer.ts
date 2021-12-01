@@ -169,6 +169,7 @@ export const schemaEditorReducer: Reducer<
         schemaToEdit.properties ??= {};
         schemaToEdit.properties[newPropertyName] =
           schemaToEdit.properties[oldPropertyName];
+        delete schemaToEdit.properties[oldPropertyName];
       });
     }
 
@@ -194,6 +195,7 @@ export const schemaEditorReducer: Reducer<
             // @todo handle multiple permitted types
             propertyToEdit.items ??= {};
             (propertyToEdit.items as JsonSchema).type = newType;
+            delete (propertyToEdit.items as JsonSchema).$ref;
           }
         } else if (isRef) {
           schemaToEdit.properties![propertyName] = {

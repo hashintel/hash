@@ -74,7 +74,7 @@ export const SchemaPropertyRow: VoidFunctionComponent<
   const { description } = property;
 
   return (
-    <tr className={trClasses} key={name}>
+    <tr className={trClasses}>
       <td className={tdClasses}>
         <TextInputOrDisplay
           className={tw`w-36`}
