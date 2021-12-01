@@ -106,11 +106,12 @@ const load_behaviors = (experiment, behavior_descs) => {
             // Language of loaded behaviors is always Javascript,
             // since couldn't load them here otherwise.
         }
-        if (!desc.columns) {
-            throw new TypeError(
-                desc.name + " required_col_names " + typeof desc.columns
-            );
-        }
+        // TODO
+        // if (!desc.columns) {
+        //     throw new TypeError(
+        //         desc.name + " required_col_names " + typeof desc.columns
+        //     );
+        // }
     }
     
     experiment.behaviors = behaviors;
@@ -166,7 +167,7 @@ const run_task = (experiment, sim, task_message, group_state, group_context) => 
     let agent_ctx = null;
 
     // TODO: Propagate field specs to runners and use in state and context objects
-    const behavior_ids_field_key = '_PRIVATE_14_behavior_indices';
+    const behavior_ids_field_key = '_PRIVATE_14_behavior_ids';
 
     const n_agents_in_group = group_state.n_agents();
     for (var i_agent = 0; i_agent < n_agents_in_group; ++i_agent) {
@@ -177,10 +178,10 @@ const run_task = (experiment, sim, task_message, group_state, group_context) => 
 
         const behavior_ids = agent_state[behavior_ids_field_key];
         const n_behaviors = behavior_ids.length;
-        for (var i_behavior = agent_state.__i_behavior; i_behavior < n_behaviors; ++i_behavior) {
-            agent_state.__i_behavior = i_behavior;
+        for (var i_behavior = agent_state.behavior_index; i_behavior < n_behaviors; ++i_behavior) {
+            agent_state.behavior_index = i_behavior;
             
-            const behavior = experiment.behaviors[behavior_ids.get(i_behavior)];
+            const behavior = experiment.behaviors[behavior_ids[i_behavior]];
             if (behavior.language !== "JavaScript") {
                 // TODO: A simple optimization would be to count the number of
                 //       next-up behaviors in each language (other than JS) and
@@ -195,12 +196,12 @@ const run_task = (experiment, sim, task_message, group_state, group_context) => 
             behavior.fn(agent_state, agent_ctx);
             postprocess(agent_state);
         }
-        agent_state.__i_behavior = i_behavior;
+        agent_state.behavior_index = i_behavior;
     }
     
     return {
         "print": experiment.logged,
-        "target": next_lang || "main",
+        "target": next_lang || "Main",
         "task": "{}" // TODO: Maybe this shouldn't be necessary
     };
 }

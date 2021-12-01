@@ -9,7 +9,7 @@ use crate::datastore::schema::accessor::GetFieldSpec;
 
 use crate::datastore::table::state::ReadState;
 use crate::datastore::table::task_shared_store::TaskSharedStoreBuilder;
-use crate::simulation::package::state::packages::behavior_execution::config::BehaviorIndices;
+use crate::simulation::package::state::packages::behavior_execution::config::BehaviorIds;
 use crate::simulation::package::state::packages::behavior_execution::tasks::ExecuteBehaviorsTask;
 use crate::simulation::task::active::ActiveTask;
 use crate::simulation::task::Task;
@@ -20,18 +20,18 @@ use std::convert::TryFrom;
 use super::super::*;
 
 pub const BEHAVIOR_INDEX_INNER_COUNT: usize = 2;
-pub type BehaviorIndexInnerDataType = u16;
+pub type BehaviorIdInnerDataType = u16;
 
 pub struct Creator {
     experiment_config: Option<Arc<ExperimentConfig>>,
-    behavior_indices: Option<Arc<BehaviorIndices>>,
+    behavior_ids: Option<Arc<BehaviorIds>>,
     behavior_map: Option<Arc<BehaviorMap>>,
 }
 
 impl Creator {
-    fn get_behavior_indices(&self) -> Result<&Arc<BehaviorIndices>> {
-        Ok(self.behavior_indices.as_ref().ok_or(
-            Error::from("BehaviorExecution Package Creator didn't have behavior indices, maybe `initialize_for_experiment` wasn't called."))?)
+    fn get_behavior_ids(&self) -> Result<&Arc<BehaviorIds>> {
+        Ok(self.behavior_ids.as_ref().ok_or(
+            Error::from("BehaviorExecution Package Creator didn't have behavior ids, maybe `initialize_for_experiment` wasn't called."))?)
     }
 
     fn get_behavior_map(&self) -> Result<&Arc<BehaviorMap>> {
@@ -42,7 +42,7 @@ impl Creator {
 
 impl GetWorkerExpStartMsg for Creator {
     fn get_worker_exp_start_msg(&self) -> Result<Value> {
-        let msg = exp_init_message(self.get_behavior_indices()?, self.get_behavior_map()?)?;
+        let msg = exp_init_message(self.get_behavior_ids()?, self.get_behavior_map()?)?;
         Ok(serde_json::to_value(msg)?)
     }
 }
@@ -50,11 +50,11 @@ impl GetWorkerExpStartMsg for Creator {
 impl PackageCreator for Creator {
     fn new(experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn PackageCreator>> {
         let behavior_map = BehaviorMap::try_from(experiment_config.as_ref())?;
-        let behavior_indices = BehaviorIndices::from_behaviors(&behavior_map)?;
+        let behavior_ids = BehaviorIds::from_behaviors(&behavior_map)?;
 
         Ok(Box::new(Creator {
             experiment_config: Some(Arc::clone(experiment_config)),
-            behavior_indices: Some(Arc::new(behavior_indices)),
+            behavior_ids: Some(Arc::new(behavior_ids)),
             behavior_map: Some(Arc::new(behavior_map)),
         }))
     }
@@ -68,7 +68,7 @@ impl PackageCreator for Creator {
         let behavior_ids_col_data_types = fields::index_column_data_types()?;
         // TODO - probably just rename the actual field key to behavior_ids (rather than behavior indices) to avoid confusion with "behavior_index" col
         let behavior_ids_col = accessor
-            .get_local_private_scoped_field_spec("behavior_indices")?
+            .get_local_private_scoped_field_spec("behavior_ids")?
             .to_key()?;
         let behavior_ids_col_index = config
             .sim
@@ -79,7 +79,7 @@ impl PackageCreator for Creator {
 
         Ok(Box::new(BehaviorExecution {
             behavior_map: Arc::clone(self.get_behavior_map()?),
-            behavior_indices: Arc::clone(self.get_behavior_indices()?),
+            behavior_ids: Arc::clone(self.get_behavior_ids()?),
             behavior_ids_col_index,
             behavior_ids_col_data_types,
             comms,
@@ -99,7 +99,7 @@ impl PackageCreator for Creator {
 
 struct BehaviorExecution {
     behavior_map: Arc<BehaviorMap>,
-    behavior_indices: Arc<BehaviorIndices>,
+    behavior_ids: Arc<BehaviorIds>,
     behavior_ids_col_index: usize,
     behavior_ids_col_data_types: [arrow::datatypes::DataType; 3],
     comms: PackageComms,
@@ -114,18 +114,18 @@ impl GetWorkerSimStartMsg for BehaviorExecution {
 // TODO OS - Needs implementing
 impl BehaviorExecution {
     // TODO update doc with correct key, not __behaviors
-    /// Iterates over all "behaviors" fields of agents and writes them into their "__behaviors" field.
+    /// Iterates over all "behaviors" fields of agents and writes them into their "behaviors" field.
     /// This fixation guarantees that all behaviors that were there in the beginning of behavior execution
     /// will be executed accordingly
     fn fix_behavior_chains(&mut self, state: &mut ExState) -> Result<()> {
-        let behavior_indices = chain::gather_behavior_chains(
+        let behavior_ids = chain::gather_behavior_chains(
             state,
-            &self.behavior_indices,
+            &self.behavior_ids,
             self.behavior_ids_col_data_types.clone(),
             self.behavior_ids_col_index,
         )?;
-        state.set_pending_column(behavior_indices)?;
-        state.flush_pending_columns()?;
+
+        state.set_pending_column(behavior_ids)?;
         Ok(())
     }
 
@@ -139,7 +139,7 @@ impl BehaviorExecution {
 
                 let first_behavior = agent_behaviors[0];
                 let behavior_lang = self
-                    .behavior_indices
+                    .behavior_ids
                     .get_index(&first_behavior)
                     .ok_or_else(|| {
                         let bytes = Vec::from(first_behavior);
@@ -179,6 +179,8 @@ impl Package for BehaviorExecution {
     async fn run(&mut self, state: &mut ExState, context: &Context) -> Result<()> {
         log::trace!("Running BehaviorExecution");
         self.fix_behavior_chains(state)?;
+        state.flush_pending_columns()?;
+
         let lang = match self.get_first_lang(state)? {
             Some(lang) => lang,
             None => {

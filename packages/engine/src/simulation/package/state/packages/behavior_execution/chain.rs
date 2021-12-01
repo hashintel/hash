@@ -1,19 +1,19 @@
 use crate::datastore::arrow::batch_conversion::{new_buffer, new_offsets_buffer};
 use crate::datastore::batch::iterators;
-use crate::simulation::package::state::packages::behavior_execution::config::BehaviorIndex;
+use crate::simulation::package::state::packages::behavior_execution::config::BehaviorId;
 
 use super::*;
 
 pub fn gather_behavior_chains(
     state: &ExState,
-    behavior_indices: &BehaviorIndices,
+    behavior_ids: &BehaviorIds,
     data_types: [arrow::datatypes::DataType; 3],
     behavior_ids_col_index: usize,
 ) -> Result<StateColumn> {
     let batches = state.agent_pool().read_batches()?;
 
     let inner = iterators::agent::behavior_list_bytes_iter(&batches)?
-        .map(|v| Chain::from_behaviors(&v, behavior_indices))
+        .map(|v| Chain::from_behaviors(&v, behavior_ids))
         .collect::<Result<Vec<_>>>()?;
     Ok(StateColumn::new(Box::new(ChainList {
         inner,
@@ -23,28 +23,26 @@ pub fn gather_behavior_chains(
 }
 
 pub struct Chain {
-    inner: Vec<BehaviorIndex>,
+    inner: Vec<BehaviorId>,
 }
 
 impl Chain {
-    pub fn from_behaviors(behaviors: &[&[u8]], behavior_indices: &BehaviorIndices) -> Result<Self> {
+    pub fn from_behaviors(behaviors: &[&[u8]], behavior_ids: &BehaviorIds) -> Result<Self> {
         Ok(Chain {
             inner: behaviors
                 .iter()
                 .map(|bytes| {
-                    let index =
-                        behavior_indices.get_index(bytes).ok_or_else(
-                            || match std::str::from_utf8(bytes) {
-                                Ok(res) => Error::from(format!(
-                                    "Could not find behavior with name {}",
-                                    res
-                                )),
-                                Err(_e) => Error::from(format!(
-                                    "Could not parse behavior name. Bytes: {:?}",
-                                    bytes[0..bytes.len().min(100)].to_vec()
-                                )),
-                            },
-                        )?;
+                    let index = behavior_ids.get_index(bytes).ok_or_else(|| {
+                        match std::str::from_utf8(bytes) {
+                            Ok(res) => {
+                                Error::from(format!("Could not find behavior with name {}", res))
+                            }
+                            Err(_e) => Error::from(format!(
+                                "Could not parse behavior name. Bytes: {:?}",
+                                bytes[0..bytes.len().min(100)].to_vec()
+                            )),
+                        }
+                    })?;
                     Ok(index.clone())
                 })
                 .collect::<Result<_>>()?,
@@ -70,11 +68,11 @@ impl IntoArrowChange for ChainList {
             mut_offsets[i + 1] = mut_offsets[i] + len;
         }
 
-        let num_behavior_indices = mut_offsets[num_agents] as usize;
-        let num_indices = num_behavior_indices * BEHAVIOR_INDEX_INNER_COUNT;
+        let num_behavior_ids = mut_offsets[num_agents] as usize;
+        let num_indices = num_behavior_ids * BEHAVIOR_INDEX_INNER_COUNT;
 
-        let mut data = new_buffer::<BehaviorIndexInnerDataType>(num_indices);
-        let mut_data = data.typed_data_mut::<BehaviorIndexInnerDataType>();
+        let mut data = new_buffer::<BehaviorIdInnerDataType>(num_indices);
+        let mut_data = data.typed_data_mut::<BehaviorIdInnerDataType>();
         let mut next_index = 0;
         for i in 0..num_agents {
             let chain = &chains[i];
@@ -96,7 +94,7 @@ impl IntoArrowChange for ChainList {
         // Fixed-length lists
         let builder = arrow::array::ArrayDataBuilder::new(self.data_types[1].clone());
         let child_data = builder
-            .len(num_behavior_indices)
+            .len(num_behavior_ids)
             .null_count(0)
             .child_data(vec![child_data])
             .build();

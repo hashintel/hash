@@ -12,7 +12,7 @@ use crate::Language;
 //       Vec of behavior descriptions in `behavior_descs`.
 #[derive(Serialize, Deserialize)]
 pub struct BehaviorDescription {
-    pub index: BehaviorIndex,
+    pub index: BehaviorId,
     pub name: String,
     pub short_names: Vec<String>,
     pub source: String,
@@ -22,9 +22,9 @@ pub struct BehaviorDescription {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct BehaviorIndex(u16, u16);
+pub struct BehaviorId(u16, u16);
 
-impl BehaviorIndex {
+impl BehaviorId {
     pub fn lang_index(&self) -> u16 {
         self.0
     }
@@ -34,13 +34,13 @@ impl BehaviorIndex {
     }
 }
 
-pub struct BehaviorIndices {
-    name_to_index: HashMap<Vec<u8>, BehaviorIndex>,
-    index_to_name: HashMap<BehaviorIndex, String>,
+pub struct BehaviorIds {
+    name_to_index: HashMap<Vec<u8>, BehaviorId>,
+    index_to_name: HashMap<BehaviorId, String>,
 }
 
-impl BehaviorIndices {
-    pub(crate) fn from_behaviors(behaviors: &BehaviorMap) -> Result<BehaviorIndices> {
+impl BehaviorIds {
+    pub(crate) fn from_behaviors(behaviors: &BehaviorMap) -> Result<BehaviorIds> {
         let mut lang_counts = [0_u16; Language::NUM];
 
         let mut index_to_name = HashMap::new();
@@ -50,27 +50,27 @@ impl BehaviorIndices {
             let lang_index = Language::from_file_name(&shared.name)
                 .map_err(|_| Error::from(format!("Invalid behavior name: \"{}\"", &shared.name)))?
                 .as_index();
-            let behavior_index = BehaviorIndex(lang_index as u16, lang_counts[lang_index]);
+            let behavior_id = BehaviorId(lang_index as u16, lang_counts[lang_index]);
             lang_counts[lang_index] += 1;
 
-            index_to_name.insert(behavior_index, shared.name.clone());
-            name_to_index.insert(shared.name.clone().into_bytes(), behavior_index);
+            index_to_name.insert(behavior_id, shared.name.clone());
+            name_to_index.insert(shared.name.clone().into_bytes(), behavior_id);
             for alt_name in shared.shortnames.iter() {
-                name_to_index.insert(alt_name.clone().into_bytes(), behavior_index);
+                name_to_index.insert(alt_name.clone().into_bytes(), behavior_id);
             }
         }
 
-        Ok(BehaviorIndices {
+        Ok(BehaviorIds {
             index_to_name,
             name_to_index,
         })
     }
 
-    pub fn get_index<K: Deref<Target = [u8]>>(&self, key: &K) -> Option<&BehaviorIndex> {
+    pub fn get_index<K: Deref<Target = [u8]>>(&self, key: &K) -> Option<&BehaviorId> {
         self.name_to_index.get(key.deref())
     }
 
-    pub fn get_name(&self, behavior_index: &BehaviorIndex) -> Option<&String> {
+    pub fn get_name(&self, behavior_index: &BehaviorId) -> Option<&String> {
         self.index_to_name.get(behavior_index)
     }
 }
@@ -101,7 +101,7 @@ pub struct SendableBehaviorKeys {
 }
 
 pub fn exp_init_message(
-    behavior_indices: &BehaviorIndices,
+    behavior_ids: &BehaviorIds,
     behavior_map: &BehaviorMap,
 ) -> Result<Vec<BehaviorDescription>> {
     let behavior_descriptions = behavior_map
@@ -113,7 +113,7 @@ pub fn exp_init_message(
 
             let language = Language::from_file_name(file_name)
                 .map_err(|_| Error::from("Couldn't get language from behavior file name"))?;
-            let index = behavior_indices
+            let index = behavior_ids
                 .name_to_index
                 .get(shared.name.as_bytes())
                 .ok_or(Error::from("Couldn't get index from behavior name"))?

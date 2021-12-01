@@ -320,10 +320,10 @@ impl TryInto<FieldType> for AgentStateField {
                 FieldType::new(FieldTypeVariant::Boolean, false)
             }
             AgentStateField::Height => FieldType::new(FieldTypeVariant::Number, true),
-            // Note `Messages` and `Extra` and 'BehaviorIndex' are not included in here:
+            // Note `Messages` and `Extra` and 'BehaviorId' are not included in here:
             // 1) `Messages` as they are in a separate batch
             // 2) `Extra` as they are not yet implemented
-            // 3) 'BehaviorIndex' as it is only used in prime
+            // 3) 'BehaviorId' as it is only used in prime
             AgentStateField::Extra(_) | AgentStateField::Messages => {
                 return Err(Error::from(format!(
                     "Cannot match built in field with name {}",

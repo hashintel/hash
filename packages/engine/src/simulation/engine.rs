@@ -117,7 +117,7 @@ impl Engine {
         //       step (i.e. no StateSync message has yet been sent on that step).
         //       This sleep should be removed, but for now it can only fail with
         //       a panic, not a silent data race, due to the `Arc::try_unwrap` below.
-        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+        tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
 
         let state = Arc::try_unwrap(state)
             .map_err(|_| Error::from("Unable to unwrap state after context package execution"))?;
