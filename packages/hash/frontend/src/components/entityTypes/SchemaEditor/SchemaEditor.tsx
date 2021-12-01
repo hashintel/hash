@@ -57,6 +57,7 @@ export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
       aggregateEntityTypes({ includeOtherTypesInUse: true })
         .then((response) => setAvailableEntityTypes(response.results))
         .catch((err) =>
+          // eslint-disable-next-line no-console -- TODO: consider using logger
           console.error(`Error fetching entity type options: ${err.message}`),
         );
     }
@@ -96,6 +97,7 @@ export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
       entityId,
       schema: workingSchemaDraft as JSONObject,
     })?.catch((err) => {
+      // eslint-disable-next-line no-console -- TODO: consider using logger
       console.error(`Error updating schema: ${err.message}`);
       throw err;
     });
@@ -105,6 +107,7 @@ export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
     () => () => {
       // fire off any pending updates
       debouncedUpdate.flush()?.catch((err) => {
+        // eslint-disable-next-line no-console -- TODO: consider using logger
         console.error(`Error updating schema: ${err.message}`);
         throw err;
       });
