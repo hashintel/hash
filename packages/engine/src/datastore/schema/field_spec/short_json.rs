@@ -103,7 +103,7 @@ impl FieldType {
                     if depth != 0 {
                         return Err(ShortJSONError::InvalidAnyTypeLevel.into());
                     }
-                    Ok(FieldType::new(FieldTypeVariant::Serialized, is_nullable))
+                    Ok(FieldType::new(FieldTypeVariant::AnyType, is_nullable))
                 }
                 _ => {
                     if let Some(ref key) = definitions.and_then(|defs| defs.get(name)) {

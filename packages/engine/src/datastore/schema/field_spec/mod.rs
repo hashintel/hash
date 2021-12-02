@@ -42,7 +42,7 @@ pub enum FieldTypeVariant {
     Number,
     Boolean,
     String,
-    Serialized,
+    AnyType,
     FixedLengthArray { kind: Box<FieldType>, len: usize },
     VariableLengthArray(Box<FieldType>),
     Struct(Vec<FieldSpec>),

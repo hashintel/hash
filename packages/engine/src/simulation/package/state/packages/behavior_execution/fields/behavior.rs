@@ -305,7 +305,7 @@ impl FieldType {
                     BaseKeyType::String => FieldTypeVariant::String,
                     BaseKeyType::Boolean => FieldTypeVariant::Boolean,
                     BaseKeyType::Number => FieldTypeVariant::Number,
-                    BaseKeyType::Any => FieldTypeVariant::Serialized,
+                    BaseKeyType::Any => FieldTypeVariant::AnyType,
                     BaseKeyType::Struct => {
                         let mut children = vec![];
                         match map.get("fields").ok_or_else(|| {

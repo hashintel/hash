@@ -547,7 +547,7 @@ impl IntoRecordBatch for &[&AgentState] {
                     .inner
                     .field_type
                     .variant,
-                FieldTypeVariant::Serialized
+                FieldTypeVariant::AnyType
             ) {
                 // Any-type (JSON string) column
                 json_vals_to_any_type_col(vals, field.data_type())
@@ -1125,7 +1125,7 @@ impl IntoAgentStates for RecordBatch {
                     .filter_map(|(key, field_spec)| {
                         if matches!(
                             field_spec.inner.field_type.variant,
-                            FieldTypeVariant::Serialized
+                            FieldTypeVariant::AnyType
                         ) {
                             Some(key.value().to_string())
                         } else {

@@ -29,6 +29,19 @@ const get_u64 = (dataview, offset) => {
     }
     return combined;
 }
+const parse_any_type_fields = (metadata) => {
+    const any_type_fields = new Set();
+
+    let field_names = metadata.get('any_type_fields');
+
+    if (field_names) {
+        for (let field_name of field_names.split(',')) {
+            any_type_fields.add(field_name);
+        }
+    }
+
+    return any_type_fields
+}
 
 const load_vectors = (rb_bytes, schema) => {
     const reader = new arrow.MessageReader(rb_bytes);
@@ -38,7 +51,7 @@ const load_vectors = (rb_bytes, schema) => {
     const dicts = new Map();
     const loader = new reader.VectorLoader(body, header.nodes, header.buffers, dicts);
     const vector_list = loader.visitMany(schema.fields);
-
+    const any_type_fields = parse_any_type_fields(schema.metadata);
     // Unnecessary:
     // const rb = new arrow.RecordBatch(schema, header.length, vector_list);
 
@@ -47,7 +60,7 @@ const load_vectors = (rb_bytes, schema) => {
         // `VectorLoader` doesn't actually return instances of `Vector` for some reason.
         const vector = arrow.Vector.new(vector_list[i]);
         const field = schema.fields[i];
-        vector.type.is_any = field.metadata.get('is_any');
+        vector.type.is_any = any_type_fields.has(field.name);
         vectors[field.name] = vector;
     }
     return vectors;

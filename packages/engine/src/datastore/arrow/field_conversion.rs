@@ -39,7 +39,7 @@ impl FieldType {
     fn is_fixed_size(&self) -> bool {
         match &self.variant {
             FieldTypeVariant::Number | FieldTypeVariant::Boolean => true,
-            FieldTypeVariant::String | FieldTypeVariant::Serialized => false,
+            FieldTypeVariant::String | FieldTypeVariant::AnyType => false,
             FieldTypeVariant::FixedLengthArray {
                 kind: inner,
                 len: _,
@@ -55,7 +55,7 @@ impl FieldType {
             FieldTypeVariant::Number => Ok(ArrowDataType::Float64),
             FieldTypeVariant::Boolean => Ok(ArrowDataType::Boolean),
             FieldTypeVariant::String => Ok(ArrowDataType::Utf8),
-            FieldTypeVariant::Serialized => Ok(ArrowDataType::Utf8),
+            FieldTypeVariant::AnyType => Ok(ArrowDataType::Utf8),
             FieldTypeVariant::FixedLengthArray { kind: inner, len } => Ok(
                 ArrowDataType::FixedSizeList(Box::new(inner.get_arrow_data_type()?), *len as i32),
             ),
@@ -138,7 +138,7 @@ impl FieldSpecMap {
 
             if matches!(
                 field_spec.inner.field_type.variant,
-                FieldTypeVariant::Serialized
+                FieldTypeVariant::AnyType
             ) {
                 any_types.push(key)
             }
@@ -154,8 +154,8 @@ impl FieldSpecMap {
             .collect::<Vec<_>>();
 
         let mut metadata = HashMap::with_capacity(1);
-        // TODO - Rename serialized to any_types
-        metadata.insert("serialized".into(), any_types.join(","));
+        // TODO this can be simplified when we update arrow-rs (beyond 1.0.1), we can set this on Field's custom metadata instead of the schema
+        metadata.insert("any_type_fields".into(), any_types.join(","));
         metadata.insert("nullable".into(), nullabilities.join(","));
         Ok(ArrowSchema::new_with_metadata(
             partitioned_fields

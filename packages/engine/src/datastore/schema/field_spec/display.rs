@@ -8,7 +8,7 @@ impl fmt::Debug for FieldTypeVariant {
             FieldTypeVariant::Number => write!(f, "number"),
             FieldTypeVariant::Boolean => write!(f, "boolean"),
             FieldTypeVariant::String => write!(f, "string"),
-            FieldTypeVariant::Serialized => write!(f, "any"),
+            FieldTypeVariant::AnyType => write!(f, "any"),
             FieldTypeVariant::FixedLengthArray { kind, len } => write!(
                 f,
                 "fixed_size_list: {{type: {:?}, length: {:?}}}",

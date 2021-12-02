@@ -43,6 +43,18 @@ def load_markers(mem):
     return markers
 
 
+def parse_any_type_fields(metadata):
+    any_type_fields = set()
+
+    field_names = metadata.get('any_type_fields')
+
+    if field_names:
+        for field_name in field_names.split(','):
+            any_type_fields.add(field_name)
+
+    return any_type_fields
+
+
 def load_record_batch(mem, schema=None):
     (schema_offset, schema_size, _, _, meta_offset, _, data_offset, data_size) = load_markers(mem)
     # Pyarrow exposes a function for parsing the record batch message data header and
@@ -57,11 +69,13 @@ def load_record_batch(mem, schema=None):
         schema = pa.ipc.read_schema(schema_buf)
     rb = pa.ipc.read_record_batch(rb_buf, schema)
 
+    any_type_fields = parse_any_type_fields(schema.metadata)
+
     # Put data about `any` types and nullability directly in record batch.
     for i_field in range(len(rb.num_columns)):
         field = rb.schema.field(i_field)
         vector = rb.column(i_field)
-        vector.type.is_any = field.metadata[b'is_any'].decode()
+        vector.type.is_any = field.name in any_type_fields
         vector.type.is_nullable = field.nullable
 
     return rb
@@ -143,6 +157,8 @@ class Batch:
                 self.load_col(field_name, loaders.get(field_name))
 
     def flush_changes(self, schema, skip):
+        any_type_fields = parse_any_type_fields(schema.metadata)
+
         # Dynamically accessed columns (if any) were added to `cols` by `state`.
         changes = []
         for field_name, col in self.cols.items():
@@ -154,7 +170,7 @@ class Batch:
                 continue  # Not supposed to have this column in `cols`?
 
             field = schema.field(i_field)
-            if field.metadata[b'is_any'].decode():
+            if field.name in any_type_fields:
                 c = [json.dumps(elem) for elem in col]
             else:
                 c = col

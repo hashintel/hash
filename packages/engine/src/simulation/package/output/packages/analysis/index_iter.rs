@@ -631,7 +631,7 @@ pub(super) fn index_iterator_filter_creator(
         .inner
         .field_type;
 
-    if value.is_null() && !matches!(&field_type.variant, FieldTypeVariant::Serialized) {
+    if value.is_null() && !matches!(&field_type.variant, FieldTypeVariant::AnyType) {
         return index_iterator_null_filter(operations, accessor, field, comparison);
     }
 
@@ -677,7 +677,7 @@ pub(super) fn index_iterator_filter_creator(
 
             index_iterator_string_filter(operations, accessor, field, comparison, string)
         }
-        FieldTypeVariant::Serialized => {
+        FieldTypeVariant::AnyType => {
             index_iterator_serialized_filter(operations, accessor, field, comparison, value)
         }
         _ => Err(Error::from(
@@ -743,7 +743,7 @@ pub(super) fn index_iterator_mapper_creator(
                 default_first_getter(accessor, &first_field)?
             }
         }
-        FieldTypeVariant::Serialized => {
+        FieldTypeVariant::AnyType => {
             let a: ValueIteratorCreator = Box::new(move |agents| {
                 let iterator = json_serialized_value_iter(agents, &first_field)?;
                 Ok(Box::new(iterator) as ValueIterator)
