@@ -1,12 +1,8 @@
 import { sql } from "slonik";
 
 import { Connection } from "../types";
-import {
-  DBLinkRow,
-  linksColumnNames,
-  mapColumnNamesToSQL,
-  mapDBLinkRowToDBLink,
-} from "./util";
+import { DBLinkRow, linksColumnNames, mapDBLinkRowToDBLink } from "./util";
+import { mapColumnNamesToSQL } from "../util";
 
 export const getEntityIncomingLinks = async (
   conn: Connection,
