@@ -9,16 +9,16 @@ import LinkIcon from "@material-ui/icons/LinkOutlined";
 import { useKey } from "rooks";
 
 import { EntityStore, isBlockEntity } from "@hashintel/hash-shared/entityStore";
+import { BlockVariant } from "@hashintel/block-protocol";
+import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
+
 import { blockDomId } from "../../blocks/page/BlockView";
 import {
   BlockSuggester,
   BlockSuggesterProps,
 } from "../../blocks/page/createSuggester/BlockSuggester";
-
 import { useAccountInfos } from "../hooks/useAccountInfos";
 import { BlockMetaContext } from "../../blocks/blockMeta";
-import { BlockVariant } from "@hashintel/block-protocol";
-import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 
 type BlockContextMenuProps = {
   blockSuggesterProps: BlockSuggesterProps;
@@ -173,28 +173,6 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
     closeMenu();
   });
 
-  useKey(["Enter"], (event) => {
-    event.stopPropagation();
-    event.preventDefault();
-    if (menuState === "normal") {
-      if (usableMenuItems[selectedIndex]?.key === "switchBlock") {
-        console.log(usableMenuItems[selectedIndex]);
-        return setSubMenuVisible(true);
-      }
-      handleClick(usableMenuItems[selectedIndex].key);
-    } else {
-      if (selectedIndex < filteredMenuItems.actions.length) {
-        handleClick(filteredMenuItems.actions[selectedIndex].key);
-      } else {
-        const selectedBlock =
-          filteredMenuItems.blocks[
-            selectedIndex - filteredMenuItems.actions.length
-          ];
-        blockSuggesterProps.onChange(selectedBlock.variant, selectedBlock.meta);
-      }
-    }
-  });
-
   const handleClick = (key: typeof MENU_ITEMS[number]["key"]) => {
     // handle menu item click here
     switch (key) {
@@ -215,6 +193,25 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
       closeMenu();
     }
   };
+
+  useKey(["Enter"], (event) => {
+    event.stopPropagation();
+    event.preventDefault();
+    if (menuState === "normal") {
+      if (usableMenuItems[selectedIndex]?.key === "switchBlock") {
+        return setSubMenuVisible(true);
+      }
+      handleClick(usableMenuItems[selectedIndex].key);
+    } else if (selectedIndex < filteredMenuItems.actions.length) {
+      handleClick(filteredMenuItems.actions[selectedIndex].key);
+    } else {
+      const selectedBlock =
+        filteredMenuItems.blocks[
+          selectedIndex - filteredMenuItems.actions.length
+        ];
+      blockSuggesterProps.onChange(selectedBlock.variant, selectedBlock.meta);
+    }
+  });
 
   return (
     <div
@@ -258,7 +255,7 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
                       index === selectedIndex &&
                       subMenuVisible && (
                         <BlockSuggester
-                          className={`left-full ml-0.5 mt-2 block text-left hover:block group-hover:block shadow-xl`}
+                          className="left-full ml-0.5 mt-2 block text-left hover:block group-hover:block shadow-xl"
                           {...blockSuggesterProps}
                         />
                       )}
@@ -369,7 +366,11 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
                         }
                         type="button"
                       >
-                        <img src={icon} className={tw`!text-inherit mr-1`} />
+                        <img
+                          src={icon}
+                          alt={displayName}
+                          className={tw`!text-inherit mr-1`}
+                        />
                         <span>{displayName}</span>
                       </button>
                     </li>
