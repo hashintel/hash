@@ -3,8 +3,7 @@ use super::prelude::*;
 /// Internal representation of Arrow `FieldNode` Message
 #[derive(Debug, Clone)]
 pub struct Node {
-    // Number of value slots (if Node is the base
-    // column node, then it is the number of items in column)
+    /// Number of value slots (if Node is the base column node, then it is the number of items in column)
     pub length: usize,
     pub null_count: usize,
 }

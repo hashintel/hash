@@ -225,7 +225,7 @@ Batch.prototype.flush_changes = function(schema, skip) {
                             // might be missing from `cols`. (But columns that
                             // are in `cols` should always be in schema too.)
 
-        if (field.metadata.get('is_any')) {
+        if (this.vectors[field.name].type.is_any) {
             for (var i_agent = 0; i_agent < col.length; ++i_agent) {
                 col[i_agent] = JSON.stringify(col[i_agent]);
             }

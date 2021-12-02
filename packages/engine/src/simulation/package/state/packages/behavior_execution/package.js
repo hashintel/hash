@@ -180,8 +180,10 @@ const run_task = (experiment, sim, task_message, group_state, group_context) => 
         const n_behaviors = behavior_ids.length;
         for (var i_behavior = agent_state.behavior_index; i_behavior < n_behaviors; ++i_behavior) {
             agent_state.behavior_index = i_behavior;
-            
-            const behavior = experiment.behaviors[behavior_ids[i_behavior]];
+
+            const key = behavior_ids.get(i_behavior)
+            // We do this because it's shallow-loaded and the key is an Arrow Vec rather than a clean array
+            const behavior = experiment.behaviors[[key.get(0), key.get(1)]];
             if (behavior.language !== "JavaScript") {
                 // TODO: A simple optimization would be to count the number of
                 //       next-up behaviors in each language (other than JS) and

@@ -112,8 +112,8 @@ const load_full = vector => {
         const array = [];
         for (var j = 0; j < json_strs.length; ++j) {
             array[j] = JSON.parse(json_strs[j]);
-            return array;
         }
+        return array;
     }
     
     return _vector_to_array(vector);
