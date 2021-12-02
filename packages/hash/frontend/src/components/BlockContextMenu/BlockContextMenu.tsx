@@ -56,10 +56,6 @@ const MENU_ITEMS: Array<MenuItemType> = [
   },
 ];
 
-const searchableActions = MENU_ITEMS.filter(
-  (item) => item.key !== "switchBlock",
-);
-
 export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
   blockSuggesterProps,
   closeMenu,
@@ -101,6 +97,17 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
     );
   }, [blocksMeta]);
 
+  const usableMenuItems = MENU_ITEMS.filter(({ key }) => {
+    if (key === "copyLink" && !entityId) {
+      return false;
+    }
+    return true;
+  });
+
+  const searchableActions = usableMenuItems.filter(
+    (item) => item.key !== "switchBlock",
+  );
+
   const search = (newSearchText: string) => {
     setSearchText(newSearchText);
 
@@ -108,11 +115,13 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
       if (menuState !== "normal") {
         setMenuState("normal");
         setSelectedIndex(0);
+        setSubMenuVisible(false);
       }
     } else {
       if (menuState !== "search") {
         setMenuState("search");
         setSelectedIndex(0);
+        setSubMenuVisible(false);
       }
 
       const filteredActions = searchableActions.filter((item) =>
@@ -140,8 +149,8 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
 
     if (menuState === "normal") {
       let index = selectedIndex + (event.key === "ArrowUp" ? -1 : 1);
-      index += MENU_ITEMS.length;
-      index %= MENU_ITEMS.length;
+      index += usableMenuItems.length;
+      index %= usableMenuItems.length;
       setSelectedIndex(index);
     } else {
       const filteredItemsLength =
@@ -155,7 +164,7 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
   });
 
   useKey(["ArrowLeft", "ArrowRight"], (event) => {
-    if (MENU_ITEMS[selectedIndex]?.key === "switchBlock") {
+    if (usableMenuItems[selectedIndex]?.key === "switchBlock") {
       setSubMenuVisible(event.key === "ArrowRight");
     }
   });
@@ -165,9 +174,24 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
   });
 
   useKey(["Enter"], (event) => {
+    event.stopPropagation();
+    event.preventDefault();
     if (menuState === "normal") {
-      handleClick(MENU_ITEMS[selectedIndex].key);
-      event.stopPropagation();
+      if (usableMenuItems[selectedIndex]?.key === "switchBlock") {
+        console.log(usableMenuItems[selectedIndex]);
+        return setSubMenuVisible(true);
+      }
+      handleClick(usableMenuItems[selectedIndex].key);
+    } else {
+      if (selectedIndex < filteredMenuItems.actions.length) {
+        handleClick(filteredMenuItems.actions[selectedIndex].key);
+      } else {
+        const selectedBlock =
+          filteredMenuItems.blocks[
+            selectedIndex - filteredMenuItems.actions.length
+          ];
+        blockSuggesterProps.onChange(selectedBlock.variant, selectedBlock.meta);
+      }
     }
   });
 
@@ -208,10 +232,7 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
       {menuState === "normal" ? (
         <>
           <ul className={tw`text-sm mb-4`}>
-            {MENU_ITEMS.map(({ title, icon, key }, index) => {
-              if (key === "copyLink" && !entityId) {
-                return null;
-              }
+            {usableMenuItems.map(({ title, icon, key }, index) => {
               return (
                 <li key={key} className={tw`flex`}>
                   <button
@@ -219,7 +240,12 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
                       index === selectedIndex ? "bg-gray-100" : ""
                     }  flex items-center py-1 px-4 group`}
                     onFocus={() => setSelectedIndex(index)}
-                    onMouseOver={() => setSelectedIndex(index)}
+                    onMouseOver={() => {
+                      if (key === "switchBlock") {
+                        setSubMenuVisible(true);
+                      }
+                      setSelectedIndex(index);
+                    }}
                     onClick={() => handleClick(key)}
                     type="button"
                   >
@@ -228,14 +254,14 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
                     {key === "switchBlock" && (
                       <span className={tw`ml-auto`}>&rarr;</span>
                     )}
-                    {key === "switchBlock" && index === selectedIndex && (
-                      <BlockSuggester
-                        className={`left-full ml-0.5 mt-2 ${
-                          subMenuVisible ? "block" : "hidden"
-                        } text-left hover:block group-hover:block shadow-xl`}
-                        {...blockSuggesterProps}
-                      />
-                    )}
+                    {key === "switchBlock" &&
+                      index === selectedIndex &&
+                      subMenuVisible && (
+                        <BlockSuggester
+                          className={`left-full ml-0.5 mt-2 block text-left hover:block group-hover:block shadow-xl`}
+                          {...blockSuggesterProps}
+                        />
+                      )}
                   </button>
                 </li>
               );
@@ -328,7 +354,10 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
                     <li key={key} className={tw`flex`}>
                       <button
                         className={tw`flex-1 hover:bg-gray-100 ${
-                          index === selectedIndex ? "bg-gray-100" : ""
+                          index + filteredMenuItems.actions.length ===
+                          selectedIndex
+                            ? "bg-gray-100"
+                            : ""
                         }  flex items-center py-1 px-4 group`}
                         onFocus={() => setSelectedIndex(index)}
                         onMouseOver={() => setSelectedIndex(index)}
