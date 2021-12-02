@@ -57,6 +57,7 @@ import { createFileFromLink } from "./file/createFileFromLink";
 import { loggedIn } from "./middlewares/loggedIn";
 import { loggedInAndSignedUp } from "./middlewares/loggedInAndSignedUp";
 import { canAccessAccount } from "./middlewares/canAccessAccount";
+import { updateEntityType } from "./entityType/updateEntityType";
 
 export const resolvers = {
   Query: {
@@ -96,6 +97,7 @@ export const resolvers = {
     insertBlocksIntoPage: loggedInAndSignedUp(insertBlocksIntoPage),
     transferEntity: loggedInAndSignedUp(transferEntity),
     updateEntity: loggedInAndSignedUp(updateEntity),
+    updateEntityType: loggedInAndSignedUp(updateEntityType),
     updatePage: loggedInAndSignedUp(updatePage),
     updatePageContents: loggedInAndSignedUp(updatePageContents),
     deleteLinkByPath: loggedInAndSignedUp(deleteLinkByPath),

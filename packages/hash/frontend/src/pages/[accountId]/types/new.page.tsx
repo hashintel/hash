@@ -33,6 +33,7 @@ export const NewEntityType: VoidFunctionComponent = () => {
   const submit = (event: FormEvent) => {
     event.preventDefault();
     createEntityType({ variables: { description, name, accountId } }).catch(
+      // eslint-disable-next-line no-console -- TODO: consider using logger
       (err) => console.error("Could not create EntityType: ", err),
     );
   };
@@ -61,7 +62,7 @@ export const NewEntityType: VoidFunctionComponent = () => {
                 value={name}
               />
               <TextInput
-                className={tw`w-full lg:w-72`}
+                className={tw`w-full lg:w-72 mb-2`}
                 label="Description"
                 onChangeText={setDescription}
                 value={description}

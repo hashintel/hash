@@ -20,35 +20,40 @@ import { useFileUpload } from "../hooks/useFileUpload";
 type BlockLoaderProps = {
   shouldSandbox?: boolean;
   sourceUrl: string;
-  entityId?: string;
-} & Record<string, any>;
+  blockEntityId: string;
+  editableRef: unknown;
+  accountId: string;
+  entityId: string | undefined;
+  entityProperties: {};
+};
 
 const sandboxingEnabled = !!process.env.NEXT_PUBLIC_SANDBOX;
 
 export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
-  sourceUrl,
   shouldSandbox,
+  sourceUrl,
+  blockEntityId,
+  editableRef,
+  accountId,
   entityId,
-  ...props
+  entityProperties,
 }) => {
-  const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes(
-    props.accountId,
-  );
-  const { update } = useBlockProtocolUpdate(props.accountId);
-  const { aggregate } = useBlockProtocolAggregate(props.accountId);
-  const { uploadFile } = useFileUpload(props.accountId);
+  const { aggregateEntityTypes } =
+    useBlockProtocolAggregateEntityTypes(accountId);
+  const { update } = useBlockProtocolUpdate(accountId);
+  const { aggregate } = useBlockProtocolAggregate(accountId);
+  const { uploadFile } = useFileUpload(accountId);
 
   const flattenedProperties = useMemo(
-    () => cloneEntityTreeWithPropertiesMovedUp(props),
-    [props],
+    () =>
+      cloneEntityTreeWithPropertiesMovedUp({
+        accountId,
+        properties: entityProperties,
+      }),
+    [accountId, entityProperties],
   );
 
-  const blockProperties = {
-    ...flattenedProperties,
-    editableRef: props.editableRef,
-    /** @todo have this passed in to RemoteBlock as entityId, not childEntityId */
-    entityId: props.childEntityId,
-  };
+  const blockProperties = { ...flattenedProperties, entityId };
 
   const functions = {
     aggregateEntityTypes,
@@ -90,7 +95,7 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
     }
 
     if (
-      routeHash === blockDomId(entityId ?? "") &&
+      routeHash === blockDomId(blockEntityId ?? "") &&
       !scrollingComplete.current &&
       blockLoaded
     ) {
@@ -101,13 +106,16 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
     return () => {
       clearScrollInterval();
     };
-  }, [router, blockLoaded]);
+  }, [blockLoaded, blockEntityId]);
 
   if (sandboxingEnabled && (shouldSandbox || sourceUrl.endsWith(".html"))) {
     return (
       <BlockFramer
         sourceUrl={sourceUrl}
-        blockProperties={blockProperties}
+        blockProperties={{
+          ...blockProperties,
+          entityId: blockProperties.entityId ?? null,
+        }}
         onBlockLoaded={onBlockLoaded}
         {...functions}
       />
@@ -118,6 +126,7 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
     <RemoteBlock
       {...blockProperties}
       {...functions}
+      editableRef={editableRef}
       onBlockLoaded={onBlockLoaded}
       sourceUrl={sourceUrl}
     />

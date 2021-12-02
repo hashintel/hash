@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import { tw } from "twind";
 import { v4 as uuid } from "uuid";
 import { ColumnInstance } from "react-table";
@@ -70,12 +70,13 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
         filters: filtersWithoutId,
       });
     },
-    [filters, combinatorFilterOperator],
+    [filters, onFilter, combinatorFilterOperator],
   );
 
-  const debouncedHandleFilter = useCallback(debounce(handleFilter, 500), [
-    handleFilter,
-  ]);
+  const debouncedHandleFilter = useMemo(
+    () => debounce(handleFilter, 500),
+    [handleFilter],
+  );
 
   const addField = () => {
     setFilters((prevFields) => [

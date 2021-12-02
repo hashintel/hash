@@ -55,6 +55,9 @@ export class AsyncRedisClient extends DataSource {
   /** Set the expiration of a `key` in seconds. Returns 1 if the expiry was set. */
   expire: (key: string, seconds: number) => Promise<number>;
 
+  /** Flush all data. */
+  flushall: () => Promise<void>;
+
   private quit: () => Promise<"OK">;
 
   constructor(cfg: RedisConfig) {
@@ -82,7 +85,9 @@ export class AsyncRedisClient extends DataSource {
     this.lpush = promisify(client.lpush).bind(client);
     this.rpush = promisify(client.rpush).bind(client);
     this.llen = promisify(client.llen).bind(client);
-
+    this.flushall = async () => {
+      await promisify(client.flushall).bind(client);
+    };
     const set = promisify(client.set).bind(client);
     this.set = async (key: string, value: string) => {
       await set(key, value);

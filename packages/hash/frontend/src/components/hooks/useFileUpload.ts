@@ -163,7 +163,7 @@ export const useFileUpload = (accountId: string) => {
         mediaType,
       };
     },
-    [accountId, client, requestFileUploadFn],
+    [accountId, client, createFileFromLinkFn, requestFileUploadFn],
   );
 
   return {

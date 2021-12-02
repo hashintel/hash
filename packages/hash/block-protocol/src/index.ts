@@ -179,10 +179,22 @@ export type BlockProtocolAggregateEntityTypesFn = {
   >;
 };
 
+type BlockProtocolUpdateEntityTypePayload = {
+  entityId: string;
+  schema: JSONObject;
+};
+
+export type BlockProtocolUpdateEntityTypeFn = {
+  (
+    action: BlockProtocolUpdateEntityTypePayload,
+  ): Promise<BlockProtocolEntityType>;
+};
+
 export type BlockProtocolFunction =
   | BlockProtocolAggregateFn
   | BlockProtocolCreateFn
   | BlockProtocolUpdateFn
+  | BlockProtocolUpdateEntityTypeFn
   | BlockProtocolAggregateEntityTypesFn;
 
 export type JSONValue =
@@ -225,4 +237,7 @@ export type BlockProtocolProps = {
   update?: BlockProtocolUpdateFn;
   updateLoading?: boolean;
   updateError?: Error;
+  updateEntityType?: BlockProtocolUpdateEntityTypeFn;
+  updateEntityTypeLoading?: boolean;
+  updateEntityTypeError?: Error;
 };

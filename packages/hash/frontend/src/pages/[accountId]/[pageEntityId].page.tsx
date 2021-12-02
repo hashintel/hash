@@ -3,22 +3,25 @@ import { BlockMeta, fetchBlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { blockPaths } from "@hashintel/hash-shared/paths";
 import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
 import { GetStaticPaths, GetStaticProps } from "next";
+import { Router, useRouter } from "next/router";
+import { tw } from "twind";
 
-import { useRouter } from "next/router";
-import { useMemo, VoidFunctionComponent } from "react";
+import { useEffect, useMemo, useState, VoidFunctionComponent } from "react";
 import { useCollabPositions } from "../../blocks/page/collab/useCollabPositions";
 import { useCollabPositionTracking } from "../../blocks/page/collab/useCollabPositionTracking";
 import { useCollabPositionReporter } from "../../blocks/page/collab/useCollabPositionReporter";
 import { PageBlock } from "../../blocks/page/PageBlock";
 import { PageTitle } from "../../blocks/page/PageTitle";
 import { VersionDropdown } from "../../components/Dropdowns/VersionDropdown";
-import { PageSidebar } from "../../components/layout/PageSidebar/PageSidebar";
+
 import {
   GetPageQuery,
   GetPageQueryVariables,
 } from "../../graphql/apiTypes.gen";
 import styles from "../index.module.scss";
 import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
+import PageTransferDropdown from "../../components/Dropdowns/PageTransferDropdown";
+import { MainComponentWrapper } from "../../components/pages/MainComponentWrapper";
 
 /**
  * preload all configured blocks for now. in the future these will be loaded
@@ -60,12 +63,16 @@ export const Page: VoidFunctionComponent<{
   // versionId is an optional param for requesting a specific page version
   const versionId = router.query.version as string | undefined;
 
-  const { data, error } = useQuery<GetPageQuery, GetPageQueryVariables>(
-    getPageQuery,
-    {
-      variables: { entityId: pageEntityId, accountId, versionId },
-    },
+  const [pageState, setPageState] = useState<"normal" | "transferring">(
+    "normal",
   );
+
+  const { data, error, loading } = useQuery<
+    GetPageQuery,
+    GetPageQueryVariables
+  >(getPageQuery, {
+    variables: { entityId: pageEntityId, accountId, versionId },
+  });
 
   /**
    * This is to ensure that certain blocks are always contained within the
@@ -106,60 +113,103 @@ export const Page: VoidFunctionComponent<{
   const reportPosition = useCollabPositionReporter(accountId, pageEntityId);
   useCollabPositionTracking(reportPosition);
 
+  useEffect(() => {
+    const handleRouteChange = () => {
+      if (pageState !== "normal") {
+        setPageState("normal");
+      }
+    };
+
+    Router.events.on("routeChangeComplete", handleRouteChange);
+
+    return () => {
+      Router.events.off("routeChangeComplete", handleRouteChange);
+    };
+  }, [pageState]);
+
+  if (pageState === "transferring") {
+    return (
+      <MainComponentWrapper>
+        <h1>Transferring you to the new page...</h1>
+      </MainComponentWrapper>
+    );
+  }
+
+  if (loading) {
+    return (
+      <MainComponentWrapper>
+        <h1>Loading...</h1>
+      </MainComponentWrapper>
+    );
+  }
+
   if (error) {
-    return <h1>Error: {error.message}</h1>;
+    return (
+      <MainComponentWrapper>
+        <h1>Error: {error.message}</h1>
+      </MainComponentWrapper>
+    );
   }
 
   if (!data) {
-    return <h1>No data loaded.</h1>;
+    return (
+      <MainComponentWrapper>
+        <h1>No data loaded.</h1>
+      </MainComponentWrapper>
+    );
   }
 
   const { title, contents } = data.page.properties;
 
   return (
-    <div className={styles.MainWrapper}>
-      <PageSidebar />
-      <div className={styles.MainContent}>
-        <header>
-          <div className={styles.PageHeader}>
+    <MainComponentWrapper>
+      <header>
+        <div className={styles.PageHeader}>
+          <div className={tw`flex flex-col-reverse`}>
+            <PageTitle
+              value={title}
+              accountId={data.page.accountId}
+              metadataId={data.page.entityId}
+            />
+          </div>
+          <div className={tw`mr-4`}>
+            <label>Version</label>
             <div>
-              <label>Title</label>
-              <PageTitle
-                value={title}
-                accountId={data.page.accountId}
-                metadataId={data.page.entityId}
+              <VersionDropdown
+                value={data.page.entityVersionId}
+                versions={data.page.history ?? []}
+                onChange={(changedVersionId) => {
+                  void router.push(
+                    `/${accountId}/${pageEntityId}?version=${changedVersionId}`,
+                  );
+                }}
               />
             </div>
+          </div>
+          <div>
+            <label>Transfer Page</label>
             <div>
-              <label>Version</label>
-              <div>
-                <VersionDropdown
-                  value={data.page.entityVersionId}
-                  versions={data.page.history ?? []}
-                  onChange={(changedVersionId) => {
-                    void router.push(
-                      `/${accountId}/${pageEntityId}?version=${changedVersionId}`,
-                    );
-                  }}
-                />
-              </div>
+              <PageTransferDropdown
+                accountId={accountId}
+                pageEntityId={pageEntityId}
+                setPageState={setPageState}
+              />
             </div>
           </div>
-        </header>
+        </div>
+      </header>
 
-        <main>
-          <CollabPositionProvider value={collabPositions}>
-            <PageBlock
-              accountId={data.page.accountId}
-              contents={contents}
-              blocksMeta={preloadedBlocks}
-              entityId={data.page.entityId}
-            />
-          </CollabPositionProvider>
-        </main>
-      </div>
-    </div>
+      <main>
+        <CollabPositionProvider value={collabPositions}>
+          <PageBlock
+            accountId={data.page.accountId}
+            contents={contents}
+            blocksMeta={preloadedBlocks}
+            entityId={data.page.entityId}
+          />
+        </CollabPositionProvider>
+      </main>
+    </MainComponentWrapper>
   );
 };
-
 export default Page;
