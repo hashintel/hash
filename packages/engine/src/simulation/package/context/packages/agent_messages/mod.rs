@@ -105,7 +105,7 @@ impl Package for AgentMessages {
         //   initialisation to be done per schema instead of per package
         let field_key = self
             .context_field_spec_accessor
-            .get_local_hidden_scoped_field_spec("agent_messages")?
+            .get_local_hidden_scoped_field_spec("messages")?
             .to_key()?;
 
         Ok((

@@ -15,10 +15,6 @@ fn agent_messages() -> FieldType {
 
 pub(super) fn add_context(field_spec_map_builder: &mut FieldSpecMapBuilder) -> Result<()> {
     let agent_messages = agent_messages();
-    field_spec_map_builder.add_field_spec(
-        "agent_messages".into(),
-        agent_messages,
-        FieldScope::Hidden,
-    )?;
+    field_spec_map_builder.add_field_spec("messages".into(), agent_messages, FieldScope::Hidden)?;
     Ok(())
 }
