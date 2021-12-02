@@ -144,6 +144,7 @@ const InvitePage: NextPage = () => {
           <form onSubmit={handleSubmit}>
             <div className={tw`mb-6`}>
               <SelectInput
+                className={tw`w-64`}
                 id="responsibility"
                 label={`Your role at ${invitationInfo?.orgName}`}
                 options={ORG_ROLES}

@@ -126,13 +126,9 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return this.query((adapter) => adapter.getSystemTypeLatestVersion(params));
   }
 
-  updateEntityType(params: {
-    accountId: string;
-    createdById: string;
-    entityId: string;
-    newName?: string;
-    newSchema?: Record<string, any>;
-  }): Promise<EntityType> {
+  updateEntityType(
+    params: Parameters<DBClient["updateEntityType"]>[0],
+  ): ReturnType<DBClient["updateEntityType"]> {
     return this.query((adapter) => adapter.updateEntityType(params));
   }
 

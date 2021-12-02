@@ -62,7 +62,7 @@ export const NewEntityType: VoidFunctionComponent = () => {
                 value={name}
               />
               <TextInput
-                className={tw`w-full lg:w-72`}
+                className={tw`w-full lg:w-72 mb-2`}
                 label="Description"
                 onChangeText={setDescription}
                 value={description}

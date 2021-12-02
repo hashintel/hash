@@ -1,25 +1,35 @@
-import { Schema } from "jsonschema";
 import React, { VoidFunctionComponent } from "react";
 import { tw } from "twind";
 import { SchemaSelectElementType } from "./SchemaEditor";
 import { SchemaPropertyRow } from "./SchemaPropertyRow";
+import { JsonSchema } from "../../../lib/json-utils";
+import { TextInputOrDisplay } from "./Inputs";
+import { SchemaEditorDispatcher } from "./schemaEditorReducer";
 
 type SchemaPropertiesTableProps = {
-  requiredArray?: string[];
-  schema: Schema;
-  SchemaSelect: SchemaSelectElementType;
+  dispatchSchemaUpdate: SchemaEditorDispatcher;
+  GoToSchemaElement: SchemaSelectElementType;
+  readonly: boolean;
+  selectedSchema: JsonSchema;
 };
 
 const cellPadding = "pl-4 pr-8 py-4";
 
 const thClasses = tw`sticky first:rounded-tl-2xl last:rounded-tr-2xl ${cellPadding}`;
-export const tdClasses = tw`align-top ${cellPadding}`;
+export const trClasses = tw`border border-gray-100 rounded-2xl odd:bg-gray-50 even:bg-gray-100`;
+export const tdClasses = tw`${cellPadding}`;
 
 export const SchemaPropertiesTable: VoidFunctionComponent<
   SchemaPropertiesTableProps
-> = ({ schema, requiredArray, SchemaSelect }) => {
-  const { properties } =
-    schema.type === "array" ? (schema.items as Schema) : schema;
+> = ({ GoToSchemaElement, readonly, selectedSchema, dispatchSchemaUpdate }) => {
+  const { properties, required } = selectedSchema;
+  const requiredArray = required instanceof Array ? required : undefined;
+
+  const addProperty = (newPropertyName: string) =>
+    dispatchSchemaUpdate({
+      type: "addProperty",
+      payload: { newPropertyName },
+    });
 
   return (
     <table
@@ -37,19 +47,40 @@ export const SchemaPropertiesTable: VoidFunctionComponent<
         </tr>
       </thead>
       <tbody>
-        {Object.entries(properties ?? {})?.map(([name, propertySchema]) => {
-          const isRequired =
-            requiredArray?.includes(name) || !!propertySchema.required;
-          return (
-            <SchemaPropertyRow
-              key={name}
-              name={name}
-              property={propertySchema}
-              required={isRequired}
-              SchemaSelect={SchemaSelect}
-            />
-          );
-        })}
+        {Object.entries(properties ?? {})
+          ?.sort((a, b) => a[0].localeCompare(b[0]))
+          .map(([name, propertySchema]) => {
+            const isRequired =
+              requiredArray?.includes(name) || !!propertySchema.required;
+            return (
+              <SchemaPropertyRow
+                dispatchSchemaUpdate={dispatchSchemaUpdate}
+                key={name}
+                name={name}
+                GoToSchemaElement={GoToSchemaElement}
+                property={propertySchema}
+                readonly={readonly}
+                required={isRequired}
+              />
+            );
+          })}
+        {!readonly ? (
+          <tr className={trClasses}>
+            <td className={tdClasses} colSpan={6}>
+              <div className={tw`text-uppercase font-bold mr-12 mb-1`}>
+                New property
+              </div>
+              <TextInputOrDisplay
+                className={tw`w-64`}
+                clearOnUpdate
+                placeholder="newProperty"
+                readonly={false}
+                updateText={addProperty}
+                value=""
+              />
+            </td>
+          </tr>
+        ) : null}
       </tbody>
     </table>
   );

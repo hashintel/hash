@@ -651,6 +651,7 @@ describe("logged in user ", () => {
     const validSchemaInput = {
       description: "Test description",
       schema: {
+        title: "Test schema",
         properties: {
           testProperty: {
             type: "string",
@@ -713,6 +714,45 @@ describe("logged in user ", () => {
           name: schemaName + 3,
         }),
       ).rejects.toThrowError(/unknown keyword/);
+    });
+  });
+
+  describe("can update entity types", () => {
+    const validSchemaInput = {
+      description: "Another test description",
+      schema: {
+        title: "A schema to update",
+        properties: {
+          testProperty: {
+            type: "string",
+          },
+        },
+      },
+      name: "A schema to update",
+    };
+
+    it("can update an entity type's schema", async () => {
+      const entityType = await client.createEntityType({
+        accountId: existingUser.accountId,
+        ...validSchemaInput,
+      });
+      expect(entityType.properties.description).toEqual(
+        validSchemaInput.description,
+      );
+
+      const newDescription = "Now this is updated";
+
+      const updatedEntityType = await client.updateEntityType({
+        accountId: existingUser.accountId,
+        entityId: entityType.entityId,
+        schema: {
+          ...validSchemaInput.schema,
+          description: newDescription,
+        },
+      });
+
+      expect(updatedEntityType.properties.title).toEqual(validSchemaInput.name);
+      expect(updatedEntityType.properties.description).toEqual(newDescription);
     });
   });
 

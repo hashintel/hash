@@ -7,12 +7,13 @@ type SelectInputProps = {
   labelClass?: string;
   onChangeValue?: (value: string) => void;
   value?: string;
-  options: { label: string; value: string }[];
+  options: { disabled?: boolean; label: string; value: string }[];
 } & Omit<React.HTMLProps<HTMLSelectElement>, "value">;
 
 export const SelectInput = forwardRef<HTMLSelectElement, SelectInputProps>(
   (
     {
+      className,
       label,
       onChange,
       onChangeValue,
@@ -39,7 +40,7 @@ export const SelectInput = forwardRef<HTMLSelectElement, SelectInputProps>(
     );
 
     return (
-      <div className={tw`flex flex-col w-64`}>
+      <div className={tw`flex flex-col ${className}`}>
         {label && (
           <label
             htmlFor={inputId}
@@ -64,11 +65,13 @@ export const SelectInput = forwardRef<HTMLSelectElement, SelectInputProps>(
               {placeholder || "---"}
             </option>
           )}
-          {options.map(({ label: optionLabel, value: optionValue }) => (
-            <option key={optionValue} value={optionValue}>
-              {optionLabel}
-            </option>
-          ))}
+          {options.map(
+            ({ disabled, label: optionLabel, value: optionValue }) => (
+              <option disabled={disabled} key={optionValue} value={optionValue}>
+                {optionLabel}
+              </option>
+            ),
+          )}
         </select>
       </div>
     );

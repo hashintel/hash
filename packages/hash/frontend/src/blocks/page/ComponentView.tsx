@@ -18,31 +18,24 @@ import { EditorView, NodeView } from "prosemirror-view";
 import { BlockLoader } from "../../components/BlockLoader/BlockLoader";
 import { RenderPortal } from "./usePortals";
 
-// @todo we need to type this such that we're certain we're passing through all
-// the props required
-const getRemoteBlockProps: (
+/**
+ * Allows us to have a stable reference for properties where we do not yet
+ * have a saved entity
+ */
+const BLANK_PROPERTIES = {};
+
+const getChildEntity = (
   entity: EntityStoreType | null | undefined,
-  fallbackAccountId: string,
-) => {
-  accountId: string;
-  properties: Record<string, string>;
-  childEntityId?: string;
-} = (entity: EntityStoreType | null | undefined, fallbackAccountId: string) => {
+): EntityStoreType | null => {
   if (entity) {
     if (!isBlockEntity(entity)) {
       throw new Error("Cannot prepare non-block entity for prosemirrior");
     }
 
-    const childEntity = entity.properties.entity;
-
-    return {
-      accountId: childEntity.accountId,
-      childEntityId: childEntity.entityId,
-      properties: "properties" in childEntity ? childEntity.properties : {},
-    };
+    return entity.properties.entity;
   }
 
-  return { accountId: fallbackAccountId, properties: {} };
+  return null;
 };
 
 /**
@@ -120,34 +113,26 @@ export class ComponentView implements NodeView<Schema> {
     if (node?.type.name === this.componentId) {
       const entityId = node.attrs.blockEntityId;
       const entity = this.store.saved[entityId];
-
-      const remoteBlockProps = getRemoteBlockProps(entity, this.accountId);
-
-      const editableRef = this.editable
-        ? (editableNode: HTMLElement) => {
-            if (
-              this.contentDOM &&
-              editableNode &&
-              !editableNode.contains(this.contentDOM)
-            ) {
-              editableNode.appendChild(this.contentDOM);
-              this.contentDOM.style.display = "";
-            }
-          }
-        : undefined;
-
       const mappedUrl = componentIdToUrl(this.componentId);
 
       /** used by collaborative editing feature `FocusTracker` */
       this.target.setAttribute("data-entity-id", entityId);
 
+      const childEntity = getChildEntity(entity);
+
       this.renderPortal(
         <BlockLoader
-          {...remoteBlockProps}
           sourceUrl={`${mappedUrl}/${this.sourceName}`}
-          editableRef={editableRef}
-          shouldSandbox={!editableRef}
-          entityId={entityId}
+          blockEntityId={entityId}
+          shouldSandbox={!this.editable}
+          editableRef={this.editable ? this.editableRef : undefined}
+          accountId={childEntity?.accountId ?? this.accountId}
+          entityId={childEntity?.entityId}
+          entityProperties={
+            childEntity && "properties" in childEntity
+              ? childEntity.properties
+              : BLANK_PROPERTIES
+          }
         />,
         this.target,
       );
@@ -157,6 +142,17 @@ export class ComponentView implements NodeView<Schema> {
       return false;
     }
   }
+
+  editableRef = (editableNode: HTMLElement) => {
+    if (
+      this.contentDOM &&
+      editableNode &&
+      !editableNode.contains(this.contentDOM)
+    ) {
+      editableNode.appendChild(this.contentDOM);
+      this.contentDOM.style.display = "";
+    }
+  };
 
   destroy() {
     this.dom.remove();

@@ -165,8 +165,7 @@ export const Page: VoidFunctionComponent<{
     <MainComponentWrapper>
       <header>
         <div className={styles.PageHeader}>
-          <div>
-            <label>Title</label>
+          <div className={tw`flex flex-col-reverse`}>
             <PageTitle
               value={title}
               accountId={data.page.accountId}

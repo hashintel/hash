@@ -51,6 +51,24 @@ export const createEntityType = gql`
   }
 `;
 
+export const updateEntityType = gql`
+  mutation updateEntityType(
+    $accountId: ID!
+    $entityId: ID!
+    $schema: JSONObject!
+  ) {
+    updateEntityType(
+      accountId: $accountId
+      entityId: $entityId
+      schema: $schema
+    ) {
+      entityId
+      entityTypeName
+      properties
+    }
+  }
+`;
+
 export const getUnknownEntity = gql`
   query getEntity($accountId: ID!, $entityId: ID, $entityVersionId: ID) {
     entity(

@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { TableOptions, useSortBy, useTable } from "react-table";
 import {
   BlockProtocolEntityType,
@@ -13,7 +19,7 @@ import { getSchemaPropertyDefinition } from "./lib/getSchemaProperty";
 import { identityEntityAndProperty } from "./lib/identifyEntity";
 
 import { Pagination } from "./components/Pagination";
-import { Header, AggregateArgs } from "./components/Header";
+import { AggregateArgs, Header } from "./components/Header";
 import { EntityTypeDropdown } from "./components/EntityTypeDropdown";
 import { omitTypenameDeep } from "./lib/omitTypenameDeep";
 
@@ -30,6 +36,31 @@ type AppProps = {
 
 const defaultData: AppProps["data"] = { data: [] };
 
+const useTableData = (data: AppProps["data"]) => {
+  const defaultAggregateData = {
+    tableData: data,
+    prevTableData: data,
+  };
+
+  const [{ prevTableData, tableData }, setAggregateTableData] =
+    useState(defaultAggregateData);
+
+  const setTableData = useCallback(
+    (nextData: AppProps["data"]) =>
+      setAggregateTableData((existing) => ({
+        ...existing,
+        tableData: nextData,
+      })),
+    [],
+  );
+
+  if (data !== prevTableData) {
+    setAggregateTableData(defaultAggregateData);
+  }
+
+  return [tableData, setTableData] as const;
+};
+
 export const App: BlockComponent<AppProps> = ({
   data = defaultData,
   initialState,
@@ -39,11 +70,7 @@ export const App: BlockComponent<AppProps> = ({
   aggregate: aggregateFn,
   aggregateEntityTypes,
 }) => {
-  const [tableData, setTableData] = useState<AppProps["data"]>(data);
-
-  useEffect(() => {
-    setTableData(data);
-  }, [data]);
+  const [tableData, setTableData] = useTableData(data);
 
   const columns = useMemo(
     () => initialState?.columns ?? makeColumns(tableData.data?.[0] || {}),
@@ -134,7 +161,7 @@ export const App: BlockComponent<AppProps> = ({
           // @todo properly handle error
         });
     },
-    [aggregateFn, tableData.__linkedData],
+    [aggregateFn, setTableData, tableData.__linkedData],
   );
 
   const handleUpdate = useCallback(
@@ -188,45 +215,65 @@ export const App: BlockComponent<AppProps> = ({
     [update, tableData.__linkedData, entityId, initialState],
   );
 
-  const updateRemoteColumns = useCallback(
-    (properties: {
-      hiddenColumns?: string[];
-      columns?: { Header: string; accessor: string }[];
-    }) => {
-      if (!update) return;
+  const updateRemoteColumns = (properties: {
+    hiddenColumns?: string[];
+    columns?: { Header: string; accessor: string }[];
+  }) => {
+    if (!update) return;
 
-      const newState = {
-        ...initialState,
-        ...(properties.hiddenColumns && {
-          hiddenColumns: properties.hiddenColumns,
-        }),
-        ...(properties.columns && { columns: properties.columns }),
-      };
-      void update<{
-        data: { __linkedData: BlockProtocolLinkedDataDefinition };
-        initialState?: Record<string, any>;
-      }>([
-        {
-          data: {
-            data: { __linkedData: { ...tableData.__linkedData } },
-            initialState: newState,
-          },
-          entityId,
+    const newState = {
+      ...initialState,
+      ...(properties.hiddenColumns && {
+        hiddenColumns: properties.hiddenColumns,
+      }),
+      ...(properties.columns && { columns: properties.columns }),
+    };
+    void update<{
+      data: { __linkedData: BlockProtocolLinkedDataDefinition };
+      initialState?: Record<string, any>;
+    }>([
+      {
+        data: {
+          data: { __linkedData: { ...tableData.__linkedData } },
+          initialState: newState,
         },
-      ]);
-    },
-    [entityId, initialState, tableData.__linkedData, update],
-  );
+        entityId,
+      },
+    ]);
+  };
 
+  const updateRemoteColumnsRef = useRef(updateRemoteColumns);
+
+  useEffect(() => {
+    updateRemoteColumnsRef.current = updateRemoteColumns;
+  });
+
+  const doesNotNeedInitialColumns =
+    initialState?.columns || !tableData.data?.length;
+  const defaultColumnData = tableData?.data?.[0];
+
+  const defaultColumnDataRef = useRef(defaultColumnData);
+
+  useEffect(() => {
+    defaultColumnDataRef.current = defaultColumnData;
+  });
+
+  /**
+   * This effect is a bad way of handling this, because it can end up being
+   * triggered by multiple clients simultaneously during collab, and it also
+   * results in more calls to updateEntity than is necessary.
+   *
+   * @todo find a better approach
+   */
   useEffect(() => {
     /** Save the columns in initial state if not present. This helps in retaining
      * the headers when a filter operation returns an empty results set
      */
-    if (initialState?.columns || !tableData.data?.length) return;
+    if (doesNotNeedInitialColumns) return;
 
-    const initialColumns = makeColumns(tableData.data[0] || {});
-    updateRemoteColumns({ columns: initialColumns });
-  }, [initialState, tableData, updateRemoteColumns]);
+    const initialColumns = makeColumns(defaultColumnDataRef.current ?? {});
+    updateRemoteColumnsRef.current({ columns: initialColumns });
+  }, [doesNotNeedInitialColumns]);
 
   const setPageIndex = useCallback(
     (index: number) => {

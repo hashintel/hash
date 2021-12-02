@@ -1,40 +1,117 @@
-import { VoidFunctionComponent } from "react";
+import {
+  ComponentProps,
+  ReactNode,
+  useContext,
+  useMemo,
+  VoidFunctionComponent,
+} from "react";
 import { Schema } from "jsonschema";
 
-import { SchemaSelectElementType } from "./SchemaEditor";
+import { tw } from "twind";
+import { SchemaOptionsContext, SchemaSelectElementType } from "./SchemaEditor";
+import { SelectInput } from "../../forms/SelectInput";
+import { primitiveJsonTypes } from "../../../lib/json-utils";
 
 type SchemaPropertyTypeListProps = {
   hasSubSchema: boolean;
   propertyName: string;
-  SchemaSelect: SchemaSelectElementType;
+  GoToSchemaElement: SchemaSelectElementType;
+  readonly: boolean;
   type?: Schema["type"];
   $ref?: Schema["$ref"];
+  updatePermittedType?: (newType: string) => void; // @todo support selecting multiple types
 };
 
-export const SchemaPropertyTypeList: VoidFunctionComponent<
-  SchemaPropertyTypeListProps
-> = ({
-  hasSubSchema,
-  propertyName,
-  SchemaSelect,
-  type: typeMaybeArray,
-  $ref,
-}) => {
+const PropertyTypeDisplay: VoidFunctionComponent<
+  Omit<SchemaPropertyTypeListProps, "readonly" | "updatePermittedType">
+> = ({ $ref, hasSubSchema, GoToSchemaElement, propertyName, type }) => {
   if ($ref) {
-    return <SchemaSelect schemaRef={$ref} />;
+    return <GoToSchemaElement schemaRef={$ref} />;
   }
 
   return (
     <>
-      {(typeMaybeArray instanceof Array ? typeMaybeArray : [typeMaybeArray])
-        .map<React.ReactNode>((type) =>
-          type === "object" && hasSubSchema ? (
-            <SchemaSelect schemaRef={propertyName} />
+      {(Array.isArray(type) ? type : [type])
+        .map<ReactNode>((permittedType) =>
+          permittedType === "object" && hasSubSchema ? (
+            <GoToSchemaElement schemaRef={propertyName} />
           ) : (
-            <span>{type}</span>
+            <span>{permittedType}</span>
           ),
         )
         .reduce((prev, curr) => [prev, ", ", curr])}
     </>
   );
+};
+
+const PropertyTypeSelect: VoidFunctionComponent<
+  Omit<
+    SchemaPropertyTypeListProps,
+    "hasSubSchema" | "GoToSchemaElement" | "propertyName" | "readonly"
+  >
+> = ({ $ref, type, updatePermittedType }) => {
+  const { availableEntityTypes, subSchemas } =
+    useContext(SchemaOptionsContext) ?? {};
+
+  const currentType = $ref ?? (Array.isArray(type) ? type[0] : type); // @todo support multiple permitted types
+
+  const typeOptions = useMemo(() => {
+    const options: ComponentProps<typeof SelectInput>["options"] = [
+      {
+        disabled: true,
+        label: "----- Primitive types -----",
+        value: "__primitive_divider",
+      },
+      ...primitiveJsonTypes.map((primitiveType) => ({
+        label: primitiveType,
+        value: primitiveType,
+      })),
+    ];
+    if (subSchemas?.length) {
+      options.push(
+        {
+          disabled: true,
+          label: "----- Sub-schemas -----",
+          value: "__subschema_divider",
+        },
+        ...subSchemas.map((subSchema) => ({
+          label: subSchema[0],
+          value: `#/$defs/${subSchema[0]}`,
+        })),
+      );
+    }
+    if (availableEntityTypes?.length) {
+      options.push(
+        {
+          disabled: true,
+          label: "---- Other entities ----",
+          value: "__other_type_divider",
+        },
+        ...availableEntityTypes.map((entityType) => ({
+          label: entityType.title,
+          value: entityType.$id,
+        })),
+      );
+    }
+    return options;
+  }, [availableEntityTypes, subSchemas]);
+
+  return (
+    <SelectInput
+      className={tw`w-32`}
+      options={typeOptions}
+      onChangeValue={updatePermittedType}
+      value={currentType}
+    />
+  );
+};
+
+export const SchemaPropertyTypeList: VoidFunctionComponent<
+  SchemaPropertyTypeListProps
+> = ({ readonly, ...props }) => {
+  if (!readonly) {
+    return <PropertyTypeSelect {...props} />;
+  }
+
+  return <PropertyTypeDisplay {...props} />;
 };

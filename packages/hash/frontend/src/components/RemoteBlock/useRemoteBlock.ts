@@ -101,7 +101,7 @@ export const useRemoteBlock: UseRemoteBlockHook = (
       // invalidate update function for stale closures
       update = () => {};
     };
-  }, [err, crossFrame, loading, url, loadedUrl]);
+  }, [err, crossFrame, loading, onBlockLoaded, url, loadedUrl]);
 
   return [loading, err, component];
 };

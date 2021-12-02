@@ -37,6 +37,21 @@ export const entityTypeTypedef = gql`
       """
       schema: JSONObject
     ): EntityType!
+
+    """
+    Update an entity type
+    """
+    updateEntityType(
+      accountId: ID!
+      """
+      The fixed id of the entityType to update, i.e. its entityId
+      """
+      entityId: ID!
+      """
+      The schema definition for the entity type, in JSON Schema format.
+      """
+      schema: JSONObject!
+    ): EntityType!
   }
 
   enum SystemTypeName {

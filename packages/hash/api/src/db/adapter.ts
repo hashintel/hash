@@ -1,4 +1,5 @@
 import { DataSource } from "apollo-datasource";
+import { JSONObject } from "@hashintel/block-protocol";
 
 import { SystemType } from "../types/entityTypes";
 
@@ -236,16 +237,19 @@ export interface DBClient {
 
   /**
    * Update an entity type.
-   * @param params.newName the type name - must be unique in the specified account
-   * @param params.newSchema JSON schema fields (e.g. 'properties', 'definition')
-   * */
+   * Creates a new version of the entity type for any update.
+   * @param params.entityId the fixed id of the entityType
+   * @param params.entityVersionId optionally provide the version the update is based on.
+   *   the function will throw an error if this does not match the latest in the database.
+   * @param params.schema JSON schema fields (e.g. 'properties', 'definition).
+   *    The unique name should be under "title"
+   */
   updateEntityType(params: {
     accountId: string; // @todo: can we remove this?
     createdById: string;
     entityId: string;
     entityVersionId?: string;
-    newName?: string;
-    newSchema?: Record<string, any>;
+    schema: JSONObject;
   }): Promise<EntityType>;
 
   /**

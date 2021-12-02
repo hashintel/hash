@@ -1,48 +1,122 @@
-import { Schema } from "jsonschema";
 import { VoidFunctionComponent } from "react";
 import { tw } from "twind";
 
-import { tdClasses } from "./SchemaPropertiesTable";
+import { tdClasses, trClasses } from "./SchemaPropertiesTable";
 import { SchemaPropertyTypeList } from "./SchemaPropertyTypeList";
 import { SchemaSelectElementType } from "./SchemaEditor";
+import { ToggleInputOrDisplay, TextInputOrDisplay } from "./Inputs";
+import { JsonSchema } from "../../../lib/json-utils";
+import { SchemaEditorDispatcher } from "./schemaEditorReducer";
 
 type SchemaPropertyRowProps = {
+  dispatchSchemaUpdate: SchemaEditorDispatcher;
+  GoToSchemaElement: SchemaSelectElementType;
   name: string;
-  property: Schema;
+  property: JsonSchema;
+  readonly: boolean;
   required: boolean;
-  SchemaSelect: SchemaSelectElementType;
 };
 
 export const SchemaPropertyRow: VoidFunctionComponent<
   SchemaPropertyRowProps
-> = ({ name, property, required, SchemaSelect }) => {
+> = ({
+  dispatchSchemaUpdate,
+  GoToSchemaElement,
+  name,
+  property,
+  readonly,
+  required,
+}) => {
   const isArray = property.type === "array";
+
+  const togglePropertyIsArray = () =>
+    dispatchSchemaUpdate({
+      type: "togglePropertyIsArray",
+      payload: { propertyName: name },
+    });
+
+  const togglePropertyIsRequired = () =>
+    dispatchSchemaUpdate({
+      type: "togglePropertyIsRequired",
+      payload: { propertyName: name },
+    });
+
+  const updatePropertyDescription = (newDescription: string) =>
+    dispatchSchemaUpdate({
+      type: "updatePropertyDescription",
+      payload: { propertyName: name, newPropertyDescription: newDescription },
+    });
+
+  const updatePropertyName = (newName: string) =>
+    dispatchSchemaUpdate({
+      type: "updatePropertyName",
+      payload: { oldPropertyName: name, newPropertyName: newName },
+    });
+
+  const updatePropertyPermittedType = (newType: string) =>
+    dispatchSchemaUpdate({
+      type: "updatePropertyPermittedType",
+      payload: { newType, propertyName: name },
+    });
 
   /**
    * @todo deal with tuples and other array keywords, e.g. preferredItems
    */
-  const { description, $ref, type, properties, ...constraints } = isArray
-    ? (property.items as Schema)
-    : property;
+  const {
+    $ref,
+    type,
+    properties,
+    // we want description from [property], never items, but need it excluded from the ...rest
+    description: _,
+    ...constraints
+  } = isArray ? (property.items as JsonSchema) : property;
+
+  const { description } = property;
 
   return (
-    <tr
-      className={tw`border border-gray-100 rounded-2xl odd:bg-gray-50 even:bg-gray-100`}
-      key={name}
-    >
-      <td className={tdClasses}>{name}</td>
+    <tr className={trClasses}>
+      <td className={tdClasses}>
+        <TextInputOrDisplay
+          className={tw`w-36`}
+          placeholder="The property name"
+          readonly={readonly}
+          updateText={updatePropertyName}
+          value={name}
+        />
+      </td>
       <td className={tdClasses}>
         <SchemaPropertyTypeList
           hasSubSchema={!!properties}
           propertyName={name}
-          SchemaSelect={SchemaSelect}
+          GoToSchemaElement={GoToSchemaElement}
+          readonly={readonly}
           $ref={$ref}
           type={type}
+          updatePermittedType={updatePropertyPermittedType}
         />
       </td>
-      <td className={tdClasses}>{description}</td>
-      <td className={tdClasses}>{isArray ? "Yes" : "No"}</td>
-      <td className={tdClasses}>{required ? "Yes" : "No"}</td>
+      <td className={tdClasses}>
+        <TextInputOrDisplay
+          placeholder="Describe the property..."
+          readonly={readonly}
+          updateText={updatePropertyDescription}
+          value={description ?? ""}
+        />
+      </td>
+      <td className={tdClasses}>
+        <ToggleInputOrDisplay
+          checked={isArray}
+          onChange={() => togglePropertyIsArray()}
+          readonly={readonly}
+        />
+      </td>
+      <td className={tdClasses}>
+        <ToggleInputOrDisplay
+          checked={required}
+          onChange={() => togglePropertyIsRequired()}
+          readonly={readonly}
+        />
+      </td>
       <td className={tdClasses}>
         {/* @todo constraints may appear on any in a list of types, need to display this multiple times */}
         {Object.entries(constraints).map(([typeName, value]) => (
