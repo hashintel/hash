@@ -119,7 +119,7 @@ Batch.prototype.load_col = function(name, loader) {
     let col;
     if (loader) {
         col = loader(vector);
-    } else if (name.startsWith('__')) {
+    } else if (name.startsWith('_HIDDEN_') || name.startsWith('_PRIVATE_')) { // only agent-scoped fields are fully loaded by default
         col = hash_util.load_shallow(vector);
     } else {
         col = hash_util.load_full(vector);

@@ -126,7 +126,7 @@ class Batch:
 
         if loader is not None:
             col = loader(vector)
-        elif len(name) >= 2 and name[:2] == '__':
+        elif len(name) >= 9 and (name[:2] == '_PRIVATE_' or name[:2] == '_HIDDEN_'): # only agent-scoped fields are fully loaded by default
             col = hash_util.load_shallow(vector)
         else:
             col = hash_util.load_full(vector)
