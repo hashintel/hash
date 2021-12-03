@@ -1,4 +1,6 @@
 import { FormEvent, useState, VoidFunctionComponent } from "react";
+import { useRouter } from "next/router";
+
 import { useCreatePage } from "../../hooks/useCreatePage";
 import { Modal } from "../Modal";
 
@@ -16,6 +18,7 @@ export const CreatePage: VoidFunctionComponent<CreatePageProps> = ({
 }) => {
   const [title, setTitle] = useState("");
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   const { create } = useCreatePage();
 
@@ -25,6 +28,13 @@ export const CreatePage: VoidFunctionComponent<CreatePageProps> = ({
     create({
       variables: { accountId, properties: { title } },
     })
+      .then((response) => {
+        const { accountId, entityId } = response.data?.createPage ?? {};
+
+        if (accountId && entityId) {
+          router.push(`${accountId}/${entityId}`);
+        }
+      })
       // eslint-disable-next-line no-console -- TODO: consider using logger
       .catch((err) => console.error("Could not create page: ", err))
       .finally(() => {
