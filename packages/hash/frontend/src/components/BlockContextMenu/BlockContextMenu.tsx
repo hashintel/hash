@@ -343,10 +343,7 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
               <div className={tw`text-sm px-4 mb-1`}>Turn Into</div>
               <ul className={tw`text-sm mb-4`}>
                 {filteredMenuItems.blocks.map((option, index) => {
-                  const {
-                    variant: { displayName, icon },
-                  } = option;
-
+                  const { displayName, icon } = option.variant;
                   const key = index;
 
                   return (
