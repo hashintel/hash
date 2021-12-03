@@ -32,7 +32,7 @@ export const CreatePage: VoidFunctionComponent<CreatePageProps> = ({
         const { accountId, entityId } = response.data?.createPage ?? {};
 
         if (accountId && entityId) {
-          router.push(`${accountId}/${entityId}`);
+          router.push(`/${accountId}/${entityId}`);
         }
       })
       // eslint-disable-next-line no-console -- TODO: consider using logger
