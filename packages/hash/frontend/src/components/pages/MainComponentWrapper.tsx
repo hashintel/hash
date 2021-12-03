@@ -1,11 +1,9 @@
-import { ReactNode } from "react";
+import { FunctionComponent } from "react";
 
 import styles from "../../pages/index.module.scss";
 import { PageSidebar } from "../layout/PageSidebar/PageSidebar";
 
-export const MainComponentWrapper: React.VoidFunctionComponent<{
-  children: ReactNode;
-}> = ({ children }) => {
+export const MainComponentWrapper: FunctionComponent = ({ children }) => {
   return (
     <div className={styles.MainWrapper}>
       <PageSidebar />

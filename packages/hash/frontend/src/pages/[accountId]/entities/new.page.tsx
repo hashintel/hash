@@ -5,8 +5,6 @@ import { tw } from "twind";
 import { useRouter } from "next/router";
 
 import { BlockProtocolCreateFn } from "@hashintel/block-protocol";
-import styles from "../../index.module.scss";
-import { PageSidebar } from "../../../components/layout/PageSidebar/PageSidebar";
 import { EntityEditor } from "../../../components/EntityEditor/EntityEditor";
 
 import { getAccountEntityTypes } from "../../../graphql/queries/account.queries";
@@ -17,6 +15,7 @@ import {
 } from "../../../graphql/apiTypes.gen";
 import { useBlockProtocolCreate } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolCreate";
 import { useBlockProtocolAggregate } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolAggregate";
+import { MainComponentWrapper } from "../../../components/pages/MainComponentWrapper";
 
 const NewEntity: VoidFunctionComponent = () => {
   const router = useRouter();
@@ -73,44 +72,41 @@ const NewEntity: VoidFunctionComponent = () => {
   }, [selectedTypeId, typeOptions]);
 
   return (
-    <div className={styles.MainWrapper}>
-      <PageSidebar />
-      <main className={styles.MainContent}>
-        <header>
-          <h1>Create an entity</h1>
-        </header>
-        <div className={tw`mb-12`}>
-          <select
-            className={tw`py-2 px-4 rounded-md border border-gray-300 w-40 text-sm`}
-            onChange={(evt) =>
-              router.push(
-                `/${accountId}/entities/new?entityTypeId=${evt.target.value}`,
-              )
-            }
-            value={selectedTypeId ?? "none"}
-          >
-            {/* eslint-disable-next-line jsx-a11y/control-has-associated-label */}
-            <option disabled value="none" />
-            {(typeOptions ?? []).map((type) => (
-              <option key={type.entityId} value={type.entityId}>
-                {type.properties.title}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          {selectedType && (
-            <EntityEditor
-              accountId={accountId}
-              aggregate={aggregate}
-              create={createAndNavigateToFirstEntity}
-              entityTypeId={selectedTypeId!}
-              schema={selectedType.properties}
-            />
-          )}
-        </div>
-      </main>
-    </div>
+    <MainComponentWrapper>
+      <header>
+        <h1>Create an entity</h1>
+      </header>
+      <div className={tw`mb-12`}>
+        <select
+          className={tw`py-2 px-4 rounded-md border border-gray-300 w-40 text-sm`}
+          onChange={(evt) =>
+            router.push(
+              `/${accountId}/entities/new?entityTypeId=${evt.target.value}`,
+            )
+          }
+          value={selectedTypeId ?? "none"}
+        >
+          {/* eslint-disable-next-line jsx-a11y/control-has-associated-label */}
+          <option disabled value="none" />
+          {(typeOptions ?? []).map((type) => (
+            <option key={type.entityId} value={type.entityId}>
+              {type.properties.title}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div>
+        {selectedType && (
+          <EntityEditor
+            accountId={accountId}
+            aggregate={aggregate}
+            create={createAndNavigateToFirstEntity}
+            entityTypeId={selectedTypeId!}
+            schema={selectedType.properties}
+          />
+        )}
+      </div>
+    </MainComponentWrapper>
   );
 };
 
