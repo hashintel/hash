@@ -29,10 +29,11 @@ export const CreatePage: VoidFunctionComponent<CreatePageProps> = ({
       variables: { accountId, properties: { title } },
     })
       .then((response) => {
+        // eslint-disable-next-line @typescript-eslint/no-shadow -- Not relevant in this scenario, since the accountId is a part of the response.
         const { accountId, entityId } = response.data?.createPage ?? {};
 
         if (accountId && entityId) {
-          router.push(`/${accountId}/${entityId}`);
+          return router.push(`/${accountId}/${entityId}`);
         }
       })
       // eslint-disable-next-line no-console -- TODO: consider using logger
