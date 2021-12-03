@@ -216,17 +216,17 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
                   handleClick(usableMenuItems[selectedIndex].key);
                 }
               } else if (selectedIndex < filteredMenuItems.actions.length) {
-                  handleClick(filteredMenuItems.actions[selectedIndex].key);
-                } else {
-                  const selectedBlock =
-                    filteredMenuItems.blocks[
-                      selectedIndex - filteredMenuItems.actions.length
-                    ];
-                  blockSuggesterProps.onChange(
-                    selectedBlock.variant,
-                    selectedBlock.meta,
-                  );
-                }
+                handleClick(filteredMenuItems.actions[selectedIndex].key);
+              } else {
+                const selectedBlock =
+                  filteredMenuItems.blocks[
+                    selectedIndex - filteredMenuItems.actions.length
+                  ];
+                blockSuggesterProps.onChange(
+                  selectedBlock.variant,
+                  selectedBlock.meta,
+                );
+              }
             }
           }}
         />
