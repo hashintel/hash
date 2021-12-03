@@ -5,8 +5,6 @@ import { useRouter } from "next/router";
 
 import { BlockProtocolUpdateFn } from "@hashintel/block-protocol";
 import { getEntity } from "@hashintel/hash-shared/queries/entity.queries";
-import styles from "../../index.module.scss";
-import { PageSidebar } from "../../../components/layout/PageSidebar/PageSidebar";
 import { EntityEditor } from "../../../components/EntityEditor/EntityEditor";
 
 import {
@@ -19,6 +17,7 @@ import { entityName } from "../../../lib/entities";
 import { useBlockProtocolAggregate } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolAggregate";
 import { useBlockProtocolDeleteLink } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolDeleteLink";
 import { useBlockProtocolCreateLink } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolCreateLink";
+import { MainContentWrapper } from "../../../components/pages/MainContentWrapper";
 
 const Entity: VoidFunctionComponent = () => {
   const router = useRouter();
@@ -58,32 +57,29 @@ const Entity: VoidFunctionComponent = () => {
   const entity = data?.entity;
 
   return (
-    <div className={styles.MainWrapper}>
-      <PageSidebar />
-      <main className={styles.MainContent}>
-        <header>
-          <h1>
-            <strong>
-              {entity ? `Editing '${entityName(entity)}'` : "Loading..."}
-            </strong>
-          </h1>
-        </header>
-        <div>
-          {entity && (
-            <EntityEditor
-              aggregate={aggregate}
-              createLink={createLink}
-              deleteLink={deleteLink}
-              update={updateAndNavigateToFirstEntity}
-              entityProperties={entity.properties}
-              schema={entity.entityType.properties}
-              refetchEntity={refetchEntity}
-              {...entity}
-            />
-          )}
-        </div>
-      </main>
-    </div>
+    <MainContentWrapper>
+      <header>
+        <h1>
+          <strong>
+            {entity ? `Editing '${entityName(entity)}'` : "Loading..."}
+          </strong>
+        </h1>
+      </header>
+      <div>
+        {entity && (
+          <EntityEditor
+            aggregate={aggregate}
+            createLink={createLink}
+            deleteLink={deleteLink}
+            update={updateAndNavigateToFirstEntity}
+            entityProperties={entity.properties}
+            schema={entity.entityType.properties}
+            refetchEntity={refetchEntity}
+            {...entity}
+          />
+        )}
+      </div>
+    </MainContentWrapper>
   );
 };
 
