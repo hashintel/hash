@@ -96,13 +96,11 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
   );
 
   const filteredActions = searchableActions.filter((item) =>
-    item.title.toLocaleLowerCase().includes(searchText.toLocaleLowerCase()),
+    item.title.toLocaleLowerCase().includes(searchText),
   );
 
   const filteredBlocks = blockOptions.filter((block) =>
-    block.variant.displayName
-      ?.toLocaleLowerCase()
-      .includes(searchText.toLocaleLowerCase()),
+    block.variant.displayName?.toLocaleLowerCase().includes(searchText),
   );
 
   const filteredMenuItems: {
@@ -117,7 +115,7 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
   };
 
   const search = (newSearchText: string) => {
-    setSearchText(newSearchText);
+    setSearchText(newSearchText.toLocaleLowerCase());
 
     if (!newSearchText) {
       if (menuState !== "normal") {
@@ -134,23 +132,27 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
     }
   };
 
+  const getNextIndex = (event: KeyboardEvent, maxLength: number) => {
+    let index = selectedIndex + (event.key === "ArrowUp" ? -1 : 1);
+    index += maxLength;
+    index %= maxLength;
+
+    return index;
+  };
+
   useKey(["ArrowUp", "ArrowDown"], (event) => {
     event.preventDefault();
     if (subMenuVisible) return;
 
     if (menuState === "normal") {
-      let index = selectedIndex + (event.key === "ArrowUp" ? -1 : 1);
-      index += usableMenuItems.length;
-      index %= usableMenuItems.length;
-      setSelectedIndex(index);
+      const nextIndex = getNextIndex(event, usableMenuItems.length);
+      setSelectedIndex(nextIndex);
     } else {
       const filteredItemsLength =
         filteredMenuItems.actions.length + filteredMenuItems.blocks.length;
 
-      let index = selectedIndex + (event.key === "ArrowUp" ? -1 : 1);
-      index += filteredItemsLength;
-      index %= filteredItemsLength;
-      setSelectedIndex(index);
+      const nextIndex = getNextIndex(event, filteredItemsLength);
+      setSelectedIndex(nextIndex);
     }
   });
 
@@ -163,6 +165,24 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
   useKey(["Escape"], () => {
     closeMenu();
   });
+
+  const onEnter = () => {
+    if (menuState === "normal") {
+      if (usableMenuItems[selectedIndex]?.key === "switchBlock") {
+        setSubMenuVisible(true);
+      } else {
+        handleClick(usableMenuItems[selectedIndex].key);
+      }
+    } else if (selectedIndex < filteredMenuItems.actions.length) {
+      handleClick(filteredMenuItems.actions[selectedIndex].key);
+    } else {
+      const selectedBlock =
+        filteredMenuItems.blocks[
+          selectedIndex - filteredMenuItems.actions.length
+        ];
+      blockSuggesterProps.onChange(selectedBlock.variant, selectedBlock.meta);
+    }
+  };
 
   const handleClick = (key: typeof MENU_ITEMS[number]["key"]) => {
     // handle menu item click here
@@ -200,24 +220,7 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
             // Is Enter causing a new-line? Read this: https://hashintel.slack.com/archives/C02K2ARC1BK/p1638433216067800
             if (event.key === "Enter") {
               event.preventDefault();
-              if (menuState === "normal") {
-                if (usableMenuItems[selectedIndex]?.key === "switchBlock") {
-                  setSubMenuVisible(true);
-                } else {
-                  handleClick(usableMenuItems[selectedIndex].key);
-                }
-              } else if (selectedIndex < filteredMenuItems.actions.length) {
-                handleClick(filteredMenuItems.actions[selectedIndex].key);
-              } else {
-                const selectedBlock =
-                  filteredMenuItems.blocks[
-                    selectedIndex - filteredMenuItems.actions.length
-                  ];
-                blockSuggesterProps.onChange(
-                  selectedBlock.variant,
-                  selectedBlock.meta,
-                );
-              }
+              onEnter();
             }
           }}
         />
