@@ -14,19 +14,15 @@ import { searchPages } from "../../../graphql/queries/search.queries";
 import { useUser } from "../../hooks/useUser";
 import SearchIcon from "../../Icons/Search";
 
-const highlightFindings = (query: string, result: string) => {
+/** finds the query's words in the result and chops it into parts at the words' boundaries */
+const captureSplitByQueryWords = (result: string, query: string) => {
   const toBeMatched = query
     .split(/\s+/g)
-    .sort((a, b) => b.length - a.length)
+    .sort((a, b) => b.length - a.length) // match longer words first
     .map(escapeRegExp)
     .join("|");
 
-  const re = new RegExp(`(${toBeMatched})`, "gi");
-
-  return result
-    .split(re)
-    .map((str, i) => (i % 2 === 1 ? `<b>${escape(str)}</b>` : escape(str)))
-    .join("");
+  return result.split(new RegExp("(" + toBeMatched + ")", "gi"));
 };
 
 const toBlockUrl = (searchPage: PageSearchResult): string =>
@@ -99,14 +95,12 @@ export const SearchBar: React.VFC = () => {
                 className={tw`${resultItem}`}
               >
                 <Link href={toBlockUrl(searchPage)}>
-                  <a
-                    dangerouslySetInnerHTML={{
-                      __html: highlightFindings(
-                        submittedQuery,
-                        searchPage.content,
-                      ),
-                    }}
-                  />
+                  <a>
+                    {captureSplitByQueryWords(
+                      searchPage.content,
+                      submittedQuery,
+                    ).map((str, i) => (i % 2 === 1 ? <b>{str}</b> : str))}
+                  </a>
                 </Link>
               </li>
             ))
