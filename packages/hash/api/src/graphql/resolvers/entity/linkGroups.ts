@@ -1,25 +1,154 @@
 import { ApolloError } from "apollo-server-errors";
+import { set } from "lodash";
 import { Resolver, Entity as GQLEntity, LinkGroup } from "../../apiTypes.gen";
 import { DbUnknownEntity } from "../../../types/dbTypes";
 import { GraphQLContext } from "../../context";
 import { Entity, Link } from "../../../model";
+import { DBClient } from "../../../db";
 
-const doesLinkBelongInGroup =
-  (sourceEntity: GQLEntity, link: Link) =>
-  (linkGroup: LinkGroup): boolean =>
-    sourceEntity.entityId === linkGroup.sourceEntityId &&
-    sourceEntity.entityVersionId === linkGroup.sourceEntityVersionId &&
-    link.stringifiedPath === linkGroup.path;
+export const DEFAULT_LINK_DEPTH = 2;
 
-const mapLinkToLinkGroup = (
-  sourceEntity: GQLEntity,
-  link: Link,
-): LinkGroup => ({
-  sourceEntityId: sourceEntity.entityId,
-  sourceEntityVersionId: sourceEntity.entityVersionId,
-  path: link.stringifiedPath,
-  links: [link.toUnresolvedGQLLink()],
-});
+export const DEFAULT_AGGREGATE_LINK_DEPTH = 1;
+
+/**
+ * Data structure for collecting the outgoing links
+ */
+type LinkGroupsObject = {
+  [sourceEntityId: string]: {
+    [sourceEntityVersionId: string]: {
+      [stringifiedPath: string]: Link[];
+    };
+  };
+};
+
+/**
+ * @returns true if linkA and linkB have the same destination entity (with the same specificed version)
+ */
+export const linkHasSameDestinationAs = (linkA: Link) => (linkB: Link) =>
+  linkA.destinationEntityId === linkB.destinationEntityId &&
+  linkA.destinationEntityVersionId === linkB.destinationEntityVersionId;
+
+/**
+ * Adds the outgoing links to the provided linkGroups object
+ * @param linkGroupsObject the linkGroups object where the resulting links are added
+ * @param depth the depth of outgoing links to add.
+ */
+const addEntityOutgoingLinks =
+  (client: DBClient, linkGroupsObject: LinkGroupsObject, depth: number) =>
+  async (entity: Entity) => {
+    const existingGroups =
+      linkGroupsObject?.[entity.entityId]?.[entity.entityVersionId];
+
+    let outgoingLinks: Link[];
+
+    if (existingGroups) {
+      outgoingLinks = Object.values(existingGroups).flat();
+    } else {
+      outgoingLinks = await entity.getOutgoingLinks(client);
+
+      const { entityId, entityVersionId } = entity;
+
+      for (const outgoingLink of outgoingLinks) {
+        const { stringifiedPath } = outgoingLink;
+
+        const existingLinks =
+          linkGroupsObject?.[entityId]?.[entityVersionId]?.[stringifiedPath];
+
+        set(
+          linkGroupsObject,
+          [entityId, entityVersionId, stringifiedPath],
+          (existingLinks ?? []).concat([outgoingLink]),
+        );
+      }
+    }
+
+    if (depth > 1) {
+      const destinationEntities = await Promise.all(
+        outgoingLinks
+          .filter(
+            (outgoingLink, i, allOutgoingLinks) =>
+              allOutgoingLinks.findIndex(
+                linkHasSameDestinationAs(outgoingLink),
+              ) === i,
+          )
+          .map((link) => link.getDestination(client)),
+      );
+
+      await Promise.all(
+        destinationEntities.map(
+          addEntityOutgoingLinks(client, linkGroupsObject, depth - 1),
+        ),
+      );
+    }
+  };
+
+/**
+ * Adds the outgoing links of the aggregation results of an entity to the provided linkGroups object
+ */
+const addEntityAggregationResultOutgoingLinks =
+  (client: DBClient, linkGroups: LinkGroupsObject) =>
+  async (entity: Entity) => {
+    const aggregations = await entity.getAggregations(client);
+
+    const allAggregationResults = (
+      await Promise.all(
+        aggregations.map((aggregation) => aggregation.getResults(client)),
+      )
+    )
+      .flat()
+      // filter duplicate resulting entities
+      .filter((result, i, all) => all.findIndex(result.isEquivalentTo) === i);
+
+    await Promise.all(
+      allAggregationResults.map(
+        addEntityOutgoingLinks(
+          client,
+          linkGroups,
+          DEFAULT_AGGREGATE_LINK_DEPTH,
+        ),
+      ),
+    );
+  };
+
+/**
+ * Creates a linkGroups object for a provided entity
+ */
+export const generateEntityLinkGroupsObject = async (
+  client: DBClient,
+  entity: Entity,
+): Promise<LinkGroupsObject> => {
+  const linkGroupsObj: LinkGroupsObject = {};
+
+  await addEntityOutgoingLinks(
+    client,
+    linkGroupsObj,
+    /** @todo: obtain this as a GQL argument? */
+    DEFAULT_LINK_DEPTH,
+  )(entity);
+
+  await addEntityAggregationResultOutgoingLinks(client, linkGroupsObj)(entity);
+
+  return linkGroupsObj;
+};
+
+const mapLinkGroupsObjectToGQLLinkGroups = (
+  linkGroupsObj: LinkGroupsObject,
+): LinkGroup[] =>
+  Object.entries(linkGroupsObj)
+    .map(([sourceEntityId, linkGroupsObjBySourceEntityId]) =>
+      Object.entries(linkGroupsObjBySourceEntityId).map(
+        ([sourceEntityVersionId, linkGroupsObjBySourceEntityVersionId]) =>
+          Object.entries(linkGroupsObjBySourceEntityVersionId).map(
+            ([path, links]): LinkGroup => ({
+              sourceEntityId,
+              sourceEntityVersionId,
+              path,
+              links: links.map((link) => link.toUnresolvedGQLLink()),
+            }),
+          ),
+      ),
+    )
+    .flat(2);
 
 export const linkGroups: Resolver<
   GQLEntity["linkGroups"],
@@ -36,51 +165,10 @@ export const linkGroups: Resolver<
     throw new ApolloError(msg, "NOT_FOUND");
   }
 
-  /** @todo: resolve multiple layers of outgoing links */
+  const linkGroupsObject = await generateEntityLinkGroupsObject(
+    dataSources.db,
+    source,
+  );
 
-  const entityOutgoingLinks = await source.getOutgoingLinks(dataSources.db);
-
-  const aggregations = await source.getAggregations(dataSources.db);
-
-  const allAggregationResults = (
-    await Promise.all(
-      aggregations.map((aggregation) => aggregation.getResults(dataSources.db)),
-    )
-  )
-    .flat()
-    .filter((entity, i, all) => all.findIndex(entity.isEquivalentTo) === i);
-
-  const allAggregationResultsOutgoingLinks = (
-    await Promise.all(
-      allAggregationResults.map((entity) =>
-        entity.getOutgoingLinks(dataSources.db),
-      ),
-    )
-  ).flat();
-
-  const allLinks = [
-    ...entityOutgoingLinks,
-    ...allAggregationResultsOutgoingLinks,
-  ];
-
-  /** @todo: use a more efficient data-structure to produce `linkGroups` (https://github.com/hashintel/dev/pull/341#discussion_r746635315) */
-  return allLinks.reduce<LinkGroup[]>((prevLinkGroups, currentLink) => {
-    const existingGroupIndex = prevLinkGroups.findIndex(
-      doesLinkBelongInGroup(sourceEntity, currentLink),
-    );
-
-    return existingGroupIndex < 0
-      ? [...prevLinkGroups, mapLinkToLinkGroup(sourceEntity, currentLink)]
-      : [
-          ...prevLinkGroups.slice(0, existingGroupIndex),
-          {
-            ...prevLinkGroups[existingGroupIndex],
-            links: [
-              ...prevLinkGroups[existingGroupIndex].links,
-              currentLink.toUnresolvedGQLLink(),
-            ],
-          },
-          ...prevLinkGroups.slice(existingGroupIndex + 1),
-        ];
-  }, []);
+  return mapLinkGroupsObjectToGQLLinkGroups(linkGroupsObject);
 };
