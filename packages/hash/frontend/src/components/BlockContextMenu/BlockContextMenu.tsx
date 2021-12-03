@@ -75,16 +75,6 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
 
   const [menuState, setMenuState] = useState<"normal" | "search">("normal");
   const [searchText, setSearchText] = useState("");
-  const [filteredMenuItems, setFilteredMenuItems] = useState<{
-    actions: Array<MenuItemType>;
-    blocks: Array<{
-      variant: BlockVariant;
-      meta: BlockMeta;
-    }>;
-  }>({
-    actions: [],
-    blocks: [],
-  });
 
   const blocksMeta = useContext(BlockMetaContext);
 
@@ -108,6 +98,27 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
     (item) => item.key !== "switchBlock",
   );
 
+  const filteredActions = searchableActions.filter((item) =>
+    item.title.toLocaleLowerCase().includes(searchText.toLocaleLowerCase()),
+  );
+
+  const filteredBlocks = blockOptions.filter((block) =>
+    block.variant.displayName
+      ?.toLocaleLowerCase()
+      .includes(searchText.toLocaleLowerCase()),
+  );
+
+  const filteredMenuItems: {
+    actions: Array<MenuItemType>;
+    blocks: Array<{
+      variant: BlockVariant;
+      meta: BlockMeta;
+    }>;
+  } = {
+    actions: filteredActions,
+    blocks: filteredBlocks,
+  };
+
   const search = (newSearchText: string) => {
     setSearchText(newSearchText);
 
@@ -123,23 +134,6 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
         setSelectedIndex(0);
         setSubMenuVisible(false);
       }
-
-      const filteredActions = searchableActions.filter((item) =>
-        item.title
-          .toLocaleLowerCase()
-          .includes(newSearchText.toLocaleLowerCase()),
-      );
-
-      const filteredBlocks = blockOptions.filter((block) =>
-        block.variant.displayName
-          ?.toLocaleLowerCase()
-          .includes(newSearchText.toLocaleLowerCase()),
-      );
-
-      setFilteredMenuItems({
-        actions: filteredActions,
-        blocks: filteredBlocks,
-      });
     }
   };
 
