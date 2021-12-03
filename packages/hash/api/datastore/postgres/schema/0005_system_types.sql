@@ -10,7 +10,7 @@ insert into entity_type_versions (
   properties, created_by, created_at, updated_at
 ) values (
   '9d3c6d04-a2b9-444d-aef8-dfeab4e3db28', '2e4891da-ea52-4546-aecb-bb88531b72af', '46c75ba1-bef2-4d6d-b974-bacc0abac3c4',
-  '{"$schema":"https://json-schema.org/draft/2019-09/schema","$id":"http://localhost:3000/46c75ba1-bef2-4d6d-b974-bacc0abac3c4/types/9d3c6d04-a2b9-444d-aef8-dfeab4e3db28","title":"Block","type":"object"}',
+  '{"$schema":"https://json-schema.org/draft/2019-09/schema","$id":"http://localhost:3000/46c75ba1-bef2-4d6d-b974-bacc0abac3c4/types/9d3c6d04-a2b9-444d-aef8-dfeab4e3db28","title":"Block","type":"object","description":"A block of content, for displaying or editing a data structure.","properties":{"componentId":{"type":"string","description":"The identifier (e.g. a URI) for the component that will render the data."},"entity":{"type":"object","description":"The data entity to display or edit"}},"required":["componentId","entity"]}',
   '46c75ba1-bef2-4d6d-b974-bacc0abac3c4', '2021-08-19T11:00:14.588Z', '2021-08-19T11:00:14.588Z'
 ) on conflict do nothing;
 insert into entity_types (
@@ -40,7 +40,7 @@ insert into entity_type_versions (
   properties, created_by, created_at, updated_at
 ) values (
   'a1cbaead-637f-41ea-8ae4-073e4b0122bb', '4a858a90-b1fd-4412-9643-be470305a9eb', '46c75ba1-bef2-4d6d-b974-bacc0abac3c4',
-  '{"$schema":"https://json-schema.org/draft/2019-09/schema","$id":"http://localhost:3000/46c75ba1-bef2-4d6d-b974-bacc0abac3c4/types/a1cbaead-637f-41ea-8ae4-073e4b0122bb","title":"Page","type":"object"}',
+  '{"$schema":"https://json-schema.org/draft/2019-09/schema","$id":"http://localhost:3000/46c75ba1-bef2-4d6d-b974-bacc0abac3c4/types/a1cbaead-637f-41ea-8ae4-073e4b0122bb","title":"Page","type":"object","description":"A page of content.","properties":{"archived":{"type":"boolean","description":"Whether or not the page has been archived"},"contents":{"type":"array","description":"An ordered list of the blocks making up the contents of this page","items":{"$ref":"/46c75ba1-bef2-4d6d-b974-bacc0abac3c4/types/9d3c6d04-a2b9-444d-aef8-dfeab4e3db28"}},"summary":{"type":"string","description":"An abstract or summary of the page"},"title":{"type":"string","description":"The title of the page"}},"required":["title","contents"]}',
   '46c75ba1-bef2-4d6d-b974-bacc0abac3c4', '2021-08-19T11:00:14.588Z', '2021-08-19T11:00:14.588Z'
 ) on conflict do nothing;
 insert into entity_types (

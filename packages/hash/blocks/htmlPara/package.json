@@ -21,7 +21,8 @@
     "eslint-plugin-jsx-a11y": "^6.4.1",
     "eslint-plugin-no-restricted-imports": "0.0.0",
     "eslint-plugin-react": "^7.25.1",
-    "eslint-plugin-react-hooks": "4.2.0"
+    "eslint-plugin-react-hooks": "4.2.0",
+    "serve": "13.0.2"
   },
   "blockprotocol": {
     "displayName": "Inline HTML",

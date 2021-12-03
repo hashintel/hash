@@ -21,7 +21,7 @@ import {
 import styles from "../index.module.scss";
 import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
 import PageTransferDropdown from "../../components/Dropdowns/PageTransferDropdown";
-import { MainComponentWrapper } from "../../components/pages/MainComponentWrapper";
+import { MainContentWrapper } from "../../components/pages/MainContentWrapper";
 
 /**
  * preload all configured blocks for now. in the future these will be loaded
@@ -129,40 +129,40 @@ export const Page: VoidFunctionComponent<{
 
   if (pageState === "transferring") {
     return (
-      <MainComponentWrapper>
+      <MainContentWrapper>
         <h1>Transferring you to the new page...</h1>
-      </MainComponentWrapper>
+      </MainContentWrapper>
     );
   }
 
   if (loading) {
     return (
-      <MainComponentWrapper>
+      <MainContentWrapper>
         <h1>Loading...</h1>
-      </MainComponentWrapper>
+      </MainContentWrapper>
     );
   }
 
   if (error) {
     return (
-      <MainComponentWrapper>
+      <MainContentWrapper>
         <h1>Error: {error.message}</h1>
-      </MainComponentWrapper>
+      </MainContentWrapper>
     );
   }
 
   if (!data) {
     return (
-      <MainComponentWrapper>
+      <MainContentWrapper>
         <h1>No data loaded.</h1>
-      </MainComponentWrapper>
+      </MainContentWrapper>
     );
   }
 
   const { title, contents } = data.page.properties;
 
   return (
-    <MainComponentWrapper>
+    <MainContentWrapper>
       <header>
         <div className={styles.PageHeader}>
           <div className={tw`flex flex-col-reverse`}>
@@ -209,7 +209,7 @@ export const Page: VoidFunctionComponent<{
           />
         </CollabPositionProvider>
       </main>
-    </MainComponentWrapper>
+    </MainContentWrapper>
   );
 };
 export default Page;
