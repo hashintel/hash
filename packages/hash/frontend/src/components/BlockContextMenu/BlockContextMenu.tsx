@@ -199,17 +199,20 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
     event.preventDefault();
     if (menuState === "normal") {
       if (usableMenuItems[selectedIndex]?.key === "switchBlock") {
-        return setSubMenuVisible(true);
+        setSubMenuVisible(true);
+      } else {
+        handleClick(usableMenuItems[selectedIndex].key);
       }
-      handleClick(usableMenuItems[selectedIndex].key);
-    } else if (selectedIndex < filteredMenuItems.actions.length) {
-      handleClick(filteredMenuItems.actions[selectedIndex].key);
     } else {
-      const selectedBlock =
-        filteredMenuItems.blocks[
-          selectedIndex - filteredMenuItems.actions.length
-        ];
-      blockSuggesterProps.onChange(selectedBlock.variant, selectedBlock.meta);
+      if (selectedIndex < filteredMenuItems.actions.length) {
+        handleClick(filteredMenuItems.actions[selectedIndex].key);
+      } else {
+        const selectedBlock =
+          filteredMenuItems.blocks[
+            selectedIndex - filteredMenuItems.actions.length
+          ];
+        blockSuggesterProps.onChange(selectedBlock.variant, selectedBlock.meta);
+      }
     }
   });
 
