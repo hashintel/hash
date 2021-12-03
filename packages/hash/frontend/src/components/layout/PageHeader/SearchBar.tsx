@@ -48,7 +48,7 @@ export const SearchBar: React.VFC = () => {
   >(searchPages, {
     variables: { accountId: user?.accountId!, query: submittedQuery },
     skip: !user?.accountId || !submittedQuery,
-    fetchPolicy: "network-only"
+    fetchPolicy: "network-only",
   });
 
   useKeys(["AltLeft", "KeyK"], () => inputRef.current?.focus());
