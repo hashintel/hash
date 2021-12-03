@@ -98,10 +98,7 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
   }, [blocksMeta]);
 
   const usableMenuItems = MENU_ITEMS.filter(({ key }) => {
-    if (key === "copyLink" && !entityId) {
-      return false;
-    }
-    return true;
+    return key !== "copyLink" || entityId;
   });
 
   const searchableActions = usableMenuItems.filter(
