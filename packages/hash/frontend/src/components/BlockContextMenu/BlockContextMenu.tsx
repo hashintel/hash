@@ -194,28 +194,6 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
     }
   };
 
-  useKey(["Enter"], (event) => {
-    event.stopPropagation();
-    event.preventDefault();
-    if (menuState === "normal") {
-      if (usableMenuItems[selectedIndex]?.key === "switchBlock") {
-        setSubMenuVisible(true);
-      } else {
-        handleClick(usableMenuItems[selectedIndex].key);
-      }
-    } else {
-      if (selectedIndex < filteredMenuItems.actions.length) {
-        handleClick(filteredMenuItems.actions[selectedIndex].key);
-      } else {
-        const selectedBlock =
-          filteredMenuItems.blocks[
-            selectedIndex - filteredMenuItems.actions.length
-          ];
-        blockSuggesterProps.onChange(selectedBlock.variant, selectedBlock.meta);
-      }
-    }
-  });
-
   return (
     <div
       className={tw`absolute z-10 w-60 bg-white border-gray-200 border-1 shadow-xl rounded`}
@@ -227,6 +205,30 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
           onChange={(event) => search(event.target.value)}
           className={tw`block w-full px-2 py-1 bg-gray-50 border-1 text-sm rounded-sm `}
           placeholder="Filter actions..."
+          onKeyDown={(event) => {
+            // Is Enter causing a new-line? Read this: https://hashintel.slack.com/archives/C02K2ARC1BK/p1638433216067800
+            if (event.key === "Enter") {
+              event.preventDefault();
+              if (menuState === "normal") {
+                if (usableMenuItems[selectedIndex]?.key === "switchBlock") {
+                  setSubMenuVisible(true);
+                } else {
+                  handleClick(usableMenuItems[selectedIndex].key);
+                }
+              } else if (selectedIndex < filteredMenuItems.actions.length) {
+                  handleClick(filteredMenuItems.actions[selectedIndex].key);
+                } else {
+                  const selectedBlock =
+                    filteredMenuItems.blocks[
+                      selectedIndex - filteredMenuItems.actions.length
+                    ];
+                  blockSuggesterProps.onChange(
+                    selectedBlock.variant,
+                    selectedBlock.meta,
+                  );
+                }
+            }
+          }}
         />
       </div>
       {menuState === "normal" ? (
