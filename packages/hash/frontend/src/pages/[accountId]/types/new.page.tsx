@@ -12,7 +12,7 @@ import {
 } from "../../../graphql/apiTypes.gen";
 import { TextInput } from "../../../components/forms/TextInput";
 import { Button } from "../../../components/forms/Button";
-import { MainComponentWrapper } from "../../../components/pages/MainComponentWrapper";
+import { MainContentWrapper } from "../../../components/pages/MainContentWrapper";
 
 export const NewEntityType: VoidFunctionComponent = () => {
   const router = useRouter();
@@ -39,7 +39,7 @@ export const NewEntityType: VoidFunctionComponent = () => {
   };
 
   return (
-    <MainComponentWrapper>
+    <MainContentWrapper>
       <header className={tw`mb-12`}>
         <h1>
           Create new <strong>entity type</strong>
@@ -71,7 +71,7 @@ export const NewEntityType: VoidFunctionComponent = () => {
           </div>
         </form>
       </section>
-    </MainComponentWrapper>
+    </MainContentWrapper>
   );
 };
 

@@ -15,7 +15,7 @@ import {
 } from "../../../graphql/apiTypes.gen";
 import { useBlockProtocolCreate } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolCreate";
 import { useBlockProtocolAggregate } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolAggregate";
-import { MainComponentWrapper } from "../../../components/pages/MainComponentWrapper";
+import { MainContentWrapper } from "../../../components/pages/MainContentWrapper";
 
 const NewEntity: VoidFunctionComponent = () => {
   const router = useRouter();
@@ -72,7 +72,7 @@ const NewEntity: VoidFunctionComponent = () => {
   }, [selectedTypeId, typeOptions]);
 
   return (
-    <MainComponentWrapper>
+    <MainContentWrapper>
       <header>
         <h1>Create an entity</h1>
       </header>
@@ -106,7 +106,7 @@ const NewEntity: VoidFunctionComponent = () => {
           />
         )}
       </div>
-    </MainComponentWrapper>
+    </MainContentWrapper>
   );
 };
 

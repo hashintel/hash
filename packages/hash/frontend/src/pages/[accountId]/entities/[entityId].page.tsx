@@ -17,7 +17,7 @@ import { entityName } from "../../../lib/entities";
 import { useBlockProtocolAggregate } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolAggregate";
 import { useBlockProtocolDeleteLink } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolDeleteLink";
 import { useBlockProtocolCreateLink } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolCreateLink";
-import { MainComponentWrapper } from "../../../components/pages/MainComponentWrapper";
+import { MainContentWrapper } from "../../../components/pages/MainContentWrapper";
 
 const Entity: VoidFunctionComponent = () => {
   const router = useRouter();
@@ -57,7 +57,7 @@ const Entity: VoidFunctionComponent = () => {
   const entity = data?.entity;
 
   return (
-    <MainComponentWrapper>
+    <MainContentWrapper>
       <header>
         <h1>
           <strong>
@@ -79,7 +79,7 @@ const Entity: VoidFunctionComponent = () => {
           />
         )}
       </div>
-    </MainComponentWrapper>
+    </MainContentWrapper>
   );
 };
 

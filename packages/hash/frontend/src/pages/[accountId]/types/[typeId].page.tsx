@@ -18,7 +18,7 @@ import {
 import { AccountEntityOfTypeList } from "../../../components/entityTypes/AccountEntityOfTypeList";
 import { useBlockProtocolUpdateEntityType } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdateEntityType";
 import { useBlockProtocolAggregateEntityTypes } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolAggregateEntityTypes";
-import { MainComponentWrapper } from "../../../components/pages/MainComponentWrapper";
+import { MainContentWrapper } from "../../../components/pages/MainContentWrapper";
 
 export const EntityType: VoidFunctionComponent = () => {
   const router = useRouter();
@@ -103,7 +103,7 @@ export const EntityType: VoidFunctionComponent = () => {
   );
 
   return (
-    <MainComponentWrapper>
+    <MainContentWrapper>
       {!data ? (
         <h1>Loading...</h1>
       ) : (
@@ -134,7 +134,7 @@ export const EntityType: VoidFunctionComponent = () => {
           />
         </>
       )}
-    </MainComponentWrapper>
+    </MainContentWrapper>
   );
 };
 
