@@ -304,16 +304,16 @@
                 "slug": "simulation/concepts/designing-with-process-models/using-the-process-model-builder"
               },
               {
-                "title": "Adding Data to a Process Model",
-                "slug": "simulation/concepts/designing-with-process-models/using-data-in-a-process-model"
-              },
-              {
                 "title": "Analyzing Process Models",
                 "slug": "simulation/concepts/designing-with-process-models/analyzing-process-models"
               },
               {
                 "title": "Experimenting with Process Models",
                 "slug": "simulation/concepts/designing-with-process-models/experimenting-with-process-models"
+              },
+              {
+                "title": "Adding Data to a Process Model",
+                "slug": "simulation/concepts/designing-with-process-models/using-data-in-a-process-model"
               },
               {
                 "title": "Structuring a Process Model",
@@ -363,24 +363,24 @@
             "slug": "simulation/tutorials/building-process-models",
             "urldata": [
               {
+                "title": "Process Model Concepts",
+                "slug": "simulation/tutorials/building-process-models/process-model-concepts"
+              },
+              {
                 "title": "Using the Process Model Visual Interface",
                 "slug": "simulation/tutorials/building-process-models/using-the-process-model-builder"
               },
               {
-                "title": "Adding Data to a Process Model",
-                "slug": "simulation/tutorials/building-process-models/using-data-in-a-process-model"
-              },
-              {
-                "title": "Process Model Concepts",
-                "slug": "simulation/tutorials/building-process-models/process-model-concepts"
+                "title": "Analyzing Process Models",
+                "slug": "simulation/tutorials/building-process-models/analyzing-process-models"
               },
               {
                 "title": "Experimenting with Process Models",
                 "slug": "simulation/tutorials/building-process-models/experimenting-with-process-models"
               },
               {
-                "title": "Analyzing Process Models",
-                "slug": "simulation/tutorials/building-process-models/analyzing-process-models"
+                "title": "Adding Data to a Process Model",
+                "slug": "simulation/tutorials/building-process-models/using-data-in-a-process-model"
               }
             ]
           },
@@ -484,29 +484,27 @@
                   },
                   {
                     "title": "Building the Simulation",
-                    "slug": "simulation/extra/migrating/anylogic/building-the-simulation",
-                    "urldata": [
-                      {
-                        "title": "Tankers to Port",
-                        "slug": "simulation/extra/migrating/anylogic/building-the-simulation/tankers-to-port"
-                      },
-                      {
-                        "title": "Through the Pipeline",
-                        "slug": "simulation/extra/migrating/anylogic/building-the-simulation/through-the-pipeline"
-                      },
-                      {
-                        "title": "Trucks on the Move",
-                        "slug": "simulation/extra/migrating/anylogic/building-the-simulation/trucks-on-the-move"
-                      },
-                      {
-                        "title": "Full Initialization",
-                        "slug": "simulation/extra/migrating/anylogic/building-the-simulation/full-initialization"
-                      },
-                      {
-                        "title": "Improving our Visualization",
-                        "slug": "simulation/extra/migrating/anylogic/building-the-simulation/improving-our-visualization"
-                      }
-                    ]
+                    "slug": "simulation/extra/migrating/anylogic/building-the-simulation"
+                  },
+                  {
+                    "title": "Tankers to Port",
+                    "slug": "simulation/extra/migrating/anylogic/building-the-simulation/tankers-to-port"
+                  },
+                  {
+                    "title": "Through the Pipeline",
+                    "slug": "simulation/extra/migrating/anylogic/building-the-simulation/through-the-pipeline"
+                  },
+                  {
+                    "title": "Trucks on the Move",
+                    "slug": "simulation/extra/migrating/anylogic/building-the-simulation/trucks-on-the-move"
+                  },
+                  {
+                    "title": "Full Initialization",
+                    "slug": "simulation/extra/migrating/anylogic/building-the-simulation/full-initialization"
+                  },
+                  {
+                    "title": "Improving our Visualization",
+                    "slug": "simulation/extra/migrating/anylogic/building-the-simulation/improving-our-visualization"
                   }
                 ]
               }

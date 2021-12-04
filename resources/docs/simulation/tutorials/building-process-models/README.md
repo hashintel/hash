@@ -8,8 +8,6 @@ objectId: e46938a4-1a49-414c-9e27-fb4d41614526
 
 Business processes are the cornerstone of every company's operations. Defined and repeatable plans for satisfying business objectives differentiate a focused, efficient machine from a disorganized mess.
 
-![](https://lh6.googleusercontent.com/YxvT0V_yKdQM6dZLULbg5q7soOq0NKhBj9BmkALtWCeloWysqG2RrzBvdFuaJN9mWz7tybRh6wEMwvgf8kxHlLtrf1BFQwfyfWIbKF2mR4yQeSdxNqV8eRIZvCfSTd5LbR25gtvh)
-
 However, given the complexity and scale of modern businesses, it can be hard to create and optimize business processes. When dealing with tens of thousands of people managing hundred-step processes, we rapidly approach the limits of what any one person can design or understand.
 
 At HASH we're excited about the potential of computer-aided decision making - using the computer as a partner in deliberation and understanding, helping us find ideas and solutions that we couldn't otherwise. Our approach is to use simulations of the real world to find the best outcomes, and maybe even more importantly, help people understand why a given choice, out of all the alternatives, is the right one to make.
