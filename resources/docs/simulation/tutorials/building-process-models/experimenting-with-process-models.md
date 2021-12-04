@@ -53,10 +53,10 @@ The [Globals](/docs/simulation/creating-simulations/configuration/) section desc
 
 3. Create an experiment and use the parameter as the field for the experiment
 
-![Experiment model](https://s3.amazonaws.com/cdn-us1.hash.ai/site/docs/process+models+experiment.png)
+![Experiment model](https://cdn-us1.hash.ai/site/docs/process+models+experiment.png)
 
 Now when we run the experiment, we can see how varying the number of service agents affects the descriptive metrics of the process model.
 
-![](https://s3.amazonaws.com/cdn-us1.hash.ai/site/docs/process+experiment.png)
+![](https://cdn-us1.hash.ai/site/docs/process+experiment.png)
 
 After adding metrics and charts, we can see what happens to the queue in the experiment. Provided the number of agents stays above 1, the queue will remain flat.

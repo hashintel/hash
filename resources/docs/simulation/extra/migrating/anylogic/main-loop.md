@@ -17,6 +17,6 @@ In this simulation it’s the process of delivering oil from tankers, through th
 5. Which triggers fuel tankers to go to the storage agents load oil
 6. And deliver it to retailers
 
-![](https://s3.amazonaws.com/cdn-us1.hash.ai/site/docs/anylogic-oil-main-loop.png)
+![](https://cdn-us1.hash.ai/site/docs/anylogic-oil-main-loop.png)
 
 It looks like we don’t have to initialize a special agent to handle any high-level functions here. The Main agent in AnyLogic is only responsible for initialization, which our creator agent will take care of.

@@ -12,17 +12,17 @@ Once you've created your process model, you'll want to use it to answer question
 
 ## Task Completions
 
-![Counting objects that make it from a source to a sink](https://s3.amazonaws.com/cdn-us1.hash.ai/site/docs/analysis-pizzas-delivered.png)
+![Counting objects that make it from a source to a sink](https://cdn-us1.hash.ai/site/docs/analysis-pizzas-delivered.png)
 
 Sink blocks are end-points in a process model. As objects reach them they are counted, representing completed tasks on a production line, a delivery chain, a quality inspection, etc.. The Sink block automatically stores information about objects it receives in the process_data field on your agent.
 
 You can easily build plots to access this information. Each Sink stores its data under a key formatted as '&lt;sink_name&gt;\_count'. A metric which accesses the data for the above graph would look like:
 
-![The Pizzas Delivered chart can be generated using this metric definition.](https://s3.amazonaws.com/cdn-us1.hash.ai/site/docs/analysis-pizza-delivery-metric.png)
+![The Pizzas Delivered chart can be generated using this metric definition.](https://cdn-us1.hash.ai/site/docs/analysis-pizza-delivery-metric.png)
 
 ## Timing
 
-![Recording the average time objects spend in the process model](https://s3.amazonaws.com/cdn-us1.hash.ai/site/docs/analysis-times-plot.png)
+![Recording the average time objects spend in the process model](https://cdn-us1.hash.ai/site/docs/analysis-times-plot.png)
 
 Process models are useful for timing complex chains of actions. Service blocks will record the time spent waiting for resources to become available.
 
@@ -32,7 +32,7 @@ Sink blocks will record all the waits an object experienced, as well as the tota
 
 ## Resource Usage
 
-![Visualizing the utilization of different resources in a process model](https://s3.amazonaws.com/cdn-us1.hash.ai/site/docs/analysis-resource-utilization.png)
+![Visualizing the utilization of different resources in a process model](https://cdn-us1.hash.ai/site/docs/analysis-resource-utilization.png)
 
 Each Service, Seize, or Release block in your process model has an associated resource property specified in its parameters.
 
