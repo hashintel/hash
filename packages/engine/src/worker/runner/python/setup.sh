@@ -9,7 +9,7 @@ HELP="
    <python run command> should be the executable command for a version of Python 3.x >= 3.7
    e.g.:
      python3
-     python3.9
+     python3.7
      /usr/local/bin/python
 "
 
