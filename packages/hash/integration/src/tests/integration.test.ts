@@ -517,7 +517,7 @@ describe("logged in user ", () => {
 
       // Get the text entity we just inserted and make sure it matches
       const newBlock = updatedPage.properties.contents[0];
-      textEntityId = newBlock.properties.entity.metadataId;
+      textEntityId = newBlock.properties.entity.entityId;
       const textEntity = await client.getUnknownEntity({
         entityId: textEntityId,
         accountId: existingUser.accountId,
@@ -562,7 +562,7 @@ describe("logged in user ", () => {
       const headerBlock = updatedPage.properties.contents[1];
       const headerUpdate = await client.updateEntity({
         accountId: existingUser.accountId,
-        entityId: headerBlock.properties.entity.metadataId,
+        entityId: headerBlock.properties.entity.entityId,
         properties: newHeaderTextProperties,
       });
 
@@ -618,7 +618,7 @@ describe("logged in user ", () => {
         {
           updateEntity: {
             accountId: page.properties.contents[1].properties.entity.accountId,
-            entityId: page.properties.contents[1].properties.entity.metadataId,
+            entityId: page.properties.contents[1].properties.entity.entityId,
             properties: textPropertiesC,
           },
         },
@@ -631,7 +631,7 @@ describe("logged in user ", () => {
         {
           updateEntity: {
             accountId: page.properties.contents[0].properties.entity.accountId,
-            entityId: page.properties.contents[0].properties.entity.metadataId,
+            entityId: page.properties.contents[0].properties.entity.entityId,
             properties: titleProperties,
           },
         },
