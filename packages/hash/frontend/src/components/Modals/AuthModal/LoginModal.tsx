@@ -8,7 +8,7 @@ import React, {
 } from "react";
 import { useRouter } from "next/router";
 
-import { ApolloError, useMutation } from "@apollo/client";
+import { useMutation } from "@apollo/client";
 import { AuthModalLayout, AuthModalLayoutProps } from "./AuthModalLayout";
 import { LoginIntro as LoginIntroScreen } from "../../pages/auth/login/LoginIntro";
 import { VerifyCode as VerifyCodeScreen } from "../../pages/auth/VerifyCode";
@@ -24,7 +24,7 @@ import {
   loginWithLoginCode as loginWithLoginCodeMutation,
 } from "../../../graphql/queries/user.queries";
 import {
-  AUTH_ERROR_CODES,
+  parseGraphQLError,
   isParsedAuthQuery,
   SYNTHETIC_LOADING_TIME_MS,
   Action,
@@ -121,18 +121,15 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
         payload: { verificationCodeMetadata: sendLoginCode },
       });
     },
-    onError: ({ graphQLErrors }) =>
-      graphQLErrors.forEach(({ extensions, message }) => {
-        const { code } = extensions as { code?: keyof typeof AUTH_ERROR_CODES };
-        if (code === "NOT_FOUND") {
-          dispatch({
-            type: "SET_ERROR",
-            payload: message,
-          });
-        } else {
-          throw new ApolloError({ graphQLErrors });
-        }
-      }),
+    onError: ({ graphQLErrors }) => {
+      if (!graphQLErrors.length) return;
+      const { message } = parseGraphQLError([...graphQLErrors]);
+
+      dispatch({
+        type: "SET_ERROR",
+        payload: message,
+      });
+    },
   });
 
   const [loginWithLoginCode, { loading: loginWithLoginCodeLoading }] =
@@ -150,21 +147,16 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
           }
           if (onLoggedIn) onLoggedIn(user);
         },
-        onError: ({ graphQLErrors }) =>
-          graphQLErrors.forEach(({ extensions }) => {
-            const { code } = extensions as {
-              code?: keyof typeof AUTH_ERROR_CODES;
-            };
+        onError: ({ graphQLErrors }) => {
+          if (!graphQLErrors.length) return;
 
-            if (code && Object.keys(AUTH_ERROR_CODES).includes(code)) {
-              dispatch({
-                type: "SET_ERROR",
-                payload: AUTH_ERROR_CODES[code],
-              });
-            } else {
-              throw new ApolloError({ graphQLErrors });
-            }
-          }),
+          const { message } = parseGraphQLError([...graphQLErrors]);
+
+          dispatch({
+            type: "SET_ERROR",
+            payload: message,
+          });
+        },
       },
     );
 
