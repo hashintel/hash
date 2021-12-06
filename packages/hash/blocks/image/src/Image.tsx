@@ -52,6 +52,8 @@ export const Image: BlockComponent<AppProps> = (props) => {
     update,
   } = props;
 
+  // TODO: Consider replacing multiple states with useReducer()
+  // See also: Video block
   const [stateObject, setStateObject] = useState<{
     src: string;
     loading: boolean;
@@ -87,19 +89,29 @@ export const Image: BlockComponent<AppProps> = (props) => {
     [],
   );
 
+  const stateObjectRef = React.useRef(stateObject);
+  const captionTextRef = React.useRef(captionText);
+
   useEffect(() => {
-    const newStateObject = {
-      ...(stateObject.src !== initialSrc && { src: initialSrc }),
-      ...(stateObject.width !== initialWidth && { width: initialWidth }),
-    };
+    stateObjectRef.current = stateObject;
+    captionTextRef.current = captionText;
+  });
 
-    updateStateObject(newStateObject);
+  useEffect(() => {
+    const newPartialStateObject: Partial<typeof stateObject> = {};
+    if (stateObjectRef.current.src !== initialSrc) {
+      newPartialStateObject.src = initialSrc;
+    }
+    if (stateObjectRef.current.width !== initialWidth) {
+      newPartialStateObject.width = initialWidth;
+    }
 
-    if (initialCaption && captionText !== initialCaption) {
+    updateStateObject(newPartialStateObject);
+
+    if (initialCaption && captionTextRef.current !== initialCaption) {
       setCaptionText(initialCaption);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- The list does not include stateObject on purpose. To be refactored with refs
-  }, [initialSrc, initialWidth, initialCaption]);
+  }, [initialSrc, initialWidth, initialCaption, updateStateObject]);
 
   const updateData = useCallback(
     ({
