@@ -132,7 +132,7 @@ export const resolveLinkedData = async (
 };
 
 const isFileProperties = (props: {}): props is FileProperties =>
-  "key" in props && "contentMd5" in props;
+  "key" in props && "size" in props && "url" in props && "storageType" in props;
 
 export const properties: Resolver<
   UnknownEntity["properties"],
@@ -146,6 +146,11 @@ export const properties: Resolver<
    * */
   // This avoids mutating the original, even if the above function does it should eventually be refactored not to
   const props = { ...entity.properties };
+
+  /**
+   * @todo: instead of using a type-guard, check whether `entity` is a File
+   *        system type using `entity.entityTypeId`
+   */
   if (isFileProperties(props)) {
     // "Detecting" that it's a file entity
     props.url = await fileUrlResolver(props, {}, ctx, info);
