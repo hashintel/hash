@@ -1,7 +1,13 @@
 // @todo this should be defined elsewhere
 
+import { FileProperties } from "./graphql/apiTypes.gen";
+
 export type DistributiveOmit<T, K extends keyof any> = T extends any
   ? Omit<T, K>
+  : never;
+
+export type DistributivePick<T, K extends keyof T> = T extends unknown
+  ? Pick<T, K>
   : never;
 
 /**
@@ -38,3 +44,6 @@ type Entries<T> = {
  */
 export const typeSafeEntries = <T>(obj: T): Entries<T> =>
   Object.entries(obj) as any;
+
+export const isFileProperties = (props: {}): props is FileProperties =>
+  "key" in props && "size" in props && "url" in props && "storageType" in props;

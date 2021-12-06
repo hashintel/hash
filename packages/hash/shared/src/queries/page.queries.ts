@@ -24,10 +24,24 @@ const pageFieldsFragment = gql`
         entityId
         accountId
         updatedAt
+        createdAt
+        entityVersionCreatedAt
+        createdById
         properties {
           __typename
           componentId
-          entity
+          entity {
+            __typename
+            id
+            entityVersionId
+            entityId
+            accountId
+            updatedAt
+            createdAt
+            entityVersionCreatedAt
+            createdById
+            properties
+          }
         }
       }
     }

@@ -110,8 +110,10 @@ export const entityTypedef = gql`
     links: [Link!]!
   }
 
+  scalar UnknownEntityProperties
+
   type UnknownEntity implements Entity {
-    properties: JSONObject!
+    properties: UnknownEntityProperties!
 
     # ENTITY INTERFACE FIELDS BEGIN #
     """
