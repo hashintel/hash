@@ -3,6 +3,7 @@ mod fields;
 mod indices;
 mod writer;
 
+use arrow::array::{FixedSizeListBuilder, ListBuilder};
 use self::collected::Messages;
 use crate::datastore::schema::accessor::GetFieldSpec;
 use crate::{
@@ -95,9 +96,8 @@ impl Package for AgentMessages {
         _schema: &ContextSchema,
     ) -> Result<(FieldKey, Arc<dyn ArrowArray>)> {
         let index_builder = ArrowIndexBuilder::new(1024);
-
-        let neighbor_index_builder = arrow::array::FixedSizeListBuilder::new(index_builder, 3);
-        let mut messages_builder = arrow::array::ListBuilder::new(neighbor_index_builder);
+        let loc_builder = FixedSizeListBuilder::new(index_builder, 3);
+        let mut messages_builder = ListBuilder::new(loc_builder);
 
         (0..num_agents).try_for_each(|_| messages_builder.append(true))?;
 
@@ -105,7 +105,7 @@ impl Package for AgentMessages {
         //   initialisation to be done per schema instead of per package
         let field_key = self
             .context_field_spec_accessor
-            .get_local_hidden_scoped_field_spec("messages")?
+            .get_agent_scoped_field_spec("messages")?
             .to_key()?;
 
         Ok((

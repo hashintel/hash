@@ -15,6 +15,14 @@ fn agent_messages() -> FieldType {
 
 pub(super) fn add_context(field_spec_map_builder: &mut FieldSpecMapBuilder) -> Result<()> {
     let agent_messages = agent_messages();
-    field_spec_map_builder.add_field_spec("messages".into(), agent_messages, FieldScope::Hidden)?;
+    // The messages column can be agent-scoped because it
+    // has custom getters in the language runners that
+    // return the actual messages that the agent received,
+    // not just their indices.
+    field_spec_map_builder.add_field_spec(
+        "messages".into(),
+        agent_messages,
+        FieldScope::Agent,
+    )?;
     Ok(())
 }

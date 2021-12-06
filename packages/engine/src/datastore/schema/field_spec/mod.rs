@@ -117,9 +117,6 @@ impl FieldKey {
                 PRIVATE_PREFIX, HIDDEN_PREFIX, name
             )));
         }
-        if name == "messages" {
-            return Err(Error::from(format!("'messages' is a protected field name. Fields cannot be created with that name with FieldScope::Agent")));
-        }
 
         return Ok(FieldKey(name.to_string()));
     }

@@ -103,6 +103,7 @@ pub trait DataSliceUtils<'a> {
 }
 
 impl<'a> DataSliceUtils<'a> for &mut [u8] {
+    // TODO: Rename to from_buffer/buffer_slice?
     fn from_offset(&'a mut self, buffer: &crate::datastore::meta::Buffer) -> &'a mut [u8] {
         &mut self[buffer.offset..buffer.offset + buffer.length]
     }
@@ -113,17 +114,20 @@ impl<'a> DataSliceUtils<'a> for &mut [u8] {
     }
 
     /// If this is an offset buffer, write n + 1 offsets as i32 (Arrow format)
-    fn write_i32_offsets_from_iter(&mut self, iter: impl Iterator<Item = usize>) {
+    /// `lens` gives the length of each element in the Arrow array, i.e. the
+    /// difference between consecutive offsets.
+    fn write_i32_offsets_from_iter(&mut self, lens: impl Iterator<Item = usize>) {
         let offsets = unsafe {
             let aligned = self.align_to_mut::<i32>();
+            // In fact, Arrow offsets are always aligned, so the prefix `aligned.0` is empty.
             debug_assert_eq!(aligned.0.len(), 0);
             aligned.1
         };
         offsets[0] = 0;
         let mut next_offset = 0;
-        iter.enumerate().for_each(|(i, n)| {
-            next_offset += n as i32;
-            offsets[i + 1] = next_offset;
+        lens.enumerate().for_each(|(i, len)| {
+            next_offset += len as i32;
+            offsets[i + 1] = next_offset; // `n+1` offsets
         })
     }
 }
