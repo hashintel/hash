@@ -1,5 +1,7 @@
 target/
+build/
 runner_venv/
 *-topy*
 *-frompy*
 *hash-orchestrator-*
+src/worker/runner/python/wrappers.c*
