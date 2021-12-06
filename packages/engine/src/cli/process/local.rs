@@ -5,10 +5,10 @@ use hash_prime::nano;
 use hash_prime::proto::EngineMsg;
 
 #[cfg(debug_assertions)]
-const PROCESS_PATH_DEFAULT: &str = "./target/debug/prime_engine";
+const PROCESS_PATH_DEFAULT: &str = "./target/debug/prime";
 
 #[cfg(not(debug_assertions))]
-const PROCESS_PATH_DEFAULT: &str = "./target/release/prime_engine";
+const PROCESS_PATH_DEFAULT: &str = "./target/release/prime";
 
 pub struct LocalProcess {
     experiment_id: String,
