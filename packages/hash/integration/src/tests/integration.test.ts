@@ -6,8 +6,7 @@ import {
   VerificationCode,
 } from "@hashintel/hash-api/src/model";
 import { PostgresAdapter } from "@hashintel/hash-api/src/db";
-import EmailTransporter from "@hashintel/hash-api/src/email/transporter";
-import TestEmailTransporter from "@hashintel/hash-api/src/email/transporter/testEmailTransporter";
+import { DummyEmailTransporter } from "@hashintel/hash-api/src/email/transporters";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
 import { ClientError } from "graphql-request";
@@ -37,7 +36,9 @@ let handler: IntegrationTestsHandler;
 
 let db: PostgresAdapter;
 
-let transporter: EmailTransporter;
+// Note that emailTransporter does not have access to all email in this test suite.
+// When API Client is used, a real API server is involved and it has its own transporter.
+let emailTransporter: DummyEmailTransporter;
 
 let existingUser: User;
 
@@ -90,7 +91,7 @@ beforeAll(async () => {
     logger,
   );
 
-  transporter = new TestEmailTransporter();
+  emailTransporter = new DummyEmailTransporter();
 
   existingUser = await User.createUser(db, {
     shortname: "test-user",
@@ -154,23 +155,20 @@ it("can create user", async () => {
 it("can create user with email verification code", async () => {
   const inviteeEmailAddress = "david@hash.test";
 
-  const emailInvitation = await OrgEmailInvitation.createOrgEmailInvitation(
-    db,
-    transporter,
-    {
-      org: existingOrg,
-      inviter: existingUser,
-      inviteeEmailAddress,
-    },
-  );
+  await OrgEmailInvitation.createOrgEmailInvitation(db, emailTransporter, {
+    org: existingOrg,
+    inviter: existingUser,
+    inviteeEmailAddress,
+  });
 
-  /** @todo: use test email transporter to obtain email invitation token */
-  const invitationEmailToken = emailInvitation.properties.accessToken;
+  const { invitationLinkToken } = emailTransporter.getMostRecentEmail({
+    assertDerivedPayloadType: "orgInvitation",
+  }).derivedPayload;
 
   const { entityId, accountSignupComplete } =
     await client.createUserWithOrgEmailInvitation({
       orgEntityId: existingOrg.entityId,
-      invitationEmailToken,
+      invitationEmailToken: invitationLinkToken,
     });
 
   expect(accountSignupComplete).toEqual(false);
@@ -353,7 +351,7 @@ describe("logged in user ", () => {
 
     const emailInvitation = await OrgEmailInvitation.createOrgEmailInvitation(
       db,
-      transporter,
+      emailTransporter,
       {
         org: bobOrg,
         inviter: bobUser,
@@ -361,9 +359,13 @@ describe("logged in user ", () => {
       },
     );
 
+    const { invitationLinkToken } = emailTransporter.getMostRecentEmail({
+      assertDerivedPayloadType: "orgInvitation",
+    }).derivedPayload;
+
     const gqlEmailInvitation = await client.getOrgEmailInvitation({
       orgEntityId: bobOrg.entityId,
-      invitationEmailToken: emailInvitation.properties.accessToken,
+      invitationEmailToken: invitationLinkToken,
     });
 
     expect(gqlEmailInvitation.entityId).toEqual(emailInvitation.entityId);
@@ -398,23 +400,21 @@ describe("logged in user ", () => {
 
     const inviteeEmailAddress = "alice-second@hash.test";
 
-    const emailInvitation = await OrgEmailInvitation.createOrgEmailInvitation(
-      db,
-      transporter,
-      {
-        org: bobOrg,
-        inviter: bobUser,
-        inviteeEmailAddress,
-      },
-    );
+    await OrgEmailInvitation.createOrgEmailInvitation(db, emailTransporter, {
+      org: bobOrg,
+      inviter: bobUser,
+      inviteeEmailAddress,
+    });
 
     const responsibility = "CTO";
 
+    const { invitationLinkToken } = emailTransporter.getMostRecentEmail({
+      assertDerivedPayloadType: "orgInvitation",
+    }).derivedPayload;
+
     const gqlUser = await client.joinOrg({
       orgEntityId: bobOrg.entityId,
-      verification: {
-        invitationEmailToken: emailInvitation.properties.accessToken,
-      },
+      verification: { invitationEmailToken: invitationLinkToken },
       responsibility,
     });
 

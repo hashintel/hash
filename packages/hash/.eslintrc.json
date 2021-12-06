@@ -90,6 +90,7 @@
     "import/prefer-default-export": "off",
     "no-await-in-loop": "off",
     "no-console": "error",
+    "no-dupe-class-members": "off",
     "import/no-unresolved": [
       2,
       {

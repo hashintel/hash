@@ -15,7 +15,7 @@ import { DBAdapter } from "../db";
 import { CacheAdapter } from "../cache";
 import { buildPassportGraphQLMethods } from "../auth/passport";
 import { GraphQLContext } from "./context";
-import EmailTransporter from "../email/transporter";
+import { EmailTransporter } from "../email/transporters";
 import {
   StorageProviders,
   UploadableStorageProvider,

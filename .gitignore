@@ -66,8 +66,10 @@ build
 
 # generated files
 **/*.gen.*
-
 **/*.tsbuildinfo
 
 # Sentry
 .sentryclirc
+
+# Application data
+/var

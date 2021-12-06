@@ -47,6 +47,13 @@ The following programs must be present on your development system:
     yarn seed-db
     ```
 
+Our login and signup flows rely on emails with links or authentication codes.
+By default, the API server uses `DummyEmailTransporter` which simulates email sending for local development and testing.
+You will find authentication codes in `var/api/dummy-email-transporter/email-dumps.yml` and in the CLI output.
+
+To use `AwsSesEmailTransporter` instead, set `export HASH_EMAIL_TRANSPORTER=aws_ses`.
+Note that you will need valid credentials for this email transporter to work.
+
 See the [docker/README](./docker) for further details.
 
 ## Start the frontend
