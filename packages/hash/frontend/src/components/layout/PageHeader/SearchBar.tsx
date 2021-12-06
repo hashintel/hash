@@ -1,9 +1,9 @@
 import { useQuery } from "@apollo/client";
 import { PageSearchResult } from "@hashintel/hash-shared/graphql/apiTypes.gen";
-import { escapeRegExp, escape } from "lodash";
+import { escapeRegExp } from "lodash";
 import Link from "next/link";
 import React, { useRef, useState } from "react";
-import { useDebounce, useKey, useKeys } from "rooks";
+import { useDebounce, useKey, useKeys, useOutsideClickRef } from "rooks";
 import { apply, tw } from "twind";
 import { blockDomId } from "../../../blocks/page/BlockView";
 import {
@@ -42,7 +42,7 @@ export const SearchBar: React.VFC = () => {
 
   const { user } = useUser();
 
-  const { data, loading, error } = useQuery<
+  const { data, loading } = useQuery<
     SearchPagesQuery,
     SearchPagesQueryVariables
   >(searchPages, {
@@ -53,13 +53,15 @@ export const SearchBar: React.VFC = () => {
 
   useKeys(["AltLeft", "KeyK"], () => inputRef.current?.focus());
 
+  const [rootRef] = useOutsideClickRef(() => setFocused(false));
+
   useKey(["Escape"], () => setFocused(false));
 
   // present loading screen while waiting for the user to stop typing
   const isLoading = loading || displayedQuery !== submittedQuery;
 
   return (
-    <div className={tw`relative h-full w-full`}>
+    <div ref={rootRef} className={tw`relative h-full w-full`}>
       <div className={tw`absolute h-full flex flex-row items-center`}>
         <SearchIcon className={tw`m-2 scale-150`} />
       </div>
@@ -69,7 +71,6 @@ export const SearchBar: React.VFC = () => {
         placeholder="Search (Alt+k)"
         type="text"
         value={displayedQuery}
-        onBlur={() => setFocused(false)}
         onFocus={() => setFocused(true)}
         onChange={(event) => {
           const value = event.target.value;
