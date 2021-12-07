@@ -33,7 +33,7 @@ Building this project requires the following:
   * hEngine runs on the Nightly toolchain. The version is managed by the [rust-toolchain.toml](./rust-toolchain.toml) file. To verify, run `rustup show` from the [engine](.) directory.
 * CMake [3.X.X >= 3.21.2]
   * CMake installation guidance from the [CMake page](https://cmake.org/install/) or if on MacOS through [brew](https://brew.sh/)
-* Python [3.X >= 3.7]
+* Python [3.7.x]
   * Python installation guidance from [their website](https://www.python.org/downloads/)
 * Flatbuffers [2.0.0]
   * Flatbuffers installation guidance from [their website](https://google.github.io/flatbuffers/flatbuffers_guide_building.html)
