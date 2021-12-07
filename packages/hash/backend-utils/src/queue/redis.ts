@@ -53,7 +53,9 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
 
   private async setOwnership(name: string) {
     const heartbeat = QUEUE_CONSUMER_OWNERSHIP_HEARTBEAT_MS;
-    const interval = setInterval(() => this.updateOwnership(name), heartbeat);
+    const interval = setInterval(() => {
+      void this.updateOwnership(name);
+    }, heartbeat);
     this.queueOwned = { name, lastUpdated: Date.now(), interval };
     await this.updateOwnership(name);
   }
@@ -70,7 +72,7 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
       this.ownerKey(name),
       QUEUE_CONSUMER_OWNERSHIP_TIMEOUT_MS / 1000,
     );
-    this.queueOwned!.lastUpdated = Date.now();
+    this.queueOwned.lastUpdated = Date.now();
   }
 
   private ownershipIsValid(name: string): boolean {
@@ -91,11 +93,11 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
     timeoutMs: number | null,
   ): Promise<boolean> {
     const timeout = timeoutMs === null ? null : Math.min(timeoutMs, 1000);
-    if (this.queueOwned && this.queueOwned!.name === name) {
+    if (this.queueOwned && this.queueOwned.name === name) {
       // Queue is already acquired
       return true;
     }
-    if (this.queueOwned && this.queueOwned!.name !== name) {
+    if (this.queueOwned && this.queueOwned.name !== name) {
       throw new Error("consumer has already acquired a different queue");
     }
 

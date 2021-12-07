@@ -20,7 +20,9 @@ export class GracefulShutdown {
   constructor(logger: Logger, ...signals: Signal[]) {
     this.logger = logger;
     for (const signal of signals) {
-      process.on(signal, async () => await this.trigger());
+      process.on(signal, () => {
+        void this.trigger();
+      });
     }
   }
 

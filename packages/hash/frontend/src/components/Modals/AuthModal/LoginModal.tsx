@@ -233,13 +233,11 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
           syntheticLoading: true,
         },
       });
-      setTimeout(
-        () =>
-          loginWithLoginCode({
-            variables: { verificationId, verificationCode: providedCode },
-          }),
-        SYNTHETIC_LOADING_TIME_MS,
-      );
+      setTimeout(() => {
+        void loginWithLoginCode({
+          variables: { verificationId, verificationCode: providedCode },
+        });
+      }, SYNTHETIC_LOADING_TIME_MS);
     } else {
       void loginWithLoginCode({
         variables: { verificationId, verificationCode },
@@ -248,7 +246,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
   };
 
   const resendLoginCode = () => {
-    void requestLoginCode(loginIdentifier);
+    requestLoginCode(loginIdentifier);
   };
 
   const goBack = () => {

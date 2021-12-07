@@ -44,7 +44,7 @@ export const EntityType: VoidFunctionComponent = () => {
 
   const schema = data?.getEntityType.properties;
 
-  const schemaId = schema?.$id;
+  const schemaId: string = schema?.$id;
 
   /**
    * This element is for users to interact with to select other schemas. In this case, a <Link>.

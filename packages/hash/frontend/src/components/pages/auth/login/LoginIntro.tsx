@@ -54,7 +54,7 @@ export const LoginIntro: VoidFunctionComponent<LoginIntroProps> = ({
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    void requestLoginCode(emailOrShortname);
+    requestLoginCode(emailOrShortname);
   };
 
   if (defaultLoginIdentifier && !emailOrShortname) {

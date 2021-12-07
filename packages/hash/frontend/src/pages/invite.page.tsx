@@ -105,7 +105,7 @@ const InvitePage: NextPage = () => {
             invitationEmailToken: invitationInfo.invitationEmailToken,
           }),
           ...("invitationLinkToken" in invitationInfo && {
-            invitationLinkToken: invitationInfo.invitationLinkToken as string,
+            invitationLinkToken: invitationInfo.invitationLinkToken,
           }),
         },
         responsibility,

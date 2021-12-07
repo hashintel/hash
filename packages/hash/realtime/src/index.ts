@@ -170,6 +170,7 @@ const main = async () => {
 
   // Try to acquire the slot
   let slotAcquired = false;
+  // eslint-disable-next-line @typescript-eslint/no-misused-promises
   const int1 = setInterval(async () => {
     slotAcquired = await acquireSlot(pool);
     if (slotAcquired) {
@@ -181,6 +182,7 @@ const main = async () => {
   }, OWNERSHIP_EXPIRY_MILLIS);
 
   // Poll the replication slot for new data
+  // eslint-disable-next-line @typescript-eslint/no-misused-promises
   const int2 = setInterval(async () => {
     if (!slotAcquired) {
       return;
@@ -209,8 +211,12 @@ const main = async () => {
       process.exit(0);
     });
   };
-  process.on("SIGTERM", async () => await shutdown("SIGTERM"));
-  process.on("SIGINT", async () => await shutdown("SIGINT"));
+  process.on("SIGTERM", () => {
+    void shutdown("SIGTERM");
+  });
+  process.on("SIGINT", () => {
+    void shutdown("SIGINT");
+  });
 };
 
 (async () => {

@@ -13,7 +13,7 @@ type VerifyCodeProps = {
   errorMessage?: string;
   loginIdentifier: string;
   handleSubmit: (code: string, withSyntheticLoading?: boolean) => void;
-  requestCode: () => void;
+  requestCode: () => void | Promise<void>;
   requestCodeLoading: boolean;
   invitationInfo: InvitationInfo | null;
 };
@@ -66,11 +66,12 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
 
   const onSubmit = (evt: React.FormEvent) => {
     evt.preventDefault();
-    void handleSubmit(text);
+    handleSubmit(text);
   };
 
   const handleResendCode = async () => {
     updateState({ syntheticLoading: true });
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises
     setTimeout(async () => {
       try {
         await requestCode();
@@ -113,7 +114,7 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
                   clipboardData.getData("Text"),
                 );
                 if (doesVerificationCodeLookValid(pastedCode)) {
-                  void handleSubmit(pastedCode, true);
+                  handleSubmit(pastedCode, true);
                 }
               }}
               value={text}

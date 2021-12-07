@@ -192,13 +192,13 @@ The below `package.json` file outlines the minimum requirements a package has to
     "postinstall": "yarn build"
   },
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "4.29.0",
-    "@typescript-eslint/parser": "4.29.0",
+    "@typescript-eslint/eslint-plugin": "5.6.0",
+    "@typescript-eslint/parser": "5.6.0",
     "eslint": "^7.32.0",
     "eslint-config-airbnb": "^18.2.1",
     "eslint-config-prettier": "8.3.0",
     "eslint-plugin-import": "^2.24.2",
-    "eslint-plugin-jest": "24.5.0",
+    "eslint-plugin-jest": "25.3.0",
     "eslint-plugin-jsx-a11y": "^6.4.1",
     "eslint-plugin-no-restricted-imports": "0.0.0",
     "eslint-plugin-react": "^7.25.1",

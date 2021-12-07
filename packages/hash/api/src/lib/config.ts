@@ -15,7 +15,7 @@ function getEnvStorageType() {
       `Env variable FILE_UPLOAD_PROVIDER must be one of the allowed StorageType values`,
     );
   }
-  return envUploadProvider as StorageType;
+  return envUploadProvider;
 }
 
 export const AWS_S3_BUCKET = getRequiredEnv("AWS_S3_UPLOADS_BUCKET");

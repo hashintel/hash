@@ -20,15 +20,15 @@ export const setupPassport = (app: Express, db: DBAdapter) => {
     done(null, { entityId: user.entityId }),
   );
 
-  passport.deserializeUser<SerializedPassportUser>((serializedUser, done) =>
-    UserModel.getUserById(db, serializedUser).then((user) => {
+  passport.deserializeUser<SerializedPassportUser>((serializedUser, done) => {
+    void UserModel.getUserById(db, serializedUser).then((user) => {
       // sets the 'user' field on the Express request object
       done(
         null,
         user,
       ); /** @todo: pass error instead of null when user isn't found */
-    }),
-  );
+    });
+  });
 
   app.use(passport.initialize());
   app.use(passport.session());

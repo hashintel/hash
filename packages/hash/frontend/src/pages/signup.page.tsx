@@ -357,13 +357,11 @@ const SignupPage: NextPage = () => {
 
     if (withSyntheticLoading) {
       updateState({ syntheticLoading: true });
-      setTimeout(
-        () =>
-          verifyEmail({
-            variables: { verificationId, verificationCode: providedCode },
-          }),
-        SYNTHETIC_LOADING_TIME_MS,
-      );
+      setTimeout(() => {
+        void verifyEmail({
+          variables: { verificationId, verificationCode: providedCode },
+        });
+      }, SYNTHETIC_LOADING_TIME_MS);
     } else {
       void verifyEmail({
         variables: { verificationId, verificationCode: providedCode },
@@ -472,7 +470,7 @@ const SignupPage: NextPage = () => {
           errorMessage={errorMessage}
           requestCodeLoading={createUserLoading}
           requestCode={() => {
-            void requestVerificationCode(email);
+            requestVerificationCode(email);
           }}
           invitationInfo={invitationInfo}
         />

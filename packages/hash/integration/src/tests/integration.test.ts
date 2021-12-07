@@ -639,7 +639,7 @@ describe("logged in user ", () => {
     });
 
     const pageEntities = updatedPage.properties.contents.map(
-      (block) => block.properties.entity as any,
+      (block) => block.properties.entity,
     );
     expect(pageEntities[0].properties).toMatchObject(titleProperties);
     expect(pageEntities[1].properties).toMatchObject(textPropertiesA);
@@ -689,7 +689,7 @@ describe("logged in user ", () => {
           schema: {
             properties: [],
           },
-          name: schemaName + 1,
+          name: `${schemaName}1`,
         }),
       ).rejects.toThrowError(/properties must be object/);
 
@@ -701,7 +701,7 @@ describe("logged in user ", () => {
               testField: 4,
             },
           },
-          name: schemaName + 2,
+          name: `${schemaName}2`,
         }),
       ).rejects.toThrowError(/testField must be object,boolean/);
 
@@ -711,7 +711,7 @@ describe("logged in user ", () => {
           schema: {
             invalidKeyword: true,
           },
-          name: schemaName + 3,
+          name: `${schemaName}3`,
         }),
       ).rejects.toThrowError(/unknown keyword/);
     });

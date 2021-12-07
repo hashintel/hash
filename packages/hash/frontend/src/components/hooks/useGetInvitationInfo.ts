@@ -44,7 +44,7 @@ export const useGetInvitationInfo = () => {
         orgEntityId,
         orgName: org.data.properties.name || "",
         inviterPreferredName: inviter.data.properties.preferredName || "",
-        invitationEmailToken: invitationEmailToken as string,
+        invitationEmailToken,
       });
     },
     onError: ({ graphQLErrors }) => {
@@ -82,7 +82,7 @@ export const useGetInvitationInfo = () => {
     if (!router.isReady) return;
 
     if (isParsedInvitationEmailQuery(query) && !getOrgEmailInvitationCalled) {
-      void getOrgEmailInvitation({
+      getOrgEmailInvitation({
         variables: {
           orgEntityId: query.orgEntityId,
           invitationEmailToken: query.invitationEmailToken,
@@ -92,7 +92,7 @@ export const useGetInvitationInfo = () => {
       isParsedInvitationLinkQuery(query) &&
       !getOrgInvitationLinkCalled
     ) {
-      void getOrgInvitationLink({
+      getOrgInvitationLink({
         variables: {
           orgEntityId: query.orgEntityId,
           invitationLinkToken: query.invitationLinkToken,

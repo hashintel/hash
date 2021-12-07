@@ -107,7 +107,7 @@ const main = async () => {
 
   const pool = new pg.Pool(cfg);
 
-  const tx = async (fn: (client: pg.PoolClient) => void) => {
+  const tx = async (fn: (client: pg.PoolClient) => void | Promise<void>) => {
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
@@ -137,7 +137,9 @@ const main = async () => {
   for (const name of schemaFiles) {
     console.log(`Applying ${name}`);
     const sql = fs.readFileSync(path.join(schemaDir, name)).toString();
-    await tx(async (client) => await client.query(sql));
+    await tx(async (client) => {
+      await client.query(sql);
+    });
   }
 
   await pool.end();

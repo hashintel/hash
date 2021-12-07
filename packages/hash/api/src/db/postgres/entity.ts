@@ -535,7 +535,7 @@ export const getEntities = async (
   return ids
     .map((id) =>
       id.entityVersionId
-        ? versionLookup.get(id.entityVersionId!)
+        ? versionLookup.get(id.entityVersionId)
         : latestLookup.get(id.entityId),
     )
     .filter((entity): entity is Entity => !!entity);

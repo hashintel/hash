@@ -58,7 +58,7 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
 
   const onSubmit = handleSubmit(
     ({ shortname, preferredName, responsibility }) => {
-      void setupAccount({
+      setupAccount({
         shortname,
         preferredName,
         ...(!!invitationInfo && { responsibility }),

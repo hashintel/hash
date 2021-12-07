@@ -253,7 +253,7 @@ export const getChildren = async (
       const entity = link.entityVersionId
         ? await getEntity(conn, {
             accountId: link.accountId,
-            entityVersionId: link.entityVersionId!,
+            entityVersionId: link.entityVersionId,
           })
         : await getEntityLatestVersion(conn, link);
       if (!entity) {

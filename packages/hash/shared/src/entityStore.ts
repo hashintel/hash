@@ -128,7 +128,7 @@ export const createEntityStore = (
   const entityToDraft: Record<string, string> = {};
 
   for (const row of Object.values(draftData)) {
-    draftToEntity[row.draftId!] = row.entityId;
+    draftToEntity[row.draftId] = row.entityId;
     if (row.entityId) {
       entityToDraft[row.entityId] = row.draftId;
     }

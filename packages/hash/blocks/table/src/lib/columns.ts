@@ -36,7 +36,7 @@ export const makeColumns = (
       ? 1
       : b.columns && !a.columns
       ? -1
-      : (a.accessor as string).localeCompare(b.accessor as string),
+      : a.accessor.localeCompare(b.accessor),
   );
 
   const flattenedColumns = columns.flatMap(
