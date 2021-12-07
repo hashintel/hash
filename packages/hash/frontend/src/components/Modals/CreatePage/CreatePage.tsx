@@ -1,5 +1,5 @@
-import { FormEvent, useState, VoidFunctionComponent } from "react";
-import { useRouter } from "next/router";
+import { FormEvent, useEffect, useState, VoidFunctionComponent } from "react";
+import { Router, useRouter } from "next/router";
 
 import { useCreatePage } from "../../hooks/useCreatePage";
 import { Modal } from "../Modal";
@@ -24,25 +24,41 @@ export const CreatePage: VoidFunctionComponent<CreatePageProps> = ({
 
   const createPage = (event: FormEvent) => {
     event.preventDefault();
+
+    if (loading) {
+      return;
+    }
+
     setLoading(true);
     create({
       variables: { accountId, properties: { title } },
     })
       .then((response) => {
-        // eslint-disable-next-line @typescript-eslint/no-shadow -- Not relevant in this scenario, since the accountId is a part of the response.
-        const { accountId, entityId } = response.data?.createPage ?? {};
+        const { accountId: pageAccountId, entityId: pageEntityId } =
+          response.data?.createPage ?? {};
 
-        if (accountId && entityId) {
-          return router.push(`/${accountId}/${entityId}`);
+        if (pageAccountId && pageEntityId) {
+          return router.push(`/${pageAccountId}/${pageEntityId}`);
         }
       })
       // eslint-disable-next-line no-console -- TODO: consider using logger
-      .catch((err) => console.error("Could not create page: ", err))
-      .finally(() => {
+      .catch((err) => {
+        console.error("Could not create page: ", err);
         setLoading(false);
         close();
       });
   };
+
+  useEffect(() => {
+    const routeChangeHandler = () => {
+      setLoading(false);
+      close();
+    };
+
+    Router.events.on("routeChangeComplete", routeChangeHandler);
+
+    return () => Router.events.off("routeChangeComplete", routeChangeHandler);
+  }, []);
 
   return (
     <Modal show close={close}>
