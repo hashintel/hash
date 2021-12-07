@@ -4,7 +4,7 @@ import { escapeRegExp } from "lodash";
 import Link from "next/link";
 import React, { useEffect, useRef, useState } from "react";
 import { useDebounce, useKey, useKeys, useOutsideClickRef } from "rooks";
-import { apply, tw } from "twind";
+import { tw } from "twind";
 import { blockDomId } from "../../../blocks/page/BlockView";
 import {
   SearchPagesQuery,
@@ -41,12 +41,23 @@ const toBlockUrl = (searchPage: PageSearchResult): string => {
   return segments.join("");
 };
 
-const resultList = apply`absolute z-10 w-1/2 max-h-60 overflow-auto border border-gray-100 rounded-lg shadow-md`;
-const resultItem = apply`flex border border-gray-100 bg-gray-50 p-2 hover:bg-gray-100 cursor-pointer overflow-ellipsis overflow-hidden`;
+const ResultList: React.FC = (props) => (
+  <ul
+    className={tw`absolute z-10 w-1/2 max-h-60 overflow-auto border border-gray-100 rounded-lg shadow-md`}
+    {...props}
+  />
+);
+
+const ResultItem: React.FC = (props) => (
+  <li
+    className={tw`flex border border-gray-100 bg-gray-50 p-2 hover:bg-gray-100 cursor-pointer overflow-ellipsis overflow-hidden`}
+    {...props}
+  />
+);
 
 export const SearchBar: React.VFC = () => {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [isFocused, setFocused] = useState(false);
+  const [isResultListVisible, setResultListVisible] = useState(false);
   const [displayedQuery, setDisplayedQuery] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
   const setSubmittedQuerySoon = useDebounce(setSubmittedQuery, 300);
@@ -84,28 +95,25 @@ export const SearchBar: React.VFC = () => {
         placeholder="Search (Alt+k)"
         type="text"
         value={displayedQuery}
-        onFocus={() => setFocused(true)}
+        onFocus={() => setResultListVisible(true)}
         onChange={(event) => {
           setResultListVisible(true);
           setDisplayedQuery(event.target.value);
         }}
       />
-      {isFocused && displayedQuery && (
-        <ul className={tw`${resultList}`}>
+      {isResultListVisible && displayedQuery && (
+        <ResultList>
           {isLoading ? (
-            <li className={tw`${resultItem}`}>
+            <ResultItem>
               Loading results for&nbsp;<b>{submittedQuery}</b>.
-            </li>
-          ) : !data || !data.searchPages.length ? (
-            <li className={tw`${resultItem}`}>
+            </ResultItem>
+          ) : !data?.searchPages.length ? (
+            <ResultItem>
               No results found for&nbsp;<b>{submittedQuery}</b>.
-            </li>
+            </ResultItem>
           ) : (
-            data.searchPages.map((searchPage: PageSearchResult) => (
-              <li
-                key={searchPage.block?.entityId}
-                className={tw`${resultItem}`}
-              >
+            data.searchPages.map((searchPage) => (
+              <ResultItem key={searchPage.block?.entityId}>
                 <Link href={toBlockUrl(searchPage)}>
                   <a>
                     {splitByMatches(searchPage.content, submittedQuery).map(
@@ -113,10 +121,10 @@ export const SearchBar: React.VFC = () => {
                     )}
                   </a>
                 </Link>
-              </li>
+              </ResultItem>
             ))
           )}
-        </ul>
+        </ResultList>
       )}
     </div>
   );
