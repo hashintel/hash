@@ -17,7 +17,7 @@
     "postinstall": "yarn codegen # required for linting",
     "lint": "eslint --ext .ts ./src/ && tsc --noEmit # @hashintel/hash-integration",
     "mock-data": "yarn codegen && ts-node src/mockData/index.ts",
-    "test": "jest",
+    "test": "jest --runInBand",
     "ts-node": "node --max-old-space-size=2048 node_modules/.bin/ts-node --files --project tsconfig.json"
   },
   "dependencies": {

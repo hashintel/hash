@@ -5,7 +5,7 @@ import { PassportGraphQLMethods } from "../auth/passport";
 import { User } from "../model";
 import { DBAdapter } from "../db";
 import { CacheAdapter } from "../cache";
-import EmailTransporter from "../email/transporter";
+import { EmailTransporter } from "../email/transporters";
 import { StorageProviders, UploadableStorageProvider } from "../storage";
 
 /**

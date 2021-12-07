@@ -1,52 +1,85 @@
-import { useQuery } from "@apollo/client";
-import { useState } from "react";
+import { useApolloClient } from "@apollo/client";
+import { useCallback, useState } from "react";
 import {
   IsShortnameTakenQuery,
   QueryIsShortnameTakenArgs,
 } from "../../graphql/apiTypes.gen";
 import { isShortnameTaken as isShortnameTakenQuery } from "../../graphql/queries/user.queries";
 
-export const ALLOWED_SHORTNAME_CHARS = /^[a-zA-Z0-9-_]+$/;
+type ShortnameErrorCode =
+  | "IS_EMPTY"
+  | "IS_TOO_LONG"
+  | "IS_TOO_SHORT"
+  | "IS_TAKEN";
+
+const getShortnameError = (error: string | undefined, isTouched: boolean) => {
+  switch (error) {
+    case "IS_EMPTY":
+      return isTouched && "You must choose a username";
+    case "IS_TOO_SHORT":
+      return isTouched && "Must be at least 4 characters";
+    case "IS_TOO_LONG":
+      return "Must be shorter than 24 characters";
+    case "IS_TAKEN":
+      return "This user has already been taken";
+    default:
+      return null;
+  }
+};
 
 const parseShortnameInput = (input: string) =>
   input.replaceAll(/[^a-zA-Z0-9-_]/g, "");
 
 export const useShortnameInput = () => {
-  const [shortname, setShortname] = useState("");
+  const [loading, setLoading] = useState(false);
+  const client = useApolloClient();
 
-  const isEmpty = shortname === "";
+  const validateShortname = useCallback(
+    async (shortname?: string): Promise<true | ShortnameErrorCode> => {
+      if (!shortname) {
+        return "IS_EMPTY";
+      }
+      if (shortname.length > 24) {
+        return "IS_TOO_LONG";
+      }
 
-  const isTooLong = shortname.length > 24;
-  const isTooShort = shortname.length < 4;
+      setLoading(true);
 
-  const isShortnameValid = !isEmpty && !isTooLong && !isTooShort;
+      const { data } = await client.query<
+        IsShortnameTakenQuery,
+        QueryIsShortnameTakenArgs
+      >({
+        query: isShortnameTakenQuery,
+        variables: {
+          shortname,
+        },
+      });
 
-  const { data, loading } = useQuery<
-    IsShortnameTakenQuery,
-    QueryIsShortnameTakenArgs
-  >(isShortnameTakenQuery, {
-    variables: { shortname },
-    skip: !isShortnameValid,
-  });
+      setLoading(false);
 
-  const isShortnameTaken = data?.isShortnameTaken;
+      if (data.isShortnameTaken) {
+        return "IS_TAKEN";
+      }
+
+      /**
+       * Reordering this because we currently have some shortnames with a length less than 4
+       * @see https://github.com/hashintel/dev/pull/368#discussion_r759248981
+       * In the event we ban all shortnames less than 4, then we can move this check to happen
+       * before isShortnameTaken query
+       */
+      if (shortname.length < 4) {
+        return "IS_TOO_SHORT";
+      }
+
+      return true;
+    },
+    [client],
+  );
 
   return {
-    shortname,
-    setShortname: (updatedShortname: string) =>
-      setShortname(parseShortnameInput(updatedShortname)),
-    isShortnameValid: isShortnameValid && isShortnameTaken !== true,
-    isShortnameTaken,
-    isshortnameTakenLoading: loading,
-    shortnameErrorMessage: isEmpty
-      ? "You must choose a username"
-      : isTooLong
-      ? "Must be shorter than 24 characters"
-      : isTooShort
-      ? "Must be at least 4 characters"
-      : isShortnameTaken
-      ? "This username has already been taken"
-      : undefined,
-    isShortnameTooShort: isTooShort,
+    validateShortname,
+    validateShortnameLoading: loading,
+    parseShortnameInput,
+    getShortnameError,
   };
 };

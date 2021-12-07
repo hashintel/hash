@@ -47,6 +47,8 @@ export const Video: BlockComponent<AppProps> = (props) => {
     update,
   } = props;
 
+  // TODO: Consider replacing multiple states with useReducer()
+  // See also: Image block
   const [stateObject, setStateObject] = useState<{
     src: string;
     loading: boolean;
@@ -80,16 +82,23 @@ export const Video: BlockComponent<AppProps> = (props) => {
     [],
   );
 
+  const stateObjectRef = React.useRef(stateObject);
+  const captionTextRef = React.useRef(captionText);
+
   useEffect(() => {
-    if (stateObject.src !== initialSrc) {
+    stateObjectRef.current = stateObject;
+    captionTextRef.current = captionText;
+  });
+
+  useEffect(() => {
+    if (stateObjectRef.current.src !== initialSrc) {
       updateStateObject({ src: initialSrc });
     }
 
-    if (initialCaption && captionText !== initialCaption) {
+    if (initialCaption && captionTextRef.current !== initialCaption) {
       setCaptionText(initialCaption);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- The list does not include stateObject on purpose. To be refactored with refs
-  }, [initialSrc, initialCaption]);
+  }, [initialSrc, initialCaption, updateStateObject]);
 
   function displayError(errorString: string) {
     updateStateObject({ errorString });

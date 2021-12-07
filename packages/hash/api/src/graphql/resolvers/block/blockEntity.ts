@@ -1,10 +1,24 @@
 import { ApolloError } from "apollo-server-express";
+import { Entity, UnresolvedGQLEntity } from "../../../model";
+import { DbBlockProperties } from "../../../types/dbTypes";
 
 import { Resolver } from "../../apiTypes.gen";
-import { DbBlockProperties } from "../../../types/dbTypes";
 import { GraphQLContext } from "../../context";
-import { Entity, UnresolvedGQLEntity } from "../../../model";
 import { resolveLinkedData } from "../entity/properties";
+
+type LegacyTextProperties = {
+  texts: {
+    text: string;
+    bold?: boolean;
+    italics?: boolean;
+    underline?: boolean;
+  }[];
+};
+
+const isLegacyTextProperties = (properties: {
+  texts?: unknown;
+}): properties is LegacyTextProperties =>
+  "texts" in properties && Array.isArray(properties.texts);
 
 export const blockEntity: Resolver<
   Promise<UnresolvedGQLEntity>,
@@ -36,7 +50,7 @@ export const blockEntity: Resolver<
    * This code can be removed after 2022-01-01 – it is safe to assume that every dev has
    * reset their database at least one, so all properties have the new structure.
    */
-  if (Array.isArray(mappedEntity.properties?.texts)) {
+  if (isLegacyTextProperties(mappedEntity.properties)) {
     const { texts, ...otherProperties } = mappedEntity.properties;
     mappedEntity.properties = {
       ...otherProperties,

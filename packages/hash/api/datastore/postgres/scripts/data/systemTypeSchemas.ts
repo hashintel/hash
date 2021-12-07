@@ -48,7 +48,7 @@ const systemTypeSchemas: {
   [key: string]: PartialSchema;
 } = {
   Org: {
-    description: "An organization account in a HASH.dev instance.",
+    description: "An organization account in a HASH instance.",
     properties: {
       shortname: {
         ...shortnameConstraints,
@@ -140,6 +140,52 @@ const systemTypeSchemas: {
       },
     },
     required: ["org", "user", "responsibility"],
+  },
+  Page: {
+    title: "Page",
+    description: "A page of content.",
+    type: "object",
+    properties: {
+      archived: {
+        type: "boolean",
+        description: "Whether or not the page has been archived",
+      },
+      contents: {
+        type: "array",
+        description:
+          "An ordered list of the blocks making up the contents of this page",
+        items: {
+          $ref: schemaId("Block", true),
+        },
+      },
+      summary: {
+        type: "string",
+        description: "An abstract or summary of the page",
+      },
+      title: {
+        type: "string",
+        description: "The title of the page",
+      },
+    },
+    required: ["title", "contents"],
+  },
+  Block: {
+    title: "Block",
+    description:
+      "A block of content, for displaying or editing a data structure.",
+    type: "object",
+    properties: {
+      componentId: {
+        type: "string",
+        description:
+          "The identifier (e.g. a URI) for the component that will render the data.",
+      },
+      entity: {
+        type: "object",
+        description: "The data entity to display or edit",
+      },
+    },
+    required: ["componentId", "entity"],
   },
 };
 

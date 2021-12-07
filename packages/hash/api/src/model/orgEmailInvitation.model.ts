@@ -10,7 +10,7 @@ import {
   User,
 } from ".";
 import { sendOrgEmailInvitationToEmailAddress } from "../email";
-import EmailTransporter from "../email/transporter";
+import { EmailTransporter } from "../email/transporters";
 
 export type DBOrgEmailInvitationProperties = {
   inviter: DBLinkedEntity;
@@ -52,7 +52,7 @@ class __OrgEmailInvitation extends AccessToken {
    */
   static async createOrgEmailInvitation(
     client: DBClient,
-    transporter: EmailTransporter,
+    emailTransporter: EmailTransporter,
     params: {
       org: Org;
       inviter: User;
@@ -83,7 +83,7 @@ class __OrgEmailInvitation extends AccessToken {
       verified: true,
     });
 
-    await sendOrgEmailInvitationToEmailAddress(transporter)({
+    await sendOrgEmailInvitationToEmailAddress(emailTransporter)({
       org,
       emailInvitation,
       isExistingUser: !!existingUser,

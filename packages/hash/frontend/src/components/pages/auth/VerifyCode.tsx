@@ -23,7 +23,7 @@ const isShortname = (identifier: string) => !identifier.includes("@");
 const parseVerificationCodeInput = (inputCode: string) =>
   inputCode.replace(/\s/g, "");
 
-const isVerificationCodeValid = (code: string) => {
+const doesVerificationCodeLookValid = (code: string) => {
   const units = code.split("-");
   return units.length >= 4 && units?.[3].length > 0;
 };
@@ -59,7 +59,10 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
     inputRef.current?.select();
   }, []);
 
-  const isInputValid = useCallback(() => isVerificationCodeValid(text), [text]);
+  const isInputValid = useCallback(
+    () => doesVerificationCodeLookValid(text),
+    [text],
+  );
 
   const onSubmit = (evt: React.FormEvent) => {
     evt.preventDefault();
@@ -109,7 +112,7 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
                 const pastedCode = parseVerificationCodeInput(
                   clipboardData.getData("Text"),
                 );
-                if (isVerificationCodeValid(pastedCode)) {
+                if (doesVerificationCodeLookValid(pastedCode)) {
                   void handleSubmit(pastedCode, true);
                 }
               }}

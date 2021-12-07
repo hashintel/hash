@@ -84,7 +84,7 @@ export const blockTypedef = gql`
   type BlockProperties {
     entityId: ID!
     accountId: ID!
-    entity: JSONObject!
+    entity: UnknownEntity!
     componentId: ID!
   }
 `;
