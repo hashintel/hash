@@ -12,7 +12,7 @@ import {
 } from "../../../graphql/apiTypes.gen";
 import { searchPages } from "../../../graphql/queries/search.queries";
 import { useUser } from "../../hooks/useUser";
-import SearchIcon from "../../Icons/Search";
+import { SearchIcon } from "../../Icons/SearchIcon";
 
 /** finds the query's words in the result and chops it into parts at the words' boundaries */
 const splitByMatches = (result: string, query: string) => {

@@ -1,3 +1,3 @@
 import LightBulbOn from "../../assets/svg/lightbulb-on.svg";
 
-export default LightBulbOn;
+export { LightBulbOn as SearchIcon };
