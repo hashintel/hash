@@ -13,4 +13,5 @@ generates:
       scalars:
         TextToken: "@hashintel/hash-shared/graphql/types#TextToken"
         Date: string
+        UnknownEntityProperties: "@hashintel/hash-shared/graphql/types#UnknownEntityProperties"
     documents: ./src/graphql/queries/*.ts

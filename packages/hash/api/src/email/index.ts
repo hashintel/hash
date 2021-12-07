@@ -1,11 +1,12 @@
+import dedent from "dedent";
 import { URLSearchParams } from "url";
 import { Org, OrgEmailInvitation, VerificationCode } from "../model";
-import EmailTransporter from "./transporter";
+import { EmailTransporter } from "./transporters";
 
 const { FRONTEND_URL } = require("../lib/config");
 
 export const sendLoginCodeToEmailAddress =
-  (transporter: EmailTransporter) =>
+  (emailTransporter: EmailTransporter) =>
   async (params: {
     verificationCode: VerificationCode;
     emailAddress: string;
@@ -21,10 +22,10 @@ export const sendLoginCodeToEmailAddress =
 
     const magicLink = `${FRONTEND_URL}/login?${queryParams}`;
 
-    await transporter.sendMail({
+    await emailTransporter.sendMail({
       to: emailAddress,
       subject: "Your HASH verification code",
-      html: `
+      html: dedent`
         <p>To log in, copy and paste your verification code or <a href="${magicLink}">click here</a>.</p>
         <code>${verificationCode.code}</code>
       `,
@@ -32,7 +33,7 @@ export const sendLoginCodeToEmailAddress =
   };
 
 export const sendEmailVerificationCodeToEmailAddress =
-  (transporter: EmailTransporter) =>
+  (emailTransporter: EmailTransporter) =>
   async (params: {
     verificationCode: VerificationCode;
     emailAddress: string;
@@ -49,10 +50,10 @@ export const sendEmailVerificationCodeToEmailAddress =
       magicLinkQueryParams || ""
     }`;
 
-    await transporter.sendMail({
+    await emailTransporter.sendMail({
       to: emailAddress,
       subject: "Please verify your HASH email address",
-      html: `
+      html: dedent`
         <p>To verify your email address, copy and paste your verification code or <a href="${magicLink}">click here</a>.</p>
         <code>${verificationCode.code}</code>
       `,
@@ -60,7 +61,7 @@ export const sendEmailVerificationCodeToEmailAddress =
   };
 
 export const sendOrgEmailInvitationToEmailAddress =
-  (transporter: EmailTransporter) =>
+  (emailTransporter: EmailTransporter) =>
   async (params: {
     org: Org;
     isExistingUser?: boolean;
@@ -78,10 +79,10 @@ export const sendOrgEmailInvitationToEmailAddress =
 
     const invitationLink = `${FRONTEND_URL}/invite?${queryParams}`;
 
-    await transporter.sendMail({
+    await emailTransporter.sendMail({
       to: emailAddress,
       subject: "You've been invited to join an organization at HASH",
-      html: `
+      html: dedent`
         <p>You've been invited to join the <strong>${org.properties.name}</strong> organization</p>
         <p>To join the organization <a href="${invitationLink}">click here</a>.</p>
       `,

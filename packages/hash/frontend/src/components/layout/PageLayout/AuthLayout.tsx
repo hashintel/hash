@@ -49,7 +49,7 @@ export const AuthLayout: VoidFunctionComponent<AuthLayoutProps> = ({
       {onClose && (
         <button
           type="button"
-          className={tw`absolute top-8 right-8 text-3xl bg(hover:black focus:black hover:opacity-10 focus:opacity-10) focus:outline-none leading-none h-12 w-12 flex items-center justify-center rounded-full`}
+          className={tw`absolute z-10 top-8 right-8 text-3xl bg(hover:black focus:black hover:opacity-10 focus:opacity-10) focus:outline-none leading-none h-12 w-12 flex items-center justify-center rounded-full`}
           onClick={onClose}
         >
           &times;

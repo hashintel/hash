@@ -1,4 +1,5 @@
 import { BlockProtocolFileUploadFn } from "@hashintel/block-protocol/src/index";
+import { isFileProperties } from "@hashintel/hash-shared/util";
 import {
   GetEntityQuery,
   GetEntityQueryVariables,
@@ -109,7 +110,7 @@ export const useFileUpload = (accountId: string) => {
           createFileFromLink: { entityId, properties },
         } = result.data;
 
-        return { entityId, url: properties.url as string, mediaType };
+        return { entityId, url: properties.url, mediaType };
       }
 
       if (!file) {
@@ -157,9 +158,13 @@ export const useFileUpload = (accountId: string) => {
 
       const { properties } = response.data.entity;
 
+      if (!isFileProperties(properties)) {
+        throw new Error("Expected file entity in response");
+      }
+
       return {
         entityId: uploadedFileEntity.entityId,
-        url: properties.url as string,
+        url: properties.url,
         mediaType,
       };
     },

@@ -4,7 +4,7 @@ import { Wal2JsonMsg } from "@hashintel/hash-backend-utils/wal2json";
 import { logger } from "../logger";
 import { COLLAB_QUEUE_NAME } from "./util";
 
-type EntityWatcherSubscription = (entity: EntityVersion) => Promise<unknown>;
+type EntityWatcherSubscription = (entity: EntityVersion) => Promise<void>;
 
 export class EntityWatcher {
   private started = false;

@@ -233,7 +233,7 @@ export const App: BlockComponent<AppProps> = ({
     }
 
     const payload = {
-      html: embedHtml as string,
+      html: embedHtml,
       width: defaultWidth,
       height: defaultHeight,
       embedType: providerName as ProviderNames,

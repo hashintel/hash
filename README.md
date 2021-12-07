@@ -47,6 +47,13 @@ The following programs must be present on your development system:
     yarn seed-db
     ```
 
+Our login and signup flows rely on emails with links or authentication codes.
+By default, the API server uses `DummyEmailTransporter` which simulates email sending for local development and testing.
+You will find authentication codes in `var/api/dummy-email-transporter/email-dumps.yml` and in the CLI output.
+
+To use `AwsSesEmailTransporter` instead, set `export HASH_EMAIL_TRANSPORTER=aws_ses`.
+Note that you will need valid credentials for this email transporter to work.
+
 See the [docker/README](./docker) for further details.
 
 ## Start the frontend
@@ -64,6 +71,9 @@ https://blockprotocol-git-dev-hashintel.vercel.app . This can be changed to eith
 of blockprotocol.org (see its `/site/README.md` on how to do that) or a webpack-dev-server instance
 of a block in development
 `yarn workspace @hashintel/block-<block-under-development> run dev --port 3010`.
+
+When referring to local blocks in `blockPaths.json`, please note that you need to use `http://host.docker.internal:PORT` instead of `http://localhost:PORT`.
+You also need to make sure that your `/etc/hosts` file is configured (see [Getting started](#getting-started) section).
 
 ## Build blocks
 
@@ -182,13 +192,13 @@ The below `package.json` file outlines the minimum requirements a package has to
     "postinstall": "yarn build"
   },
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "4.29.0",
-    "@typescript-eslint/parser": "4.29.0",
+    "@typescript-eslint/eslint-plugin": "5.6.0",
+    "@typescript-eslint/parser": "5.6.0",
     "eslint": "^7.32.0",
     "eslint-config-airbnb": "^18.2.1",
     "eslint-config-prettier": "8.3.0",
     "eslint-plugin-import": "^2.24.2",
-    "eslint-plugin-jest": "24.5.0",
+    "eslint-plugin-jest": "25.3.0",
     "eslint-plugin-jsx-a11y": "^6.4.1",
     "eslint-plugin-no-restricted-imports": "0.0.0",
     "eslint-plugin-react": "^7.25.1",
@@ -226,3 +236,10 @@ plugin's settings:
 ### ECONNREFUSED: Refused to connect to your block
 
 The backend Docker instance may not be able to reach your locally hosted block. In that case, you can use [Cloudflare Tunnels](https://developers.cloudflare.com/pages/how-to/preview-with-cloudflare-tunnel) to serve your localhost port via a URL, and use that in `blockPaths.json`.
+
+### API server: request to http://localhost:\*/metadata.json failed, reason: connect ECONNREFUSED 127.0.0.1:\*
+
+The collab server (which is a part of the API container) fails to reach a locally developed block.
+You can fix it by replacing `localhost` with `host.docker.internal` in `blockPaths.json`.
+
+Check [Integration w/ blockprotocol.org](#integration-w-blockprotocolorg) section for details.

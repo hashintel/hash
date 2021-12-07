@@ -303,6 +303,7 @@ const main = async () => {
   shutdown.addCleanup("queue ownership", async () => queue.release());
 
   // Periodically report queue size if StatsD is enabled
+  // eslint-disable-next-line @typescript-eslint/no-misused-promises
   const int1 = setInterval(async () => {
     if (!statsd) {
       return;

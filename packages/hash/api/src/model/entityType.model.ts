@@ -35,7 +35,7 @@ export type EntityTypeConstructorArgs = {
 };
 
 const schemaIdWithFrontendDomain = ($id?: string) =>
-  $id ? FRONTEND_URL + url.parse($id).pathname : undefined;
+  $id ? `${FRONTEND_URL}${url.parse($id).pathname}` : undefined;
 
 // This is a bit repetitive of Entity, but we don't want the methods on Entity available on this
 class __EntityType {

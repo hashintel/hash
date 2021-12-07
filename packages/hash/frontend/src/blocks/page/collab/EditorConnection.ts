@@ -316,7 +316,7 @@ export class EditorConnection {
 
   run(request: AbortingPromise<string>) {
     this.request = request;
-    return this.request!;
+    return this.request;
   }
 
   close() {

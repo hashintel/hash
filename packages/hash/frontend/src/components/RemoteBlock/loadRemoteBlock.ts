@@ -36,7 +36,7 @@ type FetchAndParseFn = (
 const fetchAndParseBlock: FetchAndParseFn = (fetchSourceFn) => (url, signal) =>
   fetchSourceFn(url, signal).then((source) => {
     if (url.endsWith(".html")) {
-      return source as string;
+      return source;
     }
 
     /**
@@ -46,7 +46,7 @@ const fetchAndParseBlock: FetchAndParseFn = (fetchSourceFn) => (url, signal) =>
      */
     const exports = {};
     const module = { exports };
-    // eslint-disable-next-line no-new-func
+    // eslint-disable-next-line no-new-func,@typescript-eslint/no-implied-eval
     const func = new Function("require", "module", "exports", source);
     func(requires, module, exports);
 

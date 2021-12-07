@@ -1,10 +1,9 @@
 import { Draft, produce } from "immer";
 import { v4 as uuid } from "uuid";
-import { AnyEntity, BlockEntity } from "./entity";
+import { BlockEntity } from "./entity";
 import { DistributiveOmit, typeSafeEntries } from "./util";
 
-// @todo should AnyEntity include BlockEntity, and should this just be AnyEntity
-export type EntityStoreType = BlockEntity | AnyEntity;
+export type EntityStoreType = BlockEntity | BlockEntity["properties"]["entity"];
 
 type PropertiesType<Properties extends {}> = Properties extends {
   entity: EntityStoreType;
@@ -129,7 +128,7 @@ export const createEntityStore = (
   const entityToDraft: Record<string, string> = {};
 
   for (const row of Object.values(draftData)) {
-    draftToEntity[row.draftId!] = row.entityId;
+    draftToEntity[row.draftId] = row.entityId;
     if (row.entityId) {
       entityToDraft[row.entityId] = row.draftId;
     }
@@ -167,9 +166,13 @@ export const createEntityStore = (
     draft[draftId] = produce<DraftEntity>(
       draft[draftId],
       (draftEntity: Draft<DraftEntity>) => {
-        if (isBlockEntity(draftEntity)) {
-          draftEntity.properties.entity.draftId =
-            entityToDraft[draftEntity.properties.entity.entityId];
+        if (isDraftBlockEntity(draftEntity)) {
+          if (draftEntity.properties.entity.entityId) {
+            draftEntity.properties.entity.draftId =
+              entityToDraft[draftEntity.properties.entity.entityId];
+          } else {
+            throw new Error("entity id does not exist when expected to");
+          }
         }
       },
     );

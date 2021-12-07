@@ -8,6 +8,7 @@ import {
 import { createOrgEmailInvitation as createOrgEmailInvitationMutation } from "../../../../graphql/queries/org.queries";
 import { TagsInput } from "../../../forms/TagsInput";
 import { SpinnerIcon } from "../../../Icons/SpinnerIcon";
+import { EMAIL_REGEX } from "../utils";
 
 type OrgInviteProps = {
   navigateToHome: () => void;
@@ -15,6 +16,10 @@ type OrgInviteProps = {
     invitationLinkToken: string;
     orgEntityId: string;
   };
+};
+
+const isValidEmail = (email: string) => {
+  return EMAIL_REGEX.test(email);
 };
 
 export const OrgInvite: VFC<OrgInviteProps> = ({
@@ -112,6 +117,8 @@ export const OrgInvite: VFC<OrgInviteProps> = ({
             tags={emails}
             setTags={setEmails}
             placeholder="Enter Email"
+            isValid={isValidEmail}
+            delimiters={[","]}
           />
           {error && <p className={tw`text-red-500 text-sm mt-5 `}>{error}</p>}
         </div>

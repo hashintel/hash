@@ -85,9 +85,12 @@ export class AsyncRedisClient extends DataSource {
     this.lpush = promisify(client.lpush).bind(client);
     this.rpush = promisify(client.rpush).bind(client);
     this.llen = promisify(client.llen).bind(client);
+
+    const flushall = promisify(client.flushall).bind(client);
     this.flushall = async () => {
-      await promisify(client.flushall).bind(client);
+      await flushall();
     };
+
     const set = promisify(client.set).bind(client);
     this.set = async (key: string, value: string) => {
       await set(key, value);

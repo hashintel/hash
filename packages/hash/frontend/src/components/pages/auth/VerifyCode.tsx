@@ -13,7 +13,7 @@ type VerifyCodeProps = {
   errorMessage?: string;
   loginIdentifier: string;
   handleSubmit: (code: string, withSyntheticLoading?: boolean) => void;
-  requestCode: () => void;
+  requestCode: () => void | Promise<void>;
   requestCodeLoading: boolean;
   invitationInfo: InvitationInfo | null;
 };
@@ -23,7 +23,7 @@ const isShortname = (identifier: string) => !identifier.includes("@");
 const parseVerificationCodeInput = (inputCode: string) =>
   inputCode.replace(/\s/g, "");
 
-const isVerificationCodeValid = (code: string) => {
+const doesVerificationCodeLookValid = (code: string) => {
   const units = code.split("-");
   return units.length >= 4 && units?.[3].length > 0;
 };
@@ -59,15 +59,19 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
     inputRef.current?.select();
   }, []);
 
-  const isInputValid = useCallback(() => isVerificationCodeValid(text), [text]);
+  const isInputValid = useCallback(
+    () => doesVerificationCodeLookValid(text),
+    [text],
+  );
 
   const onSubmit = (evt: React.FormEvent) => {
     evt.preventDefault();
-    void handleSubmit(text);
+    handleSubmit(text);
   };
 
   const handleResendCode = async () => {
     updateState({ syntheticLoading: true });
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises
     setTimeout(async () => {
       try {
         await requestCode();
@@ -109,8 +113,8 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
                 const pastedCode = parseVerificationCodeInput(
                   clipboardData.getData("Text"),
                 );
-                if (isVerificationCodeValid(pastedCode)) {
-                  void handleSubmit(pastedCode, true);
+                if (doesVerificationCodeLookValid(pastedCode)) {
+                  handleSubmit(pastedCode, true);
                 }
               }}
               value={text}

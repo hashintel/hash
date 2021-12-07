@@ -55,6 +55,7 @@ services:
       - HASH_PG_PASSWORD=postgres
       - HASH_REDIS_HOST=hash-dev-redis
       - HASH_REDIS_PORT=6379
+      - HASH_EMAIL_TRANSPORTER=${HASH_EMAIL_TRANSPORTER:-dummy}
       - SESSION_SECRET=secret
       - FRONTEND_DOMAIN=localhost:3000
       - NEXT_PUBLIC_API_ORIGIN=http://localhost:5001
@@ -63,6 +64,7 @@ services:
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - AWS_S3_UPLOADS_BUCKET=${AWS_S3_UPLOADS_BUCKET}
+      - DUMMY_EMAIL_TRANSPORTER_FILE_PATH=/var/dummy-email-transporter/email-dumps.yml
       - HASH_OPENSEARCH_HOST=hash-dev-opensearch
       - HASH_OPENSEARCH_PORT=9200
       - HASH_OPENSEARCH_USERNAME=admin
@@ -86,6 +88,7 @@ services:
       - ../api/src:/app/packages/hash/api/src
       - ../shared/src:/app/packages/hash/shared/src
       - ../backend-utils:/app/packages/hash/backend-utils
+      - ../../../var/api:/var
     stop_signal: SIGTERM
   hash-dev-realtime:
     build:

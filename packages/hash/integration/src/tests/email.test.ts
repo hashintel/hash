@@ -1,14 +1,19 @@
 import "./loadTestEnv";
-import AwsSesEmailTransporter from "@hashintel/hash-api/src/email/transporter/awsSesEmailTransporter";
+import { AwsSesEmailTransporter } from "@hashintel/hash-api/src/email/transporters";
 import { AWS_REGION } from "@hashintel/hash-api/src/lib/config";
 
 if (process.env.HASH_DEV_INTEGRATION_EMAIL) {
+  const to = process.env.HASH_DEV_INTEGRATION_EMAIL;
   it("can send an email", async () => {
-    const tp = new AwsSesEmailTransporter(AWS_REGION);
-    await tp.sendMail({
-      to: process.env.HASH_DEV_INTEGRATION_EMAIL,
+    const emailTransporter = new AwsSesEmailTransporter({
+      from: "HASH <support@hash.ai>",
+      region: AWS_REGION,
+      subjectPrefix: "[INTEGRATION TESTS] ",
+    });
+    await emailTransporter.sendMail({
+      to,
       subject: "HASH.dev 'can send email' integration test",
-      text: `time: ${new Date().toISOString()}`,
+      html: `time: ${new Date().toISOString()}`,
     });
   });
 } else {

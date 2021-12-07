@@ -4,7 +4,7 @@
   "parser": "@typescript-eslint/parser",
   "plugins": ["@typescript-eslint", "react-hooks", "jest"],
   "extends": [
-    "plugin:@typescript-eslint/base",
+    "plugin:@typescript-eslint/recommended-requiring-type-checking",
     "airbnb",
     "prettier"
     // mutes eslint rules conflicting w/ prettier (requires eslint-config-prettier)
@@ -90,6 +90,7 @@
     "import/prefer-default-export": "off",
     "no-await-in-loop": "off",
     "no-console": "error",
+    "no-dupe-class-members": "off",
     "import/no-unresolved": [
       2,
       {
@@ -139,7 +140,7 @@
     "react-hooks/exhaustive-deps": [
       "error",
       {
-        "additionalHooks": "(^useModal$)|(^useUserGatedEffect$)"
+        "additionalHooks": "^(useModal|useUserGatedEffect)$"
       }
     ],
     "react/jsx-key": "error",
@@ -166,8 +167,21 @@
     "no-shadow": "off",
     // see https://github.com/typescript-eslint/typescript-eslint/issues/2483
     "@typescript-eslint/no-shadow": "error",
+    "@typescript-eslint/no-meaningless-void-operator": "error",
     "no-use-before-define": "off",
     "@typescript-eslint/no-use-before-define": ["error"],
+
+    // Part of @typescript-eslint/recommended-requiring-type-checking
+    // TODO: re-enable
+    "@typescript-eslint/no-unsafe-argument": "off",
+    "@typescript-eslint/no-unsafe-assignment": "off",
+    "@typescript-eslint/no-unsafe-call": "off",
+    "@typescript-eslint/no-unsafe-member-access": "off",
+    "@typescript-eslint/no-unsafe-return": "off",
+    "@typescript-eslint/require-await": "off",
+    "@typescript-eslint/restrict-template-expressions": "off",
+    "@typescript-eslint/unbound-method": "off",
+
     "eqeqeq": [
       "error",
       "always",
@@ -260,8 +274,7 @@
             "argsIgnorePattern": "^_+",
             "varsIgnorePattern": "^_+"
           }
-        ],
-        "@typescript-eslint/no-floating-promises": "error"
+        ]
       }
     },
     {

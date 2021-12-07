@@ -16,7 +16,6 @@ import {
 } from "../graphql/apiTypes.gen";
 import { joinOrg as joinOrgMutation } from "../graphql/queries/org.queries";
 import {
-  INVITE_ERROR_CODES,
   isParsedInvitationEmailQuery,
   isParsedInvitationLinkQuery,
   ORG_ROLES,
@@ -84,10 +83,7 @@ const InvitePage: NextPage = () => {
     },
     onError: ({ graphQLErrors }) => {
       graphQLErrors.forEach(({ extensions, message }) => {
-        const { code } = extensions as {
-          code?: keyof typeof INVITE_ERROR_CODES;
-        };
-        if (code === "ALREADY_USED") {
+        if (extensions?.code === "ALREADY_USED") {
           navigateToHome();
         } else {
           setErrorMessage(message);
@@ -98,8 +94,7 @@ const InvitePage: NextPage = () => {
 
   const handleSubmit = (evt: React.FormEvent) => {
     evt.preventDefault();
-    if (!responsibility) return;
-    if (!invitationInfo) return;
+    if (!responsibility || !invitationInfo) return;
 
     setErrorMessage("");
     void joinOrg({
@@ -110,7 +105,7 @@ const InvitePage: NextPage = () => {
             invitationEmailToken: invitationInfo.invitationEmailToken,
           }),
           ...("invitationLinkToken" in invitationInfo && {
-            invitationLinkToken: invitationInfo.invitationLinkToken as string,
+            invitationLinkToken: invitationInfo.invitationLinkToken,
           }),
         },
         responsibility,

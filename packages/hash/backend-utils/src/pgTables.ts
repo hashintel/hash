@@ -24,7 +24,7 @@ export class EntityVersion {
       entityTypeVersionId: row.entity_type_version_id as string,
       properties:
         typeof row.properties === "string"
-          ? JSON.parse(row.properties as string)
+          ? JSON.parse(row.properties)
           : row.properties,
       createdBy: row.created_by as string,
       createdAt: new Date(row.created_at as string),

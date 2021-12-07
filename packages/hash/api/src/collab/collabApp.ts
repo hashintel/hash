@@ -163,6 +163,7 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
 
   collabApp.get(
     "/:accountId/:pageEntityId",
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises -- Consider using express-async-handler
     async (request, response, next) => {
       try {
         const { instance } = await prepareSessionSupportWithInstance(request);
@@ -181,6 +182,7 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
 
   collabApp.get(
     "/:accountId/:pageEntityId/events",
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises -- Consider using express-async-handler
     async (request, response, next) => {
       try {
         const { instance, userInfo } = await prepareSessionSupportWithInstance(
@@ -217,6 +219,7 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
 
   collabApp.post(
     "/:accountId/:pageEntityId/events",
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises -- Consider using express-async-handler
     async (request, response, next) => {
       try {
         const { apolloClient, instance } =
@@ -245,6 +248,7 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
 
   collabApp.get(
     "/:accountId/:pageEntityId/positions",
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises -- Consider using express-async-handler
     async (request, response, next) => {
       try {
         const { instance, userInfo } = await prepareSessionSupportWithInstance(
@@ -271,6 +275,7 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
 
   collabApp.post(
     "/:accountId/:pageEntityId/report-position",
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises -- Consider using express-async-handler
     async (request, response, next) => {
       try {
         const { instance, userInfo } = await prepareSessionSupportWithInstance(

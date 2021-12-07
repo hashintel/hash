@@ -19,7 +19,7 @@ import {
 } from "../email";
 import { genId } from "../util";
 import { Email } from "../graphql/apiTypes.gen";
-import EmailTransporter from "../email/transporter";
+import { EmailTransporter } from "../email/transporters";
 
 export const EMAIL_RATE_LIMITING_MAX_ATTEMPTS = 5;
 export const EMAIL_RATE_LIMITING_PERIOD_MS = 5 * 60 * 1000;

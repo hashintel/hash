@@ -1,27 +1,8 @@
+import { GraphQLError } from "graphql";
 import { ParsedUrlQueryInput } from "querystring";
 import { OrgSize } from "../../../graphql/apiTypes.gen";
 
 export const SYNTHETIC_LOADING_TIME_MS = 700;
-
-export const AUTH_ERROR_CODES = {
-  ALREADY_EXISTS: "A user with this email already exists",
-  EXPIRED: "This verification code has expired, please try again.",
-  INCORRECT: "Incorrect, please try again.",
-  LOGIN_CODE_NOT_FOUND: "An unexpected error occurred, please try again.",
-  MAX_ATTEMPTS:
-    "You have exceeded the maximum number of attempts for this login code, please try again.",
-  NOT_FOUND: "An unexpected error occurred, please try again.",
-  SHORTNAME_TAKEN: "The shortname is already taken",
-  ALREADY_USED: "This verification code has already been used.",
-} as const;
-
-// @todo add appropriate error messages
-export const INVITE_ERROR_CODES = {
-  ALREADY_USED: "",
-  NOT_FOUND: "",
-  ORG_NOT_FOUND: "",
-  REVOKED: "",
-} as const;
 
 export type Action<S, T = undefined> = T extends undefined
   ? { type: S }
@@ -104,3 +85,28 @@ export const ORG_SIZES = [
   { label: "51-250 people", value: OrgSize.FiftyOneToTwoHundredAndFifty },
   { label: "250+ people", value: OrgSize.TwoHundredAndFiftyPlus },
 ];
+
+// https://emailregex.com/
+export const EMAIL_REGEX =
+  /^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/;
+
+export const parseGraphQLError = (
+  errors: GraphQLError[],
+  priorityErrorCode?: string,
+): { errorCode: string; message: string } => {
+  const priorityError = errors.find(
+    ({ extensions }) => extensions?.code === priorityErrorCode,
+  );
+
+  if (priorityError) {
+    return {
+      errorCode: priorityError.extensions!.code,
+      message: priorityError.message,
+    };
+  }
+
+  return {
+    errorCode: errors[0].extensions?.code,
+    message: errors[0].message,
+  };
+};

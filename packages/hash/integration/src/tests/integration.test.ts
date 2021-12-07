@@ -6,8 +6,7 @@ import {
   VerificationCode,
 } from "@hashintel/hash-api/src/model";
 import { PostgresAdapter } from "@hashintel/hash-api/src/db";
-import EmailTransporter from "@hashintel/hash-api/src/email/transporter";
-import TestEmailTransporter from "@hashintel/hash-api/src/email/transporter/testEmailTransporter";
+import { DummyEmailTransporter } from "@hashintel/hash-api/src/email/transporters";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
 import { ClientError } from "graphql-request";
@@ -37,7 +36,9 @@ let handler: IntegrationTestsHandler;
 
 let db: PostgresAdapter;
 
-let transporter: EmailTransporter;
+// Note that emailTransporter does not have access to all email in this test suite.
+// When API Client is used, a real API server is involved and it has its own transporter.
+let emailTransporter: DummyEmailTransporter;
 
 let existingUser: User;
 
@@ -90,7 +91,7 @@ beforeAll(async () => {
     logger,
   );
 
-  transporter = new TestEmailTransporter();
+  emailTransporter = new DummyEmailTransporter();
 
   existingUser = await User.createUser(db, {
     shortname: "test-user",
@@ -154,23 +155,20 @@ it("can create user", async () => {
 it("can create user with email verification code", async () => {
   const inviteeEmailAddress = "david@hash.test";
 
-  const emailInvitation = await OrgEmailInvitation.createOrgEmailInvitation(
-    db,
-    transporter,
-    {
-      org: existingOrg,
-      inviter: existingUser,
-      inviteeEmailAddress,
-    },
-  );
+  await OrgEmailInvitation.createOrgEmailInvitation(db, emailTransporter, {
+    org: existingOrg,
+    inviter: existingUser,
+    inviteeEmailAddress,
+  });
 
-  /** @todo: use test email transporter to obtain email invitation token */
-  const invitationEmailToken = emailInvitation.properties.accessToken;
+  const { invitationLinkToken } = emailTransporter.getMostRecentEmail({
+    assertDerivedPayloadType: "orgInvitation",
+  }).derivedPayload;
 
   const { entityId, accountSignupComplete } =
     await client.createUserWithOrgEmailInvitation({
       orgEntityId: existingOrg.entityId,
-      invitationEmailToken,
+      invitationEmailToken: invitationLinkToken,
     });
 
   expect(accountSignupComplete).toEqual(false);
@@ -353,7 +351,7 @@ describe("logged in user ", () => {
 
     const emailInvitation = await OrgEmailInvitation.createOrgEmailInvitation(
       db,
-      transporter,
+      emailTransporter,
       {
         org: bobOrg,
         inviter: bobUser,
@@ -361,9 +359,13 @@ describe("logged in user ", () => {
       },
     );
 
+    const { invitationLinkToken } = emailTransporter.getMostRecentEmail({
+      assertDerivedPayloadType: "orgInvitation",
+    }).derivedPayload;
+
     const gqlEmailInvitation = await client.getOrgEmailInvitation({
       orgEntityId: bobOrg.entityId,
-      invitationEmailToken: emailInvitation.properties.accessToken,
+      invitationEmailToken: invitationLinkToken,
     });
 
     expect(gqlEmailInvitation.entityId).toEqual(emailInvitation.entityId);
@@ -398,23 +400,21 @@ describe("logged in user ", () => {
 
     const inviteeEmailAddress = "alice-second@hash.test";
 
-    const emailInvitation = await OrgEmailInvitation.createOrgEmailInvitation(
-      db,
-      transporter,
-      {
-        org: bobOrg,
-        inviter: bobUser,
-        inviteeEmailAddress,
-      },
-    );
+    await OrgEmailInvitation.createOrgEmailInvitation(db, emailTransporter, {
+      org: bobOrg,
+      inviter: bobUser,
+      inviteeEmailAddress,
+    });
 
     const responsibility = "CTO";
 
+    const { invitationLinkToken } = emailTransporter.getMostRecentEmail({
+      assertDerivedPayloadType: "orgInvitation",
+    }).derivedPayload;
+
     const gqlUser = await client.joinOrg({
       orgEntityId: bobOrg.entityId,
-      verification: {
-        invitationEmailToken: emailInvitation.properties.accessToken,
-      },
+      verification: { invitationEmailToken: invitationLinkToken },
       responsibility,
     });
 
@@ -517,7 +517,7 @@ describe("logged in user ", () => {
 
       // Get the text entity we just inserted and make sure it matches
       const newBlock = updatedPage.properties.contents[0];
-      textEntityId = newBlock.properties.entity.metadataId;
+      textEntityId = newBlock.properties.entity.entityId;
       const textEntity = await client.getUnknownEntity({
         entityId: textEntityId,
         accountId: existingUser.accountId,
@@ -562,7 +562,7 @@ describe("logged in user ", () => {
       const headerBlock = updatedPage.properties.contents[1];
       const headerUpdate = await client.updateEntity({
         accountId: existingUser.accountId,
-        entityId: headerBlock.properties.entity.metadataId,
+        entityId: headerBlock.properties.entity.entityId,
         properties: newHeaderTextProperties,
       });
 
@@ -618,7 +618,7 @@ describe("logged in user ", () => {
         {
           updateEntity: {
             accountId: page.properties.contents[1].properties.entity.accountId,
-            entityId: page.properties.contents[1].properties.entity.metadataId,
+            entityId: page.properties.contents[1].properties.entity.entityId,
             properties: textPropertiesC,
           },
         },
@@ -631,7 +631,7 @@ describe("logged in user ", () => {
         {
           updateEntity: {
             accountId: page.properties.contents[0].properties.entity.accountId,
-            entityId: page.properties.contents[0].properties.entity.metadataId,
+            entityId: page.properties.contents[0].properties.entity.entityId,
             properties: titleProperties,
           },
         },
@@ -639,7 +639,7 @@ describe("logged in user ", () => {
     });
 
     const pageEntities = updatedPage.properties.contents.map(
-      (block) => block.properties.entity as any,
+      (block) => block.properties.entity,
     );
     expect(pageEntities[0].properties).toMatchObject(titleProperties);
     expect(pageEntities[1].properties).toMatchObject(textPropertiesA);
@@ -689,7 +689,7 @@ describe("logged in user ", () => {
           schema: {
             properties: [],
           },
-          name: schemaName + 1,
+          name: `${schemaName}1`,
         }),
       ).rejects.toThrowError(/properties must be object/);
 
@@ -701,7 +701,7 @@ describe("logged in user ", () => {
               testField: 4,
             },
           },
-          name: schemaName + 2,
+          name: `${schemaName}2`,
         }),
       ).rejects.toThrowError(/testField must be object,boolean/);
 
@@ -711,7 +711,7 @@ describe("logged in user ", () => {
           schema: {
             invalidKeyword: true,
           },
-          name: schemaName + 3,
+          name: `${schemaName}3`,
         }),
       ).rejects.toThrowError(/unknown keyword/);
     });

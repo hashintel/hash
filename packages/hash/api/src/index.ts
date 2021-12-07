@@ -16,8 +16,10 @@ import setupAuth from "./auth";
 import { RedisCache } from "./cache";
 import { createCollabApp } from "./collab/collabApp";
 import { PostgresAdapter, setupCronJobs } from "./db";
-import AwsSesEmailTransporter from "./email/transporter/awsSesEmailTransporter";
-import TestTransporter from "./email/transporter/testEmailTransporter";
+import {
+  AwsSesEmailTransporter,
+  DummyEmailTransporter,
+} from "./email/transporters";
 import { createApolloServer } from "./graphql/createApolloServer";
 import {
   AWS_REGION,
@@ -25,7 +27,13 @@ import {
   FILE_UPLOAD_PROVIDER,
   storageProviders,
 } from "./lib/config";
-import { isProdEnv, isStatsDEnabled, isTestEnv, port } from "./lib/env-config";
+import {
+  isDevEnv,
+  isProdEnv,
+  isStatsDEnabled,
+  isTestEnv,
+  port,
+} from "./lib/env-config";
 import { logger } from "./logger";
 import { UploadableStorageProvider } from "./storage";
 import { getRequiredEnv } from "./util";
@@ -98,9 +106,18 @@ const main = async () => {
   setupCronJobs(db, logger);
 
   // Create an email transporter
-  const emailTransporter = isTestEnv
-    ? new TestTransporter()
-    : new AwsSesEmailTransporter(AWS_REGION);
+  const emailTransporter =
+    (isTestEnv || isDevEnv) && process.env.HASH_EMAIL_TRANSPORTER === "dummy"
+      ? new DummyEmailTransporter({
+          copyCodesOrLinksToClipboard: false, // TODO: enable when we stop using Docker in dev
+          displayCodesOrLinksInStdout: true,
+          filePath: process.env.DUMMY_EMAIL_TRANSPORTER_FILE_PATH,
+        })
+      : new AwsSesEmailTransporter({
+          from: "HASH <support@hash.ai>",
+          region: AWS_REGION,
+          subjectPrefix: isProdEnv ? undefined : "[DEV SITE] ",
+        });
 
   const searchAuth =
     process.env.HASH_OPENSEARCH_USERNAME === undefined
