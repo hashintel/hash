@@ -1,6 +1,6 @@
 use crate::{ExperimentType, SimpleExperimentArgs};
-use hash_prime::fetch::parse_raw_csv_into_json;
-use hash_prime::proto::{
+use hash_engine::fetch::parse_raw_csv_into_json;
+use hash_engine::proto::{
     ExperimentPackageConfig, ExperimentRun, ExperimentRunBase, InitialState, InitialStateName,
     ProjectBase, SharedBehavior, SharedDataset, SimPackageArgs, SimpleExperimentConfig,
     SingleRunExperimentConfig,

@@ -32,8 +32,8 @@ impl From<String> for Error {
     }
 }
 
-impl Into<hash_prime::error::Error> for Error {
-    fn into(self) -> hash_prime::error::Error {
-        hash_prime::error::Error::Unique(self.to_string())
+impl Into<hash_engine::error::Error> for Error {
+    fn into(self) -> hash_engine::error::Error {
+        hash_engine::error::Error::Unique(self.to_string())
     }
 }

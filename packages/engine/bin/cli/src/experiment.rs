@@ -5,10 +5,12 @@ use crate::{
     error::{Error, Result},
     Args,
 };
-use hash_prime::experiment::controller::config::{OutputPersistenceConfig, OUTPUT_PERSISTENCE_KEY};
-use hash_prime::output::local::config::LocalPersistenceConfig;
-use hash_prime::proto;
-use hash_prime::proto::ExecutionEnvironment;
+use hash_engine::experiment::controller::config::{
+    OutputPersistenceConfig, OUTPUT_PERSISTENCE_KEY,
+};
+use hash_engine::output::local::config::LocalPersistenceConfig;
+use hash_engine::proto;
+use hash_engine::proto::ExecutionEnvironment;
 use serde_json::json;
 use std::iter::FromIterator;
 use std::path::PathBuf;

@@ -417,6 +417,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "cli"
+version = "0.0.0"
+dependencies = [
+ "argh",
+ "async-trait",
+ "hash_engine",
+ "lazy_static",
+ "log",
+ "pretty_env_logger",
+ "rand 0.8.4",
+ "rand_distr",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
 name = "cmake"
 version = "0.1.46"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1006,6 +1024,63 @@ dependencies = [
  "js-sys",
  "wasm-bindgen",
  "web-sys",
+]
+
+[[package]]
+name = "hash_engine"
+version = "0.0.0"
+dependencies = [
+ "argh",
+ "arr_macro",
+ "arrayref",
+ "arrow",
+ "async-trait",
+ "bimap",
+ "bytes 1.1.0",
+ "cc",
+ "chrono",
+ "csv",
+ "derivative",
+ "derive-new",
+ "enum_dispatch",
+ "flatbuffers 0.6.1",
+ "flatbuffers 2.0.0",
+ "float-cmp",
+ "fs2",
+ "futures",
+ "futures-retry",
+ "glob",
+ "hashbrown 0.9.1",
+ "http",
+ "http-types",
+ "kdtree",
+ "lazy_static",
+ "log",
+ "nix 0.19.1",
+ "nng",
+ "num_cpus",
+ "parking_lot",
+ "pretty_env_logger",
+ "quick-error",
+ "rand 0.8.4",
+ "rand_distr",
+ "rayon",
+ "regex",
+ "rusoto_core",
+ "rusoto_s3",
+ "serde",
+ "serde-aux",
+ "serde_json",
+ "shared_memory",
+ "strum",
+ "strum_macros",
+ "surf",
+ "thiserror",
+ "tokio",
+ "tokio-stream",
+ "tokio-util",
+ "uuid",
+ "wait-timeout",
 ]
 
 [[package]]
@@ -1719,63 +1794,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "prime"
-version = "0.0.0"
-dependencies = [
- "argh",
- "arr_macro",
- "arrayref",
- "arrow",
- "async-trait",
- "bimap",
- "bytes 1.1.0",
- "cc",
- "chrono",
- "csv",
- "derivative",
- "derive-new",
- "enum_dispatch",
- "flatbuffers 0.6.1",
- "flatbuffers 2.0.0",
- "float-cmp",
- "fs2",
- "futures",
- "futures-retry",
- "glob",
- "hashbrown 0.9.1",
- "http",
- "http-types",
- "kdtree",
- "lazy_static",
- "log",
- "nix 0.19.1",
- "nng",
- "num_cpus",
- "parking_lot",
- "pretty_env_logger",
- "quick-error",
- "rand 0.8.4",
- "rand_distr",
- "rayon",
- "regex",
- "rusoto_core",
- "rusoto_s3",
- "serde",
- "serde-aux",
- "serde_json",
- "shared_memory",
- "strum",
- "strum_macros",
- "surf",
- "thiserror",
- "tokio",
- "tokio-stream",
- "tokio-util",
- "uuid",
- "wait-timeout",
-]
-
-[[package]]
 name = "proc-macro-hack"
 version = "0.5.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2193,6 +2211,15 @@ dependencies = [
  "itoa",
  "ryu",
  "serde",
+]
+
+[[package]]
+name = "server"
+version = "0.0.0"
+dependencies = [
+ "hash_engine",
+ "log",
+ "tokio",
 ]
 
 [[package]]

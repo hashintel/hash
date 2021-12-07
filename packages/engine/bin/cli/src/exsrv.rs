@@ -1,4 +1,4 @@
-use hash_prime::{nano, proto};
+use hash_engine::{nano, proto};
 use std::collections::HashMap;
 use tokio::sync::mpsc;
 use tokio::sync::oneshot;

@@ -18,7 +18,7 @@ setup(
         Extension(prefix + "wrappers",
                   [script_path + "/wrappers.pyx"],
                   include_dirs=[numpy.get_include()],
-                  libraries=["hash_prime"],
+                  libraries=["hash-engine"],
                   library_dirs = [ # Process directory should be cloud repo root.
                       "./target/release", # Prioritize release over debug.
                       "./",

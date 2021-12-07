@@ -1,7 +1,11 @@
 [package]
-name = "prime"
+name = "hash_engine"
 version = "0.0.0"
 edition = "2018"
+
+[workspace]
+members = ["bin/*"]
+default-members = ["bin/*"]
 
 [dependencies]
 argh = "0.1.4"
@@ -11,6 +15,7 @@ arrow = {version = "1.0.1", default-features = false }
 async-trait = "0.1.48"
 bimap = "0.6.0"
 bytes = "1.0.1"
+chrono = { version = "0.4.11", features = ["serde"] }
 csv = "1.1.5"
 derivative = "2.2.0"
 derive-new = "0.5"
@@ -43,6 +48,7 @@ rusoto_core = "0.46.0"
 rusoto_s3 = "0.46.0"
 serde_json = "1.0.59"
 shared_memory = { git = "https://github.com/hashdeps/shared_memory-rs" }
+serde = { version = "1.0.111", features = ["derive"] }
 serde-aux = "0.6.1"
 strum = "0.19.5"
 strum_macros = "0.19.4"
@@ -54,23 +60,8 @@ tokio-util = { version = "0.6.6", features = ["codec"]}
 uuid = { version = "0.8.1", features = ["v4", "serde"] }
 wait-timeout = "0.2.0"
 
-[dependencies.chrono]
-features = ["serde"]
-version = "0.4.11"
-
-[dependencies.serde]
-features = ["derive"]
-version = "1.0.111"
-
-# TODO OS - Rename hash_prime and prime
 [lib]
 crate-type = ["lib", "cdylib"]
-name = "hash_prime"
-path = "src/lib.rs"
-
-[[bin]]
-name = "cli"
-path = "src/cli/main.rs"
 
 [build-dependencies.cc]
 version = "1.0"
