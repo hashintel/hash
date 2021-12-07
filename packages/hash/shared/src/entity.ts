@@ -4,9 +4,10 @@ import {
   EntityStoreType,
   isBlockEntity,
   isDraftBlockEntity,
+  isEntity,
 } from "./entityStore";
 import { PageFieldsFragment, Text } from "./graphql/apiTypes.gen";
-import { DistributiveOmit, DistributivePick } from "./util";
+import { DistributiveOmit, DistributivePick, isUnknownObject } from "./util";
 
 type ContentsEntity = PageFieldsFragment["properties"]["contents"][number];
 
@@ -52,6 +53,32 @@ export const getTextEntityFromDraftBlock = (
   }
 };
 
+type LegacyLink<Type extends EntityStoreType | DraftEntity = EntityStoreType> = {
+  data: Type;
+  __linkedData: {};
+};
+
+const isLegacyLink = (data: unknown): data is LegacyLink => {
+  return (
+    isUnknownObject(data) &&
+    "__linkedData" in data &&
+    "data" in data &&
+    typeof data.data === "object" &&
+    isEntity(data.data)
+  );
+};
+
+const isTextContainingEntityProperties = (
+  entityProperties: unknown,
+): entityProperties is { text: LegacyLink<Text> } => {
+  return (
+    isUnknownObject(entityProperties) &&
+    "text" in entityProperties &&
+    isLegacyLink(entityProperties.text) &&
+    isTextEntity(entityProperties.text.data)
+  );
+};
+
 /**
  * @todo reimplement links
  * @todo reduce duplication
@@ -73,11 +100,15 @@ export const getTextEntityFromSavedBlock = (
     throw new Error("invariant: missing block entity");
   }
 
-  if (!isTextEntity(blockPropertiesEntity)) {
-    return null;
-  } else {
+  if (isTextEntity(blockPropertiesEntity)) {
     return blockPropertiesEntity;
   }
+
+  if (isTextContainingEntityProperties(blockPropertiesEntity.properties)) {
+    return blockPropertiesEntity.properties.text.data;
+  }
+
+  return null;
 };
 
 export const blockEntityIdExists = (entities: BlockEntity[]) => {
