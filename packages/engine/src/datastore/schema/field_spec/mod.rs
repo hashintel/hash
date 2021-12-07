@@ -320,7 +320,7 @@ impl TryInto<FieldType> for AgentStateField {
             // Note `Messages` and `Extra` and 'BehaviorId' are not included in here:
             // 1) `Messages` as they are in a separate batch
             // 2) `Extra` as they are not yet implemented
-            // 3) 'BehaviorId' as it is only used in prime
+            // 3) 'BehaviorId' as it is only used in hash_engine
             AgentStateField::Extra(_) | AgentStateField::Messages => {
                 return Err(Error::from(format!(
                     "Cannot match built in field with name {}",
