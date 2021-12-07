@@ -584,8 +584,8 @@ describe("logged in user ", () => {
         title: "My first page",
       },
     });
-    // The page currently has 2 blocks: an empty title block and an empty paragraph block
-    expect(page.properties.contents).toHaveLength(2);
+    // The page currently has 1 block: an empty paragraph block
+    expect(page.properties.contents).toHaveLength(1);
 
     const textPropertiesA = { tokens: [{ tokenType: "text", text: "A" }] };
     const textPropertiesB = { tokens: [{ tokenType: "text", text: "B" }] };
