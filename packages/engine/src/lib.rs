@@ -28,7 +28,7 @@ pub mod workerpool;
 
 mod args;
 pub mod env;
-mod utils;
+pub mod utils;
 
 pub use error::{Error, Result};
 

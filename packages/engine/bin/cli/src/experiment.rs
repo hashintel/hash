@@ -11,15 +11,18 @@ use hash_engine::experiment::controller::config::{
 use hash_engine::output::local::config::LocalPersistenceConfig;
 use hash_engine::proto;
 use hash_engine::proto::ExecutionEnvironment;
+use hash_engine::utils::parse_env_duration;
 use serde_json::json;
+use std::env::VarError;
 use std::iter::FromIterator;
 use std::path::PathBuf;
 use std::time::Duration;
 use tokio::time::{self, timeout};
 
 lazy_static::lazy_static! {
-    static ref ENGINE_START_TIMEOUT: Duration = Duration::from_secs(180);
-    static ref PING_INTERVAL: Duration = Duration::from_secs(5);
+    static ref ENGINE_START_TIMEOUT: Duration = parse_env_duration("ENGINE_START_TIMEOUT", 180);
+    static ref ENGINE_WAIT_TIMEOUT: Duration = parse_env_duration("ENGINE_WAIT_TIMEOUT", if cfg!(debug_assertions) { 3600 } else { 60 });
+    static ref PING_INTERVAL: Duration = parse_env_duration("PING_INTERVAL", 5);
 }
 
 /// `run_experiment` will build a queue of tokio tasks attached the the simulation workers
@@ -100,8 +103,8 @@ async fn run_experiment_with_manifest(
     loop {
         let msg: Option<proto::EngineStatus>;
         tokio::select! {
-            _ = time::sleep(Duration::from_secs(3600)) => {
-                log::error!("Did not receive status from experiment {} for over 60 seconds. Exiting now.", &experiment_id);
+            _ = time::sleep(*ENGINE_WAIT_TIMEOUT) => {
+                log::error!("Did not receive status from experiment {} for over {} seconds. Exiting now.", &experiment_id, ENGINE_WAIT_TIMEOUT.as_secs());
                 break;
             }
             m = engine_handle.recv() => { msg = Some(m) },
