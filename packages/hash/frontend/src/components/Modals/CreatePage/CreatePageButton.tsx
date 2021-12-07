@@ -1,4 +1,4 @@
-import { useState, VoidFunctionComponent } from "react";
+import { useCallback, useState, VoidFunctionComponent } from "react";
 
 import { CreatePage } from "./CreatePage";
 import { Button } from "../../forms/Button";
@@ -12,18 +12,16 @@ export const CreatePageButton: VoidFunctionComponent<CreatePageButtonProps> = ({
 }) => {
   const [showCreatePage, setShowCreatePage] = useState(false);
 
+  const close = useCallback(() => {
+    // Prevent the bug of closing a non-existing modal
+    if (showCreatePage) {
+      setShowCreatePage(false);
+    }
+  }, [showCreatePage]);
+
   return (
     <>
-      {showCreatePage && (
-        <CreatePage
-          close={() => {
-            if (showCreatePage) {
-              setShowCreatePage(false);
-            }
-          }}
-          accountId={accountId}
-        />
-      )}
+      {showCreatePage && <CreatePage close={close} accountId={accountId} />}
 
       <Button onClick={() => setShowCreatePage(true)}>Create page</Button>
     </>

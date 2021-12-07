@@ -41,8 +41,8 @@ export const CreatePage: VoidFunctionComponent<CreatePageProps> = ({
           return router.push(`/${pageAccountId}/${pageEntityId}`);
         }
       })
-      // eslint-disable-next-line no-console -- TODO: consider using logger
       .catch((err) => {
+        // eslint-disable-next-line no-console -- TODO: consider using logger
         console.error("Could not create page: ", err);
         setLoading(false);
         close();
@@ -58,7 +58,7 @@ export const CreatePage: VoidFunctionComponent<CreatePageProps> = ({
     Router.events.on("routeChangeComplete", routeChangeHandler);
 
     return () => Router.events.off("routeChangeComplete", routeChangeHandler);
-  }, []);
+  }, [close]);
 
   return (
     <Modal show close={close}>
