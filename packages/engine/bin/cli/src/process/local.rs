@@ -5,10 +5,10 @@ use hash_engine::nano;
 use hash_engine::proto::EngineMsg;
 
 #[cfg(debug_assertions)]
-const PROCESS_PATH_DEFAULT: &str = "./target/debug/prime";
+const PROCESS_PATH_DEFAULT: &str = "./target/debug/hash_engine";
 
 #[cfg(not(debug_assertions))]
-const PROCESS_PATH_DEFAULT: &str = "./target/release/prime";
+const PROCESS_PATH_DEFAULT: &str = "./target/release/hash_engine";
 
 pub struct LocalProcess {
     experiment_id: String,
@@ -97,6 +97,7 @@ impl process::Command for LocalCommand {
             .arg(self.max_num_workers.to_string())
             .stdout(std::process::Stdio::inherit())
             .stderr(std::process::Stdio::inherit());
+        log::debug!("Running `{:?}`", cmd);
         if self.persist_data {
             cmd.arg("--persist");
         }

@@ -8,3 +8,7 @@ hash_engine = { path = "../.." }
 
 log = "0.4.11"
 tokio = { version = "1.5.0", features = ["macros", "rt-multi-thread", "sync", "process", "io-util", "net", "rt", "fs"] }
+
+[[bin]]
+name = "hash_engine"
+path = "src/main.rs"
