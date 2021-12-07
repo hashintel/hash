@@ -29,7 +29,7 @@ export const PageHeader: React.VFC = () => {
     <header
       className={tw`bg-white h-16 flex items-center border(b-1 gray-300)`}
     >
-      <div className={tw`h-full`} style={{ width: 310 }}></div>
+      <div className={tw`h-full`} style={{ width: 310 }} />{/* sidebar filler */}
       {user ? (
         <nav className={tw`container mx-auto flex justify-between`}>
           <SearchBar />

@@ -16,20 +16,30 @@ import SearchIcon from "../../Icons/Search";
 
 /** finds the query's words in the result and chops it into parts at the words' boundaries */
 const splitByMatches = (result: string, query: string) => {
-  const toBeMatched = query
+  const separator = query
     .split(/\s+/g)
     .sort((a, b) => b.length - a.length) // match longer words first
     .map(escapeRegExp)
     .join("|");
 
   /** @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/split#splitting_with_a_regexp_to_include_parts_of_the_separator_in_the_result */
-  return result.split(new RegExp("(" + toBeMatched + ")", "gi"));
+  return result.split(new RegExp(`(${separator})`, "gi"));
 };
 
-const toBlockUrl = (searchPage: PageSearchResult): string =>
-  `/${searchPage.page.accountId}/${searchPage.page.entityId}${
-    searchPage.block ? "#" + blockDomId(searchPage.block.entityId) : ""
-  }`;
+const toBlockUrl = (searchPage: PageSearchResult): string => {
+  const segments = [
+    "/",
+    searchPage.page.accountId,
+    "/",
+    searchPage.page.entityId,
+  ];
+
+  if (searchPage.block) {
+    segments.push("#", blockDomId(searchPage.block.entityId));
+  }
+
+  return segments.join("");
+};
 
 const resultList = apply`absolute z-10 w-1/2 max-h-60 overflow-auto border border-gray-100 rounded-lg shadow-md`;
 const resultItem = apply`flex border border-gray-100 bg-gray-50 p-2 hover:bg-gray-100 cursor-pointer overflow-ellipsis overflow-hidden`;
