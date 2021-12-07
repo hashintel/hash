@@ -1,3 +1,6 @@
+# Wait for https://github.com/rust-lang/cargo/pull/9992 to land
+# cargo-features = ["bindeps"]
+
 [package]
 name = "cli"
 version = "0.0.0"
@@ -5,6 +8,7 @@ edition = "2018"
 
 [dependencies]
 hash_engine = { path = "../.." }
+server = { path = "../server", artifact = "bin" }
 
 argh = "0.1.4"
 async-trait = "0.1.48"
