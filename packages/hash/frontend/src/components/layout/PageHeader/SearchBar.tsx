@@ -2,7 +2,7 @@ import { useQuery } from "@apollo/client";
 import { PageSearchResult } from "@hashintel/hash-shared/graphql/apiTypes.gen";
 import { escapeRegExp } from "lodash";
 import Link from "next/link";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useDebounce, useKey, useKeys, useOutsideClickRef } from "rooks";
 import { apply, tw } from "twind";
 import { blockDomId } from "../../../blocks/page/BlockView";
@@ -48,8 +48,10 @@ export const SearchBar: React.VFC = () => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isFocused, setFocused] = useState(false);
   const [displayedQuery, setDisplayedQuery] = useState("");
-  const [submittedQuery, setSubmittedQuery_] = useState("");
-  const setSubmittedQuery = useDebounce(setSubmittedQuery_, 300);
+  const [submittedQuery, setSubmittedQuery] = useState("");
+  const setSubmittedQuerySoon = useDebounce(setSubmittedQuery, 300);
+
+  useEffect(() => setSubmittedQuerySoon(displayedQuery), [displayedQuery]);
 
   const { user } = useUser();
 
@@ -62,11 +64,11 @@ export const SearchBar: React.VFC = () => {
     fetchPolicy: "network-only",
   });
 
+  useKey(["Escape"], () => setResultListVisible(false));
+
   useKeys(["AltLeft", "KeyK"], () => inputRef.current?.focus());
 
-  const [rootRef] = useOutsideClickRef(() => setFocused(false));
-
-  useKey(["Escape"], () => setFocused(false));
+  const [rootRef] = useOutsideClickRef(() => setResultListVisible(false));
 
   // present loading screen while waiting for the user to stop typing
   const isLoading = loading || displayedQuery !== submittedQuery;
@@ -84,10 +86,8 @@ export const SearchBar: React.VFC = () => {
         value={displayedQuery}
         onFocus={() => setFocused(true)}
         onChange={(event) => {
-          const value = event.target.value;
-          setFocused(true);
-          setDisplayedQuery(value);
-          setSubmittedQuery(value);
+          setResultListVisible(true);
+          setDisplayedQuery(event.target.value);
         }}
       />
       {isFocused && displayedQuery && (
