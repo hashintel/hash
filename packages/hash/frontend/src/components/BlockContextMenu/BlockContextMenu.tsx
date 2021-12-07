@@ -62,7 +62,6 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
   entityId,
   entityStore,
 }) => {
-  const [selectedIndex, setSelectedIndex] = useState(0);
   const [subMenuVisible, setSubMenuVisible] = useState(false);
 
   const { data: accounts } = useAccountInfos();
@@ -73,8 +72,14 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
     throw new Error("BlockContextMenu linked to non-block entity");
   }
 
-  const [menuState, setMenuState] = useState<"normal" | "search">("normal");
-  const [searchText, setSearchText] = useState("");
+  const [menuState, setMenuState] = useState<{
+    currentView: "normal" | "search";
+    searchText: string;
+    selectedIndex: number;
+  }>({ currentView: "normal", searchText: "", selectedIndex: 0 });
+
+  const [setSearchText] = useState("");
+  const [setSelectedIndex] = useState(0);
 
   const blocksMeta = useContext(BlockMetaContext);
 
