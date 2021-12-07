@@ -90,7 +90,7 @@ Being familiar with running experiments and simulations on the HASH platform wil
 > **Note** the links provided in the following section point towards the general relevant parts of the codebase, this section can be treated as an initial guide to the folder and source-code structure.
 
 #### Starting an Experiment / the CLI
-Once a v0.1 release bas been finalized, we intend for experiments to be started through the [CLI](./src/cli), the main entry-point to the engine. The CLI will be responsible for parsing input, and starting Workers and simulation runs.
+Once a v0.1 release bas been finalized, we intend for experiments to be started through the [CLI](./bin/cli), the main entry-point to the engine. The CLI will be responsible for parsing input, and starting Workers and simulation runs.
 
 #### Workers
 Most logic relating to the model (including, most importantly, user provided behaviors) is executed on [Runners](./src/worker/runner). These are execution environments implemented in Python, JavaScript, or Rust. One of each Language Runner is managed by a single [Worker](./src/worker). Workers then in turn belong to a Worker Pool, a collection of Workers that serve a single experiment.
