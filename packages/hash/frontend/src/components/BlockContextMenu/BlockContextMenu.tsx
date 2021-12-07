@@ -56,14 +56,19 @@ const MENU_ITEMS: Array<MenuItemType> = [
   },
 ];
 
+type MenuState = {
+  currentView: "normal" | "search";
+  searchText: string;
+  selectedIndex: number;
+  subMenuVisible: boolean;
+};
+
 export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
   blockSuggesterProps,
   closeMenu,
   entityId,
   entityStore,
 }) => {
-  const [subMenuVisible, setSubMenuVisible] = useState(false);
-
   const { data: accounts } = useAccountInfos();
 
   const blockData = entityId ? entityStore.saved[entityId] : null;
@@ -72,11 +77,21 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
     throw new Error("BlockContextMenu linked to non-block entity");
   }
 
-  const [menuState, setMenuState] = useState<{
-    currentView: "normal" | "search";
-    searchText: string;
-    selectedIndex: number;
-  }>({ currentView: "normal", searchText: "", selectedIndex: 0 });
+  const [menuState, setMenuState] = useState<MenuState>({
+    currentView: "normal",
+    searchText: "",
+    selectedIndex: 0,
+    subMenuVisible: false,
+  });
+
+  const { currentView, searchText, selectedIndex, subMenuVisible } = menuState;
+
+  const updateMenuState = (updatedState: Partial<MenuState>) => {
+    setMenuState({
+      ...menuState,
+      ...updatedState,
+    });
+  };
 
   const [setSearchText] = useState("");
   const [setSelectedIndex] = useState(0);
@@ -120,19 +135,23 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
   };
 
   const search = (newSearchText: string) => {
-    setSearchText(newSearchText.toLocaleLowerCase());
+    updateMenuState({ searchText: newSearchText.toLocaleLowerCase() });
 
     if (!newSearchText) {
-      if (menuState !== "normal") {
-        setMenuState("normal");
-        setSelectedIndex(0);
-        setSubMenuVisible(false);
+      if (currentView !== "normal") {
+        updateMenuState({
+          currentView: "normal",
+          selectedIndex: 0,
+          subMenuVisible: false,
+        });
       }
     } else {
-      if (menuState !== "search") {
-        setMenuState("search");
-        setSelectedIndex(0);
-        setSubMenuVisible(false);
+      if (currentView !== "search") {
+        updateMenuState({
+          currentView: "search",
+          selectedIndex: 0,
+          subMenuVisible: false,
+        });
       }
     }
   };
@@ -149,21 +168,21 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
     event.preventDefault();
     if (subMenuVisible) return;
 
-    if (menuState === "normal") {
+    if (currentView === "normal") {
       const nextIndex = getNextIndex(event, usableMenuItems.length);
-      setSelectedIndex(nextIndex);
+      updateMenuState({ selectedIndex: nextIndex });
     } else {
       const filteredItemsLength =
         filteredMenuItems.actions.length + filteredMenuItems.blocks.length;
 
       const nextIndex = getNextIndex(event, filteredItemsLength);
-      setSelectedIndex(nextIndex);
+      updateMenuState({ selectedIndex: nextIndex });
     }
   });
 
   useKey(["ArrowLeft", "ArrowRight"], (event) => {
     if (usableMenuItems[selectedIndex]?.key === "switchBlock") {
-      setSubMenuVisible(event.key === "ArrowRight");
+      updateMenuState({ subMenuVisible: event.key === "ArrowRight" });
     }
   });
 
@@ -172,9 +191,9 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
   });
 
   const onEnter = () => {
-    if (menuState === "normal") {
+    if (currentView === "normal") {
       if (usableMenuItems[selectedIndex]?.key === "switchBlock") {
-        setSubMenuVisible(true);
+        updateMenuState({ subMenuVisible: true });
       } else {
         handleClick(usableMenuItems[selectedIndex].key);
       }
@@ -195,7 +214,8 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
       case "delete":
         break;
       case "switchBlock":
-        setSubMenuVisible(!subMenuVisible);
+        updateMenuState({ subMenuVisible: !subMenuVisible });
+
         break;
       case "copyLink": {
         const url = new URL(document.location.href);
@@ -230,7 +250,7 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
           }}
         />
       </div>
-      {menuState === "normal" ? (
+      {currentView === "normal" ? (
         <>
           <ul className={tw`text-sm mb-4`}>
             {usableMenuItems.map(({ title, icon, key }, index) => {
@@ -240,12 +260,12 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
                     className={tw`flex-1 hover:bg-gray-100 ${
                       index === selectedIndex ? "bg-gray-100" : ""
                     }  flex items-center py-1 px-4 group`}
-                    onFocus={() => setSelectedIndex(index)}
+                    onFocus={() => updateMenuState({ selectedIndex: index })}
                     onMouseOver={() => {
                       if (key === "switchBlock") {
-                        setSubMenuVisible(true);
+                        updateMenuState({ subMenuVisible: true });
                       }
-                      setSelectedIndex(index);
+                      updateMenuState({ selectedIndex: index });
                     }}
                     onClick={() => handleClick(key)}
                     type="button"
@@ -313,8 +333,12 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
                           className={tw`flex-1 hover:bg-gray-100 ${
                             index === selectedIndex ? "bg-gray-100" : ""
                           }  flex items-center py-1 px-4 group`}
-                          onFocus={() => setSelectedIndex(index)}
-                          onMouseOver={() => setSelectedIndex(index)}
+                          onFocus={() =>
+                            updateMenuState({ selectedIndex: index })
+                          }
+                          onMouseOver={() =>
+                            updateMenuState({ selectedIndex: index })
+                          }
                           onClick={() => handleClick(key)}
                           type="button"
                         >
@@ -357,8 +381,12 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
                             ? "bg-gray-100"
                             : ""
                         }  flex items-center py-1 px-4 group`}
-                        onFocus={() => setSelectedIndex(index)}
-                        onMouseOver={() => setSelectedIndex(index)}
+                        onFocus={() =>
+                          updateMenuState({ selectedIndex: index })
+                        }
+                        onMouseOver={() =>
+                          updateMenuState({ selectedIndex: index })
+                        }
                         onClick={() =>
                           blockSuggesterProps.onChange(
                             option.variant,
