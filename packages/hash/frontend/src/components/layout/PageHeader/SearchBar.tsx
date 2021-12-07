@@ -15,13 +15,14 @@ import { useUser } from "../../hooks/useUser";
 import SearchIcon from "../../Icons/Search";
 
 /** finds the query's words in the result and chops it into parts at the words' boundaries */
-const captureSplitByQueryWords = (result: string, query: string) => {
+const splitByMatches = (result: string, query: string) => {
   const toBeMatched = query
     .split(/\s+/g)
     .sort((a, b) => b.length - a.length) // match longer words first
     .map(escapeRegExp)
     .join("|");
 
+  /** @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/split#splitting_with_a_regexp_to_include_parts_of_the_separator_in_the_result */
   return result.split(new RegExp("(" + toBeMatched + ")", "gi"));
 };
 
@@ -97,10 +98,9 @@ export const SearchBar: React.VFC = () => {
               >
                 <Link href={toBlockUrl(searchPage)}>
                   <a>
-                    {captureSplitByQueryWords(
-                      searchPage.content,
-                      submittedQuery,
-                    ).map((str, i) => (i % 2 === 1 ? <b>{str}</b> : str))}
+                    {splitByMatches(searchPage.content, submittedQuery).map(
+                      (str, i) => (i % 2 === 1 ? <b>{str}</b> : str),
+                    )}
                   </a>
                 </Link>
               </li>
