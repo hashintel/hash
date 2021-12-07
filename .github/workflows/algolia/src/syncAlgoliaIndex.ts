@@ -38,7 +38,9 @@ const getFileInfos = (
         "/",
         file
       )}`;
-      arrayOfFiles.push({ inputPath, outputPath, type });
+      if (inputPath.endsWith(".md") || inputPath.endsWith(".mdx")) {
+        arrayOfFiles.push({ inputPath, outputPath, type });
+      }
     }
   });
 
