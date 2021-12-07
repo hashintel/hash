@@ -191,7 +191,6 @@ pub mod tests {
     use super::*;
     use crate::datastore::schema::{FieldScope, FieldSpecMapBuilder};
     use crate::hash_types::state::AgentStateField;
-    use std::convert::TryInto;
 
     #[test]
     fn get_schema() -> Result<()> {

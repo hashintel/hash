@@ -69,7 +69,6 @@ pub mod tests {
     //
     // use rand::Rng;
     // use std::borrow::Cow;
-    // use std::convert::TryInto;
     //
     // use crate::datastore::batch::DynamicBatch;
     // use crate::datastore::schema::{FieldScope, FieldSource, RootFieldSpec};

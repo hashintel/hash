@@ -1,5 +1,3 @@
-use std::iter::FromIterator;
-
 use crate::simulation::package::{context, init, output, state};
 
 use super::{Error, Result};

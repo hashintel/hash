@@ -1,6 +1,5 @@
 use std::collections::hash_map::Iter;
 use std::collections::HashMap;
-use std::convert::TryInto;
 use std::fmt::{Display, Formatter};
 
 use crate::hash_types::state::AgentStateField;

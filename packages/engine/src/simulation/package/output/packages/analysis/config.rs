@@ -1,7 +1,6 @@
 use super::analyzer::AnalysisOperationRepr;
 use super::Result;
 use std::collections::HashMap;
-use std::convert::TryFrom;
 use std::sync::Arc;
 
 use crate::proto::ExperimentRunTrait;

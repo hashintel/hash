@@ -32,11 +32,7 @@ impl Buffers {
         output_packages_sim_config: &OutputPackagesSimConfig,
     ) -> Result<Buffers> {
         Ok(Buffers {
-            json_state: OutputPartBuffer::new(
-                "json_state",
-                exp_id,
-                sim_id
-            )?,
+            json_state: OutputPartBuffer::new("json_state", exp_id, sim_id)?,
             analysis: AnalysisBuffer::new(output_packages_sim_config)?,
         })
     }
