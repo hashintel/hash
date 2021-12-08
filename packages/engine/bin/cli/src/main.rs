@@ -9,6 +9,7 @@ pub mod exsrv;
 pub mod manifest;
 pub mod process;
 
+use anyhow::Result;
 use argh::FromArgs;
 use experiment::run_experiment;
 
@@ -78,7 +79,7 @@ impl std::default::Default for Args {
 #[tokio::main]
 // TODO fix ordering of args being so inflexible and unintuitive, and also error messages being unhelpful
 //   for example try putting `-p` after `single_run`
-async fn main() -> Result<(), anyhow::Error> {
+async fn main() -> Result<()> {
     // TODO project conversion into manifest...
     // TODO persist output
     //      1) send absolute path to engine process

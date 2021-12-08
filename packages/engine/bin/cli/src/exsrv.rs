@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::fmt::Display;
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{bail, format_err, Context, Result};
 use hash_engine::{nano, proto};
 use tokio::sync::{mpsc, oneshot};
 
@@ -80,7 +80,7 @@ impl Handler {
         self.ctrl_tx
             .send((ctrl, result_tx))
             .await
-            .or_else(|_| Err(anyhow!("Could not send control message to server")))?;
+            .or_else(|_| Err(format_err!("Could not send control message to server")))?;
         result_rx.await.context("Failed to receive response from")?
     }
 
@@ -159,7 +159,7 @@ impl Server {
         };
         result_tx
             .send(res)
-            .map_err(|_| anyhow!("Sending server control result"))?;
+            .map_err(|_| format_err!("Sending server control result"))?;
         Ok(stop)
     }
 
@@ -172,9 +172,9 @@ impl Server {
                 // completes before sending de-registering the experiment.
                 Ok(())
             }
-            Some(sender) => sender.send(msg.body).or(Err(anyhow!(
+            Some(sender) => sender.send(msg.body).or(Err(format_err!(
                 "Routing message for experiment {}",
-                msg.experiment_id
+                msg.experiment_id,
             ))),
         }
     }
