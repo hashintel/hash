@@ -9,7 +9,7 @@ fn main() {
 
     if let Ok(host) = std::env::var("HOST") {
         // So far we only require (and allow) manual nng linking for ARM-based Macs
-        if &host == "aarch64-apple-darwin" {
+        if host == "aarch64-apple-darwin" {
             let nng_path =
                 std::env::var("NNG_PATH").expect("`NNG_PATH` environment variable wasn't set,");
             println!("cargo:rustc-link-search={nng_path}/lib");
