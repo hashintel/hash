@@ -107,7 +107,9 @@ impl process::Command for LocalCommand {
             cmd.arg("--persist");
         }
 
-        let child = cmd.spawn().context("Could not spawn experiment")?;
+        let child = cmd
+            .spawn()
+            .with_context(|| format!("Could not run commad: {process_path:?}"))?;
         debug!(
             "Spawned local engine process for experiment {}",
             &self.experiment_id
