@@ -1,7 +1,13 @@
+import { useQuery } from "@apollo/client";
 import { useMemo, VFC } from "react";
 import { tw } from "twind";
 
 import { useAccountInfos } from "../../../components/hooks/useAccountInfos";
+import {
+  GetAccountPagesQuery,
+  GetAccountPagesQueryVariables,
+} from "../../../graphql/apiTypes.gen";
+import { getAccountPages } from "../../../graphql/queries/account.queries";
 import { fuzzySearchBy } from "./fuzzySearchBy";
 import { Suggester } from "./Suggester";
 
@@ -9,20 +15,58 @@ export interface MentionSuggesterProps {
   search?: string;
   onChange(entityId: string, title: string): void;
   className?: string;
+  accountId: string;
 }
+
+type SearchableItem = {
+  shortname: string;
+  name: string;
+  entityId: string;
+  type: "user" | "page";
+};
 
 export const MentionSuggester: VFC<MentionSuggesterProps> = ({
   search = "",
   onChange,
   className,
+  accountId,
 }) => {
-  const { data, loading } = useAccountInfos();
+  const { data: accounts, loading: accountsLoading } = useAccountInfos();
+  const { data: pages, loading: pagesLoading } = useQuery<
+    GetAccountPagesQuery,
+    GetAccountPagesQueryVariables
+  >(getAccountPages, {
+    variables: { accountId },
+  });
+
+  const loading = accountsLoading && pagesLoading;
+
+  const iterableAccounts: Array<SearchableItem> = accounts.map((account) => ({
+    shortname: account.shortname,
+    name: account.name,
+    entityId: account.entityId,
+    type: "user",
+  }));
+
+  const iterablePages: Array<SearchableItem> = (pages?.accountPages ?? []).map(
+    (page) => ({
+      shortname: page.properties.title,
+      name: page.properties.title,
+      entityId: page.entityId,
+      type: "page",
+    }),
+  );
+
+  const searchData: Array<SearchableItem> = [
+    ...iterableAccounts,
+    ...iterablePages,
+  ];
 
   const options = useMemo(() => {
-    return fuzzySearchBy(data, search, (option) =>
+    return fuzzySearchBy(searchData, search, (option) =>
       [option.shortname, option.name].map((str) => str ?? "").join(" "),
     );
-  }, [search, data]);
+  }, [search, searchData]);
 
   return (
     <Suggester
@@ -38,7 +82,7 @@ export const MentionSuggester: VFC<MentionSuggesterProps> = ({
         </div>
       )}
       itemKey={(option) => option.shortname}
-      onChange={(option) => onChange(option.entityId, "user")}
+      onChange={(option) => onChange(option.entityId, option.type)}
       className={className}
       loading={loading}
     />

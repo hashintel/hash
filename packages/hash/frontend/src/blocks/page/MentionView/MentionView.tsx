@@ -14,6 +14,7 @@ export class MentionView implements NodeView<Schema> {
     public getPos: () => number,
     public renderPortal: RenderPortal,
     public manager: ProsemirrorSchemaManager,
+    public accountId: string,
   ) {
     this.dom = document.createElement("span");
     this.dom.classList.add("mention-stuff");
@@ -32,6 +33,7 @@ export class MentionView implements NodeView<Schema> {
       <MentionDisplay
         entityId={node.attrs.entityId}
         mentionType={node.attrs.mentionType}
+        accountId={this.accountId}
       />,
       this.dom,
     );
