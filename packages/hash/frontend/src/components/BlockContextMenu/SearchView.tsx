@@ -6,6 +6,7 @@ import {
   HandleClickMethod,
   MenuState,
 } from "./BlockContextMenu";
+import { BlockContextMenuItem } from "./BlockContextMenuItem";
 
 type SearchViewProps = {
   filteredMenuItems: FilteredMenuItems;
@@ -36,23 +37,16 @@ export const SearchView: VoidFunctionComponent<SearchViewProps> = ({
               if (key === "copyLink" && !entityId) {
                 return null;
               }
+
               return (
-                <li key={key} className={tw`flex`}>
-                  <button
-                    className={tw`flex-1 hover:bg-gray-100 ${
-                      index === selectedIndex ? "bg-gray-100" : ""
-                    }  flex items-center py-1 px-4 group`}
-                    onFocus={() => updateMenuState({ selectedIndex: index })}
-                    onMouseOver={() =>
-                      updateMenuState({ selectedIndex: index })
-                    }
-                    onClick={() => handleClick(key)}
-                    type="button"
-                  >
-                    {icon}
-                    <span>{title}</span>
-                  </button>
-                </li>
+                <BlockContextMenuItem
+                  key={key}
+                  selected={index === selectedIndex}
+                  onClick={() => handleClick(key)}
+                  onSelect={() => updateMenuState({ selectedIndex: index })}
+                  icon={icon}
+                  title={title}
+                />
               );
             })}
           </ul>
@@ -65,33 +59,26 @@ export const SearchView: VoidFunctionComponent<SearchViewProps> = ({
           <ul className={tw`text-sm mb-4`}>
             {filteredMenuItems.blocks.map((option, index) => {
               const { displayName, icon } = option.variant;
-              const key = option.variant.displayName;
 
               return (
-                <li key={key} className={tw`flex`}>
-                  <button
-                    className={tw`flex-1 hover:bg-gray-100 ${
-                      index + filteredMenuItems.actions.length === selectedIndex
-                        ? "bg-gray-100"
-                        : ""
-                    }  flex items-center py-1 px-4 group`}
-                    onFocus={() => updateMenuState({ selectedIndex: index })}
-                    onMouseOver={() =>
-                      updateMenuState({ selectedIndex: index })
-                    }
-                    onClick={() =>
-                      blockSuggesterProps.onChange(option.variant, option.meta)
-                    }
-                    type="button"
-                  >
+                <BlockContextMenuItem
+                  key={option.variant.displayName}
+                  selected={
+                    index + filteredMenuItems.actions.length === selectedIndex
+                  }
+                  onClick={() =>
+                    blockSuggesterProps.onChange(option.variant, option.meta)
+                  }
+                  onSelect={() => updateMenuState({ selectedIndex: index })}
+                  icon={
                     <img
                       src={icon}
                       alt={displayName}
                       className={tw`!text-inherit mr-1`}
                     />
-                    <span>{displayName}</span>
-                  </button>
-                </li>
+                  }
+                  title={displayName ?? ""}
+                />
               );
             })}
           </ul>

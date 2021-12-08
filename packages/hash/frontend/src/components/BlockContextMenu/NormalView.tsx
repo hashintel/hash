@@ -9,6 +9,7 @@ import {
 } from "../../blocks/page/createSuggester/BlockSuggester";
 import { useAccountInfos } from "../hooks/useAccountInfos";
 import { HandleClickMethod, MenuItemType, MenuState } from "./BlockContextMenu";
+import { BlockContextMenuItem } from "./BlockContextMenuItem";
 
 type NormalViewComponent = {
   usableMenuItems: MenuItemType[];
@@ -35,40 +36,36 @@ export const NormalView: VoidFunctionComponent<NormalViewComponent> = ({
       <ul className={tw`text-sm mb-4`}>
         {usableMenuItems.map(({ title, icon, key }, index) => {
           return (
-            <li key={key} className={tw`flex`}>
-              <button
-                className={tw`flex-1 hover:bg-gray-100 ${
-                  index === selectedIndex ? "bg-gray-100" : ""
-                }  flex items-center py-1 px-4 group`}
-                onFocus={() => updateMenuState({ selectedIndex: index })}
-                onMouseOver={() => {
-                  if (key === "switchBlock") {
-                    updateMenuState({
-                      subMenuVisible: true,
-                      selectedIndex: index,
-                    });
-                  } else {
-                    updateMenuState({ selectedIndex: index });
-                  }
-                }}
-                onClick={() => handleClick(key)}
-                type="button"
-              >
-                {icon}
-                <span>{title}</span>
-                {key === "switchBlock" && (
-                  <span className={tw`ml-auto`}>&rarr;</span>
-                )}
-                {key === "switchBlock" &&
-                  index === selectedIndex &&
-                  subMenuVisible && (
-                    <BlockSuggester
-                      className="left-full ml-0.5 mt-2 block text-left hover:block group-hover:block shadow-xl"
-                      {...blockSuggesterProps}
-                    />
-                  )}
-              </button>
-            </li>
+            <BlockContextMenuItem
+              key={key}
+              selected={index === selectedIndex}
+              onClick={() => handleClick(key)}
+              onSelect={(shouldShowSubMenu) => {
+                if (shouldShowSubMenu && key === "switchBlock") {
+                  updateMenuState({
+                    subMenuVisible: true,
+                    selectedIndex: index,
+                  });
+                } else {
+                  updateMenuState({ selectedIndex: index });
+                }
+              }}
+              icon={icon}
+              title={title}
+              subMenu={
+                key === "switchBlock" ? (
+                  <BlockSuggester
+                    className="left-full ml-0.5 mt-2 block text-left hover:block group-hover:block shadow-xl"
+                    {...blockSuggesterProps}
+                  />
+                ) : null
+              }
+              subMenuVisible={
+                index === selectedIndex &&
+                key === "switchBlock" &&
+                subMenuVisible
+              }
+            />
           );
         })}
       </ul>
