@@ -1,6 +1,5 @@
 import React, { useContext, useMemo, useState } from "react";
 import { tw } from "twind";
-import { format } from "date-fns";
 
 import DeleteIcon from "@material-ui/icons/DeleteOutline";
 import CopyIcon from "@material-ui/icons/FileCopyOutlined";
@@ -13,12 +12,10 @@ import { BlockVariant } from "@hashintel/block-protocol";
 import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 
 import { blockDomId } from "../../blocks/page/BlockView";
-import {
-  BlockSuggester,
-  BlockSuggesterProps,
-} from "../../blocks/page/createSuggester/BlockSuggester";
-import { useAccountInfos } from "../hooks/useAccountInfos";
+import { BlockSuggesterProps } from "../../blocks/page/createSuggester/BlockSuggester";
 import { BlockMetaContext } from "../../blocks/blockMeta";
+import { NormalView } from "./NormalView";
+import { SearchView } from "./SearchView";
 
 type BlockContextMenuProps = {
   blockSuggesterProps: BlockSuggesterProps;
@@ -27,7 +24,7 @@ type BlockContextMenuProps = {
   entityStore: EntityStore;
 };
 
-type MenuItemType = {
+export type MenuItemType = {
   key: string;
   title: string;
   icon: JSX.Element;
@@ -56,12 +53,21 @@ const MENU_ITEMS: Array<MenuItemType> = [
   },
 ];
 
-type MenuState = {
+export type MenuState = {
   currentView: "normal" | "search";
-  searchText: string;
   selectedIndex: number;
   subMenuVisible: boolean;
 };
+
+export type FilteredMenuItems = {
+  actions: Array<MenuItemType>;
+  blocks: Array<{
+    variant: BlockVariant;
+    meta: BlockMeta;
+  }>;
+};
+
+export type HandleClickMethod = (key: typeof MENU_ITEMS[number]["key"]) => void;
 
 export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
   blockSuggesterProps,
@@ -69,22 +75,21 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
   entityId,
   entityStore,
 }) => {
-  const { data: accounts } = useAccountInfos();
-
   const blockData = entityId ? entityStore.saved[entityId] : null;
 
   if (blockData && !isBlockEntity(blockData)) {
     throw new Error("BlockContextMenu linked to non-block entity");
   }
 
+  const [searchText, setSearchText] = useState("");
+
   const [menuState, setMenuState] = useState<MenuState>({
     currentView: "normal",
-    searchText: "",
     selectedIndex: 0,
     subMenuVisible: false,
   });
 
-  const { currentView, searchText, selectedIndex, subMenuVisible } = menuState;
+  const { currentView, selectedIndex, subMenuVisible } = menuState;
 
   const updateMenuState = (updatedState: Partial<MenuState>) => {
     setMenuState({
@@ -92,9 +97,6 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
       ...updatedState,
     });
   };
-
-  const [setSearchText] = useState("");
-  const [setSelectedIndex] = useState(0);
 
   const blocksMeta = useContext(BlockMetaContext);
 
@@ -123,19 +125,13 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
     block.variant.displayName?.toLocaleLowerCase().includes(searchText),
   );
 
-  const filteredMenuItems: {
-    actions: Array<MenuItemType>;
-    blocks: Array<{
-      variant: BlockVariant;
-      meta: BlockMeta;
-    }>;
-  } = {
+  const filteredMenuItems: FilteredMenuItems = {
     actions: filteredActions,
     blocks: filteredBlocks,
   };
 
   const search = (newSearchText: string) => {
-    updateMenuState({ searchText: newSearchText.toLocaleLowerCase() });
+    setSearchText(newSearchText.toLocaleLowerCase());
 
     if (!newSearchText) {
       if (currentView !== "normal") {
@@ -145,14 +141,12 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
           subMenuVisible: false,
         });
       }
-    } else {
-      if (currentView !== "search") {
-        updateMenuState({
-          currentView: "search",
-          selectedIndex: 0,
-          subMenuVisible: false,
-        });
-      }
+    } else if (currentView !== "search") {
+      updateMenuState({
+        currentView: "search",
+        selectedIndex: 0,
+        subMenuVisible: false,
+      });
     }
   };
 
@@ -190,25 +184,7 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
     closeMenu();
   });
 
-  const onEnter = () => {
-    if (currentView === "normal") {
-      if (usableMenuItems[selectedIndex]?.key === "switchBlock") {
-        updateMenuState({ subMenuVisible: true });
-      } else {
-        handleClick(usableMenuItems[selectedIndex].key);
-      }
-    } else if (selectedIndex < filteredMenuItems.actions.length) {
-      handleClick(filteredMenuItems.actions[selectedIndex].key);
-    } else {
-      const selectedBlock =
-        filteredMenuItems.blocks[
-          selectedIndex - filteredMenuItems.actions.length
-        ];
-      blockSuggesterProps.onChange(selectedBlock.variant, selectedBlock.meta);
-    }
-  };
-
-  const handleClick = (key: typeof MENU_ITEMS[number]["key"]) => {
+  const handleClick: HandleClickMethod = (key) => {
     // handle menu item click here
     switch (key) {
       case "delete":
@@ -230,6 +206,24 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
     }
   };
 
+  const onEnter = () => {
+    if (currentView === "normal") {
+      if (usableMenuItems[selectedIndex]?.key === "switchBlock") {
+        updateMenuState({ subMenuVisible: true });
+      } else {
+        handleClick(usableMenuItems[selectedIndex].key);
+      }
+    } else if (selectedIndex < filteredMenuItems.actions.length) {
+      handleClick(filteredMenuItems.actions[selectedIndex].key);
+    } else {
+      const selectedBlock =
+        filteredMenuItems.blocks[
+          selectedIndex - filteredMenuItems.actions.length
+        ];
+      blockSuggesterProps.onChange(selectedBlock.variant, selectedBlock.meta);
+    }
+  };
+
   return (
     <div
       className={tw`absolute z-10 w-60 bg-white border-gray-200 border-1 shadow-xl rounded`}
@@ -238,7 +232,9 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
         <input
           autoFocus
           value={searchText}
-          onChange={(event) => search(event.target.value)}
+          onChange={(event) => {
+            search(event.target.value);
+          }}
           className={tw`block w-full px-2 py-1 bg-gray-50 border-1 text-sm rounded-sm `}
           placeholder="Filter actions..."
           onKeyDown={(event) => {
@@ -251,168 +247,23 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
         />
       </div>
       {currentView === "normal" ? (
-        <>
-          <ul className={tw`text-sm mb-4`}>
-            {usableMenuItems.map(({ title, icon, key }, index) => {
-              return (
-                <li key={key} className={tw`flex`}>
-                  <button
-                    className={tw`flex-1 hover:bg-gray-100 ${
-                      index === selectedIndex ? "bg-gray-100" : ""
-                    }  flex items-center py-1 px-4 group`}
-                    onFocus={() => updateMenuState({ selectedIndex: index })}
-                    onMouseOver={() => {
-                      if (key === "switchBlock") {
-                        updateMenuState({ subMenuVisible: true });
-                      }
-                      updateMenuState({ selectedIndex: index });
-                    }}
-                    onClick={() => handleClick(key)}
-                    type="button"
-                  >
-                    {icon}
-                    <span>{title}</span>
-                    {key === "switchBlock" && (
-                      <span className={tw`ml-auto`}>&rarr;</span>
-                    )}
-                    {key === "switchBlock" &&
-                      index === selectedIndex &&
-                      subMenuVisible && (
-                        <BlockSuggester
-                          className="left-full ml-0.5 mt-2 block text-left hover:block group-hover:block shadow-xl"
-                          {...blockSuggesterProps}
-                        />
-                      )}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-          <div
-            className={tw`border-t-1 border-gray-200 px-4 py-2 text-xs text-gray-400`}
-          >
-            <p>
-              Last edited by {/* @todo use lastedited value when available */}
-              {
-                accounts.find(
-                  (account) =>
-                    account.entityId ===
-                    blockData?.properties.entity.createdById,
-                )?.name
-              }
-            </p>
-            {typeof blockData?.properties.entity.updatedAt === "string" && (
-              <p>
-                {format(
-                  new Date(blockData.properties.entity.updatedAt),
-                  "hh.mm a",
-                )}
-                {", "}
-                {format(
-                  new Date(blockData.properties.entity.updatedAt),
-                  "dd/MM/yyyy",
-                )}
-              </p>
-            )}
-          </div>
-        </>
+        <NormalView
+          usableMenuItems={usableMenuItems}
+          updateMenuState={updateMenuState}
+          menuState={menuState}
+          handleClick={handleClick}
+          blockSuggesterProps={blockSuggesterProps}
+          blockData={blockData}
+        />
       ) : (
-        <>
-          {!!filteredMenuItems.actions.length && (
-            <>
-              <div className={tw`text-sm px-4 mb-1`}>Actions</div>
-              <ul className={tw`text-sm mb-4`}>
-                {filteredMenuItems.actions.map(
-                  ({ title, icon, key }, index) => {
-                    if (key === "copyLink" && !entityId) {
-                      return null;
-                    }
-                    return (
-                      <li key={key} className={tw`flex`}>
-                        <button
-                          className={tw`flex-1 hover:bg-gray-100 ${
-                            index === selectedIndex ? "bg-gray-100" : ""
-                          }  flex items-center py-1 px-4 group`}
-                          onFocus={() =>
-                            updateMenuState({ selectedIndex: index })
-                          }
-                          onMouseOver={() =>
-                            updateMenuState({ selectedIndex: index })
-                          }
-                          onClick={() => handleClick(key)}
-                          type="button"
-                        >
-                          {icon}
-                          <span>{title}</span>
-                          {key === "switchBlock" && (
-                            <span className={tw`ml-auto`}>&rarr;</span>
-                          )}
-                          {key === "switchBlock" && index === selectedIndex && (
-                            <BlockSuggester
-                              className={`left-full ml-0.5 mt-2 ${
-                                subMenuVisible ? "block" : "hidden"
-                              } text-left hover:block group-hover:block shadow-xl`}
-                              {...blockSuggesterProps}
-                            />
-                          )}
-                        </button>
-                      </li>
-                    );
-                  },
-                )}
-              </ul>
-            </>
-          )}
-
-          {!!filteredMenuItems.blocks.length && (
-            <>
-              <div className={tw`text-sm px-4 mb-1`}>Turn Into</div>
-              <ul className={tw`text-sm mb-4`}>
-                {filteredMenuItems.blocks.map((option, index) => {
-                  const { displayName, icon } = option.variant;
-                  const key = index;
-
-                  return (
-                    <li key={key} className={tw`flex`}>
-                      <button
-                        className={tw`flex-1 hover:bg-gray-100 ${
-                          index + filteredMenuItems.actions.length ===
-                          selectedIndex
-                            ? "bg-gray-100"
-                            : ""
-                        }  flex items-center py-1 px-4 group`}
-                        onFocus={() =>
-                          updateMenuState({ selectedIndex: index })
-                        }
-                        onMouseOver={() =>
-                          updateMenuState({ selectedIndex: index })
-                        }
-                        onClick={() =>
-                          blockSuggesterProps.onChange(
-                            option.variant,
-                            option.meta,
-                          )
-                        }
-                        type="button"
-                      >
-                        <img
-                          src={icon}
-                          alt={displayName}
-                          className={tw`!text-inherit mr-1`}
-                        />
-                        <span>{displayName}</span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </>
-          )}
-
-          {!filteredMenuItems.actions && !filteredMenuItems.blocks && (
-            <div className={tw`text-sm px-4 mb-1`}>No Results</div>
-          )}
-        </>
+        <SearchView
+          blockSuggesterProps={blockSuggesterProps}
+          entityId={entityId}
+          filteredMenuItems={filteredMenuItems}
+          handleClick={handleClick}
+          menuState={menuState}
+          updateMenuState={updateMenuState}
+        />
       )}
     </div>
   );
