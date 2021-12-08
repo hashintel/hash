@@ -93,6 +93,7 @@ impl Comms {
 impl Comms {
     // TODO: Docstring, explain why and how this would be used. As it is not currently.
     pub async fn state_sync(&self, state: &State) -> Result<()> {
+        log::trace!("Synchronizing state");
         // Synchronize the state batches
         let agents = state.agent_pool().clone();
         let agent_messages = state.message_pool().clone();
@@ -107,6 +108,7 @@ impl Comms {
     }
 
     pub async fn state_snapshot_sync(&self, state: &StateSnapshot) -> Result<()> {
+        log::trace!("Synchronizing state snapshot");
         // Synchronize the state snapshot batches
         let agents = state.agent_pool().clone();
         let agent_messages = state.message_pool().clone();
@@ -121,6 +123,7 @@ impl Comms {
     }
 
     pub async fn context_batch_sync(&self, context: &Context) -> Result<()> {
+        log::trace!("Synchronizing context batch");
         // Synchronize the context batch
         let batch = context.batch();
         let sync_msg = ContextBatchSync::new(batch);

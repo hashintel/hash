@@ -117,22 +117,28 @@ impl Package for Neighbors {
         &mut self,
         state: Arc<State>,
         _snapshot: Arc<StateSnapshot>,
-    ) -> Result<ContextColumn> {
+    ) -> Result<Vec<ContextColumn>> {
         let agent_pool = state.agent_pool();
         let batches = agent_pool.read_batches()?;
         let states = Self::neighbor_vec(&batches)?;
         let map = NeighborMap::gather(states, &self.topology)?;
 
-        Ok(ContextColumn {
+        let field_key = self
+            .context_field_spec_accessor
+            .get_local_hidden_scoped_field_spec("neighbors")?
+            .to_key()?;
+
+        Ok(vec![ContextColumn {
+            field_key,
             inner: Box::new(map),
-        })
+        }])
     }
 
-    fn get_empty_arrow_column(
+    fn get_empty_arrow_columns(
         &self,
         num_agents: usize,
         _schema: &ContextSchema,
-    ) -> Result<(FieldKey, Arc<dyn arrow::array::Array>)> {
+    ) -> Result<Vec<(FieldKey, Arc<dyn arrow::array::Array>)>> {
         let index_builder = ArrowIndexBuilder::new(1024);
 
         let neighbor_index_builder = arrow::array::FixedSizeListBuilder::new(index_builder, 2);
@@ -147,9 +153,9 @@ impl Package for Neighbors {
             .get_local_hidden_scoped_field_spec("neighbors")?
             .to_key()?;
 
-        Ok((
+        Ok(vec![(
             field_key,
             Arc::new(neighbors_builder.finish()) as Arc<dyn ArrowArray>,
-        ))
+        )])
     }
 }

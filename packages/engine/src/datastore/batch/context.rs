@@ -4,18 +4,16 @@ use rayon::iter::{
     IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,
 };
 
-use crate::datastore::prelude::*;
-use crate::{
-    datastore::arrow::{
-        ipc::{read_record_batch, static_record_batch_to_bytes},
-        meta_conversion::get_dynamic_meta_flatbuffers,
-    },
-    simulation::package::context::ContextColumn,
+use crate::datastore::arrow::{
+    ipc::{read_record_batch, static_record_batch_to_bytes},
+    meta_conversion::get_dynamic_meta_flatbuffers,
 };
+use crate::datastore::prelude::*;
 
 use super::Batch as BatchRepr;
 
 use crate::proto::ExperimentID;
+use crate::simulation::package::context::ContextColumn;
 use std::sync::Arc;
 
 // If required data size is 3 times less than current data size
@@ -114,16 +112,16 @@ impl Batch {
 
     pub fn write_from_context_datas(
         &mut self,
-        datas: &[ContextColumn],
+        column_writers: &[&ContextColumn],
         num_elements: usize,
     ) -> Result<()> {
-        if datas.is_empty() {
+        if column_writers.is_empty() {
             return Err(Error::from("Expected context datas to not be empty"));
         }
 
-        let column_dynamic_meta_list = datas
+        let column_dynamic_meta_list = column_writers
             .iter()
-            .map(|data| data.get_dynamic_metadata())
+            .map(|column_writer| column_writer.get_dynamic_metadata())
             .collect::<Result<Vec<_>>>()?;
         let dynamic =
             DynamicMeta::from_column_dynamic_meta_list(&column_dynamic_meta_list, num_elements);
@@ -154,11 +152,11 @@ impl Batch {
             })
             .collect::<Vec<_>>();
 
-        datas
+        column_writers
             .par_iter()
             .zip_eq(writable_datas.into_par_iter())
             .zip_eq(column_dynamic_meta_list.par_iter())
-            .try_for_each(|((data, buffer), meta)| data.write(buffer, meta))?;
+            .try_for_each(|((column_writer, buffer), meta)| column_writer.write(buffer, meta))?;
 
         let meta_buffer = get_dynamic_meta_flatbuffers(&dynamic)?;
         self.memory.set_metadata(&meta_buffer)?;
