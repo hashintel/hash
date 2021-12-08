@@ -8,14 +8,19 @@ import LinkIcon from "@material-ui/icons/LinkOutlined";
 import { useKey } from "rooks";
 
 import { EntityStore, isBlockEntity } from "@hashintel/hash-shared/entityStore";
-import { BlockVariant } from "@hashintel/block-protocol";
-import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 
 import { blockDomId } from "../../blocks/page/BlockView";
 import { BlockSuggesterProps } from "../../blocks/page/createSuggester/BlockSuggester";
 import { BlockMetaContext } from "../../blocks/blockMeta";
 import { NormalView } from "./NormalView";
 import { SearchView } from "./SearchView";
+import {
+  MenuItemType,
+  MenuState,
+  FilteredMenuItems,
+  ItemClickMethod,
+  iconStyles,
+} from "./BlockContextMenuUtils";
 
 type BlockContextMenuProps = {
   blockSuggesterProps: BlockSuggesterProps;
@@ -24,50 +29,28 @@ type BlockContextMenuProps = {
   entityStore: EntityStore;
 };
 
-export type MenuItemType = {
-  key: string;
-  title: string;
-  icon: JSX.Element;
-};
-
 const MENU_ITEMS: Array<MenuItemType> = [
   {
     key: "delete",
     title: "Delete",
-    icon: <DeleteIcon className={tw`!text-inherit mr-1`} />,
+    icon: <DeleteIcon className={iconStyles} />,
   },
   {
     key: "duplicate",
     title: "Duplicate",
-    icon: <CopyIcon className={tw`!text-inherit mr-1`} />,
+    icon: <CopyIcon className={iconStyles} />,
   },
   {
     key: "copyLink",
     title: "Copy Link",
-    icon: <LinkIcon className={tw`!text-inherit mr-1`} />,
+    icon: <LinkIcon className={iconStyles} />,
   },
   {
     key: "switchBlock",
     title: "Turn into",
-    icon: <LoopIcon className={tw`!text-inherit mr-1`} />,
+    icon: <LoopIcon className={iconStyles} />,
   },
 ];
-
-export type MenuState = {
-  currentView: "normal" | "search";
-  selectedIndex: number;
-  subMenuVisible: boolean;
-};
-
-export type FilteredMenuItems = {
-  actions: Array<MenuItemType>;
-  blocks: Array<{
-    variant: BlockVariant;
-    meta: BlockMeta;
-  }>;
-};
-
-export type HandleClickMethod = (key: typeof MENU_ITEMS[number]["key"]) => void;
 
 export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
   blockSuggesterProps,
@@ -118,11 +101,13 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
   );
 
   const filteredActions = searchableActions.filter((item) =>
-    item.title.toLocaleLowerCase().includes(searchText),
+    item.title.toLocaleLowerCase().includes(searchText.toLocaleLowerCase()),
   );
 
   const filteredBlocks = blockOptions.filter((block) =>
-    block.variant.displayName?.toLocaleLowerCase().includes(searchText),
+    block.variant.displayName
+      ?.toLocaleLowerCase()
+      .includes(searchText.toLocaleLowerCase()),
   );
 
   const filteredMenuItems: FilteredMenuItems = {
@@ -131,7 +116,7 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
   };
 
   const search = (newSearchText: string) => {
-    setSearchText(newSearchText.toLocaleLowerCase());
+    setSearchText(newSearchText);
 
     if (!newSearchText) {
       if (currentView !== "normal") {
@@ -184,7 +169,7 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
     closeMenu();
   });
 
-  const handleClick: HandleClickMethod = (key) => {
+  const onItemClick: ItemClickMethod = (key) => {
     // handle menu item click here
     switch (key) {
       case "delete":
@@ -211,10 +196,10 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
       if (usableMenuItems[selectedIndex]?.key === "switchBlock") {
         updateMenuState({ subMenuVisible: true });
       } else {
-        handleClick(usableMenuItems[selectedIndex].key);
+        onItemClick(usableMenuItems[selectedIndex].key);
       }
     } else if (selectedIndex < filteredMenuItems.actions.length) {
-      handleClick(filteredMenuItems.actions[selectedIndex].key);
+      onItemClick(filteredMenuItems.actions[selectedIndex].key);
     } else {
       const selectedBlock =
         filteredMenuItems.blocks[
@@ -251,7 +236,7 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
           usableMenuItems={usableMenuItems}
           updateMenuState={updateMenuState}
           menuState={menuState}
-          handleClick={handleClick}
+          onItemClick={onItemClick}
           blockSuggesterProps={blockSuggesterProps}
           blockData={blockData}
         />
@@ -260,7 +245,7 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
           blockSuggesterProps={blockSuggesterProps}
           entityId={entityId}
           filteredMenuItems={filteredMenuItems}
-          handleClick={handleClick}
+          onItemClick={onItemClick}
           menuState={menuState}
           updateMenuState={updateMenuState}
         />

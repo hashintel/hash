@@ -1,21 +1,25 @@
 import { VoidFunctionComponent } from "react";
 import { tw } from "twind";
 import { format } from "date-fns";
-
 import { BlockEntity } from "@hashintel/hash-shared/entity";
+
 import {
   BlockSuggester,
   BlockSuggesterProps,
 } from "../../blocks/page/createSuggester/BlockSuggester";
 import { useAccountInfos } from "../hooks/useAccountInfos";
-import { HandleClickMethod, MenuItemType, MenuState } from "./BlockContextMenu";
 import { BlockContextMenuItem } from "./BlockContextMenuItem";
+import {
+  MenuItemType,
+  MenuState,
+  ItemClickMethod,
+} from "./BlockContextMenuUtils";
 
 type NormalViewComponent = {
   usableMenuItems: MenuItemType[];
   menuState: MenuState;
   updateMenuState: (updatedState: Partial<MenuState>) => void;
-  handleClick: HandleClickMethod;
+  onItemClick: ItemClickMethod;
   blockSuggesterProps: BlockSuggesterProps;
   blockData: BlockEntity | null;
 };
@@ -24,7 +28,7 @@ export const NormalView: VoidFunctionComponent<NormalViewComponent> = ({
   usableMenuItems,
   menuState,
   updateMenuState,
-  handleClick,
+  onItemClick,
   blockSuggesterProps,
   blockData,
 }) => {
@@ -39,7 +43,7 @@ export const NormalView: VoidFunctionComponent<NormalViewComponent> = ({
             <BlockContextMenuItem
               key={key}
               selected={index === selectedIndex}
-              onClick={() => handleClick(key)}
+              onClick={() => onItemClick(key)}
               onSelect={(shouldShowSubMenu) => {
                 if (shouldShowSubMenu && key === "switchBlock") {
                   updateMenuState({

@@ -1,19 +1,20 @@
 import { VoidFunctionComponent } from "react";
 import { tw } from "twind";
 import { BlockSuggesterProps } from "../../blocks/page/createSuggester/BlockSuggester";
+import { BlockContextMenuItem } from "./BlockContextMenuItem";
 import {
   FilteredMenuItems,
-  HandleClickMethod,
   MenuState,
-} from "./BlockContextMenu";
-import { BlockContextMenuItem } from "./BlockContextMenuItem";
+  ItemClickMethod,
+  iconStyles,
+} from "./BlockContextMenuUtils";
 
 type SearchViewProps = {
   filteredMenuItems: FilteredMenuItems;
   entityId: string | null;
   menuState: MenuState;
   updateMenuState: (updatedState: Partial<MenuState>) => void;
-  handleClick: HandleClickMethod;
+  onItemClick: ItemClickMethod;
   blockSuggesterProps: BlockSuggesterProps;
 };
 
@@ -22,7 +23,7 @@ export const SearchView: VoidFunctionComponent<SearchViewProps> = ({
   entityId,
   menuState,
   updateMenuState,
-  handleClick,
+  onItemClick,
   blockSuggesterProps,
 }) => {
   const { selectedIndex } = menuState;
@@ -42,7 +43,7 @@ export const SearchView: VoidFunctionComponent<SearchViewProps> = ({
                 <BlockContextMenuItem
                   key={key}
                   selected={index === selectedIndex}
-                  onClick={() => handleClick(key)}
+                  onClick={() => onItemClick(key)}
                   onSelect={() => updateMenuState({ selectedIndex: index })}
                   icon={icon}
                   title={title}
@@ -62,7 +63,7 @@ export const SearchView: VoidFunctionComponent<SearchViewProps> = ({
 
               return (
                 <BlockContextMenuItem
-                  key={option.variant.displayName}
+                  key={option.meta.componentMetadata.componentId}
                   selected={
                     index + filteredMenuItems.actions.length === selectedIndex
                   }
@@ -74,7 +75,7 @@ export const SearchView: VoidFunctionComponent<SearchViewProps> = ({
                     <img
                       src={icon}
                       alt={displayName}
-                      className={tw`!text-inherit mr-1`}
+                      className={iconStyles}
                     />
                   }
                   title={displayName ?? ""}
