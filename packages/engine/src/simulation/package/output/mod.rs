@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 pub use crate::config::Globals;
 use crate::datastore::schema::accessor::FieldSpecMapAccessor;
-use crate::datastore::schema::FieldSpecMapBuilder;
+use crate::datastore::schema::{RootFieldSpec, RootFieldSpecCreator};
 use crate::simulation::comms::package::PackageComms;
 use crate::simulation::package::ext_traits::GetWorkerExpStartMsg;
 use crate::SimRunConfig;
@@ -48,13 +48,13 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
         Ok(serde_json::Value::Null)
     }
 
-    fn add_state_field_specs(
+    fn get_state_field_specs(
         &self,
         _config: &ExperimentConfig,
         _globals: &Globals,
-        _field_spec_map_builder: &mut FieldSpecMapBuilder,
-    ) -> Result<()> {
-        Ok(())
+        _field_spec_map_builder: &RootFieldSpecCreator,
+    ) -> Result<Vec<RootFieldSpec>> {
+        Ok(vec![])
     }
 }
 

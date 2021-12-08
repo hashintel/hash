@@ -22,8 +22,8 @@ impl Display for PackageName {
         // TODO: Is there some serde/serde_json option to not put the quotes in the first place?
         debug_assert!(s.len() >= 2);
         debug_assert!(s.as_bytes()[0] == ('"' as u8));
-        debug_assert!(s.as_bytes()[s.len()-1] == ('"' as u8));
-        let substr = &s.as_bytes()[1 .. s.len()-1];
+        debug_assert!(s.as_bytes()[s.len() - 1] == ('"' as u8));
+        let substr = &s.as_bytes()[1..s.len() - 1];
         let substr = std::str::from_utf8(substr);
         write!(f, "{}", substr.map_err(|_| std::fmt::Error)?)
     }

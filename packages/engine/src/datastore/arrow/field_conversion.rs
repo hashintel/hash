@@ -189,21 +189,21 @@ impl IsFixedSize for ArrowDataType {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::datastore::schema::{FieldScope, FieldSpecMapBuilder};
+    use crate::datastore::schema::{FieldScope, RootFieldSpecCreator};
     use crate::hash_types::state::AgentStateField;
-    use std::convert::TryInto;
 
     #[test]
     fn get_schema() -> Result<()> {
-        let mut builder = FieldSpecMapBuilder::new();
-        builder.source(FieldSource::Engine);
-        builder.add_field_spec(
+        let mut field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
+        let mut field_spec_map = FieldSpecMap::empty();
+
+        field_spec_map.add(field_spec_creator.create(
             "test1".to_string(),
             FieldType::new(FieldTypeVariant::Boolean, true),
             FieldScope::Private,
-        );
+        ))?;
 
-        builder.add_field_spec(
+        field_spec_map.add(field_spec_creator.create(
             "test2".to_string(),
             FieldType::new(
                 FieldTypeVariant::VariableLengthArray(Box::new(FieldType::new(
@@ -213,9 +213,9 @@ pub mod tests {
                 true,
             ),
             FieldScope::Private,
-        );
+        ))?;
 
-        builder.add_field_spec(
+        field_spec_map.add(field_spec_creator.create(
             "test3".to_string(),
             FieldType::new(
                 FieldTypeVariant::FixedLengthArray {
@@ -225,9 +225,8 @@ pub mod tests {
                 true,
             ),
             FieldScope::Private,
-        );
+        ))?;
 
-        let mut field_spec_map = builder.build();
         field_spec_map.add(AgentStateField::AgentId.try_into()?)?;
 
         let mut meta = HashMap::new();

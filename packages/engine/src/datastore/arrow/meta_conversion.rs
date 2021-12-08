@@ -18,7 +18,7 @@ use arrow::ipc::{
     MetadataVersion, RecordBatch, RecordBatchBuilder,
 };
 
-use std::{convert::TryFrom, sync::Arc};
+use std::sync::Arc;
 
 use super::util::FlatBufferWrapper;
 

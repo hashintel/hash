@@ -4,7 +4,7 @@ use crate::config::{Globals, TopologyConfig};
 use crate::datastore::batch::AgentBatch;
 use crate::datastore::schema::accessor::{FieldSpecMapAccessor, GetFieldSpec};
 use crate::datastore::schema::context::ContextSchema;
-use crate::datastore::schema::{FieldKey, FieldSpecMapBuilder};
+use crate::datastore::schema::{FieldKey, RootFieldSpec, RootFieldSpecCreator};
 use crate::datastore::table::state::view::StateSnapshot;
 use crate::datastore::table::state::State;
 use crate::datastore::{batch::iterators, table::state::ReadState};
@@ -56,24 +56,24 @@ impl PackageCreator for Creator {
         Ok(Box::new(neighbors))
     }
 
-    fn add_context_field_specs(
+    fn get_context_field_specs(
         &self,
         _config: &ExperimentConfig,
         _globals: &Globals,
-        field_spec_map_builder: &mut FieldSpecMapBuilder,
-    ) -> Result<()> {
-        fields::add_context(field_spec_map_builder)?;
-        Ok(())
+        field_spec_creator: &RootFieldSpecCreator,
+    ) -> Result<Vec<RootFieldSpec>> {
+        Ok(vec![fields::get_neighbors_field_spec(field_spec_creator)?])
     }
 
-    fn add_state_field_specs(
+    fn get_state_field_specs(
         &self,
         _config: &ExperimentConfig,
         _globals: &Globals,
-        field_spec_map_builder: &mut FieldSpecMapBuilder,
-    ) -> Result<()> {
-        fields::add_state(field_spec_map_builder)?;
-        Ok(())
+        field_spec_creator: &RootFieldSpecCreator,
+    ) -> Result<Vec<RootFieldSpec>> {
+        Ok(vec![fields::get_search_radius_field_spec(
+            field_spec_creator,
+        )?])
     }
 }
 

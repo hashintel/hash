@@ -36,14 +36,15 @@ impl PackageCreator for Creator {
         Ok(Box::new(topology))
     }
 
-    fn add_state_field_specs(
+    fn get_state_field_specs(
         &self,
         _config: &ExperimentConfig,
         _globals: &Globals,
-        field_spec_map_builder: &mut FieldSpecMapBuilder,
-    ) -> Result<()> {
-        fields::add_state(field_spec_map_builder)?;
-        Ok(())
+        field_spec_creator: &RootFieldSpecCreator,
+    ) -> Result<Vec<RootFieldSpec>> {
+        Ok(vec![fields::get_pos_corrected_field_spec(
+            field_spec_creator,
+        )?])
     }
 }
 

@@ -1,9 +1,5 @@
 pub mod behavior;
 
-use std::convert::TryInto;
-
-use behavior::add_fields_from_behavior_keys;
-
 use arrow::datatypes::DataType;
 
 use self::behavior::BehaviorMap;
@@ -12,23 +8,24 @@ use super::BEHAVIOR_INDEX_INNER_COUNT;
 
 use crate::config::ExperimentConfig;
 use crate::datastore::schema::{
-    FieldScope, FieldSpecMapBuilder, FieldType, FieldTypeVariant as FTV, PresetFieldType,
+    FieldScope, FieldType, FieldTypeVariant as FTV, PresetFieldType, RootFieldSpec,
+    RootFieldSpecCreator,
 };
 use crate::simulation::Result;
 
-fn add_behaviors(builder: &mut FieldSpecMapBuilder) -> Result<()> {
+fn get_behaviors_field_spec(field_spec_creator: &RootFieldSpecCreator) -> Result<RootFieldSpec> {
     let field_type = FieldType::new(
         FTV::VariableLengthArray(Box::new(FieldType::new(FTV::String, false))),
         false,
     );
-    builder.add_field_spec("behaviors".into(), field_type, FieldScope::Agent)?;
-    Ok(())
+    Ok(field_spec_creator.create("behaviors".into(), field_type, FieldScope::Agent))
 }
 
-fn add_behavior_index(builder: &mut FieldSpecMapBuilder) -> Result<()> {
+fn get_behavior_index_field_spec(
+    field_spec_creator: &RootFieldSpecCreator,
+) -> Result<RootFieldSpec> {
     let field_type = FieldType::new(FTV::Number, false);
-    builder.add_field_spec("behavior_index".into(), field_type, FieldScope::Agent)?;
-    Ok(())
+    Ok(field_spec_creator.create("behavior_index".into(), field_type, FieldScope::Agent))
 }
 
 fn behavior_id_inner_field_type() -> FieldType {
@@ -50,26 +47,28 @@ fn behavior_ids_field_type() -> FieldType {
     FieldType::new(variant, false)
 }
 
-fn add_hidden_behavior_ids(builder: &mut FieldSpecMapBuilder) -> Result<()> {
+fn get_behavior_ids_field_spec(field_spec_creator: &RootFieldSpecCreator) -> Result<RootFieldSpec> {
     let field_type = behavior_ids_field_type();
-    builder.add_field_spec("behavior_ids".into(), field_type, FieldScope::Private)?;
-    Ok(())
+    Ok(field_spec_creator.create("behavior_ids".into(), field_type, FieldScope::Private))
 }
 
-pub(super) fn add_state(
+pub(super) fn get_state_field_specs(
     config: &ExperimentConfig,
-    builder: &mut FieldSpecMapBuilder,
-) -> Result<()> {
-    // "behaviors" field that agents can modify
-    add_behaviors(builder)?;
-    add_behavior_index(builder)?;
-    // "behaviors_indices" field that is hidden,
-    // but the way behavior execution keeps track
-    // of the behavior chain for a single step
-    add_hidden_behavior_ids(builder)?;
-    let behavior_map: BehaviorMap = config.try_into()?;
-    add_fields_from_behavior_keys(builder, behavior_map.all_field_specs)?;
-    Ok(())
+    field_spec_creator: &RootFieldSpecCreator,
+) -> Result<Vec<RootFieldSpec>> {
+    let behavior_map: BehaviorMap = (config, field_spec_creator).try_into()?;
+    let mut field_specs = vec![
+        // "behaviors" field that agents can modify
+        get_behaviors_field_spec(field_spec_creator)?,
+        get_behavior_index_field_spec(field_spec_creator)?,
+        // "behavior_ids" field that is private,
+        // the way behavior execution keeps track
+        // of the behavior chain for a single step
+        get_behavior_ids_field_spec(field_spec_creator)?,
+    ];
+
+    field_specs.extend(behavior_map.all_field_specs.field_specs().cloned());
+    Ok(field_specs)
 }
 
 pub(super) fn id_column_data_types() -> Result<[DataType; 3]> {

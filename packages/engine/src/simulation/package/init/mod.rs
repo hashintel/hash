@@ -4,7 +4,7 @@ pub use packages::{InitTask, InitTaskMessage, Name, PACKAGE_CREATORS};
 
 pub use crate::config::Globals;
 use crate::datastore::schema::accessor::FieldSpecMapAccessor;
-use crate::datastore::schema::FieldSpecMapBuilder;
+use crate::datastore::schema::{RootFieldSpec, RootFieldSpecCreator};
 pub use crate::hash_types::Agent;
 use crate::simulation::package::ext_traits::GetWorkerExpStartMsg;
 use crate::{simulation::comms::package::PackageComms, SimRunConfig};
@@ -44,12 +44,12 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
         Dependencies::empty()
     }
 
-    fn add_state_field_specs(
+    fn get_state_field_specs(
         &self,
         _config: &ExperimentConfig,
         _globals: &Globals,
-        _field_spec_map_builder: &mut FieldSpecMapBuilder,
-    ) -> Result<()> {
-        Ok(())
+        _field_spec_map_builder: &RootFieldSpecCreator,
+    ) -> Result<Vec<RootFieldSpec>> {
+        Ok(vec![])
     }
 }

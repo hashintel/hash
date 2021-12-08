@@ -1,5 +1,7 @@
 use super::*;
-use crate::datastore::schema::{FieldScope, FieldType, FieldTypeVariant::*, PresetFieldType};
+use crate::datastore::schema::{
+    FieldScope, FieldType, FieldTypeVariant::*, PresetFieldType, RootFieldSpec,
+};
 
 fn neighbors() -> FieldType {
     let variant = VariableLengthArray(Box::new(FieldType::new(
@@ -12,18 +14,20 @@ fn neighbors() -> FieldType {
     FieldType::new(variant, false)
 }
 
-pub(super) fn add_context(field_spec_map_builder: &mut FieldSpecMapBuilder) -> Result<()> {
+pub(super) fn get_neighbors_field_spec(
+    field_spec_creator: &RootFieldSpecCreator,
+) -> Result<RootFieldSpec> {
     let neighbors = neighbors();
-    field_spec_map_builder.add_field_spec("neighbors".into(), neighbors, FieldScope::Hidden)?;
-    Ok(())
+    Ok(field_spec_creator.create("neighbors".into(), neighbors, FieldScope::Hidden))
 }
 
-pub(super) fn add_state(field_spec_map_builder: &mut FieldSpecMapBuilder) -> Result<()> {
+pub(super) fn get_search_radius_field_spec(
+    field_spec_creator: &RootFieldSpecCreator,
+) -> Result<RootFieldSpec> {
     let search_radius = FieldType::new(Number, true);
-    field_spec_map_builder.add_field_spec(
+    Ok(field_spec_creator.create(
         "search_radius".to_string(),
         search_radius,
         FieldScope::Agent,
-    )?;
-    Ok(())
+    ))
 }

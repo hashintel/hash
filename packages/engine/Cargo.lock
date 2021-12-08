@@ -436,15 +436,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cmake"
-version = "0.1.46"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b7b858541263efe664aead4a5209a4ae5c5d2811167d4ed4ee0944503f8d2089"
-dependencies = [
- "cc",
-]
-
-[[package]]
 name = "concurrent-queue"
 version = "1.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1520,9 +1511,9 @@ dependencies = [
 
 [[package]]
 name = "nng"
-version = "1.0.0"
+version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7caacc821215ebe69230eee121bbb5b447889e2a71a6618d0d5d7a166279f6d0"
+checksum = "20a18ed7ec1c8ff1658bcfea2ce76dcedf8be21dd9e8dd2e9762ba9632d16203"
 dependencies = [
  "log",
  "nng-sys",
@@ -1534,7 +1525,6 @@ version = "1.4.0-rc.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "50d0e7f39a8fd1792a710da9351320e864dc799cf439960e332c977b2f876da6"
 dependencies = [
- "cmake",
  "version_check",
 ]
 

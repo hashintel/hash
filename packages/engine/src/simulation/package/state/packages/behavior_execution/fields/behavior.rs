@@ -1,4 +1,6 @@
-use crate::datastore::schema::{FieldScope, FieldSource, FieldSpecMapBuilder};
+use crate::datastore::schema::{
+    FieldKey, FieldScope, FieldSource, RootFieldSpec, RootFieldSpecCreator,
+};
 use crate::hash_types::state::AgentStateField;
 
 // use crate::worker::runner::rust;
@@ -13,41 +15,28 @@ use crate::{
 
 use crate::proto::ExperimentRunTrait;
 use crate::simulation::package::name::PackageName;
+use std::collections::hash_map::Values;
 use std::{collections::HashMap, convert::TryFrom};
-
-pub fn add_fields_from_behavior_keys(
-    builder: &mut FieldSpecMapBuilder,
-    field_specs: FieldSpecMap,
-) -> Result<()> {
-    for (_key, spec) in field_specs.iter() {
-        builder.add_field_spec(
-            spec.inner.name.clone(),
-            spec.inner.field_type.clone(),
-            spec.scope.clone(),
-        )?;
-    }
-    Ok(())
-}
 
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
 pub struct BehaviorKeys {
-    // Name -> JSON string
     pub inner: FieldSpecMap,
     pub built_in_key_use: Option<Vec<String>>,
     pub dyn_access: bool,
 }
 
 impl BehaviorKeys {
-    pub fn from_json_str<K: AsRef<str>>(json_str: K) -> Result<BehaviorKeys> {
-        Self::_from_json_str(json_str.as_ref(), true)
+    pub fn from_json_str<K: AsRef<str>>(
+        json_str: K,
+        field_spec_creator: &RootFieldSpecCreator,
+    ) -> Result<BehaviorKeys> {
+        Self::_from_json_str(json_str.as_ref(), field_spec_creator)
     }
 
-    // TODO: remove reference to mergeable
-    pub fn from_json_str_non_mergeable<K: AsRef<str>>(json_str: K) -> Result<BehaviorKeys> {
-        Self::_from_json_str(json_str.as_ref(), false)
-    }
-
-    pub fn _from_json_str(json_str: &str, _is_mergeable: bool) -> Result<BehaviorKeys> {
+    pub fn _from_json_str(
+        json_str: &str,
+        field_spec_creator: &RootFieldSpecCreator,
+    ) -> Result<BehaviorKeys> {
         let json: serde_json::Value = serde_json::from_str(json_str)?;
         let map = match json {
             serde_json::Value::Object(m) => m,
@@ -57,20 +46,22 @@ impl BehaviorKeys {
         let key_json = map
             .get("keys")
             .ok_or_else(|| BehaviorKeyJSONError::ExpectedKeys)?;
-        let mut builder = FieldSpecMapBuilder::new();
-        // TODO: Packages shouldn't have to set the source
-        builder.source(FieldSource::Package(PackageName::State(
-            super::super::Name::BehaviorExecution,
-        )));
+
+        let mut field_spec_map = FieldSpecMap::empty();
+
         match key_json {
             serde_json::Value::Object(map) => {
-                for (k, v) in map {
-                    builder.add_field_spec(
-                        k.into(),
-                        FieldType::from_json(&k, v)?,
-                        FieldScope::Agent,
-                    )?;
-                }
+                field_spec_map.add_multiple(
+                    map.into_iter()
+                        .map(|(k, v)| {
+                            Ok(field_spec_creator.create(
+                                k.into(),
+                                FieldType::from_json(&k, v)?,
+                                FieldScope::Agent,
+                            ))
+                        })
+                        .collect::<Result<Vec<_>>>()?,
+                )?;
             }
             _ => return Err(BehaviorKeyJSONError::ExpectedKeysMap.into()),
         }
@@ -136,22 +127,15 @@ impl BehaviorKeys {
         };
 
         return Ok(BehaviorKeys {
-            inner: builder.build(),
+            inner: field_spec_map,
             built_in_key_use: built_in_key_use?,
             dyn_access,
         });
     }
 
     // add all of the fields within self into builder
-    fn add_all_to_builder(&self, builder: &mut FieldSpecMapBuilder) -> Result<()> {
-        for (_key, spec) in self.inner.iter() {
-            builder.add_field_spec(
-                spec.inner.name.clone(),
-                spec.inner.field_type.clone(),
-                spec.scope.clone(),
-            )?;
-        }
-        Ok(())
+    fn get_field_specs(&self) -> Values<'_, FieldKey, RootFieldSpec> {
+        self.inner.field_specs()
     }
 }
 
@@ -177,16 +161,15 @@ pub struct BehaviorMap {
     pub(in super::super) all_field_specs: FieldSpecMap,
 }
 
-impl TryFrom<&ExperimentConfig> for BehaviorMap {
+impl TryFrom<(&ExperimentConfig, &RootFieldSpecCreator)> for BehaviorMap {
     type Error = Error;
 
-    fn try_from(experiment_config: &ExperimentConfig) -> Result<Self> {
-        let mut builder = FieldSpecMapBuilder::new();
-        // TODO: A package shouldn't have to manually set the source
-        builder.source(FieldSource::Package(PackageName::State(
-            super::super::Name::BehaviorExecution,
-        )));
+    fn try_from(
+        (experiment_config, field_spec_creator): (&ExperimentConfig, &RootFieldSpecCreator),
+    ) -> Result<Self> {
         let mut meta = HashMap::new();
+        let mut field_spec_map = FieldSpecMap::empty();
+
         experiment_config
             .run
             .base()
@@ -216,12 +199,16 @@ impl TryFrom<&ExperimentConfig> for BehaviorMap {
                 let rust_built_in_behavior_keys = None;
                 let keys = rust_built_in_behavior_keys
                     .or_else(|| b.behavior_keys_src.clone())
-                    .map(|v| BehaviorKeys::from_json_str(&v))
+                    .map(|v| BehaviorKeys::from_json_str(&v, field_spec_creator))
                     .unwrap_or_else(|| {
                         // The default is to use all built-in keys
                         Ok(BehaviorKeys::default())
                     })?;
-                keys.add_all_to_builder(&mut builder)?;
+                field_spec_map.add_multiple(
+                    keys.get_field_specs()
+                        .cloned()
+                        .collect::<Vec<RootFieldSpec>>(),
+                )?;
                 let behavior = Behavior {
                     shared: b.clone(),
                     keys,
@@ -232,7 +219,7 @@ impl TryFrom<&ExperimentConfig> for BehaviorMap {
             })?;
         Ok(BehaviorMap {
             inner: meta,
-            all_field_specs: builder.build(),
+            all_field_specs: field_spec_map,
         })
     }
 }
