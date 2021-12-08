@@ -18,6 +18,7 @@ use serde_json::Value;
 use crate::datastore::schema::accessor::GetFieldSpec;
 use crate::datastore::schema::FieldKey;
 
+use crate::simulation::package::context::packages::api_requests::fields::API_RESPONSES_FIELD_NAME;
 pub use handlers::CustomAPIMessageError;
 
 const CPU_BOUND: bool = false;
@@ -127,7 +128,7 @@ impl Package for APIRequests {
         let api_responses = APIResponses::from(responses_per_agent);
         let field_key = self
             .context_field_spec_accessor
-            .get_local_hidden_scoped_field_spec("api_responses")?
+            .get_local_hidden_scoped_field_spec(API_RESPONSES_FIELD_NAME)?
             .to_key()?;
 
         Ok(vec![ContextColumn {
@@ -147,7 +148,7 @@ impl Package for APIRequests {
 
         let field_key = self
             .context_field_spec_accessor
-            .get_local_hidden_scoped_field_spec("api_responses")?
+            .get_local_hidden_scoped_field_spec(API_RESPONSES_FIELD_NAME)?
             .to_key()?;
         let arrow_fields = context_schema
             .arrow

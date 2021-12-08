@@ -3,6 +3,9 @@ use crate::datastore::schema::{
     FieldScope, FieldType, FieldTypeVariant::*, PresetFieldType, RootFieldSpec,
 };
 
+pub(super) const NEIGHBORS_FIELD_NAME: &str = "neighbors";
+pub(super) const SEARCH_RADIUS_FIELD_NAME: &str = "search_radius";
+
 fn neighbors() -> FieldType {
     let variant = VariableLengthArray(Box::new(FieldType::new(
         FixedLengthArray {
@@ -18,7 +21,7 @@ pub(super) fn get_neighbors_field_spec(
     field_spec_creator: &RootFieldSpecCreator,
 ) -> Result<RootFieldSpec> {
     let neighbors = neighbors();
-    Ok(field_spec_creator.create("neighbors".into(), neighbors, FieldScope::Hidden))
+    Ok(field_spec_creator.create(NEIGHBORS_FIELD_NAME.into(), neighbors, FieldScope::Hidden))
 }
 
 pub(super) fn get_search_radius_field_spec(
@@ -26,7 +29,7 @@ pub(super) fn get_search_radius_field_spec(
 ) -> Result<RootFieldSpec> {
     let search_radius = FieldType::new(Number, true);
     Ok(field_spec_creator.create(
-        "search_radius".to_string(),
+        SEARCH_RADIUS_FIELD_NAME.to_string(),
         search_radius,
         FieldScope::Agent,
     ))

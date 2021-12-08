@@ -6,6 +6,7 @@ mod writer;
 use self::collected::Messages;
 use crate::datastore::schema::accessor::GetFieldSpec;
 use crate::datastore::schema::RootFieldSpec;
+use crate::simulation::package::context::packages::agent_messages::fields::MESSAGES_FIELD_NAME;
 use crate::{
     datastore::{batch::iterators, table::state::ReadState},
     simulation::comms::package::PackageComms,
@@ -86,7 +87,7 @@ impl Package for AgentMessages {
         let messages = Messages::gather(snapshot.message_map(), id_name_iter)?;
         let field_key = self
             .context_field_spec_accessor
-            .get_agent_scoped_field_spec("messages")?
+            .get_agent_scoped_field_spec(MESSAGES_FIELD_NAME)?
             .to_key()?;
 
         Ok(vec![ContextColumn {
@@ -106,11 +107,9 @@ impl Package for AgentMessages {
 
         (0..num_agents).try_for_each(|_| messages_builder.append(true))?;
 
-        // TODO, this is unclean, we won't have to do this if we move empty arrow
-        //   initialisation to be done per schema instead of per package
         let field_key = self
             .context_field_spec_accessor
-            .get_agent_scoped_field_spec("messages")?
+            .get_agent_scoped_field_spec(MESSAGES_FIELD_NAME)?
             .to_key()?;
 
         Ok(vec![(

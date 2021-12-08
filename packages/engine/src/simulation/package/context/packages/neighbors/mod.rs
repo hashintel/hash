@@ -9,6 +9,7 @@ use crate::datastore::table::state::view::StateSnapshot;
 use crate::datastore::table::state::State;
 use crate::datastore::{batch::iterators, table::state::ReadState};
 use crate::simulation::comms::package::PackageComms;
+use crate::simulation::package::context::packages::neighbors::fields::NEIGHBORS_FIELD_NAME;
 use crate::simulation::package::context::{ContextColumn, Package, PackageCreator};
 use crate::simulation::package::ext_traits::{
     GetWorkerExpStartMsg, GetWorkerSimStartMsg, MaybeCPUBound,
@@ -125,7 +126,7 @@ impl Package for Neighbors {
 
         let field_key = self
             .context_field_spec_accessor
-            .get_local_hidden_scoped_field_spec("neighbors")?
+            .get_local_hidden_scoped_field_spec(NEIGHBORS_FIELD_NAME)?
             .to_key()?;
 
         Ok(vec![ContextColumn {
@@ -150,7 +151,7 @@ impl Package for Neighbors {
         //   initialisation to be done per schema instead of per package
         let field_key = self
             .context_field_spec_accessor
-            .get_local_hidden_scoped_field_spec("neighbors")?
+            .get_local_hidden_scoped_field_spec(NEIGHBORS_FIELD_NAME)?
             .to_key()?;
 
         Ok(vec![(
