@@ -7,11 +7,14 @@ fn main() {
     println!("cargo:rustc-link-search=native={}/out.gn/libv8/obj", v8);
     println!("cargo:rustc-link-lib=static=v8_monolith");
 
-    if cfg!(not(feature = "build-nng")) {
-        let nng_path =
-            std::env::var("NNG_PATH").expect("`NNG_PATH` environment variable wasn't set,");
-        println!("cargo:rustc-link-search={nng_path}/lib");
-        println!("cargo:rustc-link-lib=dylib=nng");
+    if let Ok(host) = std::env::var("HOST") {
+        // So far we only require (and allow) manual nng linking for ARM-based Macs
+        if &host == "aarch64-apple-darwin" {
+            let nng_path =
+                std::env::var("NNG_PATH").expect("`NNG_PATH` environment variable wasn't set,");
+            println!("cargo:rustc-link-search={nng_path}/lib");
+            println!("cargo:rustc-link-lib=dylib=nng");
+        }
     }
 
     cc::Build::new()

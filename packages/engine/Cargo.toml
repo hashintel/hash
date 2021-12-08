@@ -69,9 +69,6 @@ nng = { version = "1.0.1", default-features = false }
 [target.'cfg(not(target_os = "macos"))'.dependencies]
 nng = { version = "1.0.1", default-features = true }
 
-[target.'cfg(not(target_os = "macos"))'.features]
-default = ["build-nng"]
-
 [features]
 build-nng = ["nng/build-nng"]
 
