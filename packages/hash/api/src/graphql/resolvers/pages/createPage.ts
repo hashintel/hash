@@ -32,16 +32,6 @@ export const createPage: Resolver<
     );
   };
 
-  const newHeaderEntity = await _createEntity("Text", {
-    tokens: [{ tokenType: "text", text: properties.title, bold: true }],
-  });
-
-  const newHeaderBlock = await _createEntity("Block", {
-    componentId: "https://block.blockprotocol.org/header",
-    entityId: newHeaderEntity.entityId,
-    accountId,
-  });
-
   const newParaEntity = await _createEntity("Text", { tokens: [] });
 
   const newParaBlock = await _createEntity("Block", {
@@ -53,10 +43,6 @@ export const createPage: Resolver<
   return _createEntity("Page", {
     title: properties.title,
     contents: [
-      {
-        entityId: newHeaderBlock.entityId,
-        accountId,
-      },
       {
         entityId: newParaBlock.entityId,
         accountId,

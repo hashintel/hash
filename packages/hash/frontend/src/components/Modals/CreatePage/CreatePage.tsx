@@ -1,4 +1,6 @@
-import { FormEvent, useState, VoidFunctionComponent } from "react";
+import { FormEvent, useEffect, useState, VoidFunctionComponent } from "react";
+import { Router, useRouter } from "next/router";
+
 import { useCreatePage } from "../../hooks/useCreatePage";
 import { Modal } from "../Modal";
 
@@ -16,22 +18,47 @@ export const CreatePage: VoidFunctionComponent<CreatePageProps> = ({
 }) => {
   const [title, setTitle] = useState("");
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   const { create } = useCreatePage();
 
   const createPage = (event: FormEvent) => {
     event.preventDefault();
+
+    if (loading) {
+      return;
+    }
+
     setLoading(true);
     create({
       variables: { accountId, properties: { title } },
     })
-      // eslint-disable-next-line no-console -- TODO: consider using logger
-      .catch((err) => console.error("Could not create page: ", err))
-      .finally(() => {
+      .then((response) => {
+        const { accountId: pageAccountId, entityId: pageEntityId } =
+          response.data?.createPage ?? {};
+
+        if (pageAccountId && pageEntityId) {
+          return router.push(`/${pageAccountId}/${pageEntityId}`);
+        }
+      })
+      .catch((err) => {
+        // eslint-disable-next-line no-console -- TODO: consider using logger
+        console.error("Could not create page: ", err);
         setLoading(false);
         close();
       });
   };
+
+  useEffect(() => {
+    const routeChangeHandler = () => {
+      setLoading(false);
+      close();
+    };
+
+    Router.events.on("routeChangeComplete", routeChangeHandler);
+
+    return () => Router.events.off("routeChangeComplete", routeChangeHandler);
+  }, [close]);
 
   return (
     <Modal show close={close}>

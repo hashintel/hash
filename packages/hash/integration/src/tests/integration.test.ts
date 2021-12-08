@@ -584,15 +584,13 @@ describe("logged in user ", () => {
         title: "My first page",
       },
     });
-    // The page currently has 2 blocks: an empty title block and an empty paragraph block
-    expect(page.properties.contents).toHaveLength(2);
+    // The page currently has 1 block: an empty paragraph block
+    expect(page.properties.contents).toHaveLength(1);
 
     const textPropertiesA = { tokens: [{ tokenType: "text", text: "A" }] };
     const textPropertiesB = { tokens: [{ tokenType: "text", text: "B" }] };
     const textPropertiesC = { tokens: [{ tokenType: "text", text: "C" }] };
-    const titleProperties = {
-      tokens: [{ tokenType: "text", text: "Hello HASH!" }],
-    };
+
     const updatedPage = await client.updatePageContents({
       accountId: page.accountId,
       entityId: page.entityId,
@@ -601,7 +599,7 @@ describe("logged in user ", () => {
           insertNewBlock: {
             accountId: page.accountId,
             componentId: "https://block.blockprotocol.org/paragraph",
-            position: 2,
+            position: 1,
             systemTypeName: SystemTypeName.Text,
             entityProperties: textPropertiesA,
           },
@@ -610,29 +608,22 @@ describe("logged in user ", () => {
           insertNewBlock: {
             accountId: page.accountId,
             componentId: "https://block.blockprotocol.org/paragraph",
-            position: 3,
+            position: 2,
             systemTypeName: SystemTypeName.Text,
             entityProperties: textPropertiesB,
           },
         },
         {
           updateEntity: {
-            accountId: page.properties.contents[1].properties.entity.accountId,
-            entityId: page.properties.contents[1].properties.entity.entityId,
+            accountId: page.properties.contents[0].properties.entity.accountId,
+            entityId: page.properties.contents[0].properties.entity.entityId,
             properties: textPropertiesC,
           },
         },
         {
           moveBlock: {
             currentPosition: 1,
-            newPosition: 3,
-          },
-        },
-        {
-          updateEntity: {
-            accountId: page.properties.contents[0].properties.entity.accountId,
-            entityId: page.properties.contents[0].properties.entity.entityId,
-            properties: titleProperties,
+            newPosition: 2,
           },
         },
       ],
@@ -641,10 +632,10 @@ describe("logged in user ", () => {
     const pageEntities = updatedPage.properties.contents.map(
       (block) => block.properties.entity,
     );
-    expect(pageEntities[0].properties).toMatchObject(titleProperties);
-    expect(pageEntities[1].properties).toMatchObject(textPropertiesA);
-    expect(pageEntities[2].properties).toMatchObject(textPropertiesB);
-    expect(pageEntities[3].properties).toMatchObject(textPropertiesC);
+
+    expect(pageEntities[2].properties).toMatchObject(textPropertiesA);
+    expect(pageEntities[1].properties).toMatchObject(textPropertiesB);
+    expect(pageEntities[0].properties).toMatchObject(textPropertiesC);
   });
 
   describe("can create entity types", () => {
