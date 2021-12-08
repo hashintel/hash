@@ -35,7 +35,7 @@ kdtree = "0.6.0"
 lazy_static = "1.4.0"
 log = "0.4.11"
 nix = "0.19.0"
-nng = "1.0.0"
+nng = { version = "1.0.1", default-features = false }
 num_cpus = "1.13.0"
 parking_lot = "0.11.1"
 pretty_env_logger = "0.4.0"
