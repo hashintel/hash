@@ -1,21 +1,21 @@
-use super::process;
-use crate::exsrv::Handler;
-use crate::manifest::read_manifest;
-use crate::{
-    error::{Error, Result},
-    Args,
-};
+use std::iter::FromIterator;
+use std::path::PathBuf;
+use std::time::Duration;
+
+use anyhow::{bail, format_err, Context, Result};
 use hash_engine::experiment::controller::config::{
     OutputPersistenceConfig, OUTPUT_PERSISTENCE_KEY,
 };
 use hash_engine::output::local::config::LocalPersistenceConfig;
-use hash_engine::proto;
-use hash_engine::proto::ExecutionEnvironment;
+use hash_engine::proto::{self, ExecutionEnvironment};
 use hash_engine::utils::parse_env_duration;
 use serde_json::json;
-use std::path::PathBuf;
-use std::time::Duration;
 use tokio::time::{self, timeout};
+
+use super::process;
+use crate::exsrv::Handler;
+use crate::manifest::read_manifest;
+use crate::Args;
 
 lazy_static::lazy_static! {
     static ref ENGINE_START_TIMEOUT: Duration = parse_env_duration("ENGINE_START_TIMEOUT", 180);
@@ -28,8 +28,11 @@ lazy_static::lazy_static! {
 /// The simulations will run to completion and the connection will finish once the
 /// last run is done, or if there is an error.
 pub async fn run_experiment(args: Args, handler: Handler) -> Result<()> {
-    let absolute_project_path = PathBuf::from(&args.project).canonicalize()?;
-    let experiment_run = read_manifest(absolute_project_path, &args.r#type)?;
+    let project = &args.project;
+    let absolute_project_path = PathBuf::from(project)
+        .canonicalize()
+        .with_context(|| format!("Could not canonicalize project path: {project:?}"))?;
+    let experiment_run = read_manifest(&absolute_project_path, &args.r#type)?;
     run_experiment_with_manifest(args, experiment_run, handler).await?;
     Ok(())
 }
@@ -53,32 +56,39 @@ async fn run_experiment_with_manifest(
     mut handler: Handler,
 ) -> Result<()> {
     let experiment_id = experiment_run.base.id.clone();
-    let mut engine_handle = handler.register_experiment(&experiment_id).await?;
+    let mut engine_handle = handler
+        .register_experiment(&experiment_id)
+        .await
+        .with_context(|| format!("Could not register experiment: {experiment_id}"))?;
 
     // Create and start the experiment run
-    let cmd = create_engine_command(&args, &experiment_id, handler.url())?;
-    let mut engine_process = cmd.run().await?;
+    let cmd = create_engine_command(&args, &experiment_id, handler.url())
+        .context("Could not build engine command")?;
+    let mut engine_process = cmd.run().await.context("Could not run experiment")?;
 
     // Wait to receive a message that the experiment has started before sending the
     // init message.
     let msg = timeout(*ENGINE_START_TIMEOUT, engine_handle.recv())
         .await
-        .map_err(|_| Error::from("engine start timeout"));
+        .map_err(|_| format_err!("engine start timeout"));
     match msg {
         Ok(proto::EngineStatus::Started) => {}
         Ok(m) => {
-            return Err(Error::from(format!(
-                "expected to receive Started message but received type {}",
+            bail!(
+                "expected to receive `Started` message but received: `{}`",
                 m.kind()
-            )));
+            );
         }
         Err(e) => {
-            log::error!("Engine start timeout for experiment {}", &experiment_id);
-            engine_process.exit_and_cleanup().await?;
-            return Err(e);
+            error!("Engine start timeout for experiment {experiment_id}");
+            engine_process
+                .exit_and_cleanup()
+                .await
+                .context("Failed to cleanup after failed start")?;
+            bail!(e);
         }
     };
-    log::debug!("Received start message from {}", &experiment_id);
+    debug!("Received start message from {experiment_id}");
 
     let map_iter = [(
         OUTPUT_PERSISTENCE_KEY.to_string(),
@@ -95,75 +105,68 @@ async fn run_experiment_with_manifest(
     };
     engine_process
         .send(&proto::EngineMsg::Init(init_message))
-        .await?;
-    log::debug!("Sent init message to {}", &experiment_id);
+        .await
+        .context("Could not send `Init` message")?;
+    debug!("Sent init message to {experiment_id}");
 
     loop {
         let msg: Option<proto::EngineStatus>;
         tokio::select! {
             _ = time::sleep(*ENGINE_WAIT_TIMEOUT) => {
-                log::error!("Did not receive status from experiment {} for over {} seconds. Exiting now.", &experiment_id, ENGINE_WAIT_TIMEOUT.as_secs());
+                error!("Did not receive status from experiment {experiment_id} for over {:?}. Exiting now.", *ENGINE_WAIT_TIMEOUT);
                 break;
             }
             m = engine_handle.recv() => { msg = Some(m) },
         }
         let msg = msg.unwrap();
-        log::info!("Got message from experiment run with type: {}", msg.kind());
+        info!("Got message from experiment run with type: {}", msg.kind());
 
         match msg {
             proto::EngineStatus::Stopping => {
-                log::debug!("Stopping experiment");
+                debug!("Stopping experiment");
             }
             proto::EngineStatus::SimStart { sim_id, globals: _ } => {
-                log::debug!("Started simulation: {}", sim_id);
+                debug!("Started simulation: {sim_id}");
             }
             proto::EngineStatus::SimStatus(status) => {
-                log::debug!("Got simulation run status: {:?}", status);
+                debug!("Got simulation run status: {status:?}");
                 // TODO OS - handle status fields
             }
             proto::EngineStatus::SimStop(sim_id) => {
-                log::debug!("Simulation stopped: {}", sim_id);
+                debug!("Simulation stopped: {sim_id}");
             }
             proto::EngineStatus::Errors(sim_id, errs) => {
                 if let Some(sim_id) = sim_id {
-                    log::debug!(
-                        "There were errors when running simulation [{}]: {:?}",
-                        sim_id,
-                        errs
-                    );
+                    error!("There were errors when running simulation [{sim_id}]: {errs:?}");
                 } else {
-                    log::debug!("Errors occurred within the engine: {:?}", errs);
+                    error!("Errors occurred within the engine: {errs:?}");
                 }
             }
             proto::EngineStatus::Warnings(sim_id, warnings) => {
                 if let Some(sim_id) = sim_id {
-                    log::debug!(
-                        "There were warnings when running simulation [{}]: {:?}",
-                        sim_id,
-                        warnings
-                    );
+                    warn!("There were warnings when running simulation [{sim_id}]: {warnings:?}");
                 } else {
-                    log::debug!("Warnings occurred within the engine: {:?}", warnings);
+                    warn!("Warnings occurred within the engine: {warnings:?}");
                 }
             }
             proto::EngineStatus::Exit => {
-                log::debug!(
-                    "Process exited successfully for experiment run with id {}",
-                    experiment_id
-                );
+                debug!("Process exited successfully for experiment run with id {experiment_id}",);
                 break;
             }
             proto::EngineStatus::ProcessError(error) => {
-                log::error!("Got error: {:?}", error);
+                error!("Got error: {error:?}");
                 break;
             }
             proto::EngineStatus::Started => {
-                log::error!("Received unexpected engine started message after engine had already started: {}", msg.kind());
+                error!("Received unexpected engine `Started` message after engine had already started: {}", msg.kind());
                 break;
             }
         }
     }
-    log::debug!("Performing cleanup");
-    engine_process.exit_and_cleanup().await?;
+    debug!("Performing cleanup");
+    engine_process
+        .exit_and_cleanup()
+        .await
+        .context("Could not cleanup after finish")?;
     Ok(())
 }

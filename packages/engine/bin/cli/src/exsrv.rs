@@ -1,36 +1,9 @@
-use hash_engine::{nano, proto};
 use std::collections::HashMap;
-use tokio::sync::mpsc;
-use tokio::sync::oneshot;
+use std::fmt::Display;
 
-pub type Result<T, E = Error> = std::result::Result<T, E>;
-
-#[derive(thiserror::Error, Debug)]
-pub enum Error {
-    #[error("Serialize/Deserialize error")]
-    Serde(#[from] serde_json::Error),
-
-    #[error("Registering experiment {0}")]
-    RegisterExperiment(String),
-
-    #[error("Experiment {0} already registered")]
-    AlreadyRegistered(String),
-
-    #[error("Sending server control result")]
-    SendCtrlResult,
-
-    #[error("Sending control message to server")]
-    SendCtrl,
-
-    #[error("Routing message for experiment {0}")]
-    RoutingMessage(String),
-
-    #[error("Tokio oneshot recv: {0}")]
-    TokioOneshotRecv(#[from] tokio::sync::oneshot::error::RecvError),
-
-    #[error("Nano error: {0}")]
-    NanoError(#[from] nano::Error),
-}
+use anyhow::{bail, format_err, Context, Result};
+use hash_engine::{nano, proto};
+use tokio::sync::{mpsc, oneshot};
 
 type ExperimentID = String;
 type ResultSender = oneshot::Sender<Result<()>>;
@@ -107,8 +80,8 @@ impl Handler {
         self.ctrl_tx
             .send((ctrl, result_tx))
             .await
-            .or(Err(Error::SendCtrl))?;
-        result_rx.await?
+            .or_else(|_| Err(format_err!("Could not send control message to server")))?;
+        result_rx.await.context("Failed to receive response from")?
     }
 
     /// Register a new experiment execution with the server, returning a Handle from
@@ -157,22 +130,18 @@ impl Server {
     /// Add an experiment to the server's routes.
     fn register_experiment(&mut self, id: ExperimentID, msg_tx: MsgSender) -> Result<()> {
         if self.routes.contains_key(&id) {
-            Err(Error::AlreadyRegistered(id.clone()))
+            bail!("Experiment already registered: {id}")
         } else {
             self.routes.insert(id.clone(), msg_tx);
-            log::debug!("Registered experiment {}", &id);
+            debug!("Registered experiment {id}");
             Ok(())
         }
     }
 
     fn deregister_experiment(&mut self, id: ExperimentID) {
         match self.routes.remove(&id) {
-            None => {
-                log::error!("Experiment {} not found", id);
-            }
-            Some(_) => {
-                log::debug!("De-registered experiment {}", id);
-            }
+            None => error!("Experiment {id} not found"),
+            Some(_) => debug!("De-registered experiment {id}"),
         }
     }
 
@@ -182,13 +151,15 @@ impl Server {
         let mut stop = false;
         let res = match ctrl {
             Ctrl::Stop => {
-                log::debug!("Stopping server");
+                debug!("Stopping server");
                 stop = true;
                 Ok(())
             }
             Ctrl::Register { id, msg_tx } => self.register_experiment(id, msg_tx),
         };
-        result_tx.send(res).map_err(|_| Error::SendCtrlResult)?;
+        result_tx
+            .send(res)
+            .map_err(|_| format_err!("Sending server control result"))?;
         Ok(stop)
     }
 
@@ -201,9 +172,10 @@ impl Server {
                 // completes before sending de-registering the experiment.
                 Ok(())
             }
-            Some(sender) => sender
-                .send(msg.body)
-                .or(Err(Error::RoutingMessage(msg.experiment_id.clone()))),
+            Some(sender) => sender.send(msg.body).or(Err(format_err!(
+                "Routing message for experiment {}",
+                msg.experiment_id,
+            ))),
         }
     }
 
@@ -219,7 +191,7 @@ impl Server {
                     }
                 },
                 r = socket.recv::<proto::OrchestratorMsg>() => match r {
-                    Err(e) => { log_error(Error::from(e)); },
+                    Err(e) => { log_error(e); },
                     Ok(msg) => {
                         self.dispatch_message(msg)
                             .map_err(log_error)
@@ -236,7 +208,7 @@ impl Server {
     }
 }
 
-fn log_error(err: Error) -> Error {
-    log::error!("{}", err.to_string());
+fn log_error<E: Display>(err: E) -> E {
+    error!("{err}");
     err
 }
