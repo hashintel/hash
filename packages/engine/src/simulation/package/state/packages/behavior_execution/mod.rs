@@ -8,8 +8,10 @@ pub mod tasks;
 use self::{config::exp_init_message, fields::behavior::BehaviorMap};
 use crate::datastore::schema::accessor::GetFieldSpec;
 
+use crate::datastore::schema::FieldSource;
 use crate::datastore::table::state::ReadState;
 use crate::datastore::table::task_shared_store::TaskSharedStoreBuilder;
+use crate::simulation::package::name::PackageName;
 use crate::simulation::package::state::packages::behavior_execution::config::BehaviorIds;
 use crate::simulation::package::state::packages::behavior_execution::tasks::ExecuteBehaviorsTask;
 use crate::simulation::task::active::ActiveTask;
@@ -51,7 +53,12 @@ impl GetWorkerExpStartMsg for Creator {
 
 impl PackageCreator for Creator {
     fn new(experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn PackageCreator>> {
-        let behavior_map = BehaviorMap::try_from(experiment_config.as_ref())?;
+        // TODO: Packaages shouldn't have to set the source
+        let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Package(
+            PackageName::State(super::super::Name::BehaviorExecution),
+        ));
+        let behavior_map =
+            BehaviorMap::try_from((experiment_config.as_ref(), &field_spec_creator))?;
         let behavior_ids = BehaviorIds::from_behaviors(&behavior_map)?;
 
         Ok(Box::new(Creator {
@@ -100,14 +107,13 @@ impl PackageCreator for Creator {
         }))
     }
 
-    fn add_state_field_specs(
+    fn get_state_field_specs(
         &self,
         config: &ExperimentConfig,
         _globals: &Globals,
-        field_spec_map_builder: &mut FieldSpecMapBuilder,
-    ) -> Result<()> {
-        fields::add_state(config, field_spec_map_builder)?;
-        Ok(())
+        field_spec_creator: &RootFieldSpecCreator,
+    ) -> Result<Vec<RootFieldSpec>> {
+        Ok(fields::get_state_field_specs(config, field_spec_creator)?)
     }
 }
 

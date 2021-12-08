@@ -1,4 +1,6 @@
-use crate::datastore::schema::{FieldScope, FieldType, FieldTypeVariant::*, PresetFieldType};
+use crate::datastore::schema::{
+    FieldScope, FieldType, FieldTypeVariant::*, PresetFieldType, RootFieldSpec,
+};
 
 use super::*;
 
@@ -13,12 +15,13 @@ fn agent_messages() -> FieldType {
     FieldType::new(variant, false)
 }
 
-pub(super) fn add_context(field_spec_map_builder: &mut FieldSpecMapBuilder) -> Result<()> {
+pub(super) fn get_messages_field_spec(
+    field_spec_creator: &RootFieldSpecCreator,
+) -> Result<RootFieldSpec> {
     let agent_messages = agent_messages();
     // The messages column can be agent-scoped because it
     // has custom getters in the language runners that
     // return the actual messages that the agent received,
     // not just their indices.
-    field_spec_map_builder.add_field_spec("messages".into(), agent_messages, FieldScope::Agent)?;
-    Ok(())
+    Ok(field_spec_creator.create("messages".into(), agent_messages, FieldScope::Agent))
 }

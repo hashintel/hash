@@ -8,9 +8,10 @@ use serde::{Deserialize, Serialize};
 use crate::datastore::error::Error;
 use crate::datastore::schema::state::AgentSchema;
 use crate::datastore::schema::{
-    FieldScope, FieldSource, FieldSpecMap, FieldSpecMapBuilder, FieldType, FieldTypeVariant,
+    FieldScope, FieldSource, FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant,
+    RootFieldSpecCreator,
 };
-use crate::simulation::package::creator::add_base_agent_fields;
+use crate::simulation::package::creator::get_base_agent_fields;
 
 lazy_static! {
     pub static ref JSON_KEYS: serde_json::Value = serde_json::json!({
@@ -120,23 +121,22 @@ pub fn gen_schema_and_test_agents(
     num_agents: usize,
     seed: u64,
 ) -> Result<(Arc<AgentSchema>, Vec<Agent>), Error> {
-    let mut builder = FieldSpecMapBuilder::new();
-    builder.source(FieldSource::Engine);
-    builder.add_field_spec(
+    let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
+    let mut field_spec_map = FieldSpecMap::empty();
+    field_spec_map.add(field_spec_creator.create(
         "age".to_string(),
         FieldType {
             variant: FieldTypeVariant::Number,
             nullable: false,
         },
         FieldScope::Agent,
-    )?;
-    add_base_agent_fields(&mut builder).map_err(|err| {
+    ))?;
+    field_spec_map.add_multiple(get_base_agent_fields().map_err(|err| {
         Error::from(format!(
             "Failed to add base agent field specs: {}",
             err.to_string()
         ))
-    })?;
-    let mut field_spec_map = builder.build();
+    })?)?;
 
     field_spec_map.union(FieldSpecMap::from_short_json(
         JSON_KEYS.clone(),

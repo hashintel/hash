@@ -18,12 +18,9 @@ fn api_responses() -> FieldType {
     FieldType::new(variant, false)
 }
 
-pub(super) fn add_context(field_spec_map_builder: &mut FieldSpecMapBuilder) -> Result<()> {
+pub(super) fn get_api_responses_field_spec(
+    field_spec_creator: &RootFieldSpecCreator,
+) -> Result<RootFieldSpec> {
     let api_responses = api_responses();
-    field_spec_map_builder.add_field_spec(
-        "api_responses".into(),
-        api_responses,
-        FieldScope::Hidden,
-    )?;
-    Ok(())
+    Ok(field_spec_creator.create("api_responses".into(), api_responses, FieldScope::Hidden))
 }

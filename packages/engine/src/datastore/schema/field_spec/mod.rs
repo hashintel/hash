@@ -1,4 +1,4 @@
-use std::collections::hash_map::Iter;
+use std::collections::hash_map::{IntoIter, Iter, Values};
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 
@@ -9,8 +9,8 @@ use crate::datastore::error::{Error, Result};
 use crate::simulation::package::name::PackageName;
 
 pub mod accessor;
-pub mod builder;
 pub mod built_in;
+pub mod creator;
 pub mod display;
 pub mod short_json;
 
@@ -201,7 +201,14 @@ impl FieldSpecMap {
         }
     }
 
-    pub(in crate::datastore) fn add(&mut self, new_field: RootFieldSpec) -> Result<()> {
+    pub fn add_multiple(&mut self, new_field_specs: Vec<RootFieldSpec>) -> Result<()> {
+        new_field_specs
+            .into_iter()
+            .try_for_each(|field_spec| self.add(field_spec))?;
+        Ok(())
+    }
+
+    pub fn add(&mut self, new_field: RootFieldSpec) -> Result<()> {
         let field_key = new_field.to_key()?;
         if let Some(existing_field) = self.field_specs.get(&field_key) {
             if existing_field == &new_field {
@@ -254,6 +261,10 @@ impl FieldSpecMap {
 
     pub(crate) fn iter(&self) -> Iter<FieldKey, RootFieldSpec> {
         self.field_specs.iter()
+    }
+
+    pub(crate) fn field_specs(&self) -> Values<'_, FieldKey, RootFieldSpec> {
+        self.field_specs.values()
     }
 
     pub fn len(&self) -> usize {
@@ -335,53 +346,63 @@ impl TryInto<FieldType> for AgentStateField {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::datastore::schema::FieldSpecMapBuilder;
-    use crate::simulation::package::creator::add_base_agent_fields;
+    use crate::datastore::schema::RootFieldSpecCreator;
+    use crate::simulation::package::creator::get_base_agent_fields;
 
     #[test]
     fn name_collision_built_in() {
-        let mut builder = FieldSpecMapBuilder::new();
-        builder.source(FieldSource::Engine);
-        add_base_agent_fields(&mut builder).unwrap();
+        let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
+        let mut field_spec_map = FieldSpecMap::empty();
 
-        let err = builder
-            .add_field_spec(
+        field_spec_map
+            .add_multiple(get_base_agent_fields().unwrap())
+            .unwrap();
+
+        let err = field_spec_map
+            .add(field_spec_creator.create(
                 "agent_id".to_string(),
                 FieldType::new(FieldTypeVariant::Number, true),
                 FieldScope::Agent,
-            )
+            ))
             .unwrap_err();
         assert!(matches!(err, Error::FieldKeyClash(..)))
     }
 
     #[test]
     fn name_collision_custom() {
-        let mut builder = FieldSpecMapBuilder::new();
-        builder.source(FieldSource::Engine);
-        add_base_agent_fields(&mut builder).unwrap();
+        let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
+        let mut field_spec_map = FieldSpecMap::empty();
 
-        builder.add_field_spec(
-            "test".to_string(),
-            FieldType::new(FieldTypeVariant::String, false),
-            FieldScope::Private,
-        );
+        field_spec_map
+            .add_multiple(get_base_agent_fields().unwrap())
+            .unwrap();
 
-        let err = builder
-            .add_field_spec(
+        field_spec_map
+            .add(field_spec_creator.create(
+                "test".to_string(),
+                FieldType::new(FieldTypeVariant::String, false),
+                FieldScope::Private,
+            ))
+            .unwrap();
+
+        let err = field_spec_map
+            .add(field_spec_creator.create(
                 "test".to_string(),
                 FieldType::new(FieldTypeVariant::String, true),
                 FieldScope::Private,
-            )
+            ))
             .unwrap_err();
         assert!(matches!(err, Error::FieldKeyClash(..)));
     }
 
     #[test]
     fn unchanged_size_built_in() {
-        let mut builder = FieldSpecMapBuilder::new();
-        builder.source(FieldSource::Engine);
-        add_base_agent_fields(&mut builder).unwrap();
-        let mut field_spec_map = builder.build();
+        let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
+        let mut field_spec_map = FieldSpecMap::empty();
+
+        field_spec_map
+            .add_multiple(get_base_agent_fields().unwrap())
+            .unwrap();
 
         let len_before = field_spec_map.len();
 
@@ -394,26 +415,30 @@ pub mod tests {
 
     #[test]
     fn unchanged_size_custom() {
-        let mut builder = FieldSpecMapBuilder::new();
-        builder.source(FieldSource::Engine);
+        let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
+        let mut field_spec_map = FieldSpecMap::empty();
 
-        builder.add_field_spec(
-            "test".to_string(),
-            FieldType::new(FieldTypeVariant::String, false),
-            FieldScope::Agent,
-        );
-        builder.add_field_spec(
-            "test".to_string(),
-            FieldType::new(FieldTypeVariant::String, false),
-            FieldScope::Agent,
-        );
-        builder.add_field_spec(
-            "test".to_string(),
-            FieldType::new(FieldTypeVariant::String, false),
-            FieldScope::Agent,
-        );
-
-        let field_spec_map = builder.build();
+        field_spec_map
+            .add(field_spec_creator.create(
+                "test".to_string(),
+                FieldType::new(FieldTypeVariant::String, false),
+                FieldScope::Agent,
+            ))
+            .unwrap();
+        field_spec_map
+            .add(field_spec_creator.create(
+                "test".to_string(),
+                FieldType::new(FieldTypeVariant::String, false),
+                FieldScope::Agent,
+            ))
+            .unwrap();
+        field_spec_map
+            .add(field_spec_creator.create(
+                "test".to_string(),
+                FieldType::new(FieldTypeVariant::String, false),
+                FieldScope::Agent,
+            ))
+            .unwrap();
 
         assert_eq!(field_spec_map.len(), 1);
     }

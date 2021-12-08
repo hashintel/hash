@@ -5,6 +5,7 @@ mod writer;
 
 use self::collected::Messages;
 use crate::datastore::schema::accessor::GetFieldSpec;
+use crate::datastore::schema::RootFieldSpec;
 use crate::{
     datastore::{batch::iterators, table::state::ReadState},
     simulation::comms::package::PackageComms,
@@ -38,14 +39,13 @@ impl PackageCreator for Creator {
         }))
     }
 
-    fn add_context_field_specs(
+    fn get_context_field_specs(
         &self,
         _config: &ExperimentConfig,
         _globals: &Globals,
-        field_spec_map_builder: &mut FieldSpecMapBuilder,
-    ) -> Result<()> {
-        fields::add_context(field_spec_map_builder)?;
-        Ok(())
+        field_spec_creator: &RootFieldSpecCreator,
+    ) -> Result<Vec<RootFieldSpec>> {
+        Ok(vec![fields::get_messages_field_spec(field_spec_creator)?])
     }
 }
 

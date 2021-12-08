@@ -5,7 +5,10 @@ use crate::{
     datastore::{
         meta::ColumnDynamicMetadata,
         prelude::Result as DatastoreResult,
-        schema::{FieldSpec, FieldSpecMapBuilder},
+        schema::{
+            accessor::FieldSpecMapAccessor, context::ContextSchema, FieldKey, FieldSpec,
+            RootFieldSpecCreator,
+        },
         table::state::view::StateSnapshot,
     },
     simulation::comms::package::PackageComms,
@@ -18,9 +21,7 @@ use super::{
     prelude::*,
 };
 pub use crate::config::Globals;
-use crate::datastore::schema::accessor::FieldSpecMapAccessor;
-use crate::datastore::schema::context::ContextSchema;
-use crate::datastore::schema::FieldKey;
+use crate::datastore::schema::RootFieldSpec;
 use crate::simulation::package::ext_traits::GetWorkerExpStartMsg;
 pub use packages::{ContextTask, ContextTaskMessage, Name, PACKAGE_CREATORS};
 
@@ -70,22 +71,22 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
     }
 
     // TODO - Limit context packages to only add one field as long as we only allow one column from "get_empty_arrow_column"
-    fn add_context_field_specs(
+    fn get_context_field_specs(
         &self,
         _config: &ExperimentConfig,
         _globals: &Globals,
-        _field_spec_map_builder: &mut FieldSpecMapBuilder,
-    ) -> Result<()> {
-        Ok(())
+        _field_spec_creator: &RootFieldSpecCreator,
+    ) -> Result<Vec<RootFieldSpec>> {
+        Ok(vec![])
     }
 
-    fn add_state_field_specs(
+    fn get_state_field_specs(
         &self,
         _config: &ExperimentConfig,
         _globals: &Globals,
-        _field_spec_map_builder: &mut FieldSpecMapBuilder,
-    ) -> Result<()> {
-        Ok(())
+        _field_spec_creator: &RootFieldSpecCreator,
+    ) -> Result<Vec<RootFieldSpec>> {
+        Ok(vec![])
     }
 }
 

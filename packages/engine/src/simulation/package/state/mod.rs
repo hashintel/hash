@@ -5,7 +5,7 @@ use std::sync::Arc;
 use crate::{
     config::ExperimentConfig,
     datastore::{
-        batch::change::ArrayChange, error::Result as DatastoreResult, schema::FieldSpecMapBuilder,
+        batch::change::ArrayChange, error::Result as DatastoreResult, schema::RootFieldSpecCreator,
         table::state::ExState,
     },
     simulation::{comms::package::PackageComms, Error, Result},
@@ -17,6 +17,7 @@ pub use crate::config::Globals;
 use super::{deps::Dependencies, ext_traits::GetWorkerSimStartMsg, prelude::*};
 
 use crate::datastore::schema::accessor::FieldSpecMapAccessor;
+use crate::datastore::schema::RootFieldSpec;
 use crate::simulation::package::ext_traits::GetWorkerExpStartMsg;
 pub use packages::{Name, StateTask, StateTaskMessage, PACKAGE_CREATORS};
 
@@ -48,13 +49,13 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Send + Sync {
         Dependencies::empty()
     }
 
-    fn add_state_field_specs(
+    fn get_state_field_specs(
         &self,
         _config: &ExperimentConfig,
         _globals: &Globals,
-        _field_spec_map_builder: &mut FieldSpecMapBuilder,
-    ) -> Result<()> {
-        Ok(())
+        _field_spec_map_builder: &RootFieldSpecCreator,
+    ) -> Result<Vec<RootFieldSpec>> {
+        Ok(vec![])
     }
 }
 

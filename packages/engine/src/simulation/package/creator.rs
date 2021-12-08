@@ -1,3 +1,4 @@
+use futures::TryStreamExt;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -6,8 +7,8 @@ use crate::datastore::schema::accessor::FieldSpecMapAccessor;
 use crate::datastore::schema::context::ContextSchema;
 use crate::datastore::schema::state::AgentSchema;
 use crate::datastore::schema::{
-    FieldScope, FieldSource, FieldSpec, FieldSpecMapBuilder, FieldType, FieldTypeVariant,
-    PresetFieldType,
+    FieldScope, FieldSource, FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant, PresetFieldType,
+    RootFieldSpec, RootFieldSpecCreator,
 };
 use crate::simulation::comms::package::PackageComms;
 use crate::simulation::package::name::PackageName;
@@ -298,43 +299,64 @@ impl PackageCreators {
         exp_config: &crate::ExperimentConfig,
         globals: &Globals,
     ) -> Result<AgentSchema> {
+        let mut field_spec_map = FieldSpecMap::empty();
+
         // TODO - should we use enum_dispatch here to remove some duplication
-        let mut field_builder = FieldSpecMapBuilder::new();
         self.init.iter().try_for_each::<_, Result<()>>(
             |(_package_id, package_name, creator)| {
-                field_builder.source(FieldSource::Package(package_name.clone()));
-                creator.add_state_field_specs(exp_config, globals, &mut field_builder)?;
+                let field_spec_creator =
+                    RootFieldSpecCreator::new(FieldSource::Package(package_name.clone()));
+                field_spec_map.add_multiple(creator.get_state_field_specs(
+                    exp_config,
+                    globals,
+                    &field_spec_creator,
+                )?)?;
                 Ok(())
             },
         )?;
 
         self.context.iter().try_for_each::<_, Result<()>>(
             |(_package_id, package_name, creator)| {
-                field_builder.source(FieldSource::Package(package_name.clone()));
-                creator.add_state_field_specs(exp_config, globals, &mut field_builder)?;
+                let field_spec_creator =
+                    RootFieldSpecCreator::new(FieldSource::Package(package_name.clone()));
+                field_spec_map.add_multiple(creator.get_state_field_specs(
+                    exp_config,
+                    globals,
+                    &field_spec_creator,
+                )?)?;
                 Ok(())
             },
         )?;
 
         self.state.iter().try_for_each::<_, Result<()>>(
             |(_package_id, package_name, creator)| {
-                field_builder.source(FieldSource::Package(package_name.clone()));
-                creator.add_state_field_specs(exp_config, globals, &mut field_builder)?;
+                let field_spec_creator =
+                    RootFieldSpecCreator::new(FieldSource::Package(package_name.clone()));
+                field_spec_map.add_multiple(creator.get_state_field_specs(
+                    exp_config,
+                    globals,
+                    &field_spec_creator,
+                )?)?;
                 Ok(())
             },
         )?;
 
         self.output.iter().try_for_each::<_, Result<()>>(
             |(_package_id, package_name, creator)| {
-                field_builder.source(FieldSource::Package(package_name.clone()));
-                creator.add_state_field_specs(exp_config, globals, &mut field_builder)?;
+                let field_spec_creator =
+                    RootFieldSpecCreator::new(FieldSource::Package(package_name.clone()));
+                field_spec_map.add_multiple(creator.get_state_field_specs(
+                    exp_config,
+                    globals,
+                    &field_spec_creator,
+                )?)?;
                 Ok(())
             },
         )?;
 
-        add_base_agent_fields(&mut field_builder)?;
+        field_spec_map.add_multiple(get_base_agent_fields()?)?;
 
-        Ok(AgentSchema::new(field_builder.build())?)
+        Ok(AgentSchema::new(field_spec_map)?)
     }
 
     pub fn get_context_schema(
@@ -342,19 +364,24 @@ impl PackageCreators {
         exp_config: &crate::ExperimentConfig,
         globals: &Globals,
     ) -> std::result::Result<ContextSchema, Error> {
-        let mut field_builder = FieldSpecMapBuilder::new();
+        let mut field_spec_map = FieldSpecMap::empty();
 
         self.context.iter().try_for_each::<_, Result<()>>(
             |(_package_id, package_name, creator)| {
-                field_builder.source(FieldSource::Package(package_name.clone()));
-                creator.add_context_field_specs(exp_config, globals, &mut field_builder)?;
+                let field_spec_creator =
+                    RootFieldSpecCreator::new(FieldSource::Package(package_name.clone()));
+                field_spec_map.add_multiple(creator.get_context_field_specs(
+                    exp_config,
+                    globals,
+                    &field_spec_creator,
+                )?)?;
                 Ok(())
             },
         )?;
 
-        add_base_context_fields(&mut field_builder)?;
+        field_spec_map.add_multiple(get_base_context_fields()?)?;
 
-        Ok(ContextSchema::new(field_builder.build())?)
+        Ok(ContextSchema::new(field_spec_map)?)
     }
 }
 
@@ -367,15 +394,21 @@ pub const PREVIOUS_INDEX_FIELD_KEY: &str = "_HIDDEN_0_previous_index";
 pub const CONTEXT_INDEX_FIELD_NAME: &str = "context_index";
 pub const CONTEXT_INDEX_FIELD_KEY: &str = "_HIDDEN_0_context_index";
 
-pub fn add_base_agent_fields(field_builder: &mut FieldSpecMapBuilder) -> Result<()> {
-    field_builder.source(FieldSource::Engine);
+pub fn get_base_agent_fields() -> Result<Vec<RootFieldSpec>> {
+    let mut field_specs = Vec::with_capacity(13);
+    let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
+
     use crate::hash_types::state::AgentStateField::*;
     let used = [
         AgentId, AgentName, Position, Direction, Velocity, Shape, Height, Scale, Color, RGB, Hidden,
     ];
     for field in used {
         let field_type: FieldType = field.clone().try_into()?;
-        field_builder.add_field_spec(field.name().into(), field_type, FieldScope::Agent)?;
+        field_specs.push(field_spec_creator.create(
+            field.name().into(),
+            field_type,
+            FieldScope::Agent,
+        ));
     }
 
     // This key is required for accessing neighbors' outboxes (new inboxes).
@@ -425,23 +458,23 @@ pub fn add_base_agent_fields(field_builder: &mut FieldSpecMapBuilder) -> Result<
     let ctx_index = context_index_key();
     let last_state_index = last_state_index_key();
 
-    field_builder.add_field_spec(
+    field_specs.push(field_spec_creator.create(
         ctx_index.name.into(),
         ctx_index.field_type,
         FieldScope::Hidden,
-    )?;
-    field_builder.add_field_spec(
+    ));
+    field_specs.push(field_spec_creator.create(
         last_state_index.name.into(),
         last_state_index.field_type,
         FieldScope::Hidden,
-    )?;
+    ));
 
-    Ok(())
+    Ok(field_specs)
 }
 
-fn add_base_context_fields(field_builder: &mut FieldSpecMapBuilder) -> Result<()> {
-    field_builder.source(FieldSource::Engine);
+fn get_base_context_fields() -> Result<Vec<RootFieldSpec>> {
+    let _field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
     // TODO previous index and other fields that make sense
     // Doesn't do anything for now
-    Ok(())
+    Ok(vec![])
 }
