@@ -19,10 +19,6 @@ pub(super) fn add_context(field_spec_map_builder: &mut FieldSpecMapBuilder) -> R
     // has custom getters in the language runners that
     // return the actual messages that the agent received,
     // not just their indices.
-    field_spec_map_builder.add_field_spec(
-        "messages".into(),
-        agent_messages,
-        FieldScope::Agent,
-    )?;
+    field_spec_map_builder.add_field_spec("messages".into(), agent_messages, FieldScope::Agent)?;
     Ok(())
 }

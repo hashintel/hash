@@ -21,7 +21,7 @@ use self::behavior_execution::tasks::{ExecuteBehaviorsTask, ExecuteBehaviorsTask
 
 /// All state package names are registered in this enum
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
-#[serde(rename_all="snake_case")]
+#[serde(rename_all = "snake_case")]
 pub enum Name {
     BehaviorExecution,
     Topology,
@@ -29,7 +29,11 @@ pub enum Name {
 
 impl std::fmt::Display for Name {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", serde_json::to_string(self).map_err(|_| std::fmt::Error)?)
+        write!(
+            f,
+            "{}",
+            serde_json::to_string(self).map_err(|_| std::fmt::Error)?
+        )
     }
 }
 

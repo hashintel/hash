@@ -1,9 +1,6 @@
 #![allow(clippy::unsafe_derive_deserialize)]
 use serde::{Deserialize, Serialize};
-use std::{
-    convert::TryFrom,
-    ops::{Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Sub, SubAssign},
-};
+use std::ops::{Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Sub, SubAssign};
 
 // We are rolling out our own Vec3 implementation to better support
 // deserialization from non-3D vectors. With this Vec3, you can do

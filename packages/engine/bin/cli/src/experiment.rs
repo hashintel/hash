@@ -13,7 +13,6 @@ use hash_engine::proto;
 use hash_engine::proto::ExecutionEnvironment;
 use hash_engine::utils::parse_env_duration;
 use serde_json::json;
-use std::iter::FromIterator;
 use std::path::PathBuf;
 use std::time::Duration;
 use tokio::time::{self, timeout};

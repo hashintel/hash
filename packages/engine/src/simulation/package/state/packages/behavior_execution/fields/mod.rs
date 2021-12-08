@@ -1,7 +1,5 @@
 pub mod behavior;
 
-use std::convert::TryInto;
-
 use behavior::add_fields_from_behavior_keys;
 
 use arrow::datatypes::DataType;

@@ -14,9 +14,7 @@ const NUM_BUFFERS: usize = 5;
 
 impl ContextColumnWriter for Messages {
     fn get_dynamic_metadata(&self) -> DatastoreResult<ColumnDynamicMetadata> {
-        let mut builder = ColumnDynamicMetadataBuilder::with_capacities(
-            NUM_NODES, NUM_BUFFERS
-        );
+        let mut builder = ColumnDynamicMetadataBuilder::with_capacities(NUM_NODES, NUM_BUFFERS);
         // TODO: Implement and use `builder.add_offset_buffer` convenience function;
         //       maybe also `builder.add_null_buffer`.
 
@@ -33,9 +31,8 @@ impl ContextColumnWriter for Messages {
         let total_number_indices = total_messages * super::MESSAGE_INDEX_COUNT;
         builder.add_node(total_number_indices, 0); // Index
         builder.add_static_bit_buffer(total_number_indices); // Null buffer for index
-        builder.add_static_byte_buffer(
-            total_number_indices * std::mem::size_of::<super::IndexType>()
-        );
+        builder
+            .add_static_byte_buffer(total_number_indices * std::mem::size_of::<super::IndexType>());
         Ok(builder.finish())
     }
 
@@ -51,7 +48,8 @@ impl ContextColumnWriter for Messages {
         // Offsets
         // `iter` yields the number of incoming messages an agent has for each agent.
         let iter = self.indices.iter().map(|i| i.num_messages());
-        data.from_offset(&meta.buffers[1]).write_i32_offsets_from_iter(iter);
+        data.from_offset(&meta.buffers[1])
+            .write_i32_offsets_from_iter(iter);
 
         // Null buffer
         data.from_offset(&meta.buffers[2]).fill_with_ones();

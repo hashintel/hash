@@ -11,15 +11,15 @@ use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use strum_macros::IntoStaticStr;
 
+use super::PackageCreator;
 use crate::simulation::enum_dispatch::*;
 use crate::simulation::package::{id::PackageIdGenerator, PackageMetadata, PackageType};
 use crate::simulation::{Error, Result};
 use crate::ExperimentConfig;
-use super::PackageCreator;
 
 /// All context package names are registered in this enum
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
-#[serde(rename_all="snake_case")]
+#[serde(rename_all = "snake_case")]
 pub enum Name {
     AgentMessages,
     APIRequests,
@@ -28,7 +28,11 @@ pub enum Name {
 
 impl std::fmt::Display for Name {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", serde_json::to_string(self).map_err(|_| std::fmt::Error)?)
+        write!(
+            f,
+            "{}",
+            serde_json::to_string(self).map_err(|_| std::fmt::Error)?
+        )
     }
 }
 

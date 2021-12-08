@@ -3,13 +3,13 @@ mod fields;
 mod indices;
 mod writer;
 
-use arrow::array::{FixedSizeListBuilder, ListBuilder};
 use self::collected::Messages;
 use crate::datastore::schema::accessor::GetFieldSpec;
 use crate::{
     datastore::{batch::iterators, table::state::ReadState},
     simulation::comms::package::PackageComms,
 };
+use arrow::array::{FixedSizeListBuilder, ListBuilder};
 use serde_json::Value;
 
 use super::super::*;
