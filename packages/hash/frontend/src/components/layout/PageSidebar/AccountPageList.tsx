@@ -1,15 +1,9 @@
 import { VoidFunctionComponent } from "react";
 import Link from "next/link";
-import { useQuery } from "@apollo/client";
-
-import { getAccountPages } from "../../../graphql/queries/account.queries";
-import {
-  GetAccountPagesQuery,
-  GetAccountPagesQueryVariables,
-} from "../../../graphql/apiTypes.gen";
 
 import styles from "./PageSidebar.module.scss";
 import { CreatePageButton } from "../../Modals/CreatePage/CreatePageButton";
+import { useAccountPages } from "../../hooks/useAccountPages";
 
 type AccountPageListProps = {
   accountId: string;
@@ -20,12 +14,7 @@ export const AccountPageList: VoidFunctionComponent<AccountPageListProps> = ({
   currentPageEntityId,
   accountId,
 }) => {
-  const { data } = useQuery<
-    GetAccountPagesQuery,
-    GetAccountPagesQueryVariables
-  >(getAccountPages, {
-    variables: { accountId },
-  });
+  const { data } = useAccountPages(accountId);
 
   return (
     <div className={styles.SidebarList}>

@@ -1,14 +1,9 @@
 import { useMemo, VFC } from "react";
 import { tw } from "twind";
 import Link from "next/link";
-import { useAccountInfos } from "../../../components/hooks/useAccountInfos";
-import { useQuery } from "@apollo/client";
 
-import {
-  GetAccountPagesQuery,
-  GetAccountPagesQueryVariables,
-} from "../../../graphql/apiTypes.gen";
-import { getAccountPages } from "../../../graphql/queries/account.queries";
+import { useAccountInfos } from "../../../components/hooks/useAccountInfos";
+import { useAccountPages } from "../../../components/hooks/useAccountPages";
 
 interface MentionDisplayProps {
   entityId: string;
@@ -22,14 +17,26 @@ export const MentionDisplay: VFC<MentionDisplayProps> = ({
   accountId,
 }) => {
   const { data: accounts } = useAccountInfos();
-  const { data: pages } = useQuery<
-    GetAccountPagesQuery,
-    GetAccountPagesQueryVariables
-  >(getAccountPages, {
-    variables: { accountId },
-  });
+  const { data: pages } = useAccountPages(accountId);
 
   const { title, href } = useMemo(() => {
+    const getPageData = (pageEntityId: string) => {
+      const foundPage = pages?.accountPages.find(
+        (page) => page.entityId === pageEntityId,
+      ) ?? {
+        properties: {
+          title: "",
+        },
+      };
+
+      const pageTitle = foundPage.properties.title;
+
+      return {
+        title: pageTitle,
+        href: `/${accountId}/${pageEntityId}`,
+      };
+    };
+
     switch (mentionType) {
       case "user":
         return {
@@ -38,27 +45,11 @@ export const MentionDisplay: VFC<MentionDisplayProps> = ({
           href: `/${entityId}`,
         };
       case "page":
-        const foundPage = pages?.accountPages.find(
-          (page) => page.entityId === entityId,
-        ) ?? {
-          properties: {
-            title: "",
-          },
-          entityId,
-        };
-
-        console.log(foundPage);
-
-        const pageTitle = foundPage.properties.title;
-
-        return {
-          title: pageTitle,
-          href: `/${accountId}/${entityId}`,
-        };
+        return getPageData(entityId);
       default:
         return { title: "", href: "" };
     }
-  }, [entityId, mentionType, accounts, pages]);
+  }, [accountId, entityId, mentionType, accounts, pages]);
 
   return (
     <Link href={href}>
