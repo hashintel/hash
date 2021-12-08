@@ -75,10 +75,10 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
   const { currentView, selectedIndex, subMenuVisible } = menuState;
 
   const updateMenuState = (updatedState: Partial<MenuState>) => {
-    setMenuState({
-      ...menuState,
+    setMenuState((currentMenuState) => ({
+      ...currentMenuState,
       ...updatedState,
-    });
+    }));
   };
 
   const blocksMeta = useContext(BlockMetaContext);
