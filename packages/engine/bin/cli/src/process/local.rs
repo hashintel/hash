@@ -1,8 +1,10 @@
-use super::error::{Error, Result};
-use super::process;
+use anyhow::{format_err, Context, Error, Result};
 use async_trait::async_trait;
 use hash_engine::nano;
 use hash_engine::proto::EngineMsg;
+
+// use super::error::{Error, Result};
+use super::process;
 
 #[cfg(debug_assertions)]
 const PROCESS_PATH_DEFAULT: &str = "./target/debug/hash_engine";
@@ -20,12 +22,15 @@ pub struct LocalProcess {
 #[async_trait]
 impl process::Process for LocalProcess {
     async fn exit_and_cleanup(mut self: Box<Self>) -> Result<()> {
-        self.child.kill().or_else(|e| match e.kind() {
-            std::io::ErrorKind::InvalidInput => Ok(()),
-            _ => Err(Error::from(e.to_string())),
-        })?;
+        self.child
+            .kill()
+            .or_else(|e| match e.kind() {
+                std::io::ErrorKind::InvalidInput => Ok(()),
+                _ => Err(format_err!("{}", e)),
+            })
+            .context("Could not kill the process")?;
 
-        log::debug!(
+        debug!(
             "Cleaned up local engine process for experiment {}",
             &self.experiment_id
         );
@@ -64,7 +69,7 @@ impl LocalCommand {
         controller_url: &str,
     ) -> Result<Self> {
         // The NNG URL that the engine process will listen on
-        let engine_url = format!("ipc://run-{}", experiment_id);
+        let engine_url = format!("ipc://run-{experiment_id}");
 
         Ok(LocalCommand {
             engine_url,
@@ -97,13 +102,13 @@ impl process::Command for LocalCommand {
             .arg(self.max_num_workers.to_string())
             .stdout(std::process::Stdio::inherit())
             .stderr(std::process::Stdio::inherit());
-        log::debug!("Running `{:?}`", cmd);
+        debug!("Running `{cmd:?}`");
         if self.persist_data {
             cmd.arg("--persist");
         }
 
-        let child = cmd.spawn().map_err(|e| Error::ExperimentSpawn(e))?;
-        log::debug!(
+        let child = cmd.spawn().context("Could not spawn experiment")?;
+        debug!(
             "Spawned local engine process for experiment {}",
             &self.experiment_id
         );

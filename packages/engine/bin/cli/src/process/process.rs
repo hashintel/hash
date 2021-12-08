@@ -1,4 +1,4 @@
-use super::error::Result;
+use anyhow::Result;
 use async_trait::async_trait;
 use hash_engine::proto::EngineMsg;
 

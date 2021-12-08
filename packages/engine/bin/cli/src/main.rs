@@ -4,17 +4,15 @@ extern crate lazy_static;
 extern crate log;
 extern crate pretty_env_logger;
 
-pub mod error;
 pub mod experiment;
 pub mod exsrv;
 pub mod manifest;
 pub mod process;
 
-use crate::exsrv::create_server;
-
 use argh::FromArgs;
-use error::Result;
 use experiment::run_experiment;
+
+use crate::exsrv::create_server;
 
 /// Arguments for the experiment run
 #[derive(FromArgs, Debug)]
@@ -80,7 +78,7 @@ impl std::default::Default for Args {
 #[tokio::main]
 // TODO fix ordering of args being so inflexible and unintuitive, and also error messages being unhelpful
 //   for example try putting `-p` after `single_run`
-async fn main() -> Result<()> {
+async fn main() -> Result<(), anyhow::Error> {
     // TODO project conversion into manifest...
     // TODO persist output
     //      1) send absolute path to engine process
