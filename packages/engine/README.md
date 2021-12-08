@@ -58,6 +58,23 @@ Building this project requires the following:
     ```
   * With the V8 folder containing `include` and `out.gn` you can then set the variable for your terminal session with `export V8_PATH=<path to folder>` or you can set it permanently by [adding it to your shell's environment](https://unix.stackexchange.com/questions/117467/how-to-permanently-set-environmental-variables)
 
+### MacOS Developer Specific Instructions:
+
+Due to ARM-Based Macs, the `macos` `target_os` has some added complications for development. 
+
+#### For Intel Macs:
+Due to limitations in Cargo at the moment we can't properly check if it's being built _on_ an ARM Mac (rather than _for_ an ARM Mac). Due to this it's necessary to:
+* Enable the `build-nng` feature by passing `--features "build-nng"` to any cargo commands such as `cargo build`
+
+#### For ARM-Based Macs:
+At the moment the project only seems to be compiling if you use the `x86_64-apple-darwin` target. This has some added complexity, especially due to the fact that rustc fails to link 'fat-binaries' in certain scenarios.
+* It's necessary to acquire an x86 version of `nng`. Currently the easiest known way to do this is through:
+  * Creating a homebrew installation under Rosetta, [an example guide is here](https://stackoverflow.com/questions/64882584/how-to-run-the-homebrew-installer-under-rosetta-2-on-m1-macbook) 
+  * Using the x86 brew to install `nng` (which will then install an x86 version). This should result in an nng installation at: `/usr/local/Cellar/nng/1.5.2`
+* It's then necessary to set the `NNG_PATH` environment variable, similar to `V8_PATH`
+  * The command is likely to be: `export NNG_PATH=/usr/local/Cellar/nng/1.5.2`
+* If the V8 monolith is failing to link due to symbol errors, it might be necessary to download the gem for the "darwin_universal" version.
+
 #### Possible Dependencies and Debugging
 Depending on how lightweight your OS install is, you may be missing some low level dependencies, so try the following (examples given for Ubuntu/Debian-based Unix systems):
 * `apt-get install build-essentials` - Includes the GCC/g++ compilers, libraries, and some other utilities
