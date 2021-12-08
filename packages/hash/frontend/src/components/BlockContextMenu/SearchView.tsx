@@ -72,11 +72,7 @@ export const SearchView: VoidFunctionComponent<SearchViewProps> = ({
                   }
                   onSelect={() => updateMenuState({ selectedIndex: index })}
                   icon={
-                    <img
-                      src={icon}
-                      alt={displayName}
-                      className={iconStyles}
-                    />
+                    <img src={icon} alt={displayName} className={iconStyles} />
                   }
                   title={displayName ?? ""}
                 />
