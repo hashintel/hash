@@ -26,7 +26,45 @@ export const isTextEntity = (
 ): entity is Text => "properties" in entity && "tokens" in entity.properties;
 
 /**
- * @todo reimplement links
+ * @deprecated
+ */
+type LegacyLink<Type extends EntityStoreType | DraftEntity = EntityStoreType> = {
+  /**
+   * @deprecated
+   */
+  data: Type;
+
+  /**
+   * @deprecated
+   */
+  __linkedData: {};
+};
+
+/**
+ * @deprecated
+ */
+const isLegacyLink = (data: unknown): data is LegacyLink => {
+  return (
+    isUnknownObject(data) &&
+    "__linkedData" in data &&
+    "data" in data &&
+    typeof data.data === "object" &&
+    isEntity(data.data)
+  );
+};
+
+export const isTextContainingEntityProperties = (
+  entityProperties: unknown,
+): entityProperties is { text: LegacyLink<Text> } => {
+  return (
+    isUnknownObject(entityProperties) &&
+    "text" in entityProperties &&
+    isLegacyLink(entityProperties.text) &&
+    isTextEntity(entityProperties.text.data)
+  );
+};
+
+/**
  * @todo reduce duplication
  */
 export const getTextEntityFromDraftBlock = (
@@ -46,41 +84,30 @@ export const getTextEntityFromDraftBlock = (
     throw new Error("invariant: missing block entity");
   }
 
-  if (!isTextEntity(blockPropertiesEntity)) {
-    return null;
-  } else {
+  if (isTextEntity(blockPropertiesEntity)) {
     return blockPropertiesEntity;
   }
-};
 
-type LegacyLink<Type extends EntityStoreType | DraftEntity = EntityStoreType> = {
-  data: Type;
-  __linkedData: {};
-};
+  if (isTextContainingEntityProperties(blockPropertiesEntity.properties)) {
+    /**
+     * @todo make this lookup not necessary
+     */
+    const targetEntityId = blockPropertiesEntity.properties.text.data.entityId;
+    const textEntity = Object.values(entityStore.draft).find(
+      (entity) => entity.entityId === targetEntityId,
+    );
 
-const isLegacyLink = (data: unknown): data is LegacyLink => {
-  return (
-    isUnknownObject(data) &&
-    "__linkedData" in data &&
-    "data" in data &&
-    typeof data.data === "object" &&
-    isEntity(data.data)
-  );
-};
+    if (!textEntity || !isTextEntity(textEntity)) {
+      throw new Error("Missing text entity from draft store");
+    }
 
-const isTextContainingEntityProperties = (
-  entityProperties: unknown,
-): entityProperties is { text: LegacyLink<Text> } => {
-  return (
-    isUnknownObject(entityProperties) &&
-    "text" in entityProperties &&
-    isLegacyLink(entityProperties.text) &&
-    isTextEntity(entityProperties.text.data)
-  );
+    return textEntity;
+  }
+
+  return null;
 };
 
 /**
- * @todo reimplement links
  * @todo reduce duplication
  */
 export const getTextEntityFromSavedBlock = (

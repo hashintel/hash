@@ -1,5 +1,5 @@
 import { Draft, produce } from "immer";
-import { BlockEntity } from "./entity";
+import { BlockEntity, isTextContainingEntityProperties } from "./entity";
 import { DistributiveOmit, typeSafeEntries } from "./util";
 
 export type EntityStoreType = BlockEntity | BlockEntity["properties"]["entity"];
@@ -14,6 +14,10 @@ type PropertiesType<Properties extends {}> = Properties extends {
 
 export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
   entityId: Type["entityId"] | null;
+
+  // @todo thinking about removing this – as they're keyed by this anyway
+  //  and it makes it complicated to deal with types – should probably just
+  //  keep a dict of entity ids to draft ids, and vice versa
   draftId: string;
 
   entityVersionCreatedAt: string;
@@ -107,6 +111,12 @@ const findEntities = (contents: EntityStoreType[]) => {
   walkValueForEntity(contents, (entity) => {
     if (isBlockEntity(entity)) {
       entities.push(entity, entity.properties.entity);
+
+      if (
+        isTextContainingEntityProperties(entity.properties.entity.properties)
+      ) {
+        entities.push(entity, entity.properties.entity.properties.text.data);
+      }
     }
     return entity;
   });
