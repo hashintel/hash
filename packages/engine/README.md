@@ -98,7 +98,7 @@ Then, run the CLI using:
 
 > **WIP** - This section is a work-in-progress. Guidance on production usage will appear here.
 
-The CLI comes with a short help page: `cli help` or `cli -h`. For a more detailed explanation about the parameters are available at the long help page with `cli --help`. To show the help page for subcommands, Either append them to the command: `cli help single-run`, or use `-h`/`--help` after the subcommand: `cli single-run --help`.
+The CLI comes with a short help page: `cli help` or `cli -h`. A more detailed explanation about the parameters are available at the long help page with `cli --help`. To show the help page for subcommands, either append them to the command: `cli help single-run`, or use `-h`/`--help` after the subcommand: `cli single-run --help`.
 
 If one of the environment variables shown in the help page is passed, it will overwrite the default values. Parameters take precedence over environment variables.
 
