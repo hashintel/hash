@@ -1,4 +1,11 @@
-import React, { VFC, useRef, useEffect, useCallback, useState } from "react";
+import React, {
+  VFC,
+  useRef,
+  useEffect,
+  useCallback,
+  useState,
+  ClipboardEventHandler,
+} from "react";
 import { tw } from "twind";
 import Logo from "../../../assets/svg/logo.svg";
 import { IconHash } from "../../Icons/IconHash";
@@ -83,6 +90,28 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
     }, SYNTHETIC_LOADING_TIME_MS);
   };
 
+  // The handler supports partial code pasting. Use case:
+  // 1. Open email, accidentally select all characters but the first one.
+  // 2. Manually type in the first character and then paste.
+  // 3. The form submits the entire code and not only clipboardData.
+  const handleInputPaste: ClipboardEventHandler<HTMLInputElement> = ({
+    currentTarget,
+  }) => {
+    const originalValue = currentTarget.value;
+
+    setImmediate(() => {
+      const valueAfterPasting = currentTarget?.value;
+      if (!valueAfterPasting || originalValue === valueAfterPasting) {
+        return;
+      }
+
+      const pastedCode = parseVerificationCodeInput(valueAfterPasting);
+      if (doesVerificationCodeLookValid(pastedCode)) {
+        handleSubmit(pastedCode, true);
+      }
+    });
+  };
+
   return (
     <div className={tw`w-8/12 max-w-4xl`}>
       <Logo className={tw`mb-6`} />
@@ -109,14 +138,7 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
               onChange={({ target }) =>
                 updateState({ text: parseVerificationCodeInput(target.value) })
               }
-              onPaste={({ clipboardData }) => {
-                const pastedCode = parseVerificationCodeInput(
-                  clipboardData.getData("Text"),
-                );
-                if (doesVerificationCodeLookValid(pastedCode)) {
-                  handleSubmit(pastedCode, true);
-                }
-              }}
+              onPaste={handleInputPaste}
               value={text}
               ref={inputRef}
               data-testid="verify-code-input"

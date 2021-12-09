@@ -217,6 +217,7 @@ export class BlockView implements NodeView<Schema> {
         <CollabPositionIndicators blockEntityId={blockEntityId} />
         {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
         <div
+          data-testid="block-handle"
           className={styles.Block__Handle}
           ref={(handle) => {
             // We need a reference to this elsewhere in the

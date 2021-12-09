@@ -176,6 +176,8 @@ jobs:
           yarn workspace @hashintel/hash-frontend next build ## not using plain build script to skip codegen call
           yarn workspace @hashintel/hash-frontend start & ## ampersand enables background mode
           npx wait-on --timeout $(expr 1000 \* 60 \* 2) http://localhost:3000
+        env:
+          NEXT_PUBLIC_COLLAB: true
 
       - run: yarn playwright install-deps
         if: ${{ success() || failure() }}
@@ -184,6 +186,7 @@ jobs:
         if: ${{ success() || failure() }}
 
       - uses: actions/upload-artifact@v2
+        if: ${{ success() || failure() }}
         with:
           name: playwright-report
           path: playwright-report

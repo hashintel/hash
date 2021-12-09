@@ -15,9 +15,14 @@ export const createUsers =
   async (org: Org): Promise<User[]> => {
     const createUserArgs: CreateUserArgs[] = [
       {
-        email: "aj@hash.ai",
-        shortname: "akash",
-        preferredName: "Akash",
+        email: "alice@example.com",
+        shortname: "alice",
+        preferredName: "Alice",
+      },
+      {
+        email: "bob@example.com",
+        shortname: "bob",
+        preferredName: "Bob",
       },
       {
         email: "ak@hash.ai",
