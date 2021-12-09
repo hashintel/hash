@@ -30,12 +30,12 @@ pub trait Package: MaybeCPUBound + GetWorkerSimStartMsg + Send + Sync {
         &mut self,
         state: Arc<State>,
         snapshot: Arc<StateSnapshot>,
-    ) -> Result<ContextColumn>;
-    fn get_empty_arrow_column(
+    ) -> Result<Vec<ContextColumn>>;
+    fn get_empty_arrow_columns(
         &self,
         num_agents: usize,
         context_schema: &ContextSchema,
-    ) -> Result<(FieldKey, Arc<dyn arrow::array::Array>)>;
+    ) -> Result<Vec<(FieldKey, Arc<dyn arrow::array::Array>)>>;
 }
 
 pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
@@ -89,6 +89,7 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
 }
 
 pub struct ContextColumn {
+    pub(crate) field_key: FieldKey,
     inner: Box<dyn ContextColumnWriter + Send + Sync>,
 }
 

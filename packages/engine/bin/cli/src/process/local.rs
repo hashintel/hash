@@ -106,7 +106,7 @@ impl process::Command for LocalCommand {
 
         let child = cmd
             .spawn()
-            .with_context(|| format!("Could not run commad: {process_path:?}"))?;
+            .with_context(|| format!("Could not run command: {process_path:?}"))?;
         debug!(
             "Spawned local engine process for experiment {}",
             &self.experiment_id

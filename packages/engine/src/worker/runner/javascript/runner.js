@@ -96,8 +96,8 @@ function start_sim(
         "state": [],
         
         /// Context loaders and getters are for columns in the context batch.
-        "ctx_loaders": {},
-        "ctx_getters": {},
+        "context_loaders": {},
+        "context_getters": {},
 
         /// State loaders and getters are for columns in state agent batches
         /// (not message batches). Due to the possibility of dynamic access
@@ -120,7 +120,7 @@ function start_sim(
         const pkg_start_sim = pkg.start_sim;
         if (pkg_start_sim) {
             const r = pkg_start_sim(pkg.experiment, pkg_sim, msg, init_ctx);
-            if (r && (pkg.type === "ctx" || pkg.type === "state")) {
+            if (r && (pkg.type === "context" || pkg.type === "state")) {
                 // Init and output packages can't specify loaders or getters.
                 maybe_add_custom_fns(sim[pkg.type + "_loaders"], r, "loaders", pkg);
                 maybe_add_custom_fns(sim[pkg.type + "_getters"], r, "getters", pkg);
@@ -129,7 +129,7 @@ function start_sim(
     }
 
     // Context getters might vary across simulation runs.
-    const SimContext = gen_sim_ctx(sim.schema.ctx, sim.ctx_getters);
+    const SimContext = gen_sim_ctx(sim.schema.ctx, sim.context_getters);
     sim.ctx = new SimContext(this.experiment_ctx, globals);
 
     // Agent schema and state getters might vary across simulation runs.
@@ -189,7 +189,7 @@ function ctx_batch_sync(sim_id, ctx_batch, group_start_idxs) {
     const sim = this.sims[sim_id];
 
     ctx_batch = this.batches.sync(ctx_batch, sim.schema.ctx);
-    ctx_batch.load_missing_cols(sim.schema.ctx, sim.ctx_loaders);
+    ctx_batch.load_missing_cols(sim.schema.ctx, sim.context_loaders);
     
     sim.ctx.set_batch(ctx_batch, group_start_idxs);
 }

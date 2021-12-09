@@ -91,12 +91,16 @@ impl ExContext {
         &mut self.inner.local_meta
     }
 
-    pub fn write_batch(&mut self, datas: &[ContextColumn], num_elements: usize) -> Result<()> {
+    pub fn write_batch(
+        &mut self,
+        column_writers: &[&ContextColumn],
+        num_elements: usize,
+    ) -> Result<()> {
         self.inner
             .batch
             .try_write()
             .ok_or_else(|| Error::from("Expected to be able to write"))?
-            .write_from_context_datas(datas, num_elements)
+            .write_from_context_datas(column_writers, num_elements)
     }
 
     pub fn into_pre_context(self) -> PreContext {
@@ -117,7 +121,7 @@ impl PreContext {
     pub fn finalize(
         self,
         snapshot: StateSnapshot,
-        datas: &[ContextColumn],
+        column_writers: &[&ContextColumn],
         num_elements: usize,
     ) -> Result<ExContext> {
         let (agent_pool, message_pool) = snapshot.deconstruct();
@@ -128,7 +132,7 @@ impl PreContext {
             local_meta: self.local_meta,
         };
         let mut context = ExContext { inner };
-        context.write_batch(datas, num_elements)?;
+        context.write_batch(column_writers, num_elements)?;
         Ok(context)
     }
 }

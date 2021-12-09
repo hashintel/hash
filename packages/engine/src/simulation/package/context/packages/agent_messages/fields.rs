@@ -22,5 +22,9 @@ pub(super) fn get_messages_field_spec(
     // has custom getters in the language runners that
     // return the actual messages that the agent received,
     // not just their indices.
-    Ok(field_spec_creator.create("messages".into(), agent_messages, FieldScope::Agent))
+    Ok(field_spec_creator.create(
+        MESSAGES_FIELD_NAME.into(),
+        agent_messages,
+        FieldScope::Agent,
+    ))
 }

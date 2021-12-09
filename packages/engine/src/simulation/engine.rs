@@ -34,7 +34,7 @@ impl Engine {
     ) -> Result<Engine> {
         let comms = Arc::new(comms);
 
-        let state = packages.init.run(config.clone()).await?;
+        let state = packages.init.run(Arc::clone(&config.clone())).await?;
         let context = packages.step.empty_context(&config, state.num_agents())?;
         uninitialized_store.set(state, context);
         let store = uninitialized_store;
@@ -90,6 +90,7 @@ impl Engine {
     /// dependent on each other, then all context packages are run in parallel
     /// and their outputs are merged into one Context object.
     async fn run_context_packages(&mut self) -> Result<()> {
+        log::trace!("Starting run context packages stage");
         let (mut state, mut context) = self.store.take_upgraded()?;
         let snapshot = self.prepare_for_context_packages(&mut state, &mut context)?;
         self.comms.state_snapshot_sync(&snapshot); // Synchronize snapshot with workers
@@ -178,6 +179,7 @@ impl Engine {
         state: &mut ExState,
         context: &mut ExContext,
     ) -> Result<StateSnapshot> {
+        log::trace!("Preparing for context packages");
         let message_map = state.message_map()?;
         self.add_remove_agents(state, &message_map)?;
         let message_pool = self.finalize_agent_messages(state, context)?;
