@@ -12,9 +12,9 @@ COPY yarn.lock .
 RUN --mount=type=cache,target=/yarn-cache \
   --mount=type=cache,target=/var/cache/apt \
   --mount=type=cache,target=/var/lib/apt \
-  yarn ws:hash-realtime install \
-  && yarn ws:hash-realtime build \
-  && yarn ws:hash-realtime install --production --ignore-scripts --prefer-offline # Remove devDependencies
+  yarn workspace @hashintel/hash-realtime install \
+  && yarn workspace @hashintel/hash-realtime build \
+  && yarn workspace @hashintel/hash-realtime install --production --ignore-scripts --prefer-offline # Remove devDependencies
 
 #########################################################################################
 

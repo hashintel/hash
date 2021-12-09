@@ -12,6 +12,6 @@ COPY yarn.lock .
 RUN --mount=type=cache,target=/yarn-cache \
   --mount=type=cache,target=/var/cache/apt \
   --mount=type=cache,target=/var/lib/apt \
-  yarn ws:hash-realtime install
+  yarn workspace @hashintel/hash-realtime install
 
-ENTRYPOINT [ "yarn", "ws:hash-realtime", "dev" ]
+ENTRYPOINT [ "yarn", "workspace", "@hashintel/hash-realtime", "dev" ]

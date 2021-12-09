@@ -15,9 +15,9 @@ COPY yarn.lock .
 RUN --mount=type=cache,target=/yarn-cache \
   --mount=type=cache,target=/var/cache/apt \
   --mount=type=cache,target=/var/lib/apt \
-  yarn ws:hash-api install --cache-folder /yarn-cache \
-  && yarn ws:hash-api codegen && yarn ws:hash-frontend codegen && yarn ws:hash-shared codegen \
-  && yarn ws:hash-api build \
+  yarn workspace @hashintel/hash-api install --cache-folder /yarn-cache \
+  && yarn workspace @hashintel/hash-api codegen && yarn workspace @hashintel/hash-frontend codegen && yarn workspace @hashintel/hash-shared codegen \
+  && yarn workspace @hashintel/hash-api build \
   && yarn install --production --ignore-scripts --prefer-offline --cache-folder /yarn-cache # Remove devDependencies
 
 #########################################################################################

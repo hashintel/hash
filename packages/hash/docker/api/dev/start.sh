@@ -1,4 +1,4 @@
 #!/bin/bash
-yarn ws:hash-api build
-yarn ws:hash-api codegen
-yarn ws:hash-api dev
+yarn workspace @hashintel/hash-api build
+yarn workspace @hashintel/hash-api codegen
+yarn workspace @hashintel/hash-api dev
