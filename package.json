@@ -2,15 +2,16 @@
   "private": true,
   "description": "HASH monorepo",
   "workspaces": [
-    "packages/hash/backend-utils",
     "packages/hash/api",
+    "packages/hash/api/datastore/postgres",
+    "packages/hash/backend-utils",
     "packages/hash/block-protocol",
     "packages/hash/blocks/*",
     "packages/hash/frontend",
     "packages/hash/integration",
     "packages/hash/realtime",
-    "packages/hash/shared",
-    "packages/hash/search-loader"
+    "packages/hash/search-loader",
+    "packages/hash/shared"
   ],
   "scripts": {
     "// 01": "",
@@ -26,7 +27,7 @@
     "// 03": "",
     "// ---------------Install & serve ---------------": "",
     "// 04": "",
-    "seed-db": "yarn ws:hash-realtime clear-redis && yarn ws:hash-api clear-pg && yarn ws:hash-search-loader clear-opensearch && yarn ws:hash-integration mock-data",
+    "seed-db": "yarn ws:hash-realtime clear-redis && yarn workspace @hashintel/hash-postgres refresh && yarn ws:hash-search-loader clear-opensearch && yarn ws:hash-integration mock-data",
     "serve:hash-frontend": "yarn ws:hash-frontend dev",
     "serve:hash-backend": "yarn ws:hash-backend-utils build && cross-env DOCKER_BUILDKIT=1 docker-compose -f packages/hash/docker/docker-compose.yml up",
     "serve:hash-backend-statsd": "cross-env DOCKER_BUILDKIT=1 docker-compose -f docker/docker-compose.yml -f docker/docker-compose-statsd-override.yml up",

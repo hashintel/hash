@@ -7,8 +7,10 @@
   "type": "commonjs",
   "main": "migration.js",
   "scripts": {
+    "fix": "eslint --ext .ts --fix .",
     "generate-ids": "ts-node scripts/generateIds.ts",
     "generate-migration": "ts-node scripts/0004_system_account_generate.ts && ts-node scripts/0005_system_types_generate.ts",
+    "lint": "eslint --ext .ts . && tsc --noEmit",
     "migration": "ts-node migration.ts",
     "refresh": "ts-node migration.ts refresh"
   },
