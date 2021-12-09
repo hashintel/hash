@@ -10,82 +10,70 @@ pub mod manifest;
 pub mod process;
 
 use anyhow::Result;
-use argh::FromArgs;
 use experiment::run_experiment;
+use structopt::StructOpt;
 
 use crate::exsrv::create_server;
 
-/// Arguments for the experiment run
-#[derive(FromArgs, Debug)]
+/// The hEngine Command line interface.
+///
+/// Can run single or simple experiments.
+#[derive(Debug, StructOpt)]
 pub struct Args {
-    /// project path folder
-    #[argh(option, short = 'p', default = "default_project_path()")]
+    /// Path to the project to be run.
+    #[structopt(short, long, default_value = ".", env = "HASH_PROJECT")]
     project: String,
 
-    /// project output path folder (will create if missing)
-    #[argh(option, short = 'o', default = "default_output_path()")]
+    /// (Unimplemented) Project output path folder.
+    ///
+    /// The folder will be created if it's missing.
+    #[structopt(short, long, default_value = "./output", env = "HASH_OUTPUT")]
     _output: String, // TODO - unused
 
-    /// experiment type to be run
-    #[argh(subcommand, short = 't')]
+    /// Experiment type to be run.
+    #[structopt(subcommand)]
     r#type: ExperimentType,
 
-    /// max number of parallel workers (must be power of 2)
-    #[argh(option, default = "4")]
+    /// Max number of parallel workers (must be power of 2).
+    #[structopt(short = "w", long, default_value = "4", env = "HASH_WORKERS")]
     num_workers: u16,
 }
 
-fn default_project_path() -> String {
-    "./".into()
-}
-
-fn default_output_path() -> String {
-    "./output".into()
-}
-
-/// Experiment type
-#[derive(FromArgs, Debug)]
-#[argh(subcommand)]
+/// Type of experiment to be run.
+#[derive(Debug, StructOpt)]
 pub enum ExperimentType {
+    /// Run a single run experiment.
+    #[structopt(name = "single-run")]
     SingleRunExperiment(SingleExperimentArgs),
+    /// Run a simple experiment.
+    #[structopt(name = "simple")]
     SimpleExperiment(SimpleExperimentArgs),
 }
 
-#[derive(FromArgs, PartialEq, Debug)]
-/// Single Run Experiment
-#[argh(subcommand, name = "single_run")]
+/// Single Run Experiment.
+#[derive(PartialEq, Debug, StructOpt)]
 pub struct SingleExperimentArgs {
-    #[argh(option)]
-    /// how many steps
+    #[structopt(short, long, env = "HASH_NUM_STEPS")]
+    /// Number of steps to run.
     num_steps: usize,
 }
 
-#[derive(FromArgs, PartialEq, Debug)]
-/// Simple Experiment
-#[argh(subcommand, name = "simple")]
+/// Simple Experiment.
+#[derive(PartialEq, Debug, StructOpt)]
 pub struct SimpleExperimentArgs {
-    /// experiment name to be run
-    #[argh(option, short = 'n')]
+    /// Name of the experiment to be run.
+    #[structopt(short = "n", long, env = "HASH_EXPERIMENT")]
     experiment_name: String,
 }
 
-impl std::default::Default for Args {
-    fn default() -> Self {
-        let opts = argh::from_env();
-        opts
-    }
-}
-
 #[tokio::main]
-// TODO fix ordering of args being so inflexible and unintuitive, and also error messages being unhelpful
-//   for example try putting `-p` after `single_run`
 async fn main() -> Result<()> {
     // TODO project conversion into manifest...
     // TODO persist output
     //      1) send absolute path to engine process
     //      2) within engine process, save to folder
     pretty_env_logger::init();
-    let args = Args::default();
+    let args = Args::from_args();
 
     let nng_listen_url = {
         use std::time::{SystemTime, UNIX_EPOCH};
