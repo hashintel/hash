@@ -4,7 +4,7 @@ use super::{OutputPersistenceCreatorRepr, SimulationOutputPersistenceRepr};
 use crate::{
     config::PersistenceConfig,
     output::{error::Result, OutputPersistenceResultRepr},
-    proto::SimulationShortID,
+    proto::SimulationShortId,
     simulation::step_output::SimulationStepOutput,
 };
 
@@ -21,7 +21,7 @@ impl OutputPersistenceCreatorRepr for NoOutputPersistence {
 
     fn new_simulation(
         &self,
-        _sim_id: SimulationShortID,
+        _sim_id: SimulationShortId,
         _persistence_config: &PersistenceConfig,
     ) -> Result<Self::SimulationOutputPersistence> {
         Ok(NoSimulationOutputPersistence {})

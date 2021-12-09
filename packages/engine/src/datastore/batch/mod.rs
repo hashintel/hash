@@ -123,7 +123,7 @@ mod load {
         let (_, _, meta_buffer, _) = batch.memory().get_batch_buffers()?;
         arrow_ipc::get_root_as_message(meta_buffer)
             .header_as_record_batch()
-            .ok_or(Error::InvalidRecordBatchIPCMessage)
+            .ok_or(Error::InvalidRecordBatchIpcMessage)
     }
 
     pub fn record_batch<'a, K: Batch>(

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{simulation::task::Task, types::TaskID, Language};
+use crate::{simulation::task::Task, types::TaskId, Language};
 
 pub enum CancelState {
     Active(Vec<Language>),
@@ -23,5 +23,5 @@ pub struct PendingWorkerTask {
 
 #[derive(Default)]
 pub struct PendingWorkerTasks {
-    pub inner: HashMap<TaskID, PendingWorkerTask>,
+    pub inner: HashMap<TaskId, PendingWorkerTask>,
 }

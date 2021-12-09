@@ -15,7 +15,7 @@ use crate::{
         },
         prelude::*,
     },
-    proto::ExperimentID,
+    proto::ExperimentId,
     simulation::package::context::ContextColumn,
 };
 
@@ -63,7 +63,7 @@ impl Batch {
     pub fn from_record_batch(
         record_batch: &RecordBatch,
         schema: Option<&Arc<ArrowSchema>>,
-        experiment_run_id: &Arc<ExperimentID>,
+        experiment_run_id: &Arc<ExperimentId>,
         group_start_indices: Vec<usize>,
     ) -> Result<Batch> {
         let (meta_buffer, data_buffer) = static_record_batch_to_bytes(record_batch);
@@ -99,7 +99,7 @@ impl Batch {
         };
         let rb_msg = arrow_ipc::get_root_as_message(meta_buffer)
             .header_as_record_batch()
-            .ok_or(Error::InvalidRecordBatchIPCMessage)?;
+            .ok_or(Error::InvalidRecordBatchIpcMessage)?;
         let batch = match read_record_batch(data_buffer, &rb_msg, schema, &[]) {
             Ok(rb) => rb.unwrap(),
             Err(e) => return Err(Error::from(e)),
@@ -168,7 +168,7 @@ impl Batch {
         let (_, _, meta_buffer, data_buffer) = self.memory.get_batch_buffers()?;
         let rb_msg = &arrow_ipc::get_root_as_message(meta_buffer)
             .header_as_record_batch()
-            .ok_or(Error::InvalidRecordBatchIPCMessage)?;
+            .ok_or(Error::InvalidRecordBatchIpcMessage)?;
         self.batch = match read_record_batch(data_buffer, rb_msg, self.batch.schema(), &[]) {
             Ok(rb) => rb.unwrap(),
             Err(e) => return Err(Error::from(e)),

@@ -8,13 +8,13 @@ use std::{
 use crate::{
     config::{EngineConfig, Globals},
     datastore::{prelude::ArrowSchema, schema::state::AgentSchema, shared_store::SharedStore},
-    proto::{ExperimentID, SimulationShortID},
+    proto::{ExperimentId, SimulationShortId},
     simulation::{
         enum_dispatch::TaskSharedStore,
         package::{id::PackageId, worker_init::PackageInitMsgForWorker},
         task::msg::TaskMessage,
     },
-    types::{TaskID, WorkerIndex},
+    types::{TaskId, WorkerIndex},
     worker::{Error, Result},
     Language,
 };
@@ -71,7 +71,7 @@ impl From<crate::gen::target_generated::Target> for MessageTarget {
 #[derive(Debug)]
 pub struct RunnerTaskMsg {
     pub package_id: PackageId,
-    pub task_id: TaskID,
+    pub task_id: TaskId,
     pub payload: TaskMessage,
     pub shared_store: TaskSharedStore,
 }
@@ -85,7 +85,7 @@ pub struct TargetedRunnerTaskMsg {
 impl TargetedRunnerTaskMsg {
     pub fn try_from_fbs(
         task_msg: crate::gen::runner_outbound_msg_generated::TaskMsg,
-        sent_tasks: &mut HashMap<TaskID, SentTask>,
+        sent_tasks: &mut HashMap<TaskId, SentTask>,
     ) -> Result<Self> {
         let task_id = task_msg.task_id().ok_or_else(|| {
             Error::from("The TaskMessage from the runner didn't have a required task_id field")
@@ -140,7 +140,7 @@ pub struct PackageMsgs(pub HashMap<PackageId, PackageInitMsgForWorker>);
 
 #[derive(Debug, Clone)]
 pub struct NewSimulationRun {
-    pub short_id: SimulationShortID,
+    pub short_id: SimulationShortId,
     pub engine_config: Arc<EngineConfig>,
     pub packages: PackageMsgs,
     pub datastore: DatastoreSimulationPayload,
@@ -163,14 +163,14 @@ impl Debug for DatastoreSimulationPayload {
 
 #[derive(Clone)]
 pub struct ExperimentInitRunnerMsgBase {
-    pub experiment_id: ExperimentID,
+    pub experiment_id: ExperimentId,
     pub shared_context: Arc<SharedStore>,
     pub package_config: Arc<PackageMsgs>,
 }
 
 #[derive(Clone)]
 pub struct ExperimentInitRunnerMsg {
-    pub experiment_id: ExperimentID,
+    pub experiment_id: ExperimentId,
     pub worker_index: WorkerIndex,
     pub shared_context: Arc<SharedStore>,
     pub package_config: Arc<PackageMsgs>,

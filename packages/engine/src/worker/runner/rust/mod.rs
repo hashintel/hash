@@ -12,7 +12,7 @@ pub use error::{Error, Result};
 use state::{AgentState, GroupState, SimState, StateSnapshot};
 */
 use crate::{
-    proto::SimulationShortID,
+    proto::SimulationShortId,
     worker::{Error as WorkerError, Result as WorkerResult},
 };
 
@@ -34,7 +34,7 @@ impl RustRunner {
 
     pub async fn send(
         &self,
-        _sim_id: Option<SimulationShortID>,
+        _sim_id: Option<SimulationShortId>,
         _msg: InboundToRunnerMsgPayload,
     ) -> WorkerResult<()> {
         Ok(())
@@ -42,7 +42,7 @@ impl RustRunner {
 
     pub async fn send_if_spawned(
         &self,
-        _sim_id: Option<SimulationShortID>,
+        _sim_id: Option<SimulationShortId>,
         _msg: InboundToRunnerMsgPayload,
     ) -> WorkerResult<()> {
         log::trace!("Received message to send to Rust Runner: {:?}", &_msg);
@@ -93,11 +93,11 @@ struct SimSchema {
 }
 
 pub struct RustRunner {
-    sims_state: HashMap<SimulationShortID, SimState>,
-    sims_ctx: HashMap<SimulationShortID, SimContext>,
+    sims_state: HashMap<SimulationShortId, SimState>,
+    sims_ctx: HashMap<SimulationShortId, SimContext>,
     behavior_execution: Option<BehaviorPackage>,
-    inbound_sender: UnboundedSender<(Option<SimulationShortID>, InboundToRunnerMsgPayload)>,
-    inbound_receiver: UnboundedReceiver<(Option<SimulationShortID>, InboundToRunnerMsgPayload)>,
+    inbound_sender: UnboundedSender<(Option<SimulationShortId>, InboundToRunnerMsgPayload)>,
+    inbound_receiver: UnboundedReceiver<(Option<SimulationShortId>, InboundToRunnerMsgPayload)>,
     outbound_sender: UnboundedSender<OutboundFromRunnerMsg>,
     outbound_receiver: UnboundedReceiver<OutboundFromRunnerMsg>,
     spawned: bool,
@@ -129,7 +129,7 @@ impl RustRunner {
 
     pub async fn send(
         &self,
-        sim_id: Option<SimulationShortID>,
+        sim_id: Option<SimulationShortId>,
         msg: InboundToRunnerMsgPayload,
     ) -> WorkerResult<()> {
         self.inbound_sender
@@ -139,7 +139,7 @@ impl RustRunner {
 
     pub async fn send_if_spawned(
         &self,
-        sim_id: Option<SimulationShortID>,
+        sim_id: Option<SimulationShortId>,
         msg: InboundToRunnerMsgPayload,
     ) -> WorkerResult<()> {
         if self.spawned {
@@ -183,7 +183,7 @@ impl RustRunner {
 
     fn handle_msg(
         &mut self,
-        sim_id: Option<SimulationShortID>,
+        sim_id: Option<SimulationShortId>,
         msg: InboundToRunnerMsgPayload,
         outbound_sender: &UnboundedSender<OutboundFromRunnerMsg>,
     ) -> Result<KeepRunning> {
@@ -197,29 +197,29 @@ impl RustRunner {
                 self.start_sim(new_run)?;
             }
             InboundToRunnerMsgPayload::TerminateSimulationRun => {
-                let sim_id = sim_id.ok_or(Error::SimulationIDRequired("terminate sim"))?;
+                let sim_id = sim_id.ok_or(Error::SimulationIdRequired("terminate sim"))?;
                 self.sims_state
                     .remove(&sim_id)
                     .ok_or(Error::TerminateMissingSimulationRun(sim_id))?;
             }
             InboundToRunnerMsgPayload::StateSync(state_msg) => {
-                let sim_id = sim_id.ok_or(Error::SimulationIDRequired("state sync"))?;
+                let sim_id = sim_id.ok_or(Error::SimulationIdRequired("state sync"))?;
                 self.state_sync(sim_id, state_msg)?;
             }
             InboundToRunnerMsgPayload::StateInterimSync(interim_msg) => {
-                let sim_id = sim_id.ok_or(Error::SimulationIDRequired("interim sync"))?;
+                let sim_id = sim_id.ok_or(Error::SimulationIdRequired("interim sync"))?;
                 self.state_interim_sync(sim_id, interim_msg)?;
             }
             InboundToRunnerMsgPayload::StateSnapshotSync(state_msg) => {
-                let sim_id = sim_id.ok_or(Error::SimulationIDRequired("snapshot sync"))?;
+                let sim_id = sim_id.ok_or(Error::SimulationIdRequired("snapshot sync"))?;
                 self.state_snapshot_sync(sim_id, state_msg)?;
             }
             InboundToRunnerMsgPayload::ContextBatchSync(ctx_batch) => {
-                let sim_id = sim_id.ok_or(Error::SimulationIDRequired("context batch sync"))?;
+                let sim_id = sim_id.ok_or(Error::SimulationIdRequired("context batch sync"))?;
                 self.ctx_batch_sync(sim_id, ctx_batch)?;
             }
             InboundToRunnerMsgPayload::TaskMsg(msg) => {
-                let sim_id = sim_id.ok_or(Error::SimulationIDRequired("run task"))?;
+                let sim_id = sim_id.ok_or(Error::SimulationIdRequired("run task"))?;
                 let (next_task_msg, warnings) = self.run_task(sim_id, msg)?;
                 // TODO: `send` fn to reduce code duplication.
                 outbound_sender.send(OutboundFromRunnerMsg {
@@ -275,7 +275,7 @@ impl RustRunner {
 
     fn run_behavior_execution_task(
         &mut self,
-        sim_run_id: SimulationShortID,
+        sim_run_id: SimulationShortId,
         msg: RunnerTaskMsg,
     ) -> Result<(TargetedRunnerTaskMsg, Vec<RunnerError>)> {
         let state = self
@@ -317,7 +317,7 @@ impl RustRunner {
 
     fn run_task(
         &mut self,
-        sim_run_id: SimulationShortID,
+        sim_run_id: SimulationShortId,
         msg: RunnerTaskMsg,
     ) -> Result<(TargetedRunnerTaskMsg, Vec<RunnerError>)> {
         if let Some(ref behavior_execution) = self.behavior_execution {
@@ -332,7 +332,7 @@ impl RustRunner {
 
     fn ctx_batch_sync(
         &mut self,
-        sim_run_id: SimulationShortID,
+        sim_run_id: SimulationShortId,
         ctx_batch: ContextBatchSync,
     ) -> Result<()> {
         let ctx = self
@@ -343,7 +343,7 @@ impl RustRunner {
         Ok(())
     }
 
-    fn state_sync(&mut self, sim_run_id: SimulationShortID, msg: StateSync) -> Result<()> {
+    fn state_sync(&mut self, sim_run_id: SimulationShortId, msg: StateSync) -> Result<()> {
         let state = self
             .sims_state
             .get_mut(&sim_run_id)
@@ -355,7 +355,7 @@ impl RustRunner {
 
     fn state_interim_sync(
         &mut self,
-        sim_run_id: SimulationShortID,
+        sim_run_id: SimulationShortId,
         msg: StateInterimSync,
     ) -> Result<()> {
         let state = self
@@ -373,7 +373,7 @@ impl RustRunner {
         Ok(())
     }
 
-    fn state_snapshot_sync(&mut self, sim_run_id: SimulationShortID, msg: StateSync) -> Result<()> {
+    fn state_snapshot_sync(&mut self, sim_run_id: SimulationShortId, msg: StateSync) -> Result<()> {
         let ctx = self
             .sims_ctx
             .get_mut(&sim_run_id)

@@ -26,8 +26,8 @@ pub mod jspy;
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Name {
-    JSON,
-    JSPY,
+    Json,
+    JsPy,
 }
 
 impl std::fmt::Display for Name {
@@ -67,8 +67,8 @@ impl PackageCreators {
         log::debug!("Initializing Init Package Creators");
         use Name::*;
         let mut m = HashMap::new();
-        m.insert(JSON, json::Creator::new(experiment_config)?);
-        m.insert(JSPY, jspy::Creator::new(experiment_config)?);
+        m.insert(Json, json::Creator::new(experiment_config)?);
+        m.insert(JsPy, jspy::Creator::new(experiment_config)?);
         self.0
             .set(m)
             .map_err(|_| Error::from("Failed to initialize Init Package Creators"))?;
@@ -104,11 +104,11 @@ lazy_static! {
         use Name::*;
         let mut id_creator = PackageIdGenerator::new(PackageType::Init);
         let mut m = HashMap::new();
-        m.insert(JSON, PackageMetadata {
+        m.insert(Json, PackageMetadata {
             id: id_creator.next(),
             dependencies: json::Creator::dependencies(),
         });
-        m.insert(JSPY, PackageMetadata {
+        m.insert(JsPy, PackageMetadata {
             id: id_creator.next(),
             dependencies: jspy::Creator::dependencies(),
         });

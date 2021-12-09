@@ -25,7 +25,7 @@ use self::{
 use crate::{
     config::{WorkerConfig, WorkerSpawnConfig},
     datastore::table::sync::SyncPayload,
-    proto::SimulationShortID,
+    proto::SimulationShortId,
     simulation::{
         enum_dispatch::TaskSharedStore,
         package::id::PackageId,
@@ -34,7 +34,7 @@ use crate::{
             msg::{TaskMessage, TaskResultOrCancelled},
         },
     },
-    types::TaskID,
+    types::TaskId,
     worker::{
         pending::{CancelState, PendingWorkerTask},
         runner::comms::{inbound::InboundToRunnerMsgPayload, MessageTarget},
@@ -283,7 +283,7 @@ impl WorkerController {
 
     async fn finish_task(
         &mut self,
-        task_id: TaskID,
+        task_id: TaskId,
         source: Language,
         message: TaskMessage,
         shared_store: TaskSharedStore,
@@ -318,7 +318,7 @@ impl WorkerController {
     }
 
     fn inbound_from_task_msg(
-        task_id: TaskID,
+        task_id: TaskId,
         package_id: PackageId,
         shared_store: TaskSharedStore,
         task_msg: TaskMessage,
@@ -333,7 +333,7 @@ impl WorkerController {
 
     async fn run_task_handler_on_outbound(
         &mut self,
-        sim_id: SimulationShortID,
+        sim_id: SimulationShortId,
         msg: RunnerTaskMsg,
         source: Language,
     ) -> Result<()> {
@@ -398,7 +398,7 @@ impl WorkerController {
 
     async fn handle_cancel_task_confirmation(
         &mut self,
-        task_id: TaskID,
+        task_id: TaskId,
         source: Language,
     ) -> Result<()> {
         if let Some(task) = self.tasks.inner.get_mut(&task_id) {
@@ -439,7 +439,7 @@ impl WorkerController {
         Ok(())
     }
 
-    async fn spawn_task(&mut self, sim_id: SimulationShortID, task: WorkerTask) -> Result<()> {
+    async fn spawn_task(&mut self, sim_id: SimulationShortId, task: WorkerTask) -> Result<()> {
         use MessageTarget::*;
         let task_id = task.task_id;
         let init_msg = WorkerHandler::start_message(&task.inner as _)?;
@@ -483,7 +483,7 @@ impl WorkerController {
 
     async fn sync_runners(
         &mut self,
-        sim_id: Option<SimulationShortID>,
+        sim_id: Option<SimulationShortId>,
         sync_msg: SyncPayload,
     ) -> Result<()> {
         tokio::try_join!(
@@ -494,7 +494,7 @@ impl WorkerController {
         Ok(())
     }
 
-    async fn cancel_task(&mut self, task_id: TaskID) -> Result<()> {
+    async fn cancel_task(&mut self, task_id: TaskId) -> Result<()> {
         self.tasks
             .inner
             .get_mut(&task_id)
@@ -512,7 +512,7 @@ impl WorkerController {
 
     async fn cancel_task_except_for_runner(
         &self,
-        task_id: TaskID,
+        task_id: TaskId,
         runner_language: Language,
     ) -> Result<()> {
         if matches!(runner_language, Language::Python) {

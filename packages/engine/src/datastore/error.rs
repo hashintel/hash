@@ -8,7 +8,7 @@ use thiserror::Error as ThisError;
 
 use super::prelude::*;
 use crate::{
-    datastore::schema::{FieldKey, FieldType, RootFieldSpec, ShortJSONError},
+    datastore::schema::{FieldKey, FieldType, RootFieldSpec, ShortJsonError},
     hash_types,
     hash_types::state::AgentStateField,
 };
@@ -167,7 +167,7 @@ pub enum Error {
     BooleanSerdeValueExpected,
 
     #[error("Unable to read IPC message as record batch")]
-    InvalidRecordBatchIPCMessage,
+    InvalidRecordBatchIpcMessage,
 
     #[error("Expected new data buffer length to be smaller than current. Id: {0}")]
     ExpectedSmallerNewDataSize(String),
@@ -215,7 +215,7 @@ pub enum Error {
     UnexpectedUndefinedCommand,
 
     #[error("Field Spec Short JSON repr error: {0}")]
-    ShortJSONError(#[from] ShortJSONError),
+    ShortJsonError(#[from] ShortJsonError),
 
     #[error(
         "Key clash when attempting to insert a new agent-scoped field with key: {0:?}. The new \

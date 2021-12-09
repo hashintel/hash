@@ -5,8 +5,8 @@ mod writer;
 
 use arrow::datatypes::DataType;
 use futures::{stream::FuturesOrdered, StreamExt};
-pub use handlers::CustomAPIMessageError;
-use response::{APIResponseMap, APIResponses};
+pub use handlers::CustomApiMessageError;
+use response::{ApiResponseMap, ApiResponses};
 use serde_json::Value;
 
 use super::super::*;
@@ -40,7 +40,7 @@ impl PackageCreator for Creator {
         context_field_spec_accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn ContextPackage>> {
         let custom_message_handlers = custom_message_handlers_from_properties(&config.sim.globals)?;
-        Ok(Box::new(APIRequests {
+        Ok(Box::new(ApiRequests {
             custom_message_handlers,
             context_field_spec_accessor,
         }))
@@ -64,25 +64,25 @@ impl GetWorkerExpStartMsg for Creator {
     }
 }
 
-struct APIRequests {
+struct ApiRequests {
     custom_message_handlers: Option<Vec<String>>,
     context_field_spec_accessor: FieldSpecMapAccessor,
 }
 
-impl MaybeCPUBound for APIRequests {
+impl MaybeCpuBound for ApiRequests {
     fn cpu_bound(&self) -> bool {
         CPU_BOUND
     }
 }
 
-impl GetWorkerSimStartMsg for APIRequests {
+impl GetWorkerSimStartMsg for ApiRequests {
     fn get_worker_sim_start_msg(&self) -> Result<Value> {
         Ok(Value::Null)
     }
 }
 
 #[async_trait]
-impl Package for APIRequests {
+impl Package for ApiRequests {
     async fn run<'s>(
         &mut self,
         state: Arc<State>,
@@ -107,7 +107,7 @@ impl Package for APIRequests {
                 })?;
             }
 
-            futs.collect::<Vec<Result<APIResponseMap>>>()
+            futs.collect::<Vec<Result<ApiResponseMap>>>()
                 .await
                 .into_iter()
                 .collect::<Result<_>>()
@@ -127,7 +127,7 @@ impl Package for APIRequests {
             })
             .collect::<Vec<_>>();
 
-        let api_responses = APIResponses::from(responses_per_agent);
+        let api_responses = ApiResponses::from(responses_per_agent);
         let field_key = self
             .context_field_spec_accessor
             .get_local_hidden_scoped_field_spec(API_RESPONSES_FIELD_NAME)?

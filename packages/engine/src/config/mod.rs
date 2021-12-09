@@ -26,7 +26,7 @@ pub use topology::Config as TopologyConfig;
 pub use worker::{Config as WorkerConfig, SpawnConfig as WorkerSpawnConfig};
 pub use worker_pool::Config as WorkerPoolConfig;
 
-use crate::{proto::SimulationShortID, Args, Environment};
+use crate::{proto::SimulationShortId, Args, Environment};
 
 #[derive(Clone)]
 pub struct SimRunConfig {
@@ -44,7 +44,7 @@ pub async fn experiment_config(args: &Args, env: &Environment) -> Result<Experim
 impl SimRunConfig {
     pub fn new(
         global: &Arc<ExperimentConfig>,
-        id: SimulationShortID,
+        id: SimulationShortId,
         globals: Globals,
         engine: EngineConfig,
         store: StoreConfig,
@@ -68,7 +68,7 @@ impl SimRunConfig {
 }
 
 fn simulation_config(
-    id: SimulationShortID,
+    id: SimulationShortId,
     globals: Globals,
     engine: EngineConfig,
     _global: &ExperimentConfig,

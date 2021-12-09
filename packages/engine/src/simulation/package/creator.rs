@@ -424,7 +424,7 @@ pub fn get_base_agent_fields() -> Result<Vec<RootFieldSpec>> {
             field_type: FieldType::new(
                 FieldTypeVariant::FixedLengthArray {
                     kind: Box::new(FieldType::new(
-                        FieldTypeVariant::Preset(PresetFieldType::UInt32),
+                        FieldTypeVariant::Preset(PresetFieldType::Uint32),
                         false,
                     )),
                     len: 2,
@@ -445,7 +445,7 @@ pub fn get_base_agent_fields() -> Result<Vec<RootFieldSpec>> {
         FieldSpec {
             name: CONTEXT_INDEX_FIELD_NAME.to_string(),
             field_type: FieldType::new(
-                FieldTypeVariant::Preset(PresetFieldType::UInt32),
+                FieldTypeVariant::Preset(PresetFieldType::Uint32),
                 // This key is not nullable because all agents have a context
                 false,
             ),

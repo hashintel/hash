@@ -41,12 +41,12 @@ impl BehaviorKeys {
         let json: serde_json::Value = serde_json::from_str(json_str)?;
         let map = match json {
             serde_json::Value::Object(m) => m,
-            _ => return Err(BehaviorKeyJSONError::ExpectedTopLevelMap.into()),
+            _ => return Err(BehaviorKeyJsonError::ExpectedTopLevelMap.into()),
         };
 
         let key_json = map
             .get("keys")
-            .ok_or_else(|| BehaviorKeyJSONError::ExpectedKeys)?;
+            .ok_or_else(|| BehaviorKeyJsonError::ExpectedKeys)?;
 
         let mut field_spec_map = FieldSpecMap::empty();
 
@@ -64,7 +64,7 @@ impl BehaviorKeys {
                         .collect::<Result<Vec<_>>>()?,
                 )?;
             }
-            _ => return Err(BehaviorKeyJSONError::ExpectedKeysMap.into()),
+            _ => return Err(BehaviorKeyJsonError::ExpectedKeysMap.into()),
         }
 
         let built_in_key_use: Result<_> = if let Some(v) = map.get("built_in_key_use") {
@@ -72,13 +72,13 @@ impl BehaviorKeys {
                 serde_json::Value::Object(map) => {
                     let selected = map
                         .get("selected")
-                        .ok_or(BehaviorKeyJSONError::ExpectedBuiltInKeyUseSelectedField)?;
+                        .ok_or(BehaviorKeyJsonError::ExpectedBuiltInKeyUseSelectedField)?;
                     match selected {
                         serde_json::Value::String(string) => {
                             if string == "all" {
                                 Ok(None)
                             } else {
-                                Err(BehaviorKeyJSONError::ExpectedSelectedStringToBeAll.into())
+                                Err(BehaviorKeyJsonError::ExpectedSelectedStringToBeAll.into())
                             }
                         }
                         serde_json::Value::Array(vals) => {
@@ -95,24 +95,24 @@ impl BehaviorKeys {
                                             }
                                         }
                                         res.ok_or_else(|| {
-                                            BehaviorKeyJSONError::InvalidBuiltInKeyName(
+                                            BehaviorKeyJsonError::InvalidBuiltInKeyName(
                                                 string.clone(),
                                             )
                                         })
                                     }
                                     _ => Err(
-                                        BehaviorKeyJSONError::ExpectedSelectedArrayContainString,
+                                        BehaviorKeyJsonError::ExpectedSelectedArrayContainString,
                                     ),
                                 }?;
                                 res.push(string);
                             }
                             Ok(Some(res))
                         }
-                        _ => Err(BehaviorKeyJSONError::ExpectedSelectedStringOrArray.into()),
+                        _ => Err(BehaviorKeyJsonError::ExpectedSelectedStringOrArray.into()),
                     }
                 }
                 serde_json::Value::Null => Ok(None),
-                _ => Err(BehaviorKeyJSONError::ExpectedBuiltInKeyUseNullOrMap.into()),
+                _ => Err(BehaviorKeyJsonError::ExpectedBuiltInKeyUseNullOrMap.into()),
             }
         } else {
             Ok(None)
@@ -121,7 +121,7 @@ impl BehaviorKeys {
         let dyn_access = if let Some(value) = map.get("dynamic_access") {
             match value {
                 serde_json::Value::Bool(b) => *b,
-                _ => return Err(BehaviorKeyJSONError::NonBoolDynamicAccess.into()),
+                _ => return Err(BehaviorKeyJsonError::NonBoolDynamicAccess.into()),
             }
         } else {
             false
@@ -242,7 +242,7 @@ enum BaseKeyType {
 }
 
 impl TryFrom<&str> for BaseKeyType {
-    type Error = BehaviorKeyJSONError;
+    type Error = BehaviorKeyJsonError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         match value {
@@ -253,7 +253,7 @@ impl TryFrom<&str> for BaseKeyType {
             "list" => Ok(BaseKeyType::List),
             "fixed_size_list" => Ok(BaseKeyType::FixedSizeList),
             "any" => Ok(BaseKeyType::Any),
-            _ => Err(BehaviorKeyJSONError::InvalidKeyType(value.to_string())),
+            _ => Err(BehaviorKeyJsonError::InvalidKeyType(value.to_string())),
         }
     }
 }
@@ -273,18 +273,18 @@ impl FieldType {
             serde_json::Value::Object(map) => {
                 let key_base_type = match map
                     .get("type")
-                    .ok_or_else(|| BehaviorKeyJSONError::InvalidKeyTypeType(name.to_string()))?
+                    .ok_or_else(|| BehaviorKeyJsonError::InvalidKeyTypeType(name.to_string()))?
                 {
                     serde_json::Value::String(val) => BaseKeyType::try_from(val.as_ref()),
-                    _ => Err(BehaviorKeyJSONError::InvalidKeyTypeType(name.to_string())),
+                    _ => Err(BehaviorKeyJsonError::InvalidKeyTypeType(name.to_string())),
                 }?;
 
                 let nullable = match map
                     .get("nullable")
-                    .ok_or_else(|| BehaviorKeyJSONError::InvalidKeyNullableType(name.to_string()))?
+                    .ok_or_else(|| BehaviorKeyJsonError::InvalidKeyNullableType(name.to_string()))?
                 {
                     serde_json::Value::Bool(v) => Ok(*v),
-                    _ => Err(BehaviorKeyJSONError::InvalidKeyNullableType(
+                    _ => Err(BehaviorKeyJsonError::InvalidKeyNullableType(
                         name.to_string(),
                     )),
                 }?;
@@ -297,7 +297,7 @@ impl FieldType {
                     BaseKeyType::Struct => {
                         let mut children = vec![];
                         match map.get("fields").ok_or_else(|| {
-                            BehaviorKeyJSONError::InvalidKeyFieldsType(name.to_string())
+                            BehaviorKeyJsonError::InvalidKeyFieldsType(name.to_string())
                         })? {
                             serde_json::Value::Object(map) => {
                                 for (k, v) in map {
@@ -305,7 +305,7 @@ impl FieldType {
                                 }
                                 Ok(())
                             }
-                            _ => Err(BehaviorKeyJSONError::InvalidKeyFieldsType(name.to_string())),
+                            _ => Err(BehaviorKeyJsonError::InvalidKeyFieldsType(name.to_string())),
                         }?;
 
                         // Determinism:
@@ -314,30 +314,30 @@ impl FieldType {
                     }
                     BaseKeyType::List => {
                         let child_source = map.get("child").ok_or_else(|| {
-                            BehaviorKeyJSONError::InvalidKeyChildType(name.to_string())
+                            BehaviorKeyJsonError::InvalidKeyChildType(name.to_string())
                         })?;
                         let child_key_type = FieldType::from_json(name, child_source)?;
                         FieldTypeVariant::VariableLengthArray(Box::new(child_key_type))
                     }
                     BaseKeyType::FixedSizeList => {
                         let child_source = map.get("child").ok_or_else(|| {
-                            BehaviorKeyJSONError::InvalidKeyChildType(name.to_string())
+                            BehaviorKeyJsonError::InvalidKeyChildType(name.to_string())
                         })?;
                         let child_key_type = FieldType::from_json(name, child_source)?;
                         let len = match map.get("length").ok_or_else(|| {
-                            BehaviorKeyJSONError::InvalidKeyLengthType(name.to_string())
+                            BehaviorKeyJsonError::InvalidKeyLengthType(name.to_string())
                         })? {
                             serde_json::Value::Number(v) => {
                                 if v.is_i64() {
                                     // Safe unwrap
                                     Ok(v.as_u64().unwrap() as usize)
                                 } else {
-                                    Err(BehaviorKeyJSONError::InvalidKeyLengthType(
+                                    Err(BehaviorKeyJsonError::InvalidKeyLengthType(
                                         name.to_string(),
                                     ))
                                 }
                             }
-                            _ => Err(BehaviorKeyJSONError::InvalidKeyLengthType(name.to_string())),
+                            _ => Err(BehaviorKeyJsonError::InvalidKeyLengthType(name.to_string())),
                         }?;
                         FieldTypeVariant::FixedLengthArray {
                             kind: Box::new(child_key_type),
@@ -348,19 +348,19 @@ impl FieldType {
 
                 Ok(FieldType { variant, nullable })
             }
-            _ => Err(BehaviorKeyJSONError::ExpectedKeyObject(name.to_string()).into()),
+            _ => Err(BehaviorKeyJsonError::ExpectedKeyObject(name.to_string()).into()),
         }
     }
 }
 
-impl From<BehaviorKeyJSONError> for crate::datastore::error::Error {
-    fn from(err: BehaviorKeyJSONError) -> Self {
+impl From<BehaviorKeyJsonError> for crate::datastore::error::Error {
+    fn from(err: BehaviorKeyJsonError) -> Self {
         crate::datastore::error::Error::from(format!("Behavior Key Error {:?}", err))
     }
 }
 
 #[derive(thiserror::Error, Debug)]
-pub enum BehaviorKeyJSONError {
+pub enum BehaviorKeyJsonError {
     #[error("{0}")]
     Unique(String),
     #[error("Expected the top-level of behavior keys definition to be a JSON object")]
@@ -414,14 +414,14 @@ pub enum BehaviorKeyJSONError {
     NonBoolDynamicAccess,
 }
 
-impl From<&str> for BehaviorKeyJSONError {
+impl From<&str> for BehaviorKeyJsonError {
     fn from(string: &str) -> Self {
-        BehaviorKeyJSONError::Unique(string.to_string())
+        BehaviorKeyJsonError::Unique(string.to_string())
     }
 }
 
-impl From<String> for BehaviorKeyJSONError {
+impl From<String> for BehaviorKeyJsonError {
     fn from(string: String) -> Self {
-        BehaviorKeyJSONError::Unique(string)
+        BehaviorKeyJsonError::Unique(string)
     }
 }

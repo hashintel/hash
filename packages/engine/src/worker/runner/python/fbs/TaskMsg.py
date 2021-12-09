@@ -36,8 +36,8 @@ class TaskMsg(object):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(6))
         if o != 0:
             x = o + self._tab.Pos
-            from TaskID import TaskID
-            obj = TaskID()
+            from TaskId import TaskId
+            obj = TaskId()
             obj.Init(self._tab.Bytes, x)
             return obj
         return None

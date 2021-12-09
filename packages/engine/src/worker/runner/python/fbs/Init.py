@@ -29,8 +29,8 @@ class Init(object):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(4))
         if o != 0:
             x = o + self._tab.Pos
-            from ExperimentID import ExperimentID
-            obj = ExperimentID()
+            from ExperimentId import ExperimentId
+            obj = ExperimentId()
             obj.Init(self._tab.Bytes, x)
             return obj
         return None

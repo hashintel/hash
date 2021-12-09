@@ -9,7 +9,7 @@ use crate::{
     experiment::controller::comms::{sim_status::SimStatusSend, simulation::SimCtlRecv},
     hash_types::worker::RunnerError,
     output::SimulationOutputPersistenceRepr,
-    proto::SimulationShortID,
+    proto::SimulationShortId,
     simulation::{
         agent_control::AgentControl, comms::Comms, controller::sim_control::SimControl,
         engine::Engine, package::run::Packages, status::SimStatus,
@@ -31,7 +31,7 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
     mut sim_from_exp: SimCtlRecv,
     mut sims_to_exp: SimStatusSend,
     mut persistence_service: P,
-) -> Result<SimulationShortID> {
+) -> Result<SimulationShortId> {
     // TODO: This is (sometimes?) 0, why?
     let sim_run_id = config.sim.id;
     let max_num_steps = config.sim.max_num_steps;

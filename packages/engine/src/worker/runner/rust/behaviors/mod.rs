@@ -2,22 +2,24 @@
 pub mod accessors;
 pub mod error;
 
-use crate::experiment::SharedBehavior;
-use crate::hash_types::Vec3;
-use crate::{datastore::batch::AgentBatch, worker::runner::rust::Column};
-
-use accessors::{Accessors, OptionNativeColumnExt};
-
 use std::{
     collections::{HashMap, HashSet},
     sync::Arc,
 };
 
-use super::behavior_execution::BehaviorID;
-use super::context::AgentContext;
-use super::error::{Error, Result};
-use super::neighbor::Neighbor;
-use super::state::{AgentState, GroupState};
+use accessors::{Accessors, OptionNativeColumnExt};
+
+use super::{
+    behavior_execution::BehaviorId,
+    context::AgentContext,
+    error::{Error, Result},
+    neighbor::Neighbor,
+    state::{AgentState, GroupState},
+};
+use crate::{
+    datastore::batch::AgentBatch, experiment::SharedBehavior, hash_types::Vec3,
+    worker::runner::rust::Column,
+};
 
 // TODO: Change Rust behaviors to make these type aliases unnecessary.
 type State<'s> = AgentState<'s>;
@@ -36,8 +38,8 @@ accessors!(
 );
 
 accessors!(
-    Vec<BehaviorID>,
-    BehaviorIDsColumn,
+    Vec<BehaviorId>,
+    BehaviorIdsColumn,
     __behaviors,
     __behaviors_set,
     __behaviors_mut,
@@ -468,7 +470,7 @@ pub struct NativeColumn<T> {
 pub struct NativeState {
     // Engine:
     __i_behavior: Option<NativeColumn<usize>>,
-    __behaviors: Option<NativeColumn<BehaviorID>>,
+    __behaviors: Option<NativeColumn<BehaviorId>>,
     behaviors: Option<NativeColumn<Vec<String>>>,
     position: Option<NativeColumn<Vec3>>,
     direction: Option<NativeColumn<Vec3>>,

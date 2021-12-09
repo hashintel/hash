@@ -13,7 +13,7 @@ use crate::{
     config::{ExperimentConfig, Globals},
     experiment::controller::comms::{exp_pkg_ctl::ExpPkgCtlSend, exp_pkg_update::ExpPkgUpdateRecv},
     proto,
-    proto::{ExperimentPackageConfig, SimulationShortID},
+    proto::{ExperimentPackageConfig, SimulationShortId},
 };
 
 pub type SharedDataset = proto::SharedDataset;
@@ -87,13 +87,13 @@ pub struct Initializer {
 #[derive(Debug)]
 pub enum ExperimentControl {
     StartSim {
-        sim_id: SimulationShortID,
+        sim_id: SimulationShortId,
         changed_properties: serde_json::Value,
         max_num_steps: usize,
     },
-    PauseSim(SimulationShortID),
-    ResumeSim(SimulationShortID),
-    StopSim(SimulationShortID),
+    PauseSim(SimulationShortId),
+    ResumeSim(SimulationShortId),
+    StopSim(SimulationShortId),
 }
 
 pub fn init_exp_package(

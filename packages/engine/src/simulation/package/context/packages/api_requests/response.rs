@@ -2,26 +2,26 @@ use std::{collections::HashMap, marker::PhantomData};
 
 use crate::datastore::UUID_V4_LEN;
 
-pub struct APIResponseToAnonymous {
+pub struct ApiResponseToAnonymous {
     pub from: &'static str,
     pub r#type: &'static str,
     pub data: String,
 }
 
 /// Struct returned by a custom message handler
-pub struct APIResponseMap {
+pub struct ApiResponseMap {
     pub from: &'static str,
     pub r#type: &'static str,
     pub map: HashMap<[u8; UUID_V4_LEN], Vec<String>>,
 }
 
-impl APIResponseMap {
-    pub fn take_for_agent(&mut self, id: &[u8; UUID_V4_LEN]) -> Vec<APIResponseToAnonymous> {
+impl ApiResponseMap {
+    pub fn take_for_agent(&mut self, id: &[u8; UUID_V4_LEN]) -> Vec<ApiResponseToAnonymous> {
         self.map
             .remove(id)
             .map(|v| {
                 v.into_iter()
-                    .map(|data| APIResponseToAnonymous {
+                    .map(|data| ApiResponseToAnonymous {
                         from: self.from,
                         r#type: self.r#type,
                         data,
@@ -47,7 +47,7 @@ pub struct SizedStringColumn {
 }
 
 /// Columnar native representation of external API responses
-pub struct APIResponses<'a> {
+pub struct ApiResponses<'a> {
     pub from: SizedStaticStringColumn,
     pub r#type: SizedStaticStringColumn,
     pub data: SizedStringColumn,
@@ -56,10 +56,10 @@ pub struct APIResponses<'a> {
     phantom: PhantomData<&'a ()>,
 }
 
-impl<'a> From<Vec<Vec<APIResponseToAnonymous>>> for APIResponses<'a> {
-    fn from(v: Vec<Vec<APIResponseToAnonymous>>) -> Self {
+impl<'a> From<Vec<Vec<ApiResponseToAnonymous>>> for ApiResponses<'a> {
+    fn from(v: Vec<Vec<ApiResponseToAnonymous>>) -> Self {
         // TODO: performance: into_iter to access fields at same time and avoid clones
-        APIResponses {
+        ApiResponses {
             from: SizedStaticStringColumn {
                 data: v
                     .iter()

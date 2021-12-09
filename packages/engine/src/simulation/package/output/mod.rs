@@ -7,7 +7,7 @@ pub use packages::{Name, OutputTask, OutputTaskMessage, PACKAGE_CREATORS};
 use self::packages::Output;
 use super::{
     deps::Dependencies,
-    ext_traits::{GetWorkerSimStartMsg, MaybeCPUBound},
+    ext_traits::{GetWorkerSimStartMsg, MaybeCpuBound},
     prelude::*,
 };
 pub use crate::config::Globals;
@@ -58,6 +58,6 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
 }
 
 #[async_trait]
-pub trait Package: MaybeCPUBound + GetWorkerSimStartMsg + Send + Sync {
+pub trait Package: MaybeCpuBound + GetWorkerSimStartMsg + Send + Sync {
     async fn run(&mut self, state: Arc<State>, context: Arc<Context>) -> Result<Output>;
 }

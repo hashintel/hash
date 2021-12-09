@@ -4,12 +4,12 @@ use crate::{
         package::id::PackageId,
         task::{msg::TaskResultOrCancelled, Task},
     },
-    types::TaskID,
+    types::TaskId,
 };
 
 #[derive(new, Debug)]
 pub struct WorkerTask {
-    pub task_id: TaskID,
+    pub task_id: TaskId,
     pub package_id: PackageId,
     pub inner: Task,
     pub shared_store: TaskSharedStore,
@@ -17,6 +17,6 @@ pub struct WorkerTask {
 
 #[derive(Debug, Clone)]
 pub struct WorkerTaskResultOrCancelled {
-    pub task_id: TaskID,
+    pub task_id: TaskId,
     pub payload: TaskResultOrCancelled,
 }

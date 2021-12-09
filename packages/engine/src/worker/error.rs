@@ -17,7 +17,7 @@ pub enum Error {
     Datastore(#[from] crate::datastore::Error),
 
     #[error("Task already exists (id: {0})")]
-    TaskAlreadyExists(crate::types::TaskID),
+    TaskAlreadyExists(crate::types::TaskId),
 
     #[error("Python runner error: {0}")]
     Python(#[from] PythonError),

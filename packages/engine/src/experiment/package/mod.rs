@@ -12,7 +12,7 @@ use super::{
 use crate::{
     config::ExperimentConfig,
     init_exp_package,
-    proto::{ExperimentRunTrait, PackageConfig, SimulationShortID},
+    proto::{ExperimentRunTrait, PackageConfig, SimulationShortId},
 };
 
 pub struct ExperimentPackageComms {
@@ -51,7 +51,7 @@ impl ExperimentPackage {
 
 #[derive(Debug)]
 pub struct StepUpdate {
-    pub sim_id: SimulationShortID,
+    pub sim_id: SimulationShortId,
     pub was_error: bool,
     pub stop_signal: bool,
 }

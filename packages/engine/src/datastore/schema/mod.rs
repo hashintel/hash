@@ -4,7 +4,7 @@ pub mod state;
 mod field_spec;
 
 pub use field_spec::{
-    accessor, built_in::IsRequired, creator::RootFieldSpecCreator, short_json::ShortJSONError,
+    accessor, built_in::IsRequired, creator::RootFieldSpecCreator, short_json::ShortJsonError,
     FieldKey, FieldScope, FieldSource, FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant,
     PresetFieldType, RootFieldSpec,
 };

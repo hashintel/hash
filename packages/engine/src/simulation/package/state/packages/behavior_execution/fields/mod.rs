@@ -37,7 +37,7 @@ fn get_behavior_index_field_spec(
 }
 
 fn behavior_id_inner_field_type() -> FieldType {
-    FieldType::new(FTV::Preset(PresetFieldType::UInt16), false)
+    FieldType::new(FTV::Preset(PresetFieldType::Uint16), false)
 }
 
 fn behavior_id_field_type() -> FieldType {

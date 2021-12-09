@@ -4,8 +4,8 @@ use super::TargetedRunnerTaskMsg;
 use crate::{
     gen::runner_outbound_msg_generated::root_as_runner_outbound_msg,
     hash_types::worker,
-    proto::SimulationShortID,
-    types::TaskID,
+    proto::SimulationShortId,
+    types::TaskId,
     worker::{runner::comms::SentTask, Error, Result},
     Language,
 };
@@ -59,7 +59,7 @@ impl From<crate::gen::runner_warning_generated::RunnerWarning<'_>> for RunnerErr
 #[derive(Debug)]
 pub enum OutboundFromRunnerMsgPayload {
     TaskMsg(TargetedRunnerTaskMsg),
-    TaskCancelled(TaskID),
+    TaskCancelled(TaskId),
     RunnerError(RunnerError),
     RunnerErrors(Vec<RunnerError>),
     RunnerWarning(RunnerError),
@@ -73,7 +73,7 @@ pub enum OutboundFromRunnerMsgPayload {
 impl OutboundFromRunnerMsgPayload {
     pub fn try_from_fbs(
         parsed_msg: crate::gen::runner_outbound_msg_generated::RunnerOutboundMsg,
-        sent_tasks: &mut HashMap<TaskID, SentTask>,
+        sent_tasks: &mut HashMap<TaskId, SentTask>,
     ) -> Result<Self> {
         Ok(match parsed_msg.payload_type() {
             crate::gen::runner_outbound_msg_generated::RunnerOutboundMsgPayload::NONE => {
@@ -188,7 +188,7 @@ impl OutboundFromRunnerMsgPayload {
 #[derive(Debug)]
 pub struct OutboundFromRunnerMsg {
     pub source: Language,
-    pub sim_id: SimulationShortID,
+    pub sim_id: SimulationShortId,
     pub payload: OutboundFromRunnerMsgPayload,
     // shared state
 }
@@ -197,7 +197,7 @@ impl OutboundFromRunnerMsg {
     pub fn try_from_nng(
         msg: nng::Message,
         source: Language,
-        sent_tasks: &mut HashMap<TaskID, SentTask>,
+        sent_tasks: &mut HashMap<TaskId, SentTask>,
     ) -> Result<Self> {
         let msg = msg.as_slice();
         let msg = root_as_runner_outbound_msg(msg);

@@ -1,7 +1,7 @@
 use thiserror::Error as ThisError;
 use tokio::sync::mpsc::error::SendError;
 
-use crate::{proto::SimulationShortID, worker::runner::comms::inbound::InboundToRunnerMsgPayload};
+use crate::{proto::SimulationShortId, worker::runner::comms::inbound::InboundToRunnerMsgPayload};
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -20,7 +20,7 @@ pub enum Error {
     PackageImport(String, String), // First element is path/name.
 
     #[error("Missing simulation run with id {0}")]
-    MissingSimRun(crate::proto::SimulationShortID),
+    MissingSimRun(crate::proto::SimulationShortId),
 
     #[error("Couldn't spawn Python child process: {0:?}")]
     Spawn(std::io::Error),
@@ -29,7 +29,7 @@ pub enum Error {
     TerminateSend(tokio::sync::mpsc::error::SendError<()>),
 
     #[error("Couldn't send inbound message to runner: {0}")]
-    InboundSend(#[from] SendError<(Option<SimulationShortID>, InboundToRunnerMsgPayload)>),
+    InboundSend(#[from] SendError<(Option<SimulationShortId>, InboundToRunnerMsgPayload)>),
 
     #[error("Couldn't send message {0:?} to Python process: {1:?}")]
     NngSend(nng::Message, nng::Error),

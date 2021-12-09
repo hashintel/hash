@@ -5,7 +5,7 @@ use crate::{
     config::{
         EngineConfig, ExperimentConfig, Globals, PersistenceConfig, StoreConfig, WorkerAllocation,
     },
-    proto::{ExperimentPackageConfig, SimulationShortID},
+    proto::{ExperimentPackageConfig, SimulationShortId},
     SimRunConfig,
 };
 
@@ -35,7 +35,7 @@ impl SimConfigurer {
     pub fn configure_next(
         &mut self,
         exp_config: &Arc<ExperimentConfig>,
-        id: SimulationShortID,
+        id: SimulationShortId,
         globals: Globals,
         store_config: StoreConfig,
         persistence_config: PersistenceConfig,

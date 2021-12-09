@@ -2,13 +2,13 @@ use serde::{Deserialize, Serialize};
 
 use super::Result;
 use crate::{
-    hash_types::worker::RunnerError, output::OutputPersistenceResultRepr, proto::SimulationShortID,
+    hash_types::worker::RunnerError, output::OutputPersistenceResultRepr, proto::SimulationShortId,
 };
 
 // Sent from sim runs to experiment main loop.
 #[derive(Default, Debug, Serialize, Deserialize, PartialEq)]
 pub struct SimStatus {
-    pub sim_id: SimulationShortID,
+    pub sim_id: SimulationShortId,
     pub steps_taken: isize,
     pub early_stop: bool,
     pub stop_msg: Option<serde_json::Value>,
@@ -22,7 +22,7 @@ pub struct SimStatus {
 }
 
 impl SimStatus {
-    pub fn running(sim_id: SimulationShortID, steps_taken: isize) -> SimStatus {
+    pub fn running(sim_id: SimulationShortId, steps_taken: isize) -> SimStatus {
         SimStatus {
             sim_id,
             steps_taken,
@@ -32,7 +32,7 @@ impl SimStatus {
     }
 
     // TODO: Check this makes sense, default gives misleading amount of steps etc.
-    pub fn stop_signal(sim_id: SimulationShortID) -> SimStatus {
+    pub fn stop_signal(sim_id: SimulationShortId) -> SimStatus {
         SimStatus {
             sim_id,
             running: false,
@@ -42,7 +42,7 @@ impl SimStatus {
     }
 
     pub fn ended<P: OutputPersistenceResultRepr>(
-        sim_id: SimulationShortID,
+        sim_id: SimulationShortId,
         steps_taken: isize,
         early_stop: bool,
         stop_msg: Option<serde_json::Value>,
@@ -61,7 +61,7 @@ impl SimStatus {
     }
 
     pub fn error<P: OutputPersistenceResultRepr>(
-        sim_id: SimulationShortID,
+        sim_id: SimulationShortId,
         steps_taken: isize,
         error: RunnerError,
         persistence_result: Option<P>,

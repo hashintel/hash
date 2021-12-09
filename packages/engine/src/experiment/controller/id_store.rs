@@ -6,24 +6,24 @@ use tokio::{
 };
 
 use super::{Error, Result};
-use crate::proto::{SimulationRegisteredID, SimulationShortID};
+use crate::proto::{SimulationRegisteredId, SimulationShortId};
 
-enum SendersOrID {
-    Senders(Vec<oneshot::Sender<SimulationRegisteredID>>),
-    ID(SimulationRegisteredID),
+enum SendersOrId {
+    Senders(Vec<oneshot::Sender<SimulationRegisteredId>>),
+    ID(SimulationRegisteredId),
 }
 
 #[derive(Clone, Default)]
 pub struct SimIdStore {
-    inner: Arc<RwLock<HashMap<SimulationShortID, SendersOrID>>>,
+    inner: Arc<RwLock<HashMap<SimulationShortId, SendersOrId>>>,
 }
 
 impl SimIdStore {
     pub async fn get_registered_id_with_timeout(
         &self,
-        short_id: SimulationShortID,
+        short_id: SimulationShortId,
         timeout_ms: usize,
-    ) -> Result<SimulationRegisteredID> {
+    ) -> Result<SimulationRegisteredId> {
         time::timeout(
             Duration::from_millis(timeout_ms as u64),
             self.get_registered_id(short_id),
@@ -33,23 +33,23 @@ impl SimIdStore {
 
     async fn get_registered_id(
         &self,
-        short_id: SimulationShortID,
-    ) -> Result<SimulationRegisteredID> {
+        short_id: SimulationShortId,
+    ) -> Result<SimulationRegisteredId> {
         let mut inner = self.inner.write().await;
         let value = inner.get_mut(&short_id);
         return if let Some(senders_or_id) = value {
             match senders_or_id {
-                SendersOrID::Senders(senders) => {
+                SendersOrId::Senders(senders) => {
                     let (sender, receiver) = oneshot::channel();
                     senders.push(sender);
                     drop(inner); // Ensure we release lock
                     Ok(receiver.await?)
                 }
-                SendersOrID::ID(id) => Ok(id.clone()),
+                SendersOrId::ID(id) => Ok(id.clone()),
             }
         } else {
             let (sender, receiver) = oneshot::channel();
-            inner.insert(short_id, SendersOrID::Senders(vec![sender]));
+            inner.insert(short_id, SendersOrId::Senders(vec![sender]));
             drop(inner); // Ensure we release lock
             Ok(receiver.await?)
         };
@@ -57,22 +57,22 @@ impl SimIdStore {
 
     pub(super) async fn set_registered_id(
         &mut self,
-        short_id: SimulationShortID,
-        registered_id: SimulationRegisteredID,
+        short_id: SimulationShortId,
+        registered_id: SimulationRegisteredId,
     ) -> Result<()> {
         let mut inner = self.inner.write().await;
         let value = inner.get_mut(&short_id);
         return if let Some(senders_or_id) = value {
             match senders_or_id {
-                SendersOrID::Senders(senders) => {
+                SendersOrId::Senders(senders) => {
                     let senders = std::mem::replace(senders, vec![]);
                     for sender in senders {
                         sender.send(registered_id.clone())?;
                     }
-                    *senders_or_id = SendersOrID::ID(registered_id);
+                    *senders_or_id = SendersOrId::ID(registered_id);
                     Ok(())
                 }
-                SendersOrID::ID(id) => {
+                SendersOrId::ID(id) => {
                     if !(&*id).eq(&registered_id) {
                         Err(Error::from(format!(
                             "Simulation already registered with different id. Original: {}, new: \
@@ -85,7 +85,7 @@ impl SimIdStore {
                 }
             }
         } else {
-            inner.insert(short_id, SendersOrID::ID(registered_id));
+            inner.insert(short_id, SendersOrId::ID(registered_id));
             Ok(())
         };
     }

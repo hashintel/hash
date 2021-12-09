@@ -17,14 +17,14 @@ use crate::{
         simulation::{new_pair, SimCtlRecv, SimCtlSend},
     },
     output::SimulationOutputPersistenceRepr,
-    proto::SimulationShortID,
+    proto::SimulationShortId,
     simulation::package::run::Packages,
     SimRunConfig,
 };
 
 pub struct SimulationController {
     pub sender: SimCtlSend,
-    pub task_handle: JoinHandle<Result<SimulationShortID>>,
+    pub task_handle: JoinHandle<Result<SimulationShortId>>,
 }
 
 impl SimulationController {
@@ -62,7 +62,7 @@ fn new_task_handle<P: SimulationOutputPersistenceRepr>(
     packages: Packages,
     shared_store: Arc<SharedStore>,
     persistence_service: P,
-) -> Result<JoinHandle<Result<SimulationShortID>>> {
+) -> Result<JoinHandle<Result<SimulationShortId>>> {
     let task = Box::pin(run::sim_run(
         config,
         shared_store,

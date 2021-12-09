@@ -23,13 +23,13 @@ use crate::{
     config,
     config::{TaskDistributionConfig, Worker, WorkerPoolConfig},
     datastore::table::task_shared_store::TaskSharedStore,
-    proto::SimulationShortID,
+    proto::SimulationShortId,
     simulation::{
         comms::message::{EngineToWorkerPoolMsg, EngineToWorkerPoolMsgPayload},
         package::id::PackageId,
         task::{args::GetTaskArgs, handler::WorkerPoolHandler, Task},
     },
-    types::{TaskID, WorkerIndex},
+    types::{TaskId, WorkerIndex},
     worker::{
         runner::comms::{ExperimentInitRunnerMsg, ExperimentInitRunnerMsgBase, NewSimulationRun},
         task::WorkerTask,
@@ -255,7 +255,7 @@ impl WorkerPoolController {
 
     // TODO: delete or use when cancel is revisited
     #[allow(dead_code)]
-    async fn handle_cancel_msgs(&mut self, cancel_msgs: Vec<TaskID>) -> Result<()> {
+    async fn handle_cancel_msgs(&mut self, cancel_msgs: Vec<TaskId>) -> Result<()> {
         for id in cancel_msgs {
             log::trace!("Handling cancel msg for task with id: {}", id);
             if let Some(task) = self.pending_tasks.inner.get(&id) {
@@ -295,8 +295,8 @@ impl WorkerPoolController {
 
     fn new_worker_tasks(
         &self,
-        sim_id: SimulationShortID,
-        task_id: TaskID,
+        sim_id: SimulationShortId,
+        task_id: TaskId,
         package_id: PackageId,
         shared_store: TaskSharedStore,
         task: Task,

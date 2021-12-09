@@ -66,7 +66,7 @@ struct Analysis {
     analyzer: Analyzer,
 }
 
-impl MaybeCPUBound for Analysis {
+impl MaybeCpuBound for Analysis {
     fn cpu_bound(&self) -> bool {
         true
     }
