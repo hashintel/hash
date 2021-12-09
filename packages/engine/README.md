@@ -13,6 +13,26 @@
 # hEngine
 [HASH Engine](https://hash.ai/platform/engine?utm_medium=organic&utm_source=github_readme_engine) (or **hEngine**) is the computational simulation engine at the heart of [HASH](https://hash.ai/platform?utm_medium=organic&utm_source=github_readme_engine) published under the terms of the Server-Side Public License (based on GPLv3, and created by MongoDB). The version currently released here contains several notable differences to the hosted version powering [hCore](https://hash.ai/platform/core?utm_medium=organic&utm_source=github_readme_engine) and [hCloud](https://hash.ai/platform/cloud?utm_medium=organic&utm_source=github_readme_engine).
 
+## Table of Contents
+- [Issue Tracking](#issue-tracking)
+- [Additional Documentation](#additional-documentation)
+- [Questions & Support](#questions--support)
+- [Building and Testing](#building-and-testing)
+  * [Dependencies](#dependencies)
+  * [MacOS Developer Specific Instructions](#macos-developer-specific-instructions)
+    + [For Intel Macs](#for-intel-macs)
+    + [For ARM-Based Macs](#for-arm-based-macs)
+  * [Possible Dependencies and Debugging](#possible-dependencies-and-debugging)
+  * [Project Setup / Building](#project-setup--building)
+  * [Running for development](#running-for-development)
+- [Usage](#usage)
+- [Main Concepts](#main-concepts)
+  * [High-level Overview](#high-level-overview)
+    + [Starting an Experiment / the CLI](#starting-an-experiment--the-cli)
+    + [Workers](#workers)
+    + [Simulation Runs and the Package System](#simulation-runs-and-the-package-system)
+    + [DataStore](#datastore)
+
 ## Issue Tracking
 We use [GitHub Issues](https://github.com/hashintel/engine/issues) to help prioritize and track bugs and feature requests for HASH. This includes hEngine, as well as our **hCore** IDE, and the [**HASH.ai site**](https://hash.ai/platform/index?utm_medium=organic&utm_source=github_readme_engine). You can also report issues and get support on our public [Discord server](https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_engine). Please submit any issues you encounter.
 
@@ -58,15 +78,15 @@ Building this project requires the following:
     ```
   * With the V8 folder containing `include` and `out.gn` you can then set the variable for your terminal session with `export V8_PATH=<path to folder>` or you can set it permanently by [adding it to your shell's environment](https://unix.stackexchange.com/questions/117467/how-to-permanently-set-environmental-variables)
 
-### MacOS Developer Specific Instructions:
+### MacOS Developer Specific Instructions
 
 Due to ARM-Based Macs, the `macos` `target_os` has some added complications for development. 
 
-#### For Intel Macs:
+#### For Intel Macs
 Due to limitations in Cargo at the moment we can't properly check if it's being built _on_ an ARM Mac (rather than _for_ an ARM Mac). Due to this it's necessary to:
 * Enable the `build-nng` feature by passing `--features "build-nng"` to any cargo commands such as `cargo build`
 
-#### For ARM-Based Macs:
+#### For ARM-Based Macs
 At the moment the project only seems to be compiling if you use the `x86_64-apple-darwin` target. This has some added complexity, especially due to the fact that rustc fails to link 'fat-binaries' in certain scenarios.
 * It's necessary to acquire an x86 version of `nng`. Currently the easiest known way to do this is through:
   * Creating a homebrew installation under Rosetta, [an example guide is here](https://stackoverflow.com/questions/64882584/how-to-run-the-homebrew-installer-under-rosetta-2-on-m1-macbook) 
@@ -75,7 +95,7 @@ At the moment the project only seems to be compiling if you use the `x86_64-appl
   * The command is likely to be: `export NNG_PATH=/usr/local/Cellar/nng/1.5.2`
 * If the V8 monolith is failing to link due to symbol errors, it might be necessary to download the gem for the "darwin_universal" version.
 
-#### Possible Dependencies and Debugging
+### Possible Dependencies and Debugging
 Depending on how lightweight your OS install is, you may be missing some low level dependencies, so try the following (examples given for Ubuntu/Debian-based Unix systems):
 * `apt-get install build-essentials` - Includes the GCC/g++ compilers, libraries, and some other utilities
 * `apt-get install pkg-config` - A helper tool used when compiling applications and libraries
@@ -92,7 +112,10 @@ Depending on how lightweight your OS install is, you may be missing some low lev
 The CLI binary handles parsing a HASH project, and the lifetime of the engine for an experiment. To use it, download a project by **TODO: Instructions are WIP, coming shortly**.
 
 Then, run the CLI using:
-* `cargo run --bin cli -- -p  "<PATH TO HASH PROJECT DIR>" single_run --num-steps 5`
+* `cargo run --bin cli -- <CLI ARGS>`
+
+Where CLI args are described below in the [Usage](#usage) section, an example of a run command during development would be:
+* `cargo run --bin cli -- <CLI ARGS> -p  "<PATH TO HASH PROJECT DIR>" single-run --num-steps 5`
 
 ## Usage
 
@@ -111,7 +134,7 @@ Being familiar with running experiments and simulations on the HASH platform wil
 > **Note** the links provided in the following section point towards the general relevant parts of the codebase, this section can be treated as an initial guide to the folder and source-code structure.
 
 #### Starting an Experiment / the CLI
-Once a v0.1 release bas been finalized, we intend for experiments to be started through the [CLI](./bin/cli), the main entry-point to the engine. The CLI will be responsible for parsing input, and starting Workers and simulation runs.
+Experiments are started through the [CLI](./bin/cli), the main entry-point to the engine. The CLI is responsible for parsing input, starting Workers and simulation runs.
 
 #### Workers
 Most logic relating to the model (including, most importantly, user provided behaviors) is executed on [Runners](./src/worker/runner). These are execution environments implemented in Python, JavaScript, or Rust. One of each Language Runner is managed by a single [Worker](./src/worker). Workers then in turn belong to a Worker Pool, a collection of Workers that serve a single experiment.
