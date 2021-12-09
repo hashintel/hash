@@ -2,15 +2,6 @@ use std::cmp::Ordering;
 
 use float_cmp::approx_eq;
 
-use crate::datastore::batch::iterators::agent::{
-    bool_iter, exists_iter, f64_iter, json_serialized_value_iter, json_value_iter_cols, str_iter,
-};
-use crate::datastore::schema::accessor::{FieldSpecMapAccessor, GetFieldSpec};
-use crate::datastore::schema::FieldTypeVariant;
-use crate::simulation::package::output::packages::analysis::analyzer::{
-    AnalysisOperationRepr, ComparisonRepr,
-};
-
 use super::{
     analyzer::{
         IndexIterator, NumberIterator, OutputCreator, OutputRunner, OutputRunnerCreator,
@@ -19,6 +10,21 @@ use super::{
     output::AnalysisSingleOutput,
     value_iter::{value_iterator_filter, value_iterator_mapper},
     Error, Result,
+};
+use crate::{
+    datastore::{
+        batch::iterators::agent::{
+            bool_iter, exists_iter, f64_iter, json_serialized_value_iter, json_value_iter_cols,
+            str_iter,
+        },
+        schema::{
+            accessor::{FieldSpecMapAccessor, GetFieldSpec},
+            FieldTypeVariant,
+        },
+    },
+    simulation::package::output::packages::analysis::analyzer::{
+        AnalysisOperationRepr, ComparisonRepr,
+    },
 };
 
 fn index_iterator_f64_filter(
@@ -197,7 +203,7 @@ fn index_iterator_null_filter(
         _ => {
             return Err(Error::from(
                 "Filters that compare to a null only can apply the 'eq' and 'neq' comparisons",
-            ))
+            ));
         }
     }
 }
@@ -219,7 +225,7 @@ fn index_iterator_boolean_filter(
         _ => {
             return Err(Error::from(
                 "Filters that compare to a boolean only can apply the 'eq' and 'neq' comparisons",
-            ))
+            ));
         }
     }
 }
@@ -236,11 +242,7 @@ fn index_iterator_serialized_null_filter(
             accessor,
             field,
             |v| {
-                if v == "null" {
-                    true
-                } else {
-                    false
-                }
+                if v == "null" { true } else { false }
             },
             true
         ),
@@ -249,18 +251,14 @@ fn index_iterator_serialized_null_filter(
             accessor,
             field,
             |v| {
-                if v == "null" {
-                    false
-                } else {
-                    true
-                }
+                if v == "null" { false } else { true }
             },
             false
         ),
         _ => {
             return Err(Error::from(
                 "For Boolean comparison 'eq' and 'neq' operators are only allowed",
-            ))
+            ));
         }
     }
 }
@@ -308,7 +306,7 @@ fn index_iterator_serialized_boolean_filter(
         _ => {
             return Err(Error::from(
                 "For Boolean comparison 'eq' and 'neq' operators are only allowed",
-            ))
+            ));
         }
     }
 }
@@ -545,7 +543,7 @@ fn index_iterator_serialized_filter(
         _ => {
             return Err(Error::from(
                 "Filtering can only be done with number/boolean or string values",
-            ))
+            ));
         }
     }
 }
@@ -556,65 +554,94 @@ fn f64_iter_aggregate(
 ) -> Result<OutputRunnerCreator> {
     let result = match aggregator {
         AnalysisOperationRepr::Sum => {
-            apply_aggregator_f64!(first_field, iterator, Ok(AnalysisSingleOutput::some_number(iterator.map(|a| if let Some(number) = a {
-                number
-            } else {
-                0.0
-            }).sum())))
+            apply_aggregator_f64!(
+                first_field,
+                iterator,
+                Ok(AnalysisSingleOutput::some_number(
+                    iterator
+                        .map(|a| if let Some(number) = a { number } else { 0.0 })
+                        .sum()
+                ))
+            )
         }
         AnalysisOperationRepr::Min => {
-            apply_aggregator_f64!(first_field, iterator, Ok(AnalysisSingleOutput::Number(iterator.map(|a| if let Some(number) = a {
-                number
-            } else {
-                f64::NAN
-            }).min_by(|a, b| match (a.is_nan(), b.is_nan()) {
-                // NANs will be ignored
-                (true, true) => Ordering::Equal,
-                (true, false) => Ordering::Greater,
-                (false, true) => Ordering::Less,
-                (false, false) => a.partial_cmp(b).unwrap()
-            }).map(|a| if a.is_finite() {Some(a)} else {None} ).flatten())))
+            apply_aggregator_f64!(
+                first_field,
+                iterator,
+                Ok(AnalysisSingleOutput::Number(
+                    iterator
+                        .map(|a| if let Some(number) = a {
+                            number
+                        } else {
+                            f64::NAN
+                        })
+                        .min_by(|a, b| match (a.is_nan(), b.is_nan()) {
+                            // NANs will be ignored
+                            (true, true) => Ordering::Equal,
+                            (true, false) => Ordering::Greater,
+                            (false, true) => Ordering::Less,
+                            (false, false) => a.partial_cmp(b).unwrap(),
+                        })
+                        .map(|a| if a.is_finite() { Some(a) } else { None })
+                        .flatten()
+                ))
+            )
         }
         AnalysisOperationRepr::Max => {
-            apply_aggregator_f64!(first_field, iterator,
-                    Ok(AnalysisSingleOutput::Number(iterator.map(|a| if let Some(number) = a {
-                    number
-                } else {
-                    f64::NAN
-                }).max_by(|a, b| match (a.is_nan(), b.is_nan()) {
-                    // NANs will be ignored
-                    (true, true) => Ordering::Equal,
-                    (true, false) => Ordering::Less,
-                    (false, true) => Ordering::Greater,
-                    (false, false) => a.partial_cmp(b).unwrap()
-                }).map(|a| if a.is_finite() {Some(a)} else {None} ).flatten()))
+            apply_aggregator_f64!(
+                first_field,
+                iterator,
+                Ok(AnalysisSingleOutput::Number(
+                    iterator
+                        .map(|a| if let Some(number) = a {
+                            number
+                        } else {
+                            f64::NAN
+                        })
+                        .max_by(|a, b| match (a.is_nan(), b.is_nan()) {
+                            // NANs will be ignored
+                            (true, true) => Ordering::Equal,
+                            (true, false) => Ordering::Less,
+                            (false, true) => Ordering::Greater,
+                            (false, false) => a.partial_cmp(b).unwrap(),
+                        })
+                        .map(|a| if a.is_finite() { Some(a) } else { None })
+                        .flatten()
+                ))
             )
         }
         AnalysisOperationRepr::Mean => {
-            apply_aggregator_f64!(first_field, iterator,
-                {
-                    let mut sum = 0.0;
-                    let mut num_elements = 0;
-                    iterator.for_each(|a| if let Some(number) = a {
+            apply_aggregator_f64!(first_field, iterator, {
+                let mut sum = 0.0;
+                let mut num_elements = 0;
+                iterator.for_each(|a| {
+                    if let Some(number) = a {
                         sum += number;
                         num_elements += 1;
-                    });
-
-                    if num_elements != 0 {
-                        Ok(AnalysisSingleOutput::some_number(sum/num_elements as f64))
-                    } else {
-                        Ok(AnalysisSingleOutput::null_number())
                     }
+                });
+
+                if num_elements != 0 {
+                    Ok(AnalysisSingleOutput::some_number(sum / num_elements as f64))
+                } else {
+                    Ok(AnalysisSingleOutput::null_number())
                 }
-            )
+            })
         }
         AnalysisOperationRepr::Count => {
             // All agents whose `Value` objects are not `Value::Null` are counted
-            apply_aggregator_f64!(first_field, iterator,
-                Ok(AnalysisSingleOutput::some_number(iterator.filter(|a| a.is_some()).count() as f64))
+            apply_aggregator_f64!(
+                first_field,
+                iterator,
+                Ok(AnalysisSingleOutput::some_number(
+                    iterator.filter(|a| a.is_some()).count() as f64
+                ))
             )
         }
-        _ => Err(Error::from("The last operation must be an aggregator: either 'count', 'sum', 'min', 'max' or 'mean'"))
+        _ => Err(Error::from(
+            "The last operation must be an aggregator: either 'count', 'sum', 'min', 'max' or \
+             'mean'",
+        )),
     }?;
     return Ok(result);
 }
@@ -642,12 +669,21 @@ pub(super) fn index_iterator_filter_creator(
                 if let Ok(v) = str::parse::<f64>(string) {
                     v
                 } else {
-                    return Err(Error::from(format!("The agent field '{}' is of a number type, however the value given for comparison ('{}') is not", field, string)));
+                    return Err(Error::from(format!(
+                        "The agent field '{}' is of a number type, however the value given for \
+                         comparison ('{}') is not",
+                        field, string
+                    )));
                 }
             } else if value.is_number() {
                 value.as_f64().unwrap()
             } else {
-                return Err(Error::from(format!("The agent field '{}' is of a number type, however the value given for comparison ('{}') is not", field, value.to_string())));
+                return Err(Error::from(format!(
+                    "The agent field '{}' is of a number type, however the value given for \
+                     comparison ('{}') is not",
+                    field,
+                    value.to_string()
+                )));
             };
 
             index_iterator_f64_filter(operations, accessor, field, comparison, float)
@@ -658,12 +694,21 @@ pub(super) fn index_iterator_filter_creator(
                 if let Ok(v) = str::parse::<bool>(string) {
                     v
                 } else {
-                    return Err(Error::from(format!("The agent field '{}' is of a boolean type, however the value given for comparison ('{}') is not", field, string)));
+                    return Err(Error::from(format!(
+                        "The agent field '{}' is of a boolean type, however the value given for \
+                         comparison ('{}') is not",
+                        field, string
+                    )));
                 }
             } else if value.is_boolean() {
                 value.as_bool().unwrap()
             } else {
-                return Err(Error::from(format!("The agent field '{}' is of a boolean type, however the value given for comparison ('{}') is not", field, value.to_string())));
+                return Err(Error::from(format!(
+                    "The agent field '{}' is of a boolean type, however the value given for \
+                     comparison ('{}') is not",
+                    field,
+                    value.to_string()
+                )));
             };
 
             index_iterator_boolean_filter(operations, accessor, field, comparison, boolean)
@@ -672,7 +717,12 @@ pub(super) fn index_iterator_filter_creator(
             let string = if value.is_string() {
                 value.as_str().unwrap().to_string()
             } else {
-                return Err(Error::from(format!("The agent field '{}' is of a boolean type, however the value given for comparison ('{}') is not", field, value.to_string())));
+                return Err(Error::from(format!(
+                    "The agent field '{}' is of a boolean type, however the value given for \
+                     comparison ('{}') is not",
+                    field,
+                    value.to_string()
+                )));
             };
 
             index_iterator_string_filter(operations, accessor, field, comparison, string)
@@ -919,11 +969,21 @@ pub(super) fn index_iterator_mapper_creator(
                                 } else if val.is_null() {
                                     result.push(None);
                                 } else {
-                                    return Err(Error::from(format!("This output can only yield arrays of numbers, not arrays of arbitrary objects. Found an element in the agent array which should have been a number or null: {}", val)));
+                                    return Err(Error::from(format!(
+                                        "This output can only yield arrays of numbers, not arrays \
+                                         of arbitrary objects. Found an element in the agent \
+                                         array which should have been a number or null: {}",
+                                        val
+                                    )));
                                 }
                             }
                         } else {
-                            return Err(Error::from(format!("This output can only yield arrays of numbers, not arrays of arbitrary objects. Found an element which should have been a number or null: {}", value)));
+                            return Err(Error::from(format!(
+                                "This output can only yield arrays of numbers, not arrays of \
+                                 arbitrary objects. Found an element which should have been a \
+                                 number or null: {}",
+                                value
+                            )));
                         }
                     }
 

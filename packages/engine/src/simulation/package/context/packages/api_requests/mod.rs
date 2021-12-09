@@ -3,22 +3,22 @@ mod handlers;
 mod response;
 mod writer;
 
-use crate::{
-    datastore::{batch::iterators, table::state::ReadState},
-    simulation::comms::package::PackageComms,
-};
 use arrow::datatypes::DataType;
-
-use super::super::*;
-use crate::config::Globals;
 use futures::{stream::FuturesOrdered, StreamExt};
+pub use handlers::CustomAPIMessageError;
 use response::{APIResponseMap, APIResponses};
 use serde_json::Value;
 
-use crate::datastore::schema::accessor::GetFieldSpec;
-use crate::datastore::schema::FieldKey;
-
-pub use handlers::CustomAPIMessageError;
+use super::super::*;
+use crate::{
+    config::Globals,
+    datastore::{
+        batch::iterators,
+        schema::{accessor::GetFieldSpec, FieldKey},
+        table::state::ReadState,
+    },
+    simulation::comms::package::PackageComms,
+};
 
 const CPU_BOUND: bool = false;
 
@@ -157,10 +157,11 @@ impl Package for APIRequests {
             })?
             .clone();
 
-        let api_response_builder = arrow::array::StructBuilder::new(
-            arrow_fields,
-            vec![from_builder, type_builder, data_builder],
-        );
+        let api_response_builder = arrow::array::StructBuilder::new(arrow_fields, vec![
+            from_builder,
+            type_builder,
+            data_builder,
+        ]);
         let mut api_response_list_builder = arrow::array::ListBuilder::new(api_response_builder);
 
         (0..num_agents).try_for_each(|_| api_response_list_builder.append(true))?;

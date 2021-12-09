@@ -1,19 +1,18 @@
-use crate::proto::{ExperimentID, SimulationShortID};
-
-use crate::output::error::{Error, Result};
-use crate::simulation::step_output::SimulationStepOutput;
+use super::{config::LocalPersistenceConfig, result::LocalPersistenceResult};
 use crate::{
-    output::{buffer::Buffers, SimulationOutputPersistenceRepr},
-    simulation::package::output::packages::Output,
+    output::{
+        buffer::Buffers,
+        error::{Error, Result},
+        SimulationOutputPersistenceRepr,
+    },
+    proto::{ExperimentID, SimulationShortID},
+    simulation::{package::output::packages::Output, step_output::SimulationStepOutput},
 };
-
-use super::config::LocalPersistenceConfig;
-use super::result::LocalPersistenceResult;
 
 #[derive(new)]
 pub struct LocalSimulationOutputPersistence {
     exp_id: ExperimentID,
-    _sim_id: SimulationShortID, // TODO - Should this be unused? If so remove
+    _sim_id: SimulationShortID, // TODO: Should this be unused? If so remove
     buffers: Buffers,
     config: LocalPersistenceConfig,
 }

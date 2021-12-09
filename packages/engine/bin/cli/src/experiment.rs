@@ -1,21 +1,17 @@
-use std::iter::FromIterator;
-use std::path::PathBuf;
-use std::time::Duration;
+use std::{iter::FromIterator, path::PathBuf, time::Duration};
 
 use anyhow::{bail, format_err, Context, Result};
-use hash_engine::experiment::controller::config::{
-    OutputPersistenceConfig, OUTPUT_PERSISTENCE_KEY,
+use hash_engine::{
+    experiment::controller::config::{OutputPersistenceConfig, OUTPUT_PERSISTENCE_KEY},
+    output::local::config::LocalPersistenceConfig,
+    proto::{self, ExecutionEnvironment},
+    utils::parse_env_duration,
 };
-use hash_engine::output::local::config::LocalPersistenceConfig;
-use hash_engine::proto::{self, ExecutionEnvironment};
-use hash_engine::utils::parse_env_duration;
 use serde_json::json;
 use tokio::time::{self, timeout};
 
 use super::process;
-use crate::exsrv::Handler;
-use crate::manifest::read_manifest;
-use crate::Args;
+use crate::{exsrv::Handler, manifest::read_manifest, Args};
 
 lazy_static::lazy_static! {
     static ref ENGINE_START_TIMEOUT: Duration = parse_env_duration("ENGINE_START_TIMEOUT", 180);
@@ -23,10 +19,10 @@ lazy_static::lazy_static! {
     static ref PING_INTERVAL: Duration = parse_env_duration("PING_INTERVAL", 5);
 }
 
-/// `run_experiment` will build a queue of tokio tasks attached the the simulation workers
-/// Any requests over the websocket will be handled and sent to the appropriate worker (if available)
-/// The simulations will run to completion and the connection will finish once the
-/// last run is done, or if there is an error.
+/// `run_experiment` will build a queue of tokio tasks attached the the simulation workers Any
+/// requests over the websocket will be handled and sent to the appropriate worker (if available)
+/// The simulations will run to completion and the connection will finish once the last run is done,
+/// or if there is an error.
 pub async fn run_experiment(args: Args, handler: Handler) -> Result<()> {
     let project = &args.project;
     let absolute_project_path = PathBuf::from(project)
@@ -66,8 +62,7 @@ async fn run_experiment_with_manifest(
         .context("Could not build engine command")?;
     let mut engine_process = cmd.run().await.context("Could not run experiment")?;
 
-    // Wait to receive a message that the experiment has started before sending the
-    // init message.
+    // Wait to receive a message that the experiment has started before sending the init message.
     let msg = timeout(*ENGINE_START_TIMEOUT, engine_handle.recv())
         .await
         .map_err(|_| format_err!("engine start timeout"));
@@ -130,7 +125,7 @@ async fn run_experiment_with_manifest(
             }
             proto::EngineStatus::SimStatus(status) => {
                 debug!("Got simulation run status: {status:?}");
-                // TODO OS - handle status fields
+                // TODO: OS - handle status fields
             }
             proto::EngineStatus::SimStop(sim_id) => {
                 debug!("Simulation stopped: {sim_id}");
@@ -158,7 +153,11 @@ async fn run_experiment_with_manifest(
                 break;
             }
             proto::EngineStatus::Started => {
-                error!("Received unexpected engine `Started` message after engine had already started: {}", msg.kind());
+                error!(
+                    "Received unexpected engine `Started` message after engine had already \
+                     started: {}",
+                    msg.kind()
+                );
                 break;
             }
         }

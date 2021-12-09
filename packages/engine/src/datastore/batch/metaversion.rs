@@ -13,10 +13,7 @@ pub struct Metaversion {
 
 impl Metaversion {
     pub fn new(memory: u32, batch: u32) -> Metaversion {
-        Metaversion {
-            memory: memory,
-            batch: batch,
-        }
+        Metaversion { memory, batch }
     }
 
     pub fn update(&mut self, new_state: &Metaversion) {

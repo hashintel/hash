@@ -1,12 +1,11 @@
-use super::super::{Error, ExperimentControl, Result};
-use crate::config::ExperimentConfig;
-use crate::experiment::controller::comms::exp_pkg_ctl::ExpPkgCtlSend;
-use crate::proto::SimulationShortID;
-use crate::{
-    experiment::controller::comms::exp_pkg_update::ExpPkgUpdateRecv, proto::SimpleExperimentConfig,
-};
-
 use std::{collections::HashMap, sync::Arc};
+
+use super::super::{Error, ExperimentControl, Result};
+use crate::{
+    config::ExperimentConfig,
+    experiment::controller::comms::{exp_pkg_ctl::ExpPkgCtlSend, exp_pkg_update::ExpPkgUpdateRecv},
+    proto::{SimpleExperimentConfig, SimulationShortID},
+};
 
 pub struct SimpleExperiment {
     _experiment_config: Arc<ExperimentConfig>, // TODO: unused, remove?
@@ -46,13 +45,10 @@ impl SimpleExperiment {
         let num_sims = self.config.changed_properties.len();
         for (sim_index, changed_properties) in self.config.changed_properties.iter().enumerate() {
             let sim_id = sim_index + 1; // We sometimes use 0 as a default/null value, therefore it's not a valid SimulationShortID
-            n_sims_steps.insert(
-                sim_id as SimulationShortID,
-                StepProgress {
-                    n_steps: 0,
-                    stopped: false,
-                },
-            );
+            n_sims_steps.insert(sim_id as SimulationShortID, StepProgress {
+                n_steps: 0,
+                stopped: false,
+            });
             let msg = ExperimentControl::StartSim {
                 sim_id: sim_id as SimulationShortID,
                 changed_properties: changed_properties.clone(),

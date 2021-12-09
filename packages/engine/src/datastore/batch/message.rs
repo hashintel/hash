@@ -1,28 +1,31 @@
 #![allow(clippy::cast_ptr_alignment, clippy::cast_sign_loss)]
 
-use super::{
-    change::ArrayChange, flush::GrowableBatch, ArrowBatch, Batch as BatchRepr, DynamicBatch,
-};
+use std::sync::Arc;
 
-use crate::datastore::{
-    arrow::{
-        ipc::{
-            read_record_batch, record_batch_data_to_bytes_owned_unchecked, record_batch_to_bytes,
-            simulate_record_batch_to_bytes,
-        },
-        message::{self, get_column_from_list_array, MESSAGE_COLUMN_INDEX, MESSAGE_COLUMN_NAME},
-    },
-    prelude::*,
-    table::references::AgentMessageReference,
-    UUID_V4_LEN,
-};
-
-use crate::hash_types::state::AgentStateField;
 use arrow::array;
 use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 
-use crate::datastore::schema::state::MessageSchema;
-use std::sync::Arc;
+use super::{
+    change::ArrayChange, flush::GrowableBatch, ArrowBatch, Batch as BatchRepr, DynamicBatch,
+};
+use crate::{
+    datastore::{
+        arrow::{
+            ipc::{
+                read_record_batch, record_batch_data_to_bytes_owned_unchecked,
+                record_batch_to_bytes, simulate_record_batch_to_bytes,
+            },
+            message::{
+                self, get_column_from_list_array, MESSAGE_COLUMN_INDEX, MESSAGE_COLUMN_NAME,
+            },
+        },
+        prelude::*,
+        schema::state::MessageSchema,
+        table::references::AgentMessageReference,
+        UUID_V4_LEN,
+    },
+    hash_types::state::AgentStateField,
+};
 
 // 1000 bytes per agent i.e. 10 MB for 10000 agents
 /// Soft upper bound for how many bytes per agent in the shared memory.
@@ -156,10 +159,10 @@ impl Batch {
         let empty_message_column =
             message::empty_messages_column(agent_count).map(Arc::new)? as Arc<dyn ArrowArray>;
 
-        let batch = RecordBatch::try_new(
-            self.arrow_schema.clone(),
-            vec![id_column.clone(), empty_message_column],
-        )?;
+        let batch = RecordBatch::try_new(self.arrow_schema.clone(), vec![
+            id_column.clone(),
+            empty_message_column,
+        ])?;
 
         let (meta_buffer, data_len) = simulate_record_batch_to_bytes(&batch);
 
@@ -201,7 +204,7 @@ impl Batch {
         // Write new data
         record_batch_data_to_bytes_owned_unchecked(&batch, data_buffer);
 
-        // TODO reloading batch could be faster if we persisted
+        // TODO: reloading batch could be faster if we persisted
         // fbb and WIPOffset<Message> from `simulate_record_batch_to_bytes`
         self.metaversion.increment_batch();
         self.reload_record_batch_and_dynamic_meta()?;
@@ -220,10 +223,10 @@ impl Batch {
         let empty_message_column =
             message::empty_messages_column(agent_count).map(Arc::new)? as Arc<dyn ArrowArray>;
 
-        let batch = RecordBatch::try_new(
-            schema.clone(),
-            vec![id_column.clone(), empty_message_column],
-        )?;
+        let batch = RecordBatch::try_new(schema.clone(), vec![
+            id_column.clone(),
+            empty_message_column,
+        ])?;
 
         let (meta_buffer, data_len) = simulate_record_batch_to_bytes(&batch);
         let mut memory =

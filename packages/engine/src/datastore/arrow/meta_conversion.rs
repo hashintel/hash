@@ -7,20 +7,19 @@
     clippy::match_same_arms
 )]
 
-use crate::datastore::{
-    error::Error,
-    meta::{Buffer, BufferType, Column as ColumnMeta, NodeMapping},
-    prelude::*,
-};
+use std::sync::Arc;
 
 use arrow::ipc::{
     Buffer as BufferMessage, FieldNode as NodeMessage, MessageBuilder, MessageHeader,
     MetadataVersion, RecordBatch, RecordBatchBuilder,
 };
 
-use std::sync::Arc;
-
 use super::util::FlatBufferWrapper;
+use crate::datastore::{
+    error::Error,
+    meta::{Buffer, BufferType, Column as ColumnMeta, NodeMapping},
+    prelude::*,
+};
 
 pub enum SupportedArrowDataTypes {
     Boolean,
@@ -320,17 +319,14 @@ pub fn data_type_to_metadata(
             2,
             vec![2],
             vec![is_parent_growable, is_parent_growable],
-            vec![NodeStaticMeta::new(
-                multiplier,
-                vec![
-                    BufferType::BitMap {
-                        is_null_bitmap: true,
-                    },
-                    BufferType::Data {
-                        unit_byte_size: *size as usize,
-                    },
-                ],
-            )],
+            vec![NodeStaticMeta::new(multiplier, vec![
+                BufferType::BitMap {
+                    is_null_bitmap: true,
+                },
+                BufferType::Data {
+                    unit_byte_size: *size as usize,
+                },
+            ])],
             NodeMapping::empty(),
         ),
         D::List(ref list_data_type) => {
@@ -340,15 +336,12 @@ pub fn data_type_to_metadata(
             buffer_counts.append(&mut b);
             let mut padding_meta = vec![is_parent_growable, is_parent_growable];
             padding_meta.append(&mut p);
-            let mut node_meta = vec![NodeStaticMeta::new(
-                multiplier,
-                vec![
-                    BufferType::BitMap {
-                        is_null_bitmap: true,
-                    },
-                    BufferType::Offset,
-                ],
-            )];
+            let mut node_meta = vec![NodeStaticMeta::new(multiplier, vec![
+                BufferType::BitMap {
+                    is_null_bitmap: true,
+                },
+                BufferType::Offset,
+            ])];
             node_meta.append(&mut c);
             (
                 n + 1,
@@ -366,12 +359,9 @@ pub fn data_type_to_metadata(
             buffer_counts.append(&mut b);
             let mut padding_meta = vec![is_parent_growable];
             padding_meta.append(&mut p);
-            let mut node_meta = vec![NodeStaticMeta::new(
-                multiplier,
-                vec![BufferType::BitMap {
-                    is_null_bitmap: true,
-                }],
-            )];
+            let mut node_meta = vec![NodeStaticMeta::new(multiplier, vec![BufferType::BitMap {
+                is_null_bitmap: true,
+            }])];
             node_meta.append(&mut c);
             (
                 n + 1,
@@ -387,17 +377,14 @@ pub fn data_type_to_metadata(
             2,
             vec![2],
             vec![is_parent_growable, is_parent_growable],
-            vec![NodeStaticMeta::new(
-                multiplier,
-                vec![
-                    BufferType::BitMap {
-                        is_null_bitmap: true,
-                    },
-                    BufferType::BitMap {
-                        is_null_bitmap: false,
-                    },
-                ],
-            )],
+            vec![NodeStaticMeta::new(multiplier, vec![
+                BufferType::BitMap {
+                    is_null_bitmap: true,
+                },
+                BufferType::BitMap {
+                    is_null_bitmap: false,
+                },
+            ])],
             NodeMapping::empty(),
         ),
         // Sizes taken from https://docs.rs/arrow/1.0.1/src/arrow/datatypes.rs.html#688
@@ -416,7 +403,7 @@ pub fn data_type_to_metadata(
 
         D::Time32(_) => data_type_metadata(is_parent_growable, multiplier, 4),
         D::Time64(_) => data_type_metadata(is_parent_growable, multiplier, 8),
-        D::Timestamp(_, _) => data_type_metadata(is_parent_growable, multiplier, 8),
+        D::Timestamp(..) => data_type_metadata(is_parent_growable, multiplier, 8),
 
         D::Date32(_) => data_type_metadata(is_parent_growable, multiplier, 4),
         D::Date64(_) => data_type_metadata(is_parent_growable, multiplier, 8),
@@ -435,12 +422,9 @@ pub fn data_type_to_metadata(
             let mut buffer_counts = vec![1];
             let mut buffer_count = 1;
             let mut buffer_is_growable_values = vec![is_parent_growable];
-            let mut node_meta = vec![NodeStaticMeta::new(
-                multiplier,
-                vec![BufferType::BitMap {
-                    is_null_bitmap: true,
-                }],
-            )];
+            let mut node_meta = vec![NodeStaticMeta::new(multiplier, vec![BufferType::BitMap {
+                is_null_bitmap: true,
+            }])];
             let mut child_node_mappings = Vec::with_capacity(fields.len());
             for field in fields {
                 let (n, child_buffer_count, mut b, mut p, mut c, node_mapping) =
@@ -485,15 +469,12 @@ fn data_type_metadata(
         2,
         vec![2],
         vec![is_parent_growable, is_parent_growable],
-        vec![NodeStaticMeta::new(
-            multiplier,
-            vec![
-                BufferType::BitMap {
-                    is_null_bitmap: true,
-                },
-                BufferType::Data { unit_byte_size },
-            ],
-        )],
+        vec![NodeStaticMeta::new(multiplier, vec![
+            BufferType::BitMap {
+                is_null_bitmap: true,
+            },
+            BufferType::Data { unit_byte_size },
+        ])],
         NodeMapping::empty(),
     )
 }
@@ -529,7 +510,8 @@ pub mod tests {
         node_data: &Arc<ArrowArrayData>,
         node_meta: &'a [NodeStaticMeta],
     ) -> (Vec<usize>, &'a [NodeStaticMeta]) {
-        // check current node's bitmap, node_meta is created by pre-order traversal so ordering should be same
+        // check current node's bitmap, node_meta is created by pre-order traversal so ordering
+        // should be same
         let has_null_bitmap = node_meta[0].get_data_types().iter().any(|buffer_type| {
             if let BufferType::BitMap { is_null_bitmap } = buffer_type {
                 return *is_null_bitmap;
@@ -537,8 +519,8 @@ pub mod tests {
             false
         });
 
-        // for some nodes we add an additional buffer to the metadata that is present in the underlying memory
-        // layout but isn't exposed within ArrowArrayData
+        // for some nodes we add an additional buffer to the metadata that is present in the
+        // underlying memory layout but isn't exposed within ArrowArrayData
         let mut buffers = if has_null_bitmap {
             vec![node_data.buffers().len() + 1]
         } else {
@@ -555,7 +537,8 @@ pub mod tests {
             buffers.extend(child_buffers);
         }
 
-        // return the slice for use in next call and avoid need for a counter or mutable state between recursive calls
+        // return the slice for use in next call and avoid need for a counter or mutable state
+        // between recursive calls
         (buffers, node_meta)
     }
 
@@ -572,7 +555,8 @@ pub mod tests {
         }
     }
 
-    // Extracts column hierarchy metadata from the Arrow Array data for a given FieldNode, and its children
+    // Extracts column hierarchy metadata from the Arrow Array data for a given FieldNode, and its
+    // children
     fn get_col_hierarchy_from_arrow_array(
         arrow_array: &dyn ArrowArray,
         node_infos: &[NodeStaticMeta],
@@ -607,23 +591,21 @@ pub mod tests {
 
         let expected_buffer_info = vec![false; num_buffers]; // no growable parents
 
-        let expected_node_info = vec![NodeStaticMeta::new(
-            1,
-            vec![
-                BufferType::BitMap {
-                    is_null_bitmap: true,
-                },
-                BufferType::BitMap {
-                    is_null_bitmap: false,
-                },
-            ],
-        )];
+        let expected_node_info = vec![NodeStaticMeta::new(1, vec![
+            BufferType::BitMap {
+                is_null_bitmap: true,
+            },
+            BufferType::BitMap {
+                is_null_bitmap: false,
+            },
+        ])];
 
         assert_eq!(column_info, expected_col_info);
         assert_eq!(buffer_info, expected_buffer_info);
         assert_eq!(node_info, expected_node_info);
 
-        // Now check that the extracted column metadata for the schema matches the underlying Arrow array's metadata once created
+        // Now check that the extracted column metadata for the schema matches the underlying Arrow
+        // array's metadata once created
 
         // set up dummy data column, entries don't matter as we're only interested in the structure,
         let bool_array = arrow::array::BooleanArray::from(vec![true, true, true, true, true]);
@@ -680,15 +662,12 @@ pub mod tests {
         let expected_node_info: Vec<NodeStaticMeta> = [1, 2, 4, 8, 1, 2, 4, 8, 4, 8]
             .iter()
             .map(|&unit_byte_size| {
-                NodeStaticMeta::new(
-                    1,
-                    vec![
-                        BufferType::BitMap {
-                            is_null_bitmap: true,
-                        },
-                        BufferType::Data { unit_byte_size },
-                    ],
-                )
+                NodeStaticMeta::new(1, vec![
+                    BufferType::BitMap {
+                        is_null_bitmap: true,
+                    },
+                    BufferType::Data { unit_byte_size },
+                ])
             })
             .collect();
 
@@ -696,7 +675,8 @@ pub mod tests {
         assert_eq!(buffer_info, expected_buffer_info);
         assert_eq!(node_info, expected_node_info);
 
-        // Now check that the extracted column metadata for the schema matches the underlying Arrow array's metadata once created
+        // Now check that the extracted column metadata for the schema matches the underlying Arrow
+        // array's metadata once created
 
         // set up dummy data columns
         let int8_array = arrow::array::Int8Array::from(vec![1, 2, 3, 4, 5, 6]);
@@ -787,15 +767,12 @@ pub mod tests {
         let expected_node_info: Vec<NodeStaticMeta> = unit_byte_sizes
             .iter()
             .map(|&unit_byte_size| {
-                NodeStaticMeta::new(
-                    1,
-                    vec![
-                        BufferType::BitMap {
-                            is_null_bitmap: true,
-                        },
-                        BufferType::Data { unit_byte_size },
-                    ],
-                )
+                NodeStaticMeta::new(1, vec![
+                    BufferType::BitMap {
+                        is_null_bitmap: true,
+                    },
+                    BufferType::Data { unit_byte_size },
+                ])
             })
             .collect();
 
@@ -803,10 +780,11 @@ pub mod tests {
         assert_eq!(buffer_info, expected_buffer_info);
         assert_eq!(node_info, expected_node_info);
 
-        // Now check that the extracted column metadata for the schema matches the underlying Arrow array's metadata once created
+        // Now check that the extracted column metadata for the schema matches the underlying Arrow
+        // array's metadata once created
 
-        // set up dummy data columns, entries don't matter as we're only interested in the structure,
-        // Arrow stores time data as i32 or i64's
+        // set up dummy data columns, entries don't matter as we're only interested in the
+        // structure, Arrow stores time data as i32 or i64's
         let time64_nanosecond_array =
             arrow::array::Time64NanosecondArray::from(vec![1, 2, 3, 4, 5, 6]);
         let time64_microsecond_array =
@@ -885,15 +863,12 @@ pub mod tests {
         let expected_node_info: Vec<NodeStaticMeta> = unit_byte_sizes
             .iter()
             .map(|&unit_byte_size| {
-                NodeStaticMeta::new(
-                    1,
-                    vec![
-                        BufferType::BitMap {
-                            is_null_bitmap: true,
-                        },
-                        BufferType::Data { unit_byte_size },
-                    ],
-                )
+                NodeStaticMeta::new(1, vec![
+                    BufferType::BitMap {
+                        is_null_bitmap: true,
+                    },
+                    BufferType::Data { unit_byte_size },
+                ])
             })
             .collect();
 
@@ -901,16 +876,18 @@ pub mod tests {
         assert_eq!(buffer_info, expected_buffer_info);
         assert_eq!(node_info, expected_node_info);
 
-        // Now check that the extracted column metadata for the schema matches the underlying Arrow array's metadata once created
+        // Now check that the extracted column metadata for the schema matches the underlying Arrow
+        // array's metadata once created
 
-        // set up dummy data columns, entries don't matter as we're only interested in the structure,
-        // Arrow stores date data as i32 or i64's
+        // set up dummy data columns, entries don't matter as we're only interested in the
+        // structure, Arrow stores date data as i32 or i64's
         let date32_array = arrow::array::Date32Array::from(vec![1, 2, 3, 4, 5, 6]);
         let date64_array = arrow::array::Date64Array::from(vec![1, 2, 3, 4, 5, 6]);
 
         let dummy_data_arrays: Vec<&dyn ArrowArray> = vec![
             &date32_array,
-            &date32_array, // duplicate to match schema as underlying unit doesn't affect memory layout
+            &date32_array, /* duplicate to match schema as underlying unit doesn't affect memory
+                            * layout */
             &date64_array,
             &date64_array,
         ];
@@ -969,15 +946,12 @@ pub mod tests {
         // all nodes have same structure
         let expected_node_info: Vec<NodeStaticMeta> = (0..fields.len())
             .map(|_| {
-                NodeStaticMeta::new(
-                    1,
-                    vec![
-                        BufferType::BitMap {
-                            is_null_bitmap: true,
-                        },
-                        BufferType::Data { unit_byte_size: 8 },
-                    ],
-                )
+                NodeStaticMeta::new(1, vec![
+                    BufferType::BitMap {
+                        is_null_bitmap: true,
+                    },
+                    BufferType::Data { unit_byte_size: 8 },
+                ])
             })
             .collect();
 
@@ -985,10 +959,11 @@ pub mod tests {
         assert_eq!(buffer_info, expected_buffer_info);
         assert_eq!(node_info, expected_node_info);
 
-        // Now check that the extracted column metadata for the schema matches the underlying Arrow array's metadata once created
+        // Now check that the extracted column metadata for the schema matches the underlying Arrow
+        // array's metadata once created
 
-        // set up dummy data columns, entries don't matter as we're only interested in the structure,
-        // Arrow stores duration data as i64's
+        // set up dummy data columns, entries don't matter as we're only interested in the
+        // structure, Arrow stores duration data as i64's
         let duration_nanosecond_array =
             arrow::array::DurationNanosecondArray::from(vec![1, 2, 3, 4, 5, 6]);
         let duration_microsecond_array =
@@ -1063,15 +1038,12 @@ pub mod tests {
         let expected_node_info: Vec<NodeStaticMeta> = unit_byte_sizes
             .iter()
             .map(|&unit_byte_size| {
-                NodeStaticMeta::new(
-                    1,
-                    vec![
-                        BufferType::BitMap {
-                            is_null_bitmap: true,
-                        },
-                        BufferType::Data { unit_byte_size },
-                    ],
-                )
+                NodeStaticMeta::new(1, vec![
+                    BufferType::BitMap {
+                        is_null_bitmap: true,
+                    },
+                    BufferType::Data { unit_byte_size },
+                ])
             })
             .collect();
 
@@ -1079,10 +1051,11 @@ pub mod tests {
         assert_eq!(buffer_info, expected_buffer_info);
         assert_eq!(node_info, expected_node_info);
 
-        // Now check that the extracted column metadata for the schema matches the underlying Arrow array's metadata once created
+        // Now check that the extracted column metadata for the schema matches the underlying Arrow
+        // array's metadata once created
 
-        // set up dummy data columns, entries don't matter as we're only interested in the structure,
-        // Arrow stores interval data as i32 and i64's
+        // set up dummy data columns, entries don't matter as we're only interested in the
+        // structure, Arrow stores interval data as i32 and i64's
         let interval_day_time_array =
             arrow::array::IntervalDayTimeArray::from(vec![1, 2, 3, 4, 5, 6]);
         let interval_year_month_array =
@@ -1149,15 +1122,12 @@ pub mod tests {
         // all nodes have same structure
         let expected_node_info: Vec<NodeStaticMeta> = (0..fields.len())
             .map(|_| {
-                NodeStaticMeta::new(
-                    1,
-                    vec![
-                        BufferType::BitMap {
-                            is_null_bitmap: true,
-                        },
-                        BufferType::Data { unit_byte_size: 8 },
-                    ],
-                )
+                NodeStaticMeta::new(1, vec![
+                    BufferType::BitMap {
+                        is_null_bitmap: true,
+                    },
+                    BufferType::Data { unit_byte_size: 8 },
+                ])
             })
             .collect();
 
@@ -1167,10 +1137,11 @@ pub mod tests {
         assert_eq!(buffer_info, expected_buffer_info);
         assert_eq!(node_info, expected_node_info);
 
-        // Now check that the extracted column metadata for the schema matches the underlying Arrow array's metadata once created
+        // Now check that the extracted column metadata for the schema matches the underlying Arrow
+        // array's metadata once created
 
-        // set up dummy data columns, entries don't matter as we're only interested in the structure,
-        // Arrow stores timestamp data as  i64's
+        // set up dummy data columns, entries don't matter as we're only interested in the
+        // structure, Arrow stores timestamp data as  i64's
         let timestamp_microsecond_array =
             arrow::array::TimestampMicrosecondArray::from(vec![1, 2, 3, 4, 5, 6]);
         let timestamp_millisecond_array =
@@ -1248,17 +1219,14 @@ pub mod tests {
         let expected_node_info: Vec<NodeStaticMeta> = fixed_sizes
             .iter()
             .map(|&fixed_size| {
-                NodeStaticMeta::new(
-                    1,
-                    vec![
-                        BufferType::BitMap {
-                            is_null_bitmap: true,
-                        },
-                        BufferType::Data {
-                            unit_byte_size: fixed_size as usize,
-                        },
-                    ],
-                )
+                NodeStaticMeta::new(1, vec![
+                    BufferType::BitMap {
+                        is_null_bitmap: true,
+                    },
+                    BufferType::Data {
+                        unit_byte_size: fixed_size as usize,
+                    },
+                ])
             })
             .collect();
 
@@ -1266,9 +1234,11 @@ pub mod tests {
         assert_eq!(buffer_info, expected_buffer_info);
         assert_eq!(node_info, expected_node_info);
 
-        // Now check that the extracted column metadata for the schema matches the underlying Arrow array's metadata once created
+        // Now check that the extracted column metadata for the schema matches the underlying Arrow
+        // array's metadata once created
 
-        // set up dummy data columns, entries don't matter as we're only interested in the structure,
+        // set up dummy data columns, entries don't matter as we're only interested in the
+        // structure,
         let dummy_data_arrays: Vec<arrow::array::FixedSizeBinaryArray> = fixed_sizes
             .iter()
             .map(|&size| {
@@ -1329,16 +1299,13 @@ pub mod tests {
         // all nodes have the same structure
         let expected_node_info: Vec<NodeStaticMeta> = (0..fields.len())
             .map(|_| {
-                NodeStaticMeta::new(
-                    1,
-                    vec![
-                        BufferType::BitMap {
-                            is_null_bitmap: true,
-                        },
-                        BufferType::Offset,
-                        BufferType::Data { unit_byte_size: 1 },
-                    ],
-                )
+                NodeStaticMeta::new(1, vec![
+                    BufferType::BitMap {
+                        is_null_bitmap: true,
+                    },
+                    BufferType::Offset,
+                    BufferType::Data { unit_byte_size: 1 },
+                ])
             })
             .collect();
 
@@ -1346,9 +1313,11 @@ pub mod tests {
         assert_eq!(buffer_info, expected_buffer_info);
         assert_eq!(node_info, expected_node_info);
 
-        // Now check that the extracted column metadata for the schema matches the underlying Arrow array's metadata once created
+        // Now check that the extracted column metadata for the schema matches the underlying Arrow
+        // array's metadata once created
 
-        // set up dummy data columns, entries don't matter as we're only interested in the structure,
+        // set up dummy data columns, entries don't matter as we're only interested in the
+        // structure,
         let mut string_builder = arrow::array::StringBuilder::new(6);
         for string in ["one", "two", "three", "four", "five", "six"] {
             string_builder.append_value(string).unwrap();
@@ -1416,56 +1385,46 @@ pub mod tests {
 
         let expected_node_info: Vec<NodeStaticMeta> = vec![
             // List Node "c0"
-            NodeStaticMeta::new(
-                1,
-                vec![
-                    BufferType::BitMap {
-                        is_null_bitmap: true,
-                    },
-                    BufferType::Offset,
-                ],
-            ),
+            NodeStaticMeta::new(1, vec![
+                BufferType::BitMap {
+                    is_null_bitmap: true,
+                },
+                BufferType::Offset,
+            ]),
             // Bool Node
-            NodeStaticMeta::new(
-                1,
-                vec![
-                    BufferType::BitMap {
-                        is_null_bitmap: true,
-                    },
-                    BufferType::BitMap {
-                        is_null_bitmap: false,
-                    },
-                ],
-            ),
+            NodeStaticMeta::new(1, vec![
+                BufferType::BitMap {
+                    is_null_bitmap: true,
+                },
+                BufferType::BitMap {
+                    is_null_bitmap: false,
+                },
+            ]),
             // List Node "c1"
-            NodeStaticMeta::new(
-                1,
-                vec![
-                    BufferType::BitMap {
-                        is_null_bitmap: true,
-                    },
-                    BufferType::Offset,
-                ],
-            ),
+            NodeStaticMeta::new(1, vec![
+                BufferType::BitMap {
+                    is_null_bitmap: true,
+                },
+                BufferType::Offset,
+            ]),
             // UInt32 Node
-            NodeStaticMeta::new(
-                1,
-                vec![
-                    BufferType::BitMap {
-                        is_null_bitmap: true,
-                    },
-                    BufferType::Data { unit_byte_size: 4 },
-                ],
-            ),
+            NodeStaticMeta::new(1, vec![
+                BufferType::BitMap {
+                    is_null_bitmap: true,
+                },
+                BufferType::Data { unit_byte_size: 4 },
+            ]),
         ];
 
         assert_eq!(column_info, expected_col_info);
         assert_eq!(buffer_info, expected_buffer_info);
         assert_eq!(node_info, expected_node_info);
 
-        // Now check that the extracted column metadata for the schema matches the underlying Arrow array's metadata once created
+        // Now check that the extracted column metadata for the schema matches the underlying Arrow
+        // array's metadata once created
 
-        // set up dummy data columns, entries don't matter as we're only interested in the structure,
+        // set up dummy data columns, entries don't matter as we're only interested in the
+        // structure,
         let capacity = 6;
         let bool_builder = arrow::array::BooleanBuilder::new(capacity);
         let mut bool_list_builder = arrow::array::ListBuilder::new(bool_builder);
@@ -1559,51 +1518,41 @@ pub mod tests {
 
         let expected_node_info = vec![
             // struct "c0"
-            NodeStaticMeta::new(
-                1,
-                vec![BufferType::BitMap {
-                    is_null_bitmap: true,
-                }],
-            ),
+            NodeStaticMeta::new(1, vec![BufferType::BitMap {
+                is_null_bitmap: true,
+            }]),
             // utf8 "a"
-            NodeStaticMeta::new(
-                1,
-                vec![
-                    BufferType::BitMap {
-                        is_null_bitmap: true,
-                    },
-                    BufferType::Offset,
-                    BufferType::Data { unit_byte_size: 1 },
-                ],
-            ),
-            // bool "b"
-            NodeStaticMeta::new(
-                1,
-                vec![
-                    BufferType::BitMap {
-                        is_null_bitmap: true,
-                    },
-                    BufferType::BitMap {
-                        is_null_bitmap: false,
-                    },
-                ],
-            ),
-            // struct "c1"
-            NodeStaticMeta::new(
-                1,
-                vec![BufferType::BitMap {
+            NodeStaticMeta::new(1, vec![
+                BufferType::BitMap {
                     is_null_bitmap: true,
-                }],
-            ),
+                },
+                BufferType::Offset,
+                BufferType::Data { unit_byte_size: 1 },
+            ]),
+            // bool "b"
+            NodeStaticMeta::new(1, vec![
+                BufferType::BitMap {
+                    is_null_bitmap: true,
+                },
+                BufferType::BitMap {
+                    is_null_bitmap: false,
+                },
+            ]),
+            // struct "c1"
+            NodeStaticMeta::new(1, vec![BufferType::BitMap {
+                is_null_bitmap: true,
+            }]),
         ];
 
         assert_eq!(column_info, expected_col_info);
         assert_eq!(buffer_info, expected_buffer_info);
         assert_eq!(node_info, expected_node_info);
 
-        // Now check that the extracted column metadata for the schema matches the underlying Arrow array's metadata once created
+        // Now check that the extracted column metadata for the schema matches the underlying Arrow
+        // array's metadata once created
 
-        // set up dummy data columns, entries don't matter as we're only interested in the structure,
+        // set up dummy data columns, entries don't matter as we're only interested in the
+        // structure,
         let mut string_builder = arrow::array::StringBuilder::new(6);
         for string in ["one", "two", "three", "four", "five", "six"] {
             string_builder.append_value(string).unwrap();

@@ -1,5 +1,5 @@
 _prepare_user_trace = (error, trace) => {
-    // TODO Check that line numbers aren't off by 2
+    // TODO: Check that line numbers aren't off by 2
     const frames = [];
     for (var i = 0; i < trace.length; ++i) {
         var t = trace[i];

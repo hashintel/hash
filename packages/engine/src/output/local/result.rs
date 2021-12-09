@@ -1,6 +1,6 @@
-use crate::output::{OutputPersistenceResultRepr, Result};
-
 use serde::Serialize;
+
+use crate::output::{OutputPersistenceResultRepr, Result};
 
 #[derive(new, Serialize)]
 pub struct LocalPersistenceResult {

@@ -1,12 +1,12 @@
-use crate::proto::SimulationShortID;
 use serde_json::Value;
 
-use crate::config::PersistenceConfig;
-use crate::output::error::Result;
-use crate::output::OutputPersistenceResultRepr;
-use crate::simulation::step_output::SimulationStepOutput;
-
 use super::{OutputPersistenceCreatorRepr, SimulationOutputPersistenceRepr};
+use crate::{
+    config::PersistenceConfig,
+    output::{error::Result, OutputPersistenceResultRepr},
+    proto::SimulationShortID,
+    simulation::step_output::SimulationStepOutput,
+};
 
 pub struct NoOutputPersistence {}
 

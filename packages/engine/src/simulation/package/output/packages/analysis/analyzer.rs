@@ -2,16 +2,16 @@ use std::{collections::HashMap, convert::TryFrom, sync::Arc};
 
 use serde::{Deserialize, Serialize};
 
-use crate::datastore::batch::AgentBatch;
-use crate::datastore::schema::accessor::FieldSpecMapAccessor;
-use crate::datastore::schema::state::AgentSchema;
-use crate::simulation::package::output::packages::analysis::output::{
-    AnalysisFinalOutput, AnalysisSingleOutput,
+use super::{index_iter, AnalysisOutput, Error, Result};
+use crate::{
+    datastore::{
+        batch::AgentBatch,
+        schema::{accessor::FieldSpecMapAccessor, state::AgentSchema},
+    },
+    simulation::package::output::packages::analysis::output::{
+        AnalysisFinalOutput, AnalysisSingleOutput,
+    },
 };
-
-use super::index_iter;
-use super::AnalysisOutput;
-use super::{Error, Result};
 
 pub(crate) const ULPS: i64 = 2;
 
@@ -85,8 +85,9 @@ impl Analyzer {
                 .outputs
                 .iter()
                 .map(|(name, _, outputs)| {
-                    // TODO revisit architecture, these clones seem unnecessary, having a single vec instead
-                    //     of a HashMap seems like it would be a lot more efficient and just keep ordering
+                    // TODO: revisit architecture, these clones seem unnecessary, having a single
+                    // vec instead of a HashMap seems like it would be a lot more efficient and just
+                    // keep ordering
                     (name.clone(), outputs.last().unwrap().clone())
                 })
                 .collect(),
@@ -115,7 +116,7 @@ impl<'a> TryFrom<&'a str> for AnalysisSourceRepr {
                     return Err(Error::from(format!(
                         "Parsing the Analysis definition ('analysis.json') failed: {}",
                         why.to_string()
-                    )))
+                    )));
                 }
             };
             Ok(repr)

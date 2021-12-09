@@ -1,5 +1,7 @@
 use crate::datastore::{
-    arrow::meta_conversion::get_dynamic_meta_flatbuffers, arrow::padding, error::Result, prelude::*,
+    arrow::{meta_conversion::get_dynamic_meta_flatbuffers, padding},
+    error::Result,
+    prelude::*,
 };
 
 pub trait GrowableArrayData: Sized + std::fmt::Debug {
@@ -70,13 +72,10 @@ pub trait GrowableBatch<C: GrowableColumn<D>, D: GrowableArrayData> {
             array_datas.iter().enumerate().for_each(|(i, array_data)| {
                 let node_index = meta.node_start + i;
                 // Update Node information
-                node_changes.push((
-                    node_index,
-                    Node {
-                        null_count: array_data._null_count(),
-                        length: array_data._len(),
-                    },
-                ));
+                node_changes.push((node_index, Node {
+                    null_count: array_data._null_count(),
+                    length: array_data._len(),
+                }));
 
                 // Null buffer calculation.
                 // The null buffer is always the first buffer in a column,

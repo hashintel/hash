@@ -1,6 +1,8 @@
-use super::{error::Result, state::Agent};
-use serde::{de::Deserializer, Deserialize, Serialize};
 use std::{collections::HashMap, fmt};
+
+use serde::{de::Deserializer, Deserialize, Serialize};
+
+use super::{error::Result, state::Agent};
 
 /*
  * We want Serde to deserialize a message to the correct enum variant,
@@ -111,7 +113,8 @@ fn ensure_blank_remove_agent_is_inferred() -> Result<()> {
 /// Debug required by From<Error> for `SimulationError`
 #[derive(Debug)]
 pub enum Error {
-    // instead of having 2 error variants to represent a missing type, just encode it into the 'got'
+    // instead of having 2 error variants to represent a missing type, just encode it into the
+    // 'got'
     InvalidMessageType(Option<String>),
     UnknownSerdeError(serde_json::Error),
 }

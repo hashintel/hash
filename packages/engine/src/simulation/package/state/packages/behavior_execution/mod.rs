@@ -5,22 +5,27 @@ pub mod config;
 pub mod fields;
 pub mod tasks;
 
-use self::{config::exp_init_message, fields::behavior::BehaviorMap};
-use crate::datastore::schema::accessor::GetFieldSpec;
-
-use crate::datastore::schema::FieldSource;
-use crate::datastore::table::state::ReadState;
-use crate::datastore::table::task_shared_store::TaskSharedStoreBuilder;
-use crate::simulation::package::name::PackageName;
-use crate::simulation::package::state::packages::behavior_execution::config::BehaviorIds;
-use crate::simulation::package::state::packages::behavior_execution::tasks::ExecuteBehaviorsTask;
-use crate::simulation::task::active::ActiveTask;
-use crate::simulation::task::Task;
-use crate::Language;
 use reset_index_col::reset_index_col;
 use serde_json::Value;
 
+use self::{config::exp_init_message, fields::behavior::BehaviorMap};
 use super::super::*;
+use crate::{
+    datastore::{
+        schema::{accessor::GetFieldSpec, FieldSource},
+        table::{state::ReadState, task_shared_store::TaskSharedStoreBuilder},
+    },
+    simulation::{
+        package::{
+            name::PackageName,
+            state::packages::behavior_execution::{
+                config::BehaviorIds, tasks::ExecuteBehaviorsTask,
+            },
+        },
+        task::{active::ActiveTask, Task},
+    },
+    Language,
+};
 
 pub const BEHAVIOR_INDEX_INNER_COUNT: usize = 2;
 pub type BehaviorIdInnerDataType = u16;
@@ -34,13 +39,17 @@ pub struct Creator {
 
 impl Creator {
     fn get_behavior_ids(&self) -> Result<&Arc<BehaviorIds>> {
-        Ok(self.behavior_ids.as_ref().ok_or(
-            Error::from("BehaviorExecution Package Creator didn't have behavior ids, maybe `initialize_for_experiment` wasn't called."))?)
+        Ok(self.behavior_ids.as_ref().ok_or(Error::from(
+            "BehaviorExecution Package Creator didn't have behavior ids, maybe \
+             `initialize_for_experiment` wasn't called.",
+        ))?)
     }
 
     fn get_behavior_map(&self) -> Result<&Arc<BehaviorMap>> {
-        Ok(self.behavior_map.as_ref().ok_or(
-            Error::from("BehaviorExecution Package Creator didn't have behavior map, maybe `initialize_for_experiment` wasn't called."))?)
+        Ok(self.behavior_map.as_ref().ok_or(Error::from(
+            "BehaviorExecution Package Creator didn't have behavior map, maybe \
+             `initialize_for_experiment` wasn't called.",
+        ))?)
     }
 }
 
@@ -75,7 +84,8 @@ impl PackageCreator for Creator {
         accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn Package>> {
         let behavior_ids_col_data_types = fields::id_column_data_types()?;
-        // TODO - probably just rename the actual field key to behavior_ids (rather than behavior indices) to avoid confusion with "behavior_index" col
+        // TODO: probably just rename the actual field key to behavior_ids (rather than behavior
+        // indices) to avoid confusion with "behavior_index" col
         let behavior_ids_col = accessor
             .get_local_private_scoped_field_spec("behavior_ids")?
             .to_key()?;
@@ -132,12 +142,12 @@ impl GetWorkerSimStartMsg for BehaviorExecution {
     }
 }
 
-// TODO OS - Needs implementing
+// TODO: OS - Needs implementing
 impl BehaviorExecution {
-    // TODO update doc with correct key, not __behaviors
+    // TODO: update doc with correct key, not __behaviors
     /// Iterates over all "behaviors" fields of agents and writes them into their "behaviors" field.
-    /// This fixation guarantees that all behaviors that were there in the beginning of behavior execution
-    /// will be executed accordingly
+    /// This fixation guarantees that all behaviors that were there in the beginning of behavior
+    /// execution will be executed accordingly
     fn fix_behavior_chains(&mut self, state: &mut ExState) -> Result<()> {
         let behavior_ids = chain::gather_behavior_chains(
             state,
@@ -220,7 +230,7 @@ impl Package for BehaviorExecution {
         log::trace!("Beginning BehaviorExecution task");
         let active_task = self.begin_execution(state, context, lang).await?;
         let msg = active_task.drive_to_completion().await?; // Wait for results
-                                                            // TODO: Get latest metaversions from message and reload state if necessary.
+        // TODO: Get latest metaversions from message and reload state if necessary.
         log::trace!("BehaviorExecution task finished: {:?}", &msg);
         Ok(())
     }

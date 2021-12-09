@@ -26,36 +26,40 @@
 // Every additional comment is marked by "COM"
 
 // ADD: use central source of information
-use super::{padding, util::FlatBufferWrapper};
+use std::sync::Arc;
 
-use arrow::array::{
-    ArrayData, ArrayDataRef, ArrayRef, BinaryArray, BooleanArray, Date32Array, Date64Array,
-    DictionaryArray, DurationMicrosecondArray, DurationMillisecondArray, DurationNanosecondArray,
-    DurationSecondArray, FixedSizeBinaryArray, FixedSizeListArray, Float32Array, Float64Array,
-    Int16Array, Int32Array, Int64Array, Int8Array, IntervalDayTimeArray, IntervalYearMonthArray,
-    ListArray, NullArray, StringArray, StructArray, Time32MillisecondArray, Time32SecondArray,
-    Time64MicrosecondArray, Time64NanosecondArray, TimestampMicrosecondArray,
-    TimestampMillisecondArray, TimestampNanosecondArray, TimestampSecondArray, UInt16Array,
-    UInt32Array, UInt64Array, UInt8Array, UnionArray,
-};
-use arrow::buffer::{Buffer, MutableBuffer};
-use arrow::compute::cast;
-use arrow::datatypes::{
-    DataType,
-    DataType::{
-        Binary, Boolean, Date32, Date64, Duration, FixedSizeBinary, Float32, Float64, Int16, Int32,
-        Int64, Int8, Interval, Time32, Time64, Timestamp, UInt16, UInt32, UInt64, UInt8, Utf8,
+use arrow::{
+    array::{
+        ArrayData, ArrayDataRef, ArrayRef, BinaryArray, BooleanArray, Date32Array, Date64Array,
+        DictionaryArray, DurationMicrosecondArray, DurationMillisecondArray,
+        DurationNanosecondArray, DurationSecondArray, FixedSizeBinaryArray, FixedSizeListArray,
+        Float32Array, Float64Array, Int16Array, Int32Array, Int64Array, Int8Array,
+        IntervalDayTimeArray, IntervalYearMonthArray, ListArray, NullArray, StringArray,
+        StructArray, Time32MillisecondArray, Time32SecondArray, Time64MicrosecondArray,
+        Time64NanosecondArray, TimestampMicrosecondArray, TimestampMillisecondArray,
+        TimestampNanosecondArray, TimestampSecondArray, UInt16Array, UInt32Array, UInt64Array,
+        UInt8Array, UnionArray,
     },
-    DateUnit, Int16Type, Int32Type, Int64Type, Int8Type, IntervalUnit, Schema, TimeUnit,
-    UInt16Type, UInt32Type, UInt64Type, UInt8Type,
+    buffer::{Buffer, MutableBuffer},
+    compute::cast,
+    datatypes::{
+        DataType,
+        DataType::{
+            Binary, Boolean, Date32, Date64, Duration, FixedSizeBinary, Float32, Float64, Int16,
+            Int32, Int64, Int8, Interval, Time32, Time64, Timestamp, UInt16, UInt32, UInt64, UInt8,
+            Utf8,
+        },
+        DateUnit, Int16Type, Int32Type, Int64Type, Int8Type, IntervalUnit, Schema, TimeUnit,
+        UInt16Type, UInt32Type, UInt64Type, UInt8Type,
+    },
+    error::{ArrowError, Result},
+    ipc,
+    record_batch::RecordBatch,
+    util::bit_util,
 };
-use arrow::error::{ArrowError, Result};
-use arrow::ipc;
-use arrow::record_batch::RecordBatch;
-use arrow::util::bit_util;
 use flatbuffers_arrow::FlatBufferBuilder;
 
-use std::sync::Arc;
+use super::{padding, util::FlatBufferWrapper};
 
 // MOD: Changed to zero-copy Buffer, i.e. Buffer::from -> Buffer::from_unowned
 //      debug_assert
@@ -74,9 +78,10 @@ fn read_buffer(buf: &ipc::Buffer, a_data: &[u8]) -> Buffer {
 /// Coordinates reading arrays based on data types.
 ///
 /// Notes:
-/// * In the IPC format, null buffers are always set, but may be empty. We discard them if an array has 0 nulls
-/// * Numeric values inside list arrays are often stored as 64-bit values regardless of their data type size.
-///   We thus:
+/// * In the IPC format, null buffers are always set, but may be empty. We discard them if an array
+///   has 0 nulls
+/// * Numeric values inside list arrays are often stored as 64-bit values regardless of their data
+///   type size. We thus:
 ///     - check if the bit width of non-64-bit numbers is 64, and
 ///     - read the buffer as 64-bit (signed integer or float), and
 ///     - cast the 64-bit array to the appropriate data type
@@ -169,7 +174,7 @@ fn create_array(
 
             // read the arrays for each field
             let mut struct_arrays = vec![];
-            // TODO investigate whether just knowing the number of buffers could still work
+            // TODO: investigate whether just knowing the number of buffers could still work
             for struct_field in struct_fields {
                 let triple = create_array(
                     nodes,
@@ -198,7 +203,7 @@ fn create_array(
             Arc::new(struct_array)
         }
         // Create dictionary array from RecordBatch
-        Dictionary(_, _) => {
+        Dictionary(..) => {
             let index_node = &nodes[node_index];
             let index_buffers: Vec<Buffer> = buffers[buffer_index..buffer_index + 2]
                 .iter()
@@ -353,7 +358,7 @@ fn create_primitive_array(
         | UInt64
         | Float64
         | Time64(_)
-        | Timestamp(_, _)
+        | Timestamp(..)
         | Date64(_)
         | Duration(_)
         | Interval(IntervalUnit::DayTime) => {
@@ -396,7 +401,7 @@ fn create_list_array(
                 .null_bit_buffer(buffers[0].clone())
         }
         make_array(builder.build())
-    } else if let DataType::FixedSizeList(_, _) = *data_type {
+    } else if let DataType::FixedSizeList(..) = *data_type {
         let null_count = field_node.null_count() as usize;
         let mut builder = ArrayData::builder(data_type.clone())
             .len(field_node.length() as usize)
@@ -423,7 +428,7 @@ fn create_dictionary_array(
     buffers: &[Buffer],
     value_array: ArrayRef,
 ) -> ArrayRef {
-    if let DataType::Dictionary(_, _) = *data_type {
+    if let DataType::Dictionary(..) = *data_type {
         let null_count = field_node.null_count() as usize;
         let mut builder = ArrayData::builder(data_type.clone())
             .len(field_node.length() as usize)
@@ -546,7 +551,7 @@ pub fn make_array(data: ArrayDataRef) -> ArrayRef {
         DataType::List(_) => Arc::new(ListArray::from(data)) as ArrayRef,
         DataType::Struct(_) => Arc::new(StructArray::from(data)) as ArrayRef,
         DataType::Union(_) => Arc::new(UnionArray::from(data)) as ArrayRef,
-        DataType::FixedSizeList(_, _) => Arc::new(FixedSizeListArray::from(data)) as ArrayRef,
+        DataType::FixedSizeList(..) => Arc::new(FixedSizeListArray::from(data)) as ArrayRef,
         DataType::Dictionary(ref key_type, _) => match key_type.as_ref() {
             DataType::Int8 => Arc::new(DictionaryArray::<Int8Type>::from(data)) as ArrayRef,
             DataType::Int16 => Arc::new(DictionaryArray::<Int16Type>::from(data)) as ArrayRef,
@@ -588,7 +593,8 @@ pub(crate) fn schema_to_bytes<'fbb>(schema: &Schema) -> FlatBufferWrapper<'fbb> 
 // MOD:`record_batch_to_bytes` -> `static_record_batch_to_bytes`
 //      FlatBufferWrapper
 // COPY: ::ipc::writer.rs
-/// Write a `RecordBatch` into a tuple of bytes, one for the header (ipc::Message) and the other for the batch's data
+/// Write a `RecordBatch` into a tuple of bytes, one for the header (ipc::Message) and the other for
+/// the batch's data
 pub(crate) fn static_record_batch_to_bytes<'fbb>(
     batch: &RecordBatch,
 ) -> (FlatBufferWrapper<'fbb>, Vec<u8>) {
@@ -638,7 +644,8 @@ pub(crate) fn static_record_batch_to_bytes<'fbb>(
 // MOD: Added padding_meta
 //      FlatBufferWrapper
 // COPY: ::ipc::writer.rs
-/// Write a `RecordBatch` into a tuple of bytes, one for the header (ipc::Message) and the other for the batch's data
+/// Write a `RecordBatch` into a tuple of bytes, one for the header (ipc::Message) and the other for
+/// the batch's data
 pub(crate) fn record_batch_to_bytes<'fbb>(
     batch: &RecordBatch,
 ) -> (FlatBufferWrapper<'fbb>, Vec<u8>) {

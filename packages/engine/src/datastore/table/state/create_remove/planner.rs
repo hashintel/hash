@@ -1,17 +1,4 @@
-use std::ops::Deref;
-use std::sync::Arc;
-
-use crate::datastore::table::pool::BatchPool;
-use crate::SimRunConfig;
-use crate::{
-    datastore::{
-        batch::migration::{BufferActions, IndexRange, RangeActions},
-        error::Result,
-        prelude::*,
-        table::{pool::agent::AgentPool, state::ReadState},
-    },
-    simulation::command::CreateRemoveCommands,
-};
+use std::{ops::Deref, sync::Arc};
 
 use super::{
     super::*,
@@ -20,6 +7,19 @@ use super::{
     command::ProcessedCommands,
     distribution::BatchDistribution,
     MigrationPlan,
+};
+use crate::{
+    datastore::{
+        batch::migration::{BufferActions, IndexRange, RangeActions},
+        error::Result,
+        prelude::*,
+        table::{
+            pool::{agent::AgentPool, BatchPool},
+            state::ReadState,
+        },
+    },
+    simulation::command::CreateRemoveCommands,
+    SimRunConfig,
 };
 
 pub struct CreateRemovePlanner {
@@ -157,10 +157,10 @@ fn buffer_actions_from_pending_batch<'a>(
     // We don't copy agents between batches anymore
     let copy = (0, vec![]);
     let create = {
-        (
+        (batch.num_inbound(), vec![IndexRange::new(
+            *inbound_taken_count,
             batch.num_inbound(),
-            vec![IndexRange::new(*inbound_taken_count, batch.num_inbound())],
-        )
+        )])
     };
 
     *inbound_taken_count += create.0;

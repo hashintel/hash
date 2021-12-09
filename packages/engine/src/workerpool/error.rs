@@ -1,7 +1,7 @@
-use crate::simulation::task::msg::TaskResultOrCancelled;
-use crate::{proto, worker};
 use thiserror::Error as ThisError;
 use tokio::sync::mpsc::error::SendError;
+
+use crate::{proto, simulation::task::msg::TaskResultOrCancelled, worker};
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 

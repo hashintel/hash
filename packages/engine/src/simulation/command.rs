@@ -1,20 +1,20 @@
 use std::{collections::HashSet, sync::Arc};
 
-use crate::hash_types::{message::RemoveAgentPayload, Agent};
-
 use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 use uuid::Uuid;
 
 use super::{Error, Result};
-
-use crate::datastore::arrow::batch_conversion::IntoRecordBatch;
-use crate::datastore::schema::{state::AgentSchema, FieldKey};
-use crate::datastore::{
-    table::{
-        pool::message::MessagePoolRead, references::MessageMap,
-        state::create_remove::ProcessedCommands,
+use crate::{
+    datastore::{
+        arrow::batch_conversion::IntoRecordBatch,
+        schema::{state::AgentSchema, FieldKey},
+        table::{
+            pool::message::MessagePoolRead, references::MessageMap,
+            state::create_remove::ProcessedCommands,
+        },
+        UUID_V4_LEN,
     },
-    UUID_V4_LEN,
+    hash_types::{message::RemoveAgentPayload, Agent},
 };
 
 //TODO[9](docs) Update docs to reflect that these variants are only allowed
@@ -51,7 +51,8 @@ impl CreateRemoveCommands {
     pub fn verify(&self, schema: &Arc<AgentSchema>) -> Result<()> {
         let field_spec_map = &schema.field_spec_map; // Fields for entire simulation.
 
-        // TODO[2](optimization): Convert `fields` HashMap to perfect hash set here if it makes lookups faster.
+        // TODO[2](optimization): Convert `fields` HashMap to perfect hash set here if it makes
+        // lookups faster.
         for create in &self.create {
             for field in create.agent.custom.keys() {
                 // Hopefully branch prediction will make this not as slow as it looks.
@@ -82,8 +83,8 @@ impl CreateRemoveCommands {
         let res: CreateRemoveCommands = refs
             .into_par_iter()
             .map(|refs| {
-                // TODO[5](optimization) see if collecting type information before (to avoid cache misses on large batches)
-                // yields better results
+                // TODO[5](optimization) see if collecting type information before (to avoid cache
+                // misses on large batches) yields better results
                 let hash_message_types =
                     message_reader
                         .type_iter(refs)

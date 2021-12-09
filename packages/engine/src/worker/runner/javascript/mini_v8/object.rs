@@ -1,6 +1,6 @@
+use std::{fmt, marker::PhantomData};
+
 use super::*;
-use std::fmt;
-use std::marker::PhantomData;
 
 /// Reference to a JavaScript object.
 #[derive(Clone)]

@@ -1,8 +1,7 @@
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
-use crate::worker::runner::comms::NewSimulationRun;
-
 use super::Result;
+use crate::worker::runner::comms::NewSimulationRun;
 
 #[derive(Debug)]
 pub enum ExperimentToWorkerPoolMsg {

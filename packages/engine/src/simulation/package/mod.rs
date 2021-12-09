@@ -31,27 +31,31 @@ pub mod run;
 pub mod worker_init;
 
 pub mod prelude {
-    pub use super::super::comms::Comms;
-    pub use crate::config::{ExperimentConfig, SimulationConfig};
-    pub use crate::datastore::{
-        prelude::*,
-        table::context::{Context, ExContext},
-        table::state::{ExState, State},
-    };
-    pub use crate::simulation::{Error, Result};
+    pub use async_trait::async_trait;
 
     pub use super::{
-        context::Package as ContextPackage, init::Package as InitPackage,
+        super::comms::Comms, context::Package as ContextPackage, init::Package as InitPackage,
         output::Package as OutputPackage, state::Package as StatePackage,
     };
-    pub use async_trait::async_trait;
+    pub use crate::{
+        config::{ExperimentConfig, SimulationConfig},
+        datastore::{
+            prelude::*,
+            table::{
+                context::{Context, ExContext},
+                state::{ExState, State},
+            },
+        },
+        simulation::{Error, Result},
+    };
 }
 
 use serde::Serialize;
 
-use crate::gen;
-use crate::simulation::package::deps::Dependencies;
-use crate::simulation::package::id::PackageId;
+use crate::{
+    gen,
+    simulation::package::{deps::Dependencies, id::PackageId},
+};
 
 #[derive(Clone, Copy, Debug)]
 pub enum PackageType {

@@ -1,12 +1,15 @@
+use std::{
+    any::Any,
+    cell::RefCell,
+    collections::BTreeMap,
+    mem, ptr,
+    string::String as StdString,
+    sync::{Arc, Condvar, Mutex},
+    thread,
+    time::Duration,
+};
+
 use super::*;
-use std::any::Any;
-use std::cell::RefCell;
-use std::collections::BTreeMap;
-use std::string::String as StdString;
-use std::sync::{Arc, Condvar, Mutex};
-use std::thread;
-use std::time::Duration;
-use std::{mem, ptr};
 
 /// The entry point into the JavaScript execution environment.
 pub struct MiniV8 {

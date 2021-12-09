@@ -3,23 +3,22 @@ pub mod hash_message;
 pub mod message;
 pub mod view;
 
-use crate::proto::ExperimentID;
-
-use crate::datastore::table::pool::BatchPool;
-use crate::{
-    datastore::{batch::DynamicBatch, prelude::*, schema::state::AgentSchema},
-    simulation::{command::CreateRemoveCommands, package::state::StateColumn},
-    SimRunConfig,
-};
 use std::sync::Arc;
 
 use self::create_remove::CreateRemovePlanner;
-
 use super::{
     context::{ExContext, WriteContext},
     meta::Meta,
     pool::{agent::AgentPool, message::MessagePool},
     references::MessageMap,
+};
+use crate::{
+    datastore::{
+        batch::DynamicBatch, prelude::*, schema::state::AgentSchema, table::pool::BatchPool,
+    },
+    proto::ExperimentID,
+    simulation::{command::CreateRemoveCommands, package::state::StateColumn},
+    SimRunConfig,
 };
 
 pub struct Inner {
@@ -210,7 +209,7 @@ impl ExState {
         Ok(())
     }
 
-    // TODO enable writing into the message batch too
+    // TODO: enable writing into the message batch too
     pub fn set_pending_column(&mut self, column: StateColumn) -> Result<()> {
         self.inner.agent_pool.set_pending_column(column)
     }

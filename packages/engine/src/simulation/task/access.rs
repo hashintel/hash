@@ -1,12 +1,11 @@
-use crate::simulation::enum_dispatch::*;
-
-use crate::datastore::table::task_shared_store::{SharedContext, SharedState, TaskSharedStore};
-use crate::simulation::package::context::ContextTask;
-use crate::simulation::package::init::InitTask;
-use crate::simulation::package::output::OutputTask;
-use crate::simulation::package::state::StateTask;
-
-use crate::simulation::{Error, Result};
+use crate::{
+    datastore::table::task_shared_store::{SharedContext, SharedState, TaskSharedStore},
+    simulation::{
+        enum_dispatch::*,
+        package::{context::ContextTask, init::InitTask, output::OutputTask, state::StateTask},
+        Error, Result,
+    },
+};
 
 #[enum_dispatch]
 pub trait StoreAccessVerify {

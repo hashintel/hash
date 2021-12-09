@@ -20,16 +20,16 @@
 //
 //      In terms of padding, there are two types of buffers inside record batches:
 //      * Dynamically sized (1)
-//           - e.g. the data buffer for a column containing strings. This is
-//             because strings can be dynamically resized
+//           - e.g. the data buffer for a column containing strings. This is because strings can be
+//             dynamically resized
 //      * Statically sized (2)
-//           - e.g. the offsets buffer for a column containing lists of floats.
-//             This is because there are n agents and hence n+1 offsets
+//           - e.g. the offsets buffer for a column containing lists of floats. This is because
+//             there are n agents and hence n+1 offsets
 // 2) Creating/Removing/Moving Agents:
 //      This happens when:
 //          - "create_agent" and "remove_agent" messages are gathered from agents
-//          - the behavior profile of an agent differs from the other agents in the
-//            batch and it needs to be moved to another batch
+//          - the behavior profile of an agent differs from the other agents in the batch and it
+//            needs to be moved to another batch
 //
 //      In terms of padding, here, every buffer is the same type:
 //      * Dynamically sized (3)

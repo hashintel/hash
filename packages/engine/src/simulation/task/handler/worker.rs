@@ -1,7 +1,8 @@
-use crate::simulation::enum_dispatch::*;
-
-use crate::simulation::task::msg::{TargetedTaskMessage, TaskMessage};
-use crate::simulation::{Error, Result};
+use crate::simulation::{
+    enum_dispatch::*,
+    task::msg::{TargetedTaskMessage, TaskMessage},
+    Error, Result,
+};
 
 #[enum_dispatch]
 pub trait WorkerHandler {

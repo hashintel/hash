@@ -1,6 +1,5 @@
-use crate::datastore::schema::{FieldScope, FieldType, FieldTypeVariant::*};
-
 use super::*;
+use crate::datastore::schema::{FieldScope, FieldType, FieldTypeVariant::*};
 
 pub fn api_response_fields() -> Vec<FieldSpec> {
     vec![

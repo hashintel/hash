@@ -1,9 +1,11 @@
 use serde_json::Value;
 
-use crate::config::TopologyConfig;
-use crate::{config, config::ExperimentConfig, datastore::table::state::WriteState};
-
 use super::super::*;
+use crate::{
+    config,
+    config::{ExperimentConfig, TopologyConfig},
+    datastore::table::state::WriteState,
+};
 
 mod adjacency;
 mod fields;
@@ -29,8 +31,10 @@ impl PackageCreator for Creator {
     ) -> Result<Box<dyn Package>> {
         let topology = Topology {
             config: Arc::new(
+                // TODO OS: do we want to make a default if topology config is missing in Globals,
+                // or do we want to error
                 TopologyConfig::create_from_globals(&config.sim.globals)
-                    .unwrap_or_else(|_| TopologyConfig::default()), // TODO OS - do we want to make a default if topology config is missing in Globals, or do we want to error
+                    .unwrap_or_else(|_| TopologyConfig::default()),
             ),
         };
         Ok(Box::new(topology))
@@ -84,7 +88,7 @@ impl Package for Topology {
         if self.config.move_wrapped_agents {
             for mut mut_table in state.agent_pool_mut().write_batches()? {
                 if self.topology_correction(&mut mut_table)? {
-                    // TODO inplace changes and metaversioning should happen at a deeper level.
+                    // TODO: inplace changes and metaversioning should happen at a deeper level.
                     mut_table.metaversion.increment_batch();
                 }
             }

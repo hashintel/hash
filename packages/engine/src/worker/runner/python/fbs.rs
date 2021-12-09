@@ -3,10 +3,11 @@ use std::ops::Deref;
 use flatbuffers::{FlatBufferBuilder, WIPOffset};
 
 use super::error::Result;
-use crate::datastore::batch::Batch;
-use crate::datastore::prelude::SharedStore;
-use crate::gen;
-use crate::worker::runner::comms::PackageMsgs;
+use crate::{
+    datastore::{batch::Batch, prelude::SharedStore},
+    gen,
+    worker::runner::comms::PackageMsgs,
+};
 
 pub fn pkgs_to_fbs<'f>(
     fbb: &mut FlatBufferBuilder<'f>,
@@ -77,13 +78,10 @@ pub fn batch_to_fbs<'f, B: Batch, T: Deref<Target = B>>(
 ) -> WIPOffset<crate::gen::batch_generated::Batch<'f>> {
     let batch_id_offset = fbb.create_string(batch.get_batch_id());
     let metaversion_offset = metaversion_to_fbs(fbb, batch.metaversion());
-    gen::batch_generated::Batch::create(
-        fbb,
-        &gen::batch_generated::BatchArgs {
-            batch_id: Some(batch_id_offset),
-            metaversion: Some(metaversion_offset),
-        },
-    )
+    gen::batch_generated::Batch::create(fbb, &gen::batch_generated::BatchArgs {
+        batch_id: Some(batch_id_offset),
+        metaversion: Some(metaversion_offset),
+    })
 }
 
 pub fn metaversion_to_fbs<'f>(

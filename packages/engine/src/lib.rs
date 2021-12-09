@@ -30,11 +30,10 @@ mod args;
 pub mod env;
 pub mod utils;
 
-pub use error::{Error, Result};
-
 pub use args::{args, Args};
 pub use config::{experiment_config, ExperimentConfig, SimRunConfig, SimulationConfig};
 pub use env::{env, Environment};
+pub use error::{Error, Result};
 pub use experiment::init_exp_package;
 pub use language::Language;
 pub use utils::init_logger;

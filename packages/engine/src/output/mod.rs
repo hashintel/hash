@@ -1,7 +1,9 @@
 use serde::Serialize;
 
-use crate::proto::SimulationShortID;
-use crate::{config::PersistenceConfig, simulation::step_output::SimulationStepOutput};
+use crate::{
+    config::PersistenceConfig, proto::SimulationShortID,
+    simulation::step_output::SimulationStepOutput,
+};
 
 pub mod buffer;
 

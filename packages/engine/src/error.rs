@@ -1,7 +1,7 @@
-use super::simulation::{controller::sim_control::SimControl, status::SimStatus};
-
-use crate::proto;
 use thiserror::Error as ThisError;
+
+use super::simulation::{controller::sim_control::SimControl, status::SimStatus};
+use crate::proto;
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -142,7 +142,7 @@ impl From<String> for Error {
     }
 }
 
-// TODO OS - revisit these "stringify" methods, they are messy and clearly WIP.
+// TODO: OS - revisit these "stringify" methods, they are messy and clearly WIP.
 fn stringify_error(error: Error) -> String {
     match &error {
         Error::Datastore(datastore_error) => stringify_datastore_error(datastore_error, &error),
@@ -158,22 +158,28 @@ fn stringify_datastore_error(
     original_error: &Error,
 ) -> String {
     match error {
-        crate::datastore::error::Error::SharedMemory(shmem_error) => match shmem_error {
-            shared_memory::ShmemError::DevShmOutOfMemory => {
-                // TODO: Use a static string instead of allocating a string here.
-                "Experiment has run out of memory.".into()
+        crate::datastore::error::Error::SharedMemory(shmem_error) => {
+            match shmem_error {
+                shared_memory::ShmemError::DevShmOutOfMemory => {
+                    // TODO: Use a static string instead of allocating a string here.
+                    "Experiment has run out of memory.".into()
+                }
+                _ => error.to_string(),
             }
-            _ => error.to_string(),
-        },
+        }
         _ => original_error.to_string(),
     }
 }
 
-// fn stringify_worker_handler_error(error: &worker::error::Error, original_error: &Error) -> String {
+// fn stringify_worker_handler_error(
+//     error: &worker::error::Error,
+//     original_error: &Error,
+// ) -> String {
 //     match error {
-//         worker::Error::JavascriptRunner(javascript_runner_error) => match javascript_runner_error {
-//             worker::internal::js::error::Error::Datastore(datastore_error) => {
-//                 stringify_datastore_error(datastore_error, original_error)
+//         worker::Error::JavascriptRunner(javascript_runner_error) =>
+//             match javascript_runner_error {
+//                 worker::internal::js::error::Error::Datastore(datastore_error) => {
+//                     stringify_datastore_error(datastore_error, original_error)
 //             }
 //             _ => original_error.to_string(),
 //         },

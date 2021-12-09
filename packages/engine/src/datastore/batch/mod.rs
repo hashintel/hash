@@ -9,7 +9,6 @@ pub mod message;
 pub mod metaversion;
 pub mod migration;
 
-use crate::datastore::batch::change::ArrayChange;
 pub use agent::Batch as AgentBatch;
 pub use context::{AgentIndex, Batch as ContextBatch, MessageIndex};
 pub use dataset::Batch as Dataset;
@@ -17,9 +16,13 @@ pub use message::Batch as MessageBatch;
 pub use metaversion::Metaversion;
 
 use super::{
-    arrow::ipc::read_record_batch, arrow::ipc::record_batch_data_to_bytes_owned_unchecked,
-    arrow::ipc::simulate_record_batch_to_bytes, prelude::*,
+    arrow::ipc::{
+        read_record_batch, record_batch_data_to_bytes_owned_unchecked,
+        simulate_record_batch_to_bytes,
+    },
+    prelude::*,
 };
+use crate::datastore::batch::change::ArrayChange;
 
 pub trait Batch: Sized {
     fn memory(&self) -> &Memory;

@@ -1,15 +1,17 @@
-use crate::proto::{InitialState, InitialStateName};
-use crate::simulation::enum_dispatch::*;
-use crate::simulation::package::init::packages::jspy::js::JsInitTask;
-use crate::simulation::package::init::packages::jspy::py::PyInitTask;
-
-use crate::simulation::{Error, Result};
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use std::convert::TryInto;
 
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+
 use super::super::*;
-use crate::proto::ExperimentRunTrait;
+use crate::{
+    proto::{ExperimentRunTrait, InitialState, InitialStateName},
+    simulation::{
+        enum_dispatch::*,
+        package::init::packages::jspy::{js::JsInitTask, py::PyInitTask},
+        Error, Result,
+    },
+};
 
 pub mod js;
 pub mod py;
@@ -34,14 +36,18 @@ impl PackageCreator for Creator {
             })
                 as Box<dyn InitPackage>),
             name => {
-                return Err(Error::from(format!("Trying to create a JS/Python init package but the initial state source didn't end in '.js' or '.py': {:?}", name)));
+                return Err(Error::from(format!(
+                    "Trying to create a JS/Python init package but the initial state source \
+                     didn't end in '.js' or '.py': {:?}",
+                    name
+                )));
             }
         }
     }
 }
 
 impl GetWorkerExpStartMsg for Creator {
-    // TODO Since the init.js/py file is the same for the whole experiment
+    // TODO: Since the init.js/py file is the same for the whole experiment
     //      consider sending it out here instead of inside `PyInitTask`
     //      and `JsInitTask`
     fn get_worker_exp_start_msg(&self) -> Result<Value> {
@@ -80,7 +86,11 @@ impl InitPackage for Package {
             .into(),
             name => {
                 // should be unreachable
-                return Err(Error::from(format!("Trying to run an init package for JS/Py but the init source wasn't .js or .py: {:?}", name)));
+                return Err(Error::from(format!(
+                    "Trying to run an init package for JS/Py but the init source wasn't .js or \
+                     .py: {:?}",
+                    name
+                )));
             }
         };
 

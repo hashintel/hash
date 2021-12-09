@@ -5,9 +5,7 @@ pub mod memory;
 pub mod schema_conversion;
 mod test;
 
-use std::ffi::c_void;
-use std::os::raw::c_char;
-use std::sync::Arc;
+use std::{ffi::c_void, os::raw::c_char, sync::Arc};
 
 use memory::CMemory;
 

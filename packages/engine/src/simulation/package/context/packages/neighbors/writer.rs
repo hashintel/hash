@@ -1,3 +1,4 @@
+use super::map::NeighborMap;
 use crate::{
     datastore::{
         arrow::util::DataSliceUtils,
@@ -6,8 +7,6 @@ use crate::{
     },
     simulation::package::context::ContextColumnWriter,
 };
-
-use super::map::NeighborMap;
 
 const NUM_NODES: usize = 3;
 const NUM_BUFFERS: usize = 5;

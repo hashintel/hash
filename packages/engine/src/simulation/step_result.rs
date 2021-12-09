@@ -1,7 +1,5 @@
-use crate::hash_types::worker::RunnerError;
-use crate::proto::SimulationShortID;
-
 use super::{agent_control::AgentControl, step_output::SimulationStepOutput};
+use crate::{hash_types::worker::RunnerError, proto::SimulationShortID};
 
 pub struct SimulationStepResult {
     pub sim_id: SimulationShortID,

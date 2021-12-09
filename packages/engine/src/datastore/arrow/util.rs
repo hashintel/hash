@@ -1,8 +1,8 @@
-use super::prelude::*;
+use std::sync::Arc;
 
 use flatbuffers_arrow::FlatBufferBuilder;
 
-use std::sync::Arc;
+use super::prelude::*;
 
 pub const CONTINUATION: usize = 8;
 

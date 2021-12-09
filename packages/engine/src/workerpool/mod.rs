@@ -5,47 +5,38 @@ pub mod runs;
 
 use std::sync::Arc;
 
-use crate::proto::SimulationShortID;
-use crate::simulation::{
-    package::id::PackageId,
-    task::{args::GetTaskArgs, handler::WorkerPoolHandler},
-};
+pub use error::{Error, Result};
 use futures::future::try_join_all;
 use rand::prelude::SliceRandom;
 use tokio::{pin, task::JoinHandle};
 
-use crate::config;
-use crate::datastore::table::task_shared_store::TaskSharedStore;
-
-use crate::types::{TaskID, WorkerIndex};
-use crate::worker::runner::comms::{
-    ExperimentInitRunnerMsg, ExperimentInitRunnerMsgBase, NewSimulationRun,
-};
-use crate::worker::task::WorkerTask;
-use crate::workerpool::comms::top::WorkerPoolToExpCtlMsg;
-use crate::workerpool::comms::WorkerToWorkerPoolMsg;
-use crate::{
-    config::WorkerPoolConfig,
-    simulation::comms::message::{EngineToWorkerPoolMsg, EngineToWorkerPoolMsgPayload},
-    worker::WorkerController,
-    workerpool::comms::WorkerPoolToWorkerMsg,
-};
-
-use self::comms::main::MainMsgSendBase;
-use self::comms::top::WorkerPoolMsgSend;
-use self::comms::WorkerCommsWithWorkerPool;
-use self::pending::DistributionController;
 use self::{
     comms::{
-        experiment::ExperimentToWorkerPoolMsg, ExpMsgRecv, MainMsgRecv, TerminateRecv,
+        experiment::ExperimentToWorkerPoolMsg, main::MainMsgSendBase, top::WorkerPoolMsgSend,
+        ExpMsgRecv, MainMsgRecv, TerminateRecv, WorkerCommsWithWorkerPool,
         WorkerPoolCommsWithWorkers,
     },
-    pending::{PendingWorkerPoolTask, PendingWorkerPoolTasks},
+    pending::{DistributionController, PendingWorkerPoolTask, PendingWorkerPoolTasks},
     runs::SimulationRuns,
 };
-use crate::config::{TaskDistributionConfig, Worker};
-use crate::simulation::task::Task;
-pub use error::{Error, Result};
+use crate::{
+    config,
+    config::{TaskDistributionConfig, Worker, WorkerPoolConfig},
+    datastore::table::task_shared_store::TaskSharedStore,
+    proto::SimulationShortID,
+    simulation::{
+        comms::message::{EngineToWorkerPoolMsg, EngineToWorkerPoolMsgPayload},
+        package::id::PackageId,
+        task::{args::GetTaskArgs, handler::WorkerPoolHandler, Task},
+    },
+    types::{TaskID, WorkerIndex},
+    worker::{
+        runner::comms::{ExperimentInitRunnerMsg, ExperimentInitRunnerMsgBase, NewSimulationRun},
+        task::WorkerTask,
+        WorkerController,
+    },
+    workerpool::comms::{top::WorkerPoolToExpCtlMsg, WorkerPoolToWorkerMsg, WorkerToWorkerPoolMsg},
+};
 
 pub struct WorkerPoolController {
     worker_controllers: Option<Vec<WorkerController>>,
@@ -120,7 +111,7 @@ impl WorkerPoolController {
     }
 
     async fn register_simulation(&mut self, payload: NewSimulationRun) -> Result<()> {
-        // TODO simulation may not be registered to all workers
+        // TODO: simulation may not be registered to all workers
         self.send_to_all_workers(WorkerPoolToWorkerMsg::new_simulation_run(payload))
     }
 
@@ -164,7 +155,7 @@ impl WorkerPoolController {
                     log::debug!("Handle comms message for worker [{}]: {:?}", worker_index, msg);
                     self.handle_worker_msg(worker_index, msg).await?;
                 }
-                // TODO - Revisit this
+                // TODO: Revisit this
                 // cancel_msgs = self.pending_tasks.run_cancel_check() => {
                 //     if !cancel_msgs.is_empty() {
                 //         self.handle_cancel_msgs(cancel_msgs).await?;

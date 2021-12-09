@@ -1,9 +1,7 @@
 use std::sync::Arc;
 
-use crate::config::Globals;
-use crate::proto::SimulationShortID;
-
 use super::{EngineConfig, PersistenceConfig, StoreConfig};
+use crate::{config::Globals, proto::SimulationShortID};
 
 pub struct Config {
     pub id: SimulationShortID,

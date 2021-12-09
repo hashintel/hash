@@ -1,21 +1,22 @@
 use std::sync::Arc;
 
-use crate::datastore::{
-    prelude::Store,
-    table::{context::ExContext, pool::message::MessagePool, state::ExState},
-    table::{
-        references::MessageMap,
-        state::{view::StateSnapshot, ReadState, WriteState},
-    },
-};
-use crate::simulation::agent_control::AgentControl;
-use crate::{config::SimRunConfig, datastore::table::pool::agent::AgentPool};
-
 use super::{
-    command::CreateRemoveCommands, step_output::SimulationStepOutput,
-    step_result::SimulationStepResult, Error, Result,
+    command::CreateRemoveCommands, comms::Comms, package::run::Packages,
+    step_output::SimulationStepOutput, step_result::SimulationStepResult, Error, Result,
 };
-use super::{comms::Comms, package::run::Packages};
+use crate::{
+    config::SimRunConfig,
+    datastore::{
+        prelude::Store,
+        table::{
+            context::ExContext,
+            pool::{agent::AgentPool, message::MessagePool},
+            references::MessageMap,
+            state::{view::StateSnapshot, ExState, ReadState, WriteState},
+        },
+    },
+    simulation::agent_control::AgentControl,
+};
 
 pub struct Engine {
     packages: Packages,
@@ -49,9 +50,11 @@ impl Engine {
     /// Run a step in the simulation.
     ///
     /// Currently the ordering of actions is fixed:
-    /// 1) Build a Context object with the Context packages executed in parallel \[read State, write Context\]
+    /// 1) Build a Context object with the Context packages executed in parallel
+    ///    \[read State, write Context\]
     /// 2) Run all State packages sequentially \[write State, read Context\]
-    /// 3) Calculate all of the outputs of the step with the Output packages \[read State, read Context\]
+    /// 3) Calculate all of the outputs of the step with the Output packages
+    ///    \[read State, read Context\]
     ///
     /// However running modules in an arbitrary order is possible and
     /// is a possible future extension. Also, while we do require that
@@ -67,7 +70,7 @@ impl Engine {
             output,
             errors: vec![],
             warnings: vec![],
-            agent_control: AgentControl::Continue, // TODO OS - Need to pick up from messages
+            agent_control: AgentControl::Continue, // TODO: OS - Need to pick up from messages
             stop_signal: false,
         };
         Ok(result)

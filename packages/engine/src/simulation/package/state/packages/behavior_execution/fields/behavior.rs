@@ -1,22 +1,23 @@
-use crate::datastore::schema::{
-    FieldKey, FieldScope, FieldSource, RootFieldSpec, RootFieldSpecCreator,
+use std::{
+    collections::{hash_map::Values, HashMap},
+    convert::TryFrom,
 };
-use crate::hash_types::state::AgentStateField;
 
 // use crate::worker::runner::rust;
 use crate::{
     config::ExperimentConfig,
     datastore::{
         error::{Error, Result},
-        schema::{FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant},
+        schema::{
+            FieldKey, FieldScope, FieldSource, FieldSpec, FieldSpecMap, FieldType,
+            FieldTypeVariant, RootFieldSpec, RootFieldSpecCreator,
+        },
     },
     experiment::SharedBehavior,
+    hash_types::state::AgentStateField,
+    proto::ExperimentRunTrait,
+    simulation::package::name::PackageName,
 };
-
-use crate::proto::ExperimentRunTrait;
-use crate::simulation::package::name::PackageName;
-use std::collections::hash_map::Values;
-use std::{collections::HashMap, convert::TryFrom};
 
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
 pub struct BehaviorKeys {
@@ -84,7 +85,7 @@ impl BehaviorKeys {
                             let mut res = vec![];
                             for val in vals {
                                 let string = match val {
-                                    // TODO hashmap from string to `AgentStateField`
+                                    // TODO: hashmap from string to `AgentStateField`
                                     serde_json::Value::String(string) => {
                                         let mut res = None;
                                         for field in AgentStateField::FIELDS {
@@ -184,7 +185,7 @@ impl TryFrom<(&ExperimentConfig, &RootFieldSpecCreator)> for BehaviorMap {
                 // Need to check whether we're dealing with rust built-in keys,
                 // for which we always use the in-repo locally defined ones.
 
-                // TODO OS - Re-enable Rust Behavior Runner
+                // TODO: OS - Re-enable Rust Behavior Runner
                 // let rust_built_in_behavior_keys = if rust::behaviors::is_built_in(&b.name) {
                 //     let behavior = rust::behaviors::get_named_behavior(&b.name)
                 //         .expect(&format!("Built in behavior {} not found", &b.name));
@@ -368,7 +369,10 @@ pub enum BehaviorKeyJSONError {
     ExpectedKeys,
     #[error("Expected \"keys\" field in top-level behavior keys definition to be a JSON object")]
     ExpectedKeysMap,
-    #[error("Expected \"built_in_key_use\" field in top-level behavior keys definition to be either a JSON object or null")]
+    #[error(
+        "Expected \"built_in_key_use\" field in top-level behavior keys definition to be either a \
+         JSON object or null"
+    )]
     ExpectedBuiltInKeyUseNullOrMap,
     #[error("Expected \"built_in_key_use\" field to contain \"selected\" field")]
     ExpectedBuiltInKeyUseSelectedField,
@@ -384,13 +388,25 @@ pub enum BehaviorKeyJSONError {
     InvalidKeyTypeType(String),
     #[error("Invalid key type {0}")]
     InvalidKeyType(String),
-    #[error("Expected key with name {0} to have a boolean \"nullable\" sub-field in one of its sub-types")]
+    #[error(
+        "Expected key with name {0} to have a boolean \"nullable\" sub-field in one of its \
+         sub-types"
+    )]
     InvalidKeyNullableType(String),
-    #[error("Expected key with name {0} to have a list \"fields\" sub-field in one of its \"object\"-type sub-types")]
+    #[error(
+        "Expected key with name {0} to have a list \"fields\" sub-field in one of its \
+         \"object\"-type sub-types"
+    )]
     InvalidKeyFieldsType(String),
-    #[error("Expected key with name {0} to have a object \"child\" sub-field in one of its \"list\"/\"fixed_size_list\"-type sub-types")]
+    #[error(
+        "Expected key with name {0} to have a object \"child\" sub-field in one of its \
+         \"list\"/\"fixed_size_list\"-type sub-types"
+    )]
     InvalidKeyChildType(String),
-    #[error("Expected key with name {0} to have a positive integer \"length\" sub-field in one of its \"fixed_size_list\"-type sub-types")]
+    #[error(
+        "Expected key with name {0} to have a positive integer \"length\" sub-field in one of its \
+         \"fixed_size_list\"-type sub-types"
+    )]
     InvalidKeyLengthType(String),
     #[error("Invalid built-in key name {0}")]
     InvalidBuiltInKeyName(String),

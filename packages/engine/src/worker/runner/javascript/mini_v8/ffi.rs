@@ -1,9 +1,12 @@
+use std::{
+    ffi::c_void,
+    mem::ManuallyDrop,
+    panic::{catch_unwind, AssertUnwindSafe},
+    process, slice,
+    sync::Once,
+};
+
 use super::*;
-use std::ffi::c_void;
-use std::mem::ManuallyDrop;
-use std::panic::{catch_unwind, AssertUnwindSafe};
-use std::sync::Once;
-use std::{process, slice};
 
 extern "C" {
     pub(super) fn mv8_init(wrapper_func: *const c_void, drop_func: *const c_void);
@@ -45,7 +48,7 @@ extern "C" {
         value: ValueDesc,
     ) -> TryCatchDesc;
     pub(super) fn mv8_object_remove(_: Interface, object: ValuePtr, key: ValueDesc)
-        -> TryCatchDesc;
+    -> TryCatchDesc;
     pub(super) fn mv8_object_has(_: Interface, object: ValuePtr, key: ValueDesc) -> TryCatchDesc;
     pub(super) fn mv8_object_keys(
         _: Interface,
@@ -256,38 +259,23 @@ pub(super) fn value_to_desc<'mv8, 'a>(mv8: &'mv8 MiniV8, value: &'a Value<'mv8>)
     match *value {
         Value::Undefined => V::new(VT::Undefined, VP { byte: 0 }),
         Value::Null => V::new(VT::Null, VP { byte: 0 }),
-        Value::Boolean(b) => V::new(
-            VT::Boolean,
-            VP {
-                byte: if b { 1 } else { 0 },
-            },
-        ),
+        Value::Boolean(b) => V::new(VT::Boolean, VP {
+            byte: if b { 1 } else { 0 },
+        }),
         Value::Number(f) => V::new(VT::Number, VP { number: f }),
         Value::Date(f) => V::new(VT::Date, VP { number: f }),
-        Value::Array(ref r) => V::new(
-            VT::Array,
-            VP {
-                value_ptr: ref_val(&r.0),
-            },
-        ),
-        Value::Function(ref r) => V::new(
-            VT::Function,
-            VP {
-                value_ptr: ref_val(&r.0),
-            },
-        ),
-        Value::Object(ref r) => V::new(
-            VT::Object,
-            VP {
-                value_ptr: ref_val(&r.0),
-            },
-        ),
-        Value::String(ref r) => V::new(
-            VT::String,
-            VP {
-                value_ptr: ref_val(&r.0),
-            },
-        ),
+        Value::Array(ref r) => V::new(VT::Array, VP {
+            value_ptr: ref_val(&r.0),
+        }),
+        Value::Function(ref r) => V::new(VT::Function, VP {
+            value_ptr: ref_val(&r.0),
+        }),
+        Value::Object(ref r) => V::new(VT::Object, VP {
+            value_ptr: ref_val(&r.0),
+        }),
+        Value::String(ref r) => V::new(VT::String, VP {
+            value_ptr: ref_val(&r.0),
+        }),
     }
 }
 
@@ -310,13 +298,10 @@ pub(super) unsafe extern "C" fn callback_wrapper(
         let args: Vec<Value> = arg_descs
             .iter()
             .map(|v| {
-                desc_to_value(
-                    &mv8,
-                    ValueDesc {
-                        payload: v.payload,
-                        tag: v.tag,
-                    },
-                )
+                desc_to_value(&mv8, ValueDesc {
+                    payload: v.payload,
+                    tag: v.tag,
+                })
             })
             .collect();
         let args = Values::from_vec(args);

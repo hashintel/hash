@@ -1,7 +1,7 @@
 use super::prelude::Result;
 
 pub trait GetWorkerExpStartMsg {
-    // TODO maybe the Ok(Null) return should be impl by default
+    // TODO: maybe the Ok(Null) return should be impl by default
     //      if packages don't use this often
     //      Leaving default unimplemented for now since the forced impls
     //      are good to demonstrate what can be done with package-design
@@ -17,7 +17,7 @@ pub trait GetWorkerExpStartMsg {
 }
 
 pub trait GetWorkerSimStartMsg {
-    // TODO maybe the Ok(Null) return should be impl by default
+    // TODO: maybe the Ok(Null) return should be impl by default
     //      if packages don't use this often
     /// This allows packages to pass any kind of configuration from their
     /// Rust runtime to their Language Runner counterpart for a specific simulation.

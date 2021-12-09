@@ -1,5 +1,6 @@
-use super::super::*;
 use std::string::String as StdString;
+
+use super::super::*;
 
 #[test]
 fn set_get() {
@@ -45,10 +46,11 @@ fn keys() {
     object.set("b", 2).unwrap();
     object.set("a", 1).unwrap();
     let keys: Result<Vec<StdString>> = object.keys(true).unwrap().elements().collect();
-    assert_eq!(
-        keys.unwrap(),
-        vec!["c".to_string(), "b".to_string(), "a".to_string()]
-    )
+    assert_eq!(keys.unwrap(), vec![
+        "c".to_string(),
+        "b".to_string(),
+        "a".to_string()
+    ])
 }
 
 #[test]
@@ -69,12 +71,9 @@ fn properties() {
         })
         .collect::<Vec<_>>();
 
-    assert_eq!(
-        list,
-        vec![
-            ("4".to_string(), 0),
-            ("123".to_string(), 456),
-            ("a".to_string(), 123)
-        ]
-    );
+    assert_eq!(list, vec![
+        ("4".to_string(), 0),
+        ("123".to_string(), 456),
+        ("a".to_string(), 123)
+    ]);
 }

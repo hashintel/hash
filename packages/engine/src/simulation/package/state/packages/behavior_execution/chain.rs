@@ -1,8 +1,11 @@
-use crate::datastore::arrow::batch_conversion::{new_buffer, new_offsets_buffer};
-use crate::datastore::batch::iterators;
-use crate::simulation::package::state::packages::behavior_execution::config::BehaviorId;
-
 use super::*;
+use crate::{
+    datastore::{
+        arrow::batch_conversion::{new_buffer, new_offsets_buffer},
+        batch::iterators,
+    },
+    simulation::package::state::packages::behavior_execution::config::BehaviorId,
+};
 
 pub fn gather_behavior_chains(
     state: &ExState,

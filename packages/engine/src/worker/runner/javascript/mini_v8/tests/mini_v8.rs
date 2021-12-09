@@ -1,8 +1,6 @@
+use std::{cell::RefCell, rc::Rc, string::String as StdString, time::Duration};
+
 use super::super::*;
-use std::cell::RefCell;
-use std::rc::Rc;
-use std::string::String as StdString;
-use std::time::Duration;
 
 #[test]
 fn eval_origin() {
@@ -167,14 +165,16 @@ fn coerce_number() {
         mv8.coerce_number(Value::String(mv8.create_string("")))
             .unwrap()
     );
-    assert!(mv8
-        .coerce_number(Value::String(mv8.create_string("a")))
-        .unwrap()
-        .is_nan());
-    assert!(mv8
-        .coerce_number(Value::Object(mv8.create_object()))
-        .unwrap()
-        .is_nan());
+    assert!(
+        mv8.coerce_number(Value::String(mv8.create_string("a")))
+            .unwrap()
+            .is_nan()
+    );
+    assert!(
+        mv8.coerce_number(Value::Object(mv8.create_object()))
+            .unwrap()
+            .is_nan()
+    );
 }
 
 #[test]

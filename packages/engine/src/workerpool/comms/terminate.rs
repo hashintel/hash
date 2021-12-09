@@ -1,18 +1,17 @@
 use std::time::Duration;
 
-pub use super::{Error, Result};
-
 use tokio::{
     sync::oneshot::{channel, Receiver, Sender},
     time::timeout,
 };
+
+pub use super::{Error, Result};
 
 // TODO: Make the termination logic more cohesive, one implementation can probably be shared across
 //   runners, workers, workerpool, and possibly others too. An example of the disconnect right now
 //   is the difference between TerminateMessage that's separate from workerpool <-> worker messages,
 //   but the runner has a variant of its payload to indicate a termination signal:
 //   crate::worker::runner::comms::inbound::InboundToRunnerMsgPayload::TerminateRunner
-
 pub struct TerminateMessage {}
 
 pub struct TerminateRecv {

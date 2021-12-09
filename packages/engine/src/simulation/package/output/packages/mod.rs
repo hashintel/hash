@@ -1,21 +1,26 @@
 pub mod analysis;
 pub mod json_state;
 
-use self::{analysis::AnalysisOutput, json_state::JSONStateOutput};
-use super::PackageCreator;
-use crate::simulation::enum_dispatch::*;
-use crate::simulation::package::name::PackageName;
-use crate::simulation::package::PackageMetadata;
-use crate::simulation::package::{id::PackageIdGenerator, PackageType};
-use crate::simulation::{Error, Result};
-use crate::ExperimentConfig;
+use std::{
+    collections::{hash_map::Iter, HashMap},
+    lazy::SyncOnceCell,
+    sync::Arc,
+};
+
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
-use std::collections::hash_map::Iter;
-use std::collections::HashMap;
-use std::lazy::SyncOnceCell;
-use std::sync::Arc;
 use strum_macros::IntoStaticStr;
+
+use self::{analysis::AnalysisOutput, json_state::JSONStateOutput};
+use super::PackageCreator;
+use crate::{
+    simulation::{
+        enum_dispatch::*,
+        package::{id::PackageIdGenerator, name::PackageName, PackageMetadata, PackageType},
+        Error, Result,
+    },
+    ExperimentConfig,
+};
 
 /// All output package names are registered in this enum
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
@@ -116,20 +121,14 @@ lazy_static! {
         use Name::*;
         let mut id_creator = PackageIdGenerator::new(PackageType::Output);
         let mut m = HashMap::new();
-        m.insert(
-            Analysis,
-            PackageMetadata {
-                id: id_creator.next(),
-                dependencies: analysis::Creator::dependencies(),
-            },
-        );
-        m.insert(
-            JSONState,
-            PackageMetadata {
-                id: id_creator.next(),
-                dependencies: json_state::Creator::dependencies(),
-            },
-        );
+        m.insert(Analysis, PackageMetadata {
+            id: id_creator.next(),
+            dependencies: analysis::Creator::dependencies(),
+        });
+        m.insert(JSONState, PackageMetadata {
+            id: id_creator.next(),
+            dependencies: json_state::Creator::dependencies(),
+        });
         m
     };
 }

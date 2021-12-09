@@ -1,6 +1,7 @@
-use crate::datastore::schema::RootFieldSpec;
 use crate::{
-    datastore::schema::{FieldScope, FieldType, FieldTypeVariant as FTV, RootFieldSpecCreator},
+    datastore::schema::{
+        FieldScope, FieldType, FieldTypeVariant as FTV, RootFieldSpec, RootFieldSpecCreator,
+    },
     simulation::Result,
 };
 

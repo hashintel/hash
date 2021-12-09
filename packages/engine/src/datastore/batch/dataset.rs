@@ -1,5 +1,4 @@
-use crate::datastore::prelude::*;
-use crate::proto::SharedDataset;
+use crate::{datastore::prelude::*, proto::SharedDataset};
 
 pub struct Batch {
     pub(crate) memory: Memory,
@@ -24,7 +23,7 @@ impl super::Batch for Batch {
     }
 
     fn maybe_reload(&mut self, _reload_state: Metaversion) -> Result<()> {
-        // TODO ret these errors
+        // TODO: ret these errors
         Error::from("Datasets are not updated");
         Ok(())
     }

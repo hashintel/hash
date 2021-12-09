@@ -1,8 +1,7 @@
-use crate::{output::local::config::LocalPersistenceConfig, Environment};
-
 use serde::{Deserialize, Serialize};
 
 use super::{Error, Result};
+use crate::{output::local::config::LocalPersistenceConfig, Environment};
 
 pub const OUTPUT_PERSISTENCE_KEY: &'static str = "output_persistence";
 

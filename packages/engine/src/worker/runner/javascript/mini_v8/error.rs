@@ -1,7 +1,6 @@
+use std::{error::Error as StdError, fmt, result::Result as StdResult};
+
 use super::*;
-use std::error::Error as StdError;
-use std::fmt;
-use std::result::Result as StdResult;
 
 /// `std::result::Result` specialized for this mini_v8's `Error` type.
 pub type Result<'mv8, T> = StdResult<T, Error<'mv8>>;

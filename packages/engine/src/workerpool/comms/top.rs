@@ -1,7 +1,6 @@
-use crate::proto::SimulationShortID;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
-use crate::worker::runner::comms::outbound::RunnerError;
+use crate::{proto::SimulationShortID, worker::runner::comms::outbound::RunnerError};
 // This is for communications between the worker pool and the simulation top-level controller.
 // Mainly used only for passing errors and warnings.
 
@@ -27,8 +26,7 @@ pub enum WorkerPoolToExpCtlMsg {
 
 pub fn new_pair() -> (WorkerPoolMsgSend, WorkerPoolMsgRecv) {
     let (send, recv) = unbounded_channel();
-    (
-        WorkerPoolMsgSend { inner: send },
-        WorkerPoolMsgRecv { inner: recv },
-    )
+    (WorkerPoolMsgSend { inner: send }, WorkerPoolMsgRecv {
+        inner: recv,
+    })
 }

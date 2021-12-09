@@ -1,14 +1,14 @@
-use super::error::{Error, Result};
-
 use serde::{Deserialize, Serialize};
 use strum_macros::Display;
+
+use super::error::{Error, Result};
 
 /// Supported languages
 #[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Copy, Clone, Debug, Display)]
 pub enum Language {
     JavaScript = 0,
-    Python = 1,
-    Rust = 2,
+    Python     = 1,
+    Rust       = 2,
 }
 
 impl Language {

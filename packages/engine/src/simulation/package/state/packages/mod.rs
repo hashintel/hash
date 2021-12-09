@@ -1,23 +1,26 @@
 pub mod behavior_execution;
 pub mod topology;
 
-use serde::{Deserialize, Serialize};
-use std::collections::hash_map::Iter;
+use std::{
+    collections::{hash_map::Iter, HashMap},
+    lazy::SyncOnceCell,
+    sync::Arc,
+};
 
-use super::PackageCreator;
-use crate::simulation::package::{id::PackageIdGenerator, PackageType};
-use std::collections::HashMap;
-use std::sync::Arc;
-
-use crate::simulation::enum_dispatch::*;
-use crate::simulation::package::PackageMetadata;
-use crate::simulation::{Error, Result};
-use crate::ExperimentConfig;
 use lazy_static::lazy_static;
-use std::lazy::SyncOnceCell;
+use serde::{Deserialize, Serialize};
 use strum_macros::IntoStaticStr;
 
 use self::behavior_execution::tasks::{ExecuteBehaviorsTask, ExecuteBehaviorsTaskMessage};
+use super::PackageCreator;
+use crate::{
+    simulation::{
+        enum_dispatch::*,
+        package::{id::PackageIdGenerator, PackageMetadata, PackageType},
+        Error, Result,
+    },
+    ExperimentConfig,
+};
 
 /// All state package names are registered in this enum
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
@@ -103,20 +106,14 @@ lazy_static! {
         use Name::*;
         let mut id_creator = PackageIdGenerator::new(PackageType::State);
         let mut m = HashMap::new();
-        m.insert(
-            BehaviorExecution,
-            PackageMetadata {
-                id: id_creator.next(),
-                dependencies: behavior_execution::Creator::dependencies(),
-            },
-        );
-        m.insert(
-            Topology,
-            PackageMetadata {
-                id: id_creator.next(),
-                dependencies: topology::Creator::dependencies(),
-            },
-        );
+        m.insert(BehaviorExecution, PackageMetadata {
+            id: id_creator.next(),
+            dependencies: behavior_execution::Creator::dependencies(),
+        });
+        m.insert(Topology, PackageMetadata {
+            id: id_creator.next(),
+            dependencies: topology::Creator::dependencies(),
+        });
         m
     };
 }

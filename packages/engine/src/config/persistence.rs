@@ -1,7 +1,7 @@
 use super::Result;
-use crate::config::Globals;
-use crate::simulation::package::{
-    creator::PackageCreators, output::packages::OutputPackagesSimConfig,
+use crate::{
+    config::Globals,
+    simulation::package::{creator::PackageCreators, output::packages::OutputPackagesSimConfig},
 };
 
 #[derive(Clone)]

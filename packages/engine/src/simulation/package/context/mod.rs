@@ -1,19 +1,6 @@
 use std::sync::Arc;
 
-use crate::simulation::Result;
-use crate::{
-    datastore::{
-        meta::ColumnDynamicMetadata,
-        prelude::Result as DatastoreResult,
-        schema::{
-            accessor::FieldSpecMapAccessor, context::ContextSchema, FieldKey, FieldSpec,
-            RootFieldSpecCreator,
-        },
-        table::state::view::StateSnapshot,
-    },
-    simulation::comms::package::PackageComms,
-    SimRunConfig,
-};
+pub use packages::{ContextTask, ContextTaskMessage, Name, PACKAGE_CREATORS};
 
 use super::{
     deps::Dependencies,
@@ -21,9 +8,19 @@ use super::{
     prelude::*,
 };
 pub use crate::config::Globals;
-use crate::datastore::schema::RootFieldSpec;
-use crate::simulation::package::ext_traits::GetWorkerExpStartMsg;
-pub use packages::{ContextTask, ContextTaskMessage, Name, PACKAGE_CREATORS};
+use crate::{
+    datastore::{
+        meta::ColumnDynamicMetadata,
+        prelude::Result as DatastoreResult,
+        schema::{
+            accessor::FieldSpecMapAccessor, context::ContextSchema, FieldKey, FieldSpec,
+            RootFieldSpec, RootFieldSpecCreator,
+        },
+        table::state::view::StateSnapshot,
+    },
+    simulation::{comms::package::PackageComms, package::ext_traits::GetWorkerExpStartMsg, Result},
+    SimRunConfig,
+};
 
 pub mod packages;
 
@@ -42,7 +39,7 @@ pub trait Package: MaybeCPUBound + GetWorkerSimStartMsg + Send + Sync {
 }
 
 pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
-    // TODO TODO
+    // TODO: TODO
     /// A per-experiment initialization step that provide the creator with experiment config.
     /// This step is called when packages are loaded by the experiment controller.
     ///
@@ -70,7 +67,8 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
         Dependencies::empty()
     }
 
-    // TODO - Limit context packages to only add one field as long as we only allow one column from "get_empty_arrow_column"
+    // TODO: Limit context packages to only add one field as long as we only allow one column from
+    // "get_empty_arrow_column"
     fn get_context_field_specs(
         &self,
         _config: &ExperimentConfig,

@@ -1,7 +1,9 @@
 pub mod agent {
-    use crate::datastore::{prelude::*, POSITION_DIM, UUID_V4_LEN};
-    use arrow::datatypes::DataType;
     use std::ops::Deref;
+
+    use arrow::datatypes::DataType;
+
+    use crate::datastore::{prelude::*, POSITION_DIM, UUID_V4_LEN};
 
     pub fn agent_id_iter<'a, B: Deref<Target = AgentBatch>>(
         agent_pool: &'a [B],

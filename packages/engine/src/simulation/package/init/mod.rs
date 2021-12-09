@@ -2,17 +2,16 @@ use std::sync::Arc;
 
 pub use packages::{InitTask, InitTaskMessage, Name, PACKAGE_CREATORS};
 
-pub use crate::config::Globals;
-use crate::datastore::schema::accessor::FieldSpecMapAccessor;
-use crate::datastore::schema::{RootFieldSpec, RootFieldSpecCreator};
-pub use crate::hash_types::Agent;
-use crate::simulation::package::ext_traits::GetWorkerExpStartMsg;
-use crate::{simulation::comms::package::PackageComms, SimRunConfig};
-
 use super::{
     deps::Dependencies,
     ext_traits::{GetWorkerSimStartMsg, MaybeCPUBound},
     prelude::*,
+};
+pub use crate::{config::Globals, hash_types::Agent};
+use crate::{
+    datastore::schema::{accessor::FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator},
+    simulation::{comms::package::PackageComms, package::ext_traits::GetWorkerExpStartMsg},
+    SimRunConfig,
 };
 
 pub mod packages;

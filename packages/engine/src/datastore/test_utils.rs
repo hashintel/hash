@@ -1,17 +1,19 @@
 use std::sync::Arc;
 
-use crate::hash_types::state::{Agent, AgentStateField};
 use rand::{prelude::StdRng, Rng, SeedableRng};
-
 use serde::{Deserialize, Serialize};
 
-use crate::datastore::error::Error;
-use crate::datastore::schema::state::AgentSchema;
-use crate::datastore::schema::{
-    FieldScope, FieldSource, FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant,
-    RootFieldSpecCreator,
+use crate::{
+    datastore::{
+        error::Error,
+        schema::{
+            state::AgentSchema, FieldScope, FieldSource, FieldSpec, FieldSpecMap, FieldType,
+            FieldTypeVariant, RootFieldSpecCreator,
+        },
+    },
+    hash_types::state::{Agent, AgentStateField},
+    simulation::package::creator::get_base_agent_fields,
 };
-use crate::simulation::package::creator::get_base_agent_fields;
 
 lazy_static! {
     pub static ref JSON_KEYS: serde_json::Value = serde_json::json!({

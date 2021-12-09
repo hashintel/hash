@@ -1,5 +1,6 @@
-use super::message;
 use std::error::Error as StdError;
+
+use super::message;
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 

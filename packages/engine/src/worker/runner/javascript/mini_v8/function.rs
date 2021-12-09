@@ -1,6 +1,6 @@
+use std::{cmp, fmt, mem::ManuallyDrop};
+
 use super::*;
-use std::mem::ManuallyDrop;
-use std::{cmp, fmt};
 
 /// Reference to a JavaScript function.
 #[derive(Clone)]

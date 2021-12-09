@@ -1,15 +1,14 @@
 #![allow(clippy::cast_sign_loss, clippy::cast_ptr_alignment)]
 
-use super::ArrowBatch;
+use std::{borrow::Cow, mem, ops::Deref, sync::Arc};
 
 use arrow::util::bit_util;
 
-use crate::datastore::batch::AgentBatch;
-use crate::datastore::prelude::*;
-use crate::datastore::schema::state::AgentSchema;
-use crate::proto::ExperimentID;
-use std::ops::Deref;
-use std::{borrow::Cow, mem, sync::Arc};
+use super::ArrowBatch;
+use crate::{
+    datastore::{batch::AgentBatch, prelude::*, schema::state::AgentSchema},
+    proto::ExperimentID,
+};
 
 type Offset = i32;
 type LargeOffset = i64;
@@ -244,7 +243,8 @@ impl<'a> BufferActions<'a> {
                                             new_offset + *base_offset_index * offset_size;
                                         debug_assert!(start_offset >= new_start_offset);
                                         let decrement = offset_value_dec;
-                                        // We are going left-to-right so we can at most change the same value we're inspecting
+                                        // We are going left-to-right so we can at most change the
+                                        // same value we're inspecting
                                         let new_offsets = unsafe {
                                             let ptr = &data_buffer[new_start_offset] as *const u8;
                                             let ptr = ptr as *mut Offset;
@@ -754,7 +754,8 @@ impl<'a> BufferActions<'a> {
                                     last_offset_value += added_unit_count;
                                     next_offset_index += range.len;
 
-                                    // Update the range value here, so next access is in the right place
+                                    // Update the range value here, so next access is in the right
+                                    // place
                                     range.index = first_offset as usize;
                                     range.len = (added_unit_count) as usize;
                                     total_move_len += range.len;
@@ -996,8 +997,9 @@ impl<'a> BufferActions<'a> {
 
         // There are 3 cases with remove actions:
         // 1) No buffer shift -> commit inner actions left to right
-        // 2) Buffer shift to the right, new rightmost index >= old rightmost index -> commit right to left
-        // 3) Buffer shift to the right, new rightmost index < old rightmost index -> build separately
+        // 2) Buffer shift to the right, new rightmost index >= old rightmost index -> commit right
+        // to left 3) Buffer shift to the right, new rightmost index < old rightmost index
+        // -> build separately
 
         Ok(next_state)
     }
@@ -1328,12 +1330,11 @@ fn offsets_start_at_zero(
 #[cfg(test)]
 pub(super) mod test {
     // use super::super::schema::{FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant};
-    use super::*;
-
     // use crate::hash_types::state::AgentStateField;
     use rand::Rng;
-
     use serde::{Deserialize, Serialize};
+
+    use super::*;
 
     // use crate::datastore::schema::PREVIOUS_INDEX_COLUMN_NAME;
     // use std::sync::Arc;
@@ -1417,10 +1418,9 @@ pub(super) mod test {
     #[cfg(test)]
     pub(super) mod test {
         use super::*;
-        use crate::datastore::schema::state::MessageSchema;
-        use crate::datastore::test_utils::gen_schema_and_test_agents;
-        use crate::simulation::package::creator::{
-            CONTEXT_INDEX_FIELD_KEY, PREVIOUS_INDEX_FIELD_KEY,
+        use crate::{
+            datastore::{schema::state::MessageSchema, test_utils::gen_schema_and_test_agents},
+            simulation::package::creator::{CONTEXT_INDEX_FIELD_KEY, PREVIOUS_INDEX_FIELD_KEY},
         };
 
         #[test]
@@ -1454,10 +1454,12 @@ pub(super) mod test {
             let now = std::time::Instant::now();
 
             // Remove indices should be less than the length
-            debug_assert!(batch_index.map_or(true, |index| row_actions
-                .remove
-                .iter()
-                .all(|v| v.val < pool[index].num_agents())));
+            debug_assert!(batch_index.map_or(true, |index| {
+                row_actions
+                    .remove
+                    .iter()
+                    .all(|v| v.val < pool[index].num_agents())
+            }));
 
             // Go through migrations
             let buffer_actions = super::BufferActions::from(
@@ -1536,10 +1538,12 @@ pub(super) mod test {
             };
             let now = std::time::Instant::now();
             // Remove indices should be less than the length
-            debug_assert!(batch_index.map_or(true, |index| row_actions
-                .remove
-                .iter()
-                .all(|v| v.val < pool[index].num_agents())));
+            debug_assert!(batch_index.map_or(true, |index| {
+                row_actions
+                    .remove
+                    .iter()
+                    .all(|v| v.val < pool[index].num_agents())
+            }));
 
             // Go through migrations
             let buffer_actions = super::BufferActions::from(
@@ -1625,10 +1629,12 @@ pub(super) mod test {
             };
             let now = std::time::Instant::now();
             // Remove indices should be less than the length
-            debug_assert!(batch_index.map_or(true, |index| row_actions
-                .remove
-                .iter()
-                .all(|v| v.val < pool[index].num_agents())));
+            debug_assert!(batch_index.map_or(true, |index| {
+                row_actions
+                    .remove
+                    .iter()
+                    .all(|v| v.val < pool[index].num_agents())
+            }));
 
             // Go through migrations
             let buffer_actions = super::BufferActions::from(
@@ -1732,10 +1738,12 @@ pub(super) mod test {
             };
             let now = std::time::Instant::now();
             // Remove indices should be less than the length
-            debug_assert!(batch_index.map_or(true, |index| row_actions
-                .remove
-                .iter()
-                .all(|v| v.val < pool[index].num_agents())));
+            debug_assert!(batch_index.map_or(true, |index| {
+                row_actions
+                    .remove
+                    .iter()
+                    .all(|v| v.val < pool[index].num_agents())
+            }));
 
             // Go through migrations
             let buffer_actions = super::BufferActions::from(

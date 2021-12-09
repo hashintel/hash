@@ -1,6 +1,7 @@
 #![allow(clippy::unsafe_derive_deserialize)]
-use serde::{Deserialize, Serialize};
 use std::ops::{Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Sub, SubAssign};
+
+use serde::{Deserialize, Serialize};
 
 // We are rolling out our own Vec3 implementation to better support
 // deserialization from non-3D vectors. With this Vec3, you can do
@@ -31,31 +32,39 @@ impl Vec3 {
     pub fn x(&self) -> f64 {
         self.0
     }
+
     #[must_use]
     pub fn y(&self) -> f64 {
         self.1
     }
+
     #[must_use]
     pub fn z(&self) -> f64 {
         self.2
     }
+
     pub fn x_mut(&mut self) -> &mut f64 {
         &mut self.0
     }
+
     pub fn y_mut(&mut self) -> &mut f64 {
         &mut self.1
     }
+
     pub fn z_mut(&mut self) -> &mut f64 {
         &mut self.2
     }
+
     #[must_use]
     pub fn dot(self, vec: Vec3) -> f64 {
         self.0 * vec.0 + self.1 * vec.1 + self.2 * vec.2
     }
+
     #[must_use]
     pub fn magnitude(self) -> f64 {
         self.dot(self).sqrt()
     }
+
     #[must_use]
     pub fn norm(self) -> Vec3 {
         self / self.magnitude()

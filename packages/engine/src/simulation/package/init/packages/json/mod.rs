@@ -1,8 +1,10 @@
-use super::super::*;
-use crate::proto::ExperimentRunTrait;
-use crate::proto::InitialStateName;
-use crate::simulation::{Error, Result};
 use serde_json::Value;
+
+use super::super::*;
+use crate::{
+    proto::{ExperimentRunTrait, InitialStateName},
+    simulation::{Error, Result},
+};
 
 pub struct Creator {}
 
@@ -23,7 +25,11 @@ impl PackageCreator for Creator {
             })
                 as Box<dyn InitPackage>),
             name => {
-                return Err(Error::from(format!("Trying to create a JSON init package but the init file didn't end in .json: {:?}", name)));
+                return Err(Error::from(format!(
+                    "Trying to create a JSON init package but the init file didn't end in .json: \
+                     {:?}",
+                    name
+                )));
             }
         }
     }
@@ -31,7 +37,7 @@ impl PackageCreator for Creator {
 
 impl GetWorkerExpStartMsg for Creator {
     fn get_worker_exp_start_msg(&self) -> Result<Value> {
-        // TODO possibly pass init.json here to optimize
+        // TODO: possibly pass init.json here to optimize
         Ok(Value::Null)
     }
 }
@@ -54,7 +60,7 @@ impl GetWorkerSimStartMsg for Package {
 #[async_trait]
 impl InitPackage for Package {
     async fn run(&mut self) -> Result<Vec<Agent>> {
-        // TODO Map Error when we design package errors
+        // TODO: Map Error when we design package errors
         serde_json::from_str(&self.initial_state_src).map_err(|e| {
             Error::from(format!(
                 "Failed to parse agent state JSON to Vec<Agent>: {:?}",

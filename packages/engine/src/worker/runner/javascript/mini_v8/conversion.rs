@@ -1,8 +1,11 @@
+use std::{
+    collections::{BTreeMap, BTreeSet, HashMap, HashSet},
+    hash::{BuildHasher, Hash},
+    string::String as StdString,
+    time::Duration,
+};
+
 use super::*;
-use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
-use std::hash::{BuildHasher, Hash};
-use std::string::String as StdString;
-use std::time::Duration;
 
 impl<'mv8> ToValue<'mv8> for Value<'mv8> {
     fn to_value(self, _mv8: &'mv8 MiniV8) -> Result<'mv8, Value<'mv8>> {
@@ -247,7 +250,7 @@ impl<'mv8, 'a> ToValue<'mv8> for &'a str {
 }
 
 macro_rules! convert_number {
-    ($prim_ty: ty) => {
+    ($prim_ty:ty) => {
         impl<'mv8> ToValue<'mv8> for $prim_ty {
             fn to_value(self, _mv8: &'mv8 MiniV8) -> Result<'mv8, Value<'mv8>> {
                 Ok(Value::Number(self as f64))

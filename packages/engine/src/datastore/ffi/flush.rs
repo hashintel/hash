@@ -4,12 +4,11 @@
     clippy::cast_ptr_alignment,
     clippy::missing_safety_doc
 )]
+use super::{memory::CMemory, ArrowArray};
 use crate::datastore::{
-    batch::flush::GrowableArrayData, batch::flush::GrowableBatch, batch::flush::GrowableColumn,
+    batch::flush::{GrowableArrayData, GrowableBatch, GrowableColumn},
     prelude::*,
 };
-
-use super::{memory::CMemory, ArrowArray};
 
 type Flag = usize;
 const MEMORY_SIZE_UNCHANGED: usize = 0;
@@ -213,7 +212,7 @@ pub struct PreparedArrayData<'a> {
     child_data: Vec<PreparedArrayData<'a>>,
     null_buffer: Option<&'a [u8]>,
     buffers: Vec<&'a [u8]>,
-    _node_index: usize, // TODO - unused, delete?
+    _node_index: usize, // TODO: unused, delete?
 }
 
 impl<'a> GrowableArrayData for PreparedArrayData<'a> {

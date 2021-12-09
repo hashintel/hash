@@ -26,31 +26,28 @@ pub mod package;
 
 use std::sync::{Arc, RwLock};
 
-use super::package::id::PackageId;
-pub use super::{Error, Result};
-use crate::hash_types::Agent;
-use crate::proto::SimulationShortID;
 use uuid::Uuid;
 
-use crate::datastore::table::state::ReadState;
+use self::message::{EngineToWorkerPoolMsg, WrappedTask};
+use super::{
+    command::CreateRemoveCommands,
+    package::id::PackageId,
+    task::{access::StoreAccessVerify, active::ActiveTask, Task},
+};
+pub use super::{Error, Result};
 use crate::{
     datastore::{
         prelude::{Context, State},
         table::{
-            state::view::StateSnapshot,
+            state::{view::StateSnapshot, ReadState},
             sync::{ContextBatchSync, StateSync, SyncPayload},
             task_shared_store::TaskSharedStore,
         },
     },
+    hash_types::Agent,
+    proto::SimulationShortID,
     types::TaskID,
     workerpool::comms::MainMsgSend,
-};
-
-use self::message::{EngineToWorkerPoolMsg, WrappedTask};
-
-use super::{
-    command::CreateRemoveCommands,
-    task::{access::StoreAccessVerify, active::ActiveTask, Task},
 };
 
 #[derive(Clone)]

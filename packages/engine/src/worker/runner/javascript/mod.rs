@@ -1,10 +1,9 @@
 mod error;
 mod mini_v8;
 
-use std::future::Future;
-use std::pin::Pin;
-use std::result::Result as StdResult;
-use std::{collections::HashMap, fs, sync::Arc};
+use std::{
+    collections::HashMap, fs, future::Future, pin::Pin, result::Result as StdResult, sync::Arc,
+};
 
 use arrow::{
     array::{ArrayData, ArrayDataRef},
@@ -12,42 +11,42 @@ use arrow::{
     datatypes::{DataType, Schema},
     ipc::writer::schema_to_bytes,
 };
+pub use error::{Error, Result};
 use futures::FutureExt;
 use mini_v8 as mv8;
 use mv8::MiniV8;
-use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
-use tokio::task::JoinError;
+use tokio::{
+    sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
+    task::JoinError,
+};
 
 use super::comms::{
     inbound::InboundToRunnerMsgPayload,
     outbound::{OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload, RunnerError},
     ExperimentInitRunnerMsg, MessageTarget, NewSimulationRun, RunnerTaskMsg, TargetedRunnerTaskMsg,
 };
-use crate::config::Globals;
-use crate::datastore::batch::DynamicBatch;
-use crate::datastore::table::pool::agent::AgentPool;
-use crate::datastore::table::pool::message::MessagePool;
-use crate::datastore::table::pool::BatchPool;
-use crate::datastore::table::proxy::StateWriteProxy;
-use crate::datastore::table::task_shared_store::{PartialSharedState, SharedState};
-use crate::simulation::enum_dispatch::TaskSharedStore;
-use crate::worker::{Error as WorkerError, Result as WorkerResult, TaskMessage};
 use crate::{
-    datastore::prelude::SharedStore,
-    proto::SimulationShortID,
-    simulation::package::{id::PackageId, PackageType},
-};
-use crate::{
+    config::Globals,
     datastore::{
         arrow::util::arrow_continuation,
-        batch::{change::ArrayChange, Batch, Metaversion},
-        prelude::{AgentBatch, MessageBatch},
+        batch::{change::ArrayChange, Batch, DynamicBatch, Metaversion},
+        prelude::{AgentBatch, MessageBatch, SharedStore},
         storage::memory::Memory,
-        table::sync::{ContextBatchSync, StateSync},
+        table::{
+            pool::{agent::AgentPool, message::MessagePool, BatchPool},
+            proxy::StateWriteProxy,
+            sync::{ContextBatchSync, StateSync},
+            task_shared_store::{PartialSharedState, SharedState},
+        },
     },
+    proto::SimulationShortID,
+    simulation::{
+        enum_dispatch::TaskSharedStore,
+        package::{id::PackageId, PackageType},
+    },
+    worker::{Error as WorkerError, Result as WorkerResult, TaskMessage},
     Language,
 };
-pub use error::{Error, Result};
 
 struct JSPackage<'m> {
     fns: mv8::Array<'m>,
@@ -188,22 +187,16 @@ impl<'m> Embedded<'m> {
     fn import(mv8: &'m MiniV8) -> Result<Self> {
         let arrow = eval_file(mv8, "./src/worker/runner/javascript/bundle_arrow.js")?;
         let hash_stdlib = eval_file(mv8, "./src/worker/runner/javascript/hash_stdlib.js")?;
-        let hash_util = import_file(
-            mv8,
-            "./src/worker/runner/javascript/hash_util.js",
-            vec![&arrow],
-        )?;
-        let batches_prototype = import_file(
-            mv8,
-            "./src/worker/runner/javascript/batch.js",
-            vec![&arrow, &hash_util],
-        )?;
+        let hash_util = import_file(mv8, "./src/worker/runner/javascript/hash_util.js", vec![
+            &arrow,
+        ])?;
+        let batches_prototype = import_file(mv8, "./src/worker/runner/javascript/batch.js", vec![
+            &arrow, &hash_util,
+        ])?;
 
-        let ctx_import = import_file(
-            mv8,
-            "./src/worker/runner/javascript/context.js",
-            vec![&hash_util],
-        )?;
+        let ctx_import = import_file(mv8, "./src/worker/runner/javascript/context.js", vec![
+            &hash_util,
+        ])?;
         let ctx_import = ctx_import.as_array().ok_or_else(|| {
             Error::FileImport(
                 "./src/worker/runner/javascript/context.js".into(),
@@ -214,23 +207,17 @@ impl<'m> Embedded<'m> {
         let sim_init_ctx_prototype = ctx_import.get(1)?;
         let gen_ctx = ctx_import.get(2)?;
 
-        let gen_state = import_file(
-            mv8,
-            "./src/worker/runner/javascript/state.js",
-            vec![&hash_util],
-        )?;
-        let fns = import_file(
-            mv8,
-            "./src/worker/runner/javascript/runner.js",
-            vec![
-                &arrow,
-                &batches_prototype,
-                &experiment_ctx_prototype,
-                &sim_init_ctx_prototype,
-                &gen_ctx,
-                &gen_state,
-            ],
-        )?;
+        let gen_state = import_file(mv8, "./src/worker/runner/javascript/state.js", vec![
+            &hash_util,
+        ])?;
+        let fns = import_file(mv8, "./src/worker/runner/javascript/runner.js", vec![
+            &arrow,
+            &batches_prototype,
+            &experiment_ctx_prototype,
+            &sim_init_ctx_prototype,
+            &gen_ctx,
+            &gen_state,
+        ])?;
         let fns = fns.as_array().ok_or_else(|| {
             Error::FileImport(
                 "./src/worker/runner/javascript/runner.js".into(),
@@ -651,7 +638,7 @@ impl<'m> RunnerImpl<'m> {
                 Ok(())
             } // Just offsets
             DataType::Struct(_) => Ok(()), // No non-child buffers
-            DataType::FixedSizeList(_, _) => Ok(()),
+            DataType::FixedSizeList(..) => Ok(()),
             DataType::FixedSizeBinary(sz) => {
                 buffer_lens.push(data.len * sz as usize);
                 Ok(())
@@ -811,9 +798,8 @@ impl<'m> RunnerImpl<'m> {
     ///  - Hard-coded engine init
     ///  - Sim-level init of step packages (context, state, output)
     ///  - Run init packages (e.g. init.js)
-    ///      - init.js can depend on globals, which vary between sim runs, so
-    ///        it has to be executed at the start of a sim run, not at the
-    ///        start of the experiment run.
+    ///      - init.js can depend on globals, which vary between sim runs, so it has to be executed
+    ///        at the start of a sim run, not at the start of the experiment run.
     fn start_sim(&mut self, mv8: &'m MiniV8, run: NewSimulationRun) -> Result<()> {
         // Initialize JS.
 
@@ -945,13 +931,16 @@ impl<'m> RunnerImpl<'m> {
             &next_inner_task_msg
         );
         let next_task_payload =
-            TaskMessage::try_from_inner_msg_and_wrapper(next_inner_task_msg, wrapper).map_err(|e| {
-                Error::from(format!(
-                    "Failed to wrap and create a new TaskMessage, perhaps the inner: {}, was formatted incorrectly. Underlying error: {}",
-                    next_task_payload,
-                    e.to_string()
-                ))
-            })?;
+            TaskMessage::try_from_inner_msg_and_wrapper(next_inner_task_msg, wrapper).map_err(
+                |e| {
+                    Error::from(format!(
+                        "Failed to wrap and create a new TaskMessage, perhaps the inner: {}, was \
+                         formatted incorrectly. Underlying error: {}",
+                        next_task_payload,
+                        e.to_string()
+                    ))
+                },
+            )?;
 
         // Only flushes if state writable
         self.flush(mv8, sim_run_id, &mut msg.shared_store, &r)?;

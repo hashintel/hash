@@ -1,9 +1,9 @@
-use crate::config::Globals;
-use crate::hash_types::worker::RunnerError;
-use crate::simulation::status::SimStatus;
+use std::fmt::{Debug, Formatter};
+
 use serde::{Deserialize, Serialize};
 use serde_json::Value as SerdeValue;
-use std::fmt::{Debug, Formatter};
+
+use crate::{config::Globals, hash_types::worker::RunnerError, simulation::status::SimStatus};
 
 pub type SerdeMap = serde_json::Map<String, SerdeValue>;
 
@@ -32,7 +32,7 @@ pub enum EngineStatus {
         globals: Globals,
     },
     SimStop(SimulationShortID),
-    // TODO OS - Confirm are these only Runner/Simulation errors, if so rename
+    // TODO: OS - Confirm are these only Runner/Simulation errors, if so rename
     Errors(Option<SimulationShortID>, Vec<RunnerError>),
     Warnings(Option<SimulationShortID>, Vec<RunnerError>),
 }
@@ -78,8 +78,8 @@ impl EngineStatus {
                 globals: _,
             } => "SimStart",
             EngineStatus::SimStop(_) => "SimStop",
-            EngineStatus::Errors(_, _) => "Errors",
-            EngineStatus::Warnings(_, _) => "Warnings",
+            EngineStatus::Errors(..) => "Errors",
+            EngineStatus::Warnings(..) => "Warnings",
         }
     }
 }
@@ -118,10 +118,12 @@ pub struct FetchedDataset {
 
 #[derive(Deserialize, Serialize, Clone)]
 pub struct SharedBehavior {
-    /// This is the unique identifier (also the file/path) that, in the case of Cloud runs, is used by the HASH API
+    /// This is the unique identifier (also the file/path) that, in the case of Cloud runs, is used
+    /// by the HASH API
     pub id: String,
     /// This is the full name of the file (can be used to refer to the behavior).
-    /// It is often the case that self.id = self.name (except sometimes for dependencies by `@hash`).
+    /// It is often the case that self.id = self.name (except sometimes for dependencies by
+    /// `@hash`).
     pub name: String,
     /// These are alternative representations on how one can refer to this behavior
     pub shortnames: Vec<String>,
@@ -322,9 +324,11 @@ impl ExperimentRunTrait for ExperimentRunBase {
     fn base(&self) -> &ExperimentRunBase {
         self
     }
+
     fn base_mut(&mut self) -> &mut ExperimentRunBase {
         self
     }
+
     fn package_config(&self) -> PackageConfig {
         PackageConfig::EmptyPackageConfig
     }
@@ -334,9 +338,11 @@ impl ExperimentRunTrait for ExperimentRun {
     fn base(&self) -> &ExperimentRunBase {
         &self.base
     }
+
     fn base_mut(&mut self) -> &mut ExperimentRunBase {
         &mut self.base
     }
+
     fn package_config(&self) -> PackageConfig {
         PackageConfig::ExperimentPackageConfig(&self.package_config)
     }
@@ -370,7 +376,7 @@ pub struct ProcessedExperimentRun {
     pub compute_usage_remaining: i64,
 }
 
-// TODO - Replace with UUID?
+// TODO: Replace with UUID?
 pub type ExperimentID = String;
 
 /// A wrapper around an Option to avoid displaying the inner for Debug outputs,

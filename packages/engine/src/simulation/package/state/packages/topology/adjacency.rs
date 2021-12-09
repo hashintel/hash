@@ -1,6 +1,5 @@
-use crate::config::topology::{AxisBoundary, Config as TopologyConfig, WrappingBehavior};
-
 use super::{Direction, Position};
+use crate::config::topology::{AxisBoundary, Config as TopologyConfig, WrappingBehavior};
 
 /// Wrap the position if the agent is out of bounds
 pub fn correct_agent(

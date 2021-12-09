@@ -1,15 +1,14 @@
-use crate::proto::ExperimentRunTrait;
+use std::ops::Deref;
+
 use analyzer::Analyzer;
 pub use output::{AnalysisOutput, AnalysisSingleOutput};
 use serde_json::Value;
-use std::ops::Deref;
-
-use crate::datastore::table::state::ReadState;
-use crate::experiment::SimPackageArgs;
 
 pub use self::config::AnalysisOutputConfig;
-
 pub use super::super::*;
+use crate::{
+    datastore::table::state::ReadState, experiment::SimPackageArgs, proto::ExperimentRunTrait,
+};
 
 #[macro_use]
 mod macros;
@@ -35,7 +34,8 @@ impl PackageCreator for Creator {
         _comms: PackageComms,
         accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn Package>> {
-        // TODO, look at reworking signatures and package creation to make ownership clearer and make this unnecessary
+        // TODO, look at reworking signatures and package creation to make ownership clearer and
+        // make this unnecessary
         let analysis_src = get_analysis_source(&config.exp.run.base().project_base.packages)?;
         let analyzer = Analyzer::from_analysis_source(
             &analysis_src,
@@ -81,12 +81,12 @@ impl GetWorkerSimStartMsg for Analysis {
 #[async_trait]
 impl Package for Analysis {
     async fn run(&mut self, state: Arc<State>, _context: Arc<Context>) -> Result<Output> {
-        // TODO use filtering to avoid exposing hidden values to users
+        // TODO: use filtering to avoid exposing hidden values to users
         let read = state.agent_pool().read_batches()?;
-        // TODO propagate Deref trait bound through run
+        // TODO: propagate Deref trait bound through run
         let dynamic_pool = read.iter().map(|v| v.deref()).collect::<Vec<_>>();
         self.analyzer.run(&dynamic_pool, state.num_agents())?;
-        // TODO why doesn't into work?
+        // TODO: why doesn't into work?
         Ok(Output::AnalysisOutput(
             self.analyzer.get_latest_output_set(),
         ))

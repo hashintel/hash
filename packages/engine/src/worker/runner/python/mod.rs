@@ -3,29 +3,28 @@ mod fbs;
 mod receiver;
 mod sender;
 
-use std::collections::HashMap;
-use std::future::Future;
-use std::pin::Pin;
-use std::result::Result as StdResult;
-use std::sync::Arc;
+use std::{collections::HashMap, future::Future, pin::Pin, result::Result as StdResult, sync::Arc};
 
+pub use error::{Error, Result};
 use futures::FutureExt;
-use tokio::process::Command;
-use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
-use tokio::task::JoinError;
+use receiver::NngReceiver;
+use sender::NngSender;
+use tokio::{
+    process::Command,
+    sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
+    task::JoinError,
+};
 
 use super::comms::{
     inbound::InboundToRunnerMsgPayload, outbound::OutboundFromRunnerMsg, ExperimentInitRunnerMsg,
     RunnerTaskMsg, SentTask,
 };
-use crate::proto::SimulationShortID;
-use crate::worker::{Error as WorkerError, Result as WorkerResult};
-
-use crate::types::TaskID;
-use crate::Language;
-pub use error::{Error, Result};
-use receiver::NngReceiver;
-use sender::NngSender;
+use crate::{
+    proto::SimulationShortID,
+    types::TaskID,
+    worker::{Error as WorkerError, Result as WorkerResult},
+    Language,
+};
 
 pub struct PythonRunner {
     init_msg: Arc<ExperimentInitRunnerMsg>, // Args to RunnerImpl::new

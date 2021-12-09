@@ -4,13 +4,14 @@
     clippy::cast_sign_loss
 )]
 
+use arrow::{
+    array::{self, Array, ArrayRef},
+    datatypes::{self, ArrowNativeType, ArrowNumericType, ArrowPrimitiveType, DataType},
+};
+use serde_json::value::Value;
+
 use super::{batch_conversion::col_to_json_vals, prelude::*};
 use crate::datastore::prelude::*;
-use arrow::array::{self, Array, ArrayRef};
-
-use arrow::datatypes::{self, ArrowNativeType, ArrowNumericType, ArrowPrimitiveType, DataType};
-
-use serde_json::value::Value;
 
 fn numeric_element_to_json_val<T: ArrowPrimitiveType + ArrowNumericType>(
     col: &ArrayRef,
@@ -146,12 +147,13 @@ pub fn col_element_to_json_val(col: &ArrayRef, index: usize, dt: &DataType) -> R
 pub mod tests {
     use std::sync::Arc;
 
-    use super::*;
     use arrow::array::{
         ArrayData, BooleanArray, Float32Array, Float64Array, Int16Array, Int32Array, Int64Array,
         Int8Array, StringArray, UInt16Array, UInt32Array, UInt64Array, UInt8Array,
     };
     use serde_json::json;
+
+    use super::*;
 
     #[test]
     fn numeric_element_conversion() {

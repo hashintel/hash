@@ -2,17 +2,19 @@ pub mod controller;
 mod error;
 pub mod package;
 
-use crate::config::Globals;
-use crate::experiment::controller::comms::{
-    exp_pkg_ctl::ExpPkgCtlSend, exp_pkg_update::ExpPkgUpdateRecv,
-};
-use crate::proto::{ExperimentPackageConfig, SimulationShortID};
-use crate::{config::ExperimentConfig, proto};
+use std::sync::Arc;
+
 pub use error::{Error, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as SerdeValue;
-use std::sync::Arc;
 use tokio::task::JoinHandle;
+
+use crate::{
+    config::{ExperimentConfig, Globals},
+    experiment::controller::comms::{exp_pkg_ctl::ExpPkgCtlSend, exp_pkg_update::ExpPkgUpdateRecv},
+    proto,
+    proto::{ExperimentPackageConfig, SimulationShortID},
+};
 
 pub type SharedDataset = proto::SharedDataset;
 pub type SharedBehavior = proto::SharedBehavior;
@@ -44,7 +46,7 @@ fn set_nested_property(
         let _ = map.insert(name.to_string(), new_value);
         Ok(())
     } else {
-        // TODO OS - Uninitialized nested properties (JV)
+        // TODO: OS - Uninitialized nested properties (JV)
         let property = map
             .get_mut(name)
             .ok_or_else(|| Error::MissingChangedGlobalProperty(name.to_string()))?;

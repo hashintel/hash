@@ -1,10 +1,11 @@
-use crate::experiment::controller::comms::exp_pkg_ctl::ExpPkgCtlSend;
-use crate::experiment::controller::comms::exp_pkg_update::ExpPkgUpdateRecv;
 use std::sync::Arc;
 
 use super::super::{Error, ExperimentControl, Result};
-use crate::config::ExperimentConfig;
-use crate::proto::{SimulationShortID, SingleRunExperimentConfig};
+use crate::{
+    config::ExperimentConfig,
+    experiment::controller::comms::{exp_pkg_ctl::ExpPkgCtlSend, exp_pkg_update::ExpPkgUpdateRecv},
+    proto::{SimulationShortID, SingleRunExperimentConfig},
+};
 
 pub struct SingleRunExperiment {
     _experiment_config: Arc<ExperimentConfig>, // TODO: unused, remove?

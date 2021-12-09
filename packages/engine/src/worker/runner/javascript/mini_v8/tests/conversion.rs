@@ -1,5 +1,6 @@
-use super::super::*;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+
+use super::super::*;
 
 #[test]
 fn option() {

@@ -1,12 +1,11 @@
+use serde_json::Value;
+use thiserror::Error as ThisError;
+
+use super::*;
 use crate::datastore::{
     table::{pool::message::MessageReader, references::AgentMessageReference},
     UUID_V4_LEN,
 };
-
-use super::*;
-use serde_json::Value;
-
-use thiserror::Error as ThisError;
 
 pub const ACTIVE_REQUESTS: usize = 10;
 
@@ -62,9 +61,8 @@ pub mod mapbox {
 
     use futures::StreamExt;
 
-    use crate::datastore::UUID_V4_LEN;
-
     use super::*;
+    use crate::datastore::UUID_V4_LEN;
 
     #[derive(ThisError, Debug)]
     pub enum MapboxError {
@@ -91,7 +89,7 @@ pub mod mapbox {
             .ok_or_else(|| MapboxError::RequestRoute(data.clone()).conv())?;
 
         todo!()
-        // TODO OS handle mapbox token
+        // TODO: OS handle mapbox token
         // let request = surf::get(request_url).recv_string().await;
         // request
         //     .map_err(|e| Error::Surf(e.status()))

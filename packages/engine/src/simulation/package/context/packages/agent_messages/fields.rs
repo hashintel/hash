@@ -1,8 +1,7 @@
+use super::*;
 use crate::datastore::schema::{
     FieldScope, FieldType, FieldTypeVariant::*, PresetFieldType, RootFieldSpec,
 };
-
-use super::*;
 
 fn agent_messages() -> FieldType {
     let variant = VariableLengthArray(Box::new(FieldType::new(

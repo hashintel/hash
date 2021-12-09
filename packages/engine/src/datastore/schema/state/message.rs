@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
-use crate::datastore::arrow::message::MESSAGE_BATCH_SCHEMA;
-use crate::datastore::prelude::*;
+use crate::datastore::{arrow::message::MESSAGE_BATCH_SCHEMA, prelude::*};
 
 pub struct MessageSchema {
     pub arrow: Arc<ArrowSchema>,

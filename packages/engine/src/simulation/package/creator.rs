@@ -1,33 +1,30 @@
+use std::{collections::HashMap, sync::Arc};
+
 use futures::TryStreamExt;
-use std::collections::HashMap;
-use std::sync::Arc;
 
-use crate::config::{Globals, PackageConfig};
-use crate::datastore::schema::accessor::FieldSpecMapAccessor;
-use crate::datastore::schema::context::ContextSchema;
-use crate::datastore::schema::state::AgentSchema;
-use crate::datastore::schema::{
-    FieldScope, FieldSource, FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant, PresetFieldType,
-    RootFieldSpec, RootFieldSpecCreator,
-};
-use crate::simulation::comms::package::PackageComms;
-use crate::simulation::package::name::PackageName;
-use crate::simulation::package::worker_init::PackageInitMsgForWorker;
-use crate::worker::runner::comms::PackageMsgs;
-use crate::{
-    config::SimRunConfig,
-    simulation::{Error, Result},
-    ExperimentConfig,
-};
-
-use super::id::PackageId;
-use super::output::packages::OutputPackagesSimConfig;
-use super::prelude::Comms;
-use super::PackageType;
 use super::{
-    context, init, output,
+    context,
+    id::PackageId,
+    init, output,
+    output::packages::OutputPackagesSimConfig,
+    prelude::Comms,
     run::{InitPackages, Packages, StepPackages},
-    state,
+    state, PackageType,
+};
+use crate::{
+    config::{Globals, PackageConfig, SimRunConfig},
+    datastore::schema::{
+        accessor::FieldSpecMapAccessor, context::ContextSchema, state::AgentSchema, FieldScope,
+        FieldSource, FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant, PresetFieldType,
+        RootFieldSpec, RootFieldSpecCreator,
+    },
+    simulation::{
+        comms::package::PackageComms,
+        package::{name::PackageName, worker_init::PackageInitMsgForWorker},
+        Error, Result,
+    },
+    worker::runner::comms::PackageMsgs,
+    ExperimentConfig,
 };
 
 pub struct PackageCreators {
@@ -117,7 +114,7 @@ impl PackageCreators {
     }
 
     pub fn get_worker_exp_start_msgs(&self) -> Result<PackageMsgs> {
-        // TODO generics to avoid code duplication
+        // TODO: generics to avoid code duplication
         let mut msgs = HashMap::new();
         for (id, name, creator) in &self.init {
             let payload = creator.get_worker_exp_start_msg()?;
@@ -171,7 +168,7 @@ impl PackageCreators {
         config: &Arc<SimRunConfig>,
         comms: Comms,
     ) -> Result<(Packages, PackageMsgs)> {
-        // TODO generics to avoid code duplication
+        // TODO: generics to avoid code duplication
         let state_field_spec_map = &config.sim.store.agent_schema.field_spec_map;
         let context_field_spec_map = &config.sim.store.context_schema.field_spec_map;
         let mut messages = HashMap::new();
@@ -301,7 +298,7 @@ impl PackageCreators {
     ) -> Result<AgentSchema> {
         let mut field_spec_map = FieldSpecMap::empty();
 
-        // TODO - should we use enum_dispatch here to remove some duplication
+        // TODO: should we use enum_dispatch here to remove some duplication
         self.init.iter().try_for_each::<_, Result<()>>(
             |(_package_id, package_name, creator)| {
                 let field_spec_creator =
@@ -386,11 +383,11 @@ impl PackageCreators {
 }
 
 pub const PREVIOUS_INDEX_FIELD_NAME: &str = "previous_index";
-// TODO this should be deleted, i.e. if this value is required use
+// TODO: this should be deleted, i.e. if this value is required use
 //      something like `get_hidden_column_name(PREVIOUS_INDEX_FIELD_NAME)`
 pub const PREVIOUS_INDEX_FIELD_KEY: &str = "_HIDDEN_0_previous_index";
 
-// TODO is this actually used or remnants of a hopeful design
+// TODO: is this actually used or remnants of a hopeful design
 pub const CONTEXT_INDEX_FIELD_NAME: &str = "context_index";
 pub const CONTEXT_INDEX_FIELD_KEY: &str = "_HIDDEN_0_context_index";
 
@@ -418,7 +415,7 @@ pub fn get_base_agent_fields() -> Result<Vec<RootFieldSpec>> {
     // This means `AgentBatch` ordering gets changed at the beginning of the step
     // meaning agents are not aligned with their `OutboxBatch` anymore.
     #[must_use]
-    // TODO migrate this to be logic handled by the Engine
+    // TODO: migrate this to be logic handled by the Engine
     pub fn last_state_index_key() -> FieldSpec {
         // There are 2 indices for every agent: 1) Group index 2) Row (agent) index. This points
         // to the relevant old outbox (i.e. new inbox)
@@ -443,7 +440,7 @@ pub fn get_base_agent_fields() -> Result<Vec<RootFieldSpec>> {
     // batches may be arbitrarily shuffled after context is written, then we
     // need a way to keep track.
     #[must_use]
-    // TODO migrate this to be logic handled by the Engine
+    // TODO: migrate this to be logic handled by the Engine
     pub fn context_index_key() -> FieldSpec {
         FieldSpec {
             name: CONTEXT_INDEX_FIELD_NAME.to_string(),
@@ -474,7 +471,7 @@ pub fn get_base_agent_fields() -> Result<Vec<RootFieldSpec>> {
 
 fn get_base_context_fields() -> Result<Vec<RootFieldSpec>> {
     let _field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
-    // TODO previous index and other fields that make sense
+    // TODO: previous index and other fields that make sense
     // Doesn't do anything for now
     Ok(vec![])
 }

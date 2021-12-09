@@ -3,15 +3,15 @@ pub mod behavior;
 use arrow::datatypes::DataType;
 
 use self::behavior::BehaviorMap;
-
 use super::BEHAVIOR_INDEX_INNER_COUNT;
-
-use crate::config::ExperimentConfig;
-use crate::datastore::schema::{
-    FieldScope, FieldType, FieldTypeVariant as FTV, PresetFieldType, RootFieldSpec,
-    RootFieldSpecCreator,
+use crate::{
+    config::ExperimentConfig,
+    datastore::schema::{
+        FieldScope, FieldType, FieldTypeVariant as FTV, PresetFieldType, RootFieldSpec,
+        RootFieldSpecCreator,
+    },
+    simulation::Result,
 };
-use crate::simulation::Result;
 
 fn get_behaviors_field_spec(field_spec_creator: &RootFieldSpecCreator) -> Result<RootFieldSpec> {
     let field_type = FieldType::new(

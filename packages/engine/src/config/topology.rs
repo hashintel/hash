@@ -1,11 +1,14 @@
-use super::Result;
-use crate::config::globals::Globals;
-use crate::config::topology::functions::{conway, euclidean, euclidean_squared, manhattan};
 use std::sync::Arc;
 
-// TODO - think about creating a system of ConfigProviders whereby packages can depend on them
+use super::Result;
+use crate::config::{
+    globals::Globals,
+    topology::functions::{conway, euclidean, euclidean_squared, manhattan},
+};
+
+// TODO: think about creating a system of ConfigProviders whereby packages can depend on them
 //   and decrease the amount of assumptions the core engine has to make, for example position
-//   correction and neighbour search depend on this config, but this config is useless if those
+//   correction and neighbor search depend on this config, but this config is useless if those
 //   packages are not run
 
 #[allow(clippy::module_name_repetitions)]
@@ -94,13 +97,16 @@ pub struct Config {
     /// Dimensions of board associated with "height"
     pub z_bounds: AxisBoundary,
 
-    /// Determines how agents interact with the boundaries of the simulation associated with "width"
+    /// Determines how agents interact with the boundaries of the simulation associated with
+    /// "width"
     pub wrap_x_mode: WrappingBehavior,
 
-    /// Determines how agents interact with the boundaries of the simulation associated with "length"
+    /// Determines how agents interact with the boundaries of the simulation associated with
+    /// "length"
     pub wrap_y_mode: WrappingBehavior,
 
-    /// Determines how agents interact with the boundaries of the simulation associated with "height"
+    /// Determines how agents interact with the boundaries of the simulation associated with
+    /// "height"
     pub wrap_z_mode: WrappingBehavior,
 
     /// The search radius for the kd-tree distance function
@@ -187,14 +193,15 @@ impl Config {
             .ok_or_else(|| "TopologyConfig not found within Globals".into())
     }
 
-    /// `_try_extract_topology_config` will attempt to create a `topology::Config` struct from the given json
-    /// value stored within the globals, otherwise it will return None.
+    /// `_try_extract_topology_config` will attempt to create a `topology::Config` struct from the
+    /// given json value stored within the globals, otherwise it will return None.
     ///
     /// This should be used in conjunction with `topology::Config::default()`
     #[allow(clippy::cognitive_complexity, clippy::too_many_lines)] // TODO: split up
     #[must_use]
     fn _try_extract_topology_config(globals: &Arc<Globals>) -> Option<Self> {
-        // Start interpreting the user's global properties into a topology without tripping on errors
+        // Start interpreting the user's global properties into a topology without tripping on
+        // errors
         if let Some(serde_json::Value::Object(topology_props)) = globals.0.get("topology") {
             let mut config = Config::default();
             if let Some(serde_json::Value::Array(x_bounds_arr)) = topology_props.get("x_bounds") {
@@ -227,7 +234,8 @@ impl Config {
                     config.z_bounds.max = z_bounds_max;
                 }
             }
-            // Misspellings currently default to NoWrap but don't alert the user. Need to add error alerts here
+            // Misspellings currently default to NoWrap but don't alert the user. Need to add error
+            // alerts here
             if let Some(wrap) = topology_props
                 .get("wrap_x_mode")
                 .and_then(|v| v.as_str().and_then(WrappingBehavior::from_string))

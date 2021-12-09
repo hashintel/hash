@@ -1,8 +1,9 @@
-use super::Result;
 use serde::{Deserialize, Serialize};
 
-// TODO OS - Go through code-base and verify that out-dated references to "properties" are now "globals"
-// We also have some consts that come in along with our initial world state.
+use super::Result;
+
+// TODO: OS - Go through code-base and verify that out-dated references to "properties" are now
+// "globals" We also have some consts that come in along with our initial world state.
 // These, we call 'Globals', and store them in context.
 // For now, they're... you guessed it, JSON.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -10,6 +11,7 @@ pub struct Globals(pub serde_json::Value);
 
 impl Globals {
     /// # Errors
+    ///
     /// This function cannot fail, as Globals is a free-flowing JSON object.
     /// TODO: Audit this (Can a `serde_json::Value` be anything else?)
     pub fn from_json(value: serde_json::Value) -> Result<Globals, serde_json::Error> {

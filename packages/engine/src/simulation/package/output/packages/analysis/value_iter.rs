@@ -2,12 +2,11 @@ use std::cmp::Ordering;
 
 use float_cmp::approx_eq;
 
-use crate::simulation::package::output::packages::analysis::analyzer::ComparisonRepr;
-
 use super::{
     analyzer::{MapIterator, ValueIterator, ULPS},
     Error, Result,
 };
+use crate::simulation::package::output::packages::analysis::analyzer::ComparisonRepr;
 
 fn array_element_exists_as_non_null(value: &serde_json::Value, index: usize) -> bool {
     if let Some(array) = value.as_array() {
@@ -37,7 +36,7 @@ fn value_iterator_filter_on_array_element_null(
         _ => {
             return Err(Error::from(
                 "For Null comparison only 'eq' and 'neq' operators are allowed",
-            ))
+            ));
         }
     };
     Ok(map)
@@ -53,7 +52,7 @@ fn value_iterator_filter_on_object_field_null(
         _ => {
             return Err(Error::from(
                 "For Null comparison only 'eq' and 'neq' operators are allowed",
-            ))
+            ));
         }
     };
     Ok(map)
@@ -74,7 +73,7 @@ fn value_iterator_filter_on_array_element_boolean(
         _ => {
             return Err(Error::from(
                 "For Boolean comparison only 'eq' and 'neq' operators are allowed",
-            ))
+            ));
         }
     };
     Ok(map)
@@ -91,7 +90,7 @@ fn value_iterator_filter_on_object_field_boolean(
         _ => {
             return Err(Error::from(
                 "For Boolean comparison only 'eq' and 'neq' operators are allowed",
-            ))
+            ));
         }
     };
     Ok(map)
@@ -313,7 +312,7 @@ pub(super) fn value_iterator_filter(
             _ => {
                 return Err(Error::from(
                     "Filtering can only be done with number/boolean or string values",
-                ))
+                ));
             }
         }
     } else if let Some(field_name) = field.clone().as_str() {
@@ -336,11 +335,14 @@ pub(super) fn value_iterator_filter(
             _ => {
                 return Err(Error::from(
                     "Filtering can only be done with number/boolean or string values",
-                ))
+                ));
             }
         }
     } else {
-        return Err(Error::from("Using the 'filter' operator requires that the 'field' value must be of a non-negative numerical or string type" ));
+        return Err(Error::from(
+            "Using the 'filter' operator requires that the 'field' value must be of a \
+             non-negative numerical or string type",
+        ));
     };
 
     Ok(map)
@@ -378,7 +380,10 @@ pub(super) fn value_iterator_mapper(field: serde_json::Value) -> Result<MapItera
             Ok(mapped)
         })
     } else {
-        return Err(Error::from("Using the 'get' operator requires that the 'field' value must be of a non-negative numerical or string type" ));
+        return Err(Error::from(
+            "Using the 'get' operator requires that the 'field' value must be of a non-negative \
+             numerical or string type",
+        ));
     };
     Ok(map)
 }

@@ -1,11 +1,15 @@
-use crate::proto::{
-    EngineMsg, EngineStatus, ExecutionEnvironment, ExperimentRunRepr, ExperimentRunTrait,
-    InitMessage,
-};
-use crate::{nano, Args};
 use serde::Deserialize;
 use thiserror::Error as ThisError;
 use tokio::time::Duration;
+
+use crate::{
+    nano,
+    proto::{
+        EngineMsg, EngineStatus, ExecutionEnvironment, ExperimentRunRepr, ExperimentRunTrait,
+        InitMessage,
+    },
+    Args,
+};
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -72,7 +76,7 @@ impl OrchClient {
 pub struct Environment {
     pub orch_client: OrchClient,
     pub orch_listener: nano::Server,
-    pub experiment: ExperimentRunRepr, // todo extended experiment run??
+    pub experiment: ExperimentRunRepr, // TODO: extended experiment run??
     pub execution_env: ExecutionEnvironment,
     pub dyn_payloads: serde_json::Map<String, serde_json::Value>,
 }
@@ -81,7 +85,7 @@ pub async fn env<E>(args: &Args) -> Result<Environment>
 where
     E: ExperimentRunTrait + for<'de> Deserialize<'de>,
 {
-    log::info!("Persist data to S3: {}", args.persist); // TODO - Doesn't look like it does anything
+    log::info!("Persist data to S3: {}", args.persist); // TODO: Doesn't look like it does anything
     let mut orch_client = OrchClient::new(&args.orchestrator_url, &args.experiment_id)?;
     log::debug!("Connected to orchestrator at {}", &args.orchestrator_url);
 

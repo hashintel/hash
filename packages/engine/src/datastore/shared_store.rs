@@ -1,9 +1,7 @@
-use super::Result;
 use std::{collections::HashMap, sync::Arc};
 
-use crate::config::ExperimentConfig;
-use crate::datastore::batch::Dataset;
-use crate::proto::ExperimentRunTrait;
+use super::Result;
+use crate::{config::ExperimentConfig, datastore::batch::Dataset, proto::ExperimentRunTrait};
 
 #[derive(Clone)]
 pub struct SharedStore {

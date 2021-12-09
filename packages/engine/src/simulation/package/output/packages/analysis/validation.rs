@@ -1,8 +1,9 @@
+use std::sync::Arc;
+
 use super::{Error, Result};
 use crate::simulation::package::output::packages::analysis::analyzer::{
     AnalysisOperationRepr, AnalysisSourceRepr,
 };
-use std::sync::Arc;
 
 impl AnalysisSourceRepr {
     pub fn validate_def(&self) -> Result<()> {
@@ -70,9 +71,17 @@ impl AnalysisOperationRepr {
         {
             if !field.is_string() {
                 if let Ok(field_repr) = serde_json::to_string(field) {
-                    error.add(format!("The first operation (a 'filter') must access a field of an agent by string, however the current 'field' value is {}", field_repr));
+                    error.add(format!(
+                        "The first operation (a 'filter') must access a field of an agent by \
+                         string, however the current 'field' value is {}",
+                        field_repr
+                    ));
                 } else {
-                    error.add("The first operation (a 'filter') must access a field of an agent by string".into());
+                    error.add(
+                        "The first operation (a 'filter') must access a field of an agent by \
+                         string"
+                            .into(),
+                    );
                 }
             }
         }
@@ -89,18 +98,30 @@ impl AnalysisOperationRepr {
             } => {
                 let mut error = ErrorBuilder::new();
                 if !(field.is_string() || field.is_u64()) {
-                    error.add("A 'filter' operation must access a field (by string) or an element of an array (by non-negative integer)".into());
+                    error.add(
+                        "A 'filter' operation must access a field (by string) or an element of an \
+                         array (by non-negative integer)"
+                            .into(),
+                    );
                 }
 
                 if !(self.is_filter() || self.is_map() || self.is_count()) {
-                    error.add("A 'filter' operation must be followed either by 'filter', 'get' or 'count' operations".into());
+                    error.add(
+                        "A 'filter' operation must be followed either by 'filter', 'get' or \
+                         'count' operations"
+                            .into(),
+                    );
                 }
                 error.finish()
             }
             AnalysisOperationRepr::Get { field } => {
                 let mut error = None;
                 if !(field.is_string() || field.is_u64()) {
-                    error = Some("A 'get' operation must access a field (by string) or an element of an array (by non-negative integer)".into());
+                    error = Some(
+                        "A 'get' operation must access a field (by string) or an element of an \
+                         array (by non-negative integer)"
+                            .into(),
+                    );
                 }
                 error
             }

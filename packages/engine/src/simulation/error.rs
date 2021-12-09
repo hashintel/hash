@@ -1,6 +1,9 @@
-use crate::datastore::table::task_shared_store::{SharedContext, SharedState};
-use crate::hash_types::Agent;
 use thiserror::Error as ThisError;
+
+use crate::{
+    datastore::table::task_shared_store::{SharedContext, SharedState},
+    hash_types::Agent,
+};
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -61,19 +64,31 @@ pub enum Error {
     #[error("Completion message received for batch with no pending work")]
     InvalidCompletionMessage,
 
-    #[error("Received an incorrect `remove_agent` message: {0}. Valid examples: 1) {{\"agent_id\": \"b2387514-e76a-4695-9831-8d9ac6254468\"}}, 2) None/null 3) {{}}, 4) \"\"")]
+    #[error(
+        "Received an incorrect `remove_agent` message: {0}. Valid examples: 1) {{\"agent_id\": \
+         \"b2387514-e76a-4695-9831-8d9ac6254468\"}}, 2) None/null 3) {{}}, 4) \"\""
+    )]
     RemoveAgentMessage(String),
 
     #[error("IO: {0:?}")]
     IO(#[from] std::io::Error),
 
-    #[error("Error parsing `create_agent` message payload, expected valid agent state, got error: {0:?}. Payload was: {1:?}")]
+    #[error(
+        "Error parsing `create_agent` message payload, expected valid agent state, got error: \
+         {0:?}. Payload was: {1:?}"
+    )]
     CreateAgentPayload(serde_json::error::Error, String),
 
-    #[error("`create_agent` message has field \"{0}\" without respective field existing\nDetails: {1:?}")]
+    #[error(
+        "`create_agent` message has field \"{0}\" without respective field existing\nDetails: \
+         {1:?}"
+    )]
     CreateAgentField(String, Agent),
 
-    #[error("Error parsing `stop` message payload, expected valid JSON, got error: {0:?}. Payload was: {1:?}")]
+    #[error(
+        "Error parsing `stop` message payload, expected valid JSON, got error: {0:?}. Payload \
+         was: {1:?}"
+    )]
     StopSimPayload(serde_json::error::Error, String),
 
     #[error("Signal send error: {0}")]
@@ -135,7 +150,10 @@ pub enum Error {
     #[error("Arrow Error: {0}")]
     Arrow(#[from] arrow::error::ArrowError),
 
-    #[error("State or Context access not allowed for package (with type: {2}). StateAccess: {0}, ContextAccess: {1}.")]
+    #[error(
+        "State or Context access not allowed for package (with type: {2}). StateAccess: {0}, \
+         ContextAccess: {1}."
+    )]
     AccessNotAllowed(String, String, String),
 
     #[error("Distribution node handling is not implemented for this message type")]

@@ -1,12 +1,15 @@
 #![allow(clippy::similar_names)]
 
+use std::{env, os::unix::io::RawFd, path::Path};
+
 use shared_memory::{Shmem, ShmemConf};
 
-use super::{ptr::MemoryPtr, visitor::Visit, visitor::Visitor, visitor::VisitorMut, BufferChange};
-
+use super::{
+    ptr::MemoryPtr,
+    visitor::{Visit, Visitor, VisitorMut},
+    BufferChange,
+};
 use crate::datastore::prelude::*;
-
-use std::{env, os::unix::io::RawFd, path::Path};
 pub type Buffers<'a> = (&'a [u8], &'a [u8], &'a [u8], &'a [u8]);
 
 /// A memory-mapped shared memory segment wrapper.
@@ -30,17 +33,17 @@ pub struct Memory {
 }
 
 // Memory layout:
-// ------------------------------------------------------------------------------------------------------
-// | [Markers to Schema, Metadata (which are markers and nullcounts of Arrow columns) and Column data]  |
-// |                                [padding to 8-byte alignment]                                       |
-// | [                     Arrow Schema (prepended with continuation bytes)                          ]  |
-// |                            [system-dependent padding (for SIMD)]                                   |
-// | [                                       Header Data                                             ]  |
-// |                                [padding to 8-byte alignment]                                       |
-// | [                    Arrow Metadata (prepended with continuation bytes)                         ]  |
-// |                            [system-dependent padding (for SIMD)]                                   |
-// | [                                       Column Data                                             ]  |
-// ------------------------------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
+// | [Markers to Schema,Metadata (which are markers and nullcounts of Arrow columns),Column data] |
+// |                                [padding to 8-byte alignment]                                 |
+// | [                     Arrow Schema (prepended with continuation bytes)                     ] |
+// |                            [system-dependent padding (for SIMD)]                             |
+// | [                                       Header Data                                        ] |
+// |                                [padding to 8-byte alignment]                                 |
+// | [                    Arrow Metadata (prepended with continuation bytes)                    ] |
+// |                            [system-dependent padding (for SIMD)]                             |
+// | [                                       Column Data                                        ] |
+// ------------------------------------------------------------------------------------------------
 //
 // Note column data will not be densely packed as it will leave space for array size fluctuations.
 

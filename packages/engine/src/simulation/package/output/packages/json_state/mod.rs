@@ -1,9 +1,10 @@
-use super::super::*;
-
-use crate::datastore::batch::ArrowBatch;
-use crate::datastore::table::state::ReadState;
-use crate::hash_types::Agent;
 use serde_json::Value;
+
+use super::super::*;
+use crate::{
+    datastore::{batch::ArrowBatch, table::state::ReadState},
+    hash_types::Agent,
+};
 
 pub enum Task {}
 

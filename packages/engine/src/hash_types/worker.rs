@@ -3,7 +3,8 @@ use serde::{Deserialize, Serialize};
 #[allow(clippy::module_name_repetitions)]
 #[async_trait::async_trait]
 /// An instance of a simulation worker
-/// Similar to the frontend, a simulation worker exposes the Runner Request and gets back a Runner Status
+/// Similar to the frontend, a simulation worker exposes the Runner Request and gets back a Runner
+/// Status
 pub trait SimulationWorker {
     type Err;
     async fn handle_request(&mut self, request: RunnerRequest) -> Result<RunnerStatus, Self::Err>;

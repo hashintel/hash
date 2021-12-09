@@ -2,20 +2,19 @@ pub mod packages;
 
 use std::sync::Arc;
 
-pub use crate::config::Globals;
-use crate::datastore::schema::accessor::FieldSpecMapAccessor;
-use crate::datastore::schema::{RootFieldSpec, RootFieldSpecCreator};
-use crate::simulation::comms::package::PackageComms;
-use crate::simulation::package::ext_traits::GetWorkerExpStartMsg;
-use crate::SimRunConfig;
 pub use packages::{Name, OutputTask, OutputTaskMessage, PACKAGE_CREATORS};
 
 use self::packages::Output;
-
-use super::prelude::*;
 use super::{
     deps::Dependencies,
     ext_traits::{GetWorkerSimStartMsg, MaybeCPUBound},
+    prelude::*,
+};
+pub use crate::config::Globals;
+use crate::{
+    datastore::schema::{accessor::FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator},
+    simulation::{comms::package::PackageComms, package::ext_traits::GetWorkerExpStartMsg},
+    SimRunConfig,
 };
 
 pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {

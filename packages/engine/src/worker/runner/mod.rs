@@ -4,13 +4,11 @@ pub mod rust;
 
 pub mod comms;
 
-use crate::proto::SimulationShortID;
-
 use self::comms::{
     inbound::InboundToRunnerMsgPayload, outbound::OutboundFromRunnerMsg, ExperimentInitRunnerMsg,
 };
-
 pub use super::error::{Error, Result};
+use crate::proto::SimulationShortID;
 
 #[async_trait::async_trait]
 pub trait LanguageWorker {

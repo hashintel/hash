@@ -1,8 +1,12 @@
-use crate::datastore::schema::field_spec::{FieldScope, FieldSource, FieldSpecMap, RootFieldSpec};
 use std::sync::Arc;
 
-use crate::datastore::error::Result;
-use crate::datastore::schema::FieldKey;
+use crate::datastore::{
+    error::Result,
+    schema::{
+        field_spec::{FieldScope, FieldSource, FieldSpecMap, RootFieldSpec},
+        FieldKey,
+    },
+};
 
 #[derive(new)]
 pub struct FieldSpecMapAccessor {
@@ -13,15 +17,18 @@ pub struct FieldSpecMapAccessor {
 pub trait GetFieldSpec {
     /// Get a FieldSpec stored under a given field name with FieldScope::Agent
     fn get_agent_scoped_field_spec(&self, field_name: &str) -> Result<&RootFieldSpec>;
-    /// Get a FieldSpec stored under a given field name with FieldScope::Hidden and belonging to a given FieldSource
+    /// Get a FieldSpec stored under a given field name with FieldScope::Hidden and belonging to a
+    /// given FieldSource
     fn get_hidden_scoped_field_spec(
         &self,
         field_name: &str,
         source: &FieldSource,
     ) -> Result<&RootFieldSpec>;
-    /// Get a FieldSpec stored under a given field name with FieldScope::Private that belongs to the FieldSource of the accessor
+    /// Get a FieldSpec stored under a given field name with FieldScope::Private that belongs to the
+    /// FieldSource of the accessor
     fn get_local_private_scoped_field_spec(&self, field_name: &str) -> Result<&RootFieldSpec>;
-    /// Get a FieldSpec stored under a given field name with FieldScope::Hidden that belongs to the FieldSource of the accessor
+    /// Get a FieldSpec stored under a given field name with FieldScope::Hidden that belongs to the
+    /// FieldSource of the accessor
     fn get_local_hidden_scoped_field_spec(&self, field_name: &str) -> Result<&RootFieldSpec>;
 }
 
@@ -63,7 +70,8 @@ impl GetFieldSpec for FieldSpecMapAccessor {
 /// A non-scoped Accessor object used to look-up `FieldSpec`s without regard for scoping rules.
 /// This Accessor is **only** intended for use by the Engine, i.e. something with root access.
 /// Due to this it does not implement GetFieldSpec. This is because methods using this should not
-/// require a generic interface through dynamic dispatch and should be explicit in needing root access.
+/// require a generic interface through dynamic dispatch and should be explicit in needing root
+/// access.
 pub struct RootFieldSpecMapAccessor {
     pub field_spec_map: Arc<FieldSpecMap>,
 }

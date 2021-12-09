@@ -21,7 +21,7 @@ impl fmt::Debug for FieldTypeVariant {
     }
 }
 
-// TODO Do we want the other fields such as source
+// TODO: Do we want the other fields such as source
 impl fmt::Debug for FieldSpec {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("field_spec")

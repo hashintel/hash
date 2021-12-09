@@ -2,20 +2,20 @@ use std::path::PathBuf;
 
 use serde::Serialize;
 
-use crate::output::error::Result;
-use crate::proto::ExperimentID;
-use crate::proto::SimulationShortID;
-
 use super::RELATIVE_PARTS_FOLDER;
+use crate::{
+    output::error::Result,
+    proto::{ExperimentID, SimulationShortID},
+};
 
 /// Maximum size of a string kept in memory.
 /// Corresponds to the maximum size of a non-terminal part (see multipart uploading)
 const MAX_BYTE_SIZE: usize = 5242880;
 const IN_MEMORY_SIZE: usize = MAX_BYTE_SIZE * 2;
 
-const CHAR_COMMA: u8 = 0x2c; // ,
-const CHAR_OPEN_LEFT_SQUARE_BRACKET: u8 = 0x5b; // [
-const CHAR_OPEN_RIGHT_SQUARE_BRACKET: u8 = 0x5d; // ]
+const CHAR_COMMA: u8 = 0x2C; // ,
+const CHAR_OPEN_LEFT_SQUARE_BRACKET: u8 = 0x5B; // [
+const CHAR_OPEN_RIGHT_SQUARE_BRACKET: u8 = 0x5D; // ]
 
 /// ### Buffer for list of outputs
 ///

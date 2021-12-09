@@ -1,33 +1,27 @@
-use std::pin::Pin;
-use std::sync::Arc;
-use std::time::Duration;
+use std::{pin::Pin, sync::Arc, time::Duration};
 
-use crate::experiment::package::ExperimentPackage;
-use crate::proto::{EngineStatus, PackageConfig};
-
-use super::controller::ExperimentController;
-use super::id_store::SimIdStore;
-use super::{config, Error, Result};
-use crate::datastore::prelude::SharedStore;
-use crate::experiment::Error as ExperimentError;
-use crate::Error as CrateError;
-
-use crate::experiment::controller::sim_configurer::SimConfigurer;
-use crate::output::buffer::cleanup_experiment;
-
-use crate::experiment::controller::config::OutputPersistenceConfig;
-use crate::output::{
-    local::LocalOutputPersistence, none::NoOutputPersistence, OutputPersistenceCreatorRepr,
+use super::{config, controller::ExperimentController, id_store::SimIdStore, Error, Result};
+use crate::{
+    datastore::prelude::SharedStore,
+    experiment::{
+        controller::{config::OutputPersistenceConfig, sim_configurer::SimConfigurer},
+        package::ExperimentPackage,
+        Error as ExperimentError,
+    },
+    output::{
+        buffer::cleanup_experiment, local::LocalOutputPersistence, none::NoOutputPersistence,
+        OutputPersistenceCreatorRepr,
+    },
+    proto::{EngineStatus, ExperimentRunTrait, PackageConfig},
+    simulation::package::creator::PackageCreators,
+    workerpool,
+    workerpool::{comms::terminate::TerminateSend, WorkerPoolController},
+    Environment, Error as CrateError, ExperimentConfig,
 };
-use crate::proto::ExperimentRunTrait;
-use crate::simulation::package::creator::PackageCreators;
-use crate::workerpool::comms::terminate::TerminateSend;
-use crate::workerpool::WorkerPoolController;
-use crate::{workerpool, Environment, ExperimentConfig};
 
 pub async fn run_experiment(exp_config: ExperimentConfig, env: Environment) -> Result<()> {
     let experiment_id = exp_config.run.base().id.clone();
-    // TODO - Get cloud-specific configuration from `env`
+    // TODO: Get cloud-specific configuration from `env`
     let _output_persistence_config = config::output_persistence(&env)?;
 
     // Keep another orchestrator client at the top level to send the final result
@@ -178,7 +172,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
             _ = async { exit_timeout.take().expect("must be some").await }, if exit_timeout.is_some() => {
                 log::warn!("Exit timed out");
                 successful_exit = false;
-                // TODO should we have an additional timeout and send terminate signals to all 3
+                // TODO: should we have an additional timeout and send terminate signals to all 3
 
                 err = format!(
                     "Timed out with experiment package {}, controller {}, worker pool {}",
