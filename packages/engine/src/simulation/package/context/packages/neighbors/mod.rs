@@ -126,7 +126,7 @@ impl Package for Neighbors {
 
         let field_key = self
             .context_field_spec_accessor
-            .get_local_hidden_scoped_field_spec(NEIGHBORS_FIELD_NAME)?
+            .get_agent_scoped_field_spec(NEIGHBORS_FIELD_NAME)?
             .to_key()?;
 
         Ok(vec![ContextColumn {
