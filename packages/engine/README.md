@@ -78,7 +78,7 @@ Building this project requires the following:
     ```
   * With the V8 folder containing `include` and `out.gn` you can then set the variable for your terminal session with `export V8_PATH=<path to folder>` or you can set it permanently by [adding it to your shell's environment](https://unix.stackexchange.com/questions/117467/how-to-permanently-set-environmental-variables)
 
-### MacOS Developer Specific Instructions
+### macOS Developer Specific Instructions
 
 Due to ARM-Based Macs, the `macos` `target_os` has some added complications for development. 
 
