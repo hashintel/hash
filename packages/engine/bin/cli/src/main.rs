@@ -24,7 +24,7 @@ pub struct Args {
 
     /// project output path folder (will create if missing)
     #[argh(option, short = 'o', default = "default_output_path()")]
-    _output: String, // TODO - unused
+    _output: String, // TODO: unused
 
     /// experiment type to be run
     #[argh(subcommand, short = 't')]
@@ -77,13 +77,13 @@ impl std::default::Default for Args {
 }
 
 #[tokio::main]
-// TODO fix ordering of args being so inflexible and unintuitive, and also error messages being unhelpful
-//   for example try putting `-p` after `single_run`
+// TODO: fix ordering of args being so inflexible and unintuitive, and also error messages being
+// unhelpful for example try putting `-p` after `single_run`
 async fn main() -> Result<()> {
-    // TODO project conversion into manifest...
-    // TODO persist output
-    //      1) send absolute path to engine process
-    //      2) within engine process, save to folder
+    // TODO: project conversion into manifest...
+    // TODO: persist output
+    //   1) send absolute path to engine process
+    //   2) within engine process, save to folder
     pretty_env_logger::init();
     let args = Args::default();
 

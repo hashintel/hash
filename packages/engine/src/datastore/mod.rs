@@ -18,11 +18,31 @@ pub const POSITION_DIM: usize = 3;
 pub use error::{Error, Result};
 
 pub mod prelude {
+    pub use arrow::{
+        array::Array as ArrowArray,
+        buffer::{Buffer as ArrowBuffer, MutableBuffer as ArrowMutableBuffer},
+        datatypes::{
+            DataType as ArrowDataType, DateUnit as ArrowDateUnit, Field as ArrowField,
+            IntervalUnit as ArrowIntervalUnit, Schema as ArrowSchema, TimeUnit as ArrowTimeUnit,
+        },
+        error::ArrowError,
+        ipc as arrow_ipc,
+        ipc::gen::Message::RecordBatch as RecordBatchMessage,
+        record_batch::RecordBatch,
+        util::bit_util as arrow_bit_util,
+    };
+
     pub use super::{
-        batch::migration::{CopyAction, CreateAction, RemoveAction, RowActions},
+        arrow::{
+            batch_conversion::{IntoAgentStates, IntoRecordBatch},
+            field_conversion,
+            meta_conversion::{HashDynamicMeta, HashStaticMeta},
+            padding,
+        },
         batch::{
-            metaversion::Metaversion, AgentBatch, AgentIndex, Batch, ContextBatch, Dataset,
-            MessageBatch, MessageIndex,
+            metaversion::Metaversion,
+            migration::{CopyAction, CreateAction, RemoveAction, RowActions},
+            AgentBatch, AgentIndex, Batch, ContextBatch, Dataset, MessageBatch, MessageIndex,
         },
         error::{Error, Result, SupportedType},
         meta::{
@@ -34,35 +54,11 @@ pub mod prelude {
         store::Store,
         table::{context::Context, state::State},
     };
-
     pub use crate::hash_types::{message::Outbound as OutboundMessage, Agent as AgentState};
-
-    pub use arrow::{
-        array::Array as ArrowArray,
-        buffer::{Buffer as ArrowBuffer, MutableBuffer as ArrowMutableBuffer},
-        datatypes::DataType as ArrowDataType,
-        datatypes::DateUnit as ArrowDateUnit,
-        datatypes::Field as ArrowField,
-        datatypes::IntervalUnit as ArrowIntervalUnit,
-        datatypes::Schema as ArrowSchema,
-        datatypes::TimeUnit as ArrowTimeUnit,
-        error::ArrowError,
-        ipc as arrow_ipc,
-        ipc::gen::Message::RecordBatch as RecordBatchMessage,
-        record_batch::RecordBatch,
-        util::bit_util as arrow_bit_util,
-    };
-
-    pub use super::arrow::{
-        batch_conversion::{IntoAgentStates, IntoRecordBatch},
-        field_conversion,
-        meta_conversion::{HashDynamicMeta, HashStaticMeta},
-        padding,
-    };
 }
 
 #[cfg(test)]
-// TODO OS - Unit-tests are broken, need updating for new Store read and write approach
+// TODO: OS - Unit-tests are broken, need updating for new Store read and write approach
 pub mod tests {
     use super::prelude::*;
     // use super::schema::{FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant};

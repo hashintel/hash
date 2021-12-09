@@ -1,15 +1,16 @@
-use crate::{
-    simulation::package::id::PackageId,
-    worker::runner::comms::{inbound::InboundToRunnerMsgPayload, outbound::RunnerError},
-};
-use arrow::datatypes::DataType;
-use arrow::error::ArrowError;
+use arrow::{datatypes::DataType, error::ArrowError};
+use thiserror::Error as ThisError;
 use tokio::sync::mpsc::error::SendError;
 
 use super::mini_v8 as mv8;
-use crate::proto::SimulationShortID;
-use crate::worker::runner::comms::outbound::OutboundFromRunnerMsg;
-use thiserror::Error as ThisError;
+use crate::{
+    proto::SimulationShortID,
+    simulation::package::id::PackageId,
+    worker::runner::comms::{
+        inbound::InboundToRunnerMsgPayload,
+        outbound::{OutboundFromRunnerMsg, RunnerError},
+    },
+};
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 

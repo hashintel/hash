@@ -2,9 +2,10 @@ mod message;
 
 use std::sync::Arc;
 
+pub use message::MessageSchema;
+
 use super::FieldSpecMap;
 use crate::datastore::prelude::*;
-pub use message::MessageSchema;
 
 /// `AgentSchema` describes the layout of every
 /// agent-containing `SharedBatch` in a datastore. It contains

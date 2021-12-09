@@ -1,5 +1,5 @@
-use std::result::Result;
-use std::sync::Arc;
+use std::{result::Result, sync::Arc};
+
 use tokio::sync::{mpsc, Mutex};
 
 /// Create a new single-producer multi-consumer queue. The `Receiver` end of the queue

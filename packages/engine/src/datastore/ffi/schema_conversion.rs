@@ -1,12 +1,11 @@
 #![allow(clippy::cast_sign_loss, clippy::missing_safety_doc)]
 
-use super::ArrowSchema;
-
-use crate::datastore::error::{Error, Result};
+use std::ffi::CStr;
 
 use arrow::datatypes::{DataType, Field, Schema};
 
-use std::ffi::CStr;
+use super::ArrowSchema;
+use crate::datastore::error::{Error, Result};
 
 const ARROW_FLAG_NULLABLE: i64 = 2;
 

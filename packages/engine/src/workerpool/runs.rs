@@ -1,10 +1,7 @@
-use super::error::{Error, Result};
-
 use std::collections::HashMap;
 
-use crate::proto::SimulationShortID;
-
-use crate::config::WorkerAllocation;
+use super::error::{Error, Result};
+use crate::{config::WorkerAllocation, proto::SimulationShortID};
 
 #[derive(Default)]
 pub struct SimulationRuns {

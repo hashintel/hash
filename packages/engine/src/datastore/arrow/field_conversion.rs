@@ -6,12 +6,13 @@
 use std::collections::HashMap;
 
 use super::prelude::*;
-
-use crate::datastore::schema::{FieldKey, FieldSource, FieldType, RootFieldSpec};
 use crate::datastore::{
     error::Result,
     prelude::*,
-    schema::{FieldSpec, FieldSpecMap, FieldTypeVariant, PresetFieldType},
+    schema::{
+        FieldKey, FieldSource, FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant,
+        PresetFieldType, RootFieldSpec,
+    },
 };
 
 impl PresetFieldType {
@@ -65,7 +66,7 @@ impl FieldType {
             FieldTypeVariant::Struct(inner) => Ok(ArrowDataType::Struct(
                 inner
                     .iter()
-                    // TODO - Enforce nullability of fields at initialisation.
+                    // TODO: Enforce nullability of fields at initialisation.
                     // These structs are necessarily nested within another arrow field. We cannot guarantee non-nullability for certain root-level arrow-fields due
                     // to how we initialise data currently. Because these _are_ nested, we can guarantee nullability/non-nullability for all inner structs as this
                     // is enforced in the runners, that is, when setting that top-level object, it's enforced that users set all nested data within that object at
@@ -95,9 +96,9 @@ impl FieldSpec {
         can_guarantee_non_null: bool,
         field_key: Option<FieldKey>,
     ) -> Result<ArrowField> {
-        // We cannot guarantee non-nullability for certain root-level arrow-fields due to how we initialise data currently.
-        // As this is an impl on FieldSpec we need the calling context to provide the guarantee that the nullablity is
-        // enforced.
+        // We cannot guarantee non-nullability for certain root-level arrow-fields due to how we
+        // initialise data currently. As this is an impl on FieldSpec we need the calling
+        // context to provide the guarantee that the nullablity is enforced.
         let base_nullability = if can_guarantee_non_null {
             self.field_type.nullable
         } else {
@@ -154,7 +155,8 @@ impl FieldSpecMap {
             .collect::<Vec<_>>();
 
         let mut metadata = HashMap::with_capacity(1);
-        // TODO this can be simplified when we update arrow-rs (beyond 1.0.1), we can set this on Field's custom metadata instead of the schema
+        // TODO: this can be simplified when we update arrow-rs (beyond 1.0.1), we can set this on
+        // Field's custom metadata instead of the schema
         metadata.insert("any_type_fields".into(), any_types.join(","));
         metadata.insert("nullable".into(), nullabilities.join(","));
         Ok(ArrowSchema::new_with_metadata(
@@ -189,8 +191,10 @@ impl IsFixedSize for ArrowDataType {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::datastore::schema::{FieldScope, RootFieldSpecCreator};
-    use crate::hash_types::state::AgentStateField;
+    use crate::{
+        datastore::schema::{FieldScope, RootFieldSpecCreator},
+        hash_types::state::AgentStateField,
+    };
 
     #[test]
     fn get_schema() -> Result<()> {

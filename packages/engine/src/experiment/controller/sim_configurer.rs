@@ -1,13 +1,13 @@
 use std::sync::Arc;
 
 use super::Result;
-
-use crate::config::Globals;
-use crate::config::{
-    EngineConfig, ExperimentConfig, PersistenceConfig, StoreConfig, WorkerAllocation,
+use crate::{
+    config::{
+        EngineConfig, ExperimentConfig, Globals, PersistenceConfig, StoreConfig, WorkerAllocation,
+    },
+    proto::{ExperimentPackageConfig, SimulationShortID},
+    SimRunConfig,
 };
-use crate::proto::{ExperimentPackageConfig, SimulationShortID};
-use crate::SimRunConfig;
 
 pub struct SimConfigurer {
     worker_allocator: WorkerAllocator,

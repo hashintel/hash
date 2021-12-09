@@ -1,17 +1,18 @@
-use std::fmt::{Debug, Formatter};
-use std::sync::Arc;
+use std::{
+    fmt::{Debug, Formatter},
+    sync::Arc,
+};
 
 use parking_lot::{lock_api::RawRwLock, RwLock};
-
-use crate::datastore::table::pool::BatchPool;
-use crate::datastore::{
-    batch::Batch,
-    prelude::{AgentBatch, Error, MessageBatch, Result},
-};
 
 use super::{
     pool::proxy::{PoolReadProxy, PoolWriteProxy},
     state::{ReadState, WriteState},
+};
+use crate::datastore::{
+    batch::Batch,
+    prelude::{AgentBatch, Error, MessageBatch, Result},
+    table::pool::BatchPool,
 };
 
 pub struct BatchReadProxy<K: Batch> {
@@ -28,6 +29,7 @@ impl<K: Batch> BatchReadProxy<K> {
     }
 
     /// # Safety
+    ///
     /// This method uses unsafe code to get a shared reference
     /// to the underlying data. However since this object
     /// acts as a guarantee of no write locks
@@ -72,6 +74,7 @@ impl<K: Batch> BatchWriteProxy<K> {
     }
 
     /// # Safety
+    ///
     /// This method uses unsafe code to get a mutable reference
     /// to the underlying data. However since this object
     /// acts as a guarantee of no other read/write locks
@@ -83,6 +86,7 @@ impl<K: Batch> BatchWriteProxy<K> {
     }
 
     /// # Safety
+    ///
     /// This method uses unsafe code to get a mutable reference
     /// to the underlying data. However since this object
     /// acts as a guarantee of no other read/write locks

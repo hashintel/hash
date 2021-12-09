@@ -1,33 +1,28 @@
-use futures::FutureExt;
-
 use std::sync::Arc;
+
+use futures::FutureExt;
 use tokio::time::Duration;
 
-use crate::datastore::prelude::{SharedStore, Store};
-
-use crate::experiment::controller::comms::sim_status::SimStatusSend;
-use crate::experiment::controller::comms::simulation::SimCtlRecv;
-
-use crate::hash_types::worker::RunnerError;
-use crate::output::SimulationOutputPersistenceRepr;
-use crate::proto::SimulationShortID;
-use crate::simulation::agent_control::AgentControl;
-use crate::simulation::comms::Comms;
-use crate::simulation::controller::sim_control::SimControl;
-use crate::simulation::engine::Engine;
-use crate::simulation::package::run::Packages;
-use crate::simulation::status::SimStatus;
-
-use crate::SimRunConfig;
-
 use super::{Error, Result};
+use crate::{
+    datastore::prelude::{SharedStore, Store},
+    experiment::controller::comms::{sim_status::SimStatusSend, simulation::SimCtlRecv},
+    hash_types::worker::RunnerError,
+    output::SimulationOutputPersistenceRepr,
+    proto::SimulationShortID,
+    simulation::{
+        agent_control::AgentControl, comms::Comms, controller::sim_control::SimControl,
+        engine::Engine, package::run::Packages, status::SimStatus,
+    },
+    SimRunConfig,
+};
 
 enum LoopControl {
     Continue,
     Stop,
 }
 
-// TODO - Sort out error into/from to avoid so many explicit err conversions using to_string
+// TODO: Sort out error into/from to avoid so many explicit err conversions using to_string
 pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
     config: Arc<SimRunConfig>,
     shared_store: Arc<SharedStore>,
@@ -118,10 +113,10 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
         if let AgentControl::Stop(msg) = step_result.agent_control {
             early_stop = true;
             stop_msg = Some(msg);
-            break 'sim_main; // Break before `send`, because stop messages (like
-                             // other messages) are handled at the start of a step,
-                             // before running behaviors, so the stop message was
-                             // already sent on the previous step.
+            // Break before `send`, because stop messages (like other messages) are handled at the
+            // start of a step, before running behaviors, so the stop message was already sent on
+            // the previous step.
+            break 'sim_main;
         }
 
         sims_to_exp

@@ -1,14 +1,15 @@
-use parking_lot::RwLock;
 use std::sync::Arc;
 
-use crate::proto::ExperimentID;
-use crate::simulation::package::context::ContextColumn;
-use crate::{config::StoreConfig, datastore::prelude::*};
+use parking_lot::RwLock;
 
 use super::{
     meta::Meta,
     pool::{agent::AgentPool, message::MessagePool},
     state::view::StateSnapshot,
+};
+use crate::{
+    config::StoreConfig, datastore::prelude::*, proto::ExperimentID,
+    simulation::package::context::ContextColumn,
 };
 
 pub struct Inner {

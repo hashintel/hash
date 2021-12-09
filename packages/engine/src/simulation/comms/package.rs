@@ -1,11 +1,14 @@
-use crate::simulation::package::{id::PackageId, PackageType};
-use crate::simulation::task::{active::ActiveTask, Task};
-
-use crate::datastore::table::task_shared_store::TaskSharedStore;
-use crate::hash_types::Agent;
 use uuid::Uuid;
 
 use super::{Comms, Result};
+use crate::{
+    datastore::table::task_shared_store::TaskSharedStore,
+    hash_types::Agent,
+    simulation::{
+        package::{id::PackageId, PackageType},
+        task::{active::ActiveTask, Task},
+    },
+};
 
 #[derive(new)]
 pub struct PackageComms {

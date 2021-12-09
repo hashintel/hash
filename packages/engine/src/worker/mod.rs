@@ -5,30 +5,9 @@ pub mod task;
 
 use std::time::Duration;
 
-use futures::stream::FuturesOrdered;
-use futures::StreamExt;
+pub use error::{Error, Result};
+use futures::{stream::FuturesOrdered, StreamExt};
 use tokio::time::timeout;
-
-use crate::simulation::enum_dispatch::TaskSharedStore;
-use crate::simulation::package::id::PackageId;
-use crate::simulation::task::handler::WorkerHandler;
-use crate::simulation::task::msg::{TaskMessage, TaskResultOrCancelled};
-use crate::worker::pending::CancelState;
-use crate::{
-    config::{WorkerConfig, WorkerSpawnConfig},
-    datastore::table::sync::SyncPayload,
-    proto::SimulationShortID,
-    types::TaskID,
-    worker::{
-        pending::PendingWorkerTask,
-        runner::comms::{inbound::InboundToRunnerMsgPayload, MessageTarget},
-    },
-    workerpool::comms::{
-        WorkerCommsWithWorkerPool, WorkerPoolToWorkerMsg, WorkerPoolToWorkerMsgPayload,
-        WorkerToWorkerPoolMsg,
-    },
-    Language,
-};
 
 use self::{
     pending::PendingWorkerTasks,
@@ -43,7 +22,29 @@ use self::{
     },
     task::{WorkerTask, WorkerTaskResultOrCancelled},
 };
-pub use error::{Error, Result};
+use crate::{
+    config::{WorkerConfig, WorkerSpawnConfig},
+    datastore::table::sync::SyncPayload,
+    proto::SimulationShortID,
+    simulation::{
+        enum_dispatch::TaskSharedStore,
+        package::id::PackageId,
+        task::{
+            handler::WorkerHandler,
+            msg::{TaskMessage, TaskResultOrCancelled},
+        },
+    },
+    types::TaskID,
+    worker::{
+        pending::{CancelState, PendingWorkerTask},
+        runner::comms::{inbound::InboundToRunnerMsgPayload, MessageTarget},
+    },
+    workerpool::comms::{
+        WorkerCommsWithWorkerPool, WorkerPoolToWorkerMsg, WorkerPoolToWorkerMsgPayload,
+        WorkerToWorkerPoolMsg,
+    },
+    Language,
+};
 
 /// A task worker.-
 ///
@@ -64,7 +65,7 @@ pub struct WorkerController {
     tasks: PendingWorkerTasks,
 }
 
-// TODO impl drop for worker controller?
+// TODO: impl drop for worker controller?
 impl WorkerController {
     pub async fn spawn(
         config: WorkerConfig,
@@ -174,14 +175,14 @@ impl WorkerController {
                 // py_res = &mut py_handle => {
                 //     log::debug!("Python runner finished unexpectedly");
                 //     py_res??;
-                //     // TODO send termination to js_handle
+                //     // TODO: send termination to js_handle
                 //     js_handle.await??;
                 //     return Ok(());
                 // }
                 js_res = &mut js_handle => {
                     log::debug!("Javascript runner finished unexpectedly: {:?}", js_res);
                     js_res??;
-                    // TODO send termination to py_handle
+                    // TODO: send termination to py_handle
                     // py_handle.await??;
                     return Ok(());
                 }
@@ -361,7 +362,11 @@ impl WorkerController {
                         msg.shared_store,
                         next.payload,
                     );
-                    log::trace!("Task resulted in a new message from Runner, sending new one to Python: {:?}", &inbound);
+                    log::trace!(
+                        "Task resulted in a new message from Runner, sending new one to Python: \
+                         {:?}",
+                        &inbound
+                    );
                     self.py.send(Some(sim_id), inbound).await?;
                     pending.active_runner = Language::Python;
                 }
@@ -372,7 +377,11 @@ impl WorkerController {
                         msg.shared_store,
                         next.payload,
                     );
-                    log::trace!("Task resulted in a new message from Runner, sending new one to JavaScript: {:?}", &inbound);
+                    log::trace!(
+                        "Task resulted in a new message from Runner, sending new one to \
+                         JavaScript: {:?}",
+                        &inbound
+                    );
                     self.js.send(Some(sim_id), inbound).await?;
                     pending.active_runner = Language::JavaScript;
                 }

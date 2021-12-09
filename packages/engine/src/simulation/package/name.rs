@@ -3,9 +3,10 @@ use std::fmt::Display;
 use serde::Serialize;
 use strum_macros::IntoStaticStr;
 
-use crate::simulation::package::deps::Dependencies;
-use crate::simulation::package::{context, init, output, state, PackageMetadata};
-use crate::simulation::{package::id::PackageId, Error, Result};
+use crate::simulation::{
+    package::{context, deps::Dependencies, id::PackageId, init, output, state, PackageMetadata},
+    Error, Result,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum PackageName {

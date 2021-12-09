@@ -5,20 +5,22 @@ pub mod sim_control;
 
 use std::sync::Arc;
 
-use crate::datastore::prelude::SharedStore;
-use crate::experiment::controller::comms::sim_status::SimStatusSend;
-use crate::experiment::controller::comms::simulation::{new_pair, SimCtlRecv, SimCtlSend};
-
-use crate::output::SimulationOutputPersistenceRepr;
-use crate::proto::SimulationShortID;
-use crate::simulation::package::run::Packages;
-use crate::SimRunConfig;
-use tokio::task::JoinHandle;
-
 pub use error::{Error, Result};
 pub use sim_control::SimControl;
+use tokio::task::JoinHandle;
 
 use super::comms::Comms;
+use crate::{
+    datastore::prelude::SharedStore,
+    experiment::controller::comms::{
+        sim_status::SimStatusSend,
+        simulation::{new_pair, SimCtlRecv, SimCtlSend},
+    },
+    output::SimulationOutputPersistenceRepr,
+    proto::SimulationShortID,
+    simulation::package::run::Packages,
+    SimRunConfig,
+};
 
 pub struct SimulationController {
     pub sender: SimCtlSend,

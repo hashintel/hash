@@ -13,7 +13,6 @@ mod worker_pool;
 
 use std::sync::Arc;
 
-use crate::proto::SimulationShortID;
 pub use engine::{Config as EngineConfig, Worker, WorkerAllocation};
 pub use error::{Error, Result};
 pub use experiment::Config as ExperimentConfig;
@@ -27,7 +26,7 @@ pub use topology::Config as TopologyConfig;
 pub use worker::{Config as WorkerConfig, SpawnConfig as WorkerSpawnConfig};
 pub use worker_pool::Config as WorkerPoolConfig;
 
-use crate::{Args, Environment};
+use crate::{proto::SimulationShortID, Args, Environment};
 
 #[derive(Clone)]
 pub struct SimRunConfig {

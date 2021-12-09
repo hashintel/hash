@@ -1,16 +1,16 @@
 use std::sync::Arc;
 
-use crate::config::globals::Globals;
-use crate::proto::{ExperimentRunRepr, ExperimentRunTrait};
-
 use super::{package, worker, worker_pool, Result};
-
-use crate::proto::ExperimentID;
+use crate::{
+    config::globals::Globals,
+    proto::{ExperimentID, ExperimentRunRepr, ExperimentRunTrait},
+};
 
 #[derive(Clone)]
 /// Experiment level configuration
 pub struct Config {
-    pub run_id: Arc<ExperimentID>, // we need this only for non-pod runs TODO remove and create random internal ids?
+    // we need this only for non-pod runs TODO remove and create random internal ids?
+    pub run_id: Arc<ExperimentID>,
     pub packages: Arc<package::Config>,
     pub run: Arc<ExperimentRunRepr>,
     pub worker_pool: Arc<worker_pool::Config>,
@@ -28,8 +28,8 @@ impl Config {
 
         let run = Arc::new(experiment_run);
 
-        // TODO ask packages for what language execution they require
-        // this would mean that Rust will not be in them
+        // TODO: ask packages for what language execution they require this would mean that Rust
+        // will not be in them
         let worker_base_config = worker::Config::default();
         let worker_pool = Arc::new(worker_pool::Config::new(
             worker_base_config,

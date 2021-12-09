@@ -2,10 +2,12 @@ use std::time::Duration;
 
 use tokio::time::timeout;
 
-use crate::simulation::task::msg::{TaskMessage, TaskResultOrCancelled};
-use crate::simulation::{comms::active::ActiveTaskOwnerComms, Error, Result};
-
 use super::cancel::CancelTask;
+use crate::simulation::{
+    comms::active::ActiveTaskOwnerComms,
+    task::msg::{TaskMessage, TaskResultOrCancelled},
+    Error, Result,
+};
 
 #[derive(new)]
 pub struct ActiveTask {
@@ -31,7 +33,7 @@ impl ActiveTask {
                 TaskResultOrCancelled::Result(result) => Ok(result),
                 TaskResultOrCancelled::Cancelled => {
                     log::warn!("Driving to completion yielded a cancel result");
-                    // TODO create a variant for this error
+                    // TODO: create a variant for this error
                     Err(Error::from("Couldn't drive to completion, task cancelled"))
                 }
             }

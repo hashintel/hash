@@ -1,20 +1,26 @@
-use arrow::datatypes::Schema;
-use arrow::ipc::writer::schema_to_bytes;
+use arrow::{datatypes::Schema, ipc::writer::schema_to_bytes};
 use flatbuffers::{FlatBufferBuilder, ForwardsUOffset, Vector, WIPOffset};
-use nng::options::Options;
-use nng::{Aio, Socket};
+use nng::{options::Options, Aio, Socket};
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver};
 
-use super::error::{Error, Result};
-use super::fbs::{batch_to_fbs, pkgs_to_fbs, shared_ctx_to_fbs};
-use crate::datastore::arrow::util::arrow_continuation;
-use crate::datastore::table::sync::StateSync;
-use crate::datastore::table::task_shared_store::{PartialSharedState, SharedState};
-use crate::gen::sync_state_interim_generated::StateInterimSyncArgs;
-use crate::proto::{ExperimentID, SimulationShortID};
-use crate::simulation::enum_dispatch::TaskSharedStore;
-use crate::types::WorkerIndex;
-use crate::worker::runner::comms::inbound::InboundToRunnerMsgPayload;
+use super::{
+    error::{Error, Result},
+    fbs::{batch_to_fbs, pkgs_to_fbs, shared_ctx_to_fbs},
+};
+use crate::{
+    datastore::{
+        arrow::util::arrow_continuation,
+        table::{
+            sync::StateSync,
+            task_shared_store::{PartialSharedState, SharedState},
+        },
+    },
+    gen::sync_state_interim_generated::StateInterimSyncArgs,
+    proto::{ExperimentID, SimulationShortID},
+    simulation::enum_dispatch::TaskSharedStore,
+    types::WorkerIndex,
+    worker::runner::comms::inbound::InboundToRunnerMsgPayload,
+};
 
 /// Only used for sending messages to the Python process
 pub struct NngSender {
@@ -39,25 +45,26 @@ impl NngSender {
         let (aio_result_sender, aio_result_receiver) = unbounded_channel();
 
         let aio = Aio::new(move |_aio, res| match res {
-            nng::AioResult::Send(res) => {
-                match res {
-                    Ok(_) => {
-                        aio_result_sender.send(Ok(())).unwrap();
-                    }
-                    Err((msg, err)) => {
-                        log::warn!("External worker receiving socket tried to send but failed w/ error: {}", err);
-                        match aio_result_sender.send(Err(Error::NngSend(msg, err))) {
-                            Ok(_) => {}
-                            Err(err) => {
-                                log::warn!(
-                                    "Failed to pass send error back to message handler thread {}",
-                                    err
-                                );
-                            }
-                        };
-                    }
+            nng::AioResult::Send(res) => match res {
+                Ok(_) => {
+                    aio_result_sender.send(Ok(())).unwrap();
                 }
-            }
+                Err((msg, err)) => {
+                    log::warn!(
+                        "External worker receiving socket tried to send but failed w/ error: {}",
+                        err
+                    );
+                    match aio_result_sender.send(Err(Error::NngSend(msg, err))) {
+                        Ok(_) => {}
+                        Err(err) => {
+                            log::warn!(
+                                "Failed to pass send error back to message handler thread {}",
+                                err
+                            );
+                        }
+                    };
+                }
+            },
             nng::AioResult::Sleep(res) => match res {
                 Err(err) => {
                     log::error!("AIO sleep error: {}", err);

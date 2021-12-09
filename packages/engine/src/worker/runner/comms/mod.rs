@@ -1,18 +1,21 @@
-use std::fmt::{Debug, Formatter};
-use std::{collections::HashMap, fmt, sync::Arc};
+use std::{
+    collections::HashMap,
+    fmt,
+    fmt::{Debug, Formatter},
+    sync::Arc,
+};
 
-use crate::config::{EngineConfig, Globals};
-use crate::datastore::schema::state::AgentSchema;
-use crate::datastore::shared_store::SharedStore;
-use crate::proto::{ExperimentID, SimulationShortID};
-use crate::simulation::enum_dispatch::TaskSharedStore;
-use crate::simulation::package::id::PackageId;
-use crate::simulation::task::msg::TaskMessage;
-use crate::worker::{Error, Result};
 use crate::{
-    datastore::prelude::ArrowSchema,
-    simulation::package::worker_init::PackageInitMsgForWorker,
+    config::{EngineConfig, Globals},
+    datastore::{prelude::ArrowSchema, schema::state::AgentSchema, shared_store::SharedStore},
+    proto::{ExperimentID, SimulationShortID},
+    simulation::{
+        enum_dispatch::TaskSharedStore,
+        package::{id::PackageId, worker_init::PackageInitMsgForWorker},
+        task::msg::TaskMessage,
+    },
     types::{TaskID, WorkerIndex},
+    worker::{Error, Result},
     Language,
 };
 
@@ -99,11 +102,14 @@ impl TargetedRunnerTaskMsg {
         let inner_msg: serde_json::Value = serde_json::from_slice(task_msg.payload().inner())?;
         let payload = TaskMessage::try_from_inner_msg_and_wrapper(inner_msg, sent.task_wrapper);
         // TODO: Error message duplication with JS runner
-        let payload = payload.map_err(|e| Error::from(format!(
-            "Failed to wrap and create a new TaskMessage, perhaps the inner: {:?}, was formatted incorrectly. Underlying error: {}",
-            std::str::from_utf8(task_msg.payload().inner()),
-            e.to_string()
-        )))?;
+        let payload = payload.map_err(|e| {
+            Error::from(format!(
+                "Failed to wrap and create a new TaskMessage, perhaps the inner: {:?}, was \
+                 formatted incorrectly. Underlying error: {}",
+                std::str::from_utf8(task_msg.payload().inner()),
+                e.to_string()
+            ))
+        })?;
 
         Ok(Self {
             target,

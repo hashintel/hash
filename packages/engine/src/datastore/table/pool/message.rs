@@ -1,15 +1,15 @@
+use std::{ops::Deref, sync::Arc};
+
 use parking_lot::{RwLock, RwLockReadGuard};
 use rayon::iter::{
     IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,
 };
-use std::ops::Deref;
-
-use crate::datastore::{batch, prelude::*, table::references::AgentMessageReference, UUID_V4_LEN};
-
-use crate::SimRunConfig;
-use std::sync::Arc;
 
 use super::{agent::AgentPool, BatchPool};
+use crate::{
+    datastore::{batch, prelude::*, table::references::AgentMessageReference, UUID_V4_LEN},
+    SimRunConfig,
+};
 
 #[derive(Clone)]
 pub struct MessagePool {
@@ -106,7 +106,7 @@ impl MessagePool {
     }
 }
 
-// TODO - (clarity) Replace with MessageReader<'a> or rename ?
+// TODO: (clarity) Replace with MessageReader<'a> or rename ?
 pub struct MessagePoolRead<'a> {
     batches: Vec<RwLockReadGuard<'a, MessageBatch>>,
 }
@@ -194,6 +194,7 @@ impl BatchPool<MessageBatch> for MessagePool {
     fn batches(&self) -> &[Arc<RwLock<MessageBatch>>] {
         &self.batches
     }
+
     fn mut_batches(&mut self) -> &mut Vec<Arc<RwLock<MessageBatch>>> {
         &mut self.batches
     }

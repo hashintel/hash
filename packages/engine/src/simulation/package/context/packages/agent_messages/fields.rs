@@ -1,8 +1,7 @@
+use super::*;
 use crate::datastore::schema::{
     FieldScope, FieldType, FieldTypeVariant::*, PresetFieldType, RootFieldSpec,
 };
-
-use super::*;
 
 pub(super) const MESSAGES_FIELD_NAME: &str = "messages";
 

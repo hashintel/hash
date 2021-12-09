@@ -1,5 +1,4 @@
-use std::collections::HashMap;
-use std::fmt::Display;
+use std::{collections::HashMap, fmt::Display};
 
 use anyhow::{bail, format_err, Context, Result};
 use hash_engine::{nano, proto};
@@ -14,8 +13,8 @@ type MsgReceiver = mpsc::UnboundedReceiver<proto::EngineStatus>;
 type CtrlSender = mpsc::Sender<(Ctrl, ResultSender)>;
 type CtrlReceiver = mpsc::Receiver<(Ctrl, ResultSender)>;
 
-/// Create a new Server with an associated Handler. Use `Server::run` to start the
-/// server, and use the Handler to register new experiment executions.
+/// Create a new Server with an associated Handler. Use `Server::run` to start the server, and use
+/// the Handler to register new experiment executions.
 pub fn create_server(url: &str) -> Result<(Server, Handler)> {
     let (ctrl_tx, ctrl_rx) = mpsc::channel(1);
     let (close_tx, close_rx) = mpsc::unbounded_channel();
@@ -47,8 +46,8 @@ impl Handle {
 
 impl Drop for Handle {
     fn drop(&mut self) {
-        // If send returns an error, it means the server has already been dropped in
-        // which case the Handle is already cleaned up.
+        // If send returns an error, it means the server has already been dropped in which case the
+        // Handle is already cleaned up.
         self.close_tx.send(self.id.clone()).unwrap_or(());
     }
 }
@@ -84,8 +83,8 @@ impl Handler {
         result_rx.await.context("Failed to receive response from")?
     }
 
-    /// Register a new experiment execution with the server, returning a Handle from
-    /// which messages from the execution may be received.
+    /// Register a new experiment execution with the server, returning a Handle from which messages
+    /// from the execution may be received.
     pub async fn register_experiment(&mut self, experiment_id: &str) -> Result<Handle> {
         let (msg_tx, msg_rx) = mpsc::unbounded_channel();
         self.send_ctrl(Ctrl::Register {
@@ -145,8 +144,8 @@ impl Server {
         }
     }
 
-    /// Handle a control message received from the Handler associated with this Server.
-    /// Returns true if the server should stop listening.
+    /// Handle a control message received from the Handler associated with this Server. Returns true
+    /// if the server should stop listening.
     fn handle_ctrl_msg(&mut self, ctrl: Ctrl, result_tx: ResultSender) -> Result<bool> {
         let mut stop = false;
         let res = match ctrl {
@@ -163,8 +162,8 @@ impl Server {
         Ok(stop)
     }
 
-    /// Dispatch a message received from an experiment run to its respective handle.
-    /// Returns an error if the experiment ID set in the message has not been registered.
+    /// Dispatch a message received from an experiment run to its respective handle. Returns an
+    /// error if the experiment ID set in the message has not been registered.
     fn dispatch_message(&self, msg: proto::OrchestratorMsg) -> Result<()> {
         match self.routes.get(&msg.experiment_id) {
             None => {

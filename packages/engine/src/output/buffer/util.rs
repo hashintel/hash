@@ -1,8 +1,7 @@
 use std::path::PathBuf;
 
-use crate::output::error::{Error, Result};
-
 use super::RELATIVE_PARTS_FOLDER;
+use crate::output::error::{Error, Result};
 
 // TODO: move this to top-level
 /// Shared memory cleanup in the process hard crash case.

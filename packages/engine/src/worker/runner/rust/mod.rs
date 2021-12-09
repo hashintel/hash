@@ -1,6 +1,9 @@
 use futures::FutureExt;
-
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
+
+use super::comms::{
+    inbound::InboundToRunnerMsgPayload, outbound::OutboundFromRunnerMsg, ExperimentInitRunnerMsg,
+};
 /*
 use behavior_execution::BehaviorPackage;
 use behaviors::NativeState;
@@ -8,14 +11,9 @@ use context::{AgentContext, GroupContext, SimContext};
 pub use error::{Error, Result};
 use state::{AgentState, GroupState, SimState, StateSnapshot};
 */
-
 use crate::{
     proto::SimulationShortID,
     worker::{Error as WorkerError, Result as WorkerResult},
-};
-
-use super::comms::{
-    inbound::InboundToRunnerMsgPayload, outbound::OutboundFromRunnerMsg, ExperimentInitRunnerMsg,
 };
 
 pub struct RustRunner {

@@ -1,10 +1,8 @@
-use std::collections::HashMap;
-use std::ops::Deref;
+use std::{collections::HashMap, ops::Deref};
 
 use serde::{Deserialize, Serialize};
 
-use super::fields::behavior::BehaviorMap;
-use super::{Error, Result};
+use super::{fields::behavior::BehaviorMap, Error, Result};
 use crate::Language;
 
 // TODO: Package's experiment init message should have payload with

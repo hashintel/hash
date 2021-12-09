@@ -5,12 +5,11 @@ use std::{
 
 use rayon::iter::ParallelIterator;
 
-use crate::datastore::UUID_V4_LEN;
-
 use super::{
     super::prelude::*,
     pool::message::{MessagePoolRead, MessageReader},
 };
+use crate::datastore::UUID_V4_LEN;
 
 #[derive(Clone, Debug)]
 pub struct AgentMessageReference {
@@ -47,7 +46,8 @@ impl MessageMap {
                 HashMap::<String, Vec<AgentMessageReference>>::new,
                 |mut acc, (recipients, message_ref)| {
                     recipients.iter().for_each(|recipient| {
-                        // TODO OS - (decide) currently if message has duplicate recipients then agents can get duplicate messages (filtering is expensive)
+                        // TODO: OS - (decide) currently if message has duplicate recipients then
+                        // agents can get duplicate messages (filtering is expensive)
                         if let Some(entry) = acc.get_mut(*recipient) {
                             entry.push(message_ref.clone())
                         } else {

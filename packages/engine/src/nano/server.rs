@@ -1,7 +1,8 @@
+use tokio::sync::mpsc;
+
 /// Based on the server example at:
 /// https://github.com/nanomsg/nng/blob/708cdf1a8938b0ff128b134dcc2241ff99763209/demo/async/server.c
 use super::error::{Error, Result};
-use tokio::sync::mpsc;
 
 // The number of NNG async I/O contexts to run concurrently.
 // TODO: experiment with how large we can set this.

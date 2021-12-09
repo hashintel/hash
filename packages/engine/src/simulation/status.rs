@@ -1,10 +1,9 @@
-use crate::hash_types::worker::RunnerError;
-use crate::output::OutputPersistenceResultRepr;
+use serde::{Deserialize, Serialize};
 
 use super::Result;
-
-use crate::proto::SimulationShortID;
-use serde::{Deserialize, Serialize};
+use crate::{
+    hash_types::worker::RunnerError, output::OutputPersistenceResultRepr, proto::SimulationShortID,
+};
 
 // Sent from sim runs to experiment main loop.
 #[derive(Default, Debug, Serialize, Deserialize, PartialEq)]
@@ -15,7 +14,8 @@ pub struct SimStatus {
     pub stop_msg: Option<serde_json::Value>,
     pub stop_signal: bool,
     pub persistence_result: Option<(String, serde_json::Value)>,
-    // TODO - OS do we need these within SimStatus or should they be handled elsewhere, such as WorkerPoolToExpCtlMsg::Errors and WorkerPoolToExpCtlMsg::Warnings
+    // TODO: OS do we need these within SimStatus or should they be handled elsewhere, such as
+    // WorkerPoolToExpCtlMsg::Errors and WorkerPoolToExpCtlMsg::Warnings
     pub error: Option<RunnerError>,
     pub warnings: Vec<RunnerError>,
     pub running: bool,

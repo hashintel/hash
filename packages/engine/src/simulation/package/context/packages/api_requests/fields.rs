@@ -1,6 +1,5 @@
-use crate::datastore::schema::{FieldScope, FieldType, FieldTypeVariant::*};
-
 use super::*;
+use crate::datastore::schema::{FieldScope, FieldType, FieldTypeVariant::*};
 
 pub(super) const FROM_FIELD_NAME: &str = "from";
 pub(super) const TYPE_FIELD_NAME: &str = "type";

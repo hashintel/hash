@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 
-use crate::datastore::error::Result;
-use crate::datastore::schema::{FieldScope, FieldSource, RootFieldSpec};
-
 use super::{FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant};
+use crate::datastore::{
+    error::Result,
+    schema::{FieldScope, FieldSource, RootFieldSpec},
+};
 
 #[derive(thiserror::Error, Debug)]
 pub enum ShortJSONError {

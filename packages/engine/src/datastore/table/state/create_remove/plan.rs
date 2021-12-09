@@ -1,17 +1,17 @@
-use parking_lot::RwLock;
 use std::sync::Arc;
 
+use parking_lot::RwLock;
 use rayon::prelude::*;
 
 use super::action::{CreateActions, ExistingGroupBufferActions};
-
-use crate::datastore::table::pool::BatchPool;
-use crate::datastore::{
-    error::{Error, Result},
-    prelude::*,
-    table::pool::agent::AgentPool,
+use crate::{
+    datastore::{
+        error::{Error, Result},
+        prelude::*,
+        table::pool::{agent::AgentPool, BatchPool},
+    },
+    SimRunConfig,
 };
-use crate::SimRunConfig;
 
 #[derive(Debug)]
 pub struct MigrationPlan<'a> {

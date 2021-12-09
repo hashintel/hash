@@ -10,13 +10,12 @@ use serde::{
 };
 use serde_aux::prelude::deserialize_string_from_number;
 
-use crate::config::globals::Globals;
-
 use super::{
     error::{Error, Result},
     message::{self, Outbound},
     Vec3,
 };
+use crate::config::globals::Globals;
 
 #[allow(clippy::module_name_repetitions)]
 pub type SimulationState = Vec<Agent>;
@@ -42,9 +41,10 @@ pub const BUILTIN_FIELDS: [&str; 14] = [
 ];
 
 // We also have context -- for an Agent, this is the world around it.
-// Context is where we find things like neighbors, properties, and any data not stored in an agent itself.
-// Our agent runner tries hard to only give agents the context they need to execute, nothing more.
-// Context is immutable, although an agent can send messages to other agents as part of its return value.
+// Context is where we find things like neighbors, properties, and any data not stored in an agent
+// itself. Our agent runner tries hard to only give agents the context they need to execute, nothing
+// more. Context is immutable, although an agent can send messages to other agents as part of its
+// return value.
 #[derive(Serialize, Debug)]
 pub struct Context<'a> {
     pub properties: &'a Globals,
@@ -200,6 +200,7 @@ impl<'de> Deserialize<'de> for Agent {
         struct AgentVisitor;
         impl<'de> Visitor<'de> for AgentVisitor {
             type Value = Agent;
+
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                 formatter.write_str("struct AgentState")
             }
@@ -229,7 +230,7 @@ impl<'de> Deserialize<'de> for Agent {
                                     return Err(de::Error::invalid_value(
                                         de::Unexpected::Other("non OutboundMessage"),
                                         &"OutboundMessage",
-                                    ))
+                                    ));
                                 }
                             },
                         )
@@ -265,7 +266,7 @@ impl<'de> Deserialize<'de> for Agent {
                                     return Err(de::Error::invalid_type(
                                         de::Unexpected::Other("non string or number"),
                                         &"a string or number",
-                                    ))
+                                    ));
                                 }
                             };
                         }
@@ -534,7 +535,8 @@ impl Agent {
     /// for `to`.
     ///
     /// # Errors
-    /// `add_message` will return an error if the data provided is both required and an invalid JSON value.
+    /// `add_message` will return an error if the data provided is both required and an invalid JSON
+    /// value.
     pub fn add_message<T: StrVec>(
         &mut self,
         to: &T,
@@ -807,8 +809,7 @@ fn generate_agent_id() -> String {
 mod tests {
     use serde_json::json;
 
-    use super::super::message::GenericPayload;
-    use super::*;
+    use super::{super::message::GenericPayload, *};
 
     #[test]
     fn agent_state_ergonomics() -> Result<()> {
@@ -1012,14 +1013,11 @@ mod tests {
         agent
             .add_message(&"alice", "custom_message", data.clone())
             .unwrap();
-        assert_eq!(
-            agent.messages,
-            vec![Outbound::Generic(GenericPayload {
-                data: data.clone(),
-                to: vec!["alice".to_string()],
-                r#type: "custom_message".to_string(),
-            })]
-        );
+        assert_eq!(agent.messages, vec![Outbound::Generic(GenericPayload {
+            data: data.clone(),
+            to: vec!["alice".to_string()],
+            r#type: "custom_message".to_string(),
+        })]);
     }
 
     #[test]
@@ -1030,13 +1028,10 @@ mod tests {
         agent
             .add_message(&to.clone(), "custom_message", data.clone())
             .unwrap();
-        assert_eq!(
-            agent.messages,
-            vec![Outbound::Generic(GenericPayload {
-                data: data.clone(),
-                to: to.clone(),
-                r#type: "custom_message".to_string(),
-            })]
-        );
+        assert_eq!(agent.messages, vec![Outbound::Generic(GenericPayload {
+            data: data.clone(),
+            to: to.clone(),
+            r#type: "custom_message".to_string(),
+        })]);
     }
 }

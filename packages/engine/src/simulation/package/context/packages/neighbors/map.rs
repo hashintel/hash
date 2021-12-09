@@ -3,9 +3,7 @@ use std::collections::HashSet;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 use super::*;
-use crate::config;
-use crate::datastore::batch::AgentIndex;
-use crate::simulation::Error;
+use crate::{config, datastore::batch::AgentIndex, simulation::Error};
 
 pub(super) type PositionSubType = f64;
 pub(super) type Position = [PositionSubType; 3];
@@ -41,7 +39,8 @@ fn gather_neighbors(
     search_radius: &Option<PositionSubType>,
     topology: &config::TopologyConfig,
 ) -> Result<Vec<AgentIndex>> {
-    // Check if the agent has a custom search radius. If not, fall back to the topology search radius
+    // Check if the agent has a custom search radius. If not, fall back to the topology search
+    // radius
     let search_radius = match *search_radius {
         Some(radius) => radius,
         None => match topology.search_radius {
@@ -64,9 +63,10 @@ fn gather_neighbors(
     } else {
         // We keep the idxs of the agents in the agent state
         // This assumes the idxs don't change from step to step.
-        // This is fine for when the kdtree gets rebuilt every step but will be unreliable when the vec changes
-        // A better approach would be to use a hashmap to hold all the agents and use a resouce id uuid rather than string
-        // We can't actually use the agent id because it's a string, which sucks
+        // This is fine for when the kdtree gets rebuilt every step but will be unreliable when the
+        // vec changes. A better approach would be to use a hashmap to hold all the agents
+        // and use a resouce id uuid rather than string. We can't actually use the agent id
+        // because it's a string, which sucks
         let mut seen_neighbors_idxs = HashSet::new();
 
         let wrapped = super::adjacency::wrapped_positions(&position, topology);

@@ -1,11 +1,10 @@
-use crate::simulation::package::{context, init, output, state};
-
-use super::{Error, Result};
-use crate::simulation::package::name::PackageName;
 use context::Name as ContextPackage;
 use init::Name as InitPackage;
 use output::Name as OutputPackage;
 use state::Name as StatePackage;
+
+use super::{Error, Result};
+use crate::simulation::package::{context, init, name::PackageName, output, state};
 
 /// Configuration of packages used in the engine.
 /// Contains the names of all packages used.

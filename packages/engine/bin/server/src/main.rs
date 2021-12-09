@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
-use hash_engine::experiment::controller::run::run_experiment;
-use hash_engine::fetch::FetchDependencies;
-use hash_engine::proto::ExperimentRun;
+use hash_engine::{
+    experiment::controller::run::run_experiment, fetch::FetchDependencies, proto::ExperimentRun,
+};
 
 #[tokio::main]
 async fn main() -> Result<()> {

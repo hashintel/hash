@@ -1,9 +1,7 @@
 use anyhow::{format_err, Context, Error, Result};
 use async_trait::async_trait;
-use hash_engine::nano;
-use hash_engine::proto::EngineMsg;
+use hash_engine::{nano, proto::EngineMsg};
 
-// use super::error::{Error, Result};
 use super::process;
 
 #[cfg(debug_assertions)]
@@ -38,9 +36,8 @@ impl process::Process for LocalProcess {
     }
 
     async fn send(&mut self, msg: &EngineMsg) -> Result<()> {
-        // We create the client on the first call here, rather than when the LocalCommand
-        // is run, because the engine process needs some time before it's ready to accept
-        // NNG connections.
+        // We create the client on the first call here, rather than when the LocalCommand is run,
+        // because the engine process needs some time before it's ready to accept NNG connections.
         if self.client.is_none() {
             self.client = Some(nano::Client::new(&self.engine_url, 1)?);
         }

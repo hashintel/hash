@@ -1,13 +1,10 @@
-use crate::proto::SimulationShortID;
-
-use crate::simulation::package::id::PackageId;
+use super::active::ActiveTaskExecutorComms;
 use crate::{
     datastore::table::{sync::SyncPayload, task_shared_store::TaskSharedStore},
-    simulation::task::Task,
+    proto::SimulationShortID,
+    simulation::{package::id::PackageId, task::Task},
     types::TaskID,
 };
-
-use super::active::ActiveTaskExecutorComms;
 
 #[derive(new, Debug)]
 pub struct WrappedTask {

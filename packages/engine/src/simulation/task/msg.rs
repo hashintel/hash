@@ -1,10 +1,10 @@
-use crate::simulation::enum_dispatch::*;
-use serde::{Deserialize, Serialize};
 use std::hint::unreachable_unchecked;
 
-use crate::worker::runner::comms::MessageTarget;
+use serde::{Deserialize, Serialize};
 
-// TODO - Possibly come up with a better interface for distinguishing between types of TaskMessages
+use crate::{simulation::enum_dispatch::*, worker::runner::comms::MessageTarget};
+
+// TODO: Possibly come up with a better interface for distinguishing between types of TaskMessages
 #[enum_dispatch(RegisterWithoutTrait)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum TaskMessage {
@@ -45,28 +45,14 @@ impl TaskMessage {
     /// by swapping the given value with the one that's doubly nested within the wrapper object.
     ///
     /// # Parameters:
-    /// * inner_msg: serde_json::Value -
-    ///     The deserialized inner task message. The serialization of this should be something like
-    ///     the following (take note that message type is not the root object or serialization
-    ///     will fail):
-    ///     ```json
-    ///     {
-    ///       "SuccessMessage": {
-    ///         "agent_json": "some_json"
-    ///       }
-    ///     }
-    ///     ```
-    ///  * wrapper: serde_json::Value -
-    ///     A (possibly incomplete) Value representing a serialized `TaskMessage`. Structure should
-    ///     match something like the following (take note that "TaskMessage" is the root object and
-    ///     therefore does not appear as a key within the JSON):
-    ///     ```json
-    ///     {
-    ///       "InitTaskMessage": {
-    ///         "JsPyInitTaskMessage": null
-    ///       }
-    ///     }
-    ///     ```
+    /// * inner_msg: serde_json::Value - The deserialized inner task message. The serialization of
+    ///   this should be something like the following (take note that message type is not the root
+    ///   object or serialization will fail): ```json { "SuccessMessage": { "agent_json":
+    ///   "some_json" } } ```
+    ///  * wrapper: serde_json::Value - A (possibly incomplete) Value representing a serialized
+    ///    `TaskMessage`. Structure should match something like the following (take note that
+    ///    "TaskMessage" is the root object and therefore does not appear as a key within the JSON):
+    ///    ```json { "InitTaskMessage": { "JsPyInitTaskMessage": null } } ```
     ///
     /// ## Notes
     /// The somewhat confusing inconsistency with root objects is for ergonomics when using these

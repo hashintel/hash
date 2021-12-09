@@ -1,27 +1,35 @@
 use std::sync::Arc;
 
-use crate::config::{Globals, TopologyConfig};
-use crate::datastore::batch::AgentBatch;
-use crate::datastore::schema::accessor::{FieldSpecMapAccessor, GetFieldSpec};
-use crate::datastore::schema::context::ContextSchema;
-use crate::datastore::schema::{FieldKey, RootFieldSpec, RootFieldSpecCreator};
-use crate::datastore::table::state::view::StateSnapshot;
-use crate::datastore::table::state::State;
-use crate::datastore::{batch::iterators, table::state::ReadState};
-use crate::simulation::comms::package::PackageComms;
-use crate::simulation::package::context::packages::neighbors::fields::NEIGHBORS_FIELD_NAME;
-use crate::simulation::package::context::{ContextColumn, Package, PackageCreator};
-use crate::simulation::package::ext_traits::{
-    GetWorkerExpStartMsg, GetWorkerSimStartMsg, MaybeCPUBound,
-};
-use crate::simulation::package::prelude::{ArrowArray, ContextPackage};
-use crate::simulation::Result;
-use crate::{ExperimentConfig, SimRunConfig};
 use async_trait::async_trait;
 use parking_lot::RwLockReadGuard;
 use serde_json::Value;
 
 use self::map::{NeighborMap, NeighborRef};
+use crate::{
+    config::{Globals, TopologyConfig},
+    datastore::{
+        batch::{iterators, AgentBatch},
+        schema::{
+            accessor::{FieldSpecMapAccessor, GetFieldSpec},
+            context::ContextSchema,
+            FieldKey, RootFieldSpec, RootFieldSpecCreator,
+        },
+        table::state::{view::StateSnapshot, ReadState, State},
+    },
+    simulation::{
+        comms::package::PackageComms,
+        package::{
+            context::{
+                packages::neighbors::fields::NEIGHBORS_FIELD_NAME, ContextColumn, Package,
+                PackageCreator,
+            },
+            ext_traits::{GetWorkerExpStartMsg, GetWorkerSimStartMsg, MaybeCPUBound},
+            prelude::{ArrowArray, ContextPackage},
+        },
+        Result,
+    },
+    ExperimentConfig, SimRunConfig,
+};
 
 mod adjacency;
 mod fields;

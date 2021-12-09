@@ -1,7 +1,7 @@
-use super::error::{Error, Result};
-
 use serde::{Deserialize, Serialize};
 use strum_macros::Display;
+
+use super::error::{Error, Result};
 
 /// Supported languages
 #[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Copy, Clone, Debug, Display)]

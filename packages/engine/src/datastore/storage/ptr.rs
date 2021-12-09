@@ -16,7 +16,8 @@ impl<'s> MemoryPtr {
 
     /// Add to the underlying pointer
     ///
-    /// # Safety:
+    /// # Safety
+    ///
     /// As safe as `std::ptr::add`
     pub unsafe fn _add(&self, offset: usize) -> *const u8 {
         self.ptr.add(offset)

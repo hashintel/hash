@@ -3,25 +3,25 @@ pub mod main;
 pub mod terminate;
 pub mod top;
 
-pub use super::{Error, Result};
+pub use experiment::ExpMsgRecv;
+pub use main::{new_no_sim, MainMsgRecv, MainMsgSend};
+pub use terminate::TerminateRecv;
+use tokio::sync::{
+    mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
+    oneshot::Receiver,
+};
 
+pub use super::{Error, Result};
 use crate::{
     datastore::table::sync::SyncPayload,
+    proto::SimulationShortID,
     types::{TaskID, WorkerIndex},
     worker::{
         runner::comms::{outbound::RunnerError, NewSimulationRun},
         task::{WorkerTask, WorkerTaskResultOrCancelled},
     },
+    workerpool::comms::terminate::TerminateMessage,
 };
-
-use crate::proto::SimulationShortID;
-use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
-use tokio::sync::oneshot::Receiver;
-
-use crate::workerpool::comms::terminate::TerminateMessage;
-pub use experiment::ExpMsgRecv;
-pub use main::{new_no_sim, MainMsgRecv, MainMsgSend};
-pub use terminate::TerminateRecv;
 
 #[derive(Debug)]
 pub enum WorkerPoolToWorkerMsgPayload {

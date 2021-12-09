@@ -1,20 +1,23 @@
 #![allow(clippy::cast_possible_wrap)]
 
+use std::sync::Arc;
+
 use rayon::iter::{
     IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,
 };
 
-use crate::datastore::arrow::{
-    ipc::{read_record_batch, static_record_batch_to_bytes},
-    meta_conversion::get_dynamic_meta_flatbuffers,
-};
-use crate::datastore::prelude::*;
-
 use super::Batch as BatchRepr;
-
-use crate::proto::ExperimentID;
-use crate::simulation::package::context::ContextColumn;
-use std::sync::Arc;
+use crate::{
+    datastore::{
+        arrow::{
+            ipc::{read_record_batch, static_record_batch_to_bytes},
+            meta_conversion::get_dynamic_meta_flatbuffers,
+        },
+        prelude::*,
+    },
+    proto::ExperimentID,
+    simulation::package::context::ContextColumn,
+};
 
 // If required data size is 3 times less than current data size
 // then shmem size will be readjusted
@@ -147,7 +150,7 @@ impl Batch {
             .map(move |column_meta| {
                 let length = column_meta.byte_length();
                 let old_offset = next_offset;
-                next_offset = old_offset + length; // TODO check this is correct
+                next_offset = old_offset + length; // TODO: check this is correct
                 unsafe { std::slice::from_raw_parts_mut(&mut data[old_offset] as *mut _, length) }
             })
             .collect::<Vec<_>>();

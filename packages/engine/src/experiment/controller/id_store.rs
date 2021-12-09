@@ -74,7 +74,11 @@ impl SimIdStore {
                 }
                 SendersOrID::ID(id) => {
                     if !(&*id).eq(&registered_id) {
-                        Err(Error::from(format!("Simulation already registered with different id. Original: {}, new: {}", id, registered_id)))
+                        Err(Error::from(format!(
+                            "Simulation already registered with different id. Original: {}, new: \
+                             {}",
+                            id, registered_id
+                        )))
                     } else {
                         Ok(())
                     }

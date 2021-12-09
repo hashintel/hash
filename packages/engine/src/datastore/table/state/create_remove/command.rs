@@ -1,11 +1,9 @@
-use std::collections::HashSet;
-use std::sync::Arc;
+use std::{collections::HashSet, sync::Arc};
 
 use arrow::record_batch::RecordBatch;
 
-use crate::datastore::schema::state::AgentSchema;
 use crate::{
-    datastore::{prelude::*, UUID_V4_LEN},
+    datastore::{prelude::*, schema::state::AgentSchema, UUID_V4_LEN},
     simulation::command::CreateRemoveCommands,
 };
 

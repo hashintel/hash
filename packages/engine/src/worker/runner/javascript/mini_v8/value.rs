@@ -1,6 +1,10 @@
+use std::{
+    fmt,
+    ops::{Deref, DerefMut},
+    slice, vec,
+};
+
 use super::*;
-use std::ops::{Deref, DerefMut};
-use std::{fmt, slice, vec};
 
 /// A JavaScript value.
 ///
@@ -45,11 +49,7 @@ impl<'mv8> Value<'mv8> {
 
     /// Returns `true` if this is a `Value::Null`, `false` otherwise.
     pub fn is_null(&self) -> bool {
-        if let Value::Null = *self {
-            true
-        } else {
-            false
-        }
+        if let Value::Null = *self { true } else { false }
     }
 
     /// Returns `true` if this is a `Value::Boolean`, `false` otherwise.
@@ -313,8 +313,8 @@ impl<'mv8> FromIterator<Value<'mv8>> for Values<'mv8> {
 }
 
 impl<'mv8> IntoIterator for Values<'mv8> {
-    type Item = Value<'mv8>;
     type IntoIter = vec::IntoIter<Value<'mv8>>;
+    type Item = Value<'mv8>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_iter()
@@ -322,8 +322,8 @@ impl<'mv8> IntoIterator for Values<'mv8> {
 }
 
 impl<'a, 'mv8> IntoIterator for &'a Values<'mv8> {
-    type Item = &'a Value<'mv8>;
     type IntoIter = slice::Iter<'a, Value<'mv8>>;
+    type Item = &'a Value<'mv8>;
 
     fn into_iter(self) -> Self::IntoIter {
         (&self.0).into_iter()
@@ -384,8 +384,8 @@ impl<T> FromIterator<T> for Variadic<T> {
 }
 
 impl<T> IntoIterator for Variadic<T> {
-    type Item = T;
     type IntoIter = <Vec<T> as IntoIterator>::IntoIter;
+    type Item = T;
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_iter()

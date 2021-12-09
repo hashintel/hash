@@ -1,3 +1,4 @@
+use super::response::APIResponses;
 use crate::{
     datastore::{
         arrow::util::DataSliceUtils,
@@ -6,8 +7,6 @@ use crate::{
     },
     simulation::package::context::ContextColumnWriter,
 };
-
-use super::response::APIResponses;
 
 const NUM_NODES: usize = 5;
 const NUM_BUFFERS: usize = 12;

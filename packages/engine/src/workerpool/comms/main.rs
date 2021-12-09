@@ -1,9 +1,7 @@
-use crate::proto::SimulationShortID;
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 
-use crate::simulation::comms::message::EngineToWorkerPoolMsg;
-
 use super::Result;
+use crate::{proto::SimulationShortID, simulation::comms::message::EngineToWorkerPoolMsg};
 
 pub struct MainMsgRecv {
     inner: UnboundedReceiver<EngineToWorkerPoolMsg>,
@@ -15,7 +13,7 @@ pub struct MainMsgSendBase {
 
 #[derive(Clone)]
 pub struct MainMsgSend {
-    _sim_id: SimulationShortID, // TODO - field never read, delete?
+    _sim_id: SimulationShortID, // TODO: field never read, delete?
     inner: UnboundedSender<EngineToWorkerPoolMsg>,
 }
 

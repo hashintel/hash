@@ -3,13 +3,16 @@ use std::collections::HashMap;
 use tokio::sync::oneshot;
 
 use super::error::{Error, Result};
-
-use crate::simulation::task::msg::{TaskMessage, TaskResultOrCancelled};
 use crate::{
     config::Worker,
     simulation::{
         comms::active::ActiveTaskExecutorComms,
-        task::{cancel::CancelTask, handler::worker_pool::WorkerPoolHandler, Task},
+        task::{
+            cancel::CancelTask,
+            handler::worker_pool::WorkerPoolHandler,
+            msg::{TaskMessage, TaskResultOrCancelled},
+            Task,
+        },
     },
     types::TaskID,
     worker::task::WorkerTaskResultOrCancelled,

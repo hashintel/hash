@@ -4,31 +4,32 @@
     clippy::cast_sign_loss
 )]
 
+use std::{borrow::Cow, sync::Arc};
+
+use arrow::{array, array::ArrayRef, datatypes::DataType};
+
 use super::{
     boolean::Column as BooleanColumn, change::ArrayChange, flush::GrowableBatch, ArrowBatch,
     Batch as BatchRepr, DynamicBatch,
 };
-
-use crate::datastore::arrow::{
-    batch_conversion::{col_to_json_vals, IntoRecordBatch},
-    ipc::{
-        make_array, read_record_batch, record_batch_data_to_bytes_owned_unchecked, schema_to_bytes,
-        simulate_record_batch_to_bytes,
+use crate::{
+    datastore::{
+        arrow::{
+            batch_conversion::{col_to_json_vals, IntoRecordBatch},
+            ipc::{
+                make_array, read_record_batch, record_batch_data_to_bytes_owned_unchecked,
+                schema_to_bytes, simulate_record_batch_to_bytes,
+            },
+            meta_conversion::{get_dynamic_meta_flatbuffers, HashDynamicMeta, HashStaticMeta},
+        },
+        prelude::*,
+        schema::{state::AgentSchema, FieldKey},
+        POSITION_DIM, UUID_V4_LEN,
     },
-    meta_conversion::{get_dynamic_meta_flatbuffers, HashDynamicMeta, HashStaticMeta},
+    hash_types::state::AgentStateField,
+    proto::ExperimentID,
+    simulation::package::creator::PREVIOUS_INDEX_FIELD_KEY,
 };
-use crate::datastore::schema::state::AgentSchema;
-use crate::datastore::{prelude::*, POSITION_DIM, UUID_V4_LEN};
-
-use crate::hash_types::state::AgentStateField;
-use arrow::{array, datatypes::DataType};
-
-use crate::datastore::schema::FieldKey;
-use crate::proto::ExperimentID;
-use crate::simulation::package::creator::PREVIOUS_INDEX_FIELD_KEY;
-use arrow::array::ArrayRef;
-use std::borrow::Cow;
-use std::sync::Arc;
 
 /// A Shared Batch. Contains a shared memory
 /// segment and the Arrow `RecordBatch` view
@@ -362,7 +363,7 @@ impl Batch {
         self.get_arrow_column(key.value())
     }
 
-    // TODO - Use in Rust runner, and look up column without using PREVIOUS_INDEX_COLUMN_INDEX
+    // TODO: Use in Rust runner, and look up column without using PREVIOUS_INDEX_COLUMN_INDEX
     pub fn get_old_message_index(&self, row_index: usize) -> Result<Option<&[u32; 2]>> {
         let col = self.batch.column(todo!());
         let data_ref = col.data_ref();
@@ -390,7 +391,7 @@ impl Batch {
         }
     }
 
-    // TODO no set_id, but ID must have null bytes if too short
+    // TODO: no set_id, but ID must have null bytes if too short
     pub fn agent_id_iter(&self) -> Result<impl Iterator<Item = &[u8; UUID_V4_LEN]>> {
         let column_name = AgentStateField::AgentId.name();
         let column = self.get_arrow_column(column_name)?;
@@ -461,11 +462,11 @@ impl Batch {
         &'a mut self,
     ) -> Result<(
         impl Iterator<
-                Item = (
-                    Option<&'a mut [f64; POSITION_DIM]>,
-                    Option<&'a mut [f64; POSITION_DIM]>,
-                ),
-            > + 'a,
+            Item = (
+                Option<&'a mut [f64; POSITION_DIM]>,
+                Option<&'a mut [f64; POSITION_DIM]>,
+            ),
+        > + 'a,
         BooleanColumn,
     )> {
         let row_count = self.batch.num_rows();
@@ -700,7 +701,8 @@ impl Batch {
         Ok(iterator)
     }
 
-    // Iterate over any non-serialized fields (like f64, array, struct, ...) and serialize them into serde_json::Value objects
+    // Iterate over any non-serialized fields (like f64, array, struct, ...) and serialize them into
+    // serde_json::Value objects
     pub fn json_values<'a>(
         &'a self,
         column_name: &str,
@@ -777,9 +779,9 @@ pub fn behavior_list_bytes_iter<'a, K: AgentList>(
 mod tests {
     extern crate test;
 
-    use super::*;
     use test::Bencher;
 
+    use super::*;
     use crate::datastore::test_utils::gen_schema_and_test_agents;
 
     #[bench]

@@ -1,10 +1,10 @@
-use super::Result;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
-pub mod simulation {
-    use crate::simulation::controller::SimControl;
+use super::Result;
 
+pub mod simulation {
     use super::*;
+    use crate::simulation::controller::SimControl;
 
     pub struct SimCtlSend {
         inner: UnboundedSender<SimControl>,
@@ -33,9 +33,8 @@ pub mod simulation {
 }
 
 pub mod sim_status {
-    use crate::simulation::status::SimStatus;
-
     use super::*;
+    use crate::simulation::status::SimStatus;
 
     #[derive(Clone)]
     pub struct SimStatusSend {
@@ -65,9 +64,8 @@ pub mod sim_status {
 }
 
 pub mod exp_pkg_ctl {
-    use crate::experiment::ExperimentControl;
-
     use super::*;
+    use crate::experiment::ExperimentControl;
 
     pub struct ExpPkgCtlSend {
         inner: UnboundedSender<ExperimentControl>,
@@ -98,9 +96,8 @@ pub mod exp_pkg_ctl {
 /// Handles communication between the Experiment Controller and the Experiment Packages for updates
 /// at each simulation step
 pub mod exp_pkg_update {
-    use crate::experiment::package::StepUpdate;
-
     use super::*;
+    use crate::experiment::package::StepUpdate;
 
     #[derive(Clone)]
     pub struct ExpPkgUpdateSend {
@@ -125,9 +122,8 @@ pub mod exp_pkg_update {
 
     pub fn new_pair() -> (ExpPkgUpdateSend, ExpPkgUpdateRecv) {
         let (send, recv) = unbounded_channel();
-        (
-            ExpPkgUpdateSend { inner: send },
-            ExpPkgUpdateRecv { inner: recv },
-        )
+        (ExpPkgUpdateSend { inner: send }, ExpPkgUpdateRecv {
+            inner: recv,
+        })
     }
 }

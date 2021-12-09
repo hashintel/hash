@@ -1,14 +1,18 @@
-use std::collections::HashMap;
-use std::ffi::OsStr;
-use std::fs;
-use std::path::{Path, PathBuf};
+use std::{
+    collections::HashMap,
+    ffi::OsStr,
+    fs,
+    path::{Path, PathBuf},
+};
 
 use anyhow::{bail, format_err, Context, Result};
-use hash_engine::fetch::parse_raw_csv_into_json;
-use hash_engine::proto::{
-    ExperimentPackageConfig, ExperimentRun, ExperimentRunBase, InitialState, InitialStateName,
-    ProjectBase, SharedBehavior, SharedDataset, SimPackageArgs, SimpleExperimentConfig,
-    SingleRunExperimentConfig,
+use hash_engine::{
+    fetch::parse_raw_csv_into_json,
+    proto::{
+        ExperimentPackageConfig, ExperimentRun, ExperimentRunBase, InitialState, InitialStateName,
+        ProjectBase, SharedBehavior, SharedDataset, SimPackageArgs, SimpleExperimentConfig,
+        SingleRunExperimentConfig,
+    },
 };
 use rand::{Rng, RngCore};
 use rand_distr::{Beta, Distribution, LogNormal, Normal, Poisson};
@@ -46,8 +50,8 @@ pub fn read_manifest(
 }
 
 fn create_experiment_run_id(experiment_type: &ExperimentType) -> String {
-    // Generates a 6-digit hexadecimal and concats with the experiment name
-    // by {experiment_name}-{6-digit hex}
+    // Generates a 6-digit hexadecimal and concats with the experiment name by
+    // {experiment_name}-{6-digit hex}
     let mut rng = rand::thread_rng();
     let num = rng.gen_range(0_usize..16_777_216);
     let name = match experiment_type {
@@ -297,18 +301,18 @@ fn _try_read_local_dependencies(local_project: &Project) -> std::io::Result<Vec<
 }
 
 fn local_dependencies_folders(local_project: &Project) -> Vec<PathBuf> {
-    // TODO OS - do we want this wrapper to provide a default, or should we just unwrap
+    // TODO: OS: do we want this wrapper to provide a default, or should we just unwrap
     _try_read_local_dependencies(local_project).unwrap_or(vec![])
 }
 
-// TODO - Should these Strings be swapped with their own enums like BehaviorType::JavaScript
+// TODO: Should these Strings be swapped with their own enums like BehaviorType::JavaScript
 enum DependencyType {
     Behavior(String),
     Dataset(String),
 }
 
 fn get_dependency_type_from_name(dependency_name: &str) -> Result<DependencyType> {
-    // TODO - dependency names aren't real paths, is this safe?
+    // TODO: dependency names aren't real paths, is this safe?
     let extension = std::path::Path::new(dependency_name)
         .extension()
         .ok_or_else(|| format_err!("Dependency has no file extension"))?;
@@ -334,7 +338,7 @@ fn get_behavior_from_dependency_projects(
     let mut possible_names = Vec::with_capacity(4);
 
     // is a Hash behavior
-    // TODO - Could be cleaned up
+    // TODO: Could be cleaned up
     if name.starts_with("@hash") {
         let full_parts = name.split("/").collect::<Vec<_>>();
         let file_name = full_parts[full_parts.len() - 1];
@@ -359,8 +363,8 @@ fn get_behavior_from_dependency_projects(
         possible_names.push(file_name.to_string());
         possible_names.push("@hash/".to_string() + file_name);
 
-        // Unfortunately, sometimes the longest name from the API is
-        // not actually the full name, so set it manually here.
+        // Unfortunately, sometimes the longest name from the API is not actually the full name, so
+        // set it manually here.
         name = full_name;
     }
 
@@ -372,7 +376,7 @@ fn get_behavior_from_dependency_projects(
         .find(|(path, _proj)| path.ends_with(&dependency_path))
         .map(|(_path, proj)| {
             proj.behaviors.iter().find(|behavior| {
-                // TODO - Are all of these checks necessary
+                // TODO: Are all of these checks necessary
                 behavior.name == name
                     || behavior.shortnames.contains(&name)
                     || possible_names.contains(&behavior.name)
@@ -404,7 +408,8 @@ fn get_dataset_from_dependency_projects(
         .file_name()
         .ok_or_else(|| {
             format_err!(
-                "Expected there to be a filename component of the dataset dependency path: {dependency_path:?}"
+                "Expected there to be a filename component of the dataset dependency path: \
+                 {dependency_path:?}"
             )
         })?
         .to_os_string()
@@ -418,7 +423,7 @@ fn get_dataset_from_dependency_projects(
         .find(|(path, _proj)| path.ends_with(&dependency_path))
         .map(|(_path, proj)| {
             proj.datasets.iter().find(|dataset| {
-                // TODO - Are all of these checks necessary
+                // TODO: Are all of these checks necessary
                 dataset.name == Some(name.clone())
                     || dataset.shortname == name.clone()
                     || dataset.filename == name.clone()
@@ -457,7 +462,7 @@ fn add_dependencies_to_project(
         let dependencies_map =
             read_dependencies_from_json(dependencies_str).context("Could not read dependencies")?;
 
-        // TODO - How to handle versions
+        // TODO: How to handle versions
         for (dependency_name, _version) in dependencies_map {
             match get_dependency_type_from_name(&dependency_name)
                 .with_context(|| format!("Could not read dependency: {dependency_name}"))?
@@ -523,7 +528,8 @@ fn read_project(project_path: &Path) -> Result<ProjectBase> {
         experiments_src: local_project.experiments_json,
         behaviors: local_project.behaviors,
         datasets: local_project.datasets,
-        // TODO allow packages themselves to implement resolvers for local projects to build this field
+        // TODO: allow packages themselves to implement resolvers for local projects to build this
+        // field
         packages: vec![SimPackageArgs {
             name: "analysis".into(),
             data: SerdeValue::String(local_project.analysis_json.unwrap_or("".into())),
@@ -579,7 +585,10 @@ fn create_experiment_plan(
     experiment_name: &str,
 ) -> Result<SimpleExperimentPlan> {
     let selected_experiment = experiments.get(experiment_name).ok_or_else(|| {
-        format_err!("Expected experiments.json to contain the specified experiment definition for experiment with name: {experiment_name}")
+        format_err!(
+            "Expected experiments.json to contain the specified experiment definition for \
+             experiment with name: {experiment_name}"
+        )
     })?;
     let experiment_type = selected_experiment
         .get("type")
@@ -656,7 +665,7 @@ fn create_group_variant(
 ) -> Result<SimpleExperimentPlan> {
     #[derive(Serialize, Deserialize)]
     struct GroupVariant {
-        // TODO move ALL variants to proto, experiment plan creation to simple exp controller def
+        // TODO: move ALL variants to proto, experiment plan creation to simple exp controller def
         #[serde(rename = "type")]
         _type: String,
         steps: f64,
@@ -730,7 +739,8 @@ fn create_monte_carlo_variant_plan(
         scale: Option<f64>,
     }
 
-    // Needed trait objects of distributions, solution from: https://users.rust-lang.org/t/vec-of-rand-distribution-trait-objects/58727/2
+    // Needed trait objects of distributions, solution from:
+    // https://users.rust-lang.org/t/vec-of-rand-distribution-trait-objects/58727/2
     pub trait DynDistribution<T> {
         fn sample_(&self, rng: &mut dyn RngCore) -> T;
     }

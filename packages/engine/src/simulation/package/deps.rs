@@ -1,8 +1,8 @@
 use super::{context, init, output, state};
-
-use crate::simulation;
-use crate::simulation::package::name::PackageName;
-use crate::simulation::{Error, Result};
+use crate::{
+    simulation,
+    simulation::{package::name::PackageName, Error, Result},
+};
 
 #[derive(Clone)]
 pub struct Dependencies {
@@ -93,14 +93,17 @@ impl PackageName {
 
 #[cfg(test)]
 pub mod tests {
-    use super::*;
-    use crate::config::WorkerPoolConfig;
-    use crate::proto::{
-        ExperimentRunBase, ExperimentRunRepr, InitialState, InitialStateName, ProjectBase,
-    };
-    use crate::simulation::{Error, Result};
-    use crate::ExperimentConfig;
     use std::sync::Arc;
+
+    use super::*;
+    use crate::{
+        config::WorkerPoolConfig,
+        proto::{
+            ExperimentRunBase, ExperimentRunRepr, InitialState, InitialStateName, ProjectBase,
+        },
+        simulation::{Error, Result},
+        ExperimentConfig,
+    };
 
     fn validate(mut parents: Vec<PackageName>, src_dep: PackageName) -> Result<()> {
         let cycle_found = parents.contains(&src_dep);

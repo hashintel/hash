@@ -1,19 +1,23 @@
-use std::collections::hash_map::Iter;
-use std::collections::HashMap;
-use std::sync::Arc;
+use std::{
+    collections::{hash_map::Iter, HashMap},
+    lazy::SyncOnceCell,
+    sync::Arc,
+};
 
-use super::PackageCreator;
-use crate::simulation::enum_dispatch::*;
-use crate::simulation::package::PackageMetadata;
-use crate::simulation::package::{id::PackageIdGenerator, PackageType};
-use crate::simulation::{Error, Result};
-use crate::ExperimentConfig;
-use jspy::js::JsInitTask;
-use jspy::py::PyInitTask;
+use jspy::{js::JsInitTask, py::PyInitTask};
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
-use std::lazy::SyncOnceCell;
 use strum_macros::IntoStaticStr;
+
+use super::PackageCreator;
+use crate::{
+    simulation::{
+        enum_dispatch::*,
+        package::{id::PackageIdGenerator, PackageMetadata, PackageType},
+        Error, Result,
+    },
+    ExperimentConfig,
+};
 
 pub mod json;
 pub mod jspy;
@@ -100,20 +104,14 @@ lazy_static! {
         use Name::*;
         let mut id_creator = PackageIdGenerator::new(PackageType::Init);
         let mut m = HashMap::new();
-        m.insert(
-            JSON,
-            PackageMetadata {
-                id: id_creator.next(),
-                dependencies: json::Creator::dependencies(),
-            },
-        );
-        m.insert(
-            JSPY,
-            PackageMetadata {
-                id: id_creator.next(),
-                dependencies: jspy::Creator::dependencies(),
-            },
-        );
+        m.insert(JSON, PackageMetadata {
+            id: id_creator.next(),
+            dependencies: json::Creator::dependencies(),
+        });
+        m.insert(JSPY, PackageMetadata {
+            id: id_creator.next(),
+            dependencies: jspy::Creator::dependencies(),
+        });
         m
     };
 }

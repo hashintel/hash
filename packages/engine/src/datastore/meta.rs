@@ -3,7 +3,8 @@ use super::prelude::*;
 /// Internal representation of Arrow `FieldNode` Message
 #[derive(Debug, Clone)]
 pub struct Node {
-    /// Number of value slots (if Node is the base column node, then it is the number of items in column)
+    /// Number of value slots (if Node is the base column node, then it is the number of items in
+    /// column)
     pub length: usize,
     pub null_count: usize,
 }
@@ -202,7 +203,7 @@ pub struct Column {
     pub root_node_mapping: NodeMapping,
     /// Number of buffers per node,
     /// i.e. `node_count` == `buffer_counts.len()`
-    pub buffer_counts: Vec<usize>, // TODO rename to something like num_buffers_per_node
+    pub buffer_counts: Vec<usize>, // TODO: rename to something like num_buffers_per_node
 }
 
 #[derive(Debug, Clone, PartialEq)]

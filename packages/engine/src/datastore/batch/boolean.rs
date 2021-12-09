@@ -30,6 +30,7 @@ impl Column {
             unset_bit_raw(self.data, index);
         }
     }
+
     /// Change the boolean value of an element
     ///
     /// # Safety
@@ -49,10 +50,10 @@ unsafe fn unset_bit_raw(data: *mut u8, i: usize) {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     use arrow::array::BooleanArray;
     use rand::{prelude::SliceRandom, Rng};
+
+    use super::*;
 
     #[test]
     fn unset() {

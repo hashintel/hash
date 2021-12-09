@@ -1,5 +1,6 @@
-use super::super::*;
 use std::string::String as StdString;
+
+use super::super::*;
 
 #[test]
 fn js_function() {

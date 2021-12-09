@@ -1,26 +1,24 @@
 use std::sync::Arc;
 
-use super::{arrow_util, error::SimulationError, Error, NativeColumn, Result};
-use crate::worker::runner::rust::{
-    neighbor::Neighbor,
-    state::{AgentState, GroupState},
-    Column,
-};
-
-use crate::datastore::{
-    arrow::batch_conversion::new_zero_bits, batch::change::ArrayChange, POSITION_DIM,
-};
-
-use crate::hash_types::Vec3;
 use arrow::{
     array::{self, Array},
     buffer::MutableBuffer,
     datatypes::DataType,
     util::bit_util,
 };
-
 use serde::Deserialize;
 use thiserror::Error as ThisError;
+
+use super::{arrow_util, error::SimulationError, Error, NativeColumn, Result};
+use crate::{
+    datastore::{arrow::batch_conversion::new_zero_bits, batch::change::ArrayChange, POSITION_DIM},
+    hash_types::Vec3,
+    worker::runner::rust::{
+        neighbor::Neighbor,
+        state::{AgentState, GroupState},
+        Column,
+    },
+};
 
 pub fn vec3arr_to_arrow(arr: &Vec<Vec3>) -> Result<Arc<array::ArrayData>> {
     let mut flat_positions: Vec<f64> = Vec::with_capacity(arr.len() * 3);
@@ -480,14 +478,22 @@ impl Accessors for Option<serde_json::Value> {
 
 #[macro_export]
 macro_rules! accessors {
-    ($native_type:path, $column:ident, $base:ident, $base_set:ident, $base_mut:ident, $base_load:ident, $base_commit:ident) => {
+    (
+        $native_type:path,
+        $column:ident,
+        $base:ident,
+        $base_set:ident,
+        $base_mut:ident,
+        $base_load:ident,
+        $base_commit:ident
+    ) => {
         pub fn $base(index: usize, agent_batch: &AgentBatch) -> Result<NativeColumn<$native_type>> {
             let data = Accessors::load(
                 agent_batch.batch.column(index).data_ref(),
                 stringify!($base),
             )?;
             Ok(NativeColumn {
-                index: index,
+                index,
                 set: false,
                 data,
             })
@@ -572,7 +578,7 @@ macro_rules! accessors {
 
         impl<'c> Neighbor<'c> {
             pub fn $base(&self) -> $native_type {
-                // TODO this is expensive
+                // TODO: this is expensive
                 let col_index = self
                     .col_indices
                     .get(stringify!($base))
@@ -620,10 +626,12 @@ pub trait OptionNativeColumnExt {
 
 impl<T> OptionNativeColumnExt for Option<NativeColumn<T>> {
     type Value = NativeColumn<T>;
+
     fn u_ref(&self) -> std::result::Result<&Self::Value, OptionNativeColumnExtError> {
         self.as_ref()
             .ok_or_else(|| OptionNativeColumnExtError::UnwrapRefFailed(std::any::type_name::<T>()))
     }
+
     fn u_mut(&mut self) -> std::result::Result<&mut Self::Value, OptionNativeColumnExtError> {
         self.as_mut()
             .ok_or_else(|| OptionNativeColumnExtError::UnwrapMutFailed(std::any::type_name::<T>()))

@@ -1,8 +1,7 @@
-use crate::datastore::prelude::*;
+use std::ops::{Index, IndexMut};
 
 use super::ptr::MemoryPtr;
-
-use std::ops::{Index, IndexMut};
+use crate::datastore::prelude::*;
 
 #[repr(usize)]
 pub enum Val {
@@ -68,20 +67,20 @@ pub struct Markers {
 }
 
 impl Markers {
+    // This is the marker size for different locations in memory
+    pub const MARKER_SIZE: usize = 8;
     // Markers:
     // 1) Header offset, 2) Header size, 3) Schema offset, 4) Schema size,
     // 5) Meta offset,   6) Meta size,   7) Data offset,   8) Data size
     pub const NUMBER_OF_MARKERS: usize = 8;
-
-    // This is the marker size for different locations in memory
-    pub const MARKER_SIZE: usize = 8;
     const TOTAL_MARKERS_SIZE: usize = Self::MARKER_SIZE * Self::NUMBER_OF_MARKERS;
     const TOTAL_OFFSETS_SIZE: usize =
         Self::TOTAL_MARKERS_SIZE + padding::pad_to_8(Self::TOTAL_MARKERS_SIZE);
 
     /// Get a mutable reference to the offsets buffer in the data
     ///
-    /// ## Safety:
+    /// # Safety
+    ///
     /// Depends on if MemoryPtr is to a valid location (with correct alignment) in memory
     ///
     /// This is safe as:
@@ -94,7 +93,8 @@ impl Markers {
 
     /// Get an immutable reference to the offsets buffer in the data
     ///
-    /// ## Safety:
+    /// # Safety
+    ///
     /// Depends on if MemoryPtr is to a valid location (with correct alignment) in memory
     ///
     /// This is safe as:

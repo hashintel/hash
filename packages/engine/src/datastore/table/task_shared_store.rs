@@ -1,16 +1,14 @@
-use crate::datastore::Error;
-use crate::{
-    config::{Distribution, Worker, WorkerAllocation},
-    datastore::prelude::Result,
-    simulation::task::handler::worker_pool::SplitConfig,
-};
-
 use std::fmt::Debug;
 
 use super::{
     context::ReadContext,
     proxy::{StateReadProxy, StateWriteProxy},
     state::{ReadState, WriteState},
+};
+use crate::{
+    config::{Distribution, Worker, WorkerAllocation},
+    datastore::{prelude::Result, Error},
+    simulation::task::handler::worker_pool::SplitConfig,
 };
 
 #[derive(Default, Debug)]

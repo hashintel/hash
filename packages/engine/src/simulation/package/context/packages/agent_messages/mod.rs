@@ -3,18 +3,22 @@ mod fields;
 mod indices;
 mod writer;
 
-use self::collected::Messages;
-use crate::datastore::schema::accessor::GetFieldSpec;
-use crate::datastore::schema::RootFieldSpec;
-use crate::simulation::package::context::packages::agent_messages::fields::MESSAGES_FIELD_NAME;
-use crate::{
-    datastore::{batch::iterators, table::state::ReadState},
-    simulation::comms::package::PackageComms,
-};
 use arrow::array::{FixedSizeListBuilder, ListBuilder};
 use serde_json::Value;
 
+use self::collected::Messages;
 use super::super::*;
+use crate::{
+    datastore::{
+        batch::iterators,
+        schema::{accessor::GetFieldSpec, RootFieldSpec},
+        table::state::ReadState,
+    },
+    simulation::{
+        comms::package::PackageComms,
+        package::context::packages::agent_messages::fields::MESSAGES_FIELD_NAME,
+    },
+};
 
 const CPU_BOUND: bool = true;
 pub const MESSAGE_INDEX_COUNT: usize = 3;

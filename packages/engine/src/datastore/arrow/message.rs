@@ -1,14 +1,15 @@
-use super::prelude::*;
+use std::sync::Arc;
 
-use crate::datastore::{prelude::*, schema::PresetFieldType};
-
-use crate::hash_types::message::{
-    CreateAgent, GenericPayload, Outbound, OutboundCreateAgentPayload, OutboundRemoveAgentPayload,
-    OutboundStopSimPayload, RemoveAgent, StopSim,
-};
 use lazy_static::lazy_static;
 
-use std::sync::Arc;
+use super::prelude::*;
+use crate::{
+    datastore::{prelude::*, schema::PresetFieldType},
+    hash_types::message::{
+        CreateAgent, GenericPayload, Outbound, OutboundCreateAgentPayload,
+        OutboundRemoveAgentPayload, OutboundStopSimPayload, RemoveAgent, StopSim,
+    },
+};
 
 // Built in message types:
 pub const CREATE_AGENT: &str = OutboundCreateAgentPayload::KIND;
@@ -62,14 +63,11 @@ lazy_static! {
 #[must_use]
 pub fn get_message_arrow_builder() -> array::ListBuilder<array::StructBuilder> {
     let to_builder = array::StringBuilder::new(64);
-    let message_builder = array::StructBuilder::new(
-        MESSAGE_ARROW_FIELDS.clone(),
-        vec![
-            Box::new(array::ListBuilder::new(to_builder)),
-            Box::new(array::StringBuilder::new(64)),
-            Box::new(array::StringBuilder::new(512)),
-        ],
-    );
+    let message_builder = array::StructBuilder::new(MESSAGE_ARROW_FIELDS.clone(), vec![
+        Box::new(array::ListBuilder::new(to_builder)),
+        Box::new(array::StringBuilder::new(64)),
+        Box::new(array::StringBuilder::new(512)),
+    ]);
     array::ListBuilder::new(message_builder)
 }
 

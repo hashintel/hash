@@ -1,20 +1,28 @@
-use std::collections::HashMap;
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use futures::{executor::block_on, stream::FuturesOrdered, StreamExt};
 
-use crate::datastore::schema::FieldKey;
-use crate::simulation::package::context::ContextColumn;
 use crate::{
-    datastore::table::{
-        context::PreContext,
-        state::{view::StateSnapshot, ReadState},
+    datastore::{
+        prelude::{Context, State},
+        schema::FieldKey,
+        table::{
+            context::PreContext,
+            state::{view::StateSnapshot, ReadState},
+        },
     },
-    simulation::step_output::SimulationStepOutput,
+    simulation::{
+        package::{
+            context,
+            context::ContextColumn,
+            init, output,
+            prelude::{Error, ExContext, ExState, Result},
+            state,
+        },
+        step_output::SimulationStepOutput,
+    },
     SimRunConfig,
 };
-
-use super::{context, init, output, prelude::*, state};
 
 /// Represents the packages of a simulation engine.
 pub struct Packages {
@@ -97,7 +105,7 @@ impl StepPackages {
         let keys_and_columns = self
             .context
             .iter()
-            // TODO remove the need for this creating a method to generate empty arrow columns from schema
+            // TODO: remove the need for this creating a method to generate empty arrow columns from schema
             .map(|package| {
                 package
                     .get_empty_arrow_columns(num_agents, &sim_run_config.sim.store.context_schema)
@@ -108,9 +116,9 @@ impl StepPackages {
             .map(|(field_key, col)| (field_key.value().to_string(), col))
             .collect::<HashMap<String, Arc<dyn arrow::array::Array>>>();
 
-        // because we aren't generating the columns from the schema, we need to reorder the cols from the packages to match
-        //   this is another reason to move column creation to be done per schema instead of per package, because this is
-        //   very messy.
+        // because we aren't generating the columns from the schema, we need to reorder the cols
+        // from the packages to match this is another reason to move column creation to be
+        // done per schema instead of per package, because this is very messy.
         let schema = &sim_run_config.sim.store.context_schema;
         let columns = schema
             .arrow

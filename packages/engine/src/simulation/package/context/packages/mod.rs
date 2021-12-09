@@ -2,20 +2,25 @@ pub mod agent_messages;
 pub mod api_requests;
 pub mod neighbors;
 
-use std::collections::hash_map::Iter;
-use std::collections::HashMap;
-use std::lazy::SyncOnceCell;
-use std::sync::Arc;
+use std::{
+    collections::{hash_map::Iter, HashMap},
+    lazy::SyncOnceCell,
+    sync::Arc,
+};
 
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use strum_macros::IntoStaticStr;
 
 use super::PackageCreator;
-use crate::simulation::enum_dispatch::*;
-use crate::simulation::package::{id::PackageIdGenerator, PackageMetadata, PackageType};
-use crate::simulation::{Error, Result};
-use crate::ExperimentConfig;
+use crate::{
+    simulation::{
+        enum_dispatch::*,
+        package::{id::PackageIdGenerator, PackageMetadata, PackageType},
+        Error, Result,
+    },
+    ExperimentConfig,
+};
 
 /// All context package names are registered in this enum
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
@@ -41,7 +46,7 @@ impl std::fmt::Display for Name {
 #[derive(Clone, Debug)]
 pub struct ContextTask {}
 
-// Empty impls to satisfy constraints enum_dispatch while there are no task variants
+// Empty impls to satisfy constraints from enum_dispatch while there are no task variants
 impl WorkerHandler for ContextTask {}
 
 impl WorkerPoolHandler for ContextTask {}

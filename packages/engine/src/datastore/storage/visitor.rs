@@ -1,12 +1,14 @@
 use std::ops::{Index, IndexMut};
 
-use super::{markers::Buffer, markers::Markers, markers::Val, ptr::MemoryPtr, BufferChange};
+use super::{
+    markers::{Buffer, Markers, Val},
+    ptr::MemoryPtr,
+    BufferChange,
+};
 use crate::datastore::{arrow::util, prelude::*};
 
-// Code to visit different regions of shared memory
-// This module is the *sole* source of truth for keeping
-// track of Arrow continuation bytes.
-
+// Code to visit different regions of shared memory This module is the *sole* source of truth for
+// keeping track of Arrow continuation bytes.
 pub(in crate::datastore) trait Visit<'mem: 'v, 'v> {
     fn ptr(&self) -> &MemoryPtr;
     fn markers(&self) -> &Markers;
@@ -90,7 +92,13 @@ pub(in crate::datastore) trait Visit<'mem: 'v, 'v> {
             && markers.data_offset() + markers.data_size() <= size;
 
         if !res {
-            log::warn!("Invalid markers in shared buffer with id {}. Markers: {:?}, Shared buffer size: {}", message, markers, size);
+            log::warn!(
+                "Invalid markers in shared buffer with id {}. Markers: {:?}, Shared buffer size: \
+                 {}",
+                message,
+                markers,
+                size
+            );
         }
 
         res

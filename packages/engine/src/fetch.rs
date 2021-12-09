@@ -1,11 +1,12 @@
-use crate::proto::ExperimentRunTrait;
-use crate::{
-    error::{Error, Result},
-    proto::{ExperimentRunRepr, FetchedDataset, SharedDataset},
-};
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use futures::StreamExt;
-use std::sync::Arc;
+
+use crate::{
+    error::{Error, Result},
+    proto::{ExperimentRunRepr, ExperimentRunTrait, FetchedDataset, SharedDataset},
+};
 
 pub type Datasets = Vec<Arc<FetchedDataset>>;
 
@@ -30,10 +31,12 @@ impl FetchDependencies for SharedDataset {
         // This should happen only when production project clones into staging environment
         // mean losing access to datasets which only exist in production.
         if contents.starts_with("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Error>") {
-            // TODO changes so erroring is explict
+            // TODO: changes so erroring is explict
             log::error!(
-                "Possible error with dataset fetching. Returned message starts with: {}. Dataset metadata: {:?}",
-                &contents[0..100.min(contents.len())], self
+                "Possible error with dataset fetching. Returned message starts with: {}. Dataset \
+                 metadata: {:?}",
+                &contents[0..100.min(contents.len())],
+                self
             );
         }
 

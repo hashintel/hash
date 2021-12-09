@@ -1,40 +1,44 @@
 use std::{collections::HashMap, sync::Arc};
 
-use crate::experiment::package::StepUpdate;
+use super::{
+    comms::{
+        sim_status::{SimStatusRecv, SimStatusSend},
+        simulation::SimCtlSend,
+    },
+    id_store::SimIdStore,
+    sim_configurer::SimConfigurer,
+    Error, Result,
+};
 use crate::{
     config::{PersistenceConfig, StoreConfig},
     datastore::prelude::SharedStore,
     env::OrchClient,
-    experiment::{apply_property_changes, ExperimentControl},
+    experiment::{
+        apply_property_changes,
+        package::{ExperimentPackageComms, StepUpdate},
+        ExperimentControl,
+    },
     output::OutputPersistenceCreatorRepr,
-    simulation::{comms::Comms, package::creator::PackageCreators},
-    worker::runner::comms::NewSimulationRun,
+    proto::{EngineMsg, EngineStatus, SimulationShortID},
+    simulation::{
+        comms::Comms,
+        controller::{runs::SimulationRuns, sim_control::SimControl, SimulationController},
+        package::creator::PackageCreators,
+        status::SimStatus,
+        Error as SimulationError,
+    },
+    worker::runner::comms::{
+        DatastoreSimulationPayload, ExperimentInitRunnerMsgBase, NewSimulationRun,
+    },
     workerpool::{
         self,
         comms::{
             experiment::{ExpMsgSend, ExperimentToWorkerPoolMsg},
             top::{WorkerPoolMsgRecv, WorkerPoolToExpCtlMsg},
+            TerminateRecv,
         },
     },
-    ExperimentConfig,
-};
-use crate::{experiment::package::ExperimentPackageComms, Environment};
-
-use crate::proto::{EngineMsg, EngineStatus, SimulationShortID};
-use crate::simulation::controller::runs::SimulationRuns;
-use crate::simulation::controller::sim_control::SimControl;
-use crate::simulation::controller::SimulationController;
-use crate::simulation::status::SimStatus;
-use crate::simulation::Error as SimulationError;
-use crate::worker::runner::comms::{DatastoreSimulationPayload, ExperimentInitRunnerMsgBase};
-use crate::workerpool::comms::TerminateRecv;
-
-use super::comms::sim_status::SimStatusSend;
-use super::{
-    comms::{sim_status::SimStatusRecv, simulation::SimCtlSend},
-    id_store::SimIdStore,
-    sim_configurer::SimConfigurer,
-    Error, Result,
+    Environment, ExperimentConfig,
 };
 
 pub struct ExperimentController<P: OutputPersistenceCreatorRepr> {
@@ -109,8 +113,8 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
             if !status.running || status.stop_signal {
                 // non-fatal error if the sim is stopping
                 log::debug!(
-                    "Failed to send the step update to the experiment package, logging rather than \
-                    error as simulation has been marked as ending this step: {}",
+                    "Failed to send the step update to the experiment package, logging rather \
+                     than error as simulation has been marked as ending this step: {}",
                     err.to_string()
                 )
             } else {

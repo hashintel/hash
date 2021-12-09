@@ -1,11 +1,12 @@
-use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
-
-use crate::{datastore::prelude::*, simulation::package::state::StateColumn};
-
-use crate::datastore::batch::DynamicBatch;
 use std::sync::Arc;
 
+use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
+
 use super::BatchPool;
+use crate::{
+    datastore::{batch::DynamicBatch, prelude::*},
+    simulation::package::state::StateColumn,
+};
 
 #[derive(Clone)]
 pub struct AgentPool {
@@ -16,6 +17,7 @@ impl AgentPool {
     pub fn empty() -> AgentPool {
         AgentPool { batches: vec![] }
     }
+
     pub fn new(batches: Vec<Arc<RwLock<AgentBatch>>>) -> AgentPool {
         AgentPool { batches }
     }
@@ -84,6 +86,7 @@ impl BatchPool<AgentBatch> for AgentPool {
     fn batches(&self) -> &[Arc<RwLock<AgentBatch>>] {
         &self.batches
     }
+
     fn mut_batches(&mut self) -> &mut Vec<Arc<RwLock<AgentBatch>>> {
         &mut self.batches
     }

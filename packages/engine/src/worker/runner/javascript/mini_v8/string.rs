@@ -1,6 +1,6 @@
+use std::{fmt, slice, string::String as StdString};
+
 use super::*;
-use std::string::String as StdString;
-use std::{fmt, slice};
 
 /// Reference to an immutable JavaScript string.
 #[derive(Clone)]

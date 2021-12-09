@@ -1,12 +1,16 @@
-use std::collections::hash_map::{IntoIter, Iter, Values};
-use std::collections::HashMap;
-use std::fmt::{Display, Formatter};
+use std::{
+    collections::{
+        hash_map::{IntoIter, Iter, Values},
+        HashMap,
+    },
+    fmt::{Display, Formatter},
+};
 
-use crate::hash_types::state::AgentStateField;
-
-use crate::datastore::error::{Error, Result};
-
-use crate::simulation::package::name::PackageName;
+use crate::{
+    datastore::error::{Error, Result},
+    hash_types::state::AgentStateField,
+    simulation::package::name::PackageName,
+};
 
 pub mod accessor;
 pub mod built_in;
@@ -17,7 +21,7 @@ pub mod short_json;
 const HIDDEN_PREFIX: &str = "_HIDDEN_";
 const PRIVATE_PREFIX: &str = "_PRIVATE_";
 
-// TODO - better encapsulate the supported underlying field types, and the selection of those that
+// TODO: better encapsulate the supported underlying field types, and the selection of those that
 //   we expose to the user compared to this thing where we have a variant and an 'extension'. So
 //   it would probably be better as a FieldType and UserFieldType enum or something similar,
 //   rather than PresetFieldType and FieldTypeVariant
@@ -107,12 +111,13 @@ impl FieldKey {
         Self(key_as_str.to_string())
     }
 
-    // TODO do we want these checks to only be present on debug builds
+    // TODO: do we want these checks to only be present on debug builds
     #[inline]
     pub fn new_agent_scoped(name: &str) -> Result<FieldKey> {
         if name.starts_with(PRIVATE_PREFIX) || name.starts_with(HIDDEN_PREFIX) {
             return Err(Error::from(format!(
-                "Field names cannot start with the protected prefixes: ['{}', '{}'], received field name: '{}'",
+                "Field names cannot start with the protected prefixes: ['{}', '{}'], received \
+                 field name: '{}'",
                 PRIVATE_PREFIX, HIDDEN_PREFIX, name
             )));
         }
@@ -144,7 +149,7 @@ impl FieldKey {
             FieldScope::Agent => {
                 return Err(Error::from(
                     "Use new_agent_scoped to create a key with FieldScope::Agent",
-                ))
+                ));
             }
         }
         key.push_str(&source.unique_id()?);
@@ -191,7 +196,8 @@ impl RootFieldSpec {
 /// data columns mapped to the specification of those fields
 #[derive(Debug, Clone, Default, Eq, PartialEq)]
 pub struct FieldSpecMap {
-    field_specs: HashMap<FieldKey, RootFieldSpec>, // a mapping of field unique identifiers to the fields themselves
+    field_specs: HashMap<FieldKey, RootFieldSpec>, /* a mapping of field unique identifiers to
+                                                    * the fields themselves */
 }
 
 impl FieldSpecMap {
@@ -231,7 +237,12 @@ impl FieldSpecMap {
                 } else {
                     if let FieldSource::Package(_package_src) = &new_field.source {
                         if existing_field.source == FieldSource::Engine {
-                            log::warn!("Key clash when a package attempted to insert a new agent-scoped field with key: {:?}, the existing field was created by the engine, the new field will be ignored", field_key);
+                            log::warn!(
+                                "Key clash when a package attempted to insert a new agent-scoped \
+                                 field with key: {:?}, the existing field was created by the \
+                                 engine, the new field will be ignored",
+                                field_key
+                            );
                             return Ok(());
                         }
                     }
@@ -296,7 +307,7 @@ impl TryInto<RootFieldSpec> for AgentStateField {
     }
 }
 
-// TODO remove dependency on legacy `AgentStateField` (contains references to package fields)
+// TODO: remove dependency on legacy `AgentStateField` (contains references to package fields)
 impl TryInto<FieldType> for AgentStateField {
     type Error = Error;
 
@@ -322,7 +333,7 @@ impl TryInto<FieldType> for AgentStateField {
                 true,
             ),
             AgentStateField::Hidden => {
-                // TODO diff w/ `AgentStateField`
+                // TODO: diff w/ `AgentStateField`
 
                 FieldType::new(FieldTypeVariant::Boolean, false)
             }
@@ -335,19 +346,22 @@ impl TryInto<FieldType> for AgentStateField {
                 return Err(Error::from(format!(
                     "Cannot match built in field with name {}",
                     name
-                )))
+                )));
             }
         };
         Ok(field_type)
     }
 }
 
-// TODO - Expand unit tests to cover more cases, such as the AgentScopedFieldKeyClash branch, and possibly split across modules
+// TODO: Expand unit tests to cover more cases, such as the AgentScopedFieldKeyClash branch, and
+// possibly split across modules
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::datastore::schema::RootFieldSpecCreator;
-    use crate::simulation::package::creator::get_base_agent_fields;
+    use crate::{
+        datastore::schema::RootFieldSpecCreator,
+        simulation::package::creator::get_base_agent_fields,
+    };
 
     #[test]
     fn name_collision_built_in() {

@@ -1,18 +1,20 @@
 use std::{collections::HashMap, sync::Arc};
 
-use serde::Serialize;
-
 pub use part::OutputPartBuffer;
+use serde::Serialize;
 pub use util::cleanup_experiment;
 
-use crate::output::error::{Error, Result};
-use crate::proto::ExperimentID;
-use crate::proto::SimulationShortID;
-use crate::simulation::package::name::PackageName;
-use crate::simulation::package::output;
-use crate::simulation::package::output::packages::{
-    analysis::{AnalysisOutput, AnalysisSingleOutput},
-    OutputPackagesSimConfig,
+use crate::{
+    output::error::{Error, Result},
+    proto::{ExperimentID, SimulationShortID},
+    simulation::package::{
+        name::PackageName,
+        output,
+        output::packages::{
+            analysis::{AnalysisOutput, AnalysisSingleOutput},
+            OutputPackagesSimConfig,
+        },
+    },
 };
 
 mod part;

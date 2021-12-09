@@ -116,7 +116,14 @@ macro_rules! value_filter_string_array_element {
     }};
 }
 macro_rules! value_filter_string_object_field {
-    ($field_name:ident, $val:ident, $to_clone:ident, $cloned:ident, $comparison:expr, $default:expr) => {{
+    (
+        $field_name:ident,
+        $val:ident,
+        $to_clone:ident,
+        $cloned:ident,
+        $comparison:expr,
+        $default:expr
+    ) => {{
         Box::new(move |value_iterator| {
             let name = $field_name.clone();
             let $cloned = $to_clone.clone();
@@ -170,7 +177,15 @@ macro_rules! apply_index_filter_f64 {
 }
 
 macro_rules! apply_index_filter_str {
-    ($operations:ident, $accessor:expr, $field:expr, $string:ident, $cloned:ident, $comparison:expr, $default:expr) => {{
+    (
+        $operations:ident,
+        $accessor:expr,
+        $field:expr,
+        $string:ident,
+        $cloned:ident,
+        $comparison:expr,
+        $default:expr
+    ) => {{
         let following =
             OutputCreator::index_creator(&$operations[1..], $accessor)? as OutputRunnerCreator;
         let field = $field.clone();
@@ -204,7 +219,15 @@ macro_rules! apply_index_filter_str {
 }
 
 macro_rules! apply_index_filter_serialized_json_str {
-    ($operations:ident, $accessor:expr, $field:expr, $string:ident, $cloned:ident, $comparison:expr, $default:expr) => {{
+    (
+        $operations:ident,
+        $accessor:expr,
+        $field:expr,
+        $string:ident,
+        $cloned:ident,
+        $comparison:expr,
+        $default:expr
+    ) => {{
         let following =
             OutputCreator::index_creator(&$operations[1..], $accessor)? as OutputRunnerCreator;
         let field = $field.clone();

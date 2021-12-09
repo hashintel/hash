@@ -1,8 +1,12 @@
-use super::error::{Error, Result};
-use super::spmc;
-use nng::options::{protocol::reqrep::ResendTime, Options, ReconnectMaxTime, ReconnectMinTime};
 use std::time::Duration;
+
+use nng::options::{protocol::reqrep::ResendTime, Options, ReconnectMaxTime, ReconnectMinTime};
 use tokio::sync::{mpsc, oneshot};
+
+use super::{
+    error::{Error, Result},
+    spmc,
+};
 
 lazy_static! {
     // Time after which NNG will try to retry sending a message

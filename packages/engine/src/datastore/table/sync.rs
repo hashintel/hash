@@ -1,10 +1,13 @@
-use parking_lot::RwLock;
 use std::{fmt, sync::Arc};
 
-use crate::datastore::table::pool::agent::AgentPool;
-use crate::datastore::table::pool::message::MessagePool;
+use parking_lot::RwLock;
+
 use crate::{
-    datastore::prelude::ContextBatch, worker::runner::comms::inbound::InboundToRunnerMsgPayload,
+    datastore::{
+        prelude::ContextBatch,
+        table::pool::{agent::AgentPool, message::MessagePool},
+    },
+    worker::runner::comms::inbound::InboundToRunnerMsgPayload,
 };
 
 #[derive(new, Clone)]

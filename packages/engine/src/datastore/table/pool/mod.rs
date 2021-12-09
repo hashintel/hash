@@ -2,11 +2,13 @@ pub mod agent;
 pub mod message;
 pub mod proxy;
 
+use std::sync::Arc;
+
+use parking_lot::RwLock;
+
 use self::proxy::{PoolReadProxy, PoolWriteProxy};
 use super::proxy::{BatchReadProxy, BatchWriteProxy};
 use crate::datastore::{batch::Batch, prelude::Result};
-use parking_lot::RwLock;
-use std::sync::Arc;
 
 pub trait BatchPool<K: Batch>: Send + Sync {
     fn batches(&self) -> &[Arc<RwLock<K>>];

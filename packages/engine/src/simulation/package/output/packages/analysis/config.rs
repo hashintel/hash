@@ -1,13 +1,15 @@
-use super::analyzer::AnalysisOperationRepr;
-use super::Result;
-use std::collections::HashMap;
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
-use crate::proto::ExperimentRunTrait;
-use crate::simulation::package::output::packages::analysis::analyzer::AnalysisSourceRepr;
-use crate::simulation::package::output::packages::analysis::get_analysis_source;
-use crate::ExperimentConfig;
 use serde::{Deserialize, Serialize};
+
+use super::{analyzer::AnalysisOperationRepr, Result};
+use crate::{
+    proto::ExperimentRunTrait,
+    simulation::package::output::packages::analysis::{
+        analyzer::AnalysisSourceRepr, get_analysis_source,
+    },
+    ExperimentConfig,
+};
 
 #[derive(Serialize, Deserialize)]
 pub struct AnalysisOutputConfig {
