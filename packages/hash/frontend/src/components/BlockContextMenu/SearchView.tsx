@@ -12,7 +12,7 @@ import {
 type SearchViewProps = {
   filteredMenuItems: FilteredMenuItems;
   entityId: string | null;
-  menuState: MenuState;
+  selectedIndex: number;
   updateMenuState: (updatedState: Partial<MenuState>) => void;
   onItemClick: ItemClickMethod;
   blockSuggesterProps: BlockSuggesterProps;
@@ -21,13 +21,11 @@ type SearchViewProps = {
 export const SearchView: VoidFunctionComponent<SearchViewProps> = ({
   filteredMenuItems,
   entityId,
-  menuState,
+  selectedIndex,
   updateMenuState,
   onItemClick,
   blockSuggesterProps,
 }) => {
-  const { selectedIndex } = menuState;
-
   return (
     <>
       {!!filteredMenuItems.actions.length && (
@@ -63,7 +61,7 @@ export const SearchView: VoidFunctionComponent<SearchViewProps> = ({
 
               return (
                 <BlockContextMenuItem
-                  key={option.meta.componentMetadata.componentId}
+                  key={`${option.meta.componentMetadata.componentId}-${option.variant.displayName}`}
                   selected={
                     index + filteredMenuItems.actions.length === selectedIndex
                   }
@@ -74,7 +72,7 @@ export const SearchView: VoidFunctionComponent<SearchViewProps> = ({
                   icon={
                     <img src={icon} alt={displayName} className={iconStyles} />
                   }
-                  title={displayName ?? ""}
+                  title={displayName!}
                 />
               );
             })}

@@ -17,8 +17,9 @@ import {
 
 type NormalViewComponent = {
   usableMenuItems: MenuItemType[];
-  menuState: MenuState;
+  subMenuVisible: boolean;
   updateMenuState: (updatedState: Partial<MenuState>) => void;
+  selectedIndex: number;
   onItemClick: ItemClickMethod;
   blockSuggesterProps: BlockSuggesterProps;
   blockData: BlockEntity | null;
@@ -26,14 +27,14 @@ type NormalViewComponent = {
 
 export const NormalView: VoidFunctionComponent<NormalViewComponent> = ({
   usableMenuItems,
-  menuState,
+  selectedIndex,
+  subMenuVisible,
   updateMenuState,
   onItemClick,
   blockSuggesterProps,
   blockData,
 }) => {
   const { data: accounts } = useAccountInfos();
-  const { selectedIndex, subMenuVisible } = menuState;
 
   return (
     <>

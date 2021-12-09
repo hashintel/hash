@@ -6,6 +6,7 @@ import CopyIcon from "@material-ui/icons/FileCopyOutlined";
 import LoopIcon from "@material-ui/icons/LoopOutlined";
 import LinkIcon from "@material-ui/icons/LinkOutlined";
 import { useKey } from "rooks";
+import { unstable_batchedUpdates } from "react-dom";
 
 import { EntityStore, isBlockEntity } from "@hashintel/hash-shared/entityStore";
 
@@ -100,14 +101,18 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
     (item) => item.key !== "switchBlock",
   );
 
+  const lowerCaseSearchText = searchText.toLocaleLowerCase();
+
   const filteredActions = searchableActions.filter((item) =>
-    item.title.toLocaleLowerCase().includes(searchText.toLocaleLowerCase()),
+    item.title.toLocaleLowerCase().includes(lowerCaseSearchText),
   );
 
-  const filteredBlocks = blockOptions.filter((block) =>
-    block.variant.displayName
-      ?.toLocaleLowerCase()
-      .includes(searchText.toLocaleLowerCase()),
+  const filteredBlocks = blockOptions.filter(
+    (block) =>
+      block.variant.displayName &&
+      block.variant.displayName
+        ?.toLocaleLowerCase()
+        .includes(lowerCaseSearchText),
   );
 
   const filteredMenuItems: FilteredMenuItems = {
@@ -116,23 +121,25 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
   };
 
   const search = (newSearchText: string) => {
-    setSearchText(newSearchText);
+    unstable_batchedUpdates(() => {
+      setSearchText(newSearchText);
 
-    if (!newSearchText) {
-      if (currentView !== "normal") {
+      if (!newSearchText) {
+        if (currentView !== "normal") {
+          updateMenuState({
+            currentView: "normal",
+            selectedIndex: 0,
+            subMenuVisible: false,
+          });
+        }
+      } else if (currentView !== "search") {
         updateMenuState({
-          currentView: "normal",
+          currentView: "search",
           selectedIndex: 0,
           subMenuVisible: false,
         });
       }
-    } else if (currentView !== "search") {
-      updateMenuState({
-        currentView: "search",
-        selectedIndex: 0,
-        subMenuVisible: false,
-      });
-    }
+    });
   };
 
   const getNextIndex = (event: KeyboardEvent, maxLength: number) => {
@@ -191,14 +198,18 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
     }
   };
 
-  const onEnter = () => {
-    if (currentView === "normal") {
-      if (usableMenuItems[selectedIndex]?.key === "switchBlock") {
-        updateMenuState({ subMenuVisible: true });
-      } else {
-        onItemClick(usableMenuItems[selectedIndex].key);
-      }
-    } else if (selectedIndex < filteredMenuItems.actions.length) {
+  const onNormalViewEnter = () => {
+    // if switchBlock is selected, make the block suggestor menu visible, else select the selected action
+    if (usableMenuItems[selectedIndex]?.key === "switchBlock") {
+      updateMenuState({ subMenuVisible: true });
+    } else {
+      onItemClick(usableMenuItems[selectedIndex].key);
+    }
+  };
+
+  const onSearchViewEnter = () => {
+    // if selected item is an action, execute the action, else convert the current block to the selected block
+    if (selectedIndex < filteredMenuItems.actions.length) {
       onItemClick(filteredMenuItems.actions[selectedIndex].key);
     } else {
       const selectedBlock =
@@ -226,7 +237,11 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
             // Is Enter causing a new-line? Read this: https://hashintel.slack.com/archives/C02K2ARC1BK/p1638433216067800
             if (event.key === "Enter") {
               event.preventDefault();
-              onEnter();
+              if (currentView === "normal") {
+                onNormalViewEnter();
+              } else {
+                onSearchViewEnter();
+              }
             }
           }}
         />
@@ -235,7 +250,8 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
         <NormalView
           usableMenuItems={usableMenuItems}
           updateMenuState={updateMenuState}
-          menuState={menuState}
+          selectedIndex={selectedIndex}
+          subMenuVisible={subMenuVisible}
           onItemClick={onItemClick}
           blockSuggesterProps={blockSuggesterProps}
           blockData={blockData}
@@ -246,7 +262,7 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
           entityId={entityId}
           filteredMenuItems={filteredMenuItems}
           onItemClick={onItemClick}
-          menuState={menuState}
+          selectedIndex={selectedIndex}
           updateMenuState={updateMenuState}
         />
       )}
