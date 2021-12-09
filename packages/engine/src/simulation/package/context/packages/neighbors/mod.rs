@@ -19,7 +19,10 @@ use crate::{
     simulation::{
         comms::package::PackageComms,
         package::{
-            context::{ContextColumn, Package, PackageCreator},
+            context::{
+                packages::neighbors::fields::NEIGHBORS_FIELD_NAME, ContextColumn, Package,
+                PackageCreator,
+            },
             ext_traits::{GetWorkerExpStartMsg, GetWorkerSimStartMsg, MaybeCPUBound},
             prelude::{ArrowArray, ContextPackage},
         },
@@ -131,7 +134,7 @@ impl Package for Neighbors {
 
         let field_key = self
             .context_field_spec_accessor
-            .get_local_hidden_scoped_field_spec(NEIGHBORS_FIELD_NAME)?
+            .get_agent_scoped_field_spec(NEIGHBORS_FIELD_NAME)?
             .to_key()?;
 
         Ok(vec![ContextColumn {

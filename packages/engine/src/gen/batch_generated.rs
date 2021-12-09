@@ -216,14 +216,19 @@ pub fn size_prefixed_root_as_batch_with_opts<'b, 'o>(
 }
 #[inline]
 /// Assumes, without verification, that a buffer of bytes contains a Batch and returns it.
+///
 /// # Safety
+///
 /// Callers must trust the given bytes do indeed contain a valid `Batch`.
 pub unsafe fn root_as_batch_unchecked(buf: &[u8]) -> Batch {
     flatbuffers::root_unchecked::<Batch>(buf)
 }
 #[inline]
 /// Assumes, without verification, that a buffer of bytes contains a size prefixed Batch and returns
-/// it. # Safety
+/// it.
+///
+/// # Safety
+///
 /// Callers must trust the given bytes do indeed contain a valid size prefixed `Batch`.
 pub unsafe fn size_prefixed_root_as_batch_unchecked(buf: &[u8]) -> Batch {
     flatbuffers::size_prefixed_root_unchecked::<Batch>(buf)

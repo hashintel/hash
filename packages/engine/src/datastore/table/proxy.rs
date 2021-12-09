@@ -29,6 +29,7 @@ impl<K: Batch> BatchReadProxy<K> {
     }
 
     /// # Safety
+    ///
     /// This method uses unsafe code to get a shared reference
     /// to the underlying data. However since this object
     /// acts as a guarantee of no write locks
@@ -73,6 +74,7 @@ impl<K: Batch> BatchWriteProxy<K> {
     }
 
     /// # Safety
+    ///
     /// This method uses unsafe code to get a mutable reference
     /// to the underlying data. However since this object
     /// acts as a guarantee of no other read/write locks
@@ -84,6 +86,7 @@ impl<K: Batch> BatchWriteProxy<K> {
     }
 
     /// # Safety
+    ///
     /// This method uses unsafe code to get a mutable reference
     /// to the underlying data. However since this object
     /// acts as a guarantee of no other read/write locks

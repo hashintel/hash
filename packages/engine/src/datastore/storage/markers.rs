@@ -6,13 +6,13 @@ use crate::datastore::prelude::*;
 #[repr(usize)]
 pub enum Val {
     SchemaOffset = 0,
-    SchemaSize   = 1,
+    SchemaSize = 1,
     HeaderOffset = 2,
-    HeaderSize   = 3,
-    MetaOffset   = 4,
-    MetaSize     = 5,
-    DataOffset   = 6,
-    DataSize     = 7,
+    HeaderSize = 3,
+    MetaOffset = 4,
+    MetaSize = 5,
+    DataOffset = 6,
+    DataSize = 7,
 }
 
 #[repr(usize)]
@@ -20,8 +20,8 @@ pub enum Val {
 pub enum Buffer {
     Schema = Val::SchemaSize as usize,
     Header = Val::HeaderSize as usize,
-    Meta   = Val::MetaSize as usize,
-    Data   = Val::DataSize as usize,
+    Meta = Val::MetaSize as usize,
+    Data = Val::DataSize as usize,
 }
 
 impl Buffer {
@@ -79,7 +79,8 @@ impl Markers {
 
     /// Get a mutable reference to the offsets buffer in the data
     ///
-    /// ## Safety:
+    /// # Safety
+    ///
     /// Depends on if MemoryPtr is to a valid location (with correct alignment) in memory
     ///
     /// This is safe as:
@@ -92,7 +93,8 @@ impl Markers {
 
     /// Get an immutable reference to the offsets buffer in the data
     ///
-    /// ## Safety:
+    /// # Safety
+    ///
     /// Depends on if MemoryPtr is to a valid location (with correct alignment) in memory
     ///
     /// This is safe as:

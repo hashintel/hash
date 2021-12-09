@@ -7,8 +7,8 @@ use super::error::{Error, Result};
 #[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Copy, Clone, Debug, Display)]
 pub enum Language {
     JavaScript = 0,
-    Python     = 1,
-    Rust       = 2,
+    Python = 1,
+    Rust = 2,
 }
 
 impl Language {

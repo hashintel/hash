@@ -19,8 +19,8 @@ lazy_static::lazy_static! {
     static ref PING_INTERVAL: Duration = parse_env_duration("PING_INTERVAL", 5);
 }
 
-/// `run_experiment` will build a queue of tokio tasks attached the the simulation workers Any
-/// requests over the websocket will be handled and sent to the appropriate worker (if available)
+/// `run_experiment` will build a queue of tokio tasks attached to the simulation workers. Any
+/// requests over the websocket will be handled and sent to the appropriate worker (if available).
 /// The simulations will run to completion and the connection will finish once the last run is done,
 /// or if there is an error.
 pub async fn run_experiment(args: Args, handler: Handler) -> Result<()> {

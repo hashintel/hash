@@ -202,14 +202,19 @@ pub fn size_prefixed_root_as_runner_warnings_with_opts<'b, 'o>(
 }
 #[inline]
 /// Assumes, without verification, that a buffer of bytes contains a RunnerWarnings and returns it.
+///
 /// # Safety
+///
 /// Callers must trust the given bytes do indeed contain a valid `RunnerWarnings`.
 pub unsafe fn root_as_runner_warnings_unchecked(buf: &[u8]) -> RunnerWarnings {
     flatbuffers::root_unchecked::<RunnerWarnings>(buf)
 }
 #[inline]
 /// Assumes, without verification, that a buffer of bytes contains a size prefixed RunnerWarnings
-/// and returns it. # Safety
+/// and returns it.
+///
+/// # Safety
+///
 /// Callers must trust the given bytes do indeed contain a valid size prefixed `RunnerWarnings`.
 pub unsafe fn size_prefixed_root_as_runner_warnings_unchecked(buf: &[u8]) -> RunnerWarnings {
     flatbuffers::size_prefixed_root_unchecked::<RunnerWarnings>(buf)

@@ -252,14 +252,19 @@ pub fn size_prefixed_root_as_state_sync_with_opts<'b, 'o>(
 }
 #[inline]
 /// Assumes, without verification, that a buffer of bytes contains a StateSync and returns it.
+///
 /// # Safety
+///
 /// Callers must trust the given bytes do indeed contain a valid `StateSync`.
 pub unsafe fn root_as_state_sync_unchecked(buf: &[u8]) -> StateSync {
     flatbuffers::root_unchecked::<StateSync>(buf)
 }
 #[inline]
 /// Assumes, without verification, that a buffer of bytes contains a size prefixed StateSync and
-/// returns it. # Safety
+/// returns it.
+///
+/// # Safety
+///
 /// Callers must trust the given bytes do indeed contain a valid size prefixed `StateSync`.
 pub unsafe fn size_prefixed_root_as_state_sync_unchecked(buf: &[u8]) -> StateSync {
     flatbuffers::size_prefixed_root_unchecked::<StateSync>(buf)

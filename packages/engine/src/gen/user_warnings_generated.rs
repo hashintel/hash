@@ -198,14 +198,19 @@ pub fn size_prefixed_root_as_user_warnings_with_opts<'b, 'o>(
 }
 #[inline]
 /// Assumes, without verification, that a buffer of bytes contains a UserWarnings and returns it.
+///
 /// # Safety
+///
 /// Callers must trust the given bytes do indeed contain a valid `UserWarnings`.
 pub unsafe fn root_as_user_warnings_unchecked(buf: &[u8]) -> UserWarnings {
     flatbuffers::root_unchecked::<UserWarnings>(buf)
 }
 #[inline]
 /// Assumes, without verification, that a buffer of bytes contains a size prefixed UserWarnings and
-/// returns it. # Safety
+/// returns it.
+///
+/// # Safety
+///
 /// Callers must trust the given bytes do indeed contain a valid size prefixed `UserWarnings`.
 pub unsafe fn size_prefixed_root_as_user_warnings_unchecked(buf: &[u8]) -> UserWarnings {
     flatbuffers::size_prefixed_root_unchecked::<UserWarnings>(buf)

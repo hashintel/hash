@@ -278,14 +278,20 @@ pub fn size_prefixed_root_as_state_interim_sync_with_opts<'b, 'o>(
 }
 #[inline]
 /// Assumes, without verification, that a buffer of bytes contains a StateInterimSync and returns
-/// it. # Safety
+/// it.
+///
+/// # Safety
+///
 /// Callers must trust the given bytes do indeed contain a valid `StateInterimSync`.
 pub unsafe fn root_as_state_interim_sync_unchecked(buf: &[u8]) -> StateInterimSync {
     flatbuffers::root_unchecked::<StateInterimSync>(buf)
 }
 #[inline]
 /// Assumes, without verification, that a buffer of bytes contains a size prefixed StateInterimSync
-/// and returns it. # Safety
+/// and returns it.
+///
+/// # Safety
+///
 /// Callers must trust the given bytes do indeed contain a valid size prefixed `StateInterimSync`.
 pub unsafe fn size_prefixed_root_as_state_interim_sync_unchecked(buf: &[u8]) -> StateInterimSync {
     flatbuffers::size_prefixed_root_unchecked::<StateInterimSync>(buf)

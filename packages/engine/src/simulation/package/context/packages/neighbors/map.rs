@@ -64,8 +64,8 @@ fn gather_neighbors(
         // We keep the idxs of the agents in the agent state
         // This assumes the idxs don't change from step to step.
         // This is fine for when the kdtree gets rebuilt every step but will be unreliable when the
-        // vec changes A better approach would be to use a hashmap to hold all the agents
-        // and use a resouce id uuid rather than string We can't actually use the agent id
+        // vec changes. A better approach would be to use a hashmap to hold all the agents
+        // and use a resouce id uuid rather than string. We can't actually use the agent id
         // because it's a string, which sucks
         let mut seen_neighbors_idxs = HashSet::new();
 

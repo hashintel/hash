@@ -198,14 +198,19 @@ pub fn size_prefixed_root_as_metaversion_with_opts<'b, 'o>(
 }
 #[inline]
 /// Assumes, without verification, that a buffer of bytes contains a Metaversion and returns it.
+///
 /// # Safety
+///
 /// Callers must trust the given bytes do indeed contain a valid `Metaversion`.
 pub unsafe fn root_as_metaversion_unchecked(buf: &[u8]) -> Metaversion {
     flatbuffers::root_unchecked::<Metaversion>(buf)
 }
 #[inline]
 /// Assumes, without verification, that a buffer of bytes contains a size prefixed Metaversion and
-/// returns it. # Safety
+/// returns it.
+///
+/// # Safety
+///
 /// Callers must trust the given bytes do indeed contain a valid size prefixed `Metaversion`.
 pub unsafe fn size_prefixed_root_as_metaversion_unchecked(buf: &[u8]) -> Metaversion {
     flatbuffers::size_prefixed_root_unchecked::<Metaversion>(buf)

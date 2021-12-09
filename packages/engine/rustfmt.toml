@@ -12,7 +12,6 @@ use_try_shorthand = true # Default: false
 wrap_comments = true # Default: false
 
 # Parameters
-enum_discrim_align_threshold = 50 # Default: 50
 single_line_if_else_max_width = 50 # Default: 50
 comment_width = 100 # Defaut: 80
 hex_literal_case = "Upper" # Default: "Preserve"

@@ -19,7 +19,9 @@ use crate::{
         package::{
             name::PackageName,
             state::packages::behavior_execution::{
-                config::BehaviorIds, tasks::ExecuteBehaviorsTask,
+                config::BehaviorIds,
+                fields::{BEHAVIOR_IDS_FIELD_NAME, BEHAVIOR_INDEX_FIELD_NAME},
+                tasks::ExecuteBehaviorsTask,
             },
         },
         task::{active::ActiveTask, Task},
@@ -84,8 +86,6 @@ impl PackageCreator for Creator {
         accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn Package>> {
         let behavior_ids_col_data_types = fields::id_column_data_types()?;
-        // TODO: probably just rename the actual field key to behavior_ids (rather than behavior
-        // indices) to avoid confusion with "behavior_index" col
         let behavior_ids_col = accessor
             .get_local_private_scoped_field_spec(BEHAVIOR_IDS_FIELD_NAME)?
             .to_key()?;

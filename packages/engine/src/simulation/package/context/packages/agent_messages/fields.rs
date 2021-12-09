@@ -3,6 +3,8 @@ use crate::datastore::schema::{
     FieldScope, FieldType, FieldTypeVariant::*, PresetFieldType, RootFieldSpec,
 };
 
+pub(super) const MESSAGES_FIELD_NAME: &str = "messages";
+
 fn agent_messages() -> FieldType {
     let variant = VariableLengthArray(Box::new(FieldType::new(
         FixedLengthArray {

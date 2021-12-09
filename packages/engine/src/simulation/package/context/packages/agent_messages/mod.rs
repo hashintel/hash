@@ -14,7 +14,10 @@ use crate::{
         schema::{accessor::GetFieldSpec, RootFieldSpec},
         table::state::ReadState,
     },
-    simulation::comms::package::PackageComms,
+    simulation::{
+        comms::package::PackageComms,
+        package::context::packages::agent_messages::fields::MESSAGES_FIELD_NAME,
+    },
 };
 
 const CPU_BOUND: bool = true;

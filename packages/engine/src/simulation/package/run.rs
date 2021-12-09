@@ -4,13 +4,23 @@ use futures::{executor::block_on, stream::FuturesOrdered, StreamExt};
 
 use crate::{
     datastore::{
+        prelude::{Context, State},
         schema::FieldKey,
         table::{
             context::PreContext,
             state::{view::StateSnapshot, ReadState},
         },
     },
-    simulation::{package::context::ContextColumn, step_output::SimulationStepOutput},
+    simulation::{
+        package::{
+            context,
+            context::ContextColumn,
+            init, output,
+            prelude::{Error, ExContext, ExState, Result},
+            state,
+        },
+        step_output::SimulationStepOutput,
+    },
     SimRunConfig,
 };
 
@@ -108,7 +118,7 @@ impl StepPackages {
 
         // because we aren't generating the columns from the schema, we need to reorder the cols
         // from the packages to match this is another reason to move column creation to be
-        // done per schema instead of per package, because this is   very messy.
+        // done per schema instead of per package, because this is very messy.
         let schema = &sim_run_config.sim.store.context_schema;
         let columns = schema
             .arrow

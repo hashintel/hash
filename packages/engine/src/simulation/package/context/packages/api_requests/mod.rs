@@ -17,7 +17,10 @@ use crate::{
         schema::{accessor::GetFieldSpec, FieldKey},
         table::state::ReadState,
     },
-    simulation::comms::package::PackageComms,
+    simulation::{
+        comms::package::PackageComms,
+        package::context::packages::api_requests::fields::API_RESPONSES_FIELD_NAME,
+    },
 };
 
 const CPU_BOUND: bool = false;

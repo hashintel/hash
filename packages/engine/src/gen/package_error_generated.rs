@@ -179,14 +179,19 @@ pub fn size_prefixed_root_as_package_error_with_opts<'b, 'o>(
 }
 #[inline]
 /// Assumes, without verification, that a buffer of bytes contains a PackageError and returns it.
+///
 /// # Safety
+///
 /// Callers must trust the given bytes do indeed contain a valid `PackageError`.
 pub unsafe fn root_as_package_error_unchecked(buf: &[u8]) -> PackageError {
     flatbuffers::root_unchecked::<PackageError>(buf)
 }
 #[inline]
 /// Assumes, without verification, that a buffer of bytes contains a size prefixed PackageError and
-/// returns it. # Safety
+/// returns it.  
+///
+/// # Safety
+///
 /// Callers must trust the given bytes do indeed contain a valid size prefixed `PackageError`.
 pub unsafe fn size_prefixed_root_as_package_error_unchecked(buf: &[u8]) -> PackageError {
     flatbuffers::size_prefixed_root_unchecked::<PackageError>(buf)

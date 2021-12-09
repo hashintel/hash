@@ -24,9 +24,11 @@ pub trait GetFieldSpec {
         field_name: &str,
         source: &FieldSource,
     ) -> Result<&RootFieldSpec>;
+
     /// Get a FieldSpec stored under a given field name with FieldScope::Private that belongs to the
     /// FieldSource of the accessor
     fn get_local_private_scoped_field_spec(&self, field_name: &str) -> Result<&RootFieldSpec>;
+
     /// Get a FieldSpec stored under a given field name with FieldScope::Hidden that belongs to the
     /// FieldSource of the accessor
     fn get_local_hidden_scoped_field_spec(&self, field_name: &str) -> Result<&RootFieldSpec>;

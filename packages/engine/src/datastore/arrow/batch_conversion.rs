@@ -53,8 +53,8 @@ pub fn new_one_bits(n_bits: usize) -> MutableBuffer {
     MutableBuffer::new(n_bytes).with_bitset(n_bytes, true)
 }
 
-/// Get a mutable buffer for offsets to `n_elem` element It is required that the buffer is filled to
-/// `n_elem` + 1 offsets. All elements are zero in the beginning, so there is no need to set the
+/// Get a mutable buffer for offsets to `n_elem` elements. It is required that the buffer is filled
+/// to `n_elem` + 1 offsets. All elements are zero in the beginning, so there is no need to set the
 /// first offset as `0_i32`
 pub fn new_offsets_buffer(n_elem: usize) -> MutableBuffer {
     // Each offset is an i32 element

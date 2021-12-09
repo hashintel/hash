@@ -1005,14 +1005,20 @@ pub fn size_prefixed_root_as_runner_outbound_msg_with_opts<'b, 'o>(
 }
 #[inline]
 /// Assumes, without verification, that a buffer of bytes contains a RunnerOutboundMsg and returns
-/// it. # Safety
+/// it.
+///
+/// # Safety
+///
 /// Callers must trust the given bytes do indeed contain a valid `RunnerOutboundMsg`.
 pub unsafe fn root_as_runner_outbound_msg_unchecked(buf: &[u8]) -> RunnerOutboundMsg {
     flatbuffers::root_unchecked::<RunnerOutboundMsg>(buf)
 }
 #[inline]
 /// Assumes, without verification, that a buffer of bytes contains a size prefixed RunnerOutboundMsg
-/// and returns it. # Safety
+/// and returns it.
+///
+/// # Safety
+///
 /// Callers must trust the given bytes do indeed contain a valid size prefixed `RunnerOutboundMsg`.
 pub unsafe fn size_prefixed_root_as_runner_outbound_msg_unchecked(buf: &[u8]) -> RunnerOutboundMsg {
     flatbuffers::size_prefixed_root_unchecked::<RunnerOutboundMsg>(buf)

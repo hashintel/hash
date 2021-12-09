@@ -25,7 +25,7 @@ pub const FROM_COLUMN_INDEX: usize = 0;
 pub const MESSAGE_COLUMN_INDEX: usize = 1;
 
 pub enum FieldIndex {
-    To   = 0,
+    To = 0,
     Type = 1,
     Data = 2,
 }

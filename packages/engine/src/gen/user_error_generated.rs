@@ -179,14 +179,19 @@ pub fn size_prefixed_root_as_user_error_with_opts<'b, 'o>(
 }
 #[inline]
 /// Assumes, without verification, that a buffer of bytes contains a UserError and returns it.
+///
 /// # Safety
+///
 /// Callers must trust the given bytes do indeed contain a valid `UserError`.
 pub unsafe fn root_as_user_error_unchecked(buf: &[u8]) -> UserError {
     flatbuffers::root_unchecked::<UserError>(buf)
 }
 #[inline]
 /// Assumes, without verification, that a buffer of bytes contains a size prefixed UserError and
-/// returns it. # Safety
+/// returns it.
+///
+/// # Safety
+///
 /// Callers must trust the given bytes do indeed contain a valid size prefixed `UserError`.
 pub unsafe fn size_prefixed_root_as_user_error_unchecked(buf: &[u8]) -> UserError {
     flatbuffers::size_prefixed_root_unchecked::<UserError>(buf)
