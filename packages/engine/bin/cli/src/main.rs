@@ -67,8 +67,6 @@ pub struct SimpleExperimentArgs {
 }
 
 #[tokio::main]
-// TODO fix ordering of args being so inflexible and unintuitive, and also error messages being
-// unhelpful for example try putting `-p` after `single_run`
 async fn main() -> Result<()> {
     // TODO: project conversion into manifest...
     // TODO: persist output
