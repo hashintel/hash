@@ -10,7 +10,7 @@ const gen_state_getters = (Neighbor, agent_schema) => {
             // TODO: Run `uuid_to_str` on entire `agent_id` column when loading arrow?
             //       Cache loaded `agent_id`? (e.g. `this.__id`)
             const l = this.__loc;
-            return uuid_to_str(this.__snapshot.agent_pool[l.get(0)].cols.agent_id[l.get(1)]);
+            return hash_util.uuid_to_str(this.__snapshot.agent_pool[l.get(0)].cols.agent_id[l.get(1)]);
         } : function() {
             const l = this.__loc;
             const col = this.__snapshot.agent_pool[l.get(0)].cols[name];

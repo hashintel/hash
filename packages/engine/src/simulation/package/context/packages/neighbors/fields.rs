@@ -18,7 +18,7 @@ pub(super) fn get_neighbors_field_spec(
     field_spec_creator: &RootFieldSpecCreator,
 ) -> Result<RootFieldSpec> {
     let neighbors = neighbors();
-    Ok(field_spec_creator.create("neighbors".into(), neighbors, FieldScope::Hidden))
+    Ok(field_spec_creator.create("neighbors".into(), neighbors, FieldScope::Agent))
 }
 
 pub(super) fn get_search_radius_field_spec(

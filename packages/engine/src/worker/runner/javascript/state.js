@@ -17,7 +17,7 @@ const gen_state_accessors = (AgentState, agent_schema, custom_getters) => {
         if (name === "agent_id") {
          
             getter = function() {
-                return uuid_to_str(this.__cols.agent_id[this.__idx_in_group]);
+                return hash_util.uuid_to_str(this.__cols.agent_id[this.__idx_in_group]);
             }
             setter = function(value) {
                 throw new ReferenceError("`agent_id` is read-only");

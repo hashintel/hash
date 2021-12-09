@@ -37,7 +37,7 @@ Object.defineProperty(InboxMessage.prototype, "from", {
     get: function() {
         // TODO: `uuid_to_str` each time vs caching like for `data` property.
         const l = this.__loc;
-        return uuid_to_str(this.__pool[l.get(0)].cols.from[l.get(1)]);
+        return hash_util.uuid_to_str(this.__pool[l.get(0)].cols.from[l.get(1)]);
     }
 });
 
@@ -82,8 +82,7 @@ const getters = {
         }
         
         // Assume number of api responses is small enough that they can fit on the stack.
-        const api_responses = agent_context.api_responses;
-        if (api_responses) msgs.push(...api_responses);
+        if (agent_context.api_responses) msgs.push(...agent_context.api_responses());
         return msgs;
     }
 }
