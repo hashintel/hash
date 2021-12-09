@@ -13,19 +13,27 @@ use crate::datastore::schema::{
 };
 use crate::simulation::Result;
 
+pub(super) const BEHAVIORS_FIELD_NAME: &str = "behaviors";
+pub(super) const BEHAVIOR_INDEX_FIELD_NAME: &str = "behavior_index";
+pub(super) const BEHAVIOR_IDS_FIELD_NAME: &str = "behavior_ids";
+
 fn get_behaviors_field_spec(field_spec_creator: &RootFieldSpecCreator) -> Result<RootFieldSpec> {
     let field_type = FieldType::new(
         FTV::VariableLengthArray(Box::new(FieldType::new(FTV::String, false))),
         false,
     );
-    Ok(field_spec_creator.create("behaviors".into(), field_type, FieldScope::Agent))
+    Ok(field_spec_creator.create(BEHAVIORS_FIELD_NAME.into(), field_type, FieldScope::Agent))
 }
 
 fn get_behavior_index_field_spec(
     field_spec_creator: &RootFieldSpecCreator,
 ) -> Result<RootFieldSpec> {
     let field_type = FieldType::new(FTV::Number, false);
-    Ok(field_spec_creator.create("behavior_index".into(), field_type, FieldScope::Agent))
+    Ok(field_spec_creator.create(
+        BEHAVIOR_INDEX_FIELD_NAME.into(),
+        field_type,
+        FieldScope::Agent,
+    ))
 }
 
 fn behavior_id_inner_field_type() -> FieldType {
@@ -49,7 +57,11 @@ fn behavior_ids_field_type() -> FieldType {
 
 fn get_behavior_ids_field_spec(field_spec_creator: &RootFieldSpecCreator) -> Result<RootFieldSpec> {
     let field_type = behavior_ids_field_type();
-    Ok(field_spec_creator.create("behavior_ids".into(), field_type, FieldScope::Private))
+    Ok(field_spec_creator.create(
+        BEHAVIOR_IDS_FIELD_NAME.into(),
+        field_type,
+        FieldScope::Private,
+    ))
 }
 
 pub(super) fn get_state_field_specs(

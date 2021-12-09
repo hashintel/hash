@@ -6,6 +6,7 @@ mod writer;
 use self::collected::Messages;
 use crate::datastore::schema::accessor::GetFieldSpec;
 use crate::datastore::schema::RootFieldSpec;
+use crate::simulation::package::context::packages::agent_messages::fields::MESSAGES_FIELD_NAME;
 use crate::{
     datastore::{batch::iterators, table::state::ReadState},
     simulation::comms::package::PackageComms,
@@ -77,40 +78,43 @@ impl Package for AgentMessages {
         &mut self,
         state: Arc<State>,
         snapshot: Arc<StateSnapshot>,
-    ) -> Result<ContextColumn> {
+    ) -> Result<Vec<ContextColumn>> {
         let agent_pool = state.agent_pool();
         let batches = agent_pool.read_batches()?;
         let id_name_iter = iterators::agent::agent_id_iter(&batches)?
             .zip(iterators::agent::agent_name_iter(&batches)?);
 
         let messages = Messages::gather(snapshot.message_map(), id_name_iter)?;
+        let field_key = self
+            .context_field_spec_accessor
+            .get_agent_scoped_field_spec(MESSAGES_FIELD_NAME)?
+            .to_key()?;
 
-        Ok(ContextColumn {
+        Ok(vec![ContextColumn {
+            field_key,
             inner: Box::new(messages),
-        })
+        }])
     }
 
-    fn get_empty_arrow_column(
+    fn get_empty_arrow_columns(
         &self,
         num_agents: usize,
         _schema: &ContextSchema,
-    ) -> Result<(FieldKey, Arc<dyn ArrowArray>)> {
+    ) -> Result<Vec<(FieldKey, Arc<dyn ArrowArray>)>> {
         let index_builder = ArrowIndexBuilder::new(1024);
         let loc_builder = FixedSizeListBuilder::new(index_builder, 3);
         let mut messages_builder = ListBuilder::new(loc_builder);
 
         (0..num_agents).try_for_each(|_| messages_builder.append(true))?;
 
-        // TODO, this is unclean, we won't have to do this if we move empty arrow
-        //   initialisation to be done per schema instead of per package
         let field_key = self
             .context_field_spec_accessor
-            .get_agent_scoped_field_spec("messages")?
+            .get_agent_scoped_field_spec(MESSAGES_FIELD_NAME)?
             .to_key()?;
 
-        Ok((
+        Ok(vec![(
             field_key,
             Arc::new(messages_builder.finish()) as Arc<dyn ArrowArray>,
-        ))
+        )])
     }
 }

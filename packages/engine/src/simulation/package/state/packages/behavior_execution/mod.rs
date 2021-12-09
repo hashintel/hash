@@ -13,6 +13,9 @@ use crate::datastore::table::state::ReadState;
 use crate::datastore::table::task_shared_store::TaskSharedStoreBuilder;
 use crate::simulation::package::name::PackageName;
 use crate::simulation::package::state::packages::behavior_execution::config::BehaviorIds;
+use crate::simulation::package::state::packages::behavior_execution::fields::{
+    BEHAVIOR_IDS_FIELD_NAME, BEHAVIOR_INDEX_FIELD_NAME,
+};
 use crate::simulation::package::state::packages::behavior_execution::tasks::ExecuteBehaviorsTask;
 use crate::simulation::task::active::ActiveTask;
 use crate::simulation::task::Task;
@@ -77,7 +80,7 @@ impl PackageCreator for Creator {
         let behavior_ids_col_data_types = fields::id_column_data_types()?;
         // TODO - probably just rename the actual field key to behavior_ids (rather than behavior indices) to avoid confusion with "behavior_index" col
         let behavior_ids_col = accessor
-            .get_local_private_scoped_field_spec("behavior_ids")?
+            .get_local_private_scoped_field_spec(BEHAVIOR_IDS_FIELD_NAME)?
             .to_key()?;
 
         let behavior_ids_col_index = config
@@ -88,7 +91,7 @@ impl PackageCreator for Creator {
             .index_of(behavior_ids_col.value())?;
 
         let behavior_index_col = accessor
-            .get_agent_scoped_field_spec("behavior_index")?
+            .get_agent_scoped_field_spec(BEHAVIOR_INDEX_FIELD_NAME)?
             .to_key()?;
         let behavior_index_col_index = config
             .sim

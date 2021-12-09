@@ -3,6 +3,8 @@ use std::sync::Arc;
 
 use futures::{executor::block_on, stream::FuturesOrdered, StreamExt};
 
+use crate::datastore::schema::FieldKey;
+use crate::simulation::package::context::ContextColumn;
 use crate::{
     datastore::table::{
         context::PreContext,
@@ -89,7 +91,7 @@ impl StepPackages {
 impl StepPackages {
     pub fn empty_context(
         &self,
-        experiment_config: &SimRunConfig,
+        sim_run_config: &SimRunConfig,
         num_agents: usize,
     ) -> Result<Context> {
         let keys_and_columns = self
@@ -98,15 +100,18 @@ impl StepPackages {
             // TODO remove the need for this creating a method to generate empty arrow columns from schema
             .map(|package| {
                 package
-                    .get_empty_arrow_column(num_agents, &experiment_config.sim.store.context_schema)
-                    .map(|(field_key, col)| (field_key.value().to_string(), col))
+                    .get_empty_arrow_columns(num_agents, &sim_run_config.sim.store.context_schema)
             })
-            .collect::<Result<HashMap<String, Arc<dyn arrow::array::Array>>>>()?;
+            .collect::<Result<Vec<_>>>()?
+            .into_iter()
+            .flatten()
+            .map(|(field_key, col)| (field_key.value().to_string(), col))
+            .collect::<HashMap<String, Arc<dyn arrow::array::Array>>>();
 
         // because we aren't generating the columns from the schema, we need to reorder the cols from the packages to match
         //   this is another reason to move column creation to be done per schema instead of per package, because this is
         //   very messy.
-        let schema = &experiment_config.sim.store.context_schema;
+        let schema = &sim_run_config.sim.store.context_schema;
         let columns = schema
             .arrow
             .fields()
@@ -118,13 +123,14 @@ impl StepPackages {
                         "Expected to find an arrow column for key: {}",
                         arrow_field.name()
                     )))
-                    .map(|field_name| field_name.clone())
+                    .map(|arrow_array| Arc::clone(arrow_array))
             })
             .collect::<Result<Vec<_>>>()?;
+
         let context = Context::new_from_columns(
             columns,
-            experiment_config.sim.store.clone(),
-            &experiment_config.exp.run_id,
+            sim_run_config.sim.store.clone(),
+            &sim_run_config.exp.run_id,
             vec![],
         )?;
         Ok(context)
@@ -166,17 +172,50 @@ impl StepPackages {
         let collected = futs.collect::<Vec<_>>().await;
 
         let mut pkgs = Vec::with_capacity(num_packages);
-        let mut context_datas = Vec::with_capacity(num_packages);
-        for result in collected {
-            let (pkg, data) = result?;
-            pkgs.push(pkg);
-            context_datas.push(data?);
-        }
+        let keys_and_column_writers = collected
+            .into_iter()
+            .map(|result| {
+                let (pkg, package_column_writers) = result?;
+                pkgs.push(pkg);
+                Ok(package_column_writers?
+                    .into_iter()
+                    .map(|context_column| {
+                        (context_column.field_key.value().to_string(), context_column)
+                    })
+                    .collect::<Vec<(String, ContextColumn)>>())
+            })
+            .collect::<Result<Vec<_>>>()?
+            .into_iter()
+            .flatten()
+            .collect::<HashMap<String, ContextColumn>>();
+
         self.context = pkgs;
+
+        // As with above with the empty columns, we need to re-order the column writers to match
+        // the ordering of the columns within the schema. This is unfortunately really sloppy at
+        // the moment but a proper fix needs a bit of a redesign. Thus:
+        // TODO, figure out a better design for how we interface with columns from context packages,
+        //   and how we ensure the necessary order (preferably enforced in actual logic)
+        let schema = &state.sim_config().sim.store.context_schema;
+        let column_writers = schema
+            .arrow
+            .fields()
+            .iter()
+            .map(|arrow_field| {
+                keys_and_column_writers
+                    .get(arrow_field.name())
+                    .ok_or(Error::from(format!(
+                        "Expected to find a context column writer for key: {}",
+                        arrow_field.name()
+                    )))
+                    .map(|column_writer| column_writer.clone())
+            })
+            .collect::<Result<Vec<_>>>()?;
 
         let snapshot =
             Arc::try_unwrap(snapshot_arc).map_err(|_| Error::from("Failed to unwrap snapshot"))?;
-        let context = pre_context.finalize(snapshot, &context_datas, state.num_agents())?;
+
+        let context = pre_context.finalize(snapshot, &column_writers, state.num_agents())?;
         Ok(context)
     }
 

@@ -2,7 +2,7 @@ use crate::datastore::{table::references::MessageMap, UUID_V4_LEN};
 
 use super::{indices::AgentMessageIndices, *};
 
-/// Columnar native representation of indicies to messages
+/// Columnar native representation of indices to messages
 #[derive(Debug)]
 pub struct Messages {
     pub indices: Vec<AgentMessageIndices>,

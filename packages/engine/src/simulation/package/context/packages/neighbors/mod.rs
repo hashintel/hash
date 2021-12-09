@@ -9,6 +9,7 @@ use crate::datastore::table::state::view::StateSnapshot;
 use crate::datastore::table::state::State;
 use crate::datastore::{batch::iterators, table::state::ReadState};
 use crate::simulation::comms::package::PackageComms;
+use crate::simulation::package::context::packages::neighbors::fields::NEIGHBORS_FIELD_NAME;
 use crate::simulation::package::context::{ContextColumn, Package, PackageCreator};
 use crate::simulation::package::ext_traits::{
     GetWorkerExpStartMsg, GetWorkerSimStartMsg, MaybeCPUBound,
@@ -117,22 +118,28 @@ impl Package for Neighbors {
         &mut self,
         state: Arc<State>,
         _snapshot: Arc<StateSnapshot>,
-    ) -> Result<ContextColumn> {
+    ) -> Result<Vec<ContextColumn>> {
         let agent_pool = state.agent_pool();
         let batches = agent_pool.read_batches()?;
         let states = Self::neighbor_vec(&batches)?;
         let map = NeighborMap::gather(states, &self.topology)?;
 
-        Ok(ContextColumn {
+        let field_key = self
+            .context_field_spec_accessor
+            .get_local_hidden_scoped_field_spec(NEIGHBORS_FIELD_NAME)?
+            .to_key()?;
+
+        Ok(vec![ContextColumn {
+            field_key,
             inner: Box::new(map),
-        })
+        }])
     }
 
-    fn get_empty_arrow_column(
+    fn get_empty_arrow_columns(
         &self,
         num_agents: usize,
         _schema: &ContextSchema,
-    ) -> Result<(FieldKey, Arc<dyn arrow::array::Array>)> {
+    ) -> Result<Vec<(FieldKey, Arc<dyn arrow::array::Array>)>> {
         let index_builder = ArrowIndexBuilder::new(1024);
 
         let neighbor_index_builder = arrow::array::FixedSizeListBuilder::new(index_builder, 2);
@@ -147,9 +154,9 @@ impl Package for Neighbors {
             .get_agent_scoped_field_spec("neighbors")?
             .to_key()?;
 
-        Ok((
+        Ok(vec![(
             field_key,
             Arc::new(neighbors_builder.finish()) as Arc<dyn ArrowArray>,
-        ))
+        )])
     }
 }

@@ -18,6 +18,7 @@ use serde_json::Value;
 use crate::datastore::schema::accessor::GetFieldSpec;
 use crate::datastore::schema::FieldKey;
 
+use crate::simulation::package::context::packages::api_requests::fields::API_RESPONSES_FIELD_NAME;
 pub use handlers::CustomAPIMessageError;
 
 const CPU_BOUND: bool = false;
@@ -84,7 +85,7 @@ impl Package for APIRequests {
         &mut self,
         state: Arc<State>,
         snapshot: Arc<StateSnapshot>,
-    ) -> Result<ContextColumn> {
+    ) -> Result<Vec<ContextColumn>> {
         let mut api_response_maps = if let Some(ref handlers) = self.custom_message_handlers {
             let mut futs = FuturesOrdered::new();
             {
@@ -125,26 +126,29 @@ impl Package for APIRequests {
             .collect::<Vec<_>>();
 
         let api_responses = APIResponses::from(responses_per_agent);
+        let field_key = self
+            .context_field_spec_accessor
+            .get_local_hidden_scoped_field_spec(API_RESPONSES_FIELD_NAME)?
+            .to_key()?;
 
-        Ok(ContextColumn {
+        Ok(vec![ContextColumn {
+            field_key,
             inner: Box::new(api_responses),
-        })
+        }])
     }
 
-    fn get_empty_arrow_column(
+    fn get_empty_arrow_columns(
         &self,
         num_agents: usize,
         context_schema: &ContextSchema,
-    ) -> Result<(FieldKey, Arc<dyn arrow::array::Array>)> {
+    ) -> Result<Vec<(FieldKey, Arc<dyn arrow::array::Array>)>> {
         let from_builder = Box::new(arrow::array::StringBuilder::new(1024));
         let type_builder = Box::new(arrow::array::StringBuilder::new(1024));
         let data_builder = Box::new(arrow::array::StringBuilder::new(1024));
 
-        // TODO, this is unclean, we won't have to do this if we move empty arrow
-        //   initialisation to be done per schema instead of per package
         let field_key = self
             .context_field_spec_accessor
-            .get_local_hidden_scoped_field_spec("api_responses")?
+            .get_local_hidden_scoped_field_spec(API_RESPONSES_FIELD_NAME)?
             .to_key()?;
         let arrow_fields = context_schema
             .arrow
@@ -165,10 +169,10 @@ impl Package for APIRequests {
 
         (0..num_agents).try_for_each(|_| api_response_list_builder.append(true))?;
 
-        Ok((
+        Ok(vec![(
             field_key,
             Arc::new(api_response_list_builder.finish()) as Arc<dyn ArrowArray>,
-        ))
+        )])
     }
 }
 
