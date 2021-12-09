@@ -19,7 +19,7 @@
 - [Questions & Support](#questions--support)
 - [Building and Testing](#building-and-testing)
   * [Dependencies](#dependencies)
-  * [MacOS Developer Specific Instructions](#macos-developer-specific-instructions)
+  * [macOS Developer Specific Instructions](#macos-developer-specific-instructions)
     + [For Intel Macs](#for-intel-macs)
     + [For ARM-Based Macs](#for-arm-based-macs)
   * [Possible Dependencies and Debugging](#possible-dependencies-and-debugging)
