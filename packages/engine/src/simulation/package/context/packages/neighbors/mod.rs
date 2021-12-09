@@ -151,7 +151,7 @@ impl Package for Neighbors {
         //   initialisation to be done per schema instead of per package
         let field_key = self
             .context_field_spec_accessor
-            .get_local_hidden_scoped_field_spec(NEIGHBORS_FIELD_NAME)?
+            .get_agent_scoped_field_spec("neighbors")?
             .to_key()?;
 
         Ok(vec![(

@@ -30,9 +30,9 @@ impl Config {
 
     fn default_context_packages() -> Vec<ContextPackage> {
         let default = [
-            ContextPackage::AgentMessages,
             ContextPackage::Neighbors,
             ContextPackage::APIRequests,
+            ContextPackage::AgentMessages,
         ];
         Vec::from_iter(default.iter().cloned())
     }

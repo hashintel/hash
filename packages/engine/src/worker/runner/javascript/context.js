@@ -36,12 +36,12 @@ const gen_agent_ctx = (ctx_schema, getters) => {
     AgentContext.prototype.globals = function() {
         return this.__globals;
     }
-    
+
     for (var i_field = 0; i_field < ctx_schema.fields.length; ++i_field) {
         // `name` is the name of some context batch column
         const name = ctx_schema.fields[i_field].name;
         const getter = gen_agent_ctx_getter(name, getters[name]);
-        Object.defineProperty(AgentContext.prototype, name, { get: getter });
+        AgentContext.prototype[name] = getter;
     }
 
     return Object.seal(AgentContext);
