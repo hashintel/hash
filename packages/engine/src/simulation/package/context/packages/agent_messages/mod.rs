@@ -64,7 +64,7 @@ struct AgentMessages {
     context_field_spec_accessor: FieldSpecMapAccessor,
 }
 
-impl MaybeCPUBound for AgentMessages {
+impl MaybeCpuBound for AgentMessages {
     fn cpu_bound(&self) -> bool {
         CPU_BOUND
     }

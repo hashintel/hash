@@ -16,7 +16,7 @@ pub enum Error {
     NoSimulationRuns,
 
     #[error("Unexpected simulation run id ({0}) received")]
-    MissingSimulationRun(super::SimulationShortID),
+    MissingSimulationRun(super::SimulationShortId),
 
     #[error("Unexpected opt client id received: {0:?}")]
     MissingClient(String, String),

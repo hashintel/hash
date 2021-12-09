@@ -18,8 +18,8 @@ use crate::datastore::{
 impl PresetFieldType {
     fn is_fixed_size(&self) -> bool {
         match self {
-            PresetFieldType::UInt32 => true,
-            PresetFieldType::UInt16 => true,
+            PresetFieldType::Uint32 => true,
+            PresetFieldType::Uint16 => true,
             PresetFieldType::Id => true,
         }
     }
@@ -27,8 +27,8 @@ impl PresetFieldType {
     #[must_use]
     pub fn get_arrow_data_type(&self) -> ArrowDataType {
         match self {
-            PresetFieldType::UInt32 => ArrowDataType::UInt32,
-            PresetFieldType::UInt16 => ArrowDataType::UInt16,
+            PresetFieldType::Uint32 => ArrowDataType::UInt32,
+            PresetFieldType::Uint16 => ArrowDataType::UInt16,
             PresetFieldType::Id => {
                 ArrowDataType::FixedSizeBinary(crate::datastore::UUID_V4_LEN as i32)
             }

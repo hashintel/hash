@@ -3,13 +3,13 @@ use std::fmt;
 use super::{NewSimulationRun, RunnerTaskMsg, StateInterimSync};
 use crate::{
     datastore::table::sync::{ContextBatchSync, StateSync},
-    proto::SimulationShortID,
-    types::TaskID,
+    proto::SimulationShortId,
+    types::TaskId,
 };
 
 pub enum InboundToRunnerMsgPayload {
     TaskMsg(RunnerTaskMsg),
-    CancelTask(TaskID),
+    CancelTask(TaskId),
     StateSync(StateSync),
     StateSnapshotSync(StateSync),
     ContextBatchSync(ContextBatchSync),
@@ -42,6 +42,6 @@ impl fmt::Debug for InboundToRunnerMsgPayload {
 }
 
 pub struct InboundToRunnerMsg {
-    pub sim_id: SimulationShortID,
+    pub sim_id: SimulationShortId,
     pub payload: InboundToRunnerMsgPayload,
 }

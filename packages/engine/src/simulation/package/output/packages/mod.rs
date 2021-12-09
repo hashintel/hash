@@ -11,7 +11,7 @@ use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use strum_macros::IntoStaticStr;
 
-use self::{analysis::AnalysisOutput, json_state::JSONStateOutput};
+use self::{analysis::AnalysisOutput, json_state::JsonStateOutput};
 use super::PackageCreator;
 use crate::{
     simulation::{
@@ -27,7 +27,7 @@ use crate::{
 #[serde(rename_all = "snake_case")]
 pub enum Name {
     Analysis,
-    JSONState,
+    JsonState,
 }
 
 impl std::fmt::Display for Name {
@@ -49,7 +49,7 @@ pub struct OutputPackagesSimConfig {
 #[derive(Debug)]
 pub enum Output {
     AnalysisOutput,
-    JSONStateOutput,
+    JsonStateOutput,
 }
 
 /// All output package tasks are registered in this enum
@@ -85,7 +85,7 @@ impl PackageCreators {
         use Name::*;
         let mut m = HashMap::new();
         m.insert(Analysis, analysis::Creator::new(experiment_config)?);
-        m.insert(JSONState, json_state::Creator::new(experiment_config)?);
+        m.insert(JsonState, json_state::Creator::new(experiment_config)?);
         self.0
             .set(m)
             .map_err(|_| Error::from("Failed to initialize Output Package Creators"))?;
@@ -125,7 +125,7 @@ lazy_static! {
             id: id_creator.next(),
             dependencies: analysis::Creator::dependencies(),
         });
-        m.insert(JSONState, PackageMetadata {
+        m.insert(JsonState, PackageMetadata {
             id: id_creator.next(),
             dependencies: json_state::Creator::dependencies(),
         });

@@ -39,7 +39,7 @@ use crate::{
             task_shared_store::{PartialSharedState, SharedState},
         },
     },
-    proto::SimulationShortID,
+    proto::SimulationShortId,
     simulation::{
         enum_dispatch::TaskSharedStore,
         package::{id::PackageId, PackageType},
@@ -48,7 +48,7 @@ use crate::{
     Language,
 };
 
-struct JSPackage<'m> {
+struct JsPackage<'m> {
     fns: mv8::Array<'m>,
 }
 
@@ -60,7 +60,7 @@ fn get_pkg_path(name: &str, pkg_type: PackageType) -> String {
     )
 }
 
-impl<'m> JSPackage<'m> {
+impl<'m> JsPackage<'m> {
     fn import(
         mv8: &'m MiniV8,
         embedded: &Embedded<'m>,
@@ -78,7 +78,7 @@ impl<'m> JSPackage<'m> {
                 fns.set(0, mv8::Value::Undefined)?;
                 fns.set(1, mv8::Value::Undefined)?;
                 fns.set(2, mv8::Value::Undefined)?;
-                return Ok(JSPackage { fns });
+                return Ok(JsPackage { fns });
             }
         };
 
@@ -123,7 +123,7 @@ impl<'m> JSPackage<'m> {
         }
         assert_eq!(fns.len(), 3);
 
-        Ok(JSPackage { fns })
+        Ok(JsPackage { fns })
     }
 }
 
@@ -254,10 +254,10 @@ struct SimState {
 struct RunnerImpl<'m> {
     embedded: Embedded<'m>,
     this: mv8::Value<'m>,
-    sims_state: HashMap<SimulationShortID, SimState>,
+    sims_state: HashMap<SimulationShortId, SimState>,
 }
 
-fn sim_id_to_js(_mv8: &MiniV8, sim_run_id: SimulationShortID) -> mv8::Value {
+fn sim_id_to_js(_mv8: &MiniV8, sim_run_id: SimulationShortId) -> mv8::Value {
     mv8::Value::Number(sim_run_id as f64)
 }
 
@@ -495,7 +495,7 @@ impl<'m> RunnerImpl<'m> {
             let i_pkg = i_pkg as u32;
 
             let pkg_name = format!("{}", &pkg_init.name);
-            let pkg = JSPackage::import(mv8, &embedded, &pkg_name, pkg_init.r#type)?;
+            let pkg = JsPackage::import(mv8, &embedded, &pkg_name, pkg_init.r#type)?;
             log::trace!(
                 "pkg experiment init name {:?}, type {}, fns {:?}",
                 &pkg_init.name,
@@ -543,7 +543,7 @@ impl<'m> RunnerImpl<'m> {
         let child_data: mv8::Array = obj.get("child_data")?;
 
         // `data_node_from_js` isn't recursive -- doesn't convert children.
-        let data: mv8::DataFFI = mv8.data_node_from_js(data);
+        let data: mv8::DataFfi = mv8.data_node_from_js(data);
 
         let n_children = child_data.len();
         let child_data: Vec<ArrayDataRef> = match dt.clone() {
@@ -745,7 +745,7 @@ impl<'m> RunnerImpl<'m> {
     fn flush(
         &mut self,
         mv8: &'m MiniV8,
-        sim_run_id: SimulationShortID,
+        sim_run_id: SimulationShortId,
         shared_store: &mut TaskSharedStore,
         r: &mv8::Object<'m>,
     ) -> Result<()> {
@@ -862,7 +862,7 @@ impl<'m> RunnerImpl<'m> {
     fn run_task(
         &mut self,
         mv8: &'m MiniV8,
-        sim_run_id: SimulationShortID,
+        sim_run_id: SimulationShortId,
         mut msg: RunnerTaskMsg,
     ) -> Result<(TargetedRunnerTaskMsg, Option<Vec<RunnerError>>)> {
         log::debug!("Starting state interim sync before running task");
@@ -960,7 +960,7 @@ impl<'m> RunnerImpl<'m> {
     fn ctx_batch_sync(
         &mut self,
         mv8: &'m MiniV8,
-        sim_run_id: SimulationShortID,
+        sim_run_id: SimulationShortId,
         ctx_batch: ContextBatchSync,
     ) -> Result<()> {
         let ctx_batch = &ctx_batch
@@ -982,7 +982,7 @@ impl<'m> RunnerImpl<'m> {
     fn state_sync(
         &mut self,
         mv8: &'m MiniV8,
-        sim_run_id: SimulationShortID,
+        sim_run_id: SimulationShortId,
         msg: StateSync,
     ) -> Result<()> {
         // TODO: Technically this might violate Rust's aliasing rules, because
@@ -1018,7 +1018,7 @@ impl<'m> RunnerImpl<'m> {
     fn state_interim_sync(
         &mut self,
         mv8: &'m MiniV8,
-        sim_run_id: SimulationShortID,
+        sim_run_id: SimulationShortId,
         shared_store: &TaskSharedStore,
     ) -> Result<()> {
         // Sync JS.
@@ -1040,7 +1040,7 @@ impl<'m> RunnerImpl<'m> {
     fn state_snapshot_sync(
         &mut self,
         mv8: &'m MiniV8,
-        sim_run_id: SimulationShortID,
+        sim_run_id: SimulationShortId,
         msg: StateSync,
     ) -> Result<()> {
         // TODO: Duplication with `state_sync`
@@ -1063,7 +1063,7 @@ impl<'m> RunnerImpl<'m> {
     pub fn handle_msg(
         &mut self,
         mv8: &'m MiniV8,
-        sim_id: Option<SimulationShortID>,
+        sim_id: Option<SimulationShortId>,
         msg: InboundToRunnerMsgPayload,
         outbound_sender: &UnboundedSender<OutboundFromRunnerMsg>,
     ) -> Result<bool> {
@@ -1078,29 +1078,29 @@ impl<'m> RunnerImpl<'m> {
                 self.start_sim(mv8, new_run)?;
             }
             InboundToRunnerMsgPayload::TerminateSimulationRun => {
-                let sim_id = sim_id.ok_or(Error::SimulationIDRequired("terminate sim"))?;
+                let sim_id = sim_id.ok_or(Error::SimulationIdRequired("terminate sim"))?;
                 self.sims_state
                     .remove(&sim_id)
                     .ok_or(Error::TerminateMissingSimulationRun(sim_id))?;
             }
             InboundToRunnerMsgPayload::StateSync(state_msg) => {
-                let sim_id = sim_id.ok_or(Error::SimulationIDRequired("state sync"))?;
+                let sim_id = sim_id.ok_or(Error::SimulationIdRequired("state sync"))?;
                 self.state_sync(mv8, sim_id, state_msg)?;
             }
             InboundToRunnerMsgPayload::StateInterimSync(interim_msg) => {
-                let sim_id = sim_id.ok_or(Error::SimulationIDRequired("interim sync"))?;
+                let sim_id = sim_id.ok_or(Error::SimulationIdRequired("interim sync"))?;
                 self.state_interim_sync(mv8, sim_id, &interim_msg.shared_store)?;
             }
             InboundToRunnerMsgPayload::StateSnapshotSync(state_msg) => {
-                let sim_id = sim_id.ok_or(Error::SimulationIDRequired("snapshot sync"))?;
+                let sim_id = sim_id.ok_or(Error::SimulationIdRequired("snapshot sync"))?;
                 self.state_snapshot_sync(mv8, sim_id, state_msg)?;
             }
             InboundToRunnerMsgPayload::ContextBatchSync(ctx_batch) => {
-                let sim_id = sim_id.ok_or(Error::SimulationIDRequired("context batch sync"))?;
+                let sim_id = sim_id.ok_or(Error::SimulationIdRequired("context batch sync"))?;
                 self.ctx_batch_sync(mv8, sim_id, ctx_batch)?;
             }
             InboundToRunnerMsgPayload::TaskMsg(msg) => {
-                let sim_id = sim_id.ok_or(Error::SimulationIDRequired("run task"))?;
+                let sim_id = sim_id.ok_or(Error::SimulationIdRequired("run task"))?;
                 let (next_task_msg, warnings) = self.run_task(mv8, sim_id, msg)?;
                 // TODO: `send` fn to reduce code duplication.
                 outbound_sender.send(OutboundFromRunnerMsg {
@@ -1126,9 +1126,9 @@ pub struct JavaScriptRunner {
     // JavaScriptRunner and RunnerImpl are separate because the
     // V8 Isolate inside RunnerImpl can't be sent between threads.
     init_msg: Arc<ExperimentInitRunnerMsg>, // Args to RunnerImpl::new
-    inbound_sender: UnboundedSender<(Option<SimulationShortID>, InboundToRunnerMsgPayload)>,
+    inbound_sender: UnboundedSender<(Option<SimulationShortId>, InboundToRunnerMsgPayload)>,
     inbound_receiver:
-        Option<UnboundedReceiver<(Option<SimulationShortID>, InboundToRunnerMsgPayload)>>,
+        Option<UnboundedReceiver<(Option<SimulationShortId>, InboundToRunnerMsgPayload)>>,
     outbound_sender: Option<UnboundedSender<OutboundFromRunnerMsg>>,
     outbound_receiver: UnboundedReceiver<OutboundFromRunnerMsg>,
     spawn: bool,
@@ -1150,7 +1150,7 @@ impl JavaScriptRunner {
 
     pub async fn send(
         &self,
-        sim_id: Option<SimulationShortID>,
+        sim_id: Option<SimulationShortId>,
         msg: InboundToRunnerMsgPayload,
     ) -> WorkerResult<()> {
         log::trace!("Sending message to JavaScript: {:?}", &msg);
@@ -1161,7 +1161,7 @@ impl JavaScriptRunner {
 
     pub async fn send_if_spawned(
         &self,
-        sim_id: Option<SimulationShortID>,
+        sim_id: Option<SimulationShortId>,
         msg: InboundToRunnerMsgPayload,
     ) -> WorkerResult<()> {
         if self.spawned() {
@@ -1207,7 +1207,7 @@ impl JavaScriptRunner {
 
 fn _run(
     init_msg: Arc<ExperimentInitRunnerMsg>,
-    mut inbound_receiver: UnboundedReceiver<(Option<SimulationShortID>, InboundToRunnerMsgPayload)>,
+    mut inbound_receiver: UnboundedReceiver<(Option<SimulationShortId>, InboundToRunnerMsgPayload)>,
     outbound_sender: UnboundedSender<OutboundFromRunnerMsg>,
 ) -> WorkerResult<()> {
     // Single threaded runtime only

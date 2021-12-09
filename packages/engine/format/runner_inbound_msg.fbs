@@ -12,7 +12,7 @@ include "new_simulation_run.fbs";
 //
 // fields:
 //    `inner` : the uuid as bytes 
-struct TaskID {
+struct TaskId {
   inner:[byte:16];
 }
 
@@ -27,7 +27,7 @@ struct TaskID {
 //    `payload`        : payload for the task message (json)
 table TaskMsg {
   package_sid:uint64;
-  task_id:TaskID;
+  task_id:TaskId;
   metaversioning:StateInterimSync;
   payload:Serialized (required);
 }
@@ -37,7 +37,7 @@ table TaskMsg {
 // fields:
 //    `task_id`        : the uuid for the task
 table CancelTask {
-  task_id:TaskID;
+  task_id:TaskId;
 }
 
 // `TerminateRunner` Message Body Type.

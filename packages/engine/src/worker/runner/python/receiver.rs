@@ -9,14 +9,14 @@ use super::{
     fbs::{pkgs_to_fbs, shared_ctx_to_fbs},
 };
 use crate::{
-    gen, proto::ExperimentID, types::WorkerIndex, worker::runner::comms::ExperimentInitRunnerMsg,
+    gen, proto::ExperimentId, types::WorkerIndex, worker::runner::comms::ExperimentInitRunnerMsg,
 };
 
 fn experiment_init_to_nng(init: &ExperimentInitRunnerMsg) -> Result<nng::Message> {
     // TODO: initial buffer size
     let mut fbb = flatbuffers::FlatBufferBuilder::new();
     let experiment_id =
-        gen::init_generated::ExperimentID(*(Uuid::from_str(&init.experiment_id)?.as_bytes()));
+        gen::init_generated::ExperimentId(*(Uuid::from_str(&init.experiment_id)?.as_bytes()));
 
     // Build the SharedContext Flatbuffer Batch objects and collect their offsets in a vec
     let shared_context = shared_ctx_to_fbs(&mut fbb, &init.shared_context);
@@ -51,7 +51,7 @@ pub struct NngReceiver {
 }
 
 impl NngReceiver {
-    pub fn new(experiment_id: ExperimentID, worker_index: WorkerIndex) -> Result<Self> {
+    pub fn new(experiment_id: ExperimentId, worker_index: WorkerIndex) -> Result<Self> {
         let route = format!("ipc://{}-frompy{}", experiment_id, worker_index);
         let from_py = Socket::new(nng::Protocol::Pair0)?;
         from_py.listen(&route)?;

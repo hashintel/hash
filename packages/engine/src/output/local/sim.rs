@@ -5,14 +5,14 @@ use crate::{
         error::{Error, Result},
         SimulationOutputPersistenceRepr,
     },
-    proto::{ExperimentID, SimulationShortID},
+    proto::{ExperimentId, SimulationShortId},
     simulation::{package::output::packages::Output, step_output::SimulationStepOutput},
 };
 
 #[derive(new)]
 pub struct LocalSimulationOutputPersistence {
-    exp_id: ExperimentID,
-    _sim_id: SimulationShortID, // TODO: Should this be unused? If so remove
+    exp_id: ExperimentId,
+    _sim_id: SimulationShortId, // TODO: Should this be unused? If so remove
     buffers: Buffers,
     config: LocalPersistenceConfig,
 }
@@ -27,7 +27,7 @@ impl SimulationOutputPersistenceRepr for LocalSimulationOutputPersistence {
                 Output::AnalysisOutput(output) => {
                     self.buffers.analysis.add(output)?;
                 }
-                Output::JSONStateOutput(output) => {
+                Output::JsonStateOutput(output) => {
                     self.buffers.json_state.append_step(output.inner)?;
                 }
             }

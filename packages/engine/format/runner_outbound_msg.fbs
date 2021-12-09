@@ -16,7 +16,7 @@ include "target.fbs";
 //
 // fields:
 //    `inner` : the uuid as bytes
-struct TaskID {
+struct TaskId {
   inner:[byte:16];
 }
 
@@ -31,7 +31,7 @@ struct TaskID {
 //    `payload`        : payload for the task message (json)
 table TaskMsg {
   package_sid:uint64;
-  task_id:TaskID;
+  task_id:TaskId;
   target:Target;
   metaversioning:StateInterimSync;
   payload:Serialized (required);
@@ -43,7 +43,7 @@ table TaskMsg {
 // fields:
 //    `task_id`        : the uuid for the task
 table TaskCancelled {
-  task_id:TaskID;
+  task_id:TaskId;
 }
 
 

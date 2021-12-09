@@ -23,7 +23,7 @@ use crate::{
                 packages::neighbors::fields::NEIGHBORS_FIELD_NAME, ContextColumn, Package,
                 PackageCreator,
             },
-            ext_traits::{GetWorkerExpStartMsg, GetWorkerSimStartMsg, MaybeCPUBound},
+            ext_traits::{GetWorkerExpStartMsg, GetWorkerSimStartMsg, MaybeCpuBound},
             prelude::{ArrowArray, ContextPackage},
         },
         Result,
@@ -108,7 +108,7 @@ impl Neighbors {
     }
 }
 
-impl MaybeCPUBound for Neighbors {
+impl MaybeCpuBound for Neighbors {
     fn cpu_bound(&self) -> bool {
         CPU_BOUND
     }

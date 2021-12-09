@@ -4,7 +4,7 @@ use tokio::sync::mpsc::error::SendError;
 
 use super::mini_v8 as mv8;
 use crate::{
-    proto::SimulationShortID,
+    proto::SimulationShortId,
     simulation::package::id::PackageId,
     worker::runner::comms::{
         inbound::InboundToRunnerMsgPayload,
@@ -52,10 +52,10 @@ pub enum Error {
     V8(String),
 
     #[error("Missing simulation run with id {0}")]
-    MissingSimulationRun(SimulationShortID),
+    MissingSimulationRun(SimulationShortId),
 
     #[error("Couldn't terminate missing simulation run with id {0}")]
-    TerminateMissingSimulationRun(SimulationShortID),
+    TerminateMissingSimulationRun(SimulationShortId),
 
     #[error("User JavaScript errors: {0:?}")]
     User(Vec<RunnerError>),
@@ -64,7 +64,7 @@ pub enum Error {
     DuplicatePackage(PackageId, String),
 
     #[error("Duplicate simulation run id: {0}")]
-    DuplicateSimulationRun(SimulationShortID),
+    DuplicateSimulationRun(SimulationShortId),
 
     #[error("Error in embedded JavaScript: {0}")]
     Embedded(String),
@@ -73,7 +73,7 @@ pub enum Error {
     UnknownTarget(String),
 
     #[error("Couldn't send inbound message to runner: {0}")]
-    InboundSend(#[from] SendError<(Option<SimulationShortID>, InboundToRunnerMsgPayload)>),
+    InboundSend(#[from] SendError<(Option<SimulationShortId>, InboundToRunnerMsgPayload)>),
 
     #[error("Couldn't send outbound message from runner: {0}")]
     OutboundSend(#[from] SendError<OutboundFromRunnerMsg>),
@@ -82,7 +82,7 @@ pub enum Error {
     OutboundReceive,
 
     #[error("Message type '{0}' must have a simulation run id")]
-    SimulationIDRequired(&'static str),
+    SimulationIdRequired(&'static str),
 
     #[error("serde: {0:?}")]
     Serde(#[from] serde_json::Error),

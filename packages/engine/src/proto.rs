@@ -7,9 +7,9 @@ use crate::{config::Globals, hash_types::worker::RunnerError, simulation::status
 
 pub type SerdeMap = serde_json::Map<String, SerdeValue>;
 
-pub type ExperimentRegisteredID = String;
-pub type SimulationRegisteredID = String;
-pub type SimulationShortID = u32;
+pub type ExperimentRegisteredId = String;
+pub type SimulationRegisteredId = String;
+pub type SimulationShortId = u32;
 
 use crate::simulation::enum_dispatch::*;
 
@@ -28,20 +28,20 @@ pub enum EngineStatus {
     ProcessError(String),
     Stopping,
     SimStart {
-        sim_id: SimulationShortID,
+        sim_id: SimulationShortId,
         globals: Globals,
     },
-    SimStop(SimulationShortID),
+    SimStop(SimulationShortId),
     // TODO: OS - Confirm are these only Runner/Simulation errors, if so rename
-    Errors(Option<SimulationShortID>, Vec<RunnerError>),
-    Warnings(Option<SimulationShortID>, Vec<RunnerError>),
+    Errors(Option<SimulationShortId>, Vec<RunnerError>),
+    Warnings(Option<SimulationShortId>, Vec<RunnerError>),
 }
 
 /// The message type sent from the orchestrator to the engine.
 #[derive(Serialize, Deserialize, Debug)]
 pub enum EngineMsg {
     Init(InitMessage),
-    SimRegistered(SimulationShortID, SimulationRegisteredID),
+    SimRegistered(SimulationShortId, SimulationRegisteredId),
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -297,7 +297,7 @@ pub enum ExperimentRunRepr {
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct ExperimentRunBase {
-    pub id: ExperimentRegisteredID,
+    pub id: ExperimentRegisteredId,
     pub project_base: ProjectBase,
 }
 
@@ -377,7 +377,7 @@ pub struct ProcessedExperimentRun {
 }
 
 // TODO: Replace with UUID?
-pub type ExperimentID = String;
+pub type ExperimentId = String;
 
 /// A wrapper around an Option to avoid displaying the inner for Debug outputs,
 /// i.e. debug::Debug now outputs: `Some(..)`

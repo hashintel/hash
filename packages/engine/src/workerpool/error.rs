@@ -38,7 +38,7 @@ pub enum Error {
     TerminateConfirmAlreadySent,
 
     #[error("Missing simulation with id {0}")]
-    MissingSimulationWithID(proto::SimulationShortID),
+    MissingSimulationWithId(proto::SimulationShortId),
 
     #[error("Channel for sending cancel task messages has unexpectedly closed")]
     CancelClosed,
@@ -50,7 +50,7 @@ pub enum Error {
     UnexpectedWorkerCommsDrop,
 
     #[error("Missing pending task with id {0}")]
-    MissingPendingTask(crate::types::TaskID),
+    MissingPendingTask(crate::types::TaskId),
 
     #[error("Missing one-shot task result sender to send result with")]
     NoResultSender,

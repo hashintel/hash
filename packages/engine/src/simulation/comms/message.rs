@@ -1,14 +1,14 @@
 use super::active::ActiveTaskExecutorComms;
 use crate::{
     datastore::table::{sync::SyncPayload, task_shared_store::TaskSharedStore},
-    proto::SimulationShortID,
+    proto::SimulationShortId,
     simulation::{package::id::PackageId, task::Task},
-    types::TaskID,
+    types::TaskId,
 };
 
 #[derive(new, Debug)]
 pub struct WrappedTask {
-    pub task_id: TaskID,
+    pub task_id: TaskId,
     pub package_id: PackageId,
     pub inner: Task,
     pub comms: ActiveTaskExecutorComms,
@@ -17,19 +17,19 @@ pub struct WrappedTask {
 
 #[derive(Debug)]
 pub struct EngineToWorkerPoolMsg {
-    pub sim_id: SimulationShortID,
+    pub sim_id: SimulationShortId,
     pub payload: EngineToWorkerPoolMsgPayload,
 }
 
 impl EngineToWorkerPoolMsg {
-    pub fn task(sim_id: SimulationShortID, task: WrappedTask) -> Self {
+    pub fn task(sim_id: SimulationShortId, task: WrappedTask) -> Self {
         Self {
             sim_id,
             payload: EngineToWorkerPoolMsgPayload::Task(task),
         }
     }
 
-    pub fn sync(sim_id: SimulationShortID, sync_msg: SyncPayload) -> Self {
+    pub fn sync(sim_id: SimulationShortId, sync_msg: SyncPayload) -> Self {
         Self {
             sim_id,
             payload: EngineToWorkerPoolMsgPayload::Sync(sync_msg),

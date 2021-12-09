@@ -23,14 +23,14 @@ pub struct Config {
 
 impl Config {
     fn default_init_packages() -> Vec<InitPackage> {
-        let default = [InitPackage::JSON];
+        let default = [InitPackage::Json];
         Vec::from_iter(default.iter().cloned())
     }
 
     fn default_context_packages() -> Vec<ContextPackage> {
         let default = [
             ContextPackage::Neighbors,
-            ContextPackage::APIRequests,
+            ContextPackage::ApiRequests,
             ContextPackage::AgentMessages,
         ];
         Vec::from_iter(default.iter().cloned())
@@ -41,7 +41,7 @@ impl Config {
     }
 
     fn default_output_packages() -> Vec<OutputPackage> {
-        let default = [OutputPackage::JSONState, OutputPackage::Analysis];
+        let default = [OutputPackage::JsonState, OutputPackage::Analysis];
         Vec::from_iter(default.iter().cloned())
     }
 

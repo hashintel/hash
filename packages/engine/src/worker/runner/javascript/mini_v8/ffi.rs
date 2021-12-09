@@ -83,7 +83,7 @@ extern "C" {
     // Can't make an ArrayBuffer with const contents in Javascript,
     // so `mem` has to be a `*mut`, even if it won't be mutated.
     pub(super) fn mv8_arraybuffer_new(_: Interface, mem: *mut u8, n_bytes: usize) -> ValuePtr;
-    pub(super) fn mv8_data_node_from_js(_: Interface, data: ValueDesc) -> DataFFI;
+    pub(super) fn mv8_data_node_from_js(_: Interface, data: ValueDesc) -> DataFfi;
 }
 
 #[repr(transparent)]

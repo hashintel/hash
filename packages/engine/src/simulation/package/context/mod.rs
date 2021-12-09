@@ -4,7 +4,7 @@ pub use packages::{ContextTask, ContextTaskMessage, Name, PACKAGE_CREATORS};
 
 use super::{
     deps::Dependencies,
-    ext_traits::{GetWorkerSimStartMsg, MaybeCPUBound},
+    ext_traits::{GetWorkerSimStartMsg, MaybeCpuBound},
     prelude::*,
 };
 pub use crate::config::Globals;
@@ -25,7 +25,7 @@ use crate::{
 pub mod packages;
 
 #[async_trait]
-pub trait Package: MaybeCPUBound + GetWorkerSimStartMsg + Send + Sync {
+pub trait Package: MaybeCpuBound + GetWorkerSimStartMsg + Send + Sync {
     async fn run<'s>(
         &mut self,
         state: Arc<State>,

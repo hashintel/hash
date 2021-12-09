@@ -4,10 +4,10 @@ use anyhow::{bail, format_err, Context, Result};
 use hash_engine::{nano, proto};
 use tokio::sync::{mpsc, oneshot};
 
-type ExperimentID = String;
+type ExperimentId = String;
 type ResultSender = oneshot::Sender<Result<()>>;
-type CloseReceiver = mpsc::UnboundedReceiver<ExperimentID>;
-type CloseSender = mpsc::UnboundedSender<ExperimentID>;
+type CloseReceiver = mpsc::UnboundedReceiver<ExperimentId>;
+type CloseSender = mpsc::UnboundedSender<ExperimentId>;
 type MsgSender = mpsc::UnboundedSender<proto::EngineStatus>;
 type MsgReceiver = mpsc::UnboundedReceiver<proto::EngineStatus>;
 type CtrlSender = mpsc::Sender<(Ctrl, ResultSender)>;
@@ -24,12 +24,12 @@ pub fn create_server(url: &str) -> Result<(Server, Handler)> {
 }
 
 enum Ctrl {
-    Register { id: ExperimentID, msg_tx: MsgSender },
+    Register { id: ExperimentId, msg_tx: MsgSender },
     Stop,
 }
 
 pub struct Handle {
-    id: ExperimentID,
+    id: ExperimentId,
     msg_rx: MsgReceiver,
     close_tx: CloseSender,
 }
@@ -111,7 +111,7 @@ pub struct Server {
     url: String,
     ctrl_rx: CtrlReceiver,
     close_rx: CloseReceiver,
-    routes: HashMap<ExperimentID, MsgSender>,
+    routes: HashMap<ExperimentId, MsgSender>,
 }
 
 impl Server {
@@ -127,7 +127,7 @@ impl Server {
     }
 
     /// Add an experiment to the server's routes.
-    fn register_experiment(&mut self, id: ExperimentID, msg_tx: MsgSender) -> Result<()> {
+    fn register_experiment(&mut self, id: ExperimentId, msg_tx: MsgSender) -> Result<()> {
         if self.routes.contains_key(&id) {
             bail!("Experiment already registered: {id}")
         } else {
@@ -137,7 +137,7 @@ impl Server {
         }
     }
 
-    fn deregister_experiment(&mut self, id: ExperimentID) {
+    fn deregister_experiment(&mut self, id: ExperimentId) {
         match self.routes.remove(&id) {
             None => error!("Experiment {id} not found"),
             Some(_) => debug!("De-registered experiment {id}"),

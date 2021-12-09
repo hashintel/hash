@@ -27,7 +27,7 @@ use crate::{
 #[serde(rename_all = "snake_case")]
 pub enum Name {
     AgentMessages,
-    APIRequests,
+    ApiRequests,
     Neighbors,
 }
 
@@ -78,7 +78,7 @@ impl PackageCreators {
             AgentMessages,
             agent_messages::Creator::new(experiment_config)?,
         );
-        m.insert(APIRequests, api_requests::Creator::new(experiment_config)?);
+        m.insert(ApiRequests, api_requests::Creator::new(experiment_config)?);
         m.insert(Neighbors, neighbors::Creator::new(experiment_config)?);
         self.0
             .set(m)
@@ -120,7 +120,7 @@ lazy_static! {
             id: id_creator.next(),
             dependencies: agent_messages::Creator::dependencies()
         });
-        m.insert(APIRequests, PackageMetadata{
+        m.insert(ApiRequests, PackageMetadata{
             id: id_creator.next(),
             dependencies: api_requests::Creator::dependencies()
         });

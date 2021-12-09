@@ -1,18 +1,18 @@
 use std::collections::HashMap;
 
 use super::error::{Error, Result};
-use crate::{config::WorkerAllocation, proto::SimulationShortID};
+use crate::{config::WorkerAllocation, proto::SimulationShortId};
 
 #[derive(Default)]
 pub struct SimulationRuns {
     // Associates a simulation run with the workers available to it
-    worker_allocations: HashMap<SimulationShortID, WorkerAllocation>,
+    worker_allocations: HashMap<SimulationShortId, WorkerAllocation>,
 }
 
 impl SimulationRuns {
     pub fn push(
         &mut self,
-        sim_id: SimulationShortID,
+        sim_id: SimulationShortId,
         worker_allocation: &WorkerAllocation,
     ) -> Result<()> {
         self.worker_allocations
@@ -21,9 +21,9 @@ impl SimulationRuns {
         Ok(())
     }
 
-    pub fn get_worker_allocation(&self, id: SimulationShortID) -> Result<&WorkerAllocation> {
+    pub fn get_worker_allocation(&self, id: SimulationShortId) -> Result<&WorkerAllocation> {
         self.worker_allocations
             .get(&id)
-            .ok_or_else(|| Error::MissingSimulationWithID(id))
+            .ok_or_else(|| Error::MissingSimulationWithId(id))
     }
 }

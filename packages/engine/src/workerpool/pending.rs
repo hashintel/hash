@@ -14,7 +14,7 @@ use crate::{
             Task,
         },
     },
-    types::TaskID,
+    types::TaskId,
     worker::task::WorkerTaskResultOrCancelled,
 };
 
@@ -33,7 +33,7 @@ pub enum DistributionController {
 
 #[derive(new)]
 pub struct PendingWorkerPoolTask {
-    pub task_id: TaskID,
+    pub task_id: TaskId,
     pub comms: ActiveTaskExecutorComms,
     pub distribution_controller: DistributionController,
     #[new(default)]
@@ -44,7 +44,7 @@ impl PendingWorkerPoolTask {
     fn handle_result_state(
         &mut self,
         worker: Worker,
-        _task_id: TaskID,
+        _task_id: TaskId,
         result: TaskMessage,
     ) -> Result<HasTerminated> {
         if let DistributionController::Distributed {
@@ -82,7 +82,7 @@ impl PendingWorkerPoolTask {
         }
     }
 
-    fn handle_cancel_state(&mut self, worker: Worker, _task_id: TaskID) -> Result<HasTerminated> {
+    fn handle_cancel_state(&mut self, worker: Worker, _task_id: TaskId) -> Result<HasTerminated> {
         if let DistributionController::Distributed {
             active_workers: active_workers_comms,
             received_results: _,
@@ -155,13 +155,13 @@ impl PendingWorkerPoolTask {
 
 #[derive(Default)]
 pub struct PendingWorkerPoolTasks {
-    pub inner: HashMap<TaskID, PendingWorkerPoolTask>,
+    pub inner: HashMap<TaskId, PendingWorkerPoolTask>,
 }
 
 impl PendingWorkerPoolTasks {
     // TODO: delete or use when cancel is revisited
     #[allow(dead_code)]
-    pub async fn run_cancel_check(&mut self) -> Vec<TaskID> {
+    pub async fn run_cancel_check(&mut self) -> Vec<TaskId> {
         self.inner
             .iter_mut()
             .filter_map(|(id, task)| {

@@ -8,19 +8,19 @@ use self::comms::{
     inbound::InboundToRunnerMsgPayload, outbound::OutboundFromRunnerMsg, ExperimentInitRunnerMsg,
 };
 pub use super::error::{Error, Result};
-use crate::proto::SimulationShortID;
+use crate::proto::SimulationShortId;
 
 #[async_trait::async_trait]
 pub trait LanguageWorker {
     async fn new(spawn: bool, exp_init: ExperimentInitRunnerMsg) -> Self;
     async fn send<K: TryInto<InboundToRunnerMsgPayload>>(
         &self,
-        sim_id: Option<SimulationShortID>,
+        sim_id: Option<SimulationShortId>,
         msg: K,
     ) -> Result<()>;
     async fn send_if_spawned<K: TryInto<InboundToRunnerMsgPayload>>(
         &self,
-        sim_id: Option<SimulationShortID>,
+        sim_id: Option<SimulationShortId>,
         msg: K,
     ) -> Result<()>;
     async fn recv(&mut self) -> Result<OutboundFromRunnerMsg>;

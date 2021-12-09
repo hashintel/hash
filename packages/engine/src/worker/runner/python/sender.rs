@@ -16,7 +16,7 @@ use crate::{
         },
     },
     gen::sync_state_interim_generated::StateInterimSyncArgs,
-    proto::{ExperimentID, SimulationShortID},
+    proto::{ExperimentId, SimulationShortId},
     simulation::enum_dispatch::TaskSharedStore,
     types::WorkerIndex,
     worker::runner::comms::inbound::InboundToRunnerMsgPayload,
@@ -33,7 +33,7 @@ pub struct NngSender {
 }
 
 impl NngSender {
-    pub fn new(experiment_id: ExperimentID, worker_index: WorkerIndex) -> Result<Self> {
+    pub fn new(experiment_id: ExperimentId, worker_index: WorkerIndex) -> Result<Self> {
         let route = format!("ipc://{}-topy{}", experiment_id, worker_index);
         let to_py = Socket::new(nng::Protocol::Pair0)?;
         to_py.set_opt::<nng::options::SendBufferSize>(30)?;
@@ -93,7 +93,7 @@ impl NngSender {
 
     pub fn send(
         &self,
-        sim_id: Option<SimulationShortID>,
+        sim_id: Option<SimulationShortId>,
         msg: &InboundToRunnerMsgPayload,
         task_payload_json: &Option<serde_json::Value>,
     ) -> Result<()> {
@@ -123,7 +123,7 @@ impl Drop for NngSender {
 
 // TODO: Make this function shorter.
 fn inbound_to_nng(
-    sim_id: Option<SimulationShortID>,
+    sim_id: Option<SimulationShortId>,
     msg: &InboundToRunnerMsgPayload,
     task_payload_json: &Option<serde_json::Value>,
 ) -> Result<nng::Message> {
@@ -141,7 +141,7 @@ fn inbound_to_nng(
             let payload = str_to_serialized(fbb, &payload);
 
             let task_id =
-                crate::gen::runner_inbound_msg_generated::TaskID(msg.task_id.to_le_bytes());
+                crate::gen::runner_inbound_msg_generated::TaskId(msg.task_id.to_le_bytes());
 
             let msg = crate::gen::runner_inbound_msg_generated::TaskMsg::create(
                 fbb,

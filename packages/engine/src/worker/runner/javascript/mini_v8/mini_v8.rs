@@ -22,7 +22,7 @@ pub struct MiniV8 {
 
 /// C representation of Arrow array data nodes
 #[repr(C)]
-pub struct DataFFI {
+pub struct DataFfi {
     pub len: usize,
     pub null_count: usize,
     pub n_buffers: usize,
@@ -255,7 +255,7 @@ impl MiniV8 {
         }))
     }
 
-    pub fn data_node_from_js(&self, data: &Value) -> DataFFI {
+    pub fn data_node_from_js(&self, data: &Value) -> DataFfi {
         unsafe { mv8_data_node_from_js(self.interface, value_to_desc(self, data)) }
     }
 }

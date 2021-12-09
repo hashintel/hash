@@ -1,4 +1,4 @@
-use super::response::APIResponses;
+use super::response::ApiResponses;
 use crate::{
     datastore::{
         arrow::util::DataSliceUtils,
@@ -11,7 +11,7 @@ use crate::{
 const NUM_NODES: usize = 5;
 const NUM_BUFFERS: usize = 12;
 
-impl<'s> ContextColumnWriter for APIResponses<'s> {
+impl<'s> ContextColumnWriter for ApiResponses<'s> {
     fn get_dynamic_metadata(&self) -> DatastoreResult<ColumnDynamicMetadata> {
         let mut builder = ColumnDynamicMetadataBuilder::with_capacities(NUM_NODES, NUM_BUFFERS);
 

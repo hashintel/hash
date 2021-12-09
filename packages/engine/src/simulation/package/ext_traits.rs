@@ -29,6 +29,6 @@ pub trait GetWorkerSimStartMsg {
     fn get_worker_sim_start_msg(&self) -> Result<serde_json::Value>;
 }
 
-pub trait MaybeCPUBound {
+pub trait MaybeCpuBound {
     fn cpu_bound(&self) -> bool;
 }

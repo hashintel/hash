@@ -158,65 +158,65 @@ impl<'a> flatbuffers::Verifiable for RunnerOutboundMsgPayload {
 impl flatbuffers::SimpleToVerifyInSlice for RunnerOutboundMsgPayload {}
 pub struct RunnerOutboundMsgPayloadUnionTableOffset {}
 
-// struct TaskID, aligned to 1
+// struct TaskId, aligned to 1
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq)]
-pub struct TaskID(pub [u8; 16]);
-impl Default for TaskID {
+pub struct TaskId(pub [u8; 16]);
+impl Default for TaskId {
     fn default() -> Self {
         Self([0; 16])
     }
 }
-impl std::fmt::Debug for TaskID {
+impl std::fmt::Debug for TaskId {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        f.debug_struct("TaskID")
+        f.debug_struct("TaskId")
             .field("inner", &self.inner())
             .finish()
     }
 }
 
-impl flatbuffers::SimpleToVerifyInSlice for TaskID {}
-impl flatbuffers::SafeSliceAccess for TaskID {}
-impl<'a> flatbuffers::Follow<'a> for TaskID {
-    type Inner = &'a TaskID;
+impl flatbuffers::SimpleToVerifyInSlice for TaskId {}
+impl flatbuffers::SafeSliceAccess for TaskId {}
+impl<'a> flatbuffers::Follow<'a> for TaskId {
+    type Inner = &'a TaskId;
 
     #[inline]
     fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-        <&'a TaskID>::follow(buf, loc)
+        <&'a TaskId>::follow(buf, loc)
     }
 }
-impl<'a> flatbuffers::Follow<'a> for &'a TaskID {
-    type Inner = &'a TaskID;
+impl<'a> flatbuffers::Follow<'a> for &'a TaskId {
+    type Inner = &'a TaskId;
 
     #[inline]
     fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-        flatbuffers::follow_cast_ref::<TaskID>(buf, loc)
+        flatbuffers::follow_cast_ref::<TaskId>(buf, loc)
     }
 }
-impl<'b> flatbuffers::Push for TaskID {
-    type Output = TaskID;
+impl<'b> flatbuffers::Push for TaskId {
+    type Output = TaskId;
 
     #[inline]
     fn push(&self, dst: &mut [u8], _rest: &[u8]) {
         let src = unsafe {
-            ::std::slice::from_raw_parts(self as *const TaskID as *const u8, Self::size())
+            ::std::slice::from_raw_parts(self as *const TaskId as *const u8, Self::size())
         };
         dst.copy_from_slice(src);
     }
 }
-impl<'b> flatbuffers::Push for &'b TaskID {
-    type Output = TaskID;
+impl<'b> flatbuffers::Push for &'b TaskId {
+    type Output = TaskId;
 
     #[inline]
     fn push(&self, dst: &mut [u8], _rest: &[u8]) {
         let src = unsafe {
-            ::std::slice::from_raw_parts(*self as *const TaskID as *const u8, Self::size())
+            ::std::slice::from_raw_parts(*self as *const TaskId as *const u8, Self::size())
         };
         dst.copy_from_slice(src);
     }
 }
 
-impl<'a> flatbuffers::Verifiable for TaskID {
+impl<'a> flatbuffers::Verifiable for TaskId {
     #[inline]
     fn run_verifier(
         v: &mut flatbuffers::Verifier,
@@ -226,7 +226,7 @@ impl<'a> flatbuffers::Verifiable for TaskID {
         v.in_buffer::<Self>(pos)
     }
 }
-impl<'a> TaskID {
+impl<'a> TaskId {
     #[allow(clippy::too_many_arguments)]
     pub fn new(inner: &[i8; 16]) -> Self {
         let mut s = Self([0; 16]);
@@ -301,8 +301,8 @@ impl<'a> TaskMsg<'a> {
     }
 
     #[inline]
-    pub fn task_id(&self) -> Option<&'a TaskID> {
-        self._tab.get::<TaskID>(TaskMsg::VT_TASK_ID, None)
+    pub fn task_id(&self) -> Option<&'a TaskId> {
+        self._tab.get::<TaskId>(TaskMsg::VT_TASK_ID, None)
     }
 
     #[inline]
@@ -335,7 +335,7 @@ impl flatbuffers::Verifiable for TaskMsg<'_> {
         use self::flatbuffers::Verifiable;
         v.visit_table(pos)?
             .visit_field::<u64>(&"package_sid", Self::VT_PACKAGE_SID, false)?
-            .visit_field::<TaskID>(&"task_id", Self::VT_TASK_ID, false)?
+            .visit_field::<TaskId>(&"task_id", Self::VT_TASK_ID, false)?
             .visit_field::<Target>(&"target", Self::VT_TARGET, false)?
             .visit_field::<flatbuffers::ForwardsUOffset<StateInterimSync>>(
                 &"metaversioning",
@@ -353,7 +353,7 @@ impl flatbuffers::Verifiable for TaskMsg<'_> {
 }
 pub struct TaskMsgArgs<'a> {
     pub package_sid: u64,
-    pub task_id: Option<&'a TaskID>,
+    pub task_id: Option<&'a TaskId>,
     pub target: Target,
     pub metaversioning: Option<flatbuffers::WIPOffset<StateInterimSync<'a>>>,
     pub payload: Option<flatbuffers::WIPOffset<Serialized<'a>>>,
@@ -382,9 +382,9 @@ impl<'a: 'b, 'b> TaskMsgBuilder<'a, 'b> {
     }
 
     #[inline]
-    pub fn add_task_id(&mut self, task_id: &TaskID) {
+    pub fn add_task_id(&mut self, task_id: &TaskId) {
         self.fbb_
-            .push_slot_always::<&TaskID>(TaskMsg::VT_TASK_ID, task_id);
+            .push_slot_always::<&TaskId>(TaskMsg::VT_TASK_ID, task_id);
     }
 
     #[inline]
@@ -478,8 +478,8 @@ impl<'a> TaskCancelled<'a> {
     }
 
     #[inline]
-    pub fn task_id(&self) -> Option<&'a TaskID> {
-        self._tab.get::<TaskID>(TaskCancelled::VT_TASK_ID, None)
+    pub fn task_id(&self) -> Option<&'a TaskId> {
+        self._tab.get::<TaskId>(TaskCancelled::VT_TASK_ID, None)
     }
 }
 
@@ -491,13 +491,13 @@ impl flatbuffers::Verifiable for TaskCancelled<'_> {
     ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
         use self::flatbuffers::Verifiable;
         v.visit_table(pos)?
-            .visit_field::<TaskID>(&"task_id", Self::VT_TASK_ID, false)?
+            .visit_field::<TaskId>(&"task_id", Self::VT_TASK_ID, false)?
             .finish();
         Ok(())
     }
 }
 pub struct TaskCancelledArgs<'a> {
-    pub task_id: Option<&'a TaskID>,
+    pub task_id: Option<&'a TaskId>,
 }
 impl<'a> Default for TaskCancelledArgs<'a> {
     #[inline]
@@ -511,9 +511,9 @@ pub struct TaskCancelledBuilder<'a: 'b, 'b> {
 }
 impl<'a: 'b, 'b> TaskCancelledBuilder<'a, 'b> {
     #[inline]
-    pub fn add_task_id(&mut self, task_id: &TaskID) {
+    pub fn add_task_id(&mut self, task_id: &TaskId) {
         self.fbb_
-            .push_slot_always::<&TaskID>(TaskCancelled::VT_TASK_ID, task_id);
+            .push_slot_always::<&TaskId>(TaskCancelled::VT_TASK_ID, task_id);
     }
 
     #[inline]

@@ -7,7 +7,7 @@ use crate::datastore::{
 };
 
 #[derive(thiserror::Error, Debug)]
-pub enum ShortJSONError {
+pub enum ShortJsonError {
     #[error("Could not find 'fields' field in input")]
     MissingFields,
     #[error("'fields' field in input is not an object")]
@@ -102,7 +102,7 @@ impl FieldType {
                 "string" => Ok(FieldType::new(FieldTypeVariant::String, is_nullable)),
                 "any" => {
                     if depth != 0 {
-                        return Err(ShortJSONError::InvalidAnyTypeLevel.into());
+                        return Err(ShortJsonError::InvalidAnyTypeLevel.into());
                     }
                     Ok(FieldType::new(FieldTypeVariant::AnyType, is_nullable))
                 }
@@ -111,7 +111,7 @@ impl FieldType {
                         Ok(key.field_type.clone())
                     } else {
                         return Err(
-                            ShortJSONError::InvalidFieldType(ExpectedFieldType::String).into()
+                            ShortJsonError::InvalidFieldType(ExpectedFieldType::String).into()
                         );
                     }
                 }
@@ -140,7 +140,7 @@ impl FieldSpec {
                 };
                 Ok(spec)
             }
-            _ => Err(ShortJSONError::InvalidFieldType(ExpectedFieldType::Custom).into()),
+            _ => Err(ShortJsonError::InvalidFieldType(ExpectedFieldType::Custom).into()),
         }
     }
 
@@ -161,7 +161,7 @@ impl FieldSpec {
                 Ok(spec)
             }
             Value::Object(_) => FieldSpec::from_short_json_object(name, value, definitions),
-            _ => Err(ShortJSONError::InvalidFieldType(ExpectedFieldType::StringOrCustom).into()),
+            _ => Err(ShortJsonError::InvalidFieldType(ExpectedFieldType::StringOrCustom).into()),
         }
     }
 }
@@ -201,13 +201,13 @@ impl FieldSpecMap {
                     }
                     Ok(field_spec_map)
                 } else {
-                    Err(ShortJSONError::FieldsIsNotObject.into())
+                    Err(ShortJsonError::FieldsIsNotObject.into())
                 }
             } else {
-                Err(ShortJSONError::MissingFields.into())
+                Err(ShortJsonError::MissingFields.into())
             }
         } else {
-            Err(ShortJSONError::InvalidFormatForFieldsObject.into())
+            Err(ShortJsonError::InvalidFormatForFieldsObject.into())
         }
     }
 }

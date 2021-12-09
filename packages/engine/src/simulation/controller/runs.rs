@@ -2,19 +2,19 @@ use futures::stream::{FuturesOrdered, StreamExt};
 use tokio::task::JoinHandle;
 
 use super::Result;
-use crate::proto::SimulationShortID;
+use crate::proto::SimulationShortId;
 
 #[derive(Default)]
 pub struct SimulationRuns {
-    inner: FuturesOrdered<JoinHandle<Result<SimulationShortID>>>,
+    inner: FuturesOrdered<JoinHandle<Result<SimulationShortId>>>,
 }
 
 impl SimulationRuns {
-    pub fn new_run(&mut self, handle: JoinHandle<Result<SimulationShortID>>) {
+    pub fn new_run(&mut self, handle: JoinHandle<Result<SimulationShortId>>) {
         self.inner.push(handle);
     }
 
-    pub async fn next(&mut self) -> Result<Option<Result<SimulationShortID>>>
+    pub async fn next(&mut self) -> Result<Option<Result<SimulationShortId>>>
     where
         Self: Unpin,
     {

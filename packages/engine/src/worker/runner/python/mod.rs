@@ -20,17 +20,17 @@ use super::comms::{
     RunnerTaskMsg, SentTask,
 };
 use crate::{
-    proto::SimulationShortID,
-    types::TaskID,
+    proto::SimulationShortId,
+    types::TaskId,
     worker::{Error as WorkerError, Result as WorkerResult},
     Language,
 };
 
 pub struct PythonRunner {
     init_msg: Arc<ExperimentInitRunnerMsg>, // Args to RunnerImpl::new
-    inbound_sender: UnboundedSender<(Option<SimulationShortID>, InboundToRunnerMsgPayload)>,
+    inbound_sender: UnboundedSender<(Option<SimulationShortId>, InboundToRunnerMsgPayload)>,
     inbound_receiver:
-        Option<UnboundedReceiver<(Option<SimulationShortID>, InboundToRunnerMsgPayload)>>,
+        Option<UnboundedReceiver<(Option<SimulationShortId>, InboundToRunnerMsgPayload)>>,
     outbound_sender: Option<UnboundedSender<OutboundFromRunnerMsg>>,
     outbound_receiver: UnboundedReceiver<OutboundFromRunnerMsg>,
     spawn: bool,
@@ -52,7 +52,7 @@ impl PythonRunner {
 
     pub async fn send(
         &self,
-        sim_id: Option<SimulationShortID>,
+        sim_id: Option<SimulationShortId>,
         msg: InboundToRunnerMsgPayload,
     ) -> WorkerResult<()> {
         log::trace!("Sending message to Python: {:?}", &msg);
@@ -63,7 +63,7 @@ impl PythonRunner {
 
     pub async fn send_if_spawned(
         &self,
-        sim_id: Option<SimulationShortID>,
+        sim_id: Option<SimulationShortId>,
         msg: InboundToRunnerMsgPayload,
     ) -> WorkerResult<()> {
         if self.spawned() {
@@ -112,7 +112,7 @@ impl PythonRunner {
 
 async fn _run(
     init_msg: Arc<ExperimentInitRunnerMsg>,
-    mut inbound_receiver: UnboundedReceiver<(Option<SimulationShortID>, InboundToRunnerMsgPayload)>,
+    mut inbound_receiver: UnboundedReceiver<(Option<SimulationShortId>, InboundToRunnerMsgPayload)>,
     outbound_sender: UnboundedSender<OutboundFromRunnerMsg>,
 ) -> WorkerResult<()> {
     // Open sockets for Python process to connect to (i.e. start listening).
@@ -134,7 +134,7 @@ async fn _run(
     nng_sender.init()?;
 
     log::debug!("Waiting for messages to Python runner");
-    let mut sent_tasks: HashMap<TaskID, SentTask> = HashMap::new();
+    let mut sent_tasks: HashMap<TaskId, SentTask> = HashMap::new();
     'select_loop: loop {
         // TODO: Send errors instead of immediately stopping?
         tokio::select! {

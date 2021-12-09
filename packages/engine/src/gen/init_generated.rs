@@ -21,65 +21,65 @@ use super::{
 extern crate flatbuffers;
 use self::flatbuffers::{EndianScalar, Follow};
 
-// struct ExperimentID, aligned to 1
+// struct ExperimentId, aligned to 1
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq)]
-pub struct ExperimentID(pub [u8; 16]);
-impl Default for ExperimentID {
+pub struct ExperimentId(pub [u8; 16]);
+impl Default for ExperimentId {
     fn default() -> Self {
         Self([0; 16])
     }
 }
-impl std::fmt::Debug for ExperimentID {
+impl std::fmt::Debug for ExperimentId {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        f.debug_struct("ExperimentID")
+        f.debug_struct("ExperimentId")
             .field("inner", &self.inner())
             .finish()
     }
 }
 
-impl flatbuffers::SimpleToVerifyInSlice for ExperimentID {}
-impl flatbuffers::SafeSliceAccess for ExperimentID {}
-impl<'a> flatbuffers::Follow<'a> for ExperimentID {
-    type Inner = &'a ExperimentID;
+impl flatbuffers::SimpleToVerifyInSlice for ExperimentId {}
+impl flatbuffers::SafeSliceAccess for ExperimentId {}
+impl<'a> flatbuffers::Follow<'a> for ExperimentId {
+    type Inner = &'a ExperimentId;
 
     #[inline]
     fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-        <&'a ExperimentID>::follow(buf, loc)
+        <&'a ExperimentId>::follow(buf, loc)
     }
 }
-impl<'a> flatbuffers::Follow<'a> for &'a ExperimentID {
-    type Inner = &'a ExperimentID;
+impl<'a> flatbuffers::Follow<'a> for &'a ExperimentId {
+    type Inner = &'a ExperimentId;
 
     #[inline]
     fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-        flatbuffers::follow_cast_ref::<ExperimentID>(buf, loc)
+        flatbuffers::follow_cast_ref::<ExperimentId>(buf, loc)
     }
 }
-impl<'b> flatbuffers::Push for ExperimentID {
-    type Output = ExperimentID;
+impl<'b> flatbuffers::Push for ExperimentId {
+    type Output = ExperimentId;
 
     #[inline]
     fn push(&self, dst: &mut [u8], _rest: &[u8]) {
         let src = unsafe {
-            ::std::slice::from_raw_parts(self as *const ExperimentID as *const u8, Self::size())
+            ::std::slice::from_raw_parts(self as *const ExperimentId as *const u8, Self::size())
         };
         dst.copy_from_slice(src);
     }
 }
-impl<'b> flatbuffers::Push for &'b ExperimentID {
-    type Output = ExperimentID;
+impl<'b> flatbuffers::Push for &'b ExperimentId {
+    type Output = ExperimentId;
 
     #[inline]
     fn push(&self, dst: &mut [u8], _rest: &[u8]) {
         let src = unsafe {
-            ::std::slice::from_raw_parts(*self as *const ExperimentID as *const u8, Self::size())
+            ::std::slice::from_raw_parts(*self as *const ExperimentId as *const u8, Self::size())
         };
         dst.copy_from_slice(src);
     }
 }
 
-impl<'a> flatbuffers::Verifiable for ExperimentID {
+impl<'a> flatbuffers::Verifiable for ExperimentId {
     #[inline]
     fn run_verifier(
         v: &mut flatbuffers::Verifier,
@@ -89,7 +89,7 @@ impl<'a> flatbuffers::Verifiable for ExperimentID {
         v.in_buffer::<Self>(pos)
     }
 }
-impl<'a> ExperimentID {
+impl<'a> ExperimentId {
     #[allow(clippy::too_many_arguments)]
     pub fn new(inner: &[i8; 16]) -> Self {
         let mut s = Self([0; 16]);
@@ -155,8 +155,8 @@ impl<'a> Init<'a> {
     }
 
     #[inline]
-    pub fn experiment_id(&self) -> Option<&'a ExperimentID> {
-        self._tab.get::<ExperimentID>(Init::VT_EXPERIMENT_ID, None)
+    pub fn experiment_id(&self) -> Option<&'a ExperimentId> {
+        self._tab.get::<ExperimentId>(Init::VT_EXPERIMENT_ID, None)
     }
 
     #[inline]
@@ -189,7 +189,7 @@ impl flatbuffers::Verifiable for Init<'_> {
     ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
         use self::flatbuffers::Verifiable;
         v.visit_table(pos)?
-            .visit_field::<ExperimentID>(&"experiment_id", Self::VT_EXPERIMENT_ID, false)?
+            .visit_field::<ExperimentId>(&"experiment_id", Self::VT_EXPERIMENT_ID, false)?
             .visit_field::<u64>(&"worker_index", Self::VT_WORKER_INDEX, false)?
             .visit_field::<flatbuffers::ForwardsUOffset<SharedContext>>(
                 &"shared_context",
@@ -206,7 +206,7 @@ impl flatbuffers::Verifiable for Init<'_> {
     }
 }
 pub struct InitArgs<'a> {
-    pub experiment_id: Option<&'a ExperimentID>,
+    pub experiment_id: Option<&'a ExperimentId>,
     pub worker_index: u64,
     pub shared_context: Option<flatbuffers::WIPOffset<SharedContext<'a>>>,
     pub package_config: Option<flatbuffers::WIPOffset<PackageConfig<'a>>>,
@@ -228,9 +228,9 @@ pub struct InitBuilder<'a: 'b, 'b> {
 }
 impl<'a: 'b, 'b> InitBuilder<'a, 'b> {
     #[inline]
-    pub fn add_experiment_id(&mut self, experiment_id: &ExperimentID) {
+    pub fn add_experiment_id(&mut self, experiment_id: &ExperimentId) {
         self.fbb_
-            .push_slot_always::<&ExperimentID>(Init::VT_EXPERIMENT_ID, experiment_id);
+            .push_slot_always::<&ExperimentId>(Init::VT_EXPERIMENT_ID, experiment_id);
     }
 
     #[inline]

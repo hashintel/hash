@@ -45,21 +45,21 @@ use crate::{
         },
     },
     hash_types::Agent,
-    proto::SimulationShortID,
-    types::TaskID,
+    proto::SimulationShortId,
+    types::TaskId,
     workerpool::comms::MainMsgSend,
 };
 
 #[derive(Clone)]
 /// All relevant to communication between the Loop and the Language Runtime(s)
 pub struct Comms {
-    sim_id: SimulationShortID,
+    sim_id: SimulationShortId,
     cmds: Arc<RwLock<CreateRemoveCommands>>,
     worker_pool_sender: MainMsgSend,
 }
 
 impl Comms {
-    pub fn new(sim_id: SimulationShortID, worker_pool_sender: MainMsgSend) -> Result<Comms> {
+    pub fn new(sim_id: SimulationShortId, worker_pool_sender: MainMsgSend) -> Result<Comms> {
         Ok(Comms {
             sim_id,
             cmds: Arc::new(RwLock::new(CreateRemoveCommands::default())),
@@ -151,7 +151,7 @@ impl Comms {
 }
 
 fn wrap_task<T: Into<Task>>(
-    task_id: TaskID,
+    task_id: TaskId,
     package_id: PackageId,
     task: T,
     shared_store: TaskSharedStore,

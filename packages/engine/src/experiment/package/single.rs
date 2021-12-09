@@ -4,7 +4,7 @@ use super::super::{Error, ExperimentControl, Result};
 use crate::{
     config::ExperimentConfig,
     experiment::controller::comms::{exp_pkg_ctl::ExpPkgCtlSend, exp_pkg_update::ExpPkgUpdateRecv},
-    proto::{SimulationShortID, SingleRunExperimentConfig},
+    proto::{SimulationShortId, SingleRunExperimentConfig},
 };
 
 pub struct SingleRunExperiment {
@@ -29,7 +29,7 @@ impl SingleRunExperiment {
         mut pkg_from_exp: ExpPkgUpdateRecv,
     ) -> Result<()> {
         let msg = ExperimentControl::StartSim {
-            sim_id: 1 as SimulationShortID,
+            sim_id: 1 as SimulationShortId,
             changed_properties: serde_json::Map::new().into(), // Don't change properties
             max_num_steps: self.config.num_steps,
         };

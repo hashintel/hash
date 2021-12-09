@@ -31,9 +31,9 @@ const PRIVATE_PREFIX: &str = "_PRIVATE_";
 /// field types we allow users to set
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum PresetFieldType {
-    UInt16,
+    Uint16,
     // Used to refer to an agent from the previous state
-    UInt32,
+    Uint32,
     // Represents AgentId
     Id,
 }

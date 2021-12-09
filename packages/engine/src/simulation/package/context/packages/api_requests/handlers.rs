@@ -34,15 +34,15 @@ pub fn gather_requests<'a>(
     Ok(Requests { inner })
 }
 
-pub async fn run_custom_message_handler(name: &str, requests: Requests) -> Result<APIResponseMap> {
+pub async fn run_custom_message_handler(name: &str, requests: Requests) -> Result<ApiResponseMap> {
     match name {
         "mapbox" => handlers::mapbox::get(requests).await,
-        _ => Err(CustomAPIMessageError::InvalidCustomMessageHandler(name.to_string()).into()),
+        _ => Err(CustomApiMessageError::InvalidCustomMessageHandler(name.to_string()).into()),
     }
 }
 
 #[derive(ThisError, Debug)]
-pub enum CustomAPIMessageError {
+pub enum CustomApiMessageError {
     #[error("Mapbox error: {0}")]
     Mapbox(#[from] mapbox::MapboxError),
 
@@ -50,7 +50,7 @@ pub enum CustomAPIMessageError {
     InvalidCustomMessageHandler(String),
 }
 
-trait CustomError: Into<CustomAPIMessageError> {
+trait CustomError: Into<CustomApiMessageError> {
     fn conv(self) -> Error {
         self.into().into()
     }
@@ -96,7 +96,7 @@ pub mod mapbox {
         //     .map(|s| (from, s))
     }
 
-    pub async fn get<'a>(requests: Requests) -> Result<APIResponseMap> {
+    pub async fn get<'a>(requests: Requests) -> Result<ApiResponseMap> {
         let responses =
             futures::stream::iter(requests.inner.into_iter().map(|request| get_(request)))
                 .buffer_unordered(ACTIVE_REQUESTS)
@@ -114,7 +114,7 @@ pub mod mapbox {
             }
         });
 
-        return Ok(APIResponseMap {
+        return Ok(ApiResponseMap {
             from: "mapbox",
             r#type: "mapbox_response",
             map,

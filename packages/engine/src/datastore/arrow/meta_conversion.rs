@@ -32,10 +32,10 @@ pub enum SupportedArrowDataTypes {
     Int32,
     Int64,
 
-    UInt8,
-    UInt16,
-    UInt32,
-    UInt64,
+    Uint8,
+    Uint16,
+    Uint32,
+    Uint64,
 
     Float32,
     Float64,
@@ -70,10 +70,10 @@ impl TryFrom<ArrowDataType> for SupportedArrowDataTypes {
             ArrowDataType::Int32 => Ok(Self::Int32),
             ArrowDataType::Int64 => Ok(Self::Int64),
 
-            ArrowDataType::UInt8 => Ok(Self::UInt8),
-            ArrowDataType::UInt16 => Ok(Self::UInt16),
-            ArrowDataType::UInt32 => Ok(Self::UInt32),
-            ArrowDataType::UInt64 => Ok(Self::UInt64),
+            ArrowDataType::UInt8 => Ok(Self::Uint8),
+            ArrowDataType::UInt16 => Ok(Self::Uint16),
+            ArrowDataType::UInt32 => Ok(Self::Uint32),
+            ArrowDataType::UInt64 => Ok(Self::Uint64),
 
             ArrowDataType::Float32 => Ok(Self::Float32),
             ArrowDataType::Float64 => Ok(Self::Float64),
@@ -393,10 +393,10 @@ pub fn data_type_to_metadata(
         D::Int32 => data_type_metadata(is_parent_growable, multiplier, 4),
         D::Int64 => data_type_metadata(is_parent_growable, multiplier, 8),
 
-        D::UInt8 => data_type_metadata(is_parent_growable, multiplier, 1),
-        D::UInt16 => data_type_metadata(is_parent_growable, multiplier, 2),
-        D::UInt32 => data_type_metadata(is_parent_growable, multiplier, 4),
-        D::UInt64 => data_type_metadata(is_parent_growable, multiplier, 8),
+        D::Uint8 => data_type_metadata(is_parent_growable, multiplier, 1),
+        D::Uint16 => data_type_metadata(is_parent_growable, multiplier, 2),
+        D::Uint32 => data_type_metadata(is_parent_growable, multiplier, 4),
+        D::Uint64 => data_type_metadata(is_parent_growable, multiplier, 8),
 
         D::Float32 => data_type_metadata(is_parent_growable, multiplier, 4),
         D::Float64 => data_type_metadata(is_parent_growable, multiplier, 8),

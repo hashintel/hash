@@ -4,7 +4,7 @@ use super::super::{Error, ExperimentControl, Result};
 use crate::{
     config::ExperimentConfig,
     experiment::controller::comms::{exp_pkg_ctl::ExpPkgCtlSend, exp_pkg_update::ExpPkgUpdateRecv},
-    proto::{SimpleExperimentConfig, SimulationShortID},
+    proto::{SimpleExperimentConfig, SimulationShortId},
 };
 
 pub struct SimpleExperiment {
@@ -44,13 +44,13 @@ impl SimpleExperiment {
         let mut n_sims_steps = HashMap::new();
         let num_sims = self.config.changed_properties.len();
         for (sim_index, changed_properties) in self.config.changed_properties.iter().enumerate() {
-            let sim_id = sim_index + 1; // We sometimes use 0 as a default/null value, therefore it's not a valid SimulationShortID
-            n_sims_steps.insert(sim_id as SimulationShortID, StepProgress {
+            let sim_id = sim_index + 1; // We sometimes use 0 as a default/null value, therefore it's not a valid SimulationShortId
+            n_sims_steps.insert(sim_id as SimulationShortId, StepProgress {
                 n_steps: 0,
                 stopped: false,
             });
             let msg = ExperimentControl::StartSim {
-                sim_id: sim_id as SimulationShortID,
+                sim_id: sim_id as SimulationShortId,
                 changed_properties: changed_properties.clone(),
                 max_num_steps,
             };

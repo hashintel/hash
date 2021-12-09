@@ -45,7 +45,7 @@ pub struct Package {
     initial_state_src: String,
 }
 
-impl MaybeCPUBound for Package {
+impl MaybeCpuBound for Package {
     fn cpu_bound(&self) -> bool {
         false
     }

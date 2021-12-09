@@ -137,8 +137,8 @@ pub enum Error {
     KdTree(#[from] kdtree::ErrorKind),
 
     #[error("{0}")]
-    CustomAPIMessageError(
-        #[from] super::package::context::packages::api_requests::CustomAPIMessageError,
+    CustomApiMessageError(
+        #[from] super::package::context::packages::api_requests::CustomApiMessageError,
     ),
 
     #[error("Tokio Join Error: {0}")]

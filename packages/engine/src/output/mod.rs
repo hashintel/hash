@@ -1,7 +1,7 @@
 use serde::Serialize;
 
 use crate::{
-    config::PersistenceConfig, proto::SimulationShortID,
+    config::PersistenceConfig, proto::SimulationShortId,
     simulation::step_output::SimulationStepOutput,
 };
 
@@ -17,7 +17,7 @@ pub trait OutputPersistenceCreatorRepr: Send + Sync + 'static {
     type SimulationOutputPersistence: SimulationOutputPersistenceRepr;
     fn new_simulation(
         &self,
-        sim_id: SimulationShortID,
+        sim_id: SimulationShortId,
         persistence_config: &PersistenceConfig,
     ) -> Result<Self::SimulationOutputPersistence>;
 }

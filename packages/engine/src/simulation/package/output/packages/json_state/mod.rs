@@ -37,7 +37,7 @@ struct JsonState {
     config: Arc<SimRunConfig>,
 }
 
-impl MaybeCPUBound for JsonState {
+impl MaybeCpuBound for JsonState {
     fn cpu_bound(&self) -> bool {
         true
     }
@@ -65,13 +65,13 @@ impl Package for JsonState {
 
         let agent_states: Vec<_> = agent_states?.into_iter().flatten().collect();
 
-        Ok(Output::JSONStateOutput(JSONStateOutput {
+        Ok(Output::JsonStateOutput(JsonStateOutput {
             inner: agent_states,
         }))
     }
 }
 
 #[derive(Debug)]
-pub struct JSONStateOutput {
+pub struct JsonStateOutput {
     pub inner: Vec<Agent>,
 }

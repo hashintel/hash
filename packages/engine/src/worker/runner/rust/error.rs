@@ -1,10 +1,11 @@
-use crate::worker::runner::comms::inbound::InboundToRunnerMsgPayload;
-use crate::worker::runner::rust::behaviors::error::SimulationError;
 use arrow::error::ArrowError;
 use thiserror::Error as ThisError;
 use tokio::sync::mpsc::error::SendError;
 
-use crate::worker::SimulationShortID;
+use crate::worker::{
+    runner::{comms::inbound::InboundToRunnerMsgPayload, rust::behaviors::error::SimulationError},
+    SimulationShortId,
+};
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -24,13 +25,13 @@ pub enum Error {
     PackageImport(String, String), // First element is path/name.
 
     #[error("Missing simulation run with id {0}")]
-    MissingSimRun(crate::proto::SimulationShortID),
+    MissingSimRun(crate::proto::SimulationShortId),
 
     #[error("Task target must be py, js, rs, dyn or main, not {0}")]
     UnknownTarget(String),
 
     #[error("Couldn't send inbound message to runner: {0}")]
-    InboundSend(SendError<(Option<SimulationShortID>, InboundToRunnerMsgPayload)>),
+    InboundSend(SendError<(Option<SimulationShortId>, InboundToRunnerMsgPayload)>),
 
     #[error("Couldn't receive outbound message from runner")]
     OutboundReceive,

@@ -14,8 +14,8 @@ use tokio::sync::{
 pub use super::{Error, Result};
 use crate::{
     datastore::table::sync::SyncPayload,
-    proto::SimulationShortID,
-    types::{TaskID, WorkerIndex},
+    proto::SimulationShortId,
+    types::{TaskId, WorkerIndex},
     worker::{
         runner::comms::{outbound::RunnerError, NewSimulationRun},
         task::{WorkerTask, WorkerTaskResultOrCancelled},
@@ -27,13 +27,13 @@ use crate::{
 pub enum WorkerPoolToWorkerMsgPayload {
     Task(WorkerTask),
     Sync(SyncPayload),
-    CancelTask(TaskID),
+    CancelTask(TaskId),
     NewSimulationRun(NewSimulationRun),
 }
 
 #[derive(Debug)]
 pub struct WorkerPoolToWorkerMsg {
-    pub sim_id: Option<SimulationShortID>,
+    pub sim_id: Option<SimulationShortId>,
     pub payload: WorkerPoolToWorkerMsgPayload,
 }
 
@@ -62,21 +62,21 @@ impl WorkerPoolToWorkerMsg {
 }
 
 impl WorkerPoolToWorkerMsg {
-    pub fn sync(sim_id: SimulationShortID, sync_payload: SyncPayload) -> WorkerPoolToWorkerMsg {
+    pub fn sync(sim_id: SimulationShortId, sync_payload: SyncPayload) -> WorkerPoolToWorkerMsg {
         WorkerPoolToWorkerMsg {
             sim_id: Some(sim_id),
             payload: WorkerPoolToWorkerMsgPayload::Sync(sync_payload),
         }
     }
 
-    pub fn task(sim_id: SimulationShortID, task_payload: WorkerTask) -> WorkerPoolToWorkerMsg {
+    pub fn task(sim_id: SimulationShortId, task_payload: WorkerTask) -> WorkerPoolToWorkerMsg {
         WorkerPoolToWorkerMsg {
             sim_id: Some(sim_id),
             payload: WorkerPoolToWorkerMsgPayload::Task(task_payload),
         }
     }
 
-    pub fn cancel_task(task_id: TaskID) -> WorkerPoolToWorkerMsg {
+    pub fn cancel_task(task_id: TaskId) -> WorkerPoolToWorkerMsg {
         WorkerPoolToWorkerMsg {
             sim_id: None,
             payload: WorkerPoolToWorkerMsgPayload::CancelTask(task_id),

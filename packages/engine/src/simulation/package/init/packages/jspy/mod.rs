@@ -60,7 +60,7 @@ pub struct Package {
     comms: PackageComms,
 }
 
-impl MaybeCPUBound for Package {
+impl MaybeCpuBound for Package {
     fn cpu_bound(&self) -> bool {
         false
     }
