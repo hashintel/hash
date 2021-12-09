@@ -21,7 +21,7 @@
     "dev": "nodemon --watch ./src/ --ignore './src/**/*.gen.*' --ext js,ts,json --exec 'tsc -b'",
     "fix": "eslint --ext .js,.ts,.tsx --fix ./src/",
     "postinstall": "yarn build",
-    "lint": "eslint --ext .js,.ts,.tsx ./src/ && tsc --noEmit # @hashintel/hash-shared"
+    "lint": "eslint --ext .js,.ts,.tsx ./src/ && tsc --noEmit"
   },
   "dependencies": {
     "@apollo/client": "3.3.19",

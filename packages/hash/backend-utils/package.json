@@ -19,7 +19,7 @@
     "clean": "rimraf ./dist/ ./tsconfig.tsbuildinfo",
     "fix": "eslint --ext .ts --fix ./src/",
     "postinstall": "yarn build",
-    "lint": "eslint --ext .ts ./src/ && tsc --noEmit # @hashintel/hash-backend-utils",
+    "lint": "eslint --ext .ts ./src/ && tsc --noEmit",
     "ts-node": "node --max-old-space-size=2048 node_modules/.bin/ts-node --files --project tsconfig.json"
   },
   "dependencies": {

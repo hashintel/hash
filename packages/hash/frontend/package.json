@@ -10,8 +10,8 @@
     "codegen": "graphql-codegen --config codegen.yml",
     "dev": "next dev",
     "fix": "eslint --ext .js,.ts,.tsx --fix ./src/",
-    "postinstall": "yarn codegen # required for linting",
-    "lint": "eslint --ext .js,.ts,.tsx ./src/ && tsc --noEmit # @hashintel/hash-frontend",
+    "postinstall": "yarn codegen",
+    "lint": "eslint --ext .js,.ts,.tsx ./src/ && tsc --noEmit",
     "start": "next start",
     "test": "jest"
   },

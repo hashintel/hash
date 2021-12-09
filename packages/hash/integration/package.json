@@ -14,8 +14,8 @@
     "clean": "rimraf './src/**/*.gen.*' ./dist/ ./tsconfig.tsbuildinfo",
     "codegen": "graphql-codegen --config codegen.yml",
     "fix": "eslint --ext .ts --fix ./src/",
-    "postinstall": "yarn codegen # required for linting",
-    "lint": "eslint --ext .ts ./src/ && tsc --noEmit # @hashintel/hash-integration",
+    "postinstall": "yarn codegen",
+    "lint": "eslint --ext .ts ./src/ && tsc --noEmit",
     "mock-data": "yarn codegen && ts-node src/mockData/index.ts",
     "test": "jest --runInBand",
     "ts-node": "node --max-old-space-size=2048 node_modules/.bin/ts-node --files --project tsconfig.json"
