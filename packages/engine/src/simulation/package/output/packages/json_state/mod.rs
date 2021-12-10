@@ -1,10 +1,18 @@
 use serde_json::Value;
 
+pub use self::config::JsonStateOutputConfig;
 use super::super::*;
 use crate::{
-    datastore::{batch::ArrowBatch, table::state::ReadState},
+    datastore::{
+        batch::ArrowBatch,
+        schema::{HIDDEN_PREFIX, PRIVATE_PREFIX},
+        table::state::ReadState,
+    },
     hash_types::Agent,
+    simulation::package::{name::PackageName, output},
 };
+
+mod config;
 
 pub enum Task {}
 
@@ -21,9 +29,28 @@ impl PackageCreator for Creator {
         _comms: PackageComms,
         _accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn Package>> {
+        let value = config
+            .sim
+            .persistence
+            .output_config
+            .map
+            .get(&PackageName::Output(output::Name::JsonState))
+            .ok_or_else(|| Error::from("Missing JSON state config"))?;
+        let output_config: output::packages::json_state::JsonStateOutputConfig =
+            serde_json::from_value(value.clone())?;
         Ok(Box::new(JsonState {
-            config: config.clone(),
+            sim_run_config: config.clone(),
+            output_config,
         }))
+    }
+
+    fn persistence_config(
+        &self,
+        config: &ExperimentConfig,
+        _globals: &Globals,
+    ) -> Result<serde_json::Value> {
+        let config = JsonStateOutputConfig::new(config)?;
+        Ok(serde_json::to_value(config)?)
     }
 }
 
@@ -34,7 +61,8 @@ impl GetWorkerExpStartMsg for Creator {
 }
 
 struct JsonState {
-    config: Arc<SimRunConfig>,
+    sim_run_config: Arc<SimRunConfig>,
+    output_config: JsonStateOutputConfig,
 }
 
 impl MaybeCpuBound for JsonState {
@@ -59,11 +87,26 @@ impl Package for JsonState {
             .map(|batch| {
                 batch
                     .record_batch()
-                    .into_agent_states(Some(&self.config.sim.store.agent_schema))
+                    .into_agent_states(Some(&self.sim_run_config.sim.store.agent_schema))
             })
             .collect();
 
-        let agent_states: Vec<_> = agent_states?.into_iter().flatten().collect();
+        let agent_states: Vec<_> = agent_states?
+            .into_iter()
+            .flatten()
+            .map(|mut agent| {
+                agent.custom.retain(|key, _| {
+                    if key.starts_with(HIDDEN_PREFIX) {
+                        self.output_config.retain_hidden
+                    } else if key.starts_with(PRIVATE_PREFIX) {
+                        self.output_config.retain_private
+                    } else {
+                        true
+                    }
+                });
+                agent
+            })
+            .collect();
 
         Ok(Output::JsonStateOutput(JsonStateOutput {
             inner: agent_states,
