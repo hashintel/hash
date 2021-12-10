@@ -3,10 +3,14 @@ mod pending;
 pub mod runner;
 pub mod task;
 
+use std::future::Future;
+use std::pin::Pin;
 use std::time::Duration;
 
 pub use error::{Error, Result};
 use futures::{stream::FuturesOrdered, StreamExt};
+use futures::future::join_all;
+use futures::stream::FuturesUnordered;
 use tokio::time::timeout;
 
 use self::{
@@ -124,11 +128,15 @@ impl WorkerController {
                     err.to_string()
                 ))
             })?;
+
+        let mut pending_syncs: FuturesUnordered<Pin<Box<dyn Future<Output=()> + Send>>> = FuturesUnordered::new();
+        tokio::pin!(pending_syncs);
         loop {
             tokio::select! {
+                _ = pending_syncs.next() => {}
                 Some(msg) = wp_recv.recv() => {
                     log::debug!("Handle worker pool message: {:?}", &msg);
-                    self.handle_worker_pool_msg(msg).await?;
+                    self.handle_worker_pool_msg(msg, &mut pending_syncs).await?;
                 }
                 res = self.recv_from_runners() => {
                     match res {
@@ -193,7 +201,11 @@ impl WorkerController {
         Ok(())
     }
 
-    async fn handle_worker_pool_msg(&mut self, msg: WorkerPoolToWorkerMsg) -> Result<()> {
+    async fn handle_worker_pool_msg(
+        &mut self,
+        msg: WorkerPoolToWorkerMsg,
+        pending_syncs: &mut FuturesUnordered<Pin<Box<dyn Future<Output=()> + Send>>>,
+    ) -> Result<()> {
         match msg.payload {
             WorkerPoolToWorkerMsgPayload::Task(task) => {
                 self.spawn_task(
@@ -203,8 +215,8 @@ impl WorkerController {
                 )
                 .await?;
             }
-            WorkerPoolToWorkerMsgPayload::Sync(sync_msg) => {
-                self.sync_runners(msg.sim_id, sync_msg).await?;
+            WorkerPoolToWorkerMsgPayload::Sync(sync) => {
+                self.sync_runners(msg.sim_id, sync, pending_syncs).await?;
             }
             WorkerPoolToWorkerMsgPayload::CancelTask(task_id) => {
                 log::trace!("Received cancel task msg from Worker Pool");
@@ -485,12 +497,43 @@ impl WorkerController {
         &mut self,
         sim_id: Option<SimulationShortId>,
         sync_msg: SyncPayload,
+        pending_syncs: &mut FuturesUnordered<Pin<Box<dyn Future<Output=()> + Send>>>,
     ) -> Result<()> {
-        tokio::try_join!(
-            self.py.send_if_spawned(sim_id, sync_msg.clone().into()),
-            self.js.send_if_spawned(sim_id, sync_msg.clone().into()),
-            self.rs.send_if_spawned(sim_id, sync_msg.into())
-        )?;
+        if let SyncPayload::State(sync) = sync_msg {
+            let (runner_msgs, runner_receivers) = sync.children(1);
+            let mut runner_msgs: Vec<_> = runner_msgs
+                .into_iter()
+                .map(|msg| InboundToRunnerMsgPayload::StateSync(msg))
+                .collect();
+            let js_msg = runner_msgs.remove(0);
+            tokio::try_join!(
+                    self.js.send_if_spawned(sim_id, js_msg),
+                    // TODO: self.py.send_if_spawned(msg.sim_id, runner_msgs[1]),
+                    // TODO: self.rs.send_if_spawned(msg.sim_id, runner_msgs[2]),
+                )?;
+            let fut = async move {
+                log::trace!("Getting completions");
+                let results: Vec<_> = join_all(runner_receivers).await;
+                log::trace!("Got all completions");
+                let result = results
+                    .into_iter()
+                    .map(|recv_result| recv_result.expect(
+                        "Couldn't receive waitable sync result from runner"
+                    ))
+                    .collect::<Result<Vec<()>>>()
+                    .map(|_| ());
+                sync.completion_sender
+                    .send(result)
+                    .expect("Couldn't send waitable sync result to engine");
+            };
+            pending_syncs.push(Box::pin(fut) as _);
+        } else {
+            tokio::try_join!(
+                self.py.send_if_spawned(sim_id, sync_msg.try_clone()?.into()),
+                self.js.send_if_spawned(sim_id, sync_msg.try_clone()?.into()),
+                self.rs.send_if_spawned(sim_id, sync_msg.into())
+            )?;
+        }
         Ok(())
     }
 

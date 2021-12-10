@@ -6,11 +6,12 @@ use crate::{
     proto::SimulationShortId,
     types::TaskId,
 };
+use crate::datastore::table::sync::WaitableStateSync;
 
 pub enum InboundToRunnerMsgPayload {
     TaskMsg(RunnerTaskMsg),
     CancelTask(TaskId),
-    StateSync(StateSync),
+    StateSync(WaitableStateSync),
     StateSnapshotSync(StateSync),
     ContextBatchSync(ContextBatchSync),
     StateInterimSync(StateInterimSync),

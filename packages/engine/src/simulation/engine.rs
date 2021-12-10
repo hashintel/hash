@@ -91,15 +91,23 @@ impl Engine {
     /// and their outputs are merged into one Context object.
     async fn run_context_packages(&mut self) -> Result<()> {
         log::trace!("Starting run context packages stage");
+        // Need write access to state to prepare for context packages,
+        // so can't start state sync (with workers) yet.
         let (mut state, mut context) = self.store.take_upgraded()?;
         let snapshot = self.prepare_for_context_packages(&mut state, &mut context)?;
-        self.comms.state_snapshot_sync(&snapshot); // Synchronize snapshot with workers
-        let pre_context = context.into_pre_context();
+
+        // Context packages use the snapshot and state packages use state.
+        // Context packages will be run before state packages, so start
+        // snapshot sync before state sync.
+
+        // Synchronize snapshot with workers
+        self.comms.state_snapshot_sync(&snapshot);
 
         let state = Arc::new(state.downgrade());
-        // TODO: Do we want to sync state here? At the moment we expect
-        //       task messages to cause sync of state
-        self.comms.state_sync(&state).await?; // Synchronize state with workers
+        // Synchronize state with workers
+        let active_sync = self.comms.state_sync(&state).await?;
+
+        let pre_context = context.into_pre_context();
         let context = self
             .packages
             .step
@@ -111,6 +119,10 @@ impl Engine {
         self.comms
             .context_batch_sync(&context, state.group_start_indices())
             .await?;
+
+        // The snapshot and context batch won't be written to after starting their
+        // respective syncs (until the next step), and the workers handle messages in
+        // the order they are sent in, so we don't need to wait for workers to
 
         // TODO: Previously we didn't need responses from state syncs, because
         //       we could guarantee that no writes to state would happen before
@@ -124,8 +136,11 @@ impl Engine {
         //       step (i.e. no StateSync message has yet been sent on that step).
         //       This sleep should be removed, but for now it can only fail with
         //       a panic, not a silent data race, due to the `Arc::try_unwrap` below.
-        tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
+        // tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
 
+        log::trace!("Waiting for active state sync");
+        active_sync.await?;
+        log::trace!("State sync finished");
         let state = Arc::try_unwrap(state)
             .map_err(|_| Error::from("Unable to unwrap state after context package execution"))?;
         self.store.set(state, context);

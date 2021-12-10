@@ -4,7 +4,13 @@ use crate::{
     proto::SimulationShortId,
     simulation::{package::id::PackageId, task::Task},
     types::TaskId,
+    worker::error::{Error as WorkerError, Result as WorkerResult},
 };
+use crate::datastore::table::sync::WaitableStateSync;
+use crate::worker::runner::comms::inbound::InboundToRunnerMsgPayload;
+
+pub type SyncCompletionReceiver = tokio::sync::oneshot::Receiver<WorkerResult<()>>;
+pub type SyncCompletionSender = tokio::sync::oneshot::Sender<WorkerResult<()>>;
 
 #[derive(new, Debug)]
 pub struct WrappedTask {

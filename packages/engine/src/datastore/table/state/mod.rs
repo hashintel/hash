@@ -284,6 +284,15 @@ pub trait WriteState: ReadState {
     ///
     /// Returns the old messages so they can be used
     /// later for reference
+    ///
+    /// Performance: This creates a new empty messages column
+    ///              for each old column to replace, which
+    ///              requires creating a null bit buffer with
+    ///              all bits set to 1 (i.e. all valid), i.e.
+    ///              one bit per each agent in each group.
+    ///              Everything else is O(m), where `m` is the
+    ///              number of batches, so this function shouldn't
+    ///              take very long to run.
     fn reset_messages(
         &mut self,
         mut old_context_message_pool: MessagePool,

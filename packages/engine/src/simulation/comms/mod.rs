@@ -49,6 +49,8 @@ use crate::{
     types::TaskId,
     workerpool::comms::MainMsgSend,
 };
+use crate::datastore::table::sync::WaitableStateSync;
+use crate::simulation::comms::message::SyncCompletionReceiver;
 
 #[derive(Clone)]
 /// All relevant to communication between the Loop and the Language Runtime(s)
@@ -88,20 +90,24 @@ impl Comms {
 
 // Datastore synchronization methods
 impl Comms {
-    // TODO: Docstring, explain why and how this would be used. As it is not currently.
-    pub async fn state_sync(&self, state: &State) -> Result<()> {
+    // State sync is distinct from state interim sync in that state sync
+    // can update the number of batches (after adding/removing agents or
+    // partitioning them differently), but 
+    pub async fn state_sync(&self, state: &State) -> Result<SyncCompletionReceiver> {
         log::trace!("Synchronizing state");
+        let (completion_sender, completion_receiver) = tokio::sync::oneshot::channel();
+
         // Synchronize the state batches
         let agents = state.agent_pool().clone();
         let agent_messages = state.message_pool().clone();
-        let sync_msg = StateSync::new(agents, agent_messages);
+        let sync_msg = WaitableStateSync::new(completion_sender, agents, agent_messages);
         self.worker_pool_sender
             .send(EngineToWorkerPoolMsg::sync(
                 self.sim_id,
                 SyncPayload::State(sync_msg),
             ))
             .map_err(|e| Error::from(format!("Worker pool error: {:?}", e)))?;
-        Ok(())
+        Ok(completion_receiver)
     }
 
     pub async fn state_snapshot_sync(&self, state: &StateSnapshot) -> Result<()> {

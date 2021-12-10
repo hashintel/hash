@@ -21,6 +21,9 @@ use crate::{
     types::WorkerIndex,
     worker::runner::comms::inbound::InboundToRunnerMsgPayload,
 };
+use crate::datastore::table::pool::agent::AgentPool;
+use crate::datastore::table::pool::message::MessagePool;
+use crate::datastore::table::sync::WaitableStateSync;
 
 /// Only used for sending messages to the Python process
 pub struct NngSender {
@@ -159,7 +162,9 @@ fn inbound_to_nng(
         }
         InboundToRunnerMsgPayload::CancelTask(_) => todo!(), // Unused for now
         InboundToRunnerMsgPayload::StateSync(msg) => {
-            let (agent_pool, message_pool) = state_sync_to_fbs(fbb, msg)?;
+            let (agent_pool, message_pool) = state_sync_to_fbs(
+                fbb, &msg.agent_pool, &msg.message_pool,
+            )?;
             let msg = crate::gen::sync_state_generated::StateSync::create(
                 fbb,
                 &crate::gen::sync_state_generated::StateSyncArgs {
@@ -174,7 +179,9 @@ fn inbound_to_nng(
             )
         }
         InboundToRunnerMsgPayload::StateSnapshotSync(msg) => {
-            let (agent_pool, message_pool) = state_sync_to_fbs(fbb, msg)?;
+            let (agent_pool, message_pool) = state_sync_to_fbs(
+                fbb, &msg.agent_pool, &msg.message_pool,
+            )?;
             let msg = crate::gen::sync_state_snapshot_generated::StateSnapshotSync::create(
                 fbb,
                 &crate::gen::sync_state_snapshot_generated::StateSnapshotSyncArgs {
@@ -292,19 +299,20 @@ fn inbound_to_nng(
 
 fn state_sync_to_fbs<'f>(
     fbb: &mut FlatBufferBuilder<'f>,
-    msg: &StateSync,
+    agent_pool: &AgentPool,
+    msg_pool: &MessagePool,
 ) -> Result<(
     WIPOffset<Vector<'f, ForwardsUOffset<crate::gen::batch_generated::Batch<'f>>>>,
     WIPOffset<Vector<'f, ForwardsUOffset<crate::gen::batch_generated::Batch<'f>>>>,
 )> {
-    let agent_pool = msg.agent_pool.read_batches()?;
+    let agent_pool = agent_pool.read_batches()?;
     let agent_pool: Vec<_> = agent_pool
         .iter()
         .map(|batch| batch_to_fbs(fbb, batch))
         .collect();
     let agent_pool = fbb.create_vector(&agent_pool);
 
-    let msg_pool = msg.message_pool.read_batches()?;
+    let msg_pool = msg_pool.read_batches()?;
     let msg_pool: Vec<_> = msg_pool
         .iter()
         .map(|batch| batch_to_fbs(fbb, batch))
