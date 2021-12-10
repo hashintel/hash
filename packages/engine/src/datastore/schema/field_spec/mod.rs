@@ -18,8 +18,8 @@ pub mod creator;
 pub mod display;
 pub mod short_json;
 
-const HIDDEN_PREFIX: &str = "_HIDDEN_";
-const PRIVATE_PREFIX: &str = "_PRIVATE_";
+pub const HIDDEN_PREFIX: &str = "_HIDDEN_";
+pub const PRIVATE_PREFIX: &str = "_PRIVATE_";
 
 // TODO: better encapsulate the supported underlying field types, and the selection of those that
 //   we expose to the user compared to this thing where we have a variant and an 'extension'. So
