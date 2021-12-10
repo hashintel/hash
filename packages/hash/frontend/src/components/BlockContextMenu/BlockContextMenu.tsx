@@ -1,21 +1,27 @@
-import React, { useState } from "react";
+import React, { useContext, useMemo, useState } from "react";
 import { tw } from "twind";
-import { format } from "date-fns";
 
 import DeleteIcon from "@material-ui/icons/DeleteOutline";
 import CopyIcon from "@material-ui/icons/FileCopyOutlined";
 import LoopIcon from "@material-ui/icons/LoopOutlined";
 import LinkIcon from "@material-ui/icons/LinkOutlined";
 import { useKey } from "rooks";
+import { unstable_batchedUpdates } from "react-dom";
 
 import { EntityStore, isBlockEntity } from "@hashintel/hash-shared/entityStore";
-import { blockDomId } from "../../blocks/page/BlockView";
-import {
-  BlockSuggester,
-  BlockSuggesterProps,
-} from "../../blocks/page/createSuggester/BlockSuggester";
 
-import { useAccountInfos } from "../hooks/useAccountInfos";
+import { blockDomId } from "../../blocks/page/BlockView";
+import { BlockSuggesterProps } from "../../blocks/page/createSuggester/BlockSuggester";
+import { BlockMetaContext } from "../../blocks/blockMeta";
+import { NormalView } from "./NormalView";
+import { SearchView } from "./SearchView";
+import {
+  MenuItemType,
+  MenuState,
+  FilteredMenuItems,
+  ItemClickMethod,
+  iconStyles,
+} from "./BlockContextMenuUtils";
 
 type BlockContextMenuProps = {
   blockSuggesterProps: BlockSuggesterProps;
@@ -24,28 +30,28 @@ type BlockContextMenuProps = {
   entityStore: EntityStore;
 };
 
-const MENU_ITEMS = [
+const MENU_ITEMS: Array<MenuItemType> = [
   {
     key: "delete",
     title: "Delete",
-    icon: <DeleteIcon className={tw`!text-inherit mr-1`} />,
+    icon: <DeleteIcon className={iconStyles} />,
   },
   {
     key: "duplicate",
     title: "Duplicate",
-    icon: <CopyIcon className={tw`!text-inherit mr-1`} />,
+    icon: <CopyIcon className={iconStyles} />,
   },
   {
     key: "copyLink",
     title: "Copy Link",
-    icon: <LinkIcon className={tw`!text-inherit mr-1`} />,
+    icon: <LinkIcon className={iconStyles} />,
   },
   {
     key: "switchBlock",
     title: "Turn into",
-    icon: <LoopIcon className={tw`!text-inherit mr-1`} />,
+    icon: <LoopIcon className={iconStyles} />,
   },
-] as const;
+];
 
 export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
   blockSuggesterProps,
@@ -53,40 +59,131 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
   entityId,
   entityStore,
 }) => {
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [subMenuVisible, setSubMenuVisible] = useState(false);
-
-  const { data: accounts } = useAccountInfos();
-
   const blockData = entityId ? entityStore.saved[entityId] : null;
 
   if (blockData && !isBlockEntity(blockData)) {
     throw new Error("BlockContextMenu linked to non-block entity");
   }
 
+  const [searchText, setSearchText] = useState("");
+
+  const [menuState, setMenuState] = useState<MenuState>({
+    currentView: "normal",
+    selectedIndex: 0,
+    subMenuVisible: false,
+  });
+
+  const { currentView, selectedIndex, subMenuVisible } = menuState;
+
+  const updateMenuState = (updatedState: Partial<MenuState>) => {
+    setMenuState((currentMenuState) => ({
+      ...currentMenuState,
+      ...updatedState,
+    }));
+  };
+
+  const blocksMeta = useContext(BlockMetaContext);
+
+  const blockOptions = useMemo(() => {
+    return Array.from(blocksMeta.values()).flatMap((blockMeta) =>
+      blockMeta.componentMetadata.variants.map((variant) => ({
+        variant,
+        meta: blockMeta,
+      })),
+    );
+  }, [blocksMeta]);
+
+  const usableMenuItems = MENU_ITEMS.filter(({ key }) => {
+    return key !== "copyLink" || entityId;
+  });
+
+  const searchableActions = usableMenuItems.filter(
+    (item) => item.key !== "switchBlock",
+  );
+
+  const lowerCaseSearchText = searchText.toLocaleLowerCase();
+
+  const filteredActions = searchableActions.filter((item) =>
+    item.title.toLocaleLowerCase().includes(lowerCaseSearchText),
+  );
+
+  const filteredBlocks = blockOptions.filter(
+    (block) =>
+      block.variant.displayName &&
+      block.variant.displayName
+        ?.toLocaleLowerCase()
+        .includes(lowerCaseSearchText),
+  );
+
+  const filteredMenuItems: FilteredMenuItems = {
+    actions: filteredActions,
+    blocks: filteredBlocks,
+  };
+
+  const search = (newSearchText: string) => {
+    unstable_batchedUpdates(() => {
+      setSearchText(newSearchText);
+
+      if (!newSearchText) {
+        if (currentView !== "normal") {
+          updateMenuState({
+            currentView: "normal",
+            selectedIndex: 0,
+            subMenuVisible: false,
+          });
+        }
+      } else if (currentView !== "search") {
+        updateMenuState({
+          currentView: "search",
+          selectedIndex: 0,
+          subMenuVisible: false,
+        });
+      }
+    });
+  };
+
+  const getNextIndex = (event: KeyboardEvent, maxLength: number) => {
+    let index = selectedIndex + (event.key === "ArrowUp" ? -1 : 1);
+    index += maxLength;
+    index %= maxLength;
+
+    return index;
+  };
+
   useKey(["ArrowUp", "ArrowDown"], (event) => {
     event.preventDefault();
     if (subMenuVisible) return;
 
-    let index = selectedIndex + (event.key === "ArrowUp" ? -1 : 1);
-    index += MENU_ITEMS.length;
-    index %= MENU_ITEMS.length;
-    setSelectedIndex(index);
-  });
+    if (currentView === "normal") {
+      const nextIndex = getNextIndex(event, usableMenuItems.length);
+      updateMenuState({ selectedIndex: nextIndex });
+    } else {
+      const filteredItemsLength =
+        filteredMenuItems.actions.length + filteredMenuItems.blocks.length;
 
-  useKey(["ArrowLeft", "ArrowRight"], (event) => {
-    if (MENU_ITEMS[selectedIndex]?.key === "switchBlock") {
-      setSubMenuVisible(event.key === "ArrowRight");
+      const nextIndex = getNextIndex(event, filteredItemsLength);
+      updateMenuState({ selectedIndex: nextIndex });
     }
   });
 
-  const handleClick = (key: typeof MENU_ITEMS[number]["key"]) => {
+  useKey(["ArrowLeft", "ArrowRight"], (event) => {
+    if (usableMenuItems[selectedIndex]?.key === "switchBlock") {
+      updateMenuState({ subMenuVisible: event.key === "ArrowRight" });
+    }
+  });
+
+  useKey(["Escape"], () => {
+    closeMenu();
+  });
+
+  const onItemClick: ItemClickMethod = (key) => {
     // handle menu item click here
     switch (key) {
       case "delete":
         break;
       case "switchBlock":
-        setSubMenuVisible(!subMenuVisible);
+        updateMenuState({ subMenuVisible: !subMenuVisible });
+
         break;
       case "copyLink": {
         const url = new URL(document.location.href);
@@ -101,78 +198,74 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
     }
   };
 
+  const onNormalViewEnter = () => {
+    // if switchBlock is selected, make the block suggestor menu visible, else select the selected action
+    if (usableMenuItems[selectedIndex]?.key === "switchBlock") {
+      updateMenuState({ subMenuVisible: true });
+    } else {
+      onItemClick(usableMenuItems[selectedIndex].key);
+    }
+  };
+
+  const onSearchViewEnter = () => {
+    // if selected item is an action, execute the action, else convert the current block to the selected block
+    if (selectedIndex < filteredMenuItems.actions.length) {
+      onItemClick(filteredMenuItems.actions[selectedIndex].key);
+    } else {
+      const selectedBlock =
+        filteredMenuItems.blocks[
+          selectedIndex - filteredMenuItems.actions.length
+        ];
+      blockSuggesterProps.onChange(selectedBlock.variant, selectedBlock.meta);
+    }
+  };
+
   return (
     <div
       className={tw`absolute z-10 w-60 bg-white border-gray-200 border-1 shadow-xl rounded`}
     >
       <div className={tw`px-4 pt-3 mb-2`}>
         <input
+          autoFocus
+          value={searchText}
+          onChange={(event) => {
+            search(event.target.value);
+          }}
           className={tw`block w-full px-2 py-1 bg-gray-50 border-1 text-sm rounded-sm `}
           placeholder="Filter actions..."
+          onKeyDown={(event) => {
+            // Is Enter causing a new-line? Read this: https://hashintel.slack.com/archives/C02K2ARC1BK/p1638433216067800
+            if (event.key === "Enter") {
+              event.preventDefault();
+              if (currentView === "normal") {
+                onNormalViewEnter();
+              } else {
+                onSearchViewEnter();
+              }
+            }
+          }}
         />
       </div>
-      <ul className={tw`text-sm mb-4`}>
-        {MENU_ITEMS.map(({ title, icon, key }, index) => {
-          if (key === "copyLink" && !entityId) {
-            return null;
-          }
-          return (
-            <li key={key} className={tw`flex`}>
-              <button
-                className={tw`flex-1 hover:bg-gray-100 ${
-                  index === selectedIndex ? "bg-gray-100" : ""
-                }  flex items-center py-1 px-4 group`}
-                onFocus={() => setSelectedIndex(index)}
-                onMouseOver={() => setSelectedIndex(index)}
-                onClick={() => handleClick(key)}
-                onKeyDown={(evt) => {
-                  if (evt.key === "Enter") {
-                    handleClick(key);
-                  }
-                }}
-                type="button"
-              >
-                {icon}
-                <span>{title}</span>
-                {key === "switchBlock" && (
-                  <span className={tw`ml-auto`}>&rarr;</span>
-                )}
-                {key === "switchBlock" && index === selectedIndex && (
-                  <BlockSuggester
-                    className={`left-full ml-0.5 mt-2 ${
-                      subMenuVisible ? "block" : "hidden"
-                    } text-left hover:block group-hover:block shadow-xl`}
-                    {...blockSuggesterProps}
-                  />
-                )}
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-      <div
-        className={tw`border-t-1 border-gray-200 px-4 py-2 text-xs text-gray-400`}
-      >
-        <p>
-          Last edited by {/* @todo use lastedited value when available */}
-          {
-            accounts.find(
-              (account) =>
-                account.entityId === blockData?.properties.entity.createdById,
-            )?.name
-          }
-        </p>
-        {typeof blockData?.properties.entity.updatedAt === "string" && (
-          <p>
-            {format(new Date(blockData.properties.entity.updatedAt), "hh.mm a")}
-            {", "}
-            {format(
-              new Date(blockData.properties.entity.updatedAt),
-              "dd/MM/yyyy",
-            )}
-          </p>
-        )}
-      </div>
+      {currentView === "normal" ? (
+        <NormalView
+          usableMenuItems={usableMenuItems}
+          updateMenuState={updateMenuState}
+          selectedIndex={selectedIndex}
+          subMenuVisible={subMenuVisible}
+          onItemClick={onItemClick}
+          blockSuggesterProps={blockSuggesterProps}
+          blockData={blockData}
+        />
+      ) : (
+        <SearchView
+          blockSuggesterProps={blockSuggesterProps}
+          entityId={entityId}
+          filteredMenuItems={filteredMenuItems}
+          onItemClick={onItemClick}
+          selectedIndex={selectedIndex}
+          updateMenuState={updateMenuState}
+        />
+      )}
     </div>
   );
 };

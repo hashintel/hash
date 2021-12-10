@@ -44,10 +44,10 @@ const findTrigger = (state: EditorState<Schema>): Trigger | null => {
   // the parent's position relative to the document root
   const parentPos = cursor.pos - cursorPos;
 
-  const match = text.substring(0, cursorPos).match(/(@|\/)\S*$/);
+  const match = /(@|\/)\S*$/.exec(text.substring(0, cursorPos));
   if (!match) return null;
 
-  const from = match.index!;
+  const from = match.index;
 
   // match upto the first whitespace character or the end of the node
   const to = cursorPos + text.substring(cursorPos).search(/\s|$/g);
