@@ -27,6 +27,7 @@
   * [Running for development](#running-for-development)
 - [Usage](#usage)
   * [CLI Arguments and Options](#cli-arguments-and-options)
+  * [Run a simulation](#run-a-simulation)
   * [Simulation Outputs](#simulation-outputs)
     + [JSON-State](#json-state)
     + [Analysis](#analysis)
@@ -115,7 +116,7 @@ Depending on how lightweight your OS install is, you may be missing some low lev
 ### Running for development
 > **WIP** - This section is a work-in-progress. More detailed documentation of the CLI's API will be provided. For now, it's easiest to test by running _single runs_ rather than _simple_ experiments.
 
-The CLI binary handles parsing a HASH project, and the lifetime of the engine for an experiment. To use it, download a project by **TODO: Instructions are WIP, coming shortly**.
+The CLI binary handles parsing a HASH project, and the lifetime of the engine for an experiment. To use it requires a HASH project to be accessible on the local disk. Follow instructions in the [Run a simulation](#run-a-simulation) section to learn how to download and create one.
 
 Then, run the CLI using:
 * `cargo run --bin cli -- <CLI ARGS>`
@@ -134,6 +135,33 @@ The CLI comes with a short help page: `cli help` or `cli -h`. A more detailed ex
 
 If one of the environment variables shown in the help page is passed, it will overwrite the default values. Parameters take precedence over environment variables.
 
+### Run a simulation
+
+> **Warning** - Python and Rust runners are currently not supported. Within your simulation project, you should only see `.js` files within dependencies (for example, dependencies/@hash/age/src/behaviors/age.js). Files ending in `.rs` and `.py` will be ignored and the run will possibly fail in unclear ways. This also means that only an `init.json` or `init.js` is supported at the moment, not `init.py`.
+>
+> Currently the easiest way of creating a project is by using the integrated IDE at [https://core.hash.ai][hCore] (hCore). In the absence of an in-depth description of expected project structure (which will be coming in the future), downloading a project from hCore is currently the easiest way to learn how one should be set out.
+
+In order to download and then run a simulation from hCore, you can download it by clicking `File -> Export Project` from the toolbar on the top. For help in finding or creating, and editing, simulations in hCore, take a look at our [online documentation][docs]. Then save and unzip the downloaded project to a location of your choice, for example by
+
+```shell
+$ unzip my-project.zip -d my-hash-project
+```
+
+To run the simulation, [build the binaries](#project-setup--building) and pass your project to the CLI:
+
+```shell
+$ cargo run --bin cli -- --project /path/to/my-hash-project single-run --num-steps <NUM-STEPS>
+```
+
+In order to see more logging information while the simulation is running, you can modify the [Rust logging level](https://docs.rs/log/latest/log/enum.Level.html) by exporting `RUST_LOG` before running, e.g.:
+
+```shell
+$ export RUST_LOG=debug
+```
+
+[docs]: https://hash.ai/docs/simulation?utm_medium=organic&utm_source=github_readme_engine
+
+
 ### Simulation Outputs
 > **WIP** - This section is a work-in-progress. More in-depth documentation is in the works for describing all output formats and options. As such some functionality may not be mentioned here, and some functionality alluded to here might not be complete at present. 
 Currently the engine has two main form of outputs, one coming from the [json_state package](./src/simulation/package/output/packages/json_state) and the other from the [analysis package](./src/simulation/package/output/packages/analysis).
@@ -144,7 +172,7 @@ By default, the engine outputs a serialized snapshot of Agent state every step. 
 #### Analysis
 > **WIP** - This feature is currently unstable
 
-[hCore](https://core.hash.ai) currently provides functionality where simulations can apply custom analysis on user-defined metrics. The functionality has been ported across to this codebase in the [analysis package](./src/simulation/package/output/packages/analysis), however development is planned to stabilise it. As such, this functionality is neither tested, nor considered supported.
+[hCore] currently provides functionality where simulations can apply custom analysis on user-defined metrics. The functionality has been ported across to this codebase in the [analysis package](./src/simulation/package/output/packages/analysis), however development is planned to stabilise it. As such, this functionality is neither tested, nor considered supported.
 
 ## Main Concepts
 
@@ -185,3 +213,5 @@ The packages utilize a [communication implementation](./src/simulation/comms) to
 #### DataStore
 
 The [DataStore](./src/datastore) is the backend responsible for keeping the data between the simulation run main loops and language runners in sync. It encapsulates logic surrounding read/write access, as well as low-level shared memory representation.
+
+[hCore]: https://core.hash.ai?utm_medium=organic&utm_source=github_readme_engine
