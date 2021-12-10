@@ -348,7 +348,7 @@ macro_rules! impl_tuple {
         where
             $($name: ToValue<'mv8>,)*
         {
-            #[allow(non_snake_case)]
+            #[allow(non_snake_case, unused)]
             fn to_values(self, mv8: &'mv8 MiniV8) -> Result<'mv8, Values<'mv8>> {
                 let ($($name,)*) = self;
                 let reservation = $({ &$name; 1 } +)* 0;
@@ -377,7 +377,7 @@ macro_rules! impl_tuple {
             $($name: ToValue<'mv8>,)*
             VAR: ToValue<'mv8>,
         {
-            #[allow(non_snake_case)]
+            #[allow(non_snake_case, unused)]
             fn to_values(self, mv8: &'mv8 MiniV8) -> Result<'mv8, Values<'mv8>> {
                 let ($($name,)* variadic) = self;
                 let reservation = $({ &$name; 1 } +)* 1;

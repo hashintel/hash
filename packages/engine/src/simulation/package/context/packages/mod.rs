@@ -10,7 +10,6 @@ use std::{
 
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
-use strum_macros::IntoStaticStr;
 
 use super::PackageCreator;
 use crate::{

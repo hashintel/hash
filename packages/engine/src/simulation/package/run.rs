@@ -5,7 +5,6 @@ use futures::{executor::block_on, stream::FuturesOrdered, StreamExt};
 use crate::{
     datastore::{
         prelude::{Context, State},
-        schema::FieldKey,
         table::{
             context::PreContext,
             state::{view::StateSnapshot, ReadState},

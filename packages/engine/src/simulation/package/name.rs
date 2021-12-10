@@ -1,7 +1,6 @@
 use std::fmt::Display;
 
 use serde::Serialize;
-use strum_macros::IntoStaticStr;
 
 use crate::simulation::{
     package::{context, deps::Dependencies, id::PackageId, init, output, state, PackageMetadata},
