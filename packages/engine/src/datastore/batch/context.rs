@@ -30,7 +30,6 @@ pub struct Batch {
     pub(crate) memory: Memory,
     pub(crate) metaversion: Metaversion,
     pub(crate) batch: RecordBatch,
-    pub(crate) group_start_indices: Vec<usize>,
 }
 
 impl BatchRepr for Batch {
@@ -64,7 +63,6 @@ impl Batch {
         record_batch: &RecordBatch,
         schema: Option<&Arc<ArrowSchema>>,
         experiment_run_id: &Arc<ExperimentId>,
-        group_start_indices: Vec<usize>,
     ) -> Result<Batch> {
         let (meta_buffer, data_buffer) = static_record_batch_to_bytes(record_batch);
 
@@ -76,14 +74,10 @@ impl Batch {
             &data_buffer,
             false,
         )?;
-        Self::from_memory(memory, schema, group_start_indices)
+        Self::from_memory(memory, schema)
     }
 
-    pub fn from_memory(
-        memory: Memory,
-        schema: Option<&Arc<ArrowSchema>>,
-        group_start_indices: Vec<usize>,
-    ) -> Result<Batch> {
+    pub fn from_memory(memory: Memory, schema: Option<&Arc<ArrowSchema>>) -> Result<Batch> {
         let (schema_buffer, _, meta_buffer, data_buffer) = memory.get_batch_buffers()?;
         let schema = if let Some(s) = schema {
             s.clone()
@@ -109,7 +103,6 @@ impl Batch {
             memory,
             metaversion: Metaversion::default(),
             batch,
-            group_start_indices,
         })
     }
 

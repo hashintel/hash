@@ -387,10 +387,6 @@ pub const PREVIOUS_INDEX_FIELD_NAME: &str = "previous_index";
 //      something like `get_hidden_column_name(PREVIOUS_INDEX_FIELD_NAME)`
 pub const PREVIOUS_INDEX_FIELD_KEY: &str = "_HIDDEN_0_previous_index";
 
-// TODO: is this actually used or remnants of a hopeful design
-pub const CONTEXT_INDEX_FIELD_NAME: &str = "context_index";
-pub const CONTEXT_INDEX_FIELD_KEY: &str = "_HIDDEN_0_context_index";
-
 pub fn get_base_agent_fields() -> Result<Vec<RootFieldSpec>> {
     let mut field_specs = Vec::with_capacity(13);
     let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
@@ -436,30 +432,8 @@ pub fn get_base_agent_fields() -> Result<Vec<RootFieldSpec>> {
         }
     }
 
-    // This key is required for agents to access their context. Since agent
-    // batches may be arbitrarily shuffled after context is written, then we
-    // need a way to keep track.
-    #[must_use]
-    // TODO: migrate this to be logic handled by the Engine
-    pub fn context_index_key() -> FieldSpec {
-        FieldSpec {
-            name: CONTEXT_INDEX_FIELD_NAME.to_string(),
-            field_type: FieldType::new(
-                FieldTypeVariant::Preset(PresetFieldType::Uint32),
-                // This key is not nullable because all agents have a context
-                false,
-            ),
-        }
-    }
-
-    let ctx_index = context_index_key();
     let last_state_index = last_state_index_key();
 
-    field_specs.push(field_spec_creator.create(
-        ctx_index.name.into(),
-        ctx_index.field_type,
-        FieldScope::Hidden,
-    ));
     field_specs.push(field_spec_creator.create(
         last_state_index.name.into(),
         last_state_index.field_type,

@@ -963,6 +963,7 @@ impl<'m> RunnerImpl<'m> {
         sim_run_id: SimulationShortId,
         ctx_batch: ContextBatchSync,
     ) -> Result<()> {
+        let start_indices = &ctx_batch.state_group_start_indices;
         let ctx_batch = &ctx_batch
             .context_batch
             .try_read()
@@ -970,7 +971,7 @@ impl<'m> RunnerImpl<'m> {
         let args = mv8::Values::from_vec(vec![
             sim_id_to_js(mv8, sim_run_id),
             batch_to_js(mv8, ctx_batch.memory(), ctx_batch.metaversion())?,
-            idxs_to_js(mv8, &ctx_batch.group_start_indices)?,
+            idxs_to_js(mv8, start_indices)?,
         ]);
         let _: mv8::Value = self
             .embedded

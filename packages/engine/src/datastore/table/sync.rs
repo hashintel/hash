@@ -25,6 +25,7 @@ impl fmt::Debug for StateSync {
 #[derive(new, Clone)]
 pub struct ContextBatchSync {
     pub context_batch: Arc<RwLock<ContextBatch>>,
+    pub state_group_start_indices: Arc<Vec<usize>>,
 }
 
 impl fmt::Debug for ContextBatchSync {

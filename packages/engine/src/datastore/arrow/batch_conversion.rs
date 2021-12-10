@@ -4,26 +4,25 @@
     clippy::cast_sign_loss
 )]
 
-use std::{collections::HashSet, sync::Arc};
-
-use arrow::{
-    array::{self, Array, ArrayDataBuilder, ArrayRef, PrimitiveBuilder},
-    buffer::MutableBuffer,
-    datatypes::{self, ArrowNativeType, ArrowNumericType, ArrowPrimitiveType, DataType, Field},
+use super::prelude::*;
+use crate::datastore::schema::state::AgentSchema;
+use crate::datastore::schema::{FieldScope, IsRequired};
+use crate::datastore::{
+    prelude::*,
+    schema::{FieldKey, FieldTypeVariant},
+    UUID_V4_LEN,
+};
+use crate::hash_types::state::{AgentStateField, BUILTIN_FIELDS};
+use crate::simulation::package::creator::PREVIOUS_INDEX_FIELD_KEY;
+use arrow::array::{self, Array, ArrayDataBuilder, ArrayRef, PrimitiveBuilder};
+use arrow::buffer::MutableBuffer;
+use arrow::datatypes::{
+    self, ArrowNativeType, ArrowNumericType, ArrowPrimitiveType, DataType, Field,
 };
 use serde::de::DeserializeOwned;
 use serde_json::value::Value;
-
-use super::prelude::*;
-use crate::{
-    datastore::{
-        prelude::*,
-        schema::{state::AgentSchema, FieldKey, FieldScope, FieldTypeVariant, IsRequired},
-        UUID_V4_LEN,
-    },
-    hash_types::state::{AgentStateField, BUILTIN_FIELDS},
-    simulation::package::creator::{CONTEXT_INDEX_FIELD_KEY, PREVIOUS_INDEX_FIELD_KEY},
-};
+use std::collections::HashSet;
+use std::sync::Arc;
 
 // This file is here mostly to convert between RecordBatch and Vec<AgentState>.
 
@@ -53,9 +52,10 @@ pub fn new_one_bits(n_bits: usize) -> MutableBuffer {
     MutableBuffer::new(n_bytes).with_bitset(n_bytes, true)
 }
 
-/// Get a mutable buffer for offsets to `n_elem` elements. It is required that the buffer is filled
-/// to `n_elem` + 1 offsets. All elements are zero in the beginning, so there is no need to set the
-/// first offset as `0_i32`
+/// Get a mutable buffer for offsets to `n_elem` elements
+/// It is required that the buffer is filled to `n_elem` + 1
+/// offsets. All elements are zero in the beginning, so
+/// there is no need to set the first offset as `0_i32`
 pub fn new_offsets_buffer(n_elem: usize) -> MutableBuffer {
     // Each offset is an i32 element
     let offset_size = std::mem::size_of::<i32>();
@@ -333,9 +333,9 @@ fn json_vals_to_struct(
             }
             Value::Null => {
                 null_count += 1;
-                // Arrow expects struct child arrays to have length (at least) as long as struct
-                // array itself, even if struct elements are all nulls and it shouldn't be
-                // necessary.
+                // Arrow expects struct child arrays to have length (at least) as long as
+                // struct array itself, even if struct elements are all nulls and it
+                // shouldn't be necessary.
                 for i in 0..fields.len() {
                     flattened_vals[i].push(Value::Null);
                 }
@@ -436,21 +436,6 @@ fn previous_index_to_empty_col(num_agents: usize, dt: &ArrowDataType) -> Result<
     }
 }
 
-fn context_index_to_empty_col(num_agents: usize, dt: &ArrowDataType) -> Result<ArrayRef> {
-    debug_assert!(matches!(dt, DataType::UInt32));
-    let data_byte_size = num_agents * std::mem::size_of::<u32>();
-    let mut buffer = MutableBuffer::new(data_byte_size);
-    buffer.resize(data_byte_size).unwrap();
-
-    let builder = ArrayDataBuilder::new(dt.clone())
-        .null_count(0)
-        .len(num_agents as usize)
-        .add_buffer(buffer.freeze())
-        .build();
-    let array = arrow::array::UInt32Array::from(builder);
-    Ok(Arc::new(array))
-}
-
 impl IntoRecordBatch for &[AgentState] {
     fn into_message_batch(&self, schema: &Arc<ArrowSchema>) -> Result<RecordBatch> {
         self.iter()
@@ -538,8 +523,6 @@ impl IntoRecordBatch for &[&AgentState] {
                 json_vals_to_bool(vals)
             } else if name.eq(PREVIOUS_INDEX_FIELD_KEY) {
                 previous_index_to_empty_col(self.len(), field.data_type())
-            } else if name.eq(CONTEXT_INDEX_FIELD_KEY) {
-                context_index_to_empty_col(self.len(), field.data_type())
             } else if matches!(
                 schema
                     .field_spec_map
@@ -563,7 +546,7 @@ impl IntoRecordBatch for &[&AgentState] {
 /// Conversion into `AgentState`, which can be converted to JSON
 pub trait IntoAgentStates {
     fn into_agent_states(&self, agent_schema: Option<&Arc<AgentSchema>>)
-    -> Result<Vec<AgentState>>;
+        -> Result<Vec<AgentState>>;
 
     // Conversion into `AgentState` where certain built-in fields and
     // null values are selectively ignored
@@ -1219,11 +1202,9 @@ pub mod tests {
 
             agents.iter_mut().for_each(|v| {
                 v.delete_custom(PREVIOUS_INDEX_FIELD_KEY);
-                v.delete_custom(CONTEXT_INDEX_FIELD_KEY);
             });
             returned_agents.iter_mut().for_each(|v| {
                 v.delete_custom(PREVIOUS_INDEX_FIELD_KEY);
-                v.delete_custom(CONTEXT_INDEX_FIELD_KEY);
             });
 
             agents

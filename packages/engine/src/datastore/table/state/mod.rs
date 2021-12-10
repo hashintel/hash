@@ -24,10 +24,18 @@ use crate::{
 pub struct Inner {
     /// Pool which contains all Dynamic Agent Batches
     agent_pool: AgentPool,
+
     /// Pool which contains all Outbox Batches
     message_pool: MessagePool,
+
+    /// Cumulative number of agents in the first `i` batches
+    /// of the pools, i.e. index of first agent of each group
+    /// in combined pool
+    group_start_indices: Arc<Vec<usize>>,
+
     /// Local metadata
     local_meta: Meta,
+
     /// Number of agents
     num_elements: usize,
 }
@@ -40,10 +48,18 @@ impl Inner {
     ) -> Result<Inner> {
         let mut agent_batches = Vec::with_capacity(agent_state_batches.len());
         let mut message_batches = Vec::with_capacity(agent_state_batches.len());
+
         let agent_schema = &sim_config.sim.store.agent_schema;
         let message_schema = &sim_config.sim.store.message_schema;
         let experiment_run_id = &sim_config.exp.run_id;
+
+        let mut group_start_indices = Vec::new();
+        let mut start = 0;
+
         for agent_state_batch in agent_state_batches {
+            group_start_indices.push(start);
+            start += agent_state_batch.len();
+
             agent_batches.push(Arc::new(parking_lot::RwLock::new(
                 AgentBatch::from_agent_states(*agent_state_batch, agent_schema, experiment_run_id)?,
             )));
@@ -63,6 +79,7 @@ impl Inner {
             message_pool,
             local_meta: Meta::default(),
             num_elements: num_agents,
+            group_start_indices: Arc::new(group_start_indices),
         };
         Ok(inner)
     }
@@ -133,7 +150,7 @@ impl ExState {
     }
 
     pub fn finalize_agent_pool(
-        &self,
+        &mut self,
         context: &mut ExContext,
         agent_schema: &AgentSchema,
         experiment_run_id: &ExperimentId,
@@ -189,6 +206,21 @@ impl ExState {
                 .for_each(|id| context.local_meta().removed_batch(id));
         }
 
+        // State group start indices need to be updated, because we
+        // might have added/removed agents to/from groups.
+        let mut cumulative_num_agents = 0;
+        let group_start_indices = Arc::new(
+            dynamic_pool
+                .iter()
+                .map(|batch| {
+                    let n = cumulative_num_agents;
+                    cumulative_num_agents += batch.num_agents();
+                    n
+                })
+                .collect(),
+        );
+        drop(dynamic_pool);
+        self.inner.group_start_indices = group_start_indices;
         Ok(())
     }
 
@@ -291,5 +323,9 @@ pub trait ReadState {
 
     fn num_agents(&self) -> usize {
         self.inner().num_elements
+    }
+
+    fn group_start_indices(&self) -> &Arc<Vec<usize>> {
+        &self.inner().group_start_indices
     }
 }

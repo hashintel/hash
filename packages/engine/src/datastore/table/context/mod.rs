@@ -35,7 +35,6 @@ impl Context {
         cols: Vec<Arc<dyn arrow::array::Array>>,
         config: Arc<StoreConfig>,
         experiment_run_id: &Arc<ExperimentId>,
-        group_start_indices: Vec<usize>,
     ) -> Result<Context> {
         let context_record_batch = RecordBatch::try_new(config.context_schema.arrow.clone(), cols)?;
 
@@ -43,7 +42,6 @@ impl Context {
             &context_record_batch,
             Some(&config.context_schema.arrow),
             experiment_run_id,
-            group_start_indices,
         )?;
         let inner = Inner {
             batch: Arc::new(RwLock::new(context_batch)),

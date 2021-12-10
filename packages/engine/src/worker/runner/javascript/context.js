@@ -101,9 +101,9 @@ const gen_sim_ctx = (ctx_schema, getters) => {
     }
 
     /// Invalidates existing `GroupContext` and `AgentContext` objects.
-    SimContext.prototype.set_batch = function(ctx_batch, group_start_idxs) {
+    SimContext.prototype.set_batch = function(ctx_batch, state_group_start_idxs) {
         this.__ctx_batch = ctx_batch;
-        this.__group_start_idxs = group_start_idxs;
+        this.__group_start_idxs = state_group_start_idxs;
     }
 
     /// Invalidates existing `GroupContext` and `AgentContext` objects.
@@ -113,7 +113,11 @@ const gen_sim_ctx = (ctx_schema, getters) => {
 
     SimContext.prototype.get_group = function(i_group) {
         return Object.seal(new GroupContext(
-            this.__ctx_batch, this.state_snapshot, this.__group_start_idxs[i_group], this.__globals, this.__experiment_ctx
+            this.__ctx_batch,
+            this.state_snapshot,
+            this.__group_start_idxs[i_group],
+            this.__globals,
+            this.__experiment_ctx
         ));
     }
 
@@ -123,7 +127,11 @@ const gen_sim_ctx = (ctx_schema, getters) => {
             return old_agent_ctx;
         }
         return Object.seal(new AgentContext(
-            this.__ctx_batch, this.state_snapshot, i_agent_in_sim, this.__globals, this.__experiment_ctx
+            this.__ctx_batch,
+            this.state_snapshot,
+            i_agent_in_sim,
+            this.__globals,
+            this.__experiment_ctx
         ));
     }
     

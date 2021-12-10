@@ -1419,9 +1419,12 @@ pub(super) mod test {
     #[cfg(test)]
     pub(super) mod test {
         use super::*;
+        use crate::datastore::schema::state::MessageSchema;
+        use crate::datastore::test_utils::gen_schema_and_test_agents;
+        use crate::simulation::package::creator::PREVIOUS_INDEX_FIELD_KEY;
         use crate::{
             datastore::{schema::state::MessageSchema, test_utils::gen_schema_and_test_agents},
-            simulation::package::creator::{CONTEXT_INDEX_FIELD_KEY, PREVIOUS_INDEX_FIELD_KEY},
+            simulation::package::creator::PREVIOUS_INDEX_FIELD_KEY,
         };
 
         #[test]
@@ -1583,11 +1586,9 @@ pub(super) mod test {
             assert!(agents.num_agents() > 1);
             json_agents.iter_mut().for_each(|v| {
                 v.delete_custom(PREVIOUS_INDEX_FIELD_KEY);
-                v.delete_custom(CONTEXT_INDEX_FIELD_KEY);
             });
             new_json_agents.iter_mut().for_each(|v| {
                 v.delete_custom(PREVIOUS_INDEX_FIELD_KEY);
-                v.delete_custom(CONTEXT_INDEX_FIELD_KEY);
             });
             assert_eq!(json_agents, new_json_agents);
             Ok(())
@@ -1677,11 +1678,9 @@ pub(super) mod test {
 
             json_agents.iter_mut().for_each(|v| {
                 v.delete_custom(PREVIOUS_INDEX_FIELD_KEY);
-                v.delete_custom(CONTEXT_INDEX_FIELD_KEY);
             });
             new_json_agents.iter_mut().for_each(|v| {
                 v.delete_custom(PREVIOUS_INDEX_FIELD_KEY);
-                v.delete_custom(CONTEXT_INDEX_FIELD_KEY);
             });
             assert_eq!(json_agents, new_json_agents);
             Ok(())
@@ -1790,11 +1789,9 @@ pub(super) mod test {
 
             new_json_agents.iter_mut().for_each(|v| {
                 v.delete_custom(PREVIOUS_INDEX_FIELD_KEY);
-                v.delete_custom(CONTEXT_INDEX_FIELD_KEY);
             });
             json_agents.iter_mut().for_each(|v| {
                 v.delete_custom(PREVIOUS_INDEX_FIELD_KEY);
-                v.delete_custom(CONTEXT_INDEX_FIELD_KEY);
             });
             assert_eq!(json_agents, new_json_agents);
             Ok(())

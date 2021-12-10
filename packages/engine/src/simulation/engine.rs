@@ -107,7 +107,10 @@ impl Engine {
             .await?
             .downgrade();
 
-        self.comms.context_batch_sync(&context).await?; // Synchronize context with workers
+        // Synchronize context with workers
+        self.comms
+            .context_batch_sync(&context, state.group_start_indices())
+            .await?;
 
         // TODO: Previously we didn't need responses from state syncs, because
         //       we could guarantee that no writes to state would happen before

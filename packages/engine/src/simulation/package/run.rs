@@ -139,7 +139,6 @@ impl StepPackages {
             columns,
             sim_run_config.sim.store.clone(),
             &sim_run_config.exp.run_id,
-            vec![],
         )?;
         Ok(context)
     }

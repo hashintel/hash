@@ -185,13 +185,13 @@ function run_task(sim_id, i_group, pkg_id, task_message) {
 /// Invalidates existing `GroupContext` and `AgentContext` objects.
 /// (NB: Any `GroupContext` or `AgentContext` objects must be forgotten at
 /// the end of a `run_task` call.)
-function ctx_batch_sync(sim_id, ctx_batch, group_start_idxs) {
+function ctx_batch_sync(sim_id, ctx_batch, state_group_start_idxs) {
     const sim = this.sims[sim_id];
 
     ctx_batch = this.batches.sync(ctx_batch, sim.schema.ctx);
     ctx_batch.load_missing_cols(sim.schema.ctx, sim.context_loaders);
     
-    sim.ctx.set_batch(ctx_batch, group_start_idxs);
+    sim.ctx.set_batch(ctx_batch, state_group_start_idxs);
 }
 
 const _sync_pools = (sim, batches, agent_pool, message_pool) => {
