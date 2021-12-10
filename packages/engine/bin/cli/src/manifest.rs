@@ -17,7 +17,7 @@ use hash_engine::{
 use rand::{Rng, RngCore};
 use rand_distr::{Beta, Distribution, LogNormal, Normal, Poisson};
 use serde::{self, Deserialize, Serialize};
-use serde_json::{Map as SerdeMap, Value as SerdeValue};
+use serde_json::{json, Map as SerdeMap, Value as SerdeValue};
 
 use crate::{ExperimentType, SimpleExperimentArgs};
 
@@ -573,7 +573,11 @@ fn get_simple_experiment_config(
         changed_properties: plan
             .inner
             .into_iter()
-            .flat_map(|v| v.fields.into_values())
+            .flat_map(|v| {
+                v.fields
+                    .into_iter()
+                    .map(|(property_path, changed_value)| json!({ property_path: changed_value }))
+            })
             .collect(),
         num_steps: plan.num_steps,
     };
@@ -826,7 +830,7 @@ fn create_value_variant_plan(selected_experiment: &SerdeValue) -> Result<SimpleE
 }
 
 fn create_linspace_variant_plan(selected_experiment: &SerdeValue) -> Result<SimpleExperimentPlan> {
-    #[derive(Clone, Serialize, Deserialize)]
+    #[derive(Clone, Serialize, Deserialize, Debug)]
     struct LinspaceVariant {
         #[serde(rename = "type")]
         _type: String,
@@ -841,10 +845,14 @@ fn create_linspace_variant_plan(selected_experiment: &SerdeValue) -> Result<Simp
 
     let closure_var = var.clone();
     let mapper: Mapper = Box::new(move |_val, index| {
-        (closure_var.start
-            + (index as f64 * (closure_var.stop - closure_var.start))
-                / ((closure_var.samples - 1 as f64) as f64))
-            .into()
+        let denominator = if closure_var.samples > 1.0 {
+            ((closure_var.samples - 1 as f64) as f64)
+        } else {
+            1.0
+        };
+        let x = (closure_var.start
+            + (index as f64 * (closure_var.stop - closure_var.start)) / denominator);
+        x.into()
     });
 
     Ok(create_variant_with_mapped_value(
@@ -924,7 +932,7 @@ fn linspace(start: f64, stop: f64, num_samples: usize) -> Vec<f64> {
     samples
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct ExperimentPlanEntry {
     fields: HashMap<String, SerdeValue>,
 }
