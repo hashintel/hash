@@ -72,6 +72,7 @@ export const MentionSuggester: VFC<MentionSuggesterProps> = ({
             </div>
           ) : (
             <div className={tw`w-6 h-6 flex items-center justify-center mr-2`}>
+              {/* @todo display page emoji/icon when available */}
               <ArticleIcon />
             </div>
           )}
