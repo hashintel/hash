@@ -17,6 +17,7 @@
 - [Issue Tracking](#issue-tracking)
 - [Additional Documentation](#additional-documentation)
 - [Questions & Support](#questions--support)
+- [The State of Development](#the-state-of-development)
 - [Building and Testing](#building-and-testing)
   * [Dependencies](#dependencies)
   * [macOS Developer Specific Instructions](#macos-developer-specific-instructions)
@@ -48,6 +49,17 @@ The [HASH glossary](https://hash.ai/glossary?utm_medium=organic&utm_source=githu
 
 ## Questions & Support
 We're building a community of people who care about enabling better decision-making through modeling and simulation. Our [support forum](https://hash.community/?utm_medium=organic&utm_source=github_readme_engine) and [HASH community Discord server](https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_engine) (requires login) are both great places to meet other modelers and get help.
+
+## The State of Development 
+
+As outlined above, this project is the next-generation of our simulation engine, and differs from the one currently powering [hCore](https://hash.ai/platform/core?utm_medium=organic&utm_source=github_readme_engine) and [hCloud](https://hash.ai/platform/cloud?utm_medium=organic&utm_source=github_readme_engine). It's published here as a pre-release technology preview, and as such the feature-set and codebase should be considered unstable until it's released. That means that there are a number of features you  may use on the HASH platform that at present may not be supported by this project, notably:
+* Python runners, and therefore **Python behaviors** are currently **disabled**. This is a high-priority item for us and will be one of the main items of development focused on in the near future. Much of the implementation is finished and in this repository should exploring it be of interest (Although as it is _not_ completely finished, expect to find bugs).
+* Rust runners, and therefore **Rust behaviors** (which are generally a subset of the @hash behaviors found within hIndex) are currently **disabled**. This will be taken on after we have enabled the Python runners. Similar to Python, a large amount of the implementation is finished and available to explore, but currently not-in-use.
+
+There are a number of other functionalities in the HASH platform that are possibly under-development and/or not stable within the current repository. Feel free to try things out, but don't be dissuaded if they don't work as of yet. We don't want to make any guarantees until we've had time to properly test features, and for now we're prioritising development to get those features out!
+
+* For now, running of simulations should be easiest with _'single runs'_. (More in-depth usage documentation is found below in [Running for development](#running-for-development)) Various Experiment types have not been fully tested at the moment, and documentation and support may be lacking.
+* Analysis views are also untested at the moment and thus presently are not considered stable or supported.
 
 ## Building and Testing
 
@@ -114,7 +126,7 @@ Depending on how lightweight your OS install is, you may be missing some low lev
 * Run `./src/worker/runner/python/setup.sh` (following the instructions from the help)
 
 ### Running for development
-> **WIP** - This section is a work-in-progress. More detailed documentation of the CLI's API will be provided. For now, it's easiest to test by running _single runs_ rather than _simple_ experiments.
+> **WIP** - This section is a work-in-progress. However slightly more detailed documentation of the CLI is provided below in [CLI Arguments and Options](#cli-arguments-and-options)
 
 The CLI binary handles parsing a HASH project, and the lifetime of the engine for an experiment. To use it requires a HASH project to be accessible on the local disk. Follow instructions in the [Run a simulation](#run-a-simulation) section to learn how to download and create one.
 
