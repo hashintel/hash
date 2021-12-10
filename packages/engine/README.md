@@ -64,6 +64,7 @@ There are a number of other functionalities in the HASH platform that are possib
 * Analysis views are also untested at the moment and thus presently are not considered stable or supported.
 
 ## Building and Testing
+> The following section assumes execution of commands are from within this directory (i.e. [/packages/engine](/packages/engine) relative to the repository root). As such, paths are relative to the folder this README is in.
 
 Depending on your needs, different dependencies are required.
 Building this project requires the following.
@@ -112,7 +113,7 @@ Due to ARM-Based Macs, the `macos` `target_os` has some added complications for 
 
 #### For Intel Macs
 Due to limitations in Cargo at the moment we can't properly check if it's being built _on_ an ARM Mac (rather than _for_ an ARM Mac). Due to this it's necessary to:
-* Enable the `build-nng` feature by passing `--features "build-nng"` to any cargo commands such as `cargo build`
+* Enable the `hash_engine/build-nng` feature by passing `--features "hash_engine/build-nng"` to any cargo commands such as `cargo build`
 
 #### For ARM-Based Macs
 At the moment the project only seems to be compiling if you use the `x86_64-apple-darwin` target. This has some added complexity, especially due to the fact that rustc fails to link 'fat-binaries' in certain scenarios.
