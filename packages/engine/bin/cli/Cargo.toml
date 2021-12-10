@@ -8,7 +8,7 @@ edition = "2021"
 
 [dependencies]
 hash_engine = { path = "../.." }
-server = { path = "../server", artifact = "bin" }
+#server = { path = "../server", artifact = "bin" }
 
 anyhow = "1.0.51"
 async-trait = "0.1.48"

@@ -364,6 +364,7 @@ impl Batch {
     }
 
     // TODO: Use in Rust runner, and look up column without using PREVIOUS_INDEX_COLUMN_INDEX
+    #[allow(unused, unreachable_code)]
     pub fn get_old_message_index(&self, row_index: usize) -> Result<Option<&[u32; 2]>> {
         let col = self.batch.column(todo!());
         let data_ref = col.data_ref();

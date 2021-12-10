@@ -4,25 +4,26 @@
     clippy::cast_sign_loss
 )]
 
-use super::prelude::*;
-use crate::datastore::schema::state::AgentSchema;
-use crate::datastore::schema::{FieldScope, IsRequired};
-use crate::datastore::{
-    prelude::*,
-    schema::{FieldKey, FieldTypeVariant},
-    UUID_V4_LEN,
-};
-use crate::hash_types::state::{AgentStateField, BUILTIN_FIELDS};
-use crate::simulation::package::creator::PREVIOUS_INDEX_FIELD_KEY;
-use arrow::array::{self, Array, ArrayDataBuilder, ArrayRef, PrimitiveBuilder};
-use arrow::buffer::MutableBuffer;
-use arrow::datatypes::{
-    self, ArrowNativeType, ArrowNumericType, ArrowPrimitiveType, DataType, Field,
+use std::{collections::HashSet, sync::Arc};
+
+use arrow::{
+    array::{self, Array, ArrayDataBuilder, ArrayRef, PrimitiveBuilder},
+    buffer::MutableBuffer,
+    datatypes::{self, ArrowNativeType, ArrowNumericType, ArrowPrimitiveType, DataType, Field},
 };
 use serde::de::DeserializeOwned;
 use serde_json::value::Value;
-use std::collections::HashSet;
-use std::sync::Arc;
+
+use super::prelude::*;
+use crate::{
+    datastore::{
+        prelude::*,
+        schema::{state::AgentSchema, FieldKey, FieldScope, FieldTypeVariant, IsRequired},
+        UUID_V4_LEN,
+    },
+    hash_types::state::{AgentStateField, BUILTIN_FIELDS},
+    simulation::package::creator::PREVIOUS_INDEX_FIELD_KEY,
+};
 
 // This file is here mostly to convert between RecordBatch and Vec<AgentState>.
 
@@ -546,7 +547,7 @@ impl IntoRecordBatch for &[&AgentState] {
 /// Conversion into `AgentState`, which can be converted to JSON
 pub trait IntoAgentStates {
     fn into_agent_states(&self, agent_schema: Option<&Arc<AgentSchema>>)
-        -> Result<Vec<AgentState>>;
+    -> Result<Vec<AgentState>>;
 
     // Conversion into `AgentState` where certain built-in fields and
     // null values are selectively ignored

@@ -101,7 +101,7 @@ impl Engine {
         // snapshot sync before state sync.
 
         // Synchronize snapshot with workers
-        self.comms.state_snapshot_sync(&snapshot);
+        self.comms.state_snapshot_sync(&snapshot).await?;
 
         let state = Arc::new(state.downgrade());
         // Synchronize state with workers
@@ -119,24 +119,6 @@ impl Engine {
         self.comms
             .context_batch_sync(&context, state.group_start_indices())
             .await?;
-
-        // The snapshot and context batch won't be written to after starting their
-        // respective syncs (until the next step), and the workers handle messages in
-        // the order they are sent in, so we don't need to wait for workers to
-
-        // TODO: Previously we didn't need responses from state syncs, because
-        //       we could guarantee that no writes to state would happen before
-        //       a task was first sent to a worker (after which we could just
-        //       wait for that task to complete, instead of waiting for the
-        //       sync explicitly), but now we should either (1) put a one-shot
-        //       channel in inbound StateSync messages and wait for a response
-        //       here (like for active tasks) or (2) let an inbound RunTask
-        //       message contain a StateSync (rather than a StateInterimSync)
-        //       message if it is the first RunTask / StateSync message on that
-        //       step (i.e. no StateSync message has yet been sent on that step).
-        //       This sleep should be removed, but for now it can only fail with
-        //       a panic, not a silent data race, due to the `Arc::try_unwrap` below.
-        // tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
 
         log::trace!("Waiting for active state sync");
         active_sync.await?;

@@ -7,8 +7,8 @@ use crate::{
     datastore::{
         error::Error,
         schema::{
-            state::AgentSchema, FieldScope, FieldSource, FieldSpec, FieldSpecMap, FieldType,
-            FieldTypeVariant, RootFieldSpecCreator,
+            state::AgentSchema, FieldScope, FieldSource, FieldSpecMap, FieldType, FieldTypeVariant,
+            RootFieldSpecCreator,
         },
     },
     hash_types::state::{Agent, AgentStateField},

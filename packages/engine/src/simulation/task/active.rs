@@ -83,8 +83,10 @@ impl Drop for ActiveTask {
             if !self.cancel_sent {
                 log::warn!("Sent cancel message");
                 if let Some(cancel_send) = self.comms.cancel_send.take() {
-                    #[allow(unused_results)]
-                    cancel_send.send(CancelTask::new()); // TODO: .expect()?
+                    // TODO: .expect()?
+                    if cancel_send.send(CancelTask::new()).is_err() {
+                        log::error!("Can't cancel task")
+                    }
                     self.cancel_sent = true;
                 } else {
                     log::warn!("Cancel not sent, but no `cancel_send`")

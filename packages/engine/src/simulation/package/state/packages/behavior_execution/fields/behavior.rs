@@ -9,14 +9,13 @@ use crate::{
     datastore::{
         error::{Error, Result},
         schema::{
-            FieldKey, FieldScope, FieldSource, FieldSpec, FieldSpecMap, FieldType,
-            FieldTypeVariant, RootFieldSpec, RootFieldSpecCreator,
+            FieldKey, FieldScope, FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant,
+            RootFieldSpec, RootFieldSpecCreator,
         },
     },
     experiment::SharedBehavior,
     hash_types::state::AgentStateField,
     proto::ExperimentRunTrait,
-    simulation::package::name::PackageName,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq, Default)]

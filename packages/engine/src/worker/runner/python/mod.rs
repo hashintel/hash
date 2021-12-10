@@ -124,7 +124,7 @@ async fn _run(
     cmd.arg("./src/worker/runner/python/run.sh")
         .arg(&init_msg.experiment_id)
         .arg(&init_msg.worker_index.to_string());
-    let process = cmd.spawn().map_err(|e| Error::Spawn(e))?;
+    let _process = cmd.spawn().map_err(|e| Error::Spawn(e))?;
     log::debug!("Started Python process {}", init_msg.worker_index);
 
     // Send init message to Python process.

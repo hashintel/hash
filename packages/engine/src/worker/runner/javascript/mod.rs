@@ -132,11 +132,6 @@ impl<'m> JsPackage<'m> {
 struct Embedded<'m> {
     hash_stdlib: mv8::Value<'m>,
     hash_util: mv8::Value<'m>,
-    batches_prototype: mv8::Value<'m>,
-    experiment_ctx_prototype: mv8::Value<'m>,
-    sim_init_ctx_prototype: mv8::Value<'m>,
-    gen_ctx: mv8::Value<'m>,
-    gen_state: mv8::Value<'m>,
 
     start_experiment: mv8::Function<'m>,
     start_sim: mv8::Function<'m>,
@@ -228,11 +223,6 @@ impl<'m> Embedded<'m> {
         Ok(Self {
             hash_stdlib,
             hash_util,
-            batches_prototype,
-            experiment_ctx_prototype,
-            sim_init_ctx_prototype,
-            gen_ctx,
-            gen_state,
             start_experiment: fns.get(0)?,
             start_sim: fns.get(1)?,
             run_task: fns.get(2)?,
@@ -333,7 +323,7 @@ fn batch_to_js<'m>(
     mem_batch_to_js(mv8, batch_id, arraybuffer, metaversion)
 }
 
-fn mut_batch_to_js<'m>(
+fn _mut_batch_to_js<'m>(
     mv8: &'m MiniV8,
     mem: &mut Memory,
     metaversion: &Metaversion,

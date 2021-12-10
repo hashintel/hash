@@ -1,4 +1,4 @@
-use std::{cmp, fmt, mem::ManuallyDrop};
+use std::{cmp, fmt, mem};
 
 use super::*;
 
@@ -104,7 +104,8 @@ fn manually_drop_arg_descs(arg_descs: Vec<ValueDesc>) {
     // Ownership of the arguments' value pointers was taken by C++. They've already been properly
     // dropped:
     for desc in arg_descs.into_iter() {
-        ManuallyDrop::new(desc);
+        // TODO: Make sure we must not forget this value
+        mem::forget(desc);
     }
 }
 

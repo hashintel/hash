@@ -17,18 +17,18 @@ use crate::{
 };
 
 pub struct RustRunner {
-    outbound_sender: UnboundedSender<OutboundFromRunnerMsg>,
+    _outbound_sender: UnboundedSender<OutboundFromRunnerMsg>,
     outbound_receiver: UnboundedReceiver<OutboundFromRunnerMsg>,
-    spawned: bool,
+    _spawned: bool,
 }
 
 impl RustRunner {
     pub fn new(spawn: bool, _init_msg: ExperimentInitRunnerMsg) -> WorkerResult<Self> {
         let (outbound_sender, outbound_receiver) = unbounded_channel();
         Ok(Self {
-            outbound_sender,
+            _outbound_sender: outbound_sender,
             outbound_receiver,
-            spawned: spawn,
+            _spawned: spawn,
         })
     }
 
