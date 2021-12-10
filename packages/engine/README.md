@@ -26,6 +26,7 @@
   * [Possible Dependencies and Debugging](#possible-dependencies-and-debugging)
   * [Project Setup / Building](#project-setup--building)
   * [Running for development](#running-for-development)
+- [Quick start](#quick-start)
 - [Usage](#usage)
   * [CLI Arguments and Options](#cli-arguments-and-options)
   * [Run a simulation](#run-a-simulation)
@@ -136,6 +137,32 @@ Then, run the CLI using:
 Where CLI args are described below in the [Usage](#usage) section, an example of a run command during development would be:
 * `cargo run --bin cli -- <CLI ARGS> -p  "<PATH TO HASH PROJECT DIR>" single-run --num-steps 5`
 
+
+## Quick start
+
+This guide will download a [demo simulation], run it, and takes a look at it's output.
+
+In order to run the demo:
+
+0. Build the engine as [described above](#project-setup--building)
+1. Open the [demo simulation] and may read the overview
+2. Press `Open` at the upper right to view the simulation at [hCore].
+3. Download it by pressing `File -> Export Project`
+4. Unzip it either with your file browser or by e.g. `unzip ageing-agents.zip -d path/to/ageing-agents`
+5. Run the simulation from the _packages/engine_ directory and pass the simulation as parameter:
+
+    ```
+    cargo run --bin cli -- --project 'path/to/ageing-agents' single-run --num-steps 5
+    ```
+
+After a short time, the simulations should be completed, and the _parts/_ folder has been created. In the parts folder for every simulation a directory is created. For a deeper explaination of the output, please take a look at [Simulation Outputs](#simulation-outputs).
+
+The ageing simulation only increases the age of one agent in each step, so this can be observed when looking at the `"age"` field at the _json_state-0.part_ file.
+
+**Congratiulation**, you just ran your first simulation with the hEngine!
+
+
+[demo simulation]: https://core.hash.ai/@hash/ageing-agents?utm_medium=organic&utm_source=github_readme_engine
 ## Usage
 
 > **WIP** - This section is a work-in-progress. Guidance on production usage will appear here.
