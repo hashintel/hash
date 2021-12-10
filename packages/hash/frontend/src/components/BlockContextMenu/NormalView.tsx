@@ -15,7 +15,7 @@ import {
   ItemClickMethod,
 } from "./BlockContextMenuUtils";
 
-type NormalViewComponent = {
+type NormalViewComponentProps = {
   usableMenuItems: MenuItemType[];
   subMenuVisible: boolean;
   updateMenuState: (updatedState: Partial<MenuState>) => void;
