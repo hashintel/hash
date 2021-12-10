@@ -513,6 +513,9 @@ impl WorkerController {
                 )?;
             let fut = async move {
                 log::trace!("Getting completions");
+                // let mut rs = runner_receivers;
+                // let r = rs.remove(0);
+                // let results = vec![r.await];
                 let results: Vec<_> = join_all(runner_receivers).await;
                 log::trace!("Got all completions");
                 let result = results
@@ -525,6 +528,7 @@ impl WorkerController {
                 sync.completion_sender
                     .send(result)
                     .expect("Couldn't send waitable sync result to engine");
+                log::trace!("Sent main completion");
             };
             pending_syncs.push(Box::pin(fut) as _);
         } else {

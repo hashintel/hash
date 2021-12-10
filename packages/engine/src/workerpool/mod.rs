@@ -219,6 +219,7 @@ impl WorkerPoolController {
             EngineToWorkerPoolMsgPayload::Sync(sync) => {
                 if let SyncPayload::State(sync) = sync {
                     // TODO: Only send to workers that simulation run is registered with
+                    log::trace!("num_workers: {}", self.comms.num_workers());
                     let (worker_msgs, worker_completion_receivers) = sync.children(
                         self.comms.num_workers()
                     );
@@ -232,7 +233,12 @@ impl WorkerPoolController {
                     // TODO: Return Result from future and handle in `self.run` instead of `expect`.
                     let fut = async move {
                         log::trace!("Getting completions");
-                        let results: Vec<_> = join_all(worker_completion_receivers).await;
+                        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                        log::trace!("Still getting completions");
+                        let mut rs = worker_completion_receivers;
+                        let r = rs.remove(0);
+                        let results = vec![r.await];
+                        // let results: Vec<_> = join_all(worker_completion_receivers).await;
                         log::trace!("Got all completions");
                         let result = results
                             .into_iter()
@@ -244,6 +250,7 @@ impl WorkerPoolController {
                         sync.completion_sender
                             .send(result)
                             .expect("Couldn't send waitable sync result to engine");
+                        log::trace!("Sent main completion");
                     };
                     pending_syncs.push(Box::pin(fut) as _);
                 } else {
