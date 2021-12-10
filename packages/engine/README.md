@@ -18,7 +18,8 @@
 - [Additional Documentation](#additional-documentation)
 - [Questions & Support](#questions--support)
 - [Building and Testing](#building-and-testing)
-  * [Dependencies](#dependencies)
+  * [Required dependencies](#required-dependencies)
+  * [Optional dependencies](#optional-dependencies)
   * [macOS Developer Specific Instructions](#macos-developer-specific-instructions)
     + [For Intel Macs](#for-intel-macs)
     + [For ARM-Based Macs](#for-arm-based-macs)
@@ -51,27 +52,17 @@ We're building a community of people who care about enabling better decision-mak
 
 ## Building and Testing
 
-### Dependencies
-> **WIP** - This section is a work-in-progress. It is planned to specify what dependencies are purely needed for _using_ the engine vs. those needed for development on this repository.
+Depending on your needs, different dependencies are required.
+Building this project requires the following.
 
-Building this project requires the following:
+### Required dependencies
 * The Rust Compiler
   * We recommend installing and using rustup, following the [instructions on the Rust-Lang website](https://www.rust-lang.org/tools/install)
   * hEngine runs on the Nightly toolchain. The version is managed by the [rust-toolchain.toml](./rust-toolchain.toml) file. To verify, run `rustup show` from the [engine](.) directory.
 * CMake [3.X.X >= 3.21.2]
   * CMake installation guidance from the [CMake page](https://cmake.org/install/) or if on MacOS through [brew](https://brew.sh/)
-* Python [3.7.x]
-  * Python installation guidance from [their website](https://www.python.org/downloads/)
-* Flatbuffers [2.0.0]
-  * Flatbuffers installation guidance from [their website](https://google.github.io/flatbuffers/flatbuffers_guide_building.html)
-    * It's necessary to match the version (2.0.0) with the Rust crate, so build (or otherwise acquire a compiled flatc binary of) the commit associated with the [2.0.0 release](https://github.com/google/flatbuffers/releases/tag/v2.0.0)
-      * One way of checking out the right commit is running the following from within the flatbuffers repository:
-      
-        ```shell
-        latestTag=$(git describe --tags `git rev-list --tags --max-count=1`)
-        git checkout $latestTag
-        ```
-* For now, you need a pre-compiled libv8_monolith.a accessible under the `$V8_PATH` environment variable
+* a C++ compiler, pkg-config, openssl development files (see [Possible Dependencies and Debugging](#possible-dependencies-and-debugging))
+* For now, you need a pre-compiled _libv8_monolith.a_ accessible under the `$V8_PATH` environment variable
   * The following will produce the necessary files under `~/.v8/vendor` by downloading a precompiled library from a Ruby Gem. The `<URL TO GEM>` should be the link to the relevant gem on the [rubyjs/libv8 releases page](https://github.com/rubyjs/libv8/releases/tag/v8.4.255.0)
     ```shell
     mkdir -p ~/.v8/tmp # Create the .v8 directory and a tmp folder
@@ -84,6 +75,23 @@ Building this project requires the following:
     rm -rf tmp # Delete the tmp folder
     ```
   * With the V8 folder containing `include` and `out.gn` you can then set the variable for your terminal session with `export V8_PATH=<path to folder>` or you can set it permanently by [adding it to your shell's environment](https://unix.stackexchange.com/questions/117467/how-to-permanently-set-environmental-variables)
+  * Please also see [macOS Developer Specific Instructions](#macos-developer-specific-instructions) if you are running macOS
+
+### Optional dependencies
+
+* Python [3.7.x] is required, if you want to run a simulation with the python runner (i.e. have any python behaviors or _init.py_).
+  > **Warning**: The Python runner currently is not supported by the CLI.
+  * Python installation guidance from [their website](https://www.python.org/downloads/)
+
+* Flatbuffers [2.0.0] is required to generate structs in Javascript, Python, or Rust for messaging between processes in hCloude. If you provide your own behavior types, this is not required.
+  * Flatbuffers installation guidance from [their website](https://google.github.io/flatbuffers/flatbuffers_guide_building.html)
+    * It's necessary to match the version (2.0.0) with the Rust crate, so build (or otherwise acquire a compiled flatc binary of) the commit associated with the [2.0.0 release](https://github.com/google/flatbuffers/releases/tag/v2.0.0)
+      * One way of checking out the right commit is running the following from within the flatbuffers repository:
+      
+        ```shell
+        latestTag=$(git describe --tags `git rev-list --tags --max-count=1`)
+        git checkout $latestTag
+        ```
 
 ### macOS Developer Specific Instructions
 
@@ -108,10 +116,10 @@ Depending on how lightweight your OS install is, you may be missing some low lev
 * `apt-get install pkg-config` - A helper tool used when compiling applications and libraries
 * `apt-get install libssl-dev` - A development package of OpenSSL
 * `apt-get install python3-dev` - A collection of developer utilities for Python such as header files (e.g. needed when seeing `fatal error: Python.h: No such file or directory`)
-      
+
 ### Project Setup / Building
 * Run `cargo build`
-* Run `./src/worker/runner/python/setup.sh` (following the instructions from the help)
+* If you want to use a Python runner, also run `./src/worker/runner/python/setup.sh` and follow the instructions from the help
 
 ### Running for development
 > **WIP** - This section is a work-in-progress. More detailed documentation of the CLI's API will be provided. For now, it's easiest to test by running _single runs_ rather than _simple_ experiments.
@@ -122,7 +130,7 @@ Then, run the CLI using:
 * `cargo run --bin cli -- <CLI ARGS>`
 
 Where CLI args are described below in the [Usage](#usage) section, an example of a run command during development would be:
-* `cargo run --bin cli -- <CLI ARGS> -p  "<PATH TO HASH PROJECT DIR>" single-run --num-steps 5`
+* `cargo run --bin cli -- <CLI ARGS> -p  "<PATH TO HASH PROJECT DIR>" single-run --num-steps <NUM-STEPS>`
 
 ## Usage
 
