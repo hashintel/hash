@@ -93,13 +93,14 @@ impl Engine {
         log::trace!("Starting run context packages stage");
         let (mut state, mut context) = self.store.take_upgraded()?;
         let snapshot = self.prepare_for_context_packages(&mut state, &mut context)?;
-        self.comms.state_snapshot_sync(&snapshot); // Synchronize snapshot with workers
+        self.comms.state_snapshot_sync(&snapshot).await; // Synchronize snapshot with workers
         let pre_context = context.into_pre_context();
 
         let state = Arc::new(state.downgrade());
         // TODO: Do we want to sync state here? At the moment we expect
         //       task messages to cause sync of state
         self.comms.state_sync(&state).await?; // Synchronize state with workers
+
         let context = self
             .packages
             .step
