@@ -1,5 +1,6 @@
 import { useMemo, VFC } from "react";
 import { tw } from "twind";
+import ArticleIcon from "@mui/icons-material/Article";
 
 import { useAccountInfos } from "../../../components/hooks/useAccountInfos";
 import { useAccountPages } from "../../../components/hooks/useAccountPages";
@@ -62,12 +63,18 @@ export const MentionSuggester: VFC<MentionSuggesterProps> = ({
     <Suggester
       options={options}
       renderItem={(option) => (
-        <div className={tw`flex items-center py-1 px-2`}>
-          <div
-            className={tw`w-6 h-6 flex items-center justify-center text-sm rounded-full bg-gray-200 mr-2`}
-          >
-            {option.name?.[0]?.toUpperCase()}
-          </div>
+        <div className={tw`flex items-center py-1 px-2 mention-suggester`}>
+          {option.type === "user" ? (
+            <div
+              className={tw`w-6 h-6 flex items-center justify-center text-sm rounded-full bg-gray-200 mr-2`}
+            >
+              {option.name?.[0]?.toUpperCase()}
+            </div>
+          ) : (
+            <div className={tw`w-6 h-6 flex items-center justify-center mr-2`}>
+              <ArticleIcon />
+            </div>
+          )}
           <p className={tw`text-sm`}>{option.name}</p>
         </div>
       )}
