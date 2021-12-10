@@ -140,26 +140,26 @@ Where CLI args are described below in the [Usage](#usage) section, an example of
 
 ## Quick start
 
-This guide will download a [demo simulation], run it, and takes a look at it's output.
+This guide will walk you through downloading a [demo simulation], running it, and then finding and verifying its output.
 
 In order to run the demo:
 
 0. Build the engine as [described above](#project-setup--building)
-1. Open the [demo simulation] and may read the overview
-2. Press `Open` at the upper right to view the simulation at [hCore].
+1. Open the [demo simulation] and optionally read the overview
+2. Press `Open` at the upper right to view the simulation in [hCore].
 3. Download it by pressing `File -> Export Project`
 4. Unzip it either with your file browser or by e.g. `unzip ageing-agents.zip -d path/to/ageing-agents`
-5. Run the simulation from the _packages/engine_ directory and pass the simulation as parameter:
+5. Run the simulation from the _packages/engine_ directory and pass the path to the downloaded project as a parameter:
 
     ```
     cargo run --bin cli -- --project 'path/to/ageing-agents' single-run --num-steps 5
     ```
 
-After a short time, the simulations should be completed, and the _parts/_ folder has been created. In the parts folder for every simulation a directory is created. For a deeper explaination of the output, please take a look at [Simulation Outputs](#simulation-outputs).
+After a short time, the simulation should complete and the process will end. Once this is done, a `./parts` folder should have been created. In the parts folder for every simulation a directory is created. For a deeper explanation of the output, please take a look at [Simulation Outputs](#simulation-outputs).
 
-The ageing simulation only increases the age of one agent in each step, so this can be observed when looking at the `"age"` field at the _json_state-0.part_ file.
+The ageing simulation increases the age of each agent by one every step. Looking in the _json_state-0.part_ file, one can see the outputted JSON state has an `"age"` field for each agent. It should be apparent that the age is increasing with each snapshot of state.
 
-**Congratiulation**, you just ran your first simulation with the hEngine!
+**Congratulations!** 🎉 , you just ran your first simulation with the hEngine!
 
 
 [demo simulation]: https://core.hash.ai/@hash/ageing-agents?utm_medium=organic&utm_source=github_readme_engine
