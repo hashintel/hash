@@ -36,4 +36,3 @@ When you change the name, the type will automatically update for you.
 ## What if I delete a behavior key?
 
 Deleting a behavior key will only delete it from the current behavior. The same key on other behaviors will not be affected.
-

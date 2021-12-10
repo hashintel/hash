@@ -64,7 +64,7 @@ Request the current state of the simulation. Will return a message with `type: "
 
 <Tab title="Response" >
 
-```
+```javascript
 { type: 'state',
   contents:
    { steps: { 0: [Array], 1: [Array] },
@@ -92,7 +92,6 @@ Request that HASH send a message every time a file changes. If you send this to 
 <Tabs>
 
 <Tab title="Message" >
-
 
 ```javascript
 // initialize message example

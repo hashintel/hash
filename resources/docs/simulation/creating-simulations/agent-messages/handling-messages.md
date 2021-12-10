@@ -39,7 +39,6 @@ Handling the messages here would be pretty simple - just iterating through the m
 <Tabs>
 <Tab title="JavaScript" >
 
-
 ```javascript
 const behavior = (state, context) => {
     for (const message in context.messages()) {
@@ -53,16 +52,17 @@ const behavior = (state, context) => {
     })
 }
 ```
+
 </Tab>
 
 <Tab title="Python" >
-
 
 ```python
 def behavior(state, context):
     for message in context.messages():
         ...
 ```
+
 </Tab>
 
 <Tab title="Rust" >
@@ -74,12 +74,12 @@ fn (state: AgentState, context: &Context) -> AgentState {
            .map(|m: &Message| {...});
 }
 ```
+
 </Tab>
 </Tabs>
 
 <Tabs>
 <Tab title="JavaScript" >
-
 
 ```javascript
 const behavior = (state, context) => {
@@ -94,18 +94,18 @@ const behavior = (state, context) => {
     })
 }
 ```
+
 </Tab>
 
 <Tab title="Python" >
-
 
 ```python
 def behavior(state, context):
     for message in context.messages():
         ...
 ```
+
 </Tab>
 </Tabs>
 
 The messages that an agent receives are only available on the timestep they received them. `context.messages()` is cleared between timesteps, so an agent will need to store the messages on their state if they want to preserve a message.
-

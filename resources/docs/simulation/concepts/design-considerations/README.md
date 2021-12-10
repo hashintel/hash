@@ -78,7 +78,7 @@ A process for handling conflicts must be defined in any modeling approach - in t
 To streamline this, consider:
 
 * including any information in messages which might help resolve the dispute - e.g. include a second preference order if the first cannot be fulfilled \(where the agent receiving the order can handle both\).
-* for more complex scenarios, using a mediating or manager agent which receives information from multiple agents, and can determine the best match in a single step. 
+* for more complex scenarios, using a mediating or manager agent which receives information from multiple agents, and can determine the best match in a single step.
 
 <Hint style="info">
 We are introducing a new feature to eliminate the need for manager agents and multiple back-and-forth messages to resolve conflicts. [**Contact us**](/contact) if you want to be one of the first to try this feature.
@@ -103,4 +103,3 @@ There are strategies for aligning timescales discussed in detail in [**Designing
 ```
 
 a message would be sent before the agent checks if they've received a response.
-

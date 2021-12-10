@@ -35,4 +35,3 @@ Creating a release will allow you to add a description and categorize your proje
 ![Incrementing a release](https://cdn-us1.hash.ai/site/docs/image%20%2819%29.png)
 
 This allows you to jump back to previous versions if you accidentally introduced a bug, or allows other users to stay up-to-date on changes and improvements to their favorite simulations they've been watching.
-

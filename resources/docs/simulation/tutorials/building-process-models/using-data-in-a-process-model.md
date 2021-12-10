@@ -33,6 +33,7 @@ const behavior = (state, context) => {
 };
 
 ```
+
 </Tab>
 
 <Tab title="Python" >
@@ -41,6 +42,7 @@ const behavior = (state, context) => {
 def behavior(state, context):
   cs = context.data()["CustomerServiceEmployeesSheet1.csv"]
 ```
+
 </Tab>
 </Tabs>
 
@@ -49,7 +51,7 @@ def behavior(state, context):
 With the data loaded in the simulation we can use it to power the process model.  There are many different ways to use data with process models, but the most common are:
 
 * Set the properties of the process model. For example, if a pizza delivery service model has a certain number of drivers available to deliver pizzas, they could use a dataset to set that number.
-* Create distributions for modeling uncertainty. Now, if the pizza delivery service wants to estimate the number of orders they'll get in a day, they could take a dataset that captures last weeks orders of pizzas, choose a distribution that accurately models the data, and then use that to simulate new orders. 
+* Create distributions for modeling uncertainty. Now, if the pizza delivery service wants to estimate the number of orders they'll get in a day, they could take a dataset that captures last weeks orders of pizzas, choose a distribution that accurately models the data, and then use that to simulate new orders.
 
 <Hint style="info">
 Learn more about modeling uncertainty in [Designing with Distributions.](/docs/simulation/concepts/designing-with-distributions)
@@ -133,7 +135,6 @@ Now we can take a [dataset defining different customer service employees](https:
 }
 ```
 
-
 This is a good start, but to make the model more realistic we can add a dataset representing ticket volumes over the past five days. I'll take the mean and standard deviation of the data, and set a triangular distribution for the number of tickets to generate every time step.
 
 ```javascript
@@ -166,10 +167,4 @@ This is a good start, but to make the model more realistic we can add a dataset 
  
 ```
 
-
 Now when we we run the simulation, we have a good estimate of what my customer service process will look like using real world data.
-
-
-
-
-

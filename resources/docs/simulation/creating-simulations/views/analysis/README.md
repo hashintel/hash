@@ -16,11 +16,10 @@ When running a simulation using HASH, you describe a system of agents that inter
 
 While the simulation is running you may be able to glean insight from visually observing your model. To supplement this, HASH provides you with a **Plots** view that can allow you to learn more about your simulation. For instance:
 
-* Is a certain variable converging upon a value? 
-* What emergent phenomena are appearing? 
+* Is a certain variable converging upon a value?
+* What emergent phenomena are appearing?
 * How do stochasticity and the initial conditions affect the simulation run?
 
 These are the kinds of questions you can answer with HASH's analysis capabilities. It allows you to define Metrics, and then use them to create Plots.
 
 <Embed type="youtube" url="https://youtu.be/1ILw6dEbWoE" caption="" />
-

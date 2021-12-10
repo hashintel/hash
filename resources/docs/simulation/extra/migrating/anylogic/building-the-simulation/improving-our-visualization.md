@@ -12,7 +12,7 @@ Now let's add some more involved visualization to our simulation. Visualizations
 
 We'll start by defining outputs that track metrics of interest, like the total quantity of crude and refined oil, and the number of gas stations that are empty. We'll use those outputs to generate a few plots of interest.
 
-** analysis.json **
+**analysis.json**
 
 ```javascript
 "empty_stations": [
@@ -28,12 +28,11 @@ We'll start by defining outputs that track metrics of interest, like the total q
 ]
 ```
 
-
 ![Plots for the Oil Supply Chain model](https://cdn-us1.hash.ai/site/docs/image%20%2827%29.png)
 
 ## Advanced Agent Visualizations
 
-#### Visualizing Stocks
+### Visualizing Stocks
 
 Let's make it easier to tell how much stock our agents are holding. We'll link the height of the agents to their level of stock, and adjust their scale to improve visibility. We'll have to add these lines of code in different behaviors for each agent, and adjust the specific field names we're accessing.
 
@@ -41,7 +40,7 @@ Let's make it easier to tell how much stock our agents are holding. We'll link t
 state.set("height", state.get("crude") / 500);
 ```
 
-#### Adding Poly Models
+### Adding Poly Models
 
 HASH has built in poly models which allow you to more accurately represent many different types of agents. We'll create a dummy agent next to each one we edited in the previous section, and edit the actual **Tanker** and **Truck** agents with a `shape` and a `scale` to size them properly.
 
@@ -55,7 +54,7 @@ HASH has built in poly models which allow you to more accurately represent many 
 | Retailer | "store" |
 | Truck | "car" |
 
-#### Adding Edges
+### Adding Edges
 
 We'll also add edges to help visualize the flows between different agents. Take a look at the docs section on [visualizing networks](/docs/simulation/creating-simulations/anatomy-of-an-agent/visualization/networks) for implementation details.
 
@@ -66,4 +65,3 @@ Both out truck agents and our tankers could look more realistic as they move alo
 ```javascript
 state.set("direction", new_lng_lat.map((c, i) => state.get("lng_lat")[i] - c));
 ```
-

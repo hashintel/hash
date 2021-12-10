@@ -1,0 +1,13 @@
+{
+  "no-inline-html": false,
+  "no-bare-urls": false,
+  "line-length": false,
+  "first-line-h1": false,
+  "single-h1": false,
+  "no-duplicate-header": false,
+  "no-alt-text": false,
+  "no-emphasis-as-header": false,
+  "no-trailing-punctuation": false,
+  "list-marker-space": { "ol_multi": 2, "ol_single": 2 },
+  "ol-prefix": false
+}

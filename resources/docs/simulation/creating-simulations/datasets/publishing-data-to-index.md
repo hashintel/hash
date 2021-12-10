@@ -43,4 +43,3 @@ Or, if you're part of an organization and publishing on their behalf, when you p
 ```text
 "@[org-handle]/[listing-shortname]/[dataset].[csv/json]"
 ```
-

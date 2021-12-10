@@ -58,4 +58,3 @@ The `max_resources` parameter must specify the maximum, or starting number, of r
 ![Metric definition for one resource](https://cdn-us1.hash.ai/site/docs/image%20%2844%29.png)
 
 ![Plot definition](https://cdn-us1.hash.ai/site/docs/image%20%2841%29.png)
-

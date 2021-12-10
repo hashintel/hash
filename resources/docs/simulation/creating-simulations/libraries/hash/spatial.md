@@ -62,4 +62,3 @@ function behavior(state, context) {
     state.position = new_pos;
 }
 ```
-

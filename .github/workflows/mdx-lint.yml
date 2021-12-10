@@ -2,9 +2,9 @@ name: MDX Lint
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
 
 jobs:
   build:
@@ -16,6 +16,6 @@ jobs:
         with:
           node-version: '12'
 
-      # Runs a single command using the runners shell
-      - name: Lint for objectID
-        run: cd .github/workflows/algolia && sh objectid_lint.sh
+      - name: Lint for markdown correctness
+        run: npm i && npm run lint:markdownlint
+

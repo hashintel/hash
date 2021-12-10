@@ -1,4 +1,5 @@
 # HASH Standard Library
+
 [HASH](https://hash.ai) is a platform for building and running simulations, and the [standard library](https://docs.hash.ai/core/libraries) contains helper functions for simulations.
 
 The HASH Standard Library (or **stdlib**) is available by default within HASH's browser-based IDE, [hCore](https://hash.ai/platform/core).
@@ -14,7 +15,8 @@ The repo is split between [JavaScript functions](https://github.com/hashintel/ha
 To contribute to the JavaScript standard library, please install [npm](https://www.npmjs.com/get-npm), and run `npm install` at the base directory of this repo to get set up.
 
 Some useful commands:
-```
+
+```sh
 # Build the standard library
 npm run build
 
@@ -23,7 +25,8 @@ npm run test
 ```
 
 We use ESLint to help find errors and enforce code style. Your editor or IDE likely has an ESLint plugin which will show these errors and warnings automatically. Alternatively, you can run ESLint from your terminal:
-```
+
+```sh
 npm run lint
 ```
 
@@ -33,12 +36,14 @@ To contribute to the Python standard library, we recommend using a Python virtua
 environment.
 
 To install the development dependencies run:
-```
+
+```sh
 pip install -r src/py/dev_requirements.txt
 ```
 
 Useful commands:
-```
+
+```sh
 # Run the tests
 pytest
 
@@ -49,6 +54,6 @@ black ./src/py
 mypy ./src/py
 ```
 
-
 ## Discussion
+
 You can get support with or discuss HASH and the HASH stdlib on our [support forum](https://hash.community/) or community [Discord server](https://hash.ai/discord).

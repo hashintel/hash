@@ -61,4 +61,3 @@ This behavior controls collisions between agents who come too close to one anoth
 <Hint style="warning">
 Agents must have a `search_radius` of &gt;= 1  specified to ensure they see other agents.
 </Hint>
-

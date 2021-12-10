@@ -38,7 +38,7 @@ The most common way to implement this in HASH is through a manager agent - it's 
 A ManagerAgent in this role - lets call it TimeManager - has a basic design:
 
 * It can message any agent in the simulation that might be affected by time differences. You can accomplish that by adding an array of agent names or ids to a TimeManager field, or by increasing the TimeManager's search radius and getting agents from `context.neighbors()`.
-* It will be signaled, either by a message sent from an agent or by global properties \(such as a specific time-step\) when certain agents need to pause their actions. 
+* It will be signaled, either by a message sent from an agent or by global properties \(such as a specific time-step\) when certain agents need to pause their actions.
 * It then sends a message to those agents. The message could include a time-step when they can resume computation.
 * The agents that are signaled by the time manager will need a behavior that can handle this message; most likely it will change the agents behavior array`state.behaviors = ['time_handler.js']`
 * The time manager, if it receives a message that the faster agent has finished, will send a restart message to the other messages.
@@ -54,4 +54,3 @@ This has the advantage of being a straightforward, simple way of increasing the 
 <Hint style="warning">
 Timescale management is a particularly common issue for new HASH users because [we utilize an actor model where there is "information lag" ](/docs/simulation/concepts/design-considerations#actor-model)- a roundtrip message will take, at minimum, three time-steps.
 </Hint>
-

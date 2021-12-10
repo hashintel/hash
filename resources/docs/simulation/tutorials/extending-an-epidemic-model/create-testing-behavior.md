@@ -43,12 +43,11 @@ If the person agent runs the`check_hospital` function, it will send a message to
 
 But we don't want our Person agent to be spamming the Hospital with requests to be tested - we only want to send it when the Person suspects that they are sick. We can add a property called `time_to_symptoms` in `globals.json`. That’s how long it takes for a person to start showing symptoms:
 
-** globals.json **
+**globals.json**
 
 ```javascript
  "time_to_symptoms" : 5,
 ```
-
 
 We'll create a local variable to store the global global variable at the top of the `check_infected` behavior file, and add logic so it only sends a message after "symptoms" have developed:
 
@@ -147,6 +146,7 @@ Make sure to attach it to the Hospital. Since we know we'll always want the beha
     "type": "hospital"
   }
 ```
+
 </Tab>
 
 <Tab title="Python" >
@@ -163,6 +163,7 @@ Make sure to attach it to the Hospital. Since we know we'll always want the beha
     "type": "hospital"
   }
 ```
+
 </Tab>
 </Tabs>
 
@@ -215,6 +216,7 @@ msgs.forEach(msg => {
      }
     })
 ```
+
 </Tab>
 
 <Tab title="Python" >
@@ -226,6 +228,7 @@ for msg in msgs:
      # do something
      break
 ```
+
 </Tab>
 </Tabs>
 
@@ -252,6 +255,7 @@ const template = state.people_template;
     // ...
   }
 ```
+
 </Tab>
 
 <Tab title="Python" >
@@ -269,6 +273,7 @@ person = {
   # ...
 }
 ```
+
 </Tab>
 </Tabs>
 
@@ -295,6 +300,7 @@ const template = state.people_template;
     // ...
   }
 ```
+
 </Tab>
 
 <Tab title="Python" >
@@ -314,6 +320,7 @@ person = {
   # ...
 }
 ```
+
 </Tab>
 </Tabs>
 
@@ -332,6 +339,7 @@ let msgs = context.messages().filter(msg => msg.type === "test_result");
    }
  })
 ```
+
 </Tab>
 
 <Tab title="Python" >
@@ -342,6 +350,7 @@ for msg in msgs:
   if msg['data']['sick']:
     state['destination'] = state['home']
 ```
+
 </Tab>
 </Tabs>
 
@@ -372,6 +381,7 @@ function behavior(state, context) {
    }
 }
 ```
+
 </Tab>
 
 <Tab title="Python" >
@@ -393,6 +403,7 @@ def behavior(state, context):
   if state['infected'] and state['infection_length'] >= time_to_symptoms:
     check_hospital()
 ```
+
 </Tab>
 </Tabs>
 
@@ -401,4 +412,3 @@ Run the simulation - our people are now being socially conscious and going back 
 <Hint style="success">
 **Extension:** try accounting for false negatives. Just like in real life tests are sometimes less than 100% accurate. Introduce the possibility that the hospital sends back a false negative and change the response behavior.
 </Hint>
-

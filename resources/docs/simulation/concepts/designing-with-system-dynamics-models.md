@@ -45,7 +45,7 @@ An model that calculates population levels might look something like this:
 }
 ```
 
-#### The `sd_definition` Property
+### The 'sd_definition' Property
 
 The final step is to define the rates in your model. Each rate will have 3 or 4 properties defined:
 
@@ -81,7 +81,7 @@ Some rates will only have one of "to" or "from" if they are coming from a sink, 
 
 ### Globals
 
-As a final step, set the resolution of your time step in **`globals.json`** with a `dt` property. The smaller the value, the finer the resolution of your model will be \(but the more time steps it will take to run\).
+As a final step, set the resolution of your time step in `globals.json` with a `dt` property. The smaller the value, the finer the resolution of your model will be \(but the more time steps it will take to run\).
 
 ```javascript
 {
@@ -92,4 +92,3 @@ As a final step, set the resolution of your time step in **`globals.json`** with
 You now have a fully defined system dynamics model. Go ahead and create some metrics so that you can plot the values for "adults" and "children", and you should see something like this:
 
 ![](https://cdn-us1.hash.ai/site/docs/image%20%2862%29.png)
-
