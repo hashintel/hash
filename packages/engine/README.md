@@ -126,7 +126,7 @@ Depending on how lightweight your OS install is, you may be missing some low lev
 * Run `./src/worker/runner/python/setup.sh` (following the instructions from the help)
 
 ### Running for development
-> **WIP** - This section is a work-in-progress. However slightly more detailed documentation of the CLI is provided below in [CLI Arguments and Options](#cli-arguments-and-options)
+> **WIP** - This section is a work-in-progress. However, slightly more detailed documentation of the CLI is provided below in [CLI Arguments and Options](#cli-arguments-and-options).
 
 The CLI binary handles parsing a HASH project, and the lifetime of the engine for an experiment. To use it requires a HASH project to be accessible on the local disk. Follow instructions in the [Run a simulation](#run-a-simulation) section to learn how to download and create one.
 
