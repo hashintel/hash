@@ -1,0 +1,15 @@
+// `UserWarning` Message Body Type.
+//
+// Used by packages to signal of failures in user code.
+// These warnings are not necessarily specific to a simulation,
+// but can be.
+//
+// fields:
+//    `msg`     : the warning message (short)
+//    `details` : details on the warning
+table UserWarning {
+  msg:string (required);
+  details:string;
+}
+
+root_type UserWarning;

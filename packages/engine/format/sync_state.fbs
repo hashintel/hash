@@ -1,0 +1,16 @@
+include "batch.fbs";
+
+// `StateSync` Message Body Type.
+//
+// Used by the engine to signal about the state of the State object.
+//
+// fields:
+//    `agent_pool`       : the pool of agent batches
+//    `message_pool`     : the pool of message batches
+table StateSync {
+  agent_pool: [Batch] (required);
+  message_pool: [Batch] (required);
+  current_step:int64;  // TODO: Remove `current_step` field.
+}
+
+root_type StateSync;

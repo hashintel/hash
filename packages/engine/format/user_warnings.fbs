@@ -1,0 +1,15 @@
+include "user_warning.fbs";
+
+// `UserWarnings` Message Body Type.
+//
+// Used by packages to signal of failures in user code.
+// These warnings are not necessarily specific to a simulation,
+// but can be.
+//
+// fields:
+//    `inner` : the warning messages contained within
+table UserWarnings {
+  inner:[UserWarning] (required);
+}
+
+root_type UserWarnings;

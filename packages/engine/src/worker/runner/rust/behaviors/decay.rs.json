@@ -1,0 +1,17 @@
+{
+    "keys": {
+        "decayed": {
+            "type": "boolean",
+            "nullable": false
+        },
+        "decay_effect": {
+            "type": "any",
+            "nullable": true
+        },
+        "decay_chance": {
+            "type": "number",
+            "nullable": true
+        }
+    },
+    "built_in_key_use": {"selected": ["agent_id", "behaviors"]}
+}

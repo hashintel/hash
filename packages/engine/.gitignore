@@ -1,0 +1,13 @@
+# Rust artifacts
+target/
+
+# Python artifacts
+runner_venv/
+build/
+src/worker/runner/python/wrappers.c*
+
+# Runtime
+*-topy*
+*-frompy*
+*hash-orchestrator-*
+parts/
