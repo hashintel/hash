@@ -107,6 +107,7 @@ impl OutputPartBuffer {
 
     pub fn finalize(mut self) -> Result<(Vec<u8>, Vec<PathBuf>)> {
         self.current.push(CHAR_OPEN_RIGHT_SQUARE_BRACKET);
+        self.persist_current_on_disk();
         Ok((self.current, self.parts))
     }
 }

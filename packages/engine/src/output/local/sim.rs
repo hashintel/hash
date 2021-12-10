@@ -38,23 +38,19 @@ impl SimulationOutputPersistenceRepr for LocalSimulationOutputPersistence {
 
     async fn finalize(mut self) -> Result<Self::OutputPersistenceResult> {
         // JSON state
-        self.buffers.json_state.persist_current_on_disk()?;
+        let (_, parts) = self.buffers.json_state.finalize()?;
         let mut path = self.config.output_folder.clone();
         path.extend(["/", &self.exp_id]);
         std::fs::create_dir(&path)?;
-        self.buffers
-            .json_state
-            .parts
-            .iter()
-            .try_for_each(|v| -> Result<()> {
-                let mut new = path.clone();
-                new.push(
-                    v.file_name()
-                        .ok_or(Error::from("Missing file name in output parts"))?,
-                );
-                std::fs::copy(v, new)?;
-                Ok(())
-            })?;
+        parts.iter().try_for_each(|v| -> Result<()> {
+            let mut new = path.clone();
+            new.push(
+                v.file_name()
+                    .ok_or(Error::from("Missing file name in output parts"))?,
+            );
+            std::fs::copy(v, new)?;
+            Ok(())
+        })?;
 
         // Analysis
         let analysis_path = path.join("analysis_outputs.json");
