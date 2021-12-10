@@ -1,6 +1,6 @@
 use std::{
     collections::{
-        hash_map::{IntoIter, Iter, Values},
+        hash_map::{Iter, Values},
         HashMap,
     },
     fmt::{Display, Formatter},

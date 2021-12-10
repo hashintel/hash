@@ -1,7 +1,5 @@
 use std::{collections::HashMap, sync::Arc};
 
-use futures::TryStreamExt;
-
 use super::{
     context,
     id::PackageId,

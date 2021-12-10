@@ -9,7 +9,6 @@ use std::{
 
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
-use strum_macros::IntoStaticStr;
 
 use self::behavior_execution::tasks::{ExecuteBehaviorsTask, ExecuteBehaviorsTaskMessage};
 use super::PackageCreator;

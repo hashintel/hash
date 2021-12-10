@@ -7,7 +7,6 @@ use std::{
 use jspy::{js::JsInitTask, py::PyInitTask};
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
-use strum_macros::IntoStaticStr;
 
 use super::PackageCreator;
 use crate::{

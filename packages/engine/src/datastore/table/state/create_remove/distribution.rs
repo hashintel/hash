@@ -26,7 +26,7 @@ impl BatchDistribution {
     }
 
     // TODO: these are unused
-    pub fn get_mut_unchecked(
+    pub fn _get_mut_unchecked(
         &mut self,
         worker_index: WorkerIndex,
         worker_batch_index: usize,
@@ -34,7 +34,7 @@ impl BatchDistribution {
         &mut self.inner[worker_index][worker_batch_index]
     }
 
-    pub fn get_elem(
+    pub fn _get_elem(
         &mut self,
         worker_index: WorkerIndex,
         worker_batch_index: usize,

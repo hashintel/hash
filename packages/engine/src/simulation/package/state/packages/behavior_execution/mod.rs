@@ -34,7 +34,6 @@ pub type BehaviorIdInnerDataType = u16;
 pub type BehaviorIndexInnerDataType = f64;
 
 pub struct Creator {
-    experiment_config: Option<Arc<ExperimentConfig>>,
     behavior_ids: Option<Arc<BehaviorIds>>,
     behavior_map: Option<Arc<BehaviorMap>>,
 }
@@ -73,7 +72,6 @@ impl PackageCreator for Creator {
         let behavior_ids = BehaviorIds::from_behaviors(&behavior_map)?;
 
         Ok(Box::new(Creator {
-            experiment_config: Some(Arc::clone(experiment_config)),
             behavior_ids: Some(Arc::new(behavior_ids)),
             behavior_map: Some(Arc::new(behavior_map)),
         }))
@@ -108,7 +106,6 @@ impl PackageCreator for Creator {
             .index_of(behavior_index_col.value())?;
 
         Ok(Box::new(BehaviorExecution {
-            behavior_map: Arc::clone(self.get_behavior_map()?),
             behavior_ids: Arc::clone(self.get_behavior_ids()?),
             behavior_ids_col_index,
             behavior_ids_col_data_types,
@@ -128,7 +125,6 @@ impl PackageCreator for Creator {
 }
 
 struct BehaviorExecution {
-    behavior_map: Arc<BehaviorMap>,
     behavior_ids: Arc<BehaviorIds>,
     behavior_ids_col_index: usize,
     behavior_ids_col_data_types: [arrow::datatypes::DataType; 3],
@@ -161,7 +157,7 @@ impl BehaviorExecution {
     }
 
     fn reset_behavior_index_col(&mut self, state: &mut ExState) -> Result<()> {
-        let behavior_index_col = reset_index_col(state, self.behavior_index_col_index)?;
+        let behavior_index_col = reset_index_col(self.behavior_index_col_index)?;
         state.set_pending_column(behavior_index_col)?;
 
         Ok(())

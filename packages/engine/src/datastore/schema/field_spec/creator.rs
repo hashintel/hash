@@ -1,8 +1,5 @@
-use crate::datastore::{
-    error::{Error, Result},
-    schema::field_spec::{
-        FieldScope, FieldSource, FieldSpec, FieldSpecMap, FieldType, RootFieldSpec,
-    },
+use crate::datastore::schema::field_spec::{
+    FieldScope, FieldSource, FieldSpec, FieldType, RootFieldSpec,
 };
 
 /// A factory-like object that can be set with a FieldSource and then passed to a context such as a

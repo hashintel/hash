@@ -151,7 +151,7 @@ impl OutboundFromRunnerMsgPayload {
                 Self::RunnerWarnings(runner_warnings)
             }
             crate::gen::runner_outbound_msg_generated::RunnerOutboundMsgPayload::PackageError => {
-                let payload = parsed_msg.payload_as_package_error().ok_or_else(|| {
+                let _payload = parsed_msg.payload_as_package_error().ok_or_else(|| {
                     Error::from(
                         "Message from runner should have had a PackageError payload but it was \
                          missing",
@@ -161,7 +161,7 @@ impl OutboundFromRunnerMsgPayload {
                 todo!() // TODO: there is no Self::PackageError
             }
             crate::gen::runner_outbound_msg_generated::RunnerOutboundMsgPayload::UserErrors => {
-                let payload = parsed_msg.payload_as_user_errors().ok_or_else(|| {
+                let _payload = parsed_msg.payload_as_user_errors().ok_or_else(|| {
                     Error::from(
                         "Message from runner should have had a UserErrors payload but it was \
                          missing",
@@ -171,7 +171,7 @@ impl OutboundFromRunnerMsgPayload {
                 todo!() // TODO: there is no Self::UserErrors
             }
             crate::gen::runner_outbound_msg_generated::RunnerOutboundMsgPayload::UserWarnings => {
-                let payload = parsed_msg.payload_as_user_warnings().ok_or_else(|| {
+                let _payload = parsed_msg.payload_as_user_warnings().ok_or_else(|| {
                     Error::from(
                         "Message from runner should have had a UserWarnings payload but it was \
                          missing",
