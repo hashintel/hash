@@ -25,7 +25,7 @@ type NormalViewComponentProps = {
   blockData: BlockEntity | null;
 };
 
-export const NormalView: VoidFunctionComponent<NormalViewComponent> = ({
+export const NormalView: VoidFunctionComponent<NormalViewComponentProps> = ({
   usableMenuItems,
   selectedIndex,
   subMenuVisible,
