@@ -64,7 +64,7 @@ There are a number of other functionalities in the HASH platform that are possib
 * Analysis views are also untested at the moment and thus presently are not considered stable or supported.
 
 ## Building and Testing
-> The following section assumes execution of commands are from within this directory (i.e. [/packages/engine](/packages/engine) relative to the repository root). As such, paths are relative to folder this README is in.
+> The following section assumes execution of commands are from within this directory (i.e. [/packages/engine](/packages/engine) relative to the repository root). As such, paths are relative to the folder this README is in.
 
 Depending on your needs, different dependencies are required.
 Building this project requires the following.
