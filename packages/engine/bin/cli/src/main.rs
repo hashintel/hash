@@ -21,7 +21,7 @@ use crate::exsrv::create_server;
 #[derive(Debug, StructOpt)]
 pub struct Args {
     /// Path to the project to be run.
-    #[structopt(short, long, default_value = ".", env = "HASH_PROJECT")]
+    #[structopt(short, long, env = "HASH_PROJECT")]
     project: String,
 
     /// (Unimplemented) Project output path folder.
