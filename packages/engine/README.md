@@ -26,6 +26,10 @@
   * [Project Setup / Building](#project-setup--building)
   * [Running for development](#running-for-development)
 - [Usage](#usage)
+  * [CLI Arguments and Options](#cli-arguments-and-options)
+  * [Simulation Outputs](#simulation-outputs)
+    + [JSON-State](#json-state)
+    + [Analysis](#analysis)
 - [Main Concepts](#main-concepts)
   * [High-level Overview](#high-level-overview)
     + [Starting an Experiment / the CLI](#starting-an-experiment--the-cli)
@@ -47,6 +51,8 @@ We're building a community of people who care about enabling better decision-mak
 ## Building and Testing
 
 ### Dependencies
+> **WIP** - This section is a work-in-progress. It is planned to specify what dependencies are purely needed for _using_ the engine vs. those needed for development on this repository.
+
 Building this project requires the following:
 * The Rust Compiler
   * We recommend installing and using rustup, following the [instructions on the Rust-Lang website](https://www.rust-lang.org/tools/install)
@@ -121,9 +127,24 @@ Where CLI args are described below in the [Usage](#usage) section, an example of
 
 > **WIP** - This section is a work-in-progress. Guidance on production usage will appear here.
 
+### CLI Arguments and Options
+> **WIP** - CLI arguments are unstable, their presence do not guarantee their usability. It's recommended to stick to single-runs while the project stabilises.
+
 The CLI comes with a short help page: `cli help` or `cli -h`. A more detailed explanation about the parameters are available at the long help page with `cli --help`. To show the help page for subcommands, either append them to the command: `cli help single-run`, or use `-h`/`--help` after the subcommand: `cli single-run --help`.
 
 If one of the environment variables shown in the help page is passed, it will overwrite the default values. Parameters take precedence over environment variables.
+
+### Simulation Outputs
+> **WIP** - This section is a work-in-progress. More in-depth documentation is in the works for describing all output formats and options. As such some functionality may not be mentioned here, and some functionality alluded to here might not be complete at present. 
+Currently the engine has two main form of outputs, one coming from the [json_state package](./src/simulation/package/output/packages/json_state) and the other from the [analysis package](./src/simulation/package/output/packages/analysis).
+
+#### JSON-State
+By default, the engine outputs a serialized snapshot of Agent state every step. This is written to the `./parts` folder. At the present it's possible that these files will not be valid JSON as the resultant blob may be split across multiple files (hence `part`) for buffering purposes. Development is planned for a different output format that ensures a valid JSON blob in a single file.
+
+#### Analysis
+> **WIP** - This feature is currently unstable
+
+[hCore](https://core.hash.ai) currently provides functionality where simulations can apply custom analysis on user-defined metrics. The functionality has been ported across to this codebase in the [analysis package](./src/simulation/package/output/packages/analysis), however development is planned to stabilise it. As such, this functionality is neither tested, nor considered supported.
 
 ## Main Concepts
 
