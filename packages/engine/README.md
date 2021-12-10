@@ -83,7 +83,7 @@ Building this project requires the following.
   > **Warning**: The Python runner currently is not supported by the CLI.
   * Python installation guidance from [their website](https://www.python.org/downloads/)
 
-* Flatbuffers [2.0.0] is required to generate structs in Javascript, Python, or Rust for messaging between processes in hCloude. If you provide your own behavior types, this is not required.
+* Flatbuffers [2.0.0] is required to generate structs in Javascript, Python, or Rust for messaging between processes in hCloud. Unless the schema files in [./format](./format) are changed (and thus require generation to be reran), flatc is not needed.
   * Flatbuffers installation guidance from [their website](https://google.github.io/flatbuffers/flatbuffers_guide_building.html)
     * It's necessary to match the version (2.0.0) with the Rust crate, so build (or otherwise acquire a compiled flatc binary of) the commit associated with the [2.0.0 release](https://github.com/google/flatbuffers/releases/tag/v2.0.0)
       * One way of checking out the right commit is running the following from within the flatbuffers repository:
