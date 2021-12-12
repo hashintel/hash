@@ -1,7 +1,3 @@
-> **Notice**: This branch is currently a _work-in-progress_ and as such this documentation is subject to heavy change. Clarifications and improvements will be coming in the near future, however in the mean-time a high-level explanation of the main concepts is provided below to guide understanding of the source-code and project structure. 
-> 
->**An updated README including setup and usage instructions will follow shortly.**
-
 <p align="center">
   <img src="https://cdn-us1.hash.ai/assets/hengine-github-readme-header%402x.png">
 </p>
