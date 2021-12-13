@@ -2,7 +2,7 @@ import { useQuery } from "@apollo/client";
 import { PageSearchResult } from "@hashintel/hash-shared/graphql/apiTypes.gen";
 import { escapeRegExp } from "lodash";
 import Link from "next/link";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { useDebounce, useKey, useKeys, useOutsideClickRef } from "rooks";
 import { tw } from "twind";
 import { blockDomId } from "../../../blocks/page/BlockView";
@@ -55,17 +55,27 @@ const ResultItem: React.FC = (props) => (
   />
 );
 
-export const SearchBar: React.VFC = () => {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [isResultListVisible, setResultListVisible] = useState(false);
+/** extends react's useState by returning an additional value updated after a short delay (debounce) */
+const useQueryText = (): [string, string, (queryText: string) => void] => {
   const [displayedQuery, setDisplayedQuery] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
   const setSubmittedQuerySoon = useDebounce(setSubmittedQuery, 300);
 
-  useEffect(
-    () => setSubmittedQuerySoon(displayedQuery),
-    [setSubmittedQuerySoon, displayedQuery],
+  const setQuery = useCallback(
+    (query: string) => {
+      setDisplayedQuery(query);
+      setSubmittedQuerySoon(query);
+    },
+    [setDisplayedQuery, setSubmittedQuerySoon],
   );
+
+  return [displayedQuery, submittedQuery, setQuery];
+};
+
+export const SearchBar: React.VFC = () => {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [isResultListVisible, setResultListVisible] = useState(false);
+  const [displayedQuery, submittedQuery, setQueryText] = useQueryText();
 
   const { user } = useUser();
 
@@ -101,7 +111,7 @@ export const SearchBar: React.VFC = () => {
         onFocus={() => setResultListVisible(true)}
         onChange={(event) => {
           setResultListVisible(true);
-          setDisplayedQuery(event.target.value);
+          setQueryText(event.target.value);
         }}
       />
       {isResultListVisible && displayedQuery && (
@@ -116,7 +126,9 @@ export const SearchBar: React.VFC = () => {
             </ResultItem>
           ) : (
             data.searchPages.map((searchPage) => (
-              <ResultItem key={searchPage.block?.entityId}>
+              <ResultItem
+                key={searchPage.block?.entityId ?? searchPage.page.entityId}
+              >
                 <Link href={toBlockUrl(searchPage)}>
                   <a>
                     {splitByMatches(searchPage.content, submittedQuery).map(
