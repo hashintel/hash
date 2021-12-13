@@ -1,4 +1,4 @@
-use futures::stream::{FusedStream, FuturesOrdered, StreamExt};
+use futures::stream::{FuturesOrdered, StreamExt};
 use tokio::task::JoinHandle;
 
 use super::Result;
