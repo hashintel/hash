@@ -245,7 +245,7 @@ pub trait GrowableBatch<C: GrowableColumn<D>, D: GrowableArrayData> {
 
 /// Add an action for buffer(s) whose data is not changed but might have to be moved
 fn push_non_modify_actions(
-    buffer_actions: &mut Vec<BufferAction>,
+    buffer_actions: &mut Vec<BufferAction<'_>>,
     first_index: usize,
     last_index: usize,
     mut this_buffer_offset: usize,

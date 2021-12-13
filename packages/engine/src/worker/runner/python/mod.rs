@@ -98,7 +98,7 @@ impl PythonRunner {
         // TODO: Duplication with other runners (move into worker?)
         log::debug!("Running Python runner");
         if !self.spawn {
-            return Ok(Box::pin(async move { Ok(Ok(())) }) as _);
+            return Ok(Box::pin(async move { Ok(Ok(())) }));
         }
 
         let init_msg = Arc::clone(&self.init_msg);
@@ -106,7 +106,7 @@ impl PythonRunner {
         let outbound_sender = self.outbound_sender.take().ok_or(Error::AlreadyRunning)?;
 
         let f = async move { _run(init_msg, inbound_receiver, outbound_sender).await };
-        Ok(Box::pin(tokio::task::spawn(f)) as _)
+        Ok(Box::pin(tokio::task::spawn(f)))
     }
 }
 

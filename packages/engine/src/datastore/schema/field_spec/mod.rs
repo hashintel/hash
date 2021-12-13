@@ -166,7 +166,7 @@ impl Display for FieldKey {
 }
 
 /// A single specification of a field
-#[derive(new, Clone, PartialEq, Eq, Hash)]
+#[derive(derive_new::new, Clone, PartialEq, Eq, Hash)]
 pub struct FieldSpec {
     pub name: String,
     pub field_type: FieldType,
@@ -270,7 +270,7 @@ impl FieldSpecMap {
         self.field_specs.contains_key(key)
     }
 
-    pub(crate) fn iter(&self) -> Iter<FieldKey, RootFieldSpec> {
+    pub(crate) fn iter(&self) -> Iter<'_, FieldKey, RootFieldSpec> {
         self.field_specs.iter()
     }
 
@@ -411,7 +411,7 @@ pub mod tests {
 
     #[test]
     fn unchanged_size_built_in() {
-        let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
+        let _field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
         let mut field_spec_map = FieldSpecMap::empty();
 
         field_spec_map

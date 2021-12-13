@@ -29,7 +29,7 @@ impl MessagePool {
         &mut self.batches
     }
 
-    pub fn read_batches(&self) -> Result<Vec<RwLockReadGuard<MessageBatch>>> {
+    pub fn read_batches(&self) -> Result<Vec<RwLockReadGuard<'_, MessageBatch>>> {
         self.batches()
             .iter()
             .map(|a| {
@@ -149,7 +149,7 @@ impl<'a> MessageReader<'a> {
     }
 }
 
-impl<'a> MessageReader<'a> {
+impl MessageReader<'_> {
     pub fn type_iter<'b: 'r, 'r>(
         &'b self,
         message_references: &'r [AgentMessageReference],

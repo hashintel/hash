@@ -13,7 +13,7 @@ impl Default for CancelState {
     }
 }
 
-#[derive(new)]
+#[derive(derive_new::new)]
 pub struct PendingWorkerTask {
     pub inner: Task,
     pub active_runner: Language,

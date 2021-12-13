@@ -367,10 +367,10 @@ pub fn batch_from_json(
     let agent_count = ids.len();
     let ids = Arc::new(super::batch_conversion::get_agent_id_array(ids)?);
 
-    let messages = messages.map_or_else(
+    let messages: Arc<dyn ArrowArray> = messages.map_or_else(
         || empty_messages_column(agent_count).map(Arc::new),
         |values| messages_column_from_serde_values(values).map(Arc::new),
-    )? as Arc<dyn ArrowArray>;
+    )?;
 
     RecordBatch::try_new(schema.clone(), vec![ids, messages]).map_err(Error::from)
 }

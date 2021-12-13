@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 use super::*;
-use crate::{config, datastore::batch::AgentIndex, simulation::Error};
+use crate::{datastore::batch::AgentIndex, simulation::Error};
 
 pub(super) type PositionSubType = f64;
 pub(super) type Position = [PositionSubType; 3];
@@ -21,7 +21,7 @@ pub type NeighborRef<'a> = ((Option<&'a [f64; 3]>, (u32, u32)), Option<f64>);
 
 /// # Errors
 /// This function will not fail
-fn agents_adjacency_map<'a>(agents: &'a Vec<NeighborRef>) -> Result<Tree<'a>> {
+fn agents_adjacency_map<'a>(agents: &'a Vec<NeighborRef<'_>>) -> Result<Tree<'a>> {
     let mut tree = kdtree::kdtree::KdTree::new(3);
     agents.iter().try_for_each(|((pos, idx), _)| {
         pos.map_or(Ok(()), |unwrapped| {
@@ -33,11 +33,11 @@ fn agents_adjacency_map<'a>(agents: &'a Vec<NeighborRef>) -> Result<Tree<'a>> {
 
 #[allow(clippy::module_name_repetitions)]
 fn gather_neighbors(
-    adjacency_map: &Tree,
+    adjacency_map: &Tree<'_>,
     idx: AgentIndex,
     position: &Position,
     search_radius: &Option<PositionSubType>,
-    topology: &config::TopologyConfig,
+    topology: &TopologyConfig,
 ) -> Result<Vec<AgentIndex>> {
     // Check if the agent has a custom search radius. If not, fall back to the topology search
     // radius
@@ -89,7 +89,7 @@ fn gather_neighbors(
 
 impl NeighborMap {
     pub fn gather(
-        states: Vec<NeighborRef>,
+        states: Vec<NeighborRef<'_>>,
         topology_config: &TopologyConfig,
     ) -> Result<NeighborMap> {
         let num_states = states.len();

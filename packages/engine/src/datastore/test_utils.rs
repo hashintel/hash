@@ -15,7 +15,7 @@ use crate::{
     simulation::package::creator::get_base_agent_fields,
 };
 
-lazy_static! {
+lazy_static::lazy_static! {
     pub static ref JSON_KEYS: serde_json::Value = serde_json::json!({
         "defined": {
             "foo": {

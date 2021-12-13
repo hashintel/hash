@@ -413,7 +413,7 @@ impl Batch {
         self.str_iter(column_name)
     }
 
-    pub fn get_agent_name(&self) -> Result<Vec<Option<Cow<str>>>> {
+    pub fn get_agent_name(&self) -> Result<Vec<Option<Cow<'_, str>>>> {
         let column_name = AgentStateField::AgentName.name();
         let row_count = self.batch.num_rows();
         let column = self.get_arrow_column(column_name)?;
@@ -437,7 +437,7 @@ impl Batch {
     }
 
     #[allow(clippy::option_if_let_else)]
-    pub fn agent_name_as_array(&self, column: Vec<Option<Cow<str>>>) -> Result<ArrayChange> {
+    pub fn agent_name_as_array(&self, column: Vec<Option<Cow<'_, str>>>) -> Result<ArrayChange> {
         let column_name = AgentStateField::AgentName.name();
         let mut builder = array::StringBuilder::new(512);
         column.into_iter().try_for_each(|v| {
@@ -704,8 +704,8 @@ impl Batch {
 
     // Iterate over any non-serialized fields (like f64, array, struct, ...) and serialize them into
     // serde_json::Value objects
-    pub fn json_values<'a>(
-        &'a self,
+    pub fn json_values(
+        &self,
         column_name: &str,
         data_type: &DataType,
     ) -> Result<Vec<serde_json::Value>> {
@@ -791,7 +791,7 @@ mod tests {
         let (schema, agents) = gen_schema_and_test_agents(num_agents, 0).unwrap();
 
         b.iter(|| {
-            let agent_batch =
+            let _agent_batch =
                 AgentBatch::from_agent_states(agents.as_slice(), &schema, &"".to_string()).unwrap();
         });
     }

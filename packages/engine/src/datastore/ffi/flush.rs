@@ -36,7 +36,7 @@ unsafe extern "C" fn flush_changes(
     let num_changes = (*changes).len;
     let indices = std::slice::from_raw_parts(changes.indices, num_changes);
     let arrays = std::slice::from_raw_parts(changes.columns, num_changes);
-    let prepared_columns: Vec<PreparedColumn> = match (0..num_changes)
+    let prepared_columns: Vec<PreparedColumn<'_>> = match (0..num_changes)
         .map(|i| {
             let column_index = indices[i];
             let arrow_array = arrays[i];
@@ -215,7 +215,7 @@ pub struct PreparedArrayData<'a> {
     _node_index: usize, // TODO: unused, delete?
 }
 
-impl<'a> GrowableArrayData for PreparedArrayData<'a> {
+impl GrowableArrayData for PreparedArrayData<'_> {
     fn _len(&self) -> usize {
         unsafe { (*self.inner).length as usize }
     }

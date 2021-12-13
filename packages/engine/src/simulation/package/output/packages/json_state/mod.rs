@@ -36,19 +36,14 @@ impl PackageCreator for Creator {
             .map
             .get(&PackageName::Output(output::Name::JsonState))
             .ok_or_else(|| Error::from("Missing JSON state config"))?;
-        let output_config: output::packages::json_state::JsonStateOutputConfig =
-            serde_json::from_value(value.clone())?;
+        let output_config: JsonStateOutputConfig = serde_json::from_value(value.clone())?;
         Ok(Box::new(JsonState {
             sim_run_config: config.clone(),
             output_config,
         }))
     }
 
-    fn persistence_config(
-        &self,
-        config: &ExperimentConfig,
-        _globals: &Globals,
-    ) -> Result<serde_json::Value> {
+    fn persistence_config(&self, config: &ExperimentConfig, _globals: &Globals) -> Result<Value> {
         let config = JsonStateOutputConfig::new(config)?;
         Ok(serde_json::to_value(config)?)
     }

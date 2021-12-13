@@ -31,7 +31,7 @@ pub enum DistributionController {
     },
 }
 
-#[derive(new)]
+#[derive(derive_new::new)]
 pub struct PendingWorkerPoolTask {
     pub task_id: TaskId,
     pub comms: ActiveTaskExecutorComms,

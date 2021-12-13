@@ -8,7 +8,7 @@ use crate::datastore::{
     },
 };
 
-#[derive(new)]
+#[derive(derive_new::new)]
 pub struct FieldSpecMapAccessor {
     accessor_source: FieldSource,
     field_spec_map: Arc<FieldSpecMap>,

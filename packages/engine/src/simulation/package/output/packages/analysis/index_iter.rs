@@ -4,8 +4,8 @@ use float_cmp::approx_eq;
 
 use super::{
     analyzer::{
-        IndexIterator, NumberIterator, OutputCreator, OutputRunner, OutputRunnerCreator,
-        ValueIterator, ValueIteratorCreator, ULPS,
+        IndexIterator, OutputCreator, OutputRunner, OutputRunnerCreator, ValueIterator,
+        ValueIteratorCreator, ULPS,
     },
     output::AnalysisSingleOutput,
     value_iter::{value_iterator_filter, value_iterator_mapper},
@@ -749,7 +749,7 @@ fn default_first_getter(
     let first_field = first_field.to_string();
     let a: ValueIteratorCreator = Box::new(move |agents: &_| {
         let iterator = json_value_iter_cols(agents, &first_field, &data_type)?;
-        Ok(iterator as ValueIterator)
+        Ok(iterator as ValueIterator<'_>)
     });
     Ok(a)
 }
@@ -796,7 +796,7 @@ pub(super) fn index_iterator_mapper_creator(
         FieldTypeVariant::AnyType => {
             let a: ValueIteratorCreator = Box::new(move |agents| {
                 let iterator = json_serialized_value_iter(agents, &first_field)?;
-                Ok(Box::new(iterator) as ValueIterator)
+                Ok(Box::new(iterator) as ValueIterator<'_>)
             });
             a
         }
@@ -935,7 +935,7 @@ pub(super) fn index_iterator_mapper_creator(
         }?
     } else {
         let runner: OutputRunnerCreator = Box::new(move |agents: &_| {
-            let value_runner: ValueIterator = combined_mapper(agents)?;
+            let value_runner: ValueIterator<'_> = combined_mapper(agents)?;
             Ok(Box::new(
                 move |iterator: Box<dyn Iterator<Item = usize> + Send + Sync>| {
                     let mut value_iter = value_runner;

@@ -317,7 +317,7 @@ pub struct ExtendedExperimentRun {
 pub trait ExperimentRunTrait: Clone + for<'a> Deserialize<'a> + Serialize {
     fn base(&self) -> &ExperimentRunBase;
     fn base_mut(&mut self) -> &mut ExperimentRunBase;
-    fn package_config(&self) -> PackageConfig;
+    fn package_config(&self) -> PackageConfig<'_>;
 }
 
 impl ExperimentRunTrait for ExperimentRunBase {
@@ -329,7 +329,7 @@ impl ExperimentRunTrait for ExperimentRunBase {
         self
     }
 
-    fn package_config(&self) -> PackageConfig {
+    fn package_config(&self) -> PackageConfig<'_> {
         PackageConfig::EmptyPackageConfig
     }
 }
@@ -343,7 +343,7 @@ impl ExperimentRunTrait for ExperimentRun {
         &mut self.base
     }
 
-    fn package_config(&self) -> PackageConfig {
+    fn package_config(&self) -> PackageConfig<'_> {
         PackageConfig::ExperimentPackageConfig(&self.package_config)
     }
 }
@@ -357,7 +357,7 @@ impl ExperimentRunTrait for ExtendedExperimentRun {
         &mut self.base
     }
 
-    fn package_config(&self) -> PackageConfig {
+    fn package_config(&self) -> PackageConfig<'_> {
         PackageConfig::ExtendedExperimentPackageConfig(&self.package_config)
     }
 }

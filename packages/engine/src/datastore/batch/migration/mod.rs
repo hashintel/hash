@@ -246,7 +246,7 @@ impl<'a> BufferActions<'a> {
                                         // We are going left-to-right so we can at most change the
                                         // same value we're inspecting
                                         let new_offsets = unsafe {
-                                            let ptr = &data_buffer[new_start_offset] as *const u8;
+                                            let ptr: *const u8 = &data_buffer[new_start_offset];
                                             let ptr = ptr as *mut Offset;
                                             std::slice::from_raw_parts_mut(ptr, *len)
                                         };
@@ -1078,7 +1078,7 @@ impl<'a> BufferActions<'a> {
 unsafe fn get_offset_by_index(data: &[u8], index: usize) -> i32 {
     let i32_size = std::mem::size_of::<Offset>();
     let offset = index * i32_size;
-    let ptr = &data[offset] as *const u8;
+    let ptr: *const u8 = &data[offset];
 
     // Assuming little endian
     *(ptr as *const i32)
@@ -1340,7 +1340,7 @@ pub(super) mod test {
     // use crate::datastore::schema::PREVIOUS_INDEX_COLUMN_NAME;
     // use std::sync::Arc;
 
-    lazy_static! {
+    lazy_static::lazy_static! {
         pub static ref JSON_KEYS: serde_json::Value = serde_json::json!({
             "defined": {
                 "foo": {

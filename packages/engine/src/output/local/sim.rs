@@ -9,7 +9,7 @@ use crate::{
     simulation::{package::output::packages::Output, step_output::SimulationStepOutput},
 };
 
-#[derive(new)]
+#[derive(derive_new::new)]
 pub struct LocalSimulationOutputPersistence {
     exp_id: ExperimentId,
     _sim_id: SimulationShortId, // TODO: Should this be unused? If so remove

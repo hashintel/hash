@@ -70,9 +70,9 @@ impl<'mv8> Function<'mv8> {
         desc_to_result(mv8, result)?.into(mv8)
     }
 
-    pub(super) fn new<'callback>(
+    pub(super) fn new(
         mv8: &'mv8 MiniV8,
-        func: Callback<'callback, 'static>,
+        func: Callback<'_, 'static>,
         func_size: usize,
     ) -> Function<'mv8> {
         Function(Ref::new(mv8, unsafe {
@@ -109,8 +109,8 @@ fn manually_drop_arg_descs(arg_descs: Vec<ValueDesc>) {
     }
 }
 
-impl<'mv8> fmt::Debug for Function<'mv8> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl fmt::Debug for Function<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "<function>")
     }
 }

@@ -13,7 +13,7 @@ use crate::{
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
-lazy_static! {
+lazy_static::lazy_static! {
     static ref INIT_MSG_RECV_TIMEOUT: Duration = Duration::from_secs(60);
 }
 

@@ -187,7 +187,7 @@ where
             builder.append_value(serde_json::from_value(val)?)?;
         }
     }
-    Ok(Arc::new(builder.finish()) as ArrayRef)
+    Ok(Arc::new(builder.finish()))
 }
 
 fn json_vals_to_utf8(vals: Vec<Value>, nullable: bool) -> Result<ArrayRef> {
@@ -206,7 +206,7 @@ fn json_vals_to_utf8(vals: Vec<Value>, nullable: bool) -> Result<ArrayRef> {
             builder.append_value(&native)?;
         }
     }
-    Ok(Arc::new(builder.finish()) as ArrayRef)
+    Ok(Arc::new(builder.finish()))
 }
 
 fn json_vals_to_list(vals: Vec<Value>, _nullable: bool, inner_dt: &DataType) -> Result<ArrayRef> {
@@ -405,8 +405,7 @@ fn json_vals_to_any_type_col(vals: Vec<Value>, dt: &DataType) -> Result<ArrayRef
         let native: String = serde_json::to_string(&val).map_err(Error::from)?;
         builder.append_value(&native)?;
     }
-    let res = Arc::new(builder.finish()) as ArrayRef;
-    Ok(res)
+    Ok(Arc::new(builder.finish()))
 }
 
 fn previous_index_to_empty_col(num_agents: usize, dt: &ArrowDataType) -> Result<ArrayRef> {
@@ -466,7 +465,7 @@ impl IntoRecordBatch for &[&AgentState] {
             .iter()
             .map(|agent| agent.agent_id.as_ref())
             .collect::<Vec<&str>>();
-        let messages: Vec<serde_json::Value> = self
+        let messages: Vec<Value> = self
             .iter()
             .map(|agent| agent.get_as_json("messages"))
             .collect::<crate::hash_types::error::Result<_>>()?;
@@ -489,7 +488,7 @@ impl IntoRecordBatch for &[&AgentState] {
             // If `name` isn't cloned, Rust wants schema to have longer lifetime.
             let name = field.name().clone();
 
-            let vals: Vec<serde_json::Value> = self
+            let vals: Vec<Value> = self
                 .iter()
                 .map(|agent: &&AgentState| agent.get_as_json(name.as_str()))
                 .collect::<crate::hash_types::error::Result<_>>()?;
@@ -551,8 +550,8 @@ pub trait IntoAgentStates {
 
     // Conversion into `AgentState` where certain built-in fields and
     // null values are selectively ignored
-    fn into_filtered_agent_states<'b, 's: 'b>(
-        &'s self,
+    fn into_filtered_agent_states(
+        &self,
         agent_schema: &Arc<AgentSchema>,
     ) -> Result<Vec<AgentState>>;
 }
@@ -1053,8 +1052,8 @@ impl IntoAgentStates for (&AgentBatch, &MessageBatch) {
         Ok(states)
     }
 
-    fn into_filtered_agent_states<'b, 's: 'b>(
-        &'s self,
+    fn into_filtered_agent_states(
+        &self,
         agent_schema: &Arc<AgentSchema>,
     ) -> Result<Vec<AgentState>> {
         let agents = &self.0.batch;
@@ -1077,8 +1076,8 @@ impl IntoAgentStates for (&RecordBatch, &RecordBatch) {
         Ok(states)
     }
 
-    fn into_filtered_agent_states<'b, 's: 'b>(
-        &'s self,
+    fn into_filtered_agent_states(
+        &self,
         agent_schema: &Arc<AgentSchema>,
     ) -> Result<Vec<AgentState>> {
         let agents = &self.0;
@@ -1143,8 +1142,8 @@ impl IntoAgentStates for RecordBatch {
         Ok(states)
     }
 
-    fn into_filtered_agent_states<'b, 's: 'b>(
-        &'s self,
+    fn into_filtered_agent_states(
+        &self,
         agent_schema: &Arc<AgentSchema>,
     ) -> Result<Vec<AgentState>> {
         let agent_states = self.into_agent_states(Some(agent_schema))?;

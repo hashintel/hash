@@ -442,7 +442,7 @@ impl WorkerController {
     async fn spawn_task(&mut self, sim_id: SimulationShortId, task: WorkerTask) -> Result<()> {
         use MessageTarget::*;
         let task_id = task.task_id;
-        let init_msg = WorkerHandler::start_message(&task.inner as _)?;
+        let init_msg = WorkerHandler::start_message(&task.inner)?;
         let runner_msg = InboundToRunnerMsgPayload::TaskMsg(RunnerTaskMsg {
             task_id,
             package_id: task.package_id,

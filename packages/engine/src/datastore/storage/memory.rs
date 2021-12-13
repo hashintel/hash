@@ -200,13 +200,11 @@ impl Memory {
 
     /// Copy a slice into the shared memory segment, with offset 0
     pub fn overwrite_no_bounds_check(&mut self, src: &[u8]) -> Result<()> {
-        unsafe {
-            std::ptr::copy_nonoverlapping(src.as_ptr(), self.data.as_ptr() as *mut u8, src.len())
-        };
+        unsafe { std::ptr::copy_nonoverlapping(src.as_ptr(), self.data.as_ptr(), src.len()) };
         Ok(())
     }
 
-    pub fn get_batch_buffers(&self) -> Result<Buffers> {
+    pub fn get_batch_buffers(&self) -> Result<Buffers<'_>> {
         let visitor = self.visitor();
         Ok((
             visitor.schema(),

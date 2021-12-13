@@ -93,7 +93,7 @@ impl<'m> JsPackage<'m> {
             ]}})",
             code
         );
-        let pkg: mv8::Function = mv8
+        let pkg: mv8::Function<'_> = mv8
             .eval(wrapped_code)
             .map_err(|e| Error::PackageImport(path.clone(), e.into()))?;
         let args = mv8::Values::from_vec(vec![
@@ -101,7 +101,7 @@ impl<'m> JsPackage<'m> {
             embedded.hash_stdlib.clone(),
         ]);
 
-        let fns: mv8::Array = pkg
+        let fns: mv8::Array<'_> = pkg
             .call(args)
             .map_err(|e| Error::PackageImport(path.clone(), e.into()))?;
         if fns.len() != 3 {
@@ -111,7 +111,7 @@ impl<'m> JsPackage<'m> {
         // Validate returned array.
         let fn_names = ["start_experiment", "start_sim", "run_task"];
         for (elem, fn_name) in fns.clone().elements().zip(fn_names) {
-            let elem: mv8::Value = elem.map_err(|e| {
+            let elem: mv8::Value<'_> = elem.map_err(|e| {
                 Error::PackageImport(path.clone(), format!("Couldn't index array: {:?}", e))
             })?;
             if !(elem.is_function() || elem.is_undefined()) {
@@ -147,7 +147,7 @@ fn read_file(path: &str) -> Result<String> {
 
 fn eval_file<'m>(mv8: &'m MiniV8, path: &str) -> Result<mv8::Value<'m>> {
     let code = read_file(path)?;
-    let v: mv8::Value = mv8
+    let v: mv8::Value<'_> = mv8
         .eval(code)
         .map_err(|e| Error::Eval(path.into(), e.into()))?;
     Ok(v)
@@ -247,11 +247,11 @@ struct RunnerImpl<'m> {
     sims_state: HashMap<SimulationShortId, SimState>,
 }
 
-fn sim_id_to_js(_mv8: &MiniV8, sim_run_id: SimulationShortId) -> mv8::Value {
+fn sim_id_to_js(_mv8: &MiniV8, sim_run_id: SimulationShortId) -> mv8::Value<'_> {
     mv8::Value::Number(sim_run_id as f64)
 }
 
-fn pkg_id_to_js(_mv8: &MiniV8, pkg_id: PackageId) -> mv8::Value {
+fn pkg_id_to_js(_mv8: &MiniV8, pkg_id: PackageId) -> mv8::Value<'_> {
     mv8::Value::Number(pkg_id.as_usize() as f64)
 }
 
@@ -374,7 +374,7 @@ fn array_to_errors(array: mv8::Value<'_>) -> Vec<RunnerError> {
     if let mv8::Value::Array(array) = array {
         let errors = array
             .elements()
-            .map(|e: mv8::Result<mv8::Value>| {
+            .map(|e: mv8::Result<'_, mv8::Value<'_>>| {
                 e.map(|e| RunnerError {
                     message: Some(format!("{:?}", e)),
                     details: None,
@@ -395,7 +395,7 @@ fn array_to_errors(array: mv8::Value<'_>) -> Vec<RunnerError> {
     }]
 }
 
-fn get_js_error(_mv8: &MiniV8, r: &mv8::Object) -> Option<Error> {
+fn get_js_error(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Option<Error> {
     if let Ok(errors) = r.get("user_errors") {
         if !matches!(errors, mv8::Value::Undefined) && !matches!(errors, mv8::Value::Null) {
             let errors = array_to_errors(errors);
@@ -419,8 +419,8 @@ fn get_js_error(_mv8: &MiniV8, r: &mv8::Object) -> Option<Error> {
     None
 }
 
-fn get_user_warnings(_mv8: &MiniV8, r: &mv8::Object) -> Option<Vec<RunnerError>> {
-    if let Ok(warnings) = r.get::<&str, mv8::Value>("user_warnings") {
+fn get_user_warnings(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Option<Vec<RunnerError>> {
+    if let Ok(warnings) = r.get::<&str, mv8::Value<'_>>("user_warnings") {
         if !(warnings.is_undefined() || warnings.is_null()) {
             let warnings = array_to_errors(warnings);
             if warnings.len() > 0 {
@@ -431,7 +431,7 @@ fn get_user_warnings(_mv8: &MiniV8, r: &mv8::Object) -> Option<Vec<RunnerError>>
     None
 }
 
-fn get_next_task(_mv8: &MiniV8, r: &mv8::Object) -> Result<(MessageTarget, String)> {
+fn get_next_task(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Result<(MessageTarget, String)> {
     let target = if let Ok(mv8::Value::String(target)) = r.get("target") {
         let target = target.to_string();
         match target.as_str() {
@@ -530,7 +530,7 @@ impl<'m> RunnerImpl<'m> {
         let obj = data
             .as_object()
             .ok_or_else(|| Error::Embedded("Flush data not object".into()))?;
-        let child_data: mv8::Array = obj.get("child_data")?;
+        let child_data: mv8::Array<'_> = obj.get("child_data")?;
 
         // `data_node_from_js` isn't recursive -- doesn't convert children.
         let data: mv8::DataFfi = mv8.data_node_from_js(data);
@@ -538,13 +538,13 @@ impl<'m> RunnerImpl<'m> {
         let n_children = child_data.len();
         let child_data: Vec<ArrayDataRef> = match dt.clone() {
             DataType::List(t) => {
-                let child: mv8::Value = child_data.get(0)?;
+                let child: mv8::Value<'_> = child_data.get(0)?;
                 Ok(vec![Arc::new(
                     self.array_data_from_js(mv8, &child, &t, None)?,
                 )])
             }
             DataType::FixedSizeList(t, multiplier) => {
-                let child: mv8::Value = child_data.get(0)?;
+                let child: mv8::Value<'_> = child_data.get(0)?;
                 Ok(vec![Arc::new(self.array_data_from_js(
                     mv8,
                     &child,
@@ -679,13 +679,13 @@ impl<'m> RunnerImpl<'m> {
         schema: &Schema,
     ) -> Result<()> {
         for change in changes.elements() {
-            let change: mv8::Object = change?;
+            let change: mv8::Object<'_> = change?;
 
             let i_field: f64 = change.get("i_field")?;
             let i_field = i_field as usize;
             let field = schema.field(i_field);
 
-            let data: mv8::Value = change.get("data")?;
+            let data: mv8::Value<'_> = change.get("data")?;
             let data = self.array_data_from_js(mv8, &data, field.data_type(), None)?;
             batch.push_change(ArrayChange {
                 array: Arc::new(data),
@@ -763,7 +763,7 @@ impl<'m> RunnerImpl<'m> {
         let agent_schema = state.agent_schema.clone();
         let msg_schema = state.msg_schema.clone();
 
-        let changes: mv8::Value = r.get("changes")?;
+        let changes: mv8::Value<'_> = r.get("changes")?;
         if group_indices.len() == 1 {
             self.flush_group(mv8, &agent_schema, &msg_schema, proxy, 0, changes)?;
         } else {
@@ -900,7 +900,7 @@ impl<'m> RunnerImpl<'m> {
             payload_str,
         ]);
         log::debug!("Calling JS run_task");
-        let r: mv8::Object = self
+        let r: mv8::Object<'_> = self
             .embedded
             .run_task
             .call_method(self.this.clone(), args)?;
@@ -963,7 +963,7 @@ impl<'m> RunnerImpl<'m> {
             batch_to_js(mv8, ctx_batch.memory(), ctx_batch.metaversion())?,
             idxs_to_js(mv8, start_indices)?,
         ]);
-        let _: mv8::Value = self
+        let _: mv8::Value<'_> = self
             .embedded
             .ctx_batch_sync
             .call_method(self.this.clone(), args)?;
@@ -991,7 +991,7 @@ impl<'m> RunnerImpl<'m> {
         // dropped until entire sync is complete.
         let (agent_pool, msg_pool) = state_to_js(mv8, &agent_pool, &msg_pool)?;
         let args = mv8::Values::from_vec(vec![sim_id_to_js(mv8, sim_run_id), agent_pool, msg_pool]);
-        let _: mv8::Value = self
+        let _: mv8::Value<'_> = self
             .embedded
             .state_sync
             .call_method(self.this.clone(), args)?;
@@ -1021,7 +1021,7 @@ impl<'m> RunnerImpl<'m> {
             agent_batches,
             msg_batches,
         ]);
-        let _: mv8::Value = self
+        let _: mv8::Value<'_> = self
             .embedded
             .state_interim_sync
             .call_method(self.this.clone(), args)?;
@@ -1041,7 +1041,7 @@ impl<'m> RunnerImpl<'m> {
         let (agent_pool, msg_pool) = state_to_js(mv8, &agent_pool, &msg_pool)?;
         let sim_run_id = sim_id_to_js(mv8, sim_run_id);
         let args = mv8::Values::from_vec(vec![sim_run_id, agent_pool, msg_pool]);
-        let _: mv8::Value = self
+        let _: mv8::Value<'_> = self
             .embedded
             .state_snapshot_sync
             .call_method(self.this.clone(), args)?;
@@ -1184,7 +1184,7 @@ impl JavaScriptRunner {
         // TODO: Move tokio spawn into worker?
         log::debug!("Running JavaScript runner");
         if !self.spawn {
-            return Ok(Box::pin(async move { Ok(Ok(())) }) as _);
+            return Ok(Box::pin(async move { Ok(Ok(())) }));
         }
 
         let init_msg = Arc::clone(&self.init_msg);
@@ -1192,7 +1192,7 @@ impl JavaScriptRunner {
         let outbound_sender = self.outbound_sender.take().ok_or(Error::AlreadyRunning)?;
 
         let f = || _run(init_msg, inbound_receiver, outbound_sender);
-        Ok(Box::pin(tokio::task::spawn_blocking(f)) as _)
+        Ok(Box::pin(tokio::task::spawn_blocking(f)))
     }
 }
 

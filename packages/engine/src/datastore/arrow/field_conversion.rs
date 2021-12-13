@@ -198,7 +198,7 @@ pub mod tests {
 
     #[test]
     fn get_schema() -> Result<()> {
-        let mut field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
+        let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
         let mut field_spec_map = FieldSpecMap::empty();
 
         field_spec_map.add(field_spec_creator.create(

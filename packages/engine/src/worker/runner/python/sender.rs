@@ -1,5 +1,6 @@
 use arrow::{datatypes::Schema, ipc::writer::schema_to_bytes};
 use flatbuffers::{FlatBufferBuilder, ForwardsUOffset, Vector, WIPOffset};
+use flatbuffers_gen::sync_state_interim_generated::StateInterimSyncArgs;
 use nng::{options::Options, Aio, Socket};
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver};
 
@@ -15,7 +16,6 @@ use crate::{
             task_shared_store::{PartialSharedState, SharedState},
         },
     },
-    gen::sync_state_interim_generated::StateInterimSyncArgs,
     proto::{ExperimentId, SimulationShortId},
     simulation::enum_dispatch::TaskSharedStore,
     types::WorkerIndex,
@@ -141,11 +141,11 @@ fn inbound_to_nng(
             let payload = str_to_serialized(fbb, &payload);
 
             let task_id =
-                crate::gen::runner_inbound_msg_generated::TaskId(msg.task_id.to_le_bytes());
+                flatbuffers_gen::runner_inbound_msg_generated::TaskId(msg.task_id.to_le_bytes());
 
-            let msg = crate::gen::runner_inbound_msg_generated::TaskMsg::create(
+            let msg = flatbuffers_gen::runner_inbound_msg_generated::TaskMsg::create(
                 fbb,
-                &crate::gen::runner_inbound_msg_generated::TaskMsgArgs {
+                &flatbuffers_gen::runner_inbound_msg_generated::TaskMsgArgs {
                     package_sid: msg.package_id.as_usize() as u64,
                     task_id: Some(&task_id),
                     payload: Some(payload),
@@ -154,15 +154,15 @@ fn inbound_to_nng(
             );
             (
                 msg.as_union_value(),
-                crate::gen::runner_inbound_msg_generated::RunnerInboundMsgPayload::TaskMsg,
+                flatbuffers_gen::runner_inbound_msg_generated::RunnerInboundMsgPayload::TaskMsg,
             )
         }
         InboundToRunnerMsgPayload::CancelTask(_) => todo!(), // Unused for now
         InboundToRunnerMsgPayload::StateSync(msg) => {
             let (agent_pool, message_pool) = state_sync_to_fbs(fbb, msg)?;
-            let msg = crate::gen::sync_state_generated::StateSync::create(
+            let msg = flatbuffers_gen::sync_state_generated::StateSync::create(
                 fbb,
-                &crate::gen::sync_state_generated::StateSyncArgs {
+                &flatbuffers_gen::sync_state_generated::StateSyncArgs {
                     agent_pool: Some(agent_pool),
                     message_pool: Some(message_pool),
                     current_step: -1, // TODO: current_step shouldn't be propagated here
@@ -170,14 +170,14 @@ fn inbound_to_nng(
             );
             (
                 msg.as_union_value(),
-                crate::gen::runner_inbound_msg_generated::RunnerInboundMsgPayload::StateSync,
+                flatbuffers_gen::runner_inbound_msg_generated::RunnerInboundMsgPayload::StateSync,
             )
         }
         InboundToRunnerMsgPayload::StateSnapshotSync(msg) => {
             let (agent_pool, message_pool) = state_sync_to_fbs(fbb, msg)?;
-            let msg = crate::gen::sync_state_snapshot_generated::StateSnapshotSync::create(
+            let msg = flatbuffers_gen::sync_state_snapshot_generated::StateSnapshotSync::create(
                 fbb,
-                &crate::gen::sync_state_snapshot_generated::StateSnapshotSyncArgs {
+                &flatbuffers_gen::sync_state_snapshot_generated::StateSnapshotSyncArgs {
                     agent_pool: Some(agent_pool),
                     message_pool: Some(message_pool),
                     current_step: -1, // TODO: current_step shouldn't be propagated here
@@ -185,49 +185,49 @@ fn inbound_to_nng(
             );
             (
                 msg.as_union_value(),
-                crate::gen::runner_inbound_msg_generated::RunnerInboundMsgPayload::StateSnapshotSync,
+                flatbuffers_gen::runner_inbound_msg_generated::RunnerInboundMsgPayload::StateSnapshotSync,
             )
         }
         InboundToRunnerMsgPayload::ContextBatchSync(msg) => {
             let batch = msg.context_batch.read();
             let batch = batch_to_fbs(fbb, &batch);
-            let msg = crate::gen::sync_context_batch_generated::ContextBatchSync::create(
+            let msg = flatbuffers_gen::sync_context_batch_generated::ContextBatchSync::create(
                 fbb,
-                &crate::gen::sync_context_batch_generated::ContextBatchSyncArgs {
+                &flatbuffers_gen::sync_context_batch_generated::ContextBatchSyncArgs {
                     context_batch: Some(batch),
                     current_step: -1, // TODO: Should have current_step in ContextBatchSync
                 },
             );
             (
                 msg.as_union_value(),
-                crate::gen::runner_inbound_msg_generated::RunnerInboundMsgPayload::ContextBatchSync,
+                flatbuffers_gen::runner_inbound_msg_generated::RunnerInboundMsgPayload::ContextBatchSync,
             )
         }
         InboundToRunnerMsgPayload::StateInterimSync(msg) => {
             let msg = shared_store_to_fbs(fbb, &msg.shared_store);
             (
                 msg.as_union_value(),
-                crate::gen::runner_inbound_msg_generated::RunnerInboundMsgPayload::StateInterimSync,
+                flatbuffers_gen::runner_inbound_msg_generated::RunnerInboundMsgPayload::StateInterimSync,
             )
         }
         InboundToRunnerMsgPayload::TerminateSimulationRun => {
-            let msg = crate::gen::runner_inbound_msg_generated::TerminateSimulationRun::create(
+            let msg = flatbuffers_gen::runner_inbound_msg_generated::TerminateSimulationRun::create(
                 fbb,
-                &crate::gen::runner_inbound_msg_generated::TerminateSimulationRunArgs {},
+                &flatbuffers_gen::runner_inbound_msg_generated::TerminateSimulationRunArgs {},
             );
             (
                 msg.as_union_value(),
-                crate::gen::runner_inbound_msg_generated::RunnerInboundMsgPayload::TerminateSimulationRun,
+                flatbuffers_gen::runner_inbound_msg_generated::RunnerInboundMsgPayload::TerminateSimulationRun,
             )
         }
         InboundToRunnerMsgPayload::TerminateRunner => {
-            let msg = crate::gen::runner_inbound_msg_generated::TerminateRunner::create(
+            let msg = flatbuffers_gen::runner_inbound_msg_generated::TerminateRunner::create(
                 fbb,
-                &crate::gen::runner_inbound_msg_generated::TerminateRunnerArgs {},
+                &flatbuffers_gen::runner_inbound_msg_generated::TerminateRunnerArgs {},
             );
             (
                 msg.as_union_value(),
-                crate::gen::runner_inbound_msg_generated::RunnerInboundMsgPayload::TerminateRunner,
+                flatbuffers_gen::runner_inbound_msg_generated::RunnerInboundMsgPayload::TerminateRunner,
             )
         }
         InboundToRunnerMsgPayload::NewSimulationRun(msg) => {
@@ -247,19 +247,20 @@ fn inbound_to_nng(
             let agent_schema_bytes = fbb.create_vector(&agent_schema_bytes);
             let msg_schema_bytes = fbb.create_vector(&msg_schema_bytes);
             let ctx_schema_bytes = fbb.create_vector(&ctx_schema_bytes);
-            let datastore_init = crate::gen::new_simulation_run_generated::DatastoreInit::create(
-                fbb,
-                &crate::gen::new_simulation_run_generated::DatastoreInitArgs {
-                    agent_batch_schema: Some(agent_schema_bytes),
-                    message_batch_schema: Some(msg_schema_bytes),
-                    context_batch_schema: Some(ctx_schema_bytes),
-                    shared_context: Some(shared_ctx),
-                },
-            );
+            let datastore_init =
+                flatbuffers_gen::new_simulation_run_generated::DatastoreInit::create(
+                    fbb,
+                    &flatbuffers_gen::new_simulation_run_generated::DatastoreInitArgs {
+                        agent_batch_schema: Some(agent_schema_bytes),
+                        message_batch_schema: Some(msg_schema_bytes),
+                        context_batch_schema: Some(ctx_schema_bytes),
+                        shared_context: Some(shared_ctx),
+                    },
+                );
 
-            let msg = crate::gen::new_simulation_run_generated::NewSimulationRun::create(
+            let msg = flatbuffers_gen::new_simulation_run_generated::NewSimulationRun::create(
                 fbb,
-                &crate::gen::new_simulation_run_generated::NewSimulationRunArgs {
+                &flatbuffers_gen::new_simulation_run_generated::NewSimulationRunArgs {
                     sim_id: Some(_sim_id),
                     sid: msg.short_id,
                     properties: Some(globals),
@@ -269,14 +270,14 @@ fn inbound_to_nng(
             );
             (
                 msg.as_union_value(),
-                crate::gen::runner_inbound_msg_generated::RunnerInboundMsgPayload::NewSimulationRun,
+                flatbuffers_gen::runner_inbound_msg_generated::RunnerInboundMsgPayload::NewSimulationRun,
             )
         }
     };
 
-    let msg = crate::gen::runner_inbound_msg_generated::RunnerInboundMsg::create(
+    let msg = flatbuffers_gen::runner_inbound_msg_generated::RunnerInboundMsg::create(
         fbb,
-        &crate::gen::runner_inbound_msg_generated::RunnerInboundMsgArgs {
+        &flatbuffers_gen::runner_inbound_msg_generated::RunnerInboundMsgArgs {
             sim_sid: sim_id.unwrap_or(0),
             payload_type: msg_type,
             payload: Some(msg),
@@ -294,8 +295,8 @@ fn state_sync_to_fbs<'f>(
     fbb: &mut FlatBufferBuilder<'f>,
     msg: &StateSync,
 ) -> Result<(
-    WIPOffset<Vector<'f, ForwardsUOffset<crate::gen::batch_generated::Batch<'f>>>>,
-    WIPOffset<Vector<'f, ForwardsUOffset<crate::gen::batch_generated::Batch<'f>>>>,
+    WIPOffset<Vector<'f, ForwardsUOffset<flatbuffers_gen::batch_generated::Batch<'f>>>>,
+    WIPOffset<Vector<'f, ForwardsUOffset<flatbuffers_gen::batch_generated::Batch<'f>>>>,
 )> {
     let agent_pool = msg.agent_pool.read_batches()?;
     let agent_pool: Vec<_> = agent_pool
@@ -318,7 +319,7 @@ fn state_sync_to_fbs<'f>(
 fn shared_store_to_fbs<'f>(
     fbb: &mut FlatBufferBuilder<'f>,
     shared_store: &TaskSharedStore,
-) -> WIPOffset<crate::gen::sync_state_interim_generated::StateInterimSync<'f>> {
+) -> WIPOffset<flatbuffers_gen::sync_state_interim_generated::StateInterimSync<'f>> {
     let (agent_batches, msg_batches, indices) = match &shared_store.state {
         SharedState::None => (vec![], vec![], vec![]),
         SharedState::Read(state) => {
@@ -394,17 +395,17 @@ fn shared_store_to_fbs<'f>(
         agent_batches: Some(fbb.create_vector(&agent_batches)),
         message_batches: Some(fbb.create_vector(&msg_batches)),
     };
-    crate::gen::sync_state_interim_generated::StateInterimSync::create(fbb, &args)
+    flatbuffers_gen::sync_state_interim_generated::StateInterimSync::create(fbb, &args)
 }
 
 fn str_to_serialized<'f>(
     fbb: &mut FlatBufferBuilder<'f>,
     s: &str,
-) -> WIPOffset<crate::gen::serialized_generated::Serialized<'f>> {
+) -> WIPOffset<flatbuffers_gen::serialized_generated::Serialized<'f>> {
     let inner = fbb.create_vector(s.as_bytes());
-    crate::gen::serialized_generated::Serialized::create(
+    flatbuffers_gen::serialized_generated::Serialized::create(
         fbb,
-        &crate::gen::serialized_generated::SerializedArgs { inner: Some(inner) },
+        &flatbuffers_gen::serialized_generated::SerializedArgs { inner: Some(inner) },
     )
 }
 

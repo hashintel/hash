@@ -22,8 +22,7 @@ impl PackageCreator for Creator {
         match &config.exp.run.base().project_base.initial_state.name {
             InitialStateName::InitJson | InitialStateName::InitJs => Ok(Box::new(Package {
                 initial_state_src: config.exp.run.base().project_base.initial_state.src.clone(),
-            })
-                as Box<dyn InitPackage>),
+            })),
             name => {
                 return Err(Error::from(format!(
                     "Trying to create a JSON init package but the init file didn't end in .json: \

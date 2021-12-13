@@ -69,10 +69,7 @@ pub mod agent {
             let iterable = agent_batch.as_ref().json_values(field_name, data_type)?;
             iterables.push(iterable.into_iter());
         }
-        Ok(Box::new(iterables.into_iter().flatten())
-            as Box<
-                dyn Iterator<Item = serde_json::Value> + Send + Sync,
-            >)
+        Ok(Box::new(iterables.into_iter().flatten()))
     }
 
     /// Get the index of an agent in Context Batch

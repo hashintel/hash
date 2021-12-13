@@ -24,7 +24,7 @@ use crate::{
                 PackageCreator,
             },
             ext_traits::{GetWorkerExpStartMsg, GetWorkerSimStartMsg, MaybeCpuBound},
-            prelude::{ArrowArray, ContextPackage},
+            prelude::ContextPackage,
         },
         Result,
     },
@@ -99,7 +99,7 @@ struct Neighbors {
 
 impl Neighbors {
     fn neighbor_vec<'a>(
-        batches: &'a Vec<RwLockReadGuard<AgentBatch>>,
+        batches: &'a Vec<RwLockReadGuard<'_, AgentBatch>>,
     ) -> Result<Vec<NeighborRef<'a>>> {
         Ok(iterators::agent::position_iter(batches)?
             .zip(iterators::agent::index_iter(batches))
@@ -162,9 +162,6 @@ impl Package for Neighbors {
             .get_agent_scoped_field_spec("neighbors")?
             .to_key()?;
 
-        Ok(vec![(
-            field_key,
-            Arc::new(neighbors_builder.finish()) as Arc<dyn ArrowArray>,
-        )])
+        Ok(vec![(field_key, Arc::new(neighbors_builder.finish()))])
     }
 }

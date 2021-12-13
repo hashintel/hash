@@ -28,7 +28,7 @@ pub struct FlatBufferWrapper<'fbb> {
     finished_builder: FlatBufferBuilder<'fbb>,
 }
 
-impl<'fbb> FlatBufferWrapper<'fbb> {
+impl FlatBufferWrapper<'_> {
     pub fn len(&self) -> usize {
         self.finished_builder.finished_data().len()
     }
@@ -40,7 +40,7 @@ impl<'fbb> From<FlatBufferBuilder<'fbb>> for FlatBufferWrapper<'fbb> {
     }
 }
 
-impl<'fbb> AsRef<[u8]> for FlatBufferWrapper<'fbb> {
+impl AsRef<[u8]> for FlatBufferWrapper<'_> {
     fn as_ref(&self) -> &[u8] {
         self.finished_builder.finished_data()
     }

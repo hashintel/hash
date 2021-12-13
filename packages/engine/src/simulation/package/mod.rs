@@ -52,10 +52,7 @@ pub mod prelude {
 
 use serde::Serialize;
 
-use crate::{
-    gen,
-    simulation::package::{deps::Dependencies, id::PackageId},
-};
+use crate::simulation::package::{deps::Dependencies, id::PackageId};
 
 #[derive(Clone, Copy, Debug)]
 pub enum PackageType {
@@ -77,7 +74,7 @@ impl PackageType {
 }
 
 impl Serialize for PackageType {
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
@@ -85,13 +82,13 @@ impl Serialize for PackageType {
     }
 }
 
-impl From<PackageType> for gen::package_config_generated::PackageType {
+impl From<PackageType> for flatbuffers_gen::package_config_generated::PackageType {
     fn from(package_type: PackageType) -> Self {
         match package_type {
-            PackageType::Init => gen::package_config_generated::PackageType::Init,
-            PackageType::Context => gen::package_config_generated::PackageType::Context,
-            PackageType::State => gen::package_config_generated::PackageType::State,
-            PackageType::Output => gen::package_config_generated::PackageType::Output,
+            PackageType::Init => flatbuffers_gen::package_config_generated::PackageType::Init,
+            PackageType::Context => flatbuffers_gen::package_config_generated::PackageType::Context,
+            PackageType::State => flatbuffers_gen::package_config_generated::PackageType::State,
+            PackageType::Output => flatbuffers_gen::package_config_generated::PackageType::Output,
         }
     }
 }

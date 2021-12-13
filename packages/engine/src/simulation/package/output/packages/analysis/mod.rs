@@ -46,11 +46,7 @@ impl PackageCreator for Creator {
         Ok(Box::new(Analysis { analyzer }))
     }
 
-    fn persistence_config(
-        &self,
-        config: &ExperimentConfig,
-        _globals: &Globals,
-    ) -> Result<serde_json::Value> {
+    fn persistence_config(&self, config: &ExperimentConfig, _globals: &Globals) -> Result<Value> {
         let config = AnalysisOutputConfig::new(config)?;
         Ok(serde_json::to_value(config)?)
     }

@@ -215,7 +215,7 @@ impl<'mv8> Value<'mv8> {
         }
     }
 
-    pub(super) fn inner_ref(&self) -> Option<&Ref> {
+    pub(super) fn inner_ref(&self) -> Option<&Ref<'_>> {
         match *self {
             Value::Array(Array(ref r))
             | Value::Function(Function(ref r))
@@ -230,8 +230,8 @@ impl<'mv8> Value<'mv8> {
     }
 }
 
-impl<'mv8> fmt::Debug for Value<'mv8> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl fmt::Debug for Value<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Value::Undefined => write!(f, "undefined"),
             Value::Null => write!(f, "null"),

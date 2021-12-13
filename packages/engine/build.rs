@@ -1,5 +1,3 @@
-extern crate cc;
-
 fn main() {
     let v8 = std::env::var("V8_PATH")
         .expect("`V8_PATH` environment variable wasn't set, refer to README");

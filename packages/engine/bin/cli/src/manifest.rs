@@ -846,12 +846,12 @@ fn create_linspace_variant_plan(selected_experiment: &SerdeValue) -> Result<Simp
     let closure_var = var.clone();
     let mapper: Mapper = Box::new(move |_val, index| {
         let denominator = if closure_var.samples > 1.0 {
-            ((closure_var.samples - 1 as f64) as f64)
+            (closure_var.samples - 1 as f64) as f64
         } else {
             1.0
         };
-        let x = (closure_var.start
-            + (index as f64 * (closure_var.stop - closure_var.start)) / denominator);
+        let x = closure_var.start
+            + (index as f64 * (closure_var.stop - closure_var.start)) / denominator;
         x.into()
     });
 

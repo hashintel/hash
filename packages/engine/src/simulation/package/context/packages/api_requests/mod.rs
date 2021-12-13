@@ -174,7 +174,7 @@ impl Package for ApiRequests {
 
         Ok(vec![(
             field_key,
-            Arc::new(api_response_list_builder.finish()) as Arc<dyn ArrowArray>,
+            Arc::new(api_response_list_builder.finish()),
         )])
     }
 }
