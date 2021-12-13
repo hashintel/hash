@@ -107,6 +107,18 @@ export class ProsemirrorSchemaManager {
     }
 
     const spec = createComponentNodeSpec({
+      // @todo need to deal with copying out formatted text + hard breaks
+      //  (though pasting these back in works already)
+      toDOM: (node) => {
+        if (node.type.isTextblock) {
+          // @todo encode the hash type
+          return ["span", {}, 0];
+        } else {
+          // @todo check this
+          return [];
+        }
+      },
+
       /**
        * Currently we detect whether a block takes editable text by detecting if
        * it has an editableRef prop in its schema – we need a more sophisticated
