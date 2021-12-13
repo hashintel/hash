@@ -14,6 +14,10 @@ impl SimulationRuns {
         self.inner.push(handle);
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.inner.is_empty()
+    }
+
     pub async fn next(&mut self) -> Result<Option<Result<SimulationShortId>>>
     where
         Self: Unpin,
