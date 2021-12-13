@@ -9,7 +9,7 @@ use std::{
 use crate::{
     datastore::error::{Error, Result},
     hash_types::state::AgentStateField,
-    simulation::package::{creator::PREVIOUS_INDEX_FIELD_NAME, name::PackageName},
+    simulation::package::name::PackageName,
 };
 
 pub mod accessor;
@@ -20,6 +20,7 @@ pub mod short_json;
 
 pub const HIDDEN_PREFIX: &str = "_HIDDEN_";
 pub const PRIVATE_PREFIX: &str = "_PRIVATE_";
+pub const PREVIOUS_INDEX_FIELD_NAME: &str = "previous_index";
 
 // TODO: better encapsulate the supported underlying field types, and the selection of those that
 //   we expose to the user compared to this thing where we have a variant and an 'extension'. So
