@@ -13,13 +13,11 @@
     non_ascii_idents,
     noop_method_call,
     pointer_structural_match,
-    // Do we want this?
-    // unsafe_op_in_unsafe_fn,
     unused_crate_dependencies,
     unused_extern_crates,
     unused_import_braces,
     unused_lifetimes,
-    unused_qualifications,
+    unused_qualifications
 )]
 
 pub mod config;
