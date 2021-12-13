@@ -20,6 +20,7 @@ pub mod short_json;
 
 pub const HIDDEN_PREFIX: &str = "_HIDDEN_";
 pub const PRIVATE_PREFIX: &str = "_PRIVATE_";
+pub const PREVIOUS_INDEX_FIELD_NAME: &str = "previous_index";
 
 // TODO: better encapsulate the supported underlying field types, and the selection of those that
 //   we expose to the user compared to this thing where we have a variant and an 'extension'. So
@@ -172,6 +173,36 @@ pub struct FieldSpec {
     pub field_type: FieldType,
 }
 
+impl FieldSpec {
+    /// This key is required for accessing neighbors' outboxes (new inboxes).
+    /// Since the neighbor agent state is always the previous step state of the
+    /// agent, then we need to know where its outbox is. This would be
+    /// straightforward if we didn't add/remove/move agents between batches.
+    /// This means `AgentBatch` ordering gets changed at the beginning of the step
+    /// meaning agents are not aligned with their `OutboxBatch` anymore.
+    #[must_use]
+    // TODO: migrate this to be logic handled by the Engine
+    pub fn last_state_index_key() -> FieldSpec {
+        // There are 2 indices for every agent: 1) Group index 2) Row (agent) index. This points
+        // to the relevant old outbox (i.e. new inbox)
+        FieldSpec {
+            name: PREVIOUS_INDEX_FIELD_NAME.to_string(),
+            field_type: FieldType::new(
+                FieldTypeVariant::FixedLengthArray {
+                    kind: Box::new(FieldType::new(
+                        FieldTypeVariant::Preset(PresetFieldType::Uint32),
+                        false,
+                    )),
+                    len: 2,
+                },
+                // This key is nullable because new agents
+                // do not get an index (their outboxes are empty by default)
+                true,
+            ),
+        }
+    }
+}
+
 /// A single specification of a root field, for instance in the case of a struct field it's the top
 /// level struct field and the children are all FieldSpec
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -196,8 +227,8 @@ impl RootFieldSpec {
 /// data columns mapped to the specification of those fields
 #[derive(Debug, Clone, Default, Eq, PartialEq)]
 pub struct FieldSpecMap {
-    field_specs: HashMap<FieldKey, RootFieldSpec>, /* a mapping of field unique identifiers to
-                                                    * the fields themselves */
+    // a mapping of field unique identifiers to the fields themselves
+    field_specs: HashMap<FieldKey, RootFieldSpec>,
 }
 
 impl FieldSpecMap {
@@ -381,7 +412,7 @@ pub mod tests {
                 FieldScope::Agent,
             ))
             .unwrap_err();
-        assert!(matches!(err, Error::FieldKeyClash(..)))
+        assert!(matches!(err, Error::FieldKeyClash(..)));
     }
 
     #[test]
