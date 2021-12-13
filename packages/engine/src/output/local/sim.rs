@@ -41,12 +41,10 @@ impl SimulationOutputPersistenceRepr for LocalSimulationOutputPersistence {
         log::trace!("Finalizing output");
         // JSON state
         let (_, parts) = self.buffers.json_state.finalize()?;
-        let mut path = self.config.output_folder.clone();
-
-        path.join(&self.exp_id);
+        let path = self.config.output_folder.clone().join(&self.exp_id);
 
         log::trace!("Making new output directory directory: {:?}", path);
-        std::fs::create_dir(&path)?;
+        std::fs::create_dir_all(&path)?;
 
         parts.into_iter().try_for_each(|v| -> Result<()> {
             let mut new = path.clone();

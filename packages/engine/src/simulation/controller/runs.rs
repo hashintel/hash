@@ -1,4 +1,4 @@
-use futures::stream::{FuturesOrdered, StreamExt};
+use futures::stream::{FusedStream, FuturesOrdered, StreamExt};
 use tokio::task::JoinHandle;
 
 use super::Result;
@@ -12,6 +12,10 @@ pub struct SimulationRuns {
 impl SimulationRuns {
     pub fn new_run(&mut self, handle: JoinHandle<Result<SimulationShortId>>) {
         self.inner.push(handle);
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.inner.is_empty()
     }
 
     pub async fn next(&mut self) -> Result<Option<Result<SimulationShortId>>>

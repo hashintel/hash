@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use super::{
     comms::{
@@ -303,6 +303,11 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
 impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
     pub async fn run(mut self) -> Result<()> {
         let mut terminate_recv = self.terminate_recv.take_recv()?;
+
+        let mut waiting_for_completion = None;
+        let mut time_to_wait = 1;
+        const WAITING_MULTIPLIER: u64 = 3;
+
         loop {
             tokio::select! {
                 Some(msg) = self.experiment_package_comms.ctl_recv.recv() => {
@@ -312,6 +317,13 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
                 result = self.sim_run_tasks.next() => {
                     if let Some(result) = result.map_err(|_| Error::from("Couldn't join `sim_run_tasks.next()`"))? {
                         self.handle_sim_run_stop(result?).await?;
+
+                        if self.sim_run_tasks.is_empty() && waiting_for_completion.is_some() {
+                            log::debug!("Stopping experiment controller");
+                            return Ok(())
+                        }
+
+                        log::trace!("There was a result from a sim run but: self.sim_run_tasks.is_empty(): {}, waiting_for_completion.is_some(): {} so continuing", self.sim_run_tasks.is_empty(), waiting_for_completion.is_some());
                     }
                 }
                 Some(msg) = self.sim_status_recv.recv() => {
@@ -325,10 +337,22 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
                 Ok(msg) = self.env.orch_listener.recv::<EngineMsg>() => {
                     self.handle_orch_msg(msg).await?;
                 }
-                terminate_res = &mut terminate_recv => {
+                terminate_res = &mut terminate_recv, if waiting_for_completion.is_none() => {
                     terminate_res.map_err(|err| Error::from(format!("Couldn't receive terminate: {:?}", err)))?;
-                    log::debug!("Stopping experiment controller");
-                    return Ok(())
+                    log::trace!("Received terminate message");
+
+                    if self.sim_run_tasks.is_empty() {
+                        log::debug!("Stopping experiment controller");
+                        return Ok(())
+                    } else {
+                        log::trace!("sim_run_tasks wasn't empty, starting a wait and warn loop");
+                        waiting_for_completion = Some(Box::pin(tokio::time::sleep(Duration::from_secs(1))));
+                    }
+                }
+                _ = async { waiting_for_completion.as_mut().expect("must be some").await }, if waiting_for_completion.is_some() => {
+                    log::warn!("Experiment Controller received a termination message, waiting {} seconds for sim run tasks to complete", time_to_wait);
+                    time_to_wait *= WAITING_MULTIPLIER;
+                    waiting_for_completion = Some(Box::pin(tokio::time::sleep(Duration::from_secs(time_to_wait))));
                 }
             }
         }
